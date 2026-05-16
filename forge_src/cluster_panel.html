@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CESAROPS | Cluster Control</title>
+    <style>
+        :root {
+            --bg: #0f0f1a; --card-bg: #1a1a2e; --accent: #00d4ff;
+            --success: #4caf50; --warning: #ff9800; --danger: #ff4b2b;
+            --text: #e0e0e0; --text-dim: #a0a0a0; --border: #2d2d44;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 14px; }
+        h1 { font-size: 1.4rem; letter-spacing: 2px; color: var(--accent); }
+        h2 { font-size: 1rem; color: var(--warning); margin: 20px 0 10px; text-transform: uppercase; letter-spacing: 1px; }
+        a.back { color: var(--accent); text-decoration: none; font-size: 0.9rem; }
+        .container { max-width: 1300px; margin: 0 auto; }
+        /* Cards */
+        .worker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; margin-bottom: 30px; }
+        .card { background: var(--card-bg); border: 2px solid var(--border); border-radius: 12px; padding: 18px; transition: border-color 0.2s; }
+        .card.selected { border-color: var(--accent); }
+        .card.group-1 { border-color: #00d4ff; box-shadow: 0 0 8px rgba(0,212,255,0.2); }
+        .card.group-2 { border-color: #4caf50; box-shadow: 0 0 8px rgba(76,175,80,0.2); }
+        .card.group-3 { border-color: #ff9800; box-shadow: 0 0 8px rgba(255,152,0,0.2); }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+        .card-title { font-size: 1.1rem; font-weight: bold; color: var(--accent); }
+        .card-role { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; }
+        .control-group { margin-bottom: 12px; }
+        .control-label { display: block; font-size: 0.72rem; color: var(--text-dim); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+        select { width: 100%; background: #0f0f1a; color: white; border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; font-size: 0.9rem; }
+        select:focus { outline: none; border-color: var(--accent); }
+        /* Pill toggle */
+        .pill-toggle { display: flex; gap: 4px; }
+        .pill { padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; cursor: pointer; background: #0f0f1a; border: 1px solid var(--border); color: var(--text-dim); transition: all 0.15s; }
+        .pill.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+        .pill.active.cuda { background: #76b900; border-color: #76b900; }
+        .pill.active.vulkan { background: var(--accent); }
+        .pill.active.cpu { background: var(--warning); border-color: var(--warning); color: var(--bg); }
+        /* Toggle switch */
+        .toggle-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .switch { position: relative; display: inline-block; width: 42px; height: 22px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; inset: 0; background: #333; border-radius: 22px; transition: 0.3s; }
+        .slider:before { content: ""; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; }
+        input:checked + .slider { background: var(--accent); }
+        input:checked + .slider:before { transform: translateX(20px); }
+        /* Buttons */
+        .btn-row { display: flex; gap: 8px; margin-top: 12px; }
+        button { padding: 7px 14px; border: none; border-radius: 7px; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: opacity 0.15s; }
+        button:hover { opacity: 0.85; }
+        .btn-start { background: var(--success); color: white; }
+        .btn-stop  { background: var(--danger);  color: white; }
+        .btn-apply { width: 100%; background: var(--accent); color: var(--bg); margin-top: 10px; padding: 9px; }
+        .btn-secondary { background: #2d2d44; color: var(--text); }
+        /* Memory pool */
+        .pool-section { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 20px; }
+        .pool-controls { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+        .pool-controls input { flex: 1; background: #0f0f1a; border: 1px solid var(--border); color: white; padding: 6px 10px; border-radius: 6px; font-size: 0.9rem; }
+        .pool-list { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; min-height: 28px; }
+        .pool-tag { background: var(--accent); color: var(--bg); padding: 3px 12px; border-radius: 14px; font-size: 0.8rem; font-weight: bold; display: flex; align-items: center; gap: 6px; }
+        .pool-tag span { cursor: pointer; font-size: 1rem; line-height: 1; }
+        /* Corrector panel */
+        .corrector-panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 20px; }
+        .collapsible-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
+        .collapsible-content { margin-top: 14px; }
+        .function-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .function-row:last-child { border-bottom: none; }
+        .function-desc { font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; }
+        /* GPU bars */
+        .gpu-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+        .gpu-bar { background: #0f0f1a; border-radius: 4px; height: 8px; margin-top: 6px; overflow: hidden; }
+        .gpu-bar-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width 1s; }
+        /* Node grid */
+        .node-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .node-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+        .node-card.online { border-color: var(--success); }
+        .node-card.offline { opacity: 0.5; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .dot-green { background: var(--success); box-shadow: 0 0 5px var(--success); }
+        .dot-red { background: var(--danger); }
+        /* Log */
+        .log-box { background: #0a0a14; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.82rem; height: 140px; overflow-y: auto; color: #aaa; }
+        /* Status */
+        .status-badge { padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; }
+        .badge-online { background: rgba(76,175,80,0.2); color: var(--success); border: 1px solid var(--success); }
+        .badge-offline { background: rgba(255,75,43,0.2); color: var(--danger); border: 1px solid var(--danger); }
+    </style>
+</head>
+<body>
+<div class="container">
+<header>
+    <h1>CESAROPS <span style="font-weight:100;font-size:0.8rem;color:var(--text-dim)">CLUSTER CONTROL</span></h1>
+    <div style="display:flex;gap:12px;align-items:center">
+        <span id="global-status" class="status-badge badge-online">ONLINE</span>
+        <a class="back" href="/">← Forge Chat</a>
+    </div>
+</header>
+
+<!-- ── Memory Pool ─────────────────────────────────────────────────────── -->
+<h2>Memory Pools</h2>
+<div class="pool-section">
+    <div style="font-size:0.85rem;color:var(--text-dim)">
+        Select cards below (checkbox) then create a pool. Pooled workers share KV cache and context.
+    </div>
+    <div class="pool-list" id="pool-list"></div>
+    <div class="pool-controls">
+        <input type="text" id="new-pool-name" placeholder="Pool name (e.g. sar-team)" aria-label="New pool name">
+        <button class="btn-secondary" onclick="createMemoryPool()">Group Selected</button>
+    </div>
+</div>
+
+<!-- ── Worker Cards ───────────────────────────────────────────────────── -->
+<h2>Workers</h2>
+<div class="worker-grid" id="worker-grid"></div>
+
+<!-- ── Corrector Engine Config ───────────────────────────────────────── -->
+<h2>Corrector Engine</h2>
+<div class="corrector-panel">
+    <div class="collapsible-header" onclick="toggleCorrector()" aria-expanded="false" id="corr-header">
+        <div style="font-weight:bold;color:var(--accent)">CORRECTOR FUNCTIONS</div>
+        <div id="corr-arrow" style="color:var(--text-dim)">▼ expand</div>
+    </div>
+    <div class="collapsible-content" id="corr-content" style="display:none">
+        <div style="font-size:0.82rem;color:var(--text-dim);margin-bottom:10px">
+            Controls what the corrector does when the main model produces bad output.
+            Cascade order: marvin-14b → picasso-tiny (P1000) → laptop-tiny (M2200)
+        </div>
+        <div id="corr-functions"></div>
+    </div>
+</div>
+
+<!-- ── GPU Status ─────────────────────────────────────────────────────── -->
+<h2>Local GPUs</h2>
+<div id="gpu-status"></div>
+
+<!-- ── Network Nodes ─────────────────────────────────────────────────── -->
+<h2>Network Nodes <span id="disc-spinner" style="display:none;color:var(--text-dim)">⟳</span></h2>
+<div class="node-grid" id="node-grid"></div>
+
+<!-- ── Activity Log ──────────────────────────────────────────────────── -->
+<h2>Activity Log</h2>
+<div class="log-box" id="log">Ready.</div>
+
+</div><!-- /container -->
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let workers = [];
+let pools = [];
+let engines = { available: [], per_node: {} };
+let selectedIds = new Set();
+let correctorOpen = false;
+
+const CORRECTOR_FUNCTIONS = [
+    { id: 'json_fixer',    label: 'JSON Fixer',    desc: 'Fixes malformed tool call JSON from main model' },
+    { id: 'loop_detector', label: 'Loop Detector', desc: 'Judges whether repeated tool calls are justified' },
+    { id: 'translator',    label: 'Translator',    desc: 'Translates between model output formats' },
+    { id: 'think_harder',  label: 'Think Harder',  desc: 'Corrector invokes nautivecs+web search before fixing' },
+    { id: 'auto_remember', label: 'Auto-Remember', desc: 'Saves successful fixes to nautivecs vector DB' },
+];
+
+// ── Init ───────────────────────────────────────────────────────────────────
+async function init() {
+    await Promise.all([fetchEngines(), fetchConfig()]);
+    render();
+    refreshGpus();
+    refreshNodes();
+    setInterval(refreshGpus, 15000);
+    setInterval(refreshNodes, 30000);
+}
+
+async function fetchEngines() {
+    try {
+        const r = await fetch('/cluster/engines');
+        engines = await r.json();
+    } catch(e) {
+        engines = { available: ['koboldcpp', 'cesarops-inference'], per_node: {} };
+    }
+}
+
+async function fetchConfig() {
+    try {
+        const r = await fetch('/cluster/config');
+        const d = await r.json();
+        workers = d.workers || defaultWorkers();
+        pools   = d.pools   || [];
+    } catch(e) {
+        workers = defaultWorkers();
+        pools = [];
+    }
+}
+
+function defaultWorkers() {
+    return [
+        { name:'Coder',     role:'code',      node_ip:'127.0.0.1',       port:5001, engine:'koboldcpp', backend:'vulkan', inject_vectors:true,  memory_pool:'', model:'', corrector_functions:{json_fixer:true,loop_detector:true,translator:true,think_harder:false,auto_remember:true} },
+        { name:'Thinker',   role:'think',     node_ip:'100.105.77.74',   port:5100, engine:'koboldcpp', backend:'vulkan', inject_vectors:true,  memory_pool:'', model:'' },
+        { name:'Corrector', role:'correct',   node_ip:'100.102.158.111', port:5555, engine:'koboldcpp', backend:'cuda',   inject_vectors:false, memory_pool:'', model:'', corrector_functions:{json_fixer:true,loop_detector:true,translator:true,think_harder:false,auto_remember:true} },
+        { name:'Validator', role:'validate',  node_ip:'100.102.158.111', port:5571, engine:'koboldcpp', backend:'cuda',   inject_vectors:false, memory_pool:'', model:'' },
+        { name:'Bootstrap', role:'bootstrap', node_ip:'127.0.0.1',       port:5002, engine:'cesarops-inference', backend:'cpu', inject_vectors:false, memory_pool:'', model:'' },
+    ];
+}
+
+// ── API helpers ────────────────────────────────────────────────────────────
+async function api(url, body) {
+    try {
+        const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        return r.json();
+    } catch(e) { log('API error: ' + e.message); return {}; }
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function render() {
+    renderPools();
+    renderWorkers();
+    renderCorrectorFunctions();
+}
+
+function renderPools() {
+    document.getElementById('pool-list').innerHTML = pools.map(p =>
+        `<div class="pool-tag">${p.name}
+            <span onclick="deletePool('${p.name}')" title="Remove pool">×</span>
+         </div>`
+    ).join('') || '<span style="color:var(--text-dim);font-size:0.82rem">No pools yet</span>';
+}
+
+function renderWorkers() {
+    document.getElementById('worker-grid').innerHTML = workers.map(w => {
+        const sel = selectedIds.has(w.name);
+        const poolIdx = pools.findIndex(p => p.name === w.memory_pool);
+        const poolClass = poolIdx >= 0 ? `group-${(poolIdx % 3) + 1}` : '';
+        const nodeEngines = engines.per_node?.[w.node_ip] || engines.available || ['koboldcpp'];
+        const isLocal = w.node_ip === '127.0.0.1';
+        const isBootstrap = w.role === 'bootstrap';
+
+        return `<div class="card ${sel ? 'selected' : ''} ${poolClass}" id="card-${w.name}">
+  <div class="card-header">
+    <div style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" ${sel ? 'checked' : ''} aria-label="Select ${w.name} for pool"
+             onchange="toggleSelect('${w.name}', this.checked)" style="width:16px;height:16px">
+      <div>
+        <div class="card-title">${w.name}</div>
+        <div class="card-role">${w.role} · ${w.node_ip}:${w.port}</div>
+      </div>
+    </div>
+    <span id="status-${w.name}" class="status-badge badge-offline">?</span>
+  </div>
+
+  <div class="control-group">
+    <label class="control-label" for="engine-${w.name}">Inference Engine</label>
+    <select id="engine-${w.name}" aria-label="${w.name} engine"
+            onchange="updateField('${w.name}','engine',this.value)">
+      ${nodeEngines.map(e => `<option value="${e}" ${w.engine===e?'selected':''}>${e}</option>`).join('')}
+      ${isBootstrap ? `<option value="cpu-only" ${w.engine==='cpu-only'?'selected':''}>cpu-only</option>` : ''}
+    </select>
+  </div>
+
+  <div class="control-group">
+    <label class="control-label">Backend</label>
+    <div class="pill-toggle" role="group" aria-label="${w.name} backend">
+      <div class="pill cuda ${w.backend==='cuda'?'active':''}"
+           onclick="setBackend('${w.name}','cuda')" role="button" aria-pressed="${w.backend==='cuda'}">CUDA</div>
+      <div class="pill vulkan ${w.backend==='vulkan'?'active':''}"
+           onclick="setBackend('${w.name}','vulkan')" role="button" aria-pressed="${w.backend==='vulkan'}">VULKAN</div>
+      ${isLocal ? `<div class="pill cpu ${w.backend==='cpu'?'active':''}"
+           onclick="setBackend('${w.name}','cpu')" role="button" aria-pressed="${w.backend==='cpu'}">CPU</div>` : ''}
+    </div>
+  </div>
+
+  <div class="control-group">
+    <div class="toggle-row">
+      <div>
+        <div class="control-label" style="margin:0">Vector Injection</div>
+        <div style="font-size:0.75rem;color:var(--text-dim)">Inject nautivecs context into prompts</div>
+      </div>
+      <label class="switch" aria-label="Vector injection for ${w.name}">
+        <input type="checkbox" ${w.inject_vectors?'checked':''} onchange="setInjection('${w.name}',this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  ${w.memory_pool ? `<div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:8px">Pool: <strong style="color:var(--accent)">${w.memory_pool}</strong></div>` : ''}
+
+  <div class="btn-row">
+    <button class="btn-start" onclick="startWorker('${w.name}')" aria-label="Start ${w.name}">START</button>
+    <button class="btn-stop"  onclick="stopWorker('${w.name}')"  aria-label="Stop ${w.name}">STOP</button>
+  </div>
+  <button class="btn-apply" onclick="applyWorker('${w.name}')" aria-label="Apply ${w.name} settings">APPLY CHANGES</button>
+</div>`;
+    }).join('');
+
+    // Ping each worker
+    workers.forEach(w => pingWorker(w));
+}
+
+function renderCorrectorFunctions() {
+    const corrector = workers.find(w => w.role === 'correct');
+    const funcs = corrector?.corrector_functions || {};
+    document.getElementById('corr-functions').innerHTML = CORRECTOR_FUNCTIONS.map(f => `
+        <div class="function-row">
+            <div>
+                <div style="font-size:0.9rem">${f.label}</div>
+                <div class="function-desc">${f.desc}</div>
+            </div>
+            <label class="switch" aria-label="${f.label}">
+                <input type="checkbox" ${funcs[f.id]!==false?'checked':''}
+                       onchange="setCorrectorFunc('${f.id}',this.checked)">
+                <span class="slider"></span>
+            </label>
+        </div>`).join('');
+}
+
+// ── Worker actions ─────────────────────────────────────────────────────────
+function updateField(name, field, val) {
+    const w = workers.find(x => x.name === name);
+    if (w) w[field] = val;
+}
+
+async function setBackend(name, backend) {
+    updateField(name, 'backend', backend);
+    await api(`/cluster/worker/${encodeURIComponent(name)}/set_backend`, { backend });
+    render();
+    log(`${name}: backend → ${backend}`);
+}
+
+async function setInjection(name, enabled) {
+    updateField(name, 'inject_vectors', enabled);
+    await api(`/cluster/worker/${encodeURIComponent(name)}/set_injection`, { enabled });
+    log(`${name}: vector injection → ${enabled ? 'ON' : 'OFF'}`);
+}
+
+async function applyWorker(name) {
+    const w = workers.find(x => x.name === name);
+    const result = await api(`/cluster/worker/${encodeURIComponent(name)}/apply`, w);
+    log(`${name}: applied — ${result.message || 'ok'}`);
+}
+
+async function startWorker(name) {
+    const result = await api(`/cluster/worker/${encodeURIComponent(name)}/start`, {});
+    log(`${name}: start — ${result.message || 'ok'}`);
+    setTimeout(() => pingWorker(workers.find(w => w.name === name)), 3000);
+}
+
+async function stopWorker(name) {
+    const result = await api(`/cluster/worker/${encodeURIComponent(name)}/stop`, {});
+    log(`${name}: stop — ${result.message || 'ok'}`);
+    document.getElementById(`status-${name}`)?.classList.replace('badge-online', 'badge-offline');
+}
+
+async function setCorrectorFunc(func, enabled) {
+    await api('/cluster/corrector/set_function', { function: func, enabled });
+    const corrector = workers.find(w => w.role === 'correct');
+    if (corrector) {
+        if (!corrector.corrector_functions) corrector.corrector_functions = {};
+        corrector.corrector_functions[func] = enabled;
+    }
+    log(`Corrector: ${func} → ${enabled ? 'ON' : 'OFF'}`);
+}
+
+// ── Memory pools ───────────────────────────────────────────────────────────
+function toggleSelect(name, checked) {
+    if (checked) selectedIds.add(name); else selectedIds.delete(name);
+    render();
+}
+
+async function createMemoryPool() {
+    const name = document.getElementById('new-pool-name').value.trim();
+    if (!name) { log('Enter a pool name first'); return; }
+    const members = Array.from(selectedIds);
+    if (members.length < 2) { log('Select at least 2 workers to pool'); return; }
+    await api('/cluster/memory_pool/create', { name, members });
+    pools.push({ name, members });
+    members.forEach(m => updateField(m, 'memory_pool', name));
+    selectedIds.clear();
+    document.getElementById('new-pool-name').value = '';
+    render();
+    log(`Pool "${name}" created: [${members.join(', ')}]`);
+}
+
+async function deletePool(name) {
+    pools = pools.filter(p => p.name !== name);
+    workers.forEach(w => { if (w.memory_pool === name) w.memory_pool = ''; });
+    render();
+    log(`Pool "${name}" removed`);
+}
+
+// ── Corrector panel toggle ─────────────────────────────────────────────────
+function toggleCorrector() {
+    correctorOpen = !correctorOpen;
+    document.getElementById('corr-content').style.display = correctorOpen ? 'block' : 'none';
+    document.getElementById('corr-arrow').textContent = correctorOpen ? '▲ collapse' : '▼ expand';
+    document.getElementById('corr-header').setAttribute('aria-expanded', correctorOpen);
+}
+
+// ── GPU monitor ────────────────────────────────────────────────────────────
+async function refreshGpus() {
+    try {
+        const r = await fetch('/monitor');
+        const d = await r.json();
+        const gpus = d.gpus || [];
+        document.getElementById('gpu-status').innerHTML = gpus.length ? gpus.map(g => {
+            const pct = g.memory_total_mb > 0 ? Math.round(g.memory_used_mb / g.memory_total_mb * 100) : 0;
+            return `<div class="gpu-card">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                    <strong>GPU ${g.index}: ${g.name}</strong>
+                    <span style="color:var(--text-dim);font-size:0.82rem">${g.temperature_c}°C · ${g.utilization_pct}% · ${g.power_draw_w}W</span>
+                </div>
+                <div style="font-size:0.82rem;color:var(--text-dim);margin-top:4px">VRAM: ${g.memory_used_mb}MB / ${g.memory_total_mb}MB (${pct}%)</div>
+                <div class="gpu-bar"><div class="gpu-bar-fill" style="width:${pct}%"></div></div>
+            </div>`;
+        }).join('') : '<div style="color:var(--text-dim);font-size:0.85rem">No GPU data</div>';
+    } catch(e) {}
+}
+
+// ── Node discovery ─────────────────────────────────────────────────────────
+async function refreshNodes() {
+    document.getElementById('disc-spinner').style.display = 'inline';
+    try {
+        const r = await fetch('/cluster/discover');
+        const nodes = await r.json();
+        document.getElementById('node-grid').innerHTML = nodes.map(n => `
+            <div class="node-card ${n.online ? 'online' : 'offline'}">
+                <div style="display:flex;align-items:center;margin-bottom:4px">
+                    <span class="dot ${n.online ? 'dot-green' : 'dot-red'}"></span>
+                    <strong style="font-size:0.9rem">${n.name}</strong>
+                </div>
+                <div style="font-size:0.78rem;color:var(--text-dim)">${n.ip}</div>
+                ${n.gpu ? `<div style="font-size:0.78rem;color:var(--accent);margin-top:3px">${n.gpu}</div>` : ''}
+                <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">
+                    ${(n.ports||[]).map(p => `<span style="font-size:0.72rem;color:${p.online?'var(--success)':'#555'}">:${p.port}${p.online?'✓':'✗'}</span>`).join('')}
+                </div>
+            </div>`).join('');
+    } catch(e) {}
+    document.getElementById('disc-spinner').style.display = 'none';
+}
+
+// ── Worker ping ────────────────────────────────────────────────────────────
+async function pingWorker(w) {
+    if (!w) return;
+    const el = document.getElementById(`status-${w.name}`);
+    if (!el) return;
+    try {
+        const url = `http://${w.node_ip}:${w.port}/v1/models`;
+        const r = await fetch(url, { signal: AbortSignal.timeout(3000) });
+        if (r.ok) {
+            el.textContent = 'ONLINE';
+            el.className = 'status-badge badge-online';
+        } else throw new Error();
+    } catch(e) {
+        el.textContent = 'OFFLINE';
+        el.className = 'status-badge badge-offline';
+    }
+}
+
+// ── Log ────────────────────────────────────────────────────────────────────
+function log(msg) {
+    const el = document.getElementById('log');
+    const t = new Date().toLocaleTimeString();
+    el.textContent = `[${t}] ${msg}\n` + el.textContent;
+}
+
+window.onload = init;
+</script>
+</body>
+</html>

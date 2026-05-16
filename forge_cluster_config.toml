@@ -1,0 +1,179 @@
+# Cluster Configuration — managed by web UI
+# Anything we can't handle natively falls back to KoboldCPP
+
+[bootstrap]
+model = "/codebase/models/qwen2.5-coder-1.5b-instruct-q6_k.gguf"
+port = 5002
+backend = "cpu"
+template = "qwen2.5"
+
+[fallback]
+# KoboldCPP handles formats we don't support (MXFP4, GGML v1, etc.)
+enabled = true
+binary = "/home/cesarops/koboldcpp"
+port = 5001
+# Supported native quant types (everything else goes to koboldcpp)
+native_quants = ["Q4_0", "Q4_K_M", "Q6_K", "Q8_0", "F16", "F32", "BF16"]
+
+[[gpu]]
+id = 0
+name = "P100 #1"
+bus_id = "5E:00.0"
+vram_mb = 16384
+host = "local"
+
+[[gpu]]
+id = 1
+name = "P100 #2"
+bus_id = "AF:00.0"
+vram_mb = 16384
+host = "local"
+
+[[gpu]]
+id = 2
+name = "GTX 1060"
+vram_mb = 6144
+host = "100.105.77.74"
+port_base = 5570
+
+[[worker]]
+name = "Thinker"
+role = "think"
+gpu = 0
+model = "/codebase/models/Qwen2.5-Coder-7B-Instruct-abliterated-Q8_0.gguf"
+port = 5010
+template = "qwen2.5"
+enabled = true
+engine = "koboldcpp"
+backend = "vulkan"
+inject_vectors = true
+memory_pool = ""
+
+[[worker]]
+name = "Coder"
+role = "code"
+gpu = 1
+model = "/codebase/models/Qwen2.5-Coder-14B-Instruct-abliterated-Q6_K.gguf"
+port = 5011
+template = "qwen2.5"
+enabled = false
+engine = "koboldcpp"
+backend = "vulkan"
+inject_vectors = true
+memory_pool = ""
+
+[[worker]]
+name = "Scout"
+role = "general"
+gpu = 2
+model = ""
+port = 5570
+template = "qwen2.5"
+enabled = false
+host = "100.105.77.74"
+engine = "koboldcpp"
+backend = "vulkan"
+inject_vectors = true
+memory_pool = ""
+
+[models_dir]
+path = "/codebase/models"
+
+# Nodes to poll for availability (Tailscale IPs)
+# The forge probes these on /health every 30s to see who's online
+[[known_nodes]]
+name = "T440 (local)"
+ip = "127.0.0.1"
+gpu = "2x P100 16GB"
+ports = [5002, 5010, 5011, 8090]
+
+[[known_nodes]]
+name = "Cesarops2 (1070 + P1000)"
+ip = "100.102.158.111"
+gpu = "GTX 1070 8GB + Quadro P1000 4GB"
+ports = [5200, 5571]
+notes = "5200=DeepSeek-Coder-V2-Lite (1070+P1000 split), 5571=TinyLlama validator (P1000 only)"
+
+[[known_nodes]]
+name = "Cesarops3 (1060)"
+ip = "100.105.77.74"
+gpu = "GTX 1060 6GB"
+ports = [5570]
+
+[[known_nodes]]
+name = "Nautik9 ThinkPad (M2200)"
+ip = "100.110.214.86"
+gpu = "Quadro M2200 4GB (Maxwell CUDA 5.0)"
+ports = [5571, 5572]
+notes = "Windows — needs koboldcpp launched manually via scripts/launch_laptop_m2200.sh"
+
+# Agent nicknames — human-friendly names mapped to endpoints
+# Use these in the forge chat: "ask scout to review this" or "delegate to marvin"
+[[agent]]
+name = "moe"
+endpoint = "http://127.0.0.1:5001"
+hardware = "P100 #0+#1 (T440)"
+role = "Main coder"
+model = "Qwen3.6-35B"
+
+[[agent]]
+name = "marvin"
+endpoint = "http://100.102.158.111:5555"
+hardware = "GTX 1070 (cesarops2)"
+role = "Corrector/Reviewer"
+model = "14B Coder"
+
+[[agent]]
+name = "scout"
+endpoint = "http://100.105.77.74:5570"
+hardware = "GTX 1060 (cesarops3)"
+role = "Thinker"
+model = "R1 7B"
+
+[[agent]]
+name = "nautik"
+endpoint = "http://100.110.214.86:5571"
+hardware = "ThinkPad M2200 4GB (Maxwell)"
+role = "Validator/Corrector — TinyLlama when online"
+model = "TinyLlama-1.1B-Chat-v1.0-Q4_K_M"
+notes = "Windows — launch manually with scripts/launch_laptop_m2200.sh validator"
+
+[[agent]]
+name = "picasso"
+endpoint = "http://100.102.158.111:5571"
+hardware = "P1000 (cesarops2)"
+role = "Speed+Accuracy Validator — TinyLlama 1.1B Q4_K_M reference canary"
+model = "TinyLlama-1.1B-Chat-v1.0-Q4_K_M"
+validator = true
+validator_api = "http://localhost:9100/validate"
+engine = "koboldcpp"
+backend = "cuda"
+inject_vectors = false
+corrector_functions = { json_fixer = true, loop_detector = true, translator = true, think_harder = false, auto_remember = true }
+
+[routing]
+default_mode = "auto"
+
+[tuning]
+# How many think-only rounds before declaring the model stuck
+max_think_rounds = 50
+# Main generation timeout in seconds
+generation_timeout_secs = 1200
+# Thinker preflight timeout in seconds
+thinker_timeout_secs = 60
+# Max tokens for main generation
+max_generation_tokens = 16384
+# Starting temperature
+temperature = 0.4
+# Disable corrector for heavy tasks (set true to skip correction pass)
+skip_corrector = false
+
+# Worker nicknames — human-friendly names mapped to endpoints
+[nicknames]
+coder = "http://127.0.0.1:5001"
+thinker = "http://100.105.77.74:5570"
+corrector = "http://100.102.158.111:5555"
+scout = "http://100.110.214.86:5002"
+bootstrap = "http://127.0.0.1:5002"
+r1-cpu = "http://127.0.0.1:5557"
+mcp-local = "http://127.0.0.1:8090"
