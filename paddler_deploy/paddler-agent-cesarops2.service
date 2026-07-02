@@ -1,0 +1,17 @@
+[Unit]
+Description=Paddler agent (cesarops2 4x P100)
+After=network-online.target paddler-balancer.service
+Wants=network-online.target
+Requires=paddler-balancer.service
+
+[Service]
+Type=simple
+User=cesarops
+Environment=CUDA_VISIBLE_DEVICES=0,1,2,3
+ExecStart=/home/cesarops/paddler/paddler agent --management-addr 127.0.0.1:8060 --slots 4 --name cesarops2-p100
+Restart=on-failure
+RestartSec=3
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
