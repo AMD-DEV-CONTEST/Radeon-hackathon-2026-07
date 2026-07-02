@@ -1,4 +1,4 @@
-/// System prompt templates for QwenChatML formatting.
+/// System prompt templates and per-model chat formatting.
 
 /// The main system prompt with /no_think directive and tool definitions.
 pub fn system_prompt() -> String {
@@ -35,6 +35,7 @@ If you output raw JSON without the tags, it may not be detected.
 - **cargo_check**: Run cargo check on a directory. Args: {"dir": "relative/path"}
 - **run_command**: Execute a shell command (guarded). Args: {"cmd": "command string"}
 - **remember**: Save a lesson learned. Args: {"content": "what to remember", "tags": "comma,separated,tags"}
+- **mcp_call**: Call MCP endpoint/tools. Args: {"path": "/tool", "payload": {}, "method": "POST"} (optional "endpoint")
 
 ## Workflow:
 1. think_harder → understand the problem (MANDATORY)
@@ -50,8 +51,27 @@ If you output raw JSON without the tags, it may not be detected.
 - You have FULL filesystem access. Use it. Do not ask the user to do things you can do."#.to_string()
 }
 
-/// Format a full QwenChatML conversation for the KoboldCPP /api/v1/generate endpoint.
-pub fn format_chatml(system: &str, messages: &[(String, String)], prefill: bool) -> String {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PromptTemplate {
+    QwenChatMl,
+    Llama3Instruct,
+    DeepSeekR1,
+}
+
+/// Resolve chat template family from a model/endpoint hint.
+/// Defaults to QwenChatML to preserve existing behavior.
+pub fn template_from_hint(hint: &str) -> PromptTemplate {
+    let h = hint.to_ascii_lowercase();
+    if h.contains("llama3") || h.contains("llama-3") || h.contains("llama 3") {
+        return PromptTemplate::Llama3Instruct;
+    }
+    if h.contains("deepseek") || h.contains("r1") {
+        return PromptTemplate::DeepSeekR1;
+    }
+    PromptTemplate::QwenChatMl
+}
+
+fn format_qwen_chatml(system: &str, messages: &[(String, String)], prefill: bool) -> String {
     let mut prompt = format!("<|im_start|>system\n{}<|im_end|>\n", system);
 
     for (role, content) in messages {
@@ -65,6 +85,54 @@ pub fn format_chatml(system: &str, messages: &[(String, String)], prefill: bool)
     // The translator strips <think> blocks from the final output anyway
 
     prompt
+}
+
+fn format_llama3_instruct(system: &str, messages: &[(String, String)], _prefill: bool) -> String {
+    let mut prompt = format!(
+        "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n{}\n<|eot_id|>",
+        system
+    );
+    for (role, content) in messages {
+        let normalized_role = if role == "assistant" { "assistant" } else { "user" };
+        prompt.push_str(&format!(
+            "<|start_header_id|>{}<|end_header_id|>\n{}\n<|eot_id|>",
+            normalized_role, content
+        ));
+    }
+    prompt.push_str("<|start_header_id|>assistant<|end_header_id|>\n");
+    prompt
+}
+
+fn format_deepseek_r1(system: &str, messages: &[(String, String)], _prefill: bool) -> String {
+    let mut prompt = format!("<｜begin▁of▁sentence｜>{}", system);
+    for (role, content) in messages {
+        if role == "assistant" {
+            prompt.push_str(&format!("<｜Assistant｜>{}<｜end▁of▁sentence｜>", content));
+        } else {
+            prompt.push_str(&format!("<｜User｜>{}", content));
+        }
+    }
+    prompt.push_str("<｜Assistant｜>");
+    prompt
+}
+
+/// Format a full conversation for the configured model family.
+pub fn format_for_model(
+    system: &str,
+    messages: &[(String, String)],
+    prefill: bool,
+    model_hint: &str,
+) -> String {
+    match template_from_hint(model_hint) {
+        PromptTemplate::QwenChatMl => format_qwen_chatml(system, messages, prefill),
+        PromptTemplate::Llama3Instruct => format_llama3_instruct(system, messages, prefill),
+        PromptTemplate::DeepSeekR1 => format_deepseek_r1(system, messages, prefill),
+    }
+}
+
+/// Back-compat helper; keeps old call sites working while defaulting to QwenChatML.
+pub fn format_chatml(system: &str, messages: &[(String, String)], prefill: bool) -> String {
+    format_qwen_chatml(system, messages, prefill)
 }
 
 /// Escalating snark levels for repeated failures.

@@ -255,6 +255,49 @@ fn orchestration_url_for_action(table: &toml::Table, action: &str) -> Option<Str
     }
 }
 
+fn resolve_project_dir(input: Option<&str>) -> String {
+    let root = paths::project_root();
+    let Some(dir) = input.filter(|s| !s.trim().is_empty()) else {
+        return root;
+    };
+    if dir.starts_with('/') {
+        dir.to_string()
+    } else {
+        format!("{}/{}", root, dir.trim_start_matches("./"))
+    }
+}
+
+fn run_cargo_feedback(action: &str, project_dir: &str) -> serde_json::Value {
+    let mut cmd = std::process::Command::new("cargo");
+    match action {
+        "cargo_test_feedback" => {
+            cmd.arg("test").arg("--no-run");
+        }
+        _ => {
+            cmd.arg("check");
+        }
+    }
+    let output = cmd.current_dir(project_dir).output();
+    match output {
+        Ok(out) => {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            serde_json::json!({
+                "ok": out.status.success(),
+                "exit_code": out.status.code(),
+                "project_dir": project_dir,
+                "stdout_tail": stdout.chars().rev().take(4000).collect::<String>().chars().rev().collect::<String>(),
+                "stderr_tail": stderr.chars().rev().take(4000).collect::<String>().chars().rev().collect::<String>(),
+            })
+        }
+        Err(e) => serde_json::json!({
+            "ok": false,
+            "project_dir": project_dir,
+            "error": format!("failed to execute cargo command: {}", e),
+        }),
+    }
+}
+
 fn mcp_endpoint_from_config() -> Option<String> {
     let table = cluster_store::read_config();
     table
@@ -485,10 +528,18 @@ async fn fleet_dispatch(Json(body): Json<serde_json::Value>) -> Json<serde_json:
         }));
     };
 
+    let cargo_feedback = if action == "cargo_check_feedback" || action == "cargo_test_feedback" {
+        let project_dir = resolve_project_dir(body.get("project_dir").and_then(|v| v.as_str()));
+        Some(run_cargo_feedback(action, &project_dir))
+    } else {
+        None
+    };
+
     let payload = serde_json::json!({
         "node": node,
         "action": action,
         "request": body,
+        "cargo_feedback": cargo_feedback,
         "source": "forge-cluster-panel"
     });
 

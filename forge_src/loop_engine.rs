@@ -5,6 +5,7 @@ use crate::tools;
 use crate::translator::{self, FailureType, Message};
 use crate::{AppState, SendResponse};
 use tracing::{info, warn};
+use std::io::Write;
 
 const MAX_TOOL_ROUNDS: u32 = u32::MAX;
 
@@ -30,7 +31,7 @@ struct RepetitionJudgment {
 
 /// Read tuning params from cluster_config.toml
 fn read_tuning() -> (u32, u64, u64, u32, f32, bool) {
-    let config_path = "/codebase/repos/wreckhunter2000-1/cesarops-forge-v2/cluster_config.toml";
+    let config_path = crate::paths::cluster_config_path();
     let content = std::fs::read_to_string(config_path).unwrap_or_default();
     let table: toml::Table = content.parse().unwrap_or_default();
     
@@ -45,8 +46,37 @@ fn read_tuning() -> (u32, u64, u64, u32, f32, bool) {
     (max_think, gen_timeout, thinker_timeout, max_tokens, temperature, skip_corrector)
 }
 
+/// Per-request overrides (lane routing, dedicated coding endpoint).
+#[derive(Clone, Default)]
+pub struct RunContext {
+    pub lane: Option<String>,
+    pub coder_url: Option<String>,
+    pub skip_thinker: bool,
+    pub coding_only: bool,
+}
+
 /// Main orchestration loop: Strategy → Execution → Verification.
 pub async fn run(state: &AppState, user_message: &str) -> SendResponse {
+    run_with_context(state, user_message, RunContext::default()).await
+}
+
+pub async fn run_with_context(state: &AppState, user_message: &str, ctx: RunContext) -> SendResponse {
+    if let Some(ref lane) = ctx.lane {
+        let msgs = state.lanes.get_conversation(lane).await;
+        *state.conversation.lock().await = msgs;
+    }
+
+    let result = run_inner(state, user_message, &ctx).await;
+
+    if let Some(ref lane) = ctx.lane {
+        let msgs = state.conversation.lock().await.clone();
+        state.lanes.set_conversation(lane, msgs).await;
+    }
+
+    result
+}
+
+async fn run_inner(state: &AppState, user_message: &str, ctx: &RunContext) -> SendResponse {
     let fast_mode = user_message.starts_with("/fast");
     let message = if fast_mode {
         user_message.trim_start_matches("/fast").trim()
@@ -54,8 +84,15 @@ pub async fn run(state: &AppState, user_message: &str) -> SendResponse {
         user_message
     };
 
-    // --- Layer 1: Thinker pre-flight (skip with /fast) ---
-    let thinker_context = if !fast_mode {
+    if let Some(ref lane) = ctx.lane {
+        state
+            .lanes
+            .log(lane, "user", message)
+            .await;
+    }
+
+    // --- Layer 1: Thinker pre-flight (skip with /fast or coding lane) ---
+    let thinker_context = if !fast_mode && !ctx.skip_thinker && !ctx.coding_only {
         get_thinker_preflight(message, state).await
     } else {
         String::new()
@@ -75,14 +112,30 @@ pub async fn run(state: &AppState, user_message: &str) -> SendResponse {
     let mut output_history: Vec<String> = Vec::new();
     let mut failure_count: u32 = 0;
     let mut diagnosis_info: Option<String> = None;
-    let (max_diagnosis, _gen_timeout, _thinker_timeout, _max_tokens, start_temp, skip_corrector) = read_tuning();
+    let (max_diagnosis, _gen_timeout, _thinker_timeout, _max_tokens, start_temp, mut skip_corrector) = read_tuning();
+    if ctx.coding_only {
+        skip_corrector = true;
+    }
     let mut temperature = start_temp;
+
+    let active_model_hint = ctx
+        .coder_url
+        .clone()
+        .unwrap_or_else(|| state.config.coder_url.clone());
+    let task_type = infer_task_type(message);
 
     for round in 1..=MAX_TOOL_ROUNDS {
         // Check interrupt flag
         if state.interrupt.load(std::sync::atomic::Ordering::Relaxed) {
             info!("INTERRUPTED at round {}", round);
             state.interrupt.store(false, std::sync::atomic::Ordering::Relaxed);
+            append_model_score(
+                &active_model_hint,
+                task_type,
+                "interrupted",
+                None,
+                &tool_actions,
+            );
             return SendResponse {
                 response: "[INTERRUPTED by user]".to_string(),
                 tool_actions,
@@ -106,10 +159,10 @@ pub async fn run(state: &AppState, user_message: &str) -> SendResponse {
         }
 
         // Build prompt from conversation state
-        let prompt = build_prompt(state, &thinker_context, failure_count).await;
+        let prompt = build_prompt(state, &thinker_context, failure_count, &active_model_hint).await;
 
         // Generate from 35B
-        let raw_output = generate_35b(&prompt, temperature, state).await;
+        let raw_output = generate_35b(&prompt, temperature, &active_model_hint).await;
 
         // --- Layer 2: Translator normalizes output ---
         let normalized = translator::normalize(&raw_output);
@@ -170,6 +223,13 @@ pub async fn run(state: &AppState, user_message: &str) -> SendResponse {
                 } else {
                     normalized.content
                 };
+                append_model_score(
+                    &active_model_hint,
+                    task_type,
+                    "failed",
+                    Some(&format!("{:?}", failure_type)),
+                    &tool_actions,
+                );
 
                 return SendResponse {
                     response,
@@ -364,6 +424,7 @@ pub async fn run(state: &AppState, user_message: &str) -> SendResponse {
             }
         }
 
+        append_model_score(&active_model_hint, task_type, "success", None, &tool_actions);
         return SendResponse {
             response: normalized.content,
             tool_actions,
@@ -372,10 +433,59 @@ pub async fn run(state: &AppState, user_message: &str) -> SendResponse {
     }
 
     // Exhausted all rounds
+    append_model_score(&active_model_hint, task_type, "exhausted", None, &tool_actions);
     SendResponse {
         response: format!("[Exhausted {} tool rounds. Last actions: {:?}]", MAX_TOOL_ROUNDS, tool_actions),
         tool_actions,
         diagnosis: diagnosis_info,
+    }
+}
+
+fn infer_task_type(user_message: &str) -> &'static str {
+    let m = user_message.to_ascii_lowercase();
+    if m.contains("cargo") || m.contains("compile") || m.contains("build") || m.contains("rustc") {
+        return "build";
+    }
+    if m.contains("test") {
+        return "test";
+    }
+    if m.contains("translate") {
+        return "translate";
+    }
+    if m.contains("review") || m.contains("grade") {
+        return "review";
+    }
+    "general"
+}
+
+fn append_model_score(
+    model_hint: &str,
+    task_type: &str,
+    outcome: &str,
+    failure: Option<&str>,
+    tool_actions: &[String],
+) {
+    let path = crate::paths::model_scoreboard_path();
+    let p = std::path::Path::new(&path);
+    if let Some(parent) = p.parent() {
+        if std::fs::create_dir_all(parent).is_err() {
+            return;
+        }
+    }
+    let ts = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let row = serde_json::json!({
+        "ts_unix": ts,
+        "model_hint": model_hint,
+        "task_type": task_type,
+        "outcome": outcome,
+        "failure": failure,
+        "tool_actions_count": tool_actions.len(),
+    });
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(p) {
+        let _ = writeln!(f, "{}", row);
     }
 }
 
@@ -402,13 +512,35 @@ async fn get_thinker_preflight(message: &str, state: &AppState) -> String {
     match resp {
         Ok(r) => {
             if let Ok(body) = r.json::<serde_json::Value>().await {
-                body.get("results")
+                let thinker_text = body
+                    .get("results")
                     .and_then(|r| r.as_array())
                     .and_then(|a| a.first())
                     .and_then(|r| r.get("text"))
                     .and_then(|t| t.as_str())
                     .unwrap_or("")
-                    .to_string()
+                    .to_string();
+
+                if thinker_text.is_empty() {
+                    return thinker_text;
+                }
+
+                // Execute the thinker's own "Search queries" immediately and feed
+                // the condensed evidence back into the coder context.
+                let queries = extract_search_queries(&thinker_text);
+                if queries.is_empty() {
+                    return thinker_text;
+                }
+
+                let mut evidence = String::new();
+                for q in queries.iter().take(3) {
+                    let args = serde_json::json!({ "query": q });
+                    let result = tools::execute("think_harder", &args, state).await;
+                    let condensed: String = result.chars().take(1800).collect();
+                    evidence.push_str(&format!("\n- Query: {}\n{}\n", q, condensed));
+                }
+
+                format!("{}\n\n[Auto-retrieved evidence via think_harder]:{}\n", thinker_text, evidence)
             } else {
                 String::new()
             }
@@ -420,8 +552,57 @@ async fn get_thinker_preflight(message: &str, state: &AppState) -> String {
     }
 }
 
+fn extract_search_queries(thinker_text: &str) -> Vec<String> {
+    let mut queries = Vec::new();
+    let mut in_search_block = false;
+    for raw_line in thinker_text.lines() {
+        let line = raw_line.trim();
+        if line.is_empty() {
+            if in_search_block {
+                break;
+            }
+            continue;
+        }
+
+        let lower = line.to_ascii_lowercase();
+        if lower.starts_with("1. search queries:")
+            || lower.starts_with("search queries:")
+            || lower.starts_with("search query:")
+        {
+            in_search_block = true;
+            let tail = line
+                .split_once(':')
+                .map(|(_, rhs)| rhs.trim())
+                .unwrap_or("");
+            if !tail.is_empty() {
+                queries.push(tail.trim_matches(&['[', ']'][..]).to_string());
+            }
+            continue;
+        }
+
+        if in_search_block {
+            if lower.starts_with("2. approach:") || lower.starts_with("approach:") {
+                break;
+            }
+            let cleaned = line
+                .trim_start_matches(|c: char| c.is_ascii_digit() || c == '.' || c == '-' || c == '*' || c == ' ')
+                .trim_matches('"')
+                .trim();
+            if !cleaned.is_empty() {
+                queries.push(cleaned.to_string());
+            }
+        }
+    }
+    queries
+}
+
 /// Build the full prompt from conversation state.
-async fn build_prompt(state: &AppState, thinker_context: &str, failure_count: u32) -> String {
+async fn build_prompt(
+    state: &AppState,
+    thinker_context: &str,
+    failure_count: u32,
+    model_hint: &str,
+) -> String {
     let conv = state.conversation.lock().await;
 
     let system = format!(
@@ -440,11 +621,11 @@ async fn build_prompt(state: &AppState, thinker_context: &str, failure_count: u3
         .map(|m| (m.role.clone(), m.content.clone()))
         .collect();
 
-    prompts::format_chatml(&system, &messages, true)
+    prompts::format_for_model(&system, &messages, true, model_hint)
 }
 
-/// Generate from the 35B via KoboldCPP.
-async fn generate_35b(prompt: &str, temperature: f32, state: &AppState) -> String {
+/// Generate from the main coder endpoint (Kobold or OpenAI-compatible).
+async fn generate_35b(prompt: &str, temperature: f32, coder_url: &str) -> String {
     let client = reqwest::Client::new();
 
     // Fresh token budget every call — context is trimmed between rounds
@@ -459,7 +640,7 @@ async fn generate_35b(prompt: &str, temperature: f32, state: &AppState) -> Strin
     });
 
     let resp = client
-        .post(format!("{}/api/v1/generate", state.config.coder_url))
+        .post(format!("{}/api/v1/generate", coder_url))
         .json(&payload)
         .timeout(std::time::Duration::from_secs(600))
         .send()
