@@ -1,0 +1,119 @@
+[project]
+name = "amd-radeon-studio"
+version = "0.1.0"
+description = "AMD Radeon Studio — 多模态 AI 创作工坊(文生图 / 图生图 / 风格迁移)"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+license = { text = "Apache-2.0" }
+authors = [
+    { name = "AMD Radeon Studio Team" }
+]
+
+# ===== Runtime dependencies =====
+# 注意:PyTorch 必须在 AMD Cloud 上装 ROCm 版
+#      本地 Windows + NVIDIA 装 CUDA 版即可
+#      详见 README + scripts/setup_env.ps1
+dependencies = [
+    # ---- Diffusion & Transformers (core) ----
+    "diffusers>=0.30.0",
+    "transformers>=4.44.0",
+    "accelerate>=0.34.0",
+    "safetensors>=0.4.4",
+    "huggingface-hub>=0.25.0",
+    "sentencepiece>=0.2.0",
+    "tokenizers>=0.20.0",
+    "protobuf>=5.28.0",
+
+    # ---- Image / Video utils ----
+    "opencv-python>=4.10.0",
+    "pillow>=10.4.0",
+    "imageio[ffmpeg]>=2.35.0",
+    "av>=12.0.0",
+    "ffmpeg-python>=0.2.0",
+
+    # ---- Web / API ----
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "gradio>=4.44.0",
+    "pydantic>=2.9.0",
+    "python-multipart>=0.0.12",
+    "websockets>=13.0",
+
+    # ---- Agent / LLM (optional) ----
+    "openai>=1.50.0",
+
+    # ---- Audio (optional, for future reel feature) ----
+    "soundfile>=0.12.1",
+    "librosa>=0.10.2",
+    "scipy>=1.14.0",
+
+    # ---- Misc ----
+    "tqdm>=4.66.0",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+    "rich>=13.9.0",
+]
+
+[project.optional-dependencies]
+# PyTorch 必须按平台分开装,不能放 dependencies
+# Windows + NVIDIA:  uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+# Linux + AMD ROCm:  uv pip install torch torchvision --index-url https://download.pytorch.org/whl/rocm6.1
+torch-cuda = ["torch>=2.4.0", "torchvision>=0.19.0"]
+torch-rocm = ["torch>=2.4.0", "torchvision>=0.19.0"]
+
+# Dev tools
+dev = [
+    "pytest>=8.3.0",
+    "pytest-cov>=5.0.0",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.6.0",
+    "mypy>=1.11.0",
+    "ipykernel>=6.29.0",
+]
+
+[project.scripts]
+# 启动入口
+radeon-studio-api = "src.api.app:run"
+radeon-studio-ui  = "src.ui.app:run"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+# ===== Pytest =====
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--tb=short",
+]
+markers = [
+    "gpu: requires actual GPU (skip in CI without GPU)",
+    "slow: slow test (>5s)",
+    "integration: integration test (may need running services)",
+]
+
+# ===== Ruff =====
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N"]
+ignore = ["E501"]  # line length handled by formatter
+
+# ===== MyPy =====
+[tool.mypy]
+python_version = "3.11"
+strict = false
+warn_unused_ignores = true
+warn_return_any = true
+ignore_missing_imports = true
