@@ -15,6 +15,8 @@ trace into a verified, reusable Agent Skill before risky actions are permitted.
   https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO.mp4
 - Demo captions:
   https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO.srt
+- Continuous operation demo, 2 minutes 54 seconds:
+  https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/CONTINUOUS_OPERATION_DEMO.mp4
 - Final Radeon proof ZIP:
   https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/radeon-audio-proof-v8.zip
 - License: MIT
@@ -84,6 +86,27 @@ On the same allocation:
 The reuse number applies to an identical already-verified skill lookup, not to
 arbitrary changed workloads.
 
+## Lifecycle Engineering Upgrade
+
+Public enhancement commit:
+`efec128059fea3b68521aa1dd333c71d5ea6a679`.
+
+- Voice Evidence v0.2 adds estimated SNR, noise floor, speech level, crest
+  factor, DC offset, short dropout, and channel imbalance diagnostics.
+- Voice evidence, trusted compile runs, and verification results persist
+  atomically across service restart.
+- Proof compatibility binds verifier version, runtime, tools, policy, skill,
+  and voice-evidence schema.
+- A changed runtime marks a skill `revalidation_required` and blocks reuse.
+- One-click revalidation creates a new child run, reruns 7/7 fixtures, and
+  restores proof compatibility.
+- Clean Radeon Cloud v9 clone: `npm ci`, 29/29 tests, and production build
+  passed on ROCm 7.2.1 / `gfx1100` / 51,522,830,336-byte VRAM.
+
+The single-take continuous demo records upload, v0.2 analysis, compile,
+verification, save, reuse, two real service restarts, proof invalidation,
+revalidation, and proof download in one browser session.
+
 ## Submission Files
 
 - `PROJECT_SPECIFICATION.pdf`: required English specification
@@ -95,6 +118,9 @@ arbitrary changed workloads.
 - `SOCIAL_CARD_V2.png`: square social campaign card
 - `RADEON_AUDIO_PROOF_V8.json`: raw final validation summary
 - `DEMO_SCRIPT.md`: narration and shot list
+- `CONTINUOUS_OPERATION_DEMO.srt`: continuous demo captions
+- `CONTINUOUS_DEMO_NARRATION.md`: continuous demo narration
+- `LIFECYCLE_ENHANCEMENTS_V9.json`: machine-readable enhancement evidence
 
 ## Disclosure
 
