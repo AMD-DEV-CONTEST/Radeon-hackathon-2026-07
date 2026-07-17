@@ -1,0 +1,86 @@
+OpenAlpha Sentinel Radeon process restart and persistence trace
+started_utc=2026-07-17T05:13:01Z
+--- deployment manifest ---
+manifest_version=1
+generated_utc=2026-07-17T05:01:48Z
+project_git_head=8f9aad7a206287b2158f0fccb7a70c4a7373aa87
+project_git_tree=a3d1fae1f07c31114e94c7aa900e9aaebedd5c58
+project_git_state=clean
+project_git_status_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+project_git_diff_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+pyproject_sha256=8e632f11c6770a8090e4233a555e5027307b39adfa84e169dda9703a70ea47fa
+llama_repository=https://github.com/ROCm/llama.cpp.git
+llama_commit=1b99711a5f2582ec99686eb7958844749c223cf5
+llama_archive_sha256=65536629d57a7b7f9ec81a323311dd497e09a5d8b981225c6c56feda63cefde4
+amdgpu_targets=gfx1100
+model_sha256=d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785
+llm_backend=llama_cpp
+llama_gpu_layers=99
+--- before status ---
+service_mode=process
+project=/workspace/openalpha-sentinel
+data=/workspace/openalpha-data/runtime
+llama: RUNNING (pid 18759, log /workspace/openalpha-state/logs/llama.log)
+api: RUNNING (pid 18918, log /workspace/openalpha-state/logs/api.log)
+worker: RUNNING (pid 18941, log /workspace/openalpha-state/logs/worker.log)
+/dev/loop41      98G  6.0G   87G   7% /workspace
+llama_pidfile=pid:18759,start_ticks:154577457
+  18759 Fri Jul 17 05:12:21 2026      39 /workspace/llama.cpp/build/bin/llama-server --model /workspace/models/Qwen3-8B-Q4_K_M.gguf --host 127.0.0.1 --port 8080 --ctx-size 8192 --n-gpu-layers 99 --flash-attn on --metrics
+api_pidfile=pid:18918,start_ticks:154577976
+  18918 Fri Jul 17 05:12:26 2026      34 /workspace/openalpha-sentinel/.venv/bin/python /workspace/openalpha-sentinel/.venv/bin/openalpha serve
+worker_pidfile=pid:18941,start_ticks:154578085
+  18941 Fri Jul 17 05:12:27 2026      33 /workspace/openalpha-sentinel/.venv/bin/python /workspace/openalpha-sentinel/.venv/bin/openalpha worker
+database_before={"chunks": 3, "documents": 3, "evidence": 18, "foreign_key_violations": 0, "integrity_check": "ok", "notifications": 3, "revisions": 3, "sources": 3, "strategy_cards": 3}
+--- stop all ---
+worker stopped
+api stopped
+llama stopped
+service_mode=process
+project=/workspace/openalpha-sentinel
+data=/workspace/openalpha-data/runtime
+llama: STOPPED
+api: STOPPED
+worker: STOPPED
+/dev/loop41      98G  6.0G   87G   7% /workspace
+stopped_status_exit=1
+llama_pidfile=missing
+api_pidfile=missing
+worker_pidfile=missing
+--- start all ---
+llama started (pid 19119, log /workspace/openalpha-state/logs/llama.log)
+llama health check passed: http://127.0.0.1:8080/v1/models
+api started (pid 19278, log /workspace/openalpha-state/logs/api.log)
+api health check passed: http://127.0.0.1:8765/api/health
+worker started (pid 19301, log /workspace/openalpha-state/logs/worker.log)
+service_mode=process
+project=/workspace/openalpha-sentinel
+data=/workspace/openalpha-data/runtime
+llama: RUNNING (pid 19119, log /workspace/openalpha-state/logs/llama.log)
+api: RUNNING (pid 19278, log /workspace/openalpha-state/logs/api.log)
+worker: RUNNING (pid 19301, log /workspace/openalpha-state/logs/worker.log)
+/dev/loop41      98G  6.0G   87G   7% /workspace
+llama_pidfile=pid:19119,start_ticks:154581760
+  19119 Fri Jul 17 05:13:04 2026       7 /workspace/llama.cpp/build/bin/llama-server --model /workspace/models/Qwen3-8B-Q4_K_M.gguf --host 127.0.0.1 --port 8080 --ctx-size 8192 --n-gpu-layers 99 --flash-attn on --metrics
+api_pidfile=pid:19278,start_ticks:154582279
+  19278 Fri Jul 17 05:13:09 2026       2 /workspace/openalpha-sentinel/.venv/bin/python /workspace/openalpha-sentinel/.venv/bin/openalpha serve
+worker_pidfile=pid:19301,start_ticks:154582387
+  19301 Fri Jul 17 05:13:10 2026       1 /workspace/openalpha-sentinel/.venv/bin/python /workspace/openalpha-sentinel/.venv/bin/openalpha worker
+all_component_pids_changed=true
+--- health checks ---
+{"models":[{"name":"/workspace/models/Qwen3-8B-Q4_K_M.gguf","model":"/workspace/models/Qwen3-8B-Q4_K_M.gguf","modified_at":"","size":"","digest":"","type":"model","description":"","tags":[""],"capabilities":["completion"],"parameters":"","details":{"parent_model":"","format":"gguf","family":"","families":[""],"parameter_size":"","quantization_level":""}}],"object":"list","data":[{"id":"/workspace/models/Qwen3-8B-Q4_K_M.gguf","aliases":["/workspace/models/Qwen3-8B-Q4_K_M.gguf"],"tags":[],"object":"model","created":1784265192,"owned_by":"llamacpp","meta":{"vocab_type":2,"n_vocab":151936,"n_ctx":8192,"n_ctx_train":40960,"n_embd":4096,"n_params":8190735360,"size":5021827072,"ftype":"Q4_K - Medium"}}]}
+{"status":"ok","version":"0.1.0","llm_backend":"llama.cpp-rocm","offline":false}
+--- repeat deterministic seed after restart ---
+{
+  "job_id": "job_5eda9a2d1a8542378c9b",
+  "state": "COMPLETED",
+  "processed": 3,
+  "created_cards": 0,
+  "skipped_revisions": 3,
+  "errors": []
+}
+database_after={"chunks": 3, "documents": 3, "evidence": 18, "foreign_key_violations": 0, "integrity_check": "ok", "notifications": 3, "revisions": 3, "sources": 3, "strategy_cards": 3}
+protected_counts_unchanged=true
+protected_count_changes={}
+integrity_after=ok
+foreign_key_violations_after=0
+finished_utc=2026-07-17T05:13:12Z

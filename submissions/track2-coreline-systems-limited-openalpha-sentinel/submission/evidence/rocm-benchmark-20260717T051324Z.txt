@@ -1,0 +1,328 @@
+OpenAlpha Sentinel ROCm benchmark
+started_utc=2026-07-17T05:13:24Z
+stamp=20260717T051324Z
+public_copy_sanitization=ephemeral instance hostname, GPU UUID, card SKU, and device GUID redacted
+--- deployment manifest ---
+manifest_version=1
+generated_utc=2026-07-17T05:01:48Z
+project_git_head=8f9aad7a206287b2158f0fccb7a70c4a7373aa87
+project_git_tree=a3d1fae1f07c31114e94c7aa900e9aaebedd5c58
+project_git_state=clean
+project_git_status_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+project_git_diff_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+pyproject_sha256=8e632f11c6770a8090e4233a555e5027307b39adfa84e169dda9703a70ea47fa
+llama_repository=https://github.com/ROCm/llama.cpp.git
+llama_commit=1b99711a5f2582ec99686eb7958844749c223cf5
+llama_archive_sha256=65536629d57a7b7f9ec81a323311dd497e09a5d8b981225c6c56feda63cefde4
+amdgpu_targets=gfx1100
+model_sha256=d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785
+llm_backend=llama_cpp
+llama_gpu_layers=99
+383ec61621c14147680e3df12d0d727db85e50a1c8fba5ef82a94ca491a4da80  /workspace/openalpha-sentinel/.openalpha-deployment
+--- operating system ---
+PRETTY_NAME="Ubuntu 24.04.4 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+VERSION="24.04.4 LTS (Noble Numbat)"
+VERSION_CODENAME=noble
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=noble
+LOGO=ubuntu-logo
+Linux rocm-validation 6.8.0-79-generic #79-Ubuntu SMP PREEMPT_DYNAMIC Tue Aug 12 14:42:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+Python 3.12.3
+HIP version: 7.2.53211-e1a6bc5663
+AMD clang version 22.0.0git (https://github.com/RadeonOpenCompute/llvm-project roc-7.2.1 26084 f58b06dce1f9c15707c5f808fd002e18c2accf7e)
+Target: x86_64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /opt/rocm-7.2.1/lib/llvm/bin
+Configuration file: /opt/rocm-7.2.1/lib/llvm/bin/clang++.cfg
+AMD clang version 22.0.0git (https://github.com/RadeonOpenCompute/llvm-project roc-7.2.1 26084 f58b06dce1f9c15707c5f808fd002e18c2accf7e)
+Target: x86_64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /opt/rocm-7.2.1/lib/llvm/bin
+Configuration file: /opt/rocm-7.2.1/lib/llvm/bin/clang++.cfg
+--- build provenance ---
+llama_git_state=metadata-unavailable
+458f5281b831f12795a0b5c237e67b7062786928cffe077d95428bad5c139503  /workspace/llama.cpp/build/bin/llama-bench
+ab45d01bf96e1bd116e0b5a2bb942906e837c7da12a78d12c21e4967a7323948  /workspace/openalpha-sentinel/scripts/benchmark_rocm.sh
+60045bdf486bb827d0447a07db5c28b2013ed401efacc598c4b3120a40d2b96d  /workspace/openalpha-sentinel/scripts/setup_rocm_llama.sh
+d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785  /workspace/models/Qwen3-8B-Q4_K_M.gguf
+usage: /workspace/llama.cpp/build/bin/llama-bench [options]
+
+options:
+  -h, --help
+  --numa <distribute|isolate|numactl>         numa mode (default: disabled)
+  -r, --repetitions <n>                       number of times to repeat each test (default: 5)
+  --prio <-1|0|1|2|3>                         process/thread priority (default: 0)
+  --delay <0...N> (seconds)                   delay between each test (default: 0)
+  -o, --output <csv|json|jsonl|md|sql>        output format printed to stdout (default: md)
+  -oe, --output-err <csv|json|jsonl|md|sql>   output format printed to stderr (default: none)
+  --list-devices                              list available devices and exit
+  -v, --verbose                               verbose output
+  --progress                                  print test progress indicators
+  --no-warmup                                 skip warmup runs before benchmarking
+  -fitt, --fit-target <MiB>                   fit model to device memory with this margin per device in MiB (default: off)
+  -fitc, --fit-ctx <n>                        minimum ctx size for --fit-target (default: 4096)
+
+test parameters:
+  -m, --model <filename>                      (default: models/7B/ggml-model-q4_0.gguf)
+  -hf, -hfr, --hf-repo <user>/<model>[:quant] Hugging Face model repository; quant is optional, case-insensitive
+                                              default to Q4_K_M, or falls back to the first file in the repo if Q4_K_M doesn't exist.
+                                              example: ggml-org/GLM-4.7-Flash-GGUF:Q4_K_M
+                                              (default: unused)
+  -hff, --hf-file <file>                      Hugging Face model file. If specified, it will override the quant in --hf-repo
+                                              (default: unused)
+  -hft, --hf-token <token>                    Hugging Face access token
+                                              (default: value from HF_TOKEN environment variable)
+  --offline                                   Offline mode: forces use of cache, prevents network access
+                                              (default: disabled)
+  -p, --n-prompt <n>                          (default: 512)
+  -n, --n-gen <n>                             (default: 128)
+  -pg <pp,tg>                                 (default: )
+  -d, --n-depth <n>                           (default: 0)
+  -b, --batch-size <n>                        (default: 2048)
+  -ub, --ubatch-size <n>                      (default: 512)
+  -ctk, --cache-type-k <t>                    (default: f16)
+  -ctv, --cache-type-v <t>                    (default: f16)
+  -t, --threads <n>                           (default: 64)
+  -C, --cpu-mask <hex,hex>                    (default: 0x0)
+  --cpu-strict <0|1>                          (default: 0)
+  --poll <0...100>                            (default: 50)
+  -ngl, --n-gpu-layers <n>                    (default: -1)
+  -ncmoe, --n-cpu-moe <n>                     (default: 0)
+  -sm, --split-mode <none|layer|row|tensor>   (default: layer)
+  -mg, --main-gpu <i>                         (default: 0)
+  -nkvo, --no-kv-offload <0|1>                (default: 0)
+  -fa, --flash-attn <on|off|auto>             (default: auto)
+  -dev, --device <dev0/dev1/...>              (default: auto)
+  -mmp, --mmap <0|1>                          (default: 1)
+  -dio, --direct-io <0|1>                     (default: 0)
+  -embd, --embeddings <0|1>                   (default: 0)
+  -ts, --tensor-split <ts0/ts1/..>            (default: 0)
+  -ot --override-tensor <tensor name pattern>=<buffer type>;...
+                                              (default: disabled)
+  -nopo, --no-op-offload <0|1>                (default: 0)
+  --no-host <0|1>                             (default: 0)
+
+Multiple values can be given for each parameter by separating them with ','
+or by specifying the parameter multiple times. Ranges can be given as
+'first-last' or 'first-last+step' or 'first-last*mult'.
+CMAKE_BUILD_TYPE:STRING=Release
+GGML_HIP:BOOL=ON
+GGML_NATIVE:BOOL=ON
+--- ROCm device inventory ---
+ROCk module version 6.16.13 is loaded
+=====================
+HSA System Attributes
+=====================
+Runtime Version:         1.18
+Runtime Ext Version:     1.15
+System Timestamp Freq.:  1000.000000MHz
+Sig. Max Wait Duration:  18446744073709551615 (0xFFFFFFFFFFFFFFFF) (timestamp count)
+Machine Model:           LARGE
+System Endianness:       LITTLE
+Mwaitx:                  DISABLED
+XNACK enabled:           NO
+DMAbuf Support:          YES
+VMM Support:             YES
+
+==========
+HSA Agents
+==========
+*******
+Agent 1
+*******
+  Name:                    AMD EPYC 9334 32-Core Processor
+  Uuid:                    CPU-XX
+  Marketing Name:          AMD EPYC 9334 32-Core Processor
+  Vendor Name:             CPU
+  Feature:                 None specified
+  Profile:                 FULL_PROFILE
+  Float Round Mode:        NEAR
+  Max Queue Number:        0(0x0)
+  Queue Min Size:          0(0x0)
+  Queue Max Size:          0(0x0)
+  Queue Type:              MULTI
+  Node:                    0
+  Device Type:             CPU
+  Cache Info:
+    L1:                      32768(0x8000) KB
+  Chip ID:                 0(0x0)
+  ASIC Revision:           0(0x0)
+  Cacheline Size:          64(0x40)
+  Max Clock Freq. (MHz):   0
+  BDFID:                   0
+  Internal Node ID:        0
+  Compute Unit:            64
+  SIMDs per CU:            0
+  Shader Engines:          0
+  Shader Arrs. per Eng.:   0
+  WatchPts on Addr. Ranges:1
+  Memory Properties:
+  Features:                None
+  Pool Info:
+    Pool 1
+      Segment:                 GLOBAL; FLAGS: FINE GRAINED
+      Size:                    263852748(0xfba12cc) KB
+      Allocatable:             TRUE
+      Alloc Granule:           4KB
+      Alloc Recommended Granule:4KB
+      Alloc Alignment:         4KB
+      Accessible by all:       TRUE
+    Pool 2
+      Segment:                 GLOBAL; FLAGS: EXTENDED FINE GRAINED
+      Size:                    263852748(0xfba12cc) KB
+      Allocatable:             TRUE
+      Alloc Granule:           4KB
+      Alloc Recommended Granule:4KB
+      Alloc Alignment:         4KB
+      Accessible by all:       TRUE
+    Pool 3
+      Segment:                 GLOBAL; FLAGS: KERNARG, FINE GRAINED
+      Size:                    263852748(0xfba12cc) KB
+      Allocatable:             TRUE
+      Alloc Granule:           4KB
+      Alloc Recommended Granule:4KB
+      Alloc Alignment:         4KB
+      Accessible by all:       TRUE
+    Pool 4
+      Segment:                 GLOBAL; FLAGS: COARSE GRAINED
+      Size:                    263852748(0xfba12cc) KB
+      Allocatable:             TRUE
+      Alloc Granule:           4KB
+      Alloc Recommended Granule:4KB
+      Alloc Alignment:         4KB
+      Accessible by all:       TRUE
+  ISA Info:
+*******
+Agent 2
+*******
+  Name:                    AMD EPYC 9334 32-Core Processor
+  Uuid:                    CPU-XX
+  Marketing Name:          AMD EPYC 9334 32-Core Processor
+  Vendor Name:             CPU
+  Feature:                 None specified
+  Profile:                 FULL_PROFILE
+  Float Round Mode:        NEAR
+  Max Queue Number:        0(0x0)
+  Queue Min Size:          0(0x0)
+  Queue Max Size:          0(0x0)
+  Queue Type:              MULTI
+  Node:                    1
+  Device Type:             CPU
+  Cache Info:
+    L1:                      32768(0x8000) KB
+  Chip ID:                 0(0x0)
+  ASIC Revision:           0(0x0)
+  Cacheline Size:          64(0x40)
+  Max Clock Freq. (MHz):   0
+  BDFID:                   0
+  Internal Node ID:        1
+  Compute Unit:            64
+  SIMDs per CU:            0
+  Shader Engines:          0
+  Shader Arrs. per Eng.:   0
+  WatchPts on Addr. Ranges:1
+  Memory Properties:
+  Features:                None
+  Pool Info:
+    Pool 1
+      Segment:                 GLOBAL; FLAGS: FINE GRAINED
+      Size:                    264171188(0xfbeeeb4) KB
+      Allocatable:             TRUE
+      Alloc Granule:           4KB
+      Alloc Recommended Granule:4KB
+      Alloc Alignment:         4KB
+      Accessible by all:       TRUE
+    Pool 2
+      Segment:                 GLOBAL; FLAGS: EXTENDED FINE GRAINED
+      Size:                    264171188(0xfbeeeb4) KB
+      Allocatable:             TRUE
+      Alloc Granule:           4KB
+      Alloc Recommended Granule:4KB
+      Alloc Alignment:         4KB
+      Accessible by all:       TRUE
+    Pool 3
+      Segment:                 GLOBAL; FLAGS: KERNARG, FINE GRAINED
+      Size:                    264171188(0xfbeeeb4) KB
+      Allocatable:             TRUE
+      Alloc Granule:           4KB
+      Alloc Recommended Granule:4KB
+      Alloc Alignment:         4KB
+      Accessible by all:       TRUE
+    Pool 4
+      Segment:                 GLOBAL; FLAGS: COARSE GRAINED
+      Size:                    264171188(0xfbeeeb4) KB
+      Allocatable:             TRUE
+      Alloc Granule:           4KB
+      Alloc Recommended Granule:4KB
+      Alloc Alignment:         4KB
+      Accessible by all:       TRUE
+  ISA Info:
+*******
+Agent 3
+*******
+  Name:                    gfx1100
+  Uuid:                    GPU-REDACTED-EPHEMERAL
+  Marketing Name:          AMD Radeon Graphics
+  Vendor Name:             AMD
+  Feature:                 KERNEL_DISPATCH
+  Profile:                 BASE_PROFILE
+  Float Round Mode:        NEAR
+  Max Queue Number:        128(0x80)
+  Queue Min Size:          64(0x40)
+
+
+============================ ROCm System Management Interface ============================
+====================================== Temperature =======================================
+GPU[0]		: Temperature (Sensor edge) (C): 29.0
+GPU[0]		: Temperature (Sensor junction) (C): 34.0
+GPU[0]		: Temperature (Sensor memory) (C): 28.0
+==========================================================================================
+=================================== % time GPU is busy ===================================
+GPU[0]		: GPU use (%): 0
+==========================================================================================
+================================== Memory Usage (Bytes) ==================================
+GPU[0]		: VRAM Total Memory (B): 51522830336
+GPU[0]		: VRAM Total Used Memory (B): 6364946432
+==========================================================================================
+====================================== Product Info ======================================
+GPU[0]		: Card Series: 		AMD Radeon Graphics
+GPU[0]		: Card Model: 		0x744b
+GPU[0]		: Card Vendor: 		Advanced Micro Devices, Inc. [AMD/ATI]
+GPU[0]		: Card SKU: 		REDACTED-EPHEMERAL
+GPU[0]		: Subsystem ID: 	0x0e0c
+GPU[0]		: Device Rev: 		0x00
+GPU[0]		: Node ID: 		2
+GPU[0]		: GUID: 		REDACTED-EPHEMERAL
+GPU[0]		: GFX Version: 		gfx1100
+==========================================================================================
+================================== End of ROCm SMI Log ===================================
+llama_bench_command= /workspace/llama.cpp/build/bin/llama-bench -m /workspace/models/Qwen3-8B-Q4_K_M.gguf -ngl 99 -p 512 -n 256 -r 5
+| model                          |       size |     params | backend    | ngl |            test |                  t/s |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --------------: | -------------------: |
+| qwen3 8B Q4_K - Medium         |   4.68 GiB |     8.19 B | ROCm       |  99 |           pp512 |     3033.77 ± 154.27 |
+| qwen3 8B Q4_K - Medium         |   4.68 GiB |     8.19 B | ROCm       |  99 |           tg256 |         93.47 ± 0.08 |
+
+build: unknown (0)
+application_benchmark_command=OPENALPHA_LLM_BACKEND=llama_cpp /workspace/openalpha-sentinel/.venv/bin/python /workspace/openalpha-sentinel/scripts/benchmark_app.py --rounds 5
+{
+  "rounds": 5,
+  "requests": 15,
+  "backends": [
+    "deterministic-tool",
+    "llama.cpp-rocm"
+  ],
+  "latency_seconds": {
+    "mean": 4.842406706077357,
+    "median": 5.505564867053181,
+    "min": 0.005456834100186825,
+    "max": 10.180109263863415
+  }
+}
+finished_utc=2026-07-17T05:14:57Z
