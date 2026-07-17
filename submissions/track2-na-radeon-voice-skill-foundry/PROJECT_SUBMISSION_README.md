@@ -22,6 +22,8 @@ to perform risky actions.
   `https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/pull/7`
 - Continuous operation demo:
   `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/CONTINUOUS_OPERATION_DEMO.mp4`
+- Continuous lifecycle proof:
+  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/continuous-demo-proof.zip`
 
 ## Why It Matters
 

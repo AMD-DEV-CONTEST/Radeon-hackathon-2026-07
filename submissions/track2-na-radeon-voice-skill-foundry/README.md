@@ -17,6 +17,8 @@ trace into a verified, reusable Agent Skill before risky actions are permitted.
   https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO.srt
 - Continuous operation demo, 2 minutes 54 seconds:
   https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/CONTINUOUS_OPERATION_DEMO.mp4
+- Continuous lifecycle proof:
+  https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/continuous-demo-proof.zip
 - Final Radeon proof ZIP:
   https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/radeon-audio-proof-v8.zip
 - License: MIT
