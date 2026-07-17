@@ -1,32 +1,25 @@
 mod agent;
 mod tools;
-mod api;
 mod bench;
 
 use agent::GenomicAgent;
 use tools::ToolRegistry;
 use std::env;
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt::init();
-
+fn main() -> anyhow::Result<()> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() > 1 && args[1] == "bench" {
-        bench::run_benchmarks().await?;
+        bench::run_benchmarks()?;
         return Ok(());
     }
 
-    let api_key = env::var("RADEON_API_KEY")
-        .unwrap_or_else(|_| "sk-placeholder".to_string());
-
     let mut registry = ToolRegistry::new();
-    registry.register(Box::new(tools::VcfAnalyzerTool)).await;
-    registry.register(Box::new(tools::LdBlockTool)).await;
-    registry.register(Box::new(tools::HaplotypeToolTool)).await;
+    registry.register(Box::new(tools::VcfAnalyzerTool));
+    registry.register(Box::new(tools::LdBlockTool));
+    registry.register(Box::new(tools::HaplotypeToolTool));
 
-    let mut agent = GenomicAgent::new(api_key, registry);
+    let mut agent = GenomicAgent::new(registry);
 
     let queries = vec![
         "Analyze the VCF file and tell me about SNP distribution",
@@ -39,7 +32,7 @@ async fn main() -> anyhow::Result<()> {
         println!("Query: {}", query);
         println!("============================================================");
 
-        match agent.process_query(query).await {
+        match agent.process_query(query) {
             Ok(response) => println!("Response: {}", response),
             Err(e) => println!("Error: {}", e),
         }

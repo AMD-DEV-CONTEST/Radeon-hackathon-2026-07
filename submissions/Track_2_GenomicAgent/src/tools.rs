@@ -1,16 +1,13 @@
-use async_trait::async_trait;
 use std::collections::HashMap;
 
-#[async_trait]
 pub trait Tool: Send + Sync {
     fn name(&self) -> &str;
     fn description(&self) -> &str;
-    async fn execute(&self, query: &str) -> anyhow::Result<String>;
+    fn execute(&self, query: &str) -> anyhow::Result<String>;
 }
 
 pub struct VcfAnalyzerTool;
 
-#[async_trait]
 impl Tool for VcfAnalyzerTool {
     fn name(&self) -> &str {
         "VcfAnalyzer"
@@ -20,7 +17,7 @@ impl Tool for VcfAnalyzerTool {
         "VcfAnalyzer: Parse VCF files and compute SNP statistics (count, MAF, missingness). Use for understanding variant distributions."
     }
 
-    async fn execute(&self, _query: &str) -> anyhow::Result<String> {
+    fn execute(&self, _query: &str) -> anyhow::Result<String> {
         let start = std::time::Instant::now();
 
         let total_snps = 1_250_000;
@@ -49,7 +46,6 @@ impl Tool for VcfAnalyzerTool {
 
 pub struct LdBlockTool;
 
-#[async_trait]
 impl Tool for LdBlockTool {
     fn name(&self) -> &str {
         "LdBlock"
@@ -59,7 +55,7 @@ impl Tool for LdBlockTool {
         "LdBlock: Identify linkage disequilibrium blocks and tag SNPs. Use for understanding genetic structure and variant independence."
     }
 
-    async fn execute(&self, _query: &str) -> anyhow::Result<String> {
+    fn execute(&self, _query: &str) -> anyhow::Result<String> {
         let start = std::time::Instant::now();
 
         let blocks = vec![
@@ -91,7 +87,6 @@ impl Tool for LdBlockTool {
 
 pub struct HaplotypeToolTool;
 
-#[async_trait]
 impl Tool for HaplotypeToolTool {
     fn name(&self) -> &str {
         "HaplotypeTool"
@@ -101,7 +96,7 @@ impl Tool for HaplotypeToolTool {
         "HaplotypeTool: Query haplotype patterns and allele frequencies. Use for ancestry inference and population genetics."
     }
 
-    async fn execute(&self, _query: &str) -> anyhow::Result<String> {
+    fn execute(&self, _query: &str) -> anyhow::Result<String> {
         let start = std::time::Instant::now();
 
         let haplotypes = vec![
@@ -142,13 +137,13 @@ impl ToolRegistry {
         }
     }
 
-    pub async fn register(&mut self, tool: Box<dyn Tool>) {
+    pub fn register(&mut self, tool: Box<dyn Tool>) {
         self.tools.insert(tool.name().to_string(), tool);
     }
 
-    pub async fn execute(&self, tool_name: &str, query: &str) -> anyhow::Result<String> {
+    pub fn execute(&self, tool_name: &str, query: &str) -> anyhow::Result<String> {
         if let Some(tool) = self.tools.get(tool_name) {
-            tool.execute(query).await
+            tool.execute(query)
         } else {
             Err(anyhow::anyhow!("Tool {} not found", tool_name))
         }
