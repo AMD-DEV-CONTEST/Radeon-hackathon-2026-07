@@ -2,9 +2,12 @@
 
 Target duration: 4 minutes 15 seconds.
 
+Final rendered duration: 3 minutes 59 seconds.
+
 ## Recording Requirements
 
 - Narration and on-screen captions: English
+- Narration model: AIDP `gemini-3.1-flash-tts-preview`, voice `Kore`
 - Show the Radeon Cloud runtime or terminal before the product workflow
 - Show the actual web UI, not a slide-only demo
 - Keep benchmark numbers on screen long enough to read

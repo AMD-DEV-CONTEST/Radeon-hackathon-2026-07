@@ -11,7 +11,7 @@ trace into a verified, reusable Agent Skill before risky actions are permitted.
 
 - Source repository:
   https://github.com/Chengyuann/radeon-voice-skill-foundry
-- Demo video, 3 minutes 40 seconds:
+- Demo video, 3 minutes 59 seconds:
   https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO.mp4
 - Demo captions:
   https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO.srt
@@ -90,6 +90,9 @@ arbitrary changed workloads.
 - `PROJECT_SPECIFICATION.md`: accessible source version
 - `ARCHITECTURE.png`: Agent architecture
 - `POSTER.pdf` and `POSTER.png`: supplementary poster
+- `VIDEO_COVER_V2.png`: cinematic video cover
+- `PROMO_BANNER_V2.png`: campaign banner
+- `SOCIAL_CARD_V2.png`: square social campaign card
 - `RADEON_AUDIO_PROOF_V8.json`: raw final validation summary
 - `DEMO_SCRIPT.md`: narration and shot list
 
@@ -98,6 +101,9 @@ arbitrary changed workloads.
 - The Chinese SOP WAV is a reproducible synthetic fixture, not a human
   recording.
 - Demo narration is AI-generated.
+- Final narration uses AIDP `gemini-3.1-flash-tts-preview`, voice `Kore`.
+- Campaign backgrounds were generated with GPT Image 2; visible text and
+  measured metrics were composed locally.
 - Product UI footage in the demo is labeled as deterministic replay footage.
 - Radeon runtime screenshots, metrics, proof hashes, and the final proof ZIP
   come from the actual Radeon Cloud validation.
