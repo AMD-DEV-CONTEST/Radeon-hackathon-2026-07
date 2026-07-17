@@ -38,6 +38,8 @@ Choose a Container Image (required).
 
 ![Add Title & Container Image](./assets/add-template-form.png)
 
+If you want your files to persist, set **Storage** to **Persistent (PVC)** — its data is kept even after the instance is destroyed. 
+
 Click **Add Template** at the bottom to finish.
 
 ---
