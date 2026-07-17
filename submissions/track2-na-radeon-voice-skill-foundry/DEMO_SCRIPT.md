@@ -164,14 +164,14 @@ Use these exact short cards:
 
 ## Recording Checklist
 
-- [ ] Radeon terminal and health endpoints are readable
-- [ ] Voice waveform/transcript is visible
-- [ ] Voice Evidence Gate score, source hash, and transcript state are visible
-- [ ] Retrieved policy evidence is visible
-- [ ] `mail.send = deny` is visible
-- [ ] Verification shows 7/7
-- [ ] Governance receipts are visible
-- [ ] Reuse latency is visible
-- [ ] Benchmark source filename is visible
-- [ ] Final proof ZIP contents are visible
-- [ ] Uploaded video URL is added to submission README and official PR
+- [x] Radeon terminal and health endpoints are readable
+- [x] Voice waveform/transcript is visible
+- [x] Voice Evidence Gate score, source hash, and transcript state are visible
+- [x] Retrieved policy evidence is visible
+- [x] `mail.send = deny` is visible
+- [x] Verification shows 7/7
+- [x] Governance receipts are visible
+- [x] Reuse latency is visible
+- [x] Benchmark source filename is visible
+- [x] Final proof ZIP contents are visible
+- [x] Uploaded video URL is added to submission README and official PR

@@ -66,7 +66,7 @@ Deadline: 2026-08-06 23:59 UTC+8.
 - [x] Add `submissions/track2-na-radeon-voice-skill-foundry/`
 - [x] Include submission index and required materials
 - [x] Open English PR
-- [ ] PR title:
+- [x] PR title:
   `Track 2, N/A, Radeon Voice Skill Foundry`
 - [x] Verify all links from an incognito browser
 
