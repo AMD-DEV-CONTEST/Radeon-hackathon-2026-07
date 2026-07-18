@@ -11,17 +11,21 @@ trace into a verified, reusable Agent Skill before risky actions are permitted.
 
 - Source repository:
   https://github.com/Chengyuann/radeon-voice-skill-foundry
-- Demo video, 3 minutes 59 seconds:
+- Demo video, 3 minutes 49 seconds:
   https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO.mp4
 - Demo captions:
   https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO.srt
-- Continuous operation demo, 2 minutes 54 seconds:
+- Continuous operation demo, 3 minutes 10 seconds:
   https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/CONTINUOUS_OPERATION_DEMO.mp4
 - Continuous lifecycle proof:
   https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/continuous-demo-proof.zip
 - Final Radeon proof ZIP:
   https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/radeon-audio-proof-v8.zip
 - License: MIT
+
+Both demo MP4 files contain burned-in English narration captions and an
+embedded English subtitle track. Matching SRT files are published separately.
+Narration uses AIDP `gemini-3.1-flash-tts-preview`, male voice `Charon`.
 
 ## Why Voice Is Structural
 

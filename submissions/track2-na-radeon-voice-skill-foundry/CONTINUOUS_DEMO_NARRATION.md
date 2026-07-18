@@ -1,7 +1,7 @@
 # Continuous Demo Narration
 
 The final continuous-operation demo uses AIDP
-`gemini-3.1-flash-tts-preview`, voice `Kore`. It is a single browser recording
+`gemini-3.1-flash-tts-preview`, male voice `Charon`. It is a single browser recording
 of the enhanced local workflow. Radeon measurements and proof values remain
 those of the independently validated Radeon Cloud run.
 

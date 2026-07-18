@@ -86,9 +86,9 @@ Official PR:
 - Radeon audio-backed proof hash:
   `6ff30ccc2d052e226051fa6819760abe3b2c2ef6243b63169ab9d5e0caebfc40`
 - Demo video SHA-256:
-  `b108f806036197849c66182c6b8e0e8c3b5ef09bc279abec46ba1328d1cf515f`
+  `36a76facf388ea65e61470da418eb2c9b507120b89a496a1b557be162d0c73ff`
 - Demo captions SHA-256:
-  `7a7a30ad853eab2fa3ea8d1938e54842e7a2e0837bf27d6202893c8d28803bc7`
+  `f884f85e8c8974b9e3cf5e40871d83b4586ebd72daa92c4ee5d2c5cbdae9a6fb`
 - Video cover SHA-256:
   `7929ee19046c6c816452ea6a68493a52a1a95b7da4dc0f75e384523a1e03d940`
 - Promo banner SHA-256:
@@ -96,11 +96,15 @@ Official PR:
 - Social card SHA-256:
   `d058bdb46ef3b808b238e5811a21e0881865b704dc8b1db71b68dfc7d9398484`
 - Demo TTS:
-  `gemini-3.1-flash-tts-preview`, voice `Kore`
+  `gemini-3.1-flash-tts-preview`, male voice `Charon`
 - Continuous operation demo SHA-256:
-  `83cc5302d6c181f32608efa8c87770be2781c4c77ef286350b67acb9047fb9ca`
+  `b86585ee7cbd2655530a9445dff438998ccc8a6e6d451c8462b53cb680fc2a68`
 - Continuous operation captions SHA-256:
-  `a21a0ee3678370263bea60fa8028dea90513306c466d5e0c278082773344d033`
+  `b0e5692855f88d08406f9131387d81522a084b86a66f15849ff3f84e2b359bab`
+- Continuous lifecycle proof ZIP SHA-256:
+  `25b18d367a212b3a0986dc62fbf7112f1b22e6b8ace9a8ca3086044ba8bc1d8e`
+- Video caption delivery:
+  burned-in English narration captions plus embedded English subtitle tracks
 - Voice Evidence v0.2 lifecycle proof hash:
   `0c175843082b4464094f578c00598e8ec1b416ccbf5f7855c0e4d65e9deb5edf`
 - Lifecycle enhancement validation commit:

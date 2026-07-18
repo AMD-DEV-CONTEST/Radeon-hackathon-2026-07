@@ -3,7 +3,8 @@
 Demo video:
 `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO.mp4`
 
-The final narration uses AIDP `gemini-3.1-flash-tts-preview`, voice `Kore`.
+The final narration uses AIDP `gemini-3.1-flash-tts-preview`, male voice
+`Charon`.
 Campaign backgrounds were generated with GPT Image 2; visible labels and
 measured metrics were typeset locally.
 

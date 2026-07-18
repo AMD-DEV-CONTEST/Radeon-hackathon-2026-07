@@ -98,7 +98,9 @@ Raw measurements are in:
 - Demo video URL: complete
 - Official hackathon PR: open and publicly verified
 
-The final narration uses AIDP `gemini-3.1-flash-tts-preview`, voice `Kore`.
+The final narration uses AIDP `gemini-3.1-flash-tts-preview`, male voice
+`Charon`. Both demo MP4 files contain burned-in English narration captions and
+an embedded English subtitle track; matching SRT files are also published.
 Visual campaign backgrounds were generated with AIDP GPT Image 2; all visible
 project typography and measured values were composed locally.
 
