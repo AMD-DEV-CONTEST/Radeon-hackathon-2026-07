@@ -122,3 +122,33 @@ Official PR:
 - Generation latency reduction: 30.03%
 - Exact reuse HTTP median: 2.18 ms
 - Measured exact-reuse speedup: 11,052.03x
+
+## Weekend W7900 v10 Evidence
+
+- [x] Transformers versus vLLM eager versus vLLM graph
+- [x] Heterogeneous prompt concurrency 1/2/4/8, three bursts each
+- [x] Context-length TTFT and throughput comparison
+- [x] Per-second GPU utilization, VRAM, temperature, and power telemetry
+- [x] Qwen3-ASR native batch 1/2/4/8 versus sequential
+- [x] Noise, reverb, far-field, clipping, and burst-loss voice evidence
+- [x] Voice Evidence v0.3 burst-loss fix validated on W7900
+- [x] Local 33/33 tests and production build
+- [x] Radeon 33/33 tests and production build
+- vLLM graph concurrency-eight aggregate throughput: `257.65 tokens/s`
+- Transformers concurrency-eight aggregate throughput: `20.66 tokens/s`
+- serving throughput improvement: `12.47x`
+- Qwen3-ASR batch-eight aggregate speed: `85.35x real-time`
+- Qwen3-ASR batch-eight speedup over sequential: `6.659x`
+- Voice Evidence v0.3:
+  clean `pass / 100`, 120 ms burst loss `review / 88`,
+  280 ms burst loss `quarantine / 65`
+- Machine-readable summary:
+  `benchmarks/weekend-v10-summary.json`
+- Weekend v10 summary SHA-256:
+  `4871e76d1d0204c5d0179418132ed778f53b8adc6a230120d2974ff61be7158a`
+- Weekend v10 evidence ZIP SHA-256:
+  `1189e0e47c14ba18784f5be82aa5c68366946c0d6378d6a8d26adef61dfd3e9b`
+- Weekend v10 implementation commit:
+  `20776d980ebd4ec8daf6e6b909da4a2933a36dfa`
+- Technical report:
+  `docs/WEEKEND_W7900_EXPERIMENTS.md`

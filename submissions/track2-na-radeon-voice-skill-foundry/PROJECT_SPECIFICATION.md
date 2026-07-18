@@ -423,9 +423,10 @@ npm run benchmark:optimization -- benchmarks/optimization-latest.json
 - The final full-compilation evidence is one end-to-end sample.
 - Exact reuse requires an identical stored skill; changed intent triggers
   recompilation and verification.
-- The current serving baseline is Transformers FP16. A vLLM comparison should
-  run in an isolated Radeon template or container to avoid destabilizing the
-  validated baseline.
+- The serving study includes isolated Transformers FP16, vLLM eager FP16, and
+  vLLM graph FP16 runs on the same W7900 allocation. At concurrency eight,
+  vLLM graph delivered 257.65 aggregate output tokens/s versus 20.66 for the
+  serialized Transformers server.
 - The tool workspace is deterministic for reproducible judging. Production
   connectors should retain the same capability gate and receipt model.
 - The Voice Evidence Gate currently uses deterministic signal measurements. It
@@ -446,13 +447,16 @@ run without changing the measured Radeon claims:
    runtime identity, tool contract, policy, skill definition, and voice
    evidence schema. Changed inputs move a stored skill to
    `revalidation_required`; reuse is blocked until a new child proof passes.
-3. **Voice Evidence v0.2 diagnostics.** Deterministic analysis now reports
+3. **Voice Evidence v0.3 diagnostics.** Deterministic analysis reports
    estimated SNR, noise floor, speech level, crest factor, DC offset, short
-   dropouts, and channel imbalance. These remain heuristic measurements and do
-   not claim learned acoustic diagnosis.
+   dropouts, multi-frame burst loss, and channel imbalance. A measured 280 ms
+   burst-loss case that passed v0.2 at 100/100 is quarantined by v0.3 at
+   65/100, and older proofs require revalidation. These remain deterministic
+   measurements and do not claim learned acoustic diagnosis.
 
-The enhanced local regression suite passes 29/29 tests. A single-take browser
-demo shows upload, v0.2 analysis, compile, 7/7 verification, save, reuse,
+The enhanced regression suite passes 33/33 tests locally and on Radeon. A
+single-take browser demo shows upload, voice-evidence analysis, compile, 7/7
+verification, save, reuse,
 service restart recovery, runtime invalidation, one-click revalidation, and
 proof download.
 
@@ -460,6 +464,11 @@ The same public enhancement commit
 `efec128059fea3b68521aa1dd333c71d5ea6a679` was clean-cloned on Radeon Cloud.
 `npm ci`, 29/29 tests, and the production build passed on ROCm 7.2.1,
 `gfx1100`, with 51,522,830,336 bytes of VRAM.
+
+The final weekend experiment implementation is pinned to source commit
+`20776d9`. A clean Radeon clone of that commit passed `npm ci`, 33/33 tests,
+and the production build. The same commit replayed clean, 120 ms burst-loss,
+and 280 ms burst-loss samples through the real `/api/transcribe` endpoint.
 
 ## 14. Evidence Index
 
