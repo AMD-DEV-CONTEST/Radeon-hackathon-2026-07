@@ -1,0 +1,35 @@
+model:
+  path: "./models/qwen2.5-7b-instruct-q4_k_m.gguf"
+  n_gpu_layers: -1
+  n_ctx: 8192
+  n_batch: 512
+  temperature: 0.7
+  max_tokens: 4096
+
+agent:
+  max_iterations: 10
+  memory_enabled: true
+  tools:
+    - file_operations
+    - command_executor
+    - email_sender
+    - code_interpreter
+    - system_info
+
+rag:
+  vector_store: "faiss"
+  embedding_model: "all-MiniLM-L6-v2"
+  chunk_size: 512
+  chunk_overlap: 50
+  top_k: 5
+
+ui:
+  port: 7860
+  title: "AMD Radeon 本地智能体系统"
+
+security:
+  audit_log_enabled: true
+  require_approval_for:
+    - delete_file
+    - execute_command
+    - send_email
