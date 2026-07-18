@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perciqa Cortex — Pitch Deck</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --color-primary: #E8272D;
+            --color-background: #0A0A0F;
+            --color-secondary: #6C63FF;
+            --color-accent: #FF8E53;
+            --color-text: #E8E8F0;
+            --color-muted: #8888A0;
+            --primitive-gradient-primary: linear-gradient(135deg, #E8272D, #FF8E53);
+            --typography-font-heading: 'Space Grotesk', system-ui, sans-serif;
+            --typography-font-body: 'Inter', system-ui, sans-serif;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--color-background);
+            color: var(--color-text);
+            font-family: var(--typography-font-body);
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+        .slide-deck {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+        @media (min-width: 769px) {
+            .slide-deck {
+                max-width: calc(100vh * 16 / 9);
+                max-height: calc(100vw * 9 / 16);
+                margin: auto;
+                position: absolute;
+                inset: 0;
+            }
+        }
+        .slide {
+            position: absolute;
+            width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 60px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.4s;
+            background: var(--color-background);
+            overflow: hidden;
+        }
+        .slide.active { opacity: 1; visibility: visible; }
+        .slide-content {
+            width: 100%;
+            max-width: 90%;
+            max-height: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+        h1, h2 { font-family: var(--typography-font-heading); }
+        .slide-title {
+            font-size: clamp(36px, 6vw, 72px);
+            background: var(--primitive-gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.1;
+        }
+        h2 {
+            font-size: clamp(24px, 3.5vw, 48px);
+            color: var(--color-text);
+        }
+        h3 {
+            font-size: clamp(18px, 2.5vw, 32px);
+            color: var(--color-primary);
+        }
+        p, li {
+            font-size: clamp(16px, 2vw, 24px);
+            line-height: 1.6;
+            color: var(--color-muted);
+        }
+        .highlight { color: var(--color-primary); font-weight: 600; }
+        .subtitle { font-size: clamp(14px, 1.5vw, 20px); color: var(--color-muted); }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            width: 100%;
+            text-align: left;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            text-align: left;
+        }
+        .card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .card h4 { color: var(--color-primary); margin-bottom: 8px; }
+        .card p { font-size: clamp(12px, 1.2vw, 16px); }
+        ul { list-style: none; text-align: left; }
+        ul li::before { content: "▸ "; color: var(--color-primary); }
+        ul li { margin: 10px 0; }
+        .stat {
+            font-size: clamp(36px, 5vw, 56px);
+            font-weight: 700;
+            background: var(--primitive-gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-family: var(--typography-font-heading);
+        }
+        .chart-container {
+            width: min(80%, 600px);
+            height: clamp(200px, 40vh, 350px);
+        }
+        .badge {
+            display: inline-block;
+            background: rgba(232, 39, 45, 0.15);
+            color: var(--color-primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: clamp(11px, 1vw, 14px);
+            font-weight: 600;
+        }
+        .progress-bar {
+            position: fixed;
+            top: 0; left: 0;
+            height: 3px;
+            background: var(--color-primary);
+            transition: width 0.3s;
+            z-index: 1000;
+        }
+        .nav-controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            z-index: 1000;
+        }
+        .nav-btn {
+            background: rgba(255,255,255,0.08);
+            border: none;
+            color: #fff;
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        .nav-btn:hover { background: rgba(255,255,255,0.15); }
+        .slide-counter { color: rgba(255,255,255,0.4); font-size: 14px; }
+        .animate-stagger > * {
+            opacity: 0;
+            animation: fadeUp 0.5s ease-out forwards;
+        }
+        .animate-stagger > *:nth-child(1) { animation-delay: 0.1s; }
+        .animate-stagger > *:nth-child(2) { animation-delay: 0.2s; }
+        .animate-stagger > *:nth-child(3) { animation-delay: 0.3s; }
+        .animate-stagger > *:nth-child(4) { animation-delay: 0.4s; }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .logo { font-size: clamp(14px, 1.8vw, 22px); font-weight: 700; letter-spacing: 2px; }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    <div class="slide-deck">
+
+    <!-- Slide 1: Title -->
+    <div class="slide active">
+        <div class="slide-content animate-stagger">
+            <div class="logo">PERCIQA</div>
+            <h1 class="slide-title">Cortex</h1>
+            <p style="font-size: clamp(18px, 2.5vw, 32px);">Decentralized agent memory<br>with cryptographic provenance</p>
+            <p class="subtitle">AMD AI DevMaster Hackathon 2026 — Track 2</p>
+            <p class="subtitle" style="margin-top: 20px;">orbinix · excelle</p>
+        </div>
+    </div>
+
+    <!-- Slide 2: Problem -->
+    <div class="slide">
+        <div class="slide-content animate-stagger">
+            <span class="badge">The Problem</span>
+            <h2>Every SOC is an island</h2>
+            <div class="grid-2" style="margin-top: 20px;">
+                <div class="card">
+                    <h4>✕ CSV dumps</h4>
+                    <p>Threat intel shared as spreadsheets — no machine readability, no verification</p>
+                </div>
+                <div class="card">
+                    <h4>✕ No provenance</h4>
+                    <p>"Who said this? When? From what data?" — currently answered by trust alone</p>
+                </div>
+                <div class="card">
+                    <h4>✕ Vendor lock</h4>
+                    <p>Centralized platforms require trusting a vendor with cross-org data</p>
+                </div>
+                <div class="card">
+                    <h4>✕ Sovereignty tradeoff</h4>
+                    <p>Collaboration vs. data sovereignty — treated as a binary choice</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 3: Solution -->
+    <div class="slide">
+        <div class="slide-content animate-stagger">
+            <span class="badge">The Solution</span>
+            <h2>Cortex Memory Fabric</h2>
+            <div class="grid-3" style="margin-top: 20px;">
+                <div class="card">
+                    <h4>📝 Publish</h4>
+                    <p>Agents produce signed memory articles with full provenance — source hash, DID, timestamp</p>
+                </div>
+                <div class="card">
+                    <h4>🔍 Query</h4>
+                    <p>Semantic retrieval across org boundaries, ranked by hybrid cosine + trust score</p>
+                </div>
+                <div class="card">
+                    <h4>🔗 Derive</h4>
+                    <p>New articles cite sources; trust propagates through the provenance graph</p>
+                </div>
+            </div>
+            <p style="margin-top: 20px; font-size: clamp(14px, 1.5vw, 18px);">
+                <span class="highlight">Ed25519 signatures</span> on every article ·
+                <span class="highlight">Scope ACLs</span>: private │ partner │ public ·
+                <span class="highlight">Trust formula</span>: 0.6·base + 0.4·source − penalty
+            </p>
+        </div>
+    </div>
+
+    <!-- Slide 4: Architecture -->
+    <div class="slide">
+        <div class="slide-content animate-stagger">
+            <span class="badge">Architecture</span>
+            <h2>Two sovereign nodes, one broker</h2>
+            <pre style="font-size: clamp(10px, 1vw, 14px); text-align: left; background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; line-height: 1.5; width: 100%; max-width: 700px; overflow-x: auto;">
+ SOC Alpha                    SOC Beta
+ ┌──────────────────┐        ┌──────────────────┐
+ │  Agent (LangChain)│        │ Agent (LlamaIndex)│
+ │  CortexNode       │        │  CortexNode        │
+ │  ├─ Embedder(GPU) │        │  ├─ Embedder(GPU)  │
+ │  ├─ ArticleStore  │        │  ├─ ArticleStore   │
+ │  ├─ VectorIndex   │        │  ├─ VectorIndex    │
+ │  ├─ TrustEngine   │        │  ├─ TrustEngine    │
+ │  └─ Signer        │        │  └─ Signer         │
+ └────────┬─────────┘        └────────┬──────────┘
+          │                          │
+          └──────────┬───────────────┘
+                     │
+            ┌────────▼────────┐
+            │  Fabric Broker  │
+            │  (WS, ACL)     │
+            └─────────────────┘
+            </pre>
+        </div>
+    </div>
+
+    <!-- Slide 5: Live Demo -->
+    <div class="slide">
+        <div class="slide-content animate-stagger">
+            <span class="badge">Live Demo</span>
+            <h2>F1 SOC Consortium</h2>
+            <div class="grid-2" style="margin-top: 10px;">
+                <div class="card">
+                    <h4>🔴 ATT&CK Matrix</h4>
+                    <p>210 techniques live-updating as findings flow between SOCs</p>
+                </div>
+                <div class="card">
+                    <h4>🔗 Provenance Graph</h4>
+                    <p>Force-directed graph showing citation edges forming in real time</p>
+                </div>
+                <div class="card">
+                    <h4>📊 Trust Scores</h4>
+                    <p>Every article scored 0–1, visible as rings on article cards</p>
+                </div>
+                <div class="card">
+                    <h4>⚡ Bench Panel</h4>
+                    <p>Live Radeon vs CPU throughput comparison — updated every 2s</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 6: AMD Angle -->
+    <div class="slide">
+        <div class="slide-content animate-stagger">
+            <span class="badge">AMD Radeon / ROCm</span>
+            <h2>Load-bearing GPU acceleration</h2>
+            <div class="chart-container">
+                <canvas id="benchChart"></canvas>
+            </div>
+            <div class="grid-3" style="margin-top: 10px;">
+                <div class="card">
+                    <div class="stat">1,004</div>
+                    <p>embeds/sec on Radeon (batch 16)</p>
+                </div>
+                <div class="card">
+                    <div class="stat">4×</div>
+                    <p>vs CPU throughput (245 embeds/sec)</p>
+                </div>
+                <div class="card">
+                    <div class="stat">6.68ms</div>
+                    <p>single-embed latency on Radeon</p>
+                </div>
+            </div>
+            <p class="subtitle" style="margin-top: 10px;">bge-small-en-v1.5 · ROCm 7.2 · MI300X · PyTorch 2.9</p>
+        </div>
+    </div>
+
+    <!-- Slide 7: Generality -->
+    <div class="slide">
+        <div class="slide-content animate-stagger">
+            <span class="badge">Domain-General</span>
+            <h2>Same fabric, any domain</h2>
+            <div class="grid-2" style="margin-top: 20px;">
+                <div class="card">
+                    <h4>🛡️ F1 SOC Consortium</h4>
+                    <p>Cyber threat intel sharing between SOCs with cryptographic provenance — the featured demo</p>
+                </div>
+                <div class="card">
+                    <h4>🏥 Healthcare R&D</h4>
+                    <p>Hospital + research lab: findings flow without exposing patient data or research methods</p>
+                </div>
+                <div class="card">
+                    <h4>⚖️ Legal Precedent</h4>
+                    <p>Law firms share precedent analyses without exposing client strategy</p>
+                </div>
+                <div class="card">
+                    <h4>🏦 Financial Intel</h4>
+                    <p>Fraud pattern sharing between banks without exposing customer data</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 8: Roadmap -->
+    <div class="slide">
+        <div class="slide-content animate-stagger">
+            <span class="badge">Roadmap</span>
+            <h2>Post-hackathon</h2>
+            <ul style="max-width: 500px;">
+                <li><strong>Open-source</strong> the fabric protocol as <code>perciqa-cortex-spec</code></li>
+                <li><strong>P1 Cipher</strong> — zero-knowledge proofs of provenance (fill the <code>computation_ref</code> hook)</li>
+                <li><strong>P2 Ledger</strong> — tamper-evident audit chain for regulator-verifiable history</li>
+                <li><strong>ISAC deployment</strong> — hosted offering for SOC consortium customers</li>
+                <li><strong>Enterprise</strong> — healthcare, finance, and legal registries</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Slide 9: Team -->
+    <div class="slide">
+        <div class="slide-content animate-stagger">
+            <span class="badge">Team</span>
+            <h2>Built by</h2>
+            <div class="grid-2" style="max-width: 500px; margin-top: 10px;">
+                <div class="card">
+                    <h4>orbinix</h4>
+                    <p>Architecture, core, node, broker, console, demo — solo build</p>
+                </div>
+                <div class="card">
+                    <h4>excelle</h4>
+                    <p>Co-author, code review, design guidance</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 10: Q&A -->
+    <div class="slide">
+        <div class="slide-content animate-stagger">
+            <h1 class="slide-title">Thank you</h1>
+            <p style="font-size: clamp(18px, 2.5vw, 32px); margin-top: 10px;">Questions?</p>
+            <p class="subtitle" style="margin-top: 30px;">
+                "Imagine a 2028 where agents have verifiable memory<br>
+                across organizations. This is the first step."
+            </p>
+            <p class="subtitle" style="margin-top: 30px;">
+                github.com/perciqa/cortex · Track 2, Perciqa, Cortex
+            </p>
+        </div>
+    </div>
+
+    </div>
+
+    <div class="nav-controls">
+        <button class="nav-btn" onclick="prevSlide()">←</button>
+        <span class="slide-counter"><span id="current">1</span> / <span id="total">10</span></span>
+        <button class="nav-btn" onclick="nextSlide()">→</button>
+    </div>
+
+    <script>
+        let current = 1;
+        const total = 10;
+        document.getElementById('total').textContent = total;
+
+        function showSlide(n) {
+            if (n < 1) n = 1;
+            if (n > total) n = total;
+            current = n;
+            document.querySelectorAll('.slide').forEach((s, i) => {
+                s.classList.toggle('active', i === n - 1);
+            });
+            document.getElementById('current').textContent = n;
+            document.getElementById('progressBar').style.width = (n / total * 100) + '%';
+        }
+
+        function nextSlide() { showSlide(current + 1); }
+        function prevSlide() { showSlide(current - 1); }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+            if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.nav-controls')) nextSlide();
+        });
+
+        showSlide(1);
+
+        new Chart(document.getElementById('benchChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Batch 1', 'Batch 16'],
+                datasets: [
+                    {
+                        label: 'Radeon MI300X (ms)',
+                        data: [6.68, 9.45],
+                        backgroundColor: '#E8272D',
+                        borderRadius: 4,
+                    },
+                    {
+                        label: 'CPU Apple M4 Pro (ms)',
+                        data: [65.35, 65.35],
+                        backgroundColor: 'rgba(255,255,255,0.15)',
+                        borderRadius: 4,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#E8E8F0', font: { size: 12 } }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#B8B8D0' }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#B8B8D0' },
+                        title: { display: true, text: 'Latency (ms)', color: '#B8B8D0' }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

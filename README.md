@@ -1,72 +1,204 @@
-# Radeon-hackathon-2026-07
+# Perciqa Cortex
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+> **The memory fabric for the agent economy.**
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+Cortex is a decentralized network of sovereign nodes that lets AI agents share **memory articles** across organizational trust boundaries, without exposing raw data, weights, or trusting a central vendor. Every article carries cryptographic provenance, scoped permissions, and a derived trust score.
 
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
+[![Status](https://img.shields.io/badge/status-early%20development-orange)](https://github.com/perciqa/cortex)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
+[![ROCm](https://img.shields.io/badge/AMD-ROCm%20accelerated-E8272D)](https://rocm.docs.amd.com/)
 
-## Submission Requirements
+---
 
-### Track 1: Development of Multimodal Content Creation Tools
+## The Problem
 
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
+Today's AI memory is **single-tenant by default**. There is no production-grade protocol where Agent A (say, a hospital) can ask *"what did Agent B (say, a research lab) discover about condition Z?"* and get back a signed, scoped, provenance-tagged memory article, without either side exposing raw data or rebuilding trust infrastructure from scratch.
 
-### Track 2: Development & Local Deployment of Private AI Agents
+| Existing product | What it lacks |
+|---|---|
+| Pinecone / Qdrant / Weaviate | Single-tenant. No agent-native semantics. No provenance. No cross-org. |
+| Letta (MemGPT) | One agent, one tenant. Not a fabric. |
+| LangChain Memory / Mem0 | Ephemeral. Single-session. Not shareable. |
+| Federated knowledge graphs (academic) | Not agent-native. Not production-grade. No product. |
 
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
+Cortex is the missing layer.
 
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
+---
 
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+## How It Works
+
+There are three runtime loops.
+
+**Publish.** An agent produces a finding. The local Cortex node signs it with Ed25519 keys, computes its embedding on a local GPU, and broadcasts it to subscribed peers within the article's scope. Peers verify the signature and index it locally.
+
+**Query.** An agent asks *"what's known about X?"* The node embeds the query, runs semantic retrieval over its local fabric partition, and returns ranked articles with full provenance. Results are ranked by a blend of cosine similarity and trust score, so trust shapes what agents actually see rather than just appearing in the UI.
+
+**Derive.** An agent composes a new article from existing ones. The provenance graph grows and trust propagates: articles that cite high-trust sources get a lift, and ones that cite low-trust sources take a penalty.
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   Cortex Fabric Broker                       │
+│          (federated pub/sub, topic + scope ACL)              │
+└──────────────────┬──────────────────────┬───────────────────┘
+                   │                      │
+   ┌───────────────▼───────────┐  ┌───────▼───────────────────┐
+   │  Tenant A                  │  │  Tenant B                  │
+   │                            │  │                            │
+   │  ┌────────┐  ┌──────────┐  │  │  ┌────────┐  ┌──────────┐  │
+   │  │ Agent  │→ │  Node A  │  │  │  │ Agent  │→ │  Node B  │  │
+   │  └────────┘  │          │  │  │  └────────┘  │          │  │
+   │              │ Embedder │  │  │              │ Embedder │  │
+   │              │ ArtStore │  │  │              │ ArtStore │  │
+   │              │ VecIndex │  │  │              │ VecIndex │  │
+   │              │Provenance│  │  │              │Provenance│  │
+   │              │  Signer  │  │  │              │  Signer  │  │
+   │              │TrustEng. │  │  │              │TrustEng. │  │
+   │              └──────────┘  │  │              └──────────┘  │
+   └────────────────────────────┘  └────────────────────────────┘
+```
+
+| Module | Purpose |
+|---|---|
+| `cortex-core` | Data model, crypto, and serialization. No external dependencies. |
+| `cortex-node` | Local tenant node: embedder, store, signer, and query engine |
+| `cortex-broker` | Federated pub/sub routing with topic and scope ACL |
+| `cortex-sdk` | Agent-facing convenience layer with LangChain and LlamaIndex adapters |
+| `cortex-console` | Real-time read-only web UI |
+| `cortex-bench` | GPU vs CPU benchmark harness |
+
+---
+
+## Data Model
+
+The atomic unit is a **MemoryArticle**:
+
+```python
+@dataclass(frozen=True)
+class MemoryArticle:
+    id: ArticleId          # sha256(canonical(content + provenance))
+    type: ArticleType      # finding | insight | precedent | procedure | warning
+    content: str           # natural-language summary
+    payload: dict          # structured typed payload
+
+    embedding: list[float] | None   # computed locally on GPU at publish time
+    provenance: Provenance
+    scope: Scope           # private | partner:<org_did> | public
+
+    agent_signature: bytes          # Ed25519, signs all canonical fields
+    org_signature: bytes | None     # Ed25519 co-sign by org key
+
+    cites: list[ArticleId]          # articles this one was derived from
+    trust_score: float | None       # [0, 1], recomputable, not signed
+
+
+@dataclass(frozen=True)
+class Provenance:
+    producer_agent: AgentDID        # did:percq:agent:<uuid>
+    producer_org: OrgDID            # did:percq:org:<slug>
+    source_data_hash: str | None    # sha256 commitment, never the raw data
+    run_id: str
+    timestamp: datetime
+```
+
+### Lifecycle
+
+```
+Drafted -> Signed -> Indexed -> Published -> Cited -> Archived
+```
+
+Articles with `private` scope never leave the local node. `partner:<org_did>` articles go only to that named org. `public` articles reach all subscribed peers.
+
+---
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.11+
+- AMD Radeon GPU with ROCm 6.1+ (recommended) _or_ any CUDA-capable GPU _or_ CPU-only (fallback)
+
+### Installation
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/perciqa/cortex.git
+cd cortex
+
+# 2. Create and activate a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+
+# 3. Install the package with dependencies
+pip install -e ".[dev,cpu]"       # CPU-only fallback
+# OR for GPU support:
+pip install -e ".[dev,gpu]"       # Requires ROCm/CUDA PyTorch
+
+# 4. Verify installation
+pytest -q tests/
+```
+
+### Running the Demo
+
+```bash
+# End-to-end F1 SOC consortium demo (two tenants, broker, agents)
+python scenarios/soc_consortium/demo_run.py
+
+# Start the Console UI (separate terminal)
+python -m cortex.console --broker ws://localhost:7432 --port 8080
+# Open http://localhost:8080 in your browser
+```
+
+### Environment Configuration
+
+See `scenarios/soc_consortium/configs/` for YAML configuration templates:
+
+| File | Purpose |
+|---|---|
+| `broker.yaml` | Broker WebSocket port, registry path, replay window |
+| `node-alpha.yaml` | SOC Alpha node config (org DID, keys, embedder, vector index) |
+| `node-beta.yaml` | SOC Beta node config |
+| `org_registry.json` | Org public keys for signature verification |
+
+Key environment overrides:
+
+| Variable | Purpose |
+|---|---|
+| `CORTEX_BROKER_URL` | Override broker WebSocket URL |
+| `CORTEX_EMBED_BACKEND` | Force `gpu` or `cpu` embedding backend |
+| `CORTEX_LOG_LEVEL` | Set logging verbosity (`DEBUG`, `INFO`, `WARN`) |
+
+### Running Tests
+
+```bash
+pytest -q tests/                 # All tests (~213)
+pytest tests/unit/               # Unit tests only
+pytest tests/integration/        # Integration tests (broker + two-node)
+pytest tests/e2e/                # End-to-end demo scenario tests
+```
+
+### Project Structure
+
+```
+cortex/
+├── core/          # Data model, crypto, canonical JSON, envelope protocol
+├── node/          # Local tenant node (embedder, store, vector index, trust engine)
+├── broker/        # Federated pub/sub WebSocket server with ACL
+├── sdk/           # Agent-facing client + LangChain/LlamaIndex adapters
+├── bench/         # GPU vs CPU benchmark harness
+├── console/       # FastAPI backend + React SPA web UI
+└── scenarios/     # F1 SOC consortium demo data and agent scripts
+```
+
+## License
+
+TBD.
+
+---
+
+<sub>By [Perciqa](https://github.com/perciqa)</sub>
