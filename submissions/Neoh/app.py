@@ -111,8 +111,12 @@ def run_cli():
                 task = prompt[5:].strip()
                 print("正在执行任务...")
                 result = agent.run_task(task)
-                print(f"\n任务结果: {'完成' if result['success'] else '未完成'}")
-                print(f"评估: {result['reflection'].get('reason', '')}")
+                print(f"\n{'='*50}")
+                print(f"任务结果: {'✅ 完成' if result['success'] else '❌ 未完成'}")
+                reflection = result.get('reflection', {})
+                reason = str(reflection.get('reason', ''))[:200]
+                print(f"评估: {reason}")
+                print(f"{'='*50}")
             else:
                 response = agent.chat(prompt)
                 print(f"\n助手: {response}")

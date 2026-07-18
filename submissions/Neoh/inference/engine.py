@@ -127,7 +127,7 @@ class InferenceEngine:
         sampling_params = SamplingParams(
             max_tokens=max_tokens,
             temperature=temperature,
-            stop=["<|im_end|>", "</s>"],
+            stop=["<|im_end|>", "</s>", "```", "\n\n\n"],
         )
 
         try:
