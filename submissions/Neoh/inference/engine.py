@@ -19,8 +19,17 @@ import os
 os.environ.setdefault("HSA_OVERRIDE_GFX_VERSION", "11.0.0")
 os.environ.setdefault("PYTORCH_ROCM_ARCH", "gfx1100")
 os.environ.setdefault("HIP_VISIBLE_DEVICES", "0")  # 默认用第一张 GPU
-# 避免 ROCm 在多 GPU 环境下的锁冲突
 os.environ.setdefault("HSA_ENABLE_SDMA", "0")
+
+# ---- 多卡 TP 必需的环境变量 ----
+# vLLM 用 multiprocessing 启动 worker，必须用 spawn 模式才能继承环境变量
+os.environ.setdefault("VLLM_WORKER_MULTIPROC_METHOD", "spawn")
+# RCCL（ROCm 的 NCCL）多卡通信优化
+os.environ.setdefault("RCCL_NCCL_NCHANNELS", "4")
+os.environ.setdefault("RCCL_NCCL_NSOCKETS_PERCHANNEL", "8")
+os.environ.setdefault("NCCL_SOCKET_IFNAME", "lo")
+# 避免 ROCm 在多 GPU 环境下的锁冲突
+os.environ.setdefault("HSA_ENABLE_INTERRUPTIBLE", "0")
 
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field

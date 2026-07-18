@@ -5,6 +5,12 @@ os.environ.setdefault("HSA_OVERRIDE_GFX_VERSION", "11.0.0")
 os.environ.setdefault("PYTORCH_ROCM_ARCH", "gfx1100")
 os.environ.setdefault("HIP_VISIBLE_DEVICES", "0")
 os.environ.setdefault("HSA_ENABLE_SDMA", "0")
+# 多卡 TP 必需
+os.environ.setdefault("VLLM_WORKER_MULTIPROC_METHOD", "spawn")
+os.environ.setdefault("RCCL_NCCL_NCHANNELS", "4")
+os.environ.setdefault("RCCL_NCCL_NSOCKETS_PERCHANNEL", "8")
+os.environ.setdefault("NCCL_SOCKET_IFNAME", "lo")
+os.environ.setdefault("HSA_ENABLE_INTERRUPTIBLE", "0")
 
 import logging
 import sys
