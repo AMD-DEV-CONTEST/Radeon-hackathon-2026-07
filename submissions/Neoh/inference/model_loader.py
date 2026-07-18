@@ -6,8 +6,8 @@ from huggingface_hub import snapshot_download, hf_hub_download
 logger = logging.getLogger(__name__)
 
 MODEL_REPOS = {
-    "qwen2.5-7b": "Qwen/Qwen2.5-7B-Instruct-GGUF",
-    "qwen2.5-14b": "Qwen/Qwen2.5-14B-Instruct-GGUF",
+    "qwen2.5-7b": "bartowski/Qwen2.5-7B-Instruct-GGUF",
+    "qwen2.5-14b": "bartowski/Qwen2.5-14B-Instruct-GGUF",
 }
 
 MODEL_PATTERNS = {
