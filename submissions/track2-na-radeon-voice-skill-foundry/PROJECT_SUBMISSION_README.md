@@ -13,6 +13,8 @@ to perform risky actions.
 - GitHub ID: `Chengyuann`
 - Project repository:
   `https://github.com/Chengyuann/radeon-voice-skill-foundry`
+- Live interactive demo:
+  `https://radeon-voice-skill-foundry.pages.dev/`
 - License: MIT
 - Demo video:
   `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO.mp4`
@@ -122,3 +124,8 @@ project typography and measured values were composed locally.
   6.66x faster than sequential inference.
 - Voice Evidence v0.3 closes a measured burst-loss blind spot and forces old
   v0.2 proofs through revalidation.
+- Cloudflare Pages now exposes the real full-stack demo through an authenticated
+  same-origin gateway to W7900 Qwen3-ASR and Qwen3-4B.
+- Public browser validation passed upload, Voice Evidence 100/100, Chinese
+  `mail.send = deny`, 7/7 verification, save, reuse, and proof download.
+- Current enhanced regression suite: 35/35 passed.

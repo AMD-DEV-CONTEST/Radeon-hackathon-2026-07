@@ -11,6 +11,8 @@ trace into a verified, reusable Agent Skill before risky actions are permitted.
 
 - Source repository:
   https://github.com/Chengyuann/radeon-voice-skill-foundry
+- Live interactive demo:
+  https://radeon-voice-skill-foundry.pages.dev/
 - Demo video, 3 minutes 49 seconds:
   https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO.mp4
 - Demo captions:
@@ -112,6 +114,25 @@ Public enhancement commit:
 The single-take continuous demo records upload, v0.2 analysis, compile,
 verification, save, reuse, two real service restarts, proof invalidation,
 revalidation, and proof download in one browser session.
+
+## Public Full-Stack Demo
+
+The Cloudflare Pages deployment keeps browser requests same-origin under
+`/api`, injects a server-held gateway token, and forwards only authenticated
+requests to the W7900 runtime. The public flow was re-run end to end on commit
+`12dbec1`:
+
+- Qwen3-ASR processed the 20.39-second Chinese SOP on Radeon
+- Voice Evidence v0.3 passed at 100/100
+- Chinese `不要自动发送` produced `mail.send = deny`
+- Qwen3-4B produced 13 constraints with measured Radeon metrics
+- deterministic verification passed 7/7 and issued four receipts
+- the verified skill was saved and reused
+- the proof ZIP downloaded and passed archive integrity validation
+
+The current account has no Cloudflare-managed DNS zone, so the W7900 origin
+uses an authenticated Quick Tunnel. Pages remains stable, but a GPU/Tunnel
+restart requires rotating the encrypted `RADEON_API_ORIGIN` Pages secret.
 
 ## Submission Files
 

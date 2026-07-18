@@ -36,6 +36,8 @@ Deadline: 2026-08-06 23:59 UTC+8.
 - [x] Upload demo video and verify public access
 - [x] Add video URL to `submission/README.md`
 - [x] Add video URL to official submission PR body
+- [x] Deploy live interactive demo to Cloudflare Pages
+- [x] Connect public `/api` to authenticated W7900 runtime
 
 ## Quality Gates
 
@@ -58,6 +60,8 @@ Deadline: 2026-08-06 23:59 UTC+8.
 - [x] Benchmark JSON validates
 - [x] Proof ZIP integrity validates
 - [x] Secret scan passed
+- [x] Public audio -> ASR -> compile -> 7/7 proof -> save -> reuse passed
+- [x] Final enhanced local suite: 35/35 passed
 
 ## Official Repository Submission
 
@@ -72,6 +76,9 @@ Deadline: 2026-08-06 23:59 UTC+8.
 
 Official PR:
 `https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/pull/7`
+
+Live demo:
+`https://radeon-voice-skill-foundry.pages.dev/`
 
 ## Evidence Values
 
