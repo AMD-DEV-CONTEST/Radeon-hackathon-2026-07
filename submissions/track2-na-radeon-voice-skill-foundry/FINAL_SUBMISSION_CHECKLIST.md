@@ -46,7 +46,7 @@ Deadline: 2026-08-06 23:59 UTC+8.
 ## Current Quality Gates
 
 - [x] `npm run typecheck`: passed
-- [x] Current local `npm test`: 36/36 passed
+- [x] Current local `npm test`: 42/42 passed
 - [x] Current local production build: passed
 - [x] Public Cloudflare page: HTTP 200
 - [x] Public `/api/health`: Radeon mode, W7900-class `gfx1100`, ROCm 7.2.1
@@ -65,7 +65,7 @@ Deadline: 2026-08-06 23:59 UTC+8.
 - [x] Final audio-backed Radeon snapshot commit `c759a41`: 21/21, build, 7/7
 - [x] Durable lifecycle Radeon snapshot commit `efec128`: 29/29, build
 - [x] Weekend v10 Radeon snapshot commit `20776d9`: 33/33, build
-- [x] Current local continuous-lifecycle regression: 36/36, build
+- [x] Current local product regression: 42/42, build
 
 These counts belong to different pinned revisions and are intentionally not
 presented as one remote run.
@@ -125,7 +125,7 @@ Official PR:
 - Weekend v10 evidence ZIP:
   `1189e0e47c14ba18784f5be82aa5c68366946c0d6378d6a8d26adef61dfd3e9b`
 - Refreshed Project Specification PDF:
-  `0028924196c925c8e185ccfe8e1840f16dfc11d7f11bee229bae2f860b8170f6`
+  `528f1d94283cca0f0fd7c07a5892b228916dbf95fbd7c6ac42bc3c6c92ed0736`
 - Refreshed architecture PNG:
   `1feec7ef529232b12c4f4d9bfca6d59f05685bc7253b9aab35efe90688b37fce`
 - Refreshed poster PDF:
@@ -196,3 +196,16 @@ Measured result:
   `33846bd2ac82a5a307cde4e3bab20afbefe258bc0b20551fdf9b93225ffe9582`
 - evidence ZIP SHA-256:
   `473b059a85f211454fad6bdb27210c3690d4ccfffb2ce471fcaf1d52cae71584`
+
+## Real Demonstration Workspace
+
+- [x] New runs start with an empty action contract
+- [x] Six ordered user commands generate six timestamped events
+- [x] P2 findings are excluded after filtering
+- [x] Missing owner is explicitly marked `needs_confirmation`
+- [x] Email remains `draft`; send remains false
+- [x] Calendar holds remain tentative and uncommitted
+- [x] Exported report uses account aliases and excludes compensation
+- [x] Undo and reset invalidate the incomplete trace
+- [x] Compile stays disabled until the six-step contract is complete
+- [x] Reducer and event-contract tests: 4/4 passed
