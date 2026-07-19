@@ -36,12 +36,19 @@ on a single AMD Radeon GPU.
 
 ## Reproduce
 
-See the source repo's `README.md` for step-by-step setup (GPU, CPU-mock, web,
-database, Docker). A judge can run the whole pipeline without a GPU using the
-CPU mock brain image:
+The core of the project runs on an **AMD Radeon GPU (ROCm)** — this is the
+primary, intended path.
+
+- **With an AMD Radeon GPU (primary path):** reproduce the real local inference
+  (llama.cpp HIP + Whisper on ROCm) using `docker/Dockerfile.rocm`. Full
+  step-by-step GPU setup and benchmarks are in the source repo's `README.md`
+  and in the technical report (§4).
+- **Without AMD hardware (convenience fallback only):** the same web app and
+  simulation pipeline can be exercised with the CPU mock brain image, so
+  evaluators lacking an AMD GPU can still see the end-to-end flow:
 
 ```bash
-docker pull ghcr.io/ziaac/navisense-brain-cpu:1.0
+docker pull ghcr.io/ziaac/navisense-brain-cpu:1.0   # CPU mock (no GPU needed)
 docker pull ghcr.io/ziaac/navisense-web:1.0
 ```
 
