@@ -24,7 +24,7 @@ judge navigation aid, not a claim of an awarded score.
 | Decomposition, tools, RAG, and memory | 20 | Local RAG, typed tool capabilities, multi-step planning, versioned memory, and permission/privacy controls | Project Specification sections 4-5; source modules; proof ZIP | Main V2 00:35-03:36 | Production connectors remain behind the same deterministic capability gate |
 | Smooth multi-turn interaction | 20 | Voice upload/recording, source review, compile, policy inspection, verification, proof, save/reuse, revision, and revalidation | Public module UI; current `36/36` regression suite | Main V2 00:35-03:36; Lifecycle V2 02:20-04:19 | Public availability depends on the current W7900 tunnel origin |
 | Core inference on Radeon | 20 | Qwen3-ASR-0.6B and Qwen3-4B-Instruct-2507 run locally on W7900-class `gfx1100` with ROCm 7.2.1 | Live `/api/health`; `radeon-audio-proof-v8-2026-07-18.json`; main Demo V2 proof ZIP | Main V2 00:09-01:52 | Main Demo V2 is the authoritative real-inference video |
-| Targeted inference optimization | 20 | vLLM eager/graph serving, native ASR batching, compact structured output, exact Verified Skill reuse, Quark INT4/INT8 acceptance study | `weekend-v10-summary.json`; `quantization-v11-summary.json`; optimization reports | Main V2 03:38-04:13 | Quark INT8 is capacity-positive but rejected for speed and safety-quality regression |
+| Targeted inference optimization | 20 | vLLM eager/graph, native ASR batching, compact output, exact reuse, Quark acceptance study, fail-closed adaptive precision | `weekend-v10-summary.json`; `quantization-v11-summary.json`; `adaptive-precision-v12-summary.json` | Main V2 03:38-04:13 | INT8 is capacity-positive but requires FP16 fallback for this policy workload |
 
 ## Capability Requirement
 
@@ -56,6 +56,9 @@ judge navigation aid, not a claim of an awarded score.
 | Quark INT8 C8 throughput | `160.61 vs 253.74 tok/s`, `-36.70%` | `quantization-v11-summary.json` |
 | Quark INT8 C128 safety gate | `11/51`, production rejected | `quantization-v11-summary.json` |
 | Quark INT4 W4A16 storage | `8.06 -> 2.68 GB`, loader incompatible | `QUARK_QUANTIZATION_W7900_V11.md` |
+| Schema-constrained INT8 | JSON `2/12`, semantic admission `0/12` | `adaptive-precision-v12-summary.json` |
+| Adaptive FP16 fallback | final accepted `12/12` | `adaptive-precision-v12-summary.json` |
+| Real adaptive Voice-to-Proof | fallback bound in proof, `mail.send = deny`, `7/7` | `adaptive-precision-v12-e2e.json` |
 
 ## Demo Evidence Boundary
 

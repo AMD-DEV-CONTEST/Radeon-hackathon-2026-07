@@ -125,11 +125,11 @@ Official PR:
 - Weekend v10 evidence ZIP:
   `1189e0e47c14ba18784f5be82aa5c68366946c0d6378d6a8d26adef61dfd3e9b`
 - Refreshed Project Specification PDF:
-  `abf5f014f0bdb64d1cd0a998d5244a1958d0890269b6a2107c835c9fc6f6f650`
+  `0028924196c925c8e185ccfe8e1840f16dfc11d7f11bee229bae2f860b8170f6`
 - Refreshed architecture PNG:
   `1feec7ef529232b12c4f4d9bfca6d59f05685bc7253b9aab35efe90688b37fce`
 - Refreshed poster PDF:
-  `d07c500c6f964a856ab0af3821cc13af91aa4bd71d5d21bd00db0c8aecabbca1`
+  `80b1c4fed179510766ffe5118ade2f1281612c0681eccb37d04f31bbf33dd0cb`
 - Refreshed poster PNG:
   `ecd45829137ebc7d5bb7e259b77f34e0355474741773ce12914549cdeaf7bf72`
 
@@ -168,3 +168,31 @@ Measured result:
   `06818f8b875594a42681ce7f6e6b024272c1cbc706fa87bb1c59c8fb2a4c8605`
 - Evidence ZIP SHA-256:
   `d1317a593f7cabb1e53e255a84b76bd82d6cb0829b53b6974b7d370b1d6fdb06`
+
+## Adaptive Precision Controller v12
+
+- [x] JSON Schema constrained INT8 experiment
+- [x] Deterministic safety-kind admission
+- [x] Optional FP16 fallback endpoint
+- [x] Route and rejection reasons bound into proof core
+- [x] Clean W7900 clone: 38/38, typecheck, build
+- [x] Real W7900 Voice -> INT8 rejection -> FP16 fallback -> 7/7 -> Proof
+
+Measured result:
+
+- raw INT8 JSON/admission: `0/12`, `0/12`
+- schema INT8 JSON/admission: `2/12`, `0/12`
+- fallback count: `12/12`
+- final accepted: `12/12`
+- median adaptive latency: `19.42 s`
+- final Voice Evidence: `100/100`
+- final permission: `mail.send = deny`
+- final verification: `7/7`
+- proof hash:
+  `c306a612bdfed26a1ba7f69ee14e5cdfd230deafa91617915ba67d7e195bb71c`
+- proof ZIP SHA-256:
+  `913aa087c35c5f06faeff82845c64733a6208aa51e70e2e87c521c1466f1bfdc`
+- summary SHA-256:
+  `33846bd2ac82a5a307cde4e3bab20afbefe258bc0b20551fdf9b93225ffe9582`
+- evidence ZIP SHA-256:
+  `473b059a85f211454fad6bdb27210c3690d4ccfffb2ce471fcaf1d52cae71584`

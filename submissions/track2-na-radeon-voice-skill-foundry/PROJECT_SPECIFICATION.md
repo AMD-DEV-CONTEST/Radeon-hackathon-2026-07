@@ -395,6 +395,34 @@ The engineering decision is to retain FP16 and quarantine this INT8 artifact.
 For a policy compiler, preserving no-send, redaction, confirmation, and
 conditional-scope rules has priority over memory savings.
 
+### 8.5 Adaptive Precision Controller
+
+The follow-up v12 experiment tested whether strict JSON Schema could recover
+the degraded INT8 model and added a fail-closed precision router.
+
+| Recovery stage | JSON valid | Semantic admission | Median latency |
+|---|---:|---:|---:|
+| Raw INT8 | 0/12 | 0/12 | 6.81 s |
+| Schema-constrained INT8 | 2/12 | 0/12 | 11.84 s |
+| Adaptive result with FP16 fallback | 12/12 | 12/12 | 19.42 s |
+
+The schema recovered output shape in two cases but never recovered every
+required policy kind. The admission controller rejected all twelve INT8
+responses and selected FP16.
+
+A real audio-backed product run then passed Voice Evidence at 100/100, recorded
+`selected = fallback` plus the missing policy kinds in the proof core,
+preserved `mail.send = deny`, passed 7/7 fixtures, and generated a valid proof
+ZIP.
+
+The resulting control flow is:
+
+`low precision -> JSON Schema -> semantic admission -> FP16 fallback -> proof`
+
+The current production path remains direct FP16 because the INT8 admission rate
+is zero. The controller is a safety boundary for future low-precision variants,
+not a claim of lower current latency.
+
 ## 9. Verification and Proof
 
 The system generates adversarial fixtures for:
@@ -594,6 +622,9 @@ and 280 ms burst-loss samples through the real `/api/transcribe` endpoint.
 - Weekend v10 report: `docs/WEEKEND_W7900_EXPERIMENTS.md`
 - Quark v11 report: `docs/QUARK_QUANTIZATION_W7900_V11.md`
 - Quark v11 summary: `benchmarks/quantization-v11-summary.json`
+- Adaptive v12 report: `docs/ADAPTIVE_PRECISION_CONTROLLER_V12.md`
+- Adaptive v12 summary: `benchmarks/adaptive-precision-v12-summary.json`
+- Adaptive v12 proof: `adaptive-precision-v12-proof.zip`
 - Detailed optimization method: `docs/RADEON_OPTIMIZATION_BENCHMARK.md`
 - Radeon benchmark report: `docs/RADEON_W7900_BENCHMARK.md`
 - Rules audit: `docs/RULES_AND_READINESS_AUDIT.md`

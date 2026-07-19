@@ -167,3 +167,7 @@ revalidation, and child-proof download in one continuous browser session.
   capacity by 88.43%, but was 36.70% slower at concurrency eight.
 - INT8 C128 passed only 11/51 complete safety-semantic gates and 2/51 strict
   JSON checks; FP16 passed 51/51. INT8 is rejected for the policy compiler.
+- Adaptive Precision Controller v12 added JSON Schema, semantic admission, and
+  FP16 fallback. Schema INT8 remained 0/12 admitted; fallback restored 12/12.
+- A real audio-backed proof records `selected = fallback`, preserves
+  `mail.send = deny`, and passes 7/7.
