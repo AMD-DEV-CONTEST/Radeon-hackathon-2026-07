@@ -1,0 +1,51 @@
+#include <hip/hip_runtime.h>
+#include <hip/hip_fp16.h>
+
+// Qwen3.5 full_attention: q_norm/k_norm reais (Qwen3_5Attention em
+// modeling_qwen3_5.py) -- RMSNorm aplicado por HEAD (sobre head_dim
+// elementos), não sobre a linha inteira como o RMSNORM comum.
+//
+// `input_stride`/`input_offset` permitem ler de um buffer intercalado:
+// - k_proj.output (contíguo): input_stride=head_dim, input_offset=0.
+// - q_proj.output (largura dupla, [query(head_dim) | gate(head_dim)] por
+//   head, ver Qwen3_5Attention.forward: torch.chunk(..., 2, dim=-1)):
+//   input_stride=head_dim*2, input_offset=0 (query fica nos primeiros
+//   head_dim elementos de cada bloco de head_dim*2).
+//
+// Saída sempre CONTÍGUA (num_heads*head_dim, stride=head_dim) -- pronta
+// pro kernel de RoPE existente consumir sem nenhuma mudança nele.
+//
+// 1 bloco por head; block=head_dim threads.
+
+extern "C" __global__ void per_head_rmsnorm_kernel(
+    const __half* __restrict__ input,
+    const __half* __restrict__ weight,   // [head_dim]
+    __half* __restrict__ output,         // [num_heads, head_dim] contíguo
+    int num_heads,
+    int head_dim,
+    int input_stride,
+    int input_offset,
+    float eps
+) {
+    int head = blockIdx.x;
+    if (head >= num_heads) return;
+    int tid = threadIdx.x;
+    if (tid >= head_dim) return;
+
+    const __half* in_head = input + (size_t)head * input_stride + input_offset;
+    __half* out_head = output + (size_t)head * head_dim;
+
+    extern __shared__ float sumsq_sh[];
+    float x = __half2float(in_head[tid]);
+    sumsq_sh[tid] = x * x;
+    __syncthreads();
+
+    for (int stride = head_dim >> 1; stride > 0; stride >>= 1) {
+        if (tid < stride) sumsq_sh[tid] += sumsq_sh[tid + stride];
+        __syncthreads();
+    }
+
+    float inv_norm = rsqrtf(sumsq_sh[0] / (float)head_dim + eps);
+    float w = __half2float(weight[tid]);
+    out_head[tid] = __float2half(x * inv_norm * w);
+}

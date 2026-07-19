@@ -1,0 +1,199 @@
+#include <hip/hip_runtime.h>
+#include <hip/hip_fp16.h>
+
+// Fusão Profunda: RMSNorm + MatMul(+bias) + RoPE opcional, em um único kernel.
+//
+// Ordem matemática (validada numericamente contra referência):
+//   attn_norm = RMSNorm(x, norm_weight)
+//   proj      = attn_norm @ W^T + bias        (Q, K ou V)
+//   se apply_rope: proj = RoPE(proj, pos)      (só Q e K; V nunca tem RoPE)
+//
+// Design (Etapa B — Split-K coalescido): 1 BLOCO por "head" de saída, mas o
+// dot-product usa 1 WAVEFRONT por neurônio (não 1 thread/linha). As lanes do
+// wavefront dividem a dimensão hidden_size e leem o peso de forma COALESCIDA
+// (endereços contíguos entre lanes -> burst único da GDDR6), acumulam em FP32
+// e reduzem via __shfl_down. Isso substitui o acesso row-per-thread anterior,
+// que era descoalescido (lanes liam linhas distantes por hidden_size*2 bytes).
+//
+// O emparelhamento do RoPE (i, i+head_dim/2) é resolvido pela LDS: cada
+// neurônio pré-RoPE é gravado em raw_out[out_local]; depois as threads leem os
+// pares de raw_out e aplicam a rotação — mesma lógica já validada, sem
+// __shfl_xor entre lanes.
+//
+// Manter 1 bloco por head garante que ambos os elementos do par de rotação
+// estão no mesmo bloco (raw_out compartilhado), sem dependência entre blocos.
+//
+// blockDim.x deve ser múltiplo de warpSize e de head_dim/nwarps inteiro
+// (256 threads = 8 wavefronts em gfx11 wave32; head_dim=128 -> 16 iterações).
+
+// 2560 cobre o hidden_size do Granite (2560); Qwen2.5 (1536) continua
+// folgado dentro do mesmo limite -- só afeta o tamanho da LDS reservada,
+// não a lógica de nenhum dos dois.
+#define FUSED_MAX_HIDDEN 2560
+
+extern "C" __global__ void fused_norm_matmul_rope_kernel(
+    const __half* __restrict__ x,            // [hidden_size] — saída da camada anterior (residual)
+    const __half* __restrict__ norm_weight,  // [hidden_size]
+    const __half* __restrict__ proj_weight,  // [out_features, hidden_size]
+    const void* __restrict__ bias_ptr,       // [out_features] ou nullptr
+    const __half* __restrict__ cos_cache,    // [max_seq, head_dim] (ignorado se apply_rope==0)
+    const __half* __restrict__ sin_cache,    // [max_seq, head_dim]
+    __half* __restrict__ output,             // [out_features]
+    int hidden_size,
+    int out_features,
+    int head_dim,
+    float eps,
+    const int* __restrict__ kv_cache_offset_ptr,
+    int apply_rope,
+    int rope_type,  // 0 = NEOX/split-half (Qwen2); 1 = NORM/intercalado
+                     // (Granite); 2 = NEOX parcial (Qwen3.5) -- ver
+                     // split_k_qkv_pass2.hip.template.
+    int rotary_dim  // canais rotacionados quando rope_type==2 (ignorado nos
+                    // outros dois tipos) -- ver split_k_qkv_pass2.hip.template.
+) {
+    __shared__ __align__(16) __half x_sh[FUSED_MAX_HIDDEN];  // 16B aligned p/ uint4
+    __shared__ float red[256];
+    __shared__ float rms_inv_shared;
+    __shared__ float raw_out[256];   // neurônios pré-RoPE deste head (indexado por out_local)
+
+    int tid = threadIdx.x;
+    int bs = blockDim.x;
+    int warp = tid / warpSize;
+    int lane = tid % warpSize;
+    int nwarps = bs / warpSize;
+
+    int head_base = blockIdx.x * head_dim;   // primeiro índice de saída deste head
+
+    // 1. Carrega x cooperativamente na LDS.
+    for (int i = tid; i < hidden_size; i += bs) {
+        x_sh[i] = x[i];
+    }
+    __syncthreads();
+
+    // 2. Redução RMSNorm (soma dos quadrados) — todas as threads participam.
+    float local_sum = 0.0f;
+    for (int i = tid; i < hidden_size; i += bs) {
+        float v = __half2float(x_sh[i]);
+        local_sum += v * v;
+    }
+    red[tid] = local_sum;
+    __syncthreads();
+    for (int stride = bs >> 1; stride > 0; stride >>= 1) {
+        if (tid < stride) red[tid] += red[tid + stride];
+        __syncthreads();
+    }
+    if (tid == 0) {
+        float mean_sq = red[0] / (float)hidden_size;
+        rms_inv_shared = rsqrtf(mean_sq + eps);
+    }
+    __syncthreads();
+    float rms_inv = rms_inv_shared;
+
+    // 3. Dot-product Split-K coalescido: 1 wavefront por neurônio de saída.
+    //    X_norm[k] = x_sh[k] * rms_inv * norm_weight[k] é calculado sob demanda
+    //    em FP32 (mesma precisão da versão validada). Leitura vetorizada uint4
+    //    (8 halfs / global_load_b128) coalescida entre as lanes do wavefront.
+    int nvec = hidden_size / 8;
+    for (int base = 0; base < head_dim; base += nwarps) {
+        int out_local = base + warp;
+        if (out_local >= head_dim) continue;   // warp-uniforme (seguro p/ shfl)
+        int n = head_base + out_local;
+
+        float acc = 0.0f;
+        if (n < out_features) {
+            const uint4* Wv = reinterpret_cast<const uint4*>(proj_weight + (size_t)n * hidden_size);
+            const uint4* Xv = reinterpret_cast<const uint4*>(x_sh);
+            const uint4* Nv = reinterpret_cast<const uint4*>(norm_weight);
+            for (int c = lane; c < nvec; c += warpSize) {
+                uint4 wv = Wv[c];
+                uint4 xv = Xv[c];
+                uint4 nv = Nv[c];
+                const __half* wh = reinterpret_cast<const __half*>(&wv);
+                const __half* xh = reinterpret_cast<const __half*>(&xv);
+                const __half* nh = reinterpret_cast<const __half*>(&nv);
+                #pragma unroll
+                for (int j = 0; j < 8; j++) {
+                    float xn = __half2float(xh[j]) * rms_inv * __half2float(nh[j]);
+                    acc = fmaf(xn, __half2float(wh[j]), acc);
+                }
+            }
+            // Cauda escalar (hidden_size % 8; 0 no Qwen, mantida por segurança).
+            for (int k = nvec * 8 + lane; k < hidden_size; k += warpSize) {
+                float xn = __half2float(x_sh[k]) * rms_inv * __half2float(norm_weight[k]);
+                acc = fmaf(xn, __half2float(proj_weight[(size_t)n * hidden_size + k]), acc);
+            }
+        }
+
+        // Redução intra-wavefront: lane 0 fica com o dot-product do neurônio.
+        for (int off = warpSize / 2; off > 0; off >>= 1) {
+            acc += __shfl_down(acc, off);
+        }
+        if (lane == 0) {
+            if (n < out_features && bias_ptr != nullptr) {
+                acc += __half2float(((const __half*)bias_ptr)[n]);
+            }
+            raw_out[out_local] = acc;
+        }
+    }
+    __syncthreads();
+
+    // 4. RoPE opcional — lê os pares (local, local+/-head_dim/2) de raw_out.
+    //    Lógica idêntica à versão validada; agora aplicada por até head_dim
+    //    threads (uma por índice de saída deste head).
+    for (int local = tid; local < head_dim; local += bs) {
+        int n = head_base + local;
+        if (n >= out_features) continue;
+
+        if (apply_rope != 0) {
+            int pos = *kv_cache_offset_ptr;
+            if (rope_type == 1) {
+                int i = local / 2;
+                float c = __half2float(cos_cache[pos * head_dim + i]);
+                float s = __half2float(sin_cache[pos * head_dim + i]);
+                if ((local & 1) == 0) {
+                    float x0 = raw_out[local];
+                    float x1 = raw_out[local + 1];
+                    output[n] = __float2half(x0 * c - x1 * s);
+                } else {
+                    float x0 = raw_out[local - 1];
+                    float x1 = raw_out[local];
+                    output[n] = __float2half(x0 * s + x1 * c);
+                }
+            } else if (rope_type == 2) {
+                int half_rot = rotary_dim / 2;
+                if (local < half_rot) {
+                    float v1 = raw_out[local];
+                    float v2 = raw_out[local + half_rot];
+                    float c = __half2float(cos_cache[pos * rotary_dim + local]);
+                    float s = __half2float(sin_cache[pos * rotary_dim + local]);
+                    output[n] = __float2half(v1 * c - v2 * s);
+                } else if (local < rotary_dim) {
+                    float v1 = raw_out[local - half_rot];
+                    float v2 = raw_out[local];
+                    float c = __half2float(cos_cache[pos * rotary_dim + (local - half_rot)]);
+                    float s = __half2float(sin_cache[pos * rotary_dim + (local - half_rot)]);
+                    output[n] = __float2half(v1 * s + v2 * c);
+                } else {
+                    output[n] = __float2half(raw_out[local]);
+                }
+            } else {
+                int half = head_dim / 2;
+                if (local < half) {
+                    float v1 = raw_out[local];
+                    float v2 = raw_out[local + half];
+                    float c = __half2float(cos_cache[pos * head_dim + local]);
+                    float s = __half2float(sin_cache[pos * head_dim + local]);
+                    output[n] = __float2half(v1 * c - v2 * s);
+                } else {
+                    float v1 = raw_out[local - half];
+                    float v2 = raw_out[local];
+                    float c = __half2float(cos_cache[pos * head_dim + (local - half)]);
+                    float s = __half2float(sin_cache[pos * head_dim + (local - half)]);
+                    output[n] = __float2half(v1 * s + v2 * c);
+                }
+            }
+        } else {
+            output[n] = __float2half(raw_out[local]);
+        }
+    }
+}

@@ -1,0 +1,17 @@
+#include <hip/hip_runtime.h>
+#include <hip/hip_fp16.h>
+
+extern "C" __global__ void add_kernel(
+    const __half* __restrict__ residual,
+    const __half* __restrict__ input,      // saída do sub-bloco (attn/FFN)
+    __half* __restrict__ output,
+    int n,
+    float residual_scale                   // Granite: 0.22, escala `input` (a
+                                            // saída do sub-bloco) ANTES de somar
+                                            // ao residual. Default 1.0 (Qwen).
+) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < n) {
+        output[idx] = __float2half(__half2float(residual[idx]) + residual_scale * __half2float(input[idx]));
+    }
+}

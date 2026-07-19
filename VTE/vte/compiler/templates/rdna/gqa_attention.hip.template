@@ -1,0 +1,115 @@
+#include <hip/hip_runtime.h>
+#include <hip/hip_fp16.h>
+
+#define TILE_SIZE 32
+#define HEAD_DIM 128
+
+extern "C" __global__ void gqa_attention_kernel(
+    const __half* __restrict__ q,       // [batch, seq_len, num_q_heads, head_dim]
+    const __half* __restrict__ k,       // [batch, seq_len, num_kv_heads, head_dim]
+    const __half* __restrict__ v,       // [batch, seq_len, num_kv_heads, head_dim]
+    __half* __restrict__ k_cache,       // [batch, max_seq_len, num_kv_heads, head_dim]
+    __half* __restrict__ v_cache,       // [batch, max_seq_len, num_kv_heads, head_dim]
+    __half* __restrict__ output,        // [batch, seq_len, num_q_heads, head_dim]
+    int seq_len,
+    int num_q_heads,
+    int num_kv_heads,
+    int head_dim,
+    float scale,
+    const int* __restrict__ kv_cache_offset_ptr
+) {
+    // Lido de um ponteiro (não escalar) para permitir que um único HIP Graph
+    // capturado uma vez seja reutilizado em toda a geração: o valor na VRAM
+    // é atualizado antes de cada replay, sem precisar recapturar o grafo.
+    int kv_cache_offset = *kv_cache_offset_ptr;
+    int batch_idx = blockIdx.x;
+    int q_head_idx = blockIdx.y;
+    int q_seq_idx = threadIdx.x; // Responsável por 1 token na sequência atual
+    
+    if (q_seq_idx >= seq_len) return;
+
+    int gqa_ratio = num_q_heads / num_kv_heads;
+    int kv_head_idx = q_head_idx / gqa_ratio;
+    
+    // 1. Escreve K e V da iteração atual no cache.
+    //
+    // IMPORTANTE: cada q_head_idx é um BLOCO diferente (blockIdx.y). Antes,
+    // só o "bloco representante" de cada grupo GQA (q_head_idx % gqa_ratio
+    // == 0) escrevia o cache, e os demais blocos dependiam dessa escrita já
+    // estar visível antes de ler — mas __syncthreads() só sincroniza
+    // threads DENTRO do mesmo bloco, nunca entre blocos diferentes! Não há
+    // garantia de ordem/simultaneidade entre blocos na GPU, então os blocos
+    // "leitores" podiam ler o cache ANTES do bloco escritor terminar,
+    // causando uma condição de corrida real (atenção lendo dados antigos ou
+    // parcialmente escritos). Corrigido fazendo TODO bloco escrever sua
+    // própria cópia (redundante entre heads do mesmo grupo GQA, mas cada
+    // escrita usa a mesma fonte de dados e é idempotente/idêntica — o
+    // custo extra é aceitável e elimina a dependência entre blocos).
+    int in_base = ((batch_idx * seq_len + q_seq_idx) * num_kv_heads + kv_head_idx) * head_dim;
+    int cache_seq_idx = kv_cache_offset + q_seq_idx;
+    int cache_base = (cache_seq_idx * num_kv_heads + kv_head_idx) * head_dim;
+
+    for (int d = 0; d < head_dim; d++) {
+        k_cache[cache_base + d] = k[in_base + d];
+        v_cache[cache_base + d] = v[in_base + d];
+    }
+
+    // Sincroniza as threads do bloco para garantir que a própria escrita
+    // deste bloco está visível antes de ler.
+    __syncthreads();
+    
+    // 2. Calcula Attention
+    int q_base = ((batch_idx * seq_len + q_seq_idx) * num_q_heads + q_head_idx) * head_dim;
+    
+    float max_score = -1e9f;
+    float scores[2048]; // max_seq_len
+    
+    int total_seq_len = kv_cache_offset + seq_len;
+    int current_absolute_pos = kv_cache_offset + q_seq_idx;
+    
+    for (int kv_seq_idx = 0; kv_seq_idx < total_seq_len; kv_seq_idx++) {
+        // Causal mask: j > i
+        if (kv_seq_idx > current_absolute_pos) {
+            scores[kv_seq_idx] = -1e9f;
+            continue;
+        }
+        
+        int k_base = (kv_seq_idx * num_kv_heads + kv_head_idx) * head_dim;
+        
+        float dot = 0.0f;
+        for (int d = 0; d < head_dim; d++) {
+            float q_val = __half2float(q[q_base + d]);
+            float k_val = __half2float(k_cache[k_base + d]);
+            dot += q_val * k_val;
+        }
+        dot *= scale;
+        
+        scores[kv_seq_idx] = dot;
+        if (dot > max_score) {
+            max_score = dot;
+        }
+    }
+    
+    // Softmax Estável
+    float exp_sum = 0.0f;
+    for (int kv_seq_idx = 0; kv_seq_idx <= current_absolute_pos; kv_seq_idx++) {
+        float e = expf(scores[kv_seq_idx] - max_score);
+        scores[kv_seq_idx] = e; // Substitui o logit pela exp
+        exp_sum += e;
+    }
+    
+    // Weighted Sum (Attn_weights @ V)
+    int out_base = ((batch_idx * seq_len + q_seq_idx) * num_q_heads + q_head_idx) * head_dim;
+    
+    for (int d = 0; d < head_dim; d++) {
+        float out_val = 0.0f;
+        for (int kv_seq_idx = 0; kv_seq_idx <= current_absolute_pos; kv_seq_idx++) {
+            float weight = scores[kv_seq_idx] / exp_sum;
+            int v_base = (kv_seq_idx * num_kv_heads + kv_head_idx) * head_dim;
+            float v_val = __half2float(v_cache[v_base + d]);
+            out_val += weight * v_val;
+        }
+        output[out_base + d] = __float2half(out_val);
+    }
+}
+

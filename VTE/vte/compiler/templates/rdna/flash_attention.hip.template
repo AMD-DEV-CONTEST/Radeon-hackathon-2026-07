@@ -1,0 +1,113 @@
+#include <hip/hip_runtime.h>
+#include <hip/hip_fp16.h>
+
+// FlashDecoding (FlashAttention-2 para o caso seq_len=1) — uma única query
+// por head atende a todo o KV cache com ONLINE SOFTMAX. Diferente do kernel
+// GQA anterior, NÃO materializa a matriz de scores QK^T (o array scores[2048]
+// antigo custava ~8KB de scratch por thread e destruía a ocupância); em vez
+// disso mantém apenas os acumuladores m (máximo corrente), l (soma de exp) e
+// o (saída) — tudo em registradores/LDS, com tráfego de VRAM O(N).
+//
+// Paralelização: 1 bloco por (batch, q_head); blockDim.x = head_dim threads,
+// cada thread "dono" de uma dimensão d do vetor de saída. O score de cada
+// posição do KV (produto escalar sobre head_dim) é obtido por redução em LDS.
+// VGPR baixo (m, l, o, poucos temporários) → ocupância saudável, seguro
+// contra TDR/estouro de registradores.
+//
+// Fase I (Batched Decode): blockIdx.x já era o slot de batch no grid desde
+// a criação deste kernel, mas nunca era lido — o corpo assumia implicitamente
+// batch=1. Agora batch_idx = blockIdx.x desloca q/k/v/output (stride
+// num_heads*head_dim por sequência) e o KV cache (stride `kv_batch_stride`
+// elementos, calculado em qwen_mapper.py). kv_cache_offset_ptr vira um array
+// de `batch` ints (cada sequência pode estar em uma posição diferente).
+// Para batch=1 (produção atual), blockIdx.x é sempre 0 e todo stride de
+// batch é multiplicado por 0 — comportamento idêntico ao anterior.
+//
+// PRÉ-REQUISITO: seq_len == 1 (o VTE processa prompt e decode token a token).
+// blockDim.x DEVE ser igual a head_dim (potência de 2) para a redução.
+
+extern "C" __global__ void flash_attention_kernel(
+    const __half* __restrict__ q,          // [batch, num_q_heads, head_dim]
+    const __half* __restrict__ k,          // [batch, num_kv_heads, head_dim] (token atual)
+    const __half* __restrict__ v,          // [batch, num_kv_heads, head_dim] (token atual)
+    __half* __restrict__ k_cache,          // [batch, max_seq, num_kv_heads, head_dim]
+    __half* __restrict__ v_cache,          // [batch, max_seq, num_kv_heads, head_dim]
+    __half* __restrict__ output,           // [batch, num_q_heads, head_dim]
+    int seq_len,
+    int num_q_heads,
+    int num_kv_heads,
+    int head_dim,
+    float scale,
+    const int* __restrict__ kv_cache_offset_ptr,  // agora array de `batch` ints
+    int kv_batch_stride                            // elementos __half entre sequências no K/V cache
+) {
+    int batch_idx = blockIdx.x;
+    int q_head = blockIdx.y;
+    int tid = threadIdx.x;                  // 0..head_dim-1 (uma dimensão por thread)
+    if (tid >= head_dim) return;
+
+    int kv_offset = kv_cache_offset_ptr[batch_idx];
+    int gqa_ratio = num_q_heads / num_kv_heads;
+    int kv_head = q_head / gqa_ratio;
+    int cur_pos = kv_offset;                // seq_len==1: este token está na posição kv_offset
+    int total = kv_offset + 1;              // atende às posições 0..kv_offset (causal)
+
+    // Ponteiros deslocados para o início da sequência deste item do batch.
+    const __half* q_batch = q + (size_t)batch_idx * num_q_heads * head_dim;
+    const __half* k_batch = k + (size_t)batch_idx * num_kv_heads * head_dim;
+    const __half* v_batch = v + (size_t)batch_idx * num_kv_heads * head_dim;
+    __half* k_cache_batch = k_cache + (size_t)batch_idx * kv_batch_stride;
+    __half* v_cache_batch = v_cache + (size_t)batch_idx * kv_batch_stride;
+    __half* output_batch = output + (size_t)batch_idx * num_q_heads * head_dim;
+
+    extern __shared__ float smem[];
+    float* q_sh = smem;                     // head_dim floats: query desta head
+    float* red = smem + head_dim;           // head_dim floats: buffer de redução
+
+    // 1. Escreve K/V do token atual no cache na posição cur_pos.
+    //    Todo bloco escreve sua kv_head (redundante entre heads do mesmo grupo
+    //    GQA, mas idêntico e idempotente — sem corrida entre blocos).
+    int in_base = kv_head * head_dim;       // seq=1
+    int cache_base = (cur_pos * num_kv_heads + kv_head) * head_dim;
+    k_cache_batch[cache_base + tid] = k_batch[in_base + tid];
+    v_cache_batch[cache_base + tid] = v_batch[in_base + tid];
+    __syncthreads();
+
+    // 2. Carrega a query desta head na LDS.
+    int q_base = q_head * head_dim;
+    q_sh[tid] = __half2float(q_batch[q_base + tid]);
+    __syncthreads();
+
+    // 3. Online softmax sobre todas as posições do KV cache.
+    float m = -1e30f;   // máximo corrente
+    float l = 0.0f;     // soma corrente de exp
+    float o = 0.0f;     // acumulador de saída desta dimensão
+
+    for (int j = 0; j < total; j++) {
+        int kbase = (j * num_kv_heads + kv_head) * head_dim;
+
+        // score_j = (q . k_j) * scale  — redução em árvore na LDS
+        red[tid] = q_sh[tid] * __half2float(k_cache_batch[kbase + tid]);
+        __syncthreads();
+        for (int stride = head_dim >> 1; stride > 0; stride >>= 1) {
+            if (tid < stride) red[tid] += red[tid + stride];
+            __syncthreads();
+        }
+        float score = red[0] * scale;   // todos os threads leem o mesmo score
+
+        // Atualização online (escalares idênticos em todos os threads)
+        float m_new = fmaxf(m, score);
+        float corr = __expf(m - m_new);
+        float p = __expf(score - m_new);
+        l = l * corr + p;
+
+        float vd = __half2float(v_cache_batch[kbase + tid]);
+        o = o * corr + p * vd;
+        m = m_new;
+
+        __syncthreads();   // antes de reescrever red[] na próxima iteração
+    }
+
+    // 4. Normaliza e escreve uma única vez na VRAM.
+    output_batch[q_base + tid] = __float2half(o / l);
+}

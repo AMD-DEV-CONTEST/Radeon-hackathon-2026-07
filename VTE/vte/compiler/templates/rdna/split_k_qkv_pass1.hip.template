@@ -1,0 +1,79 @@
+#include <hip/hip_runtime.h>
+#include <hip/hip_fp16.h>
+
+// Fase E.1 — Split-K Inter-Bloco para QKV (Pass 1: Compute parcial).
+//
+// Problema: o fused_norm_matmul_rope usa 1 bloco por head (Q=12, K=2, V=2
+// blocos) — em 32 CUs da RX 7600, 20-30 CUs ficam ociosas. Nenhuma otimização
+// de ALU/endereçamento resolve isso: é um limite físico de paralelismo.
+//
+// Solução: dividir a dimensão hidden_size (K da matmul) em 32 chunks fixos,
+// um por CU. gridDim = (32, num_heads, batch). Cada bloco computa a
+// contribuição PARCIAL de seu chunk de K para TODOS os head_dim neurônios de
+// um head DE UMA sequência do batch, e escreve no scratchpad (sem redução
+// final, sem RoPE — isso é o Pass 2).
+//
+// Fase I (Batched Decode): blockIdx.z = batch_idx. x_norm recebe stride de
+// batch (hidden_size por sequência — buffer [batch, hidden_size], já
+// produzido assim pelo rmsnorm_kernel, que suporta batch nativamente). O
+// scratchpad ganha uma dimensão de batch: [batch, num_heads, 32, head_dim].
+// Para batch_size=1 (produção pré-Fase-I), blockIdx.z é sempre 0 e todo
+// stride de batch é multiplicado por 0 — comportamento idêntico ao anterior.
+//
+// Pré-requisito: x_norm (RMSNorm já aplicado) é calculado UMA VEZ antes desta
+// fase (kernel rmsnorm_kernel padrão, compartilhado entre Q/K/V — evita
+// recomputar a redução 3x como o kernel fundido antigo fazia por head).
+//
+// hidden_size deve ser múltiplo de 32 (Qwen2.5: 1536/32=48, exato).
+
+extern "C" __global__ void split_k_qkv_pass1_kernel(
+    const __half* __restrict__ x_norm,       // [batch, hidden_size] já normalizado
+    const __half* __restrict__ proj_weight,  // [out_features, hidden_size]
+    float* __restrict__ scratch,             // [batch, num_heads, 32, head_dim]
+    int hidden_size,
+    int head_dim,
+    int num_heads
+) {
+    extern __shared__ __half x_chunk_sh[];   // hidden_size/32 elementos
+
+    int chunk_idx = blockIdx.x;   // 0..31
+    int head_idx = blockIdx.y;    // 0..num_heads-1
+    int batch_idx = blockIdx.z;   // 0..batch-1
+    int j = threadIdx.x;          // 0..head_dim-1 (1 thread = 1 neurônio de saída)
+
+    int chunk_size = hidden_size / 32;
+    int k_start = chunk_idx * chunk_size;
+
+    const __half* x_norm_b = x_norm + (size_t)batch_idx * hidden_size;
+
+    // Carga cooperativa do chunk de x_norm para LDS (reaproveitado por todas
+    // as head_dim threads do bloco).
+    for (int i = j; i < chunk_size; i += blockDim.x) {
+        x_chunk_sh[i] = x_norm_b[k_start + i];
+    }
+    __syncthreads();
+
+    if (j >= head_dim) return;
+
+    int n = head_idx * head_dim + j;
+    const __half* w_row = proj_weight + (size_t)n * hidden_size + k_start;
+
+    // Leitura vetorizada em pares (__half2): reduz pela metade o número de
+    // iterações/transações de memória global vs ler um __half por vez.
+    // Seguro: hidden_size e chunk_size (hidden_size/32) são sempre pares
+    // (1536/32=48, 2560/32=80), então k_start e n*hidden_size também são
+    // pares -> w_row fica alinhado a 4 bytes (VRAM já alinha a 64 bytes).
+    float acc = 0.0f;
+    int chunk_size2 = chunk_size / 2;
+    const __half2* w_row2 = reinterpret_cast<const __half2*>(w_row);
+    const __half2* x_chunk_sh2 = reinterpret_cast<const __half2*>(x_chunk_sh);
+    for (int k2 = 0; k2 < chunk_size2; k2++) {
+        __half2 wv = w_row2[k2];
+        __half2 xv = x_chunk_sh2[k2];
+        acc = fmaf(__half2float(xv.x), __half2float(wv.x), acc);
+        acc = fmaf(__half2float(xv.y), __half2float(wv.y), acc);
+    }
+
+    float* scratch_b = scratch + (size_t)batch_idx * num_heads * 32 * head_dim;
+    scratch_b[(size_t)head_idx * 32 * head_dim + (size_t)chunk_idx * head_dim + j] = acc;
+}

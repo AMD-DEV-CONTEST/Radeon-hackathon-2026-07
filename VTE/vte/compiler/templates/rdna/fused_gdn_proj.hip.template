@@ -1,0 +1,127 @@
+#include <hip/hip_runtime.h>
+#include <hip/hip_fp16.h>
+
+// Qwen3.5 Gated DeltaNet: funde as 4 projeções que partem do MESMO
+// attn_norm.output (qkv_proj, z_proj, a_proj, b_proj) num único
+// lançamento -- mesmo espírito do fused_norm_matmul_rope já usado pro
+// Qwen2.5/Granite, adaptado pra esta arquitetura (4 saídas de tamanhos
+// diferentes em vez de Q/K/V+RoPE).
+//
+// qkv_proj/z_proj usam pesos Q6_K crus (mesmo dequant de gemv_q6k.hip.
+// template, copiado aqui bit a bit); a_proj/b_proj usam Q8_0 crus (mesmo
+// dequant de gemv_q8_0.hip.template). `fmt` por bloco decide qual dos
+// dois branches executar -- decisão uniforme por bloco (todas as threads
+// do bloco tomam o mesmo caminho), não há divergência de warp real.
+//
+// Grid = conv_dim + value_dim + 2*num_heads blocos (1 por linha de saída
+// combinada); block=64.
+
+extern "C" __global__ void fused_gdn_proj_kernel(
+    const __half* __restrict__ x_norm,     // [hidden_size]
+    const void* __restrict__ weight_qkv,   // Q6_K cru [conv_dim, hidden_size]
+    const void* __restrict__ weight_z,     // Q6_K cru [value_dim, hidden_size]
+    const void* __restrict__ weight_a,     // Q8_0 cru [num_heads, hidden_size]
+    const void* __restrict__ weight_b,     // Q8_0 cru [num_heads, hidden_size]
+    __half* __restrict__ out_qkv,          // [conv_dim]
+    __half* __restrict__ out_z,            // [value_dim]
+    __half* __restrict__ out_a,            // [num_heads]
+    __half* __restrict__ out_b,            // [num_heads]
+    int hidden_size,
+    int conv_dim,
+    int value_dim,
+    int num_heads
+) {
+    __shared__ float warp_sums[32];
+
+    int global_row = blockIdx.x;
+    int total = conv_dim + value_dim + 2 * num_heads;
+    if (global_row >= total) return;
+
+    const void* weight_ptr;
+    __half* out_ptr;
+    int row;
+    int fmt;  // 0 = Q6_K (qkv/z), 1 = Q8_0 (a/b)
+
+    if (global_row < conv_dim) {
+        weight_ptr = weight_qkv; out_ptr = out_qkv; row = global_row; fmt = 0;
+    } else if (global_row < conv_dim + value_dim) {
+        weight_ptr = weight_z; out_ptr = out_z; row = global_row - conv_dim; fmt = 0;
+    } else if (global_row < conv_dim + value_dim + num_heads) {
+        weight_ptr = weight_a; out_ptr = out_a; row = global_row - conv_dim - value_dim; fmt = 1;
+    } else {
+        weight_ptr = weight_b; out_ptr = out_b; row = global_row - conv_dim - value_dim - num_heads; fmt = 1;
+    }
+
+    int tid = threadIdx.x;
+    int bs = blockDim.x;
+    int lane = tid % warpSize;
+    int warp = tid / warpSize;
+
+    float acc = 0.0f;
+
+    if (fmt == 0) {
+        // Q6_K -- réplica exata de gemv_q6k.hip.template.
+        int n_sb = hidden_size / 256;
+        const unsigned char* row_q6k = ((const unsigned char*)weight_ptr) + (size_t)row * n_sb * 210;
+
+        for (int sb = 0; sb < n_sb; sb++) {
+            const unsigned char* blk = row_q6k + (size_t)sb * 210;
+            float d = __half2float(*reinterpret_cast<const __half*>(blk + 208));
+            const unsigned char* ql_all = blk;
+            const unsigned char* qh_all = blk + 128;
+            const signed char* sc_all = reinterpret_cast<const signed char*>(blk + 192);
+
+            #pragma unroll
+            for (int ii = 0; ii < 4; ii++) {
+                int i = tid + ii * 64;
+                int half = i >> 7;
+                int within = i & 127;
+                int group = within >> 5;
+                int l = within & 31;
+                int is_ = l >> 4;
+
+                const unsigned char* ql = ql_all + half * 64;
+                const unsigned char* qh = qh_all + half * 32;
+                const signed char* sc = sc_all + half * 8;
+
+                int qlbyte = (group & 1) ? (l + 32) : l;
+                int nib = (group < 2) ? (ql[qlbyte] & 0x0F) : (ql[qlbyte] >> 4);
+                int qhbits = (qh[l] >> (group * 2)) & 3;
+                int q = (nib | (qhbits << 4)) - 32;
+
+                float w = d * (float)sc[is_ + 2 * group] * (float)q;
+                acc = fmaf(w, __half2float(x_norm[sb * 256 + i]), acc);
+            }
+        }
+    } else {
+        // Q8_0 -- réplica exata de gemv_q8_0.hip.template.
+        int n_blk = hidden_size / 32;
+        const unsigned char* row_q8 = ((const unsigned char*)weight_ptr) + (size_t)row * n_blk * 34;
+
+        for (int b = tid; b < n_blk; b += bs) {
+            const unsigned char* blk = row_q8 + (size_t)b * 34;
+            float d = __half2float(*reinterpret_cast<const __half*>(blk));
+            const signed char* q = reinterpret_cast<const signed char*>(blk + 2);
+
+            int xbase = b * 32;
+            #pragma unroll
+            for (int i = 0; i < 32; i++) {
+                float w = d * (float)q[i];
+                acc = fmaf(w, __half2float(x_norm[xbase + i]), acc);
+            }
+        }
+    }
+
+    for (int off = warpSize / 2; off > 0; off >>= 1) {
+        acc += __shfl_down(acc, off);
+    }
+    if (lane == 0) warp_sums[warp] = acc;
+    __syncthreads();
+
+    if (tid == 0) {
+        int nwarps = (bs + warpSize - 1) / warpSize;
+        float total_acc = 0.0f;
+        for (int w = 0; w < nwarps; w++) total_acc += warp_sums[w];
+        out_ptr[row] = __float2half(total_acc);
+    }
+}

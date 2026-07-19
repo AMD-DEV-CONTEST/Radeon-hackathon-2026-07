@@ -1,0 +1,59 @@
+#include <hip/hip_runtime.h>
+#include <hip/hip_fp16.h>
+
+// Gated DeltaNet (Qwen3.5 "linear_attention") -- passo 1 de 2: conv1d causal
+// depthwise sobre o Q+K+V concatenado (conv_dim = key_dim*2 + value_dim),
+// kernel=4, SiLU. Confirmado em modeling_qwen3_5.py::Qwen3_5GatedDeltaNet
+// (self.conv1d = nn.Conv1d(groups=conv_dim, kernel_size=4, ...), aplicado
+// como F.silu(conv1d(mixed_qkv))).
+//
+// Escopo: só o modo DECODE (um token novo por vez, equivalente a
+// causal_conv1d_update no código real) -- ver plano: VTE já processa
+// prefill token-a-token mesmo pra atenção comum, então esse kernel nunca
+// precisa ver mais de 1 token de entrada por chamada.
+//
+// Estado por canal: um histórico curto de `kernel_size-1` (=3) valores
+// anteriores, persistente entre chamadas (análogo a KV cache, mas tamanho
+// FIXO -- não cresce com o contexto). history[c*3 + 0..2] = os 3 valores
+// mais recentes ANTES deste token, em ordem cronológica (0=mais antigo).
+//
+// Depthwise causal: canal c só usa seu próprio filtro de 4 pesos
+// (weight[c*4 + 0..3]) sobre [history[c,0], history[c,1], history[c,2], x_t[c]].
+
+extern "C" __global__ void causal_conv1d_kernel(
+    const __half* __restrict__ x,        // [conv_dim] -- entrada deste token (mixed_qkv pré-conv)
+    float* __restrict__ history,          // [conv_dim, 3] -- estado persistente (in/out)
+    const __half* __restrict__ weight,    // [conv_dim, 4] -- pesos do conv1d depthwise
+    const __half* __restrict__ bias,      // [conv_dim] ou nullptr
+    __half* __restrict__ output,          // [conv_dim] -- saída pós-SiLU
+    int conv_dim
+) {
+    int c = blockIdx.x * blockDim.x + threadIdx.x;
+    if (c >= conv_dim) return;
+
+    float h0 = history[c * 3 + 0];
+    float h1 = history[c * 3 + 1];
+    float h2 = history[c * 3 + 2];
+    float xt = __half2float(x[c]);
+
+    float w0 = __half2float(weight[c * 4 + 0]);
+    float w1 = __half2float(weight[c * 4 + 1]);
+    float w2 = __half2float(weight[c * 4 + 2]);
+    float w3 = __half2float(weight[c * 4 + 3]);
+
+    float acc = h0 * w0 + h1 * w1 + h2 * w2 + xt * w3;
+    if (bias != nullptr) {
+        acc += __half2float(bias[c]);
+    }
+
+    // SiLU: x * sigmoid(x) -- mesma ativação usada no forward real
+    // (config.hidden_act == "silu", ACT2FN[...] aplicado após o conv1d).
+    float silu = acc / (1.0f + expf(-acc));
+    output[c] = __float2half(silu);
+
+    // Desliza a janela: descarta o mais antigo, adiciona x_t no final --
+    // pronto pro próximo token que chegar.
+    history[c * 3 + 0] = h1;
+    history[c * 3 + 1] = h2;
+    history[c * 3 + 2] = xt;
+}
