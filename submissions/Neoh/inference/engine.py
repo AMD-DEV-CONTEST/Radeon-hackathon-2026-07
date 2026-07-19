@@ -69,7 +69,11 @@ class InferenceEngine:
             from vllm import LLM
             from transformers import AutoTokenizer
 
-            logger.info(f"Loading model from {self.config.model_path}")
+            # 规范化模型路径：相对路径转绝对路径，避免 vLLM 误判为 HF repo id
+            model_path = self.config.model_path
+            if model_path.startswith("./") or model_path.startswith("../"):
+                model_path = os.path.abspath(model_path)
+            logger.info(f"Loading model from {model_path}")
             logger.info(f"Context: {self.config.n_ctx}, dtype: {self.config.dtype}")
             logger.info(f"GPU memory utilization: {self.config.gpu_memory_utilization}")
             logger.info(f"Tensor parallel: {self.config.tensor_parallel_size}, "
@@ -77,13 +81,13 @@ class InferenceEngine:
 
             # 加载 tokenizer（用于 chat template）
             self.tokenizer = AutoTokenizer.from_pretrained(
-                self.config.model_path,
+                model_path,
                 trust_remote_code=self.config.trust_remote_code,
             )
 
             # 加载 vLLM 引擎
             self.llm = LLM(
-                model=self.config.model_path,
+                model=model_path,
                 max_model_len=self.config.n_ctx,
                 gpu_memory_utilization=self.config.gpu_memory_utilization,
                 dtype=self.config.dtype,
