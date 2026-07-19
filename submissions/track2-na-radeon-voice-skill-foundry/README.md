@@ -13,10 +13,14 @@ trace into a verified, reusable Agent Skill before risky actions are permitted.
   https://github.com/Chengyuann/radeon-voice-skill-foundry
 - Live interactive demo:
   https://radeon-voice-skill-foundry.pages.dev/
-- Demo video, 3 minutes 49 seconds:
+- Recommended live Demo V2, 4 minutes 49 seconds:
+  https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V2.mp4
+- Demo V2 captions:
+  https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V2.srt
+- Demo V2 proof:
+  https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/demo-v2-proof.zip
+- Original overview video:
   https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO.mp4
-- Demo captions:
-  https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO.srt
 - Continuous operation demo, 3 minutes 10 seconds:
   https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/CONTINUOUS_OPERATION_DEMO.mp4
 - Continuous lifecycle proof:
@@ -25,9 +29,9 @@ trace into a verified, reusable Agent Skill before risky actions are permitted.
   https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/radeon-audio-proof-v8.zip
 - License: MIT
 
-Both demo MP4 files contain burned-in English narration captions and an
-embedded English subtitle track. Matching SRT files are published separately.
-Narration uses AIDP `gemini-3.1-flash-tts-preview`, male voice `Charon`.
+Demo V2 contains burned-in English narration captions and an embedded English
+subtitle track. Narration uses AIDP `gemini-3.1-flash-tts-preview`, male voice
+`Charon`.
 
 ## Why Voice Is Structural
 
@@ -133,6 +137,12 @@ requests to the W7900 runtime. The public flow was re-run end to end on commit
 The current account has no Cloudflare-managed DNS zone, so the W7900 origin
 uses an authenticated Quick Tunnel. Pages remains stable, but a GPU/Tunnel
 restart requires rotating the encrypted `RADEON_API_ORIGIN` Pages secret.
+
+Demo V2 records this public path without cached policy substitution or
+accelerated model footage. The final MP4 is 4:48.64 at 1920x1080, with visible
+Voice Evidence v0.3, Chinese no-send enforcement, seven generated fixtures,
+7/7 proof, four receipts, Memory reuse, and the W7900 vLLM/ASR batching
+evidence.
 
 ## Submission Files
 

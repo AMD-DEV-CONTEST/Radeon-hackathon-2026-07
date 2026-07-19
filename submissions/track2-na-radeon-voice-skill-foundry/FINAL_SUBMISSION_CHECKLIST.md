@@ -38,6 +38,8 @@ Deadline: 2026-08-06 23:59 UTC+8.
 - [x] Add video URL to official submission PR body
 - [x] Deploy live interactive demo to Cloudflare Pages
 - [x] Connect public `/api` to authenticated W7900 runtime
+- [x] Record and publish live Cloudflare + W7900 Demo V2
+- [x] Publish Demo V2 captions and proof ZIP
 
 ## Quality Gates
 
@@ -112,6 +114,12 @@ Live demo:
   `25b18d367a212b3a0986dc62fbf7112f1b22e6b8ace9a8ca3086044ba8bc1d8e`
 - Video caption delivery:
   burned-in English narration captions plus embedded English subtitle tracks
+- Demo V2 SHA-256:
+  `87fa6304819f01f5c5861d685a9f0c048d71e2e909ab4c9ab133428833125133`
+- Demo V2 captions SHA-256:
+  `4c29f3a3922226602ab2fa0d33f1dd30bc6b7341fc4e8028c5b4d959cbc9cec4`
+- Demo V2 proof ZIP SHA-256:
+  `b9d81491e3292ce0190f6042aefbc3de19f9cf236fc6ef3c0dc9cf72b06c61c5`
 - Voice Evidence v0.2 lifecycle proof hash:
   `0c175843082b4464094f578c00598e8ec1b416ccbf5f7855c0e4d65e9deb5edf`
 - Lifecycle enhancement validation commit:

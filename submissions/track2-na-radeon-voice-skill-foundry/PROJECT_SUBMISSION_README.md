@@ -16,10 +16,12 @@ to perform risky actions.
 - Live interactive demo:
   `https://radeon-voice-skill-foundry.pages.dev/`
 - License: MIT
-- Demo video:
-  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO.mp4`
-- Demo captions:
-  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO.srt`
+- Recommended live Demo V2:
+  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V2.mp4`
+- Demo V2 captions:
+  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V2.srt`
+- Demo V2 proof:
+  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/demo-v2-proof.zip`
 - Official submission PR:
   `https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/pull/7`
 - Continuous operation demo:
@@ -129,3 +131,6 @@ project typography and measured values were composed locally.
 - Public browser validation passed upload, Voice Evidence 100/100, Chinese
   `mail.send = deny`, 7/7 verification, save, reuse, and proof download.
 - Current enhanced regression suite: 35/35 passed.
+- Demo V2 records the current cinematic module UI and live public W7900 path
+  for 4 minutes 48.64 seconds, with male narration, burned-in captions, and an
+  embedded English subtitle track.
