@@ -47,6 +47,7 @@ The system compiles both signals into:
 - positive and adversarial fixtures
 - deterministic verification
 - governance receipts
+- Sandbox Replay v1: six state transitions plus five adversarial probes
 - a hash-bound proof bundle
 - a versioned Verified Skill that can be reused without replanning
 
@@ -99,7 +100,7 @@ The system compiles both signals into:
 - same-model serialized Transformers: 20.66 aggregate output tokens/s
 - measured serving uplift: 12.47x
 - native ASR batch-eight: 85.35x aggregate real-time
-- current local regression suite: 46/46, typecheck, production build
+- current local regression suite: 50/50, typecheck, production build
 - real deterministic teaching workspace: six user operations generate the
   action trace; no preset trace is attached to a new run
 
@@ -157,7 +158,9 @@ revalidation, and child-proof download in one continuous browser session.
   policy, skill, and voice-evidence schema.
 - Changed runtime identity marks a skill `revalidation_required`; one-click
   revalidation creates a new child run before reuse is restored.
-- Current local regression suite: 46/46, typecheck, and production build.
+- Current local regression suite: 50/50, typecheck, and production build.
+- Proof schema v0.4 includes `sandbox_replay.json`: six step hashes, output
+  diffs, five fail-closed probes, and the final isolated workspace state.
 - Weekend v10 pinned Radeon source: 33/33 and production build.
 - vLLM graph serving reached 257.65 aggregate output tokens/s at concurrency
   eight versus 20.66 for the serialized Transformers server.

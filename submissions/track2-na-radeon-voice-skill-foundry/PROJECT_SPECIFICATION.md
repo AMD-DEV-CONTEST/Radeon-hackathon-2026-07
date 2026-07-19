@@ -187,6 +187,33 @@ contract hash into the proof core. The exported proof ZIP includes a separate
 `action_contract.json` so reviewers can inspect the exact trusted
 demonstration independently from the generated policy.
 
+### 5.3.1 Sandbox Replay v1
+
+The trusted action contract is replayed against an isolated deterministic
+workspace rather than represented only as a test label. Each of the six steps
+records:
+
+- action type and sequence
+- governance decision
+- before and after state hashes
+- changed state fields
+- controlled output summary
+
+The replay produces two email drafts, two tentative calendar holds, two
+redacted report records, and zero external side effects. It then runs five
+fail-closed probes:
+
+1. automatic email sending
+2. P2 scope escape
+3. compensation or customer-name leakage
+4. missing-owner guessing
+5. outbound network write
+
+Any failed replay step or probe quarantines the skill. Proof schema v0.4 binds
+the complete replay and verifier v0.4 identity; older proofs require
+revalidation. The proof ZIP exposes the machine-readable result as
+`sandbox_replay.json`.
+
 ### 5.4 Multi-Step Planning
 
 Spoken intent and action events are compiled into an ordered procedure,
@@ -318,7 +345,7 @@ The client verification payload was deliberately modified to claim
 returned `mail.send = deny`, demonstrating that browser-supplied proof fields
 are not trusted.
 
-The current local regression suite has since grown to 46/46 and passes
+The current local regression suite has since grown to 50/50 and passes
 typecheck and the production build. The weekend v10 source commit was also
 clean-cloned on Radeon and passed 33/33 plus the production build.
 
@@ -622,7 +649,7 @@ run without changing the measured Radeon claims:
    65/100, and older proofs require revalidation. These remain deterministic
    measurements and do not claim learned acoustic diagnosis.
 
-The current enhanced regression suite passes 46/46 tests locally, with
+The current enhanced regression suite passes 50/50 tests locally, with
 typecheck and production build. A single-take browser demo shows upload,
 voice-evidence analysis, compile, 7/7 verification, save, reuse, service
 restart recovery, runtime invalidation, one-click revalidation, and proof
@@ -632,6 +659,10 @@ The existing Main Demo V2 remains the authoritative real W7900 inference
 recording. A final product recording is intentionally deferred until product
 and narrative freeze so the submitted video matches the final server-backed
 teaching workflow.
+
+Sandbox Replay v1 is deterministic verification evidence. It does not replace
+or alter the separately measured Radeon ASR, model-serving, quantization, or
+adaptive-precision performance claims.
 
 The same public enhancement commit
 `efec128059fea3b68521aa1dd333c71d5ea6a679` was clean-cloned on Radeon Cloud.

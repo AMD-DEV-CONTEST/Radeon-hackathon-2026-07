@@ -22,7 +22,7 @@ judge navigation aid, not a claim of an awarded score.
 |---|---:|---|---|---|---|
 | Positioning and creative scenario | 20 | Voice-seeded cold-start verification converts hidden expert intent into a governed Agent Skill before risky execution | Project Specification sections 1-3; generated `SKILL.md`, policy, fixtures, receipts, and proof ZIP | Main V2 00:00-00:32 | Synthetic SOP audio is disclosed as a reproducible fixture |
 | Decomposition, tools, RAG, and memory | 20 | Local RAG, typed tool capabilities, multi-step planning, versioned memory, and permission/privacy controls | Project Specification sections 4-5; source modules; proof ZIP | Main V2 00:35-03:36 | Production connectors remain behind the same deterministic capability gate |
-| Smooth multi-turn interaction | 20 | Server-authoritative six-step demonstration session, voice upload/recording, compile, policy inspection, verification, proof, save/reuse, revision, and revalidation | Public module UI; current `46/46` regression suite; `action_contract.json` | Main V2 00:35-03:36; Lifecycle V2 02:20-04:19 | Final product video is intentionally deferred until feature freeze |
+| Smooth multi-turn interaction | 20 | Server-authoritative six-step session, visible Sandbox Replay v1, voice upload/recording, compile, verification, proof, save/reuse, revision, and revalidation | Public Proof module; current `50/50` suite; `action_contract.json`; `sandbox_replay.json` | Main V2 00:35-03:36; Lifecycle V2 02:20-04:19 | Final product video is intentionally deferred until feature freeze |
 | Core inference on Radeon | 20 | Qwen3-ASR-0.6B and Qwen3-4B-Instruct-2507 run locally on W7900-class `gfx1100` with ROCm 7.2.1 | Live `/api/health`; `radeon-audio-proof-v8-2026-07-18.json`; main Demo V2 proof ZIP | Main V2 00:09-01:52 | Main Demo V2 is the authoritative real-inference video |
 | Targeted inference optimization | 20 | vLLM eager/graph, native ASR batching, compact output, exact reuse, Quark acceptance study, fail-closed adaptive precision | `weekend-v10-summary.json`; `quantization-v11-summary.json`; `adaptive-precision-v12-summary.json` | Main V2 03:38-04:13 | INT8 is capacity-positive but requires FP16 fallback for this policy workload |
 
@@ -60,6 +60,7 @@ judge navigation aid, not a claim of an awarded score.
 | Adaptive FP16 fallback | final accepted `12/12` | `adaptive-precision-v12-summary.json` |
 | Real adaptive Voice-to-Proof | fallback bound in proof, `mail.send = deny`, `7/7` | `adaptive-precision-v12-e2e.json` |
 | Real action contract | six server-accepted commands, P2 excluded, email/calendar remain draft-only, browser action tampering ignored | current public Voice module, `server/demonstration-store.test.ts`, proof `action_contract.json` |
+| Sandbox execution proof | six before/after state hashes, controlled outputs, five probes, zero external effects | current public Proof module, `server/sandbox.test.ts`, proof `sandbox_replay.json` |
 
 ## Demo Evidence Boundary
 
