@@ -24,10 +24,12 @@ to perform risky actions.
   `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/demo-v2-proof.zip`
 - Official submission PR:
   `https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/pull/7`
-- Continuous operation demo:
-  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/CONTINUOUS_OPERATION_DEMO.mp4`
-- Continuous lifecycle proof:
-  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/continuous-demo-proof.zip`
+- Continuous lifecycle Demo V2:
+  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/CONTINUOUS_OPERATION_DEMO_V2.mp4`
+- Continuous Demo V2 captions:
+  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/CONTINUOUS_OPERATION_DEMO_V2.srt`
+- Continuous Demo V2 child proof:
+  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/continuous-demo-v2-proof.zip`
 
 ## Why It Matters
 
@@ -134,3 +136,6 @@ project typography and measured values were composed locally.
 - Demo V2 records the current cinematic module UI and live public W7900 path
   for 4 minutes 48.64 seconds, with male narration, burned-in captions, and an
   embedded English subtitle track.
+- Continuous Demo V2 records deterministic lifecycle control for 4 minutes
+  19.56 seconds. It executes real Node API restarts, persistence recovery,
+  runtime invalidation, child-run revalidation, and proof download.

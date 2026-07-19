@@ -21,10 +21,14 @@ trace into a verified, reusable Agent Skill before risky actions are permitted.
   https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/demo-v2-proof.zip
 - Original overview video:
   https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO.mp4
-- Continuous operation demo, 3 minutes 10 seconds:
+- Continuous lifecycle Demo V2, 4 minutes 20 seconds:
+  https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/CONTINUOUS_OPERATION_DEMO_V2.mp4
+- Continuous Demo V2 captions:
+  https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/CONTINUOUS_OPERATION_DEMO_V2.srt
+- Continuous Demo V2 child proof:
+  https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/continuous-demo-v2-proof.zip
+- Original continuous operation demo:
   https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/CONTINUOUS_OPERATION_DEMO.mp4
-- Continuous lifecycle proof:
-  https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/continuous-demo-proof.zip
 - Final Radeon proof ZIP:
   https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/radeon-audio-proof-v8.zip
 - License: MIT
@@ -143,6 +147,11 @@ accelerated model footage. The final MP4 is 4:48.64 at 1920x1080, with visible
 Voice Evidence v0.3, Chinese no-send enforcement, seven generated fixtures,
 7/7 proof, four receipts, Memory reuse, and the W7900 vLLM/ASR batching
 evidence.
+
+Continuous Demo V2 is a separate deterministic lifecycle control. It performs
+two real Node API process restarts, durable recovery, runtime drift, proof
+invalidation, child-run revalidation, and proof download. The downloadable
+proof now binds `parentRunId` and `revision: 2` into its hashed proof core.
 
 ## Submission Files
 

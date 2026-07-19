@@ -40,6 +40,8 @@ Deadline: 2026-08-06 23:59 UTC+8.
 - [x] Connect public `/api` to authenticated W7900 runtime
 - [x] Record and publish live Cloudflare + W7900 Demo V2
 - [x] Publish Demo V2 captions and proof ZIP
+- [x] Record and publish Continuous lifecycle Demo V2
+- [x] Bind parent run and revision into the child proof bundle
 
 ## Quality Gates
 
@@ -120,6 +122,12 @@ Live demo:
   `4c29f3a3922226602ab2fa0d33f1dd30bc6b7341fc4e8028c5b4d959cbc9cec4`
 - Demo V2 proof ZIP SHA-256:
   `b9d81491e3292ce0190f6042aefbc3de19f9cf236fc6ef3c0dc9cf72b06c61c5`
+- Continuous Demo V2 SHA-256:
+  `98c8b56fbc92c80376fabc0b0386a9ed2ecb9b5c97c25ddefebd6c80d2a4b243`
+- Continuous Demo V2 captions SHA-256:
+  `8bab8c8879fdbd86dc2770e01f6e7193d10ce36025b10aedc8c3e4d7170031f4`
+- Continuous Demo V2 proof ZIP SHA-256:
+  `f27b8298e64b588f12a200104c65d7ea3c42ff690c2d2067a62e261ddd3c4a36`
 - Voice Evidence v0.2 lifecycle proof hash:
   `0c175843082b4464094f578c00598e8ec1b416ccbf5f7855c0e4d65e9deb5edf`
 - Lifecycle enhancement validation commit:
