@@ -105,7 +105,7 @@ VTE loads raw **GGUF** checkpoints directly (no conversion step) and runs them t
 | Qwen2.5 7B Instruct | 7B | Q4_K_M | `qwen2` | [bartowski/Qwen2.5-7B-Instruct-GGUF](https://huggingface.co/bartowski/Qwen2.5-7B-Instruct-GGUF) |
 | Qwen2.5 32B Instruct | 32.7B | Q4_K_M | `qwen2` | [bartowski/Qwen2.5-32B-Instruct-GGUF](https://huggingface.co/bartowski/Qwen2.5-32B-Instruct-GGUF) |
 | Qwen3.5 2B | 2B | Q6_K | `qwen35` (hybrid full/linear attention) | [unsloth/Qwen3.5-2B-GGUF](https://huggingface.co/unsloth/Qwen3.5-2B-GGUF) |
-| Granite 4.1 3B | 3B | Q8_0 | `granite` | [unsloth/granite-4.1-3b-GGUF](https://huggingface.co/unsloth/granite-4.1-3b-GGUF) |
+| Granite 4.1 3B | 3B | Q8_0 | `granite` | [ibm-granite/granite-4.1-3b-GGUF](https://huggingface.co/unsloth/granite-4.1-3b-GGUF) |
 | Granite 4.1 30B | 28.9B | Q8_0 | `granite` | [ibm-granite/granite-4.1-30b-GGUF](https://huggingface.co/ibm-granite/granite-4.1-30b-GGUF) |
 | Llama 3.1 8B Instruct | 8B | Q4_K_M | `llama` | [bartowski/Meta-Llama-3.1-8B-Instruct-GGUF](https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF) |
 
