@@ -247,6 +247,23 @@ verifier, then copied into a new promoted version with a higher version number,
 parent proof lineage, and a `ROLLBACK` receipt. This keeps the lifecycle
 auditable while restoring a last-known-safe policy.
 
+### 5.5.2 Promotion Impact Review
+
+Promotion first requests a server-generated comparison between the candidate
+and the currently promoted version of the same skill. It reports permission
+decision changes, added or removed constraints, action-type changes, and
+runtime identity drift.
+
+Permission escalation, removed explicit denies, removed `must_not` or `redact`
+guardrails, and a new `send_email` action receive high or critical severity.
+The UI requires explicit risk acknowledgement before approval.
+
+The candidate proof hash, baseline proof hash, complete diff, and risk list are
+hashed into a `reviewHash`. Promotion must submit that exact hash. If the
+candidate or promoted baseline changed after review, the server rejects the
+approval as stale. The resulting `PROMOTE` receipt records the review hash,
+risk level, and acknowledgement state.
+
 ### 5.6 Permission and Privacy Controls
 
 High-risk policy is enforced ahead of model output. In the reference scenario:
@@ -366,7 +383,7 @@ The client verification payload was deliberately modified to claim
 returned `mail.send = deny`, demonstrating that browser-supplied proof fields
 are not trusted.
 
-The current local regression suite has since grown to 50/50 and passes
+The current local regression suite has since grown to 53/53 and passes
 typecheck and the production build. The weekend v10 source commit was also
 clean-cloned on Radeon and passed 33/33 plus the production build.
 
@@ -670,7 +687,7 @@ run without changing the measured Radeon claims:
    65/100, and older proofs require revalidation. These remain deterministic
    measurements and do not claim learned acoustic diagnosis.
 
-The current enhanced regression suite passes 50/50 tests locally, with
+The current enhanced regression suite passes 53/53 tests locally, with
 typecheck and production build. A single-take browser demo shows upload,
 voice-evidence analysis, compile, 7/7 verification, save, reuse, service
 restart recovery, runtime invalidation, one-click revalidation, and proof
@@ -688,6 +705,9 @@ adaptive-precision performance claims.
 The governance lifecycle is also product-control evidence rather than a new GPU
 performance claim. It closes the operational gap between proof generation and
 safe procedural-memory reuse.
+
+Promotion Impact Review is governance evidence rather than a new GPU
+performance claim. It does not change the pinned Radeon measurements.
 
 The same public enhancement commit
 `efec128059fea3b68521aa1dd333c71d5ea6a679` was clean-cloned on Radeon Cloud.
