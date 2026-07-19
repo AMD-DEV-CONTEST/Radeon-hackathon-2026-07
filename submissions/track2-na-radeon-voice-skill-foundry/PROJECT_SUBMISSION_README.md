@@ -99,7 +99,7 @@ The system compiles both signals into:
 - same-model serialized Transformers: 20.66 aggregate output tokens/s
 - measured serving uplift: 12.47x
 - native ASR batch-eight: 85.35x aggregate real-time
-- current local regression suite: 42/42, typecheck, production build
+- current local regression suite: 46/46, typecheck, production build
 - real deterministic teaching workspace: six user operations generate the
   action trace; no preset trace is attached to a new run
 
@@ -133,11 +133,13 @@ deployment. It executes the real Voice -> Policy -> Proof -> Memory workflow
 against W7900 Qwen3-ASR and Qwen3-4B, then shows the measured vLLM and ASR
 batching evidence.
 
-The current product now adds a real deterministic teaching workspace after
-Demo V2: six user commands create the timestamped action contract instead of
-attaching the repository preset trace. A refreshed product video remains a
-later submission-polish task; the existing Main Demo V2 remains the
-authoritative real W7900 inference recording.
+The current product now adds a server-authoritative teaching workspace after
+Demo V2: six user commands are accepted by a persistent backend session, and
+the compile path ignores browser-supplied action tampering. The proof ZIP
+contains `action_contract.json` with the session ID, six typed events, and the
+contract hash. The final product video will be recorded only after the
+remaining product scope is frozen; the existing Main Demo V2 remains the
+authoritative real W7900 inference recording until then.
 
 Continuous Demo V2 isolates lifecycle control from the performance claim. It
 uses deterministic ASR and compiler fixtures, while executing real Node API
@@ -155,7 +157,7 @@ revalidation, and child-proof download in one continuous browser session.
   policy, skill, and voice-evidence schema.
 - Changed runtime identity marks a skill `revalidation_required`; one-click
   revalidation creates a new child run before reuse is restored.
-- Current local regression suite: 42/42, typecheck, and production build.
+- Current local regression suite: 46/46, typecheck, and production build.
 - Weekend v10 pinned Radeon source: 33/33 and production build.
 - vLLM graph serving reached 257.65 aggregate output tokens/s at concurrency
   eight versus 20.66 for the serialized Transformers server.

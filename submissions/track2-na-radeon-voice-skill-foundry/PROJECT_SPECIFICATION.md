@@ -174,11 +174,18 @@ commands:
 5. create tentative calendar holds
 6. export a redacted report
 
-Each command emits a timestamped typed event. The simulation never sends email
-or commits calendar invitations. The exported report uses account aliases,
-excludes compensation, and omits the P2 finding. Undo or reset invalidates the
-incomplete trace, and compilation remains disabled until the six-step action
-contract is complete.
+Each command is accepted by a persistent server-side demonstration session
+before the UI advances. The server rejects out-of-order or duplicate commands,
+derives the timestamped typed events, and requires the session to reach 6/6
+before compilation. Browser-supplied `actions` are ignored whenever a trusted
+session ID is present. The simulation never sends email or commits calendar
+invitations. The exported report uses account aliases, excludes compensation,
+and omits the P2 finding. Undo or reset invalidates the incomplete trace.
+
+Verification binds the session ID, six events, event count, and SHA-256 action
+contract hash into the proof core. The exported proof ZIP includes a separate
+`action_contract.json` so reviewers can inspect the exact trusted
+demonstration independently from the generated policy.
 
 ### 5.4 Multi-Step Planning
 
@@ -311,7 +318,7 @@ The client verification payload was deliberately modified to claim
 returned `mail.send = deny`, demonstrating that browser-supplied proof fields
 are not trusted.
 
-The current local regression suite has since grown to 42/42 and passes
+The current local regression suite has since grown to 46/46 and passes
 typecheck and the production build. The weekend v10 source commit was also
 clean-cloned on Radeon and passed 33/33 plus the production build.
 
@@ -615,11 +622,16 @@ run without changing the measured Radeon claims:
    65/100, and older proofs require revalidation. These remain deterministic
    measurements and do not claim learned acoustic diagnosis.
 
-The current enhanced regression suite passes 42/42 tests locally, with
+The current enhanced regression suite passes 46/46 tests locally, with
 typecheck and production build. A single-take browser demo shows upload,
 voice-evidence analysis, compile, 7/7 verification, save, reuse, service
 restart recovery, runtime invalidation, one-click revalidation, and proof
 download.
+
+The existing Main Demo V2 remains the authoritative real W7900 inference
+recording. A final product recording is intentionally deferred until product
+and narrative freeze so the submitted video matches the final server-backed
+teaching workflow.
 
 The same public enhancement commit
 `efec128059fea3b68521aa1dd333c71d5ea6a679` was clean-cloned on Radeon Cloud.

@@ -46,7 +46,7 @@ Deadline: 2026-08-06 23:59 UTC+8.
 ## Current Quality Gates
 
 - [x] `npm run typecheck`: passed
-- [x] Current local `npm test`: 42/42 passed
+- [x] Current local `npm test`: 46/46 passed
 - [x] Current local production build: passed
 - [x] Public Cloudflare page: HTTP 200
 - [x] Public `/api/health`: Radeon mode, W7900-class `gfx1100`, ROCm 7.2.1
@@ -65,7 +65,7 @@ Deadline: 2026-08-06 23:59 UTC+8.
 - [x] Final audio-backed Radeon snapshot commit `c759a41`: 21/21, build, 7/7
 - [x] Durable lifecycle Radeon snapshot commit `efec128`: 29/29, build
 - [x] Weekend v10 Radeon snapshot commit `20776d9`: 33/33, build
-- [x] Current local product regression: 42/42, build
+- [x] Current local product regression: 46/46, build
 
 These counts belong to different pinned revisions and are intentionally not
 presented as one remote run.
@@ -125,7 +125,7 @@ Official PR:
 - Weekend v10 evidence ZIP:
   `1189e0e47c14ba18784f5be82aa5c68366946c0d6378d6a8d26adef61dfd3e9b`
 - Refreshed Project Specification PDF:
-  `528f1d94283cca0f0fd7c07a5892b228916dbf95fbd7c6ac42bc3c6c92ed0736`
+  `09662bf50ffc9a7d2c4cd19401084fb20cb846d94d4d4b31626f6f25fd18da22`
 - Refreshed architecture PNG:
   `1feec7ef529232b12c4f4d9bfca6d59f05685bc7253b9aab35efe90688b37fce`
 - Refreshed poster PDF:
@@ -209,3 +209,7 @@ Measured result:
 - [x] Undo and reset invalidate the incomplete trace
 - [x] Compile stays disabled until the six-step contract is complete
 - [x] Reducer and event-contract tests: 4/4 passed
+- [x] Server rejects out-of-order demonstration commands
+- [x] Compile resolves the server session instead of trusting browser actions
+- [x] Proof and ZIP include the full `action_contract.json`
+- [ ] Record the final product Demo only after feature and narrative freeze
