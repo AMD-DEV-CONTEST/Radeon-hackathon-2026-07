@@ -125,7 +125,7 @@ Official PR:
 - Weekend v10 evidence ZIP:
   `1189e0e47c14ba18784f5be82aa5c68366946c0d6378d6a8d26adef61dfd3e9b`
 - Refreshed Project Specification PDF:
-  `571985eeac51ea45cfe615d6aa8287fae49d1c3b195f140bd812c77e0b8a02ee`
+  `abf5f014f0bdb64d1cd0a998d5244a1958d0890269b6a2107c835c9fc6f6f650`
 - Refreshed architecture PNG:
   `1feec7ef529232b12c4f4d9bfca6d59f05685bc7253b9aab35efe90688b37fce`
 - Refreshed poster PDF:
@@ -141,9 +141,30 @@ Official PR:
 - The Chinese SOP WAV is a synthetic reproducible fixture.
 - Demo narration uses AIDP `gemini-3.1-flash-tts-preview`, male `Charon`.
 
-## Optional Bonus Gap
+## Quark Quantization v11
 
-- [ ] Quark INT8/FP8 or equivalent quantized same-hardware A/B
+- [x] Quark INT4 W4A16 export on W7900
+- [x] Record vLLM loader incompatibility instead of claiming unsupported serving
+- [x] Quark INT8 W8A8 C16 eager and graph
+- [x] Quark INT8 W8A8 C128 eager
+- [x] Same-hardware FP16 rerun
+- [x] C1/2/4/8 throughput matrix
+- [x] Model storage, model-load VRAM, KV-cache, telemetry
+- [x] Four-part Agent safety semantic gate
+- [x] Strict JSON validation on final FP16 and C128 runs
+- [x] Production decision: reject INT8 for this policy compiler
 
-No quantization result is claimed. The current submission has direct evidence
-for the 100-point main rubric; quantization remains optional bonus work.
+Measured result:
+
+- INT4 storage reduction: `66.73%`; serving loader incompatible
+- INT8 model-load VRAM reduction: `44.07%`
+- INT8 KV-cache increase: `88.43%`
+- INT8 C128 C8 throughput: `160.61` versus FP16 `253.74 tokens/s`
+- INT8 throughput change: `-36.70%`
+- INT8 C128 safety gate: `11/51`
+- INT8 C128 strict JSON: `2/51`
+- FP16 safety gate and JSON: `51/51`
+- Summary SHA-256:
+  `06818f8b875594a42681ce7f6e6b024272c1cbc706fa87bb1c59c8fb2a4c8605`
+- Evidence ZIP SHA-256:
+  `d1317a593f7cabb1e53e255a84b76bd82d6cb0829b53b6974b7d370b1d6fdb06`

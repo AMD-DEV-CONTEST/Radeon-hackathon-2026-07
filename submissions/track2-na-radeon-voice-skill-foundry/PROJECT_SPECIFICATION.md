@@ -356,6 +356,45 @@ reuse optimizations: vLLM improves concurrent fresh compilation, batching
 improves multiple audio inputs, compact output shortens each generation, and
 Verified Skill reuse removes identical replanning entirely.
 
+### 8.4 Quark Quantization Acceptance Study
+
+A same-hardware Quark study tested whether quantization should replace FP16 for
+the policy compiler.
+
+Quark successfully exported an INT4 W4A16 model:
+
+- source directory: 8.06 GB
+- INT4 directory: 2.68 GB
+- storage reduction: 66.73%
+
+The installed ROCm vLLM Quark loader did not support that signed INT4
+per-group, group-size-128 weight-only scheme, so no W4A16 serving claim is
+made.
+
+Quark INT8 W8A8 served through vLLM's
+`TritonInt8ScaledMMLinearKernel`:
+
+| Capacity metric | FP16 | INT8 | Change |
+|---|---:|---:|---:|
+| Model directory | 8.06 GB | 4.43 GB | -45.07% |
+| Model-load VRAM | 7.67 GiB | 4.29 GiB | -44.07% |
+| KV-cache tokens at 25% budget | 27,520 | 51,856 | +88.43% |
+
+However, the 128-sample calibrated INT8 model was not acceptable:
+
+| Acceptance metric | FP16 | Quark INT8 C128 |
+|---|---:|---:|
+| C8 aggregate throughput | 253.74 tok/s | 160.61 tok/s |
+| Complete safety-semantic gate | 51/51 | 11/51 |
+| Strict JSON | 51/51 | 2/51 |
+
+The tokenizers produced identical prompt and chat-template token sequences, so
+tokenizer drift does not explain the regression.
+
+The engineering decision is to retain FP16 and quarantine this INT8 artifact.
+For a policy compiler, preserving no-send, redaction, confirmation, and
+conditional-scope rules has priority over memory savings.
+
 ## 9. Verification and Proof
 
 The system generates adversarial fixtures for:
@@ -497,9 +536,10 @@ The two V2 videos have separate evidence roles:
   claim a learned acoustic-diagnosis model.
 - Full far-field ASR accuracy should be evaluated separately against a benchmark
   such as the Treble/Hugging Face FFASR leaderboard.
-- No Quark INT8, FP8, or equivalent quantized A/B is currently claimed.
-  Quantization remains optional bonus work and should be measured with semantic
-  safety gates, TTFT, throughput, VRAM, and proof reproduction held constant.
+- The Quark INT4/INT8 study is complete. INT8 improves capacity but is slower
+  and fails the required semantic acceptance gate, so it is not promoted.
+- FP8 remains untested because loader registration alone does not prove a
+  native accelerated FP8 path on RDNA3 `gfx1100`.
 - The stable Cloudflare Pages URL currently depends on a W7900 Quick Tunnel
   origin. Restarting the tunnel requires rotating the encrypted Pages origin.
 
@@ -552,6 +592,8 @@ and 280 ms burst-loss samples through the real `/api/transcribe` endpoint.
   `benchmarks/optimization-w7900-2026-07-17.json`
 - Weekend v10 summary: `benchmarks/weekend-v10-summary.json`
 - Weekend v10 report: `docs/WEEKEND_W7900_EXPERIMENTS.md`
+- Quark v11 report: `docs/QUARK_QUANTIZATION_W7900_V11.md`
+- Quark v11 summary: `benchmarks/quantization-v11-summary.json`
 - Detailed optimization method: `docs/RADEON_OPTIMIZATION_BENCHMARK.md`
 - Radeon benchmark report: `docs/RADEON_W7900_BENCHMARK.md`
 - Rules audit: `docs/RULES_AND_READINESS_AUDIT.md`

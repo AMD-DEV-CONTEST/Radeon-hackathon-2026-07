@@ -161,4 +161,9 @@ revalidation, and child-proof download in one continuous browser session.
 - Main Demo V2 is the real Cloudflare + W7900 inference and performance proof.
 - Continuous Demo V2 uses deterministic ASR/compiler fixtures with real Node
   process restarts; it proves lifecycle control, not GPU throughput.
-- No quantized Quark INT8/FP8 A/B is claimed.
+- Quark INT4 W4A16 export reduced storage by 66.73%, but the installed vLLM
+  Quark loader rejected that weight-only serving scheme.
+- Quark INT8 W8A8 reduced model-load VRAM by 44.07% and increased KV-cache
+  capacity by 88.43%, but was 36.70% slower at concurrency eight.
+- INT8 C128 passed only 11/51 complete safety-semantic gates and 2/51 strict
+  JSON checks; FP16 passed 51/51. INT8 is rejected for the policy compiler.
