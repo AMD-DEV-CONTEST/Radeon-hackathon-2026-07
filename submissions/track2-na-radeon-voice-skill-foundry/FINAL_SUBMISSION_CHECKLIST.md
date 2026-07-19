@@ -125,7 +125,7 @@ Official PR:
 - Weekend v10 evidence ZIP:
   `1189e0e47c14ba18784f5be82aa5c68366946c0d6378d6a8d26adef61dfd3e9b`
 - Refreshed Project Specification PDF:
-  `1d3292973193d4db55d1d3af63e849ccec90140cbd1f887d6acf62ee35d69fb6`
+  `2e3517966c63b2a8a24fffd334c7b37ba602e90ac9535b211b522cbb48f52206`
 - Refreshed architecture PNG:
   `1feec7ef529232b12c4f4d9bfca6d59f05685bc7253b9aab35efe90688b37fce`
 - Refreshed poster PDF:
@@ -216,4 +216,9 @@ Measured result:
 - [x] Five adversarial probes pass with zero external side effects
 - [x] Proof and ZIP include `sandbox_replay.json`
 - [x] Proof schema/verifier v0.4 invalidates older replay semantics
+- [x] Verified output is saved as a non-reusable promotion candidate
+- [x] Promotion binds the current proof hash and supersedes older promoted versions
+- [x] Revocation requires a reason and blocks reuse
+- [x] Rollback revalidates history and creates a new promoted version
+- [x] Promotion, supersede, revoke, and rollback write governance receipts
 - [ ] Record the final product Demo only after feature and narrative freeze

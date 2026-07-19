@@ -226,6 +226,27 @@ Verified skills persist locally with version numbers, proof evidence, and reuse
 counts. Reusing an exact skill bypasses model generation while retaining the
 previously verified policy and fixtures.
 
+### 5.5.1 Promotion, Revocation, and Rollback
+
+Verification alone does not make a skill reusable. The registry uses four
+explicit lifecycle states:
+
+1. `candidate`: verified but awaiting human promotion
+2. `promoted`: reusable while proof compatibility remains current
+3. `superseded`: immutable history replaced by a newer promoted version
+4. `revoked`: disabled by an explicit governance decision
+
+Promotion binds the current proof hash and writes a governance receipt.
+Promoting a newer version automatically supersedes the previous promoted
+version of the same skill. Revocation requires a written reason and blocks
+reuse immediately.
+
+Rollback does not mutate or reactivate the historical object. The selected
+superseded or revoked version is revalidated under the current runtime and
+verifier, then copied into a new promoted version with a higher version number,
+parent proof lineage, and a `ROLLBACK` receipt. This keeps the lifecycle
+auditable while restoring a last-known-safe policy.
+
 ### 5.6 Permission and Privacy Controls
 
 High-risk policy is enforced ahead of model output. In the reference scenario:
@@ -663,6 +684,10 @@ teaching workflow.
 Sandbox Replay v1 is deterministic verification evidence. It does not replace
 or alter the separately measured Radeon ASR, model-serving, quantization, or
 adaptive-precision performance claims.
+
+The governance lifecycle is also product-control evidence rather than a new GPU
+performance claim. It closes the operational gap between proof generation and
+safe procedural-memory reuse.
 
 The same public enhancement commit
 `efec128059fea3b68521aa1dd333c71d5ea6a679` was clean-cloned on Radeon Cloud.

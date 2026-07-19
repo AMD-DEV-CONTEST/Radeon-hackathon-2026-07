@@ -50,6 +50,8 @@ The system compiles both signals into:
 - Sandbox Replay v1: six state transitions plus five adversarial probes
 - a hash-bound proof bundle
 - a versioned Verified Skill that can be reused without replanning
+- candidate -> promoted -> superseded/revoked lifecycle with proof-bound
+  promotion, reasoned revocation, and verified rollback
 
 ## Submission Materials
 
@@ -161,6 +163,8 @@ revalidation, and child-proof download in one continuous browser session.
 - Current local regression suite: 50/50, typecheck, and production build.
 - Proof schema v0.4 includes `sandbox_replay.json`: six step hashes, output
   diffs, five fail-closed probes, and the final isolated workspace state.
+- Reuse is allowed only for promoted, proof-compatible skills. Rollback creates
+  a new promoted version and preserves immutable historical receipts.
 - Weekend v10 pinned Radeon source: 33/33 and production build.
 - vLLM graph serving reached 257.65 aggregate output tokens/s at concurrency
   eight versus 20.66 for the serialized Transformers server.
