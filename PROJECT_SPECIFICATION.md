@@ -100,8 +100,8 @@ VTE loads raw **GGUF** checkpoints directly (no conversion step) and runs them t
 
 | Model | Params | Quant | Architecture | Source |
 |---|---|---|---|---|
-| Qwen2.5 1.5B Instruct | 1.5B | Q4_K_M | `qwen2` | [Qwen/Qwen2.5-1.5B-Instruct-GGUF](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF) |
-| Qwen2.5 0.5B Instruct (draft) | 0.5B | Q4_K_M | `qwen2` | [Qwen/Qwen2.5-0.5B-Instruct-GGUF](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF) |
+| Qwen2.5 1.5B Instruct | 1.5B | Q4_K_M | `qwen2` | [bartowski/Qwen2.5-1.5B-Instruct-GGUF](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF) |
+| Qwen2.5 0.5B Instruct (draft) | 0.5B | Q4_K_M | `qwen2` | [bartowski/Qwen2.5-0.5B-Instruct-GGUF](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF) |
 | Qwen2.5 7B Instruct | 7B | Q4_K_M | `qwen2` | [bartowski/Qwen2.5-7B-Instruct-GGUF](https://huggingface.co/bartowski/Qwen2.5-7B-Instruct-GGUF) |
 | Qwen2.5 32B Instruct | 32.7B | Q4_K_M | `qwen2` | [bartowski/Qwen2.5-32B-Instruct-GGUF](https://huggingface.co/bartowski/Qwen2.5-32B-Instruct-GGUF) |
 | Qwen3.5 2B | 2B | Q6_K | `qwen35` (hybrid full/linear attention) | [unsloth/Qwen3.5-2B-GGUF](https://huggingface.co/unsloth/Qwen3.5-2B-GGUF) |
