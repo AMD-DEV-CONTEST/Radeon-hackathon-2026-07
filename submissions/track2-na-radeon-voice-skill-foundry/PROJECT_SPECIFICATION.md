@@ -1,12 +1,15 @@
 # Radeon Voice Skill Foundry
 
-Demo video:
-`https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO.mp4`
+Live product:
+`https://radeon-voice-skill-foundry.pages.dev/`
 
-The final narration uses AIDP `gemini-3.1-flash-tts-preview`, male voice
-`Charon`.
-Campaign backgrounds were generated with GPT Image 2; visible labels and
-measured metrics were typeset locally.
+Recommended Demo V2:
+`https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V2.mp4`
+
+Demo V2 uses AIDP `gemini-3.1-flash-tts-preview`, male voice `Charon`, with
+burned-in English captions and an embedded English subtitle track. Campaign
+backgrounds were generated with GPT Image 2; visible labels and measured
+metrics were typeset locally.
 
 ## Speak the SOP. Prove the Skill.
 
@@ -42,6 +45,8 @@ proof-carrying skill package containing:
 - source-bound voice quality evidence
 
 Core speech and Agent inference run locally on an AMD Radeon GPU through ROCm.
+The public product is served by Cloudflare Pages and forwards same-origin API
+requests through an authenticated gateway to the W7900 runtime.
 
 ## 2. Application Scenario
 
@@ -109,31 +114,35 @@ proof package; raw audio is excluded.
 
 ## 4. Agent Architecture
 
-The architecture has seven local layers:
+The architecture has eight deployment and execution layers:
 
-1. **Capture**
+1. **Public product surface**
+   - Cloudflare Pages module UI
+   - same-origin authenticated `/api` gateway
+2. **Capture**
    - browser microphone or audio upload
    - timestamped structured action trace
-2. **Voice evidence**
+3. **Voice evidence**
    - deterministic local WAV analysis
    - quality gate and source audio hash
-3. **Radeon inference**
+4. **Radeon inference**
    - Qwen3-ASR-0.6B for local speech recognition
    - Qwen3-4B-Instruct-2507 for structured SOP compilation
-4. **Context and planning**
+5. **Context and planning**
    - local policy/SOP RAG
    - typed constraint extraction
    - multi-step skill and capability planning
-5. **Safety kernel**
+6. **Safety kernel**
    - deterministic no-send, privacy, and confirmation guardrails
    - least-privilege permission inference
-6. **Verification**
+7. **Verification**
    - positive and adversarial fixtures
    - deterministic tool replay
    - governance receipts and artifact hashes
-7. **Procedural memory**
+8. **Procedural memory**
    - versioned Verified Skill Registry
    - exact skill reuse without model replanning
+   - proof compatibility, invalidation, and child-run revalidation
 
 See `ARCHITECTURE.png` for the final diagram.
 
@@ -191,14 +200,19 @@ The existing synthetic Chinese SOP WAV measured 20.39 seconds at 16 kHz mono,
 -18.36 dBFS RMS, -2.94 dBFS peak, zero clipping, and 17.17% near-silence,
 producing a `PASS` score of 100/100.
 
+Voice Evidence v0.3 also measures estimated SNR, noise floor, speech level,
+crest factor, DC offset, short dropout, multi-frame burst loss, and channel
+imbalance. On the W7900 robustness suite, clean audio passed at 100, a 120 ms
+burst loss entered review at 88, and a 280 ms burst loss was quarantined at 65.
+
 ## 6. Model and Local Deployment
 
 ### Agent Model
 
 - Model: `Qwen/Qwen3-4B-Instruct-2507`
 - Precision: FP16
-- Runtime: Transformers + PyTorch ROCm
-- Serving: local OpenAI-compatible HTTP service
+- Runtime: Transformers or vLLM + PyTorch ROCm
+- Serving: local OpenAI-compatible HTTP service on the W7900
 
 Qwen3-4B was selected after testing a smaller 0.6B model. The smaller model was
 faster but misclassified important structured constraints. The 4B model
@@ -220,8 +234,9 @@ Browser audio is converted to 16 kHz mono WAV before local transcription.
 - Architecture: `gfx1100`
 - VRAM: 47.98 GiB
 - ROCm: 7.2.1
-- PyTorch: 2.8.0 ROCm
-- Triton: 3.4.0 ROCm
+- Weekend v10 PyTorch: 2.9.1 ROCm
+- Weekend v10 vLLM: 0.16.1 development ROCm build
+- Weekend v10 Triton: 3.5.1
 
 No closed remote API implements the core Agent or speech path.
 
@@ -258,7 +273,7 @@ Final audio-backed rerun on the same Radeon allocation:
 | Metric | Result |
 |---|---:|
 | Source commit | `c759a41` |
-| Unit tests | 21/21 passed |
+| Pinned snapshot tests | 21/21 passed |
 | SOP audio duration | 20.39 s |
 | ASR inference | 1.4259 s |
 | ASR RTF | 0.0699 |
@@ -275,6 +290,10 @@ The client verification payload was deliberately modified to claim
 `mail.send = allow`. The server resolved the authoritative compile run and
 returned `mail.send = deny`, demonstrating that browser-supplied proof fields
 are not trusted.
+
+The current local regression suite has since grown to 36/36 and passes
+typecheck and the production build. The weekend v10 source commit was also
+clean-cloned on Radeon and passed 33/33 plus the production build.
 
 ## 8. Targeted Radeon Optimization
 
@@ -316,6 +335,27 @@ Each reuse avoided 506 model output tokens.
 This ratio applies only to an identical Verified Skill lookup. It is not
 claimed for changed SOPs, semantic search, or arbitrary Agent replanning.
 
+### 8.3 Optimized Serving and ASR Batching
+
+The weekend v10 study compared the same Qwen3-4B FP16 model on the same W7900
+using serialized Transformers, vLLM eager, and vLLM graph serving. Each
+configuration used heterogeneous SOP prompts, concurrency 1/2/4/8, three
+bursts, semantic safety gates, and per-second GPU telemetry.
+
+| Concurrency 8 result | Transformers | vLLM graph | Change |
+|---|---:|---:|---:|
+| Aggregate output throughput | 20.66 tok/s | 257.65 tok/s | 12.47x |
+| Median burst wall time | 22.85 s | 1.86 s | -91.85% |
+| Semantic gate pass rate | 100% | 100% | preserved |
+
+Native Qwen3-ASR batch-eight reached 85.35x aggregate real-time and was 6.659x
+faster than sequential inference for the same eight inputs.
+
+These serving and batching measurements complement the compact-output and exact
+reuse optimizations: vLLM improves concurrent fresh compilation, batching
+improves multiple audio inputs, compact output shortens each generation, and
+Verified Skill reuse removes identical replanning entirely.
+
 ## 9. Verification and Proof
 
 The system generates adversarial fixtures for:
@@ -345,9 +385,13 @@ The final proof package includes:
 - `voice_evidence.json` for audio-backed runs
 - reproduction notes
 
-Final proof ZIP SHA-256:
+Pinned final Radeon audio proof ZIP SHA-256:
 
-`0f9a37f69aea24677561b3c43c2e5fbfa275aa0fadf0509816a7a8f1229879bd`
+`6ea53dfe28f8221b3db9b06e6eed537767bf28b4c6536d25d45f3ffec20500e9`
+
+The Continuous Demo V2 child proof additionally binds `parentRunId`,
+`revision: 2`, and the changed runtime identity before the proof core is
+hashed.
 
 ## 10. Track 2 Fit
 
@@ -417,7 +461,27 @@ Optimization benchmark:
 npm run benchmark:optimization -- benchmarks/optimization-latest.json
 ```
 
-## 13. Limitations and Next Steps
+## 13. Public Deployment and Demo Evidence
+
+The public product is deployed at:
+
+`https://radeon-voice-skill-foundry.pages.dev/`
+
+Cloudflare Pages serves the cinematic module UI. A same-origin Pages Function
+injects a server-held token and forwards API calls to the W7900 backend; direct
+unauthenticated origin requests are rejected.
+
+The two V2 videos have separate evidence roles:
+
+- `RADEON_VOICE_SKILL_FOUNDRY_DEMO_V2.mp4` records the live Cloudflare product
+  executing real W7900 Qwen3-ASR and Qwen3-4B inference. The actual model wait
+  is preserved and no cached policy replaces generation.
+- `CONTINUOUS_OPERATION_DEMO_V2.mp4` uses deterministic ASR/compiler fixtures
+  while executing two real Node API restarts, durable recovery, runtime drift,
+  proof invalidation, and child-run revalidation in one take. It is lifecycle
+  evidence, not GPU performance evidence.
+
+## 14. Limitations and Next Steps
 
 - The direct compact-output A/B uses three runs per variant.
 - The final full-compilation evidence is one end-to-end sample.
@@ -429,13 +493,17 @@ npm run benchmark:optimization -- benchmarks/optimization-latest.json
   serialized Transformers server.
 - The tool workspace is deterministic for reproducible judging. Production
   connectors should retain the same capability gate and receipt model.
-- The Voice Evidence Gate currently uses deterministic signal measurements. It
-  does not claim learned noise, reverb, cross-talk, packet-loss, speaker, or
-  semantic-endpoint diagnosis.
+- The Voice Evidence Gate uses deterministic signal measurements and does not
+  claim a learned acoustic-diagnosis model.
 - Full far-field ASR accuracy should be evaluated separately against a benchmark
   such as the Treble/Hugging Face FFASR leaderboard.
+- No Quark INT8, FP8, or equivalent quantized A/B is currently claimed.
+  Quantization remains optional bonus work and should be measured with semantic
+  safety gates, TTFT, throughput, VRAM, and proof reproduction held constant.
+- The stable Cloudflare Pages URL currently depends on a W7900 Quick Tunnel
+  origin. Restarting the tunnel requires rotating the encrypted Pages origin.
 
-## 13.1 Post-Submission Engineering Upgrade
+## 14.1 Lifecycle Engineering Upgrade
 
 Three lifecycle enhancements were implemented after the final Radeon evidence
 run without changing the measured Radeon claims:
@@ -454,11 +522,11 @@ run without changing the measured Radeon claims:
    65/100, and older proofs require revalidation. These remain deterministic
    measurements and do not claim learned acoustic diagnosis.
 
-The enhanced regression suite passes 33/33 tests locally and on Radeon. A
-single-take browser demo shows upload, voice-evidence analysis, compile, 7/7
-verification, save, reuse,
-service restart recovery, runtime invalidation, one-click revalidation, and
-proof download.
+The current enhanced regression suite passes 36/36 tests locally, with
+typecheck and production build. A single-take browser demo shows upload,
+voice-evidence analysis, compile, 7/7 verification, save, reuse, service
+restart recovery, runtime invalidation, one-click revalidation, and proof
+download.
 
 The same public enhancement commit
 `efec128059fea3b68521aa1dd333c71d5ea6a679` was clean-cloned on Radeon Cloud.
@@ -470,15 +538,23 @@ The final weekend experiment implementation is pinned to source commit
 and the production build. The same commit replayed clean, 120 ms burst-loss,
 and 280 ms burst-loss samples through the real `/api/transcribe` endpoint.
 
-## 14. Evidence Index
+## 15. Evidence Index
 
 - Source: `https://github.com/Chengyuann/radeon-voice-skill-foundry`
+- Live product: `https://radeon-voice-skill-foundry.pages.dev/`
+- Scoring matrix: `submission/SCORING_EVIDENCE_MATRIX.md`
+- Main Demo V2:
+  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V2.mp4`
+- Continuous lifecycle Demo V2:
+  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/CONTINUOUS_OPERATION_DEMO_V2.mp4`
 - Hardware/model raw data: `benchmarks/w7900-2026-07-17.json`
 - Optimization raw data:
   `benchmarks/optimization-w7900-2026-07-17.json`
+- Weekend v10 summary: `benchmarks/weekend-v10-summary.json`
+- Weekend v10 report: `docs/WEEKEND_W7900_EXPERIMENTS.md`
 - Detailed optimization method: `docs/RADEON_OPTIMIZATION_BENCHMARK.md`
 - Radeon benchmark report: `docs/RADEON_W7900_BENCHMARK.md`
 - Rules audit: `docs/RULES_AND_READINESS_AUDIT.md`
 - Voice AI trend decision:
   `docs/VOICE_AI_SPACE_SIGNALS_2026-07-18.md`
-- Proof artifact: `outputs/radeon-proof-final.zip`
+- Final Radeon audio proof: `outputs/radeon-audio-proof-v8.zip`
