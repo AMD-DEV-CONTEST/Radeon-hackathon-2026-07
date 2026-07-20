@@ -362,3 +362,52 @@ The AMD hackathon's cloud instance gave the codebase its first ever run on a car
 **Standing conclusion**: the ~140 tok/s figure is a genuine kernel-efficiency ceiling on this card for this model, the same category of ceiling as the RX 7600's own ~100 tok/s ("further gains need actual kernel-level work ... not attempted here", [Investigation: pushing past ~100 tok/s](#investigation-pushing-past-100-toks-2026-07) above). Closing the remaining gap to llama.cpp on the W7900 would mean the same kind of `gemv_q4k`/attention tiling work already deferred there, without RGP or any hardware-counter profiler available on this cloud instance either (no full Radeon driver install, out of scope for a rented instance with limited hours). Not attempted this round; a real kernel-engineering project, not a quick fix, matching this document's own standing rule for the RX 7600 findings above.
 
 **Reverted.** `gemv_q6k.hip.template` is unchanged from before this investigation. The real inefficiency behind Q6_K's 74% bandwidth ceiling is still open and registered here for a future investigation: the leading candidate, given the kernel's own header comment, is the total absence of vectorized (`uint4`) loads anywhere in the kernel, since its 210-byte block size isn't a multiple of 16 and every `ql`/`qh`/`scales` read is scalar. Closing that would mean a real layout/access-pattern redesign, not a targeted coalescing fix, and has not been attempted.
+
+## Thesis V7: real hardware counters, and closing the "no profiler on this cloud instance" gap (2026-07)
+
+The CU-scaling investigation above ended on an open question: closing the W7900 gap to llama.cpp "would mean the same kind of `gemv_q4k`/attention tiling work already deferred [on the RX 7600], without RGP or any hardware-counter profiler available on this cloud instance either." That was revisited directly: the W7900 instance's full ROCm 7.2.1 install does ship `rocprof`/`rocprofv2`/`rocprofv3`/`rocprof-compute`, in principle removing that blocker. In practice, none of them produced usable hardware-counter data on this instance -- `rocprof-compute` (renamed Omniperf) refuses to run on `gfx1100` at all (its metric definitions are CDNA-only), `rocprofv2`/legacy `rocprof` fail to execute regardless of syntax, and `rocprofv3`'s raw `--pmc` counters return real data only for two counters derivable from dispatch-trace metadata alone (`SQ_WAVES`, `SQ_BUSY_CYCLES`) -- every other counter tested (cache hit rate, occupancy, wait-states, instruction mix, memory bandwidth) returned a hard zero on every kernel, with no error. Full reproduction steps and command transcripts in [PLATFORM_ISSUES.md](../../PLATFORM_ISSUES.md). Net effect: the hardware-counter gap from the CU-scaling investigation is *not* closed by this cloud instance, and every finding below still comes from the same software-side methodology (HIP-events microbenchmarks, static `hipcc -Rpass-analysis` audits) already used throughout this document, not from real hardware counters.
+
+### `gemv_q4k` bandwidth, revalidated on W7900 (both the 1.5B and 32B FFN-down shapes)
+
+`tools/bench_gemv_q4k_bandwidth.py` (V6's own methodology, unmodified) re-run on this card for Qwen2.5 1.5B's actual FFN-down shape (`in_features=8960, out_features=1536`), and a new variant (`tools/bench_gemv_q4k_bandwidth_qwen32b.py`) parameterized to Qwen2.5 32B's real published shape (`in_features=27648, out_features=5120`, confirmed against the model's own `config.json`, not assumed):
+
+| Shape | Median ratio (5 trials) | Spread |
+|---|---|---|
+| Qwen2.5 1.5B FFN-down | **99.6%** of read-bandwidth baseline | 97.1-99.7% |
+| Qwen2.5 32B FFN-down | **94.4%** of read-bandwidth baseline | 94.2-94.5% |
+
+Both clear the ≥85% "memory-saturated, no recoverable headroom" gate decisively, with far less trial-to-trial noise than the original V6 measurement (which had to work through several methodology traps before landing on a trustworthy number). **Direct answer to the CU-scaling investigation's open question**: there is no further `gemv_q4k` kernel-level headroom on the W7900, on either the small or the large model's GEMV shape. The ~140 tok/s ceiling on Qwen2.5 1.5B and the ~20-22 tok/s ceiling on the 30B/32B-class models are real physical memory-bandwidth walls, not unexploited kernel inefficiency -- confirmed with data now, not left as a deferred hypothesis.
+
+### FFN fusion: fixed, and its generalization limit
+
+Two real bugs were found and fixed in `fused_rmsnorm_gate_up_silu.hip.template` (the FFN Gate+Up+SiLU fusion kernel, previously rejected on the RX 7600 at 12.7-13.5 tok/s vs 18.8 tok/s unfused, see [Architecture](ARCHITECTURE.md#why-qkv-projection-is-fused-and-why-ffn-fusion-is-off)):
+
+1. **Silent LDS buffer overflow.** `FUSED_FFN_MAX_HIDDEN` was hardcoded to 1536 (Qwen2.5 1.5B's `hidden_size`) with no bounds check anywhere in the dispatcher before passing the model's real `hidden_size` (Qwen2.5 7B=3584, Llama 3.1 8B=4096, Qwen2.5 32B=5120) into the kernel. Any of those three models would have silently overflowed the shared-memory buffer if fusion were ever enabled for them. Raised to 8192 (16KB/block LDS, well inside the confirmed 64KB/block budget) before any generalization testing.
+2. **Per-element dequant, not per-superblock.** The scalar Q4_K dequant helper was called once per `k` (0..`hidden_size`), recomputing each superblock's `d`/`dmin`/scale from scratch every single call -- 1536 redundant recomputations for a superblock that only changes every 256 elements. Rewritten (`q4k_dequant_row_accumulate`) to amortize `d`/`dmin` once per 256-element superblock and `sc`/`mn` once per 64-element `mblk`, the same amortization cadence V6 used for `gemv_q4k` (but without V6's `__shfl` cross-thread trick, since this kernel is one-thread-per-output-neuron, not warp-cooperative).
+
+Measured on Qwen2.5 1.5B (the hackathon demo's model), W7900, production config (`use_hip_graph=True`): HIP Graph node count dropped from 395 to 339 (exactly 2 kernels/layer x 28 layers, confirming the fusion engaged correctly), output stayed coherent (no NaN/garbage) in every trial. Median gain **+3.5%** (138.6 -> 143.4 tok/s, 3 trials each side, zero overlap between groups) -- the first time in this project's history FFN fusion has been a net win.
+
+**Generalization across model sizes, tested and found narrow.** The same fix, re-measured on Qwen2.5 7B, Llama 3.1 8B, and Qwen2.5 32B:
+
+| Model | `hidden_size` | Unfused | Fused (scalar dequant) | Delta |
+|---|---|---|---|---|
+| Qwen2.5 1.5B | 1536 | 138.6 tok/s | 143.4 tok/s | **+3.5%** |
+| Qwen2.5 7B | 3584 | 87.5 tok/s | 85.9 tok/s | **-1.9%** |
+| Llama 3.1 8B | 4096 | 81.6 tok/s | 73.4 tok/s | **-10.0%** |
+| Qwen2.5 32B | 5120 | 23.1 tok/s | 21.7 tok/s | **-6.0%** |
+
+Fusion wins only on the smallest model tested; it regresses on all three larger ones, not monotonically with `hidden_size` (Llama 3.1 8B regresses more than the larger Qwen2.5 32B). Two mechanisms were hypothesized and checked against real data, in order:
+
+- **Register pressure/occupancy**: ruled out. `hipcc -Rpass-analysis=kernel-resource-usage` on the actual kernel reports `VGPRs=61, ScratchSize=0 bytes/lane, spill=0, Occupancy=16 waves/SIMD` (the theoretical max) -- and since `hidden_size` is a runtime loop-trip-count parameter, not compiled into the kernel, this is the *same* number for every model size. There is no spill or occupancy loss possible in any tested configuration.
+- **Scalar (non-vectorized) memory access**: also ruled out. The dequant loop's innermost byte-at-a-time reads of the `qs` payload were rewritten to use 2x `uint4` (128-bit) loads per `mblk`, matching `gemv_q4k`'s own vectorization pattern exactly (verified 16-byte-aligned offsets, same guarantee `gemv_q4k`'s header documents). Re-measured, same-session, back-to-back to avoid cross-run clock-drift noise:
+
+| Model | Unfused | Fused, vectorized | Delta |
+|---|---|---|---|
+| Qwen2.5 1.5B | 169.3 tok/s | 172.3 tok/s | **+1.8%** |
+| Qwen2.5 7B | 86.9 tok/s | 86.1 tok/s | **-0.9%** |
+| Llama 3.1 8B | 81.3 tok/s | 73.2 tok/s | **-10.0%** (unchanged) |
+| Qwen2.5 32B | 23.2 tok/s | 21.7 tok/s | **-6.2%** (unchanged) |
+
+Vectorization gave zero measurable benefit on the two biggest-regression models and only a marginal improvement on 7B -- the opposite of what the scalar-access theory predicts (it predicts the largest gain precisely where there's the most `qs` payload to stream, i.e. 8B/32B). Both of the two most plausible mechanisms are now disproven by direct measurement; the actual cause of the larger models' regression is unidentified, and finding it would need real hardware counters (achieved occupancy, cache hit rate, stall reasons) that are confirmed non-functional on this instance (see above). Not pursued further.
+
+**Standing conclusion**: `VTE_ENABLE_FFN_FUSION` stays opt-in, default off. The vectorization fix is kept regardless (harmless, numerically identical output, real static-analysis improvement), but the fusion itself is a narrow, real win specific to small models (confirmed on Qwen2.5 1.5B, the exact model this hackathon's demo runs) rather than the broad architectural improvement it looked like on first measurement.
