@@ -1,84 +1,51 @@
 <div align="center">
-  <img src="assets/earth_pixelated.svg" alt="Aetheris Logo" />
-  <h1>✨ Aetheris ✨</h1>
-  <p><b>Seu Assistente de IA de Programação Autônoma com Interface (CLI + GUI)</b></p>
+  <img src="assets/earth_pixelated.svg" alt="Aetheris Logo" width="96" height="96" />
+  <h1>Aetheris</h1>
+  <p><b>A local, private AI coding agent, desktop app (Flutter) + terminal, running entirely on your own AMD Radeon GPU</b></p>
 
   <p>
     <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python Version" />
-    <img src="https://img.shields.io/badge/Status-Em_Desenvolvimento-yellow.svg" alt="Status" />
-    <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License" />
+    <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux-informational" alt="Platform" />
+    <img src="https://img.shields.io/badge/GPU-AMD%20Radeon-ED1C24" alt="GPU" />
   </p>
 </div>
 
-<hr/>
-
-## 🌌 O que é o Aetheris?
-
-O **Aetheris** é uma ferramenta poderosa de Inteligência Artificial para programação autônoma. Inspirado por sistemas avançados como *GPT Codex* e *Trae*, ele atua como um verdadeiro parceiro de engenharia de software na sua máquina.
-
-Em vez de apenas gerar código isolado, o Aetheris conta com uma **Interface Gráfica (GUI) integrada e ferramentas de Linha de Comando (CLI)**, permitindo:
-
-- Criação e modificação de sistemas complexos.
-- Análise de código e documentação.
-- Automação do fluxo de trabalho diário.
-
 ---
 
-## Principais Funcionalidades
+This folder is the agent itself: `core/` is the backend (FastAPI, tool dispatch, memory, skills) and the integration with **VTE**, the inference engine this project also built from scratch; `aetheris_ui/` is the Flutter desktop client.
 
-- ** Inteligência Autônoma:** Entende contextos inteiros de projetos e sugere arquiteturas, refatorações e correções.
-- ** CLI & GUI Integradas:** Pode ser usado tanto pelo terminal para máxima produtividade, quanto pela interface visual elegante e rica (desenvolvida com Flet) para melhor organização.
-- ** Suporte a Modelos Locais (Ollama):** Integra-se com modelos hospedados localmente para garantir privacidade e alta disponibilidade (ex: Qwen, Llama).
-- ** Indexação Inteligente:** Utiliza ferramentas como ChromaDB para buscas vetoriais super-rápidas no seu código, trazendo contexto cirúrgico.
-- ** Fluxos Customizados:** Ferramentas sob medida para gerenciar tarefas, inspecionar painéis de chat e rodar tarefas em background.
+For what Aetheris actually does, the full capability list, and the Track 2 submission writeup, see the repository root: [`../README.md`](../README.md) and [`../PROJECT_SPECIFICATION.md`](../PROJECT_SPECIFICATION.md).
 
----
+## Running this folder specifically
 
-## Instalação e Configuração
-
-### 1. Pré-requisitos
-- Python 3.10 ou superior
-- Git
-- Ollama (caso queira rodar modelos locais)
-
-### 2. Passo a Passo
+Full instructions (Windows app, Windows terminal, Linux terminal) live in the root README's [Quickstart](../README.md#quickstart); short version, from inside this folder:
 
 ```bash
-# Clone o repositório
-git clone git@github.com:kyuubyN/aetherys.git
-cd aetherys
-
-# Crie e ative o ambiente virtual
 python -m venv .venv
-source .venv/bin/activate  # No Linux/macOS
-# No Windows use: .venv\Scripts\activate
-
-# Instale as dependências
-pip install -r requirements.txt
+.venv\Scripts\pip install --upgrade pip          # Windows
+.venv/bin/pip install --upgrade pip              # Linux
+.venv\Scripts\pip install -e "..\VTE"            # Windows
+.venv/bin/pip install -e "../VTE"                # Linux
+.venv\Scripts\pip install -r requirements.txt    # Windows
+.venv/bin/pip install -r requirements.txt        # Linux
+.venv\Scripts\vte pull qwen2.5:1.5b-q4_k_m       # Windows
+.venv/bin/vte pull qwen2.5:1.5b-q4_k_m            # Linux
 ```
 
----
-
-## Como Usar
-
-Com o ambiente ativado, você pode rodar a interface principal ou o CLI:
+Then either build the Flutter UI (`cd aetheris_ui && flutter run -d windows`, Windows only for now) or run the backend directly and talk to it from a terminal:
 
 ```bash
-# Para iniciar a interface visual
-python app.py
+.venv\Scripts\python app.py       # Windows, in one terminal
+.venv/bin/python app.py           # Linux, in one terminal
+
+.venv\Scripts\python scripts\chat.py   # Windows, in a second terminal
+.venv/bin/python scripts/chat.py       # Linux, in a second terminal
 ```
 
-Na interface, você pode selecionar suas pastas de projeto, escolher o modelo de IA que deseja usar e começar a dar comandos complexos para a IA agir na sua base de código.
+First run generates a local login and writes it to `GENERATED_LOGIN_READ_AND_DELETE.txt` (only relevant to the Flutter UI, the terminal client doesn't need it, see [Architecture](../PROJECT_SPECIFICATION.md#2-agent-architecture)). Open it, note the credentials, delete the file.
 
----
+## Layout
 
-## Arquitetura do Projeto
-
-- **`core/`**: Backend (FastAPI, agente, ferramentas, banco de dados) e a integração com o motor de inferência VTE.
-- **`aetheris_ui/`**: Cliente desktop nativo (Flutter).
-
----
-
-<div align="center">
-  <i>"Transforme sua maneira de programar com a força do cosmos."</i> 🌠
-</div>
+- **`core/`**: FastAPI backend (`app.py`), tool implementations (`core/utils/tools.py`), the agent's round loop (`core/utils/agent.py`), auth, memory, skills.
+- **`aetheris_ui/`**: Flutter desktop client.
+- **`scripts/chat.py`**: terminal chat client, same backend and agent loop the Flutter UI uses, works on both Windows and Linux.

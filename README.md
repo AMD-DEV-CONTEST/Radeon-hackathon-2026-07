@@ -1,114 +1,137 @@
-# Aetheris + VTE
+# Aetheris
 
-A fully local AI ecosystem for AMD Radeon GPUs. See [`PROJECT_SPECIFICATION.md`](PROJECT_SPECIFICATION.md) for the architecture, capabilities, model list, and inference-speed optimization writeup.
+**A local, private AI coding agent for AMD Radeon GPUs.** Chats, reads and edits files, runs shell commands, checks git state, searches your codebase, plans multi-step work, and remembers things across sessions, all running on your own machine. No cloud API key, no data leaving your GPU.
 
-Two independent pieces in this repository:
+Built for **Track 2: Development & Local Deployment of Private AI Agents**.
 
-- **`VTE/`**: the inference engine. Hand-written HIP kernels, runs any supported GGUF model directly on an AMD Radeon GPU. Usable completely on its own (CLI or HTTP server), with no dependency on Aetheris.
-- **`Aetheris Studio/`**: the agent application (Flutter desktop UI + Python backend) that uses VTE as its inference engine. Depends on VTE being installed.
+Under the hood, Aetheris runs on **VTE**, a from-scratch inference engine we also built for this hardware instead of depending on an existing runtime. That part's genuinely interesting if you're into GPU kernels, and it gets its own section [below](#under-the-hood-vte-the-engine-we-built-to-power-this), but it's the supporting cast here, not the headline. Aetheris is the project; VTE is what lets it run entirely local.
 
-Pick the section below that matches what you want to run.
+## What it can actually do
 
-## Prerequisites (all paths)
+Five capabilities, all real (not stubbed for the demo):
+
+- **Tool use.** Reads/writes/edits files, runs shell commands, inspects `git` (status/diff/log/show/branch), searches your codebase, browses the web read-only.
+- **Plans before it acts.** A Planner/Builder mode toggle: in Planner mode the agent can only read and write a plan, not touch anything, until you approve it. Enforced server-side, not just prompted.
+- **Remembers across sessions.** A separate memory tool (add/search/forget), independent of chat history, so the agent doesn't start from zero every conversation.
+- **Builds its own skill library.** When it solves something non-trivial, it can write itself a reusable procedure and retrieve it next time a similar task comes up, no separate embedding model needed for this.
+- **Asks before doing anything risky.** File writes, edits, and destructive-looking shell commands pause for your explicit click (or, from the terminal, a typed `y`) before they run.
+
+Full technical writeup of how each of these is wired: [`PROJECT_SPECIFICATION.md`](PROJECT_SPECIFICATION.md).
+
+## Quickstart
+
+Pick the row that matches your setup. All three talk to the exact same backend and agent loop, just through a different front end.
+
+| | Windows | Linux |
+|---|---|---|
+| **App (GUI)** | ✅ [below](#windows-app-the-full-experience) | Not available yet, the desktop UI is a Windows build for now (see [Note on Linux](#note-on-linux)) |
+| **Terminal** | ✅ [below](#terminal-windows-or-linux) | ✅ [below](#terminal-windows-or-linux) |
+
+### Prerequisites (all paths)
 
 - Python 3.10+
-- An AMD Radeon GPU with the HIP runtime available:
-  - **Windows**: AMD HIP SDK installed (provides `amdhip64_*.dll`)
-  - **Linux**: ROCm installed (provides `libamdhip64.so`, normally under `/opt/rocm`)
-- Enough VRAM for whatever model you load (see the model table in `PROJECT_SPECIFICATION.md`; models range from ~0.4 GB to ~29 GB on disk)
+- An AMD Radeon GPU with the HIP runtime available: **Windows** needs the AMD HIP SDK installed, **Linux** needs ROCm (normally under `/opt/rocm`)
+- Enough VRAM for whatever model you pick (run `vte list` after installing to see every curated model and its size; the demo model, Qwen2.5 1.5B, needs about 1 GB)
 
-VTE auto-detects the HIP runtime and the GPU's compute-unit count / architecture at startup; no manual GPU configuration is needed beyond having the driver/SDK installed.
+VTE reads your GPU's real architecture and compute-unit count at startup; there's nothing to configure by hand beyond having the driver/SDK installed.
 
----
-
-## Option A: Run VTE standalone (no UI, CLI/HTTP only)
-
-Works identically on Windows and Linux. Tested on both: RX 7600 (Windows, gfx1102) and an AMD Radeon PRO W7900 (Linux/ROCm 7.2.1, gfx1100).
+### Windows: app (the full experience)
 
 ```bash
-cd VTE
+cd "Aetheris Studio"
+python -m venv .venv
+.venv\Scripts\pip install --upgrade pip
+.venv\Scripts\pip install -e "..\VTE"
+.venv\Scripts\pip install -r requirements.txt
+.venv\Scripts\vte pull qwen2.5:1.5b-q4_k_m
+
+cd aetheris_ui
+flutter pub get
+flutter run -d windows
+```
+
+The UI starts the Python backend for you on launch and waits for it to come up; you don't run anything else by hand. First run generates a local login and writes it to `Aetheris Studio\GENERATED_LOGIN_READ_AND_DELETE.txt`, log in with those credentials once, then delete the file.
+
+### Terminal (Windows or Linux)
+
+Same backend the app uses, just driven from a small chat script instead of the Flutter UI. This is the primary way to run Aetheris on Linux today, and works just as well on Windows if you'd rather skip the Flutter build.
+
+```bash
+cd "Aetheris Studio"
 python -m venv .venv
 
 # Windows
 .venv\Scripts\pip install --upgrade pip
-.venv\Scripts\pip install -e .
+.venv\Scripts\pip install -e "..\VTE"
+.venv\Scripts\pip install -r requirements.txt
 
 # Linux
 .venv/bin/pip install --upgrade pip
-.venv/bin/pip install -e .
+.venv/bin/pip install -e "../VTE"
+.venv/bin/pip install -r requirements.txt
 ```
 
-Pull a model (downloads a public GGUF from Hugging Face into `VTE/Model/`):
+Pull a model (downloads the public GGUF from Hugging Face into `VTE/Model/`):
 
 ```bash
-# Windows
-.venv\Scripts\vte pull qwen2.5:1.5b-q4_k_m
-
-# Linux
-.venv/bin/vte pull qwen2.5:1.5b-q4_k_m
+.venv\Scripts\vte pull qwen2.5:1.5b-q4_k_m    # Windows
+.venv/bin/vte pull qwen2.5:1.5b-q4_k_m         # Linux
 ```
 
-Run `vte list` to see every curated model name and its source repository.
-
-**Interactive CLI / one-off generation:**
-
-```python
-from vte.core.model import VTEModel
-
-model = VTEModel.from_pretrained("qwen2.5:1.5b-q4_k_m", context_length=4096)
-for token in model.generate("Explain what ROCm is in one sentence.", max_tokens=100):
-    print(token, end="", flush=True)
-```
-
-**HTTP server (OpenAI-compatible `/v1/chat/completions`), the same entry point Aetheris uses internally:**
+Start the backend (leave this running in its own terminal):
 
 ```bash
-# Windows
-.venv\Scripts\vte-server --gguf-path Model\Qwen2.5-1.5B-Instruct-Q4_K_M.gguf --port 8011
-
-# Linux
-.venv/bin/vte-server --gguf-path Model/Qwen2.5-1.5B-Instruct-Q4_K_M.gguf --port 8011
+.venv\Scripts\python app.py    # Windows
+.venv/bin/python app.py        # Linux
 ```
 
-Poll `GET http://127.0.0.1:8011/health` until `{"status": "ready"}`, then talk to it exactly like any OpenAI-compatible endpoint.
-
-**Development extras** (`pytest`, `mypy`, `pyinstaller`, which are not needed just to run inference):
+In a second terminal, start chatting:
 
 ```bash
-.venv\Scripts\pip install -e ".[dev]"      # Windows
-.venv/bin/pip install -e ".[dev]"          # Linux
+.venv\Scripts\python scripts\chat.py path\to\your\project    # Windows
+.venv/bin/python scripts/chat.py path/to/your/project         # Linux
 ```
 
-`hip-python` (used only by one struct-validation dev script, `tools/validate_structs.py`) is intentionally not pinned as a hard dependency, since the version that actually matches your installed ROCm build ships through AMD's own package index, not public PyPI. Install it by hand only if you're re-running that specific script.
+The `project` argument is the folder the agent's file/git/search tools operate on, defaults to the current directory if you leave it off. Type a message, press Enter, watch it stream, approve any file write/edit it proposes with `y`.
 
----
+### Note on Linux
 
-## Option B: Run the full Aetheris + VTE app (Windows)
+The Flutter desktop UI is a Windows-only build right now (no `linux/` target configured), so the app-with-a-window experience is Windows-only for the moment. The agent *backend* underneath it has no such limitation: it's plain Python/FastAPI, and this project's own testing ran it headless (no UI, real HTTP calls against the live agent loop) on an AMD Radeon Cloud W7900 Linux instance, confirming tool dispatch, memory, skills, and the write-confirmation gate all work identically there. `scripts/chat.py` above is that same validated path, just packaged as something you can actually type into instead of hand-rolling `curl` SSE parsing.
 
-1. **Install VTE as an editable package** inside Aetheris's own virtual environment (this is what wires the two projects together; Aetheris spawns `vte-server` as a subprocess and expects `vte` to be importable):
+## Things to try
 
-   ```bash
-   cd "Aetheris Studio"
-   python -m venv .venv
-   .venv\Scripts\pip install --upgrade pip
-   .venv\Scripts\pip install -e "..\VTE"
-   .venv\Scripts\pip install -r requirements.txt
-   ```
+A few prompts to get a feel for what the agent actually does, assuming `project_path` points at some real codebase (yours, or this repo itself):
 
-2. **Get a model** into `VTE\Model\` (see Option A's `vte pull` step, run from inside `VTE\` with the same venv or a separate one; either works, `pip install -e` just needs to point at the `VTE` folder).
+- *"What does this codebase do? Give me a two-paragraph summary."* Exercises file search plus reading, no writes.
+- *"Find every place `TODO` appears and summarize what's left."* `search_files` across the whole project.
+- *"What changed in the last 5 commits?"* `git log`/`git show`, no working-tree access needed.
+- *"Add a docstring to the `main` function in `<some file>`."* A real edit; you'll see the confirmation prompt before it lands.
+- *"Plan out how you'd add rate limiting to this API, but don't touch anything yet."* Switches the agent into Planner mode, streams a plan, waits for your go-ahead.
+- *"Remember that this project uses tabs, not spaces."* Writes to the memory tool; ask again in a later session and it recalls it without the fact being back in the chat transcript.
+- *"Look up the current stable version of \<some library> online."* Read-only browser tool, no form-filling or credentials, ever.
 
-3. **Build the Flutter UI:**
+## Under the hood: VTE, the engine we built to power this
 
-   ```bash
-   cd aetheris_ui
-   flutter pub get
-   flutter run -d windows
-   ```
+Aetheris needed a local inference engine that runs entirely on an AMD Radeon GPU with nothing else installed, so we wrote one: **VTE**, hand-written HIP kernels, no llama.cpp/vLLM/PyTorch in the inference path. It turned into its own small systems project along the way, GEMV kernels tuned against real memory-bandwidth measurements, a HIP-Graph-captured decode loop, custom attention, the works, and on the demo hardware it decodes slightly *faster* than Ollama/llama.cpp on the same GGUF file (112.98 vs 110.76 tok/s, Qwen2.5 1.5B, RX 7600).
 
-   The UI launches `app.py` itself on startup (polls `http://127.0.0.1:8001/`, spawns it if not already running); you don't need to start the Python backend by hand. `app.py` in turn spawns `vte-server` on the first chat message (or immediately, if you pick a model in the model selector, which calls `/api/vte/warmup`).
+None of that is required reading to use Aetheris. If you're curious how it works or want the full kernel-optimization writeup (what worked, what didn't, and the real numbers behind each decision): [`VTE/README.md`](VTE/README.md) and [`VTE/docs/PERFORMANCE.md`](VTE/docs/PERFORMANCE.md).
 
-4. **First run: login.** No account exists until the backend's first boot; it generates one automatically and writes it to `Aetheris Studio\GENERATED_LOGIN_READ_AND_DELETE.txt`. Open that file, log in with the printed username/password, then delete the file (the plaintext password is not recoverable once it's gone; only a salted hash is stored). Every later run reuses that same account; nothing regenerates unless you delete `Aetheris Studio\core\data\auth_local.json`.
+## Repository layout
+
+- **`Aetheris Studio/`**: the agent, backend (FastAPI, `app.py`) plus the Flutter desktop UI (`aetheris_ui/`). Depends on VTE being installed.
+- **`VTE/`**: the inference engine. Usable entirely on its own too, see its own README.
+- **`PROJECT_SPECIFICATION.md`**: the full Track 2 submission writeup, architecture, capabilities, model list, benchmarks.
+- **`PLATFORM_ISSUES.md`**: three ROCm/RDNA3 platform gaps found and reported while building this, with repro steps.
 
 ### Running VTE and Aetheris from two separate machines/checkouts
 
-VTE has no compiled/frozen dependency on Aetheris; a `pip install -e` pointing at any VTE checkout works, editable installs just need the path to resolve at import time. There is no requirement that the two live side by side; the layout above (`VTE/` and `Aetheris Studio/` as siblings) is a convenience, not a hard coupling.
+VTE has no compiled or frozen dependency on Aetheris. A `pip install -e` pointing at any VTE checkout works; there's no requirement that the two folders live side by side.
+
+### Development extras
+
+`pytest`/`mypy`/`pyinstaller` (not needed just to run inference or the agent):
+
+```bash
+cd VTE && .venv\Scripts\pip install -e ".[dev]"      # Windows
+cd VTE && .venv/bin/pip install -e ".[dev]"          # Linux
+```
