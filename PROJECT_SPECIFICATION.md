@@ -106,8 +106,6 @@ Full setup, on both Windows and Linux, both as the desktop app and from a termin
 
 GGUF integrity is checked against a known-good SHA-256 and a per-architecture metadata whitelist (layer count, tensor shapes) before any weight is loaded, so a corrupted or mismatched download fails loudly at load time rather than producing silently wrong output.
 
-The desktop UI and the inference compute are also independently relocatable: `Aetheris Studio/core/utils/vte_bridge.py` can point at an already-running `vte-server` on a different machine (a `VTE_REMOTE_SERVER=1` flag plus an SSH tunnel) instead of spawning one locally, so the same UI a user runs on a modest GPU can drive inference on a larger card elsewhere, see the README's [Run the app locally, infer on a remote GPU](README.md#run-the-app-locally-infer-on-a-remote-gpu).
-
 ## 5. Bonus: Powered by VTE
 
 Aetheris needed an inference engine that runs entirely on an AMD Radeon GPU with nothing else installed, no PyTorch, no ONNX Runtime, no dependency on llama.cpp/vLLM in the core path, so this project built one: **VTE**, hand-written HIP kernels that parse GGUF directly and generate/compile their own kernel code for the detected architecture.

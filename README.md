@@ -27,8 +27,6 @@ Pick the row that matches your setup. All three talk to the exact same backend a
 | **App (GUI)** | ✅ [below](#windows-app-the-full-experience) | Not available yet, the desktop UI is a Windows build for now (see [Note on Linux](#note-on-linux)) |
 | **Terminal** | ✅ [below](#terminal-windows-or-linux) | ✅ [below](#terminal-windows-or-linux) |
 
-Running the app locally but want the inference itself to happen on a bigger GPU elsewhere (a second machine, a cloud instance)? See [Run the app locally, infer on a remote GPU](#run-the-app-locally-infer-on-a-remote-gpu): same UI, same login, only the compute moves.
-
 ### Prerequisites (all paths)
 
 - Python 3.10+
@@ -53,39 +51,6 @@ flutter run -d windows
 ```
 
 The UI starts the Python backend for you on launch and waits for it to come up; you don't run anything else by hand. First run generates a local login and writes it to `Aetheris Studio\GENERATED_LOGIN_READ_AND_DELETE.txt`, log in with those credentials once, then delete the file.
-
-### Run the app locally, infer on a remote GPU
-
-The Flutter UI and the local `RX 7600` are two separate things: the UI just talks to `http://127.0.0.1:8001`, and that backend just talks to a `vte-server` on `127.0.0.1:8011`. Neither cares whether the process on the other end of that second connection is a local subprocess or something else entirely, so a `vte-server` running on any other machine with an AMD GPU (a bigger card, a cloud instance) can stand in for the local one: the UI stays exactly the same, only the compute moves.
-
-1. **On the remote machine** (already has VTE installed, per this same README's terminal setup): start `vte-server` directly, bound to loopback only, and leave it running:
-
-   ```bash
-   cd VTE
-   .venv/bin/python -m vte.server.http_server \
-     --gguf-path Model/Qwen2.5-1.5B-Instruct-Q4_K_M.gguf \
-     --port 8011 --host 127.0.0.1 --idle-timeout 0
-   ```
-
-2. **On the local Windows machine**, open an SSH local port-forward so the remote server appears at `127.0.0.1:8011` here too (`--host 127.0.0.1` above means it's never exposed to the network directly, only reachable through this tunnel):
-
-   ```bash
-   ssh -L 8011:127.0.0.1:8011 -p <remote_ssh_port> <user>@<remote_host> -N
-   ```
-
-   Leave this running in its own terminal. Verify it before opening the UI: `curl http://127.0.0.1:8011/health` should return `{"status": "ready"}`.
-
-3. **In the same terminal you'll launch Flutter from**, set the remote-mode flag, then run as normal:
-
-   ```powershell
-   $env:VTE_REMOTE_SERVER = "1"
-   cd "Aetheris Studio\aetheris_ui"
-   flutter run -d windows
-   ```
-
-   `VTE_REMOTE_SERVER=1` makes `app.py` skip spawning a local `vte-server` entirely and just wait for the one already reachable at `127.0.0.1:8011` (the tunnel from step 2). Everything else, the UI, the login, the chat loop, is identical to the fully-local path; only where the tokens actually get generated changes.
-
-`VTE_SERVER_HOST`/`VTE_SERVER_PORT` (both optional, default `127.0.0.1`/`8011`) override where `app.py` looks if you tunnel to a different local port.
 
 ### Terminal (Windows or Linux)
 

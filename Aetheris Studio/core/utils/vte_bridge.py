@@ -3,12 +3,12 @@ engine used as Aetheris's local model provider instead of Ollama.
 
 VTE runs as its own subprocess (`vte-server`, vte/server/http_server.py in
 the VTE repo) speaking a standard OpenAI-compatible chat/completions API,
-spawned and owned by this module. Aetheris no longer embeds a VTEModel
-directly inside its own process; this trades a small per-call loopback HTTP
+spawned and owned by this module -- Aetheris no longer embeds a VTEModel
+directly inside its own process. This trades a small per-call loopback HTTP
 hop for real crash isolation: if VTE hits a GPU/driver-level fault, only
 vte-server dies, not the whole Aetheris backend. Since vte-server does its
 own chat-template rendering server-side (given a plain `messages` list),
-this module no longer needs to touch `VTEModel.tokenizer` at all; messages
+this module no longer needs to touch `VTEModel.tokenizer` at all -- messages
 go straight into the request body.
 """
 
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 # VTE's `vte://` scheme is a pure in-process sentinel: it is never resolved
 # as a real network address. The real model name travels in the existing
-# `model` parameter every call site already takes, no need to encode it
+# `model` parameter every call site already takes -- no need to encode it
 # into the URL too.
 VTE_URL_SCHEME = "vte"
 VTE_DEFAULT_URL = "vte://local"
@@ -39,22 +39,13 @@ VTE_DEFAULT_URL = "vte://local"
 # and measured in VTE's own MODEL_REGISTRY).
 VTE_DEFAULT_MODEL = "qwen2.5:1.5b-q4_k_m"
 
-_SERVER_HOST = os.environ.get("VTE_SERVER_HOST", "127.0.0.1")
-_SERVER_PORT = int(os.environ.get("VTE_SERVER_PORT", "8011"))
+_SERVER_HOST = "127.0.0.1"
+_SERVER_PORT = 8011
 _SERVER_BASE_URL = f"http://{_SERVER_HOST}:{_SERVER_PORT}"
 _READY_TIMEOUT_SECONDS = 90.0
 
-# Remote-GPU mode (VTE_REMOTE_SERVER=1): a vte-server is already running
-# elsewhere (typically a cloud GPU instance, reached through an SSH -L
-# tunnel so it still shows up as 127.0.0.1 here; see the root README's
-# "Run the app locally, infer on a remote GPU" section). ensure_server()
-# then only *waits* for that existing server instead of spawning a local
-# subprocess, and unload() becomes a no-op: this process doesn't own that
-# server's lifecycle and has no business killing someone else's model.
-REMOTE_SERVER_MODE = bool(os.environ.get("VTE_REMOTE_SERVER"))
-
 # Single-model policy: VTE runs on one consumer GPU with a real VRAM budget,
-# so only one vte-server subprocess (one resident model) runs at a time;
+# so only one vte-server subprocess (one resident model) runs at a time --
 # switching models terminates the old subprocess and spawns a new one.
 _lock = threading.Lock()
 _process: Optional[subprocess.Popen] = None
@@ -70,7 +61,7 @@ def is_vte_url(url: str) -> bool:
 def _resolve_gguf_path(model_name: str) -> str:
     """Mirrors VTEModel.from_pretrained's own path resolution (registered
     MODEL_REGISTRY name, falling back to dynamic discovery by file stem),
-    without loading the model: vte-server takes an already-resolved
+    without loading the model -- vte-server takes an already-resolved
     --gguf-path, it doesn't do this lookup itself."""
     from vte.core.model import VTEModel, _REPO_ROOT
 
@@ -131,7 +122,7 @@ def _start_server_locked(model_name: str) -> None:
             "--port", str(_SERVER_PORT),
             "--host", _SERVER_HOST,
             # This process (app.py) owns the model lifecycle explicitly via
-            # ensure_server()/unload(); vte-server's own idle-unload timer
+            # ensure_server()/unload() -- vte-server's own idle-unload timer
             # would fight that, so it's disabled.
             "--idle-timeout", "0",
             # If app.py dies without a clean shutdown, vte-server's own
@@ -150,45 +141,12 @@ def _start_server_locked(model_name: str) -> None:
     _model_name = model_name
 
 
-def _ensure_remote_locked(model_name: str) -> None:
-    """Remote-GPU mode: never spawns anything, just confirms a vte-server is
-    actually reachable at _SERVER_BASE_URL (through the SSH tunnel) and logs
-    which model it's actually serving, so a mismatch is visible in the logs
-    instead of silently talking to the wrong model. Not a strict equality
-    check: vte-server's own /v1/models reports the GGUF filename stem (e.g.
-    'Qwen2.5-1.5B-Instruct-Q4_K_M'), while `model_name` here is Aetheris's
-    registry name (e.g. 'qwen2.5:1.5b-q4_k_m'); the two naming schemes don't
-    map onto each other without duplicating VTEModel.MODEL_REGISTRY, so this
-    only informs, it doesn't assert. Switching models remotely means SSHing
-    in and restarting vte-server by hand; this process has no way to do
-    that itself."""
-    global _model_name
-    if not _wait_until_ready(_READY_TIMEOUT_SECONDS):
-        raise RuntimeError(
-            f"Nenhum vte-server remoto respondeu em {_SERVER_BASE_URL}. "
-            "Confirme que o tunel SSH esta ativo e que o vte-server foi "
-            "iniciado na maquina remota (ver README.md)."
-        )
-    try:
-        resp = httpx.get(f"{_SERVER_BASE_URL}/v1/models", timeout=5.0)
-        resp.raise_for_status()
-        remote_model = resp.json()["data"][0]["id"]
-        logger.info("vte-server remoto conectado, servindo '%s'.", remote_model)
-    except Exception as e:
-        logger.warning("Nao foi possivel confirmar o modelo do vte-server remoto: %s", e)
-    _model_name = model_name
-
-
 def ensure_server(model_name: str) -> None:
     """Starts the vte-server subprocess for `model_name` if it isn't already
-    serving it (restarting it on a model switch). Thread-safe, idempotent,
-    and blocking; callers on the asyncio event loop should wrap this in
-    `asyncio.to_thread`. In remote-GPU mode (see REMOTE_SERVER_MODE), waits
-    for an already-running remote server instead of spawning a local one."""
+    serving it (restarting it on a model switch). Thread-safe, idempotent.
+    Blocking -- callers on the asyncio event loop should wrap this in
+    `asyncio.to_thread`."""
     with _lock:
-        if REMOTE_SERVER_MODE:
-            _ensure_remote_locked(model_name)
-            return
         if _process is not None and _process.poll() is None and _model_name == model_name:
             return
         if _process is not None:
@@ -197,11 +155,7 @@ def ensure_server(model_name: str) -> None:
 
 
 def unload() -> None:
-    """Terminate the resident vte-server subprocess, if any. No-op in
-    remote-GPU mode: this process never spawned that server, so it has no
-    business terminating it (see REMOTE_SERVER_MODE)."""
-    if REMOTE_SERVER_MODE:
-        return
+    """Terminate the resident vte-server subprocess, if any."""
     with _lock:
         _stop_server_locked()
 
@@ -212,7 +166,7 @@ def unload() -> None:
 
 
 def generate_once(model_name: str, messages: List[Dict], temperature: float = 0.3, max_tokens: int = 512) -> str:
-    """Synchronous, non-streaming generation, for callers outside the
+    """Synchronous, non-streaming generation -- for callers outside the
     async chat-streaming path (e.g. context_compressor.py's history
     summarization, which runs synchronously)."""
     ensure_server(model_name)
