@@ -404,7 +404,7 @@ The client verification payload was deliberately modified to claim
 returned `mail.send = deny`, demonstrating that browser-supplied proof fields
 are not trusted.
 
-The current local regression suite has since grown to 56/56 and passes
+The current local regression suite has since grown to 63/63 and passes
 typecheck and the production build. The weekend v10 source commit was also
 clean-cloned on Radeon and passed 33/33 plus the production build.
 
@@ -686,8 +686,14 @@ The two V2 videos have separate evidence roles:
   and fails the required semantic acceptance gate, so it is not promoted.
 - FP8 remains untested because loader registration alone does not prove a
   native accelerated FP8 path on RDNA3 `gfx1100`.
-- The stable Cloudflare Pages URL currently depends on a W7900 Quick Tunnel
-  origin. Restarting the tunnel requires rotating the encrypted Pages origin.
+- The stable Cloudflare Pages URL currently depends on a W7900 Quick Tunnel.
+  Its rotating origin is registered in Cloudflare KV by a Supervisor-managed
+  W7900 process. The registrar validates the HTTPS `trycloudflare.com`
+  candidate through the public tunnel and signs a fresh Radeon health proof
+  with the API token. Pages verifies that proof plus an independent recovery
+  token before writing KV, so a tunnel restart no longer requires a frontend
+  redeploy. A named Tunnel remains the preferred post-contest infrastructure
+  upgrade.
 
 ## 14.1 Lifecycle Engineering Upgrade
 
@@ -708,7 +714,7 @@ run without changing the measured Radeon claims:
    65/100, and older proofs require revalidation. These remain deterministic
    measurements and do not claim learned acoustic diagnosis.
 
-The current enhanced regression suite passes 56/56 tests locally, with
+The current enhanced regression suite passes 63/63 tests locally, with
 typecheck and production build. A single-take browser demo shows upload,
 voice-evidence analysis, compile, 7/7 verification, save, reuse, service
 restart recovery, runtime invalidation, one-click revalidation, and proof
