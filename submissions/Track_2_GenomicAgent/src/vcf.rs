@@ -196,6 +196,98 @@ pub fn compute_variant_stats(variant: &Variant) -> VariantStats {
     VariantStats { maf, missingness }
 }
 
+/// Hardy-Weinberg equilibrium test: does the observed genotype
+/// distribution (AA/Aa/aa counts) match what's expected under random
+/// mating given the observed allele frequency? Real chi-square
+/// goodness-of-fit test, 1 degree of freedom (3 genotype classes minus
+/// 1 estimated parameter (allele frequency) minus 1).
+pub struct HweResult {
+    pub chi_square: f64,
+    pub p_value: f64,
+    pub obs_hom_ref: u64,
+    pub obs_het: u64,
+    pub obs_hom_alt: u64,
+    pub exp_hom_ref: f64,
+    pub exp_het: f64,
+    pub exp_hom_alt: f64,
+}
+
+pub fn compute_hwe(variant: &Variant) -> Option<HweResult> {
+    let mut hom_ref = 0u64;
+    let mut het = 0u64;
+    let mut hom_alt = 0u64;
+    for gt in &variant.genotypes {
+        match gt {
+            Some((0, 0)) => hom_ref += 1,
+            Some((0, 1)) | Some((1, 0)) => het += 1,
+            Some((1, 1)) => hom_alt += 1,
+            _ => {} // missing, or a multi-allelic code this simple test doesn't model
+        }
+    }
+    let n = hom_ref + het + hom_alt;
+    if n < 5 {
+        return None; // too few genotypes for a meaningful chi-square test
+    }
+    let n_f = n as f64;
+    let p = (2.0 * hom_ref as f64 + het as f64) / (2.0 * n_f); // reference allele freq
+    let q = 1.0 - p;
+
+    let exp_hom_ref = p * p * n_f;
+    let exp_het = 2.0 * p * q * n_f;
+    let exp_hom_alt = q * q * n_f;
+
+    // Chi-square goodness of fit. Guard against a zero expected count
+    // (monomorphic site) rather than dividing by zero.
+    let chi_square = [
+        (hom_ref as f64, exp_hom_ref),
+        (het as f64, exp_het),
+        (hom_alt as f64, exp_hom_alt),
+    ]
+    .iter()
+    .filter(|(_, exp)| *exp > 0.0)
+    .map(|(obs, exp)| (obs - exp).powi(2) / exp)
+    .sum();
+
+    // Exact identity for df=1: if Z ~ N(0,1), then Z^2 ~ chi-square(1).
+    // So P(chi2_1 > x) = P(|Z| > sqrt(x)) = 2 * (1 - Phi(sqrt(x))), where
+    // Phi is the standard normal CDF. This is not an approximation of
+    // the chi-square distribution -- it's the exact df=1 case. Phi
+    // itself is computed via a standard erf approximation (Abramowitz &
+    // Stegun 7.1.26, documented max error ~1.5e-7).
+    let z = (chi_square as f64).sqrt();
+    let p_value = 2.0 * (1.0 - standard_normal_cdf(z));
+
+    Some(HweResult {
+        chi_square,
+        p_value,
+        obs_hom_ref: hom_ref,
+        obs_het: het,
+        obs_hom_alt: hom_alt,
+        exp_hom_ref,
+        exp_het,
+        exp_hom_alt,
+    })
+}
+
+fn standard_normal_cdf(z: f64) -> f64 {
+    0.5 * (1.0 + erf(z / std::f64::consts::SQRT_2))
+}
+
+/// Abramowitz & Stegun formula 7.1.26. Max absolute error ~1.5e-7.
+fn erf(x: f64) -> f64 {
+    let sign = if x < 0.0 { -1.0 } else { 1.0 };
+    let x = x.abs();
+    let a1 = 0.254829592;
+    let a2 = -0.284496736;
+    let a3 = 1.421413741;
+    let a4 = -1.453152027;
+    let a5 = 1.061405429;
+    let p = 0.3275911;
+    let t = 1.0 / (1.0 + p * x);
+    let y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * (-x * x).exp();
+    sign * y
+}
+
 /// Real Pearson r² between two variants' genotype dosages (0/1/2 alt
 /// alleles per sample), skipping samples missing at either site.
 /// This is the standard population-genetics LD statistic -- same
@@ -237,6 +329,57 @@ pub fn compute_r_squared(a: &Variant, b: &Variant) -> Option<f64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn make_variant(genotypes: Vec<Option<(u8, u8)>>) -> Variant {
+        Variant { chrom: "chr1".to_string(), pos: 100, id: "rs1".to_string(), genotypes }
+    }
+
+    #[test]
+    fn hwe_p_value_is_high_for_true_hwe_proportions() {
+        // p=0.5: exact HWE proportions are 25% hom_ref, 50% het, 25% hom_alt.
+        // 100 samples: 25 hom_ref, 50 het, 25 hom_alt -- chi-square should be
+        // ~0 and p-value should be high (no evidence against HWE).
+        let mut genotypes = Vec::new();
+        genotypes.extend(std::iter::repeat(Some((0u8, 0u8))).take(25));
+        genotypes.extend(std::iter::repeat(Some((0u8, 1u8))).take(50));
+        genotypes.extend(std::iter::repeat(Some((1u8, 1u8))).take(25));
+        let variant = make_variant(genotypes);
+        let hwe = compute_hwe(&variant).unwrap();
+        assert!(hwe.chi_square < 0.01, "expected chi-square near 0, got {}", hwe.chi_square);
+        assert!(hwe.p_value > 0.9, "expected high p-value for exact HWE fit, got {}", hwe.p_value);
+    }
+
+    #[test]
+    fn hwe_p_value_is_low_for_extreme_heterozygote_excess() {
+        // All heterozygotes, zero homozygotes -- a textbook HWE violation
+        // (e.g. from population stratification or genotyping error).
+        let genotypes: Vec<Option<(u8, u8)>> = std::iter::repeat(Some((0u8, 1u8))).take(100).collect();
+        let variant = make_variant(genotypes);
+        let hwe = compute_hwe(&variant).unwrap();
+        assert!(hwe.chi_square > 50.0, "expected large chi-square for total het excess, got {}", hwe.chi_square);
+        assert!(hwe.p_value < 0.001, "expected tiny p-value for total het excess, got {}", hwe.p_value);
+    }
+
+    #[test]
+    fn hwe_expected_counts_sum_to_observed_total() {
+        let text = generate_synthetic_vcf(20, 80, 321);
+        let parsed = parse_vcf(&text).unwrap();
+        for v in &parsed.variants {
+            if let Some(hwe) = compute_hwe(v) {
+                let obs_total = (hwe.obs_hom_ref + hwe.obs_het + hwe.obs_hom_alt) as f64;
+                let exp_total = hwe.exp_hom_ref + hwe.exp_het + hwe.exp_hom_alt;
+                assert!((obs_total - exp_total).abs() < 1e-6, "expected counts must sum to observed total (conservation of probability)");
+            }
+        }
+    }
+
+    #[test]
+    fn erf_matches_known_reference_values() {
+        // erf(0) = 0, erf(1) ~ 0.8427007929, erf(inf) -> 1 (well-known values)
+        assert!((erf(0.0) - 0.0).abs() < 1e-6);
+        assert!((erf(1.0) - 0.8427007929).abs() < 1e-6);
+        assert!((erf(5.0) - 1.0).abs() < 1e-6);
+    }
 
     #[test]
     fn generated_vcf_round_trips_through_the_real_parser() {

@@ -36,9 +36,32 @@ pub struct GpuLdContext {
 struct Params {
     num_samples: u32,
     num_pairs: u32,
+    square_output: u32, // 1 = r^2 (LD), 0 = signed r (correlation/PCA)
+    _pad: u32,          // uniform buffer structs need 16-byte alignment
 }
 
+/// Lazily-initialized, process-wide GPU context. wgpu instance/adapter/
+/// device/shader-pipeline setup is expensive (hundreds of ms -- shader
+/// compilation and driver handshaking, not just allocation) and has no
+/// reason to repeat per call. Tools that need GPU access should call
+/// `GpuLdContext::shared()` instead of `GpuLdContext::new()` unless they
+/// specifically need an isolated context (the cross-validation tests
+/// below do call `new()` directly, since tests should not share mutable
+/// global state with each other).
+static SHARED_CONTEXT: std::sync::OnceLock<std::result::Result<GpuLdContext, String>> =
+    std::sync::OnceLock::new();
+
 impl GpuLdContext {
+    /// Get the shared, lazily-initialized GPU context. First call pays
+    /// the real setup cost once; every call after that (even across
+    /// different tools in the same process) reuses it.
+    pub fn shared() -> Result<&'static Self> {
+        match SHARED_CONTEXT.get_or_init(|| Self::new().map_err(|e| e.to_string())) {
+            Ok(ctx) => Ok(ctx),
+            Err(msg) => anyhow::bail!("{msg}"),
+        }
+    }
+
     /// Initialize wgpu, pick a real hardware adapter (prefers a discrete
     /// or integrated GPU over the CPU fallback adapter), and build the
     /// compute pipeline. Returns Err if no compatible GPU is found --
@@ -144,15 +167,40 @@ impl GpuLdContext {
         })
     }
 
-    /// Compute r^2 for every (i, j) pair in `pairs`, against a dense
-    /// (no missing genotypes) dosage matrix laid out [snp][sample].
-    /// Returns one r^2 value per pair, same order as `pairs`.
+    /// Compute r^2 (linkage disequilibrium) for every (i, j) pair in
+    /// `pairs`, against a dense (no missing genotypes) dosage matrix
+    /// laid out [snp][sample]. Returns one r^2 value per pair.
     pub fn compute_r2_batch(
+        &self,
+        dosages: &[f32],
+        num_samples: usize,
+        num_snps: usize,
+        pairs: &[(u32, u32)],
+    ) -> Result<Vec<f32>> {
+        self.compute_correlation_batch_impl(dosages, num_samples, num_snps, pairs, true)
+    }
+
+    /// Compute signed Pearson correlation (not squared) for every (i, j)
+    /// pair. Same kernel as compute_r2_batch, different output mode --
+    /// this is what population-structure PCA needs (direction matters
+    /// for a covariance-like matrix; LD's r^2 deliberately discards it).
+    pub fn compute_correlation_batch(
+        &self,
+        dosages: &[f32],
+        num_rows: usize,
+        num_cols: usize,
+        pairs: &[(u32, u32)],
+    ) -> Result<Vec<f32>> {
+        self.compute_correlation_batch_impl(dosages, num_rows, num_cols, pairs, false)
+    }
+
+    fn compute_correlation_batch_impl(
         &self,
         dosages: &[f32], // num_snps * num_samples, row-major per SNP
         num_samples: usize,
         num_snps: usize,
         pairs: &[(u32, u32)],
+        square_output: bool,
     ) -> Result<Vec<f32>> {
         // Per-SNP mean/std on CPU: O(num_snps * num_samples), not worth
         // a separate GPU pass for realistic dataset sizes here, and
@@ -171,7 +219,12 @@ impl GpuLdContext {
         let pair_j: Vec<u32> = pairs.iter().map(|(_, j)| *j).collect();
         let num_pairs = pairs.len() as u32;
 
-        let params = Params { num_samples: num_samples as u32, num_pairs };
+        let params = Params {
+            num_samples: num_samples as u32,
+            num_pairs,
+            square_output: square_output as u32,
+            _pad: 0,
+        };
 
         let params_buf = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("params"),
@@ -273,6 +326,16 @@ fn bgl_entry(binding: u32, ty: wgpu::BufferBindingType) -> wgpu::BindGroupLayout
 /// `vcf::compute_r_squared` (which handles missing genotypes) so the
 /// GPU-vs-CPU comparison is apples-to-apples on identical input.
 pub fn cpu_r2_batch(dosages: &[f32], num_samples: usize, pairs: &[(u32, u32)]) -> Vec<f32> {
+    cpu_correlation_batch_impl(dosages, num_samples, pairs, true)
+}
+
+/// CPU reference for signed correlation (PCA use), same relationship to
+/// compute_correlation_batch as cpu_r2_batch has to compute_r2_batch.
+pub fn cpu_correlation_batch(dosages: &[f32], num_samples: usize, pairs: &[(u32, u32)]) -> Vec<f32> {
+    cpu_correlation_batch_impl(dosages, num_samples, pairs, false)
+}
+
+fn cpu_correlation_batch_impl(dosages: &[f32], num_samples: usize, pairs: &[(u32, u32)], square: bool) -> Vec<f32> {
     let mut means_cache = std::collections::HashMap::new();
     let mut get_mean_std = |idx: u32| -> (f32, f32) {
         *means_cache.entry(idx).or_insert_with(|| {
@@ -300,10 +363,25 @@ pub fn cpu_r2_batch(dosages: &[f32], num_samples: usize, pairs: &[(u32, u32)]) -
                 0.0
             } else {
                 let r = cov / denom;
-                r * r
+                if square { r * r } else { r }
             }
         })
         .collect()
+}
+
+/// Transpose a dense dosage matrix from [snp][sample] layout to
+/// [sample][snp] layout. Needed to reuse the same GPU correlation kernel
+/// for sample-by-sample population structure instead of SNP-by-SNP LD --
+/// the kernel just computes pairwise row correlation, so which axis is
+/// "rows" depends entirely on which matrix you hand it.
+pub fn transpose_dosage_matrix(dosages: &[f32], num_snps: usize, num_samples: usize) -> Vec<f32> {
+    let mut out = vec![0f32; num_snps * num_samples];
+    for snp in 0..num_snps {
+        for sample in 0..num_samples {
+            out[sample * num_snps + snp] = dosages[snp * num_samples + sample];
+        }
+    }
+    out
 }
 
 /// Generate a dense (no missing genotypes) synthetic dosage matrix with
@@ -375,6 +453,31 @@ pub fn windowed_pairs(num_snps: usize, window: usize) -> Vec<(u32, u32)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn shared_context_second_call_is_much_faster_than_first() {
+        // Real verification that GpuLdContext::shared() actually caches
+        // -- not just that the code compiles, but that the second call
+        // is meaningfully faster than the first (which pays real wgpu
+        // instance/adapter/device/shader-pipeline setup cost).
+        let t0 = std::time::Instant::now();
+        let first = GpuLdContext::shared();
+        let first_elapsed = t0.elapsed();
+        if first.is_err() {
+            eprintln!("SKIPPED shared_context_second_call_is_much_faster_than_first: no GPU adapter available");
+            return;
+        }
+
+        let t1 = std::time::Instant::now();
+        let _second = GpuLdContext::shared().unwrap();
+        let second_elapsed = t1.elapsed();
+
+        eprintln!("first call: {first_elapsed:?}, second call: {second_elapsed:?}");
+        assert!(
+            second_elapsed < first_elapsed / 2,
+            "expected cached second call to be at least 2x faster than first (init cost); first={first_elapsed:?} second={second_elapsed:?}"
+        );
+    }
 
     #[test]
     fn gpu_matches_cpu_reference_within_float_tolerance() {

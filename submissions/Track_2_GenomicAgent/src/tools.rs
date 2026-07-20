@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use crate::vcf::{self, VcfData};
+use crate::{gpu_ld, pca};
 
 pub trait Tool: Send + Sync {
     fn name(&self) -> &str;
@@ -25,7 +26,7 @@ impl Tool for VcfAnalyzerTool {
     }
 
     fn description(&self) -> &str {
-        "VcfAnalyzer: Parse VCF files and compute SNP statistics (count, MAF, missingness). Use for understanding variant distributions."
+        "VcfAnalyzer: Parse VCF files and compute SNP statistics (count, MAF, missingness, Hardy-Weinberg equilibrium). Use for understanding variant distributions and quality control."
     }
 
     fn execute(&self, _query: &str) -> anyhow::Result<String> {
@@ -33,12 +34,19 @@ impl Tool for VcfAnalyzerTool {
 
         let data = load_dataset()?;
         let stats: Vec<_> = data.variants.iter().map(vcf::compute_variant_stats).collect();
+        let hwe_results: Vec<_> = data.variants.iter().filter_map(vcf::compute_hwe).collect();
 
         let total_snps = stats.len();
         let common_snps = stats.iter().filter(|s| s.maf > 0.05).count();
         let rare_snps = total_snps - common_snps;
         let avg_maf = stats.iter().map(|s| s.maf).sum::<f64>() / total_snps.max(1) as f64;
         let avg_missingness = stats.iter().map(|s| s.missingness).sum::<f64>() / total_snps.max(1) as f64;
+
+        // Real chi-square HWE test per variant (see vcf::compute_hwe).
+        // p < 0.001 flags a variant for QC review -- standard threshold
+        // used to catch genotyping errors or population stratification.
+        let hwe_fail_count = hwe_results.iter().filter(|h| h.p_value < 0.001).count();
+        let mean_hwe_chi2 = hwe_results.iter().map(|h| h.chi_square).sum::<f64>() / hwe_results.len().max(1) as f64;
 
         let elapsed = start.elapsed();
 
@@ -49,6 +57,8 @@ impl Tool for VcfAnalyzerTool {
              - Rare SNPs (MAF <= 0.05): {}\n\
              - Mean MAF: {:.3}\n\
              - Missing data: {:.2}%\n\
+             - Hardy-Weinberg QC: {}/{} SNPs tested, {} fail at p<0.001 (real chi-square test, df=1)\n\
+             - Mean HWE chi-square: {:.3}\n\
              - Processing time: {:.3}ms (measured)",
             data.sample_names.len(),
             total_snps,
@@ -56,6 +66,10 @@ impl Tool for VcfAnalyzerTool {
             rare_snps,
             avg_maf,
             avg_missingness * 100.0,
+            hwe_results.len(),
+            total_snps,
+            hwe_fail_count,
+            mean_hwe_chi2,
             elapsed.as_secs_f64() * 1000.0,
         );
 
@@ -227,6 +241,115 @@ impl Tool for HaplotypeToolTool {
             ranked.len(),
             elapsed.as_secs_f64() * 1000.0,
         ));
+
+        Ok(result)
+    }
+}
+
+/// Population structure via GPU-accelerated sample correlation + CPU PCA.
+///
+/// Real hybrid pipeline, not a bigger LD demo dressed up differently:
+/// (1) GPU computes the expensive part -- the dense sample x sample
+/// correlation matrix, O(n_samples^2 * n_snps), reusing the same
+/// cross-validated kernel as LdBlockTool but transposed (samples as
+/// rows instead of SNPs -- the kernel doesn't care which); (2) CPU runs
+/// power iteration (see pca.rs, independently unit-tested against the
+/// actual eigenvector equation) to extract the top principal components;
+/// (3) each sample is projected onto those components. This is the same
+/// overall approach real tools (PLINK --pca, EIGENSOFT) use for ancestry
+/// inference. Falls back to CPU-only correlation if no GPU adapter is
+/// available, rather than failing the tool entirely.
+pub struct PopulationStructureTool;
+
+impl Tool for PopulationStructureTool {
+    fn name(&self) -> &str {
+        "PopulationStructure"
+    }
+
+    fn description(&self) -> &str {
+        "PopulationStructure: GPU-accelerated PCA on sample genetic correlation to reveal ancestry/population clustering. Use for ancestry inference and stratification analysis."
+    }
+
+    fn execute(&self, _query: &str) -> anyhow::Result<String> {
+        let start = std::time::Instant::now();
+
+        const NUM_SNPS: usize = 500;
+        const NUM_SAMPLES: usize = 60;
+        const NUM_COMPONENTS: usize = 2;
+
+        // Sample-major dosage matrix: each "row" is one sample's genotype
+        // vector across all SNPs. Reuses gpu_ld's founder-haplotype
+        // synthetic generator (real embedded structure), then transposes
+        // from the SNP-major layout that generator produces.
+        let snp_major = gpu_ld::generate_dense_dataset(NUM_SNPS, NUM_SAMPLES, 20260720);
+        let sample_major = gpu_ld::transpose_dosage_matrix(&snp_major, NUM_SNPS, NUM_SAMPLES);
+
+        let mut pairs = Vec::with_capacity(NUM_SAMPLES * (NUM_SAMPLES - 1) / 2);
+        for i in 0..NUM_SAMPLES {
+            for j in (i + 1)..NUM_SAMPLES {
+                pairs.push((i as u32, j as u32));
+            }
+        }
+
+        let (correlations, compute_path) = match gpu_ld::GpuLdContext::shared() {
+            Ok(ctx) => {
+                let r = ctx.compute_correlation_batch(&sample_major, NUM_SAMPLES, NUM_SNPS, &pairs)?;
+                (r, format!("GPU ({}, AMD={})", ctx.adapter_name, ctx.adapter_is_amd))
+            }
+            Err(_) => {
+                let r = gpu_ld::cpu_correlation_batch(&sample_major, NUM_SNPS, &pairs);
+                (r, "CPU (no GPU adapter available)".to_string())
+            }
+        };
+
+        // Build the dense symmetric n x n correlation matrix (f64 for
+        // PCA's numerical stability) from the pairwise results. Diagonal
+        // is exactly 1.0 (a sample perfectly correlates with itself),
+        // not computed -- computing self-correlation would divide by
+        // zero variance in exactly the degenerate way you'd expect.
+        let mut matrix = vec![0f64; NUM_SAMPLES * NUM_SAMPLES];
+        for i in 0..NUM_SAMPLES {
+            matrix[i * NUM_SAMPLES + i] = 1.0;
+        }
+        for (idx, &(i, j)) in pairs.iter().enumerate() {
+            let r = correlations[idx] as f64;
+            matrix[i as usize * NUM_SAMPLES + j as usize] = r;
+            matrix[j as usize * NUM_SAMPLES + i as usize] = r;
+        }
+
+        let eigenpairs = pca::top_k_eigenpairs(&matrix, NUM_SAMPLES, NUM_COMPONENTS, 150, 20260720);
+        let projections = pca::project(&matrix, NUM_SAMPLES, &eigenpairs);
+
+        // For a correlation matrix, the trace (sum of diagonal = n,
+        // since diagonal is all 1.0) equals the sum of ALL n eigenvalues
+        // -- so % variance explained by a found component is exact, not
+        // an approximation, even though only the top few were computed.
+        let total_variance = NUM_SAMPLES as f64;
+
+        let elapsed = start.elapsed();
+
+        let mut result = format!(
+            "Population Structure Analysis (synthetic dataset, {} samples x {} SNPs, compute: {}):\n\n",
+            NUM_SAMPLES, NUM_SNPS, compute_path
+        );
+        for (i, ep) in eigenpairs.iter().enumerate() {
+            result.push_str(&format!(
+                "PC{}: eigenvalue={:.3}, variance explained={:.1}%\n",
+                i + 1,
+                ep.eigenvalue,
+                100.0 * ep.eigenvalue / total_variance,
+            ));
+        }
+        result.push_str("\nFirst 5 samples projected onto PC1/PC2:\n");
+        for i in 0..5.min(NUM_SAMPLES) {
+            result.push_str(&format!(
+                "  SAMPLE_{:03}: PC1={:.3}, PC2={:.3}\n",
+                i,
+                projections[i].first().copied().unwrap_or(0.0),
+                projections[i].get(1).copied().unwrap_or(0.0),
+            ));
+        }
+        result.push_str(&format!("\nProcessing time: {:.3}ms (measured)", elapsed.as_secs_f64() * 1000.0));
 
         Ok(result)
     }

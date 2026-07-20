@@ -121,11 +121,18 @@ Track_2_GenomicAgent/
 ├── src/
 │   ├── main.rs         # Entry point (default / bench / gpu-bench / fast modes)
 │   ├── agent.rs         # Keyword-based query routing to a tool
-│   ├── tools.rs          # 3 genomic tools, real computation (see vcf.rs)
-│   ├── vcf.rs             # Synthetic VCF generation + real VCF-format parser
-│   │                        + real MAF/missingness/LD-r²/haplotype computation
-│   ├── gpu_ld.rs           # Real GPU-accelerated LD (wgpu), AMD-adapter-targeted,
-│   │                        cross-validated against CPU reference
+│   ├── tools.rs          # 4 genomic tools, real computation (see vcf.rs, pca.rs)
+│   ├── vcf.rs             # Synthetic VCF generation + real VCF-format parser +
+│   │                        real MAF/missingness/HWE/LD-r²/haplotype computation
+│   ├── gpu_ld.rs           # Real GPU compute (wgpu), AMD-adapter-targeted,
+│   │                        cross-validated against CPU reference. One kernel,
+│   │                        two uses: LD (r², squared) and sample correlation
+│   │                        (signed r, feeds PCA). Process-wide cached context
+│   │                        (GpuLdContext::shared()) so repeated calls don't
+│   │                        re-pay ~800ms of adapter/device/shader setup.
+│   ├── pca.rs              # CPU power-iteration eigensolver with deflation,
+│   │                        independently tested against the actual eigenvector
+│   │                        equation (M@v = lambda*v), not just "does it run"
 │   ├── shaders/
 │   │   └── ld_r2.wgsl       # The actual compute shader dispatched to the GPU
 │   └── bench.rs             # Real timing (Instant::now/elapsed) around real execution
@@ -141,7 +148,12 @@ Track_2_GenomicAgent/
 ### VcfAnalyzer
 Parses a synthetic VCF (real VCF-format text, generated deterministically
 at runtime, not a bundled real-patient file) and computes real per-variant
-statistics: SNP count, minor allele frequency, missingness.
+statistics: SNP count, minor allele frequency, missingness, and a real
+Hardy-Weinberg equilibrium chi-square test per variant (flags SNPs at
+p<0.001, the standard QC threshold for genotyping-error/stratification
+screening). The HWE p-value uses the exact df=1 identity that chi-square(1)
+is the square of a standard normal, not an approximation of the
+chi-square distribution -- see `vcf::compute_hwe` and its test module.
 
 ### LdBlock
 Computes real pairwise linkage disequilibrium (Pearson r², the standard
@@ -154,17 +166,31 @@ come from that computation, not from a literal.
 Tallies real observed haplotype patterns from phased genotype pairs
 across a small SNP window and reports their frequencies.
 
+### PopulationStructure
+GPU-accelerated ancestry/population-structure analysis: same overall
+approach as PLINK `--pca` / EIGENSOFT `smartpca`. The GPU computes the
+expensive dense sample-by-sample correlation matrix (reusing the exact
+same cross-validated kernel as `LdBlock`, just fed a transposed matrix --
+the kernel computes pairwise row correlation and doesn't know or care
+whether the rows are SNPs or samples), then CPU power iteration
+(`pca.rs`) extracts the top principal components and each sample is
+projected onto them. Reports real variance-explained percentages (exact,
+not approximated -- for a correlation matrix the trace equals the sum of
+all eigenvalues, so % explained by a found component is a true ratio)
+and falls back to CPU-only correlation if no GPU adapter is available.
+
 ### About the data
-All three tools currently analyze a synthetic dataset generated at
-runtime (`vcf::generate_synthetic_vcf`), not a real 1000 Genomes or
-patient VCF file. The generator embeds genuine linkage-disequilibrium
+All tools currently analyze a synthetic dataset generated at runtime
+(`vcf::generate_synthetic_vcf` / `gpu_ld::generate_dense_dataset`), not a
+real 1000 Genomes or patient VCF file. The generators embed genuine
 structure via founder-haplotype resampling (nearby SNPs really are
-correlated, and the LD tool's job is to genuinely detect that, not
-report a hardcoded number) — but it is not real biological data, and
-the README says so rather than implying otherwise. Swapping in a real
-VCF file would only require pointing `load_dataset()` in `tools.rs` at
-a file-read instead of the generator; `parse_vcf()` already accepts
-arbitrary VCF-format text.
+correlated, samples really do share latent ancestry signal depending on
+which founders they drew from -- the LD and PopulationStructure tools'
+job is to genuinely detect that, not report a hardcoded number) — but it
+is not real biological data, and the README says so rather than implying
+otherwise. Swapping in a real VCF file would only require pointing
+`load_dataset()` in `tools.rs` at a file-read instead of the generator;
+`parse_vcf()` already accepts arbitrary VCF-format text.
 
 ---
 

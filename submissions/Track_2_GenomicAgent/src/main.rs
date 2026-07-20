@@ -3,6 +3,7 @@ mod tools;
 mod bench;
 mod vcf;
 mod gpu_ld;
+mod pca;
 
 use agent::GenomicAgent;
 use tools::ToolRegistry;
@@ -30,6 +31,7 @@ fn main() -> anyhow::Result<()> {
     registry.register(Box::new(tools::VcfAnalyzerTool));
     registry.register(Box::new(tools::LdBlockTool));
     registry.register(Box::new(tools::HaplotypeToolTool));
+    registry.register(Box::new(tools::PopulationStructureTool));
 
     let mut agent = GenomicAgent::new(registry);
 
@@ -37,6 +39,7 @@ fn main() -> anyhow::Result<()> {
         "Analyze the VCF file and tell me about SNP distribution",
         "What are the linkage disequilibrium blocks in this region?",
         "Find haplotype patterns for variants with MAF > 0.05",
+        "Run population structure PCA to check for ancestry clustering",
     ];
 
     for query in queries {
@@ -58,6 +61,7 @@ fn fast_mode() -> anyhow::Result<()> {
     registry.register(Box::new(tools::VcfAnalyzerTool));
     registry.register(Box::new(tools::LdBlockTool));
     registry.register(Box::new(tools::HaplotypeToolTool));
+    registry.register(Box::new(tools::PopulationStructureTool));
 
     let mut agent = GenomicAgent::new(registry);
 
@@ -65,6 +69,7 @@ fn fast_mode() -> anyhow::Result<()> {
         "Analyze the VCF file and tell me about SNP distribution",
         "What are the linkage disequilibrium blocks in this region?",
         "Find haplotype patterns for variants with MAF > 0.05",
+        "Run population structure PCA to check for ancestry clustering",
     ];
 
     for query in queries {
