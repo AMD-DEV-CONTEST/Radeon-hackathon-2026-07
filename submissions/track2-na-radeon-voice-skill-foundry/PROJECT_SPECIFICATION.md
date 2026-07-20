@@ -264,6 +264,27 @@ candidate or promoted baseline changed after review, the server rejects the
 approval as stale. The resulting `PROMOTE` receipt records the review hash,
 risk level, and acknowledgement state.
 
+### 5.5.3 Governance Audit Ledger
+
+Promotion, Supersede, Revoke, and Rollback events are persisted in a separate
+append-only governance ledger. Each entry contains a monotonically increasing
+sequence, previous entry hash, canonical payload hash, current entry hash,
+receipt ID, action, skill/version, resulting lifecycle, proof hash, and
+optional review/risk/reason/linkage metadata.
+
+Integrity verification checks sequence continuity, previous-hash linkage,
+payload and entry hashes, duplicate receipt IDs, and bidirectional consistency
+between the ledger and each skill's embedded governance receipts. Modified
+payloads, deleted tail events, and deleted middle events produce an explicit
+`invalid` ledger with issue details.
+
+Existing pre-ledger receipts are imported once, in deterministic timestamp and
+receipt-ID order, only when no ledger exists. Subsequent reads never repair a
+non-empty ledger, so deletion or tampering remains observable. New governance
+operations fail closed when ledger integrity is invalid. The Memory module
+shows status, head hash, issues, and ordered entries, and exports the chain as
+JSONL.
+
 ### 5.6 Permission and Privacy Controls
 
 High-risk policy is enforced ahead of model output. In the reference scenario:
@@ -383,7 +404,7 @@ The client verification payload was deliberately modified to claim
 returned `mail.send = deny`, demonstrating that browser-supplied proof fields
 are not trusted.
 
-The current local regression suite has since grown to 53/53 and passes
+The current local regression suite has since grown to 56/56 and passes
 typecheck and the production build. The weekend v10 source commit was also
 clean-cloned on Radeon and passed 33/33 plus the production build.
 
@@ -687,7 +708,7 @@ run without changing the measured Radeon claims:
    65/100, and older proofs require revalidation. These remain deterministic
    measurements and do not claim learned acoustic diagnosis.
 
-The current enhanced regression suite passes 53/53 tests locally, with
+The current enhanced regression suite passes 56/56 tests locally, with
 typecheck and production build. A single-take browser demo shows upload,
 voice-evidence analysis, compile, 7/7 verification, save, reuse, service
 restart recovery, runtime invalidation, one-click revalidation, and proof
@@ -708,6 +729,9 @@ safe procedural-memory reuse.
 
 Promotion Impact Review is governance evidence rather than a new GPU
 performance claim. It does not change the pinned Radeon measurements.
+
+The Governance Audit Ledger is local operational-integrity evidence and does
+not change the pinned Radeon measurements.
 
 The same public enhancement commit
 `efec128059fea3b68521aa1dd333c71d5ea6a679` was clean-cloned on Radeon Cloud.
