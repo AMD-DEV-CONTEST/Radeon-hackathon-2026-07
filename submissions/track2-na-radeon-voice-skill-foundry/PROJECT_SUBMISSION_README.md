@@ -16,7 +16,15 @@ to perform risky actions.
 - License: MIT
 - Live product:
   `https://radeon-voice-skill-foundry.pages.dev/`
-- Recommended live Demo V2:
+- Recommended final Demo V3:
+  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V3.mp4`
+- Demo V3 captions:
+  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V3.srt`
+- Demo V3 proof:
+  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/demo-v3-proof.zip`
+- Demo V3 ledger:
+  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/demo-v3-governance-ledger.jsonl`
+- Original live Demo V2:
   `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V2.mp4`
 - Demo V2 captions:
   `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V2.srt`
@@ -64,6 +72,7 @@ The system compiles both signals into:
 - `SCORING_EVIDENCE_MATRIX.md` - rubric-to-proof judge navigation
 - `PRODUCT_AND_NARRATIVE_FREEZE.md` - frozen product, claims, and release gate
 - `DEMO_V3_NARRATION.md` - canonical final recording narrative
+- `RADEON_VOICE_SKILL_FOUNDRY_DEMO_V3.srt` - final Demo V3 captions
 - `ARCHITECTURE.png` - Agent architecture diagram
 - `POSTER.pdf` - supplementary one-page poster
 - `POSTER.png` - poster preview
@@ -132,8 +141,9 @@ Raw measurements are in:
 - Scoring evidence matrix: complete
 
 The final narration uses AIDP `gemini-3.1-flash-tts-preview`, male voice
-`Charon`. Both demo MP4 files contain burned-in English narration captions and
-an embedded English subtitle track; matching SRT files are also published.
+`Charon`. Demo V3 and both V2 MP4 files contain burned-in English narration
+captions and an embedded English subtitle track; matching SRT files are also
+published.
 Visual campaign backgrounds were generated with AIDP GPT Image 2; all visible
 project typography and measured values were composed locally.
 
@@ -142,13 +152,13 @@ deployment. It executes the real Voice -> Policy -> Proof -> Memory workflow
 against W7900 Qwen3-ASR and Qwen3-4B, then shows the measured vLLM and ASR
 batching evidence.
 
-The current product now adds a server-authoritative teaching workspace after
-Demo V2: six user commands are accepted by a persistent backend session, and
-the compile path ignores browser-supplied action tampering. The proof ZIP
-contains `action_contract.json` with the session ID, six typed events, and the
-contract hash. The final product video will be recorded only after the
-remaining product scope is frozen; the existing Main Demo V2 remains the
-authoritative real W7900 inference recording until then.
+Demo V3 records the frozen server-authoritative teaching workspace in one
+continuous public session. Six user commands are accepted by a persistent
+backend session, and the compile path ignores browser-supplied action
+tampering. The proof ZIP contains `action_contract.json` with the session ID,
+six typed events, and the contract hash. The same recording continues through
+Sandbox Replay, Promotion Impact Review, proof-bound promotion, a valid
+Governance Audit Ledger export, and exact promoted-skill reuse.
 
 Continuous Demo V2 isolates lifecycle control from the performance claim. It
 uses deterministic ASR and compiler fixtures, while executing real Node API
@@ -185,6 +195,8 @@ revalidation, and child-proof download in one continuous browser session.
 
 ## Evidence Boundary
 
+- Demo V3 is the final complete public product path, including real
+  Cloudflare-to-W7900 inference, promotion, ledger export, and exact reuse.
 - Main Demo V2 is the real Cloudflare + W7900 inference and performance proof.
 - Continuous Demo V2 uses deterministic ASR/compiler fixtures with real Node
   process restarts; it proves lifecycle control, not GPU throughput.

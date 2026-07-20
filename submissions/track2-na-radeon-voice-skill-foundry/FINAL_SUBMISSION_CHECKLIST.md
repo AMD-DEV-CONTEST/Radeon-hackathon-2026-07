@@ -34,7 +34,8 @@ Deadline: 2026-08-06 23:59 UTC+8.
 - [x] English Project Specification PDF
 - [x] Agent architecture diagram
 - [x] Supplementary poster
-- [x] Recommended 4:48 real-operation Demo V2
+- [x] Recommended 4:39 final public Demo V3
+- [x] Original 4:48 real-operation Demo V2
 - [x] Male TTS narration
 - [x] Burned-in English captions and embedded subtitle track
 - [x] Matching public SRT
@@ -48,6 +49,8 @@ Deadline: 2026-08-06 23:59 UTC+8.
 - [x] `npm run typecheck`: passed
 - [x] Current local `npm test`: 63/63 passed
 - [x] Current local production build: passed
+- [x] Final public Demo V3: continuous 278.56 s, H.264/AAC/English subtitle
+- [x] Demo V3 real path: W7900 ASR/compile, 7/7 proof, promote, valid ledger, reuse
 - [x] Public Cloudflare page: HTTP 200
 - [x] Public `/api/health`: Radeon mode, W7900-class `gfx1100`, ROCm 7.2.1
 - [x] Public real workflow: Voice Evidence v0.3 `100/100`
@@ -106,6 +109,14 @@ Official PR:
 
 ## Published Integrity Anchors
 
+- Final Demo V3 MP4:
+  `85d989a952561650195322c080a46543b93b3070c84e0f89021e59d451a4148e`
+- Final Demo V3 SRT:
+  `a0406750ee3c3081597d8ede9ff8eccc853958dda76e54a024d98a87cf21c1ce`
+- Final Demo V3 proof ZIP:
+  `7898d888112b113d53fce7ca2f9f46eecdaf318c79625af665fa908622f78cc2`
+- Final Demo V3 ledger JSONL:
+  `ca04585f5531fc42333f219153b7e3cbabfd3c629917cb4c621e6066ab95fcb3`
 - Main Demo V2 MP4:
   `87fa6304819f01f5c5861d685a9f0c048d71e2e909ab4c9ab133428833125133`
 - Main Demo V2 SRT:
@@ -125,7 +136,7 @@ Official PR:
 - Weekend v10 evidence ZIP:
   `1189e0e47c14ba18784f5be82aa5c68366946c0d6378d6a8d26adef61dfd3e9b`
 - Refreshed Project Specification PDF:
-  `23f375e7e1f489bae1a63b4243597dc855c2b21d2c949de5a8b41c75802b8026`
+  `e0c8de5f94746055734e4bcb4b1aedbaabf027c8933bfbefd437be9bd6015707`
 - Refreshed architecture PNG:
   `1feec7ef529232b12c4f4d9bfca6d59f05685bc7253b9aab35efe90688b37fce`
 - Refreshed poster PDF:
@@ -233,4 +244,4 @@ Measured result:
 - [x] Product and canonical Demo V3 narrative frozen
 - [x] Deploy KV-backed Quick Tunnel origin recovery
 - [x] Verify controlled tunnel-only restart without Pages redeployment
-- [ ] Record the final product Demo only after feature and narrative freeze
+- [x] Record and publish the final product Demo after feature and narrative freeze

@@ -97,3 +97,26 @@ the Pages deployment remained `fd2aa5ad` on source commit `8950009`.
   inference.
 - Show the complete frozen path once, continuously, with the Governance Audit
   Ledger and exact reuse as the closing proof.
+
+## Demo V3 Completion
+
+Recorded and validated on 2026-07-20 after the frozen release gate passed.
+
+- Duration: `278.56 s`
+- Resolution: `1920x1080`
+- Video: H.264
+- Audio: AAC, male `Charon` narration
+- Captions: burned in plus embedded English subtitle track
+- Product path: public Cloudflare Pages to W7900 Qwen3-ASR and Qwen3
+- Verification: `7/7`
+- Final lifecycle: promoted
+- Exact reuse count shown: `1`
+- Governance ledger: `valid`, two entries after recording
+- MP4 SHA-256:
+  `85d989a952561650195322c080a46543b93b3070c84e0f89021e59d451a4148e`
+- SRT SHA-256:
+  `a0406750ee3c3081597d8ede9ff8eccc853958dda76e54a024d98a87cf21c1ce`
+- Proof ZIP SHA-256:
+  `7898d888112b113d53fce7ca2f9f46eecdaf318c79625af665fa908622f78cc2`
+- Ledger JSONL SHA-256:
+  `ca04585f5531fc42333f219153b7e3cbabfd3c629917cb4c621e6066ab95fcb3`

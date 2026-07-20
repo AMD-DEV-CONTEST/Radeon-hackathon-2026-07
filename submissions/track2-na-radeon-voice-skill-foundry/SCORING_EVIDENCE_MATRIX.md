@@ -1,6 +1,6 @@
 # Scoring Evidence Matrix
 
-Audited: 2026-07-19 (UTC+8)
+Audited: 2026-07-20 (UTC+8)
 
 This matrix maps Radeon Voice Skill Foundry to the Track 2 main rubric. It is a
 judge navigation aid, not a claim of an awarded score.
@@ -8,22 +8,24 @@ judge navigation aid, not a claim of an awarded score.
 ## Judge Quick Path
 
 1. Live product: `https://radeon-voice-skill-foundry.pages.dev/`
-2. Main Demo V2:
+2. Final Demo V3:
+   `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V3.mp4`
+3. Main Demo V2 performance evidence:
    `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V2.mp4`
-3. Project Specification: `PROJECT_SPECIFICATION.pdf`
-4. Radeon evidence: `WEEKEND_W7900_EXPERIMENTS.md` and
+4. Project Specification: `PROJECT_SPECIFICATION.pdf`
+5. Radeon evidence: `WEEKEND_W7900_EXPERIMENTS.md` and
    `WEEKEND_W7900_V10_SUMMARY.json`
-5. Lifecycle evidence:
+6. Lifecycle evidence:
    `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/CONTINUOUS_OPERATION_DEMO_V2.mp4`
 
 ## Main 100-Point Rubric
 
 | Rubric item | Weight | Implemented feature | Exact evidence | Demo timestamp | Residual risk |
 |---|---:|---|---|---|---|
-| Positioning and creative scenario | 20 | Voice-seeded cold-start verification converts hidden expert intent into a governed Agent Skill before risky execution | Project Specification sections 1-3; generated `SKILL.md`, policy, fixtures, receipts, and proof ZIP | Main V2 00:00-00:32 | Synthetic SOP audio is disclosed as a reproducible fixture |
-| Decomposition, tools, RAG, and memory | 20 | Local RAG, typed tools, multi-step planning, versioned memory, and candidate/promoted/superseded/revoked governance | Project Specification sections 4-5; public Memory module; proof ZIP | Main V2 00:35-03:36 | Production connectors remain behind the same deterministic capability gate |
-| Smooth multi-turn interaction | 20 | Server-authoritative session, Sandbox Replay v1, Promotion Impact Review, Governance Audit Ledger, governed memory, revision, and revalidation | Public Proof/Memory modules; current `63/63` suite; proof and ledger artifacts | Main V2 00:35-03:36; Lifecycle V2 02:20-04:19 | Product and narrative are frozen; final Demo V3 recording remains intentionally deferred |
-| Core inference on Radeon | 20 | Qwen3-ASR-0.6B and Qwen3-4B-Instruct-2507 run locally on W7900-class `gfx1100` with ROCm 7.2.1 | Live `/api/health`; `radeon-audio-proof-v8-2026-07-18.json`; main Demo V2 proof ZIP | Main V2 00:09-01:52 | Main Demo V2 is the authoritative real-inference video |
+| Positioning and creative scenario | 20 | Voice-seeded cold-start verification converts hidden expert intent into a governed Agent Skill before risky execution | Project Specification sections 1-3; generated `SKILL.md`, policy, fixtures, receipts, and proof ZIP | Demo V3 00:00-00:29 | Synthetic SOP audio is disclosed as a reproducible fixture |
+| Decomposition, tools, RAG, and memory | 20 | Local RAG, typed tools, multi-step planning, versioned memory, and candidate/promoted/superseded/revoked governance | Project Specification sections 4-5; public Memory module; proof ZIP | Demo V3 00:29-04:15 | Production connectors remain behind the same deterministic capability gate |
+| Smooth multi-turn interaction | 20 | Server-authoritative session, Sandbox Replay v1, Promotion Impact Review, Governance Audit Ledger, governed memory, revision, and revalidation | Public Proof/Memory modules; current `63/63` suite; Demo V3 proof and ledger artifacts | Demo V3 00:29-04:15; Lifecycle V2 02:20-04:19 | Final path is recorded; lifecycle restart proof remains separately isolated |
+| Core inference on Radeon | 20 | Qwen3-ASR-0.6B and Qwen3-4B-Instruct-2507 run locally on W7900-class `gfx1100` with ROCm 7.2.1 | Live `/api/health`; `radeon-audio-proof-v8-2026-07-18.json`; Demo V3 and main Demo V2 proof ZIPs | Demo V3 00:29-01:53; Main V2 00:09-01:52 | Real model waiting time is preserved |
 | Targeted inference optimization | 20 | vLLM eager/graph, native ASR batching, compact output, exact reuse, Quark acceptance study, fail-closed adaptive precision | `weekend-v10-summary.json`; `quantization-v11-summary.json`; `adaptive-precision-v12-summary.json` | Main V2 03:38-04:13 | INT8 is capacity-positive but requires FP16 fallback for this policy workload |
 
 ## Capability Requirement
@@ -67,6 +69,9 @@ judge navigation aid, not a claim of an awarded score.
 
 ## Demo Evidence Boundary
 
+- `RADEON_VOICE_SKILL_FOUNDRY_DEMO_V3.mp4` records the final continuous public
+  product path, including real W7900 inference, promotion, ledger export, and
+  exact reuse.
 - `RADEON_VOICE_SKILL_FOUNDRY_DEMO_V2.mp4` records real Cloudflare-to-W7900
   ASR and Agent inference. Use it for Radeon execution, workflow completeness,
   and optimization narration.
@@ -76,6 +81,14 @@ judge navigation aid, not a claim of an awarded score.
 
 ## Integrity Anchors
 
+- Final Demo V3 MP4:
+  `85d989a952561650195322c080a46543b93b3070c84e0f89021e59d451a4148e`
+- Final Demo V3 SRT:
+  `a0406750ee3c3081597d8ede9ff8eccc853958dda76e54a024d98a87cf21c1ce`
+- Final Demo V3 proof ZIP:
+  `7898d888112b113d53fce7ca2f9f46eecdaf318c79625af665fa908622f78cc2`
+- Final Demo V3 ledger JSONL:
+  `ca04585f5531fc42333f219153b7e3cbabfd3c629917cb4c621e6066ab95fcb3`
 - Main Demo V2 MP4:
   `87fa6304819f01f5c5861d685a9f0c048d71e2e909ab4c9ab133428833125133`
 - Main Demo V2 proof ZIP:

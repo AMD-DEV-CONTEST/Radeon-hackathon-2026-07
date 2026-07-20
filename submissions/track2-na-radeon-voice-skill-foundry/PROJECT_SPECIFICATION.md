@@ -3,13 +3,19 @@
 Live product:
 `https://radeon-voice-skill-foundry.pages.dev/`
 
-Recommended Demo V2:
+Recommended final Demo V3:
+`https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V3.mp4`
+
+Demo V3 captions:
+`https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V3.srt`
+
+Original Demo V2:
 `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V2.mp4`
 
-Demo V2 uses AIDP `gemini-3.1-flash-tts-preview`, male voice `Charon`, with
-burned-in English captions and an embedded English subtitle track. Campaign
-backgrounds were generated with GPT Image 2; visible labels and measured
-metrics were typeset locally.
+Demo V3 and Demo V2 use AIDP `gemini-3.1-flash-tts-preview`, male voice
+`Charon`, with burned-in English captions and an embedded English subtitle
+track. Campaign backgrounds were generated with GPT Image 2; visible labels
+and measured metrics were typeset locally.
 
 ## Speak the SOP. Prove the Skill.
 
@@ -656,7 +662,12 @@ Cloudflare Pages serves the cinematic module UI. A same-origin Pages Function
 injects a server-held token and forwards API calls to the W7900 backend; direct
 unauthenticated origin requests are rejected.
 
-The two V2 videos have separate evidence roles:
+The final recording and the two V2 videos have separate evidence roles:
+
+- `RADEON_VOICE_SKILL_FOUNDRY_DEMO_V3.mp4` records the complete frozen public
+  product continuously: voice, six server-authoritative actions, real W7900
+  ASR and skill compilation, Sandbox Replay, Promotion Impact Review,
+  proof-bound promotion, Governance Audit Ledger export, and exact reuse.
 
 - `RADEON_VOICE_SKILL_FOUNDRY_DEMO_V2.mp4` records the live Cloudflare product
   executing real W7900 Qwen3-ASR and Qwen3-4B inference. The actual model wait
@@ -720,10 +731,11 @@ voice-evidence analysis, compile, 7/7 verification, save, reuse, service
 restart recovery, runtime invalidation, one-click revalidation, and proof
 download.
 
-The existing Main Demo V2 remains the authoritative real W7900 inference
-recording. A final product recording is intentionally deferred until product
-and narrative freeze so the submitted video matches the final server-backed
-teaching workflow.
+Demo V3 is the final product recording after the product and narrative freeze.
+It preserves the real W7900 model wait and records the final server-backed
+teaching and governance workflow. Main Demo V2 remains the concise
+optimization-oriented Radeon recording, while Continuous Demo V2 remains the
+isolated lifecycle-control recording.
 
 Sandbox Replay v1 is deterministic verification evidence. It does not replace
 or alter the separately measured Radeon ASR, model-serving, quantization, or
@@ -754,6 +766,12 @@ and 280 ms burst-loss samples through the real `/api/transcribe` endpoint.
 - Source: `https://github.com/Chengyuann/radeon-voice-skill-foundry`
 - Live product: `https://radeon-voice-skill-foundry.pages.dev/`
 - Scoring matrix: `submission/SCORING_EVIDENCE_MATRIX.md`
+- Final Demo V3:
+  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V3.mp4`
+- Demo V3 proof:
+  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/demo-v3-proof.zip`
+- Demo V3 ledger:
+  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/demo-v3-governance-ledger.jsonl`
 - Main Demo V2:
   `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V2.mp4`
 - Continuous lifecycle Demo V2:
