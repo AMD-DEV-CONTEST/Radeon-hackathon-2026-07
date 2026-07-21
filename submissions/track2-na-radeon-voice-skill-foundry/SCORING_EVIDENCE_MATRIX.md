@@ -97,9 +97,9 @@ judge navigation aid, not a claim of an awarded score.
 ## Integrity Anchors
 
 - Final Demo V3 MP4:
-  `85d989a952561650195322c080a46543b93b3070c84e0f89021e59d451a4148e`
+  `50c3b34bd4b786e3e38d2451066cedd5931385441c6961f8de1663a720b1a132`
 - Final Demo V3 SRT:
-  `a0406750ee3c3081597d8ede9ff8eccc853958dda76e54a024d98a87cf21c1ce`
+  `aaf60da629ba861c3280c7402cdeb83e98526500f53f7f5812d09edf58172534`
 - Final Demo V3 proof ZIP:
   `7898d888112b113d53fce7ca2f9f46eecdaf318c79625af665fa908622f78cc2`
 - Final Demo V3 ledger JSONL:

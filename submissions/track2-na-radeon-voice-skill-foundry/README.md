@@ -16,7 +16,7 @@ requires explicit human promotion.
 
 1. Live product:
    `https://radeon-voice-skill-foundry.pages.dev/`
-2. Final 4:39 Demo:
+2. Final 4:49 Demo:
    `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V3.mp4`
 3. Project Specification: `PROJECT_SPECIFICATION.pdf`
 4. Scoring evidence: `SCORING_EVIDENCE_MATRIX.md`
@@ -92,6 +92,8 @@ gateway.
 ## Evidence Boundaries
 
 - Demo V3 is the authoritative final product recording.
+- Demo V3 ends with a terminology card clarifying the exact Agent Skill
+  Markdown, proof-hash, and ledger integrity boundaries.
 - The Voice Evidence score is an internal deterministic quality-gate score,
   not an external ASR accuracy benchmark.
 - The governance ledger uses SHA-256 payload and previous-entry hashes plus
