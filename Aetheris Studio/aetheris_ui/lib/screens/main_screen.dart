@@ -5,6 +5,7 @@ import 'package:window_manager/window_manager.dart';
 import '../providers/browser_provider.dart';
 import '../providers/chat_provider.dart';
 import '../theme.dart';
+import '../widgets/telemetry_footer.dart';
 import 'browser_screen.dart';
 import 'chat_screen.dart';
 import 'inspector_screen.dart';
@@ -47,6 +48,8 @@ class _MainScreenState extends ConsumerState<MainScreen> {
               ],
             ),
           ),
+          const Divider(height: 1, color: AppColors.border),
+          const TelemetryFooter(),
         ],
       ),
     );

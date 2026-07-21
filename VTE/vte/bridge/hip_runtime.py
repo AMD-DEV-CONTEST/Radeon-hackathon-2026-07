@@ -240,6 +240,7 @@ class HIPRuntime:
         self._in_cleanup_mode: bool = False
         self._prevent_host_copies: bool = True
         self._vram_total: int = 0
+        self._gpu_name: str = ""
         # 32 = fallback pré-detecção (mesmo valor da RX 7600, referência
         # histórica de calibração) -- initialize() sobrescreve com o valor
         # REAL da GPU antes de qualquer kernel ser dimensionado.
@@ -534,6 +535,7 @@ class HIPRuntime:
         try:
             props = self.get_device_properties(self._device_index)
             self._vram_total = props["total_global_mem"]
+            self._gpu_name = props["name"]
             # Número real de Compute Units da GPU (lido uma vez aqui, não
             # re-consultado em hot path) -- usado para dimensionar grids
             # (Split-KV, QKV Two-Pass Split-K, causal_conv1d) de forma
@@ -614,6 +616,11 @@ class HIPRuntime:
             "compute_capability": f"{props.major}.{props.minor}",
             "gcn_arch_name": props.gcnArchName.decode("utf-8").rstrip('\x00'),
         }
+
+    def get_gpu_name(self) -> str:
+        """Nome comercial da GPU ativa (`hipDeviceProp_t.name`, ex. "AMD Radeon
+        RX 7600"), lido em initialize(), não re-consultado em hot path."""
+        return self._gpu_name
 
     def get_num_cus(self) -> int:
         """Nº de Compute Units da GPU ativa, lido em initialize() (não

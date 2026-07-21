@@ -296,6 +296,16 @@ async def get_health():
         "sqlite": producer.last_sqlite
     }
 
+
+@app.get("/api/telemetry", dependencies=[Depends(verify_internal_token)])
+async def get_telemetry():
+    """Real GPU/model telemetry for the status-bar footer (vram, tok/s, GPU
+    name, whether vte-server itself is reachable right now). A blocking
+    httpx call, kept off the event loop the same way ensure_server() already
+    is elsewhere in this module."""
+    from core.utils.vte_bridge import get_telemetry as _get_telemetry
+    return await asyncio.to_thread(_get_telemetry)
+
 class LoadModelRequest(BaseModel):
     model: str
 

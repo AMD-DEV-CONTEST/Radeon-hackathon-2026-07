@@ -145,6 +145,11 @@ class ApiClient {
     return _decode(res);
   }
 
+  Future<Map<String, dynamic>> telemetry() async {
+    final res = await _client.get(Uri.parse('$baseUrl/api/telemetry'), headers: _headers);
+    return _decode(res);
+  }
+
   /// Blocks until the model is actually resident in VRAM (real GPU load,
   /// not just persisting a preference) -- can take several seconds.
   Future<Map<String, dynamic>> warmupModel(String model) async {

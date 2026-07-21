@@ -137,3 +137,5 @@ VTE has no compiled or frozen dependency on Aetheris. A `pip install -e` pointin
 cd VTE && .venv\Scripts\pip install -e ".[dev]"      # Windows
 cd VTE && .venv/bin/pip install -e ".[dev]"          # Linux
 ```
+
+> **Troubleshooting the Windows build.** If `flutter run -d windows` fails with a long wall of `Error when reading ... system cannot find the path specified`, it's stale generated build state, not a code problem: run `flutter clean` inside `aetheris_ui/`, then `flutter pub get`, then try again.

@@ -45,6 +45,7 @@ ThemeData buildAppTheme() {
       filled: true,
       fillColor: AppColors.inputBg,
       border: OutlineInputBorder(borderSide: BorderSide(color: AppColors.border)),
+      hintStyle: TextStyle(color: AppColors.textMuted),
     ),
   );
 }

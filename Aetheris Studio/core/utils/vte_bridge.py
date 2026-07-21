@@ -3,12 +3,12 @@ engine used as Aetheris's local model provider instead of Ollama.
 
 VTE runs as its own subprocess (`vte-server`, vte/server/http_server.py in
 the VTE repo) speaking a standard OpenAI-compatible chat/completions API,
-spawned and owned by this module -- Aetheris no longer embeds a VTEModel
-directly inside its own process. This trades a small per-call loopback HTTP
+spawned and owned by this module. Aetheris no longer embeds a VTEModel
+directly inside its own process; this trades a small per-call loopback HTTP
 hop for real crash isolation: if VTE hits a GPU/driver-level fault, only
 vte-server dies, not the whole Aetheris backend. Since vte-server does its
 own chat-template rendering server-side (given a plain `messages` list),
-this module no longer needs to touch `VTEModel.tokenizer` at all -- messages
+this module no longer needs to touch `VTEModel.tokenizer` at all; messages
 go straight into the request body.
 """
 
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 # VTE's `vte://` scheme is a pure in-process sentinel: it is never resolved
 # as a real network address. The real model name travels in the existing
-# `model` parameter every call site already takes -- no need to encode it
+# `model` parameter every call site already takes, no need to encode it
 # into the URL too.
 VTE_URL_SCHEME = "vte"
 VTE_DEFAULT_URL = "vte://local"
@@ -45,7 +45,7 @@ _SERVER_BASE_URL = f"http://{_SERVER_HOST}:{_SERVER_PORT}"
 _READY_TIMEOUT_SECONDS = 90.0
 
 # Single-model policy: VTE runs on one consumer GPU with a real VRAM budget,
-# so only one vte-server subprocess (one resident model) runs at a time --
+# so only one vte-server subprocess (one resident model) runs at a time;
 # switching models terminates the old subprocess and spawns a new one.
 _lock = threading.Lock()
 _process: Optional[subprocess.Popen] = None
@@ -61,7 +61,7 @@ def is_vte_url(url: str) -> bool:
 def _resolve_gguf_path(model_name: str) -> str:
     """Mirrors VTEModel.from_pretrained's own path resolution (registered
     MODEL_REGISTRY name, falling back to dynamic discovery by file stem),
-    without loading the model -- vte-server takes an already-resolved
+    without loading the model: vte-server takes an already-resolved
     --gguf-path, it doesn't do this lookup itself."""
     from vte.core.model import VTEModel, _REPO_ROOT
 
@@ -122,7 +122,7 @@ def _start_server_locked(model_name: str) -> None:
             "--port", str(_SERVER_PORT),
             "--host", _SERVER_HOST,
             # This process (app.py) owns the model lifecycle explicitly via
-            # ensure_server()/unload() -- vte-server's own idle-unload timer
+            # ensure_server()/unload(); vte-server's own idle-unload timer
             # would fight that, so it's disabled.
             "--idle-timeout", "0",
             # If app.py dies without a clean shutdown, vte-server's own
@@ -144,7 +144,7 @@ def _start_server_locked(model_name: str) -> None:
 def ensure_server(model_name: str) -> None:
     """Starts the vte-server subprocess for `model_name` if it isn't already
     serving it (restarting it on a model switch). Thread-safe, idempotent.
-    Blocking -- callers on the asyncio event loop should wrap this in
+    Blocking, so callers on the asyncio event loop should wrap this in
     `asyncio.to_thread`."""
     with _lock:
         if _process is not None and _process.poll() is None and _model_name == model_name:
@@ -160,13 +160,31 @@ def unload() -> None:
         _stop_server_locked()
 
 
+def get_telemetry() -> Dict:
+    """Real GPU/model telemetry for the status-bar footer: queries
+    vte-server's own /telemetry (a live hipMemGetInfo read, not cached), and
+    reports whether that server is reachable at all. Never raises: an
+    unreachable vte-server (not started yet, model still loading) is a
+    normal, displayable state, not an error condition worth crashing a
+    polling loop over."""
+    try:
+        resp = httpx.get(f"{_SERVER_BASE_URL}/telemetry", timeout=3.0)
+        if resp.status_code != 200:
+            return {"connected": False}
+        data = resp.json()
+        data["connected"] = True
+        return data
+    except httpx.HTTPError:
+        return {"connected": False}
+
+
 # ---------------------------------------------------------------------------
 # Generation
 # ---------------------------------------------------------------------------
 
 
 def generate_once(model_name: str, messages: List[Dict], temperature: float = 0.3, max_tokens: int = 512) -> str:
-    """Synchronous, non-streaming generation -- for callers outside the
+    """Synchronous, non-streaming generation, for callers outside the
     async chat-streaming path (e.g. context_compressor.py's history
     summarization, which runs synchronously)."""
     ensure_server(model_name)
