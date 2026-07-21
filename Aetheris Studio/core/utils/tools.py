@@ -307,15 +307,23 @@ _SAFE_GIT_SUBCOMMANDS = {"status", "diff", "log", "show", "branch"}
 
 
 async def _run_git(content: str) -> Dict:
-    action, _, rest = content.strip().partition("\n")
+    first_line, _, rest = content.strip().partition("\n")
+    # Accepts both the documented shape (action alone on the first line,
+    # args on the next) and a model writing them on one line (e.g.
+    # "log -5" instead of "log" then "-5" on line 2, confirmed to happen
+    # in practice) -- only the first word of the first line is ever
+    # treated as the subcommand, everything after it on that line joins
+    # the rest of the args instead of being folded into a stricter,
+    # rejected match against the whole line.
+    action, _, inline_args = first_line.strip().partition(" ")
     action = action.strip().lower()
     if action not in _SAFE_GIT_SUBCOMMANDS:
         return {
             "error": f"action must be one of: {', '.join(sorted(_SAFE_GIT_SUBCOMMANDS))} "
-                     f"(first line) -- for anything else, use the bash tool",
+                     f"(first word) -- for anything else, use the bash tool",
             "exit_code": 1,
         }
-    args = rest.strip()
+    args = f"{inline_args.strip()} {rest.strip()}".strip()
     return await _run_bash(f"git {action} {args}".strip())
 
 

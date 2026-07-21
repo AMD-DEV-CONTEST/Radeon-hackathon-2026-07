@@ -102,15 +102,15 @@ The Flutter desktop UI is a Windows-only build right now (no `linux/` target con
 
 ## Things to try
 
-A few prompts to get a feel for what the agent actually does, assuming `project_path` points at some real codebase (yours, or this repo itself):
+A few prompts to get a feel for what the agent actually does, assuming `project_path` points at some real codebase (yours, or this repo itself). Naming the tool explicitly ("use the X tool") is more reliable with the default 8B model than an open-ended ask -- confirmed directly: a vague *"what does this codebase do"* got a generic, hallucinated answer with zero tool calls in testing, while pointing at a specific real file first did not.
 
-- *"What does this codebase do? Give me a two-paragraph summary."* Exercises file search plus reading, no writes.
+- *"Read the README.md and tell me in two paragraphs what this project does."* Grounded in a real file instead of an open-ended ask, which the model reliably explores; a vague version of this prompt answered from a guess without reading anything.
 - *"Find every place `TODO` appears and summarize what's left."* `search_files` across the whole project.
-- *"What changed in the last 5 commits?"* `git log`/`git show`, no working-tree access needed.
-- *"Add a docstring to the `main` function in `<some file>`."* A real edit; you'll see the confirmation prompt before it lands.
+- *"Use the git tool to show me the last 5 commits."* `git log`, no working-tree access needed.
+- *"Use the edit_file tool to add a docstring to the `main` function in `<some file>`."* A real edit; you'll see the confirmation prompt before it lands.
 - *"Plan out how you'd add rate limiting to this API, but don't touch anything yet."* Switches the agent into Planner mode, streams a plan, waits for your go-ahead.
 - *"Remember that this project uses tabs, not spaces."* Writes to the memory tool; ask again in a later session and it recalls it without the fact being back in the chat transcript.
-- *"Look up the current stable version of \<some library> online."* Read-only browser tool, no form-filling or credentials, ever.
+- *"Use the browser tool to look up the current stable version of \<some library> online."* Read-only, no form-filling or credentials, ever; without naming the tool the model sometimes reaches for `bash curl` instead, which works but skips the actual browser feature.
 
 ## Under the hood: VTE, the engine we built to power this
 
