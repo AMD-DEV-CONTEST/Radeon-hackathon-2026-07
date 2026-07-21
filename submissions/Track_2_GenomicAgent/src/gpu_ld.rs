@@ -26,6 +26,8 @@ pub struct GpuLdContext {
     queue: wgpu::Queue,
     pipeline: wgpu::ComputePipeline,
     bind_group_layout: wgpu::BindGroupLayout,
+    intent_pipeline: wgpu::ComputePipeline,
+    intent_bind_group_layout: wgpu::BindGroupLayout,
     pub adapter_name: String,
     pub adapter_backend: String,
     pub adapter_is_amd: bool,
@@ -38,6 +40,15 @@ struct Params {
     num_pairs: u32,
     square_output: u32, // 1 = r^2 (LD), 0 = signed r (correlation/PCA)
     _pad: u32,          // uniform buffer structs need 16-byte alignment
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+struct IntentParams {
+    vocab_len: u32,
+    num_docs: u32,
+    _pad0: u32,
+    _pad1: u32, // uniform buffer structs need 16-byte alignment
 }
 
 /// Lazily-initialized, process-wide GPU context. wgpu instance/adapter/
@@ -156,11 +167,45 @@ impl GpuLdContext {
             entry_point: "main",
         });
 
+        // Second, independent kernel + pipeline on the same device/queue
+        // (no reason to pay adapter/device setup twice): TF-IDF cosine
+        // similarity for tool-intent classification. See
+        // shaders/intent_similarity.wgsl and intent.rs.
+        let intent_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("intent_similarity_shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("shaders/intent_similarity.wgsl").into()),
+        });
+
+        let intent_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("intent_similarity_bind_group_layout"),
+            entries: &[
+                bgl_entry(0, wgpu::BufferBindingType::Uniform),
+                bgl_entry(1, wgpu::BufferBindingType::Storage { read_only: true }),
+                bgl_entry(2, wgpu::BufferBindingType::Storage { read_only: true }),
+                bgl_entry(3, wgpu::BufferBindingType::Storage { read_only: false }),
+            ],
+        });
+
+        let intent_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("intent_similarity_pipeline_layout"),
+            bind_group_layouts: &[&intent_bind_group_layout],
+            push_constant_ranges: &[],
+        });
+
+        let intent_pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+            label: Some("intent_similarity_pipeline"),
+            layout: Some(&intent_pipeline_layout),
+            module: &intent_shader,
+            entry_point: "main",
+        });
+
         Ok(Self {
             device,
             queue,
             pipeline,
             bind_group_layout,
+            intent_pipeline,
+            intent_bind_group_layout,
             adapter_name: info.name,
             adapter_backend: format!("{:?}", info.backend),
             adapter_is_amd,
@@ -304,6 +349,91 @@ impl GpuLdContext {
             contents: bytemuck::cast_slice(data),
             usage: wgpu::BufferUsages::STORAGE,
         })
+    }
+
+    /// Cosine similarity between one query vector and `num_docs` document
+    /// vectors (each `vocab_len` long, row-major in `doc_vectors_flat`),
+    /// dispatched as a single GPU call. See shaders/intent_similarity.wgsl
+    /// and intent.rs for what builds these vectors (TF-IDF over tool
+    /// descriptions) and how the scores are used.
+    pub fn compute_cosine_similarity_batch(
+        &self,
+        query_vec: &[f32],
+        doc_vectors_flat: &[f32],
+        vocab_len: usize,
+        num_docs: usize,
+    ) -> Result<Vec<f32>> {
+        let params = IntentParams {
+            vocab_len: vocab_len as u32,
+            num_docs: num_docs as u32,
+            _pad0: 0,
+            _pad1: 0,
+        };
+
+        let params_buf = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("intent_params"),
+            contents: bytemuck::bytes_of(&params),
+            usage: wgpu::BufferUsages::UNIFORM,
+        });
+        let query_buf = self.storage_buf("intent_query", query_vec);
+        let docs_buf = self.storage_buf("intent_docs", doc_vectors_flat);
+
+        let out_size = (num_docs * std::mem::size_of::<f32>()) as u64;
+        let out_buf = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("intent_out_scores"),
+            size: out_size,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+        let staging_buf = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("intent_staging"),
+            size: out_size,
+            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("intent_similarity_bind_group"),
+            layout: &self.intent_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry { binding: 0, resource: params_buf.as_entire_binding() },
+                wgpu::BindGroupEntry { binding: 1, resource: query_buf.as_entire_binding() },
+                wgpu::BindGroupEntry { binding: 2, resource: docs_buf.as_entire_binding() },
+                wgpu::BindGroupEntry { binding: 3, resource: out_buf.as_entire_binding() },
+            ],
+        });
+
+        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("intent_similarity_encoder"),
+        });
+        {
+            let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("intent_similarity_pass"),
+                timestamp_writes: None,
+            });
+            pass.set_pipeline(&self.intent_pipeline);
+            pass.set_bind_group(0, &bind_group, &[]);
+            let workgroups = (num_docs as u32).div_ceil(64);
+            pass.dispatch_workgroups(workgroups.max(1), 1, 1);
+        }
+        encoder.copy_buffer_to_buffer(&out_buf, 0, &staging_buf, 0, out_size);
+        self.queue.submit(Some(encoder.finish()));
+
+        let slice = staging_buf.slice(..);
+        let (tx, rx) = std::sync::mpsc::channel();
+        slice.map_async(wgpu::MapMode::Read, move |res| {
+            let _ = tx.send(res);
+        });
+        self.device.poll(wgpu::Maintain::Wait);
+        rx.recv().context("GPU buffer map channel closed unexpectedly")?
+            .context("GPU buffer map_async failed")?;
+
+        let data = slice.get_mapped_range();
+        let result: Vec<f32> = bytemuck::cast_slice(&data).to_vec();
+        drop(data);
+        staging_buf.unmap();
+
+        Ok(result)
     }
 }
 
@@ -525,5 +655,63 @@ mod tests {
         let pairs = vec![(0u32, 5u32)];
         let result = ctx.compute_r2_batch(&dosages, num_samples, 10, &pairs).unwrap();
         assert!((result[0] - 1.0).abs() < 1e-4, "expected r²≈1.0, got {}", result[0]);
+    }
+
+    fn cpu_cosine(a: &[f32], b: &[f32]) -> f32 {
+        let dot: f32 = a.iter().zip(b).map(|(x, y)| x * y).sum();
+        let na = a.iter().map(|x| x * x).sum::<f32>().sqrt();
+        let nb = b.iter().map(|x| x * x).sum::<f32>().sqrt();
+        if na <= 0.0 || nb <= 0.0 { 0.0 } else { dot / (na * nb) }
+    }
+
+    #[test]
+    fn intent_kernel_gpu_matches_cpu_cosine_reference() {
+        let ctx = match GpuLdContext::new() {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("SKIPPED intent_kernel_gpu_matches_cpu_cosine_reference: no GPU adapter available ({e})");
+                return;
+            }
+        };
+
+        let vocab_len = 12;
+        let num_docs = 5;
+        let mut state: u64 = 4242 | 1;
+        let mut next = move || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            (state % 1_000_000) as f32 / 1_000_000.0
+        };
+        let query: Vec<f32> = (0..vocab_len).map(|_| next()).collect();
+        let docs: Vec<f32> = (0..num_docs * vocab_len).map(|_| next()).collect();
+
+        let gpu_result = ctx
+            .compute_cosine_similarity_batch(&query, &docs, vocab_len, num_docs)
+            .unwrap();
+
+        let cpu_result: Vec<f32> = (0..num_docs)
+            .map(|d| cpu_cosine(&query, &docs[d * vocab_len..(d + 1) * vocab_len]))
+            .collect();
+
+        assert_eq!(gpu_result.len(), cpu_result.len());
+        for (g, c) in gpu_result.iter().zip(cpu_result.iter()) {
+            assert!((g - c).abs() < 1e-4, "GPU cosine {g} vs CPU cosine {c} diverge");
+        }
+    }
+
+    #[test]
+    fn intent_kernel_gives_similarity_one_for_identical_vectors() {
+        let ctx = match GpuLdContext::new() {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("SKIPPED intent_kernel_gives_similarity_one_for_identical_vectors: no GPU adapter available ({e})");
+                return;
+            }
+        };
+        let query = vec![1.0f32, 2.0, 0.0, 3.0];
+        let docs = vec![1.0f32, 2.0, 0.0, 3.0]; // one doc, identical to query
+        let result = ctx.compute_cosine_similarity_batch(&query, &docs, 4, 1).unwrap();
+        assert!((result[0] - 1.0).abs() < 1e-5, "expected cosine similarity 1.0 for identical vectors, got {}", result[0]);
     }
 }

@@ -7,6 +7,7 @@ mod pca;
 mod llm;
 mod bootstrap;
 mod fst;
+mod intent;
 
 use agent::GenomicAgent;
 use tools::ToolRegistry;

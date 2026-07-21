@@ -1,38 +1,34 @@
-//! Optional LLM-in-the-loop planning/synthesis layer, with two independent
-//! real backends tried in order plus a fully offline fallback.
+//! Optional LLM narration layer, with two independent real backends
+//! tried in order plus a fully offline fallback.
 //!
-//! When a backend is reachable, the agent makes a real model call to
-//! (1) pick which registered tool(s) apply to the user's query -- a
-//! compound question ("check ancestry and flag any selection signal")
-//! can genuinely need more than one tool, not just the first keyword
-//! match -- and (2), after those tools run, synthesize their actual
-//! output text into a short analyst-style narrative. The synthesis
-//! prompt is built strictly from tool output already computed by real
-//! code elsewhere in this crate (vcf.rs, gpu_ld.rs, pca.rs, fst.rs); the
-//! model is explicitly instructed not to introduce any number that isn't
-//! already present in that text, so this cannot fabricate a result --
-//! it can only misdescribe or drop one, which is why raw tool output is
-//! always still included in the final response alongside the narrative.
+//! **This module no longer decides which tools run.** Tool selection is
+//! `intent.rs`'s job now: a custom, from-scratch, GPU-dispatched TF-IDF/
+//! cosine-similarity kernel that requires no network call, no API key,
+//! and no billing, and is the crate's only mandatory planning mechanism
+//! (see `GenomicAgent::plan` in agent.rs). This module's one remaining
+//! job is optional: after the tools intent.rs picked have already run,
+//! turn their real output into a short plain-English narrative. The
+//! synthesis prompt is built strictly from tool output already computed
+//! by real code elsewhere in this crate (vcf.rs, gpu_ld.rs, pca.rs,
+//! fst.rs, bootstrap.rs); the model is explicitly instructed not to
+//! introduce any number that isn't already present in that text, so
+//! this cannot fabricate a result -- it can only misdescribe or drop
+//! one, which is why raw tool output is always still included in the
+//! final response alongside the narrative.
 //!
 //! **Backend order, and why:** (1) Hugging Face's Inference Router
 //! (`HF_TOKEN` or `HUGGING_FACE_HUB_TOKEN`) is tried first -- it's a
 //! free-tier, publicly reachable, OpenAI-compatible endpoint, verified
-//! working end-to-end against this exact tool-routing prompt shape
-//! before being wired in here, and getting a token costs nothing and
-//! takes about a minute at huggingface.co/settings/tokens. (2) Anthropic
-//! (`ANTHROPIC_API_KEY`) is tried second, for anyone who already has a
-//! funded key. Both are genuinely optional and independent -- a judge
-//! (or the submitter) with neither, or with an unfunded/rate-limited
-//! key, gets a clean fallthrough, not an error.
-//!
-//! No reachable backend, or any request/parse failure -> both `plan`
-//! and `synthesize` return `None`, and `GenomicAgent::process_query`
-//! falls back to the crate's original deterministic keyword routing
-//! (`GenomicAgent::process_query_offline`), unchanged. Nothing about the
-//! numeric pipeline depends on this module; it only decides *which*
-//! already-correct tool output to show and how to narrate it.
+//! working end-to-end before being wired in here, and getting a token
+//! costs nothing and takes about a minute at
+//! huggingface.co/settings/tokens. (2) Anthropic (`ANTHROPIC_API_KEY`)
+//! is tried second, for anyone who already has a funded key. Both are
+//! genuinely optional and independent -- neither, or an unfunded/rate-
+//! limited key, gets a clean fallthrough to raw tool output, not an
+//! error, and never affects which tools ran or what they computed.
 
-use serde_json::{json, Value};
+use serde_json::Value;
+use serde_json::json;
 use std::time::Duration;
 
 const DEFAULT_ANTHROPIC_MODEL: &str = "claude-haiku-4-5-20251001";
@@ -63,18 +59,16 @@ fn hf_model_name() -> String {
 }
 
 /// Try each configured backend in order, returning the first one that
-/// produces a response. This is the only entry point `plan`/`synthesize`
-/// use -- neither knows or cares which backend actually answered.
+/// produces a response. `synthesize` is the only caller.
 fn call_llm(system: &str, user: &str, max_tokens: u32) -> Option<String> {
     call_hf_router(system, user, max_tokens).or_else(|| call_anthropic(system, user, max_tokens))
 }
 
 /// Real HTTP call to Hugging Face's Inference Router
 /// (OpenAI-compatible `/v1/chat/completions`), tried first: free tier,
-/// no billing dependency, verified live against this exact prompt shape
-/// (tool-selection JSON) before being wired in. Returns `None` -- never
-/// panics, never propagates an error -- on missing token, network
-/// failure, non-2xx response, or unexpected response shape.
+/// no billing dependency. Returns `None` -- never panics, never
+/// propagates an error -- on missing token, network failure, non-2xx
+/// response, or unexpected response shape.
 fn call_hf_router(system: &str, user: &str, max_tokens: u32) -> Option<String> {
     let token = hf_token()?;
 
@@ -140,7 +134,7 @@ fn call_anthropic(system: &str, user: &str, max_tokens: u32) -> Option<String> {
     let response = match response {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("[llm] Anthropic API call failed, falling back to offline routing: {e}");
+            eprintln!("[llm] Anthropic API call failed, falling back to raw output: {e}");
             return None;
         }
     };
@@ -161,67 +155,12 @@ fn call_anthropic(system: &str, user: &str, max_tokens: u32) -> Option<String> {
         .map(|s| s.to_string())
 }
 
-/// Ask the model which registered tool(s) (by exact name) apply to
-/// `query`. Returns `None` if the API is unavailable or the response
-/// can't be parsed into at least one *valid, registered* tool name --
-/// a hallucinated tool name is filtered out, not passed through to
-/// `ToolRegistry::execute`, which would otherwise error.
-pub fn plan(query: &str, tool_descriptions: &[String]) -> Option<Vec<String>> {
-    let valid_names: Vec<String> = tool_descriptions
-        .iter()
-        .filter_map(|d| d.split(':').next())
-        .map(|s| s.trim().to_string())
-        .collect();
-
-    let system = format!(
-        "You are the tool-routing layer for a genomic analysis CLI. Available tools:\n{}\n\n\
-         Given the user's query, decide which of these tools (by exact name) are needed to \
-         answer it. A query can genuinely need more than one tool (e.g. a compound question \
-         about both ancestry and quality control). Respond with ONLY a JSON object of the form \
-         {{\"tools\": [\"ExactToolName\", ...]}} -- no prose, no markdown code fences, no \
-         explanation outside the JSON. Use only the exact tool names listed above; never invent \
-         a name that isn't in that list.",
-        tool_descriptions.join("\n")
-    );
-
-    let raw = call_llm(&system, query, 200)?;
-    parse_plan_response(&raw, &valid_names)
-}
-
-/// Pure parsing/validation logic, split out from `plan` so it's testable
-/// without a network call: strips a defensive code-fence wrapper (the
-/// model is told not to use one, but this is cheap insurance), parses
-/// the `{"tools": [...]}` shape, and drops any name not present in
-/// `valid_names`.
-fn parse_plan_response(raw: &str, valid_names: &[String]) -> Option<Vec<String>> {
-    let cleaned = raw
-        .trim()
-        .trim_start_matches("```json")
-        .trim_start_matches("```")
-        .trim_end_matches("```")
-        .trim();
-
-    let value: Value = serde_json::from_str(cleaned).ok()?;
-    let tools = value.get("tools")?.as_array()?;
-
-    let names: Vec<String> = tools
-        .iter()
-        .filter_map(|t| t.as_str())
-        .map(|s| s.to_string())
-        .filter(|name| valid_names.iter().any(|v| v == name))
-        .collect();
-
-    if names.is_empty() {
-        None
-    } else {
-        Some(names)
-    }
-}
-
 /// Ask the model to narrate the already-computed `tool_outputs` in
 /// plain English, grounded strictly in the numbers already present in
 /// that text. Returns `None` on any API/network failure -- callers
 /// should show the raw tool output on `None`, not silently drop it.
+/// Never influences which tools ran; that's already decided by the time
+/// this is called (see intent.rs).
 pub fn synthesize(query: &str, tool_outputs: &[(String, String)]) -> Option<String> {
     if tool_outputs.is_empty() {
         return None;
@@ -250,61 +189,13 @@ pub fn synthesize(query: &str, tool_outputs: &[(String, String)]) -> Option<Stri
 mod tests {
     use super::*;
 
-    fn tools() -> Vec<String> {
-        vec!["VcfAnalyzer".to_string(), "PopulationStructure".to_string()]
-    }
-
-    #[test]
-    fn parses_clean_json_response() {
-        let raw = r#"{"tools": ["VcfAnalyzer"]}"#;
-        let names = parse_plan_response(raw, &tools());
-        assert_eq!(names, Some(vec!["VcfAnalyzer".to_string()]));
-    }
-
-    #[test]
-    fn parses_multi_tool_response() {
-        let raw = r#"{"tools": ["VcfAnalyzer", "PopulationStructure"]}"#;
-        let names = parse_plan_response(raw, &tools()).unwrap();
-        assert_eq!(names.len(), 2);
-    }
-
-    #[test]
-    fn strips_defensive_code_fence() {
-        let raw = "```json\n{\"tools\": [\"VcfAnalyzer\"]}\n```";
-        let names = parse_plan_response(raw, &tools());
-        assert_eq!(names, Some(vec!["VcfAnalyzer".to_string()]));
-    }
-
-    #[test]
-    fn drops_hallucinated_tool_names() {
-        let raw = r#"{"tools": ["VcfAnalyzer", "NotARealTool"]}"#;
-        let names = parse_plan_response(raw, &tools()).unwrap();
-        assert_eq!(names, vec!["VcfAnalyzer".to_string()]);
-    }
-
-    #[test]
-    fn all_hallucinated_names_yields_none() {
-        let raw = r#"{"tools": ["NotARealTool"]}"#;
-        assert_eq!(parse_plan_response(raw, &tools()), None);
-    }
-
-    #[test]
-    fn malformed_json_yields_none() {
-        assert_eq!(parse_plan_response("not json at all", &tools()), None);
-    }
-
-    #[test]
-    fn empty_tools_array_yields_none() {
-        assert_eq!(parse_plan_response(r#"{"tools": []}"#, &tools()), None);
-    }
-
     #[test]
     fn synthesize_with_no_tool_outputs_returns_none_without_network() {
         assert_eq!(synthesize("anything", &[]), None);
     }
 
     #[test]
-    fn plan_and_synthesize_are_none_without_any_backend_configured() {
+    fn synthesize_is_none_without_any_backend_configured() {
         // SAFETY: single-threaded within this test; std::env::var is read,
         // never mutated, by this test -- it only asserts the no-backend
         // path when the ambient environment genuinely has neither an HF
@@ -312,10 +203,9 @@ mod tests {
         // (skipped) otherwise so it doesn't depend on the test-running
         // machine's environment.
         if hf_token().is_some() || anthropic_api_key().is_some() {
-            eprintln!("SKIPPED plan_and_synthesize_are_none_without_any_backend_configured: a backend credential is set in this environment");
+            eprintln!("SKIPPED synthesize_is_none_without_any_backend_configured: a backend credential is set in this environment");
             return;
         }
-        assert_eq!(plan("anything", &tools()), None);
         assert_eq!(synthesize("anything", &[("T".to_string(), "out".to_string())]), None);
     }
 }
