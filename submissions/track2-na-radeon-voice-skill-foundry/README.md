@@ -12,14 +12,14 @@ reuse, the system retrieves local policy evidence, compiles typed constraints
 and permissions, runs deterministic positive and adversarial tests, and
 requires explicit human promotion.
 
-## Judge Quick Path
+## Project Materials
 
 1. Live product:
    `https://radeon-voice-skill-foundry.pages.dev/`
 2. Final 4:49 Demo:
    `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V3.mp4`
 3. Project Specification: `PROJECT_SPECIFICATION.pdf`
-4. Scoring evidence: `SCORING_EVIDENCE_MATRIX.md`
+4. Technical evidence: `TECHNICAL_EVIDENCE_INDEX.md`
 5. Architecture: `ARCHITECTURE.png`
 6. Poster: `POSTER.pdf`
 7. Source:
@@ -84,18 +84,17 @@ Core ASR and Agent inference run on the participant-controlled Radeon Cloud
 instance. Cloudflare Pages serves the public UI and forwards authenticated API
 requests to that instance. Raw audio is not included in proof downloads.
 
-Because the contest demo is publicly reachable through Cloudflare, reviewers
-should use the supplied synthetic SOP fixture rather than real confidential
-material. The same source can also run on a private network without the public
-gateway.
+The public deployment includes a synthetic SOP fixture so no real confidential
+material is needed when using the hosted application. The same source can also
+run on a private network without the public gateway.
 
 ## Evidence Boundaries
 
 - Demo V3 is the authoritative final product recording.
 - Demo V3 ends with a terminology card clarifying the exact Agent Skill
   Markdown, proof-hash, and ledger integrity boundaries.
-- The Voice Evidence score is an internal deterministic quality-gate score,
-  not an external ASR accuracy benchmark.
+- Voice Evidence values are internal deterministic quality-gate results, not
+  external ASR accuracy measurements.
 - The governance ledger uses SHA-256 payload and previous-entry hashes plus
   cross-checks against skill memory. It detects accidental or isolated
   modification in the stored artifacts. It is not an externally anchored,

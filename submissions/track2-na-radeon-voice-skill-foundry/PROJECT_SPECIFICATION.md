@@ -73,10 +73,10 @@ Target users include operations teams, project managers, compliance-sensitive
 office teams, and domain experts who need control over where core inference and
 procedural memory run.
 
-The public contest deployment uses Cloudflare Pages as the UI and authenticated
-transport layer. Reviewers should use the supplied synthetic fixture rather
-than real confidential material. The same application can be deployed without
-the public gateway on a private network.
+The public deployment uses Cloudflare Pages as the UI and authenticated
+transport layer. It includes a synthetic fixture so no real confidential
+material is needed when using the hosted application. The same application can
+be deployed without the public gateway on a private network.
 
 ## 3. Why Voice Is Structurally Necessary
 
@@ -188,8 +188,8 @@ and omits the P2 finding. Undo or reset invalidates the incomplete trace.
 
 Verification binds the session ID, six events, event count, and SHA-256 action
 contract hash into the proof core. The exported proof ZIP includes a separate
-`action_contract.json` so reviewers can inspect the exact trusted
-demonstration independently from the generated policy.
+`action_contract.json` for direct inspection of the trusted demonstration
+independently from the generated policy.
 
 ### 5.3.1 Sandbox Replay v1
 
@@ -603,7 +603,7 @@ categories in the Track 2 rules:
 | Local multi-turn memory | versioned skills and parent/child revisions |
 | Permission/privacy | deny/review/allow policy, redaction, receipts |
 
-It also directly addresses both Radeon scoring items:
+The Radeon implementation also includes both required engineering dimensions:
 
 - core ASR and Agent inference run locally on Radeon + ROCm
 - targeted inference optimization is measured with raw benchmark evidence
@@ -616,7 +616,7 @@ Agent Skills**.
 Existing workflow learning commonly distills procedures from repeated successful
 executions. Radeon Voice Skill Foundry instead captures expert intent before the
 first risky execution and produces evidence that a future skill marketplace,
-reviewer, or local Agent runtime can inspect.
+operator, or local Agent runtime can inspect.
 
 The implemented transformation is:
 
@@ -695,8 +695,9 @@ The final recording and the two V2 videos have separate evidence roles:
   vLLM graph FP16 runs on the same W7900 allocation. At concurrency eight,
   vLLM graph delivered 257.65 aggregate output tokens/s versus 20.66 for the
   serialized Transformers server.
-- The tool workspace is deterministic for reproducible judging. Production
-  connectors should retain the same capability gate and receipt model.
+- The tool workspace is deterministic for reproducible demonstrations and
+  tests. Production connectors should retain the same capability gate and
+  receipt model.
 - The Voice Evidence Gate uses deterministic signal measurements and does not
   claim a learned acoustic-diagnosis model.
 - Full far-field ASR accuracy should be evaluated separately against a benchmark
@@ -783,7 +784,7 @@ presentation tools do not provide the product's core Agent or ASR functions.
 
 - Source: `https://github.com/Chengyuann/radeon-voice-skill-foundry`
 - Live product: `https://radeon-voice-skill-foundry.pages.dev/`
-- Scoring matrix: `submission/SCORING_EVIDENCE_MATRIX.md`
+- Technical evidence index: `TECHNICAL_EVIDENCE_INDEX.md`
 - Final Demo V3:
   `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V3.mp4`
 - Demo V3 proof:
