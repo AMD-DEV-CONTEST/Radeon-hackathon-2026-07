@@ -162,6 +162,98 @@ Deploy your own model as a dedicated OpenAI-compatible endpoint (uses your credi
 
 ---
 
+## ⭐ Expose a Notebook service to the internet (Tunnel)
+
+Expose an HTTP/WebSocket service running inside your Notebook to a public URL using the built-in `rc-tunnel` tool.
+
+### Prerequisites
+
+- Works only for Notebooks created after this feature was enabled on the platform. Older Notebooks created before enablement must be closed and recreated.
+- Only HTTP/WebSocket services listening on `127.0.0.1` inside the Notebook are supported.
+- The local port must be in the range `1024-65535` and must not be a platform-reserved port.
+- The domain is assigned automatically by the platform, in the format `rc-<random>.radeon.firstdg.ai`.
+- Each Notebook Pod can expose only one port at a time.
+- The public URL is reachable from the internet — your app itself must enforce login or other authentication. Do not expose an unauthenticated admin page.
+
+### Install
+
+Run this in the Notebook Terminal:
+
+```bash
+/var/run/secrets/frp-self-service/install
+```
+
+The script installs to `$HOME/.local/bin/rc-tunnel` and adds it to PATH for future Terminals. In the current Terminal, use the full path directly.
+
+If the identity directory or `FRP_BROKER_URL` does not exist, your Notebook is an old Pod created before the feature was enabled. Close and recreate the Notebook, then try again. Do not request or write platform keys yourself.
+
+A new Terminal can run `rc-tunnel version` directly. If you are not using Bash, first run:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+### Start a test page
+
+Create a test directory and start an HTTP server:
+
+```bash
+mkdir -p "$HOME/tunnel-demo"
+printf '%s\n' '<!doctype html><title>RC Tunnel</title><h1>RC Tunnel is working</h1>' \
+  > "$HOME/tunnel-demo/index.html"
+nohup python3 -m http.server 8081 --bind 127.0.0.1 \
+  --directory "$HOME/tunnel-demo" \
+  > "$HOME/tunnel-demo/http.log" 2>&1 &
+curl --fail http://127.0.0.1:8081/
+```
+
+### Expose the port
+
+The following command automatically requests an available domain and exposes local port `8081`:
+
+```bash
+"$HOME/.local/bin/rc-tunnel" expose --port 8081
+```
+
+It returns the platform-assigned URL and the FRPC PID; the URL is usually reachable within a few seconds, for example:
+
+```text
+https://rc-0123456789abcdef.radeon.firstdg.ai
+```
+
+For ops-compatibility scenarios you can still use `--prefix` to specify a prefix; regular users don't need it.
+
+### Check and troubleshoot
+
+```bash
+"$HOME/.local/bin/rc-tunnel" status
+"$HOME/.local/bin/rc-tunnel" logs --lines 100
+curl --fail http://127.0.0.1:8081/
+```
+
+Diagnose in this order:
+
+1. Local `curl` fails: the app in the Notebook isn't listening on that port — this is unrelated to FRP.
+2. `status` shows FRPC not running: check `rc-tunnel logs`.
+3. Status is fine but public access fails: give ops the full domain, the Notebook creation time, and the failure time. Do not send any config files or keys.
+
+### Stop
+
+```bash
+"$HOME/.local/bin/rc-tunnel" stop
+```
+
+After stopping, the public URL becomes invalid immediately, and the domain prefix enters a 24-hour freeze period. When FRPC or the Pod is terminated, FRPS usually detects the closed connection immediately; half-open or never-connected tunnels are revoked by the VM after 60 seconds without a heartbeat.
+
+### Limitations
+
+- TCP, UDP, SSH, database ports, and custom full domains are not supported.
+- Do not manually edit `~/.local/state/rc-tunnel/frpc.toml`.
+- Do not copy `~/.local/state/rc-tunnel` to another Pod or share it with anyone.
+- After a Notebook is recreated, you must run the install and `expose` again.
+
+---
+
 ## ⭐ Destroy the instance when done
 
 A running instance keeps consuming credits. When you're done, go to the **Active Instance** section in Profile and click the red **Destroy Instance** button to destroy it.
