@@ -56,7 +56,7 @@ The UI starts the Python backend for you on launch and waits for it to come up; 
 
 ### Terminal (Windows or Linux)
 
-Same backend the app uses, just driven from a small chat script instead of the Flutter UI. This is the primary way to run Aetheris on Linux today, and works just as well on Windows if you'd rather skip the Flutter build.
+Same backend the app uses, just driven from a small chat script instead of the Flutter UI. This is the primary way to run Aetheris on Linux today, and works just as well on Windows if you'd rather skip the Flutter build. No login here, unlike the app above: the username/password screen is a Flutter-only gate, the backend itself only ever checks the internal token `scripts/chat.py` already reads from `.env` automatically.
 
 ```bash
 cd "Aetheris Studio"
