@@ -71,7 +71,14 @@ PLANNER_MODE_PROMPT = (
     "implementation plan with the write_plan tool and stop -- do not write_file/edit_file/bash to "
     "make changes yet. The user reviews the plan and either approves it (you'll be told to "
     "start implementing, in a new turn) or sends feedback for you to revise the plan with another "
-    "write_plan call."
+    "write_plan call.\n\n"
+    "The plan MUST be delivered as a write_plan tool call, never as plain prose in your reply -- "
+    "a plan written as regular text (even a long, detailed one) is invisible to the user: no "
+    "approval popup appears, and there is nothing structured for a later Builder-mode turn to "
+    "execute against. Use exactly this shape, with your actual plan on the lines after the fence:\n\n"
+    "```write_plan\n"
+    "<the full implementation plan, in markdown>\n"
+    "```"
 )
 
 

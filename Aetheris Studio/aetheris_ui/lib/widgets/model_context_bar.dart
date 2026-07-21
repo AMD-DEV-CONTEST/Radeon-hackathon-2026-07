@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/models/app_state_models.dart';
 import '../providers/chat_provider.dart';
 import '../providers/model_load_provider.dart';
 import '../providers/settings_provider.dart';
@@ -91,7 +92,7 @@ class AgentToolbar extends ConsumerWidget {
 
   Future<void> _showModelPicker(BuildContext context, WidgetRef ref) async {
     final settings = ref.read(settingsProvider).valueOrNull;
-    final models = settings?.availableModels ?? const <String>[];
+    final models = settings?.availableModels ?? const <ModelInfo>[];
     final current = settings?.defaultModel ?? '';
 
     final selected = await showDialog<String>(
@@ -324,7 +325,7 @@ class _AnchoredPanel extends StatelessWidget {
 }
 
 class _ModelPanel extends StatelessWidget {
-  final List<String> models;
+  final List<ModelInfo> models;
   final String current;
   const _ModelPanel({required this.models, required this.current});
 
@@ -341,10 +342,10 @@ class _ModelPanel extends StatelessWidget {
         ),
         for (var i = 0; i < models.length; i++)
           _ModelRow(
-            name: models[i],
-            selected: models[i] == current,
-            shortcut: i < 9 ? '${i + 1}' : null,
-            onTap: () => Navigator.pop(context, models[i]),
+            model: models[i],
+            selected: models[i].name == current,
+            shortcut: models[i].downloaded && i < 9 ? '${i + 1}' : null,
+            onTap: models[i].downloaded ? () => Navigator.pop(context, models[i].name) : null,
           ),
       ],
     );
@@ -352,15 +353,24 @@ class _ModelPanel extends StatelessWidget {
 }
 
 class _ModelRow extends StatelessWidget {
-  final String name;
+  final ModelInfo model;
   final bool selected;
   final String? shortcut;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
-  const _ModelRow({required this.name, required this.selected, this.shortcut, required this.onTap});
+  const _ModelRow({required this.model, required this.selected, this.shortcut, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    // Not downloaded: shown (so the user knows it exists and how to get it)
+    // but not selectable -- picking an undownloaded model used to fail
+    // confusingly at load time (vte-server's own FileNotFoundError) instead
+    // of being caught here, in the one place that already knows every
+    // registered model's name.
+    final disabled = !model.downloaded;
+    final textColor = disabled
+        ? AppColors.textMuted.withValues(alpha: 0.5)
+        : (selected ? AppColors.textWhite : AppColors.textPrimary);
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -375,15 +385,18 @@ class _ModelRow extends StatelessWidget {
             ),
             Expanded(
               child: Text(
-                name,
-                style: TextStyle(
-                  color: selected ? AppColors.textWhite : AppColors.textPrimary,
-                  fontSize: 13,
-                ),
+                model.name,
+                style: TextStyle(color: textColor, fontSize: 13),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            if (shortcut != null)
+            if (disabled)
+              const Padding(
+                padding: EdgeInsets.only(left: 6),
+                child: Text('not downloaded',
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 10.5, fontStyle: FontStyle.italic)),
+              )
+            else if (shortcut != null)
               Text(shortcut!, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
           ],
         ),

@@ -171,14 +171,26 @@ class SettingsUpdateRequest(BaseModel):
 async def get_settings():
     """Current model choice + context_length + the list of VTE models
     actually available to pick from (VTEModel.MODEL_REGISTRY -- Fase 4
-    settings panel)."""
+    settings panel), each tagged with whether its .gguf is actually present
+    in Model/ -- MODEL_REGISTRY lists every model VTE knows how to load,
+    not just the ones the user has actually pulled, so picking an
+    undownloaded one used to fail confusingly at load time instead of being
+    caught in the picker itself."""
+    from pathlib import Path
     from core.utils.settings import get_setting
     from core.utils.vte_bridge import VTE_DEFAULT_MODEL
-    from vte.core.model import VTEModel
+    from vte.core.model import VTEModel, _REPO_ROOT
+
+    def _is_downloaded(filename: str) -> bool:
+        return any(p.exists() for p in (Path("Model") / filename, _REPO_ROOT / "Model" / filename))
+
     return {
         "default_model": get_setting("default_model", "") or VTE_DEFAULT_MODEL,
         "context_length": get_setting("context_length", 2048),
-        "available_models": list(VTEModel.MODEL_REGISTRY.keys()),
+        "available_models": [
+            {"name": name, "downloaded": _is_downloaded(filename)}
+            for name, filename in VTEModel.MODEL_REGISTRY.items()
+        ],
     }
 
 

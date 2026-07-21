@@ -40,7 +40,27 @@ class _MainScreenState extends ConsumerState<MainScreen> {
               children: [
                 const SizedBox(width: 280, child: SidebarScreen()),
                 const VerticalDivider(width: 1, color: AppColors.border),
-                Expanded(child: browserVisible ? const BrowserScreen() : const ChatScreen()),
+                Expanded(
+                  // IndexedStack, not a ternary swap: BrowserScreen's state
+                  // subscribes to BrowserController's webview streams
+                  // (loadingState/url/historyChanged) exactly once, guarded
+                  // by its own _subscribed flag -- but that guard only
+                  // protects one State instance's lifetime. A ternary here
+                  // destroys BrowserScreen every time the user switches back
+                  // to chat and creates a brand new State (with a fresh,
+                  // unset _subscribed) the next time browserVisible flips
+                  // true, which then re-listens on the SAME already-
+                  // subscribed single-subscription streams (BrowserController
+                  // itself is a plain Provider, never disposed) and crashes
+                  // with "Bad state: Stream has already been listened to."
+                  // Keeping both children permanently mounted sidesteps this
+                  // by construction: BrowserScreen's State, and therefore its
+                  // one-time subscription, is created exactly once.
+                  child: IndexedStack(
+                    index: browserVisible ? 1 : 0,
+                    children: const [ChatScreen(), BrowserScreen()],
+                  ),
+                ),
                 if (_inspectorVisible) ...[
                   const VerticalDivider(width: 1, color: AppColors.border),
                   const SizedBox(width: 320, child: InspectorScreen()),

@@ -389,7 +389,18 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
     state = state.copyWith(
       executionLogs: [...state.executionLogs, '[browser_action] ${jsonEncode({'tool': tool, 'result': resultText})}'],
     );
-    await sendMessage('[$tool result]\n$resultText', isHidden: true, visible: false);
+    // read_browser_page's result is long, unstructured page text, not a
+    // file -- without an explicit nudge, smaller models (confirmed with
+    // Llama 3.1 8B) sometimes fail to connect it back to the user's
+    // original request and hallucinate an unrelated reply (e.g. asking for
+    // a "project folder" for what was actually a Gmail inbox listing,
+    // likely pattern-matching the same bracketed "[tool result]" shape
+    // read_file's output uses). navigate_browser's result is just a short
+    // confirmation string, unambiguous without extra framing.
+    final resultMessage = tool == 'read_browser_page'
+        ? '[$tool result]\n$resultText\n\nUsing the page content above, answer what I originally asked.'
+        : '[$tool result]\n$resultText';
+    await sendMessage(resultMessage, isHidden: true, visible: false);
   }
 
   /// Resolves a pending `confirm_tool` dialog (see chat_screen.dart's

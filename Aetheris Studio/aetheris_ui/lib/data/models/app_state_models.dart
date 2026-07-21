@@ -1,15 +1,33 @@
+/// One entry of GET /api/settings's available_models: a model VTE knows how
+/// to load (MODEL_REGISTRY), tagged with whether its .gguf is actually
+/// present in Model/ right now -- picking one that isn't downloaded used to
+/// fail confusingly at load time instead of being caught in the picker.
+class ModelInfo {
+  final String name;
+  final bool downloaded;
+  const ModelInfo({required this.name, required this.downloaded});
+
+  factory ModelInfo.fromJson(dynamic json) {
+    // Back-compat: an older backend (or a stale cached response) may still
+    // send available_models as a plain list of name strings.
+    if (json is String) return ModelInfo(name: json, downloaded: true);
+    final map = json as Map<String, dynamic>;
+    return ModelInfo(name: map['name']?.toString() ?? '', downloaded: map['downloaded'] == true);
+  }
+}
+
 /// Mirrors GET /api/settings: {default_model, context_length, available_models}.
 class SettingsState {
   final String defaultModel;
   final int contextLength;
-  final List<String> availableModels;
+  final List<ModelInfo> availableModels;
 
   const SettingsState({this.defaultModel = '', this.contextLength = 2048, this.availableModels = const []});
 
   factory SettingsState.fromJson(Map<String, dynamic> json) => SettingsState(
         defaultModel: json['default_model']?.toString() ?? '',
         contextLength: (json['context_length'] as num?)?.toInt() ?? 2048,
-        availableModels: (json['available_models'] as List?)?.map((e) => e.toString()).toList() ??
+        availableModels: (json['available_models'] as List?)?.map(ModelInfo.fromJson).toList() ??
             const [],
       );
 }
