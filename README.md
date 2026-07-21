@@ -120,13 +120,27 @@ Aetheris needed a local inference engine that runs entirely on an AMD Radeon GPU
 |---|---|---|---|---|
 | Qwen2.5 1.5B Q4_K_M | RX 7600 (32 CUs, 8 GB) | **112.98 tok/s** | 110.76 tok/s | **102.0%** |
 | Granite 4.1 3B Q8_0 | RX 7600 (32 CUs, 8 GB) | **55.65 tok/s** | 50.84 tok/s | **109.5%** |
+| Granite 4.1 30B Q8_0 | W7900 (96 CUs, 48 GB) | 20.2 tok/s | 22.5 tok/s | 89.8% |
+| Qwen2.5 32B Q4_K_M | W7900 (96 CUs, 48 GB) | 22.7 tok/s | 28.56 tok/s | 79.5% |
+| Llama 3.1 8B Q4_K_M | W7900 (96 CUs, 48 GB) | 72.68 tok/s | 93.45 tok/s | 77.8% |
 | Llama 3.1 70B Q4_K_M | W7900 (96 CUs, 48 GB) | 10.50 tok/s | 14.21 tok/s | 73.9% |
 
-Full numbers across five models, three architectures, both cards: [`VTE/docs/BENCHMARK_W7900.md`](VTE/docs/BENCHMARK_W7900.md).
+Real GPU telemetry (`amd-smi`, sampled every ~0.5s) from the W7900 runs above, load through 3 back-to-back generations each, no thermal throttling on any of them:
+
+| Model | VRAM peak | Hotspot temp peak | Power peak |
+|---|---|---|---|
+| Granite 4.1 30B Q8_0 | 30.3 GiB | 55°C | 243 W |
+| Qwen2.5 32B Q4_K_M | 20.4 GiB | 60°C | 295 W |
+| Llama 3.1 8B Q4_K_M | 5.7 GiB | 48°C | 292 W |
+| Llama 3.1 70B Q4_K_M | ~42.5 GiB | not sampled | not sampled |
+
+VRAM peaks match the predicted weights+KV-cache+arena breakdown almost exactly in every case, on a card with a 241 W TDP.
+
+Full numbers across six models, three architectures, both cards: [`VTE/docs/BENCHMARK_W7900.md`](VTE/docs/BENCHMARK_W7900.md).
 
 None of that is required reading to use Aetheris. If you're curious how it works or want the full kernel-optimization writeup (what worked, what didn't, and the real numbers behind each decision): [`VTE/README.md`](VTE/README.md) and [`VTE/docs/PERFORMANCE.md`](VTE/docs/PERFORMANCE.md).
 
-That last row is a stretch test: the same engine that hits 112.98 tok/s on a $270 RX 7600 also loaded and correctly decoded a 70B-parameter Llama 3.1 checkpoint on a Radeon PRO W7900 workstation card (via AMD's Radeon Cloud, `amd-oneclick-base:rocm7.2.1-py3.12-v20260416` image), no architecture-specific code needed for the jump in scale. Real GPU telemetry (`amd-smi`, sampled every ~0.5s) during the Granite 30B run: hotspot temperature peaked at 55°C on a 241W-TDP card, no thermal throttling across multiple back-to-back generations, and VRAM peaked at 30.3 GiB, matching the predicted weights+KV-cache+arena breakdown almost exactly.
+The 70B row is a stretch test past the curated model set: loaded on a Radeon PRO W7900 via AMD's Radeon Cloud (`amd-oneclick-base:rocm7.2.1-py3.12-v20260416` image), no architecture-specific code needed for the jump in scale from the 8 GB RX 7600 it was designed against.
 
 The W7900 run also caught a real bug no amount of RX 7600 testing ever could: `hipGetDeviceProperties` was resolving to a stale ABI symbol, so `gcnArchName` (the real ISA string) was silently missing and architecture detection fell back to matching the GPU's commercial name. On this card the fallback happened to land on the right answer anyway; on a different workstation family (e.g. a W6800) it would have silently picked the *wrong* GPU architecture with no error at all. Fixed by binding the correct versioned symbol (`hipGetDevicePropertiesR0600`) and prioritizing the real ISA string over the commercial name. Full writeup, plus two more real bugs this same hardware validation pass caught: [`VTE/docs/BENCHMARK_W7900.md`](VTE/docs/BENCHMARK_W7900.md).
 
