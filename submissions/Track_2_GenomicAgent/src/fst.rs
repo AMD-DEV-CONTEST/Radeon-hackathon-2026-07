@@ -106,6 +106,106 @@ pub fn per_snp_fst(
         .collect()
 }
 
+/// Per-SNP result of the permutation significance test: how the real,
+/// observed FST compares to FST computed under many *random* relabelings
+/// of the same samples into two groups of the same sizes.
+pub struct FstPermutationResult {
+    pub snp_index: usize,
+    pub observed_fst: f64,
+    pub p_value: f64,
+    pub n_permutations: usize,
+}
+
+struct Xorshift64(u64);
+impl Xorshift64 {
+    fn next_u64(&mut self) -> u64 {
+        let mut x = self.0;
+        x ^= x << 13;
+        x ^= x >> 7;
+        x ^= x << 17;
+        self.0 = x;
+        x
+    }
+}
+
+/// Empirical permutation-test p-value for every SNP's observed FST: a
+/// raw FST magnitude alone doesn't say whether it's real signal or just
+/// what you'd expect from splitting these samples into two groups at
+/// random. This shuffles the sample-to-group assignment (keeping the
+/// group *sizes* fixed at `group_a.len()`/`group_b.len()`)
+/// `n_permutations` times, recomputes every SNP's FST under each
+/// shuffle, and counts how often the permuted FST is at least as large
+/// as the real, observed one -- the standard way to attach real
+/// statistical significance to an FST scan, not just report magnitude.
+///
+/// One shuffled label assignment is shared across all SNPs per
+/// permutation round (not resampled per SNP) -- this is the standard,
+/// efficient way to run this test: it doesn't change what each SNP's
+/// own p-value means (still "how often does a random relabeling beat
+/// this SNP's real FST"), it just means the expensive part (generating
+/// a valid random relabeling) is paid once per round instead of once
+/// per SNP per round.
+///
+/// `observed` must be `per_snp_fst`'s own output for the same data and
+/// grouping (relies on its `[snp_index] == index`-in-order guarantee).
+/// Runs on CPU for the same reason `per_snp_fst` does -- see this
+/// module's doc comment.
+pub fn permutation_test(
+    snp_major: &[f32],
+    num_snps: usize,
+    num_samples: usize,
+    group_a: &[usize],
+    group_b: &[usize],
+    observed: &[FstResult],
+    n_permutations: usize,
+    seed: u64,
+) -> Vec<FstPermutationResult> {
+    let n_a = group_a.len();
+    let n_b = group_b.len();
+    let mut all_samples: Vec<usize> = (0..num_samples).collect();
+    let mut exceed_counts = vec![0usize; num_snps];
+    let mut rng = Xorshift64(seed | 1);
+
+    for _ in 0..n_permutations {
+        // Fisher-Yates shuffle, then split into two groups of the same
+        // sizes as the real split -- a genuine random relabeling, not
+        // resampling with replacement (that's bootstrap.rs's job, a
+        // different question: "how much would the estimate move under
+        // a different sample draw" vs. this module's "is the group
+        // split itself doing real work").
+        for i in (1..all_samples.len()).rev() {
+            let j = (rng.next_u64() as usize) % (i + 1);
+            all_samples.swap(i, j);
+        }
+        let perm_a = &all_samples[0..n_a];
+        let perm_b = &all_samples[n_a..n_a + n_b];
+
+        let perm_results = per_snp_fst(snp_major, num_snps, num_samples, perm_a, perm_b);
+        for (i, r) in perm_results.iter().enumerate() {
+            if r.fst >= observed[i].fst {
+                exceed_counts[i] += 1;
+            }
+        }
+    }
+
+    observed
+        .iter()
+        .enumerate()
+        .map(|(i, obs)| FstPermutationResult {
+            snp_index: obs.snp_index,
+            observed_fst: obs.fst,
+            // +1 smoothing in both numerator and denominator (standard
+            // practice for permutation p-values, e.g. North, Curtis &
+            // Sham 2002): with a finite number of permutations, "0 of N
+            // exceeded" doesn't mean the true p-value is exactly zero,
+            // only that it's below roughly 1/N -- this never reports an
+            // unjustified p=0.
+            p_value: (exceed_counts[i] as f64 + 1.0) / (n_permutations as f64 + 1.0),
+            n_permutations,
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -184,5 +284,77 @@ mod tests {
         let (group_a, group_b) = split_by_pc1_sign(&projections);
         assert_eq!(group_a, vec![0, 2, 4]);
         assert_eq!(group_b, vec![1, 3]);
+    }
+
+    #[test]
+    fn permutation_test_gives_a_low_p_value_for_a_real_group_effect() {
+        // A SNP where the group split is doing real work: every group-A
+        // sample is dosage 0, every group-B sample is dosage 2. Almost
+        // any random relabeling will mix the groups and produce a much
+        // lower FST than the real 1.0 -- the observed split should rank
+        // at or near the top of the permutation distribution.
+        let num_samples = 40;
+        let snp_major: Vec<f32> = (0..num_samples)
+            .map(|i| if i < 20 { 0.0 } else { 2.0 })
+            .collect();
+        let group_a: Vec<usize> = (0..20).collect();
+        let group_b: Vec<usize> = (20..40).collect();
+
+        let observed = per_snp_fst(&snp_major, 1, num_samples, &group_a, &group_b);
+        assert!((observed[0].fst - 1.0).abs() < 1e-9, "sanity check: real split should be fully differentiated");
+
+        let perm = permutation_test(&snp_major, 1, num_samples, &group_a, &group_b, &observed, 200, 999);
+        assert!(perm[0].p_value < 0.05, "expected a real group effect to be significant, got p={}", perm[0].p_value);
+    }
+
+    #[test]
+    fn permutation_test_gives_a_high_p_value_for_no_group_effect() {
+        // Every sample has the same dosage regardless of group -- FST is
+        // 0 for the real split AND for every permutation (no possible
+        // relabeling can create differentiation that isn't there). The
+        // real split should NOT look unusually extreme.
+        let num_samples = 40;
+        let snp_major: Vec<f32> = vec![1.0f32; num_samples]; // everyone heterozygous
+        let group_a: Vec<usize> = (0..20).collect();
+        let group_b: Vec<usize> = (20..40).collect();
+
+        let observed = per_snp_fst(&snp_major, 1, num_samples, &group_a, &group_b);
+        assert!((observed[0].fst - 0.0).abs() < 1e-9, "sanity check: uniform dosage should give FST=0");
+
+        let perm = permutation_test(&snp_major, 1, num_samples, &group_a, &group_b, &observed, 200, 999);
+        assert!(perm[0].p_value > 0.5, "expected a null SNP to have a high (non-significant) p-value, got p={}", perm[0].p_value);
+    }
+
+    #[test]
+    fn permutation_test_p_value_is_never_zero() {
+        // The +1 smoothing should keep p-values in (0, 1], never exactly 0.
+        let num_samples = 30;
+        let snp_major: Vec<f32> = (0..num_samples)
+            .map(|i| if i < 15 { 0.0 } else { 2.0 })
+            .collect();
+        let group_a: Vec<usize> = (0..15).collect();
+        let group_b: Vec<usize> = (15..30).collect();
+
+        let observed = per_snp_fst(&snp_major, 1, num_samples, &group_a, &group_b);
+        let perm = permutation_test(&snp_major, 1, num_samples, &group_a, &group_b, &observed, 50, 7);
+        assert!(perm[0].p_value > 0.0, "p-value should never be exactly zero, got {}", perm[0].p_value);
+    }
+
+    #[test]
+    fn permutation_test_preserves_snp_order_and_count() {
+        let num_snps = 5;
+        let num_samples = 20;
+        let snp_major: Vec<f32> = (0..num_snps * num_samples).map(|i| (i % 3) as f32).collect();
+        let group_a: Vec<usize> = (0..10).collect();
+        let group_b: Vec<usize> = (10..20).collect();
+
+        let observed = per_snp_fst(&snp_major, num_snps, num_samples, &group_a, &group_b);
+        let perm = permutation_test(&snp_major, num_snps, num_samples, &group_a, &group_b, &observed, 20, 42);
+        assert_eq!(perm.len(), num_snps);
+        for (i, p) in perm.iter().enumerate() {
+            assert_eq!(p.snp_index, i);
+            assert_eq!(p.n_permutations, 20);
+            assert!((p.observed_fst - observed[i].fst).abs() < 1e-12);
+        }
     }
 }

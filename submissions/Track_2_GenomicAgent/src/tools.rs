@@ -571,9 +571,32 @@ impl Tool for SelectionScanTool {
             ));
         }
 
-        let mut results = fst::per_snp_fst(&snp_major, num_snps, num_samples, &group_a, &group_b);
-        results.sort_by(|a, b| b.fst.partial_cmp(&a.fst).unwrap());
-        let mean_fst: f64 = results.iter().map(|r| r.fst).sum::<f64>() / results.len().max(1) as f64;
+        let results = fst::per_snp_fst(&snp_major, num_snps, num_samples, &group_a, &group_b);
+
+        // Empirical permutation significance test (see fst.rs): a raw
+        // FST magnitude alone doesn't say whether it's real signal or
+        // just what random relabeling of these samples would produce.
+        // Runs on CPU for the same reason per_snp_fst does -- trivial
+        // compute (num_snps * num_samples per permutation), no benefit
+        // from a GPU dispatch.
+        const N_PERMUTATIONS: usize = 200;
+        let perm_results = fst::permutation_test(
+            &snp_major,
+            num_snps,
+            num_samples,
+            &group_a,
+            &group_b,
+            &results,
+            N_PERMUTATIONS,
+            20260720,
+        );
+
+        let mut combined: Vec<(fst::FstResult, fst::FstPermutationResult)> =
+            results.into_iter().zip(perm_results).collect();
+        combined.sort_by(|a, b| b.0.fst.partial_cmp(&a.0.fst).unwrap());
+
+        let mean_fst: f64 = combined.iter().map(|(r, _)| r.fst).sum::<f64>() / combined.len().max(1) as f64;
+        let significant_count = combined.iter().filter(|(_, p)| p.p_value < 0.05).count();
 
         let elapsed = start.elapsed();
 
@@ -582,19 +605,25 @@ impl Tool for SelectionScanTool {
              Top 5 SNPs by FST (candidates for population differentiation):\n",
             dataset_label(), num_snps, group_a.len(), group_b.len(), compute_path
         );
-        for (rank, r) in results.iter().take(5).enumerate() {
+        for (rank, (r, p)) in combined.iter().take(5).enumerate() {
             out.push_str(&format!(
-                "{}. SNP_{}: FST={:.3} (freq_A={:.3}, freq_B={:.3})\n",
+                "{}. SNP_{}: FST={:.3} (freq_A={:.3}, freq_B={:.3}), permutation p={:.3}{}\n",
                 rank + 1,
                 r.snp_index,
                 r.fst,
                 r.freq_a,
                 r.freq_b,
+                p.p_value,
+                if p.p_value < 0.05 { " *" } else { "" },
             ));
         }
         out.push_str(&format!(
-            "\nMean FST across all {} SNPs: {:.3}\nProcessing time: {:.3}ms (measured)",
-            results.len(),
+            "\n{} of {} SNPs significant at p<0.05 ({} permutations of the sample-to-group labels)\n\
+             Mean FST across all {} SNPs: {:.3}\nProcessing time: {:.3}ms (measured)",
+            significant_count,
+            combined.len(),
+            N_PERMUTATIONS,
+            combined.len(),
             mean_fst,
             elapsed.as_secs_f64() * 1000.0,
         ));
