@@ -9,14 +9,6 @@ Recommended final Demo V3:
 Demo V3 captions:
 `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V3.srt`
 
-Original Demo V2:
-`https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V2.mp4`
-
-Demo V3 and Demo V2 use AIDP `gemini-3.1-flash-tts-preview`, male voice
-`Charon`, with burned-in English captions and an embedded English subtitle
-track. Campaign backgrounds were generated with GPT Image 2; visible labels
-and measured metrics were typeset locally.
-
 ## Speak the SOP. Prove the Skill.
 
 **AMD AI DevMaster Hackathon - Track 2**
@@ -26,9 +18,10 @@ and measured metrics were typeset locally.
 
 ## 1. Executive Summary
 
-Radeon Voice Skill Foundry is a private, locally deployed Agent system that
-turns a spoken standard operating procedure and an aligned action trace into a
-verified, reusable Agent Skill.
+Radeon Voice Skill Foundry is a private-Agent system whose core ASR and Agent
+models run on a dedicated Radeon Cloud instance. It turns a spoken standard
+operating procedure and an aligned action trace into a verified, reusable Agent
+Skill package.
 
 Most workflow-learning systems infer procedures from repeated successful runs.
 That approach has a cold-start problem: the Agent must act before it has enough
@@ -37,16 +30,15 @@ boundaries, or prohibited behavior. Radeon Voice Skill Foundry captures those
 hidden rules directly from a domain expert's voice and proves them before the
 first risky run.
 
-The output is not merely a transcript or generated workflow. It is a
-proof-carrying skill package containing:
+The resulting package contains:
 
-- a GAIA-compatible `SKILL.md`
+- portable Agent Skill Markdown in `SKILL.md`
 - typed constraints
 - a least-privilege capability policy
 - positive and adversarial test fixtures
 - deterministic verification results
-- governance receipts
-- a hash-bound proof bundle
+- hashed governance receipts
+- a proof bundle with SHA-256 integrity fields
 - versioned procedural memory
 - source-bound voice quality evidence
 
@@ -78,8 +70,13 @@ The Agent must:
 9. store the verified skill for immediate exact reuse
 
 Target users include operations teams, project managers, compliance-sensitive
-office teams, and domain experts who need local automation without uploading
-private procedures to a third-party service.
+office teams, and domain experts who need control over where core inference and
+procedural memory run.
+
+The public contest deployment uses Cloudflare Pages as the UI and authenticated
+transport layer. Reviewers should use the supplied synthetic fixture rather
+than real confidential material. The same application can be deployed without
+the public gateway on a private network.
 
 ## 3. Why Voice Is Structurally Necessary
 
@@ -136,7 +133,7 @@ The architecture has eight deployment and execution layers:
    - Qwen3-ASR-0.6B for local speech recognition
    - Qwen3-4B-Instruct-2507 for structured SOP compilation
 5. **Context and planning**
-   - local policy/SOP RAG
+   - deterministic local policy/SOP retrieval
    - typed constraint extraction
    - multi-step skill and capability planning
 6. **Safety kernel**
@@ -155,11 +152,12 @@ See `ARCHITECTURE.png` for the final diagram.
 
 ## 5. Core Capabilities
 
-### 5.1 Local RAG
+### 5.1 Local Knowledge Retrieval
 
-The system indexes local SOP and policy documents, retrieves relevant evidence,
-and injects the evidence into the Agent compiler. The UI shows which documents
-were used and their retrieval scores.
+The system stores local SOP and policy documents in JSON and retrieves relevant
+evidence with deterministic token-overlap scoring. Retrieved excerpts are
+injected into the Agent compiler, and the UI shows the selected documents and
+scores. This implementation does not use embeddings or a vector database.
 
 ### 5.2 Tool Calling and Workflow Orchestration
 
@@ -291,6 +289,11 @@ operations fail closed when ledger integrity is invalid. The Memory module
 shows status, head hash, issues, and ordered entries, and exports the chain as
 JSONL.
 
+This is a local integrity mechanism, not an externally anchored audit service.
+Entries are hashed but not digitally signed. An attacker able to rewrite both
+the ledger and all corresponding skill-memory records is outside the current
+threat model.
+
 ### 5.6 Permission and Privacy Controls
 
 High-risk policy is enforced ahead of model output. In the reference scenario:
@@ -317,7 +320,8 @@ from entering Verified Skill memory.
 
 The existing synthetic Chinese SOP WAV measured 20.39 seconds at 16 kHz mono,
 -18.36 dBFS RMS, -2.94 dBFS peak, zero clipping, and 17.17% near-silence,
-producing a `PASS` score of 100/100.
+producing an internal quality-gate result of `pass / 100`. This value is not a
+word-error-rate or external ASR benchmark.
 
 Voice Evidence v0.3 also measures estimated SNR, noise floor, speech level,
 crest factor, DC offset, short dropout, multi-frame burst loss, and channel
@@ -397,7 +401,7 @@ Final audio-backed rerun on the same Radeon allocation:
 | ASR inference | 1.4259 s |
 | ASR RTF | 0.0699 |
 | ASR speed | 14.3x real-time |
-| Voice Evidence Gate | 100/100 |
+| Internal Voice Evidence Gate | pass / 100 |
 | Agent compile duration | 24.1331 s |
 | Agent TTFT | 368.16 ms |
 | Agent throughput | 20.07 tokens/s |
@@ -444,20 +448,21 @@ Every compact run was required to produce:
 The optimization reduces total generation time by reducing unnecessary output,
 not by claiming a higher token-generation rate.
 
-### 8.2 Verified Skill Reuse
+### 8.2 Identical-Skill Application Fast Path
 
 The full optimized compilation measured 24,093.42 ms HTTP round-trip. Exact
 reuse of the already-verified skill measured 2.18 ms median HTTP round-trip over
 five calls.
 
-Measured exact-reuse speedup:
+Measured request-latency ratio:
 
 `24,093.42 / 2.18 = 11,052.03x`
 
 Each reuse avoided 506 model output tokens.
 
-This ratio applies only to an identical Verified Skill lookup. It is not
-claimed for changed SOPs, semantic search, or arbitrary Agent replanning.
+This ratio applies only to an identical promoted-skill lookup and avoids a
+repeat model call. It is not a fresh-inference GPU speedup and is not claimed
+for changed SOPs, approximate search, or arbitrary Agent replanning.
 
 ### 8.3 Optimized Serving and ASR Batching
 
@@ -534,7 +539,8 @@ The schema recovered output shape in two cases but never recovered every
 required policy kind. The admission controller rejected all twelve INT8
 responses and selected FP16.
 
-A real audio-backed product run then passed Voice Evidence at 100/100, recorded
+A real audio-backed product run then passed the internal Voice Evidence gate at
+`pass / 100`, recorded
 `selected = fallback` plus the missing policy kinds in the proof core,
 preserved `mail.send = deny`, passed 7/7 fixtures, and generated a valid proof
 ZIP.
@@ -591,7 +597,7 @@ categories in the Track 2 rules:
 
 | Track 2 capability | Implementation |
 |---|---|
-| Local RAG | local policy/SOP retrieval with visible evidence |
+| Local knowledge retrieval | deterministic token-overlap retrieval over local policy/SOP documents |
 | Tool invocation | typed file, mail, calendar, and report capabilities |
 | Multi-step planning | voice/action trace to skill, policy, tests, and proof |
 | Local multi-turn memory | versioned skills and parent/child revisions |
@@ -602,9 +608,9 @@ It also directly addresses both Radeon scoring items:
 - core ASR and Agent inference run locally on Radeon + ROCm
 - targeted inference optimization is measured with raw benchmark evidence
 
-## 11. Innovation
+## 11. Technical Contribution
 
-The primary innovation is **voice-seeded cold-start verification for local
+The primary contribution is **voice-seeded cold-start verification for local
 Agent Skills**.
 
 Existing workflow learning commonly distills procedures from repeated successful
@@ -612,7 +618,7 @@ executions. Radeon Voice Skill Foundry instead captures expert intent before the
 first risky execution and produces evidence that a future skill marketplace,
 reviewer, or local Agent runtime can inspect.
 
-The defensible artifact is not voice transcription. It is the transformation:
+The implemented transformation is:
 
 `private voice + source evidence + action trace -> governed skill + adversarial proof`
 
@@ -667,7 +673,8 @@ The final recording and the two V2 videos have separate evidence roles:
 - `RADEON_VOICE_SKILL_FOUNDRY_DEMO_V3.mp4` records the complete frozen public
   product continuously: voice, six server-authoritative actions, real W7900
   ASR and skill compilation, Sandbox Replay, Promotion Impact Review,
-  proof-bound promotion, Governance Audit Ledger export, and exact reuse.
+  proof-hash-checked promotion, Governance Audit Ledger export, and exact
+  reuse.
 
 - `RADEON_VOICE_SKILL_FOUNDRY_DEMO_V2.mp4` records the live Cloudflare product
   executing real W7900 Qwen3-ASR and Qwen3-4B inference. The actual model wait
@@ -682,7 +689,8 @@ The final recording and the two V2 videos have separate evidence roles:
 - The direct compact-output A/B uses three runs per variant.
 - The final full-compilation evidence is one end-to-end sample.
 - Exact reuse requires an identical stored skill; changed intent triggers
-  recompilation and verification.
+  recompilation and verification. The measured ratio is an application fast
+  path, not a fresh-inference GPU speedup.
 - The serving study includes isolated Transformers FP16, vLLM eager FP16, and
   vLLM graph FP16 runs on the same W7900 allocation. At concurrency eight,
   vLLM graph delivered 257.65 aggregate output tokens/s versus 20.66 for the
@@ -705,6 +713,8 @@ The final recording and the two V2 videos have separate evidence roles:
   token before writing KV, so a tunnel restart no longer requires a frontend
   redeploy. A named Tunnel remains the preferred post-contest infrastructure
   upgrade.
+- The governance ledger detects inconsistent local records through hashes and
+  cross-checks. It is not externally signed or immutably anchored.
 
 ## 14.1 Lifecycle Engineering Upgrade
 
@@ -760,6 +770,14 @@ The final weekend experiment implementation is pinned to source commit
 `20776d9`. A clean Radeon clone of that commit passed `npm ci`, 33/33 tests,
 and the production build. The same commit replayed clean, 120 ms burst-loss,
 and 280 ms burst-loss samples through the real `/api/transcribe` endpoint.
+
+## 14.2 Presentation Asset Disclosure
+
+Demo narration uses AIDP `gemini-3.1-flash-tts-preview`, male voice `Charon`,
+with burned-in English captions and an embedded subtitle track. Demo
+backgrounds use GPT Image 2. Project labels, diagrams, and reported
+measurements were derived or typeset from repository evidence. These
+presentation tools do not provide the product's core Agent or ASR functions.
 
 ## 15. Evidence Index
 

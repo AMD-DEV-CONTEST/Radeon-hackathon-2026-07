@@ -1,200 +1,110 @@
-# Radeon Voice Skill Foundry - Track 2 Submission
+# Radeon Voice Skill Foundry
 
-**Speak the SOP. Prove the Skill.**
+**Track 2: Development and Local Deployment of Private AI Agents**
 
-Radeon Voice Skill Foundry turns a private spoken SOP and an aligned workflow
-demonstration into a verified, reusable Agent Skill before the Agent is allowed
-to perform risky actions.
+**Participant:** Chengyuann
+**Team:** N/A (solo)
+**License:** MIT
 
-## Entry
+Radeon Voice Skill Foundry converts a spoken operating procedure and six
+server-recorded workflow actions into a reusable Agent Skill package. Before
+reuse, the system retrieves local policy evidence, compiles typed constraints
+and permissions, runs deterministic positive and adversarial tests, and
+requires explicit human promotion.
 
-- Track: Track 2 - Localized Private AI Agents
-- Team: N/A (solo)
-- GitHub ID: `Chengyuann`
-- Project repository:
-  `https://github.com/Chengyuann/radeon-voice-skill-foundry`
-- License: MIT
-- Live product:
-  `https://radeon-voice-skill-foundry.pages.dev/`
-- Recommended live Demo V2:
-  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V2.mp4`
-- Demo V2 captions:
-  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V2.srt`
-- Demo V2 proof:
-  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/demo-v2-proof.zip`
-- Original overview video:
-  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO.mp4`
-- Official submission PR:
-  `https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/pull/7`
-- Continuous lifecycle Demo V2:
-  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/CONTINUOUS_OPERATION_DEMO_V2.mp4`
-- Continuous Demo V2 captions:
-  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/CONTINUOUS_OPERATION_DEMO_V2.srt`
-- Continuous Demo V2 child proof:
-  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/continuous-demo-v2-proof.zip`
-- Original continuous operation demo:
-  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/CONTINUOUS_OPERATION_DEMO.mp4`
+## Judge Quick Path
 
-## Why It Matters
+1. Live product:
+   `https://radeon-voice-skill-foundry.pages.dev/`
+2. Final 4:39 Demo:
+   `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V3.mp4`
+3. Project Specification: `PROJECT_SPECIFICATION.pdf`
+4. Scoring evidence: `SCORING_EVIDENCE_MATRIX.md`
+5. Architecture: `ARCHITECTURE.png`
+6. Poster: `POSTER.pdf`
+7. Source:
+   `https://github.com/Chengyuann/radeon-voice-skill-foundry`
 
-Action traces capture what an expert did. Voice captures why, when, exceptions,
-privacy boundaries, and what must never happen.
+Demo captions:
+`https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V3.srt`
 
-The system compiles both signals into:
+Demo proof package:
+`https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/demo-v3-proof.zip`
 
-- typed SOP constraints
-- least-privilege capability policy
-- positive and adversarial fixtures
-- deterministic verification
-- governance receipts
-- Sandbox Replay v1: six state transitions plus five adversarial probes
-- a hash-bound proof bundle
-- a versioned Verified Skill that can be reused without replanning
-- candidate -> promoted -> superseded/revoked lifecycle with proof-bound
-  promotion, reasoned revocation, and verified rollback
-- Promotion Impact Review with permission/constraint/action/runtime diffs,
-  risk classification, stale-review rejection, and explicit risk acceptance
-- Governance Audit Ledger with tamper-evident hash chain, receipt
-  reconciliation, invalid-state reporting, and JSONL export
+Demo governance ledger:
+`https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/demo-v3-governance-ledger.jsonl`
 
-## Submission Materials
+## Implemented Track 2 Capabilities
 
-- `PROJECT_SPECIFICATION.pdf` - required English project specification
-- `PROJECT_SPECIFICATION.md` - accessible source version
-- `SCORING_EVIDENCE_MATRIX.md` - rubric-to-proof judge navigation
-- `PRODUCT_AND_NARRATIVE_FREEZE.md` - frozen product, claims, and release gate
-- `DEMO_V3_NARRATION.md` - canonical final recording narrative
-- `ARCHITECTURE.png` - Agent architecture diagram
-- `POSTER.pdf` - supplementary one-page poster
-- `POSTER.png` - poster preview
-- `VIDEO_COVER_V2.png` - cinematic 16:9 video cover
-- `PROMO_BANNER_V2.png` - 16:9 campaign banner
-- `SOCIAL_CARD_V2.png` - square social campaign card
-- `DEMO_SCRIPT.md` - 3-5 minute English demo narration and shot list
-- `DEMO_NARRATION.md` - final AI-generated English voiceover text
-- `DEMO_V2_NARRATION.md` - live Cloudflare + W7900 Demo V2 narration
-- `RADEON_VOICE_SKILL_FOUNDRY_DEMO_V2.srt` - Demo V2 captions
-- `RADEON_VOICE_SKILL_FOUNDRY_DEMO.srt` - final captions
-- `CONTINUOUS_OPERATION_DEMO.srt` - continuous workflow captions
-- `CONTINUOUS_DEMO_NARRATION.md` - continuous workflow narration source
-- `CONTINUOUS_OPERATION_DEMO_V2.srt` - lifecycle Demo V2 captions
-- `CONTINUOUS_DEMO_V2_NARRATION.md` - lifecycle Demo V2 narration source
-- `FINAL_SUBMISSION_CHECKLIST.md` - completion and evidence ledger
+- **Local knowledge retrieval:** deterministic token-overlap retrieval over
+  policy and SOP documents stored with the application.
+- **Tool invocation:** typed file, report, email-draft, email-send, calendar,
+  and network capabilities.
+- **Multi-step planning:** spoken intent and action evidence compile into an
+  ordered procedure, constraints, permissions, fixtures, and proof artifacts.
+- **Local memory:** versioned skill records with candidate, promoted,
+  superseded, and revoked states.
+- **Permission and privacy controls:** explicit allow, review, and deny
+  decisions; redaction; confirmation requirements; and server-authoritative
+  action evidence.
 
-## Measured Radeon Evidence
+The reference workspace is intentionally isolated. It creates email drafts,
+tentative calendar holds, and a redacted report, but it does not send email,
+commit invitations, or perform external network writes.
 
-- GPU: Radeon Pro W7900-class, `gfx1100`, 47.98 GiB VRAM
+## Radeon and ROCm Evidence
+
+- GPU: Radeon Pro W7900-class `gfx1100`, 47.98 GiB VRAM
 - ROCm: 7.2.1
-- Agent: Qwen3-4B-Instruct-2507, Transformers FP16
+- Agent model: Qwen3-4B-Instruct-2507 FP16
+- Speech model: Qwen3-ASR-0.6B FP16
 - Agent median TTFT: 108.87 ms
-- Agent median throughput: 22.02 tokens/s
-- ASR: Qwen3-ASR-0.6B
-- ASR warm median RTF: 0.0556, approximately 17.98x real-time
-- compact output protocol: 29.42% fewer output tokens
-- compact output protocol: 30.03% lower generation latency
-- exact Verified Skill reuse: 2.18 ms median HTTP round-trip
-- full optimized compilation: 24.09 s HTTP round-trip
-- exact-reuse speedup for the measured skill: 11,052.03x
-- final permission decision: `mail.send = deny`
-- original Radeon workflow verification: 6/6 fixtures passed
-- local audio-backed proof: 7/7, including Voice Evidence Gate
-- final Radeon audio-backed proof: 7/7, including Voice Evidence Gate
-- final Radeon validation commit: `c759a41`
-- final proof hash:
-  `6ff30ccc2d052e226051fa6819760abe3b2c2ef6243b63169ab9d5e0caebfc40`
-- final proof ZIP SHA-256:
-  `6ea53dfe28f8221b3db9b06e6eed537767bf28b4c6536d25d45f3ffec20500e9`
-- vLLM graph concurrency-eight: 257.65 aggregate output tokens/s
-- same-model serialized Transformers: 20.66 aggregate output tokens/s
-- measured serving uplift: 12.47x
-- native ASR batch-eight: 85.35x aggregate real-time
-- current local regression suite: 63/63, typecheck, production build
-- real deterministic teaching workspace: six user operations generate the
-  action trace; no preset trace is attached to a new run
+- Agent median generation throughput: 22.02 tokens/s
+- ASR warm median RTF: 0.0556, or 17.98x real-time
+- vLLM graph concurrency-eight throughput: 257.65 output tokens/s
+- Serialized Transformers concurrency-eight throughput: 20.66 output tokens/s
+- Same-hardware serving throughput ratio: 12.47x
+- Native ASR batch-eight: 85.35x aggregate real-time
+- Compact output: 29.42% fewer output tokens and 30.03% lower generation
+  latency
 
-Raw measurements are in:
+Exact reuse of an identical promoted skill measured 2.18 ms versus 24.09 s for
+the recorded full compile path. This is an application fast path that avoids a
+repeat model call; it is not presented as GPU inference acceleration for a new
+or changed task.
 
-- `benchmarks/w7900-2026-07-17.json`
-- `benchmarks/optimization-w7900-2026-07-17.json`
-- `benchmarks/radeon-audio-proof-v8-2026-07-18.json`
-- `benchmarks/lifecycle-enhancements-v9-2026-07-18.json`
-- `benchmarks/weekend-v10-summary.json`
+The Quark INT8 study reduced model-load VRAM by 44.07% and increased KV-cache
+capacity by 88.43%, but it was slower and failed the required policy-semantic
+gate. The submitted production recommendation therefore remains FP16. This is
+a measured rejection result, not a production quantization claim.
 
-## Current External Deliverable Status
+## Deployment and Privacy Boundary
 
-- Source repository: complete
-- English specification: complete
-- Architecture diagram: complete
-- Poster: complete
-- Demo script: complete
-- Demo video URL: complete
-- Official hackathon PR: open and publicly verified
-- Scoring evidence matrix: complete
+Core ASR and Agent inference run on the participant-controlled Radeon Cloud
+instance. Cloudflare Pages serves the public UI and forwards authenticated API
+requests to that instance. Raw audio is not included in proof downloads.
 
-The final narration uses AIDP `gemini-3.1-flash-tts-preview`, male voice
-`Charon`. Both demo MP4 files contain burned-in English narration captions and
-an embedded English subtitle track; matching SRT files are also published.
-Visual campaign backgrounds were generated with AIDP GPT Image 2; all visible
-project typography and measured values were composed locally.
+Because the contest demo is publicly reachable through Cloudflare, reviewers
+should use the supplied synthetic SOP fixture rather than real confidential
+material. The same source can also run on a private network without the public
+gateway.
 
-Demo V2 records the current cinematic module UI from the public Cloudflare
-deployment. It executes the real Voice -> Policy -> Proof -> Memory workflow
-against W7900 Qwen3-ASR and Qwen3-4B, then shows the measured vLLM and ASR
-batching evidence.
+## Evidence Boundaries
 
-The current product now adds a server-authoritative teaching workspace after
-Demo V2: six user commands are accepted by a persistent backend session, and
-the compile path ignores browser-supplied action tampering. The proof ZIP
-contains `action_contract.json` with the session ID, six typed events, and the
-contract hash. The final product video will be recorded only after the
-remaining product scope is frozen; the existing Main Demo V2 remains the
-authoritative real W7900 inference recording until then.
+- Demo V3 is the authoritative final product recording.
+- The Voice Evidence score is an internal deterministic quality-gate score,
+  not an external ASR accuracy benchmark.
+- The governance ledger uses SHA-256 payload and previous-entry hashes plus
+  cross-checks against skill memory. It detects accidental or isolated
+  modification in the stored artifacts. It is not an externally anchored,
+  signed, or Byzantine-resistant audit log.
+- Test counts belong to pinned revisions. The current local suite passes
+  63/63; earlier Radeon validation snapshots retain their recorded counts.
+- The synthetic Chinese SOP WAV is a reproducible fixture, not a claimed human
+  recording.
 
-Continuous Demo V2 isolates lifecycle control from the performance claim. It
-uses deterministic ASR and compiler fixtures, while executing real Node API
-process restarts, durable recovery, runtime drift, proof invalidation,
-revalidation, and child-proof download in one continuous browser session.
+## AI-Assisted Asset Disclosure
 
-## Post-Submission Engineering Upgrade
-
-- Voice Evidence v0.3 adds estimated SNR, noise floor, speech level, crest
-  factor, DC offset, short-dropout, multi-frame burst-loss, and channel
-  imbalance diagnostics.
-- Server-authoritative evidence, compile runs, and verification results persist
-  across service restart.
-- Every proof carries a compatibility manifest for verifier, runtime, tools,
-  policy, skill, and voice-evidence schema.
-- Changed runtime identity marks a skill `revalidation_required`; one-click
-  revalidation creates a new child run before reuse is restored.
-- Current local regression suite: 63/63, typecheck, and production build.
-- Proof schema v0.4 includes `sandbox_replay.json`: six step hashes, output
-  diffs, five fail-closed probes, and the final isolated workspace state.
-- Reuse is allowed only for promoted, proof-compatible skills. Rollback creates
-  a new promoted version and preserves immutable historical receipts.
-- Promotion receipts bind the exact review hash and risk level used by the
-  human approval.
-- Ledger validation detects modified payloads and deleted tail or middle
-  governance events.
-- Weekend v10 pinned Radeon source: 33/33 and production build.
-- vLLM graph serving reached 257.65 aggregate output tokens/s at concurrency
-  eight versus 20.66 for the serialized Transformers server.
-- Native Qwen3-ASR batch-eight reached 85.35x aggregate real-time and was
-  6.66x faster than sequential inference.
-- Voice Evidence v0.3 closes a measured burst-loss blind spot and forces old
-  v0.2 proofs through revalidation.
-
-## Evidence Boundary
-
-- Main Demo V2 is the real Cloudflare + W7900 inference and performance proof.
-- Continuous Demo V2 uses deterministic ASR/compiler fixtures with real Node
-  process restarts; it proves lifecycle control, not GPU throughput.
-- Quark INT4 W4A16 export reduced storage by 66.73%, but the installed vLLM
-  Quark loader rejected that weight-only serving scheme.
-- Quark INT8 W8A8 reduced model-load VRAM by 44.07% and increased KV-cache
-  capacity by 88.43%, but was 36.70% slower at concurrency eight.
-- INT8 C128 passed only 11/51 complete safety-semantic gates and 2/51 strict
-  JSON checks; FP16 passed 51/51. INT8 is rejected for the policy compiler.
-- Adaptive Precision Controller v12 added JSON Schema, semantic admission, and
-  FP16 fallback. Schema INT8 remained 0/12 admitted; fallback restored 12/12.
-- A real audio-backed proof records `selected = fallback`, preserves
-  `mail.send = deny`, and passes 7/7.
+Demo narration uses AIDP `gemini-3.1-flash-tts-preview`, voice `Charon`.
+Demo backgrounds use GPT Image 2. Captions, project labels, diagrams, and
+all reported measurements were derived or typeset from repository evidence.
