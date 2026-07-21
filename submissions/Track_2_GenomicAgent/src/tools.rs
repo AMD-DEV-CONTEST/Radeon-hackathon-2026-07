@@ -367,7 +367,9 @@ impl Tool for PopulationStructureTool {
         // computing self-correlation would divide by zero variance).
         // Same GPU-dispatched (CPU-fallback) helper `SelectionScanTool`
         // uses -- see `gpu_ld::sample_correlation_matrix`'s doc comment.
-        let (matrix, compute_path) = gpu_ld::sample_correlation_matrix(&snp_major, num_snps, num_samples)?;
+        // Reuses `sample_major` computed above rather than transposing
+        // a second time.
+        let (matrix, compute_path) = gpu_ld::sample_correlation_matrix(&sample_major, num_snps, num_samples)?;
 
         let eigenpairs = pca::top_k_eigenpairs(&matrix, num_samples, NUM_COMPONENTS, 150, 20260720);
         let projections = pca::project(&matrix, num_samples, &eigenpairs);
@@ -526,12 +528,13 @@ impl Tool for SelectionScanTool {
 
         let (snp_major, num_snps, num_samples) =
             load_snp_major_dense(DEFAULT_NUM_SNPS, DEFAULT_NUM_SAMPLES, 20260720)?;
+        let sample_major = gpu_ld::transpose_dosage_matrix(&snp_major, num_snps, num_samples);
 
         // Same GPU-dispatched (CPU-fallback) correlation-matrix helper
         // `PopulationStructureTool` uses -- computed independently here
         // since tools don't share state across calls, not a cached
         // result (see gpu_ld::sample_correlation_matrix's doc comment).
-        let (matrix, compute_path) = gpu_ld::sample_correlation_matrix(&snp_major, num_snps, num_samples)?;
+        let (matrix, compute_path) = gpu_ld::sample_correlation_matrix(&sample_major, num_snps, num_samples)?;
 
         let eigenpairs = pca::top_k_eigenpairs(&matrix, num_samples, 1, 150, 20260720);
         let projections = pca::project(&matrix, num_samples, &eigenpairs);

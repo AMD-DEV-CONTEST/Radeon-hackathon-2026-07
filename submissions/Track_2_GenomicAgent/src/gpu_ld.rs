@@ -517,21 +517,22 @@ pub fn transpose_dosage_matrix(dosages: &[f32], num_snps: usize, num_samples: us
 }
 
 /// Real, GPU-computed (CPU-fallback) dense sample-by-sample correlation
-/// matrix from a SNP-major dosage matrix: transpose to sample-major,
-/// dispatch every `i<j` sample pair through `compute_correlation_batch`
-/// (or `cpu_correlation_batch` if no GPU adapter is available), then
+/// matrix from an already sample-major dosage matrix: dispatch every
+/// `i<j` sample pair through `compute_correlation_batch` (or
+/// `cpu_correlation_batch` if no GPU adapter is available), then
 /// assemble the dense symmetric matrix with a 1.0 diagonal. This is the
 /// exact pattern `PopulationStructureTool` and `SelectionScanTool` both
 /// need before running PCA -- factored out once so it isn't duplicated
 /// between the two call sites (they used to each inline their own copy
-/// of this ~35-line block).
+/// of this ~35-line block). Takes `sample_major` (not `snp_major`)
+/// specifically so a caller that already transposed for its own use
+/// (`PopulationStructureTool` needs it again for the bootstrap CI) isn't
+/// forced to pay for a second, redundant O(snps*samples) transpose.
 pub fn sample_correlation_matrix(
-    snp_major: &[f32],
+    sample_major: &[f32],
     num_snps: usize,
     num_samples: usize,
 ) -> Result<(Vec<f64>, String)> {
-    let sample_major = transpose_dosage_matrix(snp_major, num_snps, num_samples);
-
     let mut pairs = Vec::with_capacity(num_samples * (num_samples.max(1) - 1) / 2);
     for i in 0..num_samples {
         for j in (i + 1)..num_samples {
