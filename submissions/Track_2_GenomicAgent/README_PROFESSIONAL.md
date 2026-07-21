@@ -3,10 +3,14 @@
 **Status:** Builds and runs, real computation. Includes real GPU-accelerated
 LD computation (`gpu-bench`), dispatched to and verified against actual
 AMD GPU hardware — see "GPU acceleration" below for exactly what that
-means and does not mean (it is not the literal ROCm/HIP API). Also
-includes real LLM-in-the-loop tool planning (optional, two independent
-backends with graceful offline fallback), GPU-batched bootstrap
-confidence intervals, and a per-SNP FST selection scan — see "Advanced
+means and does not mean (it is not the literal ROCm/HIP API). Multi-tool
+query planning (a compound question can need more than one tool) runs
+entirely offline by default: a custom, from-scratch GPU kernel (TF-IDF
++ cosine similarity, not a transformer, not a third-party model), zero
+API key, zero network call, zero billing risk required. An LLM backend
+is optional and only ever adds a plain-English narration on top of that
+— never decides which tools run. Also includes GPU-batched bootstrap
+confidence intervals and a per-SNP FST selection scan — see "Advanced
 capabilities" below for what's actually verified about each.
 
 ---
@@ -37,14 +41,21 @@ setup.bat              # Windows
 cargo run --release
 ```
 
-Runs three queries through the agent: VCF analysis, LD block detection,
-and haplotype tallying, each against a deterministic synthetic dataset
-generated at runtime (see "About the data" below). The output includes
-real computed numbers (SNP counts, MAF, r² values, haplotype
-frequencies) — it will look the same on every run because the data
-generator is seeded deterministically, not because the numbers are
-hardcoded. Run `cargo test --release` to see property-based tests that
-check this (e.g. two identical genotype columns must compute r²≈1.0).
+Runs six queries through the agent — VCF analysis, LD block detection,
+haplotype tallying, population structure/PCA, a bootstrap LD confidence
+interval, and an FST selection scan — each against a deterministic
+synthetic dataset generated at runtime (see "About the data" below).
+Every query is routed by the offline intent kernel described in
+"Advanced capabilities" below; no API key or network access is needed
+to see real multi-tool selection happen (each response line shows the
+selected tool(s) with their similarity scores, e.g.
+`[Intent kernel, GPU (AMD Radeon 780M Graphics)] Selected tool(s):
+HaplotypeTool (0.34), VcfAnalyzer (0.16)`). The output includes real
+computed numbers (SNP counts, MAF, r² values, haplotype frequencies,
+FST) — it will look the same on every run because the data generator is
+seeded deterministically, not because the numbers are hardcoded. Run
+`cargo test --release` to see property-based tests that check this
+(e.g. two identical genotype columns must compute r²≈1.0).
 
 ---
 
@@ -119,17 +130,30 @@ submission — nothing in `src/` ever read that variable.
 
 ## 6. Advanced capabilities
 
-### LLM-in-the-loop tool planning (optional, two backends, graceful fallback)
+### Custom GPU kernel for tool planning (no API, no network, no cost)
 
-By default the agent routes each query to a tool by keyword match. Set
-either of these and it instead makes a real model call to (1) decide
-which tool(s) a query needs — a compound question can genuinely need
-more than one, e.g. "haplotype patterns for variants with MAF > 0.05"
-correctly selects both `HaplotypeTool` and `VcfAnalyzer`, live-verified,
-not a hypothetical — and (2) narrate the actual computed results in
-plain English, strictly grounded in numbers already present in that
-output (the model is told never to introduce a new one, and raw tool
-output is always shown alongside the narrative regardless):
+Every query is routed by a real, from-scratch classifier, not a
+transformer and not a call to any third-party model: TF-IDF weighted
+bag-of-words vectors are built from each registered tool's description
+and the query, then compared via cosine similarity dispatched as a
+single batched call to a genuinely new WGSL compute kernel
+(`shaders/intent_similarity.wgsl`), cross-validated against a CPU
+reference the same way every other GPU path in this crate is (falls
+back to CPU automatically if no GPU adapter is present). Tools scoring
+above a threshold are all selected — this is what gives real multi-tool
+selection for a compound query: "haplotype patterns for variants with
+MAF > 0.05" selects both `HaplotypeTool` (0.34) and `VcfAnalyzer`
+(0.16), live-verified with every API key/token unset. Every response
+shows the selected tool(s) and their similarity scores, so the
+selection is auditable, not a black box. See `src/intent.rs` for the
+full design (including its honestly-stated limits — this is classical
+similarity matching, not language understanding, and a query with
+overlapping vocabulary across several tool descriptions can legitimately
+pull in more tools than a human would pick, visibly, via a lower score).
+
+**Optional, additive-only:** an LLM backend, if configured, narrates the
+already-selected tools' real output in plain English afterward — it
+never influences which tools ran:
 
 ```bash
 export HF_TOKEN=hf_...           # tried first: free tier, huggingface.co/settings/tokens
@@ -138,11 +162,14 @@ cargo run --release
 ```
 
 Neither variable set, or a request to either fails (network, rate
-limit, no credits) → clean fallthrough to the original deterministic
-keyword routing, not an error. `--fast` mode always uses the
-keyword-routing path directly, since it's measuring this crate's own
-per-query overhead, not third-party API latency. See `src/llm.rs` for
-the full design rationale and `src/agent.rs` for the fallback wiring.
+limit, no credits) → clean fallthrough to showing raw tool output
+instead of a narrative, not an error, and tool selection is completely
+unaffected either way. `--fast` mode never attempts the optional LLM
+call at all, since it's measuring this crate's own per-query overhead,
+not third-party API latency — tool selection quality is identical to
+the default mode either way, since planning never depended on a network
+call to begin with. See `src/agent.rs` for the wiring and `src/llm.rs`
+for the (now narration-only) backend implementation.
 
 ### GPU-batched bootstrap confidence intervals
 
@@ -179,32 +206,36 @@ result, not an error.
 Track_2_GenomicAgent/
 ├── Cargo.toml
 ├── src/
-│   ├── main.rs         # Entry point (default / bench / gpu-bench / fast modes)
-│   ├── agent.rs         # Real LLM tool planning + synthesis when a backend is
-│   │                      reachable; deterministic keyword routing otherwise
-│   ├── llm.rs             # Two independent LLM backends (HF Inference Router,
-│   │                        Anthropic), both optional, tried in order, both
-│   │                        None-on-any-failure -- never the crate's error path
-│   ├── tools.rs            # 6 genomic tools, real computation (see vcf.rs, pca.rs,
-│   │                         bootstrap.rs, fst.rs)
-│   ├── vcf.rs               # Synthetic VCF generation + real VCF-format parser +
-│   │                          real MAF/missingness/HWE/LD-r²/haplotype computation
-│   ├── gpu_ld.rs             # Real GPU compute (wgpu), AMD-adapter-targeted,
-│   │                          cross-validated against CPU reference. One kernel,
-│   │                          two uses: LD (r², squared) and sample correlation
-│   │                          (signed r, feeds PCA). Process-wide cached context
-│   │                          (GpuLdContext::shared()) so repeated calls don't
-│   │                          re-pay ~800ms of adapter/device/shader setup.
-│   ├── pca.rs                # CPU power-iteration eigensolver with deflation,
-│   │                          independently tested against the actual eigenvector
-│   │                          equation (M@v = lambda*v), not just "does it run"
-│   ├── bootstrap.rs           # GPU-batched nonparametric bootstrap CIs (LD r²,
-│   │                           PCA top eigenvalue) -- all B replicates in one
-│   │                           batched GPU dispatch per statistic, not B dispatches
-│   ├── fst.rs                 # Per-SNP Wright's FST between PC1-split subpopulations
+│   ├── main.rs        # Entry point (default / bench / gpu-bench / fast modes)
+│   ├── agent.rs        # intent.rs plans (mandatory, free); llm.rs optionally
+│   │                     narrates the result afterward (never plans)
+│   ├── intent.rs         # Custom GPU-dispatched TF-IDF/cosine-similarity tool
+│   │                       classifier -- no API, no network, the crate's only
+│   │                       mandatory planning mechanism (see intent_similarity.wgsl)
+│   ├── llm.rs              # Two independent, optional, narration-only LLM
+│   │                         backends (HF Inference Router, Anthropic), tried
+│   │                         in order, both None-on-any-failure
+│   ├── tools.rs             # 6 genomic tools, real computation (see vcf.rs, pca.rs,
+│   │                          bootstrap.rs, fst.rs)
+│   ├── vcf.rs                # Synthetic VCF generation + real VCF-format parser +
+│   │                           real MAF/missingness/HWE/LD-r²/haplotype computation
+│   ├── gpu_ld.rs              # Real GPU compute (wgpu), AMD-adapter-targeted,
+│   │                           cross-validated against CPU reference. LD/PCA
+│   │                           kernel + a second, independent intent-similarity
+│   │                           kernel on the same device/queue. Process-wide
+│   │                           cached context (GpuLdContext::shared()) so
+│   │                           repeated calls don't re-pay ~800ms of setup.
+│   ├── pca.rs                 # CPU power-iteration eigensolver with deflation,
+│   │                           independently tested against the actual eigenvector
+│   │                           equation (M@v = lambda*v), not just "does it run"
+│   ├── bootstrap.rs            # GPU-batched nonparametric bootstrap CIs (LD r²,
+│   │                            PCA top eigenvalue) -- all B replicates in one
+│   │                            batched GPU dispatch per statistic, not B dispatches
+│   ├── fst.rs                   # Per-SNP Wright's FST between PC1-split subpopulations
 │   ├── shaders/
-│   │   └── ld_r2.wgsl          # The actual compute shader dispatched to the GPU
-│   └── bench.rs                # Real timing (Instant::now/elapsed) around real execution
+│   │   ├── ld_r2.wgsl             # LD / population-structure correlation kernel
+│   │   └── intent_similarity.wgsl  # Tool-planning cosine-similarity kernel
+│   └── bench.rs                   # Real timing (Instant::now/elapsed) around real execution
 ├── LICENSE
 ├── setup.sh / setup.bat
 └── README_PROFESSIONAL.md
