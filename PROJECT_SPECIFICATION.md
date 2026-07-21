@@ -110,7 +110,7 @@ GGUF integrity is checked against a known-good SHA-256 and a per-architecture me
 
 ## 5. Bonus: Powered by VTE
 
-Aetheris needed an inference engine that runs entirely on an AMD Radeon GPU with nothing else installed, no PyTorch, no ONNX Runtime, no dependency on llama.cpp/vLLM in the core path, so this project built one: **VTE**, hand-written HIP kernels that parse GGUF directly and generate/compile their own kernel code for the detected architecture.
+Aetheris needed an inference engine that runs entirely on an AMD Radeon GPU with nothing else installed, no PyTorch, no ONNX Runtime, no dependency on llama.cpp/vLLM in the core path, so this project built one: **VTE**, hand-written HIP kernels that parse GGUF directly and generate/compile their own kernel code for the detected architecture. This is a different kind of engineering bet than tuning an existing runtime's batching settings for a faster number in one specific case: every layer between the GGUF file and the GPU (parsing, memory planning, kernel codegen, the decode loop itself) is this project's own code, not configuration on top of someone else's engine.
 
 It loads any of eight curated models across four architecture families, validated on both a consumer RDNA3 card (RX 7600, 8 GB) and a workstation RDNA3 card (Radeon PRO W7900, 48 GB, via AMD's Radeon Cloud):
 
