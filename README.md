@@ -114,11 +114,19 @@ A few prompts to get a feel for what the agent actually does, assuming `project_
 
 ## Under the hood: VTE, the engine we built to power this
 
-Aetheris needed a local inference engine that runs entirely on an AMD Radeon GPU with nothing else installed, so we wrote one: **VTE**, hand-written HIP kernels, no llama.cpp/vLLM/PyTorch in the inference path. It turned into its own small systems project along the way, GEMV kernels tuned against real memory-bandwidth measurements, a HIP-Graph-captured decode loop, custom attention, the works, and on the demo hardware it decodes slightly *faster* than Ollama/llama.cpp on the same GGUF file (112.98 vs 110.76 tok/s, Qwen2.5 1.5B, RX 7600).
+Aetheris needed a local inference engine that runs entirely on an AMD Radeon GPU with nothing else installed, so we wrote one: **VTE**, hand-written HIP kernels, no llama.cpp/vLLM/PyTorch in the inference path. It turned into its own small systems project along the way, GEMV kernels tuned against real memory-bandwidth measurements, a HIP-Graph-captured decode loop, custom attention, the works, and on some models it decodes *faster* than Ollama/llama.cpp on the same GGUF file, on both a consumer card and a workstation one:
+
+| Model | Hardware | VTE | Ollama/llama.cpp | Ratio |
+|---|---|---|---|---|
+| Qwen2.5 1.5B Q4_K_M | RX 7600 (32 CUs, 8 GB) | **112.98 tok/s** | 110.76 tok/s | **102.0%** |
+| Granite 4.1 3B Q8_0 | RX 7600 (32 CUs, 8 GB) | **55.65 tok/s** | 50.84 tok/s | **109.5%** |
+| Llama 3.1 70B Q4_K_M | W7900 (96 CUs, 48 GB) | 10.50 tok/s | 14.21 tok/s | 73.9% |
+
+Full numbers across five models, four architectures, both cards: [`VTE/docs/BENCHMARK_W7900.md`](VTE/docs/BENCHMARK_W7900.md).
 
 None of that is required reading to use Aetheris. If you're curious how it works or want the full kernel-optimization writeup (what worked, what didn't, and the real numbers behind each decision): [`VTE/README.md`](VTE/README.md) and [`VTE/docs/PERFORMANCE.md`](VTE/docs/PERFORMANCE.md).
 
-It also scales well past the demo hardware: the same engine that hits 112.98 tok/s on a $270 RX 7600 (32 CUs, 8 GB) also loaded and correctly decoded everything up to a 70B-parameter Llama 3.1 checkpoint on a Radeon PRO W7900 workstation card (96 CUs, 48 GB, via AMD's Radeon Cloud, `amd-oneclick-base:rocm7.2.1-py3.12-v20260416` image), ~10.5 tok/s there, ~74% of llama.cpp on the same file, no architecture-specific code needed for the jump in scale. Full numbers across five models, four architectures, both cards: [`VTE/docs/BENCHMARK_W7900.md`](VTE/docs/BENCHMARK_W7900.md).
+That last row is a stretch test: the same engine that hits 112.98 tok/s on a $270 RX 7600 also loaded and correctly decoded a 70B-parameter Llama 3.1 checkpoint on a Radeon PRO W7900 workstation card (via AMD's Radeon Cloud, `amd-oneclick-base:rocm7.2.1-py3.12-v20260416` image), no architecture-specific code needed for the jump in scale.
 
 One more sign of how real this is: VTE is currently in review to become an official experimental backend in [Lemonade](https://github.com/lemonade-sdk/lemonade), AMD's own local LLM server, not a submission sitting in a queue, an actual maintainer going through the code line by line. Six review rounds so far, each one catching something real and getting it fixed in the open: a runtime-lifecycle race between VTE's own idle-unload timer and Lemonade owning model lifetime, a GPU-exclusivity policy that had to be redesigned around each backend's *actual* resolved device instead of a static descriptor default, a checksum-registry collision, mixed-GPU-generation device selection. Full trail: [the PR](https://github.com/lemonade-sdk/lemonade/pull/2675), [the RFC discussion](https://github.com/lemonade-sdk/lemonade/issues/2679). One of those fixes (correct RX 7600 detection on Windows) already shipped and is credited by name in Lemonade's own [v11.5.0 release notes](https://github.com/lemonade-sdk/lemonade/issues/2776).
 
