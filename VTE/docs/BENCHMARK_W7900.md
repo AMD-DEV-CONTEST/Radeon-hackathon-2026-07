@@ -325,6 +325,7 @@ Colocando os quatro pontos lado a lado, ordenados por tamanho de modelo:
 | Qwen2.5 1.5B | `qwen2` | 1.5B | 69.6% |
 | Llama 3.1 8B | `llama` | 8B | 77.8% |
 | Qwen2.5 32B | `qwen2` | 32.7B | 79.5% |
+| Llama 3.1 70B | `llama` | 70.6B | 73.9% |
 | Granite 4.1 30B | `granite` | 28.9B | 89.8% |
 
 O Llama 3.1 8B (arquitetura totalmente diferente do Qwen) cai **entre** o
@@ -343,6 +344,42 @@ contrário do `gemv_q4k`, ver
 enquanto Qwen e Llama aqui são todos Q4_K_M -- os três pontos Q4_K_M seguem
 a curva de tamanho de forma consistente entre si; o único ponto Q8_0 é o
 que foge da curva.
+
+**O quinto ponto (Llama 3.1 70B, adicionado depois, mesma metodologia)
+quebra essa leitura.** Sendo `llama`/Q4_K_M como o 8B, a hipótese "gap
+encolhe com o tamanho" previa algo igual ou acima de 79.5% (o Qwen 32B).
+Medido: **73.9%**, abaixo até do próprio Llama 8B da mesma arquitetura e
+quantização. Ou seja, a tendência de encolhimento não é monotônica -- ela
+para (ou reverte) em algum ponto entre ~32B e ~70B de parâmetros. Isso não
+foi investigado a fundo ainda (nenhum profiling `VTE_PROFILE=1` rodado
+neste modelo especificamente): fica registrado aqui como um dado real que
+contradiz a leitura anterior, não como uma hipótese nova já confirmada.
+
+### Llama 3.1 70B Instruct Q4_K_M
+
+Adicionado depois dos quatro pontos originais, pra checar se um modelo bem
+maior (mesma arquitetura/quantização do Llama 3.1 8B acima) continuaria a
+tendência de encolhimento do gap. Só coube nesta W7900 (48GB) depois de
+unificar o teto de VRAM de carregamento com a margem de segurança em
+runtime (80% -> 95%, ver commit `11f9321`) -- com o teto antigo de 80%, os
+41.53GB pedidos (context_length=4096) não cabiam nos 38.39GB disponíveis,
+mesmo a placa tendo VRAM real de sobra.
+
+| | VTE | llama.cpp |
+|---|---|---|
+| Load time | ~62s | 8.49s |
+| Decode (tok/s) | 10.33 - 10.68 (média ~10.50) | 14.20 - 14.23 (média ~14.21) |
+| TTFT (prefill, s) | 7.62 (prompt curto, sem tools) / ~125 (system prompt completo do Aetheris, ~1361 tokens) | 0.22 - 0.41 |
+| VRAM de pico | ~42.5 GiB (95% do teto, ver acima) | não medido nesta rodada |
+
+**VTE roda a ~73.9% do llama.cpp aqui.** Coerência e correção do texto
+gerado confirmadas nos dois lados (português e inglês, com e sem o system
+prompt real de ferramentas do Aetheris). Não adotado como modelo padrão do
+Aetheris apesar de caber e funcionar: ~6x mais lento em decode que o Llama
+3.1 8B no mesmo hardware, e o TTFT de ~125s com o system prompt completo
+(prefill ainda não em batch, ver
+[Known limitations](LIMITATIONS.md#batching-and-prefill)) é longo demais
+pra uma experiência de agente interativo.
 
 ### Telemetria durante os benchmarks comparativos
 
@@ -365,20 +402,26 @@ que foge da curva.
   proporcionalmente menor no 30B (41-48s vs 4.9s) do que no 1.5B (2.75s vs
   0.53s) porque o load do 30B é dominado pela injeção de ~29GB de pesos via
   mmap em ambos os motores, não pela compilação de kernel.
-- **Decode tok/s**: com os quatro modelos medidos (três arquiteturas
-  diferentes), um padrão claro aparece -- o gap relativo encolhe conforme o
-  modelo cresce: Qwen 1.5B 69.6%, Llama 3.1 8B 77.8%, Qwen 32B 79.5%,
-  Granite 30B 89.8% (ver a tabela completa e a discussão de
+- **Decode tok/s**: com os quatro modelos originais medidos (três
+  arquiteturas diferentes), um padrão claro aparecia -- o gap relativo
+  encolhia conforme o modelo cresce: Qwen 1.5B 69.6%, Llama 3.1 8B 77.8%,
+  Qwen 32B 79.5%, Granite 30B 89.8% (ver a tabela completa e a discussão de
   arquitetura-vs-tamanho na seção [Llama 3.1 8B](#llama-31-8b-instruct-q4_k_m)
-  acima -- o Llama, uma terceira arquitetura, cai exatamente onde seu
-  tamanho intermediário prevê, não perto do Granite, então o efeito é
+  acima -- o Llama, uma terceira arquitetura, caía exatamente onde seu
+  tamanho intermediário previa, não perto do Granite, então o efeito parecia
   dominado por tamanho/quantização, não pela arquitetura Qwen
-  especificamente). Modelos maiores/mais lentos por token dão mais tempo de
-  GPU real por chamada, diluindo o overhead fixo por token (dispatch,
+  especificamente). **Um quinto ponto adicionado depois, Llama 3.1 70B
+  (mesma arquitetura/quantização do 8B, só maior), quebrou essa leitura: veio
+  em 73.9%, abaixo do próprio 8B, não acima** (ver
+  [Llama 3.1 70B](#llama-31-70b-instruct-q4_k_m) acima) -- a tendência de
+  encolhimento não é monotônica, ela para ou reverte em algum ponto entre
+  ~32B e ~70B de parâmetros, ainda não investigado a fundo. Modelos
+  maiores/mais lentos por token dão mais tempo de GPU real por chamada,
+  diluindo o overhead fixo por token (dispatch,
   sampler, LM Head) que pesa proporcionalmente mais em decodes rápidos como
   o do 1.5B. Ainda assim a VTE -- kernels HIP escritos à mão, sem décadas de
   tuning agregado como o llama.cpp/ggml tem -- fica na mesma ordem de
-  grandeza em todos os quatro, não numa categoria de desempenho diferente.
+  grandeza em todos os cinco, não numa categoria de desempenho diferente.
 - **Qualidade das respostas** (não é o foco deste benchmark, mas notado):
   as saídas do llama.cpp usando `create_completion` (sem chat template
   aplicado, prompt cru) saíram com artefatos como `<extra_id_1>Assistente`
