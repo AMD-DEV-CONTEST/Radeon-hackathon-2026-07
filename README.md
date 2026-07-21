@@ -31,9 +31,11 @@ Pick the row that matches your setup. All three talk to the exact same backend a
 
 - Python 3.10+
 - An AMD Radeon GPU with the HIP runtime available: **Windows** needs the AMD HIP SDK installed, **Linux** needs ROCm (normally under `/opt/rocm`)
-- Enough VRAM for whatever model you pick (run `vte list` after installing to see every curated model and its size; the demo model, Qwen2.5 1.5B, needs about 1 GB)
+- Enough VRAM for whatever model you pick (run `vte list` after installing to see every curated model and its size; the default model, Llama 3.1 8B Instruct, needs about 5 GB)
 
 VTE reads your GPU's real architecture and compute-unit count at startup; there's nothing to configure by hand beyond having the driver/SDK installed.
+
+**Why Llama 3.1 8B Instruct**: it's noticeably better at the tool-calling this agent actually depends on (deciding when to read/write a file, run a command, or update a plan) than the tiny Qwen2.5 1.5B demo model, and it correctly mirrors the user's input language every time. IBM Granite 4.1 30B was tried first and is a strong reasoner, but it reproducibly defaults to Portuguese/Spanish greetings on short replies once the real tool-documentation system prompt is in context, regardless of instruction wording or position; see [Known limitations](VTE/docs/LIMITATIONS.md#model-compatibility) for the full writeup. Downloads straight from Hugging Face ([Meta-Llama-3.1-8B-Instruct-GGUF](https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF)) into `VTE/Model/`, same `vte pull` mechanism as any other curated model. If your GPU is tighter on VRAM, `qwen2.5:1.5b-q4_k_m` (~1 GB) is the lighter fallback, selectable from the same dropdown.
 
 ### Windows: app (the full experience)
 
@@ -43,7 +45,7 @@ python -m venv .venv
 .venv\Scripts\pip install --upgrade pip
 .venv\Scripts\pip install -e "..\VTE"
 .venv\Scripts\pip install -r requirements.txt
-.venv\Scripts\vte pull qwen2.5:1.5b-q4_k_m
+.venv\Scripts\vte pull llama3.1:8b-instruct-q4_k_m
 
 cd aetheris_ui
 flutter pub get
@@ -74,8 +76,8 @@ python -m venv .venv
 Pull a model (downloads the public GGUF from Hugging Face into `VTE/Model/`):
 
 ```bash
-.venv\Scripts\vte pull qwen2.5:1.5b-q4_k_m    # Windows
-.venv/bin/vte pull qwen2.5:1.5b-q4_k_m         # Linux
+.venv\Scripts\vte pull llama3.1:8b-instruct-q4_k_m    # Windows
+.venv/bin/vte pull llama3.1:8b-instruct-q4_k_m         # Linux
 ```
 
 Start the backend (leave this running in its own terminal):

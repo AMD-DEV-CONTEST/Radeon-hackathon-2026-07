@@ -28,9 +28,11 @@ python -m venv .venv
 .venv/bin/pip install -e "../VTE"                # Linux
 .venv\Scripts\pip install -r requirements.txt    # Windows
 .venv/bin/pip install -r requirements.txt        # Linux
-.venv\Scripts\vte pull qwen2.5:1.5b-q4_k_m       # Windows
-.venv/bin/vte pull qwen2.5:1.5b-q4_k_m            # Linux
+.venv\Scripts\vte pull llama3.1:8b-instruct-q4_k_m       # Windows
+.venv/bin/vte pull llama3.1:8b-instruct-q4_k_m            # Linux
 ```
+
+Llama 3.1 8B Instruct is the default: noticeably better at the tool-calling this agent depends on (deciding when to read/write a file, run a command, or update a plan) than a tiny demo model, and it correctly mirrors the user's input language every time. Downloads from Hugging Face ([Meta-Llama-3.1-8B-Instruct-GGUF](https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF)) into `VTE/Model/`, needs about 5 GB VRAM. If your GPU is tighter on VRAM, `qwen2.5:1.5b-q4_k_m` (~1 GB) is the lighter fallback, selectable from the same Flutter UI model dropdown. (IBM Granite 4.1 30B was tried first and is a strong reasoner, but reproducibly defaults to Portuguese/Spanish greetings under this agent's real tool-documentation system prompt; see [Known limitations](../VTE/docs/LIMITATIONS.md#model-compatibility).)
 
 Then either build the Flutter UI (`cd aetheris_ui && flutter run -d windows`, Windows only for now) or run the backend directly and talk to it from a terminal:
 

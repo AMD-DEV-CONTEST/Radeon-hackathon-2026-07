@@ -36,8 +36,15 @@ logger = logging.getLogger(__name__)
 VTE_URL_SCHEME = "vte"
 VTE_DEFAULT_URL = "vte://local"
 # The model the user chose for this Aetheris revival (already registered
-# and measured in VTE's own MODEL_REGISTRY).
-VTE_DEFAULT_MODEL = "qwen2.5:1.5b-q4_k_m"
+# and measured in VTE's own MODEL_REGISTRY). Llama 3.1 8B Instruct, not
+# Granite 4.1 30B: Granite was tried first and reproducibly defaults to
+# Portuguese/Spanish greetings on short replies once the real tool-doc
+# system prompt is in context, regardless of the "reply in the same
+# language" instruction's position (see VTE/docs/LIMITATIONS.md). Llama
+# 3.1 8B was verified directly against the identical system prompt and
+# correctly mirrors the user's input language every time, at a fraction
+# of Granite 30B's VRAM/latency cost.
+VTE_DEFAULT_MODEL = "llama3.1:8b-instruct-q4_k_m"
 
 _SERVER_HOST = "127.0.0.1"
 _SERVER_PORT = 8011
