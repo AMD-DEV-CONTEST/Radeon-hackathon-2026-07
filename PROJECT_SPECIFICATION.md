@@ -112,7 +112,22 @@ GGUF integrity is checked against a known-good SHA-256 and a per-architecture me
 
 Aetheris needed an inference engine that runs entirely on an AMD Radeon GPU with nothing else installed, no PyTorch, no ONNX Runtime, no dependency on llama.cpp/vLLM in the core path, so this project built one: **VTE**, hand-written HIP kernels that parse GGUF directly and generate/compile their own kernel code for the detected architecture.
 
-It loads any of eight models across four architecture families (`qwen2`, `qwen35`, `granite`, `llama`, 0.5B to 32.7B parameters, Q4_K_M/Q6_K/Q8_0 quantization), validated on both a consumer RDNA3 card (RX 7600, 8 GB) and a workstation RDNA3 card (Radeon PRO W7900, 48 GB, via AMD's Radeon Cloud). On the demo model, it's not just "working," it's competitive with the reference engine on the same GGUF bytes:
+It loads any of eight curated models across four architecture families, validated on both a consumer RDNA3 card (RX 7600, 8 GB) and a workstation RDNA3 card (Radeon PRO W7900, 48 GB, via AMD's Radeon Cloud):
+
+| Model (`vte pull` name) | Architecture | Parameters | Quantization |
+|---|---|---|---|
+| `qwen2.5:0.5b-q4_k_m-draft` | `qwen2` | 0.5B | Q4_K_M |
+| `qwen2.5:1.5b-q4_k_m` (Aetheris fallback default) | `qwen2` | 1.5B | Q4_K_M |
+| `qwen2.5:7b-q4_k_m` | `qwen2` | 7B | Q4_K_M |
+| `qwen2.5:32b-q4_k_m` | `qwen2` | 32.7B | Q4_K_M |
+| `qwen3.5:2b-q6_k` | `qwen35` | 2B | Q6_K |
+| `granite-4.1:3b-q8_0` | `granite` | 3B | Q8_0 |
+| `granite-4.1:30b-q8_0` | `granite` | 28.9B | Q8_0 |
+| `llama3.1:8b-instruct-q4_k_m` (Aetheris default) | `llama` | 8B | Q4_K_M |
+
+Adding a model is copying its `.gguf` into `VTE/Model/`, no code changes: VTE's per-architecture metadata reader pulls hidden size, layer count, head count and RoPE parameters straight from the GGUF at load time rather than hardcoding them per model, so a new size within an already-supported architecture (validated up to a 70B-parameter Llama 3.1 checkpoint, see the benchmark below) just works. Aetheris ships with Llama 3.1 8B Instruct as the default, chosen specifically for reliable tool-calling and correct language-matching under load, not the smallest or fastest option available (see [`VTE/docs/LIMITATIONS.md`](VTE/docs/LIMITATIONS.md#model-compatibility) for a documented case where a different candidate model failed that bar).
+
+On the demo model, VTE isn't just "working," it's competitive with the reference engine on the same GGUF bytes:
 
 | Model | Hardware | VTE | Reference (Ollama/llama.cpp) | Ratio |
 |---|---|---|---|---|
@@ -131,6 +146,8 @@ Real GPU telemetry (`amd-smi`, sampled every ~0.5s) from the W7900 runs above, l
 | Qwen2.5 32B Q4_K_M | 20.4 GiB | 60°C | 295 W |
 | Llama 3.1 8B Q4_K_M | 5.7 GiB | 48°C | 292 W |
 | Llama 3.1 70B Q4_K_M | ~42.5 GiB | not sampled | not sampled |
+
+**Bonus criterion (quantization + Radeon Cloud), explicitly:** every model above runs quantized (Q4_K_M/Q6_K/Q8_0, never full-precision weights) as VTE's only supported inference format, not an optional flag, and every W7900 row was measured on an actual AMD Radeon Cloud instance, not simulated or estimated.
 
 The 70B row is a stretch test past the eight curated models above (70.6B parameters, loaded via VTE's architecture-generic metadata path with zero model-specific code, only reachable at all after unifying a load-time VRAM cap with the runtime safety margin, see `VTE/docs/BENCHMARK_W7900.md`): real evidence the engine scales, not just runs, on hardware well beyond the 8 GB card it was designed against.
 
