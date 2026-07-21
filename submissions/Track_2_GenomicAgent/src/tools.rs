@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use crate::vcf::{self, VcfData};
-use crate::{gpu_ld, pca};
+use crate::{bootstrap, gpu_ld, pca};
 
 pub trait Tool: Send + Sync {
     fn name(&self) -> &str;
@@ -320,6 +320,24 @@ impl Tool for PopulationStructureTool {
         let eigenpairs = pca::top_k_eigenpairs(&matrix, NUM_SAMPLES, NUM_COMPONENTS, 150, 20260720);
         let projections = pca::project(&matrix, NUM_SAMPLES, &eigenpairs);
 
+        // Bootstrap 95% CI on PC1's eigenvalue: how much would "how much
+        // variance does PC1 explain" move if we'd sampled a slightly
+        // different cohort? Every number reported above this point was a
+        // single point estimate with no indication of that -- this
+        // resamples SAMPLES with replacement (B=80) and dispatches all
+        // replicates' pairwise correlations in one batched GPU call (see
+        // bootstrap.rs), then re-runs the same CPU eigensolver per
+        // replicate.
+        const N_BOOTSTRAP: usize = 80;
+        let pc1_ci = bootstrap::bootstrap_top_eigenvalue_ci(
+            &sample_major,
+            NUM_SAMPLES,
+            NUM_SNPS,
+            N_BOOTSTRAP,
+            20260720,
+        )
+        .ok();
+
         // For a correlation matrix, the trace (sum of diagonal = n,
         // since diagonal is all 1.0) equals the sum of ALL n eigenvalues
         // -- so % variance explained by a found component is exact, not
@@ -340,6 +358,13 @@ impl Tool for PopulationStructureTool {
                 100.0 * ep.eigenvalue / total_variance,
             ));
         }
+        match &pc1_ci {
+            Some(ci) => result.push_str(&format!(
+                "PC1 eigenvalue 95% bootstrap CI: [{:.3}, {:.3}] ({} resamples, {})\n",
+                ci.ci_low, ci.ci_high, ci.n_replicates, ci.compute_path
+            )),
+            None => result.push_str("PC1 eigenvalue 95% bootstrap CI: unavailable this run\n"),
+        }
         result.push_str("\nFirst 5 samples projected onto PC1/PC2:\n");
         for i in 0..5.min(NUM_SAMPLES) {
             result.push_str(&format!(
@@ -350,6 +375,77 @@ impl Tool for PopulationStructureTool {
             ));
         }
         result.push_str(&format!("\nProcessing time: {:.3}ms (measured)", elapsed.as_secs_f64() * 1000.0));
+
+        Ok(result)
+    }
+}
+
+/// Bootstrap 95% confidence interval on the single strongest observed LD
+/// pair, instead of reporting only a point estimate the way LdBlockTool
+/// does. Real uncertainty quantification: resamples the cohort's
+/// samples with replacement B times and dispatches all B replicates'
+/// r² recomputation in one batched GPU call (see bootstrap.rs),
+/// reusing the exact same cross-validated kernel as every other GPU
+/// path in this crate.
+pub struct LdConfidenceTool;
+
+impl Tool for LdConfidenceTool {
+    fn name(&self) -> &str {
+        "LdConfidence"
+    }
+
+    fn description(&self) -> &str {
+        "LdConfidence: GPU-batched bootstrap 95% confidence interval on the strongest linkage disequilibrium (r²) estimate in the dataset. Use when asked how confident/certain/reliable an LD or correlation estimate is, not just its value."
+    }
+
+    fn execute(&self, _query: &str) -> anyhow::Result<String> {
+        let start = std::time::Instant::now();
+
+        const NUM_SNPS: usize = 200;
+        const NUM_SAMPLES: usize = 60;
+        const WINDOW: usize = 20;
+        const N_BOOTSTRAP: usize = 300;
+
+        let dosages = gpu_ld::generate_dense_dataset(NUM_SNPS, NUM_SAMPLES, 20260720);
+        let pairs = gpu_ld::windowed_pairs(NUM_SNPS, WINDOW);
+
+        // Real point-estimate scan to find the strongest pair worth
+        // putting a confidence interval on, rather than an arbitrary one.
+        let (r2_values, compute_path) = match gpu_ld::GpuLdContext::shared() {
+            Ok(ctx) => {
+                let r = ctx.compute_r2_batch(&dosages, NUM_SAMPLES, NUM_SNPS, &pairs)?;
+                (r, format!("GPU ({})", ctx.adapter_name))
+            }
+            Err(_) => (gpu_ld::cpu_r2_batch(&dosages, NUM_SAMPLES, &pairs), "CPU (no GPU adapter available)".to_string()),
+        };
+
+        let (best_idx, &best_r2) = r2_values
+            .iter()
+            .enumerate()
+            .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+            .expect("windowed_pairs is non-empty for NUM_SNPS > WINDOW");
+        let (i, j) = pairs[best_idx];
+
+        let row_i = &dosages[i as usize * NUM_SAMPLES..(i as usize + 1) * NUM_SAMPLES];
+        let row_j = &dosages[j as usize * NUM_SAMPLES..(j as usize + 1) * NUM_SAMPLES];
+        let ci = bootstrap::bootstrap_r2_ci(row_i, row_j, NUM_SAMPLES, N_BOOTSTRAP, 20260720)?;
+
+        let elapsed = start.elapsed();
+
+        let result = format!(
+            "LD Confidence Interval (synthetic dataset, {} SNPs x {} samples, window={}, compute: {}):\n\n\
+             Strongest pair in window scan: SNP_{} <-> SNP_{}\n\
+             Point estimate r²: {:.3} (matches bootstrap point estimate: {:.3})\n\
+             95% bootstrap CI: [{:.3}, {:.3}] ({} resamples)\n\
+             Pairs scanned: {}\n\
+             Processing time: {:.3}ms (measured)",
+            NUM_SNPS, NUM_SAMPLES, WINDOW, compute_path,
+            i, j,
+            best_r2, ci.point_estimate,
+            ci.ci_low, ci.ci_high, ci.n_replicates,
+            pairs.len(),
+            elapsed.as_secs_f64() * 1000.0,
+        );
 
         Ok(result)
     }

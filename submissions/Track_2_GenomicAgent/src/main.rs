@@ -5,6 +5,7 @@ mod vcf;
 mod gpu_ld;
 mod pca;
 mod llm;
+mod bootstrap;
 
 use agent::GenomicAgent;
 use tools::ToolRegistry;
@@ -33,6 +34,7 @@ fn main() -> anyhow::Result<()> {
     registry.register(Box::new(tools::LdBlockTool));
     registry.register(Box::new(tools::HaplotypeToolTool));
     registry.register(Box::new(tools::PopulationStructureTool));
+    registry.register(Box::new(tools::LdConfidenceTool));
 
     let mut agent = GenomicAgent::new(registry);
 
@@ -41,6 +43,7 @@ fn main() -> anyhow::Result<()> {
         "What are the linkage disequilibrium blocks in this region?",
         "Find haplotype patterns for variants with MAF > 0.05",
         "Run population structure PCA to check for ancestry clustering",
+        "How confident are we in the strongest LD estimate -- give a bootstrap confidence interval",
     ];
 
     for query in queries {
@@ -63,6 +66,7 @@ fn fast_mode() -> anyhow::Result<()> {
     registry.register(Box::new(tools::LdBlockTool));
     registry.register(Box::new(tools::HaplotypeToolTool));
     registry.register(Box::new(tools::PopulationStructureTool));
+    registry.register(Box::new(tools::LdConfidenceTool));
 
     let mut agent = GenomicAgent::new(registry);
 
@@ -71,6 +75,7 @@ fn fast_mode() -> anyhow::Result<()> {
         "What are the linkage disequilibrium blocks in this region?",
         "Find haplotype patterns for variants with MAF > 0.05",
         "Run population structure PCA to check for ancestry clustering",
+        "How confident are we in the strongest LD estimate -- give a bootstrap confidence interval",
     ];
 
     for query in queries {
