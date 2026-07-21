@@ -156,3 +156,18 @@ Getting there took a real optimization arc (naive per-thread GEMV at ~18.8 tok/s
 VTE is also currently in review to become an official experimental backend in [Lemonade](https://github.com/lemonade-sdk/lemonade), AMD's own local LLM server, wired into its real `WrappedServer` contract rather than just being "compatible" with it. Six rounds of maintainer review so far, each catching a real integration bug and getting it fixed in the open: a runtime-lifecycle race between VTE's own idle-unload and Lemonade owning model lifetime, a GPU-exclusivity policy redesigned around each backend's actual resolved device rather than a static descriptor default, a checksum-registry collision, mixed-GPU-generation device selection. [The PR](https://github.com/lemonade-sdk/lemonade/pull/2675), [the RFC discussion](https://github.com/lemonade-sdk/lemonade/issues/2679), details in `VTE/docs/LEMONADE.md`. One of those fixes (correct RX 7600 detection on Windows) already shipped and is credited by name in Lemonade's own [v11.5.0 release notes](https://github.com/lemonade-sdk/lemonade/issues/2776).
 
 Three ROCm/RDNA3 platform gaps found and reported while building this, with exact repro steps: [`PLATFORM_ISSUES.md`](PLATFORM_ISSUES.md).
+
+## 6. Judging-Criteria Mapping (Track 2, 120 points)
+
+Mapped directly to the rubric, with a pointer to where each point was actually verified, not just described:
+
+| Axis | Points | Where it's addressed | Verified how |
+|---|---|---|---|
+| Task positioning & application scenario | 20 | [Section 1](#1-application-scenario) | A real project folder, a real codebase read/summarized/edited on camera in the demo video |
+| Core capabilities (planning, tools, RAG, memory) | 20 | [Section 3](#3-core-capabilities), 5 of 5 implemented (2 is the stated minimum) | Each demonstrated live, not just in a diagram: `write_plan` produces a real approval popup the user clicks, not prose; `manage_memory` recalled a fact in a brand-new chat session with no shared history; `manage_skill` search found a previously-saved skill from a different conversation; `write_file`/`edit_file` paused for a real click before touching disk; `navigate_browser`/`read_browser_page` correctly read a real inbox |
+| Smooth multi-turn interaction | 20 | Round-based SSE streaming, tool calls shown as a status animation instead of raw fenced text | Cancel-mid-generation tested directly: confirmed it releases the server-side generation lock in seconds, not just hides the output client-side |
+| Core inference on AMD Radeon GPU | 20 | [Section 5](#5-bonus-powered-by-vte) | No remote API anywhere in the core chat path; live GPU telemetry (`hipMemGetInfo`, not cached) confirmed on both a consumer card (RX 7600) and a workstation card (W7900) |
+| Optimization for inference speed | 20 | [Section 5](#5-bonus-powered-by-vte) | Real profiling-driven optimization arc (~18.8 to 100+ tok/s), documented including the attempts that didn't pan out, not just the ones that did |
+| Bonus: quantization + Radeon Cloud | 20 | [Section 5](#5-bonus-powered-by-vte) | Quantization (Q4_K_M/Q6_K/Q8_0) is VTE's only supported inference format, not an optional flag; every W7900 number above was measured on a real AMD Radeon Cloud instance |
+
+The common failure mode this table is written to avoid, seen while reviewing other Track 2 submissions during development: claiming a capability by relabeling something adjacent to it (a job checkpoint as "multi-turn memory," a fixed pipeline as "multi-step planning"), or citing an optimization number without the core inference itself ever being confirmed running on the target hardware. Every row above points to something that was actually run and watched, not inferred from the architecture.
