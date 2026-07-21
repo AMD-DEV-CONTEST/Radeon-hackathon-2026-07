@@ -511,7 +511,7 @@ class VTEModel:
                 # Estrutura de camada idêntica ao Qwen2.5 (RMSNorm->QKV->RoPE->
                 # GQA->O-proj->SwiGLU) -- reaproveita QwenTensorMapper sem
                 # subclasse, só troca o rótulo usado na mensagem de OOM.
-                mapper = QwenTensorMapper(self.parser, metadata, model_label="Llama 3.1 8B")
+                mapper = QwenTensorMapper(self.parser, metadata, model_label=Path(self._path).stem)
             else:
                 mapper = QwenTensorMapper(self.parser, metadata)
             self._mapper = mapper  # Fase II (prep): reaproveitado por generate_batch()

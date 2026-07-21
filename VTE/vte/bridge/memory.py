@@ -3,7 +3,7 @@ from enum import IntEnum
 from typing import Optional
 from vte.bridge.errors import HIPSafetyError
 from vte.bridge.logger import get_logger
-from vte.config import CACHE_LINE_SIZE
+from vte.config import CACHE_LINE_SIZE, VRAM_SAFETY_MARGIN
 
 logger = get_logger(__name__)
 
@@ -34,11 +34,18 @@ class SlabAllocator:
             # Fallback para heurística antiga
             self.total_size = int(total_vram_bytes * 0.85)
             
-        max_allowed = int(total_vram_bytes * 0.80)
+        # Mesma margem usada em runtime por HIPRuntime.safe_malloc() (ver
+        # config.py::VRAM_SAFETY_MARGIN) -- este teto de carregamento e aquele
+        # teto de execução representavam a mesma ideia (nunca estourar a VRAM
+        # real) com dois números hardcoded diferentes (80% aqui, 95% lá).
+        # Unificado: 80% deixava modelos grandes que caberiam de verdade (ex.:
+        # Llama 3.1 70B Q4_K_M, 41.53GB pedidos numa placa de 48GB) falharem
+        # por margem de segurança artificial, não por falta real de VRAM.
+        max_allowed = int(total_vram_bytes * VRAM_SAFETY_MARGIN)
         if self.total_size > max_allowed:
             logger.warning(
                 f"Pool solicitado ({self.total_size / (1024**3):.2f}GB) "
-                f"excede 80% da VRAM. Limitando para {max_allowed / (1024**3):.2f}GB"
+                f"excede {VRAM_SAFETY_MARGIN:.0%} da VRAM. Limitando para {max_allowed / (1024**3):.2f}GB"
             )
             self.total_size = max_allowed
             
