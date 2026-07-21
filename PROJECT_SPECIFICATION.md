@@ -2,7 +2,7 @@
 
 **Track 2: Development & Local Deployment of Private AI Agents**
 
-**Aetheris** is a local, private coding agent: a desktop app that chats, edits and reads files, runs shell commands, inspects git state, searches a codebase, browses the web read-only, and plans multi-step work, all on the user's own AMD Radeon GPU, no cloud API or account required. It doesn't call out to an existing closed-source agent platform for its core loop; the tool dispatch, planning, memory, and skill-retrieval logic below are this project's own.
+**Aetheris** is a local, private coding agent: a desktop app that chats, edits and reads files, runs shell commands, inspects git state, searches a codebase, browses the web read-only, and plans multi-step work, all on the user's own AMD Radeon GPU, no cloud API or account required. "Local" is meant literally, not as a marketing gloss on a thin wrapper around a hosted API: the model weights never leave the machine, no request or file content is ever sent anywhere over the network, and the app functions fully offline once a model is pulled once. It doesn't call out to an existing closed-source agent platform for its core loop; the tool dispatch, planning, memory, and skill-retrieval logic below are this project's own, built specifically because the project brief asked for a private agent, not because an existing framework didn't fit.
 
 It runs on **VTE**, an inference engine we also built from scratch for this hardware rather than depending on an existing runtime (llama.cpp/vLLM/Transformers). VTE is a real, separate piece of engineering with its own optimization story, covered briefly in [Section 5](#5-bonus-powered-by-vte), but it exists to serve Aetheris, not the other way around; everything through Section 4 is about the agent.
 
@@ -13,6 +13,8 @@ It runs on **VTE**, an inference engine we also built from scratch for this hard
 A typical session looks like: *"what does this module do"* (reads and summarizes, no side effects) -> *"add input validation to the `parse` function"* (proposes an edit, pauses for a confirm click) -> *"remember that this project validates at the boundary, not deep in business logic"* (written to durable memory, recalled automatically in later sessions without bloating the chat transcript). See the root [`README.md`](README.md#things-to-try) for more example prompts to run against a real project.
 
 This scenario was chosen because it's the one the tool tree actually supports end-to-end (see [Core Capabilities](#3-core-capabilities)), not retrofitted onto it: bash execution, file read/write/edit, `git`, content search, and a todo/planning surface are exactly the primitives a local dev assistant needs, and nothing here assumes internet access at inference time.
+
+The intended user is a developer who wants a coding assistant they can actually trust with a real project: nothing typed into the chat, nothing in the codebase it reads, and nothing it writes ever leaves the machine, because there's no server on the other end to send it to. That matters more for some codebases than others (client work under NDA, anything with embedded credentials or proprietary business logic, a hobby project the developer just doesn't want feeding someone else's training data), but the point of building this at all was to make "local" a real, load-bearing property of the tool rather than a checkbox: the agent loop, the tool dispatch, the memory and skill systems, and the inference engine underneath are all things this project controls end to end, so there's no closed-source dependency anywhere in the chain that could quietly start phoning home.
 
 ## 2. Agent Architecture
 
@@ -116,9 +118,21 @@ It loads any of eight models across four architecture families (`qwen2`, `qwen35
 |---|---|---|---|---|
 | Qwen2.5 1.5B Q4_K_M | RX 7600 | **112.98 tok/s** | 110.76 tok/s | **102.0%** |
 | Granite 4.1 3B Q8_0 | RX 7600 | **55.65 tok/s** | 50.84 tok/s | **109.5%** |
+| Granite 4.1 30B Q8_0 | W7900 | 20.2 tok/s | 22.5 tok/s | 89.8% |
+| Qwen2.5 32B Q4_K_M | W7900 | 22.7 tok/s | 28.56 tok/s | 79.5% |
+| Llama 3.1 8B Q4_K_M | W7900 | 72.68 tok/s | 93.45 tok/s | 77.8% |
 | Llama 3.1 70B Q4_K_M | W7900 | 10.50 tok/s | 14.21 tok/s | 73.9% |
 
-That last row is a stretch test past the eight curated models above (70.6B parameters, loaded via VTE's architecture-generic metadata path with zero model-specific code, only reachable at all after unifying a load-time VRAM cap with the runtime safety margin, see `VTE/docs/BENCHMARK_W7900.md`): real evidence the engine scales, not just runs, on hardware well beyond the 8 GB card it was designed against.
+Real GPU telemetry (`amd-smi`, sampled every ~0.5s) from the W7900 runs above, load through 3 back-to-back generations each, no thermal throttling on any of them, VRAM peaks matching the predicted weights+KV-cache+arena breakdown almost exactly:
+
+| Model | VRAM peak | Hotspot temp peak | Power peak |
+|---|---|---|---|
+| Granite 4.1 30B Q8_0 | 30.3 GiB | 55°C | 243 W |
+| Qwen2.5 32B Q4_K_M | 20.4 GiB | 60°C | 295 W |
+| Llama 3.1 8B Q4_K_M | 5.7 GiB | 48°C | 292 W |
+| Llama 3.1 70B Q4_K_M | ~42.5 GiB | not sampled | not sampled |
+
+The 70B row is a stretch test past the eight curated models above (70.6B parameters, loaded via VTE's architecture-generic metadata path with zero model-specific code, only reachable at all after unifying a load-time VRAM cap with the runtime safety margin, see `VTE/docs/BENCHMARK_W7900.md`): real evidence the engine scales, not just runs, on hardware well beyond the 8 GB card it was designed against.
 
 Getting there took a real optimization arc (naive per-thread GEMV at ~18.8 tok/s up to a HIP-Graph-captured decode loop at ~100+ tok/s, five real profiling-driven kernel changes in between) and a fair number of dead ends that got documented instead of hidden: a speculative-decoding attempt that turned out fundamentally incompatible with this GEMV design, an FFN kernel fusion that helps the small demo model but regresses larger ones for reasons that resisted two rounds of investigation, a RoPE fusion that was numerically correct but not worth its added complexity for a 0.6% gain. None of that is required reading to use Aetheris. If you're curious how the engine works, or want the full kernel-optimization history with the real numbers behind each decision (including the parts that didn't pan out): [`VTE/README.md`](VTE/README.md) and [`VTE/docs/PERFORMANCE.md`](VTE/docs/PERFORMANCE.md).
 
