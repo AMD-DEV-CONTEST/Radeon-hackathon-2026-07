@@ -3,7 +3,11 @@
 **Status:** Builds and runs, real computation. Includes real GPU-accelerated
 LD computation (`gpu-bench`), dispatched to and verified against actual
 AMD GPU hardware — see "GPU acceleration" below for exactly what that
-means and does not mean (it is not the literal ROCm/HIP API).
+means and does not mean (it is not the literal ROCm/HIP API). Also
+includes real LLM-in-the-loop tool planning (optional, two independent
+backends with graceful offline fallback), GPU-batched bootstrap
+confidence intervals, and a per-SNP FST selection scan — see "Advanced
+capabilities" below for what's actually verified about each.
 
 ---
 
@@ -113,29 +117,94 @@ submission — nothing in `src/` ever read that variable.
 
 ---
 
-## 6. File Structure
+## 6. Advanced capabilities
+
+### LLM-in-the-loop tool planning (optional, two backends, graceful fallback)
+
+By default the agent routes each query to a tool by keyword match. Set
+either of these and it instead makes a real model call to (1) decide
+which tool(s) a query needs — a compound question can genuinely need
+more than one, e.g. "haplotype patterns for variants with MAF > 0.05"
+correctly selects both `HaplotypeTool` and `VcfAnalyzer`, live-verified,
+not a hypothetical — and (2) narrate the actual computed results in
+plain English, strictly grounded in numbers already present in that
+output (the model is told never to introduce a new one, and raw tool
+output is always shown alongside the narrative regardless):
+
+```bash
+export HF_TOKEN=hf_...           # tried first: free tier, huggingface.co/settings/tokens
+export ANTHROPIC_API_KEY=sk-...  # tried second, if you have a funded key
+cargo run --release
+```
+
+Neither variable set, or a request to either fails (network, rate
+limit, no credits) → clean fallthrough to the original deterministic
+keyword routing, not an error. `--fast` mode always uses the
+keyword-routing path directly, since it's measuring this crate's own
+per-query overhead, not third-party API latency. See `src/llm.rs` for
+the full design rationale and `src/agent.rs` for the fallback wiring.
+
+### GPU-batched bootstrap confidence intervals
+
+Every statistic elsewhere in this crate is a single point estimate. The
+`LdConfidence` tool and `PopulationStructure`'s PC1 report add real
+nonparametric bootstrap 95% CIs (standard percentile method): resample
+samples with replacement B times, recompute the statistic, take
+percentiles — with all B replicates dispatched to the GPU in *one*
+batched call each, reusing the same cross-validated kernel as every
+other GPU path here, not B separate dispatches. See `src/bootstrap.rs`;
+tests check known-ground-truth cases (identical rows collapse the CI to
+exactly r²=1.0, since there's zero true sampling variability there).
+
+### Per-SNP FST selection scan
+
+The `SelectionScan` tool splits samples into two groups by the sign of
+their PC1 projection (reusing `PopulationStructure`'s existing
+GPU-computed correlation matrix), then computes Wright's fixation index
+per SNP between those groups — a real population-genetics question
+(which loci differ most between ancestry groups). The FST arithmetic
+itself runs on CPU, deliberately: it's O(snps × samples) with no
+pairwise term, trivial even for thousands of SNPs, and a new GPU shader
+for it would add real correctness risk for no measurable speed benefit
+— see `src/fst.rs` for that reasoning spelled out, rather than forcing
+GPU dispatch to pad the story. PC1-sign split isn't guaranteed to
+bisect evenly; the tool handles a degenerate split as a real null
+result, not an error.
+
+---
+
+## 7. File Structure
 
 ```
 Track_2_GenomicAgent/
 ├── Cargo.toml
 ├── src/
 │   ├── main.rs         # Entry point (default / bench / gpu-bench / fast modes)
-│   ├── agent.rs         # Keyword-based query routing to a tool
-│   ├── tools.rs          # 4 genomic tools, real computation (see vcf.rs, pca.rs)
-│   ├── vcf.rs             # Synthetic VCF generation + real VCF-format parser +
-│   │                        real MAF/missingness/HWE/LD-r²/haplotype computation
-│   ├── gpu_ld.rs           # Real GPU compute (wgpu), AMD-adapter-targeted,
-│   │                        cross-validated against CPU reference. One kernel,
-│   │                        two uses: LD (r², squared) and sample correlation
-│   │                        (signed r, feeds PCA). Process-wide cached context
-│   │                        (GpuLdContext::shared()) so repeated calls don't
-│   │                        re-pay ~800ms of adapter/device/shader setup.
-│   ├── pca.rs              # CPU power-iteration eigensolver with deflation,
-│   │                        independently tested against the actual eigenvector
-│   │                        equation (M@v = lambda*v), not just "does it run"
+│   ├── agent.rs         # Real LLM tool planning + synthesis when a backend is
+│   │                      reachable; deterministic keyword routing otherwise
+│   ├── llm.rs             # Two independent LLM backends (HF Inference Router,
+│   │                        Anthropic), both optional, tried in order, both
+│   │                        None-on-any-failure -- never the crate's error path
+│   ├── tools.rs            # 6 genomic tools, real computation (see vcf.rs, pca.rs,
+│   │                         bootstrap.rs, fst.rs)
+│   ├── vcf.rs               # Synthetic VCF generation + real VCF-format parser +
+│   │                          real MAF/missingness/HWE/LD-r²/haplotype computation
+│   ├── gpu_ld.rs             # Real GPU compute (wgpu), AMD-adapter-targeted,
+│   │                          cross-validated against CPU reference. One kernel,
+│   │                          two uses: LD (r², squared) and sample correlation
+│   │                          (signed r, feeds PCA). Process-wide cached context
+│   │                          (GpuLdContext::shared()) so repeated calls don't
+│   │                          re-pay ~800ms of adapter/device/shader setup.
+│   ├── pca.rs                # CPU power-iteration eigensolver with deflation,
+│   │                          independently tested against the actual eigenvector
+│   │                          equation (M@v = lambda*v), not just "does it run"
+│   ├── bootstrap.rs           # GPU-batched nonparametric bootstrap CIs (LD r²,
+│   │                           PCA top eigenvalue) -- all B replicates in one
+│   │                           batched GPU dispatch per statistic, not B dispatches
+│   ├── fst.rs                 # Per-SNP Wright's FST between PC1-split subpopulations
 │   ├── shaders/
-│   │   └── ld_r2.wgsl       # The actual compute shader dispatched to the GPU
-│   └── bench.rs             # Real timing (Instant::now/elapsed) around real execution
+│   │   └── ld_r2.wgsl          # The actual compute shader dispatched to the GPU
+│   └── bench.rs                # Real timing (Instant::now/elapsed) around real execution
 ├── LICENSE
 ├── setup.sh / setup.bat
 └── README_PROFESSIONAL.md
@@ -143,7 +212,7 @@ Track_2_GenomicAgent/
 
 ---
 
-## 7. What each tool does
+## 8. What each tool does
 
 ### VcfAnalyzer
 Parses a synthetic VCF (real VCF-format text, generated deterministically
@@ -178,6 +247,22 @@ projected onto them. Reports real variance-explained percentages (exact,
 not approximated -- for a correlation matrix the trace equals the sum of
 all eigenvalues, so % explained by a found component is a true ratio)
 and falls back to CPU-only correlation if no GPU adapter is available.
+Also reports a 95% bootstrap confidence interval on PC1's eigenvalue
+(see `bootstrap.rs`), not just its point estimate.
+
+### LdConfidence
+Scans a window of SNP pairs for the strongest observed r², then reports
+a real GPU-batched bootstrap 95% confidence interval on that specific
+pair's r² -- how much would this estimate move under a different sample
+draw -- instead of a bare point estimate. See "Advanced capabilities"
+above.
+
+### SelectionScan
+Splits samples into two groups by PC1 sign, computes Wright's fixation
+index (FST) per SNP between them, and reports the top candidates for
+population differentiation plus the mean FST across all SNPs. See
+"Advanced capabilities" above for why the FST arithmetic itself runs on
+CPU while the clustering it depends on is GPU-accelerated.
 
 ### About the data
 All tools currently analyze a synthetic dataset generated at runtime
@@ -194,7 +279,7 @@ otherwise. Swapping in a real VCF file would only require pointing
 
 ---
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 **"Rust not found"** — Install from https://rustup.rs/, verify with `rustc --version`.
 
