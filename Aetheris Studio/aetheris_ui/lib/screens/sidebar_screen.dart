@@ -31,7 +31,7 @@ class SidebarScreen extends ConsumerWidget {
                   child: ElevatedButton.icon(
                     onPressed: () => ref.read(chatSessionsProvider.notifier).newChat(),
                     icon: const Icon(Icons.add, size: 16),
-                    label: const Text('Nova conversa'),
+                    label: const Text('New chat'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.inputBg,
                       foregroundColor: AppColors.textPrimary,
@@ -40,7 +40,7 @@ class SidebarScreen extends ConsumerWidget {
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Configurações',
+                  tooltip: 'Settings',
                   icon: const Icon(Icons.settings_outlined, size: 18, color: AppColors.textMuted),
                   onPressed: () => showDialog(context: context, builder: (_) => const SettingsDialog()),
                 ),
@@ -80,14 +80,14 @@ class SidebarScreen extends ConsumerWidget {
                               final newTitle = await showDialog<String>(
                                 context: context,
                                 builder: (_) => AlertDialog(
-                                  title: const Text('Renomear conversa'),
+                                  title: const Text('Rename chat'),
                                   content: TextField(controller: controller, autofocus: true),
                                   actions: [
                                     TextButton(
-                                        onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+                                        onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
                                     TextButton(
                                         onPressed: () => Navigator.pop(context, controller.text),
-                                        child: const Text('Salvar')),
+                                        child: const Text('Save')),
                                   ],
                                 ),
                               );
@@ -99,8 +99,8 @@ class SidebarScreen extends ConsumerWidget {
                             }
                           },
                           itemBuilder: (context) => const [
-                            PopupMenuItem(value: 'rename', child: Text('Renomear')),
-                            PopupMenuItem(value: 'delete', child: Text('Apagar')),
+                            PopupMenuItem(value: 'rename', child: Text('Rename')),
+                            PopupMenuItem(value: 'delete', child: Text('Delete')),
                           ],
                         ),
                       );
@@ -136,7 +136,7 @@ class _ProjectFolderButton extends ConsumerWidget {
   const _ProjectFolderButton({required this.projectPath});
 
   String get _displayName {
-    if (projectPath.isEmpty) return 'Selecionar pasta do projeto...';
+    if (projectPath.isEmpty) return 'Select project folder...';
     final normalized = projectPath.replaceAll('\\', '/');
     final parts = normalized.split('/')..removeWhere((p) => p.isEmpty);
     return parts.isEmpty ? projectPath : parts.last;
@@ -146,12 +146,12 @@ class _ProjectFolderButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return InkWell(
       onTap: () async {
-        final picked = await FilePicker.platform.getDirectoryPath(dialogTitle: 'Selecionar pasta do projeto');
+        final picked = await FilePicker.platform.getDirectoryPath(dialogTitle: 'Select project folder');
         if (picked == null) return;
         final error = await ref.read(projectPathProvider.notifier).select(picked);
         if (error != null && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Caminho inválido: $error'), backgroundColor: AppColors.accentRed),
+            SnackBar(content: Text('Invalid path: $error'), backgroundColor: AppColors.accentRed),
           );
         }
       },

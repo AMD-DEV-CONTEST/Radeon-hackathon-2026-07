@@ -24,6 +24,15 @@ class ChatSessionsState {
   final Map<String, dynamic>? pendingBrowserAction;
   final String? currentPlan;
   final bool planPanelVisible;
+  // Which chat isThinking/pendingToolConfirm/pendingAskUser/
+  // pendingBrowserAction actually belong to. A generation started for one
+  // chat keeps running in the background (nothing cancels it just because
+  // the user navigates away -- see sendMessage), so without this, switching
+  // to a different chat mid-generation kept showing that OTHER chat's
+  // "Thinking..."/cancel button and could even pop a confirm_tool dialog
+  // for a tool call the currently-viewed chat never made. The UI should
+  // gate all of the above on activeChatId == generatingChatId.
+  final String? generatingChatId;
 
   const ChatSessionsState({
     this.chats = const [],
@@ -38,6 +47,7 @@ class ChatSessionsState {
     this.pendingBrowserAction,
     this.currentPlan,
     this.planPanelVisible = false,
+    this.generatingChatId,
   });
 
   ChatSession? get activeChat {
@@ -60,6 +70,7 @@ class ChatSessionsState {
     Object? pendingBrowserAction = _unset,
     Object? currentPlan = _unset,
     bool? planPanelVisible,
+    Object? generatingChatId = _unset,
   }) {
     return ChatSessionsState(
       chats: chats ?? this.chats,
@@ -79,6 +90,7 @@ class ChatSessionsState {
           : pendingBrowserAction as Map<String, dynamic>?,
       currentPlan: identical(currentPlan, _unset) ? this.currentPlan : currentPlan as String?,
       planPanelVisible: planPanelVisible ?? this.planPanelVisible,
+      generatingChatId: identical(generatingChatId, _unset) ? this.generatingChatId : generatingChatId as String?,
     );
   }
 }
@@ -108,8 +120,8 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
         .map((e) => ChatSession.fromListJson(e as Map<String, dynamic>))
         .toList();
     if (chats.isEmpty) {
-      final created = await _api.createChat('Nova Conversa');
-      chats = [ChatSession(id: created['chat_id'] as String, title: 'Nova Conversa')];
+      final created = await _api.createChat('New Chat');
+      chats = [ChatSession(id: created['chat_id'] as String, title: 'New Chat')];
     }
     final activeId = chats.first.id;
     final loaded = await _loadMessagesInto(chats, activeId);
@@ -129,10 +141,10 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
   }
 
   Future<void> newChat() async {
-    final created = await _api.createChat('Nova Conversa');
+    final created = await _api.createChat('New Chat');
     final chatId = created['chat_id'] as String;
     state = state.copyWith(
-      chats: [ChatSession(id: chatId, title: 'Nova Conversa'), ...state.chats],
+      chats: [ChatSession(id: chatId, title: 'New Chat'), ...state.chats],
       activeChatId: chatId,
     );
   }
@@ -161,6 +173,12 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
 
   void cancelGeneration() {
     _cancelRequested = true;
+    // _cancelRequested alone only stops THIS side from reading further
+    // tokens -- the underlying HTTP connection stays open and the backend
+    // (which only stops on an actual disconnect, see api_client.dart's
+    // cancelActiveStream doc) keeps generating regardless. Force-closing
+    // the connection is what actually makes the server stop.
+    _api.cancelActiveStream();
   }
 
   /// Resolves a pending `ask_user` dialog raised mid-stream by the agent.
@@ -183,7 +201,7 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
     final assistantPlaceholder = const ChatMessage(role: 'assistant', content: '');
     messages = List<ChatMessage>.from(messages)..add(assistantPlaceholder);
     chats[idx] = chats[idx].copyWith(messages: messages);
-    state = state.copyWith(chats: chats, isThinking: true, thinkingStatus: 'Pensando...');
+    state = state.copyWith(chats: chats, isThinking: true, thinkingStatus: 'Thinking...', generatingChatId: chatId);
 
     if (!isHidden) {
       await _api.appendChatMessage(chatId, 'user', text);
@@ -201,7 +219,7 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
       settings = _ref.read(settingsProvider).valueOrNull;
     }
     final model = settings?.defaultModel ?? '';
-    final maxTokens = _ref.read(contextSizeProvider);
+    final maxTokens = _ref.read(intelligenceProvider);
     final payload = messages
         .sublist(0, messages.length - 1)
         .map((m) => m.toApiMessage())
@@ -220,7 +238,27 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
     }
 
     final mode = _ref.read(agentModeProvider);
+    // Accumulates the CURRENT round's raw text only, not the whole
+    // multi-round stream -- cleared every time a tool call is detected
+    // (see the tool_start/confirm_tool/browser_action branches below), so
+    // by construction it only ever holds the text typed since the last
+    // tool call: exactly the final answer once the stream ends normally.
+    // Previously this held every round's raw text concatenated together,
+    // so the chat bubble showed the model's literal ```tool_name fenced
+    // blocks and prose preambles inline instead of just the real reply.
     final buffer = StringBuffer();
+    // Set only by confirm_tool/browser_action below, to agent.py's already-
+    // truncated assistant_text (see that event's docstring in agent.py):
+    // when the model bundles two tool calls into one response, only the
+    // first ever becomes a real tool call, and persisting the model's raw,
+    // unstripped text (which still shows both) makes the NEXT round's
+    // history claim a second call happened that never did -- the same
+    // hallucination/merge failure strip_tool_call exists to prevent
+    // server-side, just bypassed if the client saves its own buffer
+    // instead of this. Left null for a plain reply or an auto-executed
+    // tool (list_files, read_file, bash, etc.), where the raw buffer is
+    // already the right thing to save.
+    String? strippedAssistantText;
     try {
       await for (final event
           in _api.streamChatCompletion(model: model, messages: payload, maxTokens: maxTokens, mode: mode)) {
@@ -229,42 +267,84 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
         if (event.delta != null) {
           buffer.write(event.delta);
           _updateStreamingMessage(chatId, buffer.toString());
+        } else if (event.type == 'error') {
+          // A real generation failure (e.g. a resolved @file reference
+          // pushing the prompt past context_length -- see api_client.dart's
+          // error-event doc) used to be silently dropped here, leaving the
+          // user staring at a response that just never arrived with no
+          // indication why. Surface it the same way a normal reply would
+          // show up, since the stream ends right after this either way.
+          final errMsg = event.data['error']?.toString() ?? 'Unknown error';
+          buffer.write('⚠️ Error generating response: $errMsg');
+          _updateStreamingMessage(chatId, buffer.toString());
         } else if (event.type == 'ask_user') {
           final completer = Completer<String>();
           _askUserCompleter = completer;
           state = state.copyWith(pendingAskUser: event.data['data'] as Map<String, dynamic>? ?? event.data);
           await completer.future;
-        } else if (event.type == 'tool_start' || event.type == 'tool_output') {
-          final logLine = '[${event.type}] ${jsonEncode(event.data)}';
+        } else if (event.type == 'tool_start') {
+          // Whatever streamed into `buffer` so far this round was a tool-
+          // call preamble/fence, not a real reply -- drop it from the
+          // visible bubble (it's never persisted either; only the FINAL
+          // round's un-cleared buffer becomes the saved message below) and
+          // show a tool-calling status instead of raw text.
+          buffer.clear();
+          _updateStreamingMessage(chatId, '');
+          final toolName = event.data['tool']?.toString() ?? 'tool';
           state = state.copyWith(
-            executionLogs: [...state.executionLogs, logLine],
-            thinkingStatus: event.type == 'tool_start' ? 'Executando ferramenta...' : 'Processando resultado...',
+            executionLogs: [...state.executionLogs, '[tool_start] ${jsonEncode(event.data)}'],
+            thinkingStatus: 'Using $toolName...',
+          );
+        } else if (event.type == 'tool_output') {
+          state = state.copyWith(
+            executionLogs: [...state.executionLogs, '[tool_output] ${jsonEncode(event.data)}'],
+            thinkingStatus: 'Thinking...',
           );
         } else if (event.type == 'confirm_tool') {
           // The backend already stopped the stream after this event (see
           // agent.py's `confirm_tool` branch) -- no need to block here, the
           // next `[DONE]` line ends this loop naturally. Approval/denial
           // happens as an entirely separate follow-up call, see
-          // respondToolConfirm below.
+          // respondToolConfirm below. Same bubble-clearing reasoning as
+          // tool_start: the confirm dialog itself (chat_screen.dart) is
+          // where the user actually sees what's being proposed now.
+          buffer.clear();
+          _updateStreamingMessage(chatId, '');
           state = state.copyWith(pendingToolConfirm: event.data);
+          strippedAssistantText = event.data['assistant_text']?.toString();
         } else if (event.type == 'browser_action') {
           // Same stateless "pause here" pattern as confirm_tool, but this
           // one auto-resolves (no human dialog) once the stream ends -- see
           // _handleBrowserAction below.
+          buffer.clear();
+          _updateStreamingMessage(chatId, '');
           state = state.copyWith(pendingBrowserAction: event.data);
+          strippedAssistantText = event.data['assistant_text']?.toString();
         } else if (event.type == 'plan_update') {
+          // Same reasoning as tool_start/confirm_tool: the plan itself
+          // renders in PlanPanel, a dedicated widget with its own
+          // Aprovar/Revisar buttons -- it should never ALSO show up as a
+          // raw ```write_plan-fenced chat message competing with that
+          // panel for attention (previously it did, which is why the
+          // panel's approve/revise buttons went unnoticed in favor of
+          // just typing a reply into the chat like normal).
+          buffer.clear();
+          _updateStreamingMessage(chatId, '');
           state = state.copyWith(
             currentPlan: event.data['plan']?.toString() ?? '',
             planPanelVisible: true,
           );
+          strippedAssistantText = event.data['assistant_text']?.toString();
         }
       }
     } catch (_) {
       // Network/backend error mid-stream: keep whatever was streamed so far.
     }
 
-    state = state.copyWith(isThinking: false, thinkingStatus: '');
-    final finalText = buffer.toString();
+    state = state.copyWith(isThinking: false, thinkingStatus: '', generatingChatId: null);
+    final finalText = (strippedAssistantText != null && strippedAssistantText.isNotEmpty)
+        ? strippedAssistantText
+        : buffer.toString();
     if (finalText.isNotEmpty) {
       await _api.appendChatMessage(chatId, 'assistant', finalText);
     }
@@ -387,7 +467,7 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
 
   /// Resolves every `@path` token in `text` (file or folder under the
   /// active project) into real content via POST /api/files/resolve-reference,
-  /// and returns `text` with a "[Arquivo referenciado: ...]" block appended
+  /// and returns `text` with a "[Referenced file: ...]" block appended
   /// per resolved reference. Tokens that don't resolve (a stray "@" the user
   /// typed for some other reason, e.g. an email) are silently left alone --
   /// same "best effort, never blocks sending" behavior as the old Flet
@@ -402,7 +482,7 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
       try {
         final json = await _api.resolveAtReference(path);
         final content = json['content']?.toString() ?? '';
-        blocks.add('[Arquivo referenciado: $path]\n$content');
+        blocks.add('[Referenced file: $path]\n$content');
       } catch (_) {
         // Not a real project file/folder -- ignore, leave the literal text.
       }

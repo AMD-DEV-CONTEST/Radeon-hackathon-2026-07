@@ -17,21 +17,21 @@ class SettingsDialog extends ConsumerWidget {
 
     return AlertDialog(
       backgroundColor: AppColors.panel,
-      title: const Text('Configurações', style: TextStyle(color: AppColors.textPrimary)),
+      title: const Text('Settings', style: TextStyle(color: AppColors.textPrimary)),
       content: SizedBox(
         width: 380,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('CONTA LOCAL', style: TextStyle(color: AppColors.textMuted, fontSize: 10)),
+            const Text('LOCAL ACCOUNT', style: TextStyle(color: AppColors.textMuted, fontSize: 10)),
             const SizedBox(height: 8),
             authAsync.when(
               data: (auth) => Row(
                 children: [
                   Expanded(
                     child: Text(
-                      auth.isLoggedIn ? 'Conectado como: ${auth.username}' : 'Não autenticado',
+                      auth.isLoggedIn ? 'Signed in as: ${auth.username}' : 'Not signed in',
                       style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
                     ),
                   ),
@@ -41,7 +41,7 @@ class SettingsDialog extends ConsumerWidget {
                         ref.read(isAuthenticatedProvider.notifier).state = false;
                         Navigator.of(context).pop();
                       },
-                      child: const Text('Sair', style: TextStyle(color: AppColors.accentRed, fontSize: 11)),
+                      child: const Text('Sign out', style: TextStyle(color: AppColors.accentRed, fontSize: 11)),
                     ),
                 ],
               ),
@@ -54,7 +54,7 @@ class SettingsDialog extends ConsumerWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Fechar'),
+          child: const Text('Close'),
         ),
       ],
     );

@@ -62,7 +62,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             padding: const EdgeInsets.all(32),
             child: authAsync.when(
               loading: () => const Center(child: CircularProgressIndicator(color: AppColors.accentGreen)),
-              error: (e, _) => Text('Não foi possível falar com o backend: $e',
+              error: (e, _) => Text('Could not reach the backend: $e',
                   style: const TextStyle(color: AppColors.accentRed), textAlign: TextAlign.center),
               data: (auth) {
                 if (!auth.configured) {
@@ -84,7 +84,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Entre para continuar',
+                      'Sign in to continue',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: AppColors.textMuted, fontSize: 13),
                     ),
@@ -93,7 +93,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       controller: _usernameController,
                       autofocus: true,
                       style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: const InputDecoration(labelText: 'Usuário'),
+                      decoration: const InputDecoration(labelText: 'Username'),
                       onSubmitted: (_) => _passwordFocus.requestFocus(),
                     ),
                     const SizedBox(height: 16),
@@ -102,7 +102,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       focusNode: _passwordFocus,
                       obscureText: true,
                       style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: const InputDecoration(labelText: 'Senha'),
+                      decoration: const InputDecoration(labelText: 'Password'),
                       onSubmitted: (_) => _submit(),
                     ),
                     if (_error != null) ...[
@@ -124,7 +124,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               height: 18,
                               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
                             )
-                          : const Text('Entrar'),
+                          : const Text('Sign in'),
                     ),
                   ],
                 );
@@ -148,13 +148,13 @@ class _NoAccountConfigured extends StatelessWidget {
         Icon(Icons.lock_outline, color: AppColors.textMuted, size: 32),
         SizedBox(height: 16),
         Text(
-          'Nenhuma conta local configurada ainda.',
+          'No local account configured yet.',
           textAlign: TextAlign.center,
           style: TextStyle(color: AppColors.textPrimary),
         ),
         SizedBox(height: 8),
         Text(
-          'Configure a conta local pelo backend (core/auth.py) antes de entrar.',
+          'Set up the local account via the backend (core/auth.py) before signing in.',
           textAlign: TextAlign.center,
           style: TextStyle(color: AppColors.textMuted, fontSize: 12),
         ),

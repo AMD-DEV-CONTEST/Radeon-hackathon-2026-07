@@ -7,6 +7,7 @@ Emits the same SSE shapes the Flutter client already parses
 so nothing on the frontend needs to change.
 """
 
+import asyncio
 import json
 import logging
 from typing import AsyncGenerator, Dict, List, Optional
@@ -29,7 +30,7 @@ MAX_ROUNDS = 20
 # is_risky_bash_command) -- gating every bash call, even a plain `ls`, would
 # make the agent unusably slow for the normal traffic a coding assistant
 # needs to run constantly.
-TOOLS_REQUIRING_CONFIRMATION = {"write_file", "edit_file"}
+TOOLS_REQUIRING_CONFIRMATION = {"write_file", "write_files", "edit_file"}
 
 
 def _needs_confirmation(tool_name: str, tool_content: str) -> bool:
@@ -61,7 +62,7 @@ IDENTITY_PROMPT = (
 # navigate_browser, read_browser_page, bash for read-only commands, etc.)
 # stays available in both -- Planner mode is meant to explore freely before
 # proposing a plan, not to be read-only itself.
-BUILDER_ONLY_TOOLS = {"write_file", "edit_file", "bash"}
+BUILDER_ONLY_TOOLS = {"write_file", "write_files", "edit_file", "bash"}
 PLANNER_ONLY_TOOLS = {"write_plan"}
 
 PLANNER_MODE_PROMPT = (
@@ -114,24 +115,38 @@ async def _generate_with_retry(
 
     for attempt in range(MAX_DEGENERATE_RETRIES + 1):
         gen = stream_generate(model, conversation, temperature=temperature, max_tokens=max_tokens)
-        buffer: List[str] = []
-        exhausted = True
-        async for token in gen:
-            buffer.append(token)
-            if len(buffer) >= DEGENERATE_PEEK_TOKENS:
-                exhausted = False
-                break
-
-        if exhausted and attempt < MAX_DEGENERATE_RETRIES and _is_degenerate("".join(buffer), last_user_message):
-            logger.warning("Degenerate response on attempt %d, retrying: %r", attempt + 1, "".join(buffer))
-            continue
-
-        for token in buffer:
-            yield token
-        if not exhausted:
+        # `gen` wraps an `async with client.stream(...)` in vte_bridge.py --
+        # its httpx connection to vte-server only actually closes when THAT
+        # block exits. If this whole function's own generator gets
+        # cancelled (.aclose() called on it, e.g. because the caller
+        # detected the end user disconnected), an `async for` loop over
+        # `gen` does NOT automatically close `gen` just because the outer
+        # generator is being torn down -- confirmed by checking CPython's
+        # actual behavior, not assumed. Without this try/finally, cancelling
+        # here left the httpx request to vte-server running to completion
+        # regardless, which is exactly why Cancelar in the UI never
+        # actually stopped the remote generation.
+        try:
+            buffer: List[str] = []
+            exhausted = True
             async for token in gen:
+                buffer.append(token)
+                if len(buffer) >= DEGENERATE_PEEK_TOKENS:
+                    exhausted = False
+                    break
+
+            if exhausted and attempt < MAX_DEGENERATE_RETRIES and _is_degenerate("".join(buffer), last_user_message):
+                logger.warning("Degenerate response on attempt %d, retrying: %r", attempt + 1, "".join(buffer))
+                continue
+
+            for token in buffer:
                 yield token
-        return
+            if not exhausted:
+                async for token in gen:
+                    yield token
+            return
+        finally:
+            await gen.aclose()
 
 
 async def stream_agent(
@@ -141,13 +156,22 @@ async def stream_agent(
     max_tokens: int = 4096,
     owner: Optional[str] = None,
     mode: str = "builder",
+    request=None,
 ) -> AsyncGenerator[str, None]:
     """Drive one full agent turn against `model`, streaming SSE lines.
 
     `mode` is "builder" (default -- tools act immediately) or "planner"
     (the agent explores with read-only tools and proposes a plan via
     write_plan instead of making changes; see BUILDER_ONLY_TOOLS/
-    PLANNER_ONLY_TOOLS below)."""
+    PLANNER_ONLY_TOOLS below).
+
+    `request` (a starlette Request, or None -- kept untyped so this module
+    doesn't need a hard FastAPI/Starlette import) lets the token loop below
+    poll request.is_disconnected() and actually tear down the in-flight
+    generation when the end user cancels, instead of continuing to consume
+    and forward tokens from a client nobody's listening to anymore.
+    StreamingResponse does not do this on its own -- confirmed directly,
+    see _generate_with_retry's docstring for the full chain this closes."""
     conversation: List[Dict] = [{"role": "system", "content": _build_system_prompt(mode)}]
     conversation += [m for m in messages if m.get("role") != "system"]
 
@@ -163,11 +187,53 @@ async def stream_agent(
         )
 
         full_text = ""
+        token_gen = _generate_with_retry(model, conversation, max_tokens, temperature, last_user_message)
+        # Fetches run as a standalone Task, not a bare `await
+        # token_gen.__anext__()` wrapped in asyncio.wait_for: wait_for
+        # CANCELS its awaitable on timeout, and cancelling an async
+        # generator's __anext__() mid-flight corrupts the generator --
+        # confirmed directly, the very first version of this idle-poll
+        # (wait_for around __anext__() on every 1s tick) made every
+        # response come back completely empty, just a bare [DONE], because
+        # prefill alone commonly runs past 1s and the timeout fired mid-
+        # prefill every time. asyncio.wait() below only OBSERVES whether
+        # the task finished within the timeout; the task itself is left
+        # running (and re-awaited next loop iteration) unless a real
+        # disconnect is confirmed and cancellation is actually intended.
+        next_task = asyncio.ensure_future(token_gen.__anext__())
         try:
-            async for token in _generate_with_retry(model, conversation, max_tokens, temperature, last_user_message):
+            token_count = 0
+            while True:
+                done, _ = await asyncio.wait({next_task}, timeout=1.0)
+                if next_task not in done:
+                    if request is not None and await request.is_disconnected():
+                        next_task.cancel()
+                        await token_gen.aclose()
+                        return
+                    continue
+                try:
+                    token = next_task.result()
+                except StopAsyncIteration:
+                    break
+                next_task = asyncio.ensure_future(token_gen.__anext__())
                 full_text += token
                 yield _sse_delta(token)
+                token_count += 1
+                # Also checked here, not just on the idle-wait above: once
+                # tokens start flowing, they can arrive faster than 1/sec
+                # and the not-done-within-1s branch above would rarely
+                # fire. Every 20, not every token -- checking on every
+                # single one during VTE's own earlier streaming rewrite
+                # turned out to be a real ~20% throughput bug from over-
+                # frequent disconnect polling (see vte/server/
+                # http_server.py's sse_stream history); same risk applies
+                # to calling is_disconnected() here.
+                if request is not None and token_count % 20 == 0 and await request.is_disconnected():
+                    next_task.cancel()
+                    await token_gen.aclose()
+                    return
         except Exception as e:
+            next_task.cancel()
             logger.error("VTE generation failed: %s", e)
             yield f'event: error\ndata: {json.dumps({"error": str(e), "status": 500})}\n\n'
             return
@@ -194,7 +260,14 @@ async def stream_agent(
 
         if tool_name == "write_plan":
             plan_text = tool_content.strip()
-            yield _sse_event("plan_update", {"plan": plan_text, "round": round_num})
+            # assistant_text here for the same reason confirm_tool/
+            # browser_action carry it: the client renders `plan` in its own
+            # dedicated panel (PlanPanel), not the chat bubble, so it must
+            # persist THIS (not its raw streamed buffer, which still has
+            # the ```write_plan fence and everything after it) as the
+            # turn's history, or the next round's context claims the model
+            # said things it never actually said in the kept history.
+            yield _sse_event("plan_update", {"plan": plan_text, "round": round_num, "assistant_text": assistant_text})
             conversation.append({"role": "assistant", "content": assistant_text})
             conversation.append({"role": "user", "content": "[write_plan result]\nPlan saved. Waiting for user review."})
             break
@@ -221,7 +294,10 @@ async def stream_agent(
             # hidden continuation turn. No confirmation gate here --
             # navigating/reading isn't destructive, unlike write_file/
             # edit_file/risky bash.
-            yield _sse_event("browser_action", {"tool": tool_name, "content": tool_content, "round": round_num})
+            yield _sse_event(
+                "browser_action",
+                {"tool": tool_name, "content": tool_content, "round": round_num, "assistant_text": assistant_text},
+            )
             break
 
         handler = TOOL_REGISTRY.get(tool_name)
@@ -238,7 +314,23 @@ async def stream_agent(
             # backend is stateless per request (like every other route
             # here), so there's nothing to keep paused server-side -- the
             # stream just ends, same as the "no tool call" exit above.
-            yield _sse_event("confirm_tool", {"tool": tool_name, "content": tool_content, "round": round_num})
+            #
+            # assistant_text (not the client's own raw streamed buffer) is
+            # what the client must persist as this turn's history: a model
+            # that bundles two file writes into one response (a real,
+            # observed failure mode -- small models don't reliably follow
+            # "one tool call per response") only ever gets the FIRST one
+            # turned into a real tool call here; the second fenced block was
+            # never executed or confirmed. strip_tool_call already cuts the
+            # unexecuted second block out for exactly the reason documented
+            # on strip_tool_call itself (a model reading its own past turn
+            # full of tool calls it never got results for hallucinates/
+            # merges content next round). That protection only holds if the
+            # client saves THIS text, not its own unstripped buffer.
+            yield _sse_event(
+                "confirm_tool",
+                {"tool": tool_name, "content": tool_content, "round": round_num, "assistant_text": assistant_text},
+            )
             break
 
         current_call = (tool_name, tool_content)
@@ -273,6 +365,21 @@ async def stream_agent(
         # user-role message so the next round can react to it.
         conversation.append({"role": "assistant", "content": assistant_text})
         result_text = result.get("output") or result.get("content") or result.get("error") or json.dumps(result)
+        # bash returns a non-zero exit_code as part of a normal {"output":
+        # ..., "exit_code": N} result (a command that ran and failed, e.g.
+        # `mv` hitting "cannot move X to a subdirectory of itself", isn't a
+        # Python-level exception, so it never goes through the "error" key
+        # above) -- the failure was always IN result_text's prose, but nothing
+        # marked it as a failure. Confirmed directly: a real mv error came
+        # back with exit_code 1 and full stderr text, and the model still
+        # replied "The files have been moved" and moved on, then repeated
+        # the same broken mkdir+mv pattern rather than reacting to it,
+        # something a smaller/quantized model skims past far more easily
+        # than a human would. An explicit marker in front of the same text
+        # doesn't change what happened, just makes it unmissable.
+        exit_code = result.get("exit_code")
+        if isinstance(exit_code, int) and exit_code != 0:
+            result_text = f"[FALHOU - exit code {exit_code}]\n{result_text}"
         conversation.append({"role": "user", "content": f"[{tool_name} result]\n{result_text}"})
 
         if round_num == MAX_ROUNDS:

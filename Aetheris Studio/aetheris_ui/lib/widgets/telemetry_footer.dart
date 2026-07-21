@@ -25,7 +25,7 @@ class TelemetryFooter extends ConsumerWidget {
         children: [
           _ConnectionDot(connected: telemetry.connected),
           const SizedBox(width: 6),
-          _Segment(text: telemetry.connected ? 'VTE' : 'VTE desconectado'),
+          _Segment(text: telemetry.connected ? 'VTE' : 'VTE disconnected'),
           if (telemetry.connected) ...[
             _Divider(),
             _Segment(text: telemetry.displayGpuName),

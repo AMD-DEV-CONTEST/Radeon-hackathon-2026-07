@@ -46,10 +46,14 @@ _READY_TIMEOUT_SECONDS = 90.0
 
 # Single-model policy: VTE runs on one consumer GPU with a real VRAM budget,
 # so only one vte-server subprocess (one resident model) runs at a time;
-# switching models terminates the old subprocess and spawns a new one.
+# switching models terminates the old subprocess and spawns a new one. A
+# context_length change needs exactly the same treatment: it sizes the KV
+# cache at model-load time (vte/server/http_server.py's --context-length),
+# so it can't be adjusted on a running server -- only a fresh load applies it.
 _lock = threading.Lock()
 _process: Optional[subprocess.Popen] = None
 _model_name: Optional[str] = None
+_context_length: Optional[int] = None
 
 
 def is_vte_url(url: str) -> bool:
@@ -96,7 +100,7 @@ def _wait_until_ready(timeout: float) -> bool:
 
 
 def _stop_server_locked() -> None:
-    global _process, _model_name
+    global _process, _model_name, _context_length
     if _process is not None:
         try:
             _process.terminate()
@@ -108,12 +112,13 @@ def _stop_server_locked() -> None:
                 pass
     _process = None
     _model_name = None
+    _context_length = None
 
 
-def _start_server_locked(model_name: str) -> None:
-    global _process, _model_name
+def _start_server_locked(model_name: str, context_length: int) -> None:
+    global _process, _model_name, _context_length
     gguf_path = _resolve_gguf_path(model_name)
-    logger.info("Iniciando vte-server para %s (%s)...", model_name, gguf_path)
+    logger.info("Iniciando vte-server para %s (%s), context_length=%d...", model_name, gguf_path, context_length)
     creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
     _process = subprocess.Popen(
         [
@@ -121,6 +126,7 @@ def _start_server_locked(model_name: str) -> None:
             "--gguf-path", gguf_path,
             "--port", str(_SERVER_PORT),
             "--host", _SERVER_HOST,
+            "--context-length", str(context_length),
             # This process (app.py) owns the model lifecycle explicitly via
             # ensure_server()/unload(); vte-server's own idle-unload timer
             # would fight that, so it's disabled.
@@ -139,19 +145,37 @@ def _start_server_locked(model_name: str) -> None:
         _process = None
         raise RuntimeError(f"vte-server não ficou pronto a tempo para o modelo '{model_name}'.")
     _model_name = model_name
+    _context_length = context_length
 
 
-def ensure_server(model_name: str) -> None:
+def _resolve_context_length(context_length: Optional[int]) -> int:
+    if context_length is not None:
+        return context_length
+    from core.utils.settings import get_setting
+    return get_setting("context_length", 2048)
+
+
+def ensure_server(model_name: str, context_length: Optional[int] = None) -> None:
     """Starts the vte-server subprocess for `model_name` if it isn't already
-    serving it (restarting it on a model switch). Thread-safe, idempotent.
+    serving it at the right context_length (restarting it on a model switch
+    OR a context_length change -- see the module-level docstring above for
+    why the latter needs a full restart too). `context_length=None` (every
+    existing caller) reads the persisted setting, so nothing has to change
+    at call sites for this to take effect. Thread-safe, idempotent.
     Blocking, so callers on the asyncio event loop should wrap this in
     `asyncio.to_thread`."""
     with _lock:
-        if _process is not None and _process.poll() is None and _model_name == model_name:
+        resolved_context_length = _resolve_context_length(context_length)
+        if (
+            _process is not None
+            and _process.poll() is None
+            and _model_name == model_name
+            and _context_length == resolved_context_length
+        ):
             return
         if _process is not None:
             _stop_server_locked()
-        _start_server_locked(model_name)
+        _start_server_locked(model_name, resolved_context_length)
 
 
 def unload() -> None:

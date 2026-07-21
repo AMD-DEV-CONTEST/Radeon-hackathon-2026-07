@@ -33,9 +33,29 @@ class ApiClient {
   final String baseUrl;
   String? _internalToken;
   final http.Client _client;
+  // The one in-flight streamChatCompletion connection, if any -- kept on a
+  // DEDICATED client (never the shared _client above, which every other
+  // call here reuses) specifically so cancelActiveStream() can force-close
+  // just this one request without killing the rest of the app's
+  // connectivity. Breaking out of the consumer's `await for` loop alone
+  // does not do this: it stops the Dart side from reading further bytes,
+  // but the underlying HTTP connection stays open and the server (which
+  // only notices a disconnect, never a "the reader gave up") keeps
+  // generating into a socket nobody's listening to anymore.
+  http.Client? _activeStreamClient;
 
   ApiClient({this.baseUrl = 'http://127.0.0.1:8001', http.Client? client})
       : _client = client ?? _directClient();
+
+  /// Force-closes the current streamChatCompletion connection, if any, so
+  /// the server's own request.is_disconnected() polling (see
+  /// vte/server/http_server.py's sse_stream) actually notices within its
+  /// ~1s check interval and stops generating -- see the field doc above
+  /// for why closing the shared _client here would be wrong.
+  void cancelActiveStream() {
+    _activeStreamClient?.close();
+    _activeStreamClient = null;
+  }
 
   /// Must be called once before any authenticated call. Reads the shared
   /// `.env` secret the backend also reads (see EnvLoader).
@@ -72,11 +92,14 @@ class ApiClient {
     return _decode(res);
   }
 
-  Future<Map<String, dynamic>> saveSettings(String defaultModel) async {
+  Future<Map<String, dynamic>> saveSettings(String defaultModel, {int? contextLength}) async {
     final res = await _client.post(
       Uri.parse('$baseUrl/api/settings'),
       headers: _headers,
-      body: jsonEncode({'default_model': defaultModel}),
+      body: jsonEncode({
+        'default_model': defaultModel,
+        if (contextLength != null) 'context_length': contextLength,
+      }),
     );
     return _decode(res);
   }
@@ -187,32 +210,50 @@ class ApiClient {
         'mode': mode,
       });
 
-    final streamedResponse = await _client.send(request);
-    if (streamedResponse.statusCode < 200 || streamedResponse.statusCode >= 300) {
-      final body = await streamedResponse.stream.bytesToString();
-      throw ApiException(streamedResponse.statusCode, body);
-    }
+    final streamClient = _directClient();
+    _activeStreamClient = streamClient;
+    try {
+      final streamedResponse = await streamClient.send(request);
+      if (streamedResponse.statusCode < 200 || streamedResponse.statusCode >= 300) {
+        final body = await streamedResponse.stream.bytesToString();
+        throw ApiException(streamedResponse.statusCode, body);
+      }
 
-    final lines = streamedResponse.stream.transform(utf8.decoder).transform(const LineSplitter());
-    await for (final rawLine in lines) {
-      if (!rawLine.startsWith('data: ')) continue;
-      final payload = rawLine.substring('data: '.length).trim();
-      if (payload.isEmpty) continue;
-      if (payload == '[DONE]') {
-        yield ChatStreamEvent.done();
-        continue;
+      final lines = streamedResponse.stream.transform(utf8.decoder).transform(const LineSplitter());
+      await for (final rawLine in lines) {
+        if (!rawLine.startsWith('data: ')) continue;
+        final payload = rawLine.substring('data: '.length).trim();
+        if (payload.isEmpty) continue;
+        if (payload == '[DONE]') {
+          yield ChatStreamEvent.done();
+          continue;
+        }
+        Map<String, dynamic> json;
+        try {
+          json = jsonDecode(payload) as Map<String, dynamic>;
+        } catch (_) {
+          continue;
+        }
+        if (json.containsKey('delta')) {
+          yield ChatStreamEvent.delta(json['delta']?.toString() ?? '');
+        } else if (json.containsKey('type')) {
+          yield ChatStreamEvent.typed(json['type'].toString(), json);
+        } else if (json.containsKey('error')) {
+          // agent.py's exception branch (`event: error`, e.g. a
+          // HIPSafetyError when a resolved @file reference pushes the
+          // prompt past context_length) has this shape, not {type: ...} --
+          // fell through both branches above and got silently dropped
+          // before this, so a real generation failure just looked like the
+          // agent never responding at all, with nothing in the UI
+          // explaining why.
+          yield ChatStreamEvent.typed('error', json);
+        }
       }
-      Map<String, dynamic> json;
-      try {
-        json = jsonDecode(payload) as Map<String, dynamic>;
-      } catch (_) {
-        continue;
+    } finally {
+      if (identical(_activeStreamClient, streamClient)) {
+        _activeStreamClient = null;
       }
-      if (json.containsKey('delta')) {
-        yield ChatStreamEvent.delta(json['delta']?.toString() ?? '');
-      } else if (json.containsKey('type')) {
-        yield ChatStreamEvent.typed(json['type'].toString(), json);
-      }
+      streamClient.close();
     }
   }
 

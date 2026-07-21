@@ -76,7 +76,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Text(
-                'Não foi possível iniciar o navegador embutido:\n${browser.error}',
+                'Could not start the embedded browser:\n${browser.error}',
                 style: const TextStyle(color: AppColors.accentRed, fontSize: 12),
                 textAlign: TextAlign.center,
               ),
@@ -117,7 +117,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
                       style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
                       decoration: const InputDecoration(
                         isDense: true,
-                        hintText: 'Digite uma URL ou busque...',
+                        hintText: 'Type a URL or search...',
                       ),
                       onSubmitted: (_) => _navigate(browser),
                     ),

@@ -1,12 +1,14 @@
-/// Mirrors GET /api/settings: {default_model, available_models}.
+/// Mirrors GET /api/settings: {default_model, context_length, available_models}.
 class SettingsState {
   final String defaultModel;
+  final int contextLength;
   final List<String> availableModels;
 
-  const SettingsState({this.defaultModel = '', this.availableModels = const []});
+  const SettingsState({this.defaultModel = '', this.contextLength = 2048, this.availableModels = const []});
 
   factory SettingsState.fromJson(Map<String, dynamic> json) => SettingsState(
         defaultModel: json['default_model']?.toString() ?? '',
+        contextLength: (json['context_length'] as num?)?.toInt() ?? 2048,
         availableModels: (json['available_models'] as List?)?.map((e) => e.toString()).toList() ??
             const [],
       );

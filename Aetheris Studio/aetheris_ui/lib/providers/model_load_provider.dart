@@ -25,8 +25,30 @@ class ModelLoadNotifier extends StateNotifier<ModelLoadState> {
   Future<void> selectModel(String model) async {
     state = const ModelLoadState(status: ModelLoadStatus.loading);
     try {
-      await _api.saveSettings(model);
+      final settings = _ref.read(settingsProvider).valueOrNull;
+      await _api.saveSettings(model, contextLength: settings?.contextLength);
       await _api.warmupModel(model);
+      await _ref.read(settingsProvider.notifier).refresh();
+      state = const ModelLoadState(status: ModelLoadStatus.loaded);
+    } on ApiException catch (e) {
+      state = ModelLoadState(status: ModelLoadStatus.error, error: e.message);
+    } catch (e) {
+      state = ModelLoadState(status: ModelLoadStatus.error, error: e.toString());
+    }
+  }
+
+  /// VTE's real context window (see vte_bridge.py's module docstring): sized
+  /// into the KV cache at model-load time, so changing it needs the exact
+  /// same persist-then-reload dance as selectModel, not a per-request
+  /// field. Reuses the same ModelLoadState the model picker already drives,
+  /// so the toolbar's loading feedback is consistent for either control.
+  Future<void> changeContextLength(int contextLength) async {
+    final currentModel = _ref.read(settingsProvider).valueOrNull?.defaultModel;
+    if (currentModel == null || currentModel.isEmpty) return;
+    state = const ModelLoadState(status: ModelLoadStatus.loading);
+    try {
+      await _api.saveSettings(currentModel, contextLength: contextLength);
+      await _api.warmupModel(currentModel);
       await _ref.read(settingsProvider.notifier).refresh();
       state = const ModelLoadState(status: ModelLoadStatus.loaded);
     } on ApiException catch (e) {
@@ -78,10 +100,21 @@ final StateNotifierProvider<ModelLoadNotifier, ModelLoadState> modelLoadProvider
   return notifier;
 });
 
-/// Client-side only: bounds `max_tokens` on the next chat turn. VTE's KV
-/// cache/context window itself is fixed at load time (context_length=8192
-/// in vte_bridge.py), so this dial controls generation length, not the
-/// model's true context window.
-final contextSizeProvider = StateProvider<int>((ref) => 4096);
+/// VTE's real context window (prompt + response), persisted server-side and
+/// read directly off settingsProvider rather than mirrored into a separate
+/// client-side StateProvider -- there's nothing to desync that way. Display
+/// value: `ref.watch(settingsProvider).valueOrNull?.contextLength ?? 2048`;
+/// to change it, call `modelLoadProvider.notifier.changeContextLength(v)`,
+/// which persists it and reloads the model (see that method's doc).
+const contextLengthOptions = [512, 1024, 2048, 4096, 8192];
 
-const contextSizeOptions = [512, 1024, 2048, 4096, 8192];
+/// Client-side only, never sent to /api/settings: bounds `max_tokens` on
+/// the next chat turn (how long/thorough a reply is allowed to be), a
+/// completely different knob from contextLengthOptions above (the model's
+/// total prompt+response capacity, fixed at load time). A smaller budget
+/// finishes generating sooner; a larger one lets the model reason through
+/// more before answering -- hence "Faster" vs "Smarter" in the picker, not
+/// "more/less context".
+final intelligenceProvider = StateProvider<int>((ref) => 4096);
+
+const intelligenceOptions = [512, 1024, 2048, 4096, 8192];

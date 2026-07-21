@@ -24,6 +24,7 @@ import threading
 import time
 import uuid
 from pathlib import Path
+from typing import Optional
 
 import uvicorn
 from starlette.applications import Starlette
@@ -50,6 +51,17 @@ class _ServerState:
     # existe de verdade enquanto uma geração roda; entre requisições, o
     # último valor medido é a melhor informação disponível.
     last_decoding_speed_tps: float = 0.0
+    # Live counterpart of last_decoding_speed_tps: while a generation is
+    # actively producing tokens, /telemetry should show a number that
+    # actually moves, not last_decoding_speed_tps sitting frozen at
+    # whatever the PREVIOUS generation finished at until this one also
+    # finishes. None while idle (distinguishes "no live generation" from
+    # "0 tok/s"). live_generation_start is set on the first token of a
+    # generation (not before -- prefill has no per-token progress to time),
+    # so this is always a decode-only rate, matching the convention
+    # `decoding_speed_tps` already uses everywhere else in this file.
+    live_generation_start: Optional[float] = None
+    live_tokens_generated: int = 0
 
 
 state = _ServerState()
@@ -219,6 +231,19 @@ def _run_generation(
     for GIL time between tokens."""
     try:
         for word in gen:
+            # First token starts the live-tps clock (prefill has no
+            # per-token progress to time, so timing from before this would
+            # count prefill against a "decode speed" figure); every token
+            # after that both advances the clock's numerator and gets
+            # timed against it. Plain attribute writes on `state`, no lock:
+            # CPython's GIL already makes single attribute assignment
+            # atomic, and /telemetry only ever reads these, never
+            # read-modifies-writes them.
+            if state.live_generation_start is None:
+                state.live_generation_start = time.perf_counter()
+                state.live_tokens_generated = 0
+            else:
+                state.live_tokens_generated += 1
             loop.call_soon_threadsafe(out_queue.put_nowait, ("chunk", word))
             if stop_event.is_set():
                 gen.close()  # mesma thread que itera -- seguro
@@ -229,6 +254,8 @@ def _run_generation(
         # `stats` foi preenchido por generate() (por referência) ao exaurir o
         # generator -- carrega completion_tokens pro chunk final de usage.
         loop.call_soon_threadsafe(out_queue.put_nowait, ("done", stats))
+        state.live_generation_start = None
+        state.live_tokens_generated = 0
         lock.release()
 
 
@@ -263,19 +290,35 @@ async def health(request: Request) -> JSONResponse:
 
 async def telemetry(request: Request) -> JSONResponse:
     """Real GPU/model telemetry for a status-bar-style display: every
-    number here is a live device query (`hipMemGetInfo`) or the last
-    actually-measured decode speed, not an estimate."""
+    number here is a live device query (`hipMemGetInfo`) or an actually-
+    measured decode speed, not an estimate.
+
+    decoding_speed_tps prefers the LIVE, still-updating rate while a
+    generation is actively producing tokens over last_decoding_speed_tps
+    (the previous generation's fixed final average) -- a status bar polled
+    every few seconds needs a number that visibly moves during a response,
+    not one that sits frozen until the whole response finishes. Falls back
+    to last_decoding_speed_tps between generations, and to 0.0 within the
+    first ~50ms of a fresh generation's first token (one token divided by
+    a near-zero elapsed time is noise, not a rate)."""
     if state.model is None or state.model._hip is None:
         return JSONResponse({"status": "loading"}, status_code=503)
     hip = state.model._hip
     free_bytes, total_bytes = hip.get_real_mem_info()
+    live_tps = None
+    is_generating = state.live_generation_start is not None
+    if is_generating:
+        elapsed = time.perf_counter() - state.live_generation_start
+        if elapsed > 0.05:
+            live_tps = state.live_tokens_generated / elapsed
     return JSONResponse({
         "gpu_name": hip.get_gpu_name(),
         "gpu_arch": hip.get_gpu_architecture(),
         "num_cus": hip.get_num_cus(),
         "vram_total_bytes": total_bytes,
         "vram_used_bytes": total_bytes - free_bytes,
-        "decoding_speed_tps": state.last_decoding_speed_tps,
+        "decoding_speed_tps": live_tps if live_tps is not None else state.last_decoding_speed_tps,
+        "is_generating": is_generating,
         "model_id": state.model_id,
     })
 
@@ -397,14 +440,6 @@ async def chat_completions(request: Request):
                     delta = {"role": "assistant", "content": payload} if first else {"content": payload}
                     first = False
                     yield f"data: {json.dumps(_openai_chunk(request_id, model_name, delta))}\n\n"
-                    # Cheap async check (no blocking syscall, unlike the old
-                    # queue.get(timeout=...) this replaced), so it's safe to
-                    # run once per token: keeps disconnect responsiveness on
-                    # par with the old 50ms-polling version even though the
-                    # queue wait itself no longer polls at all.
-                    if await request.is_disconnected():
-                        stop_event.set()
-                        break
                 elif kind == "error":
                     yield f"data: {json.dumps({'error': {'message': payload, 'type': 'server_error'}})}\n\n"
                     break

@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi import FastAPI, HTTPException, Header, Depends, Request
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional, Any
 
@@ -158,35 +158,51 @@ async def root():
 
 class SettingsUpdateRequest(BaseModel):
     default_model: str
+    # VTE's real context window (prompt + response) -- distinct from a
+    # request's own max_tokens, which only bounds the response length. See
+    # core/utils/vte_bridge.py's module docstring: this sizes the KV cache
+    # at model-load time, so changing it needs a full vte-server restart
+    # (ensure_server already detects the mismatch and does this), not
+    # something a per-request field could do.
+    context_length: Optional[int] = None
 
 
 @app.get("/api/settings", dependencies=[Depends(verify_internal_token)])
 async def get_settings():
-    """Current model choice + the list of VTE models actually available to
-    pick from (VTEModel.MODEL_REGISTRY -- Fase 4 settings panel)."""
+    """Current model choice + context_length + the list of VTE models
+    actually available to pick from (VTEModel.MODEL_REGISTRY -- Fase 4
+    settings panel)."""
     from core.utils.settings import get_setting
     from core.utils.vte_bridge import VTE_DEFAULT_MODEL
     from vte.core.model import VTEModel
     return {
         "default_model": get_setting("default_model", "") or VTE_DEFAULT_MODEL,
+        "context_length": get_setting("context_length", 2048),
         "available_models": list(VTEModel.MODEL_REGISTRY.keys()),
     }
 
 
 @app.post("/api/settings", dependencies=[Depends(verify_internal_token)])
 async def update_settings(request: SettingsUpdateRequest):
-    """Persist the chosen default model (Fase 4 settings panel). Written to
-    the same settings.json key (`default_model`) that
-    /v1/chat/completions/stream reads at the start of every turn -- no new
-    plumbing needed on the read side."""
+    """Persist the chosen default model (+ optionally context_length; Fase 4
+    settings panel). Written to the same settings.json keys
+    (`default_model`, `context_length`) that /v1/chat/completions/stream and
+    vte_bridge.ensure_server read -- no new plumbing needed on the read
+    side. This only persists the preference; it does not itself reload the
+    model (see /api/vte/warmup, which the Flutter context-length picker
+    calls right after this, the same way the model picker already does)."""
     from core.utils.settings import load_settings, save_settings
     from vte.core.model import VTEModel
     if request.default_model not in VTEModel.MODEL_REGISTRY:
         raise HTTPException(status_code=400, detail=f"Unknown model: {request.default_model}")
+    if request.context_length is not None and request.context_length <= 0:
+        raise HTTPException(status_code=400, detail="context_length must be positive")
     settings = load_settings()
     settings["default_model"] = request.default_model
+    if request.context_length is not None:
+        settings["context_length"] = request.context_length
     save_settings(settings)
-    return {"status": "success", "default_model": request.default_model}
+    return {"status": "success", "default_model": request.default_model, "context_length": settings["context_length"]}
 
 
 class CreateChatRequest(BaseModel):
@@ -536,10 +552,20 @@ async def shutdown_api():
     return {"status": "shutting down"}
 
 @app.post("/v1/chat/completions/stream", dependencies=[Depends(verify_internal_token)])
-async def chat_completions_stream(request: ChatCompletionRequest):
+async def chat_completions_stream(body: ChatCompletionRequest, http_request: Request):
     """SSE stream endpoint for chat completions, driven by the native
     agent loop (core/utils/agent.py::stream_agent). VTE is the only
-    inference engine; this is the sole live chat endpoint."""
+    inference engine; this is the sole live chat endpoint.
+
+    http_request goes into stream_agent so it can poll
+    http_request.is_disconnected() -- StreamingResponse does NOT do this on
+    its own. Confirmed directly: cancelling from the Flutter side (closing
+    its connection to THIS endpoint) never stopped the remote vte-server's
+    own generation, because nothing here ever noticed the client was gone
+    and kept fully consuming/forwarding stream_agent's output regardless,
+    which kept the downstream httpx request to vte-server alive too --
+    vte-server's own is_disconnected() polling only fires on ITS OWN
+    connection (from this process), which stayed open the whole time."""
     try:
         from core.utils.vte_bridge import VTE_DEFAULT_MODEL
         from core.utils.settings import get_setting
@@ -548,14 +574,15 @@ async def chat_completions_stream(request: ChatCompletionRequest):
         owner = AuthManager().current_username()
         model = get_setting("default_model") or VTE_DEFAULT_MODEL
 
-        messages_dict = [{"role": msg.role, "content": msg.content} for msg in request.messages]
+        messages_dict = [{"role": msg.role, "content": msg.content} for msg in body.messages]
         generator = stream_agent(
             model=model,
             messages=messages_dict,
-            temperature=request.temperature if request.temperature is not None else 0.3,
-            max_tokens=request.max_tokens or 4096,
+            temperature=body.temperature if body.temperature is not None else 0.3,
+            max_tokens=body.max_tokens or 4096,
             owner=owner,
-            mode=request.mode or "builder",
+            mode=body.mode or "builder",
+            request=http_request,
         )
         return StreamingResponse(generator, media_type="text/event-stream")
     except Exception as e:

@@ -1,61 +1,92 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../providers/chat_provider.dart';
 import '../providers/model_load_provider.dart';
 import '../providers/settings_provider.dart';
 import '../theme.dart';
 
-/// Toolbar under the chat input: model switcher + context (max output
-/// tokens) switcher. Popups styled after the Claude Code model/effort
-/// dropdowns the user referenced -- a dark rounded panel, a header, rows
-/// with a check on the selected item and a shortcut number, and an
-/// "effort"-style slider for context size.
-class ModelContextBar extends ConsumerWidget {
-  const ModelContextBar({super.key});
+/// The whole bottom-of-chat control row: Builder/Planner mode, model
+/// picker, real context-window picker, response-length ("Intelligence")
+/// picker. Previously three separate widgets with three slightly different
+/// pill styles crammed into a Row that overflowed/squeezed together
+/// whenever the chat panel narrowed (sidebar + inspector both open). One
+/// shared pill style + a Wrap (reflows onto a second line instead of
+/// overflowing) fixes both the inconsistent look and the squeeze at once.
+class AgentToolbar extends ConsumerWidget {
+  const AgentToolbar({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settingsAsync = ref.watch(settingsProvider);
     final loadState = ref.watch(modelLoadProvider);
-    final contextSize = ref.watch(contextSizeProvider);
+    final mode = ref.watch(agentModeProvider);
+    final contextLength = settingsAsync.valueOrNull?.contextLength ?? 2048;
+    final intelligence = ref.watch(intelligenceProvider);
+    final loading = loadState.status == ModelLoadStatus.loading;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Row(
-        children: [
-          _PillButton(
-            icon: loadState.status == ModelLoadStatus.loading ? null : Icons.memory,
-            label: settingsAsync.valueOrNull?.defaultModel.isNotEmpty == true
-                ? settingsAsync.valueOrNull!.defaultModel
-                : 'Selecionar modelo',
-            loading: loadState.status == ModelLoadStatus.loading,
-            error: loadState.status == ModelLoadStatus.error,
-            onTap: () => _showModelPicker(context, ref),
-          ),
-          const SizedBox(width: 8),
-          _PillButton(
-            icon: Icons.tune,
-            label: _contextLabel(contextSize),
-            onTap: () => _showContextPicker(context, ref),
-          ),
-          if (loadState.status == ModelLoadStatus.error) ...[
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(loadState.error ?? 'Falha ao carregar modelo',
-                  style: const TextStyle(color: AppColors.accentRed, fontSize: 11),
-                  overflow: TextOverflow.ellipsis),
-            ),
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        _SegmentedToggle(
+          segments: const [
+            _Segment(label: 'Builder', icon: Icons.bolt, value: 'builder'),
+            _Segment(label: 'Planner', icon: Icons.checklist_outlined, value: 'planner'),
           ],
-        ],
-      ),
+          value: mode,
+          onChanged: (v) => ref.read(agentModeProvider.notifier).state = v,
+        ),
+        _Pill(
+          icon: Icons.memory,
+          label: settingsAsync.valueOrNull?.defaultModel.isNotEmpty == true
+              ? settingsAsync.valueOrNull!.defaultModel
+              : 'Select model',
+          loading: loading,
+          error: loadState.status == ModelLoadStatus.error,
+          onTap: () => _showModelPicker(context, ref),
+        ),
+        _Pill(
+          icon: Icons.tune,
+          label: _labelFor(contextLength, contextLengthOptions),
+          loading: loading,
+          onTap: () => _showPicker(
+            context: context,
+            title: 'Context',
+            unit: 'tokens',
+            leftHint: 'Faster',
+            rightHint: 'More context',
+            options: contextLengthOptions,
+            current: contextLength,
+            onSelected: (v) => ref.read(modelLoadProvider.notifier).changeContextLength(v),
+          ),
+        ),
+        _Pill(
+          icon: Icons.psychology_outlined,
+          label: _labelFor(intelligence, intelligenceOptions),
+          onTap: () => _showPicker(
+            context: context,
+            title: 'Intelligence',
+            unit: 'tokens',
+            leftHint: 'Faster',
+            rightHint: 'Smarter',
+            options: intelligenceOptions,
+            current: intelligence,
+            onSelected: (v) => ref.read(intelligenceProvider.notifier).state = v,
+          ),
+        ),
+        if (loadState.status == ModelLoadStatus.error)
+          Text(loadState.error ?? 'Failed to load model',
+              style: const TextStyle(color: AppColors.accentRed, fontSize: 11)),
+      ],
     );
   }
 
-  static String _contextLabel(int size) {
-    final idx = contextSizeOptions.indexOf(size);
-    const names = ['Mínimo', 'Baixo', 'Médio', 'Alto', 'Máximo'];
-    final name = (idx >= 0 && idx < names.length) ? names[idx] : '$size';
-    return 'Contexto $name';
+  static String _labelFor(int value, List<int> options) {
+    final idx = options.indexOf(value);
+    const names = ['Min', 'Low', 'Medium', 'High', 'Max'];
+    return (idx >= 0 && idx < names.length) ? names[idx] : '$value';
   }
 
   Future<void> _showModelPicker(BuildContext context, WidgetRef ref) async {
@@ -75,18 +106,183 @@ class ModelContextBar extends ConsumerWidget {
     }
   }
 
-  Future<void> _showContextPicker(BuildContext context, WidgetRef ref) async {
-    final current = ref.read(contextSizeProvider);
+  Future<void> _showPicker({
+    required BuildContext context,
+    required String title,
+    required String unit,
+    required String leftHint,
+    required String rightHint,
+    required List<int> options,
+    required int current,
+    required ValueChanged<int> onSelected,
+  }) async {
     final selected = await showDialog<int>(
       context: context,
       barrierColor: Colors.transparent,
       builder: (context) => _AnchoredPanel(
-        child: _ContextPanel(current: current),
+        child: _SliderPanel(
+          title: title,
+          unit: unit,
+          leftHint: leftHint,
+          rightHint: rightHint,
+          options: options,
+          current: current,
+        ),
       ),
     );
-    if (selected != null) {
-      ref.read(contextSizeProvider.notifier).state = selected;
+    if (selected != null && selected != current) {
+      onSelected(selected);
     }
+  }
+}
+
+class _Segment {
+  final String label;
+  final IconData icon;
+  final String value;
+  const _Segment({required this.label, required this.icon, required this.value});
+}
+
+/// One bordered group with an internal divider, instead of two independently
+/// bordered pills sitting next to each other -- reads as a single control
+/// (which it is: builder XOR planner) rather than two unrelated buttons.
+class _SegmentedToggle extends StatelessWidget {
+  final List<_Segment> segments;
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  const _SegmentedToggle({required this.segments, required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 28,
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < segments.length; i++) ...[
+            if (i > 0) Container(width: 1, height: 16, color: AppColors.border),
+            _SegmentButton(
+              segment: segments[i],
+              selected: segments[i].value == value,
+              onTap: () => onChanged(segments[i].value),
+              firstOrLast: i == 0 || i == segments.length - 1,
+              isFirst: i == 0,
+              isLast: i == segments.length - 1,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SegmentButton extends StatelessWidget {
+  final _Segment segment;
+  final bool selected;
+  final VoidCallback onTap;
+  final bool firstOrLast;
+  final bool isFirst;
+  final bool isLast;
+
+  const _SegmentButton({
+    required this.segment,
+    required this.selected,
+    required this.onTap,
+    required this.firstOrLast,
+    required this.isFirst,
+    required this.isLast,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.horizontal(
+        left: isFirst ? const Radius.circular(7) : Radius.zero,
+        right: isLast ? const Radius.circular(7) : Radius.zero,
+      ),
+      child: Container(
+        height: 28,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        color: selected ? AppColors.accentGreen.withValues(alpha: 0.12) : Colors.transparent,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(segment.icon, size: 13, color: selected ? AppColors.accentGreen : AppColors.textMuted),
+            const SizedBox(width: 5),
+            Text(
+              segment.label,
+              style: TextStyle(
+                color: selected ? AppColors.accentGreen : AppColors.textMuted,
+                fontSize: 11.5,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool loading;
+  final bool error;
+
+  const _Pill({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.loading = false,
+    this.error = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        height: 28,
+        constraints: const BoxConstraints(maxWidth: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          border: Border.all(color: error ? AppColors.accentRed : AppColors.border),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (loading)
+              const SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(strokeWidth: 1.6, color: AppColors.accentGreen),
+              )
+            else
+              Icon(icon, size: 13, color: AppColors.textMuted),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                style: const TextStyle(color: AppColors.textPrimary, fontSize: 11.5),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 3),
+            const Icon(Icons.keyboard_arrow_up, size: 13, color: AppColors.textMuted),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -140,7 +336,7 @@ class _ModelPanel extends StatelessWidget {
       children: [
         const Padding(
           padding: EdgeInsets.fromLTRB(14, 6, 14, 8),
-          child: Text('Modelos',
+          child: Text('Models',
               style: TextStyle(color: AppColors.textMuted, fontSize: 11, letterSpacing: 0.5)),
         ),
         for (var i = 0; i < models.length; i++)
@@ -196,27 +392,42 @@ class _ModelRow extends StatelessWidget {
   }
 }
 
-class _ContextPanel extends StatefulWidget {
+/// Shared slider panel for both the context-length and intelligence
+/// pickers -- same "effort"-style slider, different title/hints/options.
+class _SliderPanel extends StatefulWidget {
+  final String title;
+  final String unit;
+  final String leftHint;
+  final String rightHint;
+  final List<int> options;
   final int current;
-  const _ContextPanel({required this.current});
+
+  const _SliderPanel({
+    required this.title,
+    required this.unit,
+    required this.leftHint,
+    required this.rightHint,
+    required this.options,
+    required this.current,
+  });
 
   @override
-  State<_ContextPanel> createState() => _ContextPanelState();
+  State<_SliderPanel> createState() => _SliderPanelState();
 }
 
-class _ContextPanelState extends State<_ContextPanel> {
+class _SliderPanelState extends State<_SliderPanel> {
   late double _value;
 
   @override
   void initState() {
     super.initState();
-    final idx = contextSizeOptions.indexOf(widget.current);
-    _value = (idx >= 0 ? idx : contextSizeOptions.length ~/ 2).toDouble();
+    final idx = widget.options.indexOf(widget.current);
+    _value = (idx >= 0 ? idx : widget.options.length ~/ 2).toDouble();
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = contextSizeOptions[_value.round()];
+    final size = widget.options[_value.round()];
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -225,9 +436,9 @@ class _ContextPanelState extends State<_ContextPanel> {
           padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
           child: Row(
             children: [
-              const Text('Contexto', style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+              Text(widget.title, style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
               const Spacer(),
-              Text('$size tokens',
+              Text('$size ${widget.unit}',
                   style: const TextStyle(color: AppColors.accentGreen, fontSize: 11)),
             ],
           ),
@@ -243,72 +454,23 @@ class _ContextPanelState extends State<_ContextPanel> {
           child: Slider(
             value: _value,
             min: 0,
-            max: (contextSizeOptions.length - 1).toDouble(),
-            divisions: contextSizeOptions.length - 1,
+            max: (widget.options.length - 1).toDouble(),
+            divisions: widget.options.length - 1,
             onChanged: (v) => setState(() => _value = v),
-            onChangeEnd: (v) => Navigator.pop(context, contextSizeOptions[v.round()]),
+            onChangeEnd: (v) => Navigator.pop(context, widget.options[v.round()]),
           ),
         ),
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Mais rápido', style: TextStyle(color: AppColors.textMuted, fontSize: 10)),
-              Text('Mais contexto', style: TextStyle(color: AppColors.textMuted, fontSize: 10)),
+              Text(widget.leftHint, style: const TextStyle(color: AppColors.textMuted, fontSize: 10)),
+              Text(widget.rightHint, style: const TextStyle(color: AppColors.textMuted, fontSize: 10)),
             ],
           ),
         ),
       ],
-    );
-  }
-}
-
-class _PillButton extends StatelessWidget {
-  final IconData? icon;
-  final String label;
-  final VoidCallback onTap;
-  final bool loading;
-  final bool error;
-
-  const _PillButton({
-    this.icon,
-    required this.label,
-    required this.onTap,
-    this.loading = false,
-    this.error = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: AppColors.inputBg,
-          border: Border.all(color: error ? AppColors.accentRed : AppColors.border),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (loading)
-              const SizedBox(
-                width: 12,
-                height: 12,
-                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accentGreen),
-              )
-            else if (icon != null)
-              Icon(icon, size: 14, color: AppColors.textMuted),
-            const SizedBox(width: 6),
-            Text(label, style: const TextStyle(color: AppColors.textPrimary, fontSize: 12)),
-            const SizedBox(width: 4),
-            const Icon(Icons.keyboard_arrow_up, size: 14, color: AppColors.textMuted),
-          ],
-        ),
-      ),
     );
   }
 }

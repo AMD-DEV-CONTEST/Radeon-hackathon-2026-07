@@ -27,8 +27,8 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthState>> {
       state = AsyncValue.data(AuthState(configured: true, username: json['username']?.toString()));
       return null;
     } on ApiException catch (e) {
-      if (e.statusCode == 429) return 'Muitas tentativas. Aguarde um minuto.';
-      if (e.statusCode == 401) return 'Usuário ou senha inválidos.';
+      if (e.statusCode == 429) return 'Too many attempts. Wait a minute.';
+      if (e.statusCode == 401) return 'Invalid username or password.';
       return e.message;
     } catch (e) {
       return e.toString();

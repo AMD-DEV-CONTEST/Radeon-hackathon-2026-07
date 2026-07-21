@@ -68,7 +68,7 @@ class _BootstrapState extends State<_Bootstrap> {
     final alive = await _launcher.ensureRunning();
     if (!alive) {
       setState(() =>
-          _error = 'Não foi possível iniciar ou conectar ao backend (app.py). Verifique se o projeto está no lugar esperado.');
+          _error = 'Could not start or connect to the backend (app.py). Check that the project is in the expected location.');
       return;
     }
     final container = ProviderContainer(
@@ -101,7 +101,7 @@ class _BootstrapState extends State<_Bootstrap> {
                           textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textPrimary)),
                     ),
                     const SizedBox(height: 16),
-                    ElevatedButton(onPressed: _boot, child: const Text('Tentar novamente')),
+                    ElevatedButton(onPressed: _boot, child: const Text('Try again')),
                   ],
                 )
               : const Column(

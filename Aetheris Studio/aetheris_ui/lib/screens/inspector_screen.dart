@@ -7,10 +7,10 @@ import '../providers/project_provider.dart';
 import '../providers/terminal_provider.dart';
 import '../theme.dart';
 
-/// Which Inspector tab is showing (LOG=0, TERMINAL=1, ARQUIVOS=2,
-/// ALTERAÇÕES=3). Lives outside InspectorScreen's own State so the title
+/// Which Inspector tab is showing (LOG=0, TERMINAL=1, FILES=2,
+/// CHANGES=3). Lives outside InspectorScreen's own State so the title
 /// bar's file-changes icon (main_screen.dart) can jump straight to the
-/// ALTERAÇÕES tab without needing a widget-tree reference to the
+/// CHANGES tab without needing a widget-tree reference to the
 /// TabController.
 final inspectorTabIndexProvider = StateProvider<int>((ref) => 0);
 
@@ -63,8 +63,8 @@ class _InspectorScreenState extends ConsumerState<InspectorScreen> with SingleTi
             tabs: const [
               Tab(text: 'LOG'),
               Tab(text: 'TERMINAL'),
-              Tab(text: 'ARQUIVOS'),
-              Tab(text: 'ALTERAÇÕES'),
+              Tab(text: 'FILES'),
+              Tab(text: 'CHANGES'),
             ],
           ),
           const Divider(height: 1, color: AppColors.border),
@@ -93,7 +93,7 @@ class _LogTab extends ConsumerWidget {
     final logs = ref.watch(chatSessionsProvider.select((s) => s.executionLogs));
     if (logs.isEmpty) {
       return const Center(
-        child: Text('Sem atividade ainda.', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+        child: Text('No activity yet.', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
       );
     }
     return ListView.builder(
@@ -155,7 +155,7 @@ class _TerminalTabState extends ConsumerState<_TerminalTab> {
           const Padding(
             padding: EdgeInsets.all(12),
             child: Text(
-              'Selecione uma pasta de projeto no sidebar para usar o terminal.',
+              'Select a project folder in the sidebar to use the terminal.',
               style: TextStyle(color: AppColors.textMuted, fontSize: 11),
             ),
           ),
@@ -203,7 +203,7 @@ class _TerminalTabState extends ConsumerState<_TerminalTab> {
                   controller: _controller,
                   enabled: projectPath.isNotEmpty && !state.running,
                   style: const TextStyle(color: AppColors.textPrimary, fontFamily: AppFonts.mono, fontSize: 12),
-                  decoration: const InputDecoration(hintText: 'comando...', isDense: true),
+                  decoration: const InputDecoration(hintText: 'command...', isDense: true),
                   onSubmitted: (_) => _run(),
                 ),
               ),
@@ -240,7 +240,7 @@ class _FilesTab extends ConsumerWidget {
         child: Padding(
           padding: EdgeInsets.all(16),
           child: Text(
-            'Selecione uma pasta de projeto no sidebar para navegar pelos arquivos.',
+            'Select a project folder in the sidebar to browse files.',
             style: TextStyle(color: AppColors.textMuted, fontSize: 11),
             textAlign: TextAlign.center,
           ),
@@ -265,7 +265,7 @@ class _FilesTab extends ConsumerWidget {
                 IconButton(
                   icon: const Icon(Icons.arrow_upward, size: 16, color: AppColors.textMuted),
                   onPressed: () => ref.read(filesProvider.notifier).openParent(),
-                  tooltip: 'Voltar',
+                  tooltip: 'Back',
                   visualDensity: VisualDensity.compact,
                 ),
               Expanded(
@@ -278,7 +278,7 @@ class _FilesTab extends ConsumerWidget {
               IconButton(
                 icon: const Icon(Icons.refresh, size: 16, color: AppColors.textMuted),
                 onPressed: () => ref.read(filesProvider.notifier).open(state.path),
-                tooltip: 'Atualizar',
+                tooltip: 'Refresh',
                 visualDensity: VisualDensity.compact,
               ),
             ],
@@ -288,7 +288,7 @@ class _FilesTab extends ConsumerWidget {
         Expanded(
           child: state.entries.isEmpty
               ? const Center(
-                  child: Text('Pasta vazia.', style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                  child: Text('Empty folder.', style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
                 )
               : ListView.builder(
                   itemCount: state.entries.length,
@@ -332,7 +332,7 @@ class _ChangesTab extends ConsumerWidget {
     final changes = ref.watch(chatSessionsProvider.select((s) => s.fileChanges));
     if (changes.isEmpty) {
       return const Center(
-        child: Text('Nenhum arquivo alterado ainda nesta sessão.', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+        child: Text('No files changed yet this session.', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
       );
     }
     final reversed = changes.reversed.toList();
@@ -340,7 +340,7 @@ class _ChangesTab extends ConsumerWidget {
       itemCount: reversed.length,
       itemBuilder: (context, i) {
         final change = reversed[i];
-        final created = change.tool == 'write_file';
+        final created = change.tool == 'write_file' || change.tool == 'write_files';
         return ListTile(
           dense: true,
           leading: Icon(
@@ -353,7 +353,7 @@ class _ChangesTab extends ConsumerWidget {
             style: const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontFamily: AppFonts.mono),
           ),
           subtitle: Text(
-            created ? 'Criado' : 'Editado',
+            created ? 'Created' : 'Edited',
             style: const TextStyle(color: AppColors.textMuted, fontSize: 10),
           ),
           trailing: Text(

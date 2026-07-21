@@ -968,9 +968,37 @@ class VTEModel:
         if use_topk:
             self._topk_reducer.upload_exclude(np.empty(0, dtype=np.int64))
 
+        # Prefix reuse: the KV cache is one persistent VRAM buffer that
+        # nothing actually clears between generate() calls -- the loop below
+        # just always used to start writing at kv_offset=0, silently
+        # re-doing work for whatever leading tokens are IDENTICAL to last
+        # call (the system prompt + conversation-so-far, unchanged in every
+        # round of an agent turn). Skipping the decode-graph replay for that
+        # shared prefix and resuming kv_offset from where it ends reuses
+        # those already-correct KV entries as-is, no copy/save/restore
+        # needed, since it's the same physical buffer. Split-KV attention
+        # takes an explicit kv_offset and only attends up to it, so stale
+        # trailing entries beyond the new prompt's own length are never
+        # read. Scoped to standard-attention architectures only -- Qwen3.5's
+        # Gated DeltaNet has separate recurrent state that _reset_gdn_state_
+        # if_needed() unconditionally clears every call specifically because
+        # it can't resume mid-sequence like transformer KV cache can, so
+        # qwen35 always falls through to a full prefill here (skip_prefix
+        # stays 0), same as before this change.
+        skip_prefix = 0
+        if self._use_hip_graph and getattr(self, "_architecture", None) != "qwen35":
+            last_seq = getattr(self, "_last_kv_sequence", None) or []
+            # Always leave at least one new position to process: with
+            # skip_prefix == len(input_tokens), output_norm.output would
+            # still hold the previous call's leftover state instead of a
+            # hidden state for THIS prompt's last position.
+            max_common = min(len(last_seq), len(input_tokens) - 1)
+            while skip_prefix < max_common and last_seq[skip_prefix] == input_tokens[skip_prefix]:
+                skip_prefix += 1
+
         if self._use_hip_graph:
-            for pos, tok in enumerate(input_tokens):
-                self.executor.execute_decode(tok, kv_offset=pos)
+            for pos in range(skip_prefix, len(input_tokens)):
+                self.executor.execute_decode(input_tokens[pos], kv_offset=pos)
         else:
             self.executor.prefill(input_tokens)
 
@@ -1014,6 +1042,15 @@ class VTEModel:
         ignore_token_set = set(self.tokenizer.special_tokens.values())
         vocab_size = self.lm_head.vocab_size
         prompt_len = len(input_tokens)
+        # How many leading positions of input_tokens are actually resident
+        # in the KV cache right now -- starts at prompt_len (prefill above
+        # always leaves the whole prompt validly written, skipped or not),
+        # advances by one per decode iteration ONLY past the point where
+        # execute_decode/decode_step actually ran (see the context_length
+        # break below: a token can be appended to input_tokens and then the
+        # loop exits before writing its KV entry, so len(input_tokens)
+        # alone isn't a safe stand-in for this).
+        kv_valid_len = prompt_len
 
         if use_topk:
             # O kernel já rodou como parte do ÚLTIMO replay do prefill (com
@@ -1089,6 +1126,7 @@ class VTEModel:
                 self.executor.execute_decode(next_token, kv_offset=current_seq_len - 1)
             else:
                 self.executor.decode_step(next_token, current_seq_len - 1)
+            kv_valid_len = current_seq_len
 
             # Histórico: 15ms fixos -> virou teto artificial de velocidade
             # (~66 tok/s) quando HIP Graph + fusão baixaram o tempo real de
@@ -1113,6 +1151,29 @@ class VTEModel:
         tail = utf8_decoder.flush()
         if tail:
             yield tail
+
+        # Not reached on cancellation (gen.close() raises GeneratorExit at
+        # whatever yield the loop above is suspended on), same as `stats`
+        # below -- left at its previous value in that case, which is still
+        # a true (if shorter-than-optimal) prefix of what's actually in the
+        # KV cache now, so the next call's skip-prefix search below just
+        # undershoots a little instead of ever assuming a stale position is
+        # valid when it isn't.
+        #
+        # Measured caveat (not a bug): a later prompt that re-encodes THIS
+        # reply as rendered chat-template text won't always retokenize back
+        # to these exact sampled token ids -- BPE encode(decode(tokens)) can
+        # legitimately merge differently than the greedy one-token-at-a-time
+        # sampling that produced them. The skip-prefix search below still
+        # handles this safely (a mismatch just ends the shared prefix
+        # there, never assumes wrong data is valid), so the reply itself
+        # commonly gets re-prefilled next round even though the system
+        # prompt + prior user turns before it reliably don't -- confirmed
+        # against the real Aetheris system prompt on Qwen2.5 7B: round 1
+        # (cold) 32.4s TTFT, round 2 (same session) 2.6s, a ~12x drop even
+        # with this caveat, since the system prompt is by far the larger
+        # fixed cost.
+        self._last_kv_sequence = input_tokens[:kv_valid_len]
 
         if stats is not None:
             completion_tokens = len(input_tokens) - prompt_len

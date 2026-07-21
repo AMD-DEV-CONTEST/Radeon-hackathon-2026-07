@@ -47,9 +47,9 @@ class BrowserController {
     await ensureInitialized();
     final result = await webview.executeScript('document.body.innerText');
     var text = (result?.toString() ?? '').trim();
-    if (text.isEmpty) return '(a página está vazia ou ainda carregando)';
+    if (text.isEmpty) return '(the page is empty or still loading)';
     if (text.length > _maxReadChars) {
-      text = '${text.substring(0, _maxReadChars)}\n... (truncado, ${text.length} caracteres no total)';
+      text = '${text.substring(0, _maxReadChars)}\n... (truncated, ${text.length} characters total)';
     }
     return text;
   }

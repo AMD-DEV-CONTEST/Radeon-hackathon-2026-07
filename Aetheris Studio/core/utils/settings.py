@@ -136,6 +136,12 @@ DEFAULT_SETTINGS = {
     "task_model": "",
     "default_endpoint_id": "",
     "default_model": "",
+    # VTE's real context window (prompt + response), fixed at model-load
+    # time (sizes the KV cache) -- distinct from a request's own max_tokens,
+    # which only bounds the response length. Matches VTEModel's own
+    # DEFAULT_CONTEXT_LENGTH so an unconfigured install behaves exactly as
+    # before this setting existed.
+    "context_length": 2048,
     # Ordered fallback chain for the default chat model. Each entry is
     # {"endpoint_id": "...", "model": "..."}. If the primary model fails
     # before producing output (endpoint offline / errors), the chat

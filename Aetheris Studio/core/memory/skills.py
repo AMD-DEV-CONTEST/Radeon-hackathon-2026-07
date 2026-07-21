@@ -720,6 +720,22 @@ class SkillsManager:
                     score = max(score, 0.3) * 1.3
             if query.lower() in (sk.get("description") or "").lower():
                 score = max(score, 0.6)
+            # A skill's name is one token buried inside a much longer
+            # description+procedure document, so whole-document TF-IDF
+            # cosine similarity alone doesn't reliably clear `threshold` for
+            # a short, exact-ish name query -- confirmed directly: searching
+            # right after add_skill for the literal name just used (e.g.
+            # add "htmlStructureSkill" then search "htmlStructureSkill")
+            # returned no matches, purely because the name is one term
+            # among a dozen+ others in the document vector, not a real
+            # relevance problem. slugify() lowercases and only replaces
+            # non-alphanumerics with "-" (no camelCase splitting), so
+            # comparing with hyphens/spaces stripped on both sides catches
+            # the name regardless of how the caller cased/separated it.
+            name_compact = (sk.get("name") or "").replace("-", "")
+            query_compact = query.lower().replace(" ", "").replace("-", "").replace("_", "")
+            if name_compact and query_compact and (name_compact in query_compact or query_compact in name_compact):
+                score = max(score, 0.75)
             score *= 1.0 + _to_float(sk.get("confidence"), 0.5) * 0.1
             if sk.get("uses", 0) > 0:
                 score *= 1.05

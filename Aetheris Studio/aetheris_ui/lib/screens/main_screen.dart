@@ -95,7 +95,7 @@ class _TitleBar extends ConsumerWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Navegador',
+            tooltip: 'Browser',
             icon: Icon(
               Icons.public,
               size: 18,
@@ -153,7 +153,7 @@ class _FileChangesButton extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           IconButton(
-            tooltip: 'Arquivos alterados nesta sessão',
+            tooltip: 'Files changed this session',
             icon: const Icon(Icons.description_outlined, size: 18, color: AppColors.textMuted),
             onPressed: onPressed,
           ),

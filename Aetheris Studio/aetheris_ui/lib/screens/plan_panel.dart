@@ -3,11 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/chat_provider.dart';
 import '../theme.dart';
+import '../widgets/formatted_text.dart';
 
 /// Floating panel showing the agent's current plan (Planner mode's
 /// write_plan tool -- see agent.py's `plan_update` SSE event), anchored to
-/// the left edge of the app. "Aprovar" switches to Builder mode and tells
-/// the model to start implementing; "Revisar" just closes the panel so the
+/// the left edge of the app. "Approve" switches to Builder mode and tells
+/// the model to start implementing; "Review" just closes the panel so the
 /// user can type feedback in the normal chat input while staying in
 /// Planner mode.
 class PlanPanel extends ConsumerWidget {
@@ -41,7 +42,7 @@ class PlanPanel extends ConsumerWidget {
                   const SizedBox(width: 8),
                   const Expanded(
                     child: Text(
-                      'PLANO PROPOSTO',
+                      'PROPOSED PLAN',
                       style: TextStyle(color: AppColors.textPrimary, fontSize: 12, letterSpacing: 1, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -49,7 +50,7 @@ class PlanPanel extends ConsumerWidget {
                     icon: const Icon(Icons.close, size: 16, color: AppColors.textMuted),
                     onPressed: () => ref.read(chatSessionsProvider.notifier).dismissPlanForRevision(),
                     visualDensity: VisualDensity.compact,
-                    tooltip: 'Fechar',
+                    tooltip: 'Close',
                   ),
                 ],
               ),
@@ -57,10 +58,7 @@ class PlanPanel extends ConsumerWidget {
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
-                child: SelectableText(
-                  plan,
-                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 13, height: 1.5),
-                ),
+                child: FormattedText(text: plan, proseColor: AppColors.textPrimary),
               ),
             ),
             Container(
@@ -73,7 +71,7 @@ class PlanPanel extends ConsumerWidget {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => ref.read(chatSessionsProvider.notifier).dismissPlanForRevision(),
-                      child: const Text('Revisar', style: TextStyle(color: AppColors.textMuted)),
+                      child: const Text('Review', style: TextStyle(color: AppColors.textMuted)),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -81,7 +79,7 @@ class PlanPanel extends ConsumerWidget {
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentGreen),
                       onPressed: () => ref.read(chatSessionsProvider.notifier).approvePlan(),
-                      child: const Text('Aprovar', style: TextStyle(color: AppColors.bg, fontWeight: FontWeight.bold)),
+                      child: const Text('Approve', style: TextStyle(color: AppColors.bg, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
