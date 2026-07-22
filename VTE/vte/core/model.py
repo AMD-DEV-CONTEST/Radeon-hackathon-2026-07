@@ -30,18 +30,28 @@ import numpy as np
 
 logger = get_logger("VTE.Model")
 
-# Batched/chunked prefill (VTE_BATCHED_PREFILL, default OFF again since
-# 2026-07-22 -- a deep correctness investigation found the generated
-# first token genuinely diverges from the sequential path for Qwen2.5
-# 1.5B (Q4_K), and the root cause was NOT resolved despite eliminating
-# every individual kernel (embedding lookup, RMSNorm, gemm_q4k_wmma,
-# the attention pair) via isolated GPU tests against real weights and
-# real activations -- each one independently matches a NumPy reference.
-# The divergence traces to something in how the decode path's own
-# Split-KV attention (kv_cache_append_kernel) or RoPE interacts with
-# these kernels in the full graph, not caught by any isolated test
-# built so far. See docs/LIMITATIONS.md#batching-and-prefill for the
-# full investigation trail before re-enabling this by default again.
+# Batched/chunked prefill (VTE_BATCHED_PREFILL, default ON again since
+# 2026-07-22). Was briefly reverted to off the same day after a deep
+# investigation found the generated first token genuinely diverged from
+# the sequential path for Qwen2.5 1.5B (Q4_K), with every individual
+# kernel (embedding lookup, RMSNorm, gemm_q4k_wmma, the attention pair)
+# independently validated correct against real weights and real
+# activations -- the investigation's own control data even contradicted
+# its leading hypothesis (Split-KV/RoPE). Root cause found shortly
+# after, on a re-read of the same evidence with fresh eyes: Qwen2.5 uses
+# attention_bias=True (real blk.N.attn_{q,k,v}.bias tensors in the
+# GGUF), unlike Llama 3.1 8B, the only model this kernel had ever been
+# validated against -- gemm_q4k_wmma's kernel signature simply had no
+# bias parameter at all, so q/k/v_proj silently dropped it for any
+# model that has one. Confirmed by direct arithmetic before touching any
+# code: an isolated gemv_q4k call (no bias) plus the real attn_k.bias,
+# summed in NumPy, matched the sequential path's real k_cache element-
+# for-element. Fixed by adding a bias_ptr parameter to the kernel
+# (resolved via the same KernelArgBuilder._resolve_matmul_bias gemv_q4k
+# already used, nullptr for weights with no bias) -- re-verified
+# byte-identical to sequential on Qwen2.5 1.5B, 60 generated tokens,
+# real prompt, greedy. See docs/LIMITATIONS.md#batching-and-prefill for
+# the full investigation and fix.
 #
 # The rest of this comment describes the chunk-size defaults chosen
 # back when the feature was on; those still apply if VTE_BATCHED_PREFILL=1
@@ -575,7 +585,7 @@ class VTEModel:
             # it is already inside requested_pool_size above); the chunk
             # buffers need chunk_size-1 MORE of that same unit, additive.
             self._batched_prefill_pool_reserved = False
-            if os.environ.get("VTE_BATCHED_PREFILL", "0") == "1":
+            if os.environ.get("VTE_BATCHED_PREFILL", "1") == "1":
                 chunk_size = int(os.environ.get("VTE_BATCHED_PREFILL_CHUNK_SIZE", "64"))
                 extra_headroom = reqs['arena'] * max(chunk_size - 1, 0)
                 # Real-VRAM check BEFORE committing this reservation, same
@@ -966,17 +976,17 @@ class VTEModel:
         Returns None (and logs why) if batched prefill isn't applicable or
         safe right now -- caller falls back to the existing per-token
         prefill loop in that case, same as if this method didn't exist:
-          - VTE_BATCHED_PREFILL not explicitly set to "1" (default OFF
-            again since 2026-07-22: a real, unresolved correctness bug
-            was found for Qwen2.5 1.5B, see the module-level comment
-            near _BATCHED_PREFILL_CHUNK_SIZE and
-            docs/LIMITATIONS.md#batching-and-prefill. The 1.96x TTFT
-            measurement and byte-identical-output claim below were true
-            on the W7900/Llama-3.1-8B combination this was originally
-            validated against, but do not generalize -- opt IN via
-            VTE_BATCHED_PREFILL=1 only for testing/continuing that
-            investigation, not for production use, until this is
-            resolved).
+          - VTE_BATCHED_PREFILL explicitly set to something other than "1"
+            (default ON since 2026-07-22 -- see the module-level comment
+            near _BATCHED_PREFILL_CHUNK_SIZE for the missing-bias
+            correctness bug found and fixed the same day, and
+            docs/LIMITATIONS.md#batching-and-prefill for the full
+            investigation. The 1.96x TTFT measurement and byte-identical-
+            output claim below were originally validated on the
+            W7900/Llama-3.1-8B combination and, after the bias fix,
+            re-verified byte-identical on Qwen2.5 1.5B/RX 7600 as well
+            -- opt OUT via VTE_BATCHED_PREFILL=0 if ever needed, same
+            escape-hatch pattern as VTE_DISABLE_ATTN_SPLITKV).
           - Not running the HIP Graph executor (FallbackExecutor has no
             graph-capture concept to batch).
           - Gated DeltaNet (qwen35): its recurrent state can't resume
@@ -990,7 +1000,7 @@ class VTEModel:
             a failed allocation banking on being caught cleanly everywhere
             downstream.
         """
-        if os.environ.get("VTE_BATCHED_PREFILL", "0") != "1":
+        if os.environ.get("VTE_BATCHED_PREFILL", "1") != "1":
             return None
         if not getattr(self, "_batched_prefill_pool_reserved", False):
             # _load() already checked real free VRAM before reserving this

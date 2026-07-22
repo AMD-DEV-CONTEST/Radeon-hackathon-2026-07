@@ -123,13 +123,25 @@ __device__ __forceinline__ void load_act_tile(
     }
 }
 
-// Kernel completo (Fase 1b), v2: Y = X @ W^T, double-buffered.
+// Kernel completo (Fase 1b), v2: Y = X @ W^T + bias, double-buffered.
 // Chunk-only (prefill em lote) -- nunca usado em decode.
+//
+// bias_ptr: nullptr para pesos sem bias (Llama 3.1 8B, down_proj/gate/up
+// em qualquer modelo -- o único caso testado até 2026-07-22, por isso o
+// kernel nasceu sem este parâmetro). Qwen2.5 (q/k/v_proj) TEM bias
+// (attention_bias=True na arquitetura, tensores blk.N.attn_{q,k,v}.bias
+// reais no GGUF) -- confirmado como causa raiz de uma divergência real
+// entre o caminho sequencial (gemv_q4k, que já somava bias corretamente
+// via bias_ptr) e este kernel (que não tinha onde somar): saída idêntica
+// a `gemv_q4k(...) + bias` elemento a elemento, não uma aproximação.
+// Mesma convenção de indexação de gemv_q4k.hip.template: bias[n], um
+// valor por feature de saída, somado igual em toda linha M (broadcast).
 extern "C" __global__ void gemm_q4k_wmma_kernel(
     const half* __restrict__ X,          // (M, K) fp16
     const void* __restrict__ W_q4,       // (N, n_sb, 144) bytes, Q4_K
     half* __restrict__ Y,                // (M, N) fp16
-    int M, int N, int K
+    int M, int N, int K,
+    const void* __restrict__ bias_ptr    // (N,) fp16, ou nullptr
 ) {
     // weight_tile: 2 * 64*64*2B = 16KB. act_tile: 2 * 64*64*2B = 16KB.
     // Total: 32KB, dentro dos 65536 bytes/workgroup reais de gfx1100 com
@@ -222,7 +234,11 @@ extern "C" __global__ void gemm_q4k_wmma_kernel(
                 int global_m = bm + wave_base_mi + si * WMMA_M + local_m;
                 int global_n = bn + wave_base_ni + sj * WMMA_N + local_n;
                 if (global_m < M && global_n < N) {
-                    Y[(size_t)global_m * N + global_n] = store_tile[wave_id][si][sj][local_m * WMMA_N + local_n];
+                    half val = store_tile[wave_id][si][sj][local_m * WMMA_N + local_n];
+                    if (bias_ptr != nullptr) {
+                        val = __float2half(__half2float(val) + __half2float(((const __half*)bias_ptr)[global_n]));
+                    }
+                    Y[(size_t)global_m * N + global_n] = val;
                 }
             }
         }

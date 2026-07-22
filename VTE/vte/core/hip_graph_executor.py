@@ -334,10 +334,24 @@ class HIPGraphExecutor:
         0.22% of the output's own RMS magnitude, 0 elements over 5%) --
         see tools/ (Fase 1a/1b of this feature) before this was wired in.
 
-        Deliberately narrower than gemv_q4k's dispatch: no bias, no
-        residual-epilogue fusion (RESIDUAL_FUSION) support. Caller must
-        skip this and fall through to the normal gemv_q4k dispatch for any
-        node with residual fusion (attn_output/down_proj) -- gemv_q4k is
+        Bias resolved via the same KernelArgBuilder._resolve_matmul_bias
+        used by gemv_q4k's dispatch (nullptr for weights with no bias --
+        real ptr for Qwen2.5's q/k/v_proj). Missing this was a real,
+        confirmed correctness bug (2026-07-22): this kernel was built and
+        validated only against Llama 3.1 8B, which has no attention bias,
+        so the gap went undetected until Qwen2.5 (attention_bias=True,
+        real blk.N.attn_{q,k,v}.bias tensors) actually exercised this
+        kernel on the RX 7600 -- the generated first token diverged from
+        the sequential path, root-caused to exactly this missing term
+        (isolated gemv_q4k output + attn_k.bias matched the sequential
+        path's real k_cache element-for-element). See
+        docs/LIMITATIONS.md#batching-and-prefill for the full
+        investigation.
+
+        Still narrower than gemv_q4k's dispatch in one way: no residual-
+        epilogue fusion (RESIDUAL_FUSION) support. Caller must skip this
+        and fall through to the normal gemv_q4k dispatch for any node
+        with residual fusion (attn_output/down_proj) -- gemv_q4k is
         already seq_len-generic and already the validated, correct
         (if unaccelerated) fallback for exactly this case."""
         def _resolve(name):
@@ -356,6 +370,7 @@ class HIPGraphExecutor:
         else:
             in_features = metadata.get('embedding_length', 1536)
         out_features = node.shape[-1]
+        bias_ptr = self.arg_builder._resolve_matmul_bias(node, self.tensor_mapping)
 
         cache_key = "gemm_q4k_wmma"
         if cache_key not in self._kernel_cache:
@@ -367,6 +382,7 @@ class HIPGraphExecutor:
         args = [
             ctypes.c_void_p(input_ptr), ctypes.c_void_p(weight_ptr), ctypes.c_void_p(output_ptr),
             ctypes.c_int(seq_len), ctypes.c_int(out_features), ctypes.c_int(in_features),
+            ctypes.c_void_p(bias_ptr),
         ]
         _GEMM_N_TILE, _GEMM_M_TILE = 64, 64  # deve casar com N_TILE/M_TILE do .hip.template
         grid = ((out_features + _GEMM_N_TILE - 1) // _GEMM_N_TILE,
