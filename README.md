@@ -1,86 +1,123 @@
-# Radeon-hackathon-2026-07
+# Supply Chain DocAgent — 供应链单据智能处理 Agent
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+> 基于 AMD Radeon GPU + ROCm 的本地私有 AI Agent，自动完成供应链入库单据的识别、提取、校验与录入。
 
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
+## AMD AI DevMaster 黑客松提交
 
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
+**赛道**: 赛道二：私有 AI Agent 开发与本地部署  
+**团队**: cyslmsolomon  
+**项目**: Supply Chain DocAgent
 
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+## 项目简介
 
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+供应链入库环节涉及大量非结构化单据：采购订单（PO）、送货单、质检报告、入库单、发票。传统方式依赖人工逐单核对，效率低、易出错、难追溯。
 
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+本项目构建了一个**多 Agent 协作的单据处理系统**，基于 AMD Radeon GPU 和 ROCm 软件栈完全本地运行，实现：
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+- **单据智能识别**：多模态 LLM 自动识别单据类型（PO/送货单/质检报告/发票）
+- **信息结构化提取**：从非结构化文档中提取关键字段（物料编码、数量、单价、日期）
+- **三单交叉校验**：自动核对 PO vs 送货单 vs 发票，检测数量差异和价格异常
+- **异常智能处理**：异常单据自动分类并推送给对应负责人审批
+- **ERP 自动录入**：校验通过的数据自动写入企业系统
 
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
+## 技术架构
 
-## Submission Requirements
+```
+[单据输入] 拍照/扫描 | PDF/Excel | 邮件附件
+       ↓
+┌─────────────────────────────────────────────┐
+│         Multi-Agent Orchestrator             │
+│  ┌──────────┐ ┌──────────┐ ┌──────────────┐ │
+│  │ Classify │ │ Extract  │ │ Validate     │ │
+│  │ Agent    │ │ Agent    │ │ Agent        │ │
+│  └──────────┘ └──────────┘ └──────────────┘ │
+│  ┌──────────┐ ┌──────────┐                  │
+│  │录入 Agent│ │异常 Agent│                  │
+│  └──────────┘ └──────────┘                  │
+├─────────────────────────────────────────────┤
+│         RAG Engine (LlamaIndex)              │
+│  单据模板知识库 + 历史异常案例库              │
+├─────────────────────────────────────────────┤
+│      LLM Inference (vLLM + ROCm)            │
+│         AMD Radeon GPU Acceleration          │
+└─────────────────────────────────────────────┘
+       ↓
+[输出] 核对通过 → 自动入库 | 异常 → 推送审批
+```
 
-### Track 1: Development of Multimodal Content Creation Tools
+## 核心能力（对应赛事评分）
 
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
+| 能力 | 实现方式 | 评分项 |
+|---|---|---|
+| 本地知识检索（RAG） | 单据模板库 + 历史案例检索 | Agent 功能完整性 |
+| 工具调用 | ERP API、邮件发送、文件操作 | 工具调用与工作流编排 |
+| 多步骤任务规划 | 识别→提取→校验→录入→异常处理 | 多步骤任务规划 |
+| 本地多轮记忆 | 对话历史 + 处理记录持久化 | 本地多轮记忆 |
+| 权限控制 | 按角色分权（录入员/审批人/管理员） | 隐私保护机制 |
 
-### Track 2: Development & Local Deployment of Private AI Agents
+## 快速开始
 
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
+### 环境要求
 
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
+- AMD Radeon GPU（推荐 RX 7900 XTX 或更高，24GB VRAM）
+- ROCm 6.x+
+- Python 3.10+
+- Ubuntu 22.04（推荐）
 
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+### 安装
+
+```bash
+git clone https://github.com/your-username/supply-chain-docagent.git
+cd supply-chain-docagent
+
+python -m venv venv
+source venv/bin/activate
+
+pip install -r requirements.txt
+
+# 验证 ROCm
+python -c "import torch; print(f'ROCm: {torch.cuda.is_available()}')"
+```
+
+### 运行
+
+```bash
+python -m src.agent
+```
+
+访问 http://localhost:7860 打开 Web UI。
+
+## 项目结构
+
+```
+supply-chain-docagent/
+├── README.md
+├── requirements.txt
+├── config/
+│   └── settings.yaml
+├── src/
+│   ├── __init__.py
+│   ├── agent.py              # 多 Agent 编排核心
+│   ├── rag.py                # 单据模板 RAG 引擎
+│   ├── tools.py              # 业务工具（ERP/邮件/校验）
+│   ├── memory.py             # 处理记录记忆
+│   └── ui.py                 # Gradio Web UI
+├── data/
+│   └── sample_docs/          # 示例单据（PO/送货单/发票）
+├── docs/
+│   └── project_report.md     # 技术报告
+└── scripts/
+    └── demo.py               # 演示脚本
+```
+
+## 提交清单
+
+- [x] 项目源代码
+- [x] README（含环境配置、启动指南、依赖列表）
+- [x] 项目说明文档（docs/project_report.md）
+- [ ] 演示视频（3-5 分钟）
+- [ ] 补充材料（PPT/海报，可选）
+
+## License
+
+MIT

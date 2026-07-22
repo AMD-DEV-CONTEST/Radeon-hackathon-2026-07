@@ -1,0 +1,76 @@
+# Supply Chain DocAgent Configuration
+
+model:
+  name: "meta-llama/Llama-3.1-8B-Instruct"
+  device: "cuda"
+  max_tokens: 2048
+  temperature: 0.3  # 低温度保证提取准确性
+
+rag:
+  chunk_size: 512
+  chunk_overlap: 50
+  top_k: 5
+  embedding_model: "BAAI/bge-small-en-v1.5"
+
+memory:
+  max_history: 50
+  memory_type: "buffer"
+
+# 供应链单据处理配置
+documents:
+  types:
+    - "purchase_order"      # 采购订单 (PO)
+    - "delivery_note"       # 送货单
+    - "quality_report"      # 质检报告
+    - "receiving_note"      # 入库单
+    - "invoice"             # 发票
+  extraction_fields:
+    purchase_order:
+      - "po_number"
+      - "supplier_name"
+      - "item_code"
+      - "item_name"
+      - "quantity"
+      - "unit_price"
+      - "total_amount"
+      - "order_date"
+      - "delivery_date"
+    delivery_note:
+      - "delivery_number"
+      - "po_reference"
+      - "item_code"
+      - "quantity_delivered"
+      - "delivery_date"
+      - "carrier"
+    invoice:
+      - "invoice_number"
+      - "po_reference"
+      - "amount"
+      - "tax"
+      - "total"
+      - "invoice_date"
+
+# 三单校验规则
+validation:
+  cross_check:
+    - "po_number:po_reference"       # PO号匹配
+    - "item_code:item_code"          # 物料编码匹配
+    - "quantity:quantity_delivered"   # 数量匹配（允许±5%容差）
+    - "unit_price:unit_price"        # 单价匹配
+    - "total_amount:amount"          # 金额匹配
+  tolerance:
+    quantity_percent: 5              # 数量容差 5%
+    amount_percent: 1                # 金额容差 1%
+
+tools:
+  enabled:
+    - "erp_lookup"
+    - "erp_writeback"
+    - "email_notify"
+    - "file_reader"
+    - "validator"
+
+ui:
+  host: "0.0.0.0"
+  port: 7860
+  share: false
