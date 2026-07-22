@@ -1,0 +1,39 @@
+{
+  "name": "Supply Chain DocAgent Development",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-toolsai.jupyter",
+        "redhat.vscode-yaml",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.analysis.typeCheckingMode": "basic"
+      }
+    }
+  },
+  "postCreateCommand": "pip install -r requirements.txt && python -c \"import torch; print(f'PyTorch: {torch.__version__}')\"",
+  "forwardPorts": [
+    7860,
+    8000
+  ],
+  "portsAttributes": {
+    "7860": {
+      "label": "Gradio Web UI",
+      "onAutoForward": "openBrowser"
+    },
+    "8000": {
+      "label": "vLLM API",
+      "onAutoForward": "silent"
+    }
+  },
+  "remoteUser": "vscode"
+}
