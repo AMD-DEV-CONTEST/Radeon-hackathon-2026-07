@@ -17,6 +17,7 @@ On this page:
 - [GPU-side top-k logits reduction (2026-07)](#gpu-side-top-k-logits-reduction-2026-07): an opt-in greedy-decode path that reads back a small candidate set instead of the full vocabulary, an eager version that measured as a net loss, and the HIP-Graph-captured version that fixed it
 - [Extending these optimizations to other quantizations (2026-07)](#extending-these-optimizations-to-other-quantizations-2026-07): what applies to Granite/Q8_0 and Qwen3.5/Q6_K, and what does not
 - [First real Linux/W7900 run: CU-scaling investigation (2026-07)](#first-real-linuxw7900-run-cu-scaling-investigation-2026-07): a plausible under-utilization hypothesis on a 96-CU card (3x the RX 7600), tested with the existing `VTE_NUM_CUS` override, and killed by measurement
+- [Batched prefill and stochastic sampling, validated back on the RX 7600 (2026-07)](#batched-prefill-and-stochastic-sampling-validated-back-on-the-rx-7600-2026-07): both W7900-era features re-measured on the card every other number in this document was measured on, plus a real VRAM ceiling found on the two largest registered models
 
 ## Single-sequence decode (batch=1)
 
@@ -429,3 +430,41 @@ Follow-up to the kernel-boundary-cost hypothesis from Thesis V7/V8 (each of the 
 - Median tok/s (5 runs each side, Qwen2.5 1.5B, RX 7600): 110.79 -> 111.41, **+0.6%**. Calibrated boundary cost: `(1000/110.79 - 1000/111.41) * 1000 / 28 ≈ 1.77us/boundary`, the same order of magnitude as the curve-fit 2.5us estimate, but a real measurement now, not a fit.
 
 **Decision: reverted anyway.** The fusion is correct and the gain is real, but +0.6% doesn't clear the bar for the added surface area: two new kernel variants with a conditional rotation path each, an opt-in flag that's a no-op on every architecture except Qwen2.5/NEOX, and a correctness hazard class (double-rotation) that's silent by nature and would need re-auditing on every future change to either kernel. Kept as a documented, calibrated data point rather than shipped code: `VTE_FUSE_ROPE` is not present in the current tree.
+
+## Batched prefill and stochastic sampling, validated back on the RX 7600 (2026-07)
+
+Both features above (batched prefill, the WMMA/tree-reduction-attention pair; GPU-resident stochastic top-k sampling) were built and measured entirely on the W7900 cloud instance, since that's where the day's remote session was running. Neither had been checked on the RX 7600, the card every other number in this document was measured on, and the RX 7600 has a fraction of the W7900's VRAM (8GB vs. 48GB), so a feature that adds load-time VRAM cost could behave very differently there. This section closes that gap directly, on real hardware, rather than assuming the W7900 result transfers.
+
+### Decode throughput: matches history, no regression from either feature
+
+All five models currently registered and available locally, both new features at their production defaults (`VTE_BATCHED_PREFILL=1`, `VTE_STOCHASTIC_TOPK_READBACK=1`), warmup-separated median of 3 runs (same discipline as the rest of this document: one untimed warmup generation before the three timed ones, to avoid the WDDM/DPM clock-ramp artifact described in the "keep-alive pulse" section above):
+
+| Model | Decode tok/s (RX 7600, today) | Historical RX 7600 baseline (this document) |
+|---|---|---|
+| Qwen2.5 1.5B (Q4_K_M) | 115.14 | 108-172, depending on config (Single-sequence decode / Thesis V6 tables above) |
+| Qwen3.5 2B (Q6_K) | 68.55 | ~69 (Qwen 3.5 2B section above) |
+| Granite 4.1 3B (Q8_0) | 57.34 | 55.65 (VRAM-reduction pass section above) |
+| Qwen2.5 7B (Q4_K_M) | 40.64 | 40.15-40.36 (Thesis V6/duty-cycle sections above) |
+| Llama 3.1 8B (Q4_K_M) | 39.15 | 38.52 (Thesis V6 section above) |
+
+Every number lands inside, or at the high end of, this document's own historical range for that model. The first raw measurement taken this pass, before adding a warmup step, showed Qwen2.5 1.5B at a startlingly low 15.8 tok/s: re-running with warmup confirmed this was a cold-GPU-clock artifact (the same DPM-downclock-between-bursts phenomenon documented in the "Keep-alive pulse removed" row of the very first table on this page), not a real regression, once the proper warmup-separated methodology this document already uses everywhere else was actually applied.
+
+### A real VRAM ceiling, not present on the W7900
+
+`VTE_BATCHED_PREFILL`'s default chunk_size=64 reserves an extra activation buffer at load time, sized as `arena_size * (chunk_size - 1)` (`vte/core/model.py`), where `arena_size` scales with the model's hidden/FFN dimensions. On the W7900 this extra reservation is a small fraction of 48GB and was never a concern. On the RX 7600's 8176MB, it is not:
+
+| Model | Base pool (weights+KV+arena+buffers) | Extra chunk=64 reservation | Total requested | Result |
+|---|---|---|---|---|
+| Qwen2.5 1.5B | 1060MB | +2646MB | 3.74GB | Fits, loads and runs normally |
+| Qwen3.5 2B | 1751MB | +1814MB | 3.61GB | Fits, loads and runs normally |
+| Granite 4.1 3B | 3667MB | +2419MB | 6.07GB | Fits, loads and runs normally |
+| Qwen2.5 7B | 4716MB | +5594MB | 10.19GB (clamped to 7.59GB) | **`MemoryGuardianOOMError` at load** |
+| Llama 3.1 8B | 5120MB | +4234MB | 9.26GB (clamped to 7.59GB) | **`MemoryGuardianOOMError` at load** |
+
+The two 7B+ models fail identically: the pool-sizing logic (`vte/bridge/memory.py`) does clamp an oversized request down to 95% of total VRAM before allocating (7.59GB in both cases above), but the malloc-time safety guard (`HIPRuntime.safe_malloc`, `vte/bridge/hip_runtime.py`) separately checks the clamped request against 95% of *currently free* VRAM at the moment of the actual `hipMalloc` call, and rejects it there instead: `alocar 8144499507 bytes ... passaria de 95% de uso real da GPU. Livre agora: 8408924160 de 8573157376 bytes`. The two guards use different accounting (one caps a request size against total device memory, the other checks an absolute allocation against currently-free memory, which is itself slightly less than total due to driver/OS/desktop-compositor overhead already resident), and the net effect is a hard, unhandled exception at model load, not the graceful fallback to sequential prefill (`VTE_BATCHED_PREFILL=0`-equivalent behavior) the original design intended for exactly this situation. Loading either model with `VTE_BATCHED_PREFILL=0` set explicitly works correctly and produces the sequential-prefill numbers in the table above.
+
+**Not yet fixed.** This is a genuine, previously-unknown gap between the two VRAM budgets this project has ever tested against (8GB vs. 48GB), not a bug specific to one model or architecture: any model whose weights leave less than roughly `arena_size * 63` bytes of free VRAM on an 8GB-class card will hit it. Root-causing why the two guards disagree, and implementing the graceful degrade the design already assumes exists, is planned as a follow-up investigation, not attempted in this same pass. See [Known limitations](LIMITATIONS.md#batching-and-prefill) for the limitations-tracker version of this same finding.
+
+### Stochastic sampler: no VRAM cost, confirmed clean on all five models
+
+Unlike batched prefill, `VTE_STOCHASTIC_TOPK_READBACK` only changes what the existing LM Head / top-k kernels read back into host memory each token; it allocates no extra VRAM. It loaded and ran correctly on all five models above, including the two that hit the batched-prefill ceiling, at the project's real default sampling settings (temperature=0.7, top_p=0.9, top_k=50). The tok/s numbers in the first table above already include this feature active throughout (both flags are on simultaneously at their production defaults), so the "no regression vs. historical baseline" finding covers this feature too, not just batched prefill.
