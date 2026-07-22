@@ -30,20 +30,24 @@ import numpy as np
 
 logger = get_logger("VTE.Model")
 
-# Batched/chunked prefill (VTE_BATCHED_PREFILL=1, opt-in -- see
-# _ensure_batched_prefill_executor): deliberately small and fixed rather
-# than scaling to the prompt, for two independent reasons. (1) The naive
-# seq_len=N attention kernel used for the batched path (gqa_attention.hip.
-# template) keeps a per-thread `float scores[2048]` local array -- total
-# cached+new positions per chunk must stay comfortably under 2048, see
-# _BATCHED_PREFILL_MAX_CONTEXT below. (2) Extra VRAM for the chunk's own
-# activation buffers scales with chunk_size (see
+# Batched/chunked prefill (VTE_BATCHED_PREFILL, default ON since 2026-07 --
+# see _ensure_batched_prefill_executor): deliberately small and fixed
+# rather than scaling to the prompt, for two independent reasons. (1) The
+# fallback seq_len=N attention kernel used if the primary tree-reduction
+# path (PrefillAttentionDispatcher) ever fails to build its launch args
+# (gqa_attention.hip.template) keeps a per-thread `float scores[2048]`
+# local array -- total cached+new positions per chunk must stay
+# comfortably under 2048, see _BATCHED_PREFILL_MAX_CONTEXT below. (2) Extra
+# VRAM for the chunk's own activation buffers scales with chunk_size (see
 # _estimate_chunk_activation_bytes) -- kept small enough to stay safe on
 # an 8GB card (RX 7600), not just the 48GB W7900 this was measured on;
 # _ensure_batched_prefill_executor also checks free VRAM explicitly before
 # committing, so this is a sane default, not the only thing standing
-# between this feature and an OOM on a smaller card.
-_BATCHED_PREFILL_CHUNK_SIZE = int(os.environ.get("VTE_BATCHED_PREFILL_CHUNK_SIZE", "128"))
+# between this feature and an OOM on a smaller card. Default chunk_size=64
+# (not 128): measured as the fastest on the W7900 (1.96x vs sequential
+# TTFT, median of 3, vs 1.64x at chunk=128) -- also happens to exactly
+# match the WMMA GEMM kernel's M_TILE=64, so no wasted tile padding.
+_BATCHED_PREFILL_CHUNK_SIZE = int(os.environ.get("VTE_BATCHED_PREFILL_CHUNK_SIZE", "64"))
 _BATCHED_PREFILL_MAX_CONTEXT = 2048
 
 # vte/core/model.py -> raiz do repo é dois níveis acima. Resolvido a partir
@@ -555,8 +559,8 @@ class VTEModel:
             # reqs['arena'] is the seq_len=1 activation cost (one unit of
             # it is already inside requested_pool_size above); the chunk
             # buffers need chunk_size-1 MORE of that same unit, additive.
-            if os.environ.get("VTE_BATCHED_PREFILL", "0") == "1":
-                chunk_size = int(os.environ.get("VTE_BATCHED_PREFILL_CHUNK_SIZE", "128"))
+            if os.environ.get("VTE_BATCHED_PREFILL", "1") == "1":
+                chunk_size = int(os.environ.get("VTE_BATCHED_PREFILL_CHUNK_SIZE", "64"))
                 extra_headroom = reqs['arena'] * max(chunk_size - 1, 0)
                 requested_pool_size += extra_headroom
                 logger.info(
@@ -883,8 +887,12 @@ class VTEModel:
         Returns None (and logs why) if batched prefill isn't applicable or
         safe right now -- caller falls back to the existing per-token
         prefill loop in that case, same as if this method didn't exist:
-          - VTE_BATCHED_PREFILL env flag not set (opt-in, same pattern as
-            VTE_TOPK_LOGITS_READBACK).
+          - VTE_BATCHED_PREFILL explicitly set to something other than "1"
+            (default ON since 2026-07 -- see the chunk=64 measurement:
+            1.96x TTFT vs sequential, byte-identical output, median of 3,
+            no decode regression, zero extra VRAM scratch -- opt OUT via
+            VTE_BATCHED_PREFILL=0 if ever needed, same escape-hatch pattern
+            as VTE_DISABLE_ATTN_SPLITKV).
           - Not running the HIP Graph executor (FallbackExecutor has no
             graph-capture concept to batch).
           - Gated DeltaNet (qwen35): its recurrent state can't resume
@@ -898,7 +906,7 @@ class VTEModel:
             a failed allocation banking on being caught cleanly everywhere
             downstream.
         """
-        if os.environ.get("VTE_BATCHED_PREFILL", "0") != "1":
+        if os.environ.get("VTE_BATCHED_PREFILL", "1") != "1":
             return None
         if not self._use_hip_graph:
             return None
@@ -1199,8 +1207,9 @@ class VTEModel:
                 skip_prefix += 1
 
         if self._use_hip_graph:
-            # Opt-in (VTE_BATCHED_PREFILL=1, off by default): process all
-            # but a TAIL of the remaining prompt in fixed-size chunks
+            # VTE_BATCHED_PREFILL, default ON since 2026-07 (opt out via
+            # VTE_BATCHED_PREFILL=0): process all but a TAIL of the
+            # remaining prompt in fixed-size chunks
             # through a second, chunk-sized HIP Graph (see
             # _ensure_batched_prefill_executor) instead of one seq_len=1
             # decode-graph replay per position -- the real fix for prefill

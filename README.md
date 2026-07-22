@@ -138,6 +138,8 @@ Real GPU telemetry (`amd-smi`, sampled every ~0.5s) from the W7900 runs above, l
 
 VRAM peaks match the predicted weights+KV-cache+arena breakdown almost exactly in every case, on a card with a 241 W TDP.
 
+The table above is decode speed; prefill (time-to-first-token) had its own gap, closed this same cycle: **batched prefill is on by default now**, processing the prompt in 64-token chunks through a dedicated HIP Graph (a custom WMMA GEMM kernel plus a tree-reduction causal-attention kernel, both hand-written, replacing the old one-token-at-a-time loop) instead of leaving it deferred. Measured on Llama 3.1 8B / W7900, a 517-token prompt, median of 3 runs: **prefill TTFT went from 6.51s to 3.33s, a 1.96x speedup**, output verified byte-identical to the old sequential path. Full story, including two dead ends ruled out first: [`VTE/docs/LIMITATIONS.md`](VTE/docs/LIMITATIONS.md#batching-and-prefill).
+
 Full numbers across six models, three architectures, both cards: [`VTE/docs/BENCHMARK_W7900.md`](VTE/docs/BENCHMARK_W7900.md).
 
 None of that is required reading to use Aetheris. If you're curious how it works or want the full kernel-optimization writeup (what worked, what didn't, and the real numbers behind each decision): [`VTE/README.md`](VTE/README.md) and [`VTE/docs/PERFORMANCE.md`](VTE/docs/PERFORMANCE.md).
