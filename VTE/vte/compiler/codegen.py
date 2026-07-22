@@ -227,11 +227,23 @@ class CodegenEngine:
             except OSError:
                 pass
 
+        # hipcc's default C++ dialect for .hip sources (no explicit -std=)
+        # rejects rocWMMA's own template metaprogramming under this HIP
+        # SDK's bundled Clang (21.0.0git): "constexpr variable ... must be
+        # initialized by a constant expression" deep inside rocWMMA's
+        # register-layout trait comparisons, code we don't control or
+        # modify. Confirmed directly (not guessed): the exact same source
+        # compiles clean with an explicit -std=c++17 (or c++20) and nothing
+        # else changed. Scoped to only kernels that actually include
+        # rocwmma (checked in the rendered source, not by template name)
+        # so every other kernel keeps compiling under hipcc's own default
+        # dialect, unchanged. See PLATFORM_ISSUES.md, issue 5.
         cmd = [
             "hipcc",
             "--genco",
             f"--offload-arch={arch}",
             f"-I{self.rocwmma_include_dir}",
+            *(["-std=c++17"] if "rocwmma" in cpp_code else []),
             "-O3",
             str(log_file),
             "-o",
@@ -286,7 +298,11 @@ class CodegenEngine:
         with open(log_file, "w", encoding="utf-8") as f:
             f.write(cpp_code)
 
-        cmd = ["hipcc", "--genco", f"--offload-arch={arch}", f"-I{self.rocwmma_include_dir}", "-O3", str(log_file), "-o", cache_path]
+        cmd = [
+            "hipcc", "--genco", f"--offload-arch={arch}", f"-I{self.rocwmma_include_dir}",
+            *(["-std=c++17"] if "rocwmma" in cpp_code else []),
+            "-O3", str(log_file), "-o", cache_path,
+        ]
         try:
             subprocess.run(cmd, check=True, capture_output=True, text=True, env=env)
         except subprocess.CalledProcessError as e:

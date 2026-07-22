@@ -30,8 +30,23 @@ import numpy as np
 
 logger = get_logger("VTE.Model")
 
-# Batched/chunked prefill (VTE_BATCHED_PREFILL, default ON since 2026-07 --
-# see _ensure_batched_prefill_executor): deliberately small and fixed
+# Batched/chunked prefill (VTE_BATCHED_PREFILL, default OFF again since
+# 2026-07-22 -- a deep correctness investigation found the generated
+# first token genuinely diverges from the sequential path for Qwen2.5
+# 1.5B (Q4_K), and the root cause was NOT resolved despite eliminating
+# every individual kernel (embedding lookup, RMSNorm, gemm_q4k_wmma,
+# the attention pair) via isolated GPU tests against real weights and
+# real activations -- each one independently matches a NumPy reference.
+# The divergence traces to something in how the decode path's own
+# Split-KV attention (kv_cache_append_kernel) or RoPE interacts with
+# these kernels in the full graph, not caught by any isolated test
+# built so far. See docs/LIMITATIONS.md#batching-and-prefill for the
+# full investigation trail before re-enabling this by default again.
+#
+# The rest of this comment describes the chunk-size defaults chosen
+# back when the feature was on; those still apply if VTE_BATCHED_PREFILL=1
+# is set explicitly. See _ensure_batched_prefill_executor for the
+# runtime free-VRAM check. Chunk size is deliberately small and fixed
 # rather than scaling to the prompt, for two independent reasons. (1) The
 # fallback seq_len=N attention kernel used if the primary tree-reduction
 # path (PrefillAttentionDispatcher) ever fails to build its launch args
@@ -560,7 +575,7 @@ class VTEModel:
             # it is already inside requested_pool_size above); the chunk
             # buffers need chunk_size-1 MORE of that same unit, additive.
             self._batched_prefill_pool_reserved = False
-            if os.environ.get("VTE_BATCHED_PREFILL", "1") == "1":
+            if os.environ.get("VTE_BATCHED_PREFILL", "0") == "1":
                 chunk_size = int(os.environ.get("VTE_BATCHED_PREFILL_CHUNK_SIZE", "64"))
                 extra_headroom = reqs['arena'] * max(chunk_size - 1, 0)
                 # Real-VRAM check BEFORE committing this reservation, same
@@ -951,12 +966,17 @@ class VTEModel:
         Returns None (and logs why) if batched prefill isn't applicable or
         safe right now -- caller falls back to the existing per-token
         prefill loop in that case, same as if this method didn't exist:
-          - VTE_BATCHED_PREFILL explicitly set to something other than "1"
-            (default ON since 2026-07 -- see the chunk=64 measurement:
-            1.96x TTFT vs sequential, byte-identical output, median of 3,
-            no decode regression, zero extra VRAM scratch -- opt OUT via
-            VTE_BATCHED_PREFILL=0 if ever needed, same escape-hatch pattern
-            as VTE_DISABLE_ATTN_SPLITKV).
+          - VTE_BATCHED_PREFILL not explicitly set to "1" (default OFF
+            again since 2026-07-22: a real, unresolved correctness bug
+            was found for Qwen2.5 1.5B, see the module-level comment
+            near _BATCHED_PREFILL_CHUNK_SIZE and
+            docs/LIMITATIONS.md#batching-and-prefill. The 1.96x TTFT
+            measurement and byte-identical-output claim below were true
+            on the W7900/Llama-3.1-8B combination this was originally
+            validated against, but do not generalize -- opt IN via
+            VTE_BATCHED_PREFILL=1 only for testing/continuing that
+            investigation, not for production use, until this is
+            resolved).
           - Not running the HIP Graph executor (FallbackExecutor has no
             graph-capture concept to batch).
           - Gated DeltaNet (qwen35): its recurrent state can't resume
@@ -970,7 +990,7 @@ class VTEModel:
             a failed allocation banking on being caught cleanly everywhere
             downstream.
         """
-        if os.environ.get("VTE_BATCHED_PREFILL", "1") != "1":
+        if os.environ.get("VTE_BATCHED_PREFILL", "0") != "1":
             return None
         if not getattr(self, "_batched_prefill_pool_reserved", False):
             # _load() already checked real free VRAM before reserving this
