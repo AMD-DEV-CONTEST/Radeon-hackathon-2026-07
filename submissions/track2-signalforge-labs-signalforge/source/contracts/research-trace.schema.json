@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.dev/contracts/research-trace.schema.json",
+  "title": "SignalForge ResearchTrace v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "request_id", "started_at", "status", "events"],
+  "properties": {
+    "schema_version": { "const": "signalforge/v1" },
+    "run_id": { "$ref": "evidence-manifest.schema.json#/$defs/runID" },
+    "request_id": { "type": "string", "minLength": 1 },
+    "started_at": { "type": "string", "format": "date-time" },
+    "completed_at": { "type": "string", "format": "date-time" },
+    "status": { "enum": ["running", "success", "failure", "cancelled"] },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["event_id", "run_id", "component_id", "event_type", "status", "occurred_at"],
+        "properties": {
+          "event_id": { "type": "string", "minLength": 1 },
+          "run_id": { "$ref": "evidence-manifest.schema.json#/$defs/runID" },
+          "parent_id": { "type": "string" },
+          "component_id": { "type": "string", "minLength": 1 },
+          "artifact_id": { "type": "string" },
+          "event_type": { "type": "string", "minLength": 1 },
+          "status": { "type": "string", "minLength": 1 },
+          "occurred_at": { "type": "string", "format": "date-time" },
+          "duration_ms": { "type": "integer", "minimum": 0 },
+          "safe_metadata": {
+            "type": "object",
+            "propertyNames": { "not": { "pattern": "(?i)(secret|token|password|api_key)" } },
+            "additionalProperties": { "type": "string" }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [{
+    "if": { "properties": { "status": { "not": { "const": "running" } } } },
+    "then": { "required": ["completed_at"] }
+  }]
+}

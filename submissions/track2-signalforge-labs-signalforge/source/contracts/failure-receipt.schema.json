@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.dev/contracts/failure-receipt.schema.json",
+  "title": "SignalForge FailureReceipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "failure_id", "run_id", "step_id", "component_id", "failure_code", "message", "retryable", "created_at"],
+  "properties": {
+    "schema_version": { "const": "signalforge/v1" },
+    "failure_id": { "$ref": "#/$defs/nonEmpty" },
+    "run_id": { "$ref": "#/$defs/nonEmpty" },
+    "step_id": { "$ref": "#/$defs/nonEmpty" },
+    "component_id": { "$ref": "#/$defs/nonEmpty" },
+    "failure_code": { "enum": ["invalid_request", "unauthorized_capability", "missing_evidence", "stale_evidence", "conflicting_evidence", "incomparable_inputs", "unit_mismatch", "currency_mismatch", "period_mismatch", "invariant_failed", "non_convergent", "timeout", "cancelled", "internal_error"] },
+    "message": { "$ref": "#/$defs/nonEmpty" },
+    "retryable": { "type": "boolean" },
+    "evidence_refs": { "type": "array", "items": { "$ref": "#/$defs/nonEmpty" } },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "$defs": { "nonEmpty": { "type": "string", "minLength": 1 } }
+}

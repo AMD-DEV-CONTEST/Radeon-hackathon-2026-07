@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.dev/contracts/orchestration-trace.schema.json",
+  "title": "SignalForge OrchestrationTrace v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "request_id",
+    "events",
+    "max_concurrent_context",
+    "started_at",
+    "completed_at"
+  ],
+  "properties": {
+    "schema_version": { "const": "signalforge/orchestration-trace/v1" },
+    "run_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "request_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "plan_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sequence", "run_id", "type", "status", "at"],
+        "properties": {
+          "sequence": { "type": "integer", "minimum": 1 },
+          "run_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "step_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "type": { "enum": ["plan", "context", "review", "synthesis", "run"] },
+          "status": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "at": { "type": "string", "format": "date-time" },
+          "attributes": {
+            "type": "object",
+            "propertyNames": { "not": { "pattern": "(?i)(secret|token|password|api_key|user_text|prompt)" } },
+            "additionalProperties": { "type": "string", "maxLength": 512 }
+          }
+        }
+      }
+    },
+    "packet_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "critique_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "answer_id": { "type": "string", "minLength": 1 },
+    "failure_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "max_concurrent_context": { "type": "integer", "minimum": 0, "maximum": 4 },
+    "started_at": { "type": "string", "format": "date-time" },
+    "completed_at": { "type": "string", "format": "date-time" }
+  }
+}

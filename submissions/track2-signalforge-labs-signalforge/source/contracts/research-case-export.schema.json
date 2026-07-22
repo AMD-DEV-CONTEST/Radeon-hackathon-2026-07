@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.dev/contracts/research-case-export.schema.json",
+  "title": "SignalForge ResearchCaseExport v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "exported_at", "summary", "case"],
+  "properties": {
+    "schema_version": { "const": "signalforge/research-case-export/v1" },
+    "exported_at": { "type": "string", "format": "date-time" },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id", "run_id", "title", "as_of", "intent", "saved_at",
+        "evidence_items", "calculation_receipts", "projection_sha256"
+      ],
+      "properties": {
+        "case_id": { "$ref": "#/$defs/id" },
+        "run_id": { "$ref": "#/$defs/id" },
+        "parent_run_id": { "$ref": "#/$defs/id" },
+        "title": { "$ref": "#/$defs/text" },
+        "as_of": { "type": "string", "format": "date-time" },
+        "intent": { "$ref": "#/$defs/id" },
+        "saved_at": { "type": "string", "format": "date-time" },
+        "evidence_items": { "type": "integer", "minimum": 0 },
+        "calculation_receipts": { "type": "integer", "minimum": 0 },
+        "projection_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "case": { "$ref": "https://signalforge.dev/contracts/research-workspace.schema.json" }
+  },
+  "$defs": {
+    "id": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "text": { "type": "string", "minLength": 1, "maxLength": 4000 }
+  }
+}

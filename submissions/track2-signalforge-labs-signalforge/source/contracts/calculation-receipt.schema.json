@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.dev/contracts/calculation-receipt.schema.json",
+  "title": "SignalForge CalculationReceipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "receipt_id", "request_id", "engine_id", "engine_version", "operation_id", "formula_version", "status", "normalized_inputs", "outputs", "invariant_results", "tolerance_policy", "source_as_of", "code_commit", "input_sha256", "receipt_sha256", "generated_at"],
+  "properties": {
+    "schema_version": { "const": "signalforge/v1" },
+    "receipt_id": { "$ref": "#/$defs/nonEmpty" },
+    "request_id": { "$ref": "#/$defs/nonEmpty" },
+    "engine_id": { "$ref": "#/$defs/nonEmpty" },
+    "engine_version": { "$ref": "#/$defs/nonEmpty" },
+    "operation_id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$" },
+    "formula_version": { "$ref": "#/$defs/nonEmpty" },
+    "status": { "enum": ["success", "partial", "refused", "invalid", "non_convergent"] },
+    "normalized_inputs": { "type": "array", "items": { "$ref": "engine-request.schema.json#/$defs/input" } },
+    "assumptions": { "type": "array", "items": { "$ref": "#/$defs/nonEmpty" } },
+    "intermediate_values": { "type": "array", "items": { "$ref": "#/$defs/output" } },
+    "outputs": { "type": "array", "items": { "$ref": "#/$defs/output" } },
+    "invariant_results": { "type": "array", "items": { "$ref": "#/$defs/invariant" } },
+    "tolerance_policy": { "$ref": "#/$defs/nonEmpty" },
+    "warnings": { "type": "array", "items": { "$ref": "#/$defs/nonEmpty" } },
+    "evidence_refs": { "type": "array", "items": { "$ref": "#/$defs/nonEmpty" } },
+    "dataset_versions": { "type": "array", "items": { "$ref": "#/$defs/nonEmpty" } },
+    "source_as_of": { "$ref": "#/$defs/timestamp" },
+    "code_commit": { "$ref": "#/$defs/nonEmpty" },
+    "input_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "receipt_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "generated_at": { "$ref": "#/$defs/timestamp" }
+  },
+  "$defs": {
+    "nonEmpty": { "type": "string", "minLength": 1 },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["output_id", "quantity", "status"],
+      "properties": {
+        "output_id": { "$ref": "#/$defs/nonEmpty" },
+        "quantity": { "$ref": "engine-request.schema.json#/$defs/quantity" },
+        "status": { "$ref": "#/$defs/nonEmpty" }
+      }
+    },
+    "invariant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["invariant_id", "passed"],
+      "properties": {
+        "invariant_id": { "$ref": "#/$defs/nonEmpty" },
+        "passed": { "type": "boolean" },
+        "detail": { "type": "string" }
+      }
+    }
+  },
+  "allOf": [{
+    "if": { "properties": { "status": { "const": "success" } } },
+    "then": {
+      "properties": {
+        "outputs": { "minItems": 1 },
+        "invariant_results": { "items": { "properties": { "passed": { "const": true } } } }
+      }
+    }
+  }]
+}

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.dev/contracts/golden-price-set.schema.json",
+  "title": "SignalForge GoldenPriceSet v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "dataset_id", "retrieved_at", "prices"],
+  "properties": {
+    "schema_version": {"const": "signalforge/golden-price-set/v1"},
+    "dataset_id": {"$ref": "#/$defs/id"},
+    "retrieved_at": {"type": "string", "format": "date-time"},
+    "prices": {
+      "type": "array", "minItems": 2, "uniqueItems": true,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["ticker", "value", "currency", "as_of", "source", "source_sha256"],
+        "properties": {
+          "ticker": {"type": "string", "pattern": "^[A-Z]{1,8}$"},
+          "value": {"type": "string", "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$"},
+          "currency": {"type": "string", "pattern": "^[A-Z]{3}$"},
+          "as_of": {"type": "string", "format": "date-time"},
+          "source": {"type": "string", "format": "uri"},
+          "source_sha256": {"$ref": "#/$defs/sha256"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@+\\-]{0,255}$"},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

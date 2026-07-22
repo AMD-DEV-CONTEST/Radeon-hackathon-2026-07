@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.dev/contracts/research-workspace.schema.json",
+  "title": "SignalForge ResearchWorkspace v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "case_id", "run_id", "request_id", "status", "title",
+    "question", "as_of", "intent", "companies", "sections", "evidence",
+    "calculations", "events", "execution", "metrics", "follow_up_suggestions"
+  ],
+  "properties": {
+    "schema_version": { "const": "signalforge/research-workspace/v1" },
+    "case_id": { "$ref": "#/$defs/id" },
+    "run_id": { "$ref": "#/$defs/id" },
+    "request_id": { "$ref": "#/$defs/id" },
+    "status": { "const": "completed" },
+    "title": { "$ref": "#/$defs/text" },
+    "question": { "$ref": "#/$defs/text" },
+    "as_of": { "type": "string", "format": "date-time" },
+    "intent": { "$ref": "#/$defs/id" },
+    "companies": {
+      "type": "array", "minItems": 2, "maxItems": 2,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["entity_id", "label"],
+        "properties": { "entity_id": { "type": "string" }, "label": { "$ref": "#/$defs/text" } }
+      }
+    },
+    "sections": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/section" } },
+    "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } },
+    "calculations": { "type": "array", "items": { "$ref": "#/$defs/calculation" } },
+    "assumptions": { "$ref": "#/$defs/stringArray" },
+    "limitations": { "$ref": "#/$defs/stringArray" },
+    "next_actions": { "$ref": "#/$defs/stringArray" },
+    "warnings": { "type": "array", "items": { "$ref": "#/$defs/warning" } },
+    "events": { "type": "array", "items": { "$ref": "#/$defs/event" } },
+    "execution": {
+      "type": "object", "additionalProperties": false,
+      "required": ["local_only", "endpoint_scope", "model", "runtime_label"],
+      "properties": {
+        "local_only": { "const": true },
+        "endpoint_scope": { "const": "loopback_only" },
+        "model": { "$ref": "#/$defs/text" },
+        "runtime_label": { "$ref": "#/$defs/text" }
+      }
+    },
+    "metrics": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "duration_ms", "model_calls", "context_packets", "critiques", "claims",
+        "supported_claims", "evidence_coverage", "required_sections",
+        "present_required_sections", "max_concurrent_context"
+      ],
+      "properties": {
+        "duration_ms": { "$ref": "#/$defs/nonNegative" },
+        "model_calls": { "$ref": "#/$defs/nonNegativeInteger" },
+        "context_packets": { "$ref": "#/$defs/nonNegativeInteger" },
+        "critiques": { "$ref": "#/$defs/nonNegativeInteger" },
+        "claims": { "$ref": "#/$defs/nonNegativeInteger" },
+        "supported_claims": { "$ref": "#/$defs/nonNegativeInteger" },
+        "evidence_coverage": { "type": "number", "minimum": 0, "maximum": 1 },
+        "required_sections": { "$ref": "#/$defs/nonNegativeInteger" },
+        "present_required_sections": { "$ref": "#/$defs/nonNegativeInteger" },
+        "max_concurrent_context": { "type": "integer", "minimum": 0, "maximum": 4 }
+      }
+    },
+    "follow_up_suggestions": {
+      "type": "array", "minItems": 3,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["suggestion_id", "label", "question"],
+        "properties": {
+          "suggestion_id": { "$ref": "#/$defs/id" },
+          "label": { "$ref": "#/$defs/text" },
+          "question": { "$ref": "#/$defs/text" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@+\\-]{0,255}$" },
+    "text": { "type": "string", "minLength": 1 },
+    "stringArray": { "type": "array", "items": { "$ref": "#/$defs/text" } },
+    "nonNegative": { "type": "number", "minimum": 0 },
+    "nonNegativeInteger": { "type": "integer", "minimum": 0 },
+    "section": {
+      "type": "object", "additionalProperties": false,
+      "required": ["section_type", "title", "content"],
+      "properties": {
+        "section_type": { "$ref": "#/$defs/id" },
+        "title": { "$ref": "#/$defs/text" },
+        "content": { "$ref": "#/$defs/text" },
+        "claim_refs": { "$ref": "#/$defs/stringArray" },
+        "evidence_refs": { "$ref": "#/$defs/stringArray" },
+        "receipt_refs": { "$ref": "#/$defs/stringArray" },
+        "numerical_refs": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["evidence_id", "source_type", "locator", "content_sha256", "as_of", "used_in_sections"],
+      "properties": {
+        "evidence_id": { "$ref": "#/$defs/id" },
+        "source_type": { "$ref": "#/$defs/id" },
+        "document_section": { "type": "string" },
+        "locator": { "$ref": "#/$defs/text" },
+        "content_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "as_of": { "type": "string", "format": "date-time" },
+        "used_in_sections": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "calculation": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "receipt_id", "operation_id", "engine_id", "engine_version", "formula_version",
+        "status", "outputs", "invariant_results", "source_as_of", "receipt_sha256", "used_in_sections"
+      ],
+      "properties": {
+        "receipt_id": { "$ref": "#/$defs/id" },
+        "operation_id": { "$ref": "#/$defs/id" },
+        "engine_id": { "$ref": "#/$defs/id" },
+        "engine_version": { "$ref": "#/$defs/text" },
+        "formula_version": { "$ref": "#/$defs/text" },
+        "status": { "const": "success" },
+        "outputs": { "type": "array" },
+        "invariant_results": { "type": "array" },
+        "warnings": { "$ref": "#/$defs/stringArray" },
+        "evidence_refs": { "$ref": "#/$defs/stringArray" },
+        "source_as_of": { "type": "string", "format": "date-time" },
+        "receipt_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "used_in_sections": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "warning": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "text"],
+      "properties": { "kind": { "$ref": "#/$defs/id" }, "role_id": { "type": "string" }, "text": { "$ref": "#/$defs/text" } }
+    },
+    "event": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sequence", "type", "status", "at"],
+      "properties": {
+        "sequence": { "type": "integer", "minimum": 1 },
+        "step_id": { "type": "string" },
+        "type": { "$ref": "#/$defs/id" },
+        "status": { "$ref": "#/$defs/id" },
+        "at": { "type": "string", "format": "date-time" },
+        "attributes": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    }
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.dev/contracts/golden-journey-scorecard.schema.json",
+  "title": "SignalForge GoldenJourneyScorecard v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "measured_at", "source_replay", "runtime", "quality",
+    "resilience", "follow_up_continuity", "performance", "limitations"
+  ],
+  "properties": {
+    "schema_version": { "const": "signalforge/golden-journey-scorecard/v1" },
+    "measured_at": { "type": "string", "format": "date-time" },
+    "source_replay": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "sha256", "replay_id", "run_id"],
+      "properties": {
+        "path": { "const": "evidence/golden-safe-decision-replay.json" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "replay_id": { "$ref": "#/$defs/id" },
+        "run_id": { "$ref": "#/$defs/id" }
+      }
+    },
+    "runtime": {
+      "type": "object", "additionalProperties": false,
+      "required": ["local_only", "attested", "gpu_architecture", "rocm_version", "model_profile"],
+      "properties": {
+        "local_only": { "const": true },
+        "attested": { "const": true },
+        "gpu_architecture": { "$ref": "#/$defs/id" },
+        "rocm_version": { "type": "string", "minLength": 1 },
+        "model_profile": { "$ref": "#/$defs/id" }
+      }
+    },
+    "quality": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "claims_supplied", "claims_dispositioned", "released_claims",
+        "released_claims_with_authority", "released_claims_approved_by_both_reviewers",
+        "evidence_coverage", "external_answer_accuracy", "frozen_semantic_rubric"
+      ],
+      "properties": {
+        "claims_supplied": { "type": "integer", "minimum": 1 },
+        "claims_dispositioned": { "type": "integer", "minimum": 1 },
+        "released_claims": { "type": "integer", "minimum": 1 },
+        "released_claims_with_authority": { "type": "integer", "minimum": 1 },
+        "released_claims_approved_by_both_reviewers": { "type": "integer", "minimum": 1 },
+        "evidence_coverage": { "type": "number", "minimum": 0, "maximum": 1 },
+        "external_answer_accuracy": { "const": "not_scored_against_external_ground_truth" },
+        "frozen_semantic_rubric": { "$ref": "#/$defs/semanticRubricEvidence" }
+      }
+    },
+    "resilience": { "$ref": "#/$defs/testEvidence" },
+    "follow_up_continuity": { "$ref": "#/$defs/testEvidence" },
+    "performance": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "end_to_end_duration_ms", "model_calls", "ttft_p50_ms", "ttft_p95_ms",
+        "completion_tokens_per_second", "max_concurrent_context"
+      ],
+      "properties": {
+        "end_to_end_duration_ms": { "$ref": "#/$defs/nonNegative" },
+        "model_calls": { "type": "integer", "minimum": 0 },
+        "ttft_p50_ms": { "$ref": "#/$defs/nonNegative" },
+        "ttft_p95_ms": { "$ref": "#/$defs/nonNegative" },
+        "completion_tokens_per_second": { "$ref": "#/$defs/nonNegative" },
+        "max_concurrent_context": { "type": "integer", "minimum": 0, "maximum": 4 }
+      }
+    },
+    "limitations": {
+      "type": "object", "additionalProperties": false,
+      "required": ["point_in_time_market_prices", "price_implied_multiples", "complete_sprint_08"],
+      "properties": {
+        "point_in_time_market_prices": { "const": "available_from_frozen_official_exchange_close_inputs" },
+        "price_implied_multiples": { "const": "available_with_two_validated_peer_multiple_receipts" },
+        "complete_sprint_08": { "const": true }
+      }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@+\\-]{0,255}$" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "nonNegative": { "type": "number", "minimum": 0 },
+    "testEvidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["test_id", "cases", "passed"],
+      "properties": {
+        "test_id": { "$ref": "#/$defs/id" },
+        "cases": { "type": "integer", "minimum": 1 },
+        "passed": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "semanticRubricEvidence": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "rubric_id", "rubric_path", "rubric_sha256", "evaluation_path",
+        "evaluation_sha256", "passed", "passed_checks", "total_checks"
+      ],
+      "properties": {
+        "rubric_id": { "$ref": "#/$defs/id" },
+        "rubric_path": { "const": "fixtures/golden/semantic-rubric-v5.json" },
+        "rubric_sha256": { "$ref": "#/$defs/sha256" },
+        "evaluation_path": { "const": "evidence/golden-semantic-evaluation.json" },
+        "evaluation_sha256": { "$ref": "#/$defs/sha256" },
+        "passed": { "const": true },
+        "passed_checks": { "type": "integer", "minimum": 1 },
+        "total_checks": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

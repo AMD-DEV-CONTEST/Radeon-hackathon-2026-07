@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.dev/contracts/engine-request.schema.json",
+  "title": "SignalForge EngineRequest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "request_id", "run_id", "step_id", "requested_by", "engine_id", "operation_id", "formula_version", "scope", "inputs", "precision_policy", "requested_outputs"],
+  "properties": {
+    "schema_version": { "const": "signalforge/v1" },
+    "request_id": { "$ref": "#/$defs/nonEmpty" },
+    "run_id": { "$ref": "#/$defs/nonEmpty" },
+    "step_id": { "$ref": "#/$defs/nonEmpty" },
+    "requested_by": { "$ref": "#/$defs/nonEmpty" },
+    "engine_id": { "$ref": "#/$defs/nonEmpty" },
+    "operation_id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$" },
+    "formula_version": { "$ref": "#/$defs/nonEmpty" },
+    "scope": { "$ref": "#/$defs/scope" },
+    "inputs": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/input" } },
+    "assumptions": { "type": "array", "items": { "$ref": "#/$defs/nonEmpty" } },
+    "precision_policy": { "enum": ["money-decimal/v1", "ratio-decimal/v1", "mixed-numeric/v1", "statistics-float64/v1", "ratio-float64/v1"] },
+    "requested_outputs": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/nonEmpty" } }
+  },
+  "$defs": {
+    "nonEmpty": { "type": "string", "minLength": 1 },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["as_of"],
+      "properties": {
+        "company_ids": { "type": "array", "items": { "$ref": "#/$defs/nonEmpty" } },
+        "security_ids": { "type": "array", "items": { "$ref": "#/$defs/nonEmpty" } },
+        "periods": { "type": "array", "items": { "$ref": "#/$defs/nonEmpty" } },
+        "as_of": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "quantity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "unit"],
+      "properties": {
+        "value": { "type": "string", "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$" },
+        "unit": { "$ref": "#/$defs/nonEmpty" },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "scale": { "type": "integer" },
+        "period": { "$ref": "#/$defs/nonEmpty" },
+        "as_of": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["input_id", "quantity", "status"],
+      "properties": {
+        "input_id": { "$ref": "#/$defs/nonEmpty" },
+        "quantity": { "$ref": "#/$defs/quantity" },
+        "status": { "enum": ["reported", "normalized", "derived", "assumed"] },
+        "evidence_refs": { "type": "array", "items": { "$ref": "#/$defs/nonEmpty" } }
+      },
+      "allOf": [{
+        "if": { "properties": { "status": { "not": { "const": "assumed" } } } },
+        "then": { "required": ["evidence_refs"], "properties": { "evidence_refs": { "minItems": 1 } } }
+      }]
+    }
+  }
+}

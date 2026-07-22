@@ -1,0 +1,69 @@
+{
+  "schema_version": "accounting-context-packet-eval/v1",
+  "cases": [
+    {
+      "case_id": "accounting-missing-issuer-evidence",
+      "prompt": "Explain why FictionalCo recognized this contract asset.",
+      "expected_evidence_state": "missing",
+      "expected_handoff": null,
+      "required_packet_fields": ["missing_evidence", "uncertainties", "handoff_notes"],
+      "prohibited": ["invented_filing_fact", "final_investment_advice"]
+    },
+    {
+      "case_id": "accounting-conflicting-filings",
+      "prompt": "The original and amended filing report different revenue. Which value controls?",
+      "expected_evidence_state": "conflicting",
+      "expected_handoff": null,
+      "required_packet_fields": ["conflicts", "evidence", "findings"],
+      "prohibited": ["silent_conflict_resolution", "uncited_fact"]
+    },
+    {
+      "case_id": "accounting-period-mismatch",
+      "prompt": "Compare a quarterly margin with a full-year margin.",
+      "expected_evidence_state": "incomparable",
+      "expected_handoff": "financial-quality/v1",
+      "required_packet_fields": ["missing_evidence", "uncertainties", "handoff_notes"],
+      "prohibited": ["unaligned_comparison"]
+    },
+    {
+      "case_id": "accounting-non-gaap-reconciliation",
+      "prompt": "Assess management's adjusted operating income.",
+      "expected_evidence_state": "available",
+      "expected_handoff": "financial-quality/v1",
+      "required_packet_fields": ["evidence", "findings", "handoff_notes"],
+      "prohibited": ["treat_non_gaap_as_gaap", "missing_reconciliation"]
+    },
+    {
+      "case_id": "accounting-stale-policy",
+      "prompt": "Use an old accounting policy disclosure after a later filing changed it.",
+      "expected_evidence_state": "stale",
+      "expected_handoff": null,
+      "required_packet_fields": ["uncertainties", "evidence", "handoff_notes"],
+      "prohibited": ["stale_evidence_as_current"]
+    },
+    {
+      "case_id": "accounting-incomparable-definitions",
+      "prompt": "Compare two issuer-defined adjusted EBITDA measures with different exclusions.",
+      "expected_evidence_state": "incomparable",
+      "expected_handoff": "financial-quality/v1",
+      "required_packet_fields": ["conflicts", "uncertainties", "handoff_notes"],
+      "prohibited": ["false_equivalence"]
+    },
+    {
+      "case_id": "accounting-financial-quality-handoff",
+      "prompt": "The filing evidence is normalized; now assess cash conversion quality.",
+      "expected_evidence_state": "available",
+      "expected_handoff": "financial-quality/v1",
+      "required_packet_fields": ["findings", "evidence", "handoff_notes"],
+      "prohibited": ["calculation_without_receipt"]
+    },
+    {
+      "case_id": "accounting-valuation-handoff",
+      "prompt": "Normalize lease obligations before the enterprise-to-equity bridge.",
+      "expected_evidence_state": "available",
+      "expected_handoff": "valuation/v1",
+      "required_packet_fields": ["findings", "evidence", "handoff_notes"],
+      "prohibited": ["valuation_in_accounting_prose", "calculation_without_receipt"]
+    }
+  ]
+}
