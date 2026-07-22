@@ -30,6 +30,22 @@ import numpy as np
 
 logger = get_logger("VTE.Model")
 
+# Batched/chunked prefill (VTE_BATCHED_PREFILL=1, opt-in -- see
+# _ensure_batched_prefill_executor): deliberately small and fixed rather
+# than scaling to the prompt, for two independent reasons. (1) The naive
+# seq_len=N attention kernel used for the batched path (gqa_attention.hip.
+# template) keeps a per-thread `float scores[2048]` local array -- total
+# cached+new positions per chunk must stay comfortably under 2048, see
+# _BATCHED_PREFILL_MAX_CONTEXT below. (2) Extra VRAM for the chunk's own
+# activation buffers scales with chunk_size (see
+# _estimate_chunk_activation_bytes) -- kept small enough to stay safe on
+# an 8GB card (RX 7600), not just the 48GB W7900 this was measured on;
+# _ensure_batched_prefill_executor also checks free VRAM explicitly before
+# committing, so this is a sane default, not the only thing standing
+# between this feature and an OOM on a smaller card.
+_BATCHED_PREFILL_CHUNK_SIZE = int(os.environ.get("VTE_BATCHED_PREFILL_CHUNK_SIZE", "128"))
+_BATCHED_PREFILL_MAX_CONTEXT = 2048
+
 # vte/core/model.py -> raiz do repo é dois níveis acima. Resolvido a partir
 # de __file__ (não do cwd) porque `vte-ui`/`vte` são instalados como pacote
 # e podem ser invocados de qualquer diretório -- procurar "Model/" relativo
@@ -524,6 +540,30 @@ class VTEModel:
             reqs = mapper.calculate_memory_requirements(self._context_length, self._max_batch_size)
             requested_pool_size = reqs['with_margin']
 
+            # Batched prefill (VTE_BATCHED_PREFILL=1) allocates a SECOND,
+            # chunk-sized activation-buffer set on top of everything above
+            # (see _build_chunk_tensor_mapping) -- but SlabAllocator is a
+            # bump allocator with a FIXED pool sized here, at load time,
+            # long before _ensure_batched_prefill_executor ever runs. Real
+            # GPU VRAM having room free (checked separately in
+            # _ensure_batched_prefill_executor) doesn't help if THIS pool
+            # itself has no headroom left -- confirmed directly: without
+            # this, every batched-prefill attempt failed with "OOM no
+            # Slab: Não há N bytes contíguos" even on a 49GB card with
+            # >40GB genuinely free, because the pool itself was sized to
+            # fit exactly weights+KV+seq_len=1 buffers, nothing more.
+            # reqs['arena'] is the seq_len=1 activation cost (one unit of
+            # it is already inside requested_pool_size above); the chunk
+            # buffers need chunk_size-1 MORE of that same unit, additive.
+            if os.environ.get("VTE_BATCHED_PREFILL", "0") == "1":
+                chunk_size = int(os.environ.get("VTE_BATCHED_PREFILL_CHUNK_SIZE", "128"))
+                extra_headroom = reqs['arena'] * max(chunk_size - 1, 0)
+                requested_pool_size += extra_headroom
+                logger.info(
+                    "VTE_BATCHED_PREFILL=1: reservando +%.0fMB no pool pra buffers de chunk_size=%d.",
+                    extra_headroom / 1024**2, chunk_size,
+                )
+
             self._allocator = SlabAllocator(self._hip, vram_total, requested_pool_size=requested_pool_size)
             self._allocator.initialize()
             
@@ -757,6 +797,155 @@ class VTEModel:
             allocated += 1
 
         logger.info(f"Buffers persistentes alocados: {allocated} tensores")
+
+    def _estimate_chunk_activation_bytes(self, chunk_size: int) -> int:
+        """Same sizing walk as _allocate_activation_buffers, but only
+        totals the byte count -- doesn't allocate anything. Used to check
+        against free VRAM BEFORE committing to a chunk size, so a tight
+        card (e.g. RX 7600, 8GB) fails safe (falls back to the existing
+        per-token path) instead of racing an allocator exception."""
+        from vte.compiler.ir import NodeType
+
+        if not hasattr(self, 'compute_graph') or self.compute_graph is None:
+            return 0
+        total = 0
+        for node in self.compute_graph.topological_sort():
+            if node.op_type in [NodeType.INPUT, NodeType.OUTPUT]:
+                continue
+            if not node.output_tensor:
+                continue
+            size = 1
+            for dim in node.shape:
+                if dim > 0:
+                    size *= dim
+                elif dim == -1:
+                    size *= chunk_size
+            size = size * 2  # fp16
+            total += max(size, 512)
+        return total
+
+    def _build_chunk_tensor_mapping(self, chunk_size: int) -> dict:
+        """Activation-buffer set sized for `chunk_size` rows, layered on
+        top of a COPY of self.tensor_mapping (never mutates the original)
+        -- weights, KV cache pointers (`blk.{l}.kv_cache.k`/`.v`), RoPE
+        cache, and anything else not produced by a compute-graph node stay
+        exactly as they are, genuinely SHARED with decode's own executor
+        (the whole point: batched prefill must write into the SAME KV
+        cache decode reads from afterward, not a second disconnected one).
+        Only the per-node intermediate/activation OUTPUTS get fresh,
+        chunk-sized allocations, overriding the inherited seq_len=1
+        entries -- those are the ones HIPGraphExecutor would otherwise
+        overrun writing chunk_size rows into a 1-row buffer (silent VRAM
+        corruption, not just a perf issue -- see the known-limitation
+        comment on _allocate_activation_buffers this generalizes from).
+        Tagged act_prefill_* (distinct from _allocate_activation_buffers'
+        act_* tags) so the new allocations are identifiable in VRAM
+        profiling logs."""
+        from vte.compiler.ir import NodeType
+
+        mapping: dict = dict(self.tensor_mapping)
+        if not hasattr(self, 'compute_graph') or self.compute_graph is None:
+            return mapping
+        # NOTE: deliberately does NOT skip when out_name is already in
+        # `mapping` -- it always IS, inherited from the self.tensor_mapping
+        # copy above (every node's seq_len=1 buffer was already allocated
+        # by _allocate_activation_buffers at load time). This loop's whole
+        # job is to OVERRIDE those specific entries with fresh chunk-sized
+        # ones; only KV cache/weights/RoPE-cache entries (never produced by
+        # a compute-graph node, so never visited here) stay as inherited.
+        seen: set = set()
+        for node in self.compute_graph.topological_sort():
+            if node.op_type in [NodeType.INPUT, NodeType.OUTPUT]:
+                continue
+            out_name = node.output_tensor
+            if not out_name or out_name in seen:
+                continue
+            seen.add(out_name)
+            size = 1
+            for dim in node.shape:
+                if dim > 0:
+                    size *= dim
+                elif dim == -1:
+                    size *= chunk_size
+            size = size * 2  # fp16
+            size = max(size, 512)
+            block = self._allocator.allocate(size, f"act_prefill_{out_name}", MemoryRegion.ACTIVATIONS)
+            mapping[out_name] = block.ptr
+        return mapping
+
+    def _ensure_batched_prefill_executor(self, chunk_size: int):
+        """Lazily builds (once) a second HIPGraphExecutor dedicated to
+        batched/chunked prefill, with its own chunk-sized tensor_mapping
+        (see _build_chunk_tensor_mapping). Entirely additive: the existing
+        self.executor/self.tensor_mapping/decode graph are never touched,
+        so this can only ever add a new capability, never regress decode.
+
+        Returns None (and logs why) if batched prefill isn't applicable or
+        safe right now -- caller falls back to the existing per-token
+        prefill loop in that case, same as if this method didn't exist:
+          - VTE_BATCHED_PREFILL env flag not set (opt-in, same pattern as
+            VTE_TOPK_LOGITS_READBACK).
+          - Not running the HIP Graph executor (FallbackExecutor has no
+            graph-capture concept to batch).
+          - Gated DeltaNet (qwen35): its recurrent state can't resume
+            mid-sequence the way transformer KV cache can (see the
+            skip_prefix docstring in generate()) -- no batched-prefill
+            story for it yet, always falls through to the sequential path.
+          - Estimated extra VRAM for `chunk_size` doesn't fit comfortably
+            under the free budget -- checked explicitly (not just left to
+            an allocator exception) specifically so a tight card (RX 7600,
+            8GB) degrades to the always-correct sequential path instead of
+            a failed allocation banking on being caught cleanly everywhere
+            downstream.
+        """
+        if os.environ.get("VTE_BATCHED_PREFILL", "0") != "1":
+            return None
+        if not self._use_hip_graph:
+            return None
+        if self._architecture == "qwen35":
+            logger.info("Prefill em lote desativado para Gated DeltaNet (qwen35) -- caminho sequencial mantido.")
+            return None
+        if getattr(self, "_batched_prefill_executor", None) is not None:
+            if getattr(self, "_batched_prefill_chunk_size", None) == chunk_size:
+                return self._batched_prefill_executor
+            # Chunk size changed (shouldn't normally happen mid-process) --
+            # rebuild rather than silently reuse a mismatched mapping.
+            self._batched_prefill_executor = None
+
+        estimated_bytes = self._estimate_chunk_activation_bytes(chunk_size)
+        free_bytes, total_bytes = self._hip.get_real_mem_info()
+        # Deliberately conservative beyond the allocator's own
+        # VRAM_SAFETY_MARGIN check (vte/bridge/memory.py) -- this is an
+        # OPTIONAL extra buffer set on top of an already-loaded model, so
+        # it should only ever be taken when there's clearly comfortable
+        # headroom, not just whatever's technically left.
+        if estimated_bytes > free_bytes * 0.5:
+            logger.info(
+                "Prefill em lote pulado: chunk_size=%d precisaria de ~%.0fMB extras, "
+                "só %.0fMB livres (VRAM total %.0fMB) -- mantendo caminho sequencial.",
+                chunk_size, estimated_bytes / 1024**2, free_bytes / 1024**2, total_bytes / 1024**2,
+            )
+            return None
+
+        try:
+            chunk_mapping = self._build_chunk_tensor_mapping(chunk_size)
+            executor = HIPGraphExecutor(
+                self._hip, self._allocator, self.compute_graph, chunk_mapping,
+                metadata=self.metadata, lm_head_info=None, context_length=self._context_length,
+                topk_info=None,
+            )
+            executor.build_prefill_graph(chunk_size)
+        except Exception as e:
+            logger.warning("Prefill em lote falhou ao inicializar (chunk_size=%d): %s -- caminho sequencial mantido.", chunk_size, e)
+            return None
+
+        self._batched_prefill_executor = executor
+        self._batched_prefill_chunk_size = chunk_size
+        logger.info(
+            "Prefill em lote ativado: chunk_size=%d (~%.0fMB de buffers extras).",
+            chunk_size, estimated_bytes / 1024**2,
+        )
+        return executor
 
     def _resolve_lm_head_capture_info(self, batch_size: int = 1, tensor_mapping: dict = None) -> dict:
         """
@@ -1010,6 +1199,41 @@ class VTEModel:
                 skip_prefix += 1
 
         if self._use_hip_graph:
+            # Opt-in (VTE_BATCHED_PREFILL=1, off by default): process all
+            # but a TAIL of the remaining prompt in fixed-size chunks
+            # through a second, chunk-sized HIP Graph (see
+            # _ensure_batched_prefill_executor) instead of one seq_len=1
+            # decode-graph replay per position -- the real fix for prefill
+            # being O(N) sequential graph replays instead of a handful of
+            # batched ones. The tail (>=1 token, up to a full chunk) always
+            # still runs through the EXACT existing per-token loop below,
+            # unchanged -- that's deliberate, not a missed optimization:
+            # it's what leaves self.lm_head.logits_buffer correctly
+            # populated for the first generated token exactly as before,
+            # with zero new code needed for that part. Batched chunks only
+            # need to populate the KV cache, never read logits themselves.
+            batched_executor = None
+            n_remaining = len(input_tokens) - skip_prefix
+            chunk_size = _BATCHED_PREFILL_CHUNK_SIZE
+            # gqa_attention.hip.template's per-thread `scores[2048]` local
+            # array bounds total (cached + new) positions any single
+            # batched-prefill chunk can attend over -- checked against the
+            # WORST case (the very last position of the whole prompt) up
+            # front, not just the first chunk, so a long prompt falls back
+            # to the always-correct sequential path instead of risking an
+            # overrun partway through.
+            if n_remaining > chunk_size and len(input_tokens) <= _BATCHED_PREFILL_MAX_CONTEXT:
+                batched_executor = self._ensure_batched_prefill_executor(chunk_size)
+            if batched_executor is not None:
+                num_full_chunks = n_remaining // chunk_size
+                if n_remaining % chunk_size == 0:
+                    num_full_chunks -= 1  # keep >=1 token for the decode-graph tail below
+                for chunk_idx in range(num_full_chunks):
+                    chunk_start = skip_prefix + chunk_idx * chunk_size
+                    chunk_tokens = input_tokens[chunk_start:chunk_start + chunk_size]
+                    batched_executor.execute_prefill(chunk_tokens, kv_offset=chunk_start)
+                skip_prefix += num_full_chunks * chunk_size
+
             for pos in range(skip_prefix, len(input_tokens)):
                 self.executor.execute_decode(input_tokens[pos], kv_offset=pos)
         else:

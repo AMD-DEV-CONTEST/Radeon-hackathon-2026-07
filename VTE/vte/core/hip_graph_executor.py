@@ -254,6 +254,109 @@ class HIPGraphExecutor:
         total_rows = conv_dim + value_dim + 2 * num_heads
         return fn, args, (total_rows, 1, 1), (64, 1, 1), 0
 
+    def _build_gqa_attention_launch(self, node: IRNode, layer_idx: int, seq_len: int):
+        """Args/grid/block for gqa_attention_kernel -- batched-prefill-only
+        attention (seq_len == chunk_size > 1), never used for decode. Kernel
+        ABI (q, k, v, k_cache, v_cache, output, seq_len, num_q_heads,
+        num_kv_heads, head_dim, scale, kv_cache_offset_ptr) confirmed
+        directly against the current .hip.template source, NOT against
+        fallback_executor.py's own _execute_attention_test helper -- that
+        helper calls an older 9-parameter version of this same kernel
+        (missing k_cache/v_cache/kv_cache_offset_ptr entirely), which would
+        silently corrupt/misread VRAM if copied here as a reference.
+
+        node.input_tensors = [q_name, k_name, v_name] with the REAL names
+        RoPE modified in place (q_proj.output/k_proj.output for most
+        architectures, q_norm.output/k_norm.output for Qwen3.5) -- same
+        convention Split-KV's build_launches already relies on above, not
+        reconstructed from a fixed naming guess."""
+        q_ptr = self.tensor_mapping.get(node.input_tensors[0])
+        k_ptr = self.tensor_mapping.get(node.input_tensors[1])
+        v_ptr = self.tensor_mapping.get(node.input_tensors[2])
+        k_cache_ptr = self.tensor_mapping.get(f"blk.{layer_idx}.kv_cache.k")
+        v_cache_ptr = self.tensor_mapping.get(f"blk.{layer_idx}.kv_cache.v")
+        output_ptr = self.tensor_mapping.get(node.output_tensor)
+        for name, ptr in (("q", q_ptr), ("k", k_ptr), ("v", v_ptr),
+                           ("k_cache", k_cache_ptr), ("v_cache", v_cache_ptr), ("output", output_ptr)):
+            if ptr is None:
+                raise GraphCaptureError(f"gqa_attention: tensor '{name}' não resolvido em tensor_mapping (camada {layer_idx}).")
+
+        num_q_heads = self.metadata.get('attention.head_count', 12)
+        num_kv_heads = self.metadata.get('attention.head_count_kv', 2)
+        head_dim = self.metadata.get('attention.key_length', 128)
+        scale = 1.0 / (head_dim ** 0.5)
+
+        cache_key = "gqa_attention"
+        if cache_key not in self._kernel_cache:
+            arch = self.hip.get_gpu_architecture()
+            module, function = self.codegen.load_kernel_safe(self.hip, cache_key, arch, "gqa_attention_kernel")
+            self._kernel_cache[cache_key] = (module, function)
+        fn = self._kernel_cache[cache_key][1]
+
+        args = [
+            ctypes.c_void_p(q_ptr), ctypes.c_void_p(k_ptr), ctypes.c_void_p(v_ptr),
+            ctypes.c_void_p(k_cache_ptr), ctypes.c_void_p(v_cache_ptr), ctypes.c_void_p(output_ptr),
+            ctypes.c_int(seq_len), ctypes.c_int(num_q_heads), ctypes.c_int(num_kv_heads),
+            ctypes.c_int(head_dim), ctypes.c_float(scale), ctypes.c_void_p(self.staging_kv_offset.ptr),
+        ]
+        # Matches the kernel's own indexing: blockIdx.x=batch (always 1
+        # here -- batched prefill processes one sequence at a time, no
+        # concurrent-request batching), blockIdx.y=q_head,
+        # threadIdx.x=q_seq_idx (one thread per new query position in the
+        # chunk) -- verified directly in isolation before this was wired in.
+        grid = (1, num_q_heads, 1)
+        block = (seq_len, 1, 1)
+        return fn, args, grid, block, 0
+
+    def _build_gemm_q4k_wmma_launch(self, node: IRNode, seq_len: int, metadata: dict):
+        """Args/grid/block for gemm_q4k_wmma_kernel -- batched-prefill-only
+        (seq_len == chunk_size > 1), replacing gemv_q4k for a real weight-
+        tile-reuse GEMM instead of N independent GEMVs. Validated in
+        isolation first (dequant-only tile: exact match vs
+        dequantize_q4_k; full GEMM at real chunk/hidden size: max diff
+        0.22% of the output's own RMS magnitude, 0 elements over 5%) --
+        see tools/ (Fase 1a/1b of this feature) before this was wired in.
+
+        Deliberately narrower than gemv_q4k's dispatch: no bias, no
+        residual-epilogue fusion (RESIDUAL_FUSION) support. Caller must
+        skip this and fall through to the normal gemv_q4k dispatch for any
+        node with residual fusion (attn_output/down_proj) -- gemv_q4k is
+        already seq_len-generic and already the validated, correct
+        (if unaccelerated) fallback for exactly this case."""
+        def _resolve(name):
+            val = self.tensor_mapping.get(name)
+            return val.ptr if hasattr(val, 'ptr') else val
+
+        input_ptr = _resolve(node.input_tensors[0])
+        weight_ptr = _resolve(node.input_tensors[1])
+        output_ptr = _resolve(node.output_tensor)
+        for name, ptr in (("input", input_ptr), ("weight", weight_ptr), ("output", output_ptr)):
+            if ptr is None:
+                raise GraphCaptureError(f"gemm_q4k_wmma: tensor '{name}' não resolvido pra nó {node.name}.")
+
+        if "down_proj" in node.name:
+            in_features = metadata.get('feed_forward_length', 8960)
+        else:
+            in_features = metadata.get('embedding_length', 1536)
+        out_features = node.shape[-1]
+
+        cache_key = "gemm_q4k_wmma"
+        if cache_key not in self._kernel_cache:
+            arch = self.hip.get_gpu_architecture()
+            module, function = self.codegen.load_kernel_safe(self.hip, cache_key, arch, "gemm_q4k_wmma_kernel")
+            self._kernel_cache[cache_key] = (module, function)
+        fn = self._kernel_cache[cache_key][1]
+
+        args = [
+            ctypes.c_void_p(input_ptr), ctypes.c_void_p(weight_ptr), ctypes.c_void_p(output_ptr),
+            ctypes.c_int(seq_len), ctypes.c_int(out_features), ctypes.c_int(in_features),
+        ]
+        _GEMM_N_TILE, _GEMM_M_TILE = 64, 64  # deve casar com N_TILE/M_TILE do .hip.template
+        grid = ((out_features + _GEMM_N_TILE - 1) // _GEMM_N_TILE,
+                (seq_len + _GEMM_M_TILE - 1) // _GEMM_M_TILE, 1)
+        block = (128, 1, 1)
+        return fn, args, grid, block, 0
+
     def _capture_embedding_lookup(self, seq_len: int):
         """
         Grava o kernel de embedding lookup como a PRIMEIRA operação do grafo,
@@ -690,6 +793,56 @@ class HIPGraphExecutor:
                             f"Usando kernels separados para esta camada."
                         )
 
+                # Batched prefill (seq_len == chunk_size, > 1): the
+                # production attention path (flash_attention/Split-KV) is
+                # hardcoded to a single query position -- see their own
+                # PRÉ-REQUISITO comments and _calculate_launch_dims' ATTENTION
+                # branch, whose grid/block shape has no query-position axis
+                # at all. gqa_attention_kernel is a real seq_len=N causal
+                # kernel (verified independently against a NumPy reference
+                # with a non-zero kv_cache_offset before being wired in here
+                # -- max abs diff 0.000178 on output, 0.000459 on the cache
+                # write, both well within fp16 tolerance), just never
+                # dispatched from the graph-capture path before. Naive (no
+                # tiling/online-softmax, `scores[2048]` fixed per-thread
+                # array -- see _BATCHED_PREFILL_MAX_CONTEXT), which is fine
+                # here: this only runs for the bounded chunk sizes/contexts
+                # the batched-prefill feature restricts itself to.
+                if seq_len != 1 and node.op_type == NodeType.ATTENTION:
+                    layer_idx = int(node.name.split('.')[1])
+                    try:
+                        fn, args, grid, block, shared = self._build_gqa_attention_launch(node, layer_idx, seq_len)
+                        self.hip.launch_kernel_recorded(fn, args, grid, block, shared)
+                        nodes_recorded += 1
+                        continue
+                    except Exception as e:
+                        raise GraphCaptureError(
+                            f"gqa_attention (prefill em lote) falhou na captura (camada {layer_idx}): {e}"
+                        )
+
+                # Prefill em lote, projeções Q4_K sem fusão de residual:
+                # gemm_q4k_wmma real (peso reaproveitado em tile via WMMA)
+                # em vez de gemv_q4k (cada linha do chunk relê o peso do
+                # zero -- 0.99x medido, ver docs/BENCHMARK_W7900.md). Nós
+                # COM fusão de residual (attn_output/down_proj) ficam de
+                # fora deliberadamente -- gemm_q4k_wmma não implementa esse
+                # epílogo ainda, então caem no gemv_q4k normal logo abaixo,
+                # que já é seq_len-genérico e correto (só sem o ganho de
+                # reuso de peso) -- mesmo caminho já validado antes desta
+                # mudança, nunca pior que o status quo.
+                if seq_len != 1 and node.op_type == NodeType.MATMUL:
+                    from vte.core.fallback_executor import _is_q4k_matmul, RESIDUAL_FUSION
+                    if _is_q4k_matmul(node) and not RESIDUAL_FUSION.get(node.name):
+                        try:
+                            fn, args, grid, block, shared = self._build_gemm_q4k_wmma_launch(node, seq_len, self.metadata)
+                            self.hip.launch_kernel_recorded(fn, args, grid, block, shared)
+                            nodes_recorded += 1
+                            continue
+                        except Exception as e:
+                            raise GraphCaptureError(
+                                f"gemm_q4k_wmma (prefill em lote) falhou na captura ({node.name}): {e}"
+                            )
+
                 kernel_func = self._get_or_compile_kernel(node)
 
                 if kernel_func is None:
@@ -788,8 +941,16 @@ class HIPGraphExecutor:
             tag="update_kv_offset"
         )
 
-    def execute_prefill(self, tokens: List[int]):
-        """Executa a primeira passada no modelo (processa o prompt)."""
+    def execute_prefill(self, tokens: List[int], kv_offset: int = 0):
+        """Executa uma passada em lote sobre `tokens` (seq_len=len(tokens)),
+        escrevendo K/V no cache a partir de `kv_offset` -- 0 para o
+        primeiro chunk de um prompt, > 0 para chunks seguintes (prefill em
+        lote/chunked, ver VTEModel._generate_prefill_chunked). Mesmo
+        mecanismo de ponteiro fixo que kv_offset já usa em execute_decode:
+        o valor em staging_kv_offset é lido pelo kernel de atenção
+        (kv_cache_offset_ptr, ver gqa_attention.hip.template) a cada
+        replay, então o MESMO grafo capturado para este seq_len serve
+        qualquer offset, sem recaptura."""
         seq_len = len(tokens)
 
         self.build_prefill_graph(seq_len)
@@ -802,7 +963,7 @@ class HIPGraphExecutor:
         )
         self.hip.safe_memcpy_host_to_device(
             ctypes.c_void_p(self.staging_kv_offset.ptr),
-            np.array([0], dtype=np.int32).tobytes(),
+            np.array([kv_offset], dtype=np.int32).tobytes(),
             tag="update_kv_offset"
         )
 
