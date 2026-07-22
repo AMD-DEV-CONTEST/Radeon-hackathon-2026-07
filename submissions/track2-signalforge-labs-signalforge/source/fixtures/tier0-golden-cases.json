@@ -1,0 +1,37 @@
+{
+  "schema_version": "signalforge-golden-cases/v1",
+  "numerical_policy": {
+    "decimal": "34 significant digits, round-half-even",
+    "statistics": "float64, finite inputs, explicit sample convention and tolerance"
+  },
+  "cases": [
+    {"operation_id":"accounting.balance_sheet_identity","case_id":"balanced-basic","inputs":{"assets":"100","liabilities":"60","equity":"40"},"expected":{"difference":"0","within_tolerance":true}},
+    {"operation_id":"financial.revenue_growth","case_id":"positive-growth","inputs":{"revenue_current":"120","revenue_prior":"100"},"expected":{"growth_rate":"0.2"}},
+    {"operation_id":"financial.cagr","case_id":"two-year-growth","inputs":{"value_start":"100","value_end":"121","years":"2"},"expected":{"cagr":"0.1"}},
+    {"operation_id":"financial.margin","case_id":"operating-margin","inputs":{"numerator":"25","revenue":"100"},"expected":{"margin":"0.25"}},
+    {"operation_id":"financial.free_cash_flow","case_id":"ocf-less-capex","inputs":{"operating_cash_flow":"30","capital_expenditure":"10"},"expected":{"free_cash_flow":"20"}},
+    {"operation_id":"financial.cash_conversion","case_id":"cash-over-income","inputs":{"operating_cash_flow":"30","net_income":"25"},"expected":{"cash_conversion":"1.2"}},
+    {"operation_id":"financial.capex_intensity","case_id":"capex-over-revenue","inputs":{"capital_expenditure":"10","revenue":"100"},"expected":{"capex_intensity":"0.1"}},
+    {"operation_id":"financial.net_debt","case_id":"debt-less-cash","inputs":{"debt":"50","cash_and_equivalents":"20"},"expected":{"net_debt":"30"}},
+    {"operation_id":"financial.dilution","case_id":"share-growth","inputs":{"shares_current":"110","shares_prior":"100"},"expected":{"dilution_rate":"0.1"}},
+    {"operation_id":"financial.roic_proxy","case_id":"nopat-over-capital","inputs":{"nopat":"15","invested_capital":"100"},"expected":{"roic_proxy":"0.15"}},
+    {"operation_id":"financial.current_ratio","case_id":"current-assets-over-liabilities","inputs":{"current_assets":"120","current_liabilities":"80"},"expected":{"current_ratio":"1.5"}},
+    {"operation_id":"financial.debt_to_equity","case_id":"debt-over-equity","inputs":{"debt":"40","equity":"100"},"expected":{"debt_to_equity":"0.4"}},
+    {"operation_id":"financial.earnings_per_share","case_id":"income-over-diluted-shares","inputs":{"net_income":"25","diluted_shares":"10"},"expected":{"earnings_per_share":"2.5"}},
+    {"operation_id":"financial.quality_of_earnings","case_id":"cash-income-bridge","inputs":{"operating_cash_flow":"30","net_income":"25"},"expected":{"accrual_gap":"5","cash_conversion":"1.2"}},
+    {"operation_id":"valuation.fcff_dcf","case_id":"three-stage-terminal","inputs":{"fcff_forecast":["10","11","12"],"discount_rate":"0.10","terminal_growth":"0.03"},"expected":{"enterprise_value":"159.8583234946871310507674144037780","explicit_present_value":"27.19759579263711495116453794139744","terminal_present_value":"132.6607277020500160996028764623806"}},
+    {"operation_id":"valuation.reverse_dcf","case_id":"one-stage-implied-growth","inputs":{"enterprise_value":"150","base_fcff":"10","discount_rate":"0.10","years":"1"},"expected":{"implied_growth":"0.03333333333333333333333333333333333","convergence_tolerance":"0.00000001"}},
+    {"operation_id":"valuation.enterprise_to_equity","case_id":"bridge-to-per-share","inputs":{"enterprise_value":"100","net_debt":"20","non_operating_assets":"5","diluted_shares":"10"},"expected":{"equity_value":"85","value_per_share":"8.5"}},
+    {"operation_id":"valuation.peer_multiple","case_id":"ev-to-metric","inputs":{"market_value":"100","metric_value":"20"},"expected":{"multiple":"5"}},
+    {"operation_id":"valuation.wacc","case_id":"weighted-after-tax-cost","inputs":{"equity_value":"80","debt_value":"20","cost_of_equity":"0.10","pre_tax_cost_of_debt":"0.05","tax_rate":"0.25"},"expected":{"wacc":"0.0875"}},
+    {"operation_id":"economics.real_rate","case_id":"exact-fisher","inputs":{"nominal_rate":"0.06","inflation_measure":"0.02"},"expected":{"real_rate":"0.039215686274509803921568627450980"}},
+    {"operation_id":"economics.yield_curve","case_id":"ten-minus-two","inputs":{"long_yield":"0.05","short_yield":"0.03"},"expected":{"spread":"0.02"}},
+    {"operation_id":"market.total_return","case_id":"price-plus-distribution","inputs":{"start_price":100,"end_price":110,"distributions":2},"expected":{"total_return":0.12}},
+    {"operation_id":"market.volatility","case_id":"sample-annualized","inputs":{"returns":[0.01,-0.01,0.02,-0.02],"periods_per_year":252,"ddof":1},"expected":{"volatility":0.28982753492378877,"tolerance":1e-12}},
+    {"operation_id":"market.drawdown","case_id":"peak-relative","inputs":{"wealth_index":[100,120,90,110]},"expected":{"drawdown_series":[0,0,-0.25,-0.08333333333333333],"maximum_drawdown":-0.25,"tolerance":1e-12}},
+    {"operation_id":"market.beta","case_id":"sample-covariance","inputs":{"security_returns":[0.02,-0.01,0.03,-0.02],"benchmark_returns":[0.01,-0.02,0.02,-0.01],"ddof":1},"expected":{"beta":1.2,"observations":4,"tolerance":1e-12}},
+    {"operation_id":"market.rolling_correlation","case_id":"three-observation-window","inputs":{"series_x":[1,2,3,4],"series_y":[2,4,6,8],"window":3},"expected":{"rolling_correlation":[1,1],"tolerance":1e-12}},
+    {"operation_id":"comparison.period_aligned","case_id":"same-period-same-unit","inputs":{"company_metrics":[{"company":"A","value":"10","period":"FY2025","unit":"USD"},{"company":"B","value":"12","period":"FY2025","unit":"USD"}],"alignment_policy":"exact"},"expected":{"comparable":true,"warnings":[]}},
+    {"operation_id":"scenario.sensitivity_matrix","case_id":"two-by-two-grid","inputs":{"fcff_forecast":["10","11","12"],"discount_rates":["0.09","0.10"],"terminal_growth_rates":["0.02","0.03"]},"expected":{"rows":2,"columns":2,"monotonic_discount_rate":true,"monotonic_terminal_growth":true}}
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.dev/contracts/filing-chunk.schema.json",
+  "title": "SignalForge Filing Chunk v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "chunk_id", "document_id", "company_id", "filing_id",
+    "accession_number", "form_type", "section", "locator", "text", "source_uri",
+    "document_sha256", "content_sha256", "available_at", "retrieved_at",
+    "token_estimate", "chunking_version"
+  ],
+  "properties": {
+    "schema_version": {"const": "signalforge/filing-chunk/v1"},
+    "chunk_id": {"$ref": "#/$defs/nonEmpty"},
+    "document_id": {"$ref": "#/$defs/nonEmpty"},
+    "company_id": {"$ref": "#/$defs/nonEmpty"},
+    "filing_id": {"$ref": "#/$defs/nonEmpty"},
+    "accession_number": {"type": "string", "pattern": "^[0-9]{10}-[0-9]{2}-[0-9]{6}$"},
+    "form_type": {"$ref": "#/$defs/nonEmpty"},
+    "section": {"$ref": "#/$defs/nonEmpty"},
+    "table_id": {"type": "string"},
+    "page": {"type": "integer", "minimum": 1},
+    "locator": {"$ref": "#/$defs/nonEmpty"},
+    "periods": {"type": "array", "items": {"$ref": "#/$defs/nonEmpty"}, "uniqueItems": true},
+    "claim_key": {"type": "string"},
+    "claim_value": {"type": "string"},
+    "text": {"$ref": "#/$defs/nonEmpty"},
+    "source_uri": {"type": "string", "format": "uri", "pattern": "^https://"},
+    "document_sha256": {"$ref": "#/$defs/sha256"},
+    "content_sha256": {"$ref": "#/$defs/sha256"},
+    "available_at": {"type": "string", "format": "date-time"},
+    "retrieved_at": {"type": "string", "format": "date-time"},
+    "token_estimate": {"type": "integer", "minimum": 1},
+    "chunking_version": {"$ref": "#/$defs/nonEmpty"}
+  },
+  "$defs": {
+    "nonEmpty": {"type": "string", "minLength": 1},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

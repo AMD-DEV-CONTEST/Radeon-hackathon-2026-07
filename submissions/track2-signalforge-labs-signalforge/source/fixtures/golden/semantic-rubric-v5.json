@@ -1,0 +1,93 @@
+{
+  "schema_version": "signalforge/golden-semantic-rubric/v1",
+  "rubric_id": "golden-msft-nvda-decision-v5",
+  "frozen_at": "2026-07-22T04:23:06Z",
+  "question_sha256": "839958a0fb4ee6fcfd13c48c3ed4728d10c9b5eeb895d5ed1d80ec6fc11db4af",
+  "required_sections": [
+    {
+      "section_type": "comparison",
+      "required_roles": [
+        "business-strategy/v1",
+        "accounting-reporting/v1",
+        "financial-quality/v1"
+      ]
+    },
+    {
+      "section_type": "transmission_mechanisms",
+      "required_roles": ["economics-transmission/v1"]
+    },
+    {
+      "section_type": "market_measurement",
+      "required_roles": ["market-behavior/v1"]
+    },
+    {
+      "section_type": "scenarios",
+      "required_roles": ["economics-transmission/v1", "valuation/v1"]
+    },
+    {"section_type": "counterevidence"},
+    {"section_type": "invalidation_conditions"},
+    {"section_type": "evidence"},
+    {"section_type": "limitations"}
+  ],
+  "required_assumptions": [
+    "Higher-for-longer interest rates are an explicit scenario, not a claim that the future path of rates is known.",
+    "Slower AI infrastructure spending is an explicit downside scenario, not an observed causal forecast."
+  ],
+  "required_evidence": [
+    {
+      "requirement_id": "business-models-both-companies",
+      "section_types": ["comparison"],
+      "all_of": ["msft-business-model", "nvda-business-model"]
+    },
+    {
+      "requirement_id": "fiscal-period-comparability",
+      "section_types": ["comparison", "limitations"],
+      "all_of": ["comparison:fiscal-period-boundary"]
+    },
+    {
+      "requirement_id": "macro-transmission-source",
+      "section_types": ["transmission_mechanisms", "scenarios"],
+      "any_of": ["msft-fx", "nvda-rate-risk", "nvda-export-controls", "nvda-supply-chain"]
+    },
+    {
+      "requirement_id": "decision-relevant-risk",
+      "section_types": ["counterevidence", "invalidation_conditions"],
+      "any_of": ["nvda-export-controls", "nvda-customer-concentration", "nvda-inventory-risk", "msft-purchase-commitments"]
+    }
+  ],
+  "required_receipt_operations": {
+    "financial.revenue_growth": 2,
+    "financial.margin": 2,
+    "financial.free_cash_flow": 4,
+    "financial.cash_conversion": 2,
+    "financial.capex_intensity": 2,
+    "valuation.fcff_dcf": 2,
+    "scenario.sensitivity_matrix": 2,
+    "valuation.peer_multiple": 2
+  },
+  "required_market_price_tickers": ["msft", "nvda"],
+  "boundary_disclosures": {
+    "transmission_mechanisms": "These mechanisms are scenario-conditioned pathways, not estimates of observed causality.",
+    "market_measurement": "Price co-movement, correlation, and event-window timing do not by themselves establish causality."
+  },
+  "forbidden_causal_patterns": [
+    "(?i)\\b(?:caused|causes|resulted\\s+(?:from|in)|because\\s+of|due\\s+to)\\b"
+  ],
+  "required_section_patterns": {
+    "scenarios": [
+      "(?i)\\bNVDA enterprise value\\b[^\\n]{0,240}\\blower than MSFT\\b",
+      "(?i)\\bmultiple\\b[^\\n]{0,160}\\b[0-9]+(?:\\.[0-9]+)?x\\b"
+    ]
+  },
+  "forbidden_section_patterns": {
+    "scenarios": [
+      "(?i)\\b(?:Microsoft|MSFT)\\b[^.\\n]{0,160}\\b(?:lower|less|smaller|below)\\s+than\\b[^.\\n]{0,80}\\b(?:NVIDIA|NVDA)\\b",
+      "(?i)\\bmultiple\\b[^\\n]{0,160}%",
+      "(?i)\\b(?:NVIDIA|NVDA)(?:'s)?\\s+(?:peer\\s+)?multiple\\b[^.\\n]{0,100}\\b(?:greater|higher|more|larger)\\s+than\\b[^.\\n]{0,80}\\b(?:Microsoft|MSFT)(?:'s)?\\s+(?:peer\\s+)?multiple\\b"
+    ],
+    "limitations": [
+      "(?i)\\b(?:dcf|discounted\\s+cash\\s+flow|multiples?)\\b[^.\\n]{0,160}\\b(?:not\\s+(?:available|provided|supplied|present)|unavailable|missing|absent|withheld)\\b",
+      "[a-z][A-Z]{2,}\\b"
+    ]
+  }
+}
