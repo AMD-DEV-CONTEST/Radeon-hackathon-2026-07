@@ -14,28 +14,33 @@ requires explicit human promotion.
 
 ## Project Materials
 
-1. Live product:
+1. Submission evidence map:
+   [`SUBMISSION_EVIDENCE_MAP.md`](SUBMISSION_EVIDENCE_MAP.md)
+2. Live product:
    `https://radeon-voice-skill-foundry.pages.dev/`
-2. Product Demo:
+3. Product Demo:
    `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/RADEON_VOICE_SKILL_FOUNDRY_DEMO.mp4`
-3. Project Specification: `PROJECT_SPECIFICATION.pdf`
-4. Technical evidence: `TECHNICAL_EVIDENCE_INDEX.md`
-5. Architecture: `ARCHITECTURE.png`
-6. Poster: `POSTER.pdf`
-7. Performance Demo:
+4. Project Specification: [`PROJECT_SPECIFICATION.pdf`](PROJECT_SPECIFICATION.pdf)
+5. Technical evidence: [`TECHNICAL_EVIDENCE_INDEX.md`](TECHNICAL_EVIDENCE_INDEX.md)
+6. Architecture: [`ARCHITECTURE.png`](ARCHITECTURE.png)
+7. Poster: [`POSTER.pdf`](POSTER.pdf)
+8. Multi-turn refinement:
+   [`MULTI_TURN_REFINEMENT.png`](MULTI_TURN_REFINEMENT.png) and
+   [`MULTI_TURN_REFINEMENT.json`](MULTI_TURN_REFINEMENT.json), with
+   [`MULTI_TURN_REFINEMENT_PROOF.zip`](MULTI_TURN_REFINEMENT_PROOF.zip)
+9. Performance Demo:
    `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/RADEON_VOICE_SKILL_FOUNDRY_PERFORMANCE_DEMO.mp4`
-8. Continuous Operation Demo:
+10. Continuous Operation Demo:
    `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/CONTINUOUS_OPERATION_DEMO.mp4`
-9. Release package integrity:
-   `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/SHA256SUMS.txt`
-10. Source:
+11. Package integrity: [`SHA256SUMS.txt`](SHA256SUMS.txt)
+12. Source:
    `https://github.com/Chengyuann/radeon-voice-skill-foundry`
 
 Demo captions:
 `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/RADEON_VOICE_SKILL_FOUNDRY_DEMO.srt`
 
-Demo proof package:
-`https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/PRODUCT_DEMO_PROOF.zip`
+Verified workflow proof package:
+`https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/VERIFIED_WORKFLOW_PROOF.zip`
 
 Demo governance ledger:
 `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/GOVERNANCE_LEDGER.jsonl`
@@ -51,6 +56,9 @@ Official submission:
   and network capabilities.
 - **Multi-step planning:** spoken intent and action evidence compile into an
   ordered procedure, constraints, permissions, fixtures, and proof artifacts.
+- **Multi-turn interaction:** a natural-language correction creates a child
+  compilation revision with `parentRunId`, regenerated constraints, and new
+  fixtures while preserving the prior run.
 - **Local memory:** versioned skill records with candidate, promoted,
   superseded, and revoked states.
 - **Permission and privacy controls:** explicit allow, review, and deny
@@ -113,8 +121,8 @@ run on a private network without the public gateway.
   cross-checks against skill memory. It detects accidental or isolated
   modification in the stored artifacts. It is not an externally anchored,
   signed, or Byzantine-resistant audit log.
-- The bundled governance ledger is the Product Demo sample and contains two
-  `PROMOTE` entries. Supersede, revoke, and rollback remain implemented product
+- The bundled governance ledger is a verified workflow sample with one
+  `PROMOTE` entry. Supersede, revoke, and rollback remain implemented product
   lifecycle actions covered by the regression suite rather than events claimed
   to appear in this sample export.
 - The Product Demo's recorded `GAIA-compatible` phrase refers only to portable

@@ -283,10 +283,10 @@ between the ledger and each skill's embedded governance receipts. Modified
 payloads, deleted tail events, and deleted middle events produce an explicit
 `invalid` ledger with issue details.
 
-The bundled `GOVERNANCE_LEDGER.jsonl` is the Product Demo sample and contains
-two `PROMOTE` entries. Supersede, revoke, and rollback are implemented product
-actions covered by the regression suite; the submission does not claim that
-all four action types appear in this sample export.
+The bundled `GOVERNANCE_LEDGER.jsonl` is a verified workflow sample with one
+`PROMOTE` entry. Supersede, revoke, and rollback are implemented product actions
+covered by the regression suite; the submission does not claim that all four
+action types appear in this sample export.
 
 Existing pre-ledger receipts are imported once, in deterministic timestamp and
 receipt-ID order, only when no ledger exists. Subsequent reads never repair a
@@ -792,7 +792,9 @@ presentation tools do not provide the product's core Agent or ASR functions.
 - Live product: `https://radeon-voice-skill-foundry.pages.dev/`
 - Technical evidence index: `TECHNICAL_EVIDENCE_INDEX.md`
 - Product Demo: `RADEON_VOICE_SKILL_FOUNDRY_DEMO.mp4`
-- Product Demo proof: `PRODUCT_DEMO_PROOF.zip`
+- Verified workflow proof: `VERIFIED_WORKFLOW_PROOF.zip`
+- Multi-turn refinement: `MULTI_TURN_REFINEMENT.png`,
+  `MULTI_TURN_REFINEMENT.json`, and `MULTI_TURN_REFINEMENT_PROOF.zip`
 - Governance ledger: `GOVERNANCE_LEDGER.jsonl`
 - Performance Demo: `RADEON_VOICE_SKILL_FOUNDRY_PERFORMANCE_DEMO.mp4`
 - Performance proof: `PERFORMANCE_DEMO_PROOF.zip`

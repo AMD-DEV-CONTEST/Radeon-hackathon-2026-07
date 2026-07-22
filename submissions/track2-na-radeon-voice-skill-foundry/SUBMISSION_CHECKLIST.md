@@ -9,6 +9,8 @@
 - [x] License: MIT
 - [x] Public product URL is documented
 - [x] Source repository and official submission URL are documented
+- [x] Submission evidence map covers all six Track 2 requirements
+- [x] GitHub Actions runs typecheck, tests, and production build
 
 ## Product Evidence
 
@@ -16,8 +18,9 @@
 - [x] Performance Demo preserves the real W7900 model wait
 - [x] Continuous Operation Demo is labeled as deterministic lifecycle evidence
 - [x] English SRT captions are included for every video
-- [x] Product Demo proof ZIP and governance ledger are included
+- [x] Verified workflow proof ZIP and governance ledger are included
 - [x] Performance and continuous-operation proof ZIPs are included
+- [x] Live multi-turn screenshot, API lineage JSON, and proof ZIP are included
 
 ## Radeon and ROCm
 

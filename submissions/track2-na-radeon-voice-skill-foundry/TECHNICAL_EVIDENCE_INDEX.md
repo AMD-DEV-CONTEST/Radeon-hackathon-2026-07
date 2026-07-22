@@ -7,13 +7,17 @@ verification artifacts, and documented evidence boundaries.
 
 ## Project Materials
 
-1. Live product: `https://radeon-voice-skill-foundry.pages.dev/`
-2. Product Demo:
+1. Submission evidence map: `SUBMISSION_EVIDENCE_MAP.md`
+2. Live product: `https://radeon-voice-skill-foundry.pages.dev/`
+3. Product Demo:
    `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/RADEON_VOICE_SKILL_FOUNDRY_DEMO.mp4`
-3. Project Specification: `PROJECT_SPECIFICATION.pdf`
-4. Architecture: `ARCHITECTURE.png`
-5. Poster: `POSTER.pdf`
-6. Radeon evidence: `evidence/RADEON_SERVING_AND_ASR_SUMMARY.json`
+4. Project Specification: `PROJECT_SPECIFICATION.pdf`
+5. Architecture: `ARCHITECTURE.png`
+6. Poster: `POSTER.pdf`
+7. Multi-turn refinement: `MULTI_TURN_REFINEMENT.png` and
+   `MULTI_TURN_REFINEMENT.json`, with
+   `MULTI_TURN_REFINEMENT_PROOF.zip`
+8. Radeon evidence: `evidence/RADEON_SERVING_AND_ASR_SUMMARY.json`
 
 ## System Capability Map
 
@@ -22,8 +26,9 @@ verification artifacts, and documented evidence boundaries.
 | Voice-seeded workflow capture | Voice records conditions, exceptions, and prohibited side effects that are absent from a UI trace | Project Specification sections 1-3; generated `SKILL.md`, policy, fixtures, and proof ZIP | Product Demo 00:00-00:29 | Synthetic SOP audio is disclosed as a reproducible fixture |
 | Local knowledge retrieval | Deterministic token-overlap retrieval over local policy and SOP documents | Project Specification sections 4-5; public Memory module; proof ZIP | Product Demo 00:29-04:15 | Retrieval is token-overlap search, not embedding or vector search |
 | Tool invocation and planning | Typed tools and six server-accepted actions compile into a multi-step procedure, constraints, permissions, and fixtures | Public Voice and Proof modules; generated policy; proof ZIP | Product Demo 00:29-02:48 | The workspace isolates external side effects |
-| Verification and procedural memory | Deterministic replay, five fail-closed probes, versioned memory, promotion, ledger export, and exact reuse | Public Proof and Memory modules; submission `63/63` suite; Product Demo proof and ledger | Product Demo 02:48-04:15 | Reuse applies only to an identical promoted skill |
-| Core inference on Radeon | Qwen3-ASR-0.6B and Qwen3-4B-Instruct-2507 run on W7900-class `gfx1100` with ROCm 7.2.1 | Live `/api/health`; Radeon audio proof; Product Demo proof ZIP | Product Demo 00:29-01:53 | Real model waiting time is preserved |
+| Multi-turn refinement | A natural-language correction creates revision 2, binds `parentRunId`, and regenerates constraints and fixtures without overwriting the prior run | `MULTI_TURN_REFINEMENT.png`; `MULTI_TURN_REFINEMENT.json`; `MULTI_TURN_REFINEMENT_PROOF.zip`; `server/compiler.test.ts` | Live product evidence capture | The refinement evidence is supplementary and does not alter the recorded Product Demo |
+| Verification and procedural memory | Deterministic replay, five fail-closed probes, versioned memory, promotion, ledger export, and exact reuse | Public Proof and Memory modules; submission `63/63` suite; verified workflow proof and ledger | Product Demo 02:48-04:15 | Reuse applies only to an identical promoted skill |
+| Core inference on Radeon | Qwen3-ASR-0.6B and Qwen3-4B-Instruct-2507 run on W7900-class `gfx1100` with ROCm 7.2.1 | Live `/api/health`; Radeon audio proof; verified workflow proof ZIP | Product Demo 00:29-01:53 | Real model waiting time is preserved |
 | Targeted inference optimization | Same-hardware vLLM serving A/B, native ASR batching, and compact structured output | Radeon experiment summary; source benchmark JSON in the project repository | Performance Demo 03:38-04:13 | Compact-output A/B uses three runs; vLLM C8 is a concurrent serving result |
 
 ## Track 2 Capability Coverage
@@ -33,6 +38,7 @@ verification artifacts, and documented evidence boundaries.
 | Local knowledge retrieval | Deterministic token-overlap retrieval over local policy and SOP documents, with visible selected evidence | Performance Demo 01:14-01:52; Project Specification 5.1 |
 | Tool invocation | Typed file, report, mail, calendar, and network capabilities | Performance Demo 01:54-02:28; generated policy |
 | Multi-step planning | Voice and action evidence compile into constraints, a skill, fixtures, and proof | Performance Demo 00:35-02:56 |
+| Smooth multi-turn interaction | Natural-language policy correction produces a child revision with explicit parent lineage | `MULTI_TURN_REFINEMENT.png`; `MULTI_TURN_REFINEMENT.json`; `MULTI_TURN_REFINEMENT_PROOF.zip`; Project Specification 5.4 |
 | Local memory | Versioned Verified Skill Registry and exact reuse | Performance Demo 03:08-03:36 |
 | Permission and privacy controls | Allow, review, and deny decisions; redaction; confirmation; receipts | Performance Demo 01:54-02:56 |
 
@@ -70,9 +76,9 @@ verification artifacts, and documented evidence boundaries.
 | Promotion impact gate | Permission, constraint, action, and runtime diff; risk acknowledgement; stale-review rejection | public Memory module; PROMOTE receipt review hash |
 | Governance audit ledger | Previous-hash chain, payload and entry hashes, receipt reconciliation, local modification/deletion detection, JSONL export | public Memory module; `/api/governance/ledger.jsonl` |
 
-The bundled `GOVERNANCE_LEDGER.jsonl` is the Product Demo sample and contains
-two `PROMOTE` entries. The regression suite covers the implemented supersede,
-revoke, and rollback actions.
+The bundled `GOVERNANCE_LEDGER.jsonl` is a verified workflow sample with one
+`PROMOTE` entry. The regression suite covers the implemented supersede, revoke,
+and rollback actions.
 
 ## Demo Artifact Boundaries
 
