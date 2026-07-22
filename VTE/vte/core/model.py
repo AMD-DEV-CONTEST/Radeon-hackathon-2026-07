@@ -703,12 +703,20 @@ class VTEModel:
         # candidates: medido (2026-07) que 92.6% do custo de Sampler.
         # sample() é um único np.argpartition sobre o vocabulário inteiro,
         # não o RNG/top-p/repetition penalty -- eliminar esse argpartition
-        # (e a leitura D2H de todo o vocabulário que o alimenta) mede ~
-        # 10.7% de tok/s (1.44ms de 13.5ms/token no Llama 3.1 8B/W7900).
+        # (e a leitura D2H de todo o vocabulário que o alimenta) mediu
+        # +6.96% de tok/s real (Llama 3.1 8B, W7900, warmup separado,
+        # mediana de 3, 74.36 -> 79.54 tok/s). Default ON desde 2026-07
+        # (opt out via VTE_STOCHASTIC_TOPK_READBACK=0): validado
+        # estatisticamente (KL-divergence 0.0001 contra o caminho antigo
+        # numa distribuição real de alta entropia) e greedy confirmado
+        # byte-idêntico com a flag ligada ou desligada -- ver
+        # docs/LIMITATIONS.md ("Kernel efficiency and rejected
+        # optimizations") pro bug de clustering encontrado e corrigido
+        # antes disto ser ligado por padrão.
         self._stochastic_topk_reducer = None
         stochastic_topk_capture_info = None
         if (self._use_hip_graph and lm_head_capture_info is not None
-                and os.environ.get("VTE_STOCHASTIC_TOPK_READBACK", "0") == "1"):
+                and os.environ.get("VTE_STOCHASTIC_TOPK_READBACK", "1") == "1"):
             try:
                 from vte.compiler.codegen import CodegenEngine
                 from vte.core.topk_logits_reducer import StochasticTopKReducer
