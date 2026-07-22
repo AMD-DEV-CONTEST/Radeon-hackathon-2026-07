@@ -123,9 +123,3 @@ run on a private network without the public gateway.
   passes 63/63; Radeon benchmark snapshots retain their recorded counts.
 - The synthetic Chinese SOP WAV is a reproducible fixture, not a claimed human
   recording.
-
-## AI-Assisted Asset Disclosure
-
-Demo narration uses AIDP `gemini-3.1-flash-tts-preview`, voice `Charon`.
-Campaign backgrounds use GPT Image 2. Captions, project labels, diagrams, and
-all reported measurements were derived or typeset from repository evidence.
