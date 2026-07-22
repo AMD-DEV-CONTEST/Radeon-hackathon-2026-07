@@ -159,7 +159,7 @@ One more sign of how real this is: VTE is currently in review to become an offic
 - **`Aetheris Studio/`**: the agent, backend (FastAPI, `app.py`) plus the Flutter desktop UI (`aetheris_ui/`). Depends on VTE being installed.
 - **`VTE/`**: the inference engine. Usable entirely on its own too, see its own README.
 - **`PROJECT_SPECIFICATION.md`**: the full Track 2 submission writeup, architecture, capabilities, model list, benchmarks.
-- **`PLATFORM_ISSUES.md`**: three ROCm/RDNA3 platform gaps found and reported while building this, with repro steps.
+- **`PLATFORM_ISSUES.md`**: five ROCm/RDNA3 platform gaps found and reported while building this (three on Linux/W7900, two more on Windows/RX 7600), with repro steps.
 
 ### Running VTE and Aetheris from two separate machines/checkouts
 

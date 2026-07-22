@@ -559,14 +559,36 @@ class VTEModel:
             # reqs['arena'] is the seq_len=1 activation cost (one unit of
             # it is already inside requested_pool_size above); the chunk
             # buffers need chunk_size-1 MORE of that same unit, additive.
+            self._batched_prefill_pool_reserved = False
             if os.environ.get("VTE_BATCHED_PREFILL", "1") == "1":
                 chunk_size = int(os.environ.get("VTE_BATCHED_PREFILL_CHUNK_SIZE", "64"))
                 extra_headroom = reqs['arena'] * max(chunk_size - 1, 0)
-                requested_pool_size += extra_headroom
-                logger.info(
-                    "VTE_BATCHED_PREFILL=1: reservando +%.0fMB no pool pra buffers de chunk_size=%d.",
-                    extra_headroom / 1024**2, chunk_size,
-                )
+                # Real-VRAM check BEFORE committing this reservation, same
+                # conservative 50%-of-free threshold _ensure_batched_prefill_executor
+                # already uses for its own (later, runtime) decision -- keeping
+                # both checks identical means they can never disagree. This used
+                # to be an unconditional addition: confirmed directly on the RX
+                # 7600 (8GB) that Llama 3.1 8B/Qwen2.5 7B's chunk=64 buffer
+                # (+4.23GB/+5.59GB) blows past what's actually free on this
+                # card, and SlabAllocator.initialize() hard-crashed on it
+                # instead of falling back to sequential prefill like the design
+                # always intended (see docs/LIMITATIONS.md#batching-and-prefill).
+                free_bytes, total_bytes = self._hip.get_real_mem_info()
+                if extra_headroom > free_bytes * 0.5:
+                    logger.warning(
+                        "VTE_BATCHED_PREFILL=1: chunk_size=%d precisaria de +%.0fMB extras, "
+                        "só %.0fMB livres (VRAM total %.0fMB) -- prefill em lote fica "
+                        "indisponível para este carregamento, caminho sequencial "
+                        "(sempre correto) será usado.",
+                        chunk_size, extra_headroom / 1024**2, free_bytes / 1024**2, total_bytes / 1024**2,
+                    )
+                else:
+                    requested_pool_size += extra_headroom
+                    self._batched_prefill_pool_reserved = True
+                    logger.info(
+                        "VTE_BATCHED_PREFILL=1: reservando +%.0fMB no pool pra buffers de chunk_size=%d.",
+                        extra_headroom / 1024**2, chunk_size,
+                    )
 
             self._allocator = SlabAllocator(self._hip, vram_total, requested_pool_size=requested_pool_size)
             self._allocator.initialize()
@@ -949,6 +971,15 @@ class VTEModel:
             downstream.
         """
         if os.environ.get("VTE_BATCHED_PREFILL", "1") != "1":
+            return None
+        if not getattr(self, "_batched_prefill_pool_reserved", False):
+            # _load() already checked real free VRAM before reserving this
+            # feature's extra chunk buffers in the pool and found it didn't
+            # fit (logged a warning there) -- the pool itself has no room
+            # for these buffers regardless of what's free on the GPU right
+            # now, so building the chunk tensor mapping here would just hit
+            # "OOM no Slab: Não há N bytes contíguos" instead of failing
+            # cleanly. Nothing new to log here, _load() already explained why.
             return None
         if not self._use_hip_graph:
             return None

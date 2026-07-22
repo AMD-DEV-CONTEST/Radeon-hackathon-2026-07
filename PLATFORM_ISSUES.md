@@ -55,3 +55,32 @@ Both invocations (tried with several documented argument orderings, matching the
 - OS: Linux (reported as "Platform: Linux Baremetal" by `amd-smi`)
 - Access: AMD Radeon Cloud ([radeon-global.anruicloud.com](https://radeon-global.anruicloud.com/))
 - `amd-smi`: `Version: 26.2.2+e1a6bc5663`
+
+# Platform Issues Found on HIP SDK 7.1 / RDNA3 (AMD Radeon RX 7600, Windows)
+
+Found while validating VTE's batched-prefill WMMA kernel (`gemm_q4k_wmma.hip.template`, see [`VTE/docs/LIMITATIONS.md`](VTE/docs/LIMITATIONS.md#batching-and-prefill)) back on the RX 7600, the project's original Windows development card, after it had only ever been built and measured on the Linux/W7900 cloud instance above. VTE's own existing fallback (try the WMMA path, fall back to the always-correct sequential kernel on any failure) caught both issues below cleanly: neither crashed or produced wrong output, so this cost debugging time to characterize, not a broken demo.
+
+## 4. `rocwmma/rocwmma.hpp` is not shipped with the Windows HIP SDK at all
+
+Confirmed by direct filesystem search, not assumed: no file matching `rocwmma*` exists anywhere under the HIP SDK install (`D:\AMD\7.1`) or `C:\Program Files\AMD`, on a machine where the HIP SDK was installed through AMD's own standard Windows installer. On a full Linux ROCm install, rocWMMA ships as a standard package (`rocwmma-dev` and similar, matching the pattern already documented for `rocprof-compute`/`rocprofv3` above being genuinely present there). A HIP kernel that does `#include <rocwmma/rocwmma.hpp>` fails at the `hipcc`/`clang` level with a plain "file not found", not a GPU/architecture-support error: `rocwmma`'s own upstream README lists `gfx1102` (this exact card) as an explicitly supported target, so this isn't a hardware-capability gap, it's a Windows packaging gap. Worked around locally by vendoring rocWMMA's header-only `library/include/rocwmma/` tree directly into the consuming project (see issue below for why that alone wasn't sufficient). Requesting: either the Windows HIP SDK installer bundles rocWMMA's headers (it's header-only, so this is a handful of files, not a new binary dependency), or the SDK's own documentation states plainly that WMMA/matrix-core kernel development on Windows requires manually sourcing this header from the separate `ROCm/rocWMMA` (or its stated successor, `ROCm/rocm-libraries`) repository, so this isn't discovered by a `file not found` error with no further guidance.
+
+## 5. rocWMMA's own header-only templates (tag `rocm-7.1.0`) fail to compile against the Windows HIP SDK's bundled Clang, with real `constexpr`-evaluation errors
+
+After vendoring the headers above (confirmed to resolve the `file not found` from issue 4: the include path is found and processed), compilation still fails, now inside rocWMMA's own template metaprogramming, not in any VTE code:
+
+```
+D:\...\rocwmma\internal\layout\register_layout_traits_impl.hpp:455:28: error: constexpr variable 'TestCompatibleParams' must be initialized by a constant expression
+D:\...\rocwmma\internal\layout\register_layout_traits_impl.hpp:573:19: error: non-type template argument is not a constant expression
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+288 warnings and 20 errors generated when compiling for gfx1102.
+```
+
+Both errors point into `rocwmma::LayoutTraits_impl::testCompatibleRegisterParams`/`testRegisterLayoutSame`, deep in rocWMMA's own `RegisterLayout::MmaAcc` trait-comparison code, never touched by VTE's kernel source (`gemm_q4k_wmma.hip.template` only calls the public `rocwmma::mma_sync`/`fragment`/`load_matrix_sync` API). The Windows HIP SDK 7.1's bundled compiler reports as `clang version 21.0.0git`, a notably recent/development-snapshot version string. **Not independently confirmed** (would need a matching Linux ROCm 7.1 install to check `amdclang++ --version` directly against): the leading hypothesis is that this Clang build is meaningfully newer than whatever compiler Linux ROCm 7.1 validates the `rocm-7.1.0` rocWMMA tag against, and something in that gap changed `constexpr` evaluation strictness enough to break code that presumably compiles cleanly in rocWMMA's own Linux CI. Also worth noting for anyone trying to reproduce or fix this: the `ROCm/rocWMMA` repository itself carries a retirement notice pointing to a new consolidated `ROCm/rocm-libraries` monorepo, and its own release tags (`rocm-7.1.0` vs. `rocm-7.2.4`) share no common git ancestor, an unusual repository state that makes bisecting for a compatible combination harder than a normal single-history project. Requesting: either a Windows HIP SDK release with a Clang version actually validated against a matching rocWMMA release, or documentation of which Clang/rocWMMA version pairs are known to work together on Windows specifically.
+
+## Environment
+
+- GPU: AMD Radeon RX 7600 (`gfx1102`, 32 CUs, 8GB VRAM)
+- HIP SDK: 7.1 (Windows standalone installer, not a full ROCm/Linux install)
+- Compiler: `clang version 21.0.0git` (bundled with the HIP SDK, `D:\AMD\7.1\bin\clang.exe`)
+- OS: Windows 11
+- rocWMMA: vendored from the `rocm-7.1.0` tag of `ROCm/rocWMMA` (chosen to match the installed HIP SDK's stated ROCm version)

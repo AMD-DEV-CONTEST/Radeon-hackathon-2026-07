@@ -167,7 +167,7 @@ Getting there took a real optimization arc (naive per-thread GEMV at ~18.8 tok/s
 
 VTE is also currently in review to become an official experimental backend in [Lemonade](https://github.com/lemonade-sdk/lemonade), AMD's own local LLM server, wired into its real `WrappedServer` contract rather than just being "compatible" with it. Six rounds of maintainer review so far, each catching a real integration bug and getting it fixed in the open: a runtime-lifecycle race between VTE's own idle-unload and Lemonade owning model lifetime, a GPU-exclusivity policy redesigned around each backend's actual resolved device rather than a static descriptor default, a checksum-registry collision, mixed-GPU-generation device selection. [The PR](https://github.com/lemonade-sdk/lemonade/pull/2675), [the RFC discussion](https://github.com/lemonade-sdk/lemonade/issues/2679), details in `VTE/docs/LEMONADE.md`. One of those fixes (correct RX 7600 detection on Windows) already shipped and is credited by name in Lemonade's own [v11.5.0 release notes](https://github.com/lemonade-sdk/lemonade/issues/2776).
 
-Three ROCm/RDNA3 platform gaps found and reported while building this, with exact repro steps: [`PLATFORM_ISSUES.md`](PLATFORM_ISSUES.md).
+Five ROCm/RDNA3 platform gaps found and reported while building this (three on Linux/W7900, two more on Windows/RX 7600), with exact repro steps: [`PLATFORM_ISSUES.md`](PLATFORM_ISSUES.md).
 
 ## 6. Judging-Criteria Mapping (Track 2, 120 points)
 

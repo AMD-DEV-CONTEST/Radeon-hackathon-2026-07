@@ -67,6 +67,18 @@ class CodegenEngine:
         self.logs_dir.mkdir(parents=True, exist_ok=True)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
+        # Vendored header-only rocWMMA (gemm_q4k_wmma.hip.template's
+        # `#include <rocwmma/rocwmma.hpp>`) -- the Windows HIP SDK doesn't
+        # ship this header at all (confirmed: not present anywhere under the
+        # SDK install or Program Files\AMD), unlike a full Linux ROCm
+        # install where it's a standard package. Vendored from the
+        # rocm-7.1.0 tag (matching this project's installed HIP SDK
+        # version) rather than depending on it being present on the host;
+        # see third_party/rocwmma/VENDORING.md for provenance. Passed as an
+        # extra -I to every hipcc invocation below: harmless for kernels
+        # that don't use it, since an unused include path compiles a no-op.
+        self.rocwmma_include_dir = Path(__file__).parent.parent.parent / "third_party" / "rocwmma" / "include"
+
     def render_template(self, template_name: str, **kwargs) -> str:
         """Lê um template e substitui as variáveis seguras."""
         template_path = self.templates_dir / f"{template_name}.hip.template"
@@ -219,6 +231,7 @@ class CodegenEngine:
             "hipcc",
             "--genco",
             f"--offload-arch={arch}",
+            f"-I{self.rocwmma_include_dir}",
             "-O3",
             str(log_file),
             "-o",
@@ -273,7 +286,7 @@ class CodegenEngine:
         with open(log_file, "w", encoding="utf-8") as f:
             f.write(cpp_code)
 
-        cmd = ["hipcc", "--genco", f"--offload-arch={arch}", "-O3", str(log_file), "-o", cache_path]
+        cmd = ["hipcc", "--genco", f"--offload-arch={arch}", f"-I{self.rocwmma_include_dir}", "-O3", str(log_file), "-o", cache_path]
         try:
             subprocess.run(cmd, check=True, capture_output=True, text=True, env=env)
         except subprocess.CalledProcessError as e:
