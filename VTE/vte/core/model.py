@@ -697,11 +697,44 @@ class VTEModel:
                 self._topk_reducer = None
                 topk_capture_info = None
 
+        # Análogo ao bloco acima, pro caminho ESTOCÁSTICO (temperature>0 --
+        # o padrão real do projeto, ao contrário do greedy acima). Ver
+        # topk_reduce_stochastic.hip.template e Sampler.sample_from_gpu_
+        # candidates: medido (2026-07) que 92.6% do custo de Sampler.
+        # sample() é um único np.argpartition sobre o vocabulário inteiro,
+        # não o RNG/top-p/repetition penalty -- eliminar esse argpartition
+        # (e a leitura D2H de todo o vocabulário que o alimenta) mede ~
+        # 10.7% de tok/s (1.44ms de 13.5ms/token no Llama 3.1 8B/W7900).
+        self._stochastic_topk_reducer = None
+        stochastic_topk_capture_info = None
+        if (self._use_hip_graph and lm_head_capture_info is not None
+                and os.environ.get("VTE_STOCHASTIC_TOPK_READBACK", "0") == "1"):
+            try:
+                from vte.compiler.codegen import CodegenEngine
+                from vte.core.topk_logits_reducer import StochasticTopKReducer
+                self._stochastic_topk_reducer = StochasticTopKReducer(self._hip, self._allocator, CodegenEngine())
+                stochastic_topk_capture_info = {
+                    'kernel_fn': self._stochastic_topk_reducer.kernel,
+                    'exclude_ids_ptr': self._stochastic_topk_reducer.exclude_ids_ptr,
+                    'exclude_count_ptr': self._stochastic_topk_reducer.exclude_count_ptr,
+                    'values_ptr': self._stochastic_topk_reducer.values_ptr,
+                    'indices_ptr': self._stochastic_topk_reducer.indices_ptr,
+                    'gathered_ptr': self._stochastic_topk_reducer.gathered_ptr,
+                }
+                logger.info("StochasticTopKReducer ativado (VTE_STOCHASTIC_TOPK_READBACK=1): redução de logits "
+                             "capturada dentro do HIP Graph de decode para o caminho estocástico.")
+            except Exception as e:
+                logger.warning(f"Falha ao inicializar StochasticTopKReducer (VTE_STOCHASTIC_TOPK_READBACK=1): {e}. "
+                                f"Caminho de leitura de logits completo será usado normalmente.")
+                self._stochastic_topk_reducer = None
+                stochastic_topk_capture_info = None
+
         if self._use_hip_graph:
             try:
                 self.executor = HIPGraphExecutor(self._hip, self._allocator, self._graph, self.tensor_mapping,
                                                   metadata=self.metadata, lm_head_info=lm_head_capture_info,
-                                                  context_length=self._context_length, topk_info=topk_capture_info)
+                                                  context_length=self._context_length, topk_info=topk_capture_info,
+                                                  stochastic_topk_info=stochastic_topk_capture_info)
                 self.executor.build_decode_graph()
                 logger.info(f"HIP Graph executor inicializado com sucesso (Nós: {len(self._graph.nodes)})")
             except Exception as e:
@@ -713,6 +746,7 @@ class VTEModel:
                 # gravados nele) -- a instância existe mas não está ligada a
                 # nada real, usá-la seria incorreto.
                 self._topk_reducer = None
+                self._stochastic_topk_reducer = None
         else:
             logger.info("HIP Graphs desabilitado via flag. Usando FallbackExecutor.")
             self.executor = FallbackExecutor(self._hip, self._allocator, self.arena, self._graph, self.tensor_mapping, metadata=self.metadata)
@@ -1177,6 +1211,13 @@ class VTEModel:
         use_topk = self._topk_reducer is not None and temperature <= 0.0
         if use_topk:
             self._topk_reducer.upload_exclude(np.empty(0, dtype=np.int64))
+        # Mesma lógica de use_topk acima, pro caminho estocástico
+        # (temperature>0) -- mutuamente exclusivo com use_topk por
+        # construção (nunca os dois True ao mesmo tempo, já que um exige
+        # temperature<=0 e o outro temperature>0).
+        use_stochastic_topk = self._stochastic_topk_reducer is not None and temperature > 0.0
+        if use_stochastic_topk:
+            self._stochastic_topk_reducer.upload_exclude(np.empty(0, dtype=np.int64))
 
         # Prefix reuse: the KV cache is one persistent VRAM buffer that
         # nothing actually clears between generate() calls -- the loop below
@@ -1304,6 +1345,9 @@ class VTEModel:
             # só falta ler de volta os candidatos, nenhum lançamento aqui.
             unique_ids, counts = np.empty(0, dtype=np.int64), np.empty(0, dtype=np.float64)
             group_values, group_indices, gathered_values = self._topk_reducer.read_candidates()
+        elif use_stochastic_topk:
+            unique_ids, counts = np.empty(0, dtype=np.int64), np.empty(0, dtype=np.float64)
+            candidate_values, candidate_indices, stoch_gathered_values = self._stochastic_topk_reducer.read_candidates()
         else:
             logits = _read_logits()
         t_prefill_end = time.perf_counter()
@@ -1333,7 +1377,7 @@ class VTEModel:
             # way (use_topk only decides whether the topk-reduce kernel
             # ALSO ran in the same replay), so this doesn't require
             # recapturing the graph or touching use_topk's own bookkeeping.
-            if choice_constraint is not None and constraint_state.active and use_topk:
+            if choice_constraint is not None and constraint_state.active and (use_topk or use_stochastic_topk):
                 logits = _read_logits()
             if choice_constraint is not None and constraint_state.active:
                 logits = choice_constraint.apply_mask(logits, constraint_state)
@@ -1349,6 +1393,11 @@ class VTEModel:
             elif use_topk:
                 next_token = Sampler.pick_greedy_from_gpu_candidates(
                     group_values, group_indices, gathered_values, unique_ids, counts, repetition_penalty
+                )
+            elif use_stochastic_topk:
+                next_token = Sampler.sample_from_gpu_candidates(
+                    candidate_values, candidate_indices, stoch_gathered_values, unique_ids, counts,
+                    temperature, top_p, top_k, repetition_penalty,
                 )
             else:
                 next_token = self.sampler.sample(
@@ -1400,6 +1449,11 @@ class VTEModel:
                     input_tokens[prompt_len:], vocab_size, ignore_token_set
                 )
                 self._topk_reducer.upload_exclude(unique_ids)
+            elif use_stochastic_topk:
+                unique_ids, counts = Sampler.compute_repetition_ids(
+                    input_tokens[prompt_len:], vocab_size, ignore_token_set
+                )
+                self._stochastic_topk_reducer.upload_exclude(unique_ids)
 
             # Processa o token recém-gerado na sua posição para prever o próximo.
             if self._use_hip_graph:
@@ -1423,6 +1477,8 @@ class VTEModel:
                 # com o exclude_ids/count subidos logo acima -- só falta ler
                 # de volta os candidatos.
                 group_values, group_indices, gathered_values = self._topk_reducer.read_candidates()
+            elif use_stochastic_topk:
+                candidate_values, candidate_indices, stoch_gathered_values = self._stochastic_topk_reducer.read_candidates()
             else:
                 logits = _read_logits()
             if _KERNEL_PROFILER.enabled:

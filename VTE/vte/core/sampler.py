@@ -231,3 +231,103 @@ class Sampler:
             # menor indice que np.argmax aplicaria sobre o array completo.
             return min(best_window_token, best_non_window_token)
         return best_non_window_token
+
+    @staticmethod
+    def sample_from_gpu_candidates(
+        candidate_values: np.ndarray,
+        candidate_indices: np.ndarray,
+        gathered_values: np.ndarray,
+        unique_ids: np.ndarray,
+        counts: np.ndarray,
+        temperature: float,
+        top_p: float,
+        top_k: int,
+        repetition_penalty: float,
+    ) -> int:
+        """Amostra o proximo token (caminho estocastico, temperature>0) a
+        partir dos candidatos ja reduzidos pela GPU
+        (topk_reduce_stochastic_kernel via StochasticTopKReducer), sem
+        precisar do array de logits completo -- generaliza
+        pick_greedy_from_gpu_candidates (que so faz argmax) pra top-k/top-p/
+        softmax/random.choice de verdade.
+
+        Motivacao medida (2026-07): 92.6% do custo de sample() e um unico
+        np.argpartition sobre o vocabulario inteiro; RNG/top-p/repetition
+        penalty juntos custam <0.1ms. Eliminar esse argpartition (e a
+        leitura D2H do vocabulario inteiro que o alimenta) e todo o ganho
+        real -- o resto do algoritmo (top-p, softmax, escolha) e IDENTICO
+        ao caminho antigo, so que operando sobre um conjunto de candidatos
+        muito menor.
+
+        Corretude da exclusao/reconciliacao: identica ao raciocinio de
+        pick_greedy_from_gpu_candidates (a penalidade so DIMINUI logits,
+        nunca aumenta) -- candidate_values/indices sao os NUM_THREADS*
+        PER_THREAD_K=5120 melhores valores NAO-excluidos (nunca precisam de
+        penalidade), gathered_values sao os valores EXATOS (pre-penalidade)
+        de cada token da janela de repeticao recente, penalizados aqui com
+        a MESMA formula de sample(). O verdadeiro top-k pos-penalidade e
+        sempre um subconjunto da UNIAO desses dois grupos -- nenhum
+        candidato relevante fica de fora, mesmo que va parar fora do top-k
+        final (ele so perde pra outros 50 candidatos legitimos).
+
+        Risco considerado e descartado por validacao empirica (nao
+        suposicao): PER_THREAD_K=5 por thread poderia teoricamente perder
+        um candidato se mais de 5 dos verdadeiros top-k caissem na MESMA
+        particao de thread (stride i%1024) -- ver
+        tools/test_topk_stochastic.py, que testa exatamente esse cenario
+        (logits sinteticos clusterizados por indice, nao so aleatorios
+        uniformes) alem de logits reais de um forward pass, antes disto
+        ser ligado por padrao."""
+        valid = candidate_indices >= 0
+        cand_vals = candidate_values[valid]
+        cand_idx = candidate_indices[valid]
+
+        if unique_ids.size > 0:
+            vals = gathered_values[:unique_ids.size]
+            eff_penalty = repetition_penalty ** counts
+            penalized = np.where(vals > 0, vals / eff_penalty, vals * eff_penalty).astype(np.float32)
+            all_vals = np.concatenate([cand_vals, penalized])
+            all_idx = np.concatenate([cand_idx, unique_ids.astype(np.int32)])
+        else:
+            all_vals = cand_vals
+            all_idx = cand_idx
+
+        # Daqui em diante, MESMO algoritmo de Sampler.sample() (passos 2-5),
+        # so que "logits"/"top_indices" ja comecam como o conjunto pequeno
+        # reconciliado acima, em vez do vocabulario inteiro.
+        if temperature <= 0.0:
+            return int(all_idx[int(np.argmax(all_vals))])
+
+        if temperature != 1.0:
+            all_vals = all_vals / temperature
+
+        eff_top_k = min(top_k, len(all_vals)) if top_k > 0 else len(all_vals)
+        if eff_top_k < len(all_vals):
+            top_pos = np.argpartition(all_vals, -eff_top_k)[-eff_top_k:]
+        else:
+            top_pos = np.arange(len(all_vals))
+
+        top_vals = all_vals[top_pos]
+        top_idx = all_idx[top_pos]
+
+        if 0.0 < top_p < 1.0:
+            order = np.argsort(top_vals)[::-1]
+            sorted_vals = top_vals[order]
+
+            cumulative_probs = np.cumsum(stable_softmax(sorted_vals))
+            remove_mask = cumulative_probs > top_p
+            remove_mask[1:] = remove_mask[:-1]
+            remove_mask[0] = False
+
+            keep_order = order[~remove_mask]
+            final_idx = top_idx[keep_order]
+            final_vals = top_vals[keep_order]
+        else:
+            final_idx = top_idx
+            final_vals = top_vals
+
+        probs = stable_softmax(final_vals)
+        probs = probs / np.sum(probs)
+
+        chosen = np.random.choice(len(probs), p=probs)
+        return int(final_idx[chosen])

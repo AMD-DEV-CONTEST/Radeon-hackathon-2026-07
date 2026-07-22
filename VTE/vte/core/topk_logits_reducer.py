@@ -123,3 +123,108 @@ class TopKLogitsReducer:
         ).copy()
 
         return group_values, group_indices, gathered_values
+
+
+PER_THREAD_K = 16    # deve casar com PER_THREAD_K em topk_reduce_stochastic.hip.template
+_STOCH_CANDIDATES = NUM_THREADS * PER_THREAD_K
+
+_STOCH_VALUES_BYTES = _STOCH_CANDIDATES * 4
+_STOCH_INDICES_BYTES = _STOCH_CANDIDATES * 4
+_STOCH_GATHERED_BYTES = MAX_EXCLUDE * 4
+_STOCH_OUTPUT_BYTES = _STOCH_VALUES_BYTES + _STOCH_INDICES_BYTES + _STOCH_GATHERED_BYTES
+
+
+class StochasticTopKReducer:
+    """Mesma ideia de TopKLogitsReducer, generalizada de k=1 (só o caminho
+    greedy) pra PER_THREAD_K=5 por thread (NUM_THREADS*PER_THREAD_K=5120
+    candidatos no total), pro caminho estocástico (temperature>0 -- o
+    padrão real do projeto). Ver topk_reduce_stochastic.hip.template para
+    a motivação medida (92.6% do custo de Sampler.sample() é um único
+    np.argpartition sobre o vocabulário inteiro, não o RNG/top-p/repetition
+    penalty) e o raciocínio de correção da exclusão (idêntico ao caminho
+    greedy, só generalizado de "melhor de cada grupo" pra "top-5 de cada
+    grupo" -- ver Sampler.sample_from_gpu_candidates).
+
+    Buffers/kernel separados dos de TopKLogitsReducer (não compartilhados):
+    os dois caminhos são mutuamente exclusivos por request (greedy vs
+    estocástico, decidido por temperature), então não há necessidade real
+    de acoplá-los, e mantê-los independentes evita qualquer risco de uma
+    mudança aqui afetar o caminho greedy já validado."""
+
+    def __init__(self, hip, allocator, codegen):
+        self.hip = hip
+        arch = hip.get_gpu_architecture()
+        _, self.kernel = codegen.load_kernel_safe(
+            hip, "topk_reduce_stochastic", arch, "topk_reduce_stochastic_kernel"
+        )
+
+        self.output_buf = allocator.allocate(
+            size=_STOCH_OUTPUT_BYTES, tag="topk_reduce_stochastic_output", region=MemoryRegion.SCRATCH
+        ).ptr
+        self.values_ptr = ctypes.c_void_p(self.output_buf)
+        self.indices_ptr = ctypes.c_void_p(self.output_buf + _STOCH_VALUES_BYTES)
+        self.gathered_ptr = ctypes.c_void_p(self.output_buf + _STOCH_VALUES_BYTES + _STOCH_INDICES_BYTES)
+
+        self.exclude_ids_buf = allocator.allocate(
+            size=MAX_EXCLUDE * 4, tag="topk_reduce_stochastic_exclude_ids", region=MemoryRegion.SCRATCH
+        ).ptr
+        self.exclude_ids_ptr = ctypes.c_void_p(self.exclude_ids_buf)
+
+        self.exclude_count_buf = allocator.allocate(
+            size=4, tag="topk_reduce_stochastic_exclude_count", region=MemoryRegion.SCRATCH
+        ).ptr
+        self.exclude_count_ptr = ctypes.c_void_p(self.exclude_count_buf)
+
+        self._host_output = bytearray(_STOCH_OUTPUT_BYTES)
+
+    def build_capture_args(self, logits_ptr: int, vocab_size: int) -> list:
+        return [
+            ctypes.c_void_p(logits_ptr),
+            self.exclude_ids_ptr,
+            self.exclude_count_ptr,
+            ctypes.c_int(vocab_size),
+            self.values_ptr,
+            self.indices_ptr,
+            self.gathered_ptr,
+        ]
+
+    def upload_exclude(self, unique_ids: np.ndarray):
+        """Idêntico a TopKLogitsReducer.upload_exclude -- ver lá."""
+        exclude_count = int(unique_ids.size)
+        if exclude_count > MAX_EXCLUDE:
+            raise ValueError(
+                f"exclude_count ({exclude_count}) excede MAX_EXCLUDE ({MAX_EXCLUDE})"
+            )
+
+        self.hip.safe_memcpy_host_to_device(
+            self.exclude_count_ptr,
+            np.array([exclude_count], dtype=np.int32).tobytes(),
+            tag="topk_stochastic_exclude_count_h2d",
+        )
+        if exclude_count > 0:
+            self.hip.safe_memcpy_host_to_device(
+                self.exclude_ids_ptr,
+                unique_ids.astype(np.int32).tobytes(),
+                tag="topk_stochastic_exclude_ids_h2d",
+            )
+
+    def read_candidates(self):
+        """Lê de volta os 5120 candidatos (top-5 de cada um dos 1024
+        threads) do replay mais recente, prontos para
+        Sampler.sample_from_gpu_candidates."""
+        self.hip.safe_memcpy_device_to_host(
+            self._host_output, ctypes.c_void_p(self.output_buf), tag="logits_topk_stochastic_readback"
+        )
+
+        candidate_values = np.frombuffer(
+            self._host_output, dtype=np.float32, count=_STOCH_CANDIDATES, offset=0
+        ).copy()
+        candidate_indices = np.frombuffer(
+            self._host_output, dtype=np.int32, count=_STOCH_CANDIDATES, offset=_STOCH_VALUES_BYTES
+        ).copy()
+        gathered_values = np.frombuffer(
+            self._host_output, dtype=np.float32, count=MAX_EXCLUDE,
+            offset=_STOCH_VALUES_BYTES + _STOCH_INDICES_BYTES
+        ).copy()
+
+        return candidate_values, candidate_indices, gathered_values

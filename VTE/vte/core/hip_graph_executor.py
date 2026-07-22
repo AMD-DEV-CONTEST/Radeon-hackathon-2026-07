@@ -42,7 +42,7 @@ class HIPGraphExecutor:
 
     MAX_CACHED_PREFILL_GRAPHS = 2
 
-    def __init__(self, hip: HIPRuntime, allocator: SlabAllocator, graph: IRGraph, tensor_mapping: dict, metadata: dict = None, lm_head_info: dict = None, context_length: int = None, topk_info: dict = None):
+    def __init__(self, hip: HIPRuntime, allocator: SlabAllocator, graph: IRGraph, tensor_mapping: dict, metadata: dict = None, lm_head_info: dict = None, context_length: int = None, topk_info: dict = None, stochastic_topk_info: dict = None):
         self.hip = hip
         self.allocator = allocator
         self.ir_graph = graph
@@ -71,6 +71,14 @@ class HIPGraphExecutor:
         # fixos); model.py mantém a instância de TopKLogitsReducer para
         # upload_exclude()/read_candidates() a cada passo de generate().
         self.topk_info = topk_info
+        # Análogo a topk_info, mas pro caminho estocástico (temperature>0)
+        # -- ver StochasticTopKReducer/_capture_stochastic_topk_reduce e
+        # Sampler.sample_from_gpu_candidates. Mutuamente exclusivo com
+        # topk_info na prática (greedy vs estocástico são decididos por
+        # temperature, nunca os dois ativos no mesmo replay), mas nada
+        # aqui impede ambos existirem simultaneamente -- cada um só roda
+        # se seu próprio *_info não for None.
+        self.stochastic_topk_info = stochastic_topk_info
 
         self.num_layers = self.metadata.get('block_count', 28)
         self.max_seq_len = 4096
@@ -613,6 +621,32 @@ class HIPGraphExecutor:
             shared_mem=0,
         )
 
+    def _capture_stochastic_topk_reduce(self):
+        """Grava topk_reduce_stochastic_kernel DENTRO do grafo de decode,
+        logo após o LM Head -- mesma estrutura de _capture_topk_reduce
+        acima (mesmo logits_buffer, mesmo padrão de ponteiro fixo pro
+        exclude buffer), só que usando StochasticTopKReducer
+        (`self.stochastic_topk_info`) em vez de TopKLogitsReducer. Ver
+        Sampler.sample_from_gpu_candidates pro lado host da reconciliação."""
+        info = self.stochastic_topk_info
+        lm_info = self.lm_head_info
+        args = [
+            ctypes.c_void_p(lm_info['logits_buffer_ptr']),
+            info['exclude_ids_ptr'],
+            info['exclude_count_ptr'],
+            ctypes.c_int(lm_info['vocab_size']),
+            info['values_ptr'],
+            info['indices_ptr'],
+            info['gathered_ptr'],
+        ]
+        self.hip.launch_kernel_recorded(
+            function=info['kernel_fn'],
+            args=args,
+            grid=(1, 1, 1),
+            block=(1024, 1, 1),
+            shared_mem=0,
+        )
+
     def _capture_graph(self, mode: str, seq_len: int) -> ctypes.c_void_p:
         """
         Captura o fluxo de kernels no stream da AMD, sempre a partir do AOT
@@ -893,6 +927,10 @@ class HIPGraphExecutor:
 
                 if self.topk_info is not None:
                     self._capture_topk_reduce()
+                    nodes_recorded += 1
+
+                if self.stochastic_topk_info is not None:
+                    self._capture_stochastic_topk_reduce()
                     nodes_recorded += 1
 
             raw_graph = self.hip.stream_end_capture()

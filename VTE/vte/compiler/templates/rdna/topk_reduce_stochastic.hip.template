@@ -1,0 +1,114 @@
+#include <hip/hip_runtime.h>
+#include <hip/hip_fp16.h>
+
+// Redução de logits pro caminho estocástico (temperature>0) -- generaliza
+// topk_reduce_greedy_kernel (que guarda só o melhor candidato por thread,
+// k=1) pra guardar os PER_THREAD_K melhores por thread em vez de 1. Ver
+// esse kernel-irmão para o raciocínio completo de correção da exclusão
+// (repetition penalty só DIMINUI logits, nunca aumenta) -- reaplicado aqui
+// sem mudança: candidatos da janela de repetição são excluídos da busca
+// aqui e reconciliados no host (Sampler.sample_from_gpu_candidates), a
+// mesma técnica de Sampler.pick_greedy_from_gpu_candidates generalizada de
+// "melhor de cada grupo" pra "top-K de cada grupo".
+//
+// Motivação medida (não suposição, 2026-07): Sampler.sample() no caminho
+// estocástico (temperature>0, o padrão real do projeto) mede 92.6% do seu
+// próprio custo (1.16ms de 1.25ms) num único np.argpartition sobre o
+// vocabulário inteiro -- não no RNG, não no top-p, não na penalidade de
+// repetição (essas três juntas custam 0.086ms). Trazer só um pequeno
+// conjunto de candidatos da GPU (como o caminho greedy já faz) elimina
+// esse argpartition inteiro, deixando o resto do Sampler exatamente como
+// está.
+//
+// PER_THREAD_K=16 (não 50) por orçamento de VGPR: manter top-50 por
+// thread em registrador custaria ~100 VGPRs (contra o teto de 128 da
+// VTE, HIPSafetyError). Top-16 × NUM_THREADS=1024 = 16384 candidatos --
+// ainda um espaço de busca muito menor que o vocabulário inteiro (~13%
+// de 128256), e np.argpartition sobre 16384 elementos no host continua
+// ordens de magnitude mais barato que sobre o vocabulário inteiro.
+//
+// Bug real encontrado e corrigido ANTES disto ser ligado em produção
+// (tools/test_topk_stochastic.py, caso "clustered_worst_case"): com
+// PER_THREAD_K=5, um cenário sintético adversarial (20 valores altos
+// deliberadamente colocados em índices que compartilham o mesmo resto
+// `i % NUM_THREADS`, ou seja, caem na partição de UMA única thread)
+// perdia 15 dos verdadeiros top-50 silenciosamente -- cada thread só
+// reporta seus PER_THREAD_K melhores, então mais de PER_THREAD_K
+// candidatos genuinamente bons na mesma partição transbordam sem
+// aviso. Logits reais de um forward pass e logits sintéticos uniformes
+// passaram limpos mesmo com K=5 (a causa raiz nunca acontece por
+// acidente -- IDs de vocabulário não têm correlação com probabilidade),
+// mas um teste que só passa "na prática" não é o padrão desta sessão.
+// Subido pra K=16 e revalidado com um caso adversarial ainda mais
+// agressivo antes de aceitar como corrigido, não só "suficientemente
+// raro".
+//
+// NUM_THREADS=1024, 1 bloco (mesmo padrão do kernel greedy -- sem redução
+// cross-block, o host faz o argpartition final sobre os 16384 candidatos).
+
+#define NUM_THREADS 1024
+#define PER_THREAD_K 16
+#define MAX_EXCLUDE 512
+
+__device__ __forceinline__ bool is_excluded(const int* excl, int count, int idx) {
+    int lo = 0, hi = count - 1;
+    while (lo <= hi) {
+        int mid = (lo + hi) >> 1;
+        int v = excl[mid];
+        if (v == idx) return true;
+        if (v < idx) lo = mid + 1;
+        else hi = mid - 1;
+    }
+    return false;
+}
+
+extern "C" __global__ void topk_reduce_stochastic_kernel(
+    const void* __restrict__ logits_ptr,        // fp16[vocab_size]
+    const int* __restrict__ exclude_ids,        // int32[MAX_EXCLUDE], ORDENADO
+    const int* __restrict__ exclude_count_ptr,  // ponteiro fixo -- conteúdo atualizado por replay
+    int vocab_size,
+    float* __restrict__ out_values,        // fp32[NUM_THREADS * PER_THREAD_K]
+    int* __restrict__ out_indices,         // int32[NUM_THREADS * PER_THREAD_K]
+    float* __restrict__ gathered_values    // fp32[MAX_EXCLUDE]
+) {
+    int tid = threadIdx.x;
+    int exclude_count = *exclude_count_ptr;
+    const __half* logits = (const __half*)logits_ptr;
+
+    // Top-PER_THREAD_K local, mantido ordenado decrescente (índice 0 = melhor).
+    float top_val[PER_THREAD_K];
+    int   top_idx[PER_THREAD_K];
+    #pragma unroll
+    for (int k = 0; k < PER_THREAD_K; k++) { top_val[k] = -1e30f; top_idx[k] = -1; }
+
+    for (int i = tid; i < vocab_size; i += NUM_THREADS) {
+        if (!is_excluded(exclude_ids, exclude_count, i)) {
+            float v = __half2float(logits[i]);
+            if (v > top_val[PER_THREAD_K - 1]) {
+                // Insere no fim e borbulha pra cima até ordenar -- K=5, custo
+                // desprezível (no máximo 4 trocas por inserção).
+                top_val[PER_THREAD_K - 1] = v;
+                top_idx[PER_THREAD_K - 1] = i;
+                #pragma unroll
+                for (int k = PER_THREAD_K - 1; k > 0; k--) {
+                    if (top_val[k] > top_val[k - 1]) {
+                        float tv = top_val[k]; top_val[k] = top_val[k - 1]; top_val[k - 1] = tv;
+                        int ti = top_idx[k]; top_idx[k] = top_idx[k - 1]; top_idx[k - 1] = ti;
+                    }
+                }
+            }
+        }
+    }
+
+    int base = tid * PER_THREAD_K;
+    #pragma unroll
+    for (int k = 0; k < PER_THREAD_K; k++) {
+        out_values[base + k] = top_val[k];
+        out_indices[base + k] = top_idx[k];
+    }
+
+    for (int i = tid; i < exclude_count; i += NUM_THREADS) {
+        int idx = exclude_ids[i];
+        gathered_values[i] = __half2float(logits[idx]);
+    }
+}
