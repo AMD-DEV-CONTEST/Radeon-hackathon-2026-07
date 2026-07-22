@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models/app_state_models.dart';
+import '../providers/egress_provider.dart';
 import '../providers/telemetry_provider.dart';
 import '../theme.dart';
 
@@ -16,6 +17,7 @@ class TelemetryFooter extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final telemetry = ref.watch(telemetryProvider).valueOrNull ?? const TelemetryState();
+    final egress = ref.watch(egressProvider).valueOrNull ?? const EgressState();
 
     return Container(
       height: 22,
@@ -36,6 +38,80 @@ class TelemetryFooter extends ConsumerWidget {
             _Divider(),
             _Segment(text: '${telemetry.decodingSpeedTps.toStringAsFixed(1)} tok/s'),
           ],
+          _Divider(),
+          _EgressIndicator(egress: egress),
+        ],
+      ),
+    );
+  }
+}
+
+/// Blackbox Egress Monitor (Fase B): "🔒 0 B external" when the sampler
+/// sees only loopback connections, red + a count otherwise. Clicking
+/// shows the observed connections (UC-02) -- never inventing a byte
+/// figure the sampler can't actually measure (egress_monitor.py reports
+/// `external_bytes: null` in that case, shown here as a connection count
+/// instead).
+class _EgressIndicator extends StatelessWidget {
+  final EgressState egress;
+  const _EgressIndicator({required this.egress});
+
+  @override
+  Widget build(BuildContext context) {
+    final clean = egress.isClean;
+    final label = !egress.sampling
+        ? '\u{1F512} egress: --'
+        : clean
+            ? '\u{1F512} 0 B external'
+            : '⚠ egress: ${egress.externalConnections.length}';
+    return InkWell(
+      onTap: () => _showDetails(context),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: !egress.sampling ? AppColors.textMuted : (clean ? AppColors.accentGreen : AppColors.accentRed),
+          fontSize: 10.5,
+          fontFamily: AppFonts.mono,
+        ),
+      ),
+    );
+  }
+
+  void _showDetails(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.panel,
+        title: const Text('Egress', style: TextStyle(color: AppColors.textPrimary, fontSize: 14)),
+        content: SizedBox(
+          width: 360,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${egress.loopbackCount} internal (UI ↔ backend ↔ vte-server) connection(s).',
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+              ),
+              const SizedBox(height: 8),
+              if (egress.externalConnections.isEmpty)
+                const Text('No external connections observed.',
+                    style: TextStyle(color: AppColors.accentGreen, fontSize: 12))
+              else
+                ...egress.externalConnections.map(
+                  (c) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Text(
+                      '${c['raddr']} -- ${c['label']}',
+                      style: const TextStyle(color: AppColors.accentRed, fontSize: 12, fontFamily: AppFonts.mono),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
         ],
       ),
     );

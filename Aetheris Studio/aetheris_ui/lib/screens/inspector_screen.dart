@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../providers/audit_provider.dart';
 import '../providers/chat_provider.dart';
 import '../providers/files_provider.dart';
 import '../providers/project_provider.dart';
 import '../providers/terminal_provider.dart';
+import '../providers/timetravel_provider.dart';
 import '../theme.dart';
 
 /// Which Inspector tab is showing (LOG=0, TERMINAL=1, FILES=2,
@@ -27,7 +29,7 @@ class _InspectorScreenState extends ConsumerState<InspectorScreen> with SingleTi
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this, initialIndex: ref.read(inspectorTabIndexProvider));
+    _tabController = TabController(length: 5, vsync: this, initialIndex: ref.read(inspectorTabIndexProvider));
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         ref.read(inspectorTabIndexProvider.notifier).state = _tabController.index;
@@ -65,6 +67,7 @@ class _InspectorScreenState extends ConsumerState<InspectorScreen> with SingleTi
               Tab(text: 'TERMINAL'),
               Tab(text: 'FILES'),
               Tab(text: 'CHANGES'),
+              Tab(text: 'BLACKBOX'),
             ],
           ),
           const Divider(height: 1, color: AppColors.border),
@@ -76,6 +79,7 @@ class _InspectorScreenState extends ConsumerState<InspectorScreen> with SingleTi
                 _TerminalTab(),
                 _FilesTab(),
                 _ChangesTab(),
+                _BlackboxTab(),
               ],
             ),
           ),
@@ -370,5 +374,245 @@ class _ChangesTab extends ConsumerWidget {
     if (diff.inSeconds < 60) return '${diff.inSeconds}s';
     if (diff.inMinutes < 60) return '${diff.inMinutes}min';
     return '${diff.inHours}h';
+  }
+}
+
+/// Blackbox (Fase A): the Flight Recorder timeline for the active
+/// session, modeled directly on _ChangesTab's row shape (icon by type,
+/// monospace summary, relative timestamp, reverse-chronological), plus a
+/// "Verify integrity" action backing UC-01 (auditing a session for a
+/// client). Entries are digests/lengths only, never raw file/command
+/// content (invariant I5) -- the summaries below reflect that.
+class _BlackboxTab extends ConsumerWidget {
+  const _BlackboxTab();
+
+  static const _icons = <String, (IconData, Color)>{
+    'turn_start': (Icons.play_circle_outline, AppColors.accentBlue),
+    'first_token': (Icons.bolt, AppColors.accentGreen),
+    'turn_end': (Icons.stop_circle_outlined, AppColors.textMuted),
+    'tool_call': (Icons.bolt_outlined, AppColors.accentBlue),
+    'tool_result': (Icons.check_circle_outline, AppColors.accentGreen),
+    'confirm_request': (Icons.help_outline, AppColors.accentBlue),
+    'confirm_decision': (Icons.gavel_outlined, AppColors.textPrimary),
+    'egress_sample': (Icons.lock_outline, AppColors.accentGreen),
+    'rollback': (Icons.undo, AppColors.accentRed),
+  };
+
+  String _summarize(Map<String, dynamic> entry) {
+    final type = entry['type']?.toString() ?? '?';
+    final payload = entry['payload'] as Map<String, dynamic>? ?? {};
+    switch (type) {
+      case 'turn_start':
+        return 'Turn started (${payload['mode'] ?? 'builder'})';
+      case 'first_token':
+        return 'First token visible';
+      case 'turn_end':
+        return 'Turn ended (${payload['reason'] ?? 'completed'})';
+      case 'tool_call':
+        return '${payload['tool'] ?? '?'} called (${payload['content_len'] ?? 0} bytes)';
+      case 'tool_result':
+        final exit = payload['exit_code'];
+        return '${payload['tool'] ?? '?'} result${exit != null && exit != 0 ? ' (exit $exit)' : ''}';
+      case 'confirm_request':
+        return 'Confirmation requested: ${payload['tool'] ?? '?'}';
+      case 'confirm_decision':
+        return '${payload['tool'] ?? '?'}: ${payload['decision'] ?? '?'}';
+      case 'egress_sample':
+        final bytes = payload['external_bytes'] ?? 0;
+        return bytes == 0 ? '0 B external' : '$bytes B external -- ${payload['label'] ?? 'unlabeled'}';
+      case 'rollback':
+        return 'Rolled back to seq ${payload['target_seq'] ?? '?'}';
+      default:
+        return type;
+    }
+  }
+
+  Future<void> _confirmUndo(BuildContext context, WidgetRef ref, Snapshot snapshot) async {
+    final notifier = ref.read(timeTravelProvider.notifier);
+    final preview = await notifier.preview(snapshot);
+    final diffs = (preview['diffs'] as List? ?? []).cast<Map<String, dynamic>>();
+
+    if (!context.mounted) return;
+    // Same AlertDialog chrome as chat_screen.dart's _showToolConfirmDialog
+    // (red Decline / green Approve TextButtons) -- undo is a gated write
+    // like any other (invariant I4), so the visual language should match.
+    final approved = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Undo this action?'),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480, maxHeight: 420),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(snapshot.message, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                const SizedBox(height: 8),
+                if (diffs.isEmpty)
+                  const Text('No changes to preview.', style: TextStyle(color: AppColors.textMuted, fontSize: 12))
+                else
+                  for (final d in diffs)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF17191C),
+                        border: Border.all(color: AppColors.border),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        (d['diff'] as String?)?.isNotEmpty == true ? d['diff'] as String : '${d['path']}: no textual diff',
+                        style: const TextStyle(fontFamily: AppFonts.mono, fontSize: 11),
+                      ),
+                    ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.accentRed)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Undo', style: TextStyle(color: AppColors.accentGreen)),
+          ),
+        ],
+      ),
+    );
+
+    if (approved == true) {
+      await notifier.rollback(snapshot);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final chatId = ref.watch(chatSessionsProvider.select((s) => s.activeChatId));
+    final audit = ref.watch(auditProvider);
+    final entries = audit.entries.reversed.toList();
+    final snapshots = ref.watch(timeTravelProvider).snapshots.where((s) => s.isPreSnapshot).toList().reversed.toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${audit.entries.length} entries',
+                  style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+                ),
+              ),
+              _VerifyBadge(state: audit),
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: chatId == null || audit.verifying
+                    ? null
+                    : () => ref.read(auditProvider.notifier).verify(),
+                child: const Text('Verify integrity', style: TextStyle(fontSize: 11)),
+              ),
+            ],
+          ),
+        ),
+        if (snapshots.isNotEmpty) ...[
+          const Divider(height: 1, color: AppColors.border),
+          SizedBox(
+            height: 32,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              itemCount: snapshots.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 6),
+              itemBuilder: (context, i) {
+                final snap = snapshots[i];
+                return ActionChip(
+                  avatar: const Icon(Icons.undo, size: 14, color: AppColors.accentRed),
+                  label: Text(
+                    snap.message.replaceFirst('pre: ', ''),
+                    style: const TextStyle(fontSize: 10, fontFamily: AppFonts.mono),
+                  ),
+                  onPressed: () => _confirmUndo(context, ref, snap),
+                );
+              },
+            ),
+          ),
+        ],
+        const Divider(height: 1, color: AppColors.border),
+        Expanded(
+          child: entries.isEmpty
+              ? const Center(
+                  child: Text('No audit entries yet this session.',
+                      style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                )
+              : ListView.builder(
+                  itemCount: entries.length,
+                  itemBuilder: (context, i) {
+                    final entry = entries[i];
+                    final type = entry['type']?.toString() ?? '?';
+                    final iconSpec = _icons[type] ?? (Icons.circle_outlined, AppColors.textMuted);
+                    final ts = entry['ts'];
+                    final time = ts is num
+                        ? DateTime.fromMillisecondsSinceEpoch((ts * 1000).round())
+                        : DateTime.now();
+                    return ListTile(
+                      dense: true,
+                      leading: Icon(iconSpec.$1, size: 16, color: iconSpec.$2),
+                      title: Text(
+                        _summarize(entry),
+                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontFamily: AppFonts.mono),
+                      ),
+                      subtitle: Text(
+                        'seq ${entry['seq']} · ${entry['actor'] ?? 'system'}',
+                        style: const TextStyle(color: AppColors.textMuted, fontSize: 10),
+                      ),
+                      trailing: Text(
+                        _relativeTime(time),
+                        style: const TextStyle(color: AppColors.textMuted, fontSize: 10),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  String _relativeTime(DateTime t) {
+    final diff = DateTime.now().difference(t);
+    if (diff.inSeconds < 60) return '${diff.inSeconds}s';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}min';
+    return '${diff.inHours}h';
+  }
+}
+
+class _VerifyBadge extends StatelessWidget {
+  final AuditState state;
+  const _VerifyBadge({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    if (state.verifying) {
+      return const SizedBox(
+        width: 12,
+        height: 12,
+        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accentBlue),
+      );
+    }
+    if (state.verified == null) {
+      return const Text('not checked', style: TextStyle(color: AppColors.textMuted, fontSize: 10));
+    }
+    if (state.verified == true) {
+      return const Text('✓ verified', style: TextStyle(color: AppColors.accentGreen, fontSize: 10));
+    }
+    return Tooltip(
+      message: state.verifyError ?? 'chain broken',
+      child: const Text('✗ tampered', style: TextStyle(color: AppColors.accentRed, fontSize: 10)),
+    );
   }
 }

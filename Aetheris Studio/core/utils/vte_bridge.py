@@ -191,6 +191,15 @@ def unload() -> None:
         _stop_server_locked()
 
 
+def get_server_pid() -> Optional[int]:
+    """PID of the resident vte-server subprocess, or None if not running.
+    Used by core.audit.egress_monitor (Fase B) to scope network-connection
+    sampling to processes Aetheris actually owns, rather than reaching
+    into the private `_process` global directly from another module."""
+    with _lock:
+        return _process.pid if _process is not None and _process.poll() is None else None
+
+
 def get_telemetry() -> Dict:
     """Real GPU/model telemetry for the status-bar footer: queries
     vte-server's own /telemetry (a live hipMemGetInfo read, not cached), and

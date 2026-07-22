@@ -113,6 +113,19 @@ A few prompts to get a feel for what the agent actually does, assuming `project_
 - *"Plan out how you'd add rate limiting to this API, but don't touch anything yet."* Switches the agent into Planner mode, streams a plan, waits for your go-ahead.
 - *"Remember that this project uses tabs, not spaces."* Writes to the memory tool; ask again in a later session and it recalls it without the fact being back in the chat transcript.
 - *"Use the browser tool to look up the current stable version of \<some library> online."* Read-only, no form-filling or credentials, ever; without naming the tool the model sometimes reaches for `bash curl` instead, which works but skips the actual browser feature.
+- *"Use the search_map tool to find out what this codebase does."* Cartographer's background-generated map, not the raw files -- often faster and better-grounded than reading files one by one on an unfamiliar project.
+- After the agent edits a file with your approval: open the **Blackbox** panel (Inspector's 5th tab) and click **↩ Undo** on that snapshot. Restores the file, leaves everything else untouched, and your repo's real `git status`/`git branch` never change because of it.
+
+## Blackbox: privacy you can verify, not just a promise
+
+Every local agent says "your code never leaves the machine." Aetheris makes that checkable at runtime instead of just claimed, via four pieces (`Aetheris Studio/core/audit/`, `Aetheris Studio/core/rag/cartographer.py`), each independently opt-out and none of them touching the core chat path when disabled:
+
+- **Flight Recorder** -- every tool call, confirm-gate decision, and turn boundary appended to a per-session, hash-chained log. `Aetheris Studio/scripts/audit_verify.py` re-verifies it standalone, stdlib-only, no Aetheris install needed -- something you can actually hand to someone else and have them check themselves.
+- **Egress Monitor** -- a live "🔒 0 B external" indicator in the status footer, backed by real connection enumeration against the process tree (not a static claim), itself logged to the same audit trail.
+- **Time-Travel** -- every approved file write gets a git shadow-ref snapshot (`refs/aetheris/session-<id>`, invisible to `git branch`), undoable with one click without ever touching your real index or HEAD.
+- **Cartographer** -- the same background codebase-mapping this README's own "Things to try" points at above, doubling as an answer to the "vague prompt alucinates" failure mode described below it.
+
+Full write-up (log format, the hash chain's real guarantees and real limits, each component's own honest scope): [`Aetheris Studio/docs/BLACKBOX.md`](Aetheris%20Studio/docs/BLACKBOX.md). UX metrics derived from the same audit trail: [`Aetheris Studio/docs/UX_METRICS.md`](Aetheris%20Studio/docs/UX_METRICS.md).
 
 ## Under the hood: VTE, the engine we built to power this
 
@@ -159,7 +172,7 @@ One more sign of how real this is: VTE is currently in review to become an offic
 
 ## Repository layout
 
-- **`Aetheris Studio/`**: the agent, backend (FastAPI, `app.py`) plus the Flutter desktop UI (`aetheris_ui/`). Depends on VTE being installed.
+- **`Aetheris Studio/`**: the agent, backend (FastAPI, `app.py`) plus the Flutter desktop UI (`aetheris_ui/`). Depends on VTE being installed. Blackbox lives in `core/audit/` and `core/rag/cartographer.py`, docs in `Aetheris Studio/docs/` (`BLACKBOX.md`, `UX_METRICS.md`), tests in `Aetheris Studio/tests/`.
 - **`VTE/`**: the inference engine. Usable entirely on its own too, see its own README.
 - **`PROJECT_SPECIFICATION.md`**: the full Track 2 submission writeup, architecture, capabilities, model list, benchmarks.
 - **`PLATFORM_ISSUES.md`**: five ROCm/RDNA3 platform gaps found and reported while building this (three on Linux/W7900, two more on Windows/RX 7600), with repro steps.

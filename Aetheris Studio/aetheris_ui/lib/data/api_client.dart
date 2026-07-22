@@ -173,6 +173,19 @@ class ApiClient {
     return _decode(res);
   }
 
+  /// Blackbox Egress Monitor (Fase B): the live "0 B external" indicator.
+  Future<Map<String, dynamic>> egressStatus() async {
+    final res = await _client.get(Uri.parse('$baseUrl/api/egress/status'), headers: _headers);
+    return _decode(res);
+  }
+
+  /// Cartographer (Fase D): background codebase-mapping progress, for the
+  /// discreet title-bar badge.
+  Future<Map<String, dynamic>> cartographerStatus() async {
+    final res = await _client.get(Uri.parse('$baseUrl/api/cartographer/status'), headers: _headers);
+    return _decode(res);
+  }
+
   /// Blocks until the model is actually resident in VRAM (real GPU load,
   /// not just persisting a preference) -- can take several seconds.
   Future<Map<String, dynamic>> warmupModel(String model) async {
@@ -199,6 +212,9 @@ class ApiClient {
     double temperature = 0.3,
     int maxTokens = 4096,
     String mode = 'builder',
+    // Blackbox (Fase A): scopes the backend's Flight Recorder audit trail
+    // to this conversation -- see app.py's ChatCompletionRequest.chat_id.
+    String? chatId,
   }) async* {
     final request = http.Request('POST', Uri.parse('$baseUrl/v1/chat/completions/stream'))
       ..headers.addAll(_headers)
@@ -208,6 +224,7 @@ class ApiClient {
         'temperature': temperature,
         'max_tokens': maxTokens,
         'mode': mode,
+        if (chatId != null) 'chat_id': chatId,
       });
 
     final streamClient = _directClient();
@@ -305,12 +322,73 @@ class ApiClient {
 
   /// Runs one tool from the agent's registry on demand -- used after the
   /// user approves a pending write_file/edit_file confirm dialog (see
-  /// ChatSessionsNotifier.respondToolConfirm).
-  Future<Map<String, dynamic>> executeTool(String tool, String content) async {
+  /// ChatSessionsNotifier.respondToolConfirm). `chatId` scopes the
+  /// approval to the Flight Recorder audit trail (Fase A) -- optional so
+  /// this still works for any call site that hasn't been updated.
+  Future<Map<String, dynamic>> executeTool(String tool, String content, {String? chatId}) async {
     final res = await _client.post(
       Uri.parse('$baseUrl/api/tools/execute'),
       headers: _headers,
-      body: jsonEncode({'tool': tool, 'content': content}),
+      body: jsonEncode({'tool': tool, 'content': content, if (chatId != null) 'chat_id': chatId}),
+    );
+    return _decode(res);
+  }
+
+  /// The other half of the confirm gate: records a decline (no execution).
+  /// Before this endpoint existed, declining was 100% client-local and
+  /// invisible to the audit trail / approval-rate UX metric (Fase E).
+  Future<Map<String, dynamic>> declineTool(String tool, {String content = '', String? chatId}) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/tools/decline'),
+      headers: _headers,
+      body: jsonEncode({'tool': tool, 'content': content, if (chatId != null) 'chat_id': chatId}),
+    );
+    return _decode(res);
+  }
+
+  /// Polling read of a session's Flight Recorder log (Fase A) -- backs the
+  /// Blackbox Inspector tab. Live entries also arrive as `audit_entry` SSE
+  /// events during an active turn; this is the source of truth for
+  /// anything outside one (reopening the panel, catching up after reload).
+  Future<Map<String, dynamic>> getAuditLog(String chatId, {int sinceSeq = 0}) async {
+    final uri = Uri.parse('$baseUrl/api/audit/$chatId').replace(
+      queryParameters: {'since_seq': sinceSeq.toString()},
+    );
+    final res = await _client.get(uri, headers: _headers);
+    return _decode(res);
+  }
+
+  /// Reprocesses the session's hash chain server-side -- backs the
+  /// Blackbox panel's "Verify integrity" button (UC-01).
+  Future<Map<String, dynamic>> verifyAuditLog(String chatId) async {
+    final res = await _client.get(Uri.parse('$baseUrl/api/audit/$chatId/verify'), headers: _headers);
+    return _decode(res);
+  }
+
+  /// Time-Travel (Fase C): the session's shadow-ref snapshots, most recent
+  /// last -- the Blackbox timeline's undo data source.
+  Future<Map<String, dynamic>> getSnapshots(String chatId) async {
+    final res = await _client.get(Uri.parse('$baseUrl/api/timetravel/$chatId/snapshots'), headers: _headers);
+    return _decode(res);
+  }
+
+  /// Read-only diff preview for a would-be rollback -- powers the confirm
+  /// dialog's content before the user actually approves an undo.
+  Future<Map<String, dynamic>> previewRollback(String chatId, String targetCommit, List<String> paths) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/timetravel/preview'),
+      headers: _headers,
+      body: jsonEncode({'session_id': chatId, 'target_commit': targetCommit, 'paths': paths}),
+    );
+    return _decode(res);
+  }
+
+  /// The actual undo, after the user approves the preview dialog.
+  Future<Map<String, dynamic>> rollback(String chatId, String targetCommit, List<String> paths) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/timetravel/rollback'),
+      headers: _headers,
+      body: jsonEncode({'session_id': chatId, 'target_commit': targetCommit, 'paths': paths}),
     );
     return _decode(res);
   }

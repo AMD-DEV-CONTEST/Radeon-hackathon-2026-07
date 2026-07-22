@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../providers/browser_provider.dart';
+import '../providers/cartographer_provider.dart';
 import '../providers/chat_provider.dart';
 import '../theme.dart';
 import '../widgets/telemetry_footer.dart';
@@ -127,6 +128,10 @@ class _TitleBar extends ConsumerWidget {
             onShowFileChanges();
             ref.read(inspectorTabIndexProvider.notifier).state = 3;
           }),
+          _CartographerBadge(onPressed: () {
+            onShowFileChanges();
+            ref.read(inspectorTabIndexProvider.notifier).state = 4;
+          }),
           IconButton(
             tooltip: 'Inspector',
             icon: Icon(
@@ -189,6 +194,54 @@ class _FileChangesButton extends StatelessWidget {
                 ),
                 child: Text(
                   count > 99 ? '99+' : '$count',
+                  style: const TextStyle(color: AppColors.bg, fontSize: 9, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Discreet Cartographer mapping-progress badge (Fase D) -- same
+/// Stack(IconButton + Positioned badge) pattern as _FileChangesButton,
+/// deliberately quiet: shows a count only while actively mapping, and
+/// nothing at all once the pass finishes or if the codebase is small
+/// enough that there was never anything to show.
+class _CartographerBadge extends ConsumerWidget {
+  final VoidCallback onPressed;
+  const _CartographerBadge({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final status = ref.watch(cartographerProvider).valueOrNull ?? const CartographerState();
+    return SizedBox(
+      width: 40,
+      height: 40,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          IconButton(
+            tooltip: status.inProgress
+                ? 'Mapping codebase: ${status.mapped}/${status.total}'
+                : 'Codebase map',
+            icon: Icon(Icons.map_outlined, size: 18,
+                color: status.inProgress ? AppColors.accentBlue : AppColors.textMuted),
+            onPressed: onPressed,
+          ),
+          if (status.inProgress)
+            Positioned(
+              top: 6,
+              right: 4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: AppColors.accentBlue,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${status.mapped}/${status.total}',
                   style: const TextStyle(color: AppColors.bg, fontSize: 9, fontWeight: FontWeight.bold),
                 ),
               ),

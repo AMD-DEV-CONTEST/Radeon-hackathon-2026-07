@@ -66,12 +66,43 @@ async def lifespan(app_instance: FastAPI):
         print(f"[*]   username: {_username}")
         print(f"[*]   password: {_password}")
 
+    # Egress Monitor (Blackbox Fase B): a background task, not per-request --
+    # this is the one lifecycle hook in this file where a long-lived task
+    # actually makes sense (confirmed: no other on_event("startup")-style
+    # hook exists to piggyback on). Uses the "global" session bucket since
+    # egress applies to the whole process, not one chat; per-chat egress
+    # framing wasn't a real distinction psutil's connection list could make
+    # anyway (it doesn't know which HTTP request opened which socket).
+    _egress_task = None
+    from core.audit.egress_monitor import egress_enabled, run_forever as _egress_run_forever
+    if egress_enabled():
+        _egress_task = asyncio.create_task(_egress_run_forever())
+
+    # Cartographer (Blackbox Fase D): same background-task shape as the
+    # Egress Monitor above -- one long-lived asyncio task, cancelled
+    # cleanly on shutdown. Watches whatever project is currently active
+    # (core.utils.project_path), no per-project start call needed.
+    _cartographer_task = None
+    from core.rag.cartographer import cartographer_enabled, run_worker as _cartographer_run_worker
+    if cartographer_enabled():
+        _cartographer_task = asyncio.create_task(_cartographer_run_worker())
+
     try:
         yield
     except asyncio.CancelledError:
         pass
     finally:
         print("[*] Aetheris API shutting down — limpando recursos...")
+
+        if _egress_task is not None:
+            _egress_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await _egress_task
+
+        if _cartographer_task is not None:
+            _cartographer_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await _cartographer_task
 
         # Descarregar o modelo VTE da VRAM
         await _unload_all_models()
@@ -136,6 +167,12 @@ class ChatCompletionRequest(BaseModel):
     temperature: Optional[float] = 0.7
     max_tokens: Optional[int] = 512
     mode: str = "builder"
+    # Blackbox (Fase A): scopes the Flight Recorder audit trail to this
+    # conversation. Always present in practice -- chat_provider.dart's
+    # sendMessage() never fires without an activeChatId -- but stays
+    # Optional so an older/unpatched caller degrades to "no audit trail
+    # for this turn" instead of a validation error.
+    chat_id: Optional[str] = None
 
 @app.get("/")
 async def root():
@@ -334,6 +371,17 @@ async def get_telemetry():
     from core.utils.vte_bridge import get_telemetry as _get_telemetry
     return await asyncio.to_thread(_get_telemetry)
 
+
+@app.get("/api/egress/status", dependencies=[Depends(verify_internal_token)])
+async def get_egress_status():
+    """Blackbox Egress Monitor (Fase B): the live "0 B external" indicator
+    in the status footer, and what the header's connection-detail popup
+    shows on click. See core/audit/egress_monitor.py's module docstring
+    for why this reports connection counts rather than inventing a byte
+    figure it can't reliably measure."""
+    from core.audit.egress_monitor import get_status
+    return get_status()
+
 class LoadModelRequest(BaseModel):
     model: str
 
@@ -455,6 +503,7 @@ async def resolve_reference(request: ResolveReferenceRequest):
 class ExecuteToolRequest(BaseModel):
     tool: str
     content: str
+    chat_id: Optional[str] = None
 
 
 @app.post("/api/tools/execute", dependencies=[Depends(verify_internal_token)])
@@ -463,20 +512,148 @@ async def execute_tool(request: ExecuteToolRequest):
     Used by the Flutter client to actually perform a file-mutating tool call
     (write_file/edit_file) after the user approves it in the confirm dialog
     -- core/utils/agent.py's stream_agent pauses instead of auto-running
-    those, see its `confirm_tool` SSE event."""
+    those, see its `confirm_tool` SSE event.
+
+    Blackbox (Fase A): this is the ONLY place a gated tool call actually
+    executes (stream_agent's own auto-dispatch path, agent.py, never
+    reaches TOOLS_REQUIRING_CONFIRMATION tools -- they always pause here
+    instead). Routed through audited_tool_call so it's logged identically
+    to a model-initiated, non-gated call; the approval itself is logged as
+    a separate confirm_decision entry right before, since audited_tool_call
+    only knows about the tool_call/tool_result pair, not the fact that a
+    human just clicked Approve."""
     from core.utils.tools import TOOL_REGISTRY
     from core.auth import AuthManager
+    from core.audit.flight_recorder import audited_tool_call, audit_enabled, get_recorder
 
     handler = TOOL_REGISTRY.get(request.tool)
     if handler is None:
         raise HTTPException(status_code=400, detail=f"Unknown tool: {request.tool}")
 
     owner = AuthManager().current_username()
-    try:
-        result = await handler(request.content, owner)
-    except Exception as e:
-        result = {"error": str(e), "exit_code": 1}
+    if audit_enabled() and request.chat_id:
+        get_recorder(request.chat_id).append(
+            "confirm_decision", {"tool": request.tool, "decision": "approved"}, actor=owner or "unknown",
+        )
+    result = await audited_tool_call(request.chat_id, request.tool, request.content, owner, handler)
     return {"tool": request.tool, "result": result}
+
+
+class DeclineToolRequest(BaseModel):
+    tool: str
+    content: str = ""
+    chat_id: Optional[str] = None
+
+
+@app.post("/api/tools/decline", dependencies=[Depends(verify_internal_token)])
+async def decline_tool(request: DeclineToolRequest):
+    """The other half of the confirm gate: the user clicked Decline instead
+    of Approve. Before this endpoint existed, a decline was 100% client-
+    local (chat_screen.dart just cleared its pending-confirm state and
+    appended a local "user stopped the run" message) -- nothing ever
+    reached the backend, so the Flight Recorder's approval/rejection ratio
+    (a real UX metric, Fase E) had no rejection side to measure at all.
+    Records the decision only; nothing executes."""
+    from core.audit.flight_recorder import audit_enabled, get_recorder
+    from core.auth import AuthManager
+
+    owner = AuthManager().current_username()
+    if audit_enabled() and request.chat_id:
+        get_recorder(request.chat_id).append(
+            "confirm_decision", {"tool": request.tool, "decision": "declined"}, actor=owner or "unknown",
+        )
+    return {"status": "recorded"}
+
+
+@app.get("/api/audit/{session_id}", dependencies=[Depends(verify_internal_token)])
+async def get_audit_log(session_id: str, since_seq: int = 0):
+    """Polling endpoint for the Blackbox timeline (Fase A). Live entries
+    also stream as `audit_entry` SSE events during an active turn (see
+    agent.py), but there is no persistent broadcast channel outside of
+    one -- this is the source of truth for anything else (opening the
+    panel for a past session, catching up after a reload)."""
+    from core.audit.flight_recorder import get_recorder
+
+    rec = get_recorder(session_id)
+    entries = rec.read_all(since_seq=since_seq)
+    return {"session_id": session_id, "entries": entries, "head_seq": rec.head_seq}
+
+
+@app.get("/api/audit/{session_id}/verify", dependencies=[Depends(verify_internal_token)])
+async def verify_audit_log(session_id: str):
+    """Backs the Blackbox panel's "Verify integrity" button (UC-01). See
+    scripts/audit_verify.py for the standalone CLI equivalent a third
+    party can run without this app installed at all."""
+    from core.audit.flight_recorder import verify_chain, log_path_for
+
+    ok, errors = verify_chain(log_path_for(session_id))
+    return {"session_id": session_id, "ok": ok, "errors": errors}
+
+
+class TimeTravelPreviewRequest(BaseModel):
+    session_id: str
+    target_commit: str
+    paths: List[str]
+
+
+class TimeTravelRollbackRequest(BaseModel):
+    session_id: str
+    target_commit: str
+    paths: List[str]
+
+
+@app.post("/api/timetravel/preview", dependencies=[Depends(verify_internal_token)])
+async def preview_rollback(request: TimeTravelPreviewRequest):
+    """Read-only: what a rollback WOULD change, for the confirm dialog's
+    diff preview -- see core/audit/timetravel.py::preview_rollback."""
+    from core.audit.timetravel import preview_rollback as _preview
+    return await _preview(request.target_commit, request.paths)
+
+
+@app.post("/api/timetravel/rollback", dependencies=[Depends(verify_internal_token)])
+async def rollback_snapshot(request: TimeTravelRollbackRequest):
+    """The actual undo (Fase C). UI-initiated (there's no live model turn
+    involved when a user browses the Blackbox timeline and clicks Undo --
+    see timetravel.py's module docstring for why this is a separate
+    endpoint from the model-facing rollback_action tool rather than
+    reusing /api/tools/execute), but routed through the exact same
+    audited_tool_call as every other execution so it's logged identically
+    -- undoing is itself a gated, audited write (invariant I4)."""
+    from core.utils.tools import TOOL_REGISTRY
+    from core.audit.flight_recorder import audited_tool_call, audit_enabled, get_recorder
+    from core.auth import AuthManager
+
+    owner = AuthManager().current_username()
+    content = "\n".join([request.target_commit, *request.paths])
+    if audit_enabled():
+        get_recorder(request.session_id).append(
+            "confirm_decision", {"tool": "rollback_action", "decision": "approved"}, actor=owner or "unknown",
+        )
+    result = await audited_tool_call(
+        request.session_id, "rollback_action", content, owner, TOOL_REGISTRY["rollback_action"],
+    )
+    return {"result": result}
+
+
+@app.get("/api/timetravel/{session_id}/snapshots", dependencies=[Depends(verify_internal_token)])
+async def get_snapshots(session_id: str):
+    """The Blackbox Time-Travel timeline's data source."""
+    from core.audit.timetravel import list_snapshots
+    return {"session_id": session_id, "snapshots": await list_snapshots(session_id)}
+
+
+@app.get("/api/cartographer/status", dependencies=[Depends(verify_internal_token)])
+async def get_cartographer_status():
+    """Backs the discreet mapping-progress badge in the title bar
+    (Fase D). {mapped, total, state} for whatever project is currently
+    active; {mapped: 0, total: 0, state: "idle"} if none is."""
+    from core.rag.cartographer import mapping_status
+    from core.utils.project_path import get_active_project_path
+
+    project_path = get_active_project_path()
+    if not project_path:
+        return {"mapped": 0, "total": 0, "structural_only": 0, "state": "idle"}
+    return await mapping_status(project_path)
 
 
 class TerminalRunRequest(BaseModel):
@@ -599,6 +776,7 @@ async def chat_completions_stream(body: ChatCompletionRequest, http_request: Req
             owner=owner,
             mode=body.mode or "builder",
             request=http_request,
+            session_id=body.chat_id,
         )
         return StreamingResponse(generator, media_type="text/event-stream", headers={"Cache-Control": "no-cache"})
     except Exception as e:

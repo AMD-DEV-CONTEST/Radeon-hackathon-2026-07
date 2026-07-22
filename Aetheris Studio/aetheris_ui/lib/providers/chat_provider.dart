@@ -24,6 +24,13 @@ class ChatSessionsState {
   final Map<String, dynamic>? pendingBrowserAction;
   final String? currentPlan;
   final bool planPanelVisible;
+  // Blackbox (Fase A): entries arriving live via `audit_entry` SSE events
+  // during an active turn. Not the source of truth (that's a poll of
+  // GET /api/audit/{chatId}, see audit_provider.dart -- there's no
+  // persistent broadcast channel outside an active turn), just lets the
+  // Blackbox panel feel live while one is running instead of waiting for
+  // the next poll tick.
+  final List<Map<String, dynamic>> liveAuditEntries;
   // Which chat isThinking/pendingToolConfirm/pendingAskUser/
   // pendingBrowserAction actually belong to. A generation started for one
   // chat keeps running in the background (nothing cancels it just because
@@ -48,6 +55,7 @@ class ChatSessionsState {
     this.currentPlan,
     this.planPanelVisible = false,
     this.generatingChatId,
+    this.liveAuditEntries = const [],
   });
 
   ChatSession? get activeChat {
@@ -71,6 +79,7 @@ class ChatSessionsState {
     Object? currentPlan = _unset,
     bool? planPanelVisible,
     Object? generatingChatId = _unset,
+    List<Map<String, dynamic>>? liveAuditEntries,
   }) {
     return ChatSessionsState(
       chats: chats ?? this.chats,
@@ -91,6 +100,7 @@ class ChatSessionsState {
       currentPlan: identical(currentPlan, _unset) ? this.currentPlan : currentPlan as String?,
       planPanelVisible: planPanelVisible ?? this.planPanelVisible,
       generatingChatId: identical(generatingChatId, _unset) ? this.generatingChatId : generatingChatId as String?,
+      liveAuditEntries: liveAuditEntries ?? this.liveAuditEntries,
     );
   }
 }
@@ -265,8 +275,13 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
     // already the right thing to save.
     String? strippedAssistantText;
     try {
-      await for (final event
-          in _api.streamChatCompletion(model: model, messages: payload, maxTokens: maxTokens, mode: mode)) {
+      await for (final event in _api.streamChatCompletion(
+        model: model,
+        messages: payload,
+        maxTokens: maxTokens,
+        mode: mode,
+        chatId: chatId,
+      )) {
         if (_cancelRequested) break;
         if (event.done) break;
         if (event.delta != null) {
@@ -339,6 +354,15 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
           _updateStreamingMessage(chatId, '');
           state = state.copyWith(pendingBrowserAction: event.data);
           strippedAssistantText = event.data['assistant_text']?.toString();
+        } else if (event.type == 'audit_entry') {
+          // Blackbox (Fase A): a Flight Recorder entry the backend just
+          // appended (turn_start, tool_call/tool_result, confirm_request --
+          // see agent.py). Purely additive to the chat flow, no bubble/
+          // buffer interaction, unlike every other branch above.
+          final entry = event.data['entry'] as Map<String, dynamic>?;
+          if (entry != null) {
+            state = state.copyWith(liveAuditEntries: [...state.liveAuditEntries, entry]);
+          }
         } else if (event.type == 'plan_update') {
           // Same reasoning as tool_start/confirm_tool: the plan itself
           // renders in PlanPanel, a dedicated widget with its own
@@ -437,8 +461,16 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
 
     final tool = pending['tool']?.toString() ?? '';
     final content = pending['content']?.toString() ?? '';
+    final chatId = state.activeChatId;
 
     if (!approved) {
+      // Blackbox (Fase A): records the rejection server-side, best-effort
+      // -- a failed decline-log call shouldn't block the user's actual
+      // "no, stop" continuing to work, so this is deliberately not awaited
+      // into the critical path with error handling beyond swallowing it.
+      unawaited(_api.declineTool(tool, content: content, chatId: chatId).catchError(
+        (_) => <String, dynamic>{},
+      ));
       await sendMessage(
         'The user stopped the run. Maybe the user will give extra information or fix something.',
         isHidden: true,
@@ -449,7 +481,7 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
 
     Map<String, dynamic> result;
     try {
-      final response = await _api.executeTool(tool, content);
+      final response = await _api.executeTool(tool, content, chatId: chatId);
       result = response['result'] as Map<String, dynamic>? ?? {};
     } catch (e) {
       result = {'error': e.toString(), 'exit_code': 1};

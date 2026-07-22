@@ -405,15 +405,24 @@ def _parse_line_range(spec: str, total_lines: int) -> Optional[Tuple[int, int]]:
     return start, min(end, total_lines)
 
 
-async def _run_write_file(content: str) -> Dict:
+async def _run_write_file(content: str, owner: Optional[str] = None, session_id: Optional[str] = None) -> Dict:
     path, _, body = content.partition("\n")
     path = path.strip()
     if not path:
         return {"error": "path is required (first line)", "exit_code": 1}
     try:
         resolved = _resolve_in_project(path)
+        # Time-Travel (Fase C): pre-image before the real write, so an undo
+        # has something to restore TO. A snapshot failure (not a git repo,
+        # disabled, or any other reason -- see timetravel.snapshot's own
+        # docstring) returns None and must never block the write itself.
+        from core.audit.timetravel import snapshot as _tt_snapshot
+        if session_id:
+            await _tt_snapshot(session_id, [path], f"pre: write_file {path}")
         resolved.parent.mkdir(parents=True, exist_ok=True)
         resolved.write_text(body, encoding="utf-8")
+        if session_id:
+            await _tt_snapshot(session_id, [path], f"post: write_file {path}")
         return {"output": f"Wrote {len(body)} bytes to {path}", "exit_code": 0}
     except Exception as e:
         return {"error": str(e), "exit_code": 1}
@@ -422,7 +431,7 @@ async def _run_write_file(content: str) -> Dict:
 _WRITE_FILES_MARKER_RE = re.compile(r"<<<FILE:\s*(.+?)\s*>>>\n")
 
 
-async def _run_write_files(content: str) -> Dict:
+async def _run_write_files(content: str, owner: Optional[str] = None, session_id: Optional[str] = None) -> Dict:
     """Content format: repeated `<<<FILE: path>>>\\n<content>\\n` blocks, one
     per file, all in a single tool call. Exists specifically so a known
     multi-file task (index.html + style.css + script.js) can be proposed
@@ -431,12 +440,24 @@ async def _run_write_files(content: str) -> Dict:
     reported pattern where the model would describe a whole file's content
     in prose, ask "is this what you want?", and only THEN reach for
     write_file, one file at a time, stalling a task the user already fully
-    specified up front."""
+    specified up front.
+
+    Time-Travel (Fase C): one pre-snapshot batching every target path
+    before any write starts, one post-snapshot batching every path that
+    actually succeeded -- a single undo point covering the whole
+    write_files call, not N separate ones a user would have to undo one
+    at a time.
+    """
     parts = _WRITE_FILES_MARKER_RE.split(content)
     # re.split with a capturing group yields [prefix, path1, body1, path2, body2, ...];
     # a well-formed call has no meaningful prefix and at least one pair.
     if len(parts) < 3:
         return {"error": "expected at least one '<<<FILE: path>>>' block", "exit_code": 1}
+
+    target_paths = [parts[i].strip() for i in range(1, len(parts), 2) if parts[i].strip()]
+    from core.audit.timetravel import snapshot as _tt_snapshot
+    if session_id and target_paths:
+        await _tt_snapshot(session_id, target_paths, f"pre: write_files ({len(target_paths)} files)")
 
     written: List[str] = []
     errors: List[str] = []
@@ -456,6 +477,10 @@ async def _run_write_files(content: str) -> Dict:
         except Exception as e:
             errors.append(f"{path}: {e}")
 
+    if session_id and written:
+        written_paths = [w.split(" (", 1)[0] for w in written]
+        await _tt_snapshot(session_id, written_paths, f"post: write_files ({len(written_paths)} files)")
+
     if errors and not written:
         return {"error": "; ".join(errors), "exit_code": 1}
     output = "Wrote:\n" + "\n".join(written) if written else ""
@@ -464,9 +489,12 @@ async def _run_write_files(content: str) -> Dict:
     return {"output": output, "exit_code": 1 if errors else 0}
 
 
-async def _run_edit_file(content: str) -> Dict:
+async def _run_edit_file(content: str, owner: Optional[str] = None, session_id: Optional[str] = None) -> Dict:
     """Content format: path on line 1, then `<<<FIND>>>` / `<<<REPLACE>>>`
-    markers wrapping the exact text to change."""
+    markers wrapping the exact text to change.
+
+    session_id: unused for now -- wired to Time-Travel snapshots in Fase C.
+    """
     lines = content.split("\n")
     if not lines or not lines[0].strip():
         return {"error": "path is required (first line)", "exit_code": 1}
@@ -492,8 +520,75 @@ async def _run_edit_file(content: str) -> Dict:
     if count > 1:
         return {"error": f"old text is ambiguous (appears {count} times); include more context", "exit_code": 1}
 
+    from core.audit.timetravel import snapshot as _tt_snapshot
+    if session_id:
+        await _tt_snapshot(session_id, [path], f"pre: edit_file {path}")
     resolved.write_text(current.replace(find_text, replace_text, 1), encoding="utf-8")
+    if session_id:
+        await _tt_snapshot(session_id, [path], f"post: edit_file {path}")
     return {"output": f"Edited {path}", "exit_code": 0}
+
+
+# ---------------------------------------------------------------------------
+# Time-Travel -- undo any agent-applied write via a git shadow-ref snapshot
+# (core/audit/timetravel.py). Registered in TOOL_REGISTRY like any other
+# tool (so a model COULD propose it and get uniform audit/gating for free),
+# but the real "one-click undo" UX (Blackbox panel) is UI-initiated, not
+# model-initiated -- see app.py's POST /api/timetravel/rollback.
+# ---------------------------------------------------------------------------
+
+async def _run_rollback_action(content: str, owner: Optional[str] = None, session_id: Optional[str] = None) -> Dict:
+    """Content format: target commit hash on line 1, one relative path per
+    remaining line. Gated exactly like write_file/edit_file
+    (TOOLS_REQUIRING_CONFIRMATION in agent.py) -- undoing is itself a
+    write (invariant I4)."""
+    lines = [l for l in content.strip().split("\n") if l.strip()]
+    if not lines:
+        return {"error": "expected: target commit hash on line 1, then one path per line", "exit_code": 1}
+    target_commit = lines[0].strip()
+    rel_paths = [l.strip() for l in lines[1:]]
+    if not rel_paths:
+        return {"error": "at least one path is required (line 2+)", "exit_code": 1}
+
+    from core.audit.timetravel import rollback as _tt_rollback
+    return await _tt_rollback(target_commit, rel_paths)
+
+
+# ---------------------------------------------------------------------------
+# Cartographer -- on-demand codebase-map search (core/rag/cartographer.py,
+# Fase D.1). Same on-demand-tool shape as manage_memory/manage_skill,
+# deliberately: this codebase's ONLY existing retrieval precedent is
+# "model calls a tool", not automatic injection (see agent.py's D.2
+# injection at the conversation seam for the one place that differs).
+# ---------------------------------------------------------------------------
+
+async def _run_search_map(content: str, owner: Optional[str] = None, session_id: Optional[str] = None) -> Dict:
+    """Content: the search query, one line. Returns the top-3 matching
+    MAP/*.md documents (structural + LLM-summarized info about project
+    files) ranked by BM25 -- ask this before exploring an unfamiliar
+    codebase blind."""
+    from core.rag.cartographer import cartographer_enabled, query_map
+
+    if not cartographer_enabled():
+        return {"error": "Cartographer is disabled.", "exit_code": 1}
+    query = content.strip()
+    if not query:
+        return {"error": "a search query is required", "exit_code": 1}
+
+    from core.utils.project_path import get_active_project_path
+    project_path = get_active_project_path()
+    if not project_path:
+        return {"error": "No active project is set.", "exit_code": 1}
+
+    results = query_map(project_path, query, top_k=3)
+    if not results:
+        return {
+            "output": "No map results yet -- the codebase may still be mapping in the background "
+                      "(check again shortly), or nothing indexed matches this query.",
+            "exit_code": 0,
+        }
+    output = "\n\n---\n\n".join(r["text"] for r in results)
+    return {"output": _truncate(output), "exit_code": 0}
 
 
 # ---------------------------------------------------------------------------
@@ -513,7 +608,7 @@ def _get_memory_manager():
     return _memory_manager
 
 
-async def _run_manage_memory(content: str, owner: Optional[str] = None) -> Dict:
+async def _run_manage_memory(content: str, owner: Optional[str] = None, session_id: Optional[str] = None) -> Dict:
     """Content format: first line is `add`, `search`, or `forget`, rest is the text/query."""
     action, _, rest = content.strip().partition("\n")
     action = action.strip().lower()
@@ -596,7 +691,7 @@ def _format_skill(sk: Dict) -> str:
     return "\n".join(lines)
 
 
-async def _run_manage_skill(content: str, owner: Optional[str] = None) -> Dict:
+async def _run_manage_skill(content: str, owner: Optional[str] = None, session_id: Optional[str] = None) -> Dict:
     """Content format:
 
     add\\n<name>\\n<description>\\n<step 1>\\n<step 2>\\n...
@@ -705,17 +800,25 @@ def _render_todo(todo_list: List[Dict]) -> str:
 # Registry
 # ---------------------------------------------------------------------------
 
+# Every handler now takes (content, owner, session_id) -- session_id was
+# added for the Blackbox Flight Recorder/Time-Travel work (Fase A/C):
+# audited_tool_call() (core/audit/flight_recorder.py) always calls with all
+# three positionally, so every entry needs the parameter even if most
+# ignore it. Only write_file/write_files/edit_file (Fase C snapshots) and
+# rollback_action actually use it.
 TOOL_REGISTRY = {
-    "bash": lambda content, owner=None: _run_bash(content),
-    "list_files": lambda content, owner=None: _run_list_files(content),
-    "read_file": lambda content, owner=None: _run_read_file(content),
-    "write_file": lambda content, owner=None: _run_write_file(content),
-    "write_files": lambda content, owner=None: _run_write_files(content),
-    "edit_file": lambda content, owner=None: _run_edit_file(content),
+    "bash": lambda content, owner=None, session_id=None: _run_bash(content),
+    "list_files": lambda content, owner=None, session_id=None: _run_list_files(content),
+    "read_file": lambda content, owner=None, session_id=None: _run_read_file(content),
+    "write_file": _run_write_file,
+    "write_files": _run_write_files,
+    "edit_file": _run_edit_file,
     "manage_memory": _run_manage_memory,
     "manage_skill": _run_manage_skill,
-    "search_files": lambda content, owner=None: _run_search_files(content),
-    "git": lambda content, owner=None: _run_git(content),
+    "search_files": lambda content, owner=None, session_id=None: _run_search_files(content),
+    "git": lambda content, owner=None, session_id=None: _run_git(content),
+    "rollback_action": _run_rollback_action,
+    "search_map": _run_search_map,
 }
 
 # Tools this process can't execute itself -- the embedded browser
@@ -839,6 +942,11 @@ forget
 <query describing which skill>
 ```
 A library of reusable, named procedures ("how do I do X"), persisted across every conversation (unlike manage_todo, and broader than a single fact in manage_memory). Search it before starting a multi-step task you may have solved before, and save one after finishing a task that took real trial-and-error, so you don't rediscover the same steps next time.
+
+```search_map
+<question about the codebase, e.g. "what does the auth module do">
+```
+Searches a background-generated map of the project's own files (structure + a short summary per file), not the code itself. Use this FIRST for a vague or exploratory question about an unfamiliar codebase ("what does this project do", "where is X handled") before reading files one by one -- it often answers the question directly or points you at the right file immediately.
 
 ```manage_todo
 add
