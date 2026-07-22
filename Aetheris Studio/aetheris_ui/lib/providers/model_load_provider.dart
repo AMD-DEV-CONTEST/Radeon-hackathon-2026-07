@@ -106,7 +106,16 @@ final StateNotifierProvider<ModelLoadNotifier, ModelLoadState> modelLoadProvider
 /// value: `ref.watch(settingsProvider).valueOrNull?.contextLength ?? 2048`;
 /// to change it, call `modelLoadProvider.notifier.changeContextLength(v)`,
 /// which persists it and reloads the model (see that method's doc).
-const contextLengthOptions = [512, 1024, 2048, 4096, 8192];
+///
+/// Ceiling raised from 8192 to 65536: nothing in VTE hardcodes a context
+/// cap (KV cache is sized to whatever context_length is passed, see
+/// vte/core/model.py's calculate_memory_requirements), so this was an
+/// artificial UI limit, not a real one. The everyday default stays 2048 --
+/// this just makes the option reachable for a genuinely long conversation
+/// or a big pasted file, on hardware with the VRAM for it. If it doesn't
+/// fit, VTE's own load-time VRAM check (SlabAllocator, VRAM_SAFETY_MARGIN)
+/// rejects it with a clear error rather than crashing silently.
+const contextLengthOptions = [512, 1024, 2048, 4096, 8192, 16384, 32768, 65536];
 
 /// Client-side only, never sent to /api/settings: bounds `max_tokens` on
 /// the next chat turn (how long/thorough a reply is allowed to be), a
@@ -117,4 +126,8 @@ const contextLengthOptions = [512, 1024, 2048, 4096, 8192];
 /// "more/less context".
 final intelligenceProvider = StateProvider<int>((ref) => 4096);
 
-const intelligenceOptions = [512, 1024, 2048, 4096, 8192];
+// Same ceiling raise as contextLengthOptions above, same reason: max_tokens
+// is bounded by the model's own remaining context budget at generation
+// time (core/utils/context_budget.py), not by anything hardcoded here.
+// Default stays 4096.
+const intelligenceOptions = [512, 1024, 2048, 4096, 8192, 16384, 32768, 65536];

@@ -84,10 +84,16 @@ class AgentToolbar extends ConsumerWidget {
     );
   }
 
+  // Was a fixed ['Min', 'Low', 'Medium', 'High', 'Max'] list matched to
+  // exactly 5 option slots -- broke silently (fell back to a raw number)
+  // once contextLengthOptions/intelligenceOptions grew past 5 entries to
+  // fit real long-context use (up to 65536). A plain "16K"/"32K"/"64K"
+  // token count scales to any option list length and is the convention
+  // every other model picker already uses, so there's no name list to
+  // keep in sync with the options anymore.
   static String _labelFor(int value, List<int> options) {
-    final idx = options.indexOf(value);
-    const names = ['Min', 'Low', 'Medium', 'High', 'Max'];
-    return (idx >= 0 && idx < names.length) ? names[idx] : '$value';
+    if (value >= 1024 && value % 1024 == 0) return '${value ~/ 1024}K';
+    return '$value';
   }
 
   Future<void> _showModelPicker(BuildContext context, WidgetRef ref) async {
