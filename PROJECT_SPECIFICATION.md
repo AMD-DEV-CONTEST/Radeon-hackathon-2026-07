@@ -81,7 +81,9 @@ flowchart TB
 
 Legend: solid arrows are ArchiMate **triggering**/**assignment**/**composition** relationships (active behavior, structural containment); dotted arrows are **realization**/**serving** (a concrete element fulfilling a more abstract service). `Boot`, `Loop`, `Gate`, and `Decode` are the actual internal processes/functions behind each component, not just black boxes: bootstrap and health-polling, the per-round SSE tool-call loop, the human-in-the-loop confirmation pause, and the HIP-Graph decode step, respectively.
 
-**Request flow.** The Flutter UI launches `app.py` on startup (`BackendLauncher.ensureRunning()`, polling `/` every 500 ms, 20 s budget) and shows a connecting state until it's up. `app.py` lazily (or eagerly, via `/api/vte/warmup`) spawns `vte-server` as a subprocess and polls its `/health` endpoint (90 s budget) before serving the first real request. A chat turn streams over SSE; each round the model's output is scanned for a fenced tool-call block (` ```toolname\n...\n``` `). This fenced-code-block convention is the *only* tool-invocation mechanism, chosen because it works with any instruction-tuned GGUF model without a native function-calling API.
+**Request flow.** The Flutter UI launches `app.py` on startup (`BackendLauncher.ensureRunning()`, polling `/` every 500 ms, 20 s budget) and shows a connecting state until it's up. `app.py` lazily (or eagerly, via `/api/vte/warmup`) spawns `vte-server` as a subprocess and polls its `/health` endpoint (90 s budget) before serving the first real request. A chat turn streams over SSE token-by-token as VTE decodes, not buffered per round: each generated token is forwarded to the client the moment it's produced (`yield _sse_delta(token)` per token in `agent.py`'s round loop), and the round boundary is only where the accumulated text gets scanned for a fenced tool-call block (` ```toolname\n...\n``` `). This fenced-code-block convention is the *only* tool-invocation mechanism, chosen because it works with any instruction-tuned GGUF model without a native function-calling API.
+
+**Long-conversation handling.** History isn't sent to the model unbounded: `core/memory/context_compressor.py` checks the running token count before each turn, and once it crosses 850 (of a 1000-token history budget) it summarizes everything except the last 4 messages into a single `[RESUMO]` system message via one extra LLM call, preserving decisions, facts, and code references rather than truncating blindly. If that summarization call itself fails, it falls back to a hard trim by token budget rather than erroring out the turn.
 
 **Tool dispatch is three-way**, not one flat list:
 - **Server-executed** (`TOOL_REGISTRY`): `bash`, `read_file`, `write_file`, `edit_file`, `search_files`, `git`, `manage_memory`, which are run directly by the Python backend.
@@ -129,14 +131,16 @@ Adding a model is copying its `.gguf` into `VTE/Model/`, no code changes: VTE's 
 
 On the demo model, VTE isn't just "working," it's competitive with the reference engine on the same GGUF bytes:
 
-| Model | Hardware | VTE | Reference (Ollama/llama.cpp) | Ratio |
-|---|---|---|---|---|
-| Qwen2.5 1.5B Q4_K_M | RX 7600 | **112.98 tok/s** | 110.76 tok/s | **102.0%** |
-| Granite 4.1 3B Q8_0 | RX 7600 | **55.65 tok/s** | 50.84 tok/s | **109.5%** |
-| Granite 4.1 30B Q8_0 | W7900 | 20.2 tok/s | 22.5 tok/s | 89.8% |
-| Qwen2.5 32B Q4_K_M | W7900 | 22.7 tok/s | 28.56 tok/s | 79.5% |
-| Llama 3.1 8B Q4_K_M | W7900 | 72.68 tok/s | 93.45 tok/s | 77.8% |
-| Llama 3.1 70B Q4_K_M | W7900 | 10.50 tok/s | 14.21 tok/s | 73.9% |
+| Model | Hardware | VTE decode | Reference decode | Ratio | VTE TTFT (s) | Reference TTFT (s) |
+|---|---|---|---|---|---|---|
+| Qwen2.5 1.5B Q4_K_M | RX 7600 | **112.98 tok/s** | 110.76 tok/s | **102.0%** | not separately measured | not separately measured |
+| Granite 4.1 3B Q8_0 | RX 7600 | **55.65 tok/s** | 50.84 tok/s | **109.5%** | not separately measured | not separately measured |
+| Granite 4.1 30B Q8_0 | W7900 | 20.2 tok/s | 22.5 tok/s | 89.8% | 0.63 - 2.28 | 0.13 - 0.33 |
+| Qwen2.5 32B Q4_K_M | W7900 | 22.7 tok/s | 28.56 tok/s | 79.5% | 0.57 - 2.11 | 0.11 - 0.31 |
+| Llama 3.1 8B Q4_K_M | W7900 | 72.68 tok/s | 93.45 tok/s | 77.8% | 0.17 - 0.55 | 0.03 - 0.24 |
+| Llama 3.1 70B Q4_K_M | W7900 | 10.50 tok/s | 14.21 tok/s | 73.9% | 7.62 | 0.22 - 0.41 |
+
+TTFT above is for a short, tool-free prompt (the same 3-prompt methodology behind every row, see `VTE/docs/BENCHMARK_W7900.md`), and VTE is consistently behind the reference engine here: prefill isn't batched yet, a real, documented, deliberately-deferred limitation (see [`VTE/docs/LIMITATIONS.md`](VTE/docs/LIMITATIONS.md#batching-and-prefill)), not something hidden from this table. It gets much worse with Aetheris's actual ~1361-token tool-documentation system prompt in context (measured ~125s TTFT on the 70B checkpoint) -- a real, known cost of the current single-token-at-a-time prefill path, weighed against the risk of touching an already-tuned decode loop this close to the deadline rather than fixed blind.
 
 Real GPU telemetry (`amd-smi`, sampled every ~0.5s) from the W7900 runs above, load through 3 back-to-back generations each, no thermal throttling on any of them, VRAM peaks matching the predicted weights+KV-cache+arena breakdown almost exactly:
 
@@ -148,6 +152,8 @@ Real GPU telemetry (`amd-smi`, sampled every ~0.5s) from the W7900 runs above, l
 | Llama 3.1 70B Q4_K_M | ~42.5 GiB | not sampled | not sampled |
 
 **Bonus criterion (quantization + Radeon Cloud), explicitly:** every model above runs quantized (Q4_K_M/Q6_K/Q8_0, never full-precision weights) as VTE's only supported inference format, not an optional flag, and every W7900 row was measured on an actual AMD Radeon Cloud instance, not simulated or estimated.
+
+A note on "Radeon Cloud model API," specifically: Radeon Cloud also offers a pre-hosted Dedicated Model API, which Aetheris deliberately does not use. Routing through someone else's already-optimized serving layer would mean measuring that service's engine, not this project's own -- the entire point of VTE is running our own quantized inference directly on the GPU. What's demonstrated above is the harder version of this criterion: real quantized inference, this project's own code, actually executing on real Radeon Cloud hardware, not a call to a managed endpoint.
 
 The 70B row is a stretch test past the eight curated models above (70.6B parameters, loaded via VTE's architecture-generic metadata path with zero model-specific code, only reachable at all after unifying a load-time VRAM cap with the runtime safety margin, see `VTE/docs/BENCHMARK_W7900.md`): real evidence the engine scales, not just runs, on hardware well beyond the 8 GB card it was designed against.
 
