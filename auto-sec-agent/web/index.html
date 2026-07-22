@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoSec Platform — AMD AI DevMaster 2026</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Segoe UI',system-ui,sans-serif; background:#0a0e17; color:#e0e0e0; min-height:100vh; }
+.header { background:linear-gradient(135deg,#1a0533,#0d1b2a); padding:20px 40px; border-bottom:2px solid #e62429; display:flex; justify-content:space-between; align-items:center; }
+.header h1 { font-size:24px; color:#e62429; }
+.header h1 span { color:#ffd700; }
+.header .badge { background:#e62429; color:#fff; padding:4px 12px; border-radius:12px; font-size:12px; }
+.stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; padding:24px 40px; }
+.stat-card { background:#131b2e; border-radius:12px; padding:20px; border:1px solid #1e2d50; }
+.stat-card .number { font-size:36px; font-weight:700; color:#fff; }
+.stat-card .label { font-size:13px; color:#8892b0; margin-top:4px; }
+.stat-card.critical { border-color:#e62429; } .stat-card.high { border-color:#ff9800; } .stat-card.medium { border-color:#ffd700; } .stat-card.low { border-color:#4caf50; }
+.stat-card.critical .number { color:#e62429; } .stat-card.high .number { color:#ff9800; } .stat-card.medium .number { color:#ffd700; } .stat-card.low .number { color:#4caf50; }
+.content { display:grid; grid-template-columns:2fr 1fr; gap:20px; padding:0 40px 40px; }
+.card { background:#131b2e; border-radius:12px; border:1px solid #1e2d50; overflow:hidden; margin-bottom:20px; }
+.card-header { padding:16px 20px; border-bottom:1px solid #1e2d50; font-weight:600; display:flex; justify-content:space-between; }
+.card-body { padding:20px; }
+table { width:100%; border-collapse:collapse; }
+th, td { text-align:left; padding:10px 12px; border-bottom:1px solid #1a2340; font-size:13px; }
+th { color:#8892b0; font-weight:500; text-transform:uppercase; font-size:11px; letter-spacing:1px; }
+td { color:#c5c8d4; }
+.status { display:inline-block; padding:2px 8px; border-radius:8px; font-size:11px; font-weight:600; }
+.status.completed { background:#1a3a1a; color:#4caf50; } .status.running { background:#3a2a1a; color:#ff9800; } .status.pending { background:#1a1a3a; color:#5b7dff; } .status.error { background:#3a1a1a; color:#e62429; }
+.scan-btn { background:#e62429; color:#fff; border:none; padding:10px 24px; border-radius:8px; font-size:14px; cursor:pointer; transition:all .2s; margin-top:8px; }
+.scan-btn:hover { background:#ff3333; transform:translateY(-1px); }
+.scan-btn:disabled { opacity:0.5; cursor:not-allowed; }
+input[type="text"] { background:#0d1528; border:1px solid #1e2d50; color:#e0e0e0; padding:10px 16px; border-radius:8px; width:100%; font-size:14px; }
+input[type="text"]:focus { outline:none; border-color:#e62429; }
+.rocm-toggle { display:flex; align-items:center; gap:10px; margin:12px 0; }
+.rocm-toggle input { width:auto; }
+.logs { font-family:'Cascadia Code','Fira Code',monospace; font-size:12px; background:#050810; padding:16px; border-radius:8px; max-height:300px; overflow-y:auto; white-space:pre-wrap; color:#8892b0; }
+.agent-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px; }
+.agent-item { background:#0d1528; border-radius:8px; padding:12px; text-align:center; border:1px solid #1e2d50; }
+.agent-item .name { font-size:12px; color:#8892b0; } .agent-item .status-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px; }
+.status-dot.green { background:#4caf50; } .status-dot.yellow { background:#ff9800; } .status-dot.red { background:#e62429; }
+.dashboard-link { color:#ffd700; text-decoration:none; float:right; font-size:13px; }
+@media(max-width:900px){ .content { grid-template-columns:1fr; } .stats { padding:16px; grid-template-columns:1fr 1fr; } .header { padding:16px; } .content { padding:0 16px 16px; } }
+</style>
+</head>
+<body>
+<div class="header">
+<div><h1>🛡️ AutoSec <span>Platform</span></h1></div>
+<div><span class="badge">AMD AI DevMaster 2026</span></div>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<div class="content">
+<div>
+<div class="card">
+<div class="card-header">🎯 New Scan <a href="#" class="dashboard-link" onclick="refreshAll()">🔄 Refresh</a></div>
+<div class="card-body">
+<input type="text" id="targetInput" placeholder="Enter target domain (e.g., tesla.com)" onkeydown="if(event.key==='Enter')startScan()">
+<div class="rocm-toggle"><input type="checkbox" id="rocmCheck"> <label for="rocmCheck">Enable AMD ROCm GPU Acceleration</label></div>
+<button class="scan-btn" id="scanBtn" onclick="startScan()">🚀 Deploy Agents</button>
+<div id="scanStatus" style="margin-top:12px;"></div>
+</div></div>
+
+<div class="card">
+<div class="card-header">📡 Agent Fleet <span id="agentCount">0 active</span></div>
+<div class="card-body">
+<div class="agent-grid" id="agentGrid"></div>
+</div></div>
+
+<div class="card">
+<div class="card-header">📋 Recent Scans</div>
+<div class="card-body">
+<table><thead><tr><th>Target</th><th>Subs</th><th>Vulns</th><th>Risk</th><th>Status</th></tr></thead>
+<tbody id="scansTable"></tbody></table>
+</div></div>
+</div>
+
+<div>
+<div class="card">
+<div class="card-header">🎯 Targets</div>
+<div class="card-body">
+<table><thead><tr><th>Domain</th><th>Status</th><th>Scanned</th></tr></thead>
+<tbody id="targetsTable"></tbody></table>
+</div></div>
+
+<div class="card">
+<div class="card-header">📜 Live Logs</div>
+<div class="card-body">
+<div class="logs" id="logViewer">Loading...</div>
+</div></div>
+</div></div>
+
+<script>
+async function api(endpoint) {
+    try { const r=await fetch(endpoint); return await r.json(); } catch(e) { return {error:e.message}; }
+}
+
+async function refreshStats() {
+    const stats = await api('/api/stats');
+    if(stats.error) return;
+    document.getElementById('stats').innerHTML = `
+        <div class="stat-card"><div class="number">${stats.total_targets||0}</div><div class="label">🎯 Targets</div></div>
+        <div class="stat-card"><div class="number">${stats.total_scans||0}</div><div class="label">🔍 Scans Completed</div></div>
+        <div class="stat-card critical"><div class="number">${stats.total_vulns||0}</div><div class="label">🛡️ Vulnerabilities</div></div>
+        <div class="stat-card high"><div class="number">${stats.total_subdomains||0}</div><div class="label">🌐 Subdomains Mapped</div></div>
+    `;
+}
+
+async function refreshScans() {
+    const data = await api('/api/scans');
+    if(data.error) return;
+    const tbody = document.getElementById('scansTable');
+    tbody.innerHTML = (data.recent_scans||data||[]).slice(0,10).map(s => `
+        <tr>
+            <td>${s.domain||s.target||'N/A'}</td>
+            <td>${s.subdomains_found||0}</td>
+            <td>${s.vulnerabilities_found||0}</td>
+            <td><span class="status ${(s.risk_level||'LOW').toLowerCase()}">${s.risk_score||0} ${s.risk_level||''}</span></td>
+            <td><span class="status ${s.status||'pending'}">${s.status||'pending'}</span></td>
+        </tr>
+    `).join('');
+}
+
+async function refreshTargets() {
+    const targets = await api('/api/targets');
+    if(targets.error) return;
+    const tbody = document.getElementById('targetsTable');
+    tbody.innerHTML = (targets||[]).slice(0,15).map(t => `
+        <tr><td>${t.domain}</td><td><span class="status ${t.status}">${t.status}</span></td><td>${t.last_scanned||'Never'}</td></tr>
+    `).join('');
+}
+
+async function refreshAgents() {
+    const agents = await api('/api/agents');
+    if(agents.error) return;
+    const grid = document.getElementById('agentGrid');
+    document.getElementById('agentCount').textContent = `${agents.length} agents`;
+    grid.innerHTML = agents.map(a => `
+        <div class="agent-item">
+            <div style="font-size:20px;margin-bottom:4px;">${a.agent_type==='recon'?'🔍':a.agent_type==='vulnerability'?'🛡️':a.agent_type==='ai_analysis'?'🧠':'📋'}</div>
+            <div class="name">${a.name}</div>
+            <div><span class="status-dot ${a.status==='idle'?'green':'yellow'}"></span>${a.status}</div>
+        </div>
+    `).join('');
+}
+
+async function refreshLogs() {
+    const data = await api('/api/log');
+    document.getElementById('logViewer').textContent = data.logs||'No logs';
+}
+
+async function refreshAll() {
+    await Promise.all([refreshStats(), refreshScans(), refreshTargets(), refreshAgents(), refreshLogs()]);
+}
+
+async function startScan() {
+    const target = document.getElementById('targetInput').value.trim();
+    if(!target) { document.getElementById('scanStatus').innerHTML='<span style="color:#ff9800">⚠️ Enter a target domain</span>'; return; }
+    const btn = document.getElementById('scanBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Deploying 4 Agents...';
+    document.getElementById('scanStatus').innerHTML = `<span style="color:#ffd700">🔄 Orchestrating Recon-1, Vuln-1, AI-1, Report-1...</span>`;
+    
+    const result = await fetch('/api/scan', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({target, rocm:document.getElementById('rocmCheck').checked})
+    });
+    const data = await result.json();
+    
+    document.getElementById('scanStatus').innerHTML = `<span style="color:#4caf50">✅ ${data.message || 'Scan started!'}</span>`;
+    btn.disabled = false;
+    btn.textContent = '🚀 Deploy Agents';
+    
+    // Auto-refresh after scan starts
+    setTimeout(refreshAll, 2000);
+    setTimeout(refreshAll, 5000);
+    setTimeout(refreshAll, 10000);
+}
+
+// Auto-refresh every 15 seconds
+refreshAll();
+setInterval(refreshAll, 15000);
+</script>
+</body>
+</html>
