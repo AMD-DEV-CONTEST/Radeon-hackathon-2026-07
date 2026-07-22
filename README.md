@@ -122,12 +122,14 @@ Aetheris needed a local inference engine that runs entirely on an AMD Radeon GPU
 
 | Model | Hardware | VTE | Ollama/llama.cpp | Ratio |
 |---|---|---|---|---|
-| Qwen2.5 1.5B Q4_K_M | RX 7600 (32 CUs, 8 GB) | **112.98 tok/s** | 110.76 tok/s | **102.0%** |
-| Granite 4.1 3B Q8_0 | RX 7600 (32 CUs, 8 GB) | **55.65 tok/s** | 50.84 tok/s | **109.5%** |
+| Qwen2.5 1.5B Q4_K_M | RX 7600 (32 CUs, 8 GB) | **115.14 tok/s** | 110.76 tok/s | **104.0%** |
+| Granite 4.1 3B Q8_0 | RX 7600 (32 CUs, 8 GB) | **57.34 tok/s** | 50.84 tok/s | **112.8%** |
 | Granite 4.1 30B Q8_0 | W7900 (96 CUs, 48 GB) | 20.2 tok/s | 22.5 tok/s | 89.8% |
 | Qwen2.5 32B Q4_K_M | W7900 (96 CUs, 48 GB) | 22.7 tok/s | 28.56 tok/s | 79.5% |
-| Llama 3.1 8B Q4_K_M | W7900 (96 CUs, 48 GB) | 72.68 tok/s | 93.45 tok/s | 77.8% |
+| Llama 3.1 8B Q4_K_M | W7900 (96 CUs, 48 GB) | **79.54 tok/s** | 93.45 tok/s | 85.1% |
 | Llama 3.1 70B Q4_K_M | W7900 (96 CUs, 48 GB) | 10.50 tok/s | 14.21 tok/s | 73.9% |
+
+VTE's numbers above are the current build (2026-07 batched-prefill/stochastic-sampling pass); Ollama's are unchanged, llama.cpp itself didn't move. Granite 30B, Qwen 32B, and Llama 70B weren't part of that pass (not measured under the new defaults yet), so those three rows are still the earlier numbers.
 
 Real GPU telemetry (`amd-smi`, sampled every ~0.5s) from the W7900 runs above, load through 3 back-to-back generations each, no thermal throttling on any of them:
 

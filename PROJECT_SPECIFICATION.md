@@ -133,12 +133,14 @@ On the demo model, VTE isn't just "working," it's competitive with the reference
 
 | Model | Hardware | VTE decode | Reference decode | Ratio | VTE TTFT (s) | Reference TTFT (s) |
 |---|---|---|---|---|---|---|
-| Qwen2.5 1.5B Q4_K_M | RX 7600 | **112.98 tok/s** | 110.76 tok/s | **102.0%** | not separately measured | not separately measured |
-| Granite 4.1 3B Q8_0 | RX 7600 | **55.65 tok/s** | 50.84 tok/s | **109.5%** | not separately measured | not separately measured |
+| Qwen2.5 1.5B Q4_K_M | RX 7600 | **115.14 tok/s** | 110.76 tok/s | **104.0%** | not separately measured | not separately measured |
+| Granite 4.1 3B Q8_0 | RX 7600 | **57.34 tok/s** | 50.84 tok/s | **112.8%** | not separately measured | not separately measured |
 | Granite 4.1 30B Q8_0 | W7900 | 20.2 tok/s | 22.5 tok/s | 89.8% | 0.63 - 2.28 | 0.13 - 0.33 |
 | Qwen2.5 32B Q4_K_M | W7900 | 22.7 tok/s | 28.56 tok/s | 79.5% | 0.57 - 2.11 | 0.11 - 0.31 |
-| Llama 3.1 8B Q4_K_M | W7900 | 72.68 tok/s | 93.45 tok/s | 77.8% | 0.17 - 0.55 | 0.03 - 0.24 |
+| Llama 3.1 8B Q4_K_M | W7900 | **79.54 tok/s** | 93.45 tok/s | 85.1% | 0.17 - 0.55 | 0.03 - 0.24 |
 | Llama 3.1 70B Q4_K_M | W7900 | 10.50 tok/s | 14.21 tok/s | 73.9% | 7.62 | 0.22 - 0.41 |
+
+VTE's decode numbers above are the current build (2026-07 batched-prefill/stochastic-sampling pass); the reference engine's numbers are unchanged, since llama.cpp itself didn't move. Granite 30B, Qwen 32B, and Llama 70B weren't re-measured under the new defaults yet, so those three rows still reflect the earlier pass.
 
 TTFT above is for a short, tool-free prompt (the same 3-prompt methodology behind every row, see `VTE/docs/BENCHMARK_W7900.md`), predating a 2026-07 change and not yet re-measured under it: these prompts are shorter than the batched-prefill chunk size (64 tokens, see below), so they wouldn't exercise that path anyway and the numbers above still reflect the single-token-at-a-time prefill loop. It got much worse with Aetheris's actual ~1361-token tool-documentation system prompt in context (measured ~125s TTFT on the 70B checkpoint) -- exactly the scenario batched prefill now targets.
 
