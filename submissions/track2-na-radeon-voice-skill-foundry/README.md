@@ -26,7 +26,8 @@ requires explicit human promotion.
    `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/RADEON_VOICE_SKILL_FOUNDRY_PERFORMANCE_DEMO.mp4`
 8. Continuous Operation Demo:
    `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/CONTINUOUS_OPERATION_DEMO.mp4`
-9. Package integrity: `SHA256SUMS.txt`
+9. Release package integrity:
+   `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/SHA256SUMS.txt`
 10. Source:
    `https://github.com/Chengyuann/radeon-voice-skill-foundry`
 
