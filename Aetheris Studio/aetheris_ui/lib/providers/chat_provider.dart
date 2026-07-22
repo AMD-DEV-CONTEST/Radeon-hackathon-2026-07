@@ -247,6 +247,11 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
     // so the chat bubble showed the model's literal ```tool_name fenced
     // blocks and prose preambles inline instead of just the real reply.
     final buffer = StringBuffer();
+    // Live counter for 'reasoning_delta' events (see below) -- reset per
+    // round the same way tool_start/tool_output already reset
+    // thinkingStatus, just tracked separately since reasoning text itself
+    // is never shown inline, only its progress.
+    var reasoningTokenCount = 0;
     // Set only by confirm_tool/browser_action below, to agent.py's already-
     // truncated assistant_text (see that event's docstring in agent.py):
     // when the model bundles two tool calls into one response, only the
@@ -277,6 +282,20 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
           final errMsg = event.data['error']?.toString() ?? 'Unknown error';
           buffer.write('⚠️ Error generating response: $errMsg');
           _updateStreamingMessage(chatId, buffer.toString());
+        } else if (event.type == 'reasoning_delta') {
+          // A reasoning-capable backend's internal chain-of-thought (see
+          // agent.py's stream_agent -- content from delta.reasoning,
+          // never mixed into `buffer`/the visible reply). VTE's own local
+          // models never emit this event at all, so this branch is a
+          // no-op on the judge's real local run; it only fires against a
+          // reasoning model that can otherwise burn its whole token
+          // budget silently (measured: up to 122s with zero visible
+          // output under the old contract). Reuses the existing
+          // thinkingStatus label -- no new panel/UI needed -- so it's
+          // visible within the first second or two instead of staying
+          // dark for the entire reasoning phase.
+          reasoningTokenCount++;
+          state = state.copyWith(thinkingStatus: 'Thinking... ($reasoningTokenCount)');
         } else if (event.type == 'ask_user') {
           final completer = Completer<String>();
           _askUserCompleter = completer;

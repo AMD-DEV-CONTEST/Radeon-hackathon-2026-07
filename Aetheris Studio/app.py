@@ -582,21 +582,25 @@ async def chat_completions_stream(body: ChatCompletionRequest, http_request: Req
         from core.utils.vte_bridge import VTE_DEFAULT_MODEL
         from core.utils.settings import get_setting
         from core.auth import AuthManager
+        from core.utils.reasoning_budget import suggest_max_tokens
 
         owner = AuthManager().current_username()
         model = get_setting("default_model") or VTE_DEFAULT_MODEL
 
         messages_dict = [{"role": msg.role, "content": msg.content} for msg in body.messages]
+        last_user_text = next(
+            (m["content"] for m in reversed(messages_dict) if m.get("role") == "user"), ""
+        )
         generator = stream_agent(
             model=model,
             messages=messages_dict,
             temperature=body.temperature if body.temperature is not None else 0.3,
-            max_tokens=body.max_tokens or 4096,
+            max_tokens=suggest_max_tokens(last_user_text, body.max_tokens),
             owner=owner,
             mode=body.mode or "builder",
             request=http_request,
         )
-        return StreamingResponse(generator, media_type="text/event-stream")
+        return StreamingResponse(generator, media_type="text/event-stream", headers={"Cache-Control": "no-cache"})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

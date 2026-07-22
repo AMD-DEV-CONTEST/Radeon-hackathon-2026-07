@@ -62,9 +62,30 @@ class _ServerState:
     # `decoding_speed_tps` already uses everywhere else in this file.
     live_generation_start: Optional[float] = None
     live_tokens_generated: int = 0
+    # Keyed by (sorted choices tuple, trigger): building a ChoiceConstraint
+    # walks the whole vocabulary once (~0.5s measured on a 128K-token
+    # tokenizer -- see vte/core/constrained_decoding.py), too slow to pay
+    # on every single request in a hot agent loop that sends the same
+    # fixed tool-name list every round. Safe to key on choices/trigger
+    # alone (not also on the model): this process serves exactly one
+    # VTEModel/tokenizer for its whole lifetime -- switching models means
+    # a fresh vte-server subprocess (see vte_bridge.py's ensure_server),
+    # never a swap in place.
+    choice_constraint_cache: dict = {}
 
 
 state = _ServerState()
+
+
+def _get_choice_constraint(choices: list, trigger: str):
+    from vte.core.constrained_decoding import ChoiceConstraint
+    key = (tuple(sorted(choices)), trigger)
+    cached = state.choice_constraint_cache.get(key)
+    if cached is not None:
+        return cached
+    constraint = ChoiceConstraint(state.model.tokenizer, choices, trigger=trigger)
+    state.choice_constraint_cache[key] = constraint
+    return constraint
 
 
 # --------------------------------------------------------------------------
@@ -360,6 +381,22 @@ async def chat_completions(request: Request):
     request_id = f"chatcmpl-{uuid.uuid4().hex[:24]}"
     model_name = body.get("model", "vte")
 
+    # Non-standard OpenAI extension (same idea as vLLM's guided_choice /
+    # llama.cpp server's grammar field): when set, forces generation to
+    # complete exactly one of `guided_choices` from the moment
+    # `guided_choice_trigger` appears in the output stream -- see
+    # vte/core/constrained_decoding.py. Optional and additive; a request
+    # without it behaves exactly as before this existed.
+    guided_choices = body.get("guided_choices")
+    choice_constraint = None
+    if guided_choices:
+        try:
+            choice_constraint = _get_choice_constraint(
+                guided_choices, body.get("guided_choice_trigger", "```")
+            )
+        except ValueError as e:
+            return JSONResponse({"error": {"message": str(e), "type": "invalid_request_error"}}, status_code=400)
+
     prompt = state.model.tokenizer.apply_chat_template(messages)
     prompt_tokens = len(state.model.tokenizer.encode(prompt))
 
@@ -372,7 +409,7 @@ async def chat_completions(request: Request):
                 state.model.generate(
                     prompt, max_tokens=max_tokens, temperature=temperature,
                     top_p=top_p, top_k=top_k, repetition_penalty=repetition_penalty,
-                    stats=gen_stats,
+                    stats=gen_stats, choice_constraint=choice_constraint,
                 )
             )
         except (HIPSafetyError, HIPRuntimeError, VTEError) as e:
@@ -412,7 +449,7 @@ async def chat_completions(request: Request):
     gen = state.model.generate(
         prompt, max_tokens=max_tokens, temperature=temperature,
         top_p=top_p, top_k=top_k, repetition_penalty=repetition_penalty,
-        stats=gen_stats,
+        stats=gen_stats, choice_constraint=choice_constraint,
     )
     gen_thread = threading.Thread(
         target=_run_generation, args=(gen, out_queue, loop, stop_event, _generation_lock, gen_stats), daemon=True,

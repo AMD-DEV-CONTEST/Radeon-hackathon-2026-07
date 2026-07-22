@@ -10,11 +10,11 @@ so nothing on the frontend needs to change.
 import asyncio
 import json
 import logging
-from typing import AsyncGenerator, Dict, List, Optional
+from typing import AsyncGenerator, Dict, List, Optional, Tuple
 
 from core.utils.tools import (
-    TOOLS_SYSTEM_PROMPT, TOOL_REGISTRY, CLIENT_EXECUTED_TOOLS, parse_tool_call, strip_tool_call,
-    is_risky_bash_command, render_todo_action,
+    TOOLS_SYSTEM_PROMPT, TOOL_REGISTRY, CLIENT_EXECUTED_TOOLS, ALL_TOOL_NAMES, parse_tool_call,
+    strip_tool_call, is_risky_bash_command, render_todo_action, find_unmatched_tool_attempt,
 )
 
 logger = logging.getLogger(__name__)
@@ -48,6 +48,13 @@ def _needs_confirmation(tool_name: str, tool_content: str) -> bool:
 # itself instead of making progress. One repeat gets a nudge instead of a
 # re-execution; a second consecutive repeat breaks the loop outright.
 MAX_REPEAT_NUDGES = 1
+
+# Same one-shot-nudge shape as MAX_REPEAT_NUDGES, for a different failure
+# mode: a fenced block whose tag isn't any real tool (see
+# tools.py::find_unmatched_tool_attempt). One correction naming the real
+# tools is usually enough; a model that still can't produce a valid name
+# after that isn't going to succeed by being told again.
+MAX_UNMATCHED_TOOL_RETRIES = 1
 
 IDENTITY_PROMPT = (
     "You are Aetheris, a local AI coding/personal assistant running entirely on the "
@@ -121,7 +128,10 @@ async def _generate_with_retry(
     from core.utils.vte_bridge import stream_generate
 
     for attempt in range(MAX_DEGENERATE_RETRIES + 1):
-        gen = stream_generate(model, conversation, temperature=temperature, max_tokens=max_tokens)
+        gen = stream_generate(
+            model, conversation, temperature=temperature, max_tokens=max_tokens,
+            guided_choices=sorted(ALL_TOOL_NAMES), guided_choice_trigger="```",
+        )
         # `gen` wraps an `async with client.stream(...)` in vte_bridge.py --
         # its httpx connection to vte-server only actually closes when THAT
         # block exits. If this whole function's own generator gets
@@ -134,23 +144,36 @@ async def _generate_with_retry(
         # regardless, which is exactly why Cancelar in the UI never
         # actually stopped the remote generation.
         try:
-            buffer: List[str] = []
+            # Only "content" chunks count toward the degenerate-response
+            # peek/retry -- "reasoning" is never the reply, so it can't be
+            # degenerate in the sense _is_degenerate checks (echoing the
+            # user's own message back), and buffering it here would just
+            # delay a real reasoning-capable model's visible "thinking"
+            # signal behind an arbitrary DEGENERATE_PEEK_TOKENS threshold
+            # for no reason. Reasoning chunks pass straight through,
+            # uncounted and unbuffered.
+            buffer: List[Tuple[str, str]] = []
             exhausted = True
-            async for token in gen:
-                buffer.append(token)
+            async for chunk in gen:
+                kind, text = chunk
+                if kind == "reasoning":
+                    yield chunk
+                    continue
+                buffer.append(chunk)
                 if len(buffer) >= DEGENERATE_PEEK_TOKENS:
                     exhausted = False
                     break
 
-            if exhausted and attempt < MAX_DEGENERATE_RETRIES and _is_degenerate("".join(buffer), last_user_message):
-                logger.warning("Degenerate response on attempt %d, retrying: %r", attempt + 1, "".join(buffer))
+            peeked_text = "".join(text for _, text in buffer)
+            if exhausted and attempt < MAX_DEGENERATE_RETRIES and _is_degenerate(peeked_text, last_user_message):
+                logger.warning("Degenerate response on attempt %d, retrying: %r", attempt + 1, peeked_text)
                 continue
 
-            for token in buffer:
-                yield token
+            for chunk in buffer:
+                yield chunk
             if not exhausted:
-                async for token in gen:
-                    yield token
+                async for chunk in gen:
+                    yield chunk
             return
         finally:
             await gen.aclose()
@@ -184,6 +207,7 @@ async def stream_agent(
 
     last_executed_call: Optional[tuple] = None
     consecutive_repeats = 0
+    unmatched_tool_retries = 0
     # Scoped to this one turn only -- not persisted to disk or across
     # separate chat messages, see tools.py::render_todo_action's docstring.
     todo_list: List[Dict] = []
@@ -219,12 +243,25 @@ async def stream_agent(
                         return
                     continue
                 try:
-                    token = next_task.result()
+                    kind, text = next_task.result()
                 except StopAsyncIteration:
                     break
                 next_task = asyncio.ensure_future(token_gen.__anext__())
-                full_text += token
-                yield _sse_delta(token)
+                if kind == "reasoning":
+                    # Never touches full_text -- parse_tool_call/
+                    # find_unmatched_tool_attempt must only ever see real
+                    # content, not a model's internal scratch reasoning
+                    # (which routinely contains stray ``` sequences that
+                    # would otherwise get misread as an attempted tool
+                    # call). Surfaced as its own SSE event instead of a
+                    # delta so the client can show it as live "thinking"
+                    # activity distinct from the actual reply -- see
+                    # chat_provider.dart's 'reasoning_delta' handling.
+                    yield _sse_event("reasoning_delta", {"text": text})
+                    token_count += 1
+                    continue
+                full_text += text
+                yield _sse_delta(text)
                 token_count += 1
                 # Also checked here, not just on the idle-wait above: once
                 # tokens start flowing, they can arrive faster than 1/sec
@@ -247,6 +284,19 @@ async def stream_agent(
 
         tool_call = parse_tool_call(full_text)
         if not tool_call:
+            bad_tag = find_unmatched_tool_attempt(full_text)
+            if bad_tag and unmatched_tool_retries < MAX_UNMATCHED_TOOL_RETRIES:
+                unmatched_tool_retries += 1
+                conversation.append({"role": "assistant", "content": full_text})
+                conversation.append({
+                    "role": "user",
+                    "content": (
+                        f"`{bad_tag}` isn't a real tool -- nothing ran. Available tools: "
+                        f"{', '.join(sorted(ALL_TOOL_NAMES))}. Pick one of these exact names, "
+                        "or reply in plain text if no tool is actually needed."
+                    ),
+                })
+                continue
             break
 
         tool_name, tool_content = tool_call

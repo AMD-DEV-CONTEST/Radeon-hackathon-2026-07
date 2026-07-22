@@ -120,6 +120,47 @@ def strip_tool_call(text: str) -> str:
     return text[:fence_end].strip()
 
 
+# Fence languages a model legitimately reaches for when SHOWING code in a
+# normal reply (e.g. "here's an example:\n```python\n...\n```"), never when
+# ATTEMPTING a tool call -- excluded so find_unmatched_tool_attempt doesn't
+# fire on ordinary code snippets, only on tags that look like a guessed tool
+# name.
+_NON_TOOL_FENCE_LANGS = {
+    "python", "py", "javascript", "js", "typescript", "ts", "html", "css",
+    "json", "yaml", "yml", "xml", "sql", "java", "c", "cpp", "csharp", "rust",
+    "go", "ruby", "php", "dart", "kotlin", "swift", "text", "plaintext",
+    "markdown", "md", "diff", "shell", "sh", "powershell", "toml", "ini",
+}
+
+
+def find_unmatched_tool_attempt(text: str) -> Optional[str]:
+    """Returns the raw tag name if `text` (stripped) is nothing but a single
+    fenced block whose tag doesn't resolve to any real tool (even through
+    _resolve_tag's separator-tolerant matching) and doesn't look like an
+    ordinary code-example language -- a strong signal the model tried to
+    call a tool that doesn't exist rather than just showing example code.
+
+    Confirmed a real failure mode against Qwen3.6-35B-A3B (external Model
+    API testing): asked a vague "what does this codebase do?" question, it
+    called the real `list_files` tool fine, then guessed a plausible but
+    unregistered `read_files` (plural, confusing it with the real
+    `write_files`) to read them all at once, inventing its own `<paths>...
+    </paths>` syntax that appears nowhere in TOOLS_SYSTEM_PROMPT. Because
+    the tag matched no real tool, the whole turn silently ended with that
+    raw fence as the "reply" -- no error, no retry, nothing readable shown
+    to the user. Requiring the ENTIRE response to be just the one fence
+    (not merely containing one) is what keeps this from firing on a normal
+    reply that happens to include a code block among other prose."""
+    stripped = text.strip()
+    match = _FENCE_OPEN_RE.match(stripped)
+    if not match or not stripped.endswith("```"):
+        return None
+    raw_tag = match.group(1).strip().lower()
+    if _resolve_tag(raw_tag) is not None or raw_tag in _NON_TOOL_FENCE_LANGS:
+        return None
+    return raw_tag
+
+
 def _truncate(text: str, limit: int = MAX_OUTPUT_CHARS) -> str:
     if len(text) <= limit:
         return text

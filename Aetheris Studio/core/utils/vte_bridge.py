@@ -23,7 +23,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import AsyncGenerator, Dict, List, Optional
+from typing import AsyncGenerator, Dict, List, Optional, Tuple
 
 import httpx
 
@@ -232,23 +232,118 @@ def generate_once(model_name: str, messages: List[Dict], temperature: float = 0.
     return data["choices"][0]["message"]["content"]
 
 
+# Idle-timeout for the streaming HTTP read (Camada 1): generous enough to
+# never trip during a normal generation burst (real traffic emits a chunk
+# every ~20-25ms), only on a genuine stall -- a dead connection, a hung
+# backend, or a cold start slower than this. Applied to the httpx read
+# itself, never to agent.py's token_gen.__anext__() -- wrapping THAT in
+# asyncio.wait_for is a proven bug in this codebase (see stream_agent's
+# own comment on why it uses asyncio.wait() instead): cancelling an
+# in-flight __anext__() on our own hand-rolled generator corrupts it.
+# httpx's own aiter_lines() is a plain network read, safe to cancel this
+# way -- the enclosing `async with client.stream(...)` still tears the
+# response down cleanly either way.
+_IDLE_TIMEOUT_S = 45.0
+
+_shared_client: Optional[httpx.AsyncClient] = None
+_shared_client_lock = threading.Lock()
+
+
+def _get_shared_client() -> httpx.AsyncClient:
+    """Module-level httpx client, created once and reused across every
+    stream_generate() call instead of opening a fresh connection per call
+    (Camada 3). Matters most for the external-Model-API experiment path
+    (a real internet TLS handshake per call); for the local vte-server
+    (loopback, no TLS) the saving is negligible, but reusing one client is
+    free and backend-agnostic, so there's no reason to special-case it."""
+    global _shared_client
+    if _shared_client is None:
+        with _shared_client_lock:
+            if _shared_client is None:
+                _shared_client = httpx.AsyncClient(
+                    timeout=httpx.Timeout(None, connect=10.0),
+                    limits=httpx.Limits(max_keepalive_connections=5, keepalive_expiry=120.0),
+                )
+    return _shared_client
+
+
 async def stream_generate(
-    model_name: str, messages: List[Dict], temperature: float = 0.3, max_tokens: int = 4096
-) -> AsyncGenerator[str, None]:
-    """Async generator yielding text deltas from vte-server's OpenAI-shaped
-    streaming endpoint (`data: {"choices":[{"delta":{"content": "..."}}]}`,
-    ending on `data: [DONE]`)."""
+    model_name: str, messages: List[Dict], temperature: float = 0.3, max_tokens: int = 4096,
+    guided_choices: Optional[List[str]] = None, guided_choice_trigger: str = "```",
+) -> AsyncGenerator[Tuple[str, str], None]:
+    """Async generator yielding (kind, text) pairs from vte-server's
+    OpenAI-shaped streaming endpoint (`data: {"choices":[{"delta":{...}}]}`,
+    ending on `data: [DONE]`). `kind` is "content" (the real reply) or
+    "reasoning" (a reasoning-capable backend's internal chain-of-thought,
+    read from `delta.reasoning`).
+
+    Previously yielded plain str deltas from `delta.content` only, with
+    `delta.reasoning` silently dropped. Confirmed directly against the
+    external Model API bridge that this is a real, costly gap: a
+    reasoning-heavy model can spend its ENTIRE max_tokens budget on
+    `reasoning` and never produce a single `content` token -- under the
+    old contract that meant total silence for the whole generation (up to
+    122s measured), indistinguishable from a hang. vte-server itself never
+    populates `delta.reasoning`, so the local/production path only ever
+    yields ("content", ...) tuples here -- behavior identical to before
+    this became a tuple, just wrapped. Callers (agent.py::
+    _generate_with_retry) unpack the tuple and route "reasoning" text to
+    its own SSE event instead of mixing it into the real reply or the
+    tool-call-parsing buffer.
+
+    `guided_choices` (optional): passed straight through as vte-server's
+    non-standard `guided_choices`/`guided_choice_trigger` extension (see
+    VTE/vte/core/constrained_decoding.py) -- when set, VTE masks logits at
+    the token level so generation can only complete one of these exact
+    strings once `guided_choice_trigger` appears in the output. Used by
+    agent.py to make it structurally impossible for VTE-served local
+    models to hallucinate a tool name that isn't in TOOL_REGISTRY (a real,
+    reproducible failure mode confirmed against Qwen3.6-35B-A3B -- see
+    find_unmatched_tool_attempt in tools.py, which stays in place as a
+    second layer for whatever this can't cover, e.g. non-VTE model
+    providers with no logit access at all)."""
     await asyncio.to_thread(ensure_server, model_name)
-    async with httpx.AsyncClient(timeout=httpx.Timeout(None, connect=10.0)) as client:
+    body = {
+        "model": model_name, "messages": messages,
+        "temperature": temperature, "max_tokens": max_tokens, "stream": True,
+    }
+    if guided_choices:
+        body["guided_choices"] = guided_choices
+        body["guided_choice_trigger"] = guided_choice_trigger
+    client = _get_shared_client()
+
+    # Camada 4 telemetry: same naming convention as VTE's own generate()
+    # stats (prefill_duration_ttft/decoding_speed_tps, the FastFlowLM/
+    # Lemonade-compatible convention), extended with a reasoning/content
+    # split that only means something for a backend that actually emits
+    # delta.reasoning. Chunk counts, not exact tokenizer counts -- this
+    # bridge never tokenizes (vte-server/the external API do that
+    # server-side), but one SSE delta chunk approximates one token closely
+    # enough for a log line, not billed/exact accounting. Logged once,
+    # via a `finally` so it fires on every exit path (normal [DONE],
+    # dropped connection, or the generator being cancelled/.aclose()'d
+    # mid-stream by a caller), not just the happy path.
+    t_start = time.perf_counter()
+    first_reasoning_ts: Optional[float] = None
+    first_content_ts: Optional[float] = None
+    reasoning_chunks = 0
+    content_chunks = 0
+    try:
         async with client.stream(
             "POST", f"{_SERVER_BASE_URL}/v1/chat/completions",
-            json={
-                "model": model_name, "messages": messages,
-                "temperature": temperature, "max_tokens": max_tokens, "stream": True,
-            },
+            json=body,
         ) as resp:
             resp.raise_for_status()
-            async for line in resp.aiter_lines():
+            line_iter = resp.aiter_lines()
+            while True:
+                try:
+                    line = await asyncio.wait_for(line_iter.__anext__(), timeout=_IDLE_TIMEOUT_S)
+                except StopAsyncIteration:
+                    return
+                except asyncio.TimeoutError:
+                    raise TimeoutError(
+                        f"Nenhum token recebido em {_IDLE_TIMEOUT_S:.0f}s -- geração travou ou a conexão caiu."
+                    )
                 if not line.startswith("data: "):
                     continue
                 payload = line[len("data: "):]
@@ -258,6 +353,27 @@ async def stream_generate(
                 if "error" in chunk:
                     raise RuntimeError(chunk["error"].get("message", "Erro no vte-server"))
                 choices = chunk.get("choices") or []
-                content = choices[0].get("delta", {}).get("content") if choices else None
+                delta = (choices[0].get("delta") or {}) if choices else {}
+                reasoning = delta.get("reasoning")
+                if reasoning:
+                    if first_reasoning_ts is None:
+                        first_reasoning_ts = time.perf_counter()
+                    reasoning_chunks += 1
+                    yield ("reasoning", reasoning)
+                content = delta.get("content")
                 if content:
-                    yield content
+                    if first_content_ts is None:
+                        first_content_ts = time.perf_counter()
+                    content_chunks += 1
+                    yield ("content", content)
+    finally:
+        if first_reasoning_ts is not None or first_content_ts is not None:
+            ttft_reasoning_ms = (first_reasoning_ts - t_start) * 1000 if first_reasoning_ts else None
+            ttft_content_ms = (first_content_ts - t_start) * 1000 if first_content_ts else None
+            logger.info(
+                "vte_bridge stream stats: ttft_reasoning_ms=%s ttft_content_ms=%s "
+                "reasoning_tokens=%d content_tokens=%d model=%s",
+                f"{ttft_reasoning_ms:.0f}" if ttft_reasoning_ms is not None else "n/a",
+                f"{ttft_content_ms:.0f}" if ttft_content_ms is not None else "n/a",
+                reasoning_chunks, content_chunks, model_name,
+            )

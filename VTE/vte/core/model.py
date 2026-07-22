@@ -21,6 +21,7 @@ from ..compiler.gguf_parser import GGUFParser
 from ..compiler.weight_loader import GGUFWeightLoader
 from ..core.lm_head import LMHead
 from ..core.incremental_decoder import IncrementalUTF8Decoder
+from ..core.constrained_decoding import ChoiceConstraint
 import os
 import time
 import threading
@@ -897,8 +898,20 @@ class VTEModel:
         top_k: int = 50,
         repetition_penalty: float = None,
         stats: dict = None,
+        choice_constraint: Optional[ChoiceConstraint] = None,
     ):
         """Gera texto como um Generator, permitindo interrupção caller-side.
+
+        `choice_constraint` (opcional): um vte.core.constrained_decoding.
+        ChoiceConstraint já construído para este mesmo tokenizer -- quando
+        passado, mascara os logits em cada passo de decode assim que o
+        gatilho da constraint aparece no texto decodificado, restringindo
+        a geração a completar exatamente uma das strings permitidas
+        (equivalente a outlines.generate.choice(), ver o docstring do
+        módulo). Builder do constraint fica por conta do chamador (ex.:
+        vte-server, a partir de um campo da requisição) -- este método só
+        aplica o mask a cada passo e avança o estado, sem saber nada sobre
+        o que as escolhas representam.
 
         `stats` (opcional): se um dict for passado, ao fim da geração normal
         recebe `completion_tokens` = número de tokens REALMENTE gerados
@@ -1075,9 +1088,32 @@ class VTEModel:
         # a stop token is actually sampled.
         finish_reason = "length"
 
+        constraint_state = choice_constraint.new_state() if choice_constraint is not None else None
+
         for i in range(max_tokens):
             t_tok_start = time.perf_counter() if _KERNEL_PROFILER.enabled else 0.0
-            if use_topk:
+            # A masked step needs the FULL logits array (the topk-candidate
+            # GPU path never reads it back at all -- see _get_logits_ptr's
+            # comment above), so an active constraint forces one extra
+            # readback for just this token even on the greedy fast path.
+            # lm_head.logits_buffer is populated by the graph replay either
+            # way (use_topk only decides whether the topk-reduce kernel
+            # ALSO ran in the same replay), so this doesn't require
+            # recapturing the graph or touching use_topk's own bookkeeping.
+            if choice_constraint is not None and constraint_state.active and use_topk:
+                logits = _read_logits()
+            if choice_constraint is not None and constraint_state.active:
+                logits = choice_constraint.apply_mask(logits, constraint_state)
+                next_token = self.sampler.sample(
+                    logits=logits,
+                    temperature=temperature,
+                    top_p=top_p,
+                    top_k=top_k,
+                    repetition_penalty=1.0,
+                    generated_tokens=None,
+                    ignore_tokens=None,
+                )
+            elif use_topk:
                 next_token = Sampler.pick_greedy_from_gpu_candidates(
                     group_values, group_indices, gathered_values, unique_ids, counts, repetition_penalty
                 )
@@ -1103,6 +1139,17 @@ class VTEModel:
 
             input_tokens.append(next_token)
             word = utf8_decoder.feed(self.tokenizer.decode_bytes([next_token]))
+            if choice_constraint is not None:
+                # observe_token BEFORE observe_text: advances an ALREADY-
+                # active state using this token first, THEN checks for a
+                # fresh trigger match -- calling them in the other order
+                # would let the very token that just completed the
+                # trigger get double-consumed as if it were also the
+                # first token of the choice itself (confirmed by a real
+                # failure while building this: reversing the order made
+                # every choice immediately dead-end on its first token).
+                constraint_state = choice_constraint.observe_token(constraint_state, next_token)
+                constraint_state = choice_constraint.observe_text(constraint_state, word)
             if word:
                 yield word
 
