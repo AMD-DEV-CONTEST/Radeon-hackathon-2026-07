@@ -3,11 +3,11 @@
 Live product:
 `https://radeon-voice-skill-foundry.pages.dev/`
 
-Recommended final Demo V3:
-`https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V3.mp4`
+Product Demo:
+`https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/RADEON_VOICE_SKILL_FOUNDRY_DEMO.mp4`
 
-Demo V3 captions:
-`https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V3.srt`
+Demo captions:
+`https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/RADEON_VOICE_SKILL_FOUNDRY_DEMO.srt`
 
 ## Speak the SOP. Prove the Skill.
 
@@ -148,7 +148,7 @@ The architecture has eight deployment and execution layers:
    - exact skill reuse without model replanning
    - proof compatibility, invalidation, and child-run revalidation
 
-See `ARCHITECTURE.png` for the final diagram.
+See `ARCHITECTURE.png` for the system diagram.
 
 ## 5. Core Capabilities
 
@@ -167,7 +167,7 @@ separates allowed, review-required, and denied operations.
 
 ### 5.3 Real Demonstration Workspace
 
-New runs no longer receive a preset action trace. The Voice module contains a
+Runs do not receive a preset action trace. The Voice module contains a
 deterministic project-review workspace where the user performs six real UI
 commands:
 
@@ -191,7 +191,7 @@ contract hash into the proof core. The exported proof ZIP includes a separate
 `action_contract.json` for direct inspection of the trusted demonstration
 independently from the generated policy.
 
-### 5.3.1 Sandbox Replay v1
+### 5.3.1 Sandbox Replay
 
 The trusted action contract is replayed against an isolated deterministic
 workspace rather than represented only as a test label. Each of the six steps
@@ -213,9 +213,10 @@ fail-closed probes:
 4. missing-owner guessing
 5. outbound network write
 
-Any failed replay step or probe quarantines the skill. Proof schema v0.4 binds
-the complete replay and verifier v0.4 identity; older proofs require
-revalidation. The proof ZIP exposes the machine-readable result as
+Any failed replay step or probe quarantines the skill. The proof schema binds
+the complete replay and verifier identity. Proofs whose compatibility manifest
+does not match the active runtime require revalidation. The proof ZIP exposes
+the machine-readable result as
 `sandbox_replay.json`.
 
 ### 5.4 Multi-Step Planning
@@ -282,6 +283,11 @@ between the ledger and each skill's embedded governance receipts. Modified
 payloads, deleted tail events, and deleted middle events produce an explicit
 `invalid` ledger with issue details.
 
+The bundled `GOVERNANCE_LEDGER.jsonl` is the Product Demo sample and contains
+two `PROMOTE` entries. Supersede, revoke, and rollback are implemented product
+actions covered by the regression suite; the submission does not claim that
+all four action types appear in this sample export.
+
 Existing pre-ledger receipts are imported once, in deterministic timestamp and
 receipt-ID order, only when no ledger exists. Subsequent reads never repair a
 non-empty ledger, so deletion or tampering remains observable. New governance
@@ -306,10 +312,10 @@ High-risk policy is enforced ahead of model output. In the reference scenario:
 - unapproved network writes are denied
 - compensation and identifiers are redacted
 
-The original Radeon proof path preserved `mail.send = deny` and passed 6/6
+The text-only workflow proof preserves `mail.send = deny` and passes 6/6
 workflow fixtures. Audio-backed promotion adds the Voice Evidence Gate as a
-seventh critical fixture. The final Radeon rerun passed all 7/7 fixtures while
-using a server-authoritative compile run.
+seventh critical fixture. The pinned Radeon audio-backed run passes all 7/7
+fixtures while using a server-authoritative compile run.
 
 ### 5.7 Voice Evidence and Promotion Control
 
@@ -323,7 +329,7 @@ The existing synthetic Chinese SOP WAV measured 20.39 seconds at 16 kHz mono,
 producing an internal quality-gate result of `pass / 100`. This value is not a
 word-error-rate or external ASR benchmark.
 
-Voice Evidence v0.3 also measures estimated SNR, noise floor, speech level,
+Voice Evidence also measures estimated SNR, noise floor, speech level,
 crest factor, DC offset, short dropout, multi-frame burst loss, and channel
 imbalance. On the W7900 robustness suite, clean audio passed at 100, a 120 ms
 burst loss entered review at 88, and a 280 ms burst loss was quarantined at 65.
@@ -357,9 +363,9 @@ Browser audio is converted to 16 kHz mono WAV before local transcription.
 - Architecture: `gfx1100`
 - VRAM: 47.98 GiB
 - ROCm: 7.2.1
-- Weekend v10 PyTorch: 2.9.1 ROCm
-- Weekend v10 vLLM: 0.16.1 development ROCm build
-- Weekend v10 Triton: 3.5.1
+- Radeon experiment PyTorch: 2.9.1 ROCm
+- Radeon experiment vLLM: 0.16.1 development ROCm build
+- Radeon experiment Triton: 3.5.1
 
 No closed remote API implements the core Agent or speech path.
 
@@ -391,7 +397,7 @@ The reproducible synthetic Chinese SOP fixture completed the end-to-end voice
 pipeline at 3.71x real-time and preserved the no-send safety rule. The fixture
 is explicitly synthetic and is not represented as a human recording.
 
-Final audio-backed rerun on the same Radeon allocation:
+Pinned audio-backed run on the same Radeon allocation:
 
 | Metric | Result |
 |---|---:|
@@ -407,16 +413,16 @@ Final audio-backed rerun on the same Radeon allocation:
 | Agent throughput | 20.07 tokens/s |
 | Agent peak VRAM | 8.001 GiB |
 | Verification | 7/7 passed |
-| Final permission | `mail.send = deny` |
+| Permission result | `mail.send = deny` |
 
 The client verification payload was deliberately modified to claim
 `mail.send = allow`. The server resolved the authoritative compile run and
 returned `mail.send = deny`, demonstrating that browser-supplied proof fields
 are not trusted.
 
-The current local regression suite has since grown to 63/63 and passes
-typecheck and the production build. The weekend v10 source commit was also
-clean-cloned on Radeon and passed 33/33 plus the production build.
+The submission regression suite passes 63/63 locally, together with typecheck
+and the production build. The Radeon experiment source commit was clean-cloned
+on Radeon and passed 33/33 plus the production build.
 
 The real demonstration workspace also completed the text-only local path:
 six captured UI events -> compile -> `mail.send = deny` -> 6/6 workflow
@@ -466,7 +472,7 @@ for changed SOPs, approximate search, or arbitrary Agent replanning.
 
 ### 8.3 Optimized Serving and ASR Batching
 
-The weekend v10 study compared the same Qwen3-4B FP16 model on the same W7900
+The Radeon serving study compared the same Qwen3-4B FP16 model on the same W7900
 using serialized Transformers, vLLM eager, and vLLM graph serving. Each
 configuration used heterogeneous SOP prompts, concurrency 1/2/4/8, three
 bursts, semantic safety gates, and per-second GPU telemetry.
@@ -526,7 +532,7 @@ conditional-scope rules has priority over memory savings.
 
 ### 8.5 Adaptive Precision Controller
 
-The follow-up v12 experiment tested whether strict JSON Schema could recover
+The adaptive precision experiment tested whether strict JSON Schema could recover
 the degraded INT8 model and added a fail-closed precision router.
 
 | Recovery stage | JSON valid | Semantic admission | Median latency |
@@ -572,7 +578,7 @@ decisions issue governance receipts containing:
 - payload hash
 - timestamp
 
-The final proof package includes:
+The proof package includes:
 
 - `SKILL.md`
 - `policy.yaml`
@@ -582,11 +588,11 @@ The final proof package includes:
 - `voice_evidence.json` for audio-backed runs
 - reproduction notes
 
-Pinned final Radeon audio proof ZIP SHA-256:
+Product Demo proof ZIP SHA-256:
 
-`6ea53dfe28f8221b3db9b06e6eed537767bf28b4c6536d25d45f3ffec20500e9`
+`7898d888112b113d53fce7ca2f9f46eecdaf318c79625af665fa908622f78cc2`
 
-The Continuous Demo V2 child proof additionally binds `parentRunId`,
+The continuous operation proof additionally binds `parentRunId`,
 `revision: 2`, and the changed runtime identity before the proof core is
 hashed.
 
@@ -668,18 +674,18 @@ Cloudflare Pages serves the cinematic module UI. A same-origin Pages Function
 injects a server-held token and forwards API calls to the W7900 backend; direct
 unauthenticated origin requests are rejected.
 
-The final recording and the two V2 videos have separate evidence roles:
+The Product Demo and supplementary videos have separate evidence roles:
 
-- `RADEON_VOICE_SKILL_FOUNDRY_DEMO_V3.mp4` records the complete frozen public
+- `RADEON_VOICE_SKILL_FOUNDRY_DEMO.mp4` records the complete frozen public
   product continuously: voice, six server-authoritative actions, real W7900
   ASR and skill compilation, Sandbox Replay, Promotion Impact Review,
   proof-hash-checked promotion, Governance Audit Ledger export, and exact
   reuse.
 
-- `RADEON_VOICE_SKILL_FOUNDRY_DEMO_V2.mp4` records the live Cloudflare product
+- `RADEON_VOICE_SKILL_FOUNDRY_PERFORMANCE_DEMO.mp4` records the live Cloudflare product
   executing real W7900 Qwen3-ASR and Qwen3-4B inference. The actual model wait
   is preserved and no cached policy replaces generation.
-- `CONTINUOUS_OPERATION_DEMO_V2.mp4` uses deterministic ASR/compiler fixtures
+- `CONTINUOUS_OPERATION_DEMO.mp4` uses deterministic ASR/compiler fixtures
   while executing two real Node API restarts, durable recovery, runtime drift,
   proof invalidation, and child-run revalidation in one take. It is lifecycle
   evidence, not GPU performance evidence.
@@ -687,7 +693,7 @@ The final recording and the two V2 videos have separate evidence roles:
 ## 14. Limitations and Next Steps
 
 - The direct compact-output A/B uses three runs per variant.
-- The final full-compilation evidence is one end-to-end sample.
+- The full-compilation evidence is one end-to-end sample.
 - Exact reuse requires an identical stored skill; changed intent triggers
   recompilation and verification. The measured ratio is an application fast
   path, not a fresh-inference GPU speedup.
@@ -711,44 +717,44 @@ The final recording and the two V2 videos have separate evidence roles:
   W7900 process. The registrar validates the HTTPS `trycloudflare.com`
   candidate through the public tunnel and signs a fresh Radeon health proof
   with the API token. Pages verifies that proof plus an independent recovery
-  token before writing KV, so a tunnel restart no longer requires a frontend
-  redeploy. A named Tunnel remains the preferred post-contest infrastructure
-  upgrade.
+  token before writing KV. This allows a tunnel restart without a frontend
+  redeploy. A named Tunnel remains the preferred infrastructure upgrade.
 - The governance ledger detects inconsistent local records through hashes and
   cross-checks. It is not externally signed or immutably anchored.
+- The Product Demo's recorded `GAIA-compatible` phrase refers only to portable
+  Agent Skill Markdown. No external GAIA conformance or certification is
+  claimed.
 
-## 14.1 Lifecycle Engineering Upgrade
+## 14.1 Lifecycle Engineering
 
-Three lifecycle enhancements were implemented after the final Radeon evidence
-run without changing the measured Radeon claims:
+The product includes three lifecycle controls that are separate from the
+measured Radeon claims:
 
 1. **Durable trusted runs.** Voice evidence, server-authoritative compile runs,
    and verification results are atomically persisted and recovered after
    service restart.
-2. **Proof compatibility and invalidation.** The proof binds verifier version,
+2. **Proof compatibility and invalidation.** The proof binds verifier identity,
    runtime identity, tool contract, policy, skill definition, and voice
    evidence schema. Changed inputs move a stored skill to
    `revalidation_required`; reuse is blocked until a new child proof passes.
-3. **Voice Evidence v0.3 diagnostics.** Deterministic analysis reports
+3. **Voice Evidence diagnostics.** Deterministic analysis reports
    estimated SNR, noise floor, speech level, crest factor, DC offset, short
    dropouts, multi-frame burst loss, and channel imbalance. A measured 280 ms
-   burst-loss case that passed v0.2 at 100/100 is quarantined by v0.3 at
-   65/100, and older proofs require revalidation. These remain deterministic
+   burst-loss case is quarantined at 65/100. These remain deterministic
    measurements and do not claim learned acoustic diagnosis.
 
-The current enhanced regression suite passes 63/63 tests locally, with
-typecheck and production build. A single-take browser demo shows upload,
+The submission regression suite passes 63/63 tests locally, with typecheck and
+production build. A single-take browser demo shows upload,
 voice-evidence analysis, compile, 7/7 verification, save, reuse, service
 restart recovery, runtime invalidation, one-click revalidation, and proof
 download.
 
-Demo V3 is the final product recording after the product and narrative freeze.
-It preserves the real W7900 model wait and records the final server-backed
-teaching and governance workflow. Main Demo V2 remains the concise
-optimization-oriented Radeon recording, while Continuous Demo V2 remains the
+The Product Demo preserves the real W7900 model wait and records the
+server-backed teaching and governance workflow. The Performance Demo is the
+optimization-oriented Radeon recording. The Continuous Operation Demo is the
 isolated lifecycle-control recording.
 
-Sandbox Replay v1 is deterministic verification evidence. It does not replace
+Sandbox Replay is deterministic verification evidence. It does not replace
 or alter the separately measured Radeon ASR, model-serving, quantization, or
 adaptive-precision performance claims.
 
@@ -762,13 +768,13 @@ performance claim. It does not change the pinned Radeon measurements.
 The Governance Audit Ledger is local operational-integrity evidence and does
 not change the pinned Radeon measurements.
 
-The same public enhancement commit
-`efec128059fea3b68521aa1dd333c71d5ea6a679` was clean-cloned on Radeon Cloud.
+Source commit `efec128059fea3b68521aa1dd333c71d5ea6a679` was
+clean-cloned on Radeon Cloud.
 `npm ci`, 29/29 tests, and the production build passed on ROCm 7.2.1,
 `gfx1100`, with 51,522,830,336 bytes of VRAM.
 
-The final weekend experiment implementation is pinned to source commit
-`20776d9`. A clean Radeon clone of that commit passed `npm ci`, 33/33 tests,
+The serving and robustness experiment is pinned to source commit `20776d9`.
+A clean Radeon clone of that commit passed `npm ci`, 33/33 tests,
 and the production build. The same commit replayed clean, 120 ms burst-loss,
 and 280 ms burst-loss samples through the real `/api/transcribe` endpoint.
 
@@ -785,29 +791,18 @@ presentation tools do not provide the product's core Agent or ASR functions.
 - Source: `https://github.com/Chengyuann/radeon-voice-skill-foundry`
 - Live product: `https://radeon-voice-skill-foundry.pages.dev/`
 - Technical evidence index: `TECHNICAL_EVIDENCE_INDEX.md`
-- Final Demo V3:
-  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V3.mp4`
-- Demo V3 proof:
-  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/demo-v3-proof.zip`
-- Demo V3 ledger:
-  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/demo-v3-governance-ledger.jsonl`
-- Main Demo V2:
-  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V2.mp4`
-- Continuous lifecycle Demo V2:
-  `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/CONTINUOUS_OPERATION_DEMO_V2.mp4`
-- Hardware/model raw data: `benchmarks/w7900-2026-07-17.json`
-- Optimization raw data:
-  `benchmarks/optimization-w7900-2026-07-17.json`
-- Weekend v10 summary: `benchmarks/weekend-v10-summary.json`
-- Weekend v10 report: `docs/WEEKEND_W7900_EXPERIMENTS.md`
-- Quark v11 report: `docs/QUARK_QUANTIZATION_W7900_V11.md`
-- Quark v11 summary: `benchmarks/quantization-v11-summary.json`
-- Adaptive v12 report: `docs/ADAPTIVE_PRECISION_CONTROLLER_V12.md`
-- Adaptive v12 summary: `benchmarks/adaptive-precision-v12-summary.json`
-- Adaptive v12 proof: `adaptive-precision-v12-proof.zip`
-- Detailed optimization method: `docs/RADEON_OPTIMIZATION_BENCHMARK.md`
-- Radeon benchmark report: `docs/RADEON_W7900_BENCHMARK.md`
-- Rules audit: `docs/RULES_AND_READINESS_AUDIT.md`
-- Voice AI trend decision:
-  `docs/VOICE_AI_SPACE_SIGNALS_2026-07-18.md`
-- Final Radeon audio proof: `outputs/radeon-audio-proof-v8.zip`
+- Product Demo: `RADEON_VOICE_SKILL_FOUNDRY_DEMO.mp4`
+- Product Demo proof: `PRODUCT_DEMO_PROOF.zip`
+- Governance ledger: `GOVERNANCE_LEDGER.jsonl`
+- Performance Demo: `RADEON_VOICE_SKILL_FOUNDRY_PERFORMANCE_DEMO.mp4`
+- Performance proof: `PERFORMANCE_DEMO_PROOF.zip`
+- Continuous Operation Demo: `CONTINUOUS_OPERATION_DEMO.mp4`
+- Continuous Operation proof: `CONTINUOUS_OPERATION_PROOF.zip`
+- Hardware benchmark: `evidence/HARDWARE_BENCHMARK.json`
+- Compact-output benchmark: `evidence/COMPACT_OUTPUT_BENCHMARK.json`
+- Serving and ASR summary: `evidence/RADEON_SERVING_AND_ASR_SUMMARY.json`
+- Quark summary: `evidence/QUARK_QUANTIZATION_SUMMARY.json`
+- Adaptive precision summary: `evidence/ADAPTIVE_PRECISION_SUMMARY.json`
+- Adaptive precision product run: `evidence/ADAPTIVE_PRECISION_E2E.json`
+- Package integrity: `SHA256SUMS.txt` (covers every finalized artifact except
+  the checksum manifest itself)

@@ -16,23 +16,31 @@ requires explicit human promotion.
 
 1. Live product:
    `https://radeon-voice-skill-foundry.pages.dev/`
-2. Final 4:49 Demo:
-   `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V3.mp4`
+2. Product Demo:
+   `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/RADEON_VOICE_SKILL_FOUNDRY_DEMO.mp4`
 3. Project Specification: `PROJECT_SPECIFICATION.pdf`
 4. Technical evidence: `TECHNICAL_EVIDENCE_INDEX.md`
 5. Architecture: `ARCHITECTURE.png`
 6. Poster: `POSTER.pdf`
-7. Source:
+7. Performance Demo:
+   `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/RADEON_VOICE_SKILL_FOUNDRY_PERFORMANCE_DEMO.mp4`
+8. Continuous Operation Demo:
+   `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/CONTINUOUS_OPERATION_DEMO.mp4`
+9. Package integrity: `SHA256SUMS.txt`
+10. Source:
    `https://github.com/Chengyuann/radeon-voice-skill-foundry`
 
 Demo captions:
-`https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/RADEON_VOICE_SKILL_FOUNDRY_DEMO_V3.srt`
+`https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/RADEON_VOICE_SKILL_FOUNDRY_DEMO.srt`
 
 Demo proof package:
-`https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/demo-v3-proof.zip`
+`https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/PRODUCT_DEMO_PROOF.zip`
 
 Demo governance ledger:
-`https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/final-submission-v1/demo-v3-governance-ledger.jsonl`
+`https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/GOVERNANCE_LEDGER.jsonl`
+
+Official submission:
+`https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/pull/7`
 
 ## Implemented Track 2 Capabilities
 
@@ -90,22 +98,34 @@ run on a private network without the public gateway.
 
 ## Evidence Boundaries
 
-- Demo V3 is the authoritative final product recording.
-- Demo V3 ends with a terminology card clarifying the exact Agent Skill
+- The Product Demo is the authoritative product recording.
+- The Product Demo ends with a terminology card clarifying the exact Agent Skill
   Markdown, proof-hash, and ledger integrity boundaries.
+- The Performance Demo's spoken `35/35` count belongs to its pinned recording
+  revision; the submission regression suite is `63/63`.
+- Proof ZIPs preserve immutable internal run and policy identifiers required
+  for artifact verification; the submission exposes one canonical filename
+  for each proof role.
 - Voice Evidence values are internal deterministic quality-gate results, not
   external ASR accuracy measurements.
 - The governance ledger uses SHA-256 payload and previous-entry hashes plus
   cross-checks against skill memory. It detects accidental or isolated
   modification in the stored artifacts. It is not an externally anchored,
   signed, or Byzantine-resistant audit log.
-- Test counts belong to pinned revisions. The current local suite passes
-  63/63; earlier Radeon validation snapshots retain their recorded counts.
+- The bundled governance ledger is the Product Demo sample and contains two
+  `PROMOTE` entries. Supersede, revoke, and rollback remain implemented product
+  lifecycle actions covered by the regression suite rather than events claimed
+  to appear in this sample export.
+- The Product Demo's recorded `GAIA-compatible` phrase refers only to portable
+  Agent Skill Markdown. No external GAIA conformance or certification is
+  claimed.
+- Test counts belong to pinned revisions. The submission regression suite
+  passes 63/63; Radeon benchmark snapshots retain their recorded counts.
 - The synthetic Chinese SOP WAV is a reproducible fixture, not a claimed human
   recording.
 
 ## AI-Assisted Asset Disclosure
 
 Demo narration uses AIDP `gemini-3.1-flash-tts-preview`, voice `Charon`.
-Demo backgrounds use GPT Image 2. Captions, project labels, diagrams, and
+Campaign backgrounds use GPT Image 2. Captions, project labels, diagrams, and
 all reported measurements were derived or typeset from repository evidence.
