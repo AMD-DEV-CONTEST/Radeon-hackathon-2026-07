@@ -24,6 +24,7 @@ import ctypes
 
 import numpy as np
 
+from vte.bridge.memory import MemoryRegion
 from vte.core.model import VTEModel
 
 
@@ -58,6 +59,44 @@ class SpeculativeDecoder:
                 "GDN, ou VRAM insuficiente). Especulação precisa desse caminho."
             )
 
+        # Otimização (2026-07, segunda sessão): a versão original chamava
+        # LMHead.compute_logits() posição a posição dentro do loop de
+        # aceitação, cada chamada com seu próprio hip.synchronize()+D2H
+        # (o buffer de saída é ÚNICO e reaproveitado -- precisa ler antes
+        # de lançar a próxima). Medido: 2.67x mais LENTO que decode normal
+        # (29.86 vs 79.80 tok/s), causa raiz em ~11 round-trips pequenos
+        # Host-Device por rodada, não no kernel (que já mede barato, ver
+        # docstring do módulo). Fix: um buffer de scratch com K linhas
+        # (não 1), K lançamentos do MESMO kernel de LM head em sequência
+        # no stream SEM sincronizar entre eles (cada um escreve numa
+        # linha DIFERENTE, sem risco de um sobrescrever o outro antes de
+        # ser lido), só 1 sync+D2H no final cobrindo todo o lote. Perde a
+        # saída antecipada no primeiro desacordo (agora sempre computa os
+        # K), troca aceitável pelo Gate já medido (verify em lote é
+        # barato mesmo comparado a decode sequencial).
+        lm_head = self.target.lm_head
+        vocab_size = lm_head.vocab_size
+        self._verify_logits_scratch = self.target._allocator.allocate(
+            size=K * vocab_size * 2, tag="speculative_verify_logits_batch",
+            region=MemoryRegion.SCRATCH,
+        )
+        # Mesma resolução de peso (tied-embeddings-aware) e logit_scale de
+        # LMHead.compute_logits() -- resolvida uma vez aqui (não muda
+        # entre chamadas) em vez de repetir a cada lançamento.
+        lm_head_name = 'output.weight'
+        lm_head_ptr = self.target.tensor_mapping.get(lm_head_name)
+        if lm_head_ptr is None:
+            lm_head_ptr = self.target.tensor_mapping.get('token_embd.weight')
+        self._target_lm_head_weight_ptr = lm_head_ptr.ptr if hasattr(lm_head_ptr, 'ptr') else lm_head_ptr
+        logit_scale = self.target.metadata.get('logit_scale', 1.0) or 1.0
+        self._target_logit_mul = ctypes.c_float(1.0 / logit_scale)
+        if lm_head._kernel_info is None:
+            raise RuntimeError(
+                "LMHead do target não está capturado no grafo (kernel_info None) -- "
+                "o lançamento em lote customizado precisa do kernel já resolvido."
+            )
+        self._target_lm_head_kernel = lm_head._kernel_info['kernel']
+
     def _read_logits_ptr(self, ptr: int) -> np.ndarray:
         buf = bytearray(self.target.lm_head.vocab_size * 2)
         self.target._hip.safe_memcpy_device_to_host(
@@ -87,17 +126,46 @@ class SpeculativeDecoder:
         )
         return np.frombuffer(bytes(buf), dtype=np.float16).astype(np.float32)
 
-    def _target_verify_logits_at(self, position_in_chunk_1based: int) -> np.ndarray:
-        """Logits do TARGET na posição `position_in_chunk_1based - 1`
-        do ÚLTIMO replay de verify (execute_prefill), computados eager
-        via LM head sobre o buffer de ativação do chunk (ver
-        LMHead.compute_logits: passar seq_len=i+1 sobre um buffer que
-        começa na posição 0 do chunk lê exatamente a linha i)."""
+    def _target_verify_logits_batch(self, K: int) -> np.ndarray:
+        """Logits do TARGET nas K posições do ÚLTIMO replay de verify
+        (execute_prefill), TODAS de uma vez -- K lançamentos do kernel
+        de LM head em sequência no mesmo stream, sem sincronizar entre
+        eles (cada um escreve numa linha diferente do scratch, sem
+        hazard de dado), só 1 sync+D2H no final. Substitui
+        _target_verify_logits_at() chamado K vezes (a versão antiga,
+        ~11 round-trips Host-Device/rodada, medida 2.67x mais lenta que
+        decode normal -- ver docstring do módulo). Retorna array
+        [K, vocab_size] fp32."""
         self.target._activate_raw_registries()
         hidden_ptr = self._verify_executor.tensor_mapping.get('output_norm.output')
         hidden_val = hidden_ptr.ptr if hasattr(hidden_ptr, 'ptr') else hidden_ptr
-        ptr = self.target.lm_head.compute_logits(hidden_val, seq_len=position_in_chunk_1based)
-        return self._read_logits_ptr(ptr)
+        hidden_size = self.target.lm_head.hidden_size
+        vocab_size = self.target.lm_head.vocab_size
+
+        for i in range(K):
+            row_hidden_ptr = hidden_val + i * hidden_size * 2  # fp16, linha i do chunk
+            row_out_ptr = self._verify_logits_scratch.ptr + i * vocab_size * 2
+            args = [
+                ctypes.c_void_p(row_hidden_ptr),
+                ctypes.c_void_p(self._target_lm_head_weight_ptr),
+                ctypes.c_void_p(row_out_ptr),
+                ctypes.c_int(1), ctypes.c_int(1),
+                ctypes.c_int(hidden_size), ctypes.c_int(vocab_size),
+                ctypes.c_void_p(0), ctypes.c_void_p(0),
+                self._target_logit_mul,
+            ]
+            self.target._hip.launch_kernel(
+                function=self._target_lm_head_kernel, args=args,
+                grid=(vocab_size, 1, 1), block=(64, 1, 1),
+                shared_mem=0, expected_args=10,
+            )
+
+        buf = bytearray(K * vocab_size * 2)
+        self.target._hip.safe_memcpy_device_to_host(
+            buf, ctypes.c_void_p(self._verify_logits_scratch.ptr),
+            tag="speculative_verify_logits_batch_output_d2h",
+        )
+        return np.frombuffer(bytes(buf), dtype=np.float16).astype(np.float32).reshape(K, vocab_size)
 
     def generate(self, prompt: str, max_new_tokens: int = 100):
         """Greedy determinístico. Retorna (texto, stats) -- stats inclui
@@ -165,8 +233,15 @@ class SpeculativeDecoder:
             self.target._activate_raw_registries()
             self._verify_executor.execute_prefill(draft_ids, kv_offset=L)
 
-            # 3. Aceitação greedy, posição a posição, para no primeiro
-            #    desacordo (economiza LM head eager além do necessário).
+            # 3. Target computa os K logits de verify TODOS de uma vez
+            #    (1 sync+D2H pro lote inteiro, não K -- ver
+            #    _target_verify_logits_batch). Aceitação/rejeição
+            #    inteiramente em NumPy depois, sem nenhuma chamada de
+            #    GPU adicional -- perde a saída antecipada no primeiro
+            #    desacordo (sempre computa os K), troca aceitável pelo
+            #    Gate já medido (verify em lote é barato).
+            verify_logits = self._target_verify_logits_batch(K)  # [K, vocab_size]
+
             accepted_ids: list[int] = []
             check_logits = current_target_logits
             n_draft_accepted = 0
@@ -176,7 +251,7 @@ class SpeculativeDecoder:
                 if predicted == draft_ids[i]:
                     accepted_ids.append(draft_ids[i])
                     n_draft_accepted += 1
-                    check_logits = self._target_verify_logits_at(i + 1)
+                    check_logits = verify_logits[i]  # logits após processar draft_ids[i] (posição L+i)
                 else:
                     accepted_ids.append(predicted)  # token de bônus/substituição, correto por construção
                     mismatch = True
