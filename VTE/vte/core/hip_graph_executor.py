@@ -127,10 +127,19 @@ class HIPGraphExecutor:
 
         # Split-KV (Flash-Decoding): opt-in via VTE_ENABLE_ATTN_SPLITKV, ver
         # split_kv_attention.py para a motivação medida e o design completo.
-        from vte.core.split_kv_attention import SplitKVAttentionDispatcher
+        from vte.core.split_kv_attention import SplitKVAttentionDispatcher, PrefillAttentionDispatcher
         self._split_kv = SplitKVAttentionDispatcher(
             self.hip, self.codegen, self.metadata, allocator=self.allocator,
             context_length=self.context_length
+        )
+
+        # Atenção rápida (tree-reduction) pro prefill em lote (seq_len>1),
+        # ver split_kv_attention.py::PrefillAttentionDispatcher -- substitui
+        # o gqa_attention_kernel ingênuo, medido (rocprofv3) como 36.9% do
+        # tempo de GPU do prefill em lote. self._build_gqa_attention_launch
+        # continua disponível como fallback em _capture_graph.
+        self._prefill_attn = PrefillAttentionDispatcher(
+            self.hip, self.codegen, self.metadata, allocator=self.allocator
         )
 
     def _get_or_compile_kernel(self, node: IRNode) -> Optional[ctypes.c_void_p]:
@@ -798,27 +807,45 @@ class HIPGraphExecutor:
                 # hardcoded to a single query position -- see their own
                 # PRÉ-REQUISITO comments and _calculate_launch_dims' ATTENTION
                 # branch, whose grid/block shape has no query-position axis
-                # at all. gqa_attention_kernel is a real seq_len=N causal
-                # kernel (verified independently against a NumPy reference
-                # with a non-zero kv_cache_offset before being wired in here
-                # -- max abs diff 0.000178 on output, 0.000459 on the cache
-                # write, both well within fp16 tolerance), just never
-                # dispatched from the graph-capture path before. Naive (no
-                # tiling/online-softmax, `scores[2048]` fixed per-thread
-                # array -- see _BATCHED_PREFILL_MAX_CONTEXT), which is fine
-                # here: this only runs for the bounded chunk sizes/contexts
-                # the batched-prefill feature restricts itself to.
+                # at all.
+                #
+                # PrefillAttentionDispatcher (tree-reduction, see
+                # split_kv_attention.py) is the primary path: rocprofv3
+                # profiling (W7900, 2026-07) measured the older
+                # gqa_attention_kernel fallback below at 36.9% of batched-
+                # prefill GPU time -- the single largest kernel, ahead of
+                # every GEMM including WMMA -- because it does the QK^T dot
+                # product entirely serially in one thread per query position
+                # instead of cooperating across head_dim threads. Falls back
+                # to gqa_attention_kernel (still correct, just slow, kept as
+                # the proven-safe path) if the new dispatcher raises for any
+                # reason; only raises for real if BOTH fail.
                 if seq_len != 1 and node.op_type == NodeType.ATTENTION:
                     layer_idx = int(node.name.split('.')[1])
                     try:
-                        fn, args, grid, block, shared = self._build_gqa_attention_launch(node, layer_idx, seq_len)
-                        self.hip.launch_kernel_recorded(fn, args, grid, block, shared)
-                        nodes_recorded += 1
+                        launches = self._prefill_attn.build_launches(
+                            layer_idx, self.tensor_mapping, self.staging_kv_offset.ptr, seq_len,
+                            q_name=node.input_tensors[0], k_name=node.input_tensors[1], v_name=node.input_tensors[2],
+                            output_name=node.output_tensor,
+                        )
+                        for fn, args, grid, block, shared_mem in launches:
+                            self.hip.launch_kernel_recorded(fn, args, grid, block, shared_mem)
+                            nodes_recorded += 1
                         continue
                     except Exception as e:
-                        raise GraphCaptureError(
-                            f"gqa_attention (prefill em lote) falhou na captura (camada {layer_idx}): {e}"
+                        logger.warning(
+                            f"Atenção rápida de prefill em lote falhou na captura (camada {layer_idx}): {e}. "
+                            f"Usando gqa_attention_kernel (ingênuo, mas validado) para esta camada."
                         )
+                        try:
+                            fn, args, grid, block, shared = self._build_gqa_attention_launch(node, layer_idx, seq_len)
+                            self.hip.launch_kernel_recorded(fn, args, grid, block, shared)
+                            nodes_recorded += 1
+                            continue
+                        except Exception as e2:
+                            raise GraphCaptureError(
+                                f"Atenção de prefill em lote falhou nos dois caminhos (camada {layer_idx}): {e2}"
+                            )
 
                 # Prefill em lote, projeções Q4_K sem fusão de residual:
                 # gemm_q4k_wmma real (peso reaproveitado em tile via WMMA)

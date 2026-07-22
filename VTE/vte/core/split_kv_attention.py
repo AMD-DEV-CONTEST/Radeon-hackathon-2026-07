@@ -227,3 +227,141 @@ class SplitKVAttentionDispatcher:
             (partial_fn, partial_args, partial_grid, partial_block, shared_attn),
             (reduce_fn, reduce_args, reduce_grid, reduce_block, reduce_shared),
         ]
+
+
+class PrefillAttentionDispatcher:
+    """Atenção causal para prefill em lote (seq_len > 1) via online softmax
+    com redução em árvore na LDS -- substitui o gqa_attention_kernel
+    ingênuo (scores[2048] por thread, produto escalar inteiramente serial),
+    que o profiling real (rocprofv3, W7900, 2026-07) mediu como 36.9% do
+    tempo de GPU do prefill em lote -- maior que qualquer kernel de GEMM,
+    incluindo o gemm_q4k_wmma (19.5%). Ver docs/LIMITATIONS.md ("Batching
+    and prefill") para os números completos.
+
+    Generaliza flash_attention_kernel (decode) com um eixo q_pos no grid,
+    não o Split-KV chunked de 3 kernels acima: aqui o grid já tem
+    seq_len*num_q_heads blocos (tipicamente milhares, bem acima do nº de
+    CUs) -- a GPU já está saturada de paralelismo sem precisar fatiar o
+    histórico de KV em chunks adicionais (que só multiplicaria o nº de
+    blocos sem ganhar throughput, e ainda exigiria scratch de partials + um
+    kernel de redução extra). Por isso só 2 kernels, sem scratch algum:
+    kv_cache_append_batched_kernel (escreve o K/V do chunk inteiro no
+    cache) seguido de flash_attention_prefill_kernel (um único passe de
+    online softmax por bloco sobre todo o histórico causal).
+
+    Os dois PRECISAM rodar como lançamentos separados e em sequência
+    garantida (append antes de attention): com q_pos como eixo de GRID
+    (blocos diferentes), ao contrário do gqa_attention_kernel antigo (q_pos
+    como thread dentro de UM bloco, sincronizado via __syncthreads()),
+    blocos diferentes não têm garantia de ordem entre si -- só a ordem de
+    lançamento no MESMO stream (preservada pela captura do HIP Graph)
+    garante que toda escrita do append esteja visível antes da atenção
+    começar a ler. Ver o .hip.template de cada kernel para mais detalhes."""
+
+    def __init__(self, hip, codegen, metadata: dict, allocator=None):
+        self.hip = hip
+        self.codegen = codegen
+        self.metadata = metadata or {}
+        self.allocator = allocator
+        self._kernel_cache = {}
+
+    @staticmethod
+    def _resolve_ptr(tensor_mapping: dict, name: str) -> int:
+        p = tensor_mapping.get(name)
+        if p is None:
+            return 0
+        return p.ptr if hasattr(p, 'ptr') else int(p)
+
+    def _resolve_kv_cache_ptrs(self, layer_idx: int, tensor_mapping: dict):
+        """Mesma cadeia de fallback de SplitKVAttentionDispatcher (ver
+        docstring lá) -- reproduzida aqui pelo mesmo motivo (cada
+        dispatcher independente, sem depender de KernelArgBuilder)."""
+        k_ptr = tensor_mapping.get(f'blk.{layer_idx}.kv_cache.k')
+        v_ptr = tensor_mapping.get(f'blk.{layer_idx}.kv_cache.v')
+        if k_ptr is None:
+            k_ptr = tensor_mapping.get(f'kv_cache.layer_{layer_idx}.k')
+        if v_ptr is None:
+            v_ptr = tensor_mapping.get(f'kv_cache.layer_{layer_idx}.v')
+        if k_ptr is None or v_ptr is None:
+            pool_ptr = tensor_mapping.get('KV Cache Pool')
+            if pool_ptr is not None:
+                kv_size_per_layer = 2 * 2 * 128 * 2048 * 2
+                k_ptr = pool_ptr + (layer_idx * kv_size_per_layer)
+                v_ptr = pool_ptr + (layer_idx * kv_size_per_layer) + (kv_size_per_layer // 2)
+        k_val = k_ptr.ptr if hasattr(k_ptr, 'ptr') else int(k_ptr or 0)
+        v_val = v_ptr.ptr if hasattr(v_ptr, 'ptr') else int(v_ptr or 0)
+        return k_val, v_val
+
+    def _get_kernels(self):
+        if 'append' not in self._kernel_cache:
+            arch = self.hip.get_gpu_architecture()
+            _, fn = self.codegen.load_kernel_safe(
+                self.hip, 'kv_cache_append_batched', arch, 'kv_cache_append_batched_kernel'
+            )
+            self._kernel_cache['append'] = fn
+            _, fn = self.codegen.load_kernel_safe(
+                self.hip, 'flash_attention_prefill', arch, 'flash_attention_prefill_kernel'
+            )
+            self._kernel_cache['attn'] = fn
+        return self._kernel_cache['append'], self._kernel_cache['attn']
+
+    def build_launches(self, layer_idx: int, tensor_mapping: dict, kv_offset_ptr: int, seq_len: int,
+                        q_name: str, k_name: str, v_name: str, output_name: str):
+        """Retorna a lista de (kernel_fn, args, grid, block, shared_mem)
+        pros 2 lançamentos -- mesma interface de retorno de
+        SplitKVAttentionDispatcher.build_launches/FusedQKVDispatcher.build_launches,
+        pra plugar no mesmo laço de captura em hip_graph_executor.py.
+
+        q_name/k_name/v_name/output_name: nomes REAIS dos tensores do nó do
+        grafo (node.input_tensors/node.output_tensor), não reconstruídos
+        por convenção fixa -- mesmo motivo de
+        SplitKVAttentionDispatcher.build_launches (Qwen3.5 tem
+        q_norm.output/k_norm.output em vez de q_proj.output/k_proj.output)."""
+        append_fn, attn_fn = self._get_kernels()
+
+        num_q_heads = self.metadata.get('attention.head_count', 12)
+        num_kv_heads = self.metadata.get('attention.head_count_kv', 2)
+        head_dim = self.metadata.get('attention.key_length', 128)
+        attention_scale = self.metadata.get('attention_scale')
+        scale = attention_scale if attention_scale else 1.0 / (head_dim ** 0.5)
+
+        q_ptr = self._resolve_ptr(tensor_mapping, q_name)
+        k_ptr = self._resolve_ptr(tensor_mapping, k_name)
+        v_ptr = self._resolve_ptr(tensor_mapping, v_name)
+        output_ptr = self._resolve_ptr(tensor_mapping, output_name)
+        k_cache_ptr, v_cache_ptr = self._resolve_kv_cache_ptrs(layer_idx, tensor_mapping)
+
+        for label, ptr in (("q", q_ptr), ("k", k_ptr), ("v", v_ptr), ("output", output_ptr),
+                            ("k_cache", k_cache_ptr), ("v_cache", v_cache_ptr)):
+            if not ptr:
+                raise ValueError(f"PrefillAttentionDispatcher: tensor '{label}' não resolvido (camada {layer_idx}).")
+
+        c_num_kv = ctypes.c_int(num_kv_heads)
+        c_num_q = ctypes.c_int(num_q_heads)
+        c_head_dim = ctypes.c_int(head_dim)
+        c_scale = ctypes.c_float(scale)
+        c_seq_len = ctypes.c_int(seq_len)
+
+        append_args = [
+            ctypes.c_void_p(k_ptr), ctypes.c_void_p(v_ptr),
+            ctypes.c_void_p(k_cache_ptr), ctypes.c_void_p(v_cache_ptr),
+            c_num_kv, c_head_dim,
+            ctypes.c_void_p(kv_offset_ptr), c_seq_len,
+        ]
+        append_grid = (seq_len, num_kv_heads, 1)
+        append_block = (head_dim, 1, 1)
+
+        attn_args = [
+            ctypes.c_void_p(q_ptr), ctypes.c_void_p(k_cache_ptr), ctypes.c_void_p(v_cache_ptr),
+            ctypes.c_void_p(output_ptr),
+            c_num_q, c_num_kv, c_head_dim, c_scale,
+            ctypes.c_void_p(kv_offset_ptr),
+        ]
+        attn_grid = (seq_len, num_q_heads, 1)
+        attn_block = (head_dim, 1, 1)
+        attn_shared = 2 * head_dim * 4
+
+        return [
+            (append_fn, append_args, append_grid, append_block, 0),
+            (attn_fn, attn_args, attn_grid, attn_block, attn_shared),
+        ]
