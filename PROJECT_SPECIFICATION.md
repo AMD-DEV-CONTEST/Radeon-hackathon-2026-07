@@ -175,7 +175,7 @@ Mapped directly to the rubric, with a pointer to where each point was actually v
 
 | Axis | Points | Where it's addressed | Verified how |
 |---|---|---|---|
-| Task positioning & application scenario | 20 | [Section 1](#1-application-scenario) | A real project folder, a real codebase read/summarized/edited on camera in the demo video |
+| Task positioning & application scenario | 20 | [Section 1](#1-application-scenario) | A real project folder, a real codebase read/summarized/edited on camera in the [demo video](Assets/Aetheris%20Video.mp4) |
 | Core capabilities (planning, tools, RAG, memory) | 20 | [Section 3](#3-core-capabilities), 5 of 5 implemented (2 is the stated minimum) | Each demonstrated live, not just in a diagram: `write_plan` produces a real approval popup the user clicks, not prose; `manage_memory` recalled a fact in a brand-new chat session with no shared history; `manage_skill` search found a previously-saved skill from a different conversation; `write_file`/`edit_file` paused for a real click before touching disk; `navigate_browser`/`read_browser_page` correctly read a real inbox |
 | Smooth multi-turn interaction | 20 | Round-based SSE streaming, tool calls shown as a status animation instead of raw fenced text | Cancel-mid-generation tested directly: confirmed it releases the server-side generation lock in seconds, not just hides the output client-side |
 | Core inference on AMD Radeon GPU | 20 | [Section 5](#5-bonus-powered-by-vte) | No remote API anywhere in the core chat path; live GPU telemetry (`hipMemGetInfo`, not cached) confirmed on both a consumer card (RX 7600) and a workstation card (W7900) |

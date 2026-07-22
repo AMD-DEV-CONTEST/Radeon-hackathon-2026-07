@@ -6,6 +6,8 @@ Built for **Track 2: Development & Local Deployment of Private AI Agents**.
 
 Under the hood, Aetheris runs on **VTE**, a from-scratch inference engine we also built for this hardware instead of depending on an existing runtime. That part's genuinely interesting if you're into GPU kernels, and it gets its own section [below](#under-the-hood-vte-the-engine-we-built-to-power-this), but it's the supporting cast here, not the headline. Aetheris is the project; VTE is what lets it run entirely local.
 
+**[Watch the demo video](Assets/Aetheris%20Video.mp4)** — the agent reading, planning, and editing a real codebase on camera, running end-to-end on an AMD Radeon GPU.
+
 ## What it can actually do
 
 Five capabilities, all real (not stubbed for the demo):
