@@ -118,7 +118,6 @@ A few prompts to get a feel for what the agent actually does, assuming `project_
 
 Aetheris needed a local inference engine that runs entirely on an AMD Radeon GPU with nothing else installed, so we wrote one: **VTE**, hand-written HIP kernels, no llama.cpp/vLLM/PyTorch in the inference path. It turned into its own small systems project along the way, GEMV kernels tuned against real memory-bandwidth measurements, a HIP-Graph-captured decode loop, custom attention, the works, and on some models it decodes *faster* than Ollama/llama.cpp on the same GGUF file, on both a consumer card and a workstation one:
 
-![VTE vs Ollama/llama.cpp decode speed, six models across two AMD cards](Assets/Comparativo.png)
 
 | Model | Hardware | VTE | Ollama/llama.cpp | Ratio |
 |---|---|---|---|---|
