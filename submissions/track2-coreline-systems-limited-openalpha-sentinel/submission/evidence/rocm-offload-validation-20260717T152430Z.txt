@@ -1,0 +1,41 @@
+OpenAlpha Sentinel ROCm offload validation
+captured_utc=2026-07-17T15:24:30Z
+validation=PASS
+
+--- deployment provenance ---
+project_git_head=25129cdd853a4fe5a258386350d933339b381028
+project_git_state=clean
+llama_commit=1b99711a5f2582ec99686eb7958844749c223cf5
+amdgpu_targets=gfx1100
+model_sha256=d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785
+llama_server_sha256=e806168a4a53ea23d644636e02d313bd647f5f4c05bd38546b6bba274a450a97
+
+--- controlled load command ---
+timeout --signal=TERM --kill-after=3s 10s \
+  /workspace/llama.cpp/build/bin/llama-server \
+  --model /workspace/models/Qwen3-8B-Q4_K_M.gguf \
+  --host 127.0.0.1 --port 18081 --ctx-size 8192 \
+  --n-gpu-layers 99 --flash-attn on --metrics --verbose
+
+The alternate loopback port kept the persistent application model service running.
+Exit status 124 is the expected timeout result after successful model load. A final
+process-count check confirmed that only the original persistent llama-server remained.
+
+--- selected verbatim load output ---
+common_params_print_info:   - ROCm0   : AMD Radeon Graphics (49136 MiB, 43164 MiB free)
+llama_model_loader: loaded meta data with 28 key-value pairs and 399 tensors from /workspace/models/Qwen3-8B-Q4_K_M.gguf (version GGUF V3 (latest))
+print_info: file type   = Q4_K - Medium
+print_info: file size   = 4.68 GiB (4.90 BPW)
+llama_prepare_model_devices: using device ROCm0 (AMD Radeon Graphics) (0000:03:00.0) - 43018 MiB free
+print_info: n_layer               = 36
+load_tensors: offloading output layer to GPU
+load_tensors: offloading 35 repeating layers to GPU
+load_tensors: offloaded 37/37 layers to GPU
+load_tensors:        ROCm0 model buffer size =  4455.34 MiB
+llama_kv_cache:      ROCm0 KV buffer size =  1152.00 MiB
+sched_reserve:      ROCm0 compute buffer size =   104.01 MiB
+llama_server: model loaded
+llama_server: listening on http://127.0.0.1:18081
+
+This transcript proves the actual layer assignment for the pinned model and runtime.
+It is not a latency benchmark, a peak-VRAM trace, or a 24-hour stability result.

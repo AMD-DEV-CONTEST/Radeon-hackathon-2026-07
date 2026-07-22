@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <meta name="theme-color" content="#202522">
+    <title>OpenAlpha Sentinel</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="styles.css">
+    <script defer src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">OA</div>
+          <div class="brand-copy">
+            <strong>OpenAlpha</strong>
+            <span translate="no">Sentinel</span>
+          </div>
+        </div>
+
+        <nav class="primary-nav">
+          <button class="nav-item is-active" type="button" data-view="overview" aria-current="page">
+            <i data-lucide="layout-dashboard" aria-hidden="true"></i>
+            <span>Overview</span>
+          </button>
+          <button class="nav-item" type="button" data-view="cards">
+            <i data-lucide="library" aria-hidden="true"></i>
+            <span>Strategy cards</span>
+          </button>
+          <button class="nav-item" type="button" data-view="chat">
+            <i data-lucide="messages-square" aria-hidden="true"></i>
+            <span>Agent chat</span>
+          </button>
+          <button class="nav-item" type="button" data-view="sources">
+            <i data-lucide="database" aria-hidden="true"></i>
+            <span>Sources</span>
+          </button>
+          <button class="nav-item" type="button" data-view="jobs">
+            <i data-lucide="list-checks" aria-hidden="true"></i>
+            <span>Jobs</span>
+          </button>
+          <button class="nav-item" type="button" data-view="watch-rules">
+            <i data-lucide="radar" aria-hidden="true"></i>
+            <span>Watch rules</span>
+          </button>
+          <button class="nav-item" type="button" data-view="local-controls">
+            <i data-lucide="sliders-horizontal" aria-hidden="true"></i>
+            <span>Local controls</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="language-control" aria-label="Language">
+            <i data-lucide="languages" aria-hidden="true"></i>
+            <div class="language-options">
+              <button type="button" class="is-active" data-locale="en" aria-pressed="true">EN</button>
+              <button type="button" data-locale="zh" aria-pressed="false">中文</button>
+            </div>
+          </div>
+
+          <div class="runtime-panel">
+          <div class="runtime-heading">
+            <span class="status-dot" id="runtime-dot" aria-hidden="true"></span>
+            <strong id="runtime-status">Connecting</strong>
+          </div>
+          <span id="runtime-detail">Local workspace</span>
+          </div>
+        </div>
+      </aside>
+
+      <button class="sidebar-scrim" id="sidebar-scrim" type="button" aria-label="Close navigation"></button>
+
+      <main class="main" id="main-content">
+        <header class="mobile-header">
+          <button class="icon-button mobile-menu-button" id="mobile-menu-button" type="button" aria-label="Open navigation">
+            <span class="fallback-menu" aria-hidden="true"><span></span><span></span><span></span></span>
+            <i data-lucide="menu" aria-hidden="true"></i>
+          </button>
+          <div class="mobile-brand">
+            <span class="brand-mark" aria-hidden="true">OA</span>
+            <strong>OpenAlpha Sentinel</strong>
+          </div>
+          <button class="icon-button" id="mobile-refresh-button" type="button" aria-label="Refresh data" title="Refresh data">
+            <span class="fallback-text" aria-hidden="true">R</span>
+            <i data-lucide="refresh-cw" aria-hidden="true"></i>
+          </button>
+        </header>
+
+        <section class="view is-active" id="view-overview" data-view-panel="overview" aria-labelledby="overview-title">
+          <div class="view-header">
+            <div>
+              <p class="eyebrow">Research intelligence</p>
+              <h1 id="overview-title">Overview</h1>
+              <p class="view-meta" id="overview-updated">Waiting for local index</p>
+            </div>
+            <div class="header-actions">
+              <button class="button button-secondary" type="button" data-open-dialog="github-dialog">
+                <i data-lucide="github" aria-hidden="true"></i>
+                <span>Discover GitHub</span>
+              </button>
+              <button class="button button-primary" id="seed-demo-button" type="button">
+                <i data-lucide="database-zap" aria-hidden="true"></i>
+                <span>Seed demo</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="inline-alert is-hidden" id="overview-alert" role="alert"></div>
+
+          <div class="metric-strip" aria-label="Index summary">
+            <div class="metric">
+              <span class="metric-label">Strategy cards</span>
+              <strong class="metric-value" id="metric-cards">--</strong>
+              <span class="metric-detail" id="metric-cards-detail">Indexed research</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Tracked sources</span>
+              <strong class="metric-value" id="metric-sources">--</strong>
+              <span class="metric-detail" id="metric-sources-detail">With provenance</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Jobs (24h)</span>
+              <strong class="metric-value" id="metric-jobs">--</strong>
+              <span class="metric-detail" id="metric-jobs-detail">Collector queue</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Watch rules</span>
+              <strong class="metric-value" id="metric-rules">--</strong>
+              <span class="metric-detail" id="metric-rules-detail">Scheduled monitors</span>
+            </div>
+          </div>
+
+          <div class="overview-grid">
+            <section class="panel" aria-labelledby="recent-strategies-title">
+              <div class="panel-header">
+                <div>
+                  <h2 id="recent-strategies-title">Recent strategies</h2>
+                  <span>Latest evidence-backed records</span>
+                </div>
+                <button class="text-button" type="button" data-view="cards">View all</button>
+              </div>
+              <div id="overview-cards" class="compact-list" aria-live="polite">
+                <div class="skeleton-list" aria-label="Loading strategies">
+                  <span></span><span></span><span></span>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel" aria-labelledby="recent-jobs-title">
+              <div class="panel-header">
+                <div>
+                  <h2 id="recent-jobs-title">Collector activity</h2>
+                  <span>Discovery and indexing pipeline</span>
+                </div>
+                <button class="text-button" type="button" data-view="jobs">View all</button>
+              </div>
+              <div id="overview-jobs" class="compact-list" aria-live="polite">
+                <div class="skeleton-list" aria-label="Loading jobs">
+                  <span></span><span></span><span></span>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <section class="coverage-band" aria-labelledby="coverage-title">
+            <div>
+              <p class="eyebrow">Collection coverage</p>
+              <h2 id="coverage-title">Source health</h2>
+            </div>
+            <div class="coverage-items" id="coverage-items">
+              <div class="coverage-item"><span class="source-symbol github" aria-hidden="true">GH</span><span><strong>GitHub</strong><small>Waiting</small></span></div>
+              <div class="coverage-item"><span class="source-symbol rss" aria-hidden="true">RS</span><span><strong>RSS / Atom</strong><small>Waiting</small></span></div>
+              <div class="coverage-item"><span class="source-symbol snapshot" aria-hidden="true">FS</span><span><strong>Local snapshots</strong><small>Waiting</small></span></div>
+            </div>
+          </section>
+        </section>
+
+        <section class="view" id="view-cards" data-view-panel="cards" aria-labelledby="cards-title" hidden>
+          <div class="view-header">
+            <div>
+              <p class="eyebrow">Knowledge index</p>
+              <h1 id="cards-title">Strategy cards</h1>
+              <p class="view-meta" id="cards-count">Loading records</p>
+            </div>
+            <button class="button button-secondary refresh-button" type="button" data-refresh="cards">
+              <i data-lucide="refresh-cw" aria-hidden="true"></i>
+              <span>Refresh</span>
+            </button>
+          </div>
+
+          <div class="toolbar" aria-label="Strategy filters">
+            <label class="search-control">
+              <i data-lucide="search" aria-hidden="true"></i>
+              <span class="sr-only">Search strategy cards</span>
+              <input id="cards-search" type="search" placeholder="Search title, market, or source" autocomplete="off">
+            </label>
+            <label class="select-control">
+              <span class="sr-only">Filter by family</span>
+              <select id="cards-family-filter">
+                <option value="">All families</option>
+              </select>
+            </label>
+            <label class="select-control">
+              <span class="sr-only">Filter by license</span>
+              <select id="cards-license-filter">
+                <option value="">All licenses</option>
+                <option value="licensed">Licensed</option>
+                <option value="unknown">Unknown</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="data-surface" id="cards-surface" aria-live="polite">
+            <div class="table-loading"><span></span><span></span><span></span><span></span></div>
+          </div>
+        </section>
+
+        <section class="view" id="view-chat" data-view-panel="chat" aria-labelledby="chat-title" hidden>
+          <div class="view-header compact-header">
+            <div>
+              <p class="eyebrow">Local research agent</p>
+              <h1 id="chat-title">Agent chat</h1>
+            </div>
+            <span class="session-label"><span class="status-dot"></span> Local session</span>
+          </div>
+
+          <div class="chat-workspace">
+            <section class="chat-panel" aria-label="Conversation">
+              <div class="chat-messages" id="chat-messages" aria-live="polite">
+                <div class="chat-empty" id="chat-empty">
+                  <div class="empty-icon"><i data-lucide="search-check" aria-hidden="true"></i></div>
+                  <h2>Research the local index</h2>
+                  <p>Ask about strategy logic, evidence, licenses, or disclosed risks.</p>
+                  <div class="prompt-examples">
+                    <button type="button" data-question="Which strategies disclose transaction costs?">Transaction costs</button>
+                    <button type="button" data-question="Compare the indexed strategies by entry logic and source evidence.">Compare strategies</button>
+                    <button type="button" data-question="Show strategies with a clear open-source license.">Clear licenses</button>
+                  </div>
+                </div>
+              </div>
+              <form class="chat-composer" id="chat-form">
+                <label for="chat-input" class="sr-only">Question</label>
+                <textarea id="chat-input" rows="1" placeholder="Ask the local strategy index" required></textarea>
+                <button class="send-button" type="submit" aria-label="Send question" title="Send question">
+                  <span class="fallback-text" aria-hidden="true">Go</span>
+                  <i data-lucide="arrow-up" aria-hidden="true"></i>
+                </button>
+              </form>
+            </section>
+
+            <aside class="evidence-rail" aria-labelledby="chat-evidence-title">
+              <div class="rail-header">
+                <h2 id="chat-evidence-title">Answer sources</h2>
+                <span id="chat-source-count">0 cited</span>
+              </div>
+              <div id="chat-sources" class="evidence-list">
+                <div class="rail-empty">Sources appear with an answer.</div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="view" id="view-sources" data-view-panel="sources" aria-labelledby="sources-title" hidden>
+          <div class="view-header">
+            <div>
+              <p class="eyebrow">Provenance registry</p>
+              <h1 id="sources-title">Sources</h1>
+              <p class="view-meta" id="sources-count">Loading sources</p>
+            </div>
+            <div class="header-actions">
+              <button class="button button-secondary" type="button" data-open-dialog="rss-dialog">
+                <i data-lucide="rss" aria-hidden="true"></i>
+                <span>Ingest feed</span>
+              </button>
+              <button class="button button-primary" type="button" data-open-dialog="github-dialog">
+                <i data-lucide="github" aria-hidden="true"></i>
+                <span>Discover GitHub</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="source-summary" id="source-summary"></div>
+          <div class="data-surface" id="sources-surface" aria-live="polite">
+            <div class="table-loading"><span></span><span></span><span></span></div>
+          </div>
+        </section>
+
+        <section class="view" id="view-jobs" data-view-panel="jobs" aria-labelledby="jobs-title" hidden>
+          <div class="view-header">
+            <div>
+              <p class="eyebrow">Pipeline operations</p>
+              <h1 id="jobs-title">Jobs</h1>
+              <p class="view-meta" id="jobs-count">Loading jobs</p>
+            </div>
+            <button class="button button-secondary refresh-button" type="button" data-refresh="jobs">
+              <i data-lucide="refresh-cw" aria-hidden="true"></i>
+              <span>Refresh</span>
+            </button>
+          </div>
+
+          <div class="segmented-control" id="jobs-filter" aria-label="Filter jobs">
+            <button type="button" class="is-active" data-job-filter="all" aria-pressed="true">All</button>
+            <button type="button" data-job-filter="active" aria-pressed="false">Active</button>
+            <button type="button" data-job-filter="completed" aria-pressed="false">Completed</button>
+            <button type="button" data-job-filter="failed" aria-pressed="false">Failed</button>
+          </div>
+
+          <div class="data-surface" id="jobs-surface" aria-live="polite">
+            <div class="table-loading"><span></span><span></span><span></span></div>
+          </div>
+        </section>
+
+        <section class="view" id="view-watch-rules" data-view-panel="watch-rules" aria-labelledby="watch-rules-title" hidden>
+          <div class="view-header">
+            <div>
+              <p class="eyebrow">Continuous monitoring</p>
+              <h1 id="watch-rules-title">Watch rules</h1>
+              <p class="view-meta" id="rules-count">Loading schedules</p>
+            </div>
+            <button class="button button-primary" type="button" data-open-dialog="watch-dialog">
+              <i data-lucide="plus" aria-hidden="true"></i>
+              <span>New rule</span>
+            </button>
+          </div>
+
+          <div class="data-surface" id="rules-surface" aria-live="polite">
+            <div class="table-loading"><span></span><span></span><span></span></div>
+          </div>
+        </section>
+
+        <section class="view" id="view-local-controls" data-view-panel="local-controls" aria-labelledby="local-controls-title" hidden>
+          <div class="view-header">
+            <div>
+              <p class="eyebrow">Local runtime</p>
+              <h1 id="local-controls-title">Local controls</h1>
+              <p class="view-meta" id="controls-meta">Loading controls</p>
+            </div>
+            <button class="button button-secondary refresh-button" type="button" data-refresh="controls">
+              <i data-lucide="refresh-cw" aria-hidden="true"></i>
+              <span>Refresh</span>
+            </button>
+          </div>
+
+          <div class="controls-grid">
+            <section class="panel control-panel" aria-labelledby="permissions-title">
+              <div class="panel-header">
+                <div>
+                  <h2 id="permissions-title">Network collection</h2>
+                  <span>Connection state and domains</span>
+                </div>
+                <i data-lucide="network" aria-hidden="true"></i>
+              </div>
+              <div class="control-body" id="permissions-content" aria-live="polite">
+                <div class="skeleton-list" aria-label="Loading permissions"><span></span><span></span><span></span></div>
+              </div>
+            </section>
+
+            <section class="panel control-panel" aria-labelledby="memory-title">
+              <div class="panel-header">
+                <div>
+                  <h2 id="memory-title">Local memory</h2>
+                  <span>Saved preferences</span>
+                </div>
+                <i data-lucide="brain" aria-hidden="true"></i>
+              </div>
+              <div class="control-body" id="memory-content" aria-live="polite">
+                <div class="skeleton-list" aria-label="Loading memory"><span></span><span></span><span></span></div>
+              </div>
+            </section>
+
+            <section class="panel control-panel audit-panel" aria-labelledby="audit-title">
+              <div class="panel-header">
+                <div>
+                  <h2 id="audit-title">Recent audit</h2>
+                  <span id="audit-count">Loading events</span>
+                </div>
+                <i data-lucide="scroll-text" aria-hidden="true"></i>
+              </div>
+              <div class="audit-surface" id="audit-content" aria-live="polite">
+                <div class="table-loading"><span></span><span></span><span></span></div>
+              </div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog class="modal" id="github-dialog" aria-labelledby="github-dialog-title">
+      <form method="dialog" class="modal-close-form"><button type="submit" class="icon-button" aria-label="Close dialog"><span class="fallback-text" aria-hidden="true">X</span><i data-lucide="x" aria-hidden="true"></i></button></form>
+      <form id="github-form" class="modal-form">
+        <div class="modal-heading">
+          <span class="modal-icon"><i data-lucide="github" aria-hidden="true"></i></span>
+          <div><p class="eyebrow">Source discovery</p><h2 id="github-dialog-title">Discover GitHub</h2></div>
+        </div>
+        <label class="field">
+          <span>Repository query</span>
+          <input name="query" type="text" value="algorithmic trading strategy" required autocomplete="off">
+        </label>
+        <label class="field">
+          <span>Result limit</span>
+          <input name="limit" type="number" value="10" min="1" max="25" required>
+        </label>
+        <div class="form-error is-hidden" role="alert"></div>
+        <div class="modal-actions">
+          <button class="button button-quiet" type="button" data-close-dialog>Cancel</button>
+          <button class="button button-primary" type="submit"><i data-lucide="search" aria-hidden="true"></i><span>Start discovery</span></button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="rss-dialog" aria-labelledby="rss-dialog-title">
+      <form method="dialog" class="modal-close-form"><button type="submit" class="icon-button" aria-label="Close dialog"><span class="fallback-text" aria-hidden="true">X</span><i data-lucide="x" aria-hidden="true"></i></button></form>
+      <form id="rss-form" class="modal-form">
+        <div class="modal-heading">
+          <span class="modal-icon rss"><i data-lucide="rss" aria-hidden="true"></i></span>
+          <div><p class="eyebrow">Feed ingestion</p><h2 id="rss-dialog-title">Ingest RSS or Atom</h2></div>
+        </div>
+        <label class="field">
+          <span>Feed URL</span>
+          <input name="url" type="url" placeholder="https://example.org/feed.xml" required autocomplete="url">
+        </label>
+        <div class="form-error is-hidden" role="alert"></div>
+        <div class="modal-actions">
+          <button class="button button-quiet" type="button" data-close-dialog>Cancel</button>
+          <button class="button button-primary" type="submit"><i data-lucide="download" aria-hidden="true"></i><span>Ingest feed</span></button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="watch-dialog" aria-labelledby="watch-dialog-title">
+      <form method="dialog" class="modal-close-form"><button type="submit" class="icon-button" aria-label="Close dialog"><span class="fallback-text" aria-hidden="true">X</span><i data-lucide="x" aria-hidden="true"></i></button></form>
+      <form id="watch-form" class="modal-form">
+        <div class="modal-heading">
+          <span class="modal-icon watch"><i data-lucide="radar" aria-hidden="true"></i></span>
+          <div><p class="eyebrow">Scheduled collection</p><h2 id="watch-dialog-title">New watch rule</h2></div>
+        </div>
+        <label class="field">
+          <span>Rule name</span>
+          <input name="name" type="text" placeholder="Daily mean-reversion scan" required autocomplete="off">
+        </label>
+        <div class="field-row">
+          <label class="field">
+            <span>Source type</span>
+            <select name="kind" id="watch-kind">
+              <option value="github">GitHub</option>
+              <option value="rss">RSS / Atom</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Frequency</span>
+            <select name="interval_minutes">
+              <option value="60">Every hour</option>
+              <option value="360" selected>Every 6 hours</option>
+              <option value="720">Every 12 hours</option>
+              <option value="1440">Every day</option>
+            </select>
+          </label>
+        </div>
+        <label class="field">
+          <span id="watch-config-label">Repository query</span>
+          <input name="config_value" id="watch-config-value" type="text" placeholder="mean reversion language:python" required autocomplete="off">
+        </label>
+        <div class="form-error is-hidden" role="alert"></div>
+        <div class="modal-actions">
+          <button class="button button-quiet" type="button" data-close-dialog>Cancel</button>
+          <button class="button button-primary" type="submit"><i data-lucide="plus" aria-hidden="true"></i><span>Create rule</span></button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="detail-dialog" id="card-dialog" aria-labelledby="card-dialog-title">
+      <div class="detail-dialog-header">
+        <div><p class="eyebrow">Strategy record</p><h2 id="card-dialog-title">Strategy detail</h2></div>
+        <form method="dialog"><button type="submit" class="icon-button" aria-label="Close strategy detail"><span class="fallback-text" aria-hidden="true">X</span><i data-lucide="x" aria-hidden="true"></i></button></form>
+      </div>
+      <div id="card-dialog-content" class="detail-dialog-content"></div>
+    </dialog>
+
+    <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+  </body>
+</html>
