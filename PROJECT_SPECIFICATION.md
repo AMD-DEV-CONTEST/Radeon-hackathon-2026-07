@@ -204,4 +204,4 @@ Mapped directly to the rubric, with a pointer to where each point was actually v
 | Optimization for inference speed | 20 | [Section 6](#6-bonus-powered-by-vte) | Real profiling-driven optimization arc (~18.8 to 100+ tok/s), documented including the attempts that didn't pan out, not just the ones that did |
 | Bonus: quantization + Radeon Cloud | 20 | [Section 6](#6-bonus-powered-by-vte) | Quantization (Q4_K_M/Q6_K/Q8_0) is VTE's only supported inference format, not an optional flag; every W7900 number above was measured on a real AMD Radeon Cloud instance |
 
-The common failure mode this table is written to avoid, seen while reviewing other Track 2 submissions during development: claiming a capability by relabeling something adjacent to it (a job checkpoint as "multi-turn memory," a fixed pipeline as "multi-step planning"), or citing an optimization number without the core inference itself ever being confirmed running on the target hardware. Every row above points to something that was actually run and watched, not inferred from the architecture.
+
