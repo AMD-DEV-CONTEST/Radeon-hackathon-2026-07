@@ -6,7 +6,7 @@ Built for **Track 2: Development & Local Deployment of Private AI Agents**.
 
 Under the hood, Aetheris runs on **VTE**, a from-scratch inference engine also built for this project instead of depending on an existing runtime ([below](#under-the-hood-vte)).
 
-**[Watch the demo video](Assets/Aetheris%20Video.mp4)** — the agent reading, planning, and editing a real codebase on camera, running end-to-end on an AMD Radeon GPU.
+**[Watch the demo video](https://drive.google.com/drive/folders/1a6CQkLn0nwz_gbBwckKcNBmiN-YMQpfD?usp=sharing)** — the agent reading, planning, and editing a real codebase on camera, running end-to-end on an AMD Radeon GPU. (Same folder also has the submission slide deck.)
 
 ## What it can actually do
 
