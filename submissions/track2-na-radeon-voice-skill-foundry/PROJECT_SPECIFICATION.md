@@ -791,6 +791,8 @@ presentation tools do not provide the product's core Agent or ASR functions.
 - Source: `https://github.com/Chengyuann/radeon-voice-skill-foundry`
 - Live product: `https://radeon-voice-skill-foundry.pages.dev/`
 - Technical evidence index: `TECHNICAL_EVIDENCE_INDEX.md`
+- Multi-turn interaction brief: `MULTI_TURN_INTERACTION.md`
+- Parent-child lineage: `MULTI_TURN_LINEAGE.png`
 - Product Demo: `RADEON_VOICE_SKILL_FOUNDRY_DEMO.mp4`
 - Verified workflow proof: `VERIFIED_WORKFLOW_PROOF.zip`
 - Multi-turn refinement: `MULTI_TURN_REFINEMENT.png`,

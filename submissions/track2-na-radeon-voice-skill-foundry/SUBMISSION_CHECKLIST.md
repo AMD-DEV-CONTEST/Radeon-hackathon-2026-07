@@ -20,6 +20,7 @@
 - [x] English SRT captions are included for every video
 - [x] Verified workflow proof ZIP and governance ledger are included
 - [x] Performance and continuous-operation proof ZIPs are included
+- [x] Multi-turn interaction has a dedicated brief and lineage diagram
 - [x] Live multi-turn screenshot, API lineage JSON, and proof ZIP are included
 
 ## Radeon and ROCm

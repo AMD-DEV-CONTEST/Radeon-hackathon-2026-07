@@ -14,26 +14,36 @@ requires explicit human promotion.
 
 ## Project Materials
 
-1. Submission evidence map:
-   [`SUBMISSION_EVIDENCE_MAP.md`](SUBMISSION_EVIDENCE_MAP.md)
-2. Live product:
+1. Multi-turn interaction:
+   [`MULTI_TURN_INTERACTION.md`](MULTI_TURN_INTERACTION.md)
+2. Multi-turn Director Cut (35.5 seconds):
+   `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/MULTI_TURN_INTERACTION_DIRECTOR_CUT.mp4`
+3. Raw multi-turn product capture (32 seconds):
+   `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/MULTI_TURN_INTERACTION_DEMO.mp4`
+4. Multi-turn supplement screenshot:
+   [`MULTI_TURN_INTERACTION_DEMO.png`](MULTI_TURN_INTERACTION_DEMO.png)
+5. Parent-child lineage:
+   [`MULTI_TURN_LINEAGE.png`](MULTI_TURN_LINEAGE.png)
+6. Live product:
    `https://radeon-voice-skill-foundry.pages.dev/`
-3. Product Demo:
+7. Submission evidence map:
+   [`SUBMISSION_EVIDENCE_MAP.md`](SUBMISSION_EVIDENCE_MAP.md)
+8. Product Demo:
    `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/RADEON_VOICE_SKILL_FOUNDRY_DEMO.mp4`
-4. Project Specification: [`PROJECT_SPECIFICATION.pdf`](PROJECT_SPECIFICATION.pdf)
-5. Technical evidence: [`TECHNICAL_EVIDENCE_INDEX.md`](TECHNICAL_EVIDENCE_INDEX.md)
-6. Architecture: [`ARCHITECTURE.png`](ARCHITECTURE.png)
-7. Poster: [`POSTER.pdf`](POSTER.pdf)
-8. Multi-turn refinement:
+9. Project Specification: [`PROJECT_SPECIFICATION.pdf`](PROJECT_SPECIFICATION.pdf)
+10. Technical evidence: [`TECHNICAL_EVIDENCE_INDEX.md`](TECHNICAL_EVIDENCE_INDEX.md)
+11. Architecture: [`ARCHITECTURE.png`](ARCHITECTURE.png)
+12. Poster: [`POSTER.pdf`](POSTER.pdf)
+13. Multi-turn evidence:
    [`MULTI_TURN_REFINEMENT.png`](MULTI_TURN_REFINEMENT.png) and
    [`MULTI_TURN_REFINEMENT.json`](MULTI_TURN_REFINEMENT.json), with
    [`MULTI_TURN_REFINEMENT_PROOF.zip`](MULTI_TURN_REFINEMENT_PROOF.zip)
-9. Performance Demo:
+14. Performance Demo:
    `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/RADEON_VOICE_SKILL_FOUNDRY_PERFORMANCE_DEMO.mp4`
-10. Continuous Operation Demo:
+15. Continuous Operation Demo:
    `https://github.com/Chengyuann/radeon-voice-skill-foundry/releases/download/submission/CONTINUOUS_OPERATION_DEMO.mp4`
-11. Package integrity: [`SHA256SUMS.txt`](SHA256SUMS.txt)
-12. Source:
+16. Package integrity: [`SHA256SUMS.txt`](SHA256SUMS.txt)
+17. Source:
    `https://github.com/Chengyuann/radeon-voice-skill-foundry`
 
 Demo captions:
@@ -47,6 +57,25 @@ Demo governance ledger:
 
 Official submission:
 `https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/pull/7`
+
+## Traceable Multi-Turn Interaction
+
+A correction creates a new child compile instead of changing the parent in
+place. The child records `parentRunId`, receives regenerated constraints,
+permissions and fixtures, and must pass verification again.
+
+The submitted public workflow demonstrates:
+
+- user correction: require confirmation before creating calendar holds
+- parent run: `run_dbc1a6e2c6b5`
+- verified child run: `run_79b986c46400`
+- revision: `1 -> 2`
+- generated fixtures: `7`
+- local knowledge matches: `3`
+- child proof hash: `422bc40e...ead6522`
+
+See [`MULTI_TURN_INTERACTION.md`](MULTI_TURN_INTERACTION.md) for the compact
+lineage and evidence links.
 
 ## Implemented Track 2 Capabilities
 
