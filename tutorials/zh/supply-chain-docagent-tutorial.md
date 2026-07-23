@@ -179,6 +179,7 @@ curl http://localhost:8000/v1/chat/completions \
 RAG 引擎 - 使用 LlamaIndex 构建单据知识库
 """
 
+from pathlib import Path
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
@@ -186,26 +187,54 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 class RAGEngine:
     """RAG 引擎类"""
     
-    def __init__(self, config):
+    def __init__(self, config: dict):
         self.config = config
-        self._init_embed_model()
-        self._load_documents()
+        self._init_embedding()
+        self.index = None
+        self._build_index()
     
-    def _init_embed_model(self):
-        """初始化 Embedding 模型"""
-        model_name = self.config["rag"]["embedding_model"]
-        Settings.embed_model = HuggingFaceEmbedding(model_name=model_name)
+    def _init_embedding(self):
+        """初始化 Embedding 模型（运行在 AMD GPU 上）"""
+        embed_model_name = self.config["rag"]["embedding_model"]
+        Settings.embed_model = HuggingFaceEmbedding(model_name=embed_model_name)
+        Settings.chunk_size = self.config["rag"]["chunk_size"]
+        Settings.chunk_overlap = self.config["rag"]["chunk_overlap"]
     
-    def _load_documents(self):
-        """加载文档并构建索引"""
-        documents = SimpleDirectoryReader("data/sample_docs").load_data()
-        self.index = VectorStoreIndex.from_documents(documents)
-        self.query_engine = self.index.as_query_engine()
+    def _build_index(self):
+        """从 data/ 目录构建向量索引"""
+        data_dir = Path(__file__).parent.parent / "data" / "sample_docs"
+        if data_dir.exists() and list(data_dir.glob("*")):
+            documents = SimpleDirectoryReader(str(data_dir)).load_data()
+            self.index = VectorStoreIndex.from_documents(documents)
     
     def retrieve(self, query: str) -> str:
-        """检索相关文档"""
-        response = self.query_engine.query(query)
+        """检索与查询相关的知识库内容"""
+        if self.index is None:
+            return ""
+        
+        query_engine = self.index.as_query_engine(
+            similarity_top_k=self.config["rag"]["top_k"]
+        )
+        response = query_engine.query(query)
         return str(response)
+    
+    def add_documents(self, file_paths: list[str]):
+        """动态添加新文档到索引"""
+        from llama_index.core import Document
+        
+        docs = []
+        for fp in file_paths:
+            path = Path(fp)
+            if path.exists():
+                text = path.read_text(encoding="utf-8")
+                docs.append(Document(text=text, metadata={"source": str(path)}))
+        
+        if docs:
+            if self.index is None:
+                self.index = VectorStoreIndex.from_documents(docs)
+            else:
+                for doc in docs:
+                    self.index.insert(doc)
 ```
 
 ### 3.2 测试 RAG 引擎
@@ -232,46 +261,28 @@ print(result)
 
 **预计时间**: 10 分钟
 
-### 4.1 创建分类 Agent
+### 4.1 分类 Agent 实现
 
-创建 `src/classify.py`：
+`DocClassifyAgent` 类定义在 `src/agent.py` 中：
 
 ```python
-"""
-单据分类 Agent - 识别上传的单据类型
-"""
-
-
 class DocClassifyAgent:
-    """单据分类 Agent"""
+    """单据分类 Agent — 识别上传的单据类型"""
     
     def __init__(self, llm, config):
         self.llm = llm
         self.doc_types = config["documents"]["types"]
     
     def classify(self, content: str) -> str:
-        """
-        识别单据类型
-        
-        Args:
-            content: 单据文本内容
-            
-        Returns:
-            单据类型标签
-        """
         prompt = (
             f"根据以下文档内容，判断单据类型。"
             f"可选类型：{', '.join(self.doc_types)}。\n"
             f"只返回类型名称，不要其他内容。\n\n文档内容：\n{content[:2000]}"
         )
-        
         result = self.llm.invoke(prompt)
-        
-        # 提取类型
         for doc_type in self.doc_types:
             if doc_type in result.lower():
                 return doc_type
-        
         return "unknown"
 ```
 
@@ -292,37 +303,19 @@ print(f"分类结果: {doc_type}")  # 预期: purchase_order
 
 **预计时间**: 10 分钟
 
-### 5.1 创建提取 Agent
+### 5.1 提取 Agent 实现
 
-创建 `src/extract.py`：
+`FieldExtractAgent` 类定义在 `src/agent.py` 中：
 
 ```python
-"""
-字段提取 Agent - 从单据中提取结构化字段
-"""
-
-import json
-import re
-
-
 class FieldExtractAgent:
-    """字段提取 Agent"""
+    """字段提取 Agent — 从单据中提取结构化字段"""
     
     def __init__(self, llm, config):
         self.llm = llm
         self.fields = config["documents"]["extraction_fields"]
     
     def extract(self, content: str, doc_type: str) -> dict:
-        """
-        从单据中提取结构化字段
-        
-        Args:
-            content: 单据文本内容
-            doc_type: 单据类型
-            
-        Returns:
-            提取的字段字典
-        """
         fields = self.fields.get(doc_type, [])
         if not fields:
             return {}
@@ -333,20 +326,12 @@ class FieldExtractAgent:
             f"文档内容：\n{content[:3000]}\n\n"
             f"只返回JSON，格式如：{{\"{fields[0]}\": \"值\", ...}}"
         )
-        
         result = self.llm.invoke(prompt)
         
-        # 解析 JSON
+        import json
         try:
             return json.loads(result)
         except json.JSONDecodeError:
-            # 尝试提取 JSON 部分
-            json_match = re.search(r'\{.*\}', result, re.DOTALL)
-            if json_match:
-                try:
-                    return json.loads(json_match.group())
-                except json.JSONDecodeError:
-                    pass
             return {"raw": result}
 ```
 
@@ -364,34 +349,18 @@ print(f"提取结果: {json.dumps(extracted, indent=2, ensure_ascii=False)}")
 
 **预计时间**: 15 分钟
 
-### 6.1 创建校验 Agent
+### 6.1 校验 Agent 实现
 
-创建 `src/validate.py`：
+`CrossValidateAgent` 类定义在 `src/agent.py` 中：
 
 ```python
-"""
-三单校验 Agent - 交叉核对 PO、送货单、发票
-"""
-
-
 class CrossValidateAgent:
-    """三单校验 Agent"""
+    """三单校验 Agent — 交叉核对 PO、送货单、发票"""
     
     def __init__(self, config):
         self.config = config["validation"]
     
     def validate(self, po: dict, delivery: dict, invoice: dict) -> dict:
-        """
-        三单交叉校验
-        
-        Args:
-            po: 采购订单数据
-            delivery: 送货单数据
-            invoice: 发票数据
-            
-        Returns:
-            校验结果
-        """
         results = []
         rules = self.config["cross_check"]
         tolerance = self.config["tolerance"]
@@ -405,7 +374,6 @@ class CrossValidateAgent:
                 results.append({"rule": rule, "status": "skip", "reason": "字段缺失"})
                 continue
             
-            # 数值比较
             try:
                 po_num = float(str(po_val).replace(",", ""))
                 target_num = float(str(target_val).replace(",", ""))
@@ -417,12 +385,13 @@ class CrossValidateAgent:
                     if diff_pct <= tolerance["amount_percent"]:
                         results.append({"rule": rule, "status": "pass"})
                     else:
-                        results.append({"rule": rule, "status": "fail", "diff": f"{diff_pct:.1f}%"})
+                        results.append({"rule": rule, "status": "fail",
+                                         "diff": f"{diff_pct:.1f}%"})
                 elif po_num == target_num:
                     results.append({"rule": rule, "status": "pass"})
                 else:
-                    results.append({"rule": rule, "status": "fail", "diff": f"{diff_pct:.1f}%"})
-            
+                    results.append({"rule": rule, "status": "fail",
+                                     "diff": f"{diff_pct:.1f}%"})
             except (ValueError, TypeError):
                 if str(po_val).strip() == str(target_val).strip():
                     results.append({"rule": rule, "status": "pass"})
@@ -454,36 +423,167 @@ print(f"详情: {result['details']}")
 
 ### 7.1 创建主 Agent
 
-创建 `src/agent.py`：
+实际项目中，所有 Agent 都在 `src/agent.py` 中定义。以下是核心结构：
 
 ```python
 """
-主 Agent - 编排多 Agent 协作流程
+Supply Chain DocAgent — 多 Agent 协作的供应链单据智能处理系统。
+支持单据识别、信息提取、三单校验、异常处理和 ERP 录入。
 """
 
+import yaml
+from pathlib import Path
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+
 from .rag import RAGEngine
-from .classify import DocClassifyAgent
-from .extract import FieldExtractAgent
-from .validate import CrossValidateAgent
+from .tools import get_tools
+from .memory import ConversationMemory
+from .ui import create_ui
+
+
+def load_config() -> dict:
+    config_path = Path(__file__).parent.parent / "config" / "settings.yaml"
+    with open(config_path, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
+class DocClassifyAgent:
+    """单据分类 Agent — 识别上传的单据类型"""
+    
+    def __init__(self, llm, config):
+        self.llm = llm
+        self.doc_types = config["documents"]["types"]
+    
+    def classify(self, content: str) -> str:
+        prompt = (
+            f"根据以下文档内容，判断单据类型。"
+            f"可选类型：{', '.join(self.doc_types)}。\n"
+            f"只返回类型名称，不要其他内容。\n\n文档内容：\n{content[:2000]}"
+        )
+        result = self.llm.invoke(prompt)
+        for doc_type in self.doc_types:
+            if doc_type in result.lower():
+                return doc_type
+        return "unknown"
+
+
+class FieldExtractAgent:
+    """字段提取 Agent — 从单据中提取结构化字段"""
+    
+    def __init__(self, llm, config):
+        self.llm = llm
+        self.fields = config["documents"]["extraction_fields"]
+    
+    def extract(self, content: str, doc_type: str) -> dict:
+        fields = self.fields.get(doc_type, [])
+        if not fields:
+            return {}
+        
+        prompt = (
+            f"从以下{doc_type}文档中提取以下字段，以JSON格式返回：\n"
+            f"字段列表：{', '.join(fields)}\n\n"
+            f"文档内容：\n{content[:3000]}\n\n"
+            f"只返回JSON，格式如：{{\"{fields[0]}\": \"值\", ...}}"
+        )
+        result = self.llm.invoke(prompt)
+        
+        import json
+        try:
+            return json.loads(result)
+        except json.JSONDecodeError:
+            return {"raw": result}
+
+
+class CrossValidateAgent:
+    """三单校验 Agent — 交叉核对 PO、送货单、发票"""
+    
+    def __init__(self, config):
+        self.config = config["validation"]
+    
+    def validate(self, po: dict, delivery: dict, invoice: dict) -> dict:
+        results = []
+        rules = self.config["cross_check"]
+        tolerance = self.config["tolerance"]
+        
+        for rule in rules:
+            po_field, target_field = rule.split(":")
+            po_val = po.get(po_field)
+            target_val = delivery.get(target_field) or invoice.get(target_field)
+            
+            if po_val is None or target_val is None:
+                results.append({"rule": rule, "status": "skip", "reason": "字段缺失"})
+                continue
+            
+            try:
+                po_num = float(str(po_val).replace(",", ""))
+                target_num = float(str(target_val).replace(",", ""))
+                diff_pct = abs(po_num - target_num) / max(po_num, 1) * 100
+                
+                if "quantity" in rule and diff_pct <= tolerance["quantity_percent"]:
+                    results.append({"rule": rule, "status": "pass"})
+                elif "amount" in rule or "price" in rule:
+                    if diff_pct <= tolerance["amount_percent"]:
+                        results.append({"rule": rule, "status": "pass"})
+                    else:
+                        results.append({"rule": rule, "status": "fail",
+                                         "diff": f"{diff_pct:.1f}%"})
+                elif po_num == target_num:
+                    results.append({"rule": rule, "status": "pass"})
+                else:
+                    results.append({"rule": rule, "status": "fail",
+                                     "diff": f"{diff_pct:.1f}%"})
+            except (ValueError, TypeError):
+                if str(po_val).strip() == str(target_val).strip():
+                    results.append({"rule": rule, "status": "pass"})
+                else:
+                    results.append({"rule": rule, "status": "fail"})
+        
+        all_pass = all(r["status"] in ("pass", "skip") for r in results)
+        return {"all_pass": all_pass, "details": results}
 
 
 class DocAgent:
-    """主 Agent"""
+    """主 Agent — 编排多 Agent 协作流程"""
     
     def __init__(self, config: dict):
         self.config = config
         self.rag = RAGEngine(config)
-        # 初始化其他 Agent...
+        self.memory = ConversationMemory(config)
+        self.tools = get_tools(config["tools"]["enabled"])
+        self._init_llm()
+        self.classify_agent = DocClassifyAgent(self.llm, config)
+        self.extract_agent = FieldExtractAgent(self.llm, config)
+        self.validate_agent = CrossValidateAgent(config)
+    
+    def _init_llm(self):
+        """初始化 LLM（使用 HuggingFace Pipeline）"""
+        from langchain_community.llms import HuggingFacePipeline
+        from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+        import torch
+        
+        model_name = self.config["model"]["name"]
+        device = self.config["model"]["device"]
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name, torch_dtype=torch.float16, device_map=device,
+        )
+        self.llm = HuggingFacePipeline(
+            pipeline=pipeline(
+                "text-generation", model=model, tokenizer=tokenizer,
+                max_new_tokens=self.config["model"]["max_tokens"],
+                temperature=self.config["model"]["temperature"],
+            )
+        )
     
     def process_document(self, content: str, filename: str = "") -> dict:
-        """处理单张单据"""
+        """处理单张单据的完整流程"""
         # 1. 分类
         doc_type = self.classify_agent.classify(content)
         
         # 2. 提取字段
         extracted = self.extract_agent.extract(content, doc_type)
         
-        # 3. RAG 检索
+        # 3. RAG 检索相似案例
         rag_context = self.rag.retrieve(f"{doc_type} 异常处理")
         
         return {
@@ -509,6 +609,39 @@ class DocAgent:
                 invoice_data = doc["extracted_fields"]
         
         return self.validate_agent.validate(po_data, delivery_data, invoice_data)
+    
+    def query(self, user_input: str) -> str:
+        """对话式查询"""
+        rag_context = self.rag.retrieve(user_input)
+        enhanced = user_input
+        if rag_context:
+            enhanced = f"[知识库参考]\n{rag_context}\n\n[问题]\n{user_input}"
+        
+        history = self.memory.get_history()
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", "你是供应链单据处理专家助手。基于知识库回答问题，用中文回复。"),
+            MessagesPlaceholder(variable_name="history"),
+            ("human", "{input}"),
+        ])
+        chain = prompt | self.llm
+        response = chain.invoke({"input": enhanced, "history": history})
+        self.memory.add(user_input, response)
+        return response
+
+
+def main():
+    config = load_config()
+    agent = DocAgent(config)
+    ui = create_ui(agent)
+    ui.launch(
+        server_name=config["ui"]["host"],
+        server_port=config["ui"]["port"],
+        share=config["ui"]["share"],
+    )
+
+
+if __name__ == "__main__":
+    main()
 ```
 
 ### 7.2 测试完整流程
