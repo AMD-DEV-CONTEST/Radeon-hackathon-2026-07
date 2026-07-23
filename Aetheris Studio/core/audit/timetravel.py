@@ -20,15 +20,40 @@ checkout`, which would move the user's actual HEAD/branch.
 
 from __future__ import annotations
 
+import contextvars
 import difflib
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from core.utils.constants import TIMETRAVEL_DIR
 
 logger = logging.getLogger(__name__)
+
+
+# The user-message index (1-based) the current request belongs to. Set by
+# the request layer (app.py's chat-stream / tools-execute handlers) and
+# read by snapshot() without threading an extra arg through every tool
+# handler's signature -- the same reason session_id is passed explicitly
+# but this, which every snapshot in a request shares, rides a contextvar.
+# A snapshot with no turn (older logs, or a snapshot taken outside any
+# request) gets turn_id None and is simply never a checkpoint boundary.
+_current_turn_id: contextvars.ContextVar[Optional[int]] = contextvars.ContextVar(
+    "aetheris_current_turn_id", default=None
+)
+
+
+def set_current_turn_id(turn_id: Optional[int]) -> None:
+    _current_turn_id.set(turn_id)
+
+
+# Structured, parseable prefix on the shadow-ref commit message, so
+# list_snapshots can recover which user message a snapshot belongs to
+# without a second data store. Kept out of the human-readable label the UI
+# shows (stripped back off in list_snapshots).
+_TURN_LABEL_RE = re.compile(r"^\[turn:(\d+)\]\s*")
 
 
 def timetravel_enabled() -> bool:
@@ -67,10 +92,19 @@ async def _run_git(
     unconditionally and every rollback() round-trip test failed by
     exactly one trailing newline."""
     import asyncio
+    import subprocess as _subprocess
 
+    # Every edit_file/write_file call fires two of these (pre+post snapshot),
+    # so a normal editing session spawns git dozens of times. Without this,
+    # each one flashes a real console window on Windows (confirmed directly
+    # -- a multi-edit test session produced ~10 visible flashes), the same
+    # issue vte_bridge.py's _start_server_locked already guards against for
+    # the vte-server subprocess.
+    creationflags = _subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
     proc = await asyncio.create_subprocess_exec(
         "git", *argv, cwd=cwd, env=env,
         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+        creationflags=creationflags,
     )
     stdout, stderr = await proc.communicate()
     out = stdout.decode("utf-8", errors="replace")
@@ -147,7 +181,9 @@ async def snapshot(session_id: str, rel_paths: List[str], label: str) -> Optiona
 
         ref = _ref_name(session_id)
         parent, _, parent_rc = await _run_git(["rev-parse", ref], cwd=repo_root, check=False)
-        commit_argv = ["commit-tree", tree, "-m", label]
+        turn_id = _current_turn_id.get()
+        commit_label = f"[turn:{turn_id}] {label}" if turn_id is not None else label
+        commit_argv = ["commit-tree", tree, "-m", commit_label]
         if parent_rc == 0 and parent:
             commit_argv += ["-p", parent]
         commit, _, _ = await _run_git(commit_argv, cwd=repo_root, env=env)
@@ -269,6 +305,11 @@ async def list_snapshots(session_id: str) -> List[Dict]:
             ts_int = int(ts)
         except ValueError:
             continue
+        # Recover the user-message index this snapshot belongs to (encoded
+        # by snapshot()), and strip it back out of the human-readable label.
+        turn_match = _TURN_LABEL_RE.match(message)
+        turn_id = int(turn_match.group(1)) if turn_match else None
+        clean_message = _TURN_LABEL_RE.sub("", message, count=1)
         # Which paths this specific snapshot's tree covers -- needed by the
         # UI to know what to pass to preview_rollback/rollback for a given
         # entry, since each snapshot's tree only ever contains the files
@@ -278,5 +319,67 @@ async def list_snapshots(session_id: str) -> List[Dict]:
             ["ls-tree", "-r", "--name-only", commit_hash], cwd=repo_root, check=False,
         )
         paths = paths_out.splitlines() if paths_rc == 0 else []
-        snapshots.append({"commit": commit_hash, "ts": ts_int, "message": message, "paths": paths})
+        snapshots.append(
+            {"commit": commit_hash, "ts": ts_int, "message": clean_message, "turn_id": turn_id, "paths": paths}
+        )
     return snapshots
+
+
+async def _earliest_pre_snapshots_from_turn(session_id: str, turn_id: int) -> Dict[str, Dict]:
+    """For 'restore the project to the state right before user message
+    `turn_id`': for every path touched at any point from that message
+    onward, the EARLIEST pre-snapshot of it in that window is its content
+    as of that boundary (nothing edited it between the boundary and that
+    first edit). Returns {repo_relative_path: snapshot_dict}. Snapshots
+    are `git log` newest-first, so iterating and keeping the LAST-seen
+    per path yields the earliest.
+
+    Only pre-snapshots count: a post-snapshot is the state AFTER an edit,
+    never a restore target for 'before message N'."""
+    snapshots = await list_snapshots(session_id)
+    earliest: Dict[str, Dict] = {}
+    for snap in snapshots:  # newest -> oldest
+        if snap.get("turn_id") is None or snap["turn_id"] < turn_id:
+            continue
+        if not snap["message"].startswith("pre:"):
+            continue
+        for path in snap["paths"]:
+            earliest[path] = snap  # keep overwriting -> ends on the oldest
+    return earliest
+
+
+async def restore_to_turn(session_id: str, turn_id: int) -> Dict:
+    """Restore the whole project to the state it had right before user
+    message `turn_id` ran -- the 'checkpoint' undo. Each affected file is
+    restored to its own earliest pre-snapshot in the window (see
+    _earliest_pre_snapshots_from_turn); files never touched from that
+    message onward are already correct and left alone."""
+    earliest = await _earliest_pre_snapshots_from_turn(session_id, turn_id)
+    if not earliest:
+        return {"output": "Nothing to restore -- no edits recorded from this point onward.",
+                "exit_code": 0, "restored": []}
+    restored: List[str] = []
+    errors: List[str] = []
+    for path, snap in earliest.items():
+        result = await rollback(snap["commit"], [path])
+        restored.extend(result.get("restored", []))
+        if result.get("exit_code"):
+            errors.append(result.get("error") or f"{path}: restore failed")
+    if errors and not restored:
+        return {"error": "; ".join(errors), "exit_code": 1, "restored": []}
+    output = f"Restored {len(restored)} file(s) to before this point: {', '.join(restored)}"
+    if errors:
+        output += "\nErrors:\n" + "\n".join(errors)
+    return {"output": output, "exit_code": 1 if errors else 0, "restored": restored}
+
+
+async def preview_restore_to_turn(session_id: str, turn_id: int) -> Dict:
+    """Read-only combined diff for the checkpoint-restore confirm dialog:
+    every file that would change if the project were rolled back to before
+    user message `turn_id`, and how."""
+    earliest = await _earliest_pre_snapshots_from_turn(session_id, turn_id)
+    diffs: List[Dict] = []
+    for path, snap in earliest.items():
+        preview = await preview_rollback(snap["commit"], [path])
+        diffs.extend(preview.get("diffs", []))
+    return {"diffs": diffs, "exit_code": 0}

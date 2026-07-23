@@ -9,15 +9,23 @@ class Snapshot {
   final String commit;
   final int ts;
   final String message;
+  final int? turnId;
   final List<String> paths;
 
-  const Snapshot({required this.commit, required this.ts, required this.message, required this.paths});
+  const Snapshot({
+    required this.commit,
+    required this.ts,
+    required this.message,
+    required this.turnId,
+    required this.paths,
+  });
 
   factory Snapshot.fromJson(Map<String, dynamic> json) {
     return Snapshot(
       commit: json['commit']?.toString() ?? '',
       ts: json['ts'] as int? ?? 0,
       message: json['message']?.toString() ?? '',
+      turnId: json['turn_id'] as int?,
       paths: (json['paths'] as List? ?? []).map((e) => e.toString()).toList(),
     );
   }
@@ -29,6 +37,21 @@ class Snapshot {
 class TimeTravelState {
   final List<Snapshot> snapshots;
   const TimeTravelState({this.snapshots = const []});
+
+  /// The highest user-message index that produced any file snapshot. A
+  /// checkpoint on message N is meaningful (there's something to undo back
+  /// to before it) exactly when this is >= N.
+  int get maxSnapshotTurn {
+    var max = 0;
+    for (final s in snapshots) {
+      if (s.turnId != null && s.turnId! > max) max = s.turnId!;
+    }
+    return max;
+  }
+
+  /// True if restoring to "before message [turnId]" would change anything --
+  /// i.e. some edit happened at that message or later.
+  bool hasCheckpointFor(int turnId) => maxSnapshotTurn >= turnId;
 }
 
 class TimeTravelNotifier extends StateNotifier<TimeTravelState> {
@@ -76,6 +99,23 @@ class TimeTravelNotifier extends StateNotifier<TimeTravelState> {
     if (chatId == null) return {'error': 'no active chat'};
     final api = _ref.read(apiClientProvider);
     final result = await api.rollback(chatId, snapshot.commit, snapshot.paths);
+    await refresh();
+    return result;
+  }
+
+  /// Message-anchored checkpoint (Fase C): read-only combined diff of
+  /// restoring the whole project to before user message [turnId].
+  Future<Map<String, dynamic>> previewCheckpoint(int turnId) async {
+    final chatId = _chatId;
+    if (chatId == null) return {'diffs': []};
+    return _ref.read(apiClientProvider).previewCheckpoint(chatId, turnId);
+  }
+
+  /// The message-anchored undo itself, after the confirm dialog.
+  Future<Map<String, dynamic>> restoreCheckpoint(int turnId) async {
+    final chatId = _chatId;
+    if (chatId == null) return {'error': 'no active chat'};
+    final result = await _ref.read(apiClientProvider).restoreCheckpoint(chatId, turnId);
     await refresh();
     return result;
   }

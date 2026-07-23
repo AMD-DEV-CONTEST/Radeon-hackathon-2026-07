@@ -148,7 +148,8 @@ class _ProjectFolderButton extends ConsumerWidget {
       onTap: () async {
         final picked = await FilePicker.platform.getDirectoryPath(dialogTitle: 'Select project folder');
         if (picked == null) return;
-        final error = await ref.read(projectPathProvider.notifier).select(picked);
+        final chatId = ref.read(chatSessionsProvider).activeChatId;
+        final error = await ref.read(projectPathProvider.notifier).select(picked, chatId: chatId);
         if (error != null && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Invalid path: $error'), backgroundColor: AppColors.accentRed),

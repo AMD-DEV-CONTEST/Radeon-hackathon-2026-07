@@ -61,6 +61,7 @@ MEMORY_VECTORS_DIR = os.path.join(DATA_DIR, "memory_vectors")
 AUDIT_DIR = os.path.join(DATA_DIR, "audit")
 TIMETRAVEL_DIR = os.path.join(DATA_DIR, "timetravel")
 MAPS_DIR = os.path.join(DATA_DIR, "maps")
+CHAT_PROJECTS_FILE = os.path.join(DATA_DIR, "chat_projects.json")
 
 # Paths with an intentional dedicated env override, defaulting under DATA_DIR.
 MAIL_ATTACHMENTS_DIR = os.getenv("ODYSSEUS_MAIL_ATTACHMENTS_DIR", os.path.join(DATA_DIR, "mail-attachments"))

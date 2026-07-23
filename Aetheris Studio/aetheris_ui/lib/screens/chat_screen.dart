@@ -8,6 +8,7 @@ import '../data/models/file_search_result.dart';
 import '../providers/api_provider.dart';
 import '../providers/chat_provider.dart';
 import '../providers/model_load_provider.dart';
+import '../providers/timetravel_provider.dart';
 import '../theme.dart';
 import '../widgets/formatted_text.dart';
 import '../widgets/model_context_bar.dart';
@@ -179,12 +180,29 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       child:
                           Text('Send a message to get started.', style: TextStyle(color: AppColors.textMuted)),
                     )
-                  : ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.all(16),
-                      itemCount: messages.length,
-                      itemBuilder: (context, i) => _MessageBubble(message: messages[i]),
-                    ),
+                  : Builder(builder: (context) {
+                      // Per-position user-message turn index (1-based),
+                      // matching chat_provider's _activeTurnId numbering,
+                      // so each user bubble can offer a Time-Travel
+                      // checkpoint back to the state before it ran.
+                      final turnIds = <int?>[];
+                      var userCount = 0;
+                      for (final m in messages) {
+                        if (m.role == 'user') {
+                          userCount++;
+                          turnIds.add(userCount);
+                        } else {
+                          turnIds.add(null);
+                        }
+                      }
+                      return ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: messages.length,
+                        itemBuilder: (context, i) =>
+                            _MessageBubble(message: messages[i], userTurnId: turnIds[i]),
+                      );
+                    }),
             ),
             if (isThinkingHere)
               Padding(
@@ -549,28 +567,156 @@ class _AtReferencePopup extends StatelessWidget {
   }
 }
 
-class _MessageBubble extends StatelessWidget {
+class _MessageBubble extends ConsumerWidget {
   final ChatMessage message;
+  // 1-based user-message index for user bubbles (null for assistant), used
+  // to offer a Time-Travel checkpoint back to the project state before this
+  // message ran.
+  final int? userTurnId;
 
-  const _MessageBubble({required this.message});
+  const _MessageBubble({required this.message, this.userTurnId});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isUser = message.role == 'user';
+    final showCheckpoint = isUser &&
+        userTurnId != null &&
+        ref.watch(timeTravelProvider.select((s) => s.hasCheckpointFor(userTurnId!)));
+
+    final bubble = Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      constraints: const BoxConstraints(maxWidth: 640),
+      decoration: BoxDecoration(
+        color: isUser ? AppColors.accentGreen.withValues(alpha: 0.12) : AppColors.panel,
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: FormattedText(
+        text: message.content.isEmpty ? '...' : message.content,
+        proseColor: AppColors.textPrimary,
+      ),
+    );
+
+    if (!showCheckpoint) {
+      return Align(alignment: isUser ? Alignment.centerRight : Alignment.centerLeft, child: bubble);
+    }
+
+    // User bubbles are right-aligned, so the checkpoint control sits to
+    // their LEFT -- a subtle "restore project to before this message" save
+    // point, exactly the mental model the strip of undo chips in the
+    // Blackbox panel couldn't convey (and overflowed off-screen doing).
     return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        constraints: const BoxConstraints(maxWidth: 640),
-        decoration: BoxDecoration(
-          color: isUser ? AppColors.accentGreen.withValues(alpha: 0.12) : AppColors.panel,
-          border: Border.all(color: AppColors.border),
-          borderRadius: BorderRadius.circular(8),
+      alignment: Alignment.centerRight,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _CheckpointButton(turnId: userTurnId!),
+          const SizedBox(width: 6),
+          Flexible(child: bubble),
+        ],
+      ),
+    );
+  }
+}
+
+/// The per-message Time-Travel save point (Fase C): restores the whole
+/// project to the state it had right before this user message ran, after a
+/// diff-preview confirm. Anchored to the message instead of a cramped chip
+/// strip so any number of checkpoints stay reachable and legible.
+class _CheckpointButton extends ConsumerWidget {
+  final int turnId;
+  const _CheckpointButton({required this.turnId});
+
+  Future<void> _restore(BuildContext context, WidgetRef ref) async {
+    final notifier = ref.read(timeTravelProvider.notifier);
+    final preview = await notifier.previewCheckpoint(turnId);
+    final diffs = (preview['diffs'] as List? ?? []).cast<Map<String, dynamic>>();
+    if (!context.mounted) return;
+
+    final approved = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.panel,
+        title: const Text('Restore to before this message?', style: TextStyle(fontSize: 14)),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520, maxHeight: 420),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  diffs.isEmpty
+                      ? 'No file changes to undo from this point on.'
+                      : 'This restores ${diffs.length} file(s) to the state before this message, '
+                          'undoing everything the agent edited from here onward:',
+                  style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                ),
+                const SizedBox(height: 8),
+                for (final d in diffs)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF17191C),
+                      border: Border.all(color: AppColors.border),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      (d['diff'] as String?)?.isNotEmpty == true ? d['diff'] as String : '${d['path']}: no textual diff',
+                      style: const TextStyle(fontFamily: AppFonts.mono, fontSize: 11),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
-        child: FormattedText(
-          text: message.content.isEmpty ? '...' : message.content,
-          proseColor: AppColors.textPrimary,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          TextButton(
+            onPressed: diffs.isEmpty ? null : () => Navigator.pop(context, true),
+            child: const Text('Restore', style: TextStyle(color: AppColors.accentGreen)),
+          ),
+        ],
+      ),
+    );
+
+    if (approved == true) {
+      final res = await notifier.restoreCheckpoint(turnId);
+      final result = res['result'] as Map<String, dynamic>? ?? {};
+      if (context.mounted) {
+        final restored = (result['restored'] as List?)?.length ?? 0;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(restored > 0 ? 'Restored $restored file(s).' : 'Nothing to restore.'),
+            backgroundColor: AppColors.panel,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Tooltip(
+      message: 'Time-Travel: restore the project to before this message',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => _restore(context, ref),
+        child: Container(
+          padding: const EdgeInsets.all(5),
+          decoration: BoxDecoration(
+            color: AppColors.bg,
+            shape: BoxShape.circle,
+            border: Border.all(color: AppColors.border),
+          ),
+          child: const Icon(Icons.history, size: 15, color: AppColors.accentBlue),
         ),
       ),
     );

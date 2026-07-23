@@ -587,7 +587,25 @@ class VTEModel:
             self._batched_prefill_pool_reserved = False
             if os.environ.get("VTE_BATCHED_PREFILL", "1") == "1":
                 chunk_size = int(os.environ.get("VTE_BATCHED_PREFILL_CHUNK_SIZE", "64"))
-                extra_headroom = reqs['arena'] * max(chunk_size - 1, 0)
+                # Exact requirement, not the old `reqs['arena'] * (chunk-1)`
+                # estimate: that treated the full-context (2048-token) arena
+                # as a per-token unit and over-reserved ~18x (measured 2646MB
+                # reserved vs ~142MB actually used for a 1.5B at chunk=64,
+                # eating a third of an 8GB card for a 900MB model). Walk the
+                # real compute graph and sum exactly what
+                # _build_chunk_tensor_mapping will allocate, plus a small
+                # margin for fusion/alignment slack. Graph build here is pure
+                # Python (no GPU); the load path rebuilds+fuses it below.
+                try:
+                    _est_graph = self._build_compute_graph_for(architecture, metadata)
+                    chunk_bytes = self._sum_chunk_activation_bytes(_est_graph, chunk_size)
+                    extra_headroom = int(chunk_bytes * 1.15)
+                except Exception as e:
+                    # Never let an estimation error block loading -- fall back
+                    # to the old conservative (over-)estimate if the graph
+                    # walk fails for any reason.
+                    logger.warning(f"Estimativa exata de headroom de prefill falhou ({e}); usando estimativa conservadora.")
+                    extra_headroom = reqs['arena'] * max(chunk_size - 1, 0)
                 # Real-VRAM check BEFORE committing this reservation, same
                 # conservative 50%-of-free threshold _ensure_batched_prefill_executor
                 # already uses for its own (later, runtime) decision -- keeping
@@ -915,6 +933,49 @@ class VTEModel:
                     size *= chunk_size
             size = size * 2  # fp16
             total += max(size, 512)
+        return total
+
+    @staticmethod
+    def _build_compute_graph_for(architecture: str, metadata: dict):
+        """Builds the (unfused) compute graph for an architecture. Factored
+        out so the load-time batched-prefill headroom estimate can walk the
+        exact same graph the runtime executor does, instead of guessing."""
+        if architecture == "qwen35":
+            from vte.compiler.qwen3_5_compute import Qwen3_5ComputeGraphBuilder
+            return Qwen3_5ComputeGraphBuilder(metadata).build_compute_graph()
+        from vte.compiler.qwen_compute import QwenComputeGraphBuilder
+        return QwenComputeGraphBuilder(metadata).build_compute_graph()
+
+    @staticmethod
+    def _sum_chunk_activation_bytes(compute_graph, chunk_size: int) -> int:
+        """Exact byte sum of the chunk-sized activation buffers
+        _build_chunk_tensor_mapping would allocate for `chunk_size` rows --
+        mirrors that method's per-node sizing (product of node.shape with
+        the -1 seq dim resolved to chunk_size, fp16, min 512B) but only
+        SUMS, never allocates. Used to size the load-time pool reservation
+        to what batched prefill actually needs (~142MB for a 1.5B at
+        chunk=64), not the ~2.6GB the old `arena * (chunk-1)` estimate
+        over-reserved (confirmed via the 'reservando +2646MB' vs
+        'ativado ... ~142MB de buffers' gap in the load logs)."""
+        from vte.compiler.ir import NodeType
+
+        total = 0
+        seen: set = set()
+        for node in compute_graph.topological_sort():
+            if node.op_type in [NodeType.INPUT, NodeType.OUTPUT]:
+                continue
+            out_name = node.output_tensor
+            if not out_name or out_name in seen:
+                continue
+            seen.add(out_name)
+            size = 1
+            for dim in node.shape:
+                if dim > 0:
+                    size *= dim
+                elif dim == -1:
+                    size *= chunk_size
+            size = max(size * 2, 512)  # fp16, same floor as _build_chunk_tensor_mapping
+            total += size
         return total
 
     def _build_chunk_tensor_mapping(self, chunk_size: int) -> dict:

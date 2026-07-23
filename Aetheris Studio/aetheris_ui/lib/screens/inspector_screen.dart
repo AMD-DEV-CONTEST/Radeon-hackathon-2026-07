@@ -6,7 +6,6 @@ import '../providers/chat_provider.dart';
 import '../providers/files_provider.dart';
 import '../providers/project_provider.dart';
 import '../providers/terminal_provider.dart';
-import '../providers/timetravel_provider.dart';
 import '../theme.dart';
 
 /// Which Inspector tab is showing (LOG=0, TERMINAL=1, FILES=2,
@@ -403,89 +402,33 @@ class _BlackboxTab extends ConsumerWidget {
     final payload = entry['payload'] as Map<String, dynamic>? ?? {};
     switch (type) {
       case 'turn_start':
-        return 'Turn started (${payload['mode'] ?? 'builder'})';
+        return 'Agent turn started';
       case 'first_token':
-        return 'First token visible';
+        return 'First token reached the user';
       case 'turn_end':
-        return 'Turn ended (${payload['reason'] ?? 'completed'})';
+        return 'Agent turn ended (${payload['reason'] ?? 'completed'})';
       case 'tool_call':
-        return '${payload['tool'] ?? '?'} called (${payload['content_len'] ?? 0} bytes)';
+        return 'Agent ran ${payload['tool'] ?? '?'}';
       case 'tool_result':
         final exit = payload['exit_code'];
-        return '${payload['tool'] ?? '?'} result${exit != null && exit != 0 ? ' (exit $exit)' : ''}';
+        final ok = exit == null || exit == 0;
+        return ok
+            ? '${payload['tool'] ?? '?'} finished OK'
+            : '${payload['tool'] ?? '?'} FAILED (exit $exit)';
       case 'confirm_request':
-        return 'Confirmation requested: ${payload['tool'] ?? '?'}';
+        return 'Waiting for your approval: ${payload['tool'] ?? '?'}';
       case 'confirm_decision':
-        return '${payload['tool'] ?? '?'}: ${payload['decision'] ?? '?'}';
+        final decision = payload['decision']?.toString() ?? '?';
+        final verb = decision == 'approved' ? 'approved' : 'declined';
+        return 'You $verb ${payload['tool'] ?? '?'}';
       case 'egress_sample':
         final bytes = payload['external_bytes'] ?? 0;
-        return bytes == 0 ? '0 B external' : '$bytes B external -- ${payload['label'] ?? 'unlabeled'}';
+        return bytes == 0 ? '0 B external traffic' : '$bytes B external -- ${payload['label'] ?? 'unlabeled'}';
       case 'rollback':
-        return 'Rolled back to seq ${payload['target_seq'] ?? '?'}';
+        final n = (payload['restored'] as List?)?.length ?? 0;
+        return 'Time-Travel: restored $n file(s) to before message ${payload['target_turn'] ?? '?'}';
       default:
         return type;
-    }
-  }
-
-  Future<void> _confirmUndo(BuildContext context, WidgetRef ref, Snapshot snapshot) async {
-    final notifier = ref.read(timeTravelProvider.notifier);
-    final preview = await notifier.preview(snapshot);
-    final diffs = (preview['diffs'] as List? ?? []).cast<Map<String, dynamic>>();
-
-    if (!context.mounted) return;
-    // Same AlertDialog chrome as chat_screen.dart's _showToolConfirmDialog
-    // (red Decline / green Approve TextButtons) -- undo is a gated write
-    // like any other (invariant I4), so the visual language should match.
-    final approved = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Undo this action?'),
-        content: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480, maxHeight: 420),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(snapshot.message, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                const SizedBox(height: 8),
-                if (diffs.isEmpty)
-                  const Text('No changes to preview.', style: TextStyle(color: AppColors.textMuted, fontSize: 12))
-                else
-                  for (final d in diffs)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF17191C),
-                        border: Border.all(color: AppColors.border),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        (d['diff'] as String?)?.isNotEmpty == true ? d['diff'] as String : '${d['path']}: no textual diff',
-                        style: const TextStyle(fontFamily: AppFonts.mono, fontSize: 11),
-                      ),
-                    ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.accentRed)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Undo', style: TextStyle(color: AppColors.accentGreen)),
-          ),
-        ],
-      ),
-    );
-
-    if (approved == true) {
-      await notifier.rollback(snapshot);
     }
   }
 
@@ -493,8 +436,19 @@ class _BlackboxTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final chatId = ref.watch(chatSessionsProvider.select((s) => s.activeChatId));
     final audit = ref.watch(auditProvider);
-    final entries = audit.entries.reversed.toList();
-    final snapshots = ref.watch(timeTravelProvider).snapshots.where((s) => s.isPreSnapshot).toList().reversed.toList();
+
+    // Group the flat entry stream into agent turns (turn_start .. next
+    // turn_start), so the timeline reads as "what the agent did, turn by
+    // turn" instead of an undifferentiated wall of rows. Entries before
+    // any turn_start (rare) fall into a leading group with no header.
+    final groups = <List<Map<String, dynamic>>>[];
+    for (final entry in audit.entries) {
+      if (entry['type'] == 'turn_start' || groups.isEmpty) {
+        groups.add(<Map<String, dynamic>>[]);
+      }
+      groups.last.add(entry);
+    }
+    final orderedGroups = groups.reversed.toList(); // newest turn first
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -505,7 +459,7 @@ class _BlackboxTab extends ConsumerWidget {
             children: [
               Expanded(
                 child: Text(
-                  '${audit.entries.length} entries',
+                  '${audit.entries.length} recorded actions',
                   style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
                 ),
               ),
@@ -520,63 +474,23 @@ class _BlackboxTab extends ConsumerWidget {
             ],
           ),
         ),
-        if (snapshots.isNotEmpty) ...[
-          const Divider(height: 1, color: AppColors.border),
-          SizedBox(
-            height: 32,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              itemCount: snapshots.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 6),
-              itemBuilder: (context, i) {
-                final snap = snapshots[i];
-                return ActionChip(
-                  avatar: const Icon(Icons.undo, size: 14, color: AppColors.accentRed),
-                  label: Text(
-                    snap.message.replaceFirst('pre: ', ''),
-                    style: const TextStyle(fontSize: 10, fontFamily: AppFonts.mono),
-                  ),
-                  onPressed: () => _confirmUndo(context, ref, snap),
-                );
-              },
-            ),
-          ),
-        ],
         const Divider(height: 1, color: AppColors.border),
         Expanded(
-          child: entries.isEmpty
+          child: audit.entries.isEmpty
               ? const Center(
-                  child: Text('No audit entries yet this session.',
+                  child: Text('No agent activity recorded yet this session.',
                       style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                 )
               : ListView.builder(
-                  itemCount: entries.length,
-                  itemBuilder: (context, i) {
-                    final entry = entries[i];
-                    final type = entry['type']?.toString() ?? '?';
-                    final iconSpec = _icons[type] ?? (Icons.circle_outlined, AppColors.textMuted);
-                    final ts = entry['ts'];
-                    final time = ts is num
-                        ? DateTime.fromMillisecondsSinceEpoch((ts * 1000).round())
-                        : DateTime.now();
-                    return ListTile(
-                      dense: true,
-                      leading: Icon(iconSpec.$1, size: 16, color: iconSpec.$2),
-                      title: Text(
-                        _summarize(entry),
-                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontFamily: AppFonts.mono),
-                      ),
-                      subtitle: Text(
-                        'seq ${entry['seq']} · ${entry['actor'] ?? 'system'}',
-                        style: const TextStyle(color: AppColors.textMuted, fontSize: 10),
-                      ),
-                      trailing: Text(
-                        _relativeTime(time),
-                        style: const TextStyle(color: AppColors.textMuted, fontSize: 10),
-                      ),
-                    );
-                  },
+                  padding: const EdgeInsets.only(bottom: 12),
+                  itemCount: orderedGroups.length,
+                  itemBuilder: (context, gi) => _TurnGroup(
+                    entries: orderedGroups[gi],
+                    turnNumber: orderedGroups.length - gi,
+                    summarize: _summarize,
+                    icons: _icons,
+                    relativeTime: _relativeTime,
+                  ),
                 ),
         ),
       ],
@@ -588,6 +502,73 @@ class _BlackboxTab extends ConsumerWidget {
     if (diff.inSeconds < 60) return '${diff.inSeconds}s';
     if (diff.inMinutes < 60) return '${diff.inMinutes}min';
     return '${diff.inHours}h';
+  }
+}
+
+/// One agent turn's worth of audit rows under a subtle header, so the
+/// Blackbox timeline reads as discrete "the agent did X, then Y" turns
+/// rather than one long undifferentiated list (the old flat view the user
+/// found hard to follow).
+class _TurnGroup extends StatelessWidget {
+  final List<Map<String, dynamic>> entries;
+  final int turnNumber;
+  final String Function(Map<String, dynamic>) summarize;
+  final Map<String, (IconData, Color)> icons;
+  final String Function(DateTime) relativeTime;
+
+  const _TurnGroup({
+    required this.entries,
+    required this.turnNumber,
+    required this.summarize,
+    required this.icons,
+    required this.relativeTime,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+          child: Text(
+            'TURN $turnNumber',
+            style: const TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1,
+            ),
+          ),
+        ),
+        for (final entry in entries) _buildRow(entry),
+      ],
+    );
+  }
+
+  Widget _buildRow(Map<String, dynamic> entry) {
+    final type = entry['type']?.toString() ?? '?';
+    final iconSpec = icons[type] ?? (Icons.circle_outlined, AppColors.textMuted);
+    final ts = entry['ts'];
+    final time = ts is num ? DateTime.fromMillisecondsSinceEpoch((ts * 1000).round()) : DateTime.now();
+    return ListTile(
+      dense: true,
+      visualDensity: const VisualDensity(vertical: -4),
+      leading: Icon(iconSpec.$1, size: 16, color: iconSpec.$2),
+      title: Text(
+        summarize(entry),
+        style: const TextStyle(color: AppColors.textPrimary, fontSize: 12),
+      ),
+      subtitle: Text(
+        'seq ${entry['seq']} · ${entry['actor'] ?? 'system'}',
+        style: const TextStyle(color: AppColors.textMuted, fontSize: 10),
+      ),
+      trailing: Text(
+        relativeTime(time),
+        style: const TextStyle(color: AppColors.textMuted, fontSize: 10),
+      ),
+    );
   }
 }
 

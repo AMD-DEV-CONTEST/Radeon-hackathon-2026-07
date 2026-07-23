@@ -25,6 +25,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -76,9 +77,15 @@ _SKIP_DIR_NAMES = {
     "__pycache__", ".venv", "venv", "node_modules", ".git",
     "build", ".dart_tool", "ephemeral", ".pytest_cache",
 }
+# Confirmed real gap: .html/.css were missing entirely, so a project with a
+# plain web frontend (no .js framework files) had those files completely
+# invisible to search_map/auto-injection -- not "low relevance", literally
+# never discovered by _discover_files, so a vague "what's in this project"
+# answer silently omitted them with no signal anything was missing.
 _SOURCE_EXTENSIONS = {
     ".py", ".dart", ".js", ".jsx", ".ts", ".tsx", ".md",
     ".java", ".go", ".rs", ".c", ".cpp", ".h", ".hpp",
+    ".html", ".css", ".scss", ".json", ".yaml", ".yml", ".toml",
 }
 MAX_FILES_PER_PASS = 300
 _HYSTERESIS_SECONDS = 3.0
@@ -332,6 +339,35 @@ def build_bm25_index(project_path: str) -> None:
     tokenized = [d.lower().split() for d in docs]
     bm25 = BM25Okapi(tokenized)
     _bm25_cache[project_path] = (bm25, list(zip(docs, meta)))
+
+
+# Greetings/acks/small-talk -- deliberately not a real intent classifier,
+# just the obvious non-questions. PT + EN since the project is used in
+# both.
+_TRIVIAL_MESSAGE_RE = re.compile(
+    r"^(hi|hello|hey|yo|oi|ol[aá]|e a[ií]|salve|tudo bem\??|tudo bom\??|"
+    r"beleza\??|blz|obrigad[oa]s?|obg|vlw|valeu|thanks?( you)?|ok(ay)?|"
+    r"sim|n[aã]o|yes|nope?|bom dia|boa tarde|boa noite|good (morning|"
+    r"afternoon|evening|night))[\s!.,?]*$",
+    re.IGNORECASE,
+)
+
+
+def looks_like_codebase_query(text: str) -> bool:
+    """Cheap gate for whether a user message is worth spending a
+    Cartographer lookup on. Confirmed live: without this, a bare "hi" got
+    the map auto-injected anyway -- query_map deliberately never returns
+    empty for a non-empty corpus (see its own docstring: BM25 scores can
+    all floor to 0 on a small index, and that's not treated as "no
+    match") -- so the model saw project file content in its system
+    context before replying to a greeting, and answered about "the
+    Cartographer map" instead of just greeting back. This only filters
+    the obvious non-questions (greetings, short acks); it is not an
+    intent classifier and isn't meant to be."""
+    stripped = text.strip()
+    if len(stripped) < 4:
+        return False
+    return not _TRIVIAL_MESSAGE_RE.match(stripped)
 
 
 def query_map(project_path: str, query: str, top_k: int = 3) -> List[Dict]:

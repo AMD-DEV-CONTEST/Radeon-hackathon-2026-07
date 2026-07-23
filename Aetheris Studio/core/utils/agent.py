@@ -17,7 +17,7 @@ from core.utils.tools import (
     strip_tool_call, is_risky_bash_command, render_todo_action, find_unmatched_tool_attempt,
 )
 from core.audit.flight_recorder import audit_enabled, audited_tool_call, get_recorder
-from core.rag.cartographer import cartographer_auto_inject_enabled, query_map
+from core.rag.cartographer import cartographer_auto_inject_enabled, looks_like_codebase_query, query_map
 from core.utils.project_path import get_active_project_path
 
 logger = logging.getLogger(__name__)
@@ -269,8 +269,20 @@ async def stream_agent(
                 (m["content"] for m in reversed(messages) if m.get("role") == "user"), ""
             )
             active_project = get_active_project_path()
-            if active_project and last_user_for_map.strip():
-                map_results = query_map(active_project, last_user_for_map, top_k=3)
+            # looks_like_codebase_query gate: confirmed live, without it a
+            # bare "hi" got the map injected anyway (query_map never
+            # returns empty for a non-empty corpus by design) and the
+            # model replied about "the Cartographer map" instead of just
+            # greeting back.
+            if active_project and looks_like_codebase_query(last_user_for_map):
+                # 6, not 3: each MAP/*.md is one whole file's summary (see
+                # build_bm25_index), so top_k also caps how many distinct
+                # files a broad "what's in this project" question can ever
+                # surface. Confirmed live on a real 6-file test project --
+                # 3 silently left half the files out of the answer with no
+                # sign anything was missing. Still small enough not to
+                # bloat context on a real, larger codebase.
+                map_results = query_map(active_project, last_user_for_map, top_k=6)
                 if map_results:
                     map_context = "\n\n---\n\n".join(r["text"] for r in map_results)
                     conversation.append({"role": "system", "content": f"[CARTOGRAPHER MAP]: {map_context}"})

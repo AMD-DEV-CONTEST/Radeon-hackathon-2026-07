@@ -215,6 +215,10 @@ class ApiClient {
     // Blackbox (Fase A): scopes the backend's Flight Recorder audit trail
     // to this conversation -- see app.py's ChatCompletionRequest.chat_id.
     String? chatId,
+    // Time-Travel checkpoint (Fase C): the 1-based index of the user
+    // message this turn belongs to, so any snapshot taken during it is
+    // anchored to the right chat message -- see ChatCompletionRequest.turn_id.
+    int? turnId,
   }) async* {
     final request = http.Request('POST', Uri.parse('$baseUrl/v1/chat/completions/stream'))
       ..headers.addAll(_headers)
@@ -225,6 +229,7 @@ class ApiClient {
         'max_tokens': maxTokens,
         'mode': mode,
         if (chatId != null) 'chat_id': chatId,
+        if (turnId != null) 'turn_id': turnId,
       });
 
     final streamClient = _directClient();
@@ -294,13 +299,25 @@ class ApiClient {
     return _decode(res);
   }
 
-  Future<Map<String, dynamic>> setProjectPath(String path) async {
+  Future<Map<String, dynamic>> setProjectPath(String path, {String? chatId}) async {
     final res = await _client.post(
       Uri.parse('$baseUrl/api/project-path'),
       headers: _headers,
-      body: jsonEncode({'path': path}),
+      body: jsonEncode({'path': path, if (chatId != null) 'chat_id': chatId}),
     );
     return _decode(res);
+  }
+
+  /// The project a specific chat last had active, if any (see
+  /// core/utils/project_path.py's module docstring) -- used to
+  /// auto-restore the right folder when the user switches chats.
+  Future<String> getProjectPathForChat(String chatId) async {
+    final res = await _client.get(
+      Uri.parse('$baseUrl/api/project-path/for-chat/$chatId'),
+      headers: _headers,
+    );
+    final json = _decode(res);
+    return json['path']?.toString() ?? '';
   }
 
   Future<Map<String, dynamic>> listProjectFiles({String path = ''}) async {
@@ -325,11 +342,16 @@ class ApiClient {
   /// ChatSessionsNotifier.respondToolConfirm). `chatId` scopes the
   /// approval to the Flight Recorder audit trail (Fase A) -- optional so
   /// this still works for any call site that hasn't been updated.
-  Future<Map<String, dynamic>> executeTool(String tool, String content, {String? chatId}) async {
+  Future<Map<String, dynamic>> executeTool(String tool, String content, {String? chatId, int? turnId}) async {
     final res = await _client.post(
       Uri.parse('$baseUrl/api/tools/execute'),
       headers: _headers,
-      body: jsonEncode({'tool': tool, 'content': content, if (chatId != null) 'chat_id': chatId}),
+      body: jsonEncode({
+        'tool': tool,
+        'content': content,
+        if (chatId != null) 'chat_id': chatId,
+        if (turnId != null) 'turn_id': turnId,
+      }),
     );
     return _decode(res);
   }
@@ -342,6 +364,28 @@ class ApiClient {
       Uri.parse('$baseUrl/api/tools/decline'),
       headers: _headers,
       body: jsonEncode({'tool': tool, 'content': content, if (chatId != null) 'chat_id': chatId}),
+    );
+    return _decode(res);
+  }
+
+  /// Time-Travel checkpoint (Fase C): read-only combined diff of restoring
+  /// the whole project to the state before user message [turnId] -- powers
+  /// the chat checkpoint's confirm dialog.
+  Future<Map<String, dynamic>> previewCheckpoint(String chatId, int turnId) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/timetravel/checkpoint/preview'),
+      headers: _headers,
+      body: jsonEncode({'session_id': chatId, 'turn_id': turnId}),
+    );
+    return _decode(res);
+  }
+
+  /// The message-anchored undo: restore the project to before message [turnId].
+  Future<Map<String, dynamic>> restoreCheckpoint(String chatId, int turnId) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/timetravel/checkpoint/restore'),
+      headers: _headers,
+      body: jsonEncode({'session_id': chatId, 'turn_id': turnId}),
     );
     return _decode(res);
   }

@@ -49,7 +49,15 @@ VTE_DEFAULT_MODEL = "llama3.1:8b-instruct-q4_k_m"
 _SERVER_HOST = "127.0.0.1"
 _SERVER_PORT = 8011
 _SERVER_BASE_URL = f"http://{_SERVER_HOST}:{_SERVER_PORT}"
-_READY_TIMEOUT_SECONDS = 90.0
+# How long _wait_until_ready() polls /health before giving up on the
+# vte-server subprocess (process spawn + GGUF weights loaded into VRAM,
+# a cold-start cost that scales with model size -- a 70B load can
+# plausibly approach 120s on its own, before any generation request is
+# even sent). 90s cut that too close; 240s gives real margin without
+# meaningfully delaying the failure case (the process is either making
+# progress or it's actually hung, and the point of a deadline is just to
+# not wait forever, not to be tight).
+_READY_TIMEOUT_SECONDS = 240.0
 
 # Single-model policy: VTE runs on one consumer GPU with a real VRAM budget,
 # so only one vte-server subprocess (one resident model) runs at a time;
@@ -250,9 +258,25 @@ def generate_once(model_name: str, messages: List[Dict], temperature: float = 0.
 # own comment on why it uses asyncio.wait() instead): cancelling an
 # in-flight __anext__() on our own hand-rolled generator corrupts it.
 # httpx's own aiter_lines() is a plain network read, safe to cancel this
-# way -- the enclosing `async with client.stream(...)` still tears the
-# response down cleanly either way.
-_IDLE_TIMEOUT_S = 45.0
+# way. 120s (not the original 45s): flagged directly by the Lemonade team
+# -- a heavy model's prefill/TTFT on a cold or large context can
+# legitimately take longer than 45s, and that's not a hang.
+#
+# NOTE on the "async with client.stream(...) tears the response down
+# cleanly either way" claim this comment used to make: measured false for
+# the shared/pooled client below. Repro'd directly (scratchpad
+# repro_idle_timeout_disconnect.py): with keepalive pooling
+# (max_keepalive_connections>0), letting asyncio.wait_for's TimeoutError
+# propagate through `async with` does NOT close the underlying TCP
+# connection -- vte-server's own request.is_disconnected() poll
+# (http_server.py's sse_stream()) never fires, so the generation thread
+# runs to completion instead of stopping, even though the client has long
+# since given up and shown the user an error. A non-pooled client closes
+# the socket immediately and the server detects it within ~10ms; a pooled
+# one holds the connection open indefinitely. See the explicit
+# network_stream.aclose() below, which fixes this on the pooled client
+# without giving up the pooling for the (common) non-timeout case.
+_IDLE_TIMEOUT_S = 120.0
 
 _shared_client: Optional[httpx.AsyncClient] = None
 _shared_client_lock = threading.Lock()
@@ -350,6 +374,18 @@ async def stream_generate(
                 except StopAsyncIteration:
                     return
                 except asyncio.TimeoutError:
+                    # Force the actual TCP connection closed instead of
+                    # relying on `async with client.stream(...)`'s normal
+                    # exit -- on the shared/pooled client that leaves the
+                    # connection alive and vte-server never notices we're
+                    # gone (see the module-level note on _IDLE_TIMEOUT_S).
+                    # Reaching into extensions like this only bypasses
+                    # httpx's return-to-pool bookkeeping for THIS
+                    # connection; the shared client and its pool of other
+                    # connections are unaffected for subsequent calls.
+                    net_stream = resp.extensions.get("network_stream")
+                    if net_stream is not None:
+                        await net_stream.aclose()
                     raise TimeoutError(
                         f"Nenhum token recebido em {_IDLE_TIMEOUT_S:.0f}s -- geração travou ou a conexão caiu."
                     )

@@ -12,7 +12,9 @@ actually needs, and each one is simple enough to reason about completely,
 unlike inheriting a sprawling tool framework from elsewhere.
 """
 
+import ast
 import asyncio
+import json as _json
 import logging
 import os
 import re
@@ -20,6 +22,35 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
+
+
+def _validate_syntax(path: str, content: str) -> Optional[str]:
+    """Error message if `content` isn't valid for the file type `path`'s
+    extension implies, or None (valid, or an extension this doesn't check).
+
+    Exists specifically to catch the failure mode confirmed live against
+    edit_file: a FIND/REPLACE that matches too little context (just a
+    function's `def` line) and replaces it with something that leaves the
+    body orphaned -- the tool's own ambiguity check (find_text must appear
+    exactly once) is real protection against a WRONG match, but has
+    nothing to say about a match that's exactly right and still produces
+    broken output. This is deliberately just "does it parse" -- not a
+    linter, not a formatter, not exhaustive over every extension the
+    project touches -- narrow enough to have no false positives on
+    legitimate content, called from all three write paths (write_file,
+    write_files, edit_file) before anything touches disk."""
+    ext = Path(path).suffix.lower()
+    if ext == ".py":
+        try:
+            ast.parse(content)
+        except SyntaxError as e:
+            return f"resulting file would not be valid Python ({e.msg} at line {e.lineno}) -- edit not applied"
+    elif ext == ".json":
+        try:
+            _json.loads(content)
+        except _json.JSONDecodeError as e:
+            return f"resulting file would not be valid JSON ({e}) -- edit not applied"
+    return None
 
 _FENCE_OPEN_RE = re.compile(r"```(\w+)\n")
 
@@ -35,6 +66,17 @@ _GREEDY_FENCE_TAGS = {"write_plan"}
 
 BASH_TIMEOUT_SECONDS = 60
 MAX_OUTPUT_CHARS = 8000
+
+_PATH_LABEL_RE = re.compile(r"^\s*path\s*[:=]\s*", re.IGNORECASE)
+
+
+def _strip_path_label(raw: str) -> str:
+    """Strips an optional 'path:' / 'path=' label some models prepend to
+    the path line despite the format (path alone, first line) never asking
+    for one -- confirmed live against a real edit_file call ('path:
+    index.html' instead of just 'index.html'), which would otherwise
+    resolve to a literal, nonexistent file named 'path: index.html'."""
+    return _PATH_LABEL_RE.sub("", raw, count=1)
 
 
 def _normalize_tag(s: str) -> str:
@@ -60,7 +102,18 @@ def _resolve_tag(tag: str) -> Optional[str]:
 def _find_tool_fence(text: str) -> Optional[Tuple[str, str, int, int]]:
     """Returns (tag, content, fence_start, fence_end) for the first fenced
     block whose tag names a known tool, or None. `fence_end` is the index
-    just past the closing ``` (or end-of-string for an unclosed greedy tag)."""
+    just past the closing ``` (or end-of-string for an unclosed fence).
+
+    A missing closing ``` is treated as "everything to end-of-text is the
+    content," never as "no tool call happened." Confirmed live as a real,
+    silent failure: generation cut short mid-edit_file block (max_tokens,
+    or any other early stop) used to make this function `continue` past
+    the match entirely -- the whole tool call vanished with no error, no
+    retry, not even a confirm dialog, and the user saw what looked like an
+    ordinary (if oddly truncated) reply while nothing they asked for
+    happened. Every tag gets this now, not just write_plan's old
+    "_GREEDY_FENCE_TAGS" carve-out -- an edit/write tool call cut short is
+    exactly as real an attempt as a plan cut short."""
     for match in _FENCE_OPEN_RE.finditer(text):
         raw_tag = match.group(1).strip().lower()
         tag = _resolve_tag(raw_tag)
@@ -68,13 +121,16 @@ def _find_tool_fence(text: str) -> Optional[Tuple[str, str, int, int]]:
             continue
         content_start = match.end()
         if tag in _GREEDY_FENCE_TAGS:
+            # Nested ``` blocks inside the tag's own content are legitimate
+            # here (e.g. write_plan illustrating a shell command) -- close
+            # on the LAST fence in the text, not the first.
             last_close = text.rfind("```")
             if last_close >= content_start:
                 return tag, text[content_start:last_close], match.start(), last_close + 3
             return tag, text[content_start:], match.start(), len(text)
         close_idx = text.find("```", content_start)
         if close_idx == -1:
-            continue
+            return tag, text[content_start:], match.start(), len(text)
         return tag, text[content_start:close_idx], match.start(), close_idx + 3
     return None
 
@@ -370,7 +426,7 @@ async def _run_git(content: str) -> Dict:
 
 async def _run_read_file(content: str) -> Dict:
     lines = content.strip().split("\n")
-    path = lines[0].strip() if lines else ""
+    path = _strip_path_label(lines[0].strip()) if lines else ""
     line_range = lines[1].strip() if len(lines) > 1 else ""
     if not path:
         return {"error": "path is required", "exit_code": 1}
@@ -407,9 +463,12 @@ def _parse_line_range(spec: str, total_lines: int) -> Optional[Tuple[int, int]]:
 
 async def _run_write_file(content: str, owner: Optional[str] = None, session_id: Optional[str] = None) -> Dict:
     path, _, body = content.partition("\n")
-    path = path.strip()
+    path = _strip_path_label(path.strip())
     if not path:
         return {"error": "path is required (first line)", "exit_code": 1}
+    syntax_error = _validate_syntax(path, body)
+    if syntax_error:
+        return {"error": syntax_error, "exit_code": 1}
     try:
         resolved = _resolve_in_project(path)
         # Time-Travel (Fase C): pre-image before the real write, so an undo
@@ -469,6 +528,10 @@ async def _run_write_files(content: str, owner: Optional[str] = None, session_id
         if not path:
             errors.append("a <<<FILE: ...>>> block had an empty path")
             continue
+        syntax_error = _validate_syntax(path, body)
+        if syntax_error:
+            errors.append(f"{path}: {syntax_error}")
+            continue
         try:
             resolved = _resolve_in_project(path)
             resolved.parent.mkdir(parents=True, exist_ok=True)
@@ -498,7 +561,7 @@ async def _run_edit_file(content: str, owner: Optional[str] = None, session_id: 
     lines = content.split("\n")
     if not lines or not lines[0].strip():
         return {"error": "path is required (first line)", "exit_code": 1}
-    path = lines[0].strip()
+    path = _strip_path_label(lines[0].strip())
     rest = "\n".join(lines[1:])
 
     find_match = re.search(r"<<<FIND>>>\n(.*?)\n<<<REPLACE>>>\n(.*?)(?:\n<<<END>>>|$)", rest, re.DOTALL)
@@ -520,10 +583,23 @@ async def _run_edit_file(content: str, owner: Optional[str] = None, session_id: 
     if count > 1:
         return {"error": f"old text is ambiguous (appears {count} times); include more context", "exit_code": 1}
 
+    new_content = current.replace(find_text, replace_text, 1)
+    # Catches what the ambiguity check above can't: FIND matched exactly
+    # once and REPLACE still produces broken output (confirmed live -- a
+    # FIND of just `def multiply(a, b):` replaced by an indented nested
+    # def left the old body orphaned under no enclosing function; the tool
+    # wrote it and the model reported success anyway). Rejecting here means
+    # the model sees a normal tool-error and gets a chance to retry with a
+    # bigger, more precise FIND block, same as the "old text not found"
+    # case above -- nothing ever reaches disk broken.
+    syntax_error = _validate_syntax(path, new_content)
+    if syntax_error:
+        return {"error": syntax_error, "exit_code": 1}
+
     from core.audit.timetravel import snapshot as _tt_snapshot
     if session_id:
         await _tt_snapshot(session_id, [path], f"pre: edit_file {path}")
-    resolved.write_text(current.replace(find_text, replace_text, 1), encoding="utf-8")
+    resolved.write_text(new_content, encoding="utf-8")
     if session_id:
         await _tt_snapshot(session_id, [path], f"post: edit_file {path}")
     return {"output": f"Edited {path}", "exit_code": 0}
@@ -580,7 +656,7 @@ async def _run_search_map(content: str, owner: Optional[str] = None, session_id:
     if not project_path:
         return {"error": "No active project is set.", "exit_code": 1}
 
-    results = query_map(project_path, query, top_k=3)
+    results = query_map(project_path, query, top_k=6)
     if not results:
         return {
             "output": "No map results yet -- the codebase may still be mapping in the background "

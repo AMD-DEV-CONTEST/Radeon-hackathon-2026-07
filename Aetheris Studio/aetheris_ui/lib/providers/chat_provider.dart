@@ -9,7 +9,9 @@ import '../data/models/session_file_change.dart';
 import 'api_provider.dart';
 import 'browser_provider.dart';
 import 'model_load_provider.dart';
+import 'project_provider.dart';
 import 'settings_provider.dart';
+import 'timetravel_provider.dart';
 
 class ChatSessionsState {
   final List<ChatSession> chats;
@@ -121,6 +123,13 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
   final Ref _ref;
   bool _cancelRequested = false;
   Completer<String>? _askUserCompleter;
+  // Time-Travel checkpoint (Fase C): the 1-based index of the user message
+  // currently being processed. Set on each REAL (non-hidden) user send and
+  // reused verbatim for the hidden follow-ups of the same message (confirm
+  // approval, tool-result feedback) so every snapshot in one exchange is
+  // anchored to the same chat message. Recomputed from message count each
+  // real send, so switching chats never carries a stale value across.
+  int _activeTurnId = 0;
 
   ChatSessionsNotifier(this._api, this._ref) : super(const ChatSessionsState());
 
@@ -136,6 +145,7 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
     final activeId = chats.first.id;
     final loaded = await _loadMessagesInto(chats, activeId);
     state = state.copyWith(chats: loaded, activeChatId: activeId, loaded: true);
+    unawaited(_ref.read(projectPathProvider.notifier).restoreForChat(activeId));
   }
 
   Future<List<ChatSession>> _loadMessagesInto(List<ChatSession> chats, String chatId) async {
@@ -179,6 +189,11 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
   Future<void> switchChat(String chatId) async {
     final loaded = await _loadMessagesInto(state.chats, chatId);
     state = state.copyWith(chats: loaded, activeChatId: chatId);
+    // Best-effort, doesn't block the switch itself on a round-trip: each
+    // chat remembers its own project (core/utils/project_path.py), so
+    // switching chats should bring back whatever folder THAT chat had
+    // open, not silently keep whatever another chat left active.
+    unawaited(_ref.read(projectPathProvider.notifier).restoreForChat(chatId));
   }
 
   void cancelGeneration() {
@@ -205,6 +220,14 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
     var chats = List<ChatSession>.from(state.chats);
     final idx = chats.indexWhere((c) => c.id == chatId);
     if (idx == -1) return;
+
+    // A real, visible user message opens a new checkpoint turn; hidden
+    // follow-ups (confirm continuation, tool-result feedback) keep the
+    // turn of the message that spawned them. Index is 1-based = the count
+    // of visible user messages including this one.
+    if (visible && !isHidden) {
+      _activeTurnId = chats[idx].messages.where((m) => m.role == 'user' && m.visible).length + 1;
+    }
 
     final userMessage = ChatMessage(role: 'user', content: text, visible: visible);
     var messages = List<ChatMessage>.from(chats[idx].messages)..add(userMessage);
@@ -281,6 +304,7 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
         maxTokens: maxTokens,
         mode: mode,
         chatId: chatId,
+        turnId: _activeTurnId,
       )) {
         if (_cancelRequested) break;
         if (event.done) break;
@@ -392,6 +416,11 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
       await _api.appendChatMessage(chatId, 'assistant', finalText);
     }
 
+    // A completed turn may have taken Time-Travel snapshots (auto-run
+    // edits); pull them in so the per-message checkpoint markers appear
+    // without waiting for a chat switch.
+    unawaited(_ref.read(timeTravelProvider.notifier).refresh());
+
     if (state.pendingBrowserAction != null) {
       await _handleBrowserAction();
     }
@@ -481,7 +510,7 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
 
     Map<String, dynamic> result;
     try {
-      final response = await _api.executeTool(tool, content, chatId: chatId);
+      final response = await _api.executeTool(tool, content, chatId: chatId, turnId: _activeTurnId);
       result = response['result'] as Map<String, dynamic>? ?? {};
     } catch (e) {
       result = {'error': e.toString(), 'exit_code': 1};
@@ -539,18 +568,39 @@ class ChatSessionsNotifier extends StateNotifier<ChatSessionsState> {
     if (matches.isEmpty) return text;
 
     final blocks = <String>[];
+    final resolvedMatches = <RegExpMatch>[];
     for (final match in matches) {
       final path = match.group(1)!;
       try {
         final json = await _api.resolveAtReference(path);
         final content = json['content']?.toString() ?? '';
         blocks.add('[Referenced file: $path]\n$content');
+        resolvedMatches.add(match);
       } catch (_) {
         // Not a real project file/folder -- ignore, leave the literal text.
       }
     }
     if (blocks.isEmpty) return text;
-    return '$text\n\n${blocks.join('\n\n')}';
+
+    // Strip the leading "@" from tokens that actually resolved, before
+    // this ever reaches the model. Confirmed live: leaving "@path" as-is
+    // in the visible text (with only a separate "[Referenced file: path]"
+    // block appended after) meant the model echoed the literal "@path" --
+    // "@" included -- back into its own read_file/edit_file tool calls,
+    // which then failed or resolved the wrong thing, since nothing
+    // downstream strips a leading "@" from a tool argument (that's this
+    // feature's own job, done once here, not the tool layer's). Rebuilt
+    // from match spans rather than String.replaceFirst so a path that
+    // appears more than once in the message can't get mismatched.
+    final buffer = StringBuffer();
+    var lastEnd = 0;
+    for (final match in resolvedMatches) {
+      buffer.write(text.substring(lastEnd, match.start));
+      buffer.write(match.group(1));
+      lastEnd = match.end;
+    }
+    buffer.write(text.substring(lastEnd));
+    return '${buffer.toString()}\n\n${blocks.join('\n\n')}';
   }
 
   void _updateStreamingMessage(String chatId, String content) {

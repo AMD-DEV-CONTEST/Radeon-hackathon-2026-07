@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webview_windows/webview_windows.dart';
 
@@ -21,7 +23,24 @@ class BrowserController {
     return _initFuture ??= _init();
   }
 
+  /// True on every platform this app actually ships a working embedded
+  /// browser on. webview_windows (see pubspec.yaml) only declares a
+  /// `windows:` plugin implementation -- calling it on another platform
+  /// doesn't fail to compile (the Dart API surface is platform-agnostic),
+  /// but throws MissingPluginException at the first real platform-channel
+  /// call, since there's no native handler registered. Checked here so
+  /// the Linux build (`aetheris_ui/linux/`, added for the agent backend's
+  /// already-validated Linux support -- see PROJECT_SPECIFICATION.md's
+  /// Cross-platform note) degrades to a clear, labeled unavailability
+  /// instead of a raw platform-channel exception surfacing in the UI.
+  static bool get isSupportedOnThisPlatform => Platform.isWindows;
+
   Future<void> _init() async {
+    if (!isSupportedOnThisPlatform) {
+      error = 'The embedded browser is Windows-only today (webview_windows has no Linux implementation). '
+          'navigate_browser/read_browser_page are unavailable on this platform; every other tool works normally.';
+      throw StateError(error!);
+    }
     try {
       await webview.initialize();
       await webview.loadUrl(homeUrl);

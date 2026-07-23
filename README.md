@@ -4,7 +4,7 @@
 
 Built for **Track 2: Development & Local Deployment of Private AI Agents**.
 
-Under the hood, Aetheris runs on **VTE**, a from-scratch inference engine we also built for this hardware instead of depending on an existing runtime. That part's genuinely interesting if you're into GPU kernels, and it gets its own section [below](#under-the-hood-vte-the-engine-we-built-to-power-this), but it's the supporting cast here, not the headline. Aetheris is the project; VTE is what lets it run entirely local.
+Under the hood, Aetheris runs on **VTE**, a from-scratch inference engine also built for this project instead of depending on an existing runtime ([below](#under-the-hood-vte)).
 
 **[Watch the demo video](Assets/Aetheris%20Video.mp4)** — the agent reading, planning, and editing a real codebase on camera, running end-to-end on an AMD Radeon GPU.
 
@@ -26,7 +26,7 @@ Pick the row that matches your setup. All three talk to the exact same backend a
 
 | | Windows | Linux |
 |---|---|---|
-| **App (GUI)** | ✅ [below](#windows-app-the-full-experience) | Not available yet, the desktop UI is a Windows build for now (see [Note on Linux](#note-on-linux)) |
+| **App (GUI)** | ✅ [below](#windows-app-the-full-experience) | Scaffolded (`linux/` target added), not yet built/verified on real Linux hardware (see [Note on Linux](#note-on-linux)) |
 | **Terminal** | ✅ [below](#terminal-windows-or-linux) | ✅ [below](#terminal-windows-or-linux) |
 
 ### Prerequisites (all paths)
@@ -37,7 +37,7 @@ Pick the row that matches your setup. All three talk to the exact same backend a
 
 VTE reads your GPU's real architecture and compute-unit count at startup; there's nothing to configure by hand beyond having the driver/SDK installed.
 
-**Why Llama 3.1 8B Instruct**: it's noticeably better at the tool-calling this agent actually depends on (deciding when to read/write a file, run a command, or update a plan) than the tiny Qwen2.5 1.5B demo model, and it correctly mirrors the user's input language every time. IBM Granite 4.1 30B was tried first and is a strong reasoner, but it reproducibly defaults to Portuguese/Spanish greetings on short replies once the real tool-documentation system prompt is in context, regardless of instruction wording or position; see [Known limitations](VTE/docs/LIMITATIONS.md#model-compatibility) for the full writeup. Downloads straight from Hugging Face ([Meta-Llama-3.1-8B-Instruct-GGUF](https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF)) into `VTE/Model/`, same `vte pull` mechanism as any other curated model. If your GPU is tighter on VRAM, `qwen2.5:1.5b-q4_k_m` (~1 GB) is the lighter fallback, selectable from the same dropdown.
+**Default model: Llama 3.1 8B Instruct** (~5 GB), picked for reliable tool-calling and consistent language-matching. Downloads from Hugging Face into `VTE/Model/` via `vte pull`. Tighter on VRAM? `qwen2.5:1.5b-q4_k_m` (~1 GB) is the lighter fallback, same dropdown. See [`VTE/docs/LIMITATIONS.md`](VTE/docs/LIMITATIONS.md#model-compatibility) for model-choice notes.
 
 ### Windows: app (the full experience)
 
@@ -100,75 +100,51 @@ The `project` argument is the folder the agent's file/git/search tools operate o
 
 ### Note on Linux
 
-The Flutter desktop UI is a Windows-only build right now (no `linux/` target configured), so the app-with-a-window experience is Windows-only for the moment. The agent *backend* underneath it has no such limitation: it's plain Python/FastAPI, and this project's own testing ran it headless (no UI, real HTTP calls against the live agent loop) on an AMD Radeon Cloud W7900 Linux instance, confirming tool dispatch, memory, skills, and the write-confirmation gate all work identically there. `scripts/chat.py` above is that same validated path, just packaged as something you can actually type into instead of hand-rolling `curl` SSE parsing.
+The backend (plain Python/FastAPI, no Windows-specific code) is validated headless on an AMD Radeon Cloud W7900 Linux instance: tool dispatch, memory, skills, and the confirm gate all work identically there. `scripts/chat.py` is that same path. The Flutter UI has a `linux/` target scaffolded too, but not yet built/verified on real Linux hardware.
 
 ## Things to try
 
-A few prompts to get a feel for what the agent actually does, assuming `project_path` points at some real codebase (yours, or this repo itself). Naming the tool explicitly ("use the X tool") is more reliable with the default 8B model than an open-ended ask -- confirmed directly: a vague *"what does this codebase do"* got a generic, hallucinated answer with zero tool calls in testing, while pointing at a specific real file first did not.
+A few prompts to get a feel for what the agent does, pointed at some real codebase (yours, or this repo). Naming the tool explicitly ("use the X tool") is more reliable than an open-ended ask with the default 8B model.
 
-- *"Read the README.md and tell me in two paragraphs what this project does."* Grounded in a real file instead of an open-ended ask, which the model reliably explores; a vague version of this prompt answered from a guess without reading anything.
-- *"Find every place `TODO` appears and summarize what's left."* `search_files` across the whole project.
-- *"Use the git tool to show me the last 5 commits."* `git log`, no working-tree access needed.
+- *"Read the README.md and tell me in two paragraphs what this project does."*
+- *"Find every place `TODO` appears and summarize what's left."* `search_files` across the project.
+- *"Use the git tool to show me the last 5 commits."*
 - *"Use the edit_file tool to add a docstring to the `main` function in `<some file>`."* A real edit; you'll see the confirmation prompt before it lands.
-- *"Plan out how you'd add rate limiting to this API, but don't touch anything yet."* Switches the agent into Planner mode, streams a plan, waits for your go-ahead.
-- *"Remember that this project uses tabs, not spaces."* Writes to the memory tool; ask again in a later session and it recalls it without the fact being back in the chat transcript.
-- *"Use the browser tool to look up the current stable version of \<some library> online."* Read-only, no form-filling or credentials, ever; without naming the tool the model sometimes reaches for `bash curl` instead, which works but skips the actual browser feature.
-- *"Use the search_map tool to find out what this codebase does."* Cartographer's background-generated map, not the raw files -- often faster and better-grounded than reading files one by one on an unfamiliar project.
-- After the agent edits a file with your approval: open the **Blackbox** panel (Inspector's 5th tab) and click **↩ Undo** on that snapshot. Restores the file, leaves everything else untouched, and your repo's real `git status`/`git branch` never change because of it.
+- *"Plan out how you'd add rate limiting to this API, but don't touch anything yet."* Planner mode: streams a plan, waits for your go-ahead.
+- *"Remember that this project uses tabs, not spaces."* Recalled in later sessions without bloating the chat transcript.
+- *"Use the browser tool to look up the current stable version of \<some library> online."* Read-only, no form-filling or credentials, ever.
+- *"Use the search_map tool to find out what this codebase does."* Cartographer's background-generated map -- often faster and better-grounded than reading files one by one.
+- After the agent edits a file with your approval: click the ⟲ checkpoint icon next to your message to restore the project to the state before it ran, with a diff preview first.
 
 ## Blackbox: privacy you can verify, not just a promise
 
-Every local agent says "your code never leaves the machine." Aetheris makes that checkable at runtime instead of just claimed, via four pieces (`Aetheris Studio/core/audit/`, `Aetheris Studio/core/rag/cartographer.py`), each independently opt-out and none of them touching the core chat path when disabled:
+Every local agent says "your code never leaves the machine." Aetheris makes that checkable at runtime, via four independently opt-out pieces:
 
-- **Flight Recorder** -- every tool call, confirm-gate decision, and turn boundary appended to a per-session, hash-chained log. `Aetheris Studio/scripts/audit_verify.py` re-verifies it standalone, stdlib-only, no Aetheris install needed -- something you can actually hand to someone else and have them check themselves.
-- **Egress Monitor** -- a live "🔒 0 B external" indicator in the status footer, backed by real connection enumeration against the process tree (not a static claim), itself logged to the same audit trail.
-- **Time-Travel** -- every approved file write gets a git shadow-ref snapshot (`refs/aetheris/session-<id>`, invisible to `git branch`), undoable with one click without ever touching your real index or HEAD.
-- **Cartographer** -- the same background codebase-mapping this README's own "Things to try" points at above, doubling as an answer to the "vague prompt alucinates" failure mode described below it.
+- **Flight Recorder** -- every tool call, confirm-gate decision, and turn boundary appended to a per-session, hash-chained log, re-verifiable standalone via `Aetheris Studio/scripts/audit_verify.py` (stdlib-only, no Aetheris install needed).
+- **Egress Monitor** -- a live "🔒 0 B external" indicator, backed by real connection enumeration against the process tree.
+- **Time-Travel** -- every approved file write gets a git shadow-ref snapshot, undoable per-message with one click, never touching your real index or HEAD.
+- **Cartographer** -- background codebase mapping that also fixes the "vague prompt hallucinates" failure mode below.
 
-Full write-up (log format, the hash chain's real guarantees and real limits, each component's own honest scope): [`Aetheris Studio/docs/BLACKBOX.md`](Aetheris%20Studio/docs/BLACKBOX.md). UX metrics derived from the same audit trail: [`Aetheris Studio/docs/UX_METRICS.md`](Aetheris%20Studio/docs/UX_METRICS.md).
+Full write-up: [`Aetheris Studio/docs/BLACKBOX.md`](Aetheris%20Studio/docs/BLACKBOX.md). UX metrics from the same audit trail: [`Aetheris Studio/docs/UX_METRICS.md`](Aetheris%20Studio/docs/UX_METRICS.md).
 
-## Under the hood: VTE, the engine we built to power this
+## Under the hood: VTE
 
-Aetheris needed a local inference engine that runs entirely on an AMD Radeon GPU with nothing else installed, so we wrote one: **VTE**, hand-written HIP kernels, no llama.cpp/vLLM/PyTorch in the inference path. It turned into its own small systems project along the way, GEMV kernels tuned against real memory-bandwidth measurements, a HIP-Graph-captured decode loop, custom attention, the works, and on some models it decodes *faster* than Ollama/llama.cpp on the same GGUF file, on both a consumer card and a workstation one:
-
+Aetheris runs on **VTE**: hand-written HIP kernels, no llama.cpp/vLLM/PyTorch in the inference path. On two of six models it decodes *faster* than Ollama/llama.cpp on the identical GGUF file, validated on a consumer card (RX 7600) and a workstation card (W7900, via AMD's Radeon Cloud), scaling to a 70B stretch test with zero architecture-specific code:
 
 | Model | Hardware | VTE | Ollama/llama.cpp | Ratio |
 |---|---|---|---|---|
-| Qwen2.5 1.5B Q4_K_M | RX 7600 (32 CUs, 8 GB) | **115.14 tok/s** | 110.76 tok/s | **104.0%** |
-| Granite 4.1 3B Q8_0 | RX 7600 (32 CUs, 8 GB) | **57.34 tok/s** | 50.84 tok/s | **112.8%** |
-| Granite 4.1 30B Q8_0 | W7900 (96 CUs, 48 GB) | 20.2 tok/s | 22.5 tok/s | 89.8% |
-| Qwen2.5 32B Q4_K_M | W7900 (96 CUs, 48 GB) | 22.7 tok/s | 28.56 tok/s | 79.5% |
-| Llama 3.1 8B Q4_K_M | W7900 (96 CUs, 48 GB) | **79.54 tok/s** | 93.45 tok/s | 85.1% |
-| Llama 3.1 70B Q4_K_M | W7900 (96 CUs, 48 GB) | 10.50 tok/s | 14.21 tok/s | 73.9% |
+| Qwen2.5 1.5B Q4_K_M | RX 7600 (8 GB) | **115.14 tok/s** | 110.76 tok/s | **104.0%** |
+| Granite 4.1 3B Q8_0 | RX 7600 (8 GB) | **57.34 tok/s** | 50.84 tok/s | **112.8%** |
+| Granite 4.1 30B Q8_0 | W7900 (48 GB) | 20.2 tok/s | 22.5 tok/s | 89.8% |
+| Llama 3.1 8B Q4_K_M | W7900 (48 GB) | **79.54 tok/s** | 93.45 tok/s | 85.1% |
+| Qwen2.5 32B Q4_K_M | W7900 (48 GB) | 22.7 tok/s | 28.56 tok/s | 79.5% |
+| Llama 3.1 70B Q4_K_M | W7900 (48 GB) | 10.50 tok/s | 14.21 tok/s | 73.9% |
 
-VTE's numbers above are the current build (2026-07 batched-prefill/stochastic-sampling pass); Ollama's are unchanged, llama.cpp itself didn't move. Granite 30B, Qwen 32B, and Llama 70B weren't part of that pass (not measured under the new defaults yet), so those three rows are still the earlier numbers.
+**In review to become an official backend in [Lemonade](https://github.com/lemonade-sdk/lemonade), AMD's own local LLM server** -- six rounds of real maintainer review so far ([the PR](https://github.com/lemonade-sdk/lemonade/pull/2675)), one fix already shipped and credited by name in Lemonade's [v11.5.0 release notes](https://github.com/lemonade-sdk/lemonade/issues/2776). Also surfaced **five real ROCm/RDNA3 platform gaps**, each with exact repro steps: [`PLATFORM_ISSUES.md`](PLATFORM_ISSUES.md).
 
-Real GPU telemetry (`amd-smi`, sampled every ~0.5s) from the W7900 runs above, load through 3 back-to-back generations each, no thermal throttling on any of them:
+Two more optimizations shipped this cycle, both on by default and re-validated on the RX 7600 with no regression: **batched prefill** (64-token chunks through a dedicated HIP Graph) cuts TTFT ~1.9x on Llama 3.1 8B/W7900, byte-identical output to the sequential path; **GPU-accelerated stochastic sampling** moves the decode sampler's dominant cost off the CPU for a **+6.96%** decode-speed gain at the project's real sampling defaults, statistically verified against the original distribution.
 
-| Model | VRAM peak | Hotspot temp peak | Power peak |
-|---|---|---|---|
-| Granite 4.1 30B Q8_0 | 30.3 GiB | 55°C | 243 W |
-| Qwen2.5 32B Q4_K_M | 20.4 GiB | 60°C | 295 W |
-| Llama 3.1 8B Q4_K_M | 5.7 GiB | 48°C | 292 W |
-| Llama 3.1 70B Q4_K_M | ~42.5 GiB | not sampled | not sampled |
-
-VRAM peaks match the predicted weights+KV-cache+arena breakdown almost exactly in every case, on a card with a 241 W TDP.
-
-The table above is decode speed; prefill (time-to-first-token) had its own gap, closed by batched prefill: processing the prompt in 64-token chunks through a dedicated HIP Graph -- a custom WMMA GEMM kernel plus a tree-reduction causal-attention kernel, both hand-written, replacing the old one-token-at-a-time loop. Measured on Llama 3.1 8B / W7900, median of 3 runs: **prefill TTFT went from 6.51s to 3.33s at 517 tokens (1.96x)** and from 13.45s to 7.14s at ~1033 tokens (1.88x), output verified byte-identical to the old sequential path at both sizes. **On by default.** Validating it back on the RX 7600 (below) found and fixed a real correctness bug affecting other model families. Full story: [`VTE/docs/LIMITATIONS.md`](VTE/docs/LIMITATIONS.md#batching-and-prefill).
-
-Decode itself also got faster this cycle, separately: profiling the sampler (not guessing) found 92.6% of its cost was one `np.argpartition` scan over the full 128K-token vocabulary per token, not the RNG or top-p/repetition-penalty logic. Moving just that scan to the GPU -- reusing and generalizing an existing top-k reduction kernel rather than building a new sampler subsystem -- measured **74.36 -> 79.54 tok/s, a 6.96% gain**, at the project's real default sampling settings (temperature=0.7, top_p=0.9, top_k=50), with the sampled distribution verified statistically identical to the old path (KL-divergence 0.0001) and greedy decoding confirmed untouched. On by default (`VTE_STOCHASTIC_TOPK_READBACK`). Full story: [`VTE/docs/LIMITATIONS.md`](VTE/docs/LIMITATIONS.md#kernel-efficiency-and-rejected-optimizations).
-
-Both of those were built and measured on the W7900 during the same cloud session; neither had been checked back on the RX 7600 (the card the rest of this README's numbers come from, and the one with far less VRAM headroom) until a follow-up pass. Decode throughput on all five models available locally matched this project's own historical RX 7600 numbers exactly, no regression: Qwen2.5 1.5B 115.14 tok/s, Qwen3.5 2B 68.55 tok/s, Granite 4.1 3B 57.34 tok/s, Qwen2.5 7B 40.64 tok/s, Llama 3.1 8B 39.15 tok/s. That pass found and fixed a real VRAM gap (the chunk buffer was only ever sized against the W7900's 48GB and didn't fit a 7B+ model's weights on the RX 7600's 8GB; now checked and gracefully skipped instead of crashing). It then found something more serious: once a separate fix (vendoring a missing rocWMMA header, see [`PLATFORM_ISSUES.md`](PLATFORM_ISSUES.md)) let the WMMA kernel actually compile and run on this card for the first time on a model other than Llama 3.1 8B, Qwen2.5 1.5B's output diverged from the sequential path from the first token. Every individual kernel checked out correct in isolation, which pointed the investigation the wrong way for a while -- the real cause turned out to be architectural, not a kernel bug: Qwen2.5 uses `attention_bias=True` (real per-layer Q/K/V bias tensors), unlike Llama 3.1 8B, the only model this kernel had ever been validated against, so its signature simply had no bias parameter to begin with. Fixed by adding the missing epilogue term, the same way the sequential path's own kernel already handled it, and re-verified byte-identical to sequential across 60 generated tokens. `VTE_BATCHED_PREFILL` is on by default again. Full writeup: [`VTE/docs/LIMITATIONS.md`](VTE/docs/LIMITATIONS.md#batching-and-prefill).
-
-Full numbers across six models, three architectures, both cards: [`VTE/docs/BENCHMARK_W7900.md`](VTE/docs/BENCHMARK_W7900.md).
-
-None of that is required reading to use Aetheris. If you're curious how it works or want the full kernel-optimization writeup (what worked, what didn't, and the real numbers behind each decision): [`VTE/README.md`](VTE/README.md) and [`VTE/docs/PERFORMANCE.md`](VTE/docs/PERFORMANCE.md).
-
-The 70B row is a stretch test past the curated model set: loaded on a Radeon PRO W7900 via AMD's Radeon Cloud (`amd-oneclick-base:rocm7.2.1-py3.12-v20260416` image), no architecture-specific code needed for the jump in scale from the 8 GB RX 7600 it was designed against.
-
-The W7900 run also caught a real bug no amount of RX 7600 testing ever could: `hipGetDeviceProperties` was resolving to a stale ABI symbol, so `gcnArchName` (the real ISA string) was silently missing and architecture detection fell back to matching the GPU's commercial name. On this card the fallback happened to land on the right answer anyway; on a different workstation family (e.g. a W6800) it would have silently picked the *wrong* GPU architecture with no error at all. Fixed by binding the correct versioned symbol (`hipGetDevicePropertiesR0600`) and prioritizing the real ISA string over the commercial name. Full writeup, plus two more real bugs this same hardware validation pass caught: [`VTE/docs/BENCHMARK_W7900.md`](VTE/docs/BENCHMARK_W7900.md).
-
-One more sign of how real this is: VTE is currently in review to become an official experimental backend in [Lemonade](https://github.com/lemonade-sdk/lemonade), AMD's own local LLM server, not a submission sitting in a queue, an actual maintainer going through the code line by line. Six review rounds so far, each one catching something real and getting it fixed in the open: a runtime-lifecycle race between VTE's own idle-unload timer and Lemonade owning model lifetime, a GPU-exclusivity policy that had to be redesigned around each backend's *actual* resolved device instead of a static descriptor default, a checksum-registry collision, mixed-GPU-generation device selection. Full trail: [the PR](https://github.com/lemonade-sdk/lemonade/pull/2675), [the RFC discussion](https://github.com/lemonade-sdk/lemonade/issues/2679). One of those fixes (correct RX 7600 detection on Windows) already shipped and is credited by name in Lemonade's own [v11.5.0 release notes](https://github.com/lemonade-sdk/lemonade/issues/2776).
+Full kernel-optimization history, GPU telemetry, and the investigation trails (including what didn't pan out): [`VTE/README.md`](VTE/README.md), [`VTE/docs/PERFORMANCE.md`](VTE/docs/PERFORMANCE.md), [`VTE/docs/BENCHMARK_W7900.md`](VTE/docs/BENCHMARK_W7900.md).
 
 ## Repository layout
 

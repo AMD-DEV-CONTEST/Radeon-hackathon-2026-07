@@ -116,13 +116,21 @@ class _TitleBar extends ConsumerWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Browser',
+            tooltip: BrowserController.isSupportedOnThisPlatform
+                ? 'Browser'
+                : 'Browser (Windows-only today -- webview_windows has no Linux implementation)',
             icon: Icon(
               Icons.public,
               size: 18,
-              color: browserVisible ? AppColors.accentGreen : AppColors.textMuted,
+              color: !BrowserController.isSupportedOnThisPlatform
+                  ? AppColors.textMuted.withValues(alpha: 0.4)
+                  : browserVisible
+                      ? AppColors.accentGreen
+                      : AppColors.textMuted,
             ),
-            onPressed: () => ref.read(browserVisibleProvider.notifier).state = !browserVisible,
+            onPressed: BrowserController.isSupportedOnThisPlatform
+                ? () => ref.read(browserVisibleProvider.notifier).state = !browserVisible
+                : null,
           ),
           _FileChangesButton(count: fileChangeCount, onPressed: () {
             onShowFileChanges();

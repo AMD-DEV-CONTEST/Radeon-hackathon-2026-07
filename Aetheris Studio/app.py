@@ -30,6 +30,43 @@ async def _unload_all_models():
         print(f"[-] Erro ao descarregar modelo VTE: {e}")
 
 
+async def _warmup_vte_background():
+    """Runs one throwaway generation at startup so the costly first-token
+    path (HIP graph capture + full system-prompt prefill) is paid before
+    the user's first real message, not during it. Uses the SAME system
+    prompt real turns use, so vte-server's prefix KV cache is primed for
+    the shared prefix every real message carries. Fully best-effort: model
+    not present, GPU contention, or any error just logs and returns, and
+    the first real message pays the cost as it would have anyway."""
+    import asyncio
+    import logging
+    _log = logging.getLogger("aetheris.warmup")
+    try:
+        # Small delay so startup (health checks, project restore) settles
+        # and this doesn't race the very first user action.
+        await asyncio.sleep(1.0)
+        from core.utils.vte_bridge import VTE_DEFAULT_MODEL, generate_once
+        from core.utils.settings import get_setting
+        from core.utils.agent import _build_system_prompt
+
+        model = get_setting("default_model") or VTE_DEFAULT_MODEL
+        system_prompt = _build_system_prompt("builder")
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": "hi"},
+        ]
+        _log.info("VTE warmup: iniciando geração de aquecimento (modelo=%s)...", model)
+        # generate_once is synchronous (blocks on the whole generation); run
+        # it off the event loop. A tiny max_tokens is enough to force graph
+        # capture + full prompt prefill without wasting time decoding.
+        await asyncio.to_thread(generate_once, model, messages, 0.3, 4)
+        _log.info("VTE warmup: modelo quente, primeira mensagem real será rápida.")
+    except asyncio.CancelledError:
+        raise
+    except Exception as e:
+        _log.warning("VTE warmup falhou (primeira mensagem pagará o custo normal): %s", e)
+
+
 @asynccontextmanager
 async def lifespan(app_instance: FastAPI):
     # Fase 4.5: the Flutter client (aetheris_ui.exe) is what users double-click,
@@ -42,6 +79,13 @@ async def lifespan(app_instance: FastAPI):
 
     from core.health_producer import start_health_checks
     start_health_checks()
+
+    # Restore ACTIVE_PROJECT_PATH from disk before anything else can read it
+    # (confirmed real pain: this was in-memory-only, so restarting the
+    # backend for an unrelated fix mid-session silently forgot the open
+    # project -- see core/utils/project_path.py's module docstring).
+    from core.utils.project_path import restore_persisted_active_path
+    restore_persisted_active_path()
 
     # First-run bootstrap: AuthManager.set_credentials() has always existed
     # but nothing ever called it -- the only way an account got created was
@@ -87,6 +131,18 @@ async def lifespan(app_instance: FastAPI):
     if cartographer_enabled():
         _cartographer_task = asyncio.create_task(_cartographer_run_worker())
 
+    # VTE warmup (latency fix): the FIRST generation after vte-server starts
+    # pays a large one-time cost -- HIP graph capture plus a full prefill of
+    # the ~1500-token tools system prompt, which on a 7B model that doesn't
+    # fit batched prefill on an 8GB card runs sequentially (measured ~80s to
+    # first token, vs ~0.7s once warm because the system-prompt prefix KV is
+    # then cached and reused across requests). Doing one throwaway generation
+    # here, in the background at startup, moves that cost off the user's
+    # first real message. Best-effort: any failure (model not downloaded
+    # yet, GPU busy) just means the first real message pays the cost as
+    # before, never a startup crash.
+    _warmup_task = asyncio.create_task(_warmup_vte_background())
+
     try:
         yield
     except asyncio.CancelledError:
@@ -103,6 +159,11 @@ async def lifespan(app_instance: FastAPI):
             _cartographer_task.cancel()
             with suppress(asyncio.CancelledError):
                 await _cartographer_task
+
+        if _warmup_task is not None:
+            _warmup_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await _warmup_task
 
         # Descarregar o modelo VTE da VRAM
         await _unload_all_models()
@@ -173,6 +234,13 @@ class ChatCompletionRequest(BaseModel):
     # Optional so an older/unpatched caller degrades to "no audit trail
     # for this turn" instead of a validation error.
     chat_id: Optional[str] = None
+    # Time-Travel checkpoint (Fase C): the 1-based index of the user
+    # message this request belongs to. Stamped onto any snapshot taken
+    # during the turn so "restore to before message N" can find the right
+    # boundary. Stays constant across a confirm-gate's follow-up requests
+    # (they're still the same user message). Optional -> snapshots just get
+    # no checkpoint boundary, never an error.
+    turn_id: Optional[int] = None
 
 @app.get("/")
 async def root():
@@ -388,6 +456,10 @@ class LoadModelRequest(BaseModel):
 
 class ProjectPathRequest(BaseModel):
     path: str
+    # Optional: which chat is setting this, so the choice is remembered per
+    # chat (see core/utils/project_path.py's module docstring) as well as
+    # becoming the new global "current" project.
+    chat_id: Optional[str] = None
 
 
 @app.get("/api/project-path", dependencies=[Depends(verify_internal_token)])
@@ -396,10 +468,20 @@ async def get_project_path():
     return {"path": get_active_project_path()}
 
 
+@app.get("/api/project-path/for-chat/{chat_id}", dependencies=[Depends(verify_internal_token)])
+async def get_project_path_for_chat_route(chat_id: str):
+    """What project THIS chat last had open, if any -- the client calls
+    this on switching chats and, if it differs from the current one,
+    follows up with POST /api/project-path to re-apply it. Doesn't touch
+    ACTIVE_PROJECT_PATH itself; this is a read-only lookup."""
+    from core.utils.project_path import get_project_path_for_chat
+    return {"path": get_project_path_for_chat(chat_id)}
+
+
 @app.post("/api/project-path", dependencies=[Depends(verify_internal_token)])
 async def set_project_path(request: ProjectPathRequest):
     from core.utils.project_path import set_active_project_path
-    ok, resolved_or_reason = set_active_project_path(request.path)
+    ok, resolved_or_reason = set_active_project_path(request.path, request.chat_id)
     if not ok:
         raise HTTPException(status_code=400, detail=resolved_or_reason)
     return {"status": "success", "path": resolved_or_reason}
@@ -504,6 +586,10 @@ class ExecuteToolRequest(BaseModel):
     tool: str
     content: str
     chat_id: Optional[str] = None
+    # Same user-message index as ChatCompletionRequest.turn_id -- an
+    # approved edit still belongs to the message that proposed it, so its
+    # snapshot must carry that turn.
+    turn_id: Optional[int] = None
 
 
 @app.post("/api/tools/execute", dependencies=[Depends(verify_internal_token)])
@@ -525,11 +611,15 @@ async def execute_tool(request: ExecuteToolRequest):
     from core.utils.tools import TOOL_REGISTRY
     from core.auth import AuthManager
     from core.audit.flight_recorder import audited_tool_call, audit_enabled, get_recorder
+    from core.audit.timetravel import set_current_turn_id
 
     handler = TOOL_REGISTRY.get(request.tool)
     if handler is None:
         raise HTTPException(status_code=400, detail=f"Unknown tool: {request.tool}")
 
+    # So the snapshot this approved edit takes is stamped with the message
+    # that proposed it (see ExecuteToolRequest.turn_id).
+    set_current_turn_id(request.turn_id)
     owner = AuthManager().current_username()
     if audit_enabled() and request.chat_id:
         get_recorder(request.chat_id).append(
@@ -640,6 +730,46 @@ async def get_snapshots(session_id: str):
     """The Blackbox Time-Travel timeline's data source."""
     from core.audit.timetravel import list_snapshots
     return {"session_id": session_id, "snapshots": await list_snapshots(session_id)}
+
+
+class CheckpointRequest(BaseModel):
+    session_id: str
+    turn_id: int
+
+
+@app.post("/api/timetravel/checkpoint/preview", dependencies=[Depends(verify_internal_token)])
+async def preview_checkpoint(request: CheckpointRequest):
+    """Read-only: the combined diff of restoring the project to the state
+    it had before user message `turn_id` -- backs the chat checkpoint's
+    confirm dialog (Fase C, message-anchored undo)."""
+    from core.audit.timetravel import preview_restore_to_turn
+    return await preview_restore_to_turn(request.session_id, request.turn_id)
+
+
+@app.post("/api/timetravel/checkpoint/restore", dependencies=[Depends(verify_internal_token)])
+async def restore_checkpoint(request: CheckpointRequest):
+    """The message-anchored undo: restore the whole project to the state
+    before user message `turn_id`. Audited as a rollback_action like every
+    other undo (invariant I4)."""
+    from core.audit.timetravel import restore_to_turn
+    from core.audit.flight_recorder import audit_enabled, get_recorder
+    from core.auth import AuthManager
+
+    owner = AuthManager().current_username()
+    if audit_enabled():
+        get_recorder(request.session_id).append(
+            "confirm_decision",
+            {"tool": "rollback_action", "decision": "approved", "checkpoint_turn": request.turn_id},
+            actor=owner or "unknown",
+        )
+    result = await restore_to_turn(request.session_id, request.turn_id)
+    if audit_enabled():
+        get_recorder(request.session_id).append(
+            "rollback",
+            {"target_turn": request.turn_id, "restored": result.get("restored", [])},
+            actor=owner or "unknown",
+        )
+    return {"result": result}
 
 
 @app.get("/api/cartographer/status", dependencies=[Depends(verify_internal_token)])
@@ -760,7 +890,13 @@ async def chat_completions_stream(body: ChatCompletionRequest, http_request: Req
         from core.utils.settings import get_setting
         from core.auth import AuthManager
         from core.utils.reasoning_budget import suggest_max_tokens
+        from core.audit.timetravel import set_current_turn_id
 
+        # Stamp any snapshot taken during this turn's auto-run tool calls
+        # with the user message it belongs to (see ChatCompletionRequest.
+        # turn_id) -- the contextvar propagates into stream_agent's own
+        # async tool dispatch, which runs in this same request context.
+        set_current_turn_id(body.turn_id)
         owner = AuthManager().current_username()
         model = get_setting("default_model") or VTE_DEFAULT_MODEL
 
