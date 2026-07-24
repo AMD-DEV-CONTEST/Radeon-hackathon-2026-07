@@ -104,23 +104,25 @@ sequenceDiagram
 
 | Module | Responsibility |
 |---|---|
-| `main.rs` | Entry point; `default` / `bench` / `gpu-bench` / `fast` / `local-bench` (feature-gated) modes |
+| `main.rs` | Entry point; `default` / `bench` / `gpu-bench` / `fast` / `chat` / `conversation` / `local-bench` (feature-gated) modes |
 | `agent.rs` | Wires `intent.rs` (mandatory planning) to `llm.rs`/`local_llm.rs` (optional narration) |
 | `intent.rs` | Okapi BM25 + bigram tool classifier — the crate's only mandatory planning mechanism |
-| `tools.rs` | The six genomic tools; shared dataset loading and GPU correlation-matrix helper |
+| `tools.rs` | The seven tools (six genomic + `KnowledgeLookup` RAG); shared dataset loading and GPU correlation-matrix helper |
 | `vcf.rs` | VCF parsing, synthetic generator, MAF/missingness/HWE, real 1000 Genomes loader |
 | `gpu_ld.rs` | `wgpu`/Vulkan GPU compute, AMD-adapter-targeted, CPU-cross-validated |
 | `pca.rs` | CPU power-iteration eigensolver with deflation |
 | `bootstrap.rs` | GPU-batched nonparametric bootstrap confidence intervals |
 | `fst.rs` | Wright's FST + empirical permutation-test significance |
+| `knowledge.rs` | Local RAG retrieval over the bundled methods corpus, via the shared GPU BM25 kernel |
+| `memory.rs` | Bounded local multi-turn conversation memory and referential-follow-up augmentation |
 | `rng.rs` | Shared deterministic PRNG (reproducible synthetic data / resampling) |
 | `llm.rs` | Three optional remote narration backends (AMD Model API, HF Router, Anthropic) |
 | `local_llm.rs` | Real local LLM inference on the AMD GPU via llama.cpp/Vulkan (`local-inference` feature) |
 
 ## 4. Capabilities
 
-Six tools, each backed by real computation (formulas and cross-validation
-detailed in `README_PROFESSIONAL.md`):
+Seven tools, each backed by real computation or real retrieval (formulas
+and cross-validation detailed in `README_PROFESSIONAL.md`):
 
 1. **VcfAnalyzer** — SNP counts, MAF, missingness, real chi-square
    Hardy-Weinberg equilibrium test per variant (exact df=1 identity), plus
@@ -135,8 +137,11 @@ detailed in `README_PROFESSIONAL.md`):
 6. **SelectionScan** — per-SNP Wright's FST between PCA-derived
    subpopulations, with a real permutation-test p-value per SNP (not a
    bare magnitude).
+7. **KnowledgeLookup** — local RAG retrieval over a bundled
+   genomics-methods corpus, returning verbatim passages with real
+   relevance scores through the same GPU BM25 kernel used for planning.
 
-Plus two crate-wide capabilities that apply across all six tools:
+Plus crate-wide capabilities that apply across all tools:
 
 - **Real vs. synthetic data**, selectable via one environment variable
   (`GENOMIC_AGENT_REAL_DATA=1`) — a real, bundled 1000 Genomes Phase 3
@@ -145,6 +150,10 @@ Plus two crate-wide capabilities that apply across all six tools:
 - **Optional local LLM narration** on the AMD Radeon GPU (`local-inference`
   feature) — real quantized-model inference via llama.cpp/Vulkan, detailed
   in Section 5.
+- **Local multi-turn conversation memory** (`memory.rs`) — bounded,
+  in-process, never persisted; makes short referential follow-ups route
+  correctly. Exposed via `chat` (interactive) and `conversation`
+  (scripted) modes.
 
 ## 5. AMD GPU Adaptation & Optimization
 
@@ -211,7 +220,7 @@ cargo run --release --features local-inference -- local-bench
 is reproducible this way, not asserted):
 
 ```bash
-cargo test --release                          # 42 tests, both build configs
+cargo test --release                          # 55 tests, both build configs
 cargo run --release -- gpu-bench               # GPU vs CPU cross-validation + speedup
 cargo run --release --features local-inference -- local-bench   # local LLM GPU vs CPU
 GENOMIC_AGENT_REAL_DATA=1 cargo run --release  # real 1000 Genomes data mode
@@ -223,7 +232,7 @@ the default configuration.
 
 ## 7. Verification & Quality Assurance
 
-- **42 automated tests**, checking real mathematical invariants (the
+- **55 automated tests**, checking real mathematical invariants (the
   eigenvector equation for PCA, FST ∈ [0,1], MAF ≤ 0.5, conservation of
   HWE expected/observed totals, GPU-vs-CPU agreement within float
   tolerance), not just "does it run."
@@ -236,10 +245,23 @@ the default configuration.
   **zero** on the real 1000 Genomes slice — the honest outcome of low
   statistical power at n=100 real samples, not a bug.
 
+## 7.5 Minimum Functional Requirements Mapping
+
+Track 2 requires at least 2 of 5 listed capabilities. This submission
+implements **4**:
+
+| Required capability | Status | Where |
+|---|---|---|
+| **Local knowledge retrieval (RAG)** | ✅ | `knowledge.rs` + `data/knowledge/methods.md` — 10-passage bundled corpus, retrieved via the GPU BM25 kernel (~1.3ms measured), returns verbatim passages with relevance scores. Exposed as the `KnowledgeLookup` tool. |
+| **Tool invocation** | ✅ | `tools.rs` — seven tools, selected by real BM25 relevance scoring, multi-tool selection for compound queries. |
+| **Multi-step task planning** | ✅ | `intent.rs` — a single query can select and execute multiple tools by thresholded relevance, not a fixed one-intent-one-tool mapping. |
+| **Local multi-turn memory** | ✅ | `memory.rs` — bounded 8-turn in-process history; referential follow-ups are planned with recent context, self-contained queries untouched. `chat` and `conversation` modes. |
+| Clear permission control & privacy | Partial | Not implemented as an explicit permission system. Privacy is architectural rather than configurable: default operation makes zero network calls, memory is never persisted to disk, and the knowledge corpus is compiled into the binary. Listed here honestly as partial rather than claimed. |
+
 ## 8. Judging-Criteria Mapping (Track 2, 120 points)
 
 | Axis | Points | How this submission addresses it |
 |---|---|---|
-| Agent functional completeness | 60 | Six real tools, multi-tool BM25 routing (zero API dependency), real statistics with significance testing and confidence intervals, real + synthetic data modes |
+| Agent functional completeness | 60 | Seven real tools, multi-tool BM25 routing (zero API dependency), real statistics with significance testing and confidence intervals, local RAG retrieval, multi-turn conversation memory, real + synthetic data modes (4 of the 5 listed minimum capabilities — see 7.5) |
 | AMD GPU adaptation/optimization | 40 | Explicit AMD-adapter targeting, CPU-cross-validated `wgpu`/Vulkan kernels for LD/PCA/tool-planning, GPU-batched bootstrap, real local LLM inference on the AMD GPU via llama.cpp/Vulkan with a measured 1.52x GPU-vs-CPU speedup |
-| Bonus: quantization/distillation optimization | 20 | Local inference runs a GGUF **Q4_K_M**-quantized model (not fp16/fp32) on the AMD GPU — the quantization is what makes real-time local inference on an integrated GPU practical at all, and is documented with a real measured throughput number |
+| Bonus: quantization/distillation optimization | 20 (claimed with a stated caveat) | Local inference runs a GGUF **Q4_K_M**-quantized model (not fp16/fp32) on the AMD GPU, documented with a real measured throughput number (21.32 tok/s, 1.52x vs CPU). **Caveat stated plainly:** the rules word this bonus as "core inference running using Radeon cloud model API with quantization or distillation or other optimization methods." This submission's quantized inference runs **locally** via llama.cpp/Vulkan, not through the Radeon cloud Model API — which is also what the Track 2 platform rule ("remote APIs are not allowed for core functions") requires. We believe the quantization work is what the bonus is aimed at and note the tension between those two clauses, rather than quietly claiming the points. Judges should score this as they read it. |

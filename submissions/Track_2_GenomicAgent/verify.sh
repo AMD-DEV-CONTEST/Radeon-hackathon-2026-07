@@ -6,7 +6,7 @@
 # default `cargo build --release` path.
 #
 #   1. builds clean (release profile)
-#   2. 42 property-based tests pass
+#   2. 55 property-based tests pass
 #   3. the 6-query demo runs fully offline (tool routing via the GPU
 #      BM25 kernel, zero LLM / zero network)
 #

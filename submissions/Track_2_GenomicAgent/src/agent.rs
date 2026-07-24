@@ -1,5 +1,6 @@
 use crate::intent;
 use crate::llm;
+use crate::memory::ConversationMemory;
 use crate::tools::ToolRegistry;
 
 /// Minimum BM25 score for a tool to be included in a query's plan.
@@ -18,11 +19,54 @@ const INTENT_THRESHOLD: f32 = 2.0;
 
 pub struct GenomicAgent {
     tools: ToolRegistry,
+    memory: ConversationMemory,
 }
 
 impl GenomicAgent {
     pub fn new(tools: ToolRegistry) -> Self {
-        Self { tools }
+        Self { tools, memory: ConversationMemory::new() }
+    }
+
+    pub fn memory(&self) -> &ConversationMemory {
+        &self.memory
+    }
+
+    pub fn clear_memory(&mut self) {
+        self.memory.clear();
+    }
+
+    /// Plan against a possibly memory-augmented version of the query,
+    /// then record the turn. Returns the plan plus a note describing
+    /// whether conversation context was applied, so callers can surface
+    /// that to the user rather than silently rewriting their question.
+    fn plan_with_memory(&self, query: &str) -> (intent::IntentResult, Option<String>) {
+        let (effective_query, augmented) = self.memory.augment_query(query);
+        let plan = self.plan(&effective_query);
+        let note = if augmented {
+            Some(format!(
+                "[memory] follow-up detected -- planned using context from the previous {} turn(s)",
+                self.memory.len().min(2)
+            ))
+        } else {
+            None
+        };
+        (plan, note)
+    }
+
+    /// Short digest of what a turn produced, stored in memory so the
+    /// session recap shows something real rather than an opaque entry.
+    fn digest(outputs: &[(String, String)]) -> String {
+        outputs
+            .first()
+            .map(|(_, out)| {
+                let first_line = out.lines().find(|l| !l.trim().is_empty()).unwrap_or("");
+                let mut s: String = first_line.chars().take(90).collect();
+                if first_line.chars().count() > 90 {
+                    s.push_str("...");
+                }
+                s
+            })
+            .unwrap_or_else(|| "(no output)".to_string())
     }
 
     /// Real, zero-cost, offline planning (see intent.rs -- a custom
@@ -36,10 +80,15 @@ impl GenomicAgent {
     /// all; only this optional narration step ever touches one, and its
     /// absence never changes which tools ran or what they found.
     pub fn process_query(&mut self, query: &str) -> anyhow::Result<String> {
-        let plan = self.plan(query);
+        let (plan, memory_note) = self.plan_with_memory(query);
         let outputs = self.run_plan(&plan, query)?;
 
-        let mut response = format!(
+        let mut response = String::new();
+        if let Some(note) = &memory_note {
+            response.push_str(note);
+            response.push('\n');
+        }
+        response.push_str(&format!(
             "[Intent kernel, {}] Selected tool(s): {}\n",
             plan.compute_path,
             plan.selected
@@ -47,7 +96,10 @@ impl GenomicAgent {
                 .map(|m| format!("{} ({:.2})", m.name, m.score))
                 .collect::<Vec<_>>()
                 .join(", "),
-        );
+        ));
+
+        let tool_names: Vec<String> = plan.selected.iter().map(|m| m.name.clone()).collect();
+        self.memory.remember(query, &tool_names, &Self::digest(&outputs));
 
         match llm::synthesize(query, &outputs) {
             Some(narrative) => response.push_str(&format!("\nAnalyst summary: {narrative}\n")),
@@ -67,10 +119,15 @@ impl GenomicAgent {
     /// identical either way, since planning never depended on a network
     /// call to begin with.
     pub fn process_query_offline(&mut self, query: &str) -> anyhow::Result<String> {
-        let plan = self.plan(query);
+        let (plan, memory_note) = self.plan_with_memory(query);
         let outputs = self.run_plan(&plan, query)?;
 
-        let mut response = format!(
+        let mut response = String::new();
+        if let Some(note) = &memory_note {
+            response.push_str(note);
+            response.push('\n');
+        }
+        response.push_str(&format!(
             "[Intent kernel, {}] Selected tool(s): {}\n",
             plan.compute_path,
             plan.selected
@@ -78,7 +135,11 @@ impl GenomicAgent {
                 .map(|m| format!("{} ({:.2})", m.name, m.score))
                 .collect::<Vec<_>>()
                 .join(", "),
-        );
+        ));
+
+        let tool_names: Vec<String> = plan.selected.iter().map(|m| m.name.clone()).collect();
+        self.memory.remember(query, &tool_names, &Self::digest(&outputs));
+
         for (name, output) in &outputs {
             response.push_str(&format!("\n--- {name} raw output ---\n{output}\n"));
         }

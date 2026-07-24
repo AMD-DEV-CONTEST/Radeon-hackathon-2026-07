@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use crate::vcf::{self, VcfData};
-use crate::{bootstrap, fst, gpu_ld, pca};
+use crate::{bootstrap, fst, gpu_ld, knowledge, pca};
 
 pub trait Tool: Send + Sync {
     fn name(&self) -> &str;
@@ -639,5 +639,61 @@ impl ToolRegistry {
             .values()
             .map(|t| format!("{}: {}", t.name(), t.description()))
             .collect()
+    }
+}
+
+/// Local knowledge retrieval (RAG) over the bundled method corpus.
+///
+/// Unlike the other six tools, this one answers *conceptual* questions
+/// ("what does FST measure?") rather than computing a statistic over the
+/// dataset. It returns verbatim passages from `data/knowledge/methods.md`
+/// with their real relevance scores, so the answer is grounded in text
+/// you can go read rather than recalled by a model. Retrieval runs
+/// through the same GPU BM25 kernel as tool planning -- see
+/// `knowledge.rs` for why that sharing is deliberate.
+pub struct KnowledgeLookupTool;
+
+impl Tool for KnowledgeLookupTool {
+    fn name(&self) -> &str {
+        "KnowledgeLookup"
+    }
+
+    fn description(&self) -> &str {
+        "KnowledgeLookup: Retrieve reference explanations from the local genomics knowledge base. Use to explain what a method or statistic means, why a test is used, how a metric is defined or interpreted, or what a term stands for -- concept and definition questions rather than computing numbers from the dataset."
+    }
+
+    fn execute(&self, query: &str) -> anyhow::Result<String> {
+        let start = std::time::Instant::now();
+        let kb = knowledge::KnowledgeBase::new();
+        let (hits, compute_path) = kb.retrieve(query, 2);
+        let elapsed = start.elapsed();
+
+        if hits.is_empty() {
+            return Ok(format!(
+                "Local knowledge base ({} passages, retrieval on {}): no passage scored above the \
+                 relevance threshold ({:.1}) for this query, so nothing is returned rather than \
+                 guessing. Retrieval is lexical BM25, so a question sharing no vocabulary with the \
+                 corpus will legitimately miss.\nRetrieval time: {:.2?}",
+                kb.len(),
+                compute_path,
+                knowledge::RETRIEVAL_THRESHOLD,
+                elapsed
+            ));
+        }
+
+        let mut out = format!(
+            "Local knowledge base: {} passages indexed, retrieval on {} ({:.2?}).\n\
+             Returned verbatim from data/knowledge/methods.md -- not model-generated:\n",
+            kb.len(),
+            compute_path,
+            elapsed
+        );
+        for hit in &hits {
+            out.push_str(&format!(
+                "\n[relevance {:.2}] {}\n{}\n",
+                hit.score, hit.passage.title, hit.passage.body
+            ));
+        }
+        Ok(out)
     }
 }

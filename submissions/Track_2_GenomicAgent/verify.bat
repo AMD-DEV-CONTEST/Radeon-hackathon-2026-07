@@ -5,7 +5,7 @@ REM failure. Default build only: no API keys, no network, no GPU toolchain
 REM beyond a Vulkan driver, no model download.
 REM
 REM   1. builds clean (release profile)
-REM   2. 42 property-based tests pass
+REM   2. 55 property-based tests pass
 REM   3. the 6-query demo runs fully offline (GPU BM25 routing, no LLM)
 REM
 REM Usage:  verify.bat

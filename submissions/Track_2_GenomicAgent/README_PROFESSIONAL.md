@@ -9,8 +9,9 @@ compiles clean and the CPU-path suite passes. The GPU cross-validation
 and speedup numbers below are measured locally on real AMD hardware, as
 each section states.)*
 
-An agentic AI for real population-genetics workflows — six tools doing
-real statistics over real and synthetic VCF data, routed by a
+An agentic AI for real population-genetics workflows — seven tools doing
+real statistics and local knowledge retrieval over real and synthetic VCF
+data, held together across turns by local conversation memory, routed by a
 from-scratch GPU kernel with zero API dependency, narrated (optionally)
 by an LLM running *locally* on the AMD Radeon GPU itself. Every number
 below is measured, not asserted: run the command next to a claim and
@@ -19,12 +20,13 @@ you'll get the same kind of result.
 > **For judges in a hurry.** An agentic genomics assistant whose tool
 > routing is a custom GPU-dispatched Okapi BM25 kernel — no API key, no
 > network, no cost — feeding six real statistical tools (HWE, LD/r²,
-> haplotypes, PCA, bootstrap CIs, permutation-tested FST) with real
+> haplotypes, PCA, bootstrap CIs, permutation-tested FST) plus local
+> RAG retrieval over a bundled corpus, with local multi-turn memory, and real
 > `wgpu`/Vulkan GPU acceleration explicitly targeted at the AMD adapter
 > and cross-validated against a CPU reference on **every** run. Measured
 > **3.47× GPU LD speedup** and **real local LLM inference on the Radeon
 > 780M at 21.32 tok/s (1.52× vs CPU)** using a **Q4_K_M-quantized**
-> model. 42 property-based tests, zero compiler warnings, real bundled
+> model. 55 property-based tests, zero compiler warnings, real bundled
 > 1000 Genomes data, and one honestly-kept null result. No ROCm/HIP SDK
 > required (uses Vulkan — see below for why). **Verify it in ~2 minutes:
 > `bash verify.sh` (or `verify.bat`).**
@@ -50,7 +52,9 @@ reproduces it.
 | **Local LLM inference** | Real local inference on the AMD Radeon 780M via llama.cpp/Vulkan (optional `local-inference` feature) — measured **21.32 tok/s** on-device, **1.52x** faster than the same model/prompt run CPU-only on the same machine, both measured in the same `local-bench` run (see "Local LLM inference"). |
 | **Genomics** | HWE chi-square QC, pairwise LD (r²) + block detection, haplotype tallying, PCA-based population structure, per-SNP FST with a real permutation-test p-value. |
 | **Real data** | A real, bundled 1000 Genomes Phase 3 mtDNA slice (`GENOMIC_AGENT_REAL_DATA=1`), not just a synthetic generator. |
-| **Verification** | 42 passing tests; every GPU path cross-checked against CPU; every benchmark number is `Instant::now()`-measured, never a literal. |
+| **Local RAG** | Local knowledge retrieval over a bundled genomics-methods corpus (`knowledge.rs`), retrieved through the *same* cross-validated GPU BM25 kernel as tool planning — measured ~1.3ms on the Radeon 780M. Returns verbatim corpus passages with real relevance scores, never model-generated text. |
+| **Multi-turn memory** | Bounded, in-process conversation memory (`memory.rs`) that makes short referential follow-ups ("and its p-value?") route to the right tool — impossible for term-overlap BM25 alone. Never written to disk or sent anywhere; augmentation is disclosed in the response, never silent. |
+| **Verification** | 55 passing tests; every GPU path cross-checked against CPU; every benchmark number is `Instant::now()`-measured, never a literal. |
 | **Lean build** | Release binary trimmed from 8.4MB to **7.0MB** (20% smaller): `codegen-units=1`/`strip`, plus dropping `wgpu`'s unused DX12/Metal/WebGPU backend compilation. (A more aggressive `panic=abort` variant hit 5.0MB but doubled `cargo test`'s build time for every judge — see "GPU acceleration" below for the real story.) |
 
 **Judging-criteria status, in one paragraph** (full detail in "Local LLM
@@ -64,7 +68,7 @@ inference on the same AMD Radeon 780M (optional `local-inference`
 feature, llama.cpp's Vulkan backend — not ROCm/HIP, see below for why)
 with a measured GPU-vs-CPU speedup number, not just an "it runs" claim.
 The feature is opt-in, not the default build, so a judge running plain
-`cargo build --release` gets an unaffected build (42/42 tests pass
+`cargo build --release` gets an unaffected build (55/55 tests pass
 identically either way) — everything below describes that default
 build unless stated otherwise. With the feature enabled, local
 inference is the first-tried narration backend, ahead of three remote
@@ -117,6 +121,52 @@ FST) — it will look the same on every run because the data generator is
 seeded deterministically, not because the numbers are hardcoded. Run
 `cargo test --release` to see property-based tests that check this
 (e.g. two identical genotype columns must compute r²≈1.0).
+
+---
+
+## 3.5. Multi-turn conversation, memory, and local RAG
+
+```bash
+cargo run --release -- conversation   # scripted 5-turn demo, no typing
+cargo run --release -- chat           # interactive session
+```
+
+Two capabilities that only show up across turns:
+
+**Local knowledge retrieval (RAG).** A seventh tool, `KnowledgeLookup`,
+answers *conceptual* questions ("what does FST actually measure?") from a
+bundled corpus (`data/knowledge/methods.md`, compiled in via
+`include_str!` — no runtime download). It returns **verbatim passages**
+with their real relevance scores, so the answer is grounded in text you
+can go read rather than recalled by a model; a test asserts every
+returned body appears verbatim in the corpus. Retrieval reuses the exact
+same GPU BM25 kernel as tool planning (`intent::rank_documents`), which
+means it inherits the same CPU cross-validation instead of introducing a
+second, separately-verified BM25 — measured ~1.3ms on the Radeon 780M for
+10 passages. Honest limit: BM25 is *lexical*, so a paraphrase sharing no
+vocabulary with the corpus will legitimately miss, and an unrelated query
+returns nothing rather than a bad guess (also a test).
+
+**Multi-turn memory.** BM25 routing works on the current query's terms,
+so a natural follow-up like `and its p-value?` has almost nothing to
+match on and would route essentially at random. `memory.rs` keeps a
+bounded (8-turn), in-process history and — *only* when a turn looks
+referential (short, or opening with "and"/"why"/"what about") — appends
+recent topical terms before planning. Self-contained queries are left
+completely untouched, because augmenting everything would drag stale
+terms into unrelated questions. Real measured effect from the demo:
+
+```
+Turn 1: Run a selection scan for FST differentiation ...
+        -> SelectionScan (9.07)
+Turn 3: and its p-value?
+        [memory] follow-up detected -- planned using context from the previous 2 turn(s)
+        -> SelectionScan (13.39), LdConfidence (4.86), KnowledgeLookup (3.70)
+```
+
+Nothing is persisted to disk or sent anywhere, and when context *is*
+applied the response says so — the query is never silently rewritten.
+`chat` also supports `memory` (show what's remembered) and `forget`.
 
 ---
 
@@ -210,7 +260,7 @@ unwind mode regardless of the release profile's panic setting, so
 verified) instead of a fast incremental compile off the release
 build's own artifacts (2.5 seconds, verified after removing it). A
 judge running both `setup.sh` (which builds) and `cargo test --release`
-(to verify the "42 tests" claim) would have hit that twice. Reverted
+(to verify the "42 tests" claim, 55 today) would have hit that twice. Reverted
 `panic = "abort"` specifically once this was found -- the extra ~2MB
 it saved wasn't worth doubling a judge's wait.
 

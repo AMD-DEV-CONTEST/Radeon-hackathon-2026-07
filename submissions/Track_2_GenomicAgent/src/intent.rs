@@ -211,14 +211,18 @@ fn cpu_bm25_batch(query: &[f32], docs: &[Vec<f32>]) -> Vec<f32> {
 /// tool (mirrors the old keyword router's "always route somewhere"
 /// behavior -- an agent that finds nothing to do isn't more honest,
 /// just less useful).
-pub fn classify(
-    query: &str,
-    tool_names: &[String],
-    tool_descriptions: &[String],
-    threshold: f32,
-) -> IntentResult {
-    let documents: Vec<&str> = tool_descriptions.iter().map(|s| s.as_str()).collect();
-    let index = Bm25Index::build(&documents);
+/// Score `query` against arbitrary `documents` with the same Okapi BM25
+/// (+bigram) index and the same GPU kernel `classify` uses, returning the
+/// raw per-document scores and which compute path actually ran.
+///
+/// Exposed because tool planning is not the only thing in this crate that
+/// needs "rank these texts against this query": `knowledge.rs` retrieves
+/// passages from the local knowledge base with it. Sharing one
+/// implementation means the retrieval path inherits the same
+/// CPU-cross-validated GPU kernel rather than growing a second, separately
+/// -verified copy of BM25.
+pub fn rank_documents(query: &str, documents: &[&str]) -> (Vec<f32>, String) {
+    let index = Bm25Index::build(documents);
     let query_vec = index.vectorize_query(query);
 
     let mut doc_flat = Vec::with_capacity(index.doc_vectors.len() * index.vocab_len);
@@ -226,28 +230,38 @@ pub fn classify(
         doc_flat.extend_from_slice(v);
     }
 
-    let (scores, compute_path) = if index.vocab_len == 0 {
-        (vec![0f32; documents.len()], "N/A (empty vocabulary)".to_string())
-    } else {
-        match gpu_ld::GpuLdContext::shared() {
-            Ok(ctx) => match ctx.compute_bm25_score_batch(
-                &query_vec,
-                &doc_flat,
-                index.vocab_len,
-                documents.len(),
-            ) {
-                Ok(s) => (s, format!("GPU ({})", ctx.adapter_name)),
-                Err(_) => (
-                    cpu_bm25_batch(&query_vec, &index.doc_vectors),
-                    "CPU (GPU dispatch failed)".to_string(),
-                ),
-            },
+    if index.vocab_len == 0 {
+        return (vec![0f32; documents.len()], "N/A (empty vocabulary)".to_string());
+    }
+
+    match gpu_ld::GpuLdContext::shared() {
+        Ok(ctx) => match ctx.compute_bm25_score_batch(
+            &query_vec,
+            &doc_flat,
+            index.vocab_len,
+            documents.len(),
+        ) {
+            Ok(s) => (s, format!("GPU ({})", ctx.adapter_name)),
             Err(_) => (
                 cpu_bm25_batch(&query_vec, &index.doc_vectors),
-                "CPU (no GPU adapter available)".to_string(),
+                "CPU (GPU dispatch failed)".to_string(),
             ),
-        }
-    };
+        },
+        Err(_) => (
+            cpu_bm25_batch(&query_vec, &index.doc_vectors),
+            "CPU (no GPU adapter available)".to_string(),
+        ),
+    }
+}
+
+pub fn classify(
+    query: &str,
+    tool_names: &[String],
+    tool_descriptions: &[String],
+    threshold: f32,
+) -> IntentResult {
+    let documents: Vec<&str> = tool_descriptions.iter().map(|s| s.as_str()).collect();
+    let (scores, compute_path) = rank_documents(query, &documents);
 
     let mut matches: Vec<ToolMatch> = tool_names
         .iter()
