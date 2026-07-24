@@ -1,91 +1,55 @@
-#!/bin/bash
-# ═══════════════════════════════════════════════════════════════
-#  TEXTOVID — Quick Install Script
-#  Run in JupyterLab terminal on your AMD Radeon GPU instance
-# ═══════════════════════════════════════════════════════════════
+#!/usr/bin/env bash
+# Textovid — Installation script for AMD ROCm 7.2 instance
+set -euo pipefail
 
-set -e
-echo ""
-echo "========================================================"
-echo "  TEXTOVID — AI Comic Studio — Quick Install"
-echo "  AMD AI DevMaster Hackathon 2026"
-echo "========================================================"
-echo ""
+VENV="/opt/venv"
+WORKSPACE="/workspace/textovid"
 
-# ── Step 1: Install PyTorch ROCm ──────────────────────────────
-echo "[1/3] Installing PyTorch with ROCm support..."
-echo "  (This takes 2-5 minutes, one-time only)"
+echo "========================================"
+echo "  Textovid Install Script"
+echo "  ROCm 7.2 / RX 7900 XTX"
+echo "========================================"
 
-# Try ROCm 6.2 first, then fallbacks
-for ROCM_URL in \
-    "https://download.pytorch.org/whl/rocm6.2" \
-    "https://download.pytorch.org/whl/rocm6.1" \
-    "https://download.pytorch.org/whl/rocm6.0"; do
-    echo "  Trying: $ROCM_URL"
-    if pip install torch torchvision torchaudio --index-url "$ROCM_URL" -q 2>/dev/null; then
-        echo "  ✓ PyTorch ROCm installed!"
-        break
-    else
-        echo "  ✗ Not found, trying next..."
-    fi
-done
+# ── 1. System packages ──────────────────────────────────────────
+echo "[1/5] Installing system packages …"
+sudo apt-get update -qq
+sudo apt-get install -y -qq \
+    python3.11-venv python3-pip git wget \
+    libgl1 libglib2.0-0 \
+    ffmpeg 2>&1 | tail -3
 
-# ── Step 2: Install dependencies ──────────────────────────────
-echo ""
-echo "[2/3] Installing Python dependencies..."
+# ── 2. Python venv (use pre-existing /opt/venv if present) ──────
+echo "[2/5] Setting up Python venv at $VENV …"
+if [ ! -d "$VENV" ]; then
+    sudo python3.11 -m venv "$VENV"
+    sudo chown -R $(whoami):$(whoami) "$VENV"
+fi
+source "$VENV/bin/activate"
 
-pip install -q \
-    diffusers>=0.30.0 \
-    transformers>=4.42.0 \
-    accelerate>=0.33.0 \
-    "gradio>=4.40.0" \
-    Pillow>=10.0.0 \
-    requests>=2.31.0 \
-    safetensors>=0.4.0 \
-    imageio>=2.34.0 \
-    imageio-ffmpeg>=0.5.1
+# ── 3. PyTorch (ROCm 7.2) ───────────────────────────────────────
+echo "[3/5] Installing PyTorch for ROCm 7.2 …"
+pip install --upgrade pip setuptools wheel -q
+pip install torch torchvision --index-url https://download.pytorch.org/whl/rocm7.2 -q
+python -c "import torch; print(f'PyTorch {torch.__version__}, CUDA available: {torch.cuda.is_available()}')"
 
-echo "  ✓ All dependencies installed"
+# ── 4. Python dependencies ──────────────────────────────────────
+echo "[4/5] Installing Python dependencies …"
+cd "$WORKSPACE"
+pip install -r requirements.txt -q 2>&1 | tail -5
 
-# ── Step 3: Verify ────────────────────────────────────────────
-echo ""
-echo "[3/3] Verifying installation..."
-echo "  ----------------------------------------------------"
-
-python3 -c "
-import torch
-print(f'  PyTorch:    {torch.__version__}')
-print(f'  CUDA/HIP:   {torch.cuda.is_available()}')
-if torch.cuda.is_available():
-    print(f'  GPU:        {torch.cuda.get_device_name(0)}')
-    try:
-        p = torch.cuda.get_device_properties(0)
-        print(f'  VRAM:       {round(p.total_mem/1e9, 2)} GB')
-    except: pass
-    try:
-        print(f'  ROCm:       {torch.version.hip}')
-    except: pass
-else:
-    print('  ⚠ No GPU detected!')
-import diffusers; print(f'  Diffusers:  {diffusers.__version__}')
-import gradio;   print(f'  Gradio:     {gradio.__version__}')
-print('  ----------------------------------------------------')
-"
+# ── 5. Download frpc binary for Gradio share links ──────────────
+echo "[5/5] Downloading frpc binary for Gradio share …"
+FRPC_DIR="$HOME/.cache/huggingface/gradio/frpc"
+mkdir -p "$FRPC_DIR"
+if [ ! -f "$FRPC_DIR/frpc_linux_amd64_v0.3" ]; then
+    wget -q -O "$FRPC_DIR/frpc_linux_amd64_v0.3" \
+        https://github.com/gradio-app/frpc/releases/download/v0.3/linux-amd64
+    chmod +x "$FRPC_DIR/frpc_linux_amd64_v0.3"
+fi
+echo "frpc binary ready."
 
 echo ""
-echo "========================================================"
-echo "  ✅ INSTALL COMPLETE!"
-echo "========================================================"
-echo ""
-echo "  NOW DO THIS:"
-echo "  1. Get your FREE API key:"
-echo "     → https://developer.amd.com.cn/radeon/modelapis"
-echo "     → Click 'Token Factory' → Generate Key"
-echo ""
-echo "  2. Upload the textovid/ folder to /workspace/"
-echo ""
-echo "  3. Run:  cd /workspace/textovid && python app.py"
-echo ""
-echo "  4. Open the URL (usually http://0.0.0.0:7860)"
-echo "  5. Paste your API key and generate!"
-echo ""
+echo "========================================"
+echo "  Installation complete!"
+echo "  Run:  cd $WORKSPACE && python app.py"
+echo "========================================"

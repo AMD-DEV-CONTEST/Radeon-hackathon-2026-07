@@ -1,133 +1,89 @@
-# Textovid — AI Comic Studio
+# Textovid — Multimodal AI Comic Studio
 
-> **AMD AI DevMaster Hackathon 2026 — Track 1: Multimodal Content Creation Tools**
+**AMD AI DevMaster Hackathon 2026 — Track 1 ($30K Prize)**
 
-Textovid is a multimodal AI application that generates **unique, original comic books** from text prompts or category selections. It combines large language model storytelling with AI image generation, assembling full comic pages with speech bubbles, narration, sound effects, and a professional title page — all accelerated on AMD Radeon GPUs via ROCm.
+> Turn any story idea into a full AI-generated comic page in minutes.
+> Powered by **AMD ROCm 7.2**, **Radeon RX 7900 XTX**, **Stable Diffusion XL**,
+> **LTX Video**, and **Qwen 35B LLM**.
 
-## 🎯 Key Features
+---
 
-- **Dual Input Modes**: Free-text story prompts OR category-based generation (genre, art style, mood, theme)
-- **Uniqueness Engine**: Every comic is structurally distinct — randomized plot structures, character traits, setting mashups, and plot twists ensure no two outputs are alike. SHA-256 fingerprint proves uniqueness.
-- **Multimodal Pipeline**: Text (LLM) → Images (Stable Diffusion XL + Refiner) → Comic Pages (automated layout)
-- **High-Res Fix**: 2x refiner pass using SDXL Refiner for 4K-quality panel artwork
-- **4K Comic Pages**: 2480×3508px output with title/cover page, speech bubbles, narration boxes, SFX text
-- **Optional Video Panels**: LTX Video animation of comic panels (experimental)
-- **AMD ROCm Optimization**: Float16 inference, Karras scheduler, memory-efficient attention
-- **Sci-Fi UI**: Cyberpunk-themed Gradio interface with 4K video background, animated grid, neon accents, HUD elements
-- **Built-in Benchmark**: One-click GPU performance measurement for the 20-point optimization score
+## Features
 
-## 🏗️ Architecture
+- **AI Story Generation** — Qwen 35B LLM breaks your prompt into structured comic panels
+- **SDXL + High-Res Fix** — Each panel generated at ~2048px using base + refiner pipeline
+- **4K Comic Page Assembly** — Panels assembled into a print-ready 2480×3508px A4 page
+- **Speech Bubbles & SFX** — Automatic overlay of dialogue, captions, and sound effects
+- **Panel Animation** — Optional LTX Video animation for any panel
+- **SHA-256 Fingerprinting** — Provable uniqueness for every generated panel
+- **AMD ROCm Optimized** — Runs entirely on Radeon RX 7900 XTX (24GB VRAM)
+
+## Architecture
 
 ```
-User Input (text or categories)
-    ↓
-┌─────────────────────────────────────┐
-│  Uniqueness Engine                  │  ← CPU (randomization)
-│  Plot/character/setting/twist gen   │
-└──────────────┬──────────────────────┘
-               ↓
-┌─────────────────────────────────────┐
-│  Story Engine (Qwen LLM via API)   │  ← Zero GPU cost (free API)
-│  Generates structured comic script  │
-└──────────────┬──────────────────────┘
-               ↓
-┌─────────────────────────────────────┐
-│  Image Engine (SDXL on ROCm)       │  ← AMD Radeon GPU
-│  Base pass: 1024×1024              │
-│  Refiner pass: 2048×2048 (4K)     │
-└──────────────┬──────────────────────┘
-               ↓
-┌─────────────────────────────────────┐
-│  Comic Layout Engine (CPU/PIL)     │  ← Pillow
-│  Title page + panel composition     │
-│  Speech bubbles, narration, SFX    │
-└──────────────┬──────────────────────┘
-               ↓
-         4K Comic Pages (PNG)
+User Prompt
+     │
+     ▼
+┌─────────────┐     ┌──────────────┐     ┌────────────────┐
+│ Story Engine │────▶│ Image Engine  │────▶│ Comic Layout   │
+│ (Qwen 35B)   │     │ (SDXL+Refiner)│     │ (4K Assembly)  │
+└─────────────┘     └──────────────┘     └───────┬────────┘
+                                                   │
+                                          ┌────────▼────────┐
+                                          │ Output Gallery  │
+                                          │ + Fingerprints  │
+                                          └─────────────────┘
 ```
 
-## 🚀 Quick Start on Radeon Cloud
-
-### Prerequisites
-- AMD Radeon GPU instance on Radeon Cloud
-- Python 3.10+
-- Free API key from [Radeon Cloud Model APIs](https://developer.amd.com.cn/radeon/modelapis)
-
-### Method 1: Shell Script (Recommended)
+## Quick Start
 
 ```bash
-# 1. Upload textovid/ folder to /workspace/
-# 2. Run the install script
-cd /workspace/textovid && bash install.sh
+# 1. Upload textovid.tar.gz to the instance
+# 2. Extract to /workspace/textovid/
+tar xzf textovid.tar.gz -C /workspace/textovid/
 
-# 3. Start the app
-python app.py
-```
+# 3. Run the installer
+bash /workspace/textovid/install.sh
 
-### Method 2: Manual Install
-
-```bash
-# Install PyTorch ROCm
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.2
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run
+# 4. Launch
+source /opt/venv/bin/activate
 cd /workspace/textovid && python app.py
 ```
 
-### Getting Your API Key
-1. Go to [developer.amd.com.cn/radeon/modelapis](https://developer.amd.com.cn/radeon/modelapis)
-2. Click **Token Factory**
-3. Generate a new token
-4. Paste it into the Textovid UI or set `TEXTOVID_API_KEY` environment variable
+## Hardware Requirements
 
-## 🎮 Usage
+- **GPU**: AMD Radeon RX 7900 XTX (24 GB VRAM)
+- **Driver**: ROCm 7.2+
+- **RAM**: 32 GB minimum
+- **Disk**: 50 GB free (model weights)
 
-1. Open the Textovid URL (typically `http://0.0.0.0:7860`)
-2. **Text Mode**: Type a story premise and click Generate
-3. **Category Mode**: Select genre, sub-genre, art style, theme, mood, and length
-4. For best results, keep **High-Res Fix** enabled (slower but 4K quality)
-5. Use **Short (3 pages)** for testing — only 12 panels
-6. Run the **GPU Benchmark** to capture performance metrics for your submission
+## Environment
 
-## 🖥️ AMD Radeon GPU / ROCm Optimizations
+- Python 3.11+ (venv at `/opt/venv/`)
+- PyTorch 2.11.0+rocm7.2
+- Gradio 6.20.0
+- Diffusers 0.32.0
 
-| Optimization | Description |
-|-------------|-------------|
-| PyTorch ROCm Backend | All tensor ops via HIP/ROCm |
-| Float16 Inference | 2x speedup, 50% VRAM reduction |
-| Karras Noise Schedule | Better quality in fewer steps |
-| SDXL Refiner (Hi-Res Fix) | 2x upscale with denoising refinement |
-| Memory-Efficient Attention | xformers when available |
-| GPU Benchmarking | Built-in timing + VRAM measurement |
-
-## 📁 Project Structure
+## File Structure
 
 ```
-textovid/
-├── app.py              # Main Gradio application + pipeline
-├── config.py           # Configuration and constants
-├── story_engine.py     # LLM story generation (free Qwen API)
-├── image_engine.py     # SDXL + Refiner image generation (GPU)
-├── video_engine.py     # LTX Video panel animation (optional)
-├── comic_layout.py     # Comic page composition (CPU/PIL)
-├── uniqueness.py       # Randomization engine for unique content
-├── gpu_utils.py        # GPU detection and benchmarking
-├── style.css           # Sci-fi UI theme
-├── install.sh          # Quick install script
-├── deploy_notebook.py  # JupyterLab one-paste deployer
+/workspace/textovid/
+├── app.py              # Main Gradio web interface
+├── config.py           # All configuration constants
+├── story_engine.py     # LLM story panel generation
+├── image_engine.py     # SDXL + Refiner image generation
+├── video_engine.py     # LTX Video panel animation
+├── comic_layout.py     # 4K page assembly, bubbles, SFX
+├── uniqueness.py       # SHA-256 fingerprint engine
+├── gpu_utils.py        # GPU/VRAM detection (PyTorch 2.11 compat)
+├── style.css           # Custom dark theme
+├── install.sh          # Dependency installation script
+├── deploy_notebook.py  # Jupyter deployment helper
 ├── requirements.txt    # Python dependencies
 ├── README.md           # This file
-└── output/             # Generated comics (auto-created)
+└── outputs/            # Generated images & pages
 ```
 
-## 📤 Submission
+## License
 
-- **Track**: Track 1 — Development of Multimodal Content Creation Tools
-- **Hackathon**: AMD AI DevMaster Hackathon 2026 (July 15 – Aug 6)
-
-## 📄 License
-
-MIT
+MIT — Built for the AMD AI DevMaster Hackathon 2026
