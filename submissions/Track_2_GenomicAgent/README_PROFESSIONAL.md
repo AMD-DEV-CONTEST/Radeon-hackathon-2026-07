@@ -31,26 +31,6 @@ you'll get the same kind of result.
 > required (uses Vulkan — see below for why). **Verify it in ~2 minutes:
 > `bash verify.sh` (or `verify.bat`).**
 
-## Demo video
-
-A 4-minute narrated walkthrough, from command line to final result:
-the test suite, zero-API GPU tool routing, the AMD GPU benchmark with
-its CPU cross-validation, multi-turn memory and local RAG, real 1000
-Genomes data, and the honestly-kept null result.
-
-**▶ [Watch the demo video](demo/genomic_agent_demo.mp4)** (`demo/genomic_agent_demo.mp4`, 1080p, 3:59, narrated, subtitled — captions also available separately as [`demo/genomic_agent_demo.srt`](demo/genomic_agent_demo.srt))
-
-**What you're seeing, stated precisely:** the terminal content is real
-`stdout` captured from live runs of these exact commands on this
-machine's AMD Radeon 780M — every figure on screen (55 passing tests,
-`Max |GPU - CPU| difference: 0.000002`, `SelectionScan (9.07)`, 16 of
-500 SNPs significant) is genuine program output, not retyped or edited.
-It is presented as a rendered replay of that captured session rather
-than a raw screen capture, in the same spirit as an `asciinema`
-recording. Narration is synthesized locally. Nothing in the video is
-asserted without a command in this README that reproduces it — and
-`bash verify.sh` re-runs the core of it in about two minutes.
-
 ## At a glance
 
 | | |
