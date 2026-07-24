@@ -40,8 +40,10 @@
 
 ### 🎬 演示
 
-<!-- 在这里插入 GIF 或截图 -->
-<!-- ![Demo](assets/demo.gif) -->
+![Supply Chain DocAgent Demo](assets/demo.gif)
+
+> 📹 **录制工具**: 运行 `python scripts/record_demo.py` 录制演示 GIF
+> 📖 **录制指南**: 查看 [docs/gif_recording_guide.md](docs/gif_recording_guide.md)
 
 **在线演示**: [http://localhost:7860](http://localhost:7860) (本地运行)
 
