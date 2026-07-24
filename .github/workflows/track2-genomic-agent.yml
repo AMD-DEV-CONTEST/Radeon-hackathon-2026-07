@@ -1,0 +1,44 @@
+name: Track 2 Genomic Agent CI
+
+# Builds and tests the default (no-GPU-toolchain) configuration of the
+# Track 2 Genomic Agent submission. Runs on an ordinary headless GitHub
+# runner with no GPU: the crate's GPU kernels detect the absent adapter
+# and its GPU-specific unit tests skip themselves gracefully (printing
+# SKIPPED), so this is a real, honest CI signal for the default build --
+# clean compile + the CPU-path test suite -- not a fabricated green.
+#
+# The optional `local-inference` feature is intentionally NOT built here:
+# it pulls a C++/CMake/Vulkan-SDK toolchain and a model download that the
+# default submission build never needs.
+
+on:
+  push:
+    paths:
+      - "submissions/Track_2_GenomicAgent/**"
+      - ".github/workflows/track2-genomic-agent.yml"
+  pull_request:
+    paths:
+      - "submissions/Track_2_GenomicAgent/**"
+      - ".github/workflows/track2-genomic-agent.yml"
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: submissions/Track_2_GenomicAgent
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build (release, default features)
+        run: cargo build --release
+
+      - name: Test (release, default features)
+        run: cargo test --release
+
+      - name: Offline demo smoke test (no LLM, no network)
+        run: cargo run --release -- fast
