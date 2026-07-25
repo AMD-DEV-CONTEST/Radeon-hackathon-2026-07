@@ -1,6 +1,6 @@
-# XiangLens Knowledge Base Plan — Hackathon Edition
+# XiangLens Knowledge and Image Dataset Plan — Hackathon Edition
 
-> Document status: Draft v0.2
+> Document status: P0 seed implemented
 > Updated: July 25, 2026
 > Time budget: 12-day hackathon
 > Product language: English only
@@ -51,6 +51,25 @@ The earlier 180–290-card target is moved to a future milestone. It is not an a
 - No 40-query gold set;
 - No dataset release engineering;
 - No attempt to cover every cultural interpretation.
+
+### 2.4 Implemented Image Fixture Target
+
+The project uses two deliberately separate dataset layers:
+
+| Layer | Count | Runtime Role |
+|---|---:|---|
+| Knowledge cards | 32 | Embedded into Milvus Lite for source-backed RAG |
+| Image fixtures | 120 | Exercised by the VLM and deterministic image, privacy, OCR, QR, and EXIF tools |
+| **Primary test records** | **152** | Text retrieval plus visual/tool evaluation |
+
+The image layer is implemented from **24 existing open-license Wikimedia Commons images**: 16 event portraits and 8 cultural images covering bat, lotus, dragon, and bamboo motifs. One additional public-domain QR image is used only as an overlay source. No AI-generated image is included.
+
+The builder creates controlled 512-by-512 variants so the same source can test clean input and one measurable change. The resulting pack contains:
+
+- 80 portrait fixtures covering clean input, tight crop, small subject, low contrast, QR, fake badge, fake screen, fake location sign, small text, multiple subjects, GPS EXIF, and device EXIF;
+- 40 cultural fixtures covering clean input, circular preview, small subject, low contrast, and busy background.
+
+These are 120 actual JPEG files, not 120 manually researched cards. Provenance, author, source page, license, and SHA-256 hashes are generated into manifests. Inserted names, addresses, identifiers, email domains, tokens, and timestamps are fictional test values.
 
 ## 3. Minimal Card Format
 
@@ -140,14 +159,23 @@ data/
 │   ├── cards.yaml
 │   ├── sources.yaml
 │   └── LICENSE.dataset
-└── evaluation/
-    └── rag_smoke_queries.yaml
+├── evaluation/
+│   └── rag_smoke_queries.yaml
+└── fixtures/
+    ├── source_catalog.yaml
+    ├── source_manifest.yaml
+    ├── manifest.yaml
+    ├── LICENSE.images
+    ├── README.md
+    ├── sources/
+    └── images/
 
 scripts/
+├── build_image_fixtures.py
 └── build_knowledge_db.py
 ```
 
-`cards.yaml` is the editable source of truth. The Milvus Lite file is generated.
+`cards.yaml` is the editable knowledge source of truth. `source_catalog.yaml` is the short, human-maintained image selection list. The Milvus Lite file and both image manifests are generated.
 
 ## 6. Lens Pack Boundaries
 
@@ -220,12 +248,11 @@ Gestures are omitted from the hackathon seed unless a strong source is immediate
 | Key | Source | Use |
 |---|---|---|
 | `github_profile_reference` | GitHub Profile Reference | File requirements, image dimensions, profile visibility |
-| `github_profile_tutorial` | Personalize Your GitHub Profile | Where the avatar appears |
+| `github_personalize_profile` | Personalize Your GitHub Profile | Where the avatar appears and upload cropping |
 | `linkedin_photo_guidelines` | LinkedIn Profile Photo Guidelines | Likeness and image policy |
 | `linkedin_photo_management` | LinkedIn Profile Photo Management | Crop and visibility behavior |
 | `discord_custom_profiles` | Discord Custom Profiles | Avatar formats and customization |
-| `discord_server_profiles` | Discord Per-Server Profiles | Context-specific avatars |
-| `discord_profile_privacy` | Discord Profile Privacy | What remains visible |
+| `discord_per_server_profiles` | Discord Per-Server Profiles | Context-specific avatars, formats, size, and cropping |
 
 GitHub documentation may be attributed under CC BY 4.0. LinkedIn and Discord cards use short project-authored summaries and links rather than copied help-center text.
 
@@ -233,24 +260,22 @@ GitHub documentation may be attributed under CC BY 4.0. LinkedIn and Discord car
 
 | Key | Source | Use |
 |---|---|---|
-| `owasp_file_upload` | OWASP File Upload Cheat Sheet | Upload validation and storage risks |
-| `owasp_input_validation` | OWASP Input Validation Cheat Sheet | MIME, filename, size, and content validation |
 | `nist_privacy_framework` | NIST Privacy Framework | Data minimization, deletion, and user control |
 | `nist_sp_800_122` | NIST SP 800-122 | PII confidentiality principles |
-| `exiftool_geolocation` | ExifTool Geolocation Documentation | GPS metadata behavior |
+| `exiftool_gps_tags` | ExifTool GPS Tag Reference | Latitude, longitude, altitude, and related GPS metadata |
+| `exiftool_exif_tags` | ExifTool EXIF Tag Reference | Device, time, and software metadata |
 | `xianglens_original` | XiangLens threat model | QR, badge, OCR, and screen-risk explanations |
 
 NIST is used for general privacy principles. It is not cited as if it defines avatar QR or badge detection.
 
 ### 7.3 Chinese Symbolism Sources
 
-Do not research individual collection objects during the hackathon. Use two or three authoritative thematic pages that already summarize several motifs:
+Do not research individual collection objects during the hackathon. Use two authoritative thematic pages that already summarize several motifs:
 
 | Key | Source | Cards it can support |
 |---|---|---|
 | `smithsonian_cloisonne_symbols` | Smithsonian National Museum of Asian Art, *Symbolism in Cloisonné* teaching guide | Bat, crane, dragon, and other motifs covered by the guide |
 | `met_longevity_chinese_art` | The Met, *Longevity in Chinese Art* | Bat, peach, crane, deer, and longevity combinations |
-| `met_noble_virtues` | The Met, *Noble Virtues: Nature as Symbol in Chinese Art* | Bamboo, lotus, pine, and other nature motifs |
 
 Write short project-authored summaries and link to the thematic page. Label these sources `summary-and-link`; do not copy paragraphs or redistribute page images.
 
@@ -411,6 +436,8 @@ The review does not require per-card reviewer fields, timestamps, or approval st
 
 This is approximately one focused workday plus contingency, not a multi-week dataset project.
 
+The image pack is built separately by one deterministic script. Its 120 outputs do not require 120 manual authoring passes: source selection is maintained once, and mechanical variants, hashes, attribution fields, and manifests are generated automatically.
+
 ## 14. Acceptance Criteria
 
 - [ ] `cards.yaml` contains at least 32 useful cards;
@@ -424,6 +451,12 @@ This is approximately one focused workday plus contingency, not a multi-week dat
 - [ ] The UI displays source title and link;
 - [ ] Eight smoke queries pass manually;
 - [ ] Runtime analysis requires no network access.
+- [x] The fixture pack contains 120 actual 512-by-512 JPEG files;
+- [x] No AI-generated image is included in the fixture pack;
+- [x] Every fixture resolves through the manifests to a source page, author or credit, license, and SHA-256 hash;
+- [x] Fixture licenses are restricted to CC0, public domain, CC BY, or CC BY-SA entries accepted by the builder;
+- [x] Two GPS EXIF fixtures and two device EXIF fixtures contain machine-readable test metadata;
+- [x] All inserted privacy-risk values are explicitly fictional test data.
 
 ## 15. Future Work, Not Hackathon Work
 
@@ -466,5 +499,4 @@ None of these items should block the competition build.
 
 - [Smithsonian National Museum of Asian Art: Symbolism in Cloisonné](https://asia-archive.si.edu/wp-content/uploads/2020/06/LP23WS1-Symbolism-in-Cloisonne-FA3.pdf)
 - [The Met: Longevity in Chinese Art](https://www.metmuseum.org/essays/longevity-in-chinese-art)
-- [The Met: Noble Virtues: Nature as Symbol in Chinese Art](https://www.metmuseum.org/exhibitions/noble-virtues/exhibition-objects)
 - [Wikipedia Licensing Overview](https://wikimediafoundation.org/what-we-do/wikimedia-projects/wikipedia/)

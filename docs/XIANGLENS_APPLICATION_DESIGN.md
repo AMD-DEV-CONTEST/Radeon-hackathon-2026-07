@@ -408,6 +408,15 @@ The P0 corpus uses official documentation, project-authored heuristics, and two 
 
 Private course material remains outside the repository and public database. Cultural cards describe a documented association and never claim that all modern viewers interpret a motif identically or that an image predicts its owner's personality or future.
 
+### 9.1 Image Fixture Pack
+
+The repository also contains **120 actual 512-by-512 JPEG fixtures** for visual and tool evaluation. This layer is separate from Milvus:
+
+- 80 portrait fixtures exercise crop, scale, contrast, multiple-subject, OCR, QR, badge, screen, location-sign, GPS EXIF, and device EXIF behavior;
+- 40 cultural fixtures exercise bat, lotus, dragon, and bamboo imagery under clean, circular, small-subject, low-contrast, and busy-background conditions.
+
+All fixtures are derived deterministically from 24 existing open-license Wikimedia Commons images, plus one public-domain QR overlay source. No AI-generated image is included. The source and fixture manifests retain the Commons page, credit, license, and SHA-256 hash. Image embeddings and image-to-image search remain out of P0; the VLM and local tools consume the images, while Milvus consumes the short evidence cards.
+
 ## 10. RAG and Milvus Lite
 
 ### 10.1 Why Milvus Lite Is Sufficient
@@ -830,6 +839,14 @@ Do not compare different models, precisions, prompt lengths, or context settings
 - Cultural cards state their historical scope in the card text.
 - No card contains a sensitive inference or a universal audience claim.
 
+### 17.4 Image Fixture Tests
+
+- All 120 manifest entries resolve to 512-by-512 JPEG files with matching SHA-256 hashes.
+- Every fixture resolves to a source entry with its Commons page, credit, and accepted open license.
+- GPS EXIF and device EXIF cases contain machine-readable fictional test metadata.
+- QR, badge, screen, location-sign, small-text, crop, scale, contrast, and multiple-subject variants are visually inspectable.
+- No fixture is AI-generated, and no test asks the model to identify a depicted person or infer a sensitive trait.
+
 ### 17.4 Evaluation Set
 
 Create six reusable end-to-end scenarios:
@@ -959,6 +976,7 @@ xianglens/
 ├── scripts/
 │   ├── start_llama_server.sh
 │   ├── start_app.sh
+│   ├── build_image_fixtures.py
 │   ├── build_knowledge_db.py
 │   └── run_benchmark.py
 ├── apps/
@@ -984,6 +1002,13 @@ xianglens/
 │   ├── evaluation/
 │   │   └── rag_smoke_queries.yaml
 │   └── fixtures/
+│       ├── source_catalog.yaml
+│       ├── source_manifest.yaml
+│       ├── manifest.yaml
+│       ├── LICENSE.images
+│       ├── README.md
+│       ├── sources/
+│       └── images/
 ├── tests/
 │   ├── functional/
 │   ├── knowledge/
@@ -1045,6 +1070,9 @@ The application prints a redacted effective configuration at startup so reviewer
 - [ ] Milvus Lite contains at least 32 cards across four Lens Packs.
 - [ ] All eight RAG smoke queries retrieve a relevant card in the top four.
 - [ ] Every contextual claim maps to a knowledge card with a visible source link.
+- [x] The image fixture manifest resolves to 120 actual 512-by-512 JPEG files with matching hashes.
+- [x] Every image fixture has source and license provenance, and none is AI-generated.
+- [x] The fixture pack includes machine-readable EXIF cases and visible OCR/QR/privacy challenges.
 - [ ] Privacy tools cover EXIF, OCR, QR, and image metadata.
 - [ ] Multi-turn threads can be restored.
 - [ ] Approved preferences are recalled across threads.
@@ -1067,6 +1095,7 @@ The application prints a redacted effective configuration at startup so reviewer
 | 35B model consumes most VRAM | Tool contention | CPU embeddings and OCR where practical |
 | Cultural cards become stereotypes | Ethical and judging risk | Artifact-specific claims, citations, limitations, no audience prediction |
 | Source rights are unclear | Submission risk | Prefer project-original or CC0 content; otherwise store a short summary and link |
+| Open portrait fixtures depict real people | Ethical misuse risk | Use only for technical image-quality and privacy tests; preserve attribution; prohibit identity, sensitive-trait, personality, and employability inference |
 | Milvus Lite has no RBAC | User isolation risk | App-level filters plus SQLite consent verification |
 | Public tunnel exposes uploads | Privacy risk | Authentication, limits, expiry, localhost-only core services |
 | OCR or QR misses a risk | False confidence | Present findings as candidates, not a privacy guarantee |
