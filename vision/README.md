@@ -77,8 +77,11 @@ In this repository:
   # label:      cross-track  0.435 m  heading error  0.500 deg
   ```
 
-Full frame set: `full.tar`, 4.2 GB,
-md5 `4b411a60ded18154763e9fcf0a9864ea` — released as a GitHub Release asset.
+Full frame set: `full.tar`, 4.2 GB, md5
+`4b411a60ded18154763e9fcf0a9864ea` — released in three parts (GitHub's 2 GB
+asset limit) at
+[**Release dataset-v1**](https://github.com/human-mean/Radeon-hackathon-2026-07/releases/tag/dataset-v1),
+reassembly instructions and per-part checksums included there.
 
 `labels.csv` schema:
 
