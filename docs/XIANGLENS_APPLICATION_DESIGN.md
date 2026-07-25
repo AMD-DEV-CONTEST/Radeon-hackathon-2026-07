@@ -1,7 +1,7 @@
 # XiangLens Application Design
 
 > **AMD AI DevMaster 2026 — Track 2: Private AI Agent Development and Local Deployment**
-> Document status: Draft v0.2
+> Document status: Implementation draft v0.3
 > Updated: July 25, 2026
 > Project name: **XiangLens**
 > Product language: **English only**
@@ -133,12 +133,12 @@ XiangLens proposes an exact memory, requests permission, saves it only after app
 - User-approved long-term preferences;
 - Memory view, edit, and deletion controls;
 - Visible agent plan and tool trace;
+- Metadata-stripped safe-copy export;
 - AMD Radeon and ROCm runtime metrics;
 - Before-and-after performance benchmark.
 
 ### 5.2 Optional Features
 
-- Export a metadata-stripped safe copy;
 - User-adjustable comparison weights;
 - Private Lens Pack import;
 - Avatar-choice history without retaining original images;
@@ -255,6 +255,8 @@ Browser
 ```
 
 If the UI is exposed through Radeon Cloud tunnel, authentication is mandatory. The model port, Milvus database file, SQLite database, and runtime directory remain bound to localhost or local storage only.
+
+Local development does not require a Radeon GPU on the developer workstation. Before the UI is deployed to the competition machine, the Mac application may connect through a private authenticated URL to the same user-controlled llama.cpp service running on Radeon Cloud. This is a development topology only. The final demo and submission run FastAPI beside llama-server and set `XIANG_LLM_BASE_URL=http://127.0.0.1:8000/v1`, satisfying the requirement that core inference not depend on a third-party remote API.
 
 ### 7.2 Storage Responsibilities
 
@@ -639,43 +641,39 @@ Validation sequence:
 
 ## 14. API and UI
 
-### 14.1 API Draft
+### 14.1 Implemented API
 
 | Method | Path | Purpose |
 |---|---|---|
 | `POST` | `/api/v1/threads` | Create a thread |
 | `POST` | `/api/v1/threads/{id}/images` | Upload one to four images |
-| `POST` | `/api/v1/threads/{id}/messages` | Start or continue the graph |
-| `GET` | `/api/v1/threads/{id}/events` | Stream SSE events |
+| `POST` | `/api/v1/threads/{id}/runs` | Execute the graph and return one structured result |
+| `POST` | `/api/v1/threads/{id}/runs/stream` | Execute the graph and stream SSE node events |
 | `GET` | `/api/v1/threads/{id}` | Restore thread state |
+| `GET` | `/api/v1/threads/{id}/state` | Restore images and recent messages |
+| `GET` | `/api/v1/threads/{id}/runs` | List saved run results |
+| `GET` | `/api/v1/runs/{run_id}` | Read one run result |
 | `DELETE` | `/api/v1/threads/{id}` | Delete thread and temporary images |
 | `POST` | `/api/v1/consents/{id}` | Approve, edit, or reject a proposal |
 | `GET` | `/api/v1/memories` | List approved memories |
-| `PATCH` | `/api/v1/memories/{id}` | Edit memory |
 | `DELETE` | `/api/v1/memories/{id}` | Delete one memory |
-| `DELETE` | `/api/v1/memories` | Forget everything |
-| `POST` | `/api/v1/images/{id}/safe-copy` | Export a cleaned derivative |
+| `DELETE` | `/api/v1/privacy/forget-me` | Delete all state for one user |
+| `POST` | `/api/v1/threads/{id}/images/{image_id}/safe-copy` | Export a cleaned derivative |
 | `GET` | `/api/v1/lens-packs` | List packs, versions, and rights |
 | `GET` | `/api/v1/system/status` | Show model, ROCm, GPU, and storage status |
-| `GET` | `/api/v1/system/benchmarks` | Show benchmark results |
 
 ### 14.2 SSE Events
 
 ```text
 run.started
-plan.created
-node.started
-tool.started
-tool.completed
-evidence.retrieved
-privacy.finding
-consent.required
-memory.saved
-token.delta
-metrics.updated
+node.completed
 run.completed
 run.failed
 ```
+
+`node.completed` carries the public tool trace and the bounded plan when it first becomes
+available. It never includes chain-of-thought or absolute server paths. Finer-grained token and
+tool events remain an optional post-MVP extension.
 
 ### 14.3 Main Workspace
 
@@ -966,34 +964,36 @@ Priority if schedule slips:
 5. Safe derivative export;
 6. Optional history and PDF export.
 
-## 21. Suggested Repository Structure
+## 21. Repository Structure
 
 ```text
 xianglens/
 ├── README.md
-├── LICENSE
 ├── .env.example
+├── pyproject.toml
+├── uv.lock
+├── apps/
+│   └── web/
+│       ├── app.vue
+│       ├── pages/index.vue
+│       ├── composables/useXiangLensApi.ts
+│       └── assets/css/main.css
 ├── scripts/
-│   ├── start_llama_server.sh
-│   ├── start_app.sh
+│   ├── start_api.sh
+│   ├── start_web.sh
 │   ├── build_image_fixtures.py
 │   ├── build_knowledge_db.py
-│   └── run_benchmark.py
-├── apps/
-│   ├── web/
-│   └── api/
-├── agent/
-│   ├── graph.py
-│   ├── state.py
+│   └── run_rag_smoke.py
+├── src/xianglens/
+│   ├── main.py
+│   ├── config.py
 │   ├── schemas.py
-│   ├── policies.py
-│   ├── nodes/
+│   ├── services.py
+│   ├── api/
+│   ├── agent/
+│   ├── inference/
+│   ├── storage/
 │   └── tools/
-├── storage/
-│   ├── milvus_store.py
-│   ├── memory_store.py
-│   ├── consent_store.py
-│   └── checkpoint.py
 ├── data/
 │   ├── knowledge/
 │   │   ├── cards.yaml
@@ -1010,20 +1010,20 @@ xianglens/
 │       ├── sources/
 │       └── images/
 ├── tests/
-│   ├── functional/
-│   ├── knowledge/
-│   ├── safety/
-│   └── evaluation/
-├── benchmarks/
-│   ├── results.json
-│   └── charts/
+│   ├── test_agent_graph.py
+│   ├── test_api.py
+│   ├── test_image_tools.py
+│   ├── test_knowledge_store.py
+│   ├── test_llama_client.py
+│   └── test_sqlite_store.py
 └── docs/
-    ├── architecture.md
-    ├── knowledge-base.md
-    ├── privacy.md
-    ├── model-card.md
-    └── submission.pdf
+    ├── XIANGLENS_APPLICATION_DESIGN.md
+    └── KNOWLEDGE_BASE_DATASET_PLAN.md
 ```
+
+The backend foundation, English-only web UI, SSE node streaming, structured comparison,
+consent-first memory, safe-copy export, and user-state deletion are implemented. The live Radeon
+endpoint validation, benchmark runner, OCR decision, and submission assets are the next additions.
 
 Runtime data is ignored:
 
@@ -1047,6 +1047,7 @@ XIANG_LLM_API_KEY=local-only
 XIANG_SQLITE_PATH=./runtime/xianglens.sqlite3
 XIANG_MILVUS_URI=./runtime/xianglens_milvus.db
 XIANG_UPLOAD_DIR=./runtime/uploads
+XIANG_EXPORT_DIR=./runtime/exports
 
 XIANG_IMAGE_RETENTION=session
 XIANG_SESSION_TTL_MINUTES=60
@@ -1056,6 +1057,7 @@ XIANG_RAG_TOP_K=4
 XIANG_ENABLED_LENS_PACKS=profile_basics,privacy_safety,global_professional_context,open_chinese_symbolism
 
 XIANG_AUTH_ENABLED=true
+XIANG_ALLOWED_ORIGINS=http://127.0.0.1:3000,http://localhost:3000
 ```
 
 The application prints a redacted effective configuration at startup so reviewers can verify localhost inference, disabled network tools, and local storage.
@@ -1064,27 +1066,27 @@ The application prints a redacted effective configuration at startup so reviewer
 
 - [ ] Core visual inference runs on AMD Radeon PRO W7900 through ROCm.
 - [ ] The application calls localhost llama-server and no third-party AI service.
-- [ ] llama.cpp is the documented production runtime.
-- [ ] Single-image and multi-image flows complete in LangGraph.
-- [ ] The UI displays plan, tools, evidence, and timing.
-- [ ] Milvus Lite contains at least 32 cards across four Lens Packs.
-- [ ] All eight RAG smoke queries retrieve a relevant card in the top four.
+- [x] llama.cpp is the documented production runtime.
+- [x] Single-image and multi-image flows complete in LangGraph.
+- [x] The UI displays plan, tools, evidence, and timing.
+- [x] Milvus Lite contains at least 32 cards across four Lens Packs.
+- [x] All eight RAG smoke queries retrieve a relevant card in the top four.
 - [ ] Every contextual claim maps to a knowledge card with a visible source link.
 - [x] The image fixture manifest resolves to 120 actual 512-by-512 JPEG files with matching hashes.
 - [x] Every image fixture has source and license provenance, and none is AI-generated.
 - [x] The fixture pack includes machine-readable EXIF cases and visible OCR/QR/privacy challenges.
 - [ ] Privacy tools cover EXIF, OCR, QR, and image metadata.
-- [ ] Multi-turn threads can be restored.
-- [ ] Approved preferences are recalled across threads.
-- [ ] Unapproved information is not persisted.
-- [ ] The Memory Center can inspect and delete memory.
-- [ ] “Forget me” cleans SQLite and Milvus.
-- [ ] Sensitive-image inferences are blocked.
+- [x] Multi-turn threads can be restored through the state and run APIs.
+- [x] Approved preferences are recalled across threads.
+- [x] Unapproved information is not persisted.
+- [x] The Memory Center can inspect and delete memory.
+- [x] “Forget me” cleans current SQLite-backed user state and uploaded files.
+- [x] Sensitive-image inferences are blocked.
 - [ ] Private course content is absent from the repository and build.
 - [ ] llama.cpp/vLLM and RAG performance comparisons are reproducible.
 - [ ] The UI, docs, code comments, logs intended for reviewers, slides, and video are English.
-- [ ] No i18n dependency or language selector is included.
-- [ ] The README reproduces the environment from scratch.
+- [x] No i18n dependency or language selector is included.
+- [x] The README reproduces the implemented environment from scratch.
 - [ ] The demo video is three to five minutes.
 
 ## 24. Risks and Mitigations
@@ -1107,11 +1109,11 @@ The application prints a redacted effective configuration at startup so reviewer
 
 1. Exact llama.cpp build and flags for visual input, JSON grammar, concurrency, and cache;
 2. Reproducible llama.cpp and vLLM benchmark configurations;
-3. Local embedding model quality for the small English evidence corpus;
+3. Final semantic embedding quality beyond the passing hash-embedding smoke baseline;
 4. OCR implementation and CPU/GPU trade-off;
-5. Final set of at least 32 four-field knowledge cards;
-6. Domain and formal trademark availability for XiangLens;
-7. Whether safe-copy export remains P0 or moves to P1.
+5. Domain and formal trademark availability for XiangLens;
+6. Live end-to-end structured-output behavior with the deployed Qwen vision endpoint;
+7. Session-expiry cleanup and crash-recovery behavior on the final deployment host.
 
 These items require small technical spikes but do not change the selected product theme or architecture.
 

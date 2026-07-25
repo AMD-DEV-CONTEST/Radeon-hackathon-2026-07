@@ -1,86 +1,177 @@
-# Radeon-hackathon-2026-07
+# XiangLens
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+XiangLens is a private, source-backed profile-image agent built for **AMD AI DevMaster 2026, Track 2**. It reviews one to four candidate avatars against goals supplied by the user, finds visible privacy risks, retrieves contextual evidence, and remembers preferences only after explicit approval.
 
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
+The project does not identify people or infer personality, intelligence, health, wealth, criminality, protected attributes, relationships, politics, religion, or destiny from an image.
 
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
+## Current Implementation
 
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+- FastAPI application with versioned routes and optional API-key protection;
+- bounded LangGraph workflow with a visible eight-step plan and live node events;
+- self-hosted llama.cpp chat-completions and multimodal adapter;
+- local image validation, measurement, EXIF scanning, and optional QR scanning;
+- 32 source-backed knowledge cards in Milvus Lite;
+- deterministic dense development embeddings and optional CPU semantic embeddings;
+- SQLite threads, messages, audit state, consent requests, and approved memories;
+- validated visual, comparison, memory-proposal, and report schemas with one repair attempt;
+- explicit one-to-four-image comparison with a privacy-first scoring rule;
+- metadata-stripped safe-copy export and a complete user-state deletion route;
+- English-only Nuxt workspace for upload, SSE progress, evidence, metrics, and memory consent;
+- 120 open-license image fixtures with complete source manifests;
+- offline tests that never substitute fake output into the production model path.
 
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+## Deployment Topology
 
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+The model is always a user-controlled open model served by llama.cpp on AMD Radeon and ROCm.
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+During Mac development:
 
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
+```text
+Mac FastAPI application
+  -> private tunnel or authenticated URL
+  -> user-controlled llama-server on Radeon/ROCm
+```
 
-## Submission Requirements
+For the competition submission and demo:
 
-### Track 1: Development of Multimodal Content Creation Tools
+```text
+Browser
+  -> XiangLens on the Radeon/ROCm machine
+  -> http://127.0.0.1:8000/v1
+  -> llama-server on the same Radeon/ROCm machine
+```
 
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
+The development URL is not a third-party AI service. However, the final same-host topology is important because Track 2 prohibits core inference through a remote API.
 
-### Track 2: Development & Local Deployment of Private AI Agents
+## Requirements
 
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
+- Python 3.11, 3.12, or 3.13;
+- [uv](https://docs.astral.sh/uv/) for the documented setup;
+- Node.js 20 or newer and pnpm 11 for the web workspace;
+- a user-controlled OpenAI-compatible llama.cpp endpoint for real analysis;
+- AMD Radeon plus ROCm on the final inference machine.
 
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
+The currently configured model is:
 
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+```text
+mradermacher/Qwen3.6-35B-A3B-Fable-5-Distill-i1-GGUF:Q6_K
+```
+
+## Setup
+
+```bash
+uv sync --extra dev
+cp .env.example .env
+cd apps/web
+pnpm install
+cd ../..
+```
+
+Set at least:
+
+```env
+XIANG_LLM_BASE_URL=https://YOUR-RADEON-ENDPOINT.example/v1
+XIANG_LLM_API_KEY=replace-me
+XIANG_LLM_MODEL=xianglens-qwen3.6-35b-a3b-fable5-q6k
+XIANG_AUTH_ENABLED=true
+XIANG_APP_API_KEY=replace-with-a-long-random-value
+```
+
+The application does not probe the model during startup unless `XIANG_LLM_PROBE_ON_START=true`. This allows local framework development before the Radeon endpoint is available.
+
+## Build the Knowledge Database
+
+The dependency-free hashing embedder is suitable for framework development and currently passes all eight smoke queries:
+
+```bash
+uv run python scripts/build_knowledge_db.py --provider hash
+uv run python scripts/run_rag_smoke.py
+```
+
+For the final semantic configuration, install the optional embedding dependency, download the model once, and rebuild locally:
+
+```bash
+uv sync --extra semantic --extra dev
+XIANG_EMBEDDING_PROVIDER=fastembed \
+  uv run python scripts/build_knowledge_db.py --provider fastembed
+```
+
+Runtime retrieval does not require network access after the model artifacts are cached.
+
+## Start the API
+
+Start the API and web workspace in separate terminals:
+
+```bash
+./scripts/start_api.sh
+./scripts/start_web.sh
+```
+
+Open `http://127.0.0.1:3000`, enter the configured application key, and connect. The
+frontend origin is restricted by `XIANG_ALLOWED_ORIGINS`; the default permits only the two
+local development origins documented in `.env.example`.
+
+Useful endpoints:
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/health` | Process health without a model request |
+| `GET` | `/api/v1/system/status?probe_model=true` | Deployment and model status |
+| `POST` | `/api/v1/threads` | Create a conversation thread |
+| `POST` | `/api/v1/threads/{id}/images` | Upload a JPEG, PNG, or WebP image |
+| `POST` | `/api/v1/threads/{id}/runs` | Execute the complete agent graph |
+| `POST` | `/api/v1/threads/{id}/runs/stream` | Execute the graph with live SSE node events |
+| `GET` | `/api/v1/threads/{id}/state` | Restore images and recent messages |
+| `GET` | `/api/v1/threads/{id}/runs` | List stored run results |
+| `GET` | `/api/v1/runs/{run_id}` | Read one stored run result |
+| `POST` | `/api/v1/threads/{id}/images/{image_id}/safe-copy` | Download a metadata-free JPEG |
+| `POST` | `/api/v1/threads/{id}/memory-proposals` | Propose, but do not write, a memory |
+| `POST` | `/api/v1/consents/{id}` | Approve or reject a memory write |
+| `GET` | `/api/v1/memories?user_id=...` | List approved memories |
+| `DELETE` | `/api/v1/memories/{id}?user_id=...` | Delete an approved memory |
+| `DELETE` | `/api/v1/privacy/forget-me?user_id=...` | Delete all user threads, images, and memories |
+
+When authentication is enabled, send the configured value in `X-App-API-Key`.
+
+Interactive API documentation is available at `http://127.0.0.1:8080/docs`.
+
+## Test
+
+```bash
+uv run ruff check src tests scripts/build_knowledge_db.py scripts/run_rag_smoke.py
+uv run pytest -q
+cd apps/web
+pnpm typecheck
+pnpm build
+```
+
+Tests cover:
+
+- the complete LangGraph node sequence;
+- structured-output repair, multi-image comparison, and memory-proposal rules;
+- sensitive-inference policy blocking;
+- real GPS and device EXIF fixture parsing;
+- all eight RAG smoke queries;
+- consent-before-memory-write and foreign-key-safe memory deletion;
+- SSE lifecycle events, run recovery, CORS preflight, and API authentication;
+- metadata-free safe-copy export and complete user-state deletion.
+
+## Data
+
+- `data/knowledge/cards.yaml`: 32 four-field retrieval cards;
+- `data/knowledge/sources.yaml`: source registry;
+- `data/fixtures/images/`: 120 actual 512-by-512 JPEG fixtures;
+- `data/fixtures/manifest.yaml`: per-fixture labels, provenance, licenses, and hashes;
+- `data/fixtures/source_manifest.yaml`: original Wikimedia Commons source metadata.
+
+No fixture image was generated by an AI model.
+
+## Documents
+
+- [Application Design](docs/XIANGLENS_APPLICATION_DESIGN.md)
+- [Knowledge and Image Dataset Plan](docs/KNOWLEDGE_BASE_DATASET_PLAN.md)
+- [Image Fixture Pack](data/fixtures/README.md)
+
+## License and Attribution
+
+Project-authored source code is intended for release under Apache-2.0. Knowledge-card and image rights are documented separately in `data/knowledge/LICENSE.dataset`, `data/fixtures/LICENSE.images`, and the two source manifests. Preserve per-file attribution when redistributing the image fixture pack.
