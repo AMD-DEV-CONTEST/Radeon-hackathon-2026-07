@@ -1,15 +1,21 @@
 # -*- coding: utf-8 -*-
-"""AI-Image-Studio（Radeon 智图工坊）—— 基于 AMD Radeon GPU + ROCm 的一站式智能图像编辑器。
+"""AI-Image-Studio (Radeon Edition) — all-in-one AI image & video studio
+running locally on AMD Radeon GPU + ROCm.
 
-功能：局部重绘 / 智能扩图 / 物体与水印移除 / 超分辨率 / 风格迁移（含批量）/ 背景移除与替换。
-启动：python app.py 后浏览器打开 http://localhost:7860
+Features: inpainting / outpainting / object & watermark removal / super-resolution /
+style transfer (single & batch) / background removal & replace / face restoration /
+asset splitting / poster batch / video super-resolution / e-commerce suite.
+
+Run:  python app.py            → http://localhost:7860
+      python app.py --share    → public gradio.live URL (use on cloud instances)
 """
 from __future__ import annotations
 
 import argparse
+import inspect
 import os
 
-# 关闭 Gradio 遥测，避免在隔离网络（如 GPU 云主机）中启动时阻塞
+# Disable Gradio telemetry so startup never blocks on isolated GPU hosts.
 os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")
 
 import gradio as gr
@@ -27,41 +33,38 @@ from src.utils import editor_to_image_mask
 DEVICE_INFO = detect_device(settings.device, settings.dtype)
 MANAGER = ModelManager(DEVICE_INFO, settings)
 
-APP_TITLE = "🎨 AI-Image-Studio · Radeon 智图工坊"
-APP_DESC = ("一站式智能图像与视频编辑器：局部重绘 · 智能扩图 · 物体移除 · 超分辨率 · 风格迁移 · "
-            "背景替换 · 人像修复 · 素材拆分 · 海报批量 · 视频超分 · 电商工坊。"
-            " 针对 **AMD Radeon GPU + ROCm** 优化，支持 LCM-LoRA 极速生成（快 3~5 倍），自动适配 ROCm / CUDA / CPU。")
+APP_TITLE = "AI-Image-Studio · Radeon Edition"
 
 
-# ------------------------- 公共辅助 -------------------------
+# ---------------------------------------------------------------- helpers
 
 def _perf_md(info: dict) -> str:
-    lines = ["| 指标 | 数值 |", "| --- | --- |"]
+    lines = ["| Metric | Value |", "| --- | --- |"]
     for k, v in info.items():
         lines.append(f"| {k} | {v} |")
     return "\n".join(lines)
 
 
 def _err(e: Exception):
-    raise gr.Error(f"{type(e).__name__}：{e}")
+    raise gr.Error(f"{type(e).__name__}: {e}")
 
 
 def _status_md() -> str:
     loaded = MANAGER.loaded_models()
     lines = [
-        "### 运行环境",
-        f"- 推理后端：**{DEVICE_INFO.summary()}**",
-        f"- 低显存模式：{'开' if settings.low_vram else '关'}",
-        f"- 扩散工作分辨率：最长边 {settings.max_diffusion_size}px",
+        "### Runtime",
+        f"- Inference backend: **{DEVICE_INFO.summary()}**",
+        f"- Low-VRAM mode: {'ON' if settings.low_vram else 'OFF'}",
+        f"- Diffusion working resolution: {settings.max_diffusion_size}px (long edge)",
     ]
     if DEVICE_INFO.device.type == "cuda":
-        lines.append(f"- 当前空闲显存：{free_vram_gb():.2f} GB")
-    lines += ["", "### 已加载模型"]
-    lines += [f"- {m}" for m in loaded] if loaded else ["- （暂无，各模型按需懒加载）"]
+        lines.append(f"- Free VRAM now: {free_vram_gb():.2f} GB")
+    lines += ["", "### Loaded models"]
+    lines += [f"- {m}" for m in loaded] if loaded else ["- (none yet — models load lazily on first use)"]
     return "\n".join(lines)
 
 
-def _editor(label: str, height: int = 460) -> gr.ImageEditor:
+def _editor(label: str, height: int = 420) -> gr.ImageEditor:
     return gr.ImageEditor(
         label=label, type="pil", sources=["upload", "clipboard"],
         transforms=(), layers=False, height=height,
@@ -70,7 +73,12 @@ def _editor(label: str, height: int = 460) -> gr.ImageEditor:
     )
 
 
-# ------------------------- 各功能回调 -------------------------
+def _perf_block():
+    return gr.Markdown(elem_classes=["perf-table"])
+
+
+# ---------------------------------------------------------------- callbacks
+# (unchanged — thin wrappers around src/pipelines)
 
 def cb_inpaint(editor, prompt, negative, expand, steps, guidance, strength, seed, fast):
     try:
@@ -122,7 +130,7 @@ def cb_style_batch(files, style, strength, fast):
     try:
         images = [Image.open(p).convert("RGB") for p in (files or [])]
         if not images:
-            raise ValueError("请先上传至少一张图片。")
+            raise ValueError("Please upload at least one image.")
         outs, summary = run_style_batch(MANAGER, images, style, "", "",
                                         strength, steps=25, guidance=7.5, fast=fast)
         return outs, _perf_md(summary)
@@ -185,314 +193,374 @@ def cb_ecommerce(image, scene_prompt, title, subtitle, size_name, scene_count, d
         _err(e)
 
 
-# ------------------------- 界面 -------------------------
+# ---------------------------------------------------------------- UI
 
-APP_CSS = """
-.gradio-container {max-width: 1280px; margin: auto;}
-#header {text-align: center; margin-bottom: 4px;}
+CSS = """
+.gradio-container {max-width: 1340px !important; margin: 0 auto !important; padding: 0 16px;}
+#app-header {text-align: center; padding: 18px 0 4px;}
+#app-header h1 {font-size: 30px; font-weight: 800; margin: 0; letter-spacing: -0.5px;}
+#app-header h1 .accent {color: #ED1C24;}
+#app-header p.sub {color: #666; margin: 6px auto 10px; max-width: 900px; font-size: 15px;}
+#app-header .badge {
+    display: inline-block; background: #111; color: #7CF29C; font-family: monospace;
+    font-size: 13px; padding: 6px 14px; border-radius: 999px; margin-bottom: 8px;
+}
+.hint {color: #666; font-size: 14px; margin: 2px 0 10px;}
+.perf-table table {font-size: 13px;}
+footer {display: none !important;}
 """
 
 
+def _theme():
+    return gr.themes.Soft(
+        primary_hue=gr.themes.colors.red,
+        neutral_hue=gr.themes.colors.zinc,
+    )
+
+
+def _header():
+    gr.HTML(f"""
+    <div id="app-header">
+      <h1>🎨 AI-Image-Studio <span class="accent">· Radeon Edition</span></h1>
+      <p class="sub">All-in-one AI image &amp; video studio running locally on
+      <b>AMD Radeon GPU + ROCm</b> — inpaint · outpaint · remove · upscale · style ·
+      background · face restore · asset split · poster batch · video SR · e-commerce.
+      LCM-LoRA turbo mode cuts diffusion from 25 steps to 4–8 (3–5× faster).</p>
+      <div class="badge">⚙️ {DEVICE_INFO.summary()}</div>
+    </div>""")
+
+
 def build_demo() -> gr.Blocks:
-    # Gradio 6 将 css 从 Blocks 移到了 launch()；此处仅传兼容参数
-    with gr.Blocks(title=APP_TITLE) as demo:
-        gr.Markdown(f"# {APP_TITLE}\n{APP_DESC}", elem_id="header")
-        gr.Markdown(f"**运行后端：** {DEVICE_INFO.summary()}")
+    blocks_kwargs = dict(title=APP_TITLE)
+    sig = inspect.signature(gr.Blocks.__init__).parameters
+    if "css" in sig:
+        blocks_kwargs["css"] = CSS      # Gradio 5
+    if "theme" in sig and "theme" not in inspect.signature(gr.Blocks.launch).parameters:
+        blocks_kwargs["theme"] = _theme()  # Gradio 5 (Gradio 6 takes theme in launch)
+    with gr.Blocks(**blocks_kwargs) as demo:
+        _header()
 
         with gr.Tabs():
-            # ============ 1. 局部重绘 ============
-            with gr.Tab("🖌️ 局部重绘"):
-                gr.Markdown("上传图片 → 用画笔涂抹要修改的区域 → 用文字描述想要的内容（如：把衣服换成红色、添加一只猫）。")
+            # ================= 1. Inpainting =================
+            with gr.Tab("🖌️ Inpaint"):
+                gr.Markdown("Upload an image → **brush the area to change** → describe the desired content "
+                            "(e.g. *change the shirt to red, add a cat*).", elem_classes=["hint"])
                 with gr.Row():
-                    with gr.Column(scale=1):
-                        ed = _editor("上传图片并涂抹区域")
-                        prompt = gr.Textbox(label="提示词（描述该区域要生成的内容）",
-                                            placeholder="例如：a red rose, crystal clear")
-                        negative = gr.Textbox(label="负面提示词", value="blurry, low quality, deformed, watermark, text")
-                        with gr.Accordion("高级参数", open=False):
-                            expand = gr.Slider(0, 40, 8, step=1, label="遮罩边缘扩张（像素）")
-                            steps = gr.Slider(10, 50, 25, step=1, label="推理步数")
-                            guidance = gr.Slider(1.0, 15.0, 7.0, step=0.5, label="引导强度 CFG")
-                            strength = gr.Slider(0.5, 1.0, 1.0, step=0.05, label="重绘幅度")
-                            seed = gr.Number(-1, label="随机种子（-1 为随机）", precision=0)
-                        fast = gr.Checkbox(value=False, label="⚡ LCM 极速模式（4~8 步，快 3~5 倍）")
-                        btn = gr.Button("开始重绘", variant="primary")
-                    with gr.Column(scale=1):
-                        out = gr.Image(label="重绘结果", type="pil", interactive=False, height=460)
-                        perf = gr.Markdown()
+                    with gr.Column(scale=5, min_width=340):
+                        ed = _editor("Image + brush mask")
+                        prompt = gr.Textbox(label="Prompt (what to generate in the masked area)",
+                                            placeholder="e.g. a red rose, crystal clear")
+                        negative = gr.Textbox(label="Negative prompt",
+                                              value="blurry, low quality, deformed, watermark, text")
+                        with gr.Accordion("Advanced", open=False):
+                            expand = gr.Slider(0, 40, 8, step=1, label="Mask expansion (px)")
+                            steps = gr.Slider(10, 50, 25, step=1, label="Inference steps")
+                            guidance = gr.Slider(1.0, 15.0, 7.0, step=0.5, label="Guidance scale (CFG)")
+                            strength = gr.Slider(0.5, 1.0, 1.0, step=0.05, label="Denoising strength")
+                            seed = gr.Number(-1, label="Seed (-1 = random)", precision=0)
+                        fast = gr.Checkbox(value=False, label="⚡ LCM turbo mode (4–8 steps, 3–5× faster)")
+                        btn = gr.Button("Run Inpainting", variant="primary", size="lg")
+                    with gr.Column(scale=6, min_width=380):
+                        out = gr.Image(label="Result", type="pil", interactive=False, height=440)
+                        perf = _perf_block()
                 btn.click(cb_inpaint, [ed, prompt, negative, expand, steps, guidance, strength, seed, fast],
                           [out, perf])
 
-            # ============ 2. 智能扩图 ============
-            with gr.Tab("🔍 智能扩图"):
-                gr.Markdown("上传图片并设置四个方向的扩展像素，AI 将无缝补全延展画面。")
+            # ================= 2. Outpainting =================
+            with gr.Tab("🔍 Outpaint"):
+                gr.Markdown("Upload an image and set how many pixels to extend in each direction — "
+                            "the AI seamlessly fills the new canvas.", elem_classes=["hint"])
                 with gr.Row():
-                    with gr.Column(scale=1):
-                        img = gr.Image(label="上传图片", type="pil", sources=["upload", "clipboard"], height=320)
+                    with gr.Column(scale=5, min_width=340):
+                        img = gr.Image(label="Image", type="pil", sources=["upload", "clipboard"], height=300)
                         with gr.Row():
-                            left = gr.Slider(0, 512, 0, step=32, label="向左扩展 px")
-                            right = gr.Slider(0, 512, 256, step=32, label="向右扩展 px")
+                            left = gr.Slider(0, 512, 0, step=32, label="Extend left (px)")
+                            right = gr.Slider(0, 512, 256, step=32, label="Extend right (px)")
                         with gr.Row():
-                            top = gr.Slider(0, 512, 0, step=32, label="向上扩展 px")
-                            bottom = gr.Slider(0, 512, 0, step=32, label="向下扩展 px")
-                        prompt = gr.Textbox(label="提示词（描述延展后的完整画面）",
-                                            placeholder="例如：wide landscape, mountains and lake, golden hour")
-                        negative = gr.Textbox(label="负面提示词", value="blurry, low quality, seam, watermark, text")
-                        with gr.Accordion("高级参数", open=False):
-                            steps2 = gr.Slider(10, 50, 28, step=1, label="推理步数")
-                            guidance2 = gr.Slider(1.0, 15.0, 7.0, step=0.5, label="引导强度 CFG")
-                            seed2 = gr.Number(-1, label="随机种子（-1 为随机）", precision=0)
-                        fast2 = gr.Checkbox(value=False, label="⚡ LCM 极速模式（4~8 步，快 3~5 倍）")
-                        btn2 = gr.Button("开始扩图", variant="primary")
-                    with gr.Column(scale=1):
-                        out2 = gr.Image(label="扩图结果", type="pil", interactive=False, height=460)
-                        perf2 = gr.Markdown()
+                            top = gr.Slider(0, 512, 0, step=32, label="Extend up (px)")
+                            bottom = gr.Slider(0, 512, 0, step=32, label="Extend down (px)")
+                        prompt = gr.Textbox(label="Prompt (describe the full extended scene)",
+                                            placeholder="e.g. wide landscape, mountains and lake, golden hour")
+                        negative = gr.Textbox(label="Negative prompt",
+                                              value="blurry, low quality, seam, watermark, text")
+                        with gr.Accordion("Advanced", open=False):
+                            steps2 = gr.Slider(10, 50, 28, step=1, label="Inference steps")
+                            guidance2 = gr.Slider(1.0, 15.0, 7.0, step=0.5, label="Guidance scale (CFG)")
+                            seed2 = gr.Number(-1, label="Seed (-1 = random)", precision=0)
+                        fast2 = gr.Checkbox(value=False, label="⚡ LCM turbo mode (4–8 steps)")
+                        btn2 = gr.Button("Run Outpainting", variant="primary", size="lg")
+                    with gr.Column(scale=6, min_width=380):
+                        out2 = gr.Image(label="Result", type="pil", interactive=False, height=440)
+                        perf2 = _perf_block()
                 btn2.click(cb_outpaint, [img, left, right, top, bottom, prompt, negative,
                                          steps2, guidance2, seed2, fast2], [out2, perf2])
 
-            # ============ 3. 物体 / 水印移除 ============
-            with gr.Tab("🧽 物体/水印移除"):
-                gr.Markdown("上传图片 → 用画笔涂抹要去除的物体、路人或水印 → 一键无痕移除（LaMa 引擎，无需提示词）。")
+            # ================= 3. Object / watermark removal =================
+            with gr.Tab("🧽 Remove"):
+                gr.Markdown("Brush over unwanted objects, passers-by or watermarks — one click removes them "
+                            "(LaMa engine, no prompt needed).", elem_classes=["hint"])
                 with gr.Row():
-                    with gr.Column(scale=1):
-                        ed3 = _editor("上传图片并涂抹要移除的区域")
-                        expand3 = gr.Slider(0, 40, 12, step=1, label="遮罩边缘扩张（像素）")
-                        btn3 = gr.Button("一键移除", variant="primary")
-                    with gr.Column(scale=1):
-                        out3 = gr.Image(label="移除结果", type="pil", interactive=False, height=460)
-                        perf3 = gr.Markdown()
+                    with gr.Column(scale=5, min_width=340):
+                        ed3 = _editor("Image + brush over what to erase")
+                        expand3 = gr.Slider(0, 40, 12, step=1, label="Mask expansion (px)")
+                        btn3 = gr.Button("Remove", variant="primary", size="lg")
+                    with gr.Column(scale=6, min_width=380):
+                        out3 = gr.Image(label="Result", type="pil", interactive=False, height=440)
+                        perf3 = _perf_block()
                 btn3.click(cb_remove, [ed3, expand3], [out3, perf3])
 
-            # ============ 4. 超分辨率 ============
-            with gr.Tab("✨ 超分辨率"):
-                gr.Markdown("Real-ESRGAN 高清放大：修复模糊、提升分辨率，支持大图的低显存分块推理。")
+            # ================= 4. Super-resolution =================
+            with gr.Tab("✨ Upscale"):
+                gr.Markdown("Real-ESRGAN enhancement: deblur and upscale 2–4×, with tiled inference "
+                            "for large images on limited VRAM.", elem_classes=["hint"])
                 with gr.Row():
-                    with gr.Column(scale=1):
-                        img4 = gr.Image(label="上传图片", type="pil", sources=["upload", "clipboard"], height=320)
-                        quality = gr.Radio([("轻量高速（x4v3，推荐批量）", "fast"),
-                                            ("高画质（x4plus）", "hq")],
-                                           value="fast", label="模型档位")
-                        scale4 = gr.Slider(1.5, 4.0, 4.0, step=0.5, label="放大倍率")
-                        tile = gr.Dropdown([("关闭（显存充足）", 0), ("512px 分块", 512), ("256px 分块（大图/低显存）", 256)],
-                                           value=0, label="分块推理")
-                        btn4 = gr.Button("开始放大", variant="primary")
-                    with gr.Column(scale=1):
-                        out4 = gr.Image(label="放大结果", type="pil", interactive=False, height=460)
-                        perf4 = gr.Markdown()
+                    with gr.Column(scale=5, min_width=340):
+                        img4 = gr.Image(label="Image", type="pil", sources=["upload", "clipboard"], height=300)
+                        quality = gr.Radio([("Fast (x4v3, best for batches)", "fast"),
+                                            ("High quality (x4plus)", "hq")],
+                                           value="fast", label="Model tier")
+                        scale4 = gr.Slider(1.5, 4.0, 4.0, step=0.5, label="Scale factor")
+                        tile = gr.Dropdown([("Off (plenty of VRAM)", 0), ("512px tiles", 512),
+                                            ("256px tiles (large images / low VRAM)", 256)],
+                                           value=0, label="Tiled inference")
+                        btn4 = gr.Button("Upscale", variant="primary", size="lg")
+                    with gr.Column(scale=6, min_width=380):
+                        out4 = gr.Image(label="Result", type="pil", interactive=False, height=440)
+                        perf4 = _perf_block()
                 btn4.click(cb_upscale, [img4, quality, scale4, tile], [out4, perf4])
 
-            # ============ 5. 风格迁移 ============
-            with gr.Tab("🎭 风格迁移"):
-                gr.Markdown("一键将照片重构为动漫、赛博朋克、水彩、油画等艺术风格，支持单张精调与批量处理。")
+            # ================= 5. Style transfer =================
+            with gr.Tab("🎭 Style"):
+                gr.Markdown("Restyle photos into anime, cyberpunk, watercolor, oil painting and more — "
+                            "single fine-tuned mode and batch mode.", elem_classes=["hint"])
                 with gr.Tabs():
-                    with gr.Tab("单张精调"):
+                    with gr.Tab("Single image"):
                         with gr.Row():
-                            with gr.Column(scale=1):
-                                img5 = gr.Image(label="上传图片", type="pil", sources=["upload", "clipboard"], height=320)
-                                style = gr.Dropdown(list(STYLE_PRESETS.keys()), value="日系动漫", label="风格预设")
-                                strength5 = gr.Slider(0.2, 0.95, 0.6, step=0.05, label="重绘幅度（越大越脱离原图）")
-                                with gr.Accordion("自定义提示词（可选，覆盖预设）", open=False):
-                                    cp = gr.Textbox(label="自定义提示词", placeholder="留空则使用风格预设")
-                                    cn = gr.Textbox(label="自定义负面提示词")
-                                with gr.Accordion("高级参数", open=False):
-                                    steps5 = gr.Slider(10, 50, 25, step=1, label="推理步数")
-                                    guidance5 = gr.Slider(1.0, 15.0, 7.5, step=0.5, label="引导强度 CFG")
-                                    seed5 = gr.Number(-1, label="随机种子（-1 为随机）", precision=0)
-                                with gr.Accordion("自定义 LoRA（可选）", open=False):
-                                    lora5 = gr.Textbox(label="LoRA 仓库 ID 或本地 .safetensors 路径",
-                                                       placeholder="例如：someone/my-style-lora")
-                                    lora_scale5 = gr.Slider(0.0, 1.5, 0.8, step=0.05, label="LoRA 权重")
-                                fast5 = gr.Checkbox(value=False, label="⚡ LCM 极速模式（4~8 步）")
-                                btn5 = gr.Button("开始迁移", variant="primary")
-                            with gr.Column(scale=1):
-                                out5 = gr.Image(label="风格化结果", type="pil", interactive=False, height=460)
-                                perf5 = gr.Markdown()
+                            with gr.Column(scale=5, min_width=340):
+                                img5 = gr.Image(label="Image", type="pil", sources=["upload", "clipboard"],
+                                                height=300)
+                                style = gr.Dropdown(list(STYLE_PRESETS.keys()), value="日系动漫",
+                                                    label="Style preset")
+                                strength5 = gr.Slider(0.2, 0.95, 0.6, step=0.05,
+                                                      label="Strength (higher = further from original)")
+                                with gr.Accordion("Custom prompt (optional, overrides preset)", open=False):
+                                    cp = gr.Textbox(label="Custom prompt",
+                                                    placeholder="Leave empty to use the preset")
+                                    cn = gr.Textbox(label="Custom negative prompt")
+                                with gr.Accordion("Advanced", open=False):
+                                    steps5 = gr.Slider(10, 50, 25, step=1, label="Inference steps")
+                                    guidance5 = gr.Slider(1.0, 15.0, 7.5, step=0.5, label="Guidance scale (CFG)")
+                                    seed5 = gr.Number(-1, label="Seed (-1 = random)", precision=0)
+                                with gr.Accordion("Custom LoRA (optional)", open=False):
+                                    lora5 = gr.Textbox(label="LoRA repo id or local .safetensors path",
+                                                       placeholder="e.g. someone/my-style-lora")
+                                    lora_scale5 = gr.Slider(0.0, 1.5, 0.8, step=0.05, label="LoRA weight")
+                                fast5 = gr.Checkbox(value=False, label="⚡ LCM turbo mode (4–8 steps)")
+                                btn5 = gr.Button("Restyle", variant="primary", size="lg")
+                            with gr.Column(scale=6, min_width=380):
+                                out5 = gr.Image(label="Result", type="pil", interactive=False, height=440)
+                                perf5 = _perf_block()
                         btn5.click(cb_style, [img5, style, strength5, cp, cn, steps5, guidance5, seed5,
-                                              fast5, lora5, lora_scale5],
-                                   [out5, perf5])
-                    with gr.Tab("批量处理"):
+                                              fast5, lora5, lora_scale5], [out5, perf5])
+                    with gr.Tab("Batch"):
                         with gr.Row():
-                            with gr.Column(scale=1):
-                                files = gr.File(label="上传多张图片", file_count="multiple",
+                            with gr.Column(scale=5, min_width=340):
+                                files = gr.File(label="Upload multiple images", file_count="multiple",
                                                 file_types=["image"], type="filepath")
-                                style_b = gr.Dropdown(list(STYLE_PRESETS.keys()), value="赛博朋克", label="风格预设")
-                                strength_b = gr.Slider(0.2, 0.95, 0.6, step=0.05, label="重绘幅度")
-                                fast6 = gr.Checkbox(value=True, label="⚡ LCM 极速模式（批量推荐）")
-                                btn6 = gr.Button("批量开始", variant="primary")
-                            with gr.Column(scale=1):
-                                gallery = gr.Gallery(label="批量结果", columns=3, height=460)
-                                perf6 = gr.Markdown()
+                                style_b = gr.Dropdown(list(STYLE_PRESETS.keys()), value="赛博朋克",
+                                                      label="Style preset")
+                                strength_b = gr.Slider(0.2, 0.95, 0.6, step=0.05, label="Strength")
+                                fast6 = gr.Checkbox(value=True, label="⚡ LCM turbo mode (recommended for batch)")
+                                btn6 = gr.Button("Run batch", variant="primary", size="lg")
+                            with gr.Column(scale=6, min_width=380):
+                                gallery = gr.Gallery(label="Batch results", columns=3, height=440)
+                                perf6 = _perf_block()
                         btn6.click(cb_style_batch, [files, style_b, strength_b, fast6], [gallery, perf6])
 
-            # ============ 6. 背景移除与替换 ============
-            with gr.Tab("🧑‍🎨 背景替换"):
-                gr.Markdown("BiRefNet 高精度抠图：导出透明 PNG、替换纯色/渐变背景，或用 AI 生成全新背景。")
+            # ================= 6. Background =================
+            with gr.Tab("🧑‍🎨 Background"):
+                gr.Markdown("BiRefNet high-precision matting: export transparent PNG, swap in a solid / "
+                            "gradient background, or generate a brand-new AI backdrop.", elem_classes=["hint"])
                 with gr.Row():
-                    with gr.Column(scale=1):
-                        img7 = gr.Image(label="上传图片", type="pil", sources=["upload", "clipboard"], height=320)
-                        mode = gr.Radio(["透明 PNG", "纯色背景", "渐变背景", "AI 生成背景"],
-                                        value="透明 PNG", label="输出模式")
-                        with gr.Accordion("背景选项", open=True):
-                            solid = gr.ColorPicker(value="#FFFFFF", label="纯色背景颜色")
+                    with gr.Column(scale=5, min_width=340):
+                        img7 = gr.Image(label="Image", type="pil", sources=["upload", "clipboard"], height=300)
+                        mode = gr.Radio([("Transparent PNG", "透明 PNG"), ("Solid color", "纯色背景"),
+                                         ("Gradient", "渐变背景"), ("AI-generated", "AI 生成背景")],
+                                        value="透明 PNG", label="Output mode")
+                        with gr.Accordion("Background options", open=True):
+                            solid = gr.ColorPicker(value="#FFFFFF", label="Solid color")
                             with gr.Row():
-                                gt = gr.ColorPicker(value="#89CFF0", label="渐变顶部")
-                                gb = gr.ColorPicker(value="#F0E68C", label="渐变底部")
-                            ai_prompt = gr.Textbox(label="AI 背景提示词",
-                                                   placeholder="例如：sunset beach, bokeh studio backdrop")
-                        btn7 = gr.Button("开始处理", variant="primary")
-                    with gr.Column(scale=1):
+                                gt = gr.ColorPicker(value="#89CFF0", label="Gradient top")
+                                gb = gr.ColorPicker(value="#F0E68C", label="Gradient bottom")
+                            ai_prompt = gr.Textbox(label="AI background prompt",
+                                                   placeholder="e.g. sunset beach, bokeh studio backdrop")
+                        btn7 = gr.Button("Process", variant="primary", size="lg")
+                    with gr.Column(scale=6, min_width=380):
                         with gr.Row():
-                            out7 = gr.Image(label="结果", type="pil", interactive=False, height=440)
-                            fg7 = gr.Image(label="抠出的前景（RGBA）", type="pil", interactive=False, height=440)
-                        perf7 = gr.Markdown()
+                            out7 = gr.Image(label="Result", type="pil", interactive=False, height=420)
+                            fg7 = gr.Image(label="Foreground (RGBA)", type="pil", interactive=False, height=420)
+                        perf7 = _perf_block()
                 btn7.click(cb_background, [img7, mode, solid, gt, gb, ai_prompt], [out7, fg7, perf7])
 
-            # ============ 7. 人像修复 ============
-            with gr.Tab("😊 人像修复"):
-                gr.Markdown("GFPGAN 盲人脸修复：模糊、低清、老照片人脸一键变清晰，支持多人脸，可联动超分放大整图。")
+            # ================= 7. Face restoration =================
+            with gr.Tab("😊 Face Restore"):
+                gr.Markdown("GFPGAN blind face restoration: turn blurry / low-res / old portrait faces crisp. "
+                            "Multi-face supported, optional whole-image 2× upscale.", elem_classes=["hint"])
                 with gr.Row():
-                    with gr.Column(scale=1):
-                        img8 = gr.Image(label="上传含人脸的图片", type="pil",
-                                        sources=["upload", "clipboard"], height=320)
-                        up8 = gr.Checkbox(value=False, label="修复后联动 2× 超分放大整图")
-                        btn8 = gr.Button("开始修复", variant="primary")
-                    with gr.Column(scale=1):
-                        out8 = gr.Image(label="修复结果", type="pil", interactive=False, height=460)
-                        perf8 = gr.Markdown()
+                    with gr.Column(scale=5, min_width=340):
+                        img8 = gr.Image(label="Image with faces", type="pil",
+                                        sources=["upload", "clipboard"], height=300)
+                        up8 = gr.Checkbox(value=False, label="Also 2× upscale the whole image after restore")
+                        btn8 = gr.Button("Restore", variant="primary", size="lg")
+                    with gr.Column(scale=6, min_width=380):
+                        out8 = gr.Image(label="Result", type="pil", interactive=False, height=440)
+                        perf8 = _perf_block()
                 btn8.click(cb_face_restore, [img8, up8], [out8, perf8])
 
-            # ============ 8. 素材拆分 ============
-            with gr.Tab("🧩 素材拆分"):
-                gr.Markdown("上传单张角色图，自动拆分为**透明角色层 + 完整背景层**，导出分层 PSD 与素材包（Live2D 前处理、2.5D 创作）。")
+            # ================= 8. Asset splitting =================
+            with gr.Tab("🧩 Asset Split"):
+                gr.Markdown("Split one character illustration into a **transparent character layer + completed "
+                            "background layer**, exported as a layered PSD + asset pack (Live2D prep, 2.5D).",
+                            elem_classes=["hint"])
                 with gr.Row():
-                    with gr.Column(scale=1):
-                        img9 = gr.Image(label="上传角色图片", type="pil",
-                                        sources=["upload", "clipboard"], height=320)
-                        fill9 = gr.Checkbox(value=True, label="AI 补全背景（抹除角色后填充）")
-                        margin9 = gr.Slider(0, 64, 16, step=4, label="素材裁切边距（像素）")
-                        btn9 = gr.Button("开始拆分", variant="primary")
-                    with gr.Column(scale=1):
+                    with gr.Column(scale=5, min_width=340):
+                        img9 = gr.Image(label="Character image", type="pil",
+                                        sources=["upload", "clipboard"], height=300)
+                        fill9 = gr.Checkbox(value=True, label="AI-complete the background (erase + fill)")
+                        margin9 = gr.Slider(0, 64, 16, step=4, label="Crop margin (px)")
+                        btn9 = gr.Button("Split", variant="primary", size="lg")
+                    with gr.Column(scale=6, min_width=380):
                         with gr.Row():
-                            chara9 = gr.Image(label="角色层（透明）", type="pil", interactive=False, height=300)
-                            bg9 = gr.Image(label="背景层", type="pil", interactive=False, height=300)
-                        files9 = gr.File(label="下载分层文件（PSD + 素材包）", file_count="multiple")
-                        perf9 = gr.Markdown()
+                            chara9 = gr.Image(label="Character layer (transparent)", type="pil",
+                                              interactive=False, height=290)
+                            bg9 = gr.Image(label="Background layer", type="pil",
+                                           interactive=False, height=290)
+                        files9 = gr.File(label="Download layered files (PSD + asset pack)",
+                                         file_count="multiple")
+                        perf9 = _perf_block()
                 btn9.click(cb_character_split, [img9, fill9, margin9],
                            [chara9, bg9, files9, perf9])
 
-            # ============ 9. 海报批量 ============
-            with gr.Tab("🖼️ 海报批量"):
-                gr.Markdown("文生图 → 2× 超分 → 模板排版，批量产出电商主图 / 活动海报 / 内容封面（中文精确排版，无乱码）。")
+            # ================= 9. Poster batch =================
+            with gr.Tab("🖼️ Poster"):
+                gr.Markdown("txt2img → 2× upscale → template typesetting: batch-produce e-commerce covers, "
+                            "campaign posters and content covers (pixel-accurate CJK text, no garbled glyphs).",
+                            elem_classes=["hint"])
                 with gr.Row():
-                    with gr.Column(scale=1):
-                        prompt10 = gr.Textbox(label="画面描述（提示词）", lines=2,
-                                              placeholder="例如：fresh oranges splashing juice, studio lighting, commercial photography")
-                        negative10 = gr.Textbox(label="负面提示词",
+                    with gr.Column(scale=5, min_width=340):
+                        prompt10 = gr.Textbox(label="Scene prompt", lines=2,
+                                              placeholder="e.g. fresh oranges splashing juice, studio lighting, commercial photography")
+                        negative10 = gr.Textbox(label="Negative prompt",
                                                 value="blurry, low quality, watermark, text, logo")
                         with gr.Row():
                             size10 = gr.Dropdown(list(POSTER_SIZES.keys()),
-                                                 value="竖版海报 2:3（1024×1536）", label="尺寸")
-                            count10 = gr.Slider(1, 8, 2, step=1, label="批量数量")
+                                                 value="竖版海报 2:3（1024×1536）", label="Size")
+                            count10 = gr.Slider(1, 8, 2, step=1, label="Batch count")
                         with gr.Row():
-                            title10 = gr.Textbox(label="主标题", placeholder="例如：夏日狂欢节")
-                            subtitle10 = gr.Textbox(label="副标题", placeholder="例如：全场五折起")
+                            title10 = gr.Textbox(label="Headline", placeholder="e.g. 夏日狂欢节")
+                            subtitle10 = gr.Textbox(label="Sub-headline", placeholder="e.g. 全场五折起")
                         with gr.Row():
-                            tag10 = gr.Textbox(label="角标文字（可选）", placeholder="例如：限时特惠")
-                            layout10 = gr.Radio(["底部横幅", "顶部标题", "居中大标题"],
-                                                value="底部横幅", label="排版布局")
-                        with gr.Accordion("高级参数", open=False):
-                            steps10 = gr.Slider(10, 50, 25, step=1, label="推理步数")
-                            guidance10 = gr.Slider(1.0, 15.0, 7.5, step=0.5, label="引导强度 CFG")
-                            seed10 = gr.Number(-1, label="随机种子（-1 为随机，批量顺延）", precision=0)
-                            up10 = gr.Checkbox(value=True, label="生成后 2× 超分（推荐）")
-                            fast10 = gr.Checkbox(value=False, label="⚡ LCM 极速模式（4~8 步）")
-                            lora10 = gr.Textbox(label="自定义 LoRA（可选）",
-                                                placeholder="HF 仓库 ID 或本地 .safetensors 路径")
-                            lora_scale10 = gr.Slider(0.0, 1.5, 0.8, step=0.05, label="LoRA 权重")
-                        btn10 = gr.Button("批量生成海报", variant="primary")
-                    with gr.Column(scale=1):
-                        gallery10 = gr.Gallery(label="海报结果", columns=2, height=520)
-                        perf10 = gr.Markdown()
+                            tag10 = gr.Textbox(label="Corner tag (optional)", placeholder="e.g. 限时特惠")
+                            layout10 = gr.Radio([("Bottom banner", "底部横幅"), ("Top title", "顶部标题"),
+                                                 ("Centered", "居中大标题")],
+                                                value="底部横幅", label="Layout")
+                        with gr.Accordion("Advanced", open=False):
+                            steps10 = gr.Slider(10, 50, 25, step=1, label="Inference steps")
+                            guidance10 = gr.Slider(1.0, 15.0, 7.5, step=0.5, label="Guidance scale (CFG)")
+                            seed10 = gr.Number(-1, label="Seed (-1 = random, auto-increments)", precision=0)
+                            up10 = gr.Checkbox(value=True, label="2× upscale after generation (recommended)")
+                            fast10 = gr.Checkbox(value=False, label="⚡ LCM turbo mode (4–8 steps)")
+                            lora10 = gr.Textbox(label="Custom LoRA (optional)",
+                                                placeholder="HF repo id or local .safetensors path")
+                            lora_scale10 = gr.Slider(0.0, 1.5, 0.8, step=0.05, label="LoRA weight")
+                        btn10 = gr.Button("Generate posters", variant="primary", size="lg")
+                    with gr.Column(scale=6, min_width=380):
+                        gallery10 = gr.Gallery(label="Posters", columns=2, height=500)
+                        perf10 = _perf_block()
                 btn10.click(cb_poster, [prompt10, negative10, size10, title10, subtitle10,
                                         tag10, layout10, count10, steps10, guidance10,
                                         seed10, up10, fast10, lora10, lora_scale10], [gallery10, perf10])
 
-            # ============ 10. 视频超分 ============
-            with gr.Tab("🎬 视频超分"):
-                gr.Markdown("AI 视频增强：逐帧超分放大 + 原音轨保留合成。面向短视频（默认 ≤30 秒、≤720p）。")
+            # ================= 10. Video SR =================
+            with gr.Tab("🎬 Video SR"):
+                gr.Markdown("AI video enhancement: frame-by-frame super-resolution with the original audio "
+                            "track preserved. For short clips (≤ 30 s, ≤ 720p by default).", elem_classes=["hint"])
                 with gr.Row():
-                    with gr.Column(scale=1):
-                        video11 = gr.Video(label="上传视频（建议 mp4）", sources=["upload"])
-                        quality11 = gr.Radio([("轻量高速（推荐）", "fast"), ("高画质", "hq")],
-                                             value="fast", label="超分档位")
-                        scale11 = gr.Radio([("2×", 2.0), ("4×", 4.0)], value=2.0, label="放大倍率")
-                        btn11 = gr.Button("开始增强", variant="primary")
-                    with gr.Column(scale=1):
-                        out11 = gr.Video(label="增强结果", interactive=False)
-                        perf11 = gr.Markdown()
+                    with gr.Column(scale=5, min_width=340):
+                        video11 = gr.Video(label="Upload video (mp4 recommended)", sources=["upload"])
+                        quality11 = gr.Radio([("Fast (recommended)", "fast"), ("High quality", "hq")],
+                                             value="fast", label="SR tier")
+                        scale11 = gr.Radio([("2×", 2.0), ("4×", 4.0)], value=2.0, label="Scale factor")
+                        btn11 = gr.Button("Enhance video", variant="primary", size="lg")
+                    with gr.Column(scale=6, min_width=380):
+                        out11 = gr.Video(label="Enhanced video", interactive=False)
+                        perf11 = _perf_block()
                 btn11.click(cb_video, [video11, quality11, scale11], [out11, perf11])
 
-            # ============ 11. 电商工坊 ============
-            with gr.Tab("🛒 电商工坊"):
-                gr.Markdown("上传一张产品图，一键产出整套电商素材：**白底主图 + AI 场景图 + 排版海报**。")
+            # ================= 11. E-commerce suite =================
+            with gr.Tab("🛒 E-Commerce"):
+                gr.Markdown("One product photo → a complete asset set: **white-background main image + "
+                            "AI scene images + typeset posters**.", elem_classes=["hint"])
                 with gr.Row():
-                    with gr.Column(scale=1):
-                        img12 = gr.Image(label="上传产品图", type="pil",
-                                         sources=["upload", "clipboard"], height=300)
+                    with gr.Column(scale=5, min_width=340):
+                        img12 = gr.Image(label="Product photo", type="pil",
+                                         sources=["upload", "clipboard"], height=280)
                         scene12 = gr.Textbox(
-                            label="场景描述（提示词）", lines=2,
+                            label="Scene prompt", lines=2,
                             value="modern minimalist product photography, marble surface, soft studio lighting",
-                            placeholder="描述想要的拍摄场景")
+                            placeholder="Describe the shooting scene")
                         with gr.Row():
-                            title12 = gr.Textbox(label="海报主标题", placeholder="例如：焕新上市")
-                            subtitle12 = gr.Textbox(label="海报副标题", placeholder="例如：匠心之作")
+                            title12 = gr.Textbox(label="Poster headline", placeholder="e.g. 焕新上市")
+                            subtitle12 = gr.Textbox(label="Poster sub-headline", placeholder="e.g. 匠心之作")
                         with gr.Row():
                             size12 = gr.Dropdown(list(POSTER_SIZES.keys()),
-                                                 value="方形主图 1:1（1024×1024）", label="尺寸")
-                            count12 = gr.Slider(1, 4, 2, step=1, label="场景图数量")
+                                                 value="方形主图 1:1（1024×1024）", label="Size")
+                            count12 = gr.Slider(1, 4, 2, step=1, label="Scene images")
                         with gr.Row():
-                            up12 = gr.Checkbox(value=True, label="2× 超分（推荐）")
-                            fast12 = gr.Checkbox(value=False, label="⚡ LCM 极速模式")
-                        btn12 = gr.Button("一键生成整套素材", variant="primary")
-                    with gr.Column(scale=1):
-                        gallery12 = gr.Gallery(label="素材结果（主图/场景图/海报）", columns=3, height=520)
-                        perf12 = gr.Markdown()
+                            up12 = gr.Checkbox(value=True, label="2× upscale (recommended)")
+                            fast12 = gr.Checkbox(value=False, label="⚡ LCM turbo mode")
+                        btn12 = gr.Button("Generate full asset set", variant="primary", size="lg")
+                    with gr.Column(scale=6, min_width=380):
+                        gallery12 = gr.Gallery(label="Assets (main / scenes / posters)", columns=3, height=500)
+                        perf12 = _perf_block()
                 btn12.click(cb_ecommerce, [img12, scene12, title12, subtitle12, size12,
                                            count12, up12, fast12], [gallery12, perf12])
 
-            # ============ 12. 系统状态 ============
-            with gr.Tab("⚙️ 系统状态"):
+            # ================= 12. System =================
+            with gr.Tab("⚙️ System"):
                 status = gr.Markdown(_status_md())
                 with gr.Row():
-                    refresh = gr.Button("刷新状态")
-                    unload = gr.Button("卸载全部模型（释放显存）", variant="stop")
+                    refresh = gr.Button("🔄 Refresh status")
+                    unload = gr.Button("Unload all models (free VRAM)", variant="stop")
                 refresh.click(lambda: _status_md(), None, status)
                 unload.click(lambda: (MANAGER.unload_all(), _status_md())[1], None, status)
         return demo
 
 
 def main():
-    parser = argparse.ArgumentParser(description="AI-Image-Studio · Radeon 智图工坊")
+    parser = argparse.ArgumentParser(description="AI-Image-Studio · Radeon Edition")
     parser.add_argument("--host", default=settings.server_name)
     parser.add_argument("--port", type=int, default=settings.server_port)
     parser.add_argument("--share", action="store_true", default=settings.share)
-    parser.add_argument("--preload", action="store_true", help="启动时预载局部重绘模型")
-    parser.add_argument("--low-vram", action="store_true", help="强制开启低显存模式")
+    parser.add_argument("--preload", action="store_true", help="Preload the inpainting model at startup")
+    parser.add_argument("--low-vram", action="store_true", help="Force low-VRAM mode")
     args = parser.parse_args()
 
     if args.low_vram:
         settings.low_vram = True
     if args.preload:
-        print("正在预载局部重绘模型……")
+        print("Preloading inpainting pipeline...")
         MANAGER.get_inpaint_pipe()
 
-    print(f"推理后端：{DEVICE_INFO.summary()}")
+    print(f"Inference backend: {DEVICE_INFO.summary()}")
     demo = build_demo()
     launch_kwargs = dict(server_name=args.host, server_port=args.port,
                          share=args.share, show_error=True)
-    import inspect as _inspect
-    if "css" in _inspect.signature(gr.Blocks.launch).parameters:
-        launch_kwargs["css"] = APP_CSS  # Gradio 6+
+    launch_sig = inspect.signature(gr.Blocks.launch).parameters
+    if "css" in launch_sig:
+        launch_kwargs["css"] = CSS      # Gradio 6 moved css to launch()
+    if "theme" in launch_sig:
+        launch_kwargs["theme"] = _theme()  # Gradio 6 moved theme to launch()
     demo.launch(**launch_kwargs)
 
 
