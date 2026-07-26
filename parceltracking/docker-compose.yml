@@ -1,0 +1,54 @@
+services:
+  db:
+    # PostgreSQL 18 with pgvector extension — handles both tabular data and vector embeddings
+    image: pgvector/pgvector:0.8.0-pg18
+    container_name: parceltracking-db
+    environment:
+      POSTGRES_USER: parcel
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: parceltracking
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/malu2555/parceltracking:latest
+    container_name: parceltracking
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/parceltracking
+      SPRING_DATASOURCE_USERNAME: parcel
+      SPRING_DATASOURCE_PASSWORD: secret
+      SPRING_H2_CONSOLE_ENABLED: "false"
+      OPENAI_BASE_URL: http://vllm:8000/v1
+      OPENAI_CHAT_MODEL: meta-llama/Meta-Llama-3.2-1B-Instruct
+      X-Admin-Key: admin-secret-key
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: vllm
+    environment:
+      MODEL: meta-llama/Meta-Llama-3.2-1B-Instruct
+    ports:
+      - "8000:8000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: amd
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - /dev/shm:/dev/shm
+    ipc: host
+    restart: unless-stopped
