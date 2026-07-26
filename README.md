@@ -1,86 +1,152 @@
-# Radeon-hackathon-2026-07
+# Async Code Optimizer & Review Agent
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+Track 2: Localized AI Agents Deployment  
+AMD AI DevMaster Hackathon
 
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
+## Project Summary
 
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
+Async Code Optimizer & Review Agent is a locally deployed multi-agent application that reviews Python or C++ source code for correctness risks, performance bottlenecks, and low-latency rewrite opportunities. The agents run asynchronously with CrewAI and call a local OpenAI-compatible vLLM endpoint hosted on an AMD Radeon GPU through ROCm.
 
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+Video demo: `https://drive.google.com/file/d/1aUx9utGAgvFC5h1i5Mqe4gvzqEnkt1Ro/view?usp=sharing`
 
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+Architecture diagram:
+![Architecture Diagram](architecture.png)
 
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+## Core Capabilities
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+- Asynchronous multi-agent review fan-out for faster turnaround.
+- Logic and edge-case analysis for Python/C++ snippets.
+- Low-latency optimization guidance focused on allocation, loop structure, data structures, and hot paths.
+- Final rewritten code output with a concise change rationale.
+- Local-only model serving through vLLM at `http://localhost:8000/v1`.
 
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
+## Repository Structure
 
-## Submission Requirements
+```text
+.
+|-- README.md
+|-- main.py
+|-- requirements.txt
+`-- setup_vllm_rocm.sh
+```
 
-### Track 1: Development of Multimodal Content Creation Tools
+## System Architecture
 
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
+```mermaid
+flowchart LR
+    A["User code input"] --> B["Async orchestrator main.py"]
+    B --> C["Logic Reviewer agent"]
+    B --> D["Performance Reviewer agent"]
+    C --> E["Code Optimizer agent"]
+    D --> E
+    E --> F["Optimized code + review report"]
+    B --> G["OpenAI-compatible vLLM endpoint"]
+    C --> G
+    D --> G
+    E --> G
+    G --> H["AMD Radeon GPU via ROCm"]
+```
 
-### Track 2: Development & Local Deployment of Private AI Agents
+## AMD Radeon GPU / ROCm Adaptation
 
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
+The LLM is served locally with vLLM on AMD Radeon hardware using the ROCm software stack. The application never calls the public OpenAI API and does not require CUDA, NVIDIA runtime flags, or CUDA-specific Python wheels.
 
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
+Key adaptation points:
 
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+- vLLM server binds to `0.0.0.0:8000` and exposes `/v1/chat/completions`.
+- The agent client uses `http://localhost:8000/v1` with an OpenAI-compatible model route.
+- The deployment script uses ROCm GPU devices (`/dev/kfd`, `/dev/dri`) for Docker deployment.
+- The pip fallback installs ROCm-specific PyTorch and vLLM wheels from AMD ROCm indexes.
+- App dependencies intentionally exclude CUDA builds such as `torch+cu*`, `nvidia-*`, and CUDA-only packages.
+
+## Environment Setup
+
+### 1. Start vLLM on Radeon Cloud
+
+Recommended Docker path:
+
+```bash
+chmod +x setup_vllm_rocm.sh
+./setup_vllm_rocm.sh
+```
+
+The default model is `Qwen/Qwen2-7B-Instruct`. Override settings as needed:
+
+```bash
+MODEL_ID=Qwen/Qwen2.5-7B-Instruct PORT=8000 ./setup_vllm_rocm.sh
+```
+
+For Radeon Cloud Dedicated Model API templates, use this serve command:
+
+```bash
+vllm serve Qwen/Qwen2-7B-Instruct --host 0.0.0.0 --port 8000 --dtype auto --max-model-len 8192 --gpu-memory-utilization 0.90 --trust-remote-code
+```
+
+### 2. Install Agent Dependencies
+
+In a separate terminal:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+### 3. Run the Multi-Agent Optimizer
+
+```bash
+python main.py
+```
+
+Analyze a local file:
+
+```bash
+python main.py --file path/to/script.py --language python
+python main.py --file path/to/kernel.cpp --language cpp
+```
+
+Use a remote Radeon Cloud dedicated endpoint instead of localhost:
+
+```bash
+LOCAL_VLLM_BASE_URL="https://<your-radeon-endpoint>/v1" \
+LOCAL_VLLM_API_KEY="<your-radeon-api-key>" \
+python main.py --file path/to/script.py
+```
+
+## Configuration
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `LOCAL_VLLM_BASE_URL` | `http://localhost:8000/v1` | OpenAI-compatible vLLM API base URL |
+| `LOCAL_VLLM_MODEL` | `Qwen/Qwen2-7B-Instruct` | Model name served by vLLM |
+| `LOCAL_VLLM_API_KEY` | `EMPTY` | Local vLLM API key placeholder or Radeon endpoint key |
+| `LLM_TEMPERATURE` | `0.15` | Low value for deterministic code rewrites |
+| `LLM_TIMEOUT_SECONDS` | `180` | Request timeout for large reviews |
+
+## Expected Output
+
+The program prints:
+
+1. Logic review findings.
+2. Performance review findings.
+3. Final optimized code and rationale.
+
+## Demo Script Outline
+
+1. Show ROCm GPU visibility on Radeon Cloud.
+2. Start vLLM with `setup_vllm_rocm.sh`.
+3. Verify `/v1/models` from the local endpoint.
+4. Run `python main.py` with the included sample.
+5. Run `python main.py --file <your-code-file>`.
+6. Explain asynchronous agent fan-out and final optimizer merge.
+
+## Submission Notes
+
+- Pull request title: `Track 2, <TEAM_NAME>, Async Code Optimizer & Review Agent`
+- Demo video: `https://drive.google.com/file/d/1aUx9utGAgvFC5h1i5Mqe4gvzqEnkt1Ro/view?usp=sharing`
+- Architecture diagram:
+![Architecture Diagram](architecture.png)
+- Project Poster:
+![Project Poster](poster.png)
+- Team members and responsibilities: `Gyan Chandra - IIITDM Kancheepuram (Track 2: Localized AI Agents Deployment)`
