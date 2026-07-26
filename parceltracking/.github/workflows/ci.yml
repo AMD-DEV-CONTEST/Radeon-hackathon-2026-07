@@ -2,13 +2,16 @@ name: CI/CD
 
 on:
   push:
-    branches: [ main ]
+    branches: ["main", "add-parceltracking" ]
   pull_request:
-    branches: [ main ]
+    branches: [ "main" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout repository
@@ -23,9 +26,11 @@ jobs:
 
       - name: Build with Maven
         run: ./mvnw -B package -DskipTests
+        working-directory: ./parceltracking
 
       - name: Run tests
         run: ./mvnw -B test
+        working-directory: ./parceltracking
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -37,7 +42,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: Dockerfile
+          context: ./parceltracking
+          file: ./parceltracking/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/parceltracking:latest
+          tags: ghcr.io/malu2555/parceltracking:latest
