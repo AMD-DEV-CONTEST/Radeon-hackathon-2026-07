@@ -3,7 +3,15 @@ import type { StreamEvent } from '~/types/api'
 export function useXiangLensApi() {
   const config = useRuntimeConfig()
   const apiKey = useState<string>('xianglens-api-key', () => '')
-  const apiBase = computed(() => String(config.public.apiBase).replace(/\/$/, ''))
+  const apiBaseOverride = useState<string>('xianglens-api-base', () => '')
+  const apiBase = computed(() => {
+    const value = apiBaseOverride.value || String(config.public.apiBase)
+    return value.trim().replace(/\/$/, '')
+  })
+
+  function setApiBase(value: string) {
+    apiBaseOverride.value = value.trim().replace(/\/$/, '')
+  }
 
   function headers(input?: HeadersInit): Headers {
     const result = new Headers(input)
@@ -65,6 +73,5 @@ export function useXiangLensApi() {
     return await response.blob()
   }
 
-  return { apiBase, apiKey, request, stream, download }
+  return { apiBase, apiKey, setApiBase, request, stream, download }
 }
-

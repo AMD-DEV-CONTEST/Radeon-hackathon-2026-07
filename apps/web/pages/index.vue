@@ -15,6 +15,7 @@ interface UploadedImage extends ImageSummary {
 
 const api = useXiangLensApi()
 const apiKeyInput = ref('')
+const apiBaseInput = ref('')
 const connectionError = ref('')
 const actionError = ref('')
 const system = ref<SystemStatus | null>(null)
@@ -27,6 +28,7 @@ const memories = ref<MemoryRecord[]>([])
 const connecting = ref(false)
 const uploading = ref(false)
 const analyzing = ref(false)
+const previewMode = ref(false)
 
 const form = reactive({
   platform: 'GitHub',
@@ -48,8 +50,9 @@ const packOptions = [
   ['open_chinese_symbolism', 'Chinese symbolism']
 ]
 
-const canAnalyze = computed(() => images.value.length > 0 && !analyzing.value)
+const canAnalyze = computed(() => images.value.length > 0 && !analyzing.value && !previewMode.value)
 const modelState = computed(() => {
+  if (previewMode.value) return 'Interface preview'
   if (!system.value) return 'Not checked'
   if (system.value.model_reachable === true) return 'Reachable'
   if (system.value.model_reachable === false) return 'Unreachable'
@@ -58,6 +61,8 @@ const modelState = computed(() => {
 
 onMounted(async () => {
   apiKeyInput.value = sessionStorage.getItem('xianglens-api-key') || ''
+  apiBaseInput.value = sessionStorage.getItem('xianglens-api-base') || api.apiBase.value
+  api.setApiBase(apiBaseInput.value)
   if (apiKeyInput.value) await connect()
 })
 
@@ -68,7 +73,10 @@ onBeforeUnmount(() => {
 async function connect() {
   connecting.value = true
   connectionError.value = ''
+  previewMode.value = false
+  api.setApiBase(apiBaseInput.value)
   api.apiKey.value = apiKeyInput.value.trim()
+  sessionStorage.setItem('xianglens-api-base', api.apiBase.value)
   sessionStorage.setItem('xianglens-api-key', api.apiKey.value)
   try {
     system.value = await api.request<SystemStatus>('/api/v1/system/status?probe_model=true')
@@ -78,6 +86,25 @@ async function connect() {
     system.value = null
   } finally {
     connecting.value = false
+  }
+}
+
+function previewWorkspace() {
+  connectionError.value = ''
+  previewMode.value = true
+  system.value = {
+    app: 'XiangLens',
+    version: 'preview',
+    environment: 'static-preview',
+    deployment_mode: 'development-remote',
+    auth_enabled: false,
+    model_configured: false,
+    model_reachable: null,
+    model_endpoint: 'Connect XiangLens FastAPI to run analysis',
+    model_name: 'Qwen3.6 35B A3B Fable 5 Distill Q6_K',
+    inference_ownership: 'static interface preview — no image or prompt leaves this browser',
+    submission_topology_compliant: false,
+    milvus_ready: false
   }
 }
 
@@ -99,6 +126,24 @@ async function selectFiles(event: Event) {
   uploading.value = true
   actionError.value = ''
   try {
+    if (previewMode.value) {
+      for (const file of selected) {
+        const bitmap = await createImageBitmap(file)
+        images.value.push({
+          id: `preview-${crypto.randomUUID()}`,
+          thread_id: 'static-preview',
+          original_name: file.name,
+          mime_type: file.type,
+          width: bitmap.width,
+          height: bitmap.height,
+          sha256: 'computed by the API after connection',
+          created_at: new Date().toISOString(),
+          previewUrl: URL.createObjectURL(file)
+        })
+        bitmap.close()
+      }
+      return
+    }
     const currentThread = await ensureThread()
     for (const file of selected) {
       const data = new FormData()
@@ -219,7 +264,7 @@ async function newSession() {
   if (threadId.value && !window.confirm('Delete this thread and its uploaded images?')) return
   actionError.value = ''
   try {
-    if (threadId.value) {
+    if (threadId.value && !previewMode.value) {
       await api.request<void>(`/api/v1/threads/${threadId.value}`, { method: 'DELETE' })
     }
   } catch (error) {
@@ -236,6 +281,7 @@ async function newSession() {
 }
 
 async function forgetMe() {
+  if (previewMode.value) return
   if (!window.confirm('Delete all demo-user threads, images, messages, and approved memories?')) return
   actionError.value = ''
   try {
@@ -293,10 +339,22 @@ function formatDuration(value: number): string {
         <p>The key stays in this browser tab and is sent only to {{ api.apiBase.value }}.</p>
       </div>
       <form class="connection-form" @submit.prevent="connect">
-        <input v-model="apiKeyInput" type="password" autocomplete="off" placeholder="X-App-API-Key">
-        <button class="primary-button" type="submit" :disabled="connecting">
-          {{ connecting ? 'Checking…' : 'Connect' }}
-        </button>
+        <label>
+          <span>XiangLens API base URL</span>
+          <input v-model="apiBaseInput" type="url" autocomplete="url" placeholder="https://your-xianglens-api.example">
+        </label>
+        <label>
+          <span>X-App-API-Key</span>
+          <input v-model="apiKeyInput" type="password" autocomplete="off" placeholder="Required by the FastAPI application">
+        </label>
+        <div class="connection-actions">
+          <button class="primary-button" type="submit" :disabled="connecting || !apiBaseInput">
+            {{ connecting ? 'Checking…' : 'Connect' }}
+          </button>
+          <button class="secondary-button" type="button" @click="previewWorkspace">
+            Preview workspace
+          </button>
+        </div>
       </form>
       <p v-if="connectionError" class="error-text">{{ connectionError }}</p>
     </section>
@@ -360,12 +418,12 @@ function formatDuration(value: number): string {
               <strong>{{ image.original_name }}</strong>
               <span>{{ image.width }} × {{ image.height }}</span>
             </div>
-            <button type="button" @click="exportSafeCopy(image.id)">Safe copy</button>
+            <button v-if="!previewMode" type="button" @click="exportSafeCopy(image.id)">Safe copy</button>
           </article>
         </div>
 
         <button class="primary-button analyze-button" type="button" :disabled="!canAnalyze" @click="analyze">
-          {{ analyzing ? 'Agent running…' : images.length > 1 ? 'Compare candidates' : 'Review image' }}
+          {{ previewMode ? 'Connect API to run analysis' : analyzing ? 'Agent running…' : images.length > 1 ? 'Compare candidates' : 'Review image' }}
         </button>
         <p v-if="actionError" class="error-text">{{ actionError }}</p>
       </aside>
@@ -507,7 +565,7 @@ function formatDuration(value: number): string {
             <p>{{ memory.text }}</p>
           </article>
           <p v-if="!memories.length" class="muted-copy">Nothing is stored in long-term memory.</p>
-          <button class="danger-button" type="button" @click="forgetMe">Forget all private state</button>
+          <button class="danger-button" type="button" :disabled="previewMode" @click="forgetMe">Forget all private state</button>
         </section>
 
         <section class="runtime-card">

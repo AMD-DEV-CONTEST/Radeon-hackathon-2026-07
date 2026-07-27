@@ -143,6 +143,21 @@ When authentication is enabled, send the configured value in `X-App-API-Key`.
 
 Interactive API documentation is available at `http://127.0.0.1:8080/docs`.
 
+## GitHub Pages Preview
+
+The English Nuxt workspace can be generated as a client-side application and deployed by the
+included GitHub Actions workflow:
+
+```bash
+cd apps/web
+NUXT_APP_BASE_URL=/Radeon-hackathon-2026-07/ pnpm generate
+```
+
+The deployable artifact is `apps/web/.output/public`. The public page includes a static workspace
+preview and an editable XiangLens API base URL. Preview mode keeps selected files inside the browser
+and never fabricates analysis output. Live analysis still requires the FastAPI application; do not
+point the UI directly at llama-server.
+
 ## Test
 
 ```bash
