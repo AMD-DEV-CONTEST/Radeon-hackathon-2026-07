@@ -42,6 +42,8 @@ def create_services(settings: Settings) -> AppServices:
         api_key=settings.llm_api_key.get_secret_value(),
         model=settings.llm_model,
         timeout_seconds=settings.llm_timeout_seconds,
+        enable_thinking=settings.llm_enable_thinking,
+        reasoning_budget=settings.llm_reasoning_budget,
     )
     graph = build_graph(
         GraphServices(

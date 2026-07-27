@@ -60,12 +60,16 @@ class LlamaCppClient:
         api_key: str,
         model: str,
         timeout_seconds: float,
+        enable_thinking: bool = True,
+        reasoning_budget: int = 2048,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.model = model
         self.timeout_seconds = timeout_seconds
+        self.enable_thinking = enable_thinking
+        self.reasoning_budget = reasoning_budget
         self.transport = transport
 
     def _headers(self) -> dict[str, str]:
@@ -104,8 +108,13 @@ class LlamaCppClient:
             "model": self.model,
             "messages": messages,
             "temperature": temperature,
-            "max_tokens": max_tokens,
+            # llama.cpp counts reasoning and final content against the same generation
+            # budget. Treat the public argument as final-content capacity and reserve
+            # the configured reasoning allowance separately.
+            "max_tokens": max_tokens + (self.reasoning_budget if self.enable_thinking else 0),
             "stream": False,
+            "chat_template_kwargs": {"enable_thinking": self.enable_thinking},
+            "reasoning_budget": self.reasoning_budget if self.enable_thinking else 0,
         }
         try:
             async with httpx.AsyncClient(
@@ -121,11 +130,17 @@ class LlamaCppClient:
         except (httpx.HTTPError, ValueError) as exc:
             raise ModelRequestError(f"Self-hosted model request failed: {exc}") from exc
         try:
-            return str(body["choices"][0]["message"]["content"])
+            message = body["choices"][0]["message"]
+            content = str(message["content"] or "")
         except (KeyError, IndexError, TypeError) as exc:
             raise ModelRequestError(
                 "The model response did not match the chat-completions schema"
             ) from exc
+        if not content.strip() and message.get("reasoning_content"):
+            raise ModelRequestError(
+                "The model used the output budget for reasoning before producing final content"
+            )
+        return content
 
     async def inspect_image(self, path: Path, prompt: str) -> dict[str, Any]:
         mime = "image/png" if path.suffix.lower() == ".png" else "image/jpeg"
@@ -151,6 +166,6 @@ class LlamaCppClient:
                 {"role": "user", "content": content},
             ],
             temperature=0.1,
-            max_tokens=700,
+            max_tokens=1200,
         )
         return parse_json_object(text)

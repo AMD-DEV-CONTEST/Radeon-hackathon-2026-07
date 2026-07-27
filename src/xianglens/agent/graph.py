@@ -321,7 +321,9 @@ def build_graph(services: GraphServices):
         started = time.perf_counter()
         prompt = (
             "Return a JSON object with keys visible_elements, composition, text_candidates, "
-            "privacy_candidates, and uncertainties. Every list value must contain short strings. "
+            "privacy_candidates, and uncertainties. visible_elements, text_candidates, "
+            "privacy_candidates, and uncertainties must be arrays of short strings. composition "
+            "must be one short string, not an array. "
             "Describe only directly visible evidence. "
             f"The user selected platform '{state['platform']}', audience '{state['audience']}', "
             f"and goals {state['intent_keywords']}. Do not identify a person or "
@@ -331,7 +333,19 @@ def build_graph(services: GraphServices):
         visual_findings = list(state.get("privacy_findings", []))
         for path in state["image_paths"]:
             raw = await services.model.inspect_image(path, prompt)
-            observation = VisualObservation.model_validate(raw)
+            try:
+                observation = VisualObservation.model_validate(raw)
+            except ValidationError as exc:
+                repair_prompt = (
+                    prompt
+                    + " Your previous JSON failed validation. Return a corrected object only. "
+                    + 'Example shape: {"visible_elements":["..."],'
+                    + '"composition":"...","text_candidates":[],'
+                    + '"privacy_candidates":[],"uncertainties":[]}. '
+                    + f"Validation error: {str(exc)[:500]}"
+                )
+                repaired = await services.model.inspect_image(path, repair_prompt)
+                observation = VisualObservation.model_validate(repaired)
             observations.append({"image_id": path.stem, **observation.model_dump()})
             visual_findings.extend(
                 {
@@ -430,7 +444,7 @@ def build_graph(services: GraphServices):
                 {"role": "user", "content": json.dumps(context, ensure_ascii=False)},
             ],
             CandidateComparison,
-            1200,
+            1800,
         )
         candidate_ids = {candidate.image_id for candidate in comparison.candidates}
         if candidate_ids != set(image_ids) or comparison.recommended_image_id not in candidate_ids:
@@ -475,7 +489,7 @@ def build_graph(services: GraphServices):
                 {"role": "user", "content": state["message"]},
             ],
             MemoryProposalDraft,
-            350,
+            700,
         )
         if any(term in proposal.text.lower() for term in SENSITIVE_MEMORY_TERMS):
             return {
@@ -539,7 +553,7 @@ def build_graph(services: GraphServices):
                 },
             ],
             StructuredReportDraft,
-            1400,
+            2200,
         )
         known_ids = {card["card_id"] for card in state.get("evidence", [])}
         report = report.model_copy(

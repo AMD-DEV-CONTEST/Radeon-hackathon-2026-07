@@ -1043,6 +1043,8 @@ benchmarks/raw/
 XIANG_LLM_BASE_URL=http://127.0.0.1:8000/v1
 XIANG_LLM_MODEL=xianglens-qwen3.6-35b-a3b-fable5-q6k
 XIANG_LLM_API_KEY=local-only
+XIANG_LLM_ENABLE_THINKING=true
+XIANG_LLM_REASONING_BUDGET=2048
 
 XIANG_SQLITE_PATH=./runtime/xianglens.sqlite3
 XIANG_MILVUS_URI=./runtime/xianglens_milvus.db

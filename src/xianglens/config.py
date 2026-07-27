@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     llm_model: str = "xianglens-qwen3.6-35b-a3b-fable5-q6k"
     llm_timeout_seconds: float = Field(default=180.0, gt=0, le=600)
     llm_probe_on_start: bool = False
+    llm_enable_thinking: bool = True
+    llm_reasoning_budget: int = Field(default=2048, ge=0, le=8192)
 
     sqlite_path: Path = PROJECT_ROOT / "runtime/xianglens.sqlite3"
     milvus_uri: Path = PROJECT_ROOT / "runtime/xianglens_milvus.db"

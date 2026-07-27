@@ -73,11 +73,19 @@ Set at least:
 XIANG_LLM_BASE_URL=https://YOUR-RADEON-ENDPOINT.example/v1
 XIANG_LLM_API_KEY=replace-me
 XIANG_LLM_MODEL=xianglens-qwen3.6-35b-a3b-fable5-q6k
+XIANG_LLM_ENABLE_THINKING=true
+XIANG_LLM_REASONING_BUDGET=2048
 XIANG_AUTH_ENABLED=true
 XIANG_APP_API_KEY=replace-with-a-long-random-value
 ```
 
-The application does not probe the model during startup unless `XIANG_LLM_PROBE_ON_START=true`. This allows local framework development before the Radeon endpoint is available.
+The application does not probe the model during startup unless `XIANG_LLM_PROBE_ON_START=true`.
+Thinking mode remains enabled for the distilled model. Structured calls reserve 2,048 reasoning
+tokens in addition to each node's final-content budget, so reasoning and final JSON do not compete
+for the same allowance. The live endpoint accepted an 8,192-token reasoning budget, but the default
+is lower to protect interactive latency. XiangLens validates only `message.content` and never
+displays or persists `reasoning_content`. If the model still exhausts the combined output budget,
+the client returns an explicit error.
 
 ## Build the Knowledge Database
 
