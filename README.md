@@ -1,86 +1,53 @@
-# Radeon-hackathon-2026-07
+# 🏭 Wafer Map Classification AI Audit System - Track 1
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+A local VLM batch inspection system built for AMD Radeon hardware to automate semiconductor wafer defect classification, spatial failure signature identification, and deterministic JSON auditing.
 
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
+---
 
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
+## 🚀 Project Links & Presentation Assets
 
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+* **🌐 Live Interactive Dashboard:** [Hugging Face Space Live App](https://huggingface.co/spaces/uttarasawant/amd_radeon_wafer_map_classification)
+* **📊 Project Slide Deck:** [View the Presentation Slides](https://huggingface.co/spaces/uttarasawant/amd_radeon_wafer_map_classification/resolve/main/Wafer%20Map%20Classification%20AI%20Audit%20System.pdf)
+* **🎬 Video Demonstration:** [Watch the Technical Walkthrough](https://youtu.be/-PNz3aqsU60)
+* **💻 Core Repository:** [GitHub - Wafer Map Training & Inference](https://github.com/uttarasawantgh/Radeon-hackathon-2026-07)
+* **🖥️ UI Repository:** [Control Center Dashboard](https://huggingface.co/spaces/uttarasawant/amd_radeon_wafer_map_classification)
+* **🖥️ Project Description PDF:** [Project Description PDF](https://huggingface.co/spaces/uttarasawant/amd_radeon_wafer_map_classification/resolve/main/Project%20Description%20PDF%20Track%201%20Wafer%20Map%20Classification.pdf)
+---
 
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+## ⚡ Hardware Telemetry & Benchmarking Highlights
 
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+This system executes zero-shot and fine-tuned wafer defect classification locally using dedicated AMD hardware and the ROCm software stack:
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+| Metric | Local AMD Hardware Radeon (PyTorch ROCm) |
+| :--- | :--- |
+| **Total Training Time** | **36.52 seconds** |
+| **Step Throughput** | **0.90 – 1.04 iterations/sec** |
+| **Sample Processing Speed** | **7.229 samples/sec** |
+| **Inference Engine** | **Qwen2.5-VL-7B-Instruct** (LoRA Adapted via SDPA) |
+| **Operational Cost** | **$0.00** (Fixed, Air-gapped Bare-Metal) |
 
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
+### Key Architectural Takeaways for Judges:
+1. **On-Premise Security:** Guarantees absolute data privacy by processing sensitive semiconductor fab test data locally without relying on external cloud APIs.
+2. **High-Throughput Localized Execution:** Optimizes AMD Radeon hardware via ROCm and bfloat16 precision to deliver rapid zero-shot defect classification and deterministic JSON audit outputs.
 
-## Submission Requirements
+---
 
-### Track 1: Development of Multimodal Content Creation Tools
+## 🚀 Roboflow Dataset Citation
 
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
+If you use this dataset in your research or project, please cite it as follows:
 
-### Track 2: Development & Local Deployment of Private AI Agents
+Wafer Detection Dataset. (2024). *Wafer Defect Detection Dataset* (Version 1) [Data set]. Roboflow Universe. https://universe.roboflow.com/wafer-defect-detection/wafer-detection
 
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
+---
 
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
+## 🛠️ Repository, System Structure & Script Order
 
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+* *Execute this core logic repository first to generate the necessary CSV and JSON audit logs, then run the UI repository to render the dashboard.*
+* **UI Repository Link:** [Wafer Map UI](https://huggingface.co/spaces/uttarasawant/amd_radeon_wafer_map_classification)
+* `download_data.py` - Script to download the raw semiconductor wafer map dataset from Roboflow Universe.
+* `prepare_dataset_amd.py` - Converts dataset annotations into a structured VLM training format and organizes outputs into the `data/processed` folder.
+* `train_amd_native.py` - Fine-tunes the base model using processed training outputs on AMD hardware and saves checkpoints to `./models/wafer_map_qwen_lora`.
+* `inference_amd.py` - Runs a single-image inference test using the fine-tuned LoRA weights on AMD hardware.
+* `batch_audit_amd.py` - Executes full test set evaluation, parsing results into `wafer_batch_inference_summary.json` and `wafer_defect_summary_log.csv`.
+* `wafer_defect_summary_log.csv` - The parsed operational risk matrices displayed on the audit dashboard UI.
+* `wafer_batch_inference_summary.json` - The inference results for the image batch.
