@@ -14,7 +14,7 @@ import org.springframework.web.client.RestClient;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(classes = ParceltrackingApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("prod")
+@ActiveProfiles("test")
 @Import(TestConfig.class)
 class SecurityConfigTest {
 

@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@ActiveProfiles("prod")
+@ActiveProfiles("test")
 @Import(TestConfig.class)
 class ParceltrackingApplicationTests {
 

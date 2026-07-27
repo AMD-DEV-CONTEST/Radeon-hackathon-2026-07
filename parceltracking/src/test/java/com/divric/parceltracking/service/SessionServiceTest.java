@@ -16,7 +16,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(classes = ParceltrackingApplication.class)
-@ActiveProfiles("prod")
+@ActiveProfiles("test")
 @Import(TestConfig.class)
 class SessionServiceTest {
 

@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 6. Response flows back through the chain to the controller
  */
 @SpringBootTest(classes = ParceltrackingApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("prod")
+@ActiveProfiles("test")
 @Import(TestConfig.class)
 class EndToEndFlowTest {
 

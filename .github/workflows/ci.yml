@@ -13,6 +13,9 @@ jobs:
       contents: read
       packages: write
 
+    env:
+      SPRING_PROFILES_ACTIVE: test
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,6 +26,7 @@ jobs:
           java-version: 21
           distribution: temurin
           cache: maven
+
       - name: Make mvnw executable
         run: chmod +x ./parceltracking/mvnw
 
@@ -48,3 +52,23 @@ jobs:
           file: ./parceltracking/Dockerfile
           push: true
           tags: ghcr.io/malu2555/parceltracking:latest
+
+      - name: Dump Surefire Reports
+        if: failure()
+        run: |
+          echo "=== printing surefire reports ==="
+          if [ -d parceltracking/target/surefire-reports ]; then
+            for f in parceltracking/target/surefire-reports/*.txt; do
+              echo "----- $f -----"
+              sed -n '1,400p' "$f"
+            done
+          else
+            echo "No surefire reports found."
+          fi
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: parceltracking-surefire-reports
+          path: parceltracking/target/surefire-reports
