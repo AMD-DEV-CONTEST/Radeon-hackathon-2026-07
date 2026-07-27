@@ -1,4 +1,7 @@
 -- Order tracking table (maps to OrderTracking entity)
+--you need to extend your vector extension
+CREATE EXTENSION IF NOT EXISTS vector;
+
 CREATE TABLE IF NOT EXISTS order_tracking (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
     tracking_number VARCHAR(255) NOT NULL UNIQUE,
@@ -25,5 +28,5 @@ CREATE TABLE IF NOT EXISTS vector_store (
     id        UUID PRIMARY KEY,
     content   TEXT NOT NULL,
     metadata  TEXT,
-    embedding VECTOR(768)
+    embedding VECTOR(1536)
 );

@@ -2,7 +2,6 @@ package com.divric.parceltracking.engine;
 
 import com.divric.parceltracking.actor.protocol.ActorMessage;
 import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.pattern.Patterns;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,9 +25,8 @@ public class SupervisorActorEngine {
     private final ActorRef gatewayActor;
     private final Duration askTimeout = Duration.ofSeconds(10);
 
-    public SupervisorActorEngine(ActorSystem actorSystem) {
-        // GatewayActor is created as a bean in PekkoConfig with name "gateway"
-        this.gatewayActor = actorSystem.actorSelection("/user/gateway").resolveOne(askTimeout).toCompletableFuture().join();
+    public SupervisorActorEngine(ActorRef gatewayActor) {
+        this.gatewayActor = gatewayActor;
         log.info("SupervisorActorEngine connected to GatewayActor at path: /user/gateway");
     }
 

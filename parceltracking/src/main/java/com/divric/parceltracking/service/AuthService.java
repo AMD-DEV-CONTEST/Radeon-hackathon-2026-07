@@ -32,6 +32,10 @@ public class AuthService {
 
     public boolean validateSession(String sessionIdStr) {
         try {
+            if (sessionIdStr == null) {
+                log.warn("Session validation failed — null session ID");
+                return false;
+            }
             UUID sessionId = UUID.fromString(sessionIdStr);
             boolean valid = sessionService.findSession(sessionId).isPresent();
             if (!valid) {

@@ -1,14 +1,22 @@
 services:
   db:
     # PostgreSQL 18 with pgvector extension — handles both tabular data and vector embeddings
-    image: pgvector/pgvector:0.8.0-pg18
+    image: pgvector/pgvector:0.8.0-pg17
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d parceltracking"]
+      interval: 5s
+      timeout:  5s
+      retries: 5
     container_name: parceltracking-db
     environment:
-      POSTGRES_USER: parcel
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: secret
       POSTGRES_DB: parceltracking
     volumes:
-      - ./pgdata:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/1_schema.sql
+      - ./data.sql:/docker-entrypoint-initdb.d/2_data.sql 
+      - postgres_data:/var/lib/postgresql/data
+
     ports:
       - "5432:5432"
     restart: unless-stopped
@@ -22,25 +30,36 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/parceltracking
-      SPRING_DATASOURCE_USERNAME: parcel
+      SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: secret
       SPRING_H2_CONSOLE_ENABLED: "false"
-      OPENAI_BASE_URL: http://vllm:8000/v1
-      OPENAI_CHAT_MODEL: meta-llama/Meta-Llama-3.2-1B-Instruct
+      VLLM_API_URL: http://rocm-vllm-server:8000/v1
+      CHAT_MODEL_NAME: meta-llama/Meta-Llama-3.2-1B-Instruct
       X-Admin-Key: admin-secret-key
     ports:
       - "8080:8080"
     depends_on:
-      - db
+       db:
+          condition: service_healthy
+       vllm:
+           condition: service_healthy
     restart: unless-stopped
 
+
   vllm:
-    image: vllm/vllm-openai:latest
-    container_name: vllm
+    image: vllm/vllm:<CHOOSE_YOUR_TARGET_ROCM_AND_GPU_TAG>
+    container_name: rocm-vllm-server
+    
     environment:
       MODEL: meta-llama/Meta-Llama-3.2-1B-Instruct
     ports:
       - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout:  5s
+      retries: 20
+      start_period: 60s #Gives vLLM time to  download and load weights into GPU VRAM
     deploy:
       resources:
         reservations:
@@ -50,5 +69,8 @@ services:
               capabilities: [gpu]
     volumes:
       - /dev/shm:/dev/shm
+      #add disk cache to prevent re-downloading
     ipc: host
     restart: unless-stopped
+volumes:
+  postgres_data: #Top level named volume.Ensures your data is not wiped out.

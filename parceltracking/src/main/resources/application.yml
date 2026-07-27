@@ -5,8 +5,8 @@ spring:
   # Default: PostgreSQL with pgvector (used in Docker/production)
   # Override with spring.profiles.active=dev for H2 local development
   datasource:
-    url: jdbc:postgresql://localhost:5432/parceltracking
-    username: parcel
+    url: jdbc:postgresql://db:5432/parceltracking # container service name is needed plus db name
+    username: postgres
     password: secret
     driver-class-name: org.postgresql.Driver
 
@@ -20,21 +20,21 @@ spring:
     show-sql: true
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect 
         '[format_sql]': true
     defer-datasource-initialization: true
 
   sql:
     init:
-      mode: always
+      mode: always # tells spring to always initialize the database schema and data on startup
 
   ai:
     openai:
       # Local ROCm inference endpoint (e.g., Ollama, llama.cpp, or vLLM with AMD GPU)
       api-key: ${OPENAI_API_KEY:not-needed}
-      base-url: ${OPENAI_BASE_URL:http://localhost:8000/v1}
+      base-url: ${VLLM_API_URL:http://localhost:8000/v1}
       chat:
-        model: ${OPENAI_CHAT_MODEL:llama3.2}
+        model: ${CHAT_MODEL_NAME:llama3.2-1B-Instruct}
         temperature: 0.7
         max-tokens: 2048
         top-p: 0.95
