@@ -6,7 +6,7 @@ The project does not identify people or infer personality, intelligence, health,
 
 ## Current Implementation
 
-- FastAPI application with versioned routes and optional API-key protection;
+- FastAPI application with permanent server credentials and short-lived browser access sessions;
 - bounded LangGraph workflow with a visible eight-step plan and live node events;
 - self-hosted llama.cpp chat-completions and multimodal adapter;
 - local image validation, measurement, EXIF scanning, and optional QR scanning;
@@ -35,11 +35,18 @@ Mac FastAPI application
 For the competition submission and demo:
 
 ```text
-Browser
-  -> XiangLens on the Radeon/ROCm machine
+GitHub Pages
+  -> POST /api/v1/session on XiangLens FastAPI
+  <- 10–30 minute Bearer token
+  -> authenticated XiangLens API on the Radeon/ROCm machine
   -> http://127.0.0.1:8000/v1
   -> llama-server on the same Radeon/ROCm machine
 ```
+
+The permanent application key stays on the FastAPI host. Each browser receives a random session
+identity, and the backend scopes threads, memories, consent decisions, exports, and deletion to that
+identity. A Cloudflare Worker may be placed in front for edge rate limiting, but is not required to
+hold or expose the permanent key in the default FastAPI-issued flow.
 
 The development URL is not a third-party AI service. However, the final same-host topology is important because Track 2 prohibits core inference through a remote API.
 
@@ -77,6 +84,10 @@ XIANG_LLM_ENABLE_THINKING=true
 XIANG_LLM_REASONING_BUDGET=2048
 XIANG_AUTH_ENABLED=true
 XIANG_APP_API_KEY=replace-with-a-long-random-value
+XIANG_PUBLIC_SESSIONS_ENABLED=true
+XIANG_ACCESS_TOKEN_TTL_MINUTES=20
+XIANG_SESSION_ISSUE_LIMIT_PER_MINUTE=10
+XIANG_ALLOWED_ORIGINS=https://ld0574.github.io
 ```
 
 The application does not probe the model during startup unless `XIANG_LLM_PROBE_ON_START=true`.
@@ -115,15 +126,16 @@ Start the API and web workspace in separate terminals:
 ./scripts/start_web.sh
 ```
 
-Open `http://127.0.0.1:3000`, enter the configured application key, and connect. The
-frontend origin is restricted by `XIANG_ALLOWED_ORIGINS`; the default permits only the two
-local development origins documented in `.env.example`.
+Open `http://127.0.0.1:3000`. The frontend requests a short-lived session automatically; it never
+asks for or stores `XIANG_APP_API_KEY`. Browser origins are restricted by
+`XIANG_ALLOWED_ORIGINS`.
 
 Useful endpoints:
 
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/health` | Process health without a model request |
+| `POST` | `/api/v1/session` | Issue a short-lived, visitor-scoped Bearer token |
 | `GET` | `/api/v1/system/status?probe_model=true` | Deployment and model status |
 | `POST` | `/api/v1/threads` | Create a conversation thread |
 | `POST` | `/api/v1/threads/{id}/images` | Upload a JPEG, PNG, or WebP image |
@@ -139,7 +151,8 @@ Useful endpoints:
 | `DELETE` | `/api/v1/memories/{id}?user_id=...` | Delete an approved memory |
 | `DELETE` | `/api/v1/privacy/forget-me?user_id=...` | Delete all user threads, images, and memories |
 
-When authentication is enabled, send the configured value in `X-App-API-Key`.
+The web application sends `Authorization: Bearer <short-lived-token>`. `X-App-API-Key` remains
+available only for trusted operator scripts and must never be embedded in the frontend bundle.
 
 Interactive API documentation is available at `http://127.0.0.1:8080/docs`.
 
@@ -154,9 +167,10 @@ NUXT_APP_BASE_URL=/Radeon-hackathon-2026-07/ pnpm generate
 ```
 
 The deployable artifact is `apps/web/.output/public`. The public page includes a static workspace
-preview and an editable XiangLens API base URL. Preview mode keeps selected files inside the browser
-and never fabricates analysis output. Live analysis still requires the FastAPI application; do not
-point the UI directly at llama-server.
+preview. Configure the repository Actions variable `XIANGLENS_API_BASE` with the public HTTPS URL of
+FastAPI; the UI uses that build-time default and keeps the override under **Advanced settings**.
+Preview mode keeps selected files inside the browser and never fabricates analysis output. Live
+analysis still requires the FastAPI application; do not point the UI directly at llama-server.
 
 ## Test
 

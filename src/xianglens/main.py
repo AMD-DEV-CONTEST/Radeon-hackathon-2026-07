@@ -14,12 +14,17 @@ from starlette.responses import JSONResponse
 
 from xianglens import __version__
 from xianglens.api.routes import router
+from xianglens.auth import SessionIssueLimiter, SessionTokenError, SessionTokenManager
 from xianglens.config import Settings, get_settings
 from xianglens.services import AppServices, create_services
 
 
 def create_app(settings: Settings | None = None, services: AppServices | None = None) -> FastAPI:
     settings = settings or get_settings()
+    permanent_key = settings.app_api_key.get_secret_value()
+    session_tokens = None
+    if settings.public_sessions_enabled and permanent_key:
+        session_tokens = SessionTokenManager(permanent_key, settings.access_token_ttl_minutes)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -35,6 +40,8 @@ def create_app(settings: Settings | None = None, services: AppServices | None = 
         description="Private, source-backed profile-image analysis.",
         lifespan=lifespan,
     )
+    app.state.session_tokens = session_tokens
+    app.state.session_limiter = SessionIssueLimiter(settings.session_issue_limit_per_minute)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins,
@@ -50,12 +57,35 @@ def create_app(settings: Settings | None = None, services: AppServices | None = 
         if (
             request.method != "OPTIONS"
             and request.url.path.startswith("/api/v1")
+            and request.url.path != "/api/v1/session"
             and settings.auth_enabled
         ):
-            configured = settings.app_api_key.get_secret_value()
-            supplied = request.headers.get("X-App-API-Key", "")
-            if not configured or not secrets.compare_digest(configured, supplied):
-                return JSONResponse(status_code=401, content={"detail": "Invalid API key"})
+            supplied_key = request.headers.get("X-App-API-Key", "")
+            if permanent_key and secrets.compare_digest(permanent_key, supplied_key):
+                request.state.auth_mode = "permanent_key"
+                request.state.session_user_id = None
+                return await call_next(request)
+
+            authorization = request.headers.get("Authorization", "")
+            scheme, _, token = authorization.partition(" ")
+            if session_tokens is not None and scheme.lower() == "bearer" and token:
+                try:
+                    claims = session_tokens.verify(token)
+                except SessionTokenError:
+                    pass
+                else:
+                    request.state.auth_mode = "access_session"
+                    request.state.session_user_id = claims.session_id
+                    request.state.session_token_id = claims.token_id
+                    return await call_next(request)
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "A valid access session is required"},
+                headers={
+                    "WWW-Authenticate": "Bearer",
+                    "Cache-Control": "no-store",
+                },
+            )
         return await call_next(request)
 
     app.include_router(router)

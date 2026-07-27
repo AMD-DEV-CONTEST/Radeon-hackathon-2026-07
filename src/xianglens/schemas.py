@@ -19,6 +19,14 @@ def utc_now() -> datetime:
     return datetime.now(UTC)
 
 
+class AccessSession(BaseModel):
+    access_token: str
+    token_type: Literal["Bearer"] = "Bearer"
+    expires_in: int
+    expires_at: datetime
+    session_id: str
+
+
 class ThreadCreate(BaseModel):
     user_id: str = Field(default="demo-user", min_length=1, max_length=128)
 

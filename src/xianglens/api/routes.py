@@ -6,11 +6,12 @@ import json
 import logging
 import uuid
 from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
 from urllib.parse import urlsplit, urlunsplit
 
-from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile, status
+from fastapi import APIRouter, File, HTTPException, Query, Request, Response, UploadFile, status
 from starlette.background import BackgroundTask
 from starlette.responses import FileResponse, StreamingResponse
 
@@ -18,6 +19,7 @@ from xianglens import __version__
 from xianglens.inference.llama_client import ModelNotConfiguredError, ModelRequestError
 from xianglens.schemas import (
     LENS_PACKS,
+    AccessSession,
     AnalysisRunRequest,
     AnalysisRunResponse,
     ConsentDecision,
@@ -53,9 +55,25 @@ def _safe_endpoint(value: str) -> str:
     return urlunsplit((parsed.scheme, host + port, parsed.path, "", ""))
 
 
-def _require_thread(services: AppServices, thread_id: str) -> dict:
+def _session_user_id(request: Request) -> str | None:
+    return getattr(request.state, "session_user_id", None)
+
+
+def _scope_user(request: Request, requested_user_id: str) -> str:
+    session_user_id = _session_user_id(request)
+    if session_user_id is not None and session_user_id != requested_user_id:
+        raise HTTPException(
+            status_code=403,
+            detail="The access session cannot use another identity",
+        )
+    return session_user_id or requested_user_id
+
+
+def _require_thread(
+    services: AppServices, thread_id: str, session_user_id: str | None = None
+) -> dict:
     thread = services.database.get_thread(thread_id)
-    if thread is None:
+    if thread is None or (session_user_id is not None and thread["user_id"] != session_user_id):
         raise HTTPException(status_code=404, detail="Thread not found")
     return thread
 
@@ -98,8 +116,9 @@ def _start_analysis(
     services: AppServices,
     thread_id: str,
     payload: AnalysisRunRequest,
+    session_user_id: str | None = None,
 ) -> tuple[dict, list[dict], str, dict]:
-    thread = _require_thread(services, thread_id)
+    thread = _require_thread(services, thread_id, session_user_id)
     unknown_packs = sorted(set(payload.enabled_packs) - set(LENS_PACKS))
     if unknown_packs:
         raise HTTPException(status_code=422, detail=f"Unknown Lens Packs: {unknown_packs}")
@@ -175,6 +194,38 @@ async def health() -> dict[str, str]:
     return {"status": "ok", "service": "xianglens"}
 
 
+@router.post(
+    "/api/v1/session",
+    response_model=AccessSession,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_access_session(request: Request, response: Response) -> AccessSession:
+    services = _services(request)
+    settings = services.settings
+    manager = request.app.state.session_tokens
+    if not settings.auth_enabled or not settings.public_sessions_enabled or manager is None:
+        raise HTTPException(status_code=404, detail="Access-session issuance is not enabled")
+
+    client_key = request.client.host if request.client is not None else "unknown"
+    retry_after = request.app.state.session_limiter.retry_after(client_key)
+    if retry_after:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many access-session requests",
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    token, claims = manager.issue()
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    return AccessSession(
+        access_token=token,
+        expires_in=manager.ttl_seconds,
+        expires_at=datetime.fromtimestamp(claims.expires_at, UTC),
+        session_id=claims.session_id,
+    )
+
+
 @router.get("/api/v1/system/status", response_model=SystemStatus)
 async def system_status(
     request: Request, probe_model: Annotated[bool, Query()] = False
@@ -209,18 +260,19 @@ async def lens_packs() -> dict[str, list[str]]:
 
 @router.post("/api/v1/threads", response_model=ThreadSummary, status_code=status.HTTP_201_CREATED)
 async def create_thread(payload: ThreadCreate, request: Request) -> dict:
-    return _services(request).database.create_thread(payload.user_id)
+    user_id = _scope_user(request, payload.user_id)
+    return _services(request).database.create_thread(user_id)
 
 
 @router.get("/api/v1/threads/{thread_id}", response_model=ThreadSummary)
 async def get_thread(thread_id: str, request: Request) -> dict:
-    return _require_thread(_services(request), thread_id)
+    return _require_thread(_services(request), thread_id, _session_user_id(request))
 
 
 @router.get("/api/v1/threads/{thread_id}/state", response_model=ThreadDetail)
 async def get_thread_state(thread_id: str, request: Request) -> dict:
     services = _services(request)
-    thread = _require_thread(services, thread_id)
+    thread = _require_thread(services, thread_id, _session_user_id(request))
     return {
         **thread,
         "images": services.database.list_images(thread_id),
@@ -231,7 +283,7 @@ async def get_thread_state(thread_id: str, request: Request) -> dict:
 @router.get("/api/v1/threads/{thread_id}/runs", response_model=list[RunRecord])
 async def list_thread_runs(thread_id: str, request: Request) -> list[dict]:
     services = _services(request)
-    _require_thread(services, thread_id)
+    _require_thread(services, thread_id, _session_user_id(request))
     return services.database.list_runs(thread_id)
 
 
@@ -240,13 +292,14 @@ async def get_run(run_id: str, request: Request) -> dict:
     run = _services(request).database.get_run(run_id)
     if run is None:
         raise HTTPException(status_code=404, detail="Run not found")
+    _require_thread(_services(request), run["thread_id"], _session_user_id(request))
     return run
 
 
 @router.delete("/api/v1/threads/{thread_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_thread(thread_id: str, request: Request) -> None:
     services = _services(request)
-    _require_thread(services, thread_id)
+    _require_thread(services, thread_id, _session_user_id(request))
     for stored_path in services.database.delete_thread(thread_id):
         path = Path(stored_path).resolve()
         try:
@@ -268,7 +321,7 @@ async def upload_image(
     image: Annotated[UploadFile, File(description="JPEG, PNG, or WebP image")],
 ) -> dict:
     services = _services(request)
-    _require_thread(services, thread_id)
+    _require_thread(services, thread_id, _session_user_id(request))
     data = await image.read(services.settings.max_upload_bytes + 1)
     try:
         details = services.image_inspector.validate_upload(data)
@@ -294,7 +347,7 @@ async def upload_image(
 @router.post("/api/v1/threads/{thread_id}/images/{image_id}/safe-copy")
 async def export_safe_copy(thread_id: str, image_id: str, request: Request) -> FileResponse:
     services = _services(request)
-    _require_thread(services, thread_id)
+    _require_thread(services, thread_id, _session_user_id(request))
     image = services.database.get_image(thread_id, image_id)
     if image is None:
         raise HTTPException(status_code=404, detail="Image not found")
@@ -328,7 +381,9 @@ async def run_analysis(
     thread_id: str, payload: AnalysisRunRequest, request: Request
 ) -> AnalysisRunResponse:
     services = _services(request)
-    thread, images, run_id, initial_state = _start_analysis(services, thread_id, payload)
+    thread, images, run_id, initial_state = _start_analysis(
+        services, thread_id, payload, _session_user_id(request)
+    )
     try:
         result = await services.graph.ainvoke(initial_state)
         return _finalize_analysis(
@@ -354,7 +409,9 @@ async def stream_analysis(
     thread_id: str, payload: AnalysisRunRequest, request: Request
 ) -> StreamingResponse:
     services = _services(request)
-    thread, images, run_id, initial_state = _start_analysis(services, thread_id, payload)
+    thread, images, run_id, initial_state = _start_analysis(
+        services, thread_id, payload, _session_user_id(request)
+    )
 
     async def event_stream() -> AsyncIterator[str]:
         state = dict(initial_state)
@@ -422,11 +479,12 @@ async def stream_analysis(
 )
 async def propose_memory(thread_id: str, payload: MemoryProposalCreate, request: Request) -> dict:
     services = _services(request)
-    _require_thread(services, thread_id)
+    _require_thread(services, thread_id, _session_user_id(request))
+    user_id = _scope_user(request, payload.user_id)
     try:
         return services.database.create_memory_proposal(
             thread_id=thread_id,
-            user_id=payload.user_id,
+            user_id=user_id,
             text=payload.text,
             memory_type=payload.memory_type,
         )
@@ -437,6 +495,12 @@ async def propose_memory(thread_id: str, payload: MemoryProposalCreate, request:
 @router.post("/api/v1/consents/{consent_id}", response_model=MemoryProposal)
 async def decide_consent(consent_id: str, payload: ConsentDecision, request: Request) -> dict:
     services = _services(request)
+    existing = services.database.get_consent(consent_id)
+    session_user_id = _session_user_id(request)
+    if existing is None or (
+        session_user_id is not None and existing["user_id"] != session_user_id
+    ):
+        raise HTTPException(status_code=404, detail="Consent request not found")
     try:
         consent = services.database.decide_consent(consent_id, payload.action, payload.edited_text)
     except ValueError as exc:
@@ -450,21 +514,21 @@ async def decide_consent(consent_id: str, payload: ConsentDecision, request: Req
 async def list_memories(
     request: Request, user_id: Annotated[str, Query(min_length=1)]
 ) -> list[dict]:
-    return _services(request).database.list_memories(user_id)
+    return _services(request).database.list_memories(_scope_user(request, user_id))
 
 
 @router.delete("/api/v1/memories/{memory_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_memory(
     memory_id: str, request: Request, user_id: Annotated[str, Query(min_length=1)]
 ) -> None:
-    if not _services(request).database.delete_memory(memory_id, user_id):
+    if not _services(request).database.delete_memory(memory_id, _scope_user(request, user_id)):
         raise HTTPException(status_code=404, detail="Memory not found")
 
 
 @router.delete("/api/v1/privacy/forget-me", response_model=ForgetMeResult)
 async def forget_me(request: Request, user_id: Annotated[str, Query(min_length=1)]) -> dict:
     services = _services(request)
-    result = services.database.forget_user(user_id)
+    result = services.database.forget_user(_scope_user(request, user_id))
     for stored_path in result.pop("paths"):
         path = Path(stored_path).resolve()
         try:

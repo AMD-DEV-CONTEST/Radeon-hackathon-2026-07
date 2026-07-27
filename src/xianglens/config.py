@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     auth_enabled: bool = False
     app_api_key: SecretStr = SecretStr("")
+    public_sessions_enabled: bool = False
+    access_token_ttl_minutes: int = Field(default=20, ge=10, le=30)
+    session_issue_limit_per_minute: int = Field(default=10, ge=1, le=120)
 
     llm_base_url: str = ""
     llm_api_key: SecretStr = SecretStr("")

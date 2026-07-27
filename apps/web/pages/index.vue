@@ -14,7 +14,6 @@ interface UploadedImage extends ImageSummary {
 }
 
 const api = useXiangLensApi()
-const apiKeyInput = ref('')
 const apiBaseInput = ref('')
 const connectionError = ref('')
 const actionError = ref('')
@@ -60,10 +59,10 @@ const modelState = computed(() => {
 })
 
 onMounted(async () => {
-  apiKeyInput.value = sessionStorage.getItem('xianglens-api-key') || ''
   apiBaseInput.value = sessionStorage.getItem('xianglens-api-base') || api.apiBase.value
   api.setApiBase(apiBaseInput.value)
-  if (apiKeyInput.value) await connect()
+  api.restoreSession()
+  if (apiBaseInput.value) await connect()
 })
 
 onBeforeUnmount(() => {
@@ -75,10 +74,9 @@ async function connect() {
   connectionError.value = ''
   previewMode.value = false
   api.setApiBase(apiBaseInput.value)
-  api.apiKey.value = apiKeyInput.value.trim()
   sessionStorage.setItem('xianglens-api-base', api.apiBase.value)
-  sessionStorage.setItem('xianglens-api-key', api.apiKey.value)
   try {
+    await api.openSession()
     system.value = await api.request<SystemStatus>('/api/v1/system/status?probe_model=true')
     await loadMemories()
   } catch (error) {
@@ -110,10 +108,11 @@ function previewWorkspace() {
 
 async function ensureThread(): Promise<string> {
   if (threadId.value) return threadId.value
+  if (!api.sessionId.value) throw new Error('No active access session')
   const thread = await api.request<{ id: string }>('/api/v1/threads', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: 'demo-user' })
+    body: JSON.stringify({ user_id: api.sessionId.value })
   })
   threadId.value = thread.id
   return thread.id
@@ -228,15 +227,21 @@ async function decideMemory(proposal: MemoryProposal, action: 'approve' | 'rejec
 }
 
 async function loadMemories() {
-  memories.value = await api.request<MemoryRecord[]>('/api/v1/memories?user_id=demo-user')
+  if (!api.sessionId.value) return
+  memories.value = await api.request<MemoryRecord[]>(
+    `/api/v1/memories?user_id=${encodeURIComponent(api.sessionId.value)}`
+  )
 }
 
 async function deleteMemory(memoryId: string) {
   actionError.value = ''
   try {
-    await api.request<void>(`/api/v1/memories/${memoryId}?user_id=demo-user`, {
+    await api.request<void>(
+      `/api/v1/memories/${memoryId}?user_id=${encodeURIComponent(api.sessionId.value)}`,
+      {
       method: 'DELETE'
-    })
+      }
+    )
     memories.value = memories.value.filter((memory: MemoryRecord) => memory.id !== memoryId)
   } catch (error) {
     actionError.value = error instanceof Error ? error.message : String(error)
@@ -263,6 +268,7 @@ async function exportSafeCopy(imageId: string) {
 async function newSession() {
   if (threadId.value && !window.confirm('Delete this thread and its uploaded images?')) return
   actionError.value = ''
+  const wasConnected = !previewMode.value && Boolean(system.value)
   try {
     if (threadId.value && !previewMode.value) {
       await api.request<void>(`/api/v1/threads/${threadId.value}`, { method: 'DELETE' })
@@ -278,14 +284,28 @@ async function newSession() {
   events.value = []
   plan.value = []
   actionError.value = ''
+  if (wasConnected) {
+    api.clearSession()
+    try {
+      await api.openSession(true)
+      await loadMemories()
+    } catch (error) {
+      system.value = null
+      connectionError.value = error instanceof Error ? error.message : String(error)
+    }
+  }
 }
 
 async function forgetMe() {
   if (previewMode.value) return
-  if (!window.confirm('Delete all demo-user threads, images, messages, and approved memories?')) return
+  if (!api.sessionId.value) return
+  if (!window.confirm('Delete all data created in this private session?')) return
   actionError.value = ''
   try {
-    await api.request('/api/v1/privacy/forget-me?user_id=demo-user', { method: 'DELETE' })
+    await api.request(
+      `/api/v1/privacy/forget-me?user_id=${encodeURIComponent(api.sessionId.value)}`,
+      { method: 'DELETE' }
+    )
   } catch (error) {
     actionError.value = error instanceof Error ? error.message : String(error)
     return
@@ -334,27 +354,39 @@ function formatDuration(value: number): string {
 
     <section v-if="!system" class="connection-card">
       <div>
-        <p class="eyebrow">Connect to your local application</p>
-        <h2>Private workspace access</h2>
-        <p>The key stays in this browser tab and is sent only to {{ api.apiBase.value }}.</p>
+        <p class="eyebrow">Short-lived access</p>
+        <h2>Open a private workspace</h2>
+        <p>
+          XiangLens requests a temporary Bearer token. The permanent credential never enters
+          this page, browser storage, or the generated GitHub Pages bundle.
+        </p>
       </div>
       <form class="connection-form" @submit.prevent="connect">
-        <label>
-          <span>XiangLens API base URL</span>
-          <input v-model="apiBaseInput" type="url" autocomplete="url" placeholder="https://your-xianglens-api.example">
-        </label>
-        <label>
-          <span>X-App-API-Key</span>
-          <input v-model="apiKeyInput" type="password" autocomplete="off" placeholder="Required by the FastAPI application">
-        </label>
+        <div class="connection-endpoint">
+          <span>Configured XiangLens API</span>
+          <strong>{{ api.apiBase.value || 'Not configured' }}</strong>
+        </div>
         <div class="connection-actions">
           <button class="primary-button" type="submit" :disabled="connecting || !apiBaseInput">
-            {{ connecting ? 'Checking…' : 'Connect' }}
+            {{ connecting ? 'Opening…' : 'Open secure session' }}
           </button>
           <button class="secondary-button" type="button" @click="previewWorkspace">
             Preview workspace
           </button>
         </div>
+        <details class="advanced-settings">
+          <summary>Advanced settings</summary>
+          <label>
+            <span>Override API base URL</span>
+            <input
+              v-model="apiBaseInput"
+              type="url"
+              autocomplete="url"
+              placeholder="https://your-xianglens-api.example"
+            >
+          </label>
+          <small>The deployment default is injected through <code>NUXT_PUBLIC_API_BASE</code>.</small>
+        </details>
       </form>
       <p v-if="connectionError" class="error-text">{{ connectionError }}</p>
     </section>

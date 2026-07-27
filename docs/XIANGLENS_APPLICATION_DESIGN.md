@@ -222,7 +222,8 @@ The weights are visible. Privacy risks override the aggregate recommendation.
 
 ```mermaid
 flowchart LR
-    UI["Nuxt Web UI<br/>English only"]
+    UI["GitHub Pages<br/>Nuxt Web UI · English only"]
+    SESSION["POST /api/v1/session<br/>Short-lived Bearer token"]
     API["FastAPI<br/>Authentication + Upload + SSE"]
     GRAPH["LangGraph<br/>State + Policy + Planner"]
     LLM["llama-server<br/>Qwen3.6 35B A3B GGUF Q6_K"]
@@ -232,7 +233,9 @@ flowchart LR
     SQLITE["SQLite<br/>Threads + Consent + Audit"]
     TEMP["Ephemeral Image Workspace"]
 
-    UI -->|"HTTPS / SSE"| API
+    UI --> SESSION
+    SESSION --> API
+    UI -->|"Bearer token · HTTPS / SSE"| API
     API --> GRAPH
     GRAPH -->|"localhost OpenAI-compatible API"| LLM
     LLM --> GPU
@@ -247,7 +250,9 @@ flowchart LR
 All core services run in one user-controlled AMD Radeon environment:
 
 ```text
-Browser
+GitHub Pages
+  -> POST /api/v1/session
+  <- 10–30 minute visitor-scoped Bearer token
   -> authenticated XiangLens application
   -> FastAPI and LangGraph
   -> 127.0.0.1 llama-server
@@ -255,6 +260,14 @@ Browser
 ```
 
 If the UI is exposed through Radeon Cloud tunnel, authentication is mandatory. The model port, Milvus database file, SQLite database, and runtime directory remain bound to localhost or local storage only.
+
+The FastAPI host owns the permanent `XIANG_APP_API_KEY` and derives signed, stateless access tokens
+from it with domain-separated HMAC-SHA256. The permanent value is never compiled into Nuxt, entered
+by a visitor, or stored in the browser. `POST /api/v1/session` is the only unauthenticated versioned
+route. It is CORS-restricted, locally rate-limited, and returns a random session identity with a
+configurable 10–30 minute lifetime. All user-owned routes enforce that identity, preventing public
+visitors from sharing threads or memories. Production should add an edge rate limit through the
+Radeon ingress or an optional Cloudflare Worker.
 
 Local development does not require a Radeon GPU on the developer workstation. Before the UI is deployed to the competition machine, the Mac application may connect through a private authenticated URL to the same user-controlled llama.cpp service running on Radeon Cloud. This is a development topology only. The final demo and submission run FastAPI beside llama-server and set `XIANG_LLM_BASE_URL=http://127.0.0.1:8000/v1`, satisfying the requirement that core inference not depend on a third-party remote API.
 
@@ -569,6 +582,8 @@ Users can:
 - Never expose absolute server paths in SSE events.
 - Bind model and storage services to localhost.
 - Require authentication for a public tunnel.
+- Keep the permanent application key server-side and issue 10–30 minute Bearer tokens.
+- Scope threads, consent, memories, and deletion to the signed session identity.
 - Rate-limit uploads and enforce session expiry.
 - Exclude models, databases, uploads, private packs, and secrets from Git.
 
@@ -1059,7 +1074,11 @@ XIANG_RAG_TOP_K=4
 XIANG_ENABLED_LENS_PACKS=profile_basics,privacy_safety,global_professional_context,open_chinese_symbolism
 
 XIANG_AUTH_ENABLED=true
-XIANG_ALLOWED_ORIGINS=http://127.0.0.1:3000,http://localhost:3000
+XIANG_APP_API_KEY=replace-with-at-least-32-random-characters
+XIANG_PUBLIC_SESSIONS_ENABLED=true
+XIANG_ACCESS_TOKEN_TTL_MINUTES=20
+XIANG_SESSION_ISSUE_LIMIT_PER_MINUTE=10
+XIANG_ALLOWED_ORIGINS=http://127.0.0.1:3000,http://localhost:3000,https://ld0574.github.io
 ```
 
 The application prints a redacted effective configuration at startup so reviewers can verify localhost inference, disabled network tools, and local storage.

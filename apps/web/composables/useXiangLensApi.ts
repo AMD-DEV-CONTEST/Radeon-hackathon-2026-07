@@ -1,8 +1,10 @@
-import type { StreamEvent } from '~/types/api'
+import type { AccessSession, StreamEvent } from '~/types/api'
 
 export function useXiangLensApi() {
   const config = useRuntimeConfig()
-  const apiKey = useState<string>('xianglens-api-key', () => '')
+  const accessToken = useState<string>('xianglens-access-token', () => '')
+  const sessionId = useState<string>('xianglens-session-id', () => '')
+  const sessionExpiresAt = useState<number>('xianglens-session-expires-at', () => 0)
   const apiBaseOverride = useState<string>('xianglens-api-base', () => '')
   const apiBase = computed(() => {
     const value = apiBaseOverride.value || String(config.public.apiBase)
@@ -10,13 +12,67 @@ export function useXiangLensApi() {
   })
 
   function setApiBase(value: string) {
-    apiBaseOverride.value = value.trim().replace(/\/$/, '')
+    const normalized = value.trim().replace(/\/$/, '')
+    if (normalized !== apiBase.value) clearSession()
+    apiBaseOverride.value = normalized
   }
 
   function headers(input?: HeadersInit): Headers {
     const result = new Headers(input)
-    if (apiKey.value) result.set('X-App-API-Key', apiKey.value)
+    if (accessToken.value) result.set('Authorization', `Bearer ${accessToken.value}`)
     return result
+  }
+
+  function clearSession() {
+    accessToken.value = ''
+    sessionId.value = ''
+    sessionExpiresAt.value = 0
+    if (import.meta.client) {
+      sessionStorage.removeItem('xianglens-access-token')
+      sessionStorage.removeItem('xianglens-session-id')
+      sessionStorage.removeItem('xianglens-session-expires-at')
+    }
+  }
+
+  function restoreSession() {
+    if (!import.meta.client) return
+    const storedExpiry = Number(sessionStorage.getItem('xianglens-session-expires-at') || 0)
+    if (storedExpiry <= Date.now() + 5_000) {
+      clearSession()
+      return
+    }
+    accessToken.value = sessionStorage.getItem('xianglens-access-token') || ''
+    sessionId.value = sessionStorage.getItem('xianglens-session-id') || ''
+    sessionExpiresAt.value = storedExpiry
+    if (!accessToken.value || !sessionId.value) clearSession()
+  }
+
+  async function openSession(force = false): Promise<AccessSession> {
+    if (!force && accessToken.value && sessionId.value && sessionExpiresAt.value > Date.now() + 5_000) {
+      return {
+        access_token: accessToken.value,
+        token_type: 'Bearer',
+        expires_in: Math.floor((sessionExpiresAt.value - Date.now()) / 1000),
+        expires_at: new Date(sessionExpiresAt.value).toISOString(),
+        session_id: sessionId.value
+      }
+    }
+    clearSession()
+    const response = await fetch(`${apiBase.value}/api/v1/session`, { method: 'POST' })
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({ detail: response.statusText }))
+      throw new Error(String(body.detail || response.statusText))
+    }
+    const session = await response.json() as AccessSession
+    accessToken.value = session.access_token
+    sessionId.value = session.session_id
+    sessionExpiresAt.value = Date.parse(session.expires_at)
+    if (import.meta.client) {
+      sessionStorage.setItem('xianglens-access-token', accessToken.value)
+      sessionStorage.setItem('xianglens-session-id', sessionId.value)
+      sessionStorage.setItem('xianglens-session-expires-at', String(sessionExpiresAt.value))
+    }
+    return session
   }
 
   async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -73,5 +129,17 @@ export function useXiangLensApi() {
     return await response.blob()
   }
 
-  return { apiBase, apiKey, setApiBase, request, stream, download }
+  return {
+    apiBase,
+    accessToken,
+    sessionId,
+    sessionExpiresAt,
+    setApiBase,
+    restoreSession,
+    openSession,
+    clearSession,
+    request,
+    stream,
+    download
+  }
 }

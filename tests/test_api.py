@@ -18,12 +18,20 @@ from xianglens.storage.sqlite_store import SQLiteStore
 from xianglens.tools.image_tools import ImageInspector
 
 
-def _test_app(tmp_path: Path):
+def _test_app(
+    tmp_path: Path,
+    *,
+    public_sessions_enabled: bool = False,
+    session_issue_limit_per_minute: int = 10,
+    app_api_key: str = "test-key",
+):
     settings = Settings(
         _env_file=None,
         app_env="test",
         auth_enabled=True,
-        app_api_key="test-key",
+        app_api_key=app_api_key,
+        public_sessions_enabled=public_sessions_enabled,
+        session_issue_limit_per_minute=session_issue_limit_per_minute,
         llm_base_url="https://radeon.example.test/v1",
         sqlite_path=tmp_path / "state.sqlite3",
         milvus_uri=tmp_path / "knowledge.db",
@@ -56,6 +64,58 @@ def _test_app(tmp_path: Path):
         graph=graph,
     )
     return create_app(settings, services)
+
+
+def test_access_sessions_use_bearer_tokens_and_isolate_visitors(tmp_path: Path) -> None:
+    settings_key = "test-permanent-key-at-least-32-chars"
+    app = _test_app(
+        tmp_path,
+        public_sessions_enabled=True,
+        app_api_key=settings_key,
+    )
+
+    with TestClient(app) as client:
+        first_session = client.post("/api/v1/session")
+        assert first_session.status_code == 201
+        assert first_session.headers["cache-control"] == "no-store"
+        first = first_session.json()
+        assert first["token_type"] == "Bearer"
+        assert first["expires_in"] == 20 * 60
+        assert first["session_id"].startswith("session_")
+        first_headers = {"Authorization": f"Bearer {first['access_token']}"}
+
+        thread_response = client.post(
+            "/api/v1/threads",
+            json={"user_id": first["session_id"]},
+            headers=first_headers,
+        )
+        assert thread_response.status_code == 201
+        assert thread_response.json()["user_id"] == first["session_id"]
+        thread_id = thread_response.json()["id"]
+
+        second = client.post("/api/v1/session").json()
+        second_headers = {"Authorization": f"Bearer {second['access_token']}"}
+        assert client.get(f"/api/v1/threads/{thread_id}", headers=second_headers).status_code == 404
+        assert (
+            client.get(
+                f"/api/v1/memories?user_id={first['session_id']}", headers=second_headers
+            ).status_code
+            == 403
+        )
+
+        tampered = f"{first['access_token'][:-1]}x"
+        assert (
+            client.get(
+                "/api/v1/system/status", headers={"Authorization": f"Bearer {tampered}"}
+            ).status_code
+            == 401
+        )
+        assert (
+            client.get(
+                f"/api/v1/threads/{thread_id}", headers={"X-App-API-Key": settings_key}
+            ).status_code
+            == 200
+        )
 
 
 def test_api_executes_the_complete_graph(tmp_path: Path) -> None:

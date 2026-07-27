@@ -13,6 +13,14 @@ export interface SystemStatus {
   milvus_ready: boolean
 }
 
+export interface AccessSession {
+  access_token: string
+  token_type: 'Bearer'
+  expires_in: number
+  expires_at: string
+  session_id: string
+}
+
 export interface ImageSummary {
   id: string
   thread_id: string
@@ -108,4 +116,3 @@ export interface StreamEvent {
   event: string
   data: Record<string, unknown>
 }
-
