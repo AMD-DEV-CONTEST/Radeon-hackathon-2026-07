@@ -18,7 +18,7 @@ from core.optimizer import is_optimizer_enabled
 from core.optimizer.applier import TransformationApplier
 from core.optimizer.benchmark import BenchmarkMetrology, GPUSafetyLock
 from core.optimizer.catalog import TransformationCatalog
-from core.optimizer.isolated_runner import IsolatedInstanceError, IsolatedInstancePair
+from core.optimizer.isolated_runner import REFERENCE_MODEL, IsolatedInstanceError, IsolatedInstancePair
 from core.optimizer.registry import CandidateRegistry
 from core.optimizer.sandbox import TemplateSandbox
 from core.optimizer.validator import CandidateValidator
@@ -87,6 +87,7 @@ def _decide(
 def run_optimization(
     kernel_name: str,
     transformation_id: Optional[str] = None,
+    model_name: str = REFERENCE_MODEL,
     min_speedup_pct: float = DEFAULT_MIN_SPEEDUP_PCT,
     trials: int = 3,
     registry: Optional[CandidateRegistry] = None,
@@ -107,6 +108,11 @@ def run_optimization(
     has at least "transformation_id" and "params"; a transformation that
     couldn't even be attempted (busy GPU, isolated instance failed to
     start) has "skip_reason" instead of "validated"/"speedup_pct".
+
+    `model_name` defaults to REFERENCE_MODEL (small, fast, already
+    measured) -- pass any model `aetheris chat -m <name>` accepts to test
+    a kernel path only exercised by that model, or under its real VRAM
+    pressure. Both isolated instances load this same model.
 
     `registry` defaults to the real, persistent CandidateRegistry() -- pass
     a temp-file-backed one (tests do) to keep a test run's candidates out
@@ -174,8 +180,8 @@ def run_optimization(
                 continue
 
             try:
-                with IsolatedInstancePair(kernel_name, candidate_code) as pair:
-                    correct, correctness_reason = validator.validate_pair(pair)
+                with IsolatedInstancePair(kernel_name, candidate_code, model_name=model_name) as pair:
+                    correct, correctness_reason = validator.validate_pair(pair, reference_model=model_name)
                     entry["correctness"] = correctness_reason
                     # Correctness is checked before the benchmark is even run,
                     # let alone trusted: a kernel that produces wrong output
@@ -184,7 +190,7 @@ def run_optimization(
                         entry.update(_decide(correctness_passed=False, reasons=[correctness_reason]))
                         results.append(entry)
                         continue
-                    bench = bm.run_interleaved_ab_benchmark_pair(pair, trials=trials)
+                    bench = bm.run_interleaved_ab_benchmark_pair(pair, model_name=model_name, trials=trials)
                     # Only meaningful once generation has actually run, which
                     # validate_pair + the benchmark above guarantee.
                     engaged, engagement_reason = pair.verify_engagement()
@@ -213,6 +219,7 @@ def run_optimization(
                 entry["registered_id"] = registry.register_candidate({
                     "kernel_name": kernel_name,
                     "transformation_id": transformation.transformation_id,
+                    "model_name": model_name,
                     "speedup_pct": bench["speedup_pct"],
                     "significant": bench["significant"],
                     "engaged": engaged,

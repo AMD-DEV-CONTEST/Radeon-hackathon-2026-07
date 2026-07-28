@@ -225,9 +225,14 @@ def handle_local_command(
             from core.optimizer.runner import run_optimization
             kernel = parts[2] if len(parts) > 2 else "gemv_q4k"
             transformation = parts[3] if len(parts) > 3 else None
+            # No explicit 4th word: use whatever model THIS session is
+            # already chatting with (set at session start / via /model),
+            # not a hardcoded default -- you shouldn't have to re-name your
+            # own active model just to optimize a kernel for it.
+            model = parts[4] if len(parts) > 4 else current_model
             what = f"transformation '{transformation}'" if transformation else "every not-yet-registered transformation"
-            renderer.console.print(f"[bold bright_green]Running kernel optimizer for '{kernel}' ({what})... this spins up two isolated vte-server instances and can take a while.[/bold bright_green]")
-            results = run_optimization(kernel, transformation_id=transformation)
+            renderer.console.print(f"[bold bright_green]Running kernel optimizer for '{kernel}' on '{model}' ({what})... this spins up two isolated vte-server instances and can take a while.[/bold bright_green]")
+            results = run_optimization(kernel, transformation_id=transformation, model_name=model)
             if not results:
                 renderer.console.print("[dim]Nothing to test (every transformation already registered).[/dim]\n")
             from core.optimizer.runner import format_result_line

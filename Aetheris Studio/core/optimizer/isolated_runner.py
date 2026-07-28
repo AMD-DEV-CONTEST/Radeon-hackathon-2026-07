@@ -2,12 +2,17 @@
 Isolated vte-server Instance Manager for the Kernel Optimizer.
 Spins up separate vte-server subprocesses, each pointed at its own temp copy of the templates directory (one unmodified 'official' copy, one with a single kernel's template swapped for a candidate), so a kernel optimization candidate can be measured and validated without ever touching the templates directory or the process the production vte-server (core/utils/vte_bridge.py) is serving real chat traffic from.
 
-Reference model is fixed and small (REFERENCE_MODEL below) rather than
-whatever model the user's real chat session happens to be running --
-an isolated instance is still a full model load, and using a tiny,
-already-measured model keeps that load fast and its VRAM footprint
-small enough to plausibly coexist with the production model already
-resident.
+Model defaults to REFERENCE_MODEL, a small, already-measured model chosen
+so an isolated instance's load stays fast and its VRAM footprint small
+enough to plausibly coexist with the production model already resident --
+but any caller (IsolatedInstancePair's `model_name` param, or `aetheris
+optimize run --model <name>`) can point both isolated instances at a
+different model instead, e.g. to test a kernel path only exercised by a
+larger model, or under that model's real VRAM pressure. Choosing a bigger
+model means TWO full copies of it resident at once (official + candidate),
+not one -- confirmed directly: two simultaneous granite-4.1:3b-q8_0
+instances left the RX 7600 momentarily far tighter on VRAM than the
+default reference model ever does, though both released cleanly on exit.
 
 VRAM headroom is enforced by vte-server's OWN --vram-limit-pct preflight
 check (vte/server/http_server.py's _check_vram_preflight, a real
@@ -94,9 +99,12 @@ def generate_at(
     return resp.json()
 
 
-def _resolve_reference_gguf_path() -> str:
+def resolve_optimizer_gguf_path(model_name: str) -> str:
+    """Resolves any registered/discoverable model name to its .gguf path,
+    the same lookup vte_bridge uses for the production server -- so
+    `--model` accepts anything `aetheris chat -m <name>` would."""
     from core.utils.vte_bridge import _resolve_gguf_path
-    return _resolve_gguf_path(REFERENCE_MODEL)
+    return _resolve_gguf_path(model_name)
 
 
 def _wait_until_ready(base_url: str, timeout: float) -> bool:
@@ -268,11 +276,11 @@ class IsolatedInstancePair:
     """Context manager: brings up TWO isolated vte-server instances --
     an unmodified 'official' copy of the templates dir and a 'candidate'
     copy with one kernel's template swapped for the text under test --
-    both running REFERENCE_MODEL on their own ports, distinct from the
-    production vte-server's port (core/utils/vte_bridge.py's
-    _SERVER_PORT). Tears both down (processes + temp dirs) on exit,
-    including on an exception, so a crash mid-benchmark never leaves a
-    stray GPU-resident process or temp directory behind.
+    both running the SAME model (`model_name`, default REFERENCE_MODEL) on
+    their own ports, distinct from the production vte-server's port
+    (core/utils/vte_bridge.py's _SERVER_PORT). Tears both down (processes +
+    temp dirs) on exit, including on an exception, so a crash mid-benchmark
+    never leaves a stray GPU-resident process or temp directory behind.
 
     Usage:
         with IsolatedInstancePair("gemv_q4k", candidate_code) as pair:
@@ -283,10 +291,12 @@ class IsolatedInstancePair:
         self,
         kernel_name: str,
         candidate_code: str,
+        model_name: str = REFERENCE_MODEL,
         vram_limit_pct: float = _DEFAULT_VRAM_LIMIT_PCT,
     ):
         self.kernel_name = kernel_name
         self.candidate_code = candidate_code
+        self.model_name = model_name
         self.vram_limit_pct = vram_limit_pct
         self._tmp_dir: Optional[tempfile.TemporaryDirectory] = None
         self._official: Optional[_IsolatedServer] = None
@@ -309,7 +319,7 @@ class IsolatedInstancePair:
 
     def __enter__(self) -> "IsolatedInstancePair":
         vte_templates_dir = TemplateSandbox().vte_templates_dir
-        gguf_path = _resolve_reference_gguf_path()
+        gguf_path = resolve_optimizer_gguf_path(self.model_name)
 
         # ignore_cleanup_errors: each instance's kernel cache now lives under
         # this temp root (see _IsolatedServer.work_dir), and on Windows the

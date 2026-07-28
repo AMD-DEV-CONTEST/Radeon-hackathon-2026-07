@@ -44,7 +44,7 @@ def print_rich_help() -> None:
         slash_table.add_column("Usage Example", style="dim green")
 
         slash_table.add_row("/optimize status", "Inspect GPU optimizer status and activation guide", "/optimize status")
-        slash_table.add_row("/optimize run [kernel] [transformation]", "Test transformations via two isolated vte-server instances", "/optimize run gemv_q4k")
+        slash_table.add_row("/optimize run [kernel] [transformation] [model]", "Test transformations via two isolated vte-server instances (defaults to this session's active model)", "/optimize run gemv_q4k")
         slash_table.add_row("/optimize candidates", "List verified kernel optimization candidates with speedup %", "/optimize candidates")
         slash_table.add_row("/optimize apply <id>", "Promote candidate using Confirm Gate (4-digit PIN)", "/optimize apply cand_gemv_q4k_001")
         slash_table.add_row("/optimize rollback, /optimize fallback", "Restore official C++ template from .orig backup", "/optimize rollback")
@@ -73,7 +73,7 @@ def print_rich_help() -> None:
 
         cli_table.add_row("chat", "Start interactive TUI chat session with GPU warmup", "aetheris chat --theme tokyo-night")
         cli_table.add_row("run", "Execute non-interactive single-shot prompt", 'aetheris run "explain code"')
-        cli_table.add_row("optimize", "Manage the GPU kernel optimizer", "aetheris optimize run --kernel gemv_q4k")
+        cli_table.add_row("optimize", "Manage the GPU kernel optimizer", "aetheris optimize run --kernel gemv_q4k --model llama3.1:8b-instruct-q4_k_m")
         cli_table.add_row("doctor", "Inspect environment health, GPU VRAM, HIP runtime, and egress", "aetheris doctor")
         cli_table.add_row("skills", "Manage and inspect registered skill manifests", "aetheris skills list")
         cli_table.add_row("undo", "Time-Travel: Rollback workspace code to turn N", "aetheris undo --last 1")
@@ -144,6 +144,7 @@ def build_parser() -> argparse.ArgumentParser:
     opt_parser.add_argument("candidate_id", nargs="?", default="", help="Candidate ID for the apply action")
     opt_parser.add_argument("--kernel", default="gemv_q4k", help="Kernel name for the run action")
     opt_parser.add_argument("--transformation", default="", help="Test only this transformation ID for the run action (default: every not-yet-registered one)")
+    opt_parser.add_argument("--model", default="", help="Model to load into both isolated instances for the run action (default: a small fixed reference model). Loads TWO copies of this model at once (official + candidate) -- pick a model your GPU has headroom for twice over.")
     opt_parser.add_argument("--min-speedup", type=float, default=3.0, help="Minimum measured speedup percent required to register a candidate for the run action")
     opt_parser.add_argument("--trials", type=int, default=3, help="Interleaved A/B trial count for the run action")
 
@@ -223,12 +224,14 @@ def main(args: Optional[List[str]] = None) -> int:
                     f"| speedup=+{c.get('speedup_pct', 0.0):.1f}%\n"
                 )
         elif action == "run":
+            from core.optimizer.isolated_runner import REFERENCE_MODEL
             from core.optimizer.runner import run_optimization
             transformation = getattr(parsed_args, "transformation", "") or None
+            model = getattr(parsed_args, "model", "") or REFERENCE_MODEL
             what = f"transformation '{transformation}'" if transformation else "every not-yet-registered transformation"
-            sys.stdout.write(f"Running kernel optimizer for '{kernel}' ({what})...\n")
+            sys.stdout.write(f"Running kernel optimizer for '{kernel}' on '{model}' ({what})...\n")
             results = run_optimization(
-                kernel, transformation_id=transformation,
+                kernel, transformation_id=transformation, model_name=model,
                 min_speedup_pct=parsed_args.min_speedup, trials=parsed_args.trials,
             )
             if not results:
