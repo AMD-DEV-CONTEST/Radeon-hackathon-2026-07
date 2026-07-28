@@ -4,6 +4,7 @@ Parses command-line arguments using argparse and routes control to individual su
 """
 
 import argparse
+import os
 import sys
 from typing import List, Optional
 
@@ -15,6 +16,17 @@ from aetheris_cli.commands.run import run_one_shot_command
 from aetheris_cli.commands.skills import skills_command
 from aetheris_cli.commands.undo import undo_command
 from aetheris_cli.commands.verify import verify_session_command
+from aetheris_cli.policy.spec import KNOWN_TOOLS
+
+# Tools inspect_session/verify_chain/search_workspace/list_dir/read_file/
+# read_browser_page never write anything -- the rest of KNOWN_TOOLS
+# (write_file, edit_file, bash, manage_todo, navigate_browser, undo)
+# either mutate state or take an action, so --allow-read stays a strict
+# subset of --allow-all.
+_READ_ONLY_TOOLS = {
+    "read_file", "list_dir", "search_workspace", "inspect_session",
+    "verify_chain", "read_browser_page",
+}
 
 
 def print_rich_help() -> None:
@@ -161,7 +173,10 @@ def build_parser() -> argparse.ArgumentParser:
     skills_import.add_argument("source", help="Source URL or path")
 
     undo_parser = subparsers.add_parser("undo", help="Time-Travel session rollback to previous snapshot")
-    undo_parser.add_argument("--session", "-s", default="cli_session", help="Session ID to rollback")
+    undo_parser.add_argument(
+        "--session", "-s", default="",
+        help="Session ID to rollback (default: this folder's own chat session, same derivation as `aetheris chat`)",
+    )
     undo_parser.add_argument("--last", "-n", type=int, default=1, help="Number of turns to rollback")
 
     verify_parser = subparsers.add_parser("verify", help="Verify Flight Recorder audit log hash chain")
@@ -193,15 +208,26 @@ def main(args: Optional[List[str]] = None) -> int:
             theme=parsed_args.theme,
         )
     elif parsed_args.subcommand == "run":
+        # run_one_shot_command's real signature takes project_dir/allow/
+        # allow_bash(str)/plan_only -- none of project_path/planner/
+        # allow_all/allow_read exist as its parameters, so this call has
+        # been raising TypeError unconditionally (confirmed live: `aetheris
+        # run` crashed on every invocation before this fix, never
+        # exercised by the existing test suite since nothing there called
+        # this code path with real argparse-parsed args).
+        if parsed_args.allow_all:
+            allow_tools = sorted(KNOWN_TOOLS)
+        elif parsed_args.allow_read:
+            allow_tools = sorted(_READ_ONLY_TOOLS)
+        else:
+            allow_tools = []
         return run_one_shot_command(
             prompt=parsed_args.prompt,
-            project_path=parsed_args.project,
+            project_dir=parsed_args.project,
             model=parsed_args.model,
-            planner=parsed_args.planner,
-            allow_all=parsed_args.allow_all,
-            allow_read=parsed_args.allow_read,
-            allow_bash=parsed_args.allow_bash,
-            plan_only=parsed_args.plan_only,
+            allow=",".join(allow_tools),
+            allow_bash="true" if (parsed_args.allow_all or parsed_args.allow_bash) else "false",
+            plan_only=parsed_args.planner or parsed_args.plan_only,
             egress_strict=parsed_args.egress_strict,
         )
     elif parsed_args.subcommand == "optimize":
@@ -263,17 +289,32 @@ def main(args: Optional[List[str]] = None) -> int:
     elif parsed_args.subcommand == "doctor":
         return doctor_command()
     elif parsed_args.subcommand == "skills":
-        sub = getattr(parsed_args, "skills_subcommand", "")
-        return skills_command(
-            subcommand=sub,
-            query=getattr(parsed_args, "query", ""),
-            skill_name=getattr(parsed_args, "name", ""),
-            source=getattr(parsed_args, "source", ""),
-        )
+        # skills_command's real parameter is `action` (not `subcommand`)
+        # and a single `query_or_ref` positional slot shared by search
+        # ("query"), show ("name"), and import ("source") -- there is no
+        # `skill_name` parameter at all. This call raised TypeError
+        # unconditionally before this fix (same class of bug as `run` and
+        # `undo` above).
+        sub = getattr(parsed_args, "skills_subcommand", "") or "list"
+        query_or_ref = {
+            "search": getattr(parsed_args, "query", ""),
+            "show": getattr(parsed_args, "name", ""),
+            "import": getattr(parsed_args, "source", ""),
+        }.get(sub, "")
+        return skills_command(action=sub, query_or_ref=query_or_ref)
     elif parsed_args.subcommand == "undo":
+        # undo_command's real parameter is `last`, not `last_n` -- this
+        # call raised TypeError unconditionally before this fix, confirmed
+        # live (same class of bug as the `run` subcommand above). Default
+        # session_id matches chat.py's own derivation (a hash of the
+        # resolved project path) instead of the unrelated literal
+        # "cli_session" string, so `aetheris undo` with no --session
+        # targets the same session `aetheris chat` used in this folder.
+        import hashlib
+        session_id = parsed_args.session or f"cli-{hashlib.sha256(os.getcwd().encode('utf-8')).hexdigest()[:12]}"
         return undo_command(
-            session_id=parsed_args.session,
-            last_n=parsed_args.last,
+            session_id=session_id,
+            last=parsed_args.last,
         )
     elif parsed_args.subcommand == "verify":
         return verify_session_command(session_id_or_path=parsed_args.session_id)

@@ -25,16 +25,21 @@ def log_command(
 
         sys.stdout.write(f"--- Audit Trail for Session: {session_id} ({len(entries)} entries) ---\n")
         for entry in entries:
-            tool = entry.get("data", {}).get("tool", "")
+            # FlightRecorder.append() writes {"seq", "ts", "type", "actor",
+            # "payload", ...} (see core/audit/flight_recorder.py's schema
+            # docstring) -- this used to read "event"/"timestamp"/"data",
+            # keys that never existed on an entry, so every line rendered
+            # blank/None regardless of what was actually recorded.
+            tool = entry.get("payload", {}).get("tool", "")
             if tool_filter and tool != tool_filter:
                 continue
 
             seq = entry.get("seq")
-            event_type = entry.get("event")
+            event_type = entry.get("type")
             actor = entry.get("actor", "unknown")
-            ts = entry.get("timestamp", "")
-            
-            sys.stdout.write(f"[{seq}] {ts} | {event_type} | actor={actor} | payload={json.dumps(entry.get('data'))}\n")
+            ts = entry.get("ts", "")
+
+            sys.stdout.write(f"[{seq}] {ts} | {event_type} | actor={actor} | payload={json.dumps(entry.get('payload'))}\n")
 
         return 0
     except Exception as e:

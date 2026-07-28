@@ -70,9 +70,14 @@ def handle_local_command(
             lines = [f"[bold bright_green]Flight Recorder Audit Trail — Session: {session_id} ({len(entries)} entries)[/bold bright_green]\n"]
             for entry in entries[-10:]:
                 seq = entry.get("seq")
-                event = entry.get("event")
+                # FlightRecorder.append() writes "type"/"ts" (see
+                # core/audit/flight_recorder.py's own schema docstring) --
+                # this used to read "event"/"timestamp", keys that entry
+                # never had, so every logged line rendered "None" and a
+                # blank timestamp regardless of what was actually recorded.
+                event = entry.get("type")
                 actor = entry.get("actor", "agent")
-                ts = entry.get("timestamp", "")
+                ts = entry.get("ts", "")
                 lines.append(f"[{seq}] {ts} | [bold bright_green]{event}[/bold bright_green] | actor={actor}")
             renderer.console.print(Panel("\n".join(lines), title="[bold bright_green]Flight Recorder Audit Log[/bold bright_green]", border_style="bright_green"))
             renderer.console.print()
@@ -316,8 +321,19 @@ def run_chat_command(
     if model:
         client.set_default_model(model)
 
+    if not model:
+        # Match the backend's own default exactly (app.py's every model-
+        # resolution path: body.model or get_setting("default_model") or
+        # VTE_DEFAULT_MODEL) instead of a separately hardcoded fallback here.
+        # Confirmed live on a fresh install: an independent "granite-4.1:3b-
+        # q8_0" string here made the very first message fail with "Arquivo
+        # do modelo não encontrado" whenever only the README-documented
+        # default model (Llama 3.1 8B) had actually been pulled.
+        from core.utils.vte_bridge import VTE_DEFAULT_MODEL
+        model = VTE_DEFAULT_MODEL
+
     session_state: Dict[str, Any] = {
-        "model": model or "granite-4.1:3b-q8_0",
+        "model": model,
         "max_tokens": 4096,
         "context_length": 8192,
     }

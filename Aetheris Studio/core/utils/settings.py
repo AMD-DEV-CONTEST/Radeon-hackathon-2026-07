@@ -138,10 +138,17 @@ DEFAULT_SETTINGS = {
     "default_model": "",
     # VTE's real context window (prompt + response), fixed at model-load
     # time (sizes the KV cache) -- distinct from a request's own max_tokens,
-    # which only bounds the response length. Matches VTEModel's own
-    # DEFAULT_CONTEXT_LENGTH so an unconfigured install behaves exactly as
-    # before this setting existed.
-    "context_length": 2048,
+    # which only bounds the response length. Raised from the original 2048
+    # (VTEModel's own DEFAULT_CONTEXT_LENGTH) after reproducing a real
+    # crash live: a multi-round agentic tool-use turn -- an ordinary one,
+    # not a pathological one -- can legitimately exceed 2048 tokens of
+    # prompt+history well before the reply is done, and the backend's only
+    # response to that today is a raw "prompt tem N tokens, mas o contexto
+    # está configurado para 2048" error, not a graceful stop. 8192 already
+    # ran cleanly throughout this same session on both an 8GB RX 7600 and a
+    # 48GB W7900 -- the extra KV cache is small relative to model weights
+    # for every model this project ships.
+    "context_length": 8192,
     # Ordered fallback chain for the default chat model. Each entry is
     # {"endpoint_id": "...", "model": "..."}. If the primary model fails
     # before producing output (endpoint offline / errors), the chat

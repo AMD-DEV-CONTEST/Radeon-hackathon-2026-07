@@ -84,6 +84,8 @@ That last line installs the `aetheris` command itself. Now pull a model (downloa
 .venv/bin/vte pull llama3.1:8b-instruct-q4_k_m         # Linux
 ```
 
+On a network where `huggingface.co` itself is blocked or unreachable (some cloud GPU rental providers), point the download at a mirror first: `export HF_ENDPOINT=https://hf-mirror.com` (Linux/Git Bash) or `$env:HF_ENDPOINT="https://hf-mirror.com"` (PowerShell), then run `vte pull` again. `vte pull` uses `huggingface_hub` under the hood, which reads this variable natively.
+
 Then `cd` into whatever project you want the agent to work on, and start chatting:
 
 ```bash
@@ -109,7 +111,7 @@ Each response ends with a metrics footer showing real TTFT and decode speed repo
 
 ### Note on Linux
 
-The backend (plain Python/FastAPI, no Windows-specific code) is validated headless on an AMD Radeon Cloud W7900 Linux instance: tool dispatch, memory, skills, and the confirm gate all work identically there. The `aetheris` CLI drives that same path, and a dependency-free `scripts/chat.py` remains in the repo as a minimal fallback if you'd rather not install the CLI. The Flutter UI has a `linux/` target scaffolded too, but not yet built/verified on real Linux hardware.
+The backend (plain Python/FastAPI, no Windows-specific code) and the `aetheris` CLI are both validated on a fresh Ubuntu 24.04 / W7900 instance by literally following this Quickstart end to end: clean venv, `pip install -e`, model pull, `aetheris chat`. Every core tool was exercised for real, not just imported -- `git`, `search_files`, `search_map` (Cartographer), `manage_memory` (add and cross-session recall), `manage_skill`, Planner mode (confirmed zero file changes via `git status`), and the kernel optimizer -- plus the confirm gate, which correctly rejects malformed or unapproved writes on a real GPU-backed session every time. A dependency-free `scripts/chat.py` remains in the repo as a minimal fallback if you'd rather not install the CLI. The Flutter UI has a `linux/` target scaffolded too, but not yet built/verified on real Linux hardware.
 
 ## Things to try
 
@@ -121,7 +123,7 @@ A few prompts to get a feel for what the agent does, pointed at some real codeba
 - *"Use the edit_file tool to add a docstring to the `main` function in `<some file>`."* A real edit; you'll see the confirmation prompt before it lands.
 - *"Plan out how you'd add rate limiting to this API, but don't touch anything yet."* Planner mode: streams a plan, waits for your go-ahead.
 - *"Remember that this project uses tabs, not spaces."* Recalled in later sessions without bloating the chat transcript.
-- *"Use the browser tool to look up the current stable version of \<some library> online."* Read-only, no form-filling or credentials, ever.
+- *"Use the browser tool to look up the current stable version of \<some library> online."* Read-only, no form-filling or credentials, ever. Flutter app only -- the CLI has no webview to browse in, and says so rather than pretending to.
 - *"Use the search_map tool to find out what this codebase does."* Cartographer's background-generated map -- often faster and better-grounded than reading files one by one.
 - After the agent edits a file with your approval: click the ⟲ checkpoint icon next to your message to restore the project to the state before it ran, with a diff preview first.
 

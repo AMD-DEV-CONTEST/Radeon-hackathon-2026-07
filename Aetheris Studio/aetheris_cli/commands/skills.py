@@ -1,6 +1,6 @@
 """
 Skills management subcommand implementation (aetheris skills).
-Handles importing AMD skills, listing available local and AMD skills, searching skills, and verifying skill bundle integrity.
+Handles importing AMD skills, listing available local and AMD skills, searching skills, showing a skill's instructions, and verifying skill bundle integrity.
 """
 
 import os
@@ -22,33 +22,57 @@ def skills_command(
 
     try:
         from core.memory.skills import SkillsManager
-        from core.memory.skill_format import Skill
+        from core.utils.constants import DATA_DIR
     except ImportError as e:
         sys.stderr.write(f"Error importing core skills modules: {e}\n")
         return 1
 
-    mgr = SkillsManager()
+    # Same data_dir the agent's own manage_skill tool uses (core/utils/
+    # tools.py) -- SkillsManager() with no args used to be called here,
+    # which doesn't even match the constructor (data_dir is required), so
+    # this crashed with TypeError before it ever got the chance to read
+    # the wrong methods below.
+    mgr = SkillsManager(DATA_DIR)
 
     if action == "list":
-        skills_list = mgr.list_skills()
+        # load_all()/load() return plain dicts (Skill.to_dict()), not
+        # objects -- list_skills() (the previous call here) doesn't exist
+        # on SkillsManager at all, and the dict entries were being read via
+        # attribute access (sk.name) instead of sk.get("name").
+        skills_list = mgr.load_all()
         filtered = [
             s for s in skills_list
-            if not source or (source == "amd" and getattr(s, "source", "") == "amd") or (source == "local" and getattr(s, "source", "") != "amd")
+            if not source or (source == "amd" and s.get("source") == "amd") or (source == "local" and s.get("source") != "amd")
         ]
         sys.stdout.write(f"--- Registered Skills ({len(filtered)}) ---\n")
         for sk in filtered:
-            src_tag = f"[{getattr(sk, 'source', 'local')}]"
-            sys.stdout.write(f"  • {sk.name} {src_tag}: {sk.description}\n")
+            src_tag = f"[{sk.get('source', 'local')}]"
+            sys.stdout.write(f"  • {sk.get('name')} {src_tag}: {sk.get('description', '')}\n")
         return 0
 
     elif action == "search":
         if not query_or_ref:
             sys.stderr.write("Error: Search query required.\n")
             return 2
-        results = mgr.find_relevant_skills(query_or_ref, limit=10)
+        # get_relevant_skills() (find_relevant_skills() doesn't exist)
+        # returns plain dicts, not (skill, score) tuples.
+        results = mgr.get_relevant_skills(query_or_ref, max_items=10)
         sys.stdout.write(f"--- Skill Search Results for '{query_or_ref}' ({len(results)}) ---\n")
-        for sk, score in results:
-            sys.stdout.write(f"  • {sk.name} (score: {score:.2f}): {sk.description}\n")
+        for sk in results:
+            sys.stdout.write(f"  • {sk.get('name')}: {sk.get('description', '')}\n")
+        return 0
+
+    elif action == "show":
+        if not query_or_ref:
+            sys.stderr.write("Error: Skill name required.\n")
+            return 2
+        content = mgr.read_skill_md(query_or_ref)
+        if content is None:
+            sys.stderr.write(f"Error: Skill '{query_or_ref}' not found.\n")
+            return 1
+        sys.stdout.write(content)
+        if not content.endswith("\n"):
+            sys.stdout.write("\n")
         return 0
 
     elif action == "import":
