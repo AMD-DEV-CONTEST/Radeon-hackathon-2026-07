@@ -1,0 +1,58 @@
+#include <hip/hip_runtime.h>
+#include <hip/hip_fp16.h>
+
+// Embedding lookup para token_embd.weight cru em Q6_K (Fase D.1).
+//
+// Com tied embeddings (sem output.weight separado no GGUF), token_embd.weight
+// serve DUAS funções: embedding lookup (input, aqui) e lm_head (output, via
+// gemv_q6k). Para economizar VRAM residente (não manter uma cópia FP16
+// duplicada), o tensor fica cru em Q6_K e este kernel dequantiza a linha do
+// token sob demanda — custo trivial (1 linha de hidden_size por posição,
+// chamado 1x por token gerado, não é o caminho quente do modelo).
+//
+// Mesma matemática de desquant do gemv_q6k (espelha dequantizer.py, validado
+// ~gguf), mas sem produto interno/redução: cada thread só reconstrói e
+// escreve seu próprio elemento.
+
+extern "C" __global__ void embedding_lookup_q6k_kernel(
+    const int* __restrict__ token_ids,       // (seq_len,)
+    const void* __restrict__ embed_weight,   // Q6_K cru (vocab_size linhas)
+    __half* __restrict__ output,             // (seq_len, hidden_size) FP16
+    int seq_len,
+    int hidden_size,
+    float embedding_scale                    // Default 1.0 (Qwen não usa).
+) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int total_elements = seq_len * hidden_size;
+    if (idx >= total_elements) return;
+
+    int s = idx / hidden_size;
+    int d = idx % hidden_size;
+    int token_id = token_ids[s];
+
+    int n_sb = hidden_size / 256;
+    const unsigned char* row = ((const unsigned char*)embed_weight) + (size_t)token_id * n_sb * 210;
+
+    int sb = d / 256;
+    int i = d % 256;
+    const unsigned char* blk = row + (size_t)sb * 210;
+
+    float dscale = __half2float(*reinterpret_cast<const __half*>(blk + 208));
+    int half = i >> 7;
+    int within = i & 127;
+    int group = within >> 5;
+    int l = within & 31;
+    int is_ = l >> 4;
+
+    const unsigned char* ql = blk + half * 64;
+    const unsigned char* qh = blk + 128 + half * 32;
+    const signed char* sc = reinterpret_cast<const signed char*>(blk + 192 + half * 8);
+
+    int qlbyte = (group & 1) ? (l + 32) : l;
+    int nib = (group < 2) ? (ql[qlbyte] & 0x0F) : (ql[qlbyte] >> 4);
+    int qhbits = (qh[l] >> (group * 2)) & 3;
+    int q = (nib | (qhbits << 4)) - 32;
+
+    float w = dscale * (float)sc[is_ + 2 * group] * (float)q;
+    output[idx] = __float2half(w * embedding_scale);
+}

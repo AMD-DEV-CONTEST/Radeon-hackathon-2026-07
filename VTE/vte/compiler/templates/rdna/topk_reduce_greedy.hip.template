@@ -1,0 +1,83 @@
+#include <hip/hip_runtime.h>
+#include <hip/hip_fp16.h>
+
+// Redução de logits para greedy decode (temperature<=0) -- lê o vocabulário
+// inteiro (151936 elementos fp16) UMA VEZ dentro do kernel e produz um
+// conjunto de candidatos muito menor pra transferir de volta pra CPU, em vez
+// do buffer de logits completo (ver docs/PERFORMANCE.md, "Follow-up: GPU
+// duty-cycle investigation" -- a leitura de logits é limitada por LATÊNCIA,
+// não banda, então reduzir o tamanho da transferência economiza tempo real).
+//
+// Correção (não é uma heurística): a penalidade de repetição (sampler.py)
+// só DIMINUI logits (nunca aumenta), então o vencedor final pós-penalidade
+// é sempre: (a) um token da janela de repetição recente -- valor exato
+// necessário, calculado aqui via GATHER direto -- ou (b) um token FORA da
+// janela, cujo valor não muda com a penalidade -- e para esses, o melhor de
+// cada grupo de thread É garantidamente o candidato correto, DESDE QUE os
+// tokens da janela sejam EXCLUÍDOS da busca de "melhor do grupo" (senão um
+// vencedor de grupo que por acaso está na janela esconderia o verdadeiro
+// segundo colocado não-janela do mesmo grupo -- essa foi a armadilha
+// identificada antes de implementar isto).
+//
+// NUM_THREADS=1024 threads, 1 bloco: cada thread varre um stride de
+// ~vocab_size/1024 (~148 elementos) e mantém seu próprio melhor valor NÃO
+// excluído. exclude_ids vem ORDENADO (np.unique já garante isso do lado
+// host) -- busca binária O(log 512) por elemento em vez de scan linear.
+//
+// Capturado DENTRO do HIP Graph de decode (junto do LM Head, ver
+// HIPGraphExecutor._capture_topk_reduce): exclude_count entra como
+// PONTEIRO, não escalar -- endereços de kernel launch são fixos num grafo
+// capturado, então só o CONTEÚDO de exclude_ids/exclude_count muda entre
+// replays (H2D pequeno feito pelo host antes de cada hipGraphLaunch, mesmo
+// padrão já usado pelo kv_cache_offset em hip_graph_executor.py). Uma
+// primeira versão rodava isto como lançamento eager FORA do grafo -- medido
+// como uma perda liquida de tok/s (o despacho eager de um kernel novo custa
+// mais do que a leitura reduzida economiza), daí a captura no grafo.
+
+#define NUM_THREADS 1024
+#define MAX_EXCLUDE 512
+
+__device__ __forceinline__ bool is_excluded(const int* excl, int count, int idx) {
+    int lo = 0, hi = count - 1;
+    while (lo <= hi) {
+        int mid = (lo + hi) >> 1;
+        int v = excl[mid];
+        if (v == idx) return true;
+        if (v < idx) lo = mid + 1;
+        else hi = mid - 1;
+    }
+    return false;
+}
+
+extern "C" __global__ void topk_reduce_greedy_kernel(
+    const void* __restrict__ logits_ptr,        // fp16[vocab_size]
+    const int* __restrict__ exclude_ids,        // int32[MAX_EXCLUDE], ORDENADO (só as primeiras *exclude_count_ptr posições valem)
+    const int* __restrict__ exclude_count_ptr,  // ponteiro fixo -- conteúdo atualizado por replay
+    int vocab_size,
+    float* __restrict__ out_values,        // fp32[NUM_THREADS] -- melhor valor não-excluído por thread
+    int* __restrict__ out_indices,         // int32[NUM_THREADS] -- índice correspondente
+    float* __restrict__ gathered_values    // fp32[MAX_EXCLUDE] -- valor exato de cada token excluído (só as primeiras exclude_count posições são válidas)
+) {
+    int tid = threadIdx.x;
+    int exclude_count = *exclude_count_ptr;
+    const __half* logits = (const __half*)logits_ptr;
+
+    float best_val = -1e30f;
+    int best_idx = -1;
+    for (int i = tid; i < vocab_size; i += NUM_THREADS) {
+        if (!is_excluded(exclude_ids, exclude_count, i)) {
+            float v = __half2float(logits[i]);
+            if (v > best_val) {
+                best_val = v;
+                best_idx = i;
+            }
+        }
+    }
+    out_values[tid] = best_val;
+    out_indices[tid] = best_idx;
+
+    for (int i = tid; i < exclude_count; i += NUM_THREADS) {
+        int idx = exclude_ids[i];
+        gathered_values[i] = __half2float(logits[idx]);
+    }
+}

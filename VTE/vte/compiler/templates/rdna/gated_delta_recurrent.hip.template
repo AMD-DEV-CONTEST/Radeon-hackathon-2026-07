@@ -1,0 +1,142 @@
+#include <hip/hip_runtime.h>
+#include <hip/hip_fp16.h>
+
+// Gated DeltaNet (Qwen3.5 "linear_attention") -- passo 2 de 2: a recorrência
+// em si, um token por vez (modo decode). Fórmula confirmada em
+// modeling_qwen3_5.py::torch_recurrent_gated_delta_rule (linha 327-368 da
+// versão instalada localmente, comparada bit a bit numa simulação NumPy
+// antes deste kernel ser escrito):
+//
+//   q_t = l2norm(q_t) * scale         (scale = 1/sqrt(head_k_dim))
+//   k_t = l2norm(k_t)
+//   g_t = exp(g[t])                   -- decaimento, escalar por head
+//   beta_t = sigmoid(b[t])            -- escalar por head
+//
+//   S = S * g_t                                  (decaimento do estado)
+//   kv_mem[l] = sum_j( S[j,l] * k_t[j] )          (leitura -- k_t^T @ S)
+//   delta[l] = (v_t[l] - kv_mem[l]) * beta_t      (correção de erro)
+//   S[j,l] += k_t[j] * delta[l]                   (atualização rank-1)
+//   out_t[l] = sum_j( S_NOVO[j,l] * q_t[j] )       (leitura APÓS a atualização)
+//
+// Um bloco por head (grid = (num_heads, batch, 1)). Block dim = head_v_dim
+// (128) -- thread `l` é dono da COLUNA l do estado S[head_k_dim,
+// head_v_dim] (persistente, layout [head, j, l], row-major). g/beta/A_log/
+// dt_bias são escalares por head (computados fora, via MatMul comuns
+// in_proj_a/in_proj_b já existentes -- só a exponenciação/softplus/sigmoid
+// finais acontecem aqui, thread 0 apenas, pois são 1 valor por head).
+//
+// Correção intencional (mesma do código real): o out_t usa o estado JÁ
+// atualizado, não o estado antes da atualização -- por isso a ordem das 3
+// passadas por S (ler pra kv_mem, escrever a atualização, ler de novo pro
+// output) importa e não pode ser paralelizada/reordenada.
+
+extern "C" __global__ void gated_delta_recurrent_kernel(
+    const __half* __restrict__ q,        // [num_heads, head_k_dim] -- já L2-normalizado? NÃO, cru
+    const __half* __restrict__ k,        // [num_heads, head_k_dim] -- cru
+    const __half* __restrict__ v,        // [num_heads, head_v_dim]
+    // a/b: saída de MatMul comum (a_proj/b_proj), formato FP16 igual todo
+    // output de MATMUL no VTE. A_log/dt_bias: pesos F32 do GGUF, convertidos
+    // pra FP16 no carregamento (weight_loader.py só mantém cru os tensores
+    // roteados como Q4_K/Q6_K/Q8_0 -- nenhum destes é). Bug real encontrado
+    // nesta sessão: esses 4 ponteiros eram declarados `const float*`
+    // (4 bytes/elemento) só que os buffers reais são FP16 (2 bytes/
+    // elemento) -- o kernel lia bytes de DOIS elementos FP16 adjacentes
+    // reinterpretados como UM float32, produzindo g_t/beta_t completamente
+    // errados (ex.: dt_bias chegando a ler ~658499.0 em vez do valor real
+    // ~-5.0) a partir da primeira camada Gated DeltaNet, primeira posição.
+    const __half* __restrict__ a,        // [num_heads] -- log-decaimento (pré-ativação)
+    const __half* __restrict__ b,        // [num_heads] -- beta (pré-sigmoid)
+    const __half* __restrict__ A_log,    // [num_heads] -- parâmetro aprendido
+    const __half* __restrict__ dt_bias,  // [num_heads] -- parâmetro aprendido
+    float* __restrict__ state,           // [num_heads, head_k_dim, head_v_dim] -- persistente, in/out
+    __half* __restrict__ output,         // [num_heads, head_v_dim]
+    int head_k_dim,
+    int head_v_dim
+) {
+    int head = blockIdx.x;
+    int l = threadIdx.x;   // 0..head_v_dim-1 -- coluna do estado que esta thread possui
+    if (l >= head_v_dim) return;
+
+    __shared__ float q_sh[256];   // head_k_dim <= 256 nesta arquitetura (Qwen3.5: 128)
+    __shared__ float k_sh[256];
+    __shared__ float g_t_sh;
+    __shared__ float beta_t_sh;
+
+    const __half* q_h = q + (size_t)head * head_k_dim;
+    const __half* k_h = k + (size_t)head * head_k_dim;
+    const __half* v_h = v + (size_t)head * head_v_dim;
+    float* state_h = state + (size_t)head * head_k_dim * head_v_dim;
+    __half* out_h = output + (size_t)head * head_v_dim;
+
+    // 1. L2-norm de q/k (feito uma vez, cooperativamente -- soma dos
+    //    quadrados via redução em LDS, depois todas as threads dividem
+    //    pela mesma norma). use_qk_l2norm_in_kernel=True no código real:
+    //    a normalização acontece bem aqui, não antes.
+    __shared__ float q_sumsq_sh[256];
+    __shared__ float k_sumsq_sh[256];
+    for (int j = l; j < head_k_dim; j += head_v_dim) {
+        float qv = __half2float(q_h[j]);
+        float kv = __half2float(k_h[j]);
+        q_sumsq_sh[j] = qv * qv;
+        k_sumsq_sh[j] = kv * kv;
+    }
+    __syncthreads();
+    if (l == 0) {
+        float qs = 0.0f, ks = 0.0f;
+        for (int j = 0; j < head_k_dim; j++) { qs += q_sumsq_sh[j]; ks += k_sumsq_sh[j]; }
+        // eps=1e-6, mesmo epsilon do l2norm real (evita divisão por zero).
+        q_sumsq_sh[0] = rsqrtf(qs + 1e-6f);
+        k_sumsq_sh[0] = rsqrtf(ks + 1e-6f);
+    }
+    __syncthreads();
+    float q_inv_norm = q_sumsq_sh[0];
+    float k_inv_norm = k_sumsq_sh[0];
+    float scale = rsqrtf((float)head_k_dim);   // 1/sqrt(head_k_dim)
+
+    for (int j = l; j < head_k_dim; j += head_v_dim) {
+        q_sh[j] = __half2float(q_h[j]) * q_inv_norm * scale;
+        k_sh[j] = __half2float(k_h[j]) * k_inv_norm;
+    }
+
+    // 2. g_t = exp(-exp(A_log)*softplus(a+dt_bias)); beta_t = sigmoid(b).
+    //    Um valor só por head -- thread 0 calcula, todo mundo lê da LDS.
+    if (l == 0) {
+        float a_val = __half2float(a[head]) + __half2float(dt_bias[head]);
+        // softplus numericamente estável: log(1+exp(x)), com o desvio
+        // padrão pra x grande (evita overflow de expf) -- mesmo truque que
+        // qualquer implementação de softplus de produção usa.
+        float softplus = (a_val > 20.0f) ? a_val : log1pf(expf(a_val));
+        float decay = -expf(__half2float(A_log[head])) * softplus;
+        g_t_sh = expf(decay);
+        beta_t_sh = 1.0f / (1.0f + expf(-__half2float(b[head])));
+    }
+    __syncthreads();
+    float g_t = g_t_sh;
+    float beta_t = beta_t_sh;
+    float v_t = __half2float(v_h[l]);
+
+    // 3. Decaimento + leitura (kv_mem) -- cada thread l soma sua própria
+    //    coluna do estado (já decaída) contra k_t inteiro.
+    float kv_mem = 0.0f;
+    for (int j = 0; j < head_k_dim; j++) {
+        float s_decayed = state_h[(size_t)j * head_v_dim + l] * g_t;
+        // Escreve já decaído de volta -- a próxima etapa (rank-1 update)
+        // parte deste valor, não do estado antigo sem decaimento.
+        state_h[(size_t)j * head_v_dim + l] = s_decayed;
+        kv_mem += s_decayed * k_sh[j];
+    }
+
+    // 4. delta e atualização rank-1: S[j,l] += k_t[j] * delta[l].
+    float delta_l = (v_t - kv_mem) * beta_t;
+    for (int j = 0; j < head_k_dim; j++) {
+        state_h[(size_t)j * head_v_dim + l] += k_sh[j] * delta_l;
+    }
+
+    // 5. Leitura final -- usa o estado JÁ atualizado (não o de antes do
+    //    passo 4), exatamente como o código de referência.
+    float out_l = 0.0f;
+    for (int j = 0; j < head_k_dim; j++) {
+        out_l += state_h[(size_t)j * head_v_dim + l] * q_sh[j];
+    }
+    out_h[l] = __float2half(out_l);
+}

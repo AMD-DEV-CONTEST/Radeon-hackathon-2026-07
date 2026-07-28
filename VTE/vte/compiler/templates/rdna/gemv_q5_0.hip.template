@@ -1,0 +1,101 @@
+#include <hip/hip_runtime.h>
+#include <hip/hip_fp16.h>
+
+// GEMV Q5_0 in-kernel — mesmo design "No-Sync Direct Unpack" de gemv_q4k/
+// gemv_q6k/gemv_q8_0 (Etapa C.3): pesos não tocam a LDS, sem __syncthreads
+// dentro do loop de acumulação -- só no final, para combinar as somas
+// parciais entre wavefronts.
+//
+// Motivação (Fase 5, otimização de VRAM do draft model): o Qwen2.5 0.5B
+// mistura Q5_0 (132 de 290 tensores) com F32/Q8_0/Q6_K/Q4_K -- até aqui só
+// tínhamos DEQUANT de Q5_0 pra FP16 no load (dequantizer.py::dequantize_q5_0),
+// nunca um kernel que lê os bytes crus direto no GEMV. Sem isto, esses 132
+// tensores (165MB no arquivo) viravam ~480MB em FP16 na VRAM -- quase 3x
+// maior, e quase 70% do peso total do draft. Rotear cru os traz de volta
+// pra perto do tamanho do arquivo, igual já acontece com Q4_K/Q6_K/Q8_0.
+//
+// Layout do bloco Q5_0 (22 bytes / 32 elementos), mesmo confirmado contra
+// gguf.GGUFReader real usado em dequantize_q5_0:
+//   d:  fp16 (2 bytes)   - escala do bloco
+//   qh: uint32 (4 bytes) - 5o bit (mais significativo) de cada um dos 32
+//       pesos, um bit por peso
+//   qs: 16 bytes         - 32 nibbles de 4 bits (2 por byte)
+//
+//   w[j]    = d * (((qs[j] & 0x0F) | (bit(qh, j)      << 4)) - 16),  j=0..15
+//   w[j+16] = d * (((qs[j] >> 4)   | (bit(qh, j + 12) << 4)) - 16),  j=0..15
+// (bit(qh, j+12) porque o 5o bit do elemento j+16 fica no bit (j+16-4)=j+12
+// de qh -- mesma extração usada por dequantize_row_q5_0 do llama.cpp).
+//
+// ABI de 9 args idêntica a gemv_q4k/gemv_q6k/gemv_q8_0. block=64.
+// in_features % 32 == 0 (bloco Q5_0 = 32 elementos).
+
+extern "C" __global__ void gemv_q5_0_kernel(
+    const void* __restrict__ input_ptr,
+    const void* __restrict__ weight_ptr,
+    void* __restrict__ output_ptr,
+    int batch,
+    int seq_len,
+    int in_features,
+    int out_features,
+    const void* __restrict__ bias_ptr,
+    const void* __restrict__ residual_ptr,  // Epilogue Fusion: out += residual[row]
+    float residual_scale
+) {
+    __shared__ float warp_sums[32];
+
+    int row = blockIdx.x;
+    int m = blockIdx.y;
+    if (row >= out_features || m >= batch * seq_len) return;
+
+    int tid = threadIdx.x;
+    int bs = blockDim.x;
+    int lane = tid % warpSize;
+    int warp = tid / warpSize;
+
+    const __half* X = ((const __half*)input_ptr) + (size_t)m * in_features;
+    int n_blk = in_features / 32;
+    const unsigned char* row_q5 =
+        ((const unsigned char*)weight_ptr) + (size_t)row * n_blk * 22;
+
+    float acc = 0.0f;
+
+    for (int b = tid; b < n_blk; b += bs) {
+        const unsigned char* blk = row_q5 + (size_t)b * 22;
+        float d = __half2float(*reinterpret_cast<const __half*>(blk));
+        unsigned int qh = *reinterpret_cast<const unsigned int*>(blk + 2);
+        const unsigned char* qs = blk + 6;
+
+        int xbase = b * 32;
+        #pragma unroll
+        for (int j = 0; j < 16; j++) {
+            unsigned int xh0 = ((qh >> j) << 4) & 0x10u;
+            unsigned int xh1 = (qh >> (j + 12)) & 0x10u;
+            int x0 = (int)((qs[j] & 0x0Fu) | xh0) - 16;
+            int x1 = (int)((qs[j] >> 4) | xh1) - 16;
+            float w0 = d * (float)x0;
+            float w1 = d * (float)x1;
+            acc = fmaf(w0, __half2float(X[xbase + j]), acc);
+            acc = fmaf(w1, __half2float(X[xbase + j + 16]), acc);
+        }
+    }
+
+    for (int off = warpSize / 2; off > 0; off >>= 1) {
+        acc += __shfl_down(acc, off);
+    }
+    if (lane == 0) warp_sums[warp] = acc;
+    __syncthreads();
+
+    if (tid == 0) {
+        int nwarps = (bs + warpSize - 1) / warpSize;
+        float total = 0.0f;
+        for (int w = 0; w < nwarps; w++) total += warp_sums[w];
+        if (bias_ptr != nullptr) {
+            total += __half2float(((const __half*)bias_ptr)[row]);
+        }
+        total *= residual_scale;
+        if (residual_ptr != nullptr) {
+            total += __half2float(((const __half*)residual_ptr)[(size_t)m * out_features + row]);
+        }
+        ((__half*)output_ptr)[(size_t)m * out_features + row] = __float2half(total);
+    }
+}

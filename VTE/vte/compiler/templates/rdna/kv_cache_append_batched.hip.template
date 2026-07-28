@@ -1,0 +1,42 @@
+#include <hip/hip_runtime.h>
+#include <hip/hip_fp16.h>
+
+// Escreve o K/V de um chunk INTEIRO do prefill em lote no cache
+// persistente, uma posição de query por bloco (blockIdx.x = q_pos) --
+// generaliza kv_cache_append_kernel (que só escreve 1 posição, usado no
+// decode) para seq_len posições de uma vez, mesmo layout de cache
+// [max_seq, num_kv_heads, head_dim].
+//
+// Precisa rodar como lançamento SEPARADO e ANTERIOR ao kernel de atenção
+// do prefill em lote (flash_attention_prefill_kernel), nunca fundido nele:
+// aqui q_pos é um eixo de GRID (blocos diferentes), não de thread dentro
+// do mesmo bloco -- blocos diferentes não têm garantia de ordem/
+// visibilidade entre si dentro do MESMO lançamento. Só a ordem de
+// lançamento no mesmo stream (preservada pela captura do HIP Graph)
+// garante que toda escrita deste kernel esteja visível antes do kernel de
+// atenção começar a ler.
+
+extern "C" __global__ void kv_cache_append_batched_kernel(
+    const __half* __restrict__ k,          // [seq_len, num_kv_heads, head_dim]
+    const __half* __restrict__ v,          // [seq_len, num_kv_heads, head_dim]
+    __half* __restrict__ k_cache,          // [max_seq, num_kv_heads, head_dim]
+    __half* __restrict__ v_cache,          // [max_seq, num_kv_heads, head_dim]
+    int num_kv_heads,
+    int head_dim,
+    const int* __restrict__ kv_cache_offset_ptr,  // ponteiro escalar: início do chunk
+    int seq_len
+) {
+    int q_pos = blockIdx.x;
+    int kv_head = blockIdx.y;
+    int tid = threadIdx.x;
+    if (tid >= head_dim || q_pos >= seq_len) return;
+
+    int kv_offset = *kv_cache_offset_ptr;
+    int cache_pos = kv_offset + q_pos;
+
+    int in_base = (q_pos * num_kv_heads + kv_head) * head_dim;
+    int cache_base = (cache_pos * num_kv_heads + kv_head) * head_dim;
+
+    k_cache[cache_base + tid] = k[in_base + tid];
+    v_cache[cache_base + tid] = v[in_base + tid];
+}

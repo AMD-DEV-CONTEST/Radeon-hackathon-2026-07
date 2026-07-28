@@ -1,0 +1,137 @@
+#include <hip/hip_runtime.h>
+#include <hip/hip_fp16.h>
+
+// Fase E.1 — Split-K Inter-Bloco para QKV (Pass 2: Reduce & RoPE).
+//
+// Lê as 32 parciais do scratchpad escritas pelo Pass 1, soma (cada thread
+// soma sua própria série de 32 valores — sem __shfl, sem atomics: é uma
+// redução puramente sequencial em registrador, WDDM-safe), aplica bias e,
+// se for Q/K, aplica RoPE. O RoPE só pode acontecer aqui porque precisa do
+// vetor de head_dim COMPLETO já reconstruído (par i, i+head_dim/2), que o
+// Pass 1 (fatiado por K, não por neurônio) não tem.
+//
+// Fase I (Batched Decode): blockIdx.y = batch_idx (grid = (num_heads, batch,
+// 1)). scratch/output recebem stride de batch. bias e cos/sin_cache NÃO
+// recebem stride — bias é compartilhado entre sequências (mesmo peso do
+// modelo), cos/sin_cache é uma tabela global read-only indexada por posição
+// absoluta (mesmo padrão já usado em rope.hip.template/flash_attention).
+// kv_cache_offset_ptr vira array de `batch` ints (cada sequência pode estar
+// em uma posição diferente do KV cache).
+//
+// A ordenação entre Pass 1 e Pass 2 é garantida pela própria stream (mesmo
+// stream = execução serializada pela GPU); não há necessidade de eventos ou
+// barreiras extras — o HIP Graph replay preserva a ordem de gravação.
+
+extern "C" __global__ void split_k_qkv_pass2_kernel(
+    const float* __restrict__ scratch,       // [batch, num_heads, 32, head_dim]
+    const void* __restrict__ bias_ptr,       // [out_features] ou nullptr
+    const __half* __restrict__ cos_cache,
+    const __half* __restrict__ sin_cache,
+    __half* __restrict__ output,             // [batch, out_features]
+    int head_dim,
+    const int* __restrict__ kv_cache_offset_ptr,  // agora array de `batch` ints
+    int apply_rope,
+    int num_heads,
+    int rope_type,  // 0 = NEOX/split-half (Qwen2: par (j, j+half)); 1 = NORM/
+                     // intercalado (Granite: par (2i, 2i+1)) -- confirmado em
+                     // llama-model.cpp::llama_model_rope_type: QWEN2 usa
+                     // LLAMA_ROPE_TYPE_NEOX, GRANITE usa LLAMA_ROPE_TYPE_NORM.
+                     // Default 0 preserva o Qwen bit a bit. 2 = NEOX parcial
+                     // (Qwen3.5 -- ver rotary_dim abaixo).
+    int rotary_dim  // canais rotacionados quando rope_type==2 (ignorado nos
+                    // outros dois tipos). Qwen3.5: 64 de head_dim=256
+                    // (partial_rotary_factor=0.25, confirmado em
+                    // modeling_qwen3_5.py). Canais >= rotary_dim passam sem
+                    // rotação (cópia direta de raw_out). cos/sin_cache têm
+                    // stride rotary_dim por posição neste modo.
+) {
+    __shared__ float raw_out[256];   // pré-RoPE deste head (indexado por j)
+
+    int head_idx = blockIdx.x;
+    int batch_idx = blockIdx.y;
+    int j = threadIdx.x;             // 0..head_dim-1
+    if (j >= head_dim) return;
+
+    int out_features = num_heads * head_dim;
+    int n = head_idx * head_dim + j;
+
+    const float* scratch_b = scratch + (size_t)batch_idx * num_heads * 32 * head_dim;
+    __half* output_b = output + (size_t)batch_idx * out_features;
+    int kv_offset = kv_cache_offset_ptr[batch_idx];
+
+    // Redução sequencial das 32 parciais (sem shfl/atomics — barato: 32 reads
+    // + fmaf em registrador por thread).
+    const float* col = scratch_b + (size_t)head_idx * 32 * head_dim + j;
+    float total = 0.0f;
+    #pragma unroll
+    for (int c = 0; c < 32; c++) {
+        total += col[c * head_dim];
+    }
+
+    if (bias_ptr != nullptr) {
+        total += __half2float(((const __half*)bias_ptr)[n]);
+    }
+
+    raw_out[j] = total;
+    __syncthreads();
+
+    if (apply_rope != 0) {
+        int pos = kv_offset;
+        if (rope_type == 1) {
+            // NORM/intercalado (Granite): par (2i, 2i+1) compartilha o ângulo
+            // do índice de frequência i = j/2 -- mesma tabela cos/sin (a
+            // metade [0, head_dim/2) já cobre todos os i possíveis), só a
+            // indexação por par muda em relação ao NEOX.
+            int i = j / 2;
+            float c = __half2float(cos_cache[pos * head_dim + i]);
+            float s = __half2float(sin_cache[pos * head_dim + i]);
+            if ((j & 1) == 0) {
+                float x0 = raw_out[j];
+                float x1 = raw_out[j + 1];
+                output_b[n] = __float2half(x0 * c - x1 * s);
+            } else {
+                float x0 = raw_out[j - 1];
+                float x1 = raw_out[j];
+                output_b[n] = __float2half(x0 * s + x1 * c);
+            }
+        } else if (rope_type == 2) {
+            // NEOX parcial (Qwen3.5): só os primeiros `rotary_dim` canais
+            // giram, no mesmo padrão split-half do NEOX comum, só que numa
+            // janela menor; canais >= rotary_dim passam direto (cópia).
+            int half_rot = rotary_dim / 2;
+            if (j < half_rot) {
+                float v1 = raw_out[j];
+                float v2 = raw_out[j + half_rot];
+                float c = __half2float(cos_cache[pos * rotary_dim + j]);
+                float s = __half2float(sin_cache[pos * rotary_dim + j]);
+                output_b[n] = __float2half(v1 * c - v2 * s);
+            } else if (j < rotary_dim) {
+                float v1 = raw_out[j - half_rot];
+                float v2 = raw_out[j];
+                float c = __half2float(cos_cache[pos * rotary_dim + (j - half_rot)]);
+                float s = __half2float(sin_cache[pos * rotary_dim + (j - half_rot)]);
+                output_b[n] = __float2half(v1 * s + v2 * c);
+            } else {
+                output_b[n] = __float2half(raw_out[j]);
+            }
+        } else {
+            // NEOX/split-half (Qwen2): par (j, j+half).
+            int half = head_dim / 2;
+            if (j < half) {
+                float v1 = raw_out[j];
+                float v2 = raw_out[j + half];
+                float c = __half2float(cos_cache[pos * head_dim + j]);
+                float s = __half2float(sin_cache[pos * head_dim + j]);
+                output_b[n] = __float2half(v1 * c - v2 * s);
+            } else {
+                float v1 = raw_out[j - half];
+                float v2 = raw_out[j];
+                float c = __half2float(cos_cache[pos * head_dim + (j - half)]);
+                float s = __half2float(sin_cache[pos * head_dim + (j - half)]);
+                output_b[n] = __float2half(v1 * s + v2 * c);
+            }
+        }
+    } else {
+        output_b[n] = __float2half(raw_out[j]);
+    }
+}

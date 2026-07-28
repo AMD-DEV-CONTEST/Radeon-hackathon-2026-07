@@ -1,0 +1,90 @@
+#include <hip/hip_runtime.h>
+#include <hip/hip_fp16.h>
+
+// Atenção causal para prefill em lote (seq_len > 1), com online softmax e
+// SEM materializar a matriz de scores -- ao contrário do gqa_attention_kernel
+// (o kernel de referência ingênuo, com scores[2048] por THREAD e o produto
+// escalar inteiramente serial dentro de uma única thread por posição de
+// query), que o profiling real (rocprofv3, W7900) mediu como 36.9% do
+// tempo de GPU do prefill em lote -- maior que qualquer kernel de GEMM,
+// incluindo o gemm_q4k_wmma. Aqui, como no flash_attention_kernel do
+// decode, cada BLOCO (blockIdx.x=q_pos, blockIdx.y=q_head) tem head_dim
+// threads cooperando via redução em árvore na LDS para cada produto
+// escalar -- muda o produto escalar de O(head_dim) serial por thread para
+// O(log2(head_dim)) rounds de redução compartilhados entre threads.
+//
+// Diferente do Split-KV do decode (append+partial+reduce em 3 kernels,
+// ver split_kv_attention.py): aqui o grid já tem seq_len*num_q_heads
+// blocos (tipicamente milhares, bem acima do nº de CUs) -- a GPU já está
+// saturada de paralelismo sem precisar fatiar o histórico de KV em chunks
+// adicionais (que só multiplicaria o nº de blocos sem ganhar throughput, e
+// ainda exigiria scratch de partials + um kernel de redução extra). Por
+// isso: um único passe de online softmax por bloco, sobre TODO o
+// histórico causal.
+//
+// PRÉ-REQUISITO: o K/V deste mesmo chunk já precisa estar em k_cache/
+// v_cache -- kv_cache_append_batched_kernel roda ANTES, no mesmo stream/
+// captura de grafo (ver docstring desse kernel para o porquê disso não
+// poder ser fundido aqui).
+
+extern "C" __global__ void flash_attention_prefill_kernel(
+    const __half* __restrict__ q,          // [seq_len, num_q_heads, head_dim]
+    const __half* __restrict__ k_cache,    // [max_seq, num_kv_heads, head_dim]
+    const __half* __restrict__ v_cache,    // [max_seq, num_kv_heads, head_dim]
+    __half* __restrict__ output,           // [seq_len, num_q_heads, head_dim]
+    int num_q_heads,
+    int num_kv_heads,
+    int head_dim,
+    float scale,
+    const int* __restrict__ kv_cache_offset_ptr   // ponteiro escalar: início do chunk
+) {
+    int q_pos = blockIdx.x;
+    int q_head = blockIdx.y;
+    int tid = threadIdx.x;
+    if (tid >= head_dim) return;
+
+    int kv_offset = *kv_cache_offset_ptr;
+    int total = kv_offset + q_pos + 1;   // fronteira causal varia por q_pos
+
+    int gqa_ratio = num_q_heads / num_kv_heads;
+    int kv_head = q_head / gqa_ratio;
+
+    const __half* q_row = q + (size_t)(q_pos * num_q_heads + q_head) * head_dim;
+
+    extern __shared__ float smem[];
+    float* q_sh = smem;          // head_dim floats
+    float* red = smem + head_dim; // head_dim floats
+
+    q_sh[tid] = __half2float(q_row[tid]);
+    __syncthreads();
+
+    float m = -1e30f;
+    float l = 0.0f;
+    float o = 0.0f;
+
+    for (int j = 0; j < total; j++) {
+        int kbase = (j * num_kv_heads + kv_head) * head_dim;
+
+        red[tid] = q_sh[tid] * __half2float(k_cache[kbase + tid]);
+        __syncthreads();
+        for (int stride = head_dim >> 1; stride > 0; stride >>= 1) {
+            if (tid < stride) red[tid] += red[tid + stride];
+            __syncthreads();
+        }
+        float score = red[0] * scale;
+
+        float m_new = fmaxf(m, score);
+        float corr = __expf(m - m_new);
+        float p = __expf(score - m_new);
+        l = l * corr + p;
+
+        float vd = __half2float(v_cache[kbase + tid]);
+        o = o * corr + p * vd;
+        m = m_new;
+
+        __syncthreads();
+    }
+
+    int out_base = (q_pos * num_q_heads + q_head) * head_dim;
+    output[out_base + tid] = __float2half(o / l);
+}

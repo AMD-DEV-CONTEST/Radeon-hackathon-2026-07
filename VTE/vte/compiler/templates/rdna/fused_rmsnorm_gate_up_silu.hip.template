@@ -1,0 +1,168 @@
+#include <hip/hip_runtime.h>
+#include <hip/hip_fp16.h>
+
+// Fusão do FFN (parte 1/2): Gate_Proj + Up_Proj + SwiGLU em um único kernel.
+//
+// O RMSNorm continua como um kernel SEPARADO (rmsnorm_kernel, já otimizado
+// com LDS/uint4) — ao contrário da fusão QKV (onde recalcular RMSNorm em
+// ~16 blocos era desprezível), aqui o grid tem ~35 blocos (intermediate_size
+// 8960 / 256), e recalcular a redução (com suas ~8 barreiras __syncthreads
+// de árvore) 35x se mostrou MAIS CARO do que os round-trips de VRAM que a
+// fusão economizava — medido empiricamente (regressão de 19.3 para 13.5
+// tok/s ao tentar fundir também o RMSNorm aqui). Então fundimos só o que
+// realmente compensa: Gate e Up no mesmo laço de threads (reaproveitando
+// X_norm da LDS uma vez só) + SiLU em registrador, cortando de 3 kernels
+// (gate_proj, up_proj, swiglu) para 1.
+//
+// Down_proj continua separado (matmul_kernel já otimizado com LDS).
+// Sem bias no Qwen2.5 para gate_proj/up_proj (confirmado no GGUF).
+//
+// Suporte a batch (experimento Fase M, batch>1): blockIdx.y = batch_idx,
+// mesmo padrão de gemv_coalesced_kernel. x_norm/output indexados por
+// batch_idx * stride; gate_weight/up_weight são compartilhados entre todas
+// as sequências do batch (mesmo peso, lido uma vez por bloco via LDS).
+// batch=1 (grid.y=1) reduz exatamente ao comportamento original.
+
+// Tese V7/V8: era 1536 (hardcoded pro Qwen2.5 1.5B), sem checagem nenhuma
+// contra o hidden_size real do modelo em fused_qkv_dispatch.py -- passar
+// hidden_size>1536 (Qwen2.5 7B=3584, Llama 3.1 8B=4096, Qwen2.5 32B=5120)
+// estourava esse buffer de LDS silenciosamente. Subido pra cobrir o maior
+// hidden_size já usado no projeto (32B=5120) com margem; 8192 half = 16KB
+// de LDS/bloco, bem dentro do limite de 64KB/bloco confirmado via
+// hip.get_device_properties()['shared_mem_per_block'] na W7900.
+#define FUSED_FFN_MAX_HIDDEN 8192
+
+// ffn_gate.weight/ffn_up.weight ficam CRUS (Q4_K) na VRAM -- ver
+// is_raw_q4k_weight em qwen_mapper.py -- então não podem ser lidos como
+// __half* puro. Mesmo layout de superbloco do gemv_q4k.hip.template (144
+// bytes = [0:2]d [2:4]dmin [4:16]scales [16:144]qs, 4 mblks de 64 pesos),
+// mas em versão escalar (um peso por vez): a fusão já é 1 thread = 1 neurônio
+// com loop serial sobre hidden_size, então não há o paralelismo de 64 lanes
+// por linha que justificaria a versão vetorizada uint4 do gemv_q4k.
+//
+// Tese V7, Pilar 3 (porte da técnica de cache de header do V6): a versão
+// original desta função era chamada uma vez POR k (0..hidden_size), e
+// recalculava d/dmin/scale do zero a cada chamada -- 1536 recomputações
+// para um superbloco que só muda a cada 256 elementos (medido: 4.2 tok/s,
+// pior que o próprio fused kernel original rejeitado a 12.7-13.5 tok/s, ver
+// docs/PERFORMANCE.md linha "Update"). Substituído por
+// `q4k_dequant_row_accumulate`, que processa a linha inteira em UM loop
+// externo por superbloco (calcula d/dmin uma vez a cada 256 elementos) e um
+// loop interno por mblk (calcula sc/mn uma vez a cada 64 elementos), igual
+// à cadência de amortização do gemv_q4k pós-V6 -- só que sem o truque
+// __shfl entre threads (não há 8 threads cooperando no mesmo superbloco
+// aqui, é 1 thread = 1 linha inteira), e sem o truque ALU-only
+// q4k_header_sbyte(): `s`/`qs` aqui apontam direto pra VRAM global
+// (row_q4k é __restrict__ const, nunca copiado pra um array local
+// registrado), então indexação dinâmica em `s[sub]` é um load de memória
+// global de verdade, não indexação em registrador -- o motivo do spill que
+// motivou aquele truque no gemv_q4k não se aplica aqui.
+//
+// Tese V8 (generalização): a fusão vencia no 1.5B (+3.5%) mas regredia no
+// 7B/8B/32B (-1.9% a -10%), mesmo com zero spill/ocupação máxima confirmada
+// via hipcc -Rpass-analysis (ver o registro de "Mechanism check" no
+// PERFORMANCE.md/memória do projeto) -- a causa não era pressão de
+// registrador, era o payload de `qs` sendo lido 1 byte por vez (`qs[...]`,
+// carga escalar), sem os loads vetorizados uint4 de 128 bits que o
+// gemv_q4k já usa. Corrigido abaixo: os 32 bytes de `qs` de cada mblk (144
+// múltiplo de 16, logo `blk`/`qs`/`qs+32*mblk`/`+half*16` são todos
+// offsets múltiplos de 16 a partir da base do buffer -- mesma garantia de
+// alinhamento que o comentário do gemv_q4k já documenta) são lidos em 2
+// cargas `uint4` (16 bytes cada) em vez de 32 leituras escalares de 1
+// byte, mantendo a amortização de header por superbloco/mblk já existente.
+__device__ __forceinline__ void q4k_dequant_row_accumulate(
+    const unsigned char* __restrict__ row_q4k,
+    const __half* __restrict__ x_sh,
+    int hidden_size,
+    float& sum
+) {
+    int n_sb = hidden_size / 256;
+    for (int sb = 0; sb < n_sb; sb++) {
+        const unsigned char* blk = row_q4k + (size_t)sb * 144;
+        float d = __half2float(*reinterpret_cast<const __half*>(blk + 0));
+        float dmin = __half2float(*reinterpret_cast<const __half*>(blk + 2));
+        const unsigned char* s = blk + 4;
+        const unsigned char* qs = blk + 16;
+        int kbase = sb * 256;
+
+        #pragma unroll
+        for (int mblk = 0; mblk < 4; mblk++) {
+            int sub0 = 2 * mblk, sub1 = 2 * mblk + 1;
+            int sc0, mn0, sc1, mn1;
+            if (sub0 < 4) { sc0 = s[sub0] & 63; mn0 = s[sub0 + 4] & 63; }
+            else {
+                sc0 = (s[sub0 + 4] & 0x0F) | ((s[sub0 - 4] >> 6) << 4);
+                mn0 = (s[sub0 + 4] >> 4) | ((s[sub0] >> 6) << 4);
+            }
+            if (sub1 < 4) { sc1 = s[sub1] & 63; mn1 = s[sub1 + 4] & 63; }
+            else {
+                sc1 = (s[sub1 + 4] & 0x0F) | ((s[sub1 - 4] >> 6) << 4);
+                mn1 = (s[sub1 + 4] >> 4) | ((s[sub1] >> 6) << 4);
+            }
+            float d0 = d * (float)sc0, o0 = dmin * (float)mn0;
+            float d1 = d * (float)sc1, o1 = dmin * (float)mn1;
+
+            int mbase = kbase + mblk * 64;
+            #pragma unroll
+            for (int half = 0; half < 2; half++) {
+                const uint4* qptr = reinterpret_cast<const uint4*>(qs + 32 * mblk + half * 16);
+                uint4 qv = *qptr;
+                const unsigned char* qb = reinterpret_cast<const unsigned char*>(&qv);
+                int posbase = half * 16;
+                #pragma unroll
+                for (int bl = 0; bl < 16; bl++) {
+                    int pos = posbase + bl;
+                    unsigned char byte = qb[bl];
+                    float wlo = d0 * (float)(byte & 0x0F) - o0;
+                    float whi = d1 * (float)(byte >> 4) - o1;
+                    sum = fmaf(wlo, __half2float(x_sh[mbase + pos]), sum);
+                    sum = fmaf(whi, __half2float(x_sh[mbase + 32 + pos]), sum);
+                }
+            }
+        }
+    }
+}
+
+extern "C" __global__ void fused_gate_up_silu_kernel(
+    const __half* __restrict__ x_norm,        // [batch, hidden_size] — já normalizado (RMSNorm em kernel separado)
+    const void* __restrict__ gate_weight,     // [intermediate_size, hidden_size] Q4_K cru
+    const void* __restrict__ up_weight,       // [intermediate_size, hidden_size] Q4_K cru
+    __half* __restrict__ output,              // [batch, intermediate_size] — SiLU(gate) * up
+    int hidden_size,
+    int intermediate_size
+) {
+    __shared__ __half x_sh[FUSED_FFN_MAX_HIDDEN];
+
+    int tid = threadIdx.x;
+    int n = blockIdx.x * blockDim.x + tid;
+    int batch_idx = blockIdx.y;
+
+    const __half* x_norm_row = x_norm + (size_t)batch_idx * hidden_size;
+    __half* output_row = output + (size_t)batch_idx * intermediate_size;
+
+    // Carrega x_norm cooperativamente na LDS uma única vez por bloco —
+    // reaproveitado tanto para o dot product do Gate quanto do Up.
+    for (int i = tid; i < hidden_size; i += blockDim.x) {
+        x_sh[i] = x_norm_row[i];
+    }
+    __syncthreads();
+
+    if (n >= intermediate_size) return;
+
+    // Q4_K: 144 bytes por superbloco de 256 pesos (ver q4k_dequant_row_accumulate acima).
+    // ABI idêntica ao gemv_q4k -- hidden_size % 256 == 0.
+    int n_sb = hidden_size / 256;
+    const unsigned char* gate_row = ((const unsigned char*)gate_weight) + (size_t)n * n_sb * 144;
+    const unsigned char* up_row = ((const unsigned char*)up_weight) + (size_t)n * n_sb * 144;
+
+    float gate_sum = 0.0f;
+    float up_sum = 0.0f;
+    q4k_dequant_row_accumulate(gate_row, x_sh, hidden_size, gate_sum);
+    q4k_dequant_row_accumulate(up_row, x_sh, hidden_size, up_sum);
+
+    float sigmoid = 1.0f / (1.0f + __expf(-gate_sum));
+    float silu = gate_sum * sigmoid;
+    float result = silu * up_sum;
+
+    output_row[n] = __float2half(result);
+}

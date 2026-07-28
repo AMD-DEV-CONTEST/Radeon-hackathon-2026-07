@@ -1,0 +1,74 @@
+#include <hip/hip_runtime.h>
+#include <hip/hip_fp16.h>
+
+// Gated DeltaNet (Qwen3.5 "linear_attention") -- RMSNormGated da saída.
+// Confirmado em modeling_qwen3_5.py::Qwen3_5RMSNormGated.forward:
+//   variance = x.pow(2).mean(-1)
+//   x = x * rsqrt(variance + eps)
+//   x = weight * x
+//   x = x * silu(gate)
+//
+// Isolado do rmsnorm_kernel comum (rmsnorm.hip.template, usado por
+// Qwen2.5/Granite) -- kernel próprio, não estende o existente, zero risco
+// de regressão nos dois caminhos já validados.
+//
+// Uma linha (blockIdx.x) por HEAD, não por token -- confirmado no código
+// real: core_attn_out/z são reshaped para (-1, head_v_dim) ANTES do norm,
+// ou seja, cada head de cada token recebe sua própria normalização
+// independente, não uma normalização sobre o value_dim inteiro. weight é
+// compartilhado entre heads/posições (mesmo vetor de head_v_dim sempre);
+// gate varia por linha (vem de z, específico de cada head/token).
+
+extern "C" __global__ void rmsnorm_gated_kernel(
+    const __half* __restrict__ x,        // [n_rows, head_v_dim]
+    const __half* __restrict__ weight,   // [head_v_dim] -- compartilhado
+    const __half* __restrict__ gate,     // [n_rows, head_v_dim]
+    __half* __restrict__ output,         // [n_rows, head_v_dim]
+    int head_v_dim,
+    float eps
+) {
+    int tid = threadIdx.x;
+    int row = blockIdx.x;
+
+    const __half* x_row = x + (size_t)row * head_v_dim;
+    const __half* gate_row = gate + (size_t)row * head_v_dim;
+    __half* out_row = output + (size_t)row * head_v_dim;
+
+    __shared__ float shared_sum[32];
+
+    float sum_sq = 0.0f;
+    for (int i = tid; i < head_v_dim; i += blockDim.x) {
+        float v = __half2float(x_row[i]);
+        sum_sq += v * v;
+    }
+
+    #pragma unroll
+    for (int offset = warpSize / 2; offset > 0; offset /= 2) {
+        sum_sq += __shfl_down(sum_sq, offset);
+    }
+    int lane = tid % warpSize;
+    int wid = tid / warpSize;
+    if (lane == 0) shared_sum[wid] = sum_sq;
+    __syncthreads();
+    if (wid == 0) {
+        int num_waves = (blockDim.x + warpSize - 1) / warpSize;
+        float val = (lane < num_waves) ? shared_sum[lane] : 0.0f;
+        #pragma unroll
+        for (int offset = warpSize / 2; offset > 0; offset /= 2) {
+            val += __shfl_down(val, offset);
+        }
+        if (lane == 0) shared_sum[0] = val;
+    }
+    __syncthreads();
+
+    float mean_sq = shared_sum[0] / (float)head_v_dim;
+    float rms_inv = rsqrtf(mean_sq + eps);
+
+    for (int i = tid; i < head_v_dim; i += blockDim.x) {
+        float xv = __half2float(x_row[i]);
+        float w = __half2float(weight[i]);
+        float g = __half2float(gate_row[i]);
+        float silu_g = g / (1.0f + expf(-g));
+        out_row[i] = __float2half(xv * rms_inv * w * silu_g);
+    }
+}

@@ -1,0 +1,73 @@
+#include <hip/hip_runtime.h>
+#include <hip/hip_fp16.h>
+
+// Qwen3.5 Gated DeltaNet: funde a_proj (in_proj_a) e b_proj (in_proj_b) num
+// único lançamento -- ambos são GEMVs MINÚSCULOS (16 elementos de saída,
+// num_v_heads) com a MESMA entrada (attn_norm.output) e pesos Q8_0 crus
+// (ssm_alpha.weight/ssm_beta.weight), só a matriz de peso muda. Lançar 2
+// kernels separados pra 16+16=32 elementos de saída é dominado por overhead
+// de lançamento, não por trabalho de GPU -- por isso funde em 1.
+//
+// Mesma matemática de desquant do gemv_q8_0 (w[i] = d*q[i], bloco de 32
+// elementos/34 bytes), sem bias/residual (in_proj_a/in_proj_b não têm).
+//
+// Grid = 2*num_heads blocos: blockIdx.x < num_heads => linha `blockIdx.x`
+// de a_proj; blockIdx.x >= num_heads => linha `blockIdx.x-num_heads` de
+// b_proj. block=64 (mesma geometria do gemv_q8_0).
+
+extern "C" __global__ void fused_ab_proj_q8_0_kernel(
+    const void* __restrict__ input_ptr,
+    const void* __restrict__ weight_a_ptr,
+    const void* __restrict__ weight_b_ptr,
+    void* __restrict__ output_a_ptr,
+    void* __restrict__ output_b_ptr,
+    int in_features,
+    int num_heads
+) {
+    __shared__ float warp_sums[32];
+
+    int block_row = blockIdx.x;
+    if (block_row >= 2 * num_heads) return;
+
+    bool is_b = block_row >= num_heads;
+    int row = is_b ? (block_row - num_heads) : block_row;
+    const void* weight_ptr = is_b ? weight_b_ptr : weight_a_ptr;
+    void* output_ptr = is_b ? output_b_ptr : output_a_ptr;
+
+    int tid = threadIdx.x;
+    int bs = blockDim.x;
+    int lane = tid % warpSize;
+    int warp = tid / warpSize;
+
+    const __half* X = (const __half*)input_ptr;
+    int n_blk = in_features / 32;
+    const unsigned char* row_q8 =
+        ((const unsigned char*)weight_ptr) + (size_t)row * n_blk * 34;
+
+    float acc = 0.0f;
+    for (int b = tid; b < n_blk; b += bs) {
+        const unsigned char* blk = row_q8 + (size_t)b * 34;
+        float d = __half2float(*reinterpret_cast<const __half*>(blk));
+        const signed char* q = reinterpret_cast<const signed char*>(blk + 2);
+
+        int xbase = b * 32;
+        #pragma unroll
+        for (int i = 0; i < 32; i++) {
+            float w = d * (float)q[i];
+            acc = fmaf(w, __half2float(X[xbase + i]), acc);
+        }
+    }
+
+    for (int off = warpSize / 2; off > 0; off >>= 1) {
+        acc += __shfl_down(acc, off);
+    }
+    if (lane == 0) warp_sums[warp] = acc;
+    __syncthreads();
+
+    if (tid == 0) {
+        int nwarps = (bs + warpSize - 1) / warpSize;
+        float total = 0.0f;
+        for (int w = 0; w < nwarps; w++) total += warp_sums[w];
+        ((__half*)output_ptr)[row] = __float2half(total);
+    }
+}

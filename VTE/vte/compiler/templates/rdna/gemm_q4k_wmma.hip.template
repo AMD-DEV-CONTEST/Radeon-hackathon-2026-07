@@ -1,0 +1,246 @@
+#include <hip/hip_runtime.h>
+#include <hip/hip_fp16.h>
+#include <rocwmma/rocwmma.hpp>
+
+// GEMM Q4_K com desquantização on-the-fly e WMMA (gfx11) -- kernel de
+// prefill em lote. NUNCA usado no caminho de decode (seq_len=1), onde o
+// GEMV puro (gemv_q4k_kernel) já é a escolha certa -- este kernel só
+// entra em jogo quando M (linhas do chunk) é grande o bastante pra
+// reaproveitar um tile de peso carregado em LDS através de várias linhas,
+// o que um GEMV não faz (cada linha relê os mesmos pesos do zero).
+//
+// Layout Q4_K (144 bytes / 256 elementos) IDÊNTICO ao já usado e validado
+// em gemv_q4k.hip.template e vte/compiler/dequantizer.py -- reaproveita a
+// MESMA matemática de desempacotamento (get_scale_min_k4-style).
+//
+// v2 (double-buffered): a v1 (K_TILE=256, sem double-buffer, tiles 32x32)
+// era CORRETA mas media mais lenta que o caminho sequencial end-to-end
+// (8.09s vs 5.66s) -- sem overlap de load/compute, cada uma das 16
+// iterações de K pagava load+sync+compute+sync em série, e o tile 32x32
+// não gerava WMMA suficiente pra ocultar a latência de load mesmo se
+// tivesse overlap. Causa raiz, não só suposição: o limite REAL de LDS por
+// workgroup em gfx1100 é 65536 bytes (confirmado pelo erro do compilador
+// ao tentar 128KB), não os 128KB que a estimativa inicial assumiu -- daí
+// não ter cabido double-buffering nos tiles 32x32 iniciais.
+//
+// K_TILE=64 aqui NÃO é arbitrário: um superbloco Q4_K tem 256 elementos =
+// exatamente 4 "mblks" de 64 (ver dequant_q4k_mblk, já granular em 64
+// desde a v1) -- cada iteração de K_TILE=64 decodifica exatamente 1 mblk,
+// reaproveitando a MESMA função de desquantização sem mudança nenhuma na
+// matemática de bit-unpacking, só a que "mblk" cada iteração pede.
+
+#define WMMA_M 16
+#define WMMA_N 16
+#define WMMA_K 16
+
+#define M_TILE 64
+#define N_TILE 64
+#define K_TILE 64  // 1 mblk (1/4 de superbloco Q4_K)
+
+// Mesma extração de byte de scales já usada e validada em
+// gemv_q4k.hip.template.
+__device__ __forceinline__ unsigned int q4k_header_sbyte(unsigned int h1, unsigned int h2, unsigned int h3, int n) {
+    unsigned int w = (n < 4) ? h1 : ((n < 8) ? h2 : h3);
+    return (w >> (8 * (n & 3))) & 0xFFu;
+}
+
+// Desquantiza UM mblk (64 valores) de UMA linha, escrevendo em
+// weight_tile[n_local * K_TILE .. +64] (K_TILE=64=exatamente 1 mblk agora,
+// então o destino é a linha inteira do tile, não um offset dentro dela).
+__device__ __forceinline__ void dequant_q4k_mblk(
+    const unsigned char* __restrict__ blk,  // início do superbloco (144 bytes) desta linha
+    half* __restrict__ weight_tile,         // [N_TILE][K_TILE]
+    int n_local, int mblk
+) {
+    uint4 hv = *reinterpret_cast<const uint4*>(blk);
+    unsigned int h0 = hv.x, h1 = hv.y, h2 = hv.z, h3 = hv.w;
+
+    float d = __half2float(*reinterpret_cast<const __half*>(&h0));
+    float dmin = __half2float(*(reinterpret_cast<const __half*>(&h0) + 1));
+
+    int sub0 = 2 * mblk, sub1 = 2 * mblk + 1;
+    int sc0, mn0, sc1, mn1;
+    if (sub0 < 4) { sc0 = q4k_header_sbyte(h1, h2, h3, sub0) & 63; mn0 = q4k_header_sbyte(h1, h2, h3, sub0 + 4) & 63; }
+    else { sc0 = (q4k_header_sbyte(h1, h2, h3, sub0 + 4) & 0x0F) | ((q4k_header_sbyte(h1, h2, h3, sub0 - 4) >> 6) << 4);
+           mn0 = (q4k_header_sbyte(h1, h2, h3, sub0 + 4) >> 4) | ((q4k_header_sbyte(h1, h2, h3, sub0) >> 6) << 4); }
+    if (sub1 < 4) { sc1 = q4k_header_sbyte(h1, h2, h3, sub1) & 63; mn1 = q4k_header_sbyte(h1, h2, h3, sub1 + 4) & 63; }
+    else { sc1 = (q4k_header_sbyte(h1, h2, h3, sub1 + 4) & 0x0F) | ((q4k_header_sbyte(h1, h2, h3, sub1 - 4) >> 6) << 4);
+           mn1 = (q4k_header_sbyte(h1, h2, h3, sub1 + 4) >> 4) | ((q4k_header_sbyte(h1, h2, h3, sub1) >> 6) << 4); }
+
+    float d0 = d * (float)sc0, o0 = dmin * (float)mn0;
+    float d1 = d * (float)sc1, o1 = dmin * (float)mn1;
+
+    const unsigned char* qb = blk + 16 + mblk * 32;
+    half* out_row = weight_tile + n_local * K_TILE;
+    #pragma unroll
+    for (int bl = 0; bl < 32; bl++) {
+        int lo = qb[bl] & 0x0F;
+        int hi = qb[bl] >> 4;
+        out_row[bl] = __float2half(d0 * (float)lo - o0);
+        out_row[32 + bl] = __float2half(d1 * (float)hi - o1);
+    }
+}
+
+// Kernel de validação isolada (Fase 1a), atualizado pra granularidade de
+// mblk direta (k_superblock_idx virou k_mblk_idx: qual dos n_sb*4 mblks).
+extern "C" __global__ void gemm_q4k_dequant_test_kernel(
+    const void* __restrict__ weight_ptr,  // (N, n_sb, 144) bytes, Q4_K
+    half* __restrict__ out,               // (N_TILE, K_TILE) fp16
+    int n_offset, int k_mblk_idx, int K
+) {
+    int tid = threadIdx.x;
+    if (tid >= N_TILE) return;
+
+    int n_sb = K / 256;
+    int sb = k_mblk_idx / 4, mblk = k_mblk_idx % 4;
+    const unsigned char* row_q4k = ((const unsigned char*)weight_ptr) + (size_t)(n_offset + tid) * n_sb * 144;
+    const unsigned char* blk = row_q4k + (size_t)sb * 144;
+
+    dequant_q4k_mblk(blk, out, tid, mblk);
+}
+
+__device__ __forceinline__ void load_weight_tile(
+    const void* __restrict__ W_q4, half* __restrict__ dst,
+    int bn, int N, int n_sb, int k_iter, int tid
+) {
+    if (tid >= N_TILE) return;
+    int n = bn + tid;
+    if (n >= N) return;
+    int sb = k_iter / 4, mblk = k_iter % 4;
+    const unsigned char* row_q4k = ((const unsigned char*)W_q4) + (size_t)n * n_sb * 144;
+    dequant_q4k_mblk(row_q4k + (size_t)sb * 144, dst, tid, mblk);
+}
+
+__device__ __forceinline__ void load_act_tile(
+    const half* __restrict__ X, half* __restrict__ dst,
+    int bm, int M, int K, int k_iter, int tid, int block_size
+) {
+    int k_offset = k_iter * K_TILE;
+    for (int i = tid; i < M_TILE * K_TILE; i += block_size) {
+        int m_local = i / K_TILE, k_local = i % K_TILE;
+        int m_global = bm + m_local, k_global = k_offset + k_local;
+        dst[i] = (m_global < M) ? X[(size_t)m_global * K + k_global] : __float2half(0.0f);
+    }
+}
+
+// Kernel completo (Fase 1b), v2: Y = X @ W^T + bias, double-buffered.
+// Chunk-only (prefill em lote) -- nunca usado em decode.
+//
+// bias_ptr: nullptr para pesos sem bias (Llama 3.1 8B, down_proj/gate/up
+// em qualquer modelo -- o único caso testado até 2026-07-22, por isso o
+// kernel nasceu sem este parâmetro). Qwen2.5 (q/k/v_proj) TEM bias
+// (attention_bias=True na arquitetura, tensores blk.N.attn_{q,k,v}.bias
+// reais no GGUF) -- confirmado como causa raiz de uma divergência real
+// entre o caminho sequencial (gemv_q4k, que já somava bias corretamente
+// via bias_ptr) e este kernel (que não tinha onde somar): saída idêntica
+// a `gemv_q4k(...) + bias` elemento a elemento, não uma aproximação.
+// Mesma convenção de indexação de gemv_q4k.hip.template: bias[n], um
+// valor por feature de saída, somado igual em toda linha M (broadcast).
+extern "C" __global__ void gemm_q4k_wmma_kernel(
+    const half* __restrict__ X,          // (M, K) fp16
+    const void* __restrict__ W_q4,       // (N, n_sb, 144) bytes, Q4_K
+    half* __restrict__ Y,                // (M, N) fp16
+    int M, int N, int K,
+    const void* __restrict__ bias_ptr    // (N,) fp16, ou nullptr
+) {
+    // weight_tile: 2 * 64*64*2B = 16KB. act_tile: 2 * 64*64*2B = 16KB.
+    // Total: 32KB, dentro dos 65536 bytes/workgroup reais de gfx1100 com
+    // 32KB de folga (store_tile abaixo cabe fácil).
+    __shared__ half weight_tile[2][N_TILE * K_TILE];
+    __shared__ half act_tile[2][M_TILE * K_TILE];
+
+    int bn = blockIdx.x * N_TILE;
+    int bm = blockIdx.y * M_TILE;
+    if (bn >= N || bm >= M) return;
+
+    int tid = threadIdx.x;      // 0..127
+    int wave_id = tid / 32;     // 0..3
+    int n_sb = K / 256;
+    int n_k_iters = K / K_TILE;  // = n_sb * 4
+
+    // Cada wave cobre um quadrante 32x32 do tile 64x64 de saída (4
+    // sub-tiles WMMA 16x16 por wave -- 4 waves x 4 sub-tiles = 16 no
+    // total, cobrindo 64x64). Acumuladores ficam vivos em VGPR por todo o
+    // loop de K, um por sub-tile.
+    int wave_base_mi = (wave_id / 2) * 32;
+    int wave_base_ni = (wave_id % 2) * 32;
+
+    rocwmma::fragment<rocwmma::accumulator, WMMA_M, WMMA_N, WMMA_K, float> acc[2][2];
+    for (int i = 0; i < 2; i++)
+        for (int j = 0; j < 2; j++)
+            rocwmma::fill_fragment(acc[i][j], 0.0f);
+
+    // Pré-carrega o primeiro tile (buf 0) antes do loop.
+    int buf = 0;
+    load_weight_tile(W_q4, weight_tile[0], bn, N, n_sb, 0, tid);
+    load_act_tile(X, act_tile[0], bm, M, K, 0, tid, blockDim.x);
+    __syncthreads();
+
+    for (int k_iter = 0; k_iter < n_k_iters; k_iter++) {
+        int next_buf = 1 - buf;
+
+        // ── COMPUTE no buffer atual ──
+        // K_TILE=64 mas um fragmento WMMA só cobre 16 de K por vez --
+        // precisa de K_TILE/WMMA_K=4 sub-passos pra cobrir o tile inteiro,
+        // acumulando todos no MESMO acc[si][sj]. Bug real encontrado aqui
+        // na v2 (perdido ao reescrever de K_TILE=256 pra 64): sem este
+        // sub-loop, cada k_iter só somava os primeiros 16 de 64 valores de
+        // K, descartando 3/4 dos dados silenciosamente -- daí 95% dos
+        // elementos de saída errados na primeira versão da v2.
+        for (int si = 0; si < 2; si++) {
+            for (int sj = 0; sj < 2; sj++) {
+                int mi = wave_base_mi + si * WMMA_M;
+                int ni = wave_base_ni + sj * WMMA_N;
+                for (int kk = 0; kk < K_TILE; kk += WMMA_K) {
+                    rocwmma::fragment<rocwmma::matrix_a, WMMA_M, WMMA_N, WMMA_K, half, rocwmma::row_major> a_frag;
+                    rocwmma::fragment<rocwmma::matrix_b, WMMA_M, WMMA_N, WMMA_K, half, rocwmma::col_major> b_frag;
+                    rocwmma::load_matrix_sync(a_frag, &act_tile[buf][mi * K_TILE + kk], K_TILE);
+                    rocwmma::load_matrix_sync(b_frag, &weight_tile[buf][ni * K_TILE + kk], K_TILE);
+                    rocwmma::mma_sync(acc[si][sj], a_frag, b_frag, acc[si][sj]);
+                }
+            }
+        }
+
+        // ── LOAD do PRÓXIMO tile -- sem barreira entre isto e o compute
+        // acima (mesmo buf/next_buf, sem dependência de dados), então o
+        // agendador da GPU pode sobrepor os dois de verdade.
+        if (k_iter + 1 < n_k_iters) {
+            load_weight_tile(W_q4, weight_tile[next_buf], bn, N, n_sb, k_iter + 1, tid);
+            load_act_tile(X, act_tile[next_buf], bm, M, K, k_iter + 1, tid, blockDim.x);
+        }
+
+        __syncthreads();  // garante compute(buf) E load(next_buf) terminados
+        buf = next_buf;
+    }
+
+    // ── Store: fp32 (acumulador) -> fp16, VGPR -> VRAM ──
+    __shared__ half store_tile[4][2][2][WMMA_M * WMMA_N];
+    int lane_id = tid % 32;
+    for (int si = 0; si < 2; si++) {
+        for (int sj = 0; sj < 2; sj++) {
+            rocwmma::fragment<rocwmma::accumulator, WMMA_M, WMMA_N, WMMA_K, half> out16;
+            for (int i = 0; i < acc[si][sj].num_elements; i++) {
+                out16.x[i] = __float2half(acc[si][sj].x[i]);
+            }
+            rocwmma::store_matrix_sync(store_tile[wave_id][si][sj], out16, WMMA_N, rocwmma::mem_row_major);
+        }
+    }
+    __syncthreads();
+
+    for (int si = 0; si < 2; si++) {
+        for (int sj = 0; sj < 2; sj++) {
+            for (int i = lane_id; i < WMMA_M * WMMA_N; i += 32) {
+                int local_m = i / WMMA_N, local_n = i % WMMA_N;
+                int global_m = bm + wave_base_mi + si * WMMA_M + local_m;
+                int global_n = bn + wave_base_ni + sj * WMMA_N + local_n;
+                if (global_m < M && global_n < N) {
+                    half val = store_tile[wave_id][si][sj][local_m * WMMA_N + local_n];
+                    if (bias_ptr != nullptr) {
+                        val = __float2half(__half2float(val) + __half2float(((const __half*)bias_ptr)[global_n]));
+                    }
+                    Y[(size_t)global_m * N + global_n] = val;
+                }
+            }
+        }
+    }
+}

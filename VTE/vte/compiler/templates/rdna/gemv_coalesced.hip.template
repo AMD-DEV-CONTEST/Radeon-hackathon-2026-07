@@ -1,0 +1,109 @@
+#include <hip/hip_runtime.h>
+#include <hip/hip_fp16.h>
+
+// GEMV coalescido "Split-K / Wavefront-per-row" (Etapa B, Opção 1).
+//
+// Motivação (provada por ISA + medição): o GEMV "1 thread = 1 linha de saída"
+// já era auto-vetorizado pelo compilador (global_load_b128), mas o acesso é
+// DESCOALESCIDO: lanes consecutivas de um wavefront leem linhas diferentes do
+// peso (endereços distantes por in_features*2 bytes), cada lane batendo numa
+// cache line diferente → burst da GDDR6 desperdiçado.
+//
+// Aqui invertemos o mapeamento: 1 BLOCO (blockDim.x threads) computa 1 neurônio
+// de saída. As threads dividem a dimensão K. Na iteração i, a thread t lê o
+// chunk uint4 (8 halfs) no índice (base + t): como o peso é row-major, os
+// endereços das threads 0,1,2,... são CONTÍGUOS → o controlador funde tudo num
+// único burst (coalescing perfeito, 100% da cache line / Infinity Cache).
+//
+// Cada thread acumula sua parcial em FP32 (fmaf; somar 8960 termos em FP16
+// estoura o expoente). Depois reduzimos as parciais dentro do bloco:
+//   1. __shfl_down dentro do wavefront (rápido, sem LDS)
+//   2. lane 0 de cada wavefront escreve na LDS
+//   3. thread 0 soma as parciais dos wavefronts e escreve o neurônio.
+//
+// INVARIANTE: in_features % 8 == 0 (garante W_row alinhado a 16 bytes para o
+// uint4 em toda linha). Todos os matmuls do Qwen2.5 satisfazem (1536, 8960).
+// ABI idêntica ao matmul_kernel (8 args) para roteamento por nó.
+
+extern "C" __global__ void gemv_coalesced_kernel(
+    const void* __restrict__ input_ptr,
+    const void* __restrict__ weight_ptr,
+    void* __restrict__ output_ptr,
+    int batch,
+    int seq_len,
+    int in_features,
+    int out_features,
+    const void* __restrict__ bias_ptr,      // nullptr quando não há bias
+    const void* __restrict__ residual_ptr,  // Epilogue Fusion: out += residual[row] (nullptr = sem)
+    float residual_scale                    // Granite: 0.22, escala a saída deste
+                                             // sub-bloco ANTES de somar ao residual
+                                             // (ver gemv_q8_0.hip.template). Default 1.0.
+) {
+    __shared__ float warp_sums[32];   // até 32 wavefronts/bloco (>=1024 threads)
+
+    int row = blockIdx.x;             // 1 bloco = 1 neurônio de saída
+    int m = blockIdx.y;              // linha do batch*seq (=0 em decode)
+    if (row >= out_features || m >= batch * seq_len) return;
+
+    int tid = threadIdx.x;
+    int bs = blockDim.x;
+
+    const __half* X = ((const __half*)input_ptr) + (size_t)m * in_features;
+    const __half* W_row = ((const __half*)weight_ptr) + (size_t)row * in_features;
+
+    const uint4* Xv = reinterpret_cast<const uint4*>(X);
+    const uint4* Wv = reinterpret_cast<const uint4*>(W_row);
+    int nvec = in_features / 8;
+
+    float acc = 0.0f;
+
+    // Loop principal coalescido: thread t pega os chunks c = t, t+bs, t+2bs...
+    // Entre lanes (mesmo c-base), endereços contíguos → burst único.
+    for (int c = tid; c < nvec; c += bs) {
+        uint4 wv = Wv[c];
+        uint4 xv = Xv[c];
+        const __half* wh = reinterpret_cast<const __half*>(&wv);
+        const __half* xh = reinterpret_cast<const __half*>(&xv);
+        #pragma unroll
+        for (int j = 0; j < 8; j++) {
+            acc = fmaf(__half2float(xh[j]), __half2float(wh[j]), acc);
+        }
+    }
+    // Cauda escalar (in_features % 8). Só executa se a invariante for violada;
+    // mantida por segurança/generalidade.
+    for (int k = nvec * 8 + tid; k < in_features; k += bs) {
+        acc = fmaf(__half2float(X[k]), __half2float(W_row[k]), acc);
+    }
+
+    // Redução intra-wavefront via __shfl_down (warpSize = 32 em gfx11).
+    for (int off = warpSize / 2; off > 0; off >>= 1) {
+        acc += __shfl_down(acc, off);
+    }
+
+    int lane = tid % warpSize;
+    int warp = tid / warpSize;
+    if (lane == 0) {
+        warp_sums[warp] = acc;
+    }
+    __syncthreads();
+
+    // Thread 0 combina as parciais dos wavefronts e escreve o neurônio.
+    if (tid == 0) {
+        int nwarps = (bs + warpSize - 1) / warpSize;
+        float total = 0.0f;
+        for (int w = 0; w < nwarps; w++) {
+            total += warp_sums[w];
+        }
+        if (bias_ptr != nullptr) {
+            total += __half2float(((const __half*)bias_ptr)[row]);
+        }
+        total *= residual_scale;
+        // Epilogue Fusion do residual: o kernel anterior (attention) acabou de
+        // escrever residual_ptr[row] -> hit quente no L2/Infinity Cache. Evita
+        // um kernel Add separado (56 launches/tok).
+        if (residual_ptr != nullptr) {
+            total += __half2float(((const __half*)residual_ptr)[(size_t)m * out_features + row]);
+        }
+        ((__half*)output_ptr)[(size_t)m * out_features + row] = __float2half(total);
+    }
+}

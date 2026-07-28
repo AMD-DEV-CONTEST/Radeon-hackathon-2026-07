@@ -1,0 +1,80 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vte"
+version = "0.3.7"
+description = "VTE (Vector & Tensor Engine) - Motor de inferência AMD-native para Windows"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Kaue Oliveira Costa (kyuubyN)"}
+]
+keywords = ["llm", "inference", "amd", "rocm", "hip", "gpu", "windows"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Operating System :: Microsoft :: Windows :: Windows 10",
+    "Operating System :: Microsoft :: Windows :: Windows 11",
+]
+dependencies = [
+    "numpy>=1.21.0",
+    "flet>=0.85.3",
+    "tiktoken>=0.6.0",
+    "WMI>=1.5.1; sys_platform == 'win32'",
+    "pywin32; sys_platform == 'win32'",
+    "jinja2>=3.1.0",
+    "regex>=2023.0.0",
+    "starlette>=0.37.0",
+    "uvicorn>=0.29.0",
+    "huggingface_hub>=0.24.0",
+    # Required unconditionally by vte.compiler.ggml_types at import time --
+    # not dev-only. Was misfiled under [dev] before, which broke a plain
+    # `pip install vte` (no extras) with an immediate ImportError.
+    "gguf>=0.19.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "mypy>=1.0.0",
+    "pyinstaller>=6.10.0",
+    # hip-python: intentionally NOT listed here. tools/validate_structs.py
+    # is the only consumer and already handles it being absent (prints a
+    # warning, skips validation). The real ROCm build (the one that matters,
+    # confirmed working on real hardware) is only distributed through AMD's
+    # own package index -- the public PyPI release is capped at 0.0.2, so
+    # any version pin here is either unsatisfiable or silently wrong on
+    # most machines. Install it by hand only if you're re-running that one
+    # validation script.
+]
+
+[project.urls]
+Homepage = "https://github.com/kyuubyN/VTE"
+Repository = "https://github.com/kyuubyN/VTE"
+Documentation = "https://github.com/kyuubyN/VTE#readme"
+Issues = "https://github.com/kyuubyN/VTE/issues"
+
+[project.scripts]
+vte = "vte.cli:main"
+vte-ui = "vte.ui.app:cli_main"
+vte-server = "vte.server.http_server:cli_main"
+
+[tool.setuptools]
+packages = ["vte", "vte.bridge", "vte.compiler", "vte.core", "vte.ui", "vte.server"]
+
+[tool.setuptools.package-data]
+# Chaves são por PACOTE (relativo à própria pasta do pacote, não à raiz de
+# "vte") -- "vte.compiler" resolve pra vte/compiler/templates/*, "vte.core"
+# resolve pra vte/core/assets/kernels/**/*.hsaco (binários AOT congelados
+# via scripts/build_kernel_cache.py, ver docs/BUGS.md/LIMITATIONS.md).
+"vte.compiler" = ["templates/*.hip.template", "reference/*.py"]
+"vte.core" = ["assets/kernels/**/*.hsaco"]
