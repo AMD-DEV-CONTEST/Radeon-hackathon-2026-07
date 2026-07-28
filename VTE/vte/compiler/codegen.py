@@ -50,13 +50,26 @@ def get_kernel_cache_path(cpp_code: str, arch: str) -> str:
     return f"cache/kernels/{arch}/kernel_{code_hash}.hsaco"
 
 class CodegenEngine:
-    def __init__(self):
+    def __init__(self, templates_dir: str = None):
         # templates/ é separado por família de arquitetura (rdna/, cdna/):
         # todo template hoje é RDNA2/RDNA3 (wave32), então isto resolve pra
         # rdna/ diretamente. cdna/ existe como destino pros kernels wave64
         # de uma futura investigação em CDNA (MI300X e afins), ainda sem
         # nenhum template lá.
-        self.templates_dir = Path(__file__).parent / "templates" / "rdna"
+        #
+        # Override via param explícito OU via VTE_TEMPLATES_DIR (lido aqui,
+        # não passado por cada um dos ~15 call sites de CodegenEngine() no
+        # projeto -- reducers/executors internos também instanciam este
+        # engine sem argumentos): existe para o Aetheris Optimizer isolar um
+        # vte-server de teste, apontado para um diretório temporário com só
+        # o candidato trocado, sem nunca arriscar servir um kernel não
+        # validado no vte-server de produção (ver vte-server --templates-dir
+        # em http_server.py, que seta esta env var só para aquele processo).
+        if templates_dir is not None:
+            self.templates_dir = Path(templates_dir)
+        else:
+            env_override = os.environ.get("VTE_TEMPLATES_DIR")
+            self.templates_dir = Path(env_override) if env_override else Path(__file__).parent / "templates" / "rdna"
         self.logs_dir = Path("logs/Codegen")
         self.cache_dir = Path("cache/kernels")
         # Binários AOT congelados com o projeto (Fase 2, ver

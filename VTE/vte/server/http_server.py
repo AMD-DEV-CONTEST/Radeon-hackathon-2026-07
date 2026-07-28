@@ -616,6 +616,11 @@ def _parse_args(argv=None):
     p.add_argument("--parent-pid", type=int, default=None,
                    help="PID do processo pai (ex.: lemond) -- se fornecido, um watchdog encerra este "
                         "processo e libera a VRAM caso o pai desapareça sem um shutdown limpo.")
+    p.add_argument("--templates-dir", default=None,
+                   help="Sobrepõe o diretório padrão de templates HIP (vte/compiler/templates/rdna) "
+                        "só para este processo. Usado pelo Aetheris Optimizer para subir uma instância "
+                        "de teste isolada apontada para um candidato de kernel, sem tocar o vte-server "
+                        "de produção nem o diretório de templates oficial.")
     return p.parse_args(argv)
 
 
@@ -624,6 +629,11 @@ def cli_main():
     _install_signal_handlers()
     if args.parent_pid is not None:
         _start_parent_watchdog(args.parent_pid)
+    if args.templates_dir is not None:
+        # Set before any model load: CodegenEngine() call sites across the
+        # codebase read this env var once, at construction, with no argument
+        # threading needed at any of those call sites.
+        os.environ["VTE_TEMPLATES_DIR"] = str(Path(args.templates_dir).resolve())
 
     # Falha rápida e legível: um host como o Lemonade spawna este processo e
     # faz polling em /health esperando "ready" -- se o load falhar (VRAM

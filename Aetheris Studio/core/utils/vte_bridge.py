@@ -23,7 +23,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import AsyncGenerator, Dict, List, Optional, Tuple
+from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
 
 import httpx
 
@@ -303,12 +303,20 @@ def _get_shared_client() -> httpx.AsyncClient:
 async def stream_generate(
     model_name: str, messages: List[Dict], temperature: float = 0.3, max_tokens: int = 4096,
     guided_choices: Optional[List[str]] = None, guided_choice_trigger: str = "```",
-) -> AsyncGenerator[Tuple[str, str], None]:
-    """Async generator yielding (kind, text) pairs from vte-server's
+) -> AsyncGenerator[Tuple[str, Any], None]:
+    """Async generator yielding (kind, payload) pairs from vte-server's
     OpenAI-shaped streaming endpoint (`data: {"choices":[{"delta":{...}}]}`,
-    ending on `data: [DONE]`). `kind` is "content" (the real reply) or
+    ending on `data: [DONE]`). `kind` is "content" (the real reply),
     "reasoning" (a reasoning-capable backend's internal chain-of-thought,
-    read from `delta.reasoning`).
+    read from `delta.reasoning`), or "stats" (the real, GPU-measured
+    `{"prefill_duration_ttft", "decoding_speed_tps"}` dict vte-server sends
+    unconditionally on its finish chunk -- see http_server.py's
+    `timing_usage`. Previously dropped silently here: the finish chunk's
+    `delta` is `{}` so neither the content nor reasoning branch below ever
+    fired on it, and only vte-server's own log line ever saw these real
+    numbers. Callers use this instead of estimating tok/s from client-side
+    SSE arrival timing, which is skewed by network/event-loop jitter and by
+    tool-call/confirm-gate pauses mid-turn.
 
     Previously yielded plain str deltas from `delta.content` only, with
     `delta.reasoning` silently dropped. Confirmed directly against the
@@ -411,6 +419,9 @@ async def stream_generate(
                         first_content_ts = time.perf_counter()
                     content_chunks += 1
                     yield ("content", content)
+                usage = chunk.get("usage")
+                if usage:
+                    yield ("stats", usage)
     finally:
         if first_reasoning_ts is not None or first_content_ts is not None:
             ttft_reasoning_ms = (first_reasoning_ts - t_start) * 1000 if first_reasoning_ts else None

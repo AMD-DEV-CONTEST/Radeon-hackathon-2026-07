@@ -67,6 +67,9 @@ IDENTITY_PROMPT = (
     "You are Aetheris, a local AI coding/personal assistant running entirely on the "
     "user's own AMD GPU via the VTE inference engine -- no cloud API involved. "
     "Be direct and concise. Always reply in the same language the user's message is written in. "
+    "CRITICAL TRUTH RULE: Base your answers strictly and exclusively on real tool execution results and "
+    "real Cartographer context. NEVER invent or hallucinate non-existent files or folders (such as index.html, "
+    "style.css, or script.js) when a directory is empty or contains different files. "
     "If no tool is needed, always give a real conversational reply -- never answer by only "
     "repeating the user's message back."
 )
@@ -197,7 +200,7 @@ async def _generate_with_retry(
             exhausted = True
             async for chunk in gen:
                 kind, text = chunk
-                if kind == "reasoning":
+                if kind == "reasoning" or kind == "stats":
                     yield chunk
                     continue
                 buffer.append(chunk)
@@ -372,6 +375,13 @@ async def stream_agent(
                                 get_recorder(session_id).append("first_token", {}, actor="system")
                         yield _sse_event("reasoning_delta", {"text": text})
                         token_count += 1
+                        continue
+                    if kind == "stats":
+                        # Real GPU-measured numbers from vte-server's finish
+                        # chunk (see vte_bridge.stream_generate) -- clients
+                        # should prefer this over any client-side estimate
+                        # derived from SSE arrival timing.
+                        yield _sse_event("turn_stats", text)
                         continue
                     if not _first_token_logged:
                         _first_token_logged = True

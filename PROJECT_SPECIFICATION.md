@@ -10,7 +10,9 @@
 
 **Blackbox**: every local agent claims your code never leaves the machine. Aetheris makes that claim checkable at runtime instead of asserted -- a hash-chained, independently re-verifiable log of every action, a live and auditable zero-egress indicator, one-click undo via git shadow-refs that never touch your real repo state. A real A/B test on the RX 7600 confirms this project's own documented "vague prompt" failure mode is now fixed by Cartographer's automatic codebase mapping, not just described as a known limitation.
 
-All 5 optional Track 2 capabilities are implemented (2 is the minimum), each demonstrated live, not diagrammed. 47 automated tests, real hardware validation for every Blackbox component, one real correctness bug caught by the test suite before it shipped.
+That optimization work is no longer purely manual: `aetheris optimize` searches VTE's own kernel space using the methodology AMD open-sourced as [Hyperloom](https://github.com/AMD-AGI/Hyperloom) on 2026-07-22, validated against its actual source rather than its description, and hardened past it in two places ([Section 6.1](#61-self-optimizing-kernels-built-on-amds-own-methodology)). Its first honest verdict was that the hand-tuned kernel already beats every variant in its catalog, so it promoted nothing.
+
+All 5 optional Track 2 capabilities are implemented (2 is the minimum), each demonstrated live, not diagrammed. 112 automated tests on the agent (plus 81 in VTE), including one that drives two real GPU-resident inference servers end to end, real hardware validation for every Blackbox component, and one real correctness bug caught by the test suite before it shipped.
 
 The rest of this document is the detail behind that; the short version is a coding agent that proves what it does, running on an engine good enough to give back to the ecosystem it depends on.
 
@@ -106,7 +108,7 @@ Legend: solid arrows are ArchiMate **triggering**/**assignment**/**composition**
 **Tool dispatch is three-way**, not one flat list:
 - **Server-executed** (`TOOL_REGISTRY`): `bash`, `read_file`, `write_file`, `edit_file`, `search_files`, `git`, `manage_memory`, which are run directly by the Python backend.
 - **Client-executed** (`CLIENT_EXECUTED_TOOLS`): `navigate_browser`, `read_browser_page`. The backend can't drive a browser itself, so it emits a `browser_action` event and the Flutter process performs it, feeding the result back as a hidden continuation turn.
-- **Confirmation-gated**: `write_file`/`edit_file` always, `bash` when the command matches a destructive pattern (`is_risky_bash_command`). The round pauses, the UI shows a diff/command preview, and only a real user click resumes execution. The terminal client (`Aetheris Studio/scripts/chat.py`, see the root README) surfaces the same pause as a typed `y`/`N` prompt, same gate either way.
+- **Confirmation-gated**: `write_file`/`edit_file` always, `bash` when the command matches a destructive pattern (`is_risky_bash_command`). The round pauses, the UI shows a diff/command preview, and only a real user click resumes execution. The terminal client (the `aetheris` CLI, see the root README) surfaces the same pause as a typed `y`/`N` prompt, same gate either way.
 
 **Cross-platform.** The agent *backend* (`app.py`, pure Python/FastAPI, no Windows-specific code) was separately validated headless (no UI, direct HTTP calls against the real `stream_agent` loop) on an AMD Radeon Cloud W7900 Linux instance, the same one used for the inference-engine benchmarks in Section 6. Verified for real, not assumed: server-executed tool dispatch (`bash`, real subprocess execution with correct output), skill creation and retrieval (`manage_skill`, TF-IDF search returning the right skill with its full structured content), memory creation and retrieval (`manage_memory`, including one round that survived a model-generated typo in the tool tag thanks to the fence-tag tolerance fix), and the `write_file` confirmation gate end-to-end (the `confirm_tool` pause, `POST /api/tools/execute` performing the real write after simulated approval, and the file landing with the exact requested content). The root README's terminal quickstart runs this exact path, on Windows or Linux, with no Flutter UI involved at all.
 
@@ -126,7 +128,7 @@ Implements **all 5** optional capabilities listed in the task brief (2 are the s
 
 ## 4. Running It
 
-Full setup, on both Windows and Linux, both as the desktop app and from a terminal: root [`README.md`](README.md#quickstart). Short version: `pip install -e` VTE into Aetheris's virtual environment, pull a GGUF model, either launch the Flutter UI (Windows) or run `app.py` plus `scripts/chat.py` (Windows or Linux). No manual GPU configuration; VTE reads the real architecture and compute-unit count off the device at startup.
+Full setup, on both Windows and Linux, both as the desktop app and from a terminal: root [`README.md`](README.md#quickstart). Short version: `pip install -e` VTE into Aetheris's virtual environment, pull a GGUF model, then either launch the Flutter UI (Windows) or `cd` into the project you want to work on and run `aetheris chat` (Windows or Linux), which starts the backend itself. No manual GPU configuration; VTE reads the real architecture and compute-unit count off the device at startup.
 
 GGUF integrity is checked against a known-good SHA-256 and a per-architecture metadata whitelist (layer count, tensor shapes) before any weight is loaded, so a corrupted or mismatched download fails loudly at load time rather than producing silently wrong output.
 
@@ -203,6 +205,40 @@ Real GPU telemetry (`amd-smi`, sampled every ~0.5s) from the W7900 runs above, l
 
 The 70B row is a stretch test past the eight curated models above (70.6B parameters, loaded via VTE's architecture-generic metadata path with zero model-specific code): the engine scales, not just runs, on hardware well beyond the 8 GB card it was designed against.
 
+### 6.1 Self-optimizing kernels, built on AMD's own methodology
+
+Every kernel improvement above was found by hand. The natural next step is letting the agent run that search itself, which is exactly the problem AMD open-sourced [**Hyperloom**](https://github.com/AMD-AGI/Hyperloom) to solve (`v1.0.0a1`, tagged 2026-07-22, days before this submission). Aetheris ships `aetheris optimize`, a kernel optimizer for VTE built on Hyperloom's core idea and then validated mechanism by mechanism against Hyperloom's actual source rather than against its description.
+
+**Hyperloom targets datacenter CDNA; this runs the same methodology on RDNA3.** Hyperloom's supported GPU set is `{mi300x, mi308x, mi325x, mi355x}` (`inference_optimizer/gpu_types.py`) and its `_GFX_TO_RUNNER` map covers exactly two architectures, `gfx942` (CDNA3) and `gfx950` (CDNA4). RDNA is not simply unlisted, its absence is codified: Hyperloom's own test suite asserts `_GFX_TO_RUNNER.get("gfx1100") is None`. Hyperloom also optimizes established serving stacks (SGLang, vLLM, AITER), whereas the target here is an inference engine with none of those in its path. Aetheris runs the methodology on a consumer `gfx1102` (RX 7600, 8 GB) and a workstation `gfx1100` (W7900, 48 GB), against hand-written HIP kernels, which is a hardware and software combination the reference implementation explicitly does not cover.
+
+The safety invariants it adopts, each traced to the real implementation:
+
+| Invariant | Hyperloom | Aetheris |
+|---|---|---|
+| Bounded discrete catalog, no LLM authoring C++ | rung ladder | `catalog.py`, deterministic parameters only |
+| Correctness gate runs **before** any benchmark is trusted | `make_proposal` checks `correctness_passed` first | `validate_pair` precedes the benchmark call |
+| Interleaved A/B, warmup discarded | `reps`, `warmup_discarded` | alternating order, 2 warmups dropped |
+| Significance by non-overlapping interquartile ranges | `apply_and_bench` | `_is_significant` |
+| Graded verdict instead of a boolean | `KEEP` / `PARTIAL` / `NEEDS_REVIEW` / `REVERT` | `KEEP` / `NEEDS_REVIEW` / `REVERT` with reasons |
+| Engagement proof: did the patch actually run? | greps the server log for rebuild markers | compares the rendered C++ each instance really compiled |
+| Rollback path revalidated against its expected root | `_safe_rel` rejects traversal | `_require_contained` |
+
+Two places go further than the reference. Hyperloom patches the live tree and undoes it in a `finally: _revert_all()`, which leaves a window where a concurrent request could be served an unvalidated kernel; Aetheris never mutates production during a test at all, spinning up two throwaway `vte-server` subprocesses on separate ports and separate working directories, one per template variant. And where Hyperloom infers engagement from log markers, Aetheris compares the actual rendered C++ each instance compiled, since VTE writes every source it hands to `hipcc`.
+
+That engagement check earned its place immediately. The first version of this catalog exposed a `BLOCK_SIZE` knob documented as *"doubled block size for higher CU occupancy"*. It did nothing: `gemv_q4k`'s launch geometry is fixed at 64 threads by `GEMV_COALESCED_BLOCK` in `VTE/vte/core/fallback_executor.py`, and the template only ever reads `blockDim.x`. Rewriting the template's shared-memory array changed no thread count whatsoever, so every "block size" measurement was really measuring the unroll change sitting next to it. It was also latently unsafe: the validator accepted `BLOCK_SIZE=32`, which renders `warp_sums[1]` while 64 real threads still write `warp_sums[warp]`, an out-of-bounds shared-memory write. The knob was removed rather than papered over, and the validator now rejects unknown parameters instead of ignoring them, which is how it went unnoticed in the first place.
+
+**The first honest run reports that nothing should change.** On the RX 7600 (`gfx1102`), 3 interleaved trials per variant against `qwen2.5:1.5b-q4_k_m`:
+
+| Variant | Reference | Candidate | Delta | Engaged | Significant | Decision |
+|---|---|---|---|---|---|---|
+| `unroll_2` | 109.8 tok/s | 64.5 tok/s | -41.3% | yes | yes | REVERT |
+| `unroll_4` | 110.7 tok/s | 69.1 tok/s | -37.6% | yes | yes | REVERT |
+| `unroll_8` | 109.5 tok/s | 71.9 tok/s | -34.4% | yes | yes | REVERT |
+
+Nothing was promoted. Forcing any fixed `#pragma unroll N` on `gemv_q4k` is consistently worse than leaving the bare pragma for the compiler to schedule, and the penalty shrinks monotonically as the factor grows, consistent with a register-pressure and occupancy tradeoff. The hand-optimized production kernel is already the best configuration in the catalog. A measurement harness was validated against its own null hypothesis before any of this was believed: two byte-identical instances measured 0.37% apart, establishing the noise floor that the significance test now enforces against.
+
+An optimizer whose first published verdict is "change nothing here" is the one worth trusting when it does report a win.
+
 ## 7. Judging-Criteria Mapping (Track 2, 120 points)
 
 Mapped directly to the rubric, with a pointer to where each point was actually verified, not just described:
@@ -213,5 +249,5 @@ Mapped directly to the rubric, with a pointer to where each point was actually v
 | Core capabilities (planning, tools, RAG, memory) | 20 | [Section 3](#3-core-capabilities), 5 of 5 implemented (2 is the stated minimum) | Each demonstrated live, not just in a diagram: `write_plan` produces a real approval popup the user clicks, not prose; `manage_memory` recalled a fact in a brand-new chat session with no shared history; `manage_skill` search found a previously-saved skill from a different conversation; Cartographer's `search_map` returned a real, BM25-ranked, LLM-summarized answer about a real project on the RX 7600, and a real A/B on the exact vague prompt this project's own README documents as a failure case (*"what does this codebase do"*) confirmed the on-demand tool alone reproduces that failure (zero real tool calls, wrong tool attempted) while automatic injection answers it correctly with zero tool calls needed; `write_file`/`edit_file` paused for a real click before touching disk; `navigate_browser`/`read_browser_page` correctly read a real inbox |
 | Smooth multi-turn interaction | 20 | Round-based SSE streaming, tool calls shown as a status animation instead of raw fenced text; [Section 5](#5-blackbox-verifiable-runtime-privacy)'s Time-Travel | Cancel-mid-generation tested directly: confirmed it releases the server-side generation lock in seconds, not just hides the output client-side. Time-Travel adds a second, novel interaction: a real model-issued edit, approved through the gate, undone with one click on a real repo, verified the user's actual git state (`status`/`branch`/`stash`/tracked blobs) came back byte-identical. UX metrics ([`Aetheris Studio/docs/UX_METRICS.md`](Aetheris%20Studio/docs/UX_METRICS.md), `Aetheris Studio/scripts/metrics_report.py`) are now a direct byproduct of the audit trail: TTFT, turn duration, confirm-gate approval rate and decision latency, rollback rate, all measured, not estimated, from real session logs |
 | Core inference on AMD Radeon GPU | 20 | [Section 6](#6-bonus-powered-by-vte) | No remote API anywhere in the core chat path; live GPU telemetry (`hipMemGetInfo`, not cached) confirmed on both a consumer card (RX 7600) and a workstation card (W7900) |
-| Optimization for inference speed | 20 | [Section 6](#6-bonus-powered-by-vte) | Real profiling-driven optimization arc (~18.8 to 100+ tok/s), documented including the attempts that didn't pan out, not just the ones that did |
+| Optimization for inference speed | 20 | [Section 6](#6-bonus-powered-by-vte), [Section 6.1](#61-self-optimizing-kernels-built-on-amds-own-methodology) | Real profiling-driven optimization arc (~18.8 to 100+ tok/s), documented including the attempts that didn't pan out, not just the ones that did. That search is now automated in `aetheris optimize`, built on the core idea of AMD's own [Hyperloom](https://github.com/AMD-AGI/Hyperloom) (open-sourced 2026-07-22) and validated mechanism by mechanism against its actual source: correctness gated before any benchmark is trusted, interleaved A/B with interquartile-range significance, graded KEEP/NEEDS_REVIEW/REVERT, and two isolated `vte-server` instances so production is never mutated mid-test. Its engagement proof immediately caught a knob in this project's own catalog that was measurably doing nothing, and its first honest verdict was that the hand-tuned kernel already beats every catalog variant, so nothing was promoted |
 | Bonus: quantization + Radeon Cloud | 20 | [Section 6](#6-bonus-powered-by-vte) | Quantization (Q4_K_M/Q6_K/Q8_0) is VTE's only supported inference format, not an optional flag; every W7900 number above was measured on a real AMD Radeon Cloud instance running VTE directly; the Radeon Cloud Dedicated Model API (vLLM) was separately exercised via Aetheris's external-provider bridge, catching two real bugs (a silent reasoning-token hang, a tool-name hallucination pattern) |

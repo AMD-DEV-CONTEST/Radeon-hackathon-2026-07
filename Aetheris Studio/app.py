@@ -30,6 +30,9 @@ async def _unload_all_models():
         print(f"[-] Erro ao descarregar modelo VTE: {e}")
 
 
+_IS_WARMING_UP: bool = False
+
+
 async def _warmup_vte_background():
     """Runs one throwaway generation at startup so the costly first-token
     path (HIP graph capture + full system-prompt prefill) is paid before
@@ -38,33 +41,32 @@ async def _warmup_vte_background():
     the shared prefix every real message carries. Fully best-effort: model
     not present, GPU contention, or any error just logs and returns, and
     the first real message pays the cost as it would have anyway."""
+    global _IS_WARMING_UP
+    _IS_WARMING_UP = True
     import asyncio
     import logging
     _log = logging.getLogger("aetheris.warmup")
     try:
-        # Small delay so startup (health checks, project restore) settles
-        # and this doesn't race the very first user action.
-        await asyncio.sleep(1.0)
+        await asyncio.sleep(0.5)
         from core.utils.vte_bridge import VTE_DEFAULT_MODEL, generate_once
         from core.utils.settings import get_setting
         from core.utils.agent import _build_system_prompt
 
-        model = get_setting("default_model") or VTE_DEFAULT_MODEL
+        model = os.getenv("AETHERIS_DEFAULT_MODEL") or get_setting("default_model") or VTE_DEFAULT_MODEL
         system_prompt = _build_system_prompt("builder")
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": "hi"},
         ]
         _log.info("VTE warmup: iniciando geração de aquecimento (modelo=%s)...", model)
-        # generate_once is synchronous (blocks on the whole generation); run
-        # it off the event loop. A tiny max_tokens is enough to force graph
-        # capture + full prompt prefill without wasting time decoding.
         await asyncio.to_thread(generate_once, model, messages, 0.3, 4)
         _log.info("VTE warmup: modelo quente, primeira mensagem real será rápida.")
     except asyncio.CancelledError:
         raise
     except Exception as e:
         _log.warning("VTE warmup falhou (primeira mensagem pagará o custo normal): %s", e)
+    finally:
+        _IS_WARMING_UP = False
 
 
 @asynccontextmanager
@@ -290,7 +292,7 @@ async def get_settings():
         return any(p.exists() for p in (Path("Model") / filename, _REPO_ROOT / "Model" / filename))
 
     return {
-        "default_model": get_setting("default_model", "") or VTE_DEFAULT_MODEL,
+        "default_model": os.getenv("AETHERIS_DEFAULT_MODEL") or get_setting("default_model", "") or VTE_DEFAULT_MODEL,
         "context_length": get_setting("context_length", 2048),
         "available_models": [
             {"name": name, "downloaded": _is_downloaded(filename)}
@@ -438,6 +440,11 @@ async def get_telemetry():
     is elsewhere in this module."""
     from core.utils.vte_bridge import get_telemetry as _get_telemetry
     return await asyncio.to_thread(_get_telemetry)
+
+
+@app.get("/api/warmup-status", dependencies=[Depends(verify_internal_token)])
+async def get_warmup_status():
+    return {"warming_up": _IS_WARMING_UP}
 
 
 @app.get("/api/egress/status", dependencies=[Depends(verify_internal_token)])
@@ -844,6 +851,28 @@ async def warmup_vte_model(request: LoadModelRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/optimizer/reload-vte", dependencies=[Depends(verify_internal_token)])
+async def reload_vte_for_optimizer():
+    """Unconditionally terminates the resident production vte-server
+    subprocess so the next chat message respawns it from scratch.
+
+    Needed after the Kernel Optimizer promotes a validated candidate
+    (core/optimizer/runner.py::apply_candidate): ensure_server()'s own
+    idempotency check only restarts on a model_name/context_length change,
+    never on a template file's CONTENT changing, and a running vte-server
+    keeps using whatever kernel function pointers got baked into its HIP
+    graph at capture time regardless of what the .hip.template file on
+    disk says afterwards -- overwriting that file alone does not make an
+    already-running production instance pick up the new kernel. This
+    endpoint exists in app.py (not something the CLI/chat process can do
+    itself) because vte_bridge's `_process`/`_lock` globals live in THIS
+    process's memory, not the caller's."""
+    from core.utils.vte_bridge import unload
+    import asyncio
+    await asyncio.to_thread(unload)
+    return {"status": "success", "message": "Production vte-server unloaded; it will reload with current template content on the next request."}
+
+
 @app.post("/api/shutdown", dependencies=[Depends(verify_internal_token)])
 async def shutdown_api():
     """
@@ -898,7 +927,7 @@ async def chat_completions_stream(body: ChatCompletionRequest, http_request: Req
         # async tool dispatch, which runs in this same request context.
         set_current_turn_id(body.turn_id)
         owner = AuthManager().current_username()
-        model = get_setting("default_model") or VTE_DEFAULT_MODEL
+        model = body.model or get_setting("default_model") or VTE_DEFAULT_MODEL
 
         messages_dict = [{"role": msg.role, "content": msg.content} for msg in body.messages]
         last_user_text = next(
