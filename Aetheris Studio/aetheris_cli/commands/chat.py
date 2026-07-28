@@ -3,7 +3,6 @@ Interactive terminal chat subcommand implementation with local command intercept
 Manages interactive turn-based conversation with local command parsing (/help, /egress, /log, /verify, /theme, /model, /tokens, /ctx, /optimize, /clear, /status, /quit), token streaming, theme rendering, workspace directory binding, live telemetry, interactive confirmation gates, and process termination on exit.
 """
 
-import hashlib
 import os
 import random
 import sys
@@ -13,6 +12,7 @@ from aetheris_cli.model_alias import normalize_model_name
 from aetheris_cli.policy.interactive import InteractiveAuthorizer
 from aetheris_cli.policy.authorizer import ToolRequest
 from aetheris_cli.render.theme import get_theme
+from aetheris_cli.session_id import project_session_id
 from aetheris_cli.render.tui import TUIRenderer, show_warmup_animation
 from aetheris_cli.transport.backend import check_backend_availability, stop_backend_server
 from aetheris_cli.transport.client import AetherisClient
@@ -342,12 +342,30 @@ def run_chat_command(
     # static env vars inherited from shell launch and can go stale (e.g. after a symlinked
     # or wrapped invocation), so they are only a last-resort fallback.
     target_path = project_path or os.getcwd() or os.environ.get("ORIGINAL_PWD") or os.environ.get("PWD")
-    session_id = resume_session or f"cli-{hashlib.sha256(target_path.encode('utf-8')).hexdigest()[:12]}"
+    session_id = resume_session or project_session_id(target_path)
     if target_path:
         try:
             client.set_project_path(target_path, chat_id=session_id)
         except Exception as e:
             sys.stderr.write(f"Warning: Failed to set workspace directory: {e}\n")
+
+    # Continue this session's user-message numbering where the last run of
+    # it left off, rather than restarting at 1. session_id is a hash of the
+    # project folder, so relaunching `aetheris chat` in the same directory
+    # resumes the same session and the same Time-Travel shadow ref --
+    # restarting the count would make a NEW turn 1 collide with an OLD
+    # turn 1, and `aetheris undo` restores every snapshot with
+    # `turn_id >= target`, so that collision would silently roll back more
+    # than the user asked for. Best-effort: an unreachable timeline just
+    # starts at 0, which is the old behavior.
+    try:
+        _prior_turns = [
+            s.get("turn_id") for s in client.list_snapshots(session_id).get("snapshots", [])
+            if s.get("turn_id") is not None
+        ]
+        turn_counter = max(_prior_turns) if _prior_turns else 0
+    except Exception:
+        turn_counter = 0
 
     cart_status = client.get_cartographer_status()
     try:
@@ -403,6 +421,11 @@ def run_chat_command(
             history.append({"role": "user", "content": user_input_str})
             renderer.render_agent_prompt()
 
+            # One turn per real user message (local slash commands `continue`
+            # above and never reach here). Every Time-Travel snapshot taken
+            # while this turn runs is stamped with it, which is what makes
+            # the turn an `aetheris undo` checkpoint at all.
+            turn_counter += 1
             turn_active = True
             accumulated_answer = ""
             current_turn_history = list(history)
@@ -416,6 +439,7 @@ def run_chat_command(
                         chat_id=session_id,
                         model=session_state["model"],
                         max_tokens=session_state["max_tokens"],
+                        turn_id=turn_counter,
                     )
                 except Exception as e:
                     renderer.stop_thinking()
@@ -449,7 +473,9 @@ def run_chat_command(
 
                     if decision.is_allowed:
                         try:
-                            exec_res = client.execute_tool(tool=tool_name, content=content, chat_id=session_id)
+                            exec_res = client.execute_tool(
+                                tool=tool_name, content=content, chat_id=session_id, turn_id=turn_counter,
+                            )
                             out_text = str(exec_res.get("result") or exec_res.get("output") or exec_res)
                             current_turn_history.append({"role": "user", "content": f"[{tool_name} result]\n{out_text}"})
                         except Exception as e:

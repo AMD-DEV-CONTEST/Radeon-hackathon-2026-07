@@ -3,7 +3,6 @@ Non-interactive subcommand implementation (aetheris run).
 Executes a single-shot prompt non-interactively using automated policy enforcement and strict exit code semantics.
 """
 
-import hashlib
 import os
 import sys
 from typing import Optional
@@ -13,6 +12,7 @@ from aetheris_cli.policy.authorizer import ToolRequest
 from aetheris_cli.policy.spec import PolicySpec
 from aetheris_cli.render.jsonl import JSONLRenderer
 from aetheris_cli.render.plain import PlainRenderer
+from aetheris_cli.session_id import project_session_id
 from aetheris_cli.transport.backend import check_backend_availability
 from aetheris_cli.transport.client import AetherisClient
 
@@ -58,7 +58,7 @@ def run_one_shot_command(
     # static env vars inherited from shell launch and can go stale, so they are only a
     # last-resort fallback (see aetheris_cli/commands/chat.py for the same fix).
     target_dir = project_dir or os.getcwd() or os.environ.get("ORIGINAL_PWD") or os.environ.get("PWD")
-    session_id = f"cli-run-{hashlib.sha256(target_dir.encode('utf-8')).hexdigest()[:12]}"
+    session_id = project_session_id(target_dir, prefix="cli-run")
     if target_dir:
         try:
             client.set_project_path(target_dir, chat_id=session_id)
@@ -69,6 +69,19 @@ def run_one_shot_command(
     authorizer = AutomatedAuthorizer(spec)
     collector = MetricsCollector()
     collector.start_turn()
+
+    # A one-shot run is, by definition, a single user message. Continue the
+    # numbering of this folder's own run-session so repeated `aetheris run`
+    # invocations stay independently undoable instead of all colliding on
+    # turn 1 (see the same reasoning in chat.py). Best-effort.
+    try:
+        _prior = [
+            s.get("turn_id") for s in client.list_snapshots(session_id).get("snapshots", [])
+            if s.get("turn_id") is not None
+        ]
+        turn_id = (max(_prior) if _prior else 0) + 1
+    except Exception:
+        turn_id = 1
     history = [{"role": "user", "content": prompt}]
     mode = "planner" if plan_only else "builder"
 
@@ -83,6 +96,7 @@ def run_one_shot_command(
                 mode=mode,
                 chat_id=session_id,
                 model=model,
+                turn_id=turn_id,
                 timeout=timeout,
             )
         except Exception as e:
@@ -131,7 +145,9 @@ def run_one_shot_command(
 
             if decision.is_allowed:
                 try:
-                    exec_res = client.execute_tool(tool=tool_name, content=content, chat_id=session_id)
+                    exec_res = client.execute_tool(
+                        tool=tool_name, content=content, chat_id=session_id, turn_id=turn_id,
+                    )
                     out_text = str(exec_res.get("result") or exec_res.get("output") or exec_res)
                     history.append({"role": "user", "content": f"[{tool_name} result]\n{out_text}"})
                 except Exception as e:

@@ -102,12 +102,45 @@ Useful flags and in-chat commands:
 | `aetheris chat -p <dir>` | work on a different folder than the current one |
 | `aetheris chat --planner` | start in Planner mode (read-only until you approve a plan) |
 | `aetheris run "<prompt>"` | one-shot, non-interactive, scriptable exit codes |
+| `aetheris undo` | Time-Travel: put the project back the way it was ([below](#time-travel-undoing-a-turn-from-the-terminal)) |
 | `/model`, `/tokens`, `/ctx` | change model, output limit, or context window mid-session |
 | `/egress`, `/verify`, `/log` | Blackbox: live egress report, audit-chain check, session trail |
 | `/optimize run` | kernel optimizer ([below](#self-optimizing-kernels-on-amds-own-methodology)) |
 | `/help` | everything else |
 
 Each response ends with a metrics footer showing real TTFT and decode speed reported by the GPU itself, not estimated from packet arrival.
+
+### Time-Travel: undoing a turn from the terminal
+
+Every file the agent writes is snapshotted first, onto a git ref the app owns (`refs/aetheris/session-*`). Your real branch, HEAD, index, and stash are never touched, and the ref never shows up in `git branch`. `aetheris undo` is the terminal side of the same feature the desktop app's ⟲ button drives.
+
+Start by seeing what's undoable, which changes nothing:
+
+```bash
+aetheris undo --list
+```
+
+```text
+--- Time-Travel checkpoints (2 restorable) ---
+  --last 1  -> restore to before user message 2: calc.py
+  --last 2  -> restore to before user message 1: calc.py
+```
+
+Then preview the exact diff before committing to anything:
+
+```bash
+aetheris undo --dry-run
+```
+
+And apply it, which asks for confirmation first and shows you the same diff:
+
+```bash
+aetheris undo
+```
+
+`--last N` picks a checkpoint from that list rather than stepping back N more times, so it's safe to repeat: running `aetheris undo` twice restores to the same point and says so instead of quietly rewinding further. Add `--yes` to skip the prompt in a script, `-p <dir>` to target another folder, and `-n 2` to go back two editing turns instead of one.
+
+One real limitation, stated plainly: this is git-backed, so in a folder that isn't a git repository the agent's writes still work but are **not** undoable. `aetheris undo` says exactly that rather than failing cryptically.
 
 ### Note on Linux
 

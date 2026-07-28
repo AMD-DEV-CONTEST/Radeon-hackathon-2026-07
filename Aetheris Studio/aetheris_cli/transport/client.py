@@ -96,6 +96,43 @@ class AetherisClient:
         resp.raise_for_status()
         return resp.json()
 
+    def list_snapshots(self, session_id: str) -> Dict[str, Any]:
+        """Time-Travel timeline for a session: every shadow-ref snapshot,
+        newest first (see core/audit/timetravel.py::list_snapshots). Each
+        entry carries {commit, ts, message, turn_id, paths}.
+
+        NOTE: the backend resolves snapshots against its OWN active project
+        (an env var in the backend process), so callers must
+        set_project_path() first or this legitimately returns an empty
+        list for a project the backend isn't currently pointed at."""
+        resp = self.session.get(f"{self.base_url}/api/timetravel/{session_id}/snapshots", timeout=30)
+        resp.raise_for_status()
+        return resp.json()
+
+    def preview_checkpoint(self, session_id: str, turn_id: int) -> Dict[str, Any]:
+        """Read-only: the combined diff of restoring the project to the
+        state it had before user message `turn_id`. Touches nothing."""
+        resp = self.session.post(
+            f"{self.base_url}/api/timetravel/checkpoint/preview",
+            json={"session_id": session_id, "turn_id": turn_id},
+            timeout=60,
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    def restore_checkpoint(self, session_id: str, turn_id: int) -> Dict[str, Any]:
+        """The actual message-anchored undo. Deliberately does NOT swallow
+        transport errors the way the read-only helpers above do: a restore
+        that silently reported success while changing nothing would be far
+        worse than a loud failure."""
+        resp = self.session.post(
+            f"{self.base_url}/api/timetravel/checkpoint/restore",
+            json={"session_id": session_id, "turn_id": turn_id},
+            timeout=120,
+        )
+        resp.raise_for_status()
+        return resp.json()
+
     def get_cartographer_status(self) -> Dict[str, Any]:
         try:
             resp = self.session.get(f"{self.base_url}/api/cartographer/status", timeout=5)
@@ -120,10 +157,19 @@ class AetherisClient:
         except Exception as e:
             return {"valid": False, "reason": str(e)}
 
-    def execute_tool(self, tool: str, content: str, chat_id: Optional[str] = None) -> Dict[str, Any]:
+    def execute_tool(
+        self, tool: str, content: str, chat_id: Optional[str] = None, turn_id: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """`turn_id` stamps the Time-Travel snapshot this edit takes with
+        the user message that proposed it (see app.py's
+        ExecuteToolRequest.turn_id). Omitting it is not cosmetic: a
+        snapshot with no turn is never a checkpoint boundary, so the edit
+        becomes invisible to `aetheris undo`."""
         payload: Dict[str, Any] = {"tool": tool, "content": content}
         if chat_id:
             payload["chat_id"] = chat_id
+        if turn_id is not None:
+            payload["turn_id"] = turn_id
         resp = self.session.post(f"{self.base_url}/api/tools/execute", json=payload, timeout=60)
         resp.raise_for_status()
         return resp.json()

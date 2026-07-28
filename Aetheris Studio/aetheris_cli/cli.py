@@ -17,6 +17,7 @@ from aetheris_cli.commands.skills import skills_command
 from aetheris_cli.commands.undo import undo_command
 from aetheris_cli.commands.verify import verify_session_command
 from aetheris_cli.policy.spec import KNOWN_TOOLS
+from aetheris_cli.session_id import project_session_id
 
 # Tools inspect_session/verify_chain/search_workspace/list_dir/read_file/
 # read_browser_page never write anything -- the rest of KNOWN_TOOLS
@@ -172,12 +173,19 @@ def build_parser() -> argparse.ArgumentParser:
     skills_import = skills_sub.add_parser("import", help="Import skills from URL or file")
     skills_import.add_argument("source", help="Source URL or path")
 
-    undo_parser = subparsers.add_parser("undo", help="Time-Travel session rollback to previous snapshot")
+    undo_parser = subparsers.add_parser("undo", help="Time-Travel: restore the project to before an earlier message")
     undo_parser.add_argument(
         "--session", "-s", default="",
-        help="Session ID to rollback (default: this folder's own chat session, same derivation as `aetheris chat`)",
+        help="Session ID to roll back (default: this folder's own chat session, same derivation as `aetheris chat`)",
     )
-    undo_parser.add_argument("--last", "-n", type=int, default=1, help="Number of turns to rollback")
+    undo_parser.add_argument(
+        "--last", "-n", type=int, default=1,
+        help="How many turns back to restore to: 1 undoes the most recent editing turn (default), 2 undoes the last two, and so on",
+    )
+    undo_parser.add_argument("--project", "-p", default="", help="Project folder to roll back (default: current directory)")
+    undo_parser.add_argument("--list", "-l", action="store_true", dest="list_only", help="List restorable checkpoints and exit, changing nothing")
+    undo_parser.add_argument("--dry-run", action="store_true", help="Show the exact diff that would be applied, then exit without applying it")
+    undo_parser.add_argument("--yes", "-y", action="store_true", help="Skip the interactive confirmation (for scripting)")
 
     verify_parser = subparsers.add_parser("verify", help="Verify Flight Recorder audit log hash chain")
     verify_parser.add_argument("session_id", help="Session ID or log file path to verify")
@@ -310,11 +318,18 @@ def main(args: Optional[List[str]] = None) -> int:
         # resolved project path) instead of the unrelated literal
         # "cli_session" string, so `aetheris undo` with no --session
         # targets the same session `aetheris chat` used in this folder.
-        import hashlib
-        session_id = parsed_args.session or f"cli-{hashlib.sha256(os.getcwd().encode('utf-8')).hexdigest()[:12]}"
+        # Same normalized derivation chat.py uses, so `aetheris undo` in a
+        # folder targets the exact session `aetheris chat` created there
+        # even if the two spelled the path differently.
+        target_dir = parsed_args.project or os.getcwd()
+        session_id = parsed_args.session or project_session_id(target_dir)
         return undo_command(
             session_id=session_id,
             last=parsed_args.last,
+            dry_run=parsed_args.dry_run,
+            list_only=parsed_args.list_only,
+            assume_yes=parsed_args.yes,
+            project_dir=parsed_args.project or None,
         )
     elif parsed_args.subcommand == "verify":
         return verify_session_command(session_id_or_path=parsed_args.session_id)
