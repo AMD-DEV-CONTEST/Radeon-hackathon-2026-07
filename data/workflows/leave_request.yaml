@@ -1,0 +1,36 @@
+id: leave_request
+title: 请假办理工作流
+description: 检索请假政策与远程约束，写入办理备忘
+keywords:
+- 请假办理
+- 办理请假
+- 请假流程
+- leave workflow
+- 办理请假流程
+engine: private_local
+version: '1.0'
+steps:
+- id: kb_policy
+  label: 检索请假政策
+  type: tool
+  tool: kb_search
+  args:
+    query: 请假提前几天 年假 审批
+- id: kb_remote
+  label: 核对远程办公约束
+  type: tool
+  tool: kb_search
+  args:
+    query: 远程办公 一周几天
+- id: memory
+  label: 写入办理备忘
+  type: tool
+  tool: write_note
+  args:
+    note: 用户正在办理请假，需按政策提前申请并完成审批。
+requirement: ''
+exports:
+- yaml
+- json
+- dify
+- langchain

@@ -1,0 +1,42 @@
+app:
+  name: "PrivateLocalAgent"
+  team: "说干就干"
+  track: 2
+  host: "0.0.0.0"
+  port: 7860
+
+llm:
+  # Modes: openai_compatible | local_transformers
+  # On Radeon Cloud with GPU credits, prefer local_transformers.
+  backend: "local_transformers"
+  # Radeon Cloud free Model API / any OpenAI-compatible endpoint (fallback)
+  base_url: "https://developer.amd.com.cn/radeon/api/v1"
+  api_key_env: "RADEON_API_KEY"
+  model: "Qwen3.6-35B-A3B"
+  temperature: 0.2
+  max_tokens: 1024
+  # Local transformers (ROCm) settings when backend=local_transformers
+  # Start with 1.5B/3B if 7B OOM on first launch.
+  local_model_id: "Qwen/Qwen2.5-1.5B-Instruct"
+  device: "cuda"
+  dtype: "float16"
+
+rag:
+  persist_dir: "data/vector_store"
+  collection: "private_kb"
+  chunk_size: 500
+  chunk_overlap: 80
+  top_k: 4
+  # Lightweight embedding model for local/offline retrieval
+  embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+
+agent:
+  max_steps: 6
+  enable_tools: true
+  enable_memory: true
+  memory_path: "data/memory/session.json"
+
+paths:
+  upload_dir: "data/uploads"
+  sample_docs: "data/sample_docs"
+  generated_projects: "data/generated_projects"

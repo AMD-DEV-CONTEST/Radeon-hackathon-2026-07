@@ -1,86 +1,170 @@
-# Radeon-hackathon-2026-07
+# PrivateLocalAgent
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+**Track 2: Development & Local Deployment of Private AI Agents**  
+**Team:** 说干就干  
+**GitHub:** Wyf66669
 
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
+PrivateLocalAgent is a privacy-first local AI agent for office productivity. It combines:
 
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
+- Local / private **RAG knowledge base**
+- **Tool calling** (KB search, files, notes, facts)
+- **Multi-step task planning**
+- **Local session memory**
+- Dual LLM backends:
+  - OpenAI-compatible API (Radeon Cloud Model APIs)
+  - Local Transformers inference on **AMD Radeon GPU + ROCm**
 
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+---
 
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+## 1. Quick Start
 
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+```bash
+# 1) create venv
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# Linux / Radeon Cloud
+source .venv/bin/activate
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+# 2) install deps
+pip install -r requirements.txt
 
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
+# 3) configure API key (for openai_compatible mode)
+copy .env.example .env   # Windows
+# cp .env.example .env   # Linux
+# edit .env and set RADEON_API_KEY
 
-## Submission Requirements
+# 4) ingest sample docs
+python scripts/ingest_sample.py
 
-### Track 1: Development of Multimodal Content Creation Tools
+# 5a) recommended on Radeon Cloud: Jupyter visual demo (NO tunnel)
+#    open notebooks/private_agent_demo.ipynb → Restart → Run the single cell
 
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
+# 5b) CLI demo (RAG + memory + workflow + multi-agent)
+python scripts/demo_cli.py
 
-### Track 2: Development & Local Deployment of Private AI Agents
+# 5c) ROCm verify + latency bench (fill AMD_ROCM_OPTIMIZATION.md)
+python scripts/verify_rocm.py
+python scripts/bench_rocm.py
 
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
+# 5d) optional Gradio / HTTP (may need tunnel; not required)
+python app.py
+```
 
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
+**Primary contest demo:** `notebooks/visual_no_tunnel.ipynb` (one cell → real agent UI + official `rc-tunnel`).  
+Bonus map: `docs/SCORING_BONUS.md`  
+Skills (generate real projects): `docs/SKILLS.md` · `python scripts/run_skill.py --list`  
+Six apps map: `docs/SIX_APPS.md` · `python scripts/demo_six_apps.py`  
+**Fallback CLI:** `python scripts/demo_judge.py`.  
+Details: `START_HERE.md` · `docs/JUDGE_DEMO.md` · Checklist: `docs/SUBMISSION_CHECKLIST.md` · PR text: `docs/PR_BODY.md`
 
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+**Cloud backup (before 2026-07-31 18:00):** `python scripts/backup_to_persistence.py` then `git push`.
+
+**Judge one-shot:** `bash scripts/start_for_judge.sh`（与 Demo 视频 / 网页推荐问题一致）
+
+Get a free Model API key from:
+https://developer.amd.com.cn/radeon/modelapis
+
+---
+
+## 2. Project Layout
+
+```text
+track2-private-local-agent/
+├── app.py
+├── configs/default.yaml
+├── data/sample_docs/
+├── notebooks/
+│   └── private_agent_demo.ipynb   # tunnel-free visual chat (primary demo)
+├── docs/
+│   ├── PROJECT_SPECIFICATION.md
+│   ├── ARCHITECTURE.md
+│   ├── AMD_ROCM_OPTIMIZATION.md
+│   ├── RADEON_CLOUD_RUN.md
+│   ├── PR_BODY.md
+│   └── DEMO_VIDEO_SCRIPT.md
+├── scripts/
+│   ├── verify_rocm.py
+│   ├── demo_cli.py
+│   ├── generate_kb_faqs.py        # optional ~10k related FAQs
+│   └── rebuild_kb.py
+└── src/
+    ├── agent/          # planner + tool-using agent loop
+    ├── app/            # Gradio + notebook visual helpers
+    ├── llm/            # OpenAI-compatible + local transformers backends
+    ├── memory/         # local persistent memory
+    └── rag/            # ingest + Chroma vector store
+```
+---
+
+## 3. Switch to Local ROCm Inference
+
+On Radeon Cloud / Linux with ROCm PyTorch installed:
+
+1. Edit `configs/default.yaml`:
+
+```yaml
+llm:
+  backend: "local_transformers"
+  local_model_id: "Qwen/Qwen2.5-7B-Instruct"
+  device: "cuda"
+  dtype: "float16"
+```
+
+2. Verify GPU:
+
+```bash
+python scripts/verify_rocm.py
+```
+
+3. Launch:
+
+```bash
+python app.py
+```
+
+---
+
+## 4. Core Demo Scenarios
+
+1. **Private KB QA**: “请假需要提前几天申请？”
+2. **Tool calling**: agent calls `kb_search` then returns grounded answer
+3. **Memory**: “记住我喜欢简洁中文回答”
+4. **Files**: upload a PDF/MD and ask questions over it
+5. **Planning**: multi-step office request with visible plan + trace
+
+---
+
+## 5. Submission Materials
+
+| Requirement | Path |
+|-------------|------|
+| Project specification | `docs/PROJECT_SPECIFICATION.md` |
+| Architecture | `docs/ARCHITECTURE.md` |
+| AMD/ROCm optimization notes | `docs/AMD_ROCM_OPTIMIZATION.md` |
+| Source code | `src/`, `app.py` |
+| Run guide | this README |
+| Poster outline | `docs/POSTER_OUTLINE.md` |
+
+Demo video (3–5 min): follow `docs/DEMO_VIDEO_SCRIPT.md`  
+(show ROCm check + notebook visual chat + `kb_search` tool trace; Gradio/tunnel optional).
+
+---
+
+## 6. Environment Notes
+
+- Python 3.10+ recommended
+- Embedding model downloads on first run (`sentence-transformers/all-MiniLM-L6-v2`)
+- Vector DB / uploads / memory resolve under `data/` locally, or under  
+  `/workspace/persistence/PrivateLocalAgent/data/` on Radeon Cloud (auto-detected).  
+- Seed docs stay in the repo: `data/sample_docs/`  
+- See `docs/RADEON_CLOUD_RUN.md` for `PLA_DATA_ROOT` / `HF_HOME`
+
+---
+
+## 7. License / Contest
+
+Built for **2026 AMD AI DevMaster Global Hackathon · Track 2**.  
+PR title suggestion:
+
+`Track 2, 说干就干, PrivateLocalAgent`
