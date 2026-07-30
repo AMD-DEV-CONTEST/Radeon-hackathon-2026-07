@@ -1,86 +1,143 @@
-# Radeon-hackathon-2026-07
+# AMD-Optimized-Qwen-VL-PartialInpainting
+## AMD Optimized Partial Inpainting WebUI
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+> Open-source local image partial re-drawing tool based on ComfyUI workflow + Gradio, optimized exclusively for AMD ROCm GPU.
+> only modify masked area while keeping the rest of the original image completely unchanged. One-click deployment, out-of-box usage.
 
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
+## Table of Contents
+- [Project Overview](#project-overview)
+- [Key Features & Performance Optimization](#key-features--performance-optimization)
+- [Hardware & Software Requirements](#hardware--software-requirements)
+- [Project Structure](#project-structure)
+- [Quick Start Guide](#quick-start-guide)
+- [User Operation Tutorial](#user-operation-tutorial)
+- [Function Modes Introduction](#4-built-in-function-modes)
+- [Advanced Parameter Explanation](#advanced-parameter-explanation)
+- [License](#license)
 
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
+---
 
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+## Project Overview
+This project integrates **Qwen-Image-Edit 2511**, RMBG background removal, wrapped into an independent Gradio WebUI based on ComfyUI backend.
+Common application scenarios: stylized local redrawing, clothing replacement, text-guided local generation, object erasure.
+Fully optimized memory allocation strategy for AMD Radeon GPU, solved video memory fragmentation issue, reduced VRAM occupation by 40% compared with original model, and accelerated average inference speed from 85s to 25s.
 
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+## Key Features & Performance Optimization
+### ⚡ Performance Upgrade
+- Original average inference time: 85s | Optimized average inference time: 25s
+- FP8 model quantization cuts base VRAM usage by 40%
+- Lightning LoRA reduces sampling steps to 4 without obvious quality loss
 
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+### 🧠 AMD VRAM Optimization (Core Advantage)
+- Custom ROCm memory allocation environment variables to avoid VRAM fragmentation
+- Preload all models on first warm-up run, no repeated model loading during subsequent inference
+- Strict model cache limit, automatic tensor & garbage collection after each generation
+- Stable runtime VRAM: Idle ~30GB, peak inference ~36GB, fully compatible with AMD 48GB GPU
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+### 🎨 Image Editing Capabilities
+- Mask expansion & blur node for natural edge fusion between modified & original area
+- Auto crop masked region to minimize re-drawing area, balance speed & picture quality
+- Auto switch reference feature injection logic: disable ref mode when no reference image uploaded to avoid ghost artifacts
 
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
+### 🖥 Deployment & Experience
+- Pure one-click installation script, auto pull ComfyUI, install dependencies & move model files
+- Mobile & desktop responsive Gradio WebUI
+- Independent tunnel script for one-click intranet penetration for remote access
+- Auto manage ComfyUI backend execution, no manual workflow operation required
 
-## Submission Requirements
+## Hardware & Software Requirements
+### Minimum & Recommended Specs
+| Component | Minimum Requirement | Recommended Configuration |
+|-----------|--------------------|-----------------------|
+| AMD GPU VRAM | 48GB (ROCm Enabled) | 48GB+ AMD Radeon GPU |
+| System RAM | 32GB | 64GB |
+| Storage | 60GB | 100GB |
+| Python Version | 3.10 | 3.12 |
 
-### Track 1: Development of Multimodal Content Creation Tools
+> Tested Data: Single inference only consumes ~36GB VRAM; all models can be fully cached within 48GB total video memory.
 
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
+## Project Structure
+```
+AMD-Optimized-Qwen-VL-PartialInpainting/
+├── Radeon-Cloud-User Guide/              # hackathon def
+├── docs/          # Project Introduction Document
+├── images/             # Test image collection
+├── app.py              # Main service entry
+├── install.sh          # One-click environment deployment script
+├── tunnel.sh           # Intranet penetration script for remote access
+├── workflow.json       # Encapsulated ComfyUI full workflow template
+└── README.md           # Project documentation
+```
 
-### Track 2: Development & Local Deployment of Private AI Agents
+## Quick Start Guide
+### 1. Clone Repository
+```bash
+git clone http://github.com/gao-jie-ai/Track-1-gaojie-AMD-Optimized-Qwen-VL-PartialInpainting.git
+cd Track-1-gaojie-AMD-Optimized-Qwen-VL-PartialInpainting
+```
 
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
+### 2. One-Click Environment Installation
+```bash
+chmod +x install.sh
+./install.sh
+```
+Script function list:
+1. Create isolated Python virtual environment
+2. Auto download ComfyUI core files
+3. Install all PyTorch ROCm, ComfyUI custom node dependencies
+4. Auto download all required model weights
+5. Automatically move model files to ComfyUI standard model directory
 
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
+### 3. Launch Local Editing WebUI
+```bash
+source /workspace/comfyuipy/bin/activate
+python app.py
+```
+Default access address: http://127.0.0.1:7860
+All devices in LAN can access via your host IP: `http://[Your-IP]:7860`
 
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+### 4. Remote Access (Intranet Penetration)
+Open a new window
+```bash
+chmod +x tunnel.sh
+./tunnel.sh
+```
+After execution, public network link will be output for external device access.
+
+## User Operation Tutorial
+### Standard Operation Flow
+```
+① Upload Source Image → ② Generate Mask (SAM Auto / Manual Brush) → ③ Upload Reference Image (Optional)
+→ Select built-in prompt template / Custom edit instruction → Adjust advanced parameters → Click Generate → View comparison result
+```
+1. Upload your original image to the left upload box
+2. Mask generation: Use white brush to paint target area directly
+3. Upload reference image (required for swap mode; skip for erase mode)
+4. Fill edit prompt or click one-click template button
+5. Tune advanced parameters (default values work for most scenarios)
+6. Click `Start Generate` button
+
+## 4 template
+| Mode | Source Image | Mask Required | Reference Image | Usage Scenario |
+|------|:------------:|:-------------:|:---------------:|----------------|
+| 🔄 Style-based partial redrawing | ✅ | ✅ | ✅ | Optional  Replace the masked area with a certain artistic style (such as oil painting, watercolor, cyberpunk) |
+| 👗 Garment Replacement | ✅ | ✅ | ✅ | Change clothes, dresses, suits of characters |
+| 💇 Text-guided partial generation | ✅ | ✅ | ❌ | Generate content in the masked area based on the text description (text-to-mask-inpainting) |
+| 🧹 Object Erase | ✅ | ✅ | ❌ | Remove redundant objects, stains, text from image |
+
+> Core logic: If no reference image is uploaded, the system automatically closes reference feature injection (`to_ref=False`) to avoid white placeholder ghost artifacts.
+
+## Advanced Parameter Explanation
+| Parameter | Default | Value Range | Detailed Description |
+|-----------|---------|-------------|----------------------|
+| Random Seed | -1 | -1 ~ 2⁶³-1 | -1 = fully random every run; fixed seed for reproducible output |
+| Sampling Steps | 4 | 1 ~ 20 | Lightning LoRA only needs 4 steps; higher steps bring richer details but slower speed |
+| CFG Scale | 2.0 | 0.5 ~ 6.0 | Prompt guidance strength; higher value makes result strictly follow edit text |
+| Denoising Strength | 0.75 | 0.0 ~ 0.95 | Control modification intensity; higher = larger change to masked area; lower = keep original texture |
+| Mask Expand Pixels | 35 | 0 ~ 200 | Expand mask boundary outward for smoother transition between edited & original image |
+| Mask Blur Radius | 10 | 0 ~ 100 | Edge feather strength of mask; larger value eliminates hard boundary lines |
+
+
+## License
+MIT License
+Free for personal & commercial secondary development, please retain original project author & model source citation.

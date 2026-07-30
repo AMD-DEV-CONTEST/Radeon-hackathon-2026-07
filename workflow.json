@@ -1,0 +1,500 @@
+{
+  "38": {
+    "inputs": {
+      "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "加载CLIP"
+    }
+  },
+  "39": {
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "加载VAE"
+    }
+  },
+  "172": {
+    "inputs": {
+      "seed": 1099967494166767,
+      "steps": 4,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "sgm_uniform",
+      "denoise": 1,
+      "model": [
+        "304",
+        0
+      ],
+      "positive": [
+        "284",
+        0
+      ],
+      "negative": [
+        "181",
+        0
+      ],
+      "latent_image": [
+        "284",
+        1
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "K采样器"
+    }
+  },
+  "173": {
+    "inputs": {
+      "samples": [
+        "172",
+        0
+      ],
+      "vae": [
+        "39",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE解码"
+    }
+  },
+  "181": {
+    "inputs": {
+      "conditioning": [
+        "284",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "条件零化"
+    }
+  },
+  "196": {
+    "inputs": {
+      "to_ref": true,
+      "ref_main_image": false,
+      "ref_longest_edge": [
+        "286",
+        0
+      ],
+      "ref_crop": "center",
+      "ref_upscale": "lanczos",
+      "to_vl": true,
+      "vl_resize": true,
+      "vl_target_size": 384,
+      "vl_crop": "center",
+      "vl_upscale": "bicubic",
+      "image": [
+        "327",
+        0
+      ],
+      "configs": [
+        "283",
+        0
+      ]
+    },
+    "class_type": "QwenEditConfigPreparer",
+    "_meta": {
+      "title": "Qwen Edit Config Preparer"
+    }
+  },
+  "223": {
+    "inputs": {
+      "value": "图片角色替换为图2角色，保持原图的画风"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "字符串（多行）"
+    }
+  },
+  "275": {
+    "inputs": {
+      "image": [
+        "173",
+        0
+      ],
+      "pad_info": [
+        "282",
+        0
+      ]
+    },
+    "class_type": "CropWithPadInfo",
+    "_meta": {
+      "title": "Crop With Pad Info"
+    }
+  },
+  "280": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "scale_by": [
+        "275",
+        1
+      ],
+      "image": [
+        "275",
+        0
+      ]
+    },
+    "class_type": "ImageScaleBy",
+    "_meta": {
+      "title": "缩放图像（比例）"
+    }
+  },
+  "282": {
+    "inputs": {
+      "custom_output": [
+        "284",
+        2
+      ]
+    },
+    "class_type": "QwenEditOutputExtractor",
+    "_meta": {
+      "title": "Qwen Edit Output Extractor"
+    }
+  },
+  "283": {
+    "inputs": {
+      "to_ref": true,
+      "ref_main_image": true,
+      "ref_longest_edge": [
+        "285",
+        0
+      ],
+      "ref_crop": "pad",
+      "ref_upscale": "lanczos",
+      "to_vl": true,
+      "vl_resize": true,
+      "vl_target_size": 384,
+      "vl_crop": "center",
+      "vl_upscale": "bicubic",
+      "image": [
+        "331",
+        0
+      ],
+      "mask": [
+        "331",
+        1
+      ]
+    },
+    "class_type": "QwenEditConfigPreparer",
+    "_meta": {
+      "title": "Qwen Edit Config Preparer"
+    }
+  },
+  "284": {
+    "inputs": {
+      "prompt": [
+        "223",
+        0
+      ],
+      "return_full_refs_cond": true,
+      "instruction": "Describe the key features of the input image (color, shape, size, texture, objects, background), then explain how the user's text instruction should alter or modify the image. Generate a new image that meets the user's requirements while maintaining consistency with the original input where appropriate.",
+      "clip": [
+        "38",
+        0
+      ],
+      "vae": [
+        "39",
+        0
+      ],
+      "configs": [
+        "196",
+        0
+      ]
+    },
+    "class_type": "TextEncodeQwenImageEditPlusCustom_lrzjason",
+    "_meta": {
+      "title": "TextEncodeQwenImageEditPlusCustom lrzjason"
+    }
+  },
+  "285": {
+    "inputs": {
+      "max_size": 2048,
+      "image": [
+        "331",
+        0
+      ]
+    },
+    "class_type": "QwenEditAdaptiveLongestEdge",
+    "_meta": {
+      "title": "Qwen Edit Adaptive Longest Edge"
+    }
+  },
+  "286": {
+    "inputs": {
+      "max_size": 1024,
+      "image": [
+        "327",
+        0
+      ]
+    },
+    "class_type": "QwenEditAdaptiveLongestEdge",
+    "_meta": {
+      "title": "Qwen Edit Adaptive Longest Edge"
+    }
+  },
+  "301": {
+    "inputs": {
+      "unet_name": "Qwen-Image-Edit-2511-FP8_e4m3fn.safetensors",
+      "weight_dtype": "fp8_e4m3fn"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "UNet加载器"
+    }
+  },
+  "302": {
+    "inputs": {
+      "lora_name": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+      "strength_model": 1,
+      "model": [
+        "301",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "LoRA加载器（仅模型）"
+    }
+  },
+  "303": {
+    "inputs": {
+      "shift": 3,
+      "model": [
+        "302",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingAuraFlow",
+    "_meta": {
+      "title": "采样算法（AuraFlow）"
+    }
+  },
+  "304": {
+    "inputs": {
+      "strength": 1,
+      "pre_cfg": false,
+      "model": [
+        "303",
+        0
+      ]
+    },
+    "class_type": "CFGNorm",
+    "_meta": {
+      "title": "CFG归一化"
+    }
+  },
+  "309": {
+    "inputs": {
+      "width": [
+        "337",
+        0
+      ],
+      "height": [
+        "337",
+        0
+      ],
+      "upscale_method": "nearest-exact",
+      "keep_proportion": "resize",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 32,
+      "device": "gpu",
+      "image": [
+        "322",
+        0
+      ],
+      "mask": [
+        "322",
+        1
+      ]
+    },
+    "class_type": "ImageResizeKJv2",
+    "_meta": {
+      "title": "Resize Image v2"
+    }
+  },
+  "322": {
+    "inputs": {
+      "image": "clipspace-painted-masked-1784874876865.png [input]"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "加载图像"
+    }
+  },
+  "325": {
+    "inputs": {
+      "image": "root.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "加载图像"
+    }
+  },
+  "326": {
+    "inputs": {
+      "invert_mask": false,
+      "grow": 35,
+      "blur": 10,
+      "mask": [
+        "309",
+        3
+      ]
+    },
+    "class_type": "LayerMask: MaskGrow",
+    "_meta": {
+      "title": "图层遮罩：遮罩扩展"
+    }
+  },
+  "327": {
+    "inputs": {
+      "fill_mode": "white",
+      "fill_alpha_decision": true,
+      "fill_color": "#FFFFFF",
+      "expand_left": false,
+      "expand_right": false,
+      "expand_top": false,
+      "expand_bottom": false,
+      "num_blocks_left": 1,
+      "num_blocks_right": 1,
+      "num_blocks_top": 1,
+      "num_blocks_bottom": 1,
+      "image": [
+        "668",
+        0
+      ]
+    },
+    "class_type": "TTP_Expand_And_Mask",
+    "_meta": {
+      "title": "TTP_Expand_And_Mask"
+    }
+  },
+  "329": {
+    "inputs": {
+      "invert_mask": false,
+      "background_image": [
+        "309",
+        0
+      ],
+      "croped_image": [
+        "280",
+        0
+      ],
+      "crop_box": [
+        "331",
+        2
+      ]
+    },
+    "class_type": "LayerUtility: RestoreCropBox",
+    "_meta": {
+      "title": "图层工具：恢复裁剪框"
+    }
+  },
+  "330": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "329",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "保存图像"
+    }
+  },
+  "331": {
+    "inputs": {
+      "invert_mask": false,
+      "detect": "mask_area",
+      "top_reserve": 256,
+      "bottom_reserve": 256,
+      "left_reserve": 256,
+      "right_reserve": 256,
+      "round_to_multiple": "8",
+      "image": [
+        "309",
+        0
+      ],
+      "mask": [
+        "326",
+        0
+      ]
+    },
+    "class_type": "LayerUtility: CropByMask V2",
+    "_meta": {
+      "title": "图层工具：遮罩裁剪 V2"
+    }
+  },
+  "337": {
+    "inputs": {
+      "value": [
+        "667",
+        1
+      ]
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "整数"
+    }
+  },
+  "666": {
+    "inputs": {
+      "image": [
+        "322",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "获取图像尺寸"
+    }
+  },
+  "667": {
+    "inputs": {
+      "expression": "min(max(a,b), 2048)",
+      "values.a": [
+        "666",
+        0
+      ],
+      "values.b": [
+        "666",
+        1
+      ]
+    },
+    "class_type": "ComfyMathExpression",
+    "_meta": {
+      "title": "数学表达式"
+    }
+  },
+  "668": {
+    "inputs": {
+      "model": "RMBG-2.0",
+      "sensitivity": 1,
+      "process_res": 1024,
+      "mask_blur": 0,
+      "mask_offset": 0,
+      "invert_output": false,
+      "refine_foreground": false,
+      "background": "Alpha",
+      "background_color": "#222222",
+      "image": [
+        "325",
+        0
+      ]
+    },
+    "class_type": "RMBG",
+    "_meta": {
+      "title": "去除背景 (RMBG)"
+    }
+  }
+}
