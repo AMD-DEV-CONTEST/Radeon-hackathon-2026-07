@@ -10,6 +10,8 @@ The core demo is recursive. The active model studies its own benchmark history, 
 
 This folder is a Track 2 draft submission for the AMD AI DevMaster Hackathon.
 
+Team: Velocity
+
 | Deliverable | Status |
 |:---|:---|
 | Project specification | Complete |

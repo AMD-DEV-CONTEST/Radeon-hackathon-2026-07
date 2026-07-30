@@ -80,14 +80,14 @@ Status: Complete draft
 Required title:
 
 ```text
-Track 2, Team Autotuner, Autotuner
+Track 2, Velocity, Autotuner
 ```
 
 Before marking ready for review:
 
 1. Replace simulated sample evidence or add a separate verified Radeon artifact.
 2. Add the demonstration video link.
-3. Review the team name and participant name.
+3. Review both participant names and contribution summaries.
 4. Review all measured claims.
 5. Confirm links work.
 6. Confirm the pull request remains entirely in English.

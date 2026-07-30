@@ -6,7 +6,7 @@ Application name: Autotuner
 
 Track: Track 2, Agentic AI
 
-Team: Team Autotuner
+Team: Velocity
 
 Primary platform: AMD Radeon GPU with ROCm
 
@@ -301,7 +301,19 @@ The reusable artifact has value beyond one benchmark. Teams can commit presets b
 
 ## Team
 
-Govind is the project lead and developer. Responsibilities include concept design, agent workflow, implementation, Radeon experiment design, validation, documentation, visual presentation, and demonstration production.
+### Govind
+
+Role: Project lead and developer
+
+Contributions include concept design, agent workflow, implementation, Radeon experiment design, validation, documentation, visual presentation, and demonstration production.
+
+### Shreeya Dasa
+
+Role: Applied machine learning and LLM systems
+
+Profile: [github.com/dasashreeya](https://github.com/dasashreeya)
+
+Contribution focus includes LLM systems review, evaluation design, benchmark interpretation, production AI perspective, demonstration validation, and submission review.
 
 ## References
 
