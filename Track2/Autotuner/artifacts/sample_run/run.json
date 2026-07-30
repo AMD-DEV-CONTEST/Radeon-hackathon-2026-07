@@ -1,0 +1,439 @@
+{
+  "run_id": "2026-07-30T211311.311847_0000",
+  "name": "Autotuner simulated Radeon demonstration",
+  "started_at": "2026-07-30T21:13:11.311847+00:00",
+  "completed_at": "2026-07-30T21:13:11.630102+00:00",
+  "mode": "simulation",
+  "hardware": {
+    "system": "simulated ROCm environment",
+    "gpu_names": [
+      "Simulated AMD Radeon GPU"
+    ],
+    "gfx_targets": [
+      "simulated"
+    ]
+  },
+  "config": {
+    "name": "Autotuner simulated Radeon demonstration",
+    "endpoint": "http://127.0.0.1:8000/v1",
+    "host": "127.0.0.1",
+    "port": 8000,
+    "manage_server": false,
+    "startup_timeout_seconds": 10,
+    "cooldown_seconds": 0.0,
+    "trials": 10,
+    "warmup_requests": 1,
+    "benchmark_requests": 8,
+    "concurrency": 4,
+    "prompts": [
+      "Explain one benefit of local AI inference with AMD ROCm.",
+      "Write a compact Python function that batches text prompts."
+    ],
+    "max_tokens": 96,
+    "required_terms": [],
+    "quality_floor": 0.95,
+    "latency_limit_ms": 5000.0,
+    "error_limit": 0.02,
+    "use_local_agent": true,
+    "profile_trials": [],
+    "seed": 7,
+    "engines": [
+      {
+        "name": "vllm",
+        "adapter": "vllm",
+        "command": [
+          "vllm",
+          "serve",
+          "{model}"
+        ],
+        "environment": {
+          "FLASH_ATTENTION_TRITON_AMD_ENABLE": "TRUE"
+        }
+      }
+    ],
+    "search_space": {
+      "model_variants": [
+        {
+          "model": "Qwen/Qwen3-8B",
+          "quantization": "none"
+        }
+      ],
+      "attention_backends": [
+        "auto",
+        "ROCM_ATTN",
+        "TRITON_ATTN",
+        "ROCM_AITER_UNIFIED_ATTN"
+      ],
+      "kv_cache_dtypes": [
+        "auto",
+        "fp8"
+      ],
+      "max_num_seqs": [
+        4,
+        8,
+        16,
+        32
+      ],
+      "gpu_memory_utilizations": [
+        0.82,
+        0.88,
+        0.92,
+        0.95
+      ],
+      "max_model_lens": [
+        4096
+      ],
+      "speculative_models": [
+        "",
+        "Qwen/Qwen3-0.6B"
+      ],
+      "num_speculative_tokens": [
+        0,
+        4
+      ]
+    }
+  },
+  "trials": [
+    {
+      "index": 1,
+      "candidate": {
+        "engine": "vllm",
+        "model": "Qwen/Qwen3-8B",
+        "quantization": "none",
+        "attention_backend": "auto",
+        "kv_cache_dtype": "auto",
+        "max_num_seqs": 4,
+        "gpu_memory_utilization": 0.82,
+        "max_model_len": 4096,
+        "speculative_model": "",
+        "num_speculative_tokens": 0
+      },
+      "result": {
+        "output_tokens": 1024,
+        "duration_seconds": 48.03656472648531,
+        "tokens_per_second": 21.31709471379851,
+        "latency_p50_ms": 1055.490924165937,
+        "latency_p95_ms": 1465.9596168971348,
+        "error_rate": 0.0,
+        "quality_score": 1.0,
+        "peak_vram_mb": 20696.0,
+        "responses": [
+          "AMD ROCm benchmark response from the simulated local endpoint."
+        ]
+      },
+      "hypothesis": "Establish the stock serving baseline.",
+      "started_at": "2026-07-30T21:13:11.314993+00:00",
+      "completed_at": "2026-07-30T21:13:11.315026+00:00",
+      "accepted": true,
+      "rejection_reason": "",
+      "profile_directory": ""
+    },
+    {
+      "index": 2,
+      "candidate": {
+        "engine": "vllm",
+        "model": "Qwen/Qwen3-8B",
+        "quantization": "none",
+        "attention_backend": "ROCM_AITER_UNIFIED_ATTN",
+        "kv_cache_dtype": "auto",
+        "max_num_seqs": 4,
+        "gpu_memory_utilization": 0.82,
+        "max_model_len": 4096,
+        "speculative_model": "",
+        "num_speculative_tokens": 0
+      },
+      "result": {
+        "output_tokens": 1024,
+        "duration_seconds": 39.40803954124476,
+        "tokens_per_second": 25.984545588173035,
+        "latency_p50_ms": 865.8993063261788,
+        "latency_p95_ms": 1202.6379254530261,
+        "error_rate": 0.0,
+        "quality_score": 1.0,
+        "peak_vram_mb": 20696.0,
+        "responses": [
+          "AMD ROCm benchmark response from the simulated local endpoint."
+        ]
+      },
+      "hypothesis": "Measure whether changing attention_backend improves throughput without violating the quality and reliability limits. Source: constraint aware heuristic.",
+      "started_at": "2026-07-30T21:13:11.339264+00:00",
+      "completed_at": "2026-07-30T21:13:11.339299+00:00",
+      "accepted": true,
+      "rejection_reason": "",
+      "profile_directory": ""
+    },
+    {
+      "index": 3,
+      "candidate": {
+        "engine": "vllm",
+        "model": "Qwen/Qwen3-8B",
+        "quantization": "none",
+        "attention_backend": "ROCM_AITER_UNIFIED_ATTN",
+        "kv_cache_dtype": "fp8",
+        "max_num_seqs": 4,
+        "gpu_memory_utilization": 0.82,
+        "max_model_len": 4096,
+        "speculative_model": "",
+        "num_speculative_tokens": 0
+      },
+      "result": {
+        "output_tokens": 1024,
+        "duration_seconds": 35.34187627974853,
+        "tokens_per_second": 28.974126667597684,
+        "latency_p50_ms": 776.5548987249434,
+        "latency_p95_ms": 1078.5484704513103,
+        "error_rate": 0.0,
+        "quality_score": 0.99,
+        "peak_vram_mb": 20696.0,
+        "responses": [
+          "AMD ROCm benchmark response from the simulated local endpoint."
+        ]
+      },
+      "hypothesis": "Measure whether changing kv_cache_dtype improves throughput without violating the quality and reliability limits. Source: constraint aware heuristic.",
+      "started_at": "2026-07-30T21:13:11.365433+00:00",
+      "completed_at": "2026-07-30T21:13:11.365461+00:00",
+      "accepted": true,
+      "rejection_reason": "",
+      "profile_directory": ""
+    },
+    {
+      "index": 4,
+      "candidate": {
+        "engine": "vllm",
+        "model": "Qwen/Qwen3-8B",
+        "quantization": "none",
+        "attention_backend": "auto",
+        "kv_cache_dtype": "fp8",
+        "max_num_seqs": 4,
+        "gpu_memory_utilization": 0.82,
+        "max_model_len": 4096,
+        "speculative_model": "",
+        "num_speculative_tokens": 0
+      },
+      "result": {
+        "output_tokens": 1024,
+        "duration_seconds": 43.40095328665935,
+        "tokens_per_second": 23.593951801854974,
+        "latency_p50_ms": 953.6342274900736,
+        "latency_p95_ms": 1324.4919826251023,
+        "error_rate": 0.08,
+        "quality_score": 0.99,
+        "peak_vram_mb": 20696.0,
+        "responses": [
+          "AMD ROCm benchmark response from the simulated local endpoint."
+        ]
+      },
+      "hypothesis": "Measure whether changing attention_backend improves throughput without violating the quality and reliability limits. Source: constraint aware heuristic.",
+      "started_at": "2026-07-30T21:13:11.394435+00:00",
+      "completed_at": "2026-07-30T21:13:11.394477+00:00",
+      "accepted": false,
+      "rejection_reason": "error rate exceeds the limit",
+      "profile_directory": ""
+    },
+    {
+      "index": 5,
+      "candidate": {
+        "engine": "vllm",
+        "model": "Qwen/Qwen3-8B",
+        "quantization": "none",
+        "attention_backend": "ROCM_AITER_UNIFIED_ATTN",
+        "kv_cache_dtype": "fp8",
+        "max_num_seqs": 16,
+        "gpu_memory_utilization": 0.82,
+        "max_model_len": 4096,
+        "speculative_model": "",
+        "num_speculative_tokens": 0
+      },
+      "result": {
+        "output_tokens": 1024,
+        "duration_seconds": 26.66715153610685,
+        "tokens_per_second": 38.39930180070122,
+        "latency_p50_ms": 585.9481538695352,
+        "latency_p95_ms": 813.8168803743545,
+        "error_rate": 0.0,
+        "quality_score": 0.99,
+        "peak_vram_mb": 20696.0,
+        "responses": [
+          "AMD ROCm benchmark response from the simulated local endpoint."
+        ]
+      },
+      "hypothesis": "Measure whether changing max_num_seqs improves throughput without violating the quality and reliability limits. Source: constraint aware heuristic.",
+      "started_at": "2026-07-30T21:13:11.423735+00:00",
+      "completed_at": "2026-07-30T21:13:11.423788+00:00",
+      "accepted": true,
+      "rejection_reason": "",
+      "profile_directory": ""
+    },
+    {
+      "index": 6,
+      "candidate": {
+        "engine": "vllm",
+        "model": "Qwen/Qwen3-8B",
+        "quantization": "none",
+        "attention_backend": "ROCM_AITER_UNIFIED_ATTN",
+        "kv_cache_dtype": "auto",
+        "max_num_seqs": 16,
+        "gpu_memory_utilization": 0.82,
+        "max_model_len": 4096,
+        "speculative_model": "",
+        "num_speculative_tokens": 0
+      },
+      "result": {
+        "output_tokens": 1024,
+        "duration_seconds": 29.703726676805044,
+        "tokens_per_second": 34.47378879902023,
+        "latency_p50_ms": 652.6697756133921,
+        "latency_p95_ms": 906.4857994630446,
+        "error_rate": 0.0,
+        "quality_score": 1.0,
+        "peak_vram_mb": 20696.0,
+        "responses": [
+          "AMD ROCm benchmark response from the simulated local endpoint."
+        ]
+      },
+      "hypothesis": "Measure whether changing kv_cache_dtype improves throughput without violating the quality and reliability limits. Source: constraint aware heuristic.",
+      "started_at": "2026-07-30T21:13:11.454619+00:00",
+      "completed_at": "2026-07-30T21:13:11.454659+00:00",
+      "accepted": true,
+      "rejection_reason": "",
+      "profile_directory": ""
+    },
+    {
+      "index": 7,
+      "candidate": {
+        "engine": "vllm",
+        "model": "Qwen/Qwen3-8B",
+        "quantization": "none",
+        "attention_backend": "auto",
+        "kv_cache_dtype": "fp8",
+        "max_num_seqs": 16,
+        "gpu_memory_utilization": 0.82,
+        "max_model_len": 4096,
+        "speculative_model": "",
+        "num_speculative_tokens": 0
+      },
+      "result": {
+        "output_tokens": 1024,
+        "duration_seconds": 31.657303510419,
+        "tokens_per_second": 32.34640624597047,
+        "latency_p50_ms": 695.5950478363549,
+        "latency_p95_ms": 966.1042331060485,
+        "error_rate": 0.08,
+        "quality_score": 0.99,
+        "peak_vram_mb": 20696.0,
+        "responses": [
+          "AMD ROCm benchmark response from the simulated local endpoint."
+        ]
+      },
+      "hypothesis": "Measure whether changing attention_backend improves throughput without violating the quality and reliability limits. Source: constraint aware heuristic.",
+      "started_at": "2026-07-30T21:13:11.487248+00:00",
+      "completed_at": "2026-07-30T21:13:11.487282+00:00",
+      "accepted": false,
+      "rejection_reason": "error rate exceeds the limit",
+      "profile_directory": ""
+    },
+    {
+      "index": 8,
+      "candidate": {
+        "engine": "vllm",
+        "model": "Qwen/Qwen3-8B",
+        "quantization": "none",
+        "attention_backend": "auto",
+        "kv_cache_dtype": "auto",
+        "max_num_seqs": 16,
+        "gpu_memory_utilization": 0.82,
+        "max_model_len": 4096,
+        "speculative_model": "",
+        "num_speculative_tokens": 0
+      },
+      "result": {
+        "output_tokens": 1024,
+        "duration_seconds": 35.776205049547,
+        "tokens_per_second": 28.62237620177565,
+        "latency_p50_ms": 786.0982554832104,
+        "latency_p95_ms": 1091.8031326155701,
+        "error_rate": 0.0,
+        "quality_score": 1.0,
+        "peak_vram_mb": 20696.0,
+        "responses": [
+          "AMD ROCm benchmark response from the simulated local endpoint."
+        ]
+      },
+      "hypothesis": "Explore a promising configuration selected from observed factor performance while preserving the declared safety limits. Source: constraint aware heuristic.",
+      "started_at": "2026-07-30T21:13:11.520347+00:00",
+      "completed_at": "2026-07-30T21:13:11.520385+00:00",
+      "accepted": true,
+      "rejection_reason": "",
+      "profile_directory": ""
+    },
+    {
+      "index": 9,
+      "candidate": {
+        "engine": "vllm",
+        "model": "Qwen/Qwen3-8B",
+        "quantization": "none",
+        "attention_backend": "ROCM_AITER_UNIFIED_ATTN",
+        "kv_cache_dtype": "fp8",
+        "max_num_seqs": 16,
+        "gpu_memory_utilization": 0.92,
+        "max_model_len": 4096,
+        "speculative_model": "",
+        "num_speculative_tokens": 0
+      },
+      "result": {
+        "output_tokens": 1024,
+        "duration_seconds": 24.728635494527403,
+        "tokens_per_second": 41.40948255016406,
+        "latency_p50_ms": 543.3538072527994,
+        "latency_p95_ms": 754.658065628888,
+        "error_rate": 0.0,
+        "quality_score": 0.99,
+        "peak_vram_mb": 20976.0,
+        "responses": [
+          "AMD ROCm benchmark response from the simulated local endpoint."
+        ]
+      },
+      "hypothesis": "Measure whether changing gpu_memory_utilization improves throughput without violating the quality and reliability limits. Source: constraint aware heuristic.",
+      "started_at": "2026-07-30T21:13:11.554837+00:00",
+      "completed_at": "2026-07-30T21:13:11.554881+00:00",
+      "accepted": true,
+      "rejection_reason": "",
+      "profile_directory": ""
+    },
+    {
+      "index": 10,
+      "candidate": {
+        "engine": "vllm",
+        "model": "Qwen/Qwen3-8B",
+        "quantization": "none",
+        "attention_backend": "ROCM_AITER_UNIFIED_ATTN",
+        "kv_cache_dtype": "auto",
+        "max_num_seqs": 16,
+        "gpu_memory_utilization": 0.92,
+        "max_model_len": 4096,
+        "speculative_model": "",
+        "num_speculative_tokens": 0
+      },
+      "result": {
+        "output_tokens": 1024,
+        "duration_seconds": 27.47552704493047,
+        "tokens_per_second": 37.269530747325156,
+        "latency_p50_ms": 603.7103110458355,
+        "latency_p95_ms": 838.486543119216,
+        "error_rate": 0.0,
+        "quality_score": 1.0,
+        "peak_vram_mb": 20976.0,
+        "responses": [
+          "AMD ROCm benchmark response from the simulated local endpoint."
+        ]
+      },
+      "hypothesis": "Measure whether changing kv_cache_dtype improves throughput without violating the quality and reliability limits. Source: constraint aware heuristic.",
+      "started_at": "2026-07-30T21:13:11.591391+00:00",
+      "completed_at": "2026-07-30T21:13:11.591424+00:00",
+      "accepted": true,
+      "rejection_reason": "",
+      "profile_directory": ""
+    }
+  ],
+  "best_candidate_key": "c805f2282a1f"
+}

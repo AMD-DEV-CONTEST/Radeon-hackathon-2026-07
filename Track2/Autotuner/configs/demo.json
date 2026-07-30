@@ -1,0 +1,55 @@
+{
+  "name": "Autotuner simulated Radeon demonstration",
+  "endpoint": "http://127.0.0.1:8000/v1",
+  "host": "127.0.0.1",
+  "port": 8000,
+  "manage_server": false,
+  "startup_timeout_seconds": 10,
+  "cooldown_seconds": 0,
+  "trials": 10,
+  "warmup_requests": 1,
+  "benchmark_requests": 8,
+  "concurrency": 4,
+  "prompts": [
+    "Explain one benefit of local AI inference with AMD ROCm.",
+    "Write a compact Python function that batches text prompts."
+  ],
+  "max_tokens": 96,
+  "required_terms": [],
+  "quality_floor": 0.95,
+  "latency_limit_ms": 5000,
+  "error_limit": 0.02,
+  "use_local_agent": true,
+  "profile_trials": [],
+  "seed": 7,
+  "engines": [
+    {
+      "name": "vllm",
+      "adapter": "vllm",
+      "command": ["vllm", "serve", "{model}"],
+      "environment": {
+        "FLASH_ATTENTION_TRITON_AMD_ENABLE": "TRUE"
+      }
+    }
+  ],
+  "search_space": {
+    "model_variants": [
+      {
+        "model": "Qwen/Qwen3-8B",
+        "quantization": "none"
+      }
+    ],
+    "attention_backends": [
+      "auto",
+      "ROCM_ATTN",
+      "TRITON_ATTN",
+      "ROCM_AITER_UNIFIED_ATTN"
+    ],
+    "kv_cache_dtypes": ["auto", "fp8"],
+    "max_num_seqs": [4, 8, 16, 32],
+    "gpu_memory_utilizations": [0.82, 0.88, 0.92, 0.95],
+    "max_model_lens": [4096],
+    "speculative_models": ["", "Qwen/Qwen3-0.6B"],
+    "num_speculative_tokens": [0, 4]
+  }
+}
