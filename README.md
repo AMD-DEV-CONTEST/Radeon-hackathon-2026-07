@@ -3,8 +3,25 @@
 ## how to apply and use AMD Radeon GPU
 see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
 
+## Track 3 starter demo: robot simulation on AMD Radeon GPU
+
+New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
+
+▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+
+What you'll learn:
+- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
+- Build a scene and run physics simulation with **Genesis**
+- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
+- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+
+> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+
 ## when you submit
 **pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+
+> [!IMPORTANT]
+> Team name was an optional field on the Luma registration form. If you did not fill in a team name when you registered, please use your own name instead, so the title of the pull request should be like **"Track x, Your name, your application name"**.
 
 > [!NOTE]
 > All submission materials, project descriptions, and Pull Requests should be submitted in English.
