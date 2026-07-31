@@ -1,0 +1,156 @@
+# Hermes GRC Agent — Project Specification (Track 2)
+
+**AMD AI DevMaster Hackathon — July 2026**  
+**Track:** 2 — Development and Local Deployment of Private AI Agents  
+**Team:** 3s10  
+**Application:** Hermes GRC Agent (`policy-controls-assessment` skill)  
+**Source repository:** https://github.com/3s10/policy-controls-assessment-amd-hackathon (private; judge access on request)  
+**Public upstream:** https://github.com/3s10/policy-controls-assessment  
+
+**Registration:** Luma (completed) · AMD Developer Program (completed) · GitHub + Discord (registered)
+
+---
+
+## 1. Project background
+
+Organizations must map written security policies (PDF/DOCX) to compliance frameworks such as NIST CSF 2.0, CMMC 800-171A, and ISO 27001. Manual mapping is slow, inconsistent, and misses cross-policy conflicts. Cloud LLM services are unacceptable for many auditors because policy text is sensitive.
+
+**Hermes GRC Agent** is a locally deployed, interview-guided AI agent that:
+
+1. Interviews the analyst (corpus, framework, scope, models) — no CLI expertise required.
+2. Ingests policies to structured JSON.
+3. Triages paragraphs with Granite 4.1 (removes ~90% definition/scope noise).
+4. Maps surviving paragraphs to specific control requirements with Llama 3.1 8B.
+5. Independently verifies mappings with Granite 4.1 (cross-family Stage D).
+6. Detects conflicts and exports an auditor matrix (`report.md`, `matrix.xlsx`).
+
+All core inference runs on **AMD hardware** via **Lemonade** (local Ryzen AI) or **Radeon Cloud vLLM** (ROCm). Policy text never leaves the operator-controlled environment.
+
+---
+
+## 2. Target users and application scenarios
+
+| User | Scenario |
+|------|----------|
+| CMMC / CUI assessors | Map client policies to SP 800-171A R3 determinations + ODPs |
+| ISO 27001 consultants | Gap analysis against Annex A guidance units |
+| Internal GRC teams | Crosswalk to PCI-DSS via CSF hub; find contradictory MFA/password rules |
+| MSSPs | Repeatable local pipeline across client policy corpora |
+
+**Industry-specific service agent** — not a general chatbot. Output is always a **draft** for human disposition; the skill forbids presenting results as compliance certification.
+
+---
+
+## 3. System architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Hermes Agent (orchestrator)                                     │
+│  · Skill: policy-controls-assessment                             │
+│  · Mandatory 10-question job interview                           │
+│  · Tool calls → Python pipeline scripts                          │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+    ┌───────────────────────┼───────────────────────┐
+    ▼                       ▼                       ▼
+ ingest_policy      triage_paragraphs      control_mapper
+ _to_json.py         (Granite gate)         (classify + verify
+ (rule-based)                              + conflicts + crosswalk)
+    │                       │                       │
+    └───────────────────────┴───────────────────────┘
+                            ▼
+                  export_matrix_xlsx.py
+                            ▼
+              report.md · matrix.xlsx · run_summary.json
+```
+
+### Track 2 capability mapping (5/5)
+
+| Required capability | Implementation |
+|---------------------|----------------|
+| **Tool invocation** | Hermes invokes ingest, triage, mapper, export scripts |
+| **Multi-step task planning** | Interview → ingest → triage → classify → verify → conflicts → export |
+| **Local knowledge retrieval (RAG)** | Stage B funnel: nomic-embed ranks framework requirements per paragraph |
+| **Local multi-turn memory** | Hermes session; `checkpoint.json` for long mapping runs |
+| **Privacy / permission control** | Local-only endpoints; no policy text off-box |
+
+---
+
+## 4. Models and algorithms
+
+| Stage | Model | Role | Benchmark note |
+|-------|-------|------|----------------|
+| **Agent orchestration** | Qwen 3.6 (Hermes) | Interview, tool selection, user Q&A | Not in mapping hot path |
+| **Triage gate** | Granite 4.1 8B | Paragraph control vs noise | F1 0.877 (100-para slice) |
+| **Classify** | Llama 3.1 8B Instruct | Requirement/ODP mapping | 47–51% hit rate, topk=3 |
+| **Verify** | Granite 4.1 8B | Independent confirmation | Cross-family Stage D |
+| **Funnel** | nomic-embed-text-v2-moe | Candidate requirement retrieval | Lemonade embeddings API |
+
+**Algorithms (non-LLM):** ingest v1.1, conflict detection on ODP claims, CSF crosswalk projection.
+
+---
+
+## 5. AMD Radeon GPU / ROCm adaptation
+
+### Local development
+
+- **Hardware:** AMD Ryzen 9 H370 + Lemonade Server (NPU / iGPU / ROCm)
+- **Setup:** `scripts/set_amd_lemonade_env.ps1`
+- **API:** `http://127.0.0.1:8000/api/v1`
+
+### Radeon Cloud (judge reproduction)
+
+See **`docs/radeon-cloud-deployment.md`** for Qwen 3.6 (Hermes), multi-model vLLM, and embeddings.
+
+### Optimization
+
+- `--topk 3` benchmark sweet spot
+- Triage gate skips non-control paragraphs before classify+verify
+- Granite triage ~3.6 s/para
+
+---
+
+## 6. Deliverables
+
+| Artifact | Description |
+|----------|-------------|
+| `results/report.md` | Audit report: conflicts, review queue |
+| `results/matrix.xlsx` | Control × policy matrix |
+| `results/run_summary.json` | Models, timing, `llm_errors` |
+| Hermes skill | `SKILL.md` + integration guide |
+
+---
+
+## 7. Reproduction
+
+```powershell
+python -m pytest tests/ -q
+. .\scripts\set_amd_lemonade_env.ps1
+python scripts/control_mapper.py --corpus corpus-benchmarks --limit 5 --triage --out ./results
+```
+
+Full cloud steps: `docs/radeon-cloud-deployment.md`
+
+---
+
+## 8. Demo video
+
+**Status:** Pending (add URL before August 6, 2026 deadline)
+
+**Planned content:** Hermes interview → pipeline run → `report.md` on AMD hardware.
+
+---
+
+## 9. Team
+
+| Member | Role |
+|--------|------|
+| Tristen (3s10) | Architecture, pipeline, benchmarks, Hermes skill, submission |
+
+---
+
+## 10. References
+
+- `docs/radeon-cloud-deployment.md`
+- `references/runtime-model-notes.md`
+- `docs/DESIGN_llm-control-mapping-and-conflict-engine.md`

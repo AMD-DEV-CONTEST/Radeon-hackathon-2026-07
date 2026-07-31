@@ -1,0 +1,104 @@
+# Radeon Cloud Deployment Guide
+
+How to run **Hermes GRC Agent** and the **policy-controls-assessment** pipeline on
+[AMD Radeon Cloud](https://radeon-global.anruicloud.com/) for hackathon judging.
+
+---
+
+## Can you run Qwen 3.6 for Hermes + multiple pipeline models + embeddings?
+
+**Yes — with a tiered layout.** Radeon Cloud offers two API patterns:
+
+### A. Free shared Model APIs (no GPU instance)
+
+- **Endpoint:** `https://developer.amd.com.cn/radeon/api/v1/`
+- **Models:** Qwen3.6-35B-A3B, DeepSeek-V4-Flash (see Token Factory in the Radeon Cloud guide)
+- **Cost:** No instance credits; shared capacity
+
+**Use for:** Hermes Agent orchestration (interview, tool routing, user Q&A) with **Qwen 3.6**.
+
+**Track 2 caution:** Rules require *core inference on AMD Radeon GPU; remote APIs not allowed for core functions.* This API is AMD-hosted but HTTP-remote. **Do not use it for classify / verify / triage / embed** under a strict reading. Use tier B or C for the mapping pipeline.
+
+**Optional bonus:** Extra credit for *Radeon cloud model API with optimization* — Qwen for Hermes fits here.
+
+### B. Dedicated vLLM Model API instances (recommended for pipeline)
+
+- Template: **Deploy Type = vLLM Model API** on Radeon Cloud
+- **One primary model per instance** (typical vLLM deployment)
+- **ROCm** on cloud Radeon GPU
+
+| Instance | Model | Role |
+|----------|-------|------|
+| vLLM #1 | Llama-3.1-8B-Instruct | Classify (`POLICY_LLM_*`) |
+| vLLM #2 | Granite-4.1-8B | Verify + triage (`POLICY_VERIFY_*`, `POLICY_TRIAGE_*`) |
+| vLLM #3 (optional) | nomic-embed-text | Funnel (`POLICY_EMBED_*`) |
+
+Point each stage at its instance Base URL (`.../spaces/<id>/8000/v1`).
+
+**Budget tip:** For a short demo, run classify and verify **sequentially on one instance** (swap the served model between stages).
+
+### C. Lemonade on Radeon Cloud workspace (simplest multi-model)
+
+Install **Lemonade Server** in the JupyterLab / SSH workspace:
+
+- Pull Llama 3.1 8B + Granite 4.1 + nomic-embed in one install
+- Lemonade serves multiple models from one host
+- Use `scripts/set_amd_lemonade_env.ps1` (same as local)
+
+**Best when:** You want one environment mirroring your Ryzen laptop.
+
+---
+
+## Embeddings on Radeon Cloud
+
+| Option | Notes |
+|--------|-------|
+| **Lemonade** | `/api/v1/embeddings` with nomic-embed |
+| **Dedicated vLLM** | Serve an embedding-capable model on a third instance |
+| **Lexical fallback** | Unset `POLICY_EMBED_ENDPOINT` — pipeline uses token overlap (demo-safe) |
+
+---
+
+## Qwen 3.6 for Hermes
+
+```powershell
+# Hermes orchestration only (OpenAI-compatible)
+$env:OPENAI_API_BASE = 'https://developer.amd.com.cn/radeon/api/v1'
+$env:OPENAI_API_KEY  = '<Token Factory API key>'
+# Model ID: Qwen3.6-35B-A3B (confirm in Token Factory UI)
+```
+
+Hermes loads `policy-controls-assessment` and calls `POLICY_*` endpoints for pipeline tools. **Qwen does not replace Llama/Granite in the mapping pipeline.**
+
+---
+
+## Environment scripts
+
+| Script | Use |
+|--------|-----|
+| `scripts/set_amd_lemonade_env.ps1` | Single Lemonade base (local or cloud VM) |
+| `scripts/set_radeon_cloud_env.ps1` | Multi-instance vLLM URLs |
+
+---
+
+## Recommended demo architecture
+
+```
+User <-> Hermes (Qwen 3.6 — Radeon Free API or local)
+              |
+              +--> tools --> Pipeline on Radeon vLLM or Lemonade
+                                    +-- triage (Granite)
+                                    +-- classify (Llama)
+                                    +-- verify (Granite)
+                                    +-- embed (nomic, optional)
+```
+
+Record video from the **cloud workspace** showing model list + a 5–10 paragraph mapping run.
+
+---
+
+## Limitations
+
+- Free Qwen API: shared quota — not for bulk paragraph inference.
+- Multiple vLLM instances: consume credits — destroy instances when done.
+- ISO 27002 text: licensed; do not commit to public repos.
