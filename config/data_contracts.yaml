@@ -1,0 +1,56 @@
+# InventoryDoc Agent 数据契约（Data Contract）
+# 定义输入数据的业务模板、必需性、用途。
+# 用于工作流启动前的输入完整性检查。
+# 当前版本面向某供应链循环盘点场景（示例数据集）。
+
+required_files:
+  - id: inventory_snapshot_0425
+    pattern: "01_库存快照_20190425.csv"
+    required: true
+    purpose: "cross_validation_baseline"
+    description: "较早的库存快照，货号编码体系，用于基准交叉验证"
+  - id: inventory_snapshot_0428
+    pattern: "02_库存快照_20190428.xlsx"
+    required: true
+    purpose: "primary_baseline"
+    description: "更新的库存快照，型号编码体系，与盘点表口径一致，用作主基准"
+  - id: scan_log
+    pattern: "03_扫描日志_20190422.txt"
+    required: true
+    purpose: "scan_log_correlation"
+    description: "RF 扫码日志，含 NOISE 干扰和真实操作，用于日志关联分析"
+  - id: inventory_count
+    pattern: "04_盘点表_5月.xlsx"
+    required: true
+    purpose: "inventory_count"
+    description: "盘点结果表（多 sheet），含系统库存、初盘数、复盘数"
+  - id: location_master
+    pattern: "05_库位主数据.xlsx"
+    required: true
+    purpose: "location_status"
+    description: "库位主数据，含库位编码和启用/停用状态"
+  - id: product_master
+    pattern: "06_商品主数据.xlsx"
+    required: true
+    purpose: "cost_matching"
+    description: "商品主数据，含型号、参考成本单价、品类"
+  - id: monthly_report
+    pattern: "07_库存月报_201904.xlsx"
+    required: false
+    purpose: "noise_file_to_exclude"
+    description: "库存月报，品类汇总粒度，与循环盘点口径不匹配，是噪音识别对象"
+  - id: inbound_detail
+    pattern: "08_入库明细_4月.xlsx"
+    required: true
+    purpose: "inbound_reference"
+    description: "入库明细数据，用于出入库关联分析参考"
+  - id: outbound_detail
+    pattern: "09_4月出库记录_市配.xlsx"
+    required: true
+    purpose: "outbound_reference"
+    description: "出库记录数据，用于出入库关联分析参考"
+  - id: history_inventory
+    pattern: "10_历史库存_含异常数据.csv"
+    required: false
+    purpose: "noise_file_to_exclude"
+    description: "历史库存数据，含 TEST/异常记录，是噪音识别对象"
