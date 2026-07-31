@@ -277,9 +277,17 @@ inventory-agent/
 └── start_ui.py               # launch Gradio UI
 ```
 
-## Demo Video
+## Demo Video & Presentation
 
-Demo recording in progress (3-5 min, following `scripts/demo_script.md`). Will link here once published.
+📥 **Download from GitHub Release**: [InventoryDoc Agent V1.1 — Release v1.1](https://github.com/cyslmsolomon/Radeon-hackathon-2026-07/releases/tag/v1.1)
+
+| File | Description |
+|---|---|
+| `InventoryDoc_Agent_Demo_EN.mp4` | English demo video (3-5 min) |
+| `InventoryDoc_Agent_Demo.mp4` | Chinese demo video (3-5 min) |
+| `InventoryDoc_Agent_Demo_EN.pptx` | English presentation slides |
+
+The demo video covers: Web UI walkthrough, CLI pipeline execution, AMD ROCm GPU inference evidence (`rocm-smi` + benchmark), quality gate verification, and management report generation.
 
 ## Team
 
@@ -289,15 +297,14 @@ Demo recording in progress (3-5 min, following `scripts/demo_script.md`). Will l
 
 ## Contact
 
-- Email: developer@example.com
+- Email: 1026858211@qq.com
 
 ## Submission Checklist (AMD AI DevMaster Track 2)
 
+- [x] Project Specification Document (`docs/project_spec.md`)
 - [x] Project source code (`src/`, complete and runnable)
 - [x] README (environment, startup guide, architecture, dependency list)
-- [x] Project description doc (`docs/project_report.md`)
-- [x] Team info & contact
-- [x] Demo video (3-5 min, per `scripts/demo_script.md`)
-- [x] Supplementary materials (PPT)
-- [x] GitHub repository (fork of AMD-DEV-CONTEST/Radeon-hackathon-2026-07 with PR)
+- [x] Demo video (3-5 min, [Release v1.1](https://github.com/cyslmsolomon/Radeon-hackathon-2026-07/releases/tag/v1.1))
+- [x] Supplementary materials — PPT ([Release v1.1](https://github.com/cyslmsolomon/Radeon-hackathon-2026-07/releases/tag/v1.1))
+- [x] GitHub repository (fork of AMD-DEV-CONTEST/Radeon-hackathon-2026-07)
 - [ ] AMD Developer Program registration confirmed
