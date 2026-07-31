@@ -20,6 +20,9 @@ What you'll learn:
 ## when you submit
 **pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
 
+> [!IMPORTANT]
+> Team name was an optional field on the Luma registration form. If you did not fill in a team name when you registered, please use your own name instead, so the title of the pull request should be like **"Track x, Your name, your application name"**.
+
 > [!NOTE]
 > All submission materials, project descriptions, and Pull Requests should be submitted in English.
 
