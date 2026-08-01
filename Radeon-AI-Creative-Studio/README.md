@@ -104,4 +104,3 @@ The core model is `stable-diffusion-v1-5/stable-diffusion-v1-5`. Review and comp
 - Demo script and shot list: `docs/demo-script.md`
 - Radeon Cloud measurement template: `docs/benchmark.md`
 
-All submission-facing documents are written in English as required by the competition repository.
