@@ -10,7 +10,7 @@
 
 
 
-\*\*Demo video:\*\* \[ADD YOUR VIDEO LINK HERE — upload to YouTube/Drive first]
+\*\*Demo video:\*\* https://youtu.be/Qql5R5Qa7Eo
 
 
 
