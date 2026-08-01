@@ -1,0 +1,135 @@
+{
+  "what": "Two models, same AMD Radeon GPU, same synthesized oracles, same method: 192 independent draws per task at temperature 0.6, every candidate verified. 1,152 generations total across both models.",
+  "models": {
+    "baseline": "Qwen/Qwen2.5-Coder-7B-Instruct (bf16)",
+    "stronger": "Qwen/Qwen2.5-Coder-32B-Instruct-AWQ (4-bit AWQ, ROCm Triton)"
+  },
+  "hardware": "AMD Radeon Cloud, ROCm 7.2.1, vLLM 0.16.1, ~46 GiB device",
+  "wall_clock_cost_of_K": {
+    "note": "measured separately in the K-sweep; K=32 costs 1.21x the wall clock of K=1 on this GPU",
+    "1": "1.0x",
+    "2": "1.0x",
+    "4": "1.01x",
+    "6": "1.04x",
+    "8": "1.04x",
+    "16": "1.11x",
+    "32": "1.21x"
+  },
+  "results": [
+    {
+      "task": "rle",
+      "checks_passed_7b": "192/192",
+      "p_7b": 1.0,
+      "checks_passed_32b": "192/192",
+      "p_32b": 1.0,
+      "solve_rate_by_K_32b": {
+        "1": 1.0,
+        "2": 1.0,
+        "4": 1.0,
+        "6": 1.0,
+        "8": 1.0,
+        "16": 1.0,
+        "32": 1.0
+      },
+      "solve_rate_by_K_7b": {
+        "1": 1.0,
+        "2": 1.0,
+        "4": 1.0,
+        "6": 1.0,
+        "8": 1.0,
+        "16": 1.0,
+        "32": 1.0
+      }
+    },
+    {
+      "task": "gron_5check",
+      "checks_passed_7b": "1/192",
+      "p_7b": 0.0052,
+      "checks_passed_32b": "181/192",
+      "p_32b": 0.9427,
+      "solve_rate_by_K_32b": {
+        "1": 0.9427,
+        "2": 0.9967,
+        "4": 1.0,
+        "6": 1.0,
+        "8": 1.0,
+        "16": 1.0,
+        "32": 1.0
+      },
+      "solve_rate_by_K_7b": {
+        "1": 0.0052,
+        "2": 0.0104,
+        "4": 0.0207,
+        "6": 0.0308,
+        "8": 0.0409,
+        "16": 0.0802,
+        "32": 0.1539
+      }
+    },
+    {
+      "task": "gron_6check",
+      "checks_passed_7b": "0/192",
+      "p_7b": 0.0,
+      "checks_passed_32b": "94/192",
+      "p_32b": 0.4896,
+      "solve_rate_by_K_32b": {
+        "1": 0.4896,
+        "2": 0.7395,
+        "4": 0.9321,
+        "6": 0.9823,
+        "8": 0.9954,
+        "16": 1.0,
+        "32": 1.0
+      },
+      "solve_rate_by_K_7b": {
+        "1": 0.0,
+        "2": 0.0,
+        "4": 0.0,
+        "6": 0.0,
+        "8": 0.0,
+        "16": 0.0,
+        "32": 0.0
+      }
+    }
+  ],
+  "findings": {
+    "three_regimes_measured": "rle is SATURATED (p=1.000 both models) -- verified search adds nothing. gron-5 the 32B nearly solves outright (p=0.943) -- K removes only the tail, 94.3% -> 99.99% at K=4. gron-6 is the PRODUCTIVE MIDDLE (p=0.490): a model that fails more than half the time becomes essentially certain at K=8 (99.5%) for 1.04x wall clock.",
+    "the_floor_is_real": "On gron-6 the 7B scored 0/192. p=0 stays 0 at every K -- 1-(1-0)^K = 0. Sampling multiplies capability; it cannot manufacture it. Both boundary conditions (p=0 and p=1) and the productive middle are now measured rather than argued.",
+    "capability_gap_is_large_and_measurable": "Same task, same oracle, same GPU: gron-5 p went 0.0052 -> 0.9427 (181x) and gron-6 went 0.0000 -> 0.4896 between a 7B and a 32B.",
+    "practical_rule": "Value of verified search is zero at p=0, near-zero at p=1, and maximal in between -- but the COST is near-zero out to K=32, so run large K always: you cannot know in advance which regime a task lands in."
+  },
+  "raw": {
+    "served_model": "Qwen/Qwen2.5-Coder-32B-Instruct-AWQ",
+    "baseline_model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+    "method": "192 i.i.d. draws per task, temperature 0.6, concurrency 32, each candidate verified against the same synthesized oracle",
+    "results": [
+      {
+        "task": "rle",
+        "passes": 192,
+        "pool": 192,
+        "p": 1.0,
+        "baseline_7b_passes": 192,
+        "baseline_7b_pool": 192,
+        "seconds": 558.5
+      },
+      {
+        "task": "gron_5check",
+        "passes": 181,
+        "pool": 192,
+        "p": 0.9427,
+        "baseline_7b_passes": 1,
+        "baseline_7b_pool": 192,
+        "seconds": 1062.7
+      },
+      {
+        "task": "gron_6check",
+        "passes": 94,
+        "pool": 192,
+        "p": 0.4896,
+        "baseline_7b_passes": 0,
+        "baseline_7b_pool": 192,
+        "seconds": 2478.2
+      }
+    ]
+  }
+}

@@ -113,6 +113,43 @@ property with its own test — which has caught real gaps, including JavaScript 
 fields written `this.field = 0` surviving obfuscation until they were fixed. The
 distinction is documented rather than smoothed over.
 
+**3.3a Repairing a real repository — end to end, on the Radeon GPU.**
+
+The clearest demonstration of application value is not a synthetic task. Determinex was
+pointed at **`mwaskom__seaborn-3010`** from SWE-bench Lite: a real reported issue in a real
+open-source project ("PolyFit is not robust to missing data"), with the project's own test
+as the judge.
+
+```
+[repair] fix target inferred from the failure: seaborn/_stats/regression.py
+[repair] using the repo's interpreter: .venv
+[repair] oracle scope: 1 failing test(s), not the full suite
+    [vs] r1 s1/6 t=0.0  gen 17s  verify 10s  ->  PASS
+
+blame {'CODE': 1}   proven slop 0   FIXED True          # 27 seconds total
+```
+
+The fix it produced:
+
+```diff
+- p = np.polyfit(x, y, self.order)
++ p = np.polyfit(x.dropna(), y.dropna(), self.order)
+```
+
+Three things are worth separating here:
+
+* **The blame is earned.** `CODE`, not `ENVIRONMENT`, not `TEST` — and `proven_slop: 0`,
+  i.e. it did not take the easy exit of declaring the failing test wrong.
+* **The oracle is the project's own test**, run with the project's own interpreter. Nothing
+  Determinex wrote decides whether this passed.
+* **The control matters.** SWE-bench's official gold patch also passes this oracle
+  (`1 passed in 0.12s`), so the target is achievable and a correct fix is recognised as
+  correct. Without that control, a pass proves much less.
+
+Generation ran on the Radeon-hosted 32B; verification ran locally against the repo's tests.
+`generate()` and `verify()` are decoupled by design, which is what lets the model live on a
+GPU in another country while the oracle runs where the toolchain is.
+
 **3.4 Self-improving flywheel.** Verified solves are distilled into generalized symptom→fix
 classes that the fixer applies first on the next occurrence. §5.5 was added to that corpus
 during this hackathon and is queryable.
@@ -345,6 +382,42 @@ per task. It is to **run large K always**: nearly free on this hardware, and it 
 when `p` lands in the middle, which you cannot know in advance.
 
 Raw data: [`amd_gpu_evidence/measured_p_and_amplification.json`](amd_gpu_evidence/measured_p_and_amplification.json).
+
+### 5.2d Two models, one GPU — the three regimes
+
+`p` was then measured for a **second** model on the same hardware, same oracles, same
+method: 192 independent draws per task, 1,152 generations across both models.
+
+| Task | 7B `p` | 32B `p` | Regime |
+|---|---:|---:|---|
+| `rle` | 1.000 | 1.000 | **saturated** — K adds nothing |
+| `gron` 5-check | 0.005 | 0.943 | model solves it; K only trims the tail |
+| **`gron` 6-check** | **0.000** | **0.490** | **the productive middle** |
+
+*(7B = Qwen2.5-Coder-7B-Instruct bf16; 32B = Qwen2.5-Coder-32B-Instruct-AWQ, 4-bit, ROCm
+Triton kernels — 18.24 GiB of weights, leaving 23.01 GiB of KV cache.)*
+
+The bottom row is the architecture's whole argument, measured. At `p = 0.490` the model
+fails **more than half** its attempts:
+
+| K | solve rate | wall-clock cost |
+|---:|---:|---:|
+| 1 | 48.96% | 1.00× |
+| 4 | 93.21% | 1.01× |
+| **8** | **99.54%** | **1.04×** |
+| 16 | ~100% | 1.11× |
+
+**A coin flip becomes near-certain for 4% more time.** And the top and bottom rows bound
+the claim honestly: at `p = 1` there is nothing to amplify, and at `p = 0` — the 7B on that
+same task, 0/192 — no K helps at all, because `1 − (1 − 0)^K = 0`.
+
+> **A rule this produced, applied prospectively.** Serving the 32B at its default 32,768
+> context reported `Maximum concurrency: 2.88x`, so K=16 would have thrashed exactly like
+> the K=64 collapse in §5.2a. Re-serving at `--max-model-len 4096` gave `94,784 / 4,096 =
+> 23×`, and K=16 ran clean. The bound derived from the K-sweep decided a configuration
+> before it caused a failure, rather than explaining one afterwards.
+
+Raw data: [`amd_gpu_evidence/two_model_comparison.json`](amd_gpu_evidence/two_model_comparison.json).
 
 ### 5.3 Memory configuration
 

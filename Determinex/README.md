@@ -5,173 +5,200 @@
 | | |
 |---|---|
 | **Submitter** | DarthCeltic |
-| **Project** | Determinex |
-| **Source code** | https://github.com/DarthCeltic/Determinex |
-| **License** | AGPL-3.0-or-later |
-| **AMD hardware used** | AMD Radeon Cloud, ROCm 7.2.1, vLLM 0.16.1, Qwen2.5-Coder-7B-Instruct |
+| **Source code** | https://github.com/DarthCeltic/Determinex (AGPL-3.0-or-later, public) |
+| **AMD hardware** | Radeon Cloud · ROCm 7.2.1 · vLLM 0.16.1 |
+| **Models measured** | Qwen2.5-Coder-7B-Instruct (bf16) and Qwen2.5-Coder-32B-Instruct-AWQ |
 
 ---
 
-## What Determinex is
+## What it is
 
-A local-first, **compiler-verified** multi-agent coding system. The distinguishing idea is
-that no language model is ever trusted to judge its own output — a real compiler or a real
-test suite is the only oracle. A model proposes; the oracle disposes.
+A local-first, **compiler-verified** multi-agent coding system. One rule is enforced
+everywhere: **no model ever judges its own output.** A real compiler or a real test suite
+is the only oracle. The model proposes; the oracle disposes.
 
-That design has a specific consequence on GPU hardware, and it is what this submission
-measures: because correctness comes from sampling K candidates and verifying each,
-`P(success) = 1 − (1 − p)^K`, the system's accuracy is bounded by **GPU batch throughput**
-rather than by model quality. A GPU that can serve 6 concurrent candidates for roughly the
-price of 1 converts raw throughput directly into correctness.
+That has a consequence most agent architectures don't have. Correctness comes from
+sampling K candidates and verifying each — `P = 1 − (1 − p)^K` — so accuracy is bounded by
+**GPU batch throughput**, not by model quality. Which makes "how good is this GPU" and "how
+correct is this agent" the *same question*.
 
----
-
-## Headline result, measured on a Radeon GPU
-
-| Mode | Throughput | Wall clock |
-|---|---|---|
-| Single stream | 30.0 tok/s | 17.05 s |
-| **K=6 concurrent** (the VerifiedSearch pattern) | **166.9 tok/s aggregate** | **18.41 s** |
-
-**5.56× aggregate throughput for 1.08× the wall clock.** Sampling six verified-search
-candidates costs 8% more time than sampling one. On this hardware, correctness
-amplification is close to free.
-
-Measured three times, on two separate instances — 5.56× / 5.61× / 5.73×, at 1.08× /
-1.07× / 1.05× wall clock respectively. Absolute rates move with instance load; the
-ratio does not, and the ratio is the claim. The third run is the one in the demo
-video, so the figure on screen can be checked against this document.
-
-**Then we swept K instead of stopping at 6.** Throughput scales near-linearly to
-**K=32 — 25.8× the tokens for 1.21× the wall clock** — and collapses at K=64, exactly
-where vLLM's own boot log says it must (`Maximum concurrency for 8,192 tokens per
-request: 61.83x`). That gives a rule any Radeon owner can apply: keep K below
-`floor(kv_cache_tokens / max_model_len)`. At p=0.3, K=32 is **99.999%** correct.
-
-**And the architecture's access pattern is itself an optimization.** Verified search
-sends K prompts identical but for temperature, which hits the prefix cache **99.51%**
-of the time versus **1.35%** for an ordinary agent's K distinct prompts — worth 1.40×
-throughput at 0.71× wall clock, for free. Full data and method in
-[`PROJECT_SPEC.md`](PROJECT_SPEC.md) §5.2a–5.2b.
-
-Applied to the amplifier's own math: a generator with per-attempt `p = 0.3` goes from 30%
-to `1 − 0.7^6 = 88.2%` for that 8% time premium.
-
-Raw data: [`amd_gpu_evidence/throughput_measured.json`](amd_gpu_evidence/throughput_measured.json).
+So we measured it, rather than asserting it.
 
 ---
 
-## What the AMD GPU run actually found — a real bug
+## Four measured results on the Radeon
 
-This is the part worth reading. Pointing Determinex at Radeon hardware immediately produced
-a failure that months of local Ollama use had hidden.
+### 1. K scales almost free — until it doesn't, and the cliff is predictable
 
-The flagship "idea → verified program" path was asked for a run-length encoder. It reported:
+| K | aggregate tok/s | wall clock |
+|---:|---:|---:|
+| 1 | 28.7 | 8.92 s |
+| 16 | 413.5 | 9.91 s |
+| **32** | **739.9** | **10.75 s** |
+| 64 | 512.6 ↓ | 29.59 s ↓ |
 
-```
-result: not solved  samples=12
-[vs] r1 s1/6 t=0.0 gen 9s verify 1s -> 1 fail (score 0.00)     (×12)
-```
+**25.8× the tokens for 1.21× the wall clock at K=32.** Then K=64 collapses — and vLLM
+announced why at boot: `Maximum concurrency for 8,192 tokens per request: 61.83x`. Exceed
+it and requests preempt instead of batching.
 
-**The model was right all twelve times.** Every candidate was a correct implementation
-wrapped in a ```` ```python ```` fence — which the harness's own prompt explicitly demands
-("Return ONLY the code in a ```python block"). Fence-stripping was applied in exactly one
-place, inside the Ollama generator. So the Ollama path was fence-safe and **every other
-provider** handed markdown to the oracle, where `from solution import *` raised a
-SyntaxError and every check failed. The system then reported a *correctness verdict* about
-a model that had answered correctly a dozen times.
+> **Rule any Radeon owner can apply without rerunning this:**
+> keep `K < floor(kv_cache_tokens / max_model_len)`, both printed in vLLM's boot log.
 
-Fixed by stripping at the single boundary every candidate crosses, rather than in one
-provider. Same model, same prompt, same oracle, same GPU:
+At `p = 0.3`, K=32 means **99.999%** solved versus 30% for a single attempt.
 
-```
-result: SOLVED  samples=1
-proof: program PASSES all 4 synthesized checks (oracle-verified, 1 samples).
-```
+### 2. The agent's access pattern is itself a GPU optimization
 
-Twelve false failures → a first-sample pass.
+Verified search issues K prompts that are **identical except for sampling temperature** —
+unusual, and close to ideal for a prefix cache. An ordinary agent sends K *different*
+prompts. Both arms, same GPU:
 
-Three things about this are the actual submission:
+| K=16 | prefix-cache hit | aggregate tok/s | wall clock |
+|---|---:|---:|---:|
+| **Verified search** | **99.51%** | **410.9** | **9.97 s** |
+| Distinct prompts | 1.35% | 292.9 | 13.98 s |
 
-1. **The oracle caught it, not a human.** A uniform 0.00 across every sample and every
-   temperature is a *harness* signature; a genuinely weak model fails in varied ways. That
-   distinction is now a documented rule the system consults.
-2. **A green test suite carried the bug.** An existing regression test fed fenced code and
-   asserted only that no *generation error* occurred — never that the build solved. The new
-   guard asserts the outcome, and was negative-controlled (reverting the fix fails 4 of 7).
-3. **The system learned it.** The failure class was written into the knowledge corpus as a
-   symptom→fix pattern, so the grounded fixer applies it first next time. It is retrievable:
-   querying the corpus for *"candidate scores 0.00 not solved fenced"* returns it as the top
-   hit.
+**1.40× throughput at 0.71× wall clock, free**, purely from how the architecture queries
+the model.
+
+### 3. `p` measured directly — 960 generations, including where it stops working
+
+192 independent candidates per task, every one verified against the same oracle:
+
+| Task | passes / 192 | p |
+|---|---:|---:|
+| `rle` | 192/192 | **1.000** |
+| `gron` (JSON flattening) | 1/192 | 0.005 |
+| `gron` + JSON-literal semantics | 0/192 | **0.000** |
+
+Two of those are uncomfortable and we are reporting them anyway. `rle` is **trivial** for
+this model — which is why the demo no longer uses it. And **at `p = 0` no K helps** — `1 − (1 − 0)^K = 0`. Verified
+search multiplies capability; it cannot manufacture it. That's the architecture's floor,
+measured rather than assumed.
+
+### 4. Two models on one GPU — the three regimes
+
+`p` measured for a second model, same hardware, same oracles (1,152 generations total):
+
+| Task | 7B `p` | 32B `p` | Regime |
+|---|---:|---:|---|
+| `rle` | 1.000 | 1.000 | saturated — K adds nothing |
+| `gron` 5-check | 0.005 | 0.943 | model solves it; K trims the tail |
+| **`gron` 6-check** | **0.000** | **0.490** | **the productive middle** |
+
+At `p = 0.490` the model fails more than half its attempts — and reaches **99.54% at K=8,
+for 1.04× the wall clock.** A coin flip becomes near-certain for 4% more time. The other
+two rows bound the claim: nothing to amplify at `p = 1`, and nothing to rescue at `p = 0`.
+
+Full method and data: [`PROJECT_SPEC.md`](PROJECT_SPEC.md) §5.2a–5.2d ·
+[`amd_gpu_evidence/`](amd_gpu_evidence/).
 
 ---
 
-## GPU evidence
+## What running on AMD exposed
 
-Beyond throughput, the serving layer's own telemetry pins the hardware
-([`amd_gpu_evidence/vllm_metrics.txt`](amd_gpu_evidence/vllm_metrics.txt)):
+The first Radeon run of the greenfield path reported `not solved, samples=12`. **The model
+was right all twelve times** — correct code inside a ```` ```python ```` fence, which the
+harness's own prompt demands, and fence-stripping lived in exactly one provider. Every
+other provider handed markdown to the oracle, where the module failed to import. The system
+reported a *verdict about the model* for a *defect in the harness*.
+
+Fixed at the one boundary every candidate crosses. Same model, prompt, oracle and GPU:
+**SOLVED on sample 1.**
+
+The durable output is a rule now stored in the project's knowledge corpus:
+
+> A uniform 0.00 across every sample **and** every temperature is a *harness* signature.
+> A genuinely weak model fails in **varied** ways. Import error on every candidate → the
+> harness is wrong. Assertion failures → the model is wrong.
+
+A pre-existing regression test had fed fenced code while asserting only that no *generation
+error* occurred — never that the build solved. That is how a green suite carried the bug.
+The new guard asserts the outcome and was negative-controlled: reverting the fix fails 4 of 7.
+
+---
+
+## Repairing a real repository
+
+The strongest demonstration of application value isn't a synthetic task. Determinex was
+pointed at **`mwaskom__seaborn-3010`** from SWE-bench Lite — a real reported issue in a real
+open-source project, judged by that project's own test:
 
 ```
-vllm:cache_config_info{block_size="16", num_gpu_blocks="31504",
-                       gpu_memory_utilization="0.9", ...}
+[repair] fix target inferred from the failure: seaborn/_stats/regression.py
+[repair] using the repo's interpreter: .venv
+[repair] oracle scope: 1 failing test(s), not the full suite
+    [vs] r1 s1/6 t=0.0  gen 17s  verify 10s  ->  PASS
+
+blame {'CODE': 1}   proven slop 0   FIXED True          # 27 seconds
 ```
 
-31,504 GPU KV blocks × 16 tokens = **504,064 tokens of KV cache**. For
-Qwen2.5-Coder-7B-Instruct (28 layers, 4 KV heads, 128 head-dim, bf16) that is 56 KiB/token
-= **26.9 GiB of KV cache on the device**, plus ~14.2 GiB of bf16 weights = 41.1 GiB at
-`gpu_memory_utilization=0.9`, implying **~46 GiB of Radeon device memory**. The container
-image is `amd-oneclick-base:rocm7.2.1-py3.12`.
+```diff
+- p = np.polyfit(x, y, self.order)
++ p = np.polyfit(x.dropna(), y.dropna(), self.order)
+```
+
+Blame is **`CODE`** — not environment, not test — and `proven_slop: 0`, so it declined the
+easy exit of declaring the failing test wrong. Generation ran on the Radeon-hosted 32B;
+verification ran against the repo's own tests with the repo's own interpreter.
+
+**The control that makes this meaningful:** SWE-bench's official gold patch also passes
+this oracle (`1 passed in 0.12s`). The target is achievable and a correct fix is recognised
+as correct — without that, a pass proves much less.
+
+## Offline integrity
+
+The benchmark loop reverse-engineers CLI tools black-box — no source, no internet at
+inference. That was verified in **both** directions, because a build that merely succeeds
+also succeeds when the container secretly has network:
+
+```
+stdlib-only  + --network=none  ->  BUILD_OK
+third-party  + --network=none  ->  "to add it: go get"  ->  REFUSED
+```
+
+---
+
+## What is not claimed
+
+- **ProgramBench: 0/200 resolved.** A 2026-06-30 provenance audit found 62 of 67 prior
+  "solves" were upstream source builds and retracted them. Zero is the honest figure under
+  the surviving methodology, and it matches every public frontier model.
+- **AMD's free Token Factory endpoint was never exercised** — its portal needs a
+  China-registered account. Those config entries are wired and labelled unverified.
+- **The ~46 GiB VRAM figure is derived** from KV-block telemetry under a stated bf16
+  assumption, not read from `rocm-smi`.
+- **The amplification curve fit is weak evidence *as a fit*.** At `p = 0.0052` it tracked
+  `1 − (1 − p)^K` to 0.0021 max error, but with a single success in the pool that is close
+  to tautological. The mid-range case (`p = 0.490`, §4) is the one that carries weight,
+  and it is a measurement of `p` rather than a curve fit.
+
+*A benchmark number that cannot survive a provenance audit is worth less than a zero that can.*
 
 ---
 
 ## Contents
 
-| Path | What it is |
+| Path | What |
 |---|---|
-| `README.md` | This index |
-| `PROJECT_SPEC.md` | The Track 2 specification document (5 required sections) |
-| `amd_gpu_evidence/throughput_measured.json` | Single vs K=6 concurrent measurements |
-| `amd_gpu_evidence/vllm_metrics.txt` | vLLM Prometheus telemetry from the Radeon instance |
-| `amd_gpu_evidence/raw_model_output_incorrect.json` | Raw model call — an unstaged example of the wrong answer the oracle exists to reject |
-| `DEMO_VIDEO.md` | Demonstration video link + shot list |
-| `POSTER.md` | Supplementary material (Track 2 item 4) |
+| `PROJECT_SPEC.md` | Track 2 specification — all five required sections |
+| `POSTER.md` | Supplementary material |
+| `DEMO_VIDEO.md` | Demo video link + shot list |
+| `demo_run.sh` | One command that reproduces the demo on a Radeon Notebook instance |
+| `amd_gpu_evidence/` | Throughput, K-sweep, prefix-cache, measured `p`, vLLM telemetry |
 
----
-
-## Reproducing the measurements
+## Reproducing
 
 ```bash
 git clone https://github.com/DarthCeltic/Determinex && cd Determinex
 
-# Launch a Radeon Cloud instance: Deploy Type = "vLLM Model API",
-#   vllm serve Qwen/Qwen2.5-Coder-7B-Instruct --host 0.0.0.0 --port 8000
-# The ready dialog gives a base URL and an API key. Put both in .env:
-#   AMD_BASE_URL=https://.../spaces/<id>/8000/v1
-#   AMD_API_KEY=sk-...
+# Radeon Cloud -> Add Template -> Deploy Type = Notebook
+vllm serve Qwen/Qwen2.5-Coder-7B-Instruct --host 127.0.0.1 --port 8000
 
-# idea -> oracle -> verified program, executed on the Radeon GPU
-python scripts/determinex_build_from_idea.py \
-    --idea your_idea.md --provider vllm --lang python --k 6
+# generation on the Radeon, verification wherever your toolchain lives
+export DETERMINEX_VLLM_BASE_URL=http://127.0.0.1:8000/v1
+python scripts/determinex_build_from_idea.py --idea idea.md --provider vllm --k 32
 ```
 
-The `vllm` provider reaches any OpenAI-compatible vLLM server, local or hosted; a Radeon
-Cloud instance is just the hosted case.
-
----
-
-## Honest boundaries
-
-Stated plainly, because a submission that overstates is worth less than one that doesn't:
-
-- **ProgramBench: 0/200 resolved.** A 2026-06-30 provenance audit found that 62 of 67 prior
-  "solves" were upstream source builds rather than reimplementations, and they were
-  retracted. 0/200 is the honest figure under the legitimate methodology, and it matches
-  public leaderboard reality for every frontier model.
-- **AMD's free Token Factory endpoint was never exercised.** Its portal requires a
-  China-registered account. Those `litellm_config.yaml` entries are wired and labelled
-  unverified. Nothing in this submission depends on them.
-- **The throughput figures are end-to-end**, including trans-Pacific network latency, and
-  are a property of this GPU and this batch size. They should be re-measured per device.
-- **SWE-bench Lite 14.0%** is an audited May-2026 snapshot pending a clean re-run.
-- **The `~46 GiB` VRAM figure is derived** from KV-block telemetry under a stated bf16
-  assumption, not read from `rocm-smi` — the Model API deploy type provides no shell.
+`generate()` and `verify()` are decoupled by design, so the model can serve from a Radeon
+GPU while the compiler oracle runs anywhere — which is exactly how the benchmark numbers
+above were produced.
