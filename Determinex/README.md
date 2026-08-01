@@ -37,6 +37,11 @@ price of 1 converts raw throughput directly into correctness.
 candidates costs 8% more time than sampling one. On this hardware, correctness
 amplification is close to free.
 
+Measured three times, on two separate instances — 5.56× / 5.61× / 5.73×, at 1.08× /
+1.07× / 1.05× wall clock respectively. Absolute rates move with instance load; the
+ratio does not, and the ratio is the claim. The third run is the one in the demo
+video, so the figure on screen can be checked against this document.
+
 Applied to the amplifier's own math: a generator with per-attempt `p = 0.3` goes from 30%
 to `1 − 0.7^6 = 88.2%` for that 8% time premium.
 

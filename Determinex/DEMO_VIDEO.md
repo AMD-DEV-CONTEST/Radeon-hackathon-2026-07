@@ -1,8 +1,25 @@
 # Demo Video
 
-**Link:** _(to be added — YouTube/Drive, unlisted is fine)_
+**Link:** _(to be added)_
 
-**Runtime target:** 4 minutes.
+**Runtime:** 1:48 · 1912×1018 · H.264 · no audio.
+
+Recorded in one unedited take on a Radeon Cloud Notebook instance. There is no
+narration and no cut: the on-screen section headers carry the structure, which is
+why `demo_run.sh` prints them. What it shows, in order:
+
+| Section | On screen |
+|---|---|
+| 1/6 | `rocm-smi` at rest — AMD device `0x744b`, 30.0 °C, 16.0 W |
+| 2/6 | vLLM serving `Qwen/Qwen2.5-Coder-7B-Instruct` at 32,768 context |
+| 3/6 | 32.6 tok/s single stream vs 186.9 tok/s at K=6 — **5.73× for 1.05× wall clock** |
+| 4/6 | `rocm-smi` under load — 38.0 °C, 123.0 W |
+| 5/6 | idea → synthesized 4-check oracle → `result: SOLVED  samples=1` + the verified program |
+| 6/6 | closing summary |
+
+The throughput figures in section 3 are the third of three independent measurements
+(5.56× / 5.61× / 5.73×); `PROJECT_SPEC.md` §5.1 lists all three, so the number on
+screen and the number in the document reconcile.
 
 ---
 

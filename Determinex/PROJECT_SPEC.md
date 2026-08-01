@@ -201,6 +201,23 @@ Qwen2.5-Coder-7B-Instruct, vLLM 0.16.1, ROCm 7.2.1, 512-token completions:
 
 **5.56× aggregate throughput at 1.08× wall clock.** Measured end-to-end including network.
 
+#### Reproduced three times, on two separate instances
+
+A single measurement of a batching effect is weak evidence, so it was repeated —
+including on a different instance type, and once on camera:
+
+| Run | Instance | Single | K=6 aggregate | Speedup | Wall-clock cost |
+|---|---|---:|---:|---:|---:|
+| 1 | vLLM Model API endpoint | 30.0 tok/s | 166.9 tok/s | 5.56× | 1.08× |
+| 2 | Notebook instance, local vLLM | 31.9 tok/s | 179.0 tok/s | 5.61× | 1.07× |
+| 3 | Notebook instance (the demo video) | 32.6 tok/s | 186.9 tok/s | **5.73×** | **1.05×** |
+
+The absolute rates vary with instance load; the *ratio* does not. Across all three,
+sampling six verified-search candidates cost between 1.05× and 1.08× the wall clock
+of sampling one, for 5.56–5.73× the aggregate tokens. That stability is the claim —
+not any single figure. Run 3 is visible in the demo video, so the number on screen
+and the number in this document can be checked against each other.
+
 ### 5.2 Why that number is the whole thesis
 
 Verified search costs K generations per solve. If K generations cost K× the time, the
