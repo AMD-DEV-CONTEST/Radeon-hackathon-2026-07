@@ -1,0 +1,60 @@
+# -*- coding: utf-8 -*-
+# ==============================================================
+# AetherStyle-ROCm 依赖清单
+# 注意：PyTorch (ROCm 版) 建议提前单独安装，不要和下面的包混装
+#   ROCm 6.x: pip install torch torchvision --index-url https://download.pytorch.org/whl/rocm6.0
+#   ROCm 7.x: pip install torch torchvision --index-url https://download.pytorch.org/whl/rocm7.0
+# 装好后验证: python -c "import torch;print(torch.cuda.is_available(), torch.version.hip)"
+# ==============================================================
+
+# ---- AIGC 核心框架 ----
+# diffusers 0.33+ 原生支持 LTX-Video (LTXPipeline)；0.32+ 支持 Stable Diffusion 3.5
+# 放宽上限到 <1.0 以兼容实际已安装的 0.39.x（竞赛镜像预装）
+diffusers>=0.33.0,<1.0
+# transformers:
+#   - vllm 0.16.1.dev (竞赛镜像预装) 强制要求 >=4.56.0,<5
+#   - 4.43+ 含 SD3 的 T5-XXL tokenizer / CLIP-L / CLIP-G 编码器
+#   - 与 huggingface_hub>=0.34 搭配使用（见下）
+transformers>=4.56.0,<5.0
+accelerate>=0.32.0
+safetensors>=0.4.1
+invisible-watermark>=0.2.0
+# sentencepiece: T5-XXL 文本编码器的 tokenizer 依赖（SD3 必需）
+sentencepiece>=0.2.0
+# protobuf:
+#   - SD3 (T5-XXL) tokenizer 验证过 6.x
+#   - 竞赛镜像预装 grpcio-reflection 1.78+ 强制要求 [6.31.1, 7.0)
+protobuf>=6.31.1,<7.0
+# modelscope：已移除 —— 文生视频主路径改为 diffusers 原生 LTX-Video（Lightricks/LTX-Video）
+#   LTXPipeline 自 diffusers 0.33 起内置，无需额外依赖；如确需 ModelScope 兜底可手动安装：
+#   pip install modelscope>=1.18.0
+
+# ---- Web & API ----
+fastapi>=0.108.0
+uvicorn>=0.27.0
+# gradio: 锁定 4.44.x 分支最稳（API/主题/画廊均实测 OK）
+# ⚠️  gradio 4.44.x 在 oauth.py 内硬 import huggingface_hub.HfFolder，
+#     而 huggingface_hub >=0.26 已删除该类 → 用 app.py 顶部的 Appendix D
+#     HfFolder stub 猴子补丁兜底。本文件把 huggingface_hub 提至 >=0.34
+#     以满足新版 diffusers / transformers / vllm 的实际要求。
+gradio>=4.44.0,<4.45.0
+# gradio-client: 避免 1.3.1（从未发布），1.4+ 可能与 gradio 4.44.x schema 不匹配
+gradio-client>=1.3.0,<1.4.0
+# huggingface_hub:
+#   - diffusers>=0.39 / transformers>=4.56 / vllm 0.16.dev 要求 >=0.34
+#   - <1.0 避免大版本跳跃
+#   - gradio HfFolder 缺失问题 → 由 app.py 预埋的 Appendix D monkey-patch 解决
+huggingface_hub>=0.34.0,<1.0
+
+# ---- 图像处理 ----
+Pillow>=10.0.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+
+# ---- 视频处理（文生视频 Txt2Video 依赖） ----
+# av: PyAV，Python 封装 FFmpeg（diffusers TextToVideoSDPipeline 导出 mp4 必需）
+av>=11.0.0
+# imageio-ffmpeg: 静态打包的 FFmpeg 二进制，避免系统缺少 ffmpeg
+imageio-ffmpeg>=0.4.9
+# moviepy: 可选，GIF 导出 / 后期剪辑
+moviepy>=1.0.3
