@@ -5,9 +5,11 @@
 - Sync date: 2026-08-01 (UTC+8)
 - Snapshot: `accident-rights-agent-4a67367.tar.gz`
 - Snapshot SHA256: `67d1a03cf29848fff5be13672eb06a983f607271b4c17a96ca6b618165cf7292`
-- Legal corpus: 15 curated documents, 59 verified excerpts; 14 source records
-  passed the automated official-source gate and one unsupported standard was
-  excluded from the retrieval index
+- Legal corpus: 15 curated documents and 59 audited excerpts; 14 source records
+  passed the automated online official-source gate. The GA 802 excerpts passed
+  the retained official-snapshot audit, while its live verification endpoint
+  could not be rechecked because that government site presented a self-signed
+  TLS certificate
 - Offline runtime assets: official-source snapshots, quote audit, SQLite legal
   corpus, and local Qdrant index are included so `bash scripts/run_demo.sh`
   works from a clean checkout without a public API or network fetch
@@ -26,6 +28,9 @@
   and leaving the generated document in `draft`
 - AMD local inference: Qwen3-VL-8B on ROCm 7.2/vLLM, loopback-only endpoint,
   Prefix Cache enabled; text, image, and eight-frame smoke tests passed
+- Radeon stability: vLLM remained healthy for 32m26s, the final interval test
+  passed 10/10 requests, UI health passed, and the vLLM log contained no OOM or
+  traceback markers
 - Retrieval regression: Recall@4 1.0000, MRR 0.8333, citation completeness 1.0000
 
 This is the current development snapshot. The final English project specification,
