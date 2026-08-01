@@ -126,6 +126,15 @@ preference. It routes locally regardless of queue depth, latency budget, or
 whether an external provider is configured, and the audit ledger records
 the decision and its reason for every request.
 
+**Operator dashboard.** The gateway serves a read-only view at `/dashboard`,
+rendered server-side from the audit ledger with no external dependencies.
+It reports cumulative energy and cost, per-tenant attribution, the share of
+requests served under a strict privacy constraint, and the external-egress
+count. Two figures are computed rather than displayed raw: effective
+tokens-per-joule expressed as a fraction of the 4.14 measured at concurrency
+16, and the energy that the same token count would have consumed if served
+entirely at concurrency 16 — the headroom a scheduling policy could recover.
+
 **Per-task cost accounting.** At the end of a task the agent reports steps,
 tokens, joules, euros and egress bytes. A recorded run: 3 steps, 194
 tokens, 404.2 J, €0.000028, 0 bytes leaving the network — the last figure
