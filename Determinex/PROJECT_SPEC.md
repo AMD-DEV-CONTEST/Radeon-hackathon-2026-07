@@ -236,6 +236,116 @@ Correctness nearly triples for an 8% time premium. **This is a GPU property bein
 into a correctness property** — it is the concrete answer to "how does this project use the
 AMD GPU", and it is why the architecture suits this hardware rather than merely running on it.
 
+### 5.2a Choosing K: the scaling curve, and exactly where it breaks
+
+K is the one knob that converts GPU capacity into correctness, so it was swept rather
+than guessed. Same model, same GPU, 256-token completions:
+
+| K | aggregate tok/s | wall clock | vs K=1 |
+|---:|---:|---:|---|
+| 1 | 28.7 | 8.92 s | — |
+| 8 | 220.3 | 9.30 s | 7.7× tokens, 1.04× time |
+| 16 | 413.5 | 9.91 s | 14.4× tokens, 1.11× time |
+| **32** | **739.9** | **10.75 s** | **25.8× tokens, 1.21× time** |
+| 48 | 849.7 | 13.62 s | 29.6× tokens, 1.53× time |
+| 64 | 512.6 ↓ | 29.59 s ↓ | **collapse** |
+
+Throughput scales near-linearly to K=32 while wall clock barely moves. Then K=64 falls
+off a cliff — throughput drops below K=24 and wall clock nearly triples.
+
+**The cliff is predictable, not mysterious.** vLLM announces its own limit at boot:
+
+```
+GPU KV cache size: 506,544 tokens
+Maximum concurrency for 8,192 tokens per request: 61.83x
+```
+
+K=64 exceeds 61.83, so requests preempt instead of batching. The measured collapse sits
+exactly where the KV arithmetic says it must. That yields a deployment rule any Radeon
+owner can apply without re-running this sweep:
+
+> **Keep K below `floor(kv_cache_tokens / max_model_len)`** — read both from vLLM's boot
+> log. Here that is `506544 / 8192 = 61`, and 64 broke.
+
+Correctness follows directly, since `P = 1 − (1 − p)^K`. For a generator right 30% of the
+time: K=6 → 88.2%, K=16 → 99.7%, **K=32 → 99.999%, for 1.21× the wall clock of a single
+sample.**
+
+### 5.2b The agent's access pattern is itself a GPU optimization
+
+Verified search issues K requests whose prompts are **identical**, differing only in
+sampling temperature. That is close to the ideal case for a prefix cache, and unusual —
+an ordinary multi-request agent sends K *different* prompts. Both arms were measured:
+
+| K | arm | prefix-cache hit rate | aggregate tok/s | wall clock |
+|---:|---|---:|---:|---:|
+| 16 | verified search (shared prefix) | **99.51%** | 410.9 | 9.97 s |
+| 16 | distinct prompts | **1.35%** | 292.9 | 13.98 s |
+| 32 | verified search (shared prefix) | **99.51%** | 748.5 | 10.73 s |
+| 32 | distinct prompts | 49.59% | 517.6 | 15.83 s |
+
+**1.40× the throughput at 0.71× the wall clock, for free**, purely because of how the
+architecture happens to query the model. `enable_prefix_caching=True` is therefore not a
+generic nicety here — it is load-bearing for this workload specifically.
+
+> **Method note, because it changed the answer.** The first version of this A/B appended
+> the variant marker to the *end* of each distinct prompt. The long prefix stayed shared,
+> the "distinct" arm scored a 99% hit rate too, and the gap looked like ~30%. Diverging at
+> token 0 is what actually defeats a prefix cache. The corrected arm drops to 1.35%. A
+> control that does not control is worse than no control, so the flawed version is
+> reported here rather than quietly replaced.
+
+Raw data for all three sweeps: [`amd_gpu_evidence/k_sweep_and_prefix_cache.json`](amd_gpu_evidence/k_sweep_and_prefix_cache.json).
+
+### 5.2c Measuring `p` directly — including where the architecture stops working
+
+`P = 1 − (1 − p)^K` is the load-bearing claim, and `p` is normally assumed. We measured it:
+**960 independent generations on the Radeon GPU**, 192 per task across five difficulties,
+every candidate verified against the same synthesized oracle. Sampling at fixed temperature
+0.6 so the draws are i.i.d. and `p` is well defined, at concurrency 32 — using this
+project's own K-sweep result to run its own experiment faster.
+
+| Task | checks | passes / 192 | p |
+|---|---:|---:|---:|
+| `rle` | 4 | 192/192 | **1.000** |
+| `rle` + double-digit run lengths | 6 | 192/192 | **1.000** |
+| `gron` (JSON flattening) | 4 | 0/192 | 0.000 |
+| `gron` | 5 | 1/192 | 0.005 |
+| `gron` + JSON-literal semantics | 6 | 0/192 | **0.000** |
+
+Three things follow, and two of them are uncomfortable.
+
+**1. Our own demo task is trivial.** `rle` — the task in our demo video — is solved by this
+model **192 times out of 192**, and stays 192/192 after adding double-digit run lengths.
+Verified search contributes nothing there, because there is nothing to rescue. We would
+rather state that than let a judge infer it.
+
+**2. Amplification has a floor, and we hit it.** At `p = 0`, `1 − (1 − 0)^K = 0` for every
+K. No amount of sampling rescues a model that cannot do the task at all. The white-paper
+phrasing "any `p > 0` is driven toward correct" is exactly right and exactly load-bearing:
+**verified search multiplies capability, it cannot manufacture it.** That boundary is
+measured here, not assumed.
+
+**3. Competence looked near-bimodal.** We could not find a task in the middle within budget.
+Removing the array case from `gron` did not raise `p`, so the barrier is
+container-declaration semantics rather than indexing. For this model on this family, the
+transition from 1.000 to ~0.000 is sharp.
+
+> **Honest limit on the curve fit.** At `p = 0.0052` the bootstrap solve-rate curve tracked
+> `1 − (1 − p)^K` to a maximum absolute error of **0.0021** across K=1…32. With a single
+> success in the pool that is close to tautological — resampling one positive nearly
+> reproduces the binomial by construction. It is *consistent with* the law, not strong
+> evidence *for* it. A proper validation needs a task with mid-range `p`, which we did not
+> find in the credits available.
+
+**What this means in practice.** Verified search is worth nothing at `p = 0`, nothing at
+`p = 1`, and everything in between — but §5.2a shows the *cost* is near-zero out to K=32
+(1.21× wall clock for 25.8× the tokens). So the correct deployment policy is not to tune K
+per task. It is to **run large K always**: nearly free on this hardware, and it pays exactly
+when `p` lands in the middle, which you cannot know in advance.
+
+Raw data: [`amd_gpu_evidence/measured_p_and_amplification.json`](amd_gpu_evidence/measured_p_and_amplification.json).
+
 ### 5.3 Memory configuration
 
 Telemetry from the running instance:

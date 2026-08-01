@@ -49,17 +49,42 @@ Measured on Radeon — ROCm 7.2.1 · vLLM 0.16.1 · Qwen2.5-Coder-7B-Instruct:
 | Throughput | 30.0 tok/s | **166.9 tok/s** |
 | Wall clock | 17.05 s | **18.41 s** |
 
-# 5.56× throughput · 1.08× wall clock
+# 25.8× throughput · 1.21× wall clock
 
-**Six candidates cost 8% more time than one.**
+We swept K instead of guessing it:
 
-| At p = 0.3 | one sample | six samples |
-|---|---:|---:|
-| Solve rate | 30.0 % | **88.2 %** |
-| Time | 17.05 s | 18.41 s |
+| K | agg tok/s | wall | |
+|---:|---:|---:|---|
+| 1 | 28.7 | 8.92 s | |
+| 16 | 413.5 | 9.91 s | |
+| **32** | **739.9** | **10.75 s** | ← knee |
+| 64 | 512.6 ↓ | 29.59 s ↓ | collapse |
 
-### Correctness nearly triples for an 8% time premium.
-*That is a GPU property converted directly into a correctness property.*
+**The cliff is predictable.** vLLM prints `Maximum concurrency: 61.83x` at boot.
+K=64 exceeds it, so requests preempt instead of batching.
+→ **Keep K < `floor(kv_cache_tokens / max_model_len)`.**
+
+| At p = 0.3 | K=1 | K=6 | K=16 | **K=32** |
+|---|---:|---:|---:|---:|
+| Solve rate | 30.0 % | 88.2 % | 99.7 % | **99.999 %** |
+| Wall clock | 1.00× | 1.07× | 1.11× | **1.21×** |
+
+### 30% → 99.999% correct, for 21% more time.
+*A GPU property converted directly into a correctness property.*
+
+---
+
+## AND THE ACCESS PATTERN IS ITSELF THE OPTIMIZATION
+
+Verified search sends K prompts that are **identical** but for temperature.
+An ordinary agent sends K *different* prompts. Measured, same GPU, K=16:
+
+| | prefix-cache hit | agg tok/s | wall |
+|---|---:|---:|---:|
+| **Verified search** | **99.51 %** | **410.9** | **9.97 s** |
+| Distinct prompts | 1.35 % | 292.9 | 13.98 s |
+
+**1.40× throughput at 0.71× wall clock — free.**
 
 ---
 

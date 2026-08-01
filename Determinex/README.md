@@ -42,6 +42,18 @@ Measured three times, on two separate instances — 5.56× / 5.61× / 5.73×, at
 ratio does not, and the ratio is the claim. The third run is the one in the demo
 video, so the figure on screen can be checked against this document.
 
+**Then we swept K instead of stopping at 6.** Throughput scales near-linearly to
+**K=32 — 25.8× the tokens for 1.21× the wall clock** — and collapses at K=64, exactly
+where vLLM's own boot log says it must (`Maximum concurrency for 8,192 tokens per
+request: 61.83x`). That gives a rule any Radeon owner can apply: keep K below
+`floor(kv_cache_tokens / max_model_len)`. At p=0.3, K=32 is **99.999%** correct.
+
+**And the architecture's access pattern is itself an optimization.** Verified search
+sends K prompts identical but for temperature, which hits the prefix cache **99.51%**
+of the time versus **1.35%** for an ordinary agent's K distinct prompts — worth 1.40×
+throughput at 0.71× wall clock, for free. Full data and method in
+[`PROJECT_SPEC.md`](PROJECT_SPEC.md) §5.2a–5.2b.
+
 Applied to the amplifier's own math: a generator with per-attempt `p = 0.3` goes from 30%
 to `1 − 0.7^6 = 88.2%` for that 8% time premium.
 

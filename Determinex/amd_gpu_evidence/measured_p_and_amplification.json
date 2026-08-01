@@ -1,0 +1,421 @@
+{
+  "what": "Per-attempt success probability p measured directly on the Radeon-hosted model, by drawing 192 INDEPENDENT candidates per task and verifying every one against the same synthesized oracle. 960 generations, 5 task difficulties.",
+  "hardware": "AMD Radeon Cloud, ROCm 7.2.1, vLLM 0.16.1, Qwen/Qwen2.5-Coder-7B-Instruct",
+  "sampling": "temperature 0.6 fixed (so draws are i.i.d. and p is well defined), concurrency 32 -- the optimum measured in the K-sweep, used to run this experiment faster",
+  "measured_p": {
+    "rle_4checks": {
+      "p_hat": 1.0,
+      "passes": "192/192",
+      "n_checks": 4
+    },
+    "rle_6checks_long_runs": {
+      "p_hat": 1.0,
+      "passes": "192/192",
+      "n_checks": 6
+    },
+    "gron_4checks": {
+      "p_hat": 0.0,
+      "passes": "0/192",
+      "n_checks": 4
+    },
+    "gron_5checks": {
+      "p_hat": 0.0052,
+      "passes": "1/192",
+      "n_checks": 5
+    },
+    "gron_6checks_json_literals": {
+      "p_hat": 0.0,
+      "passes": "0/192",
+      "n_checks": 6
+    }
+  },
+  "findings": {
+    "the_demo_task_is_trivial": "rle scored 192/192 (p=1.000), and stayed 192/192 after adding two double-digit run-length cases. The task in our own demo video is not hard for this model. Measured, not suspected.",
+    "amplification_needs_p_above_zero": "gron with JSON-literal semantics scored 0/192. P = 1-(1-p)^K is 0 for every K when p is 0. Verified search multiplies capability; it cannot manufacture it. This is the boundary condition of the whole architecture, and it is measured here rather than asserted.",
+    "competence_is_near_bimodal": "Across five difficulties we could not find a task in the middle. rle p=1.000; gron p in {0.0000, 0.0052, 0.0000}. Removing the array case did not help, so the barrier is container-declaration semantics, not indexing. For this model on this family, competence is close to binary.",
+    "curve_fit": "At p=0.0052 the bootstrap curve tracked 1-(1-p)^K to a maximum absolute error of 0.0021 across K=1..32. CAVEAT: with a single success in the pool this is close to tautological -- resampling one positive nearly reproduces the binomial by construction. It is consistent with the law, not strong evidence for it.",
+    "policy_consequence": "Value of verified search is zero at p=0, zero at p=1, and maximal in between -- but the K-sweep shows the COST is near-zero up to K=32 (1.21x wall clock for 25.8x the tokens). So the correct policy is to run large K always: it is nearly free, and it pays exactly when p is in the middle."
+  },
+  "runs": {
+    "rle_4checks": {
+      "task": "rle",
+      "n_checks": 4,
+      "pool_size": 192,
+      "temperature": 0.6,
+      "concurrency": 32,
+      "model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+      "generation_seconds": 31.0,
+      "verification_seconds": 148.6,
+      "p_hat": 1.0,
+      "passes": 192,
+      "bootstrap_trials": 20000,
+      "curve": [
+        {
+          "K": 1,
+          "measured": 1.0,
+          "predicted": 1.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 2,
+          "measured": 1.0,
+          "predicted": 1.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 3,
+          "measured": 1.0,
+          "predicted": 1.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 4,
+          "measured": 1.0,
+          "predicted": 1.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 6,
+          "measured": 1.0,
+          "predicted": 1.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 8,
+          "measured": 1.0,
+          "predicted": 1.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 12,
+          "measured": 1.0,
+          "predicted": 1.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 16,
+          "measured": 1.0,
+          "predicted": 1.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 24,
+          "measured": 1.0,
+          "predicted": 1.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 32,
+          "measured": 1.0,
+          "predicted": 1.0,
+          "abs_error": 0.0
+        }
+      ],
+      "max_abs_error": 0.0
+    },
+    "rle_6checks_long_runs": {
+      "task": "rle",
+      "n_checks": 6,
+      "pool_size": 192,
+      "temperature": 0.6,
+      "concurrency": 32,
+      "model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+      "generation_seconds": 32.2,
+      "verification_seconds": 171.7,
+      "p_hat": 1.0,
+      "passes": 192,
+      "bootstrap_trials": 20000,
+      "curve": [
+        {
+          "K": 1,
+          "measured": 1.0,
+          "predicted": 1.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 2,
+          "measured": 1.0,
+          "predicted": 1.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 3,
+          "measured": 1.0,
+          "predicted": 1.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 4,
+          "measured": 1.0,
+          "predicted": 1.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 6,
+          "measured": 1.0,
+          "predicted": 1.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 8,
+          "measured": 1.0,
+          "predicted": 1.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 12,
+          "measured": 1.0,
+          "predicted": 1.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 16,
+          "measured": 1.0,
+          "predicted": 1.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 24,
+          "measured": 1.0,
+          "predicted": 1.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 32,
+          "measured": 1.0,
+          "predicted": 1.0,
+          "abs_error": 0.0
+        }
+      ],
+      "max_abs_error": 0.0
+    },
+    "gron_4checks": {
+      "task": "gron",
+      "n_checks": 4,
+      "pool_size": 192,
+      "temperature": 0.6,
+      "concurrency": 32,
+      "model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+      "generation_seconds": 103.6,
+      "verification_seconds": 192.9,
+      "p_hat": 0.0,
+      "passes": 0,
+      "bootstrap_trials": 20000,
+      "curve": [
+        {
+          "K": 1,
+          "measured": 0.0,
+          "predicted": 0.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 2,
+          "measured": 0.0,
+          "predicted": 0.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 3,
+          "measured": 0.0,
+          "predicted": 0.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 4,
+          "measured": 0.0,
+          "predicted": 0.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 6,
+          "measured": 0.0,
+          "predicted": 0.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 8,
+          "measured": 0.0,
+          "predicted": 0.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 12,
+          "measured": 0.0,
+          "predicted": 0.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 16,
+          "measured": 0.0,
+          "predicted": 0.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 24,
+          "measured": 0.0,
+          "predicted": 0.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 32,
+          "measured": 0.0,
+          "predicted": 0.0,
+          "abs_error": 0.0
+        }
+      ],
+      "max_abs_error": 0.0
+    },
+    "gron_5checks": {
+      "task": "gron",
+      "n_checks": 5,
+      "pool_size": 192,
+      "temperature": 0.6,
+      "concurrency": 32,
+      "model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+      "generation_seconds": 89.8,
+      "verification_seconds": 233.3,
+      "p_hat": 0.0052,
+      "passes": 1,
+      "bootstrap_trials": 20000,
+      "curve": [
+        {
+          "K": 1,
+          "measured": 0.0049,
+          "predicted": 0.0052,
+          "abs_error": 0.0004
+        },
+        {
+          "K": 2,
+          "measured": 0.0112,
+          "predicted": 0.0104,
+          "abs_error": 0.0008
+        },
+        {
+          "K": 3,
+          "measured": 0.0169,
+          "predicted": 0.0155,
+          "abs_error": 0.0013
+        },
+        {
+          "K": 4,
+          "measured": 0.0226,
+          "predicted": 0.0207,
+          "abs_error": 0.0019
+        },
+        {
+          "K": 6,
+          "measured": 0.0288,
+          "predicted": 0.0308,
+          "abs_error": 0.002
+        },
+        {
+          "K": 8,
+          "measured": 0.0406,
+          "predicted": 0.0409,
+          "abs_error": 0.0003
+        },
+        {
+          "K": 12,
+          "measured": 0.0594,
+          "predicted": 0.0607,
+          "abs_error": 0.0013
+        },
+        {
+          "K": 16,
+          "measured": 0.0819,
+          "predicted": 0.0802,
+          "abs_error": 0.0018
+        },
+        {
+          "K": 24,
+          "measured": 0.1192,
+          "predicted": 0.1178,
+          "abs_error": 0.0014
+        },
+        {
+          "K": 32,
+          "measured": 0.1518,
+          "predicted": 0.1539,
+          "abs_error": 0.0021
+        }
+      ],
+      "max_abs_error": 0.0021
+    },
+    "gron_6checks_json_literals": {
+      "task": "gron",
+      "n_checks": 6,
+      "pool_size": 192,
+      "temperature": 0.6,
+      "concurrency": 32,
+      "model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+      "generation_seconds": 97.0,
+      "verification_seconds": 171.8,
+      "p_hat": 0.0,
+      "passes": 0,
+      "bootstrap_trials": 20000,
+      "curve": [
+        {
+          "K": 1,
+          "measured": 0.0,
+          "predicted": 0.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 2,
+          "measured": 0.0,
+          "predicted": 0.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 3,
+          "measured": 0.0,
+          "predicted": 0.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 4,
+          "measured": 0.0,
+          "predicted": 0.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 6,
+          "measured": 0.0,
+          "predicted": 0.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 8,
+          "measured": 0.0,
+          "predicted": 0.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 12,
+          "measured": 0.0,
+          "predicted": 0.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 16,
+          "measured": 0.0,
+          "predicted": 0.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 24,
+          "measured": 0.0,
+          "predicted": 0.0,
+          "abs_error": 0.0
+        },
+        {
+          "K": 32,
+          "measured": 0.0,
+          "predicted": 0.0,
+          "abs_error": 0.0
+        }
+      ],
+      "max_abs_error": 0.0
+    }
+  }
+}
