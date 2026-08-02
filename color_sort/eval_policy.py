@@ -47,6 +47,9 @@ from scene_config import COLORS, PICKABLE_GEOMETRIES
 STATE_KEY = "observation.state"
 POST_SUCCESS_SECONDS = 0.8
 
+MOTORS_DOF = np.arange(7)
+FINGERS_DOF = np.arange(7, 9)
+
 
 @dataclass
 class PolicyBundle:
@@ -172,8 +175,21 @@ def build_observation(bundle, pb: PolicyBundle) -> dict[str, np.ndarray]:
 
 def apply_action(bundle, action: np.ndarray, n_sim_steps: int) -> None:
     action = np.asarray(action, dtype=np.float64).reshape(-1)
+    arm = action[:7]
+    finger = action[7:9]
+    # Dual semantics, matching what the expert recorded:
+    #   finger <= 0  -> force command (e.g. -12 N clamping during grasp/hold)
+    #   finger > 0   -> position target (e.g. 0.04 open during approach/release)
+    # A 0 finger means 0 force (safe: neither clamps nor opens).
+    force_mask = finger <= 0
+    force_idx = np.arange(7, 9)[force_mask]
+    pos_idx = np.arange(7, 9)[~force_mask]
     for _ in range(n_sim_steps):
-        bundle.franka.control_dofs_position(action)
+        bundle.franka.control_dofs_position(arm, MOTORS_DOF)
+        if force_idx.size:
+            bundle.franka.control_dofs_force(finger[force_mask], force_idx)
+        if pos_idx.size:
+            bundle.franka.control_dofs_position(finger[~force_mask], pos_idx)
         bundle.scene.step()
         bundle.update_wrist_cam()
 
