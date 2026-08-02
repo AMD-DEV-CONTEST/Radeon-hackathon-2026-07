@@ -13,11 +13,6 @@ import time
 load_dotenv()
 
 app = FastAPI()
-
-# ---------- Swappable LLM client ----------
-# Set PROVIDER=groq in .env while developing/testing.
-# Set PROVIDER=radeon once your vLLM instance is live, with RADEON_BASE_URL
-# and RADEON_API_KEY filled in. Nothing else in this file needs to change.
 PROVIDER = os.getenv("PROVIDER", "groq")
 
 if PROVIDER == "groq":
