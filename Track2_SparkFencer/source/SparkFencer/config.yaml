@@ -1,0 +1,37 @@
+# SparkFencer 配置。所有键都有内置默认值（见 fencing_analysis/config.py），
+# 此文件只需写想覆盖的项。
+
+weapon: general        # general | epee | foil | sabre（剑种规则接口，当前版本为通用分析）
+
+privacy:
+  local_only: true     # 核心模型、视频和工具访问仅限本机；工具调用写入本地审计日志
+
+pose:
+  model: weights/yolo11s-pose.pt
+  conf: 0.25
+  device: auto
+
+blade:
+  enabled: true
+  # 剑尖检测器选择：
+  #   null                    -> CV 线段检测（默认。逐帧贴剑、轨迹连贯，跨域稳定）
+  #   weights/blade_best.pt   -> 微调 YOLO 模型（同域 mAP50=0.978；跨域召回低，
+  #                              待二轮加入比赛域数据重训后再设为默认）
+  model_path: null
+  imgsz: 1920          # YOLO 剑尖推理分辨率（剑尖极小，须接近原生；640 时检出为 0）
+
+piste:
+  length: 14.0         # 标注角点覆盖的剑道长度（米）；只拍到部分剑道时改小
+  width: 1.5
+
+agents:
+  backend: local       # 比赛/隐私默认：只使用本地模型服务
+  claude:
+    model: claude-opus-4-8
+    max_tokens: 4000
+  local:
+    base_url: http://127.0.0.1:11434/v1   # 或环境变量 VLM_BASE_URL
+    model: qwen3-vl:32b                    # 或环境变量 VLM_MODEL（需为视觉模型）
+    api_key: none
+    timeout: 1200                          # qwen3-vl:32b 思考通道耗时较长，5 分钟不够用
+  max_events_to_review: 12
