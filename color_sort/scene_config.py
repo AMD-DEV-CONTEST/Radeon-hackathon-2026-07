@@ -91,6 +91,15 @@ CONTAINER_LAYOUT = {
     "purple": (0.62, -0.05),
 }
 
+# == YCB bowl container (replaces solid boxes) ==
+# 024_bowl scaled ~0.56x: 16.1cm diameter → ~9cm. Height 5.5cm → ~3.1cm.
+# rest_z_offset (origin→bottom) scales too: 0.0275 → ~0.0154m.
+BOWL_ASSET_DIR = Path(__file__).resolve().parent.parent / "assets" / "ycb" / "024_bowl"
+BOWL_ASSET_FILE = str(BOWL_ASSET_DIR / "textured.obj")
+BOWL_SCALE = 0.56
+BOWL_REST_Z_OFFSET = 0.0275 * BOWL_SCALE  # ~0.0154 m, origin→bottom
+BOWL_RIM_MARGIN = 0.01  # how far below the rim the object bottom must dip (containment test)
+
 # == Reachable workspace on the tabletop (from demo, empirically verified) ==
 REACH_X = (0.28, 0.52)
 REACH_Y = (-0.22, 0.22)

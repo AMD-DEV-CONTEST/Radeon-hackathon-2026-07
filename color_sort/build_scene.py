@@ -2,7 +2,7 @@
 
 Based on franka_fruit_pick_demo's build_scene.py. Key changes:
 - YCB mesh assets → gs.morphs.Box/Cylinder/Sphere with gs.surfaces.Plastic(color=...)
-- Single bowl → per-color shallow box containers
+- Single bowl → per-color YCB 024_bowl containers (scaled ~9cm, recolored per sorting color)
 - SceneBundle interface preserved (scene/franka/objects/containers/cameras)
 """
 
@@ -23,10 +23,12 @@ import genesis as gs
 from genesis.utils.geom import trans_R_to_T, euler_to_R
 
 from scene_config import (
+    BOWL_ASSET_FILE,
+    BOWL_REST_Z_OFFSET,
+    BOWL_SCALE,
     COLOR_RGB,
     COLORS,
     CONTAINER_LAYOUT,
-    CONTAINER_SIZE,
     FRANKA_EULER,
     FRANKA_FORCE_MAX,
     FRANKA_FORCE_MIN,
@@ -163,20 +165,27 @@ def _add_object(scene: gs.Scene, name: str, color: str, geometry: str,
 
 def _add_container(scene: gs.Scene, color: str,
                    pos_xy: tuple[float, float]) -> gs.RigidEntity:
-    """Add a per-color shallow box container (bowl substitute) to the scene."""
+    """Add a per-color YCB 024_bowl container (colored, recessed) to the scene.
+
+    The bowl is scaled to ~9cm diameter and colored to match its sorting
+    color (the Default surface overrides the mesh's own texture, same
+    technique the demo uses for DR recolor). convexify=True lets coacd
+    decompose the recess into convex pieces so objects genuinely fall in.
+    """
     x, y = pos_xy
-    z = TABLE_TOP_Z + CONTAINER_SIZE[2] / 2
+    z = TABLE_TOP_Z + BOWL_REST_Z_OFFSET
     rgb = COLOR_RGB[color]
-    # Darken the container color slightly to distinguish from objects
-    dark_rgb = tuple(c * 0.6 for c in rgb)
 
     return scene.add_entity(
-        morph=gs.morphs.Box(
-            size=CONTAINER_SIZE,
+        morph=gs.morphs.Mesh(
+            file=BOWL_ASSET_FILE,
             pos=(x, y, z),
+            scale=BOWL_SCALE,
             fixed=True,
+            convexify=True,
+            decimate_face_num=500,
         ),
-        surface=gs.surfaces.Plastic(color=dark_rgb),
+        surface=gs.surfaces.Default(color=rgb),
     )
 
 
