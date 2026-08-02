@@ -182,8 +182,8 @@ def apply_action(bundle, action: np.ndarray, n_sim_steps: int) -> None:
     #   finger > 0   -> position target (e.g. 0.04 open during approach/release)
     # A 0 finger means 0 force (safe: neither clamps nor opens).
     force_mask = finger <= 0
-    force_idx = np.arange(7, 9)[force_mask]
-    pos_idx = np.arange(7, 9)[~force_mask]
+    force_idx = FINGERS_DOF[force_mask]
+    pos_idx = FINGERS_DOF[~force_mask]
     for _ in range(n_sim_steps):
         bundle.franka.control_dofs_position(arm, MOTORS_DOF)
         if force_idx.size:
