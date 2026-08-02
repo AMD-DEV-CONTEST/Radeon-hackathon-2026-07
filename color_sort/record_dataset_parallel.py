@@ -40,6 +40,7 @@ from build_scene import build_scene
 from paths import DATASETS_DIR
 from randomize import RandomizationConfig
 from scene_config import (
+    BOWL_RIM_MARGIN,
     COLORS,
     FRANKA_QPOS,
     FRANKA_KP,
@@ -408,8 +409,7 @@ def _batch_reset_envs(bundle, env_specs: list[dict]) -> None:
 
 
 def _batch_check_success(bundle, env_idx: int, pick_object: str, place_color: str) -> bool:
-    """Check success for one env."""
-    from genesis.utils.geom import quat_to_xyz
+    """Check success for one env: object inside the bowl (bottom below rim)."""
     obj = bundle.objects[pick_object]
     pos = obj.get_pos().cpu().numpy()[env_idx]  # [3]
 
@@ -429,10 +429,10 @@ def _batch_check_success(bundle, env_idx: int, pick_object: str, place_color: st
 
     obj_aabb = obj.get_AABB().cpu().numpy()[env_idx]
     obj_bottom = float(obj_aabb[0, 2])
-    bin_bottom = float(cont_aabb[0, 2])
-    on_bin = obj_bottom >= bin_bottom - 0.02
+    rim_z = float(cont_aabb[1, 2])
+    inside_bowl = obj_bottom < rim_z - BOWL_RIM_MARGIN
 
-    return bool(within and on_bin)
+    return bool(within and inside_bowl)
 
 
 def _run_one_batch(bundle, env_specs: list[dict], recorders: list,

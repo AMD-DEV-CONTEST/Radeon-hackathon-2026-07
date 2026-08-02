@@ -353,23 +353,22 @@ def check_success(bundle, task: TaskSpec) -> bool:
         horizontal = float(np.linalg.norm(pick_pos[:2] - place_xy))
         return bool(horizontal < task.success_tol and pick_pos[2] > place_ref_z - 0.02)
 
-    # Container target: object is on/inside the bin.
-    # Our containers are solid boxes (not mesh bowls), so the object rests on
-    # top. Success = horizontally within the bin footprint AND object bottom is
-    # at or above the bin's base (resting on it, not on the table beside it).
-    bin_aabb = _entity_aabb(place_ent)
-    bin_top_z = float(bin_aabb[1, 2])
-    bin_bottom_z = float(bin_aabb[0, 2])
+    # Container target (YCB bowl): object is inside the bowl — horizontally
+    # within the rim footprint AND its lowest point dropped below the rim.
+    # Ported from the demo's bowl containment test; works for both the recessed
+    # mesh (object sinks in) and the convexified solid case (object rests on
+    # top, bottom below rim).
+    bowl_aabb = _entity_aabb(place_ent)
+    rim_z = float(bowl_aabb[1, 2])
     rim_radius = 0.5 * float(min(
-        bin_aabb[1, 0] - bin_aabb[0, 0],
-        bin_aabb[1, 1] - bin_aabb[0, 1],
+        bowl_aabb[1, 0] - bowl_aabb[0, 0],
+        bowl_aabb[1, 1] - bowl_aabb[0, 1],
     ))
     horizontal = float(np.linalg.norm(pick_pos[:2] - place_xy))
     within_footprint = horizontal < min(task.success_tol, rim_radius)
     obj_bottom_z = float(_entity_aabb(obj)[0, 2])
-    # Object must be resting on the bin (bottom >= bin base) not on the table
-    on_bin = obj_bottom_z >= bin_bottom_z - 0.02
-    return bool(within_footprint and on_bin)
+    inside_bowl = obj_bottom_z < rim_z - _BOWL_RIM_MARGIN
+    return bool(within_footprint and inside_bowl)
 
 
 def _parse_place(text: str) -> Union[str, tuple[float, float]]:
