@@ -81,8 +81,6 @@ OBJECT_LAYOUT = {
 }
 
 # == Per-color containers (bowl-shaped, placed on tabletop) ==
-# Each color gets one container. Container = shallow box (bowl substitute).
-CONTAINER_SIZE = (0.08, 0.08, 0.03)  # length_x, width_y, height_z
 CONTAINER_LAYOUT = {
     "red": (0.55, 0.20),
     "blue": (0.55, 0.05),
