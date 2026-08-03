@@ -257,10 +257,28 @@ result: SOLVED  samples=1
 proof: program PASSES all 3 synthesized checks (oracle-verified, 1 samples).
 ```
 
-**Then delete the "For example…" lines from `idea.md` and run it again.** It will refuse —
-`result: not solved`, *"that cannot verify behaviour. Add one concrete input/output example
-and re-run."* That refusal is the product, not an error: no oracle, no claim. Checking both
-directions takes about a minute and is the fastest way to see what this actually is.
+**Then run it on something that cannot be verified at all:**
+
+```bash
+echo "improve the code quality of my project" > vague.md
+python scripts/determinex_build_from_idea.py --idea vague.md --provider vllm --k 6
+```
+
+```
+synthesized oracle: 0 checks
+result: not solved
+proof: oracle not sound: no example or typeable invariant could be derived from this
+       idea, so the only synthesizable check is that the symbol exists. That cannot
+       verify behaviour. Add one concrete input/output example and re-run.
+next moves: ['add-a-concrete-example']
+```
+
+That refusal is the product, not an error: no sound oracle, no claim. There is a third
+behaviour between the two — an idea that is *under*-specified rather than unspecifiable gets
+an oracle built from **model-proposed** examples, and the result says so explicitly
+(`the oracle examples were MODEL-PROPOSED from a vague idea — confirm they match your
+intent`) instead of presenting them as yours. Checking all three takes a couple of minutes
+and is the fastest way to see what this actually is.
 
 `generate()` and `verify()` are decoupled by design, so the model can serve from a Radeon
 GPU while the compiler oracle runs anywhere — which is exactly how the benchmark numbers

@@ -10,14 +10,17 @@ directory, so it needs no external host and cannot rot.
 against the Radeon Cloud instance `u-14786-cdc26df7` while it was serving.
 
 > This is the section the main demo had to replay. It runs live, in one pass, in the order the
-> argument goes: the model served on the card · what one candidate costs (**29.6 tok/s**) ·
-> what the sixth costs (**5.77× throughput for 1.04× wall clock**) · where the ceiling is · and
+> argument goes: the model served on the card · what one candidate costs (**29.5 tok/s**) ·
+> what the sixth costs (**5.61× throughput for 1.07× wall clock**) · where the ceiling is · and
 > the loop refusing a result it cannot verify before earning one.
 >
-> The refusal is the part worth watching. Asked to build from a vague idea it returns
-> `solved=False` — *"that cannot verify behaviour. Add one concrete input/output example and
-> re-run."* Given three examples it synthesizes a 3-check oracle and returns a program that
-> passes, generated on the Radeon.
+> The refusal is the part worth watching. Asked for *"improve the code quality of my
+> project"* it returns `solved=False` — *"no example or typeable invariant could be derived…
+> that cannot verify behaviour. Add one concrete input/output example and re-run."* Given an
+> idea that can be pinned down, it synthesizes a 3-check oracle and returns a program that
+> passes, generated on the Radeon. (The first take used a different vague idea that refused
+> because of a parser bug rather than on principle; fixing the bug made it solve, so the take
+> was re-recorded. See §5.1's Run 5 note.)
 >
 > **What it does not show, stated on screen rather than omitted:** no `rocm-smi`. This drives
 > the vLLM endpoint through the instance's own tunnel, not a shell on the box, so the GPU is

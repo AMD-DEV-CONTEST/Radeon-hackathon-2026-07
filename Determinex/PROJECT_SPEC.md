@@ -112,7 +112,7 @@ a capability that cannot be pointed at is a claim rather than a feature.
 | **Tool invocation** | The agent's verdicts come from real tools, never from a model's opinion: `cargo`, `go build`, `tsc --noEmit`, `pytest`, `dotnet build`, `gcc`, plus `git` and Docker. Nineteen language oracles behind one registry. | `scripts/determinex_oracle.py`; `tests/test_oracle_runtimes_discriminate.py` proves each accepts correct code and rejects broken code |
 | **Multi-step task planning** | An Architect decomposes a request into a dependency-ordered DAG of build steps; a Builder executes one step at a time against the current state, and each step is gated by the compiler before the next begins. | `scripts/determinex_hive.py generate-dag`; `scripts/determinex_decompose.py` |
 | **Local multi-turn memory** | Two kinds. Within a session, the Concept Lab interview carries every answer forward and reasons over the accumulated context (§3.0a). Across sessions, Case Memory stores **only oracle-verified** solves, so the system never learns from its own unverified guesses. | `scripts/determinex_case_memory.py`; session WAL under `sessions/` |
-| **Permission control & privacy** | Model-generated code executes only inside `intake.hardened_runner` — workspace-bounded, environment-scrubbed, network and Docker denied by default. Project Cloak obfuscates every identifier before any cloud call. Source mutation is refused unless explicitly authorised. | `scripts/intake/hardened_runner.py`; `docs/policy/CLOAK_THREAT_MODEL.md`; `scripts/dev/parallel_execution_layer_audit.py` reports 515 execution sites, 0 unsafe |
+| **Permission control & privacy** | Model-generated code executes only inside `intake.hardened_runner` — workspace-bounded, environment-scrubbed, network and Docker denied by default. Project Cloak obfuscates every identifier before any cloud call. Source mutation is refused unless explicitly authorised. | `scripts/intake/hardened_runner.py`; `docs/policy/CLOAK_THREAT_MODEL.md`; `scripts/dev/parallel_execution_layer_audit.py` reports 523 execution sites, 0 unsafe, 0 unclassified |
 
 ### 3.0a Multi-turn interaction: the interview ends when the system knows enough, not when a counter runs out
 
@@ -237,7 +237,7 @@ property with its own test — which has caught real gaps, including JavaScript 
 fields written `this.field = 0` surviving obfuscation until they were fixed. The
 distinction is documented rather than smoothed over.
 
-**3.3a Repairing a real repository — end to end, on the Radeon GPU.**
+### 3.3a Repairing a real repository — end to end, on the Radeon GPU
 
 The clearest demonstration of application value is not a synthetic task. Determinex was
 pointed at **`mwaskom__seaborn-3010`** from SWE-bench Lite: a real reported issue in a real
@@ -420,20 +420,32 @@ rather than replayed: [`LIVE_ON_RADEON_FULL_2min.mp4`](LIVE_ON_RADEON_FULL_2min.
 
 | | |
 |---|---:|
-| Single stream | 256 tokens in 8.66 s = **29.6 tok/s** |
-| K=1 | 28.5 agg tok/s |
-| K=6 | **164.4 agg tok/s** |
-| | **5.77× throughput at 1.04× wall clock** |
+| Single stream | 256 tokens in 8.67 s = **29.5 tok/s** |
+| K=1 | 29.0 agg tok/s |
+| K=6 | **163.0 agg tok/s** |
+| | **5.61× throughput at 1.07× wall clock** |
 
-That is the fourth independent confirmation of the ratio this whole section rests on —
-**5.56× · 5.61× · 5.73× · 5.77×**, on four instances, over three weeks. The absolute rates
+That is the fifth independent confirmation of the ratio this whole section rests on —
+**5.56× · 5.61× · 5.73× · 5.77× · 5.61×**, on five instances, over three weeks. The absolute rates
 move with instance load; the ratio does not, and the ratio is the claim.
 
 The clip ends on the behaviour that matters more than any throughput figure. Asked to build
-from a vague idea, the system returns `solved=False` — *"no example or typeable invariant
-could be derived from this idea… that cannot verify behaviour"*. Given three concrete
-examples it synthesizes a 3-check oracle and returns a program that passes it, generated on
-the card. A refusal and a verified solve, from the same model, in ninety seconds.
+*"improve the code quality of my project"* — an idea with no input, no output and nothing a
+test could assert — the system returns `solved=False`: *"no example or typeable invariant
+could be derived from this idea… that cannot verify behaviour. Add one concrete input/output
+example and re-run."* Given an idea that can be pinned down, it synthesizes a 3-check oracle
+and returns a program that passes it, generated on the card. A refusal and a verified solve,
+from the same model, in ninety seconds.
+
+> **The first take of this clip was re-recorded, and the reason is the point.** It used
+> *"a function called solution that returns the average of a list of numbers"*, which also
+> refused — but for the wrong reason. The spec parser was reading the word after "function"
+> as the function's name, so *"a function **called** solution"* named it `called`, no example
+> matched, and the oracle came out vacuous. That refusal was a bug wearing the costume of a
+> principle. Fixing the parser (`tests/test_spec_name_extraction.py`) made that same idea
+> solve, which invalidated the take. Demonstrating the real behaviour needs an idea that
+> genuinely cannot be verified — so the clip now uses one. A demo that cannot be reproduced
+> from the shipped code is the exact failure this system exists to prevent.
 
 > **What it deliberately does not show,** stated on screen rather than omitted: no `rocm-smi`.
 > This run drives the vLLM endpoint through the instance's own reverse tunnel, not a shell on
