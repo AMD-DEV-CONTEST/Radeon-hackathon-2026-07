@@ -14,6 +14,7 @@ mod cluster_store;
 mod routing;
 mod inference_client;
 mod stream_lanes;
+mod v3_slice;
 
 use axum::{
     extract::{Json, Path, State},
@@ -2147,6 +2148,7 @@ async fn main() {
         // ── Dispatch endpoints (for dispatch.html multi-GPU routing) ────
         .route("/cluster/dispatch/launch",             post(dispatch_launch))
         .route("/cluster/dispatch/stop",               post(dispatch_stop))
+        .route("/forge/v3/demo/aircraft-test-lab", post(v3_slice::run_aircraft_test_lab_demo))
         .with_state(state);
 
     let addr = std::net::SocketAddr::from(([0, 0, 0, 0], 9100));
@@ -2154,3 +2156,4 @@ async fn main() {
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
+}
