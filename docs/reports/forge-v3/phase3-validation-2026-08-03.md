@@ -31,3 +31,16 @@ A full `cesarops-forge-v2` top-level compile/run validation for the new HTTP rou
 - Execute:
   - `POST /forge/v3/demo/aircraft-test-lab`
 - Capture runtime output and produced chain-of-custody manifest from the new route path.
+
+3. **Forge V3 route runtime proof**
+   - Build path: `cargo run --bin cesarops-forge-v2` (with temporary Forge manifest swap)
+   - Route call:
+     - `POST /forge/v3/demo/aircraft-test-lab`
+   - HTTP result: `200`
+   - Example mission/run:
+     - `mission_id`: `mission-aircraft-v3-1785769618`
+     - `run_id`: `run-1785769618`
+   - Manifest produced:
+     - `/codebase/repos/wreckhunter2000-1/cesarops-forge-v2/var/missions/v3/mission-aircraft-v3-1785769618/run-1785769618/chain_of_custody_manifest.json`
+   - Final state: `AcceptForHumanReview`
+   - Execution mode: `DerivedFixtureMetrics`

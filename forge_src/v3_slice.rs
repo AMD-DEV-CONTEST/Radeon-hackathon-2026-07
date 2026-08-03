@@ -152,20 +152,27 @@ pub async fn run_aircraft_test_lab_demo(
     let mission_id = format!("mission-aircraft-v3-{}", started);
     let run_id = format!("run-{}", started);
     let forge_dir = paths::forge_dir();
-    let fixture_dir = format!(
+    let primary_fixture_dir = format!(
         "{}/core/forge-test-lab/fixtures/aircraft-search-grid-v1",
         forge_dir
     );
-
-    if !Path::new(&fixture_dir).exists() {
+    let local_fixture_dir =
+        "/home/cesarops/cesarops_push/core/forge-test-lab/fixtures/aircraft-search-grid-v1"
+            .to_string();
+    let fixture_dir = if Path::new(&primary_fixture_dir).exists() {
+        primary_fixture_dir.clone()
+    } else if Path::new(&local_fixture_dir).exists() {
+        local_fixture_dir.clone()
+    } else {
         return Err((
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({
                 "error": "fixture directory missing",
-                "fixture_dir": fixture_dir
+                "primary_fixture_dir": primary_fixture_dir,
+                "fallback_fixture_dir": local_fixture_dir
             })),
         ));
-    }
+    };
 
     let mut stages: Vec<StageRecord> = Vec::new();
 
@@ -213,7 +220,14 @@ pub async fn run_aircraft_test_lab_demo(
     let exec_result = coordinator.execute_mission(&mission);
     let stage2_end = now_unix();
 
-    let report_base = format!("{}/reports/test-lab/aircraft-search-grid-v1", forge_dir);
+    let primary_report_base = format!("{}/reports/test-lab/aircraft-search-grid-v1", forge_dir);
+    let fallback_report_base =
+        "/home/cesarops/cesarops_push/reports/test-lab/aircraft-search-grid-v1".to_string();
+    let report_base = if Path::new(&primary_report_base).exists() {
+        primary_report_base
+    } else {
+        fallback_report_base
+    };
     let artifacts = artifact_paths(&report_base);
     let mut artifact_hashes: Vec<(String, String)> = Vec::new();
     let mut artifact_paths_out: Vec<String> = Vec::new();
