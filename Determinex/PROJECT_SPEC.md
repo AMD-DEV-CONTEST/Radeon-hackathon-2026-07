@@ -830,6 +830,57 @@ state that core inference must run on AMD hardware, and nothing in the verified 
 on a non-AMD API.
 
 
+
+---
+
+## 6. Boundaries — what this does not do
+
+§2 states the rule this project is built on: *a check must never report an outcome it did not
+establish.* Applied to a submission, that means the limits belong in it, at the same volume as
+the results. Every item below is measured or verified, not hedging.
+
+**Verified search cannot manufacture capability.** At `p = 0`, `1 − (1−0)^K = 0` for every K.
+Measured, not assumed: the 7B scored **0/192** on `gron` with JSON-literal semantics, and no
+amount of sampling rescues it (§5.2d). The architecture multiplies a model's competence; it
+does not create it. At `p = 1` it is equally worthless — our own demo task, `rle`, is
+**192/192** one-shot, so verified search contributes nothing there. It pays only in the middle.
+
+**A wrong oracle produces confident wrong answers.** Soundness is load-bearing and not
+automatic. This is why a synthesized oracle that can only assert "the symbol exists" is
+rejected as vacuous, why every oracle refuses an empty workspace, and why the Test Validator
+declares a test slop only with proof. But an oracle that is sound *and wrong about the intent*
+is not detectable from inside the system, and we do not claim otherwise.
+
+**Benchmark position is weak and reported as such.** ProgramBench is **0/200** — 62 of 67
+prior "solves" were retracted by our own provenance audit as upstream source builds. SWE-bench
+Lite 14.0% is an audited May-2026 snapshot whose clean re-run has not completed. Neither number
+is competitive; both are what survives an audit.
+
+**Path B is documented, not measured.** ROCm auto-detection via Ollama is Ollama's documented
+behaviour and our accelerator probe covers AMD, but no physical Radeon card ran Path B for this
+submission. The VRAM table in §5.4 is arithmetic from published quantization sizes — no
+throughput is claimed for those cards.
+
+**One live run shows no `rocm-smi`.** Run 5 drives the vLLM endpoint through the instance's own
+reverse tunnel rather than a shell on the box. The driver readout is in Run 3, which had shell
+access; Run 5's hardware evidence is what it serves and how it behaves under load.
+
+**The p/K validation is consistent, not conclusive.** §5.1c resolves the over-prediction —
+nominal K ≠ effective K — and the corrected estimate brackets the observation. But `p` per rung
+came from 10 draws, and 6 trials is a small denominator. It is consistent with the law, not
+strong evidence for it.
+
+**Cloak's leak count of 0 means one specific thing.** It proves everything Cloak obfuscated
+stayed obfuscated. Extraction *completeness* is a separate property with its own test, and that
+test has caught real gaps — JavaScript instance fields written `this.field = 0` survived
+obfuscation until fixed. Cloaked runs over JS repositories predating that fix are not covered
+by the audit's guarantee.
+
+**Three execution sites remain flagged for owner decision.** The execution-layer audit reports
+515 sites with 0 unsafe and 0 requiring migration, but 3 sites in the agent registry — a coding
+agent CLI spawn and two auth probes — are trusted-by-design rather than sandboxed. They are
+left flagged rather than silently exempted.
+
 ---
 
 *Determinex · DarthCeltic · AGPL-3.0-or-later*
