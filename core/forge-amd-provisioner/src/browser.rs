@@ -15,11 +15,20 @@ impl BrowserVncBridge {
             websockify: None,
         }
     }
+}
+
+impl Default for BrowserVncBridge {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl BrowserVncBridge {
 
     pub fn start(&mut self) -> Result<(), String> {
         println!("[Browser] Spawning Xvfb on :99...");
         self.xvfb = Command::new("Xvfb")
-            .args(&[":99", "-screen", "0", "1280x800x24"])
+            .args([":99", "-screen", "0", "1280x800x24"])
             .spawn()
             .ok();
 
@@ -27,7 +36,7 @@ impl BrowserVncBridge {
 
         println!("[Browser] Spawning x11vnc on :99 (localhost only)...");
         self.x11vnc = Command::new("x11vnc")
-            .args(&["-display", ":99", "-localhost", "-nopw", "-bg", "-quiet"])
+            .args(["-display", ":99", "-localhost", "-nopw", "-bg", "-quiet"])
             .spawn()
             .ok();
 
@@ -35,7 +44,7 @@ impl BrowserVncBridge {
 
         println!("[Browser] Spawning websockify for MissionSpec noVNC on port 6080...");
         self.websockify = Command::new("websockify")
-            .args(&["6080", "localhost:5900", "-D"])
+            .args(["6080", "localhost:5900", "-D"])
             .spawn()
             .ok();
 

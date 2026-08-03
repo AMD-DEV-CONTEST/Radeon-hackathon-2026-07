@@ -71,6 +71,7 @@ pub struct ProvisioningReport {
 }
 
 impl ProvisioningReport {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         instance_id: String,
         provider: String,

@@ -74,7 +74,7 @@ impl HealthValidator {
 
             let stdout = String::from_utf8_lossy(&ssh_output.stdout);
             if !stdout.contains("card") && !stdout.contains("GPU") {
-                return Err(format!("ROCm JSON output invalid or no GPUs found."));
+                return Err("ROCm JSON output invalid or no GPUs found.".to_string());
             }
 
             println!("[Validation] ROCm SSH check succeeded.");

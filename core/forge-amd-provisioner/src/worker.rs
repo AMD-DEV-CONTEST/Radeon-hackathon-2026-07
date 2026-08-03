@@ -32,6 +32,15 @@ impl ForgeAMDProvisioner {
             state: ProvisioningState::IdempotencyCheck,
         }
     }
+}
+
+impl Default for ForgeAMDProvisioner {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ForgeAMDProvisioner {
 
     pub async fn execute(&mut self, req: ProvisionRequest) -> Result<ProvisioningReport, String> {
         let provision_start = Instant::now();
@@ -66,7 +75,7 @@ impl ForgeAMDProvisioner {
         self.state = ProvisioningState::IdempotencyCheck;
         if let Some(existing_ep) = EndpointRegistry::is_endpoint_registered(&req.gpu_family, &req.model) {
             println!("[Worker] Idempotency check passed: Reusing existing endpoint {}", existing_ep);
-            self.state = ProvisioningState::Completed;
+            self.state = ProvisioningState::Destroyed;
             return Ok(ProvisioningReport::new(
                 "existing-instance".to_string(),
                 req.provider,
@@ -81,6 +90,26 @@ impl ForgeAMDProvisioner {
                 None,
                 self.now_utc(),
             ));
+        }
+
+        if let Some(host) = &req.ssh_host {
+            if host.starts_with("https://") || host.starts_with("http://") {
+                self.state = ProvisioningState::Failed;
+                return Ok(ProvisioningReport::new(
+                    "invalid-ssh-host".to_string(),
+                    req.provider,
+                    req.gpu_family,
+                    "Unknown".to_string(),
+                    "https://invalid-ssh-host.amd.cloud.example.com".to_string(),
+                    "Failed".to_string(),
+                    0,
+                    cred_source,
+                    req.execution_mode,
+                    "Failed".to_string(),
+                    Some(format!("SSH host cannot be an HTTPS URL: {}", host)),
+                    self.now_utc(),
+                ));
+            }
         }
 
         self.state = ProvisioningState::WaitingForBrowser;

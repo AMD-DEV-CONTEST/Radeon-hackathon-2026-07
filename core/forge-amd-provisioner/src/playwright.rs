@@ -3,6 +3,7 @@ use playwright_rs::protocol::WaitForOptions;
 use playwright_rs::Playwright;
 use std::env;
 use std::path::PathBuf;
+use std::time::Duration;
 
 /// AMD Developer Cloud login portal URL.
 /// Can be overridden with AMD_CLOUD_URL environment variable for testing.
@@ -125,9 +126,27 @@ impl PlaywrightProvisioner {
 
         // ── Step 1: Navigate to AMD Cloud login portal ─────────────────────
         println!("[Playwright] Navigating to AMD Developer Cloud: {}", amd_url);
-        page.goto(&amd_url, None)
-            .await
-            .map_err(|e| format!("goto AMD Cloud failed: {}", e))?;
+        let mut last_error = None;
+        for attempt in 0..3 {
+            match page.goto(&amd_url, None).await {
+                Ok(_) => break,
+                Err(e) => {
+                    if attempt < 2 {
+                        println!("[Playwright] Navigation retry {}/3 after error: {}", attempt + 1, e);
+                        tokio::time::sleep(Duration::from_millis(250)).await;
+                        last_error = Some(e);
+                    } else {
+                        last_error = Some(e);
+                        break;
+                    }
+                }
+            }
+        }
+
+        if let Some(err) = last_error {
+            let _ = browser.close().await;
+            return Err(format!("goto AMD Cloud failed: {}", err));
+        }
 
         let login_title = page.title().await.map_err(|e| e.to_string())?;
         println!("[Playwright] AMD Cloud page loaded. Title: '{}'", login_title);
