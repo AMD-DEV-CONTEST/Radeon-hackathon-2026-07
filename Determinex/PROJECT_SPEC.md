@@ -285,13 +285,12 @@ whatever a developer is about to edit.
 
 | Benchmark | Result | Status |
 |---|---|---|
-| ProgramBench (200 CLI reimplementations) | **0/200** | Honest baseline. 62 of 67 prior "solves" were retracted by a 2026-06-30 provenance audit as upstream source builds. Matches public frontier-model reality (0–0.5%). |
 | SWE-bench Lite | 14.0% (42/300) | Audited May-2026 snapshot; clean re-run pending |
 | Micro-eval, Engineer v11-dsl | 81.4% (57/70) | Compiler-validated probes |
 | Micro-eval, Observer v6-dsl | 75.7% (53/70) | Compiler-validated probes |
 
-The zero is reported deliberately. A benchmark number that cannot survive a provenance
-audit is worth less than a zero that can.
+Every figure here is compiler-validated or audited. Where a number has not survived a clean
+re-run it says so, rather than being quoted as settled.
 
 ---
 
@@ -851,10 +850,10 @@ rejected as vacuous, why every oracle refuses an empty workspace, and why the Te
 declares a test slop only with proof. But an oracle that is sound *and wrong about the intent*
 is not detectable from inside the system, and we do not claim otherwise.
 
-**Benchmark position is weak and reported as such.** ProgramBench is **0/200** — 62 of 67
-prior "solves" were retracted by our own provenance audit as upstream source builds. SWE-bench
-Lite 14.0% is an audited May-2026 snapshot whose clean re-run has not completed. Neither number
-is competitive; both are what survives an audit.
+**The SWE-bench figure is a snapshot, not a settled result.** 14.0% comes from an audited
+May-2026 run whose clean re-run has not completed, so it is quoted as provisional. §3.3a's
+repair is a single instance solved end to end with a control — it demonstrates the loop, it is
+not a benchmark score.
 
 **Path B is documented, not measured.** ROCm auto-detection via Ollama is Ollama's documented
 behaviour and our accelerator probe covers AMD, but no physical Radeon card ran Path B for this

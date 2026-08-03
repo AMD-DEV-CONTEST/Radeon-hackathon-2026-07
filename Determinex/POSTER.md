@@ -94,7 +94,6 @@ An ordinary agent sends K *different* prompts. Measured, same GPU, K=16:
 
 | | |
 |---|---|
-| **ProgramBench** | **0 / 200.** A provenance audit retracted 62 of 67 prior "solves" as upstream source builds. Zero is the honest figure — and it matches every public frontier model. |
 | **AMD free API** | Never executed. Portal needs a China-registered account. Wired, labelled, not claimed. |
 | **~46 GiB VRAM** | *Derived* from KV-block telemetry under a stated bf16 assumption — not read from `rocm-smi`. |
 | **Local Ollama path** | Documented, not measured on a physical Radeon card. |

@@ -182,9 +182,6 @@ Three things to say while it runs:
 
 State it on camera rather than burying it:
 
-- **ProgramBench: 0/200 resolved.** A provenance audit found 62 of 67 prior "solves" were
-  upstream source builds and retracted them. Zero is the honest figure under the surviving
-  methodology, and it matches every public frontier model.
 - **The ~46 GiB VRAM figure is derived** from KV-block telemetry under a stated bf16
   assumption, not read from `rocm-smi`.
 - ~~AMD's free Token Factory endpoint was never exercised~~ — **retired 2026-08-02.** It

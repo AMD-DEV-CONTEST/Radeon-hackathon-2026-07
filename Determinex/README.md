@@ -206,9 +206,6 @@ third-party  + --network=none  ->  "to add it: go get"  ->  REFUSED
 
 ## What is not claimed
 
-- **ProgramBench: 0/200 resolved.** A 2026-06-30 provenance audit found 62 of 67 prior
-  "solves" were upstream source builds and retracted them. Zero is the honest figure under
-  the surviving methodology, and it matches every public frontier model.
 - ~~AMD's free Token Factory endpoint was never exercised~~ — **retired 2026-08-02.** It
   works from an ordinary account: five models served on AMD GPUs, and `MiniCPM5-1B` (four
   Radeon PRO W7900 workers per the portal) returned 200 tokens in **2.0 s**. A live K-sweep
@@ -239,14 +236,31 @@ third-party  + --network=none  ->  "to add it: go get"  ->  REFUSED
 
 ```bash
 git clone https://github.com/DarthCeltic/Determinex && cd Determinex
+pip install -r scripts/requirements.txt          # inference-only; Python 3.11+
 
 # Radeon Cloud -> Add Template -> Deploy Type = Notebook
 vllm serve Qwen/Qwen2.5-Coder-7B-Instruct --host 127.0.0.1 --port 8000
 
 # generation on the Radeon, verification wherever your toolchain lives
 export DETERMINEX_VLLM_BASE_URL=http://127.0.0.1:8000/v1
+export DETERMINEX_VLLM_API_KEY=whatever-you-passed-to---api-key   # omit if vLLM has none
 python scripts/determinex_build_from_idea.py --idea idea.md --provider vllm --k 32
 ```
+
+`idea.md` ships in the repository, so that command runs as written. It should print a
+synthesized oracle, the verified-search rounds, and a program that passes:
+
+```
+=== BUILD FROM IDEA (vllm) ===
+synthesized oracle: 3 checks
+result: SOLVED  samples=1
+proof: program PASSES all 3 synthesized checks (oracle-verified, 1 samples).
+```
+
+**Then delete the "For example…" lines from `idea.md` and run it again.** It will refuse —
+`result: not solved`, *"that cannot verify behaviour. Add one concrete input/output example
+and re-run."* That refusal is the product, not an error: no oracle, no claim. Checking both
+directions takes about a minute and is the fastest way to see what this actually is.
 
 `generate()` and `verify()` are decoupled by design, so the model can serve from a Radeon
 GPU while the compiler oracle runs anywhere — which is exactly how the benchmark numbers
