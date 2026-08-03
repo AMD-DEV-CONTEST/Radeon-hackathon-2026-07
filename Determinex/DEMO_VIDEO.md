@@ -5,7 +5,27 @@ directory, so it needs no external host and cannot rot.
 
 **Mirror:** _(YouTube link added on submission)_
 
-**Live on the GPU:** [`LIVE_ON_RADEON_2026-08-03.mp4`](LIVE_ON_RADEON_2026-08-03.mp4) — 0:55,
+**Live on the GPU, the whole argument:**
+[`LIVE_ON_RADEON_FULL_2min.mp4`](LIVE_ON_RADEON_FULL_2min.mp4) — 1:59, recorded 2026-08-03
+against the Radeon Cloud instance `u-14786-cdc26df7` while it was serving.
+
+> This is the section the main demo had to replay. It runs live, in one pass, in the order the
+> argument goes: the model served on the card · what one candidate costs (**29.6 tok/s**) ·
+> what the sixth costs (**5.77× throughput for 1.04× wall clock**) · where the ceiling is · and
+> the loop refusing a result it cannot verify before earning one.
+>
+> The refusal is the part worth watching. Asked to build from a vague idea it returns
+> `solved=False` — *"that cannot verify behaviour. Add one concrete input/output example and
+> re-run."* Given three examples it synthesizes a 3-check oracle and returns a program that
+> passes, generated on the Radeon.
+>
+> **What it does not show, stated on screen rather than omitted:** no `rocm-smi`. This drives
+> the vLLM endpoint through the instance's own tunnel, not a shell on the box, so the GPU is
+> evidenced by what it serves and how it behaves under load.
+>
+> Raw timed terminal log: [`amd_gpu_evidence/radeon_live_full_2026-08-03.json`](amd_gpu_evidence/radeon_live_full_2026-08-03.json)
+
+**Live on the GPU, the optimizer:** [`LIVE_ON_RADEON_2026-08-03.mp4`](LIVE_ON_RADEON_2026-08-03.mp4) — 0:55,
 recorded 2026-08-03 against AMD's Radeon Token Factory while it was serving.
 
 > The note below says the Radeon Cloud instance used for sections 1–3 was destroyed. That is
