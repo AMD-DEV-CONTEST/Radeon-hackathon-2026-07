@@ -29,11 +29,7 @@ pub fn lanes_state_path() -> String {
 }
 
 pub fn models_dir() -> String {
-    if std::path::Path::new("/codebase/models").exists() {
-        "/codebase/models".to_string()
-    } else {
-        "/data/cesarops/local_models".to_string()
-    }
+    "/mnt/raid0/models".to_string()
 }
 
 pub fn project_root() -> String {

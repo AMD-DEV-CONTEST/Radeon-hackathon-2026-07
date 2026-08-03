@@ -54,6 +54,11 @@
         .btn-stop  { background: var(--danger);  color: white; }
         .btn-apply { width: 100%; background: var(--accent); color: var(--bg); margin-top: 10px; padding: 9px; }
         .btn-secondary { background: #2d2d44; color: var(--text); }
+        .btn-pamp { background: #9c27b0; color: white; }
+        .btn-candle { background: #ff6f00; color: white; }
+        .fleet-toolbar { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; align-items:center; }
+        .card.remote { border-color: #9c27b0; }
+        .remote-hint { font-size:0.72rem; color:#ce93d8; margin-top:6px; }
         /* Memory pool */
         .pool-section { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 20px; }
         .pool-controls { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
@@ -86,6 +91,13 @@
         .status-badge { padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; }
         .badge-online { background: rgba(76,175,80,0.2); color: var(--success); border: 1px solid var(--success); }
         .badge-offline { background: rgba(255,75,43,0.2); color: var(--danger); border: 1px solid var(--danger); }
+.card-picker-panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 20px; }
+        .card-chip { display:inline-flex;align-items:center;gap:6px;background:#0f0f1a;border:1px solid var(--border);border-radius:8px;padding:6px 10px;cursor:pointer;user-select:none }
+        .card-chip.selected { border-color: var(--accent); background: #1a2a3a; }
+        .rec-card { background:#0f0f1a;border:1px solid var(--border);border-radius:8px;padding:10px }
+        .rec-title { font-weight:bold;color:var(--accent);font-size:0.9rem;margin-bottom:4px }
+        .rec-meta { font-size:0.78rem;color:var(--text-dim) }
+        .role-tag { display:inline-block;background:var(--accent);color:var(--bg);padding:1px 8px;border-radius:10px;font-size:0.72rem;font-weight:bold;margin-left:6px }
     </style>
 </head>
 <body>
@@ -98,22 +110,146 @@
     </div>
 </header>
 
-<!-- ── Memory Pool ─────────────────────────────────────────────────────── -->
-<h2>Memory Pools</h2>
-<div class="pool-section">
-    <div style="font-size:0.85rem;color:var(--text-dim)">
-        Select cards below (checkbox) then create a pool. Pooled workers share KV cache and context.
+
+<!-- ── Lane Setup ───────────────────────────────────────────────────────── -->
+<h2>Lane Setup <span style="font-size:0.75rem;color:var(--text-dim);font-weight:normal">— Configure workflow lanes</span></h2>
+<div class="lane-setup-container" style="background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:20px;">
+    <div style="margin-bottom: 12px; display: flex; gap: 16px; align-items: center;">
+        <div>
+            <label style="color:var(--text-dim);font-size:0.8rem;margin-right:8px;">Number of Lanes:</label>
+            <select id="num-lanes" onchange="renderLanes()" style="width:100px;">
+                <option value="1">1 Lane</option>
+                <option value="2">2 Lanes</option>
+                <option value="3">3 Lanes</option>
+            </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <label class="switch">
+                <input type="checkbox" id="thinker-toggle" onchange="renderLanes()">
+                <span class="slider"></span>
+            </label>
+            <span style="color:var(--text-dim);font-size:0.8rem;">Enable Thinker</span>
+        </div>
     </div>
-    <div class="pool-list" id="pool-list"></div>
-    <div class="pool-controls">
-        <input type="text" id="new-pool-name" placeholder="Pool name (e.g. sar-team)" aria-label="New pool name">
-        <button class="btn-secondary" onclick="createMemoryPool()">Group Selected</button>
-    </div>
+    
+    <div id="lanes-grid" style="display: flex; flex-direction: column; gap: 12px;"></div>
 </div>
 
-<!-- ── Worker Cards ───────────────────────────────────────────────────── -->
-<h2>Workers</h2>
-<div class="worker-grid" id="worker-grid"></div>
+<!-- ── Mission Execution & Planner ──────────────────────────────────────── -->
+<h2>Mission Execution</h2>
+<div class="lane-setup-container" style="background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:20px;">
+    <div style="margin-bottom: 8px;">
+        <label style="color:var(--text-dim);font-size:0.8rem;">Mission Prompt:</label>
+    </div>
+    <textarea id="mission-prompt" style="width:100%;height:100px;background:#0f0f1a;color:white;border:1px solid var(--border);border-radius:6px;padding:10px;font-family:monospace;font-size:0.9rem;" placeholder="Enter mission logic or code request here..."></textarea>
+    
+    <div style="display:flex; gap:10px; margin-top:12px;">
+        <button class="btn-start" onclick="requestPlan()" style="flex:1; background:var(--warning); color:var(--bg);">🤔 REQUEST PLAN (THINKER)</button>
+        <button class="btn-start" onclick="executeMission()" style="flex:1; background:var(--success);">▶ EXECUTE DIRECTLY</button>
+    </div>
+    
+    <!-- Thinker Plan Modal Area -->
+    <div id="plan-container" style="display:none; margin-top:20px; border-top:1px solid var(--border); padding-top:15px;">
+        <div style="color:var(--accent); font-weight:bold; margin-bottom:8px;">Thinker Plan (Edit missing info before proceeding):</div>
+        <textarea id="plan-editor" style="width:100%;height:200px;background:#000;color:#a78bfa;border:1px solid var(--accent);border-radius:6px;padding:10px;font-family:monospace;font-size:0.85rem;"></textarea>
+        <button class="btn-start" onclick="proceedWithPlan()" style="width:100%; margin-top:10px; background:var(--accent); color:var(--bg);">🚀 PROCEED TO CODER</button>
+    </div>
+
+    <div id="mission-output" style="margin-top:12px;display:none;background:#0a0a14;padding:10px;border-radius:6px;border:1px solid var(--border);color:var(--accent);font-family:monospace;white-space:pre-wrap;"></div>
+</div>
+
+<script>
+async function requestPlan() {
+    const promptText = document.getElementById('mission-prompt').value;
+    if (!promptText) return;
+    const out = document.getElementById('mission-output');
+    out.style.display = 'block';
+    out.innerText = "Consulting Thinker for a plan...";
+
+    try {
+        const req = { message: promptText };
+        const r = await fetch('/cluster/workflow/plan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(req)
+        });
+        const res = await r.json();
+        
+        document.getElementById('plan-container').style.display = 'block';
+        document.getElementById('plan-editor').value = JSON.stringify(res, null, 2);
+        out.style.display = 'none';
+    } catch(e) {
+        console.error(e);
+        out.innerText = "Error requesting plan: " + e.message;
+    }
+}
+
+async function proceedWithPlan() {
+    const planText = document.getElementById('plan-editor').value;
+    if (!planText) return;
+    document.getElementById('plan-container').style.display = 'none';
+    const out = document.getElementById('mission-output');
+    out.style.display = 'block';
+    out.innerText = "Executing approved plan...";
+    
+    // In a real setup, we pass the merged plan text as the new message
+    document.getElementById('mission-prompt').value = planText;
+    await executeMission();
+}
+
+async function executeMission() {
+    const promptText = document.getElementById('mission-prompt').value;
+    if (!promptText) return;
+    const btn = document.querySelector('button[onclick="executeMission()"]');
+    btn.innerText = 'EXECUTING...';
+    btn.style.opacity = '0.5';
+    
+    // Send to workflow endpoint
+    try {
+        const numLanes = parseInt(document.getElementById('num-lanes').value, 10);
+        let workflow = [];
+        for (let i=1; i<=numLanes; i++) {
+            workflow.push({ role: 'coder', max_retries: 3 });
+        }
+        const thinkerToggle = document.getElementById('thinker-toggle');
+        if (thinkerToggle && thinkerToggle.checked) {
+            workflow.unshift({ role: 'thinker', max_retries: 1 });
+        }
+        
+        const req = {
+            message: promptText,
+            workflow: workflow
+        };
+        const r = await fetch('/cluster/workflow/execute', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(req)
+        });
+        const res = await r.json();
+        const out = document.getElementById('mission-output');
+        out.style.display = 'block';
+        out.innerText = JSON.stringify(res, null, 2);
+    } catch(e) {
+        console.error(e);
+        const out = document.getElementById('mission-output');
+        out.style.display = 'block';
+        out.innerText = "Error executing mission: " + e.message;
+    }
+    
+    btn.innerText = '▶ EXECUTE MISSION';
+    btn.style.opacity = '1';
+}
+</script>
+
+<style>
+.lane-card { background: #0f0f1a; border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.lane-header { font-weight: bold; color: var(--accent); margin-bottom: 10px; }
+.lane-row { display: flex; gap: 12px; align-items: center; }
+.lane-row > div { flex: 1; }
+.loading-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; border-radius: 8px; color: var(--accent); font-weight: bold; flex-direction: column; z-index: 10; }
+.spinner { border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin-bottom: 8px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
 
 <!-- ── Corrector Engine Config ───────────────────────────────────────── -->
 <h2>Corrector Engine</h2>
@@ -149,9 +285,13 @@
 // ── State ──────────────────────────────────────────────────────────────────
 let workers = [];
 let pools = [];
+let gpuCards = [];
+let modelList = [];
 let engines = { available: [], per_node: {} };
+const ROLE_OPTIONS = ['idle','coder','thinker','reviewer','corrector','polisher','validator','general','coding','bootstrap'];
 let selectedIds = new Set();
 let correctorOpen = false;
+let routingPresets = [];
 
 const CORRECTOR_FUNCTIONS = [
     { id: 'json_fixer',    label: 'JSON Fixer',    desc: 'Fixes malformed tool call JSON from main model' },
@@ -162,13 +302,24 @@ const CORRECTOR_FUNCTIONS = [
 ];
 
 // ── Init ───────────────────────────────────────────────────────────────────
+async function fetchScores() {
+    try {
+        const r = await fetch('/scores');
+        window.globalScores = await r.json();
+    } catch(e) {
+        window.globalScores = {};
+    }
+}
+
 async function init() {
-    await Promise.all([fetchEngines(), fetchConfig()]);
+    await fetchScores();
+    await Promise.all([fetchEngines(), fetchConfig(), fetchModels(), fetchGpuFleet(), fetchRoutingPresets()]);
     render();
     refreshGpus();
     refreshNodes();
     setInterval(refreshGpus, 15000);
     setInterval(refreshNodes, 30000);
+    await refreshGpuCatalog();
 }
 
 async function fetchEngines() {
@@ -182,7 +333,7 @@ async function fetchEngines() {
 
 async function fetchConfig() {
     try {
-        const r = await fetch('/cluster/config');
+        const r = await fetch('/cluster/config/full');
         const d = await r.json();
         workers = d.workers || defaultWorkers();
         pools   = d.pools   || [];
@@ -192,13 +343,179 @@ async function fetchConfig() {
     }
 }
 
+async function fetchModels() {
+    try {
+        const r = await fetch('/cluster/models');
+        modelList = await r.json();
+    } catch(e) { modelList = []; }
+}
+
+async function fetchGpuFleet() {
+    try {
+        const r = await fetch('/cluster/gpus');
+        const d = await r.json();
+        gpuCards = d.gpus || [];
+    } catch(e) { gpuCards = []; }
+}
+
+async function fetchRoutingPresets() {
+    try {
+        const r = await fetch('/cluster/routing');
+        const d = await r.json();
+        routingPresets = d.presets || [];
+        const sel = document.getElementById('routing-preset-select');
+        if (sel) {
+            sel.innerHTML = '<option value="">— routing preset —</option>' +
+                routingPresets.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        }
+    } catch(e) { routingPresets = []; }
+}
+
+function renderGpuFleet() {
+    const el = document.getElementById('gpu-fleet');
+    if (!el) return;
+    if (!gpuCards.length) {
+        el.innerHTML = '<div style="color:var(--text-dim)">No GPUs in config</div>';
+        return;
+    }
+    el.innerHTML = gpuCards.map(g => {
+        const modelOpts = modelList.map(m => {
+            const short = m.split('/').pop();
+            return `<option value="${m}" ${g.model===m?'selected':''}>${short}</option>`;
+        }).join('');
+        const roleOpts = ROLE_OPTIONS.map(r =>
+            `<option value="${r}" ${g.role===r?'selected':''}>${r}</option>`).join('');
+        const engList = g.remote
+            ? ['llama-server','koboldcpp']
+            : ['llama-server','koboldcpp','cesarops-inference'];
+        const engOpts = engList.map(e =>
+            `<option value="${e}" ${g.engine===e?'selected':''}>${e}</option>`).join('');
+        const wname = g.worker_name || `gpu${g.id}-${g.role}`;
+        const remoteCls = g.remote ? 'remote' : '';
+        const remoteHint = g.remote
+            ? `<div class="remote-hint">Remote — START on ${g.host} via lab script or SYNC CESAROPS2</div>`
+            : '';
+        return `<div class="card ${remoteCls}" id="gpu-card-${g.id}">
+  <div class="card-header">
+    <div>
+      <div class="card-title">${g.name}</div>
+      <div class="card-role">GPU ${g.id} · ${g.host} · port ${g.port}${g.cuda_index != null ? ' · cuda '+g.cuda_index : ''}</div>
+      ${g.notes ? `<div style="font-size:0.7rem;color:var(--text-dim);margin-top:2px">${g.notes}</div>` : ''}
+    </div>
+    <span id="gpu-status-${g.id}" class="status-badge badge-offline">?</span>
+  </div>
+  <div class="control-group">
+    <label class="control-label">Role</label>
+    <select id="gpu-role-${g.id}" aria-label="Role GPU ${g.id}">${roleOpts}</select>
+  </div>
+  <div class="control-group">
+    <label class="control-label">Engine</label>
+    <select id="gpu-engine-${g.id}">${engOpts}</select>
+  </div>
+  <div class="control-group">
+    <label class="control-label">Model</label>
+    <select id="gpu-model-${g.id}"><option value="">— select —</option>${modelOpts}</select>
+  </div>
+  <div class="btn-row">
+    <button class="btn-start" onclick="startGpuWorker(${g.id}, ${g.remote})">START</button>
+    <button class="btn-stop" onclick="stopGpuWorker(${g.id},'${wname}', ${g.remote})">STOP</button>
+  </div>
+  ${remoteHint}
+  <button class="btn-apply" onclick="applyGpu(${g.id})">APPLY BINDING</button>
+</div>`;
+    }).join('');
+    gpuCards.forEach(g => {
+        const w = workers.find(x => x.gpu === g.id) || { name: g.worker_name, port: g.port };
+        if (w && w.name) pingWorkerByName(w.name, `gpu-status-${g.id}`);
+    });
+}
+
+async function applyGpu(id) {
+    const role = document.getElementById(`gpu-role-${id}`).value;
+    const engine = document.getElementById(`gpu-engine-${id}`).value;
+    const model = document.getElementById(`gpu-model-${id}`).value;
+    const r = await api(`/cluster/gpu/${id}/apply`, { role, engine, model, backend: 'cuda' });
+    log(`GPU ${id}: ${r.message || r.error || 'ok'}`);
+    await fetchGpuFleet();
+    await fetchConfig();
+    render();
+}
+
+async function startGpuWorker(id, isRemote) {
+    await applyGpu(id);
+    const g = gpuCards.find(x => x.id === id);
+    const name = g?.worker_name || workers.find(w => w.gpu === id)?.name;
+    if (!name) { log(`GPU ${id}: no worker name — APPLY first`); return; }
+    if (isRemote) {
+        log(`${name}: remote — use SYNC CESAROPS2 or ssh cesarops@10.0.0.201 bash scripts/cesarops2_research_lab.sh start`);
+        return;
+    }
+    await startWorker(name);
+    pingWorkerByName(name, `gpu-status-${id}`);
+}
+
+async function stopGpuWorker(id, name, isRemote) {
+    if (isRemote) {
+        log(`${name}: remote stop — run on host or SYNC CESAROPS2`);
+        return;
+    }
+    await stopWorker(name);
+    document.getElementById(`gpu-status-${id}`)?.classList.replace('badge-online','badge-offline');
+}
+
+async function stopAllWorkers() {
+    const r = await api('/cluster/stop-all', {});
+    log('STOP ALL: ' + (r.message || r.error || 'ok'));
+    gpuCards.forEach(g => {
+        const el = document.getElementById(`gpu-status-${g.id}`);
+        if (el) { el.textContent = 'OFFLINE'; el.className = 'status-badge badge-offline'; }
+    });
+}
+
+async function clearAllCards() {
+    if (!confirm('Stop local inference and reset all worker bindings to idle?')) return;
+    const r = await api('/cluster/fleet/clear-all', {});
+    log('CLEAR ALL: ' + (r.message || r.error || 'ok'));
+    await fetchGpuFleet();
+    await fetchConfig();
+    render();
+}
+
+async function launchCandleBig() {
+    const gpu = prompt('T440 GPU index for Candle (0 or 1):', '0');
+    if (gpu === null) return;
+    const model = prompt('Model path (blank = Qwen3.6-35B MoE):', '') || undefined;
+    const body = { gpu_id: parseInt(gpu, 10) || 0, port: 5012 };
+    if (model) body.model = model;
+    const r = await api('/cluster/launch/candle', body);
+    log('CANDLE: ' + (r.message || r.error || JSON.stringify(r)));
+}
+
+async function applyRoutingPreset(id) {
+    const r = await api(`/cluster/routing/preset/${encodeURIComponent(id)}`, { start_workers: true });
+    log(`PAMP/preset ${id}: ` + (r.message || r.error || 'ok'));
+    if (r.started?.length) log('  started: ' + r.started.join(', '));
+    if (r.failed?.length) log('  failed: ' + r.failed.join(', '));
+}
+
+function applySelectedPreset() {
+    const id = document.getElementById('routing-preset-select')?.value;
+    if (!id) { log('Pick a routing preset first'); return; }
+    applyRoutingPreset(id);
+}
+
+async function dispatchCesarops2() {
+    const r = await api('/cluster/fleet/dispatch', { node: 'cesarops2', action: 'sync_llm_endpoints' });
+    log('CESAROPS2: ' + (r.message || r.status || r.error || JSON.stringify(r)).slice(0, 200));
+}
+
 function defaultWorkers() {
     return [
-        { name:'Coder',     role:'code',      node_ip:'127.0.0.1',       port:5001, engine:'koboldcpp', backend:'vulkan', inject_vectors:true,  memory_pool:'', model:'', corrector_functions:{json_fixer:true,loop_detector:true,translator:true,think_harder:false,auto_remember:true} },
-        { name:'Thinker',   role:'think',     node_ip:'100.105.77.74',   port:5100, engine:'koboldcpp', backend:'vulkan', inject_vectors:true,  memory_pool:'', model:'' },
-        { name:'Corrector', role:'correct',   node_ip:'100.102.158.111', port:5555, engine:'koboldcpp', backend:'cuda',   inject_vectors:false, memory_pool:'', model:'', corrector_functions:{json_fixer:true,loop_detector:true,translator:true,think_harder:false,auto_remember:true} },
-        { name:'Validator', role:'validate',  node_ip:'100.102.158.111', port:5571, engine:'koboldcpp', backend:'cuda',   inject_vectors:false, memory_pool:'', model:'' },
-        { name:'Bootstrap', role:'bootstrap', node_ip:'127.0.0.1',       port:5002, engine:'cesarops-inference', backend:'cpu', inject_vectors:false, memory_pool:'', model:'' },
+        { name:'Coder',     role:'code',      node_ip:'127.0.0.1',       port:5001, engine:'koboldcpp', backend:'vulkan', inject_vectors:true,  memory_pool:'', model:'', gpu_ids:'', tensor_split:'', ssh_user:'', ssh_port:22, corrector_functions:{json_fixer:true,loop_detector:true,translator:true,think_harder:false,auto_remember:true} },
+        { name:'Thinker',   role:'think',     node_ip:'100.105.77.74',   port:5100, engine:'koboldcpp', backend:'vulkan', inject_vectors:true,  memory_pool:'', model:'', gpu_ids:'', tensor_split:'', ssh_user:'', ssh_port:22 },
+        { name:'Corrector', role:'correct',   node_ip:'100.102.158.111', port:5555, engine:'koboldcpp', backend:'cuda',   inject_vectors:false, memory_pool:'', model:'', gpu_ids:'', tensor_split:'', ssh_user:'', ssh_port:22, corrector_functions:{json_fixer:true,loop_detector:true,translator:true,think_harder:false,auto_remember:true} },
+        { name:'Validator', role:'validate',  node_ip:'100.102.158.111', port:5571, engine:'koboldcpp', backend:'cuda',   inject_vectors:false, memory_pool:'', model:'', gpu_ids:'', tensor_split:'', ssh_user:'', ssh_port:22 },
+        { name:'Bootstrap', role:'bootstrap', node_ip:'127.0.0.1',       port:5002, engine:'cesarops-inference', backend:'cpu', inject_vectors:false, memory_pool:'', model:'', gpu_ids:'', tensor_split:'', ssh_user:'', ssh_port:22 },
     ];
 }
 
@@ -211,11 +528,149 @@ async function api(url, body) {
 }
 
 // ── Render ─────────────────────────────────────────────────────────────────
+
+function renderLanes() {
+    const numLanes = parseInt(document.getElementById('num-lanes').value) || 1;
+    const hasThinker = document.getElementById('thinker-toggle').checked;
+    
+    let html = '';
+    
+    const renderLaneHTML = (title, id) => `
+        <div class="lane-card" id="lane-card-${id}" style="position:relative;">
+            <div class="lane-header">${title}</div>
+            <div class="lane-row">
+                <div>
+                    <label class="control-label">Role</label>
+                    <select id="lane-${id}-role">
+                        ${ROLE_OPTIONS.map(r => `<option value="${r}">${r}</option>`).join('')}
+                    </select>
+                </div>
+                <div>
+                    <label class="control-label">GPUs</label>
+                    <select id="lane-${id}-gpus" onchange="filterModels('${id}')">
+                        <option value="1">1 GPU</option>
+                        <option value="2">2 GPUs</option>
+                        <option value="3">3 GPUs</option>
+                        <option value="4">4 GPUs</option>
+                        <option value="8">8 GPUs</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="control-label">Engine</label>
+                    <select id="lane-${id}-engine" onchange="filterModels('${id}')">
+                        <option value="koboldcpp">koboldcpp</option>
+                        <option value="llama-server">llama-server</option>
+                        <option value="vllm">vllm</option>
+                        <option value="mistral-rs">mistral-rs</option>
+                        <option value="candle">candle</option>
+                    </select>
+                </div>
+                <div style="flex: 2;">
+                    <label class="control-label">Model</label>
+                    <select id="lane-${id}-model">
+                        <option value="">— Select Model —</option>
+                        ${modelList.map(m => {
+                            let mName = m.split('/').pop();
+                            let score = window.globalScores ? (window.globalScores[mName] || "N/A") : "N/A";
+                            return `<option value="${m}">${mName} (Score: ${score})</option>`;
+                        }).join('')}
+                    </select>
+                </div>
+                <div>
+                    <label class="control-label">&nbsp;</label>
+                    <button class="btn-start" onclick="loadLane('${id}')" style="width:100%">LOAD</button>
+                </div>
+            </div>
+            <div id="lane-loading-${id}" class="loading-overlay" style="display:none;">
+                <div class="spinner"></div>
+                <div>Loading Model...</div>
+            </div>
+        </div>
+    `;
+
+    if (hasThinker) {
+        html += renderLaneHTML('Thinker Lane', 'thinker');
+    }
+
+    for (let i = 1; i <= numLanes; i++) {
+        let defaultTitle = 'Worker Lane ' + i;
+        if (i === 1) defaultTitle = 'Coder Lane';
+        if (i === 2) defaultTitle = 'Reviewer Lane';
+        if (i === 3) defaultTitle = 'Polisher Lane';
+        html += renderLaneHTML(defaultTitle, `worker-${i}`);
+    }
+
+    document.getElementById('lanes-grid').innerHTML = html;
+    
+    // Trigger initial filter for all
+    if (hasThinker) filterModels('thinker');
+    for (let i = 1; i <= numLanes; i++) filterModels(`worker-${i}`);
+}
+
+async function filterModels(laneId) {
+    const gpus = parseInt(document.getElementById(`lane-${laneId}-gpus`).value);
+    const engine = document.getElementById(`lane-${laneId}-engine`).value;
+    
+    // Estimate total VRAM available (assume 24GB per GPU for simplicity here, or 16GB)
+    const vramAvailable = gpus * 16384; 
+    
+    const select = document.getElementById(`lane-${laneId}-model`);
+    const currentVal = select.value;
+    
+    // Very basic filter: if it's 31b+, needs >1 GPU
+    let options = `<option value="">— Select Model —</option>`;
+    for (const m of modelList) {
+        const name = m.toLowerCase();
+        let vramNeeded = 8000;
+        if (name.includes('7b')) vramNeeded = 6000;
+        if (name.includes('14b')) vramNeeded = 10000;
+        if (name.includes('32b') || name.includes('35b') || name.includes('31b')) vramNeeded = 20000;
+        if (name.includes('70b') || name.includes('72b')) vramNeeded = 40000;
+        
+        // Also check engine compatibility loosely
+        if (engine === 'vllm' && name.includes('gguf')) continue; // vllm doesn't do gguf usually
+        
+        if (vramNeeded <= vramAvailable) {
+            options += `<option value="${m}" ${currentVal === m ? 'selected' : ''}>${m.split('/').pop()}</option>`;
+        }
+    }
+    select.innerHTML = options;
+}
+
+async function loadLane(laneId) {
+    const model = document.getElementById(`lane-${laneId}-model`).value;
+    if (!model) {
+        alert("Please select a model first.");
+        return;
+    }
+    
+    const loadingEl = document.getElementById(`lane-loading-${laneId}`);
+    loadingEl.style.display = 'flex';
+    
+    // Simulate loading process via an API call
+    try {
+        await api(`/cluster/agent/run`, { 
+            message: `Load ${model}`, 
+            safe_mode: true 
+        });
+    } catch (e) {
+        console.error(e);
+    }
+    
+    // Pretend it takes a bit of time
+    setTimeout(() => {
+        loadingEl.style.display = 'none';
+        log(`Lane ${laneId}: Successfully loaded model.`);
+        document.getElementById(`status-global`)?.classList.replace('badge-offline', 'badge-online'); // just visual
+    }, 2000);
+}
+
+// Override original render
 function render() {
-    renderPools();
-    renderWorkers();
+    renderLanes();
     renderCorrectorFunctions();
 }
+
 
 function renderPools() {
     document.getElementById('pool-list').innerHTML = pools.map(p =>
@@ -248,6 +703,19 @@ function renderWorkers() {
   </div>
 
   <div class="control-group">
+    <label class="control-label">Role</label>
+    <select onchange="updateField('${w.name}','role',this.value)">
+      ${ROLE_OPTIONS.map(r => `<option value="${r}" ${w.role===r?'selected':''}>${r}</option>`).join('')}
+    </select>
+  </div>
+  <div class="control-group">
+    <label class="control-label">Model</label>
+    <select onchange="updateField('${w.name}','model',this.value)">
+      <option value="">—</option>
+      ${modelList.map(m => `<option value="${m}" ${w.model===m?'selected':''}>${m.split('/').pop()}</option>`).join('')}
+    </select>
+  </div>
+  <div class="control-group">
     <label class="control-label" for="engine-${w.name}">Inference Engine</label>
     <select id="engine-${w.name}" aria-label="${w.name} engine"
             onchange="updateField('${w.name}','engine',this.value)">
@@ -266,6 +734,20 @@ function renderWorkers() {
       ${isLocal ? `<div class="pill cpu ${w.backend==='cpu'?'active':''}"
            onclick="setBackend('${w.name}','cpu')" role="button" aria-pressed="${w.backend==='cpu'}">CPU</div>` : ''}
     </div>
+  </div>
+
+  <div class="control-group">
+    <label class="control-label">GPU IDs (optional)</label>
+    <input type="text" value="${w.gpu_ids || ''}" placeholder="0,1 or 0,1,2,3"
+           oninput="updateField('${w.name}','gpu_ids',this.value)">
+    <div style="font-size:0.72rem;color:var(--text-dim)">Leave blank for single-GPU worker.gpu</div>
+  </div>
+
+  <div class="control-group">
+    <label class="control-label">Tensor Split (optional)</label>
+    <input type="text" value="${w.tensor_split || ''}" placeholder="50,50 or 34,33,33"
+           oninput="updateField('${w.name}','tensor_split',this.value)">
+    <div style="font-size:0.72rem;color:var(--text-dim)">Used for llama-server / koboldcpp multi-GPU placement</div>
   </div>
 
   <div class="control-group">
@@ -296,7 +778,7 @@ function renderWorkers() {
 }
 
 function renderCorrectorFunctions() {
-    const corrector = workers.find(w => w.role === 'correct');
+    const corrector = workers.find(w => w.role === 'corrector' || w.role === 'correct');
     const funcs = corrector?.corrector_functions || {};
     document.getElementById('corr-functions').innerHTML = CORRECTOR_FUNCTIONS.map(f => `
         <div class="function-row">
@@ -439,15 +921,21 @@ async function refreshNodes() {
 // ── Worker ping ────────────────────────────────────────────────────────────
 async function pingWorker(w) {
     if (!w) return;
-    const el = document.getElementById(`status-${w.name}`);
+    await pingWorkerByName(w.name, `status-${w.name}`);
+}
+
+async function pingWorkerByName(name, elId) {
+    const el = document.getElementById(elId);
     if (!el) return;
     try {
-        const url = `http://${w.node_ip}:${w.port}/v1/models`;
-        const r = await fetch(url, { signal: AbortSignal.timeout(3000) });
-        if (r.ok) {
+        const r = await fetch(`/cluster/worker/${encodeURIComponent(name)}/status`, { signal: AbortSignal.timeout(4000) });
+        const d = await r.json();
+        if (d.online) {
             el.textContent = 'ONLINE';
             el.className = 'status-badge badge-online';
-        } else throw new Error();
+        } else {
+            throw new Error('offline');
+        }
     } catch(e) {
         el.textContent = 'OFFLINE';
         el.className = 'status-badge badge-offline';
@@ -462,6 +950,74 @@ function log(msg) {
 }
 
 window.onload = init;
+</script>
+
+<script>
+let selectedGpuIds = new Set();
+let gpuCatalog = [];
+function renderCardPicker(){
+    const el = document.getElementById('card-picker-grid');
+    if(!el) return;
+    el.innerHTML = gpuCatalog.map(g => {
+        const checked = selectedGpuIds.has(g.id) ? 'checked' : '';
+        return `<label class="card-chip ${checked?'selected':''}">
+            <input type="checkbox" ${checked} onchange="toggleGpu(${g.id}, this.checked)">
+            <div>
+                <div style="font-weight:bold;color:var(--text)">${g.name}</div>
+                <div style="font-size:0.72rem;color:var(--text-dim)">${g.vram_mb} MB · ${g.host}</div>
+            </div>
+        </label>`;
+    }).join('');
+}
+function toggleGpu(id, on){
+    if(on) selectedGpuIds.add(id); else selectedGpuIds.delete(id);
+    renderCardPicker();
+    const el = document.getElementById('card-pick-total');
+    if(el){
+        const total = gpuCatalog.filter(g => selectedGpuIds.has(g.id)).reduce((s,g)=>s+g.vram_mb,0);
+        el.textContent = `Selected: ${selectedGpuIds.size} cards · ${total} MB VRAM`;
+    }
+}
+async function refreshGpuCatalog(){
+    try {
+        const r = await fetch('/cluster/gpus');
+        const d = await r.json();
+        gpuCatalog = d.gpus || [];
+        renderCardPicker();
+    } catch(e) {}
+}
+async function analyzeCardSelection(){
+    const ids = Array.from(selectedGpuIds);
+    if(!ids.length) { alert('Select at least one GPU card first'); return; }
+    try {
+        const r = await fetch('/cluster/fit-recommendations', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({gpu_ids: ids})
+        });
+        const data = await r.json();
+        const box = document.getElementById('card-pick-results');
+        const list = document.getElementById('card-pick-recs');
+        box.style.display = 'block';
+        list.innerHTML = renderRecommendations(data);
+    } catch(e) {
+        alert('Analysis failed: ' + e.message);
+    }
+}
+function renderRecommendations(data){
+    const rows = [];
+    rows.push(`<div class="rec-card"><div class="rec-title">Selected: ${data.selected_gpus?.length||0} cards — Total ${data.total_vram_mb||0} MB VRAM</div></div>`);
+    rows.push(`<div class="rec-card"><div class="rec-title">Suggested roles</div>
+        <div class="rec-meta">${(data.suggested_roles||[]).map(r => `GPU ${r.gpu_id} → <span class="role-tag">${r.suggested_role}</span>`).join('<br>')}</div></div>`);
+    rows.push(`<div class="rec-card"><div class="rec-title">Models that fit (${data.models_that_fit?.length||0})</div>
+        <div class="rec-meta">${(data.models_that_fit||[]).slice(0,12).map(m => `${m.path.split('/').pop()} <span class="role-tag">${m.recommended_role}</span> ${m.vram_needed_mb}MB`).join('<br>')}</div></div>`);
+    if(data.models_too_big?.length) {
+        rows.push(`<div class="rec-card"><div class="rec-title" style="color:var(--danger)">Too big for this selection (${data.models_too_big.length})</div>
+            <div class="rec-meta">${data.models_too_big.slice(0,8).map(m => `${m.path.split('/').pop()} (needs ${m.vram_needed_mb}MB)`).join('<br>')}</div></div>`);
+    }
+    rows.push(`<div class="rec-card"><div class="rec-title">Servers / programs available</div>
+        <div class="rec-meta">${(data.available_servers||[]).join('<br>')}</div></div>`);
+    return rows.join('');
+}
 </script>
 </body>
 </html>

@@ -23,6 +23,7 @@ pub struct AgentConfig {
     pub project_root: String,
     pub nautivecs_url: String,
     pub wso_url: String,
+    pub mcp_url: Option<String>,
     pub max_tokens: u32,
     pub temperature: f32,
     /// Safe mode: write_file creates duplicates instead of overwriting.
@@ -76,6 +77,7 @@ Call tools using this exact format:
 - **cargo_check**: Run cargo check. Args: {{"dir": "relative/path"}}
 - **run_command**: Execute a shell command. Args: {{"cmd": "command string"}}
 - **remember**: Save a lesson. Args: {{"content": "what to remember", "tags": "comma,separated,tags"}}
+- **mcp_call**: Call MCP endpoint. Args: {{"path": "/tool", "payload": {{}}, "method": "POST"}}
 
 ## Context:
 - Project root: {}
@@ -199,6 +201,7 @@ async fn execute_tool(name: &str, args: &serde_json::Value, config: &AgentConfig
         "think_harder" => tool_think_harder(args, config).await,
         "remember" => tool_remember(args, &config.project_root).await,
         "run_command" => tool_run_command(args, &config.project_root, config.safe_mode).await,
+        "mcp_call" => tool_mcp_call(args, config).await,
         _ => format!("Unknown tool: '{}'", name),
     }
 }
@@ -337,4 +340,56 @@ async fn tool_run_command(args: &serde_json::Value, root: &str, safe_mode: bool)
     if !stderr.is_empty() { r.push_str(&format!("\n[stderr]: {}", &stderr[..stderr.len().min(500)])); }
     if r.is_empty() { format!("Command completed (exit code: {})", output.status.code().unwrap_or(-1)) }
     else { r }
+}
+
+async fn tool_mcp_call(args: &serde_json::Value, config: &AgentConfig) -> String {
+    let endpoint = args
+        .get("endpoint")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .or_else(|| config.mcp_url.clone());
+    let Some(base) = endpoint else {
+        return "Error: MCP endpoint unavailable. Provide 'endpoint' argument.".to_string();
+    };
+    let path = args.get("path").and_then(|v| v.as_str()).unwrap_or("/");
+    let method = args
+        .get("method")
+        .and_then(|v| v.as_str())
+        .unwrap_or("POST")
+        .to_uppercase();
+    let payload = args.get("payload").cloned().unwrap_or_else(|| serde_json::json!({}));
+
+    let url = if path.starts_with("http://") || path.starts_with("https://") {
+        path.to_string()
+    } else {
+        format!(
+            "{}/{}",
+            base.trim_end_matches('/'),
+            path.trim_start_matches('/')
+        )
+    };
+
+    let client = reqwest::Client::new();
+    let req = match method.as_str() {
+        "GET" => client.get(&url),
+        "PUT" => client.put(&url),
+        "PATCH" => client.patch(&url),
+        "DELETE" => client.delete(&url),
+        _ => client.post(&url),
+    };
+    let req = if method == "GET" { req } else { req.json(&payload) };
+
+    match req.send().await {
+        Ok(resp) => {
+            let status = resp.status().as_u16();
+            let text = resp.text().await.unwrap_or_default();
+            let body = if text.len() > 2000 {
+                format!("{}...[truncated]", &text[..2000])
+            } else {
+                text
+            };
+            format!("mcp_call {} {} -> {}\n{}", method, url, status, body)
+        }
+        Err(e) => format!("mcp_call failed ({} {}): {}", method, url, e),
+    }
 }

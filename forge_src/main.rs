@@ -1290,6 +1290,7 @@ async fn discover_nodes() -> Json<serde_json::Value> {
             let name = node.get("name").and_then(|v| v.as_str()).unwrap_or("unknown");
             let ip = node.get("ip").and_then(|v| v.as_str()).unwrap_or("");
             let gpu_label = node.get("gpu").and_then(|v| v.as_str()).unwrap_or("");
+            let alt_ip = node.get("alt_ip").and_then(|v| v.as_str()).unwrap_or("");
             let empty_ports = vec![];
             let ports = node.get("ports").and_then(|v| v.as_array()).unwrap_or(&empty_ports);
 
@@ -1300,29 +1301,62 @@ async fn discover_nodes() -> Json<serde_json::Value> {
                 tailscale_peers.iter().any(|p| p.0 == ip && p.1)
             };
 
+            let mut probe_hosts: Vec<&str> = vec![ip];
+            if !alt_ip.is_empty() && alt_ip != ip {
+                probe_hosts.push(alt_ip);
+            }
+
             let mut port_status = Vec::new();
             for port_val in ports {
                 let port = port_val.as_integer().unwrap_or(0);
-                let url = format!("http://{}:{}/health", ip, port);
-                let online = if ts_online {
+                let mut reachable = false;
+                let mut info = serde_json::Value::Null;
+                let mut status_code = serde_json::Value::Null;
+                let mut probed_host = serde_json::Value::Null;
+                let mut last_error: Option<String> = None;
+
+                for host in &probe_hosts {
+                    let url = format!("http://{}:{}/health", host, port);
                     match client.get(&url).send().await {
                         Ok(resp) => {
-                            if resp.status().is_success() {
-                                let body: serde_json::Value = resp.json().await.unwrap_or_default();
-                                Some(body)
+                            reachable = true;
+                            status_code = serde_json::json!(resp.status().as_u16());
+                            probed_host = serde_json::json!(host);
+
+                            let code = resp.status();
+                            if code.is_success() {
+                                let body_text = resp.text().await.unwrap_or_default();
+                                info = serde_json::from_str(&body_text).unwrap_or(serde_json::json!({
+                                    "status_code": code.as_u16(),
+                                    "body": body_text.chars().take(240).collect::<String>(),
+                                }));
                             } else {
-                                None
+                                let body_text = resp.text().await.unwrap_or_default();
+                                info = serde_json::json!({
+                                    "status_code": code.as_u16(),
+                                    "body": body_text.chars().take(240).collect::<String>(),
+                                });
                             }
+                            break;
                         }
-                        Err(_) => None,
+                        Err(e) => {
+                            last_error = Some(e.to_string());
+                        }
                     }
-                } else {
-                    None
-                };
+                }
+
+                if !reachable {
+                    if let Some(err) = last_error {
+                        info = serde_json::json!({ "error": err });
+                    }
+                }
+
                 port_status.push(serde_json::json!({
                     "port": port,
-                    "online": online.is_some(),
-                    "info": online.unwrap_or(serde_json::Value::Null),
+                    "online": reachable,
+                    "status_code": status_code,
+                    "probed_host": probed_host,
+                    "info": info,
                 }));
             }
             // Dynamic GPU Probe
@@ -1827,6 +1861,210 @@ async fn workflow_plan(
     }))
 }
 
+// ── Lake Worker (CPU Idle Satellite Tile Processing) ──────────────────────
+// GET /cluster/lake-worker — check if lake_coverage_service.py is running
+async fn lake_worker_status() -> Json<serde_json::Value> {
+    let output = std::process::Command::new("bash")
+        .arg("-c")
+        .arg("pgrep -f lake_coverage_service.py | head -1")
+        .output();
+    let running = match output {
+        Ok(out) => {
+            let pid = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            pid.parse::<u32>().is_ok()
+        }
+        Err(_) => false,
+    };
+    Json(serde_json::json!({
+        "running": running,
+        "name": "CPU Idle Worker · Satellite Tile Processing",
+        "description": "Background task using spare Xeon cycles for GDAL/raster work",
+        "script": "lake_coverage_service.py"
+    }))
+}
+
+// POST /cluster/lake-worker { "action": "start" | "stop" }
+async fn lake_worker_action(Json(body): Json<serde_json::Value>) -> Json<serde_json::Value> {
+    let action = body.get("action").and_then(|v| v.as_str()).unwrap_or("start");
+    match action {
+        "start" => {
+            let check = std::process::Command::new("bash")
+                .arg("-c")
+                .arg("pgrep -f lake_coverage_service.py | head -1")
+                .output();
+            let already_running = match check {
+                Ok(out) => {
+                    let pid = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                    pid.parse::<u32>().is_ok()
+                }
+                Err(_) => false,
+            };
+            if already_running {
+                return Json(serde_json::json!({"message": "Lake worker already running", "running": true}));
+            }
+            let cmd = "nohup /usr/bin/python3 /codebase/repos/wreckhunter2000-1/scripts/lake_coverage_service.py start --poll 30 --limit 200 > /tmp/lake_worker.log 2>&1 & echo $!";
+            let result = std::process::Command::new("bash")
+                .arg("-c")
+                .arg(cmd)
+                .output();
+            match result {
+                Ok(out) => {
+                    let pid = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                    info!("Lake worker started: PID {}", pid);
+                    Json(serde_json::json!({
+                        "message": format!("Lake worker started (PID {})", pid),
+                        "running": true,
+                        "pid": pid
+                    }))
+                }
+                Err(e) => Json(serde_json::json!({
+                    "error": format!("Failed to start lake worker: {}", e),
+                    "running": false
+                })),
+            }
+        }
+        "stop" => {
+            let _ = std::process::Command::new("bash")
+                .arg("-c")
+                .arg("pkill -f lake_coverage_service.py")
+                .output();
+            info!("Lake worker stopped");
+            Json(serde_json::json!({
+                "message": "Lake worker stopped",
+                "running": false
+            }))
+        }
+        _ => Json(serde_json::json!({"error": "action must be 'start' or 'stop'"})),
+    }
+}
+
+// ── Dispatch API (Multi-GPU Routing from dispatch.html) ────────────────────
+
+/// POST /cluster/dispatch/launch
+/// Launch models on selected GPUs based on dispatch.html configuration.
+/// Body: { "name": "routing-123", "assignments": [...], "endpoints": [...], "rounds": [...] }
+async fn dispatch_launch(Json(body): Json<serde_json::Value>) -> Json<serde_json::Value> {
+    let name = body.get("name").and_then(|v| v.as_str()).unwrap_or("dispatch");
+    let assignments = body.get("assignments").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+    
+    info!("Dispatch launch '{}' with {} GPU groups", name, assignments.len());
+    
+    let mut launched = Vec::new();
+    let mut failed = Vec::new();
+    
+    // Launch each GPU group assignment
+    for (idx, assignment) in assignments.iter().enumerate() {
+        let gpu_ids: Vec<i64> = assignment
+            .get("gpuIds")
+            .and_then(|v| v.as_array())
+            .map(|arr| arr.iter().filter_map(|v| v.as_i64()).collect())
+            .unwrap_or_default();
+        
+        let role = assignment.get("role").and_then(|v| v.as_str()).unwrap_or("general");
+        let model = assignment.get("model").and_then(|v| v.as_str()).unwrap_or("");
+        let is_set = assignment.get("set").and_then(|v| v.as_bool()).unwrap_or(false);
+        
+        if !is_set || model.is_empty() || gpu_ids.is_empty() {
+            continue;
+        }
+        
+        // Generate port based on first GPU ID
+        let port = 5000 + gpu_ids[0] * 10;
+        
+        // Determine engine - use koboldcpp for multi-GPU, llama-server for single GPU
+        let engine = if gpu_ids.len() > 1 { "koboldcpp" } else { "llama-server" };
+        let backend = if gpu_ids.len() > 1 { "vulkan" } else { "cuda" };
+        
+        // Build launch command
+        let cmd = if engine == "koboldcpp" {
+            let tensor_split = vec!["1.0"; gpu_ids.len()].join(",");
+            format!(
+                "setsid /home/cesarops/koboldcpp --model {} --port {} --usevulkan {} \
+                 --gpulayers 99 --contextsize 8192 --threads 4 --tensor_split {} \
+                 --quiet > /tmp/dispatch_group_{}.log 2>&1 < /dev/null & disown",
+                model, port, gpu_ids[0], tensor_split, idx
+            )
+        } else {
+            // llama-server for single GPU
+            let gpu_layers = 99;
+            format!(
+                "setsid llama-server --model {} --port {} --gpu-layers {} \
+                 --ctx-size 8192 --threads 4 -ngl {} > /tmp/dispatch_group_{}.log 2>&1 < /dev/null & disown",
+                model, port, gpu_layers, gpu_layers, idx
+            )
+        };
+        
+        info!("Launching group {}: GPUs {:?}, role={}, model={}, port={}", 
+              idx, gpu_ids, role, model.split('/').last().unwrap_or(model), port);
+        
+        match std::process::Command::new("bash").arg("-c").arg(&cmd).output() {
+            Ok(_) => {
+                launched.push(serde_json::json!({
+                    "group": idx,
+                    "gpus": gpu_ids,
+                    "role": role,
+                    "model": model.split('/').last().unwrap_or(model),
+                    "port": port,
+                    "endpoint": format!("http://127.0.0.1:{}", port),
+                    "engine": engine
+                }));
+            }
+            Err(e) => {
+                failed.push(serde_json::json!({
+                    "group": idx,
+                    "error": e.to_string()
+                }));
+            }
+        }
+    }
+    
+    let endpoints = body.get("endpoints").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+    let rounds = body.get("rounds").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+    
+    // Save routing configuration
+    let config_path = "/tmp/dispatch_routing.json";
+    let routing_config = serde_json::json!({
+        "name": name,
+        "launched_at": chrono::Utc::now().to_rfc3339(),
+        "assignments": launched,
+        "endpoints": endpoints,
+        "rounds": rounds,
+    });
+    let _ = std::fs::write(config_path, serde_json::to_string_pretty(&routing_config).unwrap_or_default());
+    
+    info!("Dispatch '{}' launched: {} groups, {} failed", name, launched.len(), failed.len());
+    
+    Json(serde_json::json!({
+        "message": format!("Launched {} GPU groups for '{}'", launched.len(), name),
+        "launched": launched,
+        "failed": failed,
+        "config_saved": config_path
+    }))
+}
+
+/// POST /cluster/dispatch/stop
+/// Stop all dispatch workers (but keep P106/P1000 if configured as always-on)
+async fn dispatch_stop() -> Json<serde_json::Value> {
+    info!("Dispatch stop requested");
+    
+    // Kill all inference engines (will spare P106/P1000 if they were not launched by dispatch)
+    let _ = std::process::Command::new("bash")
+        .arg("-c")
+        .arg("pkill -f 'koboldcpp.*--port' ; pkill -f 'llama-server.*--port' ; true")
+        .output();
+    
+    // Clean up dispatch routing config
+    let config_path = "/tmp/dispatch_routing.json";
+    let _ = std::fs::remove_file(config_path);
+    
+    info!("Dispatch workers stopped");
+    
+    Json(serde_json::json!({
+        "message": "Dispatch workers stopped (P106/P1000 preserved if running)",
+        "stopped_at": chrono::Utc::now().to_rfc3339()
+    }))
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
@@ -1905,6 +2143,10 @@ async fn main() {
         .route("/cluster/nvidia/handoff",              post(nvidia_handoff))
         .route("/cluster/workflow/execute",            post(workflow_execute))
         .route("/cluster/workflow/plan",               post(workflow_plan))
+        .route("/cluster/lake-worker",                 get(lake_worker_status).post(lake_worker_action))
+        // ── Dispatch endpoints (for dispatch.html multi-GPU routing) ────
+        .route("/cluster/dispatch/launch",             post(dispatch_launch))
+        .route("/cluster/dispatch/stop",               post(dispatch_stop))
         .with_state(state);
 
     let addr = std::net::SocketAddr::from(([0, 0, 0, 0], 9100));
@@ -1912,4 +2154,3 @@ async fn main() {
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
-}

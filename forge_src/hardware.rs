@@ -130,10 +130,38 @@ pub fn avx512_throttle_warning(active_avx512_cores: u32) -> Option<String> {
 /// Get a summary of cluster health for the /monitor endpoint.
 pub async fn cluster_summary() -> serde_json::Value {
     let gpu = query_gpu_metrics().await;
+    
+    // Parse workers to pass down GPU mappings for the dashboard
+    let mut workers_info = Vec::new();
+    if let Ok(content) = std::fs::read_to_string(crate::paths::cluster_config_path()) {
+        if let Ok(table) = content.parse::<toml::Table>() {
+            if let Some(workers) = table.get("worker").and_then(|v| v.as_array()) {
+                for w in workers {
+                    if let Some(t) = w.as_table() {
+                        let mut w_json = serde_json::Map::new();
+                        if let Some(name) = t.get("name").and_then(|v| v.as_str()) {
+                            w_json.insert("name".to_string(), serde_json::json!(name));
+                        }
+                        if let Some(role) = t.get("role").and_then(|v| v.as_str()) {
+                            w_json.insert("role".to_string(), serde_json::json!(role));
+                        }
+                        if let Some(gpu_val) = t.get("gpu").and_then(|v| v.as_integer()) {
+                            w_json.insert("gpu".to_string(), serde_json::json!(gpu_val));
+                        }
+                        if let Some(gpu_ids) = t.get("gpu_ids").and_then(|v| v.as_str()) {
+                            w_json.insert("gpu_ids".to_string(), serde_json::json!(gpu_ids));
+                        }
+                        workers_info.push(serde_json::Value::Object(w_json));
+                    }
+                }
+            }
+        }
+    }
 
     serde_json::json!({
         "gpus": gpu.gpus,
         "gpu_error": gpu.error,
+        "workers": workers_info,
         "avx512_note": "Limit AVX-512 to 8 cores (Socket 0) to avoid throttle",
         "numa": {
             "socket_0": "Cores 0-7, P100 #0, DDR4 Ch 0-2",

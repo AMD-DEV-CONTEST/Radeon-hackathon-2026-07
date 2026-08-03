@@ -36,3 +36,12 @@ Architectures (auto-detected from GGUF metadata): Qwen2/2.5/3, Gemma 2/3/4, Llam
 
 Tested on Tesla P100-PCIE-16GB via Vulkan/wgpu on Ubuntu 24.04.
 Designed to also run on GTX 1060/1070/P1000/M2200 via the same backend.
+
+## P100 multi-GPU operations (cesarops2)
+
+Use the helper scripts in `scripts/` to operate remote P100 lanes from this host:
+
+- `scripts/sync_forge_to_cesarops2.sh [host]` — rsync Forge source/config/scripts to remote.
+- `scripts/start_remote_llama_worker.sh <host> <model> <port> <gpu_ids_csv> [tensor_split] [ctx] [threads] [ngl]`
+- `scripts/start_cesarops2_p100_profiles.sh [host] [tp2|tp3|tp4]` — launch common 2/3/4-GPU profiles.
+- `scripts/stop_remote_llama_port.sh <host> <port>` — stop a remote lane by port.

@@ -1,6 +1,8 @@
 use crate::diagnostics;
 use crate::memory;
 use crate::prompts;
+use crate::routing;
+use crate::agent_dispatch;
 use crate::tools;
 use crate::translator::{self, FailureType, Message};
 use crate::{AppState, SendResponse};
@@ -22,6 +24,7 @@ const CORRECTOR_CASCADE: &[(&str, &str)] = &[
 // If a code block is this close to compilable, finish it ourselves.
 const CLOSE_ENOUGH_MISSING_BRACES: i32 = 3;   // ≤3 unmatched braces
 const CLOSE_ENOUGH_MISSING_LINES: usize = 15; // ≤15 lines of obvious boilerplate missing
+const FRONTIER_POLISH_AFTER_ROUNDS: u32 = 2;
 
 /// Result of the corrector's repetition justification check.
 struct RepetitionJudgment {
@@ -403,11 +406,19 @@ async fn run_inner(state: &AppState, user_message: &str, ctx: &RunContext) -> Se
 
         // --- Plain text response (no tool call, no failure) ---
         // Add to conversation and return
+        let mut final_response = normalized.content.clone();
+        if round >= FRONTIER_POLISH_AFTER_ROUNDS {
+            let polished = frontier_polish_pass(state, &final_response, &active_model_hint).await;
+            if polished != final_response {
+                tool_actions.push("frontier_polisher_handoff".to_string());
+                final_response = polished;
+            }
+        }
         {
             let mut conv = state.conversation.lock().await;
             conv.push(Message {
                 role: "assistant".to_string(),
-                content: normalized.content.clone(),
+                content: final_response.clone(),
             });
         }
 
@@ -426,10 +437,44 @@ async fn run_inner(state: &AppState, user_message: &str, ctx: &RunContext) -> Se
 
         append_model_score(&active_model_hint, task_type, "success", None, &tool_actions);
         return SendResponse {
-            response: normalized.content,
+            response: final_response,
             tool_actions,
             diagnosis: diagnosis_info,
         };
+    }
+
+    async fn frontier_polish_pass(state: &AppState, draft: &str, active_model_hint: &str) -> String {
+        if draft.trim().is_empty() {
+            return draft.to_string();
+        }
+        let Some(polisher_endpoint) = routing::endpoint_for_role("polisher") else {
+            return draft.to_string();
+        };
+        if polisher_endpoint == active_model_hint {
+            return draft.to_string();
+        }
+
+        let config = agent_dispatch::AgentConfig {
+            endpoint_url: polisher_endpoint,
+            project_root: crate::paths::project_root(),
+            nautivecs_url: state.config.nautivecs_url.clone(),
+            wso_url: state.config.wso_url.clone(),
+            mcp_url: Some("http://127.0.0.1:8090".to_string()),
+            max_tokens: 4096,
+            temperature: 0.1,
+            safe_mode: false,
+        };
+
+        let polish_request = format!(
+            "You are the final frontier polisher. Refine/correct this output and return only the final improved answer:\n\n{}",
+            draft
+        );
+        let polished = agent_dispatch::run_agent_loop(&config, &polish_request).await;
+        if polished.trim().is_empty() || polished.starts_with("[Agent error:") {
+            draft.to_string()
+        } else {
+            polished
+        }
     }
 
     // Exhausted all rounds

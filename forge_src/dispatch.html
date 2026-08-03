@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CESAROPS Cluster Dispatch</title>
+<style>
+:root{--bg:#0a0e1a;--panel:#111827;--border:#1e293b;--accent:#3b82f6;--success:#10b981;--danger:#ef4444;--warning:#f59e0b;--purple:#a78bfa;--text:#e2e8f0;--dim:#64748b;--card:#171e2e}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;padding:16px;max-width:1600px;margin:0 auto}
+h1{font-size:1.3rem;color:var(--accent);margin-bottom:16px;display:flex;align-items:center;gap:12px;letter-spacing:1.5px}
+h1 a{color:var(--dim);font-size:.8rem;text-decoration:none}
+h2{font-size:.9rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin:24px 0 10px;border-bottom:1px solid var(--border);padding-bottom:6px}
+h3{font-size:.82rem;color:var(--accent);margin:12px 0 6px}
+.section{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px}
+.grid{display:grid;gap:10px}
+.grid-2{grid-template-columns:1fr 1fr}
+.grid-3{grid-template-columns:1fr 1fr 1fr}
+.grid-4{grid-template-columns:repeat(4,1fr)}
+.gpu-card{background:var(--card);border:2px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;transition:all .15s;user-select:none}
+.gpu-card:hover{border-color:var(--accent)}
+.gpu-card.selected{border-color:var(--success);box-shadow:0 0 10px rgba(16,185,129,.25)}
+.gpu-card.always-on{border-color:var(--warning);opacity:.6;cursor:default}
+.gpu-card.always-on-unlocked{border-color:var(--success);opacity:.85;cursor:pointer}
+.gpu-card .name{font-weight:600;font-size:.85rem;margin-bottom:4px}
+.gpu-card .meta{font-size:.7rem;color:var(--dim);line-height:1.4}
+.gpu-card .vram{color:var(--warning);font-weight:600;font-size:.75rem}
+select,button,input{background:rgba(255,255,255,.06);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:.8rem}
+select:disabled,input:disabled{opacity:.4;cursor:not-allowed}
+button{cursor:pointer;transition:all .15s;font-weight:600}
+button:hover:not(:disabled){border-color:var(--accent);filter:brightness(1.1)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.btn{padding:6px 14px;border-radius:6px;font-size:.78rem}
+.btn-primary{background:rgba(59,130,246,.2);border-color:var(--accent);color:var(--accent)}
+.btn-success{background:rgba(16,185,129,.2);border-color:var(--success);color:var(--success)}
+.btn-danger{background:rgba(239,68,68,.2);border-color:var(--danger);color:var(--danger)}
+.btn-warning{background:rgba(245,158,11,.2);border-color:var(--warning);color:var(--warning)}
+.btn-sm{padding:4px 10px;font-size:.72rem}
+.form-row{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}
+.form-row label{font-size:.75rem;color:var(--dim);min-width:70px}
+.form-row select,.form-row input{flex:1;min-width:150px}
+.endpoint-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;position:relative}
+.endpoint-card .badge{position:absolute;top:8px;right:8px;font-size:.65rem;padding:2px 8px;border-radius:4px;font-weight:700}
+.badge-coder{background:rgba(59,130,246,.2);color:var(--accent)}
+.badge-thinker{background:rgba(245,158,11,.2);color:var(--warning)}
+.badge-reviewer{background:rgba(167,139,250,.2);color:var(--purple)}
+.badge-grader{background:rgba(16,185,129,.2);color:var(--success)}
+.badge-polisher{background:rgba(239,68,68,.2);color:var(--danger)}
+.round-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin:8px 0}
+.round-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.round-header .label{font-weight:600;color:var(--accent);font-size:.9rem}
+.round-header .desc{font-size:.7rem;color:var(--dim)}
+.lane-row{display:grid;grid-template-columns:120px 1fr 90px 28px;gap:8px;align-items:center;margin:4px 0}
+.lane-row select{font-size:.8rem}
+.lane-row input{font-size:.8rem;width:100%}
+.lane-row .parallel-cb{font-size:.68rem;display:flex;align-items:center;gap:3px}
+.lane-row .del-btn{padding:2px 6px;font-size:.7rem;background:rgba(239,68,68,.2);color:var(--danger);border:1px solid var(--border);border-radius:4px;cursor:pointer}
+.round-toggles{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:.72rem;color:var(--dim)}
+.round-toggles label{display:flex;align-items:center;gap:4px}
+.status{padding:8px 12px;border-radius:6px;font-size:.8rem;margin:8px 0}
+.status.ok{background:rgba(16,185,129,.12);color:var(--success)}
+.status.err{background:rgba(239,68,68,.12);color:var(--danger)}
+.status.info{background:rgba(59,130,246,.12);color:var(--accent)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}
+.always-on-note{font-size:.7rem;color:var(--warning);margin-top:4px;font-style:italic}
+.unlock-bar{background:rgba(245,158,11,.08);border:1px solid var(--warning);border-radius:6px;padding:8px;margin:8px 0;font-size:.72rem}
+</style>
+</head>
+<body>
+
+<h1>🎯 Cluster Dispatch <a href="/cluster">← cluster</a> <a href="/wall">wall →</a></h1>
+<div id="status-bar"></div>
+
+<h2>1 · Select GPUs</h2>
+<p style="font-size:.78rem;color:var(--dim);margin-bottom:10px">Click GPUs to select. P106 and P1000 are always-on (model can be changed, not deleted). P100s default to lockable.</p>
+<div class="unlock-bar" id="unlock-bar" style="display:none">
+    <label><input type="checkbox" id="unlock-p100" onchange="toggleP100Unlock()"> 🔓 Unlock P106/P1000 GPUs (allow model change, but not delete)</label>
+</div>
+<div id="gpu-grid" class="grid grid-4"></div>
+
+<h2>2 · GPU Groups <span style="font-size:.72rem;color:var(--dim)">(role + model per group; click "Set" to lock)</span></h2>
+<div id="gpu-assignments">
+    <div id="assignments-empty" style="color:var(--dim);font-size:.82rem">Select GPUs above, then click "+ Add GPU Group" to assign roles and models.</div>
+</div>
+
+<h2>3 · API Endpoints <span style="font-size:.72rem;color:var(--dim)">(role + URL + model + API key)</span></h2>
+<div id="endpoints-grid" class="grid grid-2"></div>
+
+<h2>4 · Routing Rounds <span style="font-size:.72rem;color:var(--dim)">(compiler check repeats until pass or max tries)</span></h2>
+<div class="bar">
+    <label style="font-size:.8rem">Rounds:</label>
+    <select id="num-rounds" onchange="renderRounds()">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3" selected>3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+    </select>
+    <label style="font-size:.8rem;margin-left:12px">Max compiler retries:</label>
+    <select id="max-retries">
+        <option value="3">3</option>
+        <option value="5">5</option>
+        <option value="10" selected>10</option>
+        <option value="15">15</option>
+        <option value="20">20</option>
+    </select>
+    <label style="font-size:.8rem;margin-left:12px">Compiler check mode:</label>
+    <select id="compiler-mode">
+        <option value="llm" selected>LLM (analyze + fix errors)</option>
+        <option value="hybrid">Hybrid (LLM + shell cargo build)</option>
+        <option value="shell">Shell only (cargo build → feed errors)</option>
+    </select>
+    <button class="btn btn-primary btn-sm" onclick="addRound()">+ Add Round</button>
+    <button class="btn btn-sm" onclick="renderRounds()">Reset</button>
+</div>
+<div id="rounds-container"></div>
+
+<h2>5 · Launch & Stop</h2>
+<div class="bar">
+    <button class="btn btn-success" onclick="launchSelected()">🚀 Launch Selected</button>
+    <button class="btn btn-danger" onclick="stopSelected()">⏹ Stop Selected (keep P106/P1000)</button>
+    <button class="btn btn-warning" onclick="saveConfig()">💾 Save Config</button>
+    <button class="btn btn-sm" onclick="loadConfig()">📂 Load Config</button>
+</div>
+
+<script>
+let gpus = [];
+let models = [];
+let selectedGpus = new Set();
+let assignments = [];
+let endpoints = [
+    {role:'thinker', url:'', model:'', apiKey:'', authType:'openai'},
+    {role:'coder', url:'', model:'', apiKey:'', authType:'openai'},
+    {role:'coder2', url:'', model:'', apiKey:'', authType:'openai'},
+    {role:'coder3', url:'', model:'', apiKey:'', authType:'openai'},
+    {role:'reviewer', url:'', model:'', apiKey:'', authType:'openai'},
+    {role:'grader', url:'', model:'', apiKey:'', authType:'openai'},
+    {role:'polisher', url:'', model:'', apiKey:'', authType:'openai'}
+];
+let rounds = [{lanes:[{endpoint:'thinker',task:'analyze',parallel:false},{endpoint:'coder',task:'code',parallel:false}],compilerCheck:true,sendToReview:true}];
+const ALWAYS_ON_GPUS = [];
+const LOCKABLE_ALWAYS_ON = [];
+let unlockP100 = false;
+const ROLES = ['idle','coder','thinker','reviewer','grader','polisher','validator','corrector','general'];
+
+async function loadGpus() {
+    try {
+        const r = await fetch('/cluster/gpus');
+        const d = await r.json();
+        gpus = d.gpus || [];
+        gpus.forEach(g => {
+            const n = (g.name||'').toLowerCase();
+            if (n.includes('p106') || n.includes('p1000') || n.includes('quadro p1000')) {
+                ALWAYS_ON_GPUS.push(g.id);
+            } else if (n.includes('p100')) {
+                LOCKABLE_ALWAYS_ON.push(g.id);
+            }
+        });
+        if (LOCKABLE_ALWAYS_ON.length > 0) {
+            document.getElementById('unlock-bar').style.display = 'block';
+        }
+        renderGpus();
+    } catch(e) { console.error('loadGpus', e); }
+}
+
+async function loadModels() {
+    try {
+        const r = await fetch('/cluster/models');
+        models = await r.json();
+        renderAssignments();
+        renderEndpoints();
+    } catch(e) { console.error('loadModels', e); }
+}
+
+function toggleP100Unlock() {
+    unlockP100 = document.getElementById('unlock-p100').checked;
+    renderGpus();
+    renderAssignments();
+}
+
+function renderGpus() {
+    const grid = document.getElementById('gpu-grid');
+    grid.innerHTML = gpus.map(g => {
+        const sel = selectedGpus.has(g.id);
+        const alwaysOn = ALWAYS_ON_GPUS.includes(g.id);
+        const p100 = LOCKABLE_ALWAYS_ON.includes(g.id);
+        const isLocked = (alwaysOn && !unlockP100);
+        const memGB = (g.vram_mb / 1024).toFixed(0);
+        let cls = 'gpu-card';
+        if (sel) cls += ' selected';
+        if (alwaysOn && !unlockP100) cls += ' always-on';
+        else if (alwaysOn && unlockP100) cls += ' always-on-unlocked';
+        return `<div class="${cls}" onclick="toggleGpu(${g.id})" title="${isLocked?'P106/P1000 locked (unlock to change model)':'Click to select'}">
+            <div class="name">${g.name} ${isLocked?'🔒':''}</div>
+            <div class="vram">${memGB}GB VRAM</div>
+            <div class="meta">${g.node_ip||'local'} · GPU ${g.id}</div>
+            ${alwaysOn?(unlockP100?'<div class="always-on-note" style="color:var(--success)">🔓 P106/P1000 Unlocked — model can be changed</div>':'<div class="always-on-note">P106/P1000 — unlock to change model</div>'):(p100?'<div class="always-on-note" style="color:var(--success)">P100 — always unlocked</div>':'')}</div>`;
+    }).join('');
+}
+
+function toggleGpu(id) {
+    if (ALWAYS_ON_GPUS.includes(id) && !unlockP100) {
+        setStatus('P106/P1000 locked — check "Unlock P106/P1000" above to select', 'err');
+        return;
+    }
+    if (selectedGpus.has(id)) selectedGpus.delete(id);
+    else selectedGpus.add(id);
+    renderGpus();
+    renderAssignments();
+}
+
+function estimateModelMb(path) {
+    const n = path.toLowerCase();
+    if (n.includes('70b')) return 40960;
+    if (n.includes('35b')) return 20480;
+    if (n.includes('32b')) return 19456;
+    if (n.includes('14b')) return 8192;
+    if (n.includes('9b')) return 5632;
+    if (n.includes('7b')) return 4096;
+    if (n.includes('3b')) return 2048;
+    return 4096;
+}
+function estimateKvMb(path) {
+    return Math.round(estimateModelMb(path) * 0.25);
+}
+function getRoleRating(role) {
+    // Deprecated - this was for role ratings, not model performance
+    return {coder:95,thinker:88,polisher:90,reviewer:82,grader:80,corrector:85,validator:75,general:70,idle:0}[role]||70;
+}
+
+// NEW: Get model task performance rating (benchmark scores for actual models on specific tasks)
+function getModelTaskRating(modelPath) {
+    const modelName = modelPath.split('/').pop().toLowerCase();
+    
+    // Model benchmark scores for coding/reasoning tasks (measured performance)
+    // These are actual task performance scores, not role ratings
+    const scores = {
+        // 35B+ models (coder tier)
+        'qwen3.6-35b': 85,
+        'qwen2.5-coder-32b': 88,
+        'deepseek-coder-33b': 86,
+        
+        // 14B models (intermediate tier)
+        'qwen2.5-14b': 78,
+        'codeqwen-14b': 80,
+        
+        // 7-9B models (thinker/reviewer tier)
+        'qwen2.5-7b': 72,
+        'deepseek-r1-7b': 75,
+        'codellama-7b': 70,
+        
+        // Small models (validator tier)
+        'phi-3-mini': 68,
+        'tinyllama-1.1b': 55,
+        'llama-3.2-1b': 58,
+        
+        // Special purpose
+        'gemma-4-31b': 88,
+        'nemotron-ultra-4b': 95, // High-efficiency outlier
+    };
+    
+    // Match model name to benchmark score
+    for (const [key, score] of Object.entries(scores)) {
+        if (modelName.includes(key)) {
+            return score;
+        }
+    }
+    
+    // Fallback: estimate by size
+    if (modelName.includes('35b') || modelName.includes('32b') || modelName.includes('33b')) return 85;
+    if (modelName.includes('14b')) return 78;
+    if (modelName.includes('7b')) return 72;
+    if (modelName.includes('3b') || modelName.includes('4b')) return 68;
+    if (modelName.includes('1b') || modelName.includes('tiny')) return 55;
+    
+    return 70; // Default
+}
+
+function renderAssignments() {
+    const container = document.getElementById('gpu-assignments');
+    const selIds = Array.from(selectedGpus);
+    const assignedGpuIds = assignments.filter(a=>a.set).flatMap(a=>a.gpuIds);
+    let html = '<div style="margin-bottom:10px"><button class="btn btn-primary btn-sm" onclick="addAssignmentGroup()">+ Add GPU Group</button>';
+    html += '<span style="margin-left:12px;font-size:.72rem;color:var(--dim)">Select GPUs, set role + model, click SET to lock</span></div>';
+    if (assignments.length === 0 && selIds.length === 0) {
+        html += '<div style="color:var(--dim);font-size:.82rem">No GPUs selected. Click GPUs above or "+ Add GPU Group" to start.</div>';
+    }
+    assignments.forEach((a, ai) => {
+        const isSet = a.set;
+        const groupVram = a.gpuIds.reduce((s,id)=>{const g=gpus.find(x=>x.id===id);return s+(g?g.vram_mb:0);},0);
+        const fitting = models.filter(m => estimateModelMb(m) <= groupVram - 2048);
+        const modelOpts = fitting.map(f=>`<option value="${f}" ${a.model===f?'selected':''}>${f.split('/').pop()} — ${estimateModelMb(f)}MB · KV ${estimateKvMb(f)}MB</option>`).join('');
+        
+        // Show model task performance rating if model is selected
+        const rating = a.model ? getModelTaskRating(a.model) : getRoleRating(a.role);
+        const ratingLabel = a.model ? `Model Score: ${rating}` : `Role: ${rating}`;
+        
+        html += `<div class="section" style="border-color:${isSet?'var(--success)':'var(--border)'}">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <span style="font-weight:600;font-size:.85rem;color:${isSet?'var(--success)':'var(--accent)'}">Group ${ai+1} ${isSet?'✓ SET':'(select GPUs, role, model)'}</span>
+                <div style="display:flex;gap:6px;align-items:center">
+                    ${a.model||a.role?`<span style="font-size:.7rem;background:rgba(59,130,246,.15);color:var(--accent);padding:2px 8px;border-radius:4px" title="${ratingLabel}">★ ${rating}</span>`:''}
+                    ${!isSet?`<button class="btn btn-success btn-sm" onclick="setAssignment(${ai})">SET</button>`:''}
+                    ${isSet?`<button class="btn btn-warning btn-sm" onclick="unlockAssignment(${ai})">Unlock</button>`:''}
+                    <button class="btn btn-danger btn-sm" onclick="removeAssignment(${ai})">✕</button>
+                </div>
+            </div>
+            <div style="font-size:.7rem;color:var(--dim);margin-bottom:6px">Group VRAM: ${(groupVram/1024).toFixed(1)}GB · fits ${fitting.length} model(s)</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+                ${gpus.map(g => {
+                    const inThisGroup = a.gpuIds.includes(g.id);
+                    const inOtherGroup = assignments.some((aa,ii)=>ii!==ai && aa.gpuIds.includes(g.id));
+                    const locked = isSet || inOtherGroup;
+                    return `<label style="display:flex;align-items:center;gap:4px;font-size:.78rem;padding:4px 8px;background:var(--card);border:1px solid ${inOtherGroup?'var(--danger)':inThisGroup?'var(--success)':'var(--border)'};border-radius:4px;${locked?'opacity:.4;pointer-events:none':'cursor:pointer'}">
+                        <input type="checkbox" ${inThisGroup?'checked':''} ${locked?'disabled':''}
+                            onchange="toggleGpuInGroup(${ai},${g.id},this.checked)">
+                        ${g.name} <span style="color:var(--dim);font-size:.65rem">${(g.vram_mb/1024).toFixed(0)}GB</span>
+                    </label>`;
+                }).join('')}
+            </div>
+            <div class="form-row">
+                <label>Role:</label>
+                <select onchange="assignments[${ai}].role=this.value;renderAssignments()" ${isSet?'disabled':''}>
+                    <option value="">— select —</option>
+                    ${ROLES.map(r=>`<option value="${r}" ${a.role===r?'selected':''}>${r}</option>`).join('')}
+                </select>
+            </div>
+            <div class="form-row">
+                <label>Model:</label>
+                <select onchange="assignments[${ai}].model=this.value;renderAssignments()" ${isSet?'disabled':''}>
+                    <option value="">— select —</option>
+                    ${modelOpts}
+                </select>
+            </div>
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
+function toggleGpuInGroup(ai, id, checked) {
+    if (checked) { if (!assignments[ai].gpuIds.includes(id)) assignments[ai].gpuIds.push(id); }
+    else { assignments[ai].gpuIds = assignments[ai].gpuIds.filter(x=>x!==id); }
+    renderAssignments();
+}
+
+function renderEndpoints() {
+    const grid = document.getElementById('endpoints-grid');
+    grid.innerHTML = endpoints.map((ep, i) => {
+        const label = ep.role.replace('coder2','coder 2').replace('coder3','coder 3');
+        const badgeRole = ep.role.startsWith('coder') ? 'coder' : ep.role;
+        return `<div class="endpoint-card">
+        <div class="badge badge-${badgeRole}">${label.toUpperCase()}</div>
+        <h3>${label}</h3>
+        <div class="form-row">
+            <label>URL:</label>
+            <input type="text" value="${ep.url}" onchange="endpoints[${i}].url=this.value" placeholder="http://...">
+        </div>
+        <div class="form-row">
+            <label>Model:</label>
+            <input type="text" value="${ep.model}" onchange="endpoints[${i}].model=this.value" placeholder="model-name">
+        </div>
+        <div class="form-row">
+            <label>API Key:</label>
+            <input type="password" value="${ep.apiKey}" onchange="endpoints[${i}].apiKey=this.value" placeholder="sk-...">
+        </div>
+        <div class="form-row">
+            <label>Auth Type:</label>
+            <select onchange="endpoints[${i}].authType=this.value">
+                <option value="openai" ${ep.authType==='openai'?'selected':''}>OpenAI</option>
+                <option value="langchain" ${ep.authType==='langchain'?'selected':''}>LangChain</option>
+                <option value="custom" ${ep.authType==='custom'?'selected':''}>Custom</option>
+            </select>
+        </div>
+    </div>`;
+    }).join('');
+}
+
+function renderRounds() {
+    const container = document.getElementById('rounds-container');
+    const numRounds = parseInt(document.getElementById('num-rounds').value) || 3;
+    while (rounds.length < numRounds) {
+        rounds.push({lanes:[{endpoint:'coder',task:'',parallel:false}],compilerCheck:true,sendToReview:false});
+    }
+    rounds = rounds.slice(0, numRounds);
+    container.innerHTML = rounds.map((r, ri) => `<div class="round-card">
+        <div class="round-header">
+            <div class="label">Round ${ri+1}</div>
+            <div class="desc">Max retries: ${document.getElementById('max-retries').value}, Mode: ${document.getElementById('compiler-mode').value}</div>
+        </div>
+        ${r.lanes.map((l, li) => `<div class="lane-row">
+            <select onchange="rounds[${ri}].lanes[${li}].endpoint=this.value">
+                <option value="coder" ${l.endpoint==='coder'?'selected':''}>Coder</option>
+                <option value="thinker" ${l.endpoint==='thinker'?'selected':''}>Thinker</option>
+                <option value="reviewer" ${l.endpoint==='reviewer'?'selected':''}>Reviewer</option>
+                <option value="grader" ${l.endpoint==='grader'?'selected':''}>Grader</option>
+                <option value="polisher" ${l.endpoint==='polisher'?'selected':''}>Polisher</option>
+            </select>
+            <input type="text" value="${l.task}" onchange="rounds[${ri}].lanes[${li}].task=this.value" placeholder="task description">
+            <label class="parallel-cb"><input type="checkbox" ${l.parallel?'checked':''} onchange="rounds[${ri}].lanes[${li}].parallel=this.checked"> Parallel</label>
+            <button class="del-btn" onclick="rounds[${ri}].lanes.splice(${li},1);renderRounds()">✕</button>
+        </div>`).join('')}
+        <button class="btn btn-sm btn-primary" onclick="rounds[${ri}].lanes.push({endpoint:'coder',task:'',parallel:false});renderRounds()">+ Lane</button>
+    </div>`).join('');
+}
+
+function addAssignmentGroup() {
+    const selIds = Array.from(selectedGpus);
+    if (!selIds.length) { setStatus('Select GPUs first', 'err'); return; }
+    assignments.push({gpuIds:selIds, role:'coder', model:'', set:false});
+    selectedGpus.clear();
+    renderGpus();
+    renderAssignments();
+}
+
+function setAssignment(ai) {
+    assignments[ai].set = true;
+    renderAssignments();
+}
+
+function unlockAssignment(ai) {
+    assignments[ai].set = false;
+    renderAssignments();
+}
+
+function removeAssignment(ai) {
+    assignments.splice(ai, 1);
+    renderAssignments();
+}
+
+function setStatus(msg, type) {
+    const bar = document.getElementById('status-bar');
+    bar.innerHTML = `<div class="status ${type}">${msg}</div>`;
+}
+
+async function launchSelected() {
+    const name = prompt('Name this routing:', 'routing-' + Date.now());
+    if (!name) return;
+    setStatus('Launching...', 'info');
+    try {
+        const r = await fetch('/cluster/dispatch/launch', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({name, assignments, endpoints, rounds,
+                maxRetries: document.getElementById('max-retries').value,
+                compilerMode: document.getElementById('compiler-mode').value})
+        });
+        const text = await r.text();
+        let d = {};
+        try { d = JSON.parse(text); } catch(_) { d = {message: text||'done'}; }
+        setStatus(d.error || d.message || 'Launched: '+name, d.error?'err':'ok');
+    } catch(e) { setStatus('Error: '+e.message, 'err'); }
+}
+
+async function stopSelected() {
+    setStatus('Stopping...', 'info');
+    try {
+        const r = await fetch('/cluster/dispatch/stop', {method:'POST'});
+        const d = await r.json();
+        setStatus(d.message || 'Stopped', 'ok');
+    } catch(e) { setStatus('Error: ' + e.message, 'err'); }
+}
+
+async function saveConfig() {
+    const name = prompt('Save config as:', 'dispatch-' + new Date().toISOString().slice(0,10));
+    if (!name) return;
+    const configs = JSON.parse(localStorage.getItem('dispatch-configs')||'{}');
+    configs[name] = {assignments, endpoints, rounds};
+    localStorage.setItem('dispatch-configs', JSON.stringify(configs));
+    setStatus('Saved: ' + name, 'ok');
+}
+
+function loadConfig() {
+    const configs = JSON.parse(localStorage.getItem('dispatch-configs')||'{}');
+    const keys = Object.keys(configs);
+    if (!keys.length) { setStatus('No saved configs found', 'err'); return; }
+    const name = prompt('Load config:\n' + keys.join('\n'), keys[keys.length-1]);
+    if (!name || !configs[name]) { setStatus('Config not found: ' + name, 'err'); return; }
+    const c = configs[name];
+    assignments = c.assignments || [];
+    endpoints = c.endpoints || endpoints;
+    rounds = c.rounds || rounds;
+    renderAssignments(); renderEndpoints(); renderRounds();
+    setStatus('Loaded: ' + name, 'ok');
+}
+
+function addRound() {
+    const numRounds = parseInt(document.getElementById('num-rounds').value) || 3;
+    if (rounds.length < 5) {
+        document.getElementById('num-rounds').value = Math.min(5, numRounds + 1);
+        renderRounds();
+    }
+}
+
+window.addEventListener('load', () => {
+    loadGpus();
+    loadModels();
+    renderRounds();
+});
+</script>
+</body>
+</html>

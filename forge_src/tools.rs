@@ -30,8 +30,9 @@ pub async fn execute(name: &str, arguments: &Value, state: &AppState) -> String 
         },
         "remember" => { reset_think_counter(); remember(arguments, state).await },
         "run_command" => { reset_think_counter(); run_command(arguments, state).await },
+        "mcp_call" => { reset_think_counter(); mcp_call(arguments, state).await },
         "speed_check" => { speed_check(arguments, state).await },
-        _ => format!("Unknown tool: '{}'. Available: write_file, read_file, cargo_check, think_harder, remember, run_command, speed_check", name),
+        _ => format!("Unknown tool: '{}'. Available: write_file, read_file, cargo_check, think_harder, remember, run_command, mcp_call, speed_check", name),
     }
 }
 
@@ -299,6 +300,61 @@ async fn run_command(args: &Value, state: &AppState) -> String {
     }
 }
 
+/// Call MCP HTTP endpoint (local or remote) from a tool invocation.
+/// Args:
+/// - endpoint (optional): full base URL. If omitted, tries [nicknames].mcp-local from cluster config.
+/// - path: endpoint path ("/tool"). Can also be a full URL.
+/// - method: GET|POST|PUT|PATCH|DELETE (default POST)
+/// - payload: JSON body (for non-GET requests)
+async fn mcp_call(args: &Value, _state: &AppState) -> String {
+    let endpoint = args
+        .get("endpoint")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .or_else(read_mcp_local_endpoint);
+    let Some(base) = endpoint else {
+        return "Error: MCP endpoint unavailable. Configure [nicknames].mcp-local or pass 'endpoint'.".to_string();
+    };
+
+    let path = args.get("path").and_then(|v| v.as_str()).unwrap_or("/");
+    let method = args
+        .get("method")
+        .and_then(|v| v.as_str())
+        .unwrap_or("POST")
+        .to_uppercase();
+    let payload = args.get("payload").cloned().unwrap_or_else(|| serde_json::json!({}));
+
+    let url = if path.starts_with("http://") || path.starts_with("https://") {
+        path.to_string()
+    } else {
+        format!(
+            "{}/{}",
+            base.trim_end_matches('/'),
+            path.trim_start_matches('/')
+        )
+    };
+
+    let client = reqwest::Client::new();
+    let req = match method.as_str() {
+        "GET" => client.get(&url),
+        "PUT" => client.put(&url),
+        "PATCH" => client.patch(&url),
+        "DELETE" => client.delete(&url),
+        _ => client.post(&url),
+    };
+    let req = if method == "GET" { req } else { req.json(&payload) };
+
+    match req.timeout(std::time::Duration::from_secs(20)).send().await {
+        Ok(resp) => {
+            let status = resp.status().as_u16();
+            let text = resp.text().await.unwrap_or_default();
+            let body = truncate_output(&text, 2500);
+            format!("mcp_call {} {} -> {}\n{}", method, url, status, body)
+        }
+        Err(e) => format!("mcp_call failed ({} {}): {}", method, url, e),
+    }
+}
+
 /// Ad-hoc speed + accuracy check using the P1000 TinyLlama reference.
 ///
 /// Fires the same prompt at both the main engine and the P1000 in parallel,
@@ -370,6 +426,17 @@ fn truncate_output(s: &str, max: usize) -> String {
     } else {
         s.to_string()
     }
+}
+
+fn read_mcp_local_endpoint() -> Option<String> {
+    let content = std::fs::read_to_string(crate::paths::cluster_config_path()).ok()?;
+    let table: toml::Table = content.parse().ok()?;
+    table
+        .get("nicknames")
+        .and_then(|v| v.as_table())
+        .and_then(|nick| nick.get("mcp-local"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
 }
 
 /// Simple timestamp without pulling in chrono crate.
