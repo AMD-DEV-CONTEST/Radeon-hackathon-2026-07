@@ -23,12 +23,16 @@ import genesis as gs
 from genesis.utils.geom import trans_R_to_T, euler_to_R
 
 from scene_config import (
-    BOWL_ASSET_FILE,
-    BOWL_REST_Z_OFFSET,
-    BOWL_SCALE,
     COLOR_RGB,
     COLORS,
+    CONTAINER_BOTTOM_SIZE,
+    CONTAINER_INNER_SIZE,
     CONTAINER_LAYOUT,
+    CONTAINER_RIM_MARGIN,
+    CONTAINER_RIM_Z_OFFSET,
+    CONTAINER_WALL_HEIGHT,
+    CONTAINER_WALL_THICKNESS,
+    FRANKA_EULER,
     FRANKA_EULER,
     FRANKA_FORCE_MAX,
     FRANKA_FORCE_MIN,
@@ -165,28 +169,62 @@ def _add_object(scene: gs.Scene, name: str, color: str, geometry: str,
 
 def _add_container(scene: gs.Scene, color: str,
                    pos_xy: tuple[float, float]) -> gs.RigidEntity:
-    """Add a per-color YCB 024_bowl container (colored, recessed) to the scene.
+    """Add a per-color recessed bin (5 Box primitives) to the scene.
 
-    The bowl is scaled to ~9cm diameter and colored to match its sorting
-    color (the Default surface overrides the mesh's own texture, same
-    technique the demo uses for DR recolor). convexify=True lets coacd
-    decompose the recess into convex pieces so objects genuinely fall in.
+    The bin is built from 5 fixed Box entities: a bottom slab + 4 walls,
+    forming a recessed cavity. Objects dropped inside collide with the
+    walls and bottom, coming to rest inside the bin — a true sorting container.
+
+    Inner cavity: CONTAINER_INNER_SIZE × CONTAINER_INNER_SIZE × (WALL_HEIGHT - BOTTOM_Z)
     """
     x, y = pos_xy
-    z = TABLE_TOP_Z + BOWL_REST_Z_OFFSET
     rgb = COLOR_RGB[color]
+    dark_rgb = tuple(c * 0.6 for c in rgb)
+    surface = gs.surfaces.Plastic(color=dark_rgb)
+    wt = CONTAINER_WALL_THICKNESS
+    wh = CONTAINER_WALL_HEIGHT
+    bs = CONTAINER_BOTTOM_SIZE  # (lx, ly, lz)
+    inner = CONTAINER_INNER_SIZE  # 0.072
 
+    # Bottom slab: sits on tabletop
+    bottom_z = TABLE_TOP_Z + bs[2] / 2
+    scene.add_entity(
+        morph=gs.morphs.Box(size=bs, pos=(x, y, bottom_z), fixed=True),
+        surface=surface,
+    )
+
+    # Four walls: each is a thin Box, positioned at the edge of the bottom slab
+    # Wall dimensions: thickness × inner_side × height
+    # Front/back walls: (wt, inner, wh) at y ± inner/2
+    # Left/right walls: (inner + 2*wt, wt, wh) at x ± inner/2 (overlap corners)
+    wall_z = TABLE_TOP_Z + bs[2] + wh / 2
+    half_inner = inner / 2
+
+    # Front wall (+y)
+    scene.add_entity(
+        morph=gs.morphs.Box(size=(inner + 2 * wt, wt, wh), pos=(x, y + half_inner + wt / 2, wall_z), fixed=True),
+        surface=surface,
+    )
+    # Back wall (-y)
+    scene.add_entity(
+        morph=gs.morphs.Box(size=(inner + 2 * wt, wt, wh), pos=(x, y - half_inner - wt / 2, wall_z), fixed=True),
+        surface=surface,
+    )
+    # Right wall (+x)
+    scene.add_entity(
+        morph=gs.morphs.Box(size=(wt, inner, wh), pos=(x + half_inner + wt / 2, y, wall_z), fixed=True),
+        surface=surface,
+    )
+    # Left wall (-x)
+    scene.add_entity(
+        morph=gs.morphs.Box(size=(wt, inner, wh), pos=(x - half_inner - wt / 2, y, wall_z), fixed=True),
+        surface=surface,
+    )
+
+    # Return the bottom slab as the "container" entity (used for get_pos/get_AABB in check_success)
     return scene.add_entity(
-        morph=gs.morphs.Mesh(
-            file=BOWL_ASSET_FILE,
-            pos=(x, y, z),
-            scale=BOWL_SCALE,
-            align=False,
-            fixed=True,
-            convexify=True,
-            decimate_face_num=500,
-        ),
-        surface=gs.surfaces.Default(color=rgb),
+        morph=gs.morphs.Box(size=bs, pos=(x, y, bottom_z), fixed=True),
+        surface=surface,
     )
 
 

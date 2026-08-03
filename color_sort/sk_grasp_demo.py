@@ -31,14 +31,13 @@ from genesis.utils.geom import euler_to_quat, quat_to_xyz
 
 from build_scene import build_scene
 from paths import FRAMES_DIR
-from scene_config import COLOR_RGB, COLORS, OBJECT_SIZE, TABLE_TOP_Z
+from scene_config import COLOR_RGB, COLORS, CONTAINER_INNER_SIZE, CONTAINER_RIM_MARGIN, CONTAINER_RIM_Z_OFFSET, OBJECT_SIZE, TABLE_TOP_Z
 
 # End-effector control constants (preserved from demo, world frame, meters).
 PREGRASP_CLEARANCE = 0.18
 LIFT_HAND_Z = TABLE_TOP_Z + 0.30
 RETREAT_HAND_Z = TABLE_TOP_Z + 0.35
 PLACE_HAND_Z_ABOVE_TARGET = 0.16
-_BOWL_RIM_MARGIN = 0.01
 
 HAND_TO_FINGERTIP = 0.105
 GRASP_CENTER_DROP_FRAC = 0.45
@@ -353,22 +352,16 @@ def check_success(bundle, task: TaskSpec) -> bool:
         horizontal = float(np.linalg.norm(pick_pos[:2] - place_xy))
         return bool(horizontal < task.success_tol and pick_pos[2] > place_ref_z - 0.02)
 
-    # Container target (YCB bowl): object is inside the bowl — horizontally
-    # within the rim footprint AND its lowest point dropped below the rim.
-    # Ported from the demo's bowl containment test; works for both the recessed
-    # mesh (object sinks in) and the convexified solid case (object rests on
-    # top, bottom below rim).
-    bowl_aabb = _entity_aabb(place_ent)
-    rim_z = float(bowl_aabb[1, 2])
-    rim_radius = 0.5 * float(min(
-        bowl_aabb[1, 0] - bowl_aabb[0, 0],
-        bowl_aabb[1, 1] - bowl_aabb[0, 1],
-    ))
+    # Container target (5-box recessed bin): object is inside the bin —
+    # horizontally within the inner footprint AND its lowest point dropped
+    # below the rim. The rim z is TABLE_TOP_Z + CONTAINER_RIM_Z_OFFSET.
+    rim_z = TABLE_TOP_Z + CONTAINER_RIM_Z_OFFSET
+    rim_radius = CONTAINER_INNER_SIZE / 2
     horizontal = float(np.linalg.norm(pick_pos[:2] - place_xy))
     within_footprint = horizontal < min(task.success_tol, rim_radius)
     obj_bottom_z = float(_entity_aabb(obj)[0, 2])
-    inside_bowl = obj_bottom_z < rim_z - _BOWL_RIM_MARGIN
-    return bool(within_footprint and inside_bowl)
+    inside_bin = obj_bottom_z < rim_z - CONTAINER_RIM_MARGIN
+    return bool(within_footprint and inside_bin)
 
 
 def _parse_place(text: str) -> Union[str, tuple[float, float]]:

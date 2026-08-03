@@ -40,8 +40,10 @@ from build_scene import build_scene
 from paths import DATASETS_DIR
 from randomize import RandomizationConfig
 from scene_config import (
-    BOWL_RIM_MARGIN,
     COLORS,
+    CONTAINER_INNER_SIZE,
+    CONTAINER_RIM_MARGIN,
+    CONTAINER_RIM_Z_OFFSET,
     FRANKA_QPOS,
     FRANKA_KP,
     FRANKA_KV,
@@ -409,7 +411,7 @@ def _batch_reset_envs(bundle, env_specs: list[dict]) -> None:
 
 
 def _batch_check_success(bundle, env_idx: int, pick_object: str, place_color: str) -> bool:
-    """Check success for one env: object inside the bowl (bottom below rim)."""
+    """Check success for one env: object inside the recessed bin (bottom below rim)."""
     obj = bundle.objects[pick_object]
     pos = obj.get_pos().cpu().numpy()[env_idx]  # [3]
 
@@ -418,21 +420,17 @@ def _batch_check_success(bundle, env_idx: int, pick_object: str, place_color: st
         return False
 
     cont_pos = container.get_pos().cpu().numpy()[env_idx]  # [3]
-    cont_aabb = container.get_AABB().cpu().numpy()[env_idx]  # [2, 3]
 
     horizontal = float(np.linalg.norm(pos[:2] - cont_pos[:2]))
-    rim_radius = 0.5 * float(min(
-        cont_aabb[1, 0] - cont_aabb[0, 0],
-        cont_aabb[1, 1] - cont_aabb[0, 1],
-    ))
+    rim_radius = CONTAINER_INNER_SIZE / 2
     within = horizontal < min(0.06, rim_radius)
 
     obj_aabb = obj.get_AABB().cpu().numpy()[env_idx]
     obj_bottom = float(obj_aabb[0, 2])
-    rim_z = float(cont_aabb[1, 2])
-    inside_bowl = obj_bottom < rim_z - BOWL_RIM_MARGIN
+    rim_z = TABLE_TOP_Z + CONTAINER_RIM_Z_OFFSET
+    inside_bin = obj_bottom < rim_z - CONTAINER_RIM_MARGIN
 
-    return bool(within and inside_bowl)
+    return bool(within and inside_bin)
 
 
 def _run_one_batch(bundle, env_specs: list[dict], recorders: list,
