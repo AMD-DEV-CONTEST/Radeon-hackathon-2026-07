@@ -87,3 +87,12 @@ What you'll learn:
 4. **Demonstration Video** (Recommended Length 3~5 minutes)
    - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
 5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+
+---
+
+## Contributors
+
+| GitHub | Role |
+|---|---|
+| [@lora-sys](https://github.com/lora-sys) | StagePoster — Track 1 submission |
+| [@Ripped-sys](https://github.com/Ripped-sys) | upstream project: [StagePoster](https://github.com/Ripped-sys/StagePoster) |
