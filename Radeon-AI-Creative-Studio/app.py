@@ -635,25 +635,28 @@ UI_JAVASCRIPT = """
     document.documentElement.lang = "en";
     document.body.lang = "en";
 
-    const replacements = {
-        "\u5c06\u56fe\u50cf\u62d6\u653e\u5230\u6b64\u5904": "Drop an image here",
-        "\u6216": "or",
-        "\u70b9\u51fb\u4e0a\u4f20": "Click to upload",
-        "\u4e0a\u4f20\u6587\u4ef6": "Upload file",
-        "\u4ece\u6444\u50cf\u5934\u6355\u83b7": "Capture from camera",
-        "\u4ece\u526a\u8d34\u677f\u7c98\u8d34": "Paste from clipboard",
-    };
+    const replacements = [
+        ["\u5c06\u56fe\u50cf\u62d6\u653e\u5230\u6b64\u5904", "Drop an image here"],
+        ["\u70b9\u51fb\u4e0a\u4f20", "Click to upload"],
+        ["\u4e0a\u4f20\u6587\u4ef6", "Upload file"],
+        ["\u4ece\u6444\u50cf\u5934\u6355\u83b7", "Capture from camera"],
+        ["\u4ece\u526a\u8d34\u677f\u7c98\u8d34", "Paste from clipboard"],
+        ["\u6216", "or"],
+    ];
 
     const translateUploadText = () => {
         document.querySelectorAll("body *").forEach((element) => {
-            if (element.childElementCount !== 0) {
-                return;
-            }
+            element.childNodes.forEach((node) => {
+                if (node.nodeType !== 3) {
+                    return;
+                }
 
-            const text = element.textContent.trim();
-            if (replacements[text]) {
-                element.textContent = replacements[text];
-            }
+                let text = node.nodeValue;
+                replacements.forEach(([source, target]) => {
+                    text = text.replaceAll(source, target);
+                });
+                node.nodeValue = text;
+            });
         });
     };
 
