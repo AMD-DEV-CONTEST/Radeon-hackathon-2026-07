@@ -621,6 +621,48 @@ CUSTOM_CSS = """
 .section-card {
     border-radius: 10px;
 }
+
+/* Keep the public demo surface focused on the application itself. */
+footer,
+.gradio-container footer {
+    display: none !important;
+}
+"""
+
+
+UI_JAVASCRIPT = """
+() => {
+    document.documentElement.lang = "en";
+    document.body.lang = "en";
+
+    const replacements = {
+        "\u5c06\u56fe\u50cf\u62d6\u653e\u5230\u6b64\u5904": "Drop an image here",
+        "\u6216": "or",
+        "\u70b9\u51fb\u4e0a\u4f20": "Click to upload",
+        "\u4e0a\u4f20\u6587\u4ef6": "Upload file",
+        "\u4ece\u6444\u50cf\u5934\u6355\u83b7": "Capture from camera",
+        "\u4ece\u526a\u8d34\u677f\u7c98\u8d34": "Paste from clipboard",
+    };
+
+    const translateUploadText = () => {
+        document.querySelectorAll("body *").forEach((element) => {
+            if (element.childElementCount !== 0) {
+                return;
+            }
+
+            const text = element.textContent.trim();
+            if (replacements[text]) {
+                element.textContent = replacements[text];
+            }
+        });
+    };
+
+    translateUploadText();
+    new MutationObserver(translateUploadText).observe(document.body, {
+        childList: true,
+        subtree: true,
+    });
+}
 """
 
 
@@ -631,6 +673,7 @@ CUSTOM_CSS = """
 with gr.Blocks(
     title="Radeon AI Creative Studio",
     css=CUSTOM_CSS,
+    js=UI_JAVASCRIPT,
 ) as demo:
 
     # --------------------------------------------------------
