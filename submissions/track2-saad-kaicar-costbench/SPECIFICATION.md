@@ -121,6 +121,19 @@ steps.
 action is not merely discouraged by the prompt — it is unreachable at
 sampling time. This is what makes a small, fast model usable as an agent.
 
+**Memory management.** A persistent store (`memory.py`, SQLite, no external
+dependencies) holds facts the agent established in earlier tasks: answers it
+produced, and parts of the workspace it already inspected. Recall is keyword
+scoring over stored keys and values — deliberately not embeddings, so the
+measurement path keeps no third-party surface. Recalled facts are injected
+into the opening turn with an instruction not to re-derive them.
+
+The benefit is accounted for in energy, not convenience: each recalled fact
+carries the token count originally spent to produce it, so the agent reports
+what memory saved in tokens, joules and euros. Measured over three tasks:
+28.5% fewer tokens, 21.0 J saved
+(`proofs/memory_ab_20260803T024708Z.json`).
+
 **Privacy and on-prem enforcement.** `X-Privacy: strict` is not a
 preference. It routes locally regardless of queue depth, latency budget, or
 whether an external provider is configured, and the audit ledger records
