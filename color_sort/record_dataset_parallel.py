@@ -411,7 +411,7 @@ def _batch_reset_envs(bundle, env_specs: list[dict]) -> None:
 
 
 def _batch_check_success(bundle, env_idx: int, pick_object: str, place_color: str) -> bool:
-    """Check success for one env: object inside the recessed bin (bottom below rim)."""
+    """Check success for one env: object center inside bin (horizontal + vertical)."""
     obj = bundle.objects[pick_object]
     pos = obj.get_pos().cpu().numpy()[env_idx]  # [3]
 
@@ -421,16 +421,20 @@ def _batch_check_success(bundle, env_idx: int, pick_object: str, place_color: st
 
     cont_pos = container.get_pos().cpu().numpy()[env_idx]  # [3]
 
-    horizontal = float(np.linalg.norm(pos[:2] - cont_pos[:2]))
-    rim_radius = CONTAINER_INNER_SIZE / 2
-    within = horizontal < min(0.06, rim_radius)
+    # Layer 1: horizontal — object center within bin inner footprint
+    half_inner = CONTAINER_INNER_SIZE / 2
+    inside_x = abs(pos[0] - cont_pos[0]) < half_inner
+    inside_y = abs(pos[1] - cont_pos[1]) < half_inner
+    if not (inside_x and inside_y):
+        return False
 
-    obj_aabb = obj.get_AABB().cpu().numpy()[env_idx]
-    obj_bottom = float(obj_aabb[0, 2])
+    # Layer 2: vertical — above bin bottom (not clipping) AND below rim
+    bin_bottom = TABLE_TOP_Z
     rim_z = TABLE_TOP_Z + CONTAINER_RIM_Z_OFFSET
-    inside_bin = obj_bottom < rim_z - CONTAINER_RIM_MARGIN
-
-    return bool(within and inside_bin)
+    half_h = OBJECT_SIZE / 2
+    not_clipping = pos[2] >= bin_bottom + half_h
+    inside_vertically = pos[2] < rim_z
+    return bool(not_clipping and inside_vertically)
 
 
 def _run_one_batch(bundle, env_specs: list[dict], recorders: list,

@@ -339,9 +339,10 @@ def run_pick_place(bundle, task: TaskSpec, *, save_frames: bool = False, recorde
 def check_success(bundle, task: TaskSpec) -> bool:
     """Whether ``pick_object`` has been placed into its color's container.
 
-    For a container (per-color bin) target: success requires the object to be
-    inside the container's footprint AND with its lowest point below the
-    container rim. Adapted from demo's bowl containment test.
+    Two-layer test:
+    1. Horizontal: object center is within the bin's inner footprint.
+    2. Vertical: object center is above the bin bottom (not clipping through)
+       AND below the rim (actually placed inside, not hovering above).
     """
     obj = bundle.objects[task.pick_object]
     pick_pos = obj.get_pos().cpu().numpy().reshape(-1)
@@ -352,16 +353,21 @@ def check_success(bundle, task: TaskSpec) -> bool:
         horizontal = float(np.linalg.norm(pick_pos[:2] - place_xy))
         return bool(horizontal < task.success_tol and pick_pos[2] > place_ref_z - 0.02)
 
-    # Container target (5-box recessed bin): object is inside the bin —
-    # horizontally within the inner footprint AND its lowest point dropped
-    # below the rim. The rim z is TABLE_TOP_Z + CONTAINER_RIM_Z_OFFSET.
+    # Layer 1: horizontal — object center within bin inner footprint
+    bin_xy = place_ent.get_pos().cpu().numpy().reshape(-1)[:2]
+    half_inner = CONTAINER_INNER_SIZE / 2
+    inside_x = abs(pick_pos[0] - bin_xy[0]) < half_inner
+    inside_y = abs(pick_pos[1] - bin_xy[1]) < half_inner
+    if not (inside_x and inside_y):
+        return False
+
+    # Layer 2: vertical — object center above bin bottom AND below rim
+    bin_bottom = TABLE_TOP_Z
     rim_z = TABLE_TOP_Z + CONTAINER_RIM_Z_OFFSET
-    rim_radius = CONTAINER_INNER_SIZE / 2
-    horizontal = float(np.linalg.norm(pick_pos[:2] - place_xy))
-    within_footprint = horizontal < min(task.success_tol, rim_radius)
-    obj_bottom_z = float(_entity_aabb(obj)[0, 2])
-    inside_bin = obj_bottom_z < rim_z - CONTAINER_RIM_MARGIN
-    return bool(within_footprint and inside_bin)
+    half_h = OBJECT_SIZE / 2
+    not_clipping = pick_pos[2] >= bin_bottom + half_h
+    inside_vertically = pick_pos[2] < rim_z
+    return bool(not_clipping and inside_vertically)
 
 
 def _parse_place(text: str) -> Union[str, tuple[float, float]]:
