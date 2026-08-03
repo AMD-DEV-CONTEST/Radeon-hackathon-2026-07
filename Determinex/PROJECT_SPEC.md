@@ -319,6 +319,40 @@ of sampling one, for 5.56–5.73× the aggregate tokens. That stability is the c
 not any single figure. Run 3 is visible in the demo video, so the number on screen
 and the number in this document can be checked against each other.
 
+#### Run 4 — a fourth instance, live on camera, 2026-08-03
+
+Runs 1–3 were captured on a Radeon Cloud instance that has since been destroyed, which is
+stated on screen at 0:00 of the demo video. Rather than leave the optimization evidenced only
+by replay, it was re-measured on **AMD's Radeon Token Factory** while recording:
+[`LIVE_ON_RADEON_2026-08-03.mp4`](LIVE_ON_RADEON_2026-08-03.mp4), 0:55.
+
+| | Value |
+|---|---|
+| Endpoint | `https://radeon.anruicloud.com/api/v1`, 4 models served |
+| Model | MiniCPM5-1B (small, so the sweep finishes inside a recording) |
+| Single stream | 64 tokens in 2.45 s = **26.1 tok/s** |
+| K sweep | K = 1, 2, 4, 8, 16, 32 — live |
+| Selected | **K = 8**, 1.98 candidates/s |
+
+This is a **different ceiling shape from runs 1–3**, and that is the interesting part. The
+vLLM instance was limited by KV cache and collapsed at K=64. The Token Factory is limited by a
+published **requests-per-minute quota**: requests above K≈8 are refused outright rather than
+queued, so the sweep does not find a throughput knee — it finds a wall. Same measurement, same
+code, three different reasons a machine stops, none of them readable from a config file. That
+is the argument for measuring in §5.2 made against a third rig.
+
+> **It also found a defect in the calibrator, live.** With the refused points excluded as
+> unusable, the ceiling detector saw only rising throughput among the survivors and printed
+> *"no ceiling within K≤48; this rig has more headroom than the sweep used"* — while 46 of 48
+> requests had just been refused. Reporting *more* headroom on a rig that had demonstrated
+> less is precisely the class of overclaim this project's oracle discipline exists to prevent,
+> and it was in the tool that measures the GPU. Fixed: when higher-K points were excluded
+> because the backend refused them, that is reported as a ceiling of a different kind, and the
+> corrected wording is what appears in the recording.
+
+Raw timed terminal log and the resulting calibration profile:
+[`amd_gpu_evidence/radeon_live_2026-08-03.json`](amd_gpu_evidence/radeon_live_2026-08-03.json).
+
 ### 5.2 Why that number is the whole thesis
 
 Verified search costs K generations per solve. If K generations cost K× the time, the

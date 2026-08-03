@@ -5,6 +5,26 @@ directory, so it needs no external host and cannot rot.
 
 **Mirror:** _(YouTube link added on submission)_
 
+**Live on the GPU:** [`LIVE_ON_RADEON_2026-08-03.mp4`](LIVE_ON_RADEON_2026-08-03.mp4) — 0:55,
+recorded 2026-08-03 against AMD's Radeon Token Factory while it was serving.
+
+> The note below says the Radeon Cloud instance used for sections 1–3 was destroyed. That is
+> still true, and those sections still replay captured evidence. This second clip closes the
+> gap it left: the optimization section running against a **live** AMD Radeon endpoint, so
+> Requirement 3's *"actual execution performance on an AMD Radeon GPU"* is answered by
+> execution rather than by replay.
+>
+> It runs `scripts/determinex_calibrate.py` — not a demo script, the code that actually sets K
+> for verified search, where K is the correctness knob (`P = 1 − (1−p)^K`). On camera it reads
+> the endpoint's four served models, times a single generation (26.1 tok/s), sweeps
+> K = 1…32 live, and writes the curve the solver then uses. Raw timed terminal log and the
+> resulting profile are in [`amd_gpu_evidence/radeon_live_2026-08-03.json`](amd_gpu_evidence/radeon_live_2026-08-03.json).
+>
+> Two things it does NOT claim. There is no `rocm-smi` in it: the Token Factory is a hosted
+> API, not a notebook instance with a shell, so the hardware is evidenced by the endpoint and
+> its served models rather than by a driver readout. And the model measured is MiniCPM5-1B —
+> small, because the sweep has to finish inside a recording.
+
 **Runtime: 4:09** · no narration required · on-screen section headers carry the structure,
 which is why the runner prints them. Inside the 3–5 minute requirement.
 
