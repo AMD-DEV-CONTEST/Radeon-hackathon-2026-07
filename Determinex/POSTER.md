@@ -49,15 +49,17 @@ Measured on Radeon — ROCm 7.2.1 · vLLM 0.16.1 · Qwen2.5-Coder-7B-Instruct:
 | Throughput | 30.0 tok/s | **166.9 tok/s** |
 | Wall clock | 17.05 s | **18.41 s** |
 
-# 25.8× throughput · 1.21× wall clock
+# 5.56× throughput · 1.08× wall clock
 
-We swept K instead of guessing it:
+*Six candidates cost 8% more time than one.*
+
+We swept K instead of guessing it — and it gets better with K:
 
 | K | agg tok/s | wall | |
 |---:|---:|---:|---|
 | 1 | 28.7 | 8.92 s | |
 | 16 | 413.5 | 9.91 s | |
-| **32** | **739.9** | **10.75 s** | ← knee |
+| **32** | **739.9** | **10.75 s** | ← knee · **25.8× tokens for 1.21× time** |
 | 64 | 512.6 ↓ | 29.59 s ↓ | collapse |
 
 **The cliff is predictable.** vLLM prints `Maximum concurrency: 61.83x` at boot.

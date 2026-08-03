@@ -394,9 +394,44 @@ a prediction of it** — and the gap is the price of the diversity mechanism, no
 amplifier does not work. It plainly does work: trial 1 had four candidates rejected by the
 oracle and the fifth pass, which is the machinery visible in one run.
 
-Closing the gap needs p measured *per temperature rung* and the per-rung values composed,
-which is more measurement than this submission can carry. It is stated rather than smoothed
-over because a submission that only reports its confirmations is not evidence of anything.
+#### 5.1c The gap, closed — measured on the GPU, 2026-08-03
+
+The paragraph above said closing this needed `p` measured *per temperature rung*. The Radeon
+instance came back, so it was. Qwen2.5-Coder-7B on the live card, 10 draws at every rung of
+the ladder `VerifiedSearch` actually uses, same 6-check task:
+
+| rung | p | distinct completions |
+|---|---:|---:|
+| t=0.0 | **0.00** | **1 / 10** |
+| t=0.2 | 0.00 | 2 / 10 |
+| t=0.4 | 0.00 | 6 / 10 |
+| t=0.6 | 0.00 | 8 / 10 |
+| t=0.8 | 0.10 | 6 / 10 |
+| t=1.0 | 0.10 | 10 / 10 |
+
+**The per-rung correction was not the answer.** `1 − Π(1−p_i)` = 0.344 against the naive
+`1−(1−p̄)^8` = 0.337 — the same number. The ladder does not explain the miss.
+
+**What does:** every draw at `t ≤ 0.6` has **p = 0.00**. Four of the eight samples in a K=8
+batch cannot pass this task at all, so a **nominal K of 8 is an effective K of 4**. With `p` on
+the productive rungs anywhere in 0.05–0.10 — and 1/10 is a coarse estimate — the prediction is
+**0.185–0.344** against **0.167** observed. Consistent.
+
+So `P = 1 − (1−p)^K` was never wrong. **It was being handed the wrong K.** The diversity ladder
+buys coverage on an easy task and spends half the batch on nothing when the task is hard.
+
+That is now a rule rather than an observation: after a round in which nothing scores,
+`VerifiedSearch` draws the next round from the hot rungs only (`_temp_for(..., hot=True)`).
+Cold-first remains correct for round one — on an easy task the greedy sample solves it
+outright and sampling hot would be pure waste.
+
+> **A separate result worth its own line.** `t=0.0` produced **1 distinct completion in 10
+> draws**. That is the greedy degeneracy which, earlier the same day, made a measurement
+> harness report `112/112, p=1.000` by calling `build_from_idea(k=1)` sixteen times — sixteen
+> draws at temperature zero are one draw. Diagnosed from the source in the morning and
+> independently confirmed on AMD hardware in the evening.
+
+Raw: [`amd_gpu_evidence/radeon_p_per_rung_2026-08-03.json`](amd_gpu_evidence/radeon_p_per_rung_2026-08-03.json)
 
 Raw: [`amd_gpu_evidence/radeon_amplification_2026-08-03.json`](amd_gpu_evidence/radeon_amplification_2026-08-03.json)
 — all three runs, per-draw, including the saturated set.

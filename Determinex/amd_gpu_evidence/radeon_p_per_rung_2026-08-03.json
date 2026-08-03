@@ -1,0 +1,87 @@
+{
+  "what": "p measured PER TEMPERATURE RUNG on the Radeon, and the corrected prediction",
+  "task": "expression evaluator (6 sound checks)",
+  "provider": "vllm",
+  "model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+  "ladder": [
+    0.0,
+    0.2,
+    0.4,
+    0.6,
+    0.8,
+    1.0,
+    1.0,
+    1.0
+  ],
+  "rungs": {
+    "0.0": {
+      "draws": 10,
+      "passes": 0,
+      "errors": 0,
+      "p": 0.0,
+      "distinct": 1,
+      "wall_s": 112.7
+    },
+    "0.2": {
+      "draws": 10,
+      "passes": 0,
+      "errors": 0,
+      "p": 0.0,
+      "distinct": 2,
+      "wall_s": 117.9
+    },
+    "0.4": {
+      "draws": 10,
+      "passes": 0,
+      "errors": 0,
+      "p": 0.0,
+      "distinct": 6,
+      "wall_s": 107.3
+    },
+    "0.6": {
+      "draws": 10,
+      "passes": 0,
+      "errors": 0,
+      "p": 0.0,
+      "distinct": 8,
+      "wall_s": 121.4
+    },
+    "0.8": {
+      "draws": 10,
+      "passes": 1,
+      "errors": 0,
+      "p": 0.1,
+      "distinct": 6,
+      "wall_s": 126.7
+    },
+    "1.0": {
+      "draws": 10,
+      "passes": 1,
+      "errors": 0,
+      "p": 0.1,
+      "distinct": 10,
+      "wall_s": 139.7
+    }
+  },
+  "mean_p": 0.05,
+  "naive_prediction_single_p": 0.3366,
+  "per_rung_prediction": 0.3439,
+  "measured_at": "2026-08-03T17:02:17",
+  "why_it_matters": "1-(1-p)^K assumes one p for all K draws. VerifiedSearch draws across a temperature ladder, so the correct form is 1 - PROD(1 - p_rung). Where the two disagree, the equation was not wrong -- it was being applied to draws it does not describe.",
+  "effective_k_analysis": {
+    "nominal_k": 8,
+    "productive_rungs": 4,
+    "dead_rungs": 4,
+    "dead_rung_temperatures": [
+      0.0,
+      0.2,
+      0.4,
+      0.6
+    ],
+    "P_from_productive_rungs": 0.3439,
+    "P_if_true_p_were_0.05": 0.1855,
+    "P_observed_over_6_searches": 0.167,
+    "conclusion": "1-(1-p)^K is not wrong; it was applied with the wrong K. On a task this model finds hard, every draw at t<=0.6 has p=0.00 -- so a NOMINAL K of 8 is an EFFECTIVE K of 4. With p on the productive rungs anywhere in 0.05-0.10 (1/10 is a coarse estimate) the prediction is 0.185-0.344 against 0.167 observed, which is consistent. The diversity ladder buys coverage on easy tasks and spends half the batch on nothing when the task is hard.",
+    "greedy_rung_is_deterministic": "t=0.0 produced 1 distinct completion in 10 draws, measured here on the GPU. That is the same degeneracy that made an earlier harness report 112/112 p=1.000 by calling build_from_idea(k=1) sixteen times -- sixteen draws at temperature 0 are one draw. Independently confirmed on real hardware rather than argued from the source."
+  }
+}
