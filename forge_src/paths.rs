@@ -28,6 +28,14 @@ pub fn lanes_state_path() -> String {
     format!("{}/lanes_state.json", forge_dir())
 }
 
+pub fn forge_runtime_state_path() -> String {
+    format!("{}/var/forge_runtime_state.txt", forge_dir())
+}
+
+pub fn forge_runtime_audit_log_path() -> String {
+    format!("{}/var/forge_runtime_audit.log", forge_dir())
+}
+
 pub fn models_dir() -> String {
     "/mnt/raid0/models".to_string()
 }

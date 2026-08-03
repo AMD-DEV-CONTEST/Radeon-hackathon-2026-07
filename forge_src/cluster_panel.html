@@ -106,6 +106,9 @@
     <h1>CESAROPS <span style="font-weight:100;font-size:0.8rem;color:var(--text-dim)">CLUSTER CONTROL</span></h1>
     <div style="display:flex;gap:12px;align-items:center">
         <span id="global-status" class="status-badge badge-online">ONLINE</span>
+        <span id="forge-runtime-badge" class="status-badge" style="background:#1f2937;color:#e2e8f0">Runtime: loading...</span>
+        <button onclick="switchForgeRuntime('v2')" style="padding:4px 8px;font-size:0.72rem;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:5px;cursor:pointer;">Use V2</button>
+        <button onclick="switchForgeRuntime('v3')" style="padding:4px 8px;font-size:0.72rem;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:5px;cursor:pointer;">Use V3</button>
         <a class="back" href="/">← Forge Chat</a>
     </div>
 </header>
@@ -311,14 +314,58 @@ async function fetchScores() {
     }
 }
 
+async function fetchForgeRuntime() {
+    const badge = document.getElementById('forge-runtime-badge');
+    if (!badge) return;
+    try {
+        const r = await fetch('/forge/runtime');
+        const data = await r.json();
+        const label = data.runtime_label || data.runtime || 'unknown';
+        badge.textContent = `Runtime: ${label}`;
+    } catch (_) {
+        badge.textContent = 'Runtime: unavailable';
+    }
+}
+
+async function switchForgeRuntime(runtime) {
+    const confirmSwitch = window.confirm(`Switch Forge runtime to ${runtime.toUpperCase()} for NEW missions only?`);
+    if (!confirmSwitch) return;
+    const reason = window.prompt('Switch reason (audit log):', 'MissionSpec adapter runtime switch') || '';
+    const adminPassword = window.prompt('Admin password (leave blank if not configured):', '') || '';
+
+    try {
+        const r = await fetch('/forge/runtime', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                runtime,
+                confirm: true,
+                reason,
+                admin_password: adminPassword
+            })
+        });
+        const data = await r.json();
+        if (data.error) {
+            alert(`Runtime switch failed: ${data.error}`);
+            return;
+        }
+        await fetchForgeRuntime();
+        log(`Forge runtime switched to ${data.runtime_label || data.runtime}`);
+    } catch (e) {
+        alert(`Runtime switch error: ${e.message}`);
+    }
+}
+
 async function init() {
     await fetchScores();
+    await fetchForgeRuntime();
     await Promise.all([fetchEngines(), fetchConfig(), fetchModels(), fetchGpuFleet(), fetchRoutingPresets()]);
     render();
     refreshGpus();
     refreshNodes();
     setInterval(refreshGpus, 15000);
     setInterval(refreshNodes, 30000);
+    setInterval(fetchForgeRuntime, 15000);
     await refreshGpuCatalog();
 }
 

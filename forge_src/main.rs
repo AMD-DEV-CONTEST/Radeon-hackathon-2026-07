@@ -15,6 +15,7 @@ mod routing;
 mod inference_client;
 mod stream_lanes;
 mod v3_slice;
+mod forge_adapter;
 
 use axum::{
     extract::{Json, Path, State},
@@ -36,6 +37,7 @@ pub struct AppState {
     pub send_busy: Arc<std::sync::atomic::AtomicBool>,
     pub steering: Arc<Mutex<Vec<String>>>,
     pub lanes: stream_lanes::LaneStore,
+    pub forge_adapter: Arc<forge_adapter::ForgeAdapter>,
 }
 
 #[derive(Clone)]
@@ -80,6 +82,103 @@ async fn cluster_panel() -> Html<&'static str> {
 
 async fn health() -> &'static str {
     r#"{"status":"ok","service":"cesarops-forge-v2","mode":"self-healing-translator"}"#
+}
+
+fn resolve_runtime_from_env_config() -> forge_adapter::ForgeRuntime {
+    if let Ok(raw) = std::env::var("FORGE_RUNTIME") {
+        match forge_adapter::ForgeRuntime::parse(&raw) {
+            Ok(runtime) => return runtime,
+            Err(e) => warn!("FORGE_RUNTIME parse error (falling back): {}", e),
+        }
+    }
+
+    if let Ok(raw) = std::fs::read_to_string(paths::forge_runtime_state_path()) {
+        match forge_adapter::ForgeRuntime::parse(raw.trim()) {
+            Ok(runtime) => return runtime,
+            Err(e) => warn!("runtime state parse error (falling back): {}", e),
+        }
+    }
+
+    let cfg = cluster_store::read_config();
+    if let Some(raw) = cfg
+        .get("forge")
+        .and_then(|v| v.as_table())
+        .and_then(|t| t.get("runtime"))
+        .and_then(|v| v.as_str())
+    {
+        match forge_adapter::ForgeRuntime::parse(raw) {
+            Ok(runtime) => return runtime,
+            Err(e) => warn!("cluster config runtime parse error (falling back): {}", e),
+        }
+    }
+
+    forge_adapter::ForgeRuntime::V2
+}
+
+#[derive(Deserialize)]
+struct RuntimeSwitchRequest {
+    runtime: String,
+    confirm: bool,
+    #[serde(default)]
+    reason: String,
+    #[serde(default)]
+    admin_password: String,
+}
+
+async fn get_forge_runtime(State(state): State<AppState>) -> Json<serde_json::Value> {
+    let runtime = state.forge_adapter.current_runtime();
+    Json(serde_json::json!({
+        "runtime": runtime.as_key(),
+        "runtime_label": runtime.display_name(),
+    }))
+}
+
+async fn set_forge_runtime(
+    State(state): State<AppState>,
+    Json(req): Json<RuntimeSwitchRequest>,
+) -> Json<serde_json::Value> {
+    if !req.confirm {
+        return Json(serde_json::json!({
+            "error": "confirmation required",
+            "message": "Set confirm=true to switch Forge runtime"
+        }));
+    }
+
+    let required = std::env::var("FORGE_ADMIN_PASSWORD").unwrap_or_default();
+    if !required.is_empty() && req.admin_password != required {
+        return Json(serde_json::json!({"error": "admin password required"}));
+    }
+
+    let next_runtime = match forge_adapter::ForgeRuntime::parse(&req.runtime) {
+        Ok(r) => r,
+        Err(e) => return Json(serde_json::json!({"error": e})),
+    };
+
+    let reason = if req.reason.trim().is_empty() {
+        "manual admin switch".to_string()
+    } else {
+        req.reason
+    };
+
+    match state.forge_adapter.switch_runtime(next_runtime, &reason) {
+        Ok(previous) => Json(serde_json::json!({
+            "status": "ok",
+            "previous_runtime": previous.as_key(),
+            "previous_runtime_label": previous.display_name(),
+            "runtime": next_runtime.as_key(),
+            "runtime_label": next_runtime.display_name(),
+            "note": "Switch applies to new missions only. Running missions keep their assigned runtime."
+        })),
+        Err(e) => Json(serde_json::json!({"error": e})),
+    }
+}
+
+async fn forge_health(State(state): State<AppState>) -> Json<serde_json::Value> {
+    Json(serde_json::json!({
+        "status": "ok",
+        "service": "forge-adapter",
+        "health": state.forge_adapter.health(),
+    }))
 }
 
 async fn send_message(
@@ -1773,20 +1872,14 @@ struct WorkflowRequest {
     log_errors: bool,
     #[serde(default)]
     safe_mode: bool,
+    #[serde(default)]
+    admin_password: String,
 }
 
-async fn workflow_execute(
-    State(state): State<AppState>,
-    Json(req): Json<WorkflowRequest>,
-) -> Json<serde_json::Value> {
-    if req.message.is_empty() {
-        return Json(serde_json::json!({"error": "message is required"}));
-    }
-
-    if req.workflow.is_empty() {
-        return Json(serde_json::json!({"error": "workflow must contain at least one step"}));
-    }
-
+async fn execute_v2_workflow(
+    state: &AppState,
+    req: &WorkflowRequest,
+) -> serde_json::Value {
     let mut current_message = req.message.clone();
     let mut step_outputs = Vec::new();
 
@@ -1794,7 +1887,12 @@ async fn workflow_execute(
         let endpoint = routing::endpoint_for_role(&step.role)
             .unwrap_or_else(|| state.config.coder_url.clone());
 
-        info!("Workflow Step {}: Dispatching to role '{}' ({})", i + 1, step.role, endpoint);
+        info!(
+            "Workflow Step {}: Dispatching to role '{}' ({})",
+            i + 1,
+            step.role,
+            endpoint
+        );
 
         let config = agent_dispatch::AgentConfig {
             endpoint_url: endpoint,
@@ -1808,7 +1906,7 @@ async fn workflow_execute(
         };
 
         let result = agent_dispatch::run_agent_loop(&config, &current_message).await;
-        
+
         if req.log_errors && (result.contains("Error:") || result.contains("Correction:")) {
             let add_url = state.config.nautivecs_url.replace("/query", "/ingest");
             let payload = serde_json::json!({
@@ -1834,11 +1932,107 @@ async fn workflow_execute(
         }
     }
 
-    Json(serde_json::json!({
+    serde_json::json!({
         "status": "success",
         "steps": step_outputs,
-        "final_output": current_message
-    }))
+        "final_output": current_message,
+        "current_stage": "HumanReviewBoundary",
+        "qualification_decision": "PendingHumanReview",
+        "evidence_layer_candidate": serde_json::Value::Null,
+    })
+}
+
+async fn workflow_execute(
+    State(state): State<AppState>,
+    Json(req): Json<WorkflowRequest>,
+) -> Json<serde_json::Value> {
+    if req.message.is_empty() {
+        return Json(serde_json::json!({"error": "message is required"}));
+    }
+
+    if req.workflow.is_empty() {
+        return Json(serde_json::json!({"error": "workflow must contain at least one step"}));
+    }
+
+    let submitted = state.forge_adapter.submit_mission();
+    let runtime = submitted.runtime;
+
+    let backend_result = match runtime {
+        forge_adapter::ForgeRuntime::V2 => execute_v2_workflow(&state, &req).await,
+        forge_adapter::ForgeRuntime::V3 => {
+            let v3req = v3_slice::V3DemoRequest {
+                admin_password: req.admin_password.clone(),
+                mission_note: req.message.clone(),
+            };
+            match v3_slice::run_aircraft_test_lab_demo(
+                axum::extract::State(state.clone()),
+                axum::extract::Json(v3req),
+            )
+            .await
+            {
+                Ok(axum::extract::Json(val)) => val,
+                Err((status, axum::extract::Json(err_body))) => {
+                    let _ = state.forge_adapter.fail_mission(
+                        &submitted.mission_id,
+                        &format!("v3 execution failed: status={} body={}", status, err_body),
+                    );
+                    return Json(serde_json::json!({
+                        "error": "v3 execution failed",
+                        "status": status.as_u16(),
+                        "details": err_body,
+                        "mission_id": submitted.mission_id,
+                        "run_id": submitted.run_id,
+                        "runtime": runtime.as_key(),
+                        "runtime_label": runtime.display_name()
+                    }));
+                }
+            }
+        }
+    };
+
+    let artifacts = backend_result
+        .get("artifacts")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let stage = backend_result
+        .get("current_stage")
+        .and_then(|v| v.as_str())
+        .unwrap_or("HumanReviewBoundary");
+    let _ = state.forge_adapter.complete_mission(
+        &submitted.mission_id,
+        stage,
+        artifacts,
+        vec![format!(
+            "{} runtime execution complete",
+            runtime.display_name()
+        )],
+    );
+
+    let mut response = backend_result;
+    if let Some(obj) = response.as_object_mut() {
+        obj.insert("mission_id".to_string(), serde_json::json!(submitted.mission_id));
+        obj.insert("run_id".to_string(), serde_json::json!(submitted.run_id));
+        obj.insert("runtime".to_string(), serde_json::json!(runtime.as_key()));
+        obj.insert(
+            "runtime_label".to_string(),
+            serde_json::json!(runtime.display_name()),
+        );
+        if !obj.contains_key("evidence") {
+            obj.insert(
+                "evidence".to_string(),
+                serde_json::json!({
+                    "final_output": obj.get("final_output").cloned().unwrap_or(serde_json::Value::Null)
+                }),
+            );
+        }
+    }
+
+    Json(response)
 }
 
 #[derive(serde::Deserialize)]
@@ -1860,6 +2054,53 @@ async fn workflow_plan(
         "original_prompt": req.message,
         "action": "Please fill in the missing context below before proceeding."
     }))
+}
+
+async fn forge_mission_status(
+    State(state): State<AppState>,
+    Path(mission_id): Path<String>,
+) -> Json<serde_json::Value> {
+    match state.forge_adapter.get_status(&mission_id) {
+        Some(record) => Json(serde_json::json!({
+            "mission_id": record.mission_id,
+            "run_id": record.run_id,
+            "runtime": record.runtime.as_key(),
+            "runtime_label": record.runtime.display_name(),
+            "status": record.status,
+            "stage": record.stage
+        })),
+        None => Json(serde_json::json!({"error": "mission not found"})),
+    }
+}
+
+async fn forge_mission_trace(
+    State(state): State<AppState>,
+    Path(mission_id): Path<String>,
+) -> Json<serde_json::Value> {
+    match state.forge_adapter.get_trace(&mission_id) {
+        Some(trace) => Json(serde_json::json!({"mission_id": mission_id, "trace": trace})),
+        None => Json(serde_json::json!({"error": "mission not found"})),
+    }
+}
+
+async fn forge_mission_artifacts(
+    State(state): State<AppState>,
+    Path(mission_id): Path<String>,
+) -> Json<serde_json::Value> {
+    match state.forge_adapter.get_artifacts(&mission_id) {
+        Some(artifacts) => Json(serde_json::json!({"mission_id": mission_id, "artifacts": artifacts})),
+        None => Json(serde_json::json!({"error": "mission not found"})),
+    }
+}
+
+async fn forge_mission_cancel(
+    State(state): State<AppState>,
+    Path(mission_id): Path<String>,
+) -> Json<serde_json::Value> {
+    match state.forge_adapter.cancel_mission(&mission_id) {
+        Ok(()) => Json(serde_json::json!({"status": "ok", "mission_id": mission_id, "cancelled": true})),
+        Err(e) => Json(serde_json::json!({"error": e, "mission_id": mission_id})),
+    }
 }
 
 // ── Lake Worker (CPU Idle Satellite Tile Processing) ──────────────────────
@@ -2089,7 +2330,16 @@ async fn main() {
         send_busy: Arc::new(std::sync::atomic::AtomicBool::new(false)),
         steering: Arc::new(Mutex::new(Vec::new())),
         lanes: stream_lanes::LaneStore::new(),
+        forge_adapter: Arc::new(forge_adapter::ForgeAdapter::new(
+            resolve_runtime_from_env_config(),
+            paths::forge_runtime_state_path(),
+            paths::forge_runtime_audit_log_path(),
+        )),
     };
+    info!(
+        "Forge adapter runtime initialized: {}",
+        state.forge_adapter.runtime_label()
+    );
 
     let app = Router::new()
         .route("/", get(index))
@@ -2145,6 +2395,13 @@ async fn main() {
         .route("/cluster/workflow/execute",            post(workflow_execute))
         .route("/cluster/workflow/plan",               post(workflow_plan))
         .route("/cluster/lake-worker",                 get(lake_worker_status).post(lake_worker_action))
+        .route("/forge/runtime", get(get_forge_runtime).post(set_forge_runtime))
+        .route("/forge/health", get(forge_health))
+        .route("/forge/mission/submit", post(workflow_execute))
+        .route("/forge/mission/{mission_id}/status", get(forge_mission_status))
+        .route("/forge/mission/{mission_id}/trace", get(forge_mission_trace))
+        .route("/forge/mission/{mission_id}/artifacts", get(forge_mission_artifacts))
+        .route("/forge/mission/{mission_id}/cancel", post(forge_mission_cancel))
         // ── Dispatch endpoints (for dispatch.html multi-GPU routing) ────
         .route("/cluster/dispatch/launch",             post(dispatch_launch))
         .route("/cluster/dispatch/stop",               post(dispatch_stop))
