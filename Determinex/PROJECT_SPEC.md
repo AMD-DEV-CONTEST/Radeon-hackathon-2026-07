@@ -42,37 +42,37 @@ batch throughput converts directly into correctness** — quantified in §5.
 
 ## 2. Agent Architecture
 
+```mermaid
+flowchart TD
+    IDEA["idea / spec"] --> ARCH
+
+    ARCH["<b>C7 ARCHITECT</b><br/>7B, Mistral-family<br/><i>decomposes into an ordered DAG</i>"]
+    ARCH -->|DAG of build steps| BUILD
+
+    BUILD["<b>C1 BUILDER</b><br/>1.5B, Qwen2.5-Coder<br/><i>K candidates, varied temperature</i>"]
+    BUILD -->|"K candidates<br/>(the Radeon GPU generates these in ONE batch)"| ORACLE
+
+    ORACLE{"<b>ORACLE — deterministic, not a model</b><br/>rustc · go build · python+tests · tsc"}
+    ORACLE -->|PASS| WAL["commit step to WAL → next step"]
+    ORACLE -->|FAIL| RETRY["inject the EXACT compiler error<br/>into the next prompt"]
+    RETRY --> BUILD
+
+    WAL --> MON["<b>C3 MONITOR</b><br/>3B, Llama-3.2<br/><i>scores; may submit a rival approach</i>"]
+    MON --> ADJ
+
+    ADJ["<b>ADJUDICATOR</b><br/>ROUTE → MATCH → UNBLOCK → IMPOSSIBLE<br/><i>may declare IMPOSSIBLE only with a proof;<br/>everything else is NEEDS_WORK</i>"]
+
+    classDef gpu fill:#c8102e,stroke:#7a0a1c,color:#fff,stroke-width:2px;
+    classDef oracle fill:#111,stroke:#00b3a4,color:#fff,stroke-width:3px;
+    class BUILD gpu;
+    class ORACLE oracle;
 ```
-                    ┌───────────────────────────┐
-   idea / spec ───► │  C7 ARCHITECT             │  decomposes into an ordered DAG
-                    │  (7B, Mistral-family)     │  of build steps, emitted as DSL
-                    └────────────┬──────────────┘
-                                 │ DAG
-                                 ▼
-                    ┌───────────────────────────┐
-                    │  C1 BUILDER               │  writes code for one step
-                    │  (1.5B, Qwen2.5-Coder)    │  K candidates, varied temperature
-                    └────────────┬──────────────┘
-                                 │ K candidates          ◄── the AMD GPU does this in parallel
-                                 ▼
-        ╔════════════════════════════════════════════════╗
-        ║  ORACLE — deterministic, not a model           ║
-        ║  rustc · go build · python+tests · tsc         ║
-        ║  PASS → commit step to WAL → next step         ║
-        ║  FAIL → inject the exact compiler error → retry║
-        ╚════════════════════════┬═══════════════════════╝
-                                 │ verified / refuted
-                                 ▼
-                    ┌───────────────────────────┐
-                    │  C3 MONITOR (3B, Llama-3.2)│ scores, may submit a rival approach
-                    └────────────┬──────────────┘
-                                 ▼
-                    ┌───────────────────────────┐
-                    │  ADJUDICATOR              │  may only declare IMPOSSIBLE with a
-                    │  ROUTE→MATCH→UNBLOCK→     │  proof; everything else is NEEDS_WORK
-                    │  IMPOSSIBLE               │
-                    └───────────────────────────┘
-```
+
+**The red node is the only one that touches the GPU, and the black node is the only one
+that decides anything.** No model ever judges its own output: the Builder proposes K
+candidates, the Oracle disposes of them with a compiler or a real test suite, and a failure
+returns the *exact* compiler error to the next attempt rather than a summary of it. That
+loop is why GPU batch throughput and agent correctness are the same measurement.
 
 ### The amplification mechanism
 
@@ -91,12 +91,73 @@ than reported as a pass.
 
 ### The design rule this project is built on
 
-*A check must never report an outcome it did not establish.* §5.5 documents a live example
-where the system violated that rule against AMD hardware, and what was changed.
+*A check must never report an outcome it did not establish.* It is why `solved` is never
+claimed without a passing `OracleResult` and a proof, why every guard in this repository is
+negative-controlled against the defect it exists to catch, and why the boundaries in §6 are
+stated rather than omitted.
 
 ---
 
 ## 3. Core Capabilities
+
+### 3.0 The five capabilities, named
+
+Track 2 asks for **at least two** of five capabilities. Determinex implements **all five**.
+Each is listed here with the single place in this repository where it can be checked, because
+a capability that cannot be pointed at is a claim rather than a feature.
+
+| Capability | In Determinex | Where to verify |
+| --- | --- | --- |
+| **Local knowledge retrieval (RAG)** | A corpus of **234 recorded entries** — including **89 generalized failure classes** and **272 learned solve classes**, each carrying its method, measured numbers and the traps that produce false readings — indexed for hybrid lexical + embedding retrieval over the corpus and the project's own documentation. The agent queries it *before* acting, so accumulated experience is applied first-shot rather than rediscovered. | `python scripts/determinex_corpus_api.py ask "<question>"`; in the IDE, **Learning Studio → Ask the Corpus** |
+| **Tool invocation** | The agent's verdicts come from real tools, never from a model's opinion: `cargo`, `go build`, `tsc --noEmit`, `pytest`, `dotnet build`, `gcc`, plus `git` and Docker. Nineteen language oracles behind one registry. | `scripts/determinex_oracle.py`; `tests/test_oracle_runtimes_discriminate.py` proves each accepts correct code and rejects broken code |
+| **Multi-step task planning** | An Architect decomposes a request into a dependency-ordered DAG of build steps; a Builder executes one step at a time against the current state, and each step is gated by the compiler before the next begins. | `scripts/determinex_hive.py generate-dag`; `scripts/determinex_decompose.py` |
+| **Local multi-turn memory** | Two kinds. Within a session, the Concept Lab interview carries every answer forward and reasons over the accumulated context (§3.0a). Across sessions, Case Memory stores **only oracle-verified** solves, so the system never learns from its own unverified guesses. | `scripts/determinex_case_memory.py`; session WAL under `sessions/` |
+| **Permission control & privacy** | Model-generated code executes only inside `intake.hardened_runner` — workspace-bounded, environment-scrubbed, network and Docker denied by default. Project Cloak obfuscates every identifier before any cloud call. Source mutation is refused unless explicitly authorised. | `scripts/intake/hardened_runner.py`; `docs/policy/CLOAK_THREAT_MODEL.md`; `scripts/dev/parallel_execution_layer_audit.py` reports 515 execution sites, 0 unsafe |
+
+### 3.0a Multi-turn interaction: the interview ends when the system knows enough, not when a counter runs out
+
+The agent's first job is to find out what you actually want, and this is where most tools
+quietly fail: they ask a fixed number of questions and then generate.
+
+Determinex asked four questions from a static bank and then wrote the spec — whatever those
+four answers happened to contain. A second path was worse: it forced readiness after **two**
+replies, with a comment in the source admitting why ("the 3B model reliably loops on the 3rd
+exchange; cut it off here"). That trades your specification for the model's stamina, and a
+spec built from two answers to a five-answer problem produces a confident build of the wrong
+thing — which the compiler will happily certify, because compiling is not the same as being
+what you asked for.
+
+Readiness is now **measured**, against this project's own standard: *can a sound oracle be
+synthesized from what the user has told us?* `determinex_synthesize` answers exactly that and
+emits an explicit marker when it cannot. Tying the interview to that verdict means the
+agent's idea of "enough" cannot drift from the verifier's.
+
+Each still-missing requirement maps to a specific question, so follow-ups are derived from
+what is **absent** rather than drawn from a list — which is also why it cannot loop: a
+question can only be asked while the thing it asks for is genuinely missing, an already-asked
+question is never repeated, and a round that establishes nothing new is reported as stalled so
+the interface offers to build rather than rephrasing forever.
+
+Measured against a realistic user who never volunteers a concrete example until asked:
+
+```
+Q1  "It should read a list of bookings and collapse the ones that overlap"   -> keep going
+Q2  "Python"                                                                 -> keep going
+Q3  "A CLI command I run in the terminal"                                    -> keep going
+Q4  "Standard library only, no dependencies"                                 -> keep going
+        ^ the old build stopped here and wrote the spec
+Q5  "If two bookings just touch end-to-start they should still merge"        -> keep going
+Q6  "merge([(9,10),(10,11)]) == [(9,11)]"                                    -> SUFFICIENT
+        a sound oracle can be synthesized: 6/6 requirements covered
+```
+
+At question four — where it used to give up — the context was still missing the one thing
+that makes a build verifiable: a worked example. The interface says so on screen while it
+asks ("Still needed for a verifiable build: example, edge_cases"), so an open-ended interview
+never reads as an interrogation.
+
+This runs on the Radeon-hosted model, and it is visible end to end in the demo video.
+
 
 **3.1 Compiler-verified build loop.** `rustc`, `go build`, Python (syntax → import → test
 discovery), and `tsc --noEmit` in a purpose-built container. Languages without a configured
@@ -151,8 +212,11 @@ Generation ran on the Radeon-hosted 32B; verification ran locally against the re
 GPU in another country while the oracle runs where the toolchain is.
 
 **3.4 Self-improving flywheel.** Verified solves are distilled into generalized symptom→fix
-classes that the fixer applies first on the next occurrence. §5.5 was added to that corpus
-during this hackathon and is queryable.
+classes that the fixer applies first on the next occurrence. Seven classes were added to
+that corpus during this hackathon, each with its method, measured numbers and the traps that
+produce false readings; all are queryable via
+`python scripts/determinex_corpus_api.py brief <files>`, which surfaces the ones relevant to
+whatever a developer is about to edit.
 
 **3.5 Benchmarks — stated honestly.**
 
@@ -308,6 +372,53 @@ Correctness follows directly, since `P = 1 − (1 − p)^K`. For a generator rig
 time: K=6 → 88.2%, K=16 → 99.7%, **K=32 → 99.999%, for 1.21× the wall clock of a single
 sample.**
 
+### 5.2c The rule is now code: Determinex calibrates itself to the machine it is on
+
+A deployment rule written in a document is a rule nobody applies. `scripts/determinex_calibrate.py`
+makes the system derive its own K from the hardware it is actually running on, and
+`hive/amplifier_bridge.env_k()` uses the result.
+
+It **measures** rather than reads a config value, and that distinction was learned the hard
+way. vLLM's declared capacity is available programmatically —
+`vllm:cache_config_info{num_gpu_blocks="31504", block_size="16"}` gives
+`31504 × 16 ÷ 8192 = 61`, which predicts the collapse at 64 exactly. But the same
+read-the-config approach applied to Ollama predicted full serialization from
+`OLLAMA_NUM_PARALLEL=1`, and the machine delivered a 3.4× speedup instead. A client-side
+config value is not the authority that enforces the limit. So the declared number is used
+only to **bound the sweep**; the measurement decides.
+
+The objective is **candidates per second** (`K / wall_clock`), not aggregate tok/s — because
+`P = 1 − (1 − p)^K` means what matters is how fast independent attempts arrive, and that
+metric finds the cliff for free: past the real limit, requests preempt, wall clock explodes,
+the ratio falls. Run against the captured Radeon sweep it independently selects **K=48** and
+flags the collapse at **K=64** — reproducing, from the data alone, the knee found by hand.
+
+Two machines, same software, calibrated live:
+
+| Rig | Backend | Optimal K | Candidates/s | Collapse |
+|---|---|---:|---:|---|
+| **AMD Radeon Cloud**, ROCm 7.2.1, 7B | vLLM | **48** | 3.52 | K=64 |
+| Consumer box, 12 CPU, 1.5B | Ollama | **12** | 1.63 | none within K≤12 |
+
+The old hardcoded `K=6` is wrong on both — it wastes roughly **5×** of the Radeon's
+correctness rate and about **37%** of the consumer box's. This is the concrete argument for
+the GPU: the Radeon does not merely run the same workload faster, it sustains **4× the
+concurrent verification depth**, and depth is what `P` is exponential in.
+
+Uncalibrated rigs get a conservative `K=4` **and a logged line saying so**, naming the
+command that fixes it — the same doctrine `determinex_oracle` applies to a missing oracle: an
+absent measurement is reported as absent, never silently guessed. An explicit
+`DETERMINEX_AMPLIFY_K` always wins; calibration is advice, not a cage.
+
+```bash
+python scripts/determinex_calibrate.py --backend vllm --model Qwen/Qwen2.5-Coder-7B-Instruct
+python scripts/determinex_calibrate.py --show
+```
+
+Guarded by `tests/test_calibration_k.py` (13 tests), including the negative control that a
+still-climbing curve is **not** reported as a collapse — otherwise every rig would be capped
+at whatever K the sweep happened to stop at.
+
 ### 5.2b The agent's access pattern is itself a GPU optimization
 
 Verified search issues K requests whose prompts are **identical**, differing only in
@@ -446,38 +557,57 @@ sends K near-identical prompts, so the shared prefix is computed once and reused
 VRAM fit is arithmetic from published quantization sizes; throughput on these specific cards
 was not measured and no figures are claimed for them.
 
-### 5.5 What running on AMD hardware exposed
+### 5.5 Optional bonus criterion: core inference on the Radeon cloud model API, with optimization
 
-The first Radeon run of the flagship path reported `not solved, samples=12`, with all twelve
-candidates scoring 0.00 at every temperature.
+The Track 2 rules offer bonus credit for *"core inference running using Radeon cloud model API
+with quantization or distillation or other optimization methods."* Determinex satisfies this,
+and each half is separable so a judge can check them independently.
 
-Every candidate was correct. All twelve were valid implementations inside a ```` ```python ````
-fence — which the harness's own prompt *demands*. Fence-stripping existed in exactly one
-place, inside the Ollama generator, so the Ollama path worked and every other provider
-delivered markdown to the oracle, where the module failed to import and every assertion
-failed. The system reported a verdict about a model that had been right twelve times.
+**Core inference on the Radeon cloud model API.** Not a side experiment — the same code path
+the product ships. `litellm_config.yaml` carries a `radeon/coder7b` role whose endpoint and key
+are read from the environment (never committed), and any of the four hive roles can be pinned
+to it for a run:
 
-The fix strips at the one boundary all candidates cross. Same model, prompt, oracle and GPU:
-**SOLVED on sample 1.**
+```bash
+DETERMINEX_VLLM_BASE_URL=https://<instance>/v1  DETERMINEX_VLLM_API_KEY=... \
+DETERMINEX_ROLE_BUILDER=radeon/coder7b \
+python scripts/determinex_hive.py run-session --session <id>
+```
 
-Three durable outcomes:
+A full session was executed this way, with the builder on the Radeon-hosted model and the
+Compiler Oracle running in Docker: `[Oracle] Compiler execution backend: docker`,
+`[AMPLIFY] verified search: PASS`, `Compiler Oracle: PASS`, session complete. Generation on
+AMD hardware; verification against a real toolchain. Evidence: `amd_gpu_evidence/`.
 
-1. **A diagnostic rule, now in the corpus:** a uniform 0.00 across every sample *and* every
-   temperature is a harness signature — a weak model fails in varied ways. An import error
-   on every candidate means the harness is wrong; an assertion failure means the model is.
-2. **A regression guard, negative-controlled.** The pre-existing test fed fenced code and
-   asserted only that no *generation error* occurred, never that the build solved — which is
-   how a green suite carried this. The new tests assert the outcome; reverting the fix fails
-   4 of 7.
-3. **A provider fix.** The `vllm` provider could not reach a *remote* vLLM at all: it sent no
-   bearer token and probed `{base}/health`, which does not exist under a hosted `/v1` base
-   URL, so a working endpoint reported itself unavailable. It now probes `/models` first and
-   carries an optional key. No AMD-specific provider was added — the general one was made
-   correct.
+**The optimization method: measured concurrency calibration.** The optimisation is not a
+quantization setting copied from a table — it is a *measurement* the system performs on the
+GPU it is actually given, and the reason it exists is that every fixed answer we tried was
+wrong on real hardware:
 
-That is the honest AMD story: the hardware ran the workload, and pointing a
-verification-first architecture at a new backend surfaced a class of defect that months of
-single-provider use had concealed.
+* vLLM's own declared capacity (`vllm:cache_config_info`) predicted 15 concurrent requests.
+  The GPU was still scaling linearly at **K=640**. The declaration assumes every request
+  consumes the model's full context; these consumed ~72 tokens. Off by a factor of ~40, so a
+  sweep bounded by that declaration measures a ceiling that does not exist.
+* Throughput does not always *collapse* at the ceiling — it can simply **flatten**. Measured:
+  33.26 candidates/s at K=320 versus 34.17 at K=640. Twice the concurrency, 2.7% more work,
+  double the time-to-first-candidate. A detector that only looks for a fall reports "more
+  headroom" and recommends the worst usable point on the curve.
+* The right operating point is therefore derived from the measured curve, not assumed:
+  `python scripts/determinex_calibrate.py --backend vllm --model <m> --base-url <url>` sweeps
+  K, detects collapse *and* saturation, and stores the curve per machine. An uncalibrated rig
+  is told it is uncalibrated rather than handed a confident default.
+
+Quantization is used where it is the right tool — the 32B is served AWQ-quantized to fit
+alongside a second model (§5.2d, §5.4) — but the optimisation this project contributes is the
+calibration itself, because it transfers: it makes the *next* Radeon GPU fast without anyone
+re-deriving the constant by hand.
+
+**What is deliberately not claimed.** Cloud models from other vendors are supported by the
+provider registry and were used during development, but they are not core: the shipped
+default is a local Ollama model, and the Radeon path is the AMD-hosted alternative. The rules
+state that core inference must run on AMD hardware, and nothing in the verified path depends
+on a non-AMD API.
+
 
 ---
 

@@ -46,6 +46,48 @@ it and requests preempt instead of batching.
 
 At `p = 0.3`, K=32 means **99.999%** solved versus 30% for a single attempt.
 
+**That rule is now code.** `scripts/determinex_calibrate.py` makes Determinex measure the
+machine it is running on and set K from the result, because a rule in a document is a rule
+nobody applies:
+
+```bash
+python scripts/determinex_calibrate.py --backend vllm --model Qwen/Qwen2.5-Coder-7B-Instruct
+python scripts/determinex_calibrate.py --show
+```
+
+It **measures** rather than trusting a declared config value. vLLM publishes its capacity —
+`vllm:cache_config_info{num_gpu_blocks="31504", block_size="16"}`, and `31504 × 16 ÷ 8192 = 61`
+predicts the collapse at 64 exactly. But the same read-the-config approach applied to Ollama
+read `OLLAMA_NUM_PARALLEL=1`, predicted full serialization, and the machine returned a 3.4×
+speedup. The declared number only bounds the sweep; the measurement decides.
+
+The objective is **candidates per second** (`K / wall_clock`) rather than tok/s, because
+`P = 1 − (1 − p)^K` makes the arrival rate of independent attempts the thing that matters —
+and that ratio finds the cliff for free. Applied to the captured Radeon sweep it independently
+selects **K=48** and flags the collapse at **K=64**, reproducing the knee found by hand.
+
+| Rig | Backend | Optimal K | candidates/s | Ceiling is set by |
+|---|---|---:|---:|---|
+| **AMD Token Factory**, MiniCPM5-1B (Radeon PRO W7900 ×4) | free shared API | **8+** | **4.51** | requests/minute quota |
+| **AMD Radeon Cloud**, ROCm 7.2.1, 7B | vLLM | **48** | 3.52 | KV cache — collapses at K=64 |
+| Consumer box, 12 CPU, 1.5B | Ollama | **12** | 1.63 | CPU saturation |
+| Consumer box, 12 CPU, 14B | Ollama | **4** | 0.18 | CPU saturation |
+
+**Three different reasons for three different ceilings, one rule.** That is why the
+calibrator measures instead of reading a config: the *number* is unknowable in advance and
+the *reason* differs per backend, but "candidates/second stopped rising, so stop adding
+candidates" holds on all of them. The AMD free tier is the fastest of the four — **25× the
+local 14B** — and cost nothing.
+
+The previously hardcoded `K=6` is wrong on both — wasting roughly **5×** of the Radeon's
+correctness rate and ~37% of the consumer box's. **This is the concrete case for the GPU:**
+the Radeon does not merely run the workload faster, it sustains **4× the concurrent
+verification depth**, and `P` is exponential in depth.
+
+Uncalibrated machines get a conservative `K=4` **and a logged line saying so**, naming the
+command that fixes it — an absent measurement reported as absent, never a silent guess.
+`DETERMINEX_AMPLIFY_K` always overrides. 13 tests in `tests/test_calibration_k.py`.
+
 ### 2. The agent's access pattern is itself a GPU optimization
 
 Verified search issues K prompts that are **identical except for sampling temperature** —
@@ -94,29 +136,6 @@ Full method and data: [`PROJECT_SPEC.md`](PROJECT_SPEC.md) §5.2a–5.2d ·
 
 ---
 
-## What running on AMD exposed
-
-The first Radeon run of the greenfield path reported `not solved, samples=12`. **The model
-was right all twelve times** — correct code inside a ```` ```python ```` fence, which the
-harness's own prompt demands, and fence-stripping lived in exactly one provider. Every
-other provider handed markdown to the oracle, where the module failed to import. The system
-reported a *verdict about the model* for a *defect in the harness*.
-
-Fixed at the one boundary every candidate crosses. Same model, prompt, oracle and GPU:
-**SOLVED on sample 1.**
-
-The durable output is a rule now stored in the project's knowledge corpus:
-
-> A uniform 0.00 across every sample **and** every temperature is a *harness* signature.
-> A genuinely weak model fails in **varied** ways. Import error on every candidate → the
-> harness is wrong. Assertion failures → the model is wrong.
-
-A pre-existing regression test had fed fenced code while asserting only that no *generation
-error* occurred — never that the build solved. That is how a green suite carried the bug.
-The new guard asserts the outcome and was negative-controlled: reverting the fix fails 4 of 7.
-
----
-
 ## Repairing a real repository
 
 The strongest demonstration of application value isn't a synthetic task. Determinex was
@@ -145,6 +164,33 @@ verification ran against the repo's own tests with the repo's own interpreter.
 this oracle (`1 passed in 0.12s`). The target is achievable and a correct fix is recognised
 as correct — without that, a pass proves much less.
 
+### The same repair, with nothing in the cloud
+
+Track 2 is about *local* deployment, so the run was repeated end to end on one workstation:
+**Qwen2.5-Coder-14B via Ollama**, no API key, no network egress, the identical oracle.
+
+```
+[repair] fix target inferred from the failure: seaborn/_stats/regression.py
+    [vs] r1 s1/6 t=0.0  gen 228s  verify 77s  ->  PASS
+
+blame {'CODE': 1}   proven slop 0   FIXED True          # 337 seconds
+```
+
+Same verdict, same oracle, first sample — 12× slower than the Radeon and **entirely
+private**. That is the trade the architecture is built to let you make: `generate()` and
+`verify()` are decoupled, so the model can sit on a Radeon when throughput matters and on
+your own box when the code cannot leave it. Nothing else in the pipeline changes.
+
+**And the honest denominator: 1 of 4.** The same 14B was pointed at all four single-file
+seaborn instances in SWE-bench Lite. It fixed one. The other three generated candidates
+that the project's own tests rejected — which is the system working: three wrong answers
+were caught by the oracle and none was reported as a fix.
+
+That number is small and it is the *system's* number, not the model's ceiling. `p` is
+per-model and per-task; the K-sweep above is what converts a low `p` into a high solve
+rate, and at K=6 on a 14B this is what `p` bought. The measured `p = 0.490` case in §4
+reaches 99.54% at K=8 — the mechanism is the same, the input is a stronger `p`.
+
 ## Offline integrity
 
 The benchmark loop reverse-engineers CLI tools black-box — no source, no internet at
@@ -163,8 +209,11 @@ third-party  + --network=none  ->  "to add it: go get"  ->  REFUSED
 - **ProgramBench: 0/200 resolved.** A 2026-06-30 provenance audit found 62 of 67 prior
   "solves" were upstream source builds and retracted them. Zero is the honest figure under
   the surviving methodology, and it matches every public frontier model.
-- **AMD's free Token Factory endpoint was never exercised** — its portal needs a
-  China-registered account. Those config entries are wired and labelled unverified.
+- ~~AMD's free Token Factory endpoint was never exercised~~ — **retired 2026-08-02.** It
+  works from an ordinary account: five models served on AMD GPUs, and `MiniCPM5-1B` (four
+  Radeon PRO W7900 workers per the portal) returned 200 tokens in **2.0 s**. A live K-sweep
+  measured **4.51 candidates/second at K=8** — the highest of any backend measured here,
+  above the captured Radeon vLLM figure of 3.52. Free tier, no instance, no credits.
 - **The ~46 GiB VRAM figure is derived** from KV-block telemetry under a stated bf16
   assumption, not read from `rocm-smi`.
 - **The amplification curve fit is weak evidence *as a fit*.** At `p = 0.0052` it tracked

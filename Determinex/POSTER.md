@@ -88,37 +88,6 @@ An ordinary agent sends K *different* prompts. Measured, same GPU, K=16:
 
 ---
 
-## WHAT THE RADEON RUN CAUGHT
-
-The first run on AMD hardware reported:
-
-```
-result: not solved   samples=12          ← every candidate scored 0.00
-```
-
-**The model was right all twelve times.** Each answer was correct code inside a
-```` ```python ```` fence — which the harness's own prompt demands. Fence-stripping
-existed in exactly one provider. Every other provider fed markdown to the oracle,
-where the module failed to import and every check failed.
-
-The system reported a *verdict about the model* for a *defect in the harness*.
-
-```
-after the fix:   result: SOLVED   samples=1
-```
-
-**The transferable rule, now stored in the project's knowledge corpus:**
-
-> A uniform 0.00 across every sample **and** every temperature is a *harness*
-> signature. A genuinely weak model fails in **varied** ways.
-> Import error on all candidates → harness. Assertion failure → model.
-
-A green test suite had carried this bug: the existing test fed fenced code and
-asserted only that no *generation error* occurred — never that the build solved.
-The new guard asserts the outcome, and reverting the fix fails 4 of 7 tests.
-
----
-
 ## WHAT WE DO NOT CLAIM
 
 | | |

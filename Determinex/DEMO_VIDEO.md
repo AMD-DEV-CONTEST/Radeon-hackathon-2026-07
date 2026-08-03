@@ -1,136 +1,170 @@
 # Demo Video
 
-**Link:** _(to be added)_
+**File:** [`SUBMISSION_DEMO_v2_4min09.mp4`](SUBMISSION_DEMO_v2_4min09.mp4) — committed in this
+directory, so it needs no external host and cannot rot.
 
-**Runtime:** 1:48 · 1912×1018 · H.264 · no audio.
+**Mirror:** _(YouTube link added on submission)_
 
-Recorded in one unedited take on a Radeon Cloud Notebook instance. There is no
-narration and no cut: the on-screen section headers carry the structure, which is
-why `demo_run.sh` prints them. What it shows, in order:
+**Runtime: 4:09** · no narration required · on-screen section headers carry the structure,
+which is why the runner prints them. Inside the 3–5 minute requirement.
 
-| Section | On screen |
-|---|---|
-| 1/6 | `rocm-smi` at rest — AMD device `0x744b`, 30.0 °C, 16.0 W |
-| 2/6 | vLLM serving `Qwen/Qwen2.5-Coder-7B-Instruct` at 32,768 context |
-| 3/6 | 32.6 tok/s single stream vs 186.9 tok/s at K=6 — **5.73× for 1.05× wall clock** |
-| 4/6 | `rocm-smi` under load — 38.0 °C, 123.0 W |
-| 5/6 | idea → synthesized 4-check oracle → `result: SOLVED  samples=1` + the verified program |
-| 6/6 | closing summary |
+> The recorded file is `SUBMISSION_DEMO_v2_4min09.mp4` (h264, 249.9 s, 1100×816 — 700 of
+> content plus a padding band, because an earlier take cropped the last line of terminal
+> output and nobody noticed until it was played back). It passes an
+> automated gate that samples a frame every 2 seconds across the whole file and checks for a
+> desktop leak, a frozen screen, edge bleed, and the duration window — each of which exists
+> because an earlier take passed a casual look and was not shippable.
+>
+> The repair's silent-generation pauses were cut. The per-sample timings it prints
+> (`gen 212s / 343s / 193s / 262s`) and the 427-second total remain on screen, so the cost is
+> disclosed; what was removed is a motionless terminal.
 
-The throughput figures in section 3 are the third of three independent measurements
-(5.56× / 5.61× / 5.73×); `PROJECT_SPEC.md` §5.1 lists all three, so the number on
-screen and the number in the document reconcile.
+Every number spoken or shown below appears in `README.md` or `amd_gpu_evidence/`. Nothing
+is re-derived for the camera.
+
+> **One honest note, stated on screen at 0:00.** The Radeon Cloud instance used for the
+> GPU measurements has since been destroyed, so sections 1–3 are read from the captured
+> evidence files rather than re-run live. Sections 4–5 run live on local hardware. The
+> evidence files are raw tool output, committed in `amd_gpu_evidence/`.
+
+| Section | On screen | Source |
+|---|---|---|
+| 1 | K-sweep: 28.7 → 739.9 tok/s, and the K=64 collapse | `k_sweep_and_prefix_cache.json` |
+| 2 | Prefix cache 99.51% vs 1.35%, same GPU, same K | `k_sweep_and_prefix_cache.json` |
+| 3 | Measured `p` for two models — 1.000 / 0.943 / 0.490 / 0.000 | `two_model_comparison.json` |
+| **4** | **Determinex calibrates itself to the machine — LIVE sweep**, then the same objective applied to the captured Radeon data reproduces K=48 / collapse at 64 | live + `k_sweep_and_prefix_cache.json` |
+| 5 | A real SWE-bench repair, oracle-verified, **live and local** | live |
+| 6 | The honest boundary | — |
+
+**Section 4 is the ROCm optimization actually running.** The rule derived in section 1
+(`K < floor(kv_cache_tokens / max_model_len)`) is no longer just a documented finding —
+`scripts/determinex_calibrate.py` measures the machine it is on and sets K from it. On camera
+it sweeps the local box live, then applies the identical objective to the captured Radeon
+sweep and independently selects **K=48** with the collapse flagged at **K=64** — the knee that
+was originally found by hand. Two machines, one law, and the old hardcoded `K=6` shown wrong
+on both.
+
+> **If the Radeon instance is redeployed, this is the section to re-shoot there.** It would
+> sweep the real GPU on camera instead of replaying its captured numbers, which satisfies
+> Requirement 3's *"actual execution performance on an AMD Radeon GPU"* and demonstrates the
+> optimization on the hardware it was designed for, in the same take.
 
 ---
 
 ## Shot list
 
-Every command below is real and was executed on the Radeon instance on 2026-07-31. Nothing
-here is a mock-up; the numbers on screen should be the numbers in `PROJECT_SPEC.md`.
+### 0:00–0:25 — What the GPU actually did
 
-### 0:00–0:30 — The AMD GPU is real
+Open `amd_gpu_evidence/k_sweep_and_prefix_cache.json` and put the table on screen:
 
-Show the Radeon Cloud instance page: `1 GPU`, image
-`amd-oneclick-base:rocm7.2.1-py3.12-v20260416`, status Ready. Then the server's own
-telemetry, which is stronger evidence than a dashboard screenshot:
+| K | aggregate tok/s | wall clock |
+|---:|---:|---:|
+| 1 | 28.7 | 8.92 s |
+| 16 | 413.5 | 9.91 s |
+| **32** | **739.9** | **10.75 s** |
+| 64 | 512.6 ↓ | 29.59 s ↓ |
 
-```bash
-curl -s "$ROOT/metrics" -H "Authorization: Bearer $AMD_API_KEY" | grep cache_config_info
-```
+Say it plainly: **25.8× the tokens for 1.21× the wall clock.** Then point at K=64 and say
+why it collapses — vLLM announced the limit at boot, `Maximum concurrency for 8,192 tokens
+per request: 61.83x`. Exceed it and requests preempt instead of batching.
 
-Point at `num_gpu_blocks="31504"` and say the line out loud: *31,504 KV blocks is 26.9 GiB
-of KV cache on the Radeon, plus 14 GiB of weights — about 46 GiB of device memory.*
+Land the rule, because it is the part any Radeon owner can use without rerunning anything:
 
-### 0:30–1:15 — The thesis, on one slide
+> Keep `K < floor(kv_cache_tokens / max_model_len)`. Both numbers are in vLLM's boot log.
 
-> Determinex never lets a model judge its own work. A compiler or a real test suite is the
-> only oracle. That means accuracy comes from *sampling K candidates and verifying each* —
-> `P = 1 − (1 − p)^K` — so the system's correctness is bounded by **GPU batch throughput**,
-> not by model quality.
+### 0:25–0:50 — The agent's access pattern is itself a GPU optimization
 
-### 1:15–2:00 — The measurement that matters
+Same file, the A/B:
 
-Run the benchmark live (it takes ~35 s, so start it and talk over it):
+| K=16 | prefix-cache hit | aggregate tok/s | wall clock |
+|---|---:|---:|---:|
+| Verified search | **99.51%** | 410.9 | 9.97 s |
+| Distinct prompts | 1.35% | 292.9 | 13.98 s |
 
-```bash
-python amd_bench.py 6
-```
+Verified search sends K prompts identical except for sampling temperature. An ordinary
+agent sends K different prompts. **1.40× throughput at 0.71× wall clock, free** — purely
+from how the architecture queries the model.
 
-Land on the result:
+### 0:50–1:25 — Where it works, and where it does not
 
-```
-single stream          : 512 tok in 17.05s = 30.0 tok/s
-K=6 concurrent         : 3072 tok in 18.41s = 166.9 tok/s aggregate
-aggregate speedup      : 5.56x
-```
+`amd_gpu_evidence/two_model_comparison.json`, 1,152 generations:
 
-Say the punchline plainly: **6 candidates cost 8% more wall clock than 1.** At p=0.3 that
-takes the solve rate from 30% to 88.2% for an 8% time premium.
+| Task | 7B `p` | 32B `p` | Regime |
+|---|---:|---:|---|
+| `rle` | 1.000 | 1.000 | saturated — K adds nothing |
+| `gron` 5-check | 0.005 | 0.943 | model solves it; K trims the tail |
+| **`gron` 6-check** | **0.000** | **0.490** | **the productive middle** |
 
-### 2:00–3:15 — The bug the AMD run exposed *(the strongest 75 seconds — do not cut)*
+Do not skip the outer rows — they are what makes the middle one credible. At `p = 0.490`
+the model fails more than half its attempts and reaches **99.54% at K=8 for 1.04× the wall
+clock**. At `p = 0` no K helps: `1 − (1 − 0)^K = 0`. Verified search multiplies capability;
+it cannot manufacture it.
 
-Show the first run's output:
+### 1:25–2:50 — A real repository, repaired live *(the section to spend time on)*
 
-```
-result: not solved  samples=12
-[vs] r1 s1/6 t=0.0 gen 9s verify 1s -> 1 fail (score 0.00)     (×12)
-```
-
-Then show one of the rejected candidates and let it sit on screen — it is *correct* RLE.
-
-Explain: every candidate was right, wrapped in a ```` ```python ```` fence that the
-harness's own prompt demands. Fence-stripping lived inside the Ollama generator only, so
-Ollama worked and every other provider fed markdown to the oracle, where the module failed
-to import. The system reported a verdict about a model that had been right twelve times.
-
-Then the same command after the one-line fix:
-
-```
-result: SOLVED  samples=1
-proof: program PASSES all 4 synthesized checks (oracle-verified, 1 samples).
-```
-
-Close it with the general rule, because that is the transferable part:
-
-> A uniform 0.00 across every sample **and** every temperature is a harness signature, not a
-> capability signature. A genuinely weak model fails in *varied* ways.
-
-### 3:15–3:45 — It learned
-
-Show that the finding is not just fixed but absorbed:
+This runs on local hardware, so it is reproducible on camera. Point Determinex at
+`mwaskom__seaborn-3010` — a real reported issue in a real open-source project, judged by
+that project's own test.
 
 ```bash
-python scripts/determinex_corpus_api.py search "candidate scores 0.00 not solved fenced"
+python scripts/determinex_repair.py <workspace>
 ```
 
-Top hit is `fenced_candidate_not_stripped`, with symptom, fix and proof. The next occurrence
-gets this applied first-shot.
+Let it print, and read the lines out as they land:
 
-Then the guard, negative-controlled:
+```
+[repair] fix target inferred from the failure: seaborn/_stats/regression.py
+[repair] using the repo's interpreter: .venv
+[repair] oracle scope: 1 failing test(s), not the full suite
+    [vs] r1 s1/6 t=0.0  gen 228s  verify 77s  ->  PASS
 
-```bash
-python -m pytest tests/test_generation_failure_is_not_a_verdict.py -q      # 31 passed
+blame {'CODE': 1}   proven slop 0   FIXED True
 ```
 
-Mention that the *pre-existing* test already fed fenced code — and asserted only that no
-generation error occurred, never that the build solved. That is how a green suite carried
-the bug, and why the new tests assert outcomes.
-
-### 3:45–4:00 — Close
-
-```bash
-python scripts/determinex_build_from_idea.py --idea idea.md --provider vllm --k 6
+```diff
+- p = np.polyfit(x, y, self.order)
++ p = np.polyfit(x.dropna(), y.dropna(), self.order)
 ```
 
-Idea in, oracle-verified program out, on AMD hardware, with no cloud vendor in the loop.
-State the honest boundary on camera: ProgramBench is 0/200 under the methodology that
-survived a provenance audit, and that zero is deliberate.
+Three things to say while it runs:
+
+1. **Blame is `CODE`** — not environment, not test. And `proven_slop: 0`: it declined the
+   easy exit of declaring the failing test wrong.
+2. **The control.** SWE-bench's official gold patch also passes this oracle
+   (`1 passed in 0.12s`). The target is achievable and a correct fix is recognised as
+   correct — without that, a pass proves much less.
+3. **Nothing left the machine.** Qwen2.5-Coder-14B via Ollama, no API key, no egress. The
+   same run on the Radeon-hosted 32B finished in 27 s. `generate()` and `verify()` are
+   decoupled by design, so the model sits on a Radeon when throughput matters and on your
+   own box when the code cannot leave it.
+
+### 2:50–3:30 — The boundary, said out loud
+
+State it on camera rather than burying it:
+
+- **ProgramBench: 0/200 resolved.** A provenance audit found 62 of 67 prior "solves" were
+  upstream source builds and retracted them. Zero is the honest figure under the surviving
+  methodology, and it matches every public frontier model.
+- **The ~46 GiB VRAM figure is derived** from KV-block telemetry under a stated bf16
+  assumption, not read from `rocm-smi`.
+- ~~AMD's free Token Factory endpoint was never exercised~~ — **retired 2026-08-02.** It
+  works from an ordinary account: five models served on AMD GPUs, and `MiniCPM5-1B` (four
+  Radeon PRO W7900 workers per the portal) returned 200 tokens in **2.0 s**. A live K-sweep
+  measured **4.51 candidates/second at K=8** — the highest of any backend measured here,
+  above the captured Radeon vLLM figure of 3.52. Free tier, no instance, no credits.
+
+Close on: *a benchmark number that cannot survive a provenance audit is worth less than a
+zero that can.*
 
 ---
 
 ## Recording notes
 
-- Redact the API key — it appears in `$AMD_API_KEY` and in any `curl` you paste. Use
-  `-H "Authorization: Bearer $AMD_API_KEY"` with the variable, never the literal.
-- The instance dies when credits run out; capture everything in one session.
+- **No API keys on screen, ever** — not in a `curl`, not in an environment dump, not in a
+  scrollback. A key captured in a video frame is a published key.
 - Terminal at a large font. Judges watch these small.
+- The REPAIR (now section 5) is the long one — 427 s in the shipped take, one candidate
+  alone spending `gen 343s`. Cut the motionless stretches, never the printed timings: the
+  elapsed numbers stay on screen so the cost is disclosed rather than implied.
+- Section numbering below predates the calibration section; the table at the top of this
+  file is the authoritative running order (1-3 evidence, 4 calibration, 5 repair, 6 boundary).
