@@ -3,6 +3,10 @@
 
 **Track 2 · Private AI Agents · DarthCeltic · AGPL-3.0-or-later**
 
+**Code** [github.com/DarthCeltic/Determinex](https://github.com/DarthCeltic/Determinex) ·
+**Models** [huggingface.co/darthceltic85](https://huggingface.co/darthceltic85) ·
+**Author** [github.com/DarthCeltic](https://github.com/DarthCeltic)
+
 ---
 
 ## THE PROBLEM
@@ -106,3 +110,20 @@ An ordinary agent sends K *different* prompts. Measured, same GPU, K=16:
 github.com/DarthCeltic/Determinex          AGPL-3.0-or-later
 python scripts/determinex_build_from_idea.py --idea idea.md --provider vllm --k 6
 ```
+
+---
+
+## RUN IT YOURSELF
+
+```bash
+git clone https://github.com/DarthCeltic/Determinex && cd Determinex
+pip install -r scripts/requirements.txt
+python scripts/determinex_build_from_idea.py --idea idea.md --provider vllm --k 32
+```
+
+| | |
+|---|---|
+| **Source** | [github.com/DarthCeltic/Determinex](https://github.com/DarthCeltic/Determinex) |
+| **Models** | [huggingface.co/darthceltic85](https://huggingface.co/darthceltic85) — `determinex-engineer` · `determinex-observer-llama-3.2` · `determinex-sentinel` |
+| **Author** | [github.com/DarthCeltic](https://github.com/DarthCeltic) |
+| **Licence** | AGPL-3.0-or-later |

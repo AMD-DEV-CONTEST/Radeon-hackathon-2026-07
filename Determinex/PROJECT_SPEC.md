@@ -2,8 +2,8 @@
 
 **2026 AMD Radeon GPU Hackathon · Track 2: Development & Local Deployment of Private AI Agents**
 
-**Submitter:** DarthCeltic · **Source:** https://github.com/DarthCeltic/Determinex ·
-**License:** AGPL-3.0-or-later · **Date:** 2026-07-31
+**Submitter:** DarthCeltic · **License:** AGPL-3.0-or-later · **Date:** 2026-08-03
+**Source:** github.com/DarthCeltic/Determinex · **Models:** huggingface.co/darthceltic85 · **Author:** github.com/DarthCeltic
 
 ---
 

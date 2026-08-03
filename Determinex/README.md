@@ -5,7 +5,9 @@
 | | |
 |---|---|
 | **Submitter** | DarthCeltic |
-| **Source code** | https://github.com/DarthCeltic/Determinex (AGPL-3.0-or-later, public) |
+| **Source code** | [github.com/DarthCeltic/Determinex](https://github.com/DarthCeltic/Determinex) — AGPL-3.0-or-later, public |
+| **Models** | [huggingface.co/darthceltic85](https://huggingface.co/darthceltic85) — `determinex-engineer` · `determinex-observer-llama-3.2` · `determinex-sentinel` |
+| **Author** | [github.com/DarthCeltic](https://github.com/DarthCeltic) |
 | **AMD hardware** | Radeon Cloud · ROCm 7.2.1 · vLLM 0.16.1 |
 | **Models measured** | Qwen2.5-Coder-7B-Instruct (bf16) and Qwen2.5-Coder-32B-Instruct-AWQ |
 
