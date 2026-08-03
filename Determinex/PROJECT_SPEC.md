@@ -159,6 +159,69 @@ never reads as an interrogation.
 This runs on the Radeon-hosted model, and it is visible end to end in the demo video.
 
 
+### 3.0b Several AIs in one room, and a foreman who decides who is right
+
+Determinex hosts the coding-agent CLIs a developer already has — Claude Code, Codex, Gemini
+CLI, aider — plus a local Ollama model, **in one shared conversation over one workspace**.
+Turns run one at a time, never concurrently, and **each agent's edits are checked against the
+real compiler/test oracle before the next agent goes**. All participants read the same Mission
+Plan, which can be re-synced from the repository's own `CLAUDE.md` / `PROJECT.md`, so nobody
+duplicates or contradicts another's work.
+
+Serialising turns prevents a *collision*. It does not answer the two questions that decide
+whether a room finishes:
+
+> **When two participants disagree, who wins? When nobody is progressing, who goes next?**
+
+Without answers a room degrades the way rooms do: the last agent to speak wins by default —
+recency wearing the costume of authority — agents politely defer to each other, and the work
+stops with everyone still "working".
+
+**Authority is what a claim is backed by, never who made it.**
+
+| Tier | Backed by | Why it ranks there |
+|---|---|---|
+| **ORACLE** | the compiler or tests passed | a fact about the workspace, not an opinion about it |
+| **CORPUS** | Determinex's own verified lessons | cannot be outvoted by an agent's confidence |
+| **REFUTED** | the oracle rejected it | "this fails with these 3 errors" is *evidence*; a room that discards it re-proposes the same thing forever |
+| **PROSE** | an agent talking | lowest, however fluent |
+
+Within a tier the later claim wins, because the later one saw the earlier. **Across tiers time
+is irrelevant** — a passing oracle result from turn 3 outranks beautiful prose from turn 40 and
+always will. Status is read from the turn *record*, never from its text: an agent writing
+"fixed it" is PROSE whatever it claims.
+
+Stall detection reuses the same rule that governs the amplifier's rounds — the room's failing
+-check count over turns *is* an error series — so the foreman inherits "keep going while the
+number falls, and say so when the remainder is out of proportion" rather than inventing a
+second story about when to stop. It then either hands the floor to a participant who has *not*
+been failing at it, or escalates naming what is actually needed: a missing toolchain, a
+stronger model, or a person.
+
+Verify: `python scripts/determinex_agent_chat.py foreman <session-id>` ·
+`scripts/determinex_foreman.py` · 17 tests in `tests/test_foreman_authority.py`
+
+### 3.0c It tells you when it needs you — on the desktop and on your phone
+
+A verified build is long-running by construction: K candidates, an oracle run per candidate,
+retries. The user is not watching, and that is the normal case rather than the exception.
+
+Determinex raises a **native desktop notification** — Windows, macOS, or Linux, with **no
+configuration at all** — and additionally posts to Discord, Slack, or Telegram when a webhook
+is set. Both, always: you may be at the machine in another window, or away from it entirely.
+
+The restraint matters more than the plumbing. Only two situations earn an interruption:
+
+* **DONE** — the work reached a verdict, verified or not. It is over and you can decide.
+* **BLOCKED** — it needs a person, which the foreman identifies precisely rather than by
+  timeout.
+
+Everything else is a status you can pull. A stream of normal-progress pings is exactly how the
+one that mattered gets swiped away.
+
+Verify: `python scripts/determinex_cockpit.py status` ·
+`python scripts/determinex_cockpit.py notify --if-needed`
+
 **3.1 Compiler-verified build loop.** `rustc`, `go build`, Python (syntax → import → test
 discovery), and `tsc --noEmit` in a purpose-built container. Languages without a configured
 oracle **fail closed** with an actionable message — they are never silently passed. Every
@@ -232,69 +295,6 @@ audit is worth less than a zero that can.
 
 ---
 
-
-### 3.0b Several AIs in one room, and a foreman who decides who is right
-
-Determinex hosts the coding-agent CLIs a developer already has — Claude Code, Codex, Gemini
-CLI, aider — plus a local Ollama model, **in one shared conversation over one workspace**.
-Turns run one at a time, never concurrently, and **each agent's edits are checked against the
-real compiler/test oracle before the next agent goes**. All participants read the same Mission
-Plan, which can be re-synced from the repository's own `CLAUDE.md` / `PROJECT.md`, so nobody
-duplicates or contradicts another's work.
-
-Serialising turns prevents a *collision*. It does not answer the two questions that decide
-whether a room finishes:
-
-> **When two participants disagree, who wins? When nobody is progressing, who goes next?**
-
-Without answers a room degrades the way rooms do: the last agent to speak wins by default —
-recency wearing the costume of authority — agents politely defer to each other, and the work
-stops with everyone still "working".
-
-**Authority is what a claim is backed by, never who made it.**
-
-| Tier | Backed by | Why it ranks there |
-|---|---|---|
-| **ORACLE** | the compiler or tests passed | a fact about the workspace, not an opinion about it |
-| **CORPUS** | Determinex's own verified lessons | cannot be outvoted by an agent's confidence |
-| **REFUTED** | the oracle rejected it | "this fails with these 3 errors" is *evidence*; a room that discards it re-proposes the same thing forever |
-| **PROSE** | an agent talking | lowest, however fluent |
-
-Within a tier the later claim wins, because the later one saw the earlier. **Across tiers time
-is irrelevant** — a passing oracle result from turn 3 outranks beautiful prose from turn 40 and
-always will. Status is read from the turn *record*, never from its text: an agent writing
-"fixed it" is PROSE whatever it claims.
-
-Stall detection reuses the same rule that governs the amplifier's rounds — the room's failing
--check count over turns *is* an error series — so the foreman inherits "keep going while the
-number falls, and say so when the remainder is out of proportion" rather than inventing a
-second story about when to stop. It then either hands the floor to a participant who has *not*
-been failing at it, or escalates naming what is actually needed: a missing toolchain, a
-stronger model, or a person.
-
-Verify: `python scripts/determinex_agent_chat.py foreman <session-id>` ·
-`scripts/determinex_foreman.py` · 17 tests in `tests/test_foreman_authority.py`
-
-### 3.0c It tells you when it needs you — on the desktop and on your phone
-
-A verified build is long-running by construction: K candidates, an oracle run per candidate,
-retries. The user is not watching, and that is the normal case rather than the exception.
-
-Determinex raises a **native desktop notification** — Windows, macOS, or Linux, with **no
-configuration at all** — and additionally posts to Discord, Slack, or Telegram when a webhook
-is set. Both, always: you may be at the machine in another window, or away from it entirely.
-
-The restraint matters more than the plumbing. Only two situations earn an interruption:
-
-* **DONE** — the work reached a verdict, verified or not. It is over and you can decide.
-* **BLOCKED** — it needs a person, which the foreman identifies precisely rather than by
-  timeout.
-
-Everything else is a status you can pull. A stream of normal-progress pings is exactly how the
-one that mattered gets swiped away.
-
-Verify: `python scripts/determinex_cockpit.py status` ·
-`python scripts/determinex_cockpit.py notify --if-needed`
 
 ## 4. Models & Local Deployment
 
@@ -383,7 +383,7 @@ of sampling one, for 5.56–5.73× the aggregate tokens. That stability is the c
 not any single figure. Run 3 is visible in the demo video, so the number on screen
 and the number in this document can be checked against each other.
 
-#### Run 4 — a fourth instance, live on camera, 2026-08-03
+#### 5.1a Run 4 — a fourth instance, live on camera, 2026-08-03
 
 Runs 1–3 were captured on a Radeon Cloud instance that has since been destroyed, which is
 stated on screen at 0:00 of the demo video. Rather than leave the optimization evidenced only
@@ -413,6 +413,35 @@ is the argument for measuring in §5.2 made against a third rig.
 > and it was in the tool that measures the GPU. Fixed: when higher-K points were excluded
 > because the backend refused them, that is reported as a ceiling of a different kind, and the
 > corrected wording is what appears in the recording.
+
+#### Run 5 — the whole argument, live end to end, 2026-08-03
+
+A fifth instance, and the first where the numbers were measured *while the recording ran*
+rather than replayed: [`LIVE_ON_RADEON_FULL_2min.mp4`](LIVE_ON_RADEON_FULL_2min.mp4), 1:59.
+
+| | |
+|---|---:|
+| Single stream | 256 tokens in 8.66 s = **29.6 tok/s** |
+| K=1 | 28.5 agg tok/s |
+| K=6 | **164.4 agg tok/s** |
+| | **5.77× throughput at 1.04× wall clock** |
+
+That is the fourth independent confirmation of the ratio this whole section rests on —
+**5.56× · 5.61× · 5.73× · 5.77×**, on four instances, over three weeks. The absolute rates
+move with instance load; the ratio does not, and the ratio is the claim.
+
+The clip ends on the behaviour that matters more than any throughput figure. Asked to build
+from a vague idea, the system returns `solved=False` — *"no example or typeable invariant
+could be derived from this idea… that cannot verify behaviour"*. Given three concrete
+examples it synthesizes a 3-check oracle and returns a program that passes it, generated on
+the card. A refusal and a verified solve, from the same model, in ninety seconds.
+
+> **What it deliberately does not show,** stated on screen rather than omitted: no `rocm-smi`.
+> This run drives the vLLM endpoint through the instance's own reverse tunnel, not a shell on
+> the box, so the GPU is evidenced by what it serves and how it behaves under load. The
+> hardware readout is in Run 3, which had shell access.
+
+Raw timed terminal log: [`amd_gpu_evidence/radeon_live_full_2026-08-03.json`](amd_gpu_evidence/radeon_live_full_2026-08-03.json)
 
 #### 5.1b The other half of the claim, and where it did not hold
 
@@ -564,7 +593,7 @@ Correctness follows directly, since `P = 1 − (1 − p)^K`. For a generator rig
 time: K=6 → 88.2%, K=16 → 99.7%, **K=32 → 99.999%, for 1.21× the wall clock of a single
 sample.**
 
-### 5.2c The rule is now code: Determinex calibrates itself to the machine it is on
+### 5.2b The rule is now code: Determinex calibrates itself to the machine it is on
 
 A deployment rule written in a document is a rule nobody applies. `scripts/determinex_calibrate.py`
 makes the system derive its own K from the hardware it is actually running on, and
@@ -611,7 +640,7 @@ Guarded by `tests/test_calibration_k.py` (13 tests), including the negative cont
 still-climbing curve is **not** reported as a collapse — otherwise every rig would be capped
 at whatever K the sweep happened to stop at.
 
-### 5.2b The agent's access pattern is itself a GPU optimization
+### 5.2c The agent's access pattern is itself a GPU optimization
 
 Verified search issues K requests whose prompts are **identical**, differing only in
 sampling temperature. That is close to the ideal case for a prefix cache, and unusual —
@@ -637,7 +666,7 @@ generic nicety here — it is load-bearing for this workload specifically.
 
 Raw data for all three sweeps: [`amd_gpu_evidence/k_sweep_and_prefix_cache.json`](amd_gpu_evidence/k_sweep_and_prefix_cache.json).
 
-### 5.2c Measuring `p` directly — including where the architecture stops working
+### 5.2d Measuring `p` directly — including where the architecture stops working
 
 `P = 1 − (1 − p)^K` is the load-bearing claim, and `p` is normally assumed. We measured it:
 **960 independent generations on the Radeon GPU**, 192 per task across five difficulties,
@@ -686,7 +715,7 @@ when `p` lands in the middle, which you cannot know in advance.
 
 Raw data: [`amd_gpu_evidence/measured_p_and_amplification.json`](amd_gpu_evidence/measured_p_and_amplification.json).
 
-### 5.2d Two models, one GPU — the three regimes
+### 5.2e Two models, one GPU — the three regimes
 
 `p` was then measured for a **second** model on the same hardware, same oracles, same
 method: 192 independent draws per task, 1,152 generations across both models.
@@ -790,7 +819,7 @@ wrong on real hardware:
   is told it is uncalibrated rather than handed a confident default.
 
 Quantization is used where it is the right tool — the 32B is served AWQ-quantized to fit
-alongside a second model (§5.2d, §5.4) — but the optimisation this project contributes is the
+alongside a second model (§5.2e, §5.4) — but the optimisation this project contributes is the
 calibration itself, because it transfers: it makes the *next* Radeon GPU fast without anyone
 re-deriving the constant by hand.
 
