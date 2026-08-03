@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import Field, SecretStr, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -56,7 +56,10 @@ class Settings(BaseSettings):
 
     max_upload_bytes: int = Field(default=10 * 1024 * 1024, ge=1024)
     max_image_pixels: int = Field(default=24_000_000, ge=1_000_000)
-    allowed_origins: list[str] = ["http://127.0.0.1:3000", "http://localhost:3000"]
+    allowed_origins: Annotated[list[str], NoDecode] = [
+        "http://127.0.0.1:3000",
+        "http://localhost:3000",
+    ]
 
     @field_validator("sqlite_path", "milvus_uri", "upload_dir", "export_dir", mode="before")
     @classmethod

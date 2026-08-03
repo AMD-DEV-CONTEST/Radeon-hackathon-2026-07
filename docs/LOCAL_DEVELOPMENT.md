@@ -4,6 +4,8 @@ This guide starts the complete XiangLens application locally. The web UI and Fas
 run on the development machine; visual inference may run either on a remote user-controlled Radeon
 server or on the same Radeon machine.
 
+For the competition environment, see [PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md).
+
 ## 1. Architecture
 
 ```text
