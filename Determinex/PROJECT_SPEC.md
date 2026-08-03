@@ -232,6 +232,70 @@ audit is worth less than a zero that can.
 
 ---
 
+
+### 3.0b Several AIs in one room, and a foreman who decides who is right
+
+Determinex hosts the coding-agent CLIs a developer already has — Claude Code, Codex, Gemini
+CLI, aider — plus a local Ollama model, **in one shared conversation over one workspace**.
+Turns run one at a time, never concurrently, and **each agent's edits are checked against the
+real compiler/test oracle before the next agent goes**. All participants read the same Mission
+Plan, which can be re-synced from the repository's own `CLAUDE.md` / `PROJECT.md`, so nobody
+duplicates or contradicts another's work.
+
+Serialising turns prevents a *collision*. It does not answer the two questions that decide
+whether a room finishes:
+
+> **When two participants disagree, who wins? When nobody is progressing, who goes next?**
+
+Without answers a room degrades the way rooms do: the last agent to speak wins by default —
+recency wearing the costume of authority — agents politely defer to each other, and the work
+stops with everyone still "working".
+
+**Authority is what a claim is backed by, never who made it.**
+
+| Tier | Backed by | Why it ranks there |
+|---|---|---|
+| **ORACLE** | the compiler or tests passed | a fact about the workspace, not an opinion about it |
+| **CORPUS** | Determinex's own verified lessons | cannot be outvoted by an agent's confidence |
+| **REFUTED** | the oracle rejected it | "this fails with these 3 errors" is *evidence*; a room that discards it re-proposes the same thing forever |
+| **PROSE** | an agent talking | lowest, however fluent |
+
+Within a tier the later claim wins, because the later one saw the earlier. **Across tiers time
+is irrelevant** — a passing oracle result from turn 3 outranks beautiful prose from turn 40 and
+always will. Status is read from the turn *record*, never from its text: an agent writing
+"fixed it" is PROSE whatever it claims.
+
+Stall detection reuses the same rule that governs the amplifier's rounds — the room's failing
+-check count over turns *is* an error series — so the foreman inherits "keep going while the
+number falls, and say so when the remainder is out of proportion" rather than inventing a
+second story about when to stop. It then either hands the floor to a participant who has *not*
+been failing at it, or escalates naming what is actually needed: a missing toolchain, a
+stronger model, or a person.
+
+Verify: `python scripts/determinex_agent_chat.py foreman <session-id>` ·
+`scripts/determinex_foreman.py` · 17 tests in `tests/test_foreman_authority.py`
+
+### 3.0c It tells you when it needs you — on the desktop and on your phone
+
+A verified build is long-running by construction: K candidates, an oracle run per candidate,
+retries. The user is not watching, and that is the normal case rather than the exception.
+
+Determinex raises a **native desktop notification** — Windows, macOS, or Linux, with **no
+configuration at all** — and additionally posts to Discord, Slack, or Telegram when a webhook
+is set. Both, always: you may be at the machine in another window, or away from it entirely.
+
+The restraint matters more than the plumbing. Only two situations earn an interruption:
+
+* **DONE** — the work reached a verdict, verified or not. It is over and you can decide.
+* **BLOCKED** — it needs a person, which the foreman identifies precisely rather than by
+  timeout.
+
+Everything else is a status you can pull. A stream of normal-progress pings is exactly how the
+one that mattered gets swiped away.
+
+Verify: `python scripts/determinex_cockpit.py status` ·
+`python scripts/determinex_cockpit.py notify --if-needed`
+
 ## 4. Models & Local Deployment
 
 ### 4.1 Model family
