@@ -232,10 +232,11 @@ def _batch_goto_interp(bundle, pos_goal: np.ndarray, quat_goal: np.ndarray,
     dist = np.max(np.abs(arm_goal - arm_start), axis=1)
     n_steps = int(max(min_steps, np.ceil(np.max(dist[active]) / max_dq))) if np.any(active) else min_steps
 
-    # Record the ACTUAL control command: force value when force-grasping,
-    # position target when position-opening. Eval's apply_action parses the
-    # same dual semantics, so train and eval agree on what finger action means.
-    finger_target = close_force if close_force is not None else finger_cmd
+    # Symbolic encoding: record -0.04 (close) / +0.04 (open) so the finger
+    # dimension has the same value range as v6 baseline. Physical control
+    # still uses close_force (-12N) — only the recorded action value changes.
+    # Eval's apply_action maps finger < 0 → force(finger * 300), >= 0 → position.
+    finger_target = -0.04 if close_force is not None else finger_cmd
 
     for i in range(1, n_steps + 1):
         alpha = i / n_steps
@@ -332,7 +333,7 @@ def _batch_goto_direct(bundle, pos_goal: np.ndarray, quat_goal: np.ndarray,
     arm_start = bundle.franka.get_dofs_position(MOTORS_DOF).cpu().numpy()
     arm[~active] = arm_start[~active]
 
-    finger_target = close_force if close_force is not None else finger_cmd
+    finger_target = -0.04 if close_force is not None else finger_cmd
     action = np.concatenate([arm, np.full((n, 2), finger_target)], axis=1)
 
     for _ in range(steps):

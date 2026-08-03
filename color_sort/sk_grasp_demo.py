@@ -182,7 +182,7 @@ def _goto_plan(bundle, pos, quat, *, finger, num_waypoints=150, settle=20, recor
 
 def _goto_direct(bundle, pos, quat, *, finger_cmd, steps=120, close_force=None, recorder=None):
     qpos = _ik(bundle, pos, quat)
-    finger_target = 0.0 if close_force is not None else finger_cmd
+    finger_target = -0.04 if close_force is not None else finger_cmd
     arm = _to_numpy(qpos[:-2])
     action = np.concatenate([arm, [finger_target, finger_target]])
     for _ in range(steps):
@@ -207,7 +207,7 @@ def _goto_interp(
     arm_start = _to_numpy(bundle.franka.get_dofs_position(MOTORS_DOF))
     dist = float(np.max(np.abs(arm_goal - arm_start))) if arm_goal.size else 0.0
     n = max(min_steps, int(np.ceil(dist / max_dq))) if dist > 1e-9 else min_steps
-    finger_target = 0.0 if close_force is not None else finger_cmd
+    finger_target = -0.04 if close_force is not None else finger_cmd
 
     def _cmd(arm):
         if recorder is not None:

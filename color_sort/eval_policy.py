@@ -177,17 +177,19 @@ def apply_action(bundle, action: np.ndarray, n_sim_steps: int) -> None:
     action = np.asarray(action, dtype=np.float64).reshape(-1)
     arm = action[:7]
     finger = action[7:9]
-    # Dual semantics, matching what the expert recorded:
-    #   finger <= 0  -> force command (e.g. -12 N clamping during grasp/hold)
-    #   finger > 0   -> position target (e.g. 0.04 open during approach/release)
-    # A 0 finger means 0 force (safe: neither clamps nor opens).
-    force_mask = finger <= 0
+    # Symbolic dual semantics, matching what the expert recorded:
+    #   finger < 0  -> force command (symbolic -0.04 → -12 N clamping)
+    #   finger >= 0 -> position target (e.g. 0.04 open during approach/release)
+    # The symbolic encoding keeps the finger value range (±0.04) consistent
+    # with the v6 baseline, so normalization statistics are similar.
+    # Gain = 12 / 0.04 = 300 maps symbolic -0.04 to -12 N clamping force.
+    force_mask = finger < 0
     force_idx = FINGERS_DOF[force_mask]
     pos_idx = FINGERS_DOF[~force_mask]
     for _ in range(n_sim_steps):
         bundle.franka.control_dofs_position(arm, MOTORS_DOF)
         if force_idx.size:
-            bundle.franka.control_dofs_force(finger[force_mask], force_idx)
+            bundle.franka.control_dofs_force(finger[force_mask] * 300.0, force_idx)
         if pos_idx.size:
             bundle.franka.control_dofs_position(finger[~force_mask], pos_idx)
         bundle.scene.step()
