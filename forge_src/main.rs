@@ -19,12 +19,14 @@ mod forge_adapter;
 
 use axum::{
     extract::{Json, Path, State},
+    http::StatusCode,
     response::Html,
     routing::{get, post},
     Router,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::time::{SystemTime, UNIX_EPOCH};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::{info, warn};
@@ -84,6 +86,41 @@ async fn health() -> &'static str {
     r#"{"status":"ok","service":"cesarops-forge-v2","mode":"self-healing-translator"}"#
 }
 
+fn now_unix() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs()
+}
+
+fn bind_port_from_env() -> u16 {
+    std::env::var("FORGE_BIND_PORT")
+        .ok()
+        .and_then(|v| v.parse::<u16>().ok())
+        .unwrap_or(9100)
+}
+
+fn bind_host_from_env() -> String {
+    std::env::var("FORGE_BIND_HOST").unwrap_or_else(|_| "0.0.0.0".to_string())
+}
+
+fn require_admin_password(
+    provided_password: &str,
+) -> Result<(), (StatusCode, Json<serde_json::Value>)> {
+    let required = std::env::var("FORGE_ADMIN_PASSWORD").unwrap_or_default();
+    if required.is_empty() {
+        return Ok(());
+    }
+    if provided_password == required {
+        Ok(())
+    } else {
+        Err((
+            StatusCode::UNAUTHORIZED,
+            Json(serde_json::json!({"error": "admin password required"})),
+        ))
+    }
+}
+
 fn resolve_runtime_from_env_config() -> forge_adapter::ForgeRuntime {
     if let Ok(raw) = std::env::var("FORGE_RUNTIME") {
         match forge_adapter::ForgeRuntime::parse(&raw) {
@@ -130,28 +167,27 @@ async fn get_forge_runtime(State(state): State<AppState>) -> Json<serde_json::Va
     Json(serde_json::json!({
         "runtime": runtime.as_key(),
         "runtime_label": runtime.display_name(),
+        "timestamp_unix": now_unix(),
+        "audit_log_path": state.forge_adapter.runtime_audit_log_path(),
     }))
 }
 
 async fn set_forge_runtime(
     State(state): State<AppState>,
     Json(req): Json<RuntimeSwitchRequest>,
-) -> Json<serde_json::Value> {
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     if !req.confirm {
-        return Json(serde_json::json!({
+        return Ok(Json(serde_json::json!({
             "error": "confirmation required",
             "message": "Set confirm=true to switch Forge runtime"
-        }));
+        })));
     }
 
-    let required = std::env::var("FORGE_ADMIN_PASSWORD").unwrap_or_default();
-    if !required.is_empty() && req.admin_password != required {
-        return Json(serde_json::json!({"error": "admin password required"}));
-    }
+    require_admin_password(&req.admin_password)?;
 
     let next_runtime = match forge_adapter::ForgeRuntime::parse(&req.runtime) {
         Ok(r) => r,
-        Err(e) => return Json(serde_json::json!({"error": e})),
+        Err(e) => return Ok(Json(serde_json::json!({"error": e}))),
     };
 
     let reason = if req.reason.trim().is_empty() {
@@ -161,15 +197,16 @@ async fn set_forge_runtime(
     };
 
     match state.forge_adapter.switch_runtime(next_runtime, &reason) {
-        Ok(previous) => Json(serde_json::json!({
+        Ok(previous) => Ok(Json(serde_json::json!({
             "status": "ok",
             "previous_runtime": previous.as_key(),
             "previous_runtime_label": previous.display_name(),
             "runtime": next_runtime.as_key(),
             "runtime_label": next_runtime.display_name(),
-            "note": "Switch applies to new missions only. Running missions keep their assigned runtime."
-        })),
-        Err(e) => Json(serde_json::json!({"error": e})),
+            "note": "Switch applies to new missions only. Running missions keep their assigned runtime.",
+            "audit_log_path": state.forge_adapter.runtime_audit_log_path()
+        }))),
+        Err(e) => Ok(Json(serde_json::json!({"error": e}))),
     }
 }
 
@@ -1857,14 +1894,14 @@ async fn nvidia_handoff(
     }))
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 struct WorkflowStep {
     role: String,
     #[serde(default)]
     hint_for_next: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 struct WorkflowRequest {
     message: String,
     workflow: Vec<WorkflowStep>,
@@ -1936,7 +1973,7 @@ async fn execute_v2_workflow(
         "status": "success",
         "steps": step_outputs,
         "final_output": current_message,
-        "current_stage": "HumanReviewBoundary",
+        "current_stage": "Human Review",
         "qualification_decision": "PendingHumanReview",
         "evidence_layer_candidate": serde_json::Value::Null,
     })
@@ -1956,83 +1993,130 @@ async fn workflow_execute(
 
     let submitted = state.forge_adapter.submit_mission();
     let runtime = submitted.runtime;
+    let mission_id = submitted.mission_id.clone();
+    let run_id = submitted.run_id.clone();
+    let state_for_task = state.clone();
+    let req_for_task = req.clone();
+    let submission_for_task = submitted.clone();
 
-    let backend_result = match runtime {
-        forge_adapter::ForgeRuntime::V2 => execute_v2_workflow(&state, &req).await,
-        forge_adapter::ForgeRuntime::V3 => {
-            let v3req = v3_slice::V3DemoRequest {
-                admin_password: req.admin_password.clone(),
-                mission_note: req.message.clone(),
-            };
-            match v3_slice::run_aircraft_test_lab_demo(
-                axum::extract::State(state.clone()),
-                axum::extract::Json(v3req),
-            )
-            .await
-            {
-                Ok(axum::extract::Json(val)) => val,
-                Err((status, axum::extract::Json(err_body))) => {
-                    let _ = state.forge_adapter.fail_mission(
-                        &submitted.mission_id,
-                        &format!("v3 execution failed: status={} body={}", status, err_body),
-                    );
-                    return Json(serde_json::json!({
-                        "error": "v3 execution failed",
-                        "status": status.as_u16(),
-                        "details": err_body,
-                        "mission_id": submitted.mission_id,
-                        "run_id": submitted.run_id,
-                        "runtime": runtime.as_key(),
-                        "runtime_label": runtime.display_name()
-                    }));
-                }
-            }
-        }
-    };
-
-    let artifacts = backend_result
-        .get("artifacts")
-        .and_then(|v| v.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|v| v.as_str().map(|s| s.to_string()))
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
-    let stage = backend_result
-        .get("current_stage")
-        .and_then(|v| v.as_str())
-        .unwrap_or("HumanReviewBoundary");
-    let _ = state.forge_adapter.complete_mission(
-        &submitted.mission_id,
-        stage,
-        artifacts,
-        vec![format!(
-            "{} runtime execution complete",
-            runtime.display_name()
-        )],
+    let _ = state.forge_adapter.record_transition(
+        &mission_id,
+        "Running",
+        "Queued",
+        format!("{} queued mission for {}", now_unix(), runtime.display_name()),
     );
 
-    let mut response = backend_result;
-    if let Some(obj) = response.as_object_mut() {
-        obj.insert("mission_id".to_string(), serde_json::json!(submitted.mission_id));
-        obj.insert("run_id".to_string(), serde_json::json!(submitted.run_id));
-        obj.insert("runtime".to_string(), serde_json::json!(runtime.as_key()));
-        obj.insert(
-            "runtime_label".to_string(),
-            serde_json::json!(runtime.display_name()),
+    tokio::spawn(async move {
+        let adapter = state_for_task.forge_adapter.clone();
+        let _ = adapter.record_transition(
+            &submission_for_task.mission_id,
+            "Running",
+            "MissionSpec",
+            format!("{} MissionSpec accepted mission", now_unix()),
         );
-        if !obj.contains_key("evidence") {
-            obj.insert(
-                "evidence".to_string(),
-                serde_json::json!({
-                    "final_output": obj.get("final_output").cloned().unwrap_or(serde_json::Value::Null)
-                }),
-            );
-        }
-    }
 
-    Json(response)
+        let backend_result = match submission_for_task.runtime {
+            forge_adapter::ForgeRuntime::V2 => {
+                let _ = adapter.record_transition(
+                    &submission_for_task.mission_id,
+                    "Running",
+                    "Worker Selection",
+                    format!("{} Worker Selection resolved Forge V2 workflow path", now_unix()),
+                );
+                let result = execute_v2_workflow(&state_for_task, &req_for_task).await;
+                let _ = adapter.record_transition(
+                    &submission_for_task.mission_id,
+                    "Running",
+                    "Human Review",
+                    format!("{} Human Review reached on Forge V2 path", now_unix()),
+                );
+                result
+            }
+            forge_adapter::ForgeRuntime::V3 => {
+                for stage in [
+                    "Context Compiler",
+                    "Contract Builder",
+                    "Validation",
+                    "Worker Selection",
+                    "Test Lab",
+                    "Human Review",
+                ] {
+                    let _ = adapter.record_transition(
+                        &submission_for_task.mission_id,
+                        "Running",
+                        stage,
+                        format!("{} {}", now_unix(), stage),
+                    );
+                }
+                let v3req = v3_slice::V3DemoRequest {
+                    admin_password: req_for_task.admin_password.clone(),
+                    mission_note: req_for_task.message.clone(),
+                    mission_id_override: submission_for_task.mission_id.clone(),
+                    run_id_override: submission_for_task.run_id.clone(),
+                };
+                match v3_slice::run_aircraft_test_lab_demo(
+                    axum::extract::State(state_for_task.clone()),
+                    axum::extract::Json(v3req),
+                )
+                .await
+                {
+                    Ok(axum::extract::Json(val)) => val,
+                    Err((status, axum::extract::Json(err_body))) => {
+                        let _ = adapter.fail_mission(
+                            &submission_for_task.mission_id,
+                            &format!("v3 execution failed: status={} body={}", status, err_body),
+                        );
+                        return;
+                    }
+                }
+            }
+        };
+
+        let mut artifacts = backend_result
+            .get("artifacts")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        if let Some(path) = backend_result
+            .get("chain_of_custody_manifest")
+            .and_then(|v| v.as_str())
+        {
+            artifacts.push(path.to_string());
+        }
+        let stage = backend_result
+            .get("current_stage")
+            .and_then(|v| v.as_str())
+            .unwrap_or("HumanReview");
+        let response_trace = backend_result
+            .get("trace")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        let _ = adapter.complete_mission(
+            &submission_for_task.mission_id,
+            stage,
+            artifacts,
+            response_trace,
+        );
+    });
+
+    Json(serde_json::json!({
+        "status": "accepted",
+        "mission_id": mission_id,
+        "run_id": run_id,
+        "runtime": runtime.as_key(),
+        "runtime_label": runtime.display_name(),
+        "current_stage": "Queued",
+        "message": "Mission accepted. Poll /forge/mission/{mission_id}/status for completion."
+    }))
 }
 
 #[derive(serde::Deserialize)]
@@ -2077,8 +2161,14 @@ async fn forge_mission_trace(
     State(state): State<AppState>,
     Path(mission_id): Path<String>,
 ) -> Json<serde_json::Value> {
-    match state.forge_adapter.get_trace(&mission_id) {
-        Some(trace) => Json(serde_json::json!({"mission_id": mission_id, "trace": trace})),
+    match state.forge_adapter.get_status(&mission_id) {
+        Some(record) => Json(serde_json::json!({
+            "mission_id": record.mission_id,
+            "run_id": record.run_id,
+            "runtime": record.runtime.as_key(),
+            "runtime_label": record.runtime.display_name(),
+            "trace": record.trace
+        })),
         None => Json(serde_json::json!({"error": "mission not found"})),
     }
 }
@@ -2087,8 +2177,14 @@ async fn forge_mission_artifacts(
     State(state): State<AppState>,
     Path(mission_id): Path<String>,
 ) -> Json<serde_json::Value> {
-    match state.forge_adapter.get_artifacts(&mission_id) {
-        Some(artifacts) => Json(serde_json::json!({"mission_id": mission_id, "artifacts": artifacts})),
+    match state.forge_adapter.get_status(&mission_id) {
+        Some(record) => Json(serde_json::json!({
+            "mission_id": record.mission_id,
+            "run_id": record.run_id,
+            "runtime": record.runtime.as_key(),
+            "runtime_label": record.runtime.display_name(),
+            "artifacts": record.artifacts
+        })),
         None => Json(serde_json::json!({"error": "mission not found"})),
     }
 }
@@ -2408,7 +2504,11 @@ async fn main() {
         .route("/forge/v3/demo/aircraft-test-lab", post(v3_slice::run_aircraft_test_lab_demo))
         .with_state(state);
 
-    let addr = std::net::SocketAddr::from(([0, 0, 0, 0], 9100));
+    let bind_host = bind_host_from_env();
+    let bind_port = bind_port_from_env();
+    let addr: std::net::SocketAddr = format!("{}:{}", bind_host, bind_port)
+        .parse()
+        .unwrap_or_else(|_| std::net::SocketAddr::from(([0, 0, 0, 0], bind_port)));
     info!("cesarops-forge-v2 (Self-Healing Knowledge Translator) on {}", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();

@@ -110,6 +110,23 @@ impl ForgeAdapter {
         }
     }
 
+    pub fn record_transition(
+        &self,
+        mission_id: &str,
+        status: &str,
+        stage: &str,
+        trace_line: impl Into<String>,
+    ) -> Result<(), String> {
+        let mut missions = self.missions.lock().unwrap_or_else(|e| e.into_inner());
+        let Some(record) = missions.get_mut(mission_id) else {
+            return Err(format!("mission '{}' not found", mission_id));
+        };
+        record.status = status.to_string();
+        record.stage = stage.to_string();
+        record.trace.push(trace_line.into());
+        Ok(())
+    }
+
     pub fn complete_mission(
         &self,
         mission_id: &str,
@@ -220,6 +237,10 @@ impl ForgeAdapter {
         ));
         fs::write(path, existing).map_err(|e| e.to_string())
     }
+
+    pub fn runtime_audit_log_path(&self) -> &str {
+        &self.runtime_audit_log_path
+    }
 }
 
 fn now_unix() -> u64 {
@@ -269,6 +290,14 @@ mod tests {
         let adapter = adapter();
         let submitted = adapter.submit_mission();
         adapter
+            .record_transition(
+                &submitted.mission_id,
+                "Running",
+                "Validation",
+                "validation stage reached",
+            )
+            .expect("transition failed");
+        adapter
             .complete_mission(
                 &submitted.mission_id,
                 "HumanReviewBoundary",
@@ -280,6 +309,7 @@ mod tests {
         assert_eq!(status.status, "Completed");
         assert_eq!(status.stage, "HumanReviewBoundary");
         assert_eq!(status.artifacts, vec!["/tmp/evidence.json".to_string()]);
+        assert!(status.trace.iter().any(|line| line.contains("validation stage reached")));
     }
 
     #[test]
