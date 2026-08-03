@@ -1,0 +1,338 @@
+/* ═══════════════ aiQuant Chat — 量化 B 端深色主题 ═══════════════ */
+
+/* ── 布局骨架 ── */
+.aui-layout {
+  display: flex; height: 100%; width: 100%; background: #0d1117;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Noto Sans SC', sans-serif;
+}
+
+/* ── 侧边栏 ── */
+.aui-sidebar {
+  width: 240px; min-width: 240px; background: #161b22;
+  border-right: 1px solid #2d2d3d; display: flex; flex-direction: column;
+  transition: width 0.2s ease;
+}
+.aui-sidebar-header {
+  padding: 12px 14px; border-bottom: 1px solid #2d2d3d;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.aui-sidebar-title { font-size: 13px; font-weight: 600; color: #e2e8f0; }
+.aui-sidebar-collapse {
+  background: none; border: none; color: #8896a6; cursor: pointer;
+  font-size: 12px; padding: 2px 6px; border-radius: 4px;
+}
+.aui-sidebar-collapse:hover { color: #3b82f6; background: #21262d; }
+.aui-sidebar-expand {
+  width: 32px; height: 32px; margin: 8px; background: #161b22;
+  border: 1px solid #2d2d3d; border-radius: 6px; color: #8896a6;
+  cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;
+}
+.aui-sidebar-expand:hover { color: #3b82f6; border-color: #3b82f6; }
+
+/* 分类标签 */
+.aui-cat-tabs { display: flex; padding: 8px 10px; gap: 4px; flex-wrap: wrap; }
+.aui-cat-tab {
+  padding: 4px 10px; font-size: 11px; border: none; border-radius: 6px;
+  background: transparent; color: #8896a6; cursor: pointer; transition: all 0.15s;
+}
+.aui-cat-tab:hover { color: #e2e8f0; background: #21262d; }
+.aui-cat-tab.active { background: rgba(59,130,246,0.15); color: #3b82f6; }
+
+/* 新建对话 */
+.aui-new-chat {
+  margin: 4px 10px 8px; padding: 8px 12px; border: 1px dashed #2d2d3d;
+  background: transparent; color: #8896a6; border-radius: 8px;
+  cursor: pointer; font-size: 12px; text-align: center; transition: all 0.15s;
+}
+.aui-new-chat:hover { border-color: #3b82f6; color: #3b82f6; background: rgba(59,130,246,0.05); }
+
+/* 会话列表 */
+.aui-session-list { flex: 1; overflow-y: auto; padding: 4px 6px; }
+.aui-session-empty { text-align: center; color: #4a5568; font-size: 12px; padding: 20px 0; }
+.aui-session-item {
+  padding: 10px 12px; border-radius: 8px; cursor: pointer;
+  margin-bottom: 2px; transition: background 0.15s; border-left: 2px solid transparent;
+}
+.aui-session-item:hover { background: #21262d; }
+.aui-session-item.active { background: rgba(59,130,246,0.1); border-left-color: #3b82f6; }
+.aui-session-title {
+  font-size: 12px; color: #e2e8f0; font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.aui-session-meta {
+  display: flex; justify-content: space-between; align-items: center; margin-top: 4px;
+}
+.aui-session-count { font-size: 11px; color: #4a5568; }
+.aui-session-del {
+  background: none; border: none; color: #4a5568; cursor: pointer;
+  font-size: 14px; padding: 0 4px; border-radius: 3px; opacity: 0; transition: opacity 0.15s;
+}
+.aui-session-item:hover .aui-session-del { opacity: 1; }
+.aui-session-del:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
+
+/* 记忆库入口 */
+.aui-sidebar-footer { padding: 10px; border-top: 1px solid #2d2d3d; }
+.aui-mem-link {
+  display: flex; align-items: center; gap: 6px; padding: 8px 12px;
+  border-radius: 8px; color: #8896a6; text-decoration: none; font-size: 12px;
+  transition: all 0.15s;
+}
+.aui-mem-link:hover { color: #3b82f6; background: rgba(59,130,246,0.05); }
+
+/* ── 主聊天区 ── */
+.aui-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.aui-chat-area {
+  display: flex; flex-direction: column; height: 100%; background: #1a1d23;
+}
+.aui-chat-area.aui-fullscreen {
+  position: fixed !important; top: 52px !important; left: 0 !important;
+  right: 0 !important; bottom: 0 !important; z-index: 500 !important;
+  display: flex !important; flex-direction: column !important;
+  background: #1a1d23;
+}
+.aui-fullscreen .aui-composer {
+  flex-shrink: 0; position: relative; z-index: 501;
+}
+
+/* ── 恢复通知条 ── */
+.aui-recovery-banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 16px; background: #1a2332; border-bottom: 1px solid #2a4a6a;
+  font-size: 13px; color: #7bb3e0; flex-shrink: 0;
+  animation: aui-pulse 2s ease-in-out infinite;
+}
+.aui-recovery-icon { font-size: 16px; }
+.aui-recovery-text { flex: 1; }
+.aui-recovery-text strong { color: #4aa8e8; }
+.aui-recovery-hint { color: #6a7a8a; font-size: 12px; }
+.aui-recovery-close {
+  background: none; border: none; color: #6a7a8a; cursor: pointer;
+  font-size: 16px; padding: 2px 6px; border-radius: 4px;
+}
+.aui-recovery-close:hover { color: #fff; background: #2a3a4a; }
+@keyframes aui-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+/* ── B3: 进度条 ── */
+.aui-progress-bar-container {
+  padding: 8px 16px; background: #111827; border-bottom: 1px solid #1e293b;
+  flex-shrink: 0;
+}
+.aui-progress-info {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+  font-size: 12px; color: #94a3b8;
+}
+.aui-progress-stage { font-weight: 500; color: #60a5fa; }
+.aui-progress-pct { font-weight: 600; color: #e2e8f0; margin-left: auto; }
+.aui-progress-elapsed { color: #64748b; font-size: 11px; }
+.aui-progress-track {
+  height: 4px; background: #1e293b; border-radius: 2px; overflow: hidden;
+}
+.aui-progress-fill {
+  height: 100%; background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  border-radius: 2px; transition: width 0.5s ease;
+  animation: aui-progress-shimmer 1.5s ease-in-out infinite;
+}
+@keyframes aui-progress-shimmer {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+/* 聊天头部 */
+.aui-chat-header {
+  padding: 12px 16px; border-bottom: 1px solid #2d2d3d;
+  display: flex; justify-content: space-between; align-items: center;
+  background: #161b22; flex-shrink: 0;
+}
+.aui-chat-title { font-size: 14px; font-weight: 600; color: #e2e8f0; }
+.aui-chat-header-actions { display: flex; gap: 6px; }
+.aui-hdr-btn {
+  background: none; border: 1px solid #2d2d3d; color: #8896a6;
+  cursor: pointer; font-size: 14px; padding: 4px 8px; border-radius: 6px;
+  transition: all 0.2s; display: flex; align-items: center;
+}
+.aui-hdr-btn:hover { background: #21262d; color: #e2e8f0; border-color: #3b82f6; }
+.aui-hdr-btn-text { font-size: 12px; }
+
+/* ── Thread ── */
+.aui-thread { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.aui-viewport {
+  flex: 1; overflow-y: auto; padding: 16px 12px; min-height: 0;
+  display: flex; flex-direction: column; gap: 4px;
+  position: relative;
+}
+
+/* 消息气泡 */
+.aui-msg {
+  max-width: 88%; padding: 10px 14px; border-radius: 12px;
+  font-size: 13px; line-height: 1.65; word-break: break-word;
+  position: relative;
+}
+.aui-msg-user {
+  align-self: flex-end; background: rgba(59,130,246,0.15);
+  border-bottom-right-radius: 4px;
+}
+.aui-msg-assistant {
+  align-self: flex-start; background: #21262d;
+  border: 1px solid #2d2d3d; border-bottom-left-radius: 4px;
+}
+.aui-msg-role {
+  font-size: 11px; color: #8896a6; margin-bottom: 4px; font-weight: 500;
+}
+.aui-msg-footer {
+  display: flex; align-items: center; gap: 8px; margin-top: 6px;
+}
+.aui-action-bar { display: flex; gap: 4px; opacity: 0.4; }
+.aui-action-bar:hover { opacity: 0.8; }
+.aui-act-btn {
+  background: none; border: none; color: #8896a6; cursor: pointer;
+  font-size: 12px; padding: 2px 4px; border-radius: 3px;
+}
+.aui-act-btn:hover { color: #e2e8f0; background: #2d2d3d; }
+.aui-branch { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #4a5568; }
+.aui-branch-btn {
+  background: none; border: none; color: #4a5568; cursor: pointer;
+  font-size: 12px; padding: 0 4px;
+}
+.aui-branch-btn:hover { color: #e2e8f0; }
+.aui-branch-num { font-size: 11px; color: #4a5568; }
+
+/* ── Composer ── */
+.aui-composer {
+  border-top: 1px solid #2d2d3d; background: #161b22;
+  padding: 8px 12px 12px; flex-shrink: 0;
+}
+.aui-quick-bar {
+  display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;
+}
+.aui-quick-btn {
+  padding: 4px 10px; font-size: 11px; border: 1px solid #2d2d3d;
+  background: transparent; color: #8896a6; border-radius: 6px;
+  cursor: pointer; transition: all 0.15s;
+}
+.aui-quick-btn:hover { border-color: #3b82f6; color: #3b82f6; background: rgba(59,130,246,0.05); }
+
+.aui-input-row { display: flex; align-items: flex-end; gap: 8px; }
+.aui-attach-btn {
+  background: none; border: 1px solid #2d2d3d; color: #8896a6;
+  cursor: pointer; font-size: 16px; padding: 8px 10px; border-radius: 10px;
+  transition: all 0.15s; min-height: 42px; display: flex; align-items: center;
+}
+.aui-attach-btn:hover { color: #3b82f6; border-color: #3b82f6; }
+.aui-attach-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.aui-input {
+  flex: 1; background: #1a1d23; border: 1px solid #2d2d3d;
+  border-radius: 10px; padding: 10px 14px; color: #e2e8f0;
+  font-size: 13px; outline: none; resize: none; min-height: 42px;
+  max-height: 140px; line-height: 1.5; font-family: inherit;
+  transition: border-color 0.15s;
+}
+.aui-input:focus { border-color: #3b82f6; }
+.aui-input::placeholder { color: #4a5568; }
+
+.aui-send-btn {
+  background: #3b82f6; color: #fff; border: none; border-radius: 10px;
+  padding: 10px 18px; font-size: 13px; font-weight: 600; cursor: pointer;
+  min-height: 42px; white-space: nowrap; transition: background 0.15s;
+}
+.aui-send-btn:hover { background: #2563eb; }
+
+/* ── 空状态 ── */
+.aui-empty {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 40px 24px; text-align: center;
+}
+.aui-empty-icon { margin-bottom: 16px; opacity: 0.8; }
+.aui-empty-title { font-size: 18px; font-weight: 600; color: #e2e8f0; margin: 0 0 8px; }
+.aui-empty-sub { font-size: 13px; color: #8896a6; margin: 0 0 20px; }
+.aui-empty-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  max-width: 420px; width: 100%;
+}
+.aui-empty-card {
+  display: flex; align-items: center; gap: 8px; padding: 12px 14px;
+  background: #21262d; border: 1px solid #2d2d3d; border-radius: 10px;
+  font-size: 12px; color: #8896a6; text-align: left;
+  transition: all 0.15s; cursor: default;
+}
+.aui-empty-card:hover { border-color: #3b82f6; color: #e2e8f0; }
+.aui-empty-card span:first-child { font-size: 18px; }
+
+/* ── 无会话 ── */
+.aui-no-session {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; height: 100%; color: #4a5568;
+}
+.aui-no-session p { font-size: 14px; margin-bottom: 16px; }
+
+/* ═══════════════ Markdown 样式 ═══════════════ */
+.md-body { font-size: 13px; line-height: 1.7; color: #e2e8f0; }
+.md-body strong { color: #f0f6fc; font-weight: 600; }
+.md-body em { color: #a5d6ff; }
+
+.md-h1 { font-size: 16px; font-weight: 700; color: #3b82f6; margin: 12px 0 6px; }
+.md-h2 { font-size: 15px; font-weight: 600; color: #e2e8f0; margin: 12px 0 6px; border-bottom: 1px solid #2d2d3d; padding-bottom: 4px; }
+.md-h3 { font-size: 14px; font-weight: 600; color: #e2e8f0; margin: 10px 0 4px; }
+.md-h4 { font-size: 13px; font-weight: 600; color: #8896a6; margin: 8px 0 4px; }
+
+.md-pre {
+  background: #0d1117 !important; border: 1px solid #2d2d3d;
+  border-radius: 8px; padding: 0; overflow-x: auto; margin: 8px 0;
+  font-size: 12px; line-height: 1.5;
+}
+.md-code-lang {
+  padding: 4px 12px; font-size: 10px; color: #4a5568;
+  border-bottom: 1px solid #2d2d3d; background: #161b22;
+  border-radius: 8px 8px 0 0; text-transform: uppercase; font-weight: 600;
+}
+.md-pre code {
+  display: block; padding: 12px; color: #a5d6ff;
+  font-family: 'Menlo', 'Monaco', 'Cascadia Code', monospace;
+}
+.md-code {
+  background: #0d1117; border: 1px solid #2d2d3d; border-radius: 4px;
+  padding: 2px 6px; font-size: 12px; color: #a5d6ff;
+  font-family: 'Menlo', 'Monaco', 'Cascadia Code', monospace;
+}
+
+.md-link { color: #3b82f6; text-decoration: none; }
+.md-link:hover { text-decoration: underline; }
+
+.md-hr { border: none; border-top: 1px solid #2d2d3d; margin: 12px 0; }
+
+.md-ul, .md-ol { margin: 4px 0; padding-left: 20px; }
+.md-li, .md-oli { margin: 2px 0; color: #e2e8f0; }
+
+.md-table-wrap { overflow-x: auto; margin: 8px 0; }
+.md-table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.md-table th {
+  background: #161b22; color: #3b82f6; font-weight: 600;
+  padding: 8px 12px; border: 1px solid #2d2d3d; text-align: left;
+}
+.md-table td {
+  padding: 6px 12px; border: 1px solid #2d2d3d; color: #e2e8f0;
+}
+.md-table tr:nth-child(even) td { background: #161b22; }
+
+/* ── 滚动条 ── */
+.aui-viewport::-webkit-scrollbar,
+.aui-session-list::-webkit-scrollbar { width: 4px; }
+.aui-viewport::-webkit-scrollbar-thumb,
+.aui-session-list::-webkit-scrollbar-thumb {
+  background: #2d2d3d; border-radius: 2px;
+}
+.aui-viewport::-webkit-scrollbar-thumb:hover,
+.aui-session-list::-webkit-scrollbar-thumb:hover {
+  background: #3b82f6;
+}
+
+/* ── 动画 ── */
+@keyframes auiFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.aui-msg { animation: auiFadeIn 0.2s ease; }

@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>aiQuant — AI 量化投研系统</title>
+<link rel="stylesheet" href="/chat-app/dist/assets/index.css">
+<style>
+:root {
+    --bg-primary: #0b0e14; --bg-secondary: #131720; --bg-card: #181d28;
+    --bg-hover: #1f2636; --bg-input: #0d1117; --border: #252c3a; --border-light: #303b50;
+    --text-primary: #e4e8f0; --text-secondary: #8794a8; --text-muted: #556278;
+    --accent: #3b82f6; --accent-hover: #2563eb; --accent-dim: #1e3a5f;
+    --green: #22c55e; --green-bg: #14532d33; --yellow: #f59e0b; --yellow-bg: #713f1233;
+    --red: #ef4444; --red-bg: #7f1d1d33; --purple: #8b5cf6; --purple-bg: #3b1f8f33;
+    --radius: 10px; --radius-sm: 6px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100dvh; min-height: 100vh; line-height: 1.5; overflow: hidden; }
+::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+
+.navbar { background: var(--bg-secondary); border-bottom: 1px solid var(--border); height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; position: sticky; top: 0; z-index: 200; }
+.navbar-logo { font-size: 18px; font-weight: 800; color: var(--accent); letter-spacing: -0.3px; }
+.navbar-logo span { font-weight: 400; color: var(--text-secondary); font-size: 13px; margin-left: 6px; }
+.nav-tabs { display: flex; gap: 2px; }
+.nav-tab { padding: 7px 14px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; color: var(--text-secondary); border: none; background: transparent; transition: all 0.2s; white-space: nowrap; }
+.nav-tab:hover { background: var(--bg-hover); color: var(--text-primary); }
+.nav-tab.active { background: var(--accent-dim); color: var(--accent); }
+.navbar-right { display: flex; align-items: center; gap: 10px; }
+.navbar-right .indicator { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+.dot { width: 7px; height: 7px; border-radius: 50%; }
+.dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.dot.yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+.dot.red { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+.layout { display: flex; height: calc(100dvh - 52px); height: calc(100vh - 52px); position: relative; }
+
+.content { flex: 1; overflow-y: auto; padding: 24px; }
+.panel { display: none; }
+.panel.active { display: block; }
+
+.card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.card-title { font-size: 15px; font-weight: 600; }
+.card-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+.btn { padding: 8px 16px; border-radius: var(--radius-sm); border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+.btn-primary { background: var(--accent); color: white; } .btn-primary:hover { background: var(--accent-hover); }
+.btn-outline { background: transparent; border: 1px solid var(--border-light); color: var(--text-secondary); } .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+.btn-success { background: var(--green); color: white; } .btn-success:hover { background: #16a34a; }
+.btn-danger { background: var(--red); color: white; } .btn-danger:hover { background: #dc2626; }
+.btn-purple { background: var(--purple); color: white; } .btn-purple:hover { background: #7c3aed; }
+.btn-sm { padding: 4px 10px; font-size: 11px; } .btn-xs { padding: 2px 8px; font-size: 10px; }
+
+.input { background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; color: var(--text-primary); font-size: 13px; outline: none; width: 100%; }
+.input:focus { border-color: var(--accent); }
+
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.badge-green { background: var(--green-bg); color: var(--green); } .badge-yellow { background: var(--yellow-bg); color: var(--yellow); }
+.badge-red { background: var(--red-bg); color: var(--red); } .badge-purple { background: var(--purple-bg); color: var(--purple); }
+.badge-blue { background: var(--accent-dim); color: var(--accent); }
+
+.status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+.status-dot.green { background: var(--green); box-shadow: 0 0 6px #22c55e55; }
+.status-dot.yellow { background: var(--yellow); box-shadow: 0 0 6px #f59e0b55; }
+.status-dot.red { background: var(--red); box-shadow: 0 0 6px #ef444455; }
+
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+.stat-card .stat-label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+.stat-card .stat-value { font-size: 26px; font-weight: 700; }
+
+.log-box { background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; max-height: 280px; overflow-y: auto; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; line-height: 1.7; }
+.log-line { color: var(--text-muted); }
+.log-line.success { color: var(--green); } .log-line.error { color: var(--red); } .log-line.info { color: var(--accent); }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+th { color: var(--text-muted); font-weight: 500; font-size: 11px; text-transform: uppercase; }
+tr:hover { background: var(--bg-hover); }
+
+.spinner { width: 16px; height: 16px; border: 2px solid var(--border-light); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.flex-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.mb-8 { margin-bottom: 8px; } .mb-12 { margin-bottom: 12px; } .mb-16 { margin-bottom: 16px; } .mt-8 { margin-top: 8px; } .mt-12 { margin-top: 12px; }
+
+.service-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.service-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; transition: border-color 0.2s; }
+.service-card:hover { border-color: var(--border-light); }
+.service-card.running { border-color: #22c55e44; }
+.service-card .svc-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px; }
+.service-card .svc-name { font-size: 15px; font-weight: 600; }
+.service-card .svc-desc { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.5; }
+.service-card .svc-meta { font-size: 11px; color: var(--text-secondary); margin-bottom: 10px; display: flex; gap: 12px; flex-wrap: wrap; }
+.service-card .svc-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.model-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+.model-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; transition: border-color 0.2s; }
+.model-card.enabled { border-color: #22c55e44; }
+.model-card .model-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.model-card .model-name { font-size: 16px; font-weight: 700; }
+.model-card .model-desc { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; }
+.model-form { display: flex; flex-direction: column; gap: 10px; }
+.model-form label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 500; }
+.model-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+
+@keyframes sseFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+/* SSE 流式消息样式 */
+.sse-msg { padding: 8px 12px; margin-bottom: 6px; border-radius: 6px; background: var(--bg-card); border-left: 3px solid var(--border); font-size: 12px; line-height: 1.6; animation: sseFadeIn 0.3s ease; color: var(--text-primary); }
+.sse-msg.sse-progress { border-color: #6366f1; }
+.sse-msg.sse-error { border-color: #ef4444; border-left: 3px solid #ef4444; color: #fca5a5; }
+.sse-msg.sse-warning { border-color: #f59e0b; border-left: 3px solid #f59e0b; color: #fbbf24; }
+
+.progress-area { margin-top: 12px; font-size: 13px; max-height: 480px; overflow-y: auto; }
+.hint { color: var(--text-muted); font-size: 12px; }
+
+.chat-area-wrapper { display: flex; height: 100%; position: relative; }
+
+/* Modal 日志弹窗 */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+.modal-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); width: 620px; max-height: 80vh; display: flex; flex-direction: column; }
+.modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.modal-title { font-size: 15px; font-weight: 600; }
+.modal-close { background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 4px 8px; border-radius: 4px; }
+.modal-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+.modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
+.modal-log { background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; line-height: 1.7; max-height: 400px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; color: var(--text-secondary); }
+.modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+.modal-status { font-size: 12px; margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.modal-spinner { width: 14px; height: 14px; border: 2px solid var(--border-light); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+
+/* ── 聊天模式：隐藏内容区，聊天面板铺满 ── */
+.chat-area-wrapper { display: none; }
+.layout.chat-mode .content { display: none; }
+.layout.chat-mode .chat-area-wrapper { display: flex; flex: 1; min-height: 0; }
+
+/* 无左侧栏时 content 占满 */
+.layout.no-sidebar .content { padding: 24px; }
+.layout.no-sidebar.chat-mode .content { display: none; }
+
+/* ── RD 可视化面板 ── */
+.rd-frame-wrap { height: calc(100dvh - 400px); height: calc(100vh - 400px); min-height: 420px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.rd-iframe { width: 100%; height: 100%; border: none; background: #fff; }
+.rd-frame-fullscreen { position: fixed !important; top: 0; left: 0; width: 100%; height: 100%; z-index: 400; border-radius: 0; margin: 0; padding: 12px; }
+.rd-frame-fullscreen .rd-frame-wrap { height: calc(100dvh - 90px); height: calc(100vh - 90px); min-height: 0; }
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="navbar-logo">aiQuant<span>AI 量化投研系统</span></div>
+    <div class="nav-tabs" id="nav-tabs">
+        <button class="nav-tab active" data-panel="dashboard">仪表盘</button>
+        <button class="nav-tab" data-panel="data">数据管理</button>
+        <button class="nav-tab" data-panel="research">因子研究</button>
+        <button class="nav-tab" data-panel="backtest">回测中心</button>
+        <button class="nav-tab" data-panel="services">服务运维</button>
+        <button class="nav-tab" data-panel="models">模型配置</button>
+        <button class="nav-tab" data-panel="memory">记忆库</button>
+        <button class="nav-tab" data-panel="rdview">RD 可视化</button>
+        <button class="nav-tab" data-panel="chat" style="color:var(--accent);font-weight:600;">🤖 机器人助手</button>
+    </div>
+    <div class="navbar-right">
+        <div class="indicator" id="api-status"><span class="dot green"></span>API</div>
+        <div class="indicator" id="llm-status"><span class="dot green"></span>LLM</div>
+        <div class="indicator" id="data-status"><span class="dot green"></span>数据</div>
+    </div>
+</nav>
+
+<div class="layout no-sidebar">
+
+<main class="content" id="content-area">
+
+<!-- Dashboard -->
+<div class="panel active" id="panel-dashboard">
+    <h2 style="font-size:20px; margin-bottom: 20px;">系统概览</h2>
+    <div class="grid-2 mb-16" id="dash-services"></div>
+    <div class="grid-3 mb-16">
+        <div class="stat-card"><div class="stat-label">累计评审</div><div class="stat-value" id="mem-reviews">-</div></div>
+        <div class="stat-card"><div class="stat-label">追踪因子</div><div class="stat-value" id="mem-factors">-</div></div>
+        <div class="stat-card"><div class="stat-label">积累洞察</div><div class="stat-value" id="mem-insights">-</div></div>
+    </div>
+    <div class="card">
+        <div class="card-header"><div><div class="card-title">快速操作</div><div class="card-subtitle">一键启动核心投研流程</div></div></div>
+        <div class="flex-row">
+            <button class="btn btn-primary" onclick="quickFetch()">获取数据</button>
+            <button class="btn btn-purple" onclick="quickResearch()">因子进化</button>
+            <button class="btn btn-outline" onclick="quickFull()">完整研究循环</button>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><div class="card-title">系统日志</div></div>
+        <div class="log-box" id="system-log"><div class="log-line info">[System] aiQuant v2.0 已启动</div></div>
+    </div>
+</div>
+
+<!-- Data Management -->
+<div class="panel" id="panel-data">
+    <h2 style="font-size:20px; margin-bottom: 8px;">数据管理</h2>
+    <p class="hint mb-16">双数据源融合：本地 Qlib 存量数据 + Tushare 增量更新</p>
+    <div class="card">
+        <div class="card-header"><div><div class="card-title">获取市场数据</div><div class="card-subtitle">自动完成：获取 → 清洗 → 特征工程 → Qlib 导出</div></div></div>
+        <div class="flex-row mb-12">
+            <input class="input" id="data-symbols" value="sh600519,sz000858,sh600036,sz000001" style="flex:1; min-width:280px;" placeholder="股票代码">
+            <input class="input" id="data-start" value="2024-01-01" style="width:120px;">
+            <input class="input" id="data-end" value="2025-12-31" style="width:120px;">
+            <button class="btn btn-primary" onclick="fetchData()">启动数据管线</button>
+        </div>
+        <div class="progress-area" id="data-progress"></div>
+    </div>
+    <div class="card">
+        <div class="card-header"><div class="card-title">已有数据股票</div><button class="btn btn-sm btn-outline" onclick="listSymbols()">刷新</button></div>
+        <div id="data-table" style="max-height:400px;overflow-y:auto;"></div>
+    </div>
+</div>
+
+<!-- Research -->
+<div class="panel" id="panel-research">
+    <h2 style="font-size:20px; margin-bottom: 8px;">因子研究</h2>
+    <p class="hint mb-16">RD-Agent 自动化因子挖掘：LLM 假设 → 代码生成 → Qlib 回测 → 反馈优化</p>
+    <div class="card">
+        <div class="card-header"><div><div class="card-title">因子进化</div><div class="card-subtitle">R-Agent → D-Agent → Qlib 回测</div></div></div>
+        <div class="flex-row mb-12">
+            <div><label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">股票池</label>
+                <select class="input" id="factor-universe" style="width:120px;">
+                    <option value="沪深300" selected>沪深300</option>
+                    <option value="中证500">中证500</option>
+                    <option value="中证1000">中证1000</option>
+                    <option value="">全A股</option>
+                </select>
+            </div>
+            <div><label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">约束</label><input class="input" id="factor-constraints" value="高换手量价" style="width:130px;" placeholder="如：低换手、高动量"></div>
+            <div><label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">轮次</label><input class="input" id="factor-rounds" value="3" style="width:60px;" type="number"></div>
+            <div><label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">时间</label><input class="input" id="factor-duration" value="1h" style="width:70px;"></div>
+        </div>
+        <div class="flex-row">
+            <button class="btn btn-primary" onclick="factorEvolve()">开始因子进化</button>
+            <button class="btn btn-purple" onclick="fullCycle()">完整研究循环</button>
+            <button class="btn btn-outline" onclick="refreshReviews()">刷新评审</button>
+        </div>
+        <div class="progress-area" id="factor-result"></div>
+    </div>
+    <div class="card">
+        <div class="card-header"><div class="card-title">评审记录</div></div>
+        <div id="review-table" style="max-height:400px;overflow-y:auto;"></div>
+    </div>
+</div>
+
+<!-- Backtest -->
+<div class="panel" id="panel-backtest">
+    <h2 style="font-size:20px; margin-bottom: 8px;">回测中心</h2>
+    <p class="hint mb-16">独立回测引擎 + Qlib 框架，支持 IC / 分层 / 夏普评估</p>
+    <div class="card">
+        <div class="card-header"><div><div class="card-title">单因子快速回测</div><div class="card-subtitle">不依赖 Qlib，直接 IC + 分层收益计算</div></div></div>
+        <div class="flex-row mb-12">
+            <input class="input" id="bt-name" value="momentum_20d" style="width:160px;" placeholder="因子名称">
+            <input class="input" id="bt-expr" value="close/close.shift(20)-1" style="flex:1; min-width:280px;" placeholder="因子表达式 (pandas)">
+            <button class="btn btn-primary" onclick="singleBacktest()">执行回测</button>
+        </div>
+        <div class="progress-area" id="bt-result"></div>
+    </div>
+</div>
+
+<!-- Services -->
+<div class="panel" id="panel-services">
+    <h2 style="font-size:20px; margin-bottom: 8px;">服务运维仪表盘</h2>
+    <p class="hint mb-16">管理全部微服务：状态监控、一键启动/停止</p>
+    <div class="service-grid" id="service-cards"><div style="padding:20px;color:var(--text-muted);"><span class="spinner"></span> 加载服务状态...</div></div>
+</div>
+
+<!-- Model Config -->
+<div class="panel" id="panel-models">
+    <h2 style="font-size:20px; margin-bottom: 8px;">多模型配置管理</h2>
+    <p class="hint mb-16">可视化配置推理模型，支持连通性检测与配置同步</p>
+    <div class="model-grid" id="model-cards"><div style="padding:20px;color:var(--text-muted);"><span class="spinner"></span> 加载模型配置...</div></div>
+    <div class="card mt-12">
+        <div class="card-header"><div class="card-title">配置同步</div></div>
+        <p class="hint mb-12">将模型配置同步至各微服务的 .env 文件（机器人服务、项目根目录）</p>
+        <button class="btn btn-primary" onclick="syncConfigs()">同步配置到所有服务</button>
+        <span id="sync-result" style="margin-left:12px;font-size:13px;"></span>
+    </div>
+</div>
+
+<!-- Memory -->
+<div class="panel" id="panel-memory">
+    <h2 style="font-size:20px; margin-bottom: 20px;">长期记忆库</h2>
+    <div class="grid-3 mb-16">
+        <div class="stat-card"><div class="stat-label">累计评审</div><div class="stat-value" id="mem2-reviews">-</div></div>
+        <div class="stat-card"><div class="stat-label">追踪因子</div><div class="stat-value" id="mem2-factors">-</div></div>
+        <div class="stat-card"><div class="stat-label">活跃约束</div><div class="stat-value" id="mem2-constraints">-</div></div>
+        <div class="stat-card"><div class="stat-label">积累洞察</div><div class="stat-value" id="mem2-insights">-</div></div>
+    </div>
+    <div class="card">
+        <div class="card-header"><div class="card-title">上下文约束 Prompt</div><button class="btn btn-sm btn-outline" onclick="refreshContext()">刷新</button></div>
+        <div class="log-box" id="context-prompt" style="max-height:400px;white-space:pre-wrap;">点击刷新加载...</div>
+    </div>
+</div>
+
+<!-- RD Visualization -->
+<div class="panel" id="panel-rdview">
+    <h2 style="font-size:20px; margin-bottom: 8px;">RD-Agent 可视化</h2>
+    <p class="hint mb-16">RD-Agent 原生 Web UI（已永久汉化），经 API 网关反向代理嵌入</p>
+    <div class="grid-3 mb-16" id="rdview-cards"><div style="padding:20px;color:var(--text-muted);"><span class="spinner"></span> 加载 RD UI 状态...</div></div>
+    <div class="card" id="rdview-frame-card" style="display:none;">
+        <div class="card-header" style="margin-bottom:10px;">
+            <div class="card-title" id="rdview-title">-</div>
+            <div class="flex-row" style="gap:6px;">
+                <button class="btn btn-sm btn-outline" onclick="rduiReloadFrame()">刷新</button>
+                <button class="btn btn-sm btn-outline" onclick="rduiOpenExternal()">新窗口打开</button>
+                <button class="btn btn-sm btn-outline" onclick="rduiToggleFullscreen()" id="rdview-fs-btn">全屏</button>
+            </div>
+        </div>
+        <div class="rd-frame-wrap"><iframe id="rdview-iframe" class="rd-iframe" title="RD-Agent UI"></iframe></div>
+    </div>
+    <div class="card" id="rdview-empty">
+        <p class="hint" style="text-align:center;padding:28px 0;">在上方选择 UI 点击「启动并打开 / 打开」<br>或在机器人助手中点击可视化链接，将自动跳转到此处</p>
+    </div>
+</div>
+
+</main>
+
+<!-- Chat Area — React assistant-ui 全量接管 -->
+<div class="chat-area-wrapper">
+  <div id="aiquant-chat-root" style="flex:1;display:flex;min-height:0;">
+    <div id="chat-loading-fallback" style="display:flex;align-items:center;justify-content:center;width:100%;color:var(--text-muted);font-size:14px;">
+      <span>正在加载机器人助手...</span>
+    </div>
+  </div>
+</div><!-- /chat-area-wrapper -->
+
+</div><!-- /layout -->
+
+<script>
+const API = ''; // 同源部署：FastAPI StaticFiles 将前端挂载于 /，API 走相对路径
+function $(id) { return document.getElementById(id); }
+
+// ── 机器人助手 ──
+function focusRobotAssistant() { switchPanel('chat'); }
+
+// Ctrl+B 快捷键打开机器人助手
+document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+        e.preventDefault();
+        focusRobotAssistant();
+    }
+});
+
+// ── Navigation ──
+function switchPanel(name) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(n => n.classList.remove('active'));
+    var layout = document.querySelector('.layout');
+
+    if (name === 'chat') {
+        // 聊天模式：隐藏 content，聊天区铺满
+        layout.classList.add('chat-mode');
+    } else {
+        layout.classList.remove('chat-mode');
+        const panel = document.getElementById('panel-' + name);
+        if (panel) panel.classList.add('active');
+    }
+    document.querySelector(`.nav-tab[data-panel="${name}"]`)?.classList.add('active');
+
+    if (name === 'dashboard') { refreshStatus(); refreshServices(); }
+    if (name === 'memory') refreshMemory();
+    if (name === 'data') listSymbols();
+    if (name === 'services') refreshServices();
+    if (name === 'models') refreshModels();
+    if (name === 'rdview') refreshRDUIStatus();
+}
+document.querySelectorAll('.nav-tab').forEach(t => t.onclick = () => switchPanel(t.dataset.panel));
+
+function addLog(msg, type) {
+    type = type || 'info';
+    const log = $('system-log');
+    const line = document.createElement('div');
+    line.className = 'log-line ' + type;
+    line.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+}
+
+async function api(method, path, body) {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    const resp = await fetch(API + path, opts);
+    if (!resp.ok) {
+        let detail = resp.statusText;
+        try { const e = await resp.json(); detail = e.detail || detail; } catch(_) {}
+        throw new Error(detail);
+    }
+    return resp.json();
+}
+
+// ── Dashboard ──
+async function refreshStatus() {
+    try {
+        const s = await api('GET', '/api/status');
+        $('mem-reviews').textContent = s.memory?.total_reviews || 0;
+        $('mem-factors').textContent = s.memory?.tracked_factors || 0;
+        $('mem-insights').textContent = s.memory?.accumulated_insights || 0;
+
+        $('llm-status').innerHTML = s.services?.llm === 'configured' ? '<span class="dot green"></span>LLM' : '<span class="dot yellow"></span>LLM';
+        $('data-status').innerHTML = s.services?.qlib === 'ok' ? '<span class="dot green"></span>数据' : '<span class="dot yellow"></span>数据';
+    } catch(e) { addLog('状态获取失败: ' + e.message, 'error'); }
+}
+
+async function refreshServices() {
+    try {
+        const data = await api('GET', '/api/services/status');
+        // Dashboard mini cards
+        let dashHtml = '';
+        for (const [id, svc] of Object.entries(data)) {
+            let cls = 'yellow';
+            if (svc.running) cls = 'green';
+            else if (!svc.installed) cls = 'red';
+            dashHtml += '<div class="stat-card"><div class="stat-label">' + svc.name + '</div><div class="stat-value" style="font-size:18px;"><span class="status-dot ' + cls + '"></span>' + (svc.running ? '运行中 :' + svc.port : (svc.installed ? '已停止' : '未安装')) + '</div></div>';
+        }
+        const dashEl = $('dash-services');
+        if (dashEl) dashEl.innerHTML = dashHtml;
+
+        // Service panel cards (v2.5: liveness-aware)
+        let cardsHtml = '';
+        for (const [id, svc] of Object.entries(data)) {
+            const running = svc.running;
+            const installed = svc.installed;
+            const svcType = svc.type || 'standalone';
+            const isEmbedded = svcType === 'embedded';
+            const liveness = svc.liveness;
+            
+            // 活体探测结果分析
+            const livenessOk = liveness && (liveness.status === 'ok' || liveness.status === 'degraded');
+            const cacheMismatch = !installed && livenessOk; // 缓存标记未安装但活体探测通过
+            
+            let badgeCls = 'badge-yellow';
+            let badgeText = '已停止';
+            if (running) { badgeCls = 'badge-green'; badgeText = '运行中'; }
+            else if (!installed) { 
+                if (cacheMismatch) {
+                    badgeCls = 'badge-blue'; 
+                    badgeText = '底层可用';
+                } else {
+                    badgeCls = 'badge-red'; 
+                    badgeText = '未安装'; 
+                }
+            }
+
+            const cardCls = running ? 'running' : '';
+            let actionsHtml = '';
+            if (running) {
+                actionsHtml = '<button class="btn btn-sm btn-danger" onclick="svcStop(\'' + id + '\')">停止</button>';
+                if (isEmbedded) {
+                    actionsHtml = '<span style="font-size:11px;color:var(--text-muted);">嵌入模块随网关运行</span>';
+                }
+            } else {
+                // 所有服务已预装，直接显示启动按钮
+                actionsHtml = '<button class="btn btn-sm btn-success" onclick="svcStart(\'' + id + '\')">启动</button>';
+            }
+            actionsHtml += '<button class="btn btn-sm btn-outline" onclick="svcShowLog(\'' + id + '\')">查看日志</button>';
+            actionsHtml += '<button class="btn btn-sm btn-outline" onclick="svcRefresh()">刷新</button>';
+
+            // 活体探测小标识
+            let livenessTag = '';
+            if (isEmbedded && liveness) {
+                if (liveness.status === 'ok') {
+                    livenessTag = '<span style="font-size:10px;color:var(--green);margin-left:6px;" title="活体探测通过">&#10003; 活体探测</span>';
+                } else if (liveness.status === 'degraded') {
+                    livenessTag = '<span style="font-size:10px;color:var(--yellow);margin-left:6px;" title="部分可用">&#9888; 降级</span>';
+                } else {
+                    livenessTag = '<span style="font-size:10px;color:var(--red);margin-left:6px;" title="活体探测失败">&#10007; 不可用</span>';
+                }
+            }
+            
+            // cache_mismatch 特殊提示
+            let mismatchNote = '';
+            if (cacheMismatch) {
+                mismatchNote = '<div style="font-size:11px;color:var(--accent);margin-top:6px;padding:6px 8px;background:var(--accent-dim);border-radius:4px;">' +
+                    '&#9888; 底层功能可用，仅未走完网页标准化安装流程</div>';
+            }
+
+            cardsHtml += '<div class="service-card ' + cardCls + '" id="svc-card-' + id + '">' +
+                '<div class="svc-header">' +
+                    '<div class="svc-name">' + svc.name + 
+                        (isEmbedded ? ' <span style="font-size:10px;color:var(--text-muted);">[嵌入]</span>' : '') +
+                        livenessTag +
+                    '</div>' +
+                    '<span class="badge ' + badgeCls + '">' + badgeText + '</span>' +
+                '</div>' +
+                '<div class="svc-desc">' + svc.description + '</div>' +
+                mismatchNote +
+                '<div class="svc-meta">' +
+                    '<span>端口: ' + svc.port + '</span>' +
+                    '<span>环境: ' + svc.env + '</span>' +
+                    (svc.pid ? '<span>PID: ' + svc.pid + '</span>' : '') +
+                    (svc.depends_on ? '<span>依赖: ' + svc.depends_on + '</span>' : '') +
+                '</div>' +
+                '<div class="svc-actions">' + actionsHtml + '</div>' +
+            '</div>';
+        }
+        $('service-cards').innerHTML = cardsHtml;
+    } catch(e) { addLog('服务状态获取失败: ' + e.message, 'error'); }
+}
+
+// ── 服务操作（带日志弹窗）──
+var _svcPollTimer = null;
+
+function svcStart(id) {
+    showModal('启动服务', '<div class="modal-spinner"></div> 正在启动...');
+    appendModalLog('[启动] 正在发送启动指令...');
+    api('POST', '/api/services/' + id + '/start').then(function(r) {
+        appendModalLog(r.message);
+        if (r.logs) { r.logs.forEach(function(l) { appendModalLog(l); }); }
+        updateModalStatus(r.success);
+        if (r.success) { startSvcPoll(id, 3000); }
+    }).catch(function(e) {
+        appendModalLog('[错误] ' + e.message);
+        updateModalStatus(false);
+    });
+}
+
+function svcStop(id) {
+    showModal('停止服务', '<div class="modal-spinner"></div> 正在停止...');
+    appendModalLog('[停止] 正在发送停止指令...');
+    api('POST', '/api/services/' + id + '/stop').then(function(r) {
+        appendModalLog(r.message);
+        if (r.logs) { r.logs.forEach(function(l) { appendModalLog(l); }); }
+        updateModalStatus(r.success);
+        if (r.success) { setTimeout(refreshServices, 1500); }
+    }).catch(function(e) {
+        appendModalLog('[错误] ' + e.message);
+        updateModalStatus(false);
+    });
+}
+
+function svcInstall(id) {
+    showModal('安装服务环境', '<div class="modal-spinner"></div> 正在安装，请耐心等待...');
+    appendModalLog('[安装] 正在检查/创建 conda 环境...');
+    api('POST', '/api/services/' + id + '/install').then(function(r) {
+        appendModalLog(r.message);
+        if (r.logs) { r.logs.forEach(function(l) { appendModalLog(l); }); }
+        updateModalStatus(r.success);
+        setTimeout(refreshServices, 1000);
+    }).catch(function(e) {
+        appendModalLog('[错误] ' + e.message);
+        updateModalStatus(false);
+    });
+}
+
+function svcShowLog(id) {
+    showModal('服务日志 - ' + id, '<div class="modal-spinner"></div> 加载中...');
+    api('GET', '/api/services/' + id + '/log?lines=100').then(function(r) {
+        var logEl = document.getElementById('modal-log-content');
+        if (logEl) { logEl.textContent = r.log || r.message || '暂无日志'; }
+    }).catch(function(e) {
+        appendModalLog('[错误] ' + e.message);
+    });
+}
+
+function startSvcPoll(id, delayMs) {
+    clearTimeout(_svcPollTimer);
+    _svcPollTimer = setTimeout(function() {
+        refreshServices();
+        // 自动拉日志
+        api('GET', '/api/services/' + id + '/log?lines=30').then(function(r) {
+            var logEl = document.getElementById('modal-log-content');
+            if (logEl && r.log) { logEl.textContent = r.log; }
+        }).catch(function(){});
+    }, delayMs || 3000);
+}
+
+function svcRefresh() { refreshServices(); }
+
+// ── Modal 日志弹窗 ──
+function showModal(title, bodyHtml) {
+    var existing = document.getElementById('svc-modal-overlay');
+    if (existing) existing.remove();
+    var overlay = document.createElement('div');
+    overlay.id = 'svc-modal-overlay';
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML =
+        '<div class="modal-box">' +
+            '<div class="modal-header">' +
+                '<div class="modal-title">' + title + '</div>' +
+                '<button class="modal-close" onclick="closeModal()">&times;</button>' +
+            '</div>' +
+            '<div class="modal-body">' +
+                '<div class="modal-log" id="modal-log-content">' + bodyHtml + '</div>' +
+            '</div>' +
+            '<div class="modal-footer">' +
+                '<div class="modal-status" id="modal-status"></div>' +
+                '<button class="btn btn-sm btn-outline" onclick="copyModalLog()">复制日志</button>' +
+                '<button class="btn btn-sm btn-outline" onclick="closeModal()">关闭</button>' +
+            '</div>' +
+        '</div>';
+    document.body.appendChild(overlay);
+    // 点击遮罩关闭
+    overlay.onclick = function(e) { if (e.target === overlay) closeModal(); };
+}
+
+function closeModal() {
+    var overlay = document.getElementById('svc-modal-overlay');
+    if (overlay) overlay.remove();
+    clearTimeout(_svcPollTimer);
+    refreshServices();
+}
+
+function appendModalLog(text) {
+    var el = document.getElementById('modal-log-content');
+    if (el) {
+        // 移除 spinner
+        var spinners = el.querySelectorAll('.modal-spinner');
+        spinners.forEach(function(s) { s.remove(); });
+        el.textContent += '\n' + text;
+        el.scrollTop = el.scrollHeight;
+    }
+}
+
+function updateModalStatus(ok) {
+    var el = document.getElementById('modal-status');
+    if (el) {
+        el.innerHTML = ok
+            ? '<span class="status-dot green"></span> 操作成功'
+            : '<span class="status-dot red"></span> 操作失败';
+    }
+}
+
+function copyModalLog() {
+    var el = document.getElementById('modal-log-content');
+    if (el) {
+        navigator.clipboard.writeText(el.textContent).then(function() {
+            appendModalLog('[系统] 日志已复制到剪贴板');
+        }).catch(function() {
+            appendModalLog('[系统] 复制失败，请手动选择复制');
+        });
+    }
+}
+
+// ── Data ──
+async function fetchData() {
+    const symbols = $('data-symbols').value.split(',').map(s => s.trim());
+    const start = $('data-start').value, end = $('data-end').value;
+    $('data-progress').innerHTML = '<span class="spinner"></span> 正在获取 ' + symbols.length + ' 只股票数据...';
+    addLog('开始数据管线: ' + symbols.length + ' 只, ' + start + '~' + end, 'info');
+    try {
+        const r = await api('POST', '/api/data/fetch', { symbols, start_date: start, end_date: end });
+        $('data-progress').innerHTML = '<span class="badge badge-green">完成</span> 数据已导出: ' + r.output_dir;
+        addLog('数据管线完成: ' + r.records + ' 条记录', 'success');
+        listSymbols();
+    } catch(e) {
+        $('data-progress').innerHTML = '<span class="badge badge-red">失败</span> ' + e.message;
+        addLog('数据获取失败: ' + e.message, 'error');
+    }
+}
+async function listSymbols() {
+    try {
+        const d = await api('GET', '/api/data/symbols');
+        if (d.symbols.length === 0) {
+            $('data-table').innerHTML = '<p style="color:var(--text-muted);padding:12px;">暂无数据</p>';
+        } else {
+            $('data-table').innerHTML = '<table><thead><tr><th>股票代码</th><th>状态</th></tr></thead><tbody>' +
+                d.symbols.map(s => '<tr><td>' + s + '</td><td><span class="badge badge-green">已就绪</span></td></tr>').join('') +
+                '</tbody></table>';
+        }
+    } catch(e) { addLog('获取股票列表失败: ' + e.message, 'error'); }
+}
+function quickFetch() { switchPanel('data'); setTimeout(fetchData, 300); }
+
+// ── Research ── SSE 流式因子进化（支持自动重连） ──
+async function factorEvolve() {
+    const universe = $('factor-universe').value;
+    const constraints = $('factor-constraints').value;
+    const rounds = parseInt($('factor-rounds').value);
+    if (!rounds || rounds < 1) {
+        alert('请在"轮次"输入框中指定循环次数（如 5），不能为空或小于 1。');
+        return;
+    }
+    const duration = $('factor-duration').value || '1h';
+    const taskLabel = universe + (constraints || '通用') + '因子' + rounds + '轮迭代';
+    const taskId = 'TASK-' + Date.now().toString(36).toUpperCase();
+    const payloadBody = JSON.stringify({
+        loop_n: rounds,
+        all_duration: duration,
+        universe: universe,
+        constraints: constraints,
+        task_label: taskLabel,
+        task_id: taskId,
+    });
+
+    var resultEl = $('factor-result');
+    resultEl.innerHTML = '<div class="sse-msg sse-progress"><span class="spinner"></span> 正在启动 SSE 流式因子进化...</div>';
+    addLog('SSE因子进化启动: ' + taskLabel + ', ' + rounds + ' 轮', 'info');
+
+    var sseStallTimer = null;
+    var sseLastPush = Date.now();
+    var maxReconnect = 3;
+    var reconnectCount = 0;
+
+    function pushSSE(style, text) {
+        sseLastPush = Date.now();
+        var div = document.createElement('div');
+        div.className = 'sse-msg sse-' + style;
+        div.innerHTML = text
+            .replace(/✅/g, '<span style="color:#22c55e;">✅</span>')
+            .replace(/❌/g, '<span style="color:#ef4444;">❌</span>')
+            .replace(/⚠️/g, '<span style="color:#f59e0b;">⚠️</span>')
+            .replace(/🎉/g, '<span style="color:#fbbf24;">🎉</span>')
+            .replace(/📎/g, '<span style="color:#3b82f6;">📎</span>')
+            .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre style="background:var(--bg-card);padding:8px;border-radius:6px;overflow-x:auto;font-size:11px;max-height:300px;">$2</pre>')
+            .replace(/\n/g, '<br>')
+            .replace(/<a /g, '<a style="color:#3b82f6;" ');
+        resultEl.appendChild(div);
+        resultEl.scrollTop = resultEl.scrollHeight;
+    }
+
+    function startStallTimer() {
+        if (sseStallTimer) clearInterval(sseStallTimer);
+        sseStallTimer = setInterval(function() {
+            if ((Date.now() - sseLastPush) / 1000 > 180) {
+                pushSSE('warning', '⚠️【运行预警】当前阶段持续超过180秒无新进度。LLM推理或Docker回测可能耗时较长，请耐心等待...');
+                sseLastPush = Date.now();
+            }
+        }, 30000);
+    }
+
+    function stopStallTimer() {
+        if (sseStallTimer) {
+            clearInterval(sseStallTimer);
+            sseStallTimer = null;
+        }
+    }
+
+    async function connectSSE() {
+        try {
+            var response = await fetch(API + '/api/research/factor-evolve/stream', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: payloadBody,
+            });
+
+            if (!response.ok) {
+                pushSSE('error', '❌ 连接失败: HTTP ' + response.status);
+                stopStallTimer();
+                return;
+            }
+
+            reconnectCount = 0; // 连接成功重置重连计数
+            var reader = response.body.getReader();
+            var decoder = new TextDecoder();
+            var buffer = '';
+
+            function processStream() {
+                reader.read().then(function(result) {
+                    if (result.done) {
+                        stopStallTimer();
+                        addLog('因子进化全部完成', 'success');
+                        refreshReviews();
+                        return;
+                    }
+                    buffer += decoder.decode(result.value, { stream: true });
+                    var lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+                    for (var i = 0; i < lines.length; i++) {
+                        var line = lines[i].trim();
+                        if (!line || !line.startsWith('data: ')) continue;
+                        try {
+                            var payload = JSON.parse(line.substring(6));
+                            var type = payload.type || '';
+                            var content = payload.content || '';
+
+                            if (type === 'error') {
+                                pushSSE('error', content);
+                                stopStallTimer();
+                            } else if (type === 'warning') {
+                                pushSSE('warning', content);
+                            } else if (type === 'need_input') {
+                                pushSSE('warning', content);
+                                stopStallTimer();
+                            } else if (type === 'visual_link') {
+                                pushSSE('progress', content);
+                            } else if (type === 'final_report') {
+                                pushSSE('progress', content);
+                            } else {
+                                pushSSE('progress', content);
+                            }
+                        } catch(e) { /* skip parse errors */ }
+                    }
+                    processStream();
+                }).catch(function(err) {
+                    attemptReconnect('SSE读取异常: ' + err.message);
+                });
+            }
+            processStream();
+        } catch(e) {
+            attemptReconnect('网络错误: ' + e.message);
+        }
+    }
+
+    function attemptReconnect(reason) {
+        stopStallTimer();
+        reconnectCount++;
+        if (reconnectCount > maxReconnect) {
+            pushSSE('error', '❌ ' + reason + '，自动重连已达最大次数(' + maxReconnect + '次)，请刷新页面后重试。');
+            addLog('因子进化连接中断且无法恢复: ' + reason, 'error');
+            return;
+        }
+        pushSSE('warning', '⚠️ ' + reason + '，第 ' + reconnectCount + '/' + maxReconnect + ' 次自动重连（3秒后）...');
+        setTimeout(function() {
+            startStallTimer();
+            connectSSE();
+        }, 3000);
+    }
+
+    startStallTimer();
+    connectSSE();
+}
+async function fullCycle() {
+    const rounds = parseInt($('factor-rounds').value);
+    $('factor-result').innerHTML = '<span class="spinner"></span> 完整研究循环中...';
+    addLog('完整研究循环启动', 'info');
+    try {
+        const r = await api('POST', '/api/research/full-cycle', { loop_n: rounds });
+        let html = '<p><span class="badge badge-green">完成</span> 发现 ' + (r.factors_found || 0) + ' 个因子，' + (r.reviews_completed || 0) + ' 次评审</p>';
+        if (r.reviews) {
+            r.reviews.forEach(rv => {
+                html += '<div class="card mt-8"><strong>' + rv.factor_name + '</strong><p style="color:var(--text-secondary);margin-top:4px;">' + (rv.overall_conclusion || '') + '</p></div>';
+            });
+        }
+        $('factor-result').innerHTML = html;
+        addLog('完整研究循环完成', 'success');
+        refreshReviews(); refreshMemory();
+    } catch(e) {
+        $('factor-result').innerHTML = '<span style="color:var(--red);">错误: ' + e.message + '</span>';
+        addLog('研究循环失败: ' + e.message, 'error');
+    }
+}
+async function refreshReviews() {
+    try {
+        const d = await api('GET', '/api/research/reviews');
+        if (d.reviews.length === 0) {
+            $('review-table').innerHTML = '<p style="color:var(--text-muted);padding:12px;">暂无评审记录</p>';
+        } else {
+            $('review-table').innerHTML = '<table><thead><tr><th>因子名</th><th>综合结论</th><th>时间</th></tr></thead><tbody>' +
+                d.reviews.slice(0, 30).map(r => '<tr><td><strong>' + r.factor_name + '</strong></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis;">' + (r.overall_conclusion || '').substring(0, 120) + '</td><td style="font-size:12px;color:var(--text-muted);">' + (r.timestamp || '').substring(0, 16) + '</td></tr>').join('') +
+                '</tbody></table>';
+        }
+    } catch(e) { addLog('加载评审失败: ' + e.message, 'error'); }
+}
+function quickResearch() { switchPanel('research'); }
+function quickFull() { switchPanel('research'); setTimeout(fullCycle, 300); }
+
+// ── Backtest ──
+async function singleBacktest() {
+    const name = $('bt-name').value, expr = $('bt-expr').value;
+    $('bt-result').innerHTML = '<span class="spinner"></span> 回测中...';
+    addLog('回测因子: ' + name, 'info');
+    try {
+        const r = await api('POST', '/api/backtest/factor', { factor_name: name, factor_expression: expr });
+        if (r.success && r.result) {
+            const res = r.result;
+            $('bt-result').innerHTML = '<table><thead><tr><th>指标</th><th>值</th></tr></thead><tbody>' +
+                '<tr><td>IC 均值</td><td>' + (res.ic_mean != null ? res.ic_mean.toFixed(4) : '-') + '</td></tr>' +
+                '<tr><td>ICIR</td><td>' + (res.icir != null ? res.icir.toFixed(4) : '-') + '</td></tr>' +
+                '<tr><td>Rank IC</td><td>' + (res.rank_ic != null ? res.rank_ic.toFixed(4) : '-') + '</td></tr>' +
+                '<tr><td>年化收益</td><td>' + (res.annual_return != null ? (res.annual_return * 100).toFixed(2) + '%' : '-') + '</td></tr>' +
+                '<tr><td>夏普比率</td><td>' + (res.sharpe != null ? res.sharpe.toFixed(2) : '-') + '</td></tr>' +
+                '<tr><td>最大回撤</td><td>' + (res.max_drawdown != null ? (res.max_drawdown * 100).toFixed(2) + '%' : '-') + '</td></tr>' +
+                '</tbody></table>';
+            addLog('回测完成: ' + name + ' IC=' + (res.ic_mean != null ? res.ic_mean.toFixed(4) : 'N/A'), 'success');
+        } else {
+            $('bt-result').innerHTML = '<span style="color:var(--red);">回测失败: ' + (r.result?.error || '未知错误') + '</span>';
+        }
+    } catch(e) {
+        $('bt-result').innerHTML = '<span style="color:var(--red);">错误: ' + e.message + '</span>';
+        addLog('回测失败: ' + e.message, 'error');
+    }
+}
+
+// ── Model Config ──
+async function refreshModels() {
+    try {
+        const configs = await api('GET', '/api/model/configs');
+        let html = '';
+        for (const [key, cfg] of Object.entries(configs)) {
+            html += '<div class="model-card' + (cfg.enabled ? ' enabled' : '') + '">' +
+                '<div class="model-header">' +
+                    '<div class="model-name">' + cfg.display_name + '</div>' +
+                    '<span class="badge ' + (cfg.enabled ? 'badge-green' : 'badge-yellow') + '">' + (cfg.enabled ? '已激活' : '未启用') + '</span>' +
+                '</div>' +
+                '<div class="model-desc">' + cfg.description + '</div>' +
+                '<div class="model-form">' +
+                    '<label>API Key</label><input class="input" id="mk-' + key + '" value="' + (cfg.api_key || '') + '" type="password" placeholder="sk-...">' +
+                    '<label>API Base</label><input class="input" id="mb-' + key + '" value="' + (cfg.api_base || '') + '">' +
+                    '<label>Model</label><input class="input" id="mm-' + key + '" value="' + (cfg.model || '') + '">' +
+                '</div>' +
+                '<div class="model-actions">' +
+                    '<button class="btn btn-sm btn-primary" onclick="saveModel(\'' + key + '\')">保存配置</button>' +
+                    '<button class="btn btn-sm btn-outline" onclick="checkModel(\'' + key + '\')">连通性检测</button>' +
+                '</div>' +
+            '</div>';
+        }
+        $('model-cards').innerHTML = html;
+    } catch(e) { addLog('模型配置加载失败: ' + e.message, 'error'); }
+}
+async function saveModel(provider) {
+    const apiKey = $('mk-' + provider).value;
+    const apiBase = $('mb-' + provider).value;
+    const model = $('mm-' + provider).value;
+    try {
+        const r = await api('POST', '/api/model/configs/save', { provider, api_key: apiKey, api_base: apiBase, model, enabled: true });
+        addLog(r.message, 'success');
+        refreshModels();
+    } catch(e) { addLog('保存失败: ' + e.message, 'error'); }
+}
+async function checkModel(provider) {
+    const apiKey = $('mk-' + provider).value;
+    const apiBase = $('mb-' + provider).value;
+    const model = $('mm-' + provider).value;
+    addLog('检测 ' + provider + ' 连通性...', 'info');
+    try {
+        const r = await api('POST', '/api/model/check', { provider, api_key: apiKey, api_base: apiBase, model });
+        if (r.ok) { addLog(provider + ' 连通正常', 'success'); }
+        else { addLog(provider + ' 连通失败: ' + r.message, 'error'); }
+    } catch(e) { addLog('检测失败: ' + e.message, 'error'); }
+}
+async function syncConfigs() {
+    try {
+        const r = await api('POST', '/api/model/sync');
+        $('sync-result').innerHTML = '<span class="badge badge-green">已同步</span> ' + r.files?.robot_env || '';
+        addLog('配置已同步至各服务', 'success');
+    } catch(e) {
+        $('sync-result').innerHTML = '<span class="badge badge-red">失败</span> ' + e.message;
+        addLog('同步失败: ' + e.message, 'error');
+    }
+}
+
+// ── Memory ──
+async function refreshMemory() {
+    try {
+        const mem = await api('GET', '/api/research/memory');
+        $('mem2-reviews').textContent = mem.total_reviews || 0;
+        $('mem2-factors').textContent = mem.tracked_factors || 0;
+        $('mem2-constraints').textContent = mem.active_constraints || 0;
+        $('mem2-insights').textContent = mem.accumulated_insights || 0;
+    } catch(e) { addLog('记忆库加载失败: ' + e.message, 'error'); }
+}
+async function refreshContext() {
+    try {
+        const d = await api('GET', '/api/research/memory/context');
+        $('context-prompt').textContent = d.context_prompt || '暂无上下文约束';
+    } catch(e) { addLog('上下文加载失败: ' + e.message, 'error'); }
+}
+
+// ── RD 可视化面板 ──
+var _rdCurrentUI = null;
+var _rdStatusCache = {};
+
+async function refreshRDUIStatus() {
+    try {
+        const data = await api('GET', '/api/rdagent/ui/status');
+        _rdStatusCache = data;
+        let html = '';
+        for (const [uiId, ui] of Object.entries(data)) {
+            html += '<div class="stat-card">' +
+                '<div class="stat-label">' + (ui.icon || '') + ' ' + ui.name +
+                    '<span class="badge ' + (ui.running ? 'badge-green' : 'badge-yellow') + '" style="float:right;">' + (ui.running ? '运行中' : '已停止') + '</span></div>' +
+                '<div style="font-size:12px;color:var(--text-muted);margin:10px 0;min-height:34px;">' + (ui.description || '') + '</div>' +
+                '<div class="flex-row" style="gap:6px;">' +
+                (ui.running
+                    ? '<button class="btn btn-sm btn-primary" onclick="rduiOpen(\'' + uiId + '\')">打开</button><button class="btn btn-sm btn-danger" onclick="rduiStop(\'' + uiId + '\')">停止</button>'
+                    : '<button class="btn btn-sm btn-success" onclick="rduiStart(\'' + uiId + '\')">启动并打开</button>') +
+                '<span style="font-size:11px;color:var(--text-muted);margin-left:auto;">端口 :' + ui.port + '</span>' +
+                '</div></div>';
+        }
+        $('rdview-cards').innerHTML = html;
+    } catch(e) { addLog('RD UI 状态获取失败: ' + e.message, 'error'); }
+}
+
+async function rduiStart(uiId) {
+    addLog('正在启动 RD UI: ' + uiId + '（约需10-15秒）...', 'info');
+    try { await api('POST', '/api/rdagent/ui/' + uiId + '/start'); }
+    catch(e) { addLog('RD UI 启动失败: ' + e.message, 'error'); }
+    await refreshRDUIStatus();
+    rduiOpen(uiId);
+}
+
+async function rduiStop(uiId) {
+    try { await api('POST', '/api/rdagent/ui/' + uiId + '/stop'); }
+    catch(e) { addLog('RD UI 停止失败: ' + e.message, 'error'); }
+    await refreshRDUIStatus();
+}
+
+function rduiOpen(uiId, taskId) {
+    _rdCurrentUI = uiId;
+    const ui = _rdStatusCache[uiId] || {};
+    $('rdview-title').textContent = (ui.icon || '') + ' ' + (ui.name || uiId) + '（端口 :' + (ui.port || '-') + '）';
+    $('rdview-empty').style.display = 'none';
+    $('rdview-frame-card').style.display = '';
+    $('rdview-iframe').src = '/rdagent/ui/' + uiId + '/' + (taskId ? '?task_id=' + encodeURIComponent(taskId) : '');
+}
+
+function rduiReloadFrame() { const f = $('rdview-iframe'); if (f.src) f.src = f.src; }
+function rduiOpenExternal() { if (_rdCurrentUI) window.open('/rdagent/ui/' + _rdCurrentUI + '/', '_blank'); }
+function rduiToggleFullscreen() {
+    const card = $('rdview-frame-card');
+    const fs = card.classList.toggle('rd-frame-fullscreen');
+    $('rdview-fs-btn').textContent = fs ? '退出全屏' : '全屏';
+}
+
+// 全局联动入口：机器人助手 / SSE 可视化链接 → RD 面板内打开
+window.openRDView = function(uiId, taskId) {
+    switchPanel('rdview');
+    const ui = _rdStatusCache[uiId];
+    if (ui && ui.running) rduiOpen(uiId, taskId);
+    else rduiStart(uiId);
+};
+
+// 拦截聊天消息中的 RD UI 链接（http://127.0.0.1:19899/?task_id=xxx 等）
+document.querySelector('.chat-area-wrapper').addEventListener('click', function(e) {
+    const a = e.target.closest('a[href]');
+    if (!a) return;
+    const m = a.href.match(/https?:\/\/(?:127\.0\.0\.1|localhost):(\d{4,5})/);
+    if (!m) return;
+    const uiId = { '19899': 'log_traces', '19898': 'server_ui', '19900': 'ds_interact' }[m[1]];
+    if (!uiId) return;
+    e.preventDefault();
+    let taskId = null;
+    try { taskId = new URL(a.href).searchParams.get('task_id'); } catch(_) {}
+    window.openRDView(uiId, taskId);
+});
+
+// ── Init ──
+refreshStatus();
+refreshServices();
+// 页面加载时恢复聊天记录（已由 React assistant-ui 接管，跳过）
+// vanilla JS 聊天面板已移除，历史恢复由 React 组件自行处理
+// 每 5 秒自动轮询服务状态
+setInterval(function() {
+    refreshServices();
+    refreshStatus();
+}, 5000);
+</script>
+
+<!-- assistant-ui 聊天组件 -->
+<script src="/chat-app/dist/assets/index.js"></script>
+<script>
+// 初始化 assistant-ui 聊天面板
+(function initAiquantChat() {
+  // 等待 DOM 就绪
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(function() {
+        if (typeof mountAiquantChat === 'function') {
+          mountAiquantChat('aiquant-chat-root');
+        }
+      }, 200);
+    });
+  } else {
+    setTimeout(function() {
+      if (typeof mountAiquantChat === 'function') {
+        mountAiquantChat('aiquant-chat-root');
+      }
+    }, 200);
+  }
+})();
+</script>
+</body>
+</html>
