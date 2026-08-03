@@ -350,6 +350,65 @@ is the argument for measuring in §5.2 made against a third rig.
 > because the backend refused them, that is reported as a ceiling of a different kind, and the
 > corrected wording is what appears in the recording.
 
+#### 5.1b The other half of the claim, and where it did not hold
+
+Everything above measures THROUGHPUT: the Kth candidate is nearly free. The argument only
+completes if spending those candidates converts into correctness — `P = 1 − (1−p)^K` — and
+that half had never been measured on AMD silicon. It was, on 2026-08-03, against the same
+live endpoint. The result is not a clean confirmation, which is why it is here in full.
+
+**Finding the regime.** Seven tasks measured p = 1.000 — four textbook (RLE, second-largest,
+Roman numerals, bracket matching) and three compositions invented for this measurement. A 1B
+model served on the Radeon one-shots all of them, with distinct completions confirmed, so on
+that class of work K is pure waste and the calibrator's `p=1 → K=1` rule is exactly right. A
+saturated task cannot demonstrate amplification, so an eighth was added that needs real
+reasoning — an arithmetic expression evaluator with precedence, unary minus and
+truncate-toward-zero division, 6 sound checks:
+
+| | Value |
+|---|---|
+| Draws | 16 independent, temperature 0.6, **15 of 16 distinct** |
+| Passes | 1 |
+| **p** | **0.0625** — the productive middle |
+
+**The test, and the miss.**
+
+| | Value |
+|---|---|
+| K | 8 (the calibrated ceiling for this endpoint, §5.1a) |
+| Predicted, i.i.d. | `1 − (1−0.0625)^8` = **0.403** |
+| Observed | **1 / 6 trials = 0.167** |
+
+The equation over-predicted. Two candidate explanations, neither dismissable on six trials:
+
+1. **Six trials is not many.** Under a true P = 0.403, seeing ≤1 success in 6 has probability
+   ≈ 0.23. This is consistent with bad luck and is nowhere near evidence against the model.
+2. **The draws are not i.i.d., by design.** `p = 0.0625` was measured at a *fixed* temperature
+   0.6. `VerifiedSearch` deliberately draws its K samples across a temperature LADDER
+   (0.0, 0.2, … 1.0) for diversity, and the first rung is greedy. So a batch of 8 is not eight
+   draws at p = 0.0625; several sit at temperatures with their own, lower p. The equation
+   assumes a single p and the implementation deliberately violates that to buy coverage.
+
+So the honest statement is: **`1 − (1−p)^K` is an upper estimate for this implementation, not
+a prediction of it** — and the gap is the price of the diversity mechanism, not evidence the
+amplifier does not work. It plainly does work: trial 1 had four candidates rejected by the
+oracle and the fifth pass, which is the machinery visible in one run.
+
+Closing the gap needs p measured *per temperature rung* and the per-rung values composed,
+which is more measurement than this submission can carry. It is stated rather than smoothed
+over because a submission that only reports its confirmations is not evidence of anything.
+
+Raw: [`amd_gpu_evidence/radeon_amplification_2026-08-03.json`](amd_gpu_evidence/radeon_amplification_2026-08-03.json)
+— all three runs, per-draw, including the saturated set.
+
+> **A harness bug worth recording, since it nearly became the headline.** The first version of
+> this measurement called `build_from_idea(..., k=1)` sixteen times and reported **112/112,
+> p = 1.000** across seven tasks. That was not a result. `VerifiedSearch`'s temperature ladder
+> starts at 0.0, so `k=1` is a GREEDY draw and sixteen of them are one draw sixteen times. A
+> confident number produced by a harness that never varied its input is precisely what the
+> oracle discipline exists to catch, and it was caught only because `distinct_completions`
+> was recorded alongside p. That counter is now part of the artifact.
+
 Raw timed terminal log and the resulting calibration profile:
 [`amd_gpu_evidence/radeon_live_2026-08-03.json`](amd_gpu_evidence/radeon_live_2026-08-03.json).
 
