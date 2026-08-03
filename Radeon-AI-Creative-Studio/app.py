@@ -19,25 +19,25 @@ from pipeline.image_enhancer import ImageEnhancer
 
 
 # ============================================================
-# 初始化模型
+# Initialize models
 # ============================================================
 
 generator = ImageGenerator()
 enhancer = ImageEnhancer()
 
 
-# 本次应用运行期间的生成记录。
-# 每个元素结构：
+# Generation history for the current application session.
+# Each item contains:
 # (
-#     图片文件路径,
-#     图片标题
+#     image file path,
+#     image caption
 # )
 OUTPUT_HISTORY_LIMIT = 40
 
 
 def refresh_history_gallery():
     """
-    每次页面加载时重新扫描 outputs 目录。
+    Rescan the outputs directory whenever the page loads.
     """
     global generation_history
 
@@ -47,18 +47,18 @@ def refresh_history_gallery():
 
 def build_history_caption(image_path: Path) -> str:
     """
-    根据文件名生成画廊标题。
+    Build a gallery caption from the output filename.
     """
     filename = image_path.stem
 
     if "text2img" in filename:
-        mode = "文字生成图片"
+        mode = "Text-to-Image"
     elif "img2img" in filename:
-        mode = "参考图重绘"
+        mode = "Image-to-Image"
     elif "enhanced" in filename:
-        mode = "图片增强"
+        mode = "Image Enhancement"
     else:
-        mode = "历史作品"
+        mode = "History"
 
     modified_time = image_path.stat().st_mtime
 
@@ -73,10 +73,9 @@ def build_history_caption(image_path: Path) -> str:
 
 def load_generation_history() -> list[tuple[str, str]]:
     """
-    从 outputs 目录读取历史图片。
+    Load previous images from the outputs directory.
 
-    按文件修改时间倒序排列，
-    最近生成的图片显示在最前面。
+    Sort by modification time so the newest image appears first.
     """
     output_dir = Path("outputs")
     output_dir.mkdir(
@@ -122,7 +121,7 @@ generation_history: list[tuple[str, str]] = (
 
 
 # ============================================================
-# 公共工具函数
+# Shared utility functions
 # ============================================================
 
 def preview_final_prompt(
@@ -132,8 +131,7 @@ def preview_final_prompt(
     quality: str,
 ) -> str:
     """
-    根据用户输入、创作类型、视觉风格和质量等级，
-    自动拼接最终发送给模型的 Prompt。
+    Build the final prompt from the user input, creative type, style, and quality.
     """
     try:
         return build_prompt(
@@ -151,8 +149,7 @@ def add_to_history(
     caption: str,
 ) -> list[tuple[str, str]]:
     """
-    将新结果加入历史画廊。
-    最多保存最近 20 张。
+    Add a new result to the history gallery and keep the latest 40 items.
     """
     generation_history.insert(
         0,
@@ -171,30 +168,30 @@ def build_gpu_markdown(
     result: dict[str, Any],
 ) -> str:
     """
-    根据推理结果生成 AMD GPU 信息面板。
+    Build the AMD GPU inference information panel.
     """
     lines = [
-        "### AMD GPU 推理信息",
+        "### AMD GPU Inference Information",
         "",
-        f"- **运行模式：** {result.get('mode', '未知')}",
-        f"- **GPU：** {result.get('gpu_name', '未知')}",
-        f"- **显存：** {result.get('vram_gb', '未知')} GB",
-        "- **运行后端：** PyTorch ROCm",
-        f"- **分辨率：** "
-        f"{result.get('width', '未知')} × "
-        f"{result.get('height', '未知')}",
-        f"- **推理步数：** {result.get('steps', '未知')}",
+        f"- **Mode:** {result.get('mode', 'Unknown')}",
+        f"- **GPU:** {result.get('gpu_name', 'Unknown')}",
+        f"- **VRAM:** {result.get('vram_gb', 'Unknown')} GB",
+        "- **Backend:** PyTorch ROCm",
+        f"- **Resolution:** "
+        f"{result.get('width', 'Unknown')} × "
+        f"{result.get('height', 'Unknown')}",
+        f"- **Inference steps:** {result.get('steps', 'Unknown')}",
     ]
 
     if "strength" in result:
         lines.append(
-            f"- **重绘强度：** {result['strength']}"
+            f"- **Strength:** {result['strength']}"
         )
 
     lines.extend(
         [
-            f"- **推理耗时：** {result.get('time', '未知')} 秒",
-            f"- **随机种子：** {result.get('seed', '未知')}",
+            f"- **Inference time:** {result.get('time', 'Unknown')} s",
+            f"- **Seed:** {result.get('seed', 'Unknown')}",
         ]
     )
 
@@ -202,7 +199,7 @@ def build_gpu_markdown(
 
 
 # ============================================================
-# Text-to-Image：文字生成图片
+# Text-to-Image
 # ============================================================
 
 def generate_image(
@@ -216,7 +213,7 @@ def generate_image(
     seed: float,
 ):
     """
-    文生图事件处理函数。
+    Handle text-to-image generation.
     """
     try:
         final_prompt = build_prompt(
@@ -240,7 +237,7 @@ def generate_image(
         )
 
         caption = (
-            f"文生图｜{creative_type}｜{style}｜"
+            f"Text-to-Image | {creative_type} | {style} | "
             f"{result['width']}×{result['height']}｜"
             f"Seed {result['seed']}"
         )
@@ -253,9 +250,9 @@ def generate_image(
         gpu_info = build_gpu_markdown(result)
 
         status = (
-            f"✅ 生成成功｜"
-            f"耗时 {result['time']} 秒｜"
-            f"分辨率 {result['width']}×{result['height']}｜"
+            f"✅ Generation succeeded | "
+            f"Time {result['time']} s | "
+            f"Resolution {result['width']}×{result['height']} | "
             f"Seed {result['seed']}"
         )
 
@@ -273,14 +270,14 @@ def generate_image(
         traceback.print_exc()
 
         error_message = (
-            f"❌ 生成失败："
+            f"❌ Generation failed: "
             f"{type(error).__name__}: {error}"
         )
 
         return (
             None,
             None,
-            "### AMD GPU 推理信息\n\n本次文生图任务失败。",
+            "### AMD GPU Inference Information\n\nThe text-to-image task failed.",
             "",
             list(generation_history),
             error_message,
@@ -301,7 +298,7 @@ def generate_batch_images(
     batch_size: int,
 ):
     """
-    批量生成候选创意方案。
+    Generate multiple creative candidates.
     """
     try:
         final_prompt = build_prompt(
@@ -329,7 +326,7 @@ def generate_batch_images(
 
         for item in result["items"]:
             caption = (
-                f"方案 {item['index']}｜"
+                f"Candidate {item['index']} | "
                 f"{creative_type}｜{style}｜"
                 f"Seed {item['seed']}"
             )
@@ -344,30 +341,30 @@ def generate_batch_images(
             add_to_history(
                 image_path=item["path"],
                 caption=(
-                    f"批量方案 {item['index']}｜"
+                    f"Batch candidate {item['index']} | "
                     f"{creative_type}｜{style}｜"
                     f"Seed {item['seed']}"
                 ),
             )
 
         gpu_info = (
-            "### AMD GPU 批量推理信息\n\n"
-            f"- **运行模式：** {result['mode']}\n"
-            f"- **GPU：** {result['gpu_name']}\n"
-            f"- **显存：** {result['vram_gb']} GB\n"
-            "- **运行后端：** PyTorch ROCm\n"
-            f"- **生成数量：** {result['batch_size']} 张\n"
-            f"- **单张分辨率：** "
+            "### AMD GPU Batch Inference Information\n\n"
+            f"- **Mode:** {result['mode']}\n"
+            f"- **GPU:** {result['gpu_name']}\n"
+            f"- **VRAM:** {result['vram_gb']} GB\n"
+            "- **Backend:** PyTorch ROCm\n"
+            f"- **Images generated:** {result['batch_size']}\n"
+            f"- **Per-image resolution:** "
             f"{result['width']} × {result['height']}\n"
-            f"- **推理步数：** {result['steps']}\n"
-            f"- **总推理耗时：** {result['time']} 秒\n"
-            f"- **起始 Seed：** {result['base_seed']}"
+            f"- **Inference steps:** {result['steps']}\n"
+            f"- **Total inference time:** {result['time']} s\n"
+            f"- **Base seed:** {result['base_seed']}"
         )
 
         status = (
-            f"✅ 批量生成成功｜"
-            f"共 {result['batch_size']} 张｜"
-            f"总耗时 {result['time']} 秒｜"
+            f"✅ Batch generation succeeded | "
+            f"{result['batch_size']} images | "
+            f"Total time {result['time']} s | "
             f"Seed {result['base_seed']}～"
             f"{result['base_seed'] + result['batch_size'] - 1}"
         )
@@ -385,13 +382,13 @@ def generate_batch_images(
         traceback.print_exc()
 
         error_message = (
-            f"❌ 批量生成失败："
+            f"❌ Batch generation failed: "
             f"{type(error).__name__}: {error}"
         )
 
         return (
             [],
-            "### AMD GPU 批量推理信息\n\n本次批量任务失败。",
+            "### AMD GPU Batch Inference Information\n\nThe batch task failed.",
             "",
             list(generation_history),
             error_message,
@@ -399,7 +396,7 @@ def generate_batch_images(
         )
 
 # ============================================================
-# Image-to-Image：参考图风格重绘
+# Image-to-Image
 # ============================================================
 
 def transform_image(
@@ -415,11 +412,11 @@ def transform_image(
     seed: float,
 ):
     """
-    图生图事件处理函数。
+    Handle image-to-image generation.
     """
     try:
         if reference_image is None:
-            raise ValueError("请先上传一张参考图片。")
+            raise ValueError("Please upload a reference image first.")
 
         final_prompt = build_prompt(
             user_prompt=user_prompt,
@@ -444,8 +441,8 @@ def transform_image(
         )
 
         caption = (
-            f"参考图重绘｜{creative_type}｜{style}｜"
-            f"强度 {result['strength']}｜"
+            f"Image-to-Image | {creative_type} | {style} | "
+            f"Strength {result['strength']} | "
             f"Seed {result['seed']}"
         )
 
@@ -457,9 +454,9 @@ def transform_image(
         gpu_info = build_gpu_markdown(result)
 
         status = (
-            f"✅ 参考图重绘成功｜"
-            f"耗时 {result['time']} 秒｜"
-            f"重绘强度 {result['strength']}｜"
+            f"✅ Image-to-image succeeded | "
+            f"Time {result['time']} s | "
+            f"Strength {result['strength']} | "
             f"Seed {result['seed']}"
         )
 
@@ -477,14 +474,14 @@ def transform_image(
         traceback.print_exc()
 
         error_message = (
-            f"❌ 参考图重绘失败："
+            f"❌ Image-to-image failed: "
             f"{type(error).__name__}: {error}"
         )
 
         return (
             None,
             None,
-            "### AMD GPU 推理信息\n\n本次参考图重绘任务失败。",
+            "### AMD GPU Inference Information\n\nThe image-to-image task failed.",
             "",
             list(generation_history),
             error_message,
@@ -504,11 +501,11 @@ def enhance_image(
     detail_enhance: bool,
 ):
     """
-    一键图片增强事件处理函数。
+    Handle deterministic image enhancement.
     """
     try:
         if source_image is None:
-            raise ValueError("请先上传需要增强的图片。")
+            raise ValueError("Please upload an image to enhance first.")
 
         result = enhancer.enhance(
             image=source_image,
@@ -522,7 +519,7 @@ def enhance_image(
         )
 
         caption = (
-            f"图片增强｜"
+            f"Image Enhancement | "
             f"{result['original_width']}×"
             f"{result['original_height']} → "
             f"{result['width']}×"
@@ -536,35 +533,35 @@ def enhance_image(
         )
 
         processing_info = (
-            "### 图片增强信息\n\n"
-            f"- **处理模式：** {result['mode']}\n"
-            f"- **原始分辨率：** "
+            "### Image Enhancement Information\n\n"
+            f"- **Mode:** {result['mode']}\n"
+            f"- **Original resolution:** "
             f"{result['original_width']} × "
             f"{result['original_height']}\n"
-            f"- **输出分辨率：** "
+            f"- **Output resolution:** "
             f"{result['width']} × "
             f"{result['height']}\n"
-            f"- **放大倍数：** {result['scale']}×\n"
-            f"- **亮度系数：** {result['brightness']}\n"
-            f"- **对比度系数：** {result['contrast']}\n"
-            f"- **色彩系数：** {result['color']}\n"
-            f"- **锐度系数：** {result['sharpness']}\n"
-            f"- **自动对比度：** "
-            f"{'开启' if result['auto_contrast'] else '关闭'}\n"
-            f"- **细节增强：** "
-            f"{'开启' if result['detail_enhance'] else '关闭'}\n"
-            f"- **处理耗时：** {result['time']} 秒\n\n"
-            "生成与重绘由 AMD Radeon GPU + ROCm 执行；"
-            "此步骤为快速本地图像后处理。"
+            f"- **Upscale factor:** {result['scale']}×\n"
+            f"- **Brightness:** {result['brightness']}\n"
+            f"- **Contrast:** {result['contrast']}\n"
+            f"- **Color:** {result['color']}\n"
+            f"- **Sharpness:** {result['sharpness']}\n"
+            f"- **Auto contrast:** "
+            f"{'Enabled' if result['auto_contrast'] else 'Disabled'}\n"
+            f"- **Detail enhancement:** "
+            f"{'Enabled' if result['detail_enhance'] else 'Disabled'}\n"
+            f"- **Processing time:** {result['time']} s\n\n"
+            "Text-to-image and image-to-image use AMD Radeon GPU + ROCm; "
+            "this step is fast local CPU post-processing."
         )
 
         status = (
-            f"✅ 图片增强成功｜"
+            f"✅ Image enhancement succeeded | "
             f"{result['original_width']}×"
             f"{result['original_height']} → "
             f"{result['width']}×"
             f"{result['height']}｜"
-            f"耗时 {result['time']} 秒"
+            f"Time {result['time']} s"
         )
 
         return (
@@ -580,7 +577,7 @@ def enhance_image(
         traceback.print_exc()
 
         error_message = (
-            f"❌ 图片增强失败："
+            f"❌ Image enhancement failed: "
             f"{type(error).__name__}: {error}"
         )
 
@@ -588,14 +585,14 @@ def enhance_image(
             source_image,
             None,
             None,
-            "### 图片增强信息\n\n本次图片增强任务失败。",
+            "### Image Enhancement Information\n\nThe image enhancement task failed.",
             list(generation_history),
             error_message,
         )
 
 
 # ============================================================
-# 页面样式
+# Page styling
 # ============================================================
 
 CUSTOM_CSS = """
@@ -628,7 +625,7 @@ CUSTOM_CSS = """
 
 
 # ============================================================
-# Gradio 页面
+# Gradio interface
 # ============================================================
 
 with gr.Blocks(
@@ -637,7 +634,7 @@ with gr.Blocks(
 ) as demo:
 
     # --------------------------------------------------------
-    # 页面标题
+    # Page title
     # --------------------------------------------------------
 
     gr.Markdown(
@@ -649,55 +646,55 @@ with gr.Blocks(
 
     gr.Markdown(
         """
-        基于 **AMD Radeon GPU + ROCm** 的本地 AI 创意设计工作台  
-        支持文字生成图片、参考图风格重绘、商业创意模板和本地隐私推理
+        Local AI creative workstation powered by **AMD Radeon GPU + ROCm**
+        Supports text-to-image, image-to-image, batch ideation, and private local inference
         """,
         elem_id="main-subtitle",
     )
 
     # --------------------------------------------------------
-    # 标签页区域
+    # Main tabs
     # --------------------------------------------------------
 
     with gr.Tabs():
 
         # ====================================================
-        # 标签页 1：文字生成图片
+        # Tab 1: Text-to-Image
         # ====================================================
 
-        with gr.Tab("文字生成图片"):
+        with gr.Tab("Text-to-Image"):
 
             with gr.Row():
 
                 # ------------------------------
-                # 文生图左侧参数区域
+                # Text-to-image settings
                 # ------------------------------
 
                 with gr.Column(scale=5):
 
-                    gr.Markdown("## 1. 创作设置")
+                    gr.Markdown("## 1. Creation Settings")
 
                     text_creative_type = gr.Dropdown(
                         choices=list(CREATIVE_TYPES.keys()),
-                        value="室内设计",
-                        label="创作类型",
+                        value="Interior Design",
+                        label="Creative Type",
                     )
 
                     text_style = gr.Dropdown(
                         choices=list(STYLE_TEMPLATES.keys()),
-                        value="写实摄影",
-                        label="视觉风格",
+                        value="Photorealistic",
+                        label="Visual Style",
                     )
 
                     text_user_prompt = gr.Textbox(
-                        label="画面描述",
+                        label="Scene Description",
                         placeholder=(
-                            "例如：一个阳光充足的现代法式客厅，"
-                            "落地窗、米色沙发和精致吊灯"
+                            "For example: a sunlit modern French living room, "
+                            "floor-to-ceiling windows, a beige sofa, and elegant pendant lights"
                         ),
                         value=(
-                            "一个阳光充足的现代法式客厅，"
-                            "落地窗、米色沙发和精致吊灯"
+                            "A sunlit modern French living room, floor-to-ceiling windows, "
+                            "a beige sofa, and elegant pendant lights"
                         ),
                         lines=4,
                     )
@@ -706,18 +703,18 @@ with gr.Blocks(
 
                         text_aspect_ratio = gr.Dropdown(
                             choices=list(ASPECT_RATIOS.keys()),
-                            value="1:1 正方形",
-                            label="画幅比例",
+                            value="1:1 Square",
+                            label="Aspect Ratio",
                         )
 
                         text_quality = gr.Radio(
                             choices=list(QUALITY_TEMPLATES.keys()),
-                            value="均衡",
-                            label="生成质量",
+                            value="Balanced",
+                            label="Generation Quality",
                         )
 
                     with gr.Accordion(
-                        "高级参数",
+                        "Advanced Parameters",
                         open=False,
                     ):
 
@@ -726,111 +723,111 @@ with gr.Blocks(
                             maximum=15.0,
                             value=7.5,
                             step=0.5,
-                            label="Prompt 引导强度",
+                            label="Prompt Guidance Scale",
                         )
 
                         text_seed = gr.Number(
                             value=-1,
                             precision=0,
-                            label="随机种子（-1 表示随机）",
+                            label="Seed (-1 for random)",
                         )
 
                         text_negative_prompt = gr.Textbox(
                             value=DEFAULT_NEGATIVE_PROMPT,
-                            label="负面提示词",
+                            label="Negative Prompt",
                             lines=3,
                         )
 
                     text_final_prompt_preview = gr.Textbox(
-                        label="系统生成的完整 Prompt",
+                        label="Final Generated Prompt",
                         lines=5,
                         interactive=False,
                     )
 
                     text_generate_button = gr.Button(
-                        "生成创意图片",
+                        "Generate Creative Image",
                         variant="primary",
                         elem_classes=["generate-button"],
                     )
 
                     text_status = gr.Textbox(
-                        label="运行状态",
+                        label="Status",
                         interactive=False,
                         elem_classes=["status-box"],
                     )
 
                 # ------------------------------
-                # 文生图右侧结果区域
+                # Text-to-image results
                 # ------------------------------
 
                 with gr.Column(scale=7):
 
-                    gr.Markdown("## 2. 生成结果")
+                    gr.Markdown("## 2. Generation Result")
 
                     text_output_image = gr.Image(
-                        label="生成图片",
+                        label="Generated Image",
                         type="pil",
                         height=560,
                         format="png",
                     )
 
                     text_download_file = gr.DownloadButton(
-                        label="下载原始 PNG 文件",
+                        label="Download Original PNG",
                         value=None,
                         variant="secondary",
                     )
 
                     text_gpu_info = gr.Markdown(
                         """
-                        ### AMD GPU 推理信息
+                        ### AMD GPU Inference Information
 
-                        等待文字生成图片任务。
+                        Waiting for a text-to-image task.
                         """
                     )
 
         # ====================================================
-        # 标签页 2：参考图风格重绘
+        # Tab 2: Image-to-Image
         # ====================================================
 
-        with gr.Tab("参考图风格重绘"):
+        with gr.Tab("Image-to-Image"):
 
             with gr.Row():
 
                 # ------------------------------
-                # 图生图左侧参数区域
+                # Image-to-image settings
                 # ------------------------------
 
                 with gr.Column(scale=5):
 
-                    gr.Markdown("## 1. 上传参考图并设置目标效果")
+                    gr.Markdown("## 1. Upload a Reference and Set the Target")
 
                     reference_image = gr.Image(
-                        label="参考图片",
+                        label="Reference Image",
                         type="pil",
                         height=360,
                     )
 
                     img_creative_type = gr.Dropdown(
                         choices=list(CREATIVE_TYPES.keys()),
-                        value="室内设计",
-                        label="创作类型",
+                        value="Interior Design",
+                        label="Creative Type",
                     )
 
                     img_style = gr.Dropdown(
                         choices=list(STYLE_TEMPLATES.keys()),
-                        value="法式奢华",
-                        label="目标视觉风格",
+                        value="Luxury French",
+                        label="Target Visual Style",
                     )
 
                     img_user_prompt = gr.Textbox(
-                        label="重绘要求",
+                        label="Transformation Instruction",
                         value=(
-                            "保留原图主要结构，升级材质和灯光，"
-                            "呈现高端专业设计效果"
+                            "Preserve the main structure, upgrade materials and lighting, "
+                            "and create a premium professional design"
                         ),
                         placeholder=(
-                            "例如：保留客厅布局，将整体改成法式奢华风格，"
-                            "增加水晶吊灯和温暖阳光"
+                            "For example: preserve the living room layout, apply a luxury French style, "
+                            "and add a crystal chandelier with warm sunlight"
                         ),
                         lines=4,
                     )
@@ -839,14 +836,14 @@ with gr.Blocks(
 
                         img_aspect_ratio = gr.Dropdown(
                             choices=list(ASPECT_RATIOS.keys()),
-                            value="1:1 正方形",
-                            label="输出画幅",
+                            value="1:1 Square",
+                            label="Output Aspect Ratio",
                         )
 
                         img_quality = gr.Radio(
                             choices=list(QUALITY_TEMPLATES.keys()),
-                            value="均衡",
-                            label="生成质量",
+                            value="Balanced",
+                            label="Generation Quality",
                         )
 
                     img_strength = gr.Slider(
@@ -854,15 +851,15 @@ with gr.Blocks(
                         maximum=0.95,
                         value=0.55,
                         step=0.05,
-                        label="重绘强度",
+                        label="Transformation Strength",
                         info=(
-                            "数值越低越保留原图，"
-                            "数值越高变化越明显"
+                            "Lower values preserve more of the reference; "
+                            "higher values create stronger changes"
                         ),
                     )
 
                     with gr.Accordion(
-                        "高级参数",
+                        "Advanced Parameters",
                         open=False,
                     ):
 
@@ -871,88 +868,88 @@ with gr.Blocks(
                             maximum=15.0,
                             value=7.5,
                             step=0.5,
-                            label="Prompt 引导强度",
+                            label="Prompt Guidance Scale",
                         )
 
                         img_seed = gr.Number(
                             value=-1,
                             precision=0,
-                            label="随机种子（-1 表示随机）",
+                            label="Seed (-1 for random)",
                         )
 
                         img_negative_prompt = gr.Textbox(
                             value=DEFAULT_NEGATIVE_PROMPT,
-                            label="负面提示词",
+                            label="Negative Prompt",
                             lines=3,
                         )
 
                     img_final_prompt_preview = gr.Textbox(
-                        label="系统生成的完整 Prompt",
+                        label="Final Generated Prompt",
                         lines=5,
                         interactive=False,
                     )
 
                     img_transform_button = gr.Button(
-                        "开始参考图重绘",
+                        "Generate Image-to-Image Variation",
                         variant="primary",
                         elem_classes=["generate-button"],
                     )
 
                     img_status = gr.Textbox(
-                        label="运行状态",
+                        label="Status",
                         interactive=False,
                         elem_classes=["status-box"],
                     )
 
                 # ------------------------------
-                # 图生图右侧结果区域
+                # Image-to-image results
                 # ------------------------------
 
                 with gr.Column(scale=7):
 
-                    gr.Markdown("## 2. 重绘结果")
+                    gr.Markdown("## 2. Transformation Result")
 
                     img_output_image = gr.Image(
-                        label="重绘后的图片",
+                        label="Transformed Image",
                         type="pil",
                         height=560,
                         format="png",
                     )
 
                     img_download_file = gr.DownloadButton(
-                        label="下载重绘结果 PNG",
+                        label="Download Transformed PNG",
                         value=None,
                         variant="secondary",
                     )
 
                     img_gpu_info = gr.Markdown(
                         """
-                        ### AMD GPU 推理信息
+                        ### AMD GPU Inference Information
 
-                        等待参考图重绘任务。
+                        Waiting for an image-to-image task.
                         """
                     )
 
 
         # ====================================================
-        # 标签页 3：图片增强
+        # Tab 3: Image Enhancement
         # ====================================================
 
-        with gr.Tab("一键图片增强"):
+        with gr.Tab("Image Enhancement"):
 
             with gr.Row():
 
                 with gr.Column(scale=5):
 
-                    gr.Markdown("## 1. 上传需要增强的图片")
+                    gr.Markdown("## 1. Upload an Image to Enhance")
 
                     enhance_source_image = gr.Image(
-                        label="原始图片",
+                        label="Original Image",
                         type="pil",
                         height=380,
                     )
 
-                    gr.Markdown("## 2. 增强参数")
+                    gr.Markdown("## 2. Enhancement Parameters")
 
                     enhance_upscale = gr.Radio(
                         choices=[
@@ -961,21 +958,21 @@ with gr.Blocks(
                             "4×",
                         ],
                         value="2×",
-                        label="输出放大倍数",
+                        label="Output Upscale Factor",
                     )
 
                     enhance_auto_contrast = gr.Checkbox(
                         value=True,
-                        label="自动优化对比度",
+                        label="Auto Contrast",
                     )
 
                     enhance_detail = gr.Checkbox(
                         value=True,
-                        label="启用细节增强",
+                        label="Enable Detail Enhancement",
                     )
 
                     with gr.Accordion(
-                        "高级增强参数",
+                        "Advanced Enhancement Parameters",
                         open=False,
                     ):
 
@@ -984,7 +981,7 @@ with gr.Blocks(
                             maximum=1.5,
                             value=1.0,
                             step=0.05,
-                            label="亮度",
+                            label="Brightness",
                         )
 
                         enhance_contrast = gr.Slider(
@@ -992,7 +989,7 @@ with gr.Blocks(
                             maximum=1.8,
                             value=1.08,
                             step=0.05,
-                            label="对比度",
+                            label="Contrast",
                         )
 
                         enhance_color = gr.Slider(
@@ -1000,7 +997,7 @@ with gr.Blocks(
                             maximum=2.0,
                             value=1.05,
                             step=0.05,
-                            label="色彩饱和度",
+                            label="Color Saturation",
                         )
 
                         enhance_sharpness = gr.Slider(
@@ -1008,82 +1005,82 @@ with gr.Blocks(
                             maximum=2.5,
                             value=1.25,
                             step=0.05,
-                            label="锐度",
+                            label="Sharpness",
                         )
 
                     enhance_button = gr.Button(
-                        "开始一键增强",
+                        "Enhance Image",
                         variant="primary",
                         elem_classes=["generate-button"],
                     )
 
                     enhance_status = gr.Textbox(
-                        label="运行状态",
+                        label="Status",
                         interactive=False,
                         elem_classes=["status-box"],
                     )
 
                 with gr.Column(scale=7):
 
-                    gr.Markdown("## 3. 增强前后对比")
+                    gr.Markdown("## 3. Before and After")
 
                     with gr.Row():
 
                         enhance_original_output = gr.Image(
-                            label="增强前",
+                            label="Before Enhancement",
                             type="pil",
                             height=390,
                         )
 
                         enhance_result_output = gr.Image(
-                            label="增强后",
+                            label="After Enhancement",
                             type="pil",
                             height=390,
                             format="png",
                         )
 
                     enhance_download_file = gr.DownloadButton(
-                        label="下载增强后的 PNG",
+                        label="Download Enhanced PNG",
                         value=None,
                         variant="secondary",
                     )
 
                     enhance_processing_info = gr.Markdown(
                         """
-                        ### 图片增强信息
+                        ### Image Enhancement Information
 
-                        等待图片增强任务。
+                        Waiting for an image enhancement task.
                         """
                     )
 
         # ====================================================
-        # 标签页 4：批量生成候选方案
+        # Tab 4: Batch Candidates
         # ====================================================
-        with gr.Tab("批量候选方案"):
+        with gr.Tab("Batch Candidates"):
 
             with gr.Row():
 
                 with gr.Column(scale=5):
 
-                    gr.Markdown("## 1. 批量创作设置")
+                    gr.Markdown("## 1. Batch Creation Settings")
 
                     batch_creative_type = gr.Dropdown(
                         choices=list(CREATIVE_TYPES.keys()),
-                        value="电商海报",
-                        label="创作类型",
+                        value="Commercial Poster",
+                        label="Creative Type",
                     )
 
                     batch_style = gr.Dropdown(
                         choices=list(STYLE_TEMPLATES.keys()),
-                        value="现代简约",
-                        label="视觉风格",
+                        value="Modern Minimalist",
+                        label="Visual Style",
                     )
 
                     batch_user_prompt = gr.Textbox(
-                        label="画面描述",
+                        label="Scene Description",
                         value=(
-                            "一瓶高端香水放在白色大理石台面上，"
-                            "旁边有白色花朵和柔和光影"
+                            "A premium perfume bottle on a white marble table, "
+                            "with white flowers and soft studio lighting nearby"
                         ),
                         lines=4,
                     )
@@ -1092,26 +1089,26 @@ with gr.Blocks(
 
                         batch_aspect_ratio = gr.Dropdown(
                             choices=list(ASPECT_RATIOS.keys()),
-                            value="1:1 正方形",
-                            label="画幅比例",
+                            value="1:1 Square",
+                            label="Aspect Ratio",
                         )
 
                         batch_quality = gr.Radio(
                             choices=list(
                                 QUALITY_TEMPLATES.keys()
                             ),
-                            value="快速",
-                            label="生成质量",
+                            value="Fast",
+                            label="Generation Quality",
                         )
 
                     batch_count = gr.Radio(
                         choices=[2, 3, 4],
                         value=4,
-                        label="候选方案数量",
+                        label="Number of Candidates",
                     )
 
                     with gr.Accordion(
-                        "高级参数",
+                        "Advanced Parameters",
                         open=False,
                     ):
 
@@ -1120,45 +1117,45 @@ with gr.Blocks(
                             maximum=15.0,
                             value=7.5,
                             step=0.5,
-                            label="Prompt 引导强度",
+                            label="Prompt Guidance Scale",
                         )
 
                         batch_seed = gr.Number(
                             value=-1,
                             precision=0,
-                            label="起始 Seed（-1 表示随机）",
+                            label="Base Seed (-1 for random)",
                         )
 
                         batch_negative_prompt = gr.Textbox(
                             value=DEFAULT_NEGATIVE_PROMPT,
-                            label="负面提示词",
+                            label="Negative Prompt",
                             lines=3,
                         )
 
                     batch_prompt_preview = gr.Textbox(
-                        label="系统生成的完整 Prompt",
+                        label="Final Generated Prompt",
                         lines=5,
                         interactive=False,
                     )
 
                     batch_generate_button = gr.Button(
-                        "批量生成候选方案",
+                        "Generate Batch Candidates",
                         variant="primary",
                         elem_classes=["generate-button"],
                     )
 
                     batch_status = gr.Textbox(
-                        label="运行状态",
+                        label="Status",
                         interactive=False,
                         elem_classes=["status-box"],
                     )
 
                 with gr.Column(scale=7):
 
-                    gr.Markdown("## 2. 候选方案对比")
+                    gr.Markdown("## 2. Compare Candidates")
 
                     batch_result_gallery = gr.Gallery(
-                        label="批量生成结果",
+                        label="Batch Generation Results",
                         columns=2,
                         rows=2,
                         height=650,
@@ -1166,35 +1163,34 @@ with gr.Blocks(
 
                     batch_gpu_info = gr.Markdown(
                         """
-                        ### AMD GPU 批量推理信息
+                        ### AMD GPU Batch Inference Information
 
-                        等待批量生成任务。
+                        Waiting for a batch generation task.
                         """
                     ) 
 
     # --------------------------------------------------------
-    # 公共历史画廊
-    # 该画廊位于 Tabs 外部，因此两个功能共用
+    # Shared history gallery outside the tabs.
     # --------------------------------------------------------
 
         with gr.Row():
-            gr.Markdown("## 历史作品")
+            gr.Markdown("## Generation History")
         
             refresh_history_button = gr.Button(
-                "刷新历史",
+                "Refresh History",
                 size="sm",
             )
 
     history_gallery = gr.Gallery(
         value=generation_history,
-        label="历史图片",
+        label="History Images",
         columns=4,
         rows=2,
         height=420,
     )
     
     # ========================================================
-    # Prompt 预览事件：文字生成图片
+    # Prompt preview: text-to-image
     # ========================================================
 
     for component in [
@@ -1215,7 +1211,7 @@ with gr.Blocks(
         )
 
     # ========================================================
-    # Prompt 预览事件：参考图重绘
+    # Prompt preview: image-to-image
     # ========================================================
 
     for component in [
@@ -1236,7 +1232,7 @@ with gr.Blocks(
         )
 
     # ========================================================
-    # Prompt 预览事件：批量生成
+    # Prompt preview: batch generation
     # ========================================================
 
     for component in [
@@ -1257,7 +1253,7 @@ with gr.Blocks(
         )
     
     # ========================================================
-    # 文生图按钮事件
+    # Text-to-image button event
     # ========================================================
 
     text_generate_button.click(
@@ -1284,7 +1280,7 @@ with gr.Blocks(
     )
 
     # ========================================================
-    # 图生图按钮事件
+    # Image-to-image button event
     # ========================================================
 
     img_transform_button.click(
@@ -1313,7 +1309,7 @@ with gr.Blocks(
     )
 
     # ========================================================
-    # 图片增强按钮事件
+    # Image enhancement button event
     # ========================================================
 
     enhance_button.click(
@@ -1339,7 +1335,7 @@ with gr.Blocks(
     )
 
     # ========================================================
-    # 批量生成按钮事件
+    # Batch generation button event
     # ========================================================
 
     batch_generate_button.click(
@@ -1374,7 +1370,7 @@ with gr.Blocks(
     )
 
     # ========================================================
-    # 页面首次打开时初始化 Prompt 预览
+    # Initialize prompt previews on first page load
     # ========================================================
 
     demo.load(
@@ -1418,7 +1414,7 @@ with gr.Blocks(
 
 
 # ============================================================
-# 应用启动
+# Application startup
 # ============================================================
 
 if __name__ == "__main__":

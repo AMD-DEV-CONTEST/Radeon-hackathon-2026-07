@@ -1,28 +1,28 @@
 CREATIVE_TYPES = {
-    "电商海报": (
+    "Commercial Poster": (
         "commercial advertising poster, professional product photography, "
         "clean composition, strong visual hierarchy, premium branding, "
         "studio lighting, advertising design"
     ),
-    "社交媒体配图": (
+    "Social Media Artwork": (
         "social media campaign artwork, eye-catching composition, "
         "trendy visual design, vibrant details, professional digital content"
     ),
-    "产品摄影": (
+    "Product Photography": (
         "professional product photography, commercial studio lighting, "
         "sharp focus, realistic material texture, premium presentation, "
         "clean background"
     ),
-    "室内设计": (
+    "Interior Design": (
         "professional interior design visualization, architectural photography, "
         "realistic materials, detailed furniture, natural lighting, "
         "spacious composition"
     ),
-    "动漫插画": (
+    "Anime Illustration": (
         "high quality anime illustration, detailed character design, "
         "beautiful composition, expressive lighting, clean line art"
     ),
-    "概念艺术": (
+    "Concept Art": (
         "professional concept art, cinematic composition, atmospheric lighting, "
         "highly detailed environment, imaginative visual storytelling"
     ),
@@ -30,35 +30,35 @@ CREATIVE_TYPES = {
 
 
 STYLE_TEMPLATES = {
-    "写实摄影": (
+    "Photorealistic": (
         "photorealistic, realistic lighting, natural colors, "
         "high detail, professional photography"
     ),
-    "现代简约": (
+    "Modern Minimalist": (
         "modern minimalist style, clean lines, elegant layout, "
         "neutral palette, refined details"
     ),
-    "法式奢华": (
+    "Luxury French": (
         "luxury French style, elegant decorative details, "
         "ornate design, premium materials, warm sophisticated atmosphere"
     ),
-    "赛博朋克": (
+    "Cyberpunk": (
         "cyberpunk style, neon lights, futuristic city atmosphere, "
         "dramatic contrast, cinematic lighting"
     ),
-    "动漫风格": (
+    "Anime Style": (
         "anime style, polished illustration, vivid colors, "
         "clean line art, detailed background"
     ),
-    "水彩插画": (
+    "Watercolor Illustration": (
         "watercolor illustration, soft brush strokes, artistic texture, "
         "gentle color transitions, handmade paper feeling"
     ),
-    "电影质感": (
+    "Cinematic": (
         "cinematic style, dramatic lighting, film color grading, "
         "depth of field, atmospheric composition"
     ),
-    "中国风": (
+    "Traditional Chinese": (
         "traditional Chinese aesthetic, elegant oriental composition, "
         "subtle ink painting influence, poetic atmosphere"
     ),
@@ -66,17 +66,17 @@ STYLE_TEMPLATES = {
 
 
 QUALITY_TEMPLATES = {
-    "快速": {
+    "Fast": {
         "steps": 15,
         "quality_prompt": "high quality",
     },
-    "均衡": {
+    "Balanced": {
         "steps": 25,
         "quality_prompt": (
             "high quality, highly detailed, professional composition"
         ),
     },
-    "最佳": {
+    "Best": {
         "steps": 35,
         "quality_prompt": (
             "masterpiece, best quality, highly detailed, professional composition, "
@@ -87,11 +87,11 @@ QUALITY_TEMPLATES = {
 
 
 ASPECT_RATIOS = {
-    "1:1 正方形": (512, 512),
-    "4:3 横图": (640, 480),
-    "3:4 竖图": (480, 640),
-    "16:9 横屏": (768, 432),
-    "9:16 竖屏": (432, 768),
+    "1:1 Square": (512, 512),
+    "4:3 Landscape": (640, 480),
+    "3:4 Portrait": (480, 640),
+    "16:9 Widescreen": (768, 432),
+    "9:16 Vertical": (432, 768),
 }
 
 
@@ -108,18 +108,18 @@ def build_prompt(
     style: str,
     quality: str,
 ) -> str:
-    """将用户的简单描述转换为完整生成提示词。"""
+    """Convert a short user description into a complete generation prompt."""
 
     user_prompt = (user_prompt or "").strip()
 
     if not user_prompt:
-        raise ValueError("请输入画面描述。")
+        raise ValueError("Please enter a scene description.")
 
     scene_prompt = CREATIVE_TYPES.get(creative_type, "")
     style_prompt = STYLE_TEMPLATES.get(style, "")
     quality_prompt = QUALITY_TEMPLATES.get(
         quality,
-        QUALITY_TEMPLATES["均衡"],
+        QUALITY_TEMPLATES["Balanced"],
     )["quality_prompt"]
 
     return ", ".join(
@@ -132,4 +132,3 @@ def build_prompt(
         ]
         if part
     )
-

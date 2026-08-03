@@ -19,8 +19,8 @@ class ImageGenerator:
     def __init__(self) -> None:
         if not torch.cuda.is_available():
             raise RuntimeError(
-                "没有检测到可用的 AMD ROCm GPU，请检查 "
-                "torch.cuda.is_available()。"
+                "No AMD ROCm GPU was detected. Please check "
+                "torch.cuda.is_available()."
             )
 
         self.device = DEVICE
@@ -60,9 +60,7 @@ class ImageGenerator:
 
         OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-        print(
-            "Text-to-Image and Image-to-Image loaded successfully!"
-        )
+        print("Text-to-Image and Image-to-Image loaded successfully!")
 
     @staticmethod
     def _get_seed(seed: int | float | None) -> int:
@@ -78,16 +76,13 @@ class ImageGenerator:
         height: int,
     ) -> Image.Image:
         if image is None:
-            raise ValueError("请先上传参考图片。")
+            raise ValueError("Please upload a reference image first.")
 
         image = image.convert("RGB")
-
-        image = image.resize(
+        return image.resize(
             (int(width), int(height)),
             Image.Resampling.LANCZOS,
         )
-
-        return image
 
     @staticmethod
     def _save_image(
@@ -95,21 +90,9 @@ class ImageGenerator:
         mode: str,
         seed: int,
     ) -> Path:
-        timestamp = datetime.now().strftime(
-            "%Y%m%d_%H%M%S_%f"
-        )
-
-        filename = (
-            f"radeon_{mode}_{timestamp}_seed{seed}.png"
-        )
-
-        save_path = OUTPUT_DIR / filename
-
-        image.save(
-            save_path,
-            format="PNG",
-        )
-
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        save_path = OUTPUT_DIR / f"radeon_{mode}_{timestamp}_seed{seed}.png"
+        image.save(save_path, format="PNG")
         return save_path
 
     def generate(
@@ -123,13 +106,12 @@ class ImageGenerator:
         seed: int,
     ) -> dict:
         if not prompt.strip():
-            raise ValueError("Prompt 不能为空。")
+            raise ValueError("The prompt cannot be empty.")
 
         actual_seed = self._get_seed(seed)
-
-        torch_generator = torch.Generator(
-            device=self.device
-        ).manual_seed(actual_seed)
+        torch_generator = torch.Generator(device=self.device).manual_seed(
+            actual_seed
+        )
 
         with torch.inference_mode():
             with Timer() as timer:
@@ -144,13 +126,7 @@ class ImageGenerator:
                 )
 
         image = result.images[0]
-
-        save_path = self._save_image(
-            image=image,
-            mode="text2img",
-            seed=actual_seed,
-        )
-
+        save_path = self._save_image(image, "text2img", actual_seed)
         return self._build_result(
             image=image,
             save_path=save_path,
@@ -173,33 +149,18 @@ class ImageGenerator:
         seed: int,
         batch_size: int,
     ) -> dict:
-        """
-        根据同一个 Prompt 批量生成多个候选方案。
-
-        每张图片使用不同的随机种子，
-        便于设计人员快速比较和选择。
-        """
+        """Generate multiple candidates from one prompt using adjacent seeds."""
         if not prompt.strip():
-            raise ValueError("Prompt 不能为空。")
+            raise ValueError("The prompt cannot be empty.")
 
         batch_size = int(batch_size)
-
         if batch_size < 2 or batch_size > 4:
-            raise ValueError(
-                "批量生成数量只支持 2～4 张。"
-            )
+            raise ValueError("Batch generation supports between 2 and 4 images.")
 
         base_seed = self._get_seed(seed)
-
-        seeds = [
-            base_seed + index
-            for index in range(batch_size)
-        ]
-
+        seeds = [base_seed + index for index in range(batch_size)]
         generators = [
-            torch.Generator(
-                device=self.device
-            ).manual_seed(current_seed)
+            torch.Generator(device=self.device).manual_seed(current_seed)
             for current_seed in seeds
         ]
 
@@ -217,16 +178,13 @@ class ImageGenerator:
                 )
 
         saved_items = []
-
         for index, image in enumerate(result.images):
             current_seed = seeds[index]
-
             save_path = self._save_image(
                 image=image,
                 mode=f"batch_{index + 1}",
                 seed=current_seed,
             )
-
             saved_items.append(
                 {
                     "image": image,
@@ -246,12 +204,8 @@ class ImageGenerator:
             "batch_size": batch_size,
             "mode": "Batch Text-to-Image",
             "gpu_name": self.gpu_name,
-            "vram_gb": round(
-                self.total_vram_gb,
-                2,
-            ),
+            "vram_gb": round(self.total_vram_gb, 2),
         }
-
 
     def transform(
         self,
@@ -266,29 +220,23 @@ class ImageGenerator:
         seed: int,
     ) -> dict:
         if reference_image is None:
-            raise ValueError("请先上传参考图片。")
-
+            raise ValueError("Please upload a reference image first.")
         if not prompt.strip():
-            raise ValueError("请输入重绘要求。")
+            raise ValueError("Please enter an image-to-image instruction.")
 
         strength = float(strength)
-
         if strength <= 0.0 or strength > 1.0:
-            raise ValueError(
-                "重绘强度必须大于 0 且不超过 1。"
-            )
+            raise ValueError("Strength must be greater than 0 and no more than 1.")
 
         prepared_image = self._prepare_reference_image(
-            image=reference_image,
-            width=width,
-            height=height,
+            reference_image,
+            width,
+            height,
         )
-
         actual_seed = self._get_seed(seed)
-
-        torch_generator = torch.Generator(
-            device=self.device
-        ).manual_seed(actual_seed)
+        torch_generator = torch.Generator(device=self.device).manual_seed(
+            actual_seed
+        )
 
         with torch.inference_mode():
             with Timer() as timer:
@@ -303,13 +251,7 @@ class ImageGenerator:
                 )
 
         image = result.images[0]
-
-        save_path = self._save_image(
-            image=image,
-            mode="img2img",
-            seed=actual_seed,
-        )
-
+        save_path = self._save_image(image, "img2img", actual_seed)
         return self._build_result(
             image=image,
             save_path=save_path,
@@ -348,9 +290,6 @@ class ImageGenerator:
         }
 
         if strength is not None:
-            result["strength"] = round(
-                float(strength),
-                2,
-            )
+            result["strength"] = round(float(strength), 2)
 
         return result
