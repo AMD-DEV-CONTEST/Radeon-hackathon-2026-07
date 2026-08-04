@@ -4,7 +4,7 @@ Byte Barnaby is a fully autonomous, local-first multimodal AI news broadcasting 
 
 #### **Demo Video**: [YouTube](https://youtu.be/41WrShNM5bI)
 #### **Project Profile Document**: [PDF](ProjectProfileDoc.pdf)
-#### **Poster**: [Image](Poster.png)
+#### **Poster**: [Image](poster.png)
 
 ![Demo Image](demo.png)
 
