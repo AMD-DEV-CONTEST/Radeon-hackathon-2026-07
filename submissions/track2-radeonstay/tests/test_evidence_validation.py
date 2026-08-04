@@ -308,6 +308,28 @@ class RuntimeGpuEvidenceTests(unittest.TestCase):
             self.assertEqual(summary["peak_gpu_use_percent"], 87.0)
             self.assertEqual(summary["peak_vram_used_reported"], 123456789.0)
 
+    def test_accepts_timestamped_llama_cpp_rocm_startup_format(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            server = root / "server.log"
+            monitor = root / "monitor.log"
+            server.write_text(
+                "0.00.074.878 I cmn  common_param:   - ROCm0   : "
+                "AMD Radeon Graphics (49136 MiB, 49052 MiB free)\n"
+                "0.00.420.141 I load_tensors: offloaded 41/41 layers to GPU\n",
+                encoding="utf-8",
+            )
+            monitor.write_text(
+                "GPU[0] : GPU use (%): 93\n"
+                "GPU[0] : VRAM Total Used Memory (B): 29700000000\n",
+                encoding="utf-8",
+            )
+
+            summary = runtime_gpu_summary(server, monitor, "test")
+
+            self.assertEqual(summary["peak_gpu_use_percent"], 93.0)
+            self.assertEqual(summary["peak_vram_used_reported"], 29700000000.0)
+
     def test_rejects_cpu_only_or_idle_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -356,6 +378,56 @@ class RuntimeGpuEvidenceTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(ValueError, "backend marker"):
                 runtime_gpu_summary(server, monitor, "test")
+
+            server.write_text(
+                "common_param: - ROCm0: AMD Radeon Graphics\n"
+                "note=0.00.420.141 I load_tensors: "
+                "offloaded 41/41 layers to GPU\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "backend marker"):
+                runtime_gpu_summary(server, monitor, "test")
+
+            invalid_backend_lines = (
+                "0.00.074.878 E cmn common_param: "
+                "- ROCm0: AMD Radeon Graphics\n",
+                "0.00.074.878 I fake common_param: "
+                "- ROCm0: AMD Radeon Graphics\n",
+                "0.00.074.878 I cmn\n"
+                "common_param: - ROCm0: AMD Radeon Graphics\n",
+                "ggml_cuda_init: failed to find 1 ROCm device\n",
+            )
+            for backend_line in invalid_backend_lines:
+                with self.subTest(backend_line=backend_line):
+                    server.write_text(
+                        backend_line
+                        + "load_tensors: offloaded 41/41 layers to GPU\n",
+                        encoding="utf-8",
+                    )
+                    with self.assertRaisesRegex(ValueError, "backend marker"):
+                        runtime_gpu_summary(server, monitor, "test")
+
+            valid_backend = "ggml_cuda_init: found 1 ROCm device gfx1100\n"
+            invalid_offload_lines = (
+                "note=0.00.420.141 I load_tensors: "
+                "offloaded 41/41 layers to GPU\n",
+                "0.00.420.141 W load_tensors: "
+                "offloaded 41/41 layers to GPU\n",
+                "0.00.420.141 I load_tensors: "
+                "offloaded 42/41 layers to GPU\n",
+                "0.00.420.141 I load_tensors: "
+                "offloaded 0/41 layers to GPU\n",
+                "0.00.420.141 I load_tensors: "
+                "offloaded 41/41 layers to GPU but failed\n",
+            )
+            for offload_line in invalid_offload_lines:
+                with self.subTest(offload_line=offload_line):
+                    server.write_text(
+                        valid_backend + offload_line,
+                        encoding="utf-8",
+                    )
+                    with self.assertRaisesRegex(ValueError, "GPU-offloaded"):
+                        runtime_gpu_summary(server, monitor, "test")
 
     def test_requires_positive_telemetry_inside_each_evaluation_window(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

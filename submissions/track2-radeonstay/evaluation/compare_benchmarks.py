@@ -22,12 +22,19 @@ MIN_OFFICIAL_WARMUP = 2
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 NUMBER_RE = re.compile(r"[-+]?\d+(?:\.\d+)?")
 GPU_BACKEND_RE = re.compile(
-    r"^\s*ggml_(?:cuda|hip)_init\s*:.*\b(?:ROCm|HIP)\b.*$",
+    r"^(?:"
+    r"[ \t]*ggml_(?:cuda|hip)_init[ \t]*:[^\r\n]*"
+    r"\bfound[ \t]+[1-9][0-9]*[ \t]+(?:ROCm|HIP)[ \t]+devices?\b[^\r\n]*"
+    r"|"
+    r"[ \t]*[0-9]+(?:\.[0-9]+){3}[ \t]+I[ \t]+cmn[ \t]+common_param[ \t]*:"
+    r"[ \t]*-[ \t]*ROCm[0-9]+[ \t]*:[ \t]*AMD[ \t]+Radeon\b[^\r\n]*"
+    r")$",
     re.I | re.M,
 )
 GPU_OFFLOAD_RE = re.compile(
-    r"^\s*(?:llm_)?load_tensors\s*:\s*offloaded\s+"
-    r"([1-9][0-9]*)/([1-9][0-9]*)\s+layers?\s+to\s+GPU\b.*$",
+    r"^[ \t]*(?:[0-9]+(?:\.[0-9]+){3}[ \t]+I[ \t]+)?"
+    r"(?:llm_)?load_tensors[ \t]*:[ \t]*offloaded[ \t]+"
+    r"([1-9][0-9]*)/([1-9][0-9]*)[ \t]+layers?[ \t]+to[ \t]+GPU[ \t]*$",
     re.I | re.M,
 )
 MONITOR_SAMPLE_RE = re.compile(
