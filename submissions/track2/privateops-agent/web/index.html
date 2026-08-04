@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#11151f" />
+    <script>
+      try { document.documentElement.dataset.theme = localStorage.getItem("privateops.theme") === "light" ? "light" : "dark"; } catch (_) {}
+    </script>
+    <title>PrivateOps Agent · Local Trust Console</title>
+    <link rel="icon" href="/static/favicon.svg" />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="#workspace" aria-label="PrivateOps home" data-i18n-aria="brand.aria">
+          <span class="brand-mark">P</span>
+          <span><strong>PrivateOps</strong><small data-i18n="brand.subtitle">Local Trust Console</small></span>
+        </a>
+        <nav aria-label="Trust console sections" data-i18n-aria="nav.aria">
+          <a class="nav-link active" href="#workspace" aria-current="location"><span>01</span><span data-i18n="nav.workspace">Workspace</span></a>
+          <a class="nav-link" href="#evidence"><span>02</span><span data-i18n="nav.evidence">Evidence</span></a>
+          <a class="nav-link" href="#plan"><span>03</span><span data-i18n="nav.plan">Agent plan</span></a>
+          <a class="nav-link" href="#audit"><span>04</span><span data-i18n="nav.audit">Audit ledger</span></a>
+          <a class="nav-link" href="#performance"><span>05</span><span data-i18n="nav.performance">Performance</span></a>
+        </nav>
+        <div class="privacy-card">
+          <span class="pulse-dot"></span>
+          <div><strong data-i18n="privacy.title">Privacy boundary active</strong><small data-i18n="privacy.detail">Workspace-confined tools · local state</small></div>
+        </div>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <div>
+            <p class="kicker" data-i18n="hero.kicker">AMD AI DEVMASTER · TRACK 2</p>
+            <h1 data-i18n="hero.title">Permission before action.</h1>
+            <p class="hero-thesis" data-i18n="hero.thesis">Broad visibility. Deliberate action. Evidence for every decision.</p>
+          </div>
+          <div class="runtime-cluster" aria-live="polite">
+            <span id="healthStatus" class="status-pill checking" data-i18n="health.checking">Checking service</span>
+            <span id="modeBadge" class="mode-badge">DEVELOPMENT</span>
+            <button id="apiToggle" class="utility-toggle" type="button" data-i18n="api.open" data-i18n-aria="api.aria" aria-label="Configure inference mode" aria-expanded="false" aria-controls="apiPanel">INFERENCE</button>
+            <button id="themeToggle" class="utility-toggle" type="button" aria-label="Switch to light theme">☀</button>
+            <button id="languageToggle" class="language-toggle" type="button" data-i18n="language.switch" data-i18n-aria="language.aria" aria-label="Switch to Chinese">中文</button>
+          </div>
+          <section id="apiPanel" class="api-panel hidden" role="dialog" aria-modal="false" aria-labelledby="apiPanelTitle" aria-hidden="true">
+            <div class="api-panel-heading">
+              <div><span class="signal-label">MODEL CONNECTION</span><h2 id="apiPanelTitle" data-i18n="api.title">Inference mode</h2></div>
+              <button id="apiClose" class="icon-button" type="button" data-i18n-aria="api.close" aria-label="Close API settings">×</button>
+            </div>
+            <fieldset class="provider-mode-fieldset">
+              <legend data-i18n="api.mode">Choose inference provider</legend>
+              <div class="provider-mode-options">
+                <label><input id="providerModeRemote" name="providerMode" type="radio" value="remote" checked /><span data-i18n="api.remote">Remote model</span></label>
+                <label><input id="providerModeLocal" name="providerMode" type="radio" value="rocm-local" /><span data-i18n="api.local">Local ROCm</span></label>
+              </div>
+            </fieldset>
+            <label><span data-i18n="api.endpoint">Chat completions endpoint</span><input id="apiEndpoint" type="url" autocomplete="url" placeholder="https://…/v1/chat/completions" /></label>
+            <label><span data-i18n="api.model">Model name</span><input id="apiModel" autocomplete="off" placeholder="DeepSeek-V4-Flash" /></label>
+            <label><span id="apiKeyLabel" data-i18n="api.keyRequired">API key · required for remote</span><span class="secret-input"><input id="apiKey" type="password" autocomplete="off" placeholder="••••••••" /><button id="apiKeyVisibility" class="secret-toggle" type="button" data-i18n="api.showKey">Show</button></span></label>
+            <label class="remember-row"><input id="rememberApi" type="checkbox" /><span><b data-i18n="api.remember">Remember on this device</b><small data-i18n="api.rememberHint">Stored only in this browser.</small></span></label>
+            <div class="api-actions">
+              <button id="testApiButton" class="secondary-button" type="button" data-i18n="api.test">Test API</button>
+              <button id="applyApiButton" class="primary-button" type="button" data-i18n="api.apply">Use configuration</button>
+            </div>
+            <p id="apiFeedback" class="api-feedback" aria-live="polite"></p>
+          </section>
+        </header>
+
+        <section id="workspace" class="hero-grid">
+          <article class="card command-card">
+            <div class="card-heading">
+              <div><span class="section-index">01</span><h2 data-i18n="workspace.title">Agent workspace</h2></div>
+              <button id="sampleButton" class="quiet-button" type="button" data-i18n="workspace.loadDemo">Load demo</button>
+            </div>
+            <label class="prompt-label" for="prompt" data-i18n="workspace.promptLabel">What should the private Agent investigate?</label>
+            <textarea id="prompt" rows="5" spellcheck="true" placeholder="Audit this project for hackathon submission readiness and run the safe checks." data-i18n-placeholder="workspace.promptPlaceholder"></textarea>
+            <div class="action-row">
+              <button id="askButton" class="primary-button" type="button"><span data-i18n="workspace.run">Run private Agent</span><b>→</b></button>
+              <button id="permissionButton" class="secondary-button" type="button" data-i18n="workspace.preview">Preview permission</button>
+              <button id="confirmButton" class="danger-button hidden" type="button" data-i18n="workspace.confirm">Confirm one action</button>
+            </div>
+            <p id="requestStatus" class="request-status" aria-live="polite" data-i18n="request.ready">Ready. No data leaves the configured workspace.</p>
+            <div class="answer-panel">
+              <div class="answer-label" data-i18n="answer.label">Agent response</div>
+              <div id="answer" class="markdown-answer" data-i18n="answer.empty">Run the demo prompt to see cited evidence, an explicit plan, guarded tools, memory updates, and an audit ID.</div>
+              <div id="answerMeta" class="answer-meta"></div>
+            </div>
+          </article>
+
+          <aside class="signal-column">
+            <article class="card signal-card">
+              <div class="signal-label" data-i18n="permission.label">Permission decision</div>
+              <div id="permissionCard" class="permission neutral"><strong data-i18n="permission.notEvaluated">NOT EVALUATED</strong><span data-i18n="permission.none">No action requested yet.</span></div>
+            </article>
+            <article class="card signal-card">
+              <div class="signal-label" data-i18n="runtime.label">Runtime posture</div>
+              <dl id="runtimeFacts" class="fact-list">
+                <div><dt data-i18n="runtime.framework">Framework</dt><dd data-i18n="runtime.loading">Loading</dd></div>
+                <div><dt data-i18n="runtime.inference">Inference</dt><dd data-i18n="runtime.loading">Loading</dd></div>
+                <div><dt data-i18n="runtime.provider">Provider</dt><dd data-i18n="runtime.loading">Loading</dd></div>
+                <div><dt data-i18n="runtime.documents">Documents</dt><dd>—</dd></div>
+                <div><dt data-i18n="runtime.boundary">Boundary</dt><dd>—</dd></div>
+              </dl>
+            </article>
+            <article class="card signal-card">
+              <div class="signal-label" data-i18n="memory.label">Local memory</div>
+              <pre id="memoryBox" class="memory-box">{}</pre>
+            </article>
+          </aside>
+        </section>
+
+        <section class="proof-grid">
+          <article id="evidence" class="card proof-card">
+            <div class="card-heading compact"><div><span class="section-index">02</span><h2 data-i18n="evidence.title">Evidence</h2></div><span class="mini-tag">LOCAL RAG</span></div>
+            <div id="evidenceList" class="empty-state"><span data-i18n="evidence.empty">No evidence retrieved.</span></div>
+          </article>
+          <article id="plan" class="card proof-card">
+            <div class="card-heading compact"><div><span class="section-index">03</span><h2 data-i18n="plan.title">Agent plan</h2></div><span class="mini-tag">LANGCHAIN CORE</span></div>
+            <ol id="planList" class="plan-list"><li class="empty-state" data-i18n="plan.empty">No plan executed.</li></ol>
+            <div class="tool-heading" data-i18n="tools.title">Tool results</div>
+            <div id="toolList" class="tool-list empty-state"><span data-i18n="tools.empty">No tools executed.</span></div>
+          </article>
+        </section>
+
+        <section id="audit" class="card ledger-card">
+          <div class="card-heading">
+            <div><span class="section-index">04</span><h2 data-i18n="audit.title">Audit ledger</h2><p data-i18n="audit.detail">Every answer leaves an inspectable local record.</p></div>
+            <a id="auditDownload" class="download-link" href="/api/audit/export" download data-i18n="audit.export">Export JSON ↓</a>
+          </div>
+          <div id="auditList" class="ledger-list empty-state" data-i18n="audit.empty">No audit entries yet.</div>
+        </section>
+
+        <section id="performance" class="performance-grid">
+          <article class="card benchmark-card radeon-proof-card">
+            <div class="card-heading compact"><div><span class="section-index">05</span><h2 data-i18n="performance.title">Radeon proof</h2></div><span class="mini-tag accent">ROCm</span></div>
+            <div id="radeonProofStatus" class="proof-status" aria-live="polite" data-i18n="performance.proof.loading">Checking verified evidence…</div>
+            <dl id="radeonProofFacts" class="proof-fact-grid"></dl>
+            <div id="radeonMetrics" class="metric-grid"></div>
+            <div class="proof-detail-heading" data-i18n="performance.proof.stack">Verified runtime stack</div>
+            <dl id="radeonStack" class="stack-list"></dl>
+            <div class="proof-source-heading" data-i18n="performance.proof.sources">Evidence sources</div>
+            <div id="radeonSources" class="proof-sources"></div>
+            <p id="radeonBoundary" class="proof-boundary" data-i18n="performance.proof.boundary">This is a captured same-instance Radeon + ROCm run, not a claim about the current browser session.</p>
+
+            <details id="retestPanel" class="retest-panel">
+              <summary data-i18n="performance.retest.title">Retest / add a measured run</summary>
+              <p class="helper" data-i18n="performance.retest.help">Use this form only after the app and model server run on the same Radeon Cloud instance.</p>
+              <div class="form-grid">
+                <label><span data-i18n="performance.gpu">AMD GPU</span><input id="gpuName" placeholder="AMD Radeon …" /></label>
+                <label><span data-i18n="performance.rocm">ROCm version</span><input id="rocmVersion" placeholder="Collected from rocminfo" data-i18n-placeholder="performance.rocmPlaceholder" /></label>
+                <label class="wide"><span data-i18n="performance.endpoint">Loopback model endpoint</span><input id="modelEndpoint" value="http://127.0.0.1:8000/v1/chat/completions" /></label>
+                <label><span data-i18n="performance.latency">Latency (ms)</span><input id="latencyMs" type="number" min="0" step="0.001" placeholder="Measured" data-i18n-placeholder="performance.measured" /></label>
+                <label><span data-i18n="performance.throughput">Tokens / second</span><input id="tokensPerSecond" type="number" min="0" step="0.001" placeholder="Measured" data-i18n-placeholder="performance.measured" /></label>
+                <label class="wide"><span data-i18n="performance.rocminfo">rocminfo excerpt</span><textarea id="rocminfoExcerpt" rows="3" placeholder="Paste the actual device line from Radeon Cloud" data-i18n-placeholder="performance.rocminfoPlaceholder"></textarea></label>
+                <label class="wide"><span data-i18n="performance.notes">Run notes</span><textarea id="rocmNotes" rows="2" placeholder="Model, precision, prompt, optimization" data-i18n-placeholder="performance.notesPlaceholder"></textarea></label>
+              </div>
+              <div class="action-row">
+                <button id="saveRocmButton" class="secondary-button" type="button" data-i18n="performance.save">Save profile</button>
+                <button id="recordBenchmarkButton" class="primary-button" type="button" data-i18n="performance.record">Record verified run</button>
+                <a id="benchmarkDownload" class="download-link" href="/api/benchmarks/export.csv" download data-i18n="performance.export">Export CSV ↓</a>
+              </div>
+            </details>
+          </article>
+          <aside class="performance-column">
+            <article id="comparisonCard" class="card comparison-card"><span data-i18n="comparison.label">Measured comparison</span><strong data-i18n="comparison.awaiting">Awaiting real Radeon evidence</strong><small data-i18n="comparison.noClaim">No performance claim has been made.</small></article>
+            <article class="card"><div class="signal-label" data-i18n="benchmark.title">Recorded runs</div><div id="benchmarkList" class="benchmark-list empty-state"><span data-i18n="benchmark.empty">No benchmark runs.</span></div></article>
+          </aside>
+        </section>
+
+        <footer><span>PrivateOps Agent 1.0</span><span data-i18n="footer.tagline">Open, local, inspectable.</span></footer>
+      </main>
+    </div>
+    <script src="/static/i18n.js"></script>
+    <script src="/static/ui-state.js"></script>
+    <script src="/static/markdown.js"></script>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
