@@ -16,12 +16,8 @@ import yaml
 from PIL import Image, ImageDraw, ImageEnhance, ImageFont, ImageOps
 from PIL.TiffImagePlugin import IFDRational
 
-
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
-USER_AGENT = (
-    "XiangLensDataset/0.1 "
-    "(https://github.com/ld0574/Radeon-hackathon-2026-07)"
-)
+USER_AGENT = "XiangLensDataset/0.1 (https://github.com/ld0574/Radeon-hackathon-2026-07)"
 ALLOWED_LICENSES = {
     "CC0",
     "Public domain",
@@ -178,7 +174,9 @@ def with_badge(image: Image.Image, index: int) -> Image.Image:
     overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
     box = (36, 366, 244, 488)
-    draw.rounded_rectangle(box, radius=12, fill=(248, 250, 252, 245), outline=(25, 55, 82, 255), width=4)
+    draw.rounded_rectangle(
+        box, radius=12, fill=(248, 250, 252, 245), outline=(25, 55, 82, 255), width=4
+    )
     draw.rectangle((36, 366, 244, 397), fill=(25, 91, 143, 255))
     draw.text((49, 371), "DEMO LAB", fill="white", font=load_font(18))
     draw.text((50, 408), f"ALEX TEST {index + 1:02d}", fill=(20, 28, 36), font=load_font(17))
@@ -190,7 +188,13 @@ def with_screen(image: Image.Image) -> Image.Image:
     base = square(image)
     overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
-    draw.rounded_rectangle((250, 316, 504, 500), radius=10, fill=(18, 31, 46, 232), outline=(103, 164, 214, 255), width=3)
+    draw.rounded_rectangle(
+        (250, 316, 504, 500),
+        radius=10,
+        fill=(18, 31, 46, 232),
+        outline=(103, 164, 214, 255),
+        width=3,
+    )
     font = load_font(15)
     draw.text((268, 338), "dev@example.invalid", fill=(210, 238, 255), font=font)
     draw.text((268, 372), "CLIENT: ALPHA DEMO", fill=(170, 231, 184), font=font)
@@ -203,7 +207,13 @@ def with_location_sign(image: Image.Image) -> Image.Image:
     base = square(image)
     overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
-    draw.rounded_rectangle((40, 380, 472, 480), radius=12, fill=(250, 244, 207, 242), outline=(79, 64, 33, 255), width=4)
+    draw.rounded_rectangle(
+        (40, 380, 472, 480),
+        radius=12,
+        fill=(250, 244, 207, 242),
+        outline=(79, 64, 33, 255),
+        width=4,
+    )
     draw.text((74, 397), "42 SAMPLE STREET", fill=(39, 34, 25), font=load_font(26))
     draw.text((163, 438), "DEMO CITY", fill=(39, 34, 25), font=load_font(17))
     return Image.alpha_composite(base.convert("RGBA"), overlay).convert("RGB")
@@ -258,7 +268,9 @@ def device_exif(index: int) -> Image.Exif:
     return exif
 
 
-def source_manifest_record(item: dict[str, Any], info: dict[str, Any], path: Path) -> dict[str, Any]:
+def source_manifest_record(
+    item: dict[str, Any], info: dict[str, Any], path: Path
+) -> dict[str, Any]:
     metadata = info.get("extmetadata", {})
     license_name = metadata_value(metadata, "LicenseShortName")
     if license_name not in ALLOWED_LICENSES:
@@ -353,29 +365,71 @@ def main() -> None:
         source_record = source_manifests[item["id"]]
         variants: list[tuple[str, Image.Image, list[str], list[str], Image.Exif | None]] = [
             ("clean", square(source), ["global_professional_context"], ["clean_control"], None),
-            ("tight_crop", tight_crop(source, index), ["profile_basics"], ["edge_clipping", "crop_risk"], None),
-            ("subject_small", subject_small(source, index), ["profile_basics"], ["subject_small", "small_size_clarity"], None),
-            ("low_contrast", low_contrast(source), ["profile_basics"], ["low_contrast", "weak_subject_background_separation"], None),
+            (
+                "tight_crop",
+                tight_crop(source, index),
+                ["profile_basics"],
+                ["edge_clipping", "crop_risk"],
+                None,
+            ),
+            (
+                "subject_small",
+                subject_small(source, index),
+                ["profile_basics"],
+                ["subject_small", "small_size_clarity"],
+                None,
+            ),
+            (
+                "low_contrast",
+                low_contrast(source),
+                ["profile_basics"],
+                ["low_contrast", "weak_subject_background_separation"],
+                None,
+            ),
         ]
         challenge = privacy_variants[index % len(privacy_variants)]
         if challenge == "qr_code":
             image, findings, exif = with_qr(source, qr), ["qr_code", "encoded_link"], None
         elif challenge == "visible_badge":
-            image, findings, exif = with_badge(source, index), ["badge", "name", "identifier", "employer"], None
+            image, findings, exif = (
+                with_badge(source, index),
+                ["badge", "name", "identifier", "employer"],
+                None,
+            )
         elif challenge == "visible_screen":
-            image, findings, exif = with_screen(source), ["screen", "email", "project_text", "token_text"], None
+            image, findings, exif = (
+                with_screen(source),
+                ["screen", "email", "project_text", "token_text"],
+                None,
+            )
         elif challenge == "location_sign":
-            image, findings, exif = with_location_sign(source), ["street_sign", "location_text"], None
+            image, findings, exif = (
+                with_location_sign(source),
+                ["street_sign", "location_text"],
+                None,
+            )
         elif challenge == "small_text":
             image, findings, exif = with_small_text(source), ["small_text", "thin_detail"], None
         elif challenge == "multiple_subjects":
             other = source_images[portraits[(index + 1) % len(portraits)]["id"]]
-            image, findings, exif = with_second_subject(source, other), ["multiple_subjects", "competing_focal_points"], None
+            image, findings, exif = (
+                with_second_subject(source, other),
+                ["multiple_subjects", "competing_focal_points"],
+                None,
+            )
         elif challenge == "gps_exif":
             image, findings, exif = square(source), ["exif", "gps", "geolocation"], gps_exif()
         else:
-            image, findings, exif = square(source), ["exif", "device_model", "capture_time", "software"], device_exif(index)
-        challenge_pack = "profile_basics" if challenge in {"small_text", "multiple_subjects"} else "privacy_safety"
+            image, findings, exif = (
+                square(source),
+                ["exif", "device_model", "capture_time", "software"],
+                device_exif(index),
+            )
+        challenge_pack = (
+            "profile_basics"
+            if challenge in {"small_text", "multiple_subjects"}
+            else "privacy_safety"
+        )
         variants.append((challenge, image, [challenge_pack], findings, exif))
 
         for variant, image, packs, findings, exif in variants:
