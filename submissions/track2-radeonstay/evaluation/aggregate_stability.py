@@ -29,7 +29,6 @@ from evaluation.compare_benchmarks import (  # noqa: E402
     validate_binding,
 )
 
-
 EXPECTED_RUN_COUNT = 5
 REPORT_SCHEMA_VERSION = 1
 BUNDLE_DIGEST_ALGORITHM = "sha256-of-verified-SHA256SUMS.txt"
