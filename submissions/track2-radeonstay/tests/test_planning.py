@@ -312,6 +312,63 @@ def test_planner_materializes_only_missing_server_bound_arguments() -> None:
     assert model.validations[-1]["outcome"] == "accepted_initial"
 
 
+def test_planner_materializes_only_a_missing_service_ticket_description() -> None:
+    tool_specs = [
+        {
+            "name": "hotel.create_service_ticket",
+            "effect": "write",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "booking_id": {"type": "string", "minLength": 1},
+                    "category": {
+                        "type": "string",
+                        "enum": ["transport", "other"],
+                    },
+                    "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1_000,
+                    },
+                },
+                "required": ["booking_id", "category", "description"],
+                "additionalProperties": False,
+            },
+        }
+    ]
+    missing_description = {
+        "objective": "Cite transfer policy and create the requested service ticket.",
+        "steps": [
+            {
+                "step_id": "policy",
+                "tool": "respond_with_policy",
+                "reason": "Ground the request in the local transfer policy.",
+                "depends_on": [],
+            },
+            {
+                "step_id": "ticket",
+                "tool": "hotel.create_service_ticket",
+                "reason": "Create the explicitly requested transport ticket after confirmation.",
+                "depends_on": ["policy"],
+            },
+        ],
+        "response_language": "中文",
+    }
+    message = "引用机场接送政策，并为订单 RSV-OWNED 创建交通工单。"
+    model = StubModel(missing_description)
+    planner = LocalLLMPlanner(model)  # type: ignore[arg-type]
+
+    plan = planner.create_plan(message, policy_context="", tool_specs=tool_specs)
+
+    assert len(model.calls) == 1
+    assert plan.steps[1].arguments == {
+        "booking_id": "RSV-OWNED",
+        "category": "transport",
+        "description": message,
+    }
+    assert model.validations[-1]["outcome"] == "accepted_initial"
+
+
 def test_second_plan_contract_failure_returns_only_safe_ask_user() -> None:
     model = StubModel(_unknown_tool_plan(), _unknown_tool_plan())
     planner = LocalLLMPlanner(model)  # type: ignore[arg-type]

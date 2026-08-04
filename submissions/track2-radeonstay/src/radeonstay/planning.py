@@ -1174,8 +1174,10 @@ def _repair_directive(
 def _materialize_bound_arguments(
     payload: dict[str, Any],
     obligations: _PlanObligations,
+    *,
+    message: str,
 ) -> None:
-    """Fill only missing, server-bound literals; conflicting model values still fail."""
+    """Fill only missing, server-known values; conflicting model values still fail."""
 
     raw_steps = payload.get("steps")
     if not isinstance(raw_steps, list):
@@ -1198,6 +1200,19 @@ def _materialize_bound_arguments(
             step["arguments"] = arguments
         if isinstance(arguments, dict) and field not in arguments:
             arguments[field] = value
+
+    ticket_steps = steps_by_tool.get("hotel.create_service_ticket", [])
+    if len(ticket_steps) != 1:
+        return
+    ticket_step = ticket_steps[0]
+    arguments = ticket_step.get("arguments")
+    if arguments is None:
+        arguments = {}
+        ticket_step["arguments"] = arguments
+    if isinstance(arguments, dict) and "description" not in arguments:
+        description = re.sub(r"\s+", " ", message).strip()[:1_000]
+        if description:
+            arguments["description"] = description
 
 
 def _record_plan_validation(
@@ -1391,7 +1406,7 @@ class LocalLLMPlanner:
             trace_purpose="planner.initial",
             trace_attempt=1,
         )
-        _materialize_bound_arguments(payload, obligations)
+        _materialize_bound_arguments(payload, obligations, message=message)
         try:
             plan = AgentPlan.model_validate(payload)
             _validate_candidate_plan(
@@ -1454,7 +1469,11 @@ class LocalLLMPlanner:
                 trace_purpose="planner.semantic_repair",
                 trace_attempt=2,
             )
-            _materialize_bound_arguments(repaired_payload, obligations)
+            _materialize_bound_arguments(
+                repaired_payload,
+                obligations,
+                message=message,
+            )
             try:
                 repaired_plan = AgentPlan.model_validate(repaired_payload)
                 _validate_candidate_plan(
