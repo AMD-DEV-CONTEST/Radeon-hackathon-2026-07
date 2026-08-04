@@ -13,6 +13,7 @@ BATCH_SIZE="${BATCH_SIZE:-512}"
 UBATCH_SIZE="${UBATCH_SIZE:-128}"
 FLASH_ATTN="${FLASH_ATTN:-auto}"
 EVIDENCE_RUN_ID="${EVIDENCE_RUN_ID:-}"
+LOG_VERBOSITY="5"
 
 for evidence_path in "${LLAMA_SERVER}" "${MODEL_PATH}"; do
   if [[ "${evidence_path}" == *$'\n'* || "${evidence_path}" == *$'\r'* ]]; then
@@ -96,6 +97,12 @@ args=(
 )
 
 help_text="$("${LLAMA_SERVER}" --help 2>&1 || true)"
+if grep -q -- '--log-verbosity' <<<"${help_text}"; then
+  args+=(--log-verbosity "${LOG_VERBOSITY}")
+else
+  echo "This llama-server build does not expose required --log-verbosity" >&2
+  exit 2
+fi
 if grep -q -- '--flash-attn' <<<"${help_text}"; then
   case "${FLASH_ATTN}" in
     auto|on) args+=(--flash-attn on) ;;
@@ -123,6 +130,7 @@ echo "model_path=${MODEL_PATH}"
 echo "model_sha256_at_start=${MODEL_SHA256}"
 echo "ctx=${CONTEXT_SIZE} parallel=${PARALLEL_SLOTS}"
 echo "batch=${BATCH_SIZE} ubatch=${UBATCH_SIZE} flash_attn=${FLASH_ATTN}"
+echo "log_verbosity=${LOG_VERBOSITY}"
 echo "server_started_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 server_pid=""

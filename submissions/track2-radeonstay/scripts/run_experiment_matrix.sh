@@ -22,6 +22,7 @@ llama_build=""
 model_alias="qwen3.6-35b-a3b-q6k"
 model_port="8000"
 context_size="16384"
+log_verbosity="5"
 dry_run=0
 
 while [[ $# -gt 0 ]]; do
@@ -249,7 +250,7 @@ print_dry_run() {
   echo "model_sha256=${pinned_model_sha256} llama_server_sha256=${pinned_llama_sha256}"
   echo "model_repository=${model_repository} model_revision=${model_revision} model_license=${model_license}"
   echo "llama_cpp_commit=${llama_cpp_commit} llama_build=${llama_build}"
-  echo "thinking=${thinking} flash_attn=${flash_attn} batch=${batch_size} ubatch=${ubatch_size} parallel=${parallel_slots}"
+  echo "thinking=${thinking} flash_attn=${flash_attn} batch=${batch_size} ubatch=${ubatch_size} parallel=${parallel_slots} log_verbosity=${log_verbosity}"
   echo "stages=serve_model,monitor_rocm,retrieval,agent_quality,benchmark,c2_live_recheck,collect_live_rocm_evidence,controlled_child_shutdown,c2_final_recheck,collect_rocm_evidence"
   if [[ "${run_selection}" == "all" ]]; then
     echo "formal_comparisons=A-vs-B-thinking,B-vs-C-flash-attention,C-vs-D-batch,D-vs-E-parallel"
@@ -337,6 +338,7 @@ run_experiment() (
     echo "batch_size=${batch_size}"
     echo "ubatch_size=${ubatch_size}"
     echo "parallel_slots=${parallel_slots}"
+    echo "log_verbosity=${log_verbosity}"
     echo "artifact_retention=preserve_all_outputs_on_failure"
   } > "${manifest_file}"
   echo "started_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ) stage=preflight status=started" > "${status_file}"

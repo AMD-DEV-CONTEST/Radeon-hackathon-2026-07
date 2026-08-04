@@ -8,6 +8,32 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MATRIX_SCRIPT = PROJECT_ROOT / "scripts" / "run_experiment_matrix.sh"
 COLLECTOR_SCRIPT = PROJECT_ROOT / "scripts" / "collect_rocm_evidence.sh"
 APP_SCRIPT = PROJECT_ROOT / "scripts" / "serve_app.sh"
+MODEL_SCRIPT = PROJECT_ROOT / "scripts" / "serve_model.sh"
+
+
+def _model_launcher_environment(
+    tmp_path: Path,
+    fake_server: Path,
+    model: Path,
+) -> dict[str, str]:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    fake_sha256sum = fake_bin / "sha256sum"
+    fake_sha256sum.write_text(
+        "#!/usr/bin/env bash\n"
+        f"printf '%s  %s\\n' '{'0' * 64}' \"${{@: -1}}\"\n",
+        encoding="utf-8",
+    )
+    fake_sha256sum.chmod(0o700)
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "LLAMA_SERVER": str(fake_server),
+            "MODEL_PATH": str(model),
+            "PATH": f"{fake_bin}{os.pathsep}{environment['PATH']}",
+        }
+    )
+    return environment
 
 
 def _collector_provenance_arguments(tmp_path: Path) -> list[str]:
@@ -50,6 +76,8 @@ def test_experiment_matrix_declares_the_controlled_a_to_e_sequence() -> None:
     )
     for row in expected_rows:
         assert row in script
+    assert 'log_verbosity="5"' in script
+    assert 'echo "log_verbosity=${log_verbosity}"' in script
 
 
 def test_app_launcher_uses_the_source_tree_without_build_isolation() -> None:
@@ -231,13 +259,7 @@ def test_model_launcher_rejects_newline_in_evidence_path(tmp_path: Path) -> None
     fake_server.chmod(0o700)
     model = tmp_path / "model.gguf"
     model.write_bytes(b"model")
-    environment = os.environ.copy()
-    environment.update(
-        {
-            "LLAMA_SERVER": str(fake_server),
-            "MODEL_PATH": str(model),
-        }
-    )
+    environment = _model_launcher_environment(tmp_path, fake_server, model)
 
     completed = subprocess.run(
         ["bash", str(PROJECT_ROOT / "scripts" / "serve_model.sh")],
@@ -278,6 +300,68 @@ def test_model_launcher_rechecks_resolved_evidence_paths(tmp_path: Path) -> None
 
     assert completed.returncode == 2
     assert "Resolved LLAMA_SERVER" in completed.stderr
+
+
+def test_model_launcher_requires_verbose_startup_logging(tmp_path: Path) -> None:
+    fake_server = tmp_path / "llama-server"
+    fake_server.write_text(
+        "#!/usr/bin/env bash\n"
+        "if [[ \"${1:-}\" == \"--help\" ]]; then\n"
+        "  printf '%s\\n' '--flash-attn MODE --jinja --metrics'\n"
+        "fi\n",
+        encoding="utf-8",
+    )
+    fake_server.chmod(0o700)
+    model = tmp_path / "model.gguf"
+    model.write_bytes(b"model")
+    environment = _model_launcher_environment(tmp_path, fake_server, model)
+
+    completed = subprocess.run(
+        ["bash", str(MODEL_SCRIPT)],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=environment,
+    )
+
+    assert completed.returncode == 2
+    assert "does not expose required --log-verbosity" in completed.stderr
+
+
+def test_model_launcher_enables_and_records_verbose_startup_logging(
+    tmp_path: Path,
+) -> None:
+    captured_args = tmp_path / "captured-args.txt"
+    fake_server = tmp_path / "llama-server"
+    fake_server.write_text(
+        "#!/usr/bin/env bash\n"
+        "if [[ \"${1:-}\" == \"--help\" ]]; then\n"
+        "  printf '%s\\n' "
+        "'--log-verbosity N --flash-attn MODE --jinja --metrics'\n"
+        "  exit 0\n"
+        "fi\n"
+        "printf '%s\\n' \"$@\" > \"${FAKE_ARGS_FILE:?}\"\n",
+        encoding="utf-8",
+    )
+    fake_server.chmod(0o700)
+    model = tmp_path / "model.gguf"
+    model.write_bytes(b"model")
+    environment = _model_launcher_environment(tmp_path, fake_server, model)
+    environment["FAKE_ARGS_FILE"] = str(captured_args)
+
+    completed = subprocess.run(
+        ["bash", str(MODEL_SCRIPT)],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=environment,
+    )
+
+    assert completed.returncode == 0
+    assert "log_verbosity=5" in completed.stdout
+    arguments = captured_args.read_text(encoding="utf-8").splitlines()
+    option_index = arguments.index("--log-verbosity")
+    assert arguments[option_index + 1] == "5"
 
 
 def test_evidence_collector_rejects_newline_in_artifact_path(tmp_path: Path) -> None:
