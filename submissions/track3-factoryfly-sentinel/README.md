@@ -4,7 +4,6 @@
 
 - **Track:** Track 3 — Physical AI Challenge
 - **Team members:** Jaewon Lee (sole participant)
-- **Team:** Solo participant
 - **Application:** FactoryFly Sentinel
 - **Version:** v7.3.13
 
