@@ -126,11 +126,17 @@ qlib.init(provider_uri=os.path.expanduser("~/.qlib/qlib_data/cn_data"))
 from qlib.data import D
 instruments = D.instruments()
 fields = ["$open", "$close", "$high", "$low", "$volume", "$factor"]
-data = D.features(instruments, fields, freq="day").swaplevel().sort_index().loc["2008-12-29":].sort_index()
+# D.features returns MultiIndex (datetime, instrument); sort by datetime
+data = D.features(instruments, fields, freq="day").sort_index()
+if data.empty:
+    raise RuntimeError("No data available in Qlib. Check ~/.qlib/qlib_data/cn_data/")
 data.to_hdf("./daily_pv_all.h5", key="data")
-fields2 = ["$open", "$close", "$high", "$low", "$volume", "$factor"]
-data2 = D.features(instruments, fields2, start_time="2018-01-01", end_time="2019-12-31", freq="day").swaplevel().sort_index().swaplevel().loc[data.reset_index()["instrument"].unique()[:100]].swaplevel().sort_index()
+print(f"daily_pv_all.h5: {len(data)} rows, {data.reset_index()['instrument'].nunique()} instruments")
+# Debug data: first 100 instruments only (much smaller dataset for fast iteration)
+first_100 = data.reset_index()["instrument"].unique()[:100].tolist()
+data2 = D.features(first_100, fields, freq="day").sort_index()
 data2.to_hdf("./daily_pv_debug.h5", key="data")
+print(f"daily_pv_debug.h5: {len(data2)} rows, {len(first_100)} instruments")
 print("SUCCESS: daily_pv_all.h5 and daily_pv_debug.h5 generated")
 """],
                     cwd=str(template_path),
@@ -157,10 +163,19 @@ print("SUCCESS: daily_pv_all.h5 and daily_pv_debug.h5 generated")
             shutil.copy(template_path / "README.md", Path(FACTOR_COSTEER_SETTINGS.data_folder_debug) / "README.md")
         _qlib_utils.generate_data_folder_from_qlib = _patched_generate_data_folder_from_qlib
         
-        # 修复 QlibCondaConf 默认环境名：RD-Agent 默认使用 rdagent4qlib，
+        # 修复 QlibCondaConf 和 CondaConf 默认环境名：RD-Agent 默认使用 rdagent4qlib，
         # 但 Mac 本地环境名为 aiquant。同时 patch QlibFBWorkspace.execute
         # 使 qrun 和 python 都通过 conda run 在当前环境中执行
-        from rdagent.utils.env import QlibCondaConf
+        from rdagent.utils.env import QlibCondaConf, CondaConf
+
+        # Patch 基类 CondaConf：设置默认 conda_env_name（FactorRDLoop 内部会创建 CondaConf）
+        _orig_conda_conf_init = CondaConf.__init__
+        def _patched_conda_conf_init(self, **kwargs):
+            if "conda_env_name" not in kwargs or kwargs["conda_env_name"] is None:
+                kwargs["conda_env_name"] = _CURRENT_CONDA_ENV
+            _orig_conda_conf_init(self, **kwargs)
+        CondaConf.__init__ = _patched_conda_conf_init
+
         _orig_qlib_conda_conf_init = QlibCondaConf.__init__
         def _patched_qlib_conda_conf_init(self, **kwargs):
             if "conda_env_name" not in kwargs:
@@ -240,69 +255,94 @@ print("SUCCESS: daily_pv_all.h5 and daily_pv_debug.h5 generated")
 
 # ═══════════════════════════════════════════════════════
 # liteLLM 配置: 确保 API key 在 liteLLM 导入前注入
-# 
-# RD-Agent v0.8.0 使用 LiteLLMAPIBackend，其 completion() 调用
-# 不显式传递 api_key/api_base，完全依赖 liteLLM 从环境变量自动
-# 读取。当 CHAT_MODEL 使用 provider-prefixed 格式（如
-# deepseek/deepseek-v4-flash）时，liteLLM 自动查找
-# DEEPSEEK_API_KEY 环境变量。
-# 
+#
+# 支持三种 LLM 后端（按优先级）:
+# 1. DEEPSEEK_API_KEY → deepseek/ 前缀模型，litellm 自动读 key
+# 2. OPENAI_API_KEY + OPENAI_API_BASE → 通用 OpenAI 兼容 API（如 AMD Radeon Cloud API）
+# 3. CHAT_MODEL 环境变量直接指定模型名
+#
 # 参考: https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html
 # ═══════════════════════════════════════════════════════
 import litellm
-# 方案1: DeepSeek provider-prefixed model → liteLLM 自动读 DEEPSEEK_API_KEY
+
+# 方案1: DeepSeek 官方 API
 _deepseek_key = os.environ.get("DEEPSEEK_API_KEY", "")
 if _deepseek_key:
     os.environ.setdefault("DEEPSEEK_API_KEY", _deepseek_key)
     logger.info(f"liteLLM: DEEPSEEK_API_KEY configured ({_deepseek_key[:10]}...)")
-# 方案2: 通用 OpenAI-compatible → liteLLM 读 OPENAI_API_KEY
+
+# 方案2: 通用 OpenAI-compatible API（AMD Radeon Cloud / 本地 vLLM 等）
 _openai_key = os.environ.get("OPENAI_API_KEY", "")
-if _openai_key and not _deepseek_key:
-    os.environ.setdefault("OPENAI_API_KEY", _openai_key)
+_openai_base = os.environ.get("OPENAI_API_BASE", "") or os.environ.get("LLM_API_BASE", "")
+_chat_model = os.environ.get("CHAT_MODEL", "") or os.environ.get("LLM_MODEL", "")
+
+if _openai_key:
+    os.environ["OPENAI_API_KEY"] = _openai_key
     logger.info(f"liteLLM: OPENAI_API_KEY configured ({_openai_key[:10]}...)")
 
-# 方案3: 覆盖 RD-Agent LLM 配置 → 使用 DeepSeek provider-prefixed model
-# RD-Agent 默认 chat_model=gpt-4-turbo，需要改为 deepseek/deepseek-v4-flash
-# 让 liteLLM 自动从 DEEPSEEK_API_KEY 环境变量读取 key
-if _deepseek_key:
-    try:
-        from rdagent.oai.llm_conf import LLM_SETTINGS
-        LLM_SETTINGS.chat_model = "deepseek/deepseek-v4-flash"
-        LLM_SETTINGS.openai_api_key = _deepseek_key  # liteLLM 向后兼容
-        logger.info(f"RD-Agent LLM: chat_model → deepseek/deepseek-v4-flash")
-    except Exception as _llm_patch_err:
-        logger.warning(f"RD-Agent LLM 配置覆盖失败: {_llm_patch_err}")
+# AMD Radeon Cloud API 使用 OpenAI 兼容格式，需要设置 api_base
+if _openai_base:
+    os.environ["OPENAI_API_BASE"] = _openai_base
+    logger.info(f"liteLLM: OPENAI_API_BASE = {_openai_base}")
 
-    # 配置硅基流动 BAAI/bge-m3 作为 embedding 模型
-    # DeepSeek 不支持 embedding API，通过 LiteLLM Proxy 机制路由到硅基流动。
-    # RD-Agent LiteLLM 规范：
-    #   - EMBEDDING_MODEL=litellm_proxy/BAAI/bge-m3（不同提供商必须加 litellm_proxy/ 前缀）
-    #   - LITELLM_PROXY_API_KEY + LITELLM_PROXY_API_BASE 作为 canonical 配置（.env 中已配置）
-    #   - liteLLM 的 _create_embedding_inner_function() 只传 model+input，完全依赖环境变量
-    # 参考: https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html
-    #       https://docs.litellm.ai/docs/providers/litellm_proxy
-    #
-    # 使用直接赋值而非 setdefault：确保即使环境变量已存在旧值，也被覆盖为 .env 中的最新值
-    # 这解决了子进程（conda run）不继承 load_dotenv 结果的场景
-    _proxy_key = os.environ.get("LITELLM_PROXY_API_KEY", "") or os.environ.get("SILICONFLOW_API_KEY", "")
-    _proxy_base = os.environ.get("LITELLM_PROXY_API_BASE", "") or os.environ.get("SILICONFLOW_API_BASE", "https://api.siliconflow.cn/v1")
-    if _proxy_key:
-        os.environ["LITELLM_PROXY_API_KEY"] = _proxy_key
-        os.environ["LITELLM_PROXY_API_BASE"] = _proxy_base
-        try:
-            from rdagent.oai.backend.litellm import LITELLM_SETTINGS as _LITELLM_SETTINGS
-            _LITELLM_SETTINGS.embedding_model = "litellm_proxy/BAAI/bge-m3"
-            logger.info(
-                f"RD-Agent embedding: model → litellm_proxy/BAAI/bge-m3 "
-                f"(硅基流动, base={_proxy_base})"
-            )
-        except Exception as _emb_conf_err:
-            logger.warning(f"RD-Agent embedding 配置覆盖失败: {_emb_conf_err}")
+# 方案3: 覆盖 RD-Agent LLM 配置
+# RD-Agent 默认 chat_model=gpt-4-turbo，需要改为实际使用的模型
+# 注意：LLM_SETTINGS 和 LITELLM_SETTINGS 是不同的对象，
+# get_complete_kwargs() 读取 LITELLM_SETTINGS.chat_model，两者都需要设置
+try:
+    from rdagent.oai.llm_conf import LLM_SETTINGS
+    from rdagent.oai.backend.litellm import LITELLM_SETTINGS
+
+    if _deepseek_key:
+        # DeepSeek 官方 API：使用 provider-prefixed 模型名
+        _model_name = "deepseek/deepseek-v4-flash"
+        LLM_SETTINGS.chat_model = _model_name
+        LLM_SETTINGS.openai_api_key = _deepseek_key
+        LITELLM_SETTINGS.chat_model = _model_name
+        logger.info(f"RD-Agent LLM: chat_model → {_model_name}")
+    elif _openai_key and _chat_model:
+        # 通用 OpenAI 兼容 API（AMD Radeon Cloud 等）
+        # litellm 对非标准 OpenAI 端点需要用 openai/ 前缀 + 自定义 api_base
+        _litellm_model = _chat_model if "/" in _chat_model else f"openai/{_chat_model}"
+        LLM_SETTINGS.chat_model = _litellm_model
+        LLM_SETTINGS.openai_api_key = _openai_key
+        LITELLM_SETTINGS.chat_model = _litellm_model
+        logger.info(f"RD-Agent LLM: chat_model → {_litellm_model}, api_base → {_openai_base}")
     else:
-        logger.warning(
-            "SILICONFLOW_API_KEY 未配置，embedding 将使用默认 OpenAI text-embedding-3-small。"
-            "建议在 .env 中设置: SILICONFLOW_API_KEY=sk-..."
+        logger.warning("RD-Agent LLM: 未检测到有效的 API Key，因子挖掘将失败")
+except Exception as _llm_patch_err:
+    logger.warning(f"RD-Agent LLM 配置覆盖失败: {_llm_patch_err}")
+
+# 配置硅基流动 BAAI/bge-m3 作为 embedding 模型
+# DeepSeek 不支持 embedding API，通过 LiteLLM Proxy 机制路由到硅基流动。
+# RD-Agent LiteLLM 规范：
+#   - EMBEDDING_MODEL=litellm_proxy/BAAI/bge-m3（不同提供商必须加 litellm_proxy/ 前缀）
+#   - LITELLM_PROXY_API_KEY + LITELLM_PROXY_API_BASE 作为 canonical 配置（.env 中已配置）
+#   - liteLLM 的 _create_embedding_inner_function() 只传 model+input，完全依赖环境变量
+# 参考: https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html
+#       https://docs.litellm.ai/docs/providers/litellm_proxy
+#
+# 使用直接赋值而非 setdefault：确保即使环境变量已存在旧值，也被覆盖为 .env 中的最新值
+# 这解决了子进程（conda run）不继承 load_dotenv 结果的场景
+_proxy_key = os.environ.get("LITELLM_PROXY_API_KEY", "") or os.environ.get("SILICONFLOW_API_KEY", "")
+_proxy_base = os.environ.get("LITELLM_PROXY_API_BASE", "") or os.environ.get("SILICONFLOW_API_BASE", "https://api.siliconflow.cn/v1")
+if _proxy_key:
+    os.environ["LITELLM_PROXY_API_KEY"] = _proxy_key
+    os.environ["LITELLM_PROXY_API_BASE"] = _proxy_base
+    try:
+        from rdagent.oai.backend.litellm import LITELLM_SETTINGS as _LITELLM_SETTINGS
+        _LITELLM_SETTINGS.embedding_model = "litellm_proxy/BAAI/bge-m3"
+        logger.info(
+            f"RD-Agent embedding: model → litellm_proxy/BAAI/bge-m3 "
+            f"(硅基流动, base={_proxy_base})"
         )
+    except Exception as _emb_conf_err:
+        logger.warning(f"RD-Agent embedding 配置覆盖失败: {_emb_conf_err}")
+else:
+    logger.warning(
+        "SILICONFLOW_API_KEY 未配置，embedding 将使用默认 OpenAI text-embedding-3-small。"
+        "建议在 .env 中设置: SILICONFLOW_API_KEY=sk-..."
+    )
 
 from backend.shared.config import (
     settings, load_model_configs, save_model_configs,
