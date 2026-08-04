@@ -319,7 +319,21 @@ try:
         LLM_SETTINGS.chat_model = _litellm_model
         LLM_SETTINGS.openai_api_key = _openai_key
         LITELLM_SETTINGS.chat_model = _litellm_model
+        
+        # 本地 LLM（llama-server）兼容性配置：
+        # 1. 关闭流式：llama-server 的 SSE 流式响应与 litellm 的解析不完全兼容
+        # 2. 关闭 response_schema：llama-server 不支持 JSON schema 约束
+        # 3. 增加重试等待和超时：本地推理 ~85 tokens/s，长 prompt 需要更多时间
+        LITELLM_SETTINGS.chat_stream = False
+        LITELLM_SETTINGS.enable_response_schema = False
+        LITELLM_SETTINGS.max_retry = 3
+        LITELLM_SETTINGS.retry_wait_seconds = 5
+        LITELLM_SETTINGS.timeout_fail_limit = 3
+        # litellm 全局超时（秒），本地 LLM 推理较慢
+        litellm.request_timeout = 120
+        
         logger.info(f"RD-Agent LLM: chat_model → {_litellm_model}, api_base → {_openai_base}")
+        logger.info(f"RD-Agent LLM: 本地模式优化 (stream=False, schema=False, timeout=120s)")
     else:
         logger.warning("RD-Agent LLM: 未检测到有效的 API Key，因子挖掘将失败")
 except Exception as _llm_patch_err:
