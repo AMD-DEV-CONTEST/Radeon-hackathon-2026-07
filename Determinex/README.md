@@ -11,6 +11,19 @@
 | **AMD hardware** | Radeon Cloud · ROCm 7.2.1 · vLLM 0.16.1 |
 | **Models measured** | Qwen2.5-Coder-7B-Instruct (bf16) and Qwen2.5-Coder-32B-Instruct-AWQ |
 
+> **Check the central claim yourself, in about two seconds:** `bash verify.sh`
+>
+> The throughput figures below needed a Radeon, so you have to take those from the evidence
+> files. The argument underneath them does not. `verify.sh` runs on any laptop with Python and
+> no network, and proves the three things everything else rests on: that the oracle **rejects**
+> broken code as well as accepting correct code, that a request too vague to verify is refused
+> *before* a model is ever called, and that the shipped reference implementations are exact
+> across all 256 inputs of their domain — 1,024 assertions, a proof rather than a sample.
+>
+> Each of those three checks was deliberately sabotaged during development to confirm it turns
+> red; a check that cannot fail is decoration. It exits non-zero if any claim here does not
+> hold, which is the point of shipping it.
+
 ---
 
 ## What it is
