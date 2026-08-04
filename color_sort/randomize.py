@@ -1,9 +1,8 @@
-"""Per-episode reset randomization for the color-sorting scene.
+"""Per-episode reset randomization for the color-sorting scene with YCB objects.
 
 Based on franka_fruit_pick_demo's randomize.py. Key changes:
-- RELIABLE_PICK_POOL = all color_geometry object names (not YCB names)
-- Home positions derived from OBJECT_LAYOUT (not YCB_LAYOUT)
-- No domain randomization (DR) for Phase A — keep it simple, add later
+- Home positions derived from YCB_LAYOUT (not OBJECT_LAYOUT)
+- YCB object names instead of color_geometry names
 """
 
 from __future__ import annotations
@@ -21,16 +20,12 @@ if str(_ROOT) not in sys.path:
 from genesis.utils.geom import euler_to_quat
 
 from scene_config import (
-    COLORS,
     FRANKA_QPOS,
-    GEOMETRIES,
-    PICKABLE_GEOMETRIES,
-    OBJECT_LAYOUT,
-    OBJECT_SIZE,
     REACH_X,
     REACH_Y,
     TABLE_TOP_Z,
-    object_rest_z_offset,
+    YCB_LAYOUT,
+    get_ycb_assets,
 )
 
 
@@ -46,17 +41,6 @@ class RandomizationConfig:
     seed: int | None = None
 
 
-# All objects are pickable (small uniform primitives, unlike demo's mixed YCB)
-def get_pick_pool(colors: tuple[str, ...] = COLORS) -> tuple[str, ...]:
-    """Return all pickable object names for the given colors.
-
-    Only cube + cylinder are pickable (spheres excluded — parallel-jaw
-    gripper cannot reliably hold smooth spheres, same as demo's exclusion
-    of apple/orange/pear).
-    """
-    return tuple(f"{color}_{geom}" for color in colors for geom in PICKABLE_GEOMETRIES)
-
-
 class EnvRandomizer:
     """Resets a built SortSceneBundle to a fresh, randomized sorting episode."""
 
@@ -66,14 +50,15 @@ class EnvRandomizer:
         self.rng = np.random.default_rng(self.cfg.seed)
 
         self.names = list(bundle.objects.keys())
-        # Home positions from OBJECT_LAYOUT
+        # Home positions from YCB_LAYOUT
         self.home = {}
         self.home_yaw = {}
+        self.assets = get_ycb_assets(tuple(self.names))
         for name in self.names:
-            color, geometry = name.rsplit("_", 1)
-            x, y = OBJECT_LAYOUT[color][geometry]
+            layout = YCB_LAYOUT[name]
+            x, y, _ = layout["pos"]
             self.home[name] = np.asarray([x, y], dtype=float)
-            self.home_yaw[name] = 0.0  # all objects start with yaw=0
+            self.home_yaw[name] = layout.get("euler", (0, 0, 0))[2]
 
     def reset(self, seed: int | None = None) -> str:
         """Randomize object poses and settle physics. Returns the pick object name."""
@@ -91,16 +76,11 @@ class EnvRandomizer:
 
     def _place_objects(self) -> None:
         for name in self.names:
-            # Small jitter around home position
             dx, dy = self.rng.uniform(-self.cfg.pos_jitter, self.cfg.pos_jitter, size=2)
             x = float(np.clip(self.home[name][0] + dx, *REACH_X))
             y = float(np.clip(self.home[name][1] + dy, *REACH_Y))
+            z = TABLE_TOP_Z + self.assets[name].rest_z_offset
 
-            # Derive z from geometry
-            color, geometry = name.rsplit("_", 1)
-            z = TABLE_TOP_Z + object_rest_z_offset(geometry) + 0.002
-
-            # Yaw jitter
             dyaw = float(self.rng.uniform(-self.cfg.yaw_jitter, self.cfg.yaw_jitter))
             quat = euler_to_quat(np.array([0.0, 0.0, dyaw]))
 
