@@ -64,6 +64,26 @@ import nest_asyncio
 nest_asyncio.apply()
 
 # ═══════════════════════════════════════════════════════
+# Qlib instruments 文件部署：将项目内置的股票池文件
+# (csi300/csi500/sz50) 复制到 ~/.qlib/qlib_data/cn_data/instruments/
+# 这样 RD-Agent 可以通过 market="csi300" 等参数选择不同股票池
+# ═══════════════════════════════════════════════════════
+def _deploy_instruments_files():
+    qlib_inst_dir = Path(os.path.expanduser("~/.qlib/qlib_data/cn_data/instruments"))
+    bundled_dir = _project_root / "data" / "instruments"
+    if not bundled_dir.exists():
+        return
+    qlib_inst_dir.mkdir(parents=True, exist_ok=True)
+    for txt_file in bundled_dir.glob("*.txt"):
+        dest = qlib_inst_dir / txt_file.name
+        if not dest.exists():
+            import shutil
+            shutil.copy2(txt_file, dest)
+            logger.info(f"已部署 instruments 文件: {txt_file.name} → {dest}")
+
+_deploy_instruments_files()
+
+# ═══════════════════════════════════════════════════════
 # RUN_MODE 适配: 根据模式选择执行环境
 #
 # local:  Monkey-patch QTDockerEnv → QlibCondaEnv（无Docker隔离）
@@ -2322,6 +2342,8 @@ def _parse_mining_instruction(msg: str) -> dict:
         universe = "中证500"
     elif "沪深300" in msg or "csi300" in msg_lower or "hs300" in msg_lower:
         universe = "沪深300"
+    elif "上证50" in msg or "sz50" in msg_lower or "sse50" in msg_lower:
+        universe = "上证50"
     
     # 提取约束条件
     constraints = []
@@ -2642,10 +2664,20 @@ async def _run_factor_evolution_with_callbacks(
     
     p_info = parsed_info or {}
     
+    # 根据 universe 设置 Qlib market（决定回测时使用哪个股票池）
+    universe = p_info.get("universe", "全A股")
+    _market_map = {"沪深300": "csi300", "中证500": "csi500", "上证50": "sz50", "全A股": "all"}
+    _qlib_market = _market_map.get(universe, "all")
+    try:
+        FACTOR_PROP_SETTING.qlib_conf.market = _qlib_market
+        logger.info(f"已设置 Qlib market={_qlib_market} (universe={universe})")
+    except Exception as _me:
+        logger.warning(f"设置 FACTOR_PROP_SETTING.qlib_conf.market 失败: {_me}")
+    
     # 阶段2开始：初始化进化引擎
     env_type = getattr(MODEL_COSTEER_SETTINGS, 'env_type', 'unknown')
     enqueue("phase", f"""✅【阶段2】因子进化引擎正在初始化...
-执行环境：{env_type}｜迭代轮次：{loop_n}轮""", stage="phase2_init")
+执行环境：{env_type}｜迭代轮次：{loop_n}轮｜股票池：{universe}""", stage="phase2_init")
     
     try:
         factor_loop = FactorRDLoop(FACTOR_PROP_SETTING)

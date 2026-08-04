@@ -775,6 +775,15 @@ def run_factor_evolution(
                 
                 p_info = parsed_info or {}
                 
+                # 根据 universe 设置 Qlib market
+                _universe = p_info.get("universe", "全A股")
+                _market_map = {"沪深300": "csi300", "中证500": "csi500", "上证50": "sz50", "全A股": "all"}
+                _qlib_market = _market_map.get(_universe, "all")
+                try:
+                    FACTOR_PROP_SETTING.qlib_conf.market = _qlib_market
+                except Exception:
+                    pass
+                
                 factor_loop = FactorRDLoop(FACTOR_PROP_SETTING)
                 
                 # B2: 带重试的 LLM API 调用包装（指数退避 + 抖动）
