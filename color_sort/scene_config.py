@@ -35,15 +35,15 @@ ASSETS = Path(__file__).resolve().parent.parent / "assets" / "ycb"
 # Train colors: red, yellow, purple. Eval colors: green, orange.
 # Objects excluded per demo findings: pear (round cross-section slips).
 YCB_LAYOUT: dict[str, dict] = {
-    # Train objects — each placed close to its container so the lateral transport stays short.
-    # (Round YCB objects eject from parallel jaws on long lateral transports, so the pick
-    # must be within ~0.15m of its bin. Mirrors the demo's object→bowl spacing of 0.19m.)
-    "013_apple": {"pos": (0.44, 0.20, 0.0), "euler": (0.0, 0.0, 0.0), "color": "red", "friction": 1.0},
-    "011_banana": {"pos": (0.44, 0.02, 0.0), "euler": (0.0, 0.0, 35.0), "color": "yellow", "friction": 1.0},
-    "018_plum": {"pos": (0.44, -0.16, 0.0), "euler": (0.0, 0.0, 0.0), "color": "purple", "friction": 1.0},
+    # Train objects — each placed within ~0.12m of its container so the lateral transport
+    # stays short (round YCB objects eject from parallel jaws on long lateral transports).
+    # Objects are y-spaced 0.24m so the 20cm banana can rotate freely without hitting neighbors.
+    "013_apple": {"pos": (0.44, 0.24, 0.0), "euler": (0.0, 0.0, 0.0), "color": "red", "friction": 1.0},
+    "011_banana": {"pos": (0.44, 0.0, 0.0), "euler": (0.0, 0.0, 35.0), "color": "yellow", "friction": 1.0},
+    "018_plum": {"pos": (0.44, -0.24, 0.0), "euler": (0.0, 0.0, 0.0), "color": "purple", "friction": 1.0},
     # Eval objects (hold-out, not in training data)
-    "014_lemon": {"pos": (0.44, 0.02, 0.0), "euler": (0.0, 0.0, 0.0), "color": "yellow", "friction": 1.0},
-    "017_orange": {"pos": (0.44, -0.16, 0.0), "euler": (0.0, 0.0, 0.0), "color": "orange", "friction": 1.0},
+    "014_lemon": {"pos": (0.44, 0.0, 0.0), "euler": (0.0, 0.0, 0.0), "color": "yellow", "friction": 1.0},
+    "017_orange": {"pos": (0.44, -0.24, 0.0), "euler": (0.0, 0.0, 0.0), "color": "orange", "friction": 1.0},
 }
 
 # Train/eval split
@@ -78,9 +78,9 @@ CONTAINER_INNER_SIZE = 0.16 - 2 * CONTAINER_WALL_THICKNESS  # 0.152 m
 CONTAINER_RIM_Z_OFFSET = CONTAINER_BOTTOM_SIZE[2] + CONTAINER_WALL_HEIGHT  # 0.054 m above table
 CONTAINER_RIM_MARGIN = 0.01
 CONTAINER_LAYOUT = {
-    "red": (0.56, 0.20),
+    "red": (0.56, 0.24),
     "yellow": (0.56, 0.00),
-    "purple": (0.56, -0.20),
+    "purple": (0.56, -0.24),
     "green": (0.62, 0.15),
     "orange": (0.62, -0.15),
 }

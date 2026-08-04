@@ -630,6 +630,26 @@ def main() -> None:
     print(f"[record_parallel] n_envs={n}, target={args.episodes} episodes, "
           f"split={args.split}, pool={pick_pool}")
 
+    # Slot method (ported from demo randomize.py): each object owns a home slot; per-object
+    # jitter is clamped to half the clearance to the nearest neighbor so jittered objects
+    # can never overlap, and yaw is jittered only around the home orientation (a large yaw
+    # on the long banana would swing it into neighbors).
+    ycb_assets = get_ycb_assets(tuple(bundle.objects.keys()))
+    names = list(bundle.objects.keys())
+    home = {n: np.asarray(YCB_LAYOUT[n]["pos"][:2], dtype=float) for n in names}
+    home_yaw = {n: float(YCB_LAYOUT[n]["euler"][2]) for n in names}
+    radius = {n: ycb_assets[n].radius_xy for n in names}
+    OVERLAP_MARGIN = 0.02
+    safe_jitter: dict[str, float] = {}
+    for a in names:
+        gap = np.inf
+        for b in names:
+            if a == b:
+                continue
+            clearance = float(np.linalg.norm(home[a] - home[b])) - radius[a] - radius[b] - OVERLAP_MARGIN
+            gap = min(gap, clearance)
+        safe_jitter[a] = max(0.0, 0.5 * gap)
+
     while n_success < args.episodes and batch_num < max_batches:
         # Prepare per-env specs
         env_specs = []
@@ -639,19 +659,17 @@ def main() -> None:
 
             pick_object = str(pick_rng.choice(pick_pool))
 
-            # Randomize object positions for this env
+            # Randomize object positions for this env (non-overlapping slot jitter)
             obj_positions = {}
             obj_quats = {}
-            ycb_assets = get_ycb_assets(tuple(bundle.objects.keys()))
-            for obj_name in bundle.objects:
-                layout = YCB_LAYOUT[obj_name]
-                x, y, _ = layout["pos"]
-                dx, dy = ep_rng.uniform(-args.jitter, args.jitter, size=2)
-                x = float(np.clip(x + dx, *REACH_X))
-                y = float(np.clip(y + dy, *REACH_Y))
+            for obj_name in names:
+                jitter = min(args.jitter, safe_jitter[obj_name])
+                dx, dy = ep_rng.uniform(-jitter, jitter, size=2)
+                x = float(np.clip(home[obj_name][0] + dx, *REACH_X))
+                y = float(np.clip(home[obj_name][1] + dy, *REACH_Y))
                 z = TABLE_TOP_Z + ycb_assets[obj_name].rest_z_offset
                 dyaw = float(ep_rng.uniform(-30.0, 30.0))
-                quat = euler_to_quat(np.array([0.0, 0.0, dyaw]))
+                quat = euler_to_quat(np.array([0.0, 0.0, home_yaw[obj_name] + dyaw]))
 
                 obj_positions[obj_name] = [x, y, z]
                 obj_quats[obj_name] = quat
