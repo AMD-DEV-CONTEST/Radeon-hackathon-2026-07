@@ -1,9 +1,13 @@
 # Sumbot - Source-Grounded Weekly Report Agent
 
-**Track:** Track 2 - Development & Local Deployment of Private AI Agents  
-**Participant:** Rong Fu (solo participant; no registered team name)  
-**Source code:** https://github.com/doublegun9965/sumbot  
-**Demo video:** https://youtu.be/5oDVvO2Nt5k  
+**Track:** Track 2 - Development & Local Deployment of Private AI Agents
+
+**Participant:** Rong Fu (solo participant; no registered team name)
+
+**Source code:** https://github.com/doublegun9965/sumbot
+
+**Demo video:** https://youtu.be/5oDVvO2Nt5k
+
 **License:** MIT
 
 ## Project summary
