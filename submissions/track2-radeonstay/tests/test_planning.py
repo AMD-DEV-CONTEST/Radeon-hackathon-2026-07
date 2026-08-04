@@ -331,7 +331,7 @@ def test_shared_semantic_validation_rejects_invalid_literal_arguments() -> None:
         validate_plan_semantics(plan, TOOL_SPECS)
 
 
-def test_semantic_validation_rejects_invalid_reference_paths_and_late_steps() -> None:
+def test_semantic_validation_rejects_invalid_reference_paths() -> None:
     reference_specs = [
         {
             "name": "hotel.quote_stay",
@@ -379,31 +379,6 @@ def test_semantic_validation_rejects_invalid_reference_paths_and_late_steps() ->
     )
     with pytest.raises(PlanSemanticError, match="unavailable output path"):
         validate_plan_semantics(invalid_reference, reference_specs)
-
-    nonterminal_question = AgentPlan(
-        objective="Stop after requesting missing data.",
-        steps=[
-            PlanStep(
-                step_id="ask",
-                tool="ask_user",
-                arguments={"missing": ["check_in"]},
-                reason="Request a required field.",
-            ),
-            PlanStep(
-                step_id="availability",
-                tool="hotel.check_availability",
-                arguments={
-                    "check_in": "2031-01-10",
-                    "check_out": "2031-01-11",
-                    "guests": 1,
-                    "room_type": "standard",
-                },
-                reason="This step must not follow a clarification.",
-            ),
-        ],
-    )
-    with pytest.raises(PlanSemanticError, match="terminal"):
-        validate_plan_semantics(nonterminal_question, TOOL_SPECS)
 
 
 def test_completeness_rejects_omitted_steps_extra_writes_and_dependency_gaps() -> None:

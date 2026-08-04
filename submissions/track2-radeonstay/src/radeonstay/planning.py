@@ -700,7 +700,7 @@ def validate_plan_semantics(
 
     allowed = set(specifications) | set(PSEUDO_TOOLS)
     step_tools = {step.step_id: step.tool for step in plan.steps}
-    for step_index, step in enumerate(plan.steps):
+    for step in plan.steps:
         if step.tool not in allowed:
             raise PlanSemanticError(f"plan requested an unknown tool: {step.tool}")
         if step.tool == "respond_with_policy":
@@ -723,8 +723,6 @@ def validate_plan_semantics(
                 raise PlanSemanticError(
                     "ask_user requires a non-empty missing field list or question"
                 )
-            if step_index != len(plan.steps) - 1:
-                raise PlanSemanticError("ask_user must be the terminal plan step")
             continue
         if step.tool == "refuse_request":
             if step.arguments:
