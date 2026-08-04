@@ -10,9 +10,10 @@ questions: it retrieves cited local policy, builds a bounded plan, invokes
 typed hotel tools, pauses before every consequential write, remembers guest
 preferences only with consent, and emits a privacy-minimized audit trail.
 
-> The target hardware, ROCm/HIP runtime, model artifact, and llama.cpp binary
-> identities have been verified. Performance values remain intentionally
-> unclaimed until they are backed by the complete fixed-suite evidence bundle.
+> A target-validation snapshot records the hardware, ROCm/HIP runtime, model
+> artifact, and llama.cpp binary identities listed below. Submission evidence
+> and performance values remain intentionally unclaimed until complete target-run
+> bundles replace the `PENDING` entries in the evidence index.
 
 ## Why this project
 
@@ -27,25 +28,34 @@ from validated citations and tool receipts rather than unconstrained model prose
 
 A guest asks:
 
-> 我计划在两个明确的未来日期入住和退房，23:30 到店，带一名六岁儿童，
-> 有严重花生过敏，需要安静房和机场接送。请引用政策、查询房态和准确报价，
+> 我计划从 `{CHECK_IN}` 入住到 `{CHECK_OUT}` 退房，23:30 到店，带一名六岁儿童，
+> 有严重花生过敏，需要安静房和机场接送。请引用酒店政策，查询可用房和准确报价，
 > 并在我确认前只预览保留房间。
 
 The Chinese request is intentional multilingual product input. In English: the
 guest provides two exact future dates, a 23:30 arrival, one six-year-old child, a
 severe peanut allergy, a quiet-room request, and airport-transfer needs; they ask
 for cited policy, live inventory, an exact quote, and a preview-only hold.
+The braces above document a template, not text to submit. When the UI is created,
+it replaces them with explicit ISO values: check-in is local
+`date.today() + 30 days`, and checkout is local `date.today() + 32 days`. The
+displayed values must be used verbatim; no fixed 2030 dates are prefilled.
 
 The P0 flow demonstrates all five Track 2 capabilities in one journey:
 
-1. **Local RAG** retrieves late-arrival, child, allergy, and transfer policies
-   with document and section citations.
+1. **Local RAG** gathers up to five policy candidates with clause coverage across
+   late-arrival, child, allergy, and transfer topics. The final answer publishes
+   at most three selected document/section citations; candidate coverage is not
+   presented as four final citations.
 2. **Multi-step planning** produces a schema-validated, dependency-ordered plan.
 3. **Tool calling** checks inventory and computes a quote from local SQLite data.
 4. **Permission control** previews the reservation hold; nothing is written
    until the user confirms an opaque, single-use, expiring token.
-5. **Local memory** carries the confirmed hold into a follow-up turn. The guest
-   can then create a transfer ticket and opt in before storing a preference.
+5. **Local memory** carries the confirmed hold into a follow-up turn. After
+   confirmation, the operator replaces the editable next-prompt suggestion with
+   `请为刚才的订单安排机场接送。` (“Arrange an airport transfer for the booking
+   we just made.”), without exposing the booking ID in the prompt, then opts in
+   before storing a preference.
 
 An unauthorized identity then tries to reuse the bound session and is denied.
 The UI shows citations, the plan, tool receipts, pending writes, and HMAC-linked
@@ -129,17 +139,73 @@ file records the complete resolved package versions present in that environment,
 but contains no artifact hashes and is not a software bill of materials or a
 license inventory.
 
+## Reproduce the pinned inference artifacts
+
+Run artifact acquisition on the target Linux/ROCm host before the Python quick
+start. Keep weights, upstream source, and build output outside this Git project;
+otherwise the C2 clean-tree check rejects them as untracked inputs. Download
+only the named file from the fixed model revision, then verify it before use.
+This path requires Git, curl, CMake, GNU `sha256sum`, and the ROCm/HIP 7.2.1
+development toolchain:
+
+```bash
+: "${RADEONSTAY_ARTIFACT_ROOT:?Export a writable absolute path outside the Git repository}"
+mkdir -p "$RADEONSTAY_ARTIFACT_ROOT/model"
+MODEL_REPO="unsloth/Qwen3.6-35B-A3B-GGUF"
+MODEL_REV="a483e9e6cbd595906af30beda3187c2663a1118c"
+MODEL_NAME="Qwen3.6-35B-A3B-UD-Q6_K.gguf"
+MODEL_SHA256="4fe53b148b46f9b88830e2a3055c5b15c3a4d1e3ddc9a1384a108d8b9d59f043"
+export MODEL_FILE="$RADEONSTAY_ARTIFACT_ROOT/model/$MODEL_NAME"
+test ! -e "$MODEL_FILE"
+
+curl --fail --location --retry 3 \
+  "https://huggingface.co/$MODEL_REPO/resolve/$MODEL_REV/$MODEL_NAME?download=true" \
+  --output "$MODEL_FILE"
+printf '%s  %s\n' "$MODEL_SHA256" "$MODEL_FILE" | sha256sum --check --strict
+```
+
+Build `llama-server` from the pinned llama.cpp commit with its HIP backend and
+the detected `gfx1100` target. The recorded SHA256 identifies the validated
+release binary, not merely the source commit: a locally rebuilt binary may be
+used as that identity only when its checksum matches. Otherwise it is a new
+binary identity and all manifests, notices, and target evidence must bind its
+actual hash rather than reusing the value below.
+
+```bash
+LLAMA_CPP_REV="0b14b87d7c20cb753b94b96854dd7b45306fc696"
+LLAMA_SHA256="926e2297d7144a59182ba9d37de877ec972a0cf8d1b697baa82277b3066c45c6"
+LLAMA_CPP_DIR="$RADEONSTAY_ARTIFACT_ROOT/llama.cpp"
+
+git clone https://github.com/ggml-org/llama.cpp.git "$LLAMA_CPP_DIR"
+git -C "$LLAMA_CPP_DIR" checkout --detach "$LLAMA_CPP_REV"
+test "$(git -C "$LLAMA_CPP_DIR" rev-parse HEAD)" = "$LLAMA_CPP_REV"
+
+cmake -S "$LLAMA_CPP_DIR" -B "$LLAMA_CPP_DIR/build-rocm" \
+  -DGGML_HIP=ON \
+  -DAMDGPU_TARGETS=gfx1100 \
+  -DCMAKE_BUILD_TYPE=Release
+cmake --build "$LLAMA_CPP_DIR/build-rocm" --config Release --parallel
+
+export LLAMA_BIN="$LLAMA_CPP_DIR/build-rocm/bin/llama-server"
+printf '%s  %s\n' "$LLAMA_SHA256" "$LLAMA_BIN" | sha256sum --check --strict
+```
+
+The official bundle additionally retains the full CMake configure output,
+compiler/ROCm versions, `rocminfo`, startup log, final positive offload count,
+and active same-GPU telemetry. A successful checksum alone is not proof that an
+inference request ran on Radeon.
+
 ## Quick start
 
-These commands reproduce the verified software identities without embedding any
-target-host address or credential.
+After the artifact checksum steps above, these commands recreate the pinned
+Python environment and local launch configuration without embedding a target-host
+address or credential.
 
 ```bash
 cd submissions/track2-radeonstay
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.lock
-python -m pip install --no-deps -e .
 cp .env.example .env
 python - <<'PY'
 from pathlib import Path
@@ -183,7 +249,7 @@ scripts/serve_model.sh
 In a second terminal:
 
 ```bash
-radeonstay
+scripts/serve_app.sh
 ```
 
 The default UI listens only on `127.0.0.1:7860`. For a controlled Radeon Cloud
@@ -239,6 +305,14 @@ offload logs, and active same-GPU telemetry inside both evaluation windows. It
 also requires baseline and optimized evidence to use identical
 `common_active_gpu_indices` and physical GPU unique IDs. It reports deltas but
 never declares a winner without paired-evidence review.
+
+The release checklist names the immutable source/artifact freeze **C2** and one
+complete target execution lifecycle **C3**. Stability evidence is five fresh C3
+lifecycles of the single accepted final configuration—not five differently
+tuned experiments. Each lifecycle starts and stops its own model service and
+monitor and retains its own retrieval, quality, benchmark, server, telemetry,
+and binding artifacts. See the evaluation plan and evidence index; all target
+results remain pending until those files exist.
 
 ## Documentation
 

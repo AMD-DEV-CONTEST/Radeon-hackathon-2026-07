@@ -3,15 +3,22 @@ set -Eeuo pipefail
 set -C
 
 usage() {
-  echo "Usage: $0 --run-prefix PREFIX --run A|B|C|D|E|all --expected-commit FULL_SHA --output-root NEW_DIRECTORY --model-file GGUF --llama-server BINARY [--model-alias NAME] [--model-port PORT] [--context-size TOKENS] [--dry-run]" >&2
+  echo "Usage: $0 --run-prefix PREFIX --run A|B|C|D|E|all --expected-commit FULL_SHA --expected-model-sha256 SHA256 --expected-llama-server-sha256 SHA256 --output-root NEW_DIRECTORY --model-file GGUF --model-repository REPOSITORY --model-revision REVISION --model-license SPDX --llama-server BINARY --llama-cpp-commit COMMIT --llama-build DESCRIPTION [--model-alias NAME] [--model-port PORT] [--context-size TOKENS] [--dry-run]" >&2
 }
 
 run_prefix=""
 run_selection="all"
 expected_commit=""
+expected_model_sha256=""
+expected_llama_server_sha256=""
 output_root=""
 model_file=""
+model_repository=""
+model_revision=""
+model_license=""
 llama_server=""
+llama_cpp_commit=""
+llama_build=""
 model_alias="qwen3.6-35b-a3b-q6k"
 model_port="8000"
 context_size="16384"
@@ -23,7 +30,7 @@ while [[ $# -gt 0 ]]; do
       dry_run=1
       shift
       ;;
-    --run-prefix|--run|--expected-commit|--output-root|--model-file|--llama-server|--model-alias|--model-port|--context-size)
+    --run-prefix|--run|--expected-commit|--expected-model-sha256|--expected-llama-server-sha256|--output-root|--model-file|--model-repository|--model-revision|--model-license|--llama-server|--llama-cpp-commit|--llama-build|--model-alias|--model-port|--context-size)
       if [[ $# -lt 2 ]]; then
         usage
         exit 2
@@ -32,9 +39,16 @@ while [[ $# -gt 0 ]]; do
         --run-prefix) run_prefix="${2:-}" ;;
         --run) run_selection="${2:-}" ;;
         --expected-commit) expected_commit="${2:-}" ;;
+        --expected-model-sha256) expected_model_sha256="${2:-}" ;;
+        --expected-llama-server-sha256) expected_llama_server_sha256="${2:-}" ;;
         --output-root) output_root="${2:-}" ;;
         --model-file) model_file="${2:-}" ;;
+        --model-repository) model_repository="${2:-}" ;;
+        --model-revision) model_revision="${2:-}" ;;
+        --model-license) model_license="${2:-}" ;;
         --llama-server) llama_server="${2:-}" ;;
+        --llama-cpp-commit) llama_cpp_commit="${2:-}" ;;
+        --llama-build) llama_build="${2:-}" ;;
         --model-alias) model_alias="${2:-}" ;;
         --model-port) model_port="${2:-}" ;;
         --context-size) context_size="${2:-}" ;;
@@ -63,7 +77,24 @@ if [[ ! "${expected_commit}" =~ ^[0-9a-f]{40,64}$ ]]; then
   echo "--expected-commit must be a full lowercase Git object ID" >&2
   exit 3
 fi
-if [[ -z "${output_root}" || -z "${model_file}" || -z "${llama_server}" ]]; then
+if [[ ! "${expected_model_sha256}" =~ ^[0-9a-f]{64}$ ]]; then
+  echo "--expected-model-sha256 must be a lowercase SHA256" >&2
+  exit 3
+fi
+if [[ ! "${expected_llama_server_sha256}" =~ ^[0-9a-f]{64}$ ]]; then
+  echo "--expected-llama-server-sha256 must be a lowercase SHA256" >&2
+  exit 3
+fi
+if [[ ! "${model_revision}" =~ ^[0-9a-f]{40,64}$ ]]; then
+  echo "--model-revision must be a full lowercase revision hash" >&2
+  exit 3
+fi
+if [[ ! "${llama_cpp_commit}" =~ ^[0-9a-f]{40,64}$ ]]; then
+  echo "--llama-cpp-commit must be a full lowercase Git object ID" >&2
+  exit 3
+fi
+if [[ -z "${output_root}" || -z "${model_file}" || -z "${llama_server}" \
+      || -z "${model_repository}" || -z "${model_license}" || -z "${llama_build}" ]]; then
   usage
   exit 2
 fi
@@ -82,6 +113,15 @@ fi
 for supplied_path in "${output_root}" "${model_file}" "${llama_server}"; do
   if [[ "${supplied_path}" == *$'\n'* || "${supplied_path}" == *$'\r'* ]]; then
     echo "Matrix paths must not contain CR or LF characters" >&2
+    exit 3
+  fi
+done
+for provenance_value in \
+  "${model_repository}" \
+  "${model_license}" \
+  "${llama_build}"; do
+  if [[ "${provenance_value}" == *$'\n'* || "${provenance_value}" == *$'\r'* ]]; then
+    echo "Provenance values must not contain CR or LF characters" >&2
     exit 3
   fi
 done
@@ -156,21 +196,25 @@ assert_c2_binding() {
   fi
 }
 
-assert_c2_binding
-c2_project_tree="$(git -C "${project_dir}" rev-parse "HEAD:${project_prefix}")"
-pinned_model_sha256="$(sha256sum -- "${model_file}" | awk '{print $1}')"
-pinned_llama_sha256="$(sha256sum -- "${llama_server}" | awk '{print $1}')"
-
 assert_artifact_binding() {
   local current_model_sha256 current_llama_sha256
   current_model_sha256="$(sha256sum -- "${model_file}" | awk '{print $1}')"
   current_llama_sha256="$(sha256sum -- "${llama_server}" | awk '{print $1}')"
-  if [[ "${current_model_sha256}" != "${pinned_model_sha256}" \
-        || "${current_llama_sha256}" != "${pinned_llama_sha256}" ]]; then
-    echo "Pinned model or llama-server changed during the matrix" >&2
+  if [[ "${current_model_sha256}" != "${expected_model_sha256}" ]]; then
+    echo "Model SHA256 ${current_model_sha256} does not match expected ${expected_model_sha256}" >&2
+    return 1
+  fi
+  if [[ "${current_llama_sha256}" != "${expected_llama_server_sha256}" ]]; then
+    echo "llama-server SHA256 ${current_llama_sha256} does not match expected ${expected_llama_server_sha256}" >&2
     return 1
   fi
 }
+
+assert_artifact_binding
+assert_c2_binding
+c2_project_tree="$(git -C "${project_dir}" rev-parse "HEAD:${project_prefix}")"
+pinned_model_sha256="${expected_model_sha256}"
+pinned_llama_sha256="${expected_llama_server_sha256}"
 
 configure_experiment() {
   local experiment="$1"
@@ -203,12 +247,14 @@ print_dry_run() {
   echo "c2_project_tree=${c2_project_tree}"
   echo "model_alias=${model_alias} context_size=${context_size}"
   echo "model_sha256=${pinned_model_sha256} llama_server_sha256=${pinned_llama_sha256}"
+  echo "model_repository=${model_repository} model_revision=${model_revision} model_license=${model_license}"
+  echo "llama_cpp_commit=${llama_cpp_commit} llama_build=${llama_build}"
   echo "thinking=${thinking} flash_attn=${flash_attn} batch=${batch_size} ubatch=${ubatch_size} parallel=${parallel_slots}"
-  echo "stages=serve_model,monitor_rocm,retrieval,agent_quality,benchmark,controlled_child_shutdown,collect_rocm_evidence"
+  echo "stages=serve_model,monitor_rocm,retrieval,agent_quality,benchmark,c2_live_recheck,collect_live_rocm_evidence,controlled_child_shutdown,c2_final_recheck,collect_rocm_evidence"
   if [[ "${run_selection}" == "all" ]]; then
-    echo "formal_comparison=A-vs-B-thinking-only"
+    echo "formal_comparisons=A-vs-B-thinking,B-vs-C-flash-attention,C-vs-D-batch,D-vs-E-parallel"
   else
-    echo "formal_comparison=not_scheduled_for_single_run"
+    echo "formal_comparisons=not_scheduled_for_single_run"
   fi
 }
 
@@ -239,6 +285,7 @@ matrix_status_file="${output_root}/matrix-status.log"
   echo "project_tree=${c2_project_tree}"
   echo "model_sha256=${pinned_model_sha256}"
   echo "llama_server_sha256=${pinned_llama_sha256}"
+  echo "artifact_retention=preserve_all_outputs_on_failure"
 } > "${matrix_status_file}"
 
 run_experiment() (
@@ -249,6 +296,7 @@ run_experiment() (
   local run_dir="${output_root}/${experiment}"
   local server_log="${run_dir}/llama-server.log"
   local monitor_log="${run_dir}/rocm-monitor.log"
+  local live_evidence_file="${run_dir}/live-rocm.log"
   local stop_file="${run_dir}/monitor.stop"
   local retrieval_file="${run_dir}/retrieval.json"
   local quality_file="${run_dir}/agent-quality.json"
@@ -262,6 +310,7 @@ run_experiment() (
   local monitor_active=0
   local run_complete=0
   local current_stage="preflight"
+  local -a evidence_arguments=()
 
   configure_experiment "${experiment}"
   mkdir -m 0700 -- "${run_dir}"
@@ -274,8 +323,13 @@ run_experiment() (
     echo "project_tree=${c2_project_tree}"
     echo "model_file=${model_file}"
     echo "model_sha256=${pinned_model_sha256}"
+    echo "model_repository=${model_repository}"
+    echo "model_revision=${model_revision}"
+    echo "model_license=${model_license}"
     echo "llama_server=${llama_server}"
     echo "llama_server_sha256=${pinned_llama_sha256}"
+    echo "llama_cpp_commit=${llama_cpp_commit}"
+    echo "llama_build=${llama_build}"
     echo "model_alias=${model_alias}"
     echo "context_size=${context_size}"
     echo "thinking=${thinking}"
@@ -283,6 +337,7 @@ run_experiment() (
     echo "batch_size=${batch_size}"
     echo "ubatch_size=${ubatch_size}"
     echo "parallel_slots=${parallel_slots}"
+    echo "artifact_retention=preserve_all_outputs_on_failure"
   } > "${manifest_file}"
   echo "started_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ) stage=preflight status=started" > "${status_file}"
 
@@ -473,13 +528,47 @@ run_experiment() (
     --output "${benchmark_file}"
   record_stage complete
 
+  evidence_arguments=(
+    --run-id "${run_id}"
+    --output-dir "${evidence_dir}"
+    --live-evidence-file "${live_evidence_file}"
+    --retrieval-file "${retrieval_file}"
+    --quality-file "${quality_file}"
+    --benchmark-file "${benchmark_file}"
+    --monitor-file "${monitor_log}"
+    --server-log "${server_log}"
+    --model-file "${model_file}"
+    --expected-model-sha256 "${expected_model_sha256}"
+    --model-repository "${model_repository}"
+    --model-revision "${model_revision}"
+    --model-license "${model_license}"
+    --llama-server "${llama_server}"
+    --expected-llama-server-sha256 "${expected_llama_server_sha256}"
+    --llama-cpp-commit "${llama_cpp_commit}"
+    --llama-build "${llama_build}"
+    --python-executable "${python_bin}"
+  )
+
+  current_stage="c2_live_recheck"
+  record_stage started
+  assert_c2_binding
+  assert_artifact_binding
+  record_stage complete
+
+  current_stage="collect_live_rocm_evidence"
+  record_stage started
+  "${project_dir}/scripts/collect_rocm_evidence.sh" \
+    --phase live \
+    "${evidence_arguments[@]}"
+  record_stage complete
+
   current_stage="controlled_child_shutdown"
   record_stage started
   stop_monitor_child
   stop_server_child
   record_stage complete
 
-  current_stage="c2_recheck"
+  current_stage="c2_final_recheck"
   record_stage started
   assert_c2_binding
   assert_artifact_binding
@@ -488,15 +577,8 @@ run_experiment() (
   current_stage="collect_rocm_evidence"
   record_stage started
   "${project_dir}/scripts/collect_rocm_evidence.sh" \
-    --run-id "${run_id}" \
-    --output-dir "${evidence_dir}" \
-    --retrieval-file "${retrieval_file}" \
-    --quality-file "${quality_file}" \
-    --benchmark-file "${benchmark_file}" \
-    --monitor-file "${monitor_log}" \
-    --server-log "${server_log}" \
-    --model-file "${model_file}" \
-    --llama-server "${llama_server}"
+    --phase final \
+    "${evidence_arguments[@]}"
   record_stage complete
   run_complete=1
 )
@@ -517,39 +599,52 @@ done
 
 comparison_failed=0
 if [[ "${run_selection}" == "all" ]]; then
-  baseline_bundle="${output_root}/A/evidence"
-  optimized_bundle="${output_root}/B/evidence"
-  comparison_output="${output_root}/A-vs-B-thinking.json"
-  if [[ -f "${baseline_bundle}/binding-manifest.txt" \
-        && -f "${optimized_bundle}/binding-manifest.txt" ]]; then
-    set +e
-    assert_c2_binding && assert_artifact_binding && \
-      "${python_bin}" "${project_dir}/evaluation/compare_benchmarks.py" \
-        --baseline "${baseline_bundle}/agent-benchmark.json" \
-        --optimized "${optimized_bundle}/agent-benchmark.json" \
-        --baseline-binding "${baseline_bundle}/binding-manifest.txt" \
-        --optimized-binding "${optimized_bundle}/binding-manifest.txt" \
-        --material-threshold-percent 5.0 \
-        --require-accepted \
-        --output "${comparison_output}"
-    comparison_status=$?
-    set -e
-    if (( comparison_status == 0 )); then
-      echo "formal_comparison=A-vs-B-thinking status=report_written" >> "${matrix_status_file}"
+  formal_comparison_pairs=(
+    "A:B:thinking"
+    "B:C:flash-attention"
+    "C:D:batch"
+    "D:E:parallel"
+  )
+  for comparison_spec in "${formal_comparison_pairs[@]}"; do
+    IFS=: read -r baseline_experiment optimized_experiment comparison_label \
+      <<<"${comparison_spec}"
+    comparison_name="${baseline_experiment}-vs-${optimized_experiment}-${comparison_label}"
+    baseline_bundle="${output_root}/${baseline_experiment}/evidence"
+    optimized_bundle="${output_root}/${optimized_experiment}/evidence"
+    comparison_output="${output_root}/${comparison_name}.json"
+    if [[ -f "${baseline_bundle}/binding-manifest.txt" \
+          && -f "${optimized_bundle}/binding-manifest.txt" ]]; then
+      set +e
+      assert_c2_binding && assert_artifact_binding && \
+        "${python_bin}" "${project_dir}/evaluation/compare_benchmarks.py" \
+          --baseline "${baseline_bundle}/agent-benchmark.json" \
+          --optimized "${optimized_bundle}/agent-benchmark.json" \
+          --baseline-binding "${baseline_bundle}/binding-manifest.txt" \
+          --optimized-binding "${optimized_bundle}/binding-manifest.txt" \
+          --material-threshold-percent 5.0 \
+          --require-accepted \
+          --output "${comparison_output}"
+      comparison_status=$?
+      set -e
+      if (( comparison_status == 0 )); then
+        echo "formal_comparison=${comparison_name} status=accepted report=${comparison_output}" >> "${matrix_status_file}"
+      else
+        comparison_failed=1
+        echo "formal_comparison=${comparison_name} status=failed exit_code=${comparison_status} artifacts=preserved report=${comparison_output}" >> "${matrix_status_file}"
+      fi
     else
       comparison_failed=1
-      echo "formal_comparison=A-vs-B-thinking status=failed exit_code=${comparison_status}" >> "${matrix_status_file}"
+      echo "formal_comparison=${comparison_name} status=skipped_missing_complete_bundle artifacts=preserved" >> "${matrix_status_file}"
     fi
-  else
-    echo "formal_comparison=A-vs-B-thinking status=skipped_missing_complete_bundle" >> "${matrix_status_file}"
-  fi
+  done
 else
-  echo "formal_comparison=A-vs-B-thinking status=not_scheduled_single_run" >> "${matrix_status_file}"
+  echo "formal_comparisons=not_scheduled_single_run" >> "${matrix_status_file}"
 fi
 
 echo "matrix_completed_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "${matrix_status_file}"
 if (( ${#failed_experiments[@]} > 0 || comparison_failed != 0 )); then
   echo "failed_experiments=${failed_experiments[*]}" >> "${matrix_status_file}"
+  echo "failure_artifacts=preserved" >> "${matrix_status_file}"
   exit 1
 fi
 echo "failed_experiments=none" >> "${matrix_status_file}"

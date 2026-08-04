@@ -32,7 +32,8 @@ LLAMA_SERVER="$LLAMA_BIN" \
 MODEL_PATH="$MODEL_FILE" \
 MODEL_ALIAS="${RADEONSTAY_MODEL_NAME:-qwen3.6-35b-a3b-q6k}" \
 EVIDENCE_RUN_ID=radeon-target-baseline-001 \
-scripts/serve_model.sh > evaluation/results/llama-server.log 2>&1
+scripts/serve_model.sh \
+  > evaluation/results/radeon-target-baseline-001-llama-server.log 2>&1
 ```
 
 `MODEL_FILE` is
@@ -41,8 +42,10 @@ scripts/serve_model.sh > evaluation/results/llama-server.log 2>&1
 `0b14b87d7c20cb753b94b96854dd7b45306fc696`.
 
 The service must bind to `127.0.0.1:8000` for the private judge path. Use a
-second terminal with `tail -f evaluation/results/llama-server.log` if live logs
-are needed; stopping the launcher writes the evidence end marker to that file.
+second terminal with
+`tail -f evaluation/results/radeon-target-baseline-001-llama-server.log` if
+live logs are needed; stopping the launcher writes the evidence end marker to
+that file.
 
 ## 3. Start RadeonStay
 
@@ -50,7 +53,6 @@ are needed; stopping the launcher writes the evidence end marker to that file.
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.lock
-python -m pip install --no-deps -e .
 cp .env.example .env
 python - <<'PY'
 from pathlib import Path
@@ -68,7 +70,7 @@ for placeholder, secret in replacements.items():
     text = text.replace(placeholder, secret, 1)
 path.write_text(text, encoding="utf-8")
 PY
-radeonstay
+scripts/serve_app.sh
 ```
 
 The generated 48-byte secrets are different, remain only in the ignored `.env`,
@@ -76,11 +78,12 @@ and are required even for loopback-only use. Open `http://127.0.0.1:7860`.
 
 ## 4. Run the judge journey
 
-Use the seeded guest and the prefilled Chinese prompt in the UI. It includes two
-exact future dates because the Agent is intentionally forbidden from inventing
-a stay window:
+Use the seeded guest and the prefilled Chinese prompt in the UI. On every new
+session, the UI computes two exact future dates as local `today+30` and
+`today+32`; the Agent is intentionally forbidden from inventing a stay window.
+The visible prompt therefore follows this runtime-generated form:
 
-> 我计划从 2030-09-10 入住到 2030-09-12 退房，23:30 到店，带一名六岁
+> 我计划从 <today+30> 入住到 <today+32> 退房，23:30 到店，带一名六岁
 > 儿童，有严重花生过敏，需要安静房和机场接送。请引用酒店政策，查询
 > 可用房和准确报价，并在我确认前只预览保留房间。
 

@@ -3,30 +3,48 @@ set -euo pipefail
 set -C
 
 usage() {
-  echo "Usage: $0 --run-id RUN_ID --output-dir NEW_DIRECTORY --retrieval-file FILE --quality-file FILE --benchmark-file FILE --monitor-file FILE --server-log FILE --model-file FILE --llama-server FILE" >&2
+  echo "Usage: $0 --phase live|final --run-id RUN_ID --output-dir NEW_DIRECTORY --live-evidence-file FILE --retrieval-file FILE --quality-file FILE --benchmark-file FILE --monitor-file FILE --server-log FILE --model-file FILE --expected-model-sha256 SHA256 --model-repository REPOSITORY --model-revision REVISION --model-license SPDX --llama-server FILE --expected-llama-server-sha256 SHA256 --llama-cpp-commit COMMIT --llama-build DESCRIPTION [--python-executable PYTHON]" >&2
 }
 
+collection_phase="final"
 run_id=""
 output_dir=""
+live_evidence_file=""
 benchmark_file=""
 quality_file=""
 retrieval_file=""
 monitor_file=""
 server_log=""
 model_file=""
+expected_model_sha256=""
+model_repository=""
+model_revision=""
+model_license=""
 llama_server=""
+expected_llama_server_sha256=""
+llama_cpp_commit=""
+llama_build=""
+python_executable="python3"
 while [[ $# -gt 0 ]]; do
   if [[ $# -lt 2 ]]; then
     usage
     exit 2
   fi
   case "$1" in
+    --phase)
+      collection_phase="${2:-}"
+      shift 2
+      ;;
     --run-id)
       run_id="${2:-}"
       shift 2
       ;;
     --output-dir)
       output_dir="${2:-}"
+      shift 2
+      ;;
+    --live-evidence-file)
+      live_evidence_file="${2:-}"
       shift 2
       ;;
     --benchmark-file)
@@ -53,8 +71,40 @@ while [[ $# -gt 0 ]]; do
       model_file="${2:-}"
       shift 2
       ;;
+    --expected-model-sha256)
+      expected_model_sha256="${2:-}"
+      shift 2
+      ;;
+    --model-repository)
+      model_repository="${2:-}"
+      shift 2
+      ;;
+    --model-revision)
+      model_revision="${2:-}"
+      shift 2
+      ;;
+    --model-license)
+      model_license="${2:-}"
+      shift 2
+      ;;
     --llama-server)
       llama_server="${2:-}"
+      shift 2
+      ;;
+    --expected-llama-server-sha256)
+      expected_llama_server_sha256="${2:-}"
+      shift 2
+      ;;
+    --llama-cpp-commit)
+      llama_cpp_commit="${2:-}"
+      shift 2
+      ;;
+    --llama-build)
+      llama_build="${2:-}"
+      shift 2
+      ;;
+    --python-executable)
+      python_executable="${2:-}"
       shift 2
       ;;
     *)
@@ -68,19 +118,45 @@ if [[ ! "${run_id}" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{0,47}$ ]]; then
   echo "Run ID must be 1-48 characters using letters, digits, dot, underscore, colon, or hyphen" >&2
   exit 3
 fi
+case "${collection_phase}" in
+  live|final) ;;
+  *)
+    echo "--phase must be live or final" >&2
+    exit 3
+    ;;
+esac
 if [[ -z "${output_dir}" ]]; then
   usage
   exit 2
 fi
 if [[ -z "${retrieval_file}" || -z "${quality_file}" || -z "${benchmark_file}" \
       || -z "${monitor_file}" \
-      || -z "${server_log}" || -z "${model_file}" || -z "${llama_server}" ]]; then
+      || -z "${server_log}" || -z "${model_file}" || -z "${llama_server}" \
+      || -z "${live_evidence_file}" \
+      || -z "${model_repository}" || -z "${model_license}" || -z "${llama_build}" ]]; then
   echo "A complete evidence bundle requires every artifact argument" >&2
   usage
   exit 2
 fi
+if [[ ! "${expected_model_sha256}" =~ ^[0-9a-f]{64}$ ]]; then
+  echo "--expected-model-sha256 must be a lowercase SHA256" >&2
+  exit 3
+fi
+if [[ ! "${expected_llama_server_sha256}" =~ ^[0-9a-f]{64}$ ]]; then
+  echo "--expected-llama-server-sha256 must be a lowercase SHA256" >&2
+  exit 3
+fi
+if [[ ! "${model_revision}" =~ ^[0-9a-f]{40,64}$ ]]; then
+  echo "--model-revision must be a full lowercase revision hash" >&2
+  exit 3
+fi
+if [[ ! "${llama_cpp_commit}" =~ ^[0-9a-f]{40,64}$ ]]; then
+  echo "--llama-cpp-commit must be a full lowercase Git object ID" >&2
+  exit 3
+fi
 for evidence_path in \
   "${output_dir}" \
+  "${live_evidence_file}" \
   "${retrieval_file}" \
   "${quality_file}" \
   "${benchmark_file}" \
@@ -93,8 +169,23 @@ for evidence_path in \
     exit 3
   fi
 done
+for provenance_value in \
+  "${model_repository}" \
+  "${model_license}" \
+  "${llama_build}" \
+  "${python_executable}"; do
+  if [[ "${provenance_value}" == *$'\n'* || "${provenance_value}" == *$'\r'* ]]; then
+    echo "Provenance values must not contain CR or LF characters" >&2
+    exit 3
+  fi
+done
 
 project_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
+requirements_lock="${project_dir}/requirements.lock"
+if [[ ! -f "${requirements_lock}" ]]; then
+  echo "RadeonStay requirements.lock is required for evidence collection" >&2
+  exit 3
+fi
 output_parent="$(dirname -- "${output_dir}")"
 if [[ -e "${output_dir}" ]]; then
   echo "Refusing to overwrite existing output path: ${output_dir}" >&2
@@ -108,6 +199,25 @@ output_parent="$(cd -- "${output_parent}" && pwd -P)"
 output_dir="${output_parent}/$(basename -- "${output_dir}")"
 if [[ "${output_dir}" == *$'\n'* || "${output_dir}" == *$'\r'* ]]; then
   echo "Resolved output path must not contain CR or LF characters" >&2
+  exit 3
+fi
+live_evidence_parent="$(dirname -- "${live_evidence_file}")"
+if [[ ! -d "${live_evidence_parent}" ]]; then
+  echo "Live-evidence parent directory does not exist: ${live_evidence_parent}" >&2
+  exit 3
+fi
+live_evidence_parent="$(cd -- "${live_evidence_parent}" && pwd -P)"
+live_evidence_file="${live_evidence_parent}/$(basename -- "${live_evidence_file}")"
+if [[ "${live_evidence_file}" == *$'\n'* || "${live_evidence_file}" == *$'\r'* ]]; then
+  echo "Resolved live-evidence path must not contain CR or LF characters" >&2
+  exit 3
+fi
+if [[ "${collection_phase}" == "live" && ( -e "${live_evidence_file}" || -L "${live_evidence_file}" ) ]]; then
+  echo "Refusing to overwrite existing live evidence: ${live_evidence_file}" >&2
+  exit 3
+fi
+if [[ "${collection_phase}" == "final" && ! -f "${live_evidence_file}" ]]; then
+  echo "Final collection requires complete live evidence: ${live_evidence_file}" >&2
   exit 3
 fi
 repository_root="$(git -C "${project_dir}" rev-parse --show-toplevel)"
@@ -125,12 +235,27 @@ fi
 commit="$(git -C "${project_dir}" rev-parse --verify HEAD)"
 project_tree="$(git -C "${project_dir}" rev-parse "HEAD:${project_prefix}")"
 
-for required_command in rocminfo rocm-smi git uname sha256sum grep awk python3 cp; do
+for required_command in rocminfo rocm-smi git uname sha256sum grep awk sed cp; do
   if ! command -v "${required_command}" >/dev/null 2>&1; then
     echo "Required command not found: ${required_command}" >&2
     exit 4
   fi
 done
+if [[ "${collection_phase}" == "live" ]] \
+    && ! command -v curl >/dev/null 2>&1; then
+  echo "Required live-collection command not found: curl" >&2
+  exit 4
+fi
+if ! python_executable_path="$(command -v "${python_executable}")"; then
+  echo "Python executable not found: ${python_executable}" >&2
+  exit 4
+fi
+python_version="$("${python_executable_path}" --version 2>&1)"
+if [[ -z "${python_version}" || "${python_version}" == *$'\n'* \
+      || "${python_version}" == *$'\r'* ]]; then
+  echo "Python version evidence must be one non-empty line" >&2
+  exit 4
+fi
 for artifact in \
   "${retrieval_file}" \
   "${quality_file}" \
@@ -167,6 +292,62 @@ done
 if [[ -n "${benchmark_file}" ]] && ! grep -Fq "\"run_id\": \"${run_id}\"" "${benchmark_file}"; then
   echo "Benchmark file does not contain the requested run ID: ${run_id}" >&2
   exit 3
+fi
+if [[ "${collection_phase}" == "live" ]]; then
+  model_sha256="$(sha256sum -- "${model_file}" | awk '{print $1}')"
+  llama_server_sha256="$(sha256sum -- "${llama_server}" | awk '{print $1}')"
+  requirements_lock_sha256="$(sha256sum -- "${requirements_lock}" | awk '{print $1}')"
+  if [[ "${model_sha256}" != "${expected_model_sha256}" ]]; then
+    echo "Model SHA256 ${model_sha256} does not match expected ${expected_model_sha256}" >&2
+    exit 3
+  fi
+  if [[ "${llama_server_sha256}" != "${expected_llama_server_sha256}" ]]; then
+    echo "llama-server SHA256 ${llama_server_sha256} does not match expected ${expected_llama_server_sha256}" >&2
+    exit 3
+  fi
+  if ! grep -Fqx "evidence_run_id=${run_id}" "${server_log}" \
+      || ! grep -Fqx "model_path=${model_file}" "${server_log}" \
+      || ! grep -Fqx "model_sha256_at_start=${model_sha256}" "${server_log}" \
+      || ! grep -Fqx "llama_server_path=${llama_server}" "${server_log}" \
+      || ! grep -Fqx "llama_server_sha256_at_start=${llama_server_sha256}" "${server_log}"; then
+    echo "Live server evidence is not bound to the expected run and artifacts" >&2
+    exit 3
+  fi
+  if ! grep -Fqx "run_id=${run_id}" "${monitor_file}" \
+      || ! grep -Fq "sample=1 run_id=${run_id} " "${monitor_file}"; then
+    echo "Live ROCm monitor has not produced a bound sample" >&2
+    exit 3
+  fi
+  model_base_url="$(sed -n 's/^model_base_url=//p' "${server_log}" | sed -n '1p')"
+  if [[ -z "${model_base_url}" ]] \
+      || ! curl --fail --silent --show-error --max-time 5 \
+        "${model_base_url%/}/models" >/dev/null; then
+    echo "Local model endpoint is not reachable during live evidence collection" >&2
+    exit 3
+  fi
+  {
+    echo "schema_version=1"
+    echo "collector=collect_rocm_evidence.sh"
+    echo "phase=live"
+    echo "run_id=${run_id}"
+    echo "collected_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    echo "model_endpoint=${model_base_url}"
+    echo "model_endpoint_status=reachable"
+    echo "model_sha256=${model_sha256}"
+    echo "llama_server_sha256=${llama_server_sha256}"
+    echo "python_executable=${python_executable_path}"
+    echo "python_version=${python_version}"
+    echo "requirements_lock_sha256=${requirements_lock_sha256}"
+    echo "rocminfo_begin"
+    LC_ALL=C rocminfo
+    echo "rocminfo_end"
+    echo "rocm_smi_begin"
+    LC_ALL=C rocm-smi
+    echo "rocm_smi_end"
+    echo "status=complete"
+  } > "${live_evidence_file}" 2>&1
+  echo "Live ROCm evidence for run ${run_id} written to: ${live_evidence_file}"
+  exit 0
 fi
 if ! grep -Fqx "evidence_log_status=complete" "${server_log}"; then
   echo "Server log is incomplete or the model service is still running" >&2
@@ -205,8 +386,32 @@ monitor_sha256="$(sha256sum -- "${monitor_file}" | awk '{print $1}')"
 server_log_sha256="$(sha256sum -- "${server_log}" | awk '{print $1}')"
 model_sha256="$(sha256sum -- "${model_file}" | awk '{print $1}')"
 llama_server_sha256="$(sha256sum -- "${llama_server}" | awk '{print $1}')"
+requirements_lock_sha256="$(sha256sum -- "${requirements_lock}" | awk '{print $1}')"
+if [[ "${model_sha256}" != "${expected_model_sha256}" ]]; then
+  echo "Model SHA256 ${model_sha256} does not match expected ${expected_model_sha256}" >&2
+  exit 3
+fi
+if [[ "${llama_server_sha256}" != "${expected_llama_server_sha256}" ]]; then
+  echo "llama-server SHA256 ${llama_server_sha256} does not match expected ${expected_llama_server_sha256}" >&2
+  exit 3
+fi
+live_rocm_sha256="$(sha256sum -- "${live_evidence_file}" | awk '{print $1}')"
+if ! grep -Fqx "phase=live" "${live_evidence_file}" \
+    || ! grep -Fqx "status=complete" "${live_evidence_file}" \
+    || ! grep -Fqx "run_id=${run_id}" "${live_evidence_file}" \
+    || ! grep -Fqx "model_endpoint_status=reachable" "${live_evidence_file}" \
+    || ! grep -Fqx "model_sha256=${model_sha256}" "${live_evidence_file}" \
+    || ! grep -Fqx "llama_server_sha256=${llama_server_sha256}" "${live_evidence_file}" \
+    || ! grep -Fqx "python_executable=${python_executable_path}" "${live_evidence_file}" \
+    || ! grep -Fqx "python_version=${python_version}" "${live_evidence_file}" \
+    || ! grep -Fqx "requirements_lock_sha256=${requirements_lock_sha256}" "${live_evidence_file}" \
+    || ! grep -Fqx "rocminfo_end" "${live_evidence_file}" \
+    || ! grep -Fqx "rocm_smi_end" "${live_evidence_file}"; then
+  echo "Live ROCm evidence is incomplete or does not match final collection" >&2
+  exit 3
+fi
 
-source_tree_sha256="$(python3 - \
+source_tree_sha256="$("${python_executable_path}" - \
   "${project_dir}" "${run_id}" "${retrieval_file}" "${quality_file}" "${benchmark_file}" \
   "${quality_sha256}" "${model_sha256}" "${llama_server_sha256}" \
   "${commit}" "${project_tree}" "${monitor_file}" "${server_log}" <<'PY'
@@ -458,12 +663,21 @@ print(source_sha256)
 PY
 )"
 
+if [[ "$(sha256sum -- "${model_file}" | awk '{print $1}')" != "${model_sha256}" \
+      || "$(sha256sum -- "${llama_server}" | awk '{print $1}')" != "${llama_server_sha256}" \
+      || "$(sha256sum -- "${requirements_lock}" | awk '{print $1}')" != "${requirements_lock_sha256}" \
+      || "$(sha256sum -- "${live_evidence_file}" | awk '{print $1}')" != "${live_rocm_sha256}" ]]; then
+  echo "Bound model, llama-server, dependency lock, or live evidence changed during collection" >&2
+  exit 3
+fi
+
 mkdir -m 0700 -- "${output_dir}"
 cp -- "${retrieval_file}" "${output_dir}/retrieval.json"
 cp -- "${quality_file}" "${output_dir}/agent-quality.json"
 cp -- "${benchmark_file}" "${output_dir}/agent-benchmark.json"
 cp -- "${monitor_file}" "${output_dir}/rocm-monitor.log"
 cp -- "${server_log}" "${output_dir}/llama-server.log"
+cp -- "${live_evidence_file}" "${output_dir}/live-rocm.log"
 
 {
   echo "collected_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -475,6 +689,9 @@ cp -- "${server_log}" "${output_dir}/llama-server.log"
   echo "commit=${commit}"
   echo "project_tree=${project_tree}"
   echo "source_tree_sha256=${source_tree_sha256}"
+  echo "python_executable=${python_executable_path}"
+  echo "python_version=${python_version}"
+  echo "requirements_lock_sha256=${requirements_lock_sha256}"
   echo "working_directory=$(pwd -P)"
 } > "${output_dir}/manifest.txt"
 
@@ -558,9 +775,22 @@ LC_ALL=C rocm-smi > "${output_dir}/rocm-smi.txt" 2>&1
   echo "server_log=llama-server.log"
   echo "server_log_sha256=${server_log_sha256}"
   echo "model_file=${model_file}"
+  echo "expected_model_sha256=${expected_model_sha256}"
   echo "model_sha256=${model_sha256}"
+  echo "model_repository=${model_repository}"
+  echo "model_revision=${model_revision}"
+  echo "model_license=${model_license}"
   echo "llama_server=${llama_server}"
+  echo "expected_llama_server_sha256=${expected_llama_server_sha256}"
   echo "llama_server_sha256=${llama_server_sha256}"
+  echo "llama_cpp_commit=${llama_cpp_commit}"
+  echo "llama_build=${llama_build}"
+  echo "python_executable=${python_executable_path}"
+  echo "python_version=${python_version}"
+  echo "requirements_lock_file=requirements.lock"
+  echo "requirements_lock_sha256=${requirements_lock_sha256}"
+  echo "live_rocm_file=live-rocm.log"
+  echo "live_rocm_sha256=${live_rocm_sha256}"
 } > "${output_dir}/binding-manifest.txt"
 
 (
@@ -568,6 +798,7 @@ LC_ALL=C rocm-smi > "${output_dir}/rocm-smi.txt" 2>&1
   sha256sum \
     manifest.txt system.txt rocminfo.txt rocm-smi.txt rocm-version.txt git.txt \
     retrieval.json agent-quality.json agent-benchmark.json rocm-monitor.log llama-server.log \
+    live-rocm.log \
     binding-manifest.txt
 ) > "${output_dir}/SHA256SUMS.txt"
 

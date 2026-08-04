@@ -11,6 +11,72 @@ request, airport transfer, room inventory, quoting, a reservation hold, and a
 follow-up checkout change. This intentionally crosses knowledge, planning,
 tools, memory, and permissions in a single inspectable flow.
 
+The UI creates explicit ISO dates at page construction: check-in is local
+`date.today() + 30 days` and checkout is local `date.today() + 32 days`.
+There are no fixed 2030 defaults. After the confirmed hold, the demonstration
+operator replaces the editable next-prompt suggestion with
+`请为刚才的订单安排机场接送。` (“Arrange an airport transfer for the booking we
+just made.”) without copying the booking ID into the prompt, so the follow-up
+actually exercises identity-bound session reference resolution.
+
+### 1.1 Agent architecture
+
+```mermaid
+flowchart LR
+    U["Guest / Staff"] --> UI["Gradio UI / FastAPI"]
+    UI --> O["Typed orchestrator"]
+    O --> R["Local BM25-style policy retrieval"]
+    R --> P["Versioned local policy corpus"]
+    O --> L["llama.cpp endpoint"]
+    L --> G["AMD Radeon GPU via ROCm/HIP"]
+    O --> V["Plan, schema, dependency and policy validation"]
+    V --> C["Authorization and confirmation gate"]
+    C --> T["Ten allow-listed hotel tools"]
+    T --> D["Synthetic local SQLite state"]
+    O <--> M["Identity-bound session + opt-in memory"]
+    O --> A["PII-minimized HMAC audit chain"]
+```
+
+### 1.2 Confirmation and multi-turn sequence
+
+```mermaid
+sequenceDiagram
+    actor Guest
+    participant Agent as RadeonStay orchestrator
+    participant Model as Local llama.cpp model
+    participant Tools as Typed hotel tools
+    participant State as Local SQLite/session state
+    Guest->>Agent: Request with UI-generated today+30/today+32 dates
+    Agent->>Model: Local evidence selection and bounded plan
+    Agent->>Tools: Availability and authoritative quote reads
+    Tools-->>Agent: Receipts
+    Agent->>Tools: Preview reservation hold
+    Tools-->>Agent: Pending action + opaque confirmation token
+    Agent-->>Guest: Display preview and masked token state
+    Guest->>Agent: Explicitly confirm the displayed preview
+    Agent->>State: Atomically revalidate and write once
+    State-->>Agent: Confirmed hold receipt
+    Agent-->>Guest: Display confirmed receipt
+    Guest->>Agent: 请为刚才的订单安排机场接送。
+    Agent->>State: Resolve session-bound booking reference
+    Agent->>Tools: Preview transfer ticket
+    Tools-->>Agent: New pending action requiring confirmation
+    Agent-->>Guest: Display new preview
+    Guest->>Agent: Confirm transfer ticket
+    Agent->>State: Revalidate and create ticket once
+    Guest->>Agent: Enable local preference memory
+    Agent-->>Guest: Preview consent write
+    Guest->>Agent: Confirm consent
+    Agent->>State: Store consent
+    Guest->>Agent: Save quiet_room=high_floor
+    Agent-->>Guest: Preview separate preference write
+    Guest->>Agent: Confirm preference
+    Agent->>State: Store allow-listed preference
+    Guest->>Agent: List my stored preferences (read only)
+    State-->>Agent: Owner-scoped preference
+    Agent-->>Guest: Display saved preference with no pending write
+```
+
 ## 2. Product principles
 
 1. **Local by construction:** core inference and data remain in the controlled
@@ -20,7 +86,10 @@ tools, memory, and permissions in a single inspectable flow.
 3. **The model proposes; the server disposes:** the LLM does not own prices,
    permissions, state transitions, or database access.
 4. **Fail closed:** invalid plans, missing evidence, expired confirmation, and
-   unauthorized reads/writes produce a refusal rather than a best guess.
+   unauthorized reads/writes never produce a guessed action. Missing or twice-
+   invalid planning information yields a safe terminal clarification with no
+   hotel operation; forbidden or privacy-crossing requests are refused when
+   necessary.
 5. **Minimal retention:** session context is local; long-term preferences need
    explicit consent; audits avoid raw private values.
 
@@ -28,10 +97,14 @@ tools, memory, and permissions in a single inspectable flow.
 
 ### 3.1 Local retrieval
 
-Hotel policy Markdown files are indexed locally. Search results preserve the
-document, heading, source path, excerpt, and score. The local model may select
-only supplied citation IDs; final policy text is rendered by the server from
-the matching excerpts. Unconstrained model prose is never treated as a fact.
+Hotel policy Markdown files are indexed locally. Retrieval gathers up to five
+ranked candidates and applies clause coverage so a compound request can surface
+distinct topics. Every candidate preserves the document, heading, source path,
+excerpt, and score. The local model may select only supplied citation IDs, and
+the final response contains at most three selected citations. Candidate coverage
+and final cited evidence are therefore reported separately. Final policy text is
+rendered by the server from the matching excerpts; unconstrained model prose is
+never treated as a fact.
 For official evaluation, `data/policies/` must be a real directory inside the
 project. Its path components, nested directories, and policy files cannot be
 symbolic links, and every resolved corpus path must remain inside the project.
@@ -53,9 +126,12 @@ confirmed domain writes idempotent across a lost response.
 
 The local LLM returns an `AgentPlan` containing no more than eight steps with
 unique IDs and backward-only dependencies. Pydantic validates the plan. Unknown
-tools, future dependencies, malformed arguments, or excessive repair attempts
-are rejected. Chat and confirmation execution is serialized per session so two
-browser requests cannot reorder memory or confirm one action twice.
+tools, future dependencies, and malformed arguments trigger one bounded semantic
+repair attempt. If that second plan still fails validation, the server returns a
+terminal `ask_user` clarification and invokes no hotel business tool; a refusal
+is reserved for a request that is itself forbidden or has no independent safe
+scope. Chat and confirmation execution is serialized per session so two browser
+requests cannot reorder memory or confirm one action twice.
 
 ### 3.4 Local memory
 
@@ -81,12 +157,12 @@ environment proxy inheritance disabled. Public model hosts are rejected. Health
 checks require the endpoint to advertise the configured alias, but that alias is
 only a routing identifier and is not proof of model identity or GPU execution.
 
-The configured alias `qwen3.6-35b-a3b-q6k` maps to the verified model artifact
-described below. `--n-gpu-layers 999` requests maximum offload; native ROCm/HIP
+The configured alias `qwen3.6-35b-a3b-q6k` maps to the pinned target-validation
+artifact described below. `--n-gpu-layers 999` requests maximum offload; native ROCm/HIP
 initialization, a positive final offload count, and same-device active telemetry
 remain the authoritative proof that an official inference run used Radeon.
 
-| Release field | Verified target value | Evidence rule |
+| Release field | Recorded target-validation value | Evidence rule |
 | --- | --- | --- |
 | Python | `3.12.3` | Record the interpreter version with every official bundle |
 | Model repository | `unsloth/Qwen3.6-35B-A3B-GGUF` | Fetch only the pinned revision below |
@@ -100,6 +176,15 @@ remain the authoritative proof that an official inference run used Radeon.
 | Flash attention | `auto`; controlled `off` baseline and `on` optimization run | Use only when the pinned binary exposes the flag; retain raw logs |
 | Batch / micro-batch | `512` / `128` defaults | Change one measured variable at a time |
 | Parallelism | One slot by default | Compare controlled 1/2/4 request workloads without changing the fixed suite |
+
+The README reproduction procedure downloads the named GGUF through the pinned
+revision URL and verifies it with GNU `sha256sum`. It checks out llama.cpp in a
+detached state at the commit above and configures CMake with `GGML_HIP=ON` and
+`AMDGPU_TARGETS=gfx1100`. Source revision and binary identity are separate: a
+rebuild that does not match the recorded `llama-server` SHA256 must be treated as
+a new binary and cannot reuse an existing binding manifest. The official bundle
+also keeps the configure output and compiler/ROCm versions; checksum equality by
+itself does not prove that inference executed on Radeon.
 
 Baseline and optimized evidence use the same model file, llama-server binary,
 source tree, workload, and detected target hardware. Third-party ownership and
@@ -121,9 +206,17 @@ rather than inferred.
 
 Planned comparisons:
 
-1. conservative baseline versus flash-attention/tuned batch settings;
-2. one versus two/four parallel slots while keeping the same fixed request set;
-3. batch and micro-batch candidates changed one variable at a time.
+1. thinking enabled versus disabled with all server settings fixed (A/B);
+2. flash attention off versus on with thinking disabled (B/C);
+3. batch and micro-batch sizing with the preceding settings fixed (C/D);
+4. one versus four parallel slots while keeping the same request set (D/E).
+
+Every A–E row is a fresh full target lifecycle with its own raw evidence. The
+automation emits quality-gated formal A/B, B/C, C/D, and D/E comparisons so each
+step changes only thinking, flash attention, batch sizing, or parallelism. A
+rejected candidate keeps its raw bundle and cannot support an optimization claim.
+The five-run stability proof is different: it repeats one accepted final row five
+times without changing configuration.
 
 Local RAG Top-K/schema ablations and a possible ROCm embedding path are exploratory
 quality studies, not inputs to the official baseline/optimized comparator, because
