@@ -379,14 +379,25 @@ including on a different instance type, and once on camera:
 The absolute rates vary with instance load; the *ratio* does not. Across all three,
 sampling six verified-search candidates cost between 1.05× and 1.08× the wall clock
 of sampling one, for 5.56–5.73× the aggregate tokens. That stability is the claim —
-not any single figure. Run 3 is visible in the demo video, so the number on screen
-and the number in this document can be checked against each other.
+not any single figure.
+
+**Run 6 is the one visible in the demo video** — recorded 2026-08-04 inside the IDE's own
+terminal against the live instance, so the number on screen and the number in this document
+can be checked against each other:
+
+| Run | Instance | Single | K=6 aggregate | Speedup | Wall-clock cost |
+|---|---|---:|---:|---:|---:|
+| 6 | Radeon Cloud `u-14786-cdc26df7`, in-IDE terminal | 29.8 tok/s | 166.3 tok/s | 5.58× | 1.07× |
+
+Six runs, five instances, one ratio. The same recording also measures the prefix-cache
+effect live — **93.5 % hits on the shared-prefix arm against ~1 % when a single distinct
+token is prepended** — which is §5.2's claim reproduced on camera rather than replayed.
 
 #### 5.1a Run 4 — a fourth instance, live on camera, 2026-08-03
 
-Runs 1–3 were captured on a Radeon Cloud instance that has since been destroyed, which is
-stated on screen at 0:00 of the demo video. Rather than leave the optimization evidenced only
-by replay, it was re-measured on **AMD's Radeon Token Factory** while recording:
+Runs 1–3 were captured on a Radeon Cloud instance that was unavailable at the time, so the
+optimization risked being evidenced only by replay. It was therefore re-measured on **AMD's
+Radeon Token Factory** while recording:
 [`LIVE_ON_RADEON_2026-08-03.mp4`](LIVE_ON_RADEON_2026-08-03.mp4), 0:55.
 
 | | Value |
