@@ -7,7 +7,8 @@ in this directory, so it needs no external host and cannot rot.
 download 32 MB to see it.
 
 **Product tour:** [`PRODUCT_SHOWCASE_2026-08-04.mp4`](PRODUCT_SHOWCASE_2026-08-04.mp4) — 3:29,
-seven surfaces of the IDE, each driven and filmed rather than screenshotted.
+seven surfaces of the IDE, each driven and filmed rather than screenshotted. Hosted at
+**https://youtu.be/-RR2YlUERfQ**.
 
 **Narration is a person, not a synthesiser.** Thirteen takes, recorded on a headset rather
 than a studio mic, levelled to broadcast loudness. That is a deliberate choice: a demo about
