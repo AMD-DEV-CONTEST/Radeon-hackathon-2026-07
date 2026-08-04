@@ -1,10 +1,10 @@
 # Radeon Cloud Benchmark Record
 
-This file records the verified Radeon Cloud run completed on 2026-08-03. The timings below are copied from the application UI.
+This file records the verified Radeon Cloud UI evidence run completed on 2026-08-04. The timings and parameters below are copied from the application UI screenshots.
 
 ## Environment
 
-- Date: 2026-08-03 (UTC+8)
+- Date: 2026-08-04 (UTC+8)
 - Container image: AMD OneClick Base (`amd-oneclick-base:rocm7.2.1-py3.12-v20260416`)
 - GPU: AMD Radeon Graphics
 - VRAM: 47.98 GB
@@ -17,29 +17,35 @@ This file records the verified Radeon Cloud run completed on 2026-08-03. The tim
 ## Verification command
 
 ```bash
-python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0))"
+python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0)); print(getattr(torch.version, 'hip', None))"
 ```
 
 ## Measurements
 
 | Task | Resolution | Steps | Batch | Seed | Time | Result |
 |---|---:|---:|---:|---:|---:|---|
-| Text-to-Image | 512x512 | 25 | 1 | 20260803 | 105.5 s | Pass |
-| Image-to-Image | 512x512 | 25 | 1 | 300957580 | 9.24 s | Pass |
-| Batch Text-to-Image | 512x512 | 25 | 2 | 20260804 | 168.56 s total | Pass |
-| Image Enhancement | 512x512 → 1024x1024 | n/a | 1 | n/a | 0.092 s | Pass |
+| Text-to-Image | 512x512 | 25 | 1 | 1065119644 | 2.14 s | Pass |
+| Image-to-Image | 512x512 | 25 | 1 | 1131595709 | 0.84 s | Pass |
+| Batch Text-to-Image | 512x512 | 15 | 4 | 2006462266-2006462269 | 284.11 s total | Pass |
+| Image Enhancement | 512x512 -> 1024x1024 | n/a | 1 | n/a | 0.08 s | Pass |
 
-## Evidence to capture
+## Evidence captured
 
-- Terminal output showing `torch.cuda.is_available(): True`.
-- Terminal output showing the AMD Radeon GPU name.
-- UI screenshot showing the AMD GPU inference panel.
-- One text-to-image result.
-- One image-to-image result.
-- One batch gallery result.
-- One enhancement before/after result.
+- Text-to-Image completed result with GPU information, seed, steps, resolution, and elapsed time.
+- Image-to-Image completed result with reference image, strength, GPU information, seed, and elapsed time.
+- Batch gallery with four candidates, adjacent deterministic seeds, and batch GPU information.
+- Enhancement before/after comparison with 2x enlargement, 1024x1024 output, and processing information.
+- Terminal verification should also show `torch.cuda.is_available(): True`, the AMD Radeon GPU name, and the ROCm/HIP version.
+
+The completed UI screenshots are stored in:
+
+- `assets/evidence/text-to-image.png`
+- `assets/evidence/image-to-image.png`
+- `assets/evidence/image-enhancement.png`
+- `assets/evidence/batch-candidates.png`
 
 ## Interpretation notes
 
-- The first text-to-image run was the first generation after application startup and may include model warm-up or initialization overhead. The UI-reported value is retained exactly as observed.
+- These values represent the completed UI evidence run shown in the submitted screenshots. They may differ from earlier cold-start measurements because model loading, warm-up state, batch size, inference steps, and runtime conditions affect elapsed time.
+- The batch evidence run generated four candidates with adjacent deterministic seeds from base seed `2006462266`.
 - The image enhancement stage uses deterministic Pillow CPU post-processing. It is not presented as AMD GPU neural inference; the text-to-image, image-to-image, and batch diffusion stages ran through PyTorch ROCm on the AMD Radeon GPU.
