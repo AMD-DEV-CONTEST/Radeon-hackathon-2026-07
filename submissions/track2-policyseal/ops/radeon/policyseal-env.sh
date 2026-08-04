@@ -1,0 +1,18 @@
+# shellcheck shell=sh
+
+export PATH="/opt/venv/bin:${PATH}"
+export HF_ENDPOINT="${HF_ENDPOINT:-https://hf-mirror.com}"
+export HF_HOME="${HF_HOME:-/workspace/.cache/huggingface}"
+export HUGGINGFACE_HUB_CACHE="${HUGGINGFACE_HUB_CACHE:-${HF_HOME}/hub}"
+export MODELSCOPE_CACHE="${MODELSCOPE_CACHE:-/workspace/.cache/modelscope}"
+export PIP_CACHE_DIR="${PIP_CACHE_DIR:-/workspace/.cache/pip}"
+export FASTEMBED_CACHE_PATH="${FASTEMBED_CACHE_PATH:-/workspace/.cache/fastembed}"
+export POLICYSEAL_EMBEDDING_CACHE_DIR="${POLICYSEAL_EMBEDDING_CACHE_DIR:-${FASTEMBED_CACHE_PATH}}"
+export POLICYSEAL_LLM_BASE_URL="${POLICYSEAL_LLM_BASE_URL:-http://127.0.0.1:8000/v1}"
+export POLICYSEAL_LLM_MODEL="${POLICYSEAL_LLM_MODEL:-Qwen/Qwen3-8B}"
+export PNPM_HOME="${PNPM_HOME:-/workspace/.cache/pnpm/bin}"
+export PNPM_STORE_DIR="${PNPM_STORE_DIR:-/workspace/.cache/pnpm/store}"
+export COREPACK_HOME="${COREPACK_HOME:-/workspace/.cache/corepack}"
+export POLICYSEAL_NODE_HOME="${POLICYSEAL_NODE_HOME:-/workspace/.cache/tools/node-v22.23.2-linux-x64}"
+export POLICYSEAL_UV_HOME="${POLICYSEAL_UV_HOME:-/workspace/.cache/tools/uv-0.11.32}"
+export PATH="${POLICYSEAL_NODE_HOME}/bin:${POLICYSEAL_UV_HOME}/bin:${PNPM_HOME}:${PATH}"

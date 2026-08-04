@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://policyseal.local/evals/goldens/schema.json",
+  "title": "PolicySeal P0 Frozen Evaluation Bundle",
+  "description": "Independent synthetic Goldens. Application output must never write these files.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scenarios",
+    "semantic_snippets",
+    "retrieval_questions",
+    "copilot_dialogues"
+  ],
+  "properties": {
+    "scenarios": {
+      "type": "array",
+      "minItems": 30,
+      "maxItems": 30,
+      "items": {"$ref": "#/$defs/scenario"}
+    },
+    "semantic_snippets": {
+      "type": "array",
+      "minItems": 60,
+      "maxItems": 60,
+      "items": {"$ref": "#/$defs/semanticSnippet"}
+    },
+    "retrieval_questions": {
+      "type": "array",
+      "minItems": 20,
+      "maxItems": 20,
+      "items": {"$ref": "#/$defs/retrievalQuestion"}
+    },
+    "copilot_dialogues": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {"$ref": "#/$defs/dialogue"}
+    }
+  },
+  "$defs": {
+    "scenario": {
+      "type": "object",
+      "required": [
+        "id",
+        "source_id",
+        "source_sha256",
+        "context",
+        "expected_status",
+        "expected_revision_status",
+        "decisions"
+      ],
+      "properties": {
+        "id": {"pattern": "^scenario-[0-9]{2}$"},
+        "source_sha256": {"pattern": "^[0-9a-f]{64}$"},
+        "expected_status": {
+          "enum": ["safe", "require_approval", "block", "processing_failed"]
+        },
+        "decisions": {"type": "array"}
+      }
+    },
+    "semanticSnippet": {
+      "type": "object",
+      "required": ["id", "text", "expected_category", "risk", "scenario"],
+      "properties": {
+        "id": {"pattern": "^semantic-[0-9]{3}$"},
+        "risk": {"enum": ["low", "medium", "high"]},
+        "scenario": {"enum": ["xlsx", "docx", "pdf"]}
+      }
+    },
+    "retrievalQuestion": {
+      "type": "object",
+      "required": ["id", "question", "expected_evidence_ids"],
+      "properties": {
+        "id": {"pattern": "^retrieval-[0-9]{2}$"},
+        "expected_evidence_ids": {"type": "array", "minItems": 1}
+      }
+    },
+    "dialogue": {
+      "type": "object",
+      "required": ["id", "scenario_id", "turns"],
+      "properties": {
+        "id": {"pattern": "^dialogue-[0-9]{2}$"},
+        "turns": {"type": "array", "minItems": 3, "maxItems": 3}
+      }
+    }
+  }
+}

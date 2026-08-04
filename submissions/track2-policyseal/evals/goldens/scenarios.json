@@ -1,0 +1,697 @@
+{
+  "schema_version": 1,
+  "scenarios": [
+    {
+      "id": "scenario-01",
+      "title": "Internal procurement receives the minimum working matrix",
+      "source_id": "supplier-matrix-hero",
+      "source_sha256": "ec18886e90b77c5bbba41883eab2c910b109472184122e47aeb2f22ae1a74dac",
+      "context": {
+        "recipient": "internal_procurement_lead",
+        "organization": "northstar.example",
+        "recipient_id": "procurement.lead@northstar.example",
+        "purpose": "procurement_decision",
+        "channel": "collaboration_platform",
+        "classification": "confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "safe",
+      "expected_revision_status": "exportable",
+      "decisions": [
+        {"location": "xlsx:Supplier Comparison:B6", "category": "supplier_identity", "action": "keep", "rule_ids": ["PS-XLSX-INTERNAL-KEEP"], "evidence_ids": ["EV-XLSX-001", "EV-GEN-003"]},
+        {"location": "xlsx:Supplier Comparison:D6", "category": "contact_personal", "action": "filter", "rule_ids": ["PS-XLSX-INTERNAL-CONTACT"], "evidence_ids": ["EV-XLSX-001", "EV-GEN-003"], "transform": "keep_name_work_email"},
+        {"location": "xlsx:Supplier Comparison:F6", "category": "bank_payment", "action": "remove", "rule_ids": ["PS-XLSX-INTERNAL-BANK"], "evidence_ids": ["EV-XLSX-001", "EV-GEN-003"]},
+        {"location": "xlsx:Supplier Comparison:G6", "category": "quote_commercial_terms", "action": "keep", "rule_ids": ["PS-XLSX-INTERNAL-KEEP"], "evidence_ids": ["EV-XLSX-001"]},
+        {"location": "xlsx:Supplier Comparison:I6", "category": "internal_cost_budget", "action": "keep", "rule_ids": ["PS-XLSX-INTERNAL-KEEP"], "evidence_ids": ["EV-XLSX-001"]},
+        {"location": "xlsx:Supplier Comparison:K6", "category": "score_ranking", "action": "keep", "rule_ids": ["PS-XLSX-INTERNAL-KEEP"], "evidence_ids": ["EV-XLSX-001"]},
+        {"location": "xlsx:Supplier Comparison:O6", "category": "internal_opinion_approval", "action": "keep", "rule_ids": ["PS-XLSX-INTERNAL-KEEP"], "evidence_ids": ["EV-XLSX-001"]}
+      ],
+      "required_literals": ["Aster Works Ltd.", "421000", "Shortlisted"],
+      "prohibited_literals": ["9900012345678901", "+1 202 555 0101"]
+    },
+    {
+      "id": "scenario-02",
+      "title": "External financial auditor receives amounts but not internal scoring",
+      "source_id": "supplier-matrix-hero",
+      "source_sha256": "ec18886e90b77c5bbba41883eab2c910b109472184122e47aeb2f22ae1a74dac",
+      "context": {
+        "recipient": "external_financial_auditor",
+        "organization": "audit-partner.example",
+        "recipient_id": "auditor@audit-partner.example",
+        "purpose": "annual_financial_audit",
+        "channel": "secure_file_exchange",
+        "classification": "confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "safe",
+      "expected_revision_status": "exportable",
+      "decisions": [
+        {"location": "xlsx:Supplier Comparison:B6", "category": "supplier_identity", "action": "keep", "rule_ids": ["PS-XLSX-AUDIT-KEEP"], "evidence_ids": ["EV-XLSX-002"]},
+        {"location": "xlsx:Supplier Comparison:D6", "category": "contact_personal", "action": "remove", "rule_ids": ["PS-XLSX-AUDIT-CONTACT"], "evidence_ids": ["EV-XLSX-002", "EV-GEN-003"]},
+        {"location": "xlsx:Supplier Comparison:F6", "category": "bank_payment", "action": "mask", "rule_ids": ["PS-XLSX-AUDIT-BANK"], "evidence_ids": ["EV-XLSX-002"], "transform": "mask_last_four"},
+        {"location": "xlsx:Supplier Comparison:G6", "category": "quote_commercial_terms", "action": "filter", "rule_ids": ["PS-XLSX-AUDIT-AMOUNTS"], "evidence_ids": ["EV-XLSX-002", "EV-GEN-003"], "transform": "keep_audit_amount"},
+        {"location": "xlsx:Supplier Comparison:I6", "category": "internal_cost_budget", "action": "filter", "rule_ids": ["PS-XLSX-AUDIT-AMOUNTS"], "evidence_ids": ["EV-XLSX-002", "EV-GEN-003"], "transform": "keep_audit_amount"},
+        {"location": "xlsx:Supplier Comparison:K6", "category": "score_ranking", "action": "remove", "rule_ids": ["PS-XLSX-AUDIT-SCORE"], "evidence_ids": ["EV-XLSX-002"]},
+        {"location": "xlsx:Supplier Comparison:O6", "category": "internal_opinion_approval", "action": "generalize", "rule_ids": ["PS-XLSX-AUDIT-APPROVAL"], "evidence_ids": ["EV-XLSX-002"], "transform": "generalize_approval_status"}
+      ],
+      "required_literals": ["Aster Works Ltd.", "482000", "8901", "Approved"],
+      "prohibited_literals": ["maya.chen@aster.example", "9900012345678901", "92", "protect the target price"]
+    },
+    {
+      "id": "scenario-03",
+      "title": "Bidder A receives only its own offer and generalized result",
+      "source_id": "supplier-matrix-hero",
+      "source_sha256": "ec18886e90b77c5bbba41883eab2c910b109472184122e47aeb2f22ae1a74dac",
+      "context": {
+        "recipient": "supplier_bidder_a",
+        "organization": "supplier-a.example",
+        "recipient_id": "bidder-a@corp.example",
+        "purpose": "supplier_bid_feedback",
+        "channel": "corporate_email",
+        "classification": "confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "safe",
+      "expected_revision_status": "exportable",
+      "decisions": [
+        {"location": "xlsx:Supplier Comparison:B6", "category": "supplier_identity", "action": "keep", "rule_ids": ["PS-XLSX-BIDDER-OWN-DATA"], "evidence_ids": ["EV-XLSX-003", "EV-XLSX-004"]},
+        {"location": "xlsx:Supplier Comparison:B7", "category": "supplier_identity", "action": "filter", "rule_ids": ["PS-XLSX-BIDDER-OTHER-DATA"], "evidence_ids": ["EV-XLSX-003", "EV-XLSX-004"], "transform": "filter_other_owners"},
+        {"location": "xlsx:Supplier Comparison:D6", "category": "contact_personal", "action": "remove", "rule_ids": ["PS-XLSX-BIDDER-REMOVE"], "evidence_ids": ["EV-XLSX-003"]},
+        {"location": "xlsx:Supplier Comparison:F6", "category": "bank_payment", "action": "remove", "rule_ids": ["PS-XLSX-BIDDER-REMOVE"], "evidence_ids": ["EV-XLSX-003"]},
+        {"location": "xlsx:Supplier Comparison:G6", "category": "quote_commercial_terms", "action": "keep", "rule_ids": ["PS-XLSX-BIDDER-OWN-DATA"], "evidence_ids": ["EV-XLSX-003", "EV-XLSX-004"]},
+        {"location": "xlsx:Supplier Comparison:G7", "category": "quote_commercial_terms", "action": "filter", "rule_ids": ["PS-XLSX-BIDDER-OTHER-DATA"], "evidence_ids": ["EV-XLSX-004"], "transform": "filter_other_owners"},
+        {"location": "xlsx:Supplier Comparison:I6", "category": "internal_cost_budget", "action": "remove", "rule_ids": ["PS-XLSX-BIDDER-REMOVE"], "evidence_ids": ["EV-XLSX-003"]},
+        {"location": "xlsx:Supplier Comparison:K6", "category": "score_ranking", "action": "generalize", "rule_ids": ["PS-XLSX-BIDDER-OWN-SCORE"], "evidence_ids": ["EV-XLSX-003", "EV-XLSX-004"], "transform": "generalize_shortlist_status"},
+        {"location": "xlsx:Supplier Comparison:K7", "category": "score_ranking", "action": "filter", "rule_ids": ["PS-XLSX-BIDDER-OTHER-SCORE"], "evidence_ids": ["EV-XLSX-004"], "transform": "filter_other_owners"},
+        {"location": "xlsx:Supplier Comparison:O6", "category": "internal_opinion_approval", "action": "remove", "rule_ids": ["PS-XLSX-BIDDER-REMOVE"], "evidence_ids": ["EV-XLSX-003"]}
+      ],
+      "required_literals": ["Aster Works Ltd.", "482000", "Shortlisted"],
+      "prohibited_literals": ["Blue Peak Systems", "Cedar Ridge Supply", "maya.chen@aster.example", "9900012345678901", "421000", "protect the target price"]
+    },
+    {
+      "id": "scenario-04",
+      "title": "Strictly confidential internal procurement remains purpose limited",
+      "source_id": "supplier-matrix-hero",
+      "source_sha256": "ec18886e90b77c5bbba41883eab2c910b109472184122e47aeb2f22ae1a74dac",
+      "context": {
+        "recipient": "internal_procurement_lead",
+        "organization": "northstar.example",
+        "recipient_id": "procurement.lead@northstar.example",
+        "purpose": "procurement_decision",
+        "channel": "collaboration_platform",
+        "classification": "strictly_confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "safe",
+      "expected_revision_status": "exportable",
+      "decisions": [
+        {"location": "xlsx:Supplier Comparison:F6", "category": "bank_payment", "action": "remove", "rule_ids": ["PS-XLSX-INTERNAL-BANK"], "evidence_ids": ["EV-XLSX-001", "EV-GEN-003"]}
+      ],
+      "required_literals": ["Aster Works Ltd."],
+      "prohibited_literals": ["9900012345678901"]
+    },
+    {
+      "id": "scenario-05",
+      "title": "Strictly confidential audit still receives only audit evidence",
+      "source_id": "supplier-matrix-hero",
+      "source_sha256": "ec18886e90b77c5bbba41883eab2c910b109472184122e47aeb2f22ae1a74dac",
+      "context": {
+        "recipient": "external_financial_auditor",
+        "organization": "audit-partner.example",
+        "recipient_id": "auditor@audit-partner.example",
+        "purpose": "annual_financial_audit",
+        "channel": "secure_file_exchange",
+        "classification": "strictly_confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "safe",
+      "expected_revision_status": "exportable",
+      "decisions": [
+        {"location": "xlsx:Supplier Comparison:K6", "category": "score_ranking", "action": "remove", "rule_ids": ["PS-XLSX-AUDIT-SCORE"], "evidence_ids": ["EV-XLSX-002"]}
+      ],
+      "required_literals": ["482000"],
+      "prohibited_literals": ["protect the target price"]
+    },
+    {
+      "id": "scenario-06",
+      "title": "Strictly confidential bidder feedback filters every competitor",
+      "source_id": "supplier-matrix-hero",
+      "source_sha256": "ec18886e90b77c5bbba41883eab2c910b109472184122e47aeb2f22ae1a74dac",
+      "context": {
+        "recipient": "supplier_bidder_a",
+        "organization": "supplier-a.example",
+        "recipient_id": "bidder-a@corp.example",
+        "purpose": "supplier_bid_feedback",
+        "channel": "corporate_email",
+        "classification": "strictly_confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "safe",
+      "expected_revision_status": "exportable",
+      "decisions": [
+        {"location": "xlsx:Supplier Comparison:B7", "category": "supplier_identity", "action": "filter", "rule_ids": ["PS-XLSX-BIDDER-OTHER-DATA"], "evidence_ids": ["EV-XLSX-003", "EV-XLSX-004"], "transform": "filter_other_owners"}
+      ],
+      "required_literals": ["Aster Works Ltd."],
+      "prohibited_literals": ["Blue Peak Systems", "Cedar Ridge Supply"]
+    },
+    {
+      "id": "scenario-07",
+      "title": "Minimal offer is safe for internal procurement",
+      "source_id": "xlsx-safe-minimal",
+      "source_sha256": "7ead9a64f9435c82e6319d798a840c0395867edce6fbe26775b2bbca0840bc98",
+      "context": {
+        "recipient": "internal_procurement_lead",
+        "organization": "northstar.example",
+        "recipient_id": "procurement.lead@northstar.example",
+        "purpose": "procurement_decision",
+        "channel": "collaboration_platform",
+        "classification": "confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "safe",
+      "expected_revision_status": "exportable",
+      "decisions": [
+        {"location": "xlsx:Supplier Comparison:B5", "category": "supplier_identity", "action": "keep", "rule_ids": ["PS-XLSX-INTERNAL-KEEP"], "evidence_ids": ["EV-XLSX-001"]},
+        {"location": "xlsx:Supplier Comparison:C5", "category": "quote_commercial_terms", "action": "keep", "rule_ids": ["PS-XLSX-INTERNAL-KEEP"], "evidence_ids": ["EV-XLSX-001"]}
+      ],
+      "required_literals": ["Aster Works Ltd.", "482000"],
+      "prohibited_literals": []
+    },
+    {
+      "id": "scenario-08",
+      "title": "Minimal offer is safe for annual financial audit",
+      "source_id": "xlsx-safe-minimal",
+      "source_sha256": "7ead9a64f9435c82e6319d798a840c0395867edce6fbe26775b2bbca0840bc98",
+      "context": {
+        "recipient": "external_financial_auditor",
+        "organization": "audit-partner.example",
+        "recipient_id": "auditor@audit-partner.example",
+        "purpose": "annual_financial_audit",
+        "channel": "secure_file_exchange",
+        "classification": "confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "safe",
+      "expected_revision_status": "exportable",
+      "decisions": [
+        {"location": "xlsx:Supplier Comparison:B5", "category": "supplier_identity", "action": "keep", "rule_ids": ["PS-XLSX-AUDIT-KEEP"], "evidence_ids": ["EV-XLSX-002"]},
+        {"location": "xlsx:Supplier Comparison:C5", "category": "quote_commercial_terms", "action": "filter", "rule_ids": ["PS-XLSX-AUDIT-AMOUNTS"], "evidence_ids": ["EV-XLSX-002"], "transform": "keep_audit_amount"}
+      ],
+      "required_literals": ["Aster Works Ltd.", "482000"],
+      "prohibited_literals": []
+    },
+    {
+      "id": "scenario-09",
+      "title": "Minimal offer is safe for its owning bidder",
+      "source_id": "xlsx-safe-minimal",
+      "source_sha256": "7ead9a64f9435c82e6319d798a840c0395867edce6fbe26775b2bbca0840bc98",
+      "context": {
+        "recipient": "supplier_bidder_a",
+        "organization": "supplier-a.example",
+        "recipient_id": "bidder-a@corp.example",
+        "purpose": "supplier_bid_feedback",
+        "channel": "corporate_email",
+        "classification": "confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "safe",
+      "expected_revision_status": "exportable",
+      "decisions": [
+        {"location": "xlsx:Supplier Comparison:B5", "category": "supplier_identity", "action": "keep", "rule_ids": ["PS-XLSX-BIDDER-OWN-DATA"], "evidence_ids": ["EV-XLSX-003", "EV-XLSX-004"]},
+        {"location": "xlsx:Supplier Comparison:C5", "category": "quote_commercial_terms", "action": "keep", "rule_ids": ["PS-XLSX-BIDDER-OWN-DATA"], "evidence_ids": ["EV-XLSX-003", "EV-XLSX-004"]}
+      ],
+      "required_literals": ["Aster Works Ltd.", "482000"],
+      "prohibited_literals": []
+    },
+    {
+      "id": "scenario-10",
+      "title": "Incident responder receives investigation facts with aliases",
+      "source_id": "security-incident-hero",
+      "source_sha256": "f01a64dbb804d5231613ef600458b335e3a0f40edcae6daba755fe1e90d4bf12",
+      "context": {
+        "recipient": "external_incident_responder",
+        "organization": "response-partner.example",
+        "recipient_id": "incident-team@response-partner.example",
+        "purpose": "incident_response_investigation",
+        "channel": "secure_file_exchange",
+        "classification": "strictly_confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "safe",
+      "expected_revision_status": "exportable",
+      "decisions": [
+        {"location": "docx:section:1:paragraph:1", "category": "incident_fact_timeline", "action": "keep", "rule_ids": ["PS-DOCX-RESPONDER-KEEP"], "evidence_ids": ["EV-DOCX-001"]},
+        {"location": "docx:section:2:table:1:row:4:cell:2", "category": "internal_infrastructure", "action": "mask", "rule_ids": ["PS-DOCX-RESPONDER-ASSET-ALIAS"], "evidence_ids": ["EV-DOCX-002"], "transform": "stable_asset_alias"},
+        {"location": "docx:section:3:paragraph:1", "category": "credential_secret", "action": "remove", "rule_ids": ["PS-DOCX-RESPONDER-CREDENTIAL"], "evidence_ids": ["EV-DOCX-003", "EV-GEN-004"]},
+        {"location": "docx:section:3:paragraph:2", "category": "vulnerability_fact", "action": "keep", "rule_ids": ["PS-DOCX-RESPONDER-KEEP"], "evidence_ids": ["EV-DOCX-001"]},
+        {"location": "docx:section:3:paragraph:3", "category": "exploit_payload", "action": "remove", "rule_ids": ["PS-DOCX-RESPONDER-EXPLOIT"], "evidence_ids": ["EV-DOCX-003"]},
+        {"location": "docx:section:4:paragraph:1", "category": "person_identity", "action": "mask", "rule_ids": ["PS-DOCX-RESPONDER-PERSON-ALIAS"], "evidence_ids": ["EV-DOCX-002"], "transform": "stable_person_alias"},
+        {"location": "docx:section:4:paragraph:2", "category": "internal_attribution", "action": "remove", "rule_ids": ["PS-DOCX-RESPONDER-MANAGEMENT"], "evidence_ids": ["EV-DOCX-004"]},
+        {"location": "docx:section:5:table:1", "category": "remediation", "action": "keep", "rule_ids": ["PS-DOCX-RESPONDER-KEEP"], "evidence_ids": ["EV-DOCX-001"]}
+      ],
+      "required_literals": ["203.0.113.77", "CVE-2025-99999", "Complete / 2026-07-14", "Host-"],
+      "prohibited_literals": ["Crimson-Falcon-47!", "ps_demo_token_7f4b2e91", "fin-app-07.demo.internal", "Elena Park", "elena.park@northstar.example", "Budget cap USD 48,000"]
+    },
+    {
+      "id": "scenario-11",
+      "title": "Minimal incident status is safe for the response partner",
+      "source_id": "docx-safe-minimal",
+      "source_sha256": "e917aaf5c4f7f3c91a8f3512d38a806e9bc0a079b631a358588453a13c215116",
+      "context": {
+        "recipient": "external_incident_responder",
+        "organization": "response-partner.example",
+        "recipient_id": "incident-team@response-partner.example",
+        "purpose": "incident_response_investigation",
+        "channel": "secure_file_exchange",
+        "classification": "strictly_confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "safe",
+      "expected_revision_status": "exportable",
+      "decisions": [
+        {"location": "docx:paragraph:2", "category": "incident_fact_timeline", "action": "keep", "rule_ids": ["PS-DOCX-RESPONDER-KEEP"], "evidence_ids": ["EV-DOCX-001"]},
+        {"location": "docx:paragraph:2:indicator", "category": "external_threat_indicator", "action": "keep", "rule_ids": ["PS-DOCX-RESPONDER-KEEP"], "evidence_ids": ["EV-DOCX-001"]}
+      ],
+      "required_literals": ["203.0.113.77", "patch validation"],
+      "prohibited_literals": []
+    },
+    {
+      "id": "scenario-12",
+      "title": "Standard contract terms become a safe reference draft",
+      "source_id": "pdf-safe-standard",
+      "source_sha256": "2ad4c59a56e2f73b45213f818f57b9775bb4a65f0abef0d6545ea24731b1b76b",
+      "context": {
+        "recipient": "candidate_supplier",
+        "organization": "candidate-supplier.example",
+        "recipient_id": "contracts@candidate-supplier.example",
+        "purpose": "contract_terms_preview",
+        "channel": "corporate_email",
+        "classification": "confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "safe",
+      "expected_revision_status": "exportable",
+      "decisions": [
+        {"location": "pdf:page:1:block:1", "category": "standard_legal_term", "action": "keep", "rule_ids": ["PS-PDF-STANDARD-TERM-KEEP"], "evidence_ids": ["EV-PDF-002"]},
+        {"location": "pdf:page:1:block:2", "category": "relative_performance_term", "action": "keep", "rule_ids": ["PS-PDF-RELATIVE-TERM-KEEP"], "evidence_ids": ["EV-PDF-002"]}
+      ],
+      "required_literals": ["Reference Draft - Not for Signature", "Net 45 days", "10 business days"],
+      "prohibited_literals": []
+    },
+    {
+      "id": "scenario-13",
+      "title": "Unknown spreadsheet field requires mapping approval",
+      "source_id": "xlsx-unknown-column",
+      "source_sha256": "f75e3be52e29400620b65baa004c75451e15a7b3c635a627e1065f822fe99b95",
+      "context": {
+        "recipient": "internal_procurement_lead",
+        "organization": "northstar.example",
+        "recipient_id": "procurement.lead@northstar.example",
+        "purpose": "procurement_decision",
+        "channel": "collaboration_platform",
+        "classification": "confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "require_approval",
+      "expected_revision_status": "awaiting_approval",
+      "decisions": [
+        {"location": "xlsx:Supplier Comparison:D5", "category": "unclassified", "action": "require_approval", "rule_ids": ["PS-GLOBAL-UNCLASSIFIED"], "evidence_ids": ["EV-GEN-002"]}
+      ],
+      "required_literals": [],
+      "prohibited_literals": ["Level-Crimson"]
+    },
+    {
+      "id": "scenario-14",
+      "title": "Financial workbook with security audit purpose fails closed",
+      "source_id": "supplier-matrix-hero",
+      "source_sha256": "ec18886e90b77c5bbba41883eab2c910b109472184122e47aeb2f22ae1a74dac",
+      "context": {
+        "recipient": "external_financial_auditor",
+        "organization": "audit-partner.example",
+        "recipient_id": "auditor@audit-partner.example",
+        "purpose": "security_control_audit",
+        "channel": "secure_file_exchange",
+        "classification": "confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "require_approval",
+      "expected_revision_status": "awaiting_approval",
+      "decisions": [
+        {"location": "xlsx:Supplier Comparison:G6", "category": "quote_commercial_terms", "action": "require_approval", "rule_ids": ["PS-DEFAULT-FAIL-CLOSED"], "evidence_ids": ["EV-GEN-002", "EV-GEN-003"]}
+      ],
+      "required_literals": [],
+      "prohibited_literals": ["482000"]
+    },
+    {
+      "id": "scenario-15",
+      "title": "Unknown supplier ownership requires human confirmation",
+      "source_id": "supplier-matrix-hero",
+      "source_sha256": "ec18886e90b77c5bbba41883eab2c910b109472184122e47aeb2f22ae1a74dac",
+      "context": {
+        "recipient": "supplier_bidder_a",
+        "organization": "supplier-a.example",
+        "recipient_id": "bidder-a@corp.example",
+        "purpose": "supplier_bid_feedback",
+        "channel": "corporate_email",
+        "classification": "confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "require_approval",
+      "expected_revision_status": "awaiting_approval",
+      "decisions": [
+        {"location": "xlsx:Supplier Comparison:B7", "category": "supplier_identity", "action": "require_approval", "rule_ids": ["PS-DEFAULT-OWNER-UNKNOWN"], "evidence_ids": ["EV-GEN-002", "EV-XLSX-004"]}
+      ],
+      "required_literals": [],
+      "prohibited_literals": ["Blue Peak Systems"]
+    },
+    {
+      "id": "scenario-16",
+      "title": "Ambiguous incident phrase requires semantic approval",
+      "source_id": "docx-ambiguous",
+      "source_sha256": "db5c14c92a2a31e58beeec7063eb1b0095e9ee16df6a2f4dae0cc85be7a97222",
+      "context": {
+        "recipient": "external_incident_responder",
+        "organization": "response-partner.example",
+        "recipient_id": "incident-team@response-partner.example",
+        "purpose": "incident_response_investigation",
+        "channel": "secure_file_exchange",
+        "classification": "strictly_confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "require_approval",
+      "expected_revision_status": "awaiting_approval",
+      "decisions": [
+        {"location": "docx:paragraph:2", "category": "unclassified", "action": "require_approval", "rule_ids": ["PS-GLOBAL-UNCLASSIFIED"], "evidence_ids": ["EV-GEN-002"]}
+      ],
+      "required_literals": [],
+      "prohibited_literals": ["quiet boundary", "winter threshold"]
+    },
+    {
+      "id": "scenario-17",
+      "title": "Offline semantic model leaves uncertain incident text for approval",
+      "source_id": "security-incident-hero",
+      "source_sha256": "f01a64dbb804d5231613ef600458b335e3a0f40edcae6daba755fe1e90d4bf12",
+      "context": {
+        "recipient": "external_incident_responder",
+        "organization": "response-partner.example",
+        "recipient_id": "incident-team@response-partner.example",
+        "purpose": "incident_response_investigation",
+        "channel": "secure_file_exchange",
+        "classification": "strictly_confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "require_approval",
+      "expected_revision_status": "awaiting_approval",
+      "decisions": [
+        {"location": "docx:section:4:paragraph:2", "category": "unclassified", "action": "require_approval", "rule_ids": ["PS-MODEL-OFFLINE-APPROVAL"], "evidence_ids": ["EV-GEN-002", "EV-DOCX-004"]}
+      ],
+      "required_literals": [],
+      "prohibited_literals": ["platform team"],
+      "model_available": false
+    },
+    {
+      "id": "scenario-18",
+      "title": "Hero contract custom obligations require exact approval",
+      "source_id": "reference-contract-hero",
+      "source_sha256": "f41319d2b640851ae983f0044a3708a5059d1a5c2768e85399c291a3e4d0fcb3",
+      "context": {
+        "recipient": "candidate_supplier",
+        "organization": "candidate-supplier.example",
+        "recipient_id": "contracts@candidate-supplier.example",
+        "purpose": "contract_terms_preview",
+        "channel": "corporate_email",
+        "classification": "confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "require_approval",
+      "expected_revision_status": "awaiting_approval",
+      "decisions": [
+        {"location": "pdf:page:2:block:3", "category": "nonstandard_obligation", "action": "require_approval", "rule_ids": ["PS-PDF-NONSTANDARD-APPROVAL"], "evidence_ids": ["EV-PDF-003"]},
+        {"location": "pdf:page:2:block:2", "category": "bank_payment", "action": "remove", "rule_ids": ["PS-PDF-BANK-REMOVE"], "evidence_ids": ["EV-PDF-001", "EV-GEN-003"]},
+        {"location": "pdf:page:3:block:1", "category": "signature", "action": "remove", "rule_ids": ["PS-PDF-SIGNATURE-METADATA-REMOVE"], "evidence_ids": ["EV-PDF-004"]}
+      ],
+      "required_literals": ["Reference Draft - Not for Signature", "37 minutes"],
+      "prohibited_literals": ["Northstar Components Ltd.", "Redbridge Logistics GmbH", "8800123456784421", "Avery Stone", "Sofia Marin"]
+    },
+    {
+      "id": "scenario-19",
+      "title": "Compact custom SLA requires approval",
+      "source_id": "pdf-custom-sla",
+      "source_sha256": "d2d5643330673faf568454d50b128cc8639ae203f1fc156e8c94d17a88dc022b",
+      "context": {
+        "recipient": "candidate_supplier",
+        "organization": "candidate-supplier.example",
+        "recipient_id": "contracts@candidate-supplier.example",
+        "purpose": "contract_terms_preview",
+        "channel": "corporate_email",
+        "classification": "confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "require_approval",
+      "expected_revision_status": "awaiting_approval",
+      "decisions": [
+        {"location": "pdf:page:1:block:1", "category": "nonstandard_obligation", "action": "require_approval", "rule_ids": ["PS-PDF-NONSTANDARD-APPROVAL"], "evidence_ids": ["EV-PDF-003"]}
+      ],
+      "required_literals": ["37 minutes"],
+      "prohibited_literals": []
+    },
+    {
+      "id": "scenario-20",
+      "title": "Contract preview with an unapproved legal review purpose fails closed",
+      "source_id": "reference-contract-hero",
+      "source_sha256": "f41319d2b640851ae983f0044a3708a5059d1a5c2768e85399c291a3e4d0fcb3",
+      "context": {
+        "recipient": "candidate_supplier",
+        "organization": "candidate-supplier.example",
+        "recipient_id": "contracts@candidate-supplier.example",
+        "purpose": "legal_review",
+        "channel": "corporate_email",
+        "classification": "confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "require_approval",
+      "expected_revision_status": "awaiting_approval",
+      "decisions": [
+        {"location": "pdf:page:1:block:1", "category": "contract_buyer", "action": "require_approval", "rule_ids": ["PS-DEFAULT-FAIL-CLOSED"], "evidence_ids": ["EV-GEN-002", "EV-GEN-003"]}
+      ],
+      "required_literals": [],
+      "prohibited_literals": ["Northstar Components Ltd."]
+    },
+    {
+      "id": "scenario-21",
+      "title": "Bidder personal email blocks the entire supplier matrix",
+      "source_id": "supplier-matrix-hero",
+      "source_sha256": "ec18886e90b77c5bbba41883eab2c910b109472184122e47aeb2f22ae1a74dac",
+      "context": {
+        "recipient": "supplier_bidder_a",
+        "organization": "supplier-a.example",
+        "recipient_id": "bidder-a@personal.example",
+        "purpose": "supplier_bid_feedback",
+        "channel": "personal_email",
+        "classification": "confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "block",
+      "expected_revision_status": "blocked",
+      "decisions": [
+        {"location": "document", "category": "general_business", "action": "block", "rule_ids": ["PS-GLOBAL-PERSONAL-EMAIL"], "evidence_ids": ["EV-GEN-001", "EV-GEN-004"]}
+      ],
+      "required_literals": [],
+      "prohibited_literals": ["Aster Works Ltd.", "482000"]
+    },
+    {
+      "id": "scenario-22",
+      "title": "Minimal confidential workbook still blocks on personal email",
+      "source_id": "xlsx-safe-minimal",
+      "source_sha256": "7ead9a64f9435c82e6319d798a840c0395867edce6fbe26775b2bbca0840bc98",
+      "context": {
+        "recipient": "internal_procurement_lead",
+        "organization": "northstar.example",
+        "recipient_id": "requester@personal.example",
+        "purpose": "procurement_decision",
+        "channel": "personal_email",
+        "classification": "confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "block",
+      "expected_revision_status": "blocked",
+      "decisions": [
+        {"location": "document", "category": "general_business", "action": "block", "rule_ids": ["PS-GLOBAL-PERSONAL-EMAIL"], "evidence_ids": ["EV-GEN-001", "EV-GEN-004"]}
+      ],
+      "required_literals": [],
+      "prohibited_literals": ["Aster Works Ltd."]
+    },
+    {
+      "id": "scenario-23",
+      "title": "Unresolved spreadsheet formula risk blocks export",
+      "source_id": "xlsx-formula-risk",
+      "source_sha256": "468fd4a68d9b6ab5d4694a8086c74ca7fd2750eaa1d3fba0802afb2254882682",
+      "context": {
+        "recipient": "external_financial_auditor",
+        "organization": "audit-partner.example",
+        "recipient_id": "auditor@audit-partner.example",
+        "purpose": "annual_financial_audit",
+        "channel": "secure_file_exchange",
+        "classification": "confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "block",
+      "expected_revision_status": "blocked",
+      "decisions": [
+        {"location": "xlsx:Supplier Comparison:C5", "category": "internal_cost_budget", "action": "block", "rule_ids": ["PS-PREFLIGHT-XLSX-FORMULA"], "evidence_ids": ["EV-GEN-002"]}
+      ],
+      "required_literals": [],
+      "prohibited_literals": ["61000"]
+    },
+    {
+      "id": "scenario-24",
+      "title": "DOCX embedded object blocks processing",
+      "source_id": "docx-embedded-object",
+      "source_sha256": "10d514eccc46778ac84d76e02404c3000788f62eb0baba3334a94a297ec9eb95",
+      "context": {
+        "recipient": "external_incident_responder",
+        "organization": "response-partner.example",
+        "recipient_id": "incident-team@response-partner.example",
+        "purpose": "incident_response_investigation",
+        "channel": "secure_file_exchange",
+        "classification": "strictly_confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "block",
+      "expected_revision_status": "blocked",
+      "decisions": [
+        {"location": "document:embedded-object", "category": "unclassified", "action": "block", "rule_ids": ["PS-PREFLIGHT-DOCX-EMBEDDED"], "evidence_ids": ["EV-GEN-002"]}
+      ],
+      "required_literals": [],
+      "prohibited_literals": ["POLICYSEAL-SYNTHETIC-EMBEDDED"]
+    },
+    {
+      "id": "scenario-25",
+      "title": "Residual credential marker blocks the incident output",
+      "source_id": "security-incident-hero",
+      "source_sha256": "f01a64dbb804d5231613ef600458b335e3a0f40edcae6daba755fe1e90d4bf12",
+      "context": {
+        "recipient": "external_incident_responder",
+        "organization": "response-partner.example",
+        "recipient_id": "incident-team@response-partner.example",
+        "purpose": "incident_response_investigation",
+        "channel": "secure_file_exchange",
+        "classification": "strictly_confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "block",
+      "expected_revision_status": "blocked",
+      "decisions": [
+        {"location": "output:residual-scan:credential", "category": "credential_secret", "action": "block", "rule_ids": ["PS-RESIDUAL-CREDENTIAL"], "evidence_ids": ["EV-DOCX-003", "EV-GEN-004"]}
+      ],
+      "required_literals": [],
+      "prohibited_literals": ["Crimson-Falcon-47!", "ps_demo_token_7f4b2e91"]
+    },
+    {
+      "id": "scenario-26",
+      "title": "PDF embedded attachment blocks the whole package",
+      "source_id": "pdf-embedded-attachment",
+      "source_sha256": "9dabd7839320a13cd225f41c25d8e59eda977e47822126cdf8bffdd71351e882",
+      "context": {
+        "recipient": "candidate_supplier",
+        "organization": "candidate-supplier.example",
+        "recipient_id": "contracts@candidate-supplier.example",
+        "purpose": "contract_terms_preview",
+        "channel": "corporate_email",
+        "classification": "confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "block",
+      "expected_revision_status": "blocked",
+      "decisions": [
+        {"location": "document:embedded-attachment", "category": "source_metadata", "action": "block", "rule_ids": ["PS-PREFLIGHT-PDF-ATTACHMENT"], "evidence_ids": ["EV-PDF-004", "EV-GEN-002"]}
+      ],
+      "required_literals": [],
+      "prohibited_literals": ["POLICYSEAL SYNTHETIC EMBEDDED ATTACHMENT"]
+    },
+    {
+      "id": "scenario-27",
+      "title": "Image-only PDF blocks because OCR is outside P0",
+      "source_id": "pdf-image-only",
+      "source_sha256": "193e4c08fb391a0851e6e5c59d57cd7c00565d447971669c1202de11b6b7919b",
+      "context": {
+        "recipient": "candidate_supplier",
+        "organization": "candidate-supplier.example",
+        "recipient_id": "contracts@candidate-supplier.example",
+        "purpose": "contract_terms_preview",
+        "channel": "corporate_email",
+        "classification": "confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "block",
+      "expected_revision_status": "blocked",
+      "decisions": [
+        {"location": "pdf:page:1", "category": "unclassified", "action": "block", "rule_ids": ["PS-PREFLIGHT-PDF-OCR"], "evidence_ids": ["EV-GEN-002"]}
+      ],
+      "required_literals": [],
+      "prohibited_literals": []
+    },
+    {
+      "id": "scenario-28",
+      "title": "Incident report blocks on a personal email channel",
+      "source_id": "security-incident-hero",
+      "source_sha256": "f01a64dbb804d5231613ef600458b335e3a0f40edcae6daba755fe1e90d4bf12",
+      "context": {
+        "recipient": "external_incident_responder",
+        "organization": "response-partner.example",
+        "recipient_id": "responder@personal.example",
+        "purpose": "incident_response_investigation",
+        "channel": "personal_email",
+        "classification": "strictly_confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "block",
+      "expected_revision_status": "blocked",
+      "decisions": [
+        {"location": "document", "category": "incident_fact_timeline", "action": "block", "rule_ids": ["PS-GLOBAL-PERSONAL-EMAIL"], "evidence_ids": ["EV-GEN-001", "EV-GEN-004"]}
+      ],
+      "required_literals": [],
+      "prohibited_literals": ["203.0.113.77", "CVE-2025-99999"]
+    },
+    {
+      "id": "scenario-29",
+      "title": "Corrupt XLSX produces a controlled processing failure",
+      "source_id": "xlsx-corrupt",
+      "source_sha256": "f6ccfb9b910ad00bb91eb2d860858339898498badd507c812e361f73792ac6cd",
+      "context": {
+        "recipient": "internal_procurement_lead",
+        "organization": "northstar.example",
+        "recipient_id": "procurement.lead@northstar.example",
+        "purpose": "procurement_decision",
+        "channel": "collaboration_platform",
+        "classification": "confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "processing_failed",
+      "expected_revision_status": "processing_failed",
+      "decisions": [],
+      "required_literals": [],
+      "prohibited_literals": []
+    },
+    {
+      "id": "scenario-30",
+      "title": "Corrupt DOCX produces a controlled processing failure",
+      "source_id": "docx-corrupt",
+      "source_sha256": "2a589790ee226b4e4c9fd64b05870bb49b775b523321ee89c66560a917d13329",
+      "context": {
+        "recipient": "external_incident_responder",
+        "organization": "response-partner.example",
+        "recipient_id": "incident-team@response-partner.example",
+        "purpose": "incident_response_investigation",
+        "channel": "secure_file_exchange",
+        "classification": "strictly_confidential",
+        "policy_version": "1.0.0"
+      },
+      "expected_status": "processing_failed",
+      "expected_revision_status": "processing_failed",
+      "decisions": [],
+      "required_literals": [],
+      "prohibited_literals": []
+    }
+  ]
+}

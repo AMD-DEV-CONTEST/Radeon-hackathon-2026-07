@@ -1,0 +1,602 @@
+{
+  "$defs": {
+    "ExperimentReport": {
+      "additionalProperties": false,
+      "properties": {
+        "actual_improvement_percent": {
+          "title": "Actual Improvement Percent",
+          "type": "number"
+        },
+        "baseline_strategy_id": {
+          "title": "Baseline Strategy Id",
+          "type": "string"
+        },
+        "experiment_id": {
+          "enum": [
+            "experiment-a-batching",
+            "experiment-b-cascade"
+          ],
+          "title": "Experiment Id",
+          "type": "string"
+        },
+        "input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "optimized_strategy_id": {
+          "title": "Optimized Strategy Id",
+          "type": "string"
+        },
+        "result_reason": {
+          "title": "Result Reason",
+          "type": "string"
+        },
+        "sample_count": {
+          "exclusiveMinimum": 0,
+          "title": "Sample Count",
+          "type": "integer"
+        },
+        "strategies": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "$ref": "#/$defs/StrategyReport"
+            },
+            {
+              "$ref": "#/$defs/StrategyReport"
+            }
+          ],
+          "title": "Strategies",
+          "type": "array"
+        },
+        "target_improvement_percent": {
+          "exclusiveMinimum": 0,
+          "title": "Target Improvement Percent",
+          "type": "number"
+        },
+        "target_metric": {
+          "title": "Target Metric",
+          "type": "string"
+        },
+        "target_status": {
+          "enum": [
+            "met",
+            "not_met"
+          ],
+          "title": "Target Status",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "experiment_id",
+        "title",
+        "input_sha256",
+        "sample_count",
+        "baseline_strategy_id",
+        "optimized_strategy_id",
+        "target_metric",
+        "target_improvement_percent",
+        "actual_improvement_percent",
+        "target_status",
+        "result_reason",
+        "strategies"
+      ],
+      "title": "ExperimentReport",
+      "type": "object"
+    },
+    "ModelParameters": {
+      "additionalProperties": false,
+      "properties": {
+        "attention_backend": {
+          "title": "Attention Backend",
+          "type": "string"
+        },
+        "dtype": {
+          "title": "Dtype",
+          "type": "string"
+        },
+        "gpu_memory_utilization": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Gpu Memory Utilization",
+          "type": "number"
+        },
+        "max_model_len": {
+          "exclusiveMinimum": 0,
+          "title": "Max Model Len",
+          "type": "integer"
+        },
+        "max_num_batched_tokens": {
+          "exclusiveMinimum": 0,
+          "title": "Max Num Batched Tokens",
+          "type": "integer"
+        },
+        "max_num_seqs": {
+          "exclusiveMinimum": 0,
+          "title": "Max Num Seqs",
+          "type": "integer"
+        },
+        "thinking": {
+          "title": "Thinking",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "dtype",
+        "attention_backend",
+        "max_model_len",
+        "max_num_seqs",
+        "max_num_batched_tokens",
+        "gpu_memory_utilization",
+        "thinking"
+      ],
+      "title": "ModelParameters",
+      "type": "object"
+    },
+    "QualityEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "accuracy": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Accuracy",
+          "type": "number"
+        },
+        "gate_passed": {
+          "title": "Gate Passed",
+          "type": "boolean"
+        },
+        "high_risk_to_ordinary_false_negative_count": {
+          "minimum": 0,
+          "title": "High Risk To Ordinary False Negative Count",
+          "type": "integer"
+        },
+        "leakage_count": {
+          "minimum": 0,
+          "title": "Leakage Count",
+          "type": "integer"
+        },
+        "macro_f1": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Macro F1",
+          "type": "number"
+        },
+        "over_removal_count": {
+          "minimum": 0,
+          "title": "Over Removal Count",
+          "type": "integer"
+        },
+        "review_count": {
+          "minimum": 0,
+          "title": "Review Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "macro_f1",
+        "accuracy",
+        "leakage_count",
+        "over_removal_count",
+        "review_count",
+        "high_risk_to_ordinary_false_negative_count",
+        "gate_passed"
+      ],
+      "title": "QualityEvidence",
+      "type": "object"
+    },
+    "RuntimeEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "endpoint_scope": {
+          "const": "localhost",
+          "title": "Endpoint Scope",
+          "type": "string"
+        },
+        "gpu_architecture": {
+          "title": "Gpu Architecture",
+          "type": "string"
+        },
+        "gpu_name": {
+          "title": "Gpu Name",
+          "type": "string"
+        },
+        "gpu_vram_bytes": {
+          "exclusiveMinimum": 0,
+          "title": "Gpu Vram Bytes",
+          "type": "integer"
+        },
+        "hip": {
+          "title": "Hip",
+          "type": "string"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "model_files": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Model Files",
+          "type": "object"
+        },
+        "model_parameters": {
+          "$ref": "#/$defs/ModelParameters"
+        },
+        "model_server_cold_start_ms": {
+          "minimum": 0,
+          "title": "Model Server Cold Start Ms",
+          "type": "number"
+        },
+        "model_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Model Sha256",
+          "type": "string"
+        },
+        "platform": {
+          "title": "Platform",
+          "type": "string"
+        },
+        "python": {
+          "title": "Python",
+          "type": "string"
+        },
+        "rocm": {
+          "title": "Rocm",
+          "type": "string"
+        },
+        "torch": {
+          "title": "Torch",
+          "type": "string"
+        },
+        "transformers": {
+          "title": "Transformers",
+          "type": "string"
+        },
+        "vllm": {
+          "title": "Vllm",
+          "type": "string"
+        }
+      },
+      "required": [
+        "platform",
+        "python",
+        "rocm",
+        "hip",
+        "gpu_architecture",
+        "gpu_name",
+        "gpu_vram_bytes",
+        "torch",
+        "vllm",
+        "transformers",
+        "model",
+        "model_sha256",
+        "model_files",
+        "model_parameters",
+        "model_server_cold_start_ms",
+        "endpoint_scope"
+      ],
+      "title": "RuntimeEvidence",
+      "type": "object"
+    },
+    "StrategyConfiguration": {
+      "additionalProperties": false,
+      "properties": {
+        "batch_size": {
+          "exclusiveMinimum": 0,
+          "title": "Batch Size",
+          "type": "integer"
+        },
+        "consistency_passes": {
+          "minimum": 2,
+          "title": "Consistency Passes",
+          "type": "integer"
+        },
+        "deterministic_short_circuit": {
+          "title": "Deterministic Short Circuit",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "batch_size",
+        "consistency_passes",
+        "deterministic_short_circuit"
+      ],
+      "title": "StrategyConfiguration",
+      "type": "object"
+    },
+    "StrategyReport": {
+      "additionalProperties": false,
+      "properties": {
+        "cold_workflow_latency_ms": {
+          "exclusiveMinimum": 0,
+          "title": "Cold Workflow Latency Ms",
+          "type": "number"
+        },
+        "configuration": {
+          "$ref": "#/$defs/StrategyConfiguration"
+        },
+        "quality": {
+          "$ref": "#/$defs/QualityEvidence"
+        },
+        "strategy_id": {
+          "title": "Strategy Id",
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/$defs/StrategySummary"
+        },
+        "warm_runs": {
+          "items": {
+            "$ref": "#/$defs/WarmRun"
+          },
+          "minItems": 10,
+          "title": "Warm Runs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "strategy_id",
+        "configuration",
+        "cold_workflow_latency_ms",
+        "warm_runs",
+        "summary",
+        "quality"
+      ],
+      "title": "StrategyReport",
+      "type": "object"
+    },
+    "StrategySummary": {
+      "additionalProperties": false,
+      "properties": {
+        "completion_tokens_total": {
+          "minimum": 0,
+          "title": "Completion Tokens Total",
+          "type": "integer"
+        },
+        "deterministic_output": {
+          "title": "Deterministic Output",
+          "type": "boolean"
+        },
+        "gpu_utilization_percent_mean": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Gpu Utilization Percent Mean",
+          "type": "number"
+        },
+        "gpu_utilization_percent_peak": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Gpu Utilization Percent Peak",
+          "type": "number"
+        },
+        "model_region_count_total": {
+          "minimum": 0,
+          "title": "Model Region Count Total",
+          "type": "integer"
+        },
+        "model_request_count_total": {
+          "minimum": 0,
+          "title": "Model Request Count Total",
+          "type": "integer"
+        },
+        "p50_latency_ms": {
+          "exclusiveMinimum": 0,
+          "title": "P50 Latency Ms",
+          "type": "number"
+        },
+        "p95_latency_ms": {
+          "exclusiveMinimum": 0,
+          "title": "P95 Latency Ms",
+          "type": "number"
+        },
+        "prompt_tokens_total": {
+          "minimum": 0,
+          "title": "Prompt Tokens Total",
+          "type": "integer"
+        },
+        "throughput_regions_per_second": {
+          "exclusiveMinimum": 0,
+          "title": "Throughput Regions Per Second",
+          "type": "number"
+        },
+        "vram_used_bytes_peak": {
+          "minimum": 0,
+          "title": "Vram Used Bytes Peak",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "p50_latency_ms",
+        "p95_latency_ms",
+        "throughput_regions_per_second",
+        "model_region_count_total",
+        "model_request_count_total",
+        "gpu_utilization_percent_mean",
+        "gpu_utilization_percent_peak",
+        "vram_used_bytes_peak",
+        "prompt_tokens_total",
+        "completion_tokens_total",
+        "deterministic_output"
+      ],
+      "title": "StrategySummary",
+      "type": "object"
+    },
+    "WarmRun": {
+      "additionalProperties": false,
+      "properties": {
+        "completion_tokens": {
+          "minimum": 0,
+          "title": "Completion Tokens",
+          "type": "integer"
+        },
+        "gpu_utilization_percent_mean": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Gpu Utilization Percent Mean",
+          "type": "number"
+        },
+        "gpu_utilization_percent_peak": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Gpu Utilization Percent Peak",
+          "type": "number"
+        },
+        "iteration": {
+          "exclusiveMinimum": 0,
+          "title": "Iteration",
+          "type": "integer"
+        },
+        "latency_ms": {
+          "exclusiveMinimum": 0,
+          "title": "Latency Ms",
+          "type": "number"
+        },
+        "model_latency_ms": {
+          "minimum": 0,
+          "title": "Model Latency Ms",
+          "type": "number"
+        },
+        "model_region_count": {
+          "minimum": 0,
+          "title": "Model Region Count",
+          "type": "integer"
+        },
+        "model_request_count": {
+          "minimum": 0,
+          "title": "Model Request Count",
+          "type": "integer"
+        },
+        "output_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Output Sha256",
+          "type": "string"
+        },
+        "prompt_tokens": {
+          "minimum": 0,
+          "title": "Prompt Tokens",
+          "type": "integer"
+        },
+        "throughput_regions_per_second": {
+          "exclusiveMinimum": 0,
+          "title": "Throughput Regions Per Second",
+          "type": "number"
+        },
+        "vram_used_bytes_peak": {
+          "minimum": 0,
+          "title": "Vram Used Bytes Peak",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "iteration",
+        "latency_ms",
+        "model_latency_ms",
+        "throughput_regions_per_second",
+        "model_region_count",
+        "model_request_count",
+        "gpu_utilization_percent_mean",
+        "gpu_utilization_percent_peak",
+        "vram_used_bytes_peak",
+        "prompt_tokens",
+        "completion_tokens",
+        "output_sha256"
+      ],
+      "title": "WarmRun",
+      "type": "object"
+    },
+    "WorkloadEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "consistency_passes": {
+          "minimum": 2,
+          "title": "Consistency Passes",
+          "type": "integer"
+        },
+        "input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "policy_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Sha256",
+          "type": "string"
+        },
+        "sample_count": {
+          "exclusiveMinimum": 0,
+          "title": "Sample Count",
+          "type": "integer"
+        },
+        "warm_repetitions": {
+          "minimum": 10,
+          "title": "Warm Repetitions",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "input_sha256",
+        "policy_sha256",
+        "sample_count",
+        "warm_repetitions",
+        "consistency_passes"
+      ],
+      "title": "WorkloadEvidence",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "experiments": {
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/ExperimentReport"
+        },
+        {
+          "$ref": "#/$defs/ExperimentReport"
+        }
+      ],
+      "title": "Experiments",
+      "type": "array"
+    },
+    "recorded_at": {
+      "title": "Recorded At",
+      "type": "string"
+    },
+    "runtime": {
+      "$ref": "#/$defs/RuntimeEvidence"
+    },
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_commit": {
+      "pattern": "^[0-9a-f]{40}$",
+      "title": "Source Commit",
+      "type": "string"
+    },
+    "workload": {
+      "$ref": "#/$defs/WorkloadEvidence"
+    }
+  },
+  "required": [
+    "schema_version",
+    "recorded_at",
+    "source_commit",
+    "runtime",
+    "workload",
+    "experiments"
+  ],
+  "title": "BenchmarkReport",
+  "type": "object"
+}

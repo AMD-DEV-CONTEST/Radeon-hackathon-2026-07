@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>PolicySeal Decision Report</title>
+  <style>
+    body { font: 14px/1.45 system-ui, sans-serif; color: #17202a; margin: 32px; }
+    h1 { font-size: 24px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #b8c0c8; padding: 7px; text-align: left; vertical-align: top; }
+    th { background: #eef1f3; }
+    code { font-family: ui-monospace, monospace; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>PolicySeal Decision Report</h1>
+  <p>Task <code>{{ revision.task_id }}</code>, revision <code>{{ revision.id }}</code>,
+    status <strong>{{ revision.status.value }}</strong>.</p>
+  <p>Recipient {{ revision.context.recipient.value }}, purpose {{ revision.context.purpose.value }},
+    channel {{ revision.context.channel.value }}, policy {{ revision.context.policy_version }}.</p>
+  <table>
+    <thead>
+      <tr><th>Location</th><th>Category</th><th>Action</th><th>Rules</th><th>Evidence</th></tr>
+    </thead>
+    <tbody>
+    {% for decision in decisions %}
+      <tr>
+        <td><code>{{ decision.location }}</code></td>
+        <td>{{ decision.category }}</td>
+        <td>{{ decision.action }}</td>
+        <td>{{ decision.rule_ids | join(', ') }}</td>
+        <td>{{ decision.evidence_ids | join(', ') }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>
