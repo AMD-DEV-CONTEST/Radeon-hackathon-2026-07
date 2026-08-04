@@ -161,12 +161,16 @@ This runs on the Radeon-hosted model, and it is visible end to end in the demo v
 
 ### 3.0b Several AIs in one room, and a foreman who decides who is right
 
-Determinex hosts the coding-agent CLIs a developer already has — Claude Code, Codex, Gemini
-CLI, aider — plus a local Ollama model, **in one shared conversation over one workspace**.
-Turns run one at a time, never concurrently, and **each agent's edits are checked against the
-real compiler/test oracle before the next agent goes**. All participants read the same Mission
-Plan, which can be re-synced from the repository's own `CLAUDE.md` / `PROJECT.md`, so nobody
-duplicates or contradicts another's work.
+Determinex hosts whichever coding-agent CLIs a developer already has installed, plus a local
+Ollama model, **in one shared conversation over one workspace**. Turns run one at a time,
+never concurrently, and **each agent's edits are checked against the real compiler/test
+oracle before the next agent goes**. All participants read the same Mission Plan, re-synced
+from the repository's own project documentation, so nobody duplicates or contradicts
+another's work.
+
+The point is that it does not matter which agents they are. Nothing in the loop knows or
+cares which one produced a candidate — the oracle is the only thing that decides, so a
+local 1.5B model and a frontier CLI are judged by exactly the same standard.
 
 Serialising turns prevents a *collision*. It does not answer the two questions that decide
 whether a room finishes:
