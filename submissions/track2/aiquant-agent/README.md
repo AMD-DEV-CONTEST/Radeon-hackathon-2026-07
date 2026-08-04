@@ -2,6 +2,8 @@
 
 > **AMD Radeon Hackathon 2026 · Track 2: Private AI Agent Development & Local Deployment**
 
+> 📺 **Demo Video**: [https://www.bilibili.com/video/BV1oFuP6wEmt/](https://www.bilibili.com/video/BV1oFuP6wEmt/)
+
 ## Overview
 
 aiQuant is a **fully private, local-first AI Agent** that automates quantitative factor mining through natural language. Users describe their research intent (e.g., "Mine momentum factors for CSI 300, 1 iteration"), and the Agent autonomously generates factor hypotheses, writes implementation code, runs Qlib backtests, and reviews results — all powered by an LLM running locally on AMD Radeon GPU via ROCm.
