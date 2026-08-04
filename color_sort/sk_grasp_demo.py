@@ -353,7 +353,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Scripted color-sorting pick-and-place with YCB objects.")
     parser.add_argument("-v", "--vis", action="store_true", default=False)
     parser.add_argument("-c", "--cpu", action="store_true", default=False)
-    parser.add_argument("--pick", default="013_apple", help="YCB object name to pick (e.g. 013_apple).")
+    parser.add_argument("--pick", default="011_banana", help="YCB object name to pick (e.g. 011_banana).")
     parser.add_argument("--place", default=None,
                         help="Place target: a color name (e.g. red) or 'x,y'. Default: auto from object color.")
     parser.add_argument("--tol", type=float, default=0.06, help="Success tolerance (m).")
