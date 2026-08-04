@@ -1171,6 +1171,35 @@ def _repair_directive(
     }
 
 
+def _materialize_bound_arguments(
+    payload: dict[str, Any],
+    obligations: _PlanObligations,
+) -> None:
+    """Fill only missing, server-bound literals; conflicting model values still fail."""
+
+    raw_steps = payload.get("steps")
+    if not isinstance(raw_steps, list):
+        return
+    steps_by_tool: dict[str, list[dict[str, Any]]] = {}
+    for raw_step in raw_steps:
+        if not isinstance(raw_step, dict):
+            continue
+        tool = raw_step.get("tool")
+        if isinstance(tool, str):
+            steps_by_tool.setdefault(tool, []).append(raw_step)
+    for tool, field, value in obligations.argument_hints:
+        matching_steps = steps_by_tool.get(tool, [])
+        if len(matching_steps) != 1:
+            continue
+        step = matching_steps[0]
+        arguments = step.get("arguments")
+        if arguments is None:
+            arguments = {}
+            step["arguments"] = arguments
+        if isinstance(arguments, dict) and field not in arguments:
+            arguments[field] = value
+
+
 def _record_plan_validation(
     model: LocalModelClient,
     *,
@@ -1362,6 +1391,7 @@ class LocalLLMPlanner:
             trace_purpose="planner.initial",
             trace_attempt=1,
         )
+        _materialize_bound_arguments(payload, obligations)
         try:
             plan = AgentPlan.model_validate(payload)
             _validate_candidate_plan(
@@ -1424,6 +1454,7 @@ class LocalLLMPlanner:
                 trace_purpose="planner.semantic_repair",
                 trace_attempt=2,
             )
+            _materialize_bound_arguments(repaired_payload, obligations)
             try:
                 repaired_plan = AgentPlan.model_validate(repaired_payload)
                 _validate_candidate_plan(

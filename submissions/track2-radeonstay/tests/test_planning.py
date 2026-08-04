@@ -273,6 +273,45 @@ def test_structural_repair_receives_server_workflow_and_restores_omitted_intent(
     assert "steps[position].tool MUST equal" in model.calls[1]["messages"][0]["content"]
 
 
+def test_planner_materializes_only_missing_server_bound_arguments() -> None:
+    tool_specs = [
+        {
+            "name": "memory.set_consent",
+            "effect": "write",
+            "parameters": {
+                "type": "object",
+                "properties": {"enabled": {"type": "boolean"}},
+                "required": ["enabled"],
+                "additionalProperties": False,
+            },
+        }
+    ]
+    missing_literal = {
+        "objective": "Disable local preference memory and erase stored preferences.",
+        "steps": [
+            {
+                "step_id": "disable_memory",
+                "tool": "memory.set_consent",
+                "reason": "Disabling consent performs the requested erase after confirmation.",
+                "depends_on": [],
+            }
+        ],
+        "response_language": "中文",
+    }
+    model = StubModel(missing_literal)
+    planner = LocalLLMPlanner(model)  # type: ignore[arg-type]
+
+    plan = planner.create_plan(
+        "关闭我的本地偏好记忆并删除已保存偏好，先给出影响预览。",
+        policy_context="",
+        tool_specs=tool_specs,
+    )
+
+    assert len(model.calls) == 1
+    assert plan.steps[0].arguments == {"enabled": False}
+    assert model.validations[-1]["outcome"] == "accepted_initial"
+
+
 def test_second_plan_contract_failure_returns_only_safe_ask_user() -> None:
     model = StubModel(_unknown_tool_plan(), _unknown_tool_plan())
     planner = LocalLLMPlanner(model)  # type: ignore[arg-type]
