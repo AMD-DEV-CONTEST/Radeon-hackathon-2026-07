@@ -11,6 +11,7 @@ from radeonstay.contracts import AgentPlan, PlanStep
 from radeonstay.model_client import ModelClientError
 from radeonstay.planning import (
     _PLANNING_CONTRACT,
+    _plan_obligations,
     LocalLLMPlanner,
     PlanCompletenessError,
     PlanSemanticError,
@@ -132,6 +133,8 @@ def test_planner_uses_json_schema_and_accepts_a_valid_initial_plan() -> None:
         "ordered_tools": ["respond_with_policy"],
         "missing_fields": [],
         "tool_sequence_is_exact": True,
+        "dependency_edges": [],
+        "literal_arguments": {},
     }
     assert any(
         "include_cancelled=false" in rule
@@ -261,9 +264,13 @@ def test_structural_repair_receives_server_workflow_and_restores_omitted_intent(
     assert directive["argument_contracts"]["hotel.my_bookings"]["defaults"] == {
         "include_cancelled": False
     }
+    assert [slot["tool"] for slot in directive["required_step_slots"]] == [
+        "hotel.my_bookings",
+        "hotel.modify_booking",
+    ]
     assert len(repair_input["contract_errors"]) >= 1
     assert all("message" in error for error in repair_input["contract_errors"])
-    assert "MUST equal it exactly" in model.calls[1]["messages"][0]["content"]
+    assert "steps[position].tool MUST equal" in model.calls[1]["messages"][0]["content"]
 
 
 def test_second_plan_contract_failure_returns_only_safe_ask_user() -> None:
@@ -437,7 +444,10 @@ def test_completeness_uses_session_reference_and_partitions_mixed_scope() -> Non
             PlanStep(
                 step_id="ticket",
                 tool="hotel.create_service_ticket",
-                arguments={},
+                arguments={
+                    "booking_id": "RSV-RANDOM-7C91",
+                    "category": "transport",
+                },
                 reason="Use the booking bound to this session.",
             )
         ],
@@ -558,12 +568,16 @@ def test_completeness_requires_structured_missing_fields_and_one_preference_writ
         )
 
 
-def _plan_for_intent_tools(tools: list[str]) -> AgentPlan:
+def _plan_for_intent_tools(
+    tools: list[str],
+    arguments_by_tool: dict[str, dict[str, Any]] | None = None,
+) -> AgentPlan:
     steps: list[PlanStep] = []
     previous: str | None = None
+    supplied_arguments = arguments_by_tool or {}
     for index, tool in enumerate(tools):
         step_id = f"intent_{index}"
-        arguments: dict[str, Any] = {}
+        arguments = dict(supplied_arguments.get(tool, {}))
         if tool == "ask_user":
             arguments = {"question": "Please clarify the requested operation."}
         steps.append(
@@ -636,14 +650,30 @@ def test_held_out_intent_paraphrases_require_every_capability_without_fixture_le
             "Revoke local preference storage and erase every saved preference.",
             ["memory.set_consent"],
         ),
+        (
+            f"查询 {check_in.isoformat()} 到 {check_out.isoformat()} 可住两人的标准房。",
+            ["hotel.check_availability"],
+        ),
+        (
+            "列出我自己的未取消订单。",
+            ["hotel.my_bookings"],
+        ),
+        (
+            "现在保存 quiet_room=high_floor。",
+            ["memory.remember_preference"],
+        ),
     ]
 
     for prompt, expected_tools in workflows:
+        obligations = _plan_obligations(prompt, "", INTENT_TOOL_SPECS)
+        assert list(obligations.ordered_tools) == expected_tools
+        literal_arguments = obligations.to_prompt_dict()["literal_arguments"]
         validate_plan_completeness(
-            _plan_for_intent_tools(expected_tools),
+            _plan_for_intent_tools(expected_tools, literal_arguments),
             prompt,
             "",
             INTENT_TOOL_SPECS,
+            obligations=obligations,
         )
         for omitted in expected_tools:
             reduced = [tool for tool in expected_tools if tool != omitted]
@@ -651,10 +681,11 @@ def test_held_out_intent_paraphrases_require_every_capability_without_fixture_le
                 reduced = ["ask_user"]
             with pytest.raises(PlanCompletenessError) as captured:
                 validate_plan_completeness(
-                    _plan_for_intent_tools(reduced),
+                    _plan_for_intent_tools(reduced, literal_arguments),
                     prompt,
                     "",
                     INTENT_TOOL_SPECS,
+                    obligations=obligations,
                 )
             assert omitted in str(captured.value)
 
@@ -665,13 +696,122 @@ def test_held_out_intent_paraphrases_require_every_capability_without_fixture_le
     assert all(prompt not in contract_text for prompt, _ in workflows)
 
 
-def test_completeness_rejects_operational_tools_without_explicit_user_intent() -> None:
-    plan = _plan_for_intent_tools(["hotel.check_availability"])
+def test_memory_obligations_bind_explicit_values_and_do_not_recreate_deleted_data() -> None:
+    save = _plan_obligations(
+        "现在保存 quiet_room=high_floor。",
+        "",
+        INTENT_TOOL_SPECS,
+    ).to_prompt_dict()
+    assert save["ordered_tools"] == ["memory.remember_preference"]
+    assert save["literal_arguments"] == {
+        "memory.remember_preference": {
+            "key": "quiet_room",
+            "value": "high_floor",
+        }
+    }
 
-    with pytest.raises(PlanCompletenessError, match="not supported"):
+    disable = _plan_obligations(
+        "关闭我的本地偏好记忆并删除已保存偏好，先给出影响预览。",
+        "",
+        INTENT_TOOL_SPECS,
+    ).to_prompt_dict()
+    assert disable["ordered_tools"] == ["memory.set_consent"]
+    assert disable["literal_arguments"] == {
+        "memory.set_consent": {"enabled": False}
+    }
+
+    wrong_direction = AgentPlan(
+        objective="Do not accept the opposite memory-consent direction.",
+        steps=[
+            PlanStep(
+                step_id="consent",
+                tool="memory.set_consent",
+                arguments={"enabled": True},
+                reason="This deliberately conflicts with the request.",
+            )
+        ],
+    )
+    with pytest.raises(PlanCompletenessError, match="enabled=False"):
         validate_plan_completeness(
-            plan,
-            "Hello RadeonStay.",
+            wrong_direction,
+            "关闭我的本地偏好记忆并删除已保存偏好，先给出影响预览。",
             "",
             INTENT_TOOL_SPECS,
         )
+
+
+def test_explicit_stay_booking_and_filter_arguments_are_server_bound() -> None:
+    stay = _plan_obligations(
+        "查询 2034-02-11 到 2034-02-14 可住两人的标准房。",
+        "",
+        INTENT_TOOL_SPECS,
+    ).to_prompt_dict()
+    assert stay["literal_arguments"] == {
+        "hotel.check_availability": {
+            "check_in": "2034-02-11",
+            "check_out": "2034-02-14",
+            "room_type": "standard",
+            "guests": 2,
+        }
+    }
+
+    bookings = _plan_obligations(
+        "列出我自己的未取消订单。",
+        "",
+        INTENT_TOOL_SPECS,
+    ).to_prompt_dict()
+    assert bookings["literal_arguments"] == {
+        "hotel.my_bookings": {"include_cancelled": False}
+    }
+
+    ticket = _plan_obligations(
+        "引用接送政策，并为 RSV-RANDOM-A91F 登记接机需求。",
+        "",
+        INTENT_TOOL_SPECS,
+    ).to_prompt_dict()
+    assert ticket["literal_arguments"]["hotel.create_service_ticket"] == {
+        "booking_id": "RSV-RANDOM-A91F",
+        "category": "transport",
+    }
+
+    wrong_ticket = AgentPlan(
+        objective="Reject a ticket that changes explicit booking or category values.",
+        steps=[
+            PlanStep(
+                step_id="policy",
+                tool="respond_with_policy",
+                reason="Cite the requested transfer policy.",
+            ),
+            PlanStep(
+                step_id="ticket",
+                tool="hotel.create_service_ticket",
+                arguments={
+                    "booking_id": "RSV-RANDOM-A91F",
+                    "category": "other",
+                },
+                reason="This deliberately changes the requested category.",
+            ),
+        ],
+    )
+    with pytest.raises(PlanCompletenessError, match="category='transport'"):
+        validate_plan_completeness(
+            wrong_ticket,
+            "引用接送政策，并为 RSV-RANDOM-A91F 登记接机需求。",
+            "",
+            INTENT_TOOL_SPECS,
+        )
+
+
+def test_empty_obligations_reject_all_unrequested_operational_tools() -> None:
+    scoped_specs = [
+        {"name": "hotel.check_availability", "effect": "read"},
+        {"name": "hotel.hold_booking", "effect": "write"},
+    ]
+    for tool in ("hotel.check_availability", "hotel.hold_booking"):
+        with pytest.raises(PlanCompletenessError, match="operational tools"):
+            validate_plan_completeness(
+                _plan_for_intent_tools([tool]),
+                "Hello RadeonStay.",
+                "",
+                scoped_specs,
+            )

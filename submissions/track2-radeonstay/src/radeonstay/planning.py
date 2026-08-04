@@ -11,6 +11,12 @@ from .contracts import AgentPlan, PlanStep
 from .model_client import LocalModelClient
 
 PSEUDO_TOOLS = frozenset({"ask_user", "refuse_request", "respond_with_policy"})
+_REQUIRED_DATA_DEPENDENCIES = frozenset(
+    {
+        ("hotel.check_availability", "hotel.quote_stay"),
+        ("hotel.quote_stay", "hotel.hold_booking"),
+    }
+)
 _REFERENCE_RE = re.compile(
     r"^\{\{([A-Za-z0-9_-]+)((?:\.[A-Za-z0-9_-]+)+)\}\}$"
 )
@@ -112,12 +118,27 @@ class PlanContractError(PlanSemanticError):
 class _PlanObligations:
     ordered_tools: tuple[str, ...]
     missing_fields: tuple[str, ...] = ()
+    argument_hints: tuple[tuple[str, str, Any], ...] = ()
 
     def to_prompt_dict(self) -> dict[str, Any]:
+        literal_arguments: dict[str, dict[str, Any]] = {}
+        for tool, field, value in self.argument_hints:
+            literal_arguments.setdefault(tool, {})[field] = value
+        dependency_edges = [
+            {"from": previous, "to": current}
+            for previous, current in zip(
+                self.ordered_tools[:-1],
+                self.ordered_tools[1:],
+                strict=True,
+            )
+            if (previous, current) in _REQUIRED_DATA_DEPENDENCIES
+        ]
         return {
             "ordered_tools": list(self.ordered_tools),
             "missing_fields": list(self.missing_fields),
             "tool_sequence_is_exact": bool(self.ordered_tools),
+            "dependency_edges": dependency_edges,
+            "literal_arguments": literal_arguments,
         }
 
 
@@ -353,6 +374,52 @@ def _contains_any(value: str, tokens: tuple[str, ...]) -> bool:
     return any(token in value for token in tokens)
 
 
+def _explicit_guest_count(value: str) -> int | None:
+    chinese = re.search(
+        r"(?<![0-9一二两三四五六七八九十])"
+        r"([1-9][0-9]?|一|二|两|三|四|五|六|七|八|九|十)\s*(?:人|位住客|位客人)",
+        value,
+    )
+    if chinese is not None:
+        token = chinese.group(1)
+        numbers = {
+            "一": 1,
+            "二": 2,
+            "两": 2,
+            "三": 3,
+            "四": 4,
+            "五": 5,
+            "六": 6,
+            "七": 7,
+            "八": 8,
+            "九": 9,
+            "十": 10,
+        }
+        return numbers.get(token, int(token) if token.isdigit() else None)
+    english = re.search(
+        r"\b(?:for|with)\s+(one|two|three|four|five|six|seven|eight|nine|ten|[1-9][0-9]?)"
+        r"\s+(?:guests?|people|persons?)\b",
+        value,
+        re.I,
+    )
+    if english is None:
+        return None
+    token = english.group(1).casefold()
+    numbers = {
+        "one": 1,
+        "two": 2,
+        "three": 3,
+        "four": 4,
+        "five": 5,
+        "six": 6,
+        "seven": 7,
+        "eight": 8,
+        "nine": 9,
+        "ten": 10,
+    }
+    return numbers.get(token, int(token) if token.isdigit() else None)
+
+
 def _plan_obligations(
     message: str,
     conversation_summary: str,
@@ -393,7 +460,7 @@ def _plan_obligations(
     booking_list = bool(
         re.search(
             r"(?:列出|查看|显示|查询|调出|打开).{0,16}"
-            r"(?:我的|本人|我名下).{0,12}(?:订单|预订)",
+            r"(?:我的|本人|我名下|我自己的).{0,12}(?:订单|预订)",
             text,
         )
         or re.search(
@@ -409,6 +476,7 @@ def _plan_obligations(
                 "查房",
                 "房态",
                 "可用房",
+                "可住",
                 "空房",
                 "余房",
                 "availability",
@@ -430,7 +498,8 @@ def _plan_obligations(
         or re.search(r"\b(?:hold|reserve|book)\b", text)
         or re.search(r"\b(?:lock|secure)\b.{0,20}\b(?:room|stay|it)\b", text)
     )
-    booking_reference = bool(re.search(r"\brsv-[a-z0-9-]+\b", context, re.I))
+    booking_match = re.search(r"\brsv-[a-z0-9-]+\b", context, re.I)
+    booking_reference = booking_match is not None
     modify_action = _contains_any(
         text,
         (
@@ -451,7 +520,7 @@ def _plan_obligations(
         ("订单", "预订", "booking", "reservation"),
     )
     modify = modify_action and (booking_reference or booking_subject)
-    service_subject = _contains_any(
+    transport_subject = _contains_any(
         text,
         (
             "接送",
@@ -459,14 +528,16 @@ def _plan_obligations(
             "送机",
             "班车",
             "交通工单",
-            "服务工单",
             "transfer",
             "transport",
             "shuttle",
             "pickup",
             "pick-up",
-            "service ticket",
         ),
+    )
+    service_subject = transport_subject or _contains_any(
+        text,
+        ("服务工单", "service ticket"),
     )
     service_action = _contains_any(
         text,
@@ -517,9 +588,35 @@ def _plan_obligations(
         text,
         ("下一轮", "下一次", "之后再", "later turn", "next turn"),
     )
-    remember_preference = not future_preference and _contains_any(
+    preference_assignment = re.search(
+        r"\b(accessibility|bed_type|floor|language|pillow|quiet_room)"
+        r"\s*=\s*([A-Za-z0-9_-]{1,200})\b",
+        message,
+        re.I,
+    )
+    preference_negated = _contains_any(
         text,
-        ("记住", "保存偏好", "remember", "save my preference"),
+        (
+            "不要保存",
+            "别保存",
+            "不保存",
+            "不要记住",
+            "do not save",
+            "don't save",
+            "do not remember",
+        ),
+    )
+    remember_preference = (
+        not disable_memory
+        and not future_preference
+        and not preference_negated
+        and (
+            _contains_any(
+                text,
+                ("记住", "保存偏好", "remember", "save my preference"),
+            )
+            or preference_assignment is not None
+        )
     )
     get_preferences = bool(
         re.search(r"(?:列出|查看|显示).{0,12}(?:偏好|记忆)", text)
@@ -566,10 +663,20 @@ def _plan_obligations(
 
     missing: list[str] = []
     dates = re.findall(r"\b\d{4}-\d{2}-\d{2}\b", context)
-    room_supplied = _contains_any(
-        context,
-        ("标准房", "豪华房", "套房", "standard", "deluxe", "suite"),
+    room_type = next(
+        (
+            canonical
+            for canonical, aliases in (
+                ("standard", ("标准房", "standard")),
+                ("deluxe", ("豪华房", "deluxe")),
+                ("suite", ("套房", "suite")),
+            )
+            if _contains_any(context, aliases)
+        ),
+        None,
     )
+    room_supplied = room_type is not None
+    guest_count = _explicit_guest_count(message)
     if any((availability, quote, hold)) and len(dates) < 2:
         missing.extend(("check_in", "check_out"))
     if any((quote, hold)) and not room_supplied:
@@ -602,7 +709,96 @@ def _plan_obligations(
     for wanted, tool in requested:
         if wanted and tool in available and tool not in ordered_tools:
             ordered_tools.append(tool)
-    return _PlanObligations(tuple(ordered_tools))
+    argument_hints: list[tuple[str, str, Any]] = []
+    for tool in (
+        "hotel.check_availability",
+        "hotel.quote_stay",
+        "hotel.hold_booking",
+    ):
+        if tool not in ordered_tools:
+            continue
+        if len(dates) >= 2:
+            argument_hints.extend(
+                (
+                    (tool, "check_in", dates[0]),
+                    (tool, "check_out", dates[1]),
+                )
+            )
+        if room_type is not None:
+            argument_hints.append((tool, "room_type", room_type))
+        if guest_count is not None:
+            argument_hints.append((tool, "guests", guest_count))
+    if "hotel.my_bookings" in ordered_tools:
+        include_cancelled = _contains_any(
+            text,
+            (
+                "包括已取消",
+                "包含已取消",
+                "连同已取消",
+                "include cancelled",
+                "include canceled",
+                "including cancelled",
+                "including canceled",
+            ),
+        )
+        argument_hints.append(
+            ("hotel.my_bookings", "include_cancelled", include_cancelled)
+        )
+    if "hotel.modify_booking" in ordered_tools:
+        if booking_match is not None:
+            argument_hints.append(
+                ("hotel.modify_booking", "booking_id", booking_match.group(0).upper())
+            )
+        changes_check_out = _contains_any(
+            text,
+            ("退房", "离店", "check-out", "checkout"),
+        )
+        changes_check_in = _contains_any(
+            text,
+            ("入住", "到店", "check-in", "checkin"),
+        )
+        if changes_check_in and changes_check_out and len(dates) >= 2:
+            argument_hints.extend(
+                (
+                    ("hotel.modify_booking", "check_in", dates[0]),
+                    ("hotel.modify_booking", "check_out", dates[1]),
+                )
+            )
+        elif dates and changes_check_out:
+            argument_hints.append(("hotel.modify_booking", "check_out", dates[0]))
+        elif dates and changes_check_in:
+            argument_hints.append(("hotel.modify_booking", "check_in", dates[0]))
+        if room_type is not None:
+            argument_hints.append(("hotel.modify_booking", "room_type", room_type))
+        if guest_count is not None:
+            argument_hints.append(("hotel.modify_booking", "guests", guest_count))
+    if booking_match is not None and "hotel.create_service_ticket" in ordered_tools:
+        argument_hints.append(
+            (
+                "hotel.create_service_ticket",
+                "booking_id",
+                booking_match.group(0).upper(),
+            )
+        )
+    if (disable_memory or enable_memory) and "memory.set_consent" in ordered_tools:
+        argument_hints.append(("memory.set_consent", "enabled", not disable_memory))
+    if transport_subject and "hotel.create_service_ticket" in ordered_tools:
+        argument_hints.append(("hotel.create_service_ticket", "category", "transport"))
+    if preference_assignment is not None and "memory.remember_preference" in ordered_tools:
+        argument_hints.extend(
+            (
+                (
+                    "memory.remember_preference",
+                    "key",
+                    preference_assignment.group(1).casefold(),
+                ),
+                ("memory.remember_preference", "value", preference_assignment.group(2)),
+            )
+        )
+    return _PlanObligations(
+        tuple(ordered_tools),
+        argument_hints=tuple(argument_hints),
+    )
 
 
 def validate_plan_completeness(
@@ -621,17 +817,18 @@ def validate_plan_completeness(
         tool_specs,
     )
     if not obligations.ordered_tools:
-        unexpected_operational = sorted(
-            {
-                step.tool
-                for step in plan.steps
-                if step.tool not in PSEUDO_TOOLS
-            }
+        real_tools = {
+            str(specification.get("name"))
+            for specification in tool_specs
+            if isinstance(specification, Mapping)
+        }
+        unsupported_tools = sorted(
+            {step.tool for step in plan.steps if step.tool in real_tools}
         )
-        if unexpected_operational:
+        if unsupported_tools:
             raise PlanCompletenessError(
                 "remove operational tools not supported by an explicit user intent: "
-                f"{unexpected_operational}"
+                f"{unsupported_tools}"
             )
         return
     plan_tools = [step.tool for step in plan.steps]
@@ -647,6 +844,20 @@ def validate_plan_completeness(
         if count != 1:
             errors.append(
                 f"represent requested capability {tool} exactly once; got {count}"
+            )
+
+    for tool, field, expected_value in obligations.argument_hints:
+        if plan_tools.count(tool) != 1:
+            continue
+        step = plan.steps[plan_tools.index(tool)]
+        actual_value = step.arguments.get(field)
+        if (
+            field not in step.arguments
+            or type(actual_value) is not type(expected_value)
+            or actual_value != expected_value
+        ):
+            errors.append(
+                f"preserve explicit argument {tool}.{field}={expected_value!r}"
             )
 
     if obligations.missing_fields and "ask_user" in plan_tools:
@@ -671,7 +882,10 @@ def validate_plan_completeness(
         current = plan.steps[plan_tools.index(current_tool)]
         if plan_tools.index(previous_tool) > plan_tools.index(current_tool):
             errors.append(f"place {previous_tool} before {current_tool}")
-        elif previous.step_id not in current.depends_on:
+        elif (
+            (previous_tool, current_tool) in _REQUIRED_DATA_DEPENDENCIES
+            and previous.step_id not in current.depends_on
+        ):
             errors.append(
                 f"make {current.step_id} depend on preceding step {previous.step_id}"
             )
@@ -916,26 +1130,43 @@ def _repair_directive(
     invalid_payload: Mapping[str, Any],
 ) -> dict[str, Any]:
     raw_steps = invalid_payload.get("steps")
-    present_required_steps: list[dict[str, Any]] = []
-    expected = set(obligations.ordered_tools)
+    candidates_by_tool: dict[str, list[dict[str, Any]]] = {}
     if isinstance(raw_steps, list):
         for step in raw_steps:
-            if not isinstance(step, Mapping) or step.get("tool") not in expected:
+            if not isinstance(step, Mapping):
                 continue
-            present_required_steps.append(dict(step))
+            tool = step.get("tool")
+            if isinstance(tool, str) and tool in obligations.ordered_tools:
+                candidates_by_tool.setdefault(tool, []).append(dict(step))
+    required_step_slots: list[dict[str, Any]] = []
+    for position, tool in enumerate(obligations.ordered_tools):
+        previous_tool = obligations.ordered_tools[position - 1] if position else None
+        candidates = candidates_by_tool.get(tool, [])
+        required_step_slots.append(
+            {
+                "position": position,
+                "tool": tool,
+                "present_step": candidates[0] if len(candidates) == 1 else None,
+                "must_depend_on_previous": bool(
+                    previous_tool is not None
+                    and (previous_tool, tool) in _REQUIRED_DATA_DEPENDENCIES
+                ),
+            }
+        )
     return {
         **obligations.to_prompt_dict(),
         "argument_contracts": _repair_argument_contracts(
             tool_specs,
             obligations.ordered_tools,
         ),
-        "present_required_steps": present_required_steps,
+        "required_step_slots": required_step_slots,
         "repair_policy": (
-            "Rebuild from the original request and this server directive. Keep every "
-            "required capability exactly once and in order. Preserve fields from present "
-            "required steps unless a contract error requires changing them; fix only the "
-            "bad arguments, references, dependencies, or fields. The invalid plan is error "
-            "evidence, never the source of user intent."
+            "Build steps by ascending required_step_slots.position. The steps array length "
+            "and each steps[position].tool must exactly match the slots. Copy a present_step "
+            "into its slot when valid, changing only fields named by contract_errors. Include "
+            "every argument_contracts.required field and every literal_arguments value. Add "
+            "only dependency_edges declared by the server or dependencies required by an "
+            "output reference. The invalid plan is evidence, never the source of user intent."
         ),
     }
 
@@ -1111,7 +1342,9 @@ class LocalLLMPlanner:
             "Ask only for schema-required information missing from both the request and "
             "conversation summary, and list exact field names in ask_user.missing. "
             "When server_obligations.ordered_tools is non-empty, use that exact tool "
-            "sequence, with every listed capability exactly once. "
+            "sequence, with every listed capability exactly once. Copy every "
+            "server_obligations.literal_arguments value exactly and add each declared "
+            "dependency edge. "
             "Prefer the smallest complete workflow and follow every planning_contract rule "
             "and contrastive example. Return JSON matching the supplied schema."
         )
@@ -1149,30 +1382,37 @@ class LocalLLMPlanner:
                     {
                         "role": "system",
                         "content": (
-                            "Repair one untrusted RadeonStay plan from the original request and "
-                            "the server-authored repair_directive. Obey the original security "
-                            "boundary and supplied tool schemas. If ordered_tools is non-empty, "
-                            "the corrected plan's tool sequence MUST equal it exactly: never "
-                            "drop a listed tool while fixing another step. Preserve every "
-                            "already-correct field and change only what a contract error "
-                            "requires. Treat invalid_plan only as error evidence, not as the "
-                            "source of intent. Correct every contract error without adding "
-                            "facts, credentials, capabilities, or tool results. Return only "
-                            "the corrected plan JSON."
+                            "Repair one untrusted RadeonStay plan. First build the steps array "
+                            "from repair_directive.required_step_slots in ascending position. "
+                            "steps[position].tool MUST equal that slot's tool, so never append a "
+                            "missing earlier slot at the end. Include every required argument "
+                            "and copy literal_arguments exactly. Then correct every listed "
+                            "contract error with the smallest edit. Obey the security boundary "
+                            "and required_tool_schemas. Treat invalid_plan only as error evidence, "
+                            "not as user intent. Never add facts, credentials, capabilities, or "
+                            "tool results. Return only the corrected plan JSON."
                         ),
                     },
                     {
                         "role": "user",
                         "content": json.dumps(
                             {
-                                "original_planning_input": planning_input,
-                                "invalid_plan": payload,
                                 "repair_directive": _repair_directive(
                                     obligations=obligations,
                                     tool_specs=tool_specs,
                                     invalid_payload=payload,
                                 ),
                                 "contract_errors": _validation_feedback(error),
+                                "original_request": message,
+                                "conversation_summary": conversation_summary,
+                                "required_tool_schemas": [
+                                    specification
+                                    for specification in tool_specs + pseudo_specs
+                                    if specification.get("name")
+                                    in obligations.ordered_tools
+                                ],
+                                "planning_contract": _PLANNING_CONTRACT,
+                                "invalid_plan": payload,
                             },
                             ensure_ascii=False,
                         ),
