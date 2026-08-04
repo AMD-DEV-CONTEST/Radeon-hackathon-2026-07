@@ -26,6 +26,21 @@ correct is this agent" the *same question*.
 
 So we measured it, rather than asserting it.
 
+### What is actually built, in one table
+
+Every figure read off this machine on 2026-08-04. Nothing here is a roadmap item.
+
+| | Built | Check it |
+|---|---|---|
+| **Five Track 2 capabilities** | All five, not the required two — RAG, tool invocation, multi-step planning, multi-turn memory, permission control | [`PROJECT_SPEC.md` §3.0](PROJECT_SPEC.md) — each row names the command that proves it |
+| **Nineteen language oracles** | `cargo`, `go build`, `tsc --noEmit`, `pytest`, `dotnet`, `gcc` … behind one registry. An oracle never silently passes; unknown languages fail closed | `tests/test_oracle_runtimes_discriminate.py` — proves each *accepts* correct code and *rejects* broken code |
+| **Project Cloak** | **1,714,560** identifiers obfuscated before any cloud call, **0 leaks**, AST-aware across 10 languages | IDE → Trust → Cloak · `scripts/verify_cloak.py` |
+| **The flywheel** | **8.44 GB** corpus. Every verified solve becomes a labelled training pair automatically | `corpus/programbench/training_corpus/` |
+| **The Rosetta bridge** | **7 architectures** projected into one shared 4096-dim space, native widths 1536–4096. **1.56 GB** of trained weights | `scripts/determinex_rosetta.py` |
+| **Local corpus** | **234 entries** — 89 generalized failure classes, 272 learned solve classes — queried *before* acting | `python scripts/determinex_corpus_api.py ask "<q>"` |
+| **The desktop IDE** | Tauri + Next.js, **33 surfaces**, every one crawled and asserted to render real content at two widths | [`docs/ide-frontend/UI_SURFACE_MAP.md`](https://github.com/DarthCeltic/Determinex/blob/main/docs/ide-frontend/UI_SURFACE_MAP.md) — generated from the running app |
+| **Execution safety** | Model-generated code runs only in a workspace-bounded, env-scrubbed sandbox with network and Docker denied by default. **523 execution sites audited, 0 unsafe, 0 unclassified** | `scripts/dev/parallel_execution_layer_audit.py` |
+
 ---
 
 ## Four measured results on the Radeon

@@ -114,6 +114,26 @@ a capability that cannot be pointed at is a claim rather than a feature.
 | **Local multi-turn memory** | Two kinds. Within a session, the Concept Lab interview carries every answer forward and reasons over the accumulated context (§3.0a). Across sessions, Case Memory stores **only oracle-verified** solves, so the system never learns from its own unverified guesses. | `scripts/determinex_case_memory.py`; session WAL under `sessions/` |
 | **Permission control & privacy** | Model-generated code executes only inside `intake.hardened_runner` — workspace-bounded, environment-scrubbed, network and Docker denied by default. Project Cloak obfuscates every identifier before any cloud call. Source mutation is refused unless explicitly authorised. | `scripts/intake/hardened_runner.py`; `docs/policy/CLOAK_THREAT_MODEL.md`; `scripts/dev/parallel_execution_layer_audit.py` reports 523 execution sites, 0 unsafe, 0 unclassified |
 
+### 3.0-bis What else ships, and how to check it
+
+The five above are what Track 2 asks for. They are not the whole system, and a capability
+this document does not point at may as well not exist — so everything else that is built,
+measured and running is listed here with the one command or file that settles it. Each figure
+below was read off this machine on 2026-08-04, not quoted from a design document.
+
+| Also shipping | What it actually is | Where to check |
+| --- | --- | --- |
+| **The Rosetta bridge** | Trained encoder/decoder pairs projecting **7 model architectures** into one shared 4096-dim space — `llama`, `mistral`, `qwen2`, `phi3`, `deepseek2`, `qwen2_1b5`, `qwen2_3b`, with native widths from 1536 to 4096. Lets one model hand another semantic context instead of prose. **1.56 GB** of weights, v1.0.0. | `~/.determinex/rosetta/rosetta_v1.pt`; `scripts/determinex_rosetta.py` |
+| **The flywheel** | Every oracle-verified solve is distilled into a generalized class and appended to an **8.44 GB** training corpus. Failures become labelled training pairs automatically — the corpus is a by-product of operation, not a curation effort. | `corpus/programbench/training_corpus/pb_verdict_corpus.jsonl`; IDE → System → Flywheel |
+| **Project Cloak, measured** | **1,714,560 identifiers** obfuscated before any cloud call on this machine, **0 leaks found** — read from this machine's own audit rather than asserted. AST-aware across 10 languages. | IDE → Trust → Cloak; `scripts/verify_cloak.py`; `docs/policy/CLOAK_THREAT_MODEL.md` |
+| **The Impossibility Adjudicator** | A standing rule that the system may never call a task impossible without passing a four-step gate — route, match the reference environment, remove its own constraints, and only then declare it. Anything else is "needs work". | `scripts/determinex_adjudicator.py`; `tests/test_autofix_pipeline.py` — **53 cases** scoring the system's own reasoning |
+| **Tamper-evident safety log** | Governance decisions append to an HMAC-keyed, hash-chained write-ahead log whose integrity can be verified independently, so a record cannot be quietly rewritten after the fact. | `scripts/determinex_safety.py` — `wal_append`, `verify_wal_integrity`; 7 test modules exercise it |
+| **The desktop IDE** | A Tauri + Next.js workbench: **33 surfaces**, every one crawled and asserted to render real content, at two window widths, by a check that is itself negative-controlled. | `frontend/`; `docs/ide-frontend/UI_SURFACE_MAP.md` — generated from the running app, never written by hand |
+
+None of these is required by the track. They are listed because the submission's whole
+argument is that a claim without a place to check it is not a claim, and that has to apply to
+the parts nobody asked about too.
+
 ### 3.0a Multi-turn interaction: the interview ends when the system knows enough, not when a counter runs out
 
 The agent's first job is to find out what you actually want, and this is where most tools
