@@ -91,6 +91,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--inp", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--hold_seconds", type=float, default=1.5,
+                    help="append this many seconds of the final pose. Without "
+                         "it the episode ends the instant the motion does, so "
+                         "the policy is never trained to settle and will "
+                         "topple about 1.3 s later.")
     from mujoco_playground._src.locomotion.g1 import g1_constants as _c
     ap.add_argument("--xml", default=_c.FEET_ONLY_FLAT_TERRAIN_XML.as_posix())
     args = ap.parse_args()
@@ -139,6 +144,23 @@ def main():
 
     joint_vel = central_diff(joint_pos, dt)
 
+    # ---- 末尾补一段「保持最终姿势」 ----
+    # 训练时 episode 在参考放完的那一刻结束，所以策略学不到「动作做完之后
+    # 怎么站住」。实测：不补的话保持最终姿势 63 步(1.3s)就摔。
+    # 补上之后策略被要求把最后这段也稳住，收势才有落点。
+    n_hold = int(round(args.hold_seconds * fps))
+    if n_hold > 0:
+        joint_pos = np.concatenate([joint_pos, np.repeat(joint_pos[-1:], n_hold, 0)])
+        root_pos = np.concatenate([root_pos, np.repeat(root_pos[-1:], n_hold, 0)])
+        root_quat = np.concatenate([root_quat, np.repeat(root_quat[-1:], n_hold, 0)])
+        body_pos = np.concatenate([body_pos, np.repeat(body_pos[-1:], n_hold, 0)])
+        body_quat = np.concatenate([body_quat, np.repeat(body_quat[-1:], n_hold, 0)])
+        # 保持段的速度是零 —— 目标就是停住
+        joint_vel = np.concatenate([joint_vel, np.zeros((n_hold, nj))])
+        body_lin_vel = np.concatenate([body_lin_vel, np.zeros((n_hold, B, 3))])
+        body_ang_vel = np.concatenate([body_ang_vel, np.zeros((n_hold, B, 3))])
+        T = joint_pos.shape[0]
+
     # ---- 贴地：整条轨迹平移，使最低脚踝 link 的最低点落在 z=0 ----
     #      GMR 的输出高度是按人体尺度来的，直接用会悬空或穿模。
     ankle_idx = [BODY_NAMES.index("left_ankle_roll_link"),
@@ -176,7 +198,8 @@ def main():
     )
 
     print(f"OK  {args.out}")
-    print(f"    {T} frames @ {fps:.1f} fps = {T/fps:.2f}s, {B} tracked bodies")
+    print(f"    {T} frames @ {fps:.1f} fps = {T/fps:.2f}s, {B} tracked bodies"
+          + (f"  (incl. {n_hold} hold frames)" if n_hold else ""))
     print(f"    ground alignment shift {shift:+.4f} m")
     print(f"    root_z       {root_pos_adj[:,2].min():.3f} .. {root_pos_adj[:,2].max():.3f}")
     print(f"    body_z       {body_pos[:,:,2].min():.3f} .. {body_pos[:,:,2].max():.3f}")

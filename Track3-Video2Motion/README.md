@@ -149,7 +149,10 @@ source env.sh
 ```
 
 `run_pipeline.sh` runs all five stages and prints the retargeting video path so
-you can inspect it before committing hours to training. The last argument is
+you can inspect it before committing hours to training. It appends 1.5 s of the
+final pose to the reference by default (`--hold_seconds`); without it the
+episode ends the instant the motion does and the policy topples about 1.3 s
+later, having never been trained to settle. The last argument is
 the training budget in hours (default 6). The script is the authoritative list
 of commands if you want to run stages individually.
 
@@ -218,11 +221,11 @@ Upstream contributions we made are listed in the
 
 ## 6. Team
 
-> To be completed before submission.
+Solo entry.
 
 | Member | Contribution |
 |---|---|
-| (name) | (contribution) |
+| **Wenjie Ouyang** | Everything: ROCm environment bring-up, porting the tracking algorithm to MuJoCo MJX, reward and observation design, the three-layer validation framework, DDS deployment, the web UI, documentation, and the upstream patches. |
 
 ---
 

@@ -136,6 +136,37 @@ otherwise you get `IndexError: list index out of range` from
 | Reward scaled by `dt` | brax does not normalise the entropy term; `entropy_cost=5e-3 × entropy(≈41) ≈ 0.205` against a task reward of 0.044/step. Keep rewards O(1)/step and `entropy_cost=1e-3` |
 | `deterministic_eval` defaults to `False` | evaluation uses the noisy policy, so the reported metrics are not the policy's actual quality |
 
+### The policy cannot hold a pose past the end of the reference
+
+**Symptom** — the motion is performed correctly, but if you keep the simulation
+running after the last reference frame the robot slowly sags and topples.
+Measured on our salute policy, holding the final frame:
+
+| Steps held | `base_z` | |
+|---|---|---|
+| +20 | 0.779 | stable |
+| +45 | 0.721 | sagging |
+| **+63 (1.3 s)** | — | **falls** |
+
+**Cause** — the episode terminates the moment the reference runs out:
+
+```python
+done = tracking_failure | (motion_idx >= T - 1)
+```
+
+so the policy is never trained on what comes after, and the final states get no
+bootstrap, which under-estimates their value.
+
+**Fix** — append a hold segment to the reference, with zero velocities:
+
+```bash
+python src/motion_prep.py --inp ... --out ... --hold_seconds 1.5   # the default
+```
+
+The policy is then required to settle and stand, which is also what the motion
+means physically — a salute ends at attention. This changes the training data,
+so it requires a retrain.
+
 ### Validate the reward function before trusting anything
 
 ```bash
