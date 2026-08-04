@@ -96,6 +96,24 @@ def test_airport_transfer_query_finds_required_service_ticket_policy(
     assert "交通服务工单" in first.context
 
 
+def test_compound_query_preserves_distinct_explicit_policy_topics(
+    retriever: PolicyRetriever,
+) -> None:
+    results = retriever.search_with_clause_coverage(
+        "我计划 2030-09-10 入住、2030-09-12 退房，23:30 到店，"
+        "带六岁儿童且花生过敏，需要机场接送；查房、报价并预览保留标准房。",
+        top_k=5,
+    )
+
+    sections = {result.section for result in results}
+    assert {
+        "未到店与延迟抵达",
+        "早餐、餐饮与过敏信息",
+        "机场与车站接送",
+    } <= sections
+    assert len(results) == 5
+
+
 def test_context_can_include_adjacent_paragraphs(retriever: PolicyRetriever) -> None:
     result = retriever.search(
         "预付不可退订单的医疗紧急情况", top_k=1, context_chars=220

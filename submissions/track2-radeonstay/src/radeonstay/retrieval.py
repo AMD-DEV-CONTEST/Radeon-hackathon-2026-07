@@ -20,6 +20,7 @@ from pathlib import Path
 _HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 _TOKEN_RE = re.compile(r"[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*|[\u3400-\u9fff]+")
 _MARKDOWN_RE = re.compile(r"[`*_>\[\]()]|!\[[^]]*\]\([^)]*\)|\[[^]]+\]\([^)]*\)")
+_CLAUSE_SPLIT_RE = re.compile(r"[\r\n,，;；。!?！？]+")
 
 
 def _absolute_lexical_path(path: str | Path) -> Path:
@@ -432,6 +433,69 @@ class PolicyRetriever:
                 )
             )
         return results
+
+    def search_with_clause_coverage(
+        self,
+        query: str,
+        *,
+        top_k: int = 5,
+        context_chars: int = 220,
+        min_score: float = 0.0,
+    ) -> list[SearchResult]:
+        """Retrieve compound requests without letting one topic consume every slot.
+
+        The normal whole-query BM25 ranking remains authoritative.  For requests with
+        multiple clauses, the best local result for each bounded clause is considered
+        first, then whole-query results fill the remaining capacity.  Distinct policy
+        sections are preferred before a second paragraph from the same section.
+        """
+
+        primary = self.search(
+            query,
+            top_k=top_k,
+            context_chars=context_chars,
+            min_score=min_score,
+        )
+        clauses: list[str] = []
+        seen_clauses: set[str] = set()
+        for raw_clause in _CLAUSE_SPLIT_RE.split(query):
+            clause = raw_clause.strip()
+            normalized = clause.casefold()
+            if not tokenize(clause) or normalized in seen_clauses:
+                continue
+            seen_clauses.add(normalized)
+            clauses.append(clause)
+        if len(clauses) <= 1:
+            return primary
+
+        candidates: list[SearchResult] = []
+        for clause in clauses[:8]:
+            candidates.extend(
+                self.search(
+                    clause,
+                    top_k=1,
+                    context_chars=context_chars,
+                    min_score=min_score,
+                )
+            )
+        candidates.extend(primary)
+
+        distinct_sections: list[SearchResult] = []
+        repeated_sections: list[SearchResult] = []
+        seen_evidence: set[tuple[str, str, str]] = set()
+        seen_sections: set[tuple[str, str]] = set()
+        for result in candidates:
+            evidence_key = (result.source_path, result.section, result.matched_text)
+            if evidence_key in seen_evidence:
+                continue
+            seen_evidence.add(evidence_key)
+            section_key = (result.source_path, result.section)
+            if section_key in seen_sections:
+                repeated_sections.append(result)
+                continue
+            seen_sections.add(section_key)
+            distinct_sections.append(result)
+        return (distinct_sections + repeated_sections)[:top_k]
 
     def _snippet(self, text: str, query_tokens: Sequence[str], limit: int = 280) -> str:
         if len(text) <= limit:
