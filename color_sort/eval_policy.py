@@ -41,7 +41,7 @@ from build_scene import build_scene
 from sk_grasp_demo import TaskSpec, check_success
 from paths import EVAL_RESULTS_DIR, EVAL_VIDEOS_DIR
 from randomize import EnvRandomizer, RandomizationConfig
-from record_dataset import CONTROL_FPS, task_description
+from record_dataset_parallel import CONTROL_FPS, task_description
 from scene_config import YCB_LAYOUT, get_ycb_names_for_split
 
 STATE_KEY = "observation.state"
@@ -259,6 +259,7 @@ def evaluate_policy(
     if ycb_names is None:
         ycb_names = tuple(YCB_LAYOUT.keys())
     pick_pool = list(ycb_names)
+    split_colors = list(dict.fromkeys(YCB_LAYOUT[n]["color"] for n in ycb_names))
     randomizer = EnvRandomizer(
         bundle, RandomizationConfig(pos_jitter=jitter, randomize_pick=False, seed=seed)
     )
