@@ -11,6 +11,8 @@
 | **AMD hardware** | Radeon Cloud · ROCm 7.2.1 · vLLM 0.16.1 |
 | **Models measured** | Qwen2.5-Coder-7B-Instruct (bf16) and Qwen2.5-Coder-32B-Instruct-AWQ |
 
+[![Track 2 Determinex](https://github.com/DarthCeltic/Radeon-hackathon-2026-07/actions/workflows/track2-determinex.yml/badge.svg?branch=track2-determinex)](https://github.com/DarthCeltic/Radeon-hackathon-2026-07/actions/workflows/track2-determinex.yml)
+
 > **Check the central claim yourself, in about two seconds:** `bash verify.sh`
 >
 > The throughput figures below needed a Radeon, so you have to take those from the evidence
@@ -20,9 +22,16 @@
 > *before* a model is ever called, and that the shipped reference implementations are exact
 > across all 256 inputs of their domain — 1,024 assertions, a proof rather than a sample.
 >
-> Each of those three checks was deliberately sabotaged during development to confirm it turns
-> red; a check that cannot fail is decoration. It exits non-zero if any claim here does not
-> hold, which is the point of shipping it.
+> **And check the checks:** `bash verify.sh --selftest`
+>
+> A green suite is evidence only if it could have been red. That mode breaks each check on
+> purpose and requires every sabotage to turn the run non-zero — and it refuses to credit a
+> sabotage that did not actually alter anything, because a mutation that silently no-ops looks
+> exactly like a catch. Both failure modes happened for real while this was written, which is
+> why it ships as a command you can run rather than a sentence claiming it was done once.
+>
+> The badge above is the same two commands on a stock GitHub runner that asserts it has no GPU
+> before it starts, so a pass cannot be credited to hardware quietly doing the work.
 
 ---
 

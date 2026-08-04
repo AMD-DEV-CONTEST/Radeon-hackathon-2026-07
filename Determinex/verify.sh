@@ -21,6 +21,95 @@ PY=$(command -v python3 || command -v python)
 if [ -z "$PY" ]; then echo "python 3.11+ required"; exit 2; fi
 printf 'Determinex self-verification — %s\n' "$($PY --version 2>&1)"
 
+# ── --selftest: prove these checks are capable of failing ──────────────────────
+# A green suite is evidence only if it could have been red. Every check below is broken on
+# purpose, one at a time, against a scratch copy — the real files are never touched — and each
+# mutation must turn the run non-zero. If a mutation still reports success, the check is
+# decoration and this exits 1.
+#
+# This is not hypothetical caution. Two of the first sabotage attempts written for this script
+# silently did nothing and looked exactly like passes: one patched a function signature that
+# had since changed, the other inserted a `pass` statement, which is a no-op that leaves the
+# body running. Both would have been recorded as "negative control confirmed" by anyone not
+# reading the output. That is why this ships as a runnable mode rather than a sentence in a
+# README claiming it was done once.
+if [ "${1:-}" = "--selftest" ]; then
+  # A RELATIVE scratch dir, deliberately. `mktemp -d` hands back an MSYS path (/tmp/...) that
+  # Windows Python resolves as a different directory entirely (\tmp\...), so under Git Bash the
+  # mutations wrote nowhere and the run failed on missing paths instead of on the sabotage —
+  # reported as "caught", for entirely the wrong reason. A path relative to the script's own
+  # directory is the one thing bash and Windows Python are guaranteed to agree about.
+  TMP=".selftest.$$"; rm -rf "$TMP"; mkdir -p "$TMP"; trap 'rm -rf "$TMP"' EXIT
+  SPASS=0; SFAIL=0
+  # Each sabotage is a function, invoked directly. An earlier draft passed them as strings
+  # through `eval`, which meant quoting a Python snippet through two layers of shell and left
+  # the mutation's failure mode indistinguishable from its success.
+  mut_oracle() { sed -i 's|assert solution|pass  #|g' v.sh; }
+
+  mut_refusal() { "$PY" - <<'MUT'
+import pathlib
+p = pathlib.Path("src/determinex_synthesize.py"); s = p.read_text(encoding="utf-8")
+n = 'def parse_spec(text: str, language: str = "python") -> Spec:'
+assert n in s, "signature moved — this mutation would have silently done nothing"
+p.write_text(s.replace(n, n + '\n    text += " For example solution([1, 2, 3]) returns 2.0, '
+                       'solution([10]) returns 10.0, and solution([]) returns 0.0."', 1),
+             encoding="utf-8")
+MUT
+  }
+
+  mut_reference() { "$PY" - <<'MUT'
+import json, pathlib
+p = pathlib.Path("src/bit_techniques_playbook.json"); d = json.loads(p.read_text(encoding="utf-8"))
+n = 0
+for e in d["entries"]:
+    if e["reference"].startswith("def popcount"):
+        e["reference"] = "def popcount(x, bits): return 99"; n += 1
+assert n == 1, f"expected exactly one popcount reference, found {n}"
+p.write_text(json.dumps(d), encoding="utf-8")
+MUT
+  }
+
+  mutate() { # name, mutation-function
+    local name="$1"; shift
+    rm -rf "$TMP/src"; cp -r verify_src "$TMP/src"; rm -rf "$TMP/src/__pycache__"
+    cp verify.sh "$TMP/v.sh"
+    # Fingerprint before and after. A mutation that quietly fails to apply leaves the tree
+    # untouched, the run then passes for the honest reason, and the old code credited that as
+    # a catch. Nothing is trusted here until the sabotage is shown to have changed something.
+    local before after
+    before=$(cat "$TMP/src"/* "$TMP/v.sh" 2>/dev/null | cksum)
+    ( cd "$TMP" && "$@" ) >/dev/null 2>&1 || true
+    after=$(cat "$TMP/src"/* "$TMP/v.sh" 2>/dev/null | cksum)
+    if [ "$before" = "$after" ]; then
+      printf '  \033[31mNO-OP\033[0m       %s — the sabotage never applied; this proves nothing\n' "$name"
+      SFAIL=$((SFAIL+1)); return
+    fi
+    # "src", not "$TMP/src": the copied script cd's to its own directory first, so the
+    # override is resolved from there by both the shell and Python.
+    if DETERMINEX_VERIFY_SRC="src" bash "$TMP/v.sh" >"$TMP/out.txt" 2>&1; then
+      printf '  \033[31mNOT CAUGHT\033[0m  %s — the check passed while broken\n' "$name"
+      SFAIL=$((SFAIL+1))
+    else
+      printf '  \033[32mcaught\033[0m      %s\n' "$name"
+      SPASS=$((SPASS+1))
+    fi
+  }
+  printf '\n\033[1mSelf-test: breaking each check on purpose\033[0m\n'
+
+  mutate "oracle blinded (accepts a program that returns the wrong answer)" mut_oracle
+  mutate "refusal path made to find something checkable in anything"        mut_refusal
+  mutate "a shipped reference implementation corrupted"                     mut_reference
+
+  printf '\n\033[1mResult\033[0m\n  %d of %d mutations caught\n\n' "$SPASS" "$((SPASS+SFAIL))"
+  if [ "$SFAIL" -gt 0 ]; then
+    echo "  A check that cannot fail proves nothing. Fix it before trusting the green run."
+    exit 1
+  fi
+  echo "  Every check above turns red when the thing it checks is broken. The green run"
+  echo "  therefore means something."
+  exit 0
+fi
+
 # ── 1. The oracle discriminates ────────────────────────────────────────────────
 # The claim everything else rests on: a verifier that accepts everything proves nothing.
 # So the check is two-sided — correct code must PASS and broken code must FAIL. A verifier
@@ -62,8 +151,11 @@ import sys, pathlib
 # verify_src/ holds the ACTUAL module, copied verbatim, not a restatement of it — the
 # check is worthless if it exercises a convenience reimplementation written to pass.
 # It imports nothing but the standard library, which is why it can travel.
+import os
 root = pathlib.Path.cwd()
-for c in (root/"verify_src", root/"scripts", root.parent/"scripts"):
+cands = [pathlib.Path(os.environ["DETERMINEX_VERIFY_SRC"])] if os.environ.get(
+    "DETERMINEX_VERIFY_SRC") else [root/"verify_src", root/"scripts", root.parent/"scripts"]
+for c in cands:
     if (c/"determinex_synthesize.py").exists():
         sys.path.insert(0, str(c)); break
 else:
@@ -89,9 +181,12 @@ else bad "refusal path did not behave as documented"; fi
 hdr "3. Corpus reference implementations, checked over all 256 u8 inputs"
 $PY - <<'PYEOF'
 import sys, json, pathlib
+import os
 root = pathlib.Path.cwd()
+cands = [pathlib.Path(os.environ["DETERMINEX_VERIFY_SRC"])] if os.environ.get(
+    "DETERMINEX_VERIFY_SRC") else [root/"verify_src", root/"corpus", root.parent/"corpus"]
 p = None
-for c in (root/"verify_src", root/"corpus", root.parent/"corpus"):
+for c in cands:
     if (c/"bit_techniques_playbook.json").exists():
         p = c/"bit_techniques_playbook.json"; break
 if p is None:

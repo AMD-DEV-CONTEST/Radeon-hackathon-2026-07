@@ -1,0 +1,81 @@
+# Determinex — Track 2. Runs on a stock GitHub runner: no GPU, no ROCm, no API key, no
+# network access to anything but the checkout. That is the point. The throughput figures in
+# this submission needed a Radeon, but the argument underneath them does not, and this job is
+# the third-party attestation of that.
+#
+# It runs TWO things, and the second is the one that matters.
+#
+#   verify.sh             the checks pass
+#   verify.sh --selftest  the checks are capable of failing
+#
+# A green suite is evidence only if it could have been red. The self-test breaks each check on
+# purpose and requires every mutation to turn the run non-zero — and refuses to credit a
+# mutation that did not actually alter the tree, because a sabotage that silently no-ops looks
+# identical to a catch. Both of those failure modes happened for real while this was written.
+name: Track 2 Determinex
+
+on:
+  push:
+    branches: [track2-determinex]
+    paths: ['Determinex/**', '.github/workflows/track2-determinex.yml']
+  pull_request:
+    paths: ['Determinex/**', '.github/workflows/track2-determinex.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify the central claim without a GPU
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Confirm there is no GPU here
+        run: |
+          echo "This job asserts the absence of the hardware, so a pass cannot be"
+          echo "attributed to a Radeon quietly doing the work."
+          if command -v rocm-smi >/dev/null 2>&1 || command -v nvidia-smi >/dev/null 2>&1; then
+            echo "::error::a GPU tool is present on this runner; the no-GPU claim is not being tested"
+            exit 1
+          fi
+          echo "no rocm-smi, no nvidia-smi — confirmed CPU-only"
+
+      - name: The checks pass
+        working-directory: Determinex
+        run: bash verify.sh
+
+      - name: The checks are capable of failing
+        working-directory: Determinex
+        run: bash verify.sh --selftest
+
+      - name: Shell scripts are valid and LF-terminated
+        working-directory: Determinex
+        run: |
+          # A CRLF verify.sh dies on Linux with "bad interpreter: ...^M" before running a
+          # single check — on exactly the machines it exists for. .gitattributes pins LF;
+          # this proves the pin held rather than assuming it.
+          for f in verify.sh demo_run.sh; do
+            [ -f "$f" ] || continue
+            if grep -qU $'\r' "$f"; then
+              echo "::error file=$f::CRLF line endings — this script will not run on Linux"
+              exit 1
+            fi
+            bash -n "$f" || exit 1
+            echo "$f  LF, syntax OK"
+          done
+
+      - name: Shellcheck
+        working-directory: Determinex
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+          shellcheck -S warning verify.sh || {
+            echo "::error::shellcheck found a warning-level issue in the script judges are asked to run"
+            exit 1
+          }
