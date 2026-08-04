@@ -364,7 +364,7 @@ def test_planner_materializes_only_a_missing_service_ticket_description() -> Non
     assert plan.steps[1].arguments == {
         "booking_id": "RSV-OWNED",
         "category": "transport",
-        "description": message,
+        "description": "住客申请机场或车站接送服务。",
     }
     assert model.validations[-1]["outcome"] == "accepted_initial"
 

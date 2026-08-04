@@ -1209,10 +1209,17 @@ def _materialize_bound_arguments(
     if arguments is None:
         arguments = {}
         ticket_step["arguments"] = arguments
-    if isinstance(arguments, dict) and "description" not in arguments:
-        description = re.sub(r"\s+", " ", message).strip()[:1_000]
-        if description:
-            arguments["description"] = description
+    if (
+        isinstance(arguments, dict)
+        and arguments.get("category") == "transport"
+        and "description" not in arguments
+    ):
+        chinese = bool(re.search(r"[\u3400-\u9fff]", message))
+        arguments["description"] = (
+            "住客申请机场或车站接送服务。"
+            if chinese
+            else "Guest requests airport or station transfer service."
+        )
 
 
 def _record_plan_validation(
