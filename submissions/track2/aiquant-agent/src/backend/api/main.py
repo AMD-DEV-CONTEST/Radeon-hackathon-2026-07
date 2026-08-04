@@ -358,16 +358,21 @@ try:
         # litellm 全局超时（秒），本地 LLM 推理较慢
         litellm.request_timeout = 300
 
-        # ── Monkey-patch litellm.completion 解决 Qwen3 thinking 模式问题 ──
+        # ── Monkey-patch litellm.completion AND acompletion 解决 Qwen3 thinking ──
         # Qwen3-8B 开启 thinking 时，所有输出进入 reasoning_content 字段，
         # content 为空，litellm 认为调用失败。
+        # 关键：RD-Agent 异步事件循环用 litellm.acompletion（非同步 completion），
+        #       必须同时 patch 两个函数，否则 patch 不生效。
         # 解决方案：
         # (a) 通过 extra_body 传 chat_template_kwargs.enable_thinking=False 禁用 thinking
-        # (b) 兜底：content 为空时，将 reasoning_content 移到 content
+        # (b) 在 messages 中注入 /no_think 指令（Qwen3 原生支持的开关）
+        # (c) 兜底：content 为空时，将 reasoning_content 移到 content
         _orig_litellm_completion = litellm.completion
+        _orig_litellm_acompletion = litellm.acompletion
 
-        def _patched_litellm_completion(*args, **kwargs):
-            # (a) 尝试禁用 thinking 模式
+        def _apply_thinking_disable(kwargs):
+            """注入禁用 thinking 的参数"""
+            # (a) extra_body 方式
             try:
                 _eb = kwargs.get("extra_body") or {}
                 if isinstance(_eb, dict):
@@ -380,10 +385,23 @@ try:
                     kwargs["extra_body"] = _eb
             except Exception:
                 pass
+            # (b) 在 system message 中注入 /no_think（Qwen3 原生指令）
+            try:
+                _msgs = kwargs.get("messages") or []
+                if _msgs and isinstance(_msgs[0], dict):
+                    _sys = _msgs[0].get("content", "")
+                    if "/no_think" not in _sys:
+                        _msgs[0]["content"] = _sys + "\n/no_think" if _sys else "/no_think"
+                elif _msgs and hasattr(_msgs[0], "content"):
+                    _sys = getattr(_msgs[0], "content", "") or ""
+                    if "/no_think" not in _sys:
+                        _msgs[0].content = _sys + "\n/no_think" if _sys else "/no_think"
+            except Exception:
+                pass
+            return kwargs
 
-            response = _orig_litellm_completion(*args, **kwargs)
-
-            # (b) 兜底：content 为空时，将 reasoning_content 作为 content
+        def _fix_empty_content(response):
+            """content 为空时，将 reasoning_content 移到 content"""
             try:
                 for _choice in getattr(response, "choices", []):
                     _msg = getattr(_choice, "message", None)
@@ -398,7 +416,18 @@ try:
                 pass
             return response
 
+        def _patched_litellm_completion(*args, **kwargs):
+            kwargs = _apply_thinking_disable(kwargs)
+            response = _orig_litellm_completion(*args, **kwargs)
+            return _fix_empty_content(response)
+
+        async def _patched_litellm_acompletion(*args, **kwargs):
+            kwargs = _apply_thinking_disable(kwargs)
+            response = await _orig_litellm_acompletion(*args, **kwargs)
+            return _fix_empty_content(response)
+
         litellm.completion = _patched_litellm_completion
+        litellm.acompletion = _patched_litellm_acompletion
         
         logger.info(f"RD-Agent LLM: chat_model → {_litellm_model}, api_base → {_openai_base}")
         logger.info(f"RD-Agent LLM: 本地模式优化 (stream=False, schema=False, reasoning_rm=True, timeout=300s)")
