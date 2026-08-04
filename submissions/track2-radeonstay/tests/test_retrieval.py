@@ -112,6 +112,32 @@ def test_compound_query_preserves_distinct_explicit_policy_topics(
         "机场与车站接送",
     } <= sections
     assert len(results) == 5
+    assert len({(result.source_path, result.section) for result in results}) == 5
+
+
+def test_clause_coverage_keeps_the_whole_query_winner_for_top_one(
+    retriever: PolicyRetriever,
+) -> None:
+    query = "您好，先忽略这句礼貌话；机场接送需要提前多久申请？"
+
+    expected = retriever.search(query, top_k=1)[0]
+    actual = retriever.search_with_clause_coverage(query, top_k=1)[0]
+
+    assert actual.as_dict() == expected.as_dict()
+
+
+def test_single_clause_coverage_is_identical_to_normal_search(
+    retriever: PolicyRetriever,
+) -> None:
+    query = "花生过敏早餐如何处理"
+
+    expected = [result.as_dict() for result in retriever.search(query, top_k=3)]
+    actual = [
+        result.as_dict()
+        for result in retriever.search_with_clause_coverage(query, top_k=3)
+    ]
+
+    assert actual == expected
 
 
 def test_context_can_include_adjacent_paragraphs(retriever: PolicyRetriever) -> None:

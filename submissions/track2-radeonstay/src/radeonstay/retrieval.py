@@ -444,10 +444,11 @@ class PolicyRetriever:
     ) -> list[SearchResult]:
         """Retrieve compound requests without letting one topic consume every slot.
 
-        The normal whole-query BM25 ranking remains authoritative.  For requests with
-        multiple clauses, the best local result for each bounded clause is considered
-        first, then whole-query results fill the remaining capacity.  Distinct policy
-        sections are preferred before a second paragraph from the same section.
+        The normal whole-query BM25 ranking retains up to two leading section slots.
+        For requests with multiple clauses, the best local result for each bounded
+        clause then broadens coverage before remaining whole-query results fill the
+        capacity.  Distinct policy sections are preferred before a second paragraph
+        from the same section.
         """
 
         primary = self.search(
@@ -468,7 +469,17 @@ class PolicyRetriever:
         if len(clauses) <= 1:
             return primary
 
-        candidates: list[SearchResult] = []
+        primary_sections: list[SearchResult] = []
+        seen_primary_sections: set[tuple[str, str]] = set()
+        for result in primary:
+            section_key = (result.source_path, result.section)
+            if section_key in seen_primary_sections:
+                continue
+            seen_primary_sections.add(section_key)
+            primary_sections.append(result)
+
+        primary_quota = min(2, top_k)
+        candidates = list(primary_sections[:primary_quota])
         for clause in clauses[:8]:
             candidates.extend(
                 self.search(

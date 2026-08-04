@@ -587,6 +587,38 @@ class RadeonStayOrchestratorTests(unittest.TestCase):
             evidence["citations"][1]["excerpt"],
         )
 
+    def test_compound_policy_selector_receives_distinct_topic_evidence(self) -> None:
+        model = RecordingAnswerModel(citation_ids=["c1", "c2", "c3"])
+        self.service.answer_model = model
+        self.service.retriever = PolicyRetriever.from_directory(
+            PROJECT_ROOT / "data" / "policies"
+        )
+
+        response = self.service.chat(
+            ChatRequest(
+                session_id="session-compound-policy",
+                request_id="request-compound-policy",
+                identity_token=self.alice_token,
+                message=(
+                    "我计划 2030-09-10 入住、2030-09-12 退房，23:30 到店，"
+                    "带六岁儿童且花生过敏，需要机场接送；查房、报价并预览保留标准房。"
+                ),
+            )
+        )
+
+        evidence = json.loads(model.messages[1]["content"])
+        candidate_sections = [
+            item["label"].split(" > ", 1)[1].removesuffix("]")
+            for item in evidence["citations"]
+        ]
+        assert candidate_sections[:3] == [
+            "机场与车站接送",
+            "未到店与延迟抵达",
+            "早餐、餐饮与过敏信息",
+        ]
+        assert len(candidate_sections) == len(set(candidate_sections)) == 5
+        assert [item.section for item in response.citations] == candidate_sections[:3]
+
     def test_invalid_selector_json_returns_only_three_fallback_citations(self) -> None:
         model = RecordingAnswerModel(raw_content="not-json")
         self.service.answer_model = model
