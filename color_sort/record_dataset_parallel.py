@@ -81,8 +81,6 @@ JOINT_NAMES = [
     "panda_joint5", "panda_joint6", "panda_joint7",
     "panda_finger_joint1", "panda_finger_joint2",
 ]
-TRAIN_YCB_NAMES = ("013_apple", "011_banana", "018_plum")
-EVAL_YCB_NAMES = ("014_lemon", "017_orange")
 
 
 def task_description(pick_object: str, place_color: str) -> str:

@@ -32,46 +32,43 @@ ASSETS = Path(__file__).resolve().parent.parent / "assets" / "ycb"
 
 # == YCB object layout ==
 # Each object: real-world color, position on tabletop, euler rotation.
-# Train colors: red, yellow, purple. Eval colors: green, orange.
-# Objects excluded per demo findings: pear (round cross-section slips).
+# Train objects: banana (yellow), plum (purple), orange (orange) — all demo-verified
+# reliable grasps, each with a distinct color and its own container.
+# Eval object: lemon (yellow) — held-out generalization test.
 YCB_LAYOUT: dict[str, dict] = {
     # Train objects — each placed within ~0.12m of its container so the lateral transport
     # stays short (round YCB objects eject from parallel jaws on long lateral transports).
     # Objects are y-spaced 0.24m so the 20cm banana can rotate freely without hitting neighbors.
     # The banana is elongated and grips well, so it can sit farther from its bin (no overlap).
-    "013_apple": {"pos": (0.44, 0.24, 0.0), "euler": (0.0, 0.0, 0.0), "color": "red", "friction": 1.0},
     "011_banana": {"pos": (0.36, 0.0, 0.0), "euler": (0.0, 0.0, 35.0), "color": "yellow", "friction": 1.0},
     "018_plum": {"pos": (0.44, -0.24, 0.0), "euler": (0.0, 0.0, 0.0), "color": "purple", "friction": 1.0},
-    # Eval objects (hold-out, not in training data)
+    "017_orange": {"pos": (0.44, 0.24, 0.0), "euler": (0.0, 0.0, 0.0), "color": "orange", "friction": 1.0},
+    # Eval object (hold-out, not in training data)
     "014_lemon": {"pos": (0.44, 0.0, 0.0), "euler": (0.0, 0.0, 0.0), "color": "yellow", "friction": 1.0},
-    "017_orange": {"pos": (0.44, -0.24, 0.0), "euler": (0.0, 0.0, 0.0), "color": "orange", "friction": 1.0},
 }
 
 # Train/eval split
-TRAIN_YCB_NAMES = ("013_apple", "011_banana", "018_plum")
-EVAL_YCB_NAMES = ("014_lemon", "017_orange")
+TRAIN_YCB_NAMES = ("011_banana", "018_plum", "017_orange")
+EVAL_YCB_NAMES = ("014_lemon",)
 
 # Color mapping for task descriptions and containers
 COLOR_RGB = {
-    "red": (0.9, 0.1, 0.1),
     "yellow": (0.95, 0.85, 0.1),
     "purple": (0.6, 0.1, 0.7),
-    "green": (0.1, 0.7, 0.2),
     "orange": (0.95, 0.55, 0.1),
 }
 
 # YCB object → display name for task descriptions
 YCB_DISPLAY_NAMES = {
-    "013_apple": "apple",
     "011_banana": "banana",
     "018_plum": "plum",
-    "014_lemon": "lemon",
     "017_orange": "orange",
+    "014_lemon": "lemon",
 }
 
 # == Per-color containers (5-box recessed bin) ==
 # Enlarged to 16cm so the 20cm banana can sit diagonally (20cm < 16*sqrt(2)=22.6cm)
-# and dip its bottom below the rim. Round objects (apple/plum/lemon/orange) fit easily.
+# and dip its bottom below the rim. Round objects (plum/orange/lemon) fit easily.
 CONTAINER_BOTTOM_SIZE = (0.16, 0.16, 0.004)  # floor slab (lx, ly, lz)
 CONTAINER_WALL_THICKNESS = 0.004
 CONTAINER_WALL_HEIGHT = 0.05
@@ -79,11 +76,9 @@ CONTAINER_INNER_SIZE = 0.16 - 2 * CONTAINER_WALL_THICKNESS  # 0.152 m
 CONTAINER_RIM_Z_OFFSET = CONTAINER_BOTTOM_SIZE[2] + CONTAINER_WALL_HEIGHT  # 0.054 m above table
 CONTAINER_RIM_MARGIN = 0.01
 CONTAINER_LAYOUT = {
-    "red": (0.56, 0.24),
     "yellow": (0.56, 0.00),
     "purple": (0.56, -0.24),
-    "green": (0.62, 0.15),
-    "orange": (0.62, -0.15),
+    "orange": (0.56, 0.24),
 }
 
 # == Reachable workspace on the tabletop (from demo, empirically verified) ==
