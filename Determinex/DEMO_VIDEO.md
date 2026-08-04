@@ -1,11 +1,11 @@
 # Demo Video
 
-**File:** [`DEMO_MAIN_2026-08-04.mp4`](DEMO_MAIN_2026-08-04.mp4) — 3:27, 1920×1080, committed
+**File:** [`DEMO_MAIN_2026-08-04.mp4`](DEMO_MAIN_2026-08-04.mp4) — 3:31, 1920×1080, committed
 in this directory, so it needs no external host and cannot rot.
 
 **Mirror:** _(YouTube link added on submission)_
 
-**Product tour:** [`PRODUCT_SHOWCASE_2026-08-04.mp4`](PRODUCT_SHOWCASE_2026-08-04.mp4) — 1:51,
+**Product tour:** [`PRODUCT_SHOWCASE_2026-08-04.mp4`](PRODUCT_SHOWCASE_2026-08-04.mp4) — 3:29,
 seven surfaces of the IDE, each driven and filmed rather than screenshotted.
 
 ---
