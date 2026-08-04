@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import random
+from datetime import date, timedelta
 from typing import Any
 
 import pytest
@@ -8,6 +10,7 @@ import pytest
 from radeonstay.contracts import AgentPlan, PlanStep
 from radeonstay.model_client import ModelClientError
 from radeonstay.planning import (
+    _PLANNING_CONTRACT,
     LocalLLMPlanner,
     PlanCompletenessError,
     PlanSemanticError,
@@ -125,6 +128,11 @@ def test_planner_uses_json_schema_and_accepts_a_valid_initial_plan() -> None:
     planning_input = json.loads(model.calls[0]["messages"][1]["content"])
     assert "A requested write must appear now" in system_prompt
     assert planning_input["planning_contract"]["completeness"]
+    assert planning_input["server_obligations"] == {
+        "ordered_tools": ["respond_with_policy"],
+        "missing_fields": [],
+        "tool_sequence_is_exact": True,
+    }
     assert any(
         "include_cancelled=false" in rule
         for rule in planning_input["planning_contract"]["completeness"]
@@ -157,6 +165,105 @@ def test_planner_repairs_one_structurally_valid_but_semantically_invalid_plan() 
         "semantic_repair_requested",
         "accepted_after_repair",
     ]
+
+
+def test_structural_repair_receives_server_workflow_and_restores_omitted_intent() -> None:
+    tool_specs = [
+        {
+            "name": "hotel.my_bookings",
+            "effect": "read",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "include_cancelled": {"type": "boolean", "default": False}
+                },
+                "required": [],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "hotel.modify_booking",
+            "effect": "write",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "booking_id": {"type": "string", "minLength": 1},
+                    "check_out": {
+                        "anyOf": [
+                            {"type": "string", "format": "date"},
+                            {"type": "null"},
+                        ]
+                    },
+                },
+                "required": ["booking_id"],
+                "additionalProperties": False,
+            },
+        },
+    ]
+    structurally_invalid = {
+        "objective": "List the booking before modifying it.",
+        "steps": [
+            {
+                "step_id": "bookings",
+                "tool": "hotel.my_bookings",
+                "arguments": {"include_cancelled": False},
+                "depends_on": [],
+            }
+        ],
+        "response_language": "中文",
+    }
+    repaired = {
+        "objective": "先查看本人订单，再预览明确要求的退房日变更。",
+        "steps": [
+            {
+                "step_id": "bookings",
+                "tool": "hotel.my_bookings",
+                "arguments": {"include_cancelled": False},
+                "reason": "先完成用户明确要求的本人订单查看。",
+                "depends_on": [],
+            },
+            {
+                "step_id": "modify",
+                "tool": "hotel.modify_booking",
+                "arguments": {
+                    "booking_id": "RSV-GENERATED-6A2F",
+                    "check_out": "2033-07-19",
+                },
+                "reason": "服务端将在实际写入前生成独立确认预览。",
+                "depends_on": ["bookings"],
+            },
+        ],
+        "response_language": "中文",
+    }
+    model = StubModel(structurally_invalid, repaired)
+    planner = LocalLLMPlanner(model)  # type: ignore[arg-type]
+
+    plan = planner.create_plan(
+        "调出我名下的预订，再把 RSV-GENERATED-6A2F 的离店日延到 2033-07-19。",
+        policy_context="",
+        tool_specs=tool_specs,
+    )
+
+    assert [step.tool for step in plan.steps] == [
+        "hotel.my_bookings",
+        "hotel.modify_booking",
+    ]
+    repair_input = json.loads(model.calls[1]["messages"][1]["content"])
+    directive = repair_input["repair_directive"]
+    assert directive["ordered_tools"] == [
+        "hotel.my_bookings",
+        "hotel.modify_booking",
+    ]
+    assert directive["missing_fields"] == []
+    assert directive["argument_contracts"]["hotel.modify_booking"]["required"] == [
+        "booking_id"
+    ]
+    assert directive["argument_contracts"]["hotel.my_bookings"]["defaults"] == {
+        "include_cancelled": False
+    }
+    assert len(repair_input["contract_errors"]) >= 1
+    assert all("message" in error for error in repair_input["contract_errors"])
+    assert "MUST equal it exactly" in model.calls[1]["messages"][0]["content"]
 
 
 def test_second_plan_contract_failure_returns_only_safe_ask_user() -> None:
@@ -222,6 +329,81 @@ def test_shared_semantic_validation_rejects_invalid_literal_arguments() -> None:
 
     with pytest.raises(PlanSemanticError, match="room_type"):
         validate_plan_semantics(plan, TOOL_SPECS)
+
+
+def test_semantic_validation_rejects_invalid_reference_paths_and_late_steps() -> None:
+    reference_specs = [
+        {
+            "name": "hotel.quote_stay",
+            "effect": "read",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": False,
+            },
+            "returns": {
+                "type": "object",
+                "properties": {"room_type": {"type": "string"}},
+                "required": ["room_type"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "hotel.hold_booking",
+            "effect": "write",
+            "parameters": {
+                "type": "object",
+                "properties": {"room_type": {"type": "string"}},
+                "required": ["room_type"],
+                "additionalProperties": False,
+            },
+        },
+    ]
+    invalid_reference = AgentPlan(
+        objective="Reject a reference path absent from the declared return schema.",
+        steps=[
+            PlanStep(
+                step_id="quote",
+                tool="hotel.quote_stay",
+                reason="Produce a typed local result.",
+            ),
+            PlanStep(
+                step_id="hold",
+                tool="hotel.hold_booking",
+                arguments={"room_type": "{{quote.booking_id}}"},
+                reason="The output path does not exist.",
+                depends_on=["quote"],
+            ),
+        ],
+    )
+    with pytest.raises(PlanSemanticError, match="unavailable output path"):
+        validate_plan_semantics(invalid_reference, reference_specs)
+
+    nonterminal_question = AgentPlan(
+        objective="Stop after requesting missing data.",
+        steps=[
+            PlanStep(
+                step_id="ask",
+                tool="ask_user",
+                arguments={"missing": ["check_in"]},
+                reason="Request a required field.",
+            ),
+            PlanStep(
+                step_id="availability",
+                tool="hotel.check_availability",
+                arguments={
+                    "check_in": "2031-01-10",
+                    "check_out": "2031-01-11",
+                    "guests": 1,
+                    "room_type": "standard",
+                },
+                reason="This step must not follow a clarification.",
+            ),
+        ],
+    )
+    with pytest.raises(PlanSemanticError, match="terminal"):
+        validate_plan_semantics(nonterminal_question, TOOL_SPECS)
 
 
 def test_completeness_rejects_omitted_steps_extra_writes_and_dependency_gaps() -> None:
@@ -331,6 +513,50 @@ def test_completeness_requires_structured_missing_fields_and_one_preference_writ
             INTENT_TOOL_SPECS,
         )
 
+    invented_optional_field = AgentPlan(
+        objective="Ask only for genuinely required stay details.",
+        steps=[
+            PlanStep(
+                step_id="ask",
+                tool="ask_user",
+                arguments={
+                    "missing": [
+                        "check_in",
+                        "check_out",
+                        "room_type",
+                        "flight_number",
+                    ]
+                },
+                reason="Flight number is optional and must not be invented as missing.",
+            )
+        ],
+    )
+    with pytest.raises(PlanCompletenessError, match="flight_number"):
+        validate_plan_completeness(
+            invented_optional_field,
+            "Hold any room for me without asking questions.",
+            "",
+            INTENT_TOOL_SPECS,
+        )
+
+    missing_booking_reference = AgentPlan(
+        objective="Ask for the booking identifier required to modify a booking.",
+        steps=[
+            PlanStep(
+                step_id="ask",
+                tool="ask_user",
+                arguments={"missing": ["booking_id"]},
+                reason="A booking ID is required for the requested change.",
+            )
+        ],
+    )
+    validate_plan_completeness(
+        missing_booking_reference,
+        "请修改我的订单，把退房日期延长一天。",
+        "",
+        INTENT_TOOL_SPECS,
+    )
+
     duplicate_preferences = AgentPlan(
         objective="Remember one compound room preference.",
         steps=[
@@ -352,6 +578,125 @@ def test_completeness_requires_structured_missing_fields_and_one_preference_writ
         validate_plan_completeness(
             duplicate_preferences,
             "Remember that I prefer a quiet room on a high floor.",
+            "",
+            INTENT_TOOL_SPECS,
+        )
+
+
+def _plan_for_intent_tools(tools: list[str]) -> AgentPlan:
+    steps: list[PlanStep] = []
+    previous: str | None = None
+    for index, tool in enumerate(tools):
+        step_id = f"intent_{index}"
+        arguments: dict[str, Any] = {}
+        if tool == "ask_user":
+            arguments = {"question": "Please clarify the requested operation."}
+        steps.append(
+            PlanStep(
+                step_id=step_id,
+                tool=tool,
+                arguments=arguments,
+                reason="Represent one explicitly requested capability.",
+                depends_on=[previous] if previous is not None else [],
+            )
+        )
+        previous = step_id
+    return AgentPlan(objective="Represent the complete held-out intent.", steps=steps)
+
+
+def test_held_out_intent_paraphrases_require_every_capability_without_fixture_leakage() -> None:
+    rng = random.Random(0xA6D5)
+    check_in = date(2032, 1, 1) + timedelta(days=rng.randint(30, 300))
+    check_out = check_in + timedelta(days=rng.randint(1, 5))
+    change_date = check_out + timedelta(days=rng.randint(20, 90))
+    booking_id = f"RSV-HO-{rng.getrandbits(32):08X}"
+    workflows = [
+        (
+            (
+                f"我在 {check_in.isoformat()} 到 {check_out.isoformat()} 住标准房，"
+                "23:30 才到并带花生过敏的孩子；帮我看看空房、算总价并先锁房。"
+            ),
+            [
+                "respond_with_policy",
+                "hotel.check_availability",
+                "hotel.quote_stay",
+                "hotel.hold_booking",
+            ],
+        ),
+        (
+            (
+                f"From {check_in.isoformat()} to {check_out.isoformat()}, find an open "
+                "standard room for a 23:30 arrival with a child who has a peanut allergy; "
+                "price the stay and tentatively lock it."
+            ),
+            [
+                "respond_with_policy",
+                "hotel.check_availability",
+                "hotel.quote_stay",
+                "hotel.hold_booking",
+            ],
+        ),
+        (
+            f"调出我名下的预订，再把 {booking_id} 的离店日延到 {change_date.isoformat()}。",
+            ["hotel.my_bookings", "hotel.modify_booking"],
+        ),
+        (
+            f"Pull up my reservations, then extend checkout for {booking_id} to "
+            f"{change_date.isoformat()}.",
+            ["hotel.my_bookings", "hotel.modify_booking"],
+        ),
+        (
+            f"依据机场接送条款，为订单 {booking_id} 登记接机需求。",
+            ["respond_with_policy", "hotel.create_service_ticket"],
+        ),
+        (
+            f"Using the shuttle rules, lodge a pickup request for booking {booking_id}.",
+            ["respond_with_policy", "hotel.create_service_ticket"],
+        ),
+        (
+            "撤回我的本地喜好保存授权，并清空已有喜好。",
+            ["memory.set_consent"],
+        ),
+        (
+            "Revoke local preference storage and erase every saved preference.",
+            ["memory.set_consent"],
+        ),
+    ]
+
+    for prompt, expected_tools in workflows:
+        validate_plan_completeness(
+            _plan_for_intent_tools(expected_tools),
+            prompt,
+            "",
+            INTENT_TOOL_SPECS,
+        )
+        for omitted in expected_tools:
+            reduced = [tool for tool in expected_tools if tool != omitted]
+            if not reduced:
+                reduced = ["ask_user"]
+            with pytest.raises(PlanCompletenessError) as captured:
+                validate_plan_completeness(
+                    _plan_for_intent_tools(reduced),
+                    prompt,
+                    "",
+                    INTENT_TOOL_SPECS,
+                )
+            assert omitted in str(captured.value)
+
+    contract_text = json.dumps(_PLANNING_CONTRACT, ensure_ascii=False)
+    assert booking_id not in contract_text
+    assert check_in.isoformat() not in contract_text
+    assert change_date.isoformat() not in contract_text
+    assert all(prompt not in contract_text for prompt, _ in workflows)
+
+
+def test_completeness_rejects_operational_tools_without_explicit_user_intent() -> None:
+    plan = _plan_for_intent_tools(["hotel.check_availability"])
+
+    with pytest.raises(PlanCompletenessError, match="not supported"):
+        validate_plan_completeness(
+            plan,
+            "Hello RadeonStay.",
             "",
             INTENT_TOOL_SPECS,
         )
