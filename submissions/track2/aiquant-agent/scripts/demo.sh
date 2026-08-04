@@ -1,25 +1,61 @@
 #!/bin/bash
-# aiQuant Demo Script
-cd "$(dirname "$0")/.."
+# aiQuant Demo Script — for video recording
+# Usage: bash scripts/demo.sh
+set -e
+
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+API_BASE="http://localhost:8010"
 
 echo "=== aiQuant Demo ==="
+echo ""
 
-# Check environment
-echo "[1] Checking ROCm..."
-rocm-smi | grep GPU || { echo "No AMD GPU found"; exit 1; }
+# 1. Check AMD GPU
+echo "[1] Checking AMD Radeon GPU..."
+rocm-smi | head -20
+echo ""
 
-echo "[2] Checking LLM service..."
-curl -s http://localhost:8000/health && echo " OK" || { echo "LLM service not ready"; exit 1; }
+# 2. Check LLM server
+echo "[2] Checking LLM server (Qwen3-8B on AMD GPU)..."
+curl -s http://localhost:13305/v1/models | python3 -m json.tool 2>/dev/null || \
+    echo "  LLM server not ready. Start with: lemonade serve <model_path> --host 0.0.0.0 --port 13305"
+echo ""
 
-echo "[3] Starting aiQuant..."
-bash scripts/start.sh &
+# 3. Check aiQuant API
+echo "[3] Checking aiQuant API..."
+curl -s "$API_BASE/api/health" | python3 -m json.tool 2>/dev/null || \
+    echo "  API not ready. Start with: bash scripts/start.sh"
+echo ""
 
-sleep 10
-
-echo "[4] Sending demo command..."
-curl -X POST http://localhost:8008/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message":"Mine momentum factors for CSI 500, 1 iteration"}'
+# 4. Send demo factor mining request
+echo "[4] Sending factor mining request..."
+echo "    Universe: CSI 300"
+echo "    Iterations: 1"
+echo ""
+curl -N -X POST "$API_BASE/api/research/factor-evolve/stream" \
+    -H "Content-Type: application/json" \
+    -d '{
+        "loop_n": 1,
+        "universe": "沪深300",
+        "all_duration": "30m"
+    }' 2>/dev/null | while IFS= read -r line; do
+    # Pretty print SSE events
+    if [[ "$line" == data:* ]]; then
+        echo "$line" | python3 -c "
+import sys, json
+line = sys.stdin.read().strip()
+if line.startswith('data: '):
+    try:
+        d = json.loads(line[6:])
+        t = d.get('type','')
+        s = d.get('stage','')
+        e = d.get('elapsed_sec','')
+        c = d.get('content','')[:120]
+        print(f'[{e:>6}s] {t:20s} | {s:20s} | {c}')
+    except: pass
+" 2>/dev/null
+    fi
+done
 
 echo ""
-echo "=== Demo running at http://localhost:8008 ==="
+echo "=== Demo Complete ==="
+echo "Visualization: http://localhost:19899"

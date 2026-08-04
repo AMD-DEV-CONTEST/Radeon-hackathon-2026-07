@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>aiQuant System Architecture</title>
+<style>
+  :root{
+    --bg:#0a0a12;
+    --bg-2:#10101c;
+    --panel:#15162a;
+    --panel-2:#1b1d35;
+    --border:#2a2d4a;
+    --border-hi:#3a3f66;
+    --purple:#7c3aed;
+    --purple-2:#9d6bff;
+    --purple-glow:rgba(124,58,237,.45);
+    --cyan:#22d3ee;
+    --green:#34d399;
+    --amber:#fbbf24;
+    --pink:#f472b6;
+    --text:#e7e9f5;
+    --text-dim:#9aa0c0;
+    --text-mute:#646a8c;
+    --radius:18px;
+    --shadow:0 10px 40px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, rgba(124,58,237,.18), transparent 60%),
+      radial-gradient(900px 500px at 100% 10%, rgba(34,211,238,.07), transparent 55%),
+      linear-gradient(180deg,var(--bg) 0%, var(--bg-2) 100%);
+    color:var(--text);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+  }
+
+  /* ---------- Layout ---------- */
+  .wrap{max-width:1180px;margin:0 auto;padding:48px 24px 80px}
+
+  /* ---------- Header ---------- */
+  header{text-align:center;margin-bottom:14px}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--purple-2);font-weight:600;
+    background:rgba(124,58,237,.12);
+    border:1px solid rgba(124,58,237,.35);
+    padding:6px 14px;border-radius:999px;margin-bottom:18px;
+  }
+  h1{
+    font-size:clamp(28px,4.4vw,46px);
+    font-weight:800;letter-spacing:-.02em;
+    background:linear-gradient(120deg,#fff 10%,var(--purple-2) 55%,var(--cyan) 110%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  .subtitle{
+    margin-top:12px;color:var(--text-dim);font-size:clamp(14px,1.6vw,17px);font-weight:500;
+  }
+  .subtitle b{color:var(--text);font-weight:600}
+
+  /* ---------- Legend ---------- */
+  .legend{
+    display:flex;flex-wrap:wrap;gap:14px;justify-content:center;align-items:center;
+    margin:26px auto 8px;flex-wrap:wrap;
+  }
+  .legend-item{
+    display:inline-flex;align-items:center;gap:9px;
+    font-size:12.5px;color:var(--text-dim);
+    background:var(--panel);border:1px solid var(--border);
+    padding:7px 13px;border-radius:10px;
+  }
+  .dot{width:10px;height:10px;border-radius:50%;flex:none}
+  .dot.flow{background:var(--purple);box-shadow:0 0 10px var(--purple-glow)}
+  .dot.gpu{background:var(--cyan);box-shadow:0 0 10px rgba(34,211,238,.55)}
+  .dot.stream{background:var(--green);box-shadow:0 0 10px rgba(52,211,153,.5)}
+
+  /* ---------- Stack ---------- */
+  .stack{margin-top:40px;display:flex;flex-direction:column;gap:0;align-items:stretch}
+
+  /* ---------- Layer label ---------- */
+  .layer{position:relative;width:100%}
+  .layer-head{
+    display:flex;align-items:center;gap:10px;margin:0 auto 14px;max-width:1180px;
+  }
+  .layer-num{
+    font-size:11px;font-weight:700;color:var(--purple-2);
+    background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.3);
+    width:26px;height:26px;border-radius:8px;display:grid;place-items:center;flex:none;
+  }
+  .layer-title{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim)}
+  .layer-rule{flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
+
+  /* ---------- Cards ---------- */
+  .row{display:grid;gap:16px;width:100%}
+  .row.one{grid-template-columns:1fr}
+  .row.four{grid-template-columns:repeat(4,1fr)}
+  .row.three{grid-template-columns:repeat(3,1fr)}
+
+  .card{
+    position:relative;background:linear-gradient(180deg,var(--panel),var(--panel-2));
+    border:1px solid var(--border);border-radius:var(--radius);
+    padding:18px 18px 16px;overflow:hidden;
+    transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease;
+  }
+  .card::before{
+    content:"";position:absolute;inset:0;border-radius:var(--radius);padding:1px;
+    background:linear-gradient(160deg,rgba(124,58,237,.55),transparent 45%);
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor;mask-composite:exclude;opacity:.0;transition:opacity .25s;
+    pointer-events:none;
+  }
+  .card:hover{transform:translateY(-3px);border-color:var(--border-hi);box-shadow:var(--shadow)}
+  .card:hover::before{opacity:1}
+
+  .card-icon{
+    width:38px;height:38px;border-radius:11px;display:grid;place-items:center;
+    background:rgba(124,58,237,.14);border:1px solid rgba(124,58,237,.3);
+    margin-bottom:13px;color:var(--purple-2);
+  }
+  .card-icon svg{width:20px;height:20px}
+  .card h3{font-size:15.5px;font-weight:700;margin-bottom:3px;letter-spacing:-.01em}
+  .card .sub{font-size:12px;color:var(--text-mute);margin-bottom:11px;font-weight:500}
+
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .tag{
+    font-size:10.5px;font-weight:600;letter-spacing:.02em;
+    padding:3px 8px;border-radius:6px;
+    background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text-dim);
+  }
+  .tag.port{background:rgba(34,211,238,.1);border-color:rgba(34,211,238,.3);color:var(--cyan)}
+  .tag.gpu{background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.3);color:var(--green)}
+  .tag.purple{background:rgba(124,58,237,.12);border-color:rgba(124,58,237,.32);color:var(--purple-2)}
+
+  .feats{list-style:none;display:flex;flex-direction:column;gap:6px}
+  .feats li{
+    font-size:12px;color:var(--text-dim);display:flex;gap:8px;align-items:flex-start;line-height:1.45;
+  }
+  .feats li::before{
+    content:"";width:5px;height:5px;border-radius:50%;background:var(--purple);
+    margin-top:7px;flex:none;box-shadow:0 0 6px var(--purple-glow);
+  }
+
+  /* Wide single card layout */
+  .card.wide{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+  .card.wide .card-body{flex:1;min-width:240px}
+  .card.wide .card-icon{margin-bottom:0}
+  .card.wide .feats{flex-direction:row;flex-wrap:wrap;gap:8px 18px}
+
+  /* LLM card special */
+  .llm-card{
+    background:
+      radial-gradient(600px 200px at 50% 120%, rgba(34,211,238,.12), transparent 70%),
+      linear-gradient(180deg,var(--panel),var(--panel-2));
+    border-color:rgba(52,211,153,.28);
+  }
+  .gpu-badge{
+    position:absolute;top:14px;right:14px;display:inline-flex;align-items:center;gap:6px;
+    font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--green);background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.32);
+    padding:4px 9px;border-radius:7px;
+  }
+  .gpu-badge .pulse{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 1.8s infinite}
+  .metrics{display:flex;flex-wrap:wrap;gap:18px;margin-top:6px}
+  .metric{display:flex;flex-direction:column}
+  .metric .v{font-size:18px;font-weight:800;color:var(--text)}
+  .metric .k{font-size:10.5px;color:var(--text-mute);letter-spacing:.04em;text-transform:uppercase}
+
+  /* ---------- Arrows ---------- */
+  .connector{
+    display:flex;justify-content:center;align-items:center;
+    height:54px;position:relative;
+  }
+  .connector svg{overflow:visible}
+  .arrow-line{stroke:var(--purple);stroke-width:2;fill:none;opacity:.7}
+  .arrow-fan{stroke:var(--purple);stroke-width:1.6;fill:none;opacity:.5}
+  .arrow-head{fill:var(--purple);opacity:.85}
+  .flow-dot{
+    fill:var(--purple-2);filter:drop-shadow(0 0 4px var(--purple-glow));
+  }
+  .flow-dot.anim{animation:flow 2.4s linear infinite}
+  .gpu-arrow .arrow-line{stroke:var(--cyan);opacity:.7}
+  .gpu-arrow .arrow-head{fill:var(--cyan)}
+  .gpu-arrow .flow-dot{fill:var(--cyan);filter:drop-shadow(0 0 4px rgba(34,211,238,.6))}
+
+  @keyframes flow{
+    0%{offset-distance:0%;opacity:0}
+    12%{opacity:1}
+    88%{opacity:1}
+    100%{offset-distance:100%;opacity:0}
+  }
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  @keyframes dash{to{stroke-dashoffset:-16}}
+
+  .arrow-line.dashed{
+    stroke-dasharray:5 4;animation:dash 1.2s linear infinite;
+  }
+
+  /* ---------- Footer ---------- */
+  footer{
+    margin-top:54px;text-align:center;color:var(--text-mute);font-size:12px;
+    border-top:1px solid var(--border);padding-top:22px;
+  }
+  footer b{color:var(--text-dim)}
+
+  /* ---------- Responsive ---------- */
+  @media (max-width:980px){
+    .row.four{grid-template-columns:repeat(2,1fr)}
+    .row.three{grid-template-columns:1fr}
+    .card.wide .feats{flex-direction:column;gap:6px}
+  }
+  @media (max-width:620px){
+    .wrap{padding:34px 14px 60px}
+    .row.four,.row.three{grid-template-columns:1fr}
+    .card.wide{flex-direction:column;align-items:flex-start}
+    .layer-head{padding:0 4px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ HEADER ============ -->
+  <header>
+    <span class="eyebrow">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5M2 12l10 5 10-5"/></svg>
+      System Architecture
+    </span>
+    <h1>aiQuant System Architecture</h1>
+    <p class="subtitle">AMD Radeon Hackathon 2026 &middot; <b>Track 2: Private AI Agent</b></p>
+
+    <div class="legend">
+      <span class="legend-item"><span class="dot flow"></span> Data Flow</span>
+      <span class="legend-item"><span class="dot gpu"></span> GPU Compute</span>
+      <span class="legend-item"><span class="dot stream"></span> SSE Streaming</span>
+    </div>
+  </header>
+
+  <div class="stack">
+
+    <!-- ============ LAYER 1: FRONTEND ============ -->
+    <div class="layer">
+      <div class="layer-head">
+        <span class="layer-num">1</span>
+        <span class="layer-title">Frontend Layer</span>
+        <span class="layer-rule"></span>
+      </div>
+      <div class="row one">
+        <div class="card wide">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          </div>
+          <div class="card-body">
+            <h3>React SPA Frontend</h3>
+            <p class="sub">Single-page application &middot; real-time chat interface</p>
+            <ul class="feats">
+              <li>Dark theme UI with streaming token rendering</li>
+              <li>Server-Sent Events (SSE) live response streaming</li>
+              <li>Multi-session chat with conversation history</li>
+              <li>Markdown + LaTeX rendering for factor code &amp; metrics</li>
+            </ul>
+          </div>
+          <div class="tags" style="align-self:flex-start">
+            <span class="tag purple">React</span>
+            <span class="tag">Dark Theme</span>
+            <span class="tag">SSE Streaming</span>
+            <span class="tag">Multi-session</span>
+            <span class="tag">Markdown</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Arrow 1 -> 2 -->
+    <div class="connector" aria-hidden="true">
+      <svg width="160" height="54" viewBox="0 0 160 54">
+        <path id="p12" class="arrow-line" d="M80 0 V46"/>
+        <path class="arrow-head" d="M80 54 L73 42 L87 42 Z"/>
+        <circle r="3.5" class="flow-dot anim"><animateMotion dur="2.4s" repeatCount="indefinite"><mpath href="#p12"/></animateMotion></circle>
+      </svg>
+    </div>
+
+    <!-- ============ LAYER 2: API GATEWAY ============ -->
+    <div class="layer">
+      <div class="layer-head">
+        <span class="layer-num">2</span>
+        <span class="layer-title">API Gateway Layer</span>
+        <span class="layer-rule"></span>
+      </div>
+      <div class="row one">
+        <div class="card wide">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="8" cy="7" r="1.4" fill="currentColor"/><circle cx="14" cy="12" r="1.4" fill="currentColor"/><circle cx="10" cy="17" r="1.4" fill="currentColor"/></svg>
+          </div>
+          <div class="card-body">
+            <h3>FastAPI Gateway &middot; uvicorn</h3>
+            <p class="sub">Async entry point &middot; intent routing &amp; streaming orchestration</p>
+            <ul class="feats">
+              <li>Intent parsing &amp; request dispatch to service layer</li>
+              <li>SSE streaming pipeline to frontend</li>
+              <li>nest_asyncio for nested event-loop compatibility</li>
+              <li>CORS enabled for cross-origin SPA access</li>
+            </ul>
+          </div>
+          <div class="tags" style="align-self:flex-start">
+            <span class="tag purple">FastAPI</span>
+            <span class="tag">uvicorn</span>
+            <span class="tag port">:8010</span>
+            <span class="tag">nest_asyncio</span>
+            <span class="tag">CORS</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fan-out arrow 2 -> 3 (splits to 4) -->
+    <div class="connector" aria-hidden="true">
+      <svg width="760" height="56" viewBox="0 0 760 56" preserveAspectRatio="none" style="width:100%;max-width:760px">
+        <path class="arrow-fan" d="M380 0 V20 H95 V44"/>
+        <path class="arrow-fan" d="M380 0 V20 H285 V44"/>
+        <path class="arrow-fan" d="M380 0 V20 H475 V44"/>
+        <path class="arrow-fan" d="M380 0 V20 H665 V44"/>
+        <!-- heads -->
+        <path class="arrow-head" d="M95 52 L89 41 L101 41 Z"/>
+        <path class="arrow-head" d="M285 52 L279 41 L291 41 Z"/>
+        <path class="arrow-head" d="M475 52 L469 41 L481 41 Z"/>
+        <path class="arrow-head" d="M665 52 L659 41 L671 41 Z"/>
+      </svg>
+    </div>
+
+    <!-- ============ LAYER 3: SERVICE ============ -->
+    <div class="layer">
+      <div class="layer-head">
+        <span class="layer-num">3</span>
+        <span class="layer-title">Service Layer</span>
+        <span class="layer-rule"></span>
+      </div>
+      <div class="row four">
+
+        <div class="card">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 11v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"/></svg>
+          </div>
+          <h3>Data Service</h3>
+          <p class="sub">Market data ingestion</p>
+          <div class="tags">
+            <span class="tag">TDX CSV</span>
+            <span class="tag purple">Qlib fmt</span>
+          </div>
+          <ul class="feats">
+            <li>TongDaXin CSV export</li>
+            <li>Transform to Qlib binary format</li>
+            <li>Calendar &amp; instrument mapping</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/><circle cx="12" cy="12" r="2"/></svg>
+          </div>
+          <h3>RD-Agent Engine</h3>
+          <p class="sub">Microsoft RD-Agent R&amp;D loop</p>
+          <div class="tags">
+            <span class="tag purple">Hypothesis</span>
+            <span class="tag">Code</span>
+            <span class="tag">Backtest</span>
+          </div>
+          <ul class="feats">
+            <li>Hypothesis &rarr; code generation</li>
+            <li>Backtest &rarr; feedback loop</li>
+            <li>Iterative factor refinement</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-4 4 4 4 0 0 1-4-4V6a4 4 0 0 1 4-4Z"/><path d="M5 21v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1"/><path d="M19 5l1.5 1.5M19 5l-1.5 1.5"/></svg>
+          </div>
+          <h3>AI Agent</h3>
+          <p class="sub">Natural-language intent parsing</p>
+          <div class="tags">
+            <span class="tag">universe</span>
+            <span class="tag">loop_n</span>
+            <span class="tag">constraints</span>
+          </div>
+          <ul class="feats">
+            <li>Parse user goal to structured params</li>
+            <li>Resolve stock universe &amp; loops</li>
+            <li>Apply strategy constraints</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 14 3-4 3 3 5-6"/><path d="M18 7h2v2"/></svg>
+          </div>
+          <h3>Streamlit UI</h3>
+          <p class="sub">Backtest visualization</p>
+          <div class="tags">
+            <span class="tag port">:19899</span>
+            <span class="tag">IC charts</span>
+          </div>
+          <ul class="feats">
+            <li>IC / ICIR bar charts</li>
+            <li>Cumulative returns curve</li>
+            <li>Layered (quantile) returns</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Fan-in / fan-out arrow 3 -> 4 -->
+    <div class="connector" aria-hidden="true">
+      <svg width="640" height="56" viewBox="0 0 640 56" preserveAspectRatio="none" style="width:100%;max-width:640px">
+        <path class="arrow-fan" d="M80 0 V20 H320 V44"/>
+        <path class="arrow-fan" d="M320 0 V44"/>
+        <path class="arrow-fan" d="M560 0 V20 H320 V44"/>
+        <path class="arrow-head" d="M320 52 L314 41 L326 41 Z"/>
+      </svg>
+    </div>
+
+    <!-- ============ LAYER 4: EXECUTION ============ -->
+    <div class="layer">
+      <div class="layer-head">
+        <span class="layer-num">4</span>
+        <span class="layer-title">Execution Layer</span>
+        <span class="layer-rule"></span>
+      </div>
+      <div class="row three">
+
+        <div class="card">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="7"/><rect x="12" y="6" width="3" height="11"/><rect x="17" y="13" width="3" height="4"/></svg>
+          </div>
+          <h3>Qlib Backtest</h3>
+          <p class="sub">Quantitative evaluation engine</p>
+          <div class="tags">
+            <span class="tag purple">IC</span>
+            <span class="tag purple">ICIR</span>
+            <span class="tag">Annual return</span>
+          </div>
+          <ul class="feats">
+            <li>Factor IC / ICIR computation</li>
+            <li>Annualized return metrics</li>
+            <li>Maximum drawdown analysis</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/><path d="m14 4-4 16"/></svg>
+          </div>
+          <h3>CoSTEER Coder</h3>
+          <p class="sub">Factor code generation &amp; synthesis</p>
+          <div class="tags">
+            <span class="tag">Code gen</span>
+            <span class="tag">Synthesis</span>
+          </div>
+          <ul class="feats">
+            <li>Generate factor expressions</li>
+            <li>Synthesize &amp; refine code</li>
+            <li>Validate against Qlib API</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2M20 14h2M9 14h6"/></svg>
+          </div>
+          <h3>LLM Call &middot; LiteLLM</h3>
+          <p class="sub">OpenAI-compatible API routing</p>
+          <div class="tags">
+            <span class="tag purple">LiteLLM</span>
+            <span class="tag">OpenAI API</span>
+          </div>
+          <ul class="feats">
+            <li>Unified provider routing</li>
+            <li>Routes to local Qwen3 endpoint</li>
+            <li>OpenAI-compatible interface</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- GPU arrow 4 -> 5 -->
+    <div class="connector gpu-arrow" aria-hidden="true">
+      <svg width="160" height="54" viewBox="0 0 160 54">
+        <path id="p45" class="arrow-line dashed" d="M80 0 V46"/>
+        <path class="arrow-head" d="M80 54 L73 42 L87 42 Z"/>
+        <circle r="3.5" class="flow-dot"><animateMotion dur="2.2s" repeatCount="indefinite"><mpath href="#p45"/></animateMotion></circle>
+      </svg>
+    </div>
+
+    <!-- ============ LAYER 5: LLM ============ -->
+    <div class="layer">
+      <div class="layer-head">
+        <span class="layer-num">5</span>
+        <span class="layer-title">LLM Layer &middot; AMD Radeon GPU</span>
+        <span class="layer-rule"></span>
+      </div>
+      <div class="row one">
+        <div class="card wide llm-card">
+          <span class="gpu-badge"><span class="pulse"></span> GPU Compute</span>
+          <div class="card-icon" style="background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.3);color:var(--green)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/><path d="M6 18v2M18 18v2M6 4v2M18 4v2"/></svg>
+          </div>
+          <div class="card-body">
+            <h3>Local LLM &middot; Qwen3-8B</h3>
+            <p class="sub">On-prem inference on AMD Radeon GPU via ROCm</p>
+            <ul class="feats">
+              <li>Fully private inference &mdash; no external API calls</li>
+              <li>ROCm compute backend on AMD Radeon</li>
+              <li>Q4_K_M quantization for memory efficiency</li>
+            </ul>
+            <div class="metrics">
+              <div class="metric"><span class="v">Qwen3-8B</span><span class="k">Model</span></div>
+              <div class="metric"><span class="v">~90 tok/s</span><span class="k">Throughput</span></div>
+              <div class="metric"><span class="v">4.7 GB</span><span class="k">VRAM</span></div>
+              <div class="metric"><span class="v">Q4_K_M</span><span class="k">Quantization</span></div>
+              <div class="metric"><span class="v">ROCm</span><span class="k">Backend</span></div>
+            </div>
+          </div>
+          <div class="tags" style="align-self:flex-start">
+            <span class="tag gpu">AMD Radeon</span>
+            <span class="tag gpu">ROCm</span>
+            <span class="tag">Qwen3-8B</span>
+            <span class="tag">Q4_K_M</span>
+            <span class="tag">Private</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    aiQuant &middot; <b>Private AI Quant Agent</b> on AMD Radeon GPU &middot; AMD Radeon Hackathon 2026 &middot; Track 2
+  </footer>
+</div>
+</body>
+</html>
