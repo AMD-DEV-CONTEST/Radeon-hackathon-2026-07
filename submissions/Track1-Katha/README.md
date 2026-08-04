@@ -3,6 +3,14 @@
 **Speak a story idea — in English, Hindi, or six other languages — and get back a
 narrated, illustrated storybook video. Every model runs locally on an AMD Radeon GPU.**
 
+<p>
+<img src="images/dragon-book.gif" width="49%" alt="The Brave Dragon — English watercolor storybook playing">
+<img src="images/haathi-book.gif" width="49%" alt="Hindi elephant storybook playing with Devanagari subtitles">
+</p>
+
+*Two storybooks playing — English watercolor and Hindi 3D-animation, both generated
+end-to-end on the Radeon. Full demo with sound: [`demo-video.mp4`](demo-video.mp4).*
+
 | | |
 |---|---|
 | Track | 1 — Multimodal AI (content creation tools) |
