@@ -2,8 +2,6 @@
 
 **From "track joint angles" to "track the whole body in 3-D" — a full rewrite**
 
-> 中文版：[`算法设计与演化.md`](zh/算法设计与演化.md)
-
 ---
 
 ## 1. What the problem actually is

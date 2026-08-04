@@ -4,8 +4,6 @@
 
 AMD AI DevMaster Hackathon 2026 · Track 3, Physical AI
 
-> 中文版：[`技术报告.md`](zh/技术报告.md)
-
 ---
 
 ## Abstract
@@ -269,14 +267,13 @@ Layer 3 swaps three substantial things:
 
 **(3) Information limits** — only the four sensor fields above.
 
-Full reasoning in [`三层验证为什么这么设计.md`](zh/三层验证为什么这么设计.md).
+Full reasoning in.
 
 ---
 
 ## 5. The hard part: porting BeyondMimic to MJX
 
-The port surfaced **8 bugs**; the full trail is in
-[`BeyondMimic移植记录.md`](zh/BeyondMimic移植记录.md). Two are worth repeating.
+The port surfaced **8 bugs**; the full trail is in. Two are worth repeating.
 
 ### 5.1 Root cause: Playground's auto-reset does not restore `info`
 
@@ -469,8 +466,6 @@ layering.
 | 6 | ROCm ecosystem | Reproduction and workaround for the gfx1100 XLA graph-size limit |
 | 7 | `zju3dv/GVHMR` | Full AMD/ROCm adaptation path; warning about filename-keyed cache reuse |
 
-See [`上游贡献素材.md`](zh/上游贡献素材.md).
-
 ---
 
 ## 10. Limitations and next steps
@@ -508,10 +503,8 @@ contest deliverable.
 
 | Document | Contents |
 |---|---|
-| `README.md` | Overview, setup, code attribution |
-| `技术报告.md` | Chinese version of this report |
-| `ALGORITHM.md` / `算法设计与演化.md` | Algorithm evolution; differences from BeyondMimic |
-| `三层验证为什么这么设计.md` | Why three layers when it is all MuJoCo |
-| `BeyondMimic移植记录.md` | Full debugging trail of the 8 bugs |
-| `踩坑清单-Docker打包必读.md` | Operational checklist for packaging and reproduction |
-| `上游贡献素材.md` | Upstream PR material |
+| [`../README.md`](../README.md) | Overview, setup, usage, code attribution |
+| [`ALGORITHM.md`](ALGORITHM.md) | How the method evolved; differences from BeyondMimic |
+| [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) | Every failure encountered, including the three that fail silently |
+| [`../docker/DOCKER.md`](../docker/DOCKER.md) | Image build; why no prebuilt image is published |
+| [`../scripts/`](../scripts/) | Setup, verification and end-to-end pipeline scripts |

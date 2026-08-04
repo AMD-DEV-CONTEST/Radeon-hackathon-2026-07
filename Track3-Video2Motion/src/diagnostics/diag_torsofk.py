@@ -33,7 +33,7 @@ def sens(name):
 ref = np.load(str(C.MOTIONS_BM) + "/salute.npz")
 rng = np.random.default_rng(0)
 
-print(f"{'frame':>6} {'|Δquat| deg':>12} {'|Δgyro| rad/s':>15}  {'waist angles (deg)'}")
+print(f"{'frame':>6} {'|dquat| deg':>12} {'|dgyro| rad/s':>15}  {'waist angles (deg)'}")
 print("-" * 74)
 eq, eg = [], []
 for t in range(0, 150, 15):
@@ -67,5 +67,5 @@ print("-" * 74)
 print(f"{'mean':>6} {np.mean(eq):>12.4f} {np.mean(eg):>15.4f}")
 print(f"{'max':>6} {np.max(eq):>12.4f} {np.max(eg):>15.4f}")
 print()
-print("判据：姿态误差应 < 0.01 度、角速度误差应 < 0.01 rad/s。")
-print("若明显偏大，说明 FK 的坐标系或速度约定有问题。")
+print("Pass: orientation error < 0.01 deg and angular-rate error < 0.05 rad/s.")
+print("Anything larger means the FK frame or velocity convention is wrong.")

@@ -20,7 +20,7 @@ mj_data = mujoco.MjData(mj_model)
 if mj_model.nkey > 0:
     mujoco.mj_resetDataKeyframe(mj_model, mj_data, 0)
     mj_data.ctrl[:] = mj_model.key_qpos[0][7:]
-    print(f"[init] 已加载 keyframe, base_z={mj_data.qpos[2]:.4f}", flush=True)
+    print(f"[init] loaded keyframe, base_z={mj_data.qpos[2]:.4f}", flush=True)
 
 
 if config.ENABLE_ELASTIC_BAND:

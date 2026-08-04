@@ -49,9 +49,9 @@ ap.add_argument("--fps", type=int, default=25)
 ap.add_argument("--width", type=int, default=960)
 ap.add_argument("--height", type=int, default=720)
 ap.add_argument("--wait_cmd", type=float, default=60.0,
-                help="等控制端连上的最长秒数；连上才开始计时录制")
+                help="max seconds to wait for the controller before giving up")
 ap.add_argument("--init_motion", default=None,
-                help="用该动作文件的首帧作为初始状态（而不是通用站立 keyframe）")
+                help="start from the motion first frame instead of the generic keyframe")
 args = ap.parse_args()
 
 mj_model = mujoco.MjModel.from_xml_path(config.ROBOT_SCENE)
@@ -84,7 +84,7 @@ stop = threading.Event()
 
 ChannelFactoryInitialize(config.DOMAIN_ID, config.INTERFACE)
 bridge = UnitreeSdk2Bridge(mj_model, mj_data)
-print("[init] DDS 桥接就绪，等待控制端…", flush=True)
+print("[init] DDS bridge ready, waiting for the controller...", flush=True)
 
 
 def simulation_thread():
@@ -107,11 +107,11 @@ def record_thread():
     t_wait = time.perf_counter()
     while not bridge._cmd_ready:
         if time.perf_counter() - t_wait > args.wait_cmd:
-            print("[rec] 等不到 LowCmd，放弃录制", flush=True)
+            print("[rec] no LowCmd received; giving up on recording", flush=True)
             stop.set()
             return
         time.sleep(0.05)
-    print("[rec] 控制端已连接，开始录制", flush=True)
+    print("[rec] controller connected; recording", flush=True)
 
     r = mujoco.Renderer(mj_model, height=args.height, width=args.width)
     cam = mujoco.MjvCamera()
@@ -142,7 +142,7 @@ def record_thread():
 
     proc.stdin.close()
     proc.wait()
-    print(f"[rec] 已写出 {args.out}", flush=True)
+    print(f"[rec] written {args.out}", flush=True)
     stop.set()
 
 

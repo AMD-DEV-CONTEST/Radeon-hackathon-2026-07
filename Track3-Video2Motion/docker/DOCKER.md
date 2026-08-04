@@ -100,8 +100,7 @@ same guidance.
 ## Patches baked into the image
 
 These are applied over the upstream repos at build time. Skipping any of them
-produces a **silent** failure — see
-[`踩坑清单-Docker打包必读.md`](../docs/zh/踩坑清单-Docker打包必读.md).
+produces a **silent** failure — see.
 
 | # | File | Why |
 |---|---|---|

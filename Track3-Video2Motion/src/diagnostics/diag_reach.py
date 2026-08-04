@@ -19,25 +19,25 @@ default = m.keyframe("home").qpos[7:]
 names = [mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_ACTUATOR, i) for i in range(m.nu)]
 
 for tag in ("salute_upright", "tennis"):
-    ref = np.load(fstr(C.MOTIONS_BM) + "/{tag}.npz")["joint_pos"]
+    ref = np.load(f"{C.MOTIONS_BM}/{tag}.npz")["joint_pos"]
     dev = np.abs(ref - default)                      # (T, 29)
     peak = dev.max(axis=0)
-    print(f"\n{'='*72}\n{tag}  —— 参考角度相对 default_pose 的最大偏移\n{'='*72}")
-    print(f"{'joint':<30} {'峰值偏移':>9} {'需要的scale':>11}  超出0.5?")
+    print(f"\n{'='*72}\n{tag}  — peak deviation of the reference from default_pose\n{'='*72}")
+    print(f"{'joint':<30} {'peak dev':>9} {'scale needed':>13}  over 0.5?")
     over = 0
     for i in np.argsort(-peak):
         flag = ""
         if peak[i] > 0.5:
-            flag = f"  ← 超 {peak[i]/0.5:.1f}x"
+            flag = f"  <- {peak[i]/0.5:.1f}x over"
             over += 1
         if peak[i] > 0.15 or flag:
             print(f"{names[i]:<30} {peak[i]:>9.3f} {peak[i]:>11.3f}{flag}")
-    print(f"\n  29 个关节里 {over} 个的峰值偏移超过 action_scale=0.5")
-    print(f"  全身峰值 {peak.max():.3f} rad ({np.degrees(peak.max()):.0f}°) "
+    print(f"\n  {over} of 29 joints exceed action_scale=0.5")
+    print(f"  overall peak {peak.max():.3f} rad ({np.degrees(peak.max()):.0f} deg) "
           f"@ {names[int(peak.argmax())]}")
     # 有多少比例的"帧×关节"是够不到的
     frac = float((dev > 0.5).mean())
-    print(f"  够不到的 (帧×关节) 占比: {frac*100:.1f}%")
+    print(f"  unreachable (frame x joint): {frac*100:.1f}%")
     # 只看上肢
     frac_u = float((dev[:, 15:] > 0.5).mean())
-    print(f"  其中上肢 (15~28) 够不到占比: {frac_u*100:.1f}%")
+    print(f"  unreachable in the upper body (15-28): {frac_u*100:.1f}%")

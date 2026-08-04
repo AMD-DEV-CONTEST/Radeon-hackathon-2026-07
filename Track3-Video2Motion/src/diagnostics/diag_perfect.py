@@ -51,7 +51,7 @@ def probe(t):
     return terms, errs, np.asarray(e_ang), np.asarray(e_lin)
 
 
-print(f"{'帧':>5} " + " ".join(f"{k.replace('r_',''):>13}" for k in
+print(f"{'frame':>5} " + " ".join(f"{k.replace('r_',''):>13}" for k in
       ["r_anchor_pos", "r_anchor_ori", "r_body_pos", "r_body_ori",
        "r_body_lin_vel", "r_body_ang_vel"]))
 print("-" * 90)
@@ -64,8 +64,8 @@ for t in (0, 50, 100, 150, 200, 250):
 
 print()
 terms, errs, ea, el = probe(100)
-print("第 100 帧，逐 body 速度误差（完美状态下应≈0）：")
-print(f"{'body':<26} {'|Δang| rad/s':>13} {'|Δlin| m/s':>12} {'参考|ang|':>11}")
+print("frame 100 — per-body velocity error (should be ~0 when perfect):")
+print(f"{'body':<26} {'|dang| rad/s':>13} {'|dlin| m/s':>12} {'ref |ang|':>11}")
 for k, n in enumerate(BODY_NAMES):
     print(f"{n:<26} {ea[k]:>13.4f} {el[k]:>12.4f} "
           f"{np.linalg.norm(ref_np['body_ang_vel_w'][100, k]):>11.4f}")
