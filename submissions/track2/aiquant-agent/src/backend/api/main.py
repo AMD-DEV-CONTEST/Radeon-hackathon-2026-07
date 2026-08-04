@@ -308,9 +308,14 @@ try:
         LITELLM_SETTINGS.chat_model = _model_name
         logger.info(f"RD-Agent LLM: chat_model → {_model_name}")
     elif _openai_key and _chat_model:
-        # 通用 OpenAI 兼容 API（AMD Radeon Cloud 等）
-        # litellm 对非标准 OpenAI 端点需要用 openai/ 前缀 + 自定义 api_base
-        _litellm_model = _chat_model if "/" in _chat_model else f"openai/{_chat_model}"
+        # 通用 OpenAI 兼容 API（AMD Radeon Cloud / 本地 llama-server 等）
+        # litellm 必须看到 openai/ 前缀才会走 OpenAI 兼容路由 + 自定义 api_base
+        # 即使模型名本身含 /（如文件路径），也必须加 openai/ 前缀
+        # 参考: https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html
+        if _chat_model.startswith("openai/"):
+            _litellm_model = _chat_model
+        else:
+            _litellm_model = f"openai/{_chat_model}"
         LLM_SETTINGS.chat_model = _litellm_model
         LLM_SETTINGS.openai_api_key = _openai_key
         LITELLM_SETTINGS.chat_model = _litellm_model
