@@ -28,6 +28,7 @@ from paths import FRAMES_DIR
 from scene_config import (
     COLOR_RGB,
     CONTAINER_INNER_SIZE,
+    CONTAINER_RIM_MARGIN,
     CONTAINER_RIM_Z_OFFSET,
     TABLE_TOP_Z,
     YCB_LAYOUT,
@@ -331,14 +332,15 @@ def check_success(bundle, task: TaskSpec) -> bool:
     if not (inside_x and inside_y):
         return False
 
-    # Layer 2: vertical — use object's actual AABB bottom for clipping check
+    # Layer 2: vertical — the object's lowest point (AABB bottom) has dropped below the
+    # rim (by a small margin), so it is clearly inside the bin, not hovering/gripped above.
+    # Using the object's bottom rather than its center accepts an elongated banana resting
+    # partly in the bin with its center/top still above the rim (matches demo's bowl test).
     obj_aabb = _entity_aabb(obj)
-    obj_bottom = float(obj_aabb[0, 2])
-    bin_bottom = TABLE_TOP_Z
+    obj_bottom_z = float(obj_aabb[0, 2])
     rim_z = TABLE_TOP_Z + CONTAINER_RIM_Z_OFFSET
-    not_clipping = obj_bottom >= bin_bottom - 0.01
-    inside_vertically = pick_pos[2] < rim_z
-    return bool(not_clipping and inside_vertically)
+    inside_bin = obj_bottom_z < rim_z - CONTAINER_RIM_MARGIN
+    return bool(inside_bin)
 
 
 def _parse_place(text: str) -> Union[str, tuple[float, float]]:

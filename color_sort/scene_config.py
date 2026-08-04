@@ -35,13 +35,15 @@ ASSETS = Path(__file__).resolve().parent.parent / "assets" / "ycb"
 # Train colors: red, yellow, purple. Eval colors: green, orange.
 # Objects excluded per demo findings: pear (round cross-section slips).
 YCB_LAYOUT: dict[str, dict] = {
-    # Train objects
-    "013_apple": {"pos": (0.30, 0.15, 0.0), "euler": (0.0, 0.0, 0.0), "color": "red", "friction": 1.0},
-    "011_banana": {"pos": (0.35, -0.10, 0.0), "euler": (0.0, 0.0, 35.0), "color": "yellow", "friction": 1.0},
-    "018_plum": {"pos": (0.42, 0.18, 0.0), "euler": (0.0, 0.0, 0.0), "color": "purple", "friction": 1.0},
+    # Train objects — each placed close to its container so the lateral transport stays short.
+    # (Round YCB objects eject from parallel jaws on long lateral transports, so the pick
+    # must be within ~0.15m of its bin. Mirrors the demo's object→bowl spacing of 0.19m.)
+    "013_apple": {"pos": (0.44, 0.20, 0.0), "euler": (0.0, 0.0, 0.0), "color": "red", "friction": 1.0},
+    "011_banana": {"pos": (0.44, 0.02, 0.0), "euler": (0.0, 0.0, 35.0), "color": "yellow", "friction": 1.0},
+    "018_plum": {"pos": (0.44, -0.16, 0.0), "euler": (0.0, 0.0, 0.0), "color": "purple", "friction": 1.0},
     # Eval objects (hold-out, not in training data)
-    "014_lemon": {"pos": (0.44, -0.05, 0.0), "euler": (0.0, 0.0, 0.0), "color": "yellow", "friction": 1.0},
-    "017_orange": {"pos": (0.33, -0.18, 0.0), "euler": (0.0, 0.0, 0.0), "color": "orange", "friction": 1.0},
+    "014_lemon": {"pos": (0.44, 0.02, 0.0), "euler": (0.0, 0.0, 0.0), "color": "yellow", "friction": 1.0},
+    "017_orange": {"pos": (0.44, -0.16, 0.0), "euler": (0.0, 0.0, 0.0), "color": "orange", "friction": 1.0},
 }
 
 # Train/eval split
@@ -66,20 +68,21 @@ YCB_DISPLAY_NAMES = {
     "017_orange": "orange",
 }
 
-# == Per-color containers (5-box recessed bin, enlarged for YCB objects) ==
-# Enlarged from 8cm to 12cm outer to fit YCB objects (apple ~8cm, banana ~7cm wide).
-CONTAINER_BOTTOM_SIZE = (0.12, 0.12, 0.004)  # floor slab (lx, ly, lz)
+# == Per-color containers (5-box recessed bin) ==
+# Enlarged to 16cm so the 20cm banana can sit diagonally (20cm < 16*sqrt(2)=22.6cm)
+# and dip its bottom below the rim. Round objects (apple/plum/lemon/orange) fit easily.
+CONTAINER_BOTTOM_SIZE = (0.16, 0.16, 0.004)  # floor slab (lx, ly, lz)
 CONTAINER_WALL_THICKNESS = 0.004
 CONTAINER_WALL_HEIGHT = 0.05
-CONTAINER_INNER_SIZE = 0.12 - 2 * CONTAINER_WALL_THICKNESS  # 0.112 m
+CONTAINER_INNER_SIZE = 0.16 - 2 * CONTAINER_WALL_THICKNESS  # 0.152 m
 CONTAINER_RIM_Z_OFFSET = CONTAINER_BOTTOM_SIZE[2] + CONTAINER_WALL_HEIGHT  # 0.054 m above table
 CONTAINER_RIM_MARGIN = 0.01
 CONTAINER_LAYOUT = {
-    "red": (0.55, 0.20),
-    "yellow": (0.55, 0.05),
-    "purple": (0.55, -0.10),
+    "red": (0.56, 0.20),
+    "yellow": (0.56, 0.00),
+    "purple": (0.56, -0.20),
     "green": (0.62, 0.15),
-    "orange": (0.62, -0.05),
+    "orange": (0.62, -0.15),
 }
 
 # == Reachable workspace on the tabletop (from demo, empirically verified) ==

@@ -41,6 +41,7 @@ from paths import DATASETS_DIR
 from randomize import RandomizationConfig
 from scene_config import (
     CONTAINER_INNER_SIZE,
+    CONTAINER_RIM_MARGIN,
     CONTAINER_RIM_Z_OFFSET,
     FRANKA_QPOS,
     FRANKA_KP,
@@ -421,14 +422,12 @@ def _batch_check_success(bundle, env_idx: int, pick_object: str, place_color: st
     if not (inside_x and inside_y):
         return False
 
-    # Layer 2: vertical — object bottom above table (not clipping) AND center below rim
+    # Layer 2: vertical — the object's lowest point (AABB bottom) has dropped below the
+    # rim, so it is clearly inside the bin (accepts a banana resting partly in the bin).
     obj_aabb = obj.get_AABB().cpu().numpy()[env_idx]
-    obj_bottom = float(obj_aabb[0, 2])
-    bin_bottom = TABLE_TOP_Z
+    obj_bottom_z = float(obj_aabb[0, 2])
     rim_z = TABLE_TOP_Z + CONTAINER_RIM_Z_OFFSET
-    not_clipping = obj_bottom >= bin_bottom - 0.01
-    inside_vertically = pos[2] < rim_z
-    return bool(not_clipping and inside_vertically)
+    return bool(obj_bottom_z < rim_z - CONTAINER_RIM_MARGIN)
 
 
 def _run_one_batch(bundle, env_specs: list[dict], recorders: list,
