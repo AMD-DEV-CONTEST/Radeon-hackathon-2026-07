@@ -7,10 +7,11 @@ import argparse
 import json
 import math
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -90,9 +91,8 @@ def _require_all_boolean_gates(
     if not all(isinstance(key, str) and type(item) is bool for key, item in value.items()):
         raise ValueError(f"{label} quality gates must be named booleans")
     gates = dict(value)
-    if includes_passed:
-        if gates.pop("passed", None) is not True:
-            raise ValueError(f"{label} aggregate quality gate did not pass")
+    if includes_passed and gates.pop("passed", None) is not True:
+        raise ValueError(f"{label} aggregate quality gate did not pass")
     if not gates or not all(gates.values()):
         failed = sorted(key for key, passed in gates.items() if not passed)
         raise ValueError(f"{label} contains failed quality gates: {failed}")
