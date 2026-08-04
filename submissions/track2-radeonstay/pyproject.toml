@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "radeonstay"
+version = "0.1.0"
+description = "Private, auditable hotel guest-journey agent for AMD Radeon and ROCm"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+dependencies = [
+  "fastapi>=0.115,<1",
+  "gradio>=5.0,<7",
+  "httpx>=0.27,<1",
+  "pydantic>=2.8,<3",
+  "uvicorn[standard]>=0.30,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3,<9",
+  "pytest-cov>=5,<7",
+  "ruff>=0.8,<1",
+]
+
+[project.scripts]
+radeonstay = "radeonstay.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/radeonstay"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+pythonpath = [".", "src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
