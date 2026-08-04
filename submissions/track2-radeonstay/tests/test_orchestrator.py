@@ -28,9 +28,24 @@ from radeonstay.domain import (  # noqa: E402
     actor_reference,
     build_tool_registry,
 )
-from radeonstay.orchestrator import RadeonStayService  # noqa: E402
+from radeonstay.orchestrator import (  # noqa: E402
+    RadeonStayService,
+    _materialize_schema_defaults,
+)
 from radeonstay.planning import DeterministicPlanner  # noqa: E402
 from radeonstay.retrieval import PolicyChunk, PolicyRetriever  # noqa: E402
+
+
+def test_schema_defaults_are_materialized_without_overwriting_model_arguments() -> None:
+    assert _materialize_schema_defaults(
+        {"explicit": 7},
+        {
+            "properties": {
+                "explicit": {"type": "integer", "default": 1},
+                "include_cancelled": {"type": "boolean", "default": False},
+            }
+        },
+    ) == {"explicit": 7, "include_cancelled": False}
 
 
 class FixedPlanner:

@@ -139,7 +139,7 @@ def _remaining_confirmations_after_error(
 
 def build_ui(service: ServiceProtocol, identity_tokens: dict[str, str]) -> gr.Blocks:
     labels = list(identity_tokens)
-    with gr.Blocks(title="RadeonStay") as demo:
+    with gr.Blocks(title="RadeonStay", analytics_enabled=False) as demo:
         gr.Markdown(
             """
             # RadeonStay

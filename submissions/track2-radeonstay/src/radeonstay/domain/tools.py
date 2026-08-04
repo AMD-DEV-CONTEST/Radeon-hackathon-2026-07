@@ -516,7 +516,10 @@ def build_tool_registry(service: HotelService) -> ToolRegistry:
         ),
         ToolSpec(
             "hotel.modify_booking",
-            "Modify a booking when invoked by its owner or hotel staff.",
+            (
+                "Modify a booking for its owner or hotel staff. Supply booking_id and only "
+                "the fields explicitly requested to change; omit unchanged optional fields."
+            ),
             ToolEffect.WRITE,
             ModifyBookingInput,
             BookingResult,
@@ -525,7 +528,11 @@ def build_tool_registry(service: HotelService) -> ToolRegistry:
         ),
         ToolSpec(
             "hotel.create_service_ticket",
-            "Create a service request for an owned booking; staff may act on any booking.",
+            (
+                "Create a service request for an owned booking; staff may act on any booking. "
+                "Description is a faithful short restatement of the request; missing flight, "
+                "time, passenger, or child-seat details do not block ticket creation."
+            ),
             ToolEffect.WRITE,
             CreateServiceTicketInput,
             ServiceTicketResult,
@@ -542,7 +549,10 @@ def build_tool_registry(service: HotelService) -> ToolRegistry:
         ),
         ToolSpec(
             "memory.remember_preference",
-            "Store one allow-listed preference after explicit opt-in.",
+            (
+                "Store one allow-listed preference after explicit opt-in. Represent one "
+                "compound preference with one closest allow-listed key and concise value."
+            ),
             ToolEffect.WRITE,
             RememberPreferenceInput,
             PreferenceResult,

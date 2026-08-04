@@ -543,6 +543,10 @@ class RadeonStayService:
                     step_results,
                     allowed_dependencies=set(step.depends_on),
                 )
+                arguments = _materialize_schema_defaults(
+                    arguments,
+                    spec.public_schema()["parameters"],
+                )
                 receipt, pending, result_data = self._invoke_step(
                     state=state,
                     context=context,
@@ -1469,6 +1473,27 @@ def _jsonable(value: Any) -> dict[str, Any]:
     else:
         raise TypeError("tool result must be a dataclass or mapping")
     return json.loads(json.dumps(raw, ensure_ascii=False))
+
+
+def _materialize_schema_defaults(
+    arguments: Mapping[str, Any],
+    parameter_schema: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Make effective defaulted tool inputs explicit for receipts and audit binding."""
+
+    effective = dict(arguments)
+    properties = parameter_schema.get("properties")
+    if not isinstance(properties, Mapping):
+        return effective
+    for field_name, field_schema in properties.items():
+        if (
+            isinstance(field_name, str)
+            and isinstance(field_schema, Mapping)
+            and field_name not in effective
+            and "default" in field_schema
+        ):
+            effective[field_name] = field_schema["default"]
+    return effective
 
 
 def _short_hash(value: str) -> str:
