@@ -136,9 +136,16 @@ elif _RUN_MODE == "local":
                 import qlib
                 from qlib.data import D
                 try:
-                    qlib.init(provider_uri=os.path.expanduser("~/.qlib/qlib_data/cn_data"))
+                    qlib.init(provider_uri=os.path.expanduser("~/.qlib/qlib_data/cn_data"), region="cn")
                 except Exception:
                     pass  # 已初始化则跳过
+                # 强制设置 region=cn，防止 __DEFAULT_FREQ KeyError
+                try:
+                    from qlib.config import C
+                    C["region"] = "cn"
+                    C["provider_uri"] = os.path.expanduser("~/.qlib/qlib_data/cn_data")
+                except Exception:
+                    pass
 
                 instruments = D.instruments(market="all")
                 fields = ["$open", "$close", "$high", "$low", "$volume", "$factor"]
@@ -327,16 +334,71 @@ try:
         # 4. REASONING_THINK_RM=True：Qwen3 是推理模型，输出会包含 <think> 推理内容
         #    需要去除推理部分，否则 litellm 解析到空 content 会认为调用失败
         # 5. 增大 chat_max_tokens：Qwen3 推理过程本身消耗大量 tokens
-        LITELLM_SETTINGS.chat_stream = False
-        LITELLM_SETTINGS.enable_response_schema = False
-        LITELLM_SETTINGS.max_retry = 3
-        LITELLM_SETTINGS.retry_wait_seconds = 5
-        LITELLM_SETTINGS.timeout_fail_limit = 3
-        LITELLM_SETTINGS.reasoning_think_rm = True
-        LITELLM_SETTINGS.chat_max_tokens = 4096
-        LITELLM_SETTINGS.chat_token_limit = 32768
+        # 6. 同时设置 LLM_SETTINGS 和 LITELLM_SETTINGS，因为 backend 日志显示
+        #    默认值未改变，说明某些属性需要在两个对象上都设置
+        _local_llm_kwargs = dict(
+            chat_stream=False,
+            enable_response_schema=False,
+            max_retry=3,
+            retry_wait_seconds=5,
+            timeout_fail_limit=3,
+            reasoning_think_rm=True,
+            chat_max_tokens=8192,
+            chat_token_limit=32768,
+        )
+        for _k, _v in _local_llm_kwargs.items():
+            try:
+                setattr(LITELLM_SETTINGS, _k, _v)
+            except Exception:
+                pass
+            try:
+                setattr(LLM_SETTINGS, _k, _v)
+            except Exception:
+                pass
         # litellm 全局超时（秒），本地 LLM 推理较慢
         litellm.request_timeout = 300
+
+        # ── Monkey-patch litellm.completion 解决 Qwen3 thinking 模式问题 ──
+        # Qwen3-8B 开启 thinking 时，所有输出进入 reasoning_content 字段，
+        # content 为空，litellm 认为调用失败。
+        # 解决方案：
+        # (a) 通过 extra_body 传 chat_template_kwargs.enable_thinking=False 禁用 thinking
+        # (b) 兜底：content 为空时，将 reasoning_content 移到 content
+        _orig_litellm_completion = litellm.completion
+
+        def _patched_litellm_completion(*args, **kwargs):
+            # (a) 尝试禁用 thinking 模式
+            try:
+                _eb = kwargs.get("extra_body") or {}
+                if isinstance(_eb, dict):
+                    _ctk = _eb.get("chat_template_kwargs") or {}
+                    if isinstance(_ctk, dict):
+                        _ctk.setdefault("enable_thinking", False)
+                        _eb["chat_template_kwargs"] = _ctk
+                    else:
+                        _eb["chat_template_kwargs"] = {"enable_thinking": False}
+                    kwargs["extra_body"] = _eb
+            except Exception:
+                pass
+
+            response = _orig_litellm_completion(*args, **kwargs)
+
+            # (b) 兜底：content 为空时，将 reasoning_content 作为 content
+            try:
+                for _choice in getattr(response, "choices", []):
+                    _msg = getattr(_choice, "message", None)
+                    if _msg is None:
+                        continue
+                    _content = getattr(_msg, "content", None)
+                    _reasoning = getattr(_msg, "reasoning_content", None)
+                    if not _content and _reasoning:
+                        _msg.content = _reasoning
+                        _msg.reasoning_content = None
+            except Exception:
+                pass
+            return response
+
+        litellm.completion = _patched_litellm_completion
         
         logger.info(f"RD-Agent LLM: chat_model → {_litellm_model}, api_base → {_openai_base}")
         logger.info(f"RD-Agent LLM: 本地模式优化 (stream=False, schema=False, reasoning_rm=True, timeout=300s)")
@@ -2682,9 +2744,18 @@ async def _run_factor_evolution_with_callbacks(
     _qlib_market = _market_map.get(universe, "all")
     try:
         FACTOR_PROP_SETTING.qlib_conf.market = _qlib_market
-        logger.info(f"已设置 Qlib market={_qlib_market} (universe={universe})")
+        # 确保 qlib_conf 包含 provider_uri 和 region，防止 __DEFAULT_FREQ 错误
+        try:
+            FACTOR_PROP_SETTING.qlib_conf.provider_uri = os.path.expanduser("~/.qlib/qlib_data/cn_data")
+        except Exception:
+            pass
+        try:
+            FACTOR_PROP_SETTING.qlib_conf.region = "cn"
+        except Exception:
+            pass
+        logger.info(f"已设置 Qlib market={_qlib_market} (universe={universe}), region=cn")
     except Exception as _me:
-        logger.warning(f"设置 FACTOR_PROP_SETTING.qlib_conf.market 失败: {_me}")
+        logger.warning(f"设置 FACTOR_PROP_SETTING.qlib_conf 失败: {_me}")
     
     # 阶段2开始：初始化进化引擎
     env_type = getattr(MODEL_COSTEER_SETTINGS, 'env_type', 'unknown')

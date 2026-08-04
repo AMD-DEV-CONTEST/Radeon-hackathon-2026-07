@@ -73,6 +73,44 @@ class RDAgentAdapter:
                     _LITELLM_SETTINGS.embedding_model = "litellm_proxy/BAAI/bge-m3"
                 except Exception:
                     pass
+        else:
+            # 本地 LLM（llama-server / Qwen3）配置
+            _openai_key = _os.environ.get("OPENAI_API_KEY", "") or _os.environ.get("LLM_API_KEY", "")
+            _openai_base = _os.environ.get("OPENAI_API_BASE", "") or _os.environ.get("LLM_API_BASE", "")
+            _chat_model = _os.environ.get("CHAT_MODEL", "") or _os.environ.get("LLM_MODEL", "")
+            if _openai_key and _chat_model:
+                if not _chat_model.startswith("openai/"):
+                    _chat_model = f"openai/{_chat_model}"
+                try:
+                    from rdagent.oai.llm_conf import LLM_SETTINGS as _LLM_SETTINGS
+                    from rdagent.oai.backend.litellm import LITELLM_SETTINGS as _LITELLM_SETTINGS
+                    _LLM_SETTINGS.chat_model = _chat_model
+                    _LLM_SETTINGS.openai_api_key = _openai_key
+                    _LITELLM_SETTINGS.chat_model = _chat_model
+                    # 本地 LLM 兼容性配置
+                    for _k, _v in dict(
+                        chat_stream=False,
+                        enable_response_schema=False,
+                        max_retry=3,
+                        retry_wait_seconds=5,
+                        timeout_fail_limit=3,
+                        reasoning_think_rm=True,
+                        chat_max_tokens=8192,
+                        chat_token_limit=32768,
+                    ).items():
+                        try:
+                            setattr(_LITELLM_SETTINGS, _k, _v)
+                        except Exception:
+                            pass
+                        try:
+                            setattr(_LLM_SETTINGS, _k, _v)
+                        except Exception:
+                            pass
+                    # 全局超时
+                    import litellm as _litellm
+                    _litellm.request_timeout = 300
+                except Exception as _e:
+                    logger.warning(f"本地 LLM 配置失败: {_e}")
 
     @staticmethod
     def _check_environment():
