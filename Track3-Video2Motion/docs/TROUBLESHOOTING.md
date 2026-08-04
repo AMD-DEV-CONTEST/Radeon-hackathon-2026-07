@@ -157,15 +157,20 @@ done = tracking_failure | (motion_idx >= T - 1)
 so the policy is never trained on what comes after, and the final states get no
 bootstrap, which under-estimates their value.
 
-**Fix** — append a hold segment to the reference, with zero velocities:
+**Fix** — hand control back after the motion. The policy is a *skill*, not a
+standing controller, and treating it as one is the standard pattern for RL
+policies on Unitree robots. `deploy_track.py` finishes with a handover
+sequence: 0.5 s stiff hold of the final pose (well inside the measured 1.3 s
+stability window), then a 1 s ramp into damping — on hardware, that is where
+Unitree's official locomotion service resumes. The demo recording ends at the
+motion end, so simulation demos are unaffected.
 
-```bash
-python src/motion_prep.py --inp ... --out ... --hold_seconds 1.5   # the default
-```
-
-The policy is then required to settle and stand, which is also what the motion
-means physically — a salute ends at attention. This changes the training data,
-so it requires a retrain.
+We also tried the training-side fix (`motion_prep.py --hold_seconds 1.5`,
+appending a zero-velocity hold segment). It works for settling — the retrained
+policy stands 3 s+ past the motion — but it exploits the loose `anchor_pos`
+std (0.30 m): squatting ~8 cm costs almost nothing in reward yet buys
+stability, so the whole motion degrades from 0.027 m to 0.074 m tracking
+error. The flag remains available but defaults to 0.
 
 ### Validate the reward function before trusting anything
 

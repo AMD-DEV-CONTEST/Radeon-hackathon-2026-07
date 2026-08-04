@@ -5,6 +5,7 @@ FK 的输入只有：pelvis 四元数、29 个关节角、pelvis 角速度、29 
 全是 LowState 里有的。
 """
 import sys
+from pathlib import Path
 
 import mujoco
 import numpy as np
@@ -13,7 +14,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from deploy_track import TorsoFK, qconj, qmul  # noqa: E402
 
 from mujoco_playground._src.locomotion.g1 import base, g1_constants as C  # noqa: E402
-from pathlib import Path  # noqa: E402
 
 m = mujoco.MjModel.from_xml_string(
     Path(C.FEET_ONLY_FLAT_TERRAIN_XML).read_text(), base.get_assets())

@@ -149,10 +149,11 @@ source env.sh
 ```
 
 `run_pipeline.sh` runs all five stages and prints the retargeting video path so
-you can inspect it before committing hours to training. It appends 1.5 s of the
-final pose to the reference by default (`--hold_seconds`); without it the
-episode ends the instant the motion does and the policy topples about 1.3 s
-later, having never been trained to settle. The last argument is
+you can inspect it before committing hours to training. After the motion,
+`deploy_track.py` performs a handover — a brief stiff hold, then a ramp into
+damping, which on hardware is where Unitree's official locomotion service
+resumes. The policy is a skill, not a standing controller; see
+[Troubleshooting](docs/TROUBLESHOOTING.md) for the measurement behind this. The last argument is
 the training budget in hours (default 6). The script is the authoritative list
 of commands if you want to run stages individually.
 

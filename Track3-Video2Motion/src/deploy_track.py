@@ -172,13 +172,50 @@ class Controller:
         print(f"[dds] LowState received, mode_machine={self.low_state.mode_machine}")
         self.cmd.mode_machine = self.low_state.mode_machine
 
-    def send(self, target_q):
+    def send(self, target_q, kp=None, kd=None):
+        kp_v = self.kp if kp is None else np.asarray(kp)
+        kd_v = self.kd if kd is None else np.asarray(kd)
         for i in range(N_MOTOR):
             mc = self.cmd.motor_cmd[i]
             mc.mode, mc.q, mc.dq, mc.tau = 1, float(target_q[i]), 0.0, 0.0
-            mc.kp, mc.kd = float(self.kp[i]), float(self.kd[i])
+            mc.kp, mc.kd = float(kp_v[i]), float(kd_v[i])
         self.cmd.crc = self.crc.Crc(self.cmd)
         self.pub.Write(self.cmd)
+
+    def handover(self, hold_s=0.5, ramp_s=1.0, damp_kd=4.0):
+        """Post-motion handover: brief stiff hold, then ramp into damping.
+
+        The policy is a *skill*, not a standing controller — it was trained on
+        the motion and nothing after it (measured: holding the final pose it
+        topples after ~1.3 s). The correct pattern, and the standard one for
+        RL skill policies on Unitree robots, is to hand control back after
+        the motion:
+
+          1. hold the final pose at full stiffness (short — well inside the
+             measured stability window),
+          2. ramp stiffness down into damping,
+          3. on hardware, re-enable Unitree's official locomotion service at
+             that point (MotionSwitcherClient in unitree_sdk2_python).
+
+        In simulation there is no official controller to take over, so the
+        robot slumps once stiffness is gone; the demo recording ends at the
+        motion end anyway.
+        """
+        last_q = self.ref_q[-1]
+        if hold_s > 0:
+            print(f"[handover] holding final pose {hold_s:.1f}s at full stiffness")
+            for _ in range(int(hold_s / self.ctrl_dt)):
+                self.send(last_q)
+                time.sleep(self.ctrl_dt)
+        print(f"[handover] ramping to damping over {ramp_s:.1f}s")
+        n = max(1, int(ramp_s / self.ctrl_dt))
+        kd_v = np.full(N_MOTOR, damp_kd)
+        for i in range(n):
+            f = 1.0 - (i + 1) / n
+            self.send(last_q, kp=self.kp * f, kd=kd_v)
+            time.sleep(self.ctrl_dt)
+        print("[handover] in damping — on hardware, re-enable the official "
+              "locomotion service here")
 
     def obs(self, idx):
         st = self.low_state
@@ -242,11 +279,17 @@ def main():
     ap.add_argument("--domain_id", type=int, default=1)
     ap.add_argument("--interface", default="lo")
     ap.add_argument("--kd", type=float, default=2.0)
+    ap.add_argument("--no_handover", action="store_true",
+                    help="skip the post-motion hold/damping sequence")
     a = ap.parse_args()
 
     print(f"[dds] init domain={a.domain_id} interface={a.interface}")
     ChannelFactoryInitialize(a.domain_id, a.interface)
-    Controller(a.policy, a.motion, kd=a.kd).run(a.steps)
+    c = Controller(a.policy, a.motion, kd=a.kd)
+    ok = c.run(a.steps)
+    if not a.no_handover:
+        # if it fell, skip the stiff hold and go straight to damping
+        c.handover(hold_s=0.5 if ok else 0.0)
 
 
 if __name__ == "__main__":

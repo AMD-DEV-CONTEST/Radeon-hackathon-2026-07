@@ -91,11 +91,14 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--inp", required=True)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--hold_seconds", type=float, default=1.5,
-                    help="append this many seconds of the final pose. Without "
-                         "it the episode ends the instant the motion does, so "
-                         "the policy is never trained to settle and will "
-                         "topple about 1.3 s later.")
+    ap.add_argument("--hold_seconds", type=float, default=0.0,
+                    help="optionally append this many seconds of the final "
+                         "pose so the policy learns to settle. Measured "
+                         "trade-off at 1.5 s: it does settle (3 s+), but it "
+                         "exploits the loose anchor_pos std and squats ~8 cm "
+                         "through the motion (tracking 0.027 -> 0.074 m). "
+                         "The deployed answer is the post-motion handover in "
+                         "deploy_track.py instead.")
     from mujoco_playground._src.locomotion.g1 import g1_constants as _c
     ap.add_argument("--xml", default=_c.FEET_ONLY_FLAT_TERRAIN_XML.as_posix())
     args = ap.parse_args()

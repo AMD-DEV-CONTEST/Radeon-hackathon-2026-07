@@ -16,6 +16,7 @@ import subprocess
 import sys
 import threading
 import time
+from pathlib import Path
 
 import mujoco
 import numpy as np
@@ -24,7 +25,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import config  # noqa: E402
 from unitree_sdk2py_bridge import UnitreeSdk2Bridge  # noqa: E402
 from unitree_sdk2py.core.channel import ChannelFactoryInitialize  # noqa: E402
-from pathlib import Path
 
 
 def front_azimuth(root_quat, offset=45.0):
