@@ -130,6 +130,7 @@ def configure_rdagent_llm(**kwargs):
             os.environ.setdefault("OPENAI_API_KEY", _openai_key)
         
         # ── 覆盖 RD-Agent LLM 配置 ──
+        _chat_model = os.environ.get("CHAT_MODEL", "") or os.environ.get("LLM_MODEL", "")
         if _deepseek_key:
             try:
                 from rdagent.oai.llm_conf import LLM_SETTINGS
@@ -138,21 +139,83 @@ def configure_rdagent_llm(**kwargs):
                 logger.info("[Worker Init] RD-Agent LLM: chat_model → deepseek/deepseek-v4-flash")
             except Exception as e:
                 logger.warning(f"[Worker Init] RD-Agent LLM 配置覆盖失败: {e}")
+        elif _openai_key and _chat_model:
+            try:
+                from rdagent.oai.llm_conf import LLM_SETTINGS
+                from rdagent.oai.backend.litellm import LITELLM_SETTINGS
+                if not _chat_model.startswith("openai/"):
+                    _chat_model = f"openai/{_chat_model}"
+                LLM_SETTINGS.chat_model = _chat_model
+                LLM_SETTINGS.openai_api_key = _openai_key
+                LITELLM_SETTINGS.chat_model = _chat_model
+                for _k, _v in dict(
+                    chat_stream=False, enable_response_schema=False,
+                    max_retry=3, retry_wait_seconds=5, timeout_fail_limit=3,
+                    reasoning_think_rm=True, chat_max_tokens=8192, chat_token_limit=32768,
+                ).items():
+                    try: setattr(LITELLM_SETTINGS, _k, _v)
+                    except: pass
+                    try: setattr(LLM_SETTINGS, _k, _v)
+                    except: pass
+                import litellm as _litellm
+                _litellm.request_timeout = 300
+                logger.info(f"[Worker Init] RD-Agent LLM: chat_model → {_chat_model}")
+            except Exception as e:
+                logger.warning(f"[Worker Init] RD-Agent LLM 配置覆盖失败: {e}")
             
-            # ── 配置 embedding ──
-            _proxy_key = os.environ.get("LITELLM_PROXY_API_KEY", "") or os.environ.get("SILICONFLOW_API_KEY", "")
-            _proxy_base = os.environ.get("LITELLM_PROXY_API_BASE", "") or os.environ.get("SILICONFLOW_API_BASE", "https://api.siliconflow.cn/v1")
-            if _proxy_key:
-                os.environ["LITELLM_PROXY_API_KEY"] = _proxy_key
-                os.environ["LITELLM_PROXY_API_BASE"] = _proxy_base
-                try:
-                    from rdagent.oai.backend.litellm import LITELLM_SETTINGS as _LITELLM_SETTINGS
-                    _LITELLM_SETTINGS.embedding_model = "litellm_proxy/BAAI/bge-m3"
-                    logger.info(f"[Worker Init] RD-Agent embedding: litellm_proxy/BAAI/bge-m3")
-                except Exception as e:
-                    logger.warning(f"[Worker Init] embedding 配置失败: {e}")
+        # ── 配置 embedding ──
+        _proxy_key = os.environ.get("LITELLM_PROXY_API_KEY", "") or os.environ.get("SILICONFLOW_API_KEY", "")
+        _proxy_base = os.environ.get("LITELLM_PROXY_API_BASE", "") or os.environ.get("SILICONFLOW_API_BASE", "https://api.siliconflow.cn/v1")
+        if _proxy_key:
+            os.environ["LITELLM_PROXY_API_KEY"] = _proxy_key
+            os.environ["LITELLM_PROXY_API_BASE"] = _proxy_base
+            try:
+                from rdagent.oai.backend.litellm import LITELLM_SETTINGS as _LITELLM_SETTINGS
+                _LITELLM_SETTINGS.embedding_model = "litellm_proxy/BAAI/bge-m3"
+                logger.info(f"[Worker Init] RD-Agent embedding: litellm_proxy/BAAI/bge-m3")
+            except Exception as e:
+                logger.warning(f"[Worker Init] embedding 配置失败: {e}")
         else:
-            logger.warning("[Worker Init] DEEPSEEK_API_KEY 未配置，使用默认 OpenAI gpt-4-turbo")
+            # 本地 hash embedding 兜底
+            logger.warning("[Worker Init] SILICONFLOW_API_KEY 未配置，启用本地 hash embedding 兜底")
+            import hashlib as _hashlib
+            import numpy as _np
+            import litellm as _litellm
+
+            _EMB_DIM = 1024
+
+            def _hash_emb(text, dim=_EMB_DIM):
+                h = _hashlib.sha256(text.encode("utf-8")).digest()
+                raw = _np.frombuffer((h * ((dim // 32) + 1))[:dim * 4], dtype=_np.uint8)
+                vec = (raw.astype(_np.float32) / 127.5) - 1.0
+                norm = _np.linalg.norm(vec)
+                if norm > 0: vec = vec / norm
+                return vec.tolist()
+
+            _orig_emb = _litellm.embedding
+            _orig_aemb = _litellm.aembedding
+
+            def _patched_emb(*a, **kw):
+                try: return _orig_emb(*a, **kw)
+                except Exception:
+                    from types import SimpleNamespace
+                    inp = kw.get("input") or (a[0] if a else "")
+                    if isinstance(inp, str): inp = [inp]
+                    elif isinstance(inp, list) and inp and isinstance(inp[0], list): inp = inp[0]
+                    if not isinstance(inp, list): inp = [str(inp)]
+                    embs = [_hash_emb(str(t)) for t in inp]
+                    return SimpleNamespace(
+                        model="hash-embedding-fallback",
+                        data=[SimpleNamespace(object="embedding", embedding=e, index=i) for i, e in enumerate(embs)],
+                        object="list",
+                        usage={"prompt_tokens": 0, "total_tokens": 0},
+                    )
+
+            async def _patched_aemb(*a, **kw):
+                return _patched_emb(*a, **kw)
+
+            _litellm.embedding = _patched_emb
+            _litellm.aembedding = _patched_aemb
             
     except Exception as e:
         logger.warning(f"[Worker Init] 配置初始化异常: {e}（将使用 RD-Agent 默认配置）")

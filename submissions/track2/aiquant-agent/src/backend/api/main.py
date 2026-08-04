@@ -407,17 +407,17 @@ try:
 except Exception as _llm_patch_err:
     logger.warning(f"RD-Agent LLM 配置覆盖失败: {_llm_patch_err}")
 
-# 配置硅基流动 BAAI/bge-m3 作为 embedding 模型
-# DeepSeek 不支持 embedding API，通过 LiteLLM Proxy 机制路由到硅基流动。
+# 配置 embedding 模型
+# 优先级：
+#   1. 硅基流动 BAAI/bge-m3（需要 SILICONFLOW_API_KEY）
+#   2. 本地 hash 兜底（无需任何外部 API，因子进化可正常运行）
+#
 # RD-Agent LiteLLM 规范：
 #   - EMBEDDING_MODEL=litellm_proxy/BAAI/bge-m3（不同提供商必须加 litellm_proxy/ 前缀）
-#   - LITELLM_PROXY_API_KEY + LITELLM_PROXY_API_BASE 作为 canonical 配置（.env 中已配置）
+#   - LITELLM_PROXY_API_KEY + LITELLM_PROXY_API_BASE 作为 canonical 配置
 #   - liteLLM 的 _create_embedding_inner_function() 只传 model+input，完全依赖环境变量
 # 参考: https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html
 #       https://docs.litellm.ai/docs/providers/litellm_proxy
-#
-# 使用直接赋值而非 setdefault：确保即使环境变量已存在旧值，也被覆盖为 .env 中的最新值
-# 这解决了子进程（conda run）不继承 load_dotenv 结果的场景
 _proxy_key = os.environ.get("LITELLM_PROXY_API_KEY", "") or os.environ.get("SILICONFLOW_API_KEY", "")
 _proxy_base = os.environ.get("LITELLM_PROXY_API_BASE", "") or os.environ.get("SILICONFLOW_API_BASE", "https://api.siliconflow.cn/v1")
 if _proxy_key:
@@ -433,10 +433,70 @@ if _proxy_key:
     except Exception as _emb_conf_err:
         logger.warning(f"RD-Agent embedding 配置覆盖失败: {_emb_conf_err}")
 else:
+    # ── 本地 hash embedding 兜底 ──
+    # 无需任何外部 API，使用确定性 hash 生成固定维度向量。
+    # 语义检索能力降级（无法做真正的相似度匹配），但因子进化循环可以正常执行。
+    # 如需真正的语义 embedding，请在 .env 中设置 SILICONFLOW_API_KEY
     logger.warning(
-        "SILICONFLOW_API_KEY 未配置，embedding 将使用默认 OpenAI text-embedding-3-small。"
-        "建议在 .env 中设置: SILICONFLOW_API_KEY=sk-..."
+        "SILICONFLOW_API_KEY 未配置，启用本地 hash embedding 兜底。"
+        "因子进化可正常运行，但语义检索降级。"
+        "如需完整功能，在 .env 中设置: SILICONFLOW_API_KEY=sk-..."
     )
+
+    import hashlib
+    import numpy as np
+
+    _EMBED_DIM = 1024  # 与 BAAI/bge-m3 维度一致
+
+    def _hash_embedding(text: str, dim: int = _EMBED_DIM) -> list:
+        """确定性 hash embedding：同一文本始终返回同一向量"""
+        h = hashlib.sha256(text.encode("utf-8")).digest()
+        # 循环扩展 hash 到目标维度
+        raw = np.frombuffer((h * ((dim // 32) + 1))[:dim * 4], dtype=np.uint8)
+        # 转为 float 并归一化到 [-1, 1]
+        vec = (raw.astype(np.float32) / 127.5) - 1.0
+        norm = np.linalg.norm(vec)
+        if norm > 0:
+            vec = vec / norm
+        return vec.tolist()
+
+    # Monkey-patch litellm.embedding 和 aembedding
+    _orig_litellm_embedding = litellm.embedding
+    _orig_litellm_aembedding = litellm.aembedding
+
+    def _patched_litellm_embedding(*args, **kwargs):
+        """本地兜底 embedding：当无外部 API 时返回 hash 向量"""
+        try:
+            return _orig_litellm_embedding(*args, **kwargs)
+        except Exception as _emb_err:
+            inputs = kwargs.get("input") or (args[0] if args else "")
+            if isinstance(inputs, str):
+                inputs = [inputs]
+            elif isinstance(inputs, list) and inputs and isinstance(inputs[0], list):
+                inputs = inputs[0]
+            if not isinstance(inputs, list):
+                inputs = [str(inputs)]
+            embeddings = [_hash_embedding(str(t)) for t in inputs]
+            logger.debug(f"[hash-embedding] 为 {len(embeddings)} 条文本生成本地向量 (fallback from: {type(_emb_err).__name__})")
+            # 构造 litellm 兼容的响应对象
+            from types import SimpleNamespace
+            _data = [
+                SimpleNamespace(object="embedding", embedding=emb, index=i)
+                for i, emb in enumerate(embeddings)
+            ]
+            return SimpleNamespace(
+                model="hash-embedding-fallback",
+                data=_data,
+                object="list",
+                usage={"prompt_tokens": sum(len(str(t)) // 4 for t in inputs), "total_tokens": sum(len(str(t)) // 4 for t in inputs)},
+            )
+
+    async def _patched_litellm_aembedding(*args, **kwargs):
+        """异步版本兜底"""
+        return _patched_litellm_embedding(*args, **kwargs)
+
+    litellm.embedding = _patched_litellm_embedding
+    litellm.aembedding = _patched_litellm_aembedding
 
 from backend.shared.config import (
     settings, load_model_configs, save_model_configs,
