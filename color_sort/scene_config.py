@@ -1,8 +1,8 @@
-"""Scene layout and asset configuration for color sorting.
+"""Scene layout and asset configuration for color sorting with YCB objects.
 
 Based on franka_fruit_pick_demo's scene_config.py. Key changes:
-- YCB objects replaced with colored Box/Cylinder/Sphere primitives
-- Single bowl replaced with per-color containers
+- Geometric primitives (Box/Cylinder/Sphere) → YCB mesh objects with real textures
+- Per-color containers (5-box recessed bins) preserved, enlarged for YCB sizes
 - Franka base/table/camera config preserved from demo (D435i-aligned)
 """
 
@@ -10,6 +10,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+
+import numpy as np
+import trimesh
 
 # == Table (built from box primitives, same as demo) ==
 TABLE_TOP_Z = 0.75  # height of the tabletop surface (m)
@@ -24,77 +27,59 @@ TABLE_LEG_COLOR = (0.47, 0.35, 0.24, 1.0)
 FRANKA_POS = (-0.10, 0.0, TABLE_TOP_Z)
 FRANKA_EULER = (0.0, 0.0, 0.0)
 
-# == Colored objects layout ==
-# Train colors: red, blue, green. Hold-out eval colors: yellow, purple.
-# Each color has 3 geometries: Box, Cylinder, Sphere.
-# Object size s = 0.04 m (same as RoboPilot grasp_env cubes).
-OBJECT_SIZE = 0.04
+# == YCB assets path ==
+ASSETS = Path(__file__).resolve().parent.parent / "assets" / "ycb"
 
-# Object positions on the tabletop (z filled at build time).
-# Spread apart to reduce grasp-time collisions (same approach as demo YCB_LAYOUT).
-COLORS = ("red", "blue", "green", "yellow", "purple")
-# Pickable geometries: cube + cylinder. Sphere is excluded from the pick pool
-# (parallel-jaw gripper cannot reliably hold a smooth sphere — same limitation
-# as the demo's exclusion of apple/orange/pear). Spheres remain in the scene
-# as visual distractors to increase observation complexity.
-GEOMETRIES = ("cube", "cylinder", "sphere")
-PICKABLE_GEOMETRIES = ("cube", "cylinder")
+# == YCB object layout ==
+# Each object: real-world color, position on tabletop, euler rotation.
+# Train colors: red, yellow, purple. Eval colors: green, orange.
+# Objects excluded per demo findings: pear (round cross-section slips).
+YCB_LAYOUT: dict[str, dict] = {
+    # Train objects
+    "013_apple": {"pos": (0.30, 0.15, 0.0), "euler": (0.0, 0.0, 0.0), "color": "red", "friction": 1.0},
+    "011_banana": {"pos": (0.35, -0.10, 0.0), "euler": (0.0, 0.0, 35.0), "color": "yellow", "friction": 1.0},
+    "018_plum": {"pos": (0.42, 0.18, 0.0), "euler": (0.0, 0.0, 0.0), "color": "purple", "friction": 1.0},
+    # Eval objects (hold-out, not in training data)
+    "014_lemon": {"pos": (0.44, -0.05, 0.0), "euler": (0.0, 0.0, 0.0), "color": "yellow", "friction": 1.0},
+    "017_orange": {"pos": (0.33, -0.18, 0.0), "euler": (0.0, 0.0, 0.0), "color": "orange", "friction": 1.0},
+}
 
-# RGB colors for Plastic surface.
+# Train/eval split
+TRAIN_YCB_NAMES = ("013_apple", "011_banana", "018_plum")
+EVAL_YCB_NAMES = ("014_lemon", "017_orange")
+
+# Color mapping for task descriptions and containers
 COLOR_RGB = {
     "red": (0.9, 0.1, 0.1),
-    "blue": (0.1, 0.3, 0.9),
-    "green": (0.1, 0.7, 0.2),
     "yellow": (0.95, 0.85, 0.1),
     "purple": (0.6, 0.1, 0.7),
+    "green": (0.1, 0.7, 0.2),
+    "orange": (0.95, 0.55, 0.1),
 }
 
-# Per-color, per-geometry object positions on the tabletop.
-# Format: {color: {geometry: (x, y)}} — z = TABLE_TOP_Z + half_object_height
-OBJECT_LAYOUT = {
-    "red": {
-        "cube": (0.30, 0.15),
-        "cylinder": (0.35, -0.10),
-        "sphere": (0.40, 0.05),
-    },
-    "blue": {
-        "cube": (0.42, 0.18),
-        "cylinder": (0.46, -0.05),  # moved from 0.50 → 0.46 (REACH_X edge → center)
-        "sphere": (0.42, -0.18),
-    },
-    "green": {
-        "cube": (0.33, -0.18),
-        "cylinder": (0.44, 0.12),  # moved from 0.48 → 0.44 (REACH_X edge → center)
-        "sphere": (0.38, 0.00),
-    },
-    # Hold-out eval colors (not in training data):
-    "yellow": {
-        "cube": (0.32, 0.10),
-        "cylinder": (0.44, -0.12),  # moved from 0.46 → 0.44
-        "sphere": (0.40, 0.20),
-    },
-    "purple": {
-        "cube": (0.44, 0.08),
-        "cylinder": (0.36, -0.15),
-        "sphere": (0.46, 0.00),  # moved from 0.50 → 0.46
-    },
+# YCB object → display name for task descriptions
+YCB_DISPLAY_NAMES = {
+    "013_apple": "apple",
+    "011_banana": "banana",
+    "018_plum": "plum",
+    "014_lemon": "lemon",
+    "017_orange": "orange",
 }
 
-# == Per-color containers (5-box recessed bin, placed on tabletop) ==
-# Each container = bottom slab + 4 walls forming a recessed cavity.
-# Inner cavity: 0.072 × 0.072 × 0.026 m (fits 0.04m objects with clearance).
-CONTAINER_BOTTOM_SIZE = (0.08, 0.08, 0.004)  # floor slab (lx, ly, lz)
+# == Per-color containers (5-box recessed bin, enlarged for YCB objects) ==
+# Enlarged from 8cm to 12cm outer to fit YCB objects (apple ~8cm, banana ~7cm wide).
+CONTAINER_BOTTOM_SIZE = (0.12, 0.12, 0.004)  # floor slab (lx, ly, lz)
 CONTAINER_WALL_THICKNESS = 0.004
-CONTAINER_WALL_HEIGHT = 0.03
-CONTAINER_INNER_SIZE = 0.08 - 2 * CONTAINER_WALL_THICKNESS  # 0.072 m
-CONTAINER_RIM_Z_OFFSET = CONTAINER_BOTTOM_SIZE[2] + CONTAINER_WALL_HEIGHT  # 0.034 m above table
-CONTAINER_RIM_MARGIN = 0.01  # how far below the rim the object bottom must dip
+CONTAINER_WALL_HEIGHT = 0.05
+CONTAINER_INNER_SIZE = 0.12 - 2 * CONTAINER_WALL_THICKNESS  # 0.112 m
+CONTAINER_RIM_Z_OFFSET = CONTAINER_BOTTOM_SIZE[2] + CONTAINER_WALL_HEIGHT  # 0.054 m above table
+CONTAINER_RIM_MARGIN = 0.01
 CONTAINER_LAYOUT = {
     "red": (0.55, 0.20),
-    "blue": (0.55, 0.05),
-    "green": (0.55, -0.10),
-    "yellow": (0.62, 0.15),
-    "purple": (0.62, -0.05),
+    "yellow": (0.55, 0.05),
+    "purple": (0.55, -0.10),
+    "green": (0.62, 0.15),
+    "orange": (0.62, -0.05),
 }
 
 # == Reachable workspace on the tabletop (from demo, empirically verified) ==
@@ -116,7 +101,7 @@ WORLD_CAM_POS = (
     TABLE_TOP_Z + 1.0,
 )
 WORLD_CAM_LOOKAT = (TABLE_CENTER[0], TABLE_CENTER[1], TABLE_TOP_Z)
-WORLD_CAM_FOV = 42  # vertical FOV (D435i RGB module)
+WORLD_CAM_FOV = 42
 
 WRIST_CAM_RES = (1280, 720)
 WRIST_CAM_FOV = 42
@@ -137,56 +122,51 @@ VIDEO_CAM_FOV = 42
 
 
 @dataclass(frozen=True)
-class SortObject:
-    """A pickable colored geometric object."""
-
-    name: str  # e.g. "red_cube"
-    color: str  # e.g. "red"
-    geometry: str  # "cube" | "cylinder" | "sphere"
-    pos: tuple[float, float]  # (x, y) on tabletop, z filled at build time
-
-
-@dataclass(frozen=True)
-class SortContainer:
-    """A per-color place container."""
-
-    name: str  # e.g. "red_bin"
-    color: str
-    pos: tuple[float, float]  # (x, y) on tabletop
+class YCBAsset:
+    """A YCB object with precomputed geometry."""
+    name: str
+    mesh_path: Path
+    collision_path: Path
+    rest_z_offset: float  # z from mesh origin to lowest point (m)
+    radius_xy: float  # circumscribed radius of xy footprint (m)
+    color: str  # assigned color category
+    friction: float
 
 
-def get_sort_objects(colors: tuple[str, ...] = COLORS) -> list[SortObject]:
-    """Return all SortObjects for the given colors."""
-    objects = []
-    for color in colors:
-        for geom in GEOMETRIES:
-            x, y = OBJECT_LAYOUT[color][geom]
-            objects.append(SortObject(
-                name=f"{color}_{geom}",
-                color=color,
-                geometry=geom,
-                pos=(x, y),
-            ))
-    return objects
+def _mesh_geometry(mesh_path: Path) -> tuple[float, float]:
+    """Return (rest_z_offset, radius_xy) from a mesh's axis-aligned bounds."""
+    mesh = trimesh.load(mesh_path, force="mesh")
+    lower, upper = mesh.bounds
+    rest_z_offset = float(-lower[2])
+    dx = float(upper[0] - lower[0])
+    dy = float(upper[1] - lower[1])
+    radius_xy = 0.5 * float((dx**2 + dy**2) ** 0.5)
+    return rest_z_offset, radius_xy
 
 
-def get_sort_containers(colors: tuple[str, ...] = COLORS) -> list[SortContainer]:
-    """Return all SortContainers for the given colors."""
-    return [
-        SortContainer(
-            name=f"{color}_bin",
-            color=color,
-            pos=CONTAINER_LAYOUT[color],
+def get_ycb_assets(names: tuple[str, ...]) -> dict[str, YCBAsset]:
+    """Return YCBAsset dict for the given YCB object names."""
+    assets: dict[str, YCBAsset] = {}
+    for name in names:
+        layout = YCB_LAYOUT[name]
+        mesh_path = ASSETS / name / "textured.obj"
+        collision_path = ASSETS / name / "collision.ply"
+        rest_z_offset, radius_xy = _mesh_geometry(mesh_path)
+        assets[name] = YCBAsset(
+            name=name,
+            mesh_path=mesh_path,
+            collision_path=collision_path,
+            rest_z_offset=rest_z_offset,
+            radius_xy=radius_xy,
+            color=layout["color"],
+            friction=layout.get("friction", 1.0),
         )
-        for color in colors
-    ]
+    return assets
 
 
-def object_rest_z_offset(geometry: str, size: float = OBJECT_SIZE) -> float:
-    """Z offset from object origin to its lowest point (for placing on table)."""
-    if geometry == "cylinder":
-        return size / 2  # cylinder height = size, centered
-    elif geometry == "sphere":
-        return size / 2  # radius = size/2
-    else:  # cube
-        return size / 2  # half of height
+def get_ycb_names_for_split(split: str) -> tuple[str, ...]:
+    if split == "train":
+        return TRAIN_YCB_NAMES
+    elif split == "eval":
+        return EVAL_YCB_NAMES
+    return tuple(YCB_LAYOUT.keys())

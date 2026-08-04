@@ -42,7 +42,7 @@ from sk_grasp_demo import TaskSpec, check_success
 from paths import EVAL_RESULTS_DIR, EVAL_VIDEOS_DIR
 from randomize import EnvRandomizer, RandomizationConfig
 from record_dataset import CONTROL_FPS, task_description
-from scene_config import COLORS, PICKABLE_GEOMETRIES
+from scene_config import YCB_LAYOUT, get_ycb_names_for_split
 
 STATE_KEY = "observation.state"
 POST_SUCCESS_SECONDS = 0.8
@@ -250,13 +250,15 @@ def evaluate_policy(
     episodes: int,
     seed: int = 1000,
     max_seconds: float = 15.0,
-    split_colors: tuple[str, ...] = COLORS,
+    ycb_names: tuple[str, ...] | None = None,
     tol: float = 0.06,
     jitter: float = 0.04,
     label: str = "",
-    qwen_verifier=None,  # Optional Qwen3VLVerifier; None = skip Qwen judgement.
+    qwen_verifier=None,
 ) -> dict:
-    pick_pool = [f"{color}_{geom}" for color in split_colors for geom in PICKABLE_GEOMETRIES]
+    if ycb_names is None:
+        ycb_names = tuple(YCB_LAYOUT.keys())
+    pick_pool = list(ycb_names)
     randomizer = EnvRandomizer(
         bundle, RandomizationConfig(pos_jitter=jitter, randomize_pick=False, seed=seed)
     )
@@ -272,7 +274,7 @@ def evaluate_policy(
     for ep in range(episodes):
         episode_seed = seed + ep
         pick_object = str(pick_rng.choice(pick_pool))
-        pick_color = pick_object.rsplit("_", 1)[0]
+        pick_color = YCB_LAYOUT[pick_object]["color"]
         task = TaskSpec(pick_object=pick_object, place_target=pick_color, success_tol=tol)
         task_text = task_description(pick_object, pick_color)
 
@@ -381,16 +383,10 @@ def main() -> None:
                         help="Enable Qwen3-VL episode-end verifier (Stage C2).")
     args = parser.parse_args()
 
-    from record_dataset import TRAIN_COLORS, EVAL_COLORS
-    if args.split == "train":
-        split_colors = TRAIN_COLORS
-    elif args.split == "eval":
-        split_colors = EVAL_COLORS
-    else:
-        split_colors = COLORS
+    ycb_names = get_ycb_names_for_split(args.split)
 
     gs.init(backend=gs.cpu if args.cpu else gs.gpu)
-    bundle = build_scene(colors=split_colors)
+    bundle = build_scene(ycb_names=ycb_names)
 
     rename_map = json.loads(args.rename_map) if args.rename_map else None
     pb = load_policy(
@@ -408,7 +404,7 @@ def main() -> None:
     results = evaluate_policy(
         bundle, pb,
         episodes=args.episodes, seed=args.seed, max_seconds=args.max_seconds,
-        split_colors=split_colors, tol=args.tol, jitter=args.jitter,
+        ycb_names=ycb_names, tol=args.tol, jitter=args.jitter,
         label=f"{pb.policy_type}_{checkpoint_label(args.policy_path)}",
         qwen_verifier=qwen_verifier,
     )

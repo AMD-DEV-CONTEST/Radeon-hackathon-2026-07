@@ -1,15 +1,9 @@
-"""Scripted color-sorting pick-and-place, parameterized via TaskSpec.
+"""Scripted color-sorting pick-and-place with YCB objects, parameterized via TaskSpec.
 
 Based on franka_fruit_pick_demo's grasp_demo.py. Key changes:
-- TaskSpec pick_object = object name (e.g. "red_cube"), place_target = color
-  (auto-resolves to the per-color container)
-- GraspProfile tuned for Box/Cylinder/Sphere primitives (not YCB meshes)
-- Motion primitives (_goto_plan/_goto_direct/_goto_interp/_descend_vertical)
-  preserved verbatim from demo — they are geometry-agnostic
-
-Usage:
-    python sk_grasp_demo.py --cpu --pick red_cube --save-frames
-    python sk_grasp_demo.py --cpu --pick blue_sphere
+- YCB mesh objects with real textures (surface=None in build_scene)
+- GraspProfile per YCB object (ported from demo's GRASP_PROFILES)
+- Motion primitives preserved verbatim from demo
 """
 
 from __future__ import annotations
@@ -31,7 +25,14 @@ from genesis.utils.geom import euler_to_quat, quat_to_xyz
 
 from build_scene import build_scene
 from paths import FRAMES_DIR
-from scene_config import COLOR_RGB, COLORS, CONTAINER_INNER_SIZE, CONTAINER_RIM_MARGIN, CONTAINER_RIM_Z_OFFSET, OBJECT_SIZE, TABLE_TOP_Z
+from scene_config import (
+    COLOR_RGB,
+    CONTAINER_INNER_SIZE,
+    CONTAINER_RIM_Z_OFFSET,
+    TABLE_TOP_Z,
+    YCB_LAYOUT,
+    get_ycb_assets,
+)
 
 # End-effector control constants (preserved from demo, world frame, meters).
 PREGRASP_CLEARANCE = 0.18
@@ -55,27 +56,22 @@ FINGERS_DOF = np.arange(7, 9)
 
 @dataclass(frozen=True)
 class GraspProfile:
-    """Per-geometry top-down grasp parameters.
-
-    For color-sorting primitives (Box/Cylinder/Sphere), all three are
-    small (~4cm) and graspable near their equator. center_align=True for
-    all (same as demo's lemon/plum round objects).
-    """
-
-    yaw_offset: float = 0.0  # deg added to the object yaw to orient the jaws
-    grasp_hand_z: float = TABLE_TOP_Z + 0.105  # fallback when center_align is False
+    """Per-YCB-object top-down grasp parameters (ported from demo)."""
+    yaw_offset: float = 0.0  # deg added to object yaw to orient jaws
+    grasp_hand_z: float = TABLE_TOP_Z + 0.105  # fallback when center_align=False
     close_force: float = -12.0  # N, finger force-control while holding
-    center_align: bool = True  # derive grasp height from AABB for all primitives
+    center_align: bool = False  # derive grasp height from AABB (True for round objects)
 
 
-# All three geometries use small uniform primitives. Spheres need stronger
-# grip force and slower transport to avoid slipping (smooth surface, few
-# contact points with parallel jaws).
+# Grasp profiles per YCB object (ported from demo's GRASP_PROFILES)
+# Default: banana-like (flat, yaw_offset=90 to grasp across short axis)
 DEFAULT_PROFILE = GraspProfile()
 GRASP_PROFILES: dict[str, GraspProfile] = {
-    "cube": DEFAULT_PROFILE,
-    "cylinder": DEFAULT_PROFILE,
-    "sphere": GraspProfile(close_force=-5.0),  # gentle grip: strong force squeezes sphere out
+    "013_apple": GraspProfile(yaw_offset=0.0, close_force=-12.0, center_align=True),
+    "011_banana": GraspProfile(yaw_offset=90.0, grasp_hand_z=TABLE_TOP_Z + 0.105, close_force=-10.0),
+    "018_plum": GraspProfile(yaw_offset=0.0, close_force=-12.0, center_align=True),
+    "014_lemon": GraspProfile(yaw_offset=0.0, close_force=-12.0, center_align=True),
+    "017_orange": GraspProfile(yaw_offset=0.0, close_force=-12.0, center_align=True),
 }
 
 
@@ -83,9 +79,8 @@ GRASP_PROFILES: dict[str, GraspProfile] = {
 class TaskSpec:
     """Describes a single color-sorting pick-and-place task.
 
-    pick_object: object name (e.g. "red_cube", "blue_sphere")
-    place_target: either a color name (auto-resolves to that color's container)
-                 or a tabletop (x, y) tuple
+    pick_object: YCB object name (e.g. "013_apple", "011_banana")
+    place_target: color name (auto-resolves to that color's container)
     """
 
     pick_object: str
@@ -93,17 +88,12 @@ class TaskSpec:
     success_tol: float = 0.06
 
     def grasp_profile(self) -> GraspProfile:
-        # Extract geometry from object name (e.g. "red_cube" → "cube")
-        geometry = self.pick_object.rsplit("_", 1)[-1]
-        return GRASP_PROFILES.get(geometry, DEFAULT_PROFILE)
+        return GRASP_PROFILES.get(self.pick_object, DEFAULT_PROFILE)
 
     @property
     def pick_color(self) -> str:
-        """Extract color from pick_object name (e.g. 'red_cube' → 'red')."""
-        for color in COLORS:
-            if self.pick_object.startswith(color):
-                return color
-        return self.pick_object.split("_")[0]
+        """Extract color from YCB_LAYOUT."""
+        return YCB_LAYOUT[self.pick_object]["color"]
 
 
 def _to_numpy(x) -> np.ndarray:
@@ -247,13 +237,7 @@ def _descend_vertical(bundle, xy, z_from, z_to, quat, *, finger, steps=80, settl
 
 
 def _resolve_place(bundle, place_target: Union[str, tuple[float, float]]) -> tuple[np.ndarray, float, object]:
-    """Return (target_xy, reference_z, target_entity_or_None).
-
-    If place_target is a color string, resolve to the per-color container.
-    If it's a (x, y) tuple, use that tabletop coordinate.
-    """
     if isinstance(place_target, str):
-        # Color name → container entity
         ent = bundle.containers.get(place_target)
         if ent is None:
             raise ValueError(f"No container for color {place_target!r}")
@@ -278,7 +262,6 @@ def run_pick_place(bundle, task: TaskSpec, *, save_frames: bool = False, recorde
 
     obj_pos, obj_yaw = _obj_xy_yaw(pick_entity)
     grasp_quat = _topdown_quat(obj_yaw + profile.yaw_offset)
-    geometry = task.pick_object.rsplit("_", 1)[-1]
 
     # 1) Pre-grasp above the object, gripper open.
     pregrasp = np.array([obj_pos[0], obj_pos[1], obj_pos[2] + PREGRASP_CLEARANCE])
@@ -294,32 +277,20 @@ def run_pick_place(bundle, task: TaskSpec, *, save_frames: bool = False, recorde
     grasp = np.array([obj_pos[0], obj_pos[1], grasp_z])
     snap("02_reach")
 
-    # 3) Close the gripper.
-    # Spheres roll away if the jaws sweep across the table while closing —
-    # the closing motion's lateral velocity pushes the smooth sphere before
-    # contact stabilizes. Fix: snap the fingers to just-touching width (=
-    # object diameter) via set_dofs_position (bypasses physics, no sweep),
-    # then force-control to hold the grasp. Other geometries are robust to
-    # the normal force-controlled close (flat faces don't roll).
-    if geometry == "sphere":
-        bundle.franka.set_dofs_position(
-            np.array([OBJECT_SIZE * 0.5, OBJECT_SIZE * 0.5]), FINGERS_DOF,
-        )
+    # 3) Close the gripper with force control.
     close_force = profile.close_force
     _goto_direct(bundle, grasp, grasp_quat, finger_cmd=0.0, steps=100, close_force=close_force, recorder=recorder)
     snap("03_grasp")
 
-    # 4) Lift straight up (velocity-limited to avoid ejecting the object).
-    # Spheres slip easily: use half the normal joint speed for transport.
-    transport_max_dq = MOVE_MAX_DQ / 2 if geometry == "sphere" else MOVE_MAX_DQ
+    # 4) Lift straight up (velocity-limited).
     lift = np.array([grasp[0], grasp[1], LIFT_HAND_Z])
-    _goto_interp(bundle, lift, grasp_quat, finger_cmd=0.0, close_force=close_force, max_dq=transport_max_dq, recorder=recorder)
+    _goto_interp(bundle, lift, grasp_quat, finger_cmd=0.0, close_force=close_force, recorder=recorder)
     snap("04_lift")
 
     # 5) Move above the place target (velocity-limited).
     place_xy, place_ref_z, _ = _resolve_place(bundle, task.place_target)
     above = np.array([place_xy[0], place_xy[1], place_ref_z + PLACE_HAND_Z_ABOVE_TARGET])
-    _goto_interp(bundle, above, grasp_quat, finger_cmd=0.0, close_force=close_force, max_dq=transport_max_dq, recorder=recorder)
+    _goto_interp(bundle, above, grasp_quat, finger_cmd=0.0, close_force=close_force, recorder=recorder)
     snap("05_above_target")
 
     # 6) Release the object.
@@ -337,19 +308,18 @@ def run_pick_place(bundle, task: TaskSpec, *, save_frames: bool = False, recorde
 
 
 def check_success(bundle, task: TaskSpec) -> bool:
-    """Whether ``pick_object`` has been placed into its color's container.
+    """Whether the YCB object has been placed into its color's container.
 
     Two-layer test:
     1. Horizontal: object center is within the bin's inner footprint.
     2. Vertical: object center is above the bin bottom (not clipping through)
-       AND below the rim (actually placed inside, not hovering above).
+       AND below the rim (actually placed inside).
     """
     obj = bundle.objects[task.pick_object]
     pick_pos = obj.get_pos().cpu().numpy().reshape(-1)
     place_xy, place_ref_z, place_ent = _resolve_place(bundle, task.place_target)
 
     if place_ent is None:
-        # Tabletop coordinate target
         horizontal = float(np.linalg.norm(pick_pos[:2] - place_xy))
         return bool(horizontal < task.success_tol and pick_pos[2] > place_ref_z - 0.02)
 
@@ -361,11 +331,12 @@ def check_success(bundle, task: TaskSpec) -> bool:
     if not (inside_x and inside_y):
         return False
 
-    # Layer 2: vertical — object center above bin bottom AND below rim
+    # Layer 2: vertical — use object's actual AABB bottom for clipping check
+    obj_aabb = _entity_aabb(obj)
+    obj_bottom = float(obj_aabb[0, 2])
     bin_bottom = TABLE_TOP_Z
     rim_z = TABLE_TOP_Z + CONTAINER_RIM_Z_OFFSET
-    half_h = OBJECT_SIZE / 2
-    not_clipping = pick_pos[2] >= bin_bottom + half_h
+    not_clipping = obj_bottom >= bin_bottom - 0.01
     inside_vertically = pick_pos[2] < rim_z
     return bool(not_clipping and inside_vertically)
 
@@ -374,39 +345,29 @@ def _parse_place(text: str) -> Union[str, tuple[float, float]]:
     if "," in text:
         x_str, y_str = text.split(",")
         return (float(x_str), float(y_str))
-    return text  # color name
+    return text
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Scripted color-sorting pick-and-place.")
+    parser = argparse.ArgumentParser(description="Scripted color-sorting pick-and-place with YCB objects.")
     parser.add_argument("-v", "--vis", action="store_true", default=False)
     parser.add_argument("-c", "--cpu", action="store_true", default=False)
-    parser.add_argument("--pick", default="red_cube", help="Object name to pick (e.g. red_cube).")
-    parser.add_argument(
-        "--place",
-        default=None,
-        help="Place target: a color name (e.g. red, auto-resolves to that color's bin) or 'x,y'. "
-             "Default: auto from pick object's color.",
-    )
+    parser.add_argument("--pick", default="013_apple", help="YCB object name to pick (e.g. 013_apple).")
+    parser.add_argument("--place", default=None,
+                        help="Place target: a color name (e.g. red) or 'x,y'. Default: auto from object color.")
     parser.add_argument("--tol", type=float, default=0.06, help="Success tolerance (m).")
     parser.add_argument("--save-frames", action="store_true", help="Save world-cam frames per stage.")
     args = parser.parse_args()
 
-    # Auto-resolve place target from pick object's color
     if args.place is None:
-        place_target = TaskSpec(pick_object=args.pick, place_target="").pick_color
+        place_target = YCB_LAYOUT[args.pick]["color"]
     else:
         place_target = _parse_place(args.place)
 
     task = TaskSpec(pick_object=args.pick, place_target=place_target, success_tol=args.tol)
 
     gs.init(backend=gs.cpu if args.cpu else gs.gpu)
-    # Only build with the colors we need (pick color + place target color)
-    needed_colors = list({task.pick_color, task.place_target if isinstance(task.place_target, str) else None})
-    needed_colors = [c for c in needed_colors if c is not None and c in COLORS]
-    if not needed_colors:
-        needed_colors = list(COLORS)
-    bundle = build_scene(show_viewer=args.vis, colors=tuple(needed_colors))
+    bundle = build_scene(show_viewer=args.vis, ycb_names=(args.pick,))
 
     success, frames = run_pick_place(bundle, task, save_frames=args.save_frames)
     print(f"[grasp_demo] task: pick={task.pick_object} place={task.place_target} -> success = {success}")

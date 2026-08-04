@@ -40,22 +40,20 @@ from build_scene import build_scene
 from paths import DATASETS_DIR
 from randomize import RandomizationConfig
 from scene_config import (
-    COLORS,
     CONTAINER_INNER_SIZE,
-    CONTAINER_RIM_MARGIN,
     CONTAINER_RIM_Z_OFFSET,
     FRANKA_QPOS,
     FRANKA_KP,
     FRANKA_KV,
     FRANKA_FORCE_MIN,
     FRANKA_FORCE_MAX,
-    OBJECT_LAYOUT,
-    OBJECT_SIZE,
-    PICKABLE_GEOMETRIES,
     REACH_X,
     REACH_Y,
     TABLE_TOP_Z,
-    object_rest_z_offset,
+    YCB_DISPLAY_NAMES,
+    YCB_LAYOUT,
+    get_ycb_assets,
+    get_ycb_names_for_split,
 )
 from genesis.utils.geom import euler_to_quat, euler_to_R, trans_R_to_T
 
@@ -81,22 +79,17 @@ JOINT_NAMES = [
     "panda_joint5", "panda_joint6", "panda_joint7",
     "panda_finger_joint1", "panda_finger_joint2",
 ]
-TRAIN_COLORS = ("red", "blue", "green")
-EVAL_COLORS = ("yellow", "purple")
+TRAIN_YCB_NAMES = ("013_apple", "011_banana", "018_plum")
+EVAL_YCB_NAMES = ("014_lemon", "017_orange")
 
 
 def task_description(pick_object: str, place_color: str) -> str:
-    color, geometry = pick_object.rsplit("_", 1)
-    geom_name = "cube" if geometry == "cube" else "cylinder"
-    return f"pick the {color} {geom_name} into the {place_color} bin"
+    display = YCB_DISPLAY_NAMES.get(pick_object, pick_object)
+    return f"pick the {display} into the {place_color} bin"
 
 
-def _colors_for_split(split: str) -> tuple[str, ...]:
-    if split == "train":
-        return TRAIN_COLORS
-    elif split == "eval":
-        return EVAL_COLORS
-    return COLORS
+def _ycb_names_for_split(split: str) -> tuple[str, ...]:
+    return get_ycb_names_for_split(split)
 
 
 def build_features(img_wh: tuple[int, int]) -> dict:
@@ -378,7 +371,7 @@ def _batch_obj_pos_yaw(bundle, obj_name: str) -> tuple[np.ndarray, np.ndarray]:
 def _batch_reset_envs(bundle, env_specs: list[dict]) -> None:
     """Reset each env's robot + objects independently.
 
-    env_specs: list of {pick_object, obj_pos: [x,y,z], obj_quat: [w,x,y,z]} per env.
+    env_specs: list of {pick_object, obj_positions: {name: [x,y,z]}, obj_quats: {name: [w,x,y,z]}} per env.
     """
     n = bundle.scene.n_envs
 
@@ -387,7 +380,6 @@ def _batch_reset_envs(bundle, env_specs: list[dict]) -> None:
     bundle.franka.set_qpos(qpos, zero_velocity=True)
 
     # Reset each object's position per env
-    # Objects are shared across envs but have per-env positions
     for obj_name in bundle.objects:
         entity = bundle.objects[obj_name]
         positions = np.zeros((n, 3))
@@ -397,10 +389,10 @@ def _batch_reset_envs(bundle, env_specs: list[dict]) -> None:
                 positions[i] = spec["obj_positions"][obj_name]
                 quats[i] = spec["obj_quats"][obj_name]
             else:
-                # Default home position
-                color, geom = obj_name.rsplit("_", 1)
-                x, y = OBJECT_LAYOUT[color][geom]
-                z = TABLE_TOP_Z + object_rest_z_offset(geom) + 0.002
+                # Default home position from YCB_LAYOUT
+                layout = YCB_LAYOUT[obj_name]
+                x, y, _ = layout["pos"]
+                z = TABLE_TOP_Z + get_ycb_assets((obj_name,))[obj_name].rest_z_offset
                 positions[i] = [x, y, z]
                 quats[i] = [1, 0, 0, 0]
 
@@ -412,7 +404,7 @@ def _batch_reset_envs(bundle, env_specs: list[dict]) -> None:
 
 
 def _batch_check_success(bundle, env_idx: int, pick_object: str, place_color: str) -> bool:
-    """Check success for one env: object center inside bin (horizontal + vertical)."""
+    """Check success for one env: object inside bin (horizontal + vertical)."""
     obj = bundle.objects[pick_object]
     pos = obj.get_pos().cpu().numpy()[env_idx]  # [3]
 
@@ -429,11 +421,12 @@ def _batch_check_success(bundle, env_idx: int, pick_object: str, place_color: st
     if not (inside_x and inside_y):
         return False
 
-    # Layer 2: vertical — above bin bottom (not clipping) AND below rim
+    # Layer 2: vertical — object bottom above table (not clipping) AND center below rim
+    obj_aabb = obj.get_AABB().cpu().numpy()[env_idx]
+    obj_bottom = float(obj_aabb[0, 2])
     bin_bottom = TABLE_TOP_Z
     rim_z = TABLE_TOP_Z + CONTAINER_RIM_Z_OFFSET
-    half_h = OBJECT_SIZE / 2
-    not_clipping = pos[2] >= bin_bottom + half_h
+    not_clipping = obj_bottom >= bin_bottom - 0.01
     inside_vertically = pos[2] < rim_z
     return bool(not_clipping and inside_vertically)
 
@@ -453,7 +446,7 @@ def _run_one_batch(bundle, env_specs: list[dict], recorders: list,
 
     # Per-env pick info
     pick_objects = [s["pick_object"] for s in env_specs]
-    place_colors = [s["pick_object"].rsplit("_", 1)[0] for s in env_specs]
+    place_colors = [YCB_LAYOUT[obj]["color"] for obj in pick_objects]
 
     # Get per-env object positions (after reset+settle)
     obj_positions = {}
@@ -596,8 +589,8 @@ def main() -> None:
         else:
             raise SystemExit(f"[record_parallel] {root} exists. Use --overwrite.")
 
-    split_colors = _colors_for_split(args.split)
-    pick_pool = [f"{c}_{g}" for c in split_colors for g in PICKABLE_GEOMETRIES]
+    ycb_names = _ycb_names_for_split(args.split)
+    pick_pool = list(ycb_names)
 
     n = args.n_envs
     gs.init(backend=gs.gpu)
@@ -606,7 +599,7 @@ def main() -> None:
         n_envs=n,
         add_world_cam=True,
         add_wrist_cam=True,
-        colors=split_colors,
+        ycb_names=ycb_names,
     )
 
     dataset = LeRobotDataset.create(
@@ -650,13 +643,14 @@ def main() -> None:
             # Randomize object positions for this env
             obj_positions = {}
             obj_quats = {}
+            ycb_assets = get_ycb_assets(tuple(bundle.objects.keys()))
             for obj_name in bundle.objects:
-                color, geom = obj_name.rsplit("_", 1)
-                x, y = OBJECT_LAYOUT[color][geom]
+                layout = YCB_LAYOUT[obj_name]
+                x, y, _ = layout["pos"]
                 dx, dy = ep_rng.uniform(-args.jitter, args.jitter, size=2)
                 x = float(np.clip(x + dx, *REACH_X))
                 y = float(np.clip(y + dy, *REACH_Y))
-                z = TABLE_TOP_Z + object_rest_z_offset(geom) + 0.002
+                z = TABLE_TOP_Z + ycb_assets[obj_name].rest_z_offset
                 dyaw = float(ep_rng.uniform(-30.0, 30.0))
                 quat = euler_to_quat(np.array([0.0, 0.0, dyaw]))
 
@@ -679,14 +673,14 @@ def main() -> None:
         # Run the batch
         import time
         t0 = time.time()
-        successes = _run_one_batch(bundle, env_specs, recorders, split_colors)
+        successes = _run_one_batch(bundle, env_specs, recorders, ycb_names)
         t1 = time.time()
 
         # Save successful episodes
         for i in range(n):
             if successes[i] and len(recorders[i]) > 0:
                 pick_obj = env_specs[i]["pick_object"]
-                place_color = pick_obj.rsplit("_", 1)[0]
+                place_color = YCB_LAYOUT[pick_obj]["color"]
                 task_text = task_description(pick_obj, place_color)
                 recorders[i].flush_to(dataset, task_text)
                 n_success += 1

@@ -1,8 +1,8 @@
-"""Build a color-sorting scene: Franka + table + colored objects + per-color containers.
+"""Build a color-sorting scene: Franka + table + YCB objects + per-color containers.
 
 Based on franka_fruit_pick_demo's build_scene.py. Key changes:
-- YCB mesh assets → gs.morphs.Box/Cylinder/Sphere with gs.surfaces.Plastic(color=...)
-- Single bowl → per-color YCB 024_bowl containers (scaled ~9cm, recolored per sorting color)
+- Geometric primitives → YCB mesh objects with real textures (surface=None)
+- Per-color 5-box recessed containers preserved
 - SceneBundle interface preserved (scene/franka/objects/containers/cameras)
 """
 
@@ -24,15 +24,12 @@ from genesis.utils.geom import trans_R_to_T, euler_to_R
 
 from scene_config import (
     COLOR_RGB,
-    COLORS,
     CONTAINER_BOTTOM_SIZE,
     CONTAINER_INNER_SIZE,
     CONTAINER_LAYOUT,
-    CONTAINER_RIM_MARGIN,
     CONTAINER_RIM_Z_OFFSET,
     CONTAINER_WALL_HEIGHT,
     CONTAINER_WALL_THICKNESS,
-    FRANKA_EULER,
     FRANKA_EULER,
     FRANKA_FORCE_MAX,
     FRANKA_FORCE_MIN,
@@ -40,8 +37,6 @@ from scene_config import (
     FRANKA_KV,
     FRANKA_POS,
     FRANKA_QPOS,
-    OBJECT_LAYOUT,
-    OBJECT_SIZE,
     REACH_X,
     REACH_Y,
     TABLE_CENTER,
@@ -66,8 +61,8 @@ from scene_config import (
     WRIST_CAM_OFFSET_EULER,
     WRIST_CAM_OFFSET_POS,
     WRIST_CAM_RES,
-    get_sort_objects,
-    object_rest_z_offset,
+    YCB_LAYOUT,
+    get_ycb_assets,
 )
 from paths import OUTPUTS_DIR
 
@@ -78,7 +73,7 @@ class SortSceneBundle:
 
     scene: gs.Scene
     franka: gs.RigidEntity
-    objects: dict[str, gs.RigidEntity]  # name → entity (e.g. "red_cube")
+    objects: dict[str, gs.RigidEntity]  # name → entity (e.g. "011_banana")
     containers: dict[str, gs.RigidEntity]  # color → entity (e.g. "red" → red_bin)
     world_cam: "gs.vis.camera.Camera | None" = None
     wrist_cam: "gs.vis.camera.Camera | None" = None
@@ -139,89 +134,64 @@ def _add_table(scene: gs.Scene) -> list:
     return table_entities
 
 
-def _add_object(scene: gs.Scene, name: str, color: str, geometry: str,
-                pos_xy: tuple[float, float], size: float = OBJECT_SIZE) -> gs.RigidEntity:
-    """Add a colored geometric object to the scene."""
-    x, y = pos_xy
-    z = TABLE_TOP_Z + object_rest_z_offset(geometry, size)
-
-    rgb = COLOR_RGB[color]
-    surface = gs.surfaces.Plastic(color=rgb)
-
-    if geometry == "cube":
-        morph = gs.morphs.Box(size=(size, size, size), pos=(x, y, z))
-    elif geometry == "cylinder":
-        morph = gs.morphs.Cylinder(radius=size / 2, height=size, pos=(x, y, z))
-    elif geometry == "sphere":
-        morph = gs.morphs.Sphere(radius=size / 2, pos=(x, y, z))
-    else:
-        raise ValueError(f"Unknown geometry: {geometry}")
-
-    # Spheres need higher friction to avoid slipping from the gripper
-    friction = 2.0 if geometry == "sphere" else 1.0
+def _add_ycb_object(scene: gs.Scene, name: str, asset) -> gs.RigidEntity:
+    """Add a YCB mesh object to the scene with its real texture."""
+    layout = YCB_LAYOUT[name]
+    x, y, _ = layout["pos"]
+    z = TABLE_TOP_Z + asset.rest_z_offset
 
     return scene.add_entity(
-        morph=morph,
-        material=gs.materials.Rigid(rho=300.0, friction=friction),
-        surface=surface,
+        morph=gs.morphs.Mesh(
+            file=str(asset.mesh_path),
+            pos=(x, y, z),
+            euler=layout["euler"],
+            align=False,
+            convexify=False,
+            decimate_face_num=500,
+        ),
+        material=gs.materials.Rigid(rho=300.0, friction=asset.friction),
+        surface=None,  # None = keep original mesh texture
     )
 
 
 def _add_container(scene: gs.Scene, color: str,
                    pos_xy: tuple[float, float]) -> gs.RigidEntity:
-    """Add a per-color recessed bin (5 Box primitives) to the scene.
-
-    The bin is built from 5 fixed Box entities: a bottom slab + 4 walls,
-    forming a recessed cavity. Objects dropped inside collide with the
-    walls and bottom, coming to rest inside the bin — a true sorting container.
-
-    Inner cavity: CONTAINER_INNER_SIZE × CONTAINER_INNER_SIZE × (WALL_HEIGHT - BOTTOM_Z)
-    """
+    """Add a per-color recessed bin (5 Box primitives) to the scene."""
     x, y = pos_xy
     rgb = COLOR_RGB[color]
     dark_rgb = tuple(c * 0.6 for c in rgb)
     surface = gs.surfaces.Plastic(color=dark_rgb)
     wt = CONTAINER_WALL_THICKNESS
     wh = CONTAINER_WALL_HEIGHT
-    bs = CONTAINER_BOTTOM_SIZE  # (lx, ly, lz)
-    inner = CONTAINER_INNER_SIZE  # 0.072
+    bs = CONTAINER_BOTTOM_SIZE
+    inner = CONTAINER_INNER_SIZE
 
-    # Bottom slab: sits on tabletop
     bottom_z = TABLE_TOP_Z + bs[2] / 2
     scene.add_entity(
         morph=gs.morphs.Box(size=bs, pos=(x, y, bottom_z), fixed=True),
         surface=surface,
     )
 
-    # Four walls: each is a thin Box, positioned at the edge of the bottom slab
-    # Wall dimensions: thickness × inner_side × height
-    # Front/back walls: (wt, inner, wh) at y ± inner/2
-    # Left/right walls: (inner + 2*wt, wt, wh) at x ± inner/2 (overlap corners)
     wall_z = TABLE_TOP_Z + bs[2] + wh / 2
     half_inner = inner / 2
 
-    # Front wall (+y)
     scene.add_entity(
         morph=gs.morphs.Box(size=(inner + 2 * wt, wt, wh), pos=(x, y + half_inner + wt / 2, wall_z), fixed=True),
         surface=surface,
     )
-    # Back wall (-y)
     scene.add_entity(
         morph=gs.morphs.Box(size=(inner + 2 * wt, wt, wh), pos=(x, y - half_inner - wt / 2, wall_z), fixed=True),
         surface=surface,
     )
-    # Right wall (+x)
     scene.add_entity(
         morph=gs.morphs.Box(size=(wt, inner, wh), pos=(x + half_inner + wt / 2, y, wall_z), fixed=True),
         surface=surface,
     )
-    # Left wall (-x)
     scene.add_entity(
         morph=gs.morphs.Box(size=(wt, inner, wh), pos=(x - half_inner - wt / 2, y, wall_z), fixed=True),
         surface=surface,
     )
 
-    # Return the bottom slab as the "container" entity (used for get_pos/get_AABB in check_success)
     return scene.add_entity(
         morph=gs.morphs.Box(size=bs, pos=(x, y, bottom_z), fixed=True),
         surface=surface,
@@ -236,15 +206,19 @@ def build_scene(
     add_wrist_cam: bool = True,
     add_video_cam: bool = False,
     draw_world_frame: bool = False,
-    colors: tuple[str, ...] = COLORS,
+    ycb_names: tuple[str, ...] | None = None,
 ) -> SortSceneBundle:
-    """Build the color-sorting scene.
+    """Build the color-sorting scene with YCB objects.
 
     Args:
-        colors: which colors to include (default all 5). Use subset for
-                train-only or eval-only scenes.
+        ycb_names: which YCB objects to include. If None, uses all from YCB_LAYOUT.
     """
-    sort_objects = get_sort_objects(colors)
+    if ycb_names is None:
+        ycb_names = tuple(YCB_LAYOUT.keys())
+    ycb_assets = get_ycb_assets(ycb_names)
+
+    # Collect unique colors from the selected objects
+    colors = tuple(dict.fromkeys(YCB_LAYOUT[n]["color"] for n in ycb_names))
 
     cx, cy = TABLE_CENTER
     camera_lookat = (cx, cy, TABLE_TOP_Z)
@@ -270,19 +244,15 @@ def build_scene(
     scene.add_entity(gs.morphs.Plane())
     table_entities = _add_table(scene)
 
-    # Add colored objects
+    # Add YCB objects
     object_entities: dict[str, gs.RigidEntity] = {}
-    for obj in sort_objects:
-        object_entities[obj.name] = _add_object(
-            scene, obj.name, obj.color, obj.geometry, obj.pos
-        )
+    for name in ycb_names:
+        object_entities[name] = _add_ycb_object(scene, name, ycb_assets[name])
 
     # Add per-color containers
     container_entities: dict[str, gs.RigidEntity] = {}
     for color in colors:
-        container_entities[color] = _add_container(
-            scene, color, CONTAINER_LAYOUT[color]
-        )
+        container_entities[color] = _add_container(scene, color, CONTAINER_LAYOUT[color])
 
     # Add Franka
     franka = scene.add_entity(
@@ -293,7 +263,7 @@ def build_scene(
         ),
     )
 
-    # Add cameras (before build, same as demo)
+    # Add cameras (before build)
     world_cam = None
     if add_world_cam:
         world_cam = scene.add_camera(
@@ -333,7 +303,6 @@ def build_scene(
 
     configure_franka(franka, n_envs=n_envs)
 
-    # Attach wrist camera after build (needs runtime pose)
     if wrist_cam is not None:
         offset_T = trans_R_to_T(
             np.asarray(WRIST_CAM_OFFSET_POS, dtype=np.float64),
@@ -369,7 +338,7 @@ def configure_franka(franka: gs.RigidEntity, *, n_envs: int) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build and run the color-sorting scene.")
+    parser = argparse.ArgumentParser(description="Build and run the color-sorting scene with YCB objects.")
     parser.add_argument("-v", "--vis", action="store_true", default=False)
     parser.add_argument("-c", "--cpu", action="store_true", default=False)
     parser.add_argument("--steps", type=int, default=1000)
