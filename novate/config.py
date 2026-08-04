@@ -8,6 +8,13 @@ inference server, which itself runs on the same machine / AMD Radeon GPU.
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+# Load variables from a local `.env` file (see .env.example) into the process
+# environment. Without this, every NOVA_* setting below silently falls back
+# to its default no matter what's written in `.env`.
+load_dotenv()
+
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------

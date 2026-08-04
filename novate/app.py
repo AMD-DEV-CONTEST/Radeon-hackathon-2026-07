@@ -23,7 +23,10 @@ agent = NovaAgent()
 
 
 def respond(message: str, history: list[dict]) -> str:
-    result = agent.ask(message)
+    try:
+        result = agent.ask(message)
+    except RuntimeError as exc:
+        return f"⚠️ {exc}"
     answer = result["answer"]
     if result["sources"]:
         answer += f"\n\n_Sources: {', '.join(result['sources'])}_"
@@ -50,5 +53,11 @@ def build_ui() -> gr.Blocks:
 
 
 if __name__ == "__main__":
+    if not agent.llm.health_check():
+        logging.warning(
+            "Local inference server not reachable at %s — chat requests will "
+            "fail until it's running. See README > Running the model server.",
+            config.LLM_SERVER_BASE_URL,
+        )
     ui = build_ui()
     ui.launch(server_name="0.0.0.0", server_port=7860)
