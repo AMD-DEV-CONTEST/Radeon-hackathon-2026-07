@@ -234,7 +234,34 @@ third-party  + --network=none  ->  "to add it: go get"  ->  REFUSED
 | `demo_run.sh` | One command that reproduces the demo on a Radeon Notebook instance |
 | `amd_gpu_evidence/` | Throughput, K-sweep, prefix-cache, measured `p`, vLLM telemetry |
 
-## Reproducing
+## Environment configuration
+
+| Variable | Required | What it is |
+|---|---|---|
+| `DETERMINEX_VLLM_BASE_URL` | yes | OpenAI-compatible endpoint of the model served on the Radeon, e.g. `http://127.0.0.1:8000/v1` |
+| `DETERMINEX_VLLM_API_KEY` | only if vLLM was started with `--api-key` | Matches whatever was passed to vLLM; omit entirely if it has none |
+| `DETERMINEX_MODELS_DIR` | no | Where local GGUF models live. Defaults to the repository's own directory |
+| `DETERMINEX_ROOT` | no | Repository root. Only needed when running from outside the checkout |
+
+No cloud API key is required for anything in this submission. Generation happens on the
+Radeon endpoint above; verification is a local compiler or test run.
+
+## Dependency list
+
+| Layer | Needs | Install |
+|---|---|---|
+| Inference / CLI | Python **3.11+** | `pip install -r scripts/requirements.txt` |
+| Model serving | vLLM on ROCm | provided by the Radeon Cloud Notebook template |
+| Verification (optional) | the toolchain of whatever language you verify — `rustc`, `go`, `tsc`, or the stdlib for Python | per language |
+| Desktop IDE (optional) | Node 18+ and the Rust toolchain | `npm install` in `frontend/` |
+
+Nothing in the reproduction path below needs the IDE or the Rust toolchain — those are only
+for the desktop app.
+
+## Startup guide / reproducing
+
+Four commands, in order. Each is a single line and the last one prints the result quoted
+underneath it.
 
 ```bash
 git clone https://github.com/DarthCeltic/Determinex && cd Determinex
