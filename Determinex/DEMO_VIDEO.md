@@ -3,16 +3,21 @@
 **File:** [`DEMO_MAIN_2026-08-04.mp4`](DEMO_MAIN_2026-08-04.mp4) — 3:31, 1920×1080, committed
 in this directory, so it needs no external host and cannot rot.
 
-**Mirror:** _(YouTube link added on submission)_
+**Watch:** **https://youtu.be/eI_AE5k_yv8** — the same file, hosted, if you would rather not
+download 32 MB to see it.
 
 **Product tour:** [`PRODUCT_SHOWCASE_2026-08-04.mp4`](PRODUCT_SHOWCASE_2026-08-04.mp4) — 3:29,
 seven surfaces of the IDE, each driven and filmed rather than screenshotted.
+
+**Narration is a person, not a synthesiser.** Thirteen takes, recorded on a headset rather
+than a studio mic, levelled to broadcast loudness. That is a deliberate choice: a demo about
+refusing to overstate things should not open with a machine reading a script.
 
 ---
 
 ## What the main video is
 
-One screen, one recording. The Determinex IDE with **its own terminal** open over the Work
+One screen, one recording, 3:31. The Determinex IDE with **its own terminal** open over the Work
 cockpit, running `scripts/dev/submission_demo.py` against the live Radeon Cloud instance
 `u-14786-cdc26df7`. Not two captures composited side by side — the product running its own
 measurement, in one pass, on 2026-08-04.
