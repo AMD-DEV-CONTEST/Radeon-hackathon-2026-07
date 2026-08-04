@@ -1,0 +1,49 @@
+[Ovo je čist tekst za TTS/AI glas — kopiraj svaki blok pojedinačno u AI voice alat.
+Brojevi u zagradama [1]-[6] označavaju koji deo snimka ekrana ide uz taj audio blok.
+Vremena su okvirna, ukupno cilja na 3-5 minuta.]
+
+[1 — INTRO, ~15s, prikaži svoje lice ili prazan terminal]
+
+Hi, I'm Fedja. This is RugBuster CIA Intelligence Agent, my submission for Track 2 —
+Development and Local Deployment of Private AI Agents. It's a token fraud detection agent
+for DeFi. It wraps an existing production system, RugBuster's CIA Intelligence Engine, as a
+LangChain agent with local AI inference on an AMD Radeon GPU.
+
+[2 — GPU PROOF, ~10s, prikaži izlaz komande rocm-smi]
+
+First, confirming we're actually running on an AMD Radeon GPU via ROCm. That's a hard
+requirement for Track 2 — no closed remote APIs are allowed for core inference.
+
+[3 — ARHITEKTURA, ~35s, prikaži docs/PROJECT_SPEC.md dijagram ili samo govori preko terminala]
+
+The agent has three pieces that map to three AMD capabilities. First, a planner that decides
+which of seven fraud-detection modules to run, and in what order, based on what data is
+available for a given token — that's multi-step task planning. Second, each of those seven
+modules — things like funding origin tracing, contract backdoor detection, holder
+concentration — is exposed as a LangChain tool. That's tool invocation. Third, every call is
+HMAC-SHA256 signed. That's the permission control layer.
+
+[4 — BRZI TEST BEZ MODELA, ~35s, prikaži izlaz komande main.py --no-llm]
+
+This is the fast path — planning and tool invocation only, no model involved yet. You can see
+it decided the order to run modules in, and here are the structured findings from each of the
+seven modules. This part runs on plain CPU — it's the deterministic, already-tested part of
+the pipeline.
+
+[5 — PUN PIPELINE SA MODELOM, ~75s, prikaži izlaz punog main.py sa modelom, verdict_text i guardrail poljem]
+
+Now the full pipeline. This loads a Qwen3-14B model, QLoRA fine-tuned on 358,000+ historical
+fraud-scan records, running locally via llama.cpp on the Radeon GPU. It reads the structured
+findings and produces a natural-language verdict.
+
+One honesty note — this fine-tuned checkpoint is an early, trial run. It can still
+hallucinate. So I added a guardrail: a separate, deterministic risk baseline computed straight
+from the raw on-chain findings, with no LLM involved. The agent flags it if the model's
+verdict disagrees with that baseline, instead of trusting the model blindly. That's this
+guardrail field right here.
+
+[6 — ZATVARANJE, ~15s]
+
+That's RugBuster CIA Intelligence Agent — tool invocation, multi-step planning, and permission
+control, all running locally on an AMD Radeon GPU, wrapping a production fraud-detection engine
+already tested on 257 real tokens. Thanks for watching.
