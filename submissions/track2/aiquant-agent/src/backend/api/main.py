@@ -131,46 +131,33 @@ elif _RUN_MODE == "local":
 
             # 检查 template 目录中是否已有 .h5 文件
             if not (template_path / "daily_pv_all.h5").exists() or not (template_path / "daily_pv_debug.h5").exists():
-                logger.info("RUN_MODE=local: generating data via qlib (single-thread, may take 2-3 minutes)...")
-                # 直接用 qlib API 单线程生成，避免 macOS multiprocessing spawn 问题
-                result = subprocess.run(
-                    [sys.executable, "-c", """
-import os, sys
-os.environ["QLIB_JOBLIB_BACKEND"] = "loky"
-# qlib 配置中 n_jobs 默认为多核，强制设为 1 避免 multiprocessing
-import qlib
-from qlib.config import C
-C["joblib_backend"] = "loky"
-C["n_jobs"] = 1
-qlib.init(provider_uri=os.path.expanduser("~/.qlib/qlib_data/cn_data"))
-from qlib.data import D
-instruments = D.instruments()
-fields = ["$open", "$close", "$high", "$low", "$volume", "$factor"]
-# D.features returns MultiIndex (datetime, instrument); sort by datetime
-data = D.features(instruments, fields, freq="day").sort_index()
-if data.empty:
-    raise RuntimeError("No data available in Qlib. Check ~/.qlib/qlib_data/cn_data/")
-data.to_hdf("./daily_pv_all.h5", key="data")
-print(f"daily_pv_all.h5: {len(data)} rows, {data.reset_index()['instrument'].nunique()} instruments")
-# Debug data: first 100 instruments only (much smaller dataset for fast iteration)
-first_100 = data.reset_index()["instrument"].unique()[:100].tolist()
-data2 = D.features(first_100, fields, freq="day").sort_index()
-data2.to_hdf("./daily_pv_debug.h5", key="data")
-print(f"daily_pv_debug.h5: {len(data2)} rows, {len(first_100)} instruments")
-print("SUCCESS: daily_pv_all.h5 and daily_pv_debug.h5 generated")
-"""],
-                    cwd=str(template_path),
-                    capture_output=True, text=True, timeout=600,
-                )
-                execute_log = result.stdout + "\n" + result.stderr
-                if result.returncode != 0:
-                    raise RuntimeError("generate.py failed: " + execute_log)
-                assert (template_path / "daily_pv_all.h5").exists(), (
-                    "daily_pv_all.h5 is not generated. Check: " + execute_log
-                )
-                assert (template_path / "daily_pv_debug.h5").exists(), (
-                    "daily_pv_debug.h5 is not generated. Check: " + execute_log
-                )
+                logger.info("RUN_MODE=local: generating data via qlib (in-process, may take 2-3 minutes)...")
+                # 直接在主进程中用已初始化的 Qlib 生成数据，避免子进程 Qlib 初始化冲突
+                import qlib
+                from qlib.data import D
+                try:
+                    qlib.init(provider_uri=os.path.expanduser("~/.qlib/qlib_data/cn_data"))
+                except Exception:
+                    pass  # 已初始化则跳过
+
+                instruments = D.instruments(market="all")
+                fields = ["$open", "$close", "$high", "$low", "$volume", "$factor"]
+                logger.info("正在获取全量特征数据...")
+                data = D.features(instruments, fields, freq="day").sort_index()
+                if data.empty:
+                    raise RuntimeError("No data available in Qlib. Check ~/.qlib/qlib_data/cn_data/")
+
+                all_path = template_path / "daily_pv_all.h5"
+                data.to_hdf(str(all_path), key="data")
+                n_inst = data.reset_index()["instrument"].nunique()
+                logger.info(f"daily_pv_all.h5: {len(data)} rows, {n_inst} instruments")
+
+                # Debug 数据：前 100 只股票
+                first_100 = data.reset_index()["instrument"].unique()[:100].tolist()
+                data2 = D.features(first_100, fields, freq="day").sort_index()
+                debug_path = template_path / "daily_pv_debug.h5"
+                data2.to_hdf(str(debug_path), key="data")
+                logger.info(f"daily_pv_debug.h5: {len(data2)} rows, {len(first_100)} instruments")
                 logger.info("RUN_MODE=local: data generation completed successfully")
             else:
                 logger.info("RUN_MODE=local: .h5 files exist in template, reusing")
