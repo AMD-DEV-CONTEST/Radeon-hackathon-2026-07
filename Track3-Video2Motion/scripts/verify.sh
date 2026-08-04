@@ -23,12 +23,31 @@ step "3. Reward function is correct (the important one)"
 # convention is wrong, and no policy can score in that environment.
 MOTION="${1:-$REPO/workdir/motions_bm/salute.npz}"
 if [ -f "$MOTION" ]; then
-  OUT=$("$PYX" "$REPO/src/diagnostics/diag_perfect.py" "$MOTION" 2>/dev/null | sed -n '4,10p')
-  echo "$OUT"
-  if echo "$OUT" | grep -qE '0\.9[0-9]{3}|0\.[0-8]'; then
-    bad "some tracking reward is below 1.0000"
+  # Do not swallow stderr and do not let `set -e` abort here: this check
+  # failing silently is worse than it failing loudly, and that is exactly what
+  # happened when it was written as OUT=$(... 2>/dev/null).
+  set +e
+  RAW=$("$PYX" "$REPO/src/diagnostics/diag_perfect.py" "$MOTION" 2>&1)
+  RC=$?
+  set -e
+  if [ "$RC" -ne 0 ]; then
+    bad "the reward check could not run"
+    echo "$RAW" | tail -6 | sed 's/^/      /'
   else
-    ok "all six tracking rewards read 1.0000"
+    echo "$RAW" | sed -n '4,10p'
+    # Check the reward table only. Grepping the whole output matched the
+    # per-body velocity numbers further down (0.0298 and friends) and reported
+    # a failure while every reward was in fact 1.0000.
+    OFF=$(echo "$RAW" | awk '
+      /^ *[0-9]+ / && NF == 7 {
+        for (i = 2; i <= 7; i++) if ($i != "1.0000") { bad++ }
+      }
+      END { print bad + 0 }')
+    if [ "$OFF" -gt 0 ]; then
+      bad "$OFF reward value(s) are not exactly 1.0000"
+    else
+      ok "all six tracking rewards read 1.0000"
+    fi
   fi
 else
   info "skipped — no motion file yet (run scripts/run_pipeline.sh first)"

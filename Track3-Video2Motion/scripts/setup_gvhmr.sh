@@ -8,27 +8,42 @@ step "Creating $VENVS/gvhmr"
 "$PY" -m venv "$VENVS/gvhmr"
 PIP="$VENVS/gvhmr/bin/pip"; PYX="$VENVS/gvhmr/bin/python"
 # setuptools >= 81 removed pkg_resources, which lightning still imports.
-$PIP install -q --upgrade pip "setuptools<81"
+$PIP install -q $PIP_OPTS --upgrade pip "setuptools<81"
 
 step "PyTorch for ROCm"
-# All four wheels in ONE command: they pin a matching local
-# pytorch-triton-rocm build, so installing them separately fails with
-#   No matching distribution found for triton==...+rocm...
-$PIP install -q --index-url "$ROCM_INDEX" torch torchvision torchaudio pytorch-triton-rocm
-$PYX -c "import torch; print('  torch', torch.__version__, '| hip', torch.version.hip)"
+# The AMD cloud image ships the ROCm wheels on disk (in / by default). They must
+# all go in ONE command: torch pins the exact local triton build, so installing
+# them one at a time fails with
+#   No matching distribution found for triton==3.5.1+rocm7.2.1...
+# No public index carries these exact builds, so local files are preferred and
+# the index is only a fallback.
+mapfile -t WHEELS < <(ls "$ROCM_WHEELS"/torch-*rocm*.whl \
+                         "$ROCM_WHEELS"/torchvision-*rocm*.whl \
+                         "$ROCM_WHEELS"/torchaudio-*rocm*.whl \
+                         "$ROCM_WHEELS"/triton-*rocm*.whl 2>/dev/null)
+if [ "${#WHEELS[@]}" -ge 4 ]; then
+  info "using ${#WHEELS[@]} local ROCm wheels from $ROCM_WHEELS"
+  for w in "${WHEELS[@]}"; do info "  $(basename "$w")"; done
+  $PIP install -q "${WHEELS[@]}"
+else
+  info "no local ROCm wheels under $ROCM_WHEELS — falling back to $ROCM_INDEX"
+  info "(set V2M_ROCM_WHEELS if yours are elsewhere)"
+  $PIP install -q --index-url "$ROCM_INDEX" torch torchvision torchaudio pytorch-triton-rocm
+fi
+$PYX -c "import torch; print('  torch', torch.__version__, '| hip', torch.version.hip, '| gpu', torch.cuda.is_available())"
 
 step "GVHMR"
 [ -d "$THIRD/GVHMR" ] || git clone -q --depth 1 https://github.com/zju3dv/GVHMR "$THIRD/GVHMR"
-$PIP install -q -r "$THIRD/GVHMR/requirements.txt" || info "some requirements failed; continuing with explicit pins"
+$PIP install -q $PIP_OPTS -r "$THIRD/GVHMR/requirements.txt" || info "some requirements failed; continuing with explicit pins"
 # wis3d and pycolmap are NOT optional — cv2_utils.py imports them at module level.
 # ultralytics must be >= 8.4: 8.2.42 breaks on torch >= 2.6 because
 # weights_only=True became the default and blocks the YOLO checkpoint load.
-$PIP install -q "numpy<2" yacs pycolmap wis3d "ultralytics>=8.4"
+$PIP install -q $PIP_OPTS "numpy<2" yacs pycolmap wis3d "ultralytics>=8.4"
 
 step "chumpy (needs patching)"
 # chumpy aborts the whole batch if installed together with others, and its
 # source uses APIs removed from Python 3.11 / NumPy 1.24.
-$PIP install -q --no-build-isolation chumpy || true
+$PIP install -q $PIP_OPTS --no-build-isolation chumpy || true
 CH=$($PYX -c "import chumpy,os;print(os.path.dirname(chumpy.__file__))" 2>/dev/null || true)
 if [ -n "$CH" ]; then
   sed -i 's/inspect.getargspec/inspect.getfullargspec/g' "$CH/ch.py" || true
@@ -40,7 +55,7 @@ step "pytorch3d (compiled from source — the slow step)"
 # MAX_JOBS is mandatory. An unbounded build spawns 30+ cc1plus processes; on our
 # machine it starved the system until sshd could no longer fork.
 [ -d "$THIRD/pytorch3d" ] || git clone -q --depth 1 https://github.com/facebookresearch/pytorch3d "$THIRD/pytorch3d"
-MAX_JOBS="${MAX_JOBS:-8}" FORCE_CUDA=0 $PIP install --no-build-isolation -e "$THIRD/pytorch3d"
+MAX_JOBS="${MAX_JOBS:-8}" FORCE_CUDA=0 $PIP install $PIP_OPTS --no-build-isolation -e "$THIRD/pytorch3d"
 
 cat <<'MSG'
 

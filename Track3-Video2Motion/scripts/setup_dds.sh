@@ -17,10 +17,10 @@ export LD_LIBRARY_PATH="$CYCLONEDDS_HOME/lib:${LD_LIBRARY_PATH:-}"
 PIP="$VENVS/mjx/bin/pip"
 
 step "unitree_sdk2_python + unitree_mujoco"
-$PIP install -q cyclonedds==0.10.2
+$PIP install -q $PIP_OPTS cyclonedds==0.10.2
 [ -d "$THIRD/unitree_sdk2_python" ] || git clone -q --depth 1 \
     https://github.com/unitreerobotics/unitree_sdk2_python "$THIRD/unitree_sdk2_python"
-$PIP install -q -e "$THIRD/unitree_sdk2_python" --no-deps
+$PIP install -q $PIP_OPTS -e "$THIRD/unitree_sdk2_python" --no-deps
 [ -d "$THIRD/unitree_mujoco" ] || git clone -q --depth 1 \
     https://github.com/unitreerobotics/unitree_mujoco "$THIRD/unitree_mujoco"
 

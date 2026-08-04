@@ -98,7 +98,7 @@ alone differs, and one side needs `jax` while the other needs `torch`:
 
 | venv | Key packages | Must NOT contain |
 |---|---|---|
-| `mjx` | JAX 0.11 (rocm), mujoco 3.11, brax 0.14.2, gradio | `torch` |
+| `mjx` | JAX 0.11 (rocm), mujoco 3.11, brax 0.14.2, `playground`, gradio | `torch` |
 | `gvhmr` | torch 2.9.1+rocm, pytorch3d, numpy 1.26.4 | `jax` |
 | `gmr` | mujoco 3.11, smplx, numpy 2.5.1 | — |
 

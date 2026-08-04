@@ -79,7 +79,11 @@ step, which is what a real motor driver does.
 
 | Problem | Symptom | Fix |
 |---|---|---|
-| ROCm torch wheels | `No matching distribution found for triton==...+rocm...` | install `torch torchvision torchaudio pytorch-triton-rocm` in **one** command — they pin a matching local triton build |
+| ROCm torch wheels | `No matching distribution found for torch` | the AMD cloud image ships them **as files in `/`**, not on any index — no public index carries these exact builds. `setup_gvhmr.sh` uses the local wheels and only falls back to an index. Set `V2M_ROCM_WHEELS` if yours are elsewhere |
+| ROCm torch wheels | `No matching distribution found for triton==...+rocm...` | install all four in **one** command — torch pins the exact local triton build |
+| `mujoco_playground` | `No matching distribution found for mujoco_playground` | the distribution is called **`playground`**; `mujoco_playground` is only the import name |
+| G1 model will not load | `Error opening file '.../mujoco_menagerie/unitree_g1/assets/pelvis.STL'` | the `playground` package ships scene XML but not the meshes. Call `mjx_env.ensure_menagerie_exists()` (~2 GB); `setup_mjx.sh` does this and then loads the G1 for real, because the scene file existing is not the same as it loading |
+| PyPI is slow | measured 311 kB/s, turning a 90 min install into 4 h | set `V2M_PIP_INDEX` to a mirror. Keep PyPI as a fallback — the Tsinghua mirror has no `playground`, and `--index-url` alone would abort the install |
 | pytorch3d build | machine becomes unresponsive, `sshd` cannot fork, SSH dies with `kex_exchange_identification: Connection closed` | `MAX_JOBS=8`; an unbounded build spawns 30+ `cc1plus` processes |
 | pytorch3d | `No module named 'torch'` during build | `--no-build-isolation` |
 | chumpy | `No module named 'pip'`, and it aborts the whole batch | install alone, then `sed` `inspect.getargspec` → `getfullargspec` and drop the removed NumPy aliases |
@@ -87,6 +91,8 @@ step, which is what a real motor driver does.
 | ultralytics 8.2.42 | YOLO checkpoint fails to load on torch ≥ 2.6 | `ultralytics>=8.4` (`weights_only=True` became the default) |
 | wis3d / pycolmap | assumed optional | they are not — `cv2_utils.py` imports them at module level |
 | JAX reports `cpu` | everything is unusably slow | stop and fix ROCm before installing anything else |
+| every `git clone` fails | `server certificate verification failed. CAfile: none`, even with a current `ca-certificates` | the environment intercepts TLS. On the AMD cloud image the certificate is literally `CN = Proxy Certificate for GitHub/Docker/HuggingFace`. `setup_system.sh` detects this and trusts the proxy root; `curl https://github.com` returning `(60) self-signed certificate` is the giveaway |
+| `apt-get update` warns about `compute-artifactory.amd.com` | `Something wicked happened resolving ...` | harmless — that host is on AMD's internal network. apt skips it and uses the public repos. Only a problem if the ROCm packages themselves are missing afterwards |
 
 ---
 
