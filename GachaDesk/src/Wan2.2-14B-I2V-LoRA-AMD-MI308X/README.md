@@ -1,0 +1,27 @@
+---
+# 详细文档见 https://modelscope.cn/docs/%E5%88%9B%E7%A9%BA%E9%97%B4%E5%8D%A1%E7%89%87
+domain: # domain: cv/nlp/audio/multi-modal/AutoML
+# - cv
+tags: # custom tags
+-
+datasets: # linked datasets
+  evaluation:
+  #- iic/ICDAR13_HCTR_Dataset
+  test:
+  #- iic/MTWI
+  train:
+  #- iic/SIBR
+models: # linked models
+#- iic/ofa_ocr-recognition_general_base_zh
+- Wan-AI/Wan2.2-I2V-A14B-Diffusers
+- lightx2v/Wan2.2-Distill-Loras
+
+## Entry file (defaults to app.py for Gradio/Streamlit SDK, index.html for Static HTML)
+# deployspec:
+#   entry_file: app.py
+license: Apache License 2.0
+---
+#### Clone with HTTP
+```bash
+ git clone https://www.modelscope.cn/studios/xihuyisheng/Wan2.2-14B-I2V-LoRA-AMD-MI308X.git
+```
