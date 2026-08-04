@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>ArtisanAI 项目简介</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 16mm 16mm; }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: "Source Han Sans SC", "Noto Sans CJK SC", "Microsoft YaHei",
+                 "PingFang SC", "WenQuanYi Micro Hei", sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.75;
+    color: #1a1a1a;
+    max-width: 178mm;
+    margin: 0 auto;
+    padding: 10mm 4mm;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  code, pre, .mono {
+    font-family: "DejaVu Sans Mono", "Consolas", "Courier New", monospace;
+  }
+
+  /* ---------- 打印提示条（打印时隐藏） ---------- */
+  .tip {
+    background: #fff8e1; border: 1px solid #f0c000; border-radius: 4px;
+    padding: 10px 14px; margin-bottom: 22px; font-size: 9.5pt; color: #6b5200;
+  }
+  @media print { .tip { display: none; } }
+
+  /* ---------- 封面 ---------- */
+  .cover { text-align: center; padding: 8mm 0 6mm; border-bottom: 2.5pt solid #c8102e; margin-bottom: 8mm; }
+  .cover h1 { font-size: 26pt; margin: 0 0 6px; letter-spacing: 1px; color: #111; }
+  .cover .sub { font-size: 12pt; color: #555; margin-bottom: 14px; }
+  .cover .meta { font-size: 9.5pt; color: #777; }
+  .cover .badge {
+    display: inline-block; background: #c8102e; color: #fff; font-size: 9pt;
+    padding: 3px 12px; border-radius: 12px; margin-bottom: 12px; letter-spacing: .5px;
+  }
+
+  /* ---------- 标题 ---------- */
+  h2 {
+    font-size: 14pt; margin: 22px 0 10px; padding: 6px 0 6px 11px;
+    border-left: 4.5pt solid #c8102e; background: #f7f7f8;
+    break-after: avoid; page-break-after: avoid;
+  }
+  h3 {
+    font-size: 11.5pt; margin: 16px 0 7px; color: #c8102e;
+    break-after: avoid; page-break-after: avoid;
+  }
+  h4 { font-size: 10.5pt; margin: 12px 0 5px; color: #333; break-after: avoid; }
+
+  p { margin: 7px 0; text-align: justify; }
+  ul, ol { margin: 7px 0 7px 4px; padding-left: 20px; }
+  li { margin: 4px 0; }
+
+  code {
+    background: #f0f0f2; padding: 1px 5px; border-radius: 3px;
+    font-size: 9pt; color: #b02040;
+  }
+
+  /* ---------- 表格 ---------- */
+  table {
+    width: 100%; border-collapse: collapse; margin: 10px 0 14px; font-size: 9.5pt;
+    break-inside: avoid; page-break-inside: avoid;
+  }
+  th {
+    background: #2c3038; color: #fff; text-align: left;
+    padding: 7px 9px; font-weight: 600; border: 1px solid #2c3038;
+  }
+  td { padding: 6px 9px; border: 1px solid #d5d7da; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafafb; }
+  td.c, th.c { text-align: center; }
+
+  /* ---------- 架构图 ---------- */
+  .arch { margin: 14px 0 18px; break-inside: avoid; page-break-inside: avoid; }
+  .layer {
+    border: 1.2pt solid #b8bcc4; border-radius: 5px; margin-bottom: 7px;
+    background: #fbfbfc; overflow: hidden;
+  }
+  .layer-hd {
+    background: #2c3038; color: #fff; font-size: 9pt; font-weight: 600;
+    padding: 4px 10px; letter-spacing: .5px;
+  }
+  .layer-bd { padding: 9px 10px; font-size: 9.5pt; }
+  .boxes { display: flex; flex-wrap: wrap; gap: 6px; }
+  .box {
+    border: 1pt solid #c8102e; border-radius: 4px; background: #fff5f6;
+    padding: 5px 10px; font-size: 9pt; flex: 1; min-width: 90px; text-align: center;
+  }
+  .box.grey { border-color: #9aa0a8; background: #f2f3f5; }
+  .box .t { font-weight: 600; display: block; }
+  .box .d { color: #666; font-size: 8pt; }
+  .arrow { text-align: center; color: #c8102e; font-size: 12pt; line-height: 1; margin: 1px 0 6px; }
+
+  pre.flow {
+    background: #f7f7f8; border: 1pt solid #d5d7da; border-radius: 4px;
+    padding: 11px 13px; font-size: 8.5pt; line-height: 1.6; overflow-x: auto;
+    break-inside: avoid; page-break-inside: avoid; margin: 10px 0 14px;
+  }
+
+  /* ---------- 提示块 ---------- */
+  .note {
+    border-left: 3.5pt solid #0b7285; background: #f0f8fa;
+    padding: 9px 13px; margin: 11px 0; font-size: 9.5pt;
+    break-inside: avoid; page-break-inside: avoid;
+  }
+  .todo {
+    border: 1.5pt dashed #d97706; background: #fffbeb;
+    padding: 9px 13px; margin: 11px 0; font-size: 9.5pt; color: #92400e;
+    break-inside: avoid; page-break-inside: avoid;
+  }
+  .todo b { color: #b45309; }
+  .fill { background: #fde68a; padding: 0 6px; border-radius: 2px; color: #78350f; font-weight: 600; }
+
+  .pagebreak { break-before: page; page-break-before: always; }
+
+  footer {
+    margin-top: 26px; padding-top: 9px; border-top: 1pt solid #d5d7da;
+    font-size: 8.5pt; color: #888; text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="tip">
+  <b>生成 PDF：</b>浏览器按 <code>Ctrl/Cmd + P</code> → 目标打印机选「另存为 PDF」 → 纸张 A4 → 边距「默认」 →
+  <b>勾选「背景图形 / Background graphics」</b>（否则表头和色块会丢失）→ 保存。本提示条不会出现在 PDF 中。
+</div>
+
+<div class="cover">
+  <div class="badge">AMD Radeon GPU / ROCm 应用开发</div>
+  <h1>ArtisanAI</h1>
+  <div class="sub">基于 SDXL + ControlNet 的实时风格化图像生成系统</div>
+  <div class="meta">
+    团队：<b>锐意进取</b> &nbsp;·&nbsp; 参赛者：何瑞清、高毅<br>
+    项目简介文档 &nbsp;|&nbsp; 版本 v1.0 &nbsp;|&nbsp; 2026 年 8 月 3 日
+  </div>
+</div>
+
+<h2>一、项目背景</h2>
+
+<h3>1.1 行业背景</h3>
+<p>以 Stable Diffusion 为代表的扩散模型已成为 AIGC 图像生成的主流技术路线。其中 SDXL（Stable Diffusion XL）凭借 1024×1024 原生分辨率和显著提升的成图质量，成为开源社区事实上的基座模型。然而，扩散模型的迭代式采样机制决定了它天然「慢」——标准 SDXL 需要 30~50 步去噪，单张图耗时常在十秒量级，难以支撑交互式使用。</p>
+<p>与此同时，图像生成的需求正从「文生图」向「图生图」迁移：用户手中已有照片或草图，希望在<strong>保留原有构图与结构</strong>的前提下改变艺术风格，而不是从噪声中随机生成一张无关的新图。这对模型提出了结构可控性的要求。</p>
+
+<h3>1.2 待解决的问题</h3>
+<table>
+  <tr><th style="width:22%">问题</th><th>具体表现</th></tr>
+  <tr><td><b>推理速度慢</b></td><td>原生 SDXL 需 30~50 步采样，叠加 ControlNet 后单步开销进一步翻倍，交互体验断裂</td></tr>
+  <tr><td><b>结构不可控</b></td><td>纯图生图仅靠 <code>strength</code> 调节，强度稍大就丢失原图轮廓，稍小又几乎不改变风格</td></tr>
+  <tr><td><b>风格切换成本高</b></td><td>每换一种风格 LoRA 都要重新读盘加载权重，切换耗时数秒，无法快速对比</td></tr>
+  <tr><td><b>显存占用大</b></td><td>SDXL + 全尺寸 ControlNet + 多个 LoRA，朴素实现容易超出单卡显存</td></tr>
+</table>
+
+<h3>1.3 项目定位</h3>
+<p>ArtisanAI 面向 AMD Radeon GPU + ROCm 平台，构建一套<strong>结构可控、风格可切换、响应达到交互级</strong>的图像风格化系统。核心技术选择是三者的组合：</p>
+<ul>
+  <li><b>SDXL-Lightning 对抗蒸馏 LoRA</b> —— 把采样步数从 50 步压到 8 步，解决速度问题；</li>
+  <li><b>蒸馏版 Canny ControlNet</b> —— 用边缘图约束生成解决结构保持问题，且采用 160M 参数的蒸馏模型而非 1.25B 的全尺寸版本；</li>
+  <li><b>多 LoRA 常驻显存 + 动态权重混合</b> —— 8 种风格全部预加载，切换只改 adapter 权重而不重新加载，解决切换延迟问题。</li>
+</ul>
+
+<h2>二、目标用户与应用场景</h2>
+
+<h3>2.1 目标用户</h3>
+<table>
+  <tr><th style="width:20%">用户群体</th><th style="width:38%">核心诉求</th><th>本系统对应能力</th></tr>
+  <tr>
+    <td><b>自媒体 / 内容创作者</b></td>
+    <td>把手头素材图快速转成多种风格配图，用于封面、插图、社交媒体发布</td>
+    <td>一张输入图，8 种风格秒级切换对比，直接取用</td>
+  </tr>
+  <tr>
+    <td><b>视觉设计师</b></td>
+    <td>概念阶段快速探索风格方向，避免在单一方案上过早投入</td>
+    <td>固定 seed 下切换风格，构图不变、仅风格变化，可控对比</td>
+  </tr>
+  <tr>
+    <td><b>电商 / 营销从业者</b></td>
+    <td>商品图、宣传物料的风格化改造，降低外包插画成本</td>
+    <td>边缘约束保证商品轮廓不失真，风格叠加不改变主体结构</td>
+  </tr>
+  <tr>
+    <td><b>教育 / 展示场景</b></td>
+    <td>向非技术受众直观演示扩散模型、ControlNet、LoRA 的作用</td>
+    <td>Web UI 参数全暴露，并实时输出各阶段耗时拆解</td>
+  </tr>
+  <tr>
+    <td><b>个人普通用户</b></td>
+    <td>照片艺术化、头像风格化，零技术门槛</td>
+    <td>浏览器打开即用，切换风格自动填入推荐提示词</td>
+  </tr>
+</table>
+
+<h3>2.2 典型应用场景</h3>
+<h4>场景 A — 单图多风格快速比选</h4>
+<p>用户上传一张照片，固定 <code>Seed = 42</code>、<code>Strength = 0.7</code>，依次切换「日式动漫 → 吉卜力 → 油画 → 皮克斯」。由于随机种子与结构约束不变，四张输出的构图完全一致，差异纯粹来自风格，可直接横向比选。风格切换不触发权重重载，等待时间仅为一次推理。</p>
+
+<h4>场景 B — 结构保持强度调优</h4>
+<p>用户通过 <code>ControlNet Scale</code>（边缘约束强度）与 <code>Strength</code>（重绘强度）两个正交参数，在「忠于原图」与「风格强烈」之间连续调节，找到适合当前素材的平衡点。</p>
+
+<h4>场景 C — 性能演示与调优</h4>
+<p>界面实时输出边缘提取、文本编码、逐步去噪、VAE 解码各环节耗时，可用于在 AMD 平台上定位性能瓶颈、验证优化效果。</p>
+
+<h3>2.3 场景约束</h3>
+<div class="note">
+本系统定位于<strong>图生图（image-to-image）</strong>风格化，必须提供输入图像，不支持纯文本生成图像；输出分辨率固定按 1024×1024 生成后还原为输入图原始尺寸；单次处理单张图像，暂不支持批量队列。
+</div>
+
+<div class="pagebreak"></div>
+<h2>三、系统架构</h2>
+
+<h3>3.1 分层架构</h3>
+
+<div class="arch">
+  <div class="layer">
+    <div class="layer-hd">表现层 &nbsp;—&nbsp; Gradio Web UI（app.py）</div>
+    <div class="layer-bd">
+      <div class="boxes">
+        <div class="box"><span class="t">图像上传</span><span class="d">PIL Image</span></div>
+        <div class="box"><span class="t">风格下拉框</span><span class="d">联动推荐提示词</span></div>
+        <div class="box"><span class="t">参数控件</span><span class="d">6 项滑块 + Seed</span></div>
+        <div class="box"><span class="t">结果与耗时面板</span><span class="d">输出图 + 计时拆解</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="arrow">▼</div>
+
+  <div class="layer">
+    <div class="layer-hd">应用编排层 &nbsp;—&nbsp; generate() 主流程</div>
+    <div class="layer-bd">
+      <div class="boxes">
+        <div class="box grey"><span class="t">预处理</span><span class="d">缩放 1024²</span></div>
+        <div class="box grey"><span class="t">LoRA 切换</span><span class="d">apply_lora()</span></div>
+        <div class="box grey"><span class="t">条件图生成</span><span class="d">Canny 边缘提取</span></div>
+        <div class="box grey"><span class="t">推理调度</span><span class="d">Pipeline 调用</span></div>
+        <div class="box grey"><span class="t">后处理</span><span class="d">还原原始尺寸</span></div>
+        <div class="box grey"><span class="t">性能埋点</span><span class="d">分段计时回调</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="arrow">▼</div>
+
+  <div class="layer">
+    <div class="layer-hd">模型层 &nbsp;—&nbsp; gen_image.py（全部常驻显存）</div>
+    <div class="layer-bd">
+      <div class="boxes">
+        <div class="box"><span class="t">Canny 边缘检测</span><span class="d">OpenCV，无模型权重</span></div>
+        <div class="box"><span class="t">SDXL 主干</span><span class="d">CLIP×2 + UNet + VAE</span></div>
+        <div class="box"><span class="t">Canny ControlNet</span><span class="d">蒸馏版 160M 参数</span></div>
+        <div class="box"><span class="t">LoRA 管理器</span><span class="d">Lightning + 8 风格 adapter</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="arrow">▼</div>
+
+  <div class="layer">
+    <div class="layer-hd">运行时与硬件层</div>
+    <div class="layer-bd">
+      <div class="boxes">
+        <div class="box grey"><span class="t">Diffusers / Transformers / PEFT</span><span class="d">模型与适配器框架</span></div>
+        <div class="box grey"><span class="t">PyTorch（ROCm 7.2.1 构建）</span><span class="d">HIP 后端，fp16</span></div>
+        <div class="box grey"><span class="t">AMD Radeon GPU</span><span class="d">48 GB VRAM · Baremetal</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3>3.2 推理数据流</h3>
+
+<pre class="flow">
+输入图像 (任意尺寸)
+   │
+   ├─► resize 1024×1024 ──► Canny 边缘检测 ────────────► 边缘条件图 control_image
+   │                                                              │
+   ├─► resize 1024×1024 ──► VAE Encode ──► 初始 latent            │
+   │                              │                               │
+提示词 Prompt                     │                               │
+   │                              ▼                               ▼
+   └─► CLIP-L + CLIP-bigG ──► ┌──────────────────────────────────────────┐
+       (双文本编码器)          │   去噪循环  ×  int(steps × strength) 步   │
+                              │                                          │
+                              │   ┌────────────────┐   残差注入          │
+                              │   │  ControlNet    │ ─────────┐          │
+                              │   │  (Canny 蒸馏)  │          ▼          │
+                              │   └────────────────┘   ┌─────────────┐   │
+                              │                        │    UNet     │   │
+                              │   LoRA 权重混合 ──────► │  + Lightning│   │
+                              │   (Lightning + 风格)    │  + 风格LoRA │   │
+                              │                        └─────────────┘   │
+                              │           ▼                              │
+                              │   EulerDiscreteScheduler (trailing)      │
+                              └──────────────────────────────────────────┘
+                                            │
+                                            ▼
+                                     VAE Decode (fp16-fix)
+                                            │
+                                            ▼
+                                 resize 回输入图原始尺寸 ──► 输出图像
+</pre>
+
+<div class="note">
+<b>关于实际步数：</b>在图生图模式下，真实执行的去噪步数为 <code>int(num_inference_steps × strength)</code>。以界面默认值 <code>steps=8</code>、<code>strength=0.7</code> 计算，实际仅执行 <b>5 步</b>去噪。这是 SDXL-Lightning 蒸馏 LoRA 与图生图机制叠加后的效果，也是本系统达到交互级响应的直接原因。
+</div>
+
+<h3>3.3 关键设计决策</h3>
+<table>
+  <tr><th style="width:26%">决策</th><th style="width:37%">做法</th><th>收益</th></tr>
+  <tr><td><b>LoRA 全量预加载</b></td><td>启动时 <code>preload_style_loras()</code> 把 8 个风格 adapter 一次性载入显存，切换时只调用 <code>set_adapters()</code> 改权重</td><td>切换风格从「读盘 + 加载」的秒级降为近乎零开销；额外显存代价仅 8×9 MB</td></tr>
+  <tr><td><b>双 LoRA 权重混合</b></td><td>加速用的 Lightning LoRA 始终以权重 1.0 激活，风格 LoRA 作为第二个 adapter 叠加</td><td>加速与风格解耦，任意风格都享有 8 步加速</td></tr>
+  <tr><td><b>启动期 Warmup</b></td><td>服务启动时先用内置样例图跑一次完整推理</td><td>把 GPU kernel 首次编译开销从用户首次请求转移到启动阶段</td></tr>
+  <tr><td><b>全程 fp16 不做 offload</b></td><td>所有组件常驻显存，不启用 <code>enable_model_cpu_offload()</code></td><td>避免每步推理的 Host↔Device 权重搬运，代价是更高的显存占用</td></tr>
+  <tr><td><b>边缘图结果缓存</b></td><td>以输入图内容哈希为键缓存最近一张 Canny 边缘图</td><td>同图调参、切换风格时跳过整个边缘检测环节——这正是交互式使用的主要模式</td></tr>
+  <tr><td><b>分段性能埋点</b></td><td>通过 <code>callback_on_step_end</code> 逐步记录耗时并同步 GPU，同时采集 PyTorch 显存峰值</td><td>可精确定位瓶颈环节；生产部署时可关闭以消除同步开销</td></tr>
+</table>
+
+<div class="pagebreak"></div>
+<h2>四、模型与算法介绍</h2>
+
+<h3>4.1 模型清单</h3>
+<table>
+  <tr><th style="width:17%">角色</th><th style="width:36%">模型</th><th>说明</th></tr>
+  <tr><td><b>基座模型</b></td><td><code>stabilityai/stable-diffusion-xl-base-1.0</code><br>(fp16 variant)</td><td>SDXL 1.0，双文本编码器 + 2.6B 参数 UNet，原生 1024×1024</td></tr>
+  <tr><td><b>结构控制</b></td><td><code>diffusers/controlnet-canny-sdxl-1.0-small</code></td><td><b>蒸馏版</b> SDXL ControlNet，160M 参数 / 320 MB fp16，约为全尺寸版本的 1/7.8</td></tr>
+  <tr><td><b>边缘检测</b></td><td>OpenCV Canny（<code>controlnet-aux</code> 封装）</td><td>传统算子，<b>无需任何模型权重</b>，纯 CPU 计算，不占显存</td></tr>
+  <tr><td><b>图像解码器</b></td><td><code>madebyollin/sdxl-vae-fp16-fix</code></td><td>修正版 VAE，规避官方 SDXL VAE 在 fp16 下的数值溢出</td></tr>
+  <tr><td><b>加速模块</b></td><td><code>ByteDance/SDXL-Lightning</code><br><code>sdxl_lightning_8step_lora.safetensors</code></td><td>渐进式对抗蒸馏得到的 8 步采样 LoRA</td></tr>
+  <tr><td><b>风格模块</b></td><td><code>ntc-ai/SDXL-LoRA-slider.*</code> × 8</td><td>见 4.4 节，单个权重仅 9 MB</td></tr>
+</table>
+
+<h3>4.2 核心算法一：Canny ControlNet 结构约束</h3>
+<p>ControlNet 通过复制 UNet 编码器分支并接受额外的空间条件图，将条件特征以残差形式注入主干 UNet 的对应层，从而在不破坏基座模型能力的前提下施加空间约束。</p>
+
+<h4>条件类型的选择</h4>
+<p>可用于结构约束的条件类型可按「结构锁定强度」排成一条谱系：Canny（二值硬边缘，最紧）→ Lineart（线稿）→ SoftEdge（连续灰度柔边）→ Scribble（粗略轮廓）→ Depth（仅三维层次，平面内最自由）。锁定越紧，构图还原度越高，但留给风格化的自由度越小。</p>
+<p>本项目的选型经历过一次实测驱动的调整。初始版本采用 <b>SoftEdge</b>（HED 检测器 + 全尺寸 SoftEdge ControlNet），理论上它位于谱系中段、平衡最佳。但该路线存在一个工程上的硬约束：<strong>SoftEdge/Scribble 类型在开源社区中没有任何蒸馏小模型</strong>——可用的权重均为 1.25B 参数的全尺寸 ControlNet，且所用仓库仅提供 fp32 格式（5 GB），需在加载时现场转换精度。</p>
+<p>最终改用 <b>Canny</b>，决定性因素是：<strong>Canny 与 Depth 是仅有的两类拥有官方蒸馏版本的条件类型</strong>，而 Canny 与 SoftEdge 同属边缘系，语义最为接近，是唯一可行的降级替换。切换后的收益：</p>
+<table>
+  <tr><th style="width:30%">维度</th><th class="c" style="width:23%">SoftEdge（原方案）</th><th class="c" style="width:23%">Canny（现方案）</th><th class="c">变化</th></tr>
+  <tr><td>ControlNet 参数量</td><td class="c">1.25 B</td><td class="c"><b>160 M</b></td><td class="c"><b>↓ 7.8×</b></td></tr>
+  <tr><td>权重体积</td><td class="c">5004 MB (fp32)</td><td class="c"><b>320 MB</b> (fp16)</td><td class="c"><b>↓ 15.6×</b></td></tr>
+  <tr><td>边缘检测器</td><td class="c">HED，29.4 MB 权重</td><td class="c"><b>OpenCV，无权重</b></td><td class="c">↓ 100%</td></tr>
+</table>
+<p>代价是 Canny 输出二值硬边缘，会连同图像噪声一并保留，重度风格化时可能产生偏生硬的描边感。实践中通过适当调低 <code>controlnet_conditioning_scale</code>（0.3~0.4）即可缓解——这正是把该参数暴露到界面上的原因。</p>
+<p>约束强度由 <code>controlnet_conditioning_scale</code> 控制（默认 0.5）：数值越大越贴合原图边缘，越小则风格化越自由。</p>
+
+<div class="note">
+<b>关于「参数量减少 7.8 倍」的实际收益：</b>ControlNet 是附加在 UNet 之上的旁路分支，而非替代品。以 SDXL 的 2.6B UNet 为基准，全尺寸 ControlNet 使每步计算量增至约 1.48 倍，换用 160M 的蒸馏版后降至约 1.06 倍——<strong>去噪环节的实际提速约为 28%，而非 7.8 倍</strong>。真正的计算主体始终是 UNet 本身。本项目对此保持清醒认识：ControlNet 的轻量化是有价值的一环，但采样步数的压缩（见 4.3 节）才是量级上的优化。
+</div>
+
+<h3>4.3 核心算法二：SDXL-Lightning 少步采样</h3>
+<p>SDXL-Lightning 采用<strong>渐进式对抗蒸馏</strong>（progressive adversarial distillation）：以原始 SDXL 为教师模型，训练学生模型在少数几步内逼近教师多步采样的结果，并引入对抗损失以避免少步采样常见的模糊问题。产出以 LoRA 形式发布，可直接叠加到原始 SDXL 权重上。</p>
+<p>使用时必须配套两项设置，缺一不可：</p>
+<ul>
+  <li><b>调度器</b>：<code>EulerDiscreteScheduler</code> 且 <code>timestep_spacing="trailing"</code>。蒸馏训练时采用的是 trailing 时间步排布，推理时不匹配会导致成图明显劣化。</li>
+  <li><b>引导系数</b>：蒸馏模型已将引导效果内化到权重中，无需外部引导。本项目取 <code>guidance_scale = 1.0</code>，即<strong>完全关闭 classifier-free guidance</strong>。</li>
+</ul>
+<div class="note">
+<b>关闭 CFG 的收益：</b>Diffusers 中当 <code>guidance_scale &gt; 1</code> 时会启用 classifier-free guidance，UNet 与 ControlNet 需按 batch=2 各前向一次（正向分支 + 负向分支）。由于 Lightning 已通过蒸馏将引导效果内化，这一路额外计算是纯粹的浪费。将该值设为 <code>1.0</code> 后批量减半，去噪环节的计算量直接降低约一半，是本项目单项收益最大的优化。代价是负向提示词失效——对已内化引导的蒸馏模型而言，这一功能本就意义有限。
+</div>
+
+<h3>4.4 核心算法三：多 LoRA 动态混合</h3>
+<p>基于 PEFT 的多 adapter 机制，系统在启动阶段将加速 LoRA 与全部 8 个风格 LoRA 一次性注册进 pipeline。运行时通过 <code>set_adapters([加速LoRA, 风格LoRA], adapter_weights=[1.0, scale])</code> 动态指定生效的组合与权重——权重矩阵按线性组合方式叠加到基座权重的前向计算中，无需任何磁盘 I/O。</p>
+
+<table>
+  <tr><th class="c" style="width:6%">#</th><th style="width:19%">界面名称</th><th style="width:19%">风格</th><th>LoRA 仓库</th></tr>
+  <tr><td class="c">1</td><td>日式动漫</td><td>Anime</td><td><code>ntc-ai/SDXL-LoRA-slider.anime</code></td></tr>
+  <tr><td class="c">2</td><td>像素艺术</td><td>Pixel Art</td><td><code>ntc-ai/SDXL-LoRA-slider.pixel-art</code></td></tr>
+  <tr><td class="c">3</td><td>吉卜力工作室</td><td>Studio Ghibli</td><td><code>ntc-ai/SDXL-LoRA-slider.Studio-Ghibli-style</code></td></tr>
+  <tr><td class="c">4</td><td>卡通</td><td>Cartoon</td><td><code>ntc-ai/SDXL-LoRA-slider.cartoon</code></td></tr>
+  <tr><td class="c">5</td><td>油画</td><td>Oil Painting</td><td><code>ntc-ai/SDXL-LoRA-slider.oil-painting</code></td></tr>
+  <tr><td class="c">6</td><td>皮克斯动画</td><td>Pixar</td><td><code>ntc-ai/SDXL-LoRA-slider.pixar-style</code></td></tr>
+  <tr><td class="c">7</td><td>超写实插画</td><td>Ultra-realistic Illustration</td><td><code>ntc-ai/SDXL-LoRA-slider.ultra-realistic-illustration</code></td></tr>
+  <tr><td class="c">8</td><td>千禧独立漫画</td><td>2000s Indie Comic</td><td><code>ntc-ai/SDXL-LoRA-slider.2000s-indie-comic-art-style</code></td></tr>
+</table>
+<p style="font-size:9pt;color:#666;">风格集合按 Hugging Face 下载量降序筛选，并剔除非画风类条目（画质增强、人体姿态、妆容等 slider）。每个风格附带一组推荐提示词，界面切换风格时自动填入。</p>
+
+<h3>4.5 关键参数</h3>
+<table>
+  <tr><th style="width:26%">参数</th><th class="c" style="width:12%">默认值</th><th>作用</th></tr>
+  <tr><td><code>strength</code></td><td class="c">0.7</td><td>重绘强度，同时决定实际去噪步数 <code>int(steps × strength)</code></td></tr>
+  <tr><td><code>controlnet_conditioning_scale</code></td><td class="c">0.5</td><td>边缘约束强度，越大越贴合原图结构</td></tr>
+  <tr><td><code>num_inference_steps</code></td><td class="c">8</td><td>名义采样步数，与 Lightning 8-step LoRA 匹配</td></tr>
+  <tr><td><code>guidance_scale</code></td><td class="c">1.0</td><td>CFG 引导系数，取 1.0 即关闭 CFG；蒸馏模型无需外部引导</td></tr>
+  <tr><td><code>seed</code></td><td class="c">42</td><td>随机种子，固定后可做严格的风格对照实验</td></tr>
+</table>
+
+<div class="pagebreak"></div>
+<h2>五、AMD Radeon GPU / ROCm 适配说明</h2>
+
+<h3>5.1 运行环境</h3>
+
+<h4>加速器</h4>
+<table>
+  <tr><th style="width:26%">项目</th><th>配置</th></tr>
+  <tr><td><b>GPU</b></td><td>AMD Radeon Graphics × 1（<code>amd-smi static</code> 的 <code>MARKET_NAME</code> 上报值）</td></tr>
+  <tr><td><b>GFX 架构</b></td><td><code>gfx1100</code>（RDNA 3 / Navi 31，LLVM 目标 <code>amdgcn-amd-amdhsa--gfx1100</code>）</td></tr>
+  <tr><td><b>显存容量</b></td><td>49 136 MB（约 <b>48 GB</b>）</td></tr>
+  <tr><td><b>PCIe 位置</b></td><td><code>0000:03:00.0</code>（HIP Device 0）</td></tr>
+  <tr><td><b>功耗上限</b></td><td>241 W</td></tr>
+  <tr><td><b>VBIOS</b></td><td><code>00162356</code></td></tr>
+</table>
+
+<h4>软件栈</h4>
+<table>
+  <tr><th style="width:26%">项目</th><th>配置</th></tr>
+  <tr><td><b>ROCm 版本</b></td><td><b>7.2.1</b></td></tr>
+  <tr><td><b>内核态驱动</b></td><td><code>amdgpu</code> 6.16.13</td></tr>
+  <tr><td><b>管理工具</b></td><td><code>amd-smi</code> 26.2.2 (+e1a6bc5663)</td></tr>
+  <tr><td><b>部署形态</b></td><td>Linux Baremetal（非虚拟化，容器直通 GPU）</td></tr>
+  <tr><td><b>PyTorch 版本</b></td><td><b>2.9.1</b>（源码构建，commit <code>ff65f5b</code>）</td></tr>
+  <tr><td><b>操作系统</b></td><td>Ubuntu 24.04.4 LTS</td></tr>
+  <tr><td><b>Python 版本</b></td><td>容器内 <code>/opt/venv</code> 虚拟环境</td></tr>
+</table>
+
+<h4>主机平台</h4>
+<table>
+  <tr><th style="width:26%">项目</th><th>配置</th></tr>
+  <tr><td><b>CPU</b></td><td>AMD EPYC 9334 32-Core Processor × 2 路（Zen 4，Family 25 Model 17）</td></tr>
+  <tr><td><b>核心 / 线程</b></td><td>64 物理核 / 128 逻辑线程</td></tr>
+  <tr><td><b>NUMA 拓扑</b></td><td>2 节点（node0: CPU 0-31,64-95；node1: CPU 32-63,96-127）</td></tr>
+  <tr><td><b>缓存</b></td><td>L2 64 MiB / L3 256 MiB（8 组）</td></tr>
+  <tr><td><b>系统内存</b></td><td>503 GiB</td></tr>
+</table>
+
+<div class="note">
+本项目运行在<strong>全 AMD 平台</strong>上——AMD EPYC 9334 作为主机 CPU，AMD Radeon GPU 作为推理加速器，通过 ROCm 7.2.1 软件栈打通。CPU 侧 128 线程与 503 GiB 内存为模型权重加载、图像编解码等主机侧任务提供了充裕资源，不构成瓶颈。
+</div>
+
+<h3>5.2 适配策略：零代码改动迁移</h3>
+<p>ROCm 版 PyTorch 通过 HIP 运行时对 CUDA 编程模型做了语义级映射，<code>torch.cuda.*</code> 系列 API 在 ROCm 构建下直接指向 AMD GPU（本环境中即 HIP Device 0）。因此本项目的全部设备相关代码——包括 <code>.to("cuda")</code>、<code>torch.cuda.synchronize()</code>、<code>torch.Generator(device="cuda")</code>——<strong>无需任何修改即可在 ROCm 7.2.1 平台上运行</strong>，源码保持与 NVIDIA 平台完全一致，不存在任何平台分支代码或条件编译。</p>
+<p>这一策略的价值在于：项目可在单一代码库上同时支持两个硬件平台，降低维护成本，也便于做跨平台性能对比。</p>
+
+<h3>5.3 精度与数值稳定性适配</h3>
+<p>本项目采用 fp16 全流程，这一选择与目标硬件的架构特性直接匹配：<b>gfx1100（RDNA 3）引入了 WMMA（Wave Matrix Multiply-Accumulate）矩阵指令，原生支持 fp16 数据类型的矩阵乘累加运算</b>。扩散模型的计算量绝大部分集中在 UNet 与 ControlNet 的卷积和注意力矩阵乘上，以 fp16 运行可直接命中这条硬件加速通路。</p>
+<ul>
+  <li><b>全流程 fp16。</b>所有模型组件（UNet、ControlNet、双文本编码器、VAE）统一以 <code>torch_dtype=torch.float16</code> 加载，充分利用 RDNA 3 的半精度矩阵算力并将显存占用减半。</li>
+  <li><b>VAE 溢出规避。</b>SDXL 官方 VAE 在 fp16 下存在已知的数值溢出问题，会产生黑图或色块。本项目改用 <code>madebyollin/sdxl-vae-fp16-fix</code>，该权重经过重训以适配 fp16 动态范围，是保证 fp16 全流程可用的必要条件。</li>
+  <li><b>基座模型 fp16 变体。</b>加载时指定 <code>variant="fp16"</code>，直接下载半精度权重，避免运行时转换的额外开销与显存峰值。</li>
+</ul>
+
+<h3>5.4 显存管理</h3>
+<p>系统采用「全部常驻、不做 offload」策略：</p>
+<ul>
+  <li>SDXL 主干、蒸馏版 ControlNet、VAE、Lightning LoRA 与 8 个风格 LoRA 全部驻留显存（Canny 检测为纯 CPU 算子，不占显存）；</li>
+  <li>风格 LoRA 单个仅 9 MB，8 个合计约 72 MB，相对基座模型可忽略，这使得「全部预加载」的设计在显存上完全可行；</li>
+  <li>不启用 <code>enable_model_cpu_offload()</code>，避免每步推理都发生 Host↔Device 权重搬运——在 PCIe 带宽受限的场景下，offload 带来的延迟往往超过计算本身。</li>
+</ul>
+<p>本平台 48 GB 的显存容量为该策略提供了充分空间：即使在 fp16 全精度、ControlNet 与全部 LoRA 常驻的配置下，显存仍有大量余量，无需为容量做任何妥协（如量化、分块解码或分层 offload）。这也是 5.5 节中量化方案被判定为「无必要」的直接前提。</p>
+<p>显存实测占用：<b>PyTorch 张量峰值 9.91 GB，分配器保留 11.21 GB</b>（详见 5.6 节）。相对 48 GB 的可用容量，占用率约 23%，余量充足。</p>
+
+<h3>5.5 量化方案的取舍</h3>
+<p>项目实现中保留了基于 bitsandbytes NF4 的 4-bit 量化通路（<code>gen_image.py</code> 中的 <code>USE_NF4</code> 开关），可将 UNet 权重压缩至 4-bit 以降低显存占用。但经实测评估后<strong>默认关闭</strong>，原因有二：</p>
+<ul>
+  <li><b>收益方向不匹配。</b>量化的核心价值是降低显存占用，而本平台 48 GB 显存对本项目而言远超需求（实测占用仅约 11 GB），显存从来不是约束条件。</li>
+  <li><b>存在负收益。</b>4-bit 权重在每次前向时都需反量化回计算精度，这部分开销在本项目的负载特征下无法被显存节省所补偿，端到端延迟反而上升。</li>
+</ul>
+<p>该通路作为低显存设备（如 8~12 GB 消费级显卡）的备选方案保留在代码中，可通过单个布尔开关启用，不影响主路径。</p>
+
+<h3>5.6 性能表现</h3>
+<p>测试条件：输入图 1024×1024，<code>steps=8</code>、<code>strength=0.7</code>（实际执行 5 步去噪）、<code>guidance_scale=1.0</code>、<code>controlnet_conditioning_scale=0.5</code>、<code>seed=42</code>。数据取自服务预热完成后的稳态运行，由系统内置的分段计时与显存统计直接输出。</p>
+
+<table>
+  <tr><th style="width:32%">指标</th><th class="c" style="width:18%">实测值</th><th class="c" style="width:10%">占比</th><th>说明</th></tr>
+  <tr><td>LoRA 切换（<code>set_adapters</code>）</td><td class="c">48.1 ms</td><td class="c">2.3%</td><td>纯显存内权重系数调整，无磁盘 I/O</td></tr>
+  <tr><td>Canny 边缘提取</td><td class="c">0.01 s</td><td class="c">0.5%</td><td>OpenCV 算子，CPU 侧计算，无模型权重</td></tr>
+  <tr><td>Setup（文本编码 + 首步）</td><td class="c">0.60 s</td><td class="c">29.3%</td><td>双 CLIP 编码 + VAE Encode + 第 1 步去噪</td></tr>
+  <tr><td>单步去噪耗时</td><td class="c"><b>0.246 s</b>/step</td><td class="c">48.0%</td><td>UNet + ControlNet 单步前向，CFG 已关闭（batch=1），第 2~5 步共 4 步</td></tr>
+  <tr><td>VAE 解码</td><td class="c">0.40 s</td><td class="c">19.5%</td><td>fp16-fix VAE，latent → 1024×1024 图像</td></tr>
+  <tr><td>Pipeline 总耗时</td><td class="c">1.98 s</td><td class="c">96.6%</td><td>编码 + 5 步去噪 + 解码</td></tr>
+  <tr><td><b>端到端单图耗时</b></td><td class="c"><b>2.05 s</b></td><td class="c">100%</td><td>从请求到图像返回的完整链路</td></tr>
+  <tr><td>显存峰值（PyTorch allocated）</td><td class="c">9.91 GB</td><td class="c">—</td><td>模型权重 + 中间激活的实际张量占用</td></tr>
+  <tr><td>显存峰值（PyTorch reserved）</td><td class="c">11.21 GB</td><td class="c">—</td><td>分配器缓存池；<code>amd-smi</code> 的进程级读数在此基础上再加 HIP 运行时上下文开销</td></tr>
+</table>
+
+<div class="note">
+<b>结论：1024×1024 图生图端到端 2.05 秒</b>，达到交互级响应。开销分布为——<b>去噪 77%</b>（Setup 内含首步）、<b>VAE 解码 20%</b>、LoRA 切换与边缘提取合计不足 3%。
+<br><br>
+两点值得注意：其一，<b>LoRA 切换仅 48 毫秒</b>，验证了「全量预加载 + 权重混合」设计的有效性——若改为传统的读盘重载方式，此项将是秒级开销，8 种风格的快速比选将无法成立。其二，<b>在步数已压缩至 5 步后，固定开销（Setup 中的编码部分 + VAE 解码，合计约 0.75 s）已接近去噪本身的量级</b>，这意味着继续削减采样步数的边际收益正在快速递减，后续优化重心应转向编解码环节（见 5.8 节）。
+</div>
+
+<h3>5.7 已完成的平台侧优化</h3>
+<table>
+  <tr><th class="c" style="width:6%">#</th><th style="width:30%">优化项</th><th>说明</th></tr>
+  <tr><td class="c">1</td><td><b>8 步蒸馏采样</b></td><td>Lightning LoRA + trailing 调度器，采样步数由 50 步降至 8 步（图生图下实际 5 步）</td></tr>
+  <tr><td class="c">2</td><td><b>LoRA 常驻显存</b></td><td>风格切换零磁盘 I/O，仅调整 adapter 权重</td></tr>
+  <tr><td class="c">3</td><td><b>fp16 全流程</b></td><td>配合 fp16-fix VAE 保证数值稳定</td></tr>
+  <tr><td class="c">4</td><td><b>启动期 Warmup</b></td><td>GPU kernel 首次编译开销前移至服务启动阶段，用户首次请求即达稳态性能</td></tr>
+  <tr><td class="c">5</td><td><b>免 offload 常驻</b></td><td>消除逐步的 Host↔Device 权重搬运</td></tr>
+  <tr><td class="c">6</td><td><b>关闭 CFG</b></td><td><code>guidance_scale = 1.0</code>，UNet 与 ControlNet 批量由 2 降为 1，去噪计算量减半（详见 4.3 节）</td></tr>
+  <tr><td class="c">7</td><td><b>边缘图结果缓存</b></td><td>缓存最近一张输入图的 Canny 边缘图，同图调参或切换风格时跳过边缘检测。该机制在早期采用 HED 神经网络检测器时收益显著；改用 OpenCV Canny 后单次提取已降至 0.01 s，此项现为边际优化</td></tr>
+  <tr><td class="c">8</td><td><b>MIOpen 卷积算法自动调优</b></td><td>启用 <code>torch.backends.cudnn.benchmark</code>，在 ROCm 上映射为 MIOpen 的 exhaustive find 模式，为固定输入形状实测选出最优卷积算法。本项目分辨率恒为 1024×1024、关闭 CFG 后 batch 恒为 1，形状完全稳定，满足该模式的生效前提；一次性调优开销由启动 warmup 吸收，且 MIOpen 会将结果持久化到本地数据库，服务重启后无需重新调优</td></tr>
+</table>
+
+<h3>5.8 后续优化方向</h3>
+<ol>
+  <li><b>轻量化 VAE 解码</b>——实测显示 VAE 解码占端到端耗时约 20%，在总步数已压缩到 5 步的前提下，它已成为仅次于去噪的第二大开销。可引入 TAESD 将该环节从数百毫秒降至数十毫秒，或采用两段式策略：预览阶段用 TAESD 快速出图，用户确认后再以完整 VAE 输出终图。</li>
+  <li><b>文本嵌入缓存</b>——同一提示词重复生成时跳过双 CLIP 编码。该开销包含在 Setup 环节内，实测约占端到端耗时的 17%。</li>
+  <li><b>关闭计时同步</b>——生产模式下移除逐步的 <code>torch.cuda.synchronize()</code>。该同步用于精确采集每步耗时，但会打断 CPU/GPU 流水，性能数据采集完成后可关闭。</li>
+  <li><b>更激进的蒸馏档位</b>——改用 4-step Lightning LoRA，实际去噪步数由 5 步进一步降至 2~3 步，需评估画质损失是否可接受。</li>
+  <li><b>torch.compile</b>——对 UNet 与 ControlNet 做图编译，通常可获得 20~30% 收益。但需先验证两点：与 <code>set_adapters</code> 动态切换是否触发重编译；以及 Triton 后端在 gfx1100（RDNA 3）上的成熟度——该后端在 CDNA 架构上的优化更为充分。</li>
+</ol>
+<div class="note">
+需要说明的是，<b>本项目不考虑任何以降低显存为目标的优化手段</b>（量化、CPU offload、VAE 分块解码等）。在 48 GB 显存、实测占用约 11 GB 的前提下，这类手段没有收益空间，且普遍以牺牲速度为代价。优化方向集中于降低计算量与提升执行效率。
+</div>
+
+<footer>
+ArtisanAI 项目简介文档 &nbsp;·&nbsp; v1.0 &nbsp;·&nbsp; AMD Radeon GPU / ROCm 应用开发
+</footer>
+
+</body>
+</html>
