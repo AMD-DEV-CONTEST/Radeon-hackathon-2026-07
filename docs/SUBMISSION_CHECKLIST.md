@@ -17,7 +17,7 @@ reviewer can open or reproduce. Do not mark an item complete based only on inten
 | README startup guide | `README.md`, `docs/LOCAL_DEVELOPMENT.md` | Ready |
 | 3–5 minute demonstration video | `docs/DEMO_VIDEO_SCRIPT.md` | Script ready; recording pending |
 | Command/GUI to final Radeon result | Video sections 1–6 | Recording pending |
-| PPT or poster | `submission/XiangLens_Track2_Deck.pptx` | Ready; rendered and overflow-tested |
+| PPT or poster | `submission/XiangLens_Track2_Deck.pptx` | Ready; includes an actual UI capture, rendered and overflow-tested |
 | Pull request to competition repository | Final fork/PR URL | Pending |
 
 ## 2. Scoring Evidence Matrix
@@ -115,6 +115,7 @@ Review every match manually; placeholders and test fixtures are acceptable only 
 
 - [x] Title identifies XiangLens, Track 2, AMD Radeon, and ROCm.
 - [x] Scenario is understandable without narration.
+- [x] An actual XiangLens interface capture shows intent, result, and Agent-trace surfaces.
 - [x] Architecture labels the public/private boundary.
 - [x] All five Agent capabilities are represented.
 - [x] Model and local deployment are explicit.
