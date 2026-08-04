@@ -38,8 +38,9 @@ YCB_LAYOUT: dict[str, dict] = {
     # Train objects — each placed within ~0.12m of its container so the lateral transport
     # stays short (round YCB objects eject from parallel jaws on long lateral transports).
     # Objects are y-spaced 0.24m so the 20cm banana can rotate freely without hitting neighbors.
+    # The banana is elongated and grips well, so it can sit farther from its bin (no overlap).
     "013_apple": {"pos": (0.44, 0.24, 0.0), "euler": (0.0, 0.0, 0.0), "color": "red", "friction": 1.0},
-    "011_banana": {"pos": (0.44, 0.0, 0.0), "euler": (0.0, 0.0, 35.0), "color": "yellow", "friction": 1.0},
+    "011_banana": {"pos": (0.36, 0.0, 0.0), "euler": (0.0, 0.0, 35.0), "color": "yellow", "friction": 1.0},
     "018_plum": {"pos": (0.44, -0.24, 0.0), "euler": (0.0, 0.0, 0.0), "color": "purple", "friction": 1.0},
     # Eval objects (hold-out, not in training data)
     "014_lemon": {"pos": (0.44, 0.0, 0.0), "euler": (0.0, 0.0, 0.0), "color": "yellow", "friction": 1.0},

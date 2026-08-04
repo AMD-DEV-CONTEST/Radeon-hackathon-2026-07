@@ -39,6 +39,7 @@ from lerobot.datasets.lerobot_dataset import LeRobotDataset
 from build_scene import build_scene
 from paths import DATASETS_DIR
 from randomize import RandomizationConfig
+from sk_grasp_demo import DEFAULT_PROFILE, GRASP_PROFILES
 from scene_config import (
     CONTAINER_INNER_SIZE,
     CONTAINER_RIM_MARGIN,
@@ -204,7 +205,7 @@ def _batch_settle(bundle, steps: int, step_callback=None) -> None:
 
 
 def _batch_goto_interp(bundle, pos_goal: np.ndarray, quat_goal: np.ndarray,
-                       *, finger_cmd: float, close_force: float | None = None,
+                       *, finger_cmd: float, close_force: float | np.ndarray | None = None,
                        active: np.ndarray | None = None,
                        max_dq=MOVE_MAX_DQ, min_steps=MOVE_MIN_STEPS,
                        settle=MOVE_SETTLE_STEPS,
@@ -213,6 +214,7 @@ def _batch_goto_interp(bundle, pos_goal: np.ndarray, quat_goal: np.ndarray,
 
     pos_goal: [n, 3], quat_goal: [n, 4]
     active: [n] bool mask (None = all active)
+    close_force: scalar (all envs) or [n] per-env array; None → position control.
     """
     n = bundle.scene.n_envs
     if active is None:
@@ -226,6 +228,7 @@ def _batch_goto_interp(bundle, pos_goal: np.ndarray, quat_goal: np.ndarray,
     dist = np.max(np.abs(arm_goal - arm_start), axis=1)
     n_steps = int(max(min_steps, np.ceil(np.max(dist[active]) / max_dq))) if np.any(active) else min_steps
 
+    close_arr = None if close_force is None else np.broadcast_to(np.asarray(close_force, dtype=float), (n,))
     # Symbolic encoding: record -0.04 (close) / +0.04 (open) so the finger
     # dimension has the same value range as v6 baseline. Physical control
     # still uses close_force (-12N) — only the recorded action value changes.
@@ -240,9 +243,8 @@ def _batch_goto_interp(bundle, pos_goal: np.ndarray, quat_goal: np.ndarray,
         action = np.concatenate([arm, np.full((n, 2), finger_target)], axis=1)
 
         bundle.franka.control_dofs_position(arm, MOTORS_DOF)
-        if close_force is not None:
-            force = np.full((n, 2), close_force)
-            bundle.franka.control_dofs_force(force, FINGERS_DOF)
+        if close_arr is not None:
+            bundle.franka.control_dofs_force(np.column_stack([close_arr, close_arr]), FINGERS_DOF)
         else:
             fingers = np.full((n, 2), finger_cmd)
             bundle.franka.control_dofs_position(fingers, FINGERS_DOF)
@@ -257,8 +259,8 @@ def _batch_goto_interp(bundle, pos_goal: np.ndarray, quat_goal: np.ndarray,
     hold_action = np.concatenate([hold_arm, np.full((n, 2), finger_target)], axis=1)
     for _ in range(settle):
         bundle.franka.control_dofs_position(hold_arm, MOTORS_DOF)
-        if close_force is not None:
-            bundle.franka.control_dofs_force(np.full((n, 2), close_force), FINGERS_DOF)
+        if close_arr is not None:
+            bundle.franka.control_dofs_force(np.column_stack([close_arr, close_arr]), FINGERS_DOF)
         else:
             bundle.franka.control_dofs_position(np.full((n, 2), finger_cmd), FINGERS_DOF)
         bundle.scene.step()
@@ -314,10 +316,13 @@ def _batch_descend(bundle, xy: np.ndarray, z_from: float, z_to: np.ndarray,
 
 
 def _batch_goto_direct(bundle, pos_goal: np.ndarray, quat_goal: np.ndarray,
-                       *, finger_cmd: float, close_force: float | None = None,
+                       *, finger_cmd: float, close_force: float | np.ndarray | None = None,
                        steps: int = 120, active: np.ndarray | None = None,
                        step_callback=None) -> np.ndarray:
-    """Batched direct move (hold position for `steps` steps with force/position control)."""
+    """Batched direct move (hold position for `steps` steps with force/position control).
+
+    close_force may be a scalar (all envs) or an [n] per-env array; None → position control.
+    """
     n = bundle.scene.n_envs
     if active is None:
         active = np.ones(n, dtype=bool)
@@ -327,13 +332,14 @@ def _batch_goto_direct(bundle, pos_goal: np.ndarray, quat_goal: np.ndarray,
     arm_start = bundle.franka.get_dofs_position(MOTORS_DOF).cpu().numpy()
     arm[~active] = arm_start[~active]
 
+    close_arr = None if close_force is None else np.broadcast_to(np.asarray(close_force, dtype=float), (n,))
     finger_target = -0.04 if close_force is not None else finger_cmd
     action = np.concatenate([arm, np.full((n, 2), finger_target)], axis=1)
 
     for _ in range(steps):
         bundle.franka.control_dofs_position(arm, MOTORS_DOF)
-        if close_force is not None:
-            bundle.franka.control_dofs_force(np.full((n, 2), close_force), FINGERS_DOF)
+        if close_arr is not None:
+            bundle.franka.control_dofs_force(np.column_stack([close_arr, close_arr]), FINGERS_DOF)
         else:
             bundle.franka.control_dofs_position(np.full((n, 2), finger_cmd), FINGERS_DOF)
         bundle.scene.step()
@@ -345,7 +351,10 @@ def _batch_goto_direct(bundle, pos_goal: np.ndarray, quat_goal: np.ndarray,
 
 
 def _batch_grasp_hand_z(bundle, obj_name: str, env_idx: int) -> float:
-    """Get grasp height for one object in one env."""
+    """Get grasp height for one object in one env, honoring the object's GraspProfile."""
+    profile = GRASP_PROFILES.get(obj_name, DEFAULT_PROFILE)
+    if not profile.center_align:
+        return profile.grasp_hand_z
     entity = bundle.objects[obj_name]
     aabb = entity.get_AABB().cpu().numpy()  # [n, 2, 3]
     aabb_env = aabb[env_idx]
@@ -507,14 +516,17 @@ def _run_one_batch(bundle, env_specs: list[dict], recorders: list,
         return pos
 
     def _per_env_quat() -> np.ndarray:
-        """Compute [n, 4] grasp quats based on each env's object yaw."""
+        """Compute [n, 4] grasp quats based on each env's object yaw + profile yaw_offset."""
         yaws = np.zeros(n)
         for i in range(n):
             obj = pick_objects[i]
-            yaws[i] = obj_yaws[obj][i]
+            yaws[i] = obj_yaws[obj][i] + GRASP_PROFILES.get(obj, DEFAULT_PROFILE).yaw_offset
         return _batch_quat(yaws, n)
 
     quat = _per_env_quat()
+    # Per-env close force from each object's GraspProfile
+    close_forces = np.array([GRASP_PROFILES.get(pick_objects[i], DEFAULT_PROFILE).close_force
+                             for i in range(n)])
 
     # Phase 1: Pregrasp (interp — replaces _goto_plan)
     pregrasp_pos = _per_env_pos("pregrasp")
@@ -528,21 +540,21 @@ def _run_one_batch(bundle, env_specs: list[dict], recorders: list,
     _batch_descend(bundle, grasp_pos[:, :2], pregrasp_z[0], grasp_z, quat,
                    finger=GRIPPER_OPEN, active=active, step_callback=_step_cb)
 
-    # Phase 3: Close gripper (force control)
+    # Phase 3: Close gripper (force control, per-object close force)
     _batch_goto_direct(bundle, grasp_pos, quat, finger_cmd=0.0,
-                       close_force=CLOSE_FORCE, steps=100, active=active,
+                       close_force=close_forces, steps=100, active=active,
                        step_callback=_step_cb)
 
     # Phase 4: Lift
     lift_pos = _per_env_pos("lift")
     _batch_goto_interp(bundle, lift_pos, quat, finger_cmd=0.0,
-                       close_force=CLOSE_FORCE, active=active,
+                       close_force=close_forces, active=active,
                        step_callback=_step_cb)
 
     # Phase 5: Move above place target
     above_pos = _per_env_pos("above_target")
     _batch_goto_interp(bundle, above_pos, quat, finger_cmd=0.0,
-                       close_force=CLOSE_FORCE, active=active,
+                       close_force=close_forces, active=active,
                        step_callback=_step_cb)
 
     # Phase 6: Release
