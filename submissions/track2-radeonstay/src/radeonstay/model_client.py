@@ -56,7 +56,12 @@ class LocalModelClient:
         call["sequence"] = len(calls) + 1
         calls.append(call)
 
-    def mark_last_trace_error(self, error: Exception) -> None:
+    def mark_last_trace_error(
+        self,
+        error: Exception,
+        *,
+        validation_stage: str = "response_parse",
+    ) -> None:
         """Mark a successful transport call whose local response parsing failed."""
 
         calls = getattr(self._trace_state, "calls", None)
@@ -64,8 +69,30 @@ class LocalModelClient:
             return
         calls[-1]["ok"] = False
         calls[-1]["error_type"] = type(error).__name__
+        calls[-1]["validation_stage"] = validation_stage[:80]
+        calls[-1]["validation_ok"] = False
 
-    def _record_call(self, result: ChatResult) -> None:
+    def record_last_trace_validation(
+        self,
+        *,
+        validation_stage: str,
+        validation_ok: bool,
+        outcome: str,
+    ) -> None:
+        """Attach bounded plan-validation metadata without retaining model content."""
+
+        calls = getattr(self._trace_state, "calls", None)
+        if not calls:
+            return
+        calls[-1]["validation_stage"] = validation_stage[:80]
+        calls[-1]["validation_ok"] = bool(validation_ok)
+        calls[-1]["validation_outcome"] = outcome[:80]
+
+    def _record_call(
+        self,
+        result: ChatResult,
+        trace_fields: dict[str, Any],
+    ) -> None:
         prompt_tokens = result.usage.get("prompt_tokens")
         completion_tokens = result.usage.get("completion_tokens")
         effective_rate: float | None = None
@@ -121,10 +148,16 @@ class LocalModelClient:
                 "server_decode_tokens_per_second": server_decode_rate,
                 "server_timings": safe_server_timings,
                 "ttft_ms": ttft_ms,
+                **trace_fields,
             }
         )
 
-    def _record_failure(self, started: float, error: Exception) -> None:
+    def _record_failure(
+        self,
+        started: float,
+        error: Exception,
+        trace_fields: dict[str, Any],
+    ) -> None:
         self._append_trace(
             {
                 "ok": False,
@@ -137,6 +170,7 @@ class LocalModelClient:
                 "server_timings": {},
                 "ttft_ms": None,
                 "error_type": type(error).__name__,
+                **trace_fields,
             }
         )
 
@@ -167,6 +201,7 @@ class LocalModelClient:
             "ok": True,
             "backend": self.backend_name,
             "model": self.settings.model_name,
+            "thinking_enabled": self.settings.model_enable_thinking,
             "elapsed_ms": round((time.perf_counter() - started) * 1000, 3),
             "advertised_model_count": len(advertised_models),
             "target_model_advertised": True,
@@ -179,16 +214,54 @@ class LocalModelClient:
         temperature: float = 0.1,
         max_tokens: int = 800,
         json_mode: bool = False,
+        json_schema: dict[str, Any] | None = None,
+        json_schema_name: str = "response",
+        trace_purpose: str = "chat",
+        trace_attempt: int = 1,
     ) -> ChatResult:
+        if json_schema is not None and not isinstance(json_schema, dict):
+            raise TypeError("json_schema must be a JSON object")
+        if not json_schema_name or len(json_schema_name) > 64 or any(
+            not (character.isalnum() or character in {"_", "-"})
+            for character in json_schema_name
+        ):
+            raise ValueError("json_schema_name must contain only letters, numbers, _ or -")
+        if trace_attempt < 1:
+            raise ValueError("trace_attempt must be positive")
+
         request: dict[str, Any] = {
             "model": self.settings.model_name,
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
             "stream": False,
+            "chat_template_kwargs": {
+                "enable_thinking": self.settings.model_enable_thinking,
+            },
         }
-        if json_mode:
+        response_format = "text"
+        if json_schema is not None:
+            response_format = "json_schema"
+            request["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": json_schema_name,
+                    "strict": True,
+                    "schema": json_schema,
+                },
+            }
+        elif json_mode:
+            response_format = "json_object"
             request["response_format"] = {"type": "json_object"}
+
+        trace_fields = {
+            "purpose": trace_purpose[:80],
+            "attempt": trace_attempt,
+            "response_format": response_format,
+            "json_schema_name": json_schema_name if json_schema is not None else None,
+            "thinking_enabled": self.settings.model_enable_thinking,
+            "schema_constrained": json_schema is not None,
+        }
 
         started = time.perf_counter()
         try:
@@ -214,12 +287,12 @@ class LocalModelClient:
                 raw=payload,
             )
         except ModelClientError as exc:
-            self._record_failure(started, exc)
+            self._record_failure(started, exc, trace_fields)
             raise
         except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
-            self._record_failure(started, exc)
+            self._record_failure(started, exc, trace_fields)
             raise ModelClientError(f"Local model request failed: {exc}") from exc
-        self._record_call(result)
+        self._record_call(result, trace_fields)
         return result
 
     def chat_json(
@@ -228,12 +301,20 @@ class LocalModelClient:
         *,
         temperature: float = 0.0,
         max_tokens: int = 1000,
+        json_schema: dict[str, Any] | None = None,
+        json_schema_name: str = "response",
+        trace_purpose: str = "json",
+        trace_attempt: int = 1,
     ) -> tuple[dict[str, Any], ChatResult]:
         result = self.chat(
             messages,
             temperature=temperature,
             max_tokens=max_tokens,
             json_mode=True,
+            json_schema=json_schema,
+            json_schema_name=json_schema_name,
+            trace_purpose=trace_purpose,
+            trace_attempt=trace_attempt,
         )
         try:
             parsed = _parse_json_object(result.content)
@@ -253,6 +334,10 @@ class LocalModelClient:
                 temperature=0.0,
                 max_tokens=max_tokens,
                 json_mode=True,
+                json_schema=json_schema,
+                json_schema_name=json_schema_name,
+                trace_purpose=f"{trace_purpose}.syntax_repair",
+                trace_attempt=trace_attempt + 1,
             )
             try:
                 parsed = _parse_json_object(repair.content)

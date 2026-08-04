@@ -6,13 +6,284 @@ import unittest
 from datetime import UTC, datetime
 from pathlib import Path
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from evaluation.compare_benchmarks import runtime_gpu_summary  # noqa: E402
+from evaluation.benchmark_agent import (  # noqa: E402
+    model_request_configuration as benchmark_request_configuration,
+)
+from evaluation.benchmark_agent import (  # noqa: E402
+    validate_request_configuration_evidence as validate_benchmark_configuration,
+)
+from evaluation.compare_benchmarks import (  # noqa: E402
+    build_comparison,
+    comparison_exit_code,
+    runtime_gpu_summary,
+)
 from evaluation.run_agent_eval import _case_score  # noqa: E402
+from evaluation.run_agent_eval import (  # noqa: E402
+    model_request_configuration as quality_request_configuration,
+)
+from evaluation.run_agent_eval import (  # noqa: E402
+    validate_request_configuration_evidence as validate_quality_configuration,
+)
+
+
+def _comparison_fixture(
+    run_id: str,
+    *,
+    latency_ms: float = 100.0,
+    throughput: float = 10.0,
+    token_rate: float = 100.0,
+    quality_score: float = 300.0,
+    citation_hit_rate: float = 1.0,
+    thinking_enabled: bool = False,
+) -> dict[str, object]:
+    return {
+        "run_id": run_id,
+        "model_name": "local-model",
+        "model_base_url": "http://127.0.0.1:8000/v1",
+        "cases_path": "evaluation/fixtures/benchmark-cases.jsonl",
+        "policy_corpus_sha256": "a" * 64,
+        "suite_version": "suite",
+        "suite_sha256": "b" * 64,
+        "case_ids": ["KQ-001"],
+        "request_case_ids": ["KQ-001"],
+        "request_configuration": {
+            "thinking_enabled": thinking_enabled,
+            "schema_constrained": True,
+        },
+        "configuration": {"workload": "fixed"},
+        "provenance": {
+            "commit": "c" * 40,
+            "project_tree": "d" * 40,
+            "source_tree_sha256": "e" * 64,
+        },
+        "artifacts": {
+            "model_file_sha256": "f" * 64,
+            "llama_server_sha256": "1" * 64,
+        },
+        "quality_report": {
+            "sha256": "2" * 64,
+            "total_score": quality_score,
+        },
+        "quality_gate": {
+            "thresholds": {
+                "min_success_rate": 1.0,
+                "min_citation_hit_rate": 0.95,
+            }
+        },
+        "runs": [
+            {
+                "concurrency": 1,
+                "requests": [{"case_id": "KQ-001"}],
+                "summary": {
+                    "success_rate": 1.0,
+                    "citation_hit_rate": citation_hit_rate,
+                    "latency_ms": {"p50": latency_ms, "p95": latency_ms},
+                    "successful_throughput_requests_per_second": throughput,
+                    "model_call_metrics": {
+                        "successful_calls": 1,
+                        "effective_rate_sample_count": 1,
+                        "effective_output_tokens_per_second_p50": token_rate,
+                        "effective_output_tokens_per_second_p95": token_rate,
+                        "server_decode_rate_sample_count": 0,
+                        "server_decode_tokens_per_second_p50": None,
+                        "server_decode_tokens_per_second_p95": None,
+                        "ttft_sample_count": 0,
+                        "ttft_ms_p50": None,
+                        "ttft_ms_p95": None,
+                    },
+                },
+            }
+        ],
+    }
+
+
+class RequestConfigurationEvidenceTests(unittest.TestCase):
+    def test_quality_and_benchmark_record_dynamic_thinking_and_schema(self) -> None:
+        settings = type("SettingsStub", (), {"model_enable_thinking": True})()
+
+        expected = {"thinking_enabled": True, "schema_constrained": True}
+        self.assertEqual(quality_request_configuration(settings), expected)
+        self.assertEqual(benchmark_request_configuration(settings), expected)
+
+    def test_evaluators_require_explicit_schema_constrained_trace_field(self) -> None:
+        expected = {"thinking_enabled": True, "schema_constrained": True}
+        model_call = {
+            "thinking_enabled": True,
+            "response_format": "json_schema",
+        }
+        benchmark_runs = [{"requests": [{"model_calls": [model_call]}]}]
+        quality_rows = [
+            {"trace": [{"response": {"model_calls": [model_call]}}]}
+        ]
+
+        with self.assertRaisesRegex(RuntimeError, "missing schema_constrained"):
+            validate_benchmark_configuration(benchmark_runs, expected)
+        with self.assertRaisesRegex(RuntimeError, "missing schema_constrained"):
+            validate_quality_configuration(quality_rows, expected)
+
+    def test_evaluators_record_direct_schema_trace_evidence(self) -> None:
+        expected = {"thinking_enabled": False, "schema_constrained": True}
+        model_call = {
+            **expected,
+            "response_format": "json_schema",
+        }
+
+        benchmark_evidence = validate_benchmark_configuration(
+            [{"requests": [{"model_calls": [model_call]}]}],
+            expected,
+        )
+        quality_evidence = validate_quality_configuration(
+            [{"trace": [{"response": {"model_calls": [model_call]}}]}],
+            expected,
+        )
+
+        self.assertTrue(benchmark_evidence["schema_constrained"])
+        self.assertTrue(quality_evidence["schema_constrained"])
+
+
+class OptimizationAcceptanceTests(unittest.TestCase):
+    def test_accepts_material_core_improvement_with_thinking_ab(self) -> None:
+        baseline = _comparison_fixture("baseline", thinking_enabled=False)
+        optimized = _comparison_fixture(
+            "optimized",
+            latency_ms=90.0,
+            thinking_enabled=True,
+        )
+
+        report = build_comparison(
+            baseline,
+            optimized,
+            material_threshold_percent=5.0,
+        )
+
+        assessment = report["assessment"]
+        self.assertTrue(assessment["accepted"])
+        self.assertEqual(assessment["optimization_winner"], "optimized")
+        self.assertEqual(assessment["rejection_reasons"], [])
+
+    def test_rejects_material_regression_even_with_core_improvement(self) -> None:
+        baseline = _comparison_fixture("baseline")
+        optimized = _comparison_fixture(
+            "optimized",
+            latency_ms=90.0,
+            token_rate=90.0,
+        )
+
+        report = build_comparison(
+            baseline,
+            optimized,
+            material_threshold_percent=5.0,
+        )
+
+        assessment = report["assessment"]
+        self.assertFalse(assessment["accepted"])
+        self.assertEqual(assessment["optimization_winner"], "not_accepted")
+        self.assertIn(
+            "core_material_regression_observed",
+            assessment["rejection_reasons"],
+        )
+
+    def test_optional_timing_regression_does_not_reject_core_improvement(self) -> None:
+        baseline = _comparison_fixture("baseline")
+        optimized = _comparison_fixture("optimized", latency_ms=90.0)
+        for report, decode_rate in ((baseline, 100.0), (optimized, 90.0)):
+            model_metrics = report["runs"][0]["summary"]["model_call_metrics"]
+            model_metrics.update(
+                {
+                    "server_decode_rate_sample_count": 1,
+                    "server_decode_tokens_per_second_p50": decode_rate,
+                    "server_decode_tokens_per_second_p95": decode_rate,
+                }
+            )
+
+        report = build_comparison(
+            baseline,
+            optimized,
+            material_threshold_percent=5.0,
+        )
+
+        assessment = report["assessment"]
+        self.assertTrue(assessment["accepted"])
+        self.assertEqual(assessment["materially_regressed_core_metrics"], [])
+        self.assertIn(
+            "c1.server_decode_tokens_per_second_p50",
+            assessment["materially_regressed_metrics"],
+        )
+
+    def test_material_threshold_is_inclusive_at_positive_five_percent(self) -> None:
+        report = build_comparison(
+            _comparison_fixture("baseline"),
+            _comparison_fixture("optimized", latency_ms=95.0),
+            material_threshold_percent=5.0,
+        )
+
+        self.assertTrue(report["assessment"]["accepted"])
+
+    def test_material_threshold_is_inclusive_at_negative_five_percent(self) -> None:
+        report = build_comparison(
+            _comparison_fixture("baseline"),
+            _comparison_fixture(
+                "optimized",
+                latency_ms=95.0,
+                token_rate=95.0,
+            ),
+            material_threshold_percent=5.0,
+        )
+
+        assessment = report["assessment"]
+        self.assertFalse(assessment["accepted"])
+        self.assertIn(
+            "core_material_regression_observed",
+            assessment["rejection_reasons"],
+        )
+
+    def test_quality_regression_writes_negative_assessment(self) -> None:
+        baseline = _comparison_fixture("baseline")
+        optimized = _comparison_fixture(
+            "optimized",
+            latency_ms=90.0,
+            quality_score=299.0,
+        )
+
+        report = build_comparison(
+            baseline,
+            optimized,
+            material_threshold_percent=5.0,
+        )
+
+        assessment = report["assessment"]
+        self.assertFalse(assessment["accepted"])
+        self.assertIn("quality_regression_observed", assessment["rejection_reasons"])
+        self.assertEqual(
+            assessment["quality_regressions"][0]["metric"],
+            "quality_report.total_score",
+        )
+
+    def test_require_accepted_controls_exit_status(self) -> None:
+        negative_report = build_comparison(
+            _comparison_fixture("baseline"),
+            _comparison_fixture("optimized"),
+            material_threshold_percent=5.0,
+        )
+        accepted_report = build_comparison(
+            _comparison_fixture("baseline"),
+            _comparison_fixture("optimized", latency_ms=90.0),
+            material_threshold_percent=5.0,
+        )
+
+        self.assertEqual(
+            comparison_exit_code(negative_report, require_accepted=False), 0
+        )
+        self.assertEqual(
+            comparison_exit_code(negative_report, require_accepted=True), 1
+        )
+        self.assertEqual(
+            comparison_exit_code(accepted_report, require_accepted=True), 0
+        )
 
 
 class RuntimeGpuEvidenceTests(unittest.TestCase):

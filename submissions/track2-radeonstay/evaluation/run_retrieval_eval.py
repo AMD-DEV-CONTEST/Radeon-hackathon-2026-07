@@ -12,10 +12,10 @@ import hashlib
 import json
 import subprocess
 import sys
+from collections.abc import Iterable, Mapping
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Iterable, Mapping
-
+from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
@@ -28,7 +28,6 @@ from radeonstay.retrieval import (  # noqa: E402
     policy_corpus_sha256,
     validate_policy_directory,
 )
-
 
 DEFAULT_CASES = PROJECT_ROOT / "evaluation" / "fixtures" / "cases.jsonl"
 DEFAULT_POLICIES = PROJECT_ROOT / "data" / "policies"

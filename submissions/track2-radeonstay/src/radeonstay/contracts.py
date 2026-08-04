@@ -31,7 +31,7 @@ class AgentPlan(ContractModel):
     response_language: str = Field(default="English", min_length=1, max_length=40)
 
     @model_validator(mode="after")
-    def validate_dependencies(self) -> "AgentPlan":
+    def validate_dependencies(self) -> AgentPlan:
         ids = [step.step_id for step in self.steps]
         if len(set(ids)) != len(ids):
             raise ValueError("Plan step IDs must be unique")

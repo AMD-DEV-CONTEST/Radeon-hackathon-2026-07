@@ -7,7 +7,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlparse
 
-
 DEFAULT_AUDIT_SECRET = "development-only-change-before-demo"
 DEFAULT_IDENTITY_SECRET = "development-identity-change-before-demo"
 EXAMPLE_AUDIT_SECRET = "replace-with-a-random-local-secret"
@@ -61,9 +60,10 @@ class Settings:
     public_demo_enabled: bool
     ui_username: str
     ui_password: str = field(repr=False)
+    model_enable_thinking: bool = False
 
     @classmethod
-    def from_env(cls, project_root: Path | None = None) -> "Settings":
+    def from_env(cls, project_root: Path | None = None) -> Settings:
         root = (project_root or Path(__file__).resolve().parents[2]).resolve()
         database = Path(os.getenv("RADEONSTAY_DATABASE_PATH", "runtime/radeonstay.db"))
         policies = Path(os.getenv("RADEONSTAY_POLICY_DIR", "data/policies"))
@@ -97,6 +97,7 @@ class Settings:
             public_demo_enabled=_env_bool("RADEONSTAY_PUBLIC_DEMO_ENABLED"),
             ui_username=os.getenv("RADEONSTAY_UI_USERNAME", ""),
             ui_password=os.getenv("RADEONSTAY_UI_PASSWORD", ""),
+            model_enable_thinking=_env_bool("RADEONSTAY_MODEL_ENABLE_THINKING"),
         )
 
     def validate_private_model_endpoint(self) -> None:

@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
@@ -21,7 +20,6 @@ from radeonstay.retrieval import (  # noqa: E402
     tokenize,
     validate_policy_directory,
 )
-
 
 POLICY_DIR = PROJECT_ROOT / "data" / "policies"
 FIXTURE_FILE = PROJECT_ROOT / "evaluation" / "fixtures" / "cases.jsonl"

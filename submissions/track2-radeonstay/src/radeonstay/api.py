@@ -13,6 +13,8 @@ from .domain import (
     DomainError,
     NotFoundError,
     PermissionDenied,
+)
+from .domain import (
     ValidationError as DomainValidationError,
 )
 from .model_client import ModelClientError

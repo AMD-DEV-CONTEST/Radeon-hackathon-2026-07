@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare two quality-gated RadeonStay benchmark reports without naming a winner."""
+"""Compare two quality-gated RadeonStay benchmark reports and assess acceptance."""
 
 from __future__ import annotations
 
@@ -11,7 +11,6 @@ import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 SCHEMA_VERSION = 3
 OFFICIAL_SUITE_VERSION = "30-case-p0-v3"
@@ -93,6 +92,12 @@ TOKEN_RATE_FIELDS = (
     "effective_output_tokens_per_second_p50",
     "effective_output_tokens_per_second_p95",
 )
+CORE_METRIC_NAMES = (
+    "latency_p50_ms",
+    "latency_p95_ms",
+    "successful_throughput_requests_per_second",
+    *TOKEN_RATE_FIELDS,
+)
 OPTIONAL_METRIC_GROUPS = (
     (
         "server_decode_rate_sample_count",
@@ -110,7 +115,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Compare baseline and optimized schema-v3 benchmark evidence. "
-            "The report never automatically declares an optimization winner."
+            "A quality-preserving, regression-free material core improvement "
+            "is accepted as the optimized winner."
         )
     )
     parser.add_argument("--baseline", type=Path, required=True)
@@ -124,6 +130,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=5.0,
         help="Minimum directional change considered material (default: 5.0)",
     )
+    parser.add_argument(
+        "--require-accepted",
+        action="store_true",
+        help="Return a non-zero exit status after writing the report when not accepted",
+    )
     return parser.parse_args(argv)
 
 
@@ -134,6 +145,52 @@ def require_number(value: Any, field: str) -> float:
     if not math.isfinite(number) or number < 0:
         raise ValueError(f"{field} must be finite and non-negative")
     return number
+
+
+def validate_request_configuration(
+    payload: dict[str, Any], label: str
+) -> dict[str, Any]:
+    configuration = payload.get("request_configuration")
+    if not isinstance(configuration, dict):
+        raise ValueError(f"{label} report is missing request_configuration")
+    for field in ("thinking_enabled", "schema_constrained"):
+        value = configuration.get(field)
+        if type(value) is not bool:
+            raise ValueError(
+                f"{label}.request_configuration.{field} must be a boolean"
+            )
+    return dict(configuration)
+
+
+def validate_request_configuration_evidence(
+    payload: dict[str, Any], label: str
+) -> dict[str, Any]:
+    configuration = validate_request_configuration(payload, label)
+    evidence = payload.get("request_configuration_evidence")
+    if not isinstance(evidence, dict) or evidence.get("trace_verified") is not True:
+        raise ValueError(f"{label} report has no verified request-configuration trace")
+    require_integer(
+        evidence.get("model_call_count"),
+        f"{label}.request_configuration_evidence.model_call_count",
+        minimum=1,
+    )
+    for field in ("thinking_enabled", "schema_constrained"):
+        if type(evidence.get(field)) is not bool:
+            raise ValueError(
+                f"{label}.request_configuration_evidence.{field} must be a boolean"
+            )
+        if evidence[field] != configuration[field]:
+            raise ValueError(
+                f"{label} request-configuration evidence does not match {field}"
+            )
+    response_formats = evidence.get("response_formats")
+    if not isinstance(response_formats, list) or not all(
+        isinstance(item, str) and item for item in response_formats
+    ):
+        raise ValueError(f"{label} report has invalid response-format evidence")
+    if configuration["schema_constrained"] and response_formats != ["json_schema"]:
+        raise ValueError(f"{label} report does not prove schema-constrained requests")
+    return dict(evidence)
 
 
 def file_sha256(path: Path) -> str:
@@ -419,7 +476,7 @@ def runtime_gpu_summary(
         if expected_sample_count is not None and len(samples) != expected_sample_count:
             raise ValueError(f"{label} monitor sample count is inconsistent")
         sample_times = [sample["collected_at"] for sample in samples]
-        for previous, current in zip(sample_times, sample_times[1:]):
+        for previous, current in zip(sample_times[:-1], sample_times[1:], strict=True):
             if current < previous:
                 raise ValueError(f"{label} monitor sample timestamps are not monotonic")
             if (
@@ -511,7 +568,7 @@ def runtime_gpu_summary(
         )
         if invalid_active_indices:
             raise ValueError(
-                f"{label} active GPU indices have invalid Radeon GPU unique-ID "
+                f"{label} active GPU indices have invalid Radeon GPU unique ID "
                 f"evidence: {invalid_active_indices}"
             )
         raise ValueError(
@@ -671,6 +728,18 @@ def validate_bundle(
         str(retrieval.get("policy_corpus_sha256", ""))
     ):
         raise ValueError(f"{label} policy corpus hashes differ or are invalid")
+    quality_request_configuration = validate_request_configuration(
+        quality, f"{label} quality"
+    )
+    benchmark_request_configuration = validate_request_configuration(
+        benchmark, f"{label} benchmark"
+    )
+    if quality_request_configuration != benchmark_request_configuration:
+        raise ValueError(
+            f"{label} quality and benchmark request configurations differ"
+        )
+    validate_request_configuration_evidence(quality, f"{label} quality")
+    validate_request_configuration_evidence(benchmark, f"{label} benchmark")
     expected_provenance = {
         "commit": binding["commit"],
         "project_tree": binding["project_tree"],
@@ -850,6 +919,10 @@ def validate_official_report(payload: dict[str, Any], label: str) -> None:
         raise ValueError(f"{label} report is not bound to the official suite")
     if tuple(payload.get("case_ids") or ()) != OFFICIAL_CASE_IDS:
         raise ValueError(f"{label} report has unexpected knowledge case IDs")
+    request_configuration = validate_request_configuration(payload, label)
+    validate_request_configuration_evidence(payload, label)
+    if request_configuration["schema_constrained"] is not True:
+        raise ValueError(f"{label} report must use schema-constrained model requests")
 
     configuration = payload["configuration"]
     repetitions = require_integer(
@@ -924,6 +997,29 @@ def validate_official_report(payload: dict[str, Any], label: str) -> None:
                 raise ValueError(f"{label} request {request_id} has no model-call evidence")
             if not all(isinstance(call, dict) for call in calls):
                 raise ValueError(f"{label} request {request_id} has invalid model-call evidence")
+            if any(
+                call.get("thinking_enabled")
+                != request_configuration["thinking_enabled"]
+                for call in calls
+            ):
+                raise ValueError(
+                    f"{label} request {request_id} has inconsistent thinking configuration"
+                )
+            if any(
+                type(call.get("schema_constrained")) is not bool
+                or call["schema_constrained"]
+                != request_configuration["schema_constrained"]
+                for call in calls
+            ):
+                raise ValueError(
+                    f"{label} request {request_id} has inconsistent schema configuration"
+                )
+            if request_configuration["schema_constrained"] and any(
+                call.get("response_format") != "json_schema" for call in calls
+            ):
+                raise ValueError(
+                    f"{label} request {request_id} was not schema constrained"
+                )
             successful.append(row)
             latencies.append(wall_ms)
             citation_hits += int(row["citation_hit"])
@@ -1057,7 +1153,9 @@ def validate_official_report(payload: dict[str, Any], label: str) -> None:
                 if values
                 else (None, None)
             )
-            for metric_field, expected in zip(metric_fields, expected_values):
+            for metric_field, expected in zip(
+                metric_fields, expected_values, strict=True
+            ):
                 observed = model_metrics.get(metric_field)
                 if expected is None:
                     if observed is not None:
@@ -1131,6 +1229,7 @@ def load_report(path: Path, label: str) -> dict[str, Any]:
         raise ValueError(f"{label} report is missing case_ids")
     if not isinstance(payload.get("request_case_ids"), list) or not payload["request_case_ids"]:
         raise ValueError(f"{label} report is missing request_case_ids")
+    validate_request_configuration(payload, label)
     for field in ("configuration", "provenance", "artifacts", "quality_report"):
         if not isinstance(payload.get(field), dict):
             raise ValueError(f"{label} report is missing {field}")
@@ -1284,19 +1383,35 @@ def validate_pair(
     ):
         if baseline[field] != optimized[field]:
             raise ValueError(f"Baseline and optimized reports must match {field}")
+    baseline_request_configuration = validate_request_configuration(
+        baseline, "baseline"
+    )
+    optimized_request_configuration = validate_request_configuration(
+        optimized, "optimized"
+    )
+    baseline_bound_configuration = {
+        key: value
+        for key, value in baseline_request_configuration.items()
+        if key != "thinking_enabled"
+    }
+    optimized_bound_configuration = {
+        key: value
+        for key, value in optimized_request_configuration.items()
+        if key != "thinking_enabled"
+    }
+    if baseline_bound_configuration != optimized_bound_configuration:
+        raise ValueError(
+            "Baseline and optimized request configurations may differ only in "
+            "thinking_enabled"
+        )
     for field in ("model_file_sha256", "llama_server_sha256"):
         if baseline["artifacts"].get(field) != optimized["artifacts"].get(field):
             raise ValueError(f"Baseline and optimized artifacts must match {field}")
-    baseline_quality_score = require_number(
-        baseline["quality_report"].get("total_score"),
-        "baseline.quality_report.total_score",
-    )
-    optimized_quality_score = require_number(
-        optimized["quality_report"].get("total_score"),
-        "optimized.quality_report.total_score",
-    )
-    if optimized_quality_score < baseline_quality_score:
-        raise ValueError("Optimized quality score must not regress from baseline")
+    for report, label in ((baseline, "baseline"), (optimized, "optimized")):
+        require_number(
+            report["quality_report"].get("total_score"),
+            f"{label}.quality_report.total_score",
+        )
     baseline_thresholds = baseline["quality_gate"].get("thresholds")
     optimized_thresholds = optimized["quality_gate"].get("thresholds")
     if baseline_thresholds != optimized_thresholds:
@@ -1316,19 +1431,15 @@ def validate_pair(
             raise ValueError(f"Concurrency {concurrency} request workloads do not match")
         baseline_summary = baseline_runs[concurrency]["summary"]
         optimized_summary = optimized_runs[concurrency]["summary"]
-        for metric in ("success_rate", "citation_hit_rate"):
-            baseline_value = require_number(
-                baseline_summary.get(metric), f"baseline.c{concurrency}.{metric}"
-            )
-            optimized_value = require_number(
-                optimized_summary.get(metric), f"optimized.c{concurrency}.{metric}"
-            )
-            if optimized_value < baseline_value:
-                raise ValueError(
-                    f"Optimized {metric} must not regress at concurrency {concurrency}"
-                )
         baseline_model_metrics = baseline_summary["model_call_metrics"]
         optimized_model_metrics = optimized_summary["model_call_metrics"]
+        for metric in ("success_rate", "citation_hit_rate"):
+            require_number(
+                baseline_summary.get(metric), f"baseline.c{concurrency}.{metric}"
+            )
+            require_number(
+                optimized_summary.get(metric), f"optimized.c{concurrency}.{metric}"
+            )
         for count_field in (
             "successful_calls",
             "effective_rate_sample_count",
@@ -1353,14 +1464,50 @@ def build_comparison(
     baseline_runs, optimized_runs = validate_pair(baseline, optimized)
     comparisons: list[dict[str, Any]] = []
     materially_improved: list[str] = []
+    materially_improved_core: list[str] = []
     materially_regressed: list[str] = []
+    materially_regressed_core: list[str] = []
+    quality_regressions: list[dict[str, Any]] = []
     optional_timing_complete = {"server_decode": True, "ttft": True}
+    baseline_quality_score = require_number(
+        baseline["quality_report"].get("total_score"),
+        "baseline.quality_report.total_score",
+    )
+    optimized_quality_score = require_number(
+        optimized["quality_report"].get("total_score"),
+        "optimized.quality_report.total_score",
+    )
+    if optimized_quality_score < baseline_quality_score:
+        quality_regressions.append(
+            {
+                "metric": "quality_report.total_score",
+                "baseline": baseline_quality_score,
+                "optimized": optimized_quality_score,
+            }
+        )
 
     for concurrency in sorted(baseline_runs):
         baseline_run = baseline_runs[concurrency]
         optimized_run = optimized_runs[concurrency]
         baseline_summary = baseline_run["summary"]
         optimized_summary = optimized_run["summary"]
+        for quality_metric in ("success_rate", "citation_hit_rate"):
+            baseline_quality_value = require_number(
+                baseline_summary.get(quality_metric),
+                f"baseline.c{concurrency}.{quality_metric}",
+            )
+            optimized_quality_value = require_number(
+                optimized_summary.get(quality_metric),
+                f"optimized.c{concurrency}.{quality_metric}",
+            )
+            if optimized_quality_value < baseline_quality_value:
+                quality_regressions.append(
+                    {
+                        "metric": f"c{concurrency}.{quality_metric}",
+                        "baseline": baseline_quality_value,
+                        "optimized": optimized_quality_value,
+                    }
+                )
         metrics = {
             "latency_p50_ms": compare_metric(
                 require_number(
@@ -1451,24 +1598,34 @@ def build_comparison(
 
         for metric_name, result in metrics.items():
             if result.get("material_improvement"):
-                materially_improved.append(f"c{concurrency}.{metric_name}")
+                qualified_name = f"c{concurrency}.{metric_name}"
+                materially_improved.append(qualified_name)
+                if metric_name in CORE_METRIC_NAMES:
+                    materially_improved_core.append(qualified_name)
             if result.get("material_regression"):
-                materially_regressed.append(f"c{concurrency}.{metric_name}")
+                qualified_name = f"c{concurrency}.{metric_name}"
+                materially_regressed.append(qualified_name)
+                if metric_name in CORE_METRIC_NAMES:
+                    materially_regressed_core.append(qualified_name)
         comparisons.append({"concurrency": concurrency, "metrics": metrics})
 
     core_evidence_complete = True
     full_timing_evidence_complete = all(optional_timing_complete.values())
-    material_improvement_observed = bool(
-        core_evidence_complete and materially_improved and not materially_regressed
+    core_material_improvement_observed = bool(materially_improved_core)
+    quality_not_regressed = not quality_regressions
+    accepted = bool(
+        core_evidence_complete
+        and core_material_improvement_observed
+        and not materially_regressed_core
+        and quality_not_regressed
     )
-    if materially_regressed and materially_improved:
-        assessment = "mixed_material_changes"
-    elif materially_regressed:
-        assessment = "material_regression_observed"
-    elif materially_improved:
-        assessment = "candidate_material_improvement"
-    else:
-        assessment = "no_material_change_observed"
+    rejection_reasons: list[str] = []
+    if not core_material_improvement_observed:
+        rejection_reasons.append("no_core_metric_met_material_threshold")
+    if materially_regressed_core:
+        rejection_reasons.append("core_material_regression_observed")
+    if not quality_not_regressed:
+        rejection_reasons.append("quality_regression_observed")
 
     return {
         "schema_version": 1,
@@ -1495,25 +1652,50 @@ def build_comparison(
             "model_file_sha256": baseline["artifacts"].get("model_file_sha256"),
             "llama_server_sha256": baseline["artifacts"].get("llama_server_sha256"),
         },
+        "request_configuration": {
+            "baseline": dict(baseline["request_configuration"]),
+            "optimized": dict(optimized["request_configuration"]),
+            "allowed_difference": ["thinking_enabled"],
+        },
         "quality_thresholds": baseline["quality_gate"].get("thresholds"),
         "material_threshold_percent": material_threshold_percent,
         "comparisons": comparisons,
         "assessment": {
-            "status": assessment,
+            "status": "accepted" if accepted else "not_accepted",
+            "accepted": accepted,
+            "optimization_winner": "optimized" if accepted else "not_accepted",
+            "acceptance_criteria": {
+                "minimum_core_improvement_percent": material_threshold_percent,
+                "at_least_one_core_metric_improved": (
+                    core_material_improvement_observed
+                ),
+                "no_material_core_metric_regression": not materially_regressed_core,
+                "quality_not_regressed": quality_not_regressed,
+            },
+            "rejection_reasons": rejection_reasons,
             "core_evidence_complete": core_evidence_complete,
             "full_timing_evidence_complete": full_timing_evidence_complete,
             "optional_timing_evidence": optional_timing_complete,
             "missing_effective_token_rate_concurrency": [],
             "materially_improved_metrics": materially_improved,
+            "materially_improved_core_metrics": materially_improved_core,
             "materially_regressed_metrics": materially_regressed,
-            "material_improvement_observed": material_improvement_observed,
-            "optimization_winner": "not_declared",
+            "materially_regressed_core_metrics": materially_regressed_core,
+            "material_improvement_observed": core_material_improvement_observed,
+            "quality_regressions": quality_regressions,
             "note": (
-                "This mechanical comparison does not declare an optimization winner. "
-                "Review paired ROCm telemetry, server logs, output quality, and run manifests."
+                "Acceptance requires a material core improvement, no material core "
+                "metric regression, and no quality regression across bound evidence."
             ),
         },
     }
+
+
+def comparison_exit_code(report: dict[str, Any], *, require_accepted: bool) -> int:
+    accepted = report.get("assessment", {}).get("accepted")
+    if type(accepted) is not bool:
+        raise ValueError("Comparison report is missing assessment.accepted")
+    return 1 if require_accepted and not accepted else 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1597,11 +1779,12 @@ def main(argv: list[str] | None = None) -> int:
             {
                 "output": str(output_path),
                 "assessment": report["assessment"]["status"],
-                "optimization_winner": "not_declared",
+                "accepted": report["assessment"]["accepted"],
+                "optimization_winner": report["assessment"]["optimization_winner"],
             }
         )
     )
-    return 0
+    return comparison_exit_code(report, require_accepted=args.require_accepted)
 
 
 if __name__ == "__main__":

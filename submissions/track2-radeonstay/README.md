@@ -2,16 +2,17 @@
 
 **Track 2 — Development & Local Deployment of Private AI Agents**
 
-RadeonStay is a private, auditable hotel guest-journey agent whose core model
-inference runs locally on an AMD Radeon GPU with ROCm; retrieval, policy gates,
-and hotel state remain deterministic and local. It does more than answer hotel policy
+RadeonStay is a private, auditable hotel guest-journey agent whose competition
+path is built for local core-model inference on an AMD Radeon GPU with ROCm;
+retrieval, policy gates, and hotel state remain deterministic and local. It does
+more than answer hotel policy
 questions: it retrieves cited local policy, builds a bounded plan, invokes
 typed hotel tools, pauses before every consequential write, remembers guest
 preferences only with consent, and emits a privacy-minimized audit trail.
 
-> The P0 source path is wired end to end. It has not yet been executed in this
-> workspace, and performance values are intentionally not claimed until the
-> fixed suite runs on the target Radeon system.
+> The target hardware, ROCm/HIP runtime, model artifact, and llama.cpp binary
+> identities have been verified. Performance values remain intentionally
+> unclaimed until they are backed by the complete fixed-suite evidence bundle.
 
 ## Why this project
 
@@ -29,6 +30,11 @@ A guest asks:
 > 我计划在两个明确的未来日期入住和退房，23:30 到店，带一名六岁儿童，
 > 有严重花生过敏，需要安静房和机场接送。请引用政策、查询房态和准确报价，
 > 并在我确认前只预览保留房间。
+
+The Chinese request is intentional multilingual product input. In English: the
+guest provides two exact future dates, a 23:30 arrival, one six-year-old child, a
+severe peanut allergy, a quiet-room request, and airport-transfer needs; they ask
+for cited policy, live inventory, an exact quote, and a preview-only hold.
 
 The P0 flow demonstrates all five Track 2 capabilities in one journey:
 
@@ -98,23 +104,42 @@ src/radeonstay/
 
 ## Environment
 
-- Python 3.11+
-- AMD Radeon GPU with ROCm/HIP
-- A ROCm-enabled `llama-server` exposing an OpenAI-compatible `/v1` endpoint
-- The submitted model configuration targets Qwen3.6-35B-A3B Q6_K; the final
-  evidence will pin the exact model hash, llama.cpp commit, ROCm version, and
-  launch parameters.
+- Python `3.12.3`
+- ROCm `7.2.1`; HIP `7.2.53211-e1a6bc5663`
+- Detected GPU: `AMD Radeon Graphics`, `gfx1100`, device ID `0x744b`, 96 compute
+  units, and `51522830336` bytes of VRAM
+- ROCm/HIP-enabled llama.cpp commit
+  `0b14b87d7c20cb753b94b96854dd7b45306fc696`, with `llama-server` binary
+  SHA256 `926e2297d7144a59182ba9d37de877ec972a0cf8d1b697baa82277b3066c45c6`
+- Complete resolved Python package-version snapshot from the target validation
+  virtual environment in [requirements.lock](requirements.lock)
+
+The local alias `qwen3.6-35b-a3b-q6k` maps to
+[`unsloth/Qwen3.6-35B-A3B-GGUF`](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF)
+at revision `a483e9e6cbd595906af30beda3187c2663a1118c`, file
+`Qwen3.6-35B-A3B-UD-Q6_K.gguf`, licensed Apache-2.0. Its SHA256 is
+`4fe53b148b46f9b88830e2a3055c5b15c3a4d1e3ddc9a1384a108d8b9d59f043`.
+See [Third-party notices](THIRD_PARTY_NOTICES.md). The generic detected product
+string above is retained verbatim; no retail GPU model is inferred from it.
+
+`requirements.lock` was captured on 2026-08-04 with `python -m pip freeze --all`
+from the clean Python 3.12.3 Radeon/ROCm validation virtual environment. It
+excludes the environment's pip bootstrap and the editable RadeonStay entry. The
+file records the complete resolved package versions present in that environment,
+but contains no artifact hashes and is not a software bill of materials or a
+license inventory.
 
 ## Quick start
 
-These commands describe the intended clean setup. They have not yet been
-executed as part of this P0 implementation turn.
+These commands reproduce the verified software identities without embedding any
+target-host address or credential.
 
 ```bash
 cd submissions/track2-radeonstay
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -e .
+python -m pip install -r requirements.lock
+python -m pip install --no-deps -e .
 cp .env.example .env
 python - <<'PY'
 from pathlib import Path
@@ -142,11 +167,16 @@ fail-closed unless public demo mode and UI basic authentication are also
 configured (`RADEONSTAY_UI_USERNAME` is at least 4 characters and
 `RADEONSTAY_UI_PASSWORD` is at least 12 characters).
 
-Start a local ROCm model service using the pinned model paths:
+Export the frozen paths, then start the local ROCm model service. `MODEL_ALIAS`
+must equal `RADEONSTAY_MODEL_NAME`; an alias is only a routing identifier, while
+the evidence bundle binds the actual model and binary SHA256 values.
 
 ```bash
-LLAMA_SERVER=/workspace/llama.cpp/build/bin/llama-server \
-MODEL_PATH=/models/qwen3.6-35b-a3b-q6k.gguf \
+: "${LLAMA_BIN:?Export LLAMA_BIN as the frozen ROCm llama-server binary}"
+: "${MODEL_FILE:?Export MODEL_FILE as the frozen local GGUF path}"
+LLAMA_SERVER="$LLAMA_BIN" \
+MODEL_PATH="$MODEL_FILE" \
+MODEL_ALIAS="${RADEONSTAY_MODEL_NAME:-qwen3.6-35b-a3b-q6k}" \
 scripts/serve_model.sh
 ```
 
@@ -217,6 +247,7 @@ never declares a winner without paired-evidence review.
 - [Evaluation plan](docs/evaluation-plan.md)
 - [Demo script](docs/demo-script.md)
 - [Evidence index](docs/evidence-index.md)
+- [Third-party notices](THIRD_PARTY_NOTICES.md)
 
 ## Privacy and data
 
@@ -227,4 +258,8 @@ payment, identity, or health data is included.
 
 ## License
 
-MIT
+RadeonStay source code is MIT licensed. The pinned model is Apache-2.0;
+llama.cpp is MIT; ROCm components and Python dependencies retain their own
+licenses. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Model weights are
+not committed to this repository; obtain the exact revision and file above, then
+verify its SHA256 before use.

@@ -7,9 +7,10 @@ import re
 import threading
 import time
 import uuid
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field, is_dataclass
 from datetime import datetime
-from typing import Any, Mapping, Protocol
+from typing import Any, Protocol
 
 from .auth import LocalIdentityProvider
 from .contracts import (
@@ -37,14 +38,13 @@ from .domain import (
 )
 from .domain.storage import iso_utc
 from .model_client import ModelClientError
-from .planning import Planner
+from .planning import PSEUDO_TOOLS, Planner, validate_plan_semantics
 from .retrieval import PolicyRetriever, SearchResult
-
 
 _REFERENCE_RE = re.compile(
     r"^\{\{([A-Za-z0-9_-]+)((?:\.[A-Za-z0-9_-]+)+)\}\}$"
 )
-_PSEUDO_TOOLS = {"ask_user", "refuse_request", "respond_with_policy"}
+_PSEUDO_TOOLS = PSEUDO_TOOLS
 
 
 class AnswerModel(Protocol):
@@ -57,6 +57,10 @@ class AnswerModel(Protocol):
         temperature: float = 0.1,
         max_tokens: int = 800,
         json_mode: bool = False,
+        json_schema: dict[str, Any] | None = None,
+        json_schema_name: str = "response",
+        trace_purpose: str = "chat",
+        trace_attempt: int = 1,
     ) -> Any: ...
 
     def health(self) -> dict[str, Any]: ...
@@ -729,54 +733,10 @@ class RadeonStayService:
         self.registry.service.store.close()
 
     def _validate_plan(self, plan: AgentPlan) -> None:
-        allowed = set(self.registry.names) | _PSEUDO_TOOLS
-        for step in plan.steps:
-            if step.tool not in allowed:
-                raise ValidationError(f"plan requested an unknown tool: {step.tool}")
-            if step.tool == "respond_with_policy":
-                if step.arguments:
-                    raise ValidationError("respond_with_policy does not accept arguments")
-                continue
-            if step.tool == "ask_user":
-                permitted = {"missing", "question"}
-                if set(step.arguments) - permitted:
-                    raise ValidationError("ask_user accepts only missing and question")
-                if not step.arguments:
-                    raise ValidationError("ask_user requires a missing field list or question")
-                continue
-            if step.tool == "refuse_request":
-                if step.arguments:
-                    raise ValidationError("refuse_request does not accept arguments")
-                if len(plan.steps) != 1:
-                    raise ValidationError("refuse_request must be the only plan step")
-                continue
-            spec = self.registry.get(step.tool)
-            schema = spec.public_schema()["parameters"]
-            supplied = set(step.arguments)
-            permitted = set(schema["properties"])
-            unexpected = supplied - permitted
-            missing = set(schema["required"]) - supplied
-            if unexpected:
-                raise ValidationError(
-                    f"plan supplied unexpected fields for {step.tool}: {sorted(unexpected)}"
-                )
-            if missing:
-                raise ValidationError(
-                    f"plan omitted required fields for {step.tool}: {sorted(missing)}"
-                )
-            change_fields = {"room_type", "check_in", "check_out", "guests"}
-            if step.tool == "hotel.modify_booking" and not any(
-                field_name in step.arguments and step.arguments[field_name] is not None
-                for field_name in change_fields
-            ):
-                raise ValidationError(
-                    "hotel.modify_booking requires at least one changed field"
-                )
-            for reference_step in _reference_steps(step.arguments):
-                if reference_step not in step.depends_on:
-                    raise ValidationError(
-                        f"step {step.step_id} references {reference_step} without a dependency"
-                    )
+        try:
+            validate_plan_semantics(plan, list(self.registry.schemas()))
+        except ValueError as exc:
+            raise ValidationError(str(exc)) from exc
 
     def _invoke_step(
         self,
@@ -1106,6 +1066,22 @@ class RadeonStayService:
                 for item in pending_actions
             ],
         }
+        selection_schema = {
+            "type": "object",
+            "properties": {
+                "citation_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": list(citation_options),
+                    },
+                    "maxItems": 3,
+                    "uniqueItems": True,
+                }
+            },
+            "required": ["citation_ids"],
+            "additionalProperties": False,
+        }
         try:
             result = self.answer_model.chat(
                 [
@@ -1125,6 +1101,10 @@ class RadeonStayService:
                 temperature=0.0,
                 max_tokens=120,
                 json_mode=True,
+                json_schema=selection_schema,
+                json_schema_name="citation_selection",
+                trace_purpose="answer.evidence_selector",
+                trace_attempt=1,
             )
             selection = json.loads(str(result.content))
             if not isinstance(selection, dict) or set(selection) != {"citation_ids"}:

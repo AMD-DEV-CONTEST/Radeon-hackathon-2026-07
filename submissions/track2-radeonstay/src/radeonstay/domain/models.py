@@ -1,17 +1,18 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
-from enum import Enum
-from typing import Any, Mapping
+from enum import StrEnum
+from typing import Any
 
 
-class Role(str, Enum):
+class Role(StrEnum):
     GUEST = "guest"
     STAFF = "staff"
     ADMIN = "admin"
 
 
-class ToolEffect(str, Enum):
+class ToolEffect(StrEnum):
     READ = "read"
     WRITE = "write"
 
@@ -102,7 +103,7 @@ class AvailabilityResult:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "AvailabilityResult":
+    def from_dict(cls, data: Mapping[str, Any]) -> AvailabilityResult:
         return cls(
             check_in=str(data["check_in"]),
             check_out=str(data["check_out"]),
@@ -157,7 +158,7 @@ class BookingListResult:
         return {"bookings": [asdict(item) for item in self.bookings]}
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "BookingListResult":
+    def from_dict(cls, data: Mapping[str, Any]) -> BookingListResult:
         return cls(tuple(BookingView(**item) for item in data["bookings"]))
 
 
@@ -186,7 +187,7 @@ class BookingResult:
         return {"booking": asdict(self.booking)}
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "BookingResult":
+    def from_dict(cls, data: Mapping[str, Any]) -> BookingResult:
         return cls(BookingView(**data["booking"]))
 
 
@@ -241,7 +242,7 @@ class PreferencesResult:
         return {"preferences": [list(item) for item in self.preferences]}
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "PreferencesResult":
+    def from_dict(cls, data: Mapping[str, Any]) -> PreferencesResult:
         return cls(tuple((str(key), str(value)) for key, value in data["preferences"]))
 
 

@@ -10,7 +10,7 @@ from radeonstay.api import create_api
 from radeonstay.config import Settings
 from radeonstay.domain import PermissionDenied, ValidationError
 from radeonstay.main import create_application
-
+from radeonstay.model_client import ModelClientError
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -111,6 +111,11 @@ class ApiBoundaryTests(unittest.TestCase):
             service.chat_error = ValidationError("bad plan")
             invalid = client.post("/v1/chat", json=payload)
             self.assertEqual(invalid.status_code, 422)
+
+            service.chat_error = ModelClientError("private transport detail")
+            unavailable = client.post("/v1/chat", json=payload)
+            self.assertEqual(unavailable.status_code, 503)
+            self.assertEqual(unavailable.json()["detail"], "Local model is unavailable")
 
 
 if __name__ == "__main__":

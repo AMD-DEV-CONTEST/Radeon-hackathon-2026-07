@@ -16,11 +16,11 @@ import sys
 import tempfile
 import time
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Mapping, Sequence
-
+from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
@@ -44,7 +44,6 @@ from radeonstay.retrieval import (  # noqa: E402
     policy_corpus_sha256,
     validate_policy_directory,
 )
-
 
 DEFAULT_CASES = PROJECT_ROOT / "evaluation" / "fixtures" / "cases.jsonl"
 DEFAULT_POLICIES = PROJECT_ROOT / "data" / "policies"
@@ -100,6 +99,63 @@ FABRICATED_SUCCESS_WORDS = (
     "ticket was created",
     "modification completed",
 )
+
+
+def model_request_configuration(settings: Settings) -> dict[str, bool]:
+    return {
+        "thinking_enabled": settings.model_enable_thinking,
+        "schema_constrained": True,
+    }
+
+
+def validate_request_configuration_evidence(
+    rows: list[dict[str, Any]],
+    expected: dict[str, bool],
+) -> dict[str, Any]:
+    model_calls = [
+        call
+        for row in rows
+        for trace in row.get("trace", [])
+        if isinstance(trace, dict) and isinstance(trace.get("response"), dict)
+        for call in trace["response"].get("model_calls", [])
+        if isinstance(call, dict)
+    ]
+    if not model_calls:
+        raise RuntimeError("Agent quality evaluation produced no model request traces")
+    if any(type(call.get("thinking_enabled")) is not bool for call in model_calls):
+        raise RuntimeError("Agent quality traces are missing thinking_enabled")
+    if any(type(call.get("schema_constrained")) is not bool for call in model_calls):
+        raise RuntimeError("Agent quality traces are missing schema_constrained")
+    if any(
+        call["thinking_enabled"] != expected["thinking_enabled"]
+        for call in model_calls
+    ):
+        raise RuntimeError("Agent quality traces contain mixed thinking settings")
+    if any(
+        call["schema_constrained"] != expected["schema_constrained"]
+        for call in model_calls
+    ):
+        raise RuntimeError("Agent quality traces contain mixed schema settings")
+    if expected["schema_constrained"] and any(
+        call.get("response_format") != "json_schema" for call in model_calls
+    ):
+        raise RuntimeError("Agent quality schema-constrained traces are not JSON schema")
+    observed = {
+        "thinking_enabled": model_calls[0]["thinking_enabled"],
+        "schema_constrained": all(call["schema_constrained"] for call in model_calls),
+    }
+    if observed != expected:
+        raise RuntimeError(
+            "Agent quality traces do not match the declared request configuration"
+        )
+    return {
+        "model_call_count": len(model_calls),
+        **observed,
+        "response_formats": sorted(
+            {str(call.get("response_format")) for call in model_calls}
+        ),
+        "trace_verified": True,
+    }
 
 
 def source_tree_sha256(project_root: Path) -> str:
@@ -564,7 +620,9 @@ def _first_occurrence_order_matches(
         positions = [observed.index(tool) for tool in expected]
     except ValueError:
         return False
-    return all(left < right for left, right in zip(positions, positions[1:]))
+    return all(
+        left < right for left, right in zip(positions[:-1], positions[1:], strict=True)
+    )
 
 
 def _mapping_contains(observed: Mapping[str, Any], expected: Mapping[str, Any]) -> bool:
@@ -582,7 +640,7 @@ def _dependency_chain_matches(
         selected = [steps[tools.index(tool)] for tool in ordered_tools]
         return all(
             previous.get("step_id") in set(current.get("depends_on") or [])
-            for previous, current in zip(selected, selected[1:])
+            for previous, current in zip(selected[:-1], selected[1:], strict=True)
         )
     return False
 
@@ -1543,6 +1601,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"completed category={category} cases={completed}", file=sys.stderr)
 
     summary = _summarize(rows)
+    request_configuration = model_request_configuration(settings)
+    request_configuration_evidence = validate_request_configuration_evidence(
+        rows,
+        request_configuration,
+    )
     report = {
         "evaluation": "radeonstay-fixed-agent-suite",
         "run_id": run_id,
@@ -1552,6 +1615,8 @@ def main(argv: list[str] | None = None) -> int:
         "suite_sha256": OFFICIAL_SUITE_SHA256,
         "case_ids": list(OFFICIAL_CASE_IDS),
         "policy_corpus_sha256": policy_hash,
+        "request_configuration": request_configuration,
+        "request_configuration_evidence": request_configuration_evidence,
         "provenance": provenance,
         "artifacts": artifacts,
         "cases_path": str(cases_path),

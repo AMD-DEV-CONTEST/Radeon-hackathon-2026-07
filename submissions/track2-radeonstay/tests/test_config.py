@@ -23,6 +23,16 @@ class SettingsSecurityTests(unittest.TestCase):
                 self.assertEqual(os.environ["RADEONSTAY_PORT"], "8123")
                 self.assertEqual(os.environ["RADEONSTAY_HOST"], "127.0.0.1")
 
+    def test_model_thinking_flag_is_explicitly_configurable(self) -> None:
+        with patch.dict(
+            os.environ,
+            {"RADEONSTAY_MODEL_ENABLE_THINKING": "1"},
+            clear=True,
+        ):
+            self.assertTrue(Settings.from_env(Path.cwd()).model_enable_thinking)
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertFalse(Settings.from_env(Path.cwd()).model_enable_thinking)
+
     def test_public_binding_is_fail_closed_without_full_configuration(self) -> None:
         with patch.dict(
             os.environ,

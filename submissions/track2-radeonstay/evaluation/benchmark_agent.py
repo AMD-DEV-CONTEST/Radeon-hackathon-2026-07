@@ -22,7 +22,6 @@ from functools import partial
 from pathlib import Path
 from typing import Any
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
@@ -35,7 +34,6 @@ from radeonstay.retrieval import (  # noqa: E402
     validate_policy_directory,
 )
 
-
 DEFAULT_CASES = PROJECT_ROOT / "evaluation" / "fixtures" / "cases.jsonl"
 DEFAULT_POLICIES = PROJECT_ROOT / "data" / "policies"
 OFFICIAL_SUITE_VERSION = "30-case-p0-v3"
@@ -46,6 +44,63 @@ MIN_OFFICIAL_REPETITIONS = 3
 MIN_OFFICIAL_WARMUP = 2
 OFFICIAL_MIN_SUCCESS_RATE = 1.0
 OFFICIAL_MIN_CITATION_HIT_RATE = 0.95
+
+
+def model_request_configuration(settings: Any) -> dict[str, bool]:
+    return {
+        "thinking_enabled": settings.model_enable_thinking,
+        "schema_constrained": True,
+    }
+
+
+def validate_request_configuration_evidence(
+    runs: list[dict[str, Any]],
+    expected: dict[str, bool],
+) -> dict[str, Any]:
+    model_calls = [
+        call
+        for run in runs
+        for row in run.get("requests", [])
+        if isinstance(row, dict)
+        for call in row.get("model_calls", [])
+        if isinstance(call, dict)
+    ]
+    if not model_calls:
+        raise RuntimeError("Benchmark produced no model request-configuration traces")
+    if any(type(call.get("thinking_enabled")) is not bool for call in model_calls):
+        raise RuntimeError("Benchmark model traces are missing thinking_enabled")
+    if any(type(call.get("schema_constrained")) is not bool for call in model_calls):
+        raise RuntimeError("Benchmark model traces are missing schema_constrained")
+    if any(
+        call["thinking_enabled"] != expected["thinking_enabled"]
+        for call in model_calls
+    ):
+        raise RuntimeError("Benchmark model traces contain mixed thinking settings")
+    if any(
+        call["schema_constrained"] != expected["schema_constrained"]
+        for call in model_calls
+    ):
+        raise RuntimeError("Benchmark model traces contain mixed schema settings")
+    if expected["schema_constrained"] and any(
+        call.get("response_format") != "json_schema" for call in model_calls
+    ):
+        raise RuntimeError("Benchmark schema-constrained traces are not JSON schema")
+    observed = {
+        "thinking_enabled": model_calls[0]["thinking_enabled"],
+        "schema_constrained": all(call["schema_constrained"] for call in model_calls),
+    }
+    if observed != expected:
+        raise RuntimeError(
+            "Benchmark model traces do not match the declared request configuration"
+        )
+    return {
+        "model_call_count": len(model_calls),
+        **observed,
+        "response_formats": sorted(
+            {str(call.get("response_format")) for call in model_calls}
+        ),
+        "trace_verified": True,
+    }
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -523,12 +578,17 @@ def main(argv: list[str] | None = None) -> int:
         "llama_server_sha256": file_sha256(llama_server),
     }
     quality_report = load_quality_report(quality_report_path)
+    request_configuration = model_request_configuration(settings)
     if quality_report.get("run_id") != run_id:
         raise ValueError("Quality report and benchmark must share the same run-id")
     if (quality_report.get("model") or {}).get("name") != settings.model_name:
         raise ValueError("Quality report and benchmark model aliases do not match")
     if quality_report.get("policy_corpus_sha256") != policy_hash:
         raise ValueError("Quality report and benchmark policy corpora do not match")
+    if quality_report.get("request_configuration") != request_configuration:
+        raise ValueError(
+            "Quality report and benchmark request configurations do not match"
+        )
     quality_provenance = quality_report.get("provenance") or {}
     for field in ("commit", "project_tree", "source_tree_sha256"):
         if quality_provenance.get(field) != provenance[field]:
@@ -593,6 +653,10 @@ def main(argv: list[str] | None = None) -> int:
             min_success_rate=min_success_rate,
             min_citation_hit_rate=min_citation_hit_rate,
         )
+        request_configuration_evidence = validate_request_configuration_evidence(
+            runs,
+            request_configuration,
+        )
 
         report = {
             "schema_version": 3,
@@ -606,6 +670,8 @@ def main(argv: list[str] | None = None) -> int:
             "case_ids": list(OFFICIAL_KNOWLEDGE_IDS),
             "request_case_ids": [case["id"] for case in expanded_cases],
             "policy_corpus_sha256": policy_hash,
+            "request_configuration": request_configuration,
+            "request_configuration_evidence": request_configuration_evidence,
             "configuration": {
                 "repetitions": args.repetitions,
                 "warmup": args.warmup,

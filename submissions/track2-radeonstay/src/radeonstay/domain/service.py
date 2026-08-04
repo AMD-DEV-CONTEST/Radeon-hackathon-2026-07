@@ -36,7 +36,6 @@ from .models import (
 )
 from .storage import HotelStore, iso_utc, utc_now
 
-
 ALLOWED_PREFERENCE_KEYS = {
     "accessibility",
     "bed_type",

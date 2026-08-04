@@ -74,24 +74,36 @@ ownership boundary are refused without returning private data.
 
 ## 4. Model and local deployment
 
-The model server is `llama.cpp` compiled with the HIP backend for the target AMD
-Radeon GPU. It exposes a loopback OpenAI-compatible API consumed by a minimal
-`httpx` client with environment proxy inheritance disabled. The competition
-path rejects public model hosts.
-Health checks also require the endpoint to advertise the configured model alias;
-a reachable but incorrect local model fails the release gate.
+The competition path uses a `llama-server` binary built from llama.cpp with its
+HIP backend enabled for the target AMD Radeon environment. The server exposes a
+loopback OpenAI-compatible API consumed by a minimal `httpx` client with
+environment proxy inheritance disabled. Public model hosts are rejected. Health
+checks require the endpoint to advertise the configured alias, but that alias is
+only a routing identifier and is not proof of model identity or GPU execution.
 
-Target configuration before measurement:
+The configured alias `qwen3.6-35b-a3b-q6k` maps to the verified model artifact
+described below. `--n-gpu-layers 999` requests maximum offload; native ROCm/HIP
+initialization, a positive final offload count, and same-device active telemetry
+remain the authoritative proof that an official inference run used Radeon.
 
-- Qwen3.6-35B-A3B Q6_K GGUF;
-- all model layers offloaded to Radeon;
-- 16K context;
-- flash attention when supported;
-- tuned batch and micro-batch sizes;
-- one baseline slot, then controlled 2/4 concurrency experiments.
+| Release field | Verified target value | Evidence rule |
+| --- | --- | --- |
+| Python | `3.12.3` | Record the interpreter version with every official bundle |
+| Model repository | `unsloth/Qwen3.6-35B-A3B-GGUF` | Fetch only the pinned revision below |
+| Model revision | `a483e9e6cbd595906af30beda3187c2663a1118c` | Keep unchanged across baseline and optimized runs |
+| Model artifact | `Qwen3.6-35B-A3B-UD-Q6_K.gguf` | SHA256 `4fe53b148b46f9b88830e2a3055c5b15c3a4d1e3ddc9a1384a108d8b9d59f043`; Apache-2.0 |
+| llama.cpp | Commit `0b14b87d7c20cb753b94b96854dd7b45306fc696` | Binary SHA256 `926e2297d7144a59182ba9d37de877ec972a0cf8d1b697baa82277b3066c45c6` |
+| ROCm / HIP | ROCm `7.2.1`; HIP `7.2.53211-e1a6bc5663` | Retain `rocminfo`, version, and initialization logs |
+| Detected GPU | `AMD Radeon Graphics`; `gfx1100`; device ID `0x744b`; 96 CUs; `51522830336` VRAM bytes | Preserve the detected strings and values; do not infer a retail model name |
+| Context | `16384` default | Use the same value in both comparison runs |
+| Offload | `--n-gpu-layers 999` request | Prove positive final offload and active same-GPU telemetry |
+| Flash attention | `auto`; controlled `off` baseline and `on` optimization run | Use only when the pinned binary exposes the flag; retain raw logs |
+| Batch / micro-batch | `512` / `128` defaults | Change one measured variable at a time |
+| Parallelism | One slot by default | Compare controlled 1/2/4 request workloads without changing the fixed suite |
 
-The exact model hash, llama.cpp commit and flags will be frozen only after the
-quality and performance gates pass.
+Baseline and optimized evidence use the same model file, llama-server binary,
+source tree, workload, and detected target hardware. Third-party ownership and
+licensing are recorded in `THIRD_PARTY_NOTICES.md`.
 
 ## 5. Radeon optimization methodology
 

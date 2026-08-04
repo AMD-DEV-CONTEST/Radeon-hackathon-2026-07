@@ -8,7 +8,6 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
@@ -136,6 +135,11 @@ def room_hold_plan() -> AgentPlan:
         objective="Read local inventory and prepare one room hold.",
         response_language="English",
         steps=[
+            PlanStep(
+                step_id="policy",
+                tool="respond_with_policy",
+                reason="Ground the hold workflow in the retrieved local policy.",
+            ),
             PlanStep(
                 step_id="availability",
                 tool="hotel.check_availability",
@@ -752,7 +756,7 @@ class RadeonStayOrchestratorTests(unittest.TestCase):
         self.assertGreaterEqual(len(events), 6)
         self.assertTrue(all(event.chain_valid for event in events))
         self.assertEqual(events[0].previous_hash, "0" * 64)
-        for previous, current in zip(events, events[1:]):
+        for previous, current in zip(events[:-1], events[1:], strict=True):
             self.assertEqual(current.previous_hash, previous.event_hash)
         self.assertEqual(
             {event.actor_ref for event in events},

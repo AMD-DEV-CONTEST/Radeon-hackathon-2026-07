@@ -13,7 +13,6 @@ from .contracts import ChatRequest, ConfirmRequest
 from .domain import DomainError
 from .model_client import ModelClientError
 
-
 _DEMO_CHECK_IN = date.today() + timedelta(days=30)
 _DEMO_CHECK_OUT = _DEMO_CHECK_IN + timedelta(days=2)
 PRIMARY_DEMO_PROMPT = (
@@ -61,7 +60,7 @@ def _chat_request_id(
     history: list[dict[str, str]],
 ) -> str:
     """Keep browser retries stable while allowing a later repeated prompt."""
-    basis = f"{session_id}\x00{len(history)}\x00{message}".encode("utf-8")
+    basis = f"{session_id}\x00{len(history)}\x00{message}".encode()
     return f"ui-{hashlib.sha256(basis).hexdigest()[:32]}"
 
 
@@ -76,6 +75,40 @@ def _confirmation_chat_text(receipt: Any) -> str:
     if data.get("ticket_id"):
         return f"已确认执行。服务工单 {data['ticket_id']} 已创建。"
     return f"已确认执行：{receipt.summary}"
+
+
+def _next_demo_prompt(receipt: Any) -> str:
+    """Prepare the next editable judge prompt from a confirmed typed receipt."""
+
+    data = receipt.data if isinstance(receipt.data, dict) else {}
+    if receipt.tool == "hotel.hold_booking":
+        booking = data.get("booking")
+        booking_id = booking.get("booking_id") if isinstance(booking, dict) else None
+        if isinstance(booking_id, str) and booking_id:
+            return (
+                f"请为订单 {booking_id} 创建机场接送申请：从 Terminal 1 接机，"
+                "虚构航班 RS123 于 22:45 到达，乘客为一名成人和一名六岁儿童，"
+                "需要儿童座椅。请先给出预览，等我明确确认后再执行。"
+            )
+    if receipt.tool == "hotel.create_service_ticket":
+        return "请先预览启用本地偏好记忆，等我明确确认后再执行。"
+    if receipt.tool == "memory.set_consent" and data.get("enabled") is True:
+        return (
+            "请保存 quiet_room=high_floor 作为我的本地偏好；"
+            "请先给出预览，等我明确确认后再执行。"
+        )
+    if receipt.tool == "memory.remember_preference" and data.get("saved") is True:
+        return "请只读查看并展示我当前保存的本地偏好，不要执行任何写操作。"
+    return ""
+
+
+def _performance_display(response: Any) -> dict[str, Any]:
+    return {
+        "model_backend": response.model_backend,
+        "elapsed_ms": response.elapsed_ms,
+        "timings_ms": dict(response.timings_ms),
+        "model_calls": [dict(call) for call in response.model_calls],
+    }
 
 
 def _confirmation_is_permanently_invalid(exc: Exception) -> bool:
@@ -146,7 +179,7 @@ def build_ui(service: ServiceProtocol, identity_tokens: dict[str, str]) -> gr.Bl
         )
         with gr.Row():
             send = gr.Button("Plan and execute safe reads", variant="primary")
-            clear = gr.ClearButton([chatbot, message])
+            gr.ClearButton([chatbot, message])
 
         with gr.Tabs():
             with gr.Tab("Plan"):
@@ -155,6 +188,8 @@ def build_ui(service: ServiceProtocol, identity_tokens: dict[str, str]) -> gr.Bl
                 citations = gr.JSON(label="Local policy evidence")
             with gr.Tab("Tool receipts"):
                 receipts = gr.JSON(label="Deterministic tool results")
+            with gr.Tab("Performance"):
+                performance = gr.JSON(label="Local model and stage timings")
             with gr.Tab("Pending writes"):
                 pending = gr.JSON(label="Preview before confirmation")
             with gr.Tab("Audit"):
@@ -170,7 +205,7 @@ def build_ui(service: ServiceProtocol, identity_tokens: dict[str, str]) -> gr.Bl
         confirmation_result = gr.JSON(label="Confirmation receipt")
 
         def cleared_ui_state(session: str) -> tuple[Any, ...]:
-            return session, [], {}, [], [], [], [], "", [], {}
+            return session, [], {}, [], [], {}, [], [], "", [], {}
 
         def on_new_session() -> tuple[Any, ...]:
             return cleared_ui_state(_new_session_id())
@@ -219,6 +254,7 @@ def build_ui(service: ServiceProtocol, identity_tokens: dict[str, str]) -> gr.Bl
                     response.plan.model_dump(mode="json"),
                     [item.model_dump(mode="json") for item in response.citations],
                     [item.model_dump(mode="json") for item in response.receipts],
+                    _performance_display(response),
                     _pending_display(pending_values),
                     events,
                     token_value,
@@ -242,6 +278,7 @@ def build_ui(service: ServiceProtocol, identity_tokens: dict[str, str]) -> gr.Bl
                     {},
                     [],
                     [],
+                    {},
                     _pending_display(pending_values),
                     events,
                     next_token,
@@ -254,6 +291,7 @@ def build_ui(service: ServiceProtocol, identity_tokens: dict[str, str]) -> gr.Bl
             identity_label: str,
             pending_values: list[dict[str, Any]] | None,
             history: list[dict[str, str]] | None,
+            current_message: str,
         ) -> tuple[Any, ...]:
             remaining = list(pending_values or [])
             updated_history = list(history or [])
@@ -272,6 +310,7 @@ def build_ui(service: ServiceProtocol, identity_tokens: dict[str, str]) -> gr.Bl
                 updated_history.append(
                     {"role": "assistant", "content": _confirmation_chat_text(receipt)}
                 )
+                next_message = _next_demo_prompt(receipt) or current_message
                 return (
                     receipt.model_dump(mode="json"),
                     events,
@@ -279,6 +318,7 @@ def build_ui(service: ServiceProtocol, identity_tokens: dict[str, str]) -> gr.Bl
                     _pending_display(remaining),
                     remaining,
                     updated_history,
+                    next_message,
                 )
             except Exception as exc:
                 safe_message = _safe_error(exc)
@@ -298,6 +338,7 @@ def build_ui(service: ServiceProtocol, identity_tokens: dict[str, str]) -> gr.Bl
                     _pending_display(remaining),
                     remaining,
                     updated_history,
+                    current_message,
                 )
 
         send.click(
@@ -308,6 +349,7 @@ def build_ui(service: ServiceProtocol, identity_tokens: dict[str, str]) -> gr.Bl
                 plan,
                 citations,
                 receipts,
+                performance,
                 pending,
                 audit,
                 confirmation_token,
@@ -322,6 +364,7 @@ def build_ui(service: ServiceProtocol, identity_tokens: dict[str, str]) -> gr.Bl
                 plan,
                 citations,
                 receipts,
+                performance,
                 pending,
                 audit,
                 confirmation_token,
@@ -336,6 +379,7 @@ def build_ui(service: ServiceProtocol, identity_tokens: dict[str, str]) -> gr.Bl
                 identity,
                 pending_state,
                 chatbot,
+                message,
             ],
             outputs=[
                 confirmation_result,
@@ -344,6 +388,7 @@ def build_ui(service: ServiceProtocol, identity_tokens: dict[str, str]) -> gr.Bl
                 pending,
                 pending_state,
                 chatbot,
+                message,
             ],
         )
         refresh_health.click(fn=service.health, outputs=[health])
@@ -355,6 +400,7 @@ def build_ui(service: ServiceProtocol, identity_tokens: dict[str, str]) -> gr.Bl
                 plan,
                 citations,
                 receipts,
+                performance,
                 pending,
                 audit,
                 confirmation_token,
@@ -371,6 +417,7 @@ def build_ui(service: ServiceProtocol, identity_tokens: dict[str, str]) -> gr.Bl
                 plan,
                 citations,
                 receipts,
+                performance,
                 pending,
                 audit,
                 confirmation_token,

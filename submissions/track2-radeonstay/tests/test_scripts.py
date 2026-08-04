@@ -4,8 +4,72 @@ import os
 import subprocess
 from pathlib import Path
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+MATRIX_SCRIPT = PROJECT_ROOT / "scripts" / "run_experiment_matrix.sh"
+
+
+def test_experiment_matrix_declares_the_controlled_a_to_e_sequence() -> None:
+    script = MATRIX_SCRIPT.read_text(encoding="utf-8")
+
+    expected_rows = (
+        'A) thinking="on";  flash_attn="off"; batch_size="256"; '
+        'ubatch_size="64";  parallel_slots="1"',
+        'B) thinking="off"; flash_attn="off"; batch_size="256"; '
+        'ubatch_size="64";  parallel_slots="1"',
+        'C) thinking="off"; flash_attn="on";  batch_size="256"; '
+        'ubatch_size="64";  parallel_slots="1"',
+        'D) thinking="off"; flash_attn="on";  batch_size="512"; '
+        'ubatch_size="128"; parallel_slots="1"',
+        'E) thinking="off"; flash_attn="on";  batch_size="512"; '
+        'ubatch_size="128"; parallel_slots="4"',
+    )
+    for row in expected_rows:
+        assert row in script
+
+
+def test_experiment_matrix_has_safe_dry_run_and_c2_binding() -> None:
+    script = MATRIX_SCRIPT.read_text(encoding="utf-8")
+
+    assert "--run A|B|C|D|E|all" in script
+    assert "--dry-run" in script
+    assert "--expected-commit" in script
+    assert "assert_c2_binding" in script
+    assert "status --porcelain=v1 --untracked-files=all -- ." in script
+    assert "c2_binding_status=verified" in script
+    assert script.index("if (( dry_run == 1 ))") < script.index(
+        'mkdir -m 0700 -- "${output_root}"'
+    )
+
+
+def test_experiment_matrix_preserves_runs_and_reuses_evidence_collector() -> None:
+    script = MATRIX_SCRIPT.read_text(encoding="utf-8")
+
+    assert 'local run_dir="${output_root}/${experiment}"' in script
+    assert 'local evidence_dir="${run_dir}/evidence"' in script
+    assert "collect_rocm_evidence.sh" in script
+    assert "status=failed stage=${current_stage}" in script
+    assert "failed_experiments" in script
+    assert "compare_benchmarks.py" in script
+    assert "A-vs-B-thinking.json" in script
+    assert "--require-accepted" in script
+    for forbidden_pair in ("A-vs-C", "B-vs-C", "C-vs-D", "D-vs-E"):
+        assert forbidden_pair not in script
+
+
+def test_experiment_matrix_contains_no_destructive_cleanup() -> None:
+    script = MATRIX_SCRIPT.read_text(encoding="utf-8").lower()
+
+    forbidden = (
+        "rm -rf",
+        "rm --",
+        "shred ",
+        "unlink ",
+        "kubectl delete",
+        "docker rm",
+        "podman rm",
+    )
+    for command in forbidden:
+        assert command not in script
 
 
 def test_model_launcher_rejects_newline_in_evidence_path(tmp_path: Path) -> None:

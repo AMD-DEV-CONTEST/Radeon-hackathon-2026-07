@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import json
 import types
+from collections.abc import Callable, Mapping
 from dataclasses import MISSING, asdict, dataclass, fields, is_dataclass
 from datetime import date
 from typing import (
     Any,
-    Callable,
     Generic,
-    Mapping,
     TypeVar,
     Union,
     cast,
@@ -43,7 +42,6 @@ from .models import (
 )
 from .service import HotelService
 from .storage import stable_hash
-
 
 InputT = TypeVar("InputT")
 OutputT = TypeVar("OutputT")
@@ -211,7 +209,7 @@ def _matches_type(value: Any, annotation: Any) -> bool:
     return False
 
 
-def _validate_request_types(spec: "ToolSpec[Any, Any]", request: Any) -> None:
+def _validate_request_types(spec: ToolSpec[Any, Any], request: Any) -> None:
     type_hints = get_type_hints(spec.input_type)
     for field in fields(spec.input_type):
         value = getattr(request, field.name)
@@ -241,7 +239,7 @@ def _active_constraints(constraints: Mapping[str, Any], value: Any) -> Mapping[s
     return constraints
 
 
-def _validate_request_constraints(spec: "ToolSpec[Any, Any]", request: Any) -> None:
+def _validate_request_constraints(spec: ToolSpec[Any, Any], request: Any) -> None:
     values = asdict(request)
     for field_name, declared in _FIELD_CONSTRAINTS.get(spec.name, {}).items():
         value = values.get(field_name)
@@ -276,9 +274,12 @@ def _validate_request_constraints(spec: "ToolSpec[Any, Any]", request: Any) -> N
         raise ValidationError("hotel.modify_booking requires at least one changed field")
     check_in = values.get("check_in")
     check_out = values.get("check_out")
-    if isinstance(check_in, str) and isinstance(check_out, str):
-        if date.fromisoformat(check_out) <= date.fromisoformat(check_in):
-            raise ValidationError("check_out must be after check_in")
+    if (
+        isinstance(check_in, str)
+        and isinstance(check_out, str)
+        and date.fromisoformat(check_out) <= date.fromisoformat(check_in)
+    ):
+        raise ValidationError("check_out must be after check_in")
 
 
 def _encode_output(value: Any) -> str:

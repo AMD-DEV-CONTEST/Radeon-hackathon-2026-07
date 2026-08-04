@@ -1,26 +1,44 @@
 # Judge Quickstart
 
-This guide targets a prepared AMD Radeon/ROCm environment. Exact image, ROCm,
-model, and llama.cpp revisions will be pinned after P0 hardware validation.
+This guide targets the verified Radeon environment: Python `3.12.3`, ROCm
+`7.2.1`, HIP `7.2.53211-e1a6bc5663`, and a detected `AMD Radeon Graphics`
+device (`gfx1100`, device ID `0x744b`, 96 compute units, `51522830336` VRAM
+bytes). The product string is reproduced verbatim; no retail GPU model is
+inferred.
 
 ## 1. Verify the hardware boundary
 
 ```bash
+python3 --version
+hipconfig --version
 rocminfo | sed -n '1,80p'
 rocm-smi --showproductname --showmeminfo vram --showuse
 ```
 
-Save the command output with the final evidence bundle.
+Confirm the versions and detected values above, then save the command output with
+the final evidence bundle.
 
 ## 2. Start the local model
 
 ```bash
 cd submissions/track2-radeonstay
-LLAMA_SERVER=/workspace/llama.cpp/build/bin/llama-server \
-MODEL_PATH=/models/qwen3.6-35b-a3b-q6k.gguf \
-EVIDENCE_RUN_ID=radeon-w7900-baseline-001 \
+: "${LLAMA_BIN:?Export LLAMA_BIN as the frozen ROCm llama-server binary}"
+: "${MODEL_FILE:?Export MODEL_FILE as the frozen local GGUF path}"
+test "$(sha256sum "$LLAMA_BIN" | awk '{print $1}')" = \
+  "926e2297d7144a59182ba9d37de877ec972a0cf8d1b697baa82277b3066c45c6"
+test "$(sha256sum "$MODEL_FILE" | awk '{print $1}')" = \
+  "4fe53b148b46f9b88830e2a3055c5b15c3a4d1e3ddc9a1384a108d8b9d59f043"
+LLAMA_SERVER="$LLAMA_BIN" \
+MODEL_PATH="$MODEL_FILE" \
+MODEL_ALIAS="${RADEONSTAY_MODEL_NAME:-qwen3.6-35b-a3b-q6k}" \
+EVIDENCE_RUN_ID=radeon-target-baseline-001 \
 scripts/serve_model.sh > evaluation/results/llama-server.log 2>&1
 ```
+
+`MODEL_FILE` is
+`unsloth/Qwen3.6-35B-A3B-GGUF@a483e9e6cbd595906af30beda3187c2663a1118c/Qwen3.6-35B-A3B-UD-Q6_K.gguf`
+(Apache-2.0). `LLAMA_BIN` is built from llama.cpp commit
+`0b14b87d7c20cb753b94b96854dd7b45306fc696`.
 
 The service must bind to `127.0.0.1:8000` for the private judge path. Use a
 second terminal with `tail -f evaluation/results/llama-server.log` if live logs
@@ -31,7 +49,8 @@ are needed; stopping the launcher writes the evidence end marker to that file.
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -e .
+python -m pip install -r requirements.lock
+python -m pip install --no-deps -e .
 cp .env.example .env
 python - <<'PY'
 from pathlib import Path
@@ -66,9 +85,9 @@ a stay window:
 > 可用房和准确报价，并在我确认前只预览保留房间。
 
 Check the policy citations, plan, room inventory and quote. Review and confirm
-the pending reservation hold. Copy the returned booking ID into the next
-request, then create the transfer ticket and opt in to preference memory. Each
-write is confirmed separately. For example:
+the pending reservation hold. The UI prefills the next editable transfer request
+with the returned booking ID; submit it, then opt in to preference memory. Each
+write remains a separate preview and confirmation. For example:
 
 > For booking RSV-..., request pickup from Terminal 1 for synthetic flight
 > RS123 arriving 22:45, for one adult and one six-year-old needing a child

@@ -13,10 +13,9 @@ import math
 import os
 import re
 from collections import Counter
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator, Sequence
-
 
 _HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 _TOKEN_RE = re.compile(r"[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*|[\u3400-\u9fff]+")
@@ -352,7 +351,7 @@ class PolicyRetriever:
         policy_dir: str | Path,
         *,
         project_root: str | Path | None = None,
-    ) -> "PolicyRetriever":
+    ) -> PolicyRetriever:
         return cls(load_policy_documents(policy_dir, project_root=project_root))
 
     @property

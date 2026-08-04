@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import httpx
@@ -9,7 +10,7 @@ from radeonstay.config import Settings
 from radeonstay.model_client import LocalModelClient, ModelClientError
 
 
-def _settings() -> Settings:
+def _settings(*, thinking_enabled: bool = False) -> Settings:
     root = Path(__file__).resolve().parents[1]
     return Settings(
         project_root=root,
@@ -27,6 +28,7 @@ def _settings() -> Settings:
         public_demo_enabled=False,
         ui_username="",
         ui_password="",
+        model_enable_thinking=thinking_enabled,
     )
 
 
@@ -92,6 +94,11 @@ def test_chat_trace_records_usage_without_response_content() -> None:
     try:
         model.start_trace()
         model.chat([{"role": "user", "content": "hello"}])
+        model.record_last_trace_validation(
+            validation_stage="agent_plan_contract",
+            validation_ok=True,
+            outcome="accepted_initial",
+        )
         calls = model.finish_trace()
     finally:
         model.close()
@@ -104,7 +111,70 @@ def test_chat_trace_records_usage_without_response_content() -> None:
     assert calls[0]["server_decode_tokens_per_second"] == 42.5
     assert calls[0]["ttft_ms"] is None
     assert calls[0]["server_timings"] == {"predicted_per_second": 42.5}
+    assert calls[0]["purpose"] == "chat"
+    assert calls[0]["attempt"] == 1
+    assert calls[0]["response_format"] == "text"
+    assert calls[0]["thinking_enabled"] is False
+    assert calls[0]["schema_constrained"] is False
+    assert calls[0]["validation_stage"] == "agent_plan_contract"
+    assert calls[0]["validation_ok"] is True
+    assert calls[0]["validation_outcome"] == "accepted_initial"
     assert "local private answer" not in str(calls)
+
+
+def test_chat_json_sends_llama_json_schema_thinking_flag_and_trace_fields() -> None:
+    requests: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(json.loads(request.content))
+        return httpx.Response(
+            200,
+            json={
+                "model": "local-test-model",
+                "choices": [{"message": {"content": '{"answer":"local"}'}}],
+            },
+        )
+
+    client = httpx.Client(
+        base_url="http://127.0.0.1:8000/v1/",
+        transport=httpx.MockTransport(handler),
+    )
+    model = LocalModelClient(_settings(thinking_enabled=True), client)
+    schema = {
+        "type": "object",
+        "properties": {"answer": {"type": "string"}},
+        "required": ["answer"],
+        "additionalProperties": False,
+    }
+    try:
+        model.start_trace()
+        parsed, _ = model.chat_json(
+            [{"role": "user", "content": "return json"}],
+            json_schema=schema,
+            json_schema_name="local_answer",
+            trace_purpose="unit.schema",
+            trace_attempt=2,
+        )
+        calls = model.finish_trace()
+    finally:
+        model.close()
+
+    assert parsed == {"answer": "local"}
+    assert requests[0]["chat_template_kwargs"] == {"enable_thinking": True}
+    assert requests[0]["response_format"] == {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "local_answer",
+            "strict": True,
+            "schema": schema,
+        },
+    }
+    assert calls[0]["purpose"] == "unit.schema"
+    assert calls[0]["attempt"] == 2
+    assert calls[0]["response_format"] == "json_schema"
+    assert calls[0]["json_schema_name"] == "local_answer"
+    assert calls[0]["thinking_enabled"] is True
+    assert calls[0]["schema_constrained"] is True
 
 
 def test_chat_http_failure_is_traced_without_response_body() -> None:
