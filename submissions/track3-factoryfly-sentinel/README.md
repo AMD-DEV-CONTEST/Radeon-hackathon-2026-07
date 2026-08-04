@@ -3,7 +3,7 @@
 **Human-Guided Physical AI for Active Factory Inspection**
 
 - **Track:** Track 3 — Physical AI Challenge
-- **Participant:** Jaewon Lee
+- **Team members:** Jaewon Lee (sole participant)
 - **Team:** Solo participant
 - **Application:** FactoryFly Sentinel
 - **Version:** v7.3.13
