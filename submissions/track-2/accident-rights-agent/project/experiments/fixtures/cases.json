@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "synthetic_only": true,
+  "cases": [
+    {
+      "case_id": "CASE-GOLDEN-DEMO",
+      "scenario_id": "demo_a",
+      "label": "Demo A：主案例",
+      "materials": [
+        "dashcam_video",
+        "scene_photo",
+        "accident_determination",
+        "vehicle_registration",
+        "vehicle_certificate_ccc",
+        "vehicle_technical_parameters",
+        "appraisal_report"
+      ],
+      "expected": {
+        "vehicle_uncertainty_required": false,
+        "conflict_required": false,
+        "approval_status": "pending"
+      }
+    },
+    {
+      "case_id": "CASE-EXPERIMENT-MISSING-EVIDENCE",
+      "scenario_id": "demo_b",
+      "label": "Demo B：缺证据",
+      "materials": ["accident_determination", "scene_photo"],
+      "missing": ["车辆属性鉴定意见", "路口监控"],
+      "expected": {
+        "vehicle_uncertainty_required": true,
+        "unique_liability_blocked": true,
+        "approval_status": "pending"
+      }
+    },
+    {
+      "case_id": "CASE-EXPERIMENT-CONFLICT",
+      "scenario_id": "demo_c",
+      "label": "Demo C：冲突证据",
+      "materials": [
+        "accident_determination",
+        "dashcam_video",
+        "scene_photo",
+        "vehicle_registration"
+      ],
+      "conflict": "视频与认定书对驶入方向的记载冲突",
+      "expected": {
+        "conflict_required": true,
+        "multiple_liability_hypotheses": true,
+        "approval_status": "pending"
+      }
+    }
+  ]
+}

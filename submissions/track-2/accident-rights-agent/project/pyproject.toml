@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "accident-rights-agent"
+version = "0.1.0"
+description = "Local-first traffic accident evidence and rights agent for AMD Radeon GPU"
+requires-python = ">=3.10"
+dependencies = [
+  "beautifulsoup4==4.14.3",
+  "httpx==0.28.1",
+  "jsonschema==4.26.0",
+  "langgraph==1.0.8",
+  "langgraph-checkpoint-sqlite==3.0.3",
+  "pydantic==2.12.5",
+  "qdrant-client==1.16.2",
+  "rank-bm25==0.2.2",
+]
+
+[project.optional-dependencies]
+evidence = [
+  "numpy==2.1.2",
+  "opencv-python-headless==4.13.0.92",
+  "Pillow==11.0.0",
+  "PyMuPDF==1.28.0",
+]
+api = [
+  "fastapi==0.135.1",
+  "uvicorn==0.42.0",
+]
+ui = [
+  "gradio==6.20.0",
+]
+dev = [
+  "mypy==2.3.0",
+  "pytest==9.0.2",
+  "ruff==0.16.0",
+]
+local-models = [
+  "sentence-transformers==5.2.0",
+]
+
+[project.scripts]
+accident-rights = "app.cli:main"
+accident-rights-ui = "app.ui.gradio_app:main"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+
+[tool.mypy]
+ignore_missing_imports = true
+follow_imports = "skip"

@@ -1,44 +1,32 @@
-# Accident Rights Agent — Sync Manifest
+# Accident Rights Agent - Final Submission Manifest
 
-- Track: 2 — Development & Local Deployment of Private AI Agents
-- Source commit: `4a67367`
-- Sync date: 2026-08-01 (UTC+8)
-- Snapshot: `accident-rights-agent-4a67367.tar.gz`
-- Snapshot SHA256: `67d1a03cf29848fff5be13672eb06a983f607271b4c17a96ca6b618165cf7292`
-- Legal corpus: 15 curated documents and 59 audited excerpts; 14 source records
-  passed the automated online official-source gate. The GA 802 excerpts passed
-  the retained official-snapshot audit, while its live verification endpoint
-  could not be rechecked because that government site presented a self-signed
-  TLS certificate
-- Offline runtime assets: official-source snapshots, quote audit, SQLite legal
-  corpus, and local Qdrant index are included so `bash scripts/run_demo.sh`
-  works from a clean checkout without a public API or network fetch
-- Legal runtime bundle SHA256: `6d349999918bb494f19dfbfd7dd3158d1e5da526b00ccb7f69689ee245db8d22`
-- Business agents: Case Intake, Vehicle Nature, and Liability
-- Rights workflow: deadline calculation, evidence-gap planning, review draft,
-  human approval, and policy gate
-- Owner-first local experience: complete, insufficient, and conflicting synthetic cases,
-  action-first rights workflow, insurer collaboration, and human approval
-- Multimodal demo: JPEG evidence, H.264 MP4 dashcam fixtures, valid PDF records,
-  case-isolated document generation, and responsive desktop/mobile UI
-- Local validation: 140 tests passed, 1 environment-conditioned skip; Ruff and
-  mypy (82 source files) passed
-- Radeon Cloud validation: 141 tests passed; Golden Case completed in 57.494s
-  (mock) and 63.665s (local vLLM), with both flows stopping at human approval
-  and leaving the generated document in `draft`
-- AMD local inference: Qwen3-VL-8B on ROCm 7.2/vLLM, loopback-only endpoint,
-  Prefix Cache enabled; text, image, and eight-frame smoke tests passed
-- Radeon stability: vLLM remained healthy for 32m26s, the final interval test
-  passed 10/10 requests, UI health passed, and the vLLM log contained no OOM or
-  traceback markers
-- Retrieval regression: Recall@4 1.0000, MRR 0.8333, citation completeness 1.0000
+- Track: 2 - Development and Local Deployment of Private AI Agents
+- Team: DataLink
+- Application: Accident Rights Agent
+- Final source commit: `e36577a`
+- Final packaging date: 2026-08-05 (UTC+8)
+- Source layout: browsable under `project/`
+- License: Apache-2.0
+- Public inference APIs: none
+- Radeon deployment: AMD Radeon GPU, ROCm 7.2.1, local vLLM on `127.0.0.1:8000`
+- UI evaluation path: Mac Chrome -> SSH tunnel for port 7860 -> Radeon Cloud Gradio
+- Automated validation: 164 passed, 1 skipped; Ruff passed; mypy passed across 82 source files
+- Golden Case local-vLLM validation: 61.951 seconds, zero failures
+- Dynamic memory result: 11,808 -> 5,795 input tokens, 50.9% reduction, 100% protected-field retention
+- Prefix Cache result: TTFT p50 9.003 -> 0.113 seconds, 98.8% improvement, 99.4% peak hit rate
+- Concurrency result: 20/20 successful requests at concurrency 1, 2, and 4; 89.48 tokens/s at concurrency 4
+- Stability result: 298/298 successful requests over 30.16 minutes; zero OOM; vLLM and checkpoints healthy
 
-This is the current development snapshot. The final English project specification,
-demo video, and supplementary material will be added before the submission pull
-request is opened.
+## Final deliverables
 
-The previous `0325716`, `df9a143`, and `df85d5d` snapshots remain available for
-rollback. The source archive was generated directly from the clean local Git
-commit with `git archive`. This submission snapshot additionally includes the
-verified, model-independent legal runtime assets needed for offline startup.
-Cases, checkpoints, model weights, and runtime credentials are not included.
+- Project README: `project/README.md`
+- Project specification PDF: `project/docs/submission/project_description.pdf`
+- Pitch deck: `project/docs/submission/accident_rights_agent_submission.pptx`
+- Demo video: `project/docs/submission/demo_video.mp4`
+- Architecture: `project/docs/submission/architecture.png`
+- AMD optimization report: `project/docs/submission/amd_optimization.md`
+- Test report: `project/docs/submission/test_report.md`
+- Privacy and security statement: `project/docs/submission/privacy_security.md`
+- Model and license declaration: `project/docs/submission/model_license.md`
+
+The older compressed snapshots remain in this directory as recoverable synchronization history. The `project/` directory is the final, directly reviewable submission and includes the complete source, tests, legal-source snapshots, documentation, and required competition materials. Model weights, runtime credentials, private case data, checkpoints, and internal recording working files are intentionally excluded.
