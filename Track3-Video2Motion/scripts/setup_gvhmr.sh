@@ -34,11 +34,41 @@ $PYX -c "import torch; print('  torch', torch.__version__, '| hip', torch.versio
 
 step "GVHMR"
 [ -d "$THIRD/GVHMR" ] || git clone -q --depth 1 https://github.com/zju3dv/GVHMR "$THIRD/GVHMR"
-$PIP install -q $PIP_OPTS -r "$THIRD/GVHMR/requirements.txt" || info "some requirements failed; continuing with explicit pins"
+# GVHMR's requirements.txt targets CUDA 12.1 + Python 3.10 throughout:
+#
+#   --extra-index-url https://download.pytorch.org/whl/cu121
+#   torch==2.3.0+cu121          would replace the ROCm build we just installed
+#   torchvision==0.18.0+cu121
+#   numpy==1.23.5               no cp312 wheel; building it on 3.12 dies with
+#                               "module 'pkgutil' has no attribute 'ImpImporter'"
+#   pytorch3d @ .../pytorch3d-0.7.6-cp310-cp310-...whl
+#
+# Any one of those aborts the whole file, silently leaving out lightning,
+# hydra and the rest — which then surfaces much later as a runtime
+# ModuleNotFoundError. Strip the platform-specific lines and install the rest;
+# torch and pytorch3d are handled separately, above and below.
+grep -vE '^(--(extra-)?index-url|torch|torchvision|torchaudio|pytorch3d|numpy)' \
+    "$THIRD/GVHMR/requirements.txt" > /tmp/v2m_gvhmr_reqs.txt
+info "installing $(grep -cve '^\s*$' -e '^#' /tmp/v2m_gvhmr_reqs.txt) requirements (platform-specific pins removed)"
+$PIP install -q $PIP_OPTS -r /tmp/v2m_gvhmr_reqs.txt
 # wis3d and pycolmap are NOT optional — cv2_utils.py imports them at module level.
 # ultralytics must be >= 8.4: 8.2.42 breaks on torch >= 2.6 because
 # weights_only=True became the default and blocks the YOLO checkpoint load.
 $PIP install -q $PIP_OPTS "numpy<2" yacs pycolmap wis3d "ultralytics>=8.4"
+
+# hmr4d/utils/body_model/body_model.py opens with `from turtle import forward`,
+# an IDE autocomplete accident: `forward` is never used (the name is immediately
+# shadowed by the class's own forward() method), but importing turtle pulls in
+# tkinter, which headless containers do not ship. Drop the line rather than
+# installing a GUI toolkit to satisfy a dead import.
+sed -i '/^from turtle import forward$/d' \
+    "$THIRD/GVHMR/hmr4d/utils/body_model/body_model.py"
+
+# GVHMR itself. Installing its dependencies is not enough — tools/demo/demo.py
+# imports `hmr4d`, which lives in this repo and needs to be on the path.
+# --no-deps because we have already resolved the dependency set by hand; letting
+# pip re-resolve here would drag the CUDA pins back in.
+$PIP install -q --no-deps -e "$THIRD/GVHMR"
 
 step "chumpy (needs patching)"
 # chumpy aborts the whole batch if installed together with others, and its
@@ -56,6 +86,15 @@ step "pytorch3d (compiled from source — the slow step)"
 # machine it starved the system until sshd could no longer fork.
 [ -d "$THIRD/pytorch3d" ] || git clone -q --depth 1 https://github.com/facebookresearch/pytorch3d "$THIRD/pytorch3d"
 MAX_JOBS="${MAX_JOBS:-8}" FORCE_CUDA=0 $PIP install $PIP_OPTS --no-build-isolation -e "$THIRD/pytorch3d"
+
+step "Import check"
+# Installing is not the same as importing. GVHMR fails at runtime otherwise,
+# after you have already waited for the pytorch3d build.
+$PYX -c "
+import torch, pytorch3d, lightning, hydra, cv2, ultralytics, hmr4d
+print('  torch', torch.__version__, '| gpu', torch.cuda.is_available())
+print('  pytorch3d', pytorch3d.__version__, '| lightning', lightning.__version__)
+"
 
 cat <<'MSG'
 

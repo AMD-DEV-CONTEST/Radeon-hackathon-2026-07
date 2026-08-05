@@ -35,7 +35,14 @@ step "2/5  SMPL-X → G1 joints   (GMR, CPU/IK)"
     --robot unitree_g1 --save_path "$WORK/motions/$NAME.pkl" )
 
 step "3/5  Convert and derive body poses/velocities"
-SCENE=$("$PY_MJX" -c "from mujoco_playground._src.locomotion.g1 import g1_constants as c; print(c.FEET_ONLY_FLAT_TERRAIN_XML)")
+# Two different scene files, and they are not interchangeable:
+#   * playground's scene references its assets by a relative path that only
+#     resolves through base.get_assets() + from_xml_string (used by
+#     eval_track.py and layer2_numpy.py)
+#   * gmr_to_mjx.py and replay_check.py use from_xml_path, which needs a scene
+#     whose assets sit next to it — that is menagerie's own scene_mjx.xml
+SCENE=$("$PY_MJX" -c "from mujoco_playground._src import mjx_env; \
+    print(mjx_env.MENAGERIE_PATH / 'unitree_g1' / 'scene_mjx.xml')")
 MUJOCO_GL=osmesa "$PY_MJX" "$REPO/src/gmr_to_mjx.py" \
     --gmr_pkl "$WORK/motions/$NAME.pkl" --mjx_xml "$SCENE" \
     --out "$WORK/motions_mjx/$NAME.npz"
