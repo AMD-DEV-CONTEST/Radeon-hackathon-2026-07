@@ -1,6 +1,7 @@
 # Track 2 — Amaresh Hebbar — TrueNorth
 
 **Source repository:** https://github.com/onenot8/TrueNorth
+
 **Application demonstrated:** KisanSathi (bundled sample — AI farm advisor)
 
 ## Demo Video & Poster
