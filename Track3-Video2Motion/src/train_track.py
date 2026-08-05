@@ -46,6 +46,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--motion", required=True)
     ap.add_argument("--run_name", required=True)
+    ap.add_argument("--out_root", default=None,
+                    help="where run directories go "
+                         "(default: workdir/train)")
     ap.add_argument("--num_envs", type=int, default=4096)
     ap.add_argument("--num_timesteps", type=int, default=300_000_000)
     ap.add_argument("--num_evals", type=int, default=40)
@@ -63,8 +66,18 @@ def main():
     print(f"JAX: {jax.default_backend()} {jax.devices()}")
     print("=" * 60)
 
-    out = Path("output/train") / args.run_name
+    # Absolute by default. This used to be a relative "output/train", which
+    # landed wherever the caller happened to be: the webapp runs this with
+    # cwd=src/, so hours of checkpoints went to src/output/train while every
+    # reader — the webapp, verify.sh, the run dropdown — looked in
+    # workdir/train and reported that training had produced nothing.
+    if args.out_root:
+        out = Path(args.out_root) / args.run_name
+    else:
+        import config as _cfg
+        out = _cfg.TRAIN_OUT / args.run_name
     out.mkdir(parents=True, exist_ok=True)
+    print(f"[train] checkpoints -> {out}")
 
     cfg = g1_track.default_config()
     if args.no_penalty:
