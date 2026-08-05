@@ -74,11 +74,27 @@ step "chumpy (needs patching)"
 # chumpy aborts the whole batch if installed together with others, and its
 # source uses APIs removed from Python 3.11 / NumPy 1.24.
 $PIP install -q $PIP_OPTS --no-build-isolation chumpy || true
-CH=$($PYX -c "import chumpy,os;print(os.path.dirname(chumpy.__file__))" 2>/dev/null || true)
+# Locate chumpy WITHOUT importing it. `import chumpy` is exactly what is broken
+# here, so resolving the path that way leaves CH empty and silently skips the
+# patch below — the failure then surfaces much later, mid-video, as
+# "module 'inspect' has no attribute 'getargspec'". find_spec only looks the
+# package up on sys.path; it does not execute it.
+CH=$($PYX -c "
+import importlib.util, os
+s = importlib.util.find_spec('chumpy')
+print(os.path.dirname(s.origin) if s and s.origin else '')
+" 2>/dev/null || true)
 if [ -n "$CH" ]; then
-  sed -i 's/inspect.getargspec/inspect.getfullargspec/g' "$CH/ch.py" || true
+  # getargspec was removed in Python 3.11; chumpy calls it at import time,
+  # from a decorator at module scope, so this is fatal rather than lazy.
+  sed -i 's/inspect\.getargspec/inspect.getfullargspec/g' "$CH/ch.py" || true
+  # np.bool / np.int / ... were removed in NumPy 1.24.
   sed -i '/from numpy import bool, int, float, complex, object, unicode, str, nan, inf/d' "$CH/__init__.py" || true
+  rm -rf "$CH/__pycache__"
   info "patched chumpy at $CH"
+  $PYX -c "import chumpy; print('  chumpy', chumpy.__version__, 'imports OK')"
+else
+  info "chumpy not found — SMPL loading will fail"; exit 1
 fi
 
 step "pytorch3d (compiled from source — the slow step)"
