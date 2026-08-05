@@ -162,6 +162,29 @@ The reproducible runner in `scripts/benchmark_llama.py` records streaming TTFT, 
 end-to-end model latency, server-reported prompt/decode throughput, and structured-output success.
 See [Radeon Benchmark Protocol](../benchmarks/README.md).
 
+### Measured W7900 Result — 2026-08-05
+
+The production-shaped capture used Q6_K GGUF, full GPU layer offload, flash attention, Q8_0 K/V
+cache, a 2,048-token reasoning budget, and a 384-token final-output budget. One warmup preceded five
+measured batch-size-1 multimodal requests.
+
+| Metric | Optimized warm capture |
+|---|---:|
+| First generated delta, median | 87.09 ms |
+| First final-content delta, median | 9,960.18 ms |
+| End-to-end model latency, median | 11,919.78 ms |
+| Decode throughput, median | 83.42 tok/s |
+| Valid structured JSON | 100% (5/5) |
+
+A separate cold reference recorded 825.58 ms to the first generated delta, 12,694.04 ms total
+latency, and 83.16 tok/s decode throughput. The final-content SHA-256 is identical across all six
+captured runs. Review the [optimized result](../benchmarks/results/llama_cpp_w7900_optimized.md) and
+[cold reference](../benchmarks/results/llama_cpp_w7900_cold.md).
+
+This is evidence for the tuned deployment stack, not a controlled vLLM comparison or proof that one
+flag caused the difference. Peak VRAM and GPU utilization remain separate video evidence because
+the committed benchmark files do not contain ROCm telemetry.
+
 ## Knowledge and Evidence
 
 The public corpus deliberately remains small and inspectable:

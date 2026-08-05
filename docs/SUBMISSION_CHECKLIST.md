@@ -11,7 +11,7 @@ reviewer can open or reproduce. Do not mark an item complete based only on inten
 | Agent architecture diagram | Mermaid diagram in `docs/SUBMISSION_BRIEF.md` | Ready |
 | Core capabilities | Track 2 capability matrix in `docs/SUBMISSION_BRIEF.md` | Ready |
 | Model and local deployment | `docs/PRODUCTION_DEPLOYMENT.md`, `docs/REPRODUCE.md` | Ready after final host reproduction |
-| Radeon inference optimization | Brief optimization table and `benchmarks/README.md` | Protocol ready; final metrics pending |
+| Radeon inference optimization | Brief optimization table and `benchmarks/results/llama_cpp_w7900_optimized.md` | Measured W7900 metrics ready; GPU telemetry recording pending |
 | Complete source repository | `src/`, `apps/web/`, `scripts/`, `tests/`, `data/` | Ready |
 | README with environment and dependencies | `README.md`, `.env.example`, `pyproject.toml`, `uv.lock`, web lockfile | Ready |
 | README startup guide | `README.md`, `docs/LOCAL_DEVELOPMENT.md` | Ready |
@@ -62,18 +62,18 @@ reviewer can open or reproduce. Do not mark an item complete based only on inten
 
 - [ ] Record `rocm-smi` or `amd-smi` showing AMD Radeon PRO W7900 activity.
 - [ ] Record the ROCm version.
-- [ ] Record the exact llama.cpp commit.
-- [ ] Record the complete `llama-server` launch command.
-- [ ] Show the model ID and Q6_K representation.
+- [x] Record the exact llama.cpp commit.
+- [x] Record the complete `llama-server` launch command.
+- [x] Show the model ID and Q6_K representation.
 - [ ] Show the multimodal projection loaded.
 - [ ] Show FastAPI using `http://127.0.0.1:8000/v1`.
 - [ ] Confirm only FastAPI, not `llama-server`, is publicly tunneled.
-- [ ] Run one cold benchmark separately from warm measurements.
-- [ ] Run at least one warmup plus three measured multimodal requests.
-- [ ] Commit reviewed JSON and Markdown results under `benchmarks/results/`.
-- [ ] Report TTFT, final-content TTFT, total latency, decode rate, and JSON success rate.
+- [x] Run one cold benchmark separately from warm measurements.
+- [x] Run at least one warmup plus three measured multimodal requests.
+- [x] Commit reviewed JSON and Markdown results under `benchmarks/results/`.
+- [x] Report TTFT, final-content TTFT, total latency, decode rate, and JSON success rate.
 - [ ] Capture peak VRAM and GPU utilization separately with ROCm tooling.
-- [ ] Avoid an unsupported causal claim about W7900 FP8.
+- [x] Avoid an unsupported causal claim about W7900 FP8.
 
 ## 5. Documentation and Rights Gate
 

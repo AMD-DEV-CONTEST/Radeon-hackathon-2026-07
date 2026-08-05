@@ -231,6 +231,9 @@ runtime and remains outside Git, the public Milvus corpus, screenshots, and dist
 - [Production Deployment Guide](docs/PRODUCTION_DEPLOYMENT.md)
 - [Private Lens Tool](docs/PRIVATE_LENS_TOOL.md)
 - [Radeon Benchmark Protocol](benchmarks/README.md)
+- [Reviewed W7900 Result](benchmarks/results/llama_cpp_w7900_optimized.md) — 87.09 ms median first
+  generated delta, 83.42 tok/s median decode throughput, 11.92 s median end-to-end latency, and
+  100% valid JSON across five warm multimodal runs.
 - [Application Design](docs/XIANGLENS_APPLICATION_DESIGN.md)
 - [Knowledge and Image Dataset Plan](docs/KNOWLEDGE_BASE_DATASET_PLAN.md)
 - [Image Fixture Pack](data/fixtures/README.md)

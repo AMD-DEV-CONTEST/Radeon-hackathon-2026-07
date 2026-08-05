@@ -190,16 +190,19 @@ Typed output validation
 
 **Screen**
 
-- Show the final `benchmarks/results/llama_cpp_w7900_warm.md` summary.
+- Show the final `benchmarks/results/llama_cpp_w7900_optimized.md` summary.
 - Show the exact llama-server command beside `rocm-smi` telemetry.
-- Highlight median TTFT, decode tokens/s, end-to-end latency, JSON success rate, and peak VRAM.
+- Highlight 87.09 ms median first delta, 83.42 tok/s decode throughput, 11.92 s end-to-end latency,
+  and 100% valid JSON. Record peak VRAM separately in the telemetry view; do not add a number that
+  is absent from the reviewed result.
 
 **Narration**
 
-> XiangLens uses Q6_K GGUF, full GPU layer offload, flash attention, a quantized KV cache, Top-K
-> RAG, CPU embeddings, deterministic tools, and compact typed calls. This batch-one benchmark uses
-> the same image, prompt, reasoning budget, and production server configuration. These are measured
-> system results, not an unsupported claim about one FP8 feature.
+> In five warm multimodal runs, the first generated delta arrived in 87.09 milliseconds, decode
+> throughput held at 83.42 tokens per second, end-to-end latency was 11.92 seconds, and every run
+> returned valid JSON. A separate cold reference reached its first delta in 825.58 milliseconds,
+> and the final-output hash matched across all six captures. This measures the tuned stack; it does
+> not assign the result to one feature or make an unsupported FP8 claim.
 
 ### 4:10–4:30 — Close
 

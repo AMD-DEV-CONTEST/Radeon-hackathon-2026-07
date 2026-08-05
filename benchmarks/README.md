@@ -31,15 +31,15 @@ uv run python scripts/benchmark_llama.py \
   --model mradermacher/Qwen3.6-35B-A3B-Fable-5-Distill-i1-GGUF:Q6_K \
   --image data/fixtures/images/portrait_01__clean.jpg \
   --warmups 1 \
-  --runs 3 \
+  --runs 5 \
   --max-tokens 384 \
   --reasoning-budget 2048 \
   --gpu "AMD Radeon PRO W7900" \
   --rocm-version "$(rocminfo | rg -m1 'Runtime Version' | xargs)" \
   --llama-cpp-commit "$(git -C /workspace/llama.cpp rev-parse HEAD)" \
   --server-command "llama-server; see docs/REPRODUCE.md" \
-  --output benchmarks/results/llama_cpp_w7900_warm.json \
-  --markdown-output benchmarks/results/llama_cpp_w7900_warm.md
+  --output benchmarks/results/llama_cpp_w7900_optimized.json \
+  --markdown-output benchmarks/results/llama_cpp_w7900_optimized.md
 ```
 
 The JSON stores run-level metrics. The Markdown file is the reviewer-facing summary. Neither file
@@ -82,3 +82,27 @@ Before committing a result:
 
 `benchmarks/raw/` is for temporary console captures and must remain untracked. Curated JSON and
 Markdown summaries under `benchmarks/results/` may be committed after review.
+
+## Reviewed W7900 Capture — 2026-08-05
+
+The committed capture uses the production-shaped Q6_K multimodal request at batch size 1. The
+optimized capture includes one warmup followed by five measured runs; the cold reference is one
+separate run after restarting the server.
+
+| Metric | Optimized warm capture | Cold reference |
+|---|---:|---:|
+| Measured runs | 5 | 1 |
+| First generated delta, median | 87.09 ms | 825.58 ms |
+| First final-content delta, median | 9,960.18 ms | 10,728.70 ms |
+| End-to-end model latency, median | 11,919.78 ms | 12,694.04 ms |
+| Decode throughput, median | 83.42 tok/s | 83.16 tok/s |
+| Valid structured JSON | 100% | 100% |
+
+All six captured runs produced the same final-content SHA-256. See the reviewed
+[optimized summary](results/llama_cpp_w7900_optimized.md) and
+[cold reference](results/llama_cpp_w7900_cold.md).
+
+These files demonstrate the tuned stack and warm-state behavior; they are not a controlled
+llama.cpp-versus-vLLM comparison and do not isolate the gain from a single flag. Peak VRAM and GPU
+utilization were not stored in these benchmark files and must be captured separately with ROCm
+telemetry during the demonstration video.
