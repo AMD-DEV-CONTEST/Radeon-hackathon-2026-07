@@ -19,7 +19,7 @@ restart() { # $1=model $2=parallel $3=flash-attn
   pkill -x llama-server 2>/dev/null
   sleep 4
   nohup "$LLAMA" --model "$1" --host 127.0.0.1 --port 8000 \
-    --ctx-size 8192 --n-gpu-layers 99 \
+    --ctx-size 16384 --n-gpu-layers 99 \
     --parallel "$2" --flash-attn "$3" \
     --chat-template-kwargs '{"enable_thinking":false}' \
     --alias qwen3-8b > /root/radeonpilot-setup/llama-server.log 2>&1 &

@@ -87,11 +87,39 @@ function workerPrompt(agent, input) {
   });
 }
 
+function slim(value, depth = 0) {
+  // Drop bulky telemetry blobs and cap string length so prompts stay small.
+  if (value === null || value === undefined) return value;
+  if (typeof value === "string") return value.length > 220 ? value.slice(0, 220) + "..." : value;
+  if (typeof value !== "object") return value;
+  if (Array.isArray(value)) return value.slice(0, 8).map((item) => slim(item, depth + 1));
+  if (depth > 4) return "...";
+  const out = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (key === "raw" || key === "rocm_smi" || key === "amd_smi_process") continue;
+    out[key] = slim(item, depth + 1);
+  }
+  return out;
+}
+
 function commanderUserPrompt(input, agentResults) {
+  // Bound the payload so the commander prompt stays inside the endpoint context.
+  const asList = (value) => (Array.isArray(value) ? value : value ? [value] : []);
+  const compact = agentResults.map((worker) => ({
+    key: worker.key,
+    role: worker.role,
+    ok: worker.ok,
+    parsed: worker.parsed ? {
+      findings: asList(worker.parsed.findings).slice(0, 3).map((f) => String(f).slice(0, 160)),
+      recommended_actions: asList(worker.parsed.recommended_actions).slice(0, 2).map((f) => String(f).slice(0, 160)),
+      confidence: worker.parsed.confidence
+    } : undefined,
+    text: String(worker.text || "").slice(0, 300)
+  }));
   return stableJson({
     instruction: "Synthesize the worker outputs into one ops response. Return exactly one JSON object.",
-    request: input,
-    worker_outputs: agentResults
+    request: { user_message: input.user_message, role: input.role, environment: slim(input.environment) },
+    worker_outputs: compact
   });
 }
 
@@ -201,7 +229,21 @@ export class Orchestrator {
       throw new Error(`Required Pi specialists failed closed: ${failedRoles}`);
     }
     const commander = await runSession(sessions.opscommander, commanderUserPrompt(input, parsedWorkers));
-    const parsedCommander = parseJsonObject(commander.text, "OpsCommander");
+    let parsedCommander;
+    try {
+      parsedCommander = parseJsonObject(commander.text, "OpsCommander");
+    } catch (firstError) {
+      // One retry with a tighter prompt guards against an empty or truncated reply.
+      const retry = await runSession(
+        sessions.opscommander,
+        "Your previous reply was not valid JSON. Reply again now with exactly one JSON object containing summary and action_plan."
+      );
+      try {
+        parsedCommander = parseJsonObject(retry.text, "OpsCommander");
+      } catch {
+        throw firstError;
+      }
+    }
     const summary = String(parsedCommander.summary || "").trim();
     const actionPlan = normalizeActionPlan(parsedCommander.action_plan);
     if (!summary || actionPlan.length === 0) {

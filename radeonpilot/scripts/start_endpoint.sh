@@ -28,7 +28,7 @@ elif [ "$ENGINE" = "llama" ]; then
   exec "$LLAMA_SERVER" \
     --model "$GGUF" \
     --host "$HOST" --port "$PORT" \
-    --ctx-size 8192 \
+    --ctx-size 16384 \
     --n-gpu-layers 99 \
     --parallel "${PARALLEL:-4}" \
     --flash-attn "${FLASH_ATTN:-auto}" \

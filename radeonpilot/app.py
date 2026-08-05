@@ -53,6 +53,16 @@ def run_ops(message: str, history: list, session_id: str | None, role: str):
     )
 
 
+def _as_list(value) -> list:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    if isinstance(value, dict):
+        return [f"{k}: {v}" for k, v in value.items()]
+    return [value]
+
+
 def render_agents(reports) -> str:
     if not reports:
         return "_No agent reports yet._"
@@ -61,10 +71,10 @@ def render_agents(reports) -> str:
         status = "ok" if report.ok else "FAILED"
         lines.append(f"#### {report.role} ({report.key}) — {status}, {report.duration_ms} ms")
         if report.parsed:
-            findings = report.parsed.get("findings", [])
+            findings = _as_list(report.parsed.get("findings"))
             for finding in findings[:6]:
                 lines.append(f"- {finding}")
-            actions = report.parsed.get("recommended_actions", [])
+            actions = _as_list(report.parsed.get("recommended_actions"))
             if actions:
                 lines.append("- Recommended: " + "; ".join(str(a) for a in actions[:4]))
         elif report.error:

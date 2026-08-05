@@ -36,5 +36,10 @@ echo "Rendering docs/POSTER.pdf ..."
 "$CHROME" --headless --disable-gpu --no-sandbox --print-to-pdf=docs/POSTER.pdf \
   --no-pdf-header-footer "file://$(pwd)/docs/poster.html" >/dev/null 2>&1
 
+echo "Rendering docs/assets/architecture.png ..."
+"$CHROME" --headless --disable-gpu --no-sandbox \
+  --screenshot=docs/assets/architecture.png --window-size=1560,900 --hide-scrollbars \
+  "file://$(pwd)/docs/assets/architecture.svg" >/dev/null 2>&1
+
 rm -f "$CSS" /tmp/radeonpilot_spec.html
 ls -lh docs/PROJECT_SPECIFICATION.pdf docs/POSTER.pdf
