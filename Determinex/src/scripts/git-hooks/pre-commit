@@ -1,0 +1,84 @@
+#!/bin/sh
+# Determinex ProgramBench integrity gate.
+# Runs when eval_index.json is in the staged diff.
+# Blocks commit if any guard fails.
+
+ROOT="$(git rev-parse --show-toplevel)"
+INDEX="$ROOT/corpus/programbench/eval_index.json"
+
+# --- Secret hygiene: runs on EVERY commit (2026-06-14) ---------------------
+# Block committing a .env file (it holds live API keys; it is gitignored).
+if git diff --cached --name-only | grep -qE '(^|/)\.env$'; then
+    echo "[pre-commit] BLOCKED: refusing to commit a .env file — it holds live secrets."
+    echo "  .env is gitignored; do not force-add it. See docs/SECURITY_POSTURE.md."
+    exit 1
+fi
+# Block API-key-shaped strings in the staged diff (Anthropic/Google/OpenAI/AWS).
+# datasurgeon added 2026-07-02 (operator-approved): same class as ripsecrets -- a
+# PB secret-detection tool whose eval_report.json test fixtures are canonical FAKE
+# credential strings by design (that's what the tool exists to detect). Per-tool
+# name, not a blanket corpus/ exemption -- .env stays blocked unconditionally by
+# the separate check above regardless of path.
+if git diff --cached -U0 -- . ':!scripts/security/secret_scan.py' ':!.pre-commit-config.yaml' \
+        ':!*ripsecrets*' ':!*datasurgeon*' ':!*secret_scan*' ':!*test_secret*' 2>/dev/null \
+   | grep -E '^\+' \
+   | grep -qE 'sk-ant-api[0-9]{2}-[A-Za-z0-9_-]{20}|AIzaSy[A-Za-z0-9_-]{30}|sk-proj-[A-Za-z0-9_-]{20}|AKIA[0-9A-Z]{16}'; then
+    echo "[pre-commit] BLOCKED: an API-key-shaped string is in the staged diff."
+    echo "  Remove it before committing. See docs/SECURITY_POSTURE.md."
+    exit 1
+fi
+
+# Only engage the PB integrity guards when eval_index.json is staged
+if ! git diff --cached --name-only | grep -q "corpus/programbench/eval_index.json"; then
+    exit 0
+fi
+
+echo "[pre-commit] eval_index.json staged — running PB integrity guards..."
+
+PYTHON=""
+for p in "$ROOT/.venv/Scripts/python.exe" "$ROOT/.venv/bin/python" python3 python; do
+    if command -v "$p" >/dev/null 2>&1 || [ -f "$p" ]; then
+        PYTHON="$p"
+        break
+    fi
+done
+
+if [ -z "$PYTHON" ]; then
+    echo "[pre-commit] WARN: no python found — skipping guards (not blocking)"
+    exit 0
+fi
+
+cd "$ROOT"
+
+FAIL=0
+
+echo "[pre-commit] 1/3 pb_board_guard.py..."
+"$PYTHON" scripts/pb_board_guard.py
+if [ $? -ne 0 ]; then
+    echo "[pre-commit] FAIL: pb_board_guard.py — fix violations before committing eval_index.json"
+    FAIL=1
+fi
+
+echo "[pre-commit] 2/3 pb_doc_count_check.py..."
+"$PYTHON" scripts/pb_doc_count_check.py
+if [ $? -ne 0 ]; then
+    echo "[pre-commit] FAIL: pb_doc_count_check.py — fix doc/count mismatches before committing"
+    FAIL=1
+fi
+
+echo "[pre-commit] 3/3 pb_override_scan.py --guard..."
+"$PYTHON" scripts/pb_override_scan.py --guard
+if [ $? -ne 0 ]; then
+    echo "[pre-commit] FAIL: pb_override_scan.py — remove eval_overrides from strict_lock tools"
+    FAIL=1
+fi
+
+if [ $FAIL -ne 0 ]; then
+    echo ""
+    echo "[pre-commit] BLOCKED: eval_index.json commit rejected — $FAIL guard(s) failed."
+    echo "  Fix all violations and re-stage before committing."
+    exit 1
+fi
+
+echo "[pre-commit] All guards passed — eval_index.json commit approved."
+exit 0

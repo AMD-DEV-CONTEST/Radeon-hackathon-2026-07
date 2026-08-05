@@ -1,0 +1,59 @@
+# Core Determinex dependencies — training stack + inference + cloud API clients.
+# For pip install: pip install -r requirements.txt
+# Benchmark-only deps: scripts/requirements_bench.txt
+# Inference-only (lighter): scripts/requirements.txt
+fastembed>=0.4.0
+datasets>=2.0.0
+transformers>=4.40.0
+huggingface_hub>=0.20.0
+peft>=0.10.0
+trl>=0.8.0
+bitsandbytes>=0.43.0
+accelerate>=0.28.0
+requests>=2.31.0
+numpy>=1.26.0
+tiktoken>=0.6.0
+openai>=1.0.0
+anthropic>=0.25.0
+torch>=2.13.0  # CVE-2025-3000 (memory corruption in torch.jit.script) + PYSEC-2025-194;
+               # 2.12.1 closed the first but not the second -- 2.13.0 closes both, and it also
+               # lifts torch's setuptools<82 pin, which conflicted with the setuptools>=83 floor
+PyYAML>=6.0
+psutil>=5.9.0
+cryptography>=48.0.1  # GHSA-537c-gmf6-5ccf, fixed 2026-06-30
+rich>=13.0.0
+aiohttp>=3.14.1  # 11 CVEs incl. CVE-2026-54273/4/6/7/8/9/80, fixed 2026-06-30
+pip-audit>=2.7.0  # dependency_scan.py's scanner -- must be present for the gate to run for real
+# 2026-07-16 pip-audit sweep -- these floors close every CVE with a fix available (25 packages,
+# ~107 individual findings). NO fix exists yet for chromadb (PYSEC-2026-311), diskcache
+# (PYSEC-2026-2447), or weasyprint (PYSEC-2026-3412) -- tracked, not fixable today.
+click>=8.3.3
+gitpython>=3.1.50
+httplib2>=0.32.0
+idna>=3.15
+json-repair>=0.60.1
+langchain-core>=1.3.3
+langchain-classic>=1.0.7
+langchain-text-splitters>=1.1.2
+langsmith>=0.8.18
+litellm>=1.84.0
+lxml>=6.1.0
+mcp>=1.28.1  # CVE-2026-52869/52870/59950, fixed 2026-07-23 (transitive, pinned explicitly to stop drift)
+pillow>=12.3.0
+pip>=26.1.2
+pyasn1>=0.6.4  # PYSEC-2026-3455/3456/3457, fixed 2026-07-23 (transitive, pinned explicitly to stop drift)
+pydantic>=2.0.0
+pydantic-settings>=2.0.0  # determinex_settings.py's config spine (~10 scripts import), hard dep since 2026-07-20
+pygments>=2.20.0  # PYSEC-2026-2987, fixed 2026-07-23 (transitive, pinned explicitly to stop drift)
+pyjwt>=2.13.0
+pypdf>=6.13.3
+python-dotenv>=1.2.2
+python-multipart>=0.0.31
+setuptools>=83.0.0
+soupsieve>=2.8.4
+starlette>=1.3.1
+tenacity>=8.0.0  # determinex_atomic_io.py's retry helper, hard dep since 2026-07-20
+tqdm>=4.66.0
+urllib3>=2.7.0
+uv>=0.11.15
+diffusers>=0.38.0

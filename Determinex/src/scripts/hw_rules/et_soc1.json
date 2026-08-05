@@ -1,0 +1,68 @@
+{
+  "_doc": "ET-SoC1 hardware-constraint rule table for the Pre-Flight Static Graph Profiler (determinex_hw_profiler.py). Each rule is data: a check_id (backed by a small Python function in the profiler's check registry -- kept as code, not eval()'d strings, for safety) plus the metadata a report needs (severity, description, citation into the corpus). Extend this file when a NEW hardware fact is learned; only add a Python check function when the fact needs new arithmetic the existing checks cannot express. Facts sourced from the hf-hackathon ET-SoC1 YOLO campaign (corpus/programbench/build_knowledge.json, hackathon_leaderboard_mechanics_2026_07_10 namespace) -- every rule below cost real debugging hours on real hardware to discover; this table exists so the NEXT target gets them for free, before optimization starts instead of after.",
+  "hardware_target": "et-soc1",
+  "constants": {
+    "T_TILE": 16,
+    "L1_SCP_ENTRIES": 48,
+    "SCP_TENB_OFFSET": 48,
+    "TFMA_MAX_AROWS": 16,
+    "TFMA_MAX_BCOLS": 16,
+    "NFREGS": 32,
+    "TFMA_REGS_PER_ROW": 2,
+    "TENSOR_LOAD_MASK_BYTES": 64,
+    "TENSOR_STORE_MASK_COLS": 4,
+    "TENSOR_STORE_MASK_BYTES": 64
+  },
+  "rules": [
+    {
+      "id": "padded_row_alignment_multi_tap",
+      "title": "Multi-tap tensor-routed conv needs 16-float-aligned padded row width",
+      "severity": "critical",
+      "applies_to": "call_site",
+      "applies_when": "tensor_eligible and taps > 1",
+      "check_id": "padded_row_alignment_multi_tap",
+      "description": "tensor_load silently masks BOTH addr and stride to 64-byte (16-float) boundaries with zero error raised. For any multi-tap (KxK, K>1) conv routed through the tensor unit, per-tap column offsets (kx>0) are only correctly addressed if the padded row width PW=(W+2*pad) is itself a multiple of T_TILE=16 floats. If PW is not 16-aligned, every kx>0 tap's address silently truncates back toward the kx=0 address and reads wrong (often duplicate) data -- the accumulation is then simply incorrect, with no error, warning, or crash.",
+      "citation": "hackathon_leaderboard_mechanics_2026_07_10 -> yolo_LOST_TO_COMPETITOR_POSTMORTEM_2026_07_13; validated live against the real YOLO kernel with 27/27 correct flags, 0 false positive/negative -- see yolo_PREFLIGHT_PROFILER_PROTOTYPE_VALIDATED_2026_07_13."
+    },
+    {
+      "id": "store_output_tile_alignment",
+      "title": "tensor_store has its own independent 64-byte addr/stride mask",
+      "severity": "critical",
+      "applies_to": "call_site",
+      "applies_when": "tensor_eligible",
+      "check_id": "store_output_tile_alignment",
+      "description": "tensor_store_execute applies an UNDOCUMENTED second alignment mask beyond the CSR encoding itself: eaddr = (addr + row*stride) & ~(16*TENSOR_STORE_MASK_COLS - 1). With TENSOR_STORE_MASK_COLS=4 this is also a 64-byte mask on the OUTPUT tile's base address and row stride -- a completely separate masking pass from tensor_load's, easy to miss because it lives in the store path, not the load path. Safe only if the output tile's (oc0, hw0) float offsets and its row stride are provably multiples of 16 floats -- true in the validated kernel because oc0/hw0 come from OC%16==0 and (OH*OW)%16==0 tiling, but this must be re-verified for any new tiling scheme, not assumed from the load-path check alone.",
+      "citation": "hackathon_leaderboard_mechanics_2026_07_10 -> yolo_1X1_FULLY_TRACED_NO_BUG_FOUND_2026_07_13 (stage 4 of the 4-stage trace)."
+    },
+    {
+      "id": "scp_fregs_tile_capacity_ceiling",
+      "title": "Tile dims must not exceed the hardware's fixed, zero-slack SCP/FREGS sizing",
+      "severity": "critical",
+      "applies_to": "call_site",
+      "applies_when": "tensor_eligible",
+      "check_id": "scp_fregs_tile_capacity_ceiling",
+      "description": "FREGS = NFREGS(32) = TFMA_MAX_AROWS(16) x TFMA_REGS_PER_ROW(2) -- an EXACT fit for a 16x16x16 tile, with zero slack for anything larger. A tile whose arows exceeds TFMA_MAX_AROWS or whose bcols exceeds TFMA_MAX_BCOLS silently overflows the accumulator register file (no bounds check in the ISA). This rule exists because the 16x16x16 assumption is easy to bake into macro call sites and then silently violate if a future layer shape or a hand-written call site passes a tile dimension >16 -- this campaign's kernel never hit this (all call sites use exactly 16), but the NEXT target might.",
+      "citation": "hackathon_leaderboard_mechanics_2026_07_10 -> yolo_1X1_FULLY_TRACED_NO_BUG_FOUND_2026_07_13 (ruled-out list: 'FREGS/SCP register-file capacity ... exactly, correctly sized for our tile usage, no overflow')."
+    },
+    {
+      "id": "tenb_bank_offset_disjointness",
+      "title": "tenb-bank (use_tenb=1) SCP line indices must not collide with the main bank",
+      "severity": "warning",
+      "applies_to": "file",
+      "applies_when": "raw_tensor_load_call_sites_present",
+      "check_id": "tenb_bank_offset_disjointness",
+      "description": "The SCP array is L1_SCP_ENTRIES(48) main-bank lines followed immediately by a tenb extension bank, addressed by adding SCP_TENB_OFFSET(48) internally when use_tenb=1 (tensor_load_execute forces start=0, adj=L1_SCP_ENTRIES for tenb loads). This is transparent when call sites go through the CONV_* macros (which always set use_tenb correctly per operand), but any HAND-WRITTEN raw tensor_load call in kernel source must set use_tenb consistently with which logical operand (weight vs activation) it is loading, or it will silently alias into the wrong bank. This is a file-level lint check (flags if raw tensor_load(...) call sites exist outside the macro wrappers) rather than a per-call-site arithmetic check, since bank assignment intent isn't always recoverable from the call site alone -- treat a flag here as 'manually verify use_tenb assignment', not an automatic pass/fail.",
+      "citation": "hackathon_leaderboard_mechanics_2026_07_10 -> yolo_1X1_FULLY_TRACED_NO_BUG_FOUND_2026_07_13 (stages 1-2 of the 4-stage trace)."
+    },
+    {
+      "id": "file_load_sync_checklist",
+      "title": "Every file_load feeding a kernelLaunch must be synchronized before launch",
+      "severity": "info",
+      "applies_to": "file",
+      "applies_when": "file_load_call_sites_present",
+      "check_id": "file_load_sync_checklist",
+      "description": "Weight/data staging via file_load is asynchronous relative to kernelLaunch on this hardware; a launcher that does not explicitly wait for every file_load to complete before issuing kernelLaunch risks a race where the kernel reads partially-staged weight data with no error raised. This is NOT statically checkable from kernel source alone (the ordering guarantee lives in the launcher/host code, not the device kernel) -- emitted as an INFO-level checklist reminder whenever file_load call sites are detected, not a pass/fail verdict. In the validated campaign this was checked BY HAND and confirmed airtight (launcher explicitly synchronizes every file_load before kernelLaunch) -- ruled out as the cause of the campaign's unresolved bug, but it remains a real risk class worth an automatic reminder on a new target.",
+      "citation": "hackathon_leaderboard_mechanics_2026_07_10 -> yolo_1X1_FULLY_TRACED_NO_BUG_FOUND_2026_07_13 (ruled-out list: 'weight file-load timing race ... launcher explicitly synchronizes every file_load before kernelLaunch, airtight')."
+    }
+  ]
+}

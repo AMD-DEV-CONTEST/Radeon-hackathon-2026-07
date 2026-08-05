@@ -1,0 +1,108 @@
+# docker-compose.yml - Determinex quickstart stack (Sprint 6)
+# =========================================================
+# Brings up:
+#   - ollama   : inference daemon, GPU-accelerated when host has nvidia-container-runtime
+#   - determinex  : orchestrator (Python 3.11 + Hive + Cloak + validators + ask CLI)
+#   - tauri-ui : optional desktop frontend (Next.js dev server)
+#
+# Usage:
+#   docker compose up -d ollama          # start inference daemon
+#   docker compose run --rm determinex ask "what does executor.py do?"
+#   docker compose run --rm determinex hive new-session --spec /specs/smoke_rust.md --lang rust
+#
+# Host paths (override via .env in repo root):
+#   DETERMINEX_MODELS_HOST  - directory containing v11/v6/v5 GGUFs (default: ./determinex-models)
+#   DETERMINEX_OLLAMA_HOST  - directory for Ollama's blob store (default: ./ollama-store)
+#
+# On Windows: set these to forward-slash paths, e.g. T:/determinex-models
+
+name: determinex
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: determinex-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ${DETERMINEX_OLLAMA_HOST:-./ollama-store}:/root/.ollama
+      - ${DETERMINEX_MODELS_HOST:-./determinex-models}:/models:ro
+    environment:
+      OLLAMA_MODELS: /root/.ollama/models
+      OLLAMA_KEEP_ALIVE: 30m
+      OLLAMA_NUM_PARALLEL: "1"
+      OLLAMA_MAX_LOADED_MODELS: "1"
+    # Uncomment to enable GPU passthrough (requires nvidia-container-toolkit on host).
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:11434/api/tags"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+
+  determinex:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: determinex:latest
+    container_name: determinex-orchestrator
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      DETERMINEX_OLLAMA_URL: http://ollama:11434
+      DETERMINEX_MODELS_DIR: /models
+      DETERMINEX_ARCHITECT_MODEL: ${DETERMINEX_ARCHITECT_MODEL:-determinex-sentinel-v5-dsl}
+      DETERMINEX_BUILDER_MODEL:   ${DETERMINEX_BUILDER_MODEL:-determinex-engineer-v11-dsl}
+      DETERMINEX_OBSERVER_MODEL:  ${DETERMINEX_OBSERVER_MODEL:-determinex-observer-v6-dsl}
+      DETERMINEX_FLYWHEEL_AUTO:   ${DETERMINEX_FLYWHEEL_AUTO:-0}
+      DETERMINEX_FLYWHEEL_PATH:   /workspace/corpus/auto_curriculum.jsonl
+      DETERMINEX_CLOAK:           ${DETERMINEX_CLOAK:-0}
+      DETERMINEX_CLOAK_AUDIT:     ${DETERMINEX_CLOAK_AUDIT:-0}
+    volumes:
+      - ${DETERMINEX_MODELS_HOST:-./determinex-models}:/models:ro
+      - ./sessions:/sessions
+      - ./logs:/logs
+      - ./.flywheel:/app/.flywheel
+      - ./:/workspace:rw            # repo bind-mount for the corpus + frontend dev
+    # Default to the diagnostic CLI; override per invocation via `docker compose run`.
+    command: ["where", "--workspace", "/workspace"]
+
+  # First-time bootstrapper: registers v11/v6/v5 tags into the Ollama volume.
+  # Run once after first `docker compose up ollama`:
+  #   docker compose run --rm bootstrap
+  bootstrap:
+    image: ollama/ollama:latest
+    container_name: determinex-bootstrap
+    depends_on:
+      ollama:
+        condition: service_healthy
+    profiles: ["bootstrap"]
+    volumes:
+      - ${DETERMINEX_OLLAMA_HOST:-./ollama-store}:/root/.ollama
+      - ${DETERMINEX_MODELS_HOST:-./determinex-models}:/models:ro
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        for tag in determinex-engineer-v11-dsl determinex-observer-v6-dsl determinex-sentinel-v5-dsl; do
+          base=$$(echo "$$tag" | sed 's/determinex-//; s/-v.*//')
+          ver=$$(echo "$$tag" | sed 's/determinex-[^-]*-//')
+          mf="/models/versions/$${base}/$${ver}/Modelfile.$${base}-$${ver}"
+          if [ -f "$$mf" ]; then
+            echo "registering $$tag from $$mf"
+            ollama create "$$tag" -f "$$mf"
+          else
+            echo "WARN: Modelfile not found for $$tag at $$mf"
+          fi
+        done
+        ollama list

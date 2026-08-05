@@ -1,0 +1,216 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "determinex"
+version = "1.0.0"
+description = "Compiler-verified multi-agent code intelligence with DAG build loop and Rosetta Stone cross-architecture embedding bridge"
+requires-python = ">=3.11"
+license = { text = "AGPL-3.0-or-later" }
+readme = "README.md"
+
+dependencies = [
+    "fastembed>=0.4.0",
+    "sqlite-vec>=0.1.9",
+    "datasets>=2.0.0",
+    "transformers>=4.40.0",
+    "huggingface_hub>=0.20.0",
+    "peft>=0.10.0",
+    "trl>=0.8.0",
+    "bitsandbytes>=0.43.0",
+    "accelerate>=0.28.0",
+    "requests>=2.31.0",
+    "numpy>=1.26.0",
+    "tiktoken>=0.6.0",
+    "openai>=1.0.0",
+    "anthropic>=0.25.0",
+    "torch>=2.1.0",
+    "cryptography>=42.0.0",
+    "litellm>=1.0.0",
+    # determinex_settings.py (the config spine most of scripts/ imports) is a
+    # hard, unconditional pydantic-settings user -- not optional like the
+    # rest of the audit-2026-07-19 integrations below.
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    # determinex_atomic_io.py's atomic-write retry helper, replacing hand-rolled
+    # PermissionError/JSONDecodeError retry loops duplicated across scripts/.
+    "tenacity>=8.0.0",
+]
+
+[project.scripts]
+determinex = "scripts.determinex_cli:main"
+
+[project.optional-dependencies]
+# Benchmark evaluation (evalplus) — not needed for normal use
+# Note: bigcodebench removed — it depends on vllm which has broken build metadata
+bench = [
+    "evalplus>=0.3.0",
+    "datasets>=2.16.0",
+    "litellm>=1.0.0",
+    "tqdm>=4.66.0",
+]
+# Test infrastructure — pytest + coverage. Install with: pip install -e .[dev]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+    "pytest-timeout>=2.3.0",
+    "hypothesis>=6.100.0",
+    "ruff>=0.4.0",
+]
+
+# ── New OSS integrations (audit 2026-07-19) ────────────────────────────────────
+
+# Structured logging (1B): replaces stdlib logging in hive/
+# Install: pip install -e .[logging]
+logging-structured = [
+    "structlog>=24.0.0",
+]
+
+# Oracle synthesizer soundness (2C): Hypothesis-backed property test generation
+# Install: pip install -e .[hypothesis]
+hypothesis-oracle = [
+    "hypothesis>=6.100.0",
+]
+
+# Analytics DB (2D): DuckDB replaces SQLite for eval analytics
+# Install: pip install -e .[duckdb]
+duckdb-analytics = [
+    "duckdb>=0.10.0",
+]
+
+# Data contracts (3A): Pydantic v2 models for all seam types
+# Install: pip install -e .[pydantic]
+pydantic-models = [
+    "pydantic>=2.0.0",
+]
+
+# Structured LLM output (3B): Instructor wraps LiteLLM calls
+# Install: pip install -e .[instructor]
+instructor-output = [
+    "instructor>=1.0.0",
+    "pydantic>=2.0.0",
+]
+
+# Self-tuning prompts (3C): DSPy opt-in prompt optimization
+# Install: pip install -e .[dspy]
+#
+# KEEP THIS OUT OF THE BASE ENVIRONMENT (2026-07-28). dspy depends on diskcache,
+# whose PYSEC-2026-2447 has NO upstream fix -- 5.6.3 is the latest release. dspy was
+# installed in the base venv, so that unfixable HIGH CVE blocked the security gate
+# for something nothing was using: hive/executor.py gates the import behind
+# DETERMINEX_USE_DSPY=1, which is off by default and already has a first-class
+# ImportError branch that logs `dspy_import_failed` and carries on. Removing it from
+# the base venv is what MATCHES that design; having it there was the inconsistency.
+#
+# Installing this extra knowingly re-introduces PYSEC-2026-2447. That is a reasonable
+# trade for someone who wants prompt optimisation -- just make it a decision rather
+# than a surprise, and expect `dependency_scan` to report it.
+dspy-prompts = [
+    "dspy-ai>=2.4.0",
+    "pydantic>=2.0.0",
+]
+
+# Safety layer depth (2B): Semgrep OSS static analysis
+# Install: pip install -e .[semgrep]
+semgrep-safety = [
+    "semgrep>=1.70.0",
+]
+
+# Cloak privacy guarantee (2A): tree-sitter hard dep for identifier extraction
+# Install: pip install -e .[cloak]
+#
+# All 9 of TS_SUPPORTED_LANGUAGES, not just the 4 this list covered until 2026-07-26. The
+# other 5 (typescript/java/ruby/php/c/cpp) had no grammar installed while being advertised as
+# tree-sitter-covered; typescript additionally had no regex fallback, so it silently sent
+# plaintext to cloud LLM calls. See tests/test_cloak_language_coverage.py.
+cloak = [
+    "tree-sitter>=0.23.0,<1.0.0",
+    "tree-sitter-rust>=0.23.0",
+    "tree-sitter-go>=0.23.0",
+    "tree-sitter-python>=0.23.0",
+    "tree-sitter-javascript>=0.23.0",
+    "tree-sitter-typescript>=0.23.0",
+    "tree-sitter-java>=0.23.0",
+    "tree-sitter-ruby>=0.23.0",
+    "tree-sitter-php>=0.23.0",
+    "tree-sitter-c>=0.23.0",
+    "tree-sitter-cpp>=0.23.0",
+]
+
+# Burst compute (4A/4B): Modal for parallel K-search and PB eval workers
+# Install: pip install -e .[modal]
+modal-compute = [
+    "modal>=0.62.0",
+]
+
+# vLLM local inference (1C): high-throughput parallel generation
+# Install separately — vLLM requires CUDA and Linux:
+# pip install vllm>=0.5.0
+# Registered as optional provider in determinex_providers.py via DETERMINEX_VLLM_BASE_URL
+
+# Full hive stack: everything the hive package uses in production
+hive = [
+    "structlog>=24.0.0",
+    "pydantic>=2.0.0",
+    "instructor>=1.0.0",
+    "hypothesis>=6.100.0",
+    "duckdb>=0.10.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["scripts*", "determinex_trainer*"]
+
+# uv workspace: the 3 local-only preview packages under packages/ (CLI, Cloak,
+# proof-report boundaries) were standalone, independently-buildable src/-layout
+# packages with their own pyproject.toml but were never actually wired into a
+# workspace -- `uv sync`/`uv run` from the repo root had no way to see them,
+# and uv.lock (already present at the root for the main project) never
+# resolved or locked their dependencies alongside it. This is the real fix
+# for that gap: `uv sync` now resolves and locks the root project AND all
+# three packages together in one lockfile, and `uv run --package <name>
+# <console-script>` can invoke any of them directly.
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.yaml", "*.json"]
+
+[tool.pyright]
+pythonVersion = "3.11"
+extraPaths = ["scripts"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+# Exclude fixture sub-trees: tests/fixtures/intake/<lang>_broken/ contains
+# intentionally-failing sample repos that must NOT be auto-collected.
+norecursedirs = ["fixtures", ".*", "*.egg", "node_modules", "venv", ".venv"]
+addopts = ["-ra", "--strict-markers"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: integration tests requiring Ollama/Docker",
+    # Reaches a third-party host. Distinct from `integration`, which is about local Ollama
+    # or Docker: these fail on an offline machine for reasons that are not the code's fault,
+    # so they skip rather than fail. Deselect with -m "not network".
+    "network: tests that contact an external service (e.g. the HuggingFace API)",
+]
+
+[tool.coverage.run]
+source = ["scripts", "determinex_trainer"]
+omit = [
+    "tests/*",
+    "*/site-packages/*",
+    "scripts/testing/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]

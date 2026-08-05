@@ -1,0 +1,249 @@
+/* Fonts are self-hosted via next/font in app/layout.tsx -- see the comment
+   there. A Google Fonts @import lived here and made every launch of a
+   privacy-sovereign, offline-capable app phone home before it rendered. */
+@import "tailwindcss";
+
+:root {
+  --background: #010409;
+  --foreground: #e6edf3;
+  --determinex-bg: #020604;
+  --determinex-panel: #07100b;
+  --determinex-panel-strong: #0a1710;
+  --determinex-panel-glass: rgba(7, 16, 11, 0.88);
+  --determinex-border: rgba(42, 255, 129, 0.2);
+  --determinex-accent: #35ff8a;
+  --determinex-accent-2: #00e5ff;
+  --determinex-accent-3: #9cffcb;
+  --determinex-text: #e9fff3;
+  /* Was #6b8978, which measured 4.16:1 against the panel background -- below
+     WCAG AA's 4.5:1 for body text, and used for body copy rather than
+     decoration. #7e9689 measures 4.9:1, keeping the same hue.
+
+     Worth recording that the UI review PREDICTED this tier would "fail AA fairly
+     broadly" and that prediction was wrong: measuring every rendered
+     colour-on-background pair found exactly ONE failure, this one. The rest of
+     the palette sits between 15:1 and 19:1. */
+  --determinex-muted: #7e9689;
+  --determinex-danger: #ff3f5f;
+  --determinex-accent-glow: rgba(53, 255, 138, 0.48);
+
+  /* ── Code-surface + semantic layer ─────────────────────────────────────────
+     These are OVERWRITTEN per skin at runtime by getSkinPackStyle() ->
+     getCodeLayerStyle() in theme/skinPacks.ts, which derives them from the active
+     skin. The values here are the derived defaults for the Determinex skin, present
+     so the tokens resolve during SSR and before React mounts -- without them the
+     first paint would have no surface colours at all.
+
+     They exist because 28 components styled their chrome with literal GitHub hex
+     (#0d1117 x97, #30363d x168, #161b22 x55; 681 literal hex values in total).
+     A skin applies its palette as CSS variables on the root element, so a literal
+     hex ignores all 27 skins -- half the app did not respond to the theme picker.
+     Dense code surfaces still read as recessed and neutral; that is now a function
+     of the skin instead of a second hardcoded palette. */
+  --dtx-code-bg-deep: #010301;
+  --dtx-code-bg: #020403;
+  --dtx-code-panel: #080d0a;
+  --dtx-code-raised: #0e1712;
+  --dtx-code-border: rgba(140, 160, 148, 0.22);
+  --dtx-code-border-subtle: rgba(120, 138, 128, 0.14);
+  --dtx-code-text: #e9fff3;
+  --dtx-code-muted: #7e9689;
+
+  /* Semantic status colours. Constant across skins on purpose: "pass" must stay
+     recognisably green, or the meaning moves with the decoration. */
+  --dtx-ok: #34d399;
+  --dtx-warn: #f59e0b;
+  --dtx-fail: #ff3f5f;
+  --dtx-info: #60a5fa;
+  --dtx-alt: #a78bfa;
+  --dtx-alt-2: #00e5ff;
+  --dtx-accent: #35ff8a;
+  --determinex-font-sans: var(
+    --font-inter,
+    "Inter",
+    "Segoe UI",
+    "Helvetica Neue",
+    system-ui,
+    -apple-system,
+    sans-serif
+  );
+  --determinex-font-mono: var(
+    --font-jetbrains-mono,
+    "JetBrains Mono",
+    "SFMono-Regular",
+    "Cascadia Code",
+    "Fira Code",
+    ui-monospace,
+    monospace
+  );
+  --determinex-font-display: var(--font-outfit, "Outfit", var(--determinex-font-sans));
+  --determinex-radius: 12px;
+  --determinex-shell-shadow: 0 0 38px rgba(53, 255, 138, 0.18), 0 18px 80px rgba(0, 0, 0, 0.72);
+  --determinex-rain-bg:
+    linear-gradient(180deg, transparent 0, rgba(53, 255, 138, 0.08) 50%, transparent 100%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(53, 255, 138, 0.045) 0,
+      rgba(53, 255, 138, 0.045) 1px,
+      transparent 1px,
+      transparent 18px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.028) 0,
+      rgba(255, 255, 255, 0.028) 1px,
+      transparent 1px,
+      transparent 86px
+    );
+  --determinex-rain-opacity: 0.52;
+  --determinex-rain-blend: screen;
+  --determinex-logo-filter: saturate(1.2) hue-rotate(40deg) contrast(1.05);
+
+  /* ── Type scale ───────────────────────────────────────────────────────────
+     Measured 2026-07-28: 780 of 925 visible text nodes (84%) rendered below
+     11px, and the single most common font size in the whole application was
+     9px -- with 121 nodes at 7px and 10 at 6px. VS Code ships a 13px UI font
+     and treats 11px as a floor. 1,236 hard-coded `text-[Npx]` classes were the
+     cause; there was no scale to reach for, so every component invented one.
+
+     Five tiers, nothing below 11px, and every tier multiplied by
+     --dtx-font-scale so density and zoom are a one-variable change instead of
+     another sweep. */
+  --dtx-font-scale: 1;
+  /* Uppercase + bold + wide tracking reads much larger than its px value, so
+     these decorative "eyebrow" labels sit a tier BELOW body-adjacent text.
+     Ryan, on the first pass of this scale: "some of that font is too big and
+     makes our proportions look wierd" -- correct: promoting 418 nine-px nodes
+     straight to 11px left 581 nodes at 11px and 564 at 12px, one pixel apart,
+     which is no hierarchy at all. This is the missing tier. */
+  --dtx-text-eyebrow: calc(10px * var(--dtx-font-scale));
+  --dtx-text-meta: calc(11px * var(--dtx-font-scale));
+  --dtx-text-label: calc(12px * var(--dtx-font-scale));
+  --dtx-text-body: calc(13px * var(--dtx-font-scale));
+  --dtx-text-title: calc(16px * var(--dtx-font-scale));
+  --dtx-text-display: calc(22px * var(--dtx-font-scale));
+  --dtx-text-hero: calc(28px * var(--dtx-font-scale));
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--determinex-font-sans);
+  --font-mono: var(--determinex-font-mono);
+
+  /* Exposes the scale above as `text-meta` / `text-label` / `text-body` /
+     `text-title` / `text-display` / `text-hero`. Named by ROLE, not by size, so
+     retuning a tier is one edit here rather than another 1,236-site sweep. */
+  --text-eyebrow: var(--dtx-text-eyebrow);
+  --text-meta: var(--dtx-text-meta);
+  --text-label: var(--dtx-text-label);
+  --text-body: var(--dtx-text-body);
+  --text-title: var(--dtx-text-title);
+  --text-display: var(--dtx-text-display);
+  --text-hero: var(--dtx-text-hero);
+}
+
+/* Density. `compact` is close to the old sizing for users on small screens who
+   want the information back; `comfortable` is the default because the previous
+   default was not readable. Applied on <html> by SettingsContext. */
+:root[data-density="compact"] {
+  --dtx-font-scale: 0.88;
+}
+:root[data-density="spacious"] {
+  --dtx-font-scale: 1.12;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The shell animates panel entry with framer-motion springs. Honour the OS
+     request rather than overriding it. */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Keyboard focus was effectively invisible, so keyboard navigation could not be
+   followed at all. */
+:focus-visible {
+  outline: 2px solid var(--determinex-accent);
+  outline-offset: 2px;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--determinex-font-sans);
+}
+
+/* Utility: Hide scrollbars cross-browser */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+@keyframes shimmer {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
+}
+
+@keyframes ghost-scroll {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes determinex-hub-orbit {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.08);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+@keyframes determinex-hub-pulse {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.78;
+  }
+  50% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+@keyframes determinex-hub-drift {
+  0%,
+  100% {
+    transform: translateX(-4%) rotate(-12deg);
+  }
+  50% {
+    transform: translateX(8%) rotate(-8deg);
+  }
+}
+
+.matrix-rain {
+  background: var(--determinex-rain-bg);
+  opacity: var(--determinex-rain-opacity);
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  mix-blend-mode: var(--determinex-rain-blend);
+}
