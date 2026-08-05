@@ -478,4 +478,8 @@ if __name__ == "__main__":
     demo.queue(default_concurrency_limit=2).launch(
         server_name="0.0.0.0", server_port=7860,
         css=CSS, theme=gr.themes.Soft(primary_hue="red"),
-        allowed_paths=[str(P.C.WORKDIR)])
+        # Step 1 previews come straight out of GVHMR's own output tree, which
+        # is outside both the working directory and workdir. Gradio refuses to
+        # serve a file it cannot attribute to the app, so the step succeeds and
+        # then fails on the way back with InvalidPathError.
+        allowed_paths=[str(P.C.WORKDIR), str(P.GVHMR / "outputs")])
