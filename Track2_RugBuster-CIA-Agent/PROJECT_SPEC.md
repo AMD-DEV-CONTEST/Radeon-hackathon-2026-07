@@ -98,6 +98,22 @@ on HuggingFace.
   assumption anywhere in the inference path, so the same code targets the Radeon Cloud
   instance's (likely different, discrete) GPU without modification.
 
+**Radeon Cloud deployment notes:** getting a working instance was not friction-free, and we
+think it's worth documenting honestly rather than presenting a clean narrative that didn't
+happen. Several Gallery templates (`unsloth-vincent`, `Unsloth Studio image`, `Huggingface
+Oneclick`) failed to launch outright ("template image not available", stuck "one active
+instance" state) — this matched reports from other participants in the hackathon Discord
+around the same time, and AMD staff acknowledged local-hardware fallback is acceptable when
+Radeon Cloud access is flaky. We got a working instance by manually adding a custom template
+pointed at the `amd-oneclick-base:rocm7.2.1-py3.12-v20260416` image instead of a Gallery
+preset. Once running, we also hit a kernel-level GPU device query hang (`rocminfo` stuck in
+uninterruptible "D" state) — worked around by setting `ROCM_GFX_TARGET` explicitly so our own
+`gpu_config.py` never shells out to `rocminfo` (see that module's docstring), and a slow/
+unstable path to HuggingFace for the model download — worked around with `HF_HUB_DISABLE_XET`
+and a resumable `curl` transfer. None of this required any code changes; it was entirely
+platform/network friction, worked around from the outside. The demo video shows the agent
+running the real fine-tuned checkpoint successfully on this Radeon Cloud instance end to end.
+
 The model is used as the **final classifier over structured findings**, not as a free-form
 ReAct tool router. It was trained to predict a verdict from structured CIA/V5/V6 records, so
 that is the exact task shape it sees here — see `src/orchestrator.py`'s docstring for the
