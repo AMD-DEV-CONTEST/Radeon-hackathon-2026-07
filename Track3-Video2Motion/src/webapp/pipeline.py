@@ -66,9 +66,10 @@ WORK = C.UPLOADS
 DL = C.DOWNLOADS
 C.ensure_dirs()
 
-# Env-steps/s on a single W7900. Motion length matters: ~16,500 on a 3 s
-# reference, ~9,300 on a 9 s one, because each step scores every frame of the
-# tracked window. Treat the budget estimate as an upper bound.
+# Env-steps/s on a single W7900, measured on an otherwise idle GPU. Anything
+# else training at the same time roughly halves it, so the budget estimate is
+# an upper bound, not a promise — watch throughput/env_steps_per_s in
+# TensorBoard for what a run is actually getting.
 THROUGHPUT = 16_500
 
 
