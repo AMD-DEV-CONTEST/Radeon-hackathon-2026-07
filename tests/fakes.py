@@ -59,6 +59,19 @@ class FakeModelClient:
                     "cited_card_ids": [card["card_id"] for card in context["evidence"][:2]],
                 }
             )
+        if "FollowUpDraft" in system:
+            context = json.loads(str(messages[1]["content"]))
+            evidence = context["cached_evidence"]
+            return json.dumps(
+                {
+                    "answer": "Candidate A remains safer for the stated audience.",
+                    "supporting_points": [
+                        "The answer reuses the completed comparison and privacy findings."
+                    ],
+                    "cited_card_ids": [card["card_id"] for card in evidence[:1]],
+                    "limitations": ["The images were not visually re-inspected."],
+                }
+            )
         return json.dumps({"error": "unexpected fake-model prompt"})
 
     async def inspect_image(self, path: Path, prompt: str) -> dict[str, Any]:

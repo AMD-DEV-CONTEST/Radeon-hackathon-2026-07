@@ -177,7 +177,8 @@ Typed output validation
 
 - In **Continue the conversation**, ask: “Why is Candidate A safer than Candidate B for this
   audience?”
-- Show Turn 2 in the visible same-thread transcript and the `recall_context` trace.
+- Show Turn 2 plus the `recall_context` and `reuse_analysis` trace nodes; point out that the VLM is
+  skipped and compare the follow-up latency with the initial multimodal run.
 - Send: “Remember that a red accent is an intentional part of my brand identity.”
 - Show **Permission required** and click **Approve memory**.
 - Show the preference under Approved Memory, then ask one more follow-up and show it in recalled
@@ -186,8 +187,10 @@ Typed output validation
 **Narration**
 
 > This is a real multi-turn agent interaction, not a fresh prompt disguised as chat. Every follow-up
-> keeps the same thread, image candidates, target context, and prior user-assistant messages. The
-> recall node exposes how many messages it loaded. Separately, the model cannot write long-term
+> keeps the same thread, image candidates, target context, and prior user-assistant messages. It
+> reuses the verified observations, privacy findings, comparison, and citations, so the expensive
+> vision pass is not repeated. The trace proves both recall and cached-analysis reuse. Separately,
+> the model cannot write long-term
 > memory: my explicit preference creates only a pending proposal. After approval it can be recalled
 > with consent provenance, deleted individually, or erased with Forget All Private State.
 

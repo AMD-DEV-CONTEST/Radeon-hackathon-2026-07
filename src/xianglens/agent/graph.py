@@ -19,6 +19,7 @@ from xianglens.inference.llama_client import (
 )
 from xianglens.schemas import (
     CandidateComparison,
+    FollowUpDraft,
     MemoryProposalDraft,
     StructuredReportDraft,
     VisualObservation,
@@ -301,6 +302,64 @@ def _render_report(
     return "\n\n".join(sections).strip()
 
 
+def _render_follow_up(
+    draft: FollowUpDraft,
+    evidence: list[dict[str, Any]],
+    image_labels: dict[str, str],
+) -> str:
+    known_cards = {card["card_id"]: card for card in evidence}
+    cited = [known_cards[card_id] for card_id in draft.cited_card_ids if card_id in known_cards]
+
+    def clean(value: Any) -> str:
+        return _replace_internal_image_ids(str(value), image_labels)
+
+    sections = ["## Follow-up answer", clean(draft.answer)]
+    if draft.supporting_points:
+        sections.extend(
+            [
+                "### Supporting points",
+                _render_bullets([clean(item) for item in draft.supporting_points], ""),
+            ]
+        )
+    if cited:
+        sections.append("### Evidence reused from the image review")
+        sections.extend(
+            f"- [{card['source_title']}]({card['source_url']}) — {card['text']} "
+            f"(`{card['card_id']}`)"
+            for card in cited
+        )
+    if draft.limitations:
+        sections.extend(
+            ["### Limits", _render_bullets([clean(item) for item in draft.limitations], "")]
+        )
+    return "\n\n".join(sections).strip()
+
+
+def _plain_follow_up_fallback(raw: str) -> FollowUpDraft | None:
+    text = raw.strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json|markdown|text)?\s*", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"\s*```$", "", text).strip()
+    if len(text) < 3:
+        return None
+    return FollowUpDraft(
+        answer=text[:2000],
+        supporting_points=[],
+        cited_card_ids=[],
+        limitations=["The model returned plain text, so structured follow-up fields were omitted."],
+    )
+
+
+def _compact_follow_up_history(history: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    compacted = []
+    for message in history[-6:]:
+        content = str(message.get("content", ""))
+        if message.get("role") == "assistant" and content.lstrip().startswith("# XiangLens Review"):
+            content = "[Initial full report omitted here; use the cached structured analysis.]"
+        compacted.append({"role": message.get("role"), "content": content[:2000]})
+    return compacted
+
+
 def build_graph(services: GraphServices):
     async def validated_model_json(
         messages: list[dict[str, Any]], schema: type[ModelSchema], max_tokens: int
@@ -315,6 +374,10 @@ def build_graph(services: GraphServices):
                 return schema.model_validate(parsed)
             except (ModelRequestError, ValidationError) as exc:
                 last_error = str(exc)
+                if schema is FollowUpDraft and "did not contain a JSON object" in last_error:
+                    fallback = _plain_follow_up_fallback(raw)
+                    if fallback is not None:
+                        return fallback
                 if attempt == 1:
                     break
                 raw = await services.model.chat(
@@ -332,21 +395,39 @@ def build_graph(services: GraphServices):
                     temperature=0.0,
                     max_tokens=max_tokens,
                 )
+        if schema is FollowUpDraft and "did not contain a JSON object" in last_error:
+            fallback = _plain_follow_up_fallback(raw)
+            if fallback is not None:
+                return fallback
         raise ModelRequestError(f"Model JSON failed validation after one repair: {last_error}")
 
     async def intake(state: XiangLensState) -> dict[str, Any]:
         started = time.perf_counter()
-        plan = [
-            "Apply the sensitive-inference policy gate.",
-            "Recall only user-approved preferences and prior thread context.",
-            "Measure each image and scan local metadata and QR evidence.",
-            "Observe visible, non-sensitive image facts with the self-hosted vision model.",
-            "Run the locally mounted private Lens Tool only after explicit opt-in.",
-            "Retrieve up to four source-backed cards from enabled Lens Packs.",
-            "Compare multiple candidates with one transparent five-dimension rubric.",
-            "Propose reusable memory only from an explicit user statement.",
-            "Render a structured goal-relative report with code-controlled citations.",
-        ]
+        if state.get("reuse_latest_analysis"):
+            plan = [
+                "Apply the sensitive-inference policy gate.",
+                "Recall approved preferences and recent messages from this thread.",
+                "Reuse the verified image-analysis snapshot without invoking the vision model.",
+                "Answer the follow-up with one bounded language-model call.",
+                "Propose reusable memory only from an explicit user statement.",
+            ]
+        else:
+            plan = [
+                "Apply the sensitive-inference policy gate.",
+                "Recall only user-approved preferences and prior thread context.",
+                "Measure each image and scan local metadata and QR evidence.",
+                "Observe visible, non-sensitive image facts with the self-hosted vision model.",
+                "Run the locally mounted private Lens Tool only after explicit opt-in.",
+                "Retrieve up to four source-backed cards from enabled Lens Packs.",
+                "Compare multiple candidates with one transparent five-dimension rubric.",
+                "Propose reusable memory only from an explicit user statement.",
+                "Render a structured goal-relative report with code-controlled citations.",
+            ]
+        summary = (
+            "Created a five-step cached follow-up plan without visual re-analysis."
+            if state.get("reuse_latest_analysis")
+            else f"Created a fixed nine-step plan for {len(state['image_paths'])} image(s)."
+        )
         return {
             "plan": plan,
             "tool_trace": _trace(
@@ -354,9 +435,7 @@ def build_graph(services: GraphServices):
                 node="intake",
                 tool="bounded_planner",
                 started=started,
-                summary=(
-                    f"Created a fixed nine-step plan for {len(state['image_paths'])} image(s)."
-                ),
+                summary=summary,
             ),
         }
 
@@ -418,6 +497,88 @@ def build_graph(services: GraphServices):
                 tool="sqlite_memory",
                 started=started,
                 summary=f"Recalled {len(memories)} approved memories and {len(history)} messages.",
+            ),
+        }
+
+    def route_after_recall(state: XiangLensState) -> Literal["reuse_analysis", "inspect_local"]:
+        return "reuse_analysis" if state.get("reuse_latest_analysis") else "inspect_local"
+
+    async def reuse_analysis(state: XiangLensState) -> dict[str, Any]:
+        started = time.perf_counter()
+        return {
+            "tool_trace": _trace(
+                state,
+                node="reuse_analysis",
+                tool="cached_verified_analysis",
+                started=started,
+                summary=(
+                    f"Reused {len(state.get('measurements', []))} observation(s), "
+                    f"{len(state.get('privacy_findings', []))} privacy finding(s), and "
+                    f"{len(state.get('evidence', []))} evidence card(s); VLM skipped."
+                ),
+            )
+        }
+
+    async def answer_follow_up(state: XiangLensState) -> dict[str, Any]:
+        started = time.perf_counter()
+        context = {
+            "follow_up_request": state["message"],
+            "platform": state["platform"],
+            "audience": state["audience"],
+            "goals": state["intent_keywords"],
+            "image_labels": state.get("image_labels", {}),
+            "recent_thread_messages": _compact_follow_up_history(state.get("history", [])),
+            "approved_memories": [
+                {"type": item["memory_type"], "text": item["text"]}
+                for item in state.get("recalled_memories", [])
+            ],
+            "cached_observations": state.get("measurements", []),
+            "cached_privacy_findings": state.get("privacy_findings", []),
+            "cached_comparison": state.get("comparison"),
+            "cached_private_lens_readings": state.get("private_lens_readings", []),
+            "cached_evidence": state.get("evidence", []),
+        }
+        draft = await validated_model_json(
+            [
+                {
+                    "role": "system",
+                    "content": (
+                        "Answer one follow-up about an already completed XiangLens image review. "
+                        "Return only JSON matching FollowUpDraft with answer, supporting_points, "
+                        "cited_card_ids, and limitations. Use the cached observations, privacy "
+                        "findings, comparison, evidence, approved memories, and recent messages. "
+                        "Do not repeat the full original report. Do not claim that the image was "
+                        "visually re-inspected or that rubric scores were recomputed. Cite only "
+                        "card IDs present in cached_evidence. Never infer identity or sensitive "
+                        "traits. Keep the answer concise."
+                    ),
+                },
+                {"role": "user", "content": json.dumps(context, ensure_ascii=False)},
+            ],
+            FollowUpDraft,
+            1000,
+        )
+        known_ids = {card["card_id"] for card in state.get("evidence", [])}
+        draft = draft.model_copy(
+            update={
+                "cited_card_ids": [
+                    card_id for card_id in draft.cited_card_ids if card_id in known_ids
+                ]
+            }
+        )
+        return {
+            "follow_up_draft": draft.model_dump(),
+            "report_markdown": _render_follow_up(
+                draft,
+                state.get("evidence", []),
+                state.get("image_labels", {}),
+            ),
+            "tool_trace": _trace(
+                state,
+                node="answer_follow_up",
+                tool="self_hosted_llm_cached_follow_up",
+                started=started,
+                summary="Answered from cached analysis with no vision-model invocation.",
             ),
         }
 
@@ -713,6 +874,7 @@ def build_graph(services: GraphServices):
             "comparison": state.get("comparison"),
             "evidence": state.get("evidence", []),
         }
+
         report = await validated_model_json(
             [
                 {
@@ -764,11 +926,16 @@ def build_graph(services: GraphServices):
             ),
         }
 
+    def route_after_memory(state: XiangLensState) -> Literal["synthesize_report", "end"]:
+        return "end" if state.get("reuse_latest_analysis") else "synthesize_report"
+
     builder = StateGraph(XiangLensState)
     builder.add_node("intake", intake)
     builder.add_node("policy_gate", policy_gate)
     builder.add_node("blocked_report", blocked_report)
     builder.add_node("recall_context", recall_context)
+    builder.add_node("reuse_analysis", reuse_analysis)
+    builder.add_node("answer_follow_up", answer_follow_up)
     builder.add_node("inspect_local", inspect_local)
     builder.add_node("observe_visual", observe_visual)
     builder.add_node("run_private_lens", run_private_lens)
@@ -781,12 +948,18 @@ def build_graph(services: GraphServices):
     builder.add_edge("intake", "policy_gate")
     builder.add_conditional_edges("policy_gate", route_policy)
     builder.add_edge("blocked_report", END)
-    builder.add_edge("recall_context", "inspect_local")
+    builder.add_conditional_edges("recall_context", route_after_recall)
+    builder.add_edge("reuse_analysis", "answer_follow_up")
+    builder.add_edge("answer_follow_up", "propose_memory")
     builder.add_edge("inspect_local", "observe_visual")
     builder.add_edge("observe_visual", "run_private_lens")
     builder.add_edge("run_private_lens", "retrieve_evidence")
     builder.add_edge("retrieve_evidence", "compare_candidates")
     builder.add_edge("compare_candidates", "propose_memory")
-    builder.add_edge("propose_memory", "synthesize_report")
+    builder.add_conditional_edges(
+        "propose_memory",
+        route_after_memory,
+        {"synthesize_report": "synthesize_report", "end": END},
+    )
     builder.add_edge("synthesize_report", END)
     return builder.compile()

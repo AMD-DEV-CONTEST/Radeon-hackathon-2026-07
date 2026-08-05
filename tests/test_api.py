@@ -243,7 +243,7 @@ def test_api_executes_the_complete_graph(tmp_path: Path) -> None:
         assert len(state_response.json()["messages"]) == 2
 
         follow_up_response = client.post(
-            f"/api/v1/threads/{thread_id}/runs",
+            f"/api/v1/threads/{thread_id}/runs/async",
             headers=headers,
             json={
                 "message": "Why is this crop safer for the same GitHub audience?",
@@ -252,14 +252,32 @@ def test_api_executes_the_complete_graph(tmp_path: Path) -> None:
                 "intent_keywords": ["credible", "approachable"],
                 "image_ids": [image_id],
                 "enabled_packs": ["profile_basics", "global_professional_context"],
+                "reuse_latest_analysis": True,
             },
         )
-        assert follow_up_response.status_code == 200
-        follow_up = follow_up_response.json()
+        assert follow_up_response.status_code == 202
+        follow_up_record = client.get(
+            f"/api/v1/runs/{follow_up_response.json()['run_id']}", headers=headers
+        )
+        assert follow_up_record.status_code == 200
+        assert follow_up_record.json()["status"] == "completed"
+        follow_up = follow_up_record.json()["result"]
         recall_trace = next(
             item for item in follow_up["tool_trace"] if item["node"] == "recall_context"
         )
         assert recall_trace["summary"].endswith("2 messages.")
+        assert [item["node"] for item in follow_up["tool_trace"]] == [
+            "intake",
+            "policy_gate",
+            "recall_context",
+            "reuse_analysis",
+            "answer_follow_up",
+            "propose_memory",
+        ]
+        assert follow_up["report_markdown"].startswith("## Follow-up answer")
+        assert all(
+            item["tool"] != "self_hosted_vlm" for item in follow_up["tool_trace"]
+        )
         follow_up_state = client.get(f"/api/v1/threads/{thread_id}/state", headers=headers).json()
         assert [item["role"] for item in follow_up_state["messages"]] == [
             "user",

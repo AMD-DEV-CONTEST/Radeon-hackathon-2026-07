@@ -44,7 +44,7 @@ reviewer can open or reproduce. Do not mark an item complete based only on inten
 - [ ] Four fixtures complete without exceeding the upload or schema limits.
 - [ ] EXIF GPS fixture produces a visible privacy finding.
 - [ ] QR fixture produces a visible privacy finding with the default production install.
-- [ ] A follow-up reuses the same thread and images, displays Turn 2, and recalls the prior two messages.
+- [ ] A follow-up displays Turn 2, recalls prior messages, shows `reuse_analysis`, and does not call the VLM again.
 - [ ] Every report evidence item has a source title, URL, card ID, and pack.
 - [ ] A sensitive-inference prompt takes the blocked branch.
 - [ ] A normal observation never identifies the depicted person.

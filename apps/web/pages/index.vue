@@ -28,6 +28,8 @@ const plan = ref<string[]>([])
 const memories = ref<MemoryRecord[]>([])
 const messages = ref<MessageRecord[]>([])
 const followUpMessage = ref('')
+const initialReportMarkdown = ref('')
+const activeRunIsFollowUp = ref(false)
 const connecting = ref(false)
 const uploading = ref(false)
 const analyzing = ref(false)
@@ -85,14 +87,20 @@ const packOptions = [
   ['open_chinese_symbolism', 'Chinese symbolism']
 ]
 
-const canAnalyze = computed(() => images.value.length > 0 && !analyzing.value && !previewMode.value)
+const canAnalyze = computed(() => (
+  images.value.length > 0
+  && messages.value.length === 0
+  && !analyzing.value
+  && !previewMode.value
+))
 const canFollowUp = computed(() => (
   followUpMessage.value.trim().length >= 3
   && images.value.length > 0
   && !analyzing.value
   && !previewMode.value
 ))
-const conversationTurns = computed(() => Math.ceil(messages.value.length / 2))
+const followUpMessages = computed(() => messages.value.slice(2))
+const followUpTurns = computed(() => Math.ceil(followUpMessages.value.length / 2))
 const modelState = computed(() => {
   if (previewMode.value) return 'Interface preview'
   if (!system.value) return 'Not checked'
@@ -218,6 +226,7 @@ function consumeEvent(streamEvent: StreamEvent) {
   if (streamEvent.event === 'run.completed') {
     const completed = streamEvent.data as unknown as AnalysisRunResponse
     result.value = completed
+    if (!activeRunIsFollowUp.value) initialReportMarkdown.value = completed.report_markdown
     plan.value = completed.plan
     events.value = completed.tool_trace
   }
@@ -233,6 +242,7 @@ async function loadThreadState() {
 }
 
 async function runAnalysis(message: string, clearPreviousResult: boolean): Promise<boolean> {
+  activeRunIsFollowUp.value = !clearPreviousResult
   analyzing.value = true
   actionError.value = ''
   if (clearPreviousResult) result.value = null
@@ -248,7 +258,8 @@ async function runAnalysis(message: string, clearPreviousResult: boolean): Promi
       intent_keywords: form.goals.split(',').map((value: string) => value.trim()).filter(Boolean),
       image_ids: images.value.map((image: UploadedImage) => image.id),
       enabled_packs: form.enabledPacks,
-      enable_private_lens: form.enablePrivateLens
+      enable_private_lens: form.enablePrivateLens,
+      reuse_latest_analysis: !clearPreviousResult
     }
     if (api.runTransport.value === 'poll') {
       await api.pollRun(runPath, payload, consumeEvent)
@@ -262,6 +273,7 @@ async function runAnalysis(message: string, clearPreviousResult: boolean): Promi
     return false
   } finally {
     analyzing.value = false
+    activeRunIsFollowUp.value = false
   }
 }
 
@@ -353,6 +365,7 @@ async function newSession() {
   plan.value = []
   messages.value = []
   followUpMessage.value = ''
+  initialReportMarkdown.value = ''
   actionError.value = ''
   if (wasConnected) {
     api.clearSession()
@@ -389,6 +402,7 @@ async function forgetMe() {
   plan.value = []
   messages.value = []
   followUpMessage.value = ''
+  initialReportMarkdown.value = ''
 }
 
 function imageName(imageId: string): string {
@@ -535,7 +549,7 @@ function formatDuration(value: number): string {
         </div>
 
         <button class="primary-button analyze-button" type="button" :disabled="!canAnalyze" @click="analyze">
-          {{ previewMode ? 'Connect API to run analysis' : analyzing ? 'Agent running…' : images.length > 1 ? 'Compare candidates' : 'Review image' }}
+          {{ previewMode ? 'Connect API to run analysis' : analyzing ? 'Agent running…' : messages.length ? 'Use follow-up below' : images.length > 1 ? 'Compare candidates' : 'Review image' }}
         </button>
         <p v-if="actionError" class="error-text">{{ actionError }}</p>
       </aside>
@@ -633,7 +647,7 @@ function formatDuration(value: number): string {
 
           <section class="result-section report-copy">
             <h3>Full report</h3>
-            <SafeMarkdown :source="result.report_markdown" />
+            <SafeMarkdown :source="initialReportMarkdown || result.report_markdown" />
           </section>
 
           <section class="result-section conversation-section">
@@ -642,19 +656,22 @@ function formatDuration(value: number): string {
                 <p class="eyebrow">Same-thread context</p>
                 <h3>Continue the conversation</h3>
               </div>
-              <span>{{ conversationTurns }} {{ conversationTurns === 1 ? 'turn' : 'turns' }}</span>
+              <span>{{ followUpTurns }} follow-up {{ followUpTurns === 1 ? 'turn' : 'turns' }}</span>
             </div>
 
             <div class="conversation-list" aria-live="polite">
+              <p v-if="!followUpMessages.length" class="muted-copy">
+                The original request and full report are shown above. Follow-up turns appear here.
+              </p>
               <article
-                v-for="(message, index) in messages"
+                v-for="(message, index) in followUpMessages"
                 :key="`${message.created_at}-${index}`"
                 class="conversation-message"
                 :class="message.role"
               >
                 <div class="message-meta">
                   <strong>{{ message.role === 'user' ? 'You' : 'XiangLens' }}</strong>
-                  <small>{{ message.role === 'user' ? `Turn ${Math.floor(index / 2) + 1}` : 'Agent response' }}</small>
+                  <small>{{ message.role === 'user' ? `Turn ${Math.floor(index / 2) + 2}` : 'Cached-analysis response' }}</small>
                 </div>
                 <p v-if="message.role === 'user'">{{ message.content }}</p>
                 <SafeMarkdown v-else :source="message.content" />
@@ -672,7 +689,7 @@ function formatDuration(value: number): string {
                 @keydown.ctrl.enter.prevent="sendFollowUp"
               />
               <div>
-                <small>Reuses these images and recalls prior turns. Ctrl + Enter to send.</small>
+                <small>Reuses verified analysis; the vision model is not called again. Ctrl + Enter to send.</small>
                 <button class="primary-button" type="submit" :disabled="!canFollowUp">
                   {{ analyzing ? 'Agent running…' : 'Send follow-up' }}
                 </button>

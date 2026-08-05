@@ -66,6 +66,23 @@ class HistoryRecordingModel(FakeModelClient):
         return await super().chat(messages, temperature=temperature, max_tokens=max_tokens)
 
 
+class PlainTextFollowUpModel(FakeModelClient):
+    def __init__(self) -> None:
+        self.follow_up_calls = 0
+
+    async def chat(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        temperature: float = 0.2,
+        max_tokens: int = 1200,
+    ) -> str:
+        if "FollowUpDraft" in str(messages[0]["content"]):
+            self.follow_up_calls += 1
+            return "Candidate A remains safer because the cached privacy scan found less exposure."
+        return await super().chat(messages, temperature=temperature, max_tokens=max_tokens)
+
+
 @pytest.mark.asyncio
 async def test_graph_runs_all_core_capabilities(tmp_path: Path) -> None:
     database = SQLiteStore(tmp_path / "state.sqlite3")
@@ -260,3 +277,62 @@ async def test_comparison_derives_missing_application_owned_fields(
         for candidate in result["comparison"]["candidates"]
     )
     assert "## Comparison" in result["report_markdown"]
+
+
+@pytest.mark.asyncio
+async def test_cached_follow_up_accepts_plain_text_without_rerunning_vision(
+    tmp_path: Path,
+) -> None:
+    database = SQLiteStore(tmp_path / "state.sqlite3")
+    database.initialize()
+    thread = database.create_thread("ada")
+    database.add_message(thread["id"], "user", "Compare these candidates.")
+    database.add_message(thread["id"], "assistant", "# XiangLens Review\n\nCandidate A wins.")
+    records = load_knowledge_records(
+        PROJECT_ROOT / "data/knowledge/cards.yaml",
+        PROJECT_ROOT / "data/knowledge/sources.yaml",
+    )
+    model = PlainTextFollowUpModel()
+    graph = build_graph(
+        GraphServices(
+            model=model,
+            knowledge=InMemoryKnowledgeStore(records, HashingEmbedder()),
+            database=database,
+            image_inspector=ImageInspector(20_000_000, 30_000_000),
+        )
+    )
+    image = next((PROJECT_ROOT / "data/fixtures/images").glob("*.jpg"))
+
+    result = await graph.ainvoke(
+        {
+            "thread_id": thread["id"],
+            "user_id": "ada",
+            "message": "Why is Candidate A safer?",
+            "platform": "GitHub",
+            "audience": "international collaborators",
+            "intent_keywords": ["credible"],
+            "enabled_packs": ["profile_basics"],
+            "image_paths": [image],
+            "image_labels": {image.stem: "Candidate A — first-upload.jpg"},
+            "reuse_latest_analysis": True,
+            "measurements": [{"image_id": image.stem, "width": 512, "height": 512}],
+            "visual_observations": [],
+            "privacy_findings": [],
+            "evidence": [],
+            "private_lens_readings": [],
+            "comparison": None,
+            "tool_trace": [],
+        }
+    )
+
+    assert "Candidate A remains safer" in result["report_markdown"]
+    assert model.follow_up_calls == 1
+    assert [item["node"] for item in result["tool_trace"]] == [
+        "intake",
+        "policy_gate",
+        "recall_context",
+        "reuse_analysis",
+        "answer_follow_up",
+        "propose_memory",
+    ]
+    assert all(item["tool"] != "self_hosted_vlm" for item in result["tool_trace"])

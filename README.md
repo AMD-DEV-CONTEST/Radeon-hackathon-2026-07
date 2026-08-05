@@ -20,6 +20,8 @@ The project does not identify people or infer personality, intelligence, health,
 - metadata-stripped safe-copy export and a complete user-state deletion route;
 - English-only Nuxt workspace for upload, progress, safe Markdown reports, evidence, metrics,
   same-thread follow-up conversation, and memory consent;
+- incremental follow-ups reuse the completed analysis snapshot and call only the language model,
+  while the trace explicitly marks the vision model as skipped;
 - 120 open-license image fixtures with complete source manifests;
 - offline tests that never substitute fake output into the production model path.
 
@@ -211,6 +213,7 @@ Tests cover:
 - sensitive-inference policy blocking;
 - real GPS and device EXIF fixture parsing;
 - default-runtime QR detection and same-thread follow-up recall;
+- background follow-up completion, cached-analysis reuse, VLM skipping, and plain-text fallback;
 - all eight RAG smoke queries;
 - consent-before-memory-write and foreign-key-safe memory deletion;
 - SSE lifecycle events, run recovery, CORS preflight, and API authentication;

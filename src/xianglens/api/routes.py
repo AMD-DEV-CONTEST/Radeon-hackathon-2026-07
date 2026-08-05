@@ -91,13 +91,14 @@ def _require_thread(
 
 def _performance_metrics(result: dict, image_count: int) -> PerformanceMetrics:
     traces = result.get("tool_trace", [])
-    local_tools = {"image_measurement_and_privacy_scan"}
+    local_tools = {"image_measurement_and_privacy_scan", "cached_verified_analysis"}
     model_tools = {
         "self_hosted_vlm",
         "private_108_lens",
         "self_hosted_llm_and_safe_renderer",
         "consent_first_memory",
         "transparent_comparison_rubric",
+        "self_hosted_llm_cached_follow_up",
     }
     return PerformanceMetrics(
         total_duration_ms=round(sum(item.get("duration_ms", 0.0) for item in traces), 2),
@@ -151,6 +152,27 @@ def _start_analysis(
     images = services.database.get_images(thread_id, payload.image_ids)
     if len(images) != len(payload.image_ids):
         raise HTTPException(status_code=404, detail="One or more image IDs were not found")
+    cached_analysis: dict = {}
+    if payload.reuse_latest_analysis:
+        prior_run = next(
+            (
+                item
+                for item in services.database.list_runs(thread_id)
+                if item["status"] == "completed" and item.get("result")
+            ),
+            None,
+        )
+        if prior_run is None:
+            raise HTTPException(
+                status_code=409,
+                detail="A completed image analysis is required before a follow-up",
+            )
+        if prior_run["request"].get("image_ids") != payload.image_ids:
+            raise HTTPException(
+                status_code=409,
+                detail="Follow-ups must reuse the same image candidates as the previous run",
+            )
+        cached_analysis = prior_run["result"]
     run_id = services.database.start_run(thread_id, payload.model_dump())
     image_labels = _image_labels(images)
     initial_state = {
@@ -165,8 +187,21 @@ def _start_analysis(
         "enable_private_lens": payload.enable_private_lens,
         "image_paths": [Path(item["path"]) for item in images],
         "image_labels": image_labels,
+        "reuse_latest_analysis": payload.reuse_latest_analysis,
+        "cached_analysis": cached_analysis,
         "tool_trace": [],
     }
+    if cached_analysis:
+        initial_state.update(
+            {
+                "measurements": cached_analysis.get("observations", []),
+                "visual_observations": [],
+                "private_lens_readings": cached_analysis.get("private_lens_readings", []),
+                "privacy_findings": cached_analysis.get("privacy_findings", []),
+                "evidence": cached_analysis.get("evidence", []),
+                "comparison": cached_analysis.get("comparison"),
+            }
+        )
     return thread, images, run_id, initial_state
 
 

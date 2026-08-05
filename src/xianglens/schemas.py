@@ -78,6 +78,7 @@ class AnalysisRunRequest(BaseModel):
     image_ids: list[str] = Field(min_length=1, max_length=4)
     enabled_packs: list[str] = Field(default_factory=lambda: list(LENS_PACKS))
     enable_private_lens: bool = False
+    reuse_latest_analysis: bool = False
 
 
 class AnalysisRunAccepted(BaseModel):
@@ -159,6 +160,13 @@ class StructuredReportDraft(BaseModel):
     recommendations: list[str] = Field(default_factory=list, max_length=20)
     limitations: list[str] = Field(default_factory=list, max_length=20)
     cited_card_ids: list[str] = Field(default_factory=list, max_length=8)
+
+
+class FollowUpDraft(BaseModel):
+    answer: str = Field(min_length=3, max_length=2000)
+    supporting_points: list[str] = Field(default_factory=list, max_length=8)
+    cited_card_ids: list[str] = Field(default_factory=list, max_length=8)
+    limitations: list[str] = Field(default_factory=list, max_length=4)
 
 
 class PerformanceMetrics(BaseModel):

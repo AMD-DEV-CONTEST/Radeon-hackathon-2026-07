@@ -96,6 +96,12 @@ included. Direct deployments use that live stream. The GitHub Pages build starts
 a short `202` request and polls the durable run record because the Radeon public tunnel resets long
 HTTP/2 SSE connections; the completed response restores the identical plan and full tool trace.
 
+After the first multimodal run, a follow-up takes an incremental branch. It recalls recent messages,
+reuses the completed observations, privacy findings, comparison, and evidence, and makes one bounded
+language-model call. The `reuse_analysis` trace states that the VLM was skipped. An explicit memory
+statement may add one separate consent-proposal call; ordinary follow-ups do not repeat vision,
+private-Lens, comparison, or full-report generation.
+
 ## Core Track 2 Capabilities
 
 XiangLens implements all five capabilities listed by the Track 2 rules.
