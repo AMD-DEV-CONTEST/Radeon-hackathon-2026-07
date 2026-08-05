@@ -4,11 +4,21 @@ Executes static analysis tools in isolated containers with strict resource limit
 No network, read-only mounts, memory capped at 512MB, 30s hard timeout.
 """
 
-import docker
 import tempfile
 import os
 from typing import Optional
-from docker.errors import DockerException, ContainerError, ImageNotFound
+
+try:
+    import docker
+    from docker.errors import DockerException, ContainerError, ImageNotFound
+    DOCKER_AVAILABLE = True
+except ImportError:
+    docker = None
+    DockerException = Exception
+    ContainerError = Exception
+    ImageNotFound = Exception
+    DOCKER_AVAILABLE = False
+
 
 from backend.config import get_settings
 
@@ -21,14 +31,17 @@ PYLINT_IMAGE = "python:3.11-slim"
 ESLINT_IMAGE = "node:20-alpine"
 
 
-def _get_docker_client() -> Optional[docker.DockerClient]:
+def _get_docker_client():
     """Return Docker client, or None if Docker isn't available."""
+    if not DOCKER_AVAILABLE or docker is None:
+        return None
     try:
         client = docker.from_env()
         client.ping()
         return client
     except Exception:
         return None
+
 
 
 def run_sandboxed(

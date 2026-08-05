@@ -1202,7 +1202,8 @@ export default function ReviewPage() {
               <FindingCard key={f.id} finding={f} />
             ))}
           </div>
-          <EvidenceViewer findings={sortedFindings} riskScore={triageData?.risk_score || 0.85} />
+          <EvidenceViewer findings={sortedFindings} riskScore={0.85} />
+
         </div>
       )}
 
