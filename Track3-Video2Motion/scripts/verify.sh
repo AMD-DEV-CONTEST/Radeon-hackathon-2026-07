@@ -1,6 +1,18 @@
 #!/usr/bin/env bash
 # Checks that catch the failures we actually hit. Run after setup.sh.
 source "$(dirname "$0")/common.sh"
+
+# Check the environment setup.sh just wrote, not whatever the defaults resolve
+# to. Without this, config.py falls back to $HOME/venvs and $HOME/GVHMR — and
+# on a machine that already has an install, those exist, so verify.sh happily
+# passes while testing a completely different environment from the one that was
+# just built.
+if [ -z "${V2M_PY_MJX:-}" ] && [ -f "$REPO/env.sh" ]; then
+  # shellcheck disable=SC1091
+  source "$REPO/env.sh"
+  info "using $REPO/env.sh"
+fi
+
 PYX="${V2M_PY_MJX:-$VENVS/mjx/bin/python}"
 FAIL=0
 ok()   { printf '  \033[32mPASS\033[0m  %s\n' "$*"; }

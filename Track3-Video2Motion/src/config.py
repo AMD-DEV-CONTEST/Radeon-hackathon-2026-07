@@ -90,17 +90,20 @@ def doctor() -> int:
     print("repo      ", REPO)
     print("workdir   ", WORKDIR)
     print()
-    for label, path, need in (
-            ("GVHMR", GVHMR, False),
-            ("GMR", GMR, False),
-            ("unitree_mujoco", UNITREE_MUJOCO, False),
-            ("python (mjx)", Path(PY_MJX), True),
-            ("python (gvhmr)", Path(PY_GVHMR), False),
-            ("python (gmr)", Path(PY_GMR), False)):
+    # unitree_mujoco only exists after setup.sh --with-dds, so its absence is
+    # normal and should not read as a broken install.
+    for label, path, need, opt in (
+            ("GVHMR", GVHMR, False, ""),
+            ("GMR", GMR, False, ""),
+            ("unitree_mujoco", UNITREE_MUJOCO, False, "  (optional: --with-dds)"),
+            ("python (mjx)", Path(PY_MJX), True, ""),
+            ("python (gvhmr)", Path(PY_GVHMR), False, ""),
+            ("python (gmr)", Path(PY_GMR), False, "")):
         ok = path.exists()
         if need and not ok:
             bad += 1
-        print(f"  {'OK ' if ok else 'MISSING'}  {label:<16} {path}")
+        mark = "OK " if ok else ("--     " if opt else "MISSING")
+        print(f"  {mark}  {label:<16} {path}{'' if ok else opt}")
 
     print()
     try:
