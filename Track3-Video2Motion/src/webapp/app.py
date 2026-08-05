@@ -277,11 +277,6 @@ with gr.Blocks(title="Video2Motion") as demo:
                     b3stop = gr.Button("Stop", variant="stop", scale=1)
             with gr.Column(scale=6):
                 tb3 = gr.HTML()
-                out_l1 = gr.Video(
-                    label="Layer 1 — the policy in MJX, the engine it trained in"
-                          "   ·   left: reference,  right: physics",
-                    height=330, interactive=False)
-                d3 = gr.DownloadButton("Download video", visible=False, size="sm")
         log3 = gr.Textbox(label="Log", lines=9, max_lines=9,
                           elem_classes="log-box", interactive=False)
     panels.append(p3)
@@ -312,19 +307,26 @@ with gr.Blocks(title="Video2Motion") as demo:
                 stat4 = gr.HTML()
             with gr.Column(scale=6):
                 with gr.Tabs():
+                    with gr.Tab("Layer 1 — MJX (training engine)"):
+                        out_l1 = gr.Video(
+                            label="The engine the policy was trained in — the "
+                                  "baseline the other two are compared against",
+                            height=360, interactive=False)
+                        d4a = gr.DownloadButton("Download video", visible=False,
+                                                size="sm")
                     with gr.Tab("Layer 2 — MuJoCo C engine"):
                         out_l2 = gr.Video(
                             label="Same weights re-implemented in NumPy, stepped "
                                   "by MuJoCo's C solver instead of MJX/JAX",
                             height=360, interactive=False)
-                        d4a = gr.DownloadButton("Download video", visible=False,
+                        d4b = gr.DownloadButton("Download video", visible=False,
                                                 size="sm")
                     with gr.Tab("Layer 3 — Unitree simulator over DDS"):
                         out_l3 = gr.Video(
                             label="Unitree's own simulator and G1 model; the "
                                   "policy sees only what the real SDK reports",
                             height=360, interactive=False)
-                        d4b = gr.DownloadButton("Download video", visible=False,
+                        d4c = gr.DownloadButton("Download video", visible=False,
                                                 size="sm")
         log4 = gr.Textbox(label="Log", lines=8, max_lines=8,
                           elem_classes="log-box", interactive=False)
@@ -413,8 +415,7 @@ with gr.Blocks(title="Video2Motion") as demo:
         motion = P.motion_bm(sel) if sel else bm
         mname = sel or name
         if not motion or not Path(motion).exists():
-            yield ("Run Step 2 first, or pick an existing motion.",
-                   tb_panel(), None, DL_HIDDEN, "", None)
+            yield "Run Step 2 first, or pick an existing motion.", tb_panel(), "", None
             return
         job = P.Job("s3")
         threading.Thread(target=P.step3_train,
@@ -422,14 +423,12 @@ with gr.Blocks(title="Video2Motion") as demo:
                          daemon=True).start()
         tb = tb_panel()
         while not job.done:
-            yield job.tail(), tb, None, DL_HIDDEN, "", job
+            yield job.tail(), tb, "", job
             time.sleep(1.5)
-        r = job.result
-        yield (job.tail(), tb, r.get("video"),
-               dl(r.get("video"), "Download video"), r.get("params", ""), job)
+        yield job.tail(), tb, job.result.get("params", ""), job
 
     b3.click(on3, [src3, s_bm, s_name, hours, ck_every],
-             [log3, tb3, out_l1, d3, s_params, train_job])
+             [log3, tb3, s_params, train_job])
     b3.click(lambda: gr.update(choices=P.policy_choices()), None, run4)
     b3stop.click(lambda j: (j.stop() or j.tail()) if j else "Nothing running.",
                  [train_job], log3)
@@ -447,29 +446,31 @@ with gr.Blocks(title="Video2Motion") as demo:
     def on4(run, ck, bm, name):
         sel = P.resolve_policy(run, ck)
         if not sel:
-            yield "Pick a policy.", None, None, DL_HIDDEN, DL_HIDDEN, ""
+            yield ("Pick a policy.", None, None, None,
+                   DL_HIDDEN, DL_HIDDEN, DL_HIDDEN, "")
             return
         params, motion, mname = sel
         if not Path(motion).exists():
-            yield (f"Motion file not found: {motion}", None, None,
-                   DL_HIDDEN, DL_HIDDEN, "")
+            yield (f"Motion file not found: {motion}", None, None, None,
+                   DL_HIDDEN, DL_HIDDEN, DL_HIDDEN, "")
             return
 
         job = P.Job("s4")
         for t in drive(job, P.step4_simulate, params, motion, mname):
-            yield t, None, None, DL_HIDDEN, DL_HIDDEN, ""
+            yield t, None, None, None, DL_HIDDEN, DL_HIDDEN, DL_HIDDEN, ""
         r = job.result
         st = r.get("stats", {})
         s = metrics([("Motion completed", f'{st.get("pct", 0):.0f}', "%"),
                      ("Body position error", f'{st.get("err", 0):.4f}', "m"),
                      ("Zero-action baseline", f'{st.get("zero_pct", 0):.0f}', "%")
                      ]) if st else ""
-        yield (job.tail(), r.get("layer2"), r.get("layer3"),
+        yield (job.tail(), r.get("layer1"), r.get("layer2"), r.get("layer3"),
+               dl(r.get("layer1"), "Download video"),
                dl(r.get("layer2"), "Download video"),
                dl(r.get("layer3"), "Download video"), s)
 
     b4.click(on4, [run4, ck4, s_bm, s_name],
-             [log4, out_l2, out_l3, d4a, d4b, stat4])
+             [log4, out_l1, out_l2, out_l3, d4a, d4b, d4c, stat4])
 
 
     # ══════════════════════════════════════════ downloads on selection

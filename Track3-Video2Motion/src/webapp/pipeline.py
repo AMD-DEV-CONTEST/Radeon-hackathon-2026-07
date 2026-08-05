@@ -396,20 +396,6 @@ def step3_train(bm_path: str, name: str, hours: float, ckpt_every_m: float,
     else:
         job.log("OK      training finished.")
 
-    # Layer 1 — the policy in the same MJX engine it was trained in. Rendered
-    # here rather than in Step 4 so the run you just trained can be judged
-    # without leaving the page.
-    job.log("")
-    job.log("LAYER 1 Rendering the policy in MJX (the engine it trained in)")
-    l1 = C.RENDER_OUT / f"web_{name}_layer1.mp4"
-    rc = _run(job, [PY_MJX, str(BASE / "eval_track.py"), "--params", str(best),
-                    "--motion", bm_path, "--start", "0", "--video", str(l1)],
-              cwd=BASE, env={"MUJOCO_GL": "egl"})
-    if rc == 0 and l1.exists():
-        job.result["video"] = str(l1)
-        job.log(f"OK      layer 1 video at {l1}")
-    else:
-        job.log("WARN    layer 1 render failed; checkpoints are still fine.")
     job.done = job.ok = True
 
 
@@ -425,7 +411,7 @@ def step4_simulate(params: str, bm_path: str, name: str, job: Job):
     left — Unitree's own simulator, their G1 model, over DDS, with the policy
     seeing only what the real SDK reports.
     """
-    job.log("STEP 4  Sim-to-sim transfer")
+    job.log("STEP 4  Physics rollout and sim-to-sim transfer")
     stats: dict = {}
     # Layer 3 is driven by scripts/run_layer3.sh, which addresses everything by
     # the motion's own stem — the exported weights land in deploy/track_<stem>
@@ -445,6 +431,21 @@ def step4_simulate(params: str, bm_path: str, name: str, job: Job):
         else:
             stats["pct"], stats["err"] = pct, err
             stats["done"], stats["total"] = int(m.group(2)), int(m.group(3))
+
+    # ---- Layer 1: the MJX engine the policy was trained in ----
+    # The baseline the other two are measured against: same engine, same
+    # observations, nothing swapped yet.
+    job.log("")
+    job.log("LAYER 1 MJX — the engine the policy trained in")
+    l1 = C.RENDER_OUT / f"web_{name}_layer1.mp4"
+    rc = _run(job, [PY_MJX, str(BASE / "eval_track.py"), "--params", params,
+                    "--motion", bm_path, "--start", "0", "--video", str(l1)],
+              cwd=BASE, env={"MUJOCO_GL": "egl"}, on_line=parse)
+    if rc == 0 and l1.exists():
+        job.result["layer1"] = str(l1)
+        job.log(f"OK      layer 1 video at {l1}")
+    else:
+        job.log(f"FAILED  layer 1 exited with {rc}")
 
     # ---- Layer 2: NumPy policy, native MuJoCo C engine ----
     job.log("")
@@ -478,7 +479,8 @@ def step4_simulate(params: str, bm_path: str, name: str, job: Job):
     job.result["stats"] = stats
     job.result["download"] = job.result.get("layer3") or job.result.get("layer2")
     job.done = True
-    job.ok = bool(job.result.get("layer2") or job.result.get("layer3"))
+    job.ok = bool(job.result.get("layer1") or job.result.get("layer2")
+                  or job.result.get("layer3"))
 
 
 # ----------------------------------------------------------------- presets
