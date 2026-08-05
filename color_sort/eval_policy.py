@@ -255,6 +255,7 @@ def evaluate_policy(
     jitter: float = 0.04,
     label: str = "",
     qwen_verifier=None,
+    qwen_planner=None,
 ) -> dict:
     if ycb_names is None:
         ycb_names = tuple(YCB_LAYOUT.keys())
@@ -269,12 +270,41 @@ def evaluate_policy(
     n_success = 0
     n_qwen_success = 0
     n_qwen_agree = 0
+    n_plan_used = 0
     failure_types: dict[str, int] = {}
     per_object: dict[str, list[int]] = {}
     episodes_detail: list[dict] = []
     for ep in range(episodes):
         episode_seed = seed + ep
-        pick_object = str(pick_rng.choice(pick_pool))
+        # Stage C1: if a Qwen3-VL planner is present, perceive the scene and
+        # decide which colored object to pick from the world-camera image. We map
+        # the perceived color to a concrete object in the pool (robust to VLM
+        # naming that may not match YCB ids). Fall back to random pool on failure.
+        pick_object = None
+        if qwen_planner is not None:
+            try:
+                world_frame = bundle.world_cam.render(rgb=True)
+                img = world_frame[0] if isinstance(world_frame, tuple) else world_frame
+                plan_info = qwen_planner.plan(img, "pick the object into its matching colored bin")
+            except Exception as exc:
+                print(f"{prefix} ep {ep:03d}: planner failed ({exc}); using random pick")
+                plan_info = None
+            if plan_info is not None:
+                # VLM's pick_object is "<color>_<geometry>"; try exact match first,
+                # then match by perceived color.
+                vlm_pick = str(plan_info.get("pick_object", ""))
+                vlm_color = str(plan_info.get("pick_color", "")).lower()
+                if vlm_pick in pick_pool:
+                    pick_object = vlm_pick
+                elif vlm_color:
+                    for n in pick_pool:
+                        if YCB_LAYOUT[n]["color"] == vlm_color:
+                            pick_object = n
+                            break
+                if pick_object is not None:
+                    n_plan_used += 1
+        if pick_object is None or pick_object not in pick_pool:
+            pick_object = str(pick_rng.choice(pick_pool))
         pick_color = YCB_LAYOUT[pick_object]["color"]
         task = TaskSpec(pick_object=pick_object, place_target=pick_color, success_tol=tol)
         task_text = task_description(pick_object, pick_color)
@@ -339,6 +369,7 @@ def evaluate_policy(
         "per_object": per_object_summary,
         "episodes_detail": episodes_detail,
         "params": {"seed": seed, "max_seconds": max_seconds, "split_colors": list(split_colors), "tol": tol, "jitter": jitter},
+        "n_plan_used": n_plan_used,
     }
     if qwen_verifier is not None:
         out["qwen"] = {
@@ -382,6 +413,8 @@ def main() -> None:
     parser.add_argument("--results-out", default=None)
     parser.add_argument("--qwen-verify", action="store_true",
                         help="Enable Qwen3-VL episode-end verifier (Stage C2).")
+    parser.add_argument("--qwen-plan", action="store_true",
+                        help="Enable Qwen3-VL scene planner to pick target object (Stage C1).")
     args = parser.parse_args()
 
     ycb_names = get_ycb_names_for_split(args.split)
@@ -402,12 +435,20 @@ def main() -> None:
         qwen_verifier = Qwen3VLVerifier().load()
         print(f"[eval] Qwen verifier loaded ({qwen_verifier.last_inference_ms:.0f}ms cold start)")
 
+    qwen_planner = None
+    if args.qwen_plan:
+        from qwen_planner import Qwen3VLPlanner
+        print("[eval] loading Qwen3-VL-8B planner ...")
+        qwen_planner = Qwen3VLPlanner().load()
+        print(f"[eval] Qwen planner loaded ({qwen_planner.last_inference_ms:.0f}ms cold start)")
+
     results = evaluate_policy(
         bundle, pb,
         episodes=args.episodes, seed=args.seed, max_seconds=args.max_seconds,
         ycb_names=ycb_names, tol=args.tol, jitter=args.jitter,
         label=f"{pb.policy_type}_{checkpoint_label(args.policy_path)}",
         qwen_verifier=qwen_verifier,
+        qwen_planner=qwen_planner,
     )
 
     results["meta"] = {
