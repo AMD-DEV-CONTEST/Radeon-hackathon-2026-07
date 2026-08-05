@@ -2,7 +2,7 @@
 
 **Participant:** Haruto Watanabe (individual submission)<br>
 **Application:** KoushiKo Vault - Private Agentic Evidence Investigator for Time-Coded Media Archives<br>
-**Source release:** [`track2-submission-2026-08-05`](https://github.com/Yasei-no-otoko/koushiko-vault/tree/track2-submission-2026-08-05) at commit [`810cb333a76cfda232dd9dd03484d98f90b359fd`](https://github.com/Yasei-no-otoko/koushiko-vault/commit/810cb333a76cfda232dd9dd03484d98f90b359fd)
+**Source release:** [`track2-submission-2026-08-05-r1`](https://github.com/Yasei-no-otoko/koushiko-vault/tree/track2-submission-2026-08-05-r1) at commit [`f5d89c945607a018e237a6eaab2e58bfa34c5c0e`](https://github.com/Yasei-no-otoko/koushiko-vault/commit/f5d89c945607a018e237a6eaab2e58bfa34c5c0e)
 
 ## What it does
 
@@ -14,13 +14,13 @@ The reproducible public demo uses an original synthetic factory-safety case. It 
 
 | Track 2 deliverable | Immutable artifact |
 | --- | --- |
-| Project specification | [8-page PDF](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05/submission/KoushiKo_Vault_Project_Specification.pdf) |
-| Complete source code | [Tagged source tree](https://github.com/Yasei-no-otoko/koushiko-vault/tree/track2-submission-2026-08-05) |
-| Environment, dependencies, startup, and reproduction | [English README](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05/README.md) |
-| Real demo video | [4:18, 1080p H.264/AAC MP4](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05/submission/KoushiKo_Vault_Track2_Demo.mp4) |
-| Supplementary deck | [Editable PPTX](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05/submission/KoushiKo_Vault_Track2_Deck.pptx) and [8-page PDF](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05/submission/KoushiKo_Vault_Track2_Deck.pdf) |
-| Checksums and media metadata | [Submission manifest](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05/submission/manifest.json) |
-| Package index and traceability | [Submission README](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05/submission/SUBMISSION_README.md) and [rules traceability](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05/docs/RULES_TRACEABILITY.md) |
+| Project specification | [8-page PDF](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r1/submission/KoushiKo_Vault_Project_Specification.pdf) |
+| Complete source code | [Tagged source tree](https://github.com/Yasei-no-otoko/koushiko-vault/tree/track2-submission-2026-08-05-r1) |
+| Environment, dependencies, startup, and reproduction | [English README](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r1/README.md) |
+| Real demo video | [4:18, 1080p H.264/AAC MP4](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r1/submission/KoushiKo_Vault_Track2_Demo.mp4) |
+| Supplementary deck | [Editable PPTX](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r1/submission/KoushiKo_Vault_Track2_Deck.pptx) and [8-page PDF](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r1/submission/KoushiKo_Vault_Track2_Deck.pdf) |
+| Checksums and media metadata | [Submission manifest](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r1/submission/manifest.json) |
+| Package index and traceability | [Submission README](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r1/submission/SUBMISSION_README.md) and [rules traceability](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r1/docs/RULES_TRACEABILITY.md) |
 
 ## Local AMD Radeon implementation
 
@@ -37,7 +37,7 @@ The reproducible public demo uses an original synthetic factory-safety case. It 
 - Citation verifier rejects invalid sources, pages, timecodes, quotes, and unsupported claims.
 - Latest retained API investigation: 12.659 seconds, 11 evidence records, verified citations, a playable 45.0-second reel, and an HTML report.
 - Required live-browser API/SSE gate: passed in 20.676 seconds, including citation seek, reel/report export, pre-response cancellation race, and zero browser-console errors.
-- Validation: 12 core Python tests, 6 release-artifact Python tests, 6 frontend tests, production build, ROCmFPX 1,776/1,776 backend operations, and 22/22 environment preflight checks passed.
+- Validation: 12 core Python tests, 7 release-artifact/bootstrap Python tests, 6 frontend tests, production build, clean-archive setup, ROCmFPX 1,776/1,776 backend operations, and 22/22 strict runtime preflight checks passed.
 - The recorded run used the local model for planning. Final synthesis used the disclosed deterministic verified fallback; this entry does not claim model-only final synthesis for that run.
 
 ## Reproduce the validated path
@@ -45,10 +45,10 @@ The reproducible public demo uses an original synthetic factory-safety case. It 
 ```powershell
 git clone https://github.com/Yasei-no-otoko/koushiko-vault.git
 Set-Location koushiko-vault
-git checkout track2-submission-2026-08-05
-./scripts/preflight.ps1
+git checkout track2-submission-2026-08-05-r1
 ./scripts/setup.ps1 -BuildJobs 32
 ./scripts/start.ps1
+./scripts/preflight.ps1
 ./scripts/demo.ps1
 ./scripts/verify-offline.ps1 -ActiveApiProbe -VerifySourceGuards
 ./scripts/test.ps1 -RequireLiveE2E
