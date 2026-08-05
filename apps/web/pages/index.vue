@@ -29,10 +29,35 @@ const uploading = ref(false)
 const analyzing = ref(false)
 const previewMode = ref(false)
 
+const contextPresets = {
+  GitHub: {
+    audience: 'International open-source collaborators',
+    goals: 'credible, approachable, distinctive'
+  },
+  LinkedIn: {
+    audience: 'Recruiters, professional peers, and potential collaborators',
+    goals: 'credible, polished, approachable'
+  },
+  Discord: {
+    audience: 'Online community members, teammates, and moderators',
+    goals: 'approachable, recognizable, community-friendly'
+  },
+  'Hackathon profile': {
+    audience: 'International judges, mentors, sponsors, and fellow builders',
+    goals: 'innovative, credible, memorable'
+  },
+  General: {
+    audience: 'General online audiences across mixed contexts',
+    goals: 'clear, approachable, context-appropriate'
+  }
+} as const
+
+type TargetContext = keyof typeof contextPresets
+const contextOptions = Object.keys(contextPresets) as TargetContext[]
+
 const form = reactive({
-  platform: 'GitHub',
-  audience: 'International open-source collaborators',
-  goals: 'credible, approachable, distinctive',
+  platform: 'GitHub' as TargetContext,
+  ...contextPresets.GitHub,
   message: 'Compare these profile images and recommend the safest fit for my selected context.',
   enablePrivateLens: false,
   enabledPacks: [
@@ -41,6 +66,12 @@ const form = reactive({
     'global_professional_context',
     'open_chinese_symbolism'
   ]
+})
+
+watch(() => form.platform, (platform: TargetContext) => {
+  const preset = contextPresets[platform]
+  form.audience = preset.audience
+  form.goals = preset.goals
 })
 
 const packOptions = [
@@ -411,11 +442,9 @@ function formatDuration(value: number): string {
 
         <label class="field-label">Target context</label>
         <select v-model="form.platform">
-          <option>GitHub</option>
-          <option>LinkedIn</option>
-          <option>Discord</option>
-          <option>Hackathon profile</option>
-          <option>General</option>
+          <option v-for="context in contextOptions" :key="context" :value="context">
+            {{ context }}
+          </option>
         </select>
 
         <label class="field-label">Audience</label>
