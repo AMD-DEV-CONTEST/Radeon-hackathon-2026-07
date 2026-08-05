@@ -19,15 +19,24 @@ step "SMPL-X body models"
 # basename and dies with the memorable "Unknown model type body, exiting!".
 # The models are registration-gated and cannot be downloaded by a script, so
 # reuse the copy GVHMR already needs.
+#
+# Link it unconditionally, even when the target does not exist yet. The models
+# are registration-gated, so the documented order is: install, then fetch
+# checkpoints. Creating the link only when the source already exists means the
+# normal flow never gets one, and retargeting fails long afterwards. A dangling
+# symlink states where the models belong and starts working the moment they
+# land there.
 SMPLX_SRC="$THIRD/GVHMR/inputs/checkpoints/body_models"
-if [ -e "$THIRD/GMR/assets/body_models" ]; then
+if [ -e "$THIRD/GMR/assets/body_models" ] || [ -L "$THIRD/GMR/assets/body_models" ]; then
   info "assets/body_models already present"
-elif [ -d "$SMPLX_SRC/smplx" ]; then
+else
   ln -s "$SMPLX_SRC" "$THIRD/GMR/assets/body_models"
   info "linked assets/body_models -> $SMPLX_SRC"
-else
-  info "WARNING: $SMPLX_SRC/smplx not found."
-  info "Retargeting will fail until SMPL-X is in place. See scripts/setup_gvhmr.sh."
+fi
+if [ ! -d "$THIRD/GMR/assets/body_models/smplx" ]; then
+  info "NOTE: no SMPL-X models at $SMPLX_SRC/smplx yet."
+  info "      Retargeting stays broken until GVHMR's checkpoints are in place;"
+  info "      the link above picks them up automatically once they are."
 fi
 
 info "done: $VENVS/gmr"
