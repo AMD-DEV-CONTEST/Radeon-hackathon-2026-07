@@ -1,0 +1,427 @@
+1
+00:00:00,000 --> 00:00:02,670
+Q-Forge asks whether a flow-matching VLA
+
+2
+00:00:02,728 --> 00:00:04,354
+can learn from its own experience.
+
+3
+00:00:04,992 --> 00:00:07,001
+We compare 3 Q-learning paths for
+
+4
+00:00:07,047 --> 00:00:08,115
+SmolVLA.
+
+5
+00:00:08,847 --> 00:00:10,890
+Q guidance raises paired success from
+
+6
+00:00:10,983 --> 00:00:14,211
+42% to 68% without retraining the
+
+7
+00:00:14,245 --> 00:00:14,919
+policy.
+
+8
+00:00:15,778 --> 00:00:17,891
+SmolVLA turns vision, language,
+
+9
+00:00:17,914 --> 00:00:19,969
+and robot state into action chunks.
+
+10
+00:00:20,155 --> 00:00:22,860
+Supervised fine-tuning learns only from demonstrations,
+
+11
+00:00:22,930 --> 00:00:25,124
+but deployment also produces successes,
+
+12
+00:00:25,159 --> 00:00:26,819
+failures, and near misses.
+
+13
+00:00:27,678 --> 00:00:30,221
+Q-Forge treats those outcomes as supervision.
+
+14
+00:00:30,859 --> 00:00:33,727
+On-policy reinforcement learning needs fresh interaction
+
+15
+00:00:33,808 --> 00:00:35,596
+and is awkward for denoising policies
+
+16
+00:00:35,642 --> 00:00:37,639
+without explicit action likelihoods.
+
+17
+00:00:38,498 --> 00:00:40,368
+Q-Forge instead learns a Q critic
+
+18
+00:00:40,402 --> 00:00:41,180
+from replay.
+
+19
+00:00:41,645 --> 00:00:43,502
+Its value ranks action chunks,
+
+20
+00:00:43,572 --> 00:00:44,895
+and its gradient shows how an
+
+21
+00:00:44,942 --> 00:00:46,033
+action should change.
+
+22
+00:00:46,892 --> 00:00:50,294
+A frozen SmolVLM prefix encodes vision,
+
+23
+00:00:50,480 --> 00:00:51,954
+language, and robot state.
+
+24
+00:00:52,581 --> 00:00:54,950
+The Action Expert denoises a 5-by-7
+
+25
+00:00:55,019 --> 00:00:57,330
+chunk, executes 5 actions,
+
+26
+00:00:57,388 --> 00:00:58,398
+then replans.
+
+27
+00:00:59,385 --> 00:01:02,171
+Q-Forge adds replay, 1 offline critic,
+
+28
+00:01:02,217 --> 00:01:03,459
+and 3 ways to improve the
+
+29
+00:01:03,494 --> 00:01:04,423
+Base policy.
+
+30
+00:01:05,584 --> 00:01:08,231
+5 Q networks evaluate compact state
+
+31
+00:01:08,266 --> 00:01:11,644
+features, proprioception, and executable action chunks.
+
+32
+00:01:12,283 --> 00:01:14,431
+Monte Carlo learning ranks outcomes,
+
+33
+00:01:14,593 --> 00:01:17,159
+temporal-difference learning refines local value,
+
+34
+00:01:17,496 --> 00:01:20,340
+and Cal-QL limits unsupported actions.
+
+35
+00:01:21,199 --> 00:01:23,057
+A held-out gate checks ranking,
+
+36
+00:01:23,115 --> 00:01:25,356
+conservatism, and usable gradients.
+
+37
+00:01:25,994 --> 00:01:27,736
+We run 6 perturbed rollouts from
+
+38
+00:01:27,817 --> 00:01:29,535
+each of 50 reset states.
+
+39
+00:01:29,698 --> 00:01:31,648
+Perturbations affect arm controls,
+
+40
+00:01:31,718 --> 00:01:34,167
+not the gripper, and execute inside
+
+41
+00:01:34,191 --> 00:01:35,236
+the simulator loop.
+
+42
+00:01:35,874 --> 00:01:39,752
+This produces 300 episodes and 60,505
+
+43
+00:01:39,810 --> 00:01:42,422
+transitions, including 36 states with both
+
+44
+00:01:42,480 --> 00:01:43,862
+success and failure.
+
+45
+00:01:44,500 --> 00:01:46,730
+The same critic supports 3 routes.
+
+46
+00:01:46,915 --> 00:01:48,854
+Selection samples and chooses.
+
+47
+00:01:49,713 --> 00:01:52,140
+Guidance makes a bounded Q-gradient edit
+
+48
+00:01:52,209 --> 00:01:54,044
+without changing policy weights.
+
+49
+00:01:54,903 --> 00:01:57,167
+Residual distillation trains that improvement into
+
+50
+00:01:57,225 --> 00:01:58,757
+the flow field, so deployment no
+
+51
+00:01:58,815 --> 00:02:00,069
+longer needs the critic.
+
+52
+00:02:00,603 --> 00:02:02,310
+All methods use the same reset
+
+53
+00:02:02,356 --> 00:02:05,421
+states, seed, checkpoint, step limit,
+
+54
+00:02:05,456 --> 00:02:06,919
+and replanning schedule.
+
+55
+00:02:07,918 --> 00:02:10,263
+This paired protocol reveals both improvements
+
+56
+00:02:10,298 --> 00:02:12,202
+and regressions and supports an exact
+
+57
+00:02:12,260 --> 00:02:13,316
+McNemar test.
+
+58
+00:02:13,781 --> 00:02:16,230
+In this recorded Task 7 comparison,
+
+59
+00:02:16,393 --> 00:02:17,960
+both policies start from the same
+
+60
+00:02:18,018 --> 00:02:19,133
+reset and seed.
+
+61
+00:02:19,992 --> 00:02:21,490
+The Base policy times out.
+
+62
+00:02:21,745 --> 00:02:23,800
+Q guidance makes small action corrections
+
+63
+00:02:23,858 --> 00:02:25,182
+and completes the placement.
+
+64
+00:02:25,367 --> 00:02:26,702
+Only the action changes,
+
+65
+00:02:26,761 --> 00:02:27,968
+not the policy weights.
+
+66
+00:02:28,502 --> 00:02:31,045
+Across 50 states, Base succeeds 21
+
+67
+00:02:31,114 --> 00:02:31,695
+times.
+
+68
+00:02:31,881 --> 00:02:34,388
+Selection reaches 18, residual 32,
+
+69
+00:02:34,435 --> 00:02:35,909
+and guidance 34.
+
+70
+00:02:36,641 --> 00:02:39,323
+Guidance converts 19 failures to successes
+
+71
+00:02:39,381 --> 00:02:41,146
+and causes 6 regressions:
+
+72
+00:02:41,552 --> 00:02:43,235
+a net gain of 13 states,
+
+73
+00:02:43,282 --> 00:02:44,733
+or 26 percentage points,
+
+74
+00:02:44,780 --> 00:02:48,344
+with exact p-value 0.0146.
+
+75
+00:02:48,750 --> 00:02:50,317
+We repeat the pipeline on Task
+
+76
+00:02:50,387 --> 00:02:53,011
+3, where Base already scores 76%.
+
+77
+00:02:53,197 --> 00:02:56,482
+Selection reaches 70%, residual 86%,
+
+78
+00:02:56,528 --> 00:02:58,734
+and conservative guidance 88%,
+
+79
+00:02:58,781 --> 00:03:01,068
+with 6 improvements and no regressions.
+
+80
+00:03:01,706 --> 00:03:03,367
+Because the critic slightly misses the
+
+81
+00:03:03,413 --> 00:03:05,329
+TD gate, we report this as
+
+82
+00:03:05,456 --> 00:03:07,105
+diagnostic replication.
+
+83
+00:03:07,744 --> 00:03:09,473
+The workflow runs on an AMD
+
+84
+00:03:09,659 --> 00:03:13,107
+Radeon Pro W7000 Series GPU with
+
+85
+00:03:13,165 --> 00:03:15,046
+PyTorch and ROCm.
+
+86
+00:03:15,453 --> 00:03:17,995
+Composable Kernel is best for long-sequence
+
+87
+00:03:18,030 --> 00:03:21,072
+forward passes, while SDPA is faster
+
+88
+00:03:21,118 --> 00:03:22,953
+for backward and full training steps.
+
+89
+00:03:23,684 --> 00:03:25,669
+Backend choice follows the workload.
+
+90
+00:03:25,890 --> 00:03:28,456
+At policy level, fused SDPA,
+
+91
+00:03:28,537 --> 00:03:31,243
+inference mode, a fixed denoising loop,
+
+92
+00:03:31,370 --> 00:03:34,505
+caches, and lightweight output reduce replan
+
+93
+00:03:34,575 --> 00:03:37,466
+latency by 10.1% without retraining.
+
+94
+00:03:38,104 --> 00:03:40,705
+The optimized policy remains numerically close
+
+95
+00:03:40,728 --> 00:03:41,645
+to the baseline.
+
+96
+00:03:41,982 --> 00:03:43,607
+The evidence maps directly to all
+
+97
+00:03:43,700 --> 00:03:46,626
+5 judging categories: robot capability,
+
+98
+00:03:46,881 --> 00:03:49,656
+AMD and ROCm adoption,
+
+99
+00:03:49,737 --> 00:03:53,685
+innovation, application value, and upstream-ready open-source
+
+100
+00:03:53,755 --> 00:03:54,532
+engineering.
+
+101
+00:03:55,252 --> 00:03:57,121
+Q-Forge learns from a policy's own
+
+102
+00:03:57,168 --> 00:03:57,969
+experience.
+
+103
+00:03:58,689 --> 00:04:01,394
+Guidance is the strongest no-retraining path,
+
+104
+00:04:01,556 --> 00:04:03,832
+residual enables critic-free deployment,
+
+105
+00:04:04,169 --> 00:04:07,083
+and AMD optimization lowers latency.
+
+106
+00:04:07,617 --> 00:04:09,765
+Built by Cao Yuhao for AMD
+
+107
+00:04:09,928 --> 00:04:11,170
+Hackathon Track 3.

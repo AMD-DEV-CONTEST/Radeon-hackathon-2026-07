@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Attention benchmark — FlashAttention-2 vs SDPA on gfx1100</title>
+<style>
+  /* Page chrome (buttons, tooltip, table) is themed with custom properties.
+     The SVGs use literal colors + class overrides so they stay portable when
+     saved out on their own. */
+  .viz-root {
+    color-scheme: light;
+    --surface: #fcfcfb;
+    --page: #f9f9f7;
+    --primary: #0b0b0b;
+    --secondary: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --s1: #2a78d6;
+    --s2: #eb6834;
+    --s3: #1baf7a;
+    --border: rgba(11,11,11,0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+    --surface: #1a1a19;
+    --page: #0d0d0d;
+    --primary: #ffffff;
+    --secondary: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --s1: #3987e5;
+    --s2: #e87845;
+    --s3: #28bd89;
+    --border: rgba(255,255,255,0.10);
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface: #1a1a19;
+    --page: #0d0d0d;
+    --primary: #ffffff;
+    --secondary: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --s1: #3987e5;
+    --s2: #e87845;
+    --s3: #28bd89;
+    --border: rgba(255,255,255,0.10);
+  }
+  html { background: #f9f9f7; }
+  @media (prefers-color-scheme: dark) {
+    html:where(:not([data-theme="light"])) { background: #0d0d0d; }
+  }
+  html[data-theme="dark"] { background: #0d0d0d; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; padding: 28px; }
+  .wrap { max-width: 968px; margin: 0 auto; }
+  .controls { display: flex; gap: 8px; margin-bottom: 14px; }
+  button { font: inherit; font-size: 12px; padding: 6px 12px; border-radius: 7px;
+           background: var(--surface); color: var(--primary);
+           border: 1px solid var(--border); cursor: pointer; }
+  button[aria-pressed="true"] { font-weight: 600; }
+  .card { position: relative; background: var(--surface); margin-bottom: 18px;
+          border: 1px solid var(--border); border-radius: 12px; }
+  svg { display: block; width: 100%; height: auto; border-radius: 12px; }
+  .hit { fill: transparent; }
+  .cross { stroke: var(--axis); stroke-width: 1; visibility: hidden; }
+  .viz-bar { transition: opacity .1s; }
+  .card.dim .viz-bar { opacity: .5; }
+  .card.dim .viz-bar.on { opacity: 1; }
+  .tip { position: absolute; pointer-events: none; opacity: 0; transition: opacity .1s;
+         background: var(--surface); border: 1px solid var(--border); border-radius: 9px;
+         padding: 8px 10px; font-size: 12px; color: var(--secondary);
+         box-shadow: 0 3px 14px rgba(0,0,0,.13); white-space: nowrap; z-index: 5; }
+  .tip b { display: block; color: var(--primary); font-size: 11px; font-weight: 600;
+           margin-bottom: 5px; }
+  .tip .row { display: flex; align-items: center; gap: 7px; margin-top: 3px; }
+  .tip .key { width: 14px; height: 2px; border-radius: 1px; flex: none; }
+  .tip .val { color: var(--primary); font-weight: 600;
+              font-variant-numeric: tabular-nums; margin-left: auto; padding-left: 12px; }
+  table { border-collapse: collapse; width: 100%; margin-top: 16px; font-size: 12px;
+          color: var(--secondary); font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 6px 9px; border-bottom: 1px solid var(--grid); }
+  th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
+  th { color: var(--primary); font-weight: 600; font-size: 11px; }
+  #tablewrap[hidden] { display: none; }
+</style>
+<body>
+<div class="wrap viz-root">
+  <div class="controls">
+    <button id="theme" aria-pressed="false">Toggle dark mode</button>
+    <button id="tabletoggle" aria-pressed="false">Show table view</button>
+  </div>
+  <div class="card" id="fig-throughput">
+    <svg class="viz-root" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 466" width="920" height="466" font-family='system-ui, -apple-system, "Segoe UI", sans-serif' role="img" aria-label="Attention throughput, FlashAttention CK and Triton versus torch SDPA, forward and backward, sequence length 256 to 4096">
+<style>
+  .viz-line { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .viz-dot  { stroke-width: 2; }
+  .viz-grid, .viz-axis { stroke-width: 1; }
+  .viz-title  { font-weight: 600; font-size: 15px; }
+  .viz-sub    { font-size: 12px; }
+  .viz-panel  { font-weight: 600; font-size: 12.5px; }
+  .viz-tick   { font-size: 10.5px; font-variant-numeric: tabular-nums; }
+  .viz-axlab  { font-size: 11px; }
+  .viz-endlab { font-size: 11px; font-weight: 600; }
+  .viz-legend { font-size: 12px; }
+  .viz-foot   { font-size: 10.5px; }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+  .viz-bg     { fill: #1a1a19; }
+  .viz-grid   { stroke: #2c2c2a; }
+  .viz-axis   { stroke: #383835; }
+  .viz-title, .viz-panel, .viz-endlab { fill: #ffffff; }
+  .viz-sub, .viz-axlab, .viz-legend   { fill: #c3c2b7; }
+  .viz-tick, .viz-foot                { fill: #898781; }
+  .viz-line.viz-s1 { stroke: #3987e5; }
+  .viz-line.viz-s2 { stroke: #e87845; }
+  .viz-line.viz-s3 { stroke: #28bd89; }
+  .viz-dot.viz-s1  { fill: #3987e5; stroke: #1a1a19; }
+  .viz-dot.viz-s2  { fill: #e87845; stroke: #1a1a19; }
+  .viz-dot.viz-s3  { fill: #28bd89; stroke: #1a1a19; }
+  .viz-bar.viz-s1  { fill: #3987e5; }
+  .viz-bar.viz-s2  { fill: #e87845; }
+    }
+  }
+  :root[data-theme="dark"] {
+  .viz-bg     { fill: #1a1a19; }
+  .viz-grid   { stroke: #2c2c2a; }
+  .viz-axis   { stroke: #383835; }
+  .viz-title, .viz-panel, .viz-endlab { fill: #ffffff; }
+  .viz-sub, .viz-axlab, .viz-legend   { fill: #c3c2b7; }
+  .viz-tick, .viz-foot                { fill: #898781; }
+  .viz-line.viz-s1 { stroke: #3987e5; }
+  .viz-line.viz-s2 { stroke: #e87845; }
+  .viz-line.viz-s3 { stroke: #28bd89; }
+  .viz-dot.viz-s1  { fill: #3987e5; stroke: #1a1a19; }
+  .viz-dot.viz-s2  { fill: #e87845; stroke: #1a1a19; }
+  .viz-dot.viz-s3  { fill: #28bd89; stroke: #1a1a19; }
+  .viz-bar.viz-s1  { fill: #3987e5; }
+  .viz-bar.viz-s2  { fill: #e87845; }
+  }
+</style>
+<rect class="viz-bg" width="920" height="466" fill="#fcfcfb"/>
+<text class="viz-title" x="24" y="30" fill="#0b0b0b">CK wins the forward pass; SDPA keeps the strongest backward throughput</text>
+<text class="viz-sub" x="24" y="50" fill="#52514e">AMD gfx1100 · fp16, causal · batch 8 × 16 heads × 64 head dim · higher is better</text>
+<line class="viz-line viz-s1" x1="24" y1="72" x2="40" y2="72" stroke="#2a78d6"/><circle class="viz-dot viz-s1" cx="32" cy="72" r="4" fill="#2a78d6" stroke="#fcfcfb"/><text class="viz-legend" x="48" y="76" fill="#52514e">FA-CK</text>
+<line class="viz-line viz-s2" x1="107.0" y1="72" x2="123.0" y2="72" stroke="#eb6834"/><circle class="viz-dot viz-s2" cx="115.0" cy="72" r="4" fill="#eb6834" stroke="#fcfcfb"/><text class="viz-legend" x="131.0" y="76" fill="#52514e">FA-Triton</text>
+<line class="viz-line viz-s3" x1="216.4" y1="72" x2="232.4" y2="72" stroke="#1baf7a"/><circle class="viz-dot viz-s3" cx="224.4" cy="72" r="4" fill="#1baf7a" stroke="#fcfcfb"/><text class="viz-legend" x="240.4" y="76" fill="#52514e">torch SDPA</text>
+<text class="viz-panel" x="56" y="94" fill="#0b0b0b">Forward</text>
+<line class="viz-axis" x1="56" y1="372.0" x2="412" y2="372.0" stroke="#c3c2b7"/>
+<text class="viz-tick" x="47" y="375.5" text-anchor="end" fill="#898781">0</text>
+<line class="viz-grid" x1="56" y1="331.4" x2="412" y2="331.4" stroke="#e1e0d9"/>
+<text class="viz-tick" x="47" y="334.9" text-anchor="end" fill="#898781">10</text>
+<line class="viz-grid" x1="56" y1="290.8" x2="412" y2="290.8" stroke="#e1e0d9"/>
+<text class="viz-tick" x="47" y="294.3" text-anchor="end" fill="#898781">20</text>
+<line class="viz-grid" x1="56" y1="250.2" x2="412" y2="250.2" stroke="#e1e0d9"/>
+<text class="viz-tick" x="47" y="253.7" text-anchor="end" fill="#898781">30</text>
+<line class="viz-grid" x1="56" y1="209.5" x2="412" y2="209.5" stroke="#e1e0d9"/>
+<text class="viz-tick" x="47" y="213.0" text-anchor="end" fill="#898781">40</text>
+<line class="viz-grid" x1="56" y1="168.9" x2="412" y2="168.9" stroke="#e1e0d9"/>
+<text class="viz-tick" x="47" y="172.4" text-anchor="end" fill="#898781">50</text>
+<line class="viz-grid" x1="56" y1="128.3" x2="412" y2="128.3" stroke="#e1e0d9"/>
+<text class="viz-tick" x="47" y="131.8" text-anchor="end" fill="#898781">60</text>
+<text class="viz-tick" x="56.0" y="390" text-anchor="middle" fill="#898781">256</text>
+<text class="viz-tick" x="145.0" y="390" text-anchor="middle" fill="#898781">512</text>
+<text class="viz-tick" x="234.0" y="390" text-anchor="middle" fill="#898781">1024</text>
+<text class="viz-tick" x="323.0" y="390" text-anchor="middle" fill="#898781">2048</text>
+<text class="viz-tick" x="412.0" y="390" text-anchor="middle" fill="#898781">4096</text>
+<text class="viz-axlab" x="234.0" y="412" text-anchor="middle" fill="#52514e">Sequence length</text>
+<text class="viz-axlab" x="-240.0" y="18" transform="rotate(-90)" text-anchor="middle" fill="#52514e">Throughput (TFLOP/s)</text>
+<path class="viz-line viz-s1" d="M56.0,326.7 L145.0,258.8 L234.0,185.4 L323.0,146.5 L412.0,137.6" stroke="#2a78d6"/>
+<circle class="viz-dot viz-s1" cx="56.0" cy="326.7" r="4" fill="#2a78d6" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s1" cx="145.0" cy="258.8" r="4" fill="#2a78d6" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s1" cx="234.0" cy="185.4" r="4" fill="#2a78d6" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s1" cx="323.0" cy="146.5" r="4" fill="#2a78d6" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s1" cx="412.0" cy="137.6" r="4" fill="#2a78d6" stroke="#fcfcfb"/>
+<text class="viz-endlab" x="423.0" y="141.6" fill="#0b0b0b">57.7</text>
+<path class="viz-line viz-s2" d="M56.0,358.4 L145.0,339.9 L234.0,321.1 L323.0,309.7 L412.0,304.5" stroke="#eb6834"/>
+<circle class="viz-dot viz-s2" cx="56.0" cy="358.4" r="4" fill="#eb6834" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s2" cx="145.0" cy="339.9" r="4" fill="#eb6834" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s2" cx="234.0" cy="321.1" r="4" fill="#eb6834" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s2" cx="323.0" cy="309.7" r="4" fill="#eb6834" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s2" cx="412.0" cy="304.5" r="4" fill="#eb6834" stroke="#fcfcfb"/>
+<text class="viz-endlab" x="423.0" y="308.5" fill="#0b0b0b">16.6</text>
+<path class="viz-line viz-s3" d="M56.0,354.5 L145.0,347.1 L234.0,336.5 L323.0,328.4 L412.0,322.3" stroke="#1baf7a"/>
+<circle class="viz-dot viz-s3" cx="56.0" cy="354.5" r="4" fill="#1baf7a" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s3" cx="145.0" cy="347.1" r="4" fill="#1baf7a" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s3" cx="234.0" cy="336.5" r="4" fill="#1baf7a" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s3" cx="323.0" cy="328.4" r="4" fill="#1baf7a" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s3" cx="412.0" cy="322.3" r="4" fill="#1baf7a" stroke="#fcfcfb"/>
+<text class="viz-endlab" x="423.0" y="326.3" fill="#0b0b0b">12.2</text>
+<text class="viz-panel" x="498" y="94" fill="#0b0b0b">Backward</text>
+<line class="viz-axis" x1="498" y1="372.0" x2="854" y2="372.0" stroke="#c3c2b7"/>
+<text class="viz-tick" x="489" y="375.5" text-anchor="end" fill="#898781">0</text>
+<line class="viz-grid" x1="498" y1="331.4" x2="854" y2="331.4" stroke="#e1e0d9"/>
+<text class="viz-tick" x="489" y="334.9" text-anchor="end" fill="#898781">10</text>
+<line class="viz-grid" x1="498" y1="290.8" x2="854" y2="290.8" stroke="#e1e0d9"/>
+<text class="viz-tick" x="489" y="294.3" text-anchor="end" fill="#898781">20</text>
+<line class="viz-grid" x1="498" y1="250.2" x2="854" y2="250.2" stroke="#e1e0d9"/>
+<text class="viz-tick" x="489" y="253.7" text-anchor="end" fill="#898781">30</text>
+<line class="viz-grid" x1="498" y1="209.5" x2="854" y2="209.5" stroke="#e1e0d9"/>
+<text class="viz-tick" x="489" y="213.0" text-anchor="end" fill="#898781">40</text>
+<line class="viz-grid" x1="498" y1="168.9" x2="854" y2="168.9" stroke="#e1e0d9"/>
+<text class="viz-tick" x="489" y="172.4" text-anchor="end" fill="#898781">50</text>
+<line class="viz-grid" x1="498" y1="128.3" x2="854" y2="128.3" stroke="#e1e0d9"/>
+<text class="viz-tick" x="489" y="131.8" text-anchor="end" fill="#898781">60</text>
+<text class="viz-tick" x="498.0" y="390" text-anchor="middle" fill="#898781">256</text>
+<text class="viz-tick" x="587.0" y="390" text-anchor="middle" fill="#898781">512</text>
+<text class="viz-tick" x="676.0" y="390" text-anchor="middle" fill="#898781">1024</text>
+<text class="viz-tick" x="765.0" y="390" text-anchor="middle" fill="#898781">2048</text>
+<text class="viz-tick" x="854.0" y="390" text-anchor="middle" fill="#898781">4096</text>
+<text class="viz-axlab" x="676.0" y="412" text-anchor="middle" fill="#52514e">Sequence length</text>
+<path class="viz-line viz-s1" d="M498.0,360.2 L587.0,351.5 L676.0,343.9 L765.0,340.3 L854.0,338.4" stroke="#2a78d6"/>
+<circle class="viz-dot viz-s1" cx="498.0" cy="360.2" r="4" fill="#2a78d6" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s1" cx="587.0" cy="351.5" r="4" fill="#2a78d6" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s1" cx="676.0" cy="343.9" r="4" fill="#2a78d6" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s1" cx="765.0" cy="340.3" r="4" fill="#2a78d6" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s1" cx="854.0" cy="338.4" r="4" fill="#2a78d6" stroke="#fcfcfb"/>
+<text class="viz-endlab" x="865.0" y="353.4" fill="#0b0b0b">8.3</text>
+<path class="viz-line viz-s2" d="M498.0,364.7 L587.0,355.7 L676.0,345.6 L765.0,339.4 L854.0,335.7" stroke="#eb6834"/>
+<circle class="viz-dot viz-s2" cx="498.0" cy="364.7" r="4" fill="#eb6834" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s2" cx="587.0" cy="355.7" r="4" fill="#eb6834" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s2" cx="676.0" cy="345.6" r="4" fill="#eb6834" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s2" cx="765.0" cy="339.4" r="4" fill="#eb6834" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s2" cx="854.0" cy="335.7" r="4" fill="#eb6834" stroke="#fcfcfb"/>
+<text class="viz-endlab" x="865.0" y="339.7" fill="#0b0b0b">8.9</text>
+<path class="viz-line viz-s3" d="M498.0,348.3 L587.0,332.1 L676.0,320.0 L765.0,314.6 L854.0,309.1" stroke="#1baf7a"/>
+<circle class="viz-dot viz-s3" cx="498.0" cy="348.3" r="4" fill="#1baf7a" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s3" cx="587.0" cy="332.1" r="4" fill="#1baf7a" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s3" cx="676.0" cy="320.0" r="4" fill="#1baf7a" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s3" cx="765.0" cy="314.6" r="4" fill="#1baf7a" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s3" cx="854.0" cy="309.1" r="4" fill="#1baf7a" stroke="#fcfcfb"/>
+<text class="viz-endlab" x="865.0" y="303.1" fill="#0b0b0b">15.5</text>
+<text class="viz-foot" x="24" y="452" fill="#898781">Median of 20 timed iterations after 5 warmups. FLOPs counted as 4·B·H·S²·D (×0.5 causal), backward ×2.5. Each implementation gets its native layout.</text>
+</svg>
+    <div class="tip"></div>
+  </div>
+  <div class="card" id="fig-step">
+    <svg class="viz-root" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 466" width="920" height="466" font-family='system-ui, -apple-system, "Segoe UI", sans-serif' role="img" aria-label="Full training step time and FlashAttention CK and Triton penalty versus SDPA, sequence length 256 to 4096">
+<style>
+  .viz-line { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .viz-dot  { stroke-width: 2; }
+  .viz-grid, .viz-axis { stroke-width: 1; }
+  .viz-title  { font-weight: 600; font-size: 15px; }
+  .viz-sub    { font-size: 12px; }
+  .viz-panel  { font-weight: 600; font-size: 12.5px; }
+  .viz-tick   { font-size: 10.5px; font-variant-numeric: tabular-nums; }
+  .viz-axlab  { font-size: 11px; }
+  .viz-endlab { font-size: 11px; font-weight: 600; }
+  .viz-legend { font-size: 12px; }
+  .viz-foot   { font-size: 10.5px; }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+  .viz-bg     { fill: #1a1a19; }
+  .viz-grid   { stroke: #2c2c2a; }
+  .viz-axis   { stroke: #383835; }
+  .viz-title, .viz-panel, .viz-endlab { fill: #ffffff; }
+  .viz-sub, .viz-axlab, .viz-legend   { fill: #c3c2b7; }
+  .viz-tick, .viz-foot                { fill: #898781; }
+  .viz-line.viz-s1 { stroke: #3987e5; }
+  .viz-line.viz-s2 { stroke: #e87845; }
+  .viz-line.viz-s3 { stroke: #28bd89; }
+  .viz-dot.viz-s1  { fill: #3987e5; stroke: #1a1a19; }
+  .viz-dot.viz-s2  { fill: #e87845; stroke: #1a1a19; }
+  .viz-dot.viz-s3  { fill: #28bd89; stroke: #1a1a19; }
+  .viz-bar.viz-s1  { fill: #3987e5; }
+  .viz-bar.viz-s2  { fill: #e87845; }
+    }
+  }
+  :root[data-theme="dark"] {
+  .viz-bg     { fill: #1a1a19; }
+  .viz-grid   { stroke: #2c2c2a; }
+  .viz-axis   { stroke: #383835; }
+  .viz-title, .viz-panel, .viz-endlab { fill: #ffffff; }
+  .viz-sub, .viz-axlab, .viz-legend   { fill: #c3c2b7; }
+  .viz-tick, .viz-foot                { fill: #898781; }
+  .viz-line.viz-s1 { stroke: #3987e5; }
+  .viz-line.viz-s2 { stroke: #e87845; }
+  .viz-line.viz-s3 { stroke: #28bd89; }
+  .viz-dot.viz-s1  { fill: #3987e5; stroke: #1a1a19; }
+  .viz-dot.viz-s2  { fill: #e87845; stroke: #1a1a19; }
+  .viz-dot.viz-s3  { fill: #28bd89; stroke: #1a1a19; }
+  .viz-bar.viz-s1  { fill: #3987e5; }
+  .viz-bar.viz-s2  { fill: #e87845; }
+  }
+</style>
+<rect class="viz-bg" width="920" height="466" fill="#fcfcfb"/>
+<text class="viz-title" x="24" y="30" fill="#0b0b0b">SDPA wins every full training step; Triton carries the largest short-sequence penalty</text>
+<text class="viz-sub" x="24" y="50" fill="#52514e">Forward + backward, autograd graph rebuilt each iteration · AMD gfx1100 · fp16, causal · batch 8 × 16 heads × 64 head dim</text>
+<line class="viz-line viz-s1" x1="24" y1="72" x2="40" y2="72" stroke="#2a78d6"/><circle class="viz-dot viz-s1" cx="32" cy="72" r="4" fill="#2a78d6" stroke="#fcfcfb"/><text class="viz-legend" x="48" y="76" fill="#52514e">FA-CK</text>
+<line class="viz-line viz-s2" x1="107.0" y1="72" x2="123.0" y2="72" stroke="#eb6834"/><circle class="viz-dot viz-s2" cx="115.0" cy="72" r="4" fill="#eb6834" stroke="#fcfcfb"/><text class="viz-legend" x="131.0" y="76" fill="#52514e">FA-Triton</text>
+<line class="viz-line viz-s3" x1="216.4" y1="72" x2="232.4" y2="72" stroke="#1baf7a"/><circle class="viz-dot viz-s3" cx="224.4" cy="72" r="4" fill="#1baf7a" stroke="#fcfcfb"/><text class="viz-legend" x="240.4" y="76" fill="#52514e">torch SDPA</text>
+<text class="viz-panel" x="56" y="94" fill="#0b0b0b">Step time · log scale</text>
+<line class="viz-axis" x1="56" y1="372.0" x2="412" y2="372.0" stroke="#c3c2b7"/>
+<text class="viz-tick" x="47" y="375.5" text-anchor="end" fill="#898781">0.5</text>
+<line class="viz-grid" x1="56" y1="337.5" x2="412" y2="337.5" stroke="#e1e0d9"/>
+<text class="viz-tick" x="47" y="341.0" text-anchor="end" fill="#898781">1</text>
+<line class="viz-grid" x1="56" y1="302.9" x2="412" y2="302.9" stroke="#e1e0d9"/>
+<text class="viz-tick" x="47" y="306.4" text-anchor="end" fill="#898781">2</text>
+<line class="viz-grid" x1="56" y1="257.3" x2="412" y2="257.3" stroke="#e1e0d9"/>
+<text class="viz-tick" x="47" y="260.8" text-anchor="end" fill="#898781">5</text>
+<line class="viz-grid" x1="56" y1="222.7" x2="412" y2="222.7" stroke="#e1e0d9"/>
+<text class="viz-tick" x="47" y="226.2" text-anchor="end" fill="#898781">10</text>
+<line class="viz-grid" x1="56" y1="188.2" x2="412" y2="188.2" stroke="#e1e0d9"/>
+<text class="viz-tick" x="47" y="191.7" text-anchor="end" fill="#898781">20</text>
+<line class="viz-grid" x1="56" y1="142.5" x2="412" y2="142.5" stroke="#e1e0d9"/>
+<text class="viz-tick" x="47" y="146.0" text-anchor="end" fill="#898781">50</text>
+<line class="viz-grid" x1="56" y1="108.0" x2="412" y2="108.0" stroke="#e1e0d9"/>
+<text class="viz-tick" x="47" y="111.5" text-anchor="end" fill="#898781">100</text>
+<text class="viz-axlab" x="-240.0" y="18" transform="rotate(-90)" text-anchor="middle" fill="#52514e">Time per step (ms)</text>
+<text class="viz-tick" x="56.0" y="390" text-anchor="middle" fill="#898781">256</text>
+<text class="viz-tick" x="145.0" y="390" text-anchor="middle" fill="#898781">512</text>
+<text class="viz-tick" x="234.0" y="390" text-anchor="middle" fill="#898781">1024</text>
+<text class="viz-tick" x="323.0" y="390" text-anchor="middle" fill="#898781">2048</text>
+<text class="viz-tick" x="412.0" y="390" text-anchor="middle" fill="#898781">4096</text>
+<text class="viz-axlab" x="234.0" y="412" text-anchor="middle" fill="#52514e">Sequence length</text>
+<path class="viz-line viz-s1" d="M56.0,334.5 L145.0,294.7 L234.0,243.7 L323.0,180.5 L412.0,114.3" stroke="#2a78d6"/>
+<circle class="viz-dot viz-s1" cx="56.0" cy="334.5" r="4" fill="#2a78d6" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s1" cx="145.0" cy="294.7" r="4" fill="#2a78d6" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s1" cx="234.0" cy="243.7" r="4" fill="#2a78d6" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s1" cx="323.0" cy="180.5" r="4" fill="#2a78d6" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s1" cx="412.0" cy="114.3" r="4" fill="#2a78d6" stroke="#fcfcfb"/>
+<text class="viz-endlab" x="423.0" y="118.3" fill="#0b0b0b">CK 88 ms</text>
+<path class="viz-line viz-s2" d="M56.0,309.2 L145.0,280.1 L234.0,233.7 L323.0,176.4 L412.0,111.5" stroke="#eb6834"/>
+<circle class="viz-dot viz-s2" cx="56.0" cy="309.2" r="4" fill="#eb6834" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s2" cx="145.0" cy="280.1" r="4" fill="#eb6834" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s2" cx="234.0" cy="233.7" r="4" fill="#eb6834" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s2" cx="323.0" cy="176.4" r="4" fill="#eb6834" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s2" cx="412.0" cy="111.5" r="4" fill="#eb6834" stroke="#fcfcfb"/>
+<text class="viz-endlab" x="423.0" y="103.5" fill="#0b0b0b">Triton 93 ms</text>
+<path class="viz-line viz-s3" d="M56.0,358.1 L145.0,309.3 L234.0,254.4 L323.0,191.7 L412.0,128.1" stroke="#1baf7a"/>
+<circle class="viz-dot viz-s3" cx="56.0" cy="358.1" r="4" fill="#1baf7a" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s3" cx="145.0" cy="309.3" r="4" fill="#1baf7a" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s3" cx="234.0" cy="254.4" r="4" fill="#1baf7a" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s3" cx="323.0" cy="191.7" r="4" fill="#1baf7a" stroke="#fcfcfb"/>
+<circle class="viz-dot viz-s3" cx="412.0" cy="128.1" r="4" fill="#1baf7a" stroke="#fcfcfb"/>
+<text class="viz-endlab" x="423.0" y="156.1" fill="#0b0b0b">SDPA 67 ms</text>
+<text class="viz-panel" x="498" y="94" fill="#0b0b0b">Penalty vs SDPA</text>
+<line class="viz-axis" x1="498" y1="372.0" x2="854" y2="372.0" stroke="#c3c2b7"/>
+<text class="viz-tick" x="489" y="375.5" text-anchor="end" fill="#898781">0</text>
+<line class="viz-grid" x1="498" y1="313.3" x2="854" y2="313.3" stroke="#e1e0d9"/>
+<text class="viz-tick" x="489" y="316.8" text-anchor="end" fill="#898781">+40%</text>
+<line class="viz-grid" x1="498" y1="254.7" x2="854" y2="254.7" stroke="#e1e0d9"/>
+<text class="viz-tick" x="489" y="258.2" text-anchor="end" fill="#898781">+80%</text>
+<line class="viz-grid" x1="498" y1="196.0" x2="854" y2="196.0" stroke="#e1e0d9"/>
+<text class="viz-tick" x="489" y="199.5" text-anchor="end" fill="#898781">+120%</text>
+<line class="viz-grid" x1="498" y1="137.3" x2="854" y2="137.3" stroke="#e1e0d9"/>
+<text class="viz-tick" x="489" y="140.8" text-anchor="end" fill="#898781">+160%</text>
+<text class="viz-axlab" x="676.0" y="412" text-anchor="middle" fill="#52514e">Sequence length</text>
+<path class="viz-bar viz-s1" data-i="0" d="M509.8,372.0 L509.8,287.2 Q509.8,283.2 513.8,283.2 L527.8,283.2 Q531.8,283.2 531.8,287.2 L531.8,372.0 Z" fill="#2a78d6"/>
+<text class="viz-tick" x="520.8" y="277.2" text-anchor="middle" fill="#0b0b0b">61%</text>
+<path class="viz-bar viz-s2" data-i="0" d="M535.4,372.0 L535.4,131.1 Q535.4,127.1 539.4,127.1 L553.4,127.1 Q557.4,127.1 557.4,131.1 L557.4,372.0 Z" fill="#eb6834"/>
+<text class="viz-tick" x="546.4" y="121.1" text-anchor="middle" fill="#0b0b0b">167%</text>
+<text class="viz-tick" x="533.6" y="390" text-anchor="middle" fill="#898781">256</text>
+<path class="viz-bar viz-s1" data-i="1" d="M581.0,372.0 L581.0,326.2 Q581.0,322.2 585.0,322.2 L599.0,322.2 Q603.0,322.2 603.0,326.2 L603.0,372.0 Z" fill="#2a78d6"/>
+<text class="viz-tick" x="592.0" y="316.2" text-anchor="middle" fill="#0b0b0b">34%</text>
+<path class="viz-bar viz-s2" data-i="1" d="M606.6,372.0 L606.6,259.1 Q606.6,255.1 610.6,255.1 L624.6,255.1 Q628.6,255.1 628.6,259.1 L628.6,372.0 Z" fill="#eb6834"/>
+<text class="viz-tick" x="617.6" y="249.1" text-anchor="middle" fill="#0b0b0b">80%</text>
+<text class="viz-tick" x="604.8" y="390" text-anchor="middle" fill="#898781">512</text>
+<path class="viz-bar viz-s1" data-i="2" d="M652.2,372.0 L652.2,340.9 Q652.2,336.9 656.2,336.9 L670.2,336.9 Q674.2,336.9 674.2,340.9 L674.2,372.0 Z" fill="#2a78d6"/>
+<text class="viz-tick" x="663.2" y="330.9" text-anchor="middle" fill="#0b0b0b">24%</text>
+<path class="viz-bar viz-s2" data-i="2" d="M677.8,372.0 L677.8,300.5 Q677.8,296.5 681.8,296.5 L695.8,296.5 Q699.8,296.5 699.8,300.5 L699.8,372.0 Z" fill="#eb6834"/>
+<text class="viz-tick" x="688.8" y="290.5" text-anchor="middle" fill="#0b0b0b">51%</text>
+<text class="viz-tick" x="676.0" y="390" text-anchor="middle" fill="#898781">1024</text>
+<path class="viz-bar viz-s1" data-i="3" d="M723.4,372.0 L723.4,338.9 Q723.4,334.9 727.4,334.9 L741.4,334.9 Q745.4,334.9 745.4,338.9 L745.4,372.0 Z" fill="#2a78d6"/>
+<text class="viz-tick" x="734.4" y="328.9" text-anchor="middle" fill="#0b0b0b">25%</text>
+<path class="viz-bar viz-s2" data-i="3" d="M749.0,372.0 L749.0,323.1 Q749.0,319.1 753.0,319.1 L767.0,319.1 Q771.0,319.1 771.0,323.1 L771.0,372.0 Z" fill="#eb6834"/>
+<text class="viz-tick" x="760.0" y="313.1" text-anchor="middle" fill="#0b0b0b">36%</text>
+<text class="viz-tick" x="747.2" y="390" text-anchor="middle" fill="#898781">2048</text>
+<path class="viz-bar viz-s1" data-i="4" d="M794.6,372.0 L794.6,329.1 Q794.6,325.1 798.6,325.1 L812.6,325.1 Q816.6,325.1 816.6,329.1 L816.6,372.0 Z" fill="#2a78d6"/>
+<text class="viz-tick" x="805.6" y="319.1" text-anchor="middle" fill="#0b0b0b">32%</text>
+<path class="viz-bar viz-s2" data-i="4" d="M820.2,372.0 L820.2,317.9 Q820.2,313.9 824.2,313.9 L838.2,313.9 Q842.2,313.9 842.2,317.9 L842.2,372.0 Z" fill="#eb6834"/>
+<text class="viz-tick" x="831.2" y="307.9" text-anchor="middle" fill="#0b0b0b">40%</text>
+<text class="viz-tick" x="818.4" y="390" text-anchor="middle" fill="#898781">4096</text>
+<text class="viz-foot" x="24" y="452" fill="#898781">Median of 20 timed iterations after 5 warmups. Step = one forward plus one backward, measured independently of the isolated fwd/bwd numbers.</text>
+</svg>
+    <div class="tip"></div>
+  </div>
+  <div id="tablewrap" hidden><table><thead><tr><th>dtype</th><th>causal</th><th>seq len</th><th>CK fwd<br>TF/s</th><th>Triton fwd<br>TF/s</th><th>SDPA fwd<br>TF/s</th><th>CK bwd<br>TF/s</th><th>Triton bwd<br>TF/s</th><th>SDPA bwd<br>TF/s</th><th>CK step<br>ms</th><th>Triton step<br>ms</th><th>SDPA step<br>ms</th></tr></thead><tbody><tr><td>fp16</td><td>yes</td><td>256</td><td>11.2</td><td>3.4</td><td>4.3</td><td>2.9</td><td>1.8</td><td>5.8</td><td>1.06</td><td>1.76</td><td>0.66</td></tr><tr><td>fp16</td><td>yes</td><td>512</td><td>27.9</td><td>7.9</td><td>6.1</td><td>5.1</td><td>4.0</td><td>9.8</td><td>2.36</td><td>3.16</td><td>1.76</td></tr><tr><td>fp16</td><td>yes</td><td>1024</td><td>45.9</td><td>12.5</td><td>8.7</td><td>6.9</td><td>6.5</td><td>12.8</td><td>6.56</td><td>8.02</td><td>5.30</td></tr><tr><td>fp16</td><td>yes</td><td>2048</td><td>55.5</td><td>15.3</td><td>10.7</td><td>7.8</td><td>8.0</td><td>14.1</td><td>23.35</td><td>25.36</td><td>18.63</td></tr><tr><td>fp16</td><td>yes</td><td>4096</td><td>57.7</td><td>16.6</td><td>12.2</td><td>8.3</td><td>8.9</td><td>15.5</td><td>88.20</td><td>93.31</td><td>66.82</td></tr><tr><td>fp16</td><td>no</td><td>256</td><td>20.6</td><td>6.5</td><td>11.5</td><td>4.4</td><td>3.6</td><td>7.3</td><td>1.38</td><td>1.77</td><td>0.91</td></tr><tr><td>fp16</td><td>no</td><td>512</td><td>41.5</td><td>12.5</td><td>16.3</td><td>6.5</td><td>6.4</td><td>13.3</td><td>3.56</td><td>3.81</td><td>2.11</td></tr><tr><td>fp16</td><td>no</td><td>1024</td><td>55.4</td><td>16.6</td><td>18.7</td><td>8.0</td><td>8.8</td><td>15.1</td><td>11.63</td><td>11.83</td><td>7.49</td></tr><tr><td>fp16</td><td>no</td><td>2048</td><td>61.0</td><td>18.2</td><td>19.8</td><td>8.2</td><td>9.7</td><td>16.1</td><td>43.30</td><td>42.40</td><td>28.31</td></tr><tr><td>fp16</td><td>no</td><td>4096</td><td>61.9</td><td>18.8</td><td>20.2</td><td>8.4</td><td>10.2</td><td>16.1</td><td>172.40</td><td>164.37</td><td>111.68</td></tr><tr><td>bf16</td><td>yes</td><td>256</td><td>11.4</td><td>3.4</td><td>4.2</td><td>2.9</td><td>1.8</td><td>5.9</td><td>1.10</td><td>1.75</td><td>0.67</td></tr><tr><td>bf16</td><td>yes</td><td>512</td><td>26.7</td><td>7.9</td><td>5.9</td><td>4.8</td><td>3.9</td><td>9.7</td><td>2.42</td><td>3.20</td><td>1.80</td></tr><tr><td>bf16</td><td>yes</td><td>1024</td><td>42.8</td><td>12.4</td><td>8.8</td><td>6.7</td><td>6.3</td><td>12.5</td><td>6.97</td><td>8.30</td><td>5.36</td></tr><tr><td>bf16</td><td>yes</td><td>2048</td><td>51.6</td><td>15.1</td><td>10.7</td><td>7.4</td><td>7.8</td><td>13.8</td><td>24.55</td><td>26.40</td><td>18.79</td></tr><tr><td>bf16</td><td>yes</td><td>4096</td><td>54.1</td><td>16.4</td><td>11.6</td><td>8.0</td><td>8.5</td><td>15.3</td><td>92.02</td><td>97.31</td><td>68.43</td></tr><tr><td>bf16</td><td>no</td><td>256</td><td>20.6</td><td>6.4</td><td>11.3</td><td>4.3</td><td>3.5</td><td>7.2</td><td>1.40</td><td>1.81</td><td>0.91</td></tr><tr><td>bf16</td><td>no</td><td>512</td><td>37.8</td><td>12.5</td><td>16.0</td><td>6.5</td><td>6.1</td><td>12.9</td><td>3.59</td><td>4.04</td><td>2.16</td></tr><tr><td>bf16</td><td>no</td><td>1024</td><td>50.4</td><td>16.6</td><td>18.7</td><td>7.9</td><td>8.1</td><td>14.9</td><td>11.77</td><td>12.63</td><td>7.59</td></tr><tr><td>bf16</td><td>no</td><td>2048</td><td>56.5</td><td>18.0</td><td>19.6</td><td>8.2</td><td>9.3</td><td>16.3</td><td>44.13</td><td>44.19</td><td>28.06</td></tr><tr><td>bf16</td><td>no</td><td>4096</td><td>58.8</td><td>18.6</td><td>20.0</td><td>8.4</td><td>9.7</td><td>15.9</td><td>174.36</td><td>170.78</td><td>113.11</td></tr></tbody></table></div>
+</div>
+<script>
+const G = {"figs": [{"id": "fig-throughput", "panels": [{"kind": "line", "title": "Forward", "xs": [56.0, 145.0, 234.0, 323.0, 412.0], "series": [{"label": "FA-CK", "slot": "s1", "text": ["11.2 TFLOP/s \u00b7 0.10 ms", "27.9 TFLOP/s \u00b7 0.15 ms", "45.9 TFLOP/s \u00b7 0.37 ms", "55.5 TFLOP/s \u00b7 1.24 ms", "57.7 TFLOP/s \u00b7 4.76 ms"]}, {"label": "FA-Triton", "slot": "s2", "text": ["3.4 TFLOP/s \u00b7 0.32 ms", "7.9 TFLOP/s \u00b7 0.54 ms", "12.5 TFLOP/s \u00b7 1.37 ms", "15.3 TFLOP/s \u00b7 4.48 ms", "16.6 TFLOP/s \u00b7 16.54 ms"]}, {"label": "torch SDPA", "slot": "s3", "text": ["4.3 TFLOP/s \u00b7 0.25 ms", "6.1 TFLOP/s \u00b7 0.70 ms", "8.7 TFLOP/s \u00b7 1.96 ms", "10.7 TFLOP/s \u00b7 6.41 ms", "12.2 TFLOP/s \u00b7 22.48 ms"]}]}, {"kind": "line", "title": "Backward", "xs": [498.0, 587.0, 676.0, 765.0, 854.0], "series": [{"label": "FA-CK", "slot": "s1", "text": ["2.9 TFLOP/s \u00b7 0.92 ms", "5.1 TFLOP/s \u00b7 2.12 ms", "6.9 TFLOP/s \u00b7 6.20 ms", "7.8 TFLOP/s \u00b7 22.04 ms", "8.3 TFLOP/s \u00b7 83.16 ms"]}, {"label": "FA-Triton", "slot": "s2", "text": ["1.8 TFLOP/s \u00b7 1.49 ms", "4.0 TFLOP/s \u00b7 2.68 ms", "6.5 TFLOP/s \u00b7 6.61 ms", "8.0 TFLOP/s \u00b7 21.38 ms", "8.9 TFLOP/s \u00b7 76.98 ms"]}, {"label": "torch SDPA", "slot": "s3", "text": ["5.8 TFLOP/s \u00b7 0.46 ms", "9.8 TFLOP/s \u00b7 1.09 ms", "12.8 TFLOP/s \u00b7 3.36 ms", "14.1 TFLOP/s \u00b7 12.16 ms", "15.5 TFLOP/s \u00b7 44.38 ms"]}]}]}, {"id": "fig-step", "panels": [{"kind": "line", "title": "Step time", "xs": [56.0, 145.0, 234.0, 323.0, 412.0], "series": [{"label": "FA-CK", "slot": "s1", "text": ["1.06 ms", "2.36 ms", "6.56 ms", "23.35 ms", "88.20 ms"]}, {"label": "FA-Triton", "slot": "s2", "text": ["1.76 ms", "3.16 ms", "8.02 ms", "25.36 ms", "93.31 ms"]}, {"label": "torch SDPA", "slot": "s3", "text": ["0.66 ms", "1.76 ms", "5.30 ms", "18.63 ms", "66.82 ms"]}]}, {"kind": "bar", "title": "Extra step time vs SDPA", "xs": [533.6, 604.8, 676.0, 747.2, 818.4000000000001], "bw": 22.0, "series": [{"label": "FA-CK", "slot": "s1", "text": ["+60.5%", "+33.9%", "+23.9%", "+25.3%", "+32.0%"]}, {"label": "FA-Triton", "slot": "s2", "text": ["+167.0%", "+79.7%", "+51.5%", "+36.1%", "+39.6%"]}]}]}], "y0": 108, "y1": 372, "w": 920, "h": 466, "seqlens": [256, 512, 1024, 2048, 4096]};
+const ns = 'http://www.w3.org/2000/svg';
+const cssVar = (n) =>
+  getComputedStyle(document.querySelector('.viz-root')).getPropertyValue('--' + n);
+
+G.figs.forEach((fig) => {
+  const card = document.getElementById(fig.id);
+  const svgEl = card.querySelector('svg');
+  const tip = card.querySelector('.tip');
+  const bars = [...svgEl.querySelectorAll('.viz-bar')];
+
+  fig.panels.forEach((p) => {
+    const isBar = p.kind === 'bar';
+    let cross = null;
+    if (!isBar) {                       // crosshair finds the X on line panels only
+      cross = document.createElementNS(ns, 'line');
+      cross.setAttribute('class', 'cross');
+      cross.setAttribute('y1', G.y0); cross.setAttribute('y2', G.y1);
+      svgEl.appendChild(cross);
+    }
+    const lo = Math.min(...p.xs), hi = Math.max(...p.xs);
+    const hit = document.createElementNS(ns, 'rect');
+    hit.setAttribute('class', 'hit');
+    hit.setAttribute('x', lo - 26); hit.setAttribute('y', G.y0 - 18);
+    hit.setAttribute('width', hi - lo + 52); hit.setAttribute('height', G.y1 - G.y0 + 36);
+    hit.setAttribute('tabindex', '0');
+    svgEl.appendChild(hit);
+
+    let idx = 0;
+    const show = (i) => {
+      idx = i;
+      const scale = svgEl.getBoundingClientRect().width / G.w;
+      if (cross) {
+        cross.setAttribute('x1', p.xs[i]); cross.setAttribute('x2', p.xs[i]);
+        cross.style.visibility = 'visible';
+      }
+      if (isBar) {                      // the hovered mark lifts instead
+        card.classList.add('dim');
+        bars.forEach((b) => b.classList.toggle('on', Number(b.dataset.i) === i));
+      }
+      tip.textContent = '';
+      const head = document.createElement('b');
+      head.textContent = `Sequence length ${G.seqlens[i]} · ${p.title}`;
+      tip.appendChild(head);
+      for (const s of p.series) {
+        const row = document.createElement('div'); row.className = 'row';
+        const key = document.createElement('span'); key.className = 'key';
+        key.style.background = cssVar(s.slot);
+        const name = document.createElement('span');
+        name.textContent = s.label;                  // untrusted label -> textContent
+        const val = document.createElement('span'); val.className = 'val';
+        val.textContent = s.text[i];
+        row.append(key, name, val); tip.appendChild(row);
+      }
+      tip.style.opacity = '1';
+      let left = p.xs[i] * scale + 16;
+      if (left + tip.offsetWidth > card.clientWidth - 6) left = p.xs[i] * scale - tip.offsetWidth - 16;
+      tip.style.left = Math.max(6, left) + 'px';
+      tip.style.top = (G.y0 * scale + 8) + 'px';
+    };
+    const hide = () => {
+      if (cross) cross.style.visibility = 'hidden';
+      card.classList.remove('dim');
+      bars.forEach((b) => b.classList.remove('on'));
+      tip.style.opacity = '0';
+    };
+
+    hit.addEventListener('pointermove', (e) => {
+      const r = svgEl.getBoundingClientRect();
+      const x = (e.clientX - r.left) / (r.width / G.w);
+      let best = 0;
+      p.xs.forEach((xx, i) => { if (Math.abs(xx - x) < Math.abs(p.xs[best] - x)) best = i; });
+      show(best);
+    });
+    hit.addEventListener('pointerleave', hide);
+    hit.addEventListener('focus', () => show(idx));  // keyboard parity with hover
+    hit.addEventListener('blur', hide);
+    hit.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') { show(Math.min(idx + 1, p.xs.length - 1)); e.preventDefault(); }
+      if (e.key === 'ArrowLeft')  { show(Math.max(idx - 1, 0)); e.preventDefault(); }
+    });
+  });
+});
+
+const themeBtn = document.getElementById('theme');
+themeBtn.addEventListener('click', () => {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
+  themeBtn.setAttribute('aria-pressed', String(!dark));
+});
+const tblBtn = document.getElementById('tabletoggle');
+const tblWrap = document.getElementById('tablewrap');
+tblBtn.addEventListener('click', () => {
+  tblWrap.hidden = !tblWrap.hidden;
+  tblBtn.setAttribute('aria-pressed', String(!tblWrap.hidden));
+  tblBtn.textContent = tblWrap.hidden ? 'Show table view' : 'Hide table view';
+});
+</script>
+</body>

@@ -1,0 +1,40 @@
+seed: 1000
+device: cuda
+# The critic only builds detached Q-guidance targets.  Keeping its small FP32
+# GEMMs on CPU avoids a reproducible ROCm native fault when two BF16 SmolVLA
+# policies already share the GPU context.
+critic_device: cpu
+base_checkpoint: outputs/native_lerobot_smolvla_task7_50ep_20k/checkpoints/020000/pretrained_model
+critic_checkpoint: checkpoints/qvgm_critic/task7_native20k_q3_calql_v1/checkpoint-final.pt
+output_dir: checkpoints/qvgm_policy/task7_native20k_q3_residual_v1
+
+data:
+  observation_cache: data/qvgm_buffers/task7_native20k_q3_v1/policy_observations.pt
+  observation_manifest: data/qvgm_buffers/task7_native20k_q3_v1/policy_observations_manifest.json
+  feature_cache: data/qvgm_buffers/task7_native20k_q3_v1/feature_cache.pt
+
+residual:
+  denoising_steps: 10
+  horizon: 5
+  action_dim: 7
+  gate_power: 1.0
+  guidance_steps: 5
+  guidance_step_size: 0.005
+  guidance_max_delta: 0.02
+  guidance_max_gradient_norm: 1.0
+  action_min: -1.0
+  action_max: 1.0
+
+training:
+  steps: 500
+  scheduler_decay_steps: 5000
+  batch_size: 8
+  gradient_accumulation_steps: 1
+  learning_rate: 1.0e-5
+  minimum_learning_rate: 1.0e-6
+  warmup_steps: 250
+  betas: [0.9, 0.95]
+  weight_decay: 1.0e-10
+  max_gradient_norm: 10.0
+  log_interval: 10
+  save_interval: 250

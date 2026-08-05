@@ -1,0 +1,29 @@
+Q-Forge asks whether a flow-matching VLA can learn from its own experience. We compare 3 Q-learning paths for SmolVLA. Q guidance raises paired success from 42% to 68% without retraining the policy.
+
+SmolVLA turns vision, language, and robot state into action chunks. Supervised fine-tuning learns only from demonstrations, but deployment also produces successes, failures, and near misses. Q-Forge treats those outcomes as supervision.
+
+On-policy reinforcement learning needs fresh interaction and is awkward for denoising policies without explicit action likelihoods. Q-Forge instead learns a Q critic from replay. Its value ranks action chunks, and its gradient shows how an action should change.
+
+A frozen SmolVLM prefix encodes vision, language, and robot state. The Action Expert denoises a 5-by-7 chunk, executes 5 actions, then replans. Q-Forge adds replay, 1 offline critic, and 3 ways to improve the Base policy.
+
+5 Q networks evaluate compact state features, proprioception, and executable action chunks. Monte Carlo learning ranks outcomes, temporal-difference learning refines local value, and Cal-QL limits unsupported actions. A held-out gate checks ranking, conservatism, and usable gradients.
+
+We run 6 perturbed rollouts from each of 50 reset states. Perturbations affect arm controls, not the gripper, and execute inside the simulator loop. This produces 300 episodes and 60,505 transitions, including 36 states with both success and failure.
+
+The same critic supports 3 routes. Selection samples and chooses. Guidance makes a bounded Q-gradient edit without changing policy weights. Residual distillation trains that improvement into the flow field, so deployment no longer needs the critic.
+
+All methods use the same reset states, seed, checkpoint, step limit, and replanning schedule. This paired protocol reveals both improvements and regressions and supports an exact McNemar test.
+
+In this recorded Task 7 comparison, both policies start from the same reset and seed. The Base policy times out. Q guidance makes small action corrections and completes the placement. Only the action changes, not the policy weights.
+
+Across 50 states, Base succeeds 21 times. Selection reaches 18, residual 32, and guidance 34. Guidance converts 19 failures to successes and causes 6 regressions: a net gain of 13 states, or 26 percentage points, with exact p-value 0.0146.
+
+We repeat the pipeline on Task 3, where Base already scores 76%. Selection reaches 70%, residual 86%, and conservative guidance 88%, with 6 improvements and no regressions. Because the critic slightly misses the TD gate, we report this as diagnostic replication.
+
+The workflow runs on an AMD Radeon Pro W7000 Series GPU with PyTorch and ROCm. Composable Kernel is best for long-sequence forward passes, while SDPA is faster for backward and full training steps. Backend choice follows the workload.
+
+At policy level, fused SDPA, inference mode, a fixed denoising loop, caches, and lightweight output reduce replan latency by 10.1% without retraining. The optimized policy remains numerically close to the baseline.
+
+The evidence maps directly to all 5 judging categories: robot capability, AMD and ROCm adoption, innovation, application value, and upstream-ready open-source engineering.
+
+Q-Forge learns from a policy's own experience. Guidance is the strongest no-retraining path, residual enables critic-free deployment, and AMD optimization lowers latency. Built by Cao Yuhao for AMD Hackathon Track 3.

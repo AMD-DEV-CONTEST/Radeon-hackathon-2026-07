@@ -1,0 +1,105 @@
+experiment:
+  name: task7_qvgm_full50_search_v1
+  task_suite: libero_spatial
+  task_id: 7
+  task_description: pick up the black bowl on the stove and place it on the plate
+  seed: 1000
+
+data:
+  reset_states: {start: 0, stop: 49}
+  collection:
+    action_steps_per_replan: 5
+    max_episode_steps: 240
+    perturb_first_action_dims: 6
+    perturb_gripper: false
+    perturb_probability: 0.0
+    environment_action_noise: disabled
+    perturbation_sigmas: [0.0, 0.01, 0.03, 0.05]
+    episodes_per_base_success_state: 3
+    episodes_per_base_failure_state: 6
+  split:
+    unit: episode_within_reset_state
+    train_repeats_for_three_episode_state: [0, 1]
+    validation_repeats_for_three_episode_state: [2]
+    train_repeats_for_six_episode_state: [0, 1, 2, 3]
+    validation_repeats_for_six_episode_state: [4, 5]
+    require_disjoint_collection_seeds: true
+
+critic:
+  cache_horizon: 5
+  ensemble_size: 5
+  hidden_dim: 512
+  batch_size: 256
+  mc:
+    steps: 5000
+    learning_rate: 0.0003
+    weight_decay: 0.0001
+  td_reference:
+    steps: 2000
+    learning_rate: 0.0001
+    tau: 0.005
+    next_action_source: dataset
+  calql:
+    steps: 2000
+    learning_rate: 0.0001
+    tau: 0.005
+    calibration_floor: mc_return
+    random_action_count: 10
+    temperature: 1.0
+    grid:
+      alpha: [0.03, 0.05, 0.07]
+      reference_noise_std: [0.03, 0.05, 0.10]
+
+critic_selection:
+  hard_gates:
+    require_finite_metrics: true
+    require_q_success_above_q_failure: true
+    require_q_dataset_above_q_random: true
+    require_finite_nonzero_action_gradient: true
+    maximum_validation_td_loss: 0.01
+    minimum_q_value: -2.0
+    maximum_q_value: 2.0
+  rank_by:
+    - validation_td_loss_ascending
+    - validation_success_failure_margin_descending
+    - validation_dataset_random_margin_descending
+  keep_top_k: 2
+
+guidance:
+  fixed:
+    optimize_prefix_steps: 5
+    optimize_action_dims: 7
+    max_gradient_norm: 1.0
+    action_min: -1.0
+    action_max: 1.0
+  offline_grid:
+    steps: [5, 10]
+    # 0.005 is the safety extension added after every original-grid setting
+    # exceeded the predeclared +0.005 action-saturation gate.
+    step_size: [0.005, 0.01, 0.02]
+    max_delta: [0.02, 0.05]
+  hard_gates:
+    require_all_finite: true
+    require_max_delta_bound: true
+    require_keep_best_non_regression: true
+    maximum_saturation_increase: 0.005
+  keep_top_k: 4
+
+evaluation:
+  reset_states: {start: 0, stop: 49}
+  action_steps_per_replan: 5
+  max_episode_steps: 240
+  require_flow_seeds_disjoint_from_collection: true
+  screening:
+    flow_seeds: [2000]
+  final:
+    flow_seeds: [2001]
+    paired_base_and_guided: true
+    paired_rollouts_per_state_per_method: 1
+    total_episodes: 100
+  primary_metrics:
+    - paired_success_rate_difference
+    - failure_to_success_count
+    - success_to_failure_count
+    - mean_completion_steps_on_joint_successes
+    - bootstrap_confidence_interval
