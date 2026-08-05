@@ -56,9 +56,26 @@ SRC = REPO / "src"
 
 
 def scene_xml() -> str:
-    """Playground's flat-terrain G1 scene, located inside the installed package."""
+    """Playground's flat-terrain G1 scene, located inside the installed package.
+
+    Only usable via from_xml_string() paired with get_assets(): its mesh paths
+    are resolved by Playground's own asset loader, not relative to the file.
+    Anything calling from_xml_path() wants scene_xml_standalone() instead.
+    """
     from mujoco_playground._src.locomotion.g1 import g1_constants as c
     return c.FEET_ONLY_FLAT_TERRAIN_XML.as_posix()
+
+
+def scene_xml_standalone() -> str:
+    """Menagerie's G1 scene, for plain mujoco.MjModel.from_xml_path().
+
+    from_xml_path() resolves meshes relative to the XML, so it needs the scene
+    that actually sits next to its assets/ directory. Handing it scene_xml()
+    fails on the first mesh with a path under site-packages/mujoco_menagerie,
+    which is not where Playground installs menagerie.
+    """
+    from mujoco_playground._src import mjx_env
+    return (mjx_env.MENAGERIE_PATH / "unitree_g1" / "scene_mjx.xml").as_posix()
 
 
 def ensure_dirs() -> None:

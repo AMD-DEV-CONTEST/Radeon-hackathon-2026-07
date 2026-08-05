@@ -32,7 +32,10 @@ GMR = C.GMR
 PY_GVHMR = C.PY_GVHMR
 PY_GMR = C.PY_GMR
 PY_MJX = C.PY_MJX
-SCENE_MJX = C.scene_xml()
+# The retarget and replay stages shell out to plain MuJoCo, which resolves
+# meshes relative to the XML — so they need menagerie's standalone scene, not
+# Playground's. The two are not interchangeable; see config.py.
+SCENE_STANDALONE = C.scene_xml_standalone()
 
 WORK = C.UPLOADS
 DL = C.DOWNLOADS
@@ -206,7 +209,7 @@ def step2(name: str, pt_path: str, job: Job):
             "(joint reorder / quaternion order / resample / ground align)")
     npz = C.MOTIONS_MJX / f"{name}.npz"
     rc = _run(job, [PY_MJX, str(BASE / "gmr_to_mjx.py"), "--gmr_pkl", str(pkl),
-                    "--mjx_xml", SCENE_MJX, "--out", str(npz)],
+                    "--mjx_xml", SCENE_STANDALONE, "--out", str(npz)],
               env={"MUJOCO_GL": "osmesa"})
     if rc != 0 or not npz.exists():
         job.log(f"FAILED  conversion exited with {rc}")
@@ -225,7 +228,7 @@ def step2(name: str, pt_path: str, job: Job):
 
     job.log("        kinematic replay self-check (no physics)")
     replay = C.RENDER_OUT / f"replay_{name}.mp4"
-    _run(job, [PY_MJX, str(BASE / "replay_check.py"), "--xml", SCENE_MJX,
+    _run(job, [PY_MJX, str(BASE / "replay_check.py"), "--xml", SCENE_STANDALONE,
                "--motion", str(npz), "--out", str(replay)],
          env={"MUJOCO_GL": "egl"})
 
