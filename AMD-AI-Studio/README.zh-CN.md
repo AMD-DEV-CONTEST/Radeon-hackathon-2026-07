@@ -113,15 +113,9 @@ amd-ai-studio/
 │   ├── build.sh                   # 🔨 构建脚本（安装依赖 + 编译 ROCm 内核）
 │   ├── start.sh                   # 🚀 启动脚本（web / headless / api 模式）
 │   ├── download_models.sh         # 📥 模型下载（支持 ModelScope / HuggingFace 镜像）
-│   ├── docker_build.sh            # 🐳 Docker 镜像构建脚本
-│   ├── docker_start.sh            # 🐳 Docker 容器启动脚本
 │   └── finetune/
 │       ├── finetune_lora.py       # 🎓 SDXL LoRA 微调训练脚本
 │       └── prepare_dataset.py     # 🗂️ 数据集准备工具（本地/HF/COCO/BLIP 字幕生成）
-│
-├── Dockerfile                     # 🐳 Docker 镜像构建文件（ROCm 7.2 + Ubuntu 24.04）
-├── docker-compose.yml             # 🐳 Docker Compose 一键启动配置
-├── .dockerignore                  # 🐳 Docker 构建忽略文件
 │
 ├── docs/
 │   ├── 01-环境准备.md              # 环境要求与安装指南
@@ -215,89 +209,6 @@ python scripts/finetune/finetune_lora.py \
     --lora_rank 64 \
     --mixed_precision fp16 \
     --validation_prompt "a cat wearing a hat"
-```
-
----
-
-## 🐳 Docker 部署
-
-### 文件说明
-
-| 文件 | 用途 |
-|------|------|
-| `Dockerfile` | 基于 `rocm/dev-ubuntu-24.04`，预装 Python 3.12 + PyTorch ROCm + 项目依赖 |
-| `docker-compose.yml` | 一键启动配置，含 GPU 透传、卷挂载、健康检查 |
-| `.dockerignore` | 构建上下文过滤（排除模型/缓存/输出文件） |
-| `scripts/docker_build.sh` | 构建镜像脚本（含前置检查 + 验证） |
-| `scripts/docker_start.sh` | 启动容器脚本（支持 web / headless / api / shell 模式） |
-
-### 前置条件
-
-- 装有 AMD ROCm 显卡的 Linux 主机
-- Docker 已安装并运行
-- 已安装 ROCm 容器运行时（`amdgpu-dkms`、`rocm-hip-libraries`）
-
-### 构建镜像
-
-```bash
-# 默认构建
-bash scripts/docker_build.sh
-
-# 指定标签，不缓存
-bash scripts/docker_build.sh -n amd-ai-studio -t v1.0 --no-cache
-```
-
-### 启动容器
-
-```bash
-# 方式一：Docker Compose（推荐）
-docker compose up -d
-
-# 方式二：启动脚本
-bash scripts/docker_start.sh                    # Web UI 模式
-bash scripts/docker_start.sh -m headless        # 命令行模式
-bash scripts/docker_start.sh -m api             # API 模式
-bash scripts/docker_start.sh -m shell           # 进入 Shell
-
-# 方式三：手动 docker run
-docker run -d \
-    --name amd-ai-studio \
-    --device=/dev/kfd --device=/dev/dri \
-    --group-add=video --group-add=render \
-    --network host \
-    -e HOST=0.0.0.0 \
-    -e HSA_OVERRIDE_GFX_VERSION=11.0.0 \
-    -v amd-ai-studio-hf-cache:/workspace/.cache/huggingface \
-    -v amd-ai-studio-outputs:/workspace/amd-ai-studio/outputs \
-    amd-ai-studio:latest
-```
-
-### 容器内使用
-
-```bash
-# 进入容器
-docker exec -it amd-ai-studio /bin/bash
-
-# 下载模型
-bash scripts/download_models.sh
-
-# 查看日志
-docker logs -f amd-ai-studio
-
-# 停止容器
-docker stop amd-ai-studio
-```
-
-### 国内镜像加速
-
-如果无法拉取 Docker Hub 的 ROCm 基础镜像，可以：
-
-1. 修改 `Dockerfile` 第一行的镜像源为国内镜像
-2. 或提前拉取并打标签：
-```bash
-# 从国内镜像拉取
-docker pull registry.docker-cn.com/rocm/dev-ubuntu-24.04:latest
-docker tag registry.docker-cn.com/rocm/dev-ubuntu-24.04:latest rocm/dev-ubuntu-24.04:latest
 ```
 
 ---

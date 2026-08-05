@@ -113,8 +113,6 @@ amd-ai-studio/
 │   ├── build.sh                  # Build script (install deps + compile ROCm kernels)
 │   ├── start.sh                  # Start script (web / headless / api modes)
 │   ├── download_models.sh        # Model download (ModelScope / HuggingFace mirror)
-│   ├── docker_build.sh           # Docker image build script
-│   ├── docker_start.sh           # Docker container start script
 │   ├── benchmark_dual_machine.py # Dual-machine benchmark
 │   ├── benchmark_krea_zishi.py   # Krea-style posture benchmark
 │   ├── run_benchmark.py          # Benchmark runner
@@ -122,10 +120,6 @@ amd-ai-studio/
 │   └── finetune/
 │       ├── finetune_lora.py      # SDXL LoRA fine-tuning training script
 │       └── prepare_dataset.py    # Dataset preparation (local/HF/COCO/BLIP captioning)
-│
-├── Dockerfile                     # Docker image (ROCm 7.2 + Ubuntu 24.04)
-├── docker-compose.yml             # Docker Compose one-click startup
-├── .dockerignore                  # Docker build ignore file
 │
 ├── docs/
 │   ├── 01-环境准备.md              # Environment requirements & install guide (Chinese)
@@ -226,88 +220,6 @@ python scripts/finetune/finetune_lora.py \
 
 ---
 
-## 🐳 Docker Deployment
-
-### Files
-
-| File | Purpose |
-|------|---------|
-| `Dockerfile` | Based on `rocm/dev-ubuntu-24.04`, preinstalls Python 3.12 + PyTorch ROCm + project dependencies |
-| `docker-compose.yml` | One-click startup with GPU passthrough, volume mounts, health check |
-| `.dockerignore` | Build context filter (excludes models/cache/outputs) |
-| `scripts/docker_build.sh` | Image build script (with prechecks + verification) |
-| `scripts/docker_start.sh` | Container start script (web / headless / api / shell modes) |
-
-### Prerequisites
-
-- Linux host with an AMD ROCm GPU
-- Docker installed and running
-- ROCm container runtime installed (`amdgpu-dkms`, `rocm-hip-libraries`)
-
-### Build the Image
-
-```bash
-# Default build
-bash scripts/docker_build.sh
-
-# Custom tag, no cache
-bash scripts/docker_build.sh -n amd-ai-studio -t v1.0 --no-cache
-```
-
-### Start the Container
-
-```bash
-# Method 1: Docker Compose (recommended)
-docker compose up -d
-
-# Method 2: Start script
-bash scripts/docker_start.sh                    # Web UI mode
-bash scripts/docker_start.sh -m headless        # CLI mode
-bash scripts/docker_start.sh -m api             # API mode
-bash scripts/docker_start.sh -m shell           # Enter shell
-
-# Method 3: Manual docker run
-docker run -d \
-    --name amd-ai-studio \
-    --device=/dev/kfd --device=/dev/dri \
-    --group-add=video --group-add=render \
-    --network host \
-    -e HOST=0.0.0.0 \
-    -e HSA_OVERRIDE_GFX_VERSION=11.0.0 \
-    -v amd-ai-studio-hf-cache:/workspace/.cache/huggingface \
-    -v amd-ai-studio-outputs:/workspace/amd-ai-studio/outputs \
-    amd-ai-studio:latest
-```
-
-### Usage Inside the Container
-
-```bash
-# Enter the container
-docker exec -it amd-ai-studio /bin/bash
-
-# Download models
-bash scripts/download_models.sh
-
-# View logs
-docker logs -f amd-ai-studio
-
-# Stop the container
-docker stop amd-ai-studio
-```
-
-### China Mirror Acceleration
-
-If the ROCm base image cannot be pulled from Docker Hub:
-
-1. Modify the base image source in the first line of `Dockerfile` to a Chinese mirror
-2. Or pull and retag in advance:
-```bash
-docker pull registry.docker-cn.com/rocm/dev-ubuntu-24.04:latest
-docker tag registry.docker-cn.com/rocm/dev-ubuntu-24.04:latest rocm/dev-ubuntu-24.04:latest
-```
-
----
-
 ## 🧠 Tech Stack
 
 | Component | Technology |
@@ -355,7 +267,6 @@ See `outputs/benchmarks/` for detailed reports:
 - Native ROCm support: automatic detection of AMD GPUs (`modules/rocm_utils.py`)
 - ROCm 7.x verified (7.2.3 on Ubuntu 22.04)
 - FP16 inference and VRAM auto-optimization for Radeon GPUs
-- Docker images based on `rocm/dev-ubuntu-24.04`
 - ROCm kernel compilation via `scripts/build.sh compile`
 - `HSA_OVERRIDE_GFX_VERSION` support for broader GPU compatibility
 
