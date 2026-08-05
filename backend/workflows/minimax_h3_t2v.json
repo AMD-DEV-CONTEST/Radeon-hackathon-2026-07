@@ -1,0 +1,85 @@
+{
+  "_comment": "MiniMax H3 T2V/I2V (ComfyUI API format). Requires ComfyUI v0.30.0+. Editable: 6(prompt), 7(negative), 15(ref img), 104(H3 node: prompt/width/height/length), 19(SigmaShift), 17(KSampler: seed/steps/cfg), 18(VAEDecode), 92(SaveImage). Models: minimax_h3_fl2va_pruned_int8_convrot.safetensors, qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors, minimax_h3_video_vae_fp16.safetensors",
+  "6": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "13": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+      "type": "minimax"
+    }
+  },
+  "11": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "minimax_h3_video_vae_fp16.safetensors"
+    }
+  },
+  "15": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "reference.png"
+    }
+  },
+  "104": {
+    "class_type": "MiniMaxH3ImageToVideo",
+    "inputs": {
+      "prompt": "cinematic, high quality, detailed",
+      "width": 1344,
+      "height": 768,
+      "length": 124,
+      "clip": ["13", 0],
+      "vae": ["11", 0],
+      "first_frame": ["15", 0]
+    }
+  },
+  "14": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "blurry, low quality, distorted, watermark, text, deformed",
+      "clip": ["13", 0]
+    }
+  },
+  "19": {
+    "class_type": "MiniMaxH3SigmaShift",
+    "inputs": {
+      "shift_video": 12.0,
+      "shift_audio": 3.0,
+      "model": ["6", 0]
+    }
+  },
+  "17": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 0,
+      "steps": 30,
+      "cfg": 7.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1.0,
+      "model": ["19", 0],
+      "positive": ["104", 0],
+      "negative": ["14", 0],
+      "latent_image": ["104", 1]
+    }
+  },
+  "18": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["17", 0],
+      "vae": ["11", 0]
+    }
+  },
+  "92": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": ["18", 0],
+      "filename_prefix": "FrameForge_h3"
+    }
+  }
+}

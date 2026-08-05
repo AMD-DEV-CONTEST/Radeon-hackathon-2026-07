@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FrameForge 项目简介 - AMD AI DevMaster 黑客松 2026</title>
+<style>
+@page { size: A4; margin: 2cm; }
+body { font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif; color: #222; line-height: 1.7; max-width: 800px; margin: 0 auto; padding: 40px; }
+h1 { color: #1a1a2e; font-size: 26px; border-bottom: 3px solid #00d4ff; padding-bottom: 10px; }
+h2 { color: #1a1a2e; font-size: 20px; margin-top: 30px; border-left: 4px solid #00d4ff; padding-left: 10px; }
+h3 { color: #333; font-size: 16px; margin-top: 20px; }
+table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #1a1a2e; color: white; }
+tr:nth-child(even) { background: #f8f8f8; }
+code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 14px; }
+.arch { background: #f8f8f8; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 13px; white-space: pre; overflow-x: auto; }
+.highlight { color: #00aaff; font-weight: bold; }
+.tag { display: inline-block; background: #00d4ff22; color: #00aaff; padding: 2px 8px; border-radius: 12px; font-size: 13px; margin: 2px; }
+.cover { text-align: center; padding: 60px 0; page-break-after: always; }
+.cover h1 { font-size: 36px; border: none; color: #1a1a2e; }
+.cover .subtitle { font-size: 18px; color: #666; margin-top: 10px; }
+.cover .event { font-size: 16px; color: #00aaff; margin-top: 20px; }
+.page-break { page-break-before: always; }
+ul { padding-left: 20px; }
+li { margin: 5px 0; }
+</style>
+</head>
+<body>
+
+<!-- 封面 -->
+<div class="cover">
+    <h1>FrameForge</h1>
+    <p class="subtitle">AI 视频关键帧微调工坊</p>
+    <p style="font-size:22px; color:#1a1a2e; margin:30px 0;">像修图一样修视频</p>
+    <p class="event">AMD AI DevMaster 黑客松 2026</p>
+    <p class="event">赛道一：多模态内容创作工具开发</p>
+    <div style="margin-top:60px;">
+        <span class="tag">AMD Radeon GPU 48GB</span>
+        <span class="tag">ROCm 6.3</span>
+        <span class="tag">MiniMax H3</span>
+        <span class="tag">ComfyUI</span>
+        <span class="tag">Gradio</span>
+    </div>
+</div>
+
+<!-- 目录 -->
+<h2>目录</h2>
+<ol>
+    <li>项目背景</li>
+    <li>目标用户与应用场景</li>
+    <li>系统架构</li>
+    <li>核心功能与技术实现</li>
+    <li>模型与算法介绍</li>
+    <li>AMD Radeon GPU / ROCm 适配说明</li>
+    <li>性能数据</li>
+</ol>
+
+<!-- 1. 项目背景 -->
+<div class="page-break"></div>
+<h2>1. 项目背景</h2>
+<p>
+    AI 视频生成技术近年来取得了突破性进展，但现有工具存在两大痛点：
+</p>
+<ul>
+    <li><strong>生成后难以修改</strong>：用户对 AI 生成的视频不满意时，只能重新生成，无法精确修改某一帧的某个区域</li>
+    <li><strong>编辑工具门槛高</strong>：专业视频编辑软件学习曲线陡峭，普通用户难以进行局部重绘和帧间一致性维护</li>
+</ul>
+<p>
+    FrameForge 解决了这一问题：它将<strong>视频生成</strong>和<strong>帧级精确编辑</strong>整合到一个直观的 Web UI 中，用户可以像修图一样修视频——生成、选帧、选区、重绘、传播、导出，全流程在 AMD Radeon GPU 上本地完成。
+</p>
+
+<!-- 2. 目标用户与应用场景 -->
+<h2>2. 目标用户与应用场景</h2>
+<table>
+    <tr><th>目标用户</th><th>应用场景</th></tr>
+    <tr><td>新媒体内容创作者</td><td>快速生成短视频素材，微调细节后直接发布</td></tr>
+    <tr><td>广告与营销团队</td><td>批量生成产品展示视频，精确调整画面元素</td></tr>
+    <tr><td>影视概念设计师</td><td>快速生成视觉概念稿，迭代调整画面构图</td></tr>
+    <tr><td>个人创作者</td><td>零门槛创作个性化视频内容</td></tr>
+</table>
+
+<!-- 3. 系统架构 -->
+<div class="page-break"></div>
+<h2>3. 系统架构</h2>
+<div class="arch">Gradio Web UI ──HTTP──► FrameForge Orchestrator (Python)
+                          ├── 视频生成模块   ─┐
+                          ├── 帧级编辑模块   ─┼──► ComfyUI 推理后端 (ROCm)
+                          ├── 编辑传播引擎   ─┘    Wan2.1 | MiniMax H3 | SDXL-Inpaint
+                          └── 视频合成模块 ───► FFmpeg + OpenCV</div>
+
+<h3>技术栈</h3>
+<table>
+    <tr><th>层级</th><th>技术</th><th>说明</th></tr>
+    <tr><td>前端</td><td>Gradio 6.x</td><td>响应式 Web UI，双图布局 + 区域标注</td></tr>
+    <tr><td>推理后端</td><td>ComfyUI v0.30+</td><td>工作流引擎，管理模型加载和推理</td></tr>
+    <tr><td>视频生成</td><td>Wan2.1 14B / MiniMax H3 INT8</td><td>双后端，文本/图像到视频</td></tr>
+    <tr><td>帧级编辑</td><td>SDXL Inpainting / H3 Edit</td><td>局部重绘 + ControlNet 结构控制</td></tr>
+    <tr><td>区域提取</td><td>OpenCV (Canny + 连通域)</td><td>自动分割画面为编号区域</td></tr>
+    <tr><td>编辑传播</td><td>RAFT 光流 (torchvision)</td><td>前向/双向传播，保持时序一致性</td></tr>
+    <tr><td>视频处理</td><td>FFmpeg + OpenCV</td><td>帧拆分、合帧、导出 MP4</td></tr>
+    <tr><td>硬件</td><td>AMD Radeon GPU 48GB</td><td>ROCm 6.3 软件栈</td></tr>
+</table>
+
+<!-- 4. 核心功能 -->
+<div class="page-break"></div>
+<h2>4. 核心功能与技术实现</h2>
+
+<h3>4.1 双后端视频生成</h3>
+<ul>
+    <li><strong>Wan2.1 Image-to-Video (14B)</strong>：文本提示词 + 参考图生成 4-6 秒视频</li>
+    <li><strong>MiniMax H3 (INT8 pruned)</strong>：864×480 高质量生成，支持 instruction-guided editing</li>
+    <li>采样步数可调（5-50 步），步数越多画质越精细</li>
+</ul>
+
+<h3>4.2 轮廓区域选择（替代传统画笔）</h3>
+<p>这是 FrameForge 的核心创新点。传统 inpainting 工具需要用户用画笔手动涂抹 mask，操作不精确且门槛高。FrameForge 采用：</p>
+<ul>
+    <li><strong>Canny 边缘检测</strong>提取画面轮廓</li>
+    <li><strong>形态学闭运算</strong>连接断裂边缘，形成封闭区域</li>
+    <li><strong>连通域分析</strong>将画面分割为编号区域</li>
+    <li>用户只需<strong>点击区域</strong>即可生成精确 mask，支持多选</li>
+    <li>区域以<strong>半透明颜色 + 编号标签</strong>可视化标注</li>
+</ul>
+
+<h3>4.3 灵活的编辑传播</h3>
+<ul>
+    <li><strong>仅当前帧</strong>：只修改选中的帧</li>
+    <li><strong>前向传播</strong>：改一帧，后续帧通过 RAFT 光流自动跟随</li>
+    <li><strong>双向传播</strong>：前后帧都跟随，羽化混合保持一致性</li>
+    <li>传播范围可配置（1-16 帧）</li>
+</ul>
+
+<h3>4.4 完整工作流</h3>
+<p>生成 → 选帧 → 选区 → 编辑 → 传播 → 对比 → 导出，全流程在浏览器中完成。</p>
+
+<!-- 5. 模型介绍 -->
+<div class="page-break"></div>
+<h2>5. 模型与算法介绍</h2>
+
+<h3>5.1 MiniMax H3 (INT8 Pruned)</h3>
+<table>
+    <tr><th>属性</th><th>值</th></tr>
+    <tr><td>架构</td><td>DiT (Diffusion Transformer)</td></tr>
+    <tr><td>参数量</td><td>DiT ~20GB INT8 + Text Encoder ~15GB</td></tr>
+    <tr><td>分辨率</td><td>864×480</td></tr>
+    <tr><td>帧对齐</td><td>17k+5 (k 由步数决定)</td></tr>
+    <tr><td>能力</td><td>Text-to-Video + Instruction-Guided Editing</td></tr>
+</table>
+
+<h3>5.2 SDXL Inpainting</h3>
+<ul>
+    <li>用于帧级局部重绘，在选定 mask 区域按新提示词重绘</li>
+    <li>支持 ControlNet (Canny / Depth) 保持画面结构</li>
+</ul>
+
+<h3>5.3 RAFT 光流传播</h3>
+<ul>
+    <li>计算关键帧与目标帧之间的光流场</li>
+    <li>将编辑后的区域 warp 到目标帧</li>
+    <li>羽化混合避免边缘伪影</li>
+    <li>光流一致性检测处理遮挡区域</li>
+</ul>
+
+<!-- 6. AMD 适配 -->
+<div class="page-break"></div>
+<h2>6. AMD Radeon GPU / ROCm 适配说明</h2>
+
+<h3>6.1 硬件环境</h3>
+<table>
+    <tr><th>项目</th><th>配置</th></tr>
+    <tr><td>GPU</td><td>AMD Radeon 48GB (gfx1100)</td></tr>
+    <tr><td>ROCm</td><td>6.3</td></tr>
+    <tr><td>PyTorch</td><td>2.6.0+rocm6.3</td></tr>
+    <tr><td>VRAM 占用</td><td>H3 推理峰值 ~40GB</td></tr>
+    <tr><td>RAM</td><td>504GB DDR5</td></tr>
+</table>
+
+<h3>6.2 适配要点</h3>
+<ul>
+    <li>PyTorch ROCm 版本：通过 <code>pip install torch --index-url https://download.pytorch.org/whl/rocm6.3</code> 安装</li>
+    <li>ComfyUI 直接兼容 ROCm，无需额外修改</li>
+    <li>H3 INT8 量化模型适配 48GB VRAM，完整模型可在单卡上加载</li>
+    <li>RAFT 光流计算使用 torchvision 内置实现，原生 ROCm 支持</li>
+    <li>OpenCV / FFmpeg 均使用系统默认版本，无需特殊编译</li>
+</ul>
+
+<h3>6.3 GPU 利用率</h3>
+<p>推理过程中 GPU 利用率稳定在 <strong>95-100%</strong>，VRAM 占用 <strong>99%</strong>，表明 AMD Radeon GPU 得到充分利用。</p>
+
+<!-- 7. 性能数据 -->
+<h2>7. 性能数据</h2>
+
+<h3>7.1 生成时间（MiniMax H3, 864×480）</h3>
+<table>
+    <tr><th>步数</th><th>帧数</th><th>时长</th><th>生成耗时</th><th>建议场景</th></tr>
+    <tr><td>5 步</td><td>5 帧</td><td>~0.2s</td><td>~1 分钟</td><td>快速预览</td></tr>
+    <tr><td><strong>15 步</strong></td><td>39 帧</td><td>~1.6s</td><td>~8 分钟</td><td><strong>推荐质量</strong></td></tr>
+    <tr><td>30 步</td><td>124 帧</td><td>~5.2s</td><td>~35 分钟</td><td>高质量</td></tr>
+</table>
+
+<h3>7.2 编辑传播时间</h3>
+<table>
+    <tr><th>操作</th><th>帧数</th><th>耗时</th></tr>
+    <tr><td>单帧编辑 (SDXL Inpaint)</td><td>1 帧</td><td>~3 秒</td></tr>
+    <tr><td>前向传播 (RAFT, 3 帧)</td><td>3 帧</td><td>~5 秒</td></tr>
+    <tr><td>双向传播 (RAFT, 6 帧)</td><td>6 帧</td><td>~8 秒</td></tr>
+</table>
+
+<div style="margin-top:40px; text-align:center; color:#888; font-size:14px;">
+    <p>FrameForge — AMD AI DevMaster 黑客松 2026 参赛作品</p>
+</div>
+
+</body>
+</html>

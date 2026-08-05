@@ -1,0 +1,85 @@
+{
+  "_comment": "MiniMax H3 Video Edit (ComfyUI API format). Requires ComfyUI v0.30.0+. Instruction-guided edit: prompt describes edit intent, first_frame is frame to edit. Uses lower denoise for preserving structure. Editable: 9(load frame), 104(H3 node: prompt), 14(negative), 19(SigmaShift), 17(KSampler: denoise=0.75), 18(VAEDecode), 15(SaveImage).",
+  "6": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "13": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+      "type": "minimax"
+    }
+  },
+  "11": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "minimax_h3_video_vae_fp16.safetensors"
+    }
+  },
+  "9": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "frame.png"
+    }
+  },
+  "104": {
+    "class_type": "MiniMaxH3ImageToVideo",
+    "inputs": {
+      "prompt": "high quality, detailed",
+      "width": 1344,
+      "height": 768,
+      "length": 5,
+      "clip": ["13", 0],
+      "vae": ["11", 0],
+      "first_frame": ["9", 0]
+    }
+  },
+  "14": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "blurry, low quality, watermark, text, deformed",
+      "clip": ["13", 0]
+    }
+  },
+  "19": {
+    "class_type": "MiniMaxH3SigmaShift",
+    "inputs": {
+      "shift_video": 12.0,
+      "shift_audio": 3.0,
+      "model": ["6", 0]
+    }
+  },
+  "17": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 0,
+      "steps": 20,
+      "cfg": 7.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 0.75,
+      "model": ["19", 0],
+      "positive": ["104", 0],
+      "negative": ["14", 0],
+      "latent_image": ["104", 1]
+    }
+  },
+  "18": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["17", 0],
+      "vae": ["11", 0]
+    }
+  },
+  "15": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": ["18", 0],
+      "filename_prefix": "FrameForge_h3_edit"
+    }
+  }
+}
