@@ -6,6 +6,8 @@ This submission demonstrates a Franka Panda robot arm following a moving fruit t
 
 The enhanced demo extends the baseline into a vision-guided closed-loop controller. Instead of controlling only from the fruit's simulation coordinates, it detects the red fruit in rendered camera frames, estimates image-space error, and converts that observation into visual-servo target corrections for the Franka end effector.
 
+For the final competition demo, the repository also includes a vision-guided pick-and-lift sequence. It detects the red fruit, approaches it, closes the gripper, and lifts the target to provide a clearer manipulation result than tracking alone.
+
 ### Repository Structure
 
 ```text
@@ -15,13 +17,16 @@ The enhanced demo extends the baseline into a vision-guided closed-loop controll
 ├── requirements.txt
 ├── src/
 │   ├── franka_fruit_follow.py
+│   ├── franka_vision_pick.py
 │   ├── franka_vision_servo.py
 │   └── vision_tracking.py
 ├── scripts/
 │   ├── franka_fruit_follow.py
+│   ├── franka_vision_pick.py
 │   └── franka_vision_servo.py
 ├── configs/
 │   ├── franka_fruit_follow.json
+│   ├── franka_vision_pick.json
 │   └── franka_vision_tracking.json
 ├── data/
 │   └── README.md
@@ -61,6 +66,12 @@ Run the vision-guided enhanced demo:
 python scripts/franka_vision_servo.py
 ```
 
+Run the competition-oriented pick-and-lift demo:
+
+```bash
+python scripts/franka_vision_pick.py
+```
+
 Optional smoke test:
 
 ```bash
@@ -78,6 +89,15 @@ python scripts/franka_vision_servo.py \
   --annotated-video outputs/videos/franka_vision_servo_smoke_annotated.mp4
 ```
 
+Pick-and-lift smoke test:
+
+```bash
+python scripts/franka_vision_pick.py \
+  --frames 120 \
+  --video outputs/videos/franka_vision_pick_smoke.mp4 \
+  --annotated-video outputs/videos/franka_vision_pick_smoke_annotated.mp4
+```
+
 Compare with a coordinate-control baseline using the same enhanced script:
 
 ```bash
@@ -92,6 +112,8 @@ The vision-guided demo writes:
 
 - `outputs/metrics/franka_vision_servo.json`: full per-frame metrics
 - `results/franka_vision_servo_summary.json`: lightweight summary suitable for committing
+- `outputs/metrics/franka_vision_pick.json`: full pick-and-lift metrics
+- `results/franka_vision_pick_summary.json`: lightweight pick-and-lift summary suitable for committing
 
 Important metrics include detection rate, mean image-space error, end-effector tracking error, IK latency, runtime, GPU information, and annotated-video path.
 
@@ -151,6 +173,12 @@ Run the final 300-frame vision-guided demo:
 python scripts/franka_vision_servo.py
 ```
 
+Run the final 300-frame pick-and-lift demo:
+
+```bash
+python scripts/franka_vision_pick.py
+```
+
 Optional comparison runs:
 
 ```bash
@@ -192,6 +220,8 @@ Do not commit large MP4 files to GitHub. Add the final video URL in `videos/READ
 
 增强版在 baseline 基础上加入视觉闭环：程序从 Genesis 相机渲染图像中检测红色水果，计算图像空间误差，再将视觉误差转换成机械臂末端目标修正量，实现基于感知的视觉伺服跟随。
 
+为了让比赛视频更有任务完成感，项目还新增了视觉引导 pick-and-lift 演示：检测红色水果后，机械臂执行靠近、闭合夹爪、抬起目标的完整流程。这个版本比单纯跟随更适合作为最终展示视频。
+
 ### 仓库结构
 
 ```text
@@ -228,6 +258,12 @@ python scripts/franka_fruit_follow.py
 python scripts/franka_vision_servo.py
 ```
 
+运行比赛展示用 pick-and-lift Demo：
+
+```bash
+python scripts/franka_vision_pick.py
+```
+
 快速 smoke test：
 
 ```bash
@@ -245,6 +281,15 @@ python scripts/franka_vision_servo.py \
   --annotated-video outputs/videos/franka_vision_servo_smoke_annotated.mp4
 ```
 
+pick-and-lift 快速测试：
+
+```bash
+python scripts/franka_vision_pick.py \
+  --frames 120 \
+  --video outputs/videos/franka_vision_pick_smoke.mp4 \
+  --annotated-video outputs/videos/franka_vision_pick_smoke_annotated.mp4
+```
+
 同一增强脚本也支持 baseline 对比：
 
 ```bash
@@ -257,6 +302,8 @@ python scripts/franka_vision_servo.py --mode baseline
 
 - `outputs/metrics/franka_vision_servo.json`：完整逐帧指标
 - `results/franka_vision_servo_summary.json`：轻量汇总指标
+- `outputs/metrics/franka_vision_pick.json`：pick-and-lift 完整逐帧指标
+- `results/franka_vision_pick_summary.json`：pick-and-lift 轻量汇总指标
 
 ### 云服务器部署与比赛复现步骤
 
@@ -314,6 +361,12 @@ python scripts/franka_vision_servo.py \
 
 ```bash
 python scripts/franka_vision_servo.py
+```
+
+运行最终 300 帧 pick-and-lift Demo，建议作为比赛主视频：
+
+```bash
+python scripts/franka_vision_pick.py
 ```
 
 可选：运行 baseline、原始视觉控制和平滑视觉控制三组对比实验：
