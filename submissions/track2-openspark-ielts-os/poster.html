@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>IELTS OS · Private AI Study Agent — Poster</title>
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; color: #17191c; }
+  .page { width: 210mm; height: 296mm; padding: 13mm 14mm; display: flex; flex-direction: column; gap: 5mm; }
+  header { border-bottom: 1.2mm solid #17191c; padding-bottom: 4mm; display: flex; justify-content: space-between; align-items: flex-end; }
+  .eyebrow { font-size: 9pt; letter-spacing: 0.18em; color: #ed1c24; font-weight: 700; }
+  h1 { font-size: 23pt; line-height: 1.12; margin-top: 2mm; white-space: nowrap; }
+  h1 span { color: #6b7280; font-weight: 400; }
+  .tag { text-align: right; font-size: 9pt; color: #4b5563; line-height: 1.5; }
+  .tag b { color: #17191c; }
+  .lead { font-size: 10.5pt; line-height: 1.5; color: #374151; max-width: 150mm; }
+  h2 { font-size: 10pt; letter-spacing: 0.14em; color: #ed1c24; margin-bottom: 2.5mm; }
+  .cols { display: grid; grid-template-columns: 1.25fr 1fr; gap: 6mm; }
+  .arch { background: #f6f7f8; border: 0.3mm solid #e2e5e8; border-radius: 2mm; padding: 4mm; }
+  .arch pre { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 6.9pt; line-height: 1.45; white-space: pre; }
+  table { width: 100%; border-collapse: collapse; font-size: 8.6pt; }
+  th, td { text-align: left; padding: 1.6mm 2mm; border-bottom: 0.2mm solid #e2e5e8; vertical-align: top; }
+  th { font-size: 7.6pt; letter-spacing: 0.08em; color: #6b7280; }
+  td:first-child { font-weight: 600; white-space: nowrap; }
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; }
+  .metric { border: 0.3mm solid #e2e5e8; border-radius: 2mm; padding: 3mm; }
+  .metric b { display: block; font-size: 15pt; }
+  .metric span { font-size: 7.6pt; color: #6b7280; line-height: 1.35; display: block; margin-top: 1mm; }
+  .notes { font-size: 8.6pt; line-height: 1.55; color: #374151; }
+  .notes li { margin-left: 4mm; margin-bottom: 1mm; }
+  footer { margin-top: auto; border-top: 0.3mm solid #e2e5e8; padding-top: 3.5mm; display: flex; justify-content: space-between; align-items: center; }
+  .repo { font-size: 9.5pt; font-weight: 600; }
+  .repo small { display: block; font-weight: 400; color: #6b7280; font-size: 7.8pt; margin-top: 1mm; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div>
+      <div class="eyebrow">RADEON HACKATHON 2026-07 · TRACK 2</div>
+      <h1>IELTS OS <span>· Private AI Study Agent</span></h1>
+    </div>
+    <div class="tag">Team <b>OpenSpark</b><br>Local-first · AMD Radeon GPU · No cloud lock-in</div>
+  </header>
+
+  <p class="lead">A local-first IELTS study app with a built-in private AI agent. The tutor reads the learner's own
+  four-skill answers, vocabulary book, material index and persistent learning memory, then turns each attempt into a
+  review and prioritized next drill. Inference runs on AMD Radeon GPUs through Radeon Cloud or a fully local ROCm backend.</p>
+
+  <div class="cols">
+    <section>
+      <h2>AGENT ARCHITECTURE</h2>
+      <div class="arch"><pre>┌───────────────────────────────┐
+│ IELTS OS Web App (PWA)        │
+│  AI Tutor      → /api/agent   │
+│  Four skill reviews → /api/ai │
+│  Learning memory → local store│
+└──────────────┬────────────────┘
+               │ OpenAI-compatible REST
+┌──────────────▼────────────────┐
+│ local-agent-server (Node)     │
+│  agent loop ≤12 steps         │
+│  tools: lookup_word           │
+│   find_synonyms search_library│
+│   get_study_status            │
+│   get_learning_memory         │
+│  /library/* Range streaming   │
+└──────────────┬────────────────┘
+               │ chat/completions (+tools)
+┌──────────────▼────────────────┐
+│ Radeon Cloud: Qwen3.6-35B-A3B │
+│ or local Ollama/vLLM: qwen3   │
+└───────────────────────────────┘</pre></div>
+    </section>
+    <section>
+      <h2>TRACK 2 RUBRIC COVERAGE</h2>
+      <table>
+        <tr><th>Capability</th><th>Implementation</th></tr>
+        <tr><td>Personal assistant</td><td>Long-term memory carries evidence across sessions</td></tr>
+        <tr><td>Knowledge-base QA</td><td>8,000-word book, 99 synonym groups, library index</td></tr>
+        <tr><td>Tool calling</td><td>5 local tools, visible trace in UI</td></tr>
+        <tr><td>Multi-step planning</td><td>≤12-step loop, parallel calls per turn</td></tr>
+        <tr><td>Privacy</td><td>Dual backend; keys server-side only; files streamed locally</td></tr>
+        <tr><td>Four-skill coach</td><td>Evidence reviews, Writing correction, Live debrief and next plan</td></tr>
+      </table>
+    </section>
+  </div>
+
+  <section>
+    <h2>MEASURED ON AMD RADEON GPU CLOUD</h2>
+    <div class="metrics">
+      <div class="metric"><b>19.8 s</b><span>fresh Listening AI review used in the submitted demo</span></div>
+      <div class="metric"><b>50 s</b><span>writing feedback end-to-end on the free tier</span></div>
+      <div class="metric"><b>5 tools</b><span>study status, memory, vocabulary, synonyms and local materials</span></div>
+      <div class="metric"><b>21</b><span>automated checks: loops, data contracts, tool calling</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>INFERENCE-SPEED LESSONS (FREE TIER, AUG 2026)</h2>
+    <ul class="notes">
+      <li>Qwen3.6 hidden thinking exhausts the token budget — disabled via <code>chat_template_kwargs.enable_thinking=false</code>.</li>
+      <li>Gateway hard-cuts at ~120 s — answers capped at 384 tokens with concise system prompts.</li>
+      <li>Transient 5xx under load — one server-side retry plus one client retry; honest error surfacing.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <div class="repo">github.com/Francischi-ARK/Radeon-hackathon-2026-07
+      <small>Personal files and audio stay local. A local ROCm backend also keeps prompts and memory summaries on-device.</small>
+    </div>
+  </footer>
+</div>
+</body>
+</html>

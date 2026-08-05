@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IELTS Private Agent — Local Demo</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: -apple-system, "PingFang SC", sans-serif; background: #101418; color: #e8ecef; height: 100vh; display: flex; flex-direction: column; }
+  header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid #232a31; }
+  header h1 { font-size: 17px; font-weight: 600; }
+  .badge { font-size: 12px; padding: 3px 10px; border-radius: 999px; background: #2c333b; color: #9aa5af; }
+  .badge.ok { background: #123b27; color: #4ade80; }
+  .badge.err { background: #451a1a; color: #f87171; }
+  .privacy { margin-left: auto; font-size: 12px; color: #7d8894; }
+  #chat { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+  .msg { max-width: 760px; padding: 12px 16px; border-radius: 12px; line-height: 1.65; font-size: 14.5px; white-space: pre-wrap; }
+  .msg.user { align-self: flex-end; background: #1f6feb; color: #fff; border-bottom-right-radius: 4px; }
+  .msg.bot { align-self: flex-start; background: #1c2127; border: 1px solid #2a323b; border-bottom-left-radius: 4px; }
+  .trace { align-self: flex-start; display: flex; flex-direction: column; gap: 6px; max-width: 760px; width: 100%; }
+  .tool { font-size: 12.5px; background: #17211b; border: 1px solid #234534; border-radius: 8px; padding: 8px 12px; color: #8fd6a8; font-family: ui-monospace, monospace; }
+  .tool b { color: #4ade80; }
+  .tool .args { color: #c9b26b; }
+  .tool .result { color: #7d8894; display: block; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #samples { display: flex; gap: 8px; padding: 0 20px 10px; flex-wrap: wrap; }
+  #samples button { font-size: 12.5px; background: #1c2127; color: #9aa5af; border: 1px solid #2a323b; border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+  #samples button:hover { color: #e8ecef; border-color: #4a5560; }
+  form { display: flex; gap: 10px; padding: 14px 20px; border-top: 1px solid #232a31; }
+  input { flex: 1; background: #1c2127; border: 1px solid #2a323b; border-radius: 8px; padding: 12px 14px; color: #e8ecef; font-size: 14.5px; outline: none; }
+  input:focus { border-color: #1f6feb; }
+  form button { background: #1f6feb; color: #fff; border: 0; border-radius: 8px; padding: 0 22px; font-size: 14.5px; cursor: pointer; }
+  form button:disabled { opacity: .5; cursor: default; }
+</style>
+</head>
+<body>
+<header>
+  <h1>IELTS Private Agent</h1>
+  <span id="health" class="badge">checking…</span>
+  <span class="privacy">100% local inference · no data leaves this machine</span>
+</header>
+<div id="chat"></div>
+<div id="samples">
+  <button>根据我的学习状态，制定今天的复习计划</button>
+  <button>approach 这个词我背过吗？帮我讲讲</button>
+  <button>阅读里 capacity 常见的同义替换有哪些？</button>
+  <button>我的资料库里有哪些听力材料？</button>
+</div>
+<form id="form">
+  <input id="input" placeholder="问点什么，比如：帮我复习今天队列里的单词…" autocomplete="off">
+  <button id="send" type="submit">发送</button>
+</form>
+<script>
+const chatEl = document.getElementById("chat");
+const form = document.getElementById("form");
+const input = document.getElementById("input");
+const sendBtn = document.getElementById("send");
+
+fetch("/api/health").then(r => r.json()).then(h => {
+  const el = document.getElementById("health");
+  if (h.ok) { el.textContent = `${h.provider} · ${h.model}${h.modelReady ? "" : " (not pulled)"}`; el.classList.add(h.modelReady ? "ok" : "err"); }
+  else { el.textContent = h.error || "offline"; el.classList.add("err"); }
+}).catch(() => { const el = document.getElementById("health"); el.textContent = "server offline"; el.classList.add("err"); });
+
+function addMsg(text, who) {
+  const div = document.createElement("div");
+  div.className = `msg ${who}`;
+  div.textContent = text;
+  chatEl.appendChild(div);
+  chatEl.scrollTop = chatEl.scrollHeight;
+  return div;
+}
+
+function addTrace(trace) {
+  if (!trace || !trace.length) return;
+  const wrap = document.createElement("div");
+  wrap.className = "trace";
+  for (const step of trace) {
+    const div = document.createElement("div");
+    div.className = "tool";
+    const result = document.createElement("span");
+    result.className = "result";
+    result.textContent = JSON.stringify(step.result).slice(0, 160);
+    const label = document.createElement("span");
+    label.innerHTML = `⚙ <b></b> <span class="args"></span>`;
+    label.querySelector("b").textContent = step.tool;
+    label.querySelector(".args").textContent = JSON.stringify(step.args);
+    div.append(label, result);
+    wrap.appendChild(div);
+  }
+  chatEl.appendChild(wrap);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+async function ask(message) {
+  addMsg(message, "user");
+  input.value = "";
+  sendBtn.disabled = true;
+  const thinking = addMsg("思考中…", "bot");
+  try {
+    const res = await fetch("/api/agent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message }) });
+    const data = await res.json();
+    thinking.remove();
+    addTrace(data.trace);
+    addMsg(data.text || data.error || "（空回复）", "bot");
+  } catch (err) {
+    thinking.textContent = `请求失败：${err.message}`;
+  } finally {
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+form.addEventListener("submit", (e) => { e.preventDefault(); if (input.value.trim()) ask(input.value.trim()); });
+document.querySelectorAll("#samples button").forEach((btn) => btn.addEventListener("click", () => ask(btn.textContent)));
+addMsg("你好，我是你的本地雅思私教。我的回答全部来自这台机器上运行的模型和你的本地学习数据。试试下面的示例问题。", "bot");
+</script>
+</body>
+</html>
