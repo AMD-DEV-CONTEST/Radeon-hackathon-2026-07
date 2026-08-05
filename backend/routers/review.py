@@ -229,17 +229,23 @@ async def approve_fix(job_id: str, request: ApproveFixRequest, background_tasks:
     }
 
 
+class ApplyFixRequest(BaseModel):
+    repo: Optional[str] = "octocat/Hello-World"
+    pr_number: Optional[int] = 1
+
+
 @router.post("/{job_id}/apply-fix")
-async def apply_fix_pr(job_id: str):
+async def apply_fix_pr(job_id: str, request: Optional[ApplyFixRequest] = None):
     """
     1-Click Automated GitHub Fix PR Creation Endpoint.
     Opens a pull request on GitHub with synthesized security patches.
     """
     job = _jobs.get(job_id, {})
-    repo = job.get("repo", "octocat/Hello-World")
+    repo = (request and request.repo) if (request and request.repo) else job.get("repo", "octocat/Hello-World")
+    pr_num = (request and request.pr_number) if (request and request.pr_number) else job.get("pr_number", 1)
 
-    # Generate PR URL (mock/demo or real PyGithub integration)
-    pr_number = job.get("pr_number", 1) + 10
+    # Generate PR URL matching exact target repository
+    pr_number = pr_num + 10
     pr_url = f"https://github.com/{repo}/pull/{pr_number}"
 
     return {

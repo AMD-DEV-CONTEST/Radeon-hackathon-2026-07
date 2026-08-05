@@ -768,7 +768,7 @@ export default function ReviewPage() {
   const handleApproveFix = async () => {
     setIsApplyingFix(true)
     try {
-      const res = await applyFixPR('demo-job')
+      const res = await applyFixPR('demo-job', repo, prNum)
       if (res && res.pr_url) {
         setCreatedPRUrl(res.pr_url)
       } else {
@@ -831,6 +831,8 @@ export default function ReviewPage() {
     const targetPr = (inputs && inputs[1] && inputs[1].value) ? inputs[1].value.trim() : prNum
 
     if (!targetRepo || !targetPr) return
+    setRepo(targetRepo)
+    setPrNum(targetPr)
     setStatus('running')
     setFindings([])
     setPatches([])

@@ -62,10 +62,11 @@ export async function approveFix(jobId, threadId) {
   return res.json()
 }
 
-export async function applyFixPR(jobId) {
+export async function applyFixPR(jobId, repo, prNumber) {
   const res = await fetch(`${API_BASE}/api/review/${jobId}/apply-fix`, {
     method: 'POST',
     headers: headers(),
+    body: JSON.stringify({ repo, pr_number: parseInt(prNumber, 10) || 1 }),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
