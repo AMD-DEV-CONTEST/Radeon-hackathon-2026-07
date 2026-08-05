@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""radeon_breadth.py — measure verified search across models on the Radeon, over the instance's own tunnel.
+"""radeon_sweep.py — measure verified search on the Radeon, over the instance's own tunnel.
 
 The paste-and-run script on the box had its embedded heredoc mangled by the terminal, so its
 measuring step is broken. Its model-swapping loop survived, which is the part that needs a
@@ -54,11 +54,19 @@ def served() -> str | None:
 
 
 def generate(model: str, temp: float) -> str:
-    body = json.dumps({"model": model, "prompt": TASK,
+    """Chat completions, NOT raw /v1/completions.
+
+    The raw endpoint applies no chat template, and an instruct-tuned model handed a bare
+    prompt without its template degrades badly - small models worst of all. Measured through
+    /v1/completions the 1.5B scored 0.000 on a task it solves at 0.67 through a templated
+    endpoint. That would have published a false zero and blamed the model for the harness.
+    """
+    body = json.dumps({"model": model,
+                       "messages": [{"role": "user", "content": TASK}],
                        "max_tokens": 400, "temperature": temp}).encode()
-    rq = urllib.request.Request(f"{BASE}/completions", body, HDR)
+    rq = urllib.request.Request(f"{BASE}/chat/completions", body, HDR)
     with urllib.request.urlopen(rq, timeout=240) as r:
-        return json.load(r)["choices"][0]["text"]
+        return json.load(r)["choices"][0]["message"]["content"]
 
 
 def clean(t: str) -> str:
