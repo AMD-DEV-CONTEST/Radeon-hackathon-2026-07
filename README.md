@@ -119,20 +119,6 @@ have.
       <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row3_student_onboard/student_poles_FAILED.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/student_poles_FAILED.gif" width="220" alt="student_poles_FAILED"></a><br/>❌</td>
       <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row4_ours/ours_poles.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/ours_poles.gif" width="220" alt="ours_poles"></a><br/>✅ detour by measured traversal rule</td>
   </tr>
-  <tr>
-    <td><b>Moving pedestrians</b></td>
-      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row1_planner_only/planner_pedestrian.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/planner_pedestrian.gif" width="220" alt="planner_pedestrian"></a><br/>✅ avoid</td>
-      <td align="center">&mdash;</td>
-      <td align="center">&mdash;</td>
-      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row4_ours/ours_pedestrian.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/ours_pedestrian.gif" width="220" alt="ours_pedestrian"></a><br/>✅ avoid</td>
-  </tr>
-  <tr>
-    <td><b>A-frame</b></td>
-      <td align="center">&mdash;</td>
-      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row2_teacher_handgoals/teacher_frame_PASSED.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/teacher_frame_PASSED.gif" width="220" alt="teacher_frame_PASSED"></a><br/>✅</td>
-      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row3_student_onboard/student_frame_FAILED.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/student_frame_FAILED.gif" width="220" alt="student_frame_FAILED"></a><br/>❌</td>
-      <td align="center">&mdash;</td>
-  </tr>
 </table>
 
 
