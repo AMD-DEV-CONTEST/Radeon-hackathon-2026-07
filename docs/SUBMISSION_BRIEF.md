@@ -105,7 +105,7 @@ XiangLens implements all five capabilities listed by the Track 2 rules.
 | Multi-step task planning | Fixed nine-step plan with conditional policy routing | Plan and node trace in the UI |
 | Tool calling | Image validation, EXIF/QR scan, crop metrics, private Lens, safe-copy export | Public trace includes each bounded tool |
 | Local RAG | Milvus Lite, four Lens Packs, Top-K retrieval, visible source links | Retrieved Sources panel and eight smoke queries |
-| Local multi-turn memory | SQLite threads, approved preferences, recalled context | Approve, recall, inspect, delete |
+| Local multi-turn memory | SQLite same-thread transcript, recent-turn context, approved preferences | Follow-up composer, visible turns, recall trace, approve/delete controls |
 | Permission and privacy | Policy gate, short-lived token, consent-first writes, Forget Me | Blocked request, pending proposal, deletion API |
 
 ## Model and Local Deployment
@@ -227,11 +227,11 @@ relationship, criminality, protected-attribute, and predictive claims before ren
    symbolic-association disclaimer.
 4. Show the bounded plan, local QR finding, source-backed evidence, comparison rubric, and safe-copy
    export.
-5. State one explicit preference, approve the memory proposal, start a new thread, and demonstrate
-   recall and deletion.
+5. Ask a follow-up in the visible same-thread conversation and show prior-message recall.
+6. State one explicit preference, approve the memory proposal, then demonstrate recall and deletion.
 
 This scenario proves tool calling, multimodal inference, RAG, comparison, memory, permission, and
-privacy in one coherent workflow.
+privacy in one coherent multi-turn workflow.
 
 ## Verification
 

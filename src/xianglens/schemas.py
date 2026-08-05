@@ -180,6 +180,7 @@ class AnalysisRunResponse(BaseModel):
     privacy_findings: list[dict[str, Any]]
     evidence: list[EvidenceCard]
     recalled_memories: list[dict[str, Any]]
+    image_labels: dict[str, str]
     comparison: CandidateComparison | None = None
     memory_proposal: MemoryProposal | None = None
     report_markdown: str

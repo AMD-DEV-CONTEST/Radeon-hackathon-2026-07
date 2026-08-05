@@ -171,21 +171,25 @@ Typed output validation
 > claims. Public contextual claims still link to retrieved source cards. The safe-copy tool exports
 > a metadata-free JPEG without asking the model to rewrite the image.
 
-### 3:05–3:40 — Demonstrate consent-first memory
+### 3:05–3:40 — Demonstrate real multi-turn context and consent-first memory
 
 **Screen**
 
-- Enter the memory statement.
-- Run the review or prepared short turn that produces the proposal.
+- In **Continue the conversation**, ask: “Why is Candidate A safer than Candidate B for this
+  audience?”
+- Show Turn 2 in the visible same-thread transcript and the `recall_context` trace.
+- Send: “Remember that a red accent is an intentional part of my brand identity.”
 - Show **Permission required** and click **Approve memory**.
-- Start a new private thread in the same access session.
-- Show the preference under Approved Memory and in recalled context.
+- Show the preference under Approved Memory, then ask one more follow-up and show it in recalled
+  context.
 
 **Narration**
 
-> The model cannot write long-term memory. My explicit preference creates only a pending proposal.
-> After approval, a new thread can recall it with consent provenance. I can delete one memory or use
-> Forget All Private State to remove the session's threads, uploads, messages, and memories.
+> This is a real multi-turn agent interaction, not a fresh prompt disguised as chat. Every follow-up
+> keeps the same thread, image candidates, target context, and prior user-assistant messages. The
+> recall node exposes how many messages it loaded. Separately, the model cannot write long-term
+> memory: my explicit preference creates only a pending proposal. After approval it can be recalled
+> with consent provenance, deleted individually, or erased with Forget All Private State.
 
 ### 3:40–4:10 — Show Radeon optimization and measurements
 

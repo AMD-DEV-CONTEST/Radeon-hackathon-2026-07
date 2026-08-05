@@ -124,6 +124,15 @@ def _performance_metrics(result: dict, image_count: int) -> PerformanceMetrics:
     )
 
 
+def _image_labels(images: list[dict]) -> dict[str, str]:
+    labels: dict[str, str] = {}
+    for index, image in enumerate(images):
+        original_name = Path(str(image.get("original_name") or "uploaded image")).name.strip()
+        safe_name = original_name.replace("\n", " ").replace("\r", " ") or "uploaded image"
+        labels[str(image["id"])] = f"Candidate {chr(ord('A') + index)} — {safe_name}"
+    return labels
+
+
 def _start_analysis(
     services: AppServices,
     thread_id: str,
@@ -143,6 +152,7 @@ def _start_analysis(
     if len(images) != len(payload.image_ids):
         raise HTTPException(status_code=404, detail="One or more image IDs were not found")
     run_id = services.database.start_run(thread_id, payload.model_dump())
+    image_labels = _image_labels(images)
     initial_state = {
         "run_id": run_id,
         "thread_id": thread_id,
@@ -154,6 +164,7 @@ def _start_analysis(
         "enabled_packs": payload.enabled_packs,
         "enable_private_lens": payload.enable_private_lens,
         "image_paths": [Path(item["path"]) for item in images],
+        "image_labels": image_labels,
         "tool_trace": [],
     }
     return thread, images, run_id, initial_state
@@ -192,6 +203,7 @@ def _finalize_analysis(
         privacy_findings=result.get("privacy_findings", []),
         evidence=result.get("evidence", []),
         recalled_memories=result.get("recalled_memories", []),
+        image_labels=_image_labels(images),
         comparison=result.get("comparison"),
         memory_proposal=memory_proposal,
         report_markdown=result.get("report_markdown", ""),

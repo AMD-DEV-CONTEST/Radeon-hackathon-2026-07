@@ -167,13 +167,36 @@ def _render_bullets(items: list[str], fallback: str) -> str:
     return "\n".join(f"- {item}" for item in values) if values else f"- {fallback}"
 
 
+def _image_label(image_id: str, image_labels: dict[str, str]) -> str:
+    label = image_labels.get(image_id, image_id)
+    return label.replace("`", "'").replace("\n", " ").replace("\r", " ")
+
+
+def _replace_internal_image_ids(markdown: str, image_labels: dict[str, str]) -> str:
+    rendered = markdown
+    placeholders: dict[str, str] = {}
+    for index, image_id in enumerate(image_labels):
+        placeholder = f"XIANG_IMAGE_LABEL_{index}_PLACEHOLDER"
+        rendered = rendered.replace(image_id, placeholder)
+        placeholders[placeholder] = _image_label(image_id, image_labels)
+    for placeholder, label in placeholders.items():
+        rendered = rendered.replace(placeholder, label)
+    return rendered
+
+
 def _render_report(
     report: StructuredReportDraft,
     evidence: list[dict[str, Any]],
     comparison: dict[str, Any] | None,
     proposal: dict[str, Any] | None,
     private_lens_readings: list[dict[str, Any]],
+    image_labels: dict[str, str] | None = None,
 ) -> str:
+    image_labels = image_labels or {}
+
+    def clean(value: Any) -> str:
+        return _replace_internal_image_ids(str(value), image_labels)
+
     known_cards = {card["card_id"]: card for card in evidence}
     cited = [known_cards[card_id] for card_id in report.cited_card_ids if card_id in known_cards]
     if not cited:
@@ -181,17 +204,20 @@ def _render_report(
 
     sections = [
         "# XiangLens Review",
-        report.summary.strip(),
+        clean(report.summary.strip()),
         "## Observed",
-        _render_bullets(report.observed, "No additional visible fact was asserted."),
+        _render_bullets(
+            [clean(item) for item in report.observed],
+            "No additional visible fact was asserted.",
+        ),
     ]
     if private_lens_readings:
         sections.append("## Private Lens Tool (Opt-In)")
         for reading in private_lens_readings:
             references = ", ".join(reading.get("technique_references", [])) or "No technique ID"
-            associations = reading.get("symbolic_associations", [])
+            associations = [clean(item) for item in reading.get("symbolic_associations", [])]
             sections.append(
-                f"- `{reading['image_id']}` — {references}. "
+                f"- `{_image_label(reading['image_id'], image_labels)}` — {references}. "
                 + (
                     " ".join(associations)
                     if associations
@@ -206,30 +232,42 @@ def _render_report(
         comparison_lines = []
         for candidate in comparison["candidates"]:
             comparison_lines.append(
-                f"- `{candidate['image_id']}` — crop {candidate['crop_resilience']}/5, "
+                f"- `{_image_label(candidate['image_id'], image_labels)}` — "
+                f"crop {candidate['crop_resilience']}/5, "
                 f"small-size clarity {candidate['small_size_clarity']}/5, privacy "
                 f"{candidate['privacy_safety']}/5, intent {candidate['intent_alignment']}/5, "
-                f"ambiguity {candidate['contextual_ambiguity']}/5. {candidate['rationale']}"
+                f"ambiguity {candidate['contextual_ambiguity']}/5. "
+                f"{clean(candidate['rationale'])}"
             )
         sections.extend(
             [
                 "## Comparison",
-                f"Recommended image: `{comparison['recommended_image_id']}`.",
+                "Recommended image: "
+                f"`{_image_label(comparison['recommended_image_id'], image_labels)}`.",
                 *comparison_lines,
-                f"Decision rule: {comparison['decision_rule']}",
+                f"Decision rule: {clean(comparison['decision_rule'])}",
             ]
         )
         if comparison.get("caveat"):
-            sections.append(f"Caveat: {comparison['caveat']}")
+            sections.append(f"Caveat: {clean(comparison['caveat'])}")
 
     sections.extend(
         [
             "## Privacy",
-            _render_bullets(report.privacy, "No specific privacy risk was confirmed."),
+            _render_bullets(
+                [clean(item) for item in report.privacy],
+                "No specific privacy risk was confirmed.",
+            ),
             "## Context",
-            _render_bullets(report.context, "No additional contextual claim was required."),
+            _render_bullets(
+                [clean(item) for item in report.context],
+                "No additional contextual claim was required.",
+            ),
             "## Recommendation",
-            _render_bullets(report.recommendations, "Review the image at the target avatar size."),
+            _render_bullets(
+                [clean(item) for item in report.recommendations],
+                "Review the image at the target avatar size.",
+            ),
             "## Evidence",
         ]
     )
@@ -246,8 +284,8 @@ def _render_report(
         sections.extend(
             [
                 "## Memory Proposal",
-                f"Pending approval: “{proposal['text']}”",
-                f"Reason: {proposal['reason']}",
+                f"Pending approval: “{clean(proposal['text'])}”",
+                f"Reason: {clean(proposal['reason'])}",
                 "This proposal has not been added to long-term memory.",
             ]
         )
@@ -255,7 +293,7 @@ def _render_report(
         [
             "## Limitations",
             _render_bullets(
-                report.limitations,
+                [clean(item) for item in report.limitations],
                 "This review evaluates the supplied goals, not identity or personality.",
             ),
         ]
@@ -559,6 +597,7 @@ def build_graph(services: GraphServices):
         image_ids = [path.stem for path in state["image_paths"]]
         context = {
             "image_ids": image_ids,
+            "image_labels": state.get("image_labels", {}),
             "platform": state["platform"],
             "audience": state["audience"],
             "goals": state["intent_keywords"],
@@ -661,6 +700,7 @@ def build_graph(services: GraphServices):
             "platform": state["platform"],
             "audience": state["audience"],
             "goals": state["intent_keywords"],
+            "image_labels": state.get("image_labels", {}),
             "recent_thread_messages": state.get("history", [])[-6:],
             "measurements": state.get("measurements", []),
             "visual_observations": state.get("visual_observations", []),
@@ -710,6 +750,7 @@ def build_graph(services: GraphServices):
             state.get("comparison"),
             state.get("memory_proposal_draft"),
             state.get("private_lens_readings", []),
+            state.get("image_labels", {}),
         )
         return {
             "structured_report": report.model_dump(),

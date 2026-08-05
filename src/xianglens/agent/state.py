@@ -17,6 +17,7 @@ class XiangLensState(TypedDict, total=False):
     enabled_packs: list[str]
     enable_private_lens: bool
     image_paths: list[Path]
+    image_labels: dict[str, str]
 
     plan: list[str]
     blocked_reason: str | None

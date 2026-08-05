@@ -49,6 +49,23 @@ class IncompleteComparisonModel(FakeModelClient):
         return await super().chat(messages, temperature=temperature, max_tokens=max_tokens)
 
 
+class HistoryRecordingModel(FakeModelClient):
+    def __init__(self) -> None:
+        self.report_contexts: list[dict[str, Any]] = []
+
+    async def chat(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        temperature: float = 0.2,
+        max_tokens: int = 1200,
+    ) -> str:
+        if "StructuredReportDraft" in str(messages[0]["content"]):
+            raw_context = str(messages[1]["content"]).split("\n", 1)[1]
+            self.report_contexts.append(json.loads(raw_context))
+        return await super().chat(messages, temperature=temperature, max_tokens=max_tokens)
+
+
 @pytest.mark.asyncio
 async def test_graph_runs_all_core_capabilities(tmp_path: Path) -> None:
     database = SQLiteStore(tmp_path / "state.sqlite3")
@@ -62,13 +79,16 @@ async def test_graph_runs_all_core_capabilities(tmp_path: Path) -> None:
     )
     database.decide_consent(proposal["id"], "approve")
     thread = database.create_thread("ada")
+    database.add_message(thread["id"], "user", "Which candidate is safer for GitHub?")
+    database.add_message(thread["id"], "assistant", "Candidate A is safer for the stated goal.")
     records = load_knowledge_records(
         PROJECT_ROOT / "data/knowledge/cards.yaml",
         PROJECT_ROOT / "data/knowledge/sources.yaml",
     )
+    model = HistoryRecordingModel()
     graph = build_graph(
         GraphServices(
-            model=FakeModelClient(),
+            model=model,
             knowledge=InMemoryKnowledgeStore(records, HashingEmbedder()),
             database=database,
             image_inspector=ImageInspector(20_000_000, 30_000_000),
@@ -94,6 +114,9 @@ async def test_graph_runs_all_core_capabilities(tmp_path: Path) -> None:
     assert [item["text"] for item in result["recalled_memories"]] == [
         "Red is an intentional brand color."
     ]
+    assert [
+        item["role"] for item in model.report_contexts[-1]["recent_thread_messages"]
+    ] == ["user", "assistant"]
     assert [item["node"] for item in result["tool_trace"]] == [
         "intake",
         "policy_gate",
@@ -164,6 +187,10 @@ async def test_graph_compares_multiple_images_and_proposes_memory(tmp_path: Path
         )
     )
     images = list((PROJECT_ROOT / "data/fixtures/images").glob("*.jpg"))[:2]
+    image_labels = {
+        images[0].stem: "Candidate A — first-upload.jpg",
+        images[1].stem: "Candidate B — second-upload.jpg",
+    }
     result = await graph.ainvoke(
         {
             "thread_id": thread["id"],
@@ -174,6 +201,7 @@ async def test_graph_compares_multiple_images_and_proposes_memory(tmp_path: Path
             "intent_keywords": ["distinctive"],
             "enabled_packs": ["profile_basics", "privacy_safety"],
             "image_paths": images,
+            "image_labels": image_labels,
             "tool_trace": [],
         }
     )
@@ -182,6 +210,8 @@ async def test_graph_compares_multiple_images_and_proposes_memory(tmp_path: Path
     assert result["memory_proposal_draft"]["text"] == ("Red is an intentional brand color.")
     assert database.list_memories("ada") == []
     assert "Pending approval" in result["report_markdown"]
+    assert f"Recommended image: `{image_labels[images[0].stem]}`" in result["report_markdown"]
+    assert images[0].stem not in result["report_markdown"]
 
 
 @pytest.mark.asyncio

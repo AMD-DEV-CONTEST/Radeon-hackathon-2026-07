@@ -28,6 +28,13 @@ def test_device_exif_is_read_from_the_actual_jpeg() -> None:
     assert any(item["type"] == "device_exif" for item in findings)
 
 
+def test_qr_code_is_scanned_by_the_default_runtime() -> None:
+    inspector = ImageInspector(max_bytes=20_000_000, max_pixels=30_000_000)
+    _, findings = inspector.inspect(_fixture("qr_code"))
+    assert any(item["type"] == "qr_code" for item in findings)
+    assert all(item["type"] != "qr_scan" for item in findings)
+
+
 def test_safe_copy_removes_actual_gps_exif(tmp_path: Path) -> None:
     inspector = ImageInspector(max_bytes=20_000_000, max_pixels=30_000_000)
     destination = tmp_path / "safe.jpg"

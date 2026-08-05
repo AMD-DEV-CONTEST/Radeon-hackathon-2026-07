@@ -34,6 +34,21 @@ export interface ImageSummary {
   created_at: string
 }
 
+export interface MessageRecord {
+  role: 'user' | 'assistant'
+  content: string
+  created_at: string
+}
+
+export interface ThreadDetail {
+  id: string
+  user_id: string
+  created_at: string
+  updated_at: string
+  images: ImageSummary[]
+  messages: MessageRecord[]
+}
+
 export interface EvidenceCard {
   card_id: string
   text: string
@@ -99,6 +114,7 @@ export interface AnalysisRunResponse {
   privacy_findings: Array<Record<string, unknown>>
   evidence: EvidenceCard[]
   recalled_memories: Array<Record<string, unknown>>
+  image_labels: Record<string, string>
   comparison: CandidateComparison | null
   memory_proposal: MemoryProposal | null
   report_markdown: string

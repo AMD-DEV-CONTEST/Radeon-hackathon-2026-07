@@ -236,13 +236,44 @@ def test_api_executes_the_complete_graph(tmp_path: Path) -> None:
         assert body["evidence"]
         assert body["performance_metrics"]["image_count"] == 1
         assert body["comparison"] is None
+        assert body["image_labels"] == {image_id: f"Candidate A — {image_path.name}"}
 
         state_response = client.get(f"/api/v1/threads/{thread_id}/state", headers=headers)
         assert state_response.status_code == 200
         assert len(state_response.json()["messages"]) == 2
+
+        follow_up_response = client.post(
+            f"/api/v1/threads/{thread_id}/runs",
+            headers=headers,
+            json={
+                "message": "Why is this crop safer for the same GitHub audience?",
+                "platform": "GitHub",
+                "audience": "international open-source collaborators",
+                "intent_keywords": ["credible", "approachable"],
+                "image_ids": [image_id],
+                "enabled_packs": ["profile_basics", "global_professional_context"],
+            },
+        )
+        assert follow_up_response.status_code == 200
+        follow_up = follow_up_response.json()
+        recall_trace = next(
+            item for item in follow_up["tool_trace"] if item["node"] == "recall_context"
+        )
+        assert recall_trace["summary"].endswith("2 messages.")
+        follow_up_state = client.get(f"/api/v1/threads/{thread_id}/state", headers=headers).json()
+        assert [item["role"] for item in follow_up_state["messages"]] == [
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+        ]
+        assert follow_up_state["messages"][-2]["content"].startswith("Why is this crop safer")
         runs_response = client.get(f"/api/v1/threads/{thread_id}/runs", headers=headers)
         assert runs_response.status_code == 200
-        assert runs_response.json()[0]["result"]["run_id"] == body["run_id"]
+        assert {item["result"]["run_id"] for item in runs_response.json()} == {
+            body["run_id"],
+            follow_up["run_id"],
+        }
         stored_run = client.get(f"/api/v1/runs/{body['run_id']}", headers=headers)
         assert stored_run.status_code == 200
 

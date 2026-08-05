@@ -2,10 +2,12 @@
 import type {
   AnalysisRunResponse,
   ImageSummary,
+  MessageRecord,
   MemoryProposal,
   MemoryRecord,
   StreamEvent,
   SystemStatus,
+  ThreadDetail,
   ToolTrace
 } from '~/types/api'
 
@@ -24,6 +26,8 @@ const result = ref<AnalysisRunResponse | null>(null)
 const events = ref<ToolTrace[]>([])
 const plan = ref<string[]>([])
 const memories = ref<MemoryRecord[]>([])
+const messages = ref<MessageRecord[]>([])
+const followUpMessage = ref('')
 const connecting = ref(false)
 const uploading = ref(false)
 const analyzing = ref(false)
@@ -82,6 +86,13 @@ const packOptions = [
 ]
 
 const canAnalyze = computed(() => images.value.length > 0 && !analyzing.value && !previewMode.value)
+const canFollowUp = computed(() => (
+  followUpMessage.value.trim().length >= 3
+  && images.value.length > 0
+  && !analyzing.value
+  && !previewMode.value
+))
+const conversationTurns = computed(() => Math.ceil(messages.value.length / 2))
 const modelState = computed(() => {
   if (previewMode.value) return 'Interface preview'
   if (!system.value) return 'Not checked'
@@ -215,18 +226,23 @@ function consumeEvent(streamEvent: StreamEvent) {
   }
 }
 
-async function analyze() {
-  if (!canAnalyze.value) return
+async function loadThreadState() {
+  if (!threadId.value) return
+  const state = await api.request<ThreadDetail>(`/api/v1/threads/${threadId.value}/state`)
+  messages.value = state.messages
+}
+
+async function runAnalysis(message: string, clearPreviousResult: boolean): Promise<boolean> {
   analyzing.value = true
   actionError.value = ''
-  result.value = null
+  if (clearPreviousResult) result.value = null
   events.value = []
   plan.value = []
   try {
     const currentThread = await ensureThread()
     const runPath = `/api/v1/threads/${currentThread}/runs`
     const payload = {
-      message: form.message,
+      message,
       platform: form.platform,
       audience: form.audience,
       intent_keywords: form.goals.split(',').map((value: string) => value.trim()).filter(Boolean),
@@ -239,11 +255,25 @@ async function analyze() {
     } else {
       await api.stream(`${runPath}/stream`, payload, consumeEvent)
     }
+    await loadThreadState()
+    return true
   } catch (error) {
     actionError.value = error instanceof Error ? error.message : String(error)
+    return false
   } finally {
     analyzing.value = false
   }
+}
+
+async function analyze() {
+  if (!canAnalyze.value) return
+  await runAnalysis(form.message, true)
+}
+
+async function sendFollowUp() {
+  if (!canFollowUp.value) return
+  const message = followUpMessage.value.trim()
+  if (await runAnalysis(message, false)) followUpMessage.value = ''
 }
 
 async function decideMemory(proposal: MemoryProposal, action: 'approve' | 'reject') {
@@ -321,6 +351,8 @@ async function newSession() {
   result.value = null
   events.value = []
   plan.value = []
+  messages.value = []
+  followUpMessage.value = ''
   actionError.value = ''
   if (wasConnected) {
     api.clearSession()
@@ -355,10 +387,13 @@ async function forgetMe() {
   result.value = null
   events.value = []
   plan.value = []
+  messages.value = []
+  followUpMessage.value = ''
 }
 
 function imageName(imageId: string): string {
-  return images.value.find((image: UploadedImage) => image.id === imageId)?.original_name
+  return result.value?.image_labels?.[imageId]
+    || images.value.find((image: UploadedImage) => image.id === imageId)?.original_name
     || imageId.slice(0, 8)
 }
 
@@ -560,7 +595,10 @@ function formatDuration(value: number): string {
             <div class="finding-list">
               <article v-for="(finding, index) in result.privacy_findings" :key="index" class="finding-card">
                 <span>{{ String(finding.severity || 'info') }}</span>
-                <p>{{ String(finding.summary || finding.type) }}</p>
+                <div>
+                  <strong v-if="finding.image_id">{{ imageName(String(finding.image_id)) }}</strong>
+                  <p>{{ String(finding.summary || finding.type) }}</p>
+                </div>
               </article>
             </div>
           </section>
@@ -595,7 +633,51 @@ function formatDuration(value: number): string {
 
           <section class="result-section report-copy">
             <h3>Full report</h3>
-            <pre>{{ result.report_markdown }}</pre>
+            <SafeMarkdown :source="result.report_markdown" />
+          </section>
+
+          <section class="result-section conversation-section">
+            <div class="conversation-heading">
+              <div>
+                <p class="eyebrow">Same-thread context</p>
+                <h3>Continue the conversation</h3>
+              </div>
+              <span>{{ conversationTurns }} {{ conversationTurns === 1 ? 'turn' : 'turns' }}</span>
+            </div>
+
+            <div class="conversation-list" aria-live="polite">
+              <article
+                v-for="(message, index) in messages"
+                :key="`${message.created_at}-${index}`"
+                class="conversation-message"
+                :class="message.role"
+              >
+                <div class="message-meta">
+                  <strong>{{ message.role === 'user' ? 'You' : 'XiangLens' }}</strong>
+                  <small>{{ message.role === 'user' ? `Turn ${Math.floor(index / 2) + 1}` : 'Agent response' }}</small>
+                </div>
+                <p v-if="message.role === 'user'">{{ message.content }}</p>
+                <SafeMarkdown v-else :source="message.content" />
+              </article>
+            </div>
+
+            <form class="follow-up-form" @submit.prevent="sendFollowUp">
+              <label for="follow-up-message">Ask a follow-up in this thread</label>
+              <textarea
+                id="follow-up-message"
+                v-model="followUpMessage"
+                rows="3"
+                maxlength="4000"
+                placeholder="Why is Candidate A safer? Reconsider the same images for LinkedIn."
+                @keydown.ctrl.enter.prevent="sendFollowUp"
+              />
+              <div>
+                <small>Reuses these images and recalls prior turns. Ctrl + Enter to send.</small>
+                <button class="primary-button" type="submit" :disabled="!canFollowUp">
+                  {{ analyzing ? 'Agent running…' : 'Send follow-up' }}
+                </button>
+              </div>
+            </form>
           </section>
         </template>
       </section>

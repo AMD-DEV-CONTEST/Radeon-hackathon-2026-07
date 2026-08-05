@@ -9,7 +9,7 @@ The project does not identify people or infer personality, intelligence, health,
 - FastAPI application with permanent server credentials and short-lived browser access sessions;
 - bounded LangGraph workflow with a visible nine-step plan and live node events;
 - self-hosted llama.cpp chat-completions and multimodal adapter;
-- local image validation, measurement, EXIF scanning, and optional QR scanning;
+- local image validation, measurement, EXIF scanning, and default QR scanning;
 - 32 source-backed knowledge cards in Milvus Lite;
 - opt-in runtime-only private Lens Tool for a locally mounted 24-lesson, 108-technique
   course distillation;
@@ -18,7 +18,8 @@ The project does not identify people or infer personality, intelligence, health,
 - validated visual, comparison, memory-proposal, and report schemas with one repair attempt;
 - explicit one-to-four-image comparison with a privacy-first scoring rule;
 - metadata-stripped safe-copy export and a complete user-state deletion route;
-- English-only Nuxt workspace for upload, SSE progress, evidence, metrics, and memory consent;
+- English-only Nuxt workspace for upload, progress, safe Markdown reports, evidence, metrics,
+  same-thread follow-up conversation, and memory consent;
 - 120 open-license image fixtures with complete source manifests;
 - offline tests that never substitute fake output into the production model path.
 
@@ -59,6 +60,9 @@ The development URL is not a third-party AI service. However, the final same-hos
 - Node.js 20 or newer and pnpm 11 for the web workspace;
 - a user-controlled OpenAI-compatible llama.cpp endpoint for real analysis;
 - AMD Radeon plus ROCm on the final inference machine.
+
+The default Python environment includes the headless OpenCV QR scanner because visible QR codes
+are a core privacy check, not a production-optional feature.
 
 The currently configured model is:
 
@@ -206,6 +210,7 @@ Tests cover:
 - structured-output repair, multi-image comparison, and memory-proposal rules;
 - sensitive-inference policy blocking;
 - real GPS and device EXIF fixture parsing;
+- default-runtime QR detection and same-thread follow-up recall;
 - all eight RAG smoke queries;
 - consent-before-memory-write and foreign-key-safe memory deletion;
 - SSE lifecycle events, run recovery, CORS preflight, and API authentication;
