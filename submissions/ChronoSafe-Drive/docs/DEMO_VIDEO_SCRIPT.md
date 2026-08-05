@@ -1,6 +1,6 @@
 # ChronoSafe-Drive Demo Video Script
 
-Target duration: 2 minutes 45 seconds  
+Target duration: 3 minutes 40 seconds  
 Language: English narration and English on-screen text only  
 Format: 1920 x 1080, 30 fps, H.264 MP4
 
@@ -24,7 +24,7 @@ Format: 1920 x 1080, 30 fps, H.264 MP4
 
 ## Shot-by-shot script
 
-### 0:00-0:12 - Title and problem
+### 0:00-0:15 - Title and problem
 
 **Visual**
 
@@ -46,7 +46,7 @@ AMD Radeon + ROCm Physical AI
 > become stale or misleading. ChronoSafe-Drive turns these failures into a
 > complete perception-to-control safety loop.
 
-### 0:12-0:35 - Architecture
+### 0:15-0:40 - Architecture
 
 **Visual**
 
@@ -71,7 +71,7 @@ NORMAL -> DEGRADED -> MINIMAL_RISK
 > that prediction into a conservative upper bound used by an interpretable
 > three-state controller.
 
-### 0:35-0:58 - Real data and timestamp innovation
+### 0:40-1:05 - Real data and timestamp innovation
 
 **Visual**
 
@@ -96,32 +96,56 @@ Split by complete log_token: 592 / 128 / 130 scenes
 > timestamps. Complete collection logs are kept within one split to prevent
 > adjacent-drive leakage.
 
-### 0:58-1:23 - Live closed-loop sequence
+### 1:05-1:30 - Actual AMD ROCm workflow
 
 **Visual**
 
-- Play one unseen-seed Xvfb run without the raw-headless effect bypass.
-- Show synchronized panels for camera, LiDAR health, diagnosis, upper risk,
-  vehicle speed, and controller mode.
+- Record the AMD cloud terminal from the local computer.
+- Show the project path, GPU/HIP/PyTorch identity, and the frozen-claim verifier.
+- Keep the successful final line visible for two seconds.
+
+**Commands shown on screen**
+
+```bash
+cd /workspace/persistent/ChronoSafe-Drive
+python -c "import torch; print('GPU:', torch.cuda.get_device_name(0)); print('HIP:', torch.version.hip); print('PyTorch:', torch.__version__)"
+python scripts/verify_submission_claims.py
+```
+
+**Narration**
+
+> This is the actual persistent project workspace on the AMD cloud instance.
+> PyTorch identifies the AMD Radeon GPU through ROCm and HIP. The submitted
+> verifier checks every public headline number directly against frozen JSON
+> evidence and completes 118 checks without retraining or hidden inputs.
+
+### 1:30-2:05 - Closed-loop evidence replay
+
+**Visual**
+
+- Play the synchronized dashboard replay for unseen seed 149, generated from
+  the committed validated-Xvfb closed-loop CSV.
+- Show diagnosis, upper risk, vehicle speed, and controller mode together.
 - Pause briefly at compound-fault onset and MRM trigger.
 
 **On-screen text**
 
 ```text
-Validated MetaDrive camera path under Xvfb
+Evidence replay from validated MetaDrive Xvfb run
 Frozen MRM threshold: 0.62
 No test-seed tuning
 ```
 
 **Narration**
 
-> This is an unseen MetaDrive seed rendered through the validated camera path
-> under Xvfb, without bypassing camera effects.
+> This dashboard replays the committed evidence from an unseen MetaDrive seed
+> evaluated through the validated camera path under Xvfb, without bypassing
+> camera effects.
 > As compound degradation persists, the calibrated risk crosses the threshold
 > selected only on two calibration seeds. The controller first reduces speed,
 > then latches the minimal-risk maneuver and brakes to a near-stop.
 
-### 1:23-1:43 - Closed-loop aggregate
+### 2:05-2:30 - Closed-loop aggregate
 
 **Visual**
 
@@ -145,7 +169,7 @@ Final speed: 0.0138 km/h
 > percent, calibrated risk coverage is 99.83 percent, and final speed is about
 > 0.014 kilometers per hour.
 
-### 1:43-2:05 - Robustness result
+### 2:30-2:55 - Robustness result
 
 **Visual**
 
@@ -169,7 +193,7 @@ Spoofed clean: 67.96% -> 95.08%
 > trade-off of less than half a percentage point for much stronger failure
 > robustness.
 
-### 2:05-2:30 - AMD Radeon and ROCm
+### 2:55-3:25 - AMD Radeon and ROCm
 
 **Visual**
 
@@ -193,7 +217,7 @@ AMP/FP32 diagnosis agreement: 100%
 > sequences per second at batch 1024. AMP preserves every diagnostic decision
 > across 8,192 real samples, with risk error below seven ten-thousandths.
 
-### 2:30-2:45 - Closing
+### 3:25-3:40 - Closing
 
 **Visual**
 
@@ -216,8 +240,10 @@ Open, reproducible, and built on AMD ROCm.
 
 ## Required visual assets
 
-- one clean validated-Xvfb MetaDrive clip;
-- one compound-degradation validated-Xvfb clip with synchronized dashboard;
+- one synchronized dashboard replay from a committed validated-Xvfb CSV;
+- open `docs/demo_assets/closed_loop_replay.html` locally in a browser for the
+  replay recording;
+- one actual AMD cloud terminal recording showing GPU/HIP/PyTorch identity;
 - architecture diagram;
 - nuScenes sample panel with timing traces;
 - timestamp robustness grouped bar chart;
