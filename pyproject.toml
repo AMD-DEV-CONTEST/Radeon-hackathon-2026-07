@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "franka-industrial-sort-vla"
+version = "1.0.0"
+description = "Track 3 submission: language-conditioned industrial part sorting with SmolVLA on Genesis, trained/evaluated on AMD Radeon GPUs (ROCm)."
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    # Physics engine + renderer this project is built on.
+    "genesis-world>=1.2.3",
+    "numpy>=2.1",
+    "trimesh>=4.8.2",
+    # Camera-image handling and video export.
+    "opencv-python",
+    "imageio",
+    "imageio-ffmpeg",
+    # Plotting for the diagnostic / eval-sweep tools.
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+# Policy training + closed-loop evaluation. Install torch from the official ROCm
+# wheel index (see README §3) -- do not rely on the default PyPI wheel. The
+# exact, verified dependency set (lerobot 0.4.4, transformers 4.57.6, num2words,
+# wandb, ...) is listed in README §8 and installed by the Dockerfile; keep this
+# marker unpinned so it never fights the ROCm torch wheels.
+learn = [
+    "torch",
+    "lerobot",
+]
+
+[tool.uv]
+# genesis-world pulls an unpinned numba; on Python 3.12 the resolver can pick 0.53.x
+# (llvmlite 0.36) which only supports Python <3.10. Force a 3.12-compatible stack.
+override-dependencies = [
+    "numba>=0.59",
+    "llvmlite>=0.42",
+]
+
+[tool.setuptools.packages.find]
+include = ["industrial_pick*"]
+
+[tool.ruff]
+line-length = 120
