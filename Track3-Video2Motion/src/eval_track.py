@@ -55,6 +55,9 @@ ap.add_argument("--motion", required=True)
 ap.add_argument("--video", default=None)
 ap.add_argument("--start", type=int, default=0)
 ap.add_argument("--fps", type=int, default=25)
+# Side-by-side, so the file ends up 2*res wide. 540 gives 1080p.
+ap.add_argument("--res", type=int, default=640,
+                help="pixels per pane (square)")
 args = ap.parse_args()
 
 env = g1_track.G1Track(args.motion)
@@ -140,7 +143,7 @@ for mode in (["zero"] + (["policy"] if policy else [])):
 # ---------------- 渲染 ----------------
 if args.video:
     qs = results.get("policy", results["zero"])
-    W = H = 640
+    W = H = args.res
     mj.vis.global_.offwidth = max(mj.vis.global_.offwidth, W)
     mj.vis.global_.offheight = max(mj.vis.global_.offheight, H)
     r = mujoco.Renderer(mj, height=H, width=W)

@@ -153,6 +153,9 @@ def main():
     ap.add_argument("--out", default=None)
     ap.add_argument("--action_scale", type=float, default=0.5)
     ap.add_argument("--steps", type=int, default=0)
+    # Side-by-side, so the file ends up 2*res wide. 540 gives 1080p.
+    ap.add_argument("--res", type=int, default=640,
+                    help="pixels per pane (square)")
     args = ap.parse_args()
 
     name = Path(args.motion).stem
@@ -244,7 +247,7 @@ def main():
     print(f"{'Body position error':<26}{np.mean(errs):>13.4f} m")
 
     if args.out:
-        W = H = 640
+        W = H = args.res
         m.vis.global_.offwidth = max(m.vis.global_.offwidth, W * 2)
         m.vis.global_.offheight = max(m.vis.global_.offheight, H)
         r = mujoco.Renderer(m, height=H, width=W)
