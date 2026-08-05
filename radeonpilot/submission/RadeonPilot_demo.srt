@@ -1,0 +1,39 @@
+1
+00:00:00,000 --> 00:00:21,611
+RadeonPilot is a multi-agent console that diagnoses, deploys, benchmarks, and optimizes a local model endpoint on a single AMD Radeon GPU. Every agent generation is served by the Radeon itself. It is built for the AMD AI DevMaster Radeon GPU Hackathon, Track 2, by team Luhuo.
+
+2
+00:00:21,611 --> 00:00:39,301
+The competition instance is a single AMD Radeon GPU, gfx1100, with 48 gigabytes of VRAM on ROCm 7.2.1. There is no Docker, so we deploy with a Python virtual environment and a ROCm build of llama.cpp.
+
+3
+00:00:39,301 --> 00:01:00,740
+A Gradio console drives a Python controller with deterministic tools, local retrieval, and SQLite memory. A localhost Pi bridge runs four specialist agents in parallel, then an OpsCommander produces an approval-gated action plan. All communication stays on localhost, and the model endpoint is OpenAI-compatible.
+
+4
+00:01:00,740 --> 00:01:18,419
+The console runs a live diagnosis on the GPU. The badge reads Radeon Attested, and the commander returns a gated plan: enable prefix caching, enable chunked prefill, and monitor VRAM. The same session supports multi-turn follow-ups that replan from memory.
+
+5
+00:01:18,419 --> 00:01:28,437
+Four specialists run concurrently on the Radeon, followed by the OpsCommander. Hazardous actions are blocked pending human approval, and the loop fails closed.
+
+6
+00:01:28,437 --> 00:01:44,047
+Agents cite a local knowledge corpus with document IDs and revisions, so every recommendation is grounded in retrieved evidence rather than invented. Retrieval is a deterministic BM25 index over markdown, kept entirely on the machine.
+
+7
+00:01:44,047 --> 00:01:56,360
+Reproduction is a first-class deliverable. A judge can rebuild the whole stack with four commands, following the checkpoint-by-checkpoint guide, and re-run the benchmarks and quality gate on the same hardware.
+
+8
+00:01:56,360 --> 00:02:14,299
+Measured on the device: the quantized profile doubles decode throughput to 88.7 tokens per second and cuts time-to-first-token by a third, while passing the frozen quality gate. VRAM drops from 17 to 6.5 gigabytes, leaving headroom for concurrency.
+
+9
+00:02:14,299 --> 00:02:26,854
+RadeonPilot never fabricates evidence. The endpoint process is bound to the GPU via amd-smi, and every benchmark record carries raw samples, the prompt hash, and attestation.
+
+10
+00:02:26,854 --> 00:02:41,232
+RadeonPilot: private, local, evidence-bound inference operations on AMD Radeon. The full source, docs, and measured evidence are in the public repository. Track 2, team Luhuo. Thank you.
