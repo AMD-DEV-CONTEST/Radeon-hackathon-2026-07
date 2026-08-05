@@ -92,6 +92,16 @@ def main():
     best = [-1e18]
     t0 = time.time()
 
+    # TensorBoard, written next to the checkpoints. tensorboardX rather than
+    # torch.utils.tensorboard: this venv deliberately has no torch (it would
+    # drag in a second numpy), and tensorboardX is a standalone event writer.
+    try:
+        from tensorboardX import SummaryWriter
+        tb = SummaryWriter(str(out / "tb"))
+    except Exception as e:                                   # noqa: BLE001
+        print(f"[train] no TensorBoard logging: {e}", flush=True)
+        tb = None
+
     def progress(step, metrics):
         el = time.time() - t0
         rew = float(metrics.get("eval/episode_reward", 0.0))
@@ -108,6 +118,15 @@ def main():
               f"body_ori={e_bo/n:.4f}rad  "
               f"{int(step/max(el,1e-9)):,} steps/s", flush=True)
         (out / "history.json").write_text(json.dumps(hist, indent=2))
+        if tb is not None:
+            tb.add_scalar("reward/episode", rew, step)
+            tb.add_scalar("reward/episode_length", eplen, step)
+            tb.add_scalar("error/body_position_m", e_bp / n, step)
+            tb.add_scalar("error/body_orientation_rad", e_bo / n, step)
+            tb.add_scalar("throughput/env_steps_per_s",
+                          step / max(el, 1e-9), step)
+            # Flush every eval: the page is watched live while training runs.
+            tb.flush()
 
     def policy_params_fn(step, make_policy, params):
         del make_policy

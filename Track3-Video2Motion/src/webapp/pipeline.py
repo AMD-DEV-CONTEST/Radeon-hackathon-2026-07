@@ -37,11 +37,39 @@ PY_MJX = C.PY_MJX
 # Playground's. The two are not interchangeable; see config.py.
 SCENE_STANDALONE = C.scene_xml_standalone()
 
+# ------------------------------------------------------------- tensorboard
+TB_PORT = 6006
+_tb_proc = None
+
+
+def tensorboard_url() -> str:
+    """Start TensorBoard over the training directory once, return its URL.
+
+    Served on its own port rather than embedded: the training curves are worth
+    looking at with real axes and run comparison, which a static PNG cannot do.
+    """
+    global _tb_proc
+    if _tb_proc is None or _tb_proc.poll() is not None:
+        C.TRAIN_OUT.mkdir(parents=True, exist_ok=True)
+        try:
+            _tb_proc = subprocess.Popen(
+                [PY_MJX, "-m", "tensorboard.main",
+                 "--logdir", str(C.TRAIN_OUT), "--port", str(TB_PORT),
+                 "--bind_all", "--reload_interval", "10"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:                                    # noqa: BLE001
+            return ""
+    return f"http://localhost:{TB_PORT}/"
+
+
 WORK = C.UPLOADS
 DL = C.DOWNLOADS
 C.ensure_dirs()
 
-THROUGHPUT = 16_500          # measured env-steps/s on a single W7900
+# Env-steps/s on a single W7900. Motion length matters: ~16,500 on a 3 s
+# reference, ~9,300 on a 9 s one, because each step scores every frame of the
+# tracked window. Treat the budget estimate as an upper bound.
+THROUGHPUT = 16_500
 
 
 # --------------------------------------------------------------------- job
@@ -132,6 +160,31 @@ def list_runs() -> list[str]:
         return []
     return sorted(d.name for d in root.iterdir()
                   if (d / "params_best").exists())
+
+
+def policy_choices() -> list[str]:
+    """Every run that has a usable checkpoint, shipped example included.
+
+    Step 4 used to ask whether you wanted the example or your own run before it
+    would show you either. They are the same kind of thing — a trained policy —
+    so they belong in one list.
+    """
+    return list_runs()
+
+
+def resolve_policy(run: str, ck: str | None):
+    """(params, motion, motion_name) for a selected run, or None.
+
+    Run directories are named after the motion with a prefix recording where
+    they came from: bm_ for the shipped example, web_ for a run started here.
+    """
+    if not run:
+        return None
+    params = C.TRAIN_OUT / run / (ck or "params_best")
+    if not params.exists():
+        return None
+    mname = run.removeprefix("web_").removeprefix("bm_")
+    return str(params), motion_bm(mname), mname
 
 
 def list_checkpoints(run: str) -> list[str]:
@@ -296,6 +349,21 @@ def step3_train(bm_path: str, name: str, hours: float, ckpt_every_m: float,
         job.log("OK      stopped early; best checkpoint so far is usable.")
     else:
         job.log("OK      training finished.")
+
+    # Layer 1 — the policy in the same MJX engine it was trained in. Rendered
+    # here rather than in Step 4 so the run you just trained can be judged
+    # without leaving the page.
+    job.log("")
+    job.log("LAYER 1 Rendering the policy in MJX (the engine it trained in)")
+    l1 = C.RENDER_OUT / f"web_{name}_layer1.mp4"
+    rc = _run(job, [PY_MJX, str(BASE / "eval_track.py"), "--params", str(best),
+                    "--motion", bm_path, "--start", "0", "--video", str(l1)],
+              cwd=BASE, env={"MUJOCO_GL": "egl"})
+    if rc == 0 and l1.exists():
+        job.result["video"] = str(l1)
+        job.log(f"OK      layer 1 video at {l1}")
+    else:
+        job.log("WARN    layer 1 render failed; checkpoints are still fine.")
     job.done = job.ok = True
 
 
@@ -304,11 +372,20 @@ STAT_RE = re.compile(r"(\S+)\s+(\d+)/(\d+)\s+\(\s*([\d.]+)%\)\s+([\d.]+)")
 
 
 def step4_simulate(params: str, bm_path: str, name: str, job: Job):
-    """Roll the policy out in physics; render reference | policy side by side."""
-    job.log("STEP 4  Physics rollout and side-by-side comparison")
-    out = C.RENDER_OUT / f"web_{name}.mp4"
-    out.parent.mkdir(parents=True, exist_ok=True)
+    """Layers 2 and 3 — the two sim-to-sim transfers.
+
+    Layer 2 swaps the engine: the same weights, re-implemented in plain NumPy,
+    stepped by MuJoCo's C solver instead of MJX/JAX. Layer 3 swaps everything
+    left — Unitree's own simulator, their G1 model, over DDS, with the policy
+    seeing only what the real SDK reports.
+    """
+    job.log("STEP 4  Sim-to-sim transfer")
     stats: dict = {}
+    # Layer 3 is driven by scripts/run_layer3.sh, which addresses everything by
+    # the motion's own stem — the exported weights land in deploy/track_<stem>
+    # and the video in render/<stem>_layer3. The project name can differ from
+    # it whenever an earlier motion was picked, so key off the motion.
+    mname = Path(bm_path).stem
 
     def parse(line):
         if "/" not in line or "%" not in line:
@@ -317,23 +394,45 @@ def step4_simulate(params: str, bm_path: str, name: str, job: Job):
         if not m:
             return
         pct, err = float(m.group(4)), float(m.group(5))
-        if "zero" in line or "Zero" in line or "零" in line:
+        if "zero" in line.lower():
             stats["zero_pct"], stats["zero_err"] = pct, err
         else:
             stats["pct"], stats["err"] = pct, err
             stats["done"], stats["total"] = int(m.group(2)), int(m.group(3))
 
-    rc = _run(job, [PY_MJX, str(BASE / "eval_track.py"), "--params", params,
-                    "--motion", bm_path, "--start", "0", "--video", str(out)],
+    # ---- Layer 2: NumPy policy, native MuJoCo C engine ----
+    job.log("")
+    job.log("LAYER 2 NumPy policy in MuJoCo's C engine (no JAX)")
+    l2 = C.RENDER_OUT / f"web_{name}_layer2.mp4"
+    rc = _run(job, [PY_MJX, str(BASE / "layer2_numpy.py"), "--params", params,
+                    "--motion", bm_path, "--out", str(l2)],
               cwd=BASE, env={"MUJOCO_GL": "egl"}, on_line=parse)
-    if rc != 0 or not out.exists():
-        job.log(f"FAILED  rollout exited with {rc}")
-        job.done = True
-        return
-    job.result = {"video": str(out), "stats": stats,
-                  "download": str(out)}
-    job.log(f"OK      video at {out}")
-    job.done = job.ok = True
+    if rc == 0 and l2.exists():
+        job.result["layer2"] = str(l2)
+        job.log(f"OK      layer 2 video at {l2}")
+    else:
+        job.log(f"FAILED  layer 2 exited with {rc}")
+
+    # ---- Layer 3: Unitree's simulator over DDS ----
+    job.log("")
+    job.log("LAYER 3 Unitree's simulator, their G1 model, over DDS")
+    l3 = C.RENDER_OUT / f"{mname}_layer3.mp4"
+    if not Path(C.UNITREE_MUJOCO).exists():
+        job.log("SKIP    unitree_mujoco is not installed.")
+        job.log("        Run: ./scripts/setup.sh --with-dds")
+    else:
+        rc = _run(job, ["bash", str(C.REPO / "scripts" / "run_layer3.sh"), mname],
+                  cwd=C.REPO, on_line=parse)
+        if rc == 0 and l3.exists():
+            job.result["layer3"] = str(l3)
+            job.log(f"OK      layer 3 video at {l3}")
+        else:
+            job.log(f"FAILED  layer 3 exited with {rc}")
+
+    job.result["stats"] = stats
+    job.result["download"] = job.result.get("layer3") or job.result.get("layer2")
+    job.done = True
+    job.ok = bool(job.result.get("layer2") or job.result.get("layer3"))
 
 
 # ----------------------------------------------------------------- presets

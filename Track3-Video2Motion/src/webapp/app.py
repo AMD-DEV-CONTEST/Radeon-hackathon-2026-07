@@ -136,27 +136,27 @@ def metrics(items):
     return f'<div class="metric-row">{cells}</div>'
 
 
-def curves(curve):
-    if not curve:
-        return None
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
+def tb_panel():
+    """Link out to TensorBoard rather than redrawing the curves here.
 
-    xs = [c["step"] / 1e6 for c in curve]
-    spec = [("reward", "Episode return", "#ED1C24", "higher is better"),
-            ("ep_len", "Episode length (steps)", "#e08e00", "higher is better"),
-            ("body_pos", "Body position error (m)", "#2b6cb0", "lower is better"),
-            ("body_ori", "Body orientation error (rad)", "#2f855a", "lower is better")]
-    fig, axes = plt.subplots(2, 2, figsize=(12.5, 5.8), dpi=110)
-    for ax, (key, label, col, hint) in zip(axes.ravel(), spec):
-        ax.plot(xs, [c[key] for c in curve], color=col, lw=2, marker="o", ms=3)
-        ax.set_title(f"{label}   ({hint})", fontsize=10.5, loc="left")
-        ax.set_xlabel("million env-steps", fontsize=9)
-        ax.grid(alpha=.22, ls="--")
-        ax.tick_params(labelsize=9)
-    fig.tight_layout()
-    return fig
+    A static PNG cannot be zoomed, cannot be read off, and cannot compare runs
+    — all of which is exactly what you want while judging a training run.
+    """
+    url = P.tensorboard_url()
+    if not url:
+        return ('<div class="note"><b>TensorBoard unavailable.</b> '
+                'Install it with <code>pip install tensorboard</code>, or read '
+                '<code>workdir/train/&lt;run&gt;/history.json</code> directly.</div>')
+    return (
+        '<div class="note">'
+        '<b>Training curves are in TensorBoard.</b><br>'
+        f'<a href="{url}" target="_blank" rel="noopener" '
+        'style="font-size:1.05rem;font-weight:600">Open TensorBoard '
+        f'&nbsp;&#8599;</a><br>'
+        '<span style="opacity:.75">Episode return and length, body position and '
+        'orientation error, throughput. Updates every ~10 s while training '
+        'runs; every run stays available for comparison.</span>'
+        '</div>')
 
 
 def drive(job, fn, *args):
@@ -273,7 +273,11 @@ with gr.Blocks(title="Video2Motion") as demo:
                     b3stop = gr.Button("Stop", variant="stop", scale=1)
                 d3 = gr.DownloadButton("Download all checkpoints", visible=False)
             with gr.Column(scale=6):
-                plot3 = gr.Plot(label="Training curves")
+                tb3 = gr.HTML()
+                out_l1 = gr.Video(
+                    label="Layer 1 — the policy in MJX, the engine it trained in"
+                          "   ·   left: reference,  right: physics",
+                    height=330, interactive=False)
         log3 = gr.Textbox(label="Log", lines=9, max_lines=9,
                           elem_classes="log-box", interactive=False)
     panels.append(p3)
@@ -287,15 +291,14 @@ with gr.Blocks(title="Video2Motion") as demo:
                       "actively balancing: the G1 is an inverted pendulum and its ankle roll joints are soft (kp=2)."))
         with gr.Row(equal_height=True):
             with gr.Column(scale=4, elem_classes="side"):
-                mode4 = gr.Radio(["Pre-trained policy", "A run I trained"],
-                                 value="Pre-trained policy", label="Policy source")
-                preset = gr.Dropdown(label="Pre-trained motion",
-                                     choices=list(P.presets().keys()),
-                                     value=(list(P.presets().keys()) or [None])[0])
-                run4 = gr.Dropdown(label="Training run", choices=P.list_runs(),
-                                   allow_custom_value=True, visible=False)
+                run4 = gr.Dropdown(label="Policy",
+                                   info="Your training runs, plus the shipped "
+                                        "example",
+                                   choices=P.policy_choices(),
+                                   value=(P.policy_choices() or [None])[0],
+                                   allow_custom_value=True)
                 ck4 = gr.Dropdown(label="Checkpoint", choices=[],
-                                  allow_custom_value=True, visible=False)
+                                  allow_custom_value=True)
                 with gr.Row():
                     r4 = gr.Button("↻ Refresh", scale=1)
                     b4 = gr.Button("Run Step 4 — Simulate", variant="primary",
@@ -303,10 +306,17 @@ with gr.Blocks(title="Video2Motion") as demo:
                 d4 = gr.DownloadButton("Download video", visible=False)
                 stat4 = gr.HTML()
             with gr.Column(scale=6):
-                out_sim = gr.Video(
-                    label="Left: reference   |   Right: policy in MuJoCo MJX physics"
-                          "  ·  not the unitree_mujoco DDS path",
-                    height=380, interactive=False)
+                with gr.Tabs():
+                    with gr.Tab("Layer 2 — MuJoCo C engine"):
+                        out_l2 = gr.Video(
+                            label="Same weights re-implemented in NumPy, stepped "
+                                  "by MuJoCo's C solver instead of MJX/JAX",
+                            height=360, interactive=False)
+                    with gr.Tab("Layer 3 — Unitree simulator over DDS"):
+                        out_l3 = gr.Video(
+                            label="Unitree's own simulator and G1 model; the "
+                                  "policy sees only what the real SDK reports",
+                            height=360, interactive=False)
         log4 = gr.Textbox(label="Log", lines=8, max_lines=8,
                           elem_classes="log-box", interactive=False)
     panels.append(p4)
@@ -397,33 +407,30 @@ with gr.Blocks(title="Video2Motion") as demo:
         mname = sel or name
         if not motion or not Path(motion).exists():
             yield ("Run Step 2 first, or pick an existing motion.",
-                   None, DL_HIDDEN, "", None)
+                   tb_panel(), None, DL_HIDDEN, "", None)
             return
         job = P.Job("s3")
         threading.Thread(target=P.step3_train,
                          args=(motion, mname, float(h), float(ck), job),
                          daemon=True).start()
+        tb = tb_panel()
         while not job.done:
-            yield job.tail(), curves(job.result.get("curve")), DL_HIDDEN, "", job
+            yield job.tail(), tb, None, DL_HIDDEN, "", job
             time.sleep(1.5)
         r = job.result
-        yield (job.tail(), curves(r.get("curve")),
+        yield (job.tail(), tb, r.get("video"),
                dl(r.get("download"), "Download all checkpoints"),
                r.get("params", ""), job)
 
     b3.click(on3, [src3, s_bm, s_name, hours, ck_every],
-             [log3, plot3, d3, s_params, train_job])
-    b3.click(lambda: gr.update(choices=P.list_runs()), None, run4)
+             [log3, tb3, out_l1, d3, s_params, train_job])
+    b3.click(lambda: gr.update(choices=P.policy_choices()), None, run4)
     b3stop.click(lambda j: (j.stop() or j.tail()) if j else "Nothing running.",
                  [train_job], log3)
     r3.click(lambda: gr.update(choices=P.list_motions()), None, src3)
 
     # ══════════════════════════════════════════ step 4
-    mode4.change(lambda m: (gr.update(visible=m == "Pre-trained policy"),
-                            gr.update(visible=m != "Pre-trained policy"),
-                            gr.update(visible=m != "Pre-trained policy")),
-                 [mode4], [preset, run4, ck4])
-    r4.click(lambda r: (gr.update(choices=P.list_runs()),
+    r4.click(lambda r: (gr.update(choices=P.policy_choices()),
                         gr.update(choices=P.list_checkpoints(r) if r else [])),
              [run4], [run4, ck4])
     run4.change(lambda r: gr.update(
@@ -431,47 +438,30 @@ with gr.Blocks(title="Video2Motion") as demo:
         value="params_best" if "params_best" in P.list_checkpoints(r) else None),
         [run4], ck4)
 
-    def on4(mode, pre_label, run, ck, bm, name):
-        if mode == "Pre-trained policy":
-            ps = P.presets()
-            if pre_label not in ps:
-                yield "No pre-trained motion available.", None, DL_HIDDEN, ""
-                return
-            p = ps[pre_label]
-            if p.get("video") and Path(p["video"]).exists():
-                yield ("Loaded the pre-rendered comparison for this policy.",
-                       p["video"], dl(p["video"], "Download video"),
-                       metrics([("Motion completed", "100", "%"),
-                                ("Body position error", "0.036", "m"),
-                                ("Training steps", "500", "M"),
-                                ("Training time", "479", "min")]))
-                return
-            args = (p["params"], p["bm"], p["name"])
-        else:
-            if not run:
-                yield "Pick a training run.", None, DL_HIDDEN, ""
-                return
-            ckpt = str(P.C.TRAIN_OUT / run / (ck or "params_best"))
-            mname = run.replace("web_", "").replace("bm_", "")
-            motion = bm if bm and Path(bm).exists() else P.motion_bm(mname)
-            if not Path(motion).exists():
-                yield f"Motion file not found: {motion}", None, DL_HIDDEN, ""
-                return
-            args = (ckpt, motion, mname)
+    def on4(run, ck, bm, name):
+        sel = P.resolve_policy(run, ck)
+        if not sel:
+            yield "Pick a policy.", None, None, DL_HIDDEN, ""
+            return
+        params, motion, mname = sel
+        if not Path(motion).exists():
+            yield f"Motion file not found: {motion}", None, None, DL_HIDDEN, ""
+            return
 
         job = P.Job("s4")
-        for t in drive(job, P.step4_simulate, *args):
-            yield t, None, DL_HIDDEN, ""
+        for t in drive(job, P.step4_simulate, params, motion, mname):
+            yield t, None, None, DL_HIDDEN, ""
         r = job.result
         st = r.get("stats", {})
         s = metrics([("Motion completed", f'{st.get("pct", 0):.0f}', "%"),
                      ("Body position error", f'{st.get("err", 0):.4f}', "m"),
                      ("Zero-action baseline", f'{st.get("zero_pct", 0):.0f}', "%")
                      ]) if st else ""
-        yield job.tail(), r.get("video"), dl(r.get("download"), "Download video"), s
+        yield (job.tail(), r.get("layer2"), r.get("layer3"),
+               dl(r.get("download"), "Download video"), s)
 
-    b4.click(on4, [mode4, preset, run4, ck4, s_bm, s_name],
-             [log4, out_sim, d4, stat4])
+    b4.click(on4, [run4, ck4, s_bm, s_name],
+             [log4, out_l2, out_l3, d4, stat4])
 
 
 if __name__ == "__main__":
