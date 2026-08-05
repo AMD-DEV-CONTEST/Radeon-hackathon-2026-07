@@ -3,6 +3,12 @@
 **Source repository:** https://github.com/onenot8/TrueNorth
 **Application demonstrated:** KisanSathi (bundled sample — AI farm advisor)
 
+## Demo Video & Poster
+
+- **Demo video:** [Video Link](https://www.loom.com/share/48235690473349f4844f1d05a86208ae)
+
+- **Poster (PDF):** [`TrueNorth_Poster.pdf`](./TrueNorth_Poster.pdf)
+
 ## What this submission shows
 
 TrueNorth is an existing, actively developed open-source AI agent framework
