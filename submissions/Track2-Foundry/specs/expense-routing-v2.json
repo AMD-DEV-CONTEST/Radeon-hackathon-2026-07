@@ -1,0 +1,74 @@
+{
+  "name": "expense-routing-v2",
+  "description": "Route Meridian Consulting employee expense claims to the correct approval queue and tag the spending category, per the routing policy and its travel and software addenda.",
+  "example_noun": "expense claim",
+  "input_field": "claim",
+  "input_length": [60, 1200],
+  "seed_docs": [
+    "seeds/expense_policy.md",
+    "seeds/expense_travel_addendum.md",
+    "seeds/expense_software_policy.md"
+  ],
+  "output_schema": {
+    "routing": {
+      "type": "enum",
+      "values": ["auto_approve", "needs_manager", "needs_finance", "reject"]
+    },
+    "category": {
+      "type": "enum",
+      "values": ["travel", "meals", "client_entertainment", "software", "equipment", "office_supplies"]
+    }
+  },
+  "balance_field": "routing",
+  "datagen_guidance": "The claim must genuinely require the target routing under the policies (precedence: reject > needs_finance > needs_manager > auto_approve). State amounts explicitly and mention receipt status when it matters. Derive the category from what was purchased, not why.",
+  "facets": {
+    "personas": [
+      "consultant back from a client site visit",
+      "engagement manager who travels weekly",
+      "office coordinator restocking supplies",
+      "data analyst buying tools",
+      "partner entertaining a prospect",
+      "new hire filing their first expenses",
+      "IT admin purchasing hardware",
+      "researcher attending a conference abroad"
+    ],
+    "tones": [
+      "terse, just the facts",
+      "chatty with context",
+      "slightly defensive about the amount",
+      "apologetic about late filing",
+      "matter-of-fact"
+    ],
+    "lengths": ["1-2 sentences", "3-4 sentences", "one short paragraph"],
+    "wrinkles": [
+      "mentions the client project code",
+      "mentions the receipt is attached",
+      "mentions the receipt is missing",
+      "filed weeks after the purchase",
+      "no wrinkle",
+      "no wrinkle"
+    ],
+    "situations": {
+      "auto_approve": [
+        "a small meal, travel, or office-supply purchase under $75 with a receipt attached"
+      ],
+      "needs_manager": [
+        "a mid-range purchase between $75 and $500 with a receipt",
+        "a purchase of any size where the receipt is missing",
+        "a team meal with three or more employees"
+      ],
+      "needs_finance": [
+        "a purchase over $500",
+        "a recurring software subscription of any amount",
+        "international travel of any amount",
+        "client entertainment over $150"
+      ],
+      "reject": [
+        "an alcohol-only purchase",
+        "a fine or penalty",
+        "a personal item or personal subscription",
+        "a gift card purchase"
+      ]
+    }
+  }
+}

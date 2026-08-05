@@ -1,0 +1,61 @@
+# SWAP TRIAL config: Qwen3.6-35B-A3B as teacher. Identical to
+# cloud_radeon.toml except the teacher GGUF and template kwargs
+# (3.6 is thinking-hybrid; disable for datagen throughput + JSON).
+
+[task]
+spec = "specs/triage.json"
+
+[run]
+seed = 17
+out_root = "runs"
+
+[teacher]
+base_url = "http://127.0.0.1:8123/v1"
+gguf = "models/teacher36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf"
+server_exe = "/opt/llama.cpp/build/bin/llama-server"
+n_gpu_layers = 99
+parallel = 8
+ctx_per_slot = 8192
+temperature = 0.9
+max_tokens = 512
+
+[teacher.chat_template_kwargs]
+enable_thinking = false
+
+[datagen]
+seed_doc = "seeds/triage_policy.md"
+n_train = 900
+n_holdout = 100
+max_attempts_factor = 3
+context_budget_chars = 6000
+
+[student]
+hf_path = "models/student/Qwen3-0.6B"
+device = "cuda"
+
+[train]
+backend = "peft"
+lora_r = 16
+lora_alpha = 32
+lora_dropout = 0.05
+lr = 1e-4
+epochs = 3
+batch_size = 4
+grad_accum = 4
+max_seq_len = 512
+bf16 = true
+
+[eval]
+max_new_tokens = 80
+
+[export]
+llama_src = "/opt/llama.cpp"
+quant = "q8_0"
+
+[orchestration]
+free_gpu_for_training = false
+
+[agent]
+max_tool_iters = 20
+temperature = 0.7
+max_tokens = 1024
