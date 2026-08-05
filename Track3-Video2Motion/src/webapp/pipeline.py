@@ -163,51 +163,49 @@ def list_runs() -> list[str]:
                   if (d / "params_best").exists())
 
 
-def bundle(name: str) -> str | None:
-    """Zip everything that exists for `name`, across every stage, or None.
-
-    Offered as soon as a source is picked rather than only after a run: the
-    file you want is usually one an earlier session already produced, and
-    re-running a stage just to get a download back is wasted GPU time.
-    """
+def bundle_smplx(name: str) -> str | None:
+    """Step 1's output: GVHMR's result file and its preview renders."""
     if not name:
         return None
-    mn = name.removeprefix("web_").removeprefix("bm_")
+    d = GVHMR / "outputs" / "demo" / name
+    return _zip(d, DL / f"{name}_smplx.zip") if d.is_dir() else None
 
-    items: list[tuple[Path, str]] = []
-    smplx = GVHMR / "outputs" / "demo" / mn
-    if smplx.is_dir():
-        items += [(f, f"{mn}/1_smplx/{f.name}")
-                  for f in sorted(smplx.iterdir()) if f.is_file()]
-    # The stage directories reuse the same basename — motions_mjx/x.npz and
-    # motions_bm/x.npz differ only by directory — so the archive name has to
-    # carry the stage, or one silently lands on top of the other.
-    for f, arc in ((C.MOTIONS_RAW / f"{mn}.pkl", "2_motion/gmr.pkl"),
-                   (C.MOTIONS_MJX / f"{mn}.npz", "2_motion/mjx.npz"),
-                   (C.MOTIONS_BM / f"{mn}.npz", "2_motion/training_reference.npz"),
-                   (C.RENDER_OUT / f"replay_{mn}.mp4", "2_motion/replay.mp4"),
-                   (C.RENDER_OUT / f"{mn}_retarget.mp4", "2_motion/retarget.mp4"),
-                   (C.RENDER_OUT / f"web_{mn}_layer1.mp4", "4_simulation/layer1_mjx.mp4"),
-                   (C.RENDER_OUT / f"web_{mn}_layer2.mp4", "4_simulation/layer2_mujoco_c.mp4"),
-                   (C.RENDER_OUT / f"{mn}_layer3.mp4", "4_simulation/layer3_unitree_dds.mp4"),
-                   (C.DEPLOY_OUT / f"track_{mn}.npz", "4_simulation/policy_numpy.npz")):
-        if f.exists():
-            items.append((f, f"{mn}/{arc}"))
-    for run in (f"web_{mn}", f"bm_{mn}", mn):
-        d = C.TRAIN_OUT / run
-        if (d / "params_best").exists():
-            items += [(f, f"{mn}/3_policy/{f.relative_to(d)}")
-                      for f in sorted(d.rglob("*")) if f.is_file()]
-            break
 
+def bundle_motion(name: str) -> str | None:
+    """Step 2's output: the retargeted G1 trajectory in all three forms."""
+    if not name:
+        return None
+    # Same basename in three directories, so the archive names have to say
+    # which is which rather than landing on top of each other.
+    items = [(C.MOTIONS_RAW / f"{name}.pkl", "gmr.pkl"),
+             (C.MOTIONS_MJX / f"{name}.npz", "mjx.npz"),
+             (C.MOTIONS_BM / f"{name}.npz", "training_reference.npz"),
+             (C.RENDER_OUT / f"replay_{name}.mp4", "replay.mp4"),
+             (C.RENDER_OUT / f"{name}_retarget.mp4", "retarget.mp4")]
+    items = [(f, a) for f, a in items if f.exists()]
     if not items:
         return None
-    dest = DL / f"{mn}_files.zip"
+    dest = DL / f"{name}_g1_motion.zip"
     dest.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(dest, "w", zipfile.ZIP_DEFLATED) as z:
         for f, arc in items:
-            z.write(f, arc)
+            z.write(f, f"{name}/{arc}")
     return str(dest)
+
+
+def bundle_checkpoint(run: str, ck: str | None) -> str | None:
+    """Step 3's output: one checkpoint, not the whole run.
+
+    A finished run holds ~70 checkpoints and several hundred megabytes of
+    shard files; zipping all of it to hand over the one that was selected is
+    not a download anybody wants.
+    """
+    if not run:
+        return None
+    d = C.TRAIN_OUT / run / (ck or "params_best")
+    if not d.exists():
+        return None
+    return _zip(d, DL / f"{run}_{d.name}.zip")
 
 
 def policy_choices() -> list[str]:

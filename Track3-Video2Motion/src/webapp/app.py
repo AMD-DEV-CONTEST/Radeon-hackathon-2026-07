@@ -206,10 +206,10 @@ with gr.Blocks(title="Video2Motion") as demo:
                     info="Must be unique; every generated file inherits it")
                 in_video = gr.Video(label="Input video", height=232)
                 b1 = gr.Button("Run Step 1 — Extract motion", variant="primary")
-                d1 = gr.DownloadButton("Download SMPL-X result", visible=False)
             with gr.Column(scale=6):
                 out_smpl = gr.Video(label="SMPL-X pose estimate", height=330,
                                     interactive=False)
+                d1 = gr.DownloadButton("Download video", visible=False, size="sm")
         log1 = gr.Textbox(label="Log", lines=8, max_lines=8,
                           elem_classes="log-box", interactive=False)
     panels.append(p1)
@@ -225,11 +225,12 @@ with gr.Blocks(title="Video2Motion") as demo:
                 src2 = gr.Dropdown(label="Source",
                                    info="From Step 1, or an earlier result",
                                    choices=P.list_smpl(), allow_custom_value=True)
+                ds2 = gr.DownloadButton("Download Step 1 files", visible=False,
+                                        size="sm")
                 with gr.Row():
                     r2 = gr.Button("↻ Refresh", scale=1)
                     b2 = gr.Button("Run Step 2 — Retarget", variant="primary",
                                    scale=3)
-                d2 = gr.DownloadButton("Download G1 trajectory", visible=False)
                 gr.HTML('<div class="note"><b>Why Step 3 exists.</b> What comes '
                         'out here is a <b>joint-angle animation</b>: it records '
                         'the <i>result</i> of a pose, not the <i>control effort</i> '
@@ -239,6 +240,7 @@ with gr.Blocks(title="Video2Motion") as demo:
                 out_retarget = gr.Video(
                     label="Retargeted motion — kinematic replay, no physics",
                     height=330, interactive=False)
+                d2 = gr.DownloadButton("Download video", visible=False, size="sm")
         log2 = gr.Textbox(label="Log", lines=8, max_lines=8,
                           elem_classes="log-box", interactive=False)
     panels.append(p2)
@@ -258,6 +260,8 @@ with gr.Blocks(title="Video2Motion") as demo:
                                    info="From Step 2, or an earlier one",
                                    choices=P.list_motions(),
                                    allow_custom_value=True)
+                ds3 = gr.DownloadButton("Download Step 2 files", visible=False,
+                                        size="sm")
                 hours = gr.Number(value=8, minimum=0.02, step=1,
                                   label="Training budget (hours)",
                                   info="No upper limit — a hard motion may need "
@@ -271,13 +275,13 @@ with gr.Blocks(title="Video2Motion") as demo:
                     r3 = gr.Button("↻ Refresh", scale=1)
                     b3 = gr.Button("Start training", variant="primary", scale=2)
                     b3stop = gr.Button("Stop", variant="stop", scale=1)
-                d3 = gr.DownloadButton("Download all checkpoints", visible=False)
             with gr.Column(scale=6):
                 tb3 = gr.HTML()
                 out_l1 = gr.Video(
                     label="Layer 1 — the policy in MJX, the engine it trained in"
                           "   ·   left: reference,  right: physics",
                     height=330, interactive=False)
+                d3 = gr.DownloadButton("Download video", visible=False, size="sm")
         log3 = gr.Textbox(label="Log", lines=9, max_lines=9,
                           elem_classes="log-box", interactive=False)
     panels.append(p3)
@@ -299,11 +303,12 @@ with gr.Blocks(title="Video2Motion") as demo:
                                    allow_custom_value=True)
                 ck4 = gr.Dropdown(label="Checkpoint", choices=[],
                                   allow_custom_value=True)
+                ds4 = gr.DownloadButton("Download this checkpoint",
+                                        visible=False, size="sm")
                 with gr.Row():
                     r4 = gr.Button("↻ Refresh", scale=1)
                     b4 = gr.Button("Run Step 4 — Simulate", variant="primary",
                                    scale=3)
-                d4 = gr.DownloadButton("Download video", visible=False)
                 stat4 = gr.HTML()
             with gr.Column(scale=6):
                 with gr.Tabs():
@@ -312,11 +317,15 @@ with gr.Blocks(title="Video2Motion") as demo:
                             label="Same weights re-implemented in NumPy, stepped "
                                   "by MuJoCo's C solver instead of MJX/JAX",
                             height=360, interactive=False)
+                        d4a = gr.DownloadButton("Download video", visible=False,
+                                                size="sm")
                     with gr.Tab("Layer 3 — Unitree simulator over DDS"):
                         out_l3 = gr.Video(
                             label="Unitree's own simulator and G1 model; the "
                                   "policy sees only what the real SDK reports",
                             height=360, interactive=False)
+                        d4b = gr.DownloadButton("Download video", visible=False,
+                                                size="sm")
         log4 = gr.Textbox(label="Log", lines=8, max_lines=8,
                           elem_classes="log-box", interactive=False)
     panels.append(p4)
@@ -360,8 +369,7 @@ with gr.Blocks(title="Video2Motion") as demo:
         for t in drive(job, P.step1, video, name):
             yield t, None, DL_HIDDEN, "", ""
         r = job.result
-        yield (job.tail(), r.get("preview"),
-               dl(r.get("download"), "Download SMPL-X result"),
+        yield (job.tail(), r.get("preview"), dl(r.get("preview"), "Download video"),
                r.get("name", ""), r.get("pt", ""))
 
     b1.click(on1, [in_video, in_name], [log1, out_smpl, d1, s_name, s_pt])
@@ -382,8 +390,7 @@ with gr.Blocks(title="Video2Motion") as demo:
         for t in drive(job, P.step2, chosen, pt_path):
             yield t, None, DL_HIDDEN, "", ""
         r = job.result
-        yield (job.tail(), r.get("replay"),
-               dl(r.get("download"), "Download G1 trajectory"),
+        yield (job.tail(), r.get("replay"), dl(r.get("replay"), "Download video"),
                r.get("bm", ""), chosen)
 
     b2.click(on2, [src2, s_name, s_pt], [log2, out_retarget, d2, s_bm, s_name])
@@ -419,8 +426,7 @@ with gr.Blocks(title="Video2Motion") as demo:
             time.sleep(1.5)
         r = job.result
         yield (job.tail(), tb, r.get("video"),
-               dl(r.get("download"), "Download all checkpoints"),
-               r.get("params", ""), job)
+               dl(r.get("video"), "Download video"), r.get("params", ""), job)
 
     b3.click(on3, [src3, s_bm, s_name, hours, ck_every],
              [log3, tb3, out_l1, d3, s_params, train_job])
@@ -441,16 +447,17 @@ with gr.Blocks(title="Video2Motion") as demo:
     def on4(run, ck, bm, name):
         sel = P.resolve_policy(run, ck)
         if not sel:
-            yield "Pick a policy.", None, None, DL_HIDDEN, ""
+            yield "Pick a policy.", None, None, DL_HIDDEN, DL_HIDDEN, ""
             return
         params, motion, mname = sel
         if not Path(motion).exists():
-            yield f"Motion file not found: {motion}", None, None, DL_HIDDEN, ""
+            yield (f"Motion file not found: {motion}", None, None,
+                   DL_HIDDEN, DL_HIDDEN, "")
             return
 
         job = P.Job("s4")
         for t in drive(job, P.step4_simulate, params, motion, mname):
-            yield t, None, None, DL_HIDDEN, ""
+            yield t, None, None, DL_HIDDEN, DL_HIDDEN, ""
         r = job.result
         st = r.get("stats", {})
         s = metrics([("Motion completed", f'{st.get("pct", 0):.0f}', "%"),
@@ -458,22 +465,27 @@ with gr.Blocks(title="Video2Motion") as demo:
                      ("Zero-action baseline", f'{st.get("zero_pct", 0):.0f}', "%")
                      ]) if st else ""
         yield (job.tail(), r.get("layer2"), r.get("layer3"),
-               dl(r.get("download"), "Download video"), s)
+               dl(r.get("layer2"), "Download video"),
+               dl(r.get("layer3"), "Download video"), s)
 
     b4.click(on4, [run4, ck4, s_bm, s_name],
-             [log4, out_l2, out_l3, d4, stat4])
+             [log4, out_l2, out_l3, d4a, d4b, stat4])
 
 
     # ══════════════════════════════════════════ downloads on selection
-    # Picking a source is enough to know what there is to download, so the
-    # button lights up immediately with everything that already exists for that
-    # name — no need to re-run a stage just to get its output back.
-    def _offer(name):
-        return dl(P.bundle(name), "Download files")
-
-    src2.change(_offer, [src2], d2)
-    src3.change(_offer, [src3], d3)
-    run4.change(_offer, [run4], d4)
+    # Each step offers what the step before it produced, as soon as a source is
+    # picked — the files are usually already on disk from an earlier session,
+    # and re-running a stage to get its output back wastes GPU time.
+    src2.change(lambda n: dl(P.bundle_smplx(n), "Download Step 1 files"),
+                [src2], ds2)
+    src3.change(lambda n: dl(P.bundle_motion(n), "Download Step 2 files"),
+                [src3], ds3)
+    # A finished run is hundreds of megabytes across ~70 checkpoints, so this
+    # hands over the selected one only.
+    ck4.change(lambda r, c: dl(P.bundle_checkpoint(r, c),
+                               "Download this checkpoint"), [run4, ck4], ds4)
+    run4.change(lambda r, c: dl(P.bundle_checkpoint(r, c),
+                                "Download this checkpoint"), [run4, ck4], ds4)
 
 
 if __name__ == "__main__":
