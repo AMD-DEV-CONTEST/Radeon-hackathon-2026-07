@@ -464,6 +464,18 @@ with gr.Blocks(title="Video2Motion") as demo:
              [log4, out_l2, out_l3, d4, stat4])
 
 
+    # ══════════════════════════════════════════ downloads on selection
+    # Picking a source is enough to know what there is to download, so the
+    # button lights up immediately with everything that already exists for that
+    # name — no need to re-run a stage just to get its output back.
+    def _offer(name):
+        return dl(P.bundle(name), "Download files")
+
+    src2.change(_offer, [src2], d2)
+    src3.change(_offer, [src3], d3)
+    run4.change(_offer, [run4], d4)
+
+
 if __name__ == "__main__":
     demo.queue(default_concurrency_limit=2).launch(
         server_name="0.0.0.0", server_port=7860,

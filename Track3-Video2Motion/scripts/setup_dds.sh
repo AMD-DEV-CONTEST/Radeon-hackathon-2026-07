@@ -30,6 +30,20 @@ cp "$REPO/src/third_party_patches/"*.py "$THIRD/unitree_mujoco/simulate_python/"
 cp "$REPO/docker/cyclonedds_lo.xml" "$THIRD/cyclonedds_lo.xml"
 info "patched unitree_mujoco (PD moved out of the DDS callback, headless recorder)"
 
+# unitree_mujoco ships configured for the Go2 — a 12-joint quadruped. Left
+# alone, the simulator loads that model and the first write of a 29-joint G1
+# pose dies with "could not broadcast input array from shape (29,) into shape
+# (12,)", long before any DDS traffic, so the controller just times out waiting
+# for a LowState it will never get.
+CFG="$THIRD/unitree_mujoco/simulate_python/config.py"
+sed -i 's/^ROBOT = .*/ROBOT = "g1"  # set by setup_dds.sh/' "$CFG"
+# The headless recorder assigns this to mj_model.opt.timestep, so it silently
+# overrides the 0.002 s in the scene XML. Training runs at 0.002; leaving
+# upstream's 0.005 here means layer 3 validates against different physics.
+sed -i 's/^SIMULATE_DT = .*/SIMULATE_DT = 0.002  # match training; set by setup_dds.sh/' "$CFG"
+info "configured unitree_mujoco for the G1 at 0.002 s"
+grep -E '^(ROBOT|SIMULATE_DT) =' "$CFG" | sed 's/^/    /'
+
 cat <<MSG
 
   Add to your shell profile:

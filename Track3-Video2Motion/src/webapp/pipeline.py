@@ -163,6 +163,50 @@ def list_runs() -> list[str]:
                   if (d / "params_best").exists())
 
 
+def bundle(name: str) -> str | None:
+    """Zip everything that exists for `name`, across every stage, or None.
+
+    Offered as soon as a source is picked rather than only after a run: the
+    file you want is usually one an earlier session already produced, and
+    re-running a stage just to get a download back is wasted GPU time.
+    """
+    if not name:
+        return None
+    mn = name.removeprefix("web_").removeprefix("bm_")
+
+    items: list[tuple[Path, str]] = []
+    smplx = GVHMR / "outputs" / "demo" / mn
+    if smplx.is_dir():
+        items += [(f, f"{mn}/1_smplx/{f.name}")
+                  for f in sorted(smplx.iterdir()) if f.is_file()]
+    for f, arc in ((C.MOTIONS_RAW / f"{mn}.pkl", "2_motion"),
+                   (C.MOTIONS_MJX / f"{mn}.npz", "2_motion"),
+                   (C.MOTIONS_BM / f"{mn}.npz", "2_motion"),
+                   (C.RENDER_OUT / f"replay_{mn}.mp4", "2_motion"),
+                   (C.RENDER_OUT / f"{mn}_retarget.mp4", "2_motion"),
+                   (C.RENDER_OUT / f"web_{mn}_layer1.mp4", "4_simulation"),
+                   (C.RENDER_OUT / f"web_{mn}_layer2.mp4", "4_simulation"),
+                   (C.RENDER_OUT / f"{mn}_layer3.mp4", "4_simulation"),
+                   (C.DEPLOY_OUT / f"track_{mn}.npz", "4_simulation")):
+        if f.exists():
+            items.append((f, f"{mn}/{arc}/{f.name}"))
+    for run in (f"web_{mn}", f"bm_{mn}", mn):
+        d = C.TRAIN_OUT / run
+        if (d / "params_best").exists():
+            items += [(f, f"{mn}/3_policy/{f.relative_to(d)}")
+                      for f in sorted(d.rglob("*")) if f.is_file()]
+            break
+
+    if not items:
+        return None
+    dest = DL / f"{mn}_files.zip"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(dest, "w", zipfile.ZIP_DEFLATED) as z:
+        for f, arc in items:
+            z.write(f, arc)
+    return str(dest)
+
+
 def policy_choices() -> list[str]:
     """Every run that has a usable checkpoint, shipped example included.
 
