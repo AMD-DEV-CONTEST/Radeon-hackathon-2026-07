@@ -1,4 +1,6 @@
+import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -12,6 +14,41 @@ from xianglens.storage.knowledge_store import (
 )
 from xianglens.storage.sqlite_store import SQLiteStore
 from xianglens.tools.image_tools import ImageInspector
+
+
+class MissingComparisonRationaleModel(FakeModelClient):
+    def __init__(self) -> None:
+        self.comparison_calls = 0
+
+    async def chat(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        temperature: float = 0.2,
+        max_tokens: int = 1200,
+    ) -> str:
+        if "CandidateComparison" in str(messages[0]["content"]):
+            self.comparison_calls += 1
+            context = json.loads(str(messages[1]["content"]))
+            return json.dumps(
+                {
+                    "recommended_image_id": context["image_ids"][0],
+                    "candidates": [
+                        {
+                            "image_id": image_id,
+                            "crop_resilience": 4,
+                            "small_size_clarity": 4,
+                            "privacy_safety": 5,
+                            "intent_alignment": 4,
+                            "contextual_ambiguity": 2,
+                        }
+                        for image_id in context["image_ids"]
+                    ],
+                    "decision_rule": "Privacy overrides the aggregate score.",
+                    "caveat": "The model omitted candidate rationale text.",
+                }
+            )
+        return await super().chat(messages, temperature=temperature, max_tokens=max_tokens)
 
 
 @pytest.mark.asyncio
@@ -147,3 +184,49 @@ async def test_graph_compares_multiple_images_and_proposes_memory(tmp_path: Path
     assert result["memory_proposal_draft"]["text"] == ("Red is an intentional brand color.")
     assert database.list_memories("ada") == []
     assert "Pending approval" in result["report_markdown"]
+
+
+@pytest.mark.asyncio
+async def test_comparison_fills_rationales_after_model_repair_omits_them(
+    tmp_path: Path,
+) -> None:
+    database = SQLiteStore(tmp_path / "state.sqlite3")
+    database.initialize()
+    thread = database.create_thread("ada")
+    records = load_knowledge_records(
+        PROJECT_ROOT / "data/knowledge/cards.yaml",
+        PROJECT_ROOT / "data/knowledge/sources.yaml",
+    )
+    model = MissingComparisonRationaleModel()
+    graph = build_graph(
+        GraphServices(
+            model=model,
+            knowledge=InMemoryKnowledgeStore(records, HashingEmbedder()),
+            database=database,
+            image_inspector=ImageInspector(20_000_000, 30_000_000),
+        )
+    )
+    images = list((PROJECT_ROOT / "data/fixtures/images").glob("*.jpg"))[:2]
+
+    result = await graph.ainvoke(
+        {
+            "thread_id": thread["id"],
+            "user_id": "ada",
+            "message": "Compare these images for a GitHub profile.",
+            "platform": "GitHub",
+            "audience": "international collaborators",
+            "intent_keywords": ["credible"],
+            "enabled_packs": ["profile_basics", "privacy_safety"],
+            "image_paths": images,
+            "tool_trace": [],
+        }
+    )
+
+    assert model.comparison_calls == 2
+    assert all(
+        candidate["rationale"].startswith(
+            "Code-generated summary of the model's returned rubric scores:"
+        )
+        for candidate in result["comparison"]["candidates"]
+    )
+    assert "## Comparison" in result["report_markdown"]

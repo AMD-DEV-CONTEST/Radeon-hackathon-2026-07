@@ -605,6 +605,14 @@ XIANG_APP_API_KEY=a-long-random-production-value
 - Inspect both service logs.
 - Verify that FastAPI uses port 8080 and `llama-server` uses port 8000.
 
+### Comparison fails because candidate `rationale` is missing
+
+The comparison schema still requires all five scores, every supplied image ID, the recommendation,
+and the decision rule. After one model repair, XiangLens may fill only a missing candidate
+`rationale` with a transparent code-generated summary of the scores the model already returned. It
+does not invent or repair missing scores. Pull the latest backend commit and restart FastAPI if an
+older deployment still reports this validation error.
+
 ### `rc-tunnel` cannot expose FastAPI
 
 - Confirm FastAPI listens on `127.0.0.1:8080`.

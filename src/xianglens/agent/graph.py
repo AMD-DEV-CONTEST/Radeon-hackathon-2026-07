@@ -69,6 +69,39 @@ SENSITIVE_MEMORY_TERMS = (
 
 ModelSchema = TypeVar("ModelSchema", bound=BaseModel)
 
+COMPARISON_SCORE_FIELDS = (
+    ("crop_resilience", "crop resilience"),
+    ("small_size_clarity", "small-size clarity"),
+    ("privacy_safety", "privacy safety"),
+    ("intent_alignment", "intent alignment"),
+    ("contextual_ambiguity", "contextual ambiguity"),
+)
+
+
+def _fill_missing_comparison_rationales(value: dict[str, Any]) -> dict[str, Any]:
+    """Add a transparent score summary only when the model omitted rationale text."""
+    candidates = value.get("candidates")
+    if not isinstance(candidates, list):
+        return value
+    normalized = {**value, "candidates": []}
+    for raw_candidate in candidates:
+        if not isinstance(raw_candidate, dict):
+            normalized["candidates"].append(raw_candidate)
+            continue
+        candidate = dict(raw_candidate)
+        if not str(candidate.get("rationale", "")).strip() and all(
+            isinstance(candidate.get(field), int) for field, _ in COMPARISON_SCORE_FIELDS
+        ):
+            score_summary = ", ".join(
+                f"{label} {candidate[field]}/5" for field, label in COMPARISON_SCORE_FIELDS
+            )
+            candidate["rationale"] = (
+                "Code-generated summary of the model's returned rubric scores: "
+                f"{score_summary}."
+            )
+        normalized["candidates"].append(candidate)
+    return normalized
+
 
 def _trace(
     state: XiangLensState,
@@ -211,6 +244,14 @@ def build_graph(services: GraphServices):
             except (ModelRequestError, ValidationError) as exc:
                 last_error = str(exc)
                 if attempt == 1:
+                    if schema is CandidateComparison:
+                        try:
+                            normalized = _fill_missing_comparison_rationales(
+                                parse_json_object(raw)
+                            )
+                            return schema.model_validate(normalized)
+                        except (ModelRequestError, ValidationError) as fallback_exc:
+                            last_error = f"{last_error}; fallback failed: {fallback_exc}"
                     break
                 raw = await services.model.chat(
                     [
@@ -508,7 +549,7 @@ def build_graph(services: GraphServices):
                         "from 0 to 5: crop_resilience, small_size_clarity, privacy_safety, "
                         "intent_alignment, and contextual_ambiguity. A privacy risk overrides the "
                         "aggregate score. Higher contextual_ambiguity means more ambiguity. "
-                        "Use only "
+                        "Every candidates item must include a non-empty rationale string. Use only "
                         "the supplied image IDs. Return only JSON matching CandidateComparison."
                     ),
                 },
