@@ -57,9 +57,7 @@ bash start.sh   # llama-server + Streamlit + cloudflared tunnel
 
 `app.py` (full WebUI) · `setup.sh` (one-click deploy) · `start.sh` (one-click launch) · `README_zh.md` (Chinese docs)
 
-## 🎥 Demo
 
-[3-minute demo video — link]() *(fill after upload)*
 
 ## Acknowledgements
 
