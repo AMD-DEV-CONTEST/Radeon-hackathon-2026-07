@@ -27,3 +27,6 @@ Radeon GPU (ROCm + vLLM).
   two-attempt retries.
 - Page-to-question whitelist blocks hallucinated question numbers.
 - State saved after every step: crash-safe and idempotent.
+
+## Demo Video
+- https://www.bilibili.com/video/BV1LhMy6gERG
