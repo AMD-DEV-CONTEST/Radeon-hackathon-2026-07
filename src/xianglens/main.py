@@ -42,13 +42,6 @@ def create_app(settings: Settings | None = None, services: AppServices | None = 
     )
     app.state.session_tokens = session_tokens
     app.state.session_limiter = SessionIssueLimiter(settings.session_issue_limit_per_minute)
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.allowed_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
 
     @app.middleware("http")
     async def api_key_gate(request: Request, call_next):
@@ -87,6 +80,17 @@ def create_app(settings: Settings | None = None, services: AppServices | None = 
                 },
             )
         return await call_next(request)
+
+    # Starlette executes the most recently registered middleware first. Register
+    # CORS after the authentication gate so even direct 401 responses include
+    # Access-Control-Allow-Origin instead of appearing as opaque browser errors.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.allowed_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     app.include_router(router)
     return app

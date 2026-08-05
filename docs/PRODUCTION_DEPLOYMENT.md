@@ -548,7 +548,28 @@ Set exactly:
 XIANG_ALLOWED_ORIGINS=https://ld0574.github.io
 ```
 
-Restart FastAPI. Do not include `/Radeon-hackathon-2026-07/` in the CORS origin.
+Restart FastAPI. Do not include `/Radeon-hackathon-2026-07/` in the CORS origin. CORS must also wrap
+authentication failures: an expired or missing short-lived token returns `401`, but that response
+still needs `Access-Control-Allow-Origin` or the browser will hide the real error behind a CORS
+message.
+
+Verify both the preflight and the expected unauthenticated `401` after deploying the latest code:
+
+```bash
+xiang_public_url=https://rc-0123456789abcdef.radeon.firstdg.ai
+
+curl -i -X OPTIONS "$xiang_public_url/api/v1/system/status" \
+  -H 'Origin: https://ld0574.github.io' \
+  -H 'Access-Control-Request-Method: GET' \
+  -H 'Access-Control-Request-Headers: authorization'
+
+curl -i "$xiang_public_url/api/v1/system/status" \
+  -H 'Origin: https://ld0574.github.io'
+```
+
+Both responses must include `Access-Control-Allow-Origin: https://ld0574.github.io`. The second
+response should otherwise remain `401 Unauthorized`; that proves the browser can now read the real
+authentication result. If the token expired, start a new private access session before continuing.
 
 ### The UI reports `Access-session issuance is not enabled`
 

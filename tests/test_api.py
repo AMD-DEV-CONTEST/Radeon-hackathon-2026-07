@@ -129,6 +129,21 @@ def test_access_sessions_use_bearer_tokens_and_isolate_visitors(tmp_path: Path) 
         )
 
 
+def test_auth_rejection_keeps_cors_headers_on_stream_route(tmp_path: Path) -> None:
+    origin = "http://127.0.0.1:3000"
+    with TestClient(_test_app(tmp_path)) as client:
+        response = client.post(
+            "/api/v1/threads/stale-thread/runs/stream",
+            headers={"Origin": origin, "Content-Type": "application/json"},
+            json={},
+        )
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "A valid access session is required"}
+    assert response.headers["access-control-allow-origin"] == origin
+    assert response.headers["access-control-allow-credentials"] == "true"
+
+
 def test_api_executes_the_complete_graph(tmp_path: Path) -> None:
     headers = {"X-App-API-Key": "test-key"}
     image_path = next((PROJECT_ROOT / "data/fixtures/images").glob("*.jpg"))
