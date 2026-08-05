@@ -75,6 +75,10 @@ MOTORS_DOF = np.arange(7)
 FINGERS_DOF = np.arange(7, 9)
 CLOSE_FORCE = -12.0
 
+# Genesis can diverge to NaN under high-load parallel simulation. Skip up to this
+# many consecutive NaN batches before aborting (a persistent, non-transient issue).
+MAX_CONSECUTIVE_BATCH_FAILURES = 8
+
 CONTROL_FPS = 100
 JOINT_NAMES = [
     "panda_joint1", "panda_joint2", "panda_joint3", "panda_joint4",
@@ -635,6 +639,7 @@ def main() -> None:
 
     n_success = 0
     batch_num = 0
+    consecutive_failures = 0
     max_batches = args.max_batches if args.max_batches > 0 else (args.episodes // n + 5) * 3
 
     print(f"[record_parallel] n_envs={n}, target={args.episodes} episodes, "
@@ -697,10 +702,28 @@ def main() -> None:
             r = BatchRecorder(bundle, env_idx=i, fps=args.fps, img_wh=img_wh)
             recorders.append(r)
 
-        # Run the batch
+        # Run the batch. Genesis occasionally diverges to NaN under high-load
+        # parallel simulation (invalid accelerations/constraint forces). Each
+        # batch starts with a full env reset, so a NaN in one batch only poisons
+        # that batch: skip it and continue with the next seed, keeping episodes
+        # already saved. Only abort if too many consecutive batches fail (a
+        # persistent, non-transient solver issue).
         import time
         t0 = time.time()
-        successes = _run_one_batch(bundle, env_specs, recorders, ycb_names)
+        try:
+            successes = _run_one_batch(bundle, env_specs, recorders, ycb_names)
+        except gs.GenesisException as exc:
+            print(f"[record_parallel] batch {batch_num}: solver divergence "
+                  f"({exc}); skipping batch")
+            consecutive_failures += 1
+            batch_num += 1
+            if consecutive_failures >= MAX_CONSECUTIVE_BATCH_FAILURES:
+                raise RuntimeError(
+                    f"[record_parallel] {MAX_CONSECUTIVE_BATCH_FAILURES} consecutive "
+                    f"NaN batches — aborting (persistent solver issue)"
+                )
+            continue
+        consecutive_failures = 0
         t1 = time.time()
 
         # Save successful episodes
