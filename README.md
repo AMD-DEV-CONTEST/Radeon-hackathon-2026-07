@@ -18,6 +18,10 @@
 
 </div>
 
+### 📹 Video Demos
+- 🌐 **Web Application & Live GitHub PR Demo**: [Watch Video 1 (Loom)](https://www.loom.com/share/f072d7af4e6d4e58bc945300fb28e9f4?t=154)
+- 💻 **Terminal TUI & CLI Demo**: [Watch Video 2 (Loom)](https://www.loom.com/share/b97685e7e56e40468daa6d34aa97dfe0)
+
 ### Key Capabilities at a Glance
 
 * **Parallel Agent Pipeline**: Runs security scanning, OWASP vector checks, and code quality checks simultaneously using LangGraph.

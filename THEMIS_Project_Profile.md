@@ -2,6 +2,10 @@
 **AMD AI DevMaster Hackathon Submission (Track 3 — Agentic AI)**  
 **Team**: Alchemy | **Hardware**: AMD Radeon PRO W7900D (48GB GDDR6 VRAM) | **Stack**: AMD ROCm 7.2.1, vLLM, LangGraph, FastAPI, React
 
+### 📹 Demo Videos
+- 🌐 **Web Application & Live GitHub PR Demo**: [Watch Video 1 (Loom)](https://www.loom.com/share/f072d7af4e6d4e58bc945300fb28e9f4?t=154)
+- 💻 **Terminal TUI & CLI Demo**: [Watch Video 2 (Loom)](https://www.loom.com/share/b97685e7e56e40468daa6d34aa97dfe0)
+
 ---
 
 ## 1. Project Overview & Background
