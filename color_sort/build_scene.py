@@ -146,7 +146,7 @@ def _add_ycb_object(scene: gs.Scene, name: str, asset) -> gs.RigidEntity:
             pos=(x, y, z),
             euler=layout["euler"],
             align=False,
-            convexify=False,
+            convexify=True,
             decimate_face_num=500,
         ),
         material=gs.materials.Rigid(rho=300.0, friction=asset.friction),

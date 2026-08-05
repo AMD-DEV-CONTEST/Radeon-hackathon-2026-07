@@ -70,7 +70,7 @@ DEFAULT_PROFILE = GraspProfile()
 GRASP_PROFILES: dict[str, GraspProfile] = {
     "011_banana": GraspProfile(yaw_offset=90.0, grasp_hand_z=TABLE_TOP_Z + 0.105, close_force=-10.0),
     "018_plum": GraspProfile(yaw_offset=0.0, close_force=-12.0, center_align=True),
-    "017_orange": GraspProfile(yaw_offset=0.0, close_force=-12.0, center_align=True),
+    "012_strawberry": GraspProfile(yaw_offset=0.0, close_force=-12.0, center_align=True),
     "014_lemon": GraspProfile(yaw_offset=0.0, close_force=-12.0, center_align=True),
 }
 
