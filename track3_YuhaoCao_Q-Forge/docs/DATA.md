@@ -26,6 +26,23 @@ The primary dataset contains 300 episodes and 60,505 transitions:
 This same-state outcome diversity is essential for learning useful local action
 gradients.
 
+## Task 3 replication data
+
+The second-task replication uses LIBERO-Spatial Task 3: *pick up the black bowl
+on the cookie box and place it on the plate*. The supervised dataset is formed
+by sorting the public task-specific episodes by global episode index and taking
+the first 20, without filtering by trajectory length or outcome.
+
+The same local-perturbation protocol produces:
+
+- 300 policy rollouts from 50 reset states;
+- 38,509 transitions;
+- 225 successful and 75 failed episodes;
+- 22/50 reset states with both successful and failed outcomes.
+
+Task 3 uses the same 0–39 critic-training and 40–49 critic-validation state split
+and the same paired inference seed 2001 for the final four-way comparison.
+
 ## Splits
 
 - critic training reset states: 0–39;
@@ -43,4 +60,3 @@ Raw rollout pickle files, image streams, feature caches, and model checkpoints a
 large generated artifacts and are excluded from the source repository. They
 contain simulated robot observations rather than personal data. Commands to
 regenerate them are in `REPRODUCTION.md`.
-

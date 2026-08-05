@@ -30,7 +30,7 @@ units and 48 GiB VRAM.
 - English technical report
 - Complete source code, configurations, tests, and compatibility patch
 - Detailed reproduction guide and AMD/ROCm notes
-- 4-minute-39-second English demonstration video
+- 4-minute-16-second English demonstration video
 - Audited result summaries and machine-readable evidence
 - Attention-backend and inference-optimization supplementary reports
 

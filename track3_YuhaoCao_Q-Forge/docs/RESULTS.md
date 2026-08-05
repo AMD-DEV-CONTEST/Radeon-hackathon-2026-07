@@ -28,6 +28,23 @@ Q-guidance success→failure states:
 The `+13` means thirteen additional successful reset states. The success-rate
 difference is `+26` percentage points, from 42% to 68%.
 
+## Task 3 diagnostic replication
+
+The authoritative compact values are in `results/task3_results.json`.
+
+| Method | Success | Net vs Base | Exact McNemar p |
+|---|---:|---:|---:|
+| Base | 38/50 (76%) | — | — |
+| Q selection N=4 | 35/50 (70%) | −3 | 0.375 |
+| Conservative Q-guidance | 44/50 (88%) | +6 | 0.03125 |
+| QVGM residual | 43/50 (86%) | +5 | 0.125 |
+
+The critic ranks successful trajectories and dataset actions above their
+counterparts and has finite action gradients. Its held-out TD loss is `0.0121366`,
+slightly above the predefined `0.01` gate, so all 12 grid configurations are
+ineligible and the paired evaluation uses the preregistered conservative preset
+`5 / 0.005 / 0.02`.
+
 ## Critic and selected guidance
 
 ```text
@@ -48,6 +65,6 @@ saturation increase:      0.003131923
 
 ## Evidence boundary
 
-This audit confirms consistency among existing experiment artifacts. It does not
-turn the single-task, paired-seed protocol into a broader generalization result.
-
+This audit confirms consistency among existing experiment artifacts. The study
+covers two tasks with one paired inference seed per task and is not presented as
+a broad multi-task or multi-seed generalization result.

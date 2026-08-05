@@ -17,6 +17,10 @@ Install compatible versions of:
 Keep upstream repositories outside Q-Forge and export their paths. The exact AMD
 wheel constraints are in `constraints/torch-rocm64.txt`.
 
+Before running LIBERO, edit `configs/libero/config.yaml` and replace every
+`/path/to/...` placeholder with the evaluator's LIBERO-sim, asset, initialization,
+and demonstration-dataset locations.
+
 ```bash
 python -m pip install -e .
 export PYTHONPATH=/path/to/LIBERO-sim${PYTHONPATH:+:$PYTHONPATH}
@@ -25,6 +29,9 @@ export MUJOCO_GL=egl
 export PYOPENGL_PLATFORM=egl
 export TOKENIZERS_PARALLELISM=false
 export SMOLVLA_ATTENTION_BACKEND=sdpa
+export LIBERO_SIM_ROOT=/path/to/LIBERO-sim
+export PYTHON_BIN=python
+export TRAIN_BIN=lerobot-train
 ```
 
 Do not copy author-specific `/workspace/...` paths from historical notes. Substitute
@@ -113,6 +120,8 @@ The explicit stages follow.
 ### 6.1 Fine-tune the 20-demo Base
 
 ```bash
+export TASK7_DATASET_ROOT=/path/to/libero_spatial_task7_stove_20d
+export SMOLVLA_BASE_MODEL=/path/to/smolvla_base/pretrained_model
 ./scripts/run_native_lerobot_task7_20d_sft.sh
 ```
 
@@ -253,7 +262,52 @@ python scripts/summarize_paired_300p.py \
 Expected primary result: Base `21/50`; Q-guidance `34/50`; 19 failure-to-success,
 6 success-to-failure; exact two-sided McNemar `p=0.014633298`.
 
-## 7. Attention benchmark
+## 7. Reproduce the Task 3 replication
+
+Task 3 uses the public `libero_spatial_image` LeRobot v3.0 dataset. Point the
+converter at that dataset and select the first 20 task-specific episodes:
+
+```bash
+export LIBERO_SPATIAL_IMAGE_ROOT=/path/to/libero_spatial_image
+export TASK3_DATASET_ROOT="$PWD/data/lerobot/libero_spatial_task3_cookiebox_20d"
+
+python scripts/convert_task3_libero_lerobot_to_lerobot.py \
+  --source "$LIBERO_SPATIAL_IMAGE_ROOT" \
+  --output "$TASK3_DATASET_ROOT" \
+  --episodes 0-19
+```
+
+Set the upstream SmolVLA Base checkpoint used to initialize native LeRobot
+fine-tuning, then run the 20-demonstration SFT:
+
+```bash
+export SMOLVLA_BASE_MODEL=/path/to/smolvla_base/pretrained_model
+export PYTHON_BIN=python
+export TRAIN_BIN=lerobot-train
+./scripts/run_native_lerobot_task3_20d_sft.sh
+```
+
+Collect the 300 perturbed rollouts and train the fixed-projection MC then
+TD/Cal-QL critic and residual policy:
+
+```bash
+export LIBERO_SIM_ROOT=/path/to/LIBERO-sim
+./scripts/run_task3_native20d_qvgm_rollouts300.sh
+```
+
+Run the Task 3 guidance grid and paired Base, Q-selection, conservative
+Q-guidance, and residual evaluations:
+
+```bash
+./scripts/run_task3_300P_fourway.sh
+```
+
+Expected compact results are recorded in `results/task3_results.json`: Base
+`38/50`, Q selection `35/50`, conservative Q-guidance `44/50`, and residual
+`43/50`. The held-out TD loss is `0.0121366`, so the reported guidance run uses
+the conservative `5 / 0.005 / 0.02` preset rather than a grid-selected setting.
+
+## 8. Attention benchmark
 
 ```bash
 python scripts/benchmark_attention_fa_vs_sdpa.py --out outputs/attention_ck.json
@@ -268,7 +322,7 @@ python scripts/plot_attention_bench.py
 Compile and test the CK wheel for the evaluator's exact Python/PyTorch/ROCm stack;
 binary wheels are intentionally not committed.
 
-## 8. Reproducibility notes
+## 9. Reproducibility notes
 
 - The sweep reseeds PyTorch, all GPU RNGs, and NumPy before each episode.
 - Critic construction preserves RNG state in the single-episode recorder, keeping

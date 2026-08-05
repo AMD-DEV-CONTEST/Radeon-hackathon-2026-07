@@ -22,7 +22,7 @@ benchmarking—was run on one AMD Radeon `gfx1100` GPU with 48 GiB VRAM.
 
 ## Demo video
 
-[Watch the 4-minute-39-second Q-Forge demonstration](video/Q-Forge-demo.mp4).
+[Watch the 4-minute-16-second Q-Forge demonstration](video/Q-Forge-demo.mp4).
 It includes the real paired state-1 rollout, English narration, burned-in English
 subtitles, result evidence, and the AMD Radeon engineering summary. The editable
 [storyboard](video/storyboard.md), [narration](video/narration.txt), and
@@ -46,9 +46,12 @@ two-sided p-values use the exact McNemar test over paired reset-state outcomes.
 
 ![Main results](assets/main_results.svg)
 
-These numbers describe the fixed protocol documented below: one LIBERO task,
-50 reset states, and paired inference seed 2001. They are not presented as a
-multi-task or multi-seed generalization claim.
+The same 20-demonstration and 300-rollout protocol is replicated on
+LIBERO-Spatial Task 3. Its stronger Base reaches 38/50 (76%); conservative
+Q-guidance reaches 44/50 (88%), residual distillation reaches 43/50 (86%), and
+Q selection reaches 35/50 (70%). The method ranking is unchanged. Because the
+Task 3 critic's held-out TD loss is slightly above the predefined gate, this
+second-task result is reported as a diagnostic replication.
 
 ## Why the critic data matters
 
@@ -183,12 +186,14 @@ python scripts/run_smolvla_libero_sweep.py \
 
 ## Limitations
 
-The controlled study focuses on one LIBERO task and a fixed paired inference
-seed. Guidance hyperparameters are selected using reset states 40–49, which are
-also included in the reported full 50-state benchmark; this is not a separately
-held-out test-state result. No real-robot result is claimed. The simulator supplies
-automatic success labels, and extra policy interaction still costs compute even
-though it requires no additional human demonstrations.
+The controlled study covers two LIBERO-Spatial tasks and one paired inference
+seed per task. Task 7 guidance hyperparameters are selected using reset states
+40–49, which are also included in the reported full 50-state benchmark; this is
+not a separately held-out test-state result. Task 3 uses a conservative preset
+because its critic is slightly above the predefined TD-loss gate. No real-robot
+result is claimed. The simulator supplies automatic success labels, and extra
+policy interaction still costs compute even though it requires no additional
+human demonstrations.
 
 ## Team
 

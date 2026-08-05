@@ -731,7 +731,22 @@ The trust region does not prove safety, but it limits extrapolation and preserve
 
 Future evaluation should separate validation states from final test states, include multiple tasks and inference seeds, compare different perturbation schedules, and separately measure the critic-gradient overhead of direct Q-guidance and the full deployment latency of the residual policy under the same synchronized timing protocol used in this section. Real-robot studies will additionally require explicit action-safety constraints and careful reward specification.
 
-## 10. Reproducibility and Artifact Boundaries
+## 10. Deliverables, Reproducibility, and Artifact Boundaries
+
+The final submission is delivered in five complementary forms:
+
+1. **Source code:** the Q-Forge package, experiment configurations, training and
+   evaluation scripts, tests, and compatibility patch.
+2. **Technical documentation:** this report, the reproduction guide, dataset and
+   split documentation, audited results, and AMD/ROCm implementation notes.
+3. **Demonstration video:** a 1920×1080 English video showing the complete method
+   flow, paired simulator rollouts from Tasks 7 and 3, quantitative results, and
+   AMD Radeon profiling evidence.
+4. **Auditable result artifacts:** compact JSON summaries for Task 7, Task 3,
+   critic diagnostics, guidance selection, attention benchmarking, and policy
+   inference optimization.
+5. **Visual and interactive supplements:** architecture diagrams, result plots,
+   paired-transition evidence, and an interactive attention benchmark report.
 
 The repository includes source code, configuration, unit and protocol tests, compact audited result summaries, visualization assets, and reproduction commands. The authoritative compact metrics are located at:
 

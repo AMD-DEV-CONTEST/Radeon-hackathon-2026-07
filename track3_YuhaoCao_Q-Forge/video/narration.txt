@@ -14,13 +14,13 @@ The same critic supports 3 routes. Selection samples and chooses. Guidance makes
 
 All methods use the same reset states, seed, checkpoint, step limit, and replanning schedule. This paired protocol reveals both improvements and regressions and supports an exact McNemar test.
 
-In this recorded Task 7 comparison, both policies start from the same reset and seed. The Base policy times out. Q guidance makes small action corrections and completes the placement. Only the action changes, not the policy weights.
+Here are paired comparisons from both tasks. For Task 7, Base fails while Q guidance succeeds from the same reset and seed. Task 3 shows the same pattern on reset 14: Base times out, while conservative guidance completes the placement. In both rows, only the inference method changes.
 
 Across 50 states, Base succeeds 21 times. Selection reaches 18, residual 32, and guidance 34. Guidance converts 19 failures to successes and causes 6 regressions: a net gain of 13 states, or 26 percentage points, with exact p-value 0.0146.
 
 We repeat the pipeline on Task 3, where Base already scores 76%. Selection reaches 70%, residual 86%, and conservative guidance 88%, with 6 improvements and no regressions. Because the critic slightly misses the TD gate, we report this as diagnostic replication.
 
-The workflow runs on an AMD Radeon Pro W7000 Series GPU with PyTorch and ROCm. Composable Kernel is best for long-sequence forward passes, while SDPA is faster for backward and full training steps. Backend choice follows the workload.
+The workflow runs on an AMD Radeon Pro W7000 Series GPU with PyTorch and ROCm. Across fp16 causal sequences, FA-CK reaches up to 5.25× SDPA in forward-only work. SDPA remains fastest for backward and full training steps, while FA-Triton uses the least peak memory. Backend choice follows the workload.
 
 At policy level, fused SDPA, inference mode, a fixed denoising loop, caches, and lightweight output reduce replan latency by 10.1% without retraining. The optimized policy remains numerically close to the baseline.
 

@@ -1,49 +1,46 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="/workspace/QVGM"
-PY="$ROOT/.venv-rocm/bin/python"
-MODEL="$ROOT/outputs/native_lerobot_smolvla_task7_20d_20k/checkpoints/020000/pretrained_model"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PY="${PYTHON_BIN:-python}"
+MODEL="${TASK7_BASE_MODEL:-$ROOT/outputs/native_lerobot_smolvla_task7_20d_20k/checkpoints/020000/pretrained_model}"
 ROLLOUTS="$ROOT/data/collected_pickle/task7_native20d20k_rollouts300_perturbed_v1"
 BUFFER="$ROOT/data/qvgm_buffers/task7_native20d20k_q3_rollouts300_v1"
 MC="$ROOT/checkpoints/qvgm_critic/task7_native20d20k_q3_rollouts300_mc_v1"
 CRITIC="$ROOT/checkpoints/qvgm_critic/task7_native20d20k_q3_rollouts300_calql_v1"
 RESIDUAL="$ROOT/checkpoints/qvgm_policy/task7_native20d20k_q3_rollouts300_residual_v1"
-EVAL="$ROOT/outputs/task7_q3_native20d20k_rollouts300/qvgm_residual_1000_seed2001"
-LOG="$ROOT/outputs/logs/task7_native20d_qvgm_rollouts300_pipeline.log"
-FAILURE_STATES="0-49"
 VALIDATION_STATES="40,41,42,43,44,45,46,47,48,49"
 
 export TOKENIZERS_PARALLELISM=false
-export PYTHONPATH="/workspace/LIBERO-sim${PYTHONPATH:+:$PYTHONPATH}"
-export LIBERO_CONFIG_PATH="$ROOT/configs/libero"
-export MUJOCO_GL=egl
-export PYOPENGL_PLATFORM=egl
+export PYTHONPATH="${LIBERO_SIM_ROOT:-/path/to/LIBERO-sim}${PYTHONPATH:+:$PYTHONPATH}"
+export LIBERO_CONFIG_PATH="${LIBERO_CONFIG_PATH:-$ROOT/configs/libero}"
+export MUJOCO_GL="${MUJOCO_GL:-egl}"
+export PYOPENGL_PLATFORM="${PYOPENGL_PLATFORM:-egl}"
 
-mkdir -p "$ROLLOUTS" "$BUFFER" "$MC" "$CRITIC" "$RESIDUAL" "$EVAL" "$ROOT/outputs/logs"
-exec >>"$LOG" 2>&1
-echo "$(date -u +%FT%TZ) starting 20D simple-QVGM 300-rollout pipeline"
+mkdir -p "$ROLLOUTS" "$BUFFER" "$MC" "$CRITIC" "$RESIDUAL"
+cd "$ROOT"
 
 for required in "$MODEL/model.safetensors" "$MODEL/config.json"; do
-  [[ -s "$required" ]] || { echo "missing 20D Base artifact: $required" >&2; exit 1; }
+  [[ -s "$required" ]] || {
+    echo "Missing Task 7 Base artifact: $required" >&2
+    exit 1
+  }
 done
 
 export SMOLVLA_ATTENTION_BACKEND=eager
-cd "$ROOT"
 collection_pids=()
 for worker_id in 0 1; do
   "$PY" scripts/collect_task7_critic_diverse.py \
     --model-path "$MODEL" \
     --output-dir "$ROLLOUTS" \
     --states 0-49 \
-    --failure-states "$FAILURE_STATES" \
+    --failure-states 0-49 \
     --perturb-probability 0.5 \
     --action-steps 5 \
     --max-steps 240 \
     --seed 3300 \
     --worker-id "$worker_id" \
-    --num-workers 2 \
-    >"$ROOT/outputs/logs/task7_native20d_rollouts300_worker${worker_id}.log" 2>&1 &
+    --num-workers 2 &
   collection_pids+=("$!")
 done
 for collection_pid in "${collection_pids[@]}"; do
@@ -54,7 +51,7 @@ done
   --pickle-dir "$ROLLOUTS" \
   --output "$ROLLOUTS/rollout_manifest.json" \
   --states 0-49 \
-  --failure-states "$FAILURE_STATES"
+  --failure-states 0-49
 
 "$PY" - "$ROLLOUTS/rollout_manifest.json" <<'PY'
 import json
@@ -62,12 +59,12 @@ import pathlib
 import sys
 
 manifest = json.loads(pathlib.Path(sys.argv[1]).read_text())
-assert manifest["episodes"] == 300, manifest["episodes"]
-assert manifest["state_count"] == 50, manifest["state_count"]
-assert manifest["states"] == list(range(50)), manifest["states"]
+assert manifest["episodes"] == 300
+assert manifest["state_count"] == 50
+assert manifest["states"] == list(range(50))
 assert manifest["plan_complete"] is True
 assert manifest["perturbed_steps"] > 0
-print("validated exact 300-rollout perturbed collection", flush=True)
+print("validated exact Task 7 300-rollout collection")
 PY
 
 if [[ ! -s "$BUFFER/feature_cache.pt" ]]; then
@@ -131,16 +128,4 @@ if [[ ! -s "$RESIDUAL/checkpoint-final/pretrained_model/model.safetensors" ]]; t
     --config configs/experiments/task7_native20d20k_q3_rollouts300_residual.yaml
 fi
 
-if [[ ! -s "$EVAL/summary.json" ]]; then
-  "$PY" scripts/run_smolvla_libero_sweep.py \
-    --states 0-49 \
-    --seeds 2001 \
-    --task-id 7 \
-    --task-suite libero_spatial \
-    --max-steps 240 \
-    --action-steps 5 \
-    --model-path "$RESIDUAL/checkpoint-final/pretrained_model" \
-    --output-dir "$EVAL"
-fi
-
-echo "$(date -u +%FT%TZ) 20D simple-QVGM 300-rollout pipeline complete"
+echo "Task 7 Base, rollout, critic, and residual pipeline complete."

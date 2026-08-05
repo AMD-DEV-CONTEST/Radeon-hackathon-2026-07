@@ -1,20 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_ROOT="/workspace/QVGM"
-PYTHON_BIN="$PROJECT_ROOT/.venv-lerobot-native/bin/python"
-TRAIN_BIN="$PROJECT_ROOT/.venv-lerobot-native/bin/lerobot-train"
-DATASET_ROOT="/workspace/libero_task7_20d_lerobot_v3"
-MODEL_ROOT="$PROJECT_ROOT/checkpoints/smolvla_base_libero_native"
-OUTPUT_ROOT="/tmp/qvgm_task7_20d/outputs/native_lerobot_smolvla_task7_20d_20k"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PYTHON_BIN="${PYTHON_BIN:-python}"
+TRAIN_BIN="${TRAIN_BIN:-lerobot-train}"
+DATASET_ROOT="${TASK7_DATASET_ROOT:-$PROJECT_ROOT/data/lerobot/libero_spatial_task7_stove_20d}"
+MODEL_ROOT="${SMOLVLA_BASE_MODEL:-$PROJECT_ROOT/checkpoints/smolvla_base_libero_native}"
+OUTPUT_ROOT="${TASK7_SFT_OUTPUT:-$PROJECT_ROOT/outputs/native_lerobot_smolvla_task7_20d_20k}"
 
 export TOKENIZERS_PARALLELISM=false
 export ACCELERATE_MIXED_PRECISION=bf16
+export TASK7_DATASET_ROOT="$DATASET_ROOT"
 
 "$PYTHON_BIN" - <<'PY'
+import os
+
 from lerobot.datasets.lerobot_dataset import LeRobotDatasetMetadata
 
-root = "/workspace/libero_task7_20d_lerobot_v3"
+root = os.environ["TASK7_DATASET_ROOT"]
 meta = LeRobotDatasetMetadata("local/libero_spatial_task7_stove_20d", root=root)
 assert meta.total_episodes == 20, meta.total_episodes
 assert list(meta.tasks.index) == [

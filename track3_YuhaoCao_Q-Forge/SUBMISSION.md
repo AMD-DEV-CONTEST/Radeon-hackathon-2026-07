@@ -10,6 +10,7 @@
 | Pull request title | `Track 3, Yuhao Cao, Q-Forge` |
 | Primary platform | AMD Radeon `gfx1100`, 96 compute units, 48 GiB VRAM |
 | License | Apache-2.0 for original Q-Forge code |
+| Dedicated source repository | <https://github.com/ZorAttC/Q-Forge> |
 
 ## Project summary
 
@@ -44,6 +45,25 @@ All methods use paired reset states and a shared inference seed within each task
 
 The primary Task 7 result uses a frozen 512-dimensional random projection of
 the SmolVLA prefix, not the optional 2048-dimensional RL-token representation.
+
+## Track 3 compliance matrix
+
+| Requirement | Submission evidence | Status |
+|---|---|---|
+| Target application definition | Technical report Sections 1, 3, and 5 | Included |
+| Overall architecture and solution design | Technical report Section 4 and two architecture figures | Included |
+| Training and evaluation datasets | `docs/DATA.md`, report Section 5, Task 3 reproduction section | Included |
+| AMD Radeon use in training and inference | Report Section 7, `docs/AMD_ROCM.md`, benchmark artifacts | Included |
+| Innovations and technical contributions | Report introduction, method, discussion, and contribution list below | Included |
+| Final deliverables and output forms | Report Section 10 and this submission index | Included |
+| Additional strengths | Paired statistics, negative baselines, attention profiling, latency optimization | Included |
+| Team members and contributions | Sole-participant statement in report and this index | Included |
+| Dedicated source repository | <https://github.com/ZorAttC/Q-Forge> plus the complete embedded source package | Included |
+| Docker image | Native ROCm reproduction is supplied; prebuilt image is optional and not included | Optional item not included |
+| Environment and dependencies | Root README, `pyproject.toml`, ROCm constraints, reproduction guide | Included |
+| Step-by-step reproduction | Task 7 and Task 3 procedures in `docs/REPRODUCTION.md` | Included |
+| Demonstration video | 4:16 English 1080p video with actual paired simulator rollouts, workflow, and results | Included |
+| Supplementary materials | JSON evidence, interactive HTML, SVG figures, optimization record | Included |
 
 ## Required Track 3 deliverables
 
@@ -85,7 +105,7 @@ paired evaluation, and attention benchmarking.
 ### 4. Demonstration video
 
 - [Q-Forge demonstration video](video/Q-Forge-demo.mp4)
-- Duration: approximately 4 minutes 39 seconds
+- Duration: approximately 4 minutes 16 seconds
 - English narration and burned-in English subtitles
 - Editable [storyboard](video/storyboard.md), [narration](video/narration.txt),
   and [subtitle file](video/subtitles.srt)
@@ -99,6 +119,7 @@ self-labeled training loop, and AMD Radeon engineering decisions.
 - [Machine-readable attention benchmark](reports/attention_bench_gfx1100.json)
 - [Inference optimization record](reports/inference_optimization_change_record.md)
 - [Machine-readable primary results](results/main_results.json)
+- [Machine-readable Task 3 replication](results/task3_results.json)
 - [Machine-readable critic and guidance diagnostics](results/critic_and_guidance.json)
 
 ## Key technical contributions
@@ -139,3 +160,11 @@ Q-Forge builds on LIBERO, LIBERO-sim, LeRobot, SmolVLA, RLinf, PyTorch,
 FlashAttention, Transformers, MuJoCo, and their dependencies. Their source,
 weights, datasets, and licenses remain governed by their respective upstream
 terms. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Container packaging status
+
+A prebuilt Docker image is not included. The full stack depends on separately
+licensed LIBERO assets and demonstrations, SmolVLA weights, compatible LeRobot
+and RLinf checkouts, and a ROCm runtime matched to the evaluator's Radeon
+hardware. The native setup is documented in `docs/REPRODUCTION.md`; generated
+models and datasets are intentionally kept outside the source submission.
