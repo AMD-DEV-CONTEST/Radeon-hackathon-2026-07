@@ -1,6 +1,6 @@
 # Final Verification Report
 
-Date: 2026-08-04
+Date: 2026-08-05
 
 ## Automated acceptance
 
@@ -35,8 +35,8 @@ The immutable evidence bundle records AMD Radeon Graphics (`gfx1100`), ROCm 7.2.
 
 The 2026-08-04 reproduction independently recorded the same GPU architecture, 48.0 GiB VRAM, ROCm 7.2.1, PyTorch `2.9.1+gitff65f5b`, HIP `7.2.53211`, vLLM `0.16.1.dev0+g89a77b108.d20260317.rocm721`, and `competition_eligible=true`. Its direct machine benchmark was 1,513.115 ms at 32.384 completion tokens/s. A real Local ROCm Chinese Agent response completed in 3,158.876 ms and a separate AMD Cloud API development response completed in 14,140.651 ms; each produced its own audit ID.
 
-## Remaining user-bound gates
+## Public submission status
 
-- Confirm account identity and competition terms.
-- Fork the official repository and open the final Pull Request.
-- Verify the public repository and Pull Request links while signed out. The final video is published at <https://www.bilibili.com/video/BV1nQuA6qEFS/>.
+- Fork: <https://github.com/LucianaiB2004/Radeon-hackathon-2026-07/tree/privateops-agent-submission/submissions/track2/privateops-agent>
+- Official Pull Request: <https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/pull/87>
+- Final video: <https://www.bilibili.com/video/BV1nQuA6qEFS/>

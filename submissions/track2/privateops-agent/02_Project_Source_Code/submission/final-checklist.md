@@ -39,12 +39,12 @@
 - [x] Publish the final video at <https://www.bilibili.com/video/BV1nQuA6qEFS/> without exposing credentials.
 - [x] Keep instance lifecycle separate from the submission package; no live endpoint or credential is required for review.
 
-## Registration and official Fork/PR — user action
+## Registration and official Fork/PR
 
-- [ ] Confirm the final participant/team identity matches Luma and AMD Developer Program registration.
-- [ ] Fork `AMD-DEV-CONTEST/Radeon-hackathon-2026-07`.
-- [ ] Place the final package under the official submission structure.
-- [ ] Use the exact registered team/name in the English PR title.
+- [x] Use the participant identity `lucianaib` in the English PR title.
+- [x] Fork `AMD-DEV-CONTEST/Radeon-hackathon-2026-07`.
+- [x] Place the final package under `submissions/track2/privateops-agent`.
+- [x] Use the English title `Track 2, lucianaib, PrivateOps Agent`.
 - [x] Add the public video URL to the English pull-request copy.
-- [ ] Open the pull request before the official deadline.
-- [ ] Re-open the PR signed out and verify every link is public.
+- [x] Open Pull Request #87 in the official repository.
+- [x] Verify the public Fork, Pull Request, and Bilibili video links.

@@ -2,9 +2,7 @@
 
 ## Title
 
-`Track 2, <exact Luma team or participant name>, PrivateOps Agent`
-
-Use the exact registered identity so the organizer can match eligibility.
+`Track 2, lucianaib, PrivateOps Agent`
 
 ## Body
 

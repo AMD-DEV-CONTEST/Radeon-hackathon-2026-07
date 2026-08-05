@@ -18,7 +18,7 @@ PrivateOps is a permission-first private computer AI for Track 2 of the 2026 AMD
 8. `benchmark-evidence.json` and `benchmark-evidence.csv` — authoritative copies generated from the immutable verified run.
 9. `performance-and-stability-report.md` — measured facts, implemented optimizations, software stability scope, and explicit non-claims.
 10. `pr-submission.md` — final English pull-request copy and title rule.
-11. `final-checklist.md` — completed engineering gates and the remaining account-bound Fork/PR gates.
+11. `final-checklist.md` — completed engineering, video, and official Fork/PR gates.
 
 ## Verified Radeon proof
 
