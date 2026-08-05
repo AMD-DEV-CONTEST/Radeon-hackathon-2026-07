@@ -2,7 +2,7 @@
 
 **Participant:** Haruto Watanabe (individual submission)<br>
 **Application:** KoushiKo Vault - Private Agentic Evidence Investigator for Time-Coded Media Archives<br>
-**Source release:** [`track2-submission-2026-08-05-r1`](https://github.com/Yasei-no-otoko/koushiko-vault/tree/track2-submission-2026-08-05-r1) at commit [`f5d89c945607a018e237a6eaab2e58bfa34c5c0e`](https://github.com/Yasei-no-otoko/koushiko-vault/commit/f5d89c945607a018e237a6eaab2e58bfa34c5c0e)
+**Source release:** [`track2-submission-2026-08-05-r2`](https://github.com/Yasei-no-otoko/koushiko-vault/tree/track2-submission-2026-08-05-r2) at commit [`cbab6c73d38bb32acdd0c4f2132a5f7d6bd614eb`](https://github.com/Yasei-no-otoko/koushiko-vault/commit/cbab6c73d38bb32acdd0c4f2132a5f7d6bd614eb)
 
 ## What it does
 
@@ -14,13 +14,13 @@ The reproducible public demo uses an original synthetic factory-safety case. It 
 
 | Track 2 deliverable | Immutable artifact |
 | --- | --- |
-| Project specification | [8-page PDF](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r1/submission/KoushiKo_Vault_Project_Specification.pdf) |
-| Complete source code | [Tagged source tree](https://github.com/Yasei-no-otoko/koushiko-vault/tree/track2-submission-2026-08-05-r1) |
-| Environment, dependencies, startup, and reproduction | [English README](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r1/README.md) |
-| Real demo video | [4:18, 1080p H.264/AAC MP4](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r1/submission/KoushiKo_Vault_Track2_Demo.mp4) |
-| Supplementary deck | [Editable PPTX](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r1/submission/KoushiKo_Vault_Track2_Deck.pptx) and [8-page PDF](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r1/submission/KoushiKo_Vault_Track2_Deck.pdf) |
-| Checksums and media metadata | [Submission manifest](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r1/submission/manifest.json) |
-| Package index and traceability | [Submission README](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r1/submission/SUBMISSION_README.md) and [rules traceability](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r1/docs/RULES_TRACEABILITY.md) |
+| Project specification | [8-page PDF](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r2/submission/KoushiKo_Vault_Project_Specification.pdf) |
+| Complete source code | [Tagged source tree](https://github.com/Yasei-no-otoko/koushiko-vault/tree/track2-submission-2026-08-05-r2) |
+| Environment, dependencies, startup, and reproduction | [English README](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r2/README.md) |
+| Real demo video | [4:18, 1080p H.264/AAC MP4](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r2/submission/KoushiKo_Vault_Track2_Demo.mp4) |
+| Supplementary deck | [Editable PPTX](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r2/submission/KoushiKo_Vault_Track2_Deck.pptx) and [8-page PDF](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r2/submission/KoushiKo_Vault_Track2_Deck.pdf) |
+| Checksums and media metadata | [Submission manifest](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r2/submission/manifest.json) |
+| Package index and traceability | [Submission README](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r2/submission/SUBMISSION_README.md) and [rules traceability](https://github.com/Yasei-no-otoko/koushiko-vault/blob/track2-submission-2026-08-05-r2/docs/RULES_TRACEABILITY.md) |
 
 ## Local AMD Radeon implementation
 
@@ -45,7 +45,7 @@ The reproducible public demo uses an original synthetic factory-safety case. It 
 ```powershell
 git clone https://github.com/Yasei-no-otoko/koushiko-vault.git
 Set-Location koushiko-vault
-git checkout track2-submission-2026-08-05-r1
+git checkout track2-submission-2026-08-05-r2
 ./scripts/setup.ps1 -BuildJobs 32
 ./scripts/start.ps1
 ./scripts/preflight.ps1
@@ -55,8 +55,8 @@ git checkout track2-submission-2026-08-05-r1
 ./scripts/stop.ps1
 ```
 
-## Platform disclosure
+## Platform scope
 
-The formal Rules & Conditions contain wording that can be read as requiring an AMD Radeon GPU in Radeon Cloud with ROCm, while the official repository emphasizes actual Radeon execution and the same rubric separately describes an optional Radeon Cloud model-API bonus. This entry reports only measured local Ryzen AI Max+ 395 / Radeon 8060S ROCm execution. It does **not** claim Radeon Cloud execution or the optional Radeon Cloud API bonus. The limitation is disclosed for organizer review.
+The official contest repository's Track 2 requirements call for a local deployment plan, AMD Radeon inference optimization, and a 3–5 minute demonstration of actual execution performance on an AMD Radeon GPU. This entry demonstrates that baseline on a local Ryzen AI Max+ 395 / Radeon 8060S with ROCm. The repository's separate Radeon Cloud User Guide describes an access path; this submission did not use Radeon Cloud and does not claim the optional Cloud model-API bonus.
 
 All public case data and media are original synthetic materials. The application is MIT-licensed; model, runtime, dependency, and synthetic-dataset licenses are documented in the tagged source release.
