@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>omima VOX 分镜板 · 快节奏 PPT</title>
+  <style>
+    :root {
+      --bg: #0b0e14;
+      --card: #121821;
+      --line: #1e2836;
+      --cyan: #13b8a6;
+      --red: #ff4d4f;
+      --text: #f5f7fa;
+      --muted: #8b95a5;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #06080c;
+      color: var(--text);
+      padding: 32px 40px 80px;
+    }
+    header {
+      max-width: 1400px;
+      margin: 0 auto 28px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 20px;
+    }
+    header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    header h1 span { color: var(--cyan); }
+    header p {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .tag {
+      font-size: 12px;
+      padding: 4px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--cyan);
+      background: rgba(19, 184, 166, 0.08);
+    }
+    section {
+      max-width: 1400px;
+      margin: 0 auto 36px;
+    }
+    section > h2 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--cyan);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+    section > h2 em {
+      font-style: normal;
+      color: var(--muted);
+      letter-spacing: 0;
+      text-transform: none;
+      font-size: 12px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .shot {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 200px;
+    }
+    .shot .frame {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      background: var(--bg);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      text-align: center;
+    }
+    .shot .frame .hero {
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+    .shot .frame .hero.sm { font-size: 15px; font-weight: 700; }
+    .shot .frame .hero.lg { font-size: 36px; color: var(--cyan); }
+    .shot .frame .hero.danger { color: var(--red); font-size: 32px; }
+    .shot .frame .sub {
+      display: block;
+      margin-top: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+    .shot .frame .badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--bg);
+      background: var(--cyan);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .shot .frame .dur {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      font-size: 10px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .shot .meta-body {
+      padding: 10px 12px 12px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .shot .vo {
+      font-size: 11px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+    .shot .vo strong {
+      color: #c5cdd8;
+      font-weight: 600;
+    }
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .pill {
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: #1a222e;
+      color: var(--muted);
+    }
+    .six {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      width: 100%;
+    }
+    .six i {
+      font-style: normal;
+      font-size: 9px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 6px 2px;
+      color: var(--cyan);
+      background: rgba(19, 184, 166, 0.06);
+    }
+    .track {
+      display: flex;
+      gap: 3px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .track span {
+      font-size: 9px;
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      padding: 3px 5px;
+      border-radius: 3px;
+    }
+    footer {
+      max-width: 1400px;
+      margin: 40px auto 0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    @media print {
+      body { padding: 12px; background: #fff; color: #111; }
+      .shot { break-inside: avoid; border-color: #ccc; background: #fafafa; }
+      .shot .frame { background: #111; color: #fff; }
+      header p, .vo, footer { color: #444; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>omima · <span>VOX 分镜板</span> 草稿</h1>
+    <p>快节奏 · 类 PPT 翻页 · 动能字幕 · 主片约 4′30″ · 详见 demo-storyboard-vox.md</p>
+    <div class="meta">
+      <span class="tag">16:9</span>
+      <span class="tag">2–5s / 镜</span>
+      <span class="tag">深空黑 + 信号青</span>
+      <span class="tag">硬切为主</span>
+      <span class="tag">现场讲解</span>
+    </div>
+  </header>
+
+  <!-- A -->
+  <section>
+    <h2>A 开场 <em>0:00–0:20</em></h2>
+    <div class="grid">
+      <article class="shot">
+        <div class="frame"><span class="badge">A1</span><span class="dur">2.0s</span><div class="hero">交付</div></div>
+        <div class="meta-body"><div class="pills"><span class="pill">抖动</span></div><p class="vo"><strong>VO</strong> 静半拍</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">A2</span><span class="dur">2.5s</span><div class="hero sm">不满意？</div></div>
+        <div class="meta-body"><div class="pills"><span class="pill">碎裂</span></div><p class="vo"><strong>VO</strong> 为什么 AI 交付总是差一点？</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">A3</span><span class="dur">3.0s</span><div class="hero sm">聊天壳 · 堆插件 · 刷 TPS</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 不是模型不够大——是工程没闭环。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">A4</span><span class="dur">3.5s</span><div class="hero">omima<span class="sub">效率工程</span></div></div>
+        <div class="meta-body"><div class="pills"><span class="pill">扫光</span></div><p class="vo"><strong>VO</strong> 从需求长出来的效率工程。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">A5</span><span class="dur">3.0s</span><div class="hero sm">需求 → 算法 → 三要素 → 交付</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 六大类推演实现；三大要素收敛成果。</p></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- B -->
+  <section>
+    <h2>B 六大类 <em>0:20–0:55 · 每格约 2.5s 点亮</em></h2>
+    <div class="grid">
+      <article class="shot">
+        <div class="frame"><span class="badge">B0</span><span class="dur">2.0s</span><div class="hero sm">六大类应用需求</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 先看用户到底要什么。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">B1–6</span><span class="dur">15s</span>
+          <div class="six">
+            <i>基础能力</i><i>推理与科学</i><i>对话与创作</i>
+            <i>知识与百科</i><i>安全与责任</i><i>长文本与 Agent</i>
+          </div>
+        </div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 逐格点亮口播一句；覆盖面先定死。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">B7</span><span class="dur">3.0s</span><div class="hero sm">六类二十八种<span class="sub">任务谱系</span></div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 工程展开为任务谱系。</p></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- C -->
+  <section>
+    <h2>C 推导 <em>0:55–1:10</em></h2>
+    <div class="grid">
+      <article class="shot">
+        <div class="frame"><span class="badge">C1</span><span class="dur">3.0s</span><div class="hero sm">六格 → 漏斗</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 需求定了，系统该长什么就被推出来。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">C2</span><span class="dur">4.0s</span><div class="hero sm">协议 · 模型岗 · 工序</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 三色流分叉——不是拍脑袋加功能。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">C3</span><span class="dur">3.0s</span><div class="hero lg">收敛</div></div>
+        <div class="meta-body"><div class="pills"><span class="pill">全屏撞击</span></div><p class="vo"><strong>VO</strong> 收敛。三大要素。</p></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- D1 -->
+  <section>
+    <h2>D1 要素一 · 协议 <em>≈25s</em></h2>
+    <div class="grid">
+      <article class="shot">
+        <div class="frame"><span class="badge">D11</span><span class="dur">2.0s</span><div class="hero">① 协议与算法</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 第一：系统化协议与算法。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">D12</span><span class="dur">3.0s</span>
+          <div class="track">
+            <span>登记</span><span>调用</span><span>记忆</span><span>铁律</span><span>回传</span><span>移交</span>
+          </div>
+        </div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 谁入网、怎么调、记忆归谁、何时拦截。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">D13</span><span class="dur">3.0s</span><div class="hero sm">星站 × N 可复制</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 无状态——不是养二十个聊天窗。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">D14</span><span class="dur">3.5s</span><div class="hero danger">DENY</div></div>
+        <div class="meta-body"><div class="pills"><span class="pill">冲击</span></div><p class="vo"><strong>VO</strong> 边界在框架——不靠模型自觉。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">D15</span><span class="dur">2.5s</span><div class="hero sm">✓ 复制 · 拦截 · 回放</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 协议一次写清。</p></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- D2 -->
+  <section>
+    <h2>D2 要素二 · 模型 <em>≈25s</em></h2>
+    <div class="grid">
+      <article class="shot">
+        <div class="frame"><span class="badge">D21</span><span class="dur">2.0s</span><div class="hero">② 内化模型</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 第二：内化大模型的设置。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">D22</span><span class="dur">3.0s</span><div class="hero">1B<span class="sub">阵眼 · 路由 · 记忆</span></div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 永远在线的岗。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">D23</span><span class="dur">2.5s</span><div class="hero">9B<span class="sub">Worker · 工具循环</span></div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 跟手执行。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">D24</span><span class="dur">2.5s</span><div class="hero">35B<span class="sub">军师 · 深推理</span></div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 需要时再叫醒。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">D25</span><span class="dur">3.5s</span><div class="hero sm">岗位内化 ≠ 碰运气</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 权重与服务参数都是设置。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">D26</span><span class="dur">2.5s</span><div class="hero sm">MI300X</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 上岗验证在 Instinct。</p></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- D3 -->
+  <section>
+    <h2>D3 要素三 · 方法 <em>≈25s</em></h2>
+    <div class="grid">
+      <article class="shot">
+        <div class="frame"><span class="badge">D31</span><span class="dur">2.0s</span><div class="hero">③ 工作方法</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 第三：内化的工作方法。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">D32</span><span class="dur">4.0s</span>
+          <div class="track">
+            <span>创意</span><span>论证</span><span>规划</span><span>执行</span><span>审查</span>
+          </div>
+        </div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 默认走完五拍。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">D33</span><span class="dur">3.5s</span><div class="hero sm">串流 ∥ 并行</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 不跳拍；能并就并。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">D34</span><span class="dur">3.0s</span><div class="hero sm">每步 · 产物卡</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 可审计，不是黑箱。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">D35</span><span class="dur">2.5s</span><div class="hero sm">三柱 → 交付</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 合拢才有高满意度。</p></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- E -->
+  <section>
+    <h2>E 三切面 <em>2:25–2:55</em></h2>
+    <div class="grid">
+      <article class="shot">
+        <div class="frame"><span class="badge">E1</span><span class="dur">3.5s</span><div class="hero sm">Harness</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 约束 · 经验 · 复用</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">E2</span><span class="dur">3.5s</span><div class="hero sm">Loop 工程</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 边界 · 串并 · 审查</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">E3</span><span class="dur">3.5s</span><div class="hero sm">硬件编制</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 端侧 · 星网 · 岗位对硅片</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">E4–5</span><span class="dur">5.5s</span><div class="hero">完整</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 缺一角就空转——三者一起规划。</p></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- F -->
+  <section>
+    <h2>F 任务走查 <em>2:55–3:40</em></h2>
+    <div class="grid">
+      <article class="shot">
+        <div class="frame"><span class="badge">F0</span><span class="dur">2.5s</span><div class="hero sm">任务卡 · 摘要→私库</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 看一次交付怎么走完。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">F2–4</span><span class="dur">8s</span><div class="hero sm">创意 · 论证 · 规划</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 先想清楚再动手。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">F5</span><span class="dur">3.5s</span><div class="hero sm">执行 ∥ 星站</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 记忆只留阵眼。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">F6</span><span class="dur">2.5s</span><div class="hero danger">DENY → OK</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 铁律先挡越权。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">F7</span><span class="dur">3.5s</span><div class="hero sm">审查 · 满意章</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 交付的是走完工序的结果。</p></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- G -->
+  <section>
+    <h2>G AMD 数字 <em>3:40–4:05 · 英雄数字</em></h2>
+    <div class="grid">
+      <article class="shot">
+        <div class="frame"><span class="badge">G1</span><span class="dur">3.5s</span><div class="hero lg">+65%<span class="sub">FP8 vs BF16</span></div></div>
+        <div class="meta-body"><div class="pills"><span class="pill">砸地</span></div><p class="vo"><strong>VO</strong> 吞吐对照，可复核。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">G2</span><span class="dur">3.0s</span><div class="hero lg">8/9<span class="sub">tool-call</span></div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 金丝雀通过。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">G3</span><span class="dur">3.5s</span><div class="hero sm">35B · 9B LoRA 上岗</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 岗位权重可拉。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">G4</span><span class="dur">2.5s</span><div class="hero sm">为上岗 · 不刷存在感</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 测速微调中规中矩。</p></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- H -->
+  <section>
+    <h2>H 收束 <em>4:05–4:30</em></h2>
+    <div class="grid">
+      <article class="shot">
+        <div class="frame"><span class="badge">H1</span><span class="dur">3.0s</span><div class="hero sm">六类 → 三要素 → 交付</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 快闪回顾。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">H2</span><span class="dur">3.0s</span><div class="hero sm">Harness · Loop · 硬件</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 一起规划。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">H3</span><span class="dur">3.0s</span><div class="hero sm">高满意度交付</div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 可审计 · 不越权 · 能复用。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">H4</span><span class="dur">3.5s</span><div class="hero sm">Order Made In Mayhem, Always.</div></div>
+        <div class="meta-body"><div class="pills"><span class="pill">扫光</span></div><p class="vo"><strong>VO</strong> 秩序，总从混乱中生成。</p></div>
+      </article>
+      <article class="shot">
+        <div class="frame"><span class="badge">H5</span><span class="dur">2.5s</span><div class="hero sm">omima · SatoX<span class="sub">AMD AI DevMaster</span></div></div>
+        <div class="meta-body"><p class="vo"><strong>VO</strong> 音乐收。</p></div>
+      </article>
+    </div>
+  </section>
+
+  <footer>
+    制作：按 demo-storyboard-vox.md 在 AE/Keynote 铺页 · 口播卡点 · 导出 1080p<br />
+    浏览器打开本页可打印为 PDF 分镜板；打印样式已适配。
+  </footer>
+</body>
+</html>
