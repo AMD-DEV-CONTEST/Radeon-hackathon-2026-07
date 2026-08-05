@@ -1,89 +1,66 @@
-# Radeon-hackathon-2026-07
+# 🎬 Duanmai (断脉) · AI Screenplay Co-Creation Workbench
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+**[中文说明 →](README_zh.md)** ｜ *AMD Radeon Hackathon 2026 · Track 2 – Agentic AI · AMD Developer Cloud*
 
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
+Duanmai is a **stateful agentic AI co-writing studio** that walks an author from a one-line idea all the way to a shootable screenplay — **Idea → Story → Outline → Script → Storyboard → Panels** — while running **100% locally** on an AMD Radeon™ PRO W7900 (ROCm/HIP) with **Qwen3.6-35B-A3B (Q8_0)** via llama.cpp at **≈70 tokens/s**.
 
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
+Unlike stateless chatbots, Duanmai keeps a **structured creative brain**, so the AI never forgets your settings even in very long sessions.
 
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+## ✨ Key Features
 
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+- **Six-stage agentic workflow** with automatic *stage sealing*: each finished stage is locked and becomes immutable context for the next one.
+- **The AI Brain (left panel)**: Permanent Memory Pool, Plot-hole ("Pit") Tracker, Inspiration Wall, Character Profiles, Foreshadowing Tracker, and a 6-act Emotion Curve — all auto-injected into every LLM call.
+- **Strict-mentor co-writing protocol**: ≤3 diagnoses / ≤3 questions / ≤3 options per turn; the model returns a `<state_update>` XML block that the UI parses to update memories/pits/inspirations automatically.
+- **Anti-"AI-flavor" suite** (to pass AI-text detectors): generation-time writing iron-rules + high-entropy sampling (temp 1.15), an LLM "deep humanizer" rewrite, a pure-Python "physical washing" pass, and an offline AI-flavor scorer with high-risk sentence locator.
+- **Beginner-friendly UX**: seed card with ❌/✅ examples, tooltip hints on ~40 controls, Enter = newline / Ctrl+Enter = send, three layout modes, one-click memory tidy.
+- **AMD performance dashboard**: live VRAM (torch.hip with rocm-smi/sysfs fallback) + decode speed in the header.
 
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+## 🏗️ Architecture
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+```
+Browser ──HTTP──▶ Streamlit WebUI (:8501, single-file app.py)
+                     │ OpenAI-compatible API
+                     ▼
+            llama.cpp server (:8000, HIP / gfx1100)
+                     ▼
+       Qwen3.6-35B-A3B-Q8_0.gguf (~35 GB, fully offloaded)
+```
 
-> [!IMPORTANT]
-> Team name was an optional field on the Luma registration form. If you did not fill in a team name when you registered, please use your own name instead, so the title of the pull request should be like **"Track x, Your name, your application name"**.
+## 💻 Environment & Performance
 
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
+| Item | Value |
+|---|---|
+| GPU | AMD Radeon PRO W7900, 48 GB (gfx1100) |
+| CPU | AMD EPYC 9334 (16 vCPU, cgroup) |
+| ROCm / HIP | 7.2.1 |
+| Model | Qwen3.6-35B-A3B-Q8_0 (llama.cpp) |
+| Decode speed | ≈70 tok/s |
+| VRAM footprint | ≈36 / 48 GB |
 
-## Submission Requirements
+## ⚡ AMD-specific Optimizations
 
-### Track 1: Development of Multimodal Content Creation Tools
+- llama.cpp built with `GGML_HIP=ON -DAMDGPU_TARGETS=gfx1100`
+- `-ngl 999` (full GPU offload), `--flash-attn on`
+- `--cache-type-k/v q8_0` → full **32K context** inside 48 GB
+- `--threads 16 -b 1024 -ub 512 --parallel 1 --no-mmap`
+- `--reasoning-format deepseek` → chain-of-thought surfaced in the UI
+- VRAM read via `torch.cuda.mem_get_info()` on HIP, multi-layer fallback
 
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
+## 🚀 Quick Start
 
-### Track 2: Development & Local Deployment of Private AI Agents
+```bash
+bash setup.sh   # deps + model download + llama.cpp build (ROCm)
+bash start.sh   # llama-server + Streamlit + cloudflared tunnel
+```
 
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
+## 📁 Files
 
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
+`app.py` (full WebUI) · `setup.sh` (one-click deploy) · `start.sh` (one-click launch) · `README_zh.md` (Chinese docs)
 
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+## 🎥 Demo
+
+[3-minute demo video — link]() *(fill after upload)*
+
+## Acknowledgements
+
+AMD Developer Cloud, llama.cpp, Streamlit, Qwen.
