@@ -59,9 +59,10 @@ class Settings(BaseSettings):
     ws_heartbeat_interval: int = 15
 
     class Config:
-        env_file = ".env"
+        env_file = ("backend/.env", ".env")
         env_file_encoding = "utf-8"
         case_sensitive = False
+        extra = "ignore"
 
 
 @lru_cache()

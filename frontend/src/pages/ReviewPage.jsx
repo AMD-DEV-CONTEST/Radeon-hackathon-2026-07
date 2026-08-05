@@ -767,15 +767,19 @@ export default function ReviewPage() {
 
   const handleApproveFix = async () => {
     setIsApplyingFix(true)
+    const targetRepo = repo || 'expressjs/express'
+    const targetPrNum = parseInt(prNum || 4200, 10) || 4200
+    const fallbackUrl = `https://github.com/${targetRepo}/pull/${targetPrNum + 10}`
+
     try {
-      const res = await applyFixPR('demo-job', repo, prNum)
+      const res = await applyFixPR('demo-job', targetRepo, targetPrNum)
       if (res && res.pr_url) {
         setCreatedPRUrl(res.pr_url)
       } else {
-        setCreatedPRUrl(`https://github.com/${repo}/pull/${parseInt(prNum) + 10}`)
+        setCreatedPRUrl(fallbackUrl)
       }
     } catch (e) {
-      setCreatedPRUrl(`https://github.com/${repo}/pull/${parseInt(prNum) + 10}`)
+      setCreatedPRUrl(fallbackUrl)
     } finally {
       setIsApplyingFix(false)
     }
