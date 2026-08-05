@@ -24,7 +24,10 @@ step "1/5  Video → SMPL-X   (GVHMR, AMD GPU)"
 # GVHMR keys its output directory on the file name and silently reuses a stale
 # cache when the name repeats; the only tell is "Time elapsed: 0.03s".
 rm -rf "$GVHMR/outputs/demo/$NAME"
-cp "$VIDEO" "$WORK/uploads/$NAME.mp4"
+# Pointing at a video already sitting in uploads/ is a natural thing to do —
+# on a re-run, say. `cp` calls that an error and aborts the whole pipeline.
+[ "$(readlink -f "$VIDEO")" = "$(readlink -f "$WORK/uploads/$NAME.mp4")" ] \
+    || cp "$VIDEO" "$WORK/uploads/$NAME.mp4"
 ( cd "$GVHMR" && MPLBACKEND=Agg "$PY_GVHMR" tools/demo/demo.py \
     --video "$WORK/uploads/$NAME.mp4" --static_cam )
 
