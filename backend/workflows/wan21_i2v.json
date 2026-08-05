@@ -1,0 +1,15 @@
+{
+  "_comment": "Wan2.1 I2V (ComfyUI API). Editable: 6(prompt+),7(prompt-),15(ref img),12(unet),13(clip),16(WanI2V:w/h/len),17(KSampler:seed/steps/cfg),20(VHS fps)",
+  "12": {"class_type": "UNETLoader", "inputs": {"unet_name": "wan21_i2v_14b/diffusion_pytorch_model.safetensors", "weight_dtype": "default"}},
+  "13": {"class_type": "CLIPLoader", "inputs": {"clip_name": "umt5-xxl-enc-bf16.safetensors", "type": "wan"}},
+  "2": {"class_type": "CLIPVisionLoader", "inputs": {"clip_name": "clip_vision_h.safetensors"}},
+  "3": {"class_type": "CLIPVisionEncode", "inputs": {"clip_vision": ["2", 0], "image": ["15", 0]}},
+  "4": {"class_type": "VAELoader", "inputs": {"vae_name": "wan_2.1_vae.safetensors"}},
+  "6": {"class_type": "CLIPTextEncode", "inputs": {"text": "cinematic, high quality, detailed", "clip": ["13", 0]}},
+  "7": {"class_type": "CLIPTextEncode", "inputs": {"text": "blurry, low quality, distorted, watermark", "clip": ["13", 0]}},
+  "15": {"class_type": "LoadImage", "inputs": {"image": "reference.png"}},
+  "16": {"class_type": "WanImageToVideo", "inputs": {"positive": ["6", 0], "negative": ["7", 0], "vae": ["4", 0], "width": 832, "height": 480, "length": 49, "batch_size": 1, "clip_vision_output": ["3", 0], "start_image": ["15", 0]}},
+  "17": {"class_type": "KSampler", "inputs": {"seed": 0, "steps": 30, "cfg": 7.5, "sampler_name": "euler", "scheduler": "simple", "denoise": 1.0, "model": ["12", 0], "positive": ["16", 0], "negative": ["16", 1], "latent_image": ["16", 2]}},
+  "18": {"class_type": "VAEDecode", "inputs": {"samples": ["17", 0], "vae": ["4", 0]}},
+  "20": {"class_type": "VHS_VideoCombine", "inputs": {"images": ["18", 0], "frame_rate": 16, "loop_count": 0, "filename_prefix": "FrameForge_wan21", "format": "video/h264-mp4", "pix_fmt": "yuv420p", "crf": 18, "save_metadata": false, "pingpong": false, "save_output": true}}
+}

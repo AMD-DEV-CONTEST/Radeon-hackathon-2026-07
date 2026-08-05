@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FrameForge — 自动演示</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --bg-2: #16213e;
+    --panel: #232342;
+    --accent: #10b981;
+    --accent-2: #53c9b1;
+    --cyan: #22d3ee;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --dim: #64748b;
+    --border: #334155;
+    --warn: #fbbf24;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  /* ---------- Progress bar (top) ---------- */
+  #progress-wrap {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: 5px; background: rgba(255,255,255,0.06); z-index: 50;
+  }
+  #progress-bar {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    transition: width 0.1s linear;
+  }
+
+  /* ---------- Slide counter (bottom) + controls ---------- */
+  #footer {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: 56px; display: flex; align-items: center; justify-content: center;
+    gap: 18px; z-index: 50;
+    background: linear-gradient(transparent, rgba(0,0,0,0.35));
+  }
+  .ctrl-btn {
+    background: rgba(255,255,255,0.08); color: var(--text);
+    border: 1px solid var(--border); border-radius: 999px;
+    width: 42px; height: 42px; font-size: 16px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: background .2s, transform .2s, border-color .2s;
+  }
+  .ctrl-btn:hover { background: rgba(16,185,129,0.18); border-color: var(--accent); transform: scale(1.06); }
+  #counter { color: var(--muted); font-size: 0.95em; font-variant-numeric: tabular-nums; min-width: 64px; text-align: center; }
+  #counter b { color: var(--accent-2); }
+  #hint { color: var(--dim); font-size: 0.8em; }
+
+  /* ---------- Stage ---------- */
+  #stage { position: fixed; inset: 5px 0 56px 0; }
+  .slide {
+    position: absolute; inset: 0;
+    padding: 6vh 7vw;
+    display: none; flex-direction: column; justify-content: center;
+    opacity: 0;
+  }
+  .slide.active { display: flex; animation: fadeIn .7s ease forwards; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---------- Typography ---------- */
+  .eyebrow {
+    color: var(--accent-2); letter-spacing: .18em; text-transform: uppercase;
+    font-size: 0.82em; margin-bottom: 14px; font-weight: 600;
+  }
+  .slide h1 { font-size: 3.1em; line-height: 1.18; margin-bottom: 18px; font-weight: 800; }
+  .slide h2 { font-size: 2.3em; margin-bottom: 22px; font-weight: 700; color: #fff; }
+  .slide h2 .accent { color: var(--accent-2); }
+  .slide p, .slide li { color: var(--muted); line-height: 1.7; font-size: 1.18em; }
+  .slide .lead { font-size: 1.5em; color: var(--text); }
+
+  /* ---------- Title slide ---------- */
+  .title-wrap { text-align: center; }
+  .title-wrap .logo {
+    width: 92px; height: 92px; margin: 0 auto 26px; border-radius: 22px;
+    background: linear-gradient(135deg, var(--accent), var(--cyan));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.4em; font-weight: 900; color: #0b1020;
+    box-shadow: 0 12px 40px rgba(16,185,129,0.35);
+  }
+  .title-wrap h1 { font-size: 3.6em; background: linear-gradient(90deg, #fff, var(--accent-2)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .title-wrap .sub { font-size: 1.5em; color: var(--muted); margin-top: 10px; }
+  .badges { margin-top: 30px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .badge {
+    background: rgba(16,185,129,0.12); color: var(--accent-2);
+    padding: 7px 18px; border-radius: 999px; font-size: 1em;
+    border: 1px solid rgba(16,185,129,0.3);
+  }
+
+  /* ---------- Feature grid ---------- */
+  .feat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 10px; }
+  .feat {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+    padding: 22px 24px; display: flex; gap: 16px; align-items: flex-start;
+    transition: border-color .25s, transform .25s;
+  }
+  .feat:hover { border-color: var(--accent); transform: translateY(-3px); }
+  .feat .ic {
+    flex: 0 0 auto; width: 46px; height: 46px; border-radius: 12px;
+    background: rgba(16,185,129,0.16); color: var(--accent-2);
+    display: flex; align-items: center; justify-content: center; font-size: 1.4em;
+  }
+  .feat h3 { font-size: 1.18em; color: #fff; margin-bottom: 6px; }
+  .feat p { font-size: 0.98em; color: var(--muted); line-height: 1.55; }
+
+  /* ---------- Terminal (rocm-smi) ---------- */
+  .terminal {
+    background: #0b1020; border: 1px solid var(--border); border-radius: 14px;
+    overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,0.4);
+  }
+  .term-bar { background: #1c2333; padding: 9px 14px; display: flex; gap: 8px; align-items: center; }
+  .term-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .term-body { padding: 18px 22px; font-family: 'Fira Code', 'SF Mono', Consolas, monospace; font-size: 1.02em; line-height: 1.7; color: #c9d1d9; white-space: pre; overflow-x: auto; }
+  .term-body .g { color: var(--accent); } .term-body .y { color: var(--warn); }
+  .term-body .c { color: var(--cyan); } .term-body .d { color: var(--dim); }
+
+  /* ---------- Architecture (text diagram) ---------- */
+  .arch { font-family: 'Fira Code', monospace; font-size: 1.08em; line-height: 1.65; color: #cbd5e1; white-space: pre; }
+  .arch .box { color: var(--accent-2); }
+
+  /* ---------- Screenshot / placeholder ---------- */
+  .shot-frame {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+    overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,0.4);
+    display: flex; align-items: center; justify-content: center;
+    min-height: 300px; position: relative;
+  }
+  .shot-frame img { width: 100%; height: auto; display: block; max-height: 60vh; object-fit: contain; background: #0b1020; }
+  .placeholder { padding: 40px; text-align: center; }
+  .placeholder .ph {
+    background: linear-gradient(135deg, #232342, #16213e); border: 2px dashed var(--border);
+    border-radius: 14px; padding: 26px; margin-bottom: 16px; color: var(--dim);
+    font-size: 1.1em; min-height: 180px; display: flex; align-items: center; justify-content: center;
+  }
+  .placeholder .ph .pic { font-size: 2.6em; margin-bottom: 10px; display: block; }
+  .placeholder .cap { color: var(--muted); font-size: 1.02em; }
+
+  /* ---------- Before / After ---------- */
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .pane { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .pane .lab { padding: 10px 16px; font-size: 0.98em; font-weight: 600; border-bottom: 1px solid var(--border); }
+  .pane .lab.before { color: var(--warn); }
+  .pane .lab.after { color: var(--accent-2); }
+  .pane .img-box { min-height: 160px; display: flex; align-items: center; justify-content: center; color: var(--dim); padding: 24px; }
+  .pane .img-box img { width: 100%; border-radius: 8px; }
+
+  /* ---------- Tech highlights chips ---------- */
+  .chips { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 18px; }
+  .chip {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+    padding: 22px 26px; flex: 1 1 260px; min-width: 240px;
+  }
+  .chip h3 { color: var(--accent-2); font-size: 1.25em; margin-bottom: 8px; }
+  .chip p { color: var(--muted); font-size: 1.02em; }
+
+  /* ---------- Performance table ---------- */
+  .perf-table { width: 100%; border-collapse: collapse; font-size: 1.12em; margin-top: 10px; }
+  .perf-table th, .perf-table td { padding: 16px 18px; text-align: center; border-bottom: 1px solid var(--border); }
+  .perf-table th { color: var(--accent-2); font-weight: 700; }
+  .perf-table td:first-child, .perf-table th:first-child { text-align: left; color: var(--muted); }
+  .perf-table .hl { color: var(--accent); font-weight: 700; }
+  .perf-table tr.recommend { background: rgba(16,185,129,0.08); }
+
+  /* ---------- Closing ---------- */
+  .closing { text-align: center; }
+  .closing .slogan { font-size: 2.6em; font-weight: 800; color: #fff; margin-bottom: 16px; }
+  .closing .slogan .accent { color: var(--accent-2); }
+  .closing .url {
+    display: inline-block; margin-top: 18px; padding: 12px 28px; border-radius: 999px;
+    background: rgba(34,211,238,0.1); border: 1px solid rgba(34,211,238,0.35); color: var(--cyan);
+    font-family: 'Fira Code', monospace; font-size: 1.15em;
+  }
+
+  .step-tag {
+    display: inline-block; background: var(--accent); color: #0b1020;
+    padding: 4px 16px; border-radius: 999px; font-weight: 800; font-size: 0.95em; margin-bottom: 14px;
+  }
+  .two-col { display: grid; grid-template-columns: 1.1fr 1fr; gap: 34px; align-items: center; }
+  @media (max-width: 900px) {
+    .two-col, .compare, .feat-grid { grid-template-columns: 1fr; }
+    .slide h1 { font-size: 2.2em; } .slide h2 { font-size: 1.7em; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress-wrap"><div id="progress-bar"></div></div>
+
+<div id="stage">
+
+  <!-- Slide 1: Title -->
+  <section class="slide active">
+    <div class="title-wrap">
+      <div class="logo">FF</div>
+      <h1>FrameForge</h1>
+      <div class="sub">AI 视频关键帧微调工坊</div>
+      <div class="badges">
+        <span class="badge">AMD AI DevMaster 黑客松 2026</span>
+        <span class="badge">赛道一 · 多模态内容创作</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 2: Hardware / rocm-smi -->
+  <section class="slide">
+    <div class="eyebrow">硬件平台</div>
+    <h2>AMD Radeon GPU 48GB + <span class="accent">ROCm 6.3</span></h2>
+    <div class="terminal">
+      <div class="term-bar">
+        <span class="term-dot" style="background:#ff5f56"></span>
+        <span class="term-dot" style="background:#ffbd2e"></span>
+        <span class="term-dot" style="background:#27c93f"></span>
+        <span style="margin-left:10px;color:#64748b;font-size:.85em">root@frameforge: ~ # rocm-smi</span>
+      </div>
+      <div class="term-body"><span class="d">========================================= ROCm System Interface Monitor ========================================</span>
+
+<span class="c">GPU[0]</span>  : AMD Radeon RX 7900 XTX                 <span class="y">Temperature:</span> 48.0°C
+         VRAM: <span class="g">48.0 GB</span>  (Used: 6.2 GB)               Power:    85 W / 355 W
+         Sclk: 1982 MHz    Mclk: 2500 MHz    Fan: 32%
+
+<span class="d">PID      USER     GPU MEMORY(GB)  PROCESS</span>
+  1024   comfyui     4.8           python main.py --port 8188
+   512   frameforge  1.4           python app.py
+
+<span class="g">✓ HIP runtime available  ✓ PyTorch ROCm backend ready</span></div>
+    </div>
+    <p style="margin-top:18px">本地推理 · 无需云端 · 全部数据留在 GPU 上</p>
+  </section>
+
+  <!-- Slide 3: Features -->
+  <section class="slide">
+    <div class="eyebrow">核心特性</div>
+    <h2>像修图一样 <span class="accent">修视频</span></h2>
+    <div class="feat-grid">
+      <div class="feat"><div class="ic">🎬</div><div><h3>双后端视频生成</h3><p>Wan2.1 图生视频 + MiniMax H3 高质量生成（864×480，原生音频）</p></div></div>
+      <div class="feat"><div class="ic">✨</div><div><h3>轮廓区域选择</h3><p>Canny 边缘检测 + 连通域分析，点击编号区域即可生成精确 mask，告别画笔</p></div></div>
+      <div class="feat"><div class="ic">🎨</div><div><h3>帧级局部重绘</h3><p>SDXL Inpainting / H3 instruction-edit + ControlNet（Canny / Depth）</p></div></div>
+      <div class="feat"><div class="ic">📡</div><div><h3>智能编辑传播</h3><p>RAFT 光流自动把修改传播到相邻帧，保持时序一致性</p></div></div>
+      <div class="feat"><div class="ic">🎚️</div><div><h3>采样步数控制</h3><p>5-50 步滑块，快速预览到高质量自由切换</p></div></div>
+      <div class="feat"><div class="ic">📤</div><div><h3>一键导出</h3><p>FFmpeg 合帧，可选保留原视频音轨</p></div></div>
+    </div>
+  </section>
+
+  <!-- Slide 4: Architecture -->
+  <section class="slide">
+    <div class="eyebrow">系统架构</div>
+    <h2>三层 <span class="accent">编排架构</span></h2>
+    <div class="arch"><span class="box">┌─────────────────────────────────────────────┐</span>
+<span class="box">│            Gradio Web UI (3 Tab)             │</span>
+<span class="box">│   生成视频  │  编辑帧  │  对比与导出           │</span>
+<span class="box">└────────────────────┬────────────────────────┘</span>
+                     │ HTTP / WebSocket
+<span class="box">┌────────────────────▼────────────────────────┐</span>
+<span class="box">│       FrameForge Orchestrator (Python)       │</span>
+│  ┌──────────┐ ┌──────────┐ ┌───────────────┐  │
+│  │ 视频生成  │ │ 帧级编辑  │ │ 编辑传播引擎   │  │
+│  └─────┬────┘ └─────┬────┘ └───────┬───────┘  │
+│        └────────────┼──────────────┘          │
+<span class="box">└─────────────────────┼───────────────────────┘</span>
+                       ▼
+<span class="box">┌──────────────────────────────────────────────┐</span>
+<span class="box">│     ComfyUI 推理后端 (ROCm 6.3)              │</span>
+│  Wan2.1 │ MiniMax H3 │ SDXL-Inpaint │ ControlNet │
+<span class="box">└──────────────────────┬───────────────────────┘</span>
+                       ▼
+<span class="box">┌──────────────────────────────────────────────┐</span>
+<span class="box">│        FFmpeg + OpenCV 视频工具链             │</span>
+<span class="box">└──────────────────────────────────────────────┘</span></div>
+  </section>
+
+  <!-- Slide 5: Step 1 -->
+  <section class="slide">
+    <div class="step-tag">STEP 1</div>
+    <h2>视频生成 <span class="accent">· MiniMax H3</span></h2>
+    <div class="two-col">
+      <div>
+        <p class="lead">输入提示词 → 选择模型 → 调整采样步数 → 生成</p>
+        <ul style="margin-top:16px;list-style:none">
+          <li style="margin-bottom:10px">✅ 选择 <b style="color:#fff">MiniMax H3</b>，15 步采样</li>
+          <li style="margin-bottom:10px">✅ <b style="color:#fff">WebSocket</b> 实时进度条</li>
+          <li style="margin-bottom:10px">✅ 自动拆帧并填充时间轴缩略图</li>
+        </ul>
+      </div>
+      <div class="shot-frame">
+        <img src="../screenshot_tab1.png" alt="Tab 1 生成视频"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+        <div class="placeholder" style="display:none">
+          <div class="ph"><span class="pic">🟩</span>[ Tab 1 · 生成视频 界面截图 ]<br>提示词框 / 模型下拉 / 采样步数 / 生成按钮</div>
+          <div class="cap">screenshot_tab1.png</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 6: Step 2 -->
+  <section class="slide">
+    <div class="step-tag">STEP 2</div>
+    <h2>选帧 + <span class="accent">轮廓选区</span></h2>
+    <div class="two-col">
+      <div>
+        <p class="lead">拖动帧索引 → 自动生成彩色区域标注图 → 点击区域</p>
+        <ul style="margin-top:16px;list-style:none">
+          <li style="margin-bottom:10px">🎯 <b style="color:#fff">Canny 轮廓</b> + 连通域分析</li>
+          <li style="margin-bottom:10px">🎨 半透明颜色覆盖 + 编号标注</li>
+          <li style="margin-bottom:10px">🖱️ 点击即可多选，无需涂抹</li>
+        </ul>
+      </div>
+      <div class="shot-frame">
+        <img src="../screenshot_tab2.png" alt="Tab 2 编辑帧 - 区域标注"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+        <div class="placeholder" style="display:none">
+          <div class="ph"><span class="pic">🎨</span>[ Tab 2 · 区域标注图 截图 ]<br>彩色编号区域 / 选中高亮</div>
+          <div class="cap">screenshot_tab2.png</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 7: Step 3 -->
+  <section class="slide">
+    <div class="step-tag">STEP 3</div>
+    <h2>编辑 + <span class="accent">前向传播</span></h2>
+    <div class="two-col">
+      <div>
+        <p class="lead">输入编辑描述 → 选择传播模式 → 应用编辑</p>
+        <ul style="margin-top:16px;list-style:none">
+          <li style="margin-bottom:10px">✏️ 编辑提示词：<span style="color:#fff">把金毛犬换成哈士奇</span></li>
+          <li style="margin-bottom:10px">➡️ 传播模式：<b style="color:#fff">前向传播</b></li>
+          <li style="margin-bottom:10px">🌊 <b style="color:#fff">RAFT 光流</b> 自动 warp + 羽化混合</li>
+          <li style="margin-bottom:10px">🔁 后续帧自动跟随关键帧变化</li>
+        </ul>
+      </div>
+      <div class="shot-frame">
+        <img src="../screenshot_tab2.png" alt="Tab 2 编辑传播"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+        <div class="placeholder" style="display:none">
+          <div class="ph"><span class="pic">🌊</span>[ 编辑传播过程 截图 ]<br>SDXL Inpaint 重绘 + RAFT 光流传播</div>
+          <div class="cap">screenshot_tab2.png</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 8: Step 4 -->
+  <section class="slide">
+    <div class="step-tag">STEP 4</div>
+    <h2>对比 + <span class="accent">导出</span></h2>
+    <div class="compare">
+      <div class="pane">
+        <div class="lab before">修改前</div>
+        <div class="img-box">
+          <img src="../screenshot_initial.png" alt="修改前"
+               onerror="this.style.display='none';this.parentElement.innerHTML='[ 修改前 · 原始帧占位 ]'">
+        </div>
+      </div>
+      <div class="pane">
+        <div class="lab after">修改后</div>
+        <div class="img-box">
+          <img src="../screenshot_full.png" alt="修改后"
+               onerror="this.style.display='none';this.parentElement.innerHTML='[ 修改后 · 重绘帧占位 ]'">
+        </div>
+      </div>
+    </div>
+    <div class="shot-frame" style="margin-top:20px;min-height:auto">
+      <img src="../screenshot_tab3.png" alt="Tab 3 对比与导出"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+      <div class="placeholder" style="display:none">
+        <div class="ph"><span class="pic">📤</span>[ Tab 3 · 对比与导出 界面截图 ]<br>导出视频按钮 + 最终 MP4 播放器</div>
+        <div class="cap">screenshot_tab3.png</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 9: Tech highlights -->
+  <section class="slide">
+    <div class="eyebrow">技术亮点</div>
+    <h2>四大 <span class="accent">核心创新</span></h2>
+    <div class="chips">
+      <div class="chip"><h3>🚀 MiniMax H3 INT8</h3><p>本地推理，864×480 原生音频，无需云端调用</p></div>
+      <div class="chip"><h3>📐 Canny 轮廓选区</h3><p>边缘检测 + 连通域分析，一键生成精确 mask</p></div>
+      <div class="chip"><h3>🌊 RAFT 光流传播</h3><p>前后向一致性检查 + 高斯羽化，时序一致</p></div>
+      <div class="chip"><h3>🎚️ 采样步数控制</h3><p>5-50 步自由调节，速度与画质灵活平衡</p></div>
+    </div>
+  </section>
+
+  <!-- Slide 10: Performance -->
+  <section class="slide">
+    <div class="eyebrow">性能数据</div>
+    <h2>生成时间 <span class="accent">对比</span>（MiniMax H3）</h2>
+    <table class="perf-table">
+      <thead>
+        <tr><th>采样步数</th><th>预估时长</th><th>画质</th><th>适用场景</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>5 步</td><td>~1 分钟</td><td>草稿</td><td>快速预览 / 调试提示词</td></tr>
+        <tr class="recommend"><td class="hl">15 步（推荐）</td><td class="hl">~8 分钟</td><td class="hl">高清</td><td class="hl">日常演示 / 提交</td></tr>
+        <tr><td>30 步</td><td>~35 分钟</td><td>极致</td><td>最终成片 / 高质量输出</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:22px">💡 步数越多画质越精细，但生成时间近线性增加；H3 帧数会随步数自动对齐扩展。</p>
+  </section>
+
+  <!-- Slide 11: Closing -->
+  <section class="slide">
+    <div class="closing">
+      <div class="eyebrow">感谢观看</div>
+      <div class="slogan">FrameForge — 像<span class="accent">修图</span>一样修视频</div>
+      <p class="lead">AMD AI DevMaster 黑客松 2026 · 赛道一</p>
+      <div class="url">github.com/zyzwzh/Radeon-hackathon-2026-07</div>
+    </div>
+  </section>
+
+</div>
+
+<div id="footer">
+  <button class="ctrl-btn" id="prevBtn" title="上一张 (←)">‹</button>
+  <button class="ctrl-btn" id="playBtn" title="播放 / 暂停 (空格)">⏸</button>
+  <button class="ctrl-btn" id="nextBtn" title="下一张 (→)">›</button>
+  <span id="counter"><b>1</b> / 11</span>
+  <span id="hint">空格 播放/暂停 · ← → 翻页</span>
+</div>
+
+<script>
+  (function () {
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const total = slides.length;
+    const bar = document.getElementById('progress-bar');
+    const counter = document.getElementById('counter');
+    const playBtn = document.getElementById('playBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const DURATION = 8000;       // 每张 8 秒
+    const TICK = 50;             // 进度刷新间隔
+
+    let current = 0;
+    let playing = true;
+    let elapsed = 0;
+    let timer = null;
+
+    function render() {
+      slides.forEach((s, i) => s.classList.toggle('active', i === current));
+      counter.innerHTML = '<b>' + (current + 1) + '</b> / ' + total;
+      elapsed = 0;
+      bar.style.width = '0%';
+    }
+
+    function go(n) {
+      current = (n + total) % total;
+      render();
+    }
+
+    function next() { go(current + 1); }
+    function prev() { go(current - 1); }
+
+    function tick() {
+      if (!playing) return;
+      elapsed += TICK;
+      const pct = Math.min(100, (elapsed / DURATION) * 100);
+      bar.style.width = pct + '%';
+      if (elapsed >= DURATION) next();
+    }
+
+    function startTimer() {
+      if (timer) clearInterval(timer);
+      timer = setInterval(tick, TICK);
+    }
+
+    function togglePlay() {
+      playing = !playing;
+      playBtn.textContent = playing ? '⏸' : '▶';
+    }
+
+    playBtn.addEventListener('click', togglePlay);
+    nextBtn.addEventListener('click', next);
+    prevBtn.addEventListener('click', prev);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+      else if (e.code === 'ArrowRight') { next(); }
+      else if (e.code === 'ArrowLeft') { prev(); }
+    });
+
+    render();
+    startTimer();
+  })();
+</script>
+
+</body>
+</html>

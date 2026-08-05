@@ -1,0 +1,105 @@
+{
+  "4": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "sd_xl_base_1.0.safetensors"
+    }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "high quality, detailed",
+      "clip": ["4", 1]
+    }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "blurry, low quality, watermark",
+      "clip": ["4", 1]
+    }
+  },
+  "8": {
+    "class_type": "ControlNetLoader",
+    "inputs": {
+      "control_net_name": "controlnet-canny-sdxl-1.0.safetensors"
+    }
+  },
+  "9": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "frame.png"
+    }
+  },
+  "10": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "mask.png"
+    }
+  },
+  "16": {
+    "class_type": "ControlNetApply",
+    "inputs": {
+      "conditioning": ["6", 0],
+      "control_net": ["8", 0],
+      "image": ["20", 0],
+      "strength": 0.8,
+      "start_percent": 0.0,
+      "end_percent": 0.8
+    }
+  },
+  "20": {
+    "class_type": "Canny",
+    "inputs": {
+      "image": ["9", 0],
+      "low_threshold": 0.4,
+      "high_threshold": 0.8
+    }
+  },
+  "21": {
+    "class_type": "MiDaS-DepthMapPreprocessor",
+    "inputs": {
+      "image": ["9", 0],
+      "a": 6.28318530718,
+      "bg_threshold": 0.1
+    }
+  },
+  "11": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 0,
+      "steps": 30,
+      "cfg": 7.5,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 0.75,
+      "model": ["4", 0],
+      "positive": ["16", 0],
+      "negative": ["7", 0],
+      "latent_image": ["12", 0]
+    }
+  },
+  "12": {
+    "class_type": "VAEEncodeForInpaint",
+    "inputs": {
+      "pixels": ["9", 0],
+      "vae": ["4", 2],
+      "mask": ["10", 1],
+      "grow_mask_by": 6
+    }
+  },
+  "13": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["11", 0],
+      "vae": ["4", 2]
+    }
+  },
+  "15": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": ["13", 0],
+      "filename_prefix": "FrameForge_inpaint_controlnet"
+    }
+  }
+}
