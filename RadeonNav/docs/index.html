@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RadeonNav: Skill-Aware Quadruped Navigation on ROCm</title>
+<meta name="description" content="Skill-aware quadruped navigation with natural gaits, trained and evaluated on a single AMD Radeon GPU with ROCm.">
+<style>
+  :root{
+    --ink:#16202b; --muted:#5b6b7c; --line:#e5eaf0; --bg:#ffffff;
+    --card:#f6f8fa; --teal:#0aa78f; --tealdark:#087a69; --dark:#0b0d12;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.6}
+  .wrap{max-width:980px;margin:0 auto;padding:0 20px}
+  header{padding:64px 0 28px;text-align:center}
+  h1{font-size:2.3rem;line-height:1.25;font-weight:800}
+  h1 .name{color:var(--teal)}
+  .sub{color:var(--muted);margin-top:10px;font-size:1.05rem}
+  .authors{margin-top:14px;color:var(--ink)}
+  .affil{color:var(--muted);font-size:.95rem}
+  .btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:22px 0 8px}
+  .btn{display:inline-block;padding:9px 18px;border-radius:999px;background:var(--dark);color:#fff;
+       text-decoration:none;font-weight:600;font-size:.95rem}
+  .btn:hover{background:#22303f}
+  .btn.alt{background:var(--teal)} .btn.alt:hover{background:var(--tealdark)}
+  section{padding:34px 0;border-top:1px solid var(--line)}
+  h2{font-size:1.45rem;font-weight:800;margin-bottom:6px}
+  .eyebrow{color:var(--teal);font-weight:700;font-size:.85rem;letter-spacing:.12em;text-transform:uppercase}
+  p.lead{color:var(--ink);margin-top:10px}
+  video{width:100%;border-radius:12px;display:block;background:#000}
+  .caption{color:var(--muted);font-size:.9rem;margin-top:8px;text-align:center}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
+  .card h3{font-size:1.05rem;margin-bottom:6px}
+  .card p{color:var(--muted);font-size:.93rem}
+  .card a{color:var(--tealdark);text-decoration:none;font-weight:600}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:18px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-top:18px;text-align:center}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 10px}
+  .stat b{display:block;font-size:1.5rem;color:var(--teal)}
+  .stat span{color:var(--muted);font-size:.85rem}
+  .term{background:var(--dark);color:#c9d6e3;border-radius:12px;padding:18px 20px;font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+        font-size:.88rem;overflow-x:auto;margin-top:14px;white-space:pre-wrap}
+  .term .p{color:#7ce38b;font-weight:700}
+  .term .h{color:#fff;font-weight:700}
+  pre.bib{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;overflow-x:auto;
+          font-size:.85rem;margin-top:12px}
+  footer{padding:30px 0 46px;color:var(--muted);font-size:.85rem;text-align:center;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <h1><span class="name">RadeonNav:</span> Skill-Aware Quadruped Navigation<br>with Natural Behaviours on the ROCm Platform</h1>
+  <div class="sub">A frozen locomotion stack, a point-cloud planner, and single-obstacle
+  tests that tell the planner what the legs can and cannot cross.</div>
+  <div class="authors">Xiao He</div>
+  <div class="affil">AMD AI Hackathon &middot; Track 3: Physical AI</div>
+  <div class="btns">
+    <a class="btn" href="Technical-Report.pdf">&#128196; Technical Report</a>
+    <a class="btn" href="https://github.com/Hy1422/RadeonNav">&#128187; Code</a>
+    <a class="btn alt" href="https://github.com/Hy1422/RadeonNav/blob/main/experiment-results/quadrupedal-agility/videos/film/RadeonNav_film_final.mp4">&#127916; Demo Film</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <video src="assets/radeon_nav_full_1p5x.mp4" poster="assets/poster.jpg" autoplay muted loop playsinline controls></video>
+  <div class="caption">One continuous rollout on AMD ROCm (1.5&times; speed): rough terrain, stairs, seesaw,
+  elevated tunnel, hurdle detour, hoop jump, pole slalom, and moving pedestrians &mdash; zero collisions, zero falls.</div>
+</div>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">01 &middot; Overview</div>
+    <h2>Route around what you cannot clear. Traverse what you can.</h2>
+    <p class="lead">
+      Locomotion skills and obstacle-avoidance planning are usually designed in isolation: the planner
+      knows nothing about the skills&rsquo; capability limits, and the skill policy depends on hand-fed goals.
+      RadeonNav connects a point-cloud planner to a frozen quadruped locomotion stack through the policy
+      observation interface alone &mdash; no network is modified. <b>Single-obstacle tests</b>, run per
+      terrain class on the deployed configuration, drive route construction: obstacles beyond the skills&rsquo;
+      ability (the full-height bar hurdle) become planner-side virtual walls and are detoured, traversable
+      terrain is crossed directly, and jump headings are frozen at skill entry so planner updates cannot
+      disturb take-off. The only trained component is the depth encoder, fine-tuned in under 90 seconds
+      on one AMD Radeon GPU.
+    </p>
+    <div class="stats">
+      <div class="stat"><b>79.7 s</b><span>reference full-course run, 9 segments, zero falls</span></div>
+      <div class="stat"><b>+61%</b><span>goal-directed speed vs planner-only, same success rate</span></div>
+      <div class="stat"><b>8/8 vs 0/8</b><span>our interface vs original onboard student, same networks</span></div>
+      <div class="stat"><b>90 s</b><span>encoder fine-tuning wall clock on one Radeon GPU</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">02 &middot; Built on three open-source projects</div>
+    <h2>The stack</h2>
+    <div class="cards">
+      <div class="card">
+        <h3>NeuPAN &mdash; planning core</h3>
+        <p>Real-time point-cloud MPC with a learned distance field (DUNE). We add the waypoint envelope:
+        reference-path construction, traversability costs, and receding heading feed. DUNE is ported to
+        ROCm (identical outputs to 1.5&times;10<sup>&minus;6</sup>, 5.65&times; faster forward).
+        <a href="https://arxiv.org/abs/2403.06828">paper</a></p>
+      </div>
+      <div class="card">
+        <h3>Quadrupedal-agility &mdash; locomotion skills</h3>
+        <p>Frozen skill selector and gait controller with natural gaits learned from canine motion capture,
+        plus the depth encoder we fine-tune. Used exactly as released &mdash; our system changes only its
+        observation channels. <a href="https://arxiv.org/abs/2505.09979">paper</a></p>
+      </div>
+      <div class="card">
+        <h3>UniLab &mdash; simulation framework</h3>
+        <p>ROCm-native robot-learning framework (MuJoCo physics on CPU, policy tensors through HIP,
+        headless EGL depth). Every task, sensor, and evaluation in this project is rebuilt and run inside it.
+        <a href="https://arxiv.org/abs/2605.30313">paper</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">03 &middot; Four strategies, same fixtures</div>
+    <h2>Why the interface matters</h2>
+    <p class="lead">Same frozen networks in every panel. The planner alone detours everything; the privileged
+    teacher needs hand-authored goals and ground-truth labels; the original onboard student never arrives;
+    ours traverses what is traversable and is the only configuration that knows <i>not</i> to jump the
+    full-height hurdle.</p>
+    <video style="margin-top:16px" src="assets/comparison_reel.mp4" poster="" muted loop playsinline controls></video>
+    <div class="caption">Green frame = reached the goal &middot; red frame = did not. Six fixtures, four strategies each.</div>
+    <div class="grid2">
+      <div><video src="assets/grid_hurdle.mp4" muted loop playsinline controls preload="metadata"></video>
+        <div class="caption">Bar hurdle &mdash; capability-aware detour vs wedging under the bar</div></div>
+      <div><video src="assets/grid_hoop.mp4" muted loop playsinline controls preload="metadata"></video>
+        <div class="caption">Tire hoop &mdash; committed heading, jump through the ring</div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">04 &middot; Reproduce</div>
+    <h2>Two commands on an AMD GPU</h2>
+    <div class="term"><span class="p">$ bash setup/setup_rocm.sh && bash scripts/verify_environment.sh</span>
+  device   <span class="h">AMD Radeon Graphics (gfx1100)</span>
+  torch    2.11.0+rocm7.2 &middot; HIP runtime 7.2.26015 &middot; MUJOCO_GL=egl
+    </div>
+    <div class="term"><span class="p">$ bash scripts/record_radeon-nav.sh</span>
+  [runner] 9 segments &middot; planner 10 Hz &middot; control 50 Hz
+  [runner] <span class="h">reached goal</span> &rarr; radeon_nav_full.mp4 + result.json
+<span class="p">$ jq .checks outputs/radeon-nav/latest/result.json</span>
+  <span class="h">all checks true</span> &mdash; contract, finite rollout, video, no falls,
+  no pedestrian collision, reached_goal
+    </div>
+    <div class="caption" style="text-align:left">Every number on this page is recomputable from archived
+    run records (<code>result.json</code> per run); failed runs keep their video and verdict too.</div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">05 &middot; Citation</div>
+    <h2>BibTeX</h2>
+<pre class="bib">@misc{radeonnav2026,
+  title  = {RadeonNav: Skill-Aware Quadruped Navigation with Natural Behaviours on the ROCm Platform},
+  author = {He, Xiao},
+  year   = {2026},
+  note   = {AMD AI Hackathon, Track 3: Physical AI},
+  url    = {https://github.com/Hy1422/RadeonNav}
+}</pre>
+  </div>
+</section>
+
+<footer>
+  RadeonNav &middot; built on NeuPAN, Quadrupedal-agility, and UniLab &middot; all inference and training on a single AMD Radeon GPU with ROCm.
+</footer>
+
+</body>
+</html>

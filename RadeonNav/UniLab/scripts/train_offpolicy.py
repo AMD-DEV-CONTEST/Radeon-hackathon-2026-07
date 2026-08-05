@@ -1,0 +1,844 @@
+"""Unified off-policy training entry for SAC and TD3."""
+
+from __future__ import annotations
+
+import datetime
+import os
+import sys
+from pathlib import Path
+from typing import Any, cast
+
+import hydra
+from omegaconf import DictConfig, OmegaConf
+
+ROOT_DIR = Path(__file__).parent.parent
+sys.path.append(str(ROOT_DIR))
+
+from unilab.training import (
+    BackendAdapter,
+    apply_configured_training_seed,
+    assert_offpolicy_task_choice_matches_algo,
+    create_env,
+    ensure_registries,
+    get_log_root,
+    log_playback_plan,
+    should_run_playback,
+)
+from unilab.training import (
+    resolve_checkpoint_path as resolve_checkpoint_path_common,
+)
+from unilab.training.experiment import ExperimentTracker
+from unilab.training.sim2sim import policy_load_dim_guard, resolve_sim2sim_config
+from unilab.utils.nan_guard import NanGuardCfg
+
+
+def enable_faulthandler() -> None:
+    """Enable fatal-signal Python stack dumps unless explicitly disabled."""
+    if os.environ.get("UNILAB_FAULTHANDLER", "1").lower() in {"0", "false", "no", "off"}:
+        return
+    try:
+        import faulthandler
+
+        if not faulthandler.is_enabled():
+            faulthandler.enable(all_threads=True)
+    except Exception as exc:
+        print(f"[train_offpolicy] faulthandler unavailable: {exc}", file=sys.stderr)
+
+
+def build_failure_summary(exc: BaseException, run_summary: Any | None = None) -> dict[str, Any]:
+    summary = dict(run_summary) if isinstance(run_summary, dict) else {}
+    if summary.get("status") == "completed":
+        summary["status"] = "failed"
+    else:
+        summary.setdefault("status", "failed")
+    summary["error_type"] = type(exc).__name__
+    summary["error"] = str(exc)
+    return summary
+
+
+def build_run_dir_name(timestamp: str, sim_backend: str, num_gpus: int = 1) -> str:
+    suffix = f"{timestamp}_{sim_backend}"
+    if int(num_gpus) > 1:
+        suffix += f"_{int(num_gpus)}xGPU"
+    return suffix
+
+
+def default_device(torch_module, preferred: str | None = None) -> str:
+    """Resolve runtime device with optional user override."""
+    if preferred:
+        return preferred
+    if torch_module.cuda.is_available():
+        return "cuda"
+    xpu = getattr(torch_module, "xpu", None)
+    xpu_is_available = getattr(xpu, "is_available", None)
+    if callable(xpu_is_available) and xpu_is_available():
+        return "xpu"
+    if torch_module.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
+
+def resolve_checkpoint_path(
+    root_dir: Path, algo_log_name: str, task: str, load_run: str | int
+) -> tuple[str | None, str | None]:
+    checkpoint_path, checkpoint_dir = resolve_checkpoint_path_common(
+        Path(root_dir) / "logs" / algo_log_name / task,
+        load_run,
+        suffix=".pt",
+    )
+    return (
+        str(checkpoint_path) if checkpoint_path is not None else None,
+        str(checkpoint_dir) if checkpoint_dir is not None else None,
+    )
+
+
+def extract_reset_obs(reset_result):
+    """Extract obs_dict from env.reset(...) using the current (obs_dict, info_dict) contract."""
+    if isinstance(reset_result, tuple):
+        if len(reset_result) == 2:
+            obs_out, _ = reset_result
+            return obs_out
+    raise ValueError(f"Unexpected env.reset return format: {type(reset_result)!r}")
+
+
+def resolve_play_obs_dim(obs_groups_spec: dict[str, int]) -> int:
+    obs_dim, _ = resolve_play_obs_dims(obs_groups_spec)
+    return obs_dim
+
+
+def resolve_play_obs_dims(obs_groups_spec: dict[str, int]) -> tuple[int, int]:
+    from unilab.base.observations import get_obs_dims
+
+    obs_dim, critic_obs_dim = get_obs_dims(obs_groups_spec)
+    return int(obs_dim), int(critic_obs_dim)
+
+
+def extract_play_obs(obs_dict):
+    from unilab.base.observations import split_obs_dict
+
+    obs_out, _ = split_obs_dict(obs_dict)
+    return obs_out
+
+
+def resolve_play_actor_spec(
+    algo_name: str,
+    cfg: DictConfig,
+    *,
+    obs_dim: int,
+    critic_obs_dim: int,
+) -> tuple[str, dict[str, Any]]:
+    """Resolve the actor implementation and model kwargs used by off-policy play."""
+    if algo_name != "sac":
+        return algo_name, {}
+
+    from unilab.algos.torch.offpolicy.runtime import resolve_custom_offpolicy_runtime
+
+    rl_cfg = cast(dict[str, Any], OmegaConf.to_container(cfg.algo, resolve=True))
+    custom_runtime = resolve_custom_offpolicy_runtime(rl_cfg)
+    if custom_runtime is None:
+        return "sac", {}
+
+    actor_algo_type = str(custom_runtime.algo_type or algo_name)
+    actor_kwargs = custom_runtime.build_model_kwargs(
+        obs_dim=int(obs_dim),
+        critic_obs_dim=int(critic_obs_dim),
+    )
+    return actor_algo_type, actor_kwargs
+
+
+def build_offpolicy_env_cfg_override(algo_name: str, cfg: DictConfig) -> dict[str, Any] | None:
+    assert_offpolicy_task_choice_matches_algo(cfg, algo_name=algo_name)
+    return cast(
+        dict[str, Any] | None,
+        BackendAdapter(cfg, root_dir=ROOT_DIR, algo_name=algo_name).build_task_env_cfg_override(),
+    )
+
+
+def build_runner(algo_name: str, cfg: DictConfig):
+    """Build algorithm runner from unified Hydra config."""
+    env_cfg_override = build_offpolicy_env_cfg_override(algo_name, cfg)
+    from unilab.algos.torch.offpolicy.thread_budget import (
+        apply_torch_thread_runtime,
+        resolve_torch_thread_runtime,
+    )
+
+    torch_thread_runtime = resolve_torch_thread_runtime(
+        getattr(cfg.training, "torch_threads", None)
+    )
+    apply_torch_thread_runtime(torch_thread_runtime, role="learner")
+
+    nan_guard_cfg = getattr(cfg.training, "nan_guard", None)
+    _nan_guard_cfg: NanGuardCfg | None = None
+    if nan_guard_cfg is not None and getattr(nan_guard_cfg, "enabled", False):
+        _nan_guard_cfg = NanGuardCfg(
+            enabled=True,
+            buffer_size=int(getattr(nan_guard_cfg, "buffer_size", 100)),
+            max_envs_to_dump=int(getattr(nan_guard_cfg, "max_envs_to_dump", 5)),
+            output_dir=getattr(nan_guard_cfg, "output_dir", None),
+        )
+
+    replay_prefetch_mode = getattr(cfg.training, "replay_prefetch_mode", "one_tick")
+    if replay_prefetch_mode != "one_tick":
+        raise ValueError(
+            f"Unsupported training.replay_prefetch_mode={replay_prefetch_mode!r}; "
+            "expected 'one_tick'"
+        )
+    verbose_metrics = bool(getattr(cfg.training, "verbose_metrics", False))
+    num_gpus = int(getattr(cfg.training, "num_gpus", 1))
+    multi_gpu_sync_mode = str(getattr(cfg.training, "multi_gpu_sync_mode", "local_sgd"))
+    multi_gpu_sync_interval = int(getattr(cfg.training, "multi_gpu_sync_interval", 1))
+    collector_infer_device = str(getattr(cfg.training, "collector_infer_device", "cpu") or "cpu")
+
+    sync_collection = not bool(cfg.training.no_sync_collection)
+
+    if algo_name == "sac":
+        from unilab.algos.torch.fast_sac.learner import FastSACLearner
+        from unilab.algos.torch.offpolicy.double_buffer_runner import (
+            DoubleBufferOffPolicyRunner,
+        )
+        from unilab.algos.torch.offpolicy.runtime import resolve_custom_offpolicy_runtime
+        from unilab.base.registry import ensure_registries as _ensure
+        from unilab.utils.device import get_default_device
+
+        _ensure()
+        _device = cfg.training.device or get_default_device()
+        _rl_cfg = cast(dict[str, Any], OmegaConf.to_container(cfg.algo, resolve=True))
+        _custom_runtime = resolve_custom_offpolicy_runtime(_rl_cfg)
+        _env = create_env(cfg, num_envs=1, env_cfg_override=env_cfg_override)
+        try:
+            assert _env.action_space.shape
+            from unilab.base.observations import get_obs_dims as _get_obs_dims
+
+            _obs_dim, _critic_dim = _get_obs_dims(_env.obs_groups_spec)
+            _action_dim = _env.action_space.shape[0]
+            _symmetry_aug = None
+            if (
+                _custom_runtime is not None
+                and cfg.algo.use_symmetry
+                and not _custom_runtime.supports_symmetry
+            ):
+                raise ValueError("Selected SAC off-policy runtime does not support symmetry.")
+            if cfg.algo.use_symmetry:
+                _symmetry_aug = _env.build_symmetry_augmentation(device=_device)
+                if _symmetry_aug is None:
+                    raise ValueError(
+                        f"{cfg.training.task_name} does not provide symmetry augmentation"
+                    )
+        finally:
+            _env.close()
+
+        _batch_size = cfg.algo.batch_size
+        if _symmetry_aug is not None:
+            if _batch_size % _symmetry_aug.batch_multiplier != 0:
+                raise ValueError(
+                    "Symmetry augmentation requires batch_size divisible by "
+                    f"{_symmetry_aug.batch_multiplier}, got {_batch_size}"
+                )
+            _batch_size = _batch_size // _symmetry_aug.batch_multiplier
+
+        _learner_cls = FastSACLearner
+        _algo_type = "sac"
+        _actor_kwargs: dict[str, Any] = {}
+        _learner_extra_kwargs: dict[str, Any] = {}
+        if _custom_runtime is not None:
+            _learner_extra_kwargs = cast(
+                dict[str, Any],
+                _custom_runtime.build_model_kwargs(
+                    obs_dim=int(_obs_dim),
+                    critic_obs_dim=int(_critic_dim),
+                ),
+            )
+            if _custom_runtime.learner_cls is not None:
+                _learner_cls = _custom_runtime.learner_cls
+            if _custom_runtime.algo_type is not None:
+                _algo_type = str(_custom_runtime.algo_type)
+            _actor_kwargs = dict(_learner_extra_kwargs)
+
+        _learner_kwargs = {
+            "obs_dim": _obs_dim,
+            "action_dim": _action_dim,
+            "gamma": cfg.algo.gamma,
+            "tau": cfg.algo.tau,
+            "actor_lr": cfg.algo.actor_lr,
+            "critic_lr": cfg.algo.critic_lr,
+            "alpha_lr": cfg.algo.algo_params.alpha_lr,
+            "alpha_init": cfg.algo.algo_params.alpha_init,
+            "target_entropy_ratio": cfg.algo.algo_params.target_entropy_ratio,
+            "actor_hidden_dim": cfg.algo.actor_hidden_dim,
+            "critic_hidden_dim": cfg.algo.critic_hidden_dim,
+            "num_atoms": cfg.algo.num_atoms,
+            "use_layer_norm": cfg.algo.use_layer_norm,
+            "max_grad_norm": cfg.algo.algo_params.max_grad_norm,
+            "use_amp": cfg.training.use_amp,
+            "amp_dtype": cfg.algo.algo_params.amp_dtype,
+            "use_compile": cfg.algo.algo_params.use_compile,
+            "obs_normalization": cfg.algo.obs_normalization,
+            "use_cuda_graph_critic": bool(
+                getattr(cfg.algo.algo_params, "use_cuda_graph_critic", False)
+            ),
+            "use_cuda_graph_actor": bool(
+                getattr(cfg.algo.algo_params, "use_cuda_graph_actor", False)
+            ),
+            "use_cuda_graph_critic_packed_staging": bool(
+                getattr(
+                    cfg.algo.algo_params,
+                    "use_cuda_graph_critic_packed_staging",
+                    False,
+                )
+            ),
+            "use_cuda_graph_actor_packed_staging": bool(
+                getattr(
+                    cfg.algo.algo_params,
+                    "use_cuda_graph_actor_packed_staging",
+                    False,
+                )
+            ),
+            "nvtx_profile_ranges": bool(getattr(cfg.training, "nvtx_profile_ranges", False)),
+            "use_symmetry": cfg.algo.use_symmetry,
+            "symmetry_augmentation": _symmetry_aug,
+            "critic_obs_dim": _critic_dim,
+            **_learner_extra_kwargs,
+        }
+
+        if num_gpus > 1:
+            from unilab.algos.torch.offpolicy.distributed import (
+                validate_distributed_learner_capability,
+            )
+            from unilab.algos.torch.offpolicy.multi_gpu_runner import MultiGPUOffPolicyRunner
+
+            if not str(_device).startswith("cuda"):
+                raise ValueError(f"{_algo_type} multi-GPU training requires a CUDA device")
+            if not sync_collection:
+                raise ValueError("Multi-GPU off-policy replay requires synchronized collection")
+            validate_distributed_learner_capability(
+                algo_type=_algo_type,
+                learner_cls=_learner_cls,
+                learner_kwargs=_learner_kwargs,
+                num_gpus=num_gpus,
+                sync_mode=multi_gpu_sync_mode,
+            )
+            _learner = _learner_cls(device=_device, **_learner_kwargs)
+            return MultiGPUOffPolicyRunner(
+                learner=_learner,
+                env_name=cfg.training.task_name,
+                algo_type=_algo_type,
+                learner_cls=_learner_cls,
+                learner_kwargs=_learner_kwargs,
+                num_gpus=num_gpus,
+                distributed_backend="nccl",
+                multi_gpu_sync_mode=multi_gpu_sync_mode,
+                multi_gpu_sync_interval=multi_gpu_sync_interval,
+                num_envs=cfg.algo.num_envs,
+                replay_buffer_n=cfg.algo.replay_buffer_n,
+                batch_size=_batch_size,
+                learning_starts=cfg.algo.learning_starts,
+                updates_per_step=cfg.algo.updates_per_step,
+                policy_frequency=cfg.algo.policy_frequency,
+                sync_collection=sync_collection,
+                env_steps_per_sync=cfg.training.env_steps_per_sync,
+                device=_device,
+                actor_hidden_dim=cfg.algo.actor_hidden_dim,
+                use_layer_norm=cfg.algo.use_layer_norm,
+                obs_normalization=cfg.algo.obs_normalization,
+                sim_backend=cfg.training.sim_backend,
+                env_cfg_override=env_cfg_override,
+                actor_kwargs=_actor_kwargs,
+                trace_enabled=cfg.training.trace_enabled,
+                trace_output_dir=cfg.training.trace_output_dir,
+                trace_thread_time=cfg.training.trace_thread_time,
+                trace_cuda_events=cfg.training.trace_cuda_events,
+                seed=cfg.algo.seed,
+                nan_guard_cfg=_nan_guard_cfg,
+                collector_infer_device=collector_infer_device,
+                torch_thread_runtime=torch_thread_runtime,
+            )
+
+        _learner = _learner_cls(device=_device, **_learner_kwargs)
+        return DoubleBufferOffPolicyRunner(
+            learner=_learner,
+            env_name=cfg.training.task_name,
+            algo_type=_algo_type,
+            num_envs=cfg.algo.num_envs,
+            replay_buffer_n=cfg.algo.replay_buffer_n,
+            batch_size=_batch_size,
+            learning_starts=cfg.algo.learning_starts,
+            updates_per_step=cfg.algo.updates_per_step,
+            policy_frequency=cfg.algo.policy_frequency,
+            sync_collection=sync_collection,
+            env_steps_per_sync=cfg.training.env_steps_per_sync,
+            device=_device,
+            actor_hidden_dim=cfg.algo.actor_hidden_dim,
+            use_layer_norm=cfg.algo.use_layer_norm,
+            obs_normalization=cfg.algo.obs_normalization,
+            sim_backend=cfg.training.sim_backend,
+            env_cfg_override=env_cfg_override,
+            actor_kwargs=_actor_kwargs,
+            trace_enabled=cfg.training.trace_enabled,
+            trace_output_dir=cfg.training.trace_output_dir,
+            trace_thread_time=cfg.training.trace_thread_time,
+            trace_cuda_events=cfg.training.trace_cuda_events,
+            replay_prefetch_mode=replay_prefetch_mode,
+            verbose_metrics=verbose_metrics,
+            seed=cfg.algo.seed,
+            nan_guard_cfg=_nan_guard_cfg,
+            collector_infer_device=collector_infer_device,
+            torch_thread_runtime=torch_thread_runtime,
+        )
+
+    if algo_name == "td3":
+        from unilab.algos.torch.common.device import get_env_dims
+        from unilab.algos.torch.fast_td3.learner import FastTD3Learner
+        from unilab.algos.torch.offpolicy.distributed import (
+            validate_distributed_learner_capability,
+        )
+        from unilab.algos.torch.offpolicy.double_buffer_runner import (
+            DoubleBufferOffPolicyRunner,
+        )
+        from unilab.utils.device import get_default_device
+
+        validate_distributed_learner_capability(
+            learner_cls=FastTD3Learner,
+            algo_type="td3",
+            learner_kwargs={},
+            num_gpus=num_gpus,
+            sync_mode=multi_gpu_sync_mode,
+        )
+        _device = cfg.training.device or get_default_device()
+        _obs_dim, _action_dim, _critic_dim = get_env_dims(
+            cfg.training.task_name,
+            cfg.training.sim_backend,
+            env_cfg_override=env_cfg_override,
+        )
+        _learner = FastTD3Learner(
+            obs_dim=_obs_dim,
+            action_dim=_action_dim,
+            critic_obs_dim=_critic_dim,
+            num_envs=cfg.algo.num_envs,
+            device=_device,
+            gamma=cfg.algo.gamma,
+            tau=cfg.algo.tau,
+            actor_lr=cfg.algo.actor_lr,
+            critic_lr=cfg.algo.critic_lr,
+            actor_hidden_dim=cfg.algo.actor_hidden_dim,
+            critic_hidden_dim=cfg.algo.critic_hidden_dim,
+            num_atoms=cfg.algo.num_atoms,
+            v_min=cfg.algo.algo_params.v_min,
+            v_max=cfg.algo.algo_params.v_max,
+            init_scale=cfg.algo.algo_params.init_scale,
+            log_std_min=cfg.algo.algo_params.log_std_min,
+            log_std_max=cfg.algo.algo_params.log_std_max,
+            weight_decay=cfg.algo.algo_params.weight_decay,
+            use_cdq=cfg.algo.algo_params.use_cdq,
+            policy_noise=cfg.algo.algo_params.policy_noise,
+            noise_clip=cfg.algo.algo_params.noise_clip,
+            policy_frequency=cfg.algo.policy_frequency,
+            obs_normalization=cfg.algo.obs_normalization,
+        )
+
+        _actor_kwargs = {
+            "init_scale": cfg.algo.algo_params.init_scale,
+            "log_std_min": cfg.algo.algo_params.log_std_min,
+            "log_std_max": cfg.algo.algo_params.log_std_max,
+        }
+
+        return DoubleBufferOffPolicyRunner(
+            learner=_learner,
+            env_name=cfg.training.task_name,
+            algo_type="td3",
+            env_cfg_override=env_cfg_override,
+            device=_device,
+            num_envs=cfg.algo.num_envs,
+            replay_buffer_n=cfg.algo.replay_buffer_n,
+            batch_size=cfg.algo.batch_size,
+            learning_starts=cfg.algo.learning_starts,
+            updates_per_step=cfg.algo.updates_per_step,
+            policy_frequency=cfg.algo.policy_frequency,
+            sync_collection=sync_collection,
+            env_steps_per_sync=cfg.training.env_steps_per_sync,
+            actor_hidden_dim=cfg.algo.actor_hidden_dim,
+            use_layer_norm=False,
+            obs_normalization=cfg.algo.obs_normalization,
+            sim_backend=cfg.training.sim_backend,
+            seed=cfg.algo.seed,
+            trace_enabled=cfg.training.trace_enabled,
+            trace_output_dir=cfg.training.trace_output_dir,
+            trace_thread_time=cfg.training.trace_thread_time,
+            trace_cuda_events=cfg.training.trace_cuda_events,
+            replay_prefetch_mode=replay_prefetch_mode,
+            verbose_metrics=verbose_metrics,
+            actor_kwargs=_actor_kwargs,
+            nan_guard_cfg=_nan_guard_cfg,
+            collector_infer_device=collector_infer_device,
+            torch_thread_runtime=torch_thread_runtime,
+        )
+
+    if algo_name == "flashsac":
+        from unilab.algos.torch.flash_sac.double_buffer import (
+            build_flashsac_double_buffer_runner,
+        )
+
+        return build_flashsac_double_buffer_runner(
+            cfg,
+            env_cfg_override=env_cfg_override,
+            replay_prefetch_mode=replay_prefetch_mode,
+            verbose_metrics=verbose_metrics,
+            nan_guard_cfg=_nan_guard_cfg,
+            torch_thread_runtime=torch_thread_runtime,
+        )
+
+    raise ValueError(f"Unsupported algo: {algo_name}")
+
+
+def play_offpolicy(algo_name: str, cfg: DictConfig) -> str | None:
+    """Play pipeline for off-policy algorithms."""
+    import numpy as np
+    import torch
+
+    from unilab.algos.torch.common.actor_factory import build_actor
+    from unilab.algos.torch.offpolicy.worker import resolve_offpolicy_actor_priv_info
+
+    load_path, load_path_dir = resolve_checkpoint_path(
+        ROOT_DIR,
+        cfg.algo.algo_log_name,
+        cfg.training.task_name,
+        cfg.algo.load_run,
+    )
+    if not load_path or not os.path.exists(load_path):
+        print(f"Could not find checkpoint. load_path={load_path}")
+        return None
+
+    cfg = (
+        resolve_sim2sim_config(
+            load_path_dir,
+            cfg,
+            algo_name=algo_name,
+            strict=bool(getattr(cfg.training, "sim2sim_strict", True)),
+        )
+        or cfg
+    )
+
+    env_cfg_override = build_offpolicy_env_cfg_override(algo_name, cfg)
+
+    device = default_device(torch, cfg.training.device)
+    print(f"Using device for play: {device}")
+
+    env = cast(
+        Any,
+        create_env(
+            cfg,
+            num_envs=cfg.training.play_env_num,
+            env_cfg_override=env_cfg_override,
+        ),
+    )
+    obs_dim, critic_obs_dim = resolve_play_obs_dims(env.obs_groups_spec)
+    action_shape = env.action_space.shape
+    if action_shape is None:
+        raise ValueError("env.action_space.shape must be defined")
+    action_dim = int(action_shape[0])
+    actor_algo_type, actor_kwargs = resolve_play_actor_spec(
+        algo_name,
+        cfg,
+        obs_dim=obs_dim,
+        critic_obs_dim=critic_obs_dim,
+    )
+
+    normalizer = None
+    if algo_name == "sac":
+        actor = build_actor(
+            actor_algo_type,
+            obs_dim,
+            action_dim,
+            cfg.algo.actor_hidden_dim,
+            cfg.algo.use_layer_norm,
+            device,
+            **actor_kwargs,
+        )
+    elif algo_name == "td3":
+        import torch
+
+        from unilab.algos.torch.fast_td3.learner import EmpiricalNormalization, TD3Actor
+
+        actor = TD3Actor(
+            obs_dim,
+            action_dim,
+            cfg.training.play_env_num,
+            cfg.algo.algo_params.init_scale,
+            cfg.algo.actor_hidden_dim,
+            cfg.algo.algo_params.log_std_min,
+            cfg.algo.algo_params.log_std_max,
+            torch.device(device),
+        )
+        if cfg.algo.obs_normalization:
+            normalizer = EmpiricalNormalization(shape=obs_dim, device=device)
+    elif algo_name == "flashsac":
+        actor = build_actor(
+            "flashsac",
+            obs_dim,
+            action_dim,
+            cfg.algo.actor_hidden_dim,
+            cfg.algo.use_layer_norm,
+            device,
+            actor_num_blocks=cfg.algo.algo_params.actor_num_blocks,
+            actor_noise_zeta_mu=cfg.algo.algo_params.actor_noise_zeta_mu,
+            actor_noise_zeta_max=cfg.algo.algo_params.actor_noise_zeta_max,
+        )
+        if cfg.algo.obs_normalization:
+            from unilab.algos.torch.common.normalization import EmpiricalNormalization
+
+            normalizer = EmpiricalNormalization(shape=obs_dim, device=device)
+    else:
+        raise ValueError(f"Unsupported algo: {algo_name}")
+
+    actor.eval()
+
+    print(f"Loading model: {load_path}")
+    checkpoint = torch.load(load_path, map_location=device, weights_only=True)
+    with policy_load_dim_guard(env_obs_dim=obs_dim, env_action_dim=action_dim, algo_name=algo_name):
+        if algo_name in ("sac", "flashsac"):
+            actor.load_state_dict(checkpoint["actor"])
+            if normalizer and checkpoint.get("obs_normalizer"):
+                normalizer.load_state_dict(checkpoint["obs_normalizer"])
+                normalizer.eval()
+        else:
+            actor_state = {
+                k: v for k, v in checkpoint["actor"].items() if k not in ("noise_scales",)
+            }
+            actor.load_state_dict(actor_state, strict=False)
+            if normalizer and checkpoint.get("obs_normalizer"):
+                normalizer.load_state_dict(checkpoint["obs_normalizer"])
+                normalizer.eval()
+
+    # Export actor to ONNX
+    if load_path_dir is not None and bool(getattr(cfg.training, "export_onnx", True)):
+        onnx_path = os.path.join(load_path_dir, "policy.onnx")
+        dummy_input = torch.randn(1, obs_dim, device=device)
+        dummy_priv_info = (
+            torch.zeros(
+                (1, int(actor_kwargs["priv_info_dim"])),
+                device=device,
+                dtype=dummy_input.dtype,
+            )
+            if actor_algo_type == "hora_sac"
+            else None
+        )
+        with torch.inference_mode():
+            if normalizer:
+                dummy_input = normalizer(dummy_input, update=False)
+            if algo_name in ("sac", "flashsac"):
+                export_module = actor.as_export_module()
+                output_names = ["action"]
+            else:
+                export_module = actor
+                output_names = ["action"]
+            export_args = (
+                (dummy_input, dummy_priv_info) if dummy_priv_info is not None else (dummy_input,)
+            )
+            input_names = ["obs", "priv_info"] if dummy_priv_info is not None else ["obs"]
+            torch.onnx.export(
+                export_module,
+                export_args,
+                onnx_path,
+                input_names=input_names,
+                output_names=output_names,
+                opset_version=17,
+            )
+        print(f"Exported actor ONNX to {onnx_path}")
+
+        # Verify ONNX output matches PyTorch
+        import onnxruntime as ort
+
+        sess = ort.InferenceSession(onnx_path, providers=["CPUExecutionProvider"])
+        verify_input = torch.randn(1, obs_dim, device=device)
+        verify_priv_info = (
+            torch.zeros((1, int(actor_kwargs["priv_info_dim"])), device=device)
+            if actor_algo_type == "hora_sac"
+            else None
+        )
+        with torch.inference_mode():
+            onnx_feed = normalizer(verify_input, update=False) if normalizer else verify_input
+            pt_output = (
+                export_module(onnx_feed, verify_priv_info)
+                if verify_priv_info is not None
+                else export_module(onnx_feed)
+            )
+            if isinstance(pt_output, tuple):
+                pt_output = pt_output[0]
+            pt_np = pt_output.cpu().numpy()
+        onnx_inputs = {"obs": onnx_feed.cpu().numpy().astype(np.float32)}
+        if verify_priv_info is not None:
+            onnx_inputs["priv_info"] = verify_priv_info.cpu().numpy().astype(np.float32)
+        onnx_output = sess.run(None, onnx_inputs)[0]
+        max_diff = np.max(np.abs(pt_np - onnx_output))
+        mean_diff = np.mean(np.abs(pt_np - onnx_output))
+        print(f"ONNX vs PyTorch — max_diff: {max_diff:.2e}, mean_diff: {mean_diff:.2e}")
+        if max_diff > 1e-4:
+            print("WARNING: ONNX output diverges from PyTorch!")
+        else:
+            print("ONNX export verified OK.")
+    elif load_path_dir is not None:
+        print("Skipping ONNX export because training.export_onnx=false.")
+
+    if env.state is None:
+        env.init_state()
+
+    current_priv_info: np.ndarray | None = None
+
+    def _resolve_play_priv_info(obs_dict: dict[str, np.ndarray], info: dict | None) -> np.ndarray:
+        if actor_algo_type != "hora_sac":
+            raise ValueError("Privileged play info was requested for a non-HORA actor.")
+        from unilab.base.observations import split_obs_dict
+
+        actor_obs_np, critic_np = split_obs_dict(obs_dict)
+        priv_info = resolve_offpolicy_actor_priv_info(
+            algo_type=actor_algo_type,
+            obs_np=np.asarray(actor_obs_np, dtype=np.float32),
+            critic_np=np.asarray(critic_np, dtype=np.float32),
+            info=info,
+        )
+        if priv_info is None:
+            raise ValueError("HORA-SAC play step is missing privileged info.")
+        return priv_info
+
+    def _extract_reset_play_obs(reset_result) -> np.ndarray:
+        nonlocal current_priv_info
+        if not isinstance(reset_result, tuple) or len(reset_result) != 2:
+            raise ValueError(f"Unexpected env.reset return format: {type(reset_result)!r}")
+        obs_out, info_out = reset_result
+        if actor_algo_type == "hora_sac":
+            current_priv_info = _resolve_play_priv_info(obs_out, info_out)
+        return np.asarray(extract_play_obs(obs_out), dtype=np.float32)
+
+    def _policy_step(obs_np: np.ndarray) -> np.ndarray:
+        nonlocal current_priv_info
+        obs_torch = torch.from_numpy(obs_np).to(device)
+        if normalizer:
+            obs_torch = normalizer(obs_torch, update=False)
+        if actor_algo_type == "hora_sac":
+            if current_priv_info is None:
+                raise ValueError("HORA-SAC play step is missing privileged info.")
+            priv_info_torch = torch.from_numpy(current_priv_info).to(device)
+            actions_np = (
+                actor.explore(
+                    obs_torch,
+                    priv_info_torch,
+                    deterministic=True,
+                )
+                .cpu()
+                .numpy()
+            )
+        elif algo_name in ("sac", "flashsac"):
+            actions_np = actor.explore(obs_torch, deterministic=True).cpu().numpy()
+        else:
+            actions_np = actor(obs_torch).cpu().numpy()
+        state = env.step(actions_np)
+        if actor_algo_type == "hora_sac":
+            current_priv_info = _resolve_play_priv_info(state.obs, state.info)
+        return np.asarray(extract_play_obs(state.obs), dtype=np.float32)
+
+    with torch.inference_mode():
+        play_video_path = env.run_playback_mode(
+            play_render_mode=getattr(cfg.training, "play_render_mode", "auto"),
+            play_steps=getattr(cfg.training, "play_steps", None),
+            output_video=os.path.join(load_path_dir, "play_video.mp4") if load_path_dir else None,
+            initialize=lambda: _extract_reset_play_obs(
+                env.reset(np.arange(cfg.training.play_env_num, dtype=np.int32))
+            ),
+            step=_policy_step,
+            camera_kwargs={
+                "cam_distance": cfg.training.cam_distance,
+                "cam_elevation": cfg.training.cam_elevation,
+                "cam_azimuth": cfg.training.cam_azimuth,
+            },
+            on_plan=log_playback_plan,
+        )
+    if play_video_path is not None:
+        print(f"Saving video to {play_video_path} ...")
+    print("Done.")
+    return play_video_path
+
+
+@hydra.main(version_base="1.3", config_path="../conf/offpolicy", config_name="config")
+def main(cfg: DictConfig) -> None:
+    enable_faulthandler()
+    ensure_registries()
+
+    seed_info = apply_configured_training_seed(cfg, torch_runtime=True, cuda=True)
+    algo_name = cfg.algo.algo
+    task_name = cfg.training.task_name
+    assert_offpolicy_task_choice_matches_algo(cfg, algo_name=algo_name)
+
+    if cfg.training.log_dir is None:
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        run_dir_name = build_run_dir_name(
+            timestamp,
+            str(cfg.training.sim_backend),
+            int(getattr(cfg.training, "num_gpus", 1)),
+        )
+        log_dir = str(get_log_root(ROOT_DIR, cfg) / task_name / run_dir_name)
+    else:
+        log_dir = cfg.training.log_dir
+
+    import torch
+
+    tracker = None
+    if not cfg.training.play_only:
+        tracker = ExperimentTracker(
+            root_dir=ROOT_DIR,
+            log_dir=log_dir,
+            algo_name=algo_name,
+            task_name=task_name,
+            sim_backend=cfg.training.sim_backend,
+            training_cfg=cfg.training,
+            full_cfg=cfg,
+            device=default_device(torch, cfg.training.device),
+            seed_info=seed_info,
+        )
+        tracker.start()
+
+    try:
+        if not cfg.training.play_only:
+            runner = None
+            try:
+                runner = build_runner(algo_name, cfg)
+                runner.learn(
+                    max_iterations=cfg.algo.max_iterations,
+                    save_interval=cfg.algo.save_interval,
+                    log_dir=log_dir,
+                    logger_type=cfg.training.logger,
+                )
+                run_summary = getattr(runner, "last_run_summary", None)
+                if isinstance(run_summary, dict) and run_summary.get("status") not in (
+                    None,
+                    "completed",
+                ):
+                    raise RuntimeError(
+                        f"Off-policy training ended with status={run_summary.get('status')!r}"
+                    )
+                if tracker is not None:
+                    tracker.update_summary(run_summary)
+            except BaseException as exc:
+                if tracker is not None:
+                    tracker.update_summary(
+                        build_failure_summary(exc, getattr(runner, "last_run_summary", None))
+                    )
+                raise
+            finally:
+                if runner is not None:
+                    runner.close()
+
+        if should_run_playback(
+            play_only=cfg.training.play_only,
+            no_play=cfg.training.no_play,
+            play_render_mode=getattr(cfg.training, "play_render_mode", "auto"),
+        ):
+            print("@" * 50)
+            play_video_path = play_offpolicy(algo_name, cfg)
+            if tracker is not None:
+                tracker.log_video(play_video_path)
+    finally:
+        if tracker is not None:
+            tracker.finish()
+
+
+if __name__ == "__main__":
+    main()

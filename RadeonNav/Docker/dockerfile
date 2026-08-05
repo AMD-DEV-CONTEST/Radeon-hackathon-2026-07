@@ -1,0 +1,120 @@
+# syntax=docker/dockerfile:1.7
+
+# Build from the RadeonNav repository root:
+#   docker build -f Docker/dockerfile -t radeon-nav:rocm7.2.1 .
+#
+# The base image is hosted in a private registry. Log in to that registry
+# before building, or override BASE_IMAGE with an equivalent Ubuntu 24.04,
+# Python 3.12, ROCm 7.2.1 image.
+ARG BASE_IMAGE=crpi-xhg6joi134vrkpzq.cn-shanghai.personal.cr.aliyuncs.com/vivienfanghua/amd-oneclick-base:rocm7.2.1-py3.12-v20260416
+FROM ${BASE_IMAGE}
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+USER root
+
+ARG BASE_IMAGE
+ARG DEBIAN_FRONTEND=noninteractive
+ARG PYTHON_SPEC=3.12
+ARG UV_VERSION=0.10.9
+
+LABEL org.opencontainers.image.title="RadeonNav" \
+      org.opencontainers.image.description="NeuPAN, TSC and BBC reproduction environment for AMD ROCm 7.2.1" \
+      org.opencontainers.image.base.name="${BASE_IMAGE}"
+
+ENV TZ=Etc/UTC \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    RADEONNAV_ROOT=/workspace/RadeonNav \
+    RADEONNAV_ENV=/opt/radeon-nav-venv \
+    UV_PROJECT_ENVIRONMENT=/opt/radeon-nav-venv \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=never \
+    UV_BIN=/usr/local/bin/uv \
+    MUJOCO_GL=egl \
+    HIP_VISIBLE_DEVICES=0 \
+    ROCR_VISIBLE_DEVICES=0 \
+    CUDA_VISIBLE_DEVICES=0 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/workspace/RadeonNav/UniLab/src:/workspace/RadeonNav/NeuPAN
+
+# Runtime libraries cover MuJoCo EGL, the documented OSMesa fallback, video
+# encoding, and native Python wheels used by NeuPAN/CVXPY. ROCm itself comes
+# from the pinned base image and is intentionally not reinstalled here.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        ca-certificates \
+        cmake \
+        curl \
+        ffmpeg \
+        git \
+        git-lfs \
+        libdrm-amdgpu1 \
+        libdrm2 \
+        libegl-mesa0 \
+        libegl1 \
+        libgl1 \
+        libgl1-mesa-dri \
+        libgles2 \
+        libglib2.0-0t64 \
+        libglvnd0 \
+        libglx-mesa0 \
+        libgomp1 \
+        libosmesa6 \
+        libsm6 \
+        libx11-6 \
+        libxext6 \
+        libxrender1 \
+        ninja-build \
+        pkg-config \
+        python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# The selected one-click image normally provides uv at /opt/venv/bin/uv.
+# Keep a pinned fallback so an equivalent ROCm base can also build this file.
+RUN if [[ -x /opt/venv/bin/uv ]]; then \
+        ln -sfn /opt/venv/bin/uv /usr/local/bin/uv; \
+    elif command -v uv >/dev/null 2>&1; then \
+        ln -sfn "$(command -v uv)" /usr/local/bin/uv; \
+    else \
+        curl -LsSf "https://astral.sh/uv/${UV_VERSION}/install.sh" \
+          | env UV_INSTALL_DIR=/usr/local/bin sh; \
+    fi
+
+WORKDIR /workspace/RadeonNav
+
+# The build context must be the RadeonNav root. The bundled datasets,
+# checkpoints and third-party source snapshots are deliberately included so
+# the documented historical-data training and recording commands are usable.
+COPY . /workspace/RadeonNav
+
+# setup/setup_rocm.sh cannot run while building because its final phase
+# requires /dev/kfd, /dev/dri and a real AMD GPU. Reproduce only its frozen
+# dependency-sync phase here; runtime verification remains available through
+# scripts/verify_environment.sh after the container is started with devices.
+RUN --mount=type=cache,target=/root/.cache/uv \
+    rm -rf /workspace/RadeonNav/UniLab/.venv \
+    && env \
+         -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY \
+         -u http_proxy -u https_proxy -u all_proxy \
+         /usr/local/bin/uv sync \
+           --project /workspace/RadeonNav/UniLab \
+           --python "${PYTHON_SPEC}" \
+           --extra mujoco \
+           --extra nrmp-rocm \
+           --link-mode copy \
+           --frozen \
+    && ln -s /opt/radeon-nav-venv /workspace/RadeonNav/UniLab/.venv \
+    && chmod +x /workspace/RadeonNav/setup/*.sh \
+                /workspace/RadeonNav/scripts/*.sh
+
+ENV PATH=/opt/radeon-nav-venv/bin:/opt/venv/bin:/usr/local/bin:${PATH}
+
+# Example runtime device hand-off (run on a compatible AMD/ROCm host):
+#   docker run --rm -it \
+#     --device=/dev/kfd --device=/dev/dri \
+#     --group-add video --ipc=host --shm-size=8g \
+#     radeon-nav:rocm7.2.1
+# Then verify explicitly with: ./scripts/verify_environment.sh
+CMD ["/bin/bash"]
