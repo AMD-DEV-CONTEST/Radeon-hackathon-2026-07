@@ -11,6 +11,9 @@ import sys
 import numpy as np
 from pathlib import Path
 import mujoco
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import config as C  # noqa: E402
 from mujoco_playground._src.locomotion.g1 import base, g1_constants as consts
 
 m = mujoco.MjModel.from_xml_string(
@@ -18,7 +21,9 @@ m = mujoco.MjModel.from_xml_string(
 default = m.keyframe("home").qpos[7:]
 names = [mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_ACTUATOR, i) for i in range(m.nu)]
 
-for tag in ("salute_upright", "tennis"):
+# Which motions to check; every one that exists under motions_bm by default.
+tags = sys.argv[1:] or sorted(p.stem for p in C.MOTIONS_BM.glob("*.npz"))
+for tag in tags:
     ref = np.load(f"{C.MOTIONS_BM}/{tag}.npz")["joint_pos"]
     dev = np.abs(ref - default)                      # (T, 29)
     peak = dev.max(axis=0)
