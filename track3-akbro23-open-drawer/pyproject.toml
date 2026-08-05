@@ -1,0 +1,35 @@
+[project]
+name = "open-drawer"
+version = "0.1.0"
+description = "Language-conditioned, tactile-gated drawer opening in Genesis"
+readme = "README.md"
+requires-python = "==3.12.*"
+dependencies = [
+    "torch",
+    "torchvision",
+    "torchaudio",
+    "triton",
+    "genesis-world==1.2.3",
+    "lerobot[training, pi]",
+    "bitsandbytes>=0.50",
+]
+
+[project.scripts]
+rollout = "open_drawer.rollout:main"
+render = "open_drawer.render_episode:main"
+collect = "open_drawer.collect:main"
+train = "open_drawer.train:main"
+evaluate = "open_drawer.eval:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["open_drawer"]
+
+[tool.uv.sources]
+torch       = { url = "https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2.1/torch-2.9.1%2Brocm7.2.1.lw.gitff65f5bc-cp312-cp312-linux_x86_64.whl" }
+torchvision = { url = "https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2.1/torchvision-0.24.0%2Brocm7.2.1.gitb919bd0c-cp312-cp312-linux_x86_64.whl" }
+torchaudio  = { url = "https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2.1/torchaudio-2.9.0%2Brocm7.2.1.gite3c6ee2b-cp312-cp312-linux_x86_64.whl" }
+triton      = { url = "https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2.1/triton-3.5.1%2Brocm7.2.1.gita272dfa8-cp312-cp312-linux_x86_64.whl" }
