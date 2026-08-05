@@ -14,13 +14,14 @@
 3. [Prerequisites](#prerequisites)
 4. [Cloning the Repository](#cloning-the-repository)
 5. [Pulling the GHCR Container Image](#pulling-the-ghcr-container-image)
-6. [ROCm + vLLM Integration](#rocm--vllm-integration)
-7. [Running the Application](#running-the-application)
+6. [ONNX Embedding Model (Air-Gap Resilient RAG)](#onnx-embedding-model-air-gap-resilient-rag)
+7. [ROCm + vLLM Integration](#rocm--vllm-integration)
+8. [Running the Application](#running-the-application)
    - [Full Stack with Docker Compose](#full-stack-with-docker-compose)
    - [Local Development (H2 + Ollama)](#local-development-h2--ollama)
    - [Remote Access (AMD Team Server)](#remote-access-amd-team-server)
-8. [Environment Variables](#environment-variables)
-9. [API Endpoints](#api-endpoints)
+9. [Environment Variables](#environment-variables)
+10. [API Endpoints](#api-endpoints)
 
 ---
 
@@ -140,6 +141,60 @@ The image is built automatically by the CI/CD pipeline (`.github/workflows/ci.ym
 5. Builds and pushes the Docker image to `ghcr.io/malu2555/parceltracking:latest`
 
 > **Note:** The `docker-compose.yml` references this image directly (`image: ghcr.io/malu2555/parceltracking:latest`), so `docker compose up` will pull it automatically if not present locally.
+
+---
+
+## ONNX Embedding Model (Air-Gap Resilient RAG)
+
+The application uses a local ONNX embedding model for RAG (Retrieval-Augmented Generation) document vectorization. The model is bundled directly in the repository for **air-gap resilience** — no internet connection is needed at runtime.
+
+### Model Files
+
+The following files are stored under `src/main/resources/models/onnx/`:
+
+| File | Size | Source |
+|------|------|--------|
+| `model.onnx` | ~86 MB | `sentence-transformers/all-MiniLM-L6-v2` (ONNX format) |
+| `tokenizer.json` | ~455 KB | Matching tokenizer for the model |
+
+### Git LFS
+
+The `model.onnx` file (86 MB) is tracked via **Git LFS** to avoid bloating the Git history. A `.gitattributes` file at the repository root configures this:
+
+```
+*.onnx filter=lfs diff=lfs merge=lfs -text
+```
+
+**When cloning, ensure Git LFS is installed and initialized:**
+
+```bash
+# Install Git LFS (one-time)
+git lfs install
+
+# Clone the repository (LFS files are downloaded automatically)
+git clone https://github.com/malu2555/parceltracking.git
+cd parceltracking
+
+# If you already cloned without LFS, pull the LFS files manually:
+git lfs pull
+```
+
+### Configuration
+
+The embedding model URIs in `application.yml` point to local classpath files (not remote HuggingFace URLs):
+
+```yaml
+spring:
+  ai:
+    embedding:
+      transformer:
+        model:
+          uri: file:models/onnx/model.onnx
+        tokenizer:
+          uri: file:models/onnx/tokenizer.json
+```
+
+Since the files are under `src/main/resources/`, they are automatically bundled into the `.jar` at build time by Maven, making the application fully self-contained.
 
 ---
 

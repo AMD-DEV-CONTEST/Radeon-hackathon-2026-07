@@ -1,6 +1,7 @@
 package com.divric.parceltracking.actor;
 
 import com.divric.parceltracking.actor.protocol.ActorMessage;
+import com.divric.parceltracking.service.OnnxSessionManager;
 import com.divric.parceltracking.service.SessionService;
 import org.apache.pekko.actor.AbstractActor;
 import org.apache.pekko.actor.ActorRef;
@@ -15,12 +16,12 @@ public class GatewayActor extends AbstractActor {
 
     private final ActorRef supervisor;
 
-    public GatewayActor(SessionService sessionService) {
-        this.supervisor = getContext().actorOf(SupervisorActor.props(sessionService), "supervisor");
+    public GatewayActor(SessionService sessionService, OnnxSessionManager onnxSessionManager) {
+        this.supervisor = getContext().actorOf(SupervisorActor.props(sessionService, onnxSessionManager), "supervisor");
     }
 
-    public static Props props(SessionService sessionService) {
-        return Props.create(GatewayActor.class, () -> new GatewayActor(sessionService));
+    public static Props props(SessionService sessionService, OnnxSessionManager onnxSessionManager) {
+        return Props.create(GatewayActor.class, () -> new GatewayActor(sessionService, onnxSessionManager));
     }
 
     @Override
@@ -32,6 +33,7 @@ public class GatewayActor extends AbstractActor {
             .match(ActorMessage.IngestDocument.class, msg -> supervisor.forward(msg, getContext()))
             .match(ActorMessage.ChatMessage.class, msg -> supervisor.forward(msg, getContext()))
             .match(ActorMessage.SessionEvent.class, msg -> supervisor.forward(msg, getContext()))
+            .match(ActorMessage.EmbeddingQuery.class, msg -> supervisor.forward(msg, getContext()))
             .match(ActorMessage.WorkerResult.class, this::onWorkerResult)
             .match(ActorMessage.WorkerFailed.class, this::onWorkerFailed)
             .match(ActorMessage.Shutdown.class, msg -> onShutdown())

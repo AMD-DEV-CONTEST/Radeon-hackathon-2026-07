@@ -2,6 +2,8 @@ package com.divric.parceltracking.controller;
 
 import com.divric.parceltracking.dto.ChatRequest;
 import com.divric.parceltracking.dto.ChatResponse;
+import com.divric.parceltracking.dto.RagSearchRequest;
+import com.divric.parceltracking.dto.RagSearchResponse;
 import com.divric.parceltracking.engine.SupervisorActorEngine;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -10,6 +12,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -21,6 +27,8 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/chat")
 @Tag(name = "Chat", description = "Chat with the parcel tracking AI assistant — ask about tracking, policies, and more")
 public class ChatController {
+
+    private static final Logger log = LoggerFactory.getLogger(ChatController.class);
 
     private final SupervisorActorEngine engine;
 
@@ -56,8 +64,48 @@ public class ChatController {
             content = @Content
         )
     })
-    public ChatResponse chat(@RequestBody ChatRequest request) {
-        String reply = engine.sendChatMessage(request.getMessage(), request.getSessionId());
-        return new ChatResponse(reply, request.getSessionId());
+    public ResponseEntity<?> chat(@RequestBody ChatRequest request) {
+        try {
+            String reply = engine.sendChatMessage(request.getMessage(), request.getSessionId());
+            return ResponseEntity.ok(new ChatResponse(reply, request.getSessionId()));
+        } catch (Exception e) {
+            log.error("Chat processing failed: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ChatResponse("AI processing failed: " + e.getMessage(), request.getSessionId()));
+        }
+    }
+
+    @PostMapping("/rag")
+    @Operation(
+        summary = "Search the RAG knowledge base",
+        description = "Query the RAG (Retrieval-Augmented Generation) knowledge base directly. Useful for testing if the embedding model is working and retrieving relevant documents."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Search completed — relevant results returned",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = RagSearchResponse.class),
+                examples = @ExampleObject(value = "{\"query\":\"What is the refund policy?\",\"result\":\"Our refund policy allows returns within 30 days of purchase...\",\"sessionId\":\"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"}"))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid request — missing or empty query",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Internal server error — search failed",
+            content = @Content
+        )
+    })
+    public ResponseEntity<?> searchRag(@RequestBody RagSearchRequest request) {
+        try {
+            String result = engine.searchRag(request.getQuery(), request.getSessionId());
+            return ResponseEntity.ok(new RagSearchResponse(request.getQuery(), result, request.getSessionId()));
+        } catch (Exception e) {
+            log.error("RAG search failed: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new RagSearchResponse(request.getQuery(), "RAG search failed: " + e.getMessage(), request.getSessionId()));
+        }
     }
 }

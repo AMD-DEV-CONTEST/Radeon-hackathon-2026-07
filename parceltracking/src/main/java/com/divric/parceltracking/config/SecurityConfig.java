@@ -35,11 +35,13 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/chat/**").permitAll()
                 .requestMatchers("/api/admin/**").permitAll()
+                .requestMatchers("/api/parcels/**").permitAll()
+                .requestMatchers("/api/embeddings/**").permitAll()
                 .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/api-docs/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .anyRequest().authenticated()
             );
-        log.info("Security filter chain configured — public endpoints: /api/auth/**, /api/chat/**, /api/admin/**, /swagger-ui/**, /api-docs/**, /h2-console/**");
+        log.info("Security filter chain configured — public endpoints: /api/auth/**, /api/chat/**, /api/admin/**, /api/parcels/**, /api/embeddings/**, /swagger-ui/**, /api-docs/**, /h2-console/**");
         return http.build();
     }
 

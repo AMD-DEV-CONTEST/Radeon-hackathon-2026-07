@@ -67,11 +67,16 @@
 			<artifactId>spring-ai-starter-model-transformers</artifactId>
 		</dependency>
 
-		<!-- ONNX Runtime for local embedding models (CPU/ROCm compatible) -->
+		<!-- ONNX Runtime for local embedding models (CPU/ROCm compatible)
+		     onnxruntime_gpu includes CUDA/cuDNN providers and also supports
+		     ROCm/MIGraphX via addROCM() when the compiled AMD .so libraries
+		     (libamdhip64.so, libMIGraphX.so) are on the system library path
+		     supplied by the Docker runtime image (rocm/dev-ubuntu-22.04).
+		     Falls back to CPU threads if no GPU is present. -->
 		<dependency>
 			<groupId>com.microsoft.onnxruntime</groupId>
-			<artifactId>onnxruntime</artifactId>
-			<version>1.19.2</version>
+			<artifactId>onnxruntime_gpu</artifactId>
+			<version>1.22.0</version>
 		</dependency>
 
 		<dependency>
@@ -99,7 +104,7 @@
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
-			<scope>test</scope>
+			<scope>runtime</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>

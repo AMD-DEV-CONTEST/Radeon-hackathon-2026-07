@@ -80,6 +80,15 @@ public class SupervisorActorEngine {
         return askWorkerSync(new ActorMessage.SessionEvent(sessionId, event));
     }
 
+    /**
+     * Generate an ONNX embedding vector for the given text (blocking).
+     * Triggers GPU compute via the EmbeddingWorker actor — useful for observing GPU spikes.
+     */
+    public String generateEmbedding(String text) {
+        log.debug("Engine: Generating embedding for text ({} chars)", text.length());
+        return askWorkerSync(new ActorMessage.EmbeddingQuery(text));
+    }
+
     // ========== Asynchronous (CompletableFuture) methods ==========
 
     /**
@@ -128,6 +137,14 @@ public class SupervisorActorEngine {
     public CompletableFuture<String> sendSessionEventAsync(String sessionId, String event) {
         log.debug("Engine (async): Sending session event {} for session {}", event, sessionId);
         return askWorkerAsync(new ActorMessage.SessionEvent(sessionId, event));
+    }
+
+    /**
+     * Generate an ONNX embedding vector for the given text (async).
+     */
+    public CompletableFuture<String> generateEmbeddingAsync(String text) {
+        log.debug("Engine (async): Generating embedding for text ({} chars)", text.length());
+        return askWorkerAsync(new ActorMessage.EmbeddingQuery(text));
     }
 
     // ========== Internal methods ==========

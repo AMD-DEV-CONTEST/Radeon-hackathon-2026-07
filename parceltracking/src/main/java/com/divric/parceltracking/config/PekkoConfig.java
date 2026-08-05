@@ -1,6 +1,7 @@
 package com.divric.parceltracking.config;
 
 import com.divric.parceltracking.actor.GatewayActor;
+import com.divric.parceltracking.service.OnnxSessionManager;
 import com.divric.parceltracking.service.SessionService;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -31,7 +32,7 @@ public class PekkoConfig {
     }
 
     @Bean
-    public ActorRef gatewayActor(ActorSystem system, SessionService sessionService) {
-        return system.actorOf(GatewayActor.props(sessionService), "gateway");
+    public ActorRef gatewayActor(ActorSystem system, SessionService sessionService, OnnxSessionManager onnxSessionManager) {
+        return system.actorOf(GatewayActor.props(sessionService, onnxSessionManager), "gateway");
     }
 }

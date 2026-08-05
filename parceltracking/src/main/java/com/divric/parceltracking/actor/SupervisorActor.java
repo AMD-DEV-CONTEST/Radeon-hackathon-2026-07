@@ -1,8 +1,10 @@
 package com.divric.parceltracking.actor;
 
 import com.divric.parceltracking.actor.protocol.ActorMessage;
+import com.divric.parceltracking.actor.worker.EmbeddingWorker;
 import com.divric.parceltracking.actor.worker.ParcelTrackingWorker;
 import com.divric.parceltracking.actor.worker.RagRetrievalWorker;
+import com.divric.parceltracking.service.OnnxSessionManager;
 import com.divric.parceltracking.service.SessionService;
 import org.apache.pekko.actor.AbstractActor;
 import org.apache.pekko.actor.ActorRef;
@@ -20,16 +22,18 @@ public class SupervisorActor extends AbstractActor {
     private final ActorRef ragRetrievalWorker;
     private final ActorRef ingestionActor;
     private final ActorRef userSessionActor;
+    private final ActorRef embeddingWorker;
 
-    public SupervisorActor(SessionService sessionService) {
+    public SupervisorActor(SessionService sessionService, OnnxSessionManager onnxSessionManager) {
         this.parcelTrackingWorker = getContext().actorOf(ParcelTrackingWorker.props(), "parcelTrackingWorker");
         this.ragRetrievalWorker = getContext().actorOf(RagRetrievalWorker.props(), "ragRetrievalWorker");
         this.ingestionActor = getContext().actorOf(IngestionActor.props(), "ingestionActor");
         this.userSessionActor = getContext().actorOf(UserSessionActor.props(sessionService), "userSessionActor");
+        this.embeddingWorker = getContext().actorOf(EmbeddingWorker.props(onnxSessionManager), "embeddingWorker");
     }
 
-    public static Props props(SessionService sessionService) {
-        return Props.create(SupervisorActor.class, () -> new SupervisorActor(sessionService));
+    public static Props props(SessionService sessionService, OnnxSessionManager onnxSessionManager) {
+        return Props.create(SupervisorActor.class, () -> new SupervisorActor(sessionService, onnxSessionManager));
     }
 
     @Override
@@ -41,6 +45,7 @@ public class SupervisorActor extends AbstractActor {
             .match(ActorMessage.IngestDocument.class, msg -> ingestionActor.forward(msg, getContext()))
             .match(ActorMessage.ChatMessage.class, msg -> userSessionActor.forward(msg, getContext()))
             .match(ActorMessage.SessionEvent.class, msg -> userSessionActor.forward(msg, getContext()))
+            .match(ActorMessage.EmbeddingQuery.class, msg -> embeddingWorker.forward(msg, getContext()))
             .match(ActorMessage.WorkerResult.class, this::onWorkerResult)
             .match(ActorMessage.WorkerFailed.class, this::onWorkerFailed)
             .build();

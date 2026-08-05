@@ -1,9 +1,13 @@
+logging:
+  level:
+    root: DEBUG
+
 spring:
   # Dev profile: H2 file-based database for persistent local development
   datasource:
-    url: jdbc:h2:file:./data/parceltracking-dev;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:file:./data/parceltracking;MODE=PostgreSQL;DATABASE_LOWER=TRUE;DEFAULT_NULL_ORDER=HIGH;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     username: sa
-    password:
+    password: 
     driver-class-name: org.h2.Driver
 
   h2:
@@ -12,6 +16,30 @@ spring:
       path: /h2-console
 
   jpa:
+    hibernate:
+      ddl-auto: none
     properties:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
+
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema-dev.sql
+      data-locations: classpath:data.sql
+
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.autoconfigure.vectorstore.pgvector.PgVectorStoreAutoConfiguration
+
+  ai:
+    embedding:
+      transformer:
+        enabled: true
+        gpu-acceleration: false
+        model:
+          uri: classpath:models/onnx/model.onnx
+        tokenizer:
+          uri: classpath:models/onnx/tokenizer.json
+        metadata:
+          model-name: sentence-transformers/all-MiniLM-L6-v2
