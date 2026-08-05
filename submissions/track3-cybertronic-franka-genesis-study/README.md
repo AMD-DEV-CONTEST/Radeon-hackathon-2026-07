@@ -8,6 +8,200 @@ The enhanced demo extends the baseline into a vision-guided closed-loop controll
 
 For the final competition demo, the repository also includes a vision-guided apple-to-plate pick-and-place sequence. It detects the red apple, approaches it, closes the gripper, transports the apple to a plate target, and releases it into the plate to provide a clearer manipulation result than tracking alone.
 
+## 1. Project Introduction / 项目简介
+
+### English
+
+This project focuses on a vision-guided robotic manipulation task in Genesis on AMD ROCm. The main competition demo is **Vision-Guided Franka Apple-to-Plate Pick-and-Place**: a Franka Panda robot detects a red apple from rendered camera frames, approaches it, closes the gripper, transports it to a visible plate target, and releases it into the plate.
+
+Problem definition:
+
+- Move from coordinate-scripted manipulation toward perception-driven robot control.
+- Demonstrate a reproducible Physical AI pipeline on AMD Radeon GPU and ROCm.
+- Produce a clear task-level video, not only a tracking visualization.
+
+Solution:
+
+- Genesis simulation with Franka Panda.
+- Lightweight red-object visual detection from camera frames.
+- Stage-based manipulation policy: detect, approach, grasp, lift, transport, lower, release.
+- Genesis inverse kinematics and joint PD control.
+- Annotated MP4 output plus JSON metrics.
+
+Core metrics:
+
+- Detection rate
+- Grasp success
+- Place success
+- Apple lift height
+- Final place error
+- IK latency
+- Runtime and GPU/backend information
+
+Technology stack:
+
+- AMD Radeon GPU
+- ROCm
+- PyTorch ROCm build
+- Genesis 1.3.1
+- NumPy
+- imageio / imageio-ffmpeg
+
+### 中文
+
+本项目聚焦于 AMD ROCm + Genesis 环境下的视觉引导机械臂操作任务。最终推荐参赛 Demo 是 **Vision-Guided Franka Apple-to-Plate Pick-and-Place**：Franka Panda 机械臂从相机渲染画面中检测红色苹果，靠近目标，闭合夹爪，将苹果搬运到可见盘子目标区域，并释放到盘子中。
+
+问题定义：
+
+- 从依赖仿真真值坐标的脚本控制，升级到基于相机感知的机器人控制。
+- 展示可复现的 AMD Radeon GPU / ROCm Physical AI 流程。
+- 生成具有明确任务完成感的机械臂操作视频，而不只是跟随演示。
+
+解决方案：
+
+- 使用 Genesis 构建 Franka Panda 仿真场景。
+- 使用轻量红色目标检测从相机帧中定位苹果。
+- 使用阶段式操作策略：检测、靠近、抓取、抬起、搬运、下降、释放。
+- 使用 Genesis IK 和关节 PD 控制执行轨迹。
+- 输出带视觉标注的视频和 JSON 指标。
+
+核心指标：
+
+- 目标检测成功率
+- 抓取成功状态
+- 放置成功状态
+- 苹果抬升高度
+- 最终放置误差
+- IK 求解延迟
+- 运行时间和 GPU/后端信息
+
+技术栈：
+
+- AMD Radeon GPU
+- ROCm
+- PyTorch ROCm build
+- Genesis 1.3.1
+- NumPy
+- imageio / imageio-ffmpeg
+
+## 2. Development Process / 开发过程
+
+### English
+
+Key decisions:
+
+- The original baseline used known simulation coordinates for fruit following. For the competition version, the project adds camera-based target detection to make the control loop perception-driven.
+- A lightweight threshold detector is used instead of a trained model. This keeps the demo reproducible under a short deadline and avoids large model weights.
+- The final demo uses apple-to-plate pick-and-place instead of tracking only. This gives the video a clearer task objective and a visible success condition.
+- The manipulation object is kinematically attached after grasp in the competition demo. This avoids unstable contact/friction tuning while preserving a clear pick, transport, and place behavior.
+
+Challenges and solutions:
+
+- Genesis camera return formats can vary by version, so `vision_tracking.py` normalizes ndarray, tuple/list, dict, and tensor-like frames.
+- Generated videos and full per-frame metrics can be large, so they are written to `outputs/`, which is ignored by Git.
+- ROCm PyTorch installation is environment-sensitive, so the README recommends reusing the cloud image's working Genesis/ROCm environment.
+
+Future improvements:
+
+- Add model-based object detection.
+- Add multi-object sorting.
+- Export LeRobot-style datasets.
+- Replace kinematic attachment with stable contact-rich grasping.
+- Add sim-to-real calibration.
+
+### 中文
+
+关键决策：
+
+- 原始 baseline 使用仿真真值坐标进行水果跟随。参赛版本加入相机目标检测，让控制链路从脚本坐标控制升级为感知驱动控制。
+- 视觉模块采用轻量阈值检测，而不是训练模型。这样不需要大模型权重，便于在比赛 deadline 前稳定复现。
+- 最终 Demo 选择 apple-to-plate pick-and-place，而不是只做跟随或只抓起。这样视频有更明确的任务目标和成功结果。
+- 参赛 Demo 在抓取后使用运动学附着方式让苹果跟随末端执行器，避免真实接触/摩擦调参带来的不稳定，同时保留抓取、搬运、放置的完整任务表达。
+
+遇到的困难与解决：
+
+- Genesis 相机 API 返回格式可能随版本变化，因此 `vision_tracking.py` 对 ndarray、tuple/list、dict 和 tensor-like frame 都做了兼容。
+- 视频和逐帧指标可能较大，因此统一输出到被 Git 忽略的 `outputs/` 目录。
+- ROCm PyTorch 安装对环境敏感，因此 README 推荐复用云服务器中已验证可运行的 Genesis/ROCm 环境。
+
+后续优化方向：
+
+- 加入模型式目标检测。
+- 扩展为多物体分拣。
+- 导出 LeRobot 风格数据集。
+- 将运动学附着替换为稳定的接触抓取。
+- 加入 sim-to-real 标定。
+
+## 3. Code Sources / 代码来源说明
+
+### English
+
+Based on:
+
+- Genesis official examples and assets, especially the Franka Panda MJCF asset `xml/franka_emika_panda/panda.xml`.
+- The local PhysicalAI ROCm Quickstart baseline demo for Franka fruit following.
+
+Original work in this submission:
+
+- `src/vision_tracking.py`: camera frame normalization, red apple detection, detection metrics, and overlay rendering.
+- `src/franka_vision_servo.py`: vision-guided tracking experiment.
+- `src/franka_vision_pick.py`: vision-guided pick-and-lift sequence.
+- `src/franka_vision_pick_place.py`: apple-to-plate pick-and-place sequence.
+- `configs/`: reproducible task and detector configuration.
+- `docs/`: implementation notes and extension planning.
+
+Modified from baseline:
+
+- The original `scripts/franka_fruit_follow.py` entry point is preserved as a compatibility launcher.
+- The baseline implementation is kept in `src/franka_fruit_follow.py`.
+- New scripts extend the baseline with perception, task phases, success metrics, and annotated videos.
+
+### 中文
+
+基于的开源/参考项目：
+
+- Genesis 官方示例与资产，尤其是 Franka Panda MJCF 资产 `xml/franka_emika_panda/panda.xml`。
+- 本地 PhysicalAI ROCm Quickstart 中的 Franka fruit following baseline Demo。
+
+本提交中的原创部分：
+
+- `src/vision_tracking.py`：相机帧归一化、红色苹果检测、检测指标和视频标注。
+- `src/franka_vision_servo.py`：视觉引导跟随实验。
+- `src/franka_vision_pick.py`：视觉引导抓取并抬起流程。
+- `src/franka_vision_pick_place.py`：苹果放入盘子的 pick-and-place 流程。
+- `configs/`：可复现任务参数和检测器配置。
+- `docs/`：实现说明和扩展规划。
+
+相对 baseline 的修改：
+
+- 保留原 `scripts/franka_fruit_follow.py` 作为兼容入口。
+- baseline 主实现放在 `src/franka_fruit_follow.py`。
+- 新增脚本扩展了视觉感知、任务阶段、成功指标和标注视频输出。
+
+## 4. Team Contributions / 团队分工
+
+### English
+
+Team: Cybertronic.
+
+- Project design: selected the vision-guided manipulation direction and scoped it for deadline-safe delivery.
+- Simulation and control: implemented Franka task phases, IK targets, gripper commands, and apple-to-plate placement logic.
+- Perception: implemented lightweight red apple detection and annotated video overlays.
+- Evaluation: added JSON metrics for detection, grasp, placement, IK latency, runtime, and GPU/backend information.
+- Documentation: organized the repository structure, bilingual README, implementation notes, and reproducible cloud-server commands.
+
+### 中文
+
+团队：Cybertronic。
+
+- 项目设计：选择视觉引导机械臂操作方向，并将范围控制在 deadline 前可稳定交付。
+- 仿真与控制：实现 Franka 任务阶段、IK 目标、夹爪控制和苹果放入盘子的逻辑。
+- 视觉感知：实现轻量红色苹果检测和标注视频叠加。
+- 实验评估：加入检测、抓取、放置、IK 延迟、运行时间和 GPU/后端信息等 JSON 指标。
+- 文档整理：组织规范仓库结构、中英双语 README、实现说明和云服务器复现命令。
+
+## 5. Installation and Run / 安装与运行
+
 ### Repository Structure
 
 ```text
@@ -34,14 +228,18 @@ For the final competition demo, the repository also includes a vision-guided app
 ├── data/
 │   └── README.md
 ├── docs/
+│   ├── extension_plan.md
 │   └── implementation.md
 ├── results/
-│   └── franka_fruit_follow.json
+│   ├── franka_fruit_follow.json
+│   ├── franka_vision_pick_place_summary.json
+│   ├── franka_vision_pick_summary.json
+│   └── franka_vision_servo_summary.json
 └── videos/
     └── README.md
 ```
 
-### Environment
+### Environment / 环境要求
 
 Install dependencies in the ROCm/Genesis environment:
 
@@ -55,7 +253,7 @@ The validated environment used for the included metrics was:
 - PyTorch ROCm build
 - AMD Radeon Graphics
 
-### Run
+### Run / 运行命令
 
 From this project folder:
 
@@ -124,7 +322,7 @@ python scripts/franka_vision_servo.py --mode baseline
 
 Generated outputs are written to `outputs/`, which is intentionally ignored by Git.
 
-### Metrics
+### Metrics / 指标输出
 
 The vision-guided demo writes:
 
@@ -137,7 +335,7 @@ The vision-guided demo writes:
 
 Important metrics include detection rate, mean image-space error, end-effector tracking error, IK latency, runtime, GPU information, and annotated-video path.
 
-### Cloud Server Reproduction
+### Cloud Server Reproduction / 云服务器复现
 
 Use these steps on the AMD ROCm/Genesis cloud server.
 
@@ -236,9 +434,17 @@ find results -maxdepth 1 -type f
 
 Commit only lightweight source, docs, configs, and summary JSON files. Do not commit `outputs/` or MP4 files.
 
-### Demo Video
+### Demo Video / 演示视频
 
 Do not commit large MP4 files to GitHub. Add the final video URL in `videos/README.md`.
+
+Before final submission:
+
+- Upload the final video to YouTube or Bilibili.
+- Keep the duration under 3 minutes.
+- Add Chinese and English subtitles.
+- Make the link public.
+- Put the final public link in `videos/README.md`.
 
 ## 中文
 
