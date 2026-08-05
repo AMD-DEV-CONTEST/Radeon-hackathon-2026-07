@@ -1,14 +1,13 @@
 # Pull Request Template
 
 Use this text when opening the submission PR against the upstream repository.
-Replace `<TEAM NAME>` with your registered team name (or your own name if you did
-not register a team name on Luma).
+The registered Luma team name is 炉火 (Luhuo).
 
 ---
 
 ## PR title
 
-Track 2, <TEAM NAME>, RadeonPilot
+Track 2, 炉火, RadeonPilot
 
 ## PR body
 
