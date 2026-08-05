@@ -1,0 +1,2469 @@
+:root {
+  --bg: #050505;
+  --surface: #131313;
+  --surface-soft: #1c1b1b;
+  --surface-strong: #201f1f;
+  --card: rgba(19, 19, 19, 0.72);
+  --silver: #c6c6c6;
+  --silver-soft: #e5e2e1;
+  --red: #ff1744;
+  --red-soft: #ffb3b3;
+  --line: rgba(174, 135, 135, 0.35);
+  --text: #f4f4f4;
+  --muted: #9f9f9f;
+  --shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  --radius: 18px;
+  --black: rgba(0, 0, 0, 0.82);
+   --neon-red: #ff1744;
+  --neon-red-glow: rgba(255, 23, 68, 0.4);
+  --neon-blue: #00e5ff;
+  --neon-blue-glow: rgba(0, 229, 255, 0.25);
+  --metallic-silver: #c0c0c0;
+  --deep-charcoal: #0a0a0c;
+  --glass-tint: rgba(255, 255, 255, 0.03);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  transform: scale(0.9);
+  transform-origin: top center; 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background:
+    radial-gradient(circle at top left, rgba(255, 23, 68, 0.18), transparent 28%),
+    linear-gradient(135deg, #0a0a0a 0%, #111111 55%, #060606 100%);
+	@supports (color: color(display-p3 1 1 1)) {
+    background: color(display-p3 0.07 0.07 0.07);
+    }
+   /* 👁️ 2. Sub-pixel Anti-Aliasing (Forces crisp vector edges) */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* 🖼️ 3. GPU Hardware Acceleration */
+  /* Forces the device graphics card to render the colors rather than the CPU */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform;
+  color: var(--text);
+  font-family: "Inter", sans-serif;
+}
+
+body {
+  overflow: hidden;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 24px 14px;
+  background: rgba(0, 0, 0, 0.9);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: calc(100vh);
+  backdrop-filter: blur(18px);
+}
+
+.brand-block {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 5px 5px;
+}
+
+.brand-logo {
+  width: 60px;
+  height: 60px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--red), #89001c);
+  color: white;
+  box-shadow: 0 0 20px rgba(255, 23, 68, 0.35);
+}
+
+.brand-text h1 {
+  margin: 8px, 5px, 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.2rem;
+  line-height: 1.2;
+  font-weight: 700;
+  color: var(--silver);
+}
+
+.brand-text h1 span{
+	color: var(--red);
+}
+
+
+.brand-text p {
+  margin: 8px 5px, 0;
+  color: var(--red);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.sidebar-nav {
+  display: grid;
+  gap: 4px;
+}
+
+.nav-item {
+  /* Retain your existing base flex padding layout configuration styles */
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  
+  /* Initial default state is transparent to stay clean and minimalist */
+  background: transparent;
+  border: 1px solid transparent;
+  color: #a0a0b0;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-item:hover,
+.nav-item.active {
+   color: #ffffff !important;
+  font-weight: 700;
+  
+  /* 🟥 1. Outer perimeter red tracking laser border outline */
+  border: 1px solid rgba(255, 23, 68, 0.85) !important;
+  
+  /* 🎨 2. Background Matrix: Right-to-left flowing charcoal-to-laser red gradient mesh */
+  background: linear-gradient(270deg, #ff1744 0%, rgba(255, 23, 68, 0.2) 30%, #161622 75%, #0d0d12 100%) !important;
+  background-size: 200% 100% !important;
+  background-position: 0 0;
+  
+  /* High-luminescence ambient light bleed shadow aura */
+  box-shadow: 
+    0 0 15px rgba(255, 23, 68, 0.4),
+    inset 0 0 10px rgba(255, 23, 68, 0.2) !important;
+  
+  /* 🔄 Animation Loop: Synchronized to use your exact 'flowPinkRightToLeft' movement timing keyframe */
+  animation: flowPinkRightToLeft 4s linear infinite !important;
+}
+
+/* ⚡ Hover Acceleration State: Enhances unselected items with a responsive red flare */
+.nav-item:not(.active):hover {
+  color: #ffffff;
+  background: rgba(255, 23, 68, 0.05);
+  border-color: rgba(255, 23, 68, 0.25);
+  box-shadow: 0 0 10px rgba(255, 23, 68, 0.1);
+}
+
+/* 🎨 Synchronize inner Material Icon vector color glows explicitly */
+.nav-item.active .material-symbols-outlined {
+  color: #ff1744 !important;
+  filter: drop-shadow(0 0 6px rgba(255, 23, 68, 0.8));
+}
+
+ /* Red text and neon text-glow targets both spans */
+.nav-item.active span {
+      color: rgb(255, 255, 255); /* Bright vibrant red */
+      font-weight: 600;
+      /* Neon light text glow effect */
+      text-shadow: 0 0 8px #ff0000, 0 0 20px rgba(255, 0, 0, 0.6);
+}
+
+.sidebar-card,
+.glass-card,
+.right-panel {
+  background: rgba(15, 15, 20, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+}
+
+.sidebar-card {
+  padding: 16px;
+}
+
+.card-space {
+  border-left: 2px solid var(--red);
+}
+
+.card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-header-row .material-symbols-outlined {
+  color: var(--red);
+}
+
+.card-label {
+  margin: 12px 0 4px;
+  color: var(--silver-soft);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+}
+
+.card-value {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.card-upgrade {
+  background: rgb(255, 0, 128);
+}
+
+.upgrade-title {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+}
+
+.upgrade-copy {
+  margin: 8px 0 14px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.btn {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  transition: transform 0.18s ease, filter 0.18s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.btn-upgrade {
+  width: 100%;
+  color: #5b0011;
+  background: white;
+  font-weight: 700;
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  color: var(--silver-soft);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.circle-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--silver-soft);
+}
+
+.content-area {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-rows: 84px 1fr;
+  min-width: 0;
+  height: 100vh;
+}
+
+.topbar {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(10, 10, 10, 0.75);
+  backdrop-filter: blur(12px);
+  flex-shrink: 0;
+}
+
+.topbar-title h2 {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.topbar-title .accent {
+  color: var(--red);
+}
+
+.topbar-title .primary {
+   color: var(--silver);
+}
+
+.topbar-title .primary span {
+  color: var(--red);
+}
+
+.topbar-title p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.topbar-tools {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.brand-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 18px;
+  border-right: 1px solid var(--line);
+}
+
+.small-label {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.chip-title {
+  margin: 2px 0 0;
+  font-weight: 700;
+}
+
+.chip-title span {
+  color: var(--red);
+}
+
+.chip-icon {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(255, 23, 68, 0.3);
+  display: grid;
+  place-items: center;
+  background: #000;
+}
+
+.profile-pill {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile-copy p {
+  margin: 0;
+  font-weight: 600;
+}
+
+.profile-copy span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.avatar-wrap {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 179, 179, 0.35);
+}
+
+.avatar-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--red);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.main-panel {
+  grid-column: 1;
+  grid-row: 2;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--black);
+  padding: 20px;
+  height: calc(100vh - 84px);
+}
+
+.preview-card,
+.output-card,
+.story-card,
+.right-panel {
+  backdrop-filter: blur(14px);
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.panel-title .tag {
+  color: var(--red);
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 700;
+}
+
+.panel-body {
+  /* 🎛️ Metallic black, dark iron, silver, and subtle pink luster gradient */
+  background: linear-gradient(
+    135deg, 
+    #0c0c0c 0%,    /* Rich true black */
+    #2a2a2a 45%,   /* Industrial gunmetal iron */
+    #c0c0c0 85%,   /* Reflective bright silver */
+    #e0aaff 100%   /* High-shine metallic pale pink highlight */
+  );
+  padding: 18px;
+  border-radius: 12px;
+  
+  /* ⚡ Cyberpunk Neon Glow: Multi-layered bleeding of hot pink and laser red */
+  box-shadow: 
+    0 0 10px rgba(255, 0, 128, 0.5),  /* Hot Pink core rim for high intensity */
+    0 0 25px rgba(255, 0, 0, 0.35),   /* Pure Laser Red medium ambient aura spread */
+    0 0 55px rgba(255, 0, 128, 0.2);  /* Soft Magenta/Pink outer background dispersal */
+    
+  /* Subtle frame border using a transparent hot pink accent line */
+  border: 1px solid rgba(255, 0, 128, 0.25); 
+}
+
+.preview-stage {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgb(0, 0, 0);
+  aspect-ratio: 16 / 9;
+  height: auto; 
+  width: 100%;  
+}
+
+.preview-stage img {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  display: block;
+}
+
+.preview-badge,
+.play-button, 
+.scrubber {
+  position: absolute  !important;
+  top: 16px;
+  z-index: 10 !important;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.badge-left {
+  left: 16px;
+  color: var(--red);
+}
+
+.badge-right {
+  right: 16px;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--red-soft);
+  box-shadow: 0 0 12px var(--red);
+}
+
+.play-button {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 23, 68, 0.6);
+  background: rgba(10, 10, 14, 0.8);
+  color: #ff1744;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 15px rgba(255, 23, 68, 0.4);
+  transition: all 0.2s ease;
+}
+
+.play-button:hover {
+  transform: translate(-50%, -50%) scale(1.08);
+  background: #ff1744;
+  color: #ffffff;
+  box-shadow: 0 0 25px rgba(255, 23, 68, 0.8);
+}
+
+.scrubber {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.scrubber-fill {
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--red), var(--red-soft));
+}
+
+.thumbnail-row {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(90px, 1fr));
+  gap: 12px;
+}
+
+.thumb {
+  position: relative;
+  height: 92px;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  opacity: 0.64;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.thumb.active,
+.thumb:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.output-card,
+.story-card {
+  padding: 18px;
+}
+
+.output-card h3,
+.story-card h3,
+.right-panel h4 {
+  margin: 0 0 14px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--silver-soft);
+  text-transform: uppercase;
+}
+
+.tab-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tab-btn {
+  padding: 12px 8px;
+  border: 1px solid var(--line);
+  background: rgb(255, 0, 128);
+  color: var(--silver-soft);
+  border-radius: 12px;
+  display: grid;
+  gap: 6px;
+  place-items: center;
+  transition: all 0.18s ease;
+}
+
+.tab-btn.active,
+.tab-btn:hover {
+  border-color: rgba(255, 23, 68, 0.82);
+  background: rgba(255, 23, 68, 0.08);
+  color: var(--red-soft);
+}
+
+.output-preview {
+  margin-top: 20px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(5, 5, 5, 0.42);
+}
+
+.preview-header,
+.audio-row,
+.story-head,
+.meta-pill,
+.action-item,
+.impact-list div {
+  display: flex;
+  align-items: center;
+}
+
+.preview-header,
+.story-head,
+.meta-pill {
+  justify-content: space-between;
+}
+
+.mini-title {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.time-pill,
+.lang-chip {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.audio-row {
+  margin-top: 14px;
+  gap: 12px;
+}
+
+.audio-play {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: none;
+  background: var(--red);
+  color: white;
+}
+
+.audio-track {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.audio-progress {
+  display: block;
+  width: 33%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--red), var(--red-soft));
+}
+
+.audio-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.story-card p {
+  margin: 0;
+  color: var(--silver-soft);
+  line-height: 1.7;
+}
+
+.story-link {
+  margin-top: 12px;
+  border: none;
+  background: transparent;
+  color: var(--red-soft);
+  font-weight: 700;
+  padding: 0;
+}
+
+.model-row {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.model-avatars {
+  display: flex;
+  gap: 4px;
+}
+
+.model-avatars span {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #262626;
+  color: white;
+  font-size: 10px;
+}
+
+.footer-tagline {
+  text-align: center;
+  color: var(--muted);
+  letter-spacing: 0.28em;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  margin: 20px 0 6px;
+}
+
+.footer-tagline span {
+  color: var(--red);
+}
+
+.rightbar {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-left: 1px solid var(--line);
+  background: rgba(5, 5, 5, 0.42);
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: calc(100vh - 84px);
+}
+
+.right-panel {
+  padding: 16px;
+}
+
+.action-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.action-item {
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--silver-soft);
+}
+
+.action-item-upgrade {
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgb(255, 0, 128);
+  color: var(--silver-soft);
+}
+
+
+.action-item:hover,
+.action-item.action-highlight {
+  background: rgba(255, 23, 68, 0.08);
+  border-color: rgba(255, 23, 68, 0.7);
+}
+
+.action-item strong,
+.stat-grid strong {
+  display: block;
+  font-size: 14px;
+}
+
+.action-item small,
+.detail-list label,
+.impact-list small {
+  color: var(--muted);
+}
+
+.detail-list {
+  display: grid;
+  gap: 14px;
+}
+
+.detail-list p,
+.detail-list strong {
+  margin: 4px 0 0;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.accent {
+  color: var(--red);
+}
+
+.meta-pill {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  font-size: 11px;
+}
+
+.impact-list {
+  display: grid;
+  gap: 12px;
+}
+
+.impact-list div {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.impact-list .material-symbols-outlined {
+  color: var(--red);
+}
+
+.global-meter {
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 23, 68, 0.14), transparent);
+  border: 1px solid rgba(255, 23, 68, 0.24);
+}
+
+.global-meter p {
+  margin: 0;
+  color: var(--red);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+}
+
+.global-meter small {
+  display: block;
+  margin: 6px 0 10px;
+  color: var(--silver-soft);
+}
+
+.meter-line {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  border-radius: 999px;
+}
+
+.meter-line span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--red), #ff7a90);
+}
+
+.feedback-row {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.feedback-row p {
+  margin: 0;
+  text-align: center;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.feedback-icons {
+  display: flex;
+  gap: 12px;
+}
+
+.feedback-icons .material-symbols-outlined {
+  font-size: 20px;
+  color: var(--silver-soft);
+}
+
+/* ==========================================================================
+   🎯 PREMIUM EXPANDED TOAST CARD: Fixed Image Isolation & Added Close Icon
+   ========================================================================== */
+div.toast#toast {
+  position: fixed !important;
+  top: 32px !important;
+  right: 32px !important;
+  left: auto !important; /* Cancels out any old 'left: 50%' centers */
+  transform: none !important;
+  
+  /* 📐 Sized larger to look like a premium control panel card block */
+  width: 440px !important;
+  max-width: 90vw !important;
+  padding: 18px 20px !important;
+  border-radius: 12px !important;
+  font-family: system-ui, -apple-system, sans-serif !important;
+  color: #ffffff !important;
+  box-sizing: border-box !important;
+  
+  display: none;
+  align-items: center !important;
+  gap: 16px !important;
+  z-index: 100000 !important;
+  
+  /* 🟥 Laser-red frame line outline */
+  border: 2px solid #ff1744 !important;
+  
+  /* Background Canvas Layout with digital grid mesh texture */
+  background-image: 
+    linear-gradient(270deg, #09090b 0%, #161622 40%, #121216 100%),
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px) !important;
+  background-size: 100% 100%, 14px 14px, 14px 14px !important;
+  background-position: center !important;
+  
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+/* ⚡ Ensure the display flex rule updates on show trigger state */
+div.toast#toast.show {
+  display: flex !important;
+  animation: 
+    toastSlowGlideIn 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards,
+    toastGlowBreathing 3s ease-in-out infinite alternate !important;
+}
+
+.toast.show {
+  display: flex !important;
+  
+  /* 🔄 Slow Cinematic Entry: Smooth fade and horizontal slide with zero aggressive bounce */
+  animation: 
+    toastSlowGlideIn 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards,
+    toastGlowBreathing 3s ease-in-out infinite alternate;
+}
+
+/* 🎯 The Logo Canvas Frame Box */
+.toast-logo-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 23, 68, 0.5);
+  background: rgba(0, 0, 0, 0.6) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 10px rgba(255, 23, 68, 0.2);
+  overflow: hidden;
+}
+
+.toast-logo-wrap img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  border-radius: 6px !important;
+  display: block !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+  -webkit-text-fill-color: initial !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Typography Text Wrapping Area */
+.toast-content-block {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  flex-grow: 1 !important;
+}
+
+.toast-title-text {
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  letter-spacing: 1.5px !important;
+  text-transform: uppercase !important;
+  color: #ffffff !important;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.3) !important;
+}
+
+.toast-message-text {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1.5 !important;
+  color: #cccccc !important;
+}
+
+/* ❌ THE FIX: Custom interactive Close Button Element */
+.toast-close-btn {
+  background: transparent !important;
+  border: none !important;
+  color: #666677 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 4px !important;
+  border-radius: 50% !important;
+  flex-shrink: 0 !important;
+  transition: all 0.2s ease !important;
+}
+
+.toast-close-btn:hover {
+ color: #ff1744 !important;
+  background: rgba(255, 23, 68, 0.1) !important;
+  box-shadow: 0 0 8px rgba(255, 23, 68, 0.3) !important;
+}
+
+.studio-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  padding: 20px;
+}
+
+/* ==========================================
+   2. State A: Premium Neon Uploader Component
+   ========================================== */
+.cyber-upload-card {
+  position: relative;
+  padding: 32px;
+  text-align: center;
+  overflow: hidden;
+  border-radius: 16px;
+  box-sizing: border-box;
+  
+  /* 🟥 1. Outer Perimeter Border: Laser-red frame outline line */
+  border: 2px solid #ff1744;
+  
+  /* 🎨 2. Background: Animated right-to-left metallic dark iron, silver-soft, and charcoal mesh layout */
+  background: linear-gradient(270deg, #09090b 0%, #1a1a24 35%, #3a3a4a 50%, #121216 75%, #050507 100%);
+  background-size: 200% 100%;
+  
+  /* 🔄 3. Multi-Animation Engine: Loops the background shift AND the neon border breathing pulse simultaneously */
+  animation: 
+    flowPinkRightToLeft 8s linear infinite,          /* Slow premium background flow */
+    cyberBorderPulse 3s ease-in-out infinite alternate; /* Outer background light blast glow */
+
+}
+
+/* Cyber ambient backdrop illumination */
+.cyber-upload-card::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  
+  /* Projects a high-fidelity cyan/blue and red ambient spotlight gradient from deep inside the panel */
+  background: radial-gradient(circle at center, rgba(0, 229, 255, 0.05) 0%, rgba(255, 23, 68, 0.03) 40%, transparent 70%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.cyber-upload-card > * {
+  position: relative;
+  z-index: 2;
+}
+
+.cyber-upload-card h2 {
+  font-size: 18px;
+  letter-spacing: 2px;
+  margin: 0 0 24px 0;
+  color: #ffffff;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+}
+
+/* Interactive drop region styling grid layout */
+.drop-zone-area {
+  position: relative;
+  overflow: hidden;
+  border: 1px dashed rgba(255, 23, 68, 0.4);
+  border-radius: 12px;
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* 🎯 THE FIX: Changed color values to deep red (#ff1744) inside the gradients */
+  background-image: 
+    linear-gradient(270deg, #ff1744 0%, rgba(255, 23, 68, 0.15) 20%, #121216 75%, #09090b 100%),
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  
+  background-size: 200% 100%, 16px 16px, 16px 16px;
+  background-position: 0 0, center center, center center;
+  
+  /* 🔄 SUCCESS: Still using your exact 'flowPinkRightToLeft' keyframes, but animating red colors */
+  animation: flowPinkRightToLeft 5s linear infinite;
+
+  box-shadow: 
+    0 0 15px rgba(255, 23, 68, 0.15),
+    inset 0 0 20px rgba(0, 0, 0, 0.8);
+}
+
+/* Force inner text nodes, cloud vectors, and button groups to float safely over the backlight layer */
+.drop-zone-area * {
+  position: relative;
+  z-index: 2;
+}
+
+/* 🎯 THE FIX: Neon Red Scanline Ripple Layer */
+.drop-zone-area::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 100%;
+  
+  /* 🎛️ Sizing the horizontal light bar beam */
+  height: 4px; 
+  
+  /* 🟥 Laser light mesh: Bright white center core fading out into vivid neon red wings */
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(255, 23, 68, 0.2) 20%, 
+    #ff1744 50%, 
+    rgba(255, 23, 68, 0.2) 80%, 
+    transparent 100%
+  );
+  
+  /* Ambient glowing aura radiating from the line */
+  box-shadow: 0 0 12px #ff1744, 0 0 25px rgba(255, 23, 68, 0.6);
+  opacity: 0.75;
+  
+  /* 🔄 Animation Engine: Moves the laser down from top to bottom continuously */
+  animation: neonScanlineVertical 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none; /* Prevents the laser element from intercepting mouse drops */
+  z-index: 3; /* Places it cleanly above your background color matrix layers */
+}
+
+
+.drop-zone-area.drag-over {
+  border-color: #00e5ff;
+  background: linear-gradient(270deg, #00e5ff 0%, rgba(0, 229, 255, 0.1) 30%, #09090b 100%);
+  background-size: 200% 100%;
+  box-shadow: 
+    0 0 25px rgba(0, 229, 255, 0.35),
+    inset 0 0 15px rgba(0, 229, 255, 0.1);
+  animation-duration: 2.5s; /* Accelerates fluid sweep speeds when active file hovers */
+}
+
+/* ☁️ Cloud & Arrow Layered Neon Box Vector Components */
+.neon-cloud-box {
+  position: relative;
+  width: 70px;
+  height: 50px;
+  margin-bottom: 20px;
+}
+
+.neon-cloud-box .cloud-icon {
+  font-size: 64px;
+  color: #00e5ff;
+  filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.65));
+  position: absolute;
+  top: -12px; 
+  left: 3px;
+}
+
+.neon-cloud-box .arrow-icon {
+  font-size: 24px;
+  color: #ff1744;
+  filter: drop-shadow(0 0 8px rgba(255, 23, 68, 0.8));
+  position: absolute;
+  top: 10px; 
+  left: 23px;
+  font-weight: 800;
+}
+
+.primary-drag-text {
+  font-size: 14px;
+  color: #cccccc;
+  margin: 0 0 12px 0;
+}
+
+.text-separator-line {
+  position: relative;
+  width: 60%;
+  text-align: center;
+  margin: 12px 0;
+}
+
+.text-separator-line::before {
+  content: "";
+  position: absolute;
+  top: 50%; left: 0; width: 100%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+}
+
+.text-separator-line span {
+  position: relative;
+  background: #0d0d11;
+  padding: 0 8px;
+  font-size: 12px;
+  color: #666677;
+}
+
+/* Upload Action Trigger Elements */
+.custom-file-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(146, 0, 33, 0.9), rgba(255, 23, 68, 0.88));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(255, 23, 68, 0.3);
+}
+
+.custom-file-trigger-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 15px rgba(255, 23, 68, 0.6);
+}
+
+.format-support-caption {
+  font-size: 11px;
+  color: #666677;
+  margin: 16px 0 0 0;
+}
+
+/* Primary Execution Generator Module Trigger Box */
+.action-generate-btn {
+  width: 100%;
+  margin-top: 24px;
+  padding: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  
+   /* 🎯 Swapped color values to deep red (#ff1744) */
+  background: linear-gradient(270deg, #ff1744 0%, #ff1744 25%, #121216 75%, #09090b 100%);
+  background-size: 200% 100%;
+  
+  /* 🔄 Using your exact animation name */
+  animation: flowPinkRightToLeft 4s linear infinite; 
+  
+  /* 🎛️ Layer 1: Base Border with a permanent subtle neon pink light ring */
+  border: 1px solid rgba(255, 0, 127, 0.45);
+  
+  /* 🎨 Layer 2: Core right-to-left background gradient structure (fading pink to deep charcoal) */
+  background: linear-gradient(270deg, #ff007f 0%, #ff007f 25%, #121216 75%, #09090b 100%);
+  background-size: 200% 100%;
+  
+  /* Injects a crisp ambient glow around the button edge natively */
+  box-shadow: 0 0 12px rgba(255, 0, 127, 0.15), inset 0 0 8px rgba(255, 0, 127, 0.1);
+  
+  /* 🔄 Animation Engine: Pulls the background layout and shadow continuously from right to left */
+  animation: flowPinkRightToLeft 4s linear infinite;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+}
+
+/* ✂️ Text Masking: Clips the flowing color wave directly into the text characters and icon silhouette */
+.action-generate-btn span,
+.action-generate-btn {
+  /* This ensures the inner text shares the exact same horizontal color wave positions */
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  /* 🎯 Swapped text wave middle highlight to red (#ff1744) */
+  background: linear-gradient(270deg, #ffffff 0%, #ff1744 40%, #00e5ff 80%, #ffffff 100%);
+  background-size: 200% auto;
+  
+  /* 🔄 Using your exact animation name */
+  animation: flowPinkRightToLeft 4s linear infinite; 
+}
+
+.action-generate-btn:not(:disabled):hover {
+  transform: translateY(-2px);
+  border-color: #ff007f;
+  /* Intensifies the neon light bleed out into the background canvas matrix */
+  box-shadow: 
+    0 0 20px rgba(255, 0, 127, 0.5), 
+    0 0 40px rgba(255, 0, 127, 0.25),
+    inset 0 0 12px rgba(255, 0, 127, 0.3);
+  
+  /* Speeds up the animation slightly when hovered to feel responsive */
+  animation-duration: 2s; 
+}
+
+.action-generate-btn:disabled {
+   background: rgba(255, 255, 255, 0.02) !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+  box-shadow: none !important;
+  cursor: not-allowed;
+  animation: none !important;
+}
+
+.action-generate-btn:disabled span,
+.action-generate-btn:disabled {
+  -webkit-text-fill-color: #3a3a4a !important;
+  color: #3a3a4a !important;
+  background: none !important;
+}
+
+
+.story-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.story-head h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.story-head span {
+  color: var(--neon-blue);
+  text-shadow: 0 0 8px var(--neon-blue-glow);
+}
+
+.story-card p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #ddddff;
+  margin-bottom: 20px;
+}
+
+.story-link {
+  background: transparent;
+  border: none;
+  color: var(--neon-red);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  font-size: 13px;
+  margin-bottom: 24px;
+  transition: color 0.2s ease;
+}
+
+.story-link:hover {
+  color: #ff5274;
+  text-decoration: underline;
+}
+
+.model-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding-top: 16px;
+}
+
+.model-avatars {
+  display: flex;
+}
+
+.model-avatars span {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #252530;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: bold;
+  margin-left: -6px;
+  border: 2px solid #0f0f14;
+}
+
+.model-avatars span:first-child { margin-left: 0; background: var(--neon-red); }
+.model-avatars span:nth-child(2) { background: var(--neon-blue); color: #000; }
+
+.model-row small {
+  color: #8888aa;
+  font-size: 11px;
+}
+
+.reset-back-btn {
+  width: 100%;
+  margin-top: 24px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #aaaaaa;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.reset-back-btn:hover {
+  background: rgba(255,255,255,0.03);
+  color: #ffffff;
+}
+
+/* Global Keyframe Utility Animations bottom of file location */
+@keyframes flowPinkRightToLeft {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* ==========================================================================
+   CORE MOTION KEYFRAME LOOPS (Keep grouped at the very bottom of style.css)
+   ========================================================================== */
+@keyframes flowPinkRightToLeft {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%; /* Slides color vectors seamlessly horizontally */
+  }
+}
+
+/* ==========================================================================
+   1. MAIN HEADER: Silver, Red, and Blue Multi-Layered Light Radiation
+   ========================================================================== */
+#mainUploadHeader {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  margin: 0 0 28px 0;
+  text-transform: uppercase;
+  text-align: center;
+  
+  /* Pure metallic silver text color base */
+  color: #e0e0e0;
+  
+  /* 🎯 Multi-Layered Light Dispersion: Radiates sharp Silver, intense Red, and neon Blue aura rings simultaneously */
+  text-shadow: 
+    0 0 6px #ffffff,                  /* Core sharp silver brilliance */
+    0 0 15px rgba(255, 23, 68, 0.8),  /* Middle layer volcanic red burst */
+    0 0 30px rgba(0, 229, 255, 0.6);  /* Outer wide dispersion neon blue halo */
+}
+
+/* ==========================================================================
+   ⚡ VERTICAL NEON SCANNING KEYFRAME (Place at the bottom of style.css)
+   ========================================================================== */
+@keyframes neonScanlineVertical {
+  0% {
+    top: -5%; /* Start slightly above the top frame edge */
+    opacity: 0;
+  }
+  5% {
+    opacity: 0.85; /* Fade in quickly as it enters the drop box */
+  }
+  95% {
+    opacity: 0.85; /* Stay brightly lit during the descent sweep */
+  }
+  100% {
+    top: 105%; /* Exit smoothly past the bottom layout line */
+    opacity: 0;  /* Dissolve invisible before looping back up */
+  }
+}
+
+
+/* ==========================================================================
+   ⚡ OUTSIDE BOX NEON BORDER LIGHT BREATHING LOOPS (Place at bottom of style.css)
+   ========================================================================== */
+@keyframes cyberBorderPulse {
+  0% {
+    /* Subtle core rim glow */
+    box-shadow: 
+      0 0 15px rgba(255, 23, 68, 0.3),
+      inset 0 0 15px rgba(0, 0, 0, 0.8);
+    border-color: #d50000; /* Darker red baseline */
+  }
+  100% {
+    /* High-intensity wide dispersion laser red light emission blast */
+    box-shadow: 
+      0 0 35px rgba(255, 23, 68, 0.65),
+      0 0 70px rgba(255, 23, 68, 0.25),
+      inset 0 0 25px rgba(255, 23, 68, 0.2);
+    border-color: #ff1744; /* Bright radioactive neon red filament */
+  }
+}
+
+
+/*--------------------------------------------------------------*/
+
+/* ==========================================================================
+   INTERACTIVE BRAND CARD: Technical Grid Canvas with Pulsing Laser Rings
+   ========================================================================== */
+.brand-footer-card {
+  position: relative;
+  margin-top: 24px;
+  padding: 24px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-sizing: border-box;
+  
+  /* 🟥 1. Outer perimeter red tracking laser border outline */
+  border: 1px solid rgba(255, 23, 68, 0.35);
+  
+  /* 🎨 2. Background: High-end metallic charcoal and dark slate right-to-left flowing canvas */
+  background-image: 
+    linear-gradient(270deg, #09090b 0%, #161622 35%, #2a2a3a 50%, #121216 75%, #050507 100%),
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  
+  /* Coordinates grid dimensions to space lines exactly 14px apart */
+  background-size: 200% 100%, 14px 14px, 14px 14px;
+  background-position: 0 0, center center, center center;
+  
+  /* Synchronized to reuse your right-to-left horizontal color wave motion */
+  animation: flowPinkRightToLeft 10s linear infinite;
+  
+  box-shadow: 
+    0 4px 30px rgba(0, 0, 0, 0.4),
+    inset 0 0 20px rgba(255, 23, 68, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ✨ Layer 3: Floating Silver Glitter Particle Mesh */
+.brand-footer-card::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  
+  /* Tiny metallic silver particle clusters */
+  background-image: 
+    radial-gradient(circle, #ffffff 1px, transparent 1.5px),
+    radial-gradient(circle, #c0c0c0 1px, transparent 2px);
+  background-size: 60px 60px, 90px 90px;
+  background-position: 0 0, 30px 45px;
+  opacity: 0.25; /* Kept subtle to prevent text clashing */
+  
+  animation: floatGlitter 12s linear infinite;
+  pointer-events: none;
+}
+
+/* Ensure typography blocks float safely over the background lighting */
+.brand-footer-card > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Hover over the brand card to intensify the neon red aura alignment */
+.brand-footer-card:hover {
+  border-color: rgba(255, 23, 68, 0.7);
+  box-shadow: 
+    0 0 25px rgba(255, 23, 68, 0.25),
+    inset 0 0 15px rgba(255, 23, 68, 0.1);
+  transform: translateY(-2px);
+}
+
+/* ==========================================================================
+   3. INTERNAL STRUCTURAL CONTENT LAYOUTS
+   ========================================================================== */
+.brand-header-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.brand-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-logo-icon {
+  color: #ff1744;
+  font-size: 20px;
+  filter: drop-shadow(0 0 6px rgba(255, 23, 68, 0.6));
+}
+
+.brand-title-wrap h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #ffffff;
+}
+
+.status-indicator {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: rgba(0, 229, 255, 0.1);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  color: #00e5ff;
+}
+
+.brand-description {
+  margin: 0 0 20px 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #a0a0b0;
+}
+
+/* Technical Metrics Rows */
+.brand-stats-row {
+  display: flex;
+  gap: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 16px;
+}
+
+.stat-node {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.stat-label {
+  font-size: 10px;
+  color: #666677;
+}
+
+/* ==========================================================================
+   🛸 CYBERPUNK MODAL OVERLAY SHEET (Add to your style.css)
+   ========================================================================== */
+.cyber-share-overlay {
+  position: fixed !important;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(4, 4, 6, 0.85) !important; /* Made background overlay a bit darker for better focus */
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  z-index: 2000000 !important;
+  display: none; 
+  align-items: center;
+  justify-content: center;
+}
+
+.cyber-share-modal-box {
+  /* 📐 THE WIDENING FIX: Expanded from 380px to 460px to give content breathing room */
+  width: 460px !important;
+  max-width: 90vw !important;
+  background: linear-gradient(135deg, #09090b 0%, #12121c 100%) !important;
+  border: 1px solid #ff1744 !important;
+  border-radius: 12px !important;
+  padding: 24px 26px !important; /* Increased inner margins */
+  box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(255, 23, 68, 0.25) !important;
+  box-sizing: border-box !important;
+  animation: modalScaleIn 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
+}
+
+.share-modal-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  padding-bottom: 14px !important;
+  margin-bottom: 20px !important;
+}
+
+.modal-title-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.modal-title-wrap h4 {
+  margin: 0; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; color: #ffffff;
+}
+
+.pulse-cyan-dot {
+  width: 6px !important; 
+  height: 6px !important; 
+  border-radius: 50% !important; 
+  background: #00e5ff !important; 
+  box-shadow: 0 0 8px #00e5ff !important;
+}
+
+.modal-close-cross {
+  background: transparent !important; 
+  border: none !important; 
+  color: #888899 !important; 
+  cursor: pointer !important; 
+  padding: 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: color 0.2s !important;
+}
+.modal-close-cross:hover { color: #ff1744 !important; }
+
+/* Grid Option Boxes Matrix */
+.share-grid-matrix {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  justify-content: space-between !important; /* Uniformly distributes spacing between cards */
+  gap: 14px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.share-matrix-node {
+  background: rgba(255,255,255,0.02) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  border-radius: 8px !important;
+  padding: 18px 10px !important; /* Better inner padding vertical scaling */
+  display: flex !important; 
+  flex-direction: column !important; 
+  align-items: center !important; 
+  justify-content: center !important;
+  gap: 10px !important;
+  text-decoration: none !important; 
+  color: #cccccc !important; 
+  cursor: pointer !important; 
+  box-sizing: border-box !important;
+  transition: all 0.25s ease !important;
+  flex: 1 1 30% !important; 
+  width: 31% !important;       /* Balanced ratio distribution */
+  max-width: 33% !important;
+}
+
+/* Precise Icon scaling vectors optimization dimensions */
+.share-matrix-node span.material-symbols-outlined { 
+  font-size: 26px !important; 
+}
+
+.share-matrix-node:hover {
+  background: rgba(255, 23, 68, 0.05) !important; 
+  border-color: #ff007f !important; 
+  color: #ffffff !important;
+  transform: translateY(-3px) !important; 
+  box-shadow: 0 8px 20px rgba(255, 23, 68, 0.2) !important;
+}
+
+.share-matrix-node span { font-size: 28px !important; }
+
+.node-label { 
+  font-size: 11px !important; 
+  font-weight: 700 !important; 
+  white-space: nowrap !important; /* Forces title strings to stay on a single horizontal row */
+  width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important; /* Adds subtle dots (...) if the font scaling becomes tight */
+ }
+
+/* Vivid Icon Matrix Color Channels */
+.icon-green { color: #25d366 !important; filter: drop-shadow(0 0 4px rgba(37, 211, 102, 0.2)); }
+.icon-cyan { color: #00e5ff !important; filter: drop-shadow(0 0 4px rgba(0, 229, 255, 0.2)); }
+.icon-white { color: #ffffff !important; filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.2)); }
+
+/* ==========================================================================
+   🔄 THE INNOVATION: Brushed Silver & Laser Cyan Regenerate Deck 
+   ========================================================================== */
+.action-item[data-action="regenerate"] {
+  position: relative !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  
+  /* 🥈 THE BASE FIX: Brushed metallic silver gradient plate with a laser cyan border */
+  background: linear-gradient(135deg, rgba(200, 205, 215, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%) !important;
+  border: 1px solid rgba(0, 229, 255, 0.25) !important;
+  border-left: 3px solid #00e5ff !important; /* Thick electric cyan indicator bar */
+  border-radius: 6px !important;
+  padding: 12px 16px !important;
+  
+  transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+
+/* 🥈 The Silver Metallic Sheen Layer Overlay Background */
+.action-item[data-action="regenerate"]::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent) !important;
+  transform: skewX(-25deg) translateX(-100%) !important;
+  transition: transform 0.6s ease !important;
+  pointer-events: none !important;
+}
+
+/* Text and Description Character Visibility Rules */
+.action-item[data-action="regenerate"] strong {
+  color: #e2e8f0 !important; /* Premium silver-white font tracking */
+  text-shadow: 0 0 4px rgba(255,255,255,0.1) !important;
+  transition: color 0.3s ease !important;
+}
+
+.action-item[data-action="regenerate"] small {
+  color: #8a99ad !important; /* Faded steel subtext line */
+  transition: color 0.3s ease !important;
+}
+
+/* Isolated Electric Cyan Icon Glow Matrix */
+.action-item[data-action="regenerate"] .material-symbols-outlined {
+  color: #00e5ff !important;
+  filter: drop-shadow(0 0 6px #00e5ff) !important;
+  transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+
+/* ==========================================================================
+   ⚡ HOVER LIFECYCLES: Text remains perfectly legible while borders intensify
+   ========================================================================== */
+.action-item[data-action="regenerate"]:not(:disabled):hover {
+  /* 🎯 THE VISIBILITY FIX: The button body does NOT turn into a solid mask. 
+     It brightens into transparent silver-chrome, ensuring dark/light text strings stay fully legible! */
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: #00e5ff !important;
+  box-shadow: 
+    0 0 15px rgba(0, 229, 255, 0.25),
+    inset 0 0 8px rgba(0, 229, 255, 0.1) !important;
+  transform: translateX(2px) !important; /* Soft horizontal instrumentation slide */
+}
+
+/* Trigger the sliding metallic silver reflection across the plate on hover */
+.action-item[data-action="regenerate"]:not(:disabled):hover::before {
+  transform: skewX(-25deg) translateX(200%) !important;
+}
+
+.action-item[data-action="regenerate"]:not(:disabled):hover strong {
+  color: #ffffff !important;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.6) !important;
+}
+
+/* ==========================================================================
+   🎯 ACTIVE REGENERATE LIFECYCLE: Glowing Hot Pink Plasma Core Transformation
+   ========================================================================== */
+.action-item[data-action="regenerate"]:disabled {
+  background: rgba(255, 0, 127, 0.02) !important;
+  border-color: rgba(255, 0, 127, 0.2) !important;
+  border-left-color: #ff007f !important; /* Swap the cyan bar cleanly into laser hot pink */
+  opacity: 1 !important; /* Keeps the control deck fully visible during generation tasks */
+}
+
+/* 🎯 THE PINK SPINNING AUDIO CORE ANIMATION IMPACT */
+.action-item[data-action="regenerate"]:disabled .material-symbols-outlined {
+  color: #ff007f !important;
+  /* Multi-layered neon hot pink luminescence radiation field */
+  filter: drop-shadow(0 0 8px #ff007f) drop-shadow(0 0 15px #ff007f) !important;
+  
+  /* 🔄 Continuous high-speed physical rotation loop */
+  animation: eliteNeonPinkSpin 0.75s linear infinite !important;
+}
+
+.action-item[data-action="regenerate"]:disabled strong {
+  color: #ff8a9f !important; /* Soft matching pink accent state title text */
+  text-shadow: 0 0 4px rgba(255, 0, 127, 0.2) !important;
+}
+
+.cyber-support-anchor-link {
+  color: #ff007f !important; 
+  font-weight: 700 !important; 
+  text-decoration: underline !important; 
+  text-shadow: 0 0 6px rgba(255, 0, 127, 0.4) !important;
+  transition: all 0.25s ease-in-out !important;
+}
+
+.cyber-support-anchor-link:hover {
+  color: #ffffff !important;
+  text-shadow: 0 0 10px #ff007f, 0 0 20px #ff007f !important;
+}
+
+
+/* ==========================================================================
+   🎬 CYBER COMPLETION PANEL DECORATIONS (Place inside style.css)
+   ========================================================================== */
+
+/* 1. Header Glow Elements Setup */
+.hologram-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pulse-radar-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #00e5ff; /* Cyan active track indicator */
+  box-shadow: 0 0 10px #00e5ff, 0 0 20px #00e5ff;
+  animation: radarBlipPulse 1.5s infinite ease-in-out;
+}
+
+.neon-glow-icon {
+  color: #ff007f !important;
+  text-shadow: 0 0 10px rgba(255, 0, 127, 0.8);
+}
+
+/* 2. Centralized Text Narrator Canvas Box Wrapper */
+.cyber-narrator-panel {
+  position: relative;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-left: 3px solid #ff1744; /* Vivid laser red left accent border line */
+  border-radius: 6px;
+  padding: 16px 20px;
+  margin: 18px 0 22px 0;
+  overflow: hidden;
+}
+
+.narrator-meta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.premium-delivery-text {
+  font-size: 13.5px !important;
+  line-height: 1.6 !important;
+  color: #d1d1e0 !important;
+  margin: 0 !important;
+}
+
+/* Precise neon inline keyword indicators */
+.highlight-pink {
+  color: #ff007f;
+  font-weight: 700;
+  text-shadow: 0 0 6px rgba(255, 0, 127, 0.3);
+}
+
+.highlight-cyan {
+  color: #00e5ff;
+  font-weight: 700;
+  text-shadow: 0 0 6px rgba(0, 229, 255, 0.3);
+}
+
+/* 3. Innovative Equalizer Waveform Visualization Graph */
+.ambient-audio-waveform-mesh {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 24px;
+  margin-top: 14px;
+  opacity: 0.35;
+  transition: opacity 0.3s ease;
+}
+
+.cyber-narrator-panel:hover .ambient-audio-waveform-mesh {
+  opacity: 0.85; /* Lights up intensely when user hovers over the block */
+}
+
+.wave-bar {
+  width: 3px;
+  background: linear-gradient(to top, #ff1744, #ff007f);
+  border-radius: 2px;
+  animation: audioWaveBounce 1.2s ease-in-out infinite alternate;
+}
+
+/* Variable speed rhythms mapping for each independent frequency node bar */
+.bar-1 { height: 30%; animation-duration: 0.6s; }
+.bar-2 { height: 65%; animation-duration: 0.9s; }
+.bar-3 { height: 100%; animation-duration: 0.7s; }
+.bar-4 { height: 45%; animation-duration: 0.8s; }
+.bar-5 { height: 80%; animation-duration: 0.5s; }
+
+/* ==========================================================================
+   4. INNOVATIVE BUTTON: Animated Holographic Branding Node
+   ========================================================================== */
+.premium-hologram-btn {
+  position: relative;
+  width: 100%;
+  background: linear-gradient(135deg, #0d0d13 0%, #161622 100%) !important;
+  border: 1px solid rgba(255, 0, 127, 0.35) !important;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 24px;
+  /* 🎯 THE FIX: Completely blocks mouse clicks, selections, and taps */
+  pointer-events: none; 
+  cursor: default; /* Changes back to a normal arrow pointer instead of a hand */
+  user-select: none; /* Prevents text highlighting when double-clicked */
+  
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  overflow: hidden;
+
+}
+
+/* Technical background grid canvas matrix inside the button */
+.btn-grid-mesh {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background-image: linear-gradient(rgba(255,255,255,0.01) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.01) 1px, transparent 1px);
+  background-size: 8px 8px;
+  pointer-events: none;
+}
+
+/* 🎯 THE INNOVATION: Right-to-Left Shimmering Holographic Light Beam */
+.premium-hologram-btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 229, 255, 0.15), transparent);
+  transform: skewX(-25deg);
+  animation: flowPinkRightToLeft 4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.btn-spark-icon {
+  color: #ff007f;
+  font-size: 20px;
+  filter: drop-shadow(0 0 6px #ff007f);
+}
+
+.btn-text-content {
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  letter-spacing: 1.5px !important;
+  text-transform: uppercase !important;
+  color: #ffffff !important;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+}
+
+/* Interactive State Changes */
+.premium-hologram-btn:hover {
+  transform: none !important;
+  border-color: rgba(255, 0, 127, 0.35) !important;
+  box-shadow: none !important;
+}
+
+.premium-hologram-btn:hover .btn-spark-icon {
+  color: #00e5ff;
+  filter: drop-shadow(0 0 6px #00e5ff);
+  transform: rotate(90deg); /* Smoothly rotates the vector core on hover */
+}
+
+
+/* ==========================================================================
+   🛸 CYBERPUNK LAB CONTROLLER: Chromium Chassis & Plasma Laser Outline
+   ========================================================================== */
+.premium-cyber-lab-btn {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  cursor: pointer !important;
+  
+  /* 📐 Sizing and Spacing parameters adjustment matrix */
+  min-width: 290px !important;
+  padding: 14px 22px !important;
+  border-radius: 8px !important;
+  
+  /* 🥈 THE BASE SILVER & TRANSPARENT MATRIX CHASSIS */
+  background: linear-gradient(135deg, rgba(210, 215, 225, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%) !important;
+  border: 1px solid rgba(0, 229, 255, 0.25) !important;
+  border-left: 4px solid #00e5ff !important; /* Thick electric cyan indicator bar core */
+  
+  /* Constant high-fidelity ambient halo baseline emissions */
+  box-shadow: 
+    0 4px 15px rgba(0, 0, 0, 0.5),
+    0 0 15px rgba(0, 229, 255, 0.15),
+    inset 0 0 10px rgba(0, 229, 255, 0.05) !important;
+    
+  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+
+/* Technical instrumentation background mesh inside the button chassis plate */
+.lab-chassis-grid {
+  content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;
+  background-image: linear-gradient(rgba(255,255,255,0.006) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.006) 1px, transparent 1px);
+  background-size: 6px 6px;
+}
+
+/* 🎯 THE LIGHT GLOWING PANEL ENGINE: Animated neon trace backing element */
+.laser-border-glow {
+  content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2;
+  background: linear-gradient(90deg, transparent, rgba(255, 23, 68, 0.15), transparent);
+  transform: translateX(-100%);
+  animation: labLaserSweep 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.lab-btn-content-wrap {
+  display: flex !important; align-items: center !important; gap: 14px !important; position: relative !important; z-index: 3 !important;
+}
+
+/* Electric Cyan Instrumentation Icon */
+.lab-spark-icon {
+  color: #00e5ff !important;
+  font-size: 26px !important;
+  filter: drop-shadow(0 0 6px #00e5ff);
+  transition: transform 0.4s ease, color 0.4s ease !important;
+}
+
+.lab-text-matrix-box {
+  display: flex !important; flex-direction: column !important; align-items: flex-start !important; gap: 2px !important; text-align: left !important;
+}
+
+/* 🥈 THE STATIC LAB INSCRIPTION: Bold Brushed Chromium Text */
+.lab-signature-static-text {
+  font-size: 13.5px !important;
+  font-weight: 900 !important; /* Bold font tracking */
+  letter-spacing: 2px !important;
+  font-family: inherit;
+  color: #e2e8f0 !important; /* Premium metallic silver base */
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.15) !important;
+  transition: color 0.3s ease !important;
+}
+
+.lab-sub-metric-text {
+  font-size: 9px !important; font-weight: 700 !important; letter-spacing: 1px !important; color: #718096 !important;
+}
+
+/* 🔴 THE MULTI-ANIMATION TRACK: Breathing Hot Pink Blip Node */
+.pulse-radar-blip-pink {
+  position: absolute !important; right: 18px !important; top: calc(50% - 4px) !important; z-index: 3 !important;
+  width: 8px !important; height: 8px !important; border-radius: 50% !important;
+  background-color: #ff007f !important; /* Neon hot pink dot core */
+  box-shadow: 0 0 10px #ff007f, 0 0 20px #ff007f;
+  animation: labPinkBlipPulse 1.8s infinite ease-in-out !important;
+}
+
+/* ==========================================================================
+   🛸 SIDECARD RE-REALIGNMENT: Proportional Flow & Floating Neon Pill
+   ========================================================================== */
+.premium-pro-space-card {
+  position: relative !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  cursor: pointer !important;
+  display: flex !important;
+  flex-direction: column !important;
+  
+  /* 📐 Sizing and margin tracking proportions */
+  width: 100% !important;
+  padding: 18px 20px !important;
+  border-radius: 12px !important;
+  margin-bottom: 16px !important;
+  
+  /* Artistic neon pink translucent plate canvas */
+  background: linear-gradient(135deg, rgba(255, 0, 127, 0.04) 0%, rgba(255, 23, 68, 0.01) 100%) !important;
+  border: 1px solid rgba(255, 0, 127, 0.25) !important;
+  border-left: 3px solid #ff007f !important; /* Premium hot pink left perimeter bar anchor */
+  
+  box-shadow: 
+    0 4px 15px rgba(0,0,0,0.5),
+    0 0 15px rgba(255, 0, 127, 0.12),
+    inset 0 0 12px rgba(255, 0, 127, 0.04) !important;
+    
+  transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+
+/* Technical instrumentation background mesh */
+.pro-panel-mesh-grid {
+  content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;
+  background-image: linear-gradient(rgba(255, 0, 127, 0.008) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 0, 127, 0.008) 1px, transparent 1px);
+  background-size: 8px 8px;
+}
+
+/* Continuous horizontal sliding light shimmer */
+.pro-laser-perimeter-glow {
+  content: ""; position: absolute; top: 0; left: -150%; width: 50%; height: 100%; pointer-events: none; z-index: 2;
+  background: linear-gradient(90deg, transparent, rgba(255, 0, 127, 0.15), transparent) !important;
+  transform: skewX(-25deg);
+  animation: proLaserSweep 4.5s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
+}
+
+/* 📐 Header element alignment layout row wrapper */
+.card-header-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important; /* Uniformly pushes icon to left and button pill to right */
+  width: 100% !important;
+  margin-bottom: 16px !important;
+  position: relative !important;
+  z-index: 3 !important;
+}
+
+/* Left side vector icon glow handling profile */
+.pro-panel-icon {
+  color: #ff007f !important;
+  font-size: 26px !important;
+  filter: drop-shadow(0 0 6px #ff007f) !important;
+}
+
+/* ==========================================================================
+   🎯 THE RE-DESIGN: Integrated High-Contrast Premium Action Button Pill
+   ========================================================================== */
+.pro-action-pill-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  
+  background: #ff007f !important; /* Solid vibrant hot pink baseline */
+  color: #ffffff !important;
+  padding: 4px 10px !important;
+  border-radius: 20px !important; /* Creates smooth organic capsule rounded profiles */
+  
+  box-shadow: 0 0 12px rgba(255, 0, 127, 0.6) !important;
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+
+.pro-pill-text-content {
+  font-size: 9px !important;
+  font-weight: 900 !important;
+  letter-spacing: 1px !important;
+}
+
+.pro-arrow-action {
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  transition: transform 0.3s ease !important;
+}
+
+/* 🥈 HIGH-CONTRAST TYPOGRAPHY TEXT BLOCKS (Bypasses parent text fades completely) */
+.pro-static-title {
+  font-size: 12px !important;
+  font-weight: 900 !important; /* Extremely bold title header text */
+  letter-spacing: 1.5px !important;
+  color: #ffffff !important; /* Solid high-contrast stark white text string */
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.5) !important;
+  margin: 0 0 6px 0 !important;
+  position: relative !important;
+  z-index: 3 !important;
+}
+
+.pro-metrics-string {
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  color: #ff8a9f !important; /* Beautiful glowing pastel pink metrics details text */
+  text-shadow: 0 0 4px rgba(255, 0, 127, 0.25) !important;
+  margin: 0 !important;
+  position: relative !important;
+  z-index: 3 !important;
+}
+
+/* ==========================================================================
+   ⚡ HOVER LIFECYCLES: Intensely activates glowing fields on cursor hover
+   ========================================================================== */
+.premium-pro-space-card:hover {
+  background: rgba(255, 0, 127, 0.06) !important;
+  border-color: #ffffff !important;
+  border-left-color: #ff1744 !important;
+  box-shadow: 
+    0 10px 25px rgba(0,0,0,0.6),
+    0 0 30px rgba(255, 0, 127, 0.4),
+    inset 0 0 15px rgba(255, 0, 127, 0.3) !important;
+  transform: scale(1.02) translateY(-2px) !important;
+}
+
+/* Interactive micro-animations for inner button pill layers on card hover */
+.premium-pro-space-card:hover .pro-action-pill-badge {
+  background: #ffffff !important; /* Swaps capsule colors to solid white on card hover */
+  color: #0d0d13 !important;
+  box-shadow: 0 0 15px #ffffff !important;
+}
+
+.premium-pro-space-card:hover .pro-arrow-action {
+  transform: translateX(3px) scale(1.1) !important; /* Programmatic micro-arrow pull horizontal slide */
+}
+
+.premium-pro-space-card:active {
+  transform: scale(0.98) !important;
+  transition: transform 0.05s ease !important;
+}
+
+@keyframes proLaserSweep {
+  0% { transform: translateX(-150%) skewX(-25deg); }
+  40% { transform: translateX(250%) skewX(-25deg); }
+  100% { transform: translateX(250%) skewX(-25deg); }
+}
+
+
+/* ==========================================================================
+   ⚡ HOVER ACCELERATION INTERRUPTS: Text sharpens while boundaries shift to red/pink
+   ========================================================================== */
+.premium-cyber-lab-btn:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-color: #ff007f !important; /* Boundary shifts completely to Hot Pink */
+  border-left-color: #ff1744 !important; /* Bar hits high-luminescence Laser Red */
+  
+  box-shadow: 
+    0 8px 25px rgba(0,0,0,0.6),
+    0 0 25px rgba(255, 0, 127, 0.35),
+    inset 0 0 15px rgba(255, 23, 68, 0.15) !important;
+  transform: translateY(-1px) translateX(2px) !important;
+}
+
+.premium-cyber-lab-btn:hover .lab-signature-static-text {
+  color: #ffffff !important;
+  text-shadow: 0 0 10px #00e5ff, 0 0 20px rgba(0,229,255,0.4) !important; /* Lights up with internal Cyan glare */
+}
+
+.premium-cyber-lab-btn:hover .lab-spark-icon {
+  color: #ff007f !important;
+  filter: drop-shadow(0 0 8px #ff007f);
+  transform: rotate(15deg) scale(1.1); /* Interactive micro-rotation animation on click hover */
+}
+
+.premium-cyber-lab-btn:active {
+  transform: translateY(0) scale(0.98) !important;
+  transition: transform 0.05s ease !important;
+}
+
+/* ==========================================================================
+   🎥 HARDWARE-ACCELERATED LAYOUT GRAPHIC ROTATION TIME LOOPS
+   ========================================================================== */
+@keyframes labLaserSweep {
+  0% { transform: translateX(-150%) skewX(-30deg); }
+  50% { transform: translateX(250%) skewX(-30deg); }
+  100% { transform: translateX(250%) skewX(-30deg); }
+}
+
+@keyframes labPinkBlipPulse {
+  0% { transform: scale(0.9); opacity: 0.6; box-shadow: 0 0 0 0 rgba(255, 0, 127, 0.6); }
+  50% { opacity: 1; box-shadow: 0 0 0 8px rgba(255, 0, 127, 0); }
+  100% { transform: scale(0.9); opacity: 0.6; box-shadow: 0 0 0 0 rgba(255, 0, 127, 0); }
+}
+
+/* ==========================================================================
+   ⚡ SYSTEM ANIMATION KEYFRAMES (Place at the bottom of style.css)
+   ========================================================================== */
+@keyframes radarBlipPulse {
+  0% { transform: scale(0.95); opacity: 0.5; box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.5); }
+  50% { opacity: 1; box-shadow: 0 0 0 6px rgba(0, 229, 255, 0); }
+  100% { transform: scale(0.95); opacity: 0.5; box-shadow: 0 0 0 0 rgba(0, 229, 255, 0); }
+}
+
+@keyframes audioWaveBounce {
+  0% { transform: scaleY(0.2); }
+  100% { transform: scaleY(1); }
+}
+
+
+/* ==========================================================================
+   🎥 SLOW CINEMATIC MOTION LOOPS (Keep at the very bottom of style.css)
+   ========================================================================== */
+
+/* Smooth, premium horizontal fade-in glide path */
+@keyframes toastSlowGlideIn {
+  0% { transform: translateX(40px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+/* High-luminescence slow breathing red-to-pink light emission blast */
+@keyframes toastGlowBreathing {
+  0% { box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 15px rgba(255, 23, 68, 0.3); border-color: #ff1744; }
+  100% { box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 0, 127, 0.5); border-color: #ff007f; }
+}
+
+/* ==========================================================================
+   CORE MOTION KEYFRAME LOOPS (Keep grouped at the very bottom of style.css)
+   ========================================================================== */
+@keyframes flowPinkRightToLeft {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%; /* Slides red color vectors seamlessly horizontally */
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes modalScaleIn {
+  0% { transform: scale(0.94) translateY(8px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* 🎥 High-fidelity hardware accelerated graphic rotation keyframe tracking */
+@keyframes eliteNeonPinkSpin {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.12); /* Subtle pulse expansion inside the spin loop */ }
+  100% { transform: rotate(360deg) scale(1); }
+}
