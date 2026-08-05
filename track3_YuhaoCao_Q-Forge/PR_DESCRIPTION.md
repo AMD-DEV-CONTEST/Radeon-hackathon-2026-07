@@ -1,10 +1,4 @@
-# Pull Request
-
-## Title
-
-`Track 3, Yuhao Cao, Q-Forge`
-
-## Description
+## Track 3 Submission: Q-Forge
 
 This pull request submits **Q-Forge** to **Track 3: Physical AI**.
 
@@ -34,8 +28,8 @@ units and 48 GiB VRAM.
 - Audited result summaries and machine-readable evidence
 - Attention-backend and inference-optimization supplementary reports
 
-The submission index is available at
-`track3_YuhaoCao_Q-Forge/SUBMISSION.md`.
+The complete deliverable index and compliance matrix are available in
+[`track3_YuhaoCao_Q-Forge/SUBMISSION.md`](https://github.com/ZorAttC/Radeon-hackathon-2026-07/blob/submission/track3-yuhao-cao-q-forge/track3_YuhaoCao_Q-Forge/SUBMISSION.md).
 
 ## Participant
 
