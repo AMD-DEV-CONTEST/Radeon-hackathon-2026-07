@@ -3,7 +3,7 @@
 FastAPI service for project configuration, validated uploads, explicit mock
 generation, human review, and a disabled-by-default experimental ROCm job API.
 
-Run from this directory with `python -m uvicorn app.main:app --reload`. Storage defaults to `storage/`; uploads are limited to 10 MB and must be valid PNG, JPEG, or WebP images.
+Run from this directory with `python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000`. Storage defaults to `storage/`; uploads are limited to 10 MB and must be valid PNG, JPEG, or WebP images. Default CORS permits the local frontend at both `http://localhost:3000` and `http://127.0.0.1:3000`; authenticated experimental mode still requires an explicit non-wildcard origin list.
 
 Normal startup does not require Torch, Diffusers, ROCm, or a GPU. The
 experimental namespace is enabled only with `ENABLE_EXPERIMENTAL_ROCM=true`.

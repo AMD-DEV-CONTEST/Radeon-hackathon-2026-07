@@ -33,22 +33,23 @@ def test_oversized_upload(client, payload):
 
 
 def test_authenticated_cors_preflight_is_explicit(client):
-    response = client.options(
-        "/projects",
-        headers={
-            "Origin": "http://localhost:3000",
-            "Access-Control-Request-Method": "POST",
-            "Access-Control-Request-Headers": "authorization,content-type",
-        },
-    )
-    assert response.status_code == 200
-    assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
-    methods = response.headers["access-control-allow-methods"]
-    assert all(method in methods for method in ("GET", "POST", "PATCH", "OPTIONS"))
-    headers = response.headers["access-control-allow-headers"].lower()
-    assert "authorization" in headers
-    assert "content-type" in headers
-    assert response.headers["access-control-allow-origin"] != "*"
+    for origin in ("http://localhost:3000", "http://127.0.0.1:3000"):
+        response = client.options(
+            "/projects",
+            headers={
+                "Origin": origin,
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "authorization,content-type",
+            },
+        )
+        assert response.status_code == 200
+        assert response.headers["access-control-allow-origin"] == origin
+        methods = response.headers["access-control-allow-methods"]
+        assert all(method in methods for method in ("GET", "POST", "PATCH", "OPTIONS"))
+        headers = response.headers["access-control-allow-headers"].lower()
+        assert "authorization" in headers
+        assert "content-type" in headers
+        assert response.headers["access-control-allow-origin"] != "*"
 
 
 def test_unknown_cors_origin_is_denied(client):

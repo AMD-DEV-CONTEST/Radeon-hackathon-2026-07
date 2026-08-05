@@ -1,9 +1,11 @@
 "use client";
 
-import {useEffect,useId,useMemo,useRef,useState} from "react";
+import {useEffect,useId,useRef,useState} from "react";
 import Image from "next/image";
 import type {CampaignResult,SystemInfo} from "@/lib/types";
 import {api} from "@/lib/api";
+import {updateChoiceSelection} from "@/lib/selection";
+import {createPreviewObjectUrl,validateProductImage} from "@/lib/local-asset-store";
 import {
   clearRuntimeConnection,
   type ConnectionDiagnosticStage,
@@ -41,24 +43,32 @@ export function MockDisclosure({text="Mock concept — no Radeon generation was 
   return <p className="disclosure disclosure-neutral"><Icon name="sparkles"/><span>{text}</span></p>;
 }
 
-export function UploadDropzone({file,onFile}:{file:File|null;onFile:(file:File|null)=>void}){
+export function UploadDropzone({file,onFile,restoreState="empty",notice=""}:{file:File|null;onFile:(file:File|null)=>void;restoreState?:"loading"|"empty"|"ready"|"reselect";notice?:string}){
   const inputId=useId();
   const [drag,setDrag]=useState(false);
   const [error,setError]=useState("");
   const pick=(next?:File)=>{
     if(!next)return;
-    if(!["image/png","image/jpeg","image/webp"].includes(next.type)){setError("Choose a PNG, JPEG, or WebP image.");return}
-    if(next.size>10*1024*1024){setError("Image must be 10 MB or smaller.");return}
+    const validation=validateProductImage(next);
+    if(validation){setError(validation);return}
     setError("");
     onFile(next);
   };
-  return <div className="upload-module"><div className={cx("upload-zone",drag&&"is-dragging",file&&"has-file")} onDragOver={event=>{event.preventDefault();setDrag(true)}} onDragLeave={()=>setDrag(false)} onDrop={event=>{event.preventDefault();setDrag(false);pick(event.dataTransfer.files[0])}}><input className="file-input sr-only" id={inputId} type="file" accept=".png,.jpg,.jpeg,.webp" onChange={event=>pick(event.target.files?.[0])}/>{file?<ImagePreview file={file} inputId={inputId} onClear={()=>{setError("");onFile(null)}}/>:<><span className="upload-icon"><Icon name="upload"/></span><div><h3>Bring in your product asset</h3><p>Drag and drop a rights-cleared image, or choose a file from this device.</p></div><label className="button button-secondary upload-button" htmlFor={inputId}>Choose image <Icon name="image"/></label><div className="upload-meta"><span>PNG, JPEG, WebP</span><span>Maximum 10 MB</span><span>Decoded and validated</span></div></>}</div>{error&&<ErrorAlert message={error}/>}</div>;
+  const needsReselect=restoreState==="reselect";
+  return <div className="upload-module"><div className={cx("upload-zone",drag&&"is-dragging",file&&"has-file")} onDragOver={event=>{event.preventDefault();setDrag(true)}} onDragLeave={()=>setDrag(false)} onDrop={event=>{event.preventDefault();setDrag(false);pick(event.dataTransfer.files[0])}}><input className="file-input sr-only" id={inputId} type="file" accept=".png,.jpg,.jpeg,.webp" onChange={event=>pick(event.target.files?.[0])}/>{file?<ImagePreview file={file} inputId={inputId} onClear={()=>{setError("");onFile(null)}} onInvalid={()=>{setError("Preview could not be opened. Select the image again.");onFile(null)}}/>:<><span className="upload-icon"><Icon name={needsReselect?"refresh":"upload"}/></span><div><h3>{restoreState==="loading"?"Restoring saved product image…":needsReselect?"Image must be selected again":"Bring in your product asset"}</h3><p>{needsReselect?"The saved preview was unavailable, so no asset is marked Ready.":"Drag and drop a rights-cleared image, or choose a file from this device."}</p></div><label className="button button-secondary upload-button" htmlFor={inputId}>{needsReselect?"Reselect image":"Choose image"} <Icon name="image"/></label><div className="upload-meta"><span>PNG, JPEG, WebP</span><span>Maximum 10 MB</span><span>Decoded and validated</span></div></>}</div>{notice&&<p className="upload-notice" role="status">{notice}</p>}{error&&<ErrorAlert message={error}/>}</div>;
 }
 
-export function ImagePreview({file,inputId,onClear}:{file:File;inputId:string;onClear:()=>void}){
-  const url=useMemo(()=>URL.createObjectURL(file),[file]);
-  useEffect(()=>()=>URL.revokeObjectURL(url),[url]);
-  return <div className="upload-preview"><div className="upload-preview-media"><Image src={url} width={720} height={480} unoptimized alt={`Preview of ${file.name}`}/><span>Ready</span></div><div className="upload-preview-copy"><p className="eyebrow">Product asset</p><h3>{file.name}</h3><p>{(file.size/1024/1024).toFixed(2)} MB · {file.type.replace("image/","").toUpperCase()}</p><div className="button-row"><label className="button button-secondary" htmlFor={inputId}>Replace <Icon name="refresh"/></label><Button type="button" variant="ghost" onClick={onClear}>Remove</Button></div></div></div>;
+export function ImagePreview({file,inputId,onClear,onInvalid}:{file:File;inputId:string;onClear:()=>void;onInvalid:()=>void}){
+  const [url,setUrl]=useState("");
+  const [failed,setFailed]=useState(false);
+  useEffect(()=>{
+    let active=true;
+    const preview=createPreviewObjectUrl(file);
+    Promise.resolve().then(()=>{if(active)setUrl(preview.url)});
+    return()=>{active=false;preview.revoke()};
+  },[file]);
+  const fail=()=>{if(!failed){setFailed(true);onInvalid()}};
+  return <div className="upload-preview"><div className="upload-preview-media">{url&&!failed?<Image src={url} width={720} height={480} unoptimized alt="Uploaded product preview" onError={fail}/>:<div className="upload-preview-placeholder" role="status"><Icon name="image"/><span>Preparing preview…</span></div>}<span>Ready</span></div><div className="upload-preview-copy"><p className="eyebrow">Product asset</p><h3>{file.name}</h3><p>{(file.size/1024/1024).toFixed(2)} MB · {file.type.replace("image/","").toUpperCase()}</p><div className="button-row"><label className="button button-secondary" htmlFor={inputId}>Replace <Icon name="refresh"/></label><Button type="button" variant="ghost" onClick={onClear}>Remove</Button></div></div></div>;
 }
 
 export function BrandColorPicker({colors,setColors}:{colors:string[];setColors:(colors:string[])=>void}){
@@ -67,12 +77,16 @@ export function BrandColorPicker({colors,setColors}:{colors:string[];setColors:(
 
 type ChoiceItem={title:string;description:string;icon:IconName;hint?:string;frame?:string};
 
+export function AspectRatioPreview({frame="frame-square",label}:{frame?:string;label:string}){
+  return <span className={cx("aspect-preview",frame)} aria-label={`${label} aspect ratio preview`} role="img"><span className="aspect-preview-safe"><span/><span/><span/></span></span>;
+}
+
 function SelectableTile({item,legend,checked,single,onChange}:{item:ChoiceItem;legend:string;checked:boolean;single:boolean;onChange:()=>void}){
-  return <label className="selectable-tile"><input className="sr-only" type={single?"radio":"checkbox"} name={single?legend:undefined} checked={checked} onChange={onChange}/><span className="tile-icon"><Icon name={item.icon}/></span><span className="tile-copy"><strong>{item.title}</strong><small>{item.description}</small>{item.hint&&<em>{item.hint}</em>}</span>{item.frame&&<span className={cx("format-frame",item.frame)} aria-hidden="true"/>}<span className="tile-check" aria-hidden="true"><Icon name="check"/></span></label>;
+  return <label className="selectable-tile"><input className="sr-only" type={single?"radio":"checkbox"} name={single?legend:undefined} checked={checked} onChange={onChange}/><span className="tile-icon"><Icon name={item.icon}/></span><span className="tile-copy"><strong>{item.title}</strong><small>{item.description}</small>{item.hint&&<em>{item.hint}</em>}</span>{item.frame&&<AspectRatioPreview frame={item.frame} label={item.title}/>}<span className="tile-check" aria-hidden="true"><Icon name="check"/></span></label>;
 }
 
 export function ChoiceGroup({legend,description,items,value,setValue,single=false,className=""}:{legend:string;description?:string;items:ChoiceItem[];value:string[];setValue:(value:string[])=>void;single?:boolean;className?:string}){
-  return <fieldset className="choice-fieldset"><legend>{legend}</legend>{description&&<p>{description}</p>}<div className={cx("selection-grid",className)}>{items.map(item=><SelectableTile key={item.title} item={item} legend={legend} checked={value.includes(item.title)} single={single} onChange={()=>setValue(single?[item.title]:value.includes(item.title)?value.filter(current=>current!==item.title):[...value,item.title])}/>)}</div></fieldset>;
+  return <fieldset className="choice-fieldset"><legend>{legend}</legend>{description&&<p>{description}</p>}<div className={cx("selection-grid",className)}>{items.map(item=><SelectableTile key={item.title} item={item} legend={legend} checked={value.includes(item.title)} single={single} onChange={()=>setValue(updateChoiceSelection(value,item.title,single))}/>)}</div></fieldset>;
 }
 
 const styles:ChoiceItem[]=[
@@ -88,8 +102,8 @@ const formats:ChoiceItem[]=[
   {title:"Landscape Advertisement",description:"Wide campaign placement.",hint:"1.91:1 · 1200 × 628",icon:"frame",frame:"frame-landscape"},
 ];
 
-export function CreativeStyleSelector({value,setValue,single=false}:{value:string[];setValue:(value:string[])=>void;single?:boolean}){
-  return <ChoiceGroup legend="Creative styles" description={single?"Choose the one direction for this experimental run.":"Select one or more directions for the mock concept set."} items={styles} value={value} setValue={setValue} single={single}/>;
+export function CreativeStyleSelector({value,setValue}:{value:string[];setValue:(value:string[])=>void}){
+  return <ChoiceGroup legend="Creative style" description="Choose one visual direction. Selecting another replaces the current choice." items={styles} value={value} setValue={setValue} single/>;
 }
 
 export function OutputFormatSelector({value,setValue,single=false}:{value:string[];setValue:(value:string[])=>void;single?:boolean}){
@@ -116,17 +130,18 @@ export function WorkflowProgress({asset,generated}:{asset:boolean;generated:bool
 
 export function SystemStatusPanel({remoteInfo=null}:{remoteInfo?:SystemInfo|null}){
   const [online,setOnline]=useState(false);
+  const [checked,setChecked]=useState(false);
   const [localInfo,setLocalInfo]=useState<SystemInfo|null>(null);
   useEffect(()=>{
     let active=true;
-    if(remoteInfo)return;
-    Promise.all([api.health(),api.system()]).then(([,next])=>{if(active){setOnline(true);setLocalInfo(next)}}).catch(()=>{if(active){setOnline(false);setLocalInfo(null)}});
+    if(remoteInfo){Promise.resolve().then(()=>setChecked(true));return}
+    Promise.all([api.health(),api.system()]).then(([,next])=>{if(active){setOnline(true);setChecked(true);setLocalInfo(next)}}).catch(()=>{if(active){setOnline(false);setChecked(true);setLocalInfo(null)}});
     return()=>{active=false};
   },[remoteInfo]);
   const info=remoteInfo||localInfo;
   const backendOnline=remoteInfo?true:online;
   const radeonReady=!!info?.gpu_connected&&!!info?.rocm_available;
-  return <Surface className="dashboard-card status-panel"><header className="panel-header"><span className="panel-icon"><Icon name="cpu"/></span><div><p className="eyebrow">Environment</p><h2>System status</h2></div><StatusBadge tone={backendOnline?"good":"wait"}>{backendOnline?"Local API online":"API starting"}</StatusBadge></header><div className="status-stack"><div><span><i className="status-dot status-dot-good"/>Frontend</span><strong>Ready</strong></div><div><span><i className={cx("status-dot",backendOnline?"status-dot-good":"status-dot-warning")}/>Local FastAPI</span><strong>{backendOnline?"Connected":"Not connected"}</strong></div><div><span><i className={cx("status-dot",radeonReady?"status-dot-good":"status-dot-neutral")}/>Radeon runtime</span><strong>{radeonReady?"Verified":"Not connected"}</strong></div><div><span><i className={cx("status-dot",info?.rocm_available?"status-dot-good":"status-dot-neutral")}/>ROCm</span><strong>{info?.rocm_available?"Available":"Inactive in mock"}</strong></div></div><p className="panel-note">{radeonReady?"Authenticated experimental runtime is ready.":"Mock generation remains available through the local API. Experimental Radeon requires temporary approved connection details."}</p>{radeonReady&&<details className="advanced-details"><summary>Verified runtime details</summary><dl><div><dt>Device</dt><dd>{info?.device||"Unavailable"}</dd></div><div><dt>Model</dt><dd className="breakable">{info?.model_id||"Unavailable"}</dd></div><div><dt>Revision</dt><dd className="breakable">{info?.model_revision||"Unavailable"}</dd></div></dl></details>}</Surface>;
+  return <Surface className="dashboard-card status-panel"><header className="panel-header"><span className="panel-icon"><Icon name="cpu"/></span><div><p className="eyebrow">Environment</p><h2>System status</h2></div><StatusBadge tone={backendOnline?"good":checked?"bad":"wait"}>{backendOnline?"Local API online":checked?"Local API unavailable":"Checking local API"}</StatusBadge></header><div className="status-stack"><div><span><i className="status-dot status-dot-good"/>Frontend</span><strong>Ready</strong></div><div><span><i className={cx("status-dot",backendOnline?"status-dot-good":"status-dot-warning")}/>Local FastAPI</span><strong>{backendOnline?"Connected":"Not connected"}</strong></div><div><span><i className={cx("status-dot",radeonReady?"status-dot-good":"status-dot-neutral")}/>Radeon runtime</span><strong>{radeonReady?"Verified":"Not connected"}</strong></div><div><span><i className={cx("status-dot",info?.rocm_available?"status-dot-good":"status-dot-neutral")}/>ROCm</span><strong>{info?.rocm_available?"Available":"Inactive in mock"}</strong></div></div><p className="panel-note">{radeonReady?"Authenticated experimental runtime is ready.":backendOnline?"Mock generation is connected to the local API. Experimental Radeon remains optional.":"Start the local FastAPI backend on port 8000 to use mock generation."}</p>{radeonReady&&<details className="advanced-details"><summary>Verified runtime details</summary><dl><div><dt>Device</dt><dd>{info?.device||"Unavailable"}</dd></div><div><dt>Model</dt><dd className="breakable">{info?.model_id||"Unavailable"}</dd></div><div><dt>Revision</dt><dd className="breakable">{info?.model_revision||"Unavailable"}</dd></div></dl></details>}</Surface>;
 }
 
 export function RadeonConnectionPanel({onStatus}:{onStatus:(status:SystemInfo|null)=>void}){

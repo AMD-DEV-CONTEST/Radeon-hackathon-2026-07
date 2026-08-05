@@ -14,7 +14,7 @@ const facts=[
   ["Default experience","Local mock mode","verified"],
   ["Standalone SDXL on Radeon","Verified on Radeon Cloud","verified"],
   ["Authenticated loopback API","Verified on Radeon Cloud","verified"],
-  ["Browser-to-Radeon public edge","Blocked by official tunnel provisioning","blocked"],
+  ["Browser-to-Radeon public edge","Blocked by official tunnel DNS","blocked"],
   ["Product identity preservation","Not yet validated","planned"],
 ];
 
@@ -26,7 +26,7 @@ export default function Architecture(){
     </header>
 
     <AnimatedSection className="container architecture-flow-section">
-      <div className="section-intro"><p className="eyebrow">Product flow</p><h2>From product asset to accountable decision</h2><p>Each boundary is visible. Nothing quietly switches from mock data to experimental GPU inference.</p></div>
+      <header className="architecture-section-heading"><p className="eyebrow">Product flow</p><h2>Five explicit system boundaries</h2><p>From product asset to accountable decision, each boundary stays visible. Nothing quietly switches from mock data to experimental GPU inference.</p></header>
       <ol className="architecture-flow" aria-label="BrandPilot workflow">
         {workflow.map((step,index)=><li key={step.title} className="architecture-node">
           <span className="architecture-node-number">{String(index+1).padStart(2,"0")}</span>
@@ -38,7 +38,7 @@ export default function Architecture(){
 
     <AnimatedSection className="container architecture-grid">
       <Surface className="architecture-status-card">
-        <p className="eyebrow">Evidence map</p><h2>What is true today</h2>
+        <p className="eyebrow">Project status</p><h2>What is true today</h2>
         <dl className="fact-list">{facts.map(([label,value,status])=><div key={label}><dt>{label}</dt><dd><span>{value}</span><StatusBadge tone={status==="verified"?"good":status==="blocked"?"wait":"neutral"}>{status}</StatusBadge></dd></div>)}</dl>
       </Surface>
       <Surface className="trust-card">

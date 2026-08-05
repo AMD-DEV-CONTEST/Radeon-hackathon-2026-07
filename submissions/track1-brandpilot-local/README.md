@@ -138,26 +138,51 @@ used no unofficial tunnel or TLS bypass and shut down every instance. See the
 
 Requirements: Node.js 20+, npm, and Python 3.12.
 
+### Windows setup
+
 ```powershell
 git clone https://github.com/kmt9967/brandpilot-local.git
 cd brandpilot-local
-Copy-Item .env.example .env.local
-
 cd backend
 py -m venv .venv
-.\.venv\Scripts\python -m pip install -r requirements.txt
-.\.venv\Scripts\python -m uvicorn app.main:app --port 8000
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+cd ..\frontend
+npm install
+Copy-Item .env.example .env.local
 ```
 
-In another terminal:
+After setup, start both services from the repository root:
 
 ```powershell
-cd frontend
-npm ci
+.\scripts\start-local.ps1
+```
+
+The script checks ports 3000 and 8000, verifies existing dependencies, starts
+FastAPI on loopback and Next.js, and prints the frontend, API documentation,
+and health URLs. It never installs packages automatically.
+
+To run the services manually, start the backend from one PowerShell terminal:
+
+```powershell
+cd .\backend
+.\.venv\Scripts\Activate.ps1
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Then start the frontend from another terminal:
+
+```powershell
+cd .\frontend
 npm run dev
 ```
 
-Open `http://localhost:3000`. The backend is at `http://localhost:8000`.
+For a production-local frontend review, run `npm run build` and then
+`npm run start` in `frontend`, while keeping the same FastAPI command active.
+
+Open `http://localhost:3000`. The backend health endpoint is
+`http://127.0.0.1:8000/health` and its local documentation is
+`http://127.0.0.1:8000/docs`.
 Docker users can run `docker compose up --build`; the compose setup remains
 CPU/mock-only and does not package ROCm or model weights.
 
@@ -165,7 +190,7 @@ CPU/mock-only and does not package ROCm or model weights.
 
 | Variable | Purpose | Default boundary |
 |---|---|---|
-| `NEXT_PUBLIC_API_BASE_URL` | Local FastAPI URL | `http://localhost:8000` |
+| `NEXT_PUBLIC_API_BASE_URL` | Local FastAPI URL | `http://127.0.0.1:8000` |
 | `BACKEND_CORS_ORIGINS` | Explicit allowed frontend origins | Local origins only |
 | `MAX_UPLOAD_SIZE_MB` | Upload limit | 10 MB |
 | `STORAGE_ROOT` | Local JSON/assets directory | Local backend storage |

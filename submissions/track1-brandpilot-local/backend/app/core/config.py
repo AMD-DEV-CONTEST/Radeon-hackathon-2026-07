@@ -4,7 +4,7 @@ from pathlib import Path
 APP_MODE = os.getenv("APP_MODE", "mock")
 MAX_UPLOAD_SIZE = int(os.getenv("MAX_UPLOAD_SIZE_MB", "10")) * 1024 * 1024
 STORAGE_ROOT = Path(os.getenv("STORAGE_ROOT", "storage")).resolve()
-CORS_ORIGINS = [item.strip() for item in os.getenv("BACKEND_CORS_ORIGINS", "http://localhost:3000").split(",") if item.strip()]
+CORS_ORIGINS = [item.strip() for item in os.getenv("BACKEND_CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",") if item.strip()]
 ALLOWED_TYPES = {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp"}
 
 VALIDATED_MODEL_ID = "stabilityai/stable-diffusion-xl-base-1.0"
@@ -38,7 +38,7 @@ def validate_experimental_configuration() -> None:
         raise RuntimeError("Demo authentication requires an ephemeral token of at least 32 bytes.")
     configured_origins = [
         item.strip()
-        for item in os.getenv("BACKEND_CORS_ORIGINS", "http://localhost:3000").split(",")
+        for item in os.getenv("BACKEND_CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
         if item.strip()
     ]
     if demo_auth_enabled() and "*" in configured_origins:

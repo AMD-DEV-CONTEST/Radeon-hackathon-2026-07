@@ -27,7 +27,7 @@ test("mock label remains distinct and default UI mode is mock",()=>{
   assert.equal(resultLabel(undefined),"Mock output");
   assert.equal(resultLabel("rocm"),"Verified Radeon experimental output");
   const studio=readFileSync(new URL("../app/studio/page.tsx",import.meta.url),"utf8");
-  assert.match(studio,/useState<"mock"\|"rocm">\("mock"\)/);
+  assert.match(studio,/useState<StudioMode>\("mock"\)/);
 });
 
 test("runtime connection uses sessionStorage and clears on disconnect",()=>{

@@ -20,3 +20,10 @@ the frontend correctly reported a secure transport/network failure before
 authentication.
 
 Run `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`.
+
+For local development, copy `.env.example` to `.env.local`. The normal mock
+API always uses `NEXT_PUBLIC_API_BASE_URL` (default
+`http://127.0.0.1:8000`); the temporary Radeon endpoint is consulted only
+after Experimental Radeon is explicitly selected and connected. Product-image
+bytes are stored in IndexedDB for refresh-safe draft restoration and temporary
+preview object URLs are recreated per mounted file.

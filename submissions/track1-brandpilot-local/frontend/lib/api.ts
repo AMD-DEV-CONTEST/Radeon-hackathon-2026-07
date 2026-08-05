@@ -1,6 +1,17 @@
 import type {CampaignResult,Project,ProjectConfig,SystemInfo} from "./types";
-export const API=process.env.NEXT_PUBLIC_API_BASE_URL||"http://localhost:8000";
-async function request<T>(path:string,init?:RequestInit):Promise<T>{const response=await fetch(`${API}${path}`,init);if(!response.ok){let message=`Request failed (${response.status})`;try{const body=await response.json();message=body.detail?.message||body.detail||message}catch{}throw new Error(message)}return response.json()}
+export const API=(process.env.NEXT_PUBLIC_API_BASE_URL||"http://127.0.0.1:8000").replace(/\/$/,"");
+export const LOCAL_API_UNAVAILABLE_MESSAGE="Local API is unavailable. Start the FastAPI backend on port 8000 and try again.";
+
+export class LocalApiUnavailableError extends Error{
+  constructor(){super(LOCAL_API_UNAVAILABLE_MESSAGE);this.name="LocalApiUnavailableError"}
+}
+
+async function request<T>(path:string,init?:RequestInit):Promise<T>{
+  let response:Response;
+  try{response=await fetch(`${API}${path}`,init)}catch{throw new LocalApiUnavailableError()}
+  if(!response.ok){let message=`Local API request failed (${response.status})`;try{const body=await response.json();message=body.detail?.message||body.detail||message}catch{}throw new Error(message)}
+  return response.json();
+}
 export const api={
  health:()=>request<{status:string}>("/health"),
  system:()=>request<SystemInfo>("/system-info"),
