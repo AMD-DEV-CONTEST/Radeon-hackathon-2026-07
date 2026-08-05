@@ -1,0 +1,127 @@
+# AMD AI Studio — 模型路径配置
+# 模型 ID 与本地缓存路径映射
+# 格式: YAML
+
+# ============================================================
+# 全局设置
+# ============================================================
+global:
+  # 模型缓存根目录（默认: ~/.cache/huggingface/hub）
+  cache_dir: ${HF_HOME:-~/.cache/huggingface/hub}
+  # 下载源: huggingface | modelscope | local
+  default_source: modelscope
+  # Hugging Face 镜像（国内加速）
+  mirror_endpoint: https://hf-mirror.com
+  # 是否使用镜像
+  use_mirror: false
+  # 默认数据类型
+  torch_dtype: float16
+
+# ============================================================
+# 模型注册表
+# ============================================================
+models:
+  # ── 文生图 ──
+  sdxl-base:
+    repo_id: stabilityai/stable-diffusion-xl-base-1.0
+    type: txt2img
+    description: "SDXL 文生图基础模型"
+    size_gb: 7.0
+    variant: fp16
+    required: true                          # 核心依赖
+    aliases: [sdxl, sdxl-base-1.0]
+    alternate:
+      modelscope: AI-ModelScope/stable-diffusion-xl-base-1.0
+      local: models/sdxl-base
+
+  sdxl-refiner:
+    repo_id: stabilityai/stable-diffusion-xl-refiner-1.0
+    type: refiner
+    description: "SDXL 精炼模型（增强细节）"
+    size_gb: 6.0
+    variant: fp16
+    required: false
+    aliases: [refiner]
+
+  sdxl-vae-fp16:
+    repo_id: madebyollin/sdxl-vae-fp16-fix
+    type: vae
+    description: "SDXL VAE fp16 优化（省显存）"
+    size_gb: 0.3
+    required: true
+    aliases: [vae-fp16]
+
+  sd-turbo:
+    repo_id: stabilityai/sd-turbo
+    type: txt2img
+    description: "SD Turbo 快速生成（4步推理）"
+    size_gb: 3.0
+    variant: fp16
+    required: false
+
+  # ── 图生视频 ──
+  svd-xt:
+    repo_id: stabilityai/stable-video-diffusion-img2vid-xt
+    type: img2video
+    description: "Stable Video Diffusion 图生视频"
+    size_gb: 10.0
+    variant: fp16
+    required: false
+    aliases: [svd]
+
+  # ── 图像修复 ──
+  sdxl-inpaint:
+    repo_id: diffusers/stable-diffusion-xl-1.0-inpainting-0.1
+    type: inpainting
+    description: "SDXL 图像修复模型"
+    size_gb: 7.0
+    variant: fp16
+    required: false
+    aliases: [inpaint]
+
+  # ── LoRA ──
+  lcm-lora-sdxl:
+    repo_id: latent-consistency/lcm-lora-sdxl
+    type: lora
+    description: "LCM LoRA 快速推理（4步生成）"
+    size_gb: 0.1
+    required: false
+
+  # ── 微调产出模型 ──
+  finetuned-sdxl-lora:
+    repo_id: null
+    type: lora
+    description: "用户微调产出的 LoRA 权重"
+    size_gb: 0.1
+    required: false
+    local_path: outputs/finetune/lora
+
+  # ── Krea-2-Turbo 系列 ──
+  krea-2-turbo:
+    repo_id: krea/Krea-2-Turbo
+    type: txt2img
+    description: "Krea-2-Turbo 快速生成模型（Flux 架构变体）"
+    size_gb: 6.0
+    variant: fp16
+    required: false
+    aliases: [krea2]
+    alternate:
+      modelscope: krea/Krea-2-Turbo
+
+  krea-2-turbo-zishi:
+    repo_id: krea/Krea-2-Turbo
+    type: lora
+    description: "Krea-2-Turbo-zishi 紫狮风格 LoRA"
+    size_gb: 0.22
+    required: false
+    alternate:
+      modelscope: jonathanfu/Krea-2-Turbo-zishi
+
+# ============================================================
+# 下载批处理
+# ============================================================
+download:
+  # 默认下载全部必须模型
+  default_targets: [sdxl-base, sdxl-vae-fp16, sdxl-refiner]
+  # 可选下载
+  optional_targets: [svd-xt, sdxl-inpaint, sd-turbo, lcm-lora-sdxl]
