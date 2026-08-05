@@ -1,0 +1,40 @@
+# InventoryDoc Agent Configuration
+
+model:
+  name: "meta-llama/Llama-3.1-8B-Instruct"
+  device: "cuda"
+  max_tokens: 4096
+  temperature: 0.3
+
+agent:
+  workflow_steps: 10
+  quality_checks: 7
+  max_retries: 3
+
+data:
+  input_dir: "data/input"
+  output_dir: "data/output"
+  supported_formats:
+    - ".csv"
+    - ".xlsx"
+    - ".txt"
+
+noise_detection:
+  noise_prefix: "NOISE-"
+  exclude_files:
+    - "*月报*"
+    - "*历史库存*"
+
+quality_checkpoints:
+  - "baseline_selection"
+  - "scan_log_classification"
+  - "cost_price_lock"
+  - "noise_file_exclusion"
+  - "variance_type_split"
+  - "cross_deliverable_consistency"
+  - "external_data_prohibition"
+
+ui:
+  host: "0.0.0.0"
+  port: 7860
+  share: false
