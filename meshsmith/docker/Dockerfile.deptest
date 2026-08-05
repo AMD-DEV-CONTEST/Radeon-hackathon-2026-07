@@ -1,0 +1,36 @@
+# Reproducibility check: proves `pip install -r requirements.txt` resolves on a
+# clean Linux box with no compiler and no pre-existing packages, and that every
+# module MeshSmith imports is then importable.
+#
+# Uses CPU wheels so it runs anywhere (CI, a laptop) in a couple of minutes; the
+# real deployment uses docker/Dockerfile.rocm on the ROCm base image. This test
+# is what caught torchvision missing from Hunyuan3D's declared dependencies.
+#
+#   docker build -f docker/Dockerfile.deptest -t meshsmith-deptest .
+FROM python:3.12-slim
+# libgl1 + libglib2.0-0: Hunyuan3D depends on opencv-python, which links against
+# system OpenGL/glib. Slim and headless images do not ship them, and the failure
+# is an unhelpful "ImportError: libGL.so.1" from deep inside the import chain.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git libgl1 libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# torch + torchvision always come from a platform index, never from PyPI
+RUN pip install --no-cache-dir torch torchvision \
+    --index-url https://download.pytorch.org/whl/cpu
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY meshsmith ./meshsmith
+RUN python -c "\
+import trimesh, xatlas, fast_simplification, rtree, rembg, diffusers, transformers, gradio, PIL, numpy, scipy;\
+import hy3dgen, hy3dgen.shapegen, hy3dgen.rembg;\
+from meshsmith import meshfix, printcheck, exporter, pipeline;\
+from meshsmith.device import preflight; preflight();\
+print('ALL IMPORTS OK');\
+print('trimesh', trimesh.__version__, '| gradio', gradio.__version__, '| diffusers', diffusers.__version__)"
+
+# the mesh stack must actually work, not just import
+COPY scripts ./scripts
+RUN python scripts/smoke_test.py

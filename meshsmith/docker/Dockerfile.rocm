@@ -1,0 +1,35 @@
+# MeshSmith on AMD ROCm.
+# The base image ships a matched ROCm + PyTorch pair. Both tags below were
+# verified to exist on Docker Hub; pick the one matching your driver stack:
+#   ROCm 7.2.x (default here) rocm7.2.4_ubuntu24.04_py3.12_pytorch_release_2.10.0
+#   ROCm 6.4.x (older drivers) rocm6.4.1_ubuntu24.04_py3.12_pytorch_release_2.6.0
+#
+#   docker build -f docker/Dockerfile.rocm -t meshsmith:rocm .
+#   docker run -it --device=/dev/kfd --device=/dev/dri --group-add video \
+#     -p 7860:7860 -v hf-cache:/root/.cache/huggingface meshsmith:rocm
+ARG BASE=rocm/pytorch:rocm7.2.4_ubuntu24.04_py3.12_pytorch_release_2.10.0
+FROM ${BASE}
+
+WORKDIR /opt/meshsmith
+
+# Hunyuan3D pulls opencv-python, which links against system OpenGL/glib. Present
+# in most full images, absent in slim/headless ones — install unconditionally so
+# the build never fails with a bare "ImportError: libGL.so.1".
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libgl1 libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# The base image supplies ROCm-built torch AND torchvision; Hunyuan3D imports
+# torchvision at load time. Fail loudly here rather than at first generation if
+# a future base tag drops it — do NOT `pip install torchvision`, which would
+# resolve against PyPI and shadow the ROCm torch build.
+RUN python -c "import torch, torchvision; print('base image OK: torch', torch.__version__, '| torchvision', torchvision.__version__, '| hip', torch.version.hip)"
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+# the ROCm torch must survive the requirements install
+RUN python -c "import torch; assert torch.version.hip, 'ROCm torch was replaced by a non-ROCm build'; print('ROCm torch intact:', torch.__version__)"
+
+COPY . .
+EXPOSE 7860
+CMD ["python", "app.py", "--host", "0.0.0.0", "--port", "7860"]

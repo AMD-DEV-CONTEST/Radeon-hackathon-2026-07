@@ -1,0 +1,41 @@
+# torch AND torchvision are installed per-platform, not from this file. Both are
+# required: hy3dgen imports torchvision at import time. They are deliberately NOT
+# listed as plain requirements — a bare `torchvision` resolves against PyPI and
+# would drag the default CUDA/CPU torch wheel onto a ROCm machine, shadowing the
+# container's ROCm build.
+#   AMD ROCm : pip install torch torchvision --index-url https://download.pytorch.org/whl/rocm7.2
+#              Swap rocm7.2 for the index matching your ROCm install — rocm6.2,
+#              6.3, 6.4, 7.0 and 7.2 all publish wheels. Easiest path is the
+#              rocm/pytorch docker image, which ships both — see docker/Dockerfile.rocm
+#   NVIDIA   : pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+diffusers>=0.31
+transformers>=4.45
+accelerate>=1.0
+safetensors
+huggingface_hub
+# image -> 3D (shape-only: pure PyTorch, no custom CUDA extensions).
+# The root setup.py is plain setuptools — no ext_modules — so this installs
+# without a compiler. The custom_rasterizer/differentiable_renderer extensions
+# live in subfolders and are NOT installed; MeshSmith does not use them.
+hy3dgen @ git+https://github.com/Tencent/Hunyuan3D-2.git
+# hy3dgen's own runtime deps, pinned here too so the install is deterministic
+einops
+opencv-python
+omegaconf
+pygltflib
+tqdm
+# background removal (ONNX on CPU — vendor neutral)
+rembg>=2.0.59
+onnxruntime
+# mesh processing
+trimesh>=4.4
+rtree
+fast-simplification
+xatlas
+scipy
+networkx
+shapely
+pillow
+numpy
+# UI
+gradio>=5.0
