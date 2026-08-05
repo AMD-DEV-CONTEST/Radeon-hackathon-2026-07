@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+  <!-- RM HA -->
+  <property>
+    <name>yarn.resourcemanager.ha.enabled</name>
+    <value>true</value>
+  </property>
+  <property>
+    <name>yarn.resourcemanager.cluster-id</name>
+    <value>yarn-cluster</value>
+  </property>
+  <property>
+    <name>yarn.resourcemanager.ha.rm-ids</name>
+    <value>rm1,rm2</value>
+  </property>
+  <property>
+    <name>yarn.resourcemanager.hostname.rm1</name>
+    <value>hadoop01</value>
+  </property>
+  <property>
+    <name>yarn.resourcemanager.hostname.rm2</name>
+    <value>hadoop02</value>
+  </property>
+  <property>
+    <name>yarn.resourcemanager.webapp.address.rm1</name>
+    <value>hadoop01:8088</value>
+  </property>
+  <property>
+    <name>yarn.resourcemanager.webapp.address.rm2</name>
+    <value>hadoop02:8088</value>
+  </property>
+
+  <!-- ZK state-store (RM HA 恢复) -->
+  <property>
+    <name>yarn.resourcemanager.recovery.enabled</name>
+    <value>true</value>
+  </property>
+  <property>
+    <name>yarn.resourcemanager.store.class</name>
+    <value>org.apache.hadoop.yarn.server.resourcemanager.recovery.ZKRMStateStore</value>
+  </property>
+  <property>
+    <name>yarn.resourcemanager.zk-address</name>
+    <value>hadoop01:2181,hadoop02:2181,hadoop03:2181</value>
+  </property>
+
+  <!-- NM 辅助服务 (Tez 通过 mapreduce_shuffle 即可, 不需 tez_shuffle) -->
+  <property>
+    <name>yarn.nodemanager.aux-services</name>
+    <value>mapreduce_shuffle</value>
+  </property>
+
+  <!-- 虚拟机检测关 (容器里跑 NM, 跳过 vmem/pmem 校验) -->
+  <property>
+    <name>yarn.nodemanager.vmem-check-enabled</name>
+    <value>false</value>
+  </property>
+  <property>
+    <name>yarn.nodemanager.pmem-check-enabled</name>
+    <value>false</value>
+  </property>
+
+  <!-- NM 资源 (留给容器余量) -->
+  <property>
+    <name>yarn.nodemanager.resource.memory-mb</name>
+    <value>4096</value>
+  </property>
+  <!-- 调试: 容器退出后保留目录 600s, 便于查 launch_container.sh / prelaunch.err -->
+  <property>
+    <name>yarn.nodemanager.delete.debug-delay-sec</name>
+    <value>600</value>
+  </property>
+  <!-- 日志聚合: yarn logs 可查容器 stdout/stderr -->
+  <property>
+    <name>yarn.log-aggregation-enable</name>
+    <value>true</value>
+  </property>
+  <property>
+    <name>yarn.nodemanager.remote-app-log-dir</name>
+    <value>/tmp/logs</value>
+  </property>
+  <property>
+    <name>yarn.log-aggregation.retain-seconds</name>
+    <value>86400</value>
+  </property>
+</configuration>

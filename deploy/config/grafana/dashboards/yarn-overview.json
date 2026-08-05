@@ -1,0 +1,146 @@
+{
+  "title": "YARN Overview",
+  "uid": "yarn-overview",
+  "schemaVersion": 38,
+  "version": 2,
+  "tags": ["hadoop", "yarn"],
+  "templating": {
+    "list": [
+      {
+        "name": "instance",
+        "type": "query",
+        "datasource": "Prometheus",
+        "query": "label_values(up{job=~\"yarn.*\"}, instance)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": { "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "ResourceManager Status",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "up{job=\"yarn-resourcemanager\"}", "legendFormat": "{{instance}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } }, "type": "value" }
+          ]
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "NodeManagers Online",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "count(up{job=\"yarn-nodemanager\"} == 1) or vector(0)" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{"color": "red", "value": 0}, {"color": "green", "value": 3}] } } }
+    },
+    {
+      "id": 3,
+      "title": "Running Applications",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "max(Hadoop_ResourceManager_AppsRunning{name=\"QueueMetrics\",q0=\"root\"})", "legendFormat": "Running Apps" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{"color": "green", "value": 0}, {"color": "yellow", "value": 5}, {"color": "red", "value": 10}] } } }
+    },
+    {
+      "id": 4,
+      "title": "Cluster Memory Used %",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "max(Hadoop_ResourceManager_AllocatedMB{name=\"QueueMetrics\",q0=\"root\"}) / (max(Hadoop_ResourceManager_AllocatedMB{name=\"QueueMetrics\",q0=\"root\"}) + max(Hadoop_ResourceManager_AvailableMB{name=\"QueueMetrics\",q0=\"root\"})) * 100",
+          "legendFormat": "Memory Used %"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent", "max": 100, "thresholds": { "steps": [{"color": "green", "value": 0}, {"color": "yellow", "value": 70}, {"color": "red", "value": 90}] } } }
+    },
+    {
+      "id": 5,
+      "title": "Cluster Memory: Allocated vs Available (MB)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "max(Hadoop_ResourceManager_AllocatedMB{name=\"QueueMetrics\",q0=\"root\"})", "legendFormat": "Allocated MB" },
+        { "expr": "max(Hadoop_ResourceManager_AvailableMB{name=\"QueueMetrics\",q0=\"root\"})", "legendFormat": "Available MB" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "decmbytes" } }
+    },
+    {
+      "id": 6,
+      "title": "Cluster VCores: Allocated vs Available",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "max(Hadoop_ResourceManager_AllocatedVCores{name=\"QueueMetrics\",q0=\"root\"})", "legendFormat": "Allocated VCores" },
+        { "expr": "max(Hadoop_ResourceManager_AvailableVCores{name=\"QueueMetrics\",q0=\"root\"})", "legendFormat": "Available VCores" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 7,
+      "title": "Aggregate Containers Allocated",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 12 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "max(Hadoop_ResourceManager_AggregateContainersAllocated{name=\"QueueMetrics\",q0=\"root\"})", "legendFormat": "Containers" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 8,
+      "title": "NodeManager JVM Heap Memory",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 12 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "java_lang_HeapMemoryUsage_used{job=\"yarn-nodemanager\",instance=~\"$instance\"}", "legendFormat": "{{instance}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "id": 9,
+      "title": "ResourceManager GC Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 12 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "rate(java_lang_GarbageCollector_CollectionTime[5m]){job=\"yarn-resourcemanager\"}", "legendFormat": "{{instance}} {{name}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "id": 10,
+      "title": "Apps Completed / Failed / Killed",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "max(Hadoop_ResourceManager_AppsCompleted{name=\"QueueMetrics\",q0=\"root\"})", "legendFormat": "Completed" },
+        { "expr": "max(Hadoop_ResourceManager_AppsFailed{name=\"QueueMetrics\",q0=\"root\"})", "legendFormat": "Failed" },
+        { "expr": "max(Hadoop_ResourceManager_AppsKilled{name=\"QueueMetrics\",q0=\"root\"})", "legendFormat": "Killed" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    }
+  ]
+}

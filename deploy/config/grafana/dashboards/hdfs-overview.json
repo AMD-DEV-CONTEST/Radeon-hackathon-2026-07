@@ -1,0 +1,145 @@
+{
+  "title": "HDFS Overview",
+  "uid": "hdfs-overview",
+  "schemaVersion": 38,
+  "version": 2,
+  "tags": ["hadoop", "hdfs"],
+  "templating": {
+    "list": [
+      {
+        "name": "instance",
+        "type": "query",
+        "datasource": "Prometheus",
+        "query": "label_values(up{job=~\"hdfs.*\"}, instance)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": { "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "NameNode Status (UP=1)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "up{job=\"hdfs-namenode\"}", "legendFormat": "{{instance}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } }, "type": "value" }
+          ]
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "DataNodes Online",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "count(up{job=\"hdfs-datanode\"} == 1) or vector(0)" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{"color": "red", "value": 0}, {"color": "green", "value": 3}] } } }
+    },
+    {
+      "id": 3,
+      "title": "JournalNodes Online",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "count(up{job=\"hdfs-journalnode\"} == 1) or vector(0)" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{"color": "red", "value": 0}, {"color": "green", "value": 3}] } } }
+    },
+    {
+      "id": 4,
+      "title": "HDFS Capacity Used %",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(Hadoop_NameNode_BlockPoolUsedSpace) / sum(Hadoop_NameNode_Total) * 100",
+          "legendFormat": "Used %"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent", "max": 100, "thresholds": { "steps": [{"color": "green", "value": 0}, {"color": "yellow", "value": 70}, {"color": "red", "value": 90}] } } }
+    },
+    {
+      "id": 5,
+      "title": "HDFS Used / Total Capacity",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "sum(Hadoop_NameNode_BlockPoolUsedSpace)", "legendFormat": "Used" },
+        { "expr": "sum(Hadoop_NameNode_Total) - sum(Hadoop_NameNode_BlockPoolUsedSpace)", "legendFormat": "Free" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "id": 6,
+      "title": "Low Redundancy Blocks",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "Hadoop_NameNode_LowRedundancyBlocks{name=\"FSNamesystem\",instance=~\"$instance\"}", "legendFormat": "{{instance}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 7,
+      "title": "DataNode JVM Heap Memory",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "java_lang_HeapMemoryUsage_used{job=\"hdfs-datanode\",instance=~\"$instance\"}", "legendFormat": "{{instance}} used" },
+        { "expr": "java_lang_HeapMemoryUsage_max{job=\"hdfs-datanode\",instance=~\"$instance\"}", "legendFormat": "{{instance}} max" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "id": 8,
+      "title": "NameNode JVM Heap Memory",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "java_lang_HeapMemoryUsage_used{job=\"hdfs-namenode\",instance=~\"$instance\"}", "legendFormat": "{{instance}} used" },
+        { "expr": "java_lang_HeapMemoryUsage_committed{job=\"hdfs-namenode\",instance=~\"$instance\"}", "legendFormat": "{{instance}} committed" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "id": 9,
+      "title": "NameNode GC Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "rate(java_lang_GarbageCollector_CollectionTime[5m]){job=\"hdfs-namenode\",instance=~\"$instance\"}", "legendFormat": "{{instance}} {{name}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "id": 10,
+      "title": "Missing Blocks",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "Hadoop_NameNode_MissingBlocks{name=\"FSNamesystem\",instance=~\"$instance\"}", "legendFormat": "{{instance}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    }
+  ]
+}

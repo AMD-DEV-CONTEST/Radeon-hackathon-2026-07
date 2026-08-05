@@ -1,0 +1,94 @@
+# Prometheus 配置 — JMX Exporter Java Agent 方案
+# 每个 Hadoop/HBase/ZK/Hive daemon 通过 jmx_prometheus_javaagent 暴露 /metrics
+#
+# JMX Exporter 端口分配:
+#   10101 NameNode    10102 DataNode    10103 JournalNode
+#   10104 ResourceManager    10105 NodeManager    10106 JobHistoryServer
+#   10107 HMaster    10108 RegionServer    10109 ZooKeeper
+#   10110 HiveMetaStore    10111 HiveServer2
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # ========================================================
+  # HDFS
+  # ========================================================
+  - job_name: 'hdfs-namenode'
+    static_configs:
+      - targets: ['hadoop01:10101', 'hadoop02:10101']
+        labels:
+          component: 'namenode'
+
+  - job_name: 'hdfs-datanode'
+    static_configs:
+      - targets: ['hadoop01:10102', 'hadoop02:10102', 'hadoop03:10102']
+        labels:
+          component: 'datanode'
+
+  - job_name: 'hdfs-journalnode'
+    static_configs:
+      - targets: ['hadoop01:10103', 'hadoop02:10103', 'hadoop03:10103']
+        labels:
+          component: 'journalnode'
+
+  # ========================================================
+  # YARN
+  # ========================================================
+  - job_name: 'yarn-resourcemanager'
+    static_configs:
+      - targets: ['hadoop01:10104', 'hadoop02:10104']
+        labels:
+          component: 'resourcemanager'
+
+  - job_name: 'yarn-nodemanager'
+    static_configs:
+      - targets: ['hadoop01:10105', 'hadoop02:10105', 'hadoop03:10105']
+        labels:
+          component: 'nodemanager'
+
+  - job_name: 'yarn-historyserver'
+    static_configs:
+      - targets: ['hadoop01:10106']
+        labels:
+          component: 'historyserver'
+
+  # ========================================================
+  # HBase
+  # ========================================================
+  - job_name: 'hbase-master'
+    static_configs:
+      - targets: ['hadoop01:10107', 'hadoop02:10107']
+        labels:
+          component: 'hmaster'
+
+  - job_name: 'hbase-regionserver'
+    static_configs:
+      - targets: ['hadoop01:10108', 'hadoop02:10108', 'hadoop03:10108']
+        labels:
+          component: 'regionserver'
+
+  # ========================================================
+  # ZooKeeper
+  # ========================================================
+  - job_name: 'zookeeper'
+    static_configs:
+      - targets: ['hadoop01:10109', 'hadoop02:10109', 'hadoop03:10109']
+        labels:
+          component: 'zookeeper'
+
+  # ========================================================
+  # Hive
+  # ========================================================
+  - job_name: 'hive-metastore'
+    static_configs:
+      - targets: ['hadoop01:10110', 'hadoop02:10110']
+        labels:
+          component: 'hivemetastore'
+
+  - job_name: 'hive-server2'
+    static_configs:
+      - targets: ['hadoop01:10111', 'hadoop02:10111']
+        labels:
+          component: 'hiveserver2'

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+  <property>
+    <name>tez.lib.uris</name>
+    <value>hdfs://mycluster/tez/tez.tar.gz</value>
+  </property>
+  <property>
+    <name>tez.use.cluster.hadoop-libs</name>
+    <value>true</value>
+  </property>
+  <property>
+    <name>tez.am.resource.memory.mb</name>
+    <value>256</value>
+  </property>
+  <!-- Tez AM/task 容器用 Java 21，添加 add-opens 兼容 Java 8 容器 -->
+  <property>
+    <name>tez.am.launch.env</name>
+    <value>JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64,LD_LIBRARY_PATH=/opt/hadoop/lib/native</value>
+  </property>
+  <property>
+    <name>tez.task.launch.env</name>
+    <value>JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64,LD_LIBRARY_PATH=/opt/hadoop/lib/native</value>
+  </property>
+  <!-- Tez AM Java 选项：添加 add-opens 避免 Java 21 反射警告/错误 -->
+  <property>
+    <name>tez.am.java.opts</name>
+    <value>--add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED -Djava.net.preferIPv4Stack=true</value>
+  </property>
+  <property>
+    <name>tez.task.java.opts</name>
+    <value>--add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED -Djava.net.preferIPv4Stack=true</value>
+  </property>
+</configuration>

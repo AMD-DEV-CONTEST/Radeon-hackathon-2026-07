@@ -1,0 +1,150 @@
+{
+  "title": "Cluster Overview",
+  "uid": "cluster-overview",
+  "schemaVersion": 38,
+  "version": 2,
+  "tags": ["hadoop", "overview"],
+  "panels": [
+    {
+      "id": 1,
+      "title": "All Targets UP",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "count(up == 1) or vector(0)" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{"color": "red", "value": 0}, {"color": "green", "value": 26}] } } }
+    },
+    {
+      "id": 2,
+      "title": "Targets DOWN",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "count(up == 0) or vector(0)" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{"color": "green", "value": 0}, {"color": "red", "value": 1}] } } }
+    },
+    {
+      "id": 3,
+      "title": "HDFS NameNodes",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "count(up{job=\"hdfs-namenode\"} == 1) or vector(0)", "legendFormat": "NN UP" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{"color": "red", "value": 0}, {"color": "green", "value": 2}] } } }
+    },
+    {
+      "id": 4,
+      "title": "YARN ResourceManagers",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "count(up{job=\"yarn-resourcemanager\"} == 1) or vector(0)", "legendFormat": "RM UP" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{"color": "red", "value": 0}, {"color": "green", "value": 2}] } } }
+    },
+    {
+      "id": 5,
+      "title": "HBase / ZooKeeper",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "count(up{job=~\"hbase.*|zookeeper\"} == 1) or vector(0)", "legendFormat": "UP" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{"color": "red", "value": 0}, {"color": "green", "value": 8}] } } }
+    },
+    {
+      "id": 6,
+      "title": "Hive Services",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "count(up{job=~\"hive.*\"} == 1) or vector(0)", "legendFormat": "UP" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{"color": "red", "value": 0}, {"color": "green", "value": 4}] } } }
+    },
+    {
+      "id": 7,
+      "title": "Target Health by Job",
+      "type": "table",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "up", "legendFormat": "{{instance}}", "format": "table", "instant": true }
+      ],
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": { "names": ["instance", "job", "Value"] }
+          }
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "JVM Memory Usage by Component",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "java_lang_HeapMemoryUsage_used", "legendFormat": "{{instance}} ({{job}})" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "id": 9,
+      "title": "HDFS Capacity",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 14 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "sum(Hadoop_NameNode_BlockPoolUsedSpace)", "legendFormat": "Used" },
+        { "expr": "sum(Hadoop_NameNode_Total) - sum(Hadoop_NameNode_BlockPoolUsedSpace)", "legendFormat": "Free" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "id": 10,
+      "title": "YARN Cluster Memory",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 14 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "max(Hadoop_ResourceManager_AllocatedMB{name=\"QueueMetrics\",q0=\"root\"})", "legendFormat": "Allocated" },
+        { "expr": "max(Hadoop_ResourceManager_AvailableMB{name=\"QueueMetrics\",q0=\"root\"})", "legendFormat": "Available" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "decmbytes" } }
+    },
+    {
+      "id": 11,
+      "title": "JVM CPU Usage by Component",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 14 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "rate(java_lang_OperatingSystem_ProcessCpuTime[5m])", "legendFormat": "{{instance}} ({{job}})" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 12,
+      "title": "GC Collection Rate by Component",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 22 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "rate(java_lang_GarbageCollector_CollectionTime[5m])", "legendFormat": "{{instance}} ({{job}}) {{name}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    }
+  ]
+}

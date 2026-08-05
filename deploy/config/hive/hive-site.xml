@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+  <!-- Metastore: 双 HMS (Hive 4.x 新增 remote metastore) -->
+  <property>
+    <name>hive.metastore.uris</name>
+    <value>thrift://hadoop01:9083,thrift://hadoop02:9083</value>
+  </property>
+  <property>
+    <name>hive.metastore.warehouse.dir</name>
+    <value>hdfs://mycluster/user/hive/warehouse</value>
+  </property>
+  <!-- MySQL 后端 (metastore DB) -->
+  <property>
+    <name>javax.jdo.option.ConnectionURL</name>
+    <value>jdbc:mysql://mysql:3306/metastore?createDatabaseIfNotExist=true</value>
+  </property>
+  <property>
+    <name>javax.jdo.option.ConnectionDriverName</name>
+    <value>com.mysql.cj.jdbc.Driver</value>
+  </property>
+  <property>
+    <name>javax.jdo.option.ConnectionUserName</name>
+    <value>hive</value>
+  </property>
+  <property>
+    <name>javax.jdo.option.ConnectionPassword</name>
+    <value>hivepass</value>
+  </property>
+  <!-- HiveServer2 -->
+  <property>
+    <name>hive.server2.thrift.port</name>
+    <value>10000</value>
+  </property>
+  <property>
+    <name>hive.server2.thrift.bind.host</name>
+    <value>0.0.0.0</value>
+  </property>
+  <property>
+    <name>hive.server2.enable.doAs</name>
+    <value>false</value>
+  </property>
+  <!-- Tez 执行引擎 (add-opens 已配, AM/task 用 Java 21) -->
+  <property>
+    <name>hive.execution.engine</name>
+    <value>tez</value>
+  </property>
+  <!-- 禁权限 (无 Kerberos) -->
+  <property>
+    <name>hive.metastore.sasl.enabled</name>
+    <value>false</value>
+  </property>
+  <property>
+    <name>hive.metastore.event.db.notification.api.auth</name>
+    <value>false</value>
+  </property>
+</configuration>

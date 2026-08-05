@@ -1,0 +1,202 @@
+# =============================================================================
+# docker-compose.yml — Phase 1: HDFS HA + YARN HA + Hive on Tez + HBase + MySQL
+#
+# 网络: 自定义 bridge, 每容器独立 IP (10.20.0.x), 不用 host 模式。
+# 镜像: 自建 aiops-hadoop:step1 (docker compose build 首次构建)。
+# 数据: 命名卷 hadoopXX-data / hadoopXX-logs, 持久保存; reset.sh 可清。
+# =============================================================================
+version: "3.8"
+name: aiops-ha
+
+services:
+  # ========================================================
+  # 3 重型 Hadoop 节点
+  # ========================================================
+  hadoop01:
+    build:
+      context: ./image
+      dockerfile: Dockerfile
+    image: aiops-hadoop:step1
+    container_name: hadoop01
+    hostname: hadoop01
+    environment:
+      NODE_ROLE: hadoop01
+    volumes:
+      - ./config/hadoop:/opt/hadoop/etc/hadoop:ro
+      - ./config/zookeeper/zoo.cfg:/opt/zookeeper/conf/zoo.cfg:ro
+      - ./config/hive/hive-env.sh:/opt/hive/conf/hive-env.sh:ro
+      - ./config/hive/hive-site.xml:/opt/hive/conf/hive-site.xml:ro
+      - ./image/beeline.sh:/opt/hive/bin/ext/beeline.sh:ro
+      - ./config/tez/tez-site.xml:/opt/tez/conf/tez-site.xml:ro
+      - ./config/hbase/hbase-env.sh:/opt/hbase/conf/hbase-env.sh:ro
+      - ./config/hbase/hbase-site.xml:/opt/hbase/conf/hbase-site.xml:ro
+      - ./image/hbase-wrapper.sh:/usr/local/bin/hbase:ro
+      - ./image/supervisord/supervisord-hadoop01.conf:/etc/supervisor/conf.d/supervisord-hadoop01.conf:ro
+      - ./image/entrypoint.sh:/entrypoint.sh:ro
+      - ./config/jmx-exporter:/opt/jmx-exporter:ro
+      - ./config/ssh/sshd_config:/ssh-config/sshd_config:ro
+      - ./config/ssh/authorized_keys:/ssh-config/authorized_keys:ro
+      - ./config/ssh/id_rsa:/ssh-config/id_rsa:ro
+      - ./config/ssh/id_rsa.pub:/ssh-config/id_rsa.pub:ro
+      - ./config/ssh/ssh_config:/ssh-config/ssh_config:ro
+      - hadoop01-data:/data
+      - hadoop01-logs:/logs
+    networks:
+      aiopsnet:
+        ipv4_address: 10.20.0.11
+    ports:
+      - "2222:22"     # SSH
+      - "9870:9870"   # NN1 web
+      - "8088:8088"   # RM1 web
+      - "19888:19888" # JobHistory web
+      - "10000:10000" # HiveServer2
+      - "16010:16010" # HMaster web
+
+  hadoop02:
+    build:
+      context: ./image
+      dockerfile: Dockerfile
+    image: aiops-hadoop:step1
+    container_name: hadoop02
+    hostname: hadoop02
+    environment:
+      NODE_ROLE: hadoop02
+    volumes:
+      - ./config/hadoop:/opt/hadoop/etc/hadoop:ro
+      - ./config/zookeeper/zoo.cfg:/opt/zookeeper/conf/zoo.cfg:ro
+      - ./config/hive/hive-env.sh:/opt/hive/conf/hive-env.sh:ro
+      - ./config/hive/hive-site.xml:/opt/hive/conf/hive-site.xml:ro
+      - ./image/beeline.sh:/opt/hive/bin/ext/beeline.sh:ro
+      - ./config/tez/tez-site.xml:/opt/tez/conf/tez-site.xml:ro
+      - ./config/hbase/hbase-env.sh:/opt/hbase/conf/hbase-env.sh:ro
+      - ./config/hbase/hbase-site.xml:/opt/hbase/conf/hbase-site.xml:ro
+      - ./image/hbase-wrapper.sh:/usr/local/bin/hbase:ro
+      - ./image/supervisord/supervisord-hadoop02.conf:/etc/supervisor/conf.d/supervisord-hadoop02.conf:ro
+      - ./image/entrypoint.sh:/entrypoint.sh:ro
+      - ./config/jmx-exporter:/opt/jmx-exporter:ro
+      - ./config/ssh/sshd_config:/ssh-config/sshd_config:ro
+      - ./config/ssh/authorized_keys:/ssh-config/authorized_keys:ro
+      - ./config/ssh/id_rsa:/ssh-config/id_rsa:ro
+      - ./config/ssh/id_rsa.pub:/ssh-config/id_rsa.pub:ro
+      - ./config/ssh/ssh_config:/ssh-config/ssh_config:ro
+      - hadoop02-data:/data
+      - hadoop02-logs:/logs
+    networks:
+      aiopsnet:
+        ipv4_address: 10.20.0.12
+    ports:
+      - "2223:22"     # SSH
+      - "9871:9870"   # NN2 web (remapped, standby)
+      - "8081:8088"   # RM2 web (remapped, standby)
+      - "10001:10000" # HiveServer2 (remapped)
+
+  hadoop03:
+    build:
+      context: ./image
+      dockerfile: Dockerfile
+    image: aiops-hadoop:step1
+    container_name: hadoop03
+    hostname: hadoop03
+    environment:
+      NODE_ROLE: hadoop03
+    volumes:
+      - ./config/hadoop:/opt/hadoop/etc/hadoop:ro
+      - ./config/zookeeper/zoo.cfg:/opt/zookeeper/conf/zoo.cfg:ro
+      - ./config/hbase/hbase-env.sh:/opt/hbase/conf/hbase-env.sh:ro
+      - ./config/hbase/hbase-site.xml:/opt/hbase/conf/hbase-site.xml:ro
+      - ./image/hbase-wrapper.sh:/usr/local/bin/hbase:ro
+      - ./image/supervisord/supervisord-hadoop03.conf:/etc/supervisor/conf.d/supervisord-hadoop03.conf:ro
+      - ./image/entrypoint.sh:/entrypoint.sh:ro
+      - ./config/jmx-exporter:/opt/jmx-exporter:ro
+      - ./config/ssh/sshd_config:/ssh-config/sshd_config:ro
+      - ./config/ssh/authorized_keys:/ssh-config/authorized_keys:ro
+      - ./config/ssh/id_rsa:/ssh-config/id_rsa:ro
+      - ./config/ssh/id_rsa.pub:/ssh-config/id_rsa.pub:ro
+      - ./config/ssh/ssh_config:/ssh-config/ssh_config:ro
+      - hadoop03-data:/data
+      - hadoop03-logs:/logs
+    networks:
+      aiopsnet:
+        ipv4_address: 10.20.0.13
+    ports:
+      - "2224:22"     # SSH
+
+  # ========================================================
+  # MySQL (Hive Metastore DB)
+  # ========================================================
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: metastore
+      MYSQL_USER: hive
+      MYSQL_PASSWORD: hivepass
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      aiopsnet:
+        ipv4_address: 10.20.0.30
+    ports:
+      - "3306:3306"
+
+  # ========================================================
+  # 监控栈
+  # ========================================================
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      aiopsnet:
+        ipv4_address: 10.20.0.20
+    ports:
+      - "9090:9090"
+
+  alertmanager:
+    image: prom/alertmanager
+    container_name: alertmanager
+    networks:
+      aiopsnet:
+        ipv4_address: 10.20.0.21
+    ports:
+      - "9093:9093"
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./config/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./config/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./config/grafana/dashboards:/etc/grafana/provisioning/dashboards-json:ro
+    networks:
+      aiopsnet:
+        ipv4_address: 10.20.0.22
+    ports:
+      - "3000:3000"
+
+# ========================================================
+# 卷 & 网络
+# ========================================================
+volumes:
+  mysql-data:
+  hadoop01-data:
+  hadoop01-logs:
+  hadoop02-data:
+  hadoop02-logs:
+  hadoop03-data:
+  hadoop03-logs:
+
+networks:
+  aiopsnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.0.0/24

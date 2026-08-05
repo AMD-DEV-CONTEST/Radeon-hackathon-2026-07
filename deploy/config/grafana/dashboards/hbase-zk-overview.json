@@ -1,0 +1,165 @@
+{
+  "title": "HBase & ZooKeeper Overview",
+  "uid": "hbase-zk-overview",
+  "schemaVersion": 38,
+  "version": 1,
+  "tags": ["hadoop", "hbase", "zookeeper"],
+  "templating": {
+    "list": [
+      {
+        "name": "instance",
+        "type": "query",
+        "datasource": "Prometheus",
+        "query": "label_values(up{job=~\"hbase.*|zookeeper\"}, instance)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": { "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "HBase Master Status",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "up{job=\"hbase-master\"}", "legendFormat": "{{instance}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } }, "type": "value" }
+          ]
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "RegionServers Online",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "count(up{job=\"hbase-regionserver\"} == 1) or vector(0)" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{"color": "red", "value": 0}, {"color": "green", "value": 3}] } } }
+    },
+    {
+      "id": 3,
+      "title": "ZooKeeper Quorum",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "count(up{job=\"zookeeper\"} == 1) or vector(0)" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{"color": "red", "value": 0}, {"color": "green", "value": 3}] } } }
+    },
+    {
+      "id": 4,
+      "title": "HBase Region Count",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "sum(Hadoop_HBase_regionCount{job=\"hbase-regionserver\",instance=~\"$instance\"}) or vector(0)", "legendFormat": "Regions" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{"color": "blue", "value": 0}] } } }
+    },
+    {
+      "id": 5,
+      "title": "HBase Master JVM Heap",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "java_lang_HeapMemoryUsage_used{job=\"hbase-master\",instance=~\"$instance\"}", "legendFormat": "{{instance}} used" },
+        { "expr": "java_lang_HeapMemoryUsage_max{job=\"hbase-master\",instance=~\"$instance\"}", "legendFormat": "{{instance}} max" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "id": 6,
+      "title": "HBase RegionServer JVM Heap",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "java_lang_HeapMemoryUsage_used{job=\"hbase-regionserver\",instance=~\"$instance\"}", "legendFormat": "{{instance}} used" },
+        { "expr": "java_lang_HeapMemoryUsage_max{job=\"hbase-regionserver\",instance=~\"$instance\"}", "legendFormat": "{{instance}} max" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "id": 7,
+      "title": "ZooKeeper JVM Heap",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 12 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "java_lang_HeapMemoryUsage_used{job=\"zookeeper\",instance=~\"$instance\"}", "legendFormat": "{{instance}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "id": 8,
+      "title": "ZooKeeper Watch Count",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 12 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "org_apache_ZooKeeperService_ReplicatedServer_id1_WatchCount{instance=~\"$instance\"}", "legendFormat": "{{instance}} watches" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 9,
+      "title": "HBase RegionServer GC Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 12 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "rate(java_lang_GarbageCollector_CollectionTime[5m]){job=\"hbase-regionserver\",instance=~\"$instance\"}", "legendFormat": "{{instance}} {{name}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "id": 10,
+      "title": "All Components JVM Threads",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "java_lang_Threading_ThreadCount{job=~\"hbase.*|zookeeper\",instance=~\"$instance\"}", "legendFormat": "{{instance}} ({{job}})" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 11,
+      "title": "HBase Request Count",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "rate(Hadoop_HBase_readRequestCount{job=\"hbase-regionserver\",instance=~\"$instance\"}[5m])", "legendFormat": "{{instance}} reads" },
+        { "expr": "rate(Hadoop_HBase_writeRequestCount{job=\"hbase-regionserver\",instance=~\"$instance\"}[5m])", "legendFormat": "{{instance}} writes" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "id": 12,
+      "title": "ZooKeeper Packets Received/Sent",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "sum by (instance) (rate(org_apache_ZooKeeperService_ReplicatedServer_id1_PacketsReceived{instance=~\"$instance\"}[5m]))", "legendFormat": "{{instance}} recv" },
+        { "expr": "sum by (instance) (rate(org_apache_ZooKeeperService_ReplicatedServer_id1_PacketsSent{instance=~\"$instance\"}[5m]))", "legendFormat": "{{instance}} sent" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    }
+  ]
+}
