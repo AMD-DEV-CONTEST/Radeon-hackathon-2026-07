@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 
 from tests.fakes import FakeModelClient
-from xianglens.agent.graph import GraphServices, build_graph
+from xianglens.agent.graph import COMPARISON_DECISION_RULE, GraphServices, build_graph
 from xianglens.config import PROJECT_ROOT
 from xianglens.storage.knowledge_store import (
     HashingEmbedder,
@@ -16,7 +16,7 @@ from xianglens.storage.sqlite_store import SQLiteStore
 from xianglens.tools.image_tools import ImageInspector
 
 
-class MissingComparisonRationaleModel(FakeModelClient):
+class IncompleteComparisonModel(FakeModelClient):
     def __init__(self) -> None:
         self.comparison_calls = 0
 
@@ -32,7 +32,6 @@ class MissingComparisonRationaleModel(FakeModelClient):
             context = json.loads(str(messages[1]["content"]))
             return json.dumps(
                 {
-                    "recommended_image_id": context["image_ids"][0],
                     "candidates": [
                         {
                             "image_id": image_id,
@@ -44,8 +43,7 @@ class MissingComparisonRationaleModel(FakeModelClient):
                         }
                         for image_id in context["image_ids"]
                     ],
-                    "decision_rule": "Privacy overrides the aggregate score.",
-                    "caveat": "The model omitted candidate rationale text.",
+                    "caveat": "The model omitted derived comparison fields.",
                 }
             )
         return await super().chat(messages, temperature=temperature, max_tokens=max_tokens)
@@ -187,7 +185,7 @@ async def test_graph_compares_multiple_images_and_proposes_memory(tmp_path: Path
 
 
 @pytest.mark.asyncio
-async def test_comparison_fills_rationales_after_model_repair_omits_them(
+async def test_comparison_derives_missing_application_owned_fields(
     tmp_path: Path,
 ) -> None:
     database = SQLiteStore(tmp_path / "state.sqlite3")
@@ -197,7 +195,7 @@ async def test_comparison_fills_rationales_after_model_repair_omits_them(
         PROJECT_ROOT / "data/knowledge/cards.yaml",
         PROJECT_ROOT / "data/knowledge/sources.yaml",
     )
-    model = MissingComparisonRationaleModel()
+    model = IncompleteComparisonModel()
     graph = build_graph(
         GraphServices(
             model=model,
@@ -222,7 +220,9 @@ async def test_comparison_fills_rationales_after_model_repair_omits_them(
         }
     )
 
-    assert model.comparison_calls == 2
+    assert model.comparison_calls == 1
+    assert result["comparison"]["recommended_image_id"] == images[0].stem
+    assert result["comparison"]["decision_rule"] == COMPARISON_DECISION_RULE
     assert all(
         candidate["rationale"].startswith(
             "Code-generated summary of the model's returned rubric scores:"
