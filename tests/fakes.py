@@ -62,6 +62,16 @@ class FakeModelClient:
         return json.dumps({"error": "unexpected fake-model prompt"})
 
     async def inspect_image(self, path: Path, prompt: str) -> dict[str, Any]:
+        if "private Lens Tool" in prompt:
+            return {
+                "observed_motifs": ["A centered subject with a bright background."],
+                "symbolic_associations": [
+                    "Within the private course framework, strong backlight can reduce "
+                    "visual grounding."
+                ],
+                "technique_references": ["Technique #28"],
+                "uncertainties": ["The background boundary is partly ambiguous."],
+            }
         return {
             "visible_elements": ["one primary visual subject"],
             "composition": "centered",

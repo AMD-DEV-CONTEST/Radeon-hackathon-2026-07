@@ -34,6 +34,7 @@ const form = reactive({
   audience: 'International open-source collaborators',
   goals: 'credible, approachable, distinctive',
   message: 'Compare these profile images and recommend the safest fit for my selected context.',
+  enablePrivateLens: false,
   enabledPacks: [
     'profile_basics',
     'privacy_safety',
@@ -102,7 +103,9 @@ function previewWorkspace() {
     model_name: 'Qwen3.6 35B A3B Fable 5 Distill Q6_K',
     inference_ownership: 'static interface preview — no image or prompt leaves this browser',
     submission_topology_compliant: false,
-    milvus_ready: false
+    milvus_ready: false,
+    private_lens_available: true,
+    private_lens_name: 'Private 108-Technique Lens'
   }
 }
 
@@ -197,7 +200,8 @@ async function analyze() {
         audience: form.audience,
         intent_keywords: form.goals.split(',').map((value: string) => value.trim()).filter(Boolean),
         image_ids: images.value.map((image: UploadedImage) => image.id),
-        enabled_packs: form.enabledPacks
+        enabled_packs: form.enabledPacks,
+        enable_private_lens: form.enablePrivateLens
       },
       consumeEvent
     )
@@ -348,6 +352,7 @@ function formatDuration(value: number): string {
           <span class="status-dot" /> {{ modelState }}
         </span>
         <span class="badge">{{ system?.milvus_ready ? 'Milvus ready' : 'Milvus unchecked' }}</span>
+        <span v-if="system?.private_lens_available" class="badge private-ready">Private lens mounted</span>
         <button class="ghost-button" type="button" @click="newSession">New private session</button>
       </div>
     </header>
@@ -426,6 +431,14 @@ function formatDuration(value: number): string {
             <span>{{ pack[1] }}</span>
           </label>
         </div>
+
+        <label v-if="system.private_lens_available" class="private-lens-toggle">
+          <input v-model="form.enablePrivateLens" type="checkbox">
+          <span>
+            <strong>{{ system.private_lens_name }}</strong>
+            <small>Opt-in · runtime-only source · safety-filtered output</small>
+          </span>
+        </label>
 
         <div class="upload-zone">
           <input
@@ -518,6 +531,21 @@ function formatDuration(value: number): string {
                 <p>{{ String(finding.summary || finding.type) }}</p>
               </article>
             </div>
+          </section>
+
+          <section v-if="result.private_lens_readings.length" class="result-section private-lens-results">
+            <p class="eyebrow">Runtime-only extension</p>
+            <h3>Private Lens Tool</h3>
+            <article v-for="reading in result.private_lens_readings" :key="reading.image_id">
+              <div class="private-reading-heading">
+                <strong>{{ imageName(reading.image_id) }}</strong>
+                <span>{{ reading.technique_references.join(' · ') || 'No technique ID' }}</span>
+              </div>
+              <p v-for="association in reading.symbolic_associations" :key="association">
+                {{ association }}
+              </p>
+              <small>Symbolic course context only—not a factual or sensitive-trait inference.</small>
+            </article>
           </section>
 
           <section v-if="result.memory_proposal" class="memory-proposal">

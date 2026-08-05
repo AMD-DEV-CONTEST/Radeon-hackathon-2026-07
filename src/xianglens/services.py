@@ -14,6 +14,7 @@ from xianglens.storage.knowledge_store import (
 )
 from xianglens.storage.sqlite_store import SQLiteStore
 from xianglens.tools.image_tools import ImageInspector
+from xianglens.tools.private_lens import PrivateLensTool
 
 
 @dataclass(slots=True)
@@ -23,6 +24,7 @@ class AppServices:
     database: SQLiteStore
     knowledge: KnowledgeStore
     image_inspector: ImageInspector
+    private_lens: PrivateLensTool | None
     graph: object
 
 
@@ -37,6 +39,16 @@ def create_services(settings: Settings) -> AppServices:
     )
     knowledge = MilvusKnowledgeStore(settings.milvus_uri, embedder)
     image_inspector = ImageInspector(settings.max_upload_bytes, settings.max_image_pixels)
+    private_lens = None
+    if settings.private_lens_enabled:
+        if settings.private_lens_path is None:
+            raise RuntimeError(
+                "XIANG_PRIVATE_LENS_PATH is required when XIANG_PRIVATE_LENS_ENABLED=true"
+            )
+        private_lens = PrivateLensTool(
+            name=settings.private_lens_name,
+            source_path=settings.private_lens_path,
+        )
     model = LlamaCppClient(
         base_url=settings.llm_base_url,
         api_key=settings.llm_api_key.get_secret_value(),
@@ -51,6 +63,7 @@ def create_services(settings: Settings) -> AppServices:
             knowledge=knowledge,
             database=database,
             image_inspector=image_inspector,
+            private_lens=private_lens,
             rag_top_k=settings.rag_top_k,
         )
     )
@@ -60,5 +73,6 @@ def create_services(settings: Settings) -> AppServices:
         database=database,
         knowledge=knowledge,
         image_inspector=image_inspector,
+        private_lens=private_lens,
         graph=graph,
     )

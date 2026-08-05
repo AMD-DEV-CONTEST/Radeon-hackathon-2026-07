@@ -7,6 +7,10 @@ professional platforms and cultural contexts. It compares one to four candidate 
 user-defined goal, identifies visible privacy risks, retrieves source-backed platform and cultural
 context, and remembers preferences only after explicit consent.
 
+An optional private Lens Tool can mount a proprietary 24-lesson, 108-technique course distillation
+at runtime. It runs only after explicit per-run opt-in and emits short, safety-filtered symbolic
+associations without exposing the source material.
+
 The core multimodal model runs through `llama-server` on an AMD Radeon PRO W7900 with ROCm. The
 agent, image tools, Milvus Lite knowledge base, SQLite memory, and uploaded images remain under the
 user's control. XiangLens does not identify people or infer personality, employability, health,
@@ -52,6 +56,7 @@ flowchart LR
     GRAPH["LangGraph · bounded state machine"]
     POLICY["Policy gate"]
     TOOLS["Local tools · EXIF · QR · crop · safe copy"]
+    PRIVATE["Private Lens Tool · runtime mount · opt-in"]
     RAG["Milvus Lite · four Lens Packs"]
     MEMORY["SQLite · threads · consent · memory"]
     MODEL["Qwen3.6 35B A3B · Q6_K"]
@@ -60,27 +65,30 @@ flowchart LR
     UI --> AUTH --> API --> GRAPH
     GRAPH --> POLICY
     GRAPH --> TOOLS
+    GRAPH --> PRIVATE
     GRAPH --> RAG
     GRAPH --> MEMORY
     GRAPH --> MODEL --> GPU
 ```
 
 Production exposes only FastAPI. `llama-server` listens on `127.0.0.1:8000`; Milvus Lite, SQLite,
-uploads, model files, and the permanent application key are not public.
+uploads, private Lens source, model files, and the permanent application key are not public.
 
 ## Bounded Agent Workflow
 
-The successful path executes nine auditable nodes:
+The successful path executes ten auditable nodes:
 
-1. **Intake** — creates a fixed, visible eight-step plan from the request.
+1. **Intake** — creates a fixed, visible nine-step plan from the request.
 2. **Policy gate** — blocks sensitive image-based inference requests.
 3. **Recall context** — loads only approved preferences and recent thread messages.
 4. **Inspect local** — validates files and measures dimensions, crop, EXIF, and QR evidence.
 5. **Observe visual** — asks the self-hosted VLM for visible facts and uncertainty only.
-6. **Retrieve evidence** — searches enabled Milvus Lite Lens Packs with Top-K filtering.
-7. **Compare candidates** — applies one transparent five-dimension rubric to two to four images.
-8. **Propose memory** — creates a pending proposal only from an explicit user statement.
-9. **Synthesize report** — validates typed output and renders citations in application code.
+6. **Run private Lens** — when explicitly enabled, applies a mounted private framework and filters
+   sensitive claims without exposing its source text.
+7. **Retrieve evidence** — searches enabled Milvus Lite Lens Packs with Top-K filtering.
+8. **Compare candidates** — applies one transparent five-dimension rubric to two to four images.
+9. **Propose memory** — creates a pending proposal only from an explicit user statement.
+10. **Synthesize report** — validates typed output and renders citations in application code.
 
 Sensitive requests take a short branch from the policy gate to a blocked report. Each completed node
 emits an SSE trace with tool name, status, public summary, and duration. Chain-of-thought is never
@@ -92,8 +100,8 @@ XiangLens implements all five capabilities listed by the Track 2 rules.
 
 | Capability | XiangLens implementation | Reviewer evidence |
 |---|---|---|
-| Multi-step task planning | Fixed eight-step plan with conditional policy routing | Plan and node trace in the UI |
-| Tool calling | Image validation, EXIF/QR scan, crop metrics, safe-copy export | `image_measurement_and_privacy_scan` trace |
+| Multi-step task planning | Fixed nine-step plan with conditional policy routing | Plan and node trace in the UI |
+| Tool calling | Image validation, EXIF/QR scan, crop metrics, private Lens, safe-copy export | Public trace includes each bounded tool |
 | Local RAG | Milvus Lite, four Lens Packs, Top-K retrieval, visible source links | Retrieved Sources panel and eight smoke queries |
 | Local multi-turn memory | SQLite threads, approved preferences, recalled context | Approve, recall, inspect, delete |
 | Permission and privacy | Policy gate, short-lived token, consent-first writes, Forget Me | Blocked request, pending proposal, deletion API |
@@ -170,6 +178,11 @@ queries verify that the relevant card appears in the top four. Cultural context 
 documented association and ambiguity, never as personality, destiny, or a universal audience
 reaction.
 
+The private Lens Tool is deliberately separate from these four public packs. Its course source is
+loaded from an operator-controlled path into process memory, never committed, copied into the
+public Milvus collection, or returned by an API. Code filters personality, health, wealth,
+relationship, criminality, protected-attribute, and predictive claims before rendering.
+
 ## Memory, Permission, and Deletion
 
 - A user statement must explicitly signal a reusable preference or correction.
@@ -185,9 +198,11 @@ reaction.
 
 1. Upload `portrait_01__clean.jpg` and `portrait_01__qr_code.jpg`.
 2. Ask XiangLens to choose a credible, approachable GitHub avatar for international collaborators.
-3. Show the bounded plan, local QR finding, source-backed evidence, comparison rubric, and safe-copy
+3. Opt into the mounted private Lens Tool and show one technique reference plus its bounded
+   symbolic-association disclaimer.
+4. Show the bounded plan, local QR finding, source-backed evidence, comparison rubric, and safe-copy
    export.
-4. State one explicit preference, approve the memory proposal, start a new thread, and demonstrate
+5. State one explicit preference, approve the memory proposal, start a new thread, and demonstrate
    recall and deletion.
 
 This scenario proves tool calling, multimodal inference, RAG, comparison, memory, permission, and
@@ -214,6 +229,7 @@ self-hosted model path.
 - [Application Design](XIANGLENS_APPLICATION_DESIGN.md) — detailed product and engineering design;
 - [Local Development](LOCAL_DEVELOPMENT.md) — developer startup;
 - [Production Deployment](PRODUCTION_DEPLOYMENT.md) — final Radeon topology;
+- [Private Lens Tool](PRIVATE_LENS_TOOL.md) — local mount, safety boundary, and demo setup;
 - [Dataset Plan](KNOWLEDGE_BASE_DATASET_PLAN.md) — knowledge and image provenance;
 - [Benchmark Protocol](../benchmarks/README.md) — reproducible Radeon measurements;
 - [Demo Video Script](DEMO_VIDEO_SCRIPT.md) — exact 3–5 minute recording plan;

@@ -21,6 +21,7 @@ XiangLens FastAPI          127.0.0.1:8080
     |-- LangGraph
     |-- Milvus Lite        runtime/xianglens_milvus.db
     |-- SQLite             runtime/xianglens.sqlite3
+    |-- Private Lens Tool  /opt/xianglens-private/avatarKnowledge.ts
     `-- llama-server       127.0.0.1:8000/v1
             `-- AMD Radeon PRO W7900 through ROCm
 ```
@@ -28,7 +29,8 @@ XiangLens FastAPI          127.0.0.1:8080
 The deployment has three strict boundaries:
 
 1. Expose **FastAPI port 8080 only**.
-2. Keep `llama-server`, Milvus Lite, SQLite, uploads, and secrets private to the Radeon machine.
+2. Keep `llama-server`, Milvus Lite, SQLite, uploads, private Lens material, and secrets private to
+   the Radeon machine.
 3. Put only the public FastAPI base URL in GitHub Actions variable `XIANGLENS_API_BASE`.
 
 Never point GitHub Pages directly at `llama-server` and never put `XIANG_APP_API_KEY` in GitHub
@@ -148,6 +150,11 @@ XIANG_EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
 XIANG_EMBEDDING_DIMENSION=384
 XIANG_RAG_TOP_K=4
 
+# Optional proprietary extension. This file is provisioned separately and never committed.
+XIANG_PRIVATE_LENS_ENABLED=true
+XIANG_PRIVATE_LENS_PATH=/opt/xianglens-private/avatarKnowledge.ts
+XIANG_PRIVATE_LENS_NAME=Private 108-Technique Lens
+
 # The origin has no repository path component.
 XIANG_ALLOWED_ORIGINS=https://ld0574.github.io
 ```
@@ -155,6 +162,8 @@ XIANG_ALLOWED_ORIGINS=https://ld0574.github.io
 Security notes:
 
 - `.env` is ignored by Git and must remain mode `600`.
+- Provision the private Lens file outside the checkout with mode `600`; never place it under
+  `data/`, `docs/`, `submission/`, or the static frontend.
 - `XIANG_ALLOWED_ORIGINS` contains origins only, such as `https://ld0574.github.io`, not the full
   Pages path.
 - Keep `XIANG_LLM_PROBE_ON_START=false`; perform an explicit readiness probe after both processes
@@ -196,6 +205,28 @@ XIANG_EMBEDDING_PROVIDER=hash
 ```
 
 Do not build the database with one provider and start FastAPI with another provider.
+
+### Provision the optional private Lens Tool
+
+Transfer the existing distilled TypeScript file through the private notebook upload channel, then
+install it outside the Git checkout:
+
+```bash
+sudo install -d -m 700 /opt/xianglens-private
+sudo install -m 600 /secure-upload/avatarKnowledge.ts \
+  /opt/xianglens-private/avatarKnowledge.ts
+```
+
+Restart FastAPI after changing the file. Verify only availability metadata—not the source text:
+
+```bash
+curl -fsS -H "X-App-API-Key: $XIANG_APP_API_KEY" \
+  'http://127.0.0.1:8080/api/v1/system/status' \
+  | jq '{private_lens_available, private_lens_name}'
+```
+
+Expected: `private_lens_available` is `true`. The tool remains inactive until the browser includes
+`enable_private_lens: true` for a specific run.
 
 ## 7. Start the Private llama-server
 

@@ -27,7 +27,7 @@ reviewer can open or reproduce. Do not mark an item complete based only on inten
 | Criterion | Points | Evidence to show first |
 |---|---:|---|
 | Clear positioning and creative scenario | 20 | Two-candidate GitHub avatar decision with goal, privacy, and cultural context |
-| Task decomposition, tools, RAG, memory | 20 | Eight-step plan, nine node events, QR/EXIF tool, four cited cards, consent proposal |
+| Task decomposition, tools, RAG, memory | 20 | Nine-step plan, ten node events, QR/EXIF and private tools, four cited cards, consent proposal |
 | Smooth multi-turn experience | 20 | Streaming progress, thread state, approved preference recall, memory deletion |
 
 ### AMD Radeon / ROCm — 40 points
@@ -39,7 +39,7 @@ reviewer can open or reproduce. Do not mark an item complete based only on inten
 
 ## 3. Functional Release Gate
 
-- [ ] One clean fixture completes all nine successful-path nodes.
+- [ ] One clean fixture completes all ten successful-path nodes.
 - [ ] Two fixtures produce a valid comparison and recommendation.
 - [ ] Four fixtures complete without exceeding the upload or schema limits.
 - [ ] EXIF GPS fixture produces a visible privacy finding.
@@ -55,6 +55,8 @@ reviewer can open or reproduce. Do not mark an item complete based only on inten
 - [ ] Safe copy contains no EXIF metadata.
 - [ ] A visitor token cannot access another visitor's thread or memory.
 - [ ] GitHub Pages contains no permanent application key.
+- [ ] The private Lens Tool is hidden when unavailable and runs only after per-run opt-in.
+- [ ] Private Lens output shows a technique identifier and disclaimer without exposing source text.
 
 ## 4. Radeon Evidence Gate
 
@@ -77,6 +79,7 @@ reviewer can open or reproduce. Do not mark an item complete based only on inten
 
 - [ ] All reviewer-facing source comments, UI copy, docs, deck, and captions are English.
 - [ ] No private course text, screenshot, prompt, or derivative card is present.
+- [ ] The private course file is mounted outside the checkout with restrictive permissions.
 - [ ] No real API key, Bearer token, `.env`, model file, SQLite file, or upload is tracked.
 - [ ] Every knowledge source has a URL and rights label.
 - [ ] Every image fixture has source, license, and hash provenance.
@@ -106,6 +109,7 @@ Review every match manually; placeholders and test fixtures are acceptable only 
 - [ ] The recording shows an actual command-line Radeon environment.
 - [ ] The recording shows the real GUI, upload, streaming execution, and final report.
 - [ ] Tool trace, retrieved evidence, memory consent, and deletion are visible.
+- [ ] The private Lens checkbox, completed trace node, technique identifier, and disclaimer are visible.
 - [ ] Performance metrics and GPU telemetry are legible.
 - [ ] No token, permanent key, tunnel control state, private hostname, or personal upload is visible.
 - [ ] No edit implies that a cached or fake result was generated live.
@@ -116,6 +120,7 @@ Review every match manually; placeholders and test fixtures are acceptable only 
 - [x] Title identifies XiangLens, Track 2, AMD Radeon, and ROCm.
 - [x] Scenario is understandable without narration.
 - [x] An actual XiangLens interface capture shows intent, result, and Agent-trace surfaces.
+- [x] The private Tool architecture and runtime-only copyright boundary are explicit.
 - [x] Architecture labels the public/private boundary.
 - [x] All five Agent capabilities are represented.
 - [x] Model and local deployment are explicit.

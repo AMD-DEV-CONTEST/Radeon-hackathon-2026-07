@@ -5,6 +5,8 @@
 Prove, in one continuous story, that XiangLens is a complete private Agent whose core multimodal
 inference runs on AMD Radeon/ROCm. The video must show command-line evidence, the real GUI, the
 bounded workflow, tool use, RAG, memory consent, privacy controls, and measured performance.
+The distinguishing reveal is an opt-in private 108-technique Lens Tool whose proprietary source
+never enters Git or the browser.
 
 Target duration: **4 minutes 30 seconds**. Keep the final export between 3 and 5 minutes.
 
@@ -22,7 +24,8 @@ Primary request:
 ```text
 Compare these profile images for a GitHub account used with international open-source
 collaborators. I want to appear credible and approachable. Explain visible privacy risks,
-cite your context, and do not infer personality or identity.
+cite your context, apply the private symbolic Lens only as a non-factual course framework,
+and do not infer personality or identity.
 ```
 
 Memory statement for the second turn:
@@ -74,13 +77,15 @@ deployment_mode: submission-local
 model_endpoint: http://127.0.0.1:8000/v1
 submission_topology_compliant: true
 milvus_ready: true
+private_lens_available: true
 ```
 
 **Narration**
 
 > The Qwen3.6 35B-class multimodal model is served by llama.cpp on a Radeon PRO W7900. FastAPI,
-> LangGraph, Milvus Lite, SQLite, and the model share the same user-controlled environment. Only
-> the application API is exposed; core inference stays on localhost.
+> LangGraph, Milvus Lite, SQLite, the private Lens source, and the model share the same
+> user-controlled environment. Only the application API is exposed; core inference and
+> proprietary knowledge stay local.
 
 ### 0:50–1:15 — Explain the Agent in one diagram
 
@@ -89,14 +94,15 @@ milvus_ready: true
 Show the architecture slide. Highlight the workflow from left to right:
 
 ```text
-Policy -> Memory recall -> Local tools -> Vision -> RAG -> Compare -> Consent -> Report
+Policy -> Memory recall -> Local tools -> Vision -> Private Lens -> RAG -> Compare -> Consent -> Report
 ```
 
 **Narration**
 
 > This is not a one-shot prompt. A bounded LangGraph state machine applies a policy gate, recalls
-> only approved memory, runs deterministic privacy tools, calls the local vision model, retrieves
-> four source-backed cards, compares candidates, requests consent, and renders citations in code.
+> only approved memory, runs deterministic privacy tools, calls the local vision model, optionally
+> invokes a runtime-mounted private Lens, retrieves four source-backed cards, compares candidates,
+> requests consent, and renders citations in code.
 
 ### 1:15–1:45 — Set the goal and upload candidates
 
@@ -105,6 +111,7 @@ Policy -> Memory recall -> Local tools -> Vision -> RAG -> Compare -> Consent ->
 - Switch to the XiangLens GUI.
 - Show target context `GitHub` and audience `International open-source collaborators`.
 - Show all four Lens Packs enabled.
+- Show **Private 108-Technique Lens** separately, unchecked at first, then enable it.
 - Upload the clean and QR fixtures.
 - Paste the primary request.
 
@@ -112,7 +119,9 @@ Policy -> Memory recall -> Local tools -> Vision -> RAG -> Compare -> Consent ->
 
 > I define the platform, audience, and intended signals instead of asking the model to judge a
 > person. These two open-license fixtures differ by one visible privacy risk. XiangLens will compare
-> them against the same transparent rubric.
+> them against the same transparent rubric. The separate private control mounts a 24-lesson,
+> 108-technique course distillation on the server for this run only; its source never enters the
+> page or the public repository.
 
 ### 1:45–2:30 — Run the real bounded workflow
 
@@ -127,7 +136,8 @@ Policy -> Memory recall -> Local tools -> Vision -> RAG -> Compare -> Consent ->
 
 > Each completed node streams its public tool name, duration, and summary. Objective checks run
 > before the model. The VLM describes visible facts without identity or personality inference. Top-K
-> retrieval keeps the prompt focused, while typed outputs and one repair attempt protect the final
+> retrieval keeps the public prompt focused. The opt-in private node emits only a filtered symbolic
+> reading and technique identifier, while typed outputs and one repair attempt protect the final
 > workflow.
 
 **On-screen callouts**
@@ -135,6 +145,7 @@ Policy -> Memory recall -> Local tools -> Vision -> RAG -> Compare -> Consent ->
 ```text
 Local image tools
 Self-hosted VLM
+Runtime-only Private Lens Tool
 Milvus Lite Top-K RAG
 Typed output validation
 ```
@@ -145,6 +156,8 @@ Typed output validation
 
 - Show the recommended image and comparison scores.
 - Show the QR privacy finding.
+- Show the completed `run private lens` trace node.
+- Show one private technique identifier and the non-factual symbolic-context disclaimer.
 - Open one source link from Retrieved Sources.
 - Show Total, Model, RAG, and Sources metrics.
 - Trigger **Safe copy** on the selected image.
@@ -152,8 +165,10 @@ Typed output validation
 **Narration**
 
 > The result recommends the safer candidate, explains every score, and surfaces the QR code as
-> visible disclosure. Contextual claims link to the retrieved source card. The safe-copy tool
-> exports a metadata-free JPEG without asking the model to rewrite the image.
+> visible disclosure. The private tool adds one bounded symbolic association with a technique
+> reference, but the safety layer removes personality, health, wealth, relationship, and predictive
+> claims. Public contextual claims still link to retrieved source cards. The safe-copy tool exports
+> a metadata-free JPEG without asking the model to rewrite the image.
 
 ### 3:05–3:40 — Demonstrate consent-first memory
 
@@ -213,6 +228,7 @@ github.com/ld0574/Radeon-hackathon-2026-07
 ### Environment
 
 - Build the final Milvus Lite database with the selected embedding provider.
+- Provision the private distillation outside the checkout and verify `private_lens_available: true`.
 - Start llama-server with the exact recorded command.
 - Start FastAPI and verify the localhost model endpoint.
 - Start the Radeon tunnel and update `XIANGLENS_API_BASE` if its URL changed.
@@ -226,7 +242,8 @@ github.com/ld0574/Radeon-hackathon-2026-07
 - Hide `.env`, API keys, Bearer tokens, tunnel identity files, and browser developer-storage views.
 - Crop or blur any private hostname if the public URL should not remain in the video.
 - Close personal tabs, notifications, terminal history, and unrelated applications.
-- Do not display private course content or unlicensed reference images.
+- Do not display the private path, course prompt, source text, screenshots, or unlicensed images;
+  show only the checkbox, trace metadata, technique identifier, and filtered output.
 
 ### Readability
 

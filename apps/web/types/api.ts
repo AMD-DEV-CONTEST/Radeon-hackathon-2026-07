@@ -11,6 +11,8 @@ export interface SystemStatus {
   inference_ownership: string
   submission_topology_compliant: boolean
   milvus_ready: boolean
+  private_lens_available: boolean
+  private_lens_name: string
 }
 
 export interface AccessSession {
@@ -78,12 +80,22 @@ export interface CandidateComparison {
   caveat: string
 }
 
+export interface PrivateLensReading {
+  image_id: string
+  lens_name: string
+  observed_motifs: string[]
+  symbolic_associations: string[]
+  technique_references: string[]
+  uncertainties: string[]
+}
+
 export interface AnalysisRunResponse {
   run_id: string
   thread_id: string
   status: 'completed' | 'blocked' | 'failed'
   plan: string[]
   observations: Array<Record<string, unknown>>
+  private_lens_readings: PrivateLensReading[]
   privacy_findings: Array<Record<string, unknown>>
   evidence: EvidenceCard[]
   recalled_memories: Array<Record<string, unknown>>

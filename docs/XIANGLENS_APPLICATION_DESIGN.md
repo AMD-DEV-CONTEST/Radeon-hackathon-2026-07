@@ -378,7 +378,8 @@ There is no locale or translation state.
 | `inspect_visual` | Structured VLM observation of visible content | Session |
 | `measure_image` | Size, aspect ratio, crop resilience, palette, small-size preview | Session |
 | `scan_privacy` | EXIF, OCR, QR, badge, screen, and location-risk candidates | Session |
-| `retrieve_evidence` | Search enabled Lens Packs in Milvus | Read-only |
+| `run_private_lens` | Apply a locally mounted private course framework after opt-in | Per-run opt-in |
+| `retrieve_evidence` | Search enabled public Lens Packs in Milvus | Read-only |
 | `recall_user_memory` | Search approved user memory with a user-ID filter | Read-only |
 | `compare_candidates` | Compare images with one transparent rubric | Session |
 | `export_safe_copy` | Produce a metadata-stripped derivative | Explicit approval |
@@ -422,6 +423,11 @@ Each card has only four author-written fields:
 The P0 corpus uses official documentation, project-authored heuristics, and two or three thematic museum education pages. Several cultural cards may cite the same thematic page. It does not require museum APIs, individual object selection, object-level provenance, a review workflow, automated lints, a reranker, hybrid search, or a large gold-query set. Those are post-hackathon improvements.
 
 Private course material remains outside the repository and public database. Cultural cards describe a documented association and never claim that all modern viewers interpret a motif identically or that an image predicts its owner's personality or future.
+
+The implemented private Lens adapter accepts a plain-text/Markdown file or a JavaScript/TypeScript
+template-literal export. It loads the reference into server memory, invokes it only after an
+explicit request flag, exposes only filtered readings, and never returns the reference text or path
+to the browser. This is a Tool extension, not a fifth public Milvus Lens Pack.
 
 ### 9.1 Image Fixture Pack
 
@@ -1072,6 +1078,10 @@ XIANG_NETWORK_TOOLS_ENABLED=false
 
 XIANG_RAG_TOP_K=4
 XIANG_ENABLED_LENS_PACKS=profile_basics,privacy_safety,global_professional_context,open_chinese_symbolism
+
+XIANG_PRIVATE_LENS_ENABLED=false
+XIANG_PRIVATE_LENS_PATH=/secure/private/avatarKnowledge.ts
+XIANG_PRIVATE_LENS_NAME=Private 108-Technique Lens
 
 XIANG_AUTH_ENABLED=true
 XIANG_APP_API_KEY=replace-with-at-least-32-random-characters

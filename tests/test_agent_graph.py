@@ -65,6 +65,7 @@ async def test_graph_runs_all_core_capabilities(tmp_path: Path) -> None:
         "recall_context",
         "inspect_local",
         "observe_visual",
+        "run_private_lens",
         "retrieve_evidence",
         "compare_candidates",
         "propose_memory",

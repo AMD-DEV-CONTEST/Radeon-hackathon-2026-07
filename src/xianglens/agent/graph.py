@@ -26,6 +26,7 @@ from xianglens.schemas import (
 from xianglens.storage.knowledge_store import KnowledgeStore
 from xianglens.storage.sqlite_store import SQLiteStore
 from xianglens.tools.image_tools import ImageInspector
+from xianglens.tools.private_lens import PrivateLensTool
 
 
 @dataclass(slots=True)
@@ -34,6 +35,7 @@ class GraphServices:
     knowledge: KnowledgeStore
     database: SQLiteStore
     image_inspector: ImageInspector
+    private_lens: PrivateLensTool | None = None
     rag_top_k: int = 4
 
 
@@ -106,6 +108,7 @@ def _render_report(
     evidence: list[dict[str, Any]],
     comparison: dict[str, Any] | None,
     proposal: dict[str, Any] | None,
+    private_lens_readings: list[dict[str, Any]],
 ) -> str:
     known_cards = {card["card_id"]: card for card in evidence}
     cited = [known_cards[card_id] for card_id in report.cited_card_ids if card_id in known_cards]
@@ -118,6 +121,23 @@ def _render_report(
         "## Observed",
         _render_bullets(report.observed, "No additional visible fact was asserted."),
     ]
+    if private_lens_readings:
+        sections.append("## Private Lens Tool (Opt-In)")
+        for reading in private_lens_readings:
+            references = ", ".join(reading.get("technique_references", [])) or "No technique ID"
+            associations = reading.get("symbolic_associations", [])
+            sections.append(
+                f"- `{reading['image_id']}` — {references}. "
+                + (
+                    " ".join(associations)
+                    if associations
+                    else "No safe symbolic association was emitted."
+                )
+            )
+        sections.append(
+            "Private course associations are symbolic context, not factual, medical, "
+            "personality, financial, relationship, or predictive claims."
+        )
     if comparison:
         comparison_lines = []
         for candidate in comparison["candidates"]:
@@ -216,6 +236,7 @@ def build_graph(services: GraphServices):
             "Recall only user-approved preferences and prior thread context.",
             "Measure each image and scan local metadata and QR evidence.",
             "Observe visible, non-sensitive image facts with the self-hosted vision model.",
+            "Run the locally mounted private Lens Tool only after explicit opt-in.",
             "Retrieve up to four source-backed cards from enabled Lens Packs.",
             "Compare multiple candidates with one transparent five-dimension rubric.",
             "Propose reusable memory only from an explicit user statement.",
@@ -229,7 +250,7 @@ def build_graph(services: GraphServices):
                 tool="bounded_planner",
                 started=started,
                 summary=(
-                    f"Created a fixed eight-step plan for {len(state['image_paths'])} image(s)."
+                    f"Created a fixed nine-step plan for {len(state['image_paths'])} image(s)."
                 ),
             ),
         }
@@ -267,6 +288,7 @@ def build_graph(services: GraphServices):
             "visual_observations": [],
             "privacy_findings": [],
             "evidence": [],
+            "private_lens_readings": [],
             "recalled_memories": [],
             "comparison": None,
             "memory_proposal_draft": None,
@@ -404,6 +426,55 @@ def build_graph(services: GraphServices):
             ),
         }
 
+    async def run_private_lens(state: XiangLensState) -> dict[str, Any]:
+        started = time.perf_counter()
+        if not state.get("enable_private_lens", False):
+            return {
+                "private_lens_readings": [],
+                "tool_trace": _trace(
+                    state,
+                    node="run_private_lens",
+                    tool="private_108_lens",
+                    started=started,
+                    summary="Private Lens Tool was not enabled for this run.",
+                    status="skipped",
+                ),
+            }
+        if services.private_lens is None:
+            return {
+                "private_lens_readings": [],
+                "tool_trace": _trace(
+                    state,
+                    node="run_private_lens",
+                    tool="private_108_lens",
+                    started=started,
+                    summary="Private Lens Tool is not mounted on this server.",
+                    status="skipped",
+                ),
+            }
+        readings = [
+            (
+                await services.private_lens.inspect(
+                    image_path=path,
+                    model=services.model,
+                )
+            ).model_dump()
+            for path in state["image_paths"]
+        ]
+        return {
+            "private_lens_readings": readings,
+            "tool_trace": _trace(
+                state,
+                node="run_private_lens",
+                tool="private_108_lens",
+                started=started,
+                summary=(
+                    f"Produced {len(readings)} safety-filtered symbolic reading(s) from a "
+                    "runtime-only private reference."
+                ),
+            ),
+        }
+
     async def compare_candidates(state: XiangLensState) -> dict[str, Any]:
         started = time.perf_counter()
         if len(state["image_paths"]) < 2:
@@ -524,6 +595,7 @@ def build_graph(services: GraphServices):
             "recent_thread_messages": state.get("history", [])[-6:],
             "measurements": state.get("measurements", []),
             "visual_observations": state.get("visual_observations", []),
+            "private_lens_readings": state.get("private_lens_readings", []),
             "privacy_findings": state.get("privacy_findings", []),
             "approved_memories": [
                 {"type": item["memory_type"], "text": item["text"]}
@@ -542,8 +614,8 @@ def build_graph(services: GraphServices):
                         "recommendations, limitations, and cited_card_ids. Separate facts from "
                         "interpretation. Base recommendations only on user goals. Cite only "
                         "card IDs present in evidence. Never infer identity or sensitive traits. "
-                        "Never treat a "
-                        "cultural association as universal."
+                        "Never treat a cultural or private-course association as universal or "
+                        "factual. Do not repeat private course text."
                     ),
                 },
                 {
@@ -568,6 +640,7 @@ def build_graph(services: GraphServices):
             state.get("evidence", []),
             state.get("comparison"),
             state.get("memory_proposal_draft"),
+            state.get("private_lens_readings", []),
         )
         return {
             "structured_report": report.model_dump(),
@@ -588,6 +661,7 @@ def build_graph(services: GraphServices):
     builder.add_node("recall_context", recall_context)
     builder.add_node("inspect_local", inspect_local)
     builder.add_node("observe_visual", observe_visual)
+    builder.add_node("run_private_lens", run_private_lens)
     builder.add_node("retrieve_evidence", retrieve_evidence)
     builder.add_node("compare_candidates", compare_candidates)
     builder.add_node("propose_memory", propose_memory)
@@ -599,7 +673,8 @@ def build_graph(services: GraphServices):
     builder.add_edge("blocked_report", END)
     builder.add_edge("recall_context", "inspect_local")
     builder.add_edge("inspect_local", "observe_visual")
-    builder.add_edge("observe_visual", "retrieve_evidence")
+    builder.add_edge("observe_visual", "run_private_lens")
+    builder.add_edge("run_private_lens", "retrieve_evidence")
     builder.add_edge("retrieve_evidence", "compare_candidates")
     builder.add_edge("compare_candidates", "propose_memory")
     builder.add_edge("propose_memory", "synthesize_report")

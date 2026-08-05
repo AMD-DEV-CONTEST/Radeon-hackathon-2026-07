@@ -13,6 +13,7 @@ Nuxt web UI                 http://127.0.0.1:3000
     -> XiangLens FastAPI    http://127.0.0.1:8080
         -> Milvus Lite      runtime/xianglens_milvus.db
         -> SQLite           runtime/xianglens.sqlite3
+        -> Private Lens     optional external file, runtime-only
         -> llama-server     remote Radeon URL or http://127.0.0.1:8000/v1
 ```
 
@@ -94,6 +95,21 @@ curl -fsS https://YOUR-RADEON-TUNNEL.example/v1/models
 
 Use the model ID returned by `/v1/models` as `XIANG_LLM_MODEL` if it differs from the value above.
 
+### Optional private Lens Tool
+
+The existing 24-lesson, 108-technique distillation can be mounted directly from its external
+TypeScript file. Do not copy it into this repository. Add the following to the local `.env`:
+
+```env
+XIANG_PRIVATE_LENS_ENABLED=true
+XIANG_PRIVATE_LENS_PATH=/absolute/path/to/avatarKnowledge.ts
+XIANG_PRIVATE_LENS_NAME=Private 108-Technique Lens
+```
+
+After startup, `/api/v1/system/status` should report `private_lens_available: true`. The UI exposes
+an unchecked per-run opt-in. See [PRIVATE_LENS_TOOL.md](PRIVATE_LENS_TOOL.md) for the output and
+copyright boundaries.
+
 ## 4. Build the Local Knowledge Database
 
 The default hashing embedder requires no model download and is the fastest development option:
@@ -166,6 +182,7 @@ The status response should report:
 - `model_configured: true`;
 - `model_reachable: true`;
 - `milvus_ready: true`.
+- `private_lens_available: true` when the optional source is mounted.
 
 ## 7. Everyday Restart
 

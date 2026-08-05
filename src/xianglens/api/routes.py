@@ -83,6 +83,7 @@ def _performance_metrics(result: dict, image_count: int) -> PerformanceMetrics:
     local_tools = {"image_measurement_and_privacy_scan"}
     model_tools = {
         "self_hosted_vlm",
+        "private_108_lens",
         "self_hosted_llm_and_safe_renderer",
         "consent_first_memory",
         "transparent_comparison_rubric",
@@ -122,6 +123,11 @@ def _start_analysis(
     unknown_packs = sorted(set(payload.enabled_packs) - set(LENS_PACKS))
     if unknown_packs:
         raise HTTPException(status_code=422, detail=f"Unknown Lens Packs: {unknown_packs}")
+    if payload.enable_private_lens and services.private_lens is None:
+        raise HTTPException(
+            status_code=422,
+            detail="The private Lens Tool is not mounted on this server",
+        )
     images = services.database.get_images(thread_id, payload.image_ids)
     if len(images) != len(payload.image_ids):
         raise HTTPException(status_code=404, detail="One or more image IDs were not found")
@@ -135,6 +141,7 @@ def _start_analysis(
         "audience": payload.audience,
         "intent_keywords": payload.intent_keywords,
         "enabled_packs": payload.enabled_packs,
+        "enable_private_lens": payload.enable_private_lens,
         "image_paths": [Path(item["path"]) for item in images],
         "tool_trace": [],
     }
@@ -170,6 +177,7 @@ def _finalize_analysis(
             *result.get("measurements", []),
             *result.get("visual_observations", []),
         ],
+        private_lens_readings=result.get("private_lens_readings", []),
         privacy_findings=result.get("privacy_findings", []),
         evidence=result.get("evidence", []),
         recalled_memories=result.get("recalled_memories", []),
@@ -250,6 +258,8 @@ async def system_status(
         milvus_uri=str(settings.milvus_uri),
         milvus_ready=services.knowledge.is_ready(),
         sqlite_path=str(settings.sqlite_path),
+        private_lens_available=services.private_lens is not None,
+        private_lens_name=settings.private_lens_name,
     )
 
 

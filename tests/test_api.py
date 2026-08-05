@@ -16,6 +16,7 @@ from xianglens.storage.knowledge_store import (
 )
 from xianglens.storage.sqlite_store import SQLiteStore
 from xianglens.tools.image_tools import ImageInspector
+from xianglens.tools.private_lens import PrivateLensTool
 
 
 def _test_app(
@@ -24,6 +25,7 @@ def _test_app(
     public_sessions_enabled: bool = False,
     session_issue_limit_per_minute: int = 10,
     app_api_key: str = "test-key",
+    private_lens_path: Path | None = None,
 ):
     settings = Settings(
         _env_file=None,
@@ -36,6 +38,8 @@ def _test_app(
         sqlite_path=tmp_path / "state.sqlite3",
         milvus_uri=tmp_path / "knowledge.db",
         upload_dir=tmp_path / "uploads",
+        private_lens_enabled=private_lens_path is not None,
+        private_lens_path=private_lens_path,
     )
     settings.ensure_runtime_directories()
     database = SQLiteStore(settings.sqlite_path)
@@ -46,6 +50,11 @@ def _test_app(
     )
     knowledge = InMemoryKnowledgeStore(records, HashingEmbedder())
     inspector = ImageInspector(settings.max_upload_bytes, settings.max_image_pixels)
+    private_lens = (
+        PrivateLensTool(name=settings.private_lens_name, source_path=private_lens_path)
+        if private_lens_path is not None
+        else None
+    )
     model = FakeModelClient()
     graph = build_graph(
         GraphServices(
@@ -53,6 +62,7 @@ def _test_app(
             knowledge=knowledge,
             database=database,
             image_inspector=inspector,
+            private_lens=private_lens,
         )
     )
     services = AppServices(
@@ -61,6 +71,7 @@ def _test_app(
         database=database,
         knowledge=knowledge,
         image_inspector=inspector,
+        private_lens=private_lens,
         graph=graph,
     )
     return create_app(settings, services)
@@ -166,7 +177,8 @@ def test_api_executes_the_complete_graph(tmp_path: Path) -> None:
         assert run_response.status_code == 200
         body = run_response.json()
         assert body["status"] == "completed"
-        assert len(body["tool_trace"]) == 9
+        assert len(body["tool_trace"]) == 10
+        assert body["private_lens_readings"] == []
         assert body["evidence"]
         assert body["performance_metrics"]["image_count"] == 1
         assert body["comparison"] is None
@@ -204,7 +216,7 @@ def test_api_executes_the_complete_graph(tmp_path: Path) -> None:
         )
         assert stream_response.status_code == 200
         assert "event: run.started" in stream_response.text
-        assert stream_response.text.count("event: node.completed") == 9
+        assert stream_response.text.count("event: node.completed") == 10
         assert '"plan": ["Apply the sensitive-inference policy gate."' in stream_response.text
         assert "event: run.completed" in stream_response.text
 
@@ -234,3 +246,50 @@ def test_api_executes_the_complete_graph(tmp_path: Path) -> None:
         assert forget_response.json()["threads_deleted"] == 1
         assert forget_response.json()["memories_deleted"] == 1
         assert client.get(f"/api/v1/threads/{thread_id}", headers=headers).status_code == 404
+
+
+def test_api_runs_a_mounted_private_lens_only_after_opt_in(tmp_path: Path) -> None:
+    private_source = tmp_path / "avatarKnowledge.ts"
+    private_source.write_text(
+        "export const PRIVATE_REFERENCE = `"
+        + "# Private symbolic framework\n" * 30
+        + "Technique #28 discusses visible backlight as a symbolic composition cue.\n"
+        + "`;",
+        encoding="utf-8",
+    )
+    headers = {"X-App-API-Key": "test-key"}
+    image_path = next((PROJECT_ROOT / "data/fixtures/images").glob("*.jpg"))
+    with TestClient(_test_app(tmp_path, private_lens_path=private_source)) as client:
+        status_body = client.get("/api/v1/system/status", headers=headers).json()
+        assert status_body["private_lens_available"] is True
+
+        thread_id = client.post(
+            "/api/v1/threads", json={"user_id": "ada"}, headers=headers
+        ).json()["id"]
+        with image_path.open("rb") as image_handle:
+            image_id = client.post(
+                f"/api/v1/threads/{thread_id}/images",
+                files={"image": (image_path.name, image_handle, "image/jpeg")},
+                headers=headers,
+            ).json()["id"]
+        response = client.post(
+            f"/api/v1/threads/{thread_id}/runs",
+            headers=headers,
+            json={
+                "message": "Review this image for GitHub.",
+                "platform": "GitHub",
+                "audience": "international collaborators",
+                "intent_keywords": ["credible"],
+                "image_ids": [image_id],
+                "enabled_packs": ["profile_basics"],
+                "enable_private_lens": True,
+            },
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["private_lens_readings"][0]["technique_references"] == ["Technique #28"]
+        assert "Private Lens Tool (Opt-In)" in body["report_markdown"]
+        private_trace = next(
+            item for item in body["tool_trace"] if item["node"] == "run_private_lens"
+        )
+        assert private_trace["status"] == "completed"

@@ -77,6 +77,7 @@ class AnalysisRunRequest(BaseModel):
     intent_keywords: list[str] = Field(default_factory=list, max_length=10)
     image_ids: list[str] = Field(min_length=1, max_length=4)
     enabled_packs: list[str] = Field(default_factory=lambda: list(LENS_PACKS))
+    enable_private_lens: bool = False
 
 
 class EvidenceCard(BaseModel):
@@ -104,6 +105,20 @@ class VisualObservation(BaseModel):
     text_candidates: list[str] = Field(default_factory=list, max_length=20)
     privacy_candidates: list[str] = Field(default_factory=list, max_length=20)
     uncertainties: list[str] = Field(default_factory=list, max_length=20)
+
+
+class PrivateLensDraft(BaseModel):
+    """Model-facing output for an optional, locally mounted private Lens Tool."""
+
+    observed_motifs: list[str] = Field(default_factory=list, max_length=12)
+    symbolic_associations: list[str] = Field(default_factory=list, max_length=8)
+    technique_references: list[str] = Field(default_factory=list, max_length=8)
+    uncertainties: list[str] = Field(default_factory=list, max_length=8)
+
+
+class PrivateLensReading(PrivateLensDraft):
+    image_id: str
+    lens_name: str
 
 
 class CandidateAssessment(BaseModel):
@@ -154,6 +169,7 @@ class AnalysisRunResponse(BaseModel):
     status: Literal["completed", "blocked", "failed"]
     plan: list[str]
     observations: list[dict[str, Any]]
+    private_lens_readings: list[PrivateLensReading]
     privacy_findings: list[dict[str, Any]]
     evidence: list[EvidenceCard]
     recalled_memories: list[dict[str, Any]]
@@ -218,3 +234,5 @@ class SystemStatus(BaseModel):
     milvus_uri: str
     milvus_ready: bool
     sqlite_path: str
+    private_lens_available: bool
+    private_lens_name: str

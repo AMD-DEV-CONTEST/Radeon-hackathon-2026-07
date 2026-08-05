@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     embedding_dimension: int = Field(default=384, ge=64, le=4096)
     rag_top_k: int = Field(default=4, ge=1, le=10)
 
+    private_lens_enabled: bool = False
+    private_lens_path: Path | None = None
+    private_lens_name: str = "Private 108-Technique Lens"
+
     max_upload_bytes: int = Field(default=10 * 1024 * 1024, ge=1024)
     max_image_pixels: int = Field(default=24_000_000, ge=1_000_000)
     allowed_origins: Annotated[list[str], NoDecode] = [
@@ -61,9 +65,18 @@ class Settings(BaseSettings):
         "http://localhost:3000",
     ]
 
-    @field_validator("sqlite_path", "milvus_uri", "upload_dir", "export_dir", mode="before")
+    @field_validator(
+        "sqlite_path",
+        "milvus_uri",
+        "upload_dir",
+        "export_dir",
+        "private_lens_path",
+        mode="before",
+    )
     @classmethod
-    def resolve_project_path(cls, value: str | Path) -> Path:
+    def resolve_project_path(cls, value: str | Path | None) -> Path | None:
+        if value in (None, ""):
+            return None
         path = Path(value).expanduser()
         return path if path.is_absolute() else (PROJECT_ROOT / path).resolve()
 
@@ -85,6 +98,14 @@ class Settings(BaseSettings):
         normalized = self.llm_base_url.lower()
         return normalized.startswith("http://127.0.0.1") or normalized.startswith(
             "http://localhost"
+        )
+
+    @property
+    def private_lens_available(self) -> bool:
+        return bool(
+            self.private_lens_enabled
+            and self.private_lens_path is not None
+            and self.private_lens_path.is_file()
         )
 
     def ensure_runtime_directories(self) -> None:

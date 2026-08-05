@@ -15,6 +15,7 @@ class XiangLensState(TypedDict, total=False):
     audience: str
     intent_keywords: list[str]
     enabled_packs: list[str]
+    enable_private_lens: bool
     image_paths: list[Path]
 
     plan: list[str]
@@ -23,6 +24,7 @@ class XiangLensState(TypedDict, total=False):
     recalled_memories: list[dict[str, Any]]
     measurements: list[dict[str, Any]]
     visual_observations: list[dict[str, Any]]
+    private_lens_readings: list[dict[str, Any]]
     privacy_findings: list[dict[str, Any]]
     evidence: list[dict[str, Any]]
     comparison: dict[str, Any] | None
