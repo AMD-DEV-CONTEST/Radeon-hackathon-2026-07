@@ -230,8 +230,8 @@ async def approve_fix(job_id: str, request: ApproveFixRequest, background_tasks:
 
 
 class ApplyFixRequest(BaseModel):
-    repo: Optional[str] = "octocat/Hello-World"
-    pr_number: Optional[int] = 1
+    repo: Optional[str] = "expressjs/express"
+    pr_number: Optional[int] = 4200
 
 
 @router.post("/{job_id}/apply-fix")
@@ -241,8 +241,8 @@ async def apply_fix_pr(job_id: str, request: Optional[ApplyFixRequest] = None):
     Opens a pull request on GitHub with synthesized security patches.
     """
     job = _jobs.get(job_id, {})
-    repo = (request and request.repo) if (request and request.repo) else job.get("repo", "octocat/Hello-World")
-    pr_num = (request and request.pr_number) if (request and request.pr_number) else job.get("pr_number", 1)
+    repo = (request and request.repo) if (request and request.repo) else job.get("repo", "expressjs/express")
+    pr_num = (request and request.pr_number) if (request and request.pr_number) else job.get("pr_number", 4200)
 
     # Generate PR URL matching exact target repository
     pr_number = pr_num + 10

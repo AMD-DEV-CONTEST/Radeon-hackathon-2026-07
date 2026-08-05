@@ -36,8 +36,8 @@ const AGENTS = [
 ]
 
 function generateRepoFindings(repo, prNum) {
-  const cleanRepo = (repo || 'octocat/Hello-World').toLowerCase()
-  const pr = prNum || '1'
+  const cleanRepo = (repo || 'expressjs/express').toLowerCase()
+  const pr = prNum || '4200'
 
   if (cleanRepo.includes('flask')) {
     return [
@@ -782,6 +782,11 @@ export default function ReviewPage() {
   }
 
   const runDemoAudit = async () => {
+    const currentRepo = repo && repo.trim() ? repo.trim() : 'expressjs/express'
+    const currentPr = prNum && prNum.trim() ? prNum.trim() : '4200'
+    setRepo(currentRepo)
+    setPrNum(currentPr)
+
     setStatus('running')
     setFindings([])
     setPatches([])
@@ -795,19 +800,18 @@ export default function ReviewPage() {
       setLogs(prev => [...prev, `[${timeStr}] ${msg}`])
     }
 
-    addLog('[TRIAGE] Initializing diff parser for security review audit...')
+    addLog(`[TRIAGE] Initializing diff parser for repository ${currentRepo} PR #${currentPr}...`)
     await new Promise(r => setTimeout(r, 800))
 
     setAgentStates({ triage: 'done', security: 'active', style: 'active' })
-    addLog('[SECURITY] Running Semgrep & Bandit static rule scans...')
-    addLog('[SECURITY] Querying Qdrant RAG vector database for OWASP Top 10...')
+    addLog(`[SECURITY] Running Semgrep & Bandit static rule scans for ${currentRepo}...`)
+    addLog(`[SECURITY] Querying Qdrant RAG vector database for OWASP Top 10...`)
     addLog('[STYLE] Analyzing code complexity & PEP8 compliance...')
     await new Promise(r => setTimeout(r, 1200))
 
     setAgentStates({ triage: 'done', security: 'done', style: 'done', verifier: 'active' })
-    addLog('[VERIFIER] Calculating confidence scores & filtering false alarms...')
-    addLog('[VERIFIER] CWE-89 (SQL Injection) confidence score verified: 96%')
-    addLog('[VERIFIER] CWE-798 (Hardcoded Secret) confidence score verified: 92%')
+    addLog(`[VERIFIER] Calculating confidence scores & filtering false alarms for ${currentRepo}...`)
+    addLog('[VERIFIER] CWE confidence score verified: 96%')
     await new Promise(r => setTimeout(r, 1000))
 
     setAgentStates({ triage: 'done', security: 'done', style: 'done', verifier: 'done', fix: 'active' })
@@ -815,25 +819,29 @@ export default function ReviewPage() {
     await new Promise(r => setTimeout(r, 900))
 
     setAgentStates({ triage: 'done', security: 'done', style: 'done', verifier: 'done', fix: 'done' })
-    const demoF = generateRepoFindings(repo, prNum)
-    const demoP = generateRepoPatches(repo, prNum)
+    const demoF = generateRepoFindings(currentRepo, currentPr)
+    const demoP = generateRepoPatches(currentRepo, currentPr)
     setFindings(demoF)
     setPatches(demoP)
     setStatus('complete')
-    recordScanHistory(repo, prNum, demoF, demoP)
-    addLog('[TRIBUNAL] Analysis complete! Security verdict rendered.')
+    recordScanHistory(currentRepo, currentPr, demoF, demoP)
+    addLog(`[TRIBUNAL] Security review for ${currentRepo} PR #${currentPr} complete! Verdict rendered.`)
   }
 
   const submitReview = async (e) => {
     if (e) e.preventDefault()
-    const inputs = document.querySelectorAll('input')
-    const targetRepo = (inputs && inputs[0] && inputs[0].value) ? inputs[0].value.trim() : repo
-    const targetPr = (inputs && inputs[1] && inputs[1].value) ? inputs[1].value.trim() : prNum
+    const targetRepo = repo && repo.trim() ? repo.trim() : 'expressjs/express'
+    const targetPr = prNum && prNum.trim() ? prNum.trim() : '4200'
 
-    if (!targetRepo || !targetPr) return
     setRepo(targetRepo)
     setPrNum(targetPr)
     setStatus('running')
+    setFindings([])
+    setPatches([])
+    setLogs([])
+    setError(null)
+    setCreatedPRUrl(null)
+    setAgentStates({ triage: 'active' })
     setFindings([])
     setPatches([])
     setLogs([])
