@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MoonRabbits · Cultural Narrative System</title>
+<style>
+  :root {
+    --ink:#36322a; --paper:#f4efe4; --card:#fffdf7; --gold:#a8873c; --gold-soft:#c9ab63;
+    --linen:#ece5d3; --celadon:#7a9a8d; --muted:#8d8471; --line:#e3dcc8;
+    --bg-primary:var(--paper); --bg-secondary:var(--linen);
+    --label-primary:var(--ink); --label-secondary:var(--muted);
+    --label-tertiary:#a39b87; --label-quaternary:#b5ad9a;
+    --fill-1:rgba(54,50,42,.04); --fill-2:rgba(54,50,42,.07); --fill-3:rgba(54,50,42,.16);
+    --sep:var(--line);
+    --kimi-blue:var(--celadon); --kimi-blue-10:rgba(122,154,141,.18);
+    --purple:#8a5a7a; --orange:var(--gold); --green:var(--celadon);
+    --r-sm:8px; --r-md:10px; --r-lg:12px; --r-xl:16px; --r-full:100px;
+    --shadow-input:0 5px 16px -4px rgba(80,70,40,.12);
+    --ease-out:cubic-bezier(0.23,1,0.32,1);
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { height:100%; }
+  body {
+    font-family:"PingFang SC",-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+    background:var(--bg-primary); color:var(--label-primary);
+    display:flex; overflow:hidden; font-size:14px; line-height:20px;
+  }
+  /* ---------- 左侧栏（Kimi Work 会话栏） ---------- */
+  #sidebar { width:240px; flex:none; background:var(--bg-secondary); display:flex; flex-direction:column; min-height:0; }
+  .side-head { padding:20px 16px 12px; }
+  .side-head h1 { font-size:20px; line-height:30px; font-weight:600; letter-spacing:.5px; }
+  .side-head .en { font-size:12px; line-height:18px; color:var(--label-tertiary); margin-top:2px; letter-spacing:.3px; }
+  .badge { display:inline-flex; align-items:center; gap:4px; margin-top:10px; font-size:12px; line-height:18px;
+    color:var(--gold); background:rgba(168,135,60,.12); border-radius:var(--r-full); padding:3px 10px; font-weight:500; }
+  .side-label { padding:12px 16px 8px; font-size:12px; line-height:18px; color:var(--label-tertiary); }
+  .newtask { width:100%; height:36px; border-radius:var(--r-lg); border:1px solid var(--sep); background:var(--card);
+    font-family:inherit; font-size:14px; font-weight:500; color:var(--label-primary); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:6px; transition:background 150ms ease; }
+  .newtask:hover { background:var(--linen); }
+  .folder { display:flex; align-items:center; gap:6px; padding:12px 16px 4px; font-size:12px; line-height:18px;
+    color:var(--label-tertiary); cursor:pointer; user-select:none; transition:color 150ms ease; }
+  .folder:hover { color:var(--label-secondary); }
+  .expills { display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:var(--card);
+    border:1px solid var(--line); border-radius:var(--r-full); padding:7px 14px; margin:-14px 0 26px;
+    width:fit-content; box-shadow:0 1px 4px rgba(80,70,40,.06); }
+  .xplabel { font-size:12px; line-height:18px; color:var(--label-tertiary); }
+  .xp { font-size:12px; line-height:18px; padding:3px 12px; border-radius:var(--r-full); background:var(--linen);
+    color:var(--label-primary); font-weight:500; cursor:pointer; transition:background 150ms ease, color 150ms ease; }
+  .xp:hover { background:var(--gold-soft); color:var(--card); }
+  #qlist { flex:1; overflow-y:auto; padding:0 8px 16px; }
+  .qitem { font-size:14px; line-height:20px; padding:8px 12px; border-radius:var(--r-md); cursor:pointer;
+    color:var(--label-secondary); margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    transition:background 150ms ease; }
+  .qitem:hover { background:var(--fill-1); }
+  .qitem.active { background:var(--fill-2); color:var(--label-primary); }
+  .qitem .qn { font-weight:500; color:var(--label-primary); margin-right:6px; }
+  /* ---------- 中间对话列 ---------- */
+  #centerwrap { flex:1; display:flex; flex-direction:column; min-width:0; background:var(--bg-primary); }
+  .topbar { flex:none; display:flex; align-items:center; justify-content:flex-end; padding:12px 24px; }
+  #center { flex:1; overflow-y:auto; }
+  .col { max-width:768px; margin:0 auto; padding:8px 24px 24px; }
+  .intro { background:var(--card); border:1px solid var(--line); border-radius:var(--r-lg); padding:16px 20px; font-size:14px; line-height:22px; color:var(--label-secondary); }
+  .intro strong { color:var(--label-primary); font-weight:500; }
+  .intro .kb { display:block; font-size:12px; line-height:18px; color:var(--label-tertiary); margin-top:8px; }
+  .msg-user { display:flex; justify-content:flex-end; margin:36px 0 12px; }
+  .msg-user .bubble { max-width:80%; background:var(--bg-secondary); border-radius:var(--r-lg);
+    padding:10px 16px; font-size:15px; line-height:22px; }
+  .msg-user .who { font-size:12px; color:var(--label-tertiary); margin:0 4px 4px; text-align:right; }
+  .story { margin:12px 0 8px; background:var(--card); border:1px solid var(--gold-soft); border-radius:var(--r-lg); padding:18px 22px; animation:enter 250ms var(--ease-out); }
+  .story h3 { display:flex; align-items:center; gap:6px; font-size:14px; line-height:20px; font-weight:500; color:var(--gold); margin-bottom:8px; }
+  .story .body { white-space:pre-wrap; font-size:15px; line-height:24px; color:var(--label-primary); }
+  .meta { font-size:12px; line-height:18px; color:var(--label-quaternary); margin-top:12px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .meta .pill { background:var(--fill-1); border-radius:var(--r-full); padding:2px 10px; }
+  .meta .ok { color:var(--green); }
+  @keyframes enter { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+  .thinking { display:none; align-items:center; gap:8px; font-size:13px; color:var(--label-tertiary); margin:16px 0; }
+  .thinking .tdots i { display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--label-tertiary); margin-right:3px; animation:blink 1.2s infinite; }
+  .thinking .tdots i:nth-child(2) { animation-delay:.2s; } .thinking .tdots i:nth-child(3) { animation-delay:.4s; }
+  @keyframes blink { 0%,100%{opacity:.25;} 50%{opacity:1;} }
+  /* ---------- Kimi 输入框 ---------- */
+  .inputwrap { flex:none; padding:8px 24px 20px; }
+  .inputbox { max-width:768px; margin:0 auto; background:var(--card); border:1px solid var(--sep);
+    border-radius:20px; box-shadow:var(--shadow-input); padding:14px 16px 10px; }
+  textarea { width:100%; resize:none; height:60px; border:none; outline:none; background:transparent;
+    font-family:inherit; font-size:16px; line-height:24px; color:var(--label-primary); }
+  textarea::placeholder { color:var(--label-quaternary); }
+  .toolbar { display:flex; align-items:center; gap:8px; margin-top:8px; }
+  .toolbar .spacer { flex:1; }
+  .chipbtn { display:inline-flex; align-items:center; gap:4px; height:32px; padding:0 12px; border-radius:var(--r-md);
+    background:var(--fill-1); border:none; cursor:pointer; font-family:inherit; font-size:14px; line-height:20px;
+    color:var(--label-primary); transition:background 150ms ease; }
+  .chipbtn:hover { background:var(--fill-2); }
+  .plusbtn { width:32px; padding:0; justify-content:center; border-radius:50%; font-size:18px; line-height:1; }
+  .sendbtn { width:32px; height:32px; border-radius:50%; border:none; cursor:pointer;
+    background:var(--ink); color:var(--paper); font-size:16px; line-height:1; display:flex; align-items:center; justify-content:center;
+    transition:background 150ms ease, transform 120ms ease; }
+  .sendbtn:hover { background:#4a463c; }
+  .sendbtn:active { transform:scale(.96); }
+  .colors { max-width:768px; margin:0 auto 8px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+    font-size:12px; color:var(--label-tertiary); }
+  .chip { display:flex; align-items:center; gap:6px; font-size:12px; background:var(--fill-1);
+    border-radius:var(--r-full); padding:4px 10px; color:var(--label-secondary); }
+  .sw { width:14px; height:14px; border-radius:50%; border:1px solid rgba(0,0,0,.08); }
+  /* ---------- 胶囊分段控件（语言切换） ---------- */
+  .seg { display:inline-flex; gap:4px; background:var(--fill-2); border-radius:var(--r-md); padding:2px; }
+  .seg span { font-size:14px; line-height:20px; padding:4px 12px; border-radius:var(--r-sm);
+    color:var(--label-primary); cursor:pointer; transition:background 150ms ease; }
+  .seg span.on { background:var(--card); box-shadow:0 1px 3px rgba(80,70,40,.15); }
+  .seg.sm span { font-size:12px; line-height:18px; padding:3px 10px; }
+  /* ---------- 右侧专家面板 ---------- */
+  #panel { width:360px; flex:none; border-left:1px solid var(--sep); background:var(--bg-primary);
+    overflow-y:auto; padding:20px 16px 40px; }
+  .panel-title { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:500; margin-bottom:4px; }
+  .panel-title .dot { width:8px; height:8px; border-radius:50%; background:var(--fill-3); }
+  .panel-title .dot.live { background:var(--kimi-blue); animation:blink 1.2s infinite; }
+  .panel-sub { font-size:12px; color:var(--label-tertiary); margin-bottom:16px; }
+  .panel-empty { font-size:14px; line-height:22px; color:var(--label-tertiary); padding:8px 2px; }
+  .retrieval { font-size:12px; color:var(--label-tertiary); margin:8px 0 4px; line-height:2; }
+  .retrieval span { display:inline-block; background:var(--fill-1); border-radius:var(--r-full); padding:2px 10px; margin:2px 4px 2px 0; }
+  .fbadges { margin:8px 0 0; line-height:2; }
+  .fbadge { display:inline-block; background:var(--fill-1); border-radius:var(--r-full); padding:2px 10px; margin:2px 4px 2px 0; font-size:12px; }
+  .fbackend { font-size:11px; color:var(--label-tertiary); margin-left:4px; }
+  .agent { background:var(--fill-1); border-radius:var(--r-lg); padding:14px 16px; margin:12px 0; display:none; }
+  .agent.show { display:block; animation:enter 250ms var(--ease-out); }
+  .agent h3 { display:flex; align-items:center; gap:6px; font-size:14px; line-height:20px; font-weight:500; margin-bottom:8px; }
+  .agent h3 .adot { width:8px; height:8px; border-radius:50%; flex:none; }
+  .agent.hist h3 .adot { background:var(--orange); }
+  .agent.sci h3 .adot { background:var(--kimi-blue); }
+  .agent.muse h3 .adot { background:var(--purple); }
+  .agent .body { white-space:pre-wrap; font-size:14px; line-height:22px; color:var(--label-secondary); }
+  ::-webkit-scrollbar { width:8px; }
+  ::-webkit-scrollbar-thumb { background:var(--fill-2); border-radius:4px; }
+  ::-webkit-scrollbar-thumb:hover { background:var(--fill-3); }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+  }
+  @media (max-width:1100px) {
+    #sidebar { display:none; }
+    #panel { width:320px; }
+  }
+</style>
+</head>
+<body>
+<aside id="sidebar">
+  <div class="side-head">
+    <h1>MoonRabbits</h1>
+    <div class="en">Cultural-Heritage Multi-Agent Narrative System</div>
+    <span class="badge">Track 2 · Private AI Agent</span>
+  </div>
+  <div style="padding:0 12px;"><button class="newtask" onclick="newTask()">＋ <span id="t-newtask"></span></button></div>
+  <div class="folder" onclick="toggleFolder()"><span id="foldicon">▾</span><span id="t-folder"></span></div>
+  <div class="side-label" id="t-side"></div>
+  <div id="qlist"></div>
+</aside>
+<div id="centerwrap">
+  <div class="topbar">
+    <div class="seg" onclick="toggleLang()"><span id="lb-en">EN</span><span id="lb-auto">Auto</span></div>
+  </div>
+  <div id="center">
+    <div class="col">
+      <div class="intro">
+        <span id="t-intro"></span>
+        <span class="kb" id="t-kb"></span>
+      </div>
+      <div id="chat"></div>
+      <div class="thinking" id="thinkingbox"><span class="tdots"><i></i><i></i><i></i></span><span id="thinking"></span></div>
+    </div>
+  </div>
+  <div class="inputwrap">
+    <div class="colors" id="colors" style="display:none;"></div>
+    <div class="inputbox">
+      <input type="file" id="file" accept="image/*" style="display:none">
+      <textarea id="q"></textarea>
+      <div class="toolbar">
+        <button class="chipbtn plusbtn" id="t-up" onclick="file.click()" title="Upload">+</button>
+        <span class="spacer"></span>
+        <button class="sendbtn" id="t-send" onclick="send()" title="Send">↑</button>
+      </div>
+    </div>
+  </div>
+</div>
+<aside id="panel">
+  <div class="panel-title"><span class="dot" id="paneldot"></span><span id="t-panel"></span></div>
+  <div class="panel-sub" id="t-panelsub"></div>
+  <div class="panel-empty" id="panel-empty"></div>
+  <div class="retrieval" id="p-r"></div>
+  <div class="agent hist" id="p-h"><h3><span class="adot"></span><span id="p-h-t"></span></h3><div class="body"></div></div>
+  <div class="agent sci" id="p-s"><h3><span class="adot"></span><span id="p-s-t"></span></h3><div class="body"></div></div>
+  <div class="agent muse" id="p-m"><h3><span class="adot"></span><span id="p-m-t"></span></h3><div class="body"></div></div>
+</aside>
+<script>
+const I18N = {
+  en: {
+    intro: `Upload an image, or ask a question — the <strong>Historian</strong> cites the archives, the <strong>Scientist</strong> verifies the facts, the <strong>Muse</strong> finds the angle, and the <strong>Narrator</strong> tells you a story of <em>light that does not dazzle, still water that runs deep</em>.`,
+    kb: "Curated ceramic-history knowledge base + five-color curation · 100% local inference on AMD Radeon GPU",
+    thinking: "The agents are thinking…",
+    stages: ["Searching the knowledge base…", "Historian is reading the archives…", "Scientist is fact-checking…", "Muse is finding the angle…", "Narrator is weaving the story…"],
+    up: "📷 Image",
+    ph: "Ask anything about cultural heritage…",
+    you: "You",
+    retr: "Retrieval hits:",
+    hist: "Historian · cites the archives",
+    sci: "Scientist · fact-checks",
+    muse: "Muse · finds the angle",
+    narr: "🐇 Narrator · the final story",
+    side: "Questions",
+    newtask: "New task",
+    folder: "Season 1 · Blanc de Chine",
+    agents3: ["Historian", "Scientist", "Muse"],
+    experts: "Review the experts",
+    panel: "Experts at work",
+    panelsub: "Real-time multi-agent reasoning",
+    panelEmpty: "Ask a question — the Historian, Scientist and Muse will appear here in real time as they finish.",
+    qn: n => "Q" + n,
+    meta: (s, f) => ["100% local inference", "AMD Radeon GPU", f ? `guardrail flagged: ${f}` : "guardrail passed"],
+    colors: "Color genes:",
+    imgq: "What is the cultural story behind the colors and objects in this image?",
+    imgok: "<strong>Image received</strong> — color genes extracted and mapped to the five-color system. The question is auto-filled below — just press send.",
+    uploading: "⏳ Uploading image…"
+  },
+  zh: {
+    intro: `拍一张图，或说一句话——<strong>考据官</strong>查文献、<strong>格物官</strong>验事实、<strong>灵感官</strong>找角度，<strong>讲述者</strong>为你讲一个<em>光而不耀，静水流深</em>的故事。`,
+    kb: "陶瓷史专题知识库 + 五色观策展 · 全部运行于本地 AMD Radeon GPU",
+    thinking: "专家们正在思考……",
+    stages: ["正在检索知识库……", "考据官正在查阅文献……", "格物官正在核查事实……", "灵感官正在寻找感性角度……", "讲述者正在织就故事……"],
+    up: "📷 传图",
+    ph: "问一个关于文化遗产的问题……",
+    you: "你",
+    retr: "检索命中：",
+    hist: "考据官 · 查文献挂出处",
+    sci: "格物官 · 科学核查",
+    muse: "灵感官 · 感性角度",
+    narr: "🐇 讲述者 · 最终成稿",
+    side: "问题列表",
+    newtask: "新任务",
+    folder: "第一季 · 中国白",
+    agents3: ["考据官", "格物官", "灵感官"],
+    experts: "回看专家思路",
+    panel: "专家工作区",
+    panelsub: "多智能体实时推理",
+    panelEmpty: "提出一个问题——考据官、格物官、灵感官完成思考后会实时出现在这里。",
+    qn: n => "第 " + n + " 问",
+    meta: (s, f) => ["全部本地推理", "AMD Radeon GPU", f ? `护栏标记:${f}` : "护栏通过"],
+    colors: "色彩基因：",
+    imgq: "这张图片里的色彩和器物，背后有什么文化故事？",
+    imgok: "<strong>已收到图片</strong>——色彩基因提取完成，已映射到五色体系。问题已自动填好，直接发送即可。",
+    uploading: "⏳ 图片上传中……"
+  }
+};
+let lang = localStorage.getItem("mr_lang") || "en";
+let sessionId = localStorage.getItem("mr_sid") || "";
+let imageColors = null;
+let qCount = 0;
+const answers = {};
+
+function newTask() {
+  document.getElementById("chat").innerHTML = "";
+  document.getElementById("qlist").innerHTML = "";
+  qCount = 0; sessionId = ""; localStorage.removeItem("mr_sid");
+  resetPanel();
+  document.getElementById("panel-empty").style.display = "block";
+  scrollCenter();
+}
+function toggleFolder() {
+  const q = document.getElementById("qlist");
+  const hidden = q.style.display === "none";
+  q.style.display = hidden ? "" : "none";
+  document.getElementById("foldicon").textContent = hidden ? "▾" : "▸";
+}
+function showExperts(qid, fid) {
+  const d = answers[qid]; if (!d) return;
+  resetPanel();
+  const L2 = labelsFor(d);
+  document.getElementById("p-h-t").textContent = L2.hist;
+  document.getElementById("p-s-t").textContent = L2.sci;
+  document.getElementById("p-m-t").textContent = L2.muse;
+  const viaMap = {"向量":"vector", "关键词":"keyword"};
+  document.getElementById("p-r").innerHTML = L2.retr + " " + d.retrieval.map(h=>`<span>[${h.id}] ${(lang!=="zh" && viaMap[h.via]) || h.via}${h.similarity? " "+h.similarity:""}</span>`).join("");
+  [["p-h", d.historian], ["p-s", d.scientist], ["p-m", d.muse]].forEach(([id, text]) => {
+    const el = document.getElementById(id);
+    el.querySelector(".body").innerHTML = md(text);
+    el.classList.add("show");
+  });
+  const f = document.getElementById(fid);
+  if (f) setTimeout(() => f.scrollIntoView({behavior:"smooth", block:"start"}), 50);
+}
+
+function T() { return I18N[lang === "auto" ? "en" : lang]; }
+function applyI18n() {
+  const t = T();
+  document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+  document.getElementById("t-intro").innerHTML = t.intro;
+  document.getElementById("t-kb").textContent = t.kb;
+  document.getElementById("q").placeholder = t.ph;
+  document.getElementById("thinking").textContent = t.thinking;
+  document.getElementById("t-side").textContent = t.side;
+  document.getElementById("t-newtask").textContent = t.newtask;
+  document.getElementById("t-folder").textContent = t.folder;
+  document.getElementById("t-panel").textContent = t.panel;
+  document.getElementById("t-panelsub").textContent = t.panelsub;
+  document.getElementById("panel-empty").textContent = t.panelEmpty;
+  document.getElementById("p-h-t").textContent = t.hist;
+  document.getElementById("p-s-t").textContent = t.sci;
+  document.getElementById("p-m-t").textContent = t.muse;
+  ["en","zh","auto"].forEach(k => {
+    const a = document.getElementById("lb-"+k), b = document.getElementById("lb-"+k+"2");
+    if (a) a.className = lang === k ? "on" : "";
+    if (b) b.className = lang === k ? "on" : "";
+  });
+}
+function toggleLang() {
+  lang = lang === "en" ? "auto" : "en";
+  localStorage.setItem("mr_lang", lang);
+  applyI18n();
+}
+
+let stageTimer = null;
+function startStages(q) {
+  const pack = (lang === "zh" || (lang === "auto" && /[一-鿿]/.test(q || ""))) ? I18N.zh : I18N.en;
+  const stages = pack.stages, marks = [0, 8, 25, 40, 52];
+  const el = document.getElementById("thinking");
+  const t0 = Date.now();
+  const tick = () => {
+    const s = Math.floor((Date.now() - t0) / 1000);
+    let i = 0; marks.forEach((m, j) => { if (s >= m) i = j; });
+    el.textContent = stages[i];
+  };
+  tick();
+  stageTimer = setInterval(tick, 1000);
+}
+function stopStages() { if (stageTimer) { clearInterval(stageTimer); stageTimer = null; } }
+
+let aborter = null;
+function setBusy(b) {
+  const btn = document.getElementById("t-send");
+  btn.textContent = b ? "■" : "↑";
+  btn.title = b ? "Stop" : "Send";
+  btn.onclick = b ? stopGen : send;
+}
+function stopGen() { if (aborter) aborter.abort(); }
+
+async function send() {
+  if (aborter) return;
+  const q = document.getElementById("q").value.trim();
+  if (!q) return;
+  document.getElementById("q").value = "";
+  qCount++;
+  addUser(q);
+  resetPanel();
+  document.getElementById("thinkingbox").style.display = "flex";
+  document.getElementById("paneldot").className = "dot live";
+  startStages(q);
+  aborter = new AbortController();
+  setBusy(true);
+  try {
+    const r = await fetch("/api/chat", {method:"POST", headers:{"Content-Type":"application/json"},
+      signal: aborter.signal,
+      body: JSON.stringify({message:q, session_id:sessionId, image_colors:imageColors, lang:lang})});
+    const d = await r.json();
+    if (d.error) { alert(d.error); return; }
+    sessionId = d.session_ion_id; localStorage.setItem("mr_sid", sessionId);
+    await fillPanel(d);
+    addStory(q, d);
+  } catch (e) {
+    if (e.name !== "AbortError") alert("network error: " + e);
+  } finally {
+    stopStages();
+    setBusy(false);
+    aborter = null;
+    document.getElementById("thinkingbox").style.display = "none";
+    document.getElementById("paneldot").className = "dot";
+    imageColors = null;
+    const c = document.getElementById("colors"); c.innerHTML = ""; c.style.display = "none";
+  }
+}
+
+function addUser(text) {
+  const c = document.getElementById("chat");
+  c.insertAdjacentHTML("beforeend",
+    `<div class="msg-user"><div style="max-width:80%;"><div class="who">${T().you} · ${T().qn(qCount)}</div><div class="bubble">${escapeHtml(text)}</div></div></div>`);
+  scrollCenter();
+}
+function resetPanel() {
+  document.getElementById("p-r").innerHTML = "";
+  ["p-h","p-s","p-m"].forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.remove("show");
+    el.querySelector(".body").innerHTML = "";
+  });
+  document.getElementById("panel-empty").style.display = "none";
+  document.getElementById("panel").scrollTop = 0;
+}
+function labelsFor(d) {
+  const zh = lang === "zh" || (lang === "auto" && /[一-鿿]/.test((d && d.narrator) || ""));
+  return zh ? I18N.zh : I18N.en;
+}
+async function fillPanel(d) {
+  const sleep = ms => new Promise(r=>setTimeout(r,ms));
+  const L2 = labelsFor(d);
+  document.getElementById("p-h-t").textContent = L2.hist;
+  document.getElementById("p-s-t").textContent = L2.sci;
+  document.getElementById("p-m-t").textContent = L2.muse;
+  const r = document.getElementById("p-r");
+  const viaMap = {"向量":"vector", "关键词":"keyword"};
+  r.innerHTML = L2.retr + " " + d.retrieval.map(h=>`<span>[${h.id}] ${(lang!=="zh" && viaMap[h.via]) || h.via}${h.similarity? " "+h.similarity:""}</span>`).join("");
+  const seq = [["p-h", d.historian], ["p-s", d.scientist], ["p-m", d.muse]];
+  for (const [id, text] of seq) {
+    const el = document.getElementById(id);
+    el.querySelector(".body").innerHTML = md(text);
+    el.classList.add("show");
+    scrollPanel(); await sleep(600);
+  }
+}
+function addStory(q, d) {
+  const sid = "story" + qCount;
+  answers[qCount] = d;
+  const L2 = labelsFor(d);
+  const pills = L2.meta(d.elapsed_sec, d.safety_flags.length ? d.safety_flags : null)
+    .map((p, i, arr) => `<span class="pill${i === arr.length-1 && !d.safety_flags.length ? " ok" : ""}">${p}</span>`).join("");
+  const xp = L2.agents3.map((a, i) =>
+    `<span class="xp" onclick="showExperts(${qCount},'p-${"hsm"[i]}')">${a}</span>`).join("");
+  const fb = (d.foreman && d.foreman.badges) ? `<div class="fbadges">${d.foreman.badges.map(b=>`<span class="fbadge">${escapeHtml(b)}</span>`).join("")}<span class="fbackend">Foreman: ${escapeHtml(d.foreman.backend || "")}</span></div>` : "";
+  document.getElementById("chat").insertAdjacentHTML("beforeend", `
+    <div class="story" id="${sid}"><h3>${L2.narr}</h3><div class="body">${md(d.narrator)}</div>
+    <div class="meta">${pills}</div>${fb}</div>
+    <div class="expills"><span class="xplabel">${L2.experts}:</span>${xp}</div>`);
+  const item = document.createElement("div");
+  item.className = "qitem active";
+  item.innerHTML = `<span class="qn">${T().qn(qCount)}</span>${escapeHtml(q)}`;
+  item.title = q;
+  item.onclick = () => {
+    document.querySelectorAll(".qitem").forEach(e => e.classList.remove("active"));
+    item.classList.add("active");
+    document.getElementById(sid).scrollIntoView({behavior:"smooth", block:"start"});
+  };
+  document.querySelectorAll(".qitem").forEach(e => e.classList.remove("active"));
+  const qlist = document.getElementById("qlist");
+  qlist.insertBefore(item, qlist.firstChild);
+  scrollCenter();
+}
+document.getElementById("file").addEventListener("change", async e => {
+  const f = e.target.files[0]; if (!f) return;
+  const cbox = document.getElementById("colors");
+  cbox.style.display = "flex"; cbox.innerHTML = T().uploading;
+  const b64 = await new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 1000;
+        let w = img.width, h = img.height;
+        if (Math.max(w, h) > max) { const s = max / Math.max(w, h); w = Math.round(w * s); h = Math.round(h * s); }
+        const c = document.createElement("canvas"); c.width = w; c.height = h;
+        c.getContext("2d").drawImage(img, 0, 0, w, h);
+        res(c.toDataURL("image/jpeg", 0.85).split(",")[1]);
+      };
+      img.onerror = rej;
+      img.src = r.result;
+    };
+    r.onerror = rej;
+    r.readAsDataURL(f);
+  });
+  try {
+    const r = await fetch("/api/upload", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({image_b64:b64})});
+    const d = await r.json();
+    if (d.colors) {
+      imageColors = d.colors;
+      const chips = d.colors.map(c=>`<span class="chip"><span class="sw" style="background:${c.hex}"></span>${c.five_color} ${c.hex}</span>`).join("");
+      cbox.innerHTML = T().colors + chips;
+      document.getElementById("chat").insertAdjacentHTML("beforeend",
+        `<div class="intro" style="margin-top:24px;">📷 ${T().imgok}<div class="colors" style="display:flex;margin:8px 0 0;">${chips}</div></div>`);
+      scrollCenter();
+      if (!document.getElementById("q").value) document.getElementById("q").value = T().imgq;
+    } else {
+      cbox.innerHTML = ""; cbox.style.display = "none";
+      alert(d.error || "upload failed");
+    }
+  } catch (err) {
+    cbox.innerHTML = ""; cbox.style.display = "none";
+    alert("upload error: " + err);
+  }
+  e.target.value = "";
+});
+document.getElementById("q").addEventListener("keydown", e => { if (e.key==="Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
+function scrollCenter() { const c = document.getElementById("center"); c.scrollTop = c.scrollHeight; }
+function scrollPanel() { const p = document.getElementById("panel"); p.scrollTop = p.scrollHeight; }
+function escapeHtml(s){ return s.replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function md(s){ return escapeHtml(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>"); }
+applyI18n();
+</script>
+</body>
+</html>
