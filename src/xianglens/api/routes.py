@@ -11,7 +11,17 @@ from pathlib import Path
 from typing import Annotated
 from urllib.parse import urlsplit, urlunsplit
 
-from fastapi import APIRouter, File, HTTPException, Query, Request, Response, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    File,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
 from starlette.background import BackgroundTask
 from starlette.responses import FileResponse, StreamingResponse
 
@@ -20,6 +30,7 @@ from xianglens.inference.llama_client import ModelNotConfiguredError, ModelReque
 from xianglens.schemas import (
     LENS_PACKS,
     AccessSession,
+    AnalysisRunAccepted,
     AnalysisRunRequest,
     AnalysisRunResponse,
     ConsentDecision,
@@ -195,6 +206,35 @@ def _finalize_analysis(
 
 def _sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+async def _complete_analysis_in_background(
+    services: AppServices,
+    *,
+    thread_id: str,
+    thread: dict,
+    images: list[dict],
+    run_id: str,
+    message: str,
+    initial_state: dict,
+) -> None:
+    try:
+        result = await services.graph.ainvoke(initial_state)
+        _finalize_analysis(
+            services,
+            thread_id=thread_id,
+            thread=thread,
+            images=images,
+            run_id=run_id,
+            message=message,
+            result=result,
+        )
+    except (ModelNotConfiguredError, ModelRequestError) as exc:
+        LOGGER.warning("Background analysis run failed: %s", exc)
+        services.database.finish_run(run_id, "failed", {"error": str(exc)})
+    except Exception:
+        LOGGER.exception("Background analysis run failed")
+        services.database.finish_run(run_id, "failed", {"error": "Analysis run failed"})
 
 
 @router.get("/health")
@@ -412,6 +452,34 @@ async def run_analysis(
         LOGGER.exception("Analysis run failed")
         services.database.finish_run(run_id, "failed", {"error": "internal error"})
         raise HTTPException(status_code=500, detail="Analysis run failed") from exc
+
+
+@router.post(
+    "/api/v1/threads/{thread_id}/runs/async",
+    response_model=AnalysisRunAccepted,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def start_background_analysis(
+    thread_id: str,
+    payload: AnalysisRunRequest,
+    request: Request,
+    background_tasks: BackgroundTasks,
+) -> AnalysisRunAccepted:
+    services = _services(request)
+    thread, images, run_id, initial_state = _start_analysis(
+        services, thread_id, payload, _session_user_id(request)
+    )
+    background_tasks.add_task(
+        _complete_analysis_in_background,
+        services,
+        thread_id=thread_id,
+        thread=thread,
+        images=images,
+        run_id=run_id,
+        message=payload.message,
+        initial_state=initial_state,
+    )
+    return AnalysisRunAccepted(run_id=run_id, thread_id=thread_id)
 
 
 @router.post("/api/v1/threads/{thread_id}/runs/stream")

@@ -92,7 +92,9 @@ The successful path executes ten auditable nodes:
 
 Sensitive requests take a short branch from the policy gate to a blocked report. Each completed node
 emits an SSE trace with tool name, status, public summary, and duration. Chain-of-thought is never
-included.
+included. Direct deployments use that live stream. The GitHub Pages build starts the same graph with
+a short `202` request and polls the durable run record because the Radeon public tunnel resets long
+HTTP/2 SSE connections; the completed response restores the identical plan and full tool trace.
 
 ## Core Track 2 Capabilities
 
@@ -152,7 +154,7 @@ XiangLens targets an interactive, batch-size-1 workload instead of maximum multi
 | Deterministic tools first | EXIF, QR, crop, and size checks run before the VLM | Avoids spending tokens on objective checks |
 | Small typed calls | Visual facts, comparison, memory, and report use bounded schemas | Reduces output length and repair cost |
 | Reasoning headroom | Final-content and thinking budgets are separated | Prevents empty final responses |
-| SSE progress | Every node streams completion and duration | Improves perceived latency and debuggability |
+| Dual run transport | Local SSE plus short-request polling through the public tunnel | Preserves traceability without HTTP/2 resets |
 
 The project reports llama.cpp performance empirically. It does not claim that one hardware feature
 alone explains a difference from vLLM. Exact prompt, image, quantization, context, cache, warmup, and

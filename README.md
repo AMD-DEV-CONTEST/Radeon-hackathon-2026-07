@@ -154,6 +154,7 @@ Useful endpoints:
 | `POST` | `/api/v1/threads` | Create a conversation thread |
 | `POST` | `/api/v1/threads/{id}/images` | Upload a JPEG, PNG, or WebP image |
 | `POST` | `/api/v1/threads/{id}/runs` | Execute the complete agent graph |
+| `POST` | `/api/v1/threads/{id}/runs/async` | Start a background run for short-request polling |
 | `POST` | `/api/v1/threads/{id}/runs/stream` | Execute the graph with live SSE node events |
 | `GET` | `/api/v1/threads/{id}/state` | Restore images and recent messages |
 | `GET` | `/api/v1/threads/{id}/runs` | List stored run results |
@@ -184,7 +185,9 @@ The deployable artifact is `apps/web/.output/public`. The public page includes a
 preview. Configure the repository Actions variable `XIANGLENS_API_BASE` with the public HTTPS URL of
 FastAPI; the UI uses that build-time default and keeps the override under **Advanced settings**.
 Preview mode keeps selected files inside the browser and never fabricates analysis output. Live
-analysis still requires the FastAPI application; do not point the UI directly at llama-server.
+analysis still requires the FastAPI application; do not point the UI directly at llama-server. The
+Pages workflow uses background-run polling because the Radeon public tunnel may reset long HTTP/2
+SSE responses. Local direct deployments keep live SSE by default.
 
 ## Test
 

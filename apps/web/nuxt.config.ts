@@ -5,7 +5,8 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://127.0.0.1:8080'
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://127.0.0.1:8080',
+      runTransport: process.env.NUXT_PUBLIC_RUN_TRANSPORT || 'stream'
     }
   },
   app: {
@@ -20,4 +21,3 @@ export default defineNuxtConfig({
     }
   }
 })
-

@@ -144,6 +144,45 @@ def test_auth_rejection_keeps_cors_headers_on_stream_route(tmp_path: Path) -> No
     assert response.headers["access-control-allow-credentials"] == "true"
 
 
+def test_background_run_returns_polling_contract(tmp_path: Path) -> None:
+    headers = {"X-App-API-Key": "test-key"}
+    image_path = next((PROJECT_ROOT / "data/fixtures/images").glob("*.jpg"))
+    with TestClient(_test_app(tmp_path)) as client:
+        thread_response = client.post(
+            "/api/v1/threads", json={"user_id": "ada"}, headers=headers
+        )
+        thread_id = thread_response.json()["id"]
+        with image_path.open("rb") as image_handle:
+            upload_response = client.post(
+                f"/api/v1/threads/{thread_id}/images",
+                files={"image": (image_path.name, image_handle, "image/jpeg")},
+                headers=headers,
+            )
+        image_id = upload_response.json()["id"]
+
+        accepted = client.post(
+            f"/api/v1/threads/{thread_id}/runs/async",
+            headers=headers,
+            json={
+                "message": "Review this image for GitHub.",
+                "platform": "GitHub",
+                "audience": "international open-source collaborators",
+                "intent_keywords": ["credible"],
+                "image_ids": [image_id],
+                "enabled_packs": ["profile_basics"],
+            },
+        )
+
+        assert accepted.status_code == 202
+        assert accepted.json()["status"] == "running"
+        assert accepted.json()["poll_after_ms"] == 1000
+        run = client.get(f"/api/v1/runs/{accepted.json()['run_id']}", headers=headers)
+        assert run.status_code == 200
+        assert run.json()["status"] == "completed"
+        assert run.json()["result"]["run_id"] == accepted.json()["run_id"]
+        assert run.json()["result"]["report_markdown"].startswith("# XiangLens Review")
+
+
 def test_api_executes_the_complete_graph(tmp_path: Path) -> None:
     headers = {"X-App-API-Key": "test-key"}
     image_path = next((PROJECT_ROOT / "data/fixtures/images").glob("*.jpg"))

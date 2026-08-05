@@ -258,6 +258,7 @@ When changing the FastAPI port, set the web API base through the UI's **Advanced
 
 ```env
 NUXT_PUBLIC_API_BASE=http://127.0.0.1:8081
+NUXT_PUBLIC_RUN_TRANSPORT=stream
 ```
 
 Add the new web origin to `XIANG_ALLOWED_ORIGINS`, for example

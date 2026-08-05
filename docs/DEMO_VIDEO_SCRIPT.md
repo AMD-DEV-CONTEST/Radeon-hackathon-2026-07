@@ -128,17 +128,18 @@ Policy -> Memory recall -> Local tools -> Vision -> Private Lens -> RAG -> Compa
 **Screen**
 
 - Click **Compare candidates**.
-- Keep the Workflow panel visible while node events arrive.
+- Keep the Workflow panel visible while the background run is active; then show the complete node
+  trace when the durable result arrives.
 - Briefly show Radeon utilization moving in a small terminal crop or split view.
 - Do not speed up the portion that proves real execution; trim only idle waiting.
 
 **Narration**
 
-> Each completed node streams its public tool name, duration, and summary. Objective checks run
-> before the model. The VLM describes visible facts without identity or personality inference. Top-K
-> retrieval keeps the public prompt focused. The opt-in private node emits only a filtered symbolic
-> reading and technique identifier, while typed outputs and one repair attempt protect the final
-> workflow.
+> The public tunnel uses a short background-run request and polls durable state, avoiding its HTTP/2
+> streaming limit. The completed result still exposes every public tool name, duration, and summary.
+> Objective checks run before the model. The VLM describes visible facts without identity or
+> personality inference. Top-K retrieval keeps the public prompt focused, and the opt-in private node
+> emits only a filtered symbolic reading and technique identifier.
 
 **On-screen callouts**
 

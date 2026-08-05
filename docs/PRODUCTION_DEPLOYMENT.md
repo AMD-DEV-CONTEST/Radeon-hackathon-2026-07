@@ -343,6 +343,9 @@ Important tunnel behavior:
 
 - The public domain may change when the Notebook is recreated.
 - Only one port can be exposed from a Notebook at a time.
+- The public tunnel can terminate long HTTP/2 SSE responses even after returning `200 OK`.
+  GitHub Pages therefore starts a background run with a short `202` request and polls durable run
+  state; local direct deployments retain live SSE node events.
 - Stopping the tunnel invalidates the public URL immediately.
 - Do not copy or edit the tunnel identity files.
 
@@ -402,7 +405,7 @@ Complete this checklist before recording or judging:
 - [ ] Model status is **Reachable**.
 - [ ] Milvus status is **Milvus ready**.
 - [ ] Upload one fixture from `data/fixtures/images/`.
-- [ ] Run a single-image review and observe all agent node events.
+- [ ] Run a single-image review and confirm the final trace contains all agent nodes.
 - [ ] Open at least one cited evidence source.
 - [ ] Approve or reject a memory proposal.
 - [ ] Download a metadata-free safe copy.
@@ -570,6 +573,19 @@ curl -i "$xiang_public_url/api/v1/system/status" \
 Both responses must include `Access-Control-Allow-Origin: https://ld0574.github.io`. The second
 response should otherwise remain `401 Unauthorized`; that proves the browser can now read the real
 authentication result. If the token expired, start a new private access session before continuing.
+
+### Analysis reports `ERR_HTTP2_PROTOCOL_ERROR 200 (OK)`
+
+This means the browser received the initial SSE `200` response, but the public Radeon tunnel reset
+the HTTP/2 stream before `run.completed`. It is not a CORS or model error. The Pages workflow sets
+`NUXT_PUBLIC_RUN_TRANSPORT=poll`, which uses:
+
+1. `POST /api/v1/threads/{thread_id}/runs/async` to return `202` immediately;
+2. `GET /api/v1/runs/{run_id}` every second until the durable result is complete.
+
+Pull the latest backend commit, restart FastAPI, and rerun the Pages workflow. Do not switch Pages
+back to `stream` while using the `rc-*.radeon.firstdg.ai` tunnel. Direct local deployments can keep
+`NUXT_PUBLIC_RUN_TRANSPORT=stream` for live node-by-node SSE.
 
 ### The UI reports `Access-session issuance is not enabled`
 

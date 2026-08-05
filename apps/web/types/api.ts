@@ -113,6 +113,23 @@ export interface AnalysisRunResponse {
   }
 }
 
+export interface AnalysisRunAccepted {
+  run_id: string
+  thread_id: string
+  status: 'running'
+  poll_after_ms: number
+}
+
+export interface RunRecord {
+  id: string
+  thread_id: string
+  status: 'running' | 'completed' | 'blocked' | 'failed' | 'cancelled'
+  request: Record<string, unknown>
+  result: AnalysisRunResponse | { error?: string } | null
+  created_at: string
+  completed_at: string | null
+}
+
 export interface MemoryRecord {
   id: string
   user_id: string

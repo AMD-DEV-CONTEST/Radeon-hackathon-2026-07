@@ -1,4 +1,10 @@
-import type { AccessSession, StreamEvent } from '~/types/api'
+import type {
+  AccessSession,
+  AnalysisRunAccepted,
+  AnalysisRunResponse,
+  RunRecord,
+  StreamEvent
+} from '~/types/api'
 
 export function useXiangLensApi() {
   const config = useRuntimeConfig()
@@ -10,6 +16,7 @@ export function useXiangLensApi() {
     const value = apiBaseOverride.value || String(config.public.apiBase)
     return value.trim().replace(/\/$/, '')
   })
+  const runTransport = computed(() => String(config.public.runTransport || 'stream'))
 
   function setApiBase(value: string) {
     const normalized = value.trim().replace(/\/$/, '')
@@ -120,6 +127,37 @@ export function useXiangLensApi() {
     }
   }
 
+  async function pollRun(
+    path: string,
+    body: unknown,
+    onEvent: (event: StreamEvent) => void
+  ): Promise<void> {
+    const accepted = await request<AnalysisRunAccepted>(`${path}/async`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+    const deadline = Date.now() + 10 * 60 * 1000
+    const delay = Math.max(250, Math.min(accepted.poll_after_ms, 5000))
+    while (Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, delay))
+      const record = await request<RunRecord>(`/api/v1/runs/${accepted.run_id}`)
+      if (record.status === 'running') continue
+      if ((record.status === 'completed' || record.status === 'blocked') && record.result) {
+        onEvent({
+          event: 'run.completed',
+          data: record.result as AnalysisRunResponse as unknown as Record<string, unknown>
+        })
+        return
+      }
+      const detail = record.result && 'error' in record.result
+        ? record.result.error
+        : undefined
+      throw new Error(detail || `Analysis ended with status: ${record.status}`)
+    }
+    throw new Error('Analysis polling timed out after 10 minutes')
+  }
+
   async function download(path: string): Promise<Blob> {
     const response = await fetch(`${apiBase.value}${path}`, {
       method: 'POST',
@@ -131,6 +169,7 @@ export function useXiangLensApi() {
 
   return {
     apiBase,
+    runTransport,
     accessToken,
     sessionId,
     sessionExpiresAt,
@@ -140,6 +179,7 @@ export function useXiangLensApi() {
     clearSession,
     request,
     stream,
+    pollRun,
     download
   }
 }

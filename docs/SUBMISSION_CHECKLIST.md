@@ -107,7 +107,7 @@ Review every match manually; placeholders and test fixtures are acceptable only 
 - [ ] Spoken narration and captions are English.
 - [ ] First 20 seconds state the problem, product, Track 2, and Radeon runtime.
 - [ ] The recording shows an actual command-line Radeon environment.
-- [ ] The recording shows the real GUI, upload, streaming execution, and final report.
+- [ ] The recording shows the real GUI, upload, background execution, complete trace, and final report.
 - [ ] Tool trace, retrieved evidence, memory consent, and deletion are visible.
 - [ ] The private Lens checkbox, completed trace node, technique identifier, and disclaimer are visible.
 - [ ] Performance metrics and GPU telemetry are legible.

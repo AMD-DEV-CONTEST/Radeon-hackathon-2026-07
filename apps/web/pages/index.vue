@@ -177,6 +177,7 @@ function consumeEvent(streamEvent: StreamEvent) {
     const completed = streamEvent.data as unknown as AnalysisRunResponse
     result.value = completed
     plan.value = completed.plan
+    events.value = completed.tool_trace
   }
   if (streamEvent.event === 'run.failed') {
     actionError.value = String(streamEvent.data.error || 'Analysis failed')
@@ -192,19 +193,21 @@ async function analyze() {
   plan.value = []
   try {
     const currentThread = await ensureThread()
-    await api.stream(
-      `/api/v1/threads/${currentThread}/runs/stream`,
-      {
-        message: form.message,
-        platform: form.platform,
-        audience: form.audience,
-        intent_keywords: form.goals.split(',').map((value: string) => value.trim()).filter(Boolean),
-        image_ids: images.value.map((image: UploadedImage) => image.id),
-        enabled_packs: form.enabledPacks,
-        enable_private_lens: form.enablePrivateLens
-      },
-      consumeEvent
-    )
+    const runPath = `/api/v1/threads/${currentThread}/runs`
+    const payload = {
+      message: form.message,
+      platform: form.platform,
+      audience: form.audience,
+      intent_keywords: form.goals.split(',').map((value: string) => value.trim()).filter(Boolean),
+      image_ids: images.value.map((image: UploadedImage) => image.id),
+      enabled_packs: form.enabledPacks,
+      enable_private_lens: form.enablePrivateLens
+    }
+    if (api.runTransport.value === 'poll') {
+      await api.pollRun(runPath, payload, consumeEvent)
+    } else {
+      await api.stream(`${runPath}/stream`, payload, consumeEvent)
+    }
   } catch (error) {
     actionError.value = error instanceof Error ? error.message : String(error)
   } finally {

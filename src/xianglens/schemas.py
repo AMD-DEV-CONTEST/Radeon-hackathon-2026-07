@@ -80,6 +80,13 @@ class AnalysisRunRequest(BaseModel):
     enable_private_lens: bool = False
 
 
+class AnalysisRunAccepted(BaseModel):
+    run_id: str
+    thread_id: str
+    status: Literal["running"] = "running"
+    poll_after_ms: int = Field(default=1000, ge=250, le=5000)
+
+
 class EvidenceCard(BaseModel):
     card_id: str
     text: str

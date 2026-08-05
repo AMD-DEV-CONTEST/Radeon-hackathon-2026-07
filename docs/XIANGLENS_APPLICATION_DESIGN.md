@@ -669,6 +669,7 @@ Validation sequence:
 | `POST` | `/api/v1/threads` | Create a thread |
 | `POST` | `/api/v1/threads/{id}/images` | Upload one to four images |
 | `POST` | `/api/v1/threads/{id}/runs` | Execute the graph and return one structured result |
+| `POST` | `/api/v1/threads/{id}/runs/async` | Start a background graph run and return `202` plus a run ID |
 | `POST` | `/api/v1/threads/{id}/runs/stream` | Execute the graph and stream SSE node events |
 | `GET` | `/api/v1/threads/{id}` | Restore thread state |
 | `GET` | `/api/v1/threads/{id}/state` | Restore images and recent messages |
@@ -695,6 +696,10 @@ run.failed
 `node.completed` carries the public tool trace and the bounded plan when it first becomes
 available. It never includes chain-of-thought or absolute server paths. Finer-grained token and
 tool events remain an optional post-MVP extension.
+
+GitHub Pages uses the async endpoint and polls `GET /api/v1/runs/{run_id}` because the Radeon public
+tunnel can reset long HTTP/2 SSE streams. Direct local connections retain SSE. Both transports
+return the same validated result, fixed plan, and public tool trace.
 
 ### 14.3 Main Workspace
 
