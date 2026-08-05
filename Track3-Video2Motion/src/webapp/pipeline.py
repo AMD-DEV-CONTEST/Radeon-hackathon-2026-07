@@ -179,17 +179,20 @@ def bundle(name: str) -> str | None:
     if smplx.is_dir():
         items += [(f, f"{mn}/1_smplx/{f.name}")
                   for f in sorted(smplx.iterdir()) if f.is_file()]
-    for f, arc in ((C.MOTIONS_RAW / f"{mn}.pkl", "2_motion"),
-                   (C.MOTIONS_MJX / f"{mn}.npz", "2_motion"),
-                   (C.MOTIONS_BM / f"{mn}.npz", "2_motion"),
-                   (C.RENDER_OUT / f"replay_{mn}.mp4", "2_motion"),
-                   (C.RENDER_OUT / f"{mn}_retarget.mp4", "2_motion"),
-                   (C.RENDER_OUT / f"web_{mn}_layer1.mp4", "4_simulation"),
-                   (C.RENDER_OUT / f"web_{mn}_layer2.mp4", "4_simulation"),
-                   (C.RENDER_OUT / f"{mn}_layer3.mp4", "4_simulation"),
-                   (C.DEPLOY_OUT / f"track_{mn}.npz", "4_simulation")):
+    # The stage directories reuse the same basename — motions_mjx/x.npz and
+    # motions_bm/x.npz differ only by directory — so the archive name has to
+    # carry the stage, or one silently lands on top of the other.
+    for f, arc in ((C.MOTIONS_RAW / f"{mn}.pkl", "2_motion/gmr.pkl"),
+                   (C.MOTIONS_MJX / f"{mn}.npz", "2_motion/mjx.npz"),
+                   (C.MOTIONS_BM / f"{mn}.npz", "2_motion/training_reference.npz"),
+                   (C.RENDER_OUT / f"replay_{mn}.mp4", "2_motion/replay.mp4"),
+                   (C.RENDER_OUT / f"{mn}_retarget.mp4", "2_motion/retarget.mp4"),
+                   (C.RENDER_OUT / f"web_{mn}_layer1.mp4", "4_simulation/layer1_mjx.mp4"),
+                   (C.RENDER_OUT / f"web_{mn}_layer2.mp4", "4_simulation/layer2_mujoco_c.mp4"),
+                   (C.RENDER_OUT / f"{mn}_layer3.mp4", "4_simulation/layer3_unitree_dds.mp4"),
+                   (C.DEPLOY_OUT / f"track_{mn}.npz", "4_simulation/policy_numpy.npz")):
         if f.exists():
-            items.append((f, f"{mn}/{arc}/{f.name}"))
+            items.append((f, f"{mn}/{arc}"))
     for run in (f"web_{mn}", f"bm_{mn}", mn):
         d = C.TRAIN_OUT / run
         if (d / "params_best").exists():
