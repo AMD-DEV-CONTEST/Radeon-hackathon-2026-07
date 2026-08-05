@@ -78,6 +78,12 @@ def main():
 
     proc.stdin.close()
     proc.wait()
+    # Close the renderer while the interpreter is still whole. Leaving it
+    # to __del__ runs the EGL teardown after module globals have been
+    # cleared, which prints 'Exception ignored ... TypeError: NoneType
+    # object is not callable' — alarming in a log, and harmless only if
+    # you already know that.
+    renderer.close()
     print(f"OK  saved {args.out}")
 
 

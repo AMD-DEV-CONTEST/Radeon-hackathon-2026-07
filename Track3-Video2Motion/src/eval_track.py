@@ -176,4 +176,10 @@ if args.video:
         proc.stdin.write(np.hstack([frame(ref_q), frame(qs[k])]).tobytes())
     proc.stdin.close()
     proc.wait()
+    # Close the renderer while the interpreter is still whole. Leaving it
+    # to __del__ runs the EGL teardown after module globals have been
+    # cleared, which prints 'Exception ignored ... TypeError: NoneType
+    # object is not callable' — alarming in a log, and harmless only if
+    # you already know that.
+    r.close()
     print(f"\nOK  {args.video}   left = reference, right = policy")

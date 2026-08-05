@@ -278,6 +278,12 @@ def main():
             p.stdin.write(np.hstack([draw(rq), draw(frames[k])]).tobytes())
         p.stdin.close()
         p.wait()
+        # Close the renderer while the interpreter is still whole. Leaving it
+        # to __del__ runs the EGL teardown after module globals have been
+        # cleared, which prints 'Exception ignored ... TypeError: NoneType
+        # object is not callable' — alarming in a log, and harmless only if
+        # you already know that.
+        r.close()
         print(f"{'Video':<26}{args.out}")
 
 
