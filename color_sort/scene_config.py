@@ -32,8 +32,8 @@ ASSETS = Path(__file__).resolve().parent.parent / "assets" / "ycb"
 
 # == YCB object layout ==
 # Each object: real-world color, position on tabletop, euler rotation.
-# Train objects: banana (yellow), plum (purple), strawberry (red) — all demo-verified
-# reliable grasps (short axis < 6cm), each with a distinct color and its own container.
+# Train objects: banana (yellow), plum (purple), red_cube (red) — all reliable grasps
+# (short axis < 6cm), each with a distinct color and its own container.
 # Eval object: lemon (yellow) — held-out generalization test.
 YCB_LAYOUT: dict[str, dict] = {
     # Train objects — each placed within ~0.12m of its container so the lateral transport
@@ -42,13 +42,13 @@ YCB_LAYOUT: dict[str, dict] = {
     # The banana is elongated and grips well, so it can sit farther from its bin (no overlap).
     "011_banana": {"pos": (0.36, 0.0, 0.0), "euler": (0.0, 0.0, 35.0), "color": "yellow", "friction": 1.0},
     "018_plum": {"pos": (0.44, -0.24, 0.0), "euler": (0.0, 0.0, 0.0), "color": "purple", "friction": 1.0},
-    "012_strawberry": {"pos": (0.44, 0.24, 0.0), "euler": (0.0, 0.0, 0.0), "color": "red", "friction": 1.0},
+    "red_cube": {"pos": (0.44, 0.24, 0.0), "euler": (0.0, 0.0, 0.0), "color": "red", "friction": 1.0},
     # Eval object (hold-out, not in training data)
     "014_lemon": {"pos": (0.44, 0.0, 0.0), "euler": (0.0, 0.0, 0.0), "color": "yellow", "friction": 1.0},
 }
 
 # Train/eval split
-TRAIN_YCB_NAMES = ("011_banana", "018_plum", "012_strawberry")
+TRAIN_YCB_NAMES = ("011_banana", "018_plum", "red_cube")
 EVAL_YCB_NAMES = ("014_lemon",)
 
 # Color mapping for task descriptions and containers
@@ -62,13 +62,20 @@ COLOR_RGB = {
 YCB_DISPLAY_NAMES = {
     "011_banana": "banana",
     "018_plum": "plum",
-    "012_strawberry": "strawberry",
+    "red_cube": "red cube",
     "014_lemon": "lemon",
+}
+
+# == Geometry objects (procedural primitives, no mesh file) ==
+# Keyed by object name → Box size (m). Used when an object is not a YCB mesh.
+# A 5cm cube: short axis 5cm (< 6cm reliable grasp), height 5cm (< 6cm shallow-box fit).
+GEOMETRY_OBJECTS: dict[str, tuple[float, float, float]] = {
+    "red_cube": (0.05, 0.05, 0.05),
 }
 
 # == Per-color containers (5-box recessed bin) ==
 # Enlarged to 16cm so the 20cm banana can sit diagonally (20cm < 16*sqrt(2)=22.6cm)
-# and dip its bottom below the rim. Round objects (plum/strawberry/lemon) fit easily.
+# and dip its bottom below the rim. Round objects (plum/lemon) fit easily.
 CONTAINER_BOTTOM_SIZE = (0.16, 0.16, 0.004)  # floor slab (lx, ly, lz)
 CONTAINER_WALL_THICKNESS = 0.004
 CONTAINER_WALL_HEIGHT = 0.05
@@ -122,10 +129,10 @@ VIDEO_CAM_FOV = 42
 
 @dataclass(frozen=True)
 class YCBAsset:
-    """A YCB object with precomputed geometry."""
+    """An object with precomputed geometry (YCB mesh or procedural box)."""
     name: str
-    mesh_path: Path
-    collision_path: Path
+    mesh_path: Path | None  # None for procedural geometry objects
+    collision_path: Path | None  # None for procedural geometry objects
     rest_z_offset: float  # z from mesh origin to lowest point (m)
     radius_xy: float  # circumscribed radius of xy footprint (m)
     color: str  # assigned color category
@@ -144,10 +151,26 @@ def _mesh_geometry(mesh_path: Path) -> tuple[float, float]:
 
 
 def get_ycb_assets(names: tuple[str, ...]) -> dict[str, YCBAsset]:
-    """Return YCBAsset dict for the given YCB object names."""
+    """Return YCBAsset dict for the given object names (YCB meshes or geometry boxes)."""
     assets: dict[str, YCBAsset] = {}
     for name in names:
         layout = YCB_LAYOUT[name]
+        color = layout["color"]
+        friction = layout.get("friction", 1.0)
+        if name in GEOMETRY_OBJECTS:
+            size = GEOMETRY_OBJECTS[name]
+            rest_z_offset = size[2] / 2
+            radius_xy = 0.5 * float((size[0] ** 2 + size[1] ** 2) ** 0.5)
+            assets[name] = YCBAsset(
+                name=name,
+                mesh_path=None,
+                collision_path=None,
+                rest_z_offset=rest_z_offset,
+                radius_xy=radius_xy,
+                color=color,
+                friction=friction,
+            )
+            continue
         mesh_path = ASSETS / name / "textured.obj"
         collision_path = ASSETS / name / "collision.ply"
         rest_z_offset, radius_xy = _mesh_geometry(mesh_path)
@@ -157,8 +180,8 @@ def get_ycb_assets(names: tuple[str, ...]) -> dict[str, YCBAsset]:
             collision_path=collision_path,
             rest_z_offset=rest_z_offset,
             radius_xy=radius_xy,
-            color=layout["color"],
-            friction=layout.get("friction", 1.0),
+            color=color,
+            friction=friction,
         )
     return assets
 

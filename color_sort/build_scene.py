@@ -37,6 +37,7 @@ from scene_config import (
     FRANKA_KV,
     FRANKA_POS,
     FRANKA_QPOS,
+    GEOMETRY_OBJECTS,
     REACH_X,
     REACH_Y,
     TABLE_CENTER,
@@ -135,10 +136,23 @@ def _add_table(scene: gs.Scene) -> list:
 
 
 def _add_ycb_object(scene: gs.Scene, name: str, asset) -> gs.RigidEntity:
-    """Add a YCB mesh object to the scene with its real texture."""
+    """Add an object to the scene: a YCB mesh or a procedural geometry box."""
     layout = YCB_LAYOUT[name]
     x, y, _ = layout["pos"]
     z = TABLE_TOP_Z + asset.rest_z_offset
+
+    if asset.mesh_path is None:
+        # Procedural geometry object (e.g. red_cube) — a plain colored box.
+        size = GEOMETRY_OBJECTS[name]
+        return scene.add_entity(
+            morph=gs.morphs.Box(
+                size=size,
+                pos=(x, y, z),
+                euler=layout["euler"],
+            ),
+            material=gs.materials.Rigid(rho=300.0, friction=asset.friction),
+            surface=gs.surfaces.Plastic(color=COLOR_RGB[asset.color]),
+        )
 
     return scene.add_entity(
         morph=gs.morphs.Mesh(
