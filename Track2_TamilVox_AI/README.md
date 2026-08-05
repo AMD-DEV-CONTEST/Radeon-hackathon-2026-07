@@ -114,10 +114,4 @@ uvicorn server:app --host 0.0.0.0 --port 8000
 2. Edit `tamilvox_config.h` with your WiFi SSID, Password, Laptop IP, and HiveMQ credentials.
 3. Flash to ESP32 Dev Module (Partition Scheme: Default 4MB with SPIFFS).
 
----
-
-## 📹 Video Demonstration
-- **Demo Video URL**: [Insert your YouTube / Google Drive / Loom video link here]
-
----
 *Submitted for AMD AI DevMaster Hackathon 2026.*
