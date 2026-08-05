@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>PrivateOps Agent - Project Specification</title>
+  <style>
+    @page { size: A4; margin: 18mm 17mm 18mm; @bottom-right { content: counter(page); color: #77808f; font: 9pt Arial; } }
+    :root { --ink:#131722; --muted:#687184; --line:#d9dde5; --accent:#e94b2b; --dark:#11151f; --soft:#f3f5f7; }
+    * { box-sizing:border-box; } body { margin:0; color:var(--ink); font:10.5pt/1.55 Arial,sans-serif; }
+    .cover { min-height:245mm; display:flex; flex-direction:column; justify-content:space-between; padding:15mm; color:white; background:var(--dark); }
+    .track { color:#ff795d; font-size:10pt; letter-spacing:.16em; font-weight:bold; }
+    h1 { max-width:150mm; margin:20mm 0 6mm; font-size:38pt; line-height:.96; letter-spacing:-.04em; }
+    .tagline { max-width:130mm; color:#b8bfca; font-size:16pt; }
+    .cover-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:5mm; }
+    .cover-grid div { padding-top:4mm; border-top:1px solid #3a4251; } .cover-grid b,.cover-grid span { display:block; } .cover-grid span { color:#9ca5b3; font-size:9pt; margin-top:2mm; }
+    .page { break-before:page; } h2 { margin:0 0 6mm; font-size:24pt; letter-spacing:-.03em; } h3 { margin:7mm 0 2mm; font-size:14pt; }
+    p { margin:0 0 3.5mm; } .lead { font-size:13pt; color:#394154; }
+    .rule { width:18mm; height:3px; margin:0 0 7mm; background:var(--accent); }
+    .callout { margin:7mm 0; padding:5mm; border-left:4px solid var(--accent); background:#fff1ed; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:5mm; } .box { padding:5mm; border:1px solid var(--line); border-radius:3mm; background:var(--soft); }
+    .box b { display:block; margin-bottom:2mm; } ul,ol { padding-left:5mm; } li { margin-bottom:1.5mm; }
+    table { width:100%; border-collapse:collapse; margin:5mm 0; font-size:9.2pt; } th,td { padding:3mm; border:1px solid var(--line); text-align:left; vertical-align:top; } th { background:var(--dark); color:white; }
+    .flow { display:grid; grid-template-columns:repeat(5,1fr); gap:2mm; margin:7mm 0; } .flow div { padding:4mm 2mm; text-align:center; border-radius:2mm; background:var(--dark); color:white; font-size:8.5pt; } .flow b { display:block; color:#ff795d; margin-bottom:1mm; }
+    .footer-note { margin-top:10mm; color:var(--muted); font-size:8.5pt; }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <div><div class="track">2026 AMD AI DEVMASTER · TRACK 2</div><h1>PrivateOps<br />Agent</h1><p class="tagline">A permission-first private computer AI on AMD Radeon GPU + ROCm.</p></div>
+    <div class="cover-grid"><div><b>Broad visibility</b><span>Supported computer and project observation</span></div><div><b>Deliberate action</b><span>Exact-action confirmation</span></div><div><b>Evidence for every decision</b><span>Local audit + measured Radeon proof</span></div></div>
+  </section>
+
+  <section class="page"><div class="rule"></div><h2>1. Application scenario</h2>
+    <p class="lead">People increasingly say, “I gave my whole computer to my AI.” Useful AI needs permission if it is going to take work away from people—but permission must not mean silent control.</p>
+    <div class="callout"><b>Product promise.</b> Broad visibility. Deliberate action. Evidence for every decision. PrivateOps observes supported computer and project state, defaults to read-only behavior, and requires a second exact-action confirmation before any supported side effect.</div>
+    <h3>User problem</h3><p>Keeping inference local is not enough. Users need to inspect what the Agent saw, which tools ran, what it remembered, and whether a request crossed a permission boundary. “Whole-computer permission” means broad supported observation, never unrestricted administrator access.</p>
+    <h3>Target users</h3><div class="grid"><div class="box"><b>Independent developers</b>Release audits, competition packaging, repository inspection, and reproducible checks.</div><div class="box"><b>Small private teams</b>Local knowledge operations where source code, credentials, and internal plans cannot leave the workspace.</div></div>
+    <h3>Distinctive value</h3><ul><li>Windows exposes seven fixed read-only system collectors; Radeon Cloud exposes private project and runtime observation.</li><li>`safe`, `confirm`, and `blocked` decisions remain visible with one-use confirmation tokens and audit IDs.</li><li>All five Track 2 capability categories are demonstrated in one coherent workflow.</li></ul>
+  </section>
+
+  <section class="page"><div class="rule"></div><h2>2. Architecture and data flow</h2>
+    <p class="lead">A dependency-light Python service orchestrates local evidence, planning, guarded tools, memory, model inference, audit, and benchmark proof. A no-build browser console exposes every layer.</p>
+    <div class="flow"><div><b>01</b>Classify permission</div><div><b>02</b>Retrieve evidence</div><div><b>03</b>Plan and run tools</div><div><b>04</b>Generate locally</div><div><b>05</b>Append audit</div></div>
+    <table><tr><th>Component</th><th>Responsibility</th><th>Trust property</th></tr>
+      <tr><td>Retrieval</td><td>Indexes approved text files, ranks matches, creates stable evidence IDs.</td><td>Answers expose source and snippet.</td></tr>
+      <tr><td>Permission engine</td><td>Classifies requests as safe, confirm, or blocked.</td><td>Side effects never execute silently.</td></tr>
+      <tr><td>Tool registry</td><td>Inventory, search, tests, and readiness checks.</td><td>Paths stay in workspace; commands are allow-listed.</td></tr>
+      <tr><td>Planner</td><td>Creates retrieve, inspect, and synthesize steps.</td><td>Status and results remain visible.</td></tr>
+      <tr><td>Local state</td><td>Memory, JSONL audit, profile, and benchmark evidence.</td><td>Atomic writes and credential redaction.</td></tr>
+      <tr><td>ROCm provider</td><td>Calls a loopback OpenAI-compatible model server.</td><td>No closed remote core dependency.</td></tr>
+    </table>
+    <h3>Failure behavior</h3><p>Malformed and oversized requests receive stable errors. Non-loopback competition endpoints, path escape, shell metacharacters, expired or reused confirmation tokens, and unsupported verified benchmark claims are rejected. ROCm mode never silently falls back to development output.</p>
+  </section>
+
+  <section class="page"><div class="rule"></div><h2>3. Core capabilities</h2>
+    <div class="grid">
+      <div class="box"><b>Local RAG</b>Fourteen bilingual project documents, Chinese bigram retrieval, stable evidence IDs, and bounded source snippets.</div>
+      <div class="box"><b>Tool calling</b>Project tools plus seven fixed read-only Windows collectors, all with explicit structured results.</div>
+      <div class="box"><b>Multi-step planning</b>A simple, inspectable plan separates retrieval, tool work, and answer synthesis.</div>
+      <div class="box"><b>Local memory</b>Project facts and user preferences remain in atomic local JSON state.</div>
+      <div class="box"><b>Privacy controls</b>Three risk levels, one-use tokens, path confinement, command allow-listing, and blocked exfiltration.</div>
+      <div class="box"><b>Audit ledger</b>Chronological JSONL records answer preview, evidence, tools, permissions, provider, latency, and memory updates.</div>
+    </div>
+    <h3>Agent framework</h3><p>PrivateOps uses LangChain Core `StructuredTool` adapters as its open Agent tool framework. Each adapter delegates to the existing permission-aware registry, so framework integration does not bypass path confinement, exact-action confirmation tokens, allow-listing, structured results, or audit recording.</p>
+    <h3>Interaction design</h3><p>The Local Trust Console leads with the user task but keeps proof adjacent: permission and runtime posture on the right, evidence and plan below, then the audit ledger and Radeon proof. Its explicit <b>Remote model</b> / <b>Local ROCm</b> selector keeps separate browser-local profiles: remote requires a key, while Local ROCm restores the loopback Qwen defaults and accepts an empty key. The interface is responsive, keyboard-focusable, and honors reduced-motion preferences.</p>
+  </section>
+
+  <section class="page"><div class="rule"></div><h2>4. Model and local deployment</h2>
+    <p class="lead">Competition mode runs an open-weight instruct model through vLLM on a loopback endpoint inside the same Radeon Cloud instance as PrivateOps.</p>
+    <table><tr><th>Mode</th><th>Purpose</th><th>Runtime contract</th></tr><tr><td>Remote model</td><td>Optional product integration testing on ordinary computers.</td><td>Absolute HTTP(S) endpoint and API key required.</td></tr><tr><td>Local ROCm</td><td>ROCm vLLM on `127.0.0.1` in the same instance.</td><td>Loopback required; API key optional; verified on Radeon.</td></tr></table>
+    <h3>Default model profile</h3><p>`Qwen/Qwen2.5-7B-Instruct` is the shared competition default. vLLM serves it on `127.0.0.1:8000` with an 8,192-token context and 0.85 GPU-memory utilization. The model is Apache-2.0 licensed and remains configurable when the selected cloud image requires another compatible open artifact.</p>
+    <h3>Privacy boundary</h3><ol><li>The browser talks only to the PrivateOps service.</li><li>The service retrieves files only from the configured workspace.</li><li>The service calls the model on a validated loopback URL.</li><li>API keys are omitted from status, audit, and browser responses.</li><li>Core behavior does not call shared public model APIs.</li></ol>
+    <h3>Reproducibility</h3><p>The repository provides separate commands for the ROCm model server, application, benchmark collector, tests, smoke check, and final material validation. The cloud runbook includes `rocminfo`, HIP, PyTorch, endpoint, tunnel, and evidence commands.</p>
+  </section>
+
+  <section class="page"><div class="rule"></div><h2>5. Radeon optimization and measurement</h2>
+    <p class="lead">A verified same-instance run captured AMD Radeon Graphics (`gfx1100`), ROCm 7.2.1, ROCm vLLM, and Qwen2.5-7B-Instruct. Submission metrics are generated from the immutable machine record.</p>
+    <h3>Implemented optimization</h3><ul><li>8,192-token context and 0.85 GPU-memory utilization preserve predictable headroom.</li><li>Loopback transport keeps prompts local and avoids public-network latency.</li><li>Top-k RAG, environment-directory exclusion, bounded inventory samples, and a 25-item list limit reduce model context.</li><li>Temperature zero improves repeatability during evidence collection.</li></ul>
+    <h3>Measured results</h3><table><tr><th>Metric</th><th>Verified value</th><th>Scope</th></tr><tr><td>Direct latency</td><td>1,511.072 ms</td><td>Loopback chat completion.</td></tr><tr><td>Completion throughput</td><td>32.427 tokens/s</td><td>49 measured completion tokens.</td></tr><tr><td>Complete Agent latency</td><td>18,384.639 ms</td><td>RAG, plan, tool, model, audit, response.</td></tr></table>
+    <div class="callout"><b>Integrity rule.</b> No baseline speedup, P50/P95, VRAM peak, concurrency, or hardware soak value is claimed without a new Radeon measurement.</div>
+  </section>
+
+  <section class="page"><div class="rule"></div><h2>6. Verification and deliverables</h2>
+    <h3>Automated coverage</h3><p>The 102-test local finalization baseline covers real bilingual retrieval, explicit remote/local provider validation, ROCm profile, LangChain tools, bounded inventories, permission levels, confirmation expiry/reuse, planning, memory, audit integrity, benchmark provenance, Agent orchestration, HTTP errors, Markdown safety, UI state, the provider-required smoke path, and unresolved submission placeholders. A repeatable software stability check adds repeated requests, memory persistence, audit ordering, visible provider failure, and zero silent fallback.</p>
+    <h3>Reviewer deliverables</h3><ul><li>Complete source, tests, local and cloud startup scripts.</li><li>This project specification PDF and editable HTML source.</li><li>Editable English competition PPT with source notes.</li><li>Architecture SVG/PNG.</li><li>One-page poster PDF and source.</li><li>Timed demo narration and exact shot list.</li><li>Radeon Cloud runbook and benchmark schema.</li><li>English pull-request copy and final checklist.</li></ul>
+    <h3>Completed proof and final user gates</h3><p>The real Radeon Cloud run, measured evidence, and public demonstration video are complete. The video is available at https://www.bilibili.com/video/BV1nQuA6qEFS/. Only account-bound identity confirmation, the official repository Fork, and Pull Request remain user actions.</p>
+    <p class="footer-note">PrivateOps Agent · Version 1.0 · MIT License · 2026 AMD AI DevMaster Hackathon</p>
+  </section>
+</body>
+</html>
