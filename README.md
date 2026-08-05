@@ -39,6 +39,8 @@ reconstructed UniLab tasks and NeuPAN's DUNE model on AMD ROCm.
 
 ## Full-Course Demo
 
+<img src="RadeonNav/docs/assets/project-overview.png" width="760" alt="RadeonNav task overview — nine segments on a 28 m x 10 m serpentine course">
+
 
 
 Nine task segments on a 28 m &times; 10 m serpentine course — rough terrain,
@@ -60,15 +62,78 @@ any clip to open its mp4. The dash marks fixtures a configuration does not
 have.
 
 
-| Task                | NeuPAN (planner only) | TSC+BBC teacher (privileged) | TSC+BBC student (onboard) | Ours (RadeonNav)                    |
-| ------------------- | --------------------- | ---------------------------- | ------------------------- | ----------------------------------- |
-| **Rough terrain**   | ✅ detour              | ✅                            | ❌                         | ✅ traverse                          |
-| **Stairs**          | ✅ detour              | ✅                            | ❌                         | ✅ traverse                          |
-| **Seesaw**          | ✅ detour              | ✅                            | ❌                         | ✅ traverse                          |
-| **Elevated tunnel** | ✅ detour              | ✅                            | ❌                         | ✅ crawl through                     |
-| **Bar hurdle**      | ✅ detour              | ❌ at 0.20 m (✅ at 0.10 m)    | ❌ wedges under bar        | ✅ detour by measured traversal rule |
-| **Tire hoop**       | ✅ detour              | ✅                            | ❌                         | ✅ jump through                      |
-| **Poles**           | ✅ detour              | ✅ weaves the 1 m gaps        | ❌                         | ✅ detour by measured traversal rule |
+<table>
+  <tr>
+    <th>Task</th>
+    <th>NeuPAN (planner only)</th>
+    <th>TSC+BBC teacher (privileged)</th>
+    <th>TSC+BBC student (onboard)</th>
+    <th>Ours (RadeonNav)</th>
+  </tr>
+  <tr>
+    <td><b>Rough terrain</b></td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row1_planner_only/planner_rough.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/planner_rough.gif" width="220" alt="planner_rough"></a><br/>✅ detour</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row2_teacher_handgoals/teacher_rough_PASSED.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/teacher_rough_PASSED.gif" width="220" alt="teacher_rough_PASSED"></a><br/>✅</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row3_student_onboard/student_rough_FAILED.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/student_rough_FAILED.gif" width="220" alt="student_rough_FAILED"></a><br/>❌</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row4_ours/ours_rough.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/ours_rough.gif" width="220" alt="ours_rough"></a><br/>✅ traverse</td>
+  </tr>
+  <tr>
+    <td><b>Stairs</b></td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row1_planner_only/planner_stairs.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/planner_stairs.gif" width="220" alt="planner_stairs"></a><br/>✅ detour</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row2_teacher_handgoals/teacher_stairs_PASSED.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/teacher_stairs_PASSED.gif" width="220" alt="teacher_stairs_PASSED"></a><br/>✅</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row3_student_onboard/student_stairs_FAILED.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/student_stairs_FAILED.gif" width="220" alt="student_stairs_FAILED"></a><br/>❌</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row4_ours/ours_stairs.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/ours_stairs.gif" width="220" alt="ours_stairs"></a><br/>✅ traverse</td>
+  </tr>
+  <tr>
+    <td><b>Seesaw</b></td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row1_planner_only/planner_seesaw.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/planner_seesaw.gif" width="220" alt="planner_seesaw"></a><br/>✅ detour</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row2_teacher_handgoals/teacher_seesaw_PASSED.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/teacher_seesaw_PASSED.gif" width="220" alt="teacher_seesaw_PASSED"></a><br/>✅</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row3_student_onboard/student_seesaw_FAILED.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/student_seesaw_FAILED.gif" width="220" alt="student_seesaw_FAILED"></a><br/>❌</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row4_ours/ours_seesaw.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/ours_seesaw.gif" width="220" alt="ours_seesaw"></a><br/>✅ traverse</td>
+  </tr>
+  <tr>
+    <td><b>Elevated tunnel</b></td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row1_planner_only/planner_tunnel.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/planner_tunnel.gif" width="220" alt="planner_tunnel"></a><br/>✅ detour</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row2_teacher_handgoals/teacher_tunnel_PASSED.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/teacher_tunnel_PASSED.gif" width="220" alt="teacher_tunnel_PASSED"></a><br/>✅</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row3_student_onboard/student_tunnel_FAILED.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/student_tunnel_FAILED.gif" width="220" alt="student_tunnel_FAILED"></a><br/>❌</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row4_ours/ours_tunnel.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/ours_tunnel.gif" width="220" alt="ours_tunnel"></a><br/>✅ crawl through</td>
+  </tr>
+  <tr>
+    <td><b>Bar hurdle</b></td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row1_planner_only/planner_bar.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/planner_bar.gif" width="220" alt="planner_bar"></a><br/>✅ detour</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row2_teacher_handgoals/teacher_bar_h020_FAILED.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/teacher_bar_h020_FAILED.gif" width="220" alt="teacher_bar_h020_FAILED"></a><br/>❌ at 0.20 m (<a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row2_teacher_handgoals/teacher_bar_h010_PASSED.mp4">✅ at 0.10 m</a>)</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row3_student_onboard/student_bar_jump_FAILED.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/student_bar_jump_FAILED.gif" width="220" alt="student_bar_jump_FAILED"></a><br/>❌ wedges under bar</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row4_ours/ours_bar.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/ours_bar.gif" width="220" alt="ours_bar"></a><br/>✅ detour by measured traversal rule</td>
+  </tr>
+  <tr>
+    <td><b>Tire hoop</b></td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row1_planner_only/planner_tire.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/planner_tire.gif" width="220" alt="planner_tire"></a><br/>✅ detour</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row2_teacher_handgoals/teacher_tire_PASSED.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/teacher_tire_PASSED.gif" width="220" alt="teacher_tire_PASSED"></a><br/>✅</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row3_student_onboard/student_tire_jump_FAILED.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/student_tire_jump_FAILED.gif" width="220" alt="student_tire_jump_FAILED"></a><br/>❌</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row4_ours/ours_tire.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/ours_tire.gif" width="220" alt="ours_tire"></a><br/>✅ jump through</td>
+  </tr>
+  <tr>
+    <td><b>Poles</b></td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row1_planner_only/planner_poles.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/planner_poles.gif" width="220" alt="planner_poles"></a><br/>✅ detour</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row2_teacher_handgoals/teacher_poles_PASSED.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/teacher_poles_PASSED.gif" width="220" alt="teacher_poles_PASSED"></a><br/>✅ weaves the 1 m gaps</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row3_student_onboard/student_poles_FAILED.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/student_poles_FAILED.gif" width="220" alt="student_poles_FAILED"></a><br/>❌</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row4_ours/ours_poles.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/ours_poles.gif" width="220" alt="ours_poles"></a><br/>✅ detour by measured traversal rule</td>
+  </tr>
+  <tr>
+    <td><b>Moving pedestrians</b></td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row1_planner_only/planner_pedestrian.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/planner_pedestrian.gif" width="220" alt="planner_pedestrian"></a><br/>✅ avoid</td>
+      <td align="center">&mdash;</td>
+      <td align="center">&mdash;</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row4_ours/ours_pedestrian.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/ours_pedestrian.gif" width="220" alt="ours_pedestrian"></a><br/>✅ avoid</td>
+  </tr>
+  <tr>
+    <td><b>A-frame</b></td>
+      <td align="center">&mdash;</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row2_teacher_handgoals/teacher_frame_PASSED.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/teacher_frame_PASSED.gif" width="220" alt="teacher_frame_PASSED"></a><br/>✅</td>
+      <td align="center"><a href="RadeonNav/experiment-results/quadrupedal-agility/videos/row3_student_onboard/student_frame_FAILED.mp4"><img src="RadeonNav/experiment-results/quadrupedal-agility/videos/gifs/student_frame_FAILED.gif" width="220" alt="student_frame_FAILED"></a><br/>❌</td>
+      <td align="center">&mdash;</td>
+  </tr>
+</table>
 
 
 
