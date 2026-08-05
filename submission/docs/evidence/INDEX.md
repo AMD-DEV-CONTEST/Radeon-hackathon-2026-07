@@ -9,6 +9,7 @@
 
 | 资产 | 类型 | 地址 | 证明什么 |
 |------|------|------|----------|
+| omima-1B | model | https://modelscope.cn/models/kooooon/omima-1B | 阵眼路由模型（记忆 + 路由 + 任务提炼） |
 | omima-35B | model | https://modelscope.cn/models/kooooon/omima-35B | 军师岗位 LoRA adapter（Ornith-1.0-35B，r=64）@ MI300X 训练 |
 | omima-9B | model | https://modelscope.cn/models/kooooon/omima-9B | Worker 岗位权重 + GGUF Q8 |
 | omima-distilled | dataset | https://modelscope.cn/datasets/kooooon/omima-distilled | 首轮训练用 chatml + wiki |

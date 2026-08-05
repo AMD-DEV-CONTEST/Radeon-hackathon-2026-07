@@ -92,7 +92,7 @@ Post-training and FPS tables are ordinary ROCm craft. We do them because the **m
 
 **Weights / data (ModelScope):**
 
-- https://modelscope.cn/models/kooooon/omima-35B  
+- https://modelscope.cn/models/kooooon/omima-1B  `- https://modelscope.cn/models/kooooon/omima-35B  
 - https://modelscope.cn/models/kooooon/omima-9B  
 - https://modelscope.cn/datasets/kooooon/omima-distilled  
 - https://modelscope.cn/datasets/kooooon/omima-training-data  
