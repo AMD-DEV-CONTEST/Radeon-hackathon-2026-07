@@ -100,7 +100,17 @@ if MQTT_ENABLED:
 else:
     print("[MQTT] Disabled: broker/user/password missing.")
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(title="TamilVox Home Automation Server")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ──────────────────────────────────────────────────────
 # VOICE COMMAND MAPPINGS  (Tamil + English)
