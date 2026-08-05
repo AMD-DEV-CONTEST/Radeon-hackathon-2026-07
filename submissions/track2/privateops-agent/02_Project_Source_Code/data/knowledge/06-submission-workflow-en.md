@@ -4,4 +4,6 @@ The official Radeon Cloud demonstration audits the private project rather than p
 
 Source code, tests, README, project specification, architecture, PPT, poster, demo script, runbook, verified Radeon evidence, and the public demonstration video belong to the final submission. The video is published at https://www.bilibili.com/video/BV1nQuA6qEFS/. The official Fork and Pull Request #87 are complete and publicly reviewable.
 
+English-subtitled version: https://www.bilibili.com/video/BV1A1M66VEqS/.
+
 The verified Radeon evidence and recorded ROCm demonstration remain reproducible from the included runbook without requiring a live public model endpoint.

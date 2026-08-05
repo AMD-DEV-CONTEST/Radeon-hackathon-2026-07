@@ -37,6 +37,7 @@
 - [x] Run the project-readiness multi-turn prompts from `example-prompts.md`.
 - [x] Show retrieved evidence, plan, tool result, memory, confirmation, blocked request, audit ID, and measured Radeon proof.
 - [x] Publish the final video at <https://www.bilibili.com/video/BV1nQuA6qEFS/> without exposing credentials.
+- [x] Publish the English-subtitled version at <https://www.bilibili.com/video/BV1A1M66VEqS/>.
 - [x] Keep instance lifecycle separate from the submission package; no live endpoint or credential is required for review.
 
 ## Registration and official Fork/PR

@@ -40,3 +40,4 @@ The 2026-08-04 reproduction independently recorded the same GPU architecture, 48
 - Fork: <https://github.com/LucianaiB2004/Radeon-hackathon-2026-07/tree/privateops-agent-submission/submissions/track2/privateops-agent>
 - Official Pull Request: <https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/pull/87>
 - Final video: <https://www.bilibili.com/video/BV1nQuA6qEFS/>
+- English-subtitled version: <https://www.bilibili.com/video/BV1A1M66VEqS/>

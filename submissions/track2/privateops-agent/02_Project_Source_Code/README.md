@@ -1,6 +1,8 @@
-[![PrivateOps Agent：权限先行，再让 AI 行动](submission/assets/privateops-agent-cover.png)](https://www.bilibili.com/video/BV1nQuA6qEFS/)
+![PrivateOps Agent：权限先行，再让 AI 行动](submission/assets/privateops-agent-cover.png)
 
 🎬 **项目演示视频：** [在哔哩哔哩观看 PrivateOps Agent](https://www.bilibili.com/video/BV1nQuA6qEFS/)
+
+🎬 **English-subtitled version:** [Watch PrivateOps Agent with English subtitles](https://www.bilibili.com/video/BV1A1M66VEqS/)
 
 # PrivateOps Agent
 

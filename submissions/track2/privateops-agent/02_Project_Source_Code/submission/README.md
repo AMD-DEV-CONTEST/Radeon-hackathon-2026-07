@@ -32,6 +32,8 @@ PrivateOps is a permission-first private computer AI for Track 2 of the 2026 AMD
 
 The original verified instance was destroyed after capture. A 2026-08-04 reproduction instance independently confirmed the same runtime boundary and produced a separate 1,513.115 ms / 32.384 tokens/s machine record. The final demonstration video is publicly available at <https://www.bilibili.com/video/BV1nQuA6qEFS/>.
 
+English-subtitled version: <https://www.bilibili.com/video/BV1A1M66VEqS/>.
+
 ## Source verification
 
 ```powershell

@@ -39,6 +39,7 @@ Remote/shared APIs are development-only and never count as competition proof. `r
 - Radeon Cloud reproduction runbook and verified evidence.
 - Performance/stability report, example prompts, timed script, and shot list.
 - Final demonstration video: <https://www.bilibili.com/video/BV1nQuA6qEFS/>.
+- English-subtitled version: <https://www.bilibili.com/video/BV1A1M66VEqS/>.
 
 ### Reproduction
 

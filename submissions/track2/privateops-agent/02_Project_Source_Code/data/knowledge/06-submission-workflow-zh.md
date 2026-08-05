@@ -4,4 +4,6 @@
 
 源代码、测试、README、项目说明书、架构图、PPT、海报、演示脚本、运行手册、真实 Radeon 证据与公开视频都属于最终提交材料。视频已发布于 https://www.bilibili.com/video/BV1nQuA6qEFS/。官方 Fork 与 Pull Request #87 已完成并可公开审阅。
 
+英文字幕版本：https://www.bilibili.com/video/BV1A1M66VEqS/。
+
 真实 Radeon 证据与 ROCm 演示已经完成，评审者可以通过随附运行手册复现，无需依赖公开的实时模型端点。
