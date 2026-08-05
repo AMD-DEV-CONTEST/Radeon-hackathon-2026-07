@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TamilVox AI — Ultra Control Center</title>
+    
+    <!-- Google Fonts & FontAwesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            /* Ultra Luxury Dark Color Palette */
+            --bg-void: #030712;
+            --surface-dark: #0b0f19;
+            --surface-card: rgba(17, 24, 39, 0.7);
+            --surface-card-hover: rgba(31, 41, 55, 0.8);
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-highlight: rgba(99, 102, 241, 0.4);
+            
+            /* Gradients & Neons */
+            --indigo-neon: #6366f1;
+            --cyan-neon: #06b6d4;
+            --emerald-neon: #10b981;
+            --amber-neon: #f59e0b;
+            --rose-neon: #f43f5e;
+            --purple-neon: #a855f7;
+            
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-void);
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 60%),
+                radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.12) 0%, transparent 50%),
+                radial-gradient(circle at 15% 70%, rgba(6, 182, 212, 0.12) 0%, transparent 50%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* GLASS HEADER */
+        header {
+            padding: 1.25rem 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-subtle);
+            backdrop-filter: blur(20px);
+            background: rgba(3, 7, 18, 0.8);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand-box {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .brand-orb {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #6366f1, #a855f7, #06b6d4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            color: #fff;
+            box-shadow: 0 0 25px rgba(99, 102, 241, 0.5);
+            position: relative;
+        }
+
+        .brand-orb::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #6366f1, #06b6d4);
+            z-index: -1;
+            opacity: 0.5;
+            filter: blur(8px);
+        }
+
+        .brand-title h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #818cf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.03em;
+        }
+
+        .brand-title p {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* STATUS BADGES */
+        .status-group {
+            display: flex;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.4rem 0.85rem;
+            border-radius: 9999px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+
+        .badge-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background-color: var(--text-muted);
+        }
+
+        .badge.active {
+            color: var(--text-primary);
+            border-color: rgba(16, 185, 129, 0.3);
+            background: rgba(16, 185, 129, 0.08);
+        }
+
+        .badge.active .badge-dot {
+            background-color: var(--emerald-neon);
+            box-shadow: 0 0 10px var(--emerald-neon);
+        }
+
+        /* METRICS STRIP */
+        .metrics-grid {
+            max-width: 1320px;
+            width: 100%;
+            margin: 1.5rem auto 0;
+            padding: 0 1.5rem;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.25rem;
+        }
+
+        @media (max-width: 900px) {
+            .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .metric-card {
+            background: var(--surface-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            backdrop-filter: blur(16px);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--border-highlight);
+        }
+
+        .metric-icon-bg {
+            width: 50px;
+            height: 50px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            color: var(--cyan-neon);
+        }
+
+        .metric-data h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .metric-data p {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* MAIN CONTAINER */
+        main {
+            max-width: 1320px;
+            width: 100%;
+            margin: 1.5rem auto 3rem;
+            padding: 0 1.5rem;
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: 1.75rem;
+            flex: 1;
+        }
+
+        @media (max-width: 1024px) {
+            main { grid-template-columns: 1fr; }
+        }
+
+        /* ULTRA GLASS CARD */
+        .ultra-card {
+            background: var(--surface-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 28px;
+            padding: 2.25rem;
+            backdrop-filter: blur(24px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 1.75rem;
+            transition: all 0.35s ease;
+        }
+
+        .ultra-card:hover {
+            border-color: var(--border-highlight);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .section-header h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.35rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            letter-spacing: -0.02em;
+        }
+
+        .section-header h2 i {
+            color: var(--cyan-neon);
+        }
+
+        /* HERO VOICE CORE ORB */
+        .voice-core {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2.25rem 1.5rem 1.5rem;
+            gap: 1.75rem;
+            background: radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+        }
+
+        .orb-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .orb-glow-ring {
+            position: absolute;
+            width: 170px;
+            height: 170px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(6, 182, 212, 0.25));
+            filter: blur(25px);
+            animation: orbPulse 4s ease-in-out infinite alternate;
+        }
+
+        @keyframes orbPulse {
+            0% { transform: scale(0.9); opacity: 0.5; }
+            100% { transform: scale(1.15); opacity: 0.9; }
+        }
+
+        .orb-btn {
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #4f46e5 100%);
+            border: none;
+            color: #fff;
+            font-size: 3.25rem;
+            cursor: pointer;
+            outline: none;
+            box-shadow: 0 0 50px rgba(99, 102, 241, 0.6);
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+
+        .orb-btn:hover {
+            transform: scale(1.08);
+            box-shadow: 0 0 75px rgba(168, 85, 247, 0.85);
+        }
+
+        .orb-btn.recording {
+            background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+            animation: micPulse 1.2s infinite;
+        }
+
+        @keyframes micPulse {
+            0% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.8); }
+            70% { box-shadow: 0 0 0 35px rgba(244, 63, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); }
+        }
+
+        canvas#waveCanvas {
+            width: 100%;
+            height: 60px;
+            border-radius: 16px;
+            background: rgba(3, 7, 18, 0.7);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .voice-caption {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        /* SIMULATOR CHIPS */
+        .chip-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.65rem;
+        }
+
+        .chip-btn {
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 0.55rem 1.1rem;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+        }
+
+        .chip-btn:hover {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: rgba(99, 102, 241, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.25);
+        }
+
+        /* TRANSCRIPT DISPLAY */
+        .transcript-box {
+            background: rgba(3, 7, 18, 0.6);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .t-row {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .t-tag {
+            font-weight: 700;
+            min-width: 105px;
+            color: var(--cyan-neon);
+            font-size: 0.88rem;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .t-content {
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        /* APPLIANCE RELAYS GRID */
+        .appliance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .dev-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-subtle);
+            border-radius: 24px;
+            padding: 1.6rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            transition: all 0.35s ease;
+            position: relative;
+        }
+
+        .dev-card.active {
+            border-color: rgba(99, 102, 241, 0.6);
+            background: linear-gradient(145deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.1));
+            box-shadow: 0 10px 35px rgba(99, 102, 241, 0.25);
+        }
+
+        .dev-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dev-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.45rem;
+            color: var(--text-secondary);
+            transition: all 0.35s ease;
+        }
+
+        /* LIGHT GLOW EFFECT */
+        .dev-card.active .dev-icon.light {
+            background: rgba(245, 158, 11, 0.25);
+            color: var(--amber-neon);
+            box-shadow: 0 0 30px rgba(245, 158, 11, 0.6);
+        }
+
+        /* FAN ROTATION EFFECT */
+        .dev-card.active .dev-icon.fan {
+            background: rgba(6, 182, 212, 0.25);
+            color: var(--cyan-neon);
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.6);
+        }
+
+        .dev-card.active .dev-icon.fan.sp1 i { animation: spin 2s linear infinite; }
+        .dev-card.active .dev-icon.fan.sp2 i { animation: spin 1s linear infinite; }
+        .dev-card.active .dev-icon.fan.sp3 i { animation: spin 0.4s linear infinite; }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* AC FROST EFFECT */
+        .dev-card.active .dev-icon.ac {
+            background: rgba(99, 102, 241, 0.25);
+            color: var(--indigo-neon);
+            box-shadow: 0 0 30px rgba(99, 102, 241, 0.6);
+        }
+
+        /* TOGGLE SWITCH */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+        }
+
+        .switch input { opacity: 0; width: 0; height: 0; }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(255, 255, 255, 0.12);
+            transition: .3s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px; width: 22px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--emerald-neon);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+
+        .dev-name {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+
+        .dev-status-text {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .ctrl-btns {
+            display: flex;
+            gap: 0.45rem;
+            margin-top: 0.4rem;
+        }
+
+        .btn-ctrl {
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 0.35rem 0.7rem;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-ctrl:hover {
+            background: rgba(99, 102, 241, 0.3);
+            border-color: rgba(99, 102, 241, 0.6);
+        }
+
+        /* TERMINAL LOG STREAM */
+        .terminal-box {
+            font-family: 'Courier New', monospace;
+            background: rgba(3, 7, 18, 0.7);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 1.25rem;
+            height: 220px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            font-size: 0.85rem;
+        }
+
+        .log-line {
+            display: flex;
+            gap: 0.65rem;
+            color: var(--text-secondary);
+        }
+
+        .log-time { color: var(--cyan-neon); }
+        .log-cmd { color: var(--emerald-neon); font-weight: 600; }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border-subtle);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- GLASS HEADER -->
+    <header>
+        <div class="brand-box">
+            <div class="brand-orb">
+                <i class="fa-solid fa-microphone-lines"></i>
+            </div>
+            <div class="brand-title">
+                <h1>TamilVox AI</h1>
+                <p>Alexa-Style Bilingual Smart Home Automation System</p>
+            </div>
+        </div>
+
+        <div class="status-group">
+            <div class="badge active"><div class="badge-dot"></div>Whisper STT</div>
+            <div class="badge active"><div class="badge-dot"></div>Sarvam AI</div>
+            <div class="badge active"><div class="badge-dot"></div>HiveMQ TLS</div>
+            <div class="badge active"><div class="badge-dot"></div>Ollama Llama-3</div>
+        </div>
+    </header>
+
+    <!-- METRICS STRIP -->
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <div class="metric-icon-bg"><i class="fa-solid fa-bolt"></i></div>
+            <div class="metric-data">
+                <h3 id="metricCmds">0</h3>
+                <p>Voice Commands Executed</p>
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-icon-bg" style="color: var(--emerald-neon);"><i class="fa-solid fa-gauge-high"></i></div>
+            <div class="metric-data">
+                <h3 id="metricLatency">~120 ms</h3>
+                <p>STT Response Latency</p>
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-icon-bg" style="color: var(--amber-neon);"><i class="fa-solid fa-plug"></i></div>
+            <div class="metric-data">
+                <h3 id="metricRelays">0 / 3</h3>
+                <p>Active Relay Loads</p>
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-icon-bg" style="color: var(--purple-neon);"><i class="fa-solid fa-wifi"></i></div>
+            <div class="metric-data">
+                <h3>WS PCM</h3>
+                <p>Low-Latency Streaming</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN GRID -->
+    <main>
+        <!-- LEFT COLUMN -->
+        <div class="ultra-card">
+            <div class="section-header">
+                <h2><i class="fa-solid fa-waveform-lines"></i> Voice Control Center</h2>
+                <span style="font-size: 0.8rem; color: var(--cyan-neon); font-weight: 700;"><i class="fa-solid fa-circle-dot"></i> 16kHz PCM Stream</span>
+            </div>
+
+            <div class="voice-core">
+                <div class="orb-wrapper">
+                    <div class="orb-glow-ring"></div>
+                    <button class="orb-btn" id="micBtn" onclick="toggleRecording()">
+                        <i class="fa-solid fa-microphone"></i>
+                    </button>
+                </div>
+
+                <canvas id="waveCanvas"></canvas>
+                <div class="voice-caption" id="voiceStatus">Tap Microphone & Speak Tamil or English command...</div>
+            </div>
+
+            <div style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> One-Click Simulator
+            </div>
+            <div class="chip-grid">
+                <div class="chip-btn" onclick="simulateCommand('Light ON')">💡 Light ON</div>
+                <div class="chip-btn" onclick="simulateCommand('Light OFF')">💡 Light OFF</div>
+                <div class="chip-btn" onclick="simulateCommand('Fan speed 3')">🌀 Fan Speed 3</div>
+                <div class="chip-btn" onclick="simulateCommand('AC 22')">❄️ AC 22°C</div>
+                <div class="chip-btn" onclick="simulateCommand('Turn off everything')">⚡ All OFF</div>
+                <div class="chip-btn" onclick="simulateCommand('வணக்கம்')">💬 "வணக்கம்"</div>
+            </div>
+
+            <div class="transcript-box">
+                <div class="t-row">
+                    <div class="t-tag">Transcribed:</div>
+                    <div class="t-content" id="userSpeech">—</div>
+                </div>
+                <div class="t-row">
+                    <div class="t-tag">AI Response:</div>
+                    <div class="t-content" id="aiReply">—</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="ultra-card">
+            <div class="section-header">
+                <h2><i class="fa-solid fa-house-signal"></i> Appliance Relay Matrix</h2>
+            </div>
+
+            <div class="appliance-grid">
+                <!-- LIGHT -->
+                <div class="dev-card" id="card-light">
+                    <div class="dev-top">
+                        <div class="dev-icon light"><i class="fa-solid fa-lightbulb"></i></div>
+                        <label class="switch">
+                            <input type="checkbox" id="switch-light" onchange="toggleDevice('light', this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div>
+                        <div class="dev-name">Light</div>
+                        <div class="dev-status-text" id="sub-light">OFF</div>
+                    </div>
+                </div>
+
+                <!-- FAN -->
+                <div class="dev-card" id="card-fan">
+                    <div class="dev-top">
+                        <div class="dev-icon fan" id="icon-fan"><i class="fa-solid fa-fan"></i></div>
+                        <label class="switch">
+                            <input type="checkbox" id="switch-fan" onchange="toggleDevice('fan', this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div>
+                        <div class="dev-name">Fan</div>
+                        <div class="dev-status-text" id="sub-fan">OFF</div>
+                    </div>
+                    <div class="ctrl-btns">
+                        <button class="btn-ctrl" onclick="setFanSpeed('SPEED_1')">Sp 1</button>
+                        <button class="btn-ctrl" onclick="setFanSpeed('SPEED_2')">Sp 2</button>
+                        <button class="btn-ctrl" onclick="setFanSpeed('SPEED_3')">Sp 3</button>
+                    </div>
+                </div>
+
+                <!-- AC -->
+                <div class="dev-card" id="card-ac">
+                    <div class="dev-top">
+                        <div class="dev-icon ac"><i class="fa-solid fa-snowflake"></i></div>
+                        <label class="switch">
+                            <input type="checkbox" id="switch-ac" onchange="toggleDevice('ac', this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div>
+                        <div class="dev-name">AC</div>
+                        <div class="dev-status-text" id="sub-ac">OFF</div>
+                    </div>
+                    <div class="ctrl-btns">
+                        <button class="btn-ctrl" onclick="setAcTemp('TEMP_18')">18°C</button>
+                        <button class="btn-ctrl" onclick="setAcTemp('TEMP_22')">22°C</button>
+                        <button class="btn-ctrl" onclick="setAcTemp('TEMP_24')">24°C</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-header" style="margin-top: 0.5rem;">
+                <h2 style="font-size: 1.1rem;"><i class="fa-solid fa-terminal"></i> Activity Terminal</h2>
+            </div>
+
+            <div class="terminal-box" id="logStream">
+                <div class="log-line">
+                    <span class="log-time">[BOOT]</span>
+                    <span>TamilVox AI Ultra Control Dashboard Online.</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        TamilVox AI &copy; 2026 — Alexa-Style Bilingual Smart Home Automation System | Faster-Whisper + Sarvam AI + Ollama Llama-3
+    </footer>
+
+    <!-- SCRIPT -->
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        let totalCmdCount = 0;
+        let audioCtx, analyser, dataArray, canvasCtx, animId;
+
+        window.onload = function() {
+            initWaveformCanvas();
+        };
+
+        function initWaveformCanvas() {
+            const canvas = document.getElementById('waveCanvas');
+            canvasCtx = canvas.getContext('2d');
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+
+            canvasCtx.fillStyle = "rgba(3, 7, 18, 0.7)";
+            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+            canvasCtx.lineWidth = 2.5;
+            canvasCtx.strokeStyle = "#6366f1";
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(0, canvas.height / 2);
+            canvasCtx.lineTo(canvas.width, canvas.height / 2);
+            canvasCtx.stroke();
+        }
+
+        function drawWaveform() {
+            if (!analyser) return;
+            animId = requestAnimationFrame(drawWaveform);
+            analyser.getByteTimeDomainData(dataArray);
+
+            const canvas = document.getElementById('waveCanvas');
+            canvasCtx.fillStyle = "rgba(3, 7, 18, 0.35)";
+            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+            canvasCtx.lineWidth = 3;
+            canvasCtx.strokeStyle = "#06b6d4";
+            canvasCtx.beginPath();
+
+            const sliceWidth = canvas.width * 1.0 / dataArray.length;
+            let x = 0;
+
+            for (let i = 0; i < dataArray.length; i++) {
+                const v = dataArray[i] / 128.0;
+                const y = v * canvas.height / 2;
+
+                if (i === 0) canvasCtx.moveTo(x, y);
+                else canvasCtx.lineTo(x, y);
+
+                x += sliceWidth;
+            }
+
+            canvasCtx.lineTo(canvas.width, canvas.height / 2);
+            canvasCtx.stroke();
+        }
+
+        function log(msg, isCmd = false) {
+            const container = document.getElementById('logStream');
+            const time = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.className = 'log-line';
+            div.innerHTML = `<span class="log-time">[${time}]</span> <span class="${isCmd ? 'log-cmd' : ''}">${msg}</span>`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function toggleRecording() {
+            const btn = document.getElementById('micBtn');
+            const status = document.getElementById('voiceStatus');
+
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const source = audioCtx.createMediaStreamSource(stream);
+                    analyser = audioCtx.createAnalyser();
+                    analyser.fftSize = 2048;
+                    dataArray = new Uint8Array(analyser.frequencyBinCount);
+                    source.connect(analyser);
+                    drawWaveform();
+
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+                    mediaRecorder.onstop = sendAudioToServer;
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    btn.classList.add('recording');
+                    status.innerText = "Listening... Speak Tamil or English command!";
+                    log("Microphone recording active...");
+                } catch (err) {
+                    alert("Microphone access denied or unavailable.");
+                }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                btn.classList.remove('recording');
+                if (animId) cancelAnimationFrame(animId);
+                initWaveformCanvas();
+                status.innerText = "Transcribing audio with Faster-Whisper...";
+            }
+        }
+
+        async function sendAudioToServer() {
+            const startTime = Date.now();
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'recording.wav');
+            formData.append('include_audio', 'true');
+
+            try {
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error("Server error " + response.status);
+
+                const data = await response.json();
+                const latency = Date.now() - startTime;
+                document.getElementById('metricLatency').innerText = `${latency} ms`;
+
+                document.getElementById('userSpeech').innerText = data.user_text || "—";
+                document.getElementById('aiReply').innerText = data.reply_text || "—";
+                document.getElementById('voiceStatus').innerText = "Tap Microphone & Speak Tamil or English command...";
+
+                totalCmdCount++;
+                document.getElementById('metricCmds').innerText = totalCmdCount;
+
+                log(`Transcribed: "${data.user_text}" → AI Reply: "${data.reply_text}" (${latency}ms)`, true);
+
+                if (data.is_command && data.device) {
+                    updateApplianceUI(data.device, data.command);
+                }
+
+                if (data.audio_b64) {
+                    const audio = new Audio("data:audio/wav;base64," + data.audio_b64);
+                    audio.play();
+                }
+            } catch (err) {
+                log("Error processing audio: " + err.message);
+            }
+        }
+
+        function simulateCommand(text) {
+            log(`[SIMULATOR] Triggered preset: "${text}"`, true);
+            document.getElementById('userSpeech').innerText = text;
+            
+            if (text === 'Light ON') updateApplianceUI('light', 'ON');
+            else if (text === 'Light OFF') updateApplianceUI('light', 'OFF');
+            else if (text === 'Fan speed 3') updateApplianceUI('fan', 'SPEED_3');
+            else if (text === 'AC 22') updateApplianceUI('ac', 'TEMP_22');
+            else if (text === 'Turn off everything') updateApplianceUI('all', 'OFF');
+            else if (text === 'வணக்கம்') {
+                document.getElementById('aiReply').innerText = "வணக்கம்! நான் TamilVox. உங்களுக்கு எவ்வாறு உதவ முடியும்?";
+                log(`[SIMULATOR] Tamil AI Reply: "வணக்கம்! நான் TamilVox."`, true);
+            }
+        }
+
+        function setFanSpeed(speedCmd) {
+            updateApplianceUI('fan', speedCmd);
+        }
+
+        function setAcTemp(tempCmd) {
+            updateApplianceUI('ac', tempCmd);
+        }
+
+        function updateApplianceUI(device, command) {
+            const isON = (command === 'ON' || command.startsWith('SPEED_') || command.startsWith('TEMP_'));
+
+            if (device === 'light' || device === 'all') {
+                document.getElementById('switch-light').checked = isON;
+                document.getElementById('card-light').classList.toggle('active', isON);
+                document.getElementById('sub-light').innerText = isON ? 'ON' : 'OFF';
+            }
+            if (device === 'fan' || device === 'all') {
+                document.getElementById('switch-fan').checked = isON;
+                document.getElementById('card-fan').classList.toggle('active', isON);
+                const fanIcon = document.getElementById('icon-fan');
+                fanIcon.className = "dev-icon fan";
+                if (isON) {
+                    if (command === 'SPEED_1') fanIcon.classList.add('sp1');
+                    else if (command === 'SPEED_2') fanIcon.classList.add('sp2');
+                    else if (command === 'SPEED_3') fanIcon.classList.add('sp3');
+                    else fanIcon.classList.add('sp2');
+                }
+                document.getElementById('sub-fan').innerText = isON ? (command.startsWith('SPEED_') ? command : 'ON') : 'OFF';
+            }
+            if (device === 'ac' || device === 'all') {
+                document.getElementById('switch-ac').checked = isON;
+                document.getElementById('card-ac').classList.toggle('active', isON);
+                document.getElementById('sub-ac').innerText = isON ? (command.startsWith('TEMP_') ? command : 'ON') : 'OFF';
+            }
+
+            let activeCount = 0;
+            if (document.getElementById('switch-light').checked) activeCount++;
+            if (document.getElementById('switch-fan').checked) activeCount++;
+            if (document.getElementById('switch-ac').checked) activeCount++;
+            document.getElementById('metricRelays').innerText = `${activeCount} / 3`;
+
+            log(`[RELAY] ${device.toUpperCase()} state updated -> ${command}`, true);
+        }
+
+        function toggleDevice(device, state) {
+            const cmd = state ? 'ON' : 'OFF';
+            updateApplianceUI(device, cmd);
+            log(`[MANUAL TOGGLE] ${device.toUpperCase()} -> ${cmd}`, true);
+        }
+    </script>
+</body>
+</html>
