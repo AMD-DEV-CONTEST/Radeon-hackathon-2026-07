@@ -1,0 +1,212 @@
+1
+00:00:00,112 --> 00:00:02,187
+This is RadeonNav.
+
+2
+00:00:02,276 --> 00:00:07,021
+A quadruped that plans its route around what its own skills can and cannot do,
+
+3
+00:00:07,101 --> 00:00:11,601
+running entirely on an AMD Radeon GPU with ROCm.
+
+4
+00:00:12,301 --> 00:00:13,021
+The task:
+
+5
+00:00:13,101 --> 00:00:17,246
+a twenty-eight by ten metre serpentine course, nine obstacle segments,
+
+6
+00:00:17,326 --> 00:00:20,821
+and the robot is given nothing but a few sparse route anchors,
+
+7
+00:00:20,901 --> 00:00:25,163
+no predefined dense waypoints, no obstacle labels.
+
+8
+00:00:25,340 --> 00:00:30,115
+Which skill to fire, and which way to go, it must decide on its own.
+
+9
+00:00:30,842 --> 00:00:33,800
+Three open-source projects make up the stack.
+
+10
+00:00:33,880 --> 00:00:35,887
+NeuPAN provides the planning core,
+
+11
+00:00:35,967 --> 00:00:39,992
+a real-time point-cloud planner with a learned distance field.
+
+12
+00:00:40,176 --> 00:00:43,896
+Quadrupedal-agility provides the frozen locomotion skills,
+
+13
+00:00:43,976 --> 00:00:46,996
+natural behaviours learned from canine motion capture,
+
+14
+00:00:47,076 --> 00:00:50,176
+plus the depth encoder we fine-tune.
+
+15
+00:00:50,360 --> 00:00:53,705
+And UniLab is the ROCm-native simulation framework
+
+16
+00:00:53,785 --> 00:00:57,510
+the whole system is rebuilt and evaluated in.
+
+17
+00:00:57,976 --> 00:01:01,183
+Our contribution is the layer that makes them one system:
+
+18
+00:01:01,263 --> 00:01:04,408
+single-obstacle tests measure what the skills can cross,
+
+19
+00:01:04,488 --> 00:01:06,271
+the planner routes around the rest,
+
+20
+00:01:06,351 --> 00:01:10,446
+and task classes along the route fire the right skill at the right place;
+
+21
+00:01:10,526 --> 00:01:12,858
+only the depth encoder is retrained,
+
+22
+00:01:12,938 --> 00:01:16,701
+in under ninety seconds, on planner-collected data.
+
+23
+00:01:17,584 --> 00:01:21,559
+Now the course, one continuous rollout, no cuts.
+
+24
+00:01:21,732 --> 00:01:26,957
+Rough terrain, stairs, a hinged seesaw, all taken in stride.
+
+25
+00:01:29,628 --> 00:01:33,065
+Between tasks the planner handles the turns alone.
+
+26
+00:01:37,748 --> 00:01:40,148
+A crawl through the elevated tunnel.
+
+27
+00:01:44,812 --> 00:01:47,869
+This hurdle exceeds the policy's jumping ability,
+
+28
+00:01:47,949 --> 00:01:51,974
+so the planner detours, yielding to a pedestrian on the way.
+
+29
+00:01:56,177 --> 00:02:00,014
+The tire hoop, a committed heading, and straight through the ring.
+
+30
+00:02:04,217 --> 00:02:07,655
+Four poles, left, right, left, right.
+
+31
+00:02:10,336 --> 00:02:15,574
+Two crossing pedestrians, and done, zero collisions, zero falls.
+
+32
+00:02:16,444 --> 00:02:19,801
+Now the same fixtures, four strategies side by side:
+
+33
+00:02:19,881 --> 00:02:23,589
+the planner alone, top left, detours everything;
+
+34
+00:02:23,669 --> 00:02:28,214
+the teacher, top right, runs on privileged, hand-authored inputs;
+
+35
+00:02:28,294 --> 00:02:32,726
+the onboard student, bottom left, red frame, never arrives;
+
+36
+00:02:32,806 --> 00:02:37,906
+and ours, bottom right, same frozen networks, new interface.
+
+37
+00:02:38,600 --> 00:02:42,808
+The pole line, only the privileged teacher can weave the one-metre gaps;
+
+38
+00:02:42,888 --> 00:02:45,850
+ours knows it cannot, and routes around.
+
+39
+00:02:46,536 --> 00:02:50,799
+The hoop, only ours and the privileged teacher actually make the jump.
+
+40
+00:02:51,460 --> 00:02:53,392
+And the hurdle tells the whole story.
+
+41
+00:02:53,472 --> 00:02:58,167
+At ten centimetres the released teacher jumps it, the deployable student stalls:
+
+42
+00:02:58,247 --> 00:03:02,272
+the skill exists in the weights, not in the onboard form.
+
+43
+00:03:02,448 --> 00:03:04,605
+At full height nobody clears it;
+
+44
+00:03:04,685 --> 00:03:10,560
+ours is measured on that form, so it never gambles, it detours, and arrives.
+
+45
+00:03:11,424 --> 00:03:14,174
+Reproducing this takes two commands.
+
+46
+00:03:14,260 --> 00:03:19,323
+One prepares the ROCm environment and verifies the Radeon GPU.
+
+47
+00:03:20,012 --> 00:03:24,932
+One runs the full course and writes the rollout video and a machine-checkable verdict,
+
+48
+00:03:25,012 --> 00:03:27,700
+every check true, goal reached.
+
+49
+00:03:28,568 --> 00:03:33,124
+RadeonNav, skill-aware navigation with natural behaviours.
+
+50
+00:03:33,204 --> 00:03:37,374
+Sixty percent faster on traversable terrain than planning alone,
+
+51
+00:03:37,454 --> 00:03:43,317
+teacher-level outcomes with no privileged inputs, all on a single Radeon GPU.
+
+52
+00:03:43,484 --> 00:03:48,084
+Code, report, and every run record are in the repository.
+
+53
+00:03:48,581 --> 00:03:50,043
+Thanks for watching.
+

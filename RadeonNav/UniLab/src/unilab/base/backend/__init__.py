@@ -1,0 +1,144 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, cast
+
+from unilab.base.scene import SceneCfg
+
+from .base import SimBackend
+
+if TYPE_CHECKING:
+    from unilab.base.base import EnvCfg
+
+
+def env_backend_kwargs(cfg: "EnvCfg") -> dict:
+    """Bundle EnvCfg-level backend tuning fields for create_backend(**...)."""
+    return {
+        "post_step_forward_sensor": cfg.post_step_forward_sensor,
+        "motrix_max_iterations": cfg.motrix_max_iterations,
+        "chunk_size": cfg.chunk_size,
+        "adaptive_chunk_size": cfg.adaptive_chunk_size,
+        "bench_nsteps": cfg.sim_substeps,
+    }
+
+
+_MUJOCO_XML_EXPORTS = frozenset(
+    {
+        "add_sensor",
+        "create_discardvisual_xml",
+        "get_named_body_ids",
+        "inject_mujoco_tracking_sensors",
+        "materialize_mujoco_hfield_attached_scene",
+        "materialize_scene_fragments",
+        "materialize_scene_visual_override",
+        "processed_xml",
+    }
+)
+_MOTRIX_SCENE_EXPORTS = frozenset(
+    {
+        "add_motrix_tracking_frame_sensors",
+        "materialize_motrix_hfield_attached_scene",
+        "materialize_motrix_scene",
+    }
+)
+
+
+def _load_mujoco_backend() -> Any:
+    from .mujoco.backend import MuJoCoBackend
+
+    return MuJoCoBackend
+
+
+def _load_motrix_backend() -> tuple[Any, bool]:
+    from .motrix.backend import MOTRIX_AVAILABLE, MotrixBackend
+
+    return MotrixBackend, bool(MOTRIX_AVAILABLE)
+
+
+def _load_motrix_scene_export(name: str) -> Any:
+    from .motrix import scene
+
+    return getattr(scene, name)
+
+
+def create_backend(
+    backend_type: str,
+    scene: SceneCfg,
+    num_envs: int,
+    sim_dt: float,
+    **kwargs,
+) -> SimBackend:
+    """Create a simulation backend.
+
+    Args:
+        backend_type: ``"mujoco"`` or ``"motrix"``.
+        scene: SceneCfg for either static or composed scenes.
+        num_envs: Number of environments.
+        sim_dt: Simulation timestep.
+        **kwargs: Additional backend options such as ``position_actuator_gains``
+            or ``motrix_max_iterations``.
+
+    Returns:
+        SimBackend instance.
+    """
+    if scene is None:
+        raise ValueError("SceneCfg must be provided")
+
+    position_actuator_gains = kwargs.pop("position_actuator_gains", None)
+    motrix_max_iterations = kwargs.pop("motrix_max_iterations", None)
+    post_step_forward_sensor = kwargs.pop("post_step_forward_sensor", None)
+    chunk_size = kwargs.pop("chunk_size", None)
+    adaptive_chunk_size = kwargs.pop("adaptive_chunk_size", False)
+    bench_nsteps = kwargs.pop("bench_nsteps", 1)
+    if backend_type == "mujoco":
+        MuJoCoBackend = _load_mujoco_backend()
+        if position_actuator_gains is not None:
+            kwargs["position_actuator_gains"] = position_actuator_gains
+        if post_step_forward_sensor is not None:
+            kwargs["post_step_forward_sensor"] = post_step_forward_sensor
+        kwargs["chunk_size"] = chunk_size
+        kwargs["adaptive_chunk_size"] = adaptive_chunk_size
+        kwargs["bench_nsteps"] = bench_nsteps
+        return cast(SimBackend, MuJoCoBackend(scene, num_envs, sim_dt, **kwargs))
+    if backend_type == "motrix":
+        MotrixBackend, motrix_available = _load_motrix_backend()
+        if not motrix_available:
+            raise ImportError("MotrixSim not available, install motrixsim package")
+        if motrix_max_iterations is not None:
+            kwargs["max_iterations"] = motrix_max_iterations
+        return cast(SimBackend, MotrixBackend(scene, num_envs, sim_dt, **kwargs))
+    raise ValueError(f"Unknown backend: {backend_type}")
+
+
+def __getattr__(name: str):
+    if name == "MuJoCoBackend":
+        return _load_mujoco_backend()
+    if name == "MotrixBackend":
+        return _load_motrix_backend()[0]
+    if name == "MOTRIX_AVAILABLE":
+        return _load_motrix_backend()[1]
+    if name in _MUJOCO_XML_EXPORTS:
+        from .mujoco import xml
+
+        return getattr(xml, name)
+    if name in _MOTRIX_SCENE_EXPORTS:
+        return _load_motrix_scene_export(name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+__all__ = [
+    "SimBackend",
+    "MuJoCoBackend",
+    "MotrixBackend",
+    "add_sensor",
+    "create_discardvisual_xml",
+    "create_backend",
+    "get_named_body_ids",
+    "inject_mujoco_tracking_sensors",
+    "add_motrix_tracking_frame_sensors",
+    "materialize_motrix_hfield_attached_scene",
+    "materialize_motrix_scene",
+    "materialize_mujoco_hfield_attached_scene",
+    "materialize_scene_fragments",
+    "materialize_scene_visual_override",
+    "processed_xml",
+]
