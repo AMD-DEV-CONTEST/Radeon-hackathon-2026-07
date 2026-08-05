@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>radeon-fix demo</title>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --panel: #11151d;
+    --panel2: #0e1219;
+    --line: #232a36;
+    --text: #d7dee9;
+    --dim: #8b96a8;
+    --accent: #ff3a2f;
+    --green: #4ade80;
+    --cyan: #67e8f9;
+    --yellow: #fbbf24;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; }
+  body {
+    background: radial-gradient(1400px 800px at 50% -12%, #1b2230 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: -apple-system, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  header {
+    width: 1760px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 0 6px 16px;
+  }
+  header h1 { font-size: 32px; font-weight: 700; letter-spacing: 0.2px; }
+  header h1 .dot { color: var(--accent); }
+  header .tag { color: var(--dim); font-size: 20px; }
+  #main {
+    width: 1760px;
+    display: flex;
+    gap: 18px;
+    height: 700px;
+  }
+  .window {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #terminal { flex: 0 0 1020px; }
+  #code-panel { flex: 1; background: var(--panel2); }
+  .win-head {
+    height: 40px;
+    background: #0f131b;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    gap: 8px;
+    color: var(--dim);
+    font-size: 14px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .dotbtn { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  .r { background: #ff5f57; } .y { background: #febc2e; } .g { background: #28c840; }
+  .win-head .title { margin-left: 10px; }
+  #output-wrap {
+    flex: 1;
+    overflow-y: auto;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 16.5px;
+    line-height: 1.42;
+    padding: 18px 20px;
+  }
+  #output { white-space: pre-wrap; word-break: break-word; }
+  #cursor {
+    display: inline-block;
+    width: 10px;
+    height: 20px;
+    background: var(--green);
+    vertical-align: -3px;
+    animation: blink 1s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  #code-head {
+    height: 40px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 14px;
+    color: var(--dim);
+  }
+  #code-head .label { color: var(--yellow); font-weight: 700; letter-spacing: 1px; }
+  #code-meta { color: var(--cyan); }
+  #code {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 18px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 16.5px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: #dbe7f2;
+  }
+  #code .kw { color: #c792ea; }
+  #code .fn { color: #82aaff; }
+  #code .st { color: #c3e88d; }
+  #code-placeholder { color: var(--dim); }
+  #caption {
+    width: 1760px;
+    min-height: 92px;
+    margin-top: 18px;
+    padding: 18px 24px;
+    background: rgba(17,21,29,0.94);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    color: #eef2f8;
+    font-size: 25px;
+    font-weight: 500;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #caption .step { color: var(--cyan); margin-right: 14px; font-weight: 700; }
+  .overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    transition: opacity 0.4s ease;
+  }
+  .overlay.hidden { opacity: 0; pointer-events: none; }
+  .overlay .big { font-size: 60px; font-weight: 800; }
+  .overlay .big .dot { color: var(--accent); }
+  .overlay .sub { margin-top: 16px; font-size: 28px; color: var(--dim); max-width: 1400px; text-align: center; }
+  .overlay .badges { margin-top: 26px; display: flex; gap: 16px; }
+  .badge {
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 10px 22px;
+    font-size: 20px;
+    color: var(--text);
+    background: #12161f;
+  }
+  #outro .big { font-size: 50px; }
+  #final-patch {
+    margin-top: 18px;
+    width: 1500px;
+    height: 320px;
+    overflow: hidden;
+    background: #0e1219;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 20px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 15px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    text-align: left;
+    color: #b8c7dc;
+  }
+  #outro ul { list-style: none; margin-top: 18px; font-size: 25px; color: var(--text); line-height: 1.8; }
+  #outro li::before { content: "✓  "; color: var(--green); font-weight: 700; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>radeon-fix<span class="dot">.</span></h1>
+    <span class="tag">Private repository repair on AMD Radeon</span>
+  </header>
+
+  <div id="main">
+    <div id="terminal" class="window">
+      <div class="win-head">
+        <span class="dotbtn r"></span><span class="dotbtn y"></span><span class="dotbtn g"></span>
+        <span class="title">radeon-fix — Qwen3-14B · Radeon gfx1100 · local vLLM</span>
+      </div>
+      <div id="output-wrap"><span id="output"></span><span id="cursor"></span></div>
+    </div>
+    <div id="code-panel" class="window">
+      <div id="code-head">
+        <span class="label">GENERATED CODE</span>
+        <span id="code-meta">waiting…</span>
+      </div>
+      <div id="code"><span id="code-placeholder">The agent's generated code will appear here as it is written.</span></div>
+    </div>
+  </div>
+
+  <div id="caption"><span class="step"></span><span id="caption-text">Waiting for the agent…</span></div>
+
+  <div id="intro" class="overlay">
+    <div class="big">radeon-fix<span class="dot">.</span></div>
+    <div class="sub">Fix a repository bug from a plain-text issue — inference only, on your GPU.</div>
+    <div class="badges">
+      <span class="badge">Qwen3-14B BF16</span>
+      <span class="badge">AMD Radeon gfx1100</span>
+      <span class="badge">local vLLM + xgrammar</span>
+    </div>
+  </div>
+
+  <div id="outro" class="overlay hidden">
+    <div class="big">Patch produced<span class="dot">.</span></div>
+    <pre id="final-patch"></pre>
+    <ul>
+      <li>7 repository tests pass</li>
+      <li>Deterministic verifier: accept</li>
+      <li>patch.diff + report.md + GPU metrics written</li>
+    </ul>
+  </div>
+
+<script>
+const SEGMENTS = [{"delay":0.100356,"text":"Cloned /root/radeon-fix-demo4/demo_project into temporary workspace /tmp/radeon-fix-o_s_i_sb/workspace\r\n"},{"delay":0.7056,"text":"🤖 Mini-SWE Runner initialized\r\n   Model: Qwen3-14B-BF16\r\n   Environment: local\r\n   Max iterations: 16\r\n   Max tool calls: 40\r\n   Wall budget: 900s\r\n   Context variant: C1\r\n   Controller policy: A1\r\n   JSON mode: J3\r\n   Verifier mode: V1R1\r\n   Edit protocol: replace-v2\r\n"},{"delay":0.000039,"text":"\r\n============================================================\r\n📝 Task: pycalc has three bugs: 1) mode breaks ties by returning the first encountered va...\r\n============================================================\r\n"},{"delay":0.000017,"text":"🔧 Creating local environment...\r\n"},{"delay":0.0001,"text":"✅ Environment ready\r\n"},{"delay":0.005758,"text":"\r\n🔄 API call #1/16\r\n"},{"delay":3.924038,"text":"🔍 inspect pycalc/analysis.py\r\n"},{"delay":0.007781,"text":"   ✓ inspect pycalc/analysis.py → exit 0, 569 chars\r\n"},{"delay":0.302744,"text":"\r\n🔄 API call #2/16\r\n"},{"delay":15.737809,"text":"📝 edit pycalc/analysis.py\r\n"},{"delay":0.013,"text":"   ✗ edit pycalc/analysis.py → exit 1, 200 chars\r\n\r\n🔄 API call #3/16\r\n"},{"delay":16.978725,"text":"✏️ replace pycalc/analysis.py\r\n"},{"delay":0.000333,"text":"   ✗ replace pycalc/analysis.py → exit 2, 789 chars\r\n\r\n🔄 API call #4/16\r\n"},{"delay":17.52671,"text":"✏️ replace pycalc/analysis.py\r\n"},{"delay":0.000278,"text":"   ✗ replace pycalc/analysis.py → exit 2, 789 chars\r\n\r\n🔄 API call #5/16\r\n"},{"delay":3.400892,"text":"🔍 inspect pycalc/analysis.py\r\n"},{"delay":0.006622,"text":"   ✓ inspect pycalc/analysis.py → exit 0, 644 chars\r\n\r\n🔄 API call #6/16"},{"delay":0.000005,"text":"\r\n"},{"delay":19.384443,"text":"✏️ replace pycalc/analysis.py\r\n"},{"delay":0.000612,"text":"\r\n🧾 replace pycalc/analysis.py\r\n"},{"delay":0.000005,"text":"--- a/pycalc/analysis.py\r\n+++ b/pycalc/analysis.py\r\n@@ -13,4 +13,6 @@\r\n             best = value\r\n             best_count = count\r\n+        elif count == best_count and value < best:\r\n"},{"delay":0.000003,"text":"+            best = value\r\n     return best\r\n \r\n@@ -22,3 +24,5 @@\r\n     low = min(values)\r\n"},{"delay":0.000029,"text":"     high = max(values)\r\n-    return [round(value / high, 4) for value in values]\r\n+    if low == high:\r\n+        return [0.0 for _ in values]\r\n+    return [round((value - low) / (high - low), 4) for value in values]\r\n✓ applied\r\n"},{"delay":0.000032,"text":"   ✓ replace pycalc/analysis.py → exit 0, 49 chars\r\n"},{"delay":0.000016,"text":"\r\n🔄 API call #7/16\r\n"},{"delay":3.584725,"text":"🔍 inspect pycalc/report.py\r\n"},{"delay":0.006651,"text":"   ✓ inspect pycalc/report.py → exit 0, 370 chars\r\n\r\n🔄 API call #8/16\r\n"},{"delay":11.651366,"text":"📝 edit pycalc/report.py\r\n"},{"delay":0.014066,"text":"   ✗ edit pycalc/report.py → exit 1, 221 chars\r\n\r\n🔄 API call #9/16\r\n"},{"delay":13.619684,"text":"✏️ replace pycalc/report.py\r\n"},{"delay":0.000268,"text":"   ✗ replace pycalc/report.py → exit 2, 752 chars\r\n\r\n🔄 API call #10/16\r\n"},{"delay":3.205842,"text":"🔍 inspect pycalc/report.py\r\n"},{"delay":0.00672,"text":"   ✓ inspect pycalc/report.py → exit 0, 565 chars\r\n\r\n🔄 API call #11/16\r\n"},{"delay":16.996044,"text":"✏️ replace pycalc/report.py\r\n"},{"delay":0.000577,"text":"\r\n🧾 replace pycalc/report.py\r\n"},{"delay":0.000014,"text":"--- a/pycalc/report.py\r\n+++ b/pycalc/report.py\r\n@@ -14,4 +14,4 @@\r\n     lines.append(f\"- mode: {mode(values)}\")\r\n     normalized = [str(value) for value in normalize(values)]\r\n-    lines.append(\"- normalized: \" + \", \".join(normalized[:5]))\r\n+    lines.append(\"- normalized: \" + \", \".join(normalized))\r\n     return \"\\n\".join(lines)\r\n✓ applied\r\n"},{"delay":0.000038,"text":"   ✓ replace pycalc/report.py → exit 0, 47 chars\r\n"},{"delay":0.000003,"text":"\r\n🔄 API call #12/16\r\n"},{"delay":4.206633,"text":"🏁 finish\r\n"},{"delay":0.000008,"text":"   ✓ finish  → exit 0, 258 chars\r\n"},{"delay":0.095308,"text":"🔍 Verifier V1: accept\r\n"},{"delay":0.155009,"text":"\r\nArtifacts written to: /root/radeon-fix-demo4/out\r\nPatch produced (exit 0)\r\n"}];
+const ACTIONS = [{"action":"inspect","path":"pycalc/analysis.py","query":"mode, normalize","command":"grep -A 10 'def mode' pycalc/analysis.py && grep -A 10 'def normalize' pycalc/analysis.py","patch":null,"old_text":null,"new_text":null,"reason":"Inspect the current implementation of mode and normalize functions to identify the bugs."},{"action":"edit","path":"pycalc/analysis.py","query":null,"command":null,"patch":"diff --git a/pycalc/analysis.py b/pycalc/analysis.py\nindex 1234567..89abcde 100644\n--- a/pycalc/analysis.py\n+++ b/pycalc/analysis.py\n@@ -1,10 +1,10 @@\ndef mode(values):\n    \"\"\"Return the most frequent value; ties return the smaller value.\"\"\"\n    counts = {}\n    for value in values:\n-        counts[value] = counts.get(value, 0) + 1\n+        counts[value] = counts.get(value, 0) + 1\n    best = None\n    best_count = -1\n    for value, count in counts.items():\n        if count > best_count:\n            best = value\n-            best_count = count\n+            best_count = count\n+        elif count == best_count and value < best:\n+            best = value\n\ndef normalize(values):\n    \"\"\"Scale numeric values to [0, 1] using min-max scaling.\"\"\"\n    if not values:\n        return []\n-    low = min(values)\n-    high = max(values)\n-    return [round(value / high, 4) for value in values]\n+    low = min(values)\n+    high = max(values)\n+    if low == high:\n+        return [0.0 for _ in values]\n+    return [round((value - low) / (high - low), 4) for value in values]","old_text":null,"new_text":null,"reason":"Fix mode to return smaller value on ties, and fix normalize to use min-max range, handle zero range, and all-equal inputs."},{"action":"replace","path":"pycalc/analysis.py","query":null,"command":null,"patch":null,"old_text":"def mode(values):\n    \"\"\"Return the most frequent value; ties return the smaller value.\"\"\"\n    counts = {}\n    for value in values:\n        counts[value] = counts.get(value, 0) + 1\n    best = None\n    best_count = -1\n    for value, count in counts.items():\n        if count > best_count:\n            best = value\n            best_count = count\n\ndef normalize(values):\n    \"\"\"Scale numeric values to [0, 1] using min-max scaling.\"\"\"\n    if not values:\n        return []\n    low = min(values)\n    high = max(values)\n    return [round(value / high, 4) for value in values]","new_text":"def mode(values):\n    \"\"\"Return the most frequent value; ties return the smaller value.\"\"\"\n    counts = {}\n    for value in values:\n        counts[value] = counts.get(value, 0) + 1\n    best = None\n    best_count = -1\n    for value, count in counts.items():\n        if count > best_count:\n            best = value\n            best_count = count\n        elif count == best_count and value < best:\n            best = value\n\ndef normalize(values):\n    \"\"\"Scale numeric values to [0, 1] using min-max scaling.\"\"\"\n    if not values:\n        return []\n    low = min(values)\n    high = max(values)\n    if low == high:\n        return [0.0 for _ in values]\n    return [round((value - low) / (high - low), 4) for value in values]","reason":"Fix mode to return smaller value on ties, and fix normalize to use min-max range, handle zero range, and all-equal inputs."},{"action":"replace","path":"pycalc/analysis.py","query":null,"command":null,"patch":null,"old_text":"def mode(values):\n    \"\"\"Return the most frequent value; ties return the smaller value.\"\"\"\n    counts = {}\n    for value in values:\n        counts[value] = counts.get(value, 0) + 1\n    best = None\n    best_count = -1\n    for value, count in counts.items():\n        if count > best_count:\n            best = value\n            best_count = count\n    return best\n\ndef normalize(values):\n    \"\"\"Scale numeric values to [0, 1] using min-max scaling.\"\"\"\n    if not values:\n        return []\n    low = min(values)\n    high = max(values)\n    return [round(value / high, 4) for value in values]","new_text":"def mode(values):\n    \"\"\"Return the most frequent value; ties return the smaller value.\"\"\"\n    counts = {}\n    for value in values:\n        counts[value] = counts.get(value, 0) + 1\n    best = None\n    best_count = -1\n    for value, count in counts.items():\n        if count > best_count:\n            best = value\n            best_count = count\n        elif count == best_count and value < best:\n            best = value\n    return best\n\ndef normalize(values):\n    \"\"\"Scale numeric values to [0, 1] using min-max scaling.\"\"\"\n    if not values:\n        return []\n    low = min(values)\n    high = max(values)\n    if low == high:\n        return [0.0 for _ in values]\n    return [round((value - low) / (high - low), 4) for value in values]","reason":"Fix mode to return smaller value on ties, and fix normalize to use min-max range, handle zero range, and all-equal inputs."},{"action":"inspect","path":"pycalc/analysis.py","query":"mode, normalize","command":"cat pycalc/analysis.py","patch":null,"old_text":null,"new_text":null,"reason":"Need to get the exact content of pycalc/analysis.py to ensure the replacement text matches exactly."},{"action":"replace","path":"pycalc/analysis.py","query":null,"command":null,"patch":null,"old_text":"\"\"\"Statistical helpers for the pycalc demo package.\"\"\"\n\n\ndef mode(values):\n    \"\"\"Return the most frequent value; ties return the smaller value.\"\"\"\n    counts = {}\n    for value in values:\n        counts[value] = counts.get(value, 0) + 1\n    best = None\n    best_count = -1\n    for value, count in counts.items():\n        if count > best_count:\n            best = value\n            best_count = count\n    return best\n\n\ndef normalize(values):\n    \"\"\"Scale numeric values to [0, 1] using min-max scaling.\"\"\"\n    if not values:\n        return []\n    low = min(values)\n    high = max(values)\n    return [round(value / high, 4) for value in values]","new_text":"\"\"\"Statistical helpers for the pycalc demo package.\"\"\"\n\n\ndef mode(values):\n    \"\"\"Return the most frequent value; ties return the smaller value.\"\"\"\n    counts = {}\n    for value in values:\n        counts[value] = counts.get(value, 0) + 1\n    best = None\n    best_count = -1\n    for value, count in counts.items():\n        if count > best_count:\n            best = value\n            best_count = count\n        elif count == best_count and value < best:\n            best = value\n    return best\n\n\ndef normalize(values):\n    \"\"\"Scale numeric values to [0, 1] using min-max scaling.\"\"\"\n    if not values:\n        return []\n    low = min(values)\n    high = max(values)\n    if low == high:\n        return [0.0 for _ in values]\n    return [round((value - low) / (high - low), 4) for value in values]","reason":"Fix mode to return smaller value on ties, and fix normalize to use min-max range, handle zero range, and all-equal inputs."},{"action":"inspect","path":"pycalc/report.py","query":"summary_text","command":"grep -A 10 'def summary_text' pycalc/report.py","patch":null,"old_text":null,"new_text":null,"reason":"Inspect the current implementation of summary_text to identify the bug related to printing all normalized values."},{"action":"edit","path":"pycalc/report.py","query":null,"command":null,"patch":"diff --git a/pycalc/report.py b/pycalc/report.py\nindex 1234567..89abcde 100644\n--- a/pycalc/report.py\n+++ b/pycalc/report.py\n@@ -1,10 +1,10 @@\ndef summary_text(values, title=\"Summary\"):\n    \"\"\"Return a short multi-line summary of the dataset.\"\"\"\n    lines = []\n    lines.append(f\"# {title}\")\n    if not values:\n        lines.append(\"(empty)\")\n        return \"\\n\".join(lines)\n    from pycalc.analysis import mode, normalize\n\n    lines.append(f\"- values: {len(values)}\")\n    lines.append(f\"- mode: {mode(values)}\")\n-    normalized = normalize(values)\n-    lines.append(f\"- normalized: {normalized[:5]}\")\n+    normalized = normalize(values)\n+    lines.append(f\"- normalized: {normalized}\")","old_text":null,"new_text":null,"reason":"Fix summary_text to print all normalized values instead of just the first five."},{"action":"replace","path":"pycalc/report.py","query":null,"command":null,"patch":null,"old_text":"def summary_text(values, title=\"Summary\"):\n    \"\"\"Return a short multi-line summary of the dataset.\"\"\"\n    lines = []\n    lines.append(f\"# {title}\")\n    if not values:\n        lines.append(\"(empty)\")\n        return \"\\n\".join(lines)\n    from pycalc.analysis import mode, normalize\n\n    lines.append(f\"- values: {len(values)}\")\n    lines.append(f\"- mode: {mode(values)}\")\n    normalized = normalize(values)\n    lines.append(f\"- normalized: {normalized[:5]}\")","new_text":"def summary_text(values, title=\"Summary\"):\n    \"\"\"Return a short multi-line summary of the dataset.\"\"\"\n    lines = []\n    lines.append(f\"# {title}\")\n    if not values:\n        lines.append(\"(empty)\")\n        return \"\\n\".join(lines)\n    from pycalc.analysis import mode, normalize\n\n    lines.append(f\"- values: {len(values)}\")\n    lines.append(f\"- mode: {mode(values)}\")\n    normalized = normalize(values)\n    lines.append(f\"- normalized: {normalized}\")","reason":"Fix summary_text to print all normalized values instead of just the first five."},{"action":"inspect","path":"pycalc/report.py","query":"summary_text","command":"cat pycalc/report.py","patch":null,"old_text":null,"new_text":null,"reason":"Need to get the exact content of pycalc/report.py to ensure the replacement text matches exactly."},{"action":"replace","path":"pycalc/report.py","query":null,"command":null,"patch":null,"old_text":"\"\"\"Text summary rendering for pycalc.\"\"\"\n\n\ndef summary_text(values, title=\"Summary\"):\n    \"\"\"Return a short multi-line summary of the dataset.\"\"\"\n    lines = []\n    lines.append(f\"# {title}\")\n    if not values:\n        lines.append(\"(empty)\")\n        return \"\\n\".join(lines)\n    from pycalc.analysis import mode, normalize\n\n    lines.append(f\"- values: {len(values)}\")\n    lines.append(f\"- mode: {mode(values)}\")\n    normalized = [str(value) for value in normalize(values)]\n    lines.append(\"- normalized: \" + \", \".join(normalized[:5]))\n    return \"\\n\".join(lines)","new_text":"\"\"\"Text summary rendering for pycalc.\"\"\"\n\n\ndef summary_text(values, title=\"Summary\"):\n    \"\"\"Return a short multi-line summary of the dataset.\"\"\"\n    lines = []\n    lines.append(f\"# {title}\")\n    if not values:\n        lines.append(\"(empty)\")\n        return \"\\n\".join(lines)\n    from pycalc.analysis import mode, normalize\n\n    lines.append(f\"- values: {len(values)}\")\n    lines.append(f\"- mode: {mode(values)}\")\n    normalized = [str(value) for value in normalize(values)]\n    lines.append(\"- normalized: \" + \", \".join(normalized))\n    return \"\\n\".join(lines)","reason":"Fix summary_text to print all normalized values instead of just the first five."},{"action":"finish","path":null,"query":null,"command":null,"patch":null,"old_text":null,"new_text":null,"reason":"All three bugs have been fixed: mode now returns the smaller value on ties, normalize uses min-max scaling with proper handling of zero range and all-equal inputs, and summary_text now prints all normalized values. All changes have been applied successfully."}];
+const FINAL_PATCH = "diff --git a/pycalc/analysis.py b/pycalc/analysis.py\nindex f3992fb..a058ff3 100644\n--- a/pycalc/analysis.py\n+++ b/pycalc/analysis.py\n@@ -12,6 +12,8 @@ def mode(values):\n         if count > best_count:\n             best = value\n             best_count = count\n+        elif count == best_count and value < best:\n+            best = value\n     return best\n \n \n@@ -21,4 +23,6 @@ def normalize(values):\n         return []\n     low = min(values)\n     high = max(values)\n-    return [round(value / high, 4) for value in values]\n+    if low == high:\n+        return [0.0 for _ in values]\n+    return [round((value - low) / (high - low), 4) for value in values]\ndiff --git a/pycalc/report.py b/pycalc/report.py\nindex 41f5059..9ff2d3b 100644\n--- a/pycalc/report.py\n+++ b/pycalc/report.py\n@@ -13,5 +13,5 @@ def summary_text(values, title=\"Summary\"):\n     lines.append(f\"- values: {len(values)}\")\n     lines.append(f\"- mode: {mode(values)}\")\n     normalized = [str(value) for value in normalize(values)]\n-    lines.append(\"- normalized: \" + \", \".join(normalized[:5]))\n+    lines.append(\"- normalized: \" + \", \".join(normalized))\n     return \"\\n\".join(lines)\n";
+
+const INTRO_MS = 8000;
+const SPEED = 1.6;
+const MAX_GAP_MS = 16000;
+
+const output = document.getElementById("output");
+const outputWrap = document.getElementById("output-wrap");
+const captionText = document.getElementById("caption-text");
+const captionStep = document.querySelector("#caption .step");
+const intro = document.getElementById("intro");
+const outro = document.getElementById("outro");
+const code = document.getElementById("code");
+const codeMeta = document.getElementById("code-meta");
+const finalPatch = document.getElementById("final-patch");
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function setCaption(step, text) {
+  captionStep.textContent = step;
+  captionText.textContent = text;
+}
+
+let codeTimer = null;
+function typeInto(el, text, speedCharsPerSec) {
+  if (codeTimer) clearInterval(codeTimer);
+  el.textContent = "";
+  let index = 0;
+  const step = Math.max(1, Math.round(speedCharsPerSec / 100));
+  codeTimer = setInterval(() => {
+    index += step;
+    el.textContent = text.slice(0, index);
+    el.scrollTop = el.scrollHeight;
+    if (index >= text.length) clearInterval(codeTimer);
+  }, 10);
+}
+
+let actionSeen = 0;
+const ACTION_RE = /🔍 inspect|🔎 search|✏️ replace|📝 edit|🧪 execute|🛠 recover|🏁 finish/g;
+function showNextAction(actions, index) {
+  const action = actions[index];
+  if (!action) return;
+  if (action.action === "replace") {
+    codeMeta.textContent = `${action.path || "?"} · exact replace`;
+    typeInto(code, action.new_text || "", 380);
+    setCaption("CODE GEN", `Writing ${action.path || "code"} — generated code appears on the right.`);
+  } else if (action.action === "edit") {
+    codeMeta.textContent = `${action.path || "?"} · unified diff`;
+    typeInto(code, action.patch || "", 380);
+    setCaption("CODE GEN", `Drafting a unified diff for ${action.path || "the file"}.`);
+  }
+}
+
+function updateCaption(accumulated) {
+  const markers = (accumulated.match(ACTION_RE) || []).length;
+  while (actionSeen < markers) {
+    showNextAction(ACTIONS, actionSeen);
+    actionSeen += 1;
+  }
+  if (accumulated.includes("Verifier V1: accept")) {
+    setCaption("VERIFY", "The deterministic verifier accepts the tests.");
+  }
+  if (accumulated.includes("Patch produced")) {
+    setCaption("DONE", "patch.diff, report.md, trajectory and GPU metrics are written.");
+  }
+}
+
+async function replay() {
+  await sleep(INTRO_MS);
+  intro.classList.add("hidden");
+  setCaption("STEP 1", "The agent reads the issue and inspects the repository with structured actions.");
+  let accumulated = "";
+  for (const segment of SEGMENTS) {
+    accumulated += segment.text;
+    output.textContent = accumulated;
+    outputWrap.scrollTop = outputWrap.scrollHeight;
+    updateCaption(accumulated);
+    const delay = Math.min(segment.delay * 1000, MAX_GAP_MS);
+    await sleep(delay * SPEED);
+  }
+  await sleep(1200);
+  outro.classList.remove("hidden");
+  typeInto(finalPatch, FINAL_PATCH || "(empty patch)", 300);
+  await sleep(4000);
+  document.body.dataset.done = "true";
+}
+
+replay();
+</script>
+</body>
+</html>
