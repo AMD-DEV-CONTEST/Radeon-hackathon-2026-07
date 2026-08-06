@@ -198,6 +198,7 @@ def _start_analysis(
                 "visual_observations": [],
                 "private_lens_readings": cached_analysis.get("private_lens_readings", []),
                 "privacy_findings": cached_analysis.get("privacy_findings", []),
+                "rights_findings": cached_analysis.get("rights_findings", []),
                 "evidence": cached_analysis.get("evidence", []),
                 "comparison": cached_analysis.get("comparison"),
             }
@@ -236,6 +237,7 @@ def _finalize_analysis(
         ],
         private_lens_readings=result.get("private_lens_readings", []),
         privacy_findings=result.get("privacy_findings", []),
+        rights_findings=result.get("rights_findings", []),
         evidence=result.get("evidence", []),
         recalled_memories=result.get("recalled_memories", []),
         image_labels=_image_labels(images),

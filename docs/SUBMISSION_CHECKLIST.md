@@ -44,6 +44,8 @@ reviewer can open or reproduce. Do not mark an item complete based only on inten
 - [ ] Four fixtures complete without exceeding the upload or schema limits.
 - [ ] EXIF GPS fixture produces a visible privacy finding.
 - [ ] QR fixture produces a visible privacy finding with the default production install.
+- [ ] A legally usable recognizable-character test image produces a separate rights/provenance
+      warning that uses resemblance language and does not declare infringement.
 - [ ] A follow-up displays Turn 2, recalls prior messages, shows `reuse_analysis`, and does not call the VLM again.
 - [ ] Every report evidence item has a source title, URL, card ID, and pack.
 - [ ] A sensitive-inference prompt takes the blocked branch.
@@ -110,6 +112,7 @@ Review every match manually; placeholders and test fixtures are acceptable only 
 - [ ] The recording shows an actual command-line Radeon environment.
 - [ ] The recording shows the real GUI, upload, background execution, complete trace, and final report.
 - [ ] Tool trace, retrieved evidence, memory consent, and deletion are visible.
+- [ ] If the rights/provenance case is shown, its warning and non-legal disclaimer are readable.
 - [ ] The private Lens checkbox, completed trace node, technique identifier, and disclaimer are visible.
 - [ ] Performance metrics and GPU telemetry are legible.
 - [ ] No token, permanent key, tunnel control state, private hostname, or personal upload is visible.

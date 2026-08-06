@@ -90,5 +90,6 @@ class FakeModelClient:
             "composition": "centered",
             "text_candidates": [],
             "privacy_candidates": [],
+            "rights_candidates": [],
             "uncertainties": ["test double; no model inference"],
         }

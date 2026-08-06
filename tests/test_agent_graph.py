@@ -91,6 +91,21 @@ class PlainTextFollowUpModel(FakeModelClient):
         return await super().chat(messages, temperature=temperature, max_tokens=max_tokens)
 
 
+class RightsCandidateModel(HistoryRecordingModel):
+    def __init__(self, flagged_stem: str) -> None:
+        super().__init__()
+        self.flagged_stem = flagged_stem
+
+    async def inspect_image(self, path: Path, prompt: str) -> dict[str, Any]:
+        result = await super().inspect_image(path, prompt)
+        if "private Lens Tool" not in prompt and path.stem == self.flagged_stem:
+            result["visible_elements"] = ["a black-and-white cartoon dog"]
+            result["rights_candidates"] = [
+                "The cartoon dog closely resembles Snoopy from Peanuts; verify its provenance."
+            ]
+        return result
+
+
 @pytest.mark.asyncio
 async def test_graph_runs_all_core_capabilities(tmp_path: Path) -> None:
     database = SQLiteStore(tmp_path / "state.sqlite3")
@@ -173,6 +188,72 @@ async def test_graph_runs_all_core_capabilities(tmp_path: Path) -> None:
 )
 def test_natural_preference_language_can_propose_memory(message: str) -> None:
     assert _explicit_memory_candidate(message) is True
+
+
+@pytest.mark.asyncio
+async def test_recognizable_character_becomes_a_separate_rights_finding(
+    tmp_path: Path,
+) -> None:
+    database = SQLiteStore(tmp_path / "state.sqlite3")
+    database.initialize()
+    source_thread = database.create_thread("ada")
+    proposal = database.create_memory_proposal(
+        thread_id=source_thread["id"],
+        user_id="ada",
+        text="I prefer cartoon-style avatars and want copyright risk considered.",
+        memory_type="preference",
+    )
+    database.decide_consent(proposal["id"], "approve")
+    thread = database.create_thread("ada")
+    records = load_knowledge_records(
+        PROJECT_ROOT / "data/knowledge/cards.yaml",
+        PROJECT_ROOT / "data/knowledge/sources.yaml",
+    )
+    images = list((PROJECT_ROOT / "data/fixtures/images").glob("*.jpg"))[:2]
+    model = RightsCandidateModel(images[0].stem)
+    graph = build_graph(
+        GraphServices(
+            model=model,
+            knowledge=InMemoryKnowledgeStore(records, HashingEmbedder()),
+            database=database,
+            image_inspector=ImageInspector(20_000_000, 30_000_000),
+        )
+    )
+
+    result = await graph.ainvoke(
+        {
+            "thread_id": thread["id"],
+            "user_id": "ada",
+            "message": "Compare these candidates for GitHub.",
+            "platform": "GitHub",
+            "audience": "international collaborators",
+            "intent_keywords": ["credible", "approachable"],
+            "enabled_packs": ["profile_basics", "global_professional_context"],
+            "image_paths": images,
+            "tool_trace": [],
+        }
+    )
+
+    assert result["rights_findings"] == [
+        {
+            "image_id": images[0].stem,
+            "type": "copyright_provenance_candidate",
+            "severity": "medium",
+            "observable": True,
+            "summary": (
+                "The cartoon dog closely resembles Snoopy from Peanuts; verify its provenance."
+            ),
+            "recommendation": (
+                "Verify the source and intended-profile usage rights; prefer original, "
+                "commissioned-with-rights, appropriately licensed, or public-domain art."
+            ),
+        }
+    ]
+    assert model.comparison_contexts[-1]["rights_findings"] == result["rights_findings"]
+    assert "## Rights & Provenance" in result["report_markdown"]
+    assert "closely resembles Snoopy" in result["report_markdown"]
+    assert "not a determination" in result["report_markdown"]
+    assert any("copyright" in card["tags"] for card in result["evidence"])
 
 
 @pytest.mark.asyncio

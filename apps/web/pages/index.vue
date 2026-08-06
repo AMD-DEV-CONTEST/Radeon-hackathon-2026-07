@@ -605,6 +605,21 @@ function formatDuration(value: number): string {
             </div>
           </section>
 
+          <section v-if="result.rights_findings.length" class="result-section rights-findings">
+            <p class="eyebrow">Visible resemblance · not a legal conclusion</p>
+            <h3>Rights &amp; provenance findings</h3>
+            <div class="finding-list">
+              <article v-for="(finding, index) in result.rights_findings" :key="index" class="finding-card">
+                <span>{{ String(finding.severity || 'review') }}</span>
+                <div>
+                  <strong v-if="finding.image_id">{{ imageName(String(finding.image_id)) }}</strong>
+                  <p>{{ String(finding.summary || finding.type) }}</p>
+                  <small>{{ String(finding.recommendation || 'Verify the artwork source and usage rights before publishing.') }}</small>
+                </div>
+              </article>
+            </div>
+          </section>
+
           <section v-if="result.private_lens_readings.length" class="result-section private-lens-results">
             <p class="eyebrow">Runtime-only extension</p>
             <h3>Private Lens Tool</h3>

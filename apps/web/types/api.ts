@@ -112,6 +112,7 @@ export interface AnalysisRunResponse {
   observations: Array<Record<string, unknown>>
   private_lens_readings: PrivateLensReading[]
   privacy_findings: Array<Record<string, unknown>>
+  rights_findings: Array<Record<string, unknown>>
   evidence: EvidenceCard[]
   recalled_memories: Array<Record<string, unknown>>
   image_labels: Record<string, string>

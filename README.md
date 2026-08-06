@@ -10,6 +10,8 @@ The project does not identify people or infer personality, intelligence, health,
 - bounded LangGraph workflow with a visible nine-step plan and live node events;
 - self-hosted llama.cpp chat-completions and multimodal adapter;
 - local image validation, measurement, EXIF scanning, and default QR scanning;
+- structured rights/provenance warnings for recognizable characters, logos, watermarks, and
+  distinctive published artwork, without making infringement determinations;
 - 34 source-backed knowledge cards in Milvus Lite, including copyright-provenance guidance;
 - opt-in runtime-only private Lens Tool for a locally mounted 24-lesson, 108-technique
   course distillation;

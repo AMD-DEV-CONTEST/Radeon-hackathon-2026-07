@@ -82,7 +82,8 @@ The successful path executes ten auditable nodes:
 2. **Policy gate** — blocks sensitive image-based inference requests.
 3. **Recall context** — loads only approved preferences and recent thread messages.
 4. **Inspect local** — validates files and measures dimensions, crop, EXIF, and QR evidence.
-5. **Observe visual** — asks the self-hosted VLM for visible facts and uncertainty only.
+5. **Observe visual** — asks the self-hosted VLM for visible facts, privacy candidates,
+   rights/provenance candidates, and uncertainty only.
 6. **Run private Lens** — when explicitly enabled, applies a mounted private framework and filters
    sensitive claims without exposing its source text.
 7. **Retrieve evidence** — searches enabled Milvus Lite Lens Packs with Top-K filtering.
@@ -97,8 +98,8 @@ a short `202` request and polls the durable run record because the Radeon public
 HTTP/2 SSE connections; the completed response restores the identical plan and full tool trace.
 
 After the first multimodal run, a follow-up takes an incremental branch. It recalls recent messages,
-reuses the completed observations, privacy findings, comparison, and evidence, and makes one bounded
-language-model call. The `reuse_analysis` trace states that the VLM was skipped. An explicit memory
+reuses the completed observations, privacy and rights findings, comparison, and evidence, and makes
+one bounded language-model call. The `reuse_analysis` trace states that the VLM was skipped. An explicit memory
 statement may add one separate consent-proposal call; ordinary follow-ups do not repeat vision,
 private-Lens, comparison, or full-report generation.
 
@@ -112,7 +113,7 @@ XiangLens implements all five capabilities listed by the Track 2 rules.
 | Tool calling | Image validation, EXIF/QR scan, crop metrics, private Lens, safe-copy export | Public trace includes each bounded tool |
 | Local RAG | Milvus Lite, four Lens Packs, Top-K retrieval, visible source links | Retrieved Sources panel and nine smoke queries |
 | Local multi-turn memory | SQLite same-thread transcript, recent-turn context, approved preferences | Follow-up composer, visible turns, recall trace, approve/delete controls |
-| Permission and privacy | Policy gate, short-lived token, consent-first writes, Forget Me | Blocked request, pending proposal, deletion API |
+| Permission and privacy | Policy gate, short-lived token, consent-first writes, separate rights/provenance warnings, Forget Me | Blocked request, pending proposal, deletion API |
 
 ## Model and Local Deployment
 

@@ -29,6 +29,7 @@ class XiangLensState(TypedDict, total=False):
     visual_observations: list[dict[str, Any]]
     private_lens_readings: list[dict[str, Any]]
     privacy_findings: list[dict[str, Any]]
+    rights_findings: list[dict[str, Any]]
     evidence: list[dict[str, Any]]
     comparison: dict[str, Any] | None
     memory_proposal_draft: dict[str, Any] | None

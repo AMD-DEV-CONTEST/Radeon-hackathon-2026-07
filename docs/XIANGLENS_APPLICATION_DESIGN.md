@@ -360,6 +360,7 @@ class XiangLensState(TypedDict):
     plan: list[dict]
     observations: list[dict]
     privacy_findings: list[dict]
+    rights_findings: list[dict]
     retrieved_evidence: list[dict]
     recalled_memories: list[dict]
     comparison: dict | None

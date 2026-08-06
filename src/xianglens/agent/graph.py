@@ -81,8 +81,10 @@ COMPARISON_SCORE_FIELDS = (
     ("contextual_ambiguity", "contextual ambiguity"),
 )
 COMPARISON_DECISION_RULE = (
-    "Privacy safety takes precedence. When privacy is equal, prefer the strongest combined "
-    "intent alignment, crop resilience, and small-size clarity with lower contextual ambiguity."
+    "Privacy safety takes precedence. Rights or provenance uncertainty is reflected in "
+    "goal-relative intent alignment and contextual ambiguity, never as a legal ruling. When "
+    "privacy is equal, prefer the strongest combined intent alignment, crop resilience, and "
+    "small-size clarity with lower contextual ambiguity."
 )
 
 
@@ -194,6 +196,7 @@ def _render_report(
     comparison: dict[str, Any] | None,
     proposal: dict[str, Any] | None,
     private_lens_readings: list[dict[str, Any]],
+    rights_findings: list[dict[str, Any]],
     image_labels: dict[str, str] | None = None,
 ) -> str:
     image_labels = image_labels or {}
@@ -262,6 +265,26 @@ def _render_report(
                 [clean(item) for item in report.privacy],
                 "No specific privacy risk was confirmed.",
             ),
+        ]
+    )
+    if rights_findings:
+        sections.append("## Rights & Provenance")
+        for finding in rights_findings:
+            label = _image_label(str(finding.get("image_id", "image")), image_labels)
+            summary = clean(finding.get("summary", "Visible artwork requires provenance review."))
+            recommendation = clean(
+                finding.get(
+                    "recommendation",
+                    "Verify the artwork source and usage rights before publishing.",
+                )
+            )
+            sections.append(f"- `{label}` — {summary} {recommendation}")
+        sections.append(
+            "This is a provenance warning, not a determination of ownership, permission, fair "
+            "use, or infringement."
+        )
+    sections.extend(
+        [
             "## Context",
             _render_bullets(
                 [clean(item) for item in report.context],
@@ -474,6 +497,7 @@ def build_graph(services: GraphServices):
             "measurements": [],
             "visual_observations": [],
             "privacy_findings": [],
+            "rights_findings": [],
             "evidence": [],
             "private_lens_readings": [],
             "recalled_memories": [],
@@ -517,6 +541,7 @@ def build_graph(services: GraphServices):
                 summary=(
                     f"Reused {len(state.get('measurements', []))} observation(s), "
                     f"{len(state.get('privacy_findings', []))} privacy finding(s), and "
+                    f"{len(state.get('rights_findings', []))} rights finding(s), plus "
                     f"{len(state.get('evidence', []))} evidence card(s); VLM skipped."
                 ),
             )
@@ -537,6 +562,7 @@ def build_graph(services: GraphServices):
             ],
             "cached_observations": state.get("measurements", []),
             "cached_privacy_findings": state.get("privacy_findings", []),
+            "cached_rights_findings": state.get("rights_findings", []),
             "cached_comparison": state.get("comparison"),
             "cached_private_lens_readings": state.get("private_lens_readings", []),
             "cached_evidence": state.get("evidence", []),
@@ -549,7 +575,8 @@ def build_graph(services: GraphServices):
                         "Answer one follow-up about an already completed XiangLens image review. "
                         "Return only JSON matching FollowUpDraft with answer, supporting_points, "
                         "cited_card_ids, and limitations. Use the cached observations, privacy "
-                        "findings, comparison, evidence, approved memories, and recent messages. "
+                        "findings, rights/provenance warnings, comparison, evidence, approved "
+                        "memories, and recent messages. "
                         "Do not repeat the full original report. Do not claim that the image was "
                         "visually re-inspected or that rubric scores were recomputed. Cite only "
                         "card IDs present in cached_evidence. Never infer identity or sensitive "
@@ -612,9 +639,15 @@ def build_graph(services: GraphServices):
         started = time.perf_counter()
         prompt = (
             "Return a JSON object with keys visible_elements, composition, text_candidates, "
-            "privacy_candidates, and uncertainties. visible_elements, text_candidates, "
-            "privacy_candidates, and uncertainties must be arrays of short strings. composition "
-            "must be one short string, not an array. "
+            "privacy_candidates, rights_candidates, and uncertainties. visible_elements, "
+            "text_candidates, privacy_candidates, rights_candidates, and uncertainties must be "
+            "arrays of short strings. composition must be one short string, not an array. "
+            "In rights_candidates, flag directly visible recognizable third-party characters, "
+            "brand marks, watermarks, signatures, or distinctive published artwork whose source "
+            "and usage rights should be verified. Name a well-known character only when the "
+            "visual resemblance is strong, and phrase it as 'closely resembles X' rather than "
+            "asserting authenticity, ownership, or infringement. An empty array is valid when no "
+            "such candidate is visible. "
             "Describe only directly visible evidence. "
             f"The user selected platform '{state['platform']}', audience '{state['audience']}', "
             f"and goals {state['intent_keywords']}. Do not identify a person or "
@@ -622,6 +655,7 @@ def build_graph(services: GraphServices):
         )
         observations = []
         visual_findings = list(state.get("privacy_findings", []))
+        rights_findings: list[dict[str, Any]] = []
         for path in state["image_paths"]:
             raw = await services.model.inspect_image(path, prompt)
             try:
@@ -632,7 +666,8 @@ def build_graph(services: GraphServices):
                     + " Your previous JSON failed validation. Return a corrected object only. "
                     + 'Example shape: {"visible_elements":["..."],'
                     + '"composition":"...","text_candidates":[],'
-                    + '"privacy_candidates":[],"uncertainties":[]}. '
+                    + '"privacy_candidates":[],"rights_candidates":[],'
+                    + '"uncertainties":[]}. '
                     + f"Validation error: {str(exc)[:500]}"
                 )
                 repaired = await services.model.inspect_image(path, repair_prompt)
@@ -649,17 +684,33 @@ def build_graph(services: GraphServices):
                 }
                 for candidate in observation.privacy_candidates
             )
+            rights_findings.extend(
+                {
+                    "image_id": path.stem,
+                    "type": "copyright_provenance_candidate",
+                    "severity": "medium",
+                    "observable": True,
+                    "summary": candidate,
+                    "recommendation": (
+                        "Verify the source and intended-profile usage rights; prefer original, "
+                        "commissioned-with-rights, appropriately licensed, or public-domain art."
+                    ),
+                }
+                for candidate in observation.rights_candidates
+            )
         return {
             "visual_observations": observations,
             "privacy_findings": visual_findings,
+            "rights_findings": rights_findings,
             "tool_trace": _trace(
                 state,
                 node="observe_visual",
                 tool="self_hosted_vlm",
                 started=started,
                 summary=(
-                    f"Validated structured observations for {len(observations)} image(s) "
-                    "with the configured Radeon endpoint."
+                    f"Validated structured observations for {len(observations)} image(s) and "
+                    f"flagged {len(rights_findings)} rights/provenance candidate(s) with the "
+                    "configured Radeon endpoint."
                 ),
             ),
         }
@@ -667,6 +718,12 @@ def build_graph(services: GraphServices):
     async def retrieve_evidence(state: XiangLensState) -> dict[str, Any]:
         started = time.perf_counter()
         finding_types = [item.get("type", "") for item in state.get("privacy_findings", [])]
+        rights_terms = [
+            str(value)
+            for finding in state.get("rights_findings", [])
+            for value in (finding.get("type", ""), finding.get("summary", ""))
+            if value
+        ]
         visual_terms = [
             item
             for observation in state.get("visual_observations", [])
@@ -682,6 +739,7 @@ def build_graph(services: GraphServices):
                 state["audience"],
                 *state["intent_keywords"],
                 *finding_types,
+                *rights_terms,
                 *visual_terms,
                 *memory_terms,
             ]
@@ -772,6 +830,7 @@ def build_graph(services: GraphServices):
             "measurements": state.get("measurements", []),
             "observations": state.get("visual_observations", []),
             "privacy_findings": state.get("privacy_findings", []),
+            "rights_findings": state.get("rights_findings", []),
             "approved_memories": [
                 {"type": item["memory_type"], "text": item["text"]}
                 for item in state.get("recalled_memories", [])
@@ -789,7 +848,11 @@ def build_graph(services: GraphServices):
                         "Every candidates item should include a non-empty rationale string. Use "
                         "approved memories only as user-provided goals or constraints when scoring "
                         "intent_alignment; never treat them as observed image facts or proof of a "
-                        "legal conclusion. Use only the supplied image IDs. The application "
+                        "legal conclusion. Treat rights_findings as provenance uncertainty, not "
+                        "privacy findings. When the user's approved goal mentions copyright or "
+                        "usage rights, reflect a candidate-specific rights warning by lowering "
+                        "intent_alignment and/or raising contextual_ambiguity. Use only the "
+                        "supplied image IDs. The application "
                         "verifies the scores and "
                         "derives the final recommendation with its fixed rule. Return only JSON "
                         "matching CandidateComparison."
@@ -883,6 +946,7 @@ def build_graph(services: GraphServices):
             "visual_observations": state.get("visual_observations", []),
             "private_lens_readings": state.get("private_lens_readings", []),
             "privacy_findings": state.get("privacy_findings", []),
+            "rights_findings": state.get("rights_findings", []),
             "approved_memories": [
                 {"type": item["memory_type"], "text": item["text"]}
                 for item in state.get("recalled_memories", [])
@@ -901,6 +965,9 @@ def build_graph(services: GraphServices):
                         "recommendations, limitations, and cited_card_ids. Separate facts from "
                         "interpretation. Base recommendations only on user goals. Cite only "
                         "card IDs present in evidence. Never infer identity or sensitive traits. "
+                        "Always surface supplied rights_findings in context or recommendations, "
+                        "using resemblance and provenance language rather than asserting ownership "
+                        "or infringement. "
                         "Never treat a cultural or private-course association as universal or "
                         "factual. Do not repeat private course text."
                     ),
@@ -928,6 +995,7 @@ def build_graph(services: GraphServices):
             state.get("comparison"),
             state.get("memory_proposal_draft"),
             state.get("private_lens_readings", []),
+            state.get("rights_findings", []),
             state.get("image_labels", {}),
         )
         return {

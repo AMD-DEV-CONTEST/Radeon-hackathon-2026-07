@@ -156,6 +156,9 @@ Typed output validation
 
 - Show the recommended image and comparison scores.
 - Show the QR privacy finding.
+- If a locally supplied licensed test image contains a recognizable third-party character, show
+  the separate **Rights & provenance findings** warning and its non-legal disclaimer. Do not add
+  an unlicensed character image to the repository or submission bundle.
 - Show the completed `run private lens` trace node.
 - Show one private technique identifier and the non-factual symbolic-context disclaimer.
 - Open one source link from Retrieved Sources.
@@ -165,7 +168,9 @@ Typed output validation
 **Narration**
 
 > The result recommends the safer candidate, explains every score, and surfaces the QR code as
-> visible disclosure. The private tool adds one bounded symbolic association with a technique
+> visible disclosure. Recognizable third-party artwork is handled separately: XiangLens can flag
+> visual resemblance and ask me to verify provenance, but it does not declare infringement. The
+> private tool adds one bounded symbolic association with a technique
 > reference, but the safety layer removes personality, health, wealth, relationship, and predictive
 > claims. Public contextual claims still link to retrieved source cards. The safe-copy tool exports
 > a metadata-free JPEG without asking the model to rewrite the image.

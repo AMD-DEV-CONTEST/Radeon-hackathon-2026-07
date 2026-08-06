@@ -112,6 +112,7 @@ class VisualObservation(BaseModel):
     composition: str = Field(default="Not assessed", max_length=1000)
     text_candidates: list[str] = Field(default_factory=list, max_length=20)
     privacy_candidates: list[str] = Field(default_factory=list, max_length=20)
+    rights_candidates: list[str] = Field(max_length=20)
     uncertainties: list[str] = Field(default_factory=list, max_length=20)
 
 
@@ -186,6 +187,7 @@ class AnalysisRunResponse(BaseModel):
     observations: list[dict[str, Any]]
     private_lens_readings: list[PrivateLensReading]
     privacy_findings: list[dict[str, Any]]
+    rights_findings: list[dict[str, Any]]
     evidence: list[EvidenceCard]
     recalled_memories: list[dict[str, Any]]
     image_labels: dict[str, str]
