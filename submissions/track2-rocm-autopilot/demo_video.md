@@ -1,5 +1,7 @@
 # Demo video
 
-Demo video (3-5 min): the link will be added here before the submission deadline (rendering in progress).
+**demo_video.mp4** (in this folder): 2 min 37 s, 1080p, narrated in English.
 
-All underlying footage is real: the video replays the recorded overnight optimization session (runs/journal.jsonl, runs/session-*.log in src/) and the live dashboard.
+Structure: title → replay of the recorded overnight optimization session (typed from the real journal, all numbers measured on Radeon Cloud) → the live dashboard (leaderboard, TTFT guardrail, joules per token, carbon labels A-G) → results.
+
+Every number shown is in `src/runs/journal.jsonl` with the agent's reasoning.
