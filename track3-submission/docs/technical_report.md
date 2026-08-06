@@ -2,7 +2,7 @@
 
 ## Track 3 — Physical AI Challenge: Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
 
-**Team**: [Team Name]
+**Team**: Anonymous (Track 3 submission)
 **Application Name**: Hierarchical Soccer Policy with Reward-Guided Kicking on AMD ROCm
 **Submission Date**: August 2026
 
@@ -545,11 +545,14 @@ python export_onnx_mlp.py --model runs/.../model_499.pt --output models/chase_v8
 
 ## 12. Team Members
 
-| Member | Role | Contribution |
-|--------|------|-------------|
-| [Member 1] | Team Lead | Training pipeline, RL policy design, reward engineering |
-| [Member 2] | Simulation Engineer | Genesis environment, floating-base fix |
-| [Member 3] | Deployment Engineer | ONNX export, multi-robot system, benchmark collection |
+This is an **anonymous** Track 3 submission. Role and contribution breakdown is
+provided for completeness; no individual identities are disclosed.
+
+| Role | Contribution |
+|------|-------------|
+| Team Lead | Training pipeline, RL policy design, reward engineering |
+| Simulation Engineer | Genesis environment, floating-base fix |
+| Deployment Engineer | ONNX export, multi-robot system, benchmark collection |
 
 ---
 
