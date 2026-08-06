@@ -1,0 +1,37 @@
+rules_version = '2';
+
+// EcoChronicles has no Firebase Auth layer (students identify themselves by
+// name only, teacher access is a client-side password gate) — so these rules
+// can't check request.auth. Instead they scope access tightly by collection
+// and validate the shape of any incoming write, and forbid edits/deletes so
+// scores and activity logs are append-only once written.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Quiz scores — written by students after each level, read by the
+    // leaderboard and the teacher dashboard.
+    match /scores/{scoreId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll(['name','level','score','total','language','timestamp'])
+                    && request.resource.data.name is string
+                    && request.resource.data.score is number
+                    && request.resource.data.total is number;
+      allow update, delete: if false;
+    }
+
+    // Eco Waste Identification activity — written by students, read by the
+    // teacher dashboard's Activities tab.
+    match /waste_logs/{logId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll(['itemName','wasteType','biodegradable','timestamp'])
+                    && request.resource.data.itemName is string
+                    && request.resource.data.biodegradable is bool;
+      allow update, delete: if false;
+    }
+
+    // Everything else stays locked down.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
