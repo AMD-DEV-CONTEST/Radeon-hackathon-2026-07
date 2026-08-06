@@ -33,5 +33,10 @@ https://github.com/v1dwt/AgentOS
 
 ## Demo Video
 (https://drive.google.com/file/d/1vW5N-l2M3cQPRWTD-58lwLkbWSUtTULP/view?usp=sharing)
-## Team Member
-Aviral Jain
+## Team
+
+**Team Name:** Agent_shield
+
+### Team Members
+- Shivam Raj
+- Vidwat Srivastava
