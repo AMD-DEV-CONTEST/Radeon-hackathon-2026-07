@@ -13,7 +13,7 @@ runs on-device: no per-video API cost, and no data leaves the machine.
 |---|---|---|
 | `project_profile.pdf` | Project Profile Document (PDF) | Background, target users & scenarios, system architecture, model & algorithm introduction, AMD Radeon GPU / ROCm adaptation description |
 | `code.zip` | Project source code | Complete source code archive — `fluxreel/` package, `pyproject.toml`, and `README.md` with environment configuration, startup guide and dependency list |
-| `fluxreel.mov` | Demo video (3–5 min) | Live walkthrough of the actual operation on an AMD Radeon GPU — CLI/web UI → generated video, showing output clarity, stability and diversity |
+| `fluxreel.mov` | Demo video (1:11) | Live walkthrough of the actual operation on an AMD Radeon GPU — CLI/web UI → generated video, showing output clarity, stability and diversity |
 | `README.md` (this file) | Submission index | Explanation of what is submitted and where everything lives |
 
 ## Required materials mapping
@@ -32,7 +32,7 @@ Per the contest's Track 1 submission requirements:
    and `README.md` with environment configuration, startup guide and dependency list.
    Unzip and run from the extracted directory.)
 
-3. **Demo Video** → `fluxreel.mov` (recommended 3–5 minutes; demonstrates the
+3. **Demo Video** → `fluxreel.mov` (1:11; demonstrates the
    actual operation process and execution performance on an AMD Radeon GPU,
    from command line / GUI to the final result)
 
