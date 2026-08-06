@@ -14,7 +14,6 @@ AMD AI DevMaster Hackathon 2026 · Track 3, Physical AI
 | [Technical report](docs/TECHNICAL_REPORT.md) | architecture, results, how the AMD GPU is used, contributions |
 | [Algorithm design](docs/ALGORITHM.md) | how the method evolved; differences from BeyondMimic |
 | [Troubleshooting](docs/TROUBLESHOOTING.md) | every failure we hit, including three that fail *silently* |
-| [Docker](docker/DOCKER.md) | image build; why no prebuilt image is published |
 
 ---
 
@@ -192,7 +191,7 @@ src/
 ├── diagnostics/           reward validation, reachability, torso FK, camera
 └── third_party_patches/   patched unitree_mujoco bridge and headless recorder
 scripts/                   setup, verification, end-to-end pipeline
-docker/                    Dockerfile and build script
+configs/                   CycloneDDS loopback profile, training history
 docs/                      technical report, algorithm design, troubleshooting
 videos/                    input, retargeting, and all three validation layers
 assets/policy_salute.npz   the trained policy for the demo motion
@@ -214,7 +213,7 @@ assets/policy_salute.npz   the trained policy for the demo motion
 | [mujoco_menagerie](https://github.com/google-deepmind/mujoco_menagerie) | Apache-2.0 | G1 model | unmodified |
 | [BeyondMimic](https://github.com/HybridRobotics/whole_body_tracking) | see upstream | **algorithm reference** | not used as code (CUDA-only); MDP reimplemented on MJX from source |
 
-Everything under `src/`, `scripts/`, `docker/` and `docs/` is written by us.
+Everything under `src/`, `scripts/` and `docs/` is written by us.
 Upstream contributions we made are listed in the
 [technical report](docs/TECHNICAL_REPORT.md).
 
@@ -231,12 +230,6 @@ Solo entry.
 ---
 
 ## 7. Notes
-
-**Real hardware** — contest FAQ Q66/Q69 states all work must be done in the
-cloud and real-robot results do not count towards scoring. All layer-3
-validation runs in the cloud on `unitree_mujoco`. `deploy_track.py` shares the
-same DDS interface and NumPy weights as a real deployment; only the network
-interface name changes.
 
 **Licence** — Apache-2.0 (see [`LICENSE`](LICENSE)). Third-party components
 retain their original licences; see §5.

@@ -27,7 +27,7 @@ $PIP install -q $PIP_OPTS -e "$THIRD/unitree_sdk2_python" --no-deps
 step "Applying our patches"
 # Without these, layer 3 fails silently — see docs/TROUBLESHOOTING.md.
 cp "$REPO/src/third_party_patches/"*.py "$THIRD/unitree_mujoco/simulate_python/"
-cp "$REPO/docker/cyclonedds_lo.xml" "$THIRD/cyclonedds_lo.xml"
+cp "$REPO/configs/cyclonedds_lo.xml" "$THIRD/cyclonedds_lo.xml"
 info "patched unitree_mujoco (PD moved out of the DDS callback, headless recorder)"
 
 # unitree_mujoco ships configured for the Go2 — a 12-joint quadruped. Left

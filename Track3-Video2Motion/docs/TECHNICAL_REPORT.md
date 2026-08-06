@@ -15,10 +15,11 @@ straight to a Unitree G1 over DDS. There is a web UI for the whole thing; no
 code required.
 
 The entire pipeline runs on a **Radeon Pro W7900 (gfx1100) with ROCm 7.2.1**.
-This is not a port that swaps a backend flag: the mainstream stacks in this
-field — Isaac Lab, Isaac Sim, MuJoCo Warp, unitree_rl_mjlab, and BeyondMimic's
-own implementation — are **all CUDA-only**. We had to re-select the stack and
-rebuild the missing pieces.
+The mainstream stacks in this field — Isaac Lab, Isaac Sim, MuJoCo Warp,
+unitree_rl_mjlab, and BeyondMimic's own implementation — are **all CUDA-only**,
+so none of them was available as a starting point. The stack was re-selected
+around MuJoCo MJX, which reaches the GPU through JAX and ROCm, and the pieces
+that only existed for CUDA were rebuilt on top of it.
 
 **Headline result**: the trained policy passes all three validation layers.
 Layer 3 runs on **Unitree's own simulator, Unitree's own G1 model, over DDS** —
@@ -45,25 +46,23 @@ Teaching a humanoid a new motion currently has three barriers:
 
 Our goal is to compress this to: **upload a video, wait, get a usable policy.**
 
-### 1.2 A deliberate decision: no single unified policy
+### 1.2 What "automated" has to mean here
 
-The obvious idea is to train one policy that can do every motion. We
-**deliberately do not**, because it conflicts with the product: the user
-uploads an *arbitrary* video, so the motion cannot be enumerated in the
-training set ahead of time.
+The input is an arbitrary video, so the motion is not known until the user
+uploads it. That rules out a single policy covering every motion: such a policy
+has to be trained against a fixed motion set, and there is no fixed set to train
+against. Each upload therefore gets its own policy.
 
-What we want instead is **one hyperparameter set under which most motions
-converge**. Each motion gets its own policy, but **no human tuning per motion**.
-These two things are orthogonal and easy to confuse:
+The burden that shifts onto us is tuning. If every new motion needed its
+hyperparameters adjusted by hand, the pipeline would only be automated up to the
+point where the work actually starts. So the target is **one hyperparameter set
+under which most motions converge** — N checkpoints, but no human in the loop
+between the video and the policy. Motions stay independent, and adding one
+cannot disturb the others.
 
-| | One policy, many motions | One hyperparameter set, many motions |
-|---|---|---|
-| Artifact | 1 checkpoint | N checkpoints |
-| Adding a motion | retrain everything | independent, no interference |
-| Fit for us | ❌ conflicts with "arbitrary video" | ✅ the prerequisite for automation |
-
-BeyondMimic takes the same "per-motion policy, shared hyperparameters" route.
-We follow its methodology but the implementation is independent (see §2).
+BeyondMimic follows the same per-motion-policy route with shared
+hyperparameters. We adopt the methodology; the implementation is independent
+(see §2).
 
 ---
 
@@ -449,8 +448,8 @@ one interface:
 | `mjx` | JAX 0.11, MuJoCo, MJX, brax | torch |
 
 They cannot coexist in one interpreter, so every stage runs as a subprocess and
-they exchange data through files. This constraint also dictates the Docker
-layering.
+they exchange data through files. `setup.sh` builds the three separately for the
+same reason.
 
 ---
 
@@ -486,16 +485,6 @@ layering.
 - Expand the motion library (e.g. LAFAN1) and quantify hyperparameter coverage.
 - Pretrained base + per-motion fine-tuning, to cut 6 hours to ~20 minutes.
 - Domain randomisation and communication-delay modelling to harden for hardware.
-- Docker packaging. **Note**: GVHMR depends on SMPL/SMPL-X, which are
-  registration-gated and whose licence forbids redistribution — they cannot be
-  baked into a public image; users must download them themselves.
-
-**On real hardware**: contest FAQ Q66/Q69 states all work must be done in the
-cloud and real-robot results do not count towards scoring. All of our layer-3
-validation runs in the cloud on `unitree_mujoco`. `deploy_track.py` shares the
-same DDS interface and the same NumPy weights as a real deployment — only the
-network interface name changes — but that remains personal learning, not a
-contest deliverable.
 
 ---
 
@@ -506,5 +495,4 @@ contest deliverable.
 | [`../README.md`](../README.md) | Overview, setup, usage, code attribution |
 | [`ALGORITHM.md`](ALGORITHM.md) | How the method evolved; differences from BeyondMimic |
 | [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) | Every failure encountered, including the three that fail silently |
-| [`../docker/DOCKER.md`](../docker/DOCKER.md) | Image build; why no prebuilt image is published |
 | [`../scripts/`](../scripts/) | Setup, verification and end-to-end pipeline scripts |
