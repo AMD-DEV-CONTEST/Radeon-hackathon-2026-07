@@ -1,0 +1,1 @@
+"""Qingxi Rift Character Workshop - AMD Track 1 multimodal tool."""
