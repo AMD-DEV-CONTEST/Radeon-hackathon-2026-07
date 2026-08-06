@@ -1,0 +1,258 @@
+{
+    "dataset": {
+        "repo_id": "demo/fruit_pick_dr_600ep",
+        "root": "artifacts/datasets/fruit_pick_dr_600ep",
+        "episodes": null,
+        "image_transforms": {
+            "enable": false,
+            "max_num_transforms": 3,
+            "random_order": false,
+            "tfs": {
+                "brightness": {
+                    "weight": 1.0,
+                    "type": "ColorJitter",
+                    "kwargs": {
+                        "brightness": [
+                            0.8,
+                            1.2
+                        ]
+                    }
+                },
+                "contrast": {
+                    "weight": 1.0,
+                    "type": "ColorJitter",
+                    "kwargs": {
+                        "contrast": [
+                            0.8,
+                            1.2
+                        ]
+                    }
+                },
+                "saturation": {
+                    "weight": 1.0,
+                    "type": "ColorJitter",
+                    "kwargs": {
+                        "saturation": [
+                            0.5,
+                            1.5
+                        ]
+                    }
+                },
+                "hue": {
+                    "weight": 1.0,
+                    "type": "ColorJitter",
+                    "kwargs": {
+                        "hue": [
+                            -0.05,
+                            0.05
+                        ]
+                    }
+                },
+                "sharpness": {
+                    "weight": 1.0,
+                    "type": "SharpnessJitter",
+                    "kwargs": {
+                        "sharpness": [
+                            0.5,
+                            1.5
+                        ]
+                    }
+                },
+                "affine": {
+                    "weight": 1.0,
+                    "type": "RandomAffine",
+                    "kwargs": {
+                        "degrees": [
+                            -5.0,
+                            5.0
+                        ],
+                        "translate": [
+                            0.05,
+                            0.05
+                        ]
+                    }
+                }
+            }
+        },
+        "revision": null,
+        "use_imagenet_stats": true,
+        "video_backend": "pyav",
+        "return_uint8": false,
+        "depth_output_unit": "mm",
+        "streaming": false,
+        "eval_split": 0.0
+    },
+    "env": null,
+    "policy": {
+        "type": "smolvla",
+        "n_obs_steps": 1,
+        "input_features": {
+            "observation.state": {
+                "type": "STATE",
+                "shape": [
+                    6
+                ]
+            },
+            "observation.images.camera1": {
+                "type": "VISUAL",
+                "shape": [
+                    3,
+                    256,
+                    256
+                ]
+            },
+            "observation.images.camera2": {
+                "type": "VISUAL",
+                "shape": [
+                    3,
+                    256,
+                    256
+                ]
+            },
+            "observation.images.camera3": {
+                "type": "VISUAL",
+                "shape": [
+                    3,
+                    256,
+                    256
+                ]
+            }
+        },
+        "output_features": {
+            "action": {
+                "type": "ACTION",
+                "shape": [
+                    9
+                ]
+            }
+        },
+        "device": "cuda",
+        "use_amp": false,
+        "use_peft": false,
+        "push_to_hub": false,
+        "repo_id": null,
+        "private": null,
+        "tags": null,
+        "license": null,
+        "pretrained_path": "lerobot/smolvla_base",
+        "pretrained_revision": null,
+        "chunk_size": 50,
+        "n_action_steps": 50,
+        "normalization_mapping": {
+            "VISUAL": "IDENTITY",
+            "STATE": "MEAN_STD",
+            "ACTION": "MEAN_STD"
+        },
+        "max_state_dim": 32,
+        "max_action_dim": 32,
+        "resize_imgs_with_padding": [
+            512,
+            512
+        ],
+        "empty_cameras": 0,
+        "adapt_to_pi_aloha": false,
+        "use_delta_joint_actions_aloha": false,
+        "tokenizer_max_length": 48,
+        "num_steps": 10,
+        "use_cache": true,
+        "freeze_vision_encoder": true,
+        "train_expert_only": true,
+        "train_state_proj": true,
+        "optimizer_lr": 0.0001,
+        "optimizer_betas": [
+            0.9,
+            0.95
+        ],
+        "optimizer_eps": 1e-08,
+        "optimizer_weight_decay": 1e-10,
+        "optimizer_grad_clip_norm": 10.0,
+        "scheduler_warmup_steps": 1000,
+        "scheduler_decay_steps": 30000,
+        "scheduler_decay_lr": 2.5e-06,
+        "vlm_model_name": "HuggingFaceTB/SmolVLM2-500M-Video-Instruct",
+        "load_vlm_weights": true,
+        "add_image_special_tokens": false,
+        "attention_mode": "cross_attn",
+        "prefix_length": 0,
+        "pad_language_to": "max_length",
+        "num_expert_layers": 0,
+        "num_vlm_layers": 16,
+        "self_attn_every_n_layers": 2,
+        "expert_width_multiplier": 0.75,
+        "min_period": 0.004,
+        "max_period": 4.0,
+        "rtc_config": null,
+        "compile_model": false,
+        "compile_mode": "max-autotune"
+    },
+    "reward_model": null,
+    "output_dir": "reproductions/train/smolvla_fruit_pick_dr_600ep",
+    "job_name": "smolvla_fruit_pick_dr_600ep",
+    "resume": false,
+    "seed": 1000,
+    "cudnn_deterministic": false,
+    "num_workers": 4,
+    "batch_size": 128,
+    "prefetch_factor": 4,
+    "persistent_workers": true,
+    "steps": 20000,
+    "env_eval_freq": 20000,
+    "log_freq": 200,
+    "eval_steps": 0,
+    "max_eval_samples": 0,
+    "tolerance_s": 0.0001,
+    "save_checkpoint": true,
+    "save_freq": 2000,
+    "use_policy_training_preset": true,
+    "optimizer": {
+        "type": "adamw",
+        "lr": 0.0001,
+        "weight_decay": 1e-10,
+        "grad_clip_norm": 10.0,
+        "betas": [
+            0.9,
+            0.95
+        ],
+        "eps": 1e-08
+    },
+    "scheduler": {
+        "type": "cosine_decay_with_warmup",
+        "num_warmup_steps": 1000,
+        "num_decay_steps": 30000,
+        "peak_lr": 0.0001,
+        "decay_lr": 2.5e-06
+    },
+    "eval": {
+        "n_episodes": 50,
+        "batch_size": 50,
+        "use_async_envs": true,
+        "recording": false,
+        "recording_repo_id": null,
+        "recording_private": false
+    },
+    "wandb": {
+        "enable": false,
+        "disable_artifact": false,
+        "project": "lerobot",
+        "entity": null,
+        "notes": null,
+        "run_id": null,
+        "mode": null,
+        "add_tags": true
+    },
+    "peft": null,
+    "job": {
+        "target": null,
+        "image": "huggingface/lerobot-gpu:latest",
+        "timeout": "2d",
+        "detach": false,
+        "tags": []
+    },
+    "save_checkpoint_to_hub": false,
+    "sample_weighting": null,
+    "rename_map": {
+        "observation.images.world": "observation.images.camera1",
+        "observation.images.wrist": "observation.images.camera2"
+    },
+    "checkpoint_path": null
+}
