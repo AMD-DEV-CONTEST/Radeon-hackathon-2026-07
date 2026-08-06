@@ -133,16 +133,16 @@ npm run sidecar:selftest
 npm run test:rpc
 ```
 
-The first submission snapshot has been exercised on an AMD Radeon `gfx1100` / ROCm 7.2 environment. The recorded project validation included 377 Python tests, 21 frontend tests, a focused V2 test set, and a real ComfyUI submit-to-candidate-to-project smoke workflow.
+The first submission snapshot has been exercised on an AMD Radeon `gfx1100` / ROCm 7.2 environment. The recorded project validation included 377 Python tests, 99 frontend tests, a focused V2 test set, and a real ComfyUI submit-to-candidate-to-project smoke workflow.
 
 ## Submission materials
 
 - Source code and reproducibility README: included in this directory.
 - Project profile PDF: will be added to this same pull-request branch after final layout review.
-- Demo MP4: [`docs/SpriteFusion2D-demo-draft.mp4`](docs/SpriteFusion2D-demo-draft.mp4) is a temporary, playable recorder-pipeline placeholder and will be replaced by the final Radeon GUI demonstration.
+- Demo MP4: [`docs/SpriteFusion2D-demo.mp4`](docs/SpriteFusion2D-demo.mp4) is the 239-second Radeon GUI recording at 1440×900 and 30 fps. It walks through the project workspace, canvas, background removal, outline extraction, pixel conversion, animation preview, and revision comparison.
 - Poster or presentation: will be added with the final media package.
 
-The draft MP4 is explicitly labeled and must not be interpreted as the final product demonstration. The pull request remains updatable, so later commits to its source branch will appear automatically.
+The optional ComfyUI generation panel is included in the application and is exercised in the recording; the clean recording instance did not carry the separately licensed model service, so the video shows the provider-unavailable state rather than claiming a generation result that was not produced in that run. The pull request remains updatable, so later commits to its source branch will appear automatically.
 
 ## Licenses and credits
 
