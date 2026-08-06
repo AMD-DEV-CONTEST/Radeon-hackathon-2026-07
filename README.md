@@ -1,89 +1,127 @@
-# Radeon-hackathon-2026-07
+# Secure GenAI Text-to-Image Studio
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+This is a Google Colab-ready dynamic web application for secure text-to-image generation using Stable Diffusion XL. It includes registration, login, email OTP verification, forgot-password OTP reset, saved image history, and an admin dashboard.
 
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
+## Main Features
 
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
+- Text-to-image generation with SDXL.
+- Secure registration and login with bcrypt password hashing.
+- Email OTP verification after registration.
+- Forgot password flow with OTP sent to the registered email.
+- SQLite database with persistent user, login, OTP, and generation records.
+- Admin dashboard for viewing registered users, email verification status, login counts, and recent login entries.
+- User gallery for saved generated images.
+- Separate frontend files in the `frontend` folder.
 
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+## Project Files
 
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+- `app.py` - Main Gradio web application.
+- `model_vscode.py` - SDXL model loading and image generation logic.
+- `auth_vscode.py` - Authentication, OTP email, password reset, and admin setup.
+- `database_vscode.py` - SQLite database setup and queries.
+- `frontend/home.html` - Landing page HTML.
+- `frontend/style.css` - Custom frontend styling.
+- `requirements_vscode.txt` - Python dependencies.
+- `.env.example` - Example email/admin environment variables.
 
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+## Run on Google Colab
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+1. Open Google Colab.
+2. Go to `Runtime > Change runtime type`.
+3. Select `T4 GPU`.
+4. Click `Save`.
+5. Upload the project zip.
 
-> [!IMPORTANT]
-> Team name was an optional field on the Luma registration form. If you did not fill in a team name when you registered, please use your own name instead, so the title of the pull request should be like **"Track x, Your name, your application name"**.
+Use these cells:
 
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
+```python
+import os
+os.chdir("/content")
+print(os.getcwd())
+```
 
-## Submission Requirements
+```python
+from google.colab import files
+uploaded = files.upload()
+```
 
-### Track 1: Development of Multimodal Content Creation Tools
+Upload:
 
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
+```text
+secure_text_to_image_colab.zip
+```
 
-### Track 2: Development & Local Deployment of Private AI Agents
+Then run:
 
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
+```python
+import os
+os.chdir("/content")
+print(os.listdir("/content"))
+```
 
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
+```python
+!rm -rf /content/secure_text_to_image
+!unzip -q /content/secure_text_to_image_colab.zip -d /content/secure_text_to_image
+os.chdir("/content/secure_text_to_image")
+print(os.getcwd())
+print(os.listdir())
+```
 
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+Install dependencies:
+
+```python
+!pip install -r requirements_vscode.txt
+```
+
+Run the app:
+
+```python
+!python app.py
+```
+
+Open the public Gradio link shown by Colab.
+
+## Admin Login
+
+Default admin credentials:
+
+```text
+
+```
+
+The admin dashboard appears only after the admin account signs in.
+
+## Email OTP Setup
+
+Forgot password and registration verification require SMTP email settings.
+
+Create a `.env` file in the project folder with:
+, use a Gmail App Password, not your normal Gmail password.
+
+## Database Storage
+
+When running in Colab, the app attempts to use Google Drive:
+
+```text
+/content/drive/MyDrive/done_project/data/app.db
+```
+
+This keeps users, OTP records, login history, and image history saved even after the Colab runtime restarts.
+
+## Notes
+
+- SDXL is heavy and should be run with a Colab T4 GPU.
+- ## Hardware Acceleration
+
+The application uses GPU acceleration for Stable Diffusion XL inference.
+
+Compatible with:
+- AMD Radeon GPUs through ROCm supported environments.
+- Google Colab T4 GPU for demonstration.
+- project/
+ ├── screenshots/
+ │    ├── home.png
+ │    ├── generation.png
+ │    └── admin.png
+- If image generation is slow, reduce width, height, or steps.
+- If OTP email does not send, check the `.env` values and Gmail App Password.
