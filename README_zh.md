@@ -203,6 +203,7 @@ HF_HOME=/workspace/models HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
   --out ../outputs/demo_closed_loop.mp4
 ```
 - 产出 3-5 分钟闭环演示视频（含命令行操作/执行状态/结果覆盖层）
+- **演示视频链接**：`outputs/demo_closed_loop.mp4`（4.59 分钟，960×544，20 fps）
 
 ---
 

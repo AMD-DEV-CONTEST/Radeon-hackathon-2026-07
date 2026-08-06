@@ -229,8 +229,10 @@ volume in offline mode.
 - Checkpoints: `outputs/train/smolvla_train_ycb5/checkpoints/{005000,010000}`
 
 ### 6.4 Closed-loop demo video (AMD GPU)
-- `outputs/demo_closed_loop.mp4` — **3.9 minutes**, 960×544, 12 episodes
+- **Video link**: `outputs/demo_closed_loop.mp4` (absolute: `/workspace/template-repos/template-107/repo/outputs/demo_closed_loop.mp4`)
+- **4.59 minutes**, 960×544, 20 fps, 12 episodes
 - Demonstrates the full workflow on AMD GPU: Qwen3-VL perceives object colors → SmolVLA executes pick-place → cycle through banana (yellow) / plum (purple) / red_cube (red)
+- Includes CLI-command / execution-status / result overlays showing the complete end-to-end workflow
 
 ### 6.5 Evaluation results
 - `outputs/eval_results/train_ycb5/010000.json` — per-object success rates

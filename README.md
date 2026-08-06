@@ -203,6 +203,7 @@ HF_HOME=/workspace/models HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
   --out ../outputs/demo_closed_loop.mp4
 ```
 - Produces a 3-5 min closed-loop demo video (with CLI/status/result overlays).
+- **Demo video link**: `outputs/demo_closed_loop.mp4` (4.59 min, 960×544, 20 fps)
 
 ---
 
