@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://botversex.dev/schemas/botclaw/v0.1/device_capabilities.schema.json",
+  "title": "DeviceCapabilities",
+  "description": "What the platform can do with a given physical device/runtime. Aligned with apps/realtime/runtimes/_protocol.py RuntimeInfo for BotClaw v0.9.",
+  "type": "object",
+  "required": ["robot_id", "robot_model", "joint_count", "joint_names", "control_modes", "max_fps"],
+  "additionalProperties": false,
+  "properties": {
+    "robot_id": { "type": "string", "minLength": 1 },
+    "robot_model": {
+      "type": "string",
+      "enum": ["so101", "so100", "reachy_mini", "reachy_mini_lite", "openclaw", "generic"]
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Human-readable name shown in UI runtime cards."
+    },
+    "joint_count": { "type": "integer", "minimum": 1 },
+    "joint_names": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "control_modes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["leader_follower", "keyboard", "vr", "replay", "telemetry", "inference"]
+      },
+      "minItems": 1
+    },
+    "max_fps": { "type": "number", "minimum": 1 },
+    "urdf_url": {
+      "type": "string",
+      "description": "Relative URL served by apps/realtime, e.g. /api/urdf/so101.urdf"
+    },
+    "has_gripper": { "type": "boolean" },
+    "supports_telemetry": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether runtime can emit hardware telemetry such as temperature/current/voltage."
+    },
+    "camera_sources": {
+      "type": "array",
+      "default": [],
+      "description": "Camera sources exposed by the runtime; mirrors RuntimeInfo.camera_sources.",
+      "items": {
+        "type": "object",
+        "required": ["camera_id", "display_name"],
+        "additionalProperties": false,
+        "properties": {
+          "camera_id": { "type": "string", "minLength": 1 },
+          "display_name": { "type": "string", "minLength": 1 },
+          "device_type": {
+            "type": "string",
+            "enum": ["usb", "realsense", "ip"],
+            "default": "usb"
+          },
+          "default_device": {
+            "type": "string",
+            "description": "Optional device path or address, e.g. /dev/video0, 0, or rtsp URL."
+          },
+          "width": { "type": "integer", "minimum": 1, "default": 640 },
+          "height": { "type": "integer", "minimum": 1, "default": 480 },
+          "fps": { "type": "integer", "minimum": 1, "default": 30 }
+        }
+      }
+    }
+  }
+}

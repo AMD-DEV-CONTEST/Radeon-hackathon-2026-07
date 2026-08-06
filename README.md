@@ -1,89 +1,121 @@
-# Radeon-hackathon-2026-07
+# BotverseX
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+> **English summary** — BotverseX is an **embodied-AI data-loop platform**: one website
+> that makes the full loop short and cheap — **connect → teleoperate → record → train →
+> deploy** — for real robot runtimes (SO-101, Reachy Mini, B601-RS, LeKiwi, Unitree G1,
+> AmazingHand). Recordings land as **LeRobot-format parquet** datasets; training runs
+> **locally on AMD Radeon GPUs via ROCm** (verified on Strix Halo / gfx1151, torch
+> `2.10.0+rocm7.0`) or on cloud nodes; policies deploy back to the real robot. SO-101 is
+> **zero-install**: the browser drives the Feetech STS3215 servos directly through the
+> **Web Serial API**.
+>
+> **Hackathon submission (AMD AI DevMaster 2026, Track 3)** — [Technical report](./docs/hackathon-2026-07/technical-report.md) ·
+> [Reproducibility instructions](./docs/hackathon-2026-07/reproducibility.md) ·
+> Live site: https://botversex.feispace.me
+>
+> 中文详细文档见下文。
 
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
+桌面机器人平台：**Web 控制台 + 业务 API + 实时服务**，覆盖遥操作、录制、训练（含 Qualia 云）、推理与多硬件 Runtime（SO-101、Reachy Mini 等）。
 
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
+系统架构图（分层、代理、Local Agent、BotClaw 契约）见 **[docs/architecture.md](./docs/architecture.md)**。
 
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+更完整的里程碑与排障说明见 **[AGENT_HANDOFF.md](./AGENT_HANDOFF.md)**。
+平台叙事、长期定位与产品推进原则见 **[docs/strategy](./docs/strategy/README.md)**。
 
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+**上手怎么用（推荐先读）：[docs/HOW-TO-USE.md](./docs/HOW-TO-USE.md)**
 
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+## 目录结构（与仓库一致）
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+```
+botversex/
+├── apps/
+│   ├── web/           # 主前端 (Vite + React)
+│   ├── api/           # 业务 API (FastAPI, :8000)
+│   └── realtime/      # 实时服务 (FastAPI + WebSocket, :8002)
+├── packages/
+│   └── botclaw-spec/  # BotClaw 契约（JSON Schema 等）
+├── docs/
+│   ├── architecture.md  # 系统架构图与代理/桥接说明
+│   └── strategy/        # 平台最高纲领、叙事与路线原则
+├── scripts/
+│   ├── dev-up.sh      # 拉起 API + Realtime（含 LeRobot 路径等）
+│   ├── dev-all.sh     # dev-up + 前端 :5173
+│   └── package-source.sh  # 打源码包给工程师（排除 venv/node_modules）
+└── infra/docker/      # 可选：docker compose 开发栈
+```
 
-> [!IMPORTANT]
-> Team name was an optional field on the Luma registration form. If you did not fill in a team name when you registered, please use your own name instead, so the title of the pull request should be like **"Track x, Your name, your application name"**.
+## 环境要求
 
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
+- **Node** ≥ 20（前端）
+- **Python** 3.12+（api / realtime 各自独立 venv）
+- Linux：串口权限 `sudo usermod -aG dialout $USER` 后重新登录
 
-## Submission Requirements
+## 推荐：一键本地联调（Linux）
 
-### Track 1: Development of Multimodal Content Creation Tools
+先装好依赖（只需第一次）：
 
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
+```bash
+cd apps/api && python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
+cd ../realtime && python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
+cd ../web && npm install
+cd ../..
+```
 
-### Track 2: Development & Local Deployment of Private AI Agents
+在项目根目录：
 
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
+```bash
+# 若 SO-101 / LeRobot 在本机非常规路径，可导出（见 scripts/dev-up.sh 内注释）
+# export BOTVERSEX_LEROBOT_PATH=/path/to/lerobot/src
 
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
+bash scripts/dev-all.sh up
+```
 
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+- 前端：<http://127.0.0.1:5173>（`dev-all` 使用 `--host 0.0.0.0`，局域网可用本机 IP 访问）
+- API：<http://127.0.0.1:8000/docs>
+- Realtime：<http://127.0.0.1:8002/api/setup/health>
+
+停止：
+
+```bash
+bash scripts/dev-all.sh down
+```
+
+## 手动三终端（等价于上面）
+
+```bash
+# 终端 1 — API
+cd apps/api && source .venv/bin/activate
+uvicorn app.main:app --port 8000 --app-dir .
+
+# 终端 2 — Realtime
+cd apps/realtime && source .venv/bin/activate
+python run_api.py
+
+# 终端 3 — Web（监听所有网卡便于演示）
+cd apps/web && npm run dev -- --host 0.0.0.0
+```
+
+## 使用 pnpm（可选）
+
+仓库根目录配置了 `pnpm dev:web`；首次需在 monorepo 根目录 `pnpm install`，再 `pnpm dev:web`。日常开发也可只在 `apps/web` 下用 `npm install` / `npm run dev`，与 `dev-all.sh` 一致。
+
+## 把源码包发给工程师（不要打包 venv）
+
+```bash
+bash scripts/package-source.sh
+# 默认生成：../botversex-source-YYYYMMDD.tar.gz（与项目目录同级）
+# 需要 Git 历史：WITH_GIT=1 bash scripts/package-source.sh
+```
+
+解压后按本文「一键」或「三终端」重装 venv 与 `npm install` 即可。
+
+## 配置
+
+- 业务密钥与第三方 Token：在 **`apps/api/`** 下配置 `.env`（勿提交；可参考项目内 `.env.example` 若存在）。
+- 前端默认通过 **Vite 代理** 访问 `/api`、`/ws`；局域网演示时不要设置 `VITE_REALTIME_WS_URL=ws://localhost:8002`，否则手机会连到自己机器的 8002。需要固定后端时再设该变量。
+
+## 设计原则（简要）
+
+1. 契约优先：`packages/botclaw-spec` 为 Schema 真源（见 [docs/architecture.md](./docs/architecture.md)）。
+2. api / realtime / web 可分开启动，本地通过端口与代理协作；云端真机需 Local Agent 桥接。
+3. 真机链路见 `AGENT_HANDOFF.md` 中的 sender / 串口说明。

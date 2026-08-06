@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://botversex.dev/schemas/botclaw/v0.1/training_job.schema.json",
+  "title": "TrainingJob",
+  "description": "A training job targeting one or more DatasetEpisodes. M1 treats this as metadata only; execution wires in at M3.",
+  "type": "object",
+  "required": ["id", "status", "algorithm", "dataset_ids", "created_at"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["queued", "running", "succeeded", "failed", "cancelled"]
+    },
+    "algorithm": {
+      "type": "string",
+      "description": "Learning algo identifier, e.g. act, diffusion_policy, lerobot_bc."
+    },
+    "dataset_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "hyperparameters": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "finished_at": { "type": "string", "format": "date-time" },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": { "type": "number" }
+    },
+    "artifact_url": { "type": "string" },
+    "error_message": { "type": "string" },
+    "progress": { "type": "number", "minimum": 0, "maximum": 1 }
+  }
+}

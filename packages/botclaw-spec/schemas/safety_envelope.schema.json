@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://botversex.dev/schemas/botclaw/v0.9/safety_envelope.schema.json",
+  "title": "SafetyEnvelope",
+  "description": "Runtime workspace and motion limits inspired by TidyBot Safety Envelope. v0.9 defines the contract only; enforcement lives in runtime adapters.",
+  "type": "object",
+  "required": ["robot_id", "mode", "limits"],
+  "additionalProperties": false,
+  "properties": {
+    "robot_id": { "type": "string", "minLength": 1 },
+    "mode": {
+      "type": "string",
+      "enum": ["disabled", "warn", "clamp", "estop"],
+      "description": "How runtime should react when motion exceeds limits."
+    },
+    "limits": {
+      "type": "object",
+      "required": ["joint_limits_rad"],
+      "additionalProperties": false,
+      "properties": {
+        "joint_limits_rad": {
+          "type": "object",
+          "description": "Per-joint lower/upper bounds in radians.",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["lo", "hi"],
+            "additionalProperties": false,
+            "properties": {
+              "lo": { "type": "number" },
+              "hi": { "type": "number" }
+            }
+          }
+        },
+        "max_delta_rad": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Max allowed per-frame joint delta."
+        },
+        "workspace_bounds_m": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "x": { "$ref": "#/$defs/range" },
+            "y": { "$ref": "#/$defs/range" },
+            "z": { "$ref": "#/$defs/range" }
+          }
+        }
+      }
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "$defs": {
+    "range": {
+      "type": "object",
+      "required": ["min", "max"],
+      "additionalProperties": false,
+      "properties": {
+        "min": { "type": "number" },
+        "max": { "type": "number" }
+      }
+    }
+  }
+}

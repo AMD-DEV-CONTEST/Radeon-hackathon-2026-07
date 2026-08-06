@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BotverseX — 愿景故事 Deck 2026</title>
+  <style>
+    :root {
+      --bg: #0a0e14;
+      --fg: #e8edf4;
+      --muted: #8b9cb3;
+      --accent: #f59e0b;
+      --green: #34d399;
+      --line: #3d4f66;
+      --box: #141c28;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; background: #000; font-family: "Segoe UI", "PingFang SC", "Helvetica Neue", Arial, sans-serif; color: var(--fg); }
+    /* ?export=1：导出 PPT 用图（隐藏导航、略放大字号） */
+    html.export-mode { font-size: 18px; }
+    html.export-mode .progress,
+    html.export-mode .page-num,
+    html.export-mode .hint { display: none !important; }
+    html.export-mode h1 { font-size: clamp(2.15rem, 5.2vw, 4rem) !important; }
+    html.export-mode h2 { font-size: clamp(1.2rem, 2.35vw, 1.75rem) !important; }
+    html.export-mode .words { font-size: clamp(1.65rem, 3.5vw, 2.65rem) !important; }
+    html.export-mode .story-sub { font-size: clamp(1rem, 1.85vw, 1.3rem) !important; }
+    html.export-mode ul.minimal { font-size: clamp(1.05rem, 2vw, 1.45rem) !important; }
+    html.export-mode table.fin { font-size: clamp(0.88rem, 1.55vw, 1.1rem) !important; }
+    #deck { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 1; }
+    .slide {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 3vh 5vw;
+      background: var(--bg);
+      opacity: 0; pointer-events: none;
+      visibility: hidden;
+      transition: opacity 0.35s ease;
+    }
+    html.gsap-on .slide { transition: none; }
+    .slide.active { opacity: 1; pointer-events: auto; z-index: 1; visibility: visible; }
+    .slide.light { background: #f4f6f9; color: #0f172a; --muted: #64748b; --box: #fff; }
+    h1 { font-size: clamp(2rem, 5vw, 3.8rem); font-weight: 700; letter-spacing: -0.02em; text-align: center; line-height: 1.12; }
+    h2 { font-size: clamp(1.1rem, 2.2vw, 1.6rem); font-weight: 400; color: var(--muted); text-align: center; margin-top: 0.5rem; max-width: 90vw; }
+    .tagline { font-size: clamp(1rem, 2vw, 1.35rem); color: var(--accent); margin-top: 1rem; text-align: center; font-weight: 600; }
+    .footer { position: absolute; bottom: 2vh; left: 0; right: 0; text-align: center; font-size: 0.9rem; color: var(--muted); }
+    .confidential { position: absolute; top: 2vh; left: 4vw; font-size: 0.75rem; color: var(--muted); opacity: 0.7; letter-spacing: 0.06em; }
+    .words { font-size: clamp(1.5rem, 3.2vw, 2.4rem); font-weight: 600; text-align: center; max-width: 88vw; line-height: 1.35; }
+    .words span, .words em { color: var(--accent); font-style: normal; }
+    .story-sub { font-size: clamp(0.95rem, 1.7vw, 1.2rem); color: var(--muted); text-align: center; margin-top: 1.2vh; max-width: 82vw; line-height: 1.55; }
+    ul.minimal { list-style: none; font-size: clamp(1rem, 1.9vw, 1.35rem); line-height: 1.75; text-align: left; margin-top: 1.5vh; max-width: 78vw; }
+    ul.minimal li { margin-bottom: 0.35em; }
+    ul.minimal li::before { content: "→ "; color: var(--accent); }
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5vw; width: min(92vw, 1100px); margin-top: 2vh; }
+    .cols.three { grid-template-columns: 1fr 1fr 1fr; }
+    .card { background: var(--box); border: 1px solid var(--line); border-radius: 10px; padding: 1.4rem 1.2rem; }
+    .card h3 { font-size: 1.05rem; color: var(--accent); margin-bottom: 0.6rem; }
+    .card p, .card li { font-size: 0.92rem; color: var(--muted); line-height: 1.5; }
+    .card ul { list-style: none; padding: 0; }
+    .card li::before { content: "· "; color: var(--accent); }
+    .big-num { font-size: clamp(2.8rem, 7vw, 5rem); font-weight: 800; color: var(--accent); text-align: center; }
+    .big-label { font-size: clamp(1rem, 2vw, 1.3rem); color: var(--muted); text-align: center; margin-top: 0.5rem; }
+    table.fin { width: min(92vw, 960px); margin-top: 1.5vh; border-collapse: collapse; font-size: clamp(0.8rem, 1.4vw, 1rem); }
+    table.fin th, table.fin td { border: 1px solid var(--line); padding: 0.55rem 0.7rem; text-align: left; }
+    table.fin th { background: var(--box); color: var(--accent); font-weight: 600; }
+    table.fin td { color: var(--fg); }
+    table.fin tr:nth-child(even) td { background: rgba(20,28,40,0.6); }
+    .slide.light table.fin th { background: #e2e8f0; color: #b45309; }
+    .slide.light table.fin td { color: #0f172a; }
+    .diagram { width: min(94vw, 1080px); margin-top: 1vh; }
+    .diagram svg { width: 100%; height: auto; max-height: 62vh; }
+    .progress { position: fixed; bottom: 0; left: 0; height: 3px; background: var(--accent); transition: width 0.3s; z-index: 100; }
+    .page-num { position: fixed; bottom: 1.2vh; right: 2vw; font-size: 0.9rem; color: var(--muted); z-index: 100; }
+    .hint { position: fixed; top: 1vh; right: 2vw; font-size: 0.8rem; color: var(--muted); opacity: 0.45; z-index: 100; }
+    .slide.vision { background: radial-gradient(ellipse 80% 55% at 50% 40%, #1a2438 0%, #0a0e14 72%); }
+    .slide.ask { background: linear-gradient(165deg, #0f172a 0%, #1e293b 40%, #0a0e14 100%); border-top: 4px solid var(--accent); }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; margin-top: 1.5vh; max-width: 85vw; }
+    .pill { background: var(--box); border: 1px solid var(--line); padding: 0.35rem 0.85rem; border-radius: 999px; font-size: 0.85rem; color: var(--muted); }
+    .pill.live { border-color: var(--accent); color: var(--accent); }
+    .split {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 2vw;
+      width: min(94vw, 1100px); flex: 1; align-items: center;
+      margin-top: 1.5vh; max-height: 68vh;
+    }
+    .split img { width: 100%; max-height: 62vh; object-fit: contain; border-radius: 8px; }
+    .split .label { text-align: center; font-size: 0.9rem; color: var(--muted); margin-top: 0.4rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    .slide.demo h1 { font-size: clamp(1.6rem, 3.8vw, 2.6rem); }
+    .chain-row { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; max-width: 92vw; margin-top: 2vh; }
+    .chain-box {
+      background: var(--box); border: 1px solid var(--line); border-radius: 8px;
+      padding: 0.65rem 0.9rem; min-width: 7rem; text-align: center;
+    }
+    .chain-box strong { display: block; font-size: 0.95rem; color: var(--fg); }
+    .chain-box span { font-size: 0.75rem; color: var(--muted); }
+    .chain-box.us { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(245,158,11,0.35); }
+    .chain-box.us strong { color: var(--accent); }
+    .chain-arrow { color: var(--muted); font-size: 1.2rem; align-self: center; }
+    .team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2vw; width: min(92vw, 1000px); margin-top: 1.5vh; }
+    .team-grid .card { text-align: left; }
+    .team-grid .role { font-size: 0.8rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; }
+    .team-grid .name { font-size: 1.15rem; color: var(--fg); font-weight: 700; margin: 0.3rem 0 0.5rem; }
+    .team-grid .handle { font-size: 0.85rem; color: var(--muted); font-weight: 400; }
+    .img-full {
+      flex: 1; width: min(94vw, 1200px); max-height: 70vh;
+      object-fit: contain; margin-top: 1vh; border-radius: 8px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    }
+    .slide.product h1 { font-size: clamp(1.45rem, 3.2vw, 2.2rem); }
+    .slide.product h2 { font-size: clamp(0.95rem, 1.6vw, 1.2rem); }
+    .story-line {
+      font-size: clamp(0.9rem, 1.5vw, 1.05rem); color: var(--accent);
+      text-align: center; margin-top: 0.5vh; font-weight: 600;
+    }
+    .slide.platform-map h1 { font-size: clamp(1.5rem, 3.5vw, 2.4rem); }
+    .slide.platform-map .diagram { flex: 1; width: min(96vw, 1100px); }
+    .slide.platform-map .legend {
+      display: flex; gap: 2rem; justify-content: center;
+      font-size: 0.9rem; color: var(--muted); margin-top: 0.6vh;
+    }
+    .slide.platform-map .legend span::before {
+      content: ""; display: inline-block; width: 10px; height: 10px;
+      border-radius: 2px; margin-right: 0.35rem; vertical-align: middle;
+    }
+    .slide.platform-map .legend .live::before { background: var(--accent); }
+    .slide.platform-map .legend .build::before {
+      background: transparent; border: 2px dashed #64748b;
+    }
+    .slide.funds-slide h1 { font-size: clamp(1.6rem, 3.6vw, 2.35rem); }
+    .slide.funds-slide h2 { margin-bottom: 0.2rem; }
+    .funds-wrap {
+      width: min(94vw, 1120px); margin-top: 1vh; display: flex; flex-direction: column; gap: 1.4vh;
+    }
+    .fund-bars {
+      background: var(--box); border: 1px solid var(--line); border-radius: 12px;
+      padding: 1.1rem 1.25rem;
+    }
+    .fund-row {
+      display: grid; grid-template-columns: 9.5rem 1fr 3rem 4.5rem;
+      gap: 0.65rem; align-items: center; margin-bottom: 0.75rem;
+    }
+    .fund-row:last-child { margin-bottom: 0; }
+    .fund-row .lbl { font-size: 0.88rem; color: var(--fg); font-weight: 600; }
+    .fund-row .bar-wrap {
+      height: 1.35rem; background: rgba(61,79,102,0.45); border-radius: 999px; overflow: hidden;
+    }
+    .fund-row .bar-fill {
+      height: 100%; border-radius: 999px; background: linear-gradient(90deg, #d97706, #f59e0b);
+    }
+    .fund-row .pct { text-align: right; color: var(--accent); font-weight: 700; font-size: 0.9rem; }
+    .fund-row .amt { text-align: right; color: var(--muted); font-size: 0.88rem; }
+    .fund-total {
+      display: flex; justify-content: space-between; margin-top: 0.9rem; padding-top: 0.85rem;
+      border-top: 1px solid var(--line); font-size: 0.95rem;
+    }
+    .fund-total strong { color: var(--accent); }
+    .fund-outcomes {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.9vw;
+    }
+    .outcome-card {
+      background: var(--box); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+      border-radius: 10px; padding: 0.85rem 1rem;
+    }
+    .outcome-card h3 { font-size: 0.92rem; color: var(--accent); margin-bottom: 0.35rem; }
+    .outcome-card p { font-size: 0.8rem; color: var(--muted); line-height: 1.45; margin: 0; }
+    .slide.cta-close h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); }
+    .slide.cta-close .product-url {
+      font-size: clamp(1.1rem, 2.2vw, 1.5rem); color: var(--accent); font-weight: 600;
+      margin-top: 1.2vh; letter-spacing: 0.02em;
+    }
+    .slide.cta-close .product-url a { color: var(--accent); text-decoration: none; }
+    .slide.cta-close .contact-lines {
+      margin-top: 2.5vh; font-size: clamp(1rem, 1.8vw, 1.25rem);
+      color: var(--fg); line-height: 1.9; text-align: center;
+    }
+    .slide.cta-close .contact-lines a { color: var(--accent); text-decoration: none; }
+    .slide.cta-close .contact-lines .muted { color: var(--muted); font-size: 0.92em; }
+    .pipeline-strip {
+      display: flex; align-items: center; justify-content: center; gap: 0.5vw;
+      width: min(96vw, 1180px); margin-top: 1vh; flex-wrap: nowrap;
+    }
+    .pipeline-strip .step {
+      flex: 0 0 auto; text-align: center; max-width: 11rem;
+    }
+    .pipeline-strip img {
+      width: 9.5rem; height: 10vh; object-fit: cover; object-position: top center;
+      border-radius: 6px; border: 1px solid var(--line);
+    }
+    .pipeline-strip .step span {
+      display: block; font-size: 0.72rem; color: var(--accent); margin-top: 0.35rem; font-weight: 600;
+    }
+    .pipeline-strip .arrow { color: var(--muted); font-size: 1.1rem; padding: 0 0.2rem; }
+    .img-diagram {
+      flex: 1; width: min(96vw, 1240px); max-height: 74vh;
+      object-fit: contain; margin-top: 0.8vh; border-radius: 8px;
+    }
+    .ref-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 1vw;
+      width: min(94vw, 1100px); margin-top: 1.2vh;
+    }
+    .ref-grid .ref-tile {
+      background: var(--box); border: 1px solid var(--line); border-radius: 10px;
+      padding: 0.6rem; text-align: center;
+    }
+    .ref-grid img { width: 100%; height: 22vh; object-fit: contain; border-radius: 6px; }
+    .ref-grid .live { border-color: var(--accent); }
+    .ref-grid .build { border-style: dashed; border-color: #64748b; }
+    .ref-grid strong { display: block; font-size: 0.85rem; color: var(--accent); margin-top: 0.35rem; }
+    .ref-grid span { font-size: 0.72rem; color: var(--muted); }
+    .scene-split {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1.5vw;
+      width: min(94vw, 1100px); margin-top: 1vh;
+    }
+    .scene-split img { width: 100%; height: 38vh; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); }
+    .scene-split p { text-align: center; font-size: 0.85rem; color: var(--muted); margin-top: 0.35rem; }
+    .ref-grid.large img { height: 32vh; }
+    .ref-grid .ref-tile.card-only {
+      display: flex; flex-direction: column; justify-content: center; min-height: 32vh;
+    }
+    .ref-grid .card-only .big { font-size: 1.35rem; color: var(--fg); font-weight: 700; }
+    .slide.pricing .img-full {
+      width: min(98vw, 1560px); max-height: 78vh;
+      image-rendering: -webkit-optimize-contrast;
+    }
+    .body-category {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.2vw;
+      width: min(94vw, 1120px); margin-top: 1vh; flex: 1; max-height: 72vh;
+    }
+    .body-category .tile {
+      display: flex; flex-direction: column; background: var(--box);
+      border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+    }
+    .body-category .tile.live { border-color: var(--accent); }
+    .body-category img {
+      width: 100%; height: 46vh; object-fit: contain; object-position: center;
+      background: #fff;
+    }
+    .ref-grid .ref-tile.product-shot img {
+      object-fit: contain; background: #fff;
+    }
+    .body-category .cap { padding: 0.7rem 0.85rem; text-align: left; }
+    .body-category .cap strong { display: block; font-size: 1rem; color: var(--accent); }
+    .body-category .cap span { display: block; font-size: 0.78rem; color: var(--muted); margin-top: 0.25rem; line-height: 1.4; }
+    .body-category .badge {
+      display: inline-block; margin-top: 0.45rem; font-size: 0.7rem;
+      padding: 0.2rem 0.55rem; border-radius: 999px; border: 1px solid var(--line); color: var(--muted);
+    }
+    .body-category .badge.live { border-color: var(--accent); color: var(--accent); }
+    .split-problem {
+      display: grid; grid-template-columns: 1fr 1.15fr; gap: 2vw;
+      width: min(94vw, 1140px); margin-top: 1.2vh; align-items: stretch;
+    }
+    .split-problem img {
+      width: 100%; height: 100%; min-height: 52vh; object-fit: contain;
+      border-radius: 8px; border: 1px solid var(--line); background: var(--box);
+    }
+    .split-problem ul { list-style: none; font-size: 0.95rem; line-height: 1.65; color: var(--muted); }
+    .split-problem ul li { margin-bottom: 0.5em; padding-left: 0.2em; }
+    .split-problem h3 { color: var(--accent); font-size: 1rem; margin: 1rem 0 0.4rem; }
+    .split-problem h3:first-child { margin-top: 0; }
+    .platform-era .cols { width: min(94vw, 1100px); }
+    .platform-era .card li { font-size: 0.88rem; }
+    .capital-note {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1vw;
+      width: min(92vw, 980px); margin-top: 1.5vh;
+    }
+    .capital-note .card { padding: 1rem; }
+    .hero-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1.4vw;
+      width: min(94vw, 1160px); margin-top: 1.5vh; align-items: stretch;
+    }
+    .hero-tile {
+      background: var(--box); border: 1px solid var(--line); border-radius: 10px;
+      padding: 0.8rem; min-height: 0;
+    }
+    .hero-tile img {
+      width: 100%; height: 28vh; object-fit: contain; border-radius: 7px;
+      background: rgba(0,0,0,0.22);
+    }
+    .hero-tile strong { display: block; color: var(--accent); margin-top: 0.45rem; font-size: 0.95rem; }
+    .hero-tile span { color: var(--muted); font-size: 0.82rem; line-height: 1.35; }
+    .quad-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 1vw;
+      width: min(94vw, 1120px); margin-top: 1.2vh;
+    }
+    .quad-grid img {
+      width: 100%; height: 27vh; object-fit: contain; border-radius: 8px;
+      background: #0f172a; border: 1px solid var(--line);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    }
+    .slide.product-shot h1 { font-size: clamp(1.35rem, 2.8vw, 2rem); margin-bottom: 0.2rem; }
+    .slide.product-shot h2 { font-size: clamp(0.9rem, 1.5vw, 1.1rem); }
+    .slide.product-shot .img-hero {
+      flex: 1; width: min(96vw, 1320px); max-height: 74vh; min-height: 55vh;
+      object-fit: contain; margin-top: 0.6vh; border-radius: 10px;
+      border: 1px solid var(--line); box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+      background: #0f172a;
+    }
+    .slide.product-shot.light .img-hero { background: #0f172a; }
+    .slide.story-core .diagram { flex: 1; max-height: 68vh; }
+    .slide.story-core .analogy-row {
+      display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap;
+      margin-top: 1vh; font-size: clamp(0.95rem, 1.6vw, 1.15rem); color: var(--muted);
+    }
+    .slide.story-core .analogy-row strong { color: var(--accent); }
+    .slide.viz-pro h1 { font-size: clamp(1.35rem, 3vw, 2rem); }
+    .slide.viz-pro .img-diagram {
+      flex: 1; width: min(96vw, 1100px); height: auto; max-height: 72vh; min-height: 42vh;
+      object-fit: contain; margin-top: 0.5vh; display: block;
+      filter: drop-shadow(0 12px 36px rgba(0,0,0,0.45));
+    }
+    .slide.viz-pro .img-diagram[src*="robot-swap-tax"] { aspect-ratio: 1100 / 400; }
+    .slide.viz-pro .img-diagram[src*="compatibility-layer"] { aspect-ratio: 1100 / 520; }
+    .slide.viz-pro .img-diagram[src*="data-skill-pipeline"] { aspect-ratio: 1100 / 280; }
+    .slide.viz-pro .svg-inline {
+      flex: 1; width: min(96vw, 1100px); max-height: 72vh; min-height: 42vh;
+      display: flex; align-items: center; justify-content: center;
+      filter: drop-shadow(0 12px 36px rgba(0,0,0,0.45));
+    }
+    .slide.viz-pro .svg-inline svg {
+      width: 100%; height: auto; max-height: 72vh; display: block;
+    }
+    .viz-legend {
+      display: flex; flex-wrap: wrap; gap: 1.2rem 2rem; justify-content: center;
+      margin-top: 0.6vh; font-size: clamp(0.82rem, 1.4vw, 0.95rem); color: var(--muted);
+    }
+    .viz-legend span::before {
+      content: ""; display: inline-block; width: 12px; height: 12px;
+      border-radius: 3px; margin-right: 0.4rem; vertical-align: middle;
+    }
+    .viz-legend .live::before { background: var(--accent); }
+    .viz-legend .compat::before { background: linear-gradient(135deg, #d97706, #fbbf24); }
+    .viz-legend .road::before { background: transparent; border: 2px dashed #64748b; }
+  </style>
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+  <div class="page-num" id="pageNum"></div>
+  <div class="hint">← → · F fullscreen · ?slide=N</div>
+  <div id="deck">
+
+  <!-- 1 -->
+  <section class="slide active vision">
+    <h1>BotverseX</h1>
+    <h2>让真实场景，变成机器人能力</h2>
+    <p class="tagline">具身智能时代 · 数据闭环入口</p>
+    <p class="story-sub">这不是 PPT 概念 · 产品已上线 · 真机已跑通</p>
+    <div class="footer">botversex.feispace.me</div>
+  </section>
+
+  <!-- 2 Visual proof first -->
+  <section class="slide demo">
+    <h1>First: this is already a product, not just a thesis</h1>
+    <h2>真机、网页、本地 Runtime 已经连在一起</h2>
+    <div class="hero-grid">
+      <div class="hero-tile">
+        <img src="assets/so101-hardware.jpeg" alt="SO-101 hardware" />
+        <strong>SO-101 hardware</strong>
+        <span>低成本机械臂 wedge：Leader/Follower、遥操作、录制、训练与部署</span>
+      </div>
+      <div class="hero-tile">
+        <img src="assets/botversex-so101.png" alt="BotverseX SO-101 UI" />
+        <strong>BotverseX robot console</strong>
+        <span>浏览器入口：连接、Wiggle、teleop、dataset、training、skill</span>
+      </div>
+      <div class="hero-tile">
+        <img src="assets/reachymini实体图.jpg" alt="Reachy Mini hardware" />
+        <strong>Reachy Mini</strong>
+        <span>第二 Runtime，证明不是单一机械臂 demo</span>
+      </div>
+      <div class="hero-tile">
+        <img src="assets/botversex-reachymini.png" alt="Reachy Mini UI" />
+        <strong>Same platform, new robot</strong>
+        <span>换机器人 = 加 Runtime adapter，不是重做一个产品</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 Product surface -->
+  <section class="slide">
+    <h1>One platform surface</h1>
+    <h2>数据、训练、Workflow、Skill 已经在同一套产品里</h2>
+    <div class="quad-grid">
+      <img src="assets/botversex-dataset.png" alt="Dataset UI" />
+      <img src="assets/botversex-training.png" alt="Training UI" />
+      <img src="assets/botversex-workflow.png" alt="Workflow UI" />
+      <img src="assets/botversex-skill.png" alt="Skill UI" />
+    </div>
+    <p class="story-sub">录数据 · 训练 · 流水线 · 装技能 — 同一套账号完成</p>
+  </section>
+
+  <section class="slide product">
+    <h1>一条流水线 · 六步闭环</h1>
+    <h2>连接 → 遥操作 → 录数据 → 训练 → 部署 → 技能</h2>
+    <img class="img-diagram" src="assets/pipeline-6steps.png" alt="Six-step pipeline" />
+  </section>
+
+  <!-- 4 产业链故事 -->
+  <section class="slide vision">
+    <h1>具身智能产业链 · 价值往哪走</h1>
+    <h2>硬件趋廉价 · 模型可租用 · 真实数据与场景分发才是缺口</h2>
+    <div class="chain-row">
+      <div class="chain-box"><strong>零部件</strong><span>电机 · 传感器 · 减速器</span></div>
+      <span class="chain-arrow">→</span>
+      <div class="chain-box"><strong>本体</strong><span>臂 · 人形 · 四足</span></div>
+      <span class="chain-arrow">→</span>
+      <div class="chain-box"><strong>模型</strong><span>VLA · 策略 · 基础模型</span></div>
+      <span class="chain-arrow">→</span>
+      <div class="chain-box us"><strong>数据</strong><span>episode · 场景 · 失败案例</span></div>
+      <span class="chain-arrow">→</span>
+      <div class="chain-box us"><strong>应用场景</strong><span>工厂 ·  lab · 教育 · 桌面</span></div>
+    </div>
+    <p class="story-sub" style="margin-top:2vh;color:var(--accent)">BotverseX 不占零部件/本体/基础模型赌局 · 占 <strong>数据 ↔ 场景</strong> 闭环与 Skill 分发</p>
+  </section>
+
+  <!-- 3 我们在哪一段 -->
+  <section class="slide">
+    <h1>我们卖的不是铁 · 是闭环那一段</h1>
+    <div class="diagram">
+      <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg">
+        <rect x="20" y="40" width="110" height="50" rx="6" fill="#141c28" stroke="#64748b"/><text x="75" y="70" text-anchor="middle" fill="#8b9cb3" font-size="11">零部件</text>
+        <rect x="150" y="40" width="110" height="50" rx="6" fill="#141c28" stroke="#64748b"/><text x="205" y="70" text-anchor="middle" fill="#8b9cb3" font-size="11">本体/OEM</text>
+        <rect x="280" y="40" width="110" height="50" rx="6" fill="#141c28" stroke="#64748b"/><text x="335" y="70" text-anchor="middle" fill="#8b9cb3" font-size="11">基础模型</text>
+        <rect x="410" y="30" width="150" height="70" rx="8" fill="#141c28" stroke="#f59e0b" stroke-width="2"/>
+        <text x="485" y="58" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="700">数据 + 平台</text>
+        <text x="485" y="78" text-anchor="middle" fill="#e8edf4" font-size="11">BotverseX</text>
+        <rect x="580" y="40" width="150" height="50" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/>
+        <text x="655" y="70" text-anchor="middle" fill="#f59e0b" font-size="11" font-weight="600">应用场景</text>
+        <path d="M 130 65 L 150 65" stroke="#64748b" stroke-width="1.5"/><path d="M 260 65 L 280 65" stroke="#64748b" stroke-width="1.5"/>
+        <path d="M 390 65 L 410 65" stroke="#f59e0b" stroke-width="2"/><path d="M 560 65 L 580 65" stroke="#f59e0b" stroke-width="2"/>
+        <rect x="80" y="140" width="600" height="130" rx="10" fill="#141c28" stroke="#3d4f66"/>
+        <text x="380" y="168" text-anchor="middle" fill="#e8edf4" font-size="13" font-weight="600">场景 → 采集 → 训练 → Skill → 回场景</text>
+        <text x="380" y="195" text-anchor="middle" fill="#8b9cb3" font-size="11">Runtime 接本体 · LeRobot/HF 接模型 · 我们接「数据进、能力出」</text>
+        <text x="380" y="225" text-anchor="middle" fill="#34d399" font-size="12">边际价值：让每一台已卖出的机器人持续产生数据与可安装技能</text>
+        <text x="380" y="252" text-anchor="middle" fill="#8b9cb3" font-size="10">不造机 · 不训最大模型 · 做入口与分发</text>
+      </svg>
+    </div>
+  </section>
+
+  <section class="slide">
+    <h1>真实场景在哪里</h1>
+    <h2>工厂 · 实验室 · 教育 · 桌面 — 数据产生在物理世界里</h2>
+    <div class="scene-split">
+      <div>
+        <img src="assets/scene-factory.webp" alt="Factory" />
+        <p>工厂 · 仓储</p>
+      </div>
+      <div>
+        <img src="assets/scene-lab.webp" alt="Lab" />
+        <p>实验室 · 研发</p>
+      </div>
+    </div>
+    <p class="story-sub" style="margin-top:1.5vh">未来瓶颈不是更大模型，而是 <span style="color:var(--accent)">更高质量的真实世界数据</span></p>
+  </section>
+
+  <!-- 5 SpaceX -->
+  <section class="slide vision">
+    <p class="words"><em>SpaceX</em> 降低了进入轨道的成本<br/><span>BotverseX</span> 要降低进入具身智能数据闭环的成本</p>
+    <p class="story-sub">我们不垄断硬件，也不垄断基础模型<br/>占据的是：从真实场景进入数据生产与技能分发的第一站</p>
+  </section>
+
+  <section class="slide">
+    <h1>开发者今天的问题</h1>
+    <h2>不是缺模型 · 是缺一条能跑通真机的流水线</h2>
+    <div class="split-problem">
+      <div>
+        <h3 style="color:#ef4444;margin:0 0 0.6rem;font-size:1.05rem">以前（碎片化）</h3>
+        <ul>
+          <li>串口、相机、ROS、训练脚本各一套环境</li>
+          <li>录完数据不知道怎样训、训完很难回到真机</li>
+          <li>每个任务从零搭 pipeline，难以复用</li>
+          <li>能力锁在仓库里，没法像软件一样分发</li>
+        </ul>
+        <h3 style="color:var(--accent)">BotverseX（一个网站）</h3>
+        <ul>
+          <li>连接 → 录制 → 训练 → 部署 → 装 Skill</li>
+          <li>换机器人只换 Runtime，流程不变</li>
+        </ul>
+      </div>
+      <div>
+        <img src="assets/botversex-workflow.png" alt="BotverseX workflow UI" />
+      </div>
+    </div>
+  </section>
+
+
+  <section class="slide vision">
+    <h1>市场 · 足够大，且正在打开</h1>
+    <div class="capital-note">
+      <div class="card"><h3>硬件</h3><p>开源臂、教育机、人形、四足 — 价格曲线像早期智能手机，装机量将指数增长</p></div>
+      <div class="card"><h3>软件与数据</h3><p>全球机器人开发者 + 实验室 + 场景方 — 工具链、数据、技能分发是缺失的一层</p></div>
+      <div class="card" style="border-color:var(--accent)"><h3>我们的位置</h3><p>不做最大模型 · 做<strong>真实场景进入闭环的第一站</strong> — 像应用商店之于手机</p></div>
+    </div>
+    <p class="story-sub">物理 AI 越热（世界模型、仿真、VLA），越需要<strong>真机数据回灌</strong> — 这是 BotverseX 存在的理由</p>
+  </section>
+
+  <section class="slide platform-era">
+    <h1>机器人缺一层「能力商店」</h1>
+    <h2>硬件会越来越多 · 缺的是把场景数据变成可安装技能的平台</h2>
+    <div class="cols three" style="grid-template-columns:1fr 1fr 1fr;">
+      <div class="card">
+        <h3>硬件层</h3>
+        <ul>
+          <li>臂、人形、四足越来越便宜</li>
+          <li>各家 SDK、坐标系、驱动不统一</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>模型层</h3>
+        <ul>
+          <li>VLA / 策略模型在 Hugging Face 上爆发</li>
+          <li>开发者仍会卡在「数据从哪来」</li>
+        </ul>
+      </div>
+      <div class="card" style="border-color:var(--accent)">
+        <h3>BotverseX 占的位置</h3>
+        <ul>
+          <li>真实场景 → 数据集 → 训练 → Skill</li>
+          <li>未来：技能可发现、安装、更新、交易</li>
+          <li>类比：不是再造一个 HF，而是机器人能力的「分发层」</li>
+        </ul>
+      </div>
+    </div>
+    <p class="story-sub">Skill = 会抓杯子 v1.2 · 可版本化 · 可声明兼容机型</p>
+  </section>
+
+  <!-- product one-liner -->
+  <section class="slide">
+    <p class="words">一个网站 · <span>真机闭环</span></p>
+    <ul class="minimal" style="text-align:center; list-style:none;">
+      <li style="list-style:none">Connect → Teleop → Record → Train → Deploy → Skill</li>
+    </ul>
+    <p class="story-sub">SO-101 已跑通端到端 · Reachy Mini 证明多 Runtime · Local Agent 控制留在本机</p>
+    <div class="pill-row">
+      <span class="pill live">SO-101 Live</span>
+      <span class="pill live">Reachy Runtime</span>
+      <span class="pill">Workflow</span>
+      <span class="pill">Skill Schema</span>
+      <span class="pill">LeRobot 兼容</span>
+    </div>
+  </section>
+
+  <!-- SO-101 proof -->
+  <section class="slide demo">
+    <h1>SO-101 · 真机 + 平台 · Live</h1>
+    <h2>Leader/Follower · 采集 → 训练 → 部署 已跑通</h2>
+    <div class="split">
+      <div>
+        <img src="assets/so101-hardware.jpeg" alt="SO-101 hardware" />
+        <p class="label">Hardware · 实物</p>
+      </div>
+      <div>
+        <img src="assets/botversex-so101.png" alt="SO-101 platform UI" />
+        <p class="label">BotverseX UI · 同一套流程</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Reachy proof -->
+  <section class="slide demo">
+    <h1>Reachy Mini · 第二 Runtime</h1>
+    <h2>证明不是单机 demo · 换本体不换网站</h2>
+    <div class="split">
+      <div>
+        <img src="assets/reachymini实体图.jpg" alt="Reachy Mini" />
+        <p class="label">Hardware · 人形台座</p>
+      </div>
+      <div>
+        <img src="assets/botversex-reachymini.png" alt="Reachy platform UI" />
+        <p class="label">BotverseX UI · Runtime 适配</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide category-bodies">
+    <h1>三类机器人 · 一个平台</h1>
+    <h2>机械臂 · 人形 · 四足 — 同一网站换 Runtime，不是三套软件栈</h2>
+    <div class="body-category">
+      <div class="tile live">
+        <img src="assets/so101主臂从臂.jpeg" alt="SO-101 leader follower arm" />
+        <div class="cap">
+          <strong>机械臂 · Manipulator</strong>
+          <span>SO-101、UR、KUKA… 精密操作与遥操作采集</span>
+          <span class="badge live">SO-101 已上线 · 端到端闭环</span>
+        </div>
+      </div>
+      <div class="tile live">
+        <img src="assets/unitree-g1-product.jpg" alt="Unitree G1 humanoid product" />
+        <div class="cap">
+          <strong>人形 · Biped / 多关节</strong>
+          <span>Unitree G1、Tesla Bot 等全身协调 · Reachy Mini 已作第二 Runtime</span>
+          <span class="badge live">Reachy 已上线 · 工业人形路线 Building</span>
+        </div>
+      </div>
+      <div class="tile">
+        <img src="assets/unitree-go2-product.jpg" alt="Unitree Go2 quadruped product" />
+        <div class="cap">
+          <strong>四足 · Quadruped</strong>
+          <span>Unitree Go2、Boston Dynamics 等运动 + 轻量操作</span>
+          <span class="badge">Runtime 预研 · 伙伴 / SDK 接入</span>
+        </div>
+      </div>
+    </div>
+    <p class="story-sub">上图为行业代表机型示意；BotverseX 当前真机接入以 SO-101、Reachy Mini 为主，其余品类按 Runtime 路线图扩展</p>
+  </section>
+
+  <!-- 故事核心：跨本体 · Skill · 可复用 -->
+  <section class="slide story-core vision viz-pro">
+    <h1>换一台机器人，为什么要从零再来一遍？</h1>
+    <h2>在 A 机器上采了三个月数据 · 来了 B 机型 · 往往格式、脚本、部署全要重做</h2>
+    <div class="diagram svg-inline" role="img"><svg xmlns="http://www.w3.org/2000/svg" width="1100" height="400" viewBox="0 0 1100 400">
+  <defs>
+    <linearGradient id="rst-bad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3f1515"/>
+      <stop offset="100%" stop-color="#141c28"/>
+    </linearGradient>
+    <linearGradient id="rst-good" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a2e1a"/>
+      <stop offset="100%" stop-color="#141c28"/>
+    </linearGradient>
+    <marker id="rst-aR" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#ef4444"/></marker>
+    <marker id="rst-aG" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#34d399"/></marker>
+    <marker id="rst-aO" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#f59e0b"/></marker>
+  </defs>
+  <rect width="1100" height="400" fill="#0a0e14"/>
+  <text x="275" y="36" text-anchor="middle" fill="#ef4444" font-size="18" font-weight="700" font-family="Segoe UI,sans-serif">&#20170;&#22825; &#183; &#25442;&#26426;&#31246;</text>
+  <text x="825" y="36" text-anchor="middle" fill="#f59e0b" font-size="18" font-weight="700" font-family="Segoe UI,sans-serif">BotverseX &#183; &#20860;&#23481;&#23618;</text>
+
+  <rect x="40" y="52" width="470" height="310" rx="14" fill="url(#rst-bad)" stroke="#ef4444" stroke-width="2"/>
+  <rect x="70" y="80" width="130" height="90" rx="8" fill="#0a0e14" stroke="#64748b"/>
+  <text x="135" y="108" text-anchor="middle" fill="#e8edf4" font-size="13" font-weight="600" font-family="Segoe UI,sans-serif">&#26426;&#22120; A</text>
+  <text x="135" y="128" text-anchor="middle" fill="#8b9cb3" font-size="10" font-family="Segoe UI,sans-serif">&#37319;&#20102; 3 &#20010;&#26376;</text>
+  <text x="135" y="148" text-anchor="middle" fill="#ef4444" font-size="10" font-family="Segoe UI,sans-serif">&#25968;&#25454;&#38145;&#22312;&#21378;&#21830;</text>
+  <rect x="70" y="178" width="130" height="36" rx="6" fill="#1f2937" stroke="#ef4444"/>
+  <text x="135" y="200" text-anchor="middle" fill="#fca5a5" font-size="10" font-family="Segoe UI,sans-serif">vendor-locked format</text>
+  <line x1="210" y1="125" x2="250" y2="125" stroke="#ef4444" stroke-width="3"/>
+  <line x1="210" y1="125" x2="250" y2="155" stroke="#ef4444" stroke-width="3"/>
+  <line x1="210" y1="155" x2="250" y2="125" stroke="#ef4444" stroke-width="3"/>
+  <rect x="260" y="80" width="130" height="90" rx="8" fill="#0a0e14" stroke="#64748b"/>
+  <text x="325" y="108" text-anchor="middle" fill="#e8edf4" font-size="13" font-weight="600" font-family="Segoe UI,sans-serif">&#26426;&#22120; B</text>
+  <text x="325" y="128" text-anchor="middle" fill="#8b9cb3" font-size="10" font-family="Segoe UI,sans-serif">&#26032;&#26426;&#22411;&#21040;&#20102;</text>
+  <text x="325" y="148" text-anchor="middle" fill="#ef4444" font-size="10" font-family="Segoe UI,sans-serif">&#20840;&#37096;&#37325;&#26469;</text>
+  <rect x="70" y="252" width="390" height="90" rx="8" fill="#0a0e14" stroke="#ef4444" stroke-dasharray="4 3"/>
+  <text x="265" y="278" text-anchor="middle" fill="#ef4444" font-size="12" font-weight="700" font-family="Segoe UI,sans-serif">&#37325;&#24405; &#183; &#37325;&#25645; pipeline &#183; &#37325;&#35757; &#183; &#37325;&#37096;&#32626;</text>
+  <text x="265" y="300" text-anchor="middle" fill="#8b9cb3" font-size="11" font-family="Segoe UI,sans-serif">&#22330;&#26223;&#30693;&#35782;&#22312;&#20154;&#33041;&#37324;</text>
+  <text x="265" y="322" text-anchor="middle" fill="#8b9cb3" font-size="11" font-family="Segoe UI,sans-serif">&#26426;&#36234;&#22810;&#36234;&#32047;</text>
+
+  <rect x="590" y="52" width="470" height="310" rx="14" fill="url(#rst-good)" stroke="#f59e0b" stroke-width="2"/>
+  <rect x="620" y="72" width="410" height="48" rx="8" fill="#141c28" stroke="#f59e0b" stroke-width="2"/>
+  <text x="825" y="102" text-anchor="middle" fill="#f59e0b" font-size="14" font-weight="700" font-family="Segoe UI,sans-serif">&#21516;&#19968;&#32593;&#31449; &#183; &#21516;&#19968;&#27969;&#31243;</text>
+  <rect x="640" y="138" width="370" height="44" rx="6" fill="#141c28" stroke="#3d4f66"/>
+  <text x="825" y="166" text-anchor="middle" fill="#8b9cb3" font-size="11" font-family="Segoe UI,sans-serif">&#24405; &#8594; &#35757; &#8594; Workflow &#8594; &#35013; Skill</text>
+  <rect x="640" y="196" width="370" height="56" rx="8" fill="#1e3a5f" stroke="#f59e0b" stroke-width="2"/>
+  <text x="660" y="222" fill="#f59e0b" font-size="12" font-weight="700" font-family="Segoe UI,sans-serif">L2 Runtime &#36866;&#37197;&#22120;</text>
+  <text x="660" y="242" fill="#e8edf4" font-size="11" font-family="Segoe UI,sans-serif">&#25442;&#26426;&#22120; &#183; &#19981;&#37325;&#20570;&#20135;&#21697;</text>
+  <rect x="655" y="268" width="100" height="48" rx="6" fill="#141c28" stroke="#f59e0b"/>
+  <text x="705" y="298" text-anchor="middle" fill="#e8edf4" font-size="10" font-family="Segoe UI,sans-serif">SO-101</text>
+  <rect x="775" y="268" width="100" height="48" rx="6" fill="#141c28" stroke="#f59e0b"/>
+  <text x="825" y="298" text-anchor="middle" fill="#e8edf4" font-size="10" font-family="Segoe UI,sans-serif">Reachy</text>
+  <rect x="895" y="268" width="100" height="48" rx="6" fill="#141c28" stroke="#64748b" stroke-dasharray="5 3"/>
+  <text x="945" y="298" text-anchor="middle" fill="#8b9cb3" font-size="10" font-family="Segoe UI,sans-serif">more...</text>
+  <rect x="640" y="328" width="370" height="28" rx="6" fill="#0a0e14" stroke="#34d399"/>
+  <text x="825" y="347" text-anchor="middle" fill="#34d399" font-size="11" font-weight="600" font-family="Segoe UI,sans-serif">LeRobot data + Skill compatible_types</text>
+
+  <path d="M 520 200 L 575 200" stroke="#f59e0b" stroke-width="3" marker-end="url(#rst-aO)"/>
+  <text x="550" y="382" text-anchor="middle" fill="#8b9cb3" font-size="11" font-family="Segoe UI,sans-serif">cross-embodiment = reuse platform + skills, not morph dog into arm</text>
+</svg></div>
+    <p class="story-sub">我们要做的是 <strong>兼容层 + 不重复造轮子</strong> —— 场景进闭环只走一遍，机器越多越划算</p>
+  </section>
+
+  <section class="slide story-core vision viz-pro">
+    <h1>兼容层 · 五层架构</h1>
+    <h2>换机器人只动 L2 Runtime · 云平台、本机执行、Skill 流程保持不变</h2>
+    <div class="diagram svg-inline" role="img"><svg xmlns="http://www.w3.org/2000/svg" width="1100" height="520" viewBox="0 0 1100 520">
+  <defs>
+    <linearGradient id="cl-gAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#fbbf24"/>
+    </linearGradient>
+    <linearGradient id="cl-gCompat" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a5f"/>
+      <stop offset="100%" stop-color="#141c28"/>
+    </linearGradient>
+    <marker id="cl-arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#f59e0b"/></marker>
+  </defs>
+  <rect width="1100" height="520" fill="#0a0e14"/>
+  <text x="550" y="32" text-anchor="middle" fill="#f59e0b" font-size="20" font-weight="700" font-family="Segoe UI,sans-serif">BotverseX &#20860;&#23481;&#23618; &#183; &#20116;&#23618;&#26550;&#26500;</text>
+  <text x="550" y="56" text-anchor="middle" fill="#8b9cb3" font-size="13" font-family="Segoe UI,sans-serif">&#25442;&#26426;&#22120;&#20154;&#21482;&#21160; L2 &#183; &#19978;&#38754;&#22235;&#23618;&#27969;&#31243;&#19981;&#21464;</text>
+
+  <rect x="80" y="72" width="940" height="58" rx="10" fill="#141c28" stroke="#3d4f66" stroke-width="1.5"/>
+  <text x="120" y="98" fill="#64748b" font-size="11" font-weight="600" font-family="Segoe UI,sans-serif">L5</text>
+  <text x="160" y="98" fill="#e8edf4" font-size="14" font-weight="700" font-family="Segoe UI,sans-serif">&#22330;&#26223;&#19982;&#33021;&#21147;&#23618;</text>
+  <text x="160" y="118" fill="#8b9cb3" font-size="12" font-family="Segoe UI,sans-serif">Skill &#183; Workflow &#183; compatible_types</text>
+
+  <rect x="80" y="142" width="940" height="58" rx="10" fill="#141c28" stroke="#3d4f66" stroke-width="1.5"/>
+  <text x="120" y="168" fill="#64748b" font-size="11" font-weight="600" font-family="Segoe UI,sans-serif">L4</text>
+  <text x="160" y="168" fill="#e8edf4" font-size="14" font-weight="700" font-family="Segoe UI,sans-serif">&#20113;&#24179;&#21488;&#23618;</text>
+  <text x="160" y="188" fill="#8b9cb3" font-size="12" font-family="Segoe UI,sans-serif">Dataset &#183; Training &#183; Models &#183; Skills &#183; AI Hub</text>
+
+  <rect x="80" y="212" width="940" height="58" rx="10" fill="#141c28" stroke="#3d4f66" stroke-width="1.5"/>
+  <text x="120" y="238" fill="#64748b" font-size="11" font-weight="600" font-family="Segoe UI,sans-serif">L3</text>
+  <text x="160" y="238" fill="#e8edf4" font-size="14" font-weight="700" font-family="Segoe UI,sans-serif">&#26412;&#26426;&#25191;&#34892;&#23618; Local Agent</text>
+  <text x="160" y="258" fill="#8b9cb3" font-size="12" font-family="Segoe UI,sans-serif">&#30456;&#26426; &#183; &#20018;&#21475; &#183; &#20302;&#24310;&#36831;&#25511;&#21046;</text>
+
+  <rect x="56" y="278" width="988" height="88" rx="12" fill="url(#cl-gCompat)" stroke="#f59e0b" stroke-width="3"/>
+  <text x="100" y="308" fill="#f59e0b" font-size="12" font-weight="700" font-family="Segoe UI,sans-serif">L2</text>
+  <text x="160" y="308" fill="#fbbf24" font-size="17" font-weight="700" font-family="Segoe UI,sans-serif">Runtime &#36866;&#37197;&#22120;&#65288;&#20860;&#23481;&#23618;&#65289;</text>
+  <text x="160" y="332" fill="#e8edf4" font-size="13" font-family="Segoe UI,sans-serif">so101 &#10003; &#183; reachy_mini &#10003; &#183; unitree_* roadmap</text>
+  <text x="160" y="354" fill="#8b9cb3" font-size="12" font-family="Segoe UI,sans-serif">&#32479;&#19968;&#25509;&#21475; &#183; LeRobot &#26684;&#24335;</text>
+  <rect x="780" y="296" width="240" height="52" rx="8" fill="#0a0e14" stroke="#f59e0b" stroke-width="2"/>
+  <text x="900" y="320" text-anchor="middle" fill="#f59e0b" font-size="13" font-weight="700" font-family="Segoe UI,sans-serif">&#25442;&#26426;&#21482;&#21160;&#36825;&#19968;&#23618;</text>
+  <text x="900" y="340" text-anchor="middle" fill="#8b9cb3" font-size="11" font-family="Segoe UI,sans-serif">&#19981;&#37325;&#22797;&#36896;&#36718;&#23376;</text>
+
+  <line x1="280" y1="366" x2="280" y2="392" stroke="#f59e0b" stroke-width="2" marker-end="url(#cl-arr)"/>
+  <line x1="550" y1="366" x2="550" y2="392" stroke="#f59e0b" stroke-width="2" marker-end="url(#cl-arr)"/>
+  <line x1="820" y1="366" x2="820" y2="392" stroke="#64748b" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#cl-arr)"/>
+
+  <rect x="120" y="400" width="240" height="72" rx="10" fill="#141c28" stroke="#f59e0b" stroke-width="2"/>
+  <text x="240" y="432" text-anchor="middle" fill="#e8edf4" font-size="14" font-weight="700" font-family="Segoe UI,sans-serif">SO-101</text>
+  <text x="240" y="452" text-anchor="middle" fill="#34d399" font-size="11" font-family="Segoe UI,sans-serif">&#24050;&#19978;&#32447;</text>
+  <text x="240" y="468" text-anchor="middle" fill="#8b9cb3" font-size="10" font-family="Segoe UI,sans-serif">&#30495;&#26426;&#38381;&#29615;</text>
+
+  <rect x="430" y="400" width="240" height="72" rx="10" fill="#141c28" stroke="#f59e0b" stroke-width="2"/>
+  <text x="550" y="432" text-anchor="middle" fill="#e8edf4" font-size="14" font-weight="700" font-family="Segoe UI,sans-serif">Reachy Mini</text>
+  <text x="550" y="452" text-anchor="middle" fill="#34d399" font-size="11" font-family="Segoe UI,sans-serif">&#31532;&#20108; Runtime</text>
+
+  <rect x="740" y="400" width="240" height="72" rx="10" fill="#141c28" stroke="#64748b" stroke-width="2" stroke-dasharray="8 5"/>
+  <text x="860" y="432" text-anchor="middle" fill="#8b9cb3" font-size="14" font-weight="700" font-family="Segoe UI,sans-serif">&#22235;&#36275; / &#20154;&#24418;</text>
+  <text x="860" y="452" text-anchor="middle" fill="#8b9cb3" font-size="11" font-family="Segoe UI,sans-serif">&#36335;&#32447;&#22270;</text>
+</svg></div>
+    <div class="viz-legend">
+      <span class="compat">L2 兼容层 = Runtime 适配器（核心）</span>
+      <span class="live">L1 已上线真机</span>
+      <span class="road">四足 / 人形 · 路线图</span>
+    </div>
+  </section>
+
+  <section class="slide story-core">
+    <h1>Skill 是什么 · 直观版</h1>
+    <h2>不是 500 行关节角 · 是「会做什么」</h2>
+    <div class="diagram">
+      <svg viewBox="0 0 880 300" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, sans-serif">
+        <rect x="40" y="40" width="360" height="200" rx="10" fill="#141c28" stroke="#ef4444" stroke-width="2"/>
+        <text x="220" y="75" text-anchor="middle" fill="#ef4444" font-size="14" font-weight="700">以前</text>
+        <text x="220" y="105" text-anchor="middle" fill="#8b9cb3" font-size="12">脚本 / 关节角 / 每台机一份代码</text>
+        <text x="220" y="130" text-anchor="middle" fill="#8b9cb3" font-size="12">换机器人 → 重写、重调、重部署</text>
+        <text x="220" y="165" text-anchor="middle" fill="#e8edf4" font-size="11" font-family="monospace">joint[3]=0.42; sleep(0.1)…</text>
+        <text x="220" y="210" text-anchor="middle" fill="#8b9cb3" font-size="11">难复用 · 难分享 · 难更新</text>
+        <rect x="480" y="40" width="360" height="200" rx="10" fill="#141c28" stroke="#f59e0b" stroke-width="2"/>
+        <text x="660" y="75" text-anchor="middle" fill="#f59e0b" font-size="14" font-weight="700">BotverseX Skill</text>
+        <text x="660" y="108" text-anchor="middle" fill="#e8edf4" font-size="15" font-weight="700">会抓杯子 · v1.2</text>
+        <text x="660" y="135" text-anchor="middle" fill="#8b9cb3" font-size="12">声明兼容：so101 · reachy_mini</text>
+        <text x="660" y="165" text-anchor="middle" fill="#34d399" font-size="12">一键安装 · 可版本更新</text>
+        <text x="660" y="195" text-anchor="middle" fill="#8b9cb3" font-size="11">像 App：名字懂、能搜索、能评价</text>
+        <text x="660" y="220" text-anchor="middle" fill="#8b9cb3" font-size="11">未来：Skill 商店上架</text>
+        <text x="440" y="155" text-anchor="middle" fill="#f59e0b" font-size="28">→</text>
+      </svg>
+    </div>
+    <div class="analogy-row">
+      <span>类比手机：<strong>App</strong> = Skill</span>
+      <span>类比应用商店：<strong>安装</strong> 而不是抄源码</span>
+    </div>
+  </section>
+
+  <section class="slide story-core vision viz-pro">
+    <h1>可复用 · 录一次，多台机能用</h1>
+    <h2>数据与能力沉淀下来，而不是锁死在某个仓库里</h2>
+    <div class="diagram svg-inline" role="img"><svg xmlns="http://www.w3.org/2000/svg" width="1100" height="280" viewBox="0 0 1100 280">
+  <defs>
+    <marker id="dsp-pA" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#f59e0b"/></marker>
+    <marker id="dsp-pG" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#34d399"/></marker>
+  </defs>
+  <rect width="1100" height="280" fill="#0a0e14"/>
+  <text x="550" y="32" text-anchor="middle" fill="#f59e0b" font-size="17" font-weight="700" font-family="Segoe UI,sans-serif">&#22330;&#26223; &#8594; &#25968;&#25454; &#8594; Skill &#8594; &#36328;&#26412;&#20307;&#20998;&#21457;</text>
+
+  <rect x="40" y="70" width="110" height="64" rx="10" fill="#141c28" stroke="#3d4f66" stroke-width="1.5"/>
+  <text x="95" y="98" text-anchor="middle" fill="#e8edf4" font-size="12" font-weight="600" font-family="Segoe UI,sans-serif">&#22330;&#26223;</text>
+  <line x1="150" y1="102" x2="188" y2="102" stroke="#f59e0b" stroke-width="2.5" marker-end="url(#dsp-pA)"/>
+  <rect x="188" y="70" width="120" height="64" rx="10" fill="#141c28" stroke="#f59e0b" stroke-width="2"/>
+  <text x="248" y="98" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="700" font-family="Segoe UI,sans-serif">&#24405;&#25968;&#25454;</text>
+  <line x1="308" y1="102" x2="346" y2="102" stroke="#f59e0b" stroke-width="2.5" marker-end="url(#dsp-pA)"/>
+  <rect x="346" y="70" width="120" height="64" rx="10" fill="#141c28" stroke="#f59e0b" stroke-width="2"/>
+  <text x="406" y="98" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="700" font-family="Segoe UI,sans-serif">Workflow</text>
+  <line x1="466" y1="102" x2="504" y2="102" stroke="#f59e0b" stroke-width="2.5" marker-end="url(#dsp-pA)"/>
+  <rect x="504" y="58" width="140" height="88" rx="10" fill="#141c28" stroke="#34d399" stroke-width="2.5"/>
+  <text x="574" y="92" text-anchor="middle" fill="#34d399" font-size="14" font-weight="700" font-family="Segoe UI,sans-serif">Skill</text>
+  <text x="574" y="114" text-anchor="middle" fill="#e8edf4" font-size="11" font-family="Segoe UI,sans-serif">v1.2</text>
+  <line x1="574" y1="146" x2="574" y2="178" stroke="#34d399" stroke-width="2" marker-end="url(#dsp-pG)"/>
+  <line x1="574" y1="178" x2="420" y2="210" stroke="#34d399" stroke-width="2" marker-end="url(#dsp-pG)"/>
+  <line x1="574" y1="178" x2="728" y2="210" stroke="#34d399" stroke-width="2" marker-end="url(#dsp-pG)"/>
+  <rect x="340" y="198" width="160" height="56" rx="10" fill="#141c28" stroke="#f59e0b" stroke-width="2"/>
+  <text x="420" y="230" text-anchor="middle" fill="#e8edf4" font-size="12" font-weight="600" font-family="Segoe UI,sans-serif">SO-101</text>
+  <rect x="648" y="198" width="160" height="56" rx="10" fill="#141c28" stroke="#f59e0b" stroke-width="2"/>
+  <text x="728" y="230" text-anchor="middle" fill="#e8edf4" font-size="12" font-weight="600" font-family="Segoe UI,sans-serif">Reachy</text>
+  <rect x="680" y="70" width="380" height="64" rx="10" fill="#0a0e14" stroke="#3d4f66"/>
+  <text x="870" y="96" text-anchor="middle" fill="#8b9cb3" font-size="11" font-family="Segoe UI,sans-serif">&#24179;&#21488;&#27969;&#31243;&#21487;&#22797;&#29992;</text>
+  <text x="870" y="116" text-anchor="middle" fill="#64748b" font-size="10" font-family="Segoe UI,sans-serif">&#36712;&#36857;&#25353;&#26412;&#20307;&#36866;&#37197;</text>
+</svg></div>
+    <p class="story-sub">主线：<strong>真实场景 → 数据 → Skill → 跨本体分发</strong> · 平台流程复用，轨迹按本体适配</p>
+  </section>
+
+  <section class="slide">
+    <h1>Runtime · 已上线两台，路线上的第三类</h1>
+    <h2>同一网站 · 换 Runtime 适配器 · 不是重做产品</h2>
+    <div class="ref-grid large">
+      <div class="ref-tile live">
+        <img src="assets/so101-hardware.jpeg" alt="SO-101" />
+        <strong>SO-101 · 已上线</strong><span>Leader/Follower · 端到端闭环</span>
+      </div>
+      <div class="ref-tile live">
+        <img src="assets/reachymini实体图.jpg" alt="Reachy Mini" />
+        <strong>Reachy Mini · 已上线</strong><span>第二台真机验证</span>
+      </div>
+      <div class="ref-tile build">
+        <img src="assets/lerobot-so101-reference.webp" alt="LeRobot SO-101" />
+        <strong>开源臂生态</strong><span>LeRobot 对齐 · 更多臂型接入</span>
+      </div>
+      <div class="ref-tile build product-shot">
+        <img src="assets/unitree-go2-product.jpg" alt="Unitree Go2" />
+        <strong>四足 · Unitree Go2</strong><span>Runtime 预研中 · 伙伴/SDK 路线</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 不只是 demo：全平台 -->
+  <section class="slide platform-map">
+    <h1>不只是两只手臂 · 一整条产品</h1>
+    <h2>同一账号 · 同一网站 · 从采数据到装 Skill — 今天就能打开体验</h2>
+    <div class="diagram">
+      <svg viewBox="0 0 920 380" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, sans-serif">
+        <text x="230" y="26" text-anchor="middle" fill="#f59e0b" font-size="14" font-weight="700">LIVE · 已上线</text>
+        <text x="690" y="26" text-anchor="middle" fill="#8b9cb3" font-size="14" font-weight="700">BUILDING · 在建</text>
+        <line x1="460" y1="10" x2="460" y2="365" stroke="#3d4f66" stroke-width="1.5"/>
+        <g font-size="12" fill="#e8edf4">
+          <rect x="24" y="44" width="200" height="40" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="124" y="70" text-anchor="middle" font-weight="600">Robots · Setup</text>
+          <rect x="24" y="92" width="200" height="40" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="124" y="118" text-anchor="middle">Datasets · 录制</text>
+          <rect x="24" y="140" width="200" height="40" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="124" y="166" text-anchor="middle">Training · 训练</text>
+          <rect x="24" y="188" width="200" height="40" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="124" y="214" text-anchor="middle">Models · 部署</text>
+          <rect x="248" y="44" width="200" height="40" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="348" y="70" text-anchor="middle">Workflow · 流水线</text>
+          <rect x="248" y="92" width="200" height="40" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="348" y="118" text-anchor="middle">Skills · 技能包</text>
+          <rect x="248" y="140" width="200" height="40" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="348" y="166" text-anchor="middle">AI Hub · 模型发现</text>
+          <rect x="248" y="188" width="200" height="40" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="348" y="214" text-anchor="middle">Local Agent · 本机</text>
+          <rect x="136" y="236" width="200" height="40" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="236" y="262" text-anchor="middle">Reachy · 第二 Runtime</text>
+          <rect x="136" y="284" width="200" height="40" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="236" y="310" text-anchor="middle">Pricing · Free/Pro/Creator</text>
+        </g>
+        <g font-size="12" fill="#8b9cb3">
+          <rect x="484" y="44" width="400" height="40" rx="6" fill="#141c28" stroke="#64748b" stroke-dasharray="6 4"/><text x="684" y="70" text-anchor="middle">Skill Marketplace</text>
+          <rect x="484" y="92" width="400" height="40" rx="6" fill="#141c28" stroke="#64748b" stroke-dasharray="6 4"/><text x="684" y="118" text-anchor="middle">Workflow 全节点接真 API</text>
+          <rect x="484" y="140" width="400" height="40" rx="6" fill="#141c28" stroke="#64748b" stroke-dasharray="6 4"/><text x="684" y="166" text-anchor="middle">更多 Runtime · Unitree…</text>
+          <rect x="484" y="188" width="400" height="40" rx="6" fill="#141c28" stroke="#64748b" stroke-dasharray="6 4"/><text x="684" y="214" text-anchor="middle">企业多机队 · 私有部署</text>
+        </g>
+        <text x="460" y="350" text-anchor="middle" fill="#34d399" font-size="12" font-weight="600">愿景：把 LIVE 做深，让 BUILDING 成为每个人可用的能力</text>
+      </svg>
+    </div>
+    <div class="legend">
+      <span class="live">已上线 — 下面用大图逐页看产品</span>
+      <span class="build">在建 — 方向已定</span>
+    </div>
+  </section>
+
+  <section class="slide product light product-shot">
+    <h1 style="color:#0f172a">Datasets · 原料从场景来</h1>
+    <h2>真实 episode · LeRobot 兼容 · 可发布 Hugging Face</h2>
+    <img class="img-hero" src="assets/botversex-dataset.png" alt="Dataset UI" />
+  </section>
+
+  <section class="slide product product-shot">
+    <h1>Training · 把数据变成模型</h1>
+    <h2>本地或云 · 同一账号 · 不训「最大模型」</h2>
+    <img class="img-hero" src="assets/botversex-training.png" alt="Training UI" />
+  </section>
+
+  <section class="slide product product-shot">
+    <h1>Workflow · 把脚本变流水线</h1>
+    <h2>采集、转换、微调串起来 — 可复用的工程能力</h2>
+    <img class="img-hero" src="assets/botversex-workflow.png" alt="Workflow UI" />
+  </section>
+
+  <section class="slide product product-shot">
+    <h1>Skills · 能力的商品形态</h1>
+    <h2>会抓杯子 v1.2 — 声明兼容机型 · 安装即运行</h2>
+    <img class="img-hero" src="assets/botversex-skill.png" alt="Skill UI" />
+  </section>
+
+  <!-- loop diagram -->
+  <section class="slide">
+    <h1>数据闭环 · 飞轮</h1>
+    <h2>场景越多 → 数据越多 → Skill 越多 → 装机越多 → 场景越多</h2>
+    <div class="diagram">
+      <svg viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg">
+        <defs><marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#f59e0b"/></marker></defs>
+        <rect x="260" y="20" width="200" height="48" rx="8" fill="#141c28" stroke="#f59e0b" stroke-width="2"/>
+        <text x="360" y="50" text-anchor="middle" fill="#e8edf4" font-size="14" font-weight="700">真实场景 / 用户</text>
+        <line x1="360" y1="68" x2="360" y2="95" stroke="#f59e0b" stroke-width="2" marker-end="url(#arr)"/>
+        <rect x="40" y="95" width="140" height="44" rx="6" fill="#141c28" stroke="#3d4f66"/><text x="110" y="122" text-anchor="middle" fill="#e8edf4" font-size="12">Runtime 采集</text>
+        <rect x="210" y="95" width="140" height="44" rx="6" fill="#141c28" stroke="#3d4f66"/><text x="280" y="122" text-anchor="middle" fill="#e8edf4" font-size="12">Dataset</text>
+        <rect x="380" y="95" width="140" height="44" rx="6" fill="#141c28" stroke="#3d4f66"/><text x="450" y="122" text-anchor="middle" fill="#e8edf4" font-size="12">Workflow 训练</text>
+        <rect x="550" y="95" width="140" height="44" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="620" y="122" text-anchor="middle" fill="#e8edf4" font-size="12">Skill 部署</text>
+        <path d="M 620 139 Q 680 200 360 250 Q 40 200 110 139" fill="none" stroke="#34d399" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arr)"/>
+        <text x="360" y="275" text-anchor="middle" fill="#34d399" font-size="13" font-weight="600">复用 · 分发 · 更新 → 更多场景接入</text>
+        <text x="360" y="305" text-anchor="middle" fill="#8b9cb3" font-size="11">原料（数据）→ 工厂（Workflow）→ 商品（Skill）→ 商店（Marketplace）</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 7 architecture -->
+  <section class="slide viz-pro">
+    <h1>产品架构 · 兼容层把云、本机、多本体接在一起</h1>
+    <h2>云端账号与数据 · Local Agent 低延迟 · Runtime 接 SO-101 / Reachy / 路线图机型</h2>
+    <div class="diagram svg-inline" role="img"><svg xmlns="http://www.w3.org/2000/svg" width="1100" height="520" viewBox="0 0 1100 520">
+  <defs>
+    <linearGradient id="cl2-gAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#fbbf24"/>
+    </linearGradient>
+    <linearGradient id="cl2-gCompat" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a5f"/>
+      <stop offset="100%" stop-color="#141c28"/>
+    </linearGradient>
+    <marker id="cl2-arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#f59e0b"/></marker>
+  </defs>
+  <rect width="1100" height="520" fill="#0a0e14"/>
+  <text x="550" y="32" text-anchor="middle" fill="#f59e0b" font-size="20" font-weight="700" font-family="Segoe UI,sans-serif">BotverseX &#20860;&#23481;&#23618; &#183; &#20116;&#23618;&#26550;&#26500;</text>
+  <text x="550" y="56" text-anchor="middle" fill="#8b9cb3" font-size="13" font-family="Segoe UI,sans-serif">&#25442;&#26426;&#22120;&#20154;&#21482;&#21160; L2 &#183; &#19978;&#38754;&#22235;&#23618;&#27969;&#31243;&#19981;&#21464;</text>
+
+  <rect x="80" y="72" width="940" height="58" rx="10" fill="#141c28" stroke="#3d4f66" stroke-width="1.5"/>
+  <text x="120" y="98" fill="#64748b" font-size="11" font-weight="600" font-family="Segoe UI,sans-serif">L5</text>
+  <text x="160" y="98" fill="#e8edf4" font-size="14" font-weight="700" font-family="Segoe UI,sans-serif">&#22330;&#26223;&#19982;&#33021;&#21147;&#23618;</text>
+  <text x="160" y="118" fill="#8b9cb3" font-size="12" font-family="Segoe UI,sans-serif">Skill &#183; Workflow &#183; compatible_types</text>
+
+  <rect x="80" y="142" width="940" height="58" rx="10" fill="#141c28" stroke="#3d4f66" stroke-width="1.5"/>
+  <text x="120" y="168" fill="#64748b" font-size="11" font-weight="600" font-family="Segoe UI,sans-serif">L4</text>
+  <text x="160" y="168" fill="#e8edf4" font-size="14" font-weight="700" font-family="Segoe UI,sans-serif">&#20113;&#24179;&#21488;&#23618;</text>
+  <text x="160" y="188" fill="#8b9cb3" font-size="12" font-family="Segoe UI,sans-serif">Dataset &#183; Training &#183; Models &#183; Skills &#183; AI Hub</text>
+
+  <rect x="80" y="212" width="940" height="58" rx="10" fill="#141c28" stroke="#3d4f66" stroke-width="1.5"/>
+  <text x="120" y="238" fill="#64748b" font-size="11" font-weight="600" font-family="Segoe UI,sans-serif">L3</text>
+  <text x="160" y="238" fill="#e8edf4" font-size="14" font-weight="700" font-family="Segoe UI,sans-serif">&#26412;&#26426;&#25191;&#34892;&#23618; Local Agent</text>
+  <text x="160" y="258" fill="#8b9cb3" font-size="12" font-family="Segoe UI,sans-serif">&#30456;&#26426; &#183; &#20018;&#21475; &#183; &#20302;&#24310;&#36831;&#25511;&#21046;</text>
+
+  <rect x="56" y="278" width="988" height="88" rx="12" fill="url(#cl2-gCompat)" stroke="#f59e0b" stroke-width="3"/>
+  <text x="100" y="308" fill="#f59e0b" font-size="12" font-weight="700" font-family="Segoe UI,sans-serif">L2</text>
+  <text x="160" y="308" fill="#fbbf24" font-size="17" font-weight="700" font-family="Segoe UI,sans-serif">Runtime &#36866;&#37197;&#22120;&#65288;&#20860;&#23481;&#23618;&#65289;</text>
+  <text x="160" y="332" fill="#e8edf4" font-size="13" font-family="Segoe UI,sans-serif">so101 &#10003; &#183; reachy_mini &#10003; &#183; unitree_* roadmap</text>
+  <text x="160" y="354" fill="#8b9cb3" font-size="12" font-family="Segoe UI,sans-serif">&#32479;&#19968;&#25509;&#21475; &#183; LeRobot &#26684;&#24335;</text>
+  <rect x="780" y="296" width="240" height="52" rx="8" fill="#0a0e14" stroke="#f59e0b" stroke-width="2"/>
+  <text x="900" y="320" text-anchor="middle" fill="#f59e0b" font-size="13" font-weight="700" font-family="Segoe UI,sans-serif">&#25442;&#26426;&#21482;&#21160;&#36825;&#19968;&#23618;</text>
+  <text x="900" y="340" text-anchor="middle" fill="#8b9cb3" font-size="11" font-family="Segoe UI,sans-serif">&#19981;&#37325;&#22797;&#36896;&#36718;&#23376;</text>
+
+  <line x1="280" y1="366" x2="280" y2="392" stroke="#f59e0b" stroke-width="2" marker-end="url(#cl2-arr)"/>
+  <line x1="550" y1="366" x2="550" y2="392" stroke="#f59e0b" stroke-width="2" marker-end="url(#cl2-arr)"/>
+  <line x1="820" y1="366" x2="820" y2="392" stroke="#64748b" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#cl2-arr)"/>
+
+  <rect x="120" y="400" width="240" height="72" rx="10" fill="#141c28" stroke="#f59e0b" stroke-width="2"/>
+  <text x="240" y="432" text-anchor="middle" fill="#e8edf4" font-size="14" font-weight="700" font-family="Segoe UI,sans-serif">SO-101</text>
+  <text x="240" y="452" text-anchor="middle" fill="#34d399" font-size="11" font-family="Segoe UI,sans-serif">&#24050;&#19978;&#32447;</text>
+  <text x="240" y="468" text-anchor="middle" fill="#8b9cb3" font-size="10" font-family="Segoe UI,sans-serif">&#30495;&#26426;&#38381;&#29615;</text>
+
+  <rect x="430" y="400" width="240" height="72" rx="10" fill="#141c28" stroke="#f59e0b" stroke-width="2"/>
+  <text x="550" y="432" text-anchor="middle" fill="#e8edf4" font-size="14" font-weight="700" font-family="Segoe UI,sans-serif">Reachy Mini</text>
+  <text x="550" y="452" text-anchor="middle" fill="#34d399" font-size="11" font-family="Segoe UI,sans-serif">&#31532;&#20108; Runtime</text>
+
+  <rect x="740" y="400" width="240" height="72" rx="10" fill="#141c28" stroke="#64748b" stroke-width="2" stroke-dasharray="8 5"/>
+  <text x="860" y="432" text-anchor="middle" fill="#8b9cb3" font-size="14" font-weight="700" font-family="Segoe UI,sans-serif">&#22235;&#36275; / &#20154;&#24418;</text>
+  <text x="860" y="452" text-anchor="middle" fill="#8b9cb3" font-size="11" font-family="Segoe UI,sans-serif">&#36335;&#32447;&#22270;</text>
+</svg></div>
+    <p class="story-sub" style="margin-top:0.4vh">与上一页同一套分层 · 对内对外讲法统一</p>
+  </section>
+
+  <section class="slide">
+    <h1>物理 AI · 我们占哪一层</h1>
+    <div class="cols three">
+      <div class="card"><h3>基础层</h3><p>Cosmos、VLA、世界模型 — <strong>看懂 / 合成 / 仿真</strong>物理世界</p></div>
+      <div class="card" style="border-color:var(--accent)"><h3>BotverseX</h3><p><strong>真机数据进、Skill 出</strong> — 连接、录制、训练、部署、分发</p></div>
+      <div class="card"><h3>场景层</h3><p>工厂、实验室、桌面 — 数据在物理世界里产生，不在网页上</p></div>
+    </div>
+    <p class="story-sub">互补，不是重复造轮子：模型越强，越需要有人把场景接进闭环</p>
+  </section>
+
+
+  <section class="slide">
+    <h1>三年愿景 · 你想像中的未来</h1>
+    <ul class="minimal">
+      <li><strong>今年</strong>：更多实验室与开发者用同一网站跑通 SO-101 / Reachy 闭环</li>
+      <li><strong>明年</strong>：Skill 可安装、可更新 — 机器人能力像 App 一样被发现</li>
+      <li><strong>后年</strong>：多 Runtime、多场景 — 企业把 BotverseX 当作「场景数据与技能」默认入口</li>
+    </ul>
+    <p class="story-sub">我们在验证的不是一页纸，而是<strong>机器人行业的分发层</strong>会不会诞生</p>
+  </section>
+
+  <section class="slide product">
+    <h1>Skill 商店 · 想像中的下一幕</h1>
+    <h2>会抓杯子 v1.2 · 会开门 v0.3 — 搜索、安装、评价、更新</h2>
+    <img class="img-diagram" src="assets/marketplace-mockup.png" alt="Marketplace vision" />
+  </section>
+
+  <!-- 8 ecosystem -->
+  <section class="slide">
+    <h1>生态位 · 协作大于竞争</h1>
+    <table class="fin">
+      <tr><th></th><th>Hugging Face / LeRobot</th><th>BotverseX</th></tr>
+      <tr><td>核心资产</td><td>模型、数据集、开源硬件生态</td><td>真机闭环 + Skill 封装与分发</td></tr>
+      <tr><td>用户动作</td><td>下权重、推 dataset</td><td>插电、录场景、训、部署、装 Skill</td></tr>
+      <tr><td>关系</td><td colspan="2" style="text-align:center;color:#34d399">站在开源生态之上，做开发与分发层 — 不是第三个 HF</td></tr>
+    </table>
+  </section>
+
+  <!-- 9 why now -->
+  <section class="slide">
+    <h1>为什么是现在</h1>
+    <ul class="minimal">
+      <li>SO-101 / LeRobot 把机械臂门槛打到千元级 · wedge 可验证</li>
+      <li>人形、四足、教育机爆发 · Runtime 适配需求指数增长</li>
+      <li>VLA / 小模型微调需要 <strong>真实 episode</strong>，不是只有互联网文本</li>
+      <li>订阅与 Skill 商店基础设施已在代码里（plans.yaml · registry）</li>
+    </ul>
+  </section>
+
+  <!-- CTA -->
+  <section class="slide ask vision cta-close">
+    <h1>真实场景 → 机器人能力</h1>
+    <h2>欢迎打开产品 · 亲眼看一下闭环</h2>
+    <p class="product-url"><a href="https://botversex.feispace.me" target="_blank" rel="noopener">botversex.feispace.me</a></p>
+    <p class="tagline">一起想象：每一台机器人，都能持续变聪明</p>
+    <div class="contact-lines">
+      <span class="muted">交流</span> yzc_2024@163.com · 微信 y15976887109
+    </div>
+    <p class="footer">BotverseX · 愿景 2026</p>
+  </section>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js"></script>
+  <script>
+    const slides = [...document.querySelectorAll('#deck .slide')];
+    let i = 0;
+    let animating = false;
+    const progress = document.getElementById('progress');
+    const pageNum = document.getElementById('pageNum');
+    const q = new URLSearchParams(location.search);
+    const exportMode = q.get('export') === '1';
+    if (exportMode) document.documentElement.classList.add('export-mode');
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const useGsap = !exportMode && !reduceMotion && typeof gsap !== 'undefined';
+    if (useGsap) document.documentElement.classList.add('gsap-on');
+
+    const PART_SEL = [
+      'h1', 'h2', '.tagline', '.story-sub', '.story-line', '.words',
+      '.product-url', '.contact-lines', 'ul.minimal', 'table.fin',
+      '.diagram', '.img-full', '.img-diagram', '.hero-grid', '.quad-grid',
+      '.split', '.chain-row', '.cols', '.body-category', '.scene-split',
+      '.split-problem', '.pill-row', '.funds-wrap', '.team-grid',
+      '.ref-grid', '.cta-steps', '.contact-block', '.big-num', '.big-label',
+      '.pipeline-strip', '.cta-lead', '.cta-round', '.img-hero', '.analogy-row', '.viz-legend', '.svg-inline'
+    ].join(', ');
+
+    function partsOf(slide) {
+      return [...slide.querySelectorAll(PART_SEL)].filter((el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 || r.height > 0;
+      });
+    }
+
+    function showInstant(n) {
+      if (!slides.length) return;
+      i = Math.max(0, Math.min(n, slides.length - 1));
+      slides.forEach((s, j) => {
+        const on = j === i;
+        s.classList.toggle('active', on);
+        if (useGsap) {
+          gsap.set(s, {
+            opacity: on ? 1 : 0,
+            visibility: on ? 'visible' : 'hidden',
+            pointerEvents: on ? 'auto' : 'none',
+            zIndex: on ? 1 : 0,
+          });
+          if (on) gsap.set(partsOf(s), { clearProps: 'opacity,transform' });
+        }
+      });
+      if (progress) progress.style.width = ((i + 1) / slides.length * 100) + '%';
+      if (pageNum) pageNum.textContent = (i + 1) + ' / ' + slides.length;
+    }
+
+    function showAnimated(n, dir) {
+      if (!slides.length || animating) return;
+      const next = Math.max(0, Math.min(n, slides.length - 1));
+      if (next === i) return;
+      const prev = slides[i];
+      const slide = slides[next];
+      const outParts = partsOf(prev);
+      const inParts = partsOf(slide);
+      animating = true;
+
+      const tl = gsap.timeline({
+        defaults: { ease: 'power3.inOut' },
+        onComplete: () => {
+          prev.classList.remove('active');
+          gsap.set(prev, { visibility: 'hidden', pointerEvents: 'none', zIndex: 0 });
+          animating = false;
+        },
+      });
+
+      slide.classList.add('active');
+      gsap.set(slide, { opacity: 1, visibility: 'visible', pointerEvents: 'auto', zIndex: 2 });
+      gsap.set(inParts, { opacity: 0, y: dir >= 0 ? 32 : -32 });
+
+      if (outParts.length) {
+        tl.to(outParts, { opacity: 0, y: dir >= 0 ? -18 : 18, duration: 0.28, stagger: 0.03 }, 0);
+      }
+      tl.to(prev, { opacity: 0, duration: 0.22 }, 0.08);
+      tl.to(inParts, { opacity: 1, y: 0, duration: 0.5, stagger: 0.055, ease: 'power3.out' }, 0.12);
+      tl.set(slide, { zIndex: 1 }, '>-0.05');
+
+      i = next;
+      if (progress) progress.style.width = ((i + 1) / slides.length * 100) + '%';
+      if (pageNum) pageNum.textContent = (i + 1) + ' / ' + slides.length;
+    }
+
+    function show(n, dir = 1) {
+      if (useGsap) showAnimated(n, dir);
+      else showInstant(n);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        show(i + 1, 1);
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        show(i - 1, -1);
+      }
+      if (e.key === 'Home') show(0, -1);
+      if (e.key === 'End') show(slides.length - 1, 1);
+      if (e.key === 'f' || e.key === 'F') {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+        else document.exitFullscreen();
+      }
+    });
+    document.addEventListener('click', (e) => {
+      if (animating) return;
+      if (e.clientX > window.innerWidth / 2) show(i + 1, 1);
+      else show(i - 1, -1);
+    });
+
+    const start = q.has('slide') ? parseInt(q.get('slide'), 10) : 0;
+    if (useGsap) {
+      slides.forEach((s, j) => {
+        gsap.set(s, {
+          opacity: j === start ? 1 : 0,
+          visibility: j === start ? 'visible' : 'hidden',
+          pointerEvents: j === start ? 'auto' : 'none',
+          zIndex: j === start ? 1 : 0,
+        });
+        s.classList.toggle('active', j === start);
+      });
+      i = start;
+      const intro = partsOf(slides[start]);
+      gsap.from(intro, { opacity: 0, y: 36, duration: 0.65, stagger: 0.07, ease: 'power3.out', delay: 0.15 });
+      if (progress) progress.style.width = ((start + 1) / slides.length * 100) + '%';
+      if (pageNum) pageNum.textContent = (start + 1) + ' / ' + slides.length;
+    } else {
+      showInstant(start);
+    }
+  </script>
+</body>
+</html>

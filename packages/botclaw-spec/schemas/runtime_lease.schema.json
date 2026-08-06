@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://botversex.dev/schemas/botclaw/v0.9/runtime_lease.schema.json",
+  "title": "RuntimeLease",
+  "description": "Exclusive runtime control lease inspired by TidyBot Lease System. Prevents two clients/agents from controlling one robot at the same time.",
+  "type": "object",
+  "required": ["lease_id", "runtime_id", "holder_id", "status", "acquired_at"],
+  "additionalProperties": false,
+  "properties": {
+    "lease_id": { "type": "string", "minLength": 1 },
+    "runtime_id": { "type": "string", "minLength": 1 },
+    "holder_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "User, workflow, agent, or service currently holding the lease."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["idle", "queued", "leased", "homing", "released", "expired"],
+      "description": "Runtime lease state machine."
+    },
+    "acquired_at": { "type": "string", "format": "date-time" },
+    "expires_at": { "type": "string", "format": "date-time" },
+    "released_at": { "type": "string", "format": "date-time" },
+    "reason": { "type": "string" },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

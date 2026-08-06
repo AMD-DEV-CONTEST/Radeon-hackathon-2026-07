@@ -1,0 +1,51 @@
+# apps/realtime — 实时内核依赖
+#
+# 仅列 FastAPI + WebSocket + sender 需要的. LeRobot 源通过
+# BOTVERSEX_LEROBOT_PATH 环境变量指向 V2 原仓的 makermods 目录, 不在此装.
+
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+websockets>=11.0
+httpx>=0.27.0
+pydantic>=2.5.0
+pyserial>=3.5
+
+# SO-101 follower motor driver. lerobot.motors.feetech does `import scservo_sdk`
+# at runtime; without this package every connect() call raises ModuleNotFoundError
+# and the user sees "failed to open port — check power & cable" which is a lie.
+# Pinning to the same range lerobot 0.4.x declares in its [feetech] extra.
+feetech-servo-sdk>=1.0.0,<2.0.0
+
+# 用于 convert_to_lerobot 的 parquet 产出 (M1 DoD 要求)
+pandas>=2.0.0
+pyarrow>=14.0.0
+
+# M3+: inference (compare WS, echo mode)
+# torch is installed separately in Dockerfile with CPU-only index
+# For local GPU dev: pip install torch --index-url https://download.pytorch.org/whl/rocm6.3
+
+# M8: camera capture + vision pipeline
+opencv-python-headless>=4.8.0
+
+# lerobot.motors.motors_bus imports these at module load. Without them the
+# realtime process boots fine but /api/setup/health reports
+# lerobot_available=false and so101 never registers in /api/runtimes.
+deepdiff>=7.0.0
+tqdm>=4.66.0
+draccus==0.10.0
+
+# lerobot itself — provides:
+#   - the `lerobot-teleoperate` CLI entry point (used by BOTVERSEX_TELEOP_MODE=cli)
+#   - lerobot.motors.feetech.FeetechMotorsBus + MotorCalibration models used
+#     by the in-process teleop loop and auto/manual calibration paths.
+# Install the [feetech] extra so scservo SDK + Feetech motor kernels are
+# pulled in alongside the core package.
+lerobot[feetech]>=0.4.0
+
+# HTTPS self-signed cert generation for Local Agent (mixed-content fix)
+cryptography>=41.0.0
+
+# M27: B601-RS (Seeed reBot) — official pip plugins, thin-wrapped by /api/b601/*
+lerobot-robot-seeed-b601>=1.0.0
+lerobot-teleoperator-rebot-arm-102>=1.0.0
+motorbridge>=0.4.8
