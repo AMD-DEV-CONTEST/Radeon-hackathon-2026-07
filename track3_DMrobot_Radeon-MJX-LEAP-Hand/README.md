@@ -12,13 +12,13 @@ The project uses the official Google DeepMind MuJoCo Playground source directly 
 
 | Requirement | Material |
 |---|---|
-| Technical report | [English technical report](https://github.com/liyan03/radeon-mjx-leap-hand/blob/2a5dcdc0ece9ef8f429dba61aeb2e90a6912251b/TECHNICAL_REPORT.md) |
-| Dedicated source repository | [DMrobot source at frozen commit `2a5dcdc`](https://github.com/liyan03/radeon-mjx-leap-hand/tree/2a5dcdc0ece9ef8f429dba61aeb2e90a6912251b) |
-| Reproducibility README | [Environment, training, evaluation, and troubleshooting](https://github.com/liyan03/radeon-mjx-leap-hand/blob/2a5dcdc0ece9ef8f429dba61aeb2e90a6912251b/README.md) |
-| Quantitative evaluator | [`eval_leap_policy.py`](https://github.com/liyan03/radeon-mjx-leap-hand/blob/2a5dcdc0ece9ef8f429dba61aeb2e90a6912251b/eval_leap_policy.py) |
-| Run and evaluation manifests | [Machine-readable results](https://github.com/liyan03/radeon-mjx-leap-hand/tree/2a5dcdc0ece9ef8f429dba61aeb2e90a6912251b/results) |
-| Demonstration video | **Pending before final submission.** The real Radeon-server recording must be added; synthetic footage will not be substituted. |
-| Final Orbax checkpoint | **Pending external artifact publication.** Exact packaging instructions are provided in the source repository. |
+| Technical report | [English technical report](https://github.com/liyan03/radeon-mjx-leap-hand/blob/3f7742eef62e3b5d2ac7a688a27f15f534b73f70/TECHNICAL_REPORT.md) |
+| Dedicated source repository | [DMrobot source at frozen commit `3f7742e`](https://github.com/liyan03/radeon-mjx-leap-hand/tree/3f7742eef62e3b5d2ac7a688a27f15f534b73f70) |
+| Reproducibility README | [Environment, training, evaluation, and troubleshooting](https://github.com/liyan03/radeon-mjx-leap-hand/blob/3f7742eef62e3b5d2ac7a688a27f15f534b73f70/README.md) |
+| Quantitative evaluator | [`eval_leap_policy.py`](https://github.com/liyan03/radeon-mjx-leap-hand/blob/3f7742eef62e3b5d2ac7a688a27f15f534b73f70/eval_leap_policy.py) |
+| Run and evaluation manifests | [Machine-readable results](https://github.com/liyan03/radeon-mjx-leap-hand/tree/3f7742eef62e3b5d2ac7a688a27f15f534b73f70/results) |
+| Demonstration video | [`demo.mp4`](https://github.com/liyan03/radeon-mjx-leap-hand/blob/3f7742eef62e3b5d2ac7a688a27f15f534b73f70/assets/demo.mp4) — 25-second trained-policy rollout; the contest recommends 3–5 minutes. |
+| Final Orbax checkpoint | Not included in GitHub because it is a large training artifact; exact reproduction and packaging instructions are provided in the source repository. |
 | Docker image | Not claimed. Docker is preferable rather than mandatory; the validated deliverable is the native Radeon Cloud setup. |
 
 ## Architecture
@@ -82,6 +82,6 @@ One deterministic 256-episode evaluation of the final checkpoint under the nomin
 
 DMrobot performed the Radeon environment integration, MJX validation, PPO training, checkpoint management, evaluator implementation, result interpretation, reproducibility documentation, and submission packaging.
 
-## Draft status
+## Submission status
 
-This branch is intentionally marked as a draft until the required real demonstration video and a stable checkpoint artifact link are added. The source, report, evaluator, manifests, and reproducibility guide are already public and frozen at the commit linked above.
+The source, report, evaluator, manifests, reproducibility guide, and 25-second policy-rollout video are public and frozen at the commit linked above. The PR remains a draft while DMrobot prepares the contest-recommended 3–5 minute full-workflow demonstration. The large Orbax checkpoint is not stored in GitHub; exact reproduction and packaging instructions remain available in the source repository.
