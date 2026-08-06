@@ -1,8 +1,8 @@
 # Howdy · Voice Diary — Tech Report
 
-> Your day, in structured graph structure.
+> Your day, in a structured searchable graph.
 
-This project contains a local-first voice diary for the AMD AI Hackathon. 
+This project contains a local-first voice diary for the AMD AI Hackathon. Contact [ziangzhang1997@gmail.com](mailto:ziangzhang1997@gmail.com) for questions.
 
 Most part of services runs on AMD's powerful W7900 pro GPU with ROCm 7.2.1. 
 
