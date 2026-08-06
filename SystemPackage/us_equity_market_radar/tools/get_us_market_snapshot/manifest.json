@@ -1,0 +1,48 @@
+{
+  "id": "get_us_market_snapshot",
+  "description": "Fetches current major U.S. index quotes and leading, declining, and most-active equities from Yahoo Finance. Call it before stating current U.S. market facts; it returns observation time, source, warnings, and provider diagnostics.",
+  "schema_error_guidance": "top_n must be an integer from 1 through 20.",
+  "entrypoint": "python:tools/get_us_market_snapshot/tool.py:run",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "top_n": {"type": "integer", "minimum": 1, "maximum": 20, "default": 10}
+    },
+    "additionalProperties": false
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "status": {"type": "string", "enum": ["success", "partial", "error"]},
+      "observed_at": {"type": "string"},
+      "source": {"type": "string"},
+      "indexes": {"type": "array", "items": {"type": "object"}},
+      "top_gainers": {"type": "array", "items": {"type": "object"}},
+      "top_losers": {"type": "array", "items": {"type": "object"}},
+      "most_active": {"type": "array", "items": {"type": "object"}},
+      "warnings": {"type": "array", "items": {"type": "string"}},
+      "provider_diagnostics": {
+        "type": "object",
+        "properties": {
+          "provider": {"type": "string"},
+          "hosts_used": {"type": "array", "items": {"type": "string"}},
+          "retry_count": {"type": "integer", "minimum": 0},
+          "requests_completed": {"type": "integer", "minimum": 0}
+        },
+        "required": ["provider", "hosts_used", "retry_count", "requests_completed"],
+        "additionalProperties": false
+      },
+      "message": {"type": "string"}
+    },
+    "required": ["status", "observed_at", "source", "indexes", "top_gainers", "top_losers", "most_active", "warnings", "provider_diagnostics", "message"],
+    "additionalProperties": false
+  },
+  "resources": {},
+  "risk_level": "low",
+  "risk_evaluator": {"hard": null, "llm": null, "llm_mode": "disabled"},
+  "concurrent": false,
+  "permission_scope": "package",
+  "permission_tags": ["read_only"],
+  "output_compression": {"action_argument": "action", "actions": {}},
+  "output_projection": "compress"
+}

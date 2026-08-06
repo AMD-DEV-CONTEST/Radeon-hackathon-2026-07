@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "kernels": [
+    {
+      "kernel_id": "llama.mul_mat_q",
+      "display_name": "Quantized MatMul",
+      "family": "matrix_multiplication",
+      "descriptions": {
+        "zh-CN": "对量化权重执行矩阵乘法，通常承担 Prefill 阶段的大部分线性层计算。",
+        "en-US": "Multiplies activations by quantized weights and commonly dominates linear layers during prefill."
+      },
+      "symbol_matchers": [{"target": "base_symbol", "kind": "exact", "value": "mul_mat_q"}],
+      "tags": ["matmul", "quantized", "prefill"]
+    },
+    {
+      "kernel_id": "llama.mul_mat_vec_q",
+      "display_name": "Quantized MatVec",
+      "family": "matrix_vector_multiplication",
+      "descriptions": {
+        "zh-CN": "对单 Token 激活与量化权重执行矩阵向量乘法，是 Decode 阶段的核心计算。",
+        "en-US": "Performs matrix-vector multiplication with quantized weights and is a core decode-stage operation."
+      },
+      "symbol_matchers": [{"target": "base_symbol", "kind": "exact", "value": "mul_mat_vec_q"}],
+      "tags": ["matvec", "quantized", "decode"]
+    },
+    {
+      "kernel_id": "llama.mul_mat_vec_f",
+      "display_name": "Floating-point MatVec",
+      "family": "matrix_vector_multiplication",
+      "descriptions": {
+        "zh-CN": "使用浮点权重执行矩阵向量乘法，常用于未量化张量或中间投影。",
+        "en-US": "Performs floating-point matrix-vector multiplication for unquantized tensors or intermediate projections."
+      },
+      "symbol_matchers": [{"target": "base_symbol", "kind": "exact", "value": "mul_mat_vec_f"}],
+      "tags": ["matvec", "floating_point"]
+    },
+    {
+      "kernel_id": "llama.tensile_gemm",
+      "display_name": "Tensile GEMM",
+      "family": "matrix_multiplication",
+      "descriptions": {
+        "zh-CN": "由 AMD Tensile/rocBLAS 生成的 GEMM Kernel，名称中包含 Tile、Matrix Instruction 和 Wave 配置。",
+        "en-US": "An AMD Tensile or rocBLAS generated GEMM kernel whose symbol encodes tile, matrix-instruction, and wave settings."
+      },
+      "symbol_matchers": [{"target": "raw_symbol", "kind": "prefix", "value": "Cijk_"}],
+      "tags": ["gemm", "tensile", "rocm"]
+    },
+    {
+      "kernel_id": "llama.flash_attention_tile",
+      "display_name": "Flash Attention Tile",
+      "family": "attention",
+      "descriptions": {
+        "zh-CN": "以分块方式融合注意力分数、Softmax 和 Value 聚合，减少显存读写，主要用于 Prefill。",
+        "en-US": "Tiles and fuses attention scores, softmax, and value aggregation to reduce memory traffic, primarily during prefill."
+      },
+      "symbol_matchers": [{"target": "base_symbol", "kind": "exact", "value": "flash_attn_tile"}],
+      "tags": ["attention", "flash_attention", "prefill"]
+    },
+    {
+      "kernel_id": "llama.flash_attention_vector",
+      "display_name": "Flash Attention Vector",
+      "family": "attention",
+      "descriptions": {
+        "zh-CN": "面向单 Token Decode 的向量化 Flash Attention 路径，读取 KV Cache 并生成注意力输出。",
+        "en-US": "A vectorized flash-attention path for single-token decode that reads the KV cache and produces attention output."
+      },
+      "symbol_matchers": [{"target": "base_symbol", "kind": "exact", "value": "flash_attn_ext_vec"}],
+      "tags": ["attention", "flash_attention", "decode", "kv_cache"]
+    },
+    {
+      "kernel_id": "llama.rms_norm",
+      "display_name": "RMSNorm",
+      "family": "normalization",
+      "descriptions": {
+        "zh-CN": "按均方根归一化隐藏状态，并可融合权重缩放，是 Transformer 层的标准归一化步骤。",
+        "en-US": "Normalizes hidden states by their root mean square and may fuse weight scaling in Transformer layers."
+      },
+      "symbol_matchers": [{"target": "base_symbol", "kind": "exact", "value": "rms_norm_f32"}],
+      "tags": ["normalization"]
+    },
+    {
+      "kernel_id": "llama.moe_topk",
+      "display_name": "MoE Top-K Routing",
+      "family": "moe_routing",
+      "descriptions": {
+        "zh-CN": "根据门控分数为每个 Token 选择 Top-K 专家，并生成后续专家计算所需的路由信息。",
+        "en-US": "Selects the top-k experts for each token from gating scores and produces routing metadata for expert computation."
+      },
+      "symbol_matchers": [{"target": "base_symbol", "kind": "exact", "value": "topk_moe_cuda"}],
+      "tags": ["moe", "routing", "top_k"]
+    },
+    {
+      "kernel_id": "llama.moe_expert_routing",
+      "display_name": "MoE Expert Indexing",
+      "family": "moe_routing",
+      "descriptions": {
+        "zh-CN": "整理专家索引和 Token 分组，为分组专家矩阵乘法准备输入布局。",
+        "en-US": "Organizes expert indices and token groups to prepare inputs for grouped expert matrix multiplication."
+      },
+      "symbol_matchers": [{"target": "base_symbol", "kind": "exact", "value": "mm_ids_helper"}],
+      "tags": ["moe", "routing", "indexing"]
+    },
+    {
+      "kernel_id": "llama.gated_delta_net",
+      "display_name": "Gated Delta Net",
+      "family": "recurrent_attention",
+      "descriptions": {
+        "zh-CN": "执行 Gated DeltaNet 状态更新，用于混合注意力架构中的递归状态计算。",
+        "en-US": "Updates Gated DeltaNet recurrent state in hybrid attention architectures."
+      },
+      "symbol_matchers": [{"target": "base_symbol", "kind": "exact", "value": "gated_delta_net_cuda"}],
+      "tags": ["gated_delta_net", "recurrent_state"]
+    },
+    {
+      "kernel_id": "llama.q8_1_quantization",
+      "display_name": "Q8_1 Quantization",
+      "family": "quantization",
+      "descriptions": {
+        "zh-CN": "把浮点激活临时量化为 Q8_1 布局，供量化矩阵乘法使用。",
+        "en-US": "Temporarily quantizes floating-point activations to Q8_1 layout for quantized matrix multiplication."
+      },
+      "symbol_matchers": [
+        {"target": "base_symbol", "kind": "exact", "value": "quantize_q8_1"},
+        {"target": "base_symbol", "kind": "exact", "value": "quantize_mmq_q8_1"}
+      ],
+      "tags": ["quantization", "q8_1"]
+    },
+    {
+      "kernel_id": "llama.q6_k_dequantization",
+      "display_name": "Q6_K Dequantization",
+      "family": "dequantization",
+      "descriptions": {
+        "zh-CN": "将 Q6_K 权重块解量化为计算所需的浮点或半精度表示。",
+        "en-US": "Dequantizes Q6_K weight blocks into floating-point or half-precision values for computation."
+      },
+      "symbol_matchers": [{"target": "base_symbol", "kind": "exact", "value": "dequantize_block_q6_K"}],
+      "tags": ["dequantization", "q6_k"]
+    },
+    {
+      "kernel_id": "llama.binary_multiply",
+      "display_name": "Binary Multiply",
+      "family": "elementwise",
+      "descriptions": {
+        "zh-CN": "对张量执行支持广播的逐元素乘法。",
+        "en-US": "Performs broadcast-capable element-wise multiplication between tensors."
+      },
+      "symbol_matchers": [{"target": "raw_symbol", "kind": "prefix", "value": "void k_bin_bcast<&(op_mul"}],
+      "tags": ["elementwise", "multiply", "broadcast"]
+    },
+    {
+      "kernel_id": "llama.binary_add",
+      "display_name": "Binary Add",
+      "family": "elementwise",
+      "descriptions": {
+        "zh-CN": "对张量执行支持广播的逐元素加法。",
+        "en-US": "Performs broadcast-capable element-wise addition between tensors."
+      },
+      "symbol_matchers": [{"target": "raw_symbol", "kind": "prefix", "value": "void k_bin_bcast<&(op_add"}],
+      "tags": ["elementwise", "add", "broadcast"]
+    },
+    {
+      "kernel_id": "llama.type_conversion",
+      "display_name": "Type Conversion",
+      "family": "data_movement",
+      "descriptions": {
+        "zh-CN": "在浮点、半精度或其他张量表示之间转换数据类型。",
+        "en-US": "Converts tensor values between floating-point, half-precision, or other representations."
+      },
+      "symbol_matchers": [{"target": "base_symbol", "kind": "exact", "value": "convert_unary"}],
+      "tags": ["conversion", "data_movement"]
+    },
+    {
+      "kernel_id": "llama.embedding_row_gather",
+      "display_name": "Embedding Row Gather",
+      "family": "embedding_lookup",
+      "descriptions": {
+        "zh-CN": "根据索引从权重矩阵读取指定行，常用于词嵌入或专家权重选择。",
+        "en-US": "Gathers indexed rows from a weight matrix for token embeddings or expert-weight selection."
+      },
+      "symbol_matchers": [{"target": "base_symbol", "kind": "exact", "value": "k_get_rows_float"}],
+      "tags": ["gather", "embedding", "indexing"]
+    },
+    {
+      "kernel_id": "llama.l2_norm",
+      "display_name": "L2 Norm",
+      "family": "normalization",
+      "descriptions": {
+        "zh-CN": "计算并应用向量 L2 归一化，使向量具有单位范数。",
+        "en-US": "Computes and applies L2 normalization so vectors have unit norm."
+      },
+      "symbol_matchers": [{"target": "base_symbol", "kind": "exact", "value": "l2_norm_f32"}],
+      "tags": ["normalization", "l2"]
+    }
+  ]
+}

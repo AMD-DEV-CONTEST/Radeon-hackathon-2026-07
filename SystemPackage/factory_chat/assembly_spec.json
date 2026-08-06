@@ -1,0 +1,103 @@
+{
+  "schema_version": "0.1",
+  "agent": {
+    "id": "factory_chat",
+    "name": "Factory Chat",
+    "description": "Built-in general-purpose Agent Package for FastAgentFactory.",
+    "version": "0.1.0"
+  },
+  "runtime": {
+    "pattern_id": "react_agent",
+    "compiled_pattern_id": null,
+    "user_config": {},
+    "agent_config": {
+      "agent_id": "factory_chat"
+    }
+  },
+  "graph_overrides": {
+    "node_wrappers": []
+  },
+  "bindings": {
+    "services": [],
+    "node_bindings": [
+      {
+        "binding_id": "answer_prompt",
+        "binding_type": "prompt",
+        "target": {
+          "node_id": "answer",
+          "impl": "cognitive.answer"
+        },
+        "payload": {
+          "prompt_id": "answer_prompt",
+          "template": "You are FastAgentFactory's general-purpose Agent. Reply in the language explicitly requested by the user. Otherwise, use the language of the user's latest substantive message. If that message does not establish a language, follow an established user language preference; if none exists, default to English. Complete ordinary work with available tools. Before substantially executing any non-trivial, multi-step, or specialized task, proactively decide whether an existing published Agent can own the whole task or a clearly bounded subtask. Unless the user explicitly asks you not to use sub-Agents, call agent_search whenever specialization may help or you are uncertain; do this before beginning the corresponding work and do not wait for the user to request delegation. Skip Agent discovery for casual conversation, simple explanations, one-step lookups, and small edits where delegation would add no practical value. If one suitable candidate can produce a bounded deliverable, use agent_delegate with explicit acceptance criteria. If the goal needs independent viewpoints, parallel specialties, or dependency-ordered deliverables, search each required specialty and use agent_team; choose discussion for parallel viewpoints and delivery for dependency-aware work. Agent discovery is a decision aid, not a requirement to delegate: execute the work yourself when no candidate is suitable or coordination overhead outweighs the benefit. Only when agent_search confirms that no existing Agent is suitable, use agent_manufacture to create one asynchronously. When the user asks to improve an existing published Agent, use agent_evolve; if its report says blocked, ask the user for the missing decision and then call agent_evolve respond with the same evolution_id and request_id. Delegated, manufacturing, and evolution work is asynchronous: after it starts, tell the user what is running and continue without polling repeatedly. Use background_tasks for an explicit user request to inspect current background work; do not repeatedly poll it because status updates arrive automatically. When structured reports return, inspect delivered artifacts in the current workspace, validate them against the acceptance criteria, request revision when necessary, and then report the integrated result to the user. Use available runtime tools only when clearly needed. When read reports a missing file or the path is uncertain, inspect the parent or nearby directory with ls before retrying read with the exact path.",
+          "variables": []
+        }
+      },
+      {
+        "binding_id": "answer_tool_access",
+        "binding_type": "tool_access",
+        "target": {
+          "node_id": "answer",
+          "impl": "cognitive.answer"
+        },
+        "payload": {
+          "allowed_tool_ids": [
+            "read",
+            "write",
+            "edit",
+            "glob",
+            "grep",
+            "ls",
+            "shell",
+            "shell_status",
+            "shell_stop",
+            "knowledge",
+            "scheduler",
+            "skillhub",
+            "agent_search",
+            "agent_manufacture",
+            "agent_delegate",
+            "agent_evolve",
+            "agent_team",
+            "background_tasks"
+          ],
+          "approval_policy": "standard"
+        }
+      },
+      {
+        "binding_id": "answer_model_operation",
+        "binding_type": "model_operation",
+        "target": {
+          "node_id": "answer",
+          "impl": "cognitive.answer"
+        },
+        "payload": {
+          "operation": "tool_bound_chat",
+          "model_role": "main",
+          "output_schema": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "write_target": {
+            "section": "context"
+          },
+          "max_attempts": 3,
+          "prompt_id": "answer_prompt"
+        }
+      }
+    ],
+    "hooks": []
+  },
+  "tools": [],
+  "output": {
+    "citations_required": false,
+    "format": "text"
+  },
+  "harness": [],
+  "metadata": {
+    "provenance": {
+      "source": "system_package",
+      "package_id": "factory_chat"
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "id": "analyze_us_equity_portfolio",
+  "description": "Analyzes explicitly provided U.S. equity holdings using Yahoo Finance adjusted history and the S&P 500 benchmark. It calculates weights, concentration, return, volatility, drawdown, beta, correlation, and user-specified market stress scenarios.",
+  "schema_error_guidance": "holdings must contain 1 to 20 unique U.S. equity tickers and consistently use either weight or shares; history_days must be from 60 through 500; stress_scenarios is optional.",
+  "entrypoint": "python:tools/analyze_us_equity_portfolio/tool.py:run",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "holdings": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 20,
+        "items": {
+          "type": "object",
+          "properties": {
+            "ticker": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9.-]{0,9}$"},
+            "weight": {"type": "number", "exclusiveMinimum": 0},
+            "shares": {"type": "number", "exclusiveMinimum": 0},
+            "cost_price": {"type": "number", "exclusiveMinimum": 0}
+          },
+          "required": ["ticker"],
+          "additionalProperties": false,
+          "oneOf": [
+            {"required": ["weight"], "not": {"required": ["shares"]}},
+            {"required": ["shares"], "not": {"required": ["weight"]}}
+          ]
+        }
+      },
+      "history_days": {"type": "integer", "minimum": 60, "maximum": 500, "default": 250},
+      "stress_scenarios": {
+        "type": "array",
+        "maxItems": 5,
+        "items": {"type": "number", "minimum": -50, "maximum": 50},
+        "description": "User-specified S&P 500 shock percentages, for example -10."
+      }
+    },
+    "required": ["holdings"],
+    "additionalProperties": false
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "status": {"type": "string", "enum": ["success", "partial", "error"]},
+      "observed_at": {"type": "string"},
+      "source": {"type": "string"},
+      "adjustment": {"type": "string"},
+      "benchmark": {"type": "string"},
+      "weight_basis": {"type": "string", "enum": ["provided_weights", "latest_market_value"]},
+      "portfolio": {"type": "object"},
+      "holdings": {"type": "array", "items": {"type": "object"}},
+      "highest_correlation": {"type": ["object", "null"]},
+      "stress_results": {"type": "array", "items": {"type": "object"}},
+      "warnings": {"type": "array", "items": {"type": "string"}},
+      "message": {"type": "string"}
+    },
+    "required": ["status", "observed_at", "source", "adjustment", "benchmark", "weight_basis", "portfolio", "holdings", "highest_correlation", "stress_results", "warnings", "message"],
+    "additionalProperties": false
+  },
+  "resources": {},
+  "risk_level": "low",
+  "risk_evaluator": {"hard": null, "llm": null, "llm_mode": "disabled"},
+  "concurrent": false,
+  "permission_scope": "package",
+  "permission_tags": ["read_only"],
+  "output_compression": {"action_argument": "action", "actions": {}},
+  "output_projection": "compress"
+}

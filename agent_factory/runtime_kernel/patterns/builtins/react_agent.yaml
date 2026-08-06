@@ -1,0 +1,86 @@
+pattern_id: react_agent
+kind: main
+embeddable: false
+version: 1
+name: ReAct Agent
+description: Standard conversational tool-using agent.
+metadata:
+  summary: Top-level conversational agent pattern for dynamic reasoning and tool use.
+  use_when:
+    - The Agent needs to reason, call tools, observe results, and continue iterating.
+    - User tasks are open-ended or may require different tool paths per request.
+    - The Agent benefits from a compact ReAct loop with tool observations folded back into the model.
+  avoid_when:
+    - The work is a rigid workflow with deterministic stages and little dynamic tool choice.
+  selection_notes:
+    - This is the default choice for conversational agents with dynamic ReAct behavior.
+    - Missing information should be requested by the answer node in natural language.
+  tags:
+    - react
+    - tool-use
+    - conversational
+    - main
+entry_node: ingress
+nodes:
+  - id: ingress
+    type: reserved
+    impl: ingress
+  - id: answer
+    type: cognitive
+    impl: cognitive.answer
+  - id: tool_exec
+    type: operational
+    impl: operational.tool_call
+  - id: commit
+    type: terminal
+    impl: terminal.commit
+  - id: finalize
+    type: reserved
+    impl: finalize
+edges:
+  - from: ingress
+    to: answer
+    when: always
+  - from: answer
+    to: tool_exec
+    when: model.requests_tool
+  - from: answer
+    to: commit
+    when: model.ready_to_answer
+  - from: tool_exec
+    to: answer
+    when: tool.completed
+  - from: tool_exec
+    to: answer
+    when: tool.failed
+  - from: tool_exec
+    to: finalize
+    when: tool.interrupted
+  - from: tool_exec
+    to: finalize
+    when: policy.blocked
+  - from: commit
+    to: finalize
+    when: always
+interrupt_points:
+  - tool_exec
+termination:
+  success_nodes:
+    - finalize
+  failure_nodes: []
+constraints:
+  allowed_node_types:
+    - reserved
+    - cognitive
+    - operational
+    - terminal
+    - sub_graph
+  required_capabilities: []
+input_contract:
+  readable_sections: []
+  writable_sections: []
+output_contract:
+  readable_sections: []
+  writable_sections: []
+exit_routes: []
+state_mode: shared

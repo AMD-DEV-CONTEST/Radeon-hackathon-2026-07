@@ -1,0 +1,136 @@
+pattern_id: plan_and_execute
+kind: main
+embeddable: false
+version: 1
+name: Plan and Execute
+description: Structured planning loop with dynamic plan state managed through runtime_plan.
+metadata:
+  summary: Top-level agent pattern for tasks that benefit from a dynamic plan before and during execution.
+  use_when:
+    - The Agent should create a structured plan before acting.
+    - The task may require multiple steps, tool calls, and plan updates.
+    - The Agent should summarize completed plan evidence at the end.
+  avoid_when:
+    - A direct ReAct answer/tool loop is sufficient.
+    - The business process is a fixed workflow with explicit business nodes.
+  selection_notes:
+    - planner creates and inspects dynamic plan state using runtime_plan.
+    - executor runs current steps, calls business tools, and updates plan state using runtime_plan.
+    - final_answer delivers the completed result and may use delivery tools, but it must not mutate runtime_plan.
+  tags:
+    - plan
+    - execute
+    - tool-use
+    - main
+entry_node: ingress
+nodes:
+  - id: ingress
+    type: reserved
+    impl: ingress
+  - id: intent_gate
+    type: cognitive
+    impl: cognitive.intent_gate
+  - id: planner
+    type: cognitive
+    impl: cognitive.answer
+  - id: executor
+    type: cognitive
+    impl: cognitive.answer
+  - id: casual_react
+    type: cognitive
+    impl: cognitive.answer
+  - id: tool_exec
+    type: operational
+    impl: operational.tool_call
+  - id: final_answer
+    type: cognitive
+    impl: cognitive.answer
+  - id: commit
+    type: terminal
+    impl: terminal.commit
+  - id: finalize
+    type: reserved
+    impl: finalize
+edges:
+  - from: ingress
+    to: intent_gate
+    when: always
+  - from: intent_gate
+    to: planner
+    when: intent.start_workflow
+  - from: intent_gate
+    to: casual_react
+    when: intent.casual
+  - from: casual_react
+    to: tool_exec
+    when: model.requests_tool
+  - from: casual_react
+    to: finalize
+    when: model.ready_to_answer
+  - from: planner
+    to: tool_exec
+    when: model.requests_tool
+  - from: planner
+    to: executor
+    when: model.ready_to_answer
+  - from: planner
+    to: commit
+    when: subgraph.need_more_input
+  - from: executor
+    to: tool_exec
+    when: model.requests_tool
+  - from: executor
+    to: final_answer
+    when: model.ready_to_answer
+  - from: tool_exec
+    to: planner
+    when: tool.return.planner
+  - from: tool_exec
+    to: executor
+    when: tool.return.executor
+  - from: tool_exec
+    to: final_answer
+    when: tool.return.final_answer
+  - from: tool_exec
+    to: casual_react
+    when: tool.completed
+  - from: tool_exec
+    to: casual_react
+    when: tool.failed
+  - from: tool_exec
+    to: finalize
+    when: tool.interrupted
+  - from: tool_exec
+    to: finalize
+    when: policy.blocked
+  - from: final_answer
+    to: tool_exec
+    when: model.requests_tool
+  - from: final_answer
+    to: commit
+    when: model.ready_to_answer
+  - from: commit
+    to: finalize
+    when: always
+interrupt_points:
+  - tool_exec
+termination:
+  success_nodes:
+    - finalize
+  failure_nodes: []
+constraints:
+  allowed_node_types:
+    - reserved
+    - cognitive
+    - operational
+    - terminal
+    - sub_graph
+  required_capabilities: []
+input_contract:
+  readable_sections: []
+  writable_sections: []
+output_contract:
+  readable_sections: []
+  writable_sections: []
+exit_routes: []
+state_mode: shared

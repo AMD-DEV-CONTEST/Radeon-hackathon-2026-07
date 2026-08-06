@@ -1,0 +1,233 @@
+{
+  "$defs": {
+    "SystemRepairIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "issue_id": {
+          "title": "Issue Id",
+          "type": "string"
+        },
+        "where": {
+          "title": "Where",
+          "type": "string"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "category": {
+          "default": "schema_error",
+          "enum": [
+            "schema_error",
+            "package_shape_error",
+            "runtime_contract_error",
+            "assembly_compile_error",
+            "tool_binding_error",
+            "model_behavior_error",
+            "resource_missing",
+            "resource_unavailable",
+            "validator_runtime_defect"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "target_files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Target Files",
+          "type": "array"
+        },
+        "repair_hint": {
+          "default": "",
+          "title": "Repair Hint",
+          "type": "string"
+        },
+        "resolved": {
+          "default": false,
+          "title": "Resolved",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "issue_id",
+        "where",
+        "summary"
+      ],
+      "title": "SystemRepairIssue",
+      "type": "object"
+    },
+    "SystemStage": {
+      "additionalProperties": false,
+      "properties": {
+        "system_id": {
+          "title": "System Id",
+          "type": "string"
+        },
+        "stage_order": {
+          "title": "Stage Order",
+          "type": "integer"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/SystemStageStatus",
+          "default": "pending"
+        },
+        "focus_files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Focus Files",
+          "type": "array"
+        },
+        "suggested_skills": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Suggested Skills",
+          "type": "array"
+        },
+        "validation_focus": {
+          "default": "workspace_hygiene",
+          "title": "Validation Focus",
+          "type": "string"
+        },
+        "focus_summary": {
+          "default": "",
+          "title": "Focus Summary",
+          "type": "string"
+        },
+        "repair_history": {
+          "items": {
+            "$ref": "#/$defs/SystemRepairIssue"
+          },
+          "title": "Repair History",
+          "type": "array"
+        },
+        "handoff_outputs": {
+          "$ref": "#/$defs/SystemStageHandoff"
+        },
+        "validation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SystemStageValidation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "system_id",
+        "stage_order",
+        "title"
+      ],
+      "title": "SystemStage",
+      "type": "object"
+    },
+    "SystemStageHandoff": {
+      "additionalProperties": false,
+      "properties": {
+        "outputs": {
+          "additionalProperties": true,
+          "title": "Outputs",
+          "type": "object"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "title": "SystemStageHandoff",
+      "type": "object"
+    },
+    "SystemStageStatus": {
+      "enum": [
+        "pending",
+        "in_progress",
+        "validating",
+        "done",
+        "failed_needs_repair",
+        "blocked_waiting_user"
+      ],
+      "title": "SystemStageStatus",
+      "type": "string"
+    },
+    "SystemStageValidation": {
+      "additionalProperties": false,
+      "properties": {
+        "scope": {
+          "title": "Scope",
+          "type": "string"
+        },
+        "status": {
+          "default": "not_run",
+          "enum": [
+            "not_run",
+            "passed",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "summary": {
+          "default": "",
+          "title": "Summary",
+          "type": "string"
+        },
+        "issue_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Issue Ids",
+          "type": "array"
+        },
+        "updated_at": {
+          "default": "",
+          "title": "Updated At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scope"
+      ],
+      "title": "SystemStageValidation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": "system_manufacturing_state.v0",
+      "default": "system_manufacturing_state.v0",
+      "title": "Version",
+      "type": "string"
+    },
+    "stages": {
+      "items": {
+        "$ref": "#/$defs/SystemStage"
+      },
+      "title": "Stages",
+      "type": "array"
+    },
+    "active_focus_id": {
+      "default": "",
+      "title": "Active Focus Id",
+      "type": "string"
+    },
+    "updated_at": {
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "title": "Manufacturing control state",
+  "type": "object"
+}

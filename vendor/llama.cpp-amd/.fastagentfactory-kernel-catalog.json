@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "implementation": "amd",
+  "kernels": [
+    {
+      "kernel_id": "amd.mmq_rdna3",
+      "display_name": "AMD RDNA3 Quantized MatMul",
+      "family": "matrix_multiplication",
+      "descriptions": {
+        "zh-CN": "面向 RDNA3 的量化矩阵乘配置，按物理 Wave 宽度约束输出列 Tile，降低大 Tile 的寄存器与 LDS 压力。",
+        "en-US": "An RDNA3 quantized matrix multiplication configuration that bounds output-column tiles by physical wave width to reduce register and LDS pressure from oversized tiles."
+      },
+      "symbol_matchers": [{"target": "raw_symbol", "kind": "contains", "value": "mul_mat_q"}],
+      "tags": ["amd", "hip", "rdna3", "mmq", "prefill", "quantized"]
+    },
+    {
+      "kernel_id": "amd.q8_0_q8_1_mmvq_native_rdna3.wave32",
+      "display_name": "AMD Native Q8_0 × Q8_1 MatVec Wave32",
+      "family": "matrix_multiplication",
+      "descriptions": {
+        "zh-CN": "面向 AMD RDNA3 Wave32 的原生 HIP Q8_0 × Q8_1 MatVec Kernel；一个 Wave 计算一个输出行，以 8 Lane 子组覆盖独立量化块，并让四个 Wave 共享 LDS 激活。",
+        "en-US": "A native HIP Q8_0 by Q8_1 MatVec kernel for AMD RDNA3 Wave32 where one wave computes one output row, eight-lane subgroups cover independent quantization blocks, and four waves share activations in LDS."
+      },
+      "symbol_matchers": [
+        {
+          "target": "base_symbol",
+          "kind": "exact",
+          "value": "mul_mat_vec_q8_0_wave32"
+        }
+      ],
+      "tags": [
+        "amd",
+        "hip",
+        "rdna3",
+        "wave32",
+        "q8_0",
+        "q8_1",
+        "lds",
+        "decode"
+      ]
+    },
+    {
+      "kernel_id": "amd.q8_0_q8_1_mmvq_native_rdna3.wave64",
+      "display_name": "AMD Native Q8_0 × Q8_1 MatVec Wave64",
+      "family": "matrix_multiplication",
+      "descriptions": {
+        "zh-CN": "面向 AMD RDNA3 Wave64 的原生 HIP Q8_0 × Q8_1 MatVec Kernel；每个物理 Wave 以两个独立 32-Lane 输出组同时计算两行，保持与 Wave32 相同的累加顺序。",
+        "en-US": "A native HIP Q8_0 by Q8_1 MatVec kernel for AMD RDNA3 Wave64 where each physical wave computes two rows through independent 32-lane output groups while preserving Wave32 accumulation order."
+      },
+      "symbol_matchers": [
+        {
+          "target": "base_symbol",
+          "kind": "exact",
+          "value": "mul_mat_vec_q8_0_wave64"
+        }
+      ],
+      "tags": [
+        "amd",
+        "hip",
+        "rdna3",
+        "wave64",
+        "q8_0",
+        "q8_1",
+        "lds",
+        "decode"
+      ]
+    },
+    {
+      "kernel_id": "amd.q6_k_q8_1_mmvq_native_rdna3",
+      "display_name": "AMD Native Q6_K × Q8_1 MatVec",
+      "family": "matrix_multiplication",
+      "descriptions": {
+        "zh-CN": "面向 AMD RDNA3 Wave32 的原生 HIP Q6_K × Q8_1 MatVec Kernel；每个 Wave 计算一个输出行，四个 Wave 共享 LDS 中的激活，并用双累加链隐藏点积依赖延迟。",
+        "en-US": "A native HIP Q6_K by Q8_1 MatVec kernel for AMD RDNA3 Wave32 where each wave computes one output row, four waves share activations in LDS, and dual accumulation chains hide dot-product dependency latency."
+      },
+      "symbol_matchers": [
+        {
+          "target": "raw_symbol",
+          "kind": "prefix",
+          "value": "void fastagentfactory::amd_kernels::(anonymous namespace)::mul_mat_vec_q"
+        }
+      ],
+      "tags": ["amd", "hip", "rdna3", "wave32", "q6_k", "q8_1", "lds", "dual_accumulator", "decode"]
+    },
+    {
+      "kernel_id": "amd.residual_rms_norm_f32",
+      "display_name": "AMD Residual RMSNorm",
+      "family": "normalization",
+      "descriptions": {
+        "zh-CN": "面向 AMD RDNA3 Wave32 的向量化 HIP Kernel；在寄存器中保留残差并融合残差加法、RMSNorm 与权重缩放。",
+        "en-US": "A vectorized HIP kernel for AMD RDNA3 Wave32 that retains residuals in registers and fuses residual addition, RMS normalization, and weight scaling."
+      },
+      "symbol_matchers": [
+        {
+          "target": "base_symbol",
+          "kind": "prefix",
+          "value": "amd_residual_rms_norm_f32_vector_kernel"
+        }
+      ],
+      "tags": ["amd", "hip", "rdna3", "wave32", "float4", "residual", "rms_norm", "fusion", "decode"]
+    },
+    {
+      "kernel_id": "amd.q6_k_q8_1_mmvq",
+      "display_name": "AMD Q6_K × Q8_1 MatVec",
+      "family": "matrix_multiplication",
+      "descriptions": {
+        "zh-CN": "面向 AMD RDNA3 的低 VGPR Q6_K × Q8_1 点积路径；保留 Official MMVQ 调度，使用两条 Lane 本地混合符号 v_dot4 完成点积与精确零点修正，并采用连续标度读取。",
+        "en-US": "A low-VGPR Q6_K by Q8_1 dot-product path for AMD RDNA3 that preserves the Official MMVQ schedule, uses two lane-local mixed-sign v_dot4 operations for the dot product and exact zero-point correction, and keeps scale loads contiguous."
+      },
+      "symbol_matchers": [
+        {
+          "target": "raw_symbol",
+          "kind": "prefix",
+          "value": "void mul_mat_vec_q<(ggml_type)14, 1,"
+        }
+      ],
+      "tags": ["amd", "hip", "rdna3", "wave32", "q6_k", "q8_1", "v_dot4", "low_vgpr", "decode"]
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "purpose": "Configure the selected built-in runtime pattern through the deterministic authoring tool.",
+  "react_agent": {
+    "tool": "create_agent_authoring",
+    "arguments": {
+      "action": "configure_pattern_assembly",
+      "pattern_id": "react_agent",
+      "prompts": {
+        "answer": "Answer the user using the package knowledge, runtime context, and approved tools. Ask a concise follow-up only when required information is missing."
+      },
+      "allowed_tool_ids": [
+        "package_action"
+      ]
+    },
+    "writes": [
+      "agent_package.json",
+      "assembly_spec.json"
+    ]
+  },
+  "plan_and_execute": {
+    "tool": "create_agent_authoring",
+    "arguments": {
+      "action": "configure_pattern_assembly",
+      "pattern_id": "plan_and_execute",
+      "prompts": {
+        "planner": "Create and maintain an outcome-oriented plan with runtime_plan before execution. Plan steps must describe analysis, verification, construction, or delivery objectives rather than raw tool calls. Put useful tool ids in tool_hints and define acceptance_criteria for each step. Do not call business tools from the planner.",
+        "executor": "Execute the current plan step with package/domain tools first, then update runtime_plan with the result. Use glob, ls, and read for workspace inspection. If read reports a missing file or the path is uncertain, inspect the parent or nearby directory with ls before retrying read with the exact path. Use shell only when available package/runtime tools cannot complete the step, and include fallback_reason when calling it. Use write or edit normally for workspace deliverables.",
+        "casual": "Handle non-main-workflow requests with normal ReAct tool use. Inspect workspace context with tools when needed. If read reports a missing file or the path is uncertain, inspect the parent or nearby directory with ls before retrying read with the exact path. Ask only when discovery cannot identify a safe target, and do not update runtime_plan.",
+        "final_answer": "Summarize the completed plan, use delivery tools if the final artifact still needs generation or verification, and deliver the final user-facing answer."
+      },
+      "activation": {
+        "workflow_goal": "complete the user's multi-step workflow",
+        "start_when": "the user supplies the concrete input needed to begin the workflow",
+        "ask_when_missing": "Please provide the input needed to start this workflow."
+      },
+      "allowed_tool_ids": [
+        "package_action"
+      ]
+    },
+    "writes": [
+      "agent_package.json",
+      "assembly_spec.json"
+    ]
+  },
+  "rules": [
+    "Do not hand-write node_bindings for built-in patterns during normal production.",
+    "Use package tool ids only after the tool exists or will be created through create_agent_authoring.",
+    "Do not write concrete plan steps into AgentPackage files; plan state is runtime state managed by runtime_plan."
+  ]
+}

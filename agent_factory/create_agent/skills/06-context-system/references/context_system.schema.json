@@ -1,0 +1,81 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "type": {"const": "context"},
+    "version": {"const": "context_contract.v1"},
+    "enabled": {"type": "boolean", "default": true},
+    "config": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {"const": "context_system.v1"},
+        "enabled": {"type": "boolean", "default": true},
+        "context_window_tokens": {
+          "anyOf": [
+            {"type": "integer", "minimum": 1000},
+            {"type": "null"}
+          ],
+          "default": null
+        },
+        "default_policy": {"$ref": "#/$defs/context_policy"}
+      },
+      "required": ["version", "enabled", "default_policy"]
+    }
+  },
+  "required": ["type", "version", "enabled", "config"],
+  "$defs": {
+    "context_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {"const": "context_policy.v1"},
+        "compression": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "trigger_token_threshold": {
+              "anyOf": [
+                {"type": "integer", "minimum": 1000},
+                {"type": "null"}
+              ]
+            },
+            "keep_recent_messages": {"type": "integer", "minimum": 2, "maximum": 128}
+          },
+          "required": ["enabled", "trigger_token_threshold", "keep_recent_messages"]
+        },
+        "cross_session_memory": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "write_enabled": {"type": "boolean"},
+            "injection_enabled": {"type": "boolean"},
+            "write_interval_turns": {"type": "integer", "minimum": 1, "maximum": 1000},
+            "max_candidates": {"type": "integer", "minimum": 1, "maximum": 128},
+            "min_score": {"type": "number", "minimum": 0, "maximum": 1},
+            "max_items": {"type": "integer", "minimum": 1, "maximum": 64},
+            "max_tokens": {"type": "integer", "minimum": 100, "maximum": 32000},
+            "per_kind_limits": {
+              "type": "object",
+              "additionalProperties": {"type": "integer", "minimum": 0}
+            }
+          },
+          "required": [
+            "enabled",
+            "write_enabled",
+            "injection_enabled",
+            "write_interval_turns",
+            "max_candidates",
+            "min_score",
+            "max_items",
+            "max_tokens",
+            "per_kind_limits"
+          ]
+        }
+      },
+      "required": ["version", "compression", "cross_session_memory"]
+    }
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "$defs": {
+    "SchedulerContractConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "store_backend": {
+          "const": "sqlite",
+          "default": "sqlite",
+          "title": "Store Backend",
+          "type": "string"
+        },
+        "store_path": {
+          "default": ".agent_runtime/scheduler/scheduler.sqlite",
+          "title": "Store Path",
+          "type": "string"
+        },
+        "timezone": {
+          "default": "Asia/Shanghai",
+          "title": "Timezone",
+          "type": "string"
+        },
+        "default_concurrency_policy": {
+          "default": "skip",
+          "enum": [
+            "skip",
+            "queue",
+            "replace"
+          ],
+          "title": "Default Concurrency Policy",
+          "type": "string"
+        },
+        "default_timeout_seconds": {
+          "default": 900,
+          "minimum": 1,
+          "title": "Default Timeout Seconds",
+          "type": "integer"
+        },
+        "unattended_policy": {
+          "default": "deny_if_approval_required",
+          "enum": [
+            "deny_if_approval_required",
+            "pause_and_wait_for_user",
+            "allow_preapproved_only"
+          ],
+          "title": "Unattended Policy",
+          "type": "string"
+        },
+        "default_failure_policy": {
+          "$ref": "#/$defs/SchedulerFailurePolicy"
+        }
+      },
+      "title": "SchedulerContractConfig",
+      "type": "object"
+    },
+    "SchedulerFailurePolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "max_consecutive_failures": {
+          "default": 3,
+          "minimum": 1,
+          "title": "Max Consecutive Failures",
+          "type": "integer"
+        },
+        "action": {
+          "const": "pause",
+          "default": "pause",
+          "title": "Action",
+          "type": "string"
+        }
+      },
+      "title": "SchedulerFailurePolicy",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "const": "scheduler",
+      "default": "scheduler",
+      "title": "Type",
+      "type": "string"
+    },
+    "version": {
+      "const": "scheduler_contract.v0",
+      "default": "scheduler_contract.v0",
+      "title": "Version",
+      "type": "string"
+    },
+    "enabled": {
+      "default": true,
+      "title": "Enabled",
+      "type": "boolean"
+    },
+    "config": {
+      "$ref": "#/$defs/SchedulerContractConfig"
+    }
+  },
+  "title": "Scheduler contract",
+  "type": "object"
+}

@@ -1,0 +1,223 @@
+{
+  "schema_version": "0.1",
+  "agent": {
+    "id": "portfolio_risk_guard",
+    "name": "U.S. Equity Portfolio Risk Guard",
+    "description": "Analyzes user-provided U.S. equity holdings for concentration, volatility, drawdown, correlation, beta, and explicit stress scenarios.",
+    "version": "0.1.1"
+  },
+  "runtime": {
+    "pattern_id": "plan_and_execute",
+    "compiled_pattern_id": null,
+    "user_config": {},
+    "agent_config": {
+      "agent_id": "portfolio_risk_guard",
+      "activation": {
+        "workflow_goal": "Produce an auditable risk analysis from explicitly provided U.S. equity holdings and risk requirements.",
+        "start_when": "The user asks to analyze U.S. equity holdings, uploads a portfolio file, or requests a portfolio stress test.",
+        "ask_when_missing": "Ask when tickers and a consistent weight-or-shares basis are missing, or when the user requests threshold-based judgments without thresholds."
+      }
+    }
+  },
+  "graph_overrides": {"node_wrappers": []},
+  "bindings": {
+    "services": [],
+    "node_bindings": [
+      {
+        "binding_id": "planner_prompt",
+        "binding_type": "prompt",
+        "target": {"node_id": "planner", "impl": "cognitive.answer"},
+        "payload": {
+          "prompt_id": "planner_prompt",
+          "template": "You plan U.S. equity portfolio risk analysis. Use only runtime_plan to define steps for confirming holdings and measurement basis, reading required files, calculating metrics, checking user risk rules, running explicitly requested S&P 500 stress scenarios, and producing the report. Do not read files or call analysis tools. Cover U.S. equity tickers only. If holdings do not consistently provide weight or shares, require clarification and never guess.",
+          "variables": []
+        }
+      },
+      {
+        "binding_id": "planner_tool_access",
+        "binding_type": "tool_access",
+        "target": {"node_id": "planner", "impl": "cognitive.answer"},
+        "payload": {"allowed_tool_ids": ["runtime_plan"], "approval_policy": "allow_all"}
+      },
+      {
+        "binding_id": "planner_model_operation",
+        "binding_type": "model_operation",
+        "target": {"node_id": "planner", "impl": "cognitive.answer"},
+        "payload": {
+          "operation": "tool_bound_chat",
+          "model_role": "main",
+          "output_schema": {"type": "object", "additionalProperties": true},
+          "write_target": {"section": "context"},
+          "max_attempts": 3,
+          "prompt_id": "planner_prompt"
+        }
+      },
+      {
+        "binding_id": "executor_prompt",
+        "binding_type": "prompt",
+        "target": {"node_id": "executor", "impl": "cognitive.answer"},
+        "payload": {
+          "prompt_id": "executor_prompt",
+          "template": "You execute U.S. equity portfolio risk analysis and must follow the current runtime_plan step. At the first substantive step, load skill(action='load', name='us-equity-portfolio-risk-analysis', current_system='portfolio_risk_guard', reason='Follow the U.S. equity portfolio risk workflow'). Confirm shared paths with ls/glob, read portfolio files with read, then pass structured holdings to analyze_us_equity_portfolio; never pass a file path as holdings. All positions must consistently use weight or shares. Use the available web-search MCP only for public context or cross-checking and distinguish it from structured market data. When internal risk policy is required, search knowledge and cite matches. Without user-provided thresholds, report raw metrics and do not invent risk labels. Run only explicitly supplied stress_scenarios. Use workspace file tools for deliverables and scheduler only for requested future reviews. Do not connect to brokers, trade, or promise returns.",
+          "variables": []
+        }
+      },
+      {
+        "binding_id": "executor_tool_access",
+        "binding_type": "tool_access",
+        "target": {"node_id": "executor", "impl": "cognitive.answer"},
+        "payload": {
+          "allowed_tool_ids": ["runtime_plan", "read", "write", "edit", "glob", "grep", "ls", "shell", "shell_status", "shell_stop", "skill", "knowledge", "scheduler", "skillhub", "analyze_us_equity_portfolio"],
+          "approval_policy": "allow_all"
+        }
+      },
+      {
+        "binding_id": "executor_model_operation",
+        "binding_type": "model_operation",
+        "target": {"node_id": "executor", "impl": "cognitive.answer"},
+        "payload": {
+          "operation": "tool_bound_chat",
+          "model_role": "main",
+          "output_schema": {"type": "object", "additionalProperties": true},
+          "write_target": {"section": "context"},
+          "max_attempts": 3,
+          "prompt_id": "executor_prompt"
+        }
+      },
+      {
+        "binding_id": "casual_react_prompt",
+        "binding_type": "prompt",
+        "target": {"node_id": "casual_react", "impl": "cognitive.answer"},
+        "payload": {
+          "prompt_id": "casual_react_prompt",
+          "template": "You are a U.S. equity portfolio risk guard. Answer brief clarifications directly, but call analyze_us_equity_portfolio for specific portfolio metrics. Do not assign risk categories without user thresholds, cover non-U.S. instruments, or execute trades.",
+          "variables": []
+        }
+      },
+      {
+        "binding_id": "casual_react_tool_access",
+        "binding_type": "tool_access",
+        "target": {"node_id": "casual_react", "impl": "cognitive.answer"},
+        "payload": {"allowed_tool_ids": ["read", "write", "edit", "glob", "grep", "ls", "shell", "shell_status", "shell_stop", "skill", "knowledge", "scheduler", "skillhub", "analyze_us_equity_portfolio"], "approval_policy": "allow_all"}
+      },
+      {
+        "binding_id": "casual_react_model_operation",
+        "binding_type": "model_operation",
+        "target": {"node_id": "casual_react", "impl": "cognitive.answer"},
+        "payload": {
+          "operation": "tool_bound_chat",
+          "model_role": "main",
+          "output_schema": {"type": "object", "additionalProperties": true},
+          "write_target": {"section": "context"},
+          "max_attempts": 3,
+          "prompt_id": "casual_react_prompt"
+        }
+      },
+      {
+        "binding_id": "final_answer_prompt",
+        "binding_type": "prompt",
+        "target": {"node_id": "final_answer", "impl": "cognitive.answer"},
+        "payload": {
+          "prompt_id": "final_answer_prompt",
+          "template": "Synthesize completed steps into a U.S. equity portfolio risk report covering input basis, timestamps and sources, weights, concentration, portfolio return and volatility, maximum drawdown, S&P 500 beta, position metrics, highest-correlation pair, user-specified stress scenarios, cited policy material, and data limitations. Apply thresholds only when supplied by the user, preserve every warning, and never issue deterministic trade instructions.",
+          "variables": []
+        }
+      },
+      {
+        "binding_id": "final_answer_tool_access",
+        "binding_type": "tool_access",
+        "target": {"node_id": "final_answer", "impl": "cognitive.answer"},
+        "payload": {"allowed_tool_ids": ["read", "write", "edit", "glob", "grep", "ls", "shell", "shell_status", "shell_stop", "skill", "knowledge", "scheduler", "skillhub", "analyze_us_equity_portfolio"], "approval_policy": "allow_all"}
+      },
+      {
+        "binding_id": "final_answer_model_operation",
+        "binding_type": "model_operation",
+        "target": {"node_id": "final_answer", "impl": "cognitive.answer"},
+        "payload": {
+          "operation": "tool_bound_chat",
+          "model_role": "main",
+          "output_schema": {"type": "object", "additionalProperties": true},
+          "write_target": {"section": "context"},
+          "max_attempts": 3,
+          "prompt_id": "final_answer_prompt"
+        }
+      }
+    ],
+    "hooks": []
+  },
+  "tools": [
+    {
+      "id": "analyze_us_equity_portfolio",
+      "description": "Analyzes explicitly provided U.S. equity holdings using Yahoo Finance adjusted history and the S&P 500 benchmark. It calculates weights, concentration, return, volatility, drawdown, beta, correlation, and user-specified market stress scenarios.",
+      "schema_error_guidance": "holdings must contain 1 to 20 unique U.S. equity tickers and consistently use either weight or shares; history_days must be from 60 through 500; stress_scenarios is optional.",
+      "entrypoint": "python:tools/analyze_us_equity_portfolio/tool.py:run",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "holdings": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 20,
+            "items": {
+              "type": "object",
+              "properties": {
+                "ticker": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9.-]{0,9}$"},
+                "weight": {"type": "number", "exclusiveMinimum": 0},
+                "shares": {"type": "number", "exclusiveMinimum": 0},
+                "cost_price": {"type": "number", "exclusiveMinimum": 0}
+              },
+              "required": ["ticker"],
+              "additionalProperties": false,
+              "oneOf": [
+                {"required": ["weight"], "not": {"required": ["shares"]}},
+                {"required": ["shares"], "not": {"required": ["weight"]}}
+              ]
+            }
+          },
+          "history_days": {"type": "integer", "minimum": 60, "maximum": 500, "default": 250},
+          "stress_scenarios": {
+            "type": "array",
+            "maxItems": 5,
+            "items": {"type": "number", "minimum": -50, "maximum": 50},
+            "description": "User-specified S&P 500 shock percentages, for example -10."
+          }
+        },
+        "required": ["holdings"],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "status": {"type": "string", "enum": ["success", "partial", "error"]},
+          "observed_at": {"type": "string"},
+          "source": {"type": "string"},
+          "adjustment": {"type": "string"},
+          "benchmark": {"type": "string"},
+          "weight_basis": {"type": "string", "enum": ["provided_weights", "latest_market_value"]},
+          "portfolio": {"type": "object"},
+          "holdings": {"type": "array", "items": {"type": "object"}},
+          "highest_correlation": {"type": ["object", "null"]},
+          "stress_results": {"type": "array", "items": {"type": "object"}},
+          "warnings": {"type": "array", "items": {"type": "string"}},
+          "message": {"type": "string"}
+        },
+        "required": ["status", "observed_at", "source", "adjustment", "benchmark", "weight_basis", "portfolio", "holdings", "highest_correlation", "stress_results", "warnings", "message"],
+        "additionalProperties": false
+      },
+      "resources": {},
+      "risk_level": "low",
+      "risk_evaluator": {"hard": null, "llm": null, "llm_mode": "disabled"},
+      "concurrent": false,
+      "permission_scope": "package",
+      "permission_tags": ["read_only"],
+      "output_compression": {"action_argument": "action", "actions": {}},
+      "output_projection": "compress"
+    }
+  ],
+  "output": {"citations_required": false, "format": "markdown"},
+  "harness": [],
+  "metadata": {
+    "provenance": {"source": "system_package", "package_id": "portfolio_risk_guard"},
+    "scope": "us_equity_only"
+  }
+}

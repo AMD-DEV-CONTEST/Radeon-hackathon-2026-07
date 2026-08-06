@@ -1,0 +1,111 @@
+{
+  "type": "object",
+  "title": "Resources contract and resource facts",
+  "description": "System resource map. Each property is the schema for the named package file.",
+  "additionalProperties": false,
+  "properties": {
+    "contracts/resources.json": {
+      "$defs": {
+        "ResourceDescriptor": {
+          "additionalProperties": false,
+          "properties": {
+            "resource_id": {
+              "title": "Resource Id",
+              "type": "string"
+            },
+            "description": {
+              "default": "",
+              "title": "Description",
+              "type": "string"
+            },
+            "required": {
+              "default": true,
+              "title": "Required",
+              "type": "boolean"
+            },
+            "value_schema": {
+              "additionalProperties": true,
+              "title": "Value Schema",
+              "type": "object"
+            },
+            "default_value": {
+              "title": "Default Value"
+            },
+            "secret_fields": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Secret Fields",
+              "type": "array"
+            },
+            "used_by": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Used By",
+              "type": "array"
+            },
+            "sandbox_access_expectation": {
+              "default": "",
+              "title": "Sandbox Access Expectation",
+              "type": "string"
+            }
+          },
+          "required": [
+            "resource_id"
+          ],
+          "title": "ResourceDescriptor",
+          "type": "object"
+        },
+        "ResourcesContractConfig": {
+          "additionalProperties": false,
+          "properties": {
+            "resource_descriptors": {
+              "items": {
+                "$ref": "#/$defs/ResourceDescriptor"
+              },
+              "title": "Resource Descriptors",
+              "type": "array"
+            }
+          },
+          "title": "ResourcesContractConfig",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "resources",
+          "default": "resources",
+          "title": "Type",
+          "type": "string"
+        },
+        "version": {
+          "const": "resources_contract.v0",
+          "default": "resources_contract.v0",
+          "title": "Version",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "config": {
+          "$ref": "#/$defs/ResourcesContractConfig"
+        }
+      },
+      "title": "contracts/resources.json",
+      "type": "object"
+    },
+    ".factory/resources.json": {
+      "type": "object",
+      "title": ".factory/resources.json",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "contracts/resources.json",
+    ".factory/resources.json"
+  ]
+}

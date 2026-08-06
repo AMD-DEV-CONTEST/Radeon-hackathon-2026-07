@@ -1,0 +1,51 @@
+name: Verify Web Application
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-verification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web_frontend/frontend/package-lock.json
+
+      - name: Check shell syntax
+        run: |
+          bash -n \
+            deploy.sh \
+            deploy/start_web.sh \
+            deploy/remote_runtime.sh \
+            web_frontend/lib/runtime_env.sh
+
+      - name: Check Python syntax
+        run: python -m compileall -q agent_factory web_frontend/backend deploy
+
+      - name: Install frontend dependencies
+        working-directory: web_frontend/frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: web_frontend/frontend
+        run: npm run build

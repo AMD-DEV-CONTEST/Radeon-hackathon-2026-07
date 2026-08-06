@@ -1,0 +1,35 @@
+{
+  "id": "send_market_brief_email",
+  "description": "Sends a confirmed U.S. equity market brief through the user's configured SMTP account. When recipients is omitted, it uses the Resource default. Confirm recipients, subject, and body before calling.",
+  "schema_error_guidance": "When supplied, recipients must contain 1 to 10 valid email addresses. subject and body must not be empty.",
+  "entrypoint": "python:tools/send_market_brief_email/tool.py:run",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "recipients": {"type": "array", "minItems": 1, "maxItems": 10, "items": {"type": "string", "minLength": 3}},
+      "subject": {"type": "string", "minLength": 1, "maxLength": 200},
+      "body": {"type": "string", "minLength": 1, "maxLength": 100000}
+    },
+    "required": ["subject", "body"],
+    "additionalProperties": false
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "status": {"type": "string", "enum": ["sent"]},
+      "sent_at": {"type": "string"},
+      "recipients": {"type": "array", "items": {"type": "string"}},
+      "message_id": {"type": "string"}
+    },
+    "required": ["status", "sent_at", "recipients", "message_id"],
+    "additionalProperties": false
+  },
+  "resources": {"smtp": "smtp_account"},
+  "risk_level": "low",
+  "risk_evaluator": {"hard": null, "llm": null, "llm_mode": "disabled"},
+  "concurrent": false,
+  "permission_scope": "package",
+  "permission_tags": ["external_communication"],
+  "output_compression": {"action_argument": "action", "actions": {}},
+  "output_projection": "passthrough"
+}

@@ -1,0 +1,47 @@
+{
+  "purpose": "Create or update scheduler seed configuration through the deterministic authoring tool.",
+  "authoring_call": {
+    "tool": "create_agent_authoring",
+    "arguments": {
+      "action": "upsert_scheduler_seed",
+      "seed": {
+        "seed_id": "daily_runtime_task",
+        "title": "Daily runtime task",
+        "human_schedule": "Every weekday at 09:00 Asia/Shanghai",
+        "schedule_type": "cron",
+        "schedule_expr": "0 9 * * 1-5",
+        "timezone": "Asia/Shanghai",
+        "target": {
+          "target_type": "graph_run",
+          "payload": {
+            "message": "Run the scheduled agent task using the package's implemented runtime capability."
+          }
+        },
+        "task_content": "Run the package's implemented scheduled task and produce the configured user-facing output.",
+        "enabled_on_apply": true,
+        "failure_policy": {
+          "enabled": true,
+          "max_consecutive_failures": 3,
+          "action": "pause"
+        },
+        "feedback": {
+          "enabled": true,
+          "mode": "llm_summary"
+        },
+        "source_slot_id": "user_confirmed_schedule",
+        "concurrency_policy": "skip",
+        "max_concurrent_runs": 1,
+        "timeout_seconds": 900,
+        "unattended_policy": "deny_if_approval_required"
+      }
+    },
+    "writes": [
+      "contracts/scheduler_seed.json"
+    ]
+  },
+  "rules": [
+    "Do not hand-write contracts/scheduler_seed.json during normal production.",
+    "Only create scheduler seeds after the schedule and task content are known or confirmed.",
+    "Use graph_run when the scheduled task should run the agent itself."
+  ]
+}

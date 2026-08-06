@@ -1,0 +1,39 @@
+{
+  "type": "resources",
+  "version": "resources_contract.v0",
+  "enabled": true,
+  "config": {
+    "resource_descriptors": [
+      {
+        "resource_id": "smtp_account",
+        "description": "SMTP account used to send a market brief. Read it only when the user explicitly requests email delivery.",
+        "required": false,
+        "value_schema": {
+          "type": "object",
+          "properties": {
+            "host": {"type": "string", "title": "SMTP host", "minLength": 1},
+            "port": {"type": "integer", "title": "SMTP port", "minimum": 1, "maximum": 65535},
+            "username": {"type": "string", "title": "Username", "minLength": 1},
+            "password": {"type": "string", "title": "Password or app authorization code", "minLength": 1},
+            "from_address": {"type": "string", "title": "From address", "minLength": 3},
+            "security": {"type": "string", "title": "Security protocol", "enum": ["ssl", "starttls"]},
+            "default_recipients": {
+              "type": "array",
+              "title": "Default recipients",
+              "items": {"type": "string", "minLength": 3},
+              "minItems": 1,
+              "maxItems": 10,
+              "uniqueItems": true
+            }
+          },
+          "required": ["host", "port", "username", "password", "from_address", "security", "default_recipients"],
+          "additionalProperties": false
+        },
+        "default_value": {},
+        "secret_fields": ["password"],
+        "used_by": ["send_market_brief_email"],
+        "sandbox_access_expectation": "Establish outbound TLS connections only to the configured SMTP host."
+      }
+    ]
+  }
+}

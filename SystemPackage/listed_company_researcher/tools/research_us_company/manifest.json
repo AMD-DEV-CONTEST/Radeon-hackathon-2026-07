@@ -1,0 +1,49 @@
+{
+  "id": "research_us_company",
+  "description": "Researches a U.S.-listed company using Yahoo Finance quotes and adjusted history plus SEC company facts, then computes transparent period and trend metrics. Call it before stating current company market or filing facts.",
+  "schema_error_guidance": "ticker must be a valid U.S. equity symbol; history_days must be from 30 through 1000; sections may contain only basic, quote, history, and financial.",
+  "entrypoint": "python:tools/research_us_company/tool.py:run",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "ticker": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9.-]{0,9}$"},
+      "history_days": {"type": "integer", "minimum": 30, "maximum": 1000, "default": 250},
+      "sections": {
+        "type": "array",
+        "minItems": 1,
+        "uniqueItems": true,
+        "items": {"type": "string", "enum": ["basic", "quote", "history", "financial"]},
+        "default": ["basic", "quote", "history", "financial"]
+      }
+    },
+    "required": ["ticker"],
+    "additionalProperties": false
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "status": {"type": "string", "enum": ["success", "partial", "error"]},
+      "ticker": {"type": "string"},
+      "name": {"type": "string"},
+      "observed_at": {"type": "string"},
+      "source": {"type": "string"},
+      "adjustment": {"type": "string"},
+      "basic": {"type": "array", "items": {"type": "object"}},
+      "quote": {"type": "object"},
+      "history_summary": {"type": "object"},
+      "financial": {"type": "array", "items": {"type": "object"}},
+      "warnings": {"type": "array", "items": {"type": "string"}},
+      "message": {"type": "string"}
+    },
+    "required": ["status", "ticker", "name", "observed_at", "source", "adjustment", "basic", "quote", "history_summary", "financial", "warnings", "message"],
+    "additionalProperties": false
+  },
+  "resources": {},
+  "risk_level": "low",
+  "risk_evaluator": {"hard": null, "llm": null, "llm_mode": "disabled"},
+  "concurrent": false,
+  "permission_scope": "package",
+  "permission_tags": ["read_only"],
+  "output_compression": {"action_argument": "action", "actions": {}},
+  "output_projection": "compress"
+}

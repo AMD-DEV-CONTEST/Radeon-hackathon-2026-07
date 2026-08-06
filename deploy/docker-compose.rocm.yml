@@ -1,0 +1,69 @@
+services:
+  chat-inference:
+    build:
+      context: ..
+      dockerfile: docker/rocm-runtime/Dockerfile
+      args:
+        ROCM_RUNTIME_BASE_IMAGE: ${ROCM_RUNTIME_BASE_IMAGE:?ROCM_RUNTIME_BASE_IMAGE is required}
+        PYPI_INDEX_URL: ${PYPI_INDEX_URL:?PYPI_INDEX_URL is required}
+        LLAMA_CPP_REPOSITORY: ${LLAMA_CPP_REPOSITORY:?LLAMA_CPP_REPOSITORY is required}
+        LLAMA_CPP_REVISION: ${LLAMA_CPP_REVISION:?LLAMA_CPP_REVISION is required}
+    image: ${AGENTFACTORY_ROCM_RUNTIME_IMAGE:?AGENTFACTORY_ROCM_RUNTIME_IMAGE is required}
+    command:
+      - python
+      - -m
+      - agent_factory.local_inference.run_llama_server
+      - --profile-id
+      - ${AGENTFACTORY_CHAT_PROFILE_ID:?AGENTFACTORY_CHAT_PROFILE_ID is required}
+      - --host
+      - 0.0.0.0
+      - --port
+      - ${AGENTFACTORY_LOCAL_INFERENCE_PORT:?AGENTFACTORY_LOCAL_INFERENCE_PORT is required}
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - ${ROCM_VIDEO_GROUP_ID:?ROCM_VIDEO_GROUP_ID is required}
+      - ${ROCM_RENDER_GROUP_ID:?ROCM_RENDER_GROUP_ID is required}
+    ipc: host
+    security_opt:
+      - seccomp=unconfined
+    volumes:
+      - ${AGENTFACTORY_MODEL_ROOT:?AGENTFACTORY_MODEL_ROOT is required}:${AGENTFACTORY_MODEL_ROOT:?AGENTFACTORY_MODEL_ROOT is required}:ro
+      - ${AGENTFACTORY_MODEL_POOL_DIR:?AGENTFACTORY_MODEL_POOL_DIR is required}:/model_pool:ro
+    environment:
+      AGENTFACTORY_MODEL_POOL_STORE_PATH: /model_pool/factory.sqlite
+      AGENTFACTORY_LLAMA_SERVER_PATH: /usr/local/bin/llama-server
+    ports:
+      - 127.0.0.1:${AGENTFACTORY_LOCAL_INFERENCE_PORT:?AGENTFACTORY_LOCAL_INFERENCE_PORT is required}:${AGENTFACTORY_LOCAL_INFERENCE_PORT:?AGENTFACTORY_LOCAL_INFERENCE_PORT is required}
+    restart: unless-stopped
+
+  embedding-inference:
+    image: ${AGENTFACTORY_ROCM_RUNTIME_IMAGE:?AGENTFACTORY_ROCM_RUNTIME_IMAGE is required}
+    command:
+      - python
+      - -m
+      - agent_factory.local_inference.embedding_server
+      - --profile-id
+      - ${AGENTFACTORY_EMBEDDING_PROFILE_ID:?AGENTFACTORY_EMBEDDING_PROFILE_ID is required}
+      - --host
+      - 0.0.0.0
+      - --port
+      - ${AGENTFACTORY_LOCAL_EMBEDDING_PORT:?AGENTFACTORY_LOCAL_EMBEDDING_PORT is required}
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - ${ROCM_VIDEO_GROUP_ID:?ROCM_VIDEO_GROUP_ID is required}
+      - ${ROCM_RENDER_GROUP_ID:?ROCM_RENDER_GROUP_ID is required}
+    ipc: host
+    security_opt:
+      - seccomp=unconfined
+    volumes:
+      - ${AGENTFACTORY_MODEL_ROOT:?AGENTFACTORY_MODEL_ROOT is required}:${AGENTFACTORY_MODEL_ROOT:?AGENTFACTORY_MODEL_ROOT is required}:ro
+      - ${AGENTFACTORY_MODEL_POOL_DIR:?AGENTFACTORY_MODEL_POOL_DIR is required}:/model_pool:ro
+    environment:
+      AGENTFACTORY_MODEL_POOL_STORE_PATH: /model_pool/factory.sqlite
+    ports:
+      - 127.0.0.1:${AGENTFACTORY_LOCAL_EMBEDDING_PORT:?AGENTFACTORY_LOCAL_EMBEDDING_PORT is required}:${AGENTFACTORY_LOCAL_EMBEDDING_PORT:?AGENTFACTORY_LOCAL_EMBEDDING_PORT is required}
+    restart: unless-stopped

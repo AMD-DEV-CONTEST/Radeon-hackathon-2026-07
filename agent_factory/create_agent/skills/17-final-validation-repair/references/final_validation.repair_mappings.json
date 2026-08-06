@@ -1,0 +1,84 @@
+{
+  "package.load.schema.assembly_tools": {
+    "when": "validator issue schema_path is AgentAssemblySpec.tools[] or Pydantic error mentions tools.N model_type",
+    "target_files": [
+      "tools/<tool_id>/manifest.json",
+      "tools/<tool_id>/tool.py",
+      "agent_package.json",
+      "assembly_spec.json",
+      "contracts/tools.json",
+      "contracts/dependencies.json"
+    ],
+    "preferred_repair": {
+      "tool": "create_agent_authoring",
+      "arguments": {
+        "action": "upsert_package_tool",
+        "tool_spec": {
+          "id": "<tool_id>",
+          "description": "<specific runtime capability>",
+          "input_schema": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": false
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": true
+          },
+          "resources": {},
+          "risk_level": "low",
+          "concurrent": true
+        },
+        "tool_source": "<complete tool.py source>",
+        "python_requirements": [],
+        "expose_to_nodes": [
+          "answer"
+        ]
+      }
+    },
+    "rule": "Repair the package tool through authoring so manifest, package index, dependencies, assembly tools, and tool access stay aligned."
+  },
+  "package.load.schema.node_binding": {
+    "when": "validator issue schema_path is AgentAssemblySpec.bindings.node_bindings[] or Pydantic error mentions bindings.node_bindings.N missing target/payload",
+    "target_files": [
+      "agent_package.json",
+      "assembly_spec.json"
+    ],
+    "preferred_repair": {
+      "tool": "create_agent_authoring",
+      "arguments": {
+        "action": "configure_pattern_assembly",
+        "pattern_id": "react_agent",
+        "prompts": {
+          "answer": "<runtime system prompt>"
+        },
+        "allowed_tool_ids": [
+          "<tool_id>"
+        ]
+      }
+    },
+    "rule": "For built-in patterns, regenerate coherent bindings through authoring instead of hand-writing node_bindings."
+  },
+  "extra_forbidden.node_id_provider_id": {
+    "when": "validator issue reports extra_forbidden for node_id, impl, provider_id, or similar fields inside a binding item",
+    "target_files": [
+      "agent_package.json",
+      "assembly_spec.json"
+    ],
+    "preferred_repair": {
+      "tool": "create_agent_authoring",
+      "arguments": {
+        "action": "configure_pattern_assembly",
+        "pattern_id": "react_agent",
+        "prompts": {
+          "answer": "<runtime system prompt>"
+        },
+        "allowed_tool_ids": [
+          "<tool_id>"
+        ]
+      }
+    },
+    "rule": "Do not keep provider_id or node_id as top-level binding fields. For built-in patterns, regenerate bindings through authoring."
+  }
+}

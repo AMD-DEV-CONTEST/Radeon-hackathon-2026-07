@@ -1,0 +1,46 @@
+{
+  "type": "model",
+  "version": "model_contract.v1",
+  "enabled": true,
+  "config": {
+    "bindings": {
+      "main": {
+        "source": "runtime",
+        "reason": "Resolve the main chat model from the model pool profile selected for this request.",
+        "required_capabilities": {
+          "input_modalities": [
+            "text"
+          ],
+          "output_modalities": [
+            "text"
+          ],
+          "tool_calling": true,
+          "structured_output_methods": [
+            "json_mode",
+            "function_calling"
+          ]
+        },
+        "overrides": {
+          "temperature": null,
+          "max_output_tokens": null
+        }
+      }
+    },
+    "tool_bindings": {
+      "generate_image": {
+        "source": "model_pool",
+        "selection_source": "auto",
+        "capability": "image_output",
+        "reason": "Use a compatible image generation profile from the configured model pool when available.",
+        "required_capabilities": {
+          "output_modalities": [
+            "image"
+          ],
+          "text_to_image": true
+        },
+        "overrides": {},
+        "description": "Use Wanx to generate images from a text prompt."
+      }
+    }
+  }
+}

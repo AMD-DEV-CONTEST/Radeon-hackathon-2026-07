@@ -1,0 +1,296 @@
+{
+  "type": "object",
+  "title": "Model and dependency contracts",
+  "description": "System resource map. Each property is the schema for the named package file.",
+  "additionalProperties": false,
+  "properties": {
+    "contracts/model.json": {
+      "$defs": {
+        "ModelBindingRuntimeOverrides": {
+          "additionalProperties": false,
+          "properties": {
+            "temperature": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Temperature"
+            },
+            "max_output_tokens": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Max Output Tokens"
+            }
+          },
+          "title": "ModelBindingRuntimeOverrides",
+          "type": "object"
+        },
+        "ModelContractConfig": {
+          "additionalProperties": false,
+          "properties": {
+            "bindings": {
+              "additionalProperties": {
+                "$ref": "#/$defs/ModelProfileBinding"
+              },
+              "propertyNames": {
+                "enum": [
+                  "main",
+                  "task",
+                  "compression"
+                ]
+              },
+              "title": "Bindings",
+              "type": "object"
+            },
+            "tool_bindings": {
+              "additionalProperties": {
+                "$ref": "#/$defs/ModelToolBinding"
+              },
+              "title": "Tool Bindings",
+              "type": "object"
+            }
+          },
+          "title": "ModelContractConfig",
+          "type": "object"
+        },
+        "ModelProfileBinding": {
+          "additionalProperties": false,
+          "properties": {
+            "profile_id": {
+              "title": "Profile Id",
+              "type": "string"
+            },
+            "source": {
+              "default": "model_pool",
+              "enum": [
+                "model_pool",
+                "env"
+              ],
+              "title": "Source",
+              "type": "string"
+            },
+            "selection_source": {
+              "default": "auto",
+              "enum": [
+                "auto",
+                "manual"
+              ],
+              "title": "Selection Source",
+              "type": "string"
+            },
+            "reason": {
+              "default": "",
+              "title": "Reason",
+              "type": "string"
+            },
+            "required_capabilities": {
+              "additionalProperties": true,
+              "title": "Required Capabilities",
+              "type": "object"
+            },
+            "overrides": {
+              "$ref": "#/$defs/ModelBindingRuntimeOverrides"
+            }
+          },
+          "title": "ModelProfileBinding",
+          "type": "object"
+        },
+        "ModelToolBinding": {
+          "additionalProperties": false,
+          "properties": {
+            "profile_id": {
+              "title": "Profile Id",
+              "type": "string"
+            },
+            "source": {
+              "default": "model_pool",
+              "enum": [
+                "model_pool",
+                "env"
+              ],
+              "title": "Source",
+              "type": "string"
+            },
+            "capability": {
+              "enum": [
+                "image_input",
+                "image_output",
+                "image_edit",
+                "audio_input",
+                "audio_output"
+              ],
+              "title": "Capability",
+              "type": "string"
+            },
+            "selection_source": {
+              "default": "auto",
+              "enum": [
+                "auto",
+                "manual"
+              ],
+              "title": "Selection Source",
+              "type": "string"
+            },
+            "reason": {
+              "default": "",
+              "title": "Reason",
+              "type": "string"
+            },
+            "required_capabilities": {
+              "additionalProperties": true,
+              "title": "Required Capabilities",
+              "type": "object"
+            },
+            "overrides": {
+              "$ref": "#/$defs/ModelBindingRuntimeOverrides"
+            },
+            "description": {
+              "default": "",
+              "title": "Description",
+              "type": "string"
+            }
+          },
+          "required": [
+            "capability"
+          ],
+          "title": "ModelToolBinding",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "model",
+          "default": "model",
+          "title": "Type",
+          "type": "string"
+        },
+        "version": {
+          "const": "model_contract.v1",
+          "default": "model_contract.v1",
+          "title": "Version",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "config": {
+          "$ref": "#/$defs/ModelContractConfig"
+        }
+      },
+      "title": "contracts/model.json",
+      "type": "object"
+    },
+    "contracts/dependencies.json": {
+      "$defs": {
+        "DependenciesContractConfig": {
+          "additionalProperties": false,
+          "properties": {
+            "python_requirements": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Python Requirements",
+              "type": "array"
+            },
+            "npm_requirements": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Npm Requirements",
+              "type": "array"
+            },
+            "system_binaries": {
+              "items": {
+                "type": "string"
+              },
+              "title": "System Binaries",
+              "type": "array"
+            },
+            "platform_architectures": {
+              "items": {
+                "enum": [
+                  "amd64",
+                  "arm64"
+                ],
+                "type": "string"
+              },
+              "title": "Platform Architectures",
+              "type": "array"
+            },
+            "verification_commands": {
+              "items": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "title": "Verification Commands",
+              "type": "array"
+            },
+            "install_timeout_seconds": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Install Timeout Seconds"
+            }
+          },
+          "title": "DependenciesContractConfig",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "dependencies",
+          "default": "dependencies",
+          "title": "Type",
+          "type": "string"
+        },
+        "version": {
+          "const": "dependencies_contract.v1",
+          "default": "dependencies_contract.v1",
+          "title": "Version",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "config": {
+          "$ref": "#/$defs/DependenciesContractConfig"
+        }
+      },
+      "title": "contracts/dependencies.json",
+      "type": "object"
+    }
+  },
+  "required": [
+    "contracts/model.json",
+    "contracts/dependencies.json"
+  ]
+}

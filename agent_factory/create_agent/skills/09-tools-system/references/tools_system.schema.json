@@ -1,0 +1,180 @@
+{
+  "$defs": {
+    "ToolApprovalOverrideConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "risk_level": {
+          "anyOf": [
+            {
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Risk Level"
+        },
+        "approval": {
+          "default": "inherit",
+          "enum": [
+            "inherit",
+            "allow",
+            "ask",
+            "deny"
+          ],
+          "title": "Approval",
+          "type": "string"
+        }
+      },
+      "title": "ToolApprovalOverrideConfig",
+      "type": "object"
+    },
+    "ToolApprovalPolicyConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "default": "allow_below_high",
+          "enum": [
+            "strict",
+            "allow_below_high",
+            "allow_all",
+            "custom"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "low": {
+          "default": "allow",
+          "enum": [
+            "allow",
+            "ask",
+            "ask_on_risk",
+            "ask_unless_allowed",
+            "deny"
+          ],
+          "title": "Low",
+          "type": "string"
+        },
+        "medium": {
+          "default": "allow",
+          "enum": [
+            "allow",
+            "ask",
+            "ask_on_risk",
+            "ask_unless_allowed",
+            "deny"
+          ],
+          "title": "Medium",
+          "type": "string"
+        },
+        "high": {
+          "default": "ask",
+          "enum": [
+            "allow",
+            "ask",
+            "ask_on_risk",
+            "ask_unless_allowed",
+            "deny"
+          ],
+          "title": "High",
+          "type": "string"
+        },
+        "tool_overrides": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ToolApprovalOverrideConfig"
+          },
+          "title": "Tool Overrides",
+          "type": "object"
+        }
+      },
+      "title": "ToolApprovalPolicyConfig",
+      "type": "object"
+    },
+    "ToolsContractConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "builtin_tools_enabled": {
+          "default": true,
+          "title": "Builtin Tools Enabled",
+          "type": "boolean"
+        },
+        "builtin_tool_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Builtin Tool Ids",
+          "type": "array"
+        },
+        "builtin_workspace_root": {
+          "default": "/workdir",
+          "title": "Builtin Workspace Root",
+          "type": "string"
+        },
+        "builtin_allow_external_paths": {
+          "default": false,
+          "title": "Builtin Allow External Paths",
+          "type": "boolean"
+        },
+        "package_tools_enabled": {
+          "default": true,
+          "title": "Package Tools Enabled",
+          "type": "boolean"
+        },
+        "instance_extensions_enabled": {
+          "default": true,
+          "title": "Instance Extensions Enabled",
+          "type": "boolean"
+        },
+        "instance_extension_root": {
+          "default": ".agent_runtime/extensions",
+          "title": "Instance Extension Root",
+          "type": "string"
+        },
+        "approval_policy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ToolApprovalPolicyConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "ToolsContractConfig",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "const": "tools",
+      "default": "tools",
+      "title": "Type",
+      "type": "string"
+    },
+    "version": {
+      "const": "tools_contract.v0",
+      "default": "tools_contract.v0",
+      "title": "Version",
+      "type": "string"
+    },
+    "enabled": {
+      "default": true,
+      "title": "Enabled",
+      "type": "boolean"
+    },
+    "config": {
+      "$ref": "#/$defs/ToolsContractConfig"
+    }
+  },
+  "title": "Tools contract",
+  "type": "object"
+}
