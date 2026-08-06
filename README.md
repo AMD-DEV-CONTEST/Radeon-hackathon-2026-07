@@ -113,7 +113,10 @@ bash start.sh   # every time: engine + WebUI + tunnel
 `app.py` (the entire studio, single file) · `setup.sh` · `start.sh` · `README.md` · `README_zh.md`
 
 ## 🎥 Demo
-👉 **[3-minute pitch video]()** *(link to be added)*
+
+![Main UI](assets/01_main_ui.png)
+*Left: the AI Brain matrix · Center: the Co-Creation Floor · Right: the Canvas. The top HUD shows live W7900 VRAM & decode speed.*
+
 
 ## 🙏 Acknowledgements
 Forged with sweat and ROCm. Thanks to AMD Developer Cloud, llama.cpp, Streamlit and Qwen.
