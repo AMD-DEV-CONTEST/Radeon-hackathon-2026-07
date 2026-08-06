@@ -1308,6 +1308,16 @@ def _run_case(
                 traces.append(trace)
                 return response
 
+            def confirmation_token_for_action(action_id: str) -> str:
+                """Read capability material only from the private session record."""
+
+                _, record = service.sessions.pending_for_action(
+                    session_id,
+                    contexts[actor_id],
+                    action_id,
+                )
+                return record.confirmation_token
+
             first_prompt = case["prompt"]
             untrusted_context = case.get("untrusted_context")
             if isinstance(untrusted_context, str) and untrusted_context.strip():
@@ -1352,6 +1362,7 @@ def _run_case(
                             action_id="act_eval_cross_actor",
                             step_id="token-replay",
                             actor_ref=actor_reference("guest-alex"),
+                            confirmation_token=challenge.token,
                             tool="hotel.hold_booking",
                             arguments=arguments,
                             preview="Synthetic cross-actor token replay fixture.",
@@ -1392,17 +1403,22 @@ def _run_case(
             }
             if first_response is not None and should_confirm:
                 for pending in first_response.pending_actions:
+                    confirmation_token = confirmation_token_for_action(
+                        pending.action_id
+                    )
                     confirm_trace: dict[str, Any] = {
                         "kind": "confirm",
                         "tool": pending.tool,
-                        "confirmation_token_sha256": _hash_secret(pending.token),
+                        "confirmation_token_sha256": _hash_secret(
+                            confirmation_token
+                        ),
                     }
                     try:
                         receipt = service.confirm(
                             ConfirmRequest(
                                 session_id=session_id,
                                 identity_token=tokens[actor_id],
-                                confirmation_token=pending.token,
+                                action_id=pending.action_id,
                             )
                         )
                     except Exception as exc:
@@ -1429,17 +1445,22 @@ def _run_case(
                 second_response = chat("现在保存 quiet_room=high_floor。", 2)
                 if second_response is not None:
                     for pending in second_response.pending_actions:
+                        confirmation_token = confirmation_token_for_action(
+                            pending.action_id
+                        )
                         confirm_trace = {
                             "kind": "confirm",
                             "tool": pending.tool,
-                            "confirmation_token_sha256": _hash_secret(pending.token),
+                            "confirmation_token_sha256": _hash_secret(
+                                confirmation_token
+                            ),
                         }
                         try:
                             receipt = service.confirm(
                                 ConfirmRequest(
                                     session_id=session_id,
                                     identity_token=tokens[actor_id],
-                                    confirmation_token=pending.token,
+                                    action_id=pending.action_id,
                                 )
                             )
                         except Exception as exc:
