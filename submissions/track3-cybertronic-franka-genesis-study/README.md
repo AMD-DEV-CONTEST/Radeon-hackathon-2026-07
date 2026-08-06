@@ -254,6 +254,24 @@ GitHub ID：cybertronic23。
     └── README.md
 ```
 
+### Entry Points vs Implementation / 入口脚本与核心实现
+
+The project intentionally keeps both `scripts/` and `src/`:
+
+- `scripts/` contains short command-line launchers. These are the files evaluators should run directly, for example `python scripts/franka_vision_pick_place.py`.
+- `src/` contains the actual implementation. This includes Genesis scene setup, camera rendering, red apple detection, inverse kinematics, joint PD control, task phases, video recording, and metrics export.
+- Some files share the same name, such as `scripts/franka_vision_pick_place.py` and `src/franka_vision_pick_place.py`. The `scripts/` file imports and calls `main()` from the matching `src/` module. This keeps the run commands simple while keeping reusable logic in `src/`.
+
+In short, use `scripts/` to reproduce the demos and inspect `src/` to review or modify the implementation.
+
+本项目有意同时保留 `scripts/` 和 `src/`：
+
+- `scripts/` 存放很短的命令行启动脚本。评委复现时应直接运行这里的入口，例如 `python scripts/franka_vision_pick_place.py`。
+- `src/` 存放真正的核心实现，包括 Genesis 场景构建、相机渲染、红色苹果检测、逆运动学、关节 PD 控制、任务阶段、视频录制和指标导出。
+- 部分文件同名，例如 `scripts/franka_vision_pick_place.py` 和 `src/franka_vision_pick_place.py`。其中 `scripts/` 下的文件只负责导入并调用 `src/` 中对应模块的 `main()`，这样既保证运行命令简单，也让核心逻辑保持可复用和可维护。
+
+简单来说：复现实验运行 `scripts/`，查看或修改实现看 `src/`。
+
 ### Environment / 环境要求
 
 Install dependencies in the ROCm/Genesis environment:
