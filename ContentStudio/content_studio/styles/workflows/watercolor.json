@@ -1,0 +1,10 @@
+{
+  "4": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "dreamshaper8.safetensors"}},
+  "6": {"class_type": "CLIPTextEncode", "inputs": {"text": "{positive}", "clip": ["4", 1]}},
+  "7": {"class_type": "CLIPTextEncode", "inputs": {"text": "bad, lowres, blurry, deformed", "clip": ["4", 1]}},
+  "10": {"class_type": "LoadImage", "inputs": {"image": "{input_image}"}},
+  "11": {"class_type": "VAEEncode", "inputs": {"pixels": ["10", 0], "vae": ["4", 2]}},
+  "3": {"class_type": "KSampler", "inputs": {"seed": 0, "steps": 20, "cfg": 7.0, "sampler_name": "euler", "scheduler": "normal", "denoise": 0.55, "model": ["4", 0], "positive": ["6", 0], "negative": ["7", 0], "latent_image": ["11", 0]}},
+  "8": {"class_type": "VAEDecode", "inputs": {"samples": ["3", 0], "vae": ["4", 2]}},
+  "9": {"class_type": "SaveImage", "inputs": {"filename_prefix": "ComfyUI", "images": ["8", 0]}}
+}

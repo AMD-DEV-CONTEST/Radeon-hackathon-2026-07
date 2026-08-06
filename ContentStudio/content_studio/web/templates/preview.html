@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Preview</title>
+  <style>
+    html { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); min-height: 100%; }
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 56px 16px 32px; }
+    .card { background: #fff; border-radius: 18px; padding: 28px; max-width: 760px; margin: 0 auto; box-shadow: 0 16px 50px rgba(0,0,0,0.18); }
+    h1 { margin-top: 0; color: #2a2a3a; }
+    img.art { max-width: 100%; display:block; margin: 8px 0; border-radius: 8px; }
+    .meta { color: #666; font-size: 14px; }
+    section { border-top: 1px solid #eee; margin-top: 24px; padding-top: 12px; }
+    h2 { margin-bottom: 4px; color: #333; }
+    textarea { width: 100%; height: 180px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; padding: 8px; }
+    .xhs-imgs img { width: 200px; vertical-align: top; margin: 4px; border-radius: 6px; }
+    .btns button, .btns a { padding: 7px 14px; margin-right: 8px; }
+    .btns button { background: #fda085; color: #fff; border: none; border-radius: 8px; cursor: pointer; }
+    .btns button:hover { background: #f98a66; }
+    .back { position: fixed; top: 12px; left: 12px; z-index: 10; background: rgba(255,255,255,0.9); color: #333; text-decoration: none; padding: 6px 14px; border-radius: 6px; font-size: 20px; }
+    @media print {
+      .back, .btns, .lead, .meta { display: none !important; }
+      html { background: #fff !important; }
+      body { background: #fff !important; padding: 0 !important; }
+      .card { box-shadow: none !important; border-radius: 0 !important; max-width: 100% !important; }
+      #wechatBody { border: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <a href="/" class="back" title="Back">←</a>
+  <div class="card">
+  {% set r = job.result %}
+  {% if r.target == 'wechat' and r.wechat.cover %}<img src="/job/{{ jid }}/cover" style="width:100%;border-radius:8px;margin-bottom:12px;">{% endif %}
+  <h1>{% if r.target == 'wechat' %}{{ r.wechat.title }}{% else %}{{ r.xhs.title }}{% endif %}</h1>
+  {% if r.used_comfyui %}<div class="meta">✅ Images styled on AMD GPU (ComfyUI)</div>{% endif %}
+  {% if r.timings %}<div class="meta">⏱ Text {{ r.timings.llm }}s · Images {{ r.timings.images }}s</div>{% endif %}
+  {% for w in r.warnings %}<div class="meta" style="color:#b00">⚠ {{ w }}</div>{% endfor %}
+
+  <div class="btns" style="margin:12px 0"><button type="button" onclick="regenerate(event)">🔄 Regenerate (same input, different result)</button></div>
+
+  {% if r.target == 'wechat' %}
+  <section>
+    <h2>WeChat Article</h2>
+    <div class="meta">Summary: {{ r.wechat.summary }}　·　Text is editable, drag images to reposition</div>
+    <div id="wechatBody" contenteditable="true" style="border:1px dashed #ccc;padding:10px;border-radius:6px;line-height:1.7;">{{ woven_wechat | safe }}</div>
+    <div class="btns">
+      <button type="button" onclick="publishWechat()">Publish to Draft Box</button>
+      <a href="/job/{{ jid }}/export/html" download style="padding:7px 14px;background:#f0f0f0;border-radius:8px;text-decoration:none;color:#555;font-size:14px;">Export HTML</a>
+      <button type="button" onclick="window.print()" style="background:#f0f0f0;color:#555;">Export PDF</button>
+    </div>
+    {% if r.wechat.draft_media_id %}<div class="meta">Published. media_id={{ r.wechat.draft_media_id }}</div>{% endif %}
+  </section>
+
+  {% elif r.target == 'xhs' %}
+  <section>
+    <h2>Xiaohongshu Post <span class="meta">(No publish API — copy text + download images, post manually)</span></h2>
+    <div><strong>{{ r.xhs.title }}</strong>{% if r.xhs.cover_text %} · Cover title: {{ r.xhs.cover_text }}{% endif %}</div>
+    <div style="white-space:pre-wrap; margin:8px 0">{{ r.xhs.body }}</div>
+    <div class="meta">{{ r.xhs.hashtags | join(' ') }}</div>
+    <div class="xhs-imgs">
+      {% for n in range(r.xhs.images | length) %}
+        <div style="display:inline-block">
+          <img src="/job/{{ jid }}/image/{{ n }}?t=xhs">
+          <div><a href="/job/{{ jid }}/image/{{ n }}?t=xhs" download="xhs_{{ n+1 }}.jpg">Download {{ n+1 }}</a></div>
+        </div>
+      {% endfor %}
+    </div>
+    <textarea id="xhs_text" style="background:#fafafa">{{ r.xhs.title }}
+{% if r.xhs.cover_text %}{{ r.xhs.cover_text }}
+
+{% endif %}{{ r.xhs.body }}
+
+{{ r.xhs.hashtags | join(' ') }}</textarea>
+    <div class="btns" style="margin-top:6px">
+      <button onclick="copyXhs()">Copy Text</button>
+    </div>
+  </section>
+  {% endif %}
+
+  <p class="meta"><a href="/">← Create another</a></p>
+  </div>
+
+  <script>
+    const JOB_ID = {{ jid | tojson }};
+    async function publishWechat(){
+      const body = document.getElementById('wechatBody').innerHTML;
+      const r = await fetch('/job/'+JOB_ID+'/publish', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({body_html: body})});
+      const data = await r.json().catch(()=>({}));
+      if (r.ok) alert('Published to draft box. media_id: ' + data.media_id);
+      else alert('Failed: ' + (data.detail || r.status));
+    }
+    async function regenerate(ev){
+      const btn = ev.currentTarget; const old = btn.textContent; btn.disabled = true;
+      try {
+        const r = await fetch('/job/'+JOB_ID+'/regenerate', {method:'POST'});
+        const data = await r.json();
+        if (!r.ok){ alert('Failed: ' + (data.detail || r.status)); btn.disabled=false; btn.textContent=old; return; }
+        const nid = data.job_id;
+        const es = new EventSource('/job/'+nid+'/stream');
+        es.onmessage = (ev) => {
+          const j = JSON.parse(ev.data);
+          btn.textContent = 'Regenerating... ' + Math.round((j.progress||0)*100) + '%';
+          if (j.stage === 'done') { es.close(); location.href = '/job/'+nid+'/preview'; }
+          if (j.stage === 'error') { es.close(); alert('Error: '+(j.error||'')); btn.disabled=false; btn.textContent=old; }
+        };
+        es.onerror = () => { es.close(); };
+      } catch(e){ alert('Regeneration failed'); btn.disabled=false; btn.textContent=old; }
+    }
+    function copyXhs(){
+      const el = document.getElementById('xhs_text');
+      if (!el) return;
+      const text = el.value;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(()=>alert('Copied! Paste into Xiaohongshu app')).catch(()=>fallbackCopy(el));
+      } else { fallbackCopy(el); }
+    }
+    function fallbackCopy(el){ el.select(); document.execCommand('copy'); alert('Copied! Paste into Xiaohongshu app'); }
+  </script>
+</body>
+</html>

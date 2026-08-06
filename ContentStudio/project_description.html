@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Content Studio — Project Description</title>
+  <style>
+    @page { size: A4; margin: 2cm; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.6; color: #222; max-width: 800px; margin: 0 auto; }
+    h1 { font-size: 28px; color: #1a1a2e; border-bottom: 3px solid #6a11cb; padding-bottom: 8px; }
+    h2 { font-size: 20px; color: #6a11cb; margin-top: 28px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+    h3 { font-size: 15px; color: #333; margin-top: 18px; }
+    p { margin: 8px 0; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12px; }
+    th { background: #6a11cb; color: #fff; padding: 8px; text-align: left; }
+    td { padding: 6px 8px; border-bottom: 1px solid #ddd; }
+    code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-size: 12px; }
+    pre { background: #1a1a2e; color: #ccc; padding: 12px; border-radius: 8px; font-size: 11px; overflow-x: auto; line-height: 1.4; }
+    ul, ol { margin: 6px 0 6px 20px; font-size: 13px; }
+    li { margin: 3px 0; }
+    .header { text-align: center; margin-bottom: 20px; }
+    .badge { display: inline-block; background: #d32f2f; color: #fff; padding: 4px 12px; border-radius: 16px; font-size: 12px; margin-top: 8px; }
+    hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Content Studio</h1>
+  <p><b>AI-Powered Multimodal Content Creation Tool on AMD Radeon GPU + ROCm</b></p>
+  <div class="badge">2026 AMD AI DevMaster · Track 1</div>
+</div>
+
+<h2>1. Project Background</h2>
+<p>Content creators on Chinese social media (WeChat Official Accounts, Xiaohongshu/RedNote) face a repetitive, multi-step workflow: write articles, style photos, place images, format per platform, and manually publish. No existing tool integrates AI text generation, image styling, intelligent placement, and direct publishing into one pipeline — especially one powered by AMD Radeon GPU + ROCm.</p>
+<p><b>Content Studio</b> fills this gap. Users upload photos, type a theme, and get a complete article with AI-styled images logically placed — all on AMD GPU infrastructure.</p>
+
+<h2>2. Target Users & Use Cases</h2>
+<table>
+<tr><th>User</th><th>Scenario</th></tr>
+<tr><td>Social media operators</td><td>Daily batch content production for WeChat / Xiaohongshu</td></tr>
+<tr><td>Independent creators</td><td>Turn personal photos + ideas into polished articles in minutes</td></tr>
+<tr><td>Small business marketing</td><td>Generate promotional content from product photos</td></tr>
+<tr><td>Content teams</td><td>Pre-generate drafts for review, then publish via API</td></tr>
+</table>
+
+<h2>3. System Architecture</h2>
+<pre>
+Web UI (FastAPI + Jinja2 + PyWebView)
+  ├── Text Generation ──→ Radeon Cloud API (AMD GPU)
+  │                        ├── Free shared: Qwen3.6-35B-A3B
+  │                        └── Dedicated vLLM: Qwen2.5-VL-7B-Instruct
+  ├── Image Generation ──→ ComfyUI on ROCm 6.2 (AMD GPU)
+  │                        ├── Style Transfer (img2img, DreamShaper 8)
+  │                        └── Text-to-Image (txt2img, custom prompts)
+  ├── Vision Understanding → Model reads photos → logical image placement
+  └── Publishing ────────→ WeChat Official Account /draft/add API
+</pre>
+<p><b>Key design:</b> <code>core/</code> is UI-independent (92 tests). All services communicate via HTTP — mockable, replaceable. Switching LLM models = change config, not code.</p>
+
+<h2>4. Model & Algorithm</h2>
+<h3>4.1 Text Generation</h3>
+<ul>
+<li><b>LLM:</b> Qwen3.6-35B-A3B (Radeon Cloud) — 1000+ word articles with structured JSON output</li>
+<li><b>Robust parsing:</b> Code-fence stripping, prose extraction, repair re-request, raw fallback</li>
+<li><b>Templates:</b> Product review, event promo, tutorial, industry analysis</li>
+</ul>
+<h3>4.2 Image Style Transfer (img2img)</h3>
+<ul>
+<li><b>Engine:</b> ComfyUI + DreamShaper 8 on AMD GPU (ROCm 6.2, gfx1100)</li>
+<li><b>Workflow:</b> LoadImage → VAEEncode → KSampler (denoise 0.55, 20 steps) → VAEDecode</li>
+<li><b>8 presets:</b> anime, cyberpunk, watercolor, retro, minimal, oil, ink wash, pixel art</li>
+</ul>
+<h3>4.3 Text-to-Image (txt2img)</h3>
+<ul>
+<li><b>Engine:</b> ComfyUI + DreamShaper 8, EmptyLatentImage 512×512, 22 steps</li>
+<li><b>Custom prompts:</b> User writes English descriptions (one per line), ComfyUI renders each</li>
+</ul>
+<h3>4.4 Vision-Based Image Placement</h3>
+<ul>
+<li><b>Model:</b> Qwen3.6-35B reads each photo's content → places <code>[[IMG:k]]</code> markers at relevant sections</li>
+<li><b>Fallback:</b> Converts Chinese "图N" references; distributes unplaced images after section headers</li>
+</ul>
+<h3>4.5 WeChat Draft Publishing</h3>
+<ul>
+<li>access_token cached (auto-refresh); body images via <code>/media/uploadimg</code>; cover via <code>/material/add_material</code>; draft via <code>/draft/add</code></li>
+<li>40001 token expiry → invalidate + retry once</li>
+</ul>
+
+<h2>5. AMD Radeon GPU / ROCm Adaptation</h2>
+<table>
+<tr><th>Component</th><th>AMD GPU</th><th>ROCm Stack</th></tr>
+<tr><td>Text generation</td><td>Qwen3.6-35B (Radeon Cloud)</td><td>Radeon Cloud managed</td></tr>
+<tr><td>Dedicated LLM</td><td>Qwen2.5-VL-7B via vLLM</td><td>ROCm 6.2, PyTorch 2.5.1+rocm6.2</td></tr>
+<tr><td>Style transfer</td><td>DreamShaper 8 via ComfyUI</td><td>ROCm 6.2, gfx1100 (RDNA3)</td></tr>
+<tr><td>Vision understanding</td><td>Model reads photos for placement</td><td>Same as text generation</td></tr>
+</table>
+<p><b>Hardware verified:</b> AMD Radeon Graphics, gfx1100, 49,136 MB VRAM, ROCm 6.2</p>
+
+<h3>Performance Data</h3>
+<table>
+<tr><th>Operation</th><th>Time</th></tr>
+<tr><td>Text generation (free API)</td><td>20–300s (shared, variable)</td></tr>
+<tr><td>Text generation (dedicated vLLM)</td><td>2–30s</td></tr>
+<tr><td>Image style transfer (img2img)</td><td>5–15s/image</td></tr>
+<tr><td>Text-to-image (txt2img)</td><td>5–10s/image</td></tr>
+<tr><td>App startup</td><td>~1.4s (deferred imports)</td></tr>
+</table>
+
+<h2>6. Innovation Highlights</h2>
+<ol>
+<li><b>Vision-driven image placement:</b> Model reads photo content → places each image beside the most relevant paragraph</li>
+<li><b>Custom t2i prompts:</b> User specifies what ComfyUI should draw — full creative control</li>
+<li><b>Auto-detect vision capability:</b> Falls back to text-only if model doesn't support images</li>
+<li><b>Direct API publishing:</b> One click → complete article in WeChat draft box</li>
+<li><b>Dual-platform output:</b> WeChat articles + Xiaohongshu posts from same input</li>
+<li><b>Graceful degradation:</b> ComfyUI down → original photos; LLM slow → clear status with elapsed timer</li>
+</ol>
+
+<h2>7. What's Included</h2>
+<ul>
+<li>92 automated tests (pytest)</li>
+<li>Complete source code (FastAPI + ComfyUI + WeChat API)</li>
+<li>Desktop application (PyWebView + PyInstaller .exe)</li>
+<li>ROCm migration guide (3 deployment paths)</li>
+<li>English UI + README + project description</li>
+<li>Demo video script (bilingual CN/EN)</li>
+<li>Self-diagnostic page + GPU live status</li>
+</ul>
+
+</body>
+</html>
