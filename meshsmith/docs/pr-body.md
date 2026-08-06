@@ -56,16 +56,21 @@ wheels, full import chain + smoke test) that proves the dependency list is compl
 **The attached demo video was recorded on an NVIDIA GPU, not an AMD Radeon, and I want
 to flag that up front rather than let a reviewer discover it.**
 
-I have not been able to obtain any Radeon GPU time. I registered for the hackathon and
-the AMD AI Developer Program, confirmed my Radeon Cloud login email matches my Luma
-registration email exactly as `#devmaster-faq` instructs, and my Radeon Cloud balance is
-still 0 credits while my Luma registration still reads "pending host approval." I have
-escalated to the organizers — see
+I was never able to obtain any Radeon GPU time. My Radeon Cloud balance stayed at 0
+credits from registration onward. Following the `#devmaster-faq` guidance I confirmed my
+Radeon Cloud login email matches my Luma registration email before escalating, then
+raised it in
 [issue #135](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/issues/135)
 and by email to ai_dev_contests@amd.com.
 
-**If credits are issued before the deadline I will immediately re-record on Radeon
-hardware and update this PR.** I am submitting now so a complete entry exists either way.
+My Luma registration was subsequently declined (notified Aug 6), which likely explains
+the credits never arriving. I recognise that may affect eligibility, and that is the
+organisers' call to make. I'm submitting the work regardless, because it was built for
+this hackathon and may be of interest on its merits.
+
+**If Radeon access is granted at any point before the deadline, I will re-record the
+demo on AMD hardware and update this PR** — setup is scripted to a single command
+(`scripts/radeon_cloud_setup.sh`), so it takes about an hour.
 
 What this does *not* affect is the ROCm engineering, which stands on its own:
 
@@ -79,29 +84,6 @@ What this does *not* affect is the ROCm engineering, which stands on its own:
   compiler and none of my local packages, that the dependency set installs and the
   pipeline runs — it is what caught two real install blockers (an undeclared
   `torchvision` dependency and a missing `libGL.so.1`).
-
-<!-- SUPERSEDED CONTINGENCY TEXT — kept for reference
-
-## A note on the demo video
-
-This submission's demo video was recorded on an NVIDIA GPU rather than an AMD Radeon,
-and I want to flag that plainly rather than let a judge discover it.
-
-I registered for the hackathon and the AMD AI Developer Program, confirmed my Radeon
-Cloud login email matches my Luma registration email as the #devmaster-faq instructs,
-and contacted the organizers via Discord and ai_dev_contests@amd.com. My Luma
-registration remained in "pending host approval" and my Radeon Cloud balance stayed at
-0 credits through the deadline, so no Radeon GPU time was ever available to me.
-
-What this does *not* change: MeshSmith carries no vendor-specific code. Every GPU stage
-runs through the portable `torch.cuda` API that ROCm maps to HIP, shape generation is
-deliberately shape-only so no custom CUDA rasterizer is involved, and
-`docker/Dockerfile.rocm` builds the whole stack on the official `rocm/pytorch` base.
-`docker/Dockerfile.deptest` proves from a bare `python:3.12-slim` image that the
-dependency set installs and the pipeline runs with no compiler and no vendor packages.
-The ROCm path is engineered and documented; it is only the recording that is on the
-wrong vendor, and I will happily re-record on Radeon hardware if given access.
--->
 
 ## Team
 
