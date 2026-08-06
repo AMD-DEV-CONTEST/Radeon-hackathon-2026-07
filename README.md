@@ -1,89 +1,187 @@
-# Radeon-hackathon-2026-07
+# 3DGenerateFlow
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+A multimodal AI content creation tool that turns one photo and one sentence into a ready-to-3D-print full-color 3D or 2.5D relief model. It features a built-in **3D Director Agent**: describe what you want, and the Agent automatically picks the style, orchestrates the generation flow, synthesizes multi-view images, and outputs a printable model. Delivered as a **Web UI**, all core backend inference runs locally on **AMD Radeon GPU + ROCm**.
 
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
+---
 
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
+## Track
 
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+**Track 1: Multimodal AI Content Creation Tool Development**
 
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+- Core tasks: image-to-image, image-to-3D, 2.5D relief, full-color 3D printable models
+- Scenarios: personal mementos, pet / person figurines, IP merchandise, commercial visual design, 3D-print content production
+- Deliverable: Web UI (React + TypeScript + R3F frontend, FastAPI + Celery backend)
 
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+---
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+## Quick Start
 
-> [!IMPORTANT]
-> Team name was an optional field on the Luma registration form. If you did not fill in a team name when you registered, please use your own name instead, so the title of the pull request should be like **"Track x, Your name, your application name"**.
+### 1. Environment (AMD ROCm)
 
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
+```bash
+# One-click install ROCm, PyTorch for ROCm, and Hunyuan3D-2
+./rocm/setup_rocm.sh
+./rocm/setup_hunyuan3d.sh
+```
 
-## Submission Requirements
+> Requirement: AMD Radeon GPU, ROCm software stack. PyTorch 2.5.1+rocm6.1 is installed by `setup_rocm.sh`.
 
-### Track 1: Development of Multimodal Content Creation Tools
+### 2. Start Backend
 
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
+```bash
+cd services/api
+source .venv/bin/activate
+export USE_ROCM=true
+export USE_HUNYUAN3D=true
+export USE_HUNYUAN3D_MV=true
+export HIP_VISIBLE_DEVICES=0
+export CELERY_TASK_ALWAYS_EAGER=true
+export CELERY_RESULT_BACKEND=cache+memory://
+export CELERY_TASK_EAGER_PROPAGATES=true
 
-### Track 2: Development & Local Deployment of Private AI Agents
+PYTHONPATH=../.. uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
 
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
+### 3. Start Frontend
 
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
+```bash
+cd apps/web
+npm install
+npm run dev
+```
 
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+Open `http://localhost:5173`.
+
+If the frontend runs on Mac/Windows while the backend runs on a cloud AMD instance:
+
+```bash
+VITE_API_URL=http://<AMD-instance-public-IP>:8000 npm run dev
+```
+
+### 4. Environment Variables (Optional)
+
+```bash
+cp services/api/.env.example services/api/.env
+```
+
+If no LLM key is provided, the Agent falls back to rule-based planning and the full pipeline still works.
+
+---
+
+## Project Structure
+
+```
+3DGenerateFlow/
+├── apps/web                # React + TypeScript + Tailwind + R3F frontend
+├── services/api            # FastAPI + Celery backend
+│   ├── agents/             # 3D Director Agent (Planner / Director / Memory / Chat)
+│   ├── pipelines/          # 3D / 2.5D generation pipelines
+│   ├── adapters/           # ROCm / Hunyuan3D-2 / Zero123 adapters
+│   ├── routers/            # API routes
+│   └── jobs/               # Celery async tasks
+├── shared/schemas          # Shared Pydantic schemas
+├── rocm/                   # ROCm and Hunyuan3D-2 install scripts
+├── scripts/                # Benchmark and download scripts
+├── docs/                   # Competition docs and posters
+└── infra/                  # Nginx deployment config
+```
+
+---
+
+## Key Capabilities
+
+| Capability | Description | Runtime |
+|---|---|---|
+| **Image Upload** | Object / pet / person photo | Frontend |
+| **AI Director Agent** | One-sentence plan: style, output mode, generation steps | Backend (rule fallback, optional LLM) |
+| **Style Catalog** | Realistic 3D, Cartoon 3D, Low Poly, Voxel, Clay, Sketch, 2.5D Relief, Lithophane, Coin, Silhouette | Backend |
+| **Image-to-Image Stylization** | Stable Diffusion img2img, up to 1024 px | Backend ROCm |
+| **Multi-View Synthesis** | Zero123 generates front / right / back / left from a front image | Backend ROCm |
+| **3D Generation** | Hunyuan3D-2 / Hunyuan3D-2mv image-to-3D | Backend ROCm |
+| **2.5D Relief** | Local depth estimation + height map → textured GLB + printable STL | Backend ROCm + CPU |
+| **Full-Color Texture Fallback** | When Hunyuan3D-2 texture module cannot compile on ROCm, front-projection baking is used | Backend CPU |
+| **Print-Ready Check** | Volume, bounding box, watertight report | Backend |
+| **3D Preview** | Embedded Three.js viewer in Web UI | Frontend |
+| **Right-Side AI Chat** | Switch styles, adjust params, regenerate via natural language | Frontend |
+
+---
+
+## Current Implementation Status
+
+- [x] Project scaffold (frontend + backend + Docker)
+- [x] Single-image upload and job dispatch API
+- [x] Landing / Director Console / Result three-page Web UI
+- [x] 3D Director Agent (LLM / rule fallback)
+- [x] Style catalog (3D + 2.5D styles)
+- [x] Async 3D / 2.5D pipeline scheduling
+- [x] ROCm local image-to-image stylization
+- [x] ROCm local depth estimation
+- [x] Zero123 multi-view synthesis
+- [x] Hunyuan3D-2 / Hunyuan3D-2mv local image-to-3D
+- [x] Full-color texture fallback
+- [x] Print report (volume, dimensions, watertight)
+- [x] Frontend 3D preview and download
+- [ ] Cloud 3D API fallback (Tripo / Meshy / Rodin, optional)
+- [ ] Advanced UV unwrapping and multi-view texture fusion
+
+---
+
+## ROCm / AMD GPU Local Execution
+
+This project is adapted for **AMD Radeon GPU + ROCm**. The core creative pipeline (stylization → multi-view synthesis → 3D generation → 2.5D relief → print check) can run entirely on a local AMD GPU without relying on closed-source 3D APIs.
+
+Quick setup:
+
+```bash
+./rocm/setup_rocm.sh
+./rocm/setup_hunyuan3d.sh
+```
+
+Then follow the backend and frontend start commands above.
+
+Detailed guide: [`docs/ROCM_GUIDE.md`](docs/ROCM_GUIDE.md).
+
+---
+
+## Demo Checklist
+
+1. Open the Web UI landing page. The top-right corner shows the **AMD ROCm Ready** badge.
+2. Drag and drop a photo, pick a style (e.g., Realistic 3D / Relief Coin), type a prompt, and click **Start Generate**.
+3. The UI enters the **Director Console** with the left parameter panel, the center 6-step storyboard timeline, and the right AI assistant + task log showing real-time progress.
+4. Wait for the backend to finish local inference on the AMD GPU (Upload → Style → Multiview → 3D → Print Check → Export).
+5. The UI auto-navigates to the **Result page**, showing a turntable 3D preview and the print report (Volume / Dimensions / Wall Thickness / Watertight).
+6. Download `model.glb` (full-color 3D) or `relief.stl` / `relief.glb` (2.5D relief).
+
+---
+
+## Demo Video Script
+
+See [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md).
+
+---
+
+## Competition Documents
+
+- Frontend redesign brief: [`docs/FRONTEND_DESIGN.md`](docs/FRONTEND_DESIGN.md)
+- English project introduction (PDF source): [`docs/PROJECT_INTRO_EN.md`](docs/PROJECT_INTRO_EN.md)
+- English poster (PDF source): [`docs/POSTER_EN.md`](docs/POSTER_EN.md)
+- Pull Request description template: [`docs/PR_DESCRIPTION.md`](docs/PR_DESCRIPTION.md)
+- Demo video script (3–5 min): [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md)
+- Video production guide (with auto-screen-record script): [`docs/VIDEO_PRODUCTION.md`](docs/VIDEO_PRODUCTION.md)
+
+---
+
+## Performance Benchmark
+
+```bash
+cd services/api
+source .venv/bin/activate
+python scripts/benchmark_rocm.py --image assets/samples/dog.jpg --style relief_embossed
+python scripts/benchmark_rocm.py --image assets/samples/bride.jpg --style realistic_3d
+```
+
+---
+
+## License
+
+MIT

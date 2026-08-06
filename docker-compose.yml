@@ -1,0 +1,82 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: generateflow
+      POSTGRES_PASSWORD: generateflow
+      POSTGRES_DB: generateflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg2://generateflow:generateflow@db:5432/generateflow
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      CORS_ORIGINS: http://localhost:5173
+    env_file:
+      - .env
+    volumes:
+      - ./services/api:/app
+      - api_uploads:/app/uploads
+      - api_results:/app/results
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+
+  worker:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    command: celery -A celery_app worker -l info -P prefork
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg2://generateflow:generateflow@db:5432/generateflow
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    env_file:
+      - .env
+    volumes:
+      - ./services/api:/app
+      - api_uploads:/app/uploads
+      - api_results:/app/results
+    depends_on:
+      - db
+      - redis
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: http://localhost:8000
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  api_uploads:
+  api_results:
