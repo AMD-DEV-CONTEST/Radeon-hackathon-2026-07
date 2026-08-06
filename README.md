@@ -20,6 +20,7 @@ An AI-powered recruiter outreach engine designed to connect job seekers directly
 * **Acceleration Platform:** AMD Radeon™ GPUs & ROCm™ Software Stack
 * **Submission Report:** [AMD_DevMaster_Submission.md](file:///Users/shubranshushekhar/Desktop/emailAutomater/AMD_DevMaster_Submission.md)
 * **Benchmark Utility:** `python3 amd_rocm_benchmark.py`
+* **Demo Video:** [Watch on YouTube](https://www.youtube.com/watch?v=f5x53-gkbyQ)
 
 ---
 

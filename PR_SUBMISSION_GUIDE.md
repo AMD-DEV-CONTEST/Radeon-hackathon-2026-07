@@ -77,7 +77,7 @@ Track 2, Shubranshu Shekhar, PitchDock
 **Accelerated Hardware:** AMD Radeon™ GPUs & ROCm™ Software Stack  
 **Participant Name:** Shubranshu Shekhar  
 **Live Site:** https://www.pitchdock.xyz  
-**Demo Video:** [INSERT YOUR DEMO VIDEO LINK HERE]  
+**Demo Video:** https://www.youtube.com/watch?v=f5x53-gkbyQ  
 
 #### Project Overview
 PitchDock is an intelligent agentic recruiter outreach engine designed to bypass ATS black-hole filters. PitchDock matches candidate work history against targeted recruiter profiles, auto-generates hyper-personalized cold email pitches, attaches real PDF resumes, and paces out dispatches safely through authentic user mailboxes while offering remote Telegram mobile copilot control.
