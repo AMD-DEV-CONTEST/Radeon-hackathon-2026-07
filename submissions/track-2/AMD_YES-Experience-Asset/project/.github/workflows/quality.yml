@@ -1,0 +1,38 @@
+name: quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate shell scripts
+        run: bash -n scripts/*.sh
+      - name: Compile Python helpers
+        run: python -m py_compile scripts/*.py
+      - name: Compile public QA helpers
+        run: python -m py_compile qa/scripts/*.py qa/tests/*.py
+      - name: Validate public QA shell scripts
+        run: bash -n qa/gates/*.sh qa/perf/*.sh
+      - name: Run public QA framework tests
+        run: python -m unittest discover -s qa/tests -v
+      - name: Run public QA contract gate
+        run: bash qa/gates/pr_gate.sh --mode contract
+      - name: Check PR quality-contract metadata (advisory)
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: bash qa/gates/pr_gate.sh --mode contract --require-pr-metadata
+      - name: Check patch whitespace
+        run: git show --check --oneline --no-renames HEAD

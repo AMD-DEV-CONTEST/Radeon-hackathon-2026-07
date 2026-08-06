@@ -1,0 +1,239 @@
+{
+  "$defs": {
+    "ProgressState": {
+      "enum": [
+        "QUEUED",
+        "RUNNING",
+        "WAITING_FOR_USER",
+        "TERMINAL"
+      ],
+      "title": "ProgressState",
+      "type": "string"
+    },
+    "TerminalState": {
+      "enum": [
+        "SUCCEEDED",
+        "NEEDS_USER_INPUT",
+        "PAUSED",
+        "CANCELLED",
+        "TIMED_OUT",
+        "MODEL_UNAVAILABLE",
+        "MODEL_OOM",
+        "INVALID_MODEL_OUTPUT",
+        "STORAGE_ERROR",
+        "POLICY_BLOCKED",
+        "DELETION_FAILED",
+        "INTERNAL_ERROR"
+      ],
+      "title": "TerminalState",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "asset_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Asset Id"
+    },
+    "eta_basis": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Eta Basis"
+    },
+    "eta_history_sample_size": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Eta History Sample Size"
+    },
+    "eta_seconds": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Eta Seconds"
+    },
+    "event_id": {
+      "format": "uuid",
+      "title": "Event Id",
+      "type": "string"
+    },
+    "internal_completed_units": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Internal Completed Units"
+    },
+    "internal_total_units": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Internal Total Units"
+    },
+    "message": {
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+    },
+    "milestones_done": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Milestones Done"
+    },
+    "milestones_total": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Milestones Total"
+    },
+    "occurred_at": {
+      "format": "date-time",
+      "title": "Occurred At",
+      "type": "string"
+    },
+    "percent": {
+      "anyOf": [
+        {
+          "maximum": 100,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Percent"
+    },
+    "percent_basis": {
+      "anyOf": [
+        {
+          "const": "milestones_done/milestones_total",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Percent Basis"
+    },
+    "run_id": {
+      "format": "uuid",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sequence": {
+      "minimum": 0,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "stage": {
+      "minLength": 1,
+      "title": "Stage",
+      "type": "string"
+    },
+    "state": {
+      "$ref": "#/$defs/ProgressState"
+    },
+    "terminal_state": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TerminalState"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "version_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Version Id"
+    }
+  },
+  "required": [
+    "event_id",
+    "run_id",
+    "sequence",
+    "stage",
+    "state",
+    "message",
+    "occurred_at"
+  ],
+  "title": "ProgressEventV1",
+  "type": "object"
+}

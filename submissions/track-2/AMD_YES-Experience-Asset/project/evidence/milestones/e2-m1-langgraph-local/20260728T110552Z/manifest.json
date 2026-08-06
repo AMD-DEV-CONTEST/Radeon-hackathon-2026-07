@@ -1,0 +1,168 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "e2-m1-langgraph-local-20260728T110552Z-0a30641",
+  "timestamp_utc": "2026-07-28T11:05:52Z",
+  "source": {
+    "git_commit": "0a306411f1468f4518db9ffdf4166fcd23cc7f51",
+    "branch": "codex/e2-m1-experience-brief",
+    "dirty_tree_at_capture_start": false,
+    "issue": "https://github.com/kinnyuww/amd-devmaster-track2-agent/issues/15",
+    "pull_request": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/16"
+  },
+  "scope": {
+    "checkpoint": "E2/M1 Runnable Backend and UI Local Commit-Bound Candidate",
+    "fixture_id": "chair_incomplete",
+    "behavior": "One startup-compiled eight-node production LangGraph runs the visible plan, current-source proposal, deterministic Runtime policy, bounded effect, verification, persistence and explicit terminal path.",
+    "non_goals": [
+      "W7900, ROCm, Qwen2.5-14B or real-vLLM evidence",
+      "Serving Reference S1",
+      "E3 or later behavior",
+      "cross-asset RAG",
+      "performance, optimization, promotion or merge claim"
+    ]
+  },
+  "quality_mapping": {
+    "acceptance_criteria": [
+      "AC-03",
+      "AC-04",
+      "AC-09",
+      "AC-10",
+      "AC-15",
+      "AC-16",
+      "AC-17",
+      "AC-18",
+      "AC-22",
+      "AC-23",
+      "AC-24",
+      "AC-25"
+    ],
+    "l1_milestone": "M1 Experience Brief",
+    "l2_gates": [
+      "Agent orchestration",
+      "Canonical state",
+      "Persistence and resume",
+      "Runtime permission",
+      "Failure behavior",
+      "Privacy",
+      "Observability"
+    ],
+    "track_2_relevance": "Private local multi-step Agent orchestration, local current-source retrieval, Tool Calling proposal separated from Runtime permission, durable resume and explicit task closure."
+  },
+  "workflow": {
+    "workflow_version": "experience-asset/e2-m1/v1",
+    "topology_hash": "2ed5001b1c7bf177335e0bbff59e964b115c1a90c8454f3784e9e695e3cbd707",
+    "node_count": 8,
+    "canonical_authority": "SQLITE_ASSET_REPOSITORY",
+    "resume_authority": "LANGGRAPH_SQLITE_CHECKPOINTER",
+    "retry_budget": 0,
+    "code_commit": "0a306411f1468f4518db9ffdf4166fcd23cc7f51",
+    "model_id": "deterministic-public-evidence-model",
+    "server_base_url": "http://127.0.0.1/evidence-fake"
+  },
+  "environment": {
+    "hardware": {
+      "host": "local developer workstation",
+      "architecture": "arm64",
+      "gpu": null,
+      "gpu_note": "W7900 work is excluded and assigned to kinnyuww."
+    },
+    "software": {
+      "python": "3.12.13",
+      "node": "22.22.2",
+      "npm": "10.9.7",
+      "langchain_core": "0.3.86",
+      "langgraph": "0.6.11",
+      "langgraph_checkpoint": "3.0.1",
+      "langgraph_checkpoint_sqlite": "3.0.3"
+    }
+  },
+  "commands": [
+    {
+      "cmd": ".venv/bin/ruff check . && .venv/bin/pytest -q",
+      "exit": 0,
+      "result": "Ruff PASS; backend 99/99 PASS."
+    },
+    {
+      "cmd": "bash -n scripts/*.sh && python3 -m py_compile scripts/*.py && python3 -m unittest discover -s qa/tests -v && bash qa/gates/pr_gate.sh --mode contract && .venv/bin/python scripts/export_contracts.py --check",
+      "exit": 0,
+      "result": "Shell/Python syntax, 31/31 public QA, contract gate and generated-contract check PASS."
+    },
+    {
+      "cmd": "npm run verify:contracts && npm run test && npm run typecheck && npm run lint && npm run build",
+      "cwd": "web",
+      "exit": 0,
+      "result": "15/15 provenance, 95/95 Vitest, typecheck, lint and build PASS."
+    },
+    {
+      "cmd": "E2E_LIVE_BASE_URL=http://127.0.0.1:8080 VITE_PROXY_TARGET=http://127.0.0.1:8080 npm run e2e",
+      "cwd": "web",
+      "exit": 0,
+      "result": "17/17 Playwright cases PASS against exact-commit FastAPI with CODE_COMMIT set to the source SHA."
+    },
+    {
+      "cmd": ".venv/bin/python scripts/capture_e2_m1_local_evidence.py --output-dir evidence/milestones/e2-m1-langgraph-local/20260728T110552Z/artifacts --code-commit 0a306411f1468f4518db9ffdf4166fcd23cc7f51 --fixture-id chair_incomplete --ui-screenshot web/e2e-results/screenshots/17-m1-live.png",
+      "exit": 0,
+      "result": "Sanitized public artifact set and SHA-256 manifest captured."
+    },
+    {
+      "cmd": "bash qa/gates/pr_gate.sh --mode artifact --asset evidence/milestones/e2-m1-langgraph-local/20260728T110552Z/artifacts/experience-asset.public.json --fixture-id chair_incomplete --progress evidence/milestones/e2-m1-langgraph-local/20260728T110552Z/artifacts/m1-progress.json --retrieval-trace evidence/milestones/e2-m1-langgraph-local/20260728T110552Z/artifacts/retrieval-phase-trace.json",
+      "exit": 0,
+      "result": "Public asset, state-derived progress and current-source retrieval Trace PASS."
+    }
+  ],
+  "results": {
+    "result_class": "PASS_REVIEW_PENDING",
+    "measurements": {
+      "backend_pytest": "99/99",
+      "public_qa": "31/31",
+      "frontend_vitest": "95/95",
+      "frontend_contract_provenance": "15/15",
+      "live_playwright": "17/17",
+      "contract_gate": "PASS",
+      "artifact_gate": "PASS",
+      "clean_python_3_12_install_and_saver_roundtrip": "PASS"
+    },
+    "successful_observations": [
+      "allow, deny, permission-deny and three model/format failure classes reach explicit terminals",
+      "restart resumes without duplicate model or tool effects",
+      "stale, missing, corrupt, workflow-mismatch and runtime-identity-mismatch checkpoints stop safely",
+      "an indeterminate started tool effect is not replayed",
+      "direct and indirect imported instructions cannot dispatch an unallowlisted tool",
+      "canonical asset remains unchanged by the E2 Agent run",
+      "node Trace binds workflow, topology, edge, checkpoint, policy, effect, verification and terminal metadata without raw private payload"
+    ],
+    "retained_failures": [
+      "The earlier dirty-tree packet records the corrected checkpoint namespace, denial-dispatch and out-of-scope chair_public_complete artifact-gate attempts."
+    ],
+    "unverified": [
+      "Independent quality-owner checkpoint-2 acceptance",
+      "W7900/ROCm/Qwen2.5-14B real-model execution assigned to kinnyuww",
+      "Serving Reference S1 and checkpoint-3 promotion assigned to kinnyuww",
+      "E2 merge and promotion"
+    ]
+  },
+  "artifacts": [
+    "artifacts/artifact-hashes.json",
+    "artifacts/experience-asset.public.json",
+    "artifacts/m1-progress.json",
+    "artifacts/m1-workspace.public-fixture.json",
+    "artifacts/retrieval-phase-trace.json",
+    "artifacts/langgraph-node-trace.json",
+    "artifacts/m1-live-ui.png"
+  ],
+  "decision": {
+    "result_class": "PASS_REVIEW_PENDING",
+    "implementation_owner": "Eas000n",
+    "quality_owner": "kinnyuww",
+    "w7900_owner": "kinnyuww",
+    "rollback": "Revert commit 0a306411f1468f4518db9ffdf4166fcd23cc7f51; retain the accepted E1 fixture and append-only evidence history.",
+    "known_risks": [
+      "A non-failing LangChain pending-deprecation warning remains for a future serializer default.",
+      "No real-model or GPU claim can be made from this local deterministic evidence."
+    ]
+  },
+  "history": {
+    "supersedes_packet_id": "e2-m1-langgraph-local-20260728T102918Z-30d7c35-dirty",
+    "notes": "Commit-bound non-W7900 successor. The future W7900 packet must use the exact reviewed PR head and must not overwrite this packet."
+  }
+}

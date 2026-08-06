@@ -1,0 +1,85 @@
+{
+  "schema_version": "e2-m1-workflow-conformance/v1",
+  "workflow_version": "experience-asset/e2-m1/v1",
+  "topology_hash_algorithm": "sha256(canonical-json(nodes,edges))",
+  "topology_hash": "2ed5001b1c7bf177335e0bbff59e964b115c1a90c8454f3784e9e695e3cbd707",
+  "retry_budget": 0,
+  "nodes": [
+    "load_run_context",
+    "plan_m1_action",
+    "propose_current_source_call",
+    "evaluate_runtime_policy",
+    "execute_current_source_tool",
+    "verify_run_result",
+    "persist_run_outcome",
+    "terminalize_run"
+  ],
+  "edges": [
+    ["START", "load_run_context"],
+    ["load_run_context:ready", "plan_m1_action"],
+    ["load_run_context:stale_or_incompatible", "persist_run_outcome"],
+    ["plan_m1_action:planned", "propose_current_source_call"],
+    ["plan_m1_action:safe_failure", "persist_run_outcome"],
+    ["propose_current_source_call:proposal_ready", "evaluate_runtime_policy"],
+    ["propose_current_source_call:model_or_format_failure", "persist_run_outcome"],
+    ["evaluate_runtime_policy:allow", "execute_current_source_tool"],
+    ["evaluate_runtime_policy:deny_or_invalid", "verify_run_result"],
+    ["execute_current_source_tool:tool_recorded", "verify_run_result"],
+    ["execute_current_source_tool:safe_failure", "persist_run_outcome"],
+    ["verify_run_result", "persist_run_outcome"],
+    ["persist_run_outcome", "terminalize_run"],
+    ["terminalize_run", "END"]
+  ],
+  "required_paths": [
+    "allow_execute_verify_terminal",
+    "deny_or_invalid_verify_terminal",
+    "model_or_format_failure_terminal",
+    "stale_or_incompatible_safe_terminal"
+  ],
+  "graph_state_allowlist": [
+    "run_id",
+    "asset_id",
+    "base_version_id",
+    "command_id",
+    "workflow_version",
+    "topology_hash",
+    "projection_sequence",
+    "node_attempt",
+    "last_node",
+    "selected_edge",
+    "terminal_candidate"
+  ],
+  "resume_authority": "LANGGRAPH_SQLITE_CHECKPOINTER",
+  "canonical_authority": "SQLITE_ASSET_REPOSITORY",
+  "resume_identity_fields": [
+    "workflow_version",
+    "topology_hash",
+    "base_version_id",
+    "model_id",
+    "server_base_url",
+    "model_config_hash",
+    "code_commit"
+  ],
+  "production_forbidden_imports": [
+    "DurableFakeAgentLoop"
+  ],
+  "dependencies": {
+    "python": ">=3.12,<3.13",
+    "langchain-core": "0.3.86",
+    "langgraph": "0.6.11",
+    "langgraph-checkpoint": "3.0.1",
+    "langgraph-checkpoint-sqlite": "3.0.3"
+  },
+  "effect_key": "run_id:node_name:node_attempt",
+  "canonical_write_key": "command_id:expected_current_version_id",
+  "canonical_write_effect": "NOT_APPLICABLE_IN_E2_M1_AGENT_RUN; the graph reads the exact canonical version and persists only run/audit state",
+  "trace_forbidden_payloads": [
+    "complete ExperienceAssetV1",
+    "source text or file content",
+    "raw prompt",
+    "raw model response",
+    "tool query text",
+    "renderer output"
+  ],
+  "rollback": "Disable the E2 production Agent route and revert the LangGraph implementation commits; retain DurableFakeAgentLoop only as the accepted E1 fixture."
+}

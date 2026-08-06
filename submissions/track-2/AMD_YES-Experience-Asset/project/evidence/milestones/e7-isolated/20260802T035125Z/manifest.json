@@ -1,0 +1,196 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "e7-isolated-20260802T035125Z-ca53e8d",
+  "timestamp_utc": "2026-08-02T03:51:25Z",
+  "source": {
+    "git_commit": "ca53e8d5b1c11bf2e55cfe54f64d62bbfb20dd57",
+    "branch": "codex/e7-deterministic-delivery",
+    "base_commit": "a0b042d812d1358814b3f7743a58541e653acff0",
+    "base_branch": "origin/codex/e5-e7-parallel-delivery",
+    "dirty_tree": false,
+    "issue": "https://github.com/kinnyuww/amd-devmaster-track2-agent/issues/30",
+    "pull_request": null,
+    "dependency": "PR #28 is open; live E6 integration is not present in this packet."
+  },
+  "quality_mapping": {
+    "acceptance_criteria": [
+      "AC-05",
+      "AC-06",
+      "AC-08",
+      "AC-09",
+      "AC-12",
+      "AC-14",
+      "AC-17",
+      "AC-18",
+      "AC-22",
+      "AC-23",
+      "AC-24",
+      "AC-25"
+    ],
+    "l1_milestones": ["M5 route draft and delivery"],
+    "l2_gates": [
+      "Canonical identity",
+      "Persistence and restart recovery",
+      "Runtime permission",
+      "Privacy and external-delivery boundary",
+      "Failure recovery",
+      "Auditability"
+    ]
+  },
+  "input": {
+    "fixture_or_scenario_id": "public-e7-delivery-scenarios",
+    "version": "e7-public-fixtures/v1",
+    "sha256": "5fff026267d32d3184ace1228bd639a521cbd7a05d4cfd29fad65cb46d955d4f",
+    "categories": ["complete", "privacy-risk", "correction", "route-ineligible"]
+  },
+  "environment": {
+    "hardware": {
+      "platform": "Darwin arm64 local development host",
+      "gpu": "NOT_USED_OR_VERIFIED"
+    },
+    "software": {
+      "python": "3.12.12 isolated /private/tmp environment",
+      "pytest": "8.4.2",
+      "ruff": "0.12.12",
+      "node": "25.6.1",
+      "npm": "11.9.0"
+    },
+    "workflow_schema_versions": {
+      "route_draft_envelope": "e7-route-draft/v1",
+      "delivery_output": "e7-delivery/v1",
+      "renderer_input": "e7-renderer-input/v1",
+      "approval_adapter": "frozen-e6 contract-equivalent mock"
+    }
+  },
+  "model_and_serving": {
+    "model_source": null,
+    "model_revision_or_hash": null,
+    "license": null,
+    "dtype": null,
+    "quantization": null,
+    "arguments": [],
+    "claim": "E7 deterministic rendering and lifecycle behavior do not call a model service."
+  },
+  "commands": [
+    {
+      "command": "PYTHONPYCACHEPREFIX=/private/tmp/amd-e7-pycache /private/tmp/amd-e7-venv/bin/ruff check .",
+      "exit_code": 0,
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONPYCACHEPREFIX=/private/tmp/amd-e7-pycache /private/tmp/amd-e7-venv/bin/pytest",
+      "exit_code": 0,
+      "result": "PASS: 229 tests; one dependency deprecation warning"
+    },
+    {
+      "command": "bash -n scripts/*.sh",
+      "exit_code": 0,
+      "result": "PASS"
+    },
+    {
+      "command": "PATH=/private/tmp/amd-e7-venv/bin:$PATH PYTHONPYCACHEPREFIX=/private/tmp/amd-e7-pycache python3 -m py_compile scripts/*.py",
+      "exit_code": 0,
+      "result": "PASS"
+    },
+    {
+      "command": "PATH=/private/tmp/amd-e7-venv/bin:$PATH PYTHONPYCACHEPREFIX=/private/tmp/amd-e7-pycache python3 -m unittest discover -s qa/tests -v",
+      "exit_code": 0,
+      "result": "PASS: 34 tests"
+    },
+    {
+      "command": "PATH=/private/tmp/amd-e7-venv/bin:$PATH PYTHONPYCACHEPREFIX=/private/tmp/amd-e7-pycache bash qa/gates/pr_gate.sh --mode contract",
+      "exit_code": 0,
+      "result": "PASS: disclosure, credentials and seven public fixture contracts"
+    },
+    {
+      "command": "cd web && NODE_OPTIONS=--no-experimental-webstorage npm test && NODE_OPTIONS=--no-experimental-webstorage npm run verify:contracts && NODE_OPTIONS=--no-experimental-webstorage npm run typecheck && NODE_OPTIONS=--no-experimental-webstorage npm run lint && NODE_OPTIONS=--no-experimental-webstorage npm run build",
+      "exit_code": 0,
+      "result": "PASS: 136 tests, contract provenance, typecheck, lint and production build"
+    },
+    {
+      "command": "cd web && npx playwright test --config e2e/e7.playwright.config.ts",
+      "exit_code": 0,
+      "result": "PASS: 1 no-server Chromium check of the exact renderer fixture"
+    },
+    {
+      "command": "cd web && NODE_OPTIONS=--no-experimental-webstorage npm run e2e",
+      "exit_code": 0,
+      "result": "PASS: 16 browser tests; 4 live-backend tests skipped by existing gates"
+    }
+  ],
+  "results": {
+    "terminal_state": "ISOLATED_READY",
+    "measurements": {
+      "python_tests_passed": 229,
+      "public_qa_tests_passed": 34,
+      "frontend_tests_passed": 136,
+      "browser_tests_passed": 16,
+      "browser_tests_skipped_live_backend": 4
+    },
+    "failures": [
+      {
+        "stage": "initial Python syntax invocation",
+        "result": "FAIL",
+        "cause": "Host python3 was 3.9 and cache writes were sandbox-restricted.",
+        "disposition": "Recovered with the repository-required Python 3.12 isolated environment and PYTHONPYCACHEPREFIX."
+      },
+      {
+        "stage": "initial dependency sync",
+        "result": "FAIL",
+        "cause": "Sandbox DNS blocked package resolution.",
+        "disposition": "Approved network retry completed the isolated environment install."
+      },
+      {
+        "stage": "first full frontend test",
+        "result": "FAIL",
+        "cause": "Node 25 experimental global localStorage shadowed jsdom storage; 16 pre-existing M1-M3 cases failed before assertions.",
+        "disposition": "Recovered with NODE_OPTIONS=--no-experimental-webstorage; all 136 tests passed."
+      },
+      {
+        "stage": "first Playwright launches",
+        "result": "FAIL",
+        "cause": "Sandbox denied loopback bind and Chromium Mach rendezvous.",
+        "disposition": "A no-server E7 config removed the unnecessary bind; approved local Chromium reruns passed."
+      }
+    ],
+    "recovery": [
+      "Export retries verify existing bytes against persisted SHA-256 before completing the same request.",
+      "Deletion locks the asset, persists per-file attempts and resumes safely after process restart.",
+      "SQLite-before-files, file-before-SQLite and finalization failures are surfaced as retryable states."
+    ],
+    "unverified": [
+      "Live E6 policy/service and ApprovalRecord integration.",
+      "Shared repository, migration, OpenAPI, API-root and application-root integration.",
+      "End-to-end E6 to E7 product flow and independent reviewer verdict.",
+      "W7900, ROCm, vLLM or model quality/performance; E7 does not exercise them.",
+      "Production deployment or external-platform publication, both out of scope."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "tests/fixtures/e7_delivery_scenarios.json",
+      "sha256": "5fff026267d32d3184ace1228bd639a521cbd7a05d4cfd29fad65cb46d955d4f",
+      "classification": "public sanitized fixture"
+    },
+    {
+      "path": "tests/fixtures/e7_complete_preview.html",
+      "sha256": "875dd038e6a9a29a7e1df5651fa57f45a3ad48822665fbf4c4c0689b8edf9acd",
+      "classification": "deterministic self-contained public preview"
+    }
+  ],
+  "decision": {
+    "result_class": "PASS",
+    "known_risks": [
+      "The frozen E6 adapter must be replaced or wired to the live E6 service before INTEGRATION_READY.",
+      "The feature-scoped UI is intentionally not wired through protected App.tsx before shared integration.",
+      "Independent teammate or separate-session review remains required before acceptance."
+    ],
+    "rollback": "Use a normal git revert of ca53e8d5b1c11bf2e55cfe54f64d62bbfb20dd57. No shared migration or external publication occurred; discard only disposable E7 test SQLite/artifact directories after retaining required audit evidence.",
+    "owner": "E7 implementer; independent reviewer pending",
+    "deadline": null
+  },
+  "history": {
+    "supersedes_packet_id": null,
+    "notes": "This append-only packet binds the clean implementation commit; the evidence documentation is added by a following commit. It proves ISOLATED_READY only."
+  }
+}

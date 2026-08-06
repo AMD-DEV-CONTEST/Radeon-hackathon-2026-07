@@ -1,0 +1,230 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "e1-combined-w7900-terminal-regression-20260727T055758Z-de72a6c",
+  "timestamp_utc": "2026-07-27T05:57:58Z",
+  "source": {
+    "git_commit": "de72a6c959d10c03c8fff42bf3b788484f5064b5",
+    "branch": "codex/e1-combined-gate",
+    "dirty_tree": false,
+    "described_commit_note": "All implementation, local and Radeon Cloud checks describe this exact clean commit. This append-only packet and status documentation are added in the following evidence commit.",
+    "issue": null,
+    "pull_request": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/12"
+  },
+  "scope": "Re-run the corrected E1 combined Agent boundary on an exact-current-commit Radeon PRO W7900/ROCm/Qwen2.5-14B BF16 stack; prove native structured Tool Call proposal, Runtime allow/deny/effect/terminal/restart behavior, malformed-model-output normalization, and the complete repository gate without self-promoting T06.",
+  "quality_mapping": {
+    "acceptance_criteria": [
+      "AC-04",
+      "AC-11",
+      "AC-17",
+      "AC-18",
+      "AC-22",
+      "AC-24",
+      "AC-27"
+    ],
+    "l1_milestones": [
+      "cross-cutting E1/T06 foundation; no M1-M5 promotion claimed"
+    ],
+    "l2_gates": [
+      "Persistence and resume",
+      "Local inference",
+      "Failure behavior",
+      "Tool permissions",
+      "Observability",
+      "Evidence discipline"
+    ],
+    "track_2_relevance": "Demonstrates that one bounded local Agent can receive a structured Tool Call proposal from the W7900-served open model, keep it inert until deterministic Runtime validation, produce allowed and denied terminal outcomes, verify effects, and persist restart-safe state.",
+    "submission_impact": "Adds exact-current-commit local-inference and task-closure evidence for later Track 2 harvesting. This smoke run is not the E2 serving reference, E8 performance Baseline, or a complete M1 product artifact."
+  },
+  "input": {
+    "fixture_or_scenario_id": "e1-a-public-tool-smoke-v1 plus e1-combined terminal/parser regression suite",
+    "version": "implementation@de72a6c959d10c03c8fff42bf3b788484f5064b5",
+    "data_class": "public_synthetic_and_sanitized_runtime_evidence",
+    "sha256": null,
+    "sha256_reason": "The run composes a versioned public fixture, deterministic injected malformed responses, an ephemeral SQLite database and the frozen model snapshot rather than one input file."
+  },
+  "environment": {
+    "hardware": {
+      "host": "Radeon Cloud",
+      "architecture": "x86_64",
+      "gpu": "single AMD Radeon PRO W7900-class gfx1100 device",
+      "reported_device_memory_mib": 49136
+    },
+    "software": {
+      "os": "Ubuntu 24.04.4 LTS",
+      "kernel": "6.8.0-79-generic",
+      "rocm_image": "7.2.1",
+      "hip": "7.2.53211",
+      "python": "3.12.3",
+      "torch": "2.11.0+gitd0c8b1f",
+      "vllm": "0.23.1rc1.dev1327+gf25953cc5.rocm723"
+    },
+    "workflow_schema_versions": {
+      "canonical_schema_version": "1.0.0",
+      "terminal_result": "1.0.0"
+    }
+  },
+  "model_and_serving": {
+    "model_source": "ModelScope Qwen/Qwen2.5-14B-Instruct",
+    "model_revision_or_hash": "3957bf39753cf01f98f6560295c4811c2b5df001",
+    "license": "Apache-2.0",
+    "dtype": "bfloat16",
+    "quantization": null,
+    "arguments": [
+      "host=127.0.0.1",
+      "port=8000",
+      "max_model_len=8192",
+      "gpu_memory_utilization=0.82",
+      "max_num_seqs=4",
+      "tool_call_parser=hermes"
+    ],
+    "note": "Application and vLLM used separate persistent Python environments. The server bound to loopback only, was health-checked before the gates and stopped after the run."
+  },
+  "commands": [
+    {
+      "cmd": "bash scripts/verify_remote_dev.sh",
+      "cwd": "/workspace/amd-track2-agent/repo",
+      "exit": 0,
+      "result": "Persistent checkout, environment separation and critical remote-development checks passed."
+    },
+    {
+      "cmd": "bash scripts/verify_rocm_env.sh",
+      "cwd": "/workspace/amd-track2-agent/repo",
+      "exit": 0,
+      "result": "ROCm, HIP, PyTorch GPU visibility and vLLM RocmPlatform checks passed."
+    },
+    {
+      "cmd": "python3 scripts/verify_model_snapshot.py --full-sha256",
+      "cwd": "/workspace/amd-track2-agent/repo",
+      "exit": 0,
+      "result": "After preserving one undeclared partial temporary shard in quarantine, all 19 declared snapshot files passed full SHA-256 verification."
+    },
+    {
+      "cmd": "bash scripts/serve_vllm.sh",
+      "cwd": "/workspace/amd-track2-agent/repo",
+      "exit": 0,
+      "result": "Qwen2.5-14B-Instruct BF16 loaded through vLLM on ROCm and served on loopback for the bounded gates."
+    },
+    {
+      "cmd": "python scripts/verify_vllm_tool_call.py",
+      "cwd": "/workspace/amd-track2-agent/repo",
+      "exit": 0,
+      "result": "Native structured proposal parsed as one inert inspect_evidence_gaps Tool Call."
+    },
+    {
+      "cmd": "python scripts/verify_e1_model_contract.py --base-url http://127.0.0.1:8000/v1 --model-id Qwen2.5-14B-Instruct",
+      "cwd": "/workspace/amd-track2-agent/repo",
+      "exit": 0,
+      "result": "Public model contract passed with valid structured output, one proposal and no execution permission."
+    },
+    {
+      "cmd": "python scripts/verify_e1_runtime_gate.py --base-url http://127.0.0.1:8000/v1 --model-id Qwen2.5-14B-Instruct",
+      "cwd": "/workspace/amd-track2-agent/repo",
+      "exit": 0,
+      "result": "One real model call produced verified allow/effect/SUCCEEDED and deny/no-effect/POLICY_BLOCKED paths with restart checkpoint and unchanged canonical asset."
+    },
+    {
+      "cmd": "pytest -q",
+      "cwd": "/workspace/amd-track2-agent/repo",
+      "exit": 0,
+      "result": "58/58 backend tests passed, including durable model-failure and malformed-response parser/restart regressions."
+    },
+    {
+      "cmd": "ruff check .",
+      "cwd": "/workspace/amd-track2-agent/repo",
+      "exit": 0,
+      "result": "Ruff passed."
+    }
+  ],
+  "results": {
+    "terminal_state": "FIX_AND_W7900_READY_REVIEW_PENDING",
+    "measurements": {
+      "failure_terminal_regressions": "4/4",
+      "backend_pytest": "58/58",
+      "public_qa_unittest": "31/31",
+      "frontend_contract_provenance": "15/15",
+      "frontend_vitest": "89/89",
+      "mock_playwright": "15 passed, 1 expected live skip",
+      "live_playwright": "16/16",
+      "production_dependency_vulnerabilities": 0,
+      "native_tool_call": "PASS",
+      "model_contract": "PASS",
+      "runtime_allow_deny_effect_terminal_restart": "PASS"
+    },
+    "failed_observations_retained": [
+      {
+        "source": "PR #12 quality-owner review of the first combined packet",
+        "result": "FAIL",
+        "severity": "HIGH",
+        "observation": "Injected ModelUnavailable and a missing required Tool Call could leave the durable run at PLANNED with finished_at and terminal_state unset."
+      },
+      {
+        "source": "Initial full model-snapshot verification in this W7900 run",
+        "result": "FAIL",
+        "severity": "RECOVERABLE_ENVIRONMENT_DRIFT",
+        "observation": "One undeclared partial temporary shard remained beside the complete declared snapshot."
+      }
+    ],
+    "recovery": [
+      "Commit 2deaad7 converts named model-failure classes to explicit terminal checkpoints and run results while preserving the last durable asset version.",
+      "Commit de72a6c normalizes invalid JSON and malformed successful-vLLM response shapes to InvalidModelOutput, with a real parser-to-Agent-to-SQLite restart regression.",
+      "The undeclared partial temporary shard was moved intact to persistent quarantine; the declared snapshot then passed full SHA-256 verification before model load."
+    ],
+    "unverified": [
+      "Quality-owner re-review and formal T06 promotion.",
+      "OOM-specific model-server classification.",
+      "Repeated performance measurements and a formal serving reference, Baseline, Candidate or optimization comparison.",
+      "The first useful M1 product slice and every E2+ product milestone."
+    ]
+  },
+  "inherited_evidence": [
+    {
+      "packet_id": "e1-combined-terminal-fix-20260727T050325Z-2deaad7",
+      "path": "../20260727T050325Z/",
+      "quality_status": "FIX_READY_REVIEW_PENDING",
+      "scope": "Local durable terminal-fix packet superseded by this exact-current-commit W7900 rerun."
+    },
+    {
+      "packet_id": "e1-combined-20260726T220422Z-23653d6",
+      "path": "../20260726T220422Z/",
+      "quality_status": "FAIL during PR #12 T06 review",
+      "scope": "Original combined packet retained as the failed observation."
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "artifacts/w7900-terminal-regression.json",
+      "sha256": "337a6cebe1735205842d6ecc75997eb97751e353f1ab08a2b40b95ae08182677",
+      "description": "Sanitized exact-commit W7900/ROCm/model, Tool Call, Runtime closure, parser/terminal regression and raw-evidence checksum record."
+    }
+  ],
+  "decision": {
+    "result_class": "FIX_AND_W7900_READY_REVIEW_PENDING",
+    "known_risks": [
+      "The correction and exact-current-commit GPU rerun have not yet been accepted by the quality owner, so T06 and E2 remain blocked.",
+      "The failure boundary covers unavailable, timeout, invalid/empty, malformed successful response and missing-tool classes; OOM-specific server classification remains unverified.",
+      "Single smoke timings are recorded only for traceability and cannot support a performance claim.",
+      "E1 proves foundations and safe task closure only; no useful M1 product artifact exists yet."
+    ],
+    "rollback": "Revert commits de72a6c959d10c03c8fff42bf3b788484f5064b5 and 2deaad7ad0fa268f8a0a75f6b87954aabe2ab3f0. The earlier failed packet remains retained and E2 stays blocked.",
+    "owner": "kinnyuww / quality owner",
+    "deadline": "Before T06 promotion or any E2/M1 implementation"
+  },
+  "history": {
+    "supersedes_packet_id": "e1-combined-terminal-fix-20260727T050325Z-2deaad7",
+    "notes": "Preserves both earlier packets and adds exact-current-commit W7900 evidence after the parser normalization correction. No prior command, observation or review decision is overwritten.",
+    "manifest_corrections": [
+      {
+        "corrected_after_commit": "fdfa1c15b7274098b3dc3a25ecc85a93f2dc7880",
+        "reason": "The initial packet used two descriptive wrapper names that do not exist in the tested Git tree. This clerical correction records the actual committed reproduction entry points and their expanded non-secret arguments.",
+        "replaced": [
+          "python scripts/run_model_contract_gate.py",
+          "python scripts/run_runtime_gate.py"
+        ],
+        "with": [
+          "python scripts/verify_e1_model_contract.py --base-url http://127.0.0.1:8000/v1 --model-id Qwen2.5-14B-Instruct",
+          "python scripts/verify_e1_runtime_gate.py --base-url http://127.0.0.1:8000/v1 --model-id Qwen2.5-14B-Instruct"
+        ]
+      }
+    ]
+  }
+}

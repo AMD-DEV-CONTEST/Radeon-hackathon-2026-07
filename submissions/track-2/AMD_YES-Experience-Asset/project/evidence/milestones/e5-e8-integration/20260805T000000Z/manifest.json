@@ -1,0 +1,170 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "e5-e8-integration-20260805T000000Z",
+  "timestamp_utc": "2026-08-05T00:00:00Z",
+  "independent_decision": "CONDITIONAL",
+  "decision_reason": "Repository, application and product-surface integration for E5-E7 is verified locally at one exact head. No W7900 device evidence was produced in this packet, so the A0 Application Baseline is NOT frozen by it.",
+  "source": {
+    "git_commit": "fc32868356e8af82862bcc10c391504558c2fc0c",
+    "branch": "integration/e5-e8-a0",
+    "dirty_tree": false,
+    "issues": [
+      "https://github.com/kinnyuww/amd-devmaster-track2-agent/issues/48",
+      "https://github.com/kinnyuww/amd-devmaster-track2-agent/issues/49",
+      "https://github.com/kinnyuww/amd-devmaster-track2-agent/issues/50",
+      "https://github.com/kinnyuww/amd-devmaster-track2-agent/issues/51"
+    ],
+    "imported_sources": {
+      "e5_pr40_head": "e3ff011",
+      "e5_pr35_contained": "60c1ec2",
+      "e6_pr31_head": "8f03f3c",
+      "e7_pr34_head": "31df834",
+      "base_main": "d32730f"
+    }
+  },
+  "quality_mapping": {
+    "acceptance_criteria": [
+      "AC-05",
+      "AC-07",
+      "AC-08",
+      "AC-09",
+      "AC-14",
+      "AC-17",
+      "AC-30"
+    ],
+    "l1_milestones": [
+      "M4 readiness and gated relation discovery",
+      "M5 route readiness, privacy review, approval",
+      "E7 deterministic delivery, export, deletion"
+    ],
+    "l2_gates": [
+      "Canonical identity",
+      "Runtime permission",
+      "Persistence and restart recovery",
+      "Auditability"
+    ],
+    "not_claimed": [
+      "AC-18 complete Track 2 Agent loop on device",
+      "AC-19",
+      "AC-20",
+      "AC-21",
+      "AC-31",
+      "AC-32"
+    ]
+  },
+  "input": {
+    "fixture_or_scenario_id": "scripted-M1-to-M5 deterministic scaffold (tests.integration.test_m4_api.ScriptedM4Client)",
+    "version": "integration-local-v1",
+    "note": "This is NOT one of the seven public chair fixtures. The seven-fixture matrix requires the real M1 ingestion path against a live local model and is not run in this packet."
+  },
+  "environment": {
+    "hardware": {
+      "platform": "Darwin arm64 local development host",
+      "gpu": "NOT_USED_OR_VERIFIED"
+    },
+    "software": {
+      "python": "3.12.1",
+      "node": "24.12.0"
+    },
+    "workflow_schema_versions": {
+      "m5_route_policy": "m5-route-policy-v1",
+      "m5_privacy_policy": "m5-privacy-policy-v1",
+      "m5_approval_policy": "m5-approval-policy-v1",
+      "m5_privacy_text_detector": "m5-privacy-text-detector-v1",
+      "delivery_output": "e7-delivery/v1",
+      "schema_migrations_applied": 11
+    }
+  },
+  "model_and_serving": {
+    "model_source": null,
+    "model_revision_or_hash": null,
+    "license": null,
+    "dtype": null,
+    "quantization": null,
+    "arguments": [],
+    "claim": "No model service was called. Every model-facing step used a scripted deterministic client. This packet makes no locality, latency, throughput, or VRAM claim."
+  },
+  "context_window_note": {
+    "verified_w7900_window_tokens": 8192,
+    "approved_business_budget_tokens": 20480,
+    "claim": "Neither number is exercised by this packet. 8192 remains the only device-verified window; 20480 remains a business budget ceiling and is not a verified deployment capability."
+  },
+  "commands": [
+    {
+      "command": "git merge --no-ff origin/e5/t08-evidence-card",
+      "exit_code": 0,
+      "result": "PASS: 163 files, no conflicts; PR #35 (60c1ec2) confirmed an ancestor of e3ff011"
+    },
+    {
+      "command": "git apply <PR #31 diff 4e4d181..8f03f3c minus contracts/checkpoints/e5-m4-execution-v1.json>",
+      "exit_code": 0,
+      "result": "PASS: 17 files, byte-identical to 8f03f3c"
+    },
+    {
+      "command": "git apply <PR #34 diff 4e4d181..31df834 minus contracts/checkpoints/e5-m4-execution-v1.json>",
+      "exit_code": 0,
+      "result": "PASS: 29 files; 28 byte-identical to 31df834, CURRENT_ITERATION.md appended"
+    },
+    {
+      "command": "python3 -m pytest",
+      "exit_code": 0,
+      "result": "PASS: 605 tests"
+    },
+    {
+      "command": "python3 -m ruff check .",
+      "exit_code": 0,
+      "result": "PASS"
+    },
+    {
+      "command": "python3 -m unittest discover -s qa/tests -v",
+      "exit_code": 0,
+      "result": "PASS: 34 public QA tests"
+    },
+    {
+      "command": "bash qa/gates/pr_gate.sh --mode contract",
+      "exit_code": 0,
+      "result": "PASS (contract mode): disclosure/credential boundary and seven public fixture categories"
+    },
+    {
+      "command": "bash -n scripts/*.sh && python3 -m py_compile scripts/*.py && git diff --check",
+      "exit_code": 0,
+      "result": "PASS"
+    },
+    {
+      "command": "cd web && npm run test && npm run lint && npx tsc -b --noEmit && npm run build && npm run verify:contracts",
+      "exit_code": 0,
+      "result": "PASS: 27 files / 220 tests, eslint clean, typecheck clean, production bundle emitted, 18/18 vendored contracts match"
+    },
+    {
+      "command": "python3 -c 'from qa.scripts.check_asset_schema import check, load; check(load(canonical-asset.json), load(qa/expected/chair_public_complete.expected.json))'",
+      "exit_code": 0,
+      "result": "RAN, one HIGH finding retained: route public 'eligible' != expected 'eligible_after_privacy_approval'. Expected and explained: the scaffold asset is not the chair_public_complete fixture content, so its privacy findings differ. This is not a seven-fixture matrix result."
+    },
+    {
+      "command": "bash scripts/verify_remote_dev.sh && bash scripts/verify_rocm_env.sh",
+      "exit_code": null,
+      "result": "NOT_RUN_INFRA_BLOCKED: no Radeon Cloud Pod reachable from the integration session."
+    }
+  ],
+  "w7900_execution_status": "NOT_RUN_INFRA_BLOCKED",
+  "w7900_blocked_reason": "No Radeon Cloud Pod was reachable from the session that performed this integration. The repository deliberately records no Pod host identifier, and no SSH host for Radeon Cloud is configured. No fake or CPU run was substituted.",
+  "artifacts": [
+    {
+      "path": "artifacts/canonical-asset.json",
+      "sha256": "0ae928efdada21aa01b8fa6f08ea6c5a0887655afacf1f9aeb1704ce7848a91a",
+      "description": "Public-schema canonical asset produced through the real M1-M5 API with a scripted model client, serialized with the live M5 route decisions."
+    },
+    {
+      "path": "artifacts/retrieval-trace.json",
+      "sha256": "2d436a1705bf44ed4ba6d0aace1af942170eddf436dad02a63d801bacdeae352",
+      "description": "Retrieval-phase trace for the same asset, one recorded event."
+    }
+  ],
+  "open_items": [
+    "E5 T11 external W7900 exact-head local-inference evidence",
+    "Seven public fixture runs through the real ingestion path",
+    "Public adversarial and failure checklist execution",
+    "One recorded complete W7900 flow",
+    "A0 freeze (blocked on all of the above)"
+  ]
+}

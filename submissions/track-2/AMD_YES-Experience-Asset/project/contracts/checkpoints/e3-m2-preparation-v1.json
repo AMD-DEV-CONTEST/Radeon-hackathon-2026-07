@@ -1,0 +1,132 @@
+{
+  "schema_version": "e3-m2-preparation/v1",
+  "status": "READY_FOR_REVIEW",
+  "owner": "Eas000n",
+  "previous_owner": "1olaqua616-web",
+  "upstream": {
+    "pr": 16,
+    "contract_commit": "7fcfc3bde34e6075bff4f90dea7e0a595e27ba31",
+    "required_input": "accepted M1 canonical version and source-linked statements"
+  },
+  "artifact": "Critical Moment Map v0.1",
+  "contract": "contracts/json-schema/critical-moment-map-v0.1.schema.json",
+  "track_2_relevance": [
+    "LangGraph orchestrates the durable multi-step M1-to-M2 workflow.",
+    "A localhost vLLM model proposes semantic CUE, CHANGE and SURPRISE roles through a strict structured-output contract.",
+    "The local Agent keeps private source content outside graph checkpoints and traces.",
+    "SQLite remains canonical truth while the LangGraph SQLite checkpointer stores only the orchestration cursor.",
+    "Trusted user confirmation, not model output, decides whether a proposed moment is critical."
+  ],
+  "workflow": {
+    "version": "experience-asset/e3-m2/v1",
+    "topology_hash": "167415797b782af30d7918356e5d9a450ce4b3cac754dc00e5b9d330bc004b4d",
+    "nodes": [
+      "load_m2_context",
+      "plan_m2_refinement",
+      "persist_m2_map",
+      "verify_m2_map",
+      "terminalize_m2_run"
+    ],
+    "conditional_edges": [
+      "load_m2_context:ready->plan_m2_refinement",
+      "load_m2_context:stale_or_incompatible->terminalize_m2_run",
+      "plan_m2_refinement:planned->persist_m2_map",
+      "plan_m2_refinement:safe_failure->terminalize_m2_run",
+      "persist_m2_map:persisted->verify_m2_map",
+      "persist_m2_map:safe_failure->terminalize_m2_run",
+      "verify_m2_map:verified->terminalize_m2_run",
+      "verify_m2_map:safe_failure->terminalize_m2_run"
+    ],
+    "state_allowlist": [
+      "run_id",
+      "asset_id",
+      "base_version_id",
+      "command_id",
+      "workflow_version",
+      "topology_hash",
+      "node_attempt",
+      "last_node",
+      "selected_edge",
+      "semantic_role_proposal_hash",
+      "model_call_count",
+      "artifact_id",
+      "canonical_version_id",
+      "terminal_candidate",
+      "finding_codes",
+      "safe_message",
+      "retryable"
+    ],
+    "forbidden_state": [
+      "raw source text",
+      "canonical asset payload",
+      "raw prompt or model response",
+      "rendered output"
+    ],
+    "effect_key": "{run_id}:{node_name}:{node_attempt}",
+    "canonical_truth": "SQLite application repository",
+    "resume_cursor": "LangGraph AsyncSqliteSaver sharing the application database",
+    "compile_policy": "one graph instance compiled at application startup"
+  },
+  "invariants": [
+    "Every map binds to one explicit base_m1_version_id.",
+    "Every moment references source statements declared by the map.",
+    "Semantic role proposals must reference every eligible current statement exactly once and may not reference any unknown statement.",
+    "Model unavailability, timeout or invalid structured output stops safely without a regex or keyword fallback.",
+    "Agent output may only propose criticality; USER_CONFIRMED and UNRESOLVED are explicit trusted user transitions.",
+    "The map cannot be confirmed while any moment remains AGENT_PROPOSED.",
+    "Missing time remains MISSING with an unresolved reason and no invented label.",
+    "Conflicting time remains CONFLICTING and references both conflicting statements.",
+    "A correction invalidates M2 only when it changes a declared dependency statement.",
+    "An invalidated artifact remains visible but is not presented as current."
+  ],
+  "public_scenarios": [
+    "complete",
+    "incomplete",
+    "conflicting",
+    "correction_invalidation"
+  ],
+  "isolated_files": [
+    "app/experience_asset/domain/m2.py",
+    "app/experience_asset/application/m2/",
+    "app/experience_asset/workflow/m2_graph.py",
+    "app/experience_asset/workflow/m2_state.py",
+    "tests/unit/test_m2_contracts.py",
+    "web/src/features/m2/"
+  ],
+  "implemented_in_vertical_slice": [
+    "M1-to-M2 API adapter and trusted confirmation",
+    "startup-compiled LangGraph M2 subgraph with idempotent effects and restart recovery",
+    "localhost vLLM semantic role extraction with strict schema and reference validation",
+    "persisted proposal hash, real model-call count and sanitized local-model identity evidence",
+    "per-moment title editing and explicit criticality confirmation or unresolved state",
+    "shared OpenAPI and application entry points",
+    "SQLite artifact-history migration and optimistic writes",
+    "real FastAPI/React integration"
+  ],
+  "deferred": [
+    "independent quality-owner acceptance",
+    "real W7900 execution and observed result; the implementation owner prepares the runner, public scenario, checks and packet finalizer, while E3 makes no new performance claim"
+  ],
+  "evidence_impact": {
+    "required": [
+      "topology identity and branch coverage",
+      "checkpoint privacy and restart-without-duplicate proof",
+      "implicit semantic role extraction, ambiguous wording regression and safe model-failure proof",
+      "trusted per-moment confirmation and incomplete/conflicting scenarios",
+      "real FastAPI/React journey"
+    ],
+    "submission_claim": "E3 demonstrates private local multi-step Agent orchestration and a user-confirmed Critical Moment Map; it makes no new W7900 performance claim.",
+    "exact_commit_packet": "evidence/milestones/e3-m2/20260729T075518Z/"
+  },
+  "gpu": {
+    "required_for_preparation": false,
+    "preparation_status": "RUNNER_RUNBOOK_AND_PACKET_FINALIZER_READY",
+    "prepared_runner": "scripts/run_e3_w7900_gate.py",
+    "prepared_handoff": "docs/E3_M2_W7900_HANDOFF.md",
+    "prepared_public_capture": "scripts/capture_e3_m2_evidence.py",
+    "prepared_packet_finalizer": "scripts/finalize_e3_w7900_packet.py",
+    "w7900_test_owner": "collaborator on the unified Radeon Cloud instance",
+    "execution_status": "NOT_RUN_DELEGATED",
+    "performance_claim": false
+  }
+}

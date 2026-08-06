@@ -1,0 +1,82 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "E1-B-20260724T105247Z-relation",
+  "timestamp_utc": "2026-07-24T10:52:47Z",
+  "source": {
+    "git_commit": "e48dfa2b5990f80fe4ae0a53239d5e5bb0d9ce4b",
+    "branch": "codex/e1-b-react-shell",
+    "dirty_tree": false,
+    "described_commit_note": "This packet describes the E1-B relation-discovery code commit e48dfa2 (web/), added after the branch was realigned onto main (which now contains PR #9). The packet files themselves are added in the following commit on the same branch/PR.",
+    "issue": "https://github.com/kinnyuww/amd-devmaster-track2-agent/issues/6",
+    "pull_request": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/8",
+    "realigned_onto": "main @ db3a534 (merge of PR #9)"
+  },
+  "scope": "Cross-asset relation discovery gated on the public retrieval-phase (KnowledgeCardReady / AC-30) contract. Adds to the existing E1-B status shell; no E1-B milestone is claimed.",
+  "quality_mapping": {
+    "acceptance_criteria": ["AC-15", "AC-17", "AC-30"],
+    "acceptance_criteria_note": "AC-30 (phase-gated cross-asset RAG) is the primary contract this change renders. AC-17 (no fabricated progress) and AC-15 (invalidation) are preserved.",
+    "l1_milestones": ["cross-cutting UI foundation (no M1-M5 promoted)"],
+    "l2_gates": ["Canonical state", "Evidence and permission boundaries", "Observability"]
+  },
+  "input": {
+    "fixture_or_scenario_id": "checked-in retrieval-phase traces (relation-ready, relation-no-match, relation-confirmed, relation-detail-denied, relation-invalidated) in web/src/data/traces/",
+    "version": "retrieval-phase-trace v0.1.0",
+    "sha256": null,
+    "sha256_reason": "Trace fixtures are validated at test time against the vendored JSON Schema and independently against the public AC-30 checker; the vendored schema hash is in web/contracts/rag-contract-provenance.json."
+  },
+  "contract_vendoring": {
+    "file": "web/contracts/json-schema/retrieval-phase-trace-v1.schema.json",
+    "source_commit": "14a43a47cd929fb612987be8e66c712993181419",
+    "source_path": "qa/schema/retrieval_phase_trace.schema.json",
+    "sha256": "fb50e816ef654746373814386403efe60c4c874342aa7333066a369680073408",
+    "note": "Byte-identical vendoring under rag-contract-provenance.json; verify:contracts enforces 10/10 files."
+  },
+  "environment": {
+    "hardware": { "note": "local developer workstation (macOS, arm64); not the W7900 GPU gate" },
+    "software": {
+      "node": "24.12.0",
+      "npm": "11.6.2",
+      "python": "3.12.1",
+      "vite": "5.4.x",
+      "typescript": "~5.6.3",
+      "vitest": "~2.1.9",
+      "playwright": "chromium (installed via playwright install chromium)"
+    },
+    "workflow_schema_versions": {
+      "canonical_schema_version": "1.0.0",
+      "e1a_contract_source_commit": "4960fa045d6627223cf92d0a543438f73ad9d0fe",
+      "rag_contract_source_commit": "14a43a47cd929fb612987be8e66c712993181419"
+    }
+  },
+  "model_and_serving": {
+    "note": "E1-B is a frontend status shell; no model was loaded. The real W7900/ROCm model-viability gate is Lane A / Issue #5."
+  },
+  "commands": [
+    { "cmd": "git merge origin/main --no-edit", "cwd": ".", "exit": 0, "result": "realign onto main (contains PR #9); no web/ conflicts" },
+    { "cmd": "npm ci", "cwd": "web", "exit": 0 },
+    { "cmd": "npm run verify:contracts", "cwd": "web", "exit": 0, "result": "10/10 vendored files match (E1-A 9 + RAG 1)" },
+    { "cmd": "npm run typecheck", "cwd": "web", "exit": 0 },
+    { "cmd": "npm run lint", "cwd": "web", "exit": 0 },
+    { "cmd": "npm run test", "cwd": "web", "exit": 0, "result": "8 files / 62 tests passed (was 39; +23)" },
+    { "cmd": "npm run build", "cwd": "web", "exit": 0 },
+    { "cmd": "npx playwright test relation.spec.ts", "cwd": "web", "exit": 0, "result": "6 passed (relation states, real chromium, screenshots captured)" },
+    { "cmd": "npx playwright test status.spec.ts", "cwd": "web", "exit": 0, "result": "9 mock states passed (live-backend test not run here)" },
+    { "cmd": "python3 qa/scripts/check_retrieval_phase.py web/src/data/traces/relation-ready.json", "cwd": ".", "exit": 0, "result": "RESULT: PASS" },
+    { "cmd": "python3 qa/scripts/check_retrieval_phase.py web/src/data/traces/relation-no-match.json", "cwd": ".", "exit": 0, "result": "RESULT: PASS" },
+    { "cmd": "python3 qa/scripts/check_retrieval_phase.py web/src/data/traces/relation-confirmed.json", "cwd": ".", "exit": 0, "result": "RESULT: PASS" },
+    { "cmd": "python3 qa/scripts/check_retrieval_phase.py web/src/data/traces/relation-detail-denied.json", "cwd": ".", "exit": 0, "result": "RESULT: PASS" },
+    { "cmd": "python3 qa/scripts/check_retrieval_phase.py web/src/data/traces/relation-invalidated.json", "cwd": ".", "exit": 0, "result": "RESULT: PASS" },
+    { "cmd": "python3 -m unittest discover -s qa/tests", "cwd": ".", "exit": 0, "result": "31 tests OK" },
+    { "cmd": "bash qa/gates/pr_gate.sh --mode contract", "cwd": ".", "exit": 0, "result": "PR GATE: PASS (contract mode)" }
+  ],
+  "gate_proof": {
+    "gate_1_readiness_before_candidates": "deriveRelationDiscovery drops any relation_candidate_search seen before an accepted knowledge_card_ready and records a gate violation; proven by relationView.test.ts.",
+    "gate_2_confirmation_before_detail": "detail stays DENIED until a relation is CONFIRMED; a relation_detail_retrieval before confirmation is refused and recorded; proven by relationView.test.ts.",
+    "official_alignment": "The same two gates are enforced independently by the backend qa suite (qa/tests/test_qa_framework.py) and the AC-30 checker, which all five UI trace fixtures pass."
+  },
+  "non_goals": [
+    "No M1 refinement feature, export/deletion, direct SQLite/vLLM access, invented backend state, public tunnel, analytics, or performance claim.",
+    "No unilateral contract/schema change: the retrieval-phase schema is vendored verbatim from main.",
+    "No E1-B milestone promotion is claimed."
+  ]
+}

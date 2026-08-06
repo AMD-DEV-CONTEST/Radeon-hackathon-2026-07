@@ -1,0 +1,141 @@
+{
+  "$defs": {
+    "ProgressState": {
+      "enum": [
+        "QUEUED",
+        "RUNNING",
+        "WAITING_FOR_USER",
+        "TERMINAL"
+      ],
+      "title": "ProgressState",
+      "type": "string"
+    },
+    "TerminalState": {
+      "enum": [
+        "SUCCEEDED",
+        "NEEDS_USER_INPUT",
+        "PAUSED",
+        "CANCELLED",
+        "TIMED_OUT",
+        "MODEL_UNAVAILABLE",
+        "MODEL_OOM",
+        "INVALID_MODEL_OUTPUT",
+        "STORAGE_ERROR",
+        "POLICY_BLOCKED",
+        "DELETION_FAILED",
+        "INTERNAL_ERROR"
+      ],
+      "title": "TerminalState",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "State-derived progress; it never invents a percentage or ETA.",
+  "properties": {
+    "last_durable_artifact_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Last Durable Artifact Id"
+    },
+    "model_call_budget": {
+      "const": 4,
+      "default": 4,
+      "title": "Model Call Budget",
+      "type": "integer"
+    },
+    "model_calls_used": {
+      "maximum": 4,
+      "minimum": 0,
+      "title": "Model Calls Used",
+      "type": "integer"
+    },
+    "occurred_at": {
+      "format": "date-time",
+      "title": "Occurred At",
+      "type": "string"
+    },
+    "replan_budget": {
+      "const": 1,
+      "default": 1,
+      "title": "Replan Budget",
+      "type": "integer"
+    },
+    "replans_used": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Replans Used",
+      "type": "integer"
+    },
+    "safe_message": {
+      "minLength": 1,
+      "title": "Safe Message",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "stage": {
+      "enum": [
+        "LOAD_CONTEXT",
+        "PLAN_LEDGER",
+        "VALIDATE_OUTPUT",
+        "REPAIR_OUTPUT",
+        "EVALUATE_TOOL_POLICY",
+        "PERSIST_LEDGER",
+        "VERIFY_LEDGER",
+        "REPLAN",
+        "TERMINAL"
+      ],
+      "title": "Stage",
+      "type": "string"
+    },
+    "state": {
+      "$ref": "#/$defs/ProgressState"
+    },
+    "structured_repair_budget": {
+      "const": 2,
+      "default": 2,
+      "title": "Structured Repair Budget",
+      "type": "integer"
+    },
+    "structured_repairs_used": {
+      "maximum": 2,
+      "minimum": 0,
+      "title": "Structured Repairs Used",
+      "type": "integer"
+    },
+    "terminal_state": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TerminalState"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "stage",
+    "state",
+    "structured_repairs_used",
+    "replans_used",
+    "model_calls_used",
+    "safe_message",
+    "occurred_at"
+  ],
+  "title": "M3ProgressV1",
+  "type": "object"
+}

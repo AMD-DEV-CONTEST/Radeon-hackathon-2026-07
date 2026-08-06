@@ -1,0 +1,117 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "e1-a3-w7900-20260725T121500Z-5209101",
+  "timestamp_utc": "2026-07-25T12:15:00Z",
+  "source": {
+    "git_commit": "520910183783c9bec8a0810a34b49dcc7856f360",
+    "branch": "codex/e1-a-runtime-foundation",
+    "dirty_tree": false,
+    "issue": "https://github.com/kinnyuww/amd-devmaster-track2-agent/issues/5",
+    "pull_request": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/7"
+  },
+  "quality_mapping": {
+    "acceptance_criteria": [
+      "AC-03",
+      "AC-04",
+      "AC-11",
+      "AC-18",
+      "AC-19",
+      "AC-22",
+      "AC-30"
+    ],
+    "l1_milestones": [
+      "E1-A3"
+    ],
+    "l2_gates": [
+      "Local inference",
+      "Tool invocation",
+      "Runtime permission",
+      "Persistence and resume",
+      "Retrieval phase integrity",
+      "Failure behavior",
+      "Evidence discipline"
+    ]
+  },
+  "input": {
+    "fixture_or_scenario_id": "e1-a-public-tool-smoke-v1",
+    "version": "runtime-review-fix-2026-07-25",
+    "data_class": "public_synthetic"
+  },
+  "environment": {
+    "hardware": {
+      "cpu_quota_cores": 16,
+      "memory_limit_gib": 55,
+      "gpu_count": 1,
+      "gpu_arch": "gfx1100",
+      "gpu_compute_units": 96,
+      "gpu_vram_mb": 49136
+    },
+    "software": {
+      "os": "Ubuntu 24.04.4",
+      "kernel": "6.8.0-79-generic",
+      "rocm_image": "7.2.1",
+      "hip": "7.2.53211",
+      "python": "3.12.3",
+      "torch": "2.11.0+gitd0c8b1f",
+      "vllm": "0.23.1rc1.dev1327+gf25953cc5.rocm723"
+    }
+  },
+  "model_and_serving": {
+    "model_source": "ModelScope Qwen/Qwen2.5-14B-Instruct",
+    "model_revision_or_hash": "3957bf39753cf01f98f6560295c4811c2b5df001",
+    "license": "Apache-2.0",
+    "dtype": "bfloat16",
+    "quantization": "none",
+    "context_limit": 8192,
+    "snapshot_files_verified": 19,
+    "vllm_wheel_sha256": "295fc4e1518868a39504be56a197eabf0ab64c950562c076549b5db2d1e78435",
+    "arguments": [
+      "--host 127.0.0.1",
+      "--port 8000",
+      "--dtype bfloat16",
+      "--max-model-len 8192",
+      "--gpu-memory-utilization 0.82",
+      "--max-num-seqs 4",
+      "--enable-auto-tool-choice",
+      "--tool-call-parser hermes"
+    ]
+  },
+  "results": {
+    "terminal_state": "PASS_REVIEW_PENDING",
+    "measurements": {
+      "model_snapshot_full_sha256": "PASS",
+      "rocm_gpu_tensor": "PASS",
+      "structured_tool_proposal": "PASS",
+      "runtime_allow": "PASS",
+      "runtime_deny": "PASS",
+      "terminal_and_restart": "PASS",
+      "lane_a_tests_passed": 46,
+      "public_qa_tests_passed": 31
+    },
+    "failures": [
+      "Initial two-sample Runtime gate received no tool proposal on one independent sample.",
+      "One operator transfer copied the revised script to the wrong remote path.",
+      "One structurally valid real-model proposal failed the exact Runtime scope binding and was safely rejected before bounded retry."
+    ],
+    "unverified": [
+      "Quality-owner acceptance of the review fixes",
+      "OOM and model-service restart behavior",
+      "Performance Baseline or optimization improvement"
+    ]
+  },
+  "raw_evidence": {
+    "storage_tier": "Radeon Cloud PVC only",
+    "path": "/workspace/amd-track2-agent/evidence/e1-a3-w7900-20260725T121500Z-5209101/raw/",
+    "checksums_retained": true
+  },
+  "decision": {
+    "result_class": "PASS_REVIEW_PENDING",
+    "rollback": "Return PR #7 to c7e82b1; the earlier service and model snapshot remain unchanged on the persistent cloud workspace.",
+    "owner": "Eas000n and quality/integration owner",
+    "deadline": "Before PR #7 is marked ready or merged"
+  },
+  "history": {
+    "supersedes_packet_id": "e1a3-remote-20260724T093311Z-f7ebbbc",
+    "notes": "Exact clean implementation commit was exported and run on the W7900; the evidence commit only adds this sanitized packet."
+  }
+}

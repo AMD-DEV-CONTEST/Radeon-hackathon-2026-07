@@ -1,0 +1,98 @@
+{
+  "additionalProperties": false,
+  "description": "Canonical inputs of one discovery request.\n\nThe field set is frozen here rather than in ticket 05 or 06 so that both\nimplement one agreed shape. Left to either, two callers serializing the same\nlogical input could produce different fingerprints, and the cache would stop\nworking while still appearing correct.\n\nModel, prompt and configuration identity are included on purpose: the same\ngraphs under a different model produce a different judgement, so an upgraded\nmodel must not keep serving the previous model's cached `NO_MATCH`.",
+  "properties": {
+    "current_asset_id": {
+      "format": "uuid",
+      "title": "Current Asset Id",
+      "type": "string"
+    },
+    "current_knowledge_card_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Current Knowledge Card Hash",
+      "type": "string"
+    },
+    "current_projection_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Current Projection Hash",
+      "type": "string"
+    },
+    "current_version_id": {
+      "format": "uuid",
+      "title": "Current Version Id",
+      "type": "string"
+    },
+    "discovery_intent_version": {
+      "minLength": 1,
+      "title": "Discovery Intent Version",
+      "type": "string"
+    },
+    "eligible_projection_hashes": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Eligible Projection Hashes",
+      "type": "array"
+    },
+    "fingerprint_schema_version": {
+      "const": "e5-fingerprint/v1",
+      "default": "e5-fingerprint/v1",
+      "title": "Fingerprint Schema Version",
+      "type": "string"
+    },
+    "inference_parameters_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Inference Parameters Hash",
+      "type": "string"
+    },
+    "model_identity": {
+      "minLength": 1,
+      "title": "Model Identity",
+      "type": "string"
+    },
+    "model_revision": {
+      "minLength": 1,
+      "title": "Model Revision",
+      "type": "string"
+    },
+    "prefilter_config_version": {
+      "minLength": 1,
+      "title": "Prefilter Config Version",
+      "type": "string"
+    },
+    "prompt_version": {
+      "minLength": 1,
+      "title": "Prompt Version",
+      "type": "string"
+    },
+    "role_contract_version": {
+      "minLength": 1,
+      "title": "Role Contract Version",
+      "type": "string"
+    },
+    "validation_contract_version": {
+      "minLength": 1,
+      "title": "Validation Contract Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "current_asset_id",
+    "current_version_id",
+    "current_knowledge_card_hash",
+    "current_projection_hash",
+    "eligible_projection_hashes",
+    "model_identity",
+    "model_revision",
+    "prompt_version",
+    "role_contract_version",
+    "validation_contract_version",
+    "discovery_intent_version",
+    "inference_parameters_hash",
+    "prefilter_config_version"
+  ],
+  "title": "DiscoveryFingerprintV1",
+  "type": "object"
+}

@@ -1,0 +1,207 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "e2-m1-contract-20260728T035750Z-7fcfc3b",
+  "timestamp_utc": "2026-07-28T03:57:50Z",
+  "source": {
+    "git_commit": "7fcfc3bde34e6075bff4f90dea7e0a595e27ba31",
+    "branch": "codex/e2-m1-experience-brief",
+    "dirty_tree": false,
+    "described_commit_note": "All checks ran on the exact tree subsequently committed as 7fcfc3b; git diff against HEAD was clean after the implementation commit. This append-only packet is added in the following evidence commit.",
+    "issue": "https://github.com/kinnyuww/amd-devmaster-track2-agent/issues/15",
+    "pull_request": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/16"
+  },
+  "scope": "Freeze E2/M1 checkpoint 1 request, output, error, progress and invalidation contracts; generated schemas and OpenAPI; public-fixture behavior; negative cases; AC/L1/L2/Track 2 mapping; and the exact boundary that can unlock bounded E3 preparation after independent confirmation.",
+  "quality_mapping": {
+    "acceptance_criteria": [
+      "AC-01",
+      "AC-03",
+      "AC-04",
+      "AC-10",
+      "AC-13",
+      "AC-15",
+      "AC-16",
+      "AC-17",
+      "AC-18",
+      "AC-22",
+      "AC-23",
+      "AC-25"
+    ],
+    "l1_milestones": [
+      "M1 Experience Brief"
+    ],
+    "l2_gates": [
+      "Canonical state",
+      "Persistence and resume",
+      "Evidence discipline",
+      "Retrieval phase integrity",
+      "Runtime permission",
+      "Local inference",
+      "Failure behavior",
+      "Observability"
+    ],
+    "track_2_relevance": "Freezes the private local Agent's M1 inputs, durable plan/state, current-source retrieval, structured Tool Call proposal, deterministic Runtime permission, effect verification and explicit terminal boundary.",
+    "submission_impact": "Provides a reproducible contract checkpoint and stable M1 boundary for downstream E3 preparation. It is not W7900 Serving Reference S1, Vertical Slice V1 promotion, E8 Baseline or an optimization claim."
+  },
+  "input": {
+    "fixture_or_scenario_id": "chair_public_complete+chair_incomplete+chair_conflicting+chair_correction+chair_resume",
+    "version": "public-fixture-contract-0.1.0",
+    "data_class": "public_adapted_anonymized_and_synthetic_contract_data",
+    "sha256": {
+      "chair_public_complete": "d627143464cffee446dfa136d4d5c651e4e28c5b85106e576140baf8d51c2601",
+      "chair_incomplete": "3face9ae34722f5f665b854424a04444227ccd4cd87703828e1a4a26b8ec9835",
+      "chair_conflicting": "8636fae52395e741e56dc74c8e83f05479fe2b547857e9799a6fb16231448880",
+      "chair_correction": "0b86d0efcc041067c7e8810c72d3308cd0a8b0c2fcd00d8647907c216730d44f",
+      "chair_resume": "d1d389186c111b0474755004e07898dde218b9110c34632b3da7a3add14a636e",
+      "checkpoint_manifest": "cbdd7f559621d123fc815bbfa19275ec432a57444bcfca15b3150cf891884d7e"
+    }
+  },
+  "environment": {
+    "hardware": {
+      "host": "local developer workstation",
+      "architecture": "arm64",
+      "gpu": null,
+      "gpu_note": "No Radeon Cloud GPU was required or exercised by checkpoint 1."
+    },
+    "software": {
+      "os": "macOS 15.6 build 24G84",
+      "python_system": "3.14.2",
+      "python_agent_venv": "3.12.13",
+      "fastapi": "0.128.8",
+      "pydantic": "2.13.4",
+      "pytest": "8.4.2",
+      "node": "22.22.2",
+      "npm": "10.9.7"
+    },
+    "workflow_schema_versions": {
+      "canonical_schema_version": "1.0.0",
+      "experience_brief": "0.1.0",
+      "m1_contract_checkpoint": "v1"
+    }
+  },
+  "model_and_serving": {
+    "model_source": null,
+    "model_revision_or_hash": null,
+    "license": null,
+    "dtype": null,
+    "quantization": null,
+    "arguments": [
+      "FastAPI live E2E bound to 127.0.0.1:8080",
+      "GPU_VIABILITY=NOT_VERIFIED",
+      "configured production inference boundary remains loopback-only"
+    ],
+    "note": "No real model was loaded. Deterministic and injected-model paths validate the contract and safe terminal behavior only. Real W7900/vLLM work remains in E2 checkpoint 3."
+  },
+  "commands": [
+    {
+      "cmd": "bash -n scripts/*.sh && python3 -m py_compile scripts/*.py",
+      "cwd": ".",
+      "exit": 0,
+      "result": "Repository shell syntax and Python scripts passed."
+    },
+    {
+      "cmd": "python3 -m unittest discover -s qa/tests -v",
+      "cwd": ".",
+      "exit": 0,
+      "result": "31/31 public QA tests passed."
+    },
+    {
+      "cmd": "bash qa/gates/pr_gate.sh --mode contract",
+      "cwd": ".",
+      "exit": 0,
+      "result": "Repository disclosure, credential boundary and seven-category public fixture contract passed."
+    },
+    {
+      "cmd": ".venv/bin/python scripts/export_contracts.py --check",
+      "cwd": ".",
+      "exit": 0,
+      "result": "Checked-in JSON Schema and OpenAPI are current."
+    },
+    {
+      "cmd": ".venv/bin/python -m pytest -q",
+      "cwd": ".",
+      "exit": 0,
+      "result": "77/77 backend tests passed."
+    },
+    {
+      "cmd": ".venv/bin/ruff check .",
+      "cwd": ".",
+      "exit": 0,
+      "result": "Ruff passed."
+    },
+    {
+      "cmd": "npm run verify:contracts && npm run test && npm run typecheck && npm run lint && npm run build",
+      "cwd": "web",
+      "exit": 0,
+      "result": "15/15 vendored contract checks, 95/95 Vitest tests, TypeScript, ESLint and production build passed."
+    },
+    {
+      "cmd": "E2E_LIVE_BASE_URL=http://127.0.0.1:8080 VITE_PROXY_TARGET=http://127.0.0.1:8080 npm run e2e",
+      "cwd": "web",
+      "exit": 0,
+      "result": "17/17 Playwright cases passed against the real loopback FastAPI service, including the M1 create/autosave/pause/restore/resume/Agent-terminal journey."
+    },
+    {
+      "cmd": "git diff --check && git diff --quiet HEAD",
+      "cwd": ".",
+      "exit": 0,
+      "result": "No whitespace errors; the post-commit worktree matched implementation commit 7fcfc3b."
+    }
+  ],
+  "results": {
+    "terminal_state": "READY_FOR_QUALITY_OWNER_CONFIRMATION",
+    "measurements": {
+      "public_qa_unittest": "31/31",
+      "backend_pytest": "77/77",
+      "frontend_contract_provenance": "15/15",
+      "frontend_vitest": "95/95",
+      "live_playwright": "17/17",
+      "contract_gate": "PASS",
+      "ruff": "PASS",
+      "typecheck_lint_build": "PASS"
+    },
+    "failures": [
+      "The first GitHub quality/static-checks run failed AC-22 because the opened-event PR body used the label 'Public QA:' instead of the metadata checker's exact non-empty 'Test/fixture result:' field.",
+      "A manual re-run failed identically because GitHub re-used the original pull_request event payload rather than the edited current PR body.",
+      "The next synchronize run passed PR metadata but git show --check found one extra blank line at EOF in app/experience_asset/api/routes/__init__.py and web/e2e/m1.spec.ts."
+    ],
+    "recovery": [
+      "The Draft PR body was corrected to 'Test/fixture result: Public QA 31/31; contract gate PASS' and visibly verified on PR #16.",
+      "The evidence-only follow-up commit triggered a new synchronize event so CI evaluated the current corrected PR body.",
+      "The two redundant EOF blank lines were removed without changing behavior; the follow-up commit reruns the complete GitHub checks."
+    ],
+    "unverified": [
+      "Quality-owner confirmation of E2 checkpoint 1.",
+      "Backend/UI vertical-slice checkpoint acceptance.",
+      "A successful real-model M1 run on current W7900/ROCm/vLLM.",
+      "Serving Reference S1 and commit-bound Vertical Slice V1.",
+      "E2 promotion, E3 integration and every E3+ milestone."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "contracts/checkpoints/e2-m1-contract-fixtures-v1.json",
+      "sha256": "cbdd7f559621d123fc815bbfa19275ec432a57444bcfca15b3150cf891884d7e",
+      "description": "Machine-readable frozen checkpoint inventory."
+    },
+    {
+      "path": "docs/kinnyu/E2_M1_CONTRACT_CHECKPOINT.md",
+      "sha256": null,
+      "sha256_reason": "Human-readable review guide is bound by the described Git commit."
+    }
+  ],
+  "decision": {
+    "result_class": "READY_FOR_QUALITY_OWNER_CONFIRMATION",
+    "known_risks": [
+      "The Draft PR also contains checkpoint-2 Backend/UI WIP; checkpoint-1 confirmation must not be interpreted as acceptance of that WIP.",
+      "No real W7900/model inference was exercised, so Local inference remains contract-covered but not E2-verified.",
+      "The frozen M1 boundary permits only bounded E3 preparation after confirmation; it does not permit E3 integration or promotion."
+    ],
+    "rollback": "Revert implementation commit 7fcfc3bde34e6075bff4f90dea7e0a595e27ba31. Keep E2 unpromoted and E3 blocked.",
+    "owner": "kinnyuww / quality owner",
+    "deadline": "Before E3 preparation begins"
+  },
+  "history": {
+    "supersedes_packet_id": null,
+    "notes": "First E2/M1 contract checkpoint packet. No gate decision has been made."
+  }
+}

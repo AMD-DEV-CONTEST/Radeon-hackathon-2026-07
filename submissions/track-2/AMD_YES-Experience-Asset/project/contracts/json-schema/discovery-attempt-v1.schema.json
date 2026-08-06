@@ -1,0 +1,160 @@
+{
+  "$defs": {
+    "DiscoveryFailureClass": {
+      "description": "Safe failure classes retained for audit.\n\nNone of these is reusable as a semantic result. Reusing one would let a\nfive-minute outage permanently erase a relation that may well exist.",
+      "enum": [
+        "MODEL_UNAVAILABLE",
+        "MODEL_TIMED_OUT",
+        "MALFORMED_MODEL_OUTPUT",
+        "RUNTIME_VALIDATION_REJECTED",
+        "STORAGE_CONFLICT",
+        "STALE_BINDING",
+        "LEASE_EXPIRED"
+      ],
+      "title": "DiscoveryFailureClass",
+      "type": "string"
+    },
+    "DiscoveryOutcome": {
+      "description": "Discriminated outcomes of one cross-asset discovery request.\n\n`NO_MATCH` is a semantic claim and is cached; `TECHNICAL_FAILURE` is not.\nCollapsing the two would make a temporary outage indistinguishable from a\nproven absence of relation, and the cache would then preserve the outage\npermanently.",
+      "enum": [
+        "NOT_READY",
+        "RUNNING",
+        "CANDIDATE",
+        "NO_MATCH",
+        "TECHNICAL_FAILURE",
+        "STALE"
+      ],
+      "title": "DiscoveryOutcome",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One reserved discovery attempt.\n\nThe attempt is reserved durably before inference so that a process dying\nmid-flight is recovered or safely marked retryable rather than assumed\nsuccessful.",
+  "properties": {
+    "asset_id": {
+      "format": "uuid",
+      "title": "Asset Id",
+      "type": "string"
+    },
+    "attempt_id": {
+      "format": "uuid",
+      "title": "Attempt Id",
+      "type": "string"
+    },
+    "attempt_number": {
+      "minimum": 1,
+      "title": "Attempt Number",
+      "type": "integer"
+    },
+    "candidate_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Candidate Id"
+    },
+    "current_projection_id": {
+      "format": "uuid",
+      "title": "Current Projection Id",
+      "type": "string"
+    },
+    "discovery_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Discovery Fingerprint",
+      "type": "string"
+    },
+    "elapsed_ms": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Elapsed Ms"
+    },
+    "eligible_set_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Eligible Set Hash",
+      "type": "string"
+    },
+    "failure_class": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DiscoveryFailureClass"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "finished_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Finished At"
+    },
+    "lease_expires_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Lease Expires At"
+    },
+    "outcome": {
+      "$ref": "#/$defs/DiscoveryOutcome"
+    },
+    "run_id": {
+      "format": "uuid",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "started_at": {
+      "format": "date-time",
+      "title": "Started At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "attempt_id",
+    "run_id",
+    "asset_id",
+    "discovery_fingerprint",
+    "current_projection_id",
+    "eligible_set_hash",
+    "attempt_number",
+    "outcome",
+    "started_at"
+  ],
+  "title": "DiscoveryAttemptV1",
+  "type": "object"
+}

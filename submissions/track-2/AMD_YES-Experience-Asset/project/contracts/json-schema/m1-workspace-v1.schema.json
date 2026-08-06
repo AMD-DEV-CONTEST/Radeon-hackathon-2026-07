@@ -1,0 +1,2639 @@
+{
+  "$defs": {
+    "AgentRunStateV1": {
+      "additionalProperties": false,
+      "description": "Per-run agent state.\n\nThe relation fields below are a **read-only permission snapshot**, projected\nfrom the relation ledger at each policy evaluation — the same pattern as\n`permission_snapshot`. They are never the authority for relation state.\n\nTreating them as authoritative fails in two ways. Two concurrent runs on one\nasset would hold independent relation sets with no reconciliation, so\nwhichever wrote last would win. Worse, a long-running run would keep\nauthorizing detail reads from a set projected before the user corrected a\nbound asset — the exact stale access GRAG-16 exists to catch. Re-projecting\nat each evaluation keeps the permission decision tied to current canonical\nstate.",
+      "properties": {
+        "acceptance_checks": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Acceptance Checks",
+          "type": "array"
+        },
+        "asset_id": {
+          "format": "uuid",
+          "title": "Asset Id",
+          "type": "string"
+        },
+        "base_version_id": {
+          "format": "uuid",
+          "title": "Base Version Id",
+          "type": "string"
+        },
+        "command_id": {
+          "format": "uuid",
+          "title": "Command Id",
+          "type": "string"
+        },
+        "confirmed_related_asset_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Confirmed Related Asset Ids",
+          "type": "array"
+        },
+        "confirmed_relation_bindings": {
+          "items": {
+            "$ref": "#/$defs/ConfirmedRelationBinding"
+          },
+          "title": "Confirmed Relation Bindings",
+          "type": "array"
+        },
+        "confirmed_relation_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Confirmed Relation Ids",
+          "type": "array"
+        },
+        "confirmed_relation_source_candidate_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Confirmed Relation Source Candidate Ids",
+          "type": "array"
+        },
+        "current_milestone": {
+          "$ref": "#/$defs/Milestone"
+        },
+        "knowledge_card_hash": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Knowledge Card Hash"
+        },
+        "knowledge_card_version_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Knowledge Card Version Id"
+        },
+        "last_durable_version_id": {
+          "format": "uuid",
+          "title": "Last Durable Version Id",
+          "type": "string"
+        },
+        "model_call_budget": {
+          "exclusiveMinimum": 0,
+          "title": "Model Call Budget",
+          "type": "integer"
+        },
+        "model_calls_used": {
+          "minimum": 0,
+          "title": "Model Calls Used",
+          "type": "integer"
+        },
+        "model_id": {
+          "minLength": 1,
+          "title": "Model Id",
+          "type": "string"
+        },
+        "permission_snapshot": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "title": "Permission Snapshot",
+          "type": "object"
+        },
+        "policy_decisions": {
+          "items": {
+            "$ref": "#/$defs/PolicyDecision"
+          },
+          "title": "Policy Decisions",
+          "type": "array"
+        },
+        "relation_candidate_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Relation Candidate Ids",
+          "type": "array"
+        },
+        "retries_used": {
+          "minimum": 0,
+          "title": "Retries Used",
+          "type": "integer"
+        },
+        "retrieval_scope": {
+          "$ref": "#/$defs/RetrievalScope"
+        },
+        "retrieved_evidence": {
+          "items": {
+            "$ref": "#/$defs/RetrievedEvidenceReference"
+          },
+          "title": "Retrieved Evidence",
+          "type": "array"
+        },
+        "retry_budget": {
+          "minimum": 0,
+          "title": "Retry Budget",
+          "type": "integer"
+        },
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1.0.0",
+          "default": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "server_base_url": {
+          "minLength": 1,
+          "title": "Server Base Url",
+          "type": "string"
+        },
+        "step_budget": {
+          "exclusiveMinimum": 0,
+          "title": "Step Budget",
+          "type": "integer"
+        },
+        "steps_used": {
+          "minimum": 0,
+          "title": "Steps Used",
+          "type": "integer"
+        },
+        "structured_proposal_hash": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Structured Proposal Hash"
+        },
+        "terminal_state": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TerminalState"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "tool_executions": {
+          "items": {
+            "$ref": "#/$defs/ToolExecutionRecord"
+          },
+          "title": "Tool Executions",
+          "type": "array"
+        },
+        "tool_proposals": {
+          "items": {
+            "$ref": "#/$defs/RuntimeToolCallProposal"
+          },
+          "title": "Tool Proposals",
+          "type": "array"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        },
+        "user_goal": {
+          "minLength": 1,
+          "title": "User Goal",
+          "type": "string"
+        },
+        "validation_findings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Validation Findings",
+          "type": "array"
+        },
+        "verification_report": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VerificationReport"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "work_plan": {
+          "$ref": "#/$defs/WorkPlanV1"
+        }
+      },
+      "required": [
+        "run_id",
+        "asset_id",
+        "base_version_id",
+        "command_id",
+        "user_goal",
+        "acceptance_checks",
+        "permission_snapshot",
+        "current_milestone",
+        "work_plan",
+        "retrieval_scope",
+        "step_budget",
+        "model_call_budget",
+        "retry_budget",
+        "steps_used",
+        "model_calls_used",
+        "retries_used",
+        "model_id",
+        "server_base_url",
+        "last_durable_version_id",
+        "updated_at"
+      ],
+      "title": "AgentRunStateV1",
+      "type": "object"
+    },
+    "ApprovalRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "approval_id": {
+          "format": "uuid",
+          "title": "Approval Id",
+          "type": "string"
+        },
+        "approved_at": {
+          "format": "date-time",
+          "title": "Approved At",
+          "type": "string"
+        },
+        "asset_id": {
+          "format": "uuid",
+          "title": "Asset Id",
+          "type": "string"
+        },
+        "finding_resolutions": {
+          "additionalProperties": {
+            "$ref": "#/$defs/PrivacyResolution"
+          },
+          "title": "Finding Resolutions",
+          "type": "object"
+        },
+        "language": {
+          "enum": [
+            "zh-CN",
+            "en"
+          ],
+          "title": "Language",
+          "type": "string"
+        },
+        "privacy_review_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Privacy Review Hash",
+          "type": "string"
+        },
+        "route": {
+          "$ref": "#/$defs/RouteType"
+        },
+        "route_draft_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Route Draft Hash",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/ApprovalScope",
+          "default": "SHAREABLE_EXPORT"
+        },
+        "user_action": {
+          "minLength": 1,
+          "title": "User Action",
+          "type": "string"
+        },
+        "version_id": {
+          "format": "uuid",
+          "title": "Version Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "approval_id",
+        "user_action",
+        "approved_at",
+        "asset_id",
+        "version_id",
+        "route",
+        "language",
+        "route_draft_hash",
+        "privacy_review_hash",
+        "finding_resolutions"
+      ],
+      "title": "ApprovalRecord",
+      "type": "object"
+    },
+    "ApprovalScope": {
+      "enum": [
+        "SHAREABLE_EXPORT"
+      ],
+      "title": "ApprovalScope",
+      "type": "string"
+    },
+    "AssetLifecycle": {
+      "enum": [
+        "ACTIVE",
+        "PAUSED",
+        "ROUTE_REVIEW",
+        "EXPORT_READY",
+        "DELETION_PENDING",
+        "DELETED"
+      ],
+      "title": "AssetLifecycle",
+      "type": "string"
+    },
+    "ConfirmationState": {
+      "enum": [
+        "UNCONFIRMED",
+        "CONFIRMED",
+        "CORRECTED",
+        "REJECTED"
+      ],
+      "title": "ConfirmationState",
+      "type": "string"
+    },
+    "ConfirmedRelationBinding": {
+      "additionalProperties": false,
+      "description": "One exact user-confirmed relation-to-asset access binding.",
+      "properties": {
+        "related_asset_id": {
+          "format": "uuid",
+          "title": "Related Asset Id",
+          "type": "string"
+        },
+        "relation_id": {
+          "format": "uuid",
+          "title": "Relation Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "relation_id",
+        "related_asset_id"
+      ],
+      "title": "ConfirmedRelationBinding",
+      "type": "object"
+    },
+    "CriticalMoment": {
+      "additionalProperties": false,
+      "properties": {
+        "change_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Change Statement Ids",
+          "type": "array"
+        },
+        "conflict_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Conflict Statement Ids",
+          "type": "array"
+        },
+        "cue_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Cue Statement Ids",
+          "type": "array"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "moment_id": {
+          "format": "uuid",
+          "title": "Moment Id",
+          "type": "string"
+        },
+        "order": {
+          "minimum": 0,
+          "title": "Order",
+          "type": "integer"
+        },
+        "surprise_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Surprise Statement Ids",
+          "type": "array"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "moment_id",
+        "order",
+        "title",
+        "description"
+      ],
+      "title": "CriticalMoment",
+      "type": "object"
+    },
+    "DecisionRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "action_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Action Statement Ids",
+          "type": "array"
+        },
+        "alternative_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Alternative Statement Ids",
+          "type": "array"
+        },
+        "decision_id": {
+          "format": "uuid",
+          "title": "Decision Id",
+          "type": "string"
+        },
+        "decision_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Decision Statement Ids",
+          "type": "array"
+        },
+        "evidence_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Evidence Statement Ids",
+          "type": "array"
+        },
+        "reason_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Reason Statement Ids",
+          "type": "array"
+        },
+        "result_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Result Statement Ids",
+          "type": "array"
+        },
+        "summary": {
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "decision_id",
+        "summary"
+      ],
+      "title": "DecisionRecord",
+      "type": "object"
+    },
+    "EvidenceStrength": {
+      "enum": [
+        "DIRECT",
+        "INDIRECT",
+        "SELF_REPORTED",
+        "NONE"
+      ],
+      "title": "EvidenceStrength",
+      "type": "string"
+    },
+    "ExperienceAssetV1": {
+      "additionalProperties": false,
+      "description": "Complete canonical JSON snapshot stored for each immutable version.",
+      "properties": {
+        "approvals": {
+          "items": {
+            "$ref": "#/$defs/ApprovalRecord"
+          },
+          "title": "Approvals",
+          "type": "array"
+        },
+        "asset_id": {
+          "format": "uuid",
+          "title": "Asset Id",
+          "type": "string"
+        },
+        "constraints": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Constraints",
+          "type": "array"
+        },
+        "context": {
+          "default": "",
+          "title": "Context",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "critical_moments": {
+          "items": {
+            "$ref": "#/$defs/CriticalMoment"
+          },
+          "title": "Critical Moments",
+          "type": "array"
+        },
+        "current_milestone": {
+          "$ref": "#/$defs/Milestone",
+          "default": "M1"
+        },
+        "decisions": {
+          "items": {
+            "$ref": "#/$defs/DecisionRecord"
+          },
+          "title": "Decisions",
+          "type": "array"
+        },
+        "derivation_metadata": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Derivation Metadata",
+          "type": "object"
+        },
+        "exports": {
+          "items": {
+            "$ref": "#/$defs/ExportRecord"
+          },
+          "title": "Exports",
+          "type": "array"
+        },
+        "goal": {
+          "default": "",
+          "title": "Goal",
+          "type": "string"
+        },
+        "insights": {
+          "items": {
+            "$ref": "#/$defs/InsightRecord"
+          },
+          "title": "Insights",
+          "type": "array"
+        },
+        "lifecycle": {
+          "$ref": "#/$defs/AssetLifecycle",
+          "default": "ACTIVE"
+        },
+        "lineage": {
+          "$ref": "#/$defs/VersionLineage"
+        },
+        "milestone_artifacts": {
+          "items": {
+            "$ref": "#/$defs/MilestoneArtifact"
+          },
+          "title": "Milestone Artifacts",
+          "type": "array"
+        },
+        "milestone_states": {
+          "additionalProperties": {
+            "$ref": "#/$defs/MilestoneState"
+          },
+          "propertyNames": {
+            "$ref": "#/$defs/Milestone"
+          },
+          "title": "Milestone States",
+          "type": "object"
+        },
+        "privacy_findings": {
+          "items": {
+            "$ref": "#/$defs/PrivacyFinding"
+          },
+          "title": "Privacy Findings",
+          "type": "array"
+        },
+        "route_decisions": {
+          "items": {
+            "$ref": "#/$defs/RouteDecision"
+          },
+          "title": "Route Decisions",
+          "type": "array"
+        },
+        "route_drafts": {
+          "items": {
+            "$ref": "#/$defs/RouteDraft"
+          },
+          "title": "Route Drafts",
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1.0.0",
+          "default": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/SourceReference"
+          },
+          "title": "Sources",
+          "type": "array"
+        },
+        "statements": {
+          "items": {
+            "$ref": "#/$defs/Statement"
+          },
+          "title": "Statements",
+          "type": "array"
+        },
+        "unresolved_questions": {
+          "items": {
+            "$ref": "#/$defs/QuestionRecord"
+          },
+          "title": "Unresolved Questions",
+          "type": "array"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        },
+        "user_intent": {
+          "default": "",
+          "title": "User Intent",
+          "type": "string"
+        },
+        "version_id": {
+          "format": "uuid",
+          "title": "Version Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "asset_id",
+        "version_id",
+        "created_at",
+        "updated_at",
+        "milestone_states",
+        "route_decisions",
+        "lineage"
+      ],
+      "title": "ExperienceAssetV1",
+      "type": "object"
+    },
+    "ExperienceBriefV1": {
+      "additionalProperties": false,
+      "description": "Typed payload stored inside the canonical M1 artifact envelope.",
+      "properties": {
+        "confirmed_statement_count": {
+          "minimum": 0,
+          "title": "Confirmed Statement Count",
+          "type": "integer"
+        },
+        "constraints": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 30,
+          "title": "Constraints",
+          "type": "array"
+        },
+        "context": {
+          "default": "",
+          "maxLength": 20000,
+          "title": "Context",
+          "type": "string"
+        },
+        "goal": {
+          "default": "",
+          "maxLength": 5000,
+          "title": "Goal",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1.0",
+          "default": "0.1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "source_boundary": {
+          "minLength": 1,
+          "title": "Source Boundary",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Statement Ids",
+          "type": "array"
+        },
+        "unresolved_question_count": {
+          "minimum": 0,
+          "title": "Unresolved Question Count",
+          "type": "integer"
+        },
+        "user_intent": {
+          "default": "",
+          "maxLength": 5000,
+          "title": "User Intent",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_boundary",
+        "source_ids",
+        "confirmed_statement_count",
+        "unresolved_question_count"
+      ],
+      "title": "ExperienceBriefV1",
+      "type": "object"
+    },
+    "ExportFormat": {
+      "enum": [
+        "HTML",
+        "MARKDOWN",
+        "JSON"
+      ],
+      "title": "ExportFormat",
+      "type": "string"
+    },
+    "ExportRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "asset_id": {
+          "format": "uuid",
+          "title": "Asset Id",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "export_id": {
+          "format": "uuid",
+          "title": "Export Id",
+          "type": "string"
+        },
+        "file_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "File Hash",
+          "type": "string"
+        },
+        "format": {
+          "$ref": "#/$defs/ExportFormat"
+        },
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "route": {
+          "$ref": "#/$defs/RouteType"
+        },
+        "route_draft_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Route Draft Hash",
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/$defs/ExportState"
+        },
+        "version_id": {
+          "format": "uuid",
+          "title": "Version Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "export_id",
+        "asset_id",
+        "version_id",
+        "route",
+        "route_draft_hash",
+        "format",
+        "file_hash",
+        "path",
+        "created_at",
+        "state"
+      ],
+      "title": "ExportRecord",
+      "type": "object"
+    },
+    "ExportState": {
+      "enum": [
+        "CURRENT",
+        "SUPERSEDED",
+        "BLOCKED",
+        "FAILED",
+        "DELETED"
+      ],
+      "title": "ExportState",
+      "type": "string"
+    },
+    "FindingSeverity": {
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "CRITICAL"
+      ],
+      "title": "FindingSeverity",
+      "type": "string"
+    },
+    "InsightRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "applicability_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Applicability Statement Ids",
+          "type": "array"
+        },
+        "counterexample_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Counterexample Statement Ids",
+          "type": "array"
+        },
+        "counterfactual_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Counterfactual Statement Ids",
+          "type": "array"
+        },
+        "insight_id": {
+          "format": "uuid",
+          "title": "Insight Id",
+          "type": "string"
+        },
+        "lesson": {
+          "minLength": 1,
+          "title": "Lesson",
+          "type": "string"
+        },
+        "limitation_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Limitation Statement Ids",
+          "type": "array"
+        },
+        "support_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Support Statement Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "insight_id",
+        "lesson"
+      ],
+      "title": "InsightRecord",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "M1ProgressV1": {
+      "additionalProperties": false,
+      "description": "Truthful M1 progress without a fabricated percentage or ETA.",
+      "properties": {
+        "artifact_state": {
+          "title": "Artifact State",
+          "type": "string"
+        },
+        "autosave_state": {
+          "const": "SAVED",
+          "default": "SAVED",
+          "title": "Autosave State",
+          "type": "string"
+        },
+        "confirmed_statement_count": {
+          "minimum": 0,
+          "title": "Confirmed Statement Count",
+          "type": "integer"
+        },
+        "last_saved_at": {
+          "format": "date-time",
+          "title": "Last Saved At",
+          "type": "string"
+        },
+        "saved_version_id": {
+          "format": "uuid",
+          "title": "Saved Version Id",
+          "type": "string"
+        },
+        "unresolved_question_count": {
+          "minimum": 0,
+          "title": "Unresolved Question Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_state",
+        "confirmed_statement_count",
+        "unresolved_question_count",
+        "saved_version_id",
+        "last_saved_at"
+      ],
+      "title": "M1ProgressV1",
+      "type": "object"
+    },
+    "Milestone": {
+      "enum": [
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5"
+      ],
+      "title": "Milestone",
+      "type": "string"
+    },
+    "MilestoneArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "artifact_type": {
+          "minLength": 1,
+          "title": "Artifact Type",
+          "type": "string"
+        },
+        "asset_id": {
+          "format": "uuid",
+          "title": "Asset Id",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "generated_by_run_id": {
+          "format": "uuid",
+          "title": "Generated By Run Id",
+          "type": "string"
+        },
+        "invalidated_by_version_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Invalidated By Version Id"
+        },
+        "milestone": {
+          "$ref": "#/$defs/Milestone"
+        },
+        "payload": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Payload",
+          "type": "object"
+        },
+        "state": {
+          "$ref": "#/$defs/MilestoneState"
+        },
+        "statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Statement Ids",
+          "type": "array"
+        },
+        "unresolved_question_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Unresolved Question Ids",
+          "type": "array"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        },
+        "user_review_status": {
+          "$ref": "#/$defs/ReviewStatus",
+          "default": "NOT_REVIEWED"
+        },
+        "version_id": {
+          "format": "uuid",
+          "title": "Version Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "artifact_type",
+        "asset_id",
+        "version_id",
+        "milestone",
+        "state",
+        "generated_by_run_id",
+        "created_at",
+        "updated_at"
+      ],
+      "title": "MilestoneArtifact",
+      "type": "object"
+    },
+    "MilestoneState": {
+      "enum": [
+        "NOT_STARTED",
+        "IN_PROGRESS",
+        "NEEDS_INPUT",
+        "REVIEW_READY",
+        "CONFIRMED",
+        "COMPLETE_WITH_GAPS",
+        "INVALIDATED",
+        "FAILED"
+      ],
+      "title": "MilestoneState",
+      "type": "string"
+    },
+    "PlanStepKind": {
+      "enum": [
+        "RETRIEVE",
+        "ASK",
+        "EXTRACT",
+        "CLASSIFY",
+        "UPDATE_ARTIFACT",
+        "VERIFY",
+        "EVALUATE_ROUTE",
+        "PRIVACY_REVIEW",
+        "RENDER"
+      ],
+      "title": "PlanStepKind",
+      "type": "string"
+    },
+    "PlanStepStatus": {
+      "enum": [
+        "PENDING",
+        "IN_PROGRESS",
+        "SUCCEEDED",
+        "DENIED",
+        "FAILED",
+        "SKIPPED"
+      ],
+      "title": "PlanStepStatus",
+      "type": "string"
+    },
+    "PolicyDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "decided_at": {
+          "format": "date-time",
+          "title": "Decided At",
+          "type": "string"
+        },
+        "decision_id": {
+          "format": "uuid",
+          "title": "Decision Id",
+          "type": "string"
+        },
+        "outcome": {
+          "$ref": "#/$defs/PolicyOutcome"
+        },
+        "policy_version": {
+          "minLength": 1,
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "proposal_id": {
+          "format": "uuid",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "reason_codes": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Reason Codes",
+          "type": "array"
+        },
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "decision_id",
+        "run_id",
+        "proposal_id",
+        "outcome",
+        "reason_codes",
+        "policy_version",
+        "decided_at"
+      ],
+      "title": "PolicyDecision",
+      "type": "object"
+    },
+    "PolicyOutcome": {
+      "enum": [
+        "ALLOW",
+        "DENY"
+      ],
+      "title": "PolicyOutcome",
+      "type": "string"
+    },
+    "PrivacyFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "affected_source_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Affected Source Ids",
+          "type": "array"
+        },
+        "affected_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Affected Statement Ids",
+          "type": "array"
+        },
+        "category": {
+          "minLength": 1,
+          "title": "Category",
+          "type": "string"
+        },
+        "created_by_run_id": {
+          "format": "uuid",
+          "title": "Created By Run Id",
+          "type": "string"
+        },
+        "explanation": {
+          "minLength": 1,
+          "title": "Explanation",
+          "type": "string"
+        },
+        "finding_id": {
+          "format": "uuid",
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "proposed_actions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Proposed Actions",
+          "type": "array"
+        },
+        "resolution": {
+          "$ref": "#/$defs/PrivacyResolution",
+          "default": "OPEN"
+        },
+        "resolved_by_run_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resolved By Run Id"
+        },
+        "severity": {
+          "$ref": "#/$defs/FindingSeverity"
+        }
+      },
+      "required": [
+        "finding_id",
+        "category",
+        "severity",
+        "explanation",
+        "created_by_run_id"
+      ],
+      "title": "PrivacyFinding",
+      "type": "object"
+    },
+    "PrivacyResolution": {
+      "enum": [
+        "OPEN",
+        "KEEP",
+        "GENERALIZE",
+        "REMOVE",
+        "ACKNOWLEDGED"
+      ],
+      "title": "PrivacyResolution",
+      "type": "string"
+    },
+    "ProgressEventV1": {
+      "additionalProperties": false,
+      "properties": {
+        "asset_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Asset Id"
+        },
+        "eta_basis": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Eta Basis"
+        },
+        "eta_history_sample_size": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Eta History Sample Size"
+        },
+        "eta_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Eta Seconds"
+        },
+        "event_id": {
+          "format": "uuid",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "internal_completed_units": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Internal Completed Units"
+        },
+        "internal_total_units": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Internal Total Units"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "milestones_done": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Milestones Done"
+        },
+        "milestones_total": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Milestones Total"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "title": "Occurred At",
+          "type": "string"
+        },
+        "percent": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Percent"
+        },
+        "percent_basis": {
+          "anyOf": [
+            {
+              "const": "milestones_done/milestones_total",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Percent Basis"
+        },
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1.0.0",
+          "default": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "stage": {
+          "minLength": 1,
+          "title": "Stage",
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/$defs/ProgressState"
+        },
+        "terminal_state": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TerminalState"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "version_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version Id"
+        }
+      },
+      "required": [
+        "event_id",
+        "run_id",
+        "sequence",
+        "stage",
+        "state",
+        "message",
+        "occurred_at"
+      ],
+      "title": "ProgressEventV1",
+      "type": "object"
+    },
+    "ProgressState": {
+      "enum": [
+        "QUEUED",
+        "RUNNING",
+        "WAITING_FOR_USER",
+        "TERMINAL"
+      ],
+      "title": "ProgressState",
+      "type": "string"
+    },
+    "QuestionRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "affected_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Affected Statement Ids",
+          "type": "array"
+        },
+        "answer_source_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Answer Source Id"
+        },
+        "answer_statement_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Answer Statement Id"
+        },
+        "created_by_run_id": {
+          "format": "uuid",
+          "title": "Created By Run Id",
+          "type": "string"
+        },
+        "created_in_version_id": {
+          "format": "uuid",
+          "title": "Created In Version Id",
+          "type": "string"
+        },
+        "milestone": {
+          "$ref": "#/$defs/Milestone"
+        },
+        "priority_inputs": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Priority Inputs",
+          "type": "object"
+        },
+        "question": {
+          "minLength": 1,
+          "title": "Question",
+          "type": "string"
+        },
+        "question_id": {
+          "format": "uuid",
+          "title": "Question Id",
+          "type": "string"
+        },
+        "resolved_by_run_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resolved By Run Id"
+        },
+        "resolved_in_version_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resolved In Version Id"
+        },
+        "state": {
+          "$ref": "#/$defs/QuestionState",
+          "default": "OPEN"
+        },
+        "why_it_matters": {
+          "minLength": 1,
+          "title": "Why It Matters",
+          "type": "string"
+        }
+      },
+      "required": [
+        "question_id",
+        "question",
+        "why_it_matters",
+        "milestone",
+        "created_by_run_id",
+        "created_in_version_id"
+      ],
+      "title": "QuestionRecord",
+      "type": "object"
+    },
+    "QuestionState": {
+      "enum": [
+        "OPEN",
+        "ANSWERED",
+        "SKIPPED",
+        "DEFERRED"
+      ],
+      "title": "QuestionState",
+      "type": "string"
+    },
+    "RetrievalScope": {
+      "enum": [
+        "CURRENT_SOURCE",
+        "CROSS_ASSET_SUMMARY",
+        "CROSS_ASSET_DETAIL"
+      ],
+      "title": "RetrievalScope",
+      "type": "string"
+    },
+    "RetrievedEvidenceReference": {
+      "additionalProperties": false,
+      "properties": {
+        "asset_id": {
+          "format": "uuid",
+          "title": "Asset Id",
+          "type": "string"
+        },
+        "content_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "no_match": {
+          "default": false,
+          "title": "No Match",
+          "type": "boolean"
+        },
+        "provenance_ref": {
+          "minLength": 1,
+          "title": "Provenance Ref",
+          "type": "string"
+        },
+        "related_asset_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Related Asset Id"
+        },
+        "retrieval_id": {
+          "format": "uuid",
+          "title": "Retrieval Id",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/RetrievalScope"
+        },
+        "source_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Id"
+        },
+        "span_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Span Id"
+        },
+        "version_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version Id"
+        }
+      },
+      "required": [
+        "retrieval_id",
+        "scope",
+        "asset_id",
+        "provenance_ref",
+        "content_hash"
+      ],
+      "title": "RetrievedEvidenceReference",
+      "type": "object"
+    },
+    "ReviewStatus": {
+      "enum": [
+        "NOT_REVIEWED",
+        "ACCEPTED",
+        "ACCEPTED_WITH_GAPS",
+        "REJECTED"
+      ],
+      "title": "ReviewStatus",
+      "type": "string"
+    },
+    "RouteDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "canonical_version_id": {
+          "format": "uuid",
+          "title": "Canonical Version Id",
+          "type": "string"
+        },
+        "eligibility": {
+          "$ref": "#/$defs/RouteEligibility"
+        },
+        "explanation": {
+          "minLength": 1,
+          "title": "Explanation",
+          "type": "string"
+        },
+        "missing_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Missing Statement Ids",
+          "type": "array"
+        },
+        "model_run_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Run Id"
+        },
+        "policy_version": {
+          "minLength": 1,
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "reason_codes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reason Codes",
+          "type": "array"
+        },
+        "route": {
+          "$ref": "#/$defs/RouteType"
+        },
+        "supporting_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Supporting Statement Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "route",
+        "eligibility",
+        "explanation",
+        "canonical_version_id",
+        "policy_version"
+      ],
+      "title": "RouteDecision",
+      "type": "object"
+    },
+    "RouteDraft": {
+      "additionalProperties": false,
+      "properties": {
+        "canonical_version_id": {
+          "format": "uuid",
+          "title": "Canonical Version Id",
+          "type": "string"
+        },
+        "content_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "created_by_run_id": {
+          "format": "uuid",
+          "title": "Created By Run Id",
+          "type": "string"
+        },
+        "language": {
+          "enum": [
+            "zh-CN",
+            "en"
+          ],
+          "title": "Language",
+          "type": "string"
+        },
+        "route": {
+          "$ref": "#/$defs/RouteType"
+        },
+        "route_draft_id": {
+          "format": "uuid",
+          "title": "Route Draft Id",
+          "type": "string"
+        },
+        "statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Statement Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "route_draft_id",
+        "route",
+        "language",
+        "canonical_version_id",
+        "statement_ids",
+        "content_hash",
+        "created_by_run_id"
+      ],
+      "title": "RouteDraft",
+      "type": "object"
+    },
+    "RouteEligibility": {
+      "enum": [
+        "ELIGIBLE",
+        "INELIGIBLE",
+        "ELIGIBLE_AFTER_PRIVACY_APPROVAL",
+        "BLOCKED"
+      ],
+      "title": "RouteEligibility",
+      "type": "string"
+    },
+    "RouteType": {
+      "enum": [
+        "PRIVATE_SELF",
+        "BEGINNER",
+        "PEER",
+        "CUSTOMER_EVALUATOR",
+        "PUBLIC"
+      ],
+      "title": "RouteType",
+      "type": "string"
+    },
+    "RuntimeToolCallProposal": {
+      "additionalProperties": false,
+      "properties": {
+        "arguments": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Arguments",
+          "type": "object"
+        },
+        "base_version_id": {
+          "format": "uuid",
+          "title": "Base Version Id",
+          "type": "string"
+        },
+        "knowledge_card_hash": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Knowledge Card Hash"
+        },
+        "knowledge_card_version_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Knowledge Card Version Id"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "permission_granted": {
+          "const": false,
+          "default": false,
+          "title": "Permission Granted",
+          "type": "boolean"
+        },
+        "proposal_id": {
+          "format": "uuid",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "proposed_at": {
+          "format": "date-time",
+          "title": "Proposed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "proposal_id",
+        "name",
+        "arguments",
+        "base_version_id",
+        "proposed_at"
+      ],
+      "title": "RuntimeToolCallProposal",
+      "type": "object"
+    },
+    "SourceAuthorship": {
+      "enum": [
+        "USER_AUTHORED",
+        "THIRD_PARTY",
+        "ADAPTED_RESEARCH"
+      ],
+      "title": "SourceAuthorship",
+      "type": "string"
+    },
+    "SourceKind": {
+      "enum": [
+        "CONVERSATION",
+        "PASTED_TEXT",
+        "TXT_FILE",
+        "MD_FILE",
+        "ADAPTED_PUBLIC_FIXTURE"
+      ],
+      "title": "SourceKind",
+      "type": "string"
+    },
+    "SourceReference": {
+      "additionalProperties": false,
+      "properties": {
+        "adapted_provenance_notice": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapted Provenance Notice"
+        },
+        "authorship": {
+          "$ref": "#/$defs/SourceAuthorship"
+        },
+        "display_label": {
+          "minLength": 1,
+          "title": "Display Label",
+          "type": "string"
+        },
+        "ingested_at": {
+          "format": "date-time",
+          "title": "Ingested At",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/SourceKind"
+        },
+        "local_storage_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Local Storage Ref"
+        },
+        "original_file_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Original File Name"
+        },
+        "source_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Hash",
+          "type": "string"
+        },
+        "source_id": {
+          "format": "uuid",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "source_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Url"
+        },
+        "span": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceSpan"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "source_id",
+        "kind",
+        "display_label",
+        "source_hash",
+        "ingested_at",
+        "authorship"
+      ],
+      "title": "SourceReference",
+      "type": "object"
+    },
+    "SourceSpan": {
+      "additionalProperties": false,
+      "properties": {
+        "end": {
+          "exclusiveMinimum": 0,
+          "title": "End",
+          "type": "integer"
+        },
+        "message_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Message Id"
+        },
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "SourceSpan",
+      "type": "object"
+    },
+    "Statement": {
+      "additionalProperties": false,
+      "properties": {
+        "confirmation": {
+          "$ref": "#/$defs/ConfirmationState",
+          "default": "UNCONFIRMED"
+        },
+        "created_in_version": {
+          "format": "uuid",
+          "title": "Created In Version",
+          "type": "string"
+        },
+        "derived_from": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Derived From",
+          "type": "array"
+        },
+        "evidence_strength": {
+          "$ref": "#/$defs/EvidenceStrength",
+          "default": "NONE"
+        },
+        "last_changed_in_version": {
+          "format": "uuid",
+          "title": "Last Changed In Version",
+          "type": "string"
+        },
+        "sensitivity_tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Sensitivity Tags",
+          "type": "array"
+        },
+        "source_refs": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "statement_id": {
+          "format": "uuid",
+          "title": "Statement Id",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/StatementStatus"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "statement_id",
+        "text",
+        "status",
+        "created_in_version",
+        "last_changed_in_version"
+      ],
+      "title": "Statement",
+      "type": "object"
+    },
+    "StatementStatus": {
+      "enum": [
+        "SOURCE_FACT",
+        "USER_JUDGMENT",
+        "AGENT_INFERENCE",
+        "UNRESOLVED"
+      ],
+      "title": "StatementStatus",
+      "type": "string"
+    },
+    "TerminalState": {
+      "enum": [
+        "SUCCEEDED",
+        "NEEDS_USER_INPUT",
+        "PAUSED",
+        "CANCELLED",
+        "TIMED_OUT",
+        "MODEL_UNAVAILABLE",
+        "MODEL_OOM",
+        "INVALID_MODEL_OUTPUT",
+        "STORAGE_ERROR",
+        "POLICY_BLOCKED",
+        "DELETION_FAILED",
+        "INTERNAL_ERROR"
+      ],
+      "title": "TerminalState",
+      "type": "string"
+    },
+    "ToolExecutionRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "error_class": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error Class"
+        },
+        "execution_id": {
+          "format": "uuid",
+          "title": "Execution Id",
+          "type": "string"
+        },
+        "finished_at": {
+          "format": "date-time",
+          "title": "Finished At",
+          "type": "string"
+        },
+        "observation_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Observation Refs",
+          "type": "array"
+        },
+        "policy_decision_id": {
+          "format": "uuid",
+          "title": "Policy Decision Id",
+          "type": "string"
+        },
+        "proposal_id": {
+          "format": "uuid",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "sanitized_argument_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sanitized Argument Hash",
+          "type": "string"
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/ToolExecutionStatus"
+        },
+        "tool_name": {
+          "minLength": 1,
+          "title": "Tool Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "execution_id",
+        "run_id",
+        "proposal_id",
+        "policy_decision_id",
+        "tool_name",
+        "sanitized_argument_hash",
+        "status",
+        "started_at",
+        "finished_at"
+      ],
+      "title": "ToolExecutionRecord",
+      "type": "object"
+    },
+    "ToolExecutionStatus": {
+      "enum": [
+        "SUCCEEDED",
+        "DENIED",
+        "FAILED",
+        "TIMED_OUT"
+      ],
+      "title": "ToolExecutionStatus",
+      "type": "string"
+    },
+    "VerificationOutcome": {
+      "enum": [
+        "VERIFIED",
+        "NEEDS_INPUT",
+        "REPLAN",
+        "REJECTED"
+      ],
+      "title": "VerificationOutcome",
+      "type": "string"
+    },
+    "VerificationReport": {
+      "additionalProperties": false,
+      "properties": {
+        "checks": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "title": "Checks",
+          "type": "object"
+        },
+        "execution_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Execution Id"
+        },
+        "finding_codes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Finding Codes",
+          "type": "array"
+        },
+        "outcome": {
+          "$ref": "#/$defs/VerificationOutcome"
+        },
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "safe_summary": {
+          "minLength": 1,
+          "title": "Safe Summary",
+          "type": "string"
+        },
+        "verification_id": {
+          "format": "uuid",
+          "title": "Verification Id",
+          "type": "string"
+        },
+        "verified_at": {
+          "format": "date-time",
+          "title": "Verified At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "verification_id",
+        "run_id",
+        "outcome",
+        "checks",
+        "safe_summary",
+        "verified_at"
+      ],
+      "title": "VerificationReport",
+      "type": "object"
+    },
+    "VersionLineage": {
+      "additionalProperties": false,
+      "properties": {
+        "change_kind": {
+          "minLength": 1,
+          "title": "Change Kind",
+          "type": "string"
+        },
+        "change_reason": {
+          "minLength": 1,
+          "title": "Change Reason",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "derived_by_run_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Derived By Run Id"
+        },
+        "parent_version_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Version Id"
+        },
+        "schema_version": {
+          "const": "1.0.0",
+          "default": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "version_id": {
+          "format": "uuid",
+          "title": "Version Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "version_id",
+        "change_kind",
+        "change_reason",
+        "created_at"
+      ],
+      "title": "VersionLineage",
+      "type": "object"
+    },
+    "WorkPlanStepV1": {
+      "additionalProperties": false,
+      "properties": {
+        "dependency_step_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Dependency Step Ids",
+          "type": "array"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "required_evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Required Evidence Refs",
+          "type": "array"
+        },
+        "required_permission": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Required Permission"
+        },
+        "status": {
+          "$ref": "#/$defs/PlanStepStatus",
+          "default": "PENDING"
+        },
+        "step_id": {
+          "format": "uuid",
+          "title": "Step Id",
+          "type": "string"
+        },
+        "step_kind": {
+          "$ref": "#/$defs/PlanStepKind"
+        },
+        "stop_condition": {
+          "minLength": 1,
+          "title": "Stop Condition",
+          "type": "string"
+        }
+      },
+      "required": [
+        "step_id",
+        "step_kind",
+        "reason",
+        "stop_condition"
+      ],
+      "title": "WorkPlanStepV1",
+      "type": "object"
+    },
+    "WorkPlanV1": {
+      "additionalProperties": false,
+      "properties": {
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "goal": {
+          "minLength": 1,
+          "title": "Goal",
+          "type": "string"
+        },
+        "milestone": {
+          "$ref": "#/$defs/Milestone"
+        },
+        "plan_id": {
+          "format": "uuid",
+          "title": "Plan Id",
+          "type": "string"
+        },
+        "revised_at": {
+          "format": "date-time",
+          "title": "Revised At",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/WorkPlanStepV1"
+          },
+          "maxItems": 12,
+          "minItems": 1,
+          "title": "Steps",
+          "type": "array"
+        }
+      },
+      "required": [
+        "plan_id",
+        "run_id",
+        "milestone",
+        "goal",
+        "steps",
+        "revision",
+        "created_at",
+        "revised_at"
+      ],
+      "title": "WorkPlanV1",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "allowed_actions": {
+      "items": {
+        "enum": [
+          "EDIT",
+          "ANSWER",
+          "SKIP",
+          "DEFER",
+          "PAUSE",
+          "RESUME",
+          "CONFIRM",
+          "RUN_AGENT_CURRENT"
+        ],
+        "type": "string"
+      },
+      "title": "Allowed Actions",
+      "type": "array"
+    },
+    "asset": {
+      "$ref": "#/$defs/ExperienceAssetV1"
+    },
+    "brief": {
+      "$ref": "#/$defs/ExperienceBriefV1"
+    },
+    "latest_agent_run": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AgentRunStateV1"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "progress": {
+      "$ref": "#/$defs/M1ProgressV1"
+    },
+    "progress_event": {
+      "$ref": "#/$defs/ProgressEventV1"
+    },
+    "questions": {
+      "items": {
+        "$ref": "#/$defs/QuestionRecord"
+      },
+      "maxItems": 3,
+      "title": "Questions",
+      "type": "array"
+    },
+    "terminal_state": {
+      "$ref": "#/$defs/TerminalState"
+    }
+  },
+  "required": [
+    "asset",
+    "brief",
+    "questions",
+    "progress",
+    "progress_event",
+    "terminal_state",
+    "allowed_actions"
+  ],
+  "title": "M1WorkspaceV1",
+  "type": "object"
+}

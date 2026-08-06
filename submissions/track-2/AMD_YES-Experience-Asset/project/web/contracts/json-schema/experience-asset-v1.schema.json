@@ -1,0 +1,1372 @@
+{
+  "$defs": {
+    "ApprovalRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "approval_id": {
+          "format": "uuid",
+          "title": "Approval Id",
+          "type": "string"
+        },
+        "approved_at": {
+          "format": "date-time",
+          "title": "Approved At",
+          "type": "string"
+        },
+        "asset_id": {
+          "format": "uuid",
+          "title": "Asset Id",
+          "type": "string"
+        },
+        "finding_resolutions": {
+          "additionalProperties": {
+            "$ref": "#/$defs/PrivacyResolution"
+          },
+          "title": "Finding Resolutions",
+          "type": "object"
+        },
+        "language": {
+          "enum": [
+            "zh-CN",
+            "en"
+          ],
+          "title": "Language",
+          "type": "string"
+        },
+        "privacy_review_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Privacy Review Hash",
+          "type": "string"
+        },
+        "route": {
+          "$ref": "#/$defs/RouteType"
+        },
+        "route_draft_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Route Draft Hash",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/ApprovalScope",
+          "default": "SHAREABLE_EXPORT"
+        },
+        "user_action": {
+          "minLength": 1,
+          "title": "User Action",
+          "type": "string"
+        },
+        "version_id": {
+          "format": "uuid",
+          "title": "Version Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "approval_id",
+        "user_action",
+        "approved_at",
+        "asset_id",
+        "version_id",
+        "route",
+        "language",
+        "route_draft_hash",
+        "privacy_review_hash",
+        "finding_resolutions"
+      ],
+      "title": "ApprovalRecord",
+      "type": "object"
+    },
+    "ApprovalScope": {
+      "enum": [
+        "SHAREABLE_EXPORT"
+      ],
+      "title": "ApprovalScope",
+      "type": "string"
+    },
+    "AssetLifecycle": {
+      "enum": [
+        "ACTIVE",
+        "PAUSED",
+        "ROUTE_REVIEW",
+        "EXPORT_READY",
+        "DELETION_PENDING",
+        "DELETED"
+      ],
+      "title": "AssetLifecycle",
+      "type": "string"
+    },
+    "ConfirmationState": {
+      "enum": [
+        "UNCONFIRMED",
+        "CONFIRMED",
+        "CORRECTED",
+        "REJECTED"
+      ],
+      "title": "ConfirmationState",
+      "type": "string"
+    },
+    "CriticalMoment": {
+      "additionalProperties": false,
+      "properties": {
+        "change_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Change Statement Ids",
+          "type": "array"
+        },
+        "conflict_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Conflict Statement Ids",
+          "type": "array"
+        },
+        "cue_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Cue Statement Ids",
+          "type": "array"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "moment_id": {
+          "format": "uuid",
+          "title": "Moment Id",
+          "type": "string"
+        },
+        "order": {
+          "minimum": 0,
+          "title": "Order",
+          "type": "integer"
+        },
+        "surprise_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Surprise Statement Ids",
+          "type": "array"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "moment_id",
+        "order",
+        "title",
+        "description"
+      ],
+      "title": "CriticalMoment",
+      "type": "object"
+    },
+    "DecisionRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "action_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Action Statement Ids",
+          "type": "array"
+        },
+        "alternative_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Alternative Statement Ids",
+          "type": "array"
+        },
+        "decision_id": {
+          "format": "uuid",
+          "title": "Decision Id",
+          "type": "string"
+        },
+        "decision_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Decision Statement Ids",
+          "type": "array"
+        },
+        "evidence_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Evidence Statement Ids",
+          "type": "array"
+        },
+        "reason_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Reason Statement Ids",
+          "type": "array"
+        },
+        "result_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Result Statement Ids",
+          "type": "array"
+        },
+        "summary": {
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "decision_id",
+        "summary"
+      ],
+      "title": "DecisionRecord",
+      "type": "object"
+    },
+    "EvidenceStrength": {
+      "enum": [
+        "DIRECT",
+        "INDIRECT",
+        "SELF_REPORTED",
+        "NONE"
+      ],
+      "title": "EvidenceStrength",
+      "type": "string"
+    },
+    "ExportFormat": {
+      "enum": [
+        "HTML",
+        "MARKDOWN",
+        "JSON"
+      ],
+      "title": "ExportFormat",
+      "type": "string"
+    },
+    "ExportRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "asset_id": {
+          "format": "uuid",
+          "title": "Asset Id",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "export_id": {
+          "format": "uuid",
+          "title": "Export Id",
+          "type": "string"
+        },
+        "file_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "File Hash",
+          "type": "string"
+        },
+        "format": {
+          "$ref": "#/$defs/ExportFormat"
+        },
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "route": {
+          "$ref": "#/$defs/RouteType"
+        },
+        "route_draft_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Route Draft Hash",
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/$defs/ExportState"
+        },
+        "version_id": {
+          "format": "uuid",
+          "title": "Version Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "export_id",
+        "asset_id",
+        "version_id",
+        "route",
+        "route_draft_hash",
+        "format",
+        "file_hash",
+        "path",
+        "created_at",
+        "state"
+      ],
+      "title": "ExportRecord",
+      "type": "object"
+    },
+    "ExportState": {
+      "enum": [
+        "CURRENT",
+        "SUPERSEDED",
+        "BLOCKED",
+        "FAILED",
+        "DELETED"
+      ],
+      "title": "ExportState",
+      "type": "string"
+    },
+    "FindingSeverity": {
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "CRITICAL"
+      ],
+      "title": "FindingSeverity",
+      "type": "string"
+    },
+    "InsightRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "applicability_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Applicability Statement Ids",
+          "type": "array"
+        },
+        "counterexample_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Counterexample Statement Ids",
+          "type": "array"
+        },
+        "counterfactual_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Counterfactual Statement Ids",
+          "type": "array"
+        },
+        "insight_id": {
+          "format": "uuid",
+          "title": "Insight Id",
+          "type": "string"
+        },
+        "lesson": {
+          "minLength": 1,
+          "title": "Lesson",
+          "type": "string"
+        },
+        "limitation_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Limitation Statement Ids",
+          "type": "array"
+        },
+        "support_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Support Statement Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "insight_id",
+        "lesson"
+      ],
+      "title": "InsightRecord",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "Milestone": {
+      "enum": [
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5"
+      ],
+      "title": "Milestone",
+      "type": "string"
+    },
+    "MilestoneArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "artifact_type": {
+          "minLength": 1,
+          "title": "Artifact Type",
+          "type": "string"
+        },
+        "asset_id": {
+          "format": "uuid",
+          "title": "Asset Id",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "generated_by_run_id": {
+          "format": "uuid",
+          "title": "Generated By Run Id",
+          "type": "string"
+        },
+        "invalidated_by_version_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Invalidated By Version Id"
+        },
+        "milestone": {
+          "$ref": "#/$defs/Milestone"
+        },
+        "payload": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Payload",
+          "type": "object"
+        },
+        "state": {
+          "$ref": "#/$defs/MilestoneState"
+        },
+        "statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Statement Ids",
+          "type": "array"
+        },
+        "unresolved_question_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Unresolved Question Ids",
+          "type": "array"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        },
+        "user_review_status": {
+          "$ref": "#/$defs/ReviewStatus",
+          "default": "NOT_REVIEWED"
+        },
+        "version_id": {
+          "format": "uuid",
+          "title": "Version Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "artifact_type",
+        "asset_id",
+        "version_id",
+        "milestone",
+        "state",
+        "generated_by_run_id",
+        "created_at",
+        "updated_at"
+      ],
+      "title": "MilestoneArtifact",
+      "type": "object"
+    },
+    "MilestoneState": {
+      "enum": [
+        "NOT_STARTED",
+        "IN_PROGRESS",
+        "NEEDS_INPUT",
+        "REVIEW_READY",
+        "CONFIRMED",
+        "COMPLETE_WITH_GAPS",
+        "INVALIDATED",
+        "FAILED"
+      ],
+      "title": "MilestoneState",
+      "type": "string"
+    },
+    "PrivacyFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "affected_source_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Affected Source Ids",
+          "type": "array"
+        },
+        "affected_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Affected Statement Ids",
+          "type": "array"
+        },
+        "category": {
+          "minLength": 1,
+          "title": "Category",
+          "type": "string"
+        },
+        "created_by_run_id": {
+          "format": "uuid",
+          "title": "Created By Run Id",
+          "type": "string"
+        },
+        "explanation": {
+          "minLength": 1,
+          "title": "Explanation",
+          "type": "string"
+        },
+        "finding_id": {
+          "format": "uuid",
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "proposed_actions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Proposed Actions",
+          "type": "array"
+        },
+        "resolution": {
+          "$ref": "#/$defs/PrivacyResolution",
+          "default": "OPEN"
+        },
+        "resolved_by_run_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resolved By Run Id"
+        },
+        "severity": {
+          "$ref": "#/$defs/FindingSeverity"
+        }
+      },
+      "required": [
+        "finding_id",
+        "category",
+        "severity",
+        "explanation",
+        "created_by_run_id"
+      ],
+      "title": "PrivacyFinding",
+      "type": "object"
+    },
+    "PrivacyResolution": {
+      "enum": [
+        "OPEN",
+        "KEEP",
+        "GENERALIZE",
+        "REMOVE",
+        "ACKNOWLEDGED"
+      ],
+      "title": "PrivacyResolution",
+      "type": "string"
+    },
+    "QuestionRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "affected_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Affected Statement Ids",
+          "type": "array"
+        },
+        "answer_source_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Answer Source Id"
+        },
+        "answer_statement_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Answer Statement Id"
+        },
+        "created_by_run_id": {
+          "format": "uuid",
+          "title": "Created By Run Id",
+          "type": "string"
+        },
+        "created_in_version_id": {
+          "format": "uuid",
+          "title": "Created In Version Id",
+          "type": "string"
+        },
+        "milestone": {
+          "$ref": "#/$defs/Milestone"
+        },
+        "priority_inputs": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Priority Inputs",
+          "type": "object"
+        },
+        "question": {
+          "minLength": 1,
+          "title": "Question",
+          "type": "string"
+        },
+        "question_id": {
+          "format": "uuid",
+          "title": "Question Id",
+          "type": "string"
+        },
+        "resolved_by_run_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resolved By Run Id"
+        },
+        "resolved_in_version_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resolved In Version Id"
+        },
+        "state": {
+          "$ref": "#/$defs/QuestionState",
+          "default": "OPEN"
+        },
+        "why_it_matters": {
+          "minLength": 1,
+          "title": "Why It Matters",
+          "type": "string"
+        }
+      },
+      "required": [
+        "question_id",
+        "question",
+        "why_it_matters",
+        "milestone",
+        "created_by_run_id",
+        "created_in_version_id"
+      ],
+      "title": "QuestionRecord",
+      "type": "object"
+    },
+    "QuestionState": {
+      "enum": [
+        "OPEN",
+        "ANSWERED",
+        "SKIPPED",
+        "DEFERRED"
+      ],
+      "title": "QuestionState",
+      "type": "string"
+    },
+    "ReviewStatus": {
+      "enum": [
+        "NOT_REVIEWED",
+        "ACCEPTED",
+        "ACCEPTED_WITH_GAPS",
+        "REJECTED"
+      ],
+      "title": "ReviewStatus",
+      "type": "string"
+    },
+    "RouteDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "canonical_version_id": {
+          "format": "uuid",
+          "title": "Canonical Version Id",
+          "type": "string"
+        },
+        "eligibility": {
+          "$ref": "#/$defs/RouteEligibility"
+        },
+        "explanation": {
+          "minLength": 1,
+          "title": "Explanation",
+          "type": "string"
+        },
+        "missing_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Missing Statement Ids",
+          "type": "array"
+        },
+        "model_run_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Run Id"
+        },
+        "policy_version": {
+          "minLength": 1,
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "reason_codes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reason Codes",
+          "type": "array"
+        },
+        "route": {
+          "$ref": "#/$defs/RouteType"
+        },
+        "supporting_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Supporting Statement Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "route",
+        "eligibility",
+        "explanation",
+        "canonical_version_id",
+        "policy_version"
+      ],
+      "title": "RouteDecision",
+      "type": "object"
+    },
+    "RouteDraft": {
+      "additionalProperties": false,
+      "properties": {
+        "canonical_version_id": {
+          "format": "uuid",
+          "title": "Canonical Version Id",
+          "type": "string"
+        },
+        "content_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "created_by_run_id": {
+          "format": "uuid",
+          "title": "Created By Run Id",
+          "type": "string"
+        },
+        "language": {
+          "enum": [
+            "zh-CN",
+            "en"
+          ],
+          "title": "Language",
+          "type": "string"
+        },
+        "route": {
+          "$ref": "#/$defs/RouteType"
+        },
+        "route_draft_id": {
+          "format": "uuid",
+          "title": "Route Draft Id",
+          "type": "string"
+        },
+        "statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Statement Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "route_draft_id",
+        "route",
+        "language",
+        "canonical_version_id",
+        "statement_ids",
+        "content_hash",
+        "created_by_run_id"
+      ],
+      "title": "RouteDraft",
+      "type": "object"
+    },
+    "RouteEligibility": {
+      "enum": [
+        "ELIGIBLE",
+        "INELIGIBLE",
+        "ELIGIBLE_AFTER_PRIVACY_APPROVAL",
+        "BLOCKED"
+      ],
+      "title": "RouteEligibility",
+      "type": "string"
+    },
+    "RouteType": {
+      "enum": [
+        "PRIVATE_SELF",
+        "BEGINNER",
+        "PEER",
+        "CUSTOMER_EVALUATOR",
+        "PUBLIC"
+      ],
+      "title": "RouteType",
+      "type": "string"
+    },
+    "SourceAuthorship": {
+      "enum": [
+        "USER_AUTHORED",
+        "THIRD_PARTY",
+        "ADAPTED_RESEARCH"
+      ],
+      "title": "SourceAuthorship",
+      "type": "string"
+    },
+    "SourceKind": {
+      "enum": [
+        "CONVERSATION",
+        "PASTED_TEXT",
+        "TXT_FILE",
+        "MD_FILE",
+        "ADAPTED_PUBLIC_FIXTURE"
+      ],
+      "title": "SourceKind",
+      "type": "string"
+    },
+    "SourceReference": {
+      "additionalProperties": false,
+      "properties": {
+        "adapted_provenance_notice": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapted Provenance Notice"
+        },
+        "authorship": {
+          "$ref": "#/$defs/SourceAuthorship"
+        },
+        "display_label": {
+          "minLength": 1,
+          "title": "Display Label",
+          "type": "string"
+        },
+        "ingested_at": {
+          "format": "date-time",
+          "title": "Ingested At",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/SourceKind"
+        },
+        "local_storage_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Local Storage Ref"
+        },
+        "original_file_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Original File Name"
+        },
+        "source_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Hash",
+          "type": "string"
+        },
+        "source_id": {
+          "format": "uuid",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "source_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Url"
+        },
+        "span": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceSpan"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "source_id",
+        "kind",
+        "display_label",
+        "source_hash",
+        "ingested_at",
+        "authorship"
+      ],
+      "title": "SourceReference",
+      "type": "object"
+    },
+    "SourceSpan": {
+      "additionalProperties": false,
+      "properties": {
+        "end": {
+          "exclusiveMinimum": 0,
+          "title": "End",
+          "type": "integer"
+        },
+        "message_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Message Id"
+        },
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "SourceSpan",
+      "type": "object"
+    },
+    "Statement": {
+      "additionalProperties": false,
+      "properties": {
+        "confirmation": {
+          "$ref": "#/$defs/ConfirmationState",
+          "default": "UNCONFIRMED"
+        },
+        "created_in_version": {
+          "format": "uuid",
+          "title": "Created In Version",
+          "type": "string"
+        },
+        "derived_from": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Derived From",
+          "type": "array"
+        },
+        "evidence_strength": {
+          "$ref": "#/$defs/EvidenceStrength",
+          "default": "NONE"
+        },
+        "last_changed_in_version": {
+          "format": "uuid",
+          "title": "Last Changed In Version",
+          "type": "string"
+        },
+        "sensitivity_tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Sensitivity Tags",
+          "type": "array"
+        },
+        "source_refs": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "statement_id": {
+          "format": "uuid",
+          "title": "Statement Id",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/StatementStatus"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "statement_id",
+        "text",
+        "status",
+        "created_in_version",
+        "last_changed_in_version"
+      ],
+      "title": "Statement",
+      "type": "object"
+    },
+    "StatementStatus": {
+      "enum": [
+        "SOURCE_FACT",
+        "USER_JUDGMENT",
+        "AGENT_INFERENCE",
+        "UNRESOLVED"
+      ],
+      "title": "StatementStatus",
+      "type": "string"
+    },
+    "VersionLineage": {
+      "additionalProperties": false,
+      "properties": {
+        "change_kind": {
+          "minLength": 1,
+          "title": "Change Kind",
+          "type": "string"
+        },
+        "change_reason": {
+          "minLength": 1,
+          "title": "Change Reason",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "derived_by_run_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Derived By Run Id"
+        },
+        "parent_version_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Version Id"
+        },
+        "schema_version": {
+          "const": "1.0.0",
+          "default": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "version_id": {
+          "format": "uuid",
+          "title": "Version Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "version_id",
+        "change_kind",
+        "change_reason",
+        "created_at"
+      ],
+      "title": "VersionLineage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Complete canonical JSON snapshot stored for each immutable version.",
+  "properties": {
+    "approvals": {
+      "items": {
+        "$ref": "#/$defs/ApprovalRecord"
+      },
+      "title": "Approvals",
+      "type": "array"
+    },
+    "asset_id": {
+      "format": "uuid",
+      "title": "Asset Id",
+      "type": "string"
+    },
+    "constraints": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Constraints",
+      "type": "array"
+    },
+    "context": {
+      "default": "",
+      "title": "Context",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "critical_moments": {
+      "items": {
+        "$ref": "#/$defs/CriticalMoment"
+      },
+      "title": "Critical Moments",
+      "type": "array"
+    },
+    "current_milestone": {
+      "$ref": "#/$defs/Milestone",
+      "default": "M1"
+    },
+    "decisions": {
+      "items": {
+        "$ref": "#/$defs/DecisionRecord"
+      },
+      "title": "Decisions",
+      "type": "array"
+    },
+    "derivation_metadata": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Derivation Metadata",
+      "type": "object"
+    },
+    "exports": {
+      "items": {
+        "$ref": "#/$defs/ExportRecord"
+      },
+      "title": "Exports",
+      "type": "array"
+    },
+    "goal": {
+      "default": "",
+      "title": "Goal",
+      "type": "string"
+    },
+    "insights": {
+      "items": {
+        "$ref": "#/$defs/InsightRecord"
+      },
+      "title": "Insights",
+      "type": "array"
+    },
+    "lifecycle": {
+      "$ref": "#/$defs/AssetLifecycle",
+      "default": "ACTIVE"
+    },
+    "lineage": {
+      "$ref": "#/$defs/VersionLineage"
+    },
+    "milestone_artifacts": {
+      "items": {
+        "$ref": "#/$defs/MilestoneArtifact"
+      },
+      "title": "Milestone Artifacts",
+      "type": "array"
+    },
+    "milestone_states": {
+      "additionalProperties": {
+        "$ref": "#/$defs/MilestoneState"
+      },
+      "propertyNames": {
+        "$ref": "#/$defs/Milestone"
+      },
+      "title": "Milestone States",
+      "type": "object"
+    },
+    "privacy_findings": {
+      "items": {
+        "$ref": "#/$defs/PrivacyFinding"
+      },
+      "title": "Privacy Findings",
+      "type": "array"
+    },
+    "route_decisions": {
+      "items": {
+        "$ref": "#/$defs/RouteDecision"
+      },
+      "title": "Route Decisions",
+      "type": "array"
+    },
+    "route_drafts": {
+      "items": {
+        "$ref": "#/$defs/RouteDraft"
+      },
+      "title": "Route Drafts",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/SourceReference"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "statements": {
+      "items": {
+        "$ref": "#/$defs/Statement"
+      },
+      "title": "Statements",
+      "type": "array"
+    },
+    "unresolved_questions": {
+      "items": {
+        "$ref": "#/$defs/QuestionRecord"
+      },
+      "title": "Unresolved Questions",
+      "type": "array"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    },
+    "user_intent": {
+      "default": "",
+      "title": "User Intent",
+      "type": "string"
+    },
+    "version_id": {
+      "format": "uuid",
+      "title": "Version Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "asset_id",
+    "version_id",
+    "created_at",
+    "updated_at",
+    "milestone_states",
+    "route_decisions",
+    "lineage"
+  ],
+  "title": "ExperienceAssetV1",
+  "type": "object"
+}

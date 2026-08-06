@@ -1,0 +1,261 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "e2-m1-langgraph-local-20260728T102918Z-30d7c35-dirty",
+  "timestamp_utc": "2026-07-28T10:29:18Z",
+  "source": {
+    "git_commit": "30d7c35248bbb1bbb16838641679f91ad9e308e2",
+    "branch": "codex/e2-m1-experience-brief",
+    "dirty_tree": true,
+    "commit_binding_status": "PENDING_IMPLEMENTATION_COMMIT",
+    "issue": "https://github.com/kinnyuww/amd-devmaster-track2-agent/issues/15",
+    "pull_request": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/16"
+  },
+  "scope": {
+    "checkpoint": "E2/M1 LangGraph Runnable Backend / UI Local Candidate",
+    "behavior_change": [
+      "Replace the production route's hand-written DurableFakeAgentLoop call with one startup-compiled, eight-node LangGraph workflow.",
+      "Use a separate LangGraph SQLite checkpointer as the only production graph-cursor authority while retaining SQLite Asset Repository as canonical product truth.",
+      "Persist a minimal typed graph state containing only identity, workflow/topology, cursor, projection and terminal-candidate fields.",
+      "Implement allow, policy-deny, model/format failure, stale, missing, corrupt, incompatible, cancellation, tool-exception and repository-exception safe terminal paths.",
+      "Prevent model and tool effect replay with run/node/attempt effect keys and make terminal writes idempotent.",
+      "Fail closed without replay when a node effect is already STARTED but its completion is unknown.",
+      "Bind restart compatibility to workflow, topology, base version, model ID, loopback server, model-config hash and code commit.",
+      "Reject direct and indirect imported-instruction attempts without dispatching a tool or changing the canonical asset.",
+      "Record sanitized node Trace with checkpoint, selected edge, policy, tool, verification, terminal and finding metadata.",
+      "Inject CODE_COMMIT into durable run identity; UNCOMMITTED is explicitly local-development-only."
+    ],
+    "non_goals": [
+      "No W7900, ROCm, real Qwen2.5-14B vLLM execution or Serving Reference S1.",
+      "No E3 or later milestone behavior.",
+      "No cross-asset RAG.",
+      "No performance or optimization claim.",
+      "No checkpoint-2 acceptance, E2 promotion or merge claim."
+    ]
+  },
+  "quality_mapping": {
+    "acceptance_criteria": [
+      "AC-03",
+      "AC-09",
+      "AC-10",
+      "AC-15",
+      "AC-16",
+      "AC-17",
+      "AC-22",
+      "AC-23",
+      "AC-24",
+      "AC-25"
+    ],
+    "l1_milestones": [
+      "M1 Experience Brief"
+    ],
+    "l2_gates": [
+      "Agent orchestration",
+      "Canonical state",
+      "Runtime policy",
+      "Failure behavior",
+      "Recovery and idempotency",
+      "Privacy",
+      "Observability"
+    ],
+    "track_2_relevance": "Implements a private local multi-step Agent workflow with durable planning, policy-controlled Tool Calling, current-source grounding, restart recovery, explicit terminal states and sanitized observability.",
+    "submission_impact": "Provides the local code and reproducible test candidate for E2 checkpoint-2 review. It deliberately excludes the W7900 evidence assigned to kinnyuww."
+  },
+  "workflow": {
+    "workflow_version": "experience-asset/e2-m1/v1",
+    "topology_hash": "2ed5001b1c7bf177335e0bbff59e964b115c1a90c8454f3784e9e695e3cbd707",
+    "node_count": 8,
+    "canonical_authority": "SQLITE_ASSET_REPOSITORY",
+    "resume_authority": "LANGGRAPH_SQLITE_CHECKPOINTER",
+    "retry_budget": 0,
+    "production_fake_loop": false
+  },
+  "input": {
+    "fixture_or_scenario_id": "chair_incomplete artifact plus public E2 fixtures and deterministic LangGraph allow, deny, model/format-failure, restart, corrupt, missing, runtime-mismatch, stale, cancellation, indeterminate-effect, tool-failure and repository-failure scenarios",
+    "data_class": "public_adapted_and_synthetic_non_private",
+    "sensitive_data_in_packet": false
+  },
+  "environment": {
+    "hardware": {
+      "host": "local developer workstation",
+      "architecture": "arm64",
+      "gpu": null,
+      "gpu_note": "W7900 work is excluded and assigned to kinnyuww."
+    },
+    "software": {
+      "os": "macOS 15.6 build 24G84",
+      "python_agent_venv": "3.12.13",
+      "node": "22.22.2",
+      "npm": "10.9.7",
+      "langchain_core": "0.3.86",
+      "langgraph": "0.6.11",
+      "langgraph_checkpoint": "3.0.1",
+      "langgraph_checkpoint_sqlite": "3.0.3"
+    }
+  },
+  "commands": [
+    {
+      "cmd": "uv pip install --python <clean-venv>/bin/python -e '.[dev]'",
+      "cwd": ".",
+      "exit": 0,
+      "result": "A clean Python 3.12.13 environment installed the project and imported the exact LangGraph and synchronous/asynchronous SQLite saver versions."
+    },
+    {
+      "cmd": ".venv/bin/ruff check . && .venv/bin/pytest -q",
+      "cwd": ".",
+      "exit": 0,
+      "result": "Ruff and 99/99 backend tests passed."
+    },
+    {
+      "cmd": "bash -n scripts/*.sh && python3 -m py_compile scripts/*.py && python3 -m unittest discover -s qa/tests -v && bash qa/gates/pr_gate.sh --mode contract",
+      "cwd": ".",
+      "exit": 0,
+      "result": "31/31 public QA tests and the repository contract gate passed."
+    },
+    {
+      "cmd": ".venv/bin/python scripts/export_contracts.py --check",
+      "cwd": ".",
+      "exit": 0,
+      "result": "Checked-in JSON Schema and OpenAPI are current."
+    },
+    {
+      "cmd": "npm run verify:contracts && npm run test && npm run typecheck && npm run lint && npm run build",
+      "cwd": "web",
+      "exit": 0,
+      "result": "15/15 contract provenance checks, 95/95 Vitest tests, typecheck, ESLint and production build passed."
+    },
+    {
+      "cmd": "E2E_LIVE_BASE_URL=http://127.0.0.1:8080 VITE_PROXY_TARGET=http://127.0.0.1:8080 npm run e2e",
+      "cwd": "web",
+      "exit": 0,
+      "result": "17/17 Playwright cases passed against the real loopback FastAPI service."
+    },
+    {
+      "cmd": ".venv/bin/python scripts/capture_e2_m1_local_evidence.py --output-dir evidence/milestones/e2-m1-langgraph-local/20260728T102918Z/artifacts --code-commit UNCOMMITTED --fixture-id chair_incomplete --ui-screenshot web/e2e-results/screenshots/17-m1-live.png",
+      "cwd": ".",
+      "exit": 0,
+      "result": "Captured a public asset, state-derived progress, M1 workspace, retrieval Trace, checkpoint-linked node Trace, inspected UI screenshot and SHA-256 manifest."
+    },
+    {
+      "cmd": "bash qa/gates/pr_gate.sh --mode artifact --asset evidence/milestones/e2-m1-langgraph-local/20260728T102918Z/artifacts/experience-asset.public.json --fixture-id chair_incomplete --progress evidence/milestones/e2-m1-langgraph-local/20260728T102918Z/artifacts/m1-progress.json --retrieval-trace evidence/milestones/e2-m1-langgraph-local/20260728T102918Z/artifacts/retrieval-phase-trace.json",
+      "cwd": ".",
+      "exit": 0,
+      "result": "The E2-scoped public artifact, progress and current-source retrieval Trace passed the fail-closed artifact gate."
+    },
+    {
+      "cmd": "git diff --check",
+      "cwd": ".",
+      "exit": 0,
+      "result": "No whitespace errors."
+    }
+  ],
+  "results": {
+    "result_class": "LOCAL_CANDIDATE_COMPLETE_COMMIT_BINDING_PENDING",
+    "measurements": {
+      "public_qa_unittest": "31/31",
+      "backend_pytest": "99/99",
+      "frontend_contract_provenance": "15/15",
+      "frontend_vitest": "95/95",
+      "live_playwright": "17/17",
+      "clean_install": "PASS",
+      "contract_gate": "PASS",
+      "artifact_gate_chair_incomplete": "PASS",
+      "ruff": "PASS",
+      "contract_export": "PASS",
+      "typecheck_lint_build": "PASS"
+    },
+    "retained_failures": [
+      "The first trace-to-checkpoint binding attempt supplied checkpoint_ns as a graph subgraph selector and raised a Subgraph-not-found error; production configuration now uses thread_id only and all node Trace rows bind checkpoint IDs.",
+      "The first denial implementation called ToolExecutor from verify_run_result to manufacture a DENIED record; it was replaced by a policy-suppressed zero-effect audit record and a regression proves zero tool dispatches.",
+      "The first public artifact-gate attempt used chair_public_complete and correctly failed because that fixture expects M5 route decisions outside E2; the retained E2 packet now uses chair_incomplete and does not fabricate future route eligibility.",
+      "The previous checkpoint-2 packet described the pre-LangGraph implementation and cannot support the corrected architecture."
+    ],
+    "recovery": [
+      "All retained defects were corrected before the complete local gate rerun.",
+      "Missing, corrupt, incompatible and stale cursors now stop safely without model or tool replay.",
+      "Runtime identity drift and indeterminate started effects now stop safely without resuming model or tool execution.",
+      "Cancellation, unexpected tool failure and transient repository failure now leave durable explicit terminal states."
+    ],
+    "unverified": [
+      "Exact implementation commit binding; the current packet is intentionally dirty-tree and must be regenerated after an authorized commit.",
+      "Independent quality-owner acceptance of E2 checkpoint 2.",
+      "W7900/ROCm/Qwen2.5-14B real-model execution owned by kinnyuww.",
+      "Serving Reference S1 and E2 Evidence / Promotion checkpoint owned by kinnyuww.",
+      "E2 promotion, merge and E3 real-state integration."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "app/experience_asset/workflow/m1_graph.py",
+      "description": "Eight-node production LangGraph workflow, recovery, idempotency and sanitized Trace."
+    },
+    {
+      "path": "app/experience_asset/workflow/state.py",
+      "description": "Frozen minimal graph state allowlist, workflow version and topology hash."
+    },
+    {
+      "path": "app/experience_asset/persistence/migrations/0003_workflow_runtime.sql",
+      "description": "Workflow run context, effect and Trace persistence."
+    },
+    {
+      "path": "contracts/checkpoints/e2-m1-workflow-conformance-v1.json",
+      "description": "Machine-readable PR17 workflow conformance contract."
+    },
+    {
+      "path": "tests/integration/test_m1_langgraph.py",
+      "description": "Production wiring, branch, privacy, restart, corruption, stale, cancellation, exception and idempotency regressions."
+    },
+    {
+      "path": "docs/kinnyu/E2_M1_LANGGRAPH_REVIEW_HANDOFF.md",
+      "description": "PR16 reviewer checklist and bounded W7900 handoff."
+    },
+    {
+      "path": "scripts/capture_e2_m1_local_evidence.py",
+      "description": "Reproducible sanitized local artifact capture for a public E2 fixture."
+    },
+    {
+      "path": "evidence/milestones/e2-m1-langgraph-local/20260728T102918Z/artifacts/artifact-hashes.json",
+      "description": "SHA-256 binding for every bounded public artifact in this dirty-tree candidate."
+    },
+    {
+      "path": "evidence/milestones/e2-m1-langgraph-local/20260728T102918Z/artifacts/experience-asset.public.json",
+      "description": "Public Experience Asset snapshot used by the artifact gate."
+    },
+    {
+      "path": "evidence/milestones/e2-m1-langgraph-local/20260728T102918Z/artifacts/m1-progress.json",
+      "description": "State-derived progress with no fabricated percentage or ETA."
+    },
+    {
+      "path": "evidence/milestones/e2-m1-langgraph-local/20260728T102918Z/artifacts/retrieval-phase-trace.json",
+      "description": "Current-asset-only retrieval Trace used by the artifact gate."
+    },
+    {
+      "path": "evidence/milestones/e2-m1-langgraph-local/20260728T102918Z/artifacts/langgraph-node-trace.json",
+      "description": "Sanitized checkpoint-linked eight-node production Trace."
+    },
+    {
+      "path": "evidence/milestones/e2-m1-langgraph-local/20260728T102918Z/artifacts/m1-live-ui.png",
+      "description": "Inspected live FastAPI/React M1 UI capture using only a synthetic public scenario."
+    }
+  ],
+  "decision": {
+    "result_class": "READY_FOR_IMPLEMENTATION_COMMIT_THEN_INDEPENDENT_LOCAL_REVIEW",
+    "known_risks": [
+      "The local candidate is not yet bound to a committed PR16 head.",
+      "The installed LangGraph dependency emits a non-failing pending-deprecation warning about the future serializer default.",
+      "No real W7900/model success claim can be made from deterministic or unavailable-model local runs."
+    ],
+    "rollback": "Revert the future LangGraph implementation commit; retain the accepted E2 checkpoint-1 contract and E1 DurableFakeAgentLoop fixture.",
+    "implementation_owner": "Eas000n",
+    "quality_owner": "kinnyuww",
+    "w7900_owner": "kinnyuww",
+    "deadline": "Before E2 checkpoint-2 acceptance or promotion"
+  },
+  "history": {
+    "supersedes_packet_id": null,
+    "related_packet_ids": [
+      "e2-m1-contract-20260728T035750Z-7fcfc3b",
+      "e2-m1-vertical-slice-20260728T060604Z-3606cba"
+    ],
+    "notes": "Dirty-tree local candidate. After an authorized commit, regenerate a clean exact-head packet rather than editing this historical candidate in place."
+  }
+}

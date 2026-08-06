@@ -1,0 +1,43 @@
+name: agent
+
+on:
+  pull_request:
+    paths:
+      - "app/**"
+      - "contracts/**"
+      - "tests/**"
+      - "scripts/export_contracts.py"
+      - "scripts/verify_e1_model_contract.py"
+      - "pyproject.toml"
+      - ".github/workflows/agent.yml"
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "contracts/**"
+      - "tests/**"
+      - "scripts/export_contracts.py"
+      - "scripts/verify_e1_model_contract.py"
+      - "pyproject.toml"
+      - ".github/workflows/agent.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  contract-and-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install Agent and test dependencies
+        run: python -m pip install -e '.[dev]'
+      - name: Check generated JSON Schema and OpenAPI contracts
+        run: python scripts/export_contracts.py --check
+      - name: Lint Lane A code
+        run: ruff check .
+      - name: Run Lane A public tests
+        run: pytest

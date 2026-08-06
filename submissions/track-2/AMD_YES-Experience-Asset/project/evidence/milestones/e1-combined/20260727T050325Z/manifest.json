@@ -1,0 +1,219 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "e1-combined-terminal-fix-20260727T050325Z-2deaad7",
+  "timestamp_utc": "2026-07-27T05:03:25Z",
+  "source": {
+    "git_commit": "2deaad7ad0fa268f8a0a75f6b87954aabe2ab3f0",
+    "branch": "codex/e1-combined-gate",
+    "dirty_tree": false,
+    "described_commit_note": "All recorded checks ran on this clean implementation commit. This append-only packet and status documentation are added in the following evidence commit.",
+    "issue": null,
+    "pull_request": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/12"
+  },
+  "scope": "Close the High T06 failure-terminal blocker by durably terminalizing local-model unavailable, timeout, invalid or empty output, and missing-required-tool-call paths; preserve the failed observation and request quality-owner re-review without promoting E2.",
+  "quality_mapping": {
+    "acceptance_criteria": [
+      "AC-04",
+      "AC-11",
+      "AC-17",
+      "AC-18",
+      "AC-22",
+      "AC-24",
+      "AC-27"
+    ],
+    "l1_milestones": [
+      "cross-cutting E1/T06 foundation; no M1-M5 promotion claimed"
+    ],
+    "l2_gates": [
+      "Persistence and resume",
+      "Local inference",
+      "Failure behavior",
+      "Observability",
+      "Evidence discipline"
+    ],
+    "track_2_relevance": "Proves the bounded local Agent stops explicitly and remains restart-safe when W7900-served inference is unavailable, times out or produces unusable output.",
+    "submission_impact": "Adds a reproducible failure/recovery checkpoint for later Track 2 demonstration and submission harvesting. It is not a performance Baseline or a new GPU claim."
+  },
+  "input": {
+    "fixture_or_scenario_id": "e1-combined-model-failure-terminal-regression-v1",
+    "version": "implementation@2deaad7ad0fa268f8a0a75f6b87954aabe2ab3f0",
+    "data_class": "public_synthetic_and_contract_state",
+    "sha256": null,
+    "sha256_reason": "The regression composes deterministic injected model failures, the public-ready synthetic asset fixture and an ephemeral SQLite database rather than one input file."
+  },
+  "environment": {
+    "hardware": {
+      "host": "local developer workstation",
+      "architecture": "arm64",
+      "gpu": null,
+      "gpu_note": "No Radeon Cloud GPU was exercised by this correction run."
+    },
+    "software": {
+      "os": "macOS 15.6 build 24G84",
+      "node": "22.22.2",
+      "npm": "10.9.7",
+      "python": "3.12.13",
+      "fastapi": "0.128.8",
+      "uvicorn": "0.35.0",
+      "pytest": "8.4.2",
+      "browser": "Playwright Chromium 149"
+    },
+    "workflow_schema_versions": {
+      "canonical_schema_version": "1.0.0",
+      "terminal_result": "1.0.0"
+    }
+  },
+  "model_and_serving": {
+    "model_source": null,
+    "model_revision_or_hash": null,
+    "license": null,
+    "dtype": null,
+    "quantization": null,
+    "arguments": [
+      "FastAPI bound to 127.0.0.1:8080 for live-loopback verification",
+      "configured inference endpoint remains loopback-only"
+    ],
+    "note": "No model was loaded. A path-level comparison confirms that model manifests, runtime identity, vLLM startup arguments, Tool Call verification and the localhost model client are unchanged from the prior PR #12 head. The accepted E1-A3 W7900 serving evidence is inherited only for those unchanged inputs."
+  },
+  "commands": [
+    {
+      "cmd": "bash -n scripts/*.sh",
+      "cwd": ".",
+      "exit": 0,
+      "result": "All repository shell scripts passed syntax validation."
+    },
+    {
+      "cmd": "python3 -m py_compile scripts/*.py",
+      "cwd": ".",
+      "exit": 0,
+      "result": "All repository Python scripts compiled."
+    },
+    {
+      "cmd": "python3 -m unittest discover -s qa/tests -v",
+      "cwd": ".",
+      "exit": 0,
+      "result": "31/31 public QA tests passed."
+    },
+    {
+      "cmd": "bash qa/gates/pr_gate.sh --mode contract",
+      "cwd": ".",
+      "exit": 0,
+      "result": "Repository disclosure, credential boundary and seven public fixture contracts passed."
+    },
+    {
+      "cmd": ".venv/bin/python scripts/export_contracts.py --check",
+      "cwd": ".",
+      "exit": 0,
+      "result": "Checked-in contracts are current."
+    },
+    {
+      "cmd": ".venv/bin/pytest -q",
+      "cwd": ".",
+      "exit": 0,
+      "result": "51/51 backend tests passed, including four failure-terminal/restart regression classes."
+    },
+    {
+      "cmd": ".venv/bin/ruff check .",
+      "cwd": ".",
+      "exit": 0,
+      "result": "Ruff passed."
+    },
+    {
+      "cmd": "npm run verify:contracts / typecheck / lint / test / build",
+      "cwd": "web",
+      "exit": 0,
+      "result": "15/15 contract provenance checks, TypeScript, ESLint, 89/89 Vitest tests and production build passed."
+    },
+    {
+      "cmd": "npm run e2e",
+      "cwd": "web",
+      "exit": 0,
+      "result": "15 mock Playwright tests passed; one live case skipped by design without E2E_LIVE_BASE_URL."
+    },
+    {
+      "cmd": "E2E_LIVE_BASE_URL=http://127.0.0.1:8080 VITE_PROXY_TARGET=http://127.0.0.1:8080 npm run e2e",
+      "cwd": "web",
+      "exit": 0,
+      "result": "16/16 Playwright tests passed against the implementation commit's loopback FastAPI service."
+    },
+    {
+      "cmd": "npm audit --omit=dev",
+      "cwd": "web",
+      "exit": 0,
+      "result": "Production dependency audit reported 0 vulnerabilities."
+    },
+    {
+      "cmd": "git diff --quiet 16c8ed7f7a17ce1769f19747404170a84c025707 2deaad7ad0fa268f8a0a75f6b87954aabe2ab3f0 -- config/models config/runtime scripts/serve_vllm.sh scripts/verify_vllm_tool_call.py app/experience_asset/inference/client.py",
+      "cwd": ".",
+      "exit": 0,
+      "result": "Frozen serving inputs, startup/tool-verification scripts and localhost model client are unchanged."
+    }
+  ],
+  "results": {
+    "terminal_state": "FIX_READY_REVIEW_PENDING",
+    "measurements": {
+      "failure_terminal_regressions": "4/4",
+      "backend_pytest": "51/51",
+      "public_qa_unittest": "31/31",
+      "frontend_contract_provenance": "15/15",
+      "frontend_vitest": "89/89",
+      "mock_playwright": "15 passed, 1 expected live skip",
+      "live_playwright": "16/16",
+      "production_dependency_vulnerabilities": 0
+    },
+    "failed_observations_retained": [
+      {
+        "source": "PR #12 quality-owner review of the previous packet",
+        "result": "FAIL",
+        "severity": "HIGH",
+        "observation": "Injected ModelUnavailable and a missing required Tool Call could leave the durable run at PLANNED with finished_at and terminal_state unset."
+      }
+    ],
+    "recovery": [
+      "Implementation commit 2deaad7 converts all named model-failure classes to explicit terminal checkpoints and run results while preserving the last durable asset version."
+    ],
+    "unverified": [
+      "Quality-owner re-review and formal T06 promotion.",
+      "GitHub CI for the two new commits until they are pushed.",
+      "A current-commit W7900/model rerun; unchanged serving compatibility is inherited instead.",
+      "OOM-specific model-server classification and formal performance Baseline/Candidate measurements.",
+      "The first useful M1 product slice and every E2+ product milestone."
+    ]
+  },
+  "inherited_evidence": [
+    {
+      "packet_id": "e1-a3-w7900-20260725T121500Z-5209101",
+      "path": "../../e1-a3-real-w7900/20260725T121500Z/",
+      "quality_status": "accepted during PR #7 review",
+      "scope": "Exact-commit W7900/ROCm/Qwen2.5-14B BF16 viability and bounded Runtime allow/deny/effect/terminal/restart evidence for unchanged serving inputs."
+    },
+    {
+      "packet_id": "e1-combined-20260726T220422Z-23653d6",
+      "path": "../20260726T220422Z/",
+      "quality_status": "FAIL during PR #12 T06 review",
+      "scope": "Prior combined gate whose green checks did not cover the model-exception terminal hole; preserved as the superseded observation."
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "artifacts/failure-terminal-gate-results.json",
+      "sha256": "5c0b73edb3024a1150a8b985ad3217d36dced5f40bc11e6dc702ec659ad1f32f",
+      "description": "Sanitized machine-readable failure observation, four terminal regressions, restart proof, combined gate counts and inherited-serving boundary."
+    }
+  ],
+  "decision": {
+    "result_class": "FIX_READY_REVIEW_PENDING",
+    "known_risks": [
+      "No current-commit W7900/model rerun was performed; serving compatibility is inherited because its frozen inputs and model client did not change.",
+      "The new boundary covers the named unavailable, timeout, invalid/empty and missing-tool classes; OOM-specific server classification remains unverified.",
+      "E1 proves foundations and safe failure handling only; no useful M1 product artifact exists yet."
+    ],
+    "rollback": "Revert implementation commit 2deaad7ad0fa268f8a0a75f6b87954aabe2ab3f0. The prior failed T06 packet remains retained and E2 stays blocked.",
+    "owner": "kinnyuww / quality owner",
+    "deadline": "Before T06 promotion or any E2/M1 implementation"
+  },
+  "history": {
+    "supersedes_packet_id": "e1-combined-20260726T220422Z-23653d6",
+    "notes": "Preserves the prior green command results and the later High failure-terminal review; this packet adds the corrected exact-commit regression evidence without rewriting either observation."
+  }
+}

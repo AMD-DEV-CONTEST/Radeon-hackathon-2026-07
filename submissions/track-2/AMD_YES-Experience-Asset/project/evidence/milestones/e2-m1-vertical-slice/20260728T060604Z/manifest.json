@@ -1,0 +1,158 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "e2-m1-vertical-slice-20260728T060604Z-3606cba",
+  "timestamp_utc": "2026-07-28T06:06:04Z",
+  "source": {
+    "git_commit": "3606cba7be473041594655d9525df811fd9196d2",
+    "branch": "codex/e2-m1-experience-brief",
+    "dirty_tree": false,
+    "issue": "https://github.com/kinnyuww/amd-devmaster-track2-agent/issues/15",
+    "pull_request": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/16"
+  },
+  "scope": {
+    "checkpoint": "E2/M1 Runnable Backend / UI Vertical Slice",
+    "behavior_change": [
+      "Split adjacent Chinese and English sentences without requiring whitespace after sentence punctuation.",
+      "Preserve the existing source reference, complete-source span and source statement order.",
+      "Surface a visible question when same-day return/exchange and multi-day or multi-week use claims coexist.",
+      "Bind the conflict question to the affected source statement IDs.",
+      "Avoid treating a same-day return by itself as a duration conflict."
+    ],
+    "non_goals": [
+      "No schema, OpenAPI, migration, RAG, route, export or governance-document change.",
+      "No W7900, ROCm, vLLM, Serving Reference S1 or performance claim."
+    ]
+  },
+  "quality_mapping": {
+    "acceptance_criteria": [
+      "AC-03",
+      "AC-10",
+      "AC-15",
+      "AC-16",
+      "AC-17",
+      "AC-22",
+      "AC-23",
+      "AC-24",
+      "AC-25"
+    ],
+    "l1_milestones": [
+      "M1 Experience Brief"
+    ],
+    "l2_gates": [
+      "Canonical state",
+      "Evidence discipline",
+      "Failure behavior",
+      "Observability"
+    ],
+    "track_2_relevance": "Improves the private M1 Agent's current-source grounding and hallucination control by keeping source statements distinct and converting contradictory duration evidence into an explicit user question.",
+    "submission_impact": "Provides reproducible local evidence for the E2 runnable vertical-slice review. It does not promote E2 or replace the pending W7900 evidence."
+  },
+  "input": {
+    "fixture_or_scenario_id": "public E2 fixtures plus synthetic adjacent Chinese/English and Chinese duration-conflict regressions",
+    "data_class": "public_adapted_and_synthetic_non_private",
+    "sensitive_data_in_packet": false
+  },
+  "environment": {
+    "hardware": {
+      "host": "local developer workstation",
+      "architecture": "arm64",
+      "gpu": null,
+      "gpu_note": "W7900 execution was explicitly deferred for this work package."
+    },
+    "software": {
+      "os": "macOS 15.6 build 24G84",
+      "python_agent_venv": "3.12.13",
+      "node": "22.22.2",
+      "npm": "10.9.7"
+    }
+  },
+  "commands": [
+    {
+      "cmd": "bash -n scripts/*.sh && python3 -m py_compile scripts/*.py && python3 -m unittest discover -s qa/tests -v && bash qa/gates/pr_gate.sh --mode contract",
+      "cwd": ".",
+      "exit": 0,
+      "result": "31/31 public QA tests and the repository contract gate passed."
+    },
+    {
+      "cmd": ".venv/bin/python -m pytest && .venv/bin/ruff check .",
+      "cwd": ".",
+      "exit": 0,
+      "result": "81/81 backend tests and Ruff passed."
+    },
+    {
+      "cmd": ".venv/bin/python scripts/export_contracts.py --check",
+      "cwd": ".",
+      "exit": 0,
+      "result": "Checked-in JSON Schema and OpenAPI remain current."
+    },
+    {
+      "cmd": "npm run verify:contracts && npm run test && npm run typecheck && npm run lint && npm run build",
+      "cwd": "web",
+      "exit": 0,
+      "result": "15/15 contract provenance checks, 95/95 Vitest tests, typecheck, ESLint and production build passed."
+    },
+    {
+      "cmd": "E2E_LIVE_BASE_URL=http://127.0.0.1:8080 VITE_PROXY_TARGET=http://127.0.0.1:8080 npm run e2e",
+      "cwd": "web",
+      "exit": 0,
+      "result": "17/17 Playwright cases passed against the real loopback FastAPI service."
+    },
+    {
+      "cmd": "git diff --check",
+      "cwd": ".",
+      "exit": 0,
+      "result": "No whitespace errors."
+    }
+  ],
+  "results": {
+    "result_class": "LOCAL_CHECKPOINT_2_READY_FOR_REVIEW",
+    "measurements": {
+      "public_qa_unittest": "31/31",
+      "backend_pytest": "81/81",
+      "frontend_contract_provenance": "15/15",
+      "frontend_vitest": "95/95",
+      "live_playwright": "17/17",
+      "contract_gate": "PASS",
+      "ruff": "PASS",
+      "contract_export": "PASS",
+      "typecheck_lint_build": "PASS"
+    },
+    "failures": [
+      "The first targeted run failed four adapted-fixture cases because ASCII exclamation in the HTML fixture comment opener was incorrectly treated as a sentence boundary."
+    ],
+    "recovery": [
+      "ASCII exclamation/question boundaries were constrained to real sentence-follow contexts while full-width Chinese punctuation remains whitespace-independent; all targeted and complete checks then passed."
+    ],
+    "unverified": [
+      "Independent quality-owner acceptance of E2 checkpoint 2.",
+      "Current W7900/ROCm/vLLM real-model execution.",
+      "Serving Reference S1 and E2 Evidence / Promotion checkpoint.",
+      "E2 promotion, merge and E3 real-state integration."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "app/experience_asset/application/m1/service.py",
+      "description": "Punctuation-aware segmentation, bilingual duration-conflict detection and source-statement question binding."
+    },
+    {
+      "path": "tests/integration/test_m1_api.py",
+      "description": "Adjacent Chinese/English, Chinese contradiction, provenance/order and non-conflict regressions."
+    }
+  ],
+  "decision": {
+    "result_class": "READY_FOR_INDEPENDENT_LOCAL_REVIEW",
+    "known_risks": [
+      "Duration conflict detection is deliberately bounded and heuristic; it surfaces a question rather than asserting which timeline is true.",
+      "W7900/local-model evidence remains pending and is not inferred from local fake or unavailable-model paths."
+    ],
+    "rollback": "Revert implementation commit 3606cba7be473041594655d9525df811fd9196d2; the frozen checkpoint-1 contract remains unchanged.",
+    "owner": "kinnyuww / quality owner",
+    "deadline": "Before E2 checkpoint-2 acceptance or E2 promotion"
+  },
+  "history": {
+    "supersedes_packet_id": null,
+    "related_packet_id": "e2-m1-contract-20260728T035750Z-7fcfc3b",
+    "notes": "First packet for the E2 runnable vertical-slice review after checkpoint-1 confirmation."
+  }
+}

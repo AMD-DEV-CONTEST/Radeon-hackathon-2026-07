@@ -1,0 +1,105 @@
+{
+  "$defs": {
+    "TerminalState": {
+      "enum": [
+        "SUCCEEDED",
+        "NEEDS_USER_INPUT",
+        "PAUSED",
+        "CANCELLED",
+        "TIMED_OUT",
+        "MODEL_UNAVAILABLE",
+        "MODEL_OOM",
+        "INVALID_MODEL_OUTPUT",
+        "STORAGE_ERROR",
+        "POLICY_BLOCKED",
+        "DELETION_FAILED",
+        "INTERNAL_ERROR"
+      ],
+      "title": "TerminalState",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "elapsed_ms": {
+      "minimum": 0,
+      "title": "Elapsed Ms",
+      "type": "integer"
+    },
+    "finished_at": {
+      "format": "date-time",
+      "title": "Finished At",
+      "type": "string"
+    },
+    "internal_error_class": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Internal Error Class"
+    },
+    "last_durable_version_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Last Durable Version Id"
+    },
+    "model_call_count": {
+      "minimum": 0,
+      "title": "Model Call Count",
+      "type": "integer"
+    },
+    "recovery_action": {
+      "minLength": 1,
+      "title": "Recovery Action",
+      "type": "string"
+    },
+    "retryable": {
+      "title": "Retryable",
+      "type": "boolean"
+    },
+    "run_id": {
+      "format": "uuid",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "safe_user_message": {
+      "minLength": 1,
+      "title": "Safe User Message",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "state": {
+      "$ref": "#/$defs/TerminalState"
+    }
+  },
+  "required": [
+    "run_id",
+    "state",
+    "retryable",
+    "safe_user_message",
+    "elapsed_ms",
+    "model_call_count",
+    "recovery_action",
+    "finished_at"
+  ],
+  "title": "TerminalResultV1",
+  "type": "object"
+}

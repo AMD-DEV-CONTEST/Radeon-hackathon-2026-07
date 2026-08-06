@@ -1,0 +1,185 @@
+{
+  "schema_version": "e6-m5-contract-fixtures/v1",
+  "status": "ISOLATED_IMPLEMENTATION_ACTIVE_ASYNC_REVIEW_REQUIRED",
+  "owner": "Eas000n",
+  "base_authority": {
+    "pull_request": 28,
+    "commit": "a0b042d812d1358814b3f7743a58541e653acff0",
+    "issue": 29,
+    "spec": "docs/kinnyu/E6_M5_ROUTE_PRIVACY_APPROVAL_SPEC.md"
+  },
+  "scope": "FULL_E6_M5_NO_REDUCTION",
+  "e5_handoff": {
+    "persistence_authority": "sidecar relation ledger",
+    "consumer": "read-only application projection or contract-equivalent mock",
+    "valid_outcomes": [
+      "NO_MATCH",
+      "DECLINED",
+      "CONFIRMED_RELATION",
+      "STALE"
+    ],
+    "historical_detail_requires": "current exact-bound CONFIRMED_RELATION",
+    "snapshot_embedding_forbidden": true,
+    "current_asset_content_hash_mutation_forbidden": true
+  },
+  "routes": [
+    "PRIVATE_SELF",
+    "BEGINNER",
+    "PEER",
+    "CUSTOMER_EVALUATOR",
+    "PUBLIC"
+  ],
+  "eligibility": [
+    "ELIGIBLE",
+    "INELIGIBLE",
+    "ELIGIBLE_AFTER_PRIVACY_APPROVAL",
+    "BLOCKED"
+  ],
+  "reason_codes": [
+    "M5_INPUT_NOT_READY",
+    "M5_INPUT_STALE",
+    "MISSING_DECISION_OR_LESSON",
+    "MISSING_BEGINNER_PREREQUISITE",
+    "MISSING_BEGINNER_GUIDANCE_BASIS",
+    "MISSING_PEER_COMPARISON",
+    "MISSING_PEER_EVIDENCE",
+    "MISSING_QUALIFYING_CONTEXT",
+    "MISSING_VERIFIABLE_RESULT",
+    "MISSING_APPLICABILITY_BOUNDARY",
+    "MISSING_DISCLOSURE_BASIS",
+    "UNSUPPORTED_UNIVERSAL_CLAIM",
+    "UNSUPPORTED_PROFESSIONAL_CLAIM",
+    "OPEN_PRIVACY_FINDINGS",
+    "PRIVACY_REVIEW_FAILED",
+    "ROUTE_REEVALUATION_REQUIRED",
+    "READY"
+  ],
+  "privacy": {
+    "categories": [
+      "IDENTITY",
+      "HEALTH_BODY",
+      "LOCATION",
+      "PURCHASE_PAYMENT",
+      "THIRD_PARTY",
+      "SCREENSHOT_METADATA",
+      "COPYRIGHT",
+      "UNVERIFIED_BRAND_CLAIM",
+      "PROFESSIONAL_ADVICE"
+    ],
+    "actions": [
+      "KEEP",
+      "ACKNOWLEDGE",
+      "GENERALIZE",
+      "REMOVE"
+    ],
+    "content_change_actions": [
+      "GENERALIZE",
+      "REMOVE"
+    ],
+    "fail_closed_on_review_failure": true,
+    "detection_is_not_a_guarantee": true
+  },
+  "approval": {
+    "scope": "SHAREABLE_EXPORT",
+    "external_routes_only": true,
+    "requires_final_route_draft": true,
+    "binding": [
+      "asset_id",
+      "version_id",
+      "route",
+      "language",
+      "route_draft_hash",
+      "renderer_input_hash",
+      "privacy_review_hash",
+      "finding_resolutions",
+      "relation_projection_hash"
+    ],
+    "preview_implies_approval": false,
+    "private_download_implies_approval": false,
+    "automatic_publication": false,
+    "idempotent": true,
+    "stale_on_any_binding_change": true
+  },
+  "workflow": {
+    "version": "experience-asset/e6-m5-isolated/v1",
+    "topology_hash": "b71debd8eff56d1b21ccb7cca7e889422967547665606d95b0edc0880d5118fa",
+    "state_authority": "bounded LangGraph cursor only",
+    "canonical_authority": "application repositories",
+    "production_wiring": "BLOCKED_UNTIL_E5_INTEGRATION",
+    "forbidden_state": [
+      "canonical asset",
+      "source text",
+      "raw prompt or response",
+      "route draft body",
+      "browser or model approval boolean",
+      "renderer output or filesystem path"
+    ]
+  },
+  "parallel_boundary": {
+    "allowed_before_e5_merge": [
+      "application/m5 isolated modules",
+      "policy/m5 isolated modules",
+      "contract-equivalent mocks",
+      "public fixtures",
+      "unit and isolated integration tests",
+      "feature-local UI"
+    ],
+    "forbidden_before_e5_merge": [
+      "domain/models.py or shared enum changes",
+      "OpenAPI or shared JSON Schema changes",
+      "migration numbering or repository main changes",
+      "API root or production workflow entry wiring",
+      "web/src/App.tsx or shared route registration",
+      "live E5 integration",
+      "milestone or W7900 completion claim"
+    ]
+  },
+  "fixtures": [
+    "complete",
+    "privacy-risk",
+    "route-ineligible",
+    "correction"
+  ],
+  "acceptance": {
+    "product": [
+      "AC-05",
+      "AC-07",
+      "AC-08",
+      "AC-09",
+      "AC-10",
+      "AC-14",
+      "AC-15",
+      "AC-16",
+      "AC-17",
+      "AC-18",
+      "AC-22",
+      "AC-23",
+      "AC-24",
+      "AC-25",
+      "AC-30"
+    ],
+    "milestone": "M5",
+    "l2": [
+      "Canonical state",
+      "Evidence discipline",
+      "Retrieval phase integrity",
+      "Runtime permission",
+      "Privacy and publication",
+      "Failure behavior"
+    ]
+  },
+  "verification": [
+    ".venv/bin/pytest tests/unit/test_m5_policy.py -q",
+    ".venv/bin/pytest -q",
+    ".venv/bin/ruff check .",
+    "bash -n scripts/*.sh",
+    "python3 -m py_compile scripts/*.py",
+    "python3 -m unittest discover -s qa/tests -v",
+    "bash qa/gates/pr_gate.sh --mode contract"
+  ],
+  "evidence": {
+    "git_target": "evidence/milestones/e6-m5/<run_id>/",
+    "raw_target": "/workspace/amd-track2-agent/evidence/e6-m5/<run_id>/raw/",
+    "device_claim": "NOT_MADE_BY_ISOLATED_CHECKPOINT"
+  }
+}

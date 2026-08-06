@@ -1,0 +1,131 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "e3-m2-20260729T055853Z-6018657",
+  "timestamp_utc": "2026-07-29T05:58:53Z",
+  "source": {
+    "git_commit": "6018657fb0fe667c6c28a5817c808d3466f92c1a",
+    "branch": "codex/e3-m2-critical-moment-prep",
+    "dirty_tree": false,
+    "issue": "https://github.com/kinnyuww/amd-devmaster-track2-agent/issues/19",
+    "pull_request": null
+  },
+  "scope": {
+    "checkpoint": "E3 / M2 Critical Moment Map",
+    "behavior_change": [
+      "Derive a source-linked Critical Moment Map from an accepted M1 version.",
+      "Represent known, missing and conflicting time without inventing dates.",
+      "Persist immutable M2 history and canonical ExperienceAsset projections atomically.",
+      "Support safe title-only autosave, optimistic concurrency and explicit confirmation.",
+      "Invalidate dependent M2 artifacts after related M1 corrections while preserving unrelated edits."
+    ],
+    "non_goals": [
+      "No M3-M5 implementation, cross-asset RAG, route generation or export workflow.",
+      "No new W7900, ROCm, vLLM or performance claim."
+    ]
+  },
+  "quality_mapping": {
+    "acceptance_criteria": ["AC-02", "AC-03", "AC-09", "AC-10", "AC-15", "AC-16", "AC-17", "AC-22", "AC-23", "AC-24", "AC-25"],
+    "l1_milestones": ["M2 Timeline and Critical Moment Map"],
+    "l2_gates": ["Canonical state", "Evidence discipline", "Failure behavior", "Observability"],
+    "track_2_relevance": "Extends the private local Agent from M1 into an auditable M2 workflow whose timeline claims remain bound to current-source statements and explicit user review.",
+    "submission_impact": "Provides a reproducible local E3 vertical slice and review packet; it does not replace accepted W7900 serving evidence or promote E3 without quality-owner review."
+  },
+  "input": {
+    "fixture_or_scenario_id": "synthetic public chair timeline plus correction/invalidation trace",
+    "data_class": "synthetic_non_private",
+    "sensitive_data_in_packet": false
+  },
+  "environment": {
+    "hardware": {
+      "host": "local developer workstation",
+      "architecture": "arm64",
+      "gpu": null,
+      "gpu_note": "E3 did not require a new model-serving or performance run."
+    },
+    "software": {
+      "os": "macOS 26.2",
+      "python": "3.12.1",
+      "node": "24.12.0",
+      "npm": "11.6.2"
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python -m pytest -q && python -m ruff check app tests scripts",
+      "cwd": ".",
+      "exit": 0,
+      "result": "121/121 backend tests and Ruff passed."
+    },
+    {
+      "cmd": "bash -n scripts/*.sh && python3 -m py_compile scripts/*.py && python3 -m unittest discover -s qa/tests -v && bash qa/gates/pr_gate.sh --mode contract",
+      "cwd": ".",
+      "exit": 0,
+      "result": "32/32 public QA tests and the repository contract gate passed."
+    },
+    {
+      "cmd": "npm test -- --run && npm run typecheck && npm run lint && npm run build && npm run verify:contracts",
+      "cwd": "web",
+      "exit": 0,
+      "result": "106/106 Vitest tests, typecheck, ESLint, build and 15/15 contract provenance checks passed; ESLint retained two pre-existing hook dependency warnings in M2Workspace."
+    },
+    {
+      "cmd": "python scripts/export_contracts.py (repeat and compare SHA-256)",
+      "cwd": ".",
+      "exit": 0,
+      "result": "OpenAPI and M2 JSON Schema generation was idempotent."
+    },
+    {
+      "cmd": "loopback FastAPI + Vite + Playwright Chromium capture",
+      "cwd": ".",
+      "exit": 0,
+      "result": "A real same-origin browser path rendered source links and KNOWN/MISSING states from persisted M2 API data."
+    }
+  ],
+  "results": {
+    "result_class": "E3_LOCAL_VERTICAL_SLICE_READY_FOR_REVIEW",
+    "measurements": {
+      "backend_pytest": "121/121",
+      "public_qa_unittest": "32/32",
+      "frontend_vitest": "106/106",
+      "frontend_contract_provenance": "15/15",
+      "contract_gate": "PASS",
+      "ruff": "PASS",
+      "contract_export": "PASS",
+      "typecheck_lint_build": "PASS",
+      "live_browser_capture": "PASS"
+    },
+    "failures": [],
+    "recovery": [],
+    "unverified": [
+      "Independent quality-owner acceptance and E3 promotion.",
+      "New W7900/ROCm/vLLM performance evidence; existing accepted E1/E2 serving evidence is unchanged."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "evidence/milestones/e3-m2/20260729T055853Z/public-m2-workspace.json",
+      "sha256": "fd55dc0dedc2c956b10e84e28b2b62d0bc2726a485973ef80d095ad9d0b70361",
+      "description": "Public persisted M2 workspace with source-linked known and missing time states."
+    },
+    {
+      "path": "evidence/milestones/e3-m2/20260729T055853Z/correction-invalidation-trace.json",
+      "sha256": "06094e88e0f9add7b34244261886de53599da6f64078b65f2956774eb4d5e283",
+      "description": "Canonical and M2 trace after a dependent M1 correction."
+    },
+    {
+      "path": "evidence/milestones/e3-m2/20260729T055853Z/m2-workspace.png",
+      "sha256": "38c7bcaf7c54d5991943763f945288488ddd1a724fbc3c8884658ecabaca2a17",
+      "description": "Real loopback FastAPI/React M2 browser capture."
+    }
+  ],
+  "decision": {
+    "result_class": "READY_FOR_INDEPENDENT_LOCAL_REVIEW",
+    "known_risks": [
+      "Temporal extraction is deterministic and bounded; unsupported dates remain missing rather than inferred.",
+      "M2 criticality remains agent-proposed until the trusted confirmation transition accepts the map."
+    ],
+    "rollback": "Revert implementation commit 6018657fb0fe667c6c28a5817c808d3466f92c1a and the associated evidence commit.",
+    "owner": "kinnyuww / quality owner",
+    "deadline": "Before E3 acceptance or merge"
+  }
+}

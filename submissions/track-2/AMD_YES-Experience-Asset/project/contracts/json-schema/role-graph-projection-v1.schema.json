@@ -1,0 +1,317 @@
+{
+  "$defs": {
+    "NodeProvenanceV1": {
+      "additionalProperties": false,
+      "description": "Canonical references behind one node.\n\nAt least one statement reference is required for any node that can appear in\na candidate. A node without one could be shown to the user as part of an\nexplanation while resting on nothing they can open and check.",
+      "properties": {
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "node_id": {
+          "minLength": 1,
+          "title": "Node Id",
+          "type": "string"
+        },
+        "projection_id": {
+          "format": "uuid",
+          "title": "Projection Id",
+          "type": "string"
+        },
+        "source_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "span_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Span Refs",
+          "type": "array"
+        },
+        "statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Statement Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "node_id",
+        "projection_id",
+        "statement_ids"
+      ],
+      "title": "NodeProvenanceV1",
+      "type": "object"
+    },
+    "ProjectionEdgeType": {
+      "description": "Membership edges only.\n\nEvery edge means \"this canonical record has this member in this role\".\nStatement order, temporal proximity and semantic similarity cannot prove\ncausation, so no edge asserts it; a causal label would present the system's\nguess with the same authority as the user's own confirmed account.",
+      "enum": [
+        "HAS_CUE",
+        "HAS_CHANGE",
+        "HAS_SURPRISE",
+        "HAS_CONFLICT",
+        "HAS_ALTERNATIVE",
+        "HAS_REASON",
+        "HAS_ACTION",
+        "HAS_RESULT",
+        "HAS_EVIDENCE",
+        "HAS_SUPPORT",
+        "HAS_COUNTERFACTUAL",
+        "HAS_LIMITATION",
+        "HAS_COUNTEREXAMPLE",
+        "HAS_APPLICABILITY"
+      ],
+      "title": "ProjectionEdgeType",
+      "type": "string"
+    },
+    "ProjectionLifecycle": {
+      "description": "Projection eligibility state.\n\n`BUILDING` exists so a partially written projection is never eligible for\ncomparison: a projection compared before its provenance rows are complete\nwould yield a candidate that cannot be explained.",
+      "enum": [
+        "BUILDING",
+        "ACTIVE",
+        "STALE",
+        "INVALIDATED"
+      ],
+      "title": "ProjectionLifecycle",
+      "type": "string"
+    },
+    "ProjectionRootKind": {
+      "description": "Canonical record kinds a role graph may be projected from.",
+      "enum": [
+        "CRITICAL_MOMENT",
+        "DECISION_RECORD",
+        "INSIGHT_RECORD"
+      ],
+      "title": "ProjectionRootKind",
+      "type": "string"
+    },
+    "RoleGraphEdgeV1": {
+      "additionalProperties": false,
+      "description": "A membership edge: this root record has this member in this role.",
+      "properties": {
+        "canonical_record_id": {
+          "format": "uuid",
+          "title": "Canonical Record Id",
+          "type": "string"
+        },
+        "edge_id": {
+          "minLength": 1,
+          "title": "Edge Id",
+          "type": "string"
+        },
+        "edge_type": {
+          "$ref": "#/$defs/ProjectionEdgeType"
+        },
+        "member_node_id": {
+          "minLength": 1,
+          "title": "Member Node Id",
+          "type": "string"
+        },
+        "projection_id": {
+          "format": "uuid",
+          "title": "Projection Id",
+          "type": "string"
+        },
+        "root_node_id": {
+          "minLength": 1,
+          "title": "Root Node Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "edge_id",
+        "projection_id",
+        "edge_type",
+        "root_node_id",
+        "member_node_id",
+        "canonical_record_id"
+      ],
+      "title": "RoleGraphEdgeV1",
+      "type": "object"
+    },
+    "RoleGraphNodeV1": {
+      "additionalProperties": false,
+      "description": "One node of a deterministic role-graph projection.\n\n`summary_text` is bounded and summary-safe. Detailed evidence is deliberately\nabsent from the node: the discovery decision does not need it, and including\nit would put historical content into a model prompt before the user has\nagreed to look at that history at all.",
+      "properties": {
+        "canonical_record_id": {
+          "format": "uuid",
+          "title": "Canonical Record Id",
+          "type": "string"
+        },
+        "display_order": {
+          "minimum": 0,
+          "title": "Display Order",
+          "type": "integer"
+        },
+        "is_root": {
+          "title": "Is Root",
+          "type": "boolean"
+        },
+        "node_id": {
+          "minLength": 1,
+          "title": "Node Id",
+          "type": "string"
+        },
+        "projection_id": {
+          "format": "uuid",
+          "title": "Projection Id",
+          "type": "string"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProjectionEdgeType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "root_kind": {
+          "$ref": "#/$defs/ProjectionRootKind"
+        },
+        "summary_text": {
+          "maxLength": 400,
+          "minLength": 1,
+          "title": "Summary Text",
+          "type": "string"
+        },
+        "summary_text_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Summary Text Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "node_id",
+        "projection_id",
+        "root_kind",
+        "canonical_record_id",
+        "is_root",
+        "display_order",
+        "summary_text",
+        "summary_text_hash"
+      ],
+      "title": "RoleGraphNodeV1",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Deterministic read-only projection over accepted canonical records.\n\nRebuilding unchanged input reproduces the same content and the same\n`projection_hash`. Without that, a rebuild would change every fingerprint\nbound to it and discard cached discovery results for no semantic reason.",
+  "properties": {
+    "asset_id": {
+      "format": "uuid",
+      "title": "Asset Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "edges": {
+      "items": {
+        "$ref": "#/$defs/RoleGraphEdgeV1"
+      },
+      "title": "Edges",
+      "type": "array"
+    },
+    "invalidated_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Invalidated At"
+    },
+    "invalidation_reason": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Invalidation Reason"
+    },
+    "knowledge_card_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Knowledge Card Hash",
+      "type": "string"
+    },
+    "lifecycle": {
+      "$ref": "#/$defs/ProjectionLifecycle"
+    },
+    "nodes": {
+      "items": {
+        "$ref": "#/$defs/RoleGraphNodeV1"
+      },
+      "title": "Nodes",
+      "type": "array"
+    },
+    "projection_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Projection Hash",
+      "type": "string"
+    },
+    "projection_id": {
+      "format": "uuid",
+      "title": "Projection Id",
+      "type": "string"
+    },
+    "projection_schema_version": {
+      "const": "e5-role-graph/v1",
+      "default": "e5-role-graph/v1",
+      "title": "Projection Schema Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/NodeProvenanceV1"
+      },
+      "title": "Provenance",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "version_id": {
+      "format": "uuid",
+      "title": "Version Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "projection_id",
+    "asset_id",
+    "version_id",
+    "knowledge_card_hash",
+    "projection_hash",
+    "lifecycle",
+    "created_at"
+  ],
+  "title": "RoleGraphProjectionV1",
+  "type": "object"
+}

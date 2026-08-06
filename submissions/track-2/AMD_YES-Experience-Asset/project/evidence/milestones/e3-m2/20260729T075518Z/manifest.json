@@ -1,0 +1,167 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "e3-m2-20260729T075518Z-exact-c877c19",
+  "timestamp_utc": "2026-07-29T07:55:18Z",
+  "supersedes": "evidence/milestones/e3-m2/20260729T073048Z/",
+  "source": {
+    "git_commit": "c877c1981ccfc51a7bdb5361d11654d3e8a4f192",
+    "branch": "codex/e3-m2-critical-moment-prep",
+    "dirty_tree": false,
+    "issue": "https://github.com/kinnyuww/amd-devmaster-track2-agent/issues/19",
+    "pull_request": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/20",
+    "identity_note": "This packet is bound to the exact final implementation commit. The packet files themselves are added by the following evidence-only commit."
+  },
+  "scope": {
+    "checkpoint": "E3 / M2 Critical Moment Map final review closure",
+    "behavior_change": [
+      "Run M2 through the startup-compiled private LangGraph workflow defined in the superseded packet.",
+      "Preserve caller-provided fetch headers while enforcing the local JSON API headers.",
+      "Keep shared M1 styling while adding an explicit M2 workspace class.",
+      "Clean localStorage and restored mocks after each M2 workspace test."
+    ],
+    "non_goals": [
+      "No E4/M3 implementation, cross-asset RAG, route generation, export or performance optimization.",
+      "No remote model API and no new W7900, ROCm, vLLM or performance claim."
+    ]
+  },
+  "quality_mapping": {
+    "acceptance_criteria": [
+      "AC-02",
+      "AC-03",
+      "AC-09",
+      "AC-10",
+      "AC-15",
+      "AC-16",
+      "AC-17",
+      "AC-22",
+      "AC-23",
+      "AC-24",
+      "AC-25"
+    ],
+    "l1_milestones": [
+      "M2 Timeline and Critical Moment Map"
+    ],
+    "l2_gates": [
+      "Agent orchestration",
+      "Canonical state",
+      "Evidence discipline",
+      "Failure behavior",
+      "Observability",
+      "Privacy"
+    ],
+    "track_2_relevance": "Closes the E3 private local Agent vertical slice with a durable LangGraph workflow and trusted human decision boundary.",
+    "submission_impact": "Provides exact-commit E3 implementation, browser and quality evidence. W7900 verification remains delegated to kinnyuww."
+  },
+  "input": {
+    "fixture_or_scenario_id": "synthetic public chair-selection timeline",
+    "data_class": "synthetic_non_private",
+    "sensitive_data_in_packet": false
+  },
+  "environment": {
+    "hardware": {
+      "host": "local developer workstation",
+      "architecture": "arm64",
+      "gpu": null,
+      "gpu_note": "W7900 verification is outside this E3 packet and is delegated to kinnyuww."
+    },
+    "software": {
+      "os": "macOS",
+      "python": "3.12",
+      "workflow_version": "experience-asset/e3-m2/v1",
+      "topology_hash": "167415797b782af30d7918356e5d9a450ce4b3cac754dc00e5b9d330bc004b4d"
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python -m pytest -q && python -m ruff check app tests scripts",
+      "cwd": ".",
+      "exit": 0,
+      "result": "126/126 backend tests and Ruff passed."
+    },
+    {
+      "cmd": "bash -n scripts/*.sh && python3 -m py_compile scripts/*.py && python3 -m unittest discover -s qa/tests -v && bash qa/gates/pr_gate.sh --mode contract",
+      "cwd": ".",
+      "exit": 0,
+      "result": "32/32 public QA tests and the repository contract gate passed."
+    },
+    {
+      "cmd": "npm test -- --run && npm run typecheck && npm run lint && npm run build && npm run verify:contracts",
+      "cwd": "web",
+      "exit": 0,
+      "result": "109/109 Vitest tests, typecheck, ESLint, build and 15/15 contract provenance checks passed with no lint warnings."
+    },
+    {
+      "cmd": "python scripts/export_contracts.py --check && git diff --check",
+      "cwd": ".",
+      "exit": 0,
+      "result": "Generated contracts are current and the diff has no whitespace errors."
+    },
+    {
+      "cmd": "loopback FastAPI with CODE_COMMIT=c877c1981ccfc51a7bdb5361d11654d3e8a4f192 plus the final Vite production build",
+      "cwd": ".",
+      "exit": 0,
+      "result": "The final review-fix build reloaded the regenerated current M2 through the real browser and local FastAPI path."
+    }
+  ],
+  "results": {
+    "result_class": "E3_EXACT_COMMIT_READY_FOR_QUALITY_REVIEW",
+    "measurements": {
+      "backend_pytest": "126/126",
+      "public_qa_unittest": "32/32",
+      "frontend_vitest": "109/109",
+      "frontend_contract_provenance": "15/15",
+      "contract_gate": "PASS",
+      "ruff": "PASS",
+      "eslint": "PASS",
+      "contract_export": "PASS",
+      "typecheck_build": "PASS",
+      "live_browser_capture": "PASS"
+    },
+    "observations": [
+      "The three applicable GitHub review findings were addressed: request header preservation, M2-specific workspace class, and test cleanup.",
+      "The local LangGraph dependency emits a pending deprecation warning about a future serializer default; current tests and behavior pass."
+    ],
+    "unverified": [
+      "Independent quality-owner acceptance and E3 promotion.",
+      "New W7900/ROCm/vLLM evidence; kinnyuww owns that delegated check."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "evidence/milestones/e3-m2/20260729T075518Z/final-regenerated-map.png",
+      "sha256": "539605c451b4a8a3ee7c8d4c2d406c46aed43262f34cb511a9a6a585c24216de",
+      "description": "Final exact-commit build reloading the regenerated current M2 map through the real local browser path."
+    },
+    {
+      "path": "evidence/milestones/e3-m2/20260729T073048Z/user-decisions.png",
+      "sha256": "43400f92902aba1a4cdf49e0bb51e555f61f1913de005eb351b8c7a80a4f47ae",
+      "description": "Parent implementation capture of trusted per-moment user decisions."
+    },
+    {
+      "path": "evidence/milestones/e3-m2/20260729T073048Z/reopened-after-edit.png",
+      "sha256": "7ea563eb838524535ac9d81d3bb24b1c8adc17c296ff6f13947701078157d359",
+      "description": "Parent implementation capture of a confirmed title edit reopening only the affected M2 decision."
+    },
+    {
+      "path": "evidence/milestones/e3-m2/20260729T073048Z/correction-invalidated.png",
+      "sha256": "b8cd5b2b1a9ce0b667995694bdbbb3aed511578d6290a7abbf2c93acffd8958c",
+      "description": "Parent implementation capture of depended M1 correction invalidation."
+    },
+    {
+      "path": "evidence/milestones/e3-m2/20260729T073048Z/correction-regenerated.png",
+      "sha256": "e6b7329e3aa8841825b96466a2e3b2e6ea049d9ea86c652b5c12db6c13bc75c6",
+      "description": "Parent implementation capture of explicit regeneration against the newly accepted M1 version."
+    }
+  ],
+  "decision": {
+    "result_class": "CONDITIONAL",
+    "condition": "Request independent quality-owner review on PR #20; the implementation must not self-merge.",
+    "known_risks": [
+      "Temporal extraction remains deterministic and bounded; unsupported time remains missing instead of being inferred.",
+      "W7900 verification is delegated and is not claimed by this E3 packet."
+    ],
+    "rollback": "Revert implementation commit c877c1981ccfc51a7bdb5361d11654d3e8a4f192 and its E3 parent commits; retain evidence packets append-only.",
+    "owner": "Eas000n implementation; kinnyuww quality review",
+    "deadline": "Before E3 acceptance or merge"
+  }
+}

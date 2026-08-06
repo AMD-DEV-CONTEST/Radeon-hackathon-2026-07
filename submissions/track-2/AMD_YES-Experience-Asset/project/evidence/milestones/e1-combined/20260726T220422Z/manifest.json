@@ -1,0 +1,191 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "e1-combined-20260726T220422Z-23653d6",
+  "timestamp_utc": "2026-07-26T22:04:22Z",
+  "source": {
+    "git_commit": "23653d6937259e9d9ae93851e5238f8000b45739",
+    "branch": "codex/e1-combined-gate",
+    "dirty_tree": false,
+    "described_commit_note": "The checks bind the clean integration commit at the start of the run. This append-only packet and status-only documentation are added afterward and do not alter tested application behavior.",
+    "issue": null,
+    "pull_request": null,
+    "merged_pull_requests": [
+      "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/7",
+      "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/8"
+    ]
+  },
+  "scope": "Run the combined E1 repository, backend, frontend, mock-browser and live-loopback gate on the merged main implementation; retain a sanitized review packet without promoting E2 or making a new GPU/performance claim.",
+  "quality_mapping": {
+    "acceptance_criteria": [
+      "AC-03",
+      "AC-04",
+      "AC-11",
+      "AC-17",
+      "AC-18",
+      "AC-19",
+      "AC-22",
+      "AC-30"
+    ],
+    "l1_milestones": [
+      "cross-cutting E1 foundation; no M1-M5 promotion claimed"
+    ],
+    "l2_gates": [
+      "Canonical state",
+      "Persistence and resume",
+      "Retrieval phase integrity",
+      "Tool invocation",
+      "Runtime permission",
+      "Local inference",
+      "Failure behavior",
+      "Observability",
+      "Evidence discipline"
+    ],
+    "track_2_relevance": "Combines the accepted local Agent Runtime/W7900 foundation and typed React observation shell, then verifies their current-main contracts and loopback integration as the gate before the first useful product slice.",
+    "submission_impact": "Adds a reproducible, sanitized E1 integration checkpoint for later submission evidence harvesting. It is not the complete-product Baseline and contains no new performance numbers."
+  },
+  "input": {
+    "fixture_or_scenario_id": "e1-combined-main-smoke-v1",
+    "version": "main@23653d6937259e9d9ae93851e5238f8000b45739",
+    "data_class": "public_synthetic_and_contract_state",
+    "sha256": null,
+    "sha256_reason": "This gate composes multiple versioned contract examples, QA fixtures, frontend traces and an ephemeral local database rather than one input file. Exact source commit and lockfile/contract hashes are retained instead.",
+    "web_package_lock_sha256": "9cd3cbb1e794673295829413b2747b5708c076ec6cad8faf8a3f8f1f045caa26",
+    "openapi_sha256": "f55f66cbd9d5aa88d9feef2dcb0e6627e669a9ddeb25b81d6a68f1eb04fd4676",
+    "retrieval_phase_schema_sha256": "fb50e816ef654746373814386403efe60c4c874342aa7333066a369680073408"
+  },
+  "environment": {
+    "hardware": {
+      "host": "local developer workstation",
+      "architecture": "arm64",
+      "gpu": null,
+      "gpu_note": "No Radeon Cloud GPU was exercised by this combined local run."
+    },
+    "software": {
+      "os": "macOS 15.6 build 24G84",
+      "node": "22.22.2",
+      "npm": "10.9.7",
+      "python": "3.12.13",
+      "fastapi": "0.128.8",
+      "uvicorn": "0.35.0",
+      "pytest": "8.4.2",
+      "browser": "Playwright Chromium 149"
+    },
+    "workflow_schema_versions": {
+      "canonical_schema_version": "1.0.0",
+      "retrieval_phase_trace": "0.1.0"
+    }
+  },
+  "model_and_serving": {
+    "model_source": null,
+    "model_revision_or_hash": null,
+    "license": null,
+    "dtype": null,
+    "quantization": null,
+    "arguments": [
+      "FastAPI bound to 127.0.0.1:8080",
+      "configured inference endpoint remains loopback-only"
+    ],
+    "note": "No model was loaded in this local combined run. The already quality-reviewed E1-A3 W7900 packet covers Qwen2.5-14B BF16 viability at its exact tested commit; this packet does not relabel that run as a current-commit GPU test."
+  },
+  "commands": [
+    {
+      "cmd": "bash -n scripts/*.sh && python3 -m py_compile scripts/*.py && python3 -m unittest discover -s qa/tests -v && bash qa/gates/pr_gate.sh --mode contract",
+      "cwd": ".",
+      "exit": 0,
+      "result": "Shell/Python checks passed; 31/31 public QA tests passed; repository contract gate passed."
+    },
+    {
+      "cmd": ".venv/bin/python scripts/export_contracts.py --check && .venv/bin/pytest && .venv/bin/ruff check .",
+      "cwd": ".",
+      "exit": 0,
+      "result": "Exported contracts were current; 46/46 backend tests passed; Ruff passed."
+    },
+    {
+      "cmd": "npm ci && npm run verify:contracts && npm run typecheck && npm run lint && npm test && npm run build",
+      "cwd": "web",
+      "exit": 0,
+      "result": "Lockfile install completed; 15/15 provenance checks, TypeScript, ESLint, 89/89 Vitest tests and production build passed."
+    },
+    {
+      "cmd": "npm run e2e",
+      "cwd": "web",
+      "exit": 0,
+      "result": "15 mock browser tests passed; the one live case skipped by design without E2E_LIVE_BASE_URL."
+    },
+    {
+      "cmd": "EXPERIENCE_ASSET_DB=<ephemeral-db> .venv/bin/uvicorn app.experience_asset.api.main:app --host 127.0.0.1 --port 8080",
+      "cwd": ".",
+      "exit": 0,
+      "result": "Current-main FastAPI started on loopback; health returned status/database ok, local_only inference and truthful gpu_viability=NOT_VERIFIED."
+    },
+    {
+      "cmd": "E2E_LIVE_BASE_URL=http://127.0.0.1:8080 VITE_PROXY_TARGET=http://127.0.0.1:8080 npm run e2e",
+      "cwd": "web",
+      "exit": 0,
+      "result": "16/16 Playwright tests passed against the current-main live FastAPI service."
+    },
+    {
+      "cmd": "npm audit --omit=dev",
+      "cwd": "web",
+      "exit": 0,
+      "result": "Production dependency audit reported 0 vulnerabilities."
+    }
+  ],
+  "results": {
+    "terminal_state": "PASS_REVIEW_PENDING",
+    "measurements": {
+      "frontend_contract_provenance": "15/15",
+      "frontend_vitest": "89/89",
+      "mock_playwright": "15 passed, 1 expected live skip",
+      "live_playwright": "16/16",
+      "backend_pytest": "46/46",
+      "public_qa_unittest": "31/31",
+      "production_dependency_vulnerabilities": 0
+    },
+    "failures": [],
+    "recovery": [],
+    "unverified": [
+      "Quality-owner review and formal T06 promotion.",
+      "GitHub CI for the packet/status-only follow-up because no commit, push or Pull Request has been created.",
+      "A W7900/model rerun at integration commit 23653d6937259e9d9ae93851e5238f8000b45739.",
+      "OOM/model-service restart behavior and all formal performance Baseline/Candidate measurements.",
+      "The first useful M1 product slice and every E2+ product milestone."
+    ]
+  },
+  "inherited_evidence": [
+    {
+      "packet_id": "e1-a3-w7900-20260725T121500Z-5209101",
+      "path": "../../e1-a3-real-w7900/20260725T121500Z/",
+      "quality_status": "accepted during PR #7 review",
+      "scope": "Exact-commit W7900/ROCm/Qwen2.5-14B BF16 viability and bounded Runtime allow/deny/effect/terminal/restart evidence."
+    },
+    {
+      "packet_id": "E1-B-final-contract-20260726T092032Z",
+      "path": "../../E1-B/e1-b-final-contract-20260726T092032Z/",
+      "quality_status": "accepted during PR #8 review",
+      "scope": "Exact final-contract React shell, typed status/retrieval states and mock/live browser evidence."
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "artifacts/local-gate-results.json",
+      "sha256": "5a0c1876e301f789e349be50e834e2dc9e4dd61fcf249f23a972c903da6a339f",
+      "description": "Sanitized machine-readable combined gate counts, inherited evidence references and explicit non-claims."
+    }
+  ],
+  "decision": {
+    "result_class": "PASS_REVIEW_PENDING",
+    "known_risks": [
+      "The combined gate inherits the accepted W7900 proof instead of rerunning the model chain at the merge commit.",
+      "npm reports 10 development-tooling audit findings; production dependency audit is clean.",
+      "E1 proves foundations and integration only; no useful M1 product artifact exists yet."
+    ],
+    "rollback": "Revert only the future evidence/status commit if its records are incorrect; application implementation remains main@23653d6937259e9d9ae93851e5238f8000b45739.",
+    "owner": "kinnyuww / quality owner",
+    "deadline": "Before creating E2/M1 implementation Issues"
+  },
+  "history": {
+    "supersedes_packet_id": null,
+    "notes": "Combines, but does not overwrite, the accepted PR #7 and PR #8 evidence histories."
+  }
+}

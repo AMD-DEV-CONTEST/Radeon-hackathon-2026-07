@@ -1,0 +1,158 @@
+{
+  "$defs": {
+    "JsonValue": {},
+    "ProposedQuestion": {
+      "additionalProperties": false,
+      "properties": {
+        "affected_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Affected Statement Ids",
+          "type": "array"
+        },
+        "question": {
+          "minLength": 1,
+          "title": "Question",
+          "type": "string"
+        },
+        "why_it_matters": {
+          "minLength": 1,
+          "title": "Why It Matters",
+          "type": "string"
+        }
+      },
+      "required": [
+        "question",
+        "why_it_matters"
+      ],
+      "title": "ProposedQuestion",
+      "type": "object"
+    },
+    "ProposedStatement": {
+      "additionalProperties": false,
+      "properties": {
+        "derived_from": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Derived From",
+          "type": "array"
+        },
+        "source_refs": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "USER_JUDGMENT",
+            "AGENT_INFERENCE",
+            "UNRESOLVED"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "status"
+      ],
+      "title": "ProposedStatement",
+      "type": "object"
+    },
+    "ToolCallProposal": {
+      "additionalProperties": false,
+      "description": "A parsed request, never an authorization or executable command.",
+      "properties": {
+        "arguments": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Arguments",
+          "type": "object"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "permission_granted": {
+          "const": false,
+          "default": false,
+          "title": "Permission Granted",
+          "type": "boolean"
+        },
+        "requested_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Requested Reason"
+        }
+      },
+      "required": [
+        "name",
+        "arguments"
+      ],
+      "title": "ToolCallProposal",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "proposed_statements": {
+      "items": {
+        "$ref": "#/$defs/ProposedStatement"
+      },
+      "title": "Proposed Statements",
+      "type": "array"
+    },
+    "questions": {
+      "items": {
+        "$ref": "#/$defs/ProposedQuestion"
+      },
+      "maxItems": 3,
+      "title": "Questions",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "summary": {
+      "minLength": 1,
+      "title": "Summary",
+      "type": "string"
+    },
+    "tool_call_proposals": {
+      "items": {
+        "$ref": "#/$defs/ToolCallProposal"
+      },
+      "title": "Tool Call Proposals",
+      "type": "array"
+    }
+  },
+  "required": [
+    "summary"
+  ],
+  "title": "StructuredProposal",
+  "type": "object"
+}

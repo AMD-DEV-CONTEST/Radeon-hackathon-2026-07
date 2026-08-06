@@ -1,0 +1,48 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "E1-B-ci-metadata-recovery-20260726T132433Z",
+  "timestamp_utc": "2026-07-26T13:24:33Z",
+  "source": {
+    "git_commit": "c025e0d4040434c1ca316958e51bc3a0cf8bb6b5",
+    "branch": "codex/e1-b-react-shell",
+    "pull_request": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/8",
+    "failed_ci_run": "https://github.com/kinnyuww/amd-devmaster-track2-agent/actions/runs/30200347339",
+    "described_commit_note": "This append-only packet records the first post-fix CI metadata failure and recovery; its commit triggers the corrected PR-body gate."
+  },
+  "scope": "Recover the PR metadata gate without changing product code, tests, contracts, dependencies, or review behavior.",
+  "quality_mapping": {
+    "acceptance_criteria": ["AC-22"],
+    "l1_milestones": ["cross-cutting E1-B status shell (no promotion claimed)"],
+    "l2_gates": ["Observability"],
+    "track_2_relevance": "Keeps public PR evidence machine-checkable and linked to the exact local-only review fix."
+  },
+  "failure": {
+    "result": "FAIL",
+    "step": "Require PR quality-contract metadata",
+    "message": "FAIL AC-22: no non-empty public evidence item",
+    "cause": "The PR body used Markdown-bold `**Test/fixture result:**`; the public checker requires the colon to be followed directly by whitespace and a non-empty value.",
+    "code_status": "All preceding static/public QA steps passed; this was a PR-body metadata format failure, not a source or test failure."
+  },
+  "recovery": {
+    "actions": [
+      "Changed the field to `Test/fixture result: 89/89 Vitest; ...` on one line.",
+      "Updated PR review state, exact review-fix implementation/evidence SHAs, evidence packet path, test counts, and the three owner constraints.",
+      "Validated the live PR body with `qa/scripts/check_pr_metadata.py` before triggering a new synchronize event."
+    ],
+    "local_result": "PASS AC-22: PR quality-contract metadata is present",
+    "github_result": "PENDING at packet creation"
+  },
+  "privacy_review": {
+    "result": "PASS",
+    "notes": "Only public PR URLs, commit identities, aggregate test results, and the public checker message are retained."
+  },
+  "decision": {
+    "result_class": "CONDITIONAL",
+    "rollback": "PR-body edits can be reverted through GitHub history; source rollback remains a normal revert of c3318db8a97b49136b692b5d8fec7774d5e27516.",
+    "unverified": ["Corrected post-push GitHub static-checks run", "Owner acceptance and review-thread resolution"]
+  },
+  "history": {
+    "supersedes_packet_id": "E1-B-review-fixes-20260726T113122Z",
+    "notes": "The prior packet remains unchanged; this packet adds only the subsequent CI metadata failure/recovery record."
+  }
+}

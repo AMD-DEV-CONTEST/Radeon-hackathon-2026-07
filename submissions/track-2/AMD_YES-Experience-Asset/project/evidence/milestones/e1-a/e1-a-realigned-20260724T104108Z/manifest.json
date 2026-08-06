@@ -1,0 +1,170 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "e1-a-realigned-20260724T104108Z-29e4e8a",
+  "timestamp_utc": "2026-07-24T10:41:08Z",
+  "source": {
+    "git_commit": "29e4e8a1d5d7b8a95becb3e0e52a268a1d646ee6",
+    "base_main_commit": "db3a534",
+    "branch": "codex/e1-a-runtime-foundation",
+    "dirty_tree": false,
+    "issue": "https://github.com/kinnyuww/amd-devmaster-track2-agent/issues/5",
+    "pull_request": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/7"
+  },
+  "quality_mapping": {
+    "acceptance_criteria": [
+      "AC-03",
+      "AC-04",
+      "AC-11",
+      "AC-17",
+      "AC-19",
+      "AC-22",
+      "AC-30"
+    ],
+    "l1_milestones": [
+      "cross-cutting foundation; no M1-M5 promotion"
+    ],
+    "l2_gates": [
+      "Canonical state",
+      "Persistence and resume",
+      "Local inference",
+      "Runtime permission",
+      "Failure behavior",
+      "Observability",
+      "Retrieval phase integrity"
+    ]
+  },
+  "input": {
+    "fixture_or_scenario_id": "e1-a-public-tool-smoke-v1",
+    "version": "1.1.0",
+    "sha256": "86b3284fb846dfa63a65eae6374922527ea873452d4fa741643f60c928f31de6"
+  },
+  "environment": {
+    "hardware": {
+      "local_host": "Apple Silicon development host",
+      "remote_environment_evidence": "evidence/milestones/e1-a3-remote-environment/20260724T093311Z/",
+      "w7900_model_gate": "NOT_VERIFIED"
+    },
+    "software": {
+      "python": "3.12.13",
+      "base_main_commit": "db3a534"
+    },
+    "workflow_schema_versions": {
+      "canonical_asset": "1.0.0",
+      "agent_run_state": "1.0.0",
+      "work_plan": "1.0.0",
+      "structured_proposal": "1.0.0",
+      "policy_decision": "1.0.0",
+      "tool_execution_record": "1.0.0",
+      "verification_report": "1.0.0",
+      "progress_event": "1.0.0",
+      "terminal_result": "1.0.0",
+      "sqlite_migration": "2"
+    }
+  },
+  "model_and_serving": {
+    "model_source": "ModelScope Qwen/Qwen2.5-14B-Instruct",
+    "model_revision_or_hash": "3957bf39753cf01f98f6560295c4811c2b5df001",
+    "license": "Apache-2.0 (declared frozen input; current-pod verification pending)",
+    "dtype": "bfloat16",
+    "quantization": "none",
+    "arguments": [
+      "--host 127.0.0.1",
+      "--max-model-len 8192",
+      "--enable-auto-tool-choice",
+      "--tool-call-parser hermes"
+    ]
+  },
+  "commands": [
+    {
+      "command": "bash -n scripts/*.sh",
+      "exit_status": 0
+    },
+    {
+      "command": "python3 -m py_compile scripts/*.py",
+      "exit_status": 0
+    },
+    {
+      "command": "python3 -m unittest discover -s qa/tests -v",
+      "exit_status": 0,
+      "result": "31 tests passed"
+    },
+    {
+      "command": "bash qa/gates/pr_gate.sh --mode contract",
+      "exit_status": 0,
+      "result": "PR GATE: PASS (contract mode)"
+    },
+    {
+      "command": ".venv/bin/python scripts/export_contracts.py --check",
+      "exit_status": 0,
+      "result": "contracts are current"
+    },
+    {
+      "command": ".venv/bin/ruff check .",
+      "exit_status": 0,
+      "result": "All checks passed"
+    },
+    {
+      "command": ".venv/bin/pytest",
+      "exit_status": 0,
+      "result": "34 tests passed"
+    }
+  ],
+  "results": {
+    "terminal_state": "NOT_VERIFIED",
+    "measurements": {
+      "public_qa_tests_passed": 31,
+      "lane_a_tests_passed": 34,
+      "checked_in_contract_files": 14,
+      "e1_a1_contract_checkpoint": "LOCAL PASS / CROSS-LANE REVIEW PENDING",
+      "e1_a2_durable_fake_loop": "LOCAL PASS",
+      "e1_a3_real_w7900_gate": "NOT_VERIFIED",
+      "durable_checkpoint_phases": 5
+    },
+    "failures": [],
+    "recovery": [
+      "Runtime denial produces POLICY_BLOCKED and records no tool observation.",
+      "Restart reloads the latest AgentRunStateV1 checkpoint and unchanged canonical version.",
+      "Early cross-asset summary and unconfirmed detailed retrieval fail closed.",
+      "Rollback remains the prior E1-A implementation commit 9b03730 or merged E0 commit efa5adb."
+    ],
+    "unverified": [
+      "Lane B review of the realigned OpenAPI/progress/terminal/Agent contracts",
+      "Downloaded model snapshot verification on the current pod",
+      "Qwen2.5-14B-Instruct BF16 load through the frozen ROCm/vLLM profile",
+      "Real structured response, retrieval proposal, Runtime allow/deny and terminal trace on W7900",
+      "OOM and model-service restart behavior on Radeon Cloud"
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "contracts/json-schema/",
+      "kind": "E1-A1 reviewed-contract candidates"
+    },
+    {
+      "path": "contracts/examples/",
+      "kind": "Lane B public mocks aligned to the frozen progress/tool contract"
+    },
+    {
+      "path": "tests/integration/test_agent_loop.py",
+      "kind": "E1-A2 durable fake-loop and denial evidence"
+    },
+    {
+      "path": "evidence/milestones/e1-a/e1-a-realigned-20260724T104108Z/artifacts/local-gate-results.json",
+      "kind": "sanitized realignment gate summary"
+    }
+  ],
+  "decision": {
+    "result_class": "NOT_VERIFIED",
+    "known_risks": [
+      "E1-A1 still needs Lane B/quality-owner contract review before freeze.",
+      "E1-A3 real model/service/Runtime evidence is mandatory before E1 promotion."
+    ],
+    "rollback": "Revert commit 29e4e8a1d5d7b8a95becb3e0e52a268a1d646ee6 while preserving main alignment commit 7fef501, or return the task branch to the prior reviewed E1-A commits.",
+    "owner": "Eas000n",
+    "deadline": "Before Issue #5 is marked ready and before combined E1 promotion"
+  },
+  "history": {
+    "supersedes_packet_id": "e1-a-local-20260724T052631Z-9b03730",
+    "notes": "This append-only packet realigns PR #7 with main db3a534 and proves E1-A1/A2 locally. It does not supersede or claim the separate real W7900 gate."
+  }
+}
