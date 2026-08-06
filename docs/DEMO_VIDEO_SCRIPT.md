@@ -185,7 +185,7 @@ Typed output validation
   skipped and compare the follow-up latency with the initial multimodal run.
 - Send: “I like cartoon-style avatars, but I am worried about copyright.”
 - Show **Permission required** and click **Approve memory**.
-- Show the preference under Approved Memory, click **New review**, and upload the
+- Show the preference under Approved Memory, click **New review · keep memory**, and upload the
   next candidate pair. Run the review and point to **Approved memory applied** plus the retrieved
   WIPO copyright-provenance card.
 

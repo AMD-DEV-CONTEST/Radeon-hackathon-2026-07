@@ -349,7 +349,7 @@ async function newReview() {
   if (
     (threadId.value || images.value.length || result.value)
     && !window.confirm(
-      'Start a new review? The previous review remains private until you use Forget all private state.'
+      'Start a new review with the same approved memory? The previous review remains private until you use Forget all private state.'
     )
   ) return
   actionError.value = ''
@@ -424,7 +424,7 @@ function formatDuration(value: number): string {
         </span>
         <span class="badge">{{ system?.milvus_ready ? 'Milvus ready' : 'Milvus unchecked' }}</span>
         <span v-if="system?.private_lens_available" class="badge private-ready">Private lens mounted</span>
-        <button class="ghost-button" type="button" @click="newReview">New review</button>
+        <button class="ghost-button" type="button" @click="newReview">New review · keep memory</button>
       </div>
     </header>
 

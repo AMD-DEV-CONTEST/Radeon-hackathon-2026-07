@@ -4,14 +4,11 @@ from __future__ import annotations
 
 import base64
 import json
-import logging
 import re
 from pathlib import Path
 from typing import Any, Protocol
 
 import httpx
-
-LOGGER = logging.getLogger(__name__)
 
 
 class ModelNotConfiguredError(RuntimeError):
@@ -26,13 +23,7 @@ class ModelClient(Protocol):
     async def health(self) -> bool: ...
 
     async def chat(
-        self,
-        messages: list[dict[str, Any]],
-        *,
-        temperature: float = 0.2,
-        max_tokens: int = 1200,
-        enable_thinking: bool | None = None,
-        reasoning_budget: int | None = None,
+        self, messages: list[dict[str, Any]], *, temperature: float = 0.2, max_tokens: int = 1200
     ) -> str: ...
 
     async def inspect_image(self, path: Path, prompt: str) -> dict[str, Any]: ...
@@ -70,7 +61,7 @@ class LlamaCppClient:
         model: str,
         timeout_seconds: float,
         enable_thinking: bool = True,
-        reasoning_budget: int = 1024,
+        reasoning_budget: int = 2048,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
@@ -111,52 +102,8 @@ class LlamaCppClient:
         *,
         temperature: float = 0.2,
         max_tokens: int = 1200,
-        enable_thinking: bool | None = None,
-        reasoning_budget: int | None = None,
     ) -> str:
         self._require_configured()
-        use_thinking = self.enable_thinking if enable_thinking is None else enable_thinking
-        use_reasoning_budget = (
-            self.reasoning_budget if reasoning_budget is None else reasoning_budget
-        )
-        if not use_thinking:
-            use_reasoning_budget = 0
-        message = await self._completion_message(
-            messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            enable_thinking=use_thinking,
-            reasoning_budget=use_reasoning_budget,
-        )
-        content = str(message.get("content") or "")
-        if not content.strip() and message.get("reasoning_content") and use_thinking:
-            LOGGER.warning(
-                "Model exhausted the reasoning-enabled output before final content; "
-                "retrying once with thinking disabled"
-            )
-            message = await self._completion_message(
-                messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                enable_thinking=False,
-                reasoning_budget=0,
-            )
-            content = str(message.get("content") or "")
-        if not content.strip() and message.get("reasoning_content"):
-            raise ModelRequestError(
-                "The model used the output budget for reasoning before producing final content"
-            )
-        return content
-
-    async def _completion_message(
-        self,
-        messages: list[dict[str, Any]],
-        *,
-        temperature: float,
-        max_tokens: int,
-        enable_thinking: bool,
-        reasoning_budget: int,
-    ) -> dict[str, Any]:
         payload = {
             "model": self.model,
             "messages": messages,
@@ -164,10 +111,10 @@ class LlamaCppClient:
             # llama.cpp counts reasoning and final content against the same generation
             # budget. Treat the public argument as final-content capacity and reserve
             # the configured reasoning allowance separately.
-            "max_tokens": max_tokens + reasoning_budget,
+            "max_tokens": max_tokens + (self.reasoning_budget if self.enable_thinking else 0),
             "stream": False,
-            "chat_template_kwargs": {"enable_thinking": enable_thinking},
-            "reasoning_budget": reasoning_budget,
+            "chat_template_kwargs": {"enable_thinking": self.enable_thinking},
+            "reasoning_budget": self.reasoning_budget if self.enable_thinking else 0,
         }
         try:
             async with httpx.AsyncClient(
@@ -184,13 +131,16 @@ class LlamaCppClient:
             raise ModelRequestError(f"Self-hosted model request failed: {exc}") from exc
         try:
             message = body["choices"][0]["message"]
+            content = str(message["content"] or "")
         except (KeyError, IndexError, TypeError) as exc:
             raise ModelRequestError(
                 "The model response did not match the chat-completions schema"
             ) from exc
-        if not isinstance(message, dict):
-            raise ModelRequestError("The model message must be a JSON object")
-        return message
+        if not content.strip() and message.get("reasoning_content"):
+            raise ModelRequestError(
+                "The model used the output budget for reasoning before producing final content"
+            )
+        return content
 
     async def inspect_image(self, path: Path, prompt: str) -> dict[str, Any]:
         mime = "image/png" if path.suffix.lower() == ".png" else "image/jpeg"
@@ -217,7 +167,5 @@ class LlamaCppClient:
             ],
             temperature=0.1,
             max_tokens=1200,
-            enable_thinking=False,
-            reasoning_budget=0,
         )
         return parse_json_object(text)

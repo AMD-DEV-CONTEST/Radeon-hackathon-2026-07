@@ -1,10 +1,6 @@
 from xianglens.config import Settings
 
 
-def test_default_reasoning_budget_balances_latency_and_decision_quality() -> None:
-    assert Settings.model_fields["llm_reasoning_budget"].default == 1024
-
-
 def test_comma_separated_allowed_origins_from_environment(monkeypatch) -> None:
     monkeypatch.setenv(
         "XIANG_ALLOWED_ORIGINS",

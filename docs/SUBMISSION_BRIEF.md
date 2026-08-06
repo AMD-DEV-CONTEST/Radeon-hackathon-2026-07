@@ -126,8 +126,7 @@ mradermacher/Qwen3.6-35B-A3B-Fable-5-Distill-i1-GGUF:Q6_K
 - open multimodal model served through an OpenAI-compatible llama.cpp endpoint;
 - mixture-of-experts 35B-class model with Q6_K GGUF quantization;
 - vision projection loaded by `llama-server`;
-- node-specific reasoning: up to 1,024 tokens for candidate comparison and no thinking for
-  mechanical extraction and synthesis calls;
+- thinking enabled with a separate 2,048-token reasoning allowance;
 - typed Pydantic validation with one targeted repair attempt;
 - final content is used, while reasoning content is neither displayed nor persisted.
 
@@ -241,7 +240,7 @@ relationship, criminality, protected-attribute, and predictive claims before ren
    export.
 5. Ask a follow-up in the visible same-thread conversation and show prior-message recall.
 6. State “I like cartoon-style avatars, but I am worried about copyright,” approve the proposal,
-   click **New review**, and show recall, WIPO evidence retrieval, and deletion.
+   click **New review · keep memory**, and show recall, WIPO evidence retrieval, and deletion.
 
 This scenario proves tool calling, multimodal inference, RAG, comparison, memory, permission, and
 privacy in one coherent multi-turn workflow.

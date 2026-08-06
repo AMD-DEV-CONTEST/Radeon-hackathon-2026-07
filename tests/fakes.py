@@ -12,13 +12,7 @@ class FakeModelClient:
         return True
 
     async def chat(
-        self,
-        messages: list[dict[str, Any]],
-        *,
-        temperature: float = 0.2,
-        max_tokens: int = 1200,
-        enable_thinking: bool | None = None,
-        reasoning_budget: int | None = None,
+        self, messages: list[dict[str, Any]], *, temperature: float = 0.2, max_tokens: int = 1200
     ) -> str:
         system = str(messages[0]["content"])
         if "CandidateComparison" in system:
