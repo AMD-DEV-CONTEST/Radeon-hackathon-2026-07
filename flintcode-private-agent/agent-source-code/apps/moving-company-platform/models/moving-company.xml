@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root name="moving-company-service"
+      cfg_mask_china_mobile="false"
+      data_service="sqlite"
+      org="example"
+      _module_key="root">
+
+    <company _name="Company" _module="Core" _module_key="core"
+        company_name="Fast Movers Inc"
+        founded_year="1998"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <user_account _name="User Account" _module="Administration and Compliance" _module_key="admin-compliance"
+        _audit_mask_fields="password_hash,mobile_phone,username"
+        company="company()"
+        username="john.doe"
+        password_hash="abcd1234efgh5678"
+        mobile_phone="555-0100"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <role_definition _name="Role Definition" _module="Administration and Compliance" _module_key="admin-compliance"
+        company="company()"
+        role_name="Admin"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <user_role _name="User Role" _module="Administration and Compliance" _module_key="admin-compliance"
+        user_account="user_account()"
+        role_definition="role_definition()"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <audit_log _name="Audit Log" _module="Administration and Compliance" _module_key="admin-compliance"
+        _log="true"
+        action_operator="user_account()"
+        action_type="UPDATE"
+        target_entity="MoveOrder"
+        log_timestamp="createTime()"/>
+
+    <notification_rule _name="Notification Rule" _module="Administration and Compliance" _module_key="admin-compliance"
+        user_account="user_account()"
+        rule_name="Notify on move completion"
+        is_active="true"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <document_storage _name="Document Storage" _module="Administration and Compliance" _module_key="admin-compliance"
+        user_account="user_account()"
+        document_url="https://example.com/doc.pdf"
+        document_name="Terms of Service"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <employee_record _name="Employee Record" _module="Employees and Payroll" _module_key="employees-payroll"
+        user_account="user_account()"
+        employee_number="EMP-001"
+        hire_date="2020-01-01"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <payroll_calculation _name="Payroll Calculation" _module="Employees and Payroll" _module_key="employees-payroll"
+        employee_record="employee_record()"
+        period_start="2025-01-01"
+        period_end="2025-01-31"
+        total_amount="number()"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <worked_hours _name="Worked Hours" _module="Employees and Payroll" _module_key="employees-payroll"
+        payroll_calculation="payroll_calculation()"
+        employee_record="employee_record()"
+        hours_count="number()"
+        work_date="2025-01-15"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <bonus_record _name="Bonus Record" _module="Employees and Payroll" _module_key="employees-payroll"
+        payroll_calculation="payroll_calculation()"
+        bonus_amount="number()"
+        bonus_reason="Excellent service"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <leave_request _name="Leave Request" _module="Employees and Payroll" _module_key="employees-payroll"
+        employee_record="employee_record()"
+        start_date="2025-02-01"
+        end_date="2025-02-14"
+        approval_status="APPROVED"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <private_customer _name="Private Customer" _module="Customer Management" _module_key="customer-mgmt"
+        _audit_mask_fields="mobile_phone"
+        company="company()"
+        first_name="Jane"
+        last_name="Smith"
+        mobile_phone="555-0200"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <corporate_customer _name="Corporate Customer" _module="Customer Management" _module_key="customer-mgmt"
+        _audit_mask_fields="tax_id"
+        company="company()"
+        company_name="Acme Corp"
+        tax_id="123456789"
+        account_manager="employee_record()"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <linked_contact _name="Linked Contact" _module="Customer Management" _module_key="customer-mgmt"
+        _audit_mask_fields="contact_email"
+        corporate_customer="corporate_customer()"
+        contact_name="Bob Jones"
+        contact_email="bob@acme.com"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <billing_info _name="Billing Info" _module="Customer Management" _module_key="customer-mgmt"
+        corporate_customer="corporate_customer()"
+        private_customer="private_customer()"
+        billing_address="123 Billing St"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <interaction_history _name="Interaction History" _module="Customer Management" _module_key="customer-mgmt"
+        private_customer="private_customer()"
+        corporate_customer="corporate_customer()"
+        interaction_notes="Called to inquire about rates"
+        interaction_date="2025-01-10T10:00:00"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <vehicle_asset _name="Vehicle Asset" _module="Asset Management" _module_key="asset-mgmt"
+        company="company()"
+        license_plate="ABC-123"
+        vehicle_model="Ford Transit"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <equipment_item _name="Equipment Item" _module="Asset Management" _module_key="asset-mgmt"
+        vehicle_asset="vehicle_asset()"
+        item_name="Dolly"
+        serial_number="DL-001"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <consumable_item _name="Consumable Item" _module="Asset Management" _module_key="asset-mgmt"
+        company="company()"
+        item_name="Bubble Wrap"
+        quantity_in_stock="number()"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <maintenance_schedule _name="Maintenance Schedule" _module="Asset Management" _module_key="asset-mgmt"
+        vehicle_asset="vehicle_asset()"
+        scheduled_date="2025-06-01"
+        service_type="Oil Change"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <inventory_tracking _name="Inventory Tracking" _module="Asset Management" _module_key="asset-mgmt"
+        consumable_item="consumable_item()"
+        employee_record="employee_record()"
+        last_counted_date="2025-01-01"
+        count_difference="number()"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <insurance_policy _name="Insurance Policy" _module="Administration and Compliance" _module_key="admin-compliance"
+        vehicle_asset="vehicle_asset()"
+        policy_number="POL-999"
+        expiration_date="2026-01-01"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <address_record _name="Address Record" _module="Operations and Logistics" _module_key="operations-logistics"
+        company="company()"
+        street_address="456 Moving St"
+        city_name="Metropolis"
+        postal_code="12345"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <move_order _name="Move Order" _module="Operations and Logistics" _module_key="operations-logistics"
+        private_customer="private_customer()"
+        corporate_customer="corporate_customer()"
+        origin_address="address_record()"
+        dest_address="address_record()"
+        assigned_vehicle="vehicle_asset()"
+        order_status="PENDING"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <route_plan _name="Route Plan" _module="Operations and Logistics" _module_key="operations-logistics"
+        move_order="move_order()"
+        route_details="Highway 1 to Route 66"
+        estimated_duration="number()"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <time_slot _name="Time Slot" _module="Operations and Logistics" _module_key="operations-logistics"
+        move_order="move_order()"
+        slot_start="2025-03-01T08:00:00"
+        slot_end="2025-03-01T12:00:00"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <fulfillment_event _name="Fulfillment Event" _module="Operations and Logistics" _module_key="operations-logistics"
+        move_order="move_order()"
+        event_description="Furniture loaded"
+        event_time="2025-03-01T09:30:00"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <job_assignment _name="Job Assignment" _module="Employees and Payroll" _module_key="employees-payroll"
+        employee_record="employee_record()"
+        move_order="move_order()"
+        assignment_role="Driver"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <service_catalog _name="Service Catalog" _module="Products and Services" _module_key="products-services"
+        company="company()"
+        service_name="Full Pack and Move"
+        base_price="number()"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <service_config _name="Service Config" _module="Products and Services" _module_key="products-services"
+        service_catalog="service_catalog()"
+        move_order="move_order()"
+        agreed_price="number()"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <box_rental _name="Box Rental" _module="Products and Services" _module_key="products-services"
+        move_order="move_order()"
+        box_count="number()"
+        rental_fee="number()"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <marketing_campaign _name="Marketing Campaign" _module="Marketing and Sales" _module_key="marketing-sales"
+        company="company()"
+        campaign_name="Spring Moving Promo"
+        start_date="2025-03-01"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <discount_code _name="Discount Code" _module="Marketing and Sales" _module_key="marketing-sales"
+        marketing_campaign="marketing_campaign()"
+        code_string="SPRING25"
+        discount_percent="number()"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <lead_tracking _name="Lead Tracking" _module="Marketing and Sales" _module_key="marketing-sales"
+        marketing_campaign="marketing_campaign()"
+        lead_name="Alice Brown"
+        lead_status="CONTACTED"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <conversion_metric _name="Conversion Metric" _module="Marketing and Sales" _module_key="marketing-sales"
+        marketing_campaign="marketing_campaign()"
+        move_order="move_order()"
+        conversion_date="2025-02-15"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <invoice_document _name="Invoice Document" _module="Finance and Accounting" _module_key="finance-accounting"
+        move_order="move_order()"
+        private_customer="private_customer()"
+        corporate_customer="corporate_customer()"
+        total_due="number()"
+        issue_date="2025-03-02"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <payment_record _name="Payment Record" _module="Finance and Accounting" _module_key="finance-accounting"
+        invoice_document="invoice_document()"
+        private_customer="private_customer()"
+        corporate_customer="corporate_customer()"
+        move_order="move_order()"
+        amount_paid="number()"
+        payment_date="2025-03-05"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <expense_record _name="Expense Record" _module="Finance and Accounting" _module_key="finance-accounting"
+        employee_record="employee_record()"
+        expense_description="Fuel"
+        expense_amount="number()"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <vat_record _name="VAT Record" _module="Finance and Accounting" _module_key="finance-accounting"
+        invoice_document="invoice_document()"
+        vat_amount="number()"
+        vat_rate="number()"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <financial_summary _name="Financial Summary" _module="Finance and Accounting" _module_key="finance-accounting"
+        employee_record="employee_record()"
+        summary_period="2025-03"
+        total_revenue="number()"
+        total_expenses="number()"
+        create_time="createTime()" update_time="updateTime()"/>
+
+    <service_contract _name="Service Contract" _module="Administration and Compliance" _module_key="admin-compliance"
+        corporate_customer="corporate_customer()"
+        contract_details="Annual moving agreement"
+        start_date="2025-01-01"
+        create_time="createTime()" update_time="updateTime()"/>
+
+</root>
