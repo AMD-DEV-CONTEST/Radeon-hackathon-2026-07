@@ -58,8 +58,10 @@ accepted Local WSL hardware path.
 - [Complete source and run guide](../../README.md)
 - [A3 poster](poster/Xenix-Radeon-Edition-Track-2-Poster.pdf) ·
   [PNG](poster/Xenix-Radeon-Edition-Track-2-Poster.png)
-- Demo video: `DEMO_PUBLIC_URL_TBD`
-- Demo SHA-256: `DEMO_SHA256_TBD`
+- [Primary demo video](https://config.lanzhijiang.dev/xenix-track2-demo.mp4)
+  — 4:14; end-to-end workflow and managed AMD Radeon/ROCm capabilities.
+- [Supplementary live walkthrough](https://drive.hadream.ltd/s/QSFKwAtxYe5PAqG)
+  — 2:39; live-narrated end-to-end data-analysis case.
 
 ## Run and verify
 

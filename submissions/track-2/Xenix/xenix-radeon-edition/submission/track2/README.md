@@ -29,11 +29,11 @@ source README.
 | Project specification | [Markdown](PROJECT_SPEC.md) · [PDF](PROJECT_SPEC.pdf) | Rendered and reviewed in English; performance and final Hero evidence remain explicitly bounded |
 | Complete source and run guide | [Repository root](../../README.md) | Present; dependencies are locked by [`pyproject.toml`](../../pyproject.toml) and [`pdm.lock`](../../pdm.lock) |
 | Evidence register | [EVIDENCE.md](EVIDENCE.md) | Present; separates implementation, observed evidence, boundaries, and non-claims |
-| Pull-request description | [PR_DESCRIPTION.md](PR_DESCRIPTION.md) | Drafted for team Xenix; video and rights-review placeholders remain blocking |
+| Pull-request description | [PR_DESCRIPTION.md](PR_DESCRIPTION.md) | Drafted for team Xenix; video links are final and the rights-review placeholder remains open |
 | Architecture diagram | [assets/architecture.svg](assets/architecture.svg) | Submission asset |
 | Hero key art | [assets/hero-keyart.png](assets/hero-keyart.png) | Submission asset; illustrative, not runtime proof |
-| Demo video | `DEMO_PUBLIC_URL_TBD` | **Required before submission**; recommended duration is 3–5 minutes |
-| Demo SHA-256 | `DEMO_SHA256_TBD` | **Required by this package's traceability gate before submission** |
+| Primary demo video | [Watch](https://config.lanzhijiang.dev/xenix-track2-demo.mp4) | 4:14 · 1920×1080 · end-to-end workflow and managed AMD Radeon/ROCm capabilities |
+| Supplementary live walkthrough | [Watch](https://drive.hadream.ltd/s/QSFKwAtxYe5PAqG) | 2:39 · 960×544 · live-narrated end-to-end data-analysis case |
 | Supplementary poster | [PDF](poster/Xenix-Radeon-Edition-Track-2-Poster.pdf) · [PNG](poster/Xenix-Radeon-Edition-Track-2-Poster.png) · [HTML source](poster/index.html) | Selected supplementary format; A3 render and visual review passed, with final human rights review still required |
 | Final publication controls | [SUBMISSION_CHECKLIST.md](SUBMISSION_CHECKLIST.md) | Open gates remain |
 

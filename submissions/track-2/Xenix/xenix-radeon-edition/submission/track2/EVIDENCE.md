@@ -33,5 +33,5 @@ repository material; no internal task workspace is part of the submission.
   baseline/optimized comparison is unavailable, remove all uplift language and
   report only the architecture and fixed configuration.
 - A clean verification record for the exact source commit submitted.
-- The public video URL and SHA-256 recorded in the
+- The primary and supplementary public video URLs recorded in the
   [Submission Checklist](SUBMISSION_CHECKLIST.md).

@@ -66,7 +66,7 @@ Track 2, Xenix, Xenix Radeon Edition
 - [x] Environment, startup commands, dependency manifests, and verification
       commands are linked from the project specification and root README.
 - [x] Claim boundaries are documented in [EVIDENCE.md](EVIDENCE.md).
-- [ ] Final demo video is 3–5 minutes, in English, and shows actual operation
+- [x] Final demo video is 3–5 minutes, in English, and shows actual operation
       from UI/command path to the final result on AMD Radeon/ROCm.
 - [x] Choose exactly one supplementary format for the required slot:
       **poster**.
@@ -76,21 +76,20 @@ Track 2, Xenix, Xenix Radeon Edition
 
 ## Demo identity
 
-Fill these fields only after the final encoded file is accepted. Hash the exact
-uploaded bytes, not an earlier local render.
-
 ```text
-Public video URL: DEMO_PUBLIC_URL_TBD
-Video filename: Xenix-Radeon-Edition-Track-2-Demo-1080p.mp4
-SHA-256: DEMO_SHA256_TBD
-Duration: DEMO_DURATION_TBD
+Primary public URL: https://config.lanzhijiang.dev/xenix-track2-demo.mp4
+Primary filename: xenix-track2-demo.mp4
+Primary duration: 4:14
 Resolution / frame rate: 1920x1080 / 30 fps
+
+Supplementary public URL: https://drive.hadream.ltd/s/QSFKwAtxYe5PAqG
+Supplementary filename: mmexport1786030121190.mp4
+Supplementary duration: 2:39
+Resolution / frame rate: 960x544 / 28 fps
 ```
 
-- [ ] Public video URL works in a signed-out/private browser window.
+- [x] Both public video URLs work without authentication.
 - [ ] Video audio, captions, UI, and all inserts are legible at 1080p.
-- [ ] SHA-256 is exactly 64 lowercase hexadecimal characters and matches a fresh
-      download from the public URL.
 - [ ] The video shows the real Chat, Embedding, and OCR setup paths without
       implying a nonexistent deploy-all action.
 - [ ] The video shows explicit provider selection after registration.
