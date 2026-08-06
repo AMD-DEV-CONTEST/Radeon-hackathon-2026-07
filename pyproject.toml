@@ -1,0 +1,91 @@
+[project]
+name = "graphvoice"
+version = "0.1.0"
+description = "Voice-driven graph database query assistant"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "openai>=1.0.0",
+    "neo4j>=5.0.0",
+    "langgraph>=0.2.0",
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "pyyaml>=6.0",
+    "requests>=2.0",
+]
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "black>=24.0",
+    "ruff>=0.5",
+    "mypy>=1.0",
+    "pre-commit>=3.5",
+]
+web = [
+    "flask>=3.0",
+    "flask-cors>=5.0",
+    "flask-sock>=0.7",
+]
+voice = [
+    "silero-vad>=5.0",
+    "pyaudio>=0.2",
+    # Local TTS (Kokoro) — replaces cloud Qwen-Omni TTS.
+    "kokoro>=0.9",
+    "soundfile",
+    # misaki Mandarin G2P deps (not declared by kokoro, needed for lang_code='z'):
+    "ordered_set",
+    "pypinyin",
+    "cn2an",
+    "jieba",
+    # torch (CPU) is required by kokoro; already present in .venv on this box.
+    # English voice also needs en_core_web_sm (github release wheel; not on PyPI).
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["config", "audio", "agents", "agents.tools", "database", "tts", "utils", "memory"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+exclude = [
+    ".venv",
+    ".git",
+    "__pycache__",
+    "*.egg-info",
+    "references",
+    "frontend",
+    "docs",
+    ".codebuddy",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
+# Dev/scratch scripts, tests, and the experimental memory subsystem are allowed
+# looser rules (line length, bare excepts, etc.). The shipped package under
+# agents/audio/database/tts/config stays strict.
+
+# Dev/scratch scripts: looser rules (line length, bare excepts, etc.).
+[tool.ruff.lint.per-file-ignores]
+# N812: `import torch.nn.functional as F` is the universal convention; renaming it
+# would make the reference implementations harder to diff against upstream.
+"scripts/*" = ["E501", "E701", "E702", "E722", "E741", "E402", "I001", "N812"]
+"tests/*" = ["E501"]
+# Experimental memory subsystem: line length relaxed.
+"memory/*" = ["E501"]
+# agents/tools: long LLM prompt / Cypher string literals make 100-col artificial.
+"agents/tools/*" = ["E501"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true

@@ -1,0 +1,1855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="data:,">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Howdy · Voice Diary</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* ===== Reset & Variables ===== */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #FBF7F2;
+            --surface: #FFFFFF;
+            --surface-hover: #F7F3ED;
+            --heading: #2C2416;
+            --body: #4A4238;
+            --muted: #8C8278;
+            --border: rgba(76, 66, 56, 0.08);
+            --accent: #B76E4A;
+            --accent-light: #D48965;
+            --accent-bg: rgba(183, 110, 74, 0.08);
+            --accent-bg-hover: rgba(183, 110, 74, 0.15);
+            --success: #5B8C5A;
+            --warning: #C9A96E;
+            --error: #C65B4A;
+            --radius: 12px;
+            --radius-lg: 20px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+            --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+            --shadow-lg: 0 4px 6px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.06);
+            --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ===== Dark Mode ===== */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #1A1815;
+                --surface: #24211D;
+                --surface-hover: #2D2A25;
+                --heading: #EBE5DC;
+                --body: #C4BDB2;
+                --muted: #8A8278;
+                --border: rgba(235, 229, 220, 0.08);
+                --accent: #D48965;
+                --accent-light: #E09E80;
+                --accent-bg: rgba(212, 137, 101, 0.12);
+                --accent-bg-hover: rgba(212, 137, 101, 0.20);
+                --shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
+                --shadow: 0 1px 3px rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.15);
+                --shadow-lg: 0 4px 6px rgba(0,0,0,0.2), 0 12px 32px rgba(0,0,0,0.3);
+            }
+        }
+
+        /* ===== Base ===== */
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--body);
+            line-height: 1.6;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
+            -webkit-font-smoothing: antialiased;
+            transition: background var(--transition), color var(--transition);
+        }
+
+        h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--heading); font-weight: 600; }
+        h1 { font-size: clamp(1.5rem, 4vw, 2rem); letter-spacing: -0.02em; }
+        h2 { font-size: 1.125rem; }
+        button { font-family: inherit; cursor: pointer; border: none; background: none; }
+        input { font-family: inherit; }
+
+        /* ===== Layout ===== */
+        .app {
+            flex: 1;
+            min-width: 0;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            padding: 0 24px;
+        }
+        .app-inner {
+            width: 100%;
+            max-width: 1140px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* ===== Side rail (left tiny toolbar, replaces the header) ===== */
+        .side-rail {
+            width: 62px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 0 12px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            z-index: 50;
+        }
+        .rail-group { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .rail-logo {
+            width: 42px; height: 42px;
+            border-radius: 12px;
+            overflow: hidden;
+            display: block;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            padding: 0;
+            box-shadow: var(--shadow-sm);
+        }
+        .rail-logo:hover { border-color: var(--accent-light); }
+        .rail-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .rail-btn {
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--accent);
+            font-size: 1.05rem;
+            line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+            transition: all var(--transition);
+        }
+        .rail-btn:hover { background: var(--accent-bg-hover); border-color: var(--accent-light); }
+        .rail-date {
+            width: 56px;
+            padding: 7px 0 5px;
+            border-radius: 10px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        .rail-date:hover { background: var(--accent-bg-hover); border-color: var(--accent-light); }
+        .rail-date-main { font-size: 0.8rem; font-weight: 600; color: var(--heading); line-height: 1.15; }
+        .rail-date-sub { font-size: 0.62rem; color: var(--muted); line-height: 1; }
+        .rail-date.today .rail-date-main { color: var(--accent); }
+        .rail-date.future .rail-date-main { color: var(--warning); }
+        .rail-date.future .rail-date-sub { color: var(--warning); }
+        .rail-today {
+            width: 32px; height: 22px;
+            border-radius: 999px;
+            font-size: 0.64rem;
+            font-weight: 500;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            transition: all var(--transition);
+            line-height: 1;
+        }
+        .rail-today:hover { color: var(--accent); border-color: var(--accent-light); background: var(--accent-bg-hover); }
+        .rail-today.active { background: var(--accent); color: #FFF; border-color: var(--accent); }
+        .rail-icon {
+            width: 40px; height: 40px;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--body);
+            display: flex; align-items: center; justify-content: center;
+            transition: all var(--transition);
+        }
+        .rail-icon:hover { color: var(--accent); border-color: var(--accent-light); background: var(--accent-bg-hover); transform: translateY(-1px); }
+        .rail-lang {
+            display: flex;
+            flex-direction: column;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 2px;
+        }
+        .rail-lang .lang-btn { padding: 3px 9px; font-size: 0.68rem; }
+        #connLabel { display: none; }
+
+        /* ===== Chat Area ===== */
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            scroll-behavior: smooth;
+        }
+
+        /* Chat Bubble */
+        .chat-msg {
+            display: flex;
+            flex-direction: column;
+            max-width: 85%;
+            animation: msgIn 0.3s ease-out;
+        }
+        @keyframes msgIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .chat-msg.user { align-self: flex-end; }
+        .chat-msg.bot { align-self: flex-start; }
+
+        .msg-bubble {
+            padding: 12px 18px;
+            border-radius: var(--radius-lg);
+            font-size: 0.9rem;
+            line-height: 1.55;
+        }
+        .chat-msg.user .msg-bubble {
+            background: var(--accent);
+            color: #FFF;
+            border-bottom-right-radius: 6px;
+        }
+        .chat-msg.bot .msg-bubble {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--body);
+            border-bottom-left-radius: 6px;
+            box-shadow: var(--shadow-sm);
+        }
+        .msg-time {
+            font-size: 0.65rem;
+            color: var(--muted);
+            margin-top: 4px;
+            padding: 0 8px;
+        }
+        .chat-msg.user .msg-time { text-align: right; }
+
+        /* ===== Graph Face (picker + disconnected state) ===== */
+        .graph-face-wrap.disconnected { opacity: 0.3; }
+        .face-picker {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            gap: 6px;
+            z-index: 10;
+            opacity: 0.65;
+            transition: opacity 0.2s ease;
+        }
+        .graph-face-wrap:hover .face-picker { opacity: 1; }
+        .face-picker button {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            padding: 0;
+            overflow: hidden;
+            cursor: pointer;
+            background: var(--surface);
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.15s ease, border-color 0.15s ease;
+        }
+        .face-picker button:hover { transform: scale(1.12); }
+        .face-picker button.active { border-color: var(--accent); }
+        .face-picker img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 480px) {
+            .side-rail { width: 50px; padding: 10px 0 8px; }
+            .app { padding: 0 12px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+        }
+
+        /* ===== Gallery (generated diary images) ===== */
+        .gallery {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 4px 0 8px;
+        }
+        .gallery-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .gallery-title { font-size: 0.85rem; font-weight: 600; color: var(--heading); }
+        .gallery-regen {
+            font-size: 0.72rem;
+            padding: 5px 11px;
+            border-radius: 8px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            transition: all var(--transition);
+        }
+        .gallery-regen:hover { color: var(--accent); border-color: var(--accent-light); background: var(--accent-bg-hover); }
+        .gallery-empty { font-size: 0.78rem; color: var(--muted); text-align: center; padding: 10px 0; }
+        .poster-card {
+            position: relative;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            background: var(--surface);
+        }
+        .poster-card img { width: 100%; display: block; }
+        .poster-overlay {
+            position: absolute; left: 0; right: 0; bottom: 0;
+            padding: 14px 16px 16px;
+            background: linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0));
+            color: #FFF;
+        }
+        .poster-summary { font-family: 'Lora', serif; font-size: 1.05rem; font-weight: 600; text-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+        .poster-highlights { list-style: none; margin-top: 4px; font-size: 0.72rem; opacity: 0.92; }
+        .poster-highlights li::before { content: '· '; }
+        .thumbs-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .thumb-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        .thumb-card img { width: 100%; display: block; aspect-ratio: 1; object-fit: cover; }
+        .thumb-caption { font-size: 0.68rem; padding: 6px 8px 0; color: var(--heading); font-weight: 500; }
+        .thumb-critique { font-size: 0.66rem; padding: 2px 8px 8px; color: var(--muted); line-height: 1.4; }
+        .comic-strip { display: flex; flex-direction: column; gap: 8px; }
+        .comic-panel { border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm); background: var(--surface); }
+        .comic-panel img { width: 100%; display: block; }
+        .comic-caption { font-size: 0.72rem; padding: 6px 10px; color: var(--body); }
+        .media-section-label { font-size: 0.75rem; color: var(--muted); margin: 2px 0 -2px; }
+
+        /* ===== Thinking dots ===== */
+        .thinking-dots {
+            display: flex; gap: 4px; align-items: center; padding: 4px 0;
+        }
+        .thinking-dots span {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--muted);
+            animation: dotBounce 1.2s infinite ease-in-out;
+        }
+        .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes dotBounce {
+            0%, 80%, 100% { transform: translateY(0); opacity: 0.3; }
+            40% { transform: translateY(-4px); opacity: 1; }
+        }
+
+        /* ===== Howdy: ocean layout (boundary-less) ===== */
+        .ocean {
+            position: relative;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+        .day-graph {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .graph-empty {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            text-align: center; color: var(--muted); font-size: 0.85rem;
+            padding: 20px; pointer-events: none;
+        }
+        .ocean-date {
+            position: absolute; top: 14px; left: 16px;
+            font-size: 0.72rem; color: var(--muted);
+            background: var(--surface);
+            background: color-mix(in srgb, var(--surface) 78%, transparent);
+            border: 1px solid var(--border);
+            padding: 4px 12px; border-radius: 999px;
+        }
+        .graph-legend {
+            position: absolute; top: 48px; left: 16px;
+            display: flex; flex-wrap: wrap; gap: 8px;
+            font-size: 0.64rem; color: var(--muted);
+            max-width: 340px; pointer-events: none;
+        }
+        .graph-legend .lg { display: flex; align-items: center; gap: 5px; }
+        .graph-legend .lg i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+        /* Floating face (right side, sparse area) */
+        .face-float {
+            position: absolute;
+            right: 6%;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            max-width: 330px;
+        }
+        .face-state {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 14px; border-radius: 999px;
+            background: var(--surface);
+            background: color-mix(in srgb, var(--surface) 82%, transparent);
+            border: 1px solid var(--border);
+            font-size: 0.78rem; color: var(--body); box-shadow: var(--shadow-sm);
+            backdrop-filter: blur(6px);
+        }
+        .face-state .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); transition: background 0.2s; }
+        .face-state.listening .dot { background: #22d3ee; }
+        .face-state.thinking .dot { background: #f59e0b; }
+        .face-state.speaking .dot { background: #8b7dff; }
+        .face-state.error .dot { background: #ff6a75; }
+        .graph-face-wrap { position: relative; display: flex; align-items: center; justify-content: center; }
+        .graph-face-canvas { display: block; width: min(330px, 36vh); aspect-ratio: 1; }
+
+        /* Unified mic button (floating under the face) */
+        .mic-btn {
+            width: 62px; height: 62px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: #FFF;
+            font-size: 1.5rem;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .mic-btn:hover { background: var(--accent-light); transform: scale(1.05); }
+        .mic-btn:active { transform: scale(0.95); }
+        .mic-btn.listening {
+            background: var(--success);
+            animation: gentlePulse 2s ease-in-out infinite;
+        }
+        @keyframes gentlePulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(91, 140, 90, 0.35); }
+            50% { box-shadow: 0 0 0 10px rgba(91, 140, 90, 0); }
+        }
+        .mic-btn.recording {
+            background: var(--error);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(198, 91, 74, 0.4); }
+            50% { box-shadow: 0 0 0 12px rgba(198, 91, 74, 0); }
+        }
+
+        /* Floating transcript (bottom-left, translucent) */
+        .transcript-overlay {
+            position: absolute; left: 16px; bottom: 16px;
+            width: min(380px, 46%);
+            max-height: 42%;
+            overflow-y: auto;
+            display: flex; flex-direction: column; gap: 12px;
+            padding: 12px 14px; scroll-behavior: smooth;
+            background: var(--surface);
+            background: color-mix(in srgb, var(--surface) 76%, transparent);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(8px);
+        }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(20,16,12,0.5);
+            display: none; align-items: center; justify-content: center; z-index: 200; padding: 20px;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: var(--surface); border-radius: var(--radius-lg);
+            max-width: 700px; width: 100%; max-height: 86vh;
+            display: flex; flex-direction: column; box-shadow: var(--shadow-lg);
+        }
+        .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+        .modal-head h2 { font-size: 1.05rem; }
+        .modal-close { font-size: 1.5rem; line-height: 1; color: var(--muted); width: 32px; height: 32px; border-radius: 8px; }
+        .modal-close:hover { background: var(--surface-hover); color: var(--heading); }
+        .modal-body { padding: 20px; overflow-y: auto; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 12px; }
+        .modal-actions button, .export-result ~ .modal-actions button {
+            padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
+            background: var(--surface); color: var(--body); font-size: 0.85rem;
+        }
+        .modal-actions button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .modal-actions button:hover { background: var(--accent-bg-hover); }
+        .modal label { font-size: 0.85rem; color: var(--body); display: block; margin-bottom: 6px; }
+        .modal select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--body); font-family: inherit; font-size: 0.9rem; }
+        .export-loading { margin-top: 14px; color: var(--muted); font-size: 0.85rem; }
+        .export-result {
+            margin-top: 14px; padding: 16px; border-radius: var(--radius);
+            background: var(--bg); border: 1px solid var(--border);
+            font-family: 'Lora', Georgia, serif; line-height: 1.75; white-space: pre-wrap; color: var(--heading);
+        }
+        .diary-entry { padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .diary-entry:last-child { border-bottom: none; }
+        .diary-entry .who { font-size: 0.7rem; color: var(--muted); margin-bottom: 2px; }
+        .diary-entry .txt { font-size: 0.92rem; color: var(--body); line-height: 1.6; }
+        .diary-todo { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; background: var(--bg); margin-bottom: 6px; font-size: 0.88rem; }
+        .diary-todo .tk { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+        .diary-todo.future .tk { background: var(--warning); }
+        .diary-todo .fd { margin-left: auto; font-size: 0.7rem; color: var(--muted); }
+
+        /* ===== About modal (rendered README) ===== */
+        .modal-wide { max-width: 860px; }
+        .about-updated { font-size: 0.7rem; color: var(--muted); }
+        .about-body { font-size: 0.85rem; line-height: 1.7; color: var(--body); }
+        .about-body h1, .about-body h2, .about-body h3 { margin: 1.2em 0 0.5em; }
+        .about-body h1 { font-size: 1.25rem; }
+        .about-body h2 { font-size: 1.05rem; }
+        .about-body h3 { font-size: 0.95rem; }
+        .about-body h1:first-child { margin-top: 0; }
+        .about-body p { margin: 0.5em 0; }
+        .about-body ul, .about-body ol { margin: 0.5em 0 0.5em 1.4em; }
+        .about-body li { margin: 0.2em 0; }
+        .about-body a { color: var(--accent); text-decoration: none; }
+        .about-body a:hover { text-decoration: underline; }
+        .about-body strong { color: var(--heading); }
+        .about-body blockquote {
+            margin: 0.6em 0; padding: 0.3em 0.9em;
+            border-left: 3px solid var(--accent-light);
+            background: var(--bg); border-radius: 0 8px 8px 0; color: var(--muted);
+        }
+        .about-body pre {
+            margin: 0.6em 0; padding: 12px 14px;
+            background: var(--bg); border: 1px solid var(--border);
+            border-radius: 10px; overflow-x: auto;
+            font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
+            font-size: 0.76rem; line-height: 1.55;
+        }
+        .about-body pre code { background: none; padding: 0; }
+        .about-body code {
+            font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
+            font-size: 0.8em; background: var(--bg);
+            border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px;
+        }
+        .about-body table {
+            border-collapse: collapse; width: 100%;
+            margin: 0.7em 0; font-size: 0.8rem;
+        }
+        .about-body th, .about-body td {
+            border: 1px solid var(--border); padding: 6px 10px; text-align: left;
+        }
+        .about-body th { background: var(--bg); color: var(--heading); font-weight: 600; }
+        .about-body hr { border: none; border-top: 1px solid var(--border); margin: 1.2em 0; }
+        .about-body .mermaid { text-align: center; margin: 0.8em 0; }
+        .about-body .mermaid svg { max-width: 100%; height: auto; }
+        .about-body .mermaid-error { font-size: 0.75rem; color: var(--muted); font-style: italic; }
+
+        @media (max-width: 860px) {
+            .face-float { right: 2%; max-width: 260px; }
+            .graph-face-canvas { width: min(260px, 30vh); }
+            .transcript-overlay { width: min(320px, 60%); max-height: 36%; }
+            .ocean-date { top: 10px; left: 12px; }
+            .graph-legend { top: 42px; left: 12px; max-width: 260px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- ===== Left side rail (tiny toolbar, replaces the old header) ===== -->
+    <aside class="side-rail" id="sideRail">
+        <div class="rail-group">
+            <button class="rail-logo" onclick="goToday()" title="Howdy · 回到今天 / today" aria-label="Howdy">
+                <img src="/logo.png" alt="Howdy" width="42" height="42">
+            </button>
+        </div>
+
+        <div class="rail-group rail-nav">
+            <button class="rail-btn" onclick="shiftDay(-1)" title="前一天 / previous day" aria-label="Previous day">‹</button>
+            <button class="rail-date" id="dateDisplay" onclick="openDatePicker()" title="选择日期 / pick a date">
+                <span class="rail-date-main" id="dateMain">今</span>
+                <span class="rail-date-sub" id="dateSub">·</span>
+            </button>
+            <button class="rail-btn" onclick="shiftDay(1)" title="后一天 / next day" aria-label="Next day">›</button>
+            <button class="rail-today" id="todayBtn" data-i18n="todayBtn" onclick="goToday()" title="回到今天 / today">今</button>
+            <input type="date" id="datePicker" style="position:absolute;visibility:hidden;width:0;height:0;" onchange="onDatePicked(this.value)">
+        </div>
+
+        <div class="rail-group rail-actions">
+            <button class="rail-icon" onclick="openAbout()" title="About · 关于" aria-label="About">?</button>
+            <button class="rail-icon" onclick="openExport()" title="Export · 导出" aria-label="Export">✎</button>
+            <button class="rail-icon" onclick="openDiary()" title="Diary · 日记" aria-label="Diary">📔</button>
+        </div>
+
+        <div class="rail-group rail-foot">
+            <div class="rail-lang" title="Language">
+                <button class="lang-btn" data-lang="zh-CN" onclick="setLang('zh-CN')">中</button>
+                <button class="lang-btn active" data-lang="en" onclick="setLang('en')">EN</button>
+            </div>
+            <div class="conn-dot" id="connDot" title="连接状态 / connection"></div>
+            <span class="conn-label" id="connLabel">Connected</span>
+        </div>
+    </aside>
+
+    <div class="app">
+        <div class="app-inner">
+            <!-- ===== Ocean: graph + floating face (boundary-less) ===== -->
+            <div class="ocean" id="ocean">
+                <!-- LEFT: the day's graph, animated by the wave simulation -->
+                <svg id="dayGraph" class="day-graph" preserveAspectRatio="xMidYMid meet"></svg>
+
+                <div class="ocean-date" id="graphDate"></div>
+
+                <div class="graph-empty" id="graphEmpty">Start talking — your day builds itself here.</div>
+
+                <div class="graph-legend">
+                    <span class="lg"><i style="background:#64748b"></i>Entry</span>
+                    <span class="lg"><i style="background:#f472b6"></i>Person</span>
+                    <span class="lg"><i style="background:#60a5fa"></i>Place</span>
+                    <span class="lg"><i style="background:#fbbf24"></i>Food</span>
+                    <span class="lg"><i style="background:#a78bfa"></i>Event</span>
+                    <span class="lg"><i style="background:#34d399"></i>Org</span>
+                    <span class="lg"><i style="background:#f87171"></i>Todo</span>
+                    <span class="lg"><i style="background:#fbbf24"></i>Future plan</span>
+                </div>
+
+                <!-- RIGHT: the face floats in a sparse/empty area, mic beneath it -->
+                <div class="face-float" id="faceFloat">
+                    <div class="face-state listening" id="faceState">
+                        <span class="dot"></span><span id="faceStateText">Listening…</span>
+                    </div>
+                    <div class="graph-face-wrap" id="graphFaceWrap">
+                        <div class="face-picker" id="facePicker" title="Choose an avatar face"></div>
+                        <canvas class="graph-face-canvas" id="graphFace" width="280" height="280"></canvas>
+                    </div>
+                    <button class="mic-btn" id="micBtn" onclick="toggleListening()" title="语音输入 / voice input">🎤</button>
+                </div>
+
+                <!-- LEFT-BOTTOM: floating transcript overlay (hidden until the first turn) -->
+                <div class="transcript-overlay" id="chatArea" style="display:none;"></div>
+            </div>
+        </div><!-- /app-inner -->
+    </div><!-- /app -->
+
+    <!-- ===== Diary Pop-up ===== -->
+    <div class="modal-overlay" id="diaryModal" onclick="if(event.target===this)closeDiary()">
+        <div class="modal">
+            <div class="modal-head">
+                <h2>Diary · <span id="diaryDate"></span></h2>
+                <button class="modal-close" onclick="closeDiary()">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="diaryEntries"></div>
+                <h3 style="margin:16px 0 8px;font-family:'Lora',serif;">Todos</h3>
+                <div id="diaryTodos"></div>
+                <div id="galleryMount"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Export Pop-up ===== -->
+    <div class="modal-overlay" id="exportModal" onclick="if(event.target===this)closeExport()">
+        <div class="modal">
+            <div class="modal-head">
+                <h2>Export as an article</h2>
+                <button class="modal-close" onclick="closeExport()">×</button>
+            </div>
+            <div class="modal-body">
+                <label>Author style
+                    <select id="exportStyle">
+                        <optgroup label="English">
+                            <option>Hemingway</option>
+                            <option>Virginia Woolf</option>
+                            <option>Oscar Wilde</option>
+                            <option>Mark Twain</option>
+                        </optgroup>
+                        <optgroup label="中文">
+                            <option>鲁迅</option>
+                            <option>老舍</option>
+                        </optgroup>
+                    </select>
+                </label>
+                <div class="modal-actions">
+                    <button class="primary" id="exportGenBtn" onclick="doExport()">Generate</button>
+                </div>
+                <div class="export-loading" id="exportLoading" style="display:none;">Writing…</div>
+                <div class="export-result" id="exportResult"></div>
+                <div class="modal-actions" id="exportResultActions" style="display:none;">
+                    <button onclick="copyArticle()">Copy</button>
+                    <button onclick="downloadArticle()">Download</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== About Pop-up (README, synced from README.md) ===== -->
+    <div class="modal-overlay" id="aboutModal" onclick="if(event.target===this)closeAbout()">
+        <div class="modal modal-wide">
+            <div class="modal-head">
+                <h2>Howdy · About</h2>
+                <span class="about-updated" id="aboutUpdated"></span>
+                <button class="modal-close" onclick="closeAbout()">×</button>
+            </div>
+            <div class="modal-body about-body" id="aboutBody"><p style="color:var(--muted);">Loading…</p></div>
+        </div>
+    </div>
+
+    <script src="graph.js"></script>
+    <script src="graph-face.js"></script>
+    <script src="vendor/mermaid.min.js"></script>
+    <script>
+        // ===== State =====
+        let lang = 'en';
+        let isConnected = true;
+        let graphFace = null;   // declared early: setStatus/updateConnection run during init
+        let isPlaying = false;  // TTS audio currently playing (barge-in target)
+
+        // ===== i18n =====
+        const i18n = {
+            'zh-CN': {
+                subtitle: '语音日记',
+                welcome: '记一笔今天的事 📔',
+                welcomeHint: '说说你的一天，或点下面的例子开始',
+                sug1: '今天吃了什么好吃的？',
+                sug2: '见了谁？',
+                sug3: '明天有什么计划？',
+                sug4: '今天心情怎么样？',
+                galleryTitle: '今日影像',
+                regenBtn: '重新生成',
+                thumbsLabel: '值得记录的瞬间',
+                comicLabel: '今日漫画',
+                placeholder: '说说你今天的事...',
+                statusReady: '就绪',
+                statusListening: '正在聆听...',
+                statusProcessing: '记录中...',
+                statusSpeaking: '正在回应...',
+                statusError: '出错了',
+                youLabel: '你',
+                botLabel: '日记助手',
+                todayBtn: '今',
+            },
+            'en': {
+                subtitle: 'Voice Diary',
+                welcome: 'Jot down today 📔',
+                welcomeHint: 'Tell me about your day, or tap a prompt below',
+                sug1: 'What did you eat today?',
+                sug2: 'Who did you meet?',
+                sug3: 'Any plans for tomorrow?',
+                sug4: 'How are you feeling today?',
+                galleryTitle: "Today's Moments",
+                regenBtn: 'Regenerate',
+                thumbsLabel: 'Moments',
+                comicLabel: "Today's Comic",
+                placeholder: 'Tell me about your day...',
+                statusReady: 'Ready',
+                statusListening: 'Listening...',
+                statusProcessing: 'Recording...',
+                statusSpeaking: 'Replying...',
+                statusError: 'Error',
+                youLabel: 'You',
+                botLabel: 'Diary',
+                todayBtn: 'Tdy',
+            }
+        };
+
+        function t(key) {
+            return i18n[lang][key] || key;
+        }
+
+        function setLang(newLang) {
+            lang = newLang;
+            document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+            document.documentElement.lang = lang;
+            applyI18n();
+        }
+
+        function applyI18n() {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.dataset.i18n;
+                if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                    el.placeholder = t(key);
+                } else {
+                    el.textContent = t(key);
+                }
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                el.placeholder = t(el.dataset.i18nPlaceholder);
+            });
+        }
+
+        // ===== Connection =====
+        function updateConnection(connected) {
+            isConnected = connected;
+            document.getElementById('connDot').className = 'conn-dot' + (connected ? '' : ' disconnected');
+            document.getElementById('connLabel').textContent = connected ? 'Connected' : 'Disconnected';
+            document.getElementById('graphFaceWrap').classList.toggle('disconnected', !connected);
+            if (!graphFace) return;
+            if (!connected) {
+                graphFace.setState('error');
+            } else if (!botBusy && !isPlaying) {
+                // Stay in the "listening-ready" resting look instead of resetting
+                // the face to idle on every health poll.
+                graphFace.setState(listeningMode ? 'listening' : 'listening');
+            }
+        }
+
+        // ===== Status =====
+        // Face badge text per GraphFace state.
+        const FACE_STATE_TEXT = {
+            listening: 'Listening…',
+            thinking: 'Thinking…',
+            speaking: 'Speaking…',
+            idle: 'Ready',
+            error: 'Error',
+        };
+
+        // Update the top-right face-state badge (dot colour + label).
+        function updateFaceBadge(state) {
+            const badge = document.getElementById('faceState');
+            const txt = document.getElementById('faceStateText');
+            if (!badge) return;
+            badge.className = 'face-state' + (state === 'idle' ? '' : ' ' + state);
+            if (txt) txt.textContent = FACE_STATE_TEXT[state] || state;
+        }
+
+        function setStatus(key, type) {
+            const bar = document.getElementById('statusBar');
+            if (bar) {
+                const types = { ready: '', processing: 'processing', error: 'active' };
+                bar.innerHTML = `<span class="status-dot ${types[type] || ''}"></span><span>${t(key)}</span>`;
+            }
+
+            // Map status → GraphFace state + face badge. While the mic is live the
+            // resting state is "listening" (per the Howdy concept); only when fully
+            // stopped does it fall back to idle.
+            //
+            // Note: GraphFace has no "thinking" preset — its "processing" state is
+            // the blink/think look — so the badge shows "Thinking…" while the face
+            // is driven into "processing".
+            if (graphFace) {
+                const stateMap = {
+                    statusReady: listeningMode ? 'listening' : 'idle',
+                    statusListening: 'listening',
+                    statusProcessing: 'processing',
+                    statusSpeaking: 'speaking',
+                    statusError: 'error',
+                };
+                const badgeMap = {
+                    statusReady: listeningMode ? 'listening' : 'idle',
+                    statusListening: 'listening',
+                    statusProcessing: 'thinking',
+                    statusSpeaking: 'speaking',
+                    statusError: 'error',
+                };
+                const st = stateMap[key] || (listeningMode ? 'listening' : 'idle');
+                const badge = badgeMap[key] || (listeningMode ? 'listening' : 'idle');
+                graphFace.setState(st);
+                updateFaceBadge(badge);
+            }
+        }
+
+        // ===== Chat =====
+        // The transcript overlay stays hidden until there is something to show.
+        function updateTranscriptVisibility() {
+            const area = document.getElementById('chatArea');
+            if (!area) return;
+            area.style.display = area.children.length ? 'flex' : 'none';
+        }
+
+        function addMessage(role, text) {
+            const area = document.getElementById('chatArea');
+
+            const div = document.createElement('div');
+            div.className = `chat-msg ${role}`;
+
+            const now = new Date();
+            const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+
+            div.innerHTML = `
+                <div class="msg-bubble">${escapeHtml(text)}</div>
+                <div class="msg-time">${role === 'user' ? t('youLabel') : t('botLabel')} · ${time}</div>
+            `;
+            area.appendChild(div);
+            area.scrollTop = area.scrollHeight;
+            updateTranscriptVisibility();
+        }
+
+        function addThinking() {
+            const area = document.getElementById('chatArea');
+            const div = document.createElement('div');
+            div.className = 'chat-msg bot';
+            div.id = 'thinking-msg';
+            div.innerHTML = `
+                <div class="msg-bubble">
+                    <div class="thinking-dots"><span></span><span></span><span></span></div>
+                </div>
+            `;
+            area.appendChild(div);
+            area.scrollTop = area.scrollHeight;
+            updateTranscriptVisibility();
+        }
+
+        function removeThinking() {
+            const el = document.getElementById('thinking-msg');
+            if (el) el.remove();
+            updateTranscriptVisibility();
+        }
+
+        function escapeHtml(str) {
+            const d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
+        }
+
+        // ===== API Config =====
+        const API_BASE = window.location.origin;
+        const WS_BASE = API_BASE.replace('http', 'ws');
+
+        // Session management
+        let sessionId = localStorage.getItem('graphvoice_sid');
+        if (!sessionId) {
+            sessionId = crypto.randomUUID ? crypto.randomUUID().split('-')[0] : Math.random().toString(36).substr(2, 12);
+            localStorage.setItem('graphvoice_sid', sessionId);
+        }
+
+        // ===== Date Nav =====
+        // The diary is organised by day. selectedDate is the day the user is
+        // currently writing to / browsing; it travels to the server with every turn
+        // so entries land on the right Day node.
+        let selectedDate = todayISO();
+
+        function todayISO() {
+            const d = new Date();
+            return d.getFullYear() + '-' +
+                String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                String(d.getDate()).padStart(2, '0');
+        }
+
+        function shiftDateISO(iso, deltaDays) {
+            const d = new Date(iso + 'T00:00:00');
+            d.setDate(d.getDate() + deltaDays);
+            return d.getFullYear() + '-' +
+                String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                String(d.getDate()).padStart(2, '0');
+        }
+
+        const isEn = () => lang.startsWith('en');
+        const WD_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const WD_ZH = ['日', '一', '二', '三', '四', '五', '六'];
+
+        function formatDateMain(iso) {
+            const d = new Date(iso + 'T00:00:00');
+            if (iso === todayISO()) return isEn() ? 'Today' : '今天';
+            if (isEn()) return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            return (d.getMonth() + 1) + '月' + d.getDate() + '日';
+        }
+
+        function formatDateSub(iso) {
+            const d = new Date(iso + 'T00:00:00');
+            const today = todayISO();
+            const diff = Math.round((new Date(iso + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
+            if (isEn()) {
+                if (iso === today) return 'Today';
+                if (diff === 1) return 'Tomorrow · ' + WD_EN[d.getDay()];
+                if (diff === -1) return 'Yesterday · ' + WD_EN[d.getDay()];
+                return (d.getMonth() + 1) + '/' + d.getDate() + ' · ' + WD_EN[d.getDay()];
+            }
+            if (iso === today) return '周' + WD_ZH[d.getDay()];
+            if (diff === 1) return '明天 · 周' + WD_ZH[d.getDay()];
+            if (diff === -1) return '昨天 · 周' + WD_ZH[d.getDay()];
+            return (d.getMonth() + 1) + '/' + d.getDate() + ' · 周' + WD_ZH[d.getDay()];
+        }
+
+        // Compact forms for the left side rail (narrow vertical date chip).
+        function railDateMain(iso) {
+            if (iso === todayISO()) return isEn() ? 'Tdy' : '今';
+            const d = new Date(iso + 'T00:00:00');
+            return (d.getMonth() + 1) + '/' + d.getDate();
+        }
+
+        function railDateSub(iso) {
+            const today = todayISO();
+            if (iso === today) return isEn() ? 'Tdy' : '今';
+            if (iso === shiftDateISO(today, 1)) return isEn() ? 'Tom' : '明';
+            if (iso === shiftDateISO(today, -1)) return isEn() ? 'Yst' : '昨';
+            return isEn() ? WD_EN[new Date(iso + 'T00:00:00').getDay()]
+                          : WD_ZH[new Date(iso + 'T00:00:00').getDay()];
+        }
+
+        function renderDateNav() {
+            const today = todayISO();
+            const main = document.getElementById('dateMain');
+            const sub = document.getElementById('dateSub');
+            const disp = document.getElementById('dateDisplay');
+            const todayBtn = document.getElementById('todayBtn');
+            main.textContent = railDateMain(selectedDate);
+            sub.textContent = railDateSub(selectedDate);
+            disp.classList.toggle('today', selectedDate === today);
+            disp.classList.toggle('future', selectedDate > today);
+            todayBtn.classList.toggle('active', selectedDate === today);
+        }
+
+        function notifyDateChange() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'date', date: selectedDate }));
+            }
+        }
+
+        function setSelectedDate(iso) {
+            if (!iso) return;
+            selectedDate = iso;
+            renderDateNav();
+            notifyDateChange();
+            fetchDayGraph();
+            pollGallery();
+        }
+
+        function shiftDay(delta) {
+            setSelectedDate(shiftDateISO(selectedDate, delta));
+        }
+
+        function goToday() {
+            setSelectedDate(todayISO());
+        }
+
+        function openDatePicker() {
+            const picker = document.getElementById('datePicker');
+            picker.value = selectedDate;
+            picker.showPicker ? picker.showPicker() : picker.click();
+        }
+
+        function onDatePicked(value) {
+            if (value) setSelectedDate(value);
+        }
+
+        // ===== Gallery (auto-generated diary images) =====
+        // Images are generated on a background worker (server side), so they are not
+        // ready the instant a turn completes. We render whatever exists and poll a few
+        // times to pick up the freshly-generated poster / thumbnails for the day.
+        let _galleryPollTimer = null;
+
+        async function loadGallery() {
+            const mount = document.getElementById('galleryMount');
+            if (!mount) return;
+            try {
+                const resp = await fetch(API_BASE + '/api/media/' + selectedDate);
+                const data = await resp.json();
+                const items = data.items || [];
+                if (!data.exists || !items.length) { mount.innerHTML = ''; return; }
+                const poster = items.find(i => i.type === 'poster');
+                const thumbs = items.filter(i => i.type === 'thumb');
+                const comics = items.filter(i => i.type === 'comic');
+
+                let html = '';
+                if (poster || thumbs.length || comics.length) {
+                    html += `<div class="gallery-header"><span class="gallery-title">${t('galleryTitle')}</span>` +
+                            `<button class="gallery-regen" onclick="regenerateImages()">${t('regenBtn')}</button></div>`;
+                }
+                if (poster) {
+                    const hl = (poster.highlights || []).map(h => `<li>${escapeHtml(h)}</li>`).join('');
+                    html += `<div class="poster-card">
+                        <img src="${poster.image_url}" alt="day poster" loading="lazy" onerror="this.closest('.poster-card').style.display='none'">
+                        <div class="poster-overlay">
+                            <div class="poster-summary">${escapeHtml(poster.summary || '')}</div>
+                            <ul class="poster-highlights">${hl}</ul>
+                        </div>
+                    </div>`;
+                    if (poster.judge_critique) {
+                        html += `<div class="thumb-critique">🤖 ${escapeHtml(poster.judge_critique)}</div>`;
+                    }
+                }
+                if (thumbs.length) {
+                    html += `<div class="media-section-label">${t('thumbsLabel')}</div><div class="thumbs-grid">`;
+                    for (const th of thumbs) {
+                        html += `<div class="thumb-card">
+                            <img src="${th.image_url}" alt="${escapeHtml(th.caption || '')}" loading="lazy" onerror="this.closest('.thumb-card').style.display='none'">
+                            <div class="thumb-caption">${escapeHtml(th.caption || '')}</div>
+                            ${th.judge_critique ? `<div class="thumb-critique">🤖 ${escapeHtml(th.judge_critique)}</div>` : ''}
+                        </div>`;
+                    }
+                    html += '</div>';
+                }
+                if (comics.length) {
+                    html += `<div class="media-section-label">${t('comicLabel')}</div><div class="comic-strip">`;
+                    for (const c of comics) {
+                        html += `<div class="comic-panel">
+                            <img src="${c.image_url}" alt="" loading="lazy" onerror="this.closest('.comic-panel').style.display='none'">
+                            <div class="comic-caption">${escapeHtml(c.caption || '')}</div>
+                        </div>`;
+                    }
+                    html += '</div>';
+                }
+                mount.innerHTML = html;
+            } catch (e) {
+                console.warn('[Gallery] load failed:', e.message || e);
+            }
+        }
+
+        // Poll a few times with growing gaps so newly-queued images show up.
+        async function pollGallery() {
+            await loadGallery();
+            const gaps = [2500, 6000, 12000, 20000];
+            let attempt = 0;
+            if (_galleryPollTimer) clearTimeout(_galleryPollTimer);
+            const step = () => {
+                if (attempt >= gaps.length) return;
+                _galleryPollTimer = setTimeout(async () => {
+                    await loadGallery();
+                    attempt++;
+                    step();
+                }, gaps[attempt]);
+            };
+            step();
+        }
+
+        async function regenerateImages() {
+            try {
+                await fetch(API_BASE + '/api/media/' + selectedDate + '/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ force: true }),
+                });
+                setStatus('statusProcessing', 'processing');
+                pollGallery();
+            } catch (e) {
+                console.warn('[Gallery] regenerate failed:', e.message || e);
+            }
+        }
+
+        // ===== Day Graph (left pane) =====
+        // Renders the day's recorded graph (Day / Entry / Entity / Todo nodes +
+        // edges) from the read-only /api/day/<date> endpoint.
+        async function fetchDayGraph() {
+            const svg = document.getElementById('dayGraph');
+            const empty = document.getElementById('graphEmpty');
+            const dateLabel = document.getElementById('graphDate');
+            try {
+                const resp = await fetch(API_BASE + '/api/day/' + selectedDate);
+                const data = await resp.json();
+                if (window.renderDayGraph) window.renderDayGraph(svg, data);
+                if (empty) empty.style.display = (data.nodes && data.nodes.length) ? 'none' : 'flex';
+                if (dateLabel) dateLabel.textContent = formatDateMain(selectedDate) + ' · ' + selectedDate;
+            } catch (e) {
+                console.warn('[Graph] load failed:', e.message || e);
+            }
+        }
+
+        // Entry nodes in the graph open the diary pop-up.
+        window.__openDiaryFromNode = function () {
+            openDiary();
+        };
+
+        // ===== Diary pop-up =====
+        function openDiary() {
+            const modal = document.getElementById('diaryModal');
+            if (!modal) return;
+            modal.classList.add('open');
+            document.getElementById('diaryDate').textContent =
+                formatDateMain(selectedDate) + ' · ' + selectedDate;
+            loadDiary();
+            loadGallery();
+        }
+        function closeDiary() {
+            const modal = document.getElementById('diaryModal');
+            if (modal) modal.classList.remove('open');
+        }
+
+        async function loadDiary() {
+            const entriesEl = document.getElementById('diaryEntries');
+            const todosEl = document.getElementById('diaryTodos');
+            if (!entriesEl || !todosEl) return;
+            try {
+                const resp = await fetch(API_BASE + '/api/day/' + selectedDate);
+                const data = await resp.json();
+                const entries = data.entries || [];
+                entriesEl.innerHTML = entries.length
+                    ? '' : '<p style="color:var(--muted);font-size:.85rem;">No entries yet.</p>';
+                for (const e of entries) {
+                    const div = document.createElement('div');
+                    div.className = 'diary-entry';
+                    let who = '';
+                    if (e.ts) {
+                        try { who = new Date(e.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+                        catch (_) {}
+                    }
+                    if (e.lang) who = (who ? who + ' · ' : '') + (e.lang === 'zh' ? '中文' : 'EN');
+                    div.innerHTML =
+                        `<div class="who">${escapeHtml(who)}</div>` +
+                        `<div class="txt">${escapeHtml(e.text || '')}</div>`;
+                    entriesEl.appendChild(div);
+                }
+                const todos = data.todos || [];
+                todosEl.innerHTML = todos.length
+                    ? '' : '<p style="color:var(--muted);font-size:.85rem;">No plans.</p>';
+                for (const t of todos) {
+                    const div = document.createElement('div');
+                    const future = t.for_date && t.for_date > selectedDate;
+                    div.className = 'diary-todo' + (future ? ' future' : '');
+                    const fd = t.for_date ? '→ ' + t.for_date : '';
+                    div.innerHTML =
+                        `<span class="tk"></span><span>${escapeHtml(t.text || '')}</span>` +
+                        `<span class="fd">${escapeHtml(fd)}</span>`;
+                    todosEl.appendChild(div);
+                }
+            } catch (e) {
+                entriesEl.innerHTML = '<p style="color:var(--error);font-size:.85rem;">Failed to load diary.</p>';
+                console.warn('[Diary] load failed:', e.message || e);
+            }
+        }
+
+        // ===== Export pop-up =====
+        // The writer determines the language: English authors → English article,
+        // Chinese authors → Chinese article.
+        const EN_AUTHORS = ['Hemingway', 'Virginia Woolf', 'Oscar Wilde', 'Mark Twain'];
+
+        function openExport() {
+            const modal = document.getElementById('exportModal');
+            if (!modal) return;
+            modal.classList.add('open');
+            document.getElementById('exportResult').textContent = '';
+            document.getElementById('exportResultActions').style.display = 'none';
+            document.getElementById('exportLoading').style.display = 'none';
+        }
+        function closeExport() {
+            const modal = document.getElementById('exportModal');
+            if (modal) modal.classList.remove('open');
+        }
+
+        async function doExport() {
+            const styleSel = document.getElementById('exportStyle');
+            const style = styleSel.value;
+            const langSel = EN_AUTHORS.includes(style) ? 'en' : 'zh';
+            const loading = document.getElementById('exportLoading');
+            const result = document.getElementById('exportResult');
+            const actions = document.getElementById('exportResultActions');
+            loading.style.display = 'block';
+            result.textContent = '';
+            actions.style.display = 'none';
+            try {
+                const resp = await fetch(API_BASE + '/api/day/' + selectedDate + '/export', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ style: style, lang: langSel }),
+                });
+                const data = await resp.json();
+                const article = data.article || '';
+                if (article) {
+                    result.textContent = article;
+                    actions.style.display = 'flex';
+                } else {
+                    result.textContent = '(Nothing to export for this day yet — add some entries first.)';
+                    actions.style.display = 'none';
+                }
+            } catch (e) {
+                result.textContent = 'Export failed: ' + (e.message || e);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function copyArticle() {
+            const txt = document.getElementById('exportResult').textContent || '';
+            if (navigator.clipboard) navigator.clipboard.writeText(txt).catch(() => {});
+        }
+
+        function downloadArticle() {
+            const txt = document.getElementById('exportResult').textContent || '';
+            const style = document.getElementById('exportStyle').value;
+            const blob = new Blob([txt], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'howdy-' + selectedDate + '-' + style.replace(/\s+/g, '_') + '.txt';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        // ===== About pop-up (README synced from README.md via /api/about) =====
+        let _aboutCached = null;
+
+        // markdown_it renders mermaid fences as <pre><code class="language-mermaid">.
+        // mermaid.min.js is vendored locally (frontend/vendor, loaded via a script
+        // tag) so the diagrams always render — no CDN dependency. Each diagram is
+        // rendered individually so one bad diagram never blocks the others.
+        function renderMermaidBlocks(container) {
+            const codes = container.querySelectorAll('pre code.language-mermaid');
+            if (!codes.length) return;
+            if (!window.mermaid) {
+                codes.forEach(code => {
+                    const note = document.createElement('div');
+                    note.className = 'mermaid mermaid-error';
+                    note.textContent = '(mermaid not loaded)';
+                    code.closest('pre').appendChild(note);
+                });
+                return;
+            }
+            const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            try {
+                window.mermaid.initialize({
+                    startOnLoad: false,
+                    theme: dark ? 'dark' : 'default',
+                    securityLevel: 'loose',
+                });
+            } catch (_) {}
+            codes.forEach((code, i) => {
+                const pre = code.closest('pre');
+                if (!pre) return;
+                const source = code.textContent;
+                const holder = document.createElement('div');
+                holder.className = 'mermaid';
+                pre.replaceWith(holder);
+                const uid = 'howdy-mermaid-' + i + '-' + Math.floor(Math.random() * 1e6);
+                window.mermaid
+                    .render(uid, source)
+                    .then(({ svg }) => { holder.innerHTML = svg; })
+                    .catch(err => {
+                        console.warn('[About] mermaid render failed:', err && err.message);
+                        holder.className = 'mermaid mermaid-error';
+                        holder.textContent = '(diagram failed to render)';
+                    });
+            });
+        }
+
+        async function openAbout() {
+            const modal = document.getElementById('aboutModal');
+            if (!modal) return;
+            modal.classList.add('open');
+            const body = document.getElementById('aboutBody');
+            const updated = document.getElementById('aboutUpdated');
+            try {
+                if (!_aboutCached) {
+                    const resp = await fetch(API_BASE + '/api/about');
+                    _aboutCached = await resp.json();
+                }
+                body.innerHTML = _aboutCached.html || '<p>No content.</p>';
+                if (updated) updated.textContent = 'updated ' + (_aboutCached.updated || '');
+                renderMermaidBlocks(body);
+            } catch (e) {
+                body.innerHTML = '<p style="color:var(--error);">Failed to load README.</p>';
+                console.warn('[About] load failed:', e.message || e);
+            }
+        }
+        function closeAbout() {
+            const modal = document.getElementById('aboutModal');
+            if (modal) modal.classList.remove('open');
+        }
+
+        // ===== Audio Worklet Setup =====
+        let audioCtx = null;
+        let captureNode = null;
+        let playbackNode = null;
+
+        async function setupAudioWorklets() {
+            if (audioCtx) return audioCtx.worklet;
+
+            audioCtx = new AudioContext({ sampleRate: 48000, latencyHint: 'interactive' });
+            await audioCtx.audioWorklet.addModule('worklets/mic-capture.js');
+            await audioCtx.audioWorklet.addModule('worklets/audio-playback.js');
+            console.log('[Audio] Worklets loaded');
+            return audioCtx.worklet;
+        }
+
+        function createCaptureNode(stream) {
+            destroyCaptureNode();
+
+            const src = audioCtx.createMediaStreamSource(stream);
+            // 32 ms = 512 samples at 16 kHz, exactly one Silero hop. Any other chunk
+            // size would need a repacking buffer between the worklet and the model.
+            captureNode = new AudioWorkletNode(audioCtx, 'mic-capture', {
+                processorOptions: { chunkMs: 32 }
+            });
+            src.connect(captureNode);
+
+            // A worklet only runs while it is part of a path to the destination, so
+            // the (silent) output is routed through a muted gain node.
+            const sink = audioCtx.createGain();
+            sink.gain.value = 0;
+            captureNode.connect(sink).connect(audioCtx.destination);
+            captureNode._src = src;
+            captureNode._sink = sink;
+
+            captureNode.port.onmessage = (e) => {
+                if (e.data instanceof ArrayBuffer) queueCaptureChunk(e.data);
+            };
+
+            console.log('[Audio] Capture node created (32ms / 512-sample chunks)');
+        }
+
+        function destroyCaptureNode() {
+            if (!captureNode) return;
+            captureNode.port.onmessage = null;
+            captureNode._src?.disconnect();
+            captureNode._sink?.disconnect();
+            captureNode.disconnect();
+            captureNode = null;
+        }
+
+        function createPlaybackNode() {
+            if (playbackNode) { playbackNode.disconnect(); playbackNode = null; }
+
+            playbackNode = new AudioWorkletNode(audioCtx, 'audio-playback', {
+                outputChannelCount: [1]
+            });
+            playbackNode.connect(audioCtx.destination);
+
+            playbackNode.port.postMessage({ kind: 'config', inputRate: 24000 });
+            playbackNode.port.onmessage = (e) => {
+                if (e.data.kind === 'underrun') {
+                    finishPlayback();
+                }
+            };
+
+            console.log('[Audio] Playback node created');
+        }
+
+        // ===== Always-Listening Mode (with AudioWorklet) =====
+        let listeningMode = false;
+        let ws = null;
+        let micStream = null;
+
+        // ===== Client-side VAD =====
+        // Silero is ~313 KiB of int8 weights and runs in ~0.4 ms per 32 ms frame on
+        // WebGPU, so shipping every frame to the backend just to be told "that was
+        // silence" is pure waste. When WebGPU is missing we fall back to the server
+        // VAD and stream everything, exactly as before.
+        let clientVad = null;
+        let vadGate = null;
+        let vadMode = 'server';           // 'client' once the GPU path is up
+        let vadChain = Promise.resolve(); // frames must not overlap or reorder
+        // True from the moment we hand over an utterance until the turn finishes.
+        // Unlike before, it does NOT gate the mic during playback — the user may
+        // interrupt the TTS at any time (barge-in), so `isPlaying` tracks playback
+        // separately and capture keeps running through it.
+        let botBusy = false;
+
+        async function initClientVad() {
+            if (clientVad) return true;
+            try {
+                const [{ SileroVadWebGPU }, { UtteranceGate }] = await Promise.all([
+                    import('./webgpu/vad/silero-webgpu.js'),
+                    import('./webgpu/vad/utterance-gate.js'),
+                ]);
+                if (!SileroVadWebGPU.isSupported()) throw new Error('navigator.gpu missing');
+
+                clientVad = await SileroVadWebGPU.load();
+                vadGate = new UtteranceGate({ hop: clientVad.hop });
+                vadMode = 'client';
+                console.log('[VAD] Silero on WebGPU', clientVad.profile);
+            } catch (e) {
+                console.warn('[VAD] WebGPU unavailable, deferring to the server:', e.message || e);
+                clientVad = null;
+                vadGate = null;
+                vadMode = 'server';
+            }
+            return vadMode === 'client';
+        }
+
+        function queueCaptureChunk(buf) {
+            // process() owns one GPU readback buffer and the LSTM carries state
+            // between frames, so the work has to be serialised in arrival order.
+            vadChain = vadChain
+                .then(() => handleCaptureChunk(buf))
+                .catch(err => console.error('[VAD] frame dropped:', err));
+        }
+
+        async function handleCaptureChunk(buf) {
+            if (!listeningMode || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+            if (vadMode !== 'client') {
+                // Server-VAD fallback: no local speech detector, so barge-in uses a
+                // simple loudness check — a sustained loud burst while we are talking
+                // means the user is interrupting. Cut the TTS and keep streaming so
+                // the server hears the rest of the utterance.
+                if (isPlaying && loudness(buf) > BARGIN_RMS) stopPlayback();
+                ws.send(buf);
+                return;
+            }
+
+            const int16 = new Int16Array(buf);
+            if (int16.length !== clientVad.hop) {
+                ws.send(buf);  // unexpected geometry — let the server sort it out
+                return;
+            }
+
+            const float32 = new Float32Array(int16.length);
+            for (let i = 0; i < int16.length; i++) float32[i] = int16[i] / 32768;
+
+            const utterance = vadGate.push(await clientVad.process(float32), int16);
+            if (!utterance) return;
+
+            console.log(
+                `[VAD] utterance ${Math.round(utterance.durationMs)}ms ` +
+                `(${Math.round(utterance.voicedMs)}ms voiced, ${utterance.reason})`
+            );
+            // Barge-in: a real utterance arrived while the TTS was playing — cut
+            // the audio off so the user's interruption takes over immediately.
+            if (isPlaying) stopPlayback();
+            setBotBusy(true);
+            ws.send(utterance.pcm.buffer);
+            ws.send(JSON.stringify({ type: 'eou' }));
+        }
+
+        // RMS loudness of a 16-bit PCM chunk (0..1), used for server-VAD barge-in.
+        function loudness(buf) {
+            const int16 = new Int16Array(buf);
+            let sum = 0;
+            for (let i = 0; i < int16.length; i++) {
+                const s = int16[i] / 32768;
+                sum += s * s;
+            }
+            return Math.sqrt(sum / int16.length);
+        }
+        const BARGIN_RMS = 0.03;
+
+        /**
+         * Mark that a turn is being processed (STT/LLM/TTS).
+         *
+         * Note: unlike an earlier design, this no longer holds the mic during
+         * playback — the user may interrupt the TTS at any time. It still resets
+         * the VAD on both edges, because the LSTM state and the carried 64-sample
+         * context either side of a skipped stretch describe different moments.
+         */
+        function setBotBusy(on) {
+            botBusy = on;
+            vadGate?.reset();
+            clientVad?.reset();
+            if (on) {
+                setStatus('statusProcessing', 'processing');
+            } else if (listeningMode) {
+                setStatus('statusListening', 'processing');
+            } else {
+                setStatus('statusReady', 'ready');
+            }
+        }
+
+        async function toggleListening() {
+            if (listeningMode) {
+                stopListening();
+                return;
+            }
+            await startListening();
+        }
+
+        async function startListening() {
+            try {
+                // Setup AudioContext (must be in user gesture on iOS)
+                if (!audioCtx) {
+                    await setupAudioWorklets();
+                } else if (audioCtx.state === 'suspended') {
+                    await audioCtx.resume();
+                }
+
+                // Get microphone. onclose reconnects through here, so release the
+                // previous stream or every retry leaks a live mic track.
+                micStream?.getTracks().forEach(t => t.stop());
+                micStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                    }
+                });
+
+                // Load the VAD before the socket opens: the handshake tells the
+                // server which side is doing the detecting.
+                await initClientVad();
+
+                // Create capture worklet node
+                createCaptureNode(micStream);
+
+                // Create playback worklet node
+                if (!playbackNode) {
+                    createPlaybackNode();
+                }
+
+                listeningMode = true;
+                botBusy = false;
+                document.getElementById('micBtn').classList.add('listening');
+                setStatus('statusListening', 'processing');
+
+                // Open WebSocket
+                const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                ws = new WebSocket(proto + '//' + window.location.host + '/ws/listen');
+
+                ws.onopen = () => {
+                    console.log('[WS] Connected, session=' + sessionId + ', vad=' + vadMode + ', date=' + selectedDate);
+                    ws.send(JSON.stringify({ type: 'hello', vad: vadMode, date: selectedDate }));
+                };
+
+                ws.onmessage = (event) => {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === 'processing') {
+                        addThinking();
+                        // Face blinks + "thinks" while the graph on the left refreshes.
+                        if (graphFace && graphFace.triggerBlink) graphFace.triggerBlink();
+                        fetchDayGraph();
+                    } else if (msg.type === 'result') {
+                        removeThinking();
+                        if (msg.text) addMessage('user', msg.text);
+                        if (msg.answer) addMessage('bot', msg.answer);
+                        // Refresh the graph with the newly recorded entries.
+                        fetchDayGraph();
+                        if (msg.audio_b64) {
+                            setBotBusy(true);
+                            playBase64Audio(msg.audio_b64);
+                        } else {
+                            setBotBusy(false);
+                        }
+                    }
+                };
+
+                ws.onerror = (e) => {
+                    console.error('[WS] Error:', e);
+                    setStatus('statusError', 'error');
+                };
+
+                ws.onclose = () => {
+                    console.log('[WS] Disconnected');
+                    if (listeningMode) {
+                        setTimeout(() => { if (listeningMode) startListening(); }, 2000);
+                    }
+                };
+
+            } catch (e) {
+                console.error('[Audio] Start failed:', e);
+                listeningMode = false;
+                document.getElementById('micBtn').classList.remove('listening');
+            }
+        }
+
+        function stopListening() {
+            listeningMode = false;
+            botBusy = false;
+            vadGate?.reset();
+            clientVad?.reset();
+            if (ws) { ws.close(); ws = null; }
+            destroyCaptureNode();
+            if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+            document.getElementById('micBtn').classList.remove('listening');
+            setStatus('statusReady', 'ready');
+        }
+
+        /**
+         * Decode a 16-bit PCM WAV by walking its RIFF chunks.
+         *
+         * The header is not always 44 bytes and the sample rate is not always what we
+         * guessed — TTS backends add LIST/fact chunks and pick their own rate, and
+         * both mistakes play back as noise or as a chipmunk. Throws for anything that
+         * is not 16-bit PCM WAV (the macOS `say` fallback emits AIFF), which sends the
+         * caller down the <audio> path where the browser decodes it properly.
+         */
+        function decodeWav(bytes) {
+            const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+            const tag = (off) => String.fromCharCode(
+                dv.getUint8(off), dv.getUint8(off + 1), dv.getUint8(off + 2), dv.getUint8(off + 3)
+            );
+            if (bytes.byteLength < 44 || tag(0) !== 'RIFF' || tag(8) !== 'WAVE') {
+                throw new Error('not a RIFF/WAVE stream');
+            }
+
+            let rate = 0, channels = 1, bits = 0, data = null;
+            for (let off = 12; off + 8 <= dv.byteLength; ) {
+                const id = tag(off);
+                const size = dv.getUint32(off + 4, true);
+                const body = off + 8;
+                if (id === 'fmt ') {
+                    channels = dv.getUint16(body + 2, true) || 1;
+                    rate = dv.getUint32(body + 4, true);
+                    bits = dv.getUint16(body + 14, true);
+                } else if (id === 'data') {
+                    data = { start: body, bytes: Math.min(size, dv.byteLength - body) };
+                }
+                off = body + size + (size & 1);  // chunks are word-aligned
+            }
+            if (!data || bits !== 16 || !rate) throw new Error(`unsupported WAV (${bits}-bit)`);
+
+            const frames = Math.floor(data.bytes / 2 / channels);
+            const mono = new Float32Array(frames);
+            for (let i = 0; i < frames; i++) {
+                let sum = 0;
+                for (let c = 0; c < channels; c++) {
+                    sum += dv.getInt16(data.start + (i * channels + c) * 2, true);
+                }
+                mono[i] = sum / channels / 32768;
+            }
+            return { samples: mono, rate };
+        }
+
+        // Playback handles for barge-in.
+        let _currentAudio = null;   // the <audio> element when playing via URL
+
+        function playBase64Audio(b64) {
+            if (playbackNode) {
+                try {
+                    setPlaying();
+                    const { samples, rate } = decodeWav(Uint8Array.from(atob(b64), c => c.charCodeAt(0)));
+                    playbackNode.port.postMessage({ kind: 'config', inputRate: rate });
+                    playbackNode.port.postMessage({ kind: 'audio', samples }, [samples.buffer]);
+                    return;
+                } catch (e) {
+                    console.warn('[Audio] Worklet playback unavailable:', e.message);
+                    stopPlayback();
+                }
+            }
+            playAudioUrl(URL.createObjectURL(b64toBlob(b64, 'audio/wav')));
+        }
+
+        function playAudioUrl(url) {
+            setPlaying();
+            const audio = new Audio(url);
+            _currentAudio = audio;
+            const done = () => {
+                if (_currentAudio === audio) _currentAudio = null;
+                finishPlayback();
+            };
+            audio.onended = done;
+            audio.onerror = done;
+            audio.play().catch(done);
+        }
+
+        // Raised the instant TTS audio starts (whichever playback path).
+        function setPlaying() {
+            isPlaying = true;
+            simulateAudioLevel(true);
+            setStatus('statusSpeaking', 'processing');
+            // Fresh VAD so the tail of our own speech can't be mistaken for a turn.
+            vadGate?.reset();
+            clientVad?.reset();
+        }
+
+        // Barge-in: the user interrupted — cut the audio off immediately.
+        function stopPlayback() {
+            isPlaying = false;
+            simulateAudioLevel(false);
+            if (playbackNode) playbackNode.port.postMessage({ kind: 'clear' });
+            if (_currentAudio) {
+                try { _currentAudio.pause(); } catch (_) {}
+                _currentAudio = null;
+            }
+            vadGate?.reset();
+            clientVad?.reset();
+        }
+
+        // Normal end of playback (or after a barge-in fade-out completes).
+        function finishPlayback() {
+            isPlaying = false;
+            simulateAudioLevel(false);
+            setBotBusy(false);
+        }
+
+        function b64toBlob(b64, mime) {
+            const bytes = atob(b64);
+            const ab = new ArrayBuffer(bytes.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < bytes.length; i++) ia[i] = bytes.charCodeAt(i);
+            return new Blob([ab], { type: mime });
+        }
+
+        // ===== Health Check =====
+        async function checkHealth() {
+            try {
+                const resp = await fetch(API_BASE + '/api/health');
+                const data = await resp.json();
+                updateConnection(data.database);
+            } catch (e) {
+                updateConnection(false);
+            }
+        }
+
+        // ===== Init =====
+        // Retry health check on conn dot click
+        document.getElementById('connDot').addEventListener('click', () => {
+            checkHealth();
+        });
+
+        // Initial render
+        applyI18n();
+        renderDateNav();
+        setStatus('statusReady', 'ready');
+        // At rest the face is "listening" (the mic may not be live yet, but the
+        // Howdy home state is always ready to hear you).
+        updateFaceBadge('listening');
+        if (graphFace) graphFace.setState('listening');
+        fetchDayGraph();
+        checkHealth();
+        setInterval(checkHealth, 30000);
+
+        // ===== GraphFace Init =====
+        try {
+            const canvas = document.getElementById('graphFace');
+            graphFace = new GraphFace(canvas, { nodes: 7 });
+            // Howdy: on first visit the face is already "listening" (ready to hear
+            // you), with the Listening… badge shown.
+            graphFace.setState('listening');
+            console.log('[GraphFace] Initialized');
+        } catch (e) {
+            console.warn('[GraphFace] Failed:', e);
+        }
+
+        // ===== Avatar face picker (loads a generated portrait into the dotted face) =====
+        const FACE_OPTIONS = [
+            { id: 'illustration', src: 'faces/face_illustration.png' },
+            { id: 'realistic', src: 'faces/face_realistic.png' },
+            { id: 'minimal', src: 'faces/face_minimal.png' },
+        ];
+        function initFacePicker() {
+            const wrap = document.getElementById('facePicker');
+            if (!wrap || !graphFace) return;
+            const saved = localStorage.getItem('diaryFace') || FACE_OPTIONS[0].src;
+            wrap.innerHTML = '';
+            FACE_OPTIONS.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.dataset.src = opt.src;
+                btn.className = opt.src === saved ? 'active' : '';
+                const img = document.createElement('img');
+                img.src = opt.src;
+                img.alt = opt.id;
+                img.loading = 'lazy';
+                btn.appendChild(img);
+                btn.addEventListener('click', () => {
+                    graphFace.setFace(opt.src);
+                    localStorage.setItem('diaryFace', opt.src);
+                    wrap.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.src === opt.src));
+                });
+                wrap.appendChild(btn);
+            });
+            graphFace.setFace(saved);
+        }
+        initFacePicker();
+
+        // Audio level from playback (simulated via state changes)
+        function simulateAudioLevel(on) {
+            if (!graphFace) return;
+            if (on) {
+                let t = 0;
+                const pulse = () => {
+                    if (graphFace && graphFace.state === 'speaking') {
+                        graphFace.setAudioLevel(0.3 + Math.abs(Math.sin(t * 0.1)) * 0.5);
+                        t++;
+                        requestAnimationFrame(pulse);
+                    }
+                };
+                pulse();
+            } else {
+                graphFace.setAudioLevel(0);
+            }
+        }
+    </script>
+</body>
+</html>

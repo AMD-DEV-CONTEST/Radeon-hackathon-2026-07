@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Whisper-tiny encoder · WebGPU kernel validation</title>
+    <style>
+      :root {
+        --bg: #16130f;
+        --panel: #1e1a15;
+        --panel-2: #262019;
+        --line: #3a3128;
+        --ink: #ebe3d6;
+        --ink-dim: #a3968280;
+        --muted: #a39682;
+        --accent: #d99a4e;
+        --pass: #8ba888;
+        --fail: #c9705c;
+        --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 3rem 1.5rem 6rem;
+        background: var(--bg);
+        color: var(--ink);
+        font: 15px/1.6 ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      main {
+        max-width: 880px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        margin: 0 0 0.35rem;
+        font-size: 1.55rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+
+      .lede {
+        margin: 0 0 2.25rem;
+        color: var(--muted);
+        max-width: 62ch;
+      }
+
+      .lede code {
+        font-family: var(--mono);
+        font-size: 0.88em;
+        color: var(--accent);
+      }
+
+      button {
+        font: inherit;
+        font-weight: 550;
+        color: var(--bg);
+        background: var(--accent);
+        border: 0;
+        border-radius: 6px;
+        padding: 0.6rem 1.4rem;
+        cursor: pointer;
+        transition: filter 0.15s;
+      }
+
+      button:hover:not(:disabled) {
+        filter: brightness(1.1);
+      }
+
+      button:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+
+      section {
+        margin-top: 1.75rem;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--panel);
+        overflow: hidden;
+      }
+
+      section > h2 {
+        margin: 0;
+        padding: 0.7rem 1.1rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+        color: var(--muted);
+        background: var(--panel-2);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .body {
+        padding: 1.1rem;
+      }
+
+      dl {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 0.4rem 1.5rem;
+        margin: 0;
+        font-family: var(--mono);
+        font-size: 0.84rem;
+      }
+
+      dt {
+        color: var(--muted);
+      }
+
+      dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: var(--mono);
+        font-size: 0.8rem;
+      }
+
+      th,
+      td {
+        padding: 0.32rem 1.1rem;
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      th:first-child,
+      td:first-child {
+        text-align: left;
+      }
+
+      thead th {
+        color: var(--muted);
+        font-weight: 500;
+        border-bottom: 1px solid var(--line);
+      }
+
+      tbody tr:nth-child(even) {
+        background: #ffffff05;
+      }
+
+      .ok {
+        color: var(--pass);
+      }
+      .bad {
+        color: var(--fail);
+      }
+      .dim {
+        color: var(--ink-dim);
+      }
+
+      .verdict {
+        margin-top: 1.75rem;
+        padding: 1.1rem 1.3rem;
+        border-radius: 10px;
+        border: 1px solid;
+        font-family: var(--mono);
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+
+      .verdict.pass {
+        border-color: #8ba88855;
+        background: #8ba8881a;
+        color: var(--pass);
+      }
+
+      .verdict.fail {
+        border-color: #c9705c55;
+        background: #c9705c1a;
+        color: var(--fail);
+      }
+
+      .verdict .note {
+        display: block;
+        margin-top: 0.4rem;
+        font-weight: 400;
+        font-size: 0.82rem;
+        color: var(--muted);
+        letter-spacing: 0;
+      }
+
+      .log {
+        font-family: var(--mono);
+        font-size: 0.8rem;
+        color: var(--muted);
+        white-space: pre-wrap;
+        margin: 0;
+      }
+
+      .bar {
+        height: 3px;
+        border-radius: 2px;
+        background: var(--line);
+        overflow: hidden;
+        margin-top: 0.7rem;
+      }
+
+      .bar > i {
+        display: block;
+        height: 100%;
+        width: 0;
+        background: var(--accent);
+        transition: width 0.12s linear;
+      }
+
+      .check {
+        display: grid;
+        grid-template-columns: 1fr max-content max-content max-content;
+        gap: 0.35rem 1.2rem;
+        font-family: var(--mono);
+        font-size: 0.82rem;
+        align-items: baseline;
+      }
+
+      .check > .h {
+        color: var(--muted);
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 0.35rem;
+        margin-bottom: 0.2rem;
+      }
+
+      .check > .h:not(:first-child) {
+        text-align: right;
+      }
+
+      .check > .num {
+        text-align: right;
+      }
+    </style>
+  </head>
+
+  <body>
+    <main>
+      <h1>Whisper-tiny encoder — WebGPU kernel validation</h1>
+      <p class="lede">
+        Runs the float16 WebGPU encoder against activations captured from PyTorch, and against a
+        CPU transcription of the same kernels. The two comparisons answer different questions:
+        <strong>GPU vs CPU</strong> should match to f32 rounding — a gap there is a WGSL or driver
+        bug. <strong>GPU vs torch</strong> should match to the same rounding, because f16 storage
+        of an fp16 checkpoint is lossless — a gap there is a math problem. Three checkpoints are
+        compared rather than one, so a broken mel frontend cannot be confused with a broken
+        attention block. Serve this over HTTP (<code>python3 -m http.server</code>);
+        <code>file://</code> will not load ES modules.
+      </p>
+
+      <button id="run">Run validation</button>
+      <pre id="result" hidden></pre>
+
+      <section>
+        <h2>Device</h2>
+        <div class="body"><dl id="device"><dt>status</dt><dd class="dim">not started</dd></dl></div>
+      </section>
+
+      <section>
+        <h2>Model load</h2>
+        <div class="body">
+          <dl id="load"><dt>status</dt><dd class="dim">not started</dd></dl>
+          <div class="bar"><i id="bar"></i></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Checks</h2>
+        <div class="body"><div class="check" id="checks"><span class="dim">not started</span></div></div>
+      </section>
+
+      <section>
+        <h2>Throughput — full 30 s window</h2>
+        <div class="body"><dl id="perf"><dt>status</dt><dd class="dim">not started</dd></dl></div>
+      </section>
+
+      <section>
+        <h2>Per-clip, per-tensor</h2>
+        <div class="body" style="padding: 0" id="tensors">
+          <p class="log" style="padding: 1.1rem">not started</p>
+        </div>
+      </section>
+
+      <div id="verdict"></div>
+    </main>
+
+    <script type="module">
+      import { WhisperTinyWebGPU } from "./whisper-webgpu.js";
+      import { buildSimulator } from "./kernel-sim.js";
+
+      const $ = (id) => document.getElementById(id);
+
+      // scripts/validate_whisper_webgpu.mjs drives the page with ?auto=1 and collects the
+      // result by POST rather than by scraping, so the page runs on a normal clock and the
+      // latency numbers mean the same thing headless as they do in front of a human.
+      const AUTO = new URLSearchParams(location.search).has("auto");
+
+      const exp = (v) => (v === 0 ? "0" : v.toExponential(2));
+
+      /**
+       * Budgets, matching kernel-sim.test.mjs.
+       *
+       * There is no quantization term in any of them: the weights are float16 and the
+       * checkpoint is float16, so the only differences left are f32 accumulation order,
+       * the GPU's fused multiply-add, and golden.json's own 5-decimal rounding. `hidden`
+       * is looser than the other two only because four residual blocks amplify whatever
+       * the conv stem started with.
+       */
+      const TOL = {
+        mel: 1e-3,
+        postConv: 1e-3,
+        hidden: 5e-3,
+      };
+
+      function dl(el, pairs) {
+        el.innerHTML = pairs
+          .map(([k, v, cls = ""]) => `<dt>${k}</dt><dd class="${cls}">${v}</dd>`)
+          .join("");
+      }
+
+      function percentile(sorted, p) {
+        return sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))];
+      }
+
+      /** Max absolute deviation and RMSE between two equal-length tensors. */
+      function compare(actual, expected, label) {
+        if (actual.length !== expected.length) {
+          throw new Error(`${label}: ${actual.length} values, reference has ${expected.length}`);
+        }
+        let maxAbs = 0;
+        let sumSq = 0;
+        for (let i = 0; i < expected.length; i++) {
+          const d = actual[i] - expected[i];
+          maxAbs = Math.max(maxAbs, Math.abs(d));
+          sumSq += d * d;
+        }
+        return { maxAbs, rmse: Math.sqrt(sumSq / expected.length) };
+      }
+
+      /** Dominant channel per position — the check a numerical budget cannot express. */
+      function argmaxRows(hidden, rows, cols) {
+        const out = new Int32Array(rows);
+        for (let p = 0; p < rows; p++) {
+          let best = 0;
+          for (let d = 1; d < cols; d++) {
+            if (hidden[p * cols + d] > hidden[p * cols + best]) best = d;
+          }
+          out[p] = best;
+        }
+        return out;
+      }
+
+      /**
+       * A check is a measured value, a budget, and the reason the budget is what it is.
+       * Keeping the reason next to the number is the difference between "3e-4, is that
+       * bad?" and "3e-4, that is f32 accumulation order".
+       */
+      function renderChecks(checks) {
+        const head = ["check", "measured", "budget", ""].map((h) => `<span class="h">${h}</span>`);
+        const rows = checks.flatMap((c) => {
+          const ok = c.value <= c.budget;
+          const verdict = c.advisory ? "n/a" : ok ? "pass" : "FAIL";
+          const cls = c.advisory ? "dim" : ok ? "ok" : "bad";
+          return [
+            `<span>${c.label}<br><span class="dim" style="font-size:0.9em">${c.why}</span></span>`,
+            `<span class="num">${c.format(c.value)}</span>`,
+            `<span class="num dim">${c.format(c.budget)}</span>`,
+            `<span class="num ${cls}">${verdict}</span>`,
+          ];
+        });
+        $("checks").innerHTML = head.concat(rows).join("");
+        return checks.every((c) => c.advisory || c.value <= c.budget);
+      }
+
+      /** Publish a machine-readable summary, and hand it to the headless runner if there is one. */
+      function publish(payload) {
+        $("result").textContent = JSON.stringify(payload);
+        window.__WHISPER_VALIDATION__ = payload;
+        if (AUTO) {
+          fetch("/__result", { method: "POST", body: JSON.stringify(payload) }).catch(() => {});
+        }
+      }
+
+      /**
+       * Time the encoder at its real width.
+       *
+       * The correctness pass runs at 64 positions to match golden.json, which is 1.28 s of
+       * audio and says nothing useful about throughput. The model deployed is 1500 positions
+       * — a 30 s window — so latency is measured on a second instance built at that size.
+       * A fresh device is needed because destroy() takes the first one down with it.
+       */
+      async function measureThroughput(onProgress) {
+        const enc = await WhisperTinyWebGPU.load({ onProgress });
+        const [N_CTX, D] = enc.outputShape;
+        const { N_SAMPLES } = enc.shapes;
+
+        // Deterministic pseudo-noise: the numbers do not matter, but a buffer of zeros
+        // would let a driver skip work that real audio forces it to do.
+        const audio = new Float32Array(N_SAMPLES);
+        let seed = 12345;
+        for (let i = 0; i < N_SAMPLES; i++) {
+          seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+          audio[i] = (seed / 0x3fffffff - 1) * 0.25;
+        }
+
+        for (let i = 0; i < 3; i++) await enc.encode(audio); // shader caches, buffer warmup
+
+        const N = 20;
+        const lat = [];
+        for (let i = 0; i < N; i++) {
+          const t = performance.now();
+          await enc.encode(audio);
+          lat.push(performance.now() - t);
+        }
+        lat.sort((a, b) => a - b);
+
+        const audioMs = (N_SAMPLES / enc.sampleRate) * 1000;
+        const out = {
+          runs: N,
+          nCtx: N_CTX,
+          d: D,
+          audioMs,
+          mean: lat.reduce((a, b) => a + b, 0) / N,
+          p50: percentile(lat, 0.5),
+          p95: percentile(lat, 0.95),
+          pipelines: enc.pipelineCount,
+        };
+        out.rtf = out.p95 / audioMs;
+        enc.destroy();
+        return out;
+      }
+
+      async function main() {
+        const btn = $("run");
+        btn.disabled = true;
+        $("verdict").innerHTML = "";
+
+        try {
+          if (!WhisperTinyWebGPU.isSupported()) {
+            throw new Error(
+              "navigator.gpu is undefined — this browser has no WebGPU. Try Chrome 113+, Edge 113+, or Safari 26+."
+            );
+          }
+
+          /* ------------------------------------------------ golden + sim */
+
+          const [manifest, blob, golden] = await Promise.all([
+            fetch("./weights/whisper-f16.json").then((r) => r.json()),
+            fetch("./weights/whisper-f16.bin").then((r) => r.arrayBuffer()),
+            fetch("./weights/golden.json").then((r) => r.json()),
+          ]);
+          const sim = buildSimulator(manifest, blob, golden.n_ctx);
+
+          /* ---------------------------------------------------------- load */
+
+          const t0 = performance.now();
+          let cached = false;
+          const enc = await WhisperTinyWebGPU.load({
+            nCtx: golden.n_ctx,
+            onProgress: (p) => {
+              if (p.stage === "cache") cached = true;
+              $("bar").style.width = `${Math.round((p.loaded / Math.max(p.total, 1)) * 100)}%`;
+            },
+          });
+          const loadMs = performance.now() - t0;
+          $("bar").style.width = "100%";
+
+          const prof = enc.profile;
+          dl($("device"), [
+            ["vendor", prof.vendor],
+            ["architecture", prof.architecture],
+            ["shader-f16", prof.f16 ? "yes" : "no"],
+            ["subgroups", prof.subgroups ? (prof.sgExact32 ? "yes (width 32)" : "yes") : "no"],
+            ["max wg size x", prof.limits.maxComputeWorkgroupSizeX],
+            [
+              "max storage binding",
+              `${(prof.limits.maxStorageBufferBindingSize / 1048576).toFixed(0)} MiB`,
+            ],
+          ]);
+
+          const { N_CTX, D, LAYERS, N_SAMPLES } = enc.shapes;
+          dl($("load"), [
+            ["weights", `${(blob.byteLength / 1048576).toFixed(2)} MiB float16`],
+            ["source", cached ? "IndexedDB cache" : "network"],
+            ["load + compile", `${loadMs.toFixed(0)} ms`],
+            ["dispatches", `${enc.stageLabels.length} over ${LAYERS} blocks`],
+            ["pipelines", `${enc.pipelineCount} distinct specializations`],
+            [
+              "validation width",
+              `${N_CTX} positions x ${D} channels (${(N_SAMPLES / manifest.sample_rate).toFixed(2)} s)`,
+            ],
+            ["golden clips", golden.clips.length],
+          ]);
+
+          /* -------------------------------------------------------- compare */
+
+          const worst = {
+            melTorch: 0,
+            postConvTorch: 0,
+            hiddenTorch: 0,
+            melSim: 0,
+            postConvSim: 0,
+            hiddenSim: 0,
+          };
+          let flips = 0;
+          const rows = [];
+
+          for (let c = 0; c < golden.clips.length; c++) {
+            const clip = golden.clips[c];
+            const audio = Float32Array.from(clip.audio);
+
+            // conv2 is the last stage to touch `x` before pos_add rewrites it in place,
+            // so post_conv has to be read from a run that stops there.
+            await enc.encode(audio, { until: "conv2" });
+            const gpuPostConv = await enc.read("x", N_CTX * D);
+
+            const gpuHidden = await enc.encode(audio);
+            const gpuMel = await enc.read("logSpec");
+
+            const cpu = sim.encode(audio);
+
+            const vTorch = {
+              mel: compare(gpuMel, clip.mel, `clip ${c} mel`),
+              postConv: compare(gpuPostConv, clip.post_conv, `clip ${c} post_conv`),
+              hidden: compare(gpuHidden, clip.hidden, `clip ${c} hidden`),
+            };
+            const vSim = {
+              mel: compare(gpuMel, cpu.mel, `clip ${c} mel/sim`),
+              postConv: compare(gpuPostConv, cpu.postConv, `clip ${c} post_conv/sim`),
+              hidden: compare(gpuHidden, cpu.hidden, `clip ${c} hidden/sim`),
+            };
+
+            worst.melTorch = Math.max(worst.melTorch, vTorch.mel.maxAbs);
+            worst.postConvTorch = Math.max(worst.postConvTorch, vTorch.postConv.maxAbs);
+            worst.hiddenTorch = Math.max(worst.hiddenTorch, vTorch.hidden.maxAbs);
+            worst.melSim = Math.max(worst.melSim, vSim.mel.maxAbs);
+            worst.postConvSim = Math.max(worst.postConvSim, vSim.postConv.maxAbs);
+            worst.hiddenSim = Math.max(worst.hiddenSim, vSim.hidden.maxAbs);
+
+            const argmax = argmaxRows(gpuHidden, N_CTX, D);
+            for (let p = 0; p < N_CTX; p++) if (argmax[p] !== clip.argmax[p]) flips++;
+
+            for (const [name, key, tol] of [
+              ["mel", "mel", TOL.mel],
+              ["post_conv", "postConv", TOL.postConv],
+              ["hidden", "hidden", TOL.hidden],
+            ]) {
+              rows.push(
+                `<tr><td>${c}</td><td>${name}</td>` +
+                  `<td class="${vTorch[key].maxAbs > tol ? "bad" : "dim"}">${exp(vTorch[key].maxAbs)}</td>` +
+                  `<td class="dim">${exp(vTorch[key].rmse)}</td>` +
+                  `<td class="${vSim[key].maxAbs > tol ? "bad" : "dim"}">${exp(vSim[key].maxAbs)}</td>` +
+                  `<td class="dim">${exp(vSim[key].rmse)}</td></tr>`
+              );
+            }
+          }
+
+          $("tensors").innerHTML =
+            `<table><thead><tr><th>clip</th><th>tensor</th>` +
+            `<th>|gpu-torch|</th><th>rmse</th><th>|gpu-cpu|</th><th>rmse</th>` +
+            `</tr></thead><tbody>${rows.join("")}</tbody></table>`;
+
+          enc.destroy();
+
+          /* ------------------------------------------------------ throughput */
+
+          const perf = await measureThroughput(() => {});
+          dl($("perf"), [
+            ["encodes timed", perf.runs],
+            ["window", `${perf.nCtx} positions (${(perf.audioMs / 1000).toFixed(0)} s of audio)`],
+            ["mean", `${perf.mean.toFixed(2)} ms`],
+            ["p50", `${perf.p50.toFixed(2)} ms`],
+            ["p95", `${perf.p95.toFixed(2)} ms`],
+            [
+              "realtime factor",
+              `${perf.rtf.toFixed(5)}x (p95)  ~ ${(1 / perf.rtf).toFixed(0)}x faster than realtime`,
+              perf.rtf < 1 ? "ok" : "bad",
+            ],
+          ]);
+
+          /* --------------------------------------------------------- verdict */
+
+          const checks = [
+            {
+              label: "GPU vs CPU — mel",
+              why: "same STFT and filterbank; only f32 accumulation order should differ",
+              value: worst.melSim,
+              budget: TOL.mel,
+              format: exp,
+            },
+            {
+              label: "GPU vs CPU — post_conv",
+              why: "isolates the conv stem: packed-f16 indexing, stride-2 fold, GELU",
+              value: worst.postConvSim,
+              budget: TOL.postConv,
+              format: exp,
+            },
+            {
+              label: "GPU vs CPU — hidden",
+              why: "attention and MLP; a barrier or binding bug shows up here first",
+              value: worst.hiddenSim,
+              budget: TOL.hidden,
+              format: exp,
+            },
+            {
+              label: "GPU vs torch — mel",
+              why: "the frontend is the one stage with no weights to blame",
+              value: worst.melTorch,
+              budget: TOL.mel,
+              format: exp,
+            },
+            {
+              label: "GPU vs torch — post_conv",
+              why: "f16 storage of an fp16 checkpoint is lossless, so this is rounding only",
+              value: worst.postConvTorch,
+              budget: TOL.postConv,
+              format: exp,
+            },
+            {
+              label: "GPU vs torch — hidden",
+              why: "four residual blocks amplifying the rounding above",
+              value: worst.hiddenTorch,
+              budget: TOL.hidden,
+              format: exp,
+            },
+            {
+              label: "GPU vs torch — argmax flips",
+              why: "drift too small for an MSE budget but large enough to reorder channels",
+              value: flips,
+              budget: 0,
+              format: (v) => String(v),
+            },
+            {
+              label: "p95 latency vs realtime",
+              why: "one 30 s window must encode in well under 30 s to be usable at all",
+              value: perf.rtf,
+              budget: 1,
+              format: (v) => `${v.toFixed(4)}x`,
+            },
+          ];
+          const passed = renderChecks(checks);
+
+          $("verdict").className = `verdict ${passed ? "pass" : "fail"}`;
+          $("verdict").innerHTML = passed
+            ? `PASS — WebGPU encoder matches PyTorch<span class="note">${golden.clips.length} clips x ` +
+              `${N_CTX} positions, 0 argmax flips, ${perf.p95.toFixed(1)} ms p95 for a 30 s window ` +
+              `(${(1 / perf.rtf).toFixed(0)}x realtime).</span>`
+            : `FAIL — see the failing checks above<span class="note">A "GPU vs CPU" failure is a WGSL ` +
+              `or driver bug. "GPU vs torch" failing while "GPU vs CPU" passes means both paths share ` +
+              `a wrong assumption about the model.</span>`;
+
+          publish({
+            done: true,
+            passed,
+            adapter: {
+              vendor: prof.vendor,
+              architecture: prof.architecture,
+              f16: prof.f16,
+              subgroups: prof.subgroups,
+              sgExact32: prof.sgExact32,
+            },
+            clips: golden.clips.length,
+            nCtx: N_CTX,
+            flips,
+            gpuVsSim: { mel: worst.melSim, postConv: worst.postConvSim, hidden: worst.hiddenSim },
+            gpuVsTorch: {
+              mel: worst.melTorch,
+              postConv: worst.postConvTorch,
+              hidden: worst.hiddenTorch,
+            },
+            throughput: perf,
+            loadMs,
+            checks: checks.map((c) => ({
+              label: c.label,
+              value: c.value,
+              budget: c.budget,
+              advisory: !!c.advisory,
+              ok: c.advisory || c.value <= c.budget,
+            })),
+          });
+        } catch (err) {
+          $("verdict").className = "verdict fail";
+          $("verdict").innerHTML = `ERROR<span class="note">${err.message}</span>`;
+          console.error(err);
+          publish({ done: true, passed: false, error: err.message, stack: err.stack });
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      $("run").addEventListener("click", main);
+      if (AUTO) main();
+    </script>
+  </body>
+</html>

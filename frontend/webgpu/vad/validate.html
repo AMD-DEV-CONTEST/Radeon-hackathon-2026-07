@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Silero VAD · WebGPU kernel validation</title>
+    <style>
+      :root {
+        --bg: #16130f;
+        --panel: #1e1a15;
+        --panel-2: #262019;
+        --line: #3a3128;
+        --ink: #ebe3d6;
+        --ink-dim: #a3968280;
+        --muted: #a39682;
+        --accent: #d99a4e;
+        --pass: #8ba888;
+        --fail: #c9705c;
+        --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 3rem 1.5rem 6rem;
+        background: var(--bg);
+        color: var(--ink);
+        font: 15px/1.6 ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      main {
+        max-width: 880px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        margin: 0 0 0.35rem;
+        font-size: 1.55rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+
+      .lede {
+        margin: 0 0 2.25rem;
+        color: var(--muted);
+        max-width: 60ch;
+      }
+
+      .lede code {
+        font-family: var(--mono);
+        font-size: 0.88em;
+        color: var(--accent);
+      }
+
+      button {
+        font: inherit;
+        font-weight: 550;
+        color: var(--bg);
+        background: var(--accent);
+        border: 0;
+        border-radius: 6px;
+        padding: 0.6rem 1.4rem;
+        cursor: pointer;
+        transition: filter 0.15s;
+      }
+
+      button:hover:not(:disabled) {
+        filter: brightness(1.1);
+      }
+
+      button:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+
+      section {
+        margin-top: 1.75rem;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--panel);
+        overflow: hidden;
+      }
+
+      section > h2 {
+        margin: 0;
+        padding: 0.7rem 1.1rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+        color: var(--muted);
+        background: var(--panel-2);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .body {
+        padding: 1.1rem;
+      }
+
+      dl {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 0.4rem 1.5rem;
+        margin: 0;
+        font-family: var(--mono);
+        font-size: 0.84rem;
+      }
+
+      dt {
+        color: var(--muted);
+      }
+
+      dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: var(--mono);
+        font-size: 0.8rem;
+      }
+
+      th,
+      td {
+        padding: 0.32rem 1.1rem;
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      th:first-child,
+      td:first-child {
+        text-align: left;
+      }
+
+      thead th {
+        color: var(--muted);
+        font-weight: 500;
+        border-bottom: 1px solid var(--line);
+      }
+
+      tbody tr:nth-child(even) {
+        background: #ffffff05;
+      }
+
+      .ok {
+        color: var(--pass);
+      }
+      .bad {
+        color: var(--fail);
+      }
+      .dim {
+        color: var(--ink-dim);
+      }
+
+      .verdict {
+        margin-top: 1.75rem;
+        padding: 1.1rem 1.3rem;
+        border-radius: 10px;
+        border: 1px solid;
+        font-family: var(--mono);
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+
+      .verdict.pass {
+        border-color: #8ba88855;
+        background: #8ba8881a;
+        color: var(--pass);
+      }
+
+      .verdict.fail {
+        border-color: #c9705c55;
+        background: #c9705c1a;
+        color: var(--fail);
+      }
+
+      .verdict .note {
+        display: block;
+        margin-top: 0.4rem;
+        font-weight: 400;
+        font-size: 0.82rem;
+        color: var(--muted);
+        letter-spacing: 0;
+      }
+
+      .log {
+        font-family: var(--mono);
+        font-size: 0.8rem;
+        color: var(--muted);
+        white-space: pre-wrap;
+        margin: 0;
+      }
+
+      .bar {
+        height: 3px;
+        border-radius: 2px;
+        background: var(--line);
+        overflow: hidden;
+        margin-top: 0.7rem;
+      }
+
+      .bar > i {
+        display: block;
+        height: 100%;
+        width: 0;
+        background: var(--accent);
+        transition: width 0.12s linear;
+      }
+
+      .check {
+        display: grid;
+        grid-template-columns: 1fr max-content max-content max-content;
+        gap: 0.35rem 1.2rem;
+        font-family: var(--mono);
+        font-size: 0.82rem;
+        align-items: baseline;
+      }
+
+      .check > .h {
+        color: var(--muted);
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 0.35rem;
+        margin-bottom: 0.2rem;
+      }
+
+      .check > .h:not(:first-child) {
+        text-align: right;
+      }
+
+      .check > .num {
+        text-align: right;
+      }
+    </style>
+  </head>
+
+  <body>
+    <main>
+      <h1>Silero VAD — WebGPU kernel validation</h1>
+      <p class="lede">
+        Runs the int8 WebGPU pipeline against vectors captured from ONNX Runtime, and against a CPU
+        transcription of the same kernels. The two comparisons answer different questions:
+        <strong>GPU vs CPU</strong> should match to f32 rounding — a gap there is a WGSL or driver
+        bug. <strong>GPU vs ONNX</strong> should match to the int8 budget — a gap there is a
+        quantization problem. Serve this over HTTP (<code>python3 -m http.server</code>);
+        <code>file://</code> will not load ES modules.
+      </p>
+
+      <button id="run">Run validation</button>
+      <pre id="result" hidden></pre>
+
+      <section>
+        <h2>Device</h2>
+        <div class="body"><dl id="device"><dt>status</dt><dd class="dim">not started</dd></dl></div>
+      </section>
+
+      <section>
+        <h2>Model load</h2>
+        <div class="body">
+          <dl id="load"><dt>status</dt><dd class="dim">not started</dd></dl>
+          <div class="bar"><i id="bar"></i></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Checks</h2>
+        <div class="body"><div class="check" id="checks"><span class="dim">not started</span></div></div>
+      </section>
+
+      <section>
+        <h2>Throughput</h2>
+        <div class="body"><dl id="perf"><dt>status</dt><dd class="dim">not started</dd></dl></div>
+      </section>
+
+      <section>
+        <h2>Per-frame</h2>
+        <div class="body" style="padding: 0" id="frames">
+          <p class="log" style="padding: 1.1rem">not started</p>
+        </div>
+      </section>
+
+      <div id="verdict"></div>
+    </main>
+
+    <script type="module">
+      import { SileroVadWebGPU } from "./silero-webgpu.js";
+      import { buildSimulator } from "./kernel-sim.js";
+
+      const $ = (id) => document.getElementById(id);
+
+      // scripts/validate_webgpu.mjs drives the page with ?auto=1 and collects the result
+      // by POST rather than by scraping, so the page runs on a normal clock and the
+      // latency numbers mean the same thing headless as they do in front of a human.
+      const AUTO = new URLSearchParams(location.search).has("auto");
+
+      const fmt = (v, d = 6) => (Number.isFinite(v) ? v.toFixed(d) : String(v));
+      const exp = (v) => (v === 0 ? "0" : v.toExponential(2));
+
+      function dl(el, pairs) {
+        el.innerHTML = pairs
+          .map(([k, v, cls = ""]) => `<dt>${k}</dt><dd class="${cls}">${v}</dd>`)
+          .join("");
+      }
+
+      function percentile(sorted, p) {
+        return sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))];
+      }
+
+      /**
+       * A check is a measured value, a budget, and the reason the budget is what it is.
+       * Keeping the reason next to the number is the difference between "0.02, is that
+       * bad?" and "0.02, that is int8 noise".
+       */
+      function renderChecks(checks) {
+        const head = ["check", "measured", "budget", ""].map(
+          (h) => `<span class="h">${h}</span>`
+        );
+        const rows = checks.flatMap((c) => {
+          const ok = c.value <= c.budget;
+          const verdict = c.advisory ? "n/a" : ok ? "pass" : "FAIL";
+          const cls = c.advisory ? "dim" : ok ? "ok" : "bad";
+          return [
+            `<span>${c.label}<br><span class="dim" style="font-size:0.9em">${c.why}</span></span>`,
+            `<span class="num">${c.format(c.value)}</span>`,
+            `<span class="num dim">${c.format(c.budget)}</span>`,
+            `<span class="num ${cls}">${verdict}</span>`,
+          ];
+        });
+        $("checks").innerHTML = head.concat(rows).join("");
+        return checks.every((c) => c.advisory || c.value <= c.budget);
+      }
+
+      /** Publish a machine-readable summary, and hand it to the headless runner if there is one. */
+      function publish(payload) {
+        $("result").textContent = JSON.stringify(payload);
+        window.__VAD_VALIDATION__ = payload;
+        if (AUTO) {
+          fetch("/__result", { method: "POST", body: JSON.stringify(payload) }).catch(() => {});
+        }
+      }
+
+      async function main() {
+        const btn = $("run");
+        btn.disabled = true;
+        $("verdict").innerHTML = "";
+
+        try {
+          if (!SileroVadWebGPU.isSupported()) {
+            throw new Error(
+              "navigator.gpu is undefined — this browser has no WebGPU. Try Chrome 113+, Edge 113+, or Safari 26+."
+            );
+          }
+
+          /* ---------------------------------------------------------- load */
+
+          const t0 = performance.now();
+          let cached = false;
+          const vad = await SileroVadWebGPU.load({
+            onProgress: (p) => {
+              if (p.stage === "cache") cached = true;
+              $("bar").style.width = `${Math.round((p.loaded / Math.max(p.total, 1)) * 100)}%`;
+            },
+          });
+          const loadMs = performance.now() - t0;
+          $("bar").style.width = "100%";
+
+          const prof = vad.profile;
+          dl($("device"), [
+            ["vendor", prof.vendor],
+            ["architecture", prof.architecture],
+            ["shader-f16", prof.f16 ? "yes" : "no"],
+            ["subgroups", prof.subgroups ? (prof.sgExact32 ? "yes (width 32)" : "yes") : "no"],
+            ["max wg size x", prof.limits.maxComputeWorkgroupSizeX],
+            ["max storage binding", `${(prof.limits.maxStorageBufferBindingSize / 1048576).toFixed(0)} MiB`],
+          ]);
+
+          /* ------------------------------------------------ golden + sim */
+
+          const [manifest, blob, golden] = await Promise.all([
+            fetch("./weights/vad-int8.json").then((r) => r.json()),
+            fetch("./weights/vad-int8.bin").then((r) => r.arrayBuffer()),
+            fetch("./weights/golden.json").then((r) => r.json()),
+          ]);
+          const sim = buildSimulator(manifest, blob);
+
+          dl($("load"), [
+            ["weights", `${(blob.byteLength / 1024).toFixed(0)} KiB int8`],
+            ["source", cached ? "IndexedDB cache" : "network"],
+            ["load + compile", `${loadMs.toFixed(0)} ms`],
+            ["frame", `${manifest.frame} samples (${manifest.context} context + ${manifest.hop} new)`],
+            ["golden frames", golden.frames.length],
+          ]);
+
+          /* ------------------------------------------------------ compare */
+
+          const H = manifest.hidden;
+          const rows = [];
+          let dProbOnnx = 0;
+          let dProbSim = 0;
+          let dH = 0;
+          let dC = 0;
+          let flips = 0;
+
+          vad.reset();
+          let simState = new Float32Array(2 * H);
+
+          for (let i = 0; i < golden.frames.length; i++) {
+            const frame = Float32Array.from(golden.frames[i]);
+            // process() carries its own 64-sample context, so it only wants the new 512
+            const gpuProb = await vad.process(frame.subarray(manifest.context));
+            const gpuState = await vad.readState();
+
+            const { prob: simProb, stateOut } = sim.forward(frame, simState);
+            simState = stateOut;
+
+            const onnxProb = golden.probs[i];
+            const eOnnx = Math.abs(gpuProb - onnxProb);
+            const eSim = Math.abs(gpuProb - simProb);
+            dProbOnnx = Math.max(dProbOnnx, eOnnx);
+            dProbSim = Math.max(dProbSim, eSim);
+            if (gpuProb > 0.5 !== onnxProb > 0.5) flips++;
+
+            for (let j = 0; j < H; j++) {
+              dH = Math.max(dH, Math.abs(gpuState[j] - stateOut[j]));
+              dC = Math.max(dC, Math.abs(gpuState[H + j] - stateOut[H + j]));
+            }
+
+            rows.push(
+              `<tr><td>${i}</td><td>${fmt(onnxProb)}</td><td>${fmt(gpuProb)}</td>` +
+                `<td class="${eOnnx > 0.05 ? "bad" : "dim"}">${exp(eOnnx)}</td>` +
+                `<td class="${eSim > 1e-3 ? "bad" : "dim"}">${exp(eSim)}</td></tr>`
+            );
+          }
+
+          $("frames").innerHTML =
+            `<table><thead><tr><th>frame</th><th>onnx</th><th>webgpu</th>` +
+            `<th>|gpu-onnx|</th><th>|gpu-sim|</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
+
+          /* -------------------------------------------------- throughput */
+
+          vad.reset();
+          const chunk = Float32Array.from(golden.frames[8]).subarray(manifest.context);
+          for (let i = 0; i < 20; i++) await vad.process(chunk); // warm up caches + pipeline
+
+          const N = 200;
+          const lat = [];
+          for (let i = 0; i < N; i++) {
+            const s = performance.now();
+            await vad.process(chunk);
+            lat.push(performance.now() - s);
+          }
+          lat.sort((a, b) => a - b);
+          const mean = lat.reduce((a, b) => a + b, 0) / N;
+          const audioMs = (manifest.hop / 16000) * 1000; // 32 ms per chunk
+
+          const p95 = percentile(lat, 0.95);
+          const rtf = p95 / audioMs;
+
+          dl($("perf"), [
+            ["frames timed", N],
+            ["mean", `${mean.toFixed(3)} ms`],
+            ["p50", `${percentile(lat, 0.5).toFixed(3)} ms`],
+            ["p95", `${p95.toFixed(3)} ms`],
+            ["audio per frame", `${audioMs.toFixed(0)} ms`],
+            ["realtime factor", `${rtf.toFixed(4)}× (p95)`, rtf < 1 ? "ok" : "bad"],
+          ]);
+
+          /* ------------------------------------------------------ verdict */
+
+          const checks = [
+            {
+              label: "GPU vs CPU — probability",
+              why: "same kernels, same int8; only f32 rounding should differ",
+              value: dProbSim,
+              budget: 1e-3,
+              format: exp,
+            },
+            {
+              label: "GPU vs CPU — LSTM h",
+              why: "catches encoder drift a correct-looking probability can hide",
+              value: dH,
+              budget: 1e-3,
+              format: exp,
+            },
+            {
+              label: "GPU vs CPU — LSTM c",
+              why: "unbounded cell state, so errors accumulate here first",
+              value: dC,
+              budget: 5e-3,
+              format: exp,
+            },
+            {
+              label: "GPU vs ONNX — probability",
+              why: "int8 quantization cost; measured 0.033 on real speech at export",
+              value: dProbOnnx,
+              budget: 0.05,
+              format: (v) => v.toFixed(4),
+            },
+            {
+              label: "GPU vs ONNX — decision flips",
+              why: "the only error that changes behaviour at the 0.5 threshold",
+              value: flips,
+              budget: 0,
+              format: (v) => String(v),
+            },
+            {
+              label: "p95 latency vs realtime",
+              why: "must stay under 32 ms or the always-listening path falls behind",
+              value: rtf,
+              budget: 1,
+              format: (v) => `${v.toFixed(3)}×`,
+            },
+          ];
+          const passed = renderChecks(checks);
+
+          $("verdict").className = `verdict ${passed ? "pass" : "fail"}`;
+          $("verdict").innerHTML = passed
+            ? `PASS — WebGPU VAD matches ONNX Runtime<span class="note">${golden.frames.length} frames, ` +
+              `0 decision flips, ${mean.toFixed(2)} ms/frame mean against ${audioMs.toFixed(0)} ms of audio.</span>`
+            : `FAIL — see the failing checks above<span class="note">A "GPU vs CPU" failure is a kernel bug. ` +
+              `A "GPU vs ONNX" failure with GPU vs CPU passing is a quantization regression.</span>`;
+
+          publish({
+            done: true,
+            passed,
+            adapter: { vendor: prof.vendor, architecture: prof.architecture, f16: prof.f16, subgroups: prof.subgroups },
+            frames: golden.frames.length,
+            flips,
+            gpuVsSim: { prob: dProbSim, h: dH, c: dC },
+            gpuVsOnnx: { prob: dProbOnnx },
+            latencyMs: { mean, p50: percentile(lat, 0.5), p95 },
+            checks: checks.map((c) => ({
+              label: c.label,
+              value: c.value,
+              budget: c.budget,
+              advisory: !!c.advisory,
+              ok: c.advisory || c.value <= c.budget,
+            })),
+          });
+
+          vad.destroy();
+        } catch (err) {
+          $("verdict").className = "verdict fail";
+          $("verdict").innerHTML = `ERROR<span class="note">${err.message}</span>`;
+          console.error(err);
+          publish({ done: true, passed: false, error: err.message, stack: err.stack });
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      $("run").addEventListener("click", main);
+      if (AUTO) main();
+    </script>
+  </body>
+</html>

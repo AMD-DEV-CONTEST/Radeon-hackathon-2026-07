@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Whisper-tiny encoder · WebGPU stage profile</title>
+    <style>
+      :root {
+        --bg: #16130f;
+        --panel: #1e1a15;
+        --panel-2: #262019;
+        --line: #3a3128;
+        --ink: #ebe3d6;
+        --ink-dim: #a3968280;
+        --muted: #a39682;
+        --accent: #d99a4e;
+        --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 3rem 1.5rem 6rem;
+        background: var(--bg);
+        color: var(--ink);
+        font: 15px/1.6 ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
+      }
+
+      main {
+        max-width: 880px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        margin: 0 0 0.35rem;
+        font-size: 1.55rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+
+      .lede {
+        margin: 0 0 2.25rem;
+        color: var(--muted);
+        max-width: 62ch;
+      }
+
+      button {
+        font: inherit;
+        font-weight: 550;
+        color: var(--bg);
+        background: var(--accent);
+        border: 0;
+        border-radius: 6px;
+        padding: 0.6rem 1.4rem;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+
+      section {
+        margin-top: 1.75rem;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--panel);
+        overflow: hidden;
+      }
+
+      section > h2 {
+        margin: 0;
+        padding: 0.7rem 1.1rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+        color: var(--muted);
+        background: var(--panel-2);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .body {
+        padding: 1.1rem;
+      }
+
+      dl {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 0.4rem 1.5rem;
+        margin: 0;
+        font-family: var(--mono);
+        font-size: 0.84rem;
+      }
+
+      dt {
+        color: var(--muted);
+      }
+
+      dd {
+        margin: 0;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: var(--mono);
+        font-size: 0.8rem;
+      }
+
+      th,
+      td {
+        padding: 0.3rem 1.1rem;
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      th:first-child,
+      td:first-child {
+        text-align: left;
+      }
+
+      thead th {
+        color: var(--muted);
+        font-weight: 500;
+        border-bottom: 1px solid var(--line);
+      }
+
+      tbody tr:nth-child(even) {
+        background: #ffffff05;
+      }
+
+      .dim {
+        color: var(--ink-dim);
+      }
+
+      .sparkbar {
+        display: inline-block;
+        height: 8px;
+        background: var(--accent);
+        border-radius: 2px;
+        vertical-align: middle;
+      }
+    </style>
+  </head>
+
+  <body>
+    <main>
+      <h1>Whisper-tiny encoder — stage profile</h1>
+      <p class="lede">
+        Times each of the 36 dispatches at the model's real 1500-position width, so
+        optimization work starts from a measurement rather than an intuition. No device
+        feature is required: each prefix of the graph is submitted and fenced on a
+        4-byte readback, and the per-stage cost is the difference between neighbouring
+        prefixes. The fence overhead is identical for every prefix, so it cancels.
+      </p>
+
+      <button id="run">Run profile</button>
+      <pre id="result" hidden></pre>
+
+      <section>
+        <h2>Device</h2>
+        <div class="body"><dl id="device"><dt>status</dt><dd class="dim">not started</dd></dl></div>
+      </section>
+
+      <section>
+        <h2>By kernel</h2>
+        <div class="body" style="padding: 0" id="kernels">
+          <p class="dim" style="padding: 1.1rem">not started</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>By stage</h2>
+        <div class="body" style="padding: 0" id="stages">
+          <p class="dim" style="padding: 1.1rem">not started</p>
+        </div>
+      </section>
+    </main>
+
+    <script type="module">
+      import { WhisperTinyWebGPU } from "./whisper-webgpu.js";
+
+      const $ = (id) => document.getElementById(id);
+      const AUTO = new URLSearchParams(location.search).has("auto");
+
+      const REPEATS = 12;
+
+      function dl(el, pairs) {
+        el.innerHTML = pairs.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+      }
+
+      function publish(payload) {
+        $("result").textContent = JSON.stringify(payload);
+        window.__WHISPER_BENCH__ = payload;
+        if (AUTO) {
+          fetch("/__result", { method: "POST", body: JSON.stringify(payload) }).catch(() => {});
+        }
+      }
+
+      /** Median, so one scheduler hiccup does not become the reported cost. */
+      function median(xs) {
+        const s = [...xs].sort((a, b) => a - b);
+        return s[s.length >> 1];
+      }
+
+      async function main() {
+        $("run").disabled = true;
+        try {
+          const enc = await WhisperTinyWebGPU.load();
+          const prof = enc.profile;
+          const labels = enc.stageLabels;
+          const { N_SAMPLES, N_CTX, D } = enc.shapes;
+
+          dl($("device"), [
+            ["vendor", `${prof.vendor} / ${prof.architecture}`],
+            ["shader-f16", prof.f16 ? "yes" : "no"],
+            ["subgroups", prof.subgroups ? (prof.sgExact32 ? "yes (width 32)" : "yes (32-64)") : "no"],
+            ["width", `${N_CTX} positions x ${D} channels`],
+            ["dispatches", labels.length],
+            ["pipelines", enc.pipelineCount],
+          ]);
+
+          const audio = new Float32Array(N_SAMPLES);
+          let seed = 12345;
+          for (let i = 0; i < N_SAMPLES; i++) {
+            seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+            audio[i] = (seed / 0x3fffffff - 1) * 0.25;
+          }
+
+          // Fence on a one-element buffer so the readback costs the same for every
+          // prefix. Reading `out` instead would charge long prefixes for 2.3 MB of
+          // copy that short ones never pay, and the deltas would be nonsense.
+          const fence = async (until) => {
+            await enc.encode(audio, { until });
+            await enc.read("globalMax", 1);
+          };
+
+          for (let i = 0; i < 4; i++) await fence(labels[labels.length - 1]);
+
+          // Cumulative time to the end of each stage, median over repeats.
+          const cumulative = [];
+          for (const label of labels) {
+            const runs = [];
+            for (let r = 0; r < REPEATS; r++) {
+              const t = performance.now();
+              await fence(label);
+              runs.push(performance.now() - t);
+            }
+            cumulative.push(median(runs));
+          }
+
+          // The empty prefix is the fence itself: submit, copy 4 bytes, map, wake up.
+          const baseRuns = [];
+          for (let r = 0; r < REPEATS; r++) {
+            const t = performance.now();
+            await enc.read("globalMax", 1);
+            baseRuns.push(performance.now() - t);
+          }
+          const base = median(baseRuns);
+
+          const perStage = labels.map((label, i) => ({
+            label,
+            ms: Math.max(0, cumulative[i] - (i === 0 ? base : cumulative[i - 1])),
+          }));
+          const total = cumulative[cumulative.length - 1] - base;
+
+          // Group by kernel: 36 stages are 10 kernels, and the question being asked is
+          // which kernel to rewrite, not which of four identical blocks is slowest.
+          const byKernel = new Map();
+          for (const { label, ms } of perStage) {
+            const kernel = label.replace(/^b\d+\./, "");
+            const e = byKernel.get(kernel) ?? { kernel, ms: 0, count: 0 };
+            e.ms += ms;
+            e.count++;
+            byKernel.set(kernel, e);
+          }
+          const kernels = [...byKernel.values()].sort((a, b) => b.ms - a.ms);
+
+          const bar = (ms) => `<span class="sparkbar" style="width:${(ms / total) * 160}px"></span>`;
+
+          $("kernels").innerHTML =
+            `<table><thead><tr><th>kernel</th><th>dispatches</th><th>total ms</th>` +
+            `<th>share</th><th></th></tr></thead><tbody>` +
+            kernels
+              .map(
+                (k) =>
+                  `<tr><td>${k.kernel}</td><td>${k.count}</td><td>${k.ms.toFixed(2)}</td>` +
+                  `<td>${((k.ms / total) * 100).toFixed(1)}%</td><td>${bar(k.ms)}</td></tr>`
+              )
+              .join("") +
+            `</tbody></table>`;
+
+          $("stages").innerHTML =
+            `<table><thead><tr><th>stage</th><th>ms</th><th>cumulative</th></tr></thead><tbody>` +
+            perStage
+              .map(
+                (s, i) =>
+                  `<tr><td>${s.label}</td><td>${s.ms.toFixed(2)}</td>` +
+                  `<td class="dim">${(cumulative[i] - base).toFixed(2)}</td></tr>`
+              )
+              .join("") +
+            `</tbody></table>`;
+
+          publish({
+            done: true,
+            adapter: {
+              vendor: prof.vendor,
+              architecture: prof.architecture,
+              f16: prof.f16,
+              subgroups: prof.subgroups,
+              sgExact32: prof.sgExact32,
+            },
+            nCtx: N_CTX,
+            d: D,
+            fenceMs: base,
+            totalMs: total,
+            kernels,
+            stages: perStage,
+          });
+
+          enc.destroy();
+        } catch (err) {
+          console.error(err);
+          publish({ done: true, error: err.message, stack: err.stack });
+        } finally {
+          $("run").disabled = false;
+        }
+      }
+
+      $("run").addEventListener("click", main);
+      if (AUTO) main();
+    </script>
+  </body>
+</html>
