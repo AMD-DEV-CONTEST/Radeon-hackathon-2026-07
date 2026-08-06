@@ -354,8 +354,9 @@ with gr.Blocks(title="Video2Motion") as demo:
         if not video:
             yield "Please choose a video first.", None, DL_HIDDEN, "", ""
             return
-        # 命名在点了 Run 之后才校验：空名字要求补，重名直接拒绝，
-        # 否则 GVHMR 会静默复用同名目录下的旧结果。
+        # Names are validated on Run rather than on entry: an empty name is
+        # asked for again and a duplicate is refused outright, because GVHMR
+        # would otherwise silently reuse the earlier results in that directory.
         clean = P.safe_name(name)
         if not (name or "").strip():
             yield ("Please enter a project name above, then press Run again.\n"

@@ -1,10 +1,12 @@
-"""在指定参考帧上无噪声起步，对比「零动作」与「策略」。
+"""Start noise-free at a chosen reference frame and compare a zero-action
+baseline against the policy.
 
-⚠️ 之前 render_track.py 在 reset 之后直接改 info["motion_idx"]，
-   但机器人的 qpos/qvel 还停在随机 RSI 那一帧 —— 状态和参考索引对不上，
-   一步就终止。这里改成按指定帧精确构造初始状态。
+An earlier version (render_track.py) set info["motion_idx"] straight after
+reset, but the robot's qpos and qvel were still at whatever frame RSI had
+picked. State and reference index disagreed and the episode ended after one
+step. This builds the initial state exactly from the requested frame instead.
 
-用法：
+Usage:
   MUJOCO_GL=egl python eval_track.py --params <ckpt> --motion <npz> [--video out.mp4]
 """
 
@@ -35,13 +37,15 @@ from g1_track import quat_rotate_inv  # noqa: E402
 
 
 def front_azimuth(root_quat, offset=45.0):
-    """从根四元数推出「侧前方」相机方位角（度）。
+    """Camera azimuth, in degrees, for a three-quarter front view derived from
+    the root quaternion.
 
-    写死 azimuth 会随动作朝向变化而失效 —— 本项目就曾拍到整段背面。
+    A hardcoded azimuth breaks whenever the motion faces a different way — in
+    this project it once filmed an entire clip from behind.
     """
     import numpy as _np
     w, x, y, z = root_quat
-    # 机体 +x 轴在世界系里的方向
+    # Direction of the body +x axis in world coordinates.
     fwd = _np.array([1 - 2 * (y * y + z * z),
                      2 * (x * y + w * z),
                      2 * (x * z - w * y)])
@@ -66,7 +70,7 @@ PEL = g1_track.BODY_NAMES.index("pelvis")
 
 
 def state_at(idx):
-    """按参考帧精确构造初始状态（无 RSI 噪声）。"""
+    """Build the initial state exactly from a reference frame, without RSI noise."""
     ref = env._ref_at(idx)
     ang_b = quat_rotate_inv(ref["root_quat"], ref["body_angvel"][PEL])
     qpos = jp.concatenate([ref["root_pos"], ref["root_quat"], ref["joint_pos"]])
@@ -140,7 +144,7 @@ for mode in (["zero"] + (["policy"] if policy else [])):
     label = "Zero-action" if mode == "zero" else "Policy"
     print(f"{label:<14} {n:>7}/{total} ({n/total*100:5.1f}%) {e:>16.4f} m")
 
-# ---------------- 渲染 ----------------
+# ---------------- rendering ----------------
 if args.video:
     qs = results.get("policy", results["zero"])
     W = H = args.res

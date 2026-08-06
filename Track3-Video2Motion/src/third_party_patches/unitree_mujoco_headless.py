@@ -1,14 +1,18 @@
-"""unitree_mujoco 的无头录制版。
+"""Headless recording version of unitree_mujoco.
 
-官方 simulate_python/unitree_mujoco.py 强依赖 GLFW 交互窗口：
-  * 容器/服务器里必须配 X11 或 Xvfb；
-  * Xvfb + 软件 GL 下窗口常常不重绘，x11grab 抓到静止帧；
-  * 渲染线程和物理线程抢同一把锁，实时率不稳。
+The upstream simulate_python/unitree_mujoco.py requires an interactive GLFW
+window:
+  * containers and servers need X11 or Xvfb configured;
+  * under Xvfb with software GL the window often fails to redraw, and x11grab
+    captures frozen frames;
+  * the render and physics threads contend for one lock, so the real-time
+    factor is unstable.
 
-这个版本去掉交互窗口，改用 MuJoCo 离屏渲染（EGL）直接出 mp4，
-DDS 桥接层行为完全不变。适合 CI、批量评测，以及把画面送进网页前端。
+This version drops the interactive window and renders offscreen through EGL
+straight to mp4. The DDS bridge behaves exactly as before. Suitable for CI,
+batch evaluation, and feeding video to a web front end.
 
-用法：
+Usage:
     MUJOCO_GL=egl python unitree_mujoco_headless.py --out run.mp4 --seconds 15
 """
 import argparse
@@ -28,13 +32,15 @@ from unitree_sdk2py.core.channel import ChannelFactoryInitialize  # noqa: E402
 
 
 def front_azimuth(root_quat, offset=45.0):
-    """从根四元数推出「侧前方」相机方位角（度）。
+    """Camera azimuth, in degrees, for a three-quarter front view derived from
+    the root quaternion.
 
-    写死 azimuth 会随动作朝向变化而失效 —— 本项目就曾拍到整段背面。
+    A hardcoded azimuth breaks whenever the motion faces a different way — in
+    this project it once filmed an entire clip from behind.
     """
     import numpy as _np
     w, x, y, z = root_quat
-    # 机体 +x 轴在世界系里的方向
+    # Direction of the body +x axis in world coordinates.
     fwd = _np.array([1 - 2 * (y * y + z * z),
                      2 * (x * y + w * z),
                      2 * (x * z - w * y)])
@@ -59,9 +65,10 @@ mj_data = mujoco.MjData(mj_model)
 mj_model.opt.timestep = config.SIMULATE_DT
 
 if args.init_motion:
-    # 🔴 从参考动作首帧起步。unitree 的通用 stand keyframe 与动作起始姿势
-    #    可能差几十度，而策略的 RSI 训练扰动只有 ±0.1 rad ——
-    #    用通用 keyframe 等于一上来就把策略丢进没见过的状态。
+    # Start from the motion's first frame. Unitree's generic stand keyframe can
+    # differ from it by tens of degrees, while the policy was only trained with
+    # RSI perturbations of +/-0.1 rad, so the generic keyframe drops the policy
+    # straight into a state it has never seen.
     _ref = np.load(args.init_motion)
     mj_data.qpos[0:3] = _ref["root_pos"][0]
     mj_data.qpos[3:7] = _ref["root_quat"][0]
@@ -74,8 +81,9 @@ elif mj_model.nkey > 0:
     print(f"[init] stand keyframe, base_z={mj_data.qpos[2]:.4f}", flush=True)
 mujoco.mj_forward(mj_model, mj_data)
 
-# 离屏渲染画布默认 640x480，超了会报错让你去改 XML 的 <visual><global offwidth>。
-# 直接在运行时改模型字段，不用动第三方 XML。
+# The offscreen framebuffer defaults to 640x480, and exceeding it raises an
+# error telling you to edit <visual><global offwidth> in the XML. Set the model
+# field at runtime instead, so no third-party XML has to be touched.
 mj_model.vis.global_.offwidth = max(mj_model.vis.global_.offwidth, args.width)
 mj_model.vis.global_.offheight = max(mj_model.vis.global_.offheight, args.height)
 
@@ -88,14 +96,16 @@ print("[init] DDS bridge ready, waiting for the controller...", flush=True)
 
 
 def simulation_thread():
-    # 🔴 控制端连上之前不推进物理。桥接层在没有 LowCmd 时施加零力矩，
-    #    先跑物理的话机器人在等待期间就已经躺平了。
+    # Do not advance the physics until the controller connects. With no LowCmd
+    # the bridge applies zero torque, so stepping early leaves the robot lying
+    # on the floor before the run even begins.
     while not bridge._cmd_ready and not stop.is_set():
         time.sleep(0.01)
     while not stop.is_set():
         t0 = time.perf_counter()
         with locker:
-            bridge.ApplyPD()          # 每个仿真步重算 PD，对齐真机驱动器
+            bridge.ApplyPD()          # recompute PD every physics step, as the
+                                      # real motor drivers do
             mujoco.mj_step(mj_model, mj_data)
         dt = mj_model.opt.timestep - (time.perf_counter() - t0)
         if dt > 0:
@@ -103,7 +113,8 @@ def simulation_thread():
 
 
 def record_thread():
-    # 等控制端下发第一条 LowCmd 再开录，避免录到一段静止的启动画面
+    # Wait for the controller's first LowCmd before recording, so the clip does
+    # not open on a motionless startup screen.
     t_wait = time.perf_counter()
     while not bridge._cmd_ready:
         if time.perf_counter() - t_wait > args.wait_cmd:

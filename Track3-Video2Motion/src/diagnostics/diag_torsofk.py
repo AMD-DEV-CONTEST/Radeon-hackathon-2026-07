@@ -1,8 +1,10 @@
-"""校验 deploy_track.TorsoFK：只用 SDK 能拿到的量，能不能算准躯干姿态和角速度？
+"""Check deploy_track.TorsoFK: using only what the SDK reports, can torso
+orientation and angular velocity be recovered accurately?
 
-真值来自完整仿真状态（xquat[torso] 和 gyro_torso 传感器）。
-FK 的输入只有：pelvis 四元数、29 个关节角、pelvis 角速度、29 个关节速度 ——
-全是 LowState 里有的。
+Ground truth comes from the full simulator state (xquat[torso] and the
+gyro_torso sensor). The FK gets only the pelvis quaternion, 29 joint angles,
+the pelvis angular rate and 29 joint velocities — everything that LowState
+actually carries.
 """
 import sys
 from pathlib import Path
@@ -37,7 +39,8 @@ print(f"{'frame':>6} {'|dquat| deg':>12} {'|dgyro| rad/s':>15}  {'waist angles (
 print("-" * 74)
 eq, eg = [], []
 for t in range(0, 150, 15):
-    # 随机一个非平凡状态：参考姿态 + 扰动，腰关节故意给大角度
+    # A deliberately non-trivial state: reference pose plus noise, with large
+    # angles on the waist joints.
     q = ref["joint_pos"][t] + rng.uniform(-0.15, 0.15, 29)
     q[12:15] += rng.uniform(-0.5, 0.5, 3)          # waist yaw/roll/pitch
     dq = ref["joint_vel"][t] + rng.uniform(-1.0, 1.0, 29)
@@ -52,7 +55,8 @@ for t in range(0, 150, 15):
     truth_q = d.xquat[tor].copy()
     truth_g = sens("gyro_torso")
 
-    # FK 只拿 SDK 能给的：pelvis 四元数(=xquat[pelvis])、q、pelvis gyro、dq
+    # The FK sees only SDK-available quantities: the pelvis quaternion
+    # (= xquat[pelvis]), q, the pelvis gyro and dq.
     est_q, est_g = fk(d.xquat[pel].copy(), q, sens("gyro_pelvis"), dq)
 
     r = qmul(est_q, qconj(truth_q))

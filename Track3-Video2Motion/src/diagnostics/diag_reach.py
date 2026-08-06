@@ -1,10 +1,13 @@
-"""可达性检查：action_scale 够不够把关节送到参考角度？
+"""Reachability check: is action_scale enough to drive the joints to the
+reference angles?
 
-位置执行器在稳态下 q ≈ ctrl，而 ctrl = default_pose + action * action_scale，
-action ∈ [-1, 1]。所以关节能到达的范围就是 default_pose ± action_scale。
+A position actuator settles at q ~= ctrl, where ctrl = default_pose +
+action * action_scale and action is in [-1, 1]. The reachable range is
+therefore default_pose +/- action_scale.
 
-如果参考轨迹要求的偏移超出这个范围，策略**物理上做不出那个动作** ——
-再怎么训练也没用。这是"手上动作做不出来"最直接的候选解释。
+Where the reference demands more than that, the policy **physically cannot
+produce the motion**, and no amount of training changes it. This is the first
+thing to check when the arms are not doing what they should.
 """
 import sys
 
@@ -40,9 +43,9 @@ for tag in tags:
     print(f"\n  {over} of 29 joints exceed action_scale=0.5")
     print(f"  overall peak {peak.max():.3f} rad ({np.degrees(peak.max()):.0f} deg) "
           f"@ {names[int(peak.argmax())]}")
-    # 有多少比例的"帧×关节"是够不到的
+    # Fraction of frame-joint pairs that are out of reach.
     frac = float((dev > 0.5).mean())
     print(f"  unreachable (frame x joint): {frac*100:.1f}%")
-    # 只看上肢
+    # Upper body only.
     frac_u = float((dev[:, 15:] > 0.5).mean())
     print(f"  unreachable in the upper body (15-28): {frac_u*100:.1f}%")

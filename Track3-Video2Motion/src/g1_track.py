@@ -1,28 +1,34 @@
-"""G1 全身动作跟踪环境 —— BeyondMimic 配方的 MJX 移植。
+"""Whole-body motion tracking for the G1 — BeyondMimic's recipe ported to MJX.
 
-为什么推倒重来
---------------
-上一版 (g1_deploy.py) 继承 Playground 的 Joystick 环境，只跟踪上肢关节角，
-下肢给一个"靠近默认站姿"的正则项，终止条件只有"摔倒"。结果是策略学会了
-**站稳 + 手臂随便挥挥** —— 因为不摔倒就能拿满 episode 长度的奖励，
-跟踪项只占一小部分，不跟踪的代价太小。
+Why the first design was abandoned
+----------------------------------
+The previous version (g1_deploy.py) inherited Playground's Joystick
+environment, tracked upper-body joint angles only, regularised the legs
+towards a default standing pose, and terminated on falling alone. The policy
+learned to **stand still and wave its arms around**: not falling already
+earned a full-length episode, tracking was a small share of the per-step
+reward, and ignoring it cost almost nothing.
 
-BeyondMimic (HybridRobotics/whole_body_tracking) 的做法完全不同：
+BeyondMimic (HybridRobotics/whole_body_tracking) is structured differently:
 
-  1. 在**三维空间**里跟踪 14 个 body link 的位置/朝向/线速度/角速度，
-     而不是跟踪关节角。关节角误差和视觉上"像不像"的相关性很弱。
-  2. **跟踪误差超阈值直接终止** —— 站着不动会被立刻砍断 episode，
-     混不了分。这是 DeepMimic 最关键的一招。
-  3. **RSI**：每次 reset 从参考轨迹的随机时刻取**完整状态**
-     （根位姿 + 根速度 + 关节角 + 关节速度）初始化，而不是永远从站姿起步。
-  4. 奖励只有 6 项跟踪 + 3 项惩罚，没有任何 locomotion 残留。
+  1. Track the position, orientation, linear and angular velocity of 14 body
+     links **in 3-D**, rather than joint angles. Joint-angle error correlates
+     poorly with whether the motion looks right.
+  2. **Terminate as soon as tracking error exceeds a threshold** — standing
+     still has its episode cut short immediately and cannot accumulate
+     reward. This is DeepMimic's central idea.
+  3. **RSI**: every reset draws a **full state** (root pose, root velocity,
+     joint angles, joint velocities) from a random frame of the reference,
+     instead of always starting from a standing pose.
+  4. Six tracking terms and three penalties, with no locomotion leftovers.
 
-原版依赖 Isaac Lab / Isaac Sim（CUDA 独占），mjlab 版依赖 MuJoCo-Warp
-（也是 CUDA 独占）。在 AMD 上两条路都走不通，所以按论文和源码把 MDP
-在 MJX 里重新实现一遍。奖励公式、权重、std、终止阈值与原版逐项对齐。
+The original depends on Isaac Lab / Isaac Sim (CUDA-only) and the mjlab
+reproduction on MuJoCo-Warp (also CUDA-only), so neither runs on AMD. The MDP
+is therefore reimplemented on MJX from the paper and source, matching reward
+formulas, weights, stds and termination thresholds term by term.
 
-对齐清单（对照 tracking_env_cfg.py）
------------------------------------
+Alignment against tracking_env_cfg.py
+-------------------------------------
   motion_global_anchor_pos   w=0.5  std=0.30
   motion_global_anchor_ori   w=0.5  std=0.40
   motion_body_pos            w=1.0  std=0.30
@@ -32,7 +38,7 @@ BeyondMimic (HybridRobotics/whole_body_tracking) 的做法完全不同：
   action_rate_l2             w=-0.1
   joint_limit                w=-10.0
   undesired_contacts         w=-0.1
-  终止：anchor_z>0.25 / anchor_ori>0.8 / 末端 z>0.25 / 超时 10s
+  termination: anchor_z>0.25 / anchor_ori>0.8 / end-effector z>0.25 / 10 s timeout
   decimation=4, sim_dt=0.005 -> ctrl_dt=0.02
 """
 
@@ -47,7 +53,7 @@ from mujoco_playground._src import mjx_env
 from mujoco_playground._src.locomotion.g1 import base as g1_base
 from mujoco_playground._src.locomotion.g1 import g1_constants as consts
 
-# BeyondMimic 的 G1 跟踪 body 列表（flat_env_cfg.py）
+# The G1 bodies BeyondMimic tracks (flat_env_cfg.py).
 BODY_NAMES = [
     "pelvis",
     "left_hip_roll_link", "left_knee_link", "left_ankle_roll_link",
@@ -57,7 +63,7 @@ BODY_NAMES = [
     "right_shoulder_roll_link", "right_elbow_link", "right_wrist_yaw_link",
 ]
 ANCHOR_BODY = "torso_link"
-# 终止判据只看这四个末端
+# Termination looks at these four end effectors only.
 EE_BODIES = ["left_ankle_roll_link", "right_ankle_roll_link",
              "left_wrist_yaw_link", "right_wrist_yaw_link"]
 
@@ -65,25 +71,29 @@ EE_BODIES = ["left_ankle_roll_link", "right_ankle_roll_link",
 def default_config() -> config_dict.ConfigDict:
     return config_dict.create(
         ctrl_dt=0.02,
-        # ⚠️ BeyondMimic 用 0.005，但那是配它自己的执行器模型
-        #    (stiffness = armature x (2*pi*10)^2，10Hz 自然频率、阻尼比 2，
-        #     刻意做得很软)。Playground 的 G1 是 kp=75 配极小电枢，刚度高得多，
-        #    0.005 会积分发散 —— 实测理想控制器下 base_z 飞到 -165911。
-        #    0.004 及以下稳定且结果一致，用 Playground 验证过的 0.002。
+        # BeyondMimic uses 0.005, but that suits its own actuator model
+        # (stiffness = armature x (2*pi*10)^2 — a 10 Hz natural frequency with
+        # damping ratio 2, deliberately soft). Playground's G1 pairs kp=75 with
+        # a very small armature and is far stiffer, where 0.005 diverges: under
+        # a perfect controller base_z reached -165911. Anything at or below
+        # 0.004 is stable and gives the same result; 0.002 is the value
+        # Playground itself validates against.
         sim_dt=0.002,
-        impl="jax",            # 🔴 官方默认 warp，CUDA 独占
+        impl="jax",            # upstream defaults to warp, which is CUDA-only
         naconmax=1024,
         njmax=128,
         episode_length=500,    # 10s / 0.02s
         action_scale=0.5,
         action_repeat=1,
         restricted_joint_range=False,
-        # 🔴 必须是 1.0（= 硬限位），不能用 Playground 的 0.9。
-        #    joint_limit 惩罚权重是 -10，而 tennis 的参考轨迹在 269/298 帧上
-        #    超出 0.9 软限位（最大 0.192 rad @ 肩滚）—— 完美跟踪参考也要挨
-        #    -2.09/步 的罚，而跟踪奖励满分才 5.0。等于奖励函数一边说"照着做"
-        #    一边罚"照着做"。参考的硬限位违反是 0 帧，用 1.0 就没有这个矛盾。
-        #    Isaac Lab 的 soft_joint_pos_limit_factor 默认也是 1.0。
+        # Must be 1.0 (the hard limit), not Playground's 0.9. The joint_limit
+        # penalty carries weight -10, and the tennis reference exceeds the 0.9
+        # soft limit on 269 of 298 frames (peak 0.192 rad at shoulder roll).
+        # Tracking the reference perfectly would therefore be fined -2.09 per
+        # step against a maximum tracking reward of 5.0 — the reward function
+        # would be asking for the motion and punishing it at the same time. The
+        # reference violates the hard limit on no frames at all, so 1.0 removes
+        # the contradiction. Isaac Lab also defaults this factor to 1.0.
         soft_joint_pos_limit_factor=1.0,
         reward_config=config_dict.create(
             scales=config_dict.create(
@@ -110,7 +120,7 @@ def default_config() -> config_dict.ConfigDict:
             anchor_ori=0.8,
             ee_pos_z=0.25,
         ),
-        # RSI 时加在参考状态上的扰动（对齐 MotionCommandCfg）
+        # Noise added to the reference state at RSI (matches MotionCommandCfg).
         rsi=config_dict.create(
             pos_xy=0.05, pos_z=0.01,
             rpy=0.1, yaw=0.2,
@@ -124,7 +134,7 @@ def default_config() -> config_dict.ConfigDict:
     )
 
 
-# ---------------------------------------------------------------- 四元数工具
+# ------------------------------------------------------- quaternion helpers
 def quat_mul(a, b):
     w1, x1, y1, z1 = a[..., 0], a[..., 1], a[..., 2], a[..., 3]
     w2, x2, y2, z2 = b[..., 0], b[..., 1], b[..., 2], b[..., 3]
@@ -141,14 +151,14 @@ def quat_conj(q):
 
 
 def quat_error_magnitude(a, b):
-    """两个四元数之间的旋转角（弧度），对齐 isaaclab.utils.math。"""
+    """Rotation angle between two quaternions, in radians (isaaclab.utils.math)."""
     r = quat_mul(a, quat_conj(b))
     w = jp.clip(jp.abs(r[..., 0]), 0.0, 1.0)
     return 2.0 * jp.arccos(w)
 
 
 def quat_rotate(q, v):
-    """用四元数旋转向量。"""
+    """Rotate a vector by a quaternion."""
     qw = q[..., 0:1]
     qv = q[..., 1:4]
     t = 2.0 * jp.cross(qv, v)
@@ -160,7 +170,7 @@ def quat_rotate_inv(q, v):
 
 
 def yaw_quat(q):
-    """只保留 yaw 分量。"""
+    """Keep the yaw component only."""
     yaw = jp.arctan2(2.0 * (q[..., 0] * q[..., 3] + q[..., 1] * q[..., 2]),
                      1.0 - 2.0 * (q[..., 2] ** 2 + q[..., 3] ** 2))
     h = yaw * 0.5
@@ -169,16 +179,17 @@ def yaw_quat(q):
 
 
 def mat_from_quat_2col(q):
-    """旋转矩阵的前两列（6D 姿态表示），对齐 BeyondMimic 的观测。"""
+    """First two columns of the rotation matrix — the 6-D orientation
+    representation BeyondMimic observes."""
     w, x, y, z = q[..., 0], q[..., 1], q[..., 2], q[..., 3]
     c0 = jp.stack([1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y)], -1)
     c1 = jp.stack([2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x)], -1)
     return jp.concatenate([c0, c1], axis=-1)
 
 
-# ---------------------------------------------------------------- 环境
+# ------------------------------------------------------------------- environment
 class G1Track(g1_base.G1Env):
-    """BeyondMimic 风格的全身动作跟踪。"""
+    """Whole-body motion tracking, BeyondMimic style."""
 
     def __init__(self, motion_path: str,
                  config: Optional[config_dict.ConfigDict] = None,
@@ -194,7 +205,7 @@ class G1Track(g1_base.G1Env):
         import mujoco
         m = self._mj_model
 
-        # ---- 参考动作 ----
+        # ---- reference motion ----
         d = np.load(motion_path)
         self._ref_joint_pos = jp.asarray(d["joint_pos"])          # (T, 29)
         self._ref_joint_vel = jp.asarray(d["joint_vel"])
@@ -207,9 +218,9 @@ class G1Track(g1_base.G1Env):
         self._T = int(self._ref_joint_pos.shape[0])
 
         names = [str(x) for x in d["body_names"]]
-        assert names == BODY_NAMES, f"body 顺序不一致: {names}"
+        assert names == BODY_NAMES, f"body order does not match: {names}"
 
-        # ---- body 索引 ----
+        # ---- body indices ----
         self._body_ids = jp.asarray([
             mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, n) for n in BODY_NAMES])
         self._anchor_local = BODY_NAMES.index(ANCHOR_BODY)
@@ -219,7 +230,7 @@ class G1Track(g1_base.G1Env):
              for n in BODY_NAMES])
         self._nb = len(BODY_NAMES)
 
-        # ---- 默认姿态与关节限位 ----
+        # ---- default pose and joint limits ----
         self._init_q = jp.asarray(m.keyframe("home").qpos)
         self._default_pose = jp.asarray(m.keyframe("home").qpos[7:])
         self._nu = m.nu
@@ -231,20 +242,24 @@ class G1Track(g1_base.G1Env):
         self._soft_lo = jp.asarray(c - f * r)
         self._soft_hi = jp.asarray(c + f * r)
 
-        # ---- 逐关节 action scale ----
+        # ---- per-joint action scale ----
         # BeyondMimic (robots/g1.py): action_scale = 0.25 * effort_limit / stiffness
-        # 也就是「满力矩下关节偏转量的四分之一」。Playground 默认是统一 0.5，
-        # 对髋/膝这类大力矩关节偏小，对腕/踝偏大。
-        # ⚠️ BeyondMimic 的公式在这里搬不过来：Playground 的 G1 用位置执行器，
-        #    actuator_forcerange 全是 0（没设力矩上限），公式退化成除零。
-        #    两个模型的 kp 也不是一套（Playground: 髋膝 75 / 踝 20 / 腕 2；
+        # BeyondMimic uses a quarter of the joint deflection at full torque.
+        # Playground uses a uniform 0.5, which is small for high-torque joints
+        # like the hips and knees and large for the wrists and ankles. Its
+        # formula does not carry over: Playground's G1 uses position actuators
+        # whose actuator_forcerange is all zeros (no torque ceiling declared),
+        # so the expression divides by zero. The two models also disagree on kp
+        # (Playground: hips and knees 75, ankles 20, wrists 2;
         #    BeyondMimic: stiffness = armature x (2*pi*10)^2）。
-        #    所以沿用 Playground 经过 sim2real 验证的统一 0.5 ——
-        #    它正好落在 BeyondMimic 逐关节值的区间 (0.30~0.90) 中间。
+        # so we keep Playground's uniform 0.5, which its own sim2real work
+        # validates and which sits mid-range against BeyondMimic's per-joint
+        # values (0.30 to 0.90).
         self._action_scale = jp.full((m.nu,), self._config.action_scale)
 
-        # episode 长度 = 参考帧数。RSI 从随机帧起步，索引到头后停在末帧
-        # （末帧姿态也要稳稳保持住，这不是白给的分）。
+        # Episode length equals the number of reference frames. RSI starts at
+        # a random frame; once the index runs out it holds the final one, which
+        # still has to be tracked rather than being free reward.
         object.__setattr__(self._config, "episode_length", int(self._T))
 
         print(f"[env] reference {self._T} frames ({self._T*0.02:.1f}s), "
@@ -253,7 +268,7 @@ class G1Track(g1_base.G1Env):
         print(f"[env] impl={self._config.impl}  "
               f"episode={self._config.episode_length} steps")
 
-    # -------------------------------------------------- 参考量读取
+    # ---------------------------------------------- reading the reference
     def _ref_at(self, idx):
         return dict(
             joint_pos=self._ref_joint_pos[idx],
@@ -266,28 +281,33 @@ class G1Track(g1_base.G1Env):
             body_angvel=self._ref_body_angvel[idx],
         )
 
-    # -------------------------------------------------- 机器人当前量
+    # ------------------------------------------- the robot's current state
     def _robot_bodies(self, data):
         pos = data.xpos[self._body_ids]
         quat = data.xquat[self._body_ids]
-        ang = data.cvel[self._body_ids, 0:3]        # 世界系角速度，直接可用
-        # 🔴 cvel 的线速度分量是 **subtree_com 那一点** 的速度，不是 body
-        #    原点的速度。参考轨迹是 xpos 的差分，必须换算到同一点上：
+        ang = data.cvel[self._body_ids, 0:3]        # world frame, usable as is
+        # The linear part of cvel is the velocity **at subtree_com**, not at
+        # the body origin. The reference is a finite difference of xpos, so it
+        # must be transferred to the same point:
         #        v_origin = v_com + ω × (xpos - subtree_com)
-        #    实测不修正时平均差 0.26 m/s，末端手腕差到 1.0 m/s。
+        # Uncorrected this averages 0.26 m/s of error, reaching 1.0 m/s at
+        # the wrists.
         com = data.subtree_com[self._body_rootids]
         lin = data.cvel[self._body_ids, 3:6] + jp.cross(ang, pos - com)
         return pos, quat, lin, ang
 
-    # -------------------------------------------------- 参考的"相对对齐"版本
+    # ------------------------------------------- reference, aligned to robot
     def _align_ref(self, ref, r_anchor_pos, r_anchor_quat):
-        """把参考轨迹平移旋转到机器人当前 anchor 的水平位置和 yaw 上。
+        """Translate and rotate the reference onto the robot's current anchor
+        position and yaw.
 
-        BeyondMimic 的做法（commands.py::_update_command）：
-          delta_pos = robot_anchor_pos，但 z 用参考的 z
+        Following BeyondMimic (commands.py::_update_command):
+          delta_pos = robot_anchor_pos, except z, which comes from the reference
           delta_ori = yaw(robot_anchor_quat * inv(ref_anchor_quat))
-        这样水平漂移和整体朝向不计入跟踪误差，只考核"动作形状"，
-        但**高度和俯仰/横滚仍然要考核** —— 所以站不稳照样扣分。
+
+        Horizontal drift and overall heading are therefore excluded from the
+        tracking error, leaving the shape of the motion — but **height, pitch
+        and roll are still scored**, so failing to stay upright still costs.
         """
         ref_anchor_pos = ref["body_pos"][self._anchor_local]
         ref_anchor_quat = ref["body_quat"][self._anchor_local]
@@ -304,8 +324,9 @@ class G1Track(g1_base.G1Env):
     def reset(self, rng: jax.Array) -> mjx_env.State:
         rng, k_t, k_p, k_o, k_v, k_w, k_j = jax.random.split(rng, 7)
 
-        # 🔴 RSI：从参考轨迹随机时刻取完整状态
-        # 不采末帧 —— 采到的话第一步就触发"动作放完"而结束
+        # RSI: take a full state from a random frame of the reference. The
+        # final frame is excluded — starting there would trigger "motion
+        # finished" on the very first step.
         idx = jax.random.randint(k_t, (), 0, self._T - 1)
         ref = self._ref_at(idx)
         c = self._config.rsi
@@ -329,7 +350,7 @@ class G1Track(g1_base.G1Env):
         root_quat = quat_mul(dquat, ref["root_quat"])
         root_quat = root_quat / jp.linalg.norm(root_quat)
 
-        # 根速度：从参考的 pelvis 速度取，再加扰动
+        # Root velocity comes from the reference pelvis velocity, plus noise.
         pel = BODY_NAMES.index("pelvis")
         lin = ref["body_linvel"][pel] + jax.random.uniform(
             k_v, (3,), minval=-c.lin_vel, maxval=c.lin_vel)
@@ -341,9 +362,10 @@ class G1Track(g1_base.G1Env):
         jpos = jp.clip(jpos, self._soft_lo, self._soft_hi)
 
         qpos = jp.concatenate([root_pos, root_quat, jpos])
-        # 🔴 MuJoCo 自由关节：qvel[0:3] 是世界系线速度，
-        #    qvel[3:6] 是 **机体系** 角速度。参考里存的是世界系，必须转。
-        #    不转的话 tennis 这种 11 rad/s 的动作会让速度奖励直接下溢到 0。
+        # For a MuJoCo free joint, qvel[0:3] is world-frame linear velocity
+        # but qvel[3:6] is **body-frame** angular velocity. The reference
+        # stores world frame, so it has to be converted. Without this, a motion
+        # like tennis at 11 rad/s drives the velocity rewards to exactly 0.
         ang_body = quat_rotate_inv(root_quat, ang)
         qvel = jp.concatenate([lin, ang_body, ref["joint_vel"]])
 
@@ -377,24 +399,27 @@ class G1Track(g1_base.G1Env):
 
     # -------------------------------------------------- step
     def step(self, state: mjx_env.State, action: jax.Array) -> mjx_env.State:
-        # 参考索引推进（到头就停在最后一帧，由 timeout 结束）
+        # Advance the reference index; hold the last frame and let the
+        # timeout end the episode.
         nidx = jp.minimum(state.info["motion_idx"] + 1, self._T - 1)
         ref_now = self._ref_at(nidx)
 
-        # 🔴 目标位置相对**参考姿态**，不是相对 default_pose。
+        # Targets are relative to the **reference pose**, not default_pose.
         #
-        #   BeyondMimic 用 use_default_offset=True（相对默认姿态），因为
-        #   rsl_rl 的高斯策略输出不做截断，想输出多大都行。
-        #   brax 的 NormalTanhDistribution 把动作压在 [-1,1]，位置执行器
-        #   稳态下 q ≈ ctrl，所以关节能到的范围就是 default ± action_scale。
+        # BeyondMimic sets use_default_offset=True because rsl_rl's Gaussian
+        # policy is unbounded and can emit arbitrarily large actions. brax's
+        # NormalTanhDistribution clamps actions to [-1,1], and a position
+        # actuator settles at q ~= ctrl, so the reachable range is exactly
+        # default +/- action_scale.
         #
-        #   实测参考轨迹要求的峰值偏移：
-        #     salute 右肘  1.709 rad (98°)  —— 是 0.5 的 3.4 倍
-        #     tennis 肩滚  2.051 rad (118°) —— 是 0.5 的 4.1 倍
-        #   tennis 有 24% 的上肢目标够不到。手臂物理上抬不起来，
-        #   训多久都没用。
+        # Peak deflections the references actually demand:
+        #   salute, right elbow    1.709 rad (98 deg)  - 3.4x over 0.5
+        #   tennis, shoulder roll  2.051 rad (118 deg) - 4.1x over 0.5
+        # 24% of tennis's upper-body targets are unreachable. The arms cannot
+        # physically get there, and no amount of training changes that.
         #
-        #   改成相对参考姿态后，策略只需输出**修正量**，可达性由构造保证。
+        # Relative to the reference, the policy only has to emit a
+        # correction, and reachability holds by construction.
         motor_targets = ref_now["joint_pos"] + action * self._action_scale
         data = mjx_env.step(self.mjx_model, state.data, motor_targets,
                             self.n_substeps)
@@ -415,12 +440,14 @@ class G1Track(g1_base.G1Env):
 
         done = self._done(ref, ref_pos_rel, b_pos, r_anchor_pos,
                           r_anchor_quat, data)
-        # 🔴 参考动作放完就结束 episode。
-        #    原版是在 episode 内瞬移到新的 RSI 点继续（_resample_command），
-        #    我这里改成直接结束 —— 否则 RSI 平均从中点起步、episode 长度固定为 T，
-        #    会有约一半的样本浪费在"保持末帧姿态"上。
-        #    代价：末帧被当成 terminal（不 bootstrap），对动作末尾的状态价值
-        #    有轻微低估。这是已知且可接受的偏差。
+        # End the episode when the reference runs out. Upstream teleports to a
+        # fresh RSI point and continues within the same episode
+        # (_resample_command); we stop instead. RSI starts halfway through on
+        # average and the episode length is fixed at T, so continuing would
+        # spend roughly half of all samples holding the final pose. The cost is
+        # that the last frame is treated as terminal and not bootstrapped,
+        # slightly under-estimating state value near the end of the motion —
+        # a known and accepted bias.
         done = done | (nidx >= self._T - 1)
 
         info["last_act"] = action
@@ -433,41 +460,41 @@ class G1Track(g1_base.G1Env):
         return mjx_env.State(data, obs, rew, done.astype(jp.float32),
                              metrics, info)
 
-    # -------------------------------------------------- 奖励
+    # ----------------------------------------------------------- rewards
     def _reward(self, ref, ref_pos_rel, ref_quat_rel,
                 b_pos, b_quat, b_lin, b_ang, data, action, last_act):
         s = self._config.reward_config.scales
         sd = self._config.reward_config.stds
 
-        # --- anchor 全局位置/朝向 ---
+        # --- anchor global position and orientation ---
         ref_anchor_pos = ref["body_pos"][self._anchor_local]
         ref_anchor_quat = ref["body_quat"][self._anchor_local]
         r_anchor_pos = b_pos[self._anchor_local]
         r_anchor_quat = b_quat[self._anchor_local]
 
-        # 只考核 z 和姿态（xy 漂移由 align 吸收），与 BeyondMimic 的
-        # bad_anchor_pos_z_only 终止判据保持一致的口径
+        # Only z and orientation are scored — align() already absorbs xy drift
+        # — matching BeyondMimic's bad_anchor_pos_z_only termination.
         e_anchor_pos = jp.square(ref_anchor_pos[2] - r_anchor_pos[2])
         r_ap = jp.exp(-e_anchor_pos / sd.anchor_pos ** 2)
 
         e_anchor_ori = jp.square(quat_error_magnitude(ref_anchor_quat, r_anchor_quat))
         r_ao = jp.exp(-e_anchor_ori / sd.anchor_ori ** 2)
 
-        # --- body 相对位置/朝向 ---
+        # --- body position and orientation, relative ---
         e_bp = jp.sum(jp.square(ref_pos_rel - b_pos), axis=-1)          # (B,)
         r_bp = jp.exp(-jp.mean(e_bp) / sd.body_pos ** 2)
 
         e_bo = jp.square(quat_error_magnitude(ref_quat_rel, b_quat))    # (B,)
         r_bo = jp.exp(-jp.mean(e_bo) / sd.body_ori ** 2)
 
-        # --- body 速度（全局，不做对齐，与原版一致）---
+        # --- body velocity: global, unaligned, as upstream ---
         e_bl = jp.sum(jp.square(ref["body_linvel"] - b_lin), axis=-1)
         r_bl = jp.exp(-jp.mean(e_bl) / sd.body_lin_vel ** 2)
 
         e_ba = jp.sum(jp.square(ref["body_angvel"] - b_ang), axis=-1)
         r_ba = jp.exp(-jp.mean(e_ba) / sd.body_ang_vel ** 2)
 
-        # --- 惩罚 ---
+        # --- penalties ---
         p_rate = jp.sum(jp.square(action - last_act))
         q = data.qpos[7:]
         p_limit = jp.sum(jp.clip(self._soft_lo - q, 0.0, None)
@@ -477,18 +504,23 @@ class G1Track(g1_base.G1Env):
                + s.body_pos * r_bp + s.body_ori * r_bo
                + s.body_lin_vel * r_bl + s.body_ang_vel * r_ba
                + s.action_rate * p_rate + s.joint_limit * p_limit)
-        # 奖励量级：单步上限 5.0（六项跟踪的权重和），不乘 dt。
+        # Reward scale: at most 5.0 per step (the six tracking weights), not
+        # multiplied by dt.
         #
-        # Isaac Lab 的 RewardManager 会把每项乘 dt（BeyondMimic 的单步上限
-        # 因此是 0.1），我一度照搬。但对齐**绝对量级**是没意义的：
-        # 整体乘一个常数不改变最优策略。真正要紧的是两件事 ——
-        #   (a) 各奖励项之间的相对权重：乘常数不影响，已对齐；
-        #   (b) 奖励与熵奖励的比值：这个是优化器相关的。
-        # brax 把熵项直接加进 loss（不像优势那样归一化），
-        # entropy_cost=5e-3 x entropy(29维,std≈1) ≈ 0.205/步。
-        # 乘 dt 之后任务奖励只有 0.044/步 —— 熵是任务的 3.4 倍，
-        # 优化器被"保持最大随机"主导，实测 61M 步后策略比零动作还差。
-        # 保持 O(1)/步 的量级（brax 常规做法），熵占比降到 1% 以下。
+        # Isaac Lab's RewardManager multiplies each term by dt, which puts
+        # BeyondMimic's per-step ceiling at 0.1, and we copied that at first.
+        # Matching the **absolute** scale is pointless — scaling every term by
+        # one constant leaves the optimal policy unchanged. Two things do
+        # matter: the ratios between reward terms, which a constant does not
+        # affect and which are already matched; and the ratio between reward
+        # and the entropy bonus, which is optimiser-specific. brax adds entropy
+        # straight into the loss without normalising it the way advantages are,
+        # and entropy_cost=5e-3 x entropy(29 dims, std~1) is about 0.205 per
+        # step. After multiplying by dt the task reward is only 0.044 per step,
+        # so entropy outweighs the task 3.4 to 1; the optimiser then favours
+        # staying maximally random, and after 61M steps the policy scored worse
+        # than taking no action at all. Keeping rewards at O(1) per step —
+        # normal practice in brax — puts entropy below 1% of the total.
 
         errs = {
             "err_anchor_pos": jp.abs(ref_anchor_pos[2] - r_anchor_pos[2]),
@@ -504,9 +536,10 @@ class G1Track(g1_base.G1Env):
         }
         return rew, terms, errs
 
-    # -------------------------------------------------- 终止
+    # ------------------------------------------------------- termination
     def _done(self, ref, ref_pos_rel, b_pos, r_anchor_pos, r_anchor_quat, data):
-        """🔴 跟踪误差超阈值即终止 —— 这是"站着不动混分"行不通的原因。"""
+        """Terminate once tracking error exceeds threshold. This is what makes
+        standing still unprofitable."""
         t = self._config.termination
 
         ref_anchor_pos = ref["body_pos"][self._anchor_local]
@@ -525,7 +558,7 @@ class G1Track(g1_base.G1Env):
         nan = jp.any(jp.isnan(data.qpos)) | jp.any(jp.isnan(data.qvel))
         return bad_pos | bad_ori | bad_ee | nan
 
-    # -------------------------------------------------- 观测
+    # ------------------------------------------------------ observations
     def _get_obs(self, data, info) -> Dict[str, jax.Array]:
         idx = info["motion_idx"]
         ref = self._ref_at(idx)
@@ -534,7 +567,8 @@ class G1Track(g1_base.G1Env):
         r_anchor_pos = b_pos[self._anchor_local]
         r_anchor_quat = b_quat[self._anchor_local]
 
-        # 参考 anchor 在机器人 anchor 系下的位姿（BeyondMimic 的核心观测）
+        # Reference anchor expressed in the robot's anchor frame —
+        # BeyondMimic's central observation.
         ref_anchor_pos = ref["body_pos"][self._anchor_local]
         ref_anchor_quat = ref["body_quat"][self._anchor_local]
         anchor_pos_b = quat_rotate_inv(r_anchor_quat, ref_anchor_pos - r_anchor_pos)
@@ -545,28 +579,32 @@ class G1Track(g1_base.G1Env):
         q_rel = data.qpos[7:] - self._default_pose
         dq = data.qvel[6:]
 
-        # command = 参考的关节角 + 关节速度（原版 MotionCommand.command）
+        # command = reference joint angles and velocities (MotionCommand.command)
         command = jp.concatenate([ref["joint_pos"], ref["joint_vel"]])
 
-        # 🔴 策略观测里没有躯干线速度 —— SDK/真机不提供，训练时用了就没法部署。
-        #    critic 保留（非对称 actor-critic）。
-        # 🔴 策略观测只能用宇树 SDK 真实提供的量：
+        # The policy observation carries no torso linear velocity: the SDK and
+        # the real robot do not provide it, so training on it would make the
+        # policy undeployable. The critic still sees it (asymmetric
+        # actor-critic). The policy may only use what Unitree's SDK reports:
         #      LowState = motor_state.q/.dq + imu_state.quaternion/.gyroscope
-        #    所以这里**不能**放 anchor_pos_b —— 它需要躯干的世界位置，
-        #    机器人没有全局定位，真机和 unitree_mujoco 上都算不出来。
-        #    同理 base_lin_vel 也早已去掉（IMU 只给角速度和姿态）。
-        #    BeyondMimic 官方的 Wo-State-Estimation 配置去掉的正是这两项。
-        #    critic 仍然看得到（下面 privileged），训练信号不受影响。
+        # anchor_pos_b therefore cannot appear here: it needs the torso's
+        # world position, and the robot has no global localisation — neither
+        # hardware nor unitree_mujoco can produce it. base_lin_vel was dropped
+        # for the same reason (the IMU gives angular rate and orientation
+        # only). BeyondMimic's own Wo-State-Estimation configuration removes
+        # exactly these two. The critic still sees both, below, so the training
+        # signal is unaffected.
         state = jp.concatenate([
-            command,            # 58   参考关节角 + 关节速度
-            anchor_ori_b,       # 6    姿态误差，来自 IMU 四元数
-            gyro,               # 3    IMU 陀螺仪
-            q_rel,              # 29   关节角
-            dq,                 # 29   关节速度
+            command,            # 58   reference joint angles and velocities
+            anchor_ori_b,       # 6    orientation error, from the IMU quaternion
+            gyro,               # 3    IMU gyroscope
+            q_rel,              # 29   joint angles
+            dq,                 # 29   joint velocities
             info["last_act"],   # 29
         ])                      # = 154
 
-        # critic 额外看到：全局线速度 + 机体系下的 body 位姿
+        # The critic additionally sees global linear velocity and body poses
+        # in the base frame.
         linvel = self.get_global_linvel(data, "torso")
         body_pos_b = jax.vmap(lambda p: quat_rotate_inv(r_anchor_quat, p - r_anchor_pos))(b_pos)
         body_ori_b = jax.vmap(

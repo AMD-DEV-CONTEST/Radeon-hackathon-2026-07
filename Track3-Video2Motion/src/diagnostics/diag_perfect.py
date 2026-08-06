@@ -1,8 +1,9 @@
-"""完美跟踪者检验。
+"""Perfect-tracker check.
 
-把机器人状态**精确**设成参考轨迹的某一帧，此时所有跟踪奖励都应该接近 1。
-任何一项明显偏离 1，就说明该项的坐标系/参考点/单位约定还有 bug ——
-在这种状态下策略再好也拿不到分，训练必然跑偏。
+Set the robot state **exactly** to a reference frame; every tracking reward
+should then read close to 1. Any term that does not still has a frame,
+reference-point or unit-convention bug — and in that state no policy, however
+good, can score, so training cannot help but go astray.
 """
 import sys
 from pathlib import Path
@@ -45,7 +46,7 @@ def probe(t):
     _, terms, errs = env._reward(ref, pos_rel, quat_rel, b_pos, b_quat,
                                  b_lin, b_ang, data,
                                  jp.zeros(29), jp.zeros(29))
-    # 逐 body 的角速度误差
+    # Per-body angular velocity error.
     e_ang = jp.linalg.norm(ref["body_angvel"] - b_ang, axis=-1)
     e_lin = jp.linalg.norm(ref["body_linvel"] - b_lin, axis=-1)
     return terms, errs, np.asarray(e_ang), np.asarray(e_lin)

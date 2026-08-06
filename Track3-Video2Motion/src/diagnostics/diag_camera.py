@@ -1,7 +1,8 @@
-"""渲染同一帧在不同 azimuth 下的样子，用来挑「侧前方」视角。
+"""Render one frame at several azimuths to pick a three-quarter front view.
 
-MuJoCo 的 azimuth 是水平面内的相机方位角。机器人朝向由 root_quat 决定，
-所以不能凭经验猜，渲出来看最快。
+MuJoCo's azimuth is the camera bearing in the horizontal plane. Which bearing
+looks right depends on root_quat, so guessing does not work; rendering the
+options is faster.
 """
 from pathlib import Path
 
@@ -23,14 +24,14 @@ d = mujoco.MjData(m)
 r = mujoco.Renderer(m, height=H, width=W)
 
 ref = np.load(REF)
-t = 70                                   # 敬礼保持的那一段
+t = 70                                   # the held part of the salute
 d.qpos[0:3] = ref["root_pos"][t]
 d.qpos[3:7] = ref["root_quat"][t]
 d.qpos[7:] = ref["joint_pos"][t]
 d.qvel[:] = 0
 mujoco.mj_forward(m, d)
 
-# 机器人朝向：躯干局部 +x 在世界系里指向哪
+# Robot heading: where the torso's local +x points in world coordinates.
 tor = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, "torso_link")
 fwd = d.xmat[tor].reshape(3, 3) @ np.array([1.0, 0, 0])
 print(f"robot forward (world) = {np.round(fwd, 3)}")
@@ -48,7 +49,7 @@ for a in azis:
     cam.azimuth = a
     r.update_scene(d, camera=cam)
     img = r.render().astype(np.uint8).copy()
-    img[:6, :, :] = 0                     # 分隔线
+    img[:6, :, :] = 0                     # separator
     tiles.append(img)
 
 row1 = np.hstack(tiles[:4])

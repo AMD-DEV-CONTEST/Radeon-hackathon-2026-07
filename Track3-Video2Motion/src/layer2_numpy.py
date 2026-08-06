@@ -25,13 +25,15 @@ import numpy as np
 
 
 def front_azimuth(root_quat, offset=45.0):
-    """从根四元数推出「侧前方」相机方位角（度）。
+    """Camera azimuth, in degrees, for a three-quarter front view derived from
+    the root quaternion.
 
-    写死 azimuth 会随动作朝向变化而失效 —— 本项目就曾拍到整段背面。
+    A hardcoded azimuth breaks whenever the motion faces a different way — in
+    this project it once filmed an entire clip from behind.
     """
     import numpy as _np
     w, x, y, z = root_quat
-    # 机体 +x 轴在世界系里的方向
+    # Direction of the body +x axis in world coordinates.
     fwd = _np.array([1 - 2 * (y * y + z * z),
                      2 * (x * y + w * z),
                      2 * (x * z - w * y)])
@@ -204,8 +206,9 @@ def main():
         fa_pos = ref["body_pos_w"][idx, a_i]
         fa_quat = ref["body_quat_w"][idx, a_i]
 
-        # 154 维 —— 与 g1_track._get_obs 逐项对齐。
-        # 没有 anchor_pos_b：它需要躯干世界位置，真机拿不到。
+        # 154 dimensions, matching g1_track._get_obs term by term.
+        # No anchor_pos_b: it needs the torso's world position, which the real
+        # robot cannot provide.
         obs = np.concatenate([
             ref["joint_pos"][idx], ref["joint_vel"][idx],          # 58
             mat2col(qmul(qconj(ra_quat), fa_quat)),                # 6

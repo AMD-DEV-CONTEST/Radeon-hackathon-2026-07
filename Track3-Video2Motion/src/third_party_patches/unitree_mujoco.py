@@ -15,8 +15,9 @@ locker = threading.Lock()
 mj_model = mujoco.MjModel.from_xml_path(config.ROBOT_SCENE)
 mj_data = mujoco.MjData(mj_model)
 
-# 让机器人从站立 keyframe 起步。keyframe 高度由接触二分求解得 0.7592，
-# 脚会陷进地板，MuJoCo 用巨大接触力弹开导致姿态崩坏。
+# Start from the standing keyframe. Its height was solved by contact bisection
+# to 0.7592; the shipped value sinks the feet into the floor, and MuJoCo pushes
+# them out with a large contact force that wrecks the pose.
 if mj_model.nkey > 0:
     mujoco.mj_resetDataKeyframe(mj_model, mj_data, 0)
     mj_data.ctrl[:] = mj_model.key_qpos[0][7:]
@@ -63,7 +64,8 @@ def SimulationThread():
                 mj_data.xfrc_applied[band_attached_link, :3] = elastic_band.Advance(
                     mj_data.qpos[:3], mj_data.qvel[:3]
                 )
-        unitree.ApplyPD()          # 🔴 每个仿真步重算 PD（对齐真机驱动器）
+        unitree.ApplyPD()          # recompute PD every physics step, as the
+                                   # real motor drivers do
         mujoco.mj_step(mj_model, mj_data)
 
         locker.release()
@@ -74,8 +76,9 @@ def SimulationThread():
         if time_until_next_step > 0:
             time.sleep(time_until_next_step)
 
-        # 实时率监测：仿真时间 / 墙钟时间。<1 说明仿真跑不动，
-        # 而控制端仍按墙钟 50Hz 发指令，动作在仿真里就被加速播放了。
+        # Real-time factor: simulated time over wall-clock time. Below 1 the
+        # simulator cannot keep up, while the controller keeps sending at a
+        # wall-clock 50 Hz — so the motion plays back fast inside the sim.
         global _t0
         try:
             _t0
@@ -84,7 +87,7 @@ def SimulationThread():
         _wall = time.perf_counter() - _t0
         if _wall > 0 and int(_wall * 2) != int((_wall - mj_model.opt.timestep) * 2):
             print(f"[rt] sim={mj_data.time:6.2f}s wall={_wall:6.2f}s "
-                  f"实时率={mj_data.time/_wall:.3f}", flush=True)
+                  f"rtf={mj_data.time/_wall:.3f}", flush=True)
 
 
 def PhysicsViewerThread():

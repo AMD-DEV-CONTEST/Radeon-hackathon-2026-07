@@ -1,9 +1,10 @@
-"""纯运动学回放自检：把参考轨迹直接写进 qpos 渲染，不跑物理。
+"""Kinematic replay check: write the reference straight into qpos and render,
+with no physics.
 
-目的：肉眼确认关节映射和符号约定是否正确。
-如果视频里的动作和原始人类动作一致，说明桥接层没问题。
+The point is to confirm the joint mapping and sign conventions by eye. If the
+motion in the video matches the original human motion, the bridge is correct.
 
-视频写出走 ffmpeg 管道，不依赖 imageio / cv2。
+Frames are piped to ffmpeg, so neither imageio nor cv2 is needed.
 """
 
 import argparse
@@ -47,7 +48,7 @@ def main():
     cam.elevation = -15
     cam.azimuth = 135
 
-    # 原始 RGB 帧直接管道喂给 ffmpeg
+    # Feed raw RGB frames straight into ffmpeg.
     proc = subprocess.Popen(
         [
             "ffmpeg", "-y", "-loglevel", "error",
@@ -66,7 +67,7 @@ def main():
         d.qpos[3:7] = root_quat[t]
         d.qpos[7:] = joint_pos[t]
 
-        # 只算前向运动学，不推进物理
+        # Forward kinematics only; do not advance the physics.
         mujoco.mj_forward(m, d)
 
         cam.lookat[:] = d.qpos[0:3]

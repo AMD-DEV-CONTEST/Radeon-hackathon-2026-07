@@ -1,11 +1,12 @@
-"""训练 BeyondMimic 风格的全身跟踪策略（MJX + Brax PPO，AMD ROCm）。
+"""Train a BeyondMimic-style whole-body tracking policy (MJX + Brax PPO, ROCm).
 
-超参尽量对齐 BeyondMimic 的 rsl_rl_ppo_cfg.py：
-    网络 [512,256,128]、entropy 0.005、gamma 0.99、lam 0.95、clip 0.2
-两处必要的偏离，都是平台/框架限制：
-    1. lr 固定 1e-3 —— brax PPO 没有 rsl_rl 的自适应 KL 调度
-    2. num_minibatches × num_updates_per_batch ≤ 32 —— gfx1100 的 XLA
-       编译图规模上限，超了直接段错误（实测 128 必崩）
+Hyperparameters follow BeyondMimic's rsl_rl_ppo_cfg.py where possible:
+    networks [512,256,128], entropy 0.005, gamma 0.99, lam 0.95, clip 0.2
+Two deviations are forced by the platform and the framework:
+    1. a fixed learning rate — brax PPO has no adaptive-KL schedule
+    2. num_minibatches x num_updates_per_batch <= 32 — the XLA graph-size
+       ceiling on gfx1100, above which code generation segfaults (128 is
+       reliably fatal)
 """
 
 import argparse
@@ -17,10 +18,11 @@ from pathlib import Path
 import jax
 import numpy as np
 
-# ---- brax 与 JAX 0.11 的兼容垫片 -------------------------------------
-# brax 0.14.2 仍调用 jax.device_put_replicated，该 API 随 pmap 迁移已在
-# JAX 0.11 移除。NVIDIA 用户可以降级 JAX 绕过，AMD 用户不能 ——
-# JAX 版本被 jax-rocm7-plugin 绑定，降级就丢 GPU。
+# ---- compatibility shim for brax on JAX 0.11 -------------------------
+# brax 0.14.2 still calls jax.device_put_replicated, removed in JAX 0.11 with
+# the pmap migration. NVIDIA users can downgrade JAX to work around it; AMD
+# users cannot, because the JAX version is pinned by jax-rocm7-plugin and
+# downgrading loses the GPU entirely.
 if not hasattr(jax, "device_put_replicated"):
     import jax.numpy as jnp
 
@@ -121,7 +123,7 @@ def main():
         eplen = float(metrics.get("eval/avg_episode_length", 0.0))
         e_bp = float(metrics.get("eval/episode_err_body_pos", 0.0))
         e_bo = float(metrics.get("eval/episode_err_body_ori", 0.0))
-        # 这两个是 episode 累计值，除以步数才是每步平均
+        # These two are episode totals; divide by length for a per-step mean.
         n = max(eplen, 1.0)
         rec = {"t": el, "step": int(step), "reward": rew, "ep_len": eplen,
                "err_body_pos_m": e_bp / n, "err_body_ori_rad": e_bo / n}
@@ -168,14 +170,16 @@ def main():
         batch_size=256,
         unroll_length=20,
         num_minibatches=16,          # 🔴 ×num_updates_per_batch ≤ 32
-        num_updates_per_batch=2,     #    gfx1100 XLA 编译图上限
-        # BeyondMimic 用 1e-3，但那是配 rsl_rl 的自适应 KL 调度
-        # (desired_kl=0.01，KL 大了自动降 lr)。brax PPO 没有这个调度，
-        # 裸用 1e-3 不安全 —— 少了调度就不该照抄它的上限值。
+        num_updates_per_batch=2,     #    gfx1100 XLA graph-size ceiling
+        # BeyondMimic uses 1e-3, but paired with rsl_rl's adaptive-KL
+        # schedule (desired_kl=0.01, which lowers the rate when KL grows).
+        # brax PPO has no such schedule, so its ceiling value should not be
+        # copied without the mechanism that made it safe.
         learning_rate=args.lr,
-        # BeyondMimic 用 0.005，但那是 rsl_rl 的量纲和自适应 KL 调度下的值。
-        # brax 里熵项不归一化，5e-3 会让熵奖励压过任务奖励。
-        # 1e-3 是本平台上验证过能收敛的值。
+        # BeyondMimic uses 0.005, again under rsl_rl's scaling and adaptive-KL
+        # schedule. brax does not normalise the entropy term, where 5e-3 lets
+        # the entropy bonus outweigh the task reward. 1e-3 is the value that
+        # converges on this platform.
         entropy_cost=args.entropy,
         discounting=0.99,            # BeyondMimic: gamma=0.99
         gae_lambda=0.95,             # BeyondMimic: lam=0.95
@@ -188,19 +192,22 @@ def main():
         network_factory=network_factory,
         randomization_fn=randomizer,
         progress_fn=progress,
-        # 🔴 默认 False —— 评估用的是**带噪声的**策略，指标看不出真实水平。
-        #    之前 ep_len 一直是 24~30，很大一部分是采样噪声造成的。
+        # Defaults to False, which evaluates the **noisy** policy and hides
+        # its real quality: ep_len sat at 24-30 largely because of sampling
+        # noise.
         deterministic_eval=True,
         policy_params_fn=policy_params_fn,
-        # Playground 的 State 用 .data 而不是 brax 的 .pipeline_state，
-        # 必须用它自己的 wrapper，否则 AutoResetWrapper 会报
+        # Playground's State exposes .data rather than brax's .pipeline_state,
+        # so its own wrapper is required or AutoResetWrapper raises
         # AttributeError: State object has no attribute pipeline_state
         #
-        # 🔴 full_reset=True 是必须的。默认 False 时 auto-reset 只还原
-        #    data/obs，**不还原 info** —— info["motion_idx"] 会继续往前走，
-        #    第一个 episode 之后参考索引和物理状态永久错位，训练数据全废。
-        #    实测症状：关惩罚/关熵/都关三组曲线完全重合，ep_len 一律
-        #    从 36 跌到 22，与奖励构成无关。
+        # full_reset=True is mandatory. At the default of False, auto-reset
+        # restores data and obs but **not info**, so info["motion_idx"] keeps
+        # advancing: after the first episode the reference index is permanently
+        # out of step with the physics and every sample is garbage. The tell
+        # was three very different ablations — penalties off, entropy off, both
+        # off — producing identical curves, with ep_len dropping from 36 to 22
+        # regardless of the reward configuration.
         wrap_env_fn=functools.partial(wrapper.wrap_for_brax_training,
                                       full_reset=True),
     )

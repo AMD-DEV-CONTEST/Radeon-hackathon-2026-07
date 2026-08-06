@@ -1,21 +1,22 @@
-"""把 GMR 重定向结果补成 BeyondMimic 格式的动作文件。
+"""Fill out a GMR retargeting result into a BeyondMimic-format motion file.
 
-我们的 npz 只有 root_pos / root_quat / joint_pos。BeyondMimic 的奖励是
-在**三维空间**里算的，需要每个 body link 的位置、朝向、线速度、角速度，
-以及关节速度。这些全部可以用 MuJoCo 正运动学 + 差分补出来
-（BeyondMimic 自己的 csv_to_npz.py 做的也是这件事）。
+Our npz holds only root_pos, root_quat and joint_pos. BeyondMimic computes its
+rewards **in 3-D** and needs the position, orientation, linear and angular
+velocity of every body link, plus joint velocities. All of it can be derived
+with MuJoCo forward kinematics and finite differences — the same thing
+BeyondMimic's own csv_to_npz.py does.
 
-输出字段：
-    fps                 标量
+Fields written:
+    fps                 scalar
     joint_pos           (T, 29)
     joint_vel           (T, 29)
     body_pos_w          (T, B, 3)
     body_quat_w         (T, B, 4)   wxyz
     body_lin_vel_w      (T, B, 3)
-    body_ang_vel_w      (T, B, 3)   世界系
+    body_ang_vel_w      (T, B, 3)   world frame
     body_names          (B,)
 
-用法：
+Usage:
     python motion_prep.py --inp motions_mjx/tennis.npz --out motions_bm/tennis.npz
 """
 
@@ -25,7 +26,7 @@ from pathlib import Path
 import mujoco
 import numpy as np
 
-# BeyondMimic 的 G1 配置里跟踪这 14 个 link（flat_env_cfg.py）
+# The 14 links BeyondMimic's G1 configuration tracks (flat_env_cfg.py).
 BODY_NAMES = [
     "pelvis",
     "left_hip_roll_link",
@@ -56,9 +57,10 @@ def load_model(xml):
 
 
 def quat_diff_to_angvel(q0, q1, dt):
-    """两帧四元数(wxyz)之差 → 世界系角速度。
+    """World-frame angular velocity from the difference between two wxyz
+    quaternions.
 
-    q_rel = q1 * conj(q0)，取其旋转矢量再除以 dt。
+    q_rel = q1 * conj(q0); take its rotation vector and divide by dt.
     """
     w0, x0, y0, z0 = q0
     w1, x1, y1, z1 = q1
@@ -69,7 +71,7 @@ def quat_diff_to_angvel(q0, q1, dt):
     rx = w1 * cx + x1 * cw + y1 * cz - z1 * cy
     ry = w1 * cy - x1 * cz + y1 * cw + z1 * cx
     rz = w1 * cz + x1 * cy - y1 * cx + z1 * cw
-    if rw < 0.0:                      # 取短弧
+    if rw < 0.0:                      # take the short arc
         rw, rx, ry, rz = -rw, -rx, -ry, -rz
     n = np.sqrt(rx * rx + ry * ry + rz * rz)
     if n < 1e-9:
@@ -79,7 +81,7 @@ def quat_diff_to_angvel(q0, q1, dt):
 
 
 def central_diff(x, dt):
-    """中心差分，端点用单边差分。x: (T, ...)"""
+    """Central difference, one-sided at the endpoints. x: (T, ...)"""
     v = np.zeros_like(x)
     v[1:-1] = (x[2:] - x[:-2]) / (2.0 * dt)
     v[0] = (x[1] - x[0]) / dt
@@ -122,7 +124,7 @@ def main():
     body_pos = np.zeros((T, B, 3))
     body_quat = np.zeros((T, B, 4))
 
-    # ---- 正运动学：逐帧摆好 qpos，读 body 世界位姿 ----
+    # ---- forward kinematics: set qpos per frame, read world body poses ----
     for t in range(T):
         data.qpos[0:3] = root_pos[t]
         data.qpos[3:7] = root_quat[t]
@@ -133,7 +135,8 @@ def main():
             body_pos[t, k] = data.xpos[bid]
             body_quat[t, k] = data.xquat[bid]
 
-    # ---- 速度：位置用中心差分，姿态用四元数差 ----
+    # ---- velocities: central difference for position, quaternion delta for
+    #      orientation ----
     body_lin_vel = central_diff(body_pos, dt)
     body_ang_vel = np.zeros((T, B, 3))
     for k in range(B):
@@ -147,10 +150,12 @@ def main():
 
     joint_vel = central_diff(joint_pos, dt)
 
-    # ---- 末尾补一段「保持最终姿势」 ----
-    # 训练时 episode 在参考放完的那一刻结束，所以策略学不到「动作做完之后
-    # 怎么站住」。实测：不补的话保持最终姿势 63 步(1.3s)就摔。
-    # 补上之后策略被要求把最后这段也稳住，收势才有落点。
+    # ---- optionally pad with a hold on the final pose ----
+    # Training ends the episode the moment the reference runs out, so the
+    # policy never learns what to do afterwards: measured without padding, it
+    # holds the final pose for 63 steps (1.3 s) and then falls. Padding asks
+    # the policy to stabilise that tail as well, giving the motion somewhere
+    # to settle.
     n_hold = int(round(args.hold_seconds * fps))
     if n_hold > 0:
         joint_pos = np.concatenate([joint_pos, np.repeat(joint_pos[-1:], n_hold, 0)])
@@ -158,17 +163,19 @@ def main():
         root_quat = np.concatenate([root_quat, np.repeat(root_quat[-1:], n_hold, 0)])
         body_pos = np.concatenate([body_pos, np.repeat(body_pos[-1:], n_hold, 0)])
         body_quat = np.concatenate([body_quat, np.repeat(body_quat[-1:], n_hold, 0)])
-        # 保持段的速度是零 —— 目标就是停住
+        # Velocities are zero through the hold — the target is to stop.
         joint_vel = np.concatenate([joint_vel, np.zeros((n_hold, nj))])
         body_lin_vel = np.concatenate([body_lin_vel, np.zeros((n_hold, B, 3))])
         body_ang_vel = np.concatenate([body_ang_vel, np.zeros((n_hold, B, 3))])
         T = joint_pos.shape[0]
 
-    # ---- 贴地：整条轨迹平移，使最低脚踝 link 的最低点落在 z=0 ----
-    #      GMR 的输出高度是按人体尺度来的，直接用会悬空或穿模。
+    # ---- ground alignment: shift the whole trajectory so the lowest point of
+    #      the lowest ankle link sits at z=0 ----
+    #      GMR's output height is on a human scale; used directly the robot
+    #      either floats or intersects the floor.
     ankle_idx = [BODY_NAMES.index("left_ankle_roll_link"),
                  BODY_NAMES.index("right_ankle_roll_link")]
-    # 用第一帧标定脚踝 link 原点到脚底的偏移
+    # Calibrate the ankle-link-origin to sole offset on the first frame.
     data.qpos[0:3] = root_pos[0]
     data.qpos[3:7] = root_quat[0]
     data.qpos[7:] = joint_pos[0]

@@ -1,13 +1,13 @@
-"""GMR pkl -> MJX 训练用 npz
+"""GMR pkl -> npz for MJX training.
 
-已验证：GMR 的 g1_mocap_29dof.xml 与 menagerie 的 g1_mjx.xml
-关节名、顺序、执行器顺序完全一致，故可直接按下标对接。
+Verified: GMR's g1_mocap_29dof.xml and menagerie's g1_mjx.xml agree exactly on
+joint names, joint order and actuator order, so the two can be matched by index.
 
-输出 npz 字段：
-  root_pos   [T,3]   基座位置
-  root_quat  [T,4]   基座四元数 (w,x,y,z)
-  joint_pos  [T,29]  关节角，顺序 = MJX 模型关节顺序
-  fps        标量
+Fields written:
+  root_pos   [T,3]   base position
+  root_quat  [T,4]   base quaternion (w,x,y,z)
+  joint_pos  [T,29]  joint angles, in the MJX model's joint order
+  fps        scalar
 """
 
 import argparse
@@ -38,7 +38,8 @@ def mjx_joint_names(xml_path):
 
 
 def resample(arr, src_fps, tgt_fps, is_quat=False):
-    """线性重采样。四元数用线性插值后归一化（相邻帧小角度差下足够精确）。"""
+    """Linear resampling. Quaternions are lerped and renormalised, which is
+    accurate enough for the small angles between adjacent frames."""
     T = arr.shape[0]
     dur = T / src_fps
     T_new = int(round(dur * tgt_fps))
@@ -71,7 +72,7 @@ def main():
 
     if dof_pos.shape[1] != len(names):
         raise SystemExit(
-            f"关节数不匹配: GMR={dof_pos.shape[1]} vs MJX={len(names)}"
+            f"joint count mismatch: GMR={dof_pos.shape[1]} vs MJX={len(names)}"
         )
 
     norms = np.linalg.norm(root_quat, axis=1)
@@ -80,14 +81,14 @@ def main():
         print("  WARN quaternions not unit-norm; normalising")
         root_quat = root_quat / norms[:, None]
 
-    # 🔴 关键：GMR 的 root_rot 是 xyzw（标量在后）
-    #    MuJoCo 的 qpos[3:7] 要 wxyz（标量在前），必须换序
-    #    实测依据：按 wxyz 解释时机体 z 轴指向世界 +Y（机器人躺着），
-    #             按 xyzw 解释才指向世界 +Z（站立）
+    # GMR's root_rot is xyzw (scalar last); MuJoCo's qpos[3:7] expects wxyz
+    # (scalar first), so the order has to be swapped. The evidence: read as
+    # wxyz, the body z axis points along world +Y and the robot lies down;
+    # read as xyzw it points along world +Z and the robot stands.
     print("[reorder] root_rot: xyzw -> wxyz (MuJoCo convention)")
     root_quat = root_quat[:, [3, 0, 1, 2]]
 
-    # 换序后自检：站立时机体 z 轴应接近世界 +z
+    # Sanity check after swapping: standing, body z should be close to world +z.
     w, x, y, z = root_quat[0]
     body_z = np.array([2 * (x * z + w * y),
                        2 * (y * z - w * x),
@@ -98,7 +99,7 @@ def main():
     else:
         print("  OK orientation is upright")
 
-    # 关节限位检查
+    # Joint-limit check.
     lo, hi = [], []
     for i in range(m.njnt):
         if m.jnt_type[i] == mujoco.mjtJoint.mjJNT_FREE:
@@ -118,11 +119,12 @@ def main():
     rq = resample(root_quat, src_fps, args.tgt_fps, is_quat=True)
     jp = resample(dof_pos, src_fps, args.tgt_fps)
 
-    # 平移到 xy 原点起步，训练时更好泛化
+    # Start at the xy origin, which generalises better during training.
     rp[:, :2] -= rp[0, :2]
 
-    # 🔴 贴地校正：让整段轨迹里最低的脚底刚好落在 z=0
-    #    不做的话机器人起步悬空，落地冲击会把本就偏软的脚踝(kp=20)压屈
+    # Ground alignment: shift so the lowest sole across the whole trajectory
+    # sits exactly at z=0. Without it the robot starts in the air, and the
+    # landing impact buckles the already-soft ankles (kp=20).
     d_probe = mujoco.MjData(m)
     min_clear = 1e9
     for t in range(0, rp.shape[0], max(1, rp.shape[0] // 60)):

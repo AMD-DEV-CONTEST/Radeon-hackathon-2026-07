@@ -38,7 +38,8 @@ class UnitreeSdk2Bridge:
         self.mj_data = mj_data
 
         self.num_motor = self.mj_model.nu
-        # 指令缓冲 —— PD 改到仿真步里算，见 LowCmdHandler / ApplyPD
+        # Command buffer. PD now runs in the physics step; see LowCmdHandler
+        # and ApplyPD.
         _n = self.num_motor
         self._cmd_q = np.zeros(_n)
         self._cmd_dq = np.zeros(_n)
@@ -117,12 +118,15 @@ class UnitreeSdk2Bridge:
         }
 
     def LowCmdHandler(self, msg: LowCmd_):
-        """只缓存指令，不算力矩。
+        """Buffer the command only; do not compute torque here.
 
-        🔴 原实现在这里直接写 mj_data.ctrl。回调频率 = LowCmd 下发频率
-        （典型 50 Hz），力矩因此被零阶保持 20 ms。真机上 kp/kd 是交给电机
-        驱动器的，驱动器在 1~2 kHz 上用本地编码器闭环。50 Hz 零阶保持会让
-        高刚度 PD 失稳 —— 实测同一策略：ZOH 18 步摔倒，子步闭环 500 步不倒。
+        The original implementation wrote mj_data.ctrl directly in this
+        callback. The callback fires at the LowCmd rate — typically 50 Hz — so
+        torque is held constant for 20 ms. On hardware, kp and kd are handed to
+        the motor drivers, which close the loop against a local encoder at
+        1-2 kHz. A 50 Hz zero-order hold destabilises a stiff PD law: measured
+        on the same policy, the hold fell at step 18 while sub-step closure
+        survived all 500.
         """
         if self.mj_data is None:
             return
@@ -136,7 +140,8 @@ class UnitreeSdk2Bridge:
         self._cmd_ready = True
 
     def ApplyPD(self):
-        """在每个仿真步调用，用当前状态重算力矩 —— 模拟驱动器的高频闭环。"""
+        """Called every physics step; recomputes torque from the current state,
+        standing in for the driver's high-rate loop."""
         if self.mj_data is None or not self._cmd_ready:
             return
         q = self.mj_data.sensordata[: self.num_motor]
