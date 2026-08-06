@@ -33,3 +33,13 @@ Learning Path Dashboard for Enhancing Skills Using Python with Data Analytics.
 
 The project is designed to support AI-based recommendation and inference
 workloads accelerated using AMD Radeon GPUs and ROCm technologies.
+## Project Links
+
+GitHub Repository:
+(https://github.com/keerthana1247/learning-path-dashboard-flask-mysql)
+
+Deployment Link:
+https://learning-path-dashboard-flask-mysql-2.onrender.com
+
+Demo Video:
+https://drive.google.com/file/d/12QbP6mZAe4Ie0OiZOSKzuP-nHiKi6NSo/view?usp=drivesdk
