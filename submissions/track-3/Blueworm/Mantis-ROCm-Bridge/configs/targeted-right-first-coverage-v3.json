@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "collection_id": "mantis_targeted_right_first_rll16_v3",
+  "date": "2026-07-28",
+  "task_id": "stack_bowls_three",
+  "robot_type": "mantis",
+  "porting_mode": "new_robot_new_scene",
+  "correction_variable": "training_seed_allocation_conditioned_on_preexecution_arm_assignment_stratum",
+  "phase_objective": "Collect at least two new strict-success scripted trajectories whose ordered arm-assignment pattern is right-left-left, while preserving the source reset sampler and every simulator, controller, safety, capture, and task-success invariant.",
+  "entry_evidence": {
+    "predecessor_contract": "configs/targeted-coverage-continuation-v2.json",
+    "predecessor_terminal_receipt": "receipts/4090-targeted-coverage-continuation-terminal-20260728-v2",
+    "predecessor_terminal_status": "COMPLETE_INSUFFICIENT_COVERAGE",
+    "predecessor_batch_root": "/data01/suzw_data/tron/amd_track3/ops/mantis-targeted-coverage-continuation-seeds1033-1050-20260728-v2",
+    "predecessor_composite_audit_sha256": "edfd195b1adfbbbee79e24abb576b598b32a262108a0d19997e4999ab87fe590",
+    "predecessor_batch_final_manifest_sha256": "b9aec525dcd640920632181b457ca13018fc6ac393b9b3db13fed8804876a188",
+    "predecessor_accepted_count": 7,
+    "predecessor_first_grasp_left": 6,
+    "predecessor_first_grasp_right": 1,
+    "predecessor_top_placement_right": 5,
+    "predecessor_accepted_seeds": [1023, 1030, 1037, 1039, 1041, 1042, 1049]
+  },
+  "single_intervention": {
+    "name": "right_first_rll_reset_stratum_seed_allocation",
+    "historical_basis": {
+      "candidate_seed_range": [1021, 1050],
+      "right_first_candidate_count": 16,
+      "right_first_accepted_count": 1,
+      "right_first_accepted_seed": 1039,
+      "right_first_accepted_pattern": ["right", "left", "left"],
+      "falsification": "If the exact predeclared RLL pool yields fewer than two new strict-success captures, terminate as insufficient and do not materialize a dataset or train."
+    },
+    "seed_selection": {
+      "scan_range_inclusive": [1051, 1250],
+      "source_reset_sampler": "mantis_rocm_bridge.stack_bowls_env.sample_source_reset_poses",
+      "source_reset_sampler_sha256": "73a4154913b4eaf31c459f04abb87dbbca6d19e6962c4bbb3c00d89a9f75d3fb",
+      "arm_assignment_function": "mantis_rocm_bridge.stack_bowls_env.arm_for_bowl_x",
+      "target_pattern": ["right", "left", "left"],
+      "selection_rule": "Scan every integer seed from 1051 through 1250 before any Genesis execution. Select the first 16 seeds in ascending order whose source-compatible reset produces exactly right-left-left. Attempt every selected seed once in the frozen order and admit every strict success.",
+      "candidate_count": 16,
+      "candidate_seeds": [1061, 1074, 1084, 1086, 1095, 1111, 1117, 1139, 1151, 1156, 1177, 1194, 1208, 1212, 1226, 1236],
+      "previously_attempted_seed_range": [1001, 1050],
+      "retry_or_replacement_count": 0,
+      "posthoc_success_selection": false
+    },
+    "changed": [
+      "training seed allocation is conditioned on the preexecution right-left-left arm-assignment stratum"
+    ],
+    "unchanged": [
+      "source reset sampler and source reset distribution",
+      "ascending-Y bowl ordering and x-sign arm assignment",
+      "Mantis URDF, bowl assets, table, cameras, planner, controller, collision rules, timing, and action mapping",
+      "probe calibration and exact-plan replay capture",
+      "strict stability, safety, stage-trace, and source-hash admission gates",
+      "evaluation seeds, ACT architecture, optimizer, and training hyperparameters"
+    ]
+  },
+  "execution": {
+    "backend": "cpu",
+    "cuda_visible_devices": "",
+    "external_gpu_processes_nonblocking_telemetry": true,
+    "serial": true,
+    "max_concurrent_processes": 1,
+    "retry_count": 0,
+    "replay_fallback": false,
+    "project_root": "/data01/suzw_data/tron/amd_track3/mantis_rocm_bridge_v121",
+    "python": "/data01/suzw_data/tron/.conda/envs/genesis-mantis-v1/bin/python",
+    "tool": "/data01/suzw_data/tron/amd_track3/mantis_rocm_bridge_v121/tools/run_genesis_stack_bowls_scripted_g1.py",
+    "tool_sha256": "732fbe9a115327e0dd56b3dae5d1457ef2bc112f6a0953503f6e4dabba321cc7",
+    "task_pack_sha256": "ece41b0030ccb7bc5ce799b24d4aa68e8649ab7cc4442bfb6c3024d87dc78a09",
+    "source_task_sha256": "3475dc0a8170ec458e2cd4b161e2615d9011f7a6e00fea221c62147afa89953e",
+    "parent_driver": "/data01/suzw_data/tron/amd_track3/ops/mantis-expansion-seeds1014-1020-20260726-v4/run_batch.py",
+    "parent_driver_sha256": "42b4aeae822397821153a824eefa794ba9bdbc8e3795b59c7200d1eba7788095",
+    "ops_root": "/data01/suzw_data/tron/amd_track3/ops/genesis-stack-bowls-scripted-g1",
+    "batch_root": "/data01/suzw_data/tron/amd_track3/ops/mantis-targeted-right-first-rll16-20260728-v3",
+    "package_root": "/data01/suzw_data/tron/amd_track3/transfers/mantis_targeted_right_first_rll16_20260728_v3",
+    "screen_name": "mantis_targeted_right_first_v3",
+    "run_id_version_token": "20260728-v3-targeted-right-first-rll"
+  },
+  "admission_gate": {
+    "per_candidate": [
+      "static source-reset pattern recomputes as exactly right-left-left before launch",
+      "probe process exits zero and writes a hash-linked valid replay plan",
+      "probe has exactly 12 strict stability rows and zero safety failures",
+      "exact-plan replay capture exits zero and writes a nonempty NPZ",
+      "capture stage trace is complete with eight completed task stages and no failure stage",
+      "capture has exactly 12 strict stability rows and zero safety failures",
+      "accepted placement pattern is exactly right-left-left",
+      "NPZ, stage trace, receipt, and capture manifest exist and independently hash"
+    ],
+    "aggregate": {
+      "candidate_attempts_exact": 16,
+      "candidate_order_exact": true,
+      "candidate_pattern_exact_for_all": ["right", "left", "left"],
+      "minimum_new_strict_successes": 2,
+      "minimum_new_right_first_successes": 2,
+      "minimum_composite_first_grasp_right": 3,
+      "minimum_composite_first_grasp_left": 2,
+      "minimum_composite_top_placement_right": 2,
+      "task_isolation_requires_cuda_visible_devices_empty": true,
+      "nvidia_smi_telemetry_required": true
+    }
+  },
+  "terminal_states": [
+    "COMPLETE_RIGHT_FIRST_COVERAGE_ACCEPTED",
+    "COMPLETE_INSUFFICIENT_RIGHT_FIRST_COVERAGE",
+    "FAILED_EVIDENCE_GATE"
+  ],
+  "downstream_policy": {
+    "dataset_materialization_authorized_only_by": "COMPLETE_RIGHT_FIRST_COVERAGE_ACCEPTED",
+    "old_dataset_input_package_forbidden": "/data01/suzw_data/tron/amd_track3/transfers/mantis_targeted_coverage_dataset_inputs_20260728_v1",
+    "new_dataset_package_required": true,
+    "training_before_dataset_gate_forbidden": true
+  },
+  "claim_boundary": "This phase can establish a source-compatible, right-first scripted training-trajectory stratum and its immutable source identities. It cannot establish dataset readiness, learned-policy improvement, G3 passage, generalization, AMD/ROCm execution, performance advantage, hardware validity, or real-robot safety."
+}

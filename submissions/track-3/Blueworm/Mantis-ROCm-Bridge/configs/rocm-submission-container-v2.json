@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "container_id": "mantis_genesis_lerobot_rocm_submission_v2",
+  "role": "submission_reproduction_candidate",
+  "status": "specified_unbuilt",
+  "official_experiment_runtime_contract": "configs/amd-cloud-runtime-v1.json",
+  "base_image": "rocm/pytorch:rocm7.2.4_ubuntu24.04_py3.12_pytorch_release_2.9.1",
+  "base_image_source": "AMD rocm/pytorch Docker Hub repository",
+  "runtime_relation": "forward_port_from_official_rocm_7_2_1_experiment_runtime",
+  "known_divergence": "Public candidate uses ROCm 7.2.4; completed official competition experiments used the teaching-image ROCm 7.2.1 wheel set.",
+  "python_version": "3.12",
+  "rocm_version": "7.2.4",
+  "torch_version": "2.9.1",
+  "torchvision_version": "0.24.0",
+  "numpy_version": "2.1.2",
+  "scikit_image_version": "0.26.0",
+  "genesis": {
+    "repository": "https://github.com/Genesis-Embodied-AI/Genesis.git",
+    "revision": "2a40c87ad4e89a0f115cc43fb45195a8260aad0e",
+    "observed_version": "1.2.3",
+    "backend": "gs.amdgpu"
+  },
+  "lerobot": {
+    "repository": "https://github.com/huggingface/lerobot.git",
+    "tag": "v0.4.4",
+    "revision": "8fff0fde7c79f23a93d845d1a50e985de01f8b8a",
+    "version": "0.4.4"
+  },
+  "gpu_access": {
+    "device_nodes": ["/dev/kfd", "/dev/dri"],
+    "group_add": ["video"],
+    "ipc": "host",
+    "shm_size": "8g",
+    "cap_add": ["SYS_PTRACE"],
+    "security_opt": ["seccomp=unconfined"]
+  },
+  "asset_strategy": "bind_mount_nonredistributable_robot_dataset_checkpoint_and_evidence_assets",
+  "build_host_gpu_required": false,
+  "runtime_amd_gpu_required": true,
+  "image_digest_required_for_claim": true,
+  "clean_room_runtime_receipt_required": true,
+  "claim_boundary": "A successful CPU-only image build on 219 proves dependency materialization and image provenance only. AMD/ROCm execution may be claimed only after the immutable image digest passes strict ROCm, Genesis gs.amdgpu, LeRobot, training or inference gates on a supported Radeon worker."
+}

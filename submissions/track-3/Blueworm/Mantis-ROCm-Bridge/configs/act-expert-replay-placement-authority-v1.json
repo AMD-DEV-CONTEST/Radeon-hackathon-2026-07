@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "work_package_id": "WP-ACT-EXPERT-REPLAY-PLACEMENT-AUTHORITY-016",
+  "date": "2026-07-30",
+  "status": "frozen_ready_for_code_gate",
+  "objective": "Prevent a non-authoritative 10 mm replay precheck from rejecting trajectories that remain within the frozen 40 mm strict task XY predicate, while preserving precise probe feedback and final strict evaluation.",
+  "predecessor": {
+    "work_package_id": "WP-ACT-EXPERT-RIGHT-TRANSPORT-DURATION-015",
+    "terminal_status": "COMPLETE_RIGHT_TRANSPORT_DURATION_REJECTED",
+    "terminal_manifest_sha256": "f3114cd602cca0a5fe60faf33cb46e799aef7ae782b3a4bd700200236b443629",
+    "positive_attribution": "seeds 102 and 107 became strict successes and controls 104 and 109 saved exactly 60 frames with no safety failures",
+    "remaining_failure": "seed 110 no longer timed out but was stopped by the internal 10 mm replay placement gate at 12.503 mm X error"
+  },
+  "single_control_variable": {
+    "name": "replay_pre_release_xy_acceptance_authority",
+    "baseline": "probe_control_tolerance_0.01_m",
+    "candidate": "frozen_strict_task_tolerance_0.04_m",
+    "scope": "replay-mode early placement check only",
+    "unchanged": [
+      "probe feedback and correction target remains 0.01 m",
+      "official strict task per-axis XY tolerance remains strictly less than 0.04 m",
+      "final height, release, retreat, 12-frame stability, physics, and safety evaluation",
+      "right attached-bowl RRT transport remains the evidenced two-second WP-015 candidate",
+      "source resets, candidate search, frozen replay offsets, action trajectory, geometry, controller, and collision rules",
+      "capture, export, training, and learned-policy behavior"
+    ]
+  },
+  "panel": {
+    "seeds_in_order": [
+      110,
+      106,
+      104,
+      109
+    ],
+    "roles": {
+      "110": "wp015_replay_placement_target",
+      "106": "wp009_replay_placement_target",
+      "104": "strict_success_control",
+      "109": "strict_success_control"
+    },
+    "patterns": {
+      "110": [
+        "right",
+        "left",
+        "right"
+      ],
+      "106": [
+        "right",
+        "right",
+        "left"
+      ],
+      "104": [
+        "left",
+        "right",
+        "left"
+      ],
+      "109": [
+        "left",
+        "right",
+        "left"
+      ]
+    }
+  },
+  "execution": {
+    "backend": "cpu",
+    "cuda_visible_devices": "",
+    "probe_then_conditional_replay": true,
+    "probe_max_policy_steps": 2400,
+    "replay_max_policy_steps": 1200,
+    "transport_duration_s": 2.0,
+    "capture": false,
+    "retry_count": 0,
+    "parallel_seed_count": 1
+  },
+  "acceptance": {
+    "all_panel_seeds_must_be_strict_replay_successes": true,
+    "target_seed_replay_errors_must_be_strictly_below_0.04_m_per_axis": true,
+    "controls_must_remain_strict_successes": [
+      104,
+      109
+    ],
+    "maximum_safety_failures": 0,
+    "maximum_capture_artifacts": 0,
+    "maximum_policy_frames_per_replay": 1200
+  },
+  "downstream_policy": {
+    "accepted_terminal_action": "Promote the replay-authority correction only as a component on top of the evidenced two-second transport candidate, then combine with the separately accepted left-source route.",
+    "rejected_terminal_action": "Retain the 10 mm precheck and diagnose the next exact target failure without relaxing the strict task predicate."
+  },
+  "forbidden": [
+    "modify or overwrite remote v131 or v138",
+    "change probe correction tolerance, strict task tolerance, task horizon, geometry, controller, safety, stability, or another duration",
+    "apply online replay correction or alter frozen replay offsets",
+    "capture, export, collect, train, retry, or replace a panel seed",
+    "stop or modify another user's process",
+    "submit, create a pull request, contact an external party, or publish"
+  ],
+  "claim_boundary": "Isolated scripted-expert replay placement-authority panel on top of WP-015 only; not ten-seed expert, dataset, ACT, learned-policy, AMD/ROCm, competition-score, hardware, or real-robot evidence."
+}

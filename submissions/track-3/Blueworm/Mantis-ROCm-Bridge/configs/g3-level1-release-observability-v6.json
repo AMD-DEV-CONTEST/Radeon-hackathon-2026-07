@@ -1,0 +1,171 @@
+{
+  "schema_version": 1,
+  "work_package_id": "WP-G3-CORR-011",
+  "status": "PLANNED_FROZEN_NOT_EXECUTED",
+  "date": "2026-07-28",
+  "task_id": "stack_bowls_three",
+  "porting_mode": "new_robot_same_task",
+  "phase_objective": "Determine whether the repeatable right-left-left level-1 failure is created during weld release by recording sign-invariant bowl-to-suction-link relative poses and contact state without changing any controller, task, or capture variable.",
+  "entry_evidence": {
+    "predecessor_work_package": "WP-G3-CORR-010",
+    "predecessor_terminal_status": "COMPLETE_CORRECTED_EXPERT_COVERAGE_REJECTED",
+    "predecessor_terminal_receipt": "receipts/g3-corrected-expert-coverage-terminal-20260728-v4",
+    "predecessor_receipt_manifest_sha256": "3d4572267dcca797ac87c426085d731d17fc170e2d274aec5f0861d47ed0780a",
+    "predecessor_attempt_count": 4,
+    "predecessor_full_strict_success_count": 3,
+    "predecessor_transition_receipt_valid_count": 3,
+    "predecessor_collection_started": false,
+    "seed_1290_release_drop_mm": 27.058780193328857,
+    "seed_1290_post_release_to_placed_drop_mm": 2.5013089179992676,
+    "historical_level1_release_drop_failures": {
+      "seeds": [1084, 1095, 1117, 1151, 1156, 1212, 1290],
+      "count": 7,
+      "mean_mm": 26.899942329951696,
+      "minimum_mm": 25.767028331756592,
+      "maximum_mm": 28.23120355606079
+    },
+    "historical_level1_stable_controls": {
+      "seeds": [1285, 1295, 1298],
+      "count": 3,
+      "mean_mm": 4.6764810880025225,
+      "minimum_mm": 2.6755332946777344,
+      "maximum_mm": 7.00986385345459
+    },
+    "historical_group_gap_mm": 18.757164478302002
+  },
+  "single_primary_variable": {
+    "field": "level1_release_observability_schema",
+    "baseline": "position_only_pre_release_post_release_placed",
+    "candidate": "relative_pose_and_contact_trace_v1",
+    "activation": "probe mode for the frozen WP-G3-CORR-011 panel; record every bowl level but make the level-1 record mandatory",
+    "recorded_snapshots": [
+      "contact_before_weld",
+      "after_weld_registration",
+      "final_pre_release",
+      "immediate_post_release",
+      "placed_after_stability"
+    ],
+    "recorded_entities": [
+      "selected_bowl_link",
+      "selected_suction_link"
+    ],
+    "derived_metrics": [
+      "bowl_in_suction_frame_translation_xyz_m",
+      "bowl_in_suction_frame_quaternion_wxyz",
+      "attachment_transform_drift_add_to_pre_release",
+      "bowl_motion_pre_release_to_immediate_post_release",
+      "bowl_motion_immediate_post_release_to_placed",
+      "release_drop_mm"
+    ],
+    "implementation_boundary": "Instrumentation only. No place target, grasp pose, weld creation/deletion, release duration, gripper command, retreat, orientation schedule, task tolerance, solver, controller, clock, collision rule, or capture behavior may change."
+  },
+  "frozen_invariants": {
+    "source_reset_sampler": "mantis_rocm_bridge.stack_bowls_env.sample_source_reset_poses",
+    "source_reset_sampler_sha256": "73a4154913b4eaf31c459f04abb87dbbca6d19e6962c4bbb3c00d89a9f75d3fb",
+    "task_contract": "configs/task-pack-v1.json",
+    "task_contract_sha256": "ece41b0030ccb7bc5ce799b24d4aa68e8649ab7cc4442bfb6c3024d87dc78a09",
+    "scene_contract": "configs/stack-bowls-genesis-v1.json",
+    "scene_contract_sha256": "0e4b01ff50f3856d4ae393bf2a278121b643572e0eb97b0080c9d356db3edc81",
+    "orientation_schedule_contract": "configs/g3-left-interbowl-coupled-descent-dynamic-v3.json",
+    "orientation_schedule_contract_sha256": "ab92a3a84ee4a7f392ce59b0c2f7ce8c4b00804e65bce9918f6ff419c05a8a55",
+    "orientation_schedule_id": "coupled_descent_slerp",
+    "source_task_and_arm_assignment_unchanged": true,
+    "place_position_release_retreat_and_stability_logic_unchanged": true,
+    "weld_registration_and_deletion_logic_unchanged": true,
+    "cartesian_position_and_orientation_routes_unchanged": true,
+    "ik_solver_and_thresholds_unchanged": true,
+    "planner_controller_and_force_limits_unchanged": true,
+    "collision_and_safety_rules_unchanged": true,
+    "assets_scene_task_and_clock_unchanged": true,
+    "task_success_tolerances_unchanged": true,
+    "capture": false,
+    "retry_count": 0,
+    "seed_substitution": false,
+    "posthoc_success_selection": false,
+    "historical_run_reexecution": false
+  },
+  "diagnostic_panel": {
+    "selection_observes_only": "preexecution source reset geometry and deterministic arm assignment",
+    "scan_range_inclusive": [1401, 1600],
+    "pattern": ["right", "left", "left"],
+    "strata": {
+      "far_control": {
+        "selection_rule": "first four ascending previously unattempted right-left-left seeds whose level-1 source-bowl XY radius is at least 0.22 m",
+        "radius_minimum_m": 0.22,
+        "seeds": [1423, 1430, 1463, 1469]
+      },
+      "near_center_suspected": {
+        "selection_rule": "first four ascending previously unattempted right-left-left seeds whose level-1 source-bowl XY radius is at most 0.15 m",
+        "radius_maximum_m": 0.15,
+        "seeds": [1477, 1480, 1503, 1509]
+      }
+    },
+    "seeds_in_order": [1423, 1430, 1463, 1469, 1477, 1480, 1503, 1509],
+    "seed_rows": {
+      "1423": {"stratum": "far_control", "bowl2_xy_m": [-0.21680837694493083, -0.038084950293023036], "bowl2_radius_m": 0.2201279985651922},
+      "1430": {"stratum": "far_control", "bowl2_xy_m": [-0.26830690339733937, -0.05346097965952244], "bowl2_radius_m": 0.27358119591233804},
+      "1463": {"stratum": "far_control", "bowl2_xy_m": [-0.2852930311327017, -0.10309705040800728], "bowl2_radius_m": 0.30334982349709044},
+      "1469": {"stratum": "far_control", "bowl2_xy_m": [-0.29734326806813344, -0.004883116356106732], "bowl2_radius_m": 0.29738336182575037},
+      "1477": {"stratum": "near_center_suspected", "bowl2_xy_m": [-0.10716001844009516, -0.002092833475265121], "bowl2_radius_m": 0.10718045299417578},
+      "1480": {"stratum": "near_center_suspected", "bowl2_xy_m": [-0.1462252500170072, -0.008858146009147583], "bowl2_radius_m": 0.14649331211101632},
+      "1503": {"stratum": "near_center_suspected", "bowl2_xy_m": [-0.1194269577524415, -0.041216373499211256], "bowl2_radius_m": 0.12633917714798498},
+      "1509": {"stratum": "near_center_suspected", "bowl2_xy_m": [-0.13409472600529226, -0.0523792553080337], "bowl2_radius_m": 0.14396173772589224}
+    },
+    "backend": "cpu",
+    "cuda_visible_devices": "",
+    "serial": true,
+    "capture": false,
+    "retry_count": 0,
+    "release_drop_classification": {
+      "release_drop_case_minimum_mm": 20.0,
+      "stable_control_maximum_mm": 10.0,
+      "ambiguous_interval_mm": [10.0, 20.0],
+      "classification_is_diagnostic_not_task_success": true
+    },
+    "acceptance": {
+      "attempt_count": 8,
+      "minimum_level1_observation_count": 6,
+      "minimum_level1_observations_per_stratum": 2,
+      "minimum_release_drop_cases": 1,
+      "minimum_stable_controls": 1,
+      "instrumentation_complete_for_every_level1_observation": true,
+      "safety_failure_count": 0,
+      "infrastructure_failure_count": 0,
+      "capture_artifact_count": 0
+    }
+  },
+  "issue_governance": {
+    "register": ".ops/wip/g3-level1-release-observability-20260728/ISSUES.md",
+    "machine_readable_register": "receipts/g3-level1-release-observability-planning-freeze-20260728-v6/issues.json",
+    "immutable_predecessor_labels_are_not_rewritten": true,
+    "future_taxonomy_distinguishes_pre_transition_from_post_transition_placement": true
+  },
+  "remote_plan": {
+    "source_project": "/data01/suzw_data/tron/amd_track3/mantis_rocm_bridge_v125",
+    "staging_project": "/data01/suzw_data/tron/amd_track3/mantis_rocm_bridge_v126.staging",
+    "diagnostic_project": "/data01/suzw_data/tron/amd_track3/mantis_rocm_bridge_v126",
+    "code_gate_root": "/data01/suzw_data/tron/amd_track3/ops/mantis-g3-level1-release-diagnosis-code-gate-20260728-v6",
+    "package_root": "/data01/suzw_data/tron/amd_track3/transfers/mantis_g3_level1_release_diagnosis_20260728_v6",
+    "batch_root": "/data01/suzw_data/tron/amd_track3/ops/mantis-g3-level1-release-observability-20260728-v6",
+    "supervisor_root": "/data01/suzw_data/tron/amd_track3/ops/mantis-g3-level1-release-observability-supervisor-20260728-v6",
+    "run_template": "/data01/suzw_data/tron/amd_track3/ops/genesis-stack-bowls-scripted-g1/mantis-stack-bowls-level1-release-observability-seed{seed}-stl-cpu-20260728-v6",
+    "screen_name": "mantis_g3_level1_release_v6",
+    "freshness_verified_at_planning_time": true
+  },
+  "terminal_states": {
+    "COMPLETE_LEVEL1_RELEASE_OBSERVABILITY_ACCEPTED": "All evidence and safety gates pass, both historical outcome classes are observed, and the panel is sufficient to freeze one later repair hypothesis.",
+    "COMPLETE_LEVEL1_RELEASE_OBSERVABILITY_INCONCLUSIVE": "Evidence is complete and safe, but observation count, stratum balance, or outcome contrast is insufficient for a repair choice.",
+    "COMPLETE_LEVEL1_RELEASE_OBSERVABILITY_REJECTED": "Evidence is complete but a safety gate fails; no repair or collection follows.",
+    "FAILED_EVIDENCE_GATE": "Source identity, isolation, ordering, no-overwrite, instrumentation completeness, process, or manifest evidence is incomplete."
+  },
+  "downstream_authority": {
+    "accepted_terminal_authorizes": "planning a separate single-control-variable repair work package only",
+    "inconclusive_terminal_authorizes": "planning a new observability panel only",
+    "rejected_or_failed_terminal_authorizes": "no controller repair or source collection",
+    "automatic_controller_change": false,
+    "automatic_collection": false,
+    "automatic_dataset_export": false,
+    "automatic_training": false
+  },
+  "claim_boundary": "This phase can establish release-frame observability and a bounded association on a predeclared CPU reset panel. It cannot establish a causal submechanism, a safe controller correction, source coverage, dataset readiness, learned-policy improvement, G3 passage, AMD/ROCm execution, hardware validity, or real-robot safety."
+}

@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "work_package_id": "WP-ACT-EXPERT-RIGHT-SOURCE-TERMINAL-QPOS-014",
+  "date": "2026-07-30",
+  "status": "frozen_ready_for_code_gate",
+  "objective": "Retain WP-013's high-clearance right source path while forcing its final pregrasp joint vector to the exact v131 direct-IK result.",
+  "predecessor": {
+    "work_package_id": "WP-ACT-EXPERT-RIGHT-SOURCE-PREGRASP-013",
+    "terminal_status": "COMPLETE_RIGHT_SOURCE_PREGRASP_REJECTED",
+    "terminal_manifest_sha256": "edc83b8090c98ed92ea9bc2819173a1946d5178d73b557a1d361908d45c958ba",
+    "positive_observation": "seed 101 cleared the baseline pregrasp collision and reached bowl3 release",
+    "regression": "seed 106 acquired a new bowl1 release safety failure",
+    "attribution": "the sequential final IK solve preserved the TCP endpoint but could select a different terminal joint branch"
+  },
+  "single_control_variable": {
+    "name": "right_pregrasp_terminal_qpos_source",
+    "baseline": "sequential_final_waypoint_ik_from_penultimate_qpos",
+    "candidate": "v131_direct_ik_from_frozen_candidate_baseline",
+    "unchanged": [
+      "the four high-clearance Cartesian and four vertical-descent Cartesian route positions",
+      "front-clearance and candidate-pregrasp TCP endpoints and right TCP orientation",
+      "one pregrasp command and its 0.5-second duration",
+      "source reset, side assignment, candidate tuples, candidate search order, and candidate index semantics",
+      "candidate approach, close, contact, fallback, lift, transport, placement, release, retreat, and success behavior",
+      "IK solver parameters, tolerances, safety rules, collision geometry, clocks, assets, task horizon, and left-arm behavior"
+    ]
+  },
+  "selected_route": "high_clearance_exact_terminal_qpos_v2",
+  "route": {
+    "waypoints_per_segment": 4,
+    "segments_in_order": [
+      "high_clearance_cartesian",
+      "vertical_descent"
+    ],
+    "command_segment_count": 1,
+    "command_duration_s": 0.5,
+    "terminal_qpos_source": "v131 direct pregrasp IK initialized from candidate_baseline_qpos"
+  },
+  "panel": {
+    "seeds_in_order": [
+      101,
+      106
+    ],
+    "roles": {
+      "101": "target",
+      "106": "regression_control"
+    },
+    "patterns": {
+      "101": [
+        "right",
+        "right",
+        "left"
+      ],
+      "106": [
+        "right",
+        "right",
+        "left"
+      ]
+    }
+  },
+  "execution": {
+    "backend": "cpu",
+    "cuda_visible_devices": "",
+    "probe_then_conditional_replay": true,
+    "probe_max_policy_steps": 2400,
+    "replay_max_policy_steps": 1200,
+    "capture": false,
+    "retry_count": 0,
+    "parallel_seed_count": 1
+  },
+  "acceptance": {
+    "seed_101_must_clear_source_pregrasp_without_safety_failure": true,
+    "seed_106_must_not_repeat_wp013_release_safety_regression": true,
+    "seed_106_must_reach_at_least_its_wp009_downstream_placement_xy_boundary": true,
+    "maximum_capture_artifacts": 0,
+    "strict_seed_101_success_is_recorded_but_not_required_for_terminal_qpos_attribution": true
+  },
+  "downstream_policy": {
+    "accepted_terminal_action": "Promote the recovered right source path as a component, then address the now-separated horizon and placement failures.",
+    "rejected_terminal_action": "Reject the high-clearance route family and return to a different collision-free path; do not relax safety."
+  },
+  "forbidden": [
+    "modify or overwrite remote v131, v135, or v136",
+    "change safety, timing, tolerance, candidate, geometry, placement, or horizon variables",
+    "capture, export, collect, train, retry, or replace a panel seed",
+    "stop or modify another user's process",
+    "submit, create a pull request, contact an external party, or publish"
+  ],
+  "claim_boundary": "Isolated right source terminal-qpos recovery only; not ten-seed expert, dataset, ACT, learned-policy, AMD/ROCm, competition-score, hardware, or real-robot evidence."
+}

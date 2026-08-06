@@ -1,0 +1,50 @@
+ARG BASE_IMAGE=rocm/pytorch:rocm6.4.1_ubuntu22.04_py3.10_pytorch_release_2.6.0
+FROM ${BASE_IMAGE}
+
+ARG GENESIS_VERSION=1.2.3
+ARG LEROBOT_REPOSITORY=https://github.com/huggingface/lerobot.git
+ARG LEROBOT_REVISION=d9e74a9d374a8f26582ad326c699740a227b483c
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+ENV PIP_NO_CACHE_DIR=1
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        git \
+        libegl1 \
+        libgl1 \
+        libglib2.0-0 \
+        libsm6 \
+        libxext6 \
+        libxrender1 \
+        wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Match Genesis v1.2.3's AMD container support while keeping the package
+# version explicit. Quadrants is bundled by genesis-world.
+COPY requirements/rocm-constraints-v1.txt /opt/rocm-constraints-v1.txt
+RUN python3 -m pip install --upgrade pip wheel \
+    && PIP_CONSTRAINT=/opt/rocm-constraints-v1.txt \
+       python3 -m pip install \
+        "numpy==1.26.4" \
+        "genesis-world==${GENESIS_VERSION}" \
+        "libigl==2.5.1" \
+        trimesh
+
+RUN git clone "${LEROBOT_REPOSITORY}" /opt/lerobot \
+    && git -C /opt/lerobot checkout --detach "${LEROBOT_REVISION}" \
+    && PIP_CONSTRAINT=/opt/rocm-constraints-v1.txt \
+       python3 -m pip install -e /opt/lerobot
+
+WORKDIR /workspace/mantis-rocm-bridge
+COPY pyproject.toml README.md ./
+COPY src ./src
+COPY configs ./configs
+COPY tools ./tools
+RUN python3 -m pip install --no-deps -e .
+
+ENV PYTHONPATH=/opt/lerobot/src:/workspace/mantis-rocm-bridge/src
+
+CMD ["/bin/bash"]

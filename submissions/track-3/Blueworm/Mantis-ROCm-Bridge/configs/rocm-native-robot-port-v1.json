@@ -1,0 +1,302 @@
+{
+  "schema_version": 1,
+  "work_package_id": "WP-ROCM-NATIVE-ROBOT-PORT-005",
+  "phase": "rocm_native_executable_robot_port_and_bounded_tuning",
+  "status": "frozen_implementation_and_execution_authorized",
+  "authorization": {
+    "provenance": "user_stated",
+    "authorized_at": "2026-07-29",
+    "scope": "Implement a ROCm-native executable robot-port compiler, validate a generated Genesis Port Spec on the current official single-GPU AMD instance, and run bounded same-device synthetic ACT-shape A/B measurements.",
+    "standing_amd_and_4090_authorization_reconfirmed_by_start": true,
+    "durable_cloud_writes_authorized": true,
+    "frozen_runtime_installation_authorized_if_required": true,
+    "public_action_authorized": false
+  },
+  "objective": "Compile a supported URDF, explicit semantic sidecar, and task pack into a deterministic executable port whose generated runner loads and steps the robot with explicit Genesis gs.amdgpu, while emitting morphology-aware ROCm tuning candidates whose performance evidence can be admitted only without numerical failure and whose ACT capability remains blocked pending the existing closed-loop quality ladder.",
+  "entry_criteria": [
+    {
+      "path": "receipts/urdf-act-compiler-terminal-20260729-v1/terminal.json",
+      "required_terminal": "COMPLETE_URDF_ACT_COMPILER_MVP_AND_219_BACKUP_VERIFIED"
+    },
+    {
+      "path": "receipts/urdf-act-compiler-terminal-20260729-v1/RECEIPT.SHA256SUMS",
+      "required_hash_verification": true,
+      "allowed_post_entry_changes": [
+        "README.md",
+        "configs/mantis-port-config.json",
+        "configs/urdf-act-compiler-mvp-v1.json",
+        "docs/EXECUTION_PLAN.md",
+        "docs/URDF_ACT_COMPILER_MVP_V1.md",
+        "src/mantis_rocm_bridge/urdf_compiler.py",
+        "tools/compile_robot_urdf.py",
+        "tests/test_urdf_compiler.py"
+      ],
+      "governance_note": "WP-004 remains immutable in its 219 archive; current source is allowed to advance to the version-2 executable bundle."
+    },
+    {
+      "path": "receipts/urdf-act-compiler-backup-219-20260729-v1/receipt.json",
+      "required_status": "complete"
+    },
+    {
+      "path": "configs/amd-persistence-layout-v2.json",
+      "required_status": "cloud_pvc_write_read_delete_verified"
+    },
+    {
+      "path": "configs/amd-cloud-runtime-v3.json",
+      "required_status": "persistence_mount_and_writability_verified",
+      "boundary": "The recreated instance still requires fresh package and GPU workload evidence."
+    }
+  ],
+  "official_reference_snapshot": {
+    "reviewed_at": "2026-07-29",
+    "genesis": {
+      "source": "https://genesis-world.readthedocs.io/en/latest/user_guide/configuration/initialization.html",
+      "required_fact": "gs.amdgpu explicitly selects an AMD ROCm GPU; gs.init is once per process"
+    },
+    "pytorch_hip": {
+      "source": "https://docs.pytorch.org/docs/main/notes/hip.html",
+      "required_fact": "PyTorch ROCm intentionally uses torch.cuda APIs and must be distinguished by non-empty torch.version.hip"
+    },
+    "rocm_pytorch": {
+      "source": "https://rocm.docs.amd.com/en/docs-7.2.3/compatibility/ml-compatibility/pytorch-compatibility.html",
+      "required_fact": "PyTorch on ROCm supports mixed precision; every candidate still requires measurement on the actual Radeon device"
+    }
+  },
+  "compiler_v2_contract": {
+    "historical_name_removed_from_current_bundle": "genesis-adapter.json",
+    "correct_name": "genesis-port-spec.json",
+    "reason": "The JSON is a declarative runtime input, not itself an executable adapter.",
+    "bundle_outputs": [
+      "embodiment-ir.json",
+      "morphology-report.json",
+      "robot-port-profile.json",
+      "genesis-port-spec.json",
+      "run-genesis-port.py",
+      "lerobot-features.json",
+      "act-training.json",
+      "rocm-runtime.json",
+      "rocm-tuning-plan.json",
+      "quality-gates.json",
+      "bundle-manifest.json"
+    ],
+    "exact_file_count": 11,
+    "deterministic": true,
+    "no_overwrite": true,
+    "source_urdf_absolute_path_persisted": false,
+    "external_urdf_embedded": false,
+    "generated_runner": {
+      "self_contained": true,
+      "requires_explicit_external_urdf_path": true,
+      "verifies_urdf_sha256_before_genesis_import": true,
+      "requires_explicit_backend": true,
+      "amd_backend": "amdgpu",
+      "amd_backend_must_not_fallback": true,
+      "fixed_base": true,
+      "minimum_operation": "load_build_map_selected_arm_dofs_step_and_emit_exclusive_receipt",
+      "controller_commands_allowed": false,
+      "rendering_required": false
+    }
+  },
+  "rocm_native_contract": {
+    "single_visible_gpu_required": true,
+    "torch_device_api": "cuda",
+    "torch_version_hip_nonempty_required": true,
+    "genesis_backend_requested": "gs.amdgpu",
+    "genesis_backend_observed_required": true,
+    "device_name_must_indicate_amd": true,
+    "persistent_entrypoint": "/workspace/persistent",
+    "persistent_entrypoint_must_resolve_to": "/persistent",
+    "project_root": "/workspace/persistent/mantis-track3",
+    "fresh_evidence_root": "/workspace/persistent/mantis-track3/evidence/wp-rocm-native-robot-port-005/20260729-v1",
+    "synthetic_fixture_for_first_runtime_proof": "tests/fixtures/urdf_compiler/bimanual7.urdf",
+    "external_mantis_asset_transfer_required": false
+  },
+  "tuning_contract": {
+    "workload": "synthetic ACT-shape PyTorch transformer and action-head compute",
+    "claim_level": "device_specific_microbenchmark_only",
+    "baseline": {
+      "precision": "fp32",
+      "same_model_weights_inputs_shapes_and_device": true
+    },
+    "candidates": [
+      {
+        "id": "amp_bfloat16",
+        "precision": "bfloat16",
+        "admit_only_if_supported": true
+      },
+      {
+        "id": "amp_float16",
+        "precision": "float16",
+        "admit_only_if_supported": true
+      }
+    ],
+    "morphology_inputs": [
+      "arm_count",
+      "dof_per_arm",
+      "policy_state_dimension",
+      "policy_action_dimension",
+      "camera_count",
+      "act_chunk_size"
+    ],
+    "measurements": [
+      "warmup_and_measured_iterations",
+      "inference_latency_ms_p50_p95_p99",
+      "inference_samples_per_second",
+      "training_step_latency_ms_p50_p95_p99",
+      "training_samples_per_second",
+      "peak_allocated_memory_bytes",
+      "output_finite",
+      "maximum_absolute_error_against_fp32",
+      "cosine_similarity_against_fp32"
+    ],
+    "microbenchmark_admission": {
+      "nonfinite_allowed": false,
+      "minimum_cosine_similarity": 0.999,
+      "maximum_absolute_error": 0.05,
+      "minimum_inference_speedup_fraction": 0.05,
+      "minimum_training_speedup_fraction": 0.05,
+      "at_least_one_speedup_metric_required": true
+    },
+    "explicit_non_claims": [
+      "The synthetic microbenchmark is not ACT training.",
+      "The synthetic microbenchmark is not learned-policy inference.",
+      "A promoted microbenchmark candidate is not ACT quality evidence.",
+      "No AMD performance advantage may be claimed without the same-device measured receipt.",
+      "No configuration may become AMD_DEPLOYABLE before the existing closed-loop gate passes."
+    ]
+  },
+  "act_quality_nonregression": {
+    "state_ladder_preserved": [
+      "URDF_ANALYZED",
+      "PORT_COMPILED",
+      "RUNTIME_PORT_VERIFIED",
+      "ROCM_TUNING_MEASURED",
+      "DATASET_ADMITTED",
+      "ACT_TRAINED",
+      "ACT_OPENLOOP_PASS",
+      "ACT_CLOSEDLOOP_PASS",
+      "AMD_DEPLOYABLE"
+    ],
+    "g3_trials": 10,
+    "g3_minimum_successes": 6,
+    "g3_maximum_safety_failures": 0,
+    "competitive_target_successes": 8,
+    "g4_trials_after_g3_pass": 30,
+    "existing_mantis_successes": 0,
+    "existing_mantis_trials": 10,
+    "existing_mantis_amd_deployable": false,
+    "microbenchmark_cannot_promote_past": "ROCM_TUNING_MEASURED"
+  },
+  "remote_execution_policy": {
+    "instance": "current official Radeon Cloud single-GPU workspace",
+    "key_runtime_paths_must_be_reverified": true,
+    "inventory_before_install": true,
+    "plain_pip_install_torch_forbidden": true,
+    "only_image_provided_rocm_wheels_if_install_needed": true,
+    "existing_gpu_processes_must_be_inspected": true,
+    "stop_any_process": false,
+    "restart_or_shutdown_instance": false,
+    "destroy_or_recreate_instance": false,
+    "training_or_learned_inference": false,
+    "data_collection_or_export": false,
+    "fresh_output_only": true,
+    "preserve_negative_evidence": true
+  },
+  "deliverables": [
+    "configs/rocm-native-robot-port-v1.json",
+    "docs/ROCM_NATIVE_ROBOT_PORT_V1.md",
+    "src/mantis_rocm_bridge/urdf_compiler.py",
+    "src/mantis_rocm_bridge/rocm_tuning.py",
+    "tools/compile_robot_urdf.py",
+    "tools/capture_rocm_port_inventory.py",
+    "tools/benchmark_rocm_act_shapes.py",
+    "tests/test_capture_rocm_port_inventory.py",
+    "tests/test_urdf_compiler.py",
+    "tests/test_rocm_tuning.py",
+    "receipts/rocm-native-robot-port-amd-20260729-v1/",
+    "receipts/rocm-native-robot-port-terminal-20260729-v1/",
+    "receipts/rocm-native-robot-port-backup-219-20260729-v1/"
+  ],
+  "runtime_immutability": {
+    "src/mantis_rocm_bridge/act_closedloop_g3.py": "01341355e9d637609ced18c94b1813174ff6288f7e4bd489afce7d1a049b6a1d",
+    "src/mantis_rocm_bridge/gripper.py": "d674ba91906bdd56a3e554f269680d4ea40fb4c34bfb9894418ad209690cf533",
+    "src/mantis_rocm_bridge/lerobot_adapter.py": "18378d8a0421ae3df5a7966b3a92af4fd8e910d236d7e51f3a764cf627483017",
+    "src/mantis_rocm_bridge/episode_export.py": "f52dd74946466e59446502af7e6707cb795127684e31c101b4fbe5334f03dcc7",
+    "src/mantis_rocm_bridge/stack_bowls.py": "40197ee302567410803cdda6967ddc982006bad02a7fbe33a0588eb40d4bfec8",
+    "src/mantis_rocm_bridge/stack_bowls_env.py": "73a4154913b4eaf31c459f04abb87dbbca6d19e6962c4bbb3c00d89a9f75d3fb",
+    "tools/run_genesis_act_closedloop_g3.py": "71d9b2176f51ffb54588413a44380a572476d141a511189ebac155d4b910cdd7",
+    "tools/run_genesis_stack_bowls_scripted_g1.py": "2290352b9d9c270d72b5ae6af3d3360e45b145a897964a8140e2b6b472a66f43"
+  },
+  "acceptance_matrix": [
+    {
+      "check": "terminology",
+      "expected": "The current generated bundle contains genesis-port-spec.json and no genesis-adapter.json."
+    },
+    {
+      "check": "executable_runner",
+      "expected": "The generated runner verifies URDF hash, requires an explicit backend, refuses fallback, publishes an exclusive receipt, and contains no controller command path."
+    },
+    {
+      "check": "bundle_integrity",
+      "expected": "The exact eleven-file bundle is deterministic, non-overwriting, and internally SHA-256 verified."
+    },
+    {
+      "check": "rocm_tuning_contract",
+      "expected": "The morphology-aware plan emits a same-device fp32 baseline and conditional bf16/fp16 candidates with explicit numerical and speed gates."
+    },
+    {
+      "check": "local_focused_tests",
+      "expected": "All compiler-v2 and tuning tests pass, including malformed result, unsupported precision, no-overwrite, tamper, and nonfinite counterexamples."
+    },
+    {
+      "check": "runtime_immutability",
+      "expected": "All eight pinned production runtime hashes remain unchanged."
+    },
+    {
+      "check": "existing_contracts_and_regression",
+      "expected": "Contract validation remains valid; only the same two historical source-pin sentinels may fail."
+    },
+    {
+      "check": "fresh_amd_runtime",
+      "expected": "Current-instance persistence, one Radeon device, torch.version.hip, wheel/package inventory, and no-conflicting-process checks are recorded."
+    },
+    {
+      "check": "generated_gs_amdgpu_port",
+      "expected": "The generated bimanual fixture runner requests amdgpu, observes the AMD backend, maps fourteen distinct arm DOFs, steps a headless scene, and emits a verified receipt."
+    },
+    {
+      "check": "same_device_ab",
+      "expected": "The current Radeon worker records fp32 and supported AMP candidates with latency, throughput, memory, finiteness, and numerical comparison; promotion may be negative."
+    },
+    {
+      "check": "quality_boundary",
+      "expected": "No microbenchmark result advances ACT quality, changes the 6/10 zero-safety gate, or marks AMD_DEPLOYABLE."
+    },
+    {
+      "check": "219_backup",
+      "expected": "Versioned source, local/AMD receipts, and terminal evidence verify locally and independently on 219 without external robot assets or credentials."
+    }
+  ],
+  "forbidden_actions": [
+    "modify_existing_mantis_controller_or_safety_behavior",
+    "claim_generated_runtime_from_static_json_only",
+    "claim_act_accuracy_from_synthetic_microbenchmark",
+    "claim_amd_advantage_without_same_device_measurement",
+    "unconstrained_pip_install_torch",
+    "collect_or_export_training_data",
+    "train_or_run_learned_policy_inference",
+    "stop_process",
+    "restart_shutdown_destroy_or_recreate_instance",
+    "persist_credentials",
+    "transfer_external_mantis_source_asset",
+    "commit_push_submit_pr_or_publish"
+  ],
+  "terminal_statuses": {
+    "complete": "COMPLETE_ROCM_NATIVE_EXECUTABLE_PORT_AND_BOUNDED_TUNING_VERIFIED",
+    "complete_negative_tuning": "COMPLETE_ROCM_NATIVE_PORT_TUNING_NOT_PROMOTABLE",
+    "blocked": "BLOCKED_ROCM_NATIVE_PORT_BY_CURRENT_AMD_RUNTIME",
+    "failed": "FAILED_ROCM_NATIVE_PORT_EVIDENCE_GATE"
+  },
+  "next_phase": "WP-ACT-ROCM-ACCURACY-PARITY-006",
+  "claim_boundary": "This phase may prove an executable generated port on the current single-GPU Radeon worker and a same-device synthetic ACT-shape performance comparison. It cannot prove a second real robot runtime port, official ACT training, learned-policy inference, closed-loop task accuracy, performance portability to other AMD devices, public asset rights, clean-room reproduction, submission, Pull Request, publication, or competition acceptance."
+}

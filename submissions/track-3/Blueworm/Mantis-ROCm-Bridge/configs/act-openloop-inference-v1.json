@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "gate_id": "mantis_act_openloop_inference_v1",
+  "task_id": "stack_bowls_three",
+  "protocol": "competition_strict_v1",
+  "phase": "open_loop_inference_gate",
+  "training_id": "mantis_stack_bowls_act_rocm_v2",
+  "training_contract": "configs/act-rocm-baseline-v2.json",
+  "interface_contract": "configs/mantis-lerobot-interface-v1.json",
+  "port_config": "configs/mantis-port-config.json",
+  "fixed_joint_limit_source": "configs/fixed-base-plan.json",
+  "robot_type": "mantis",
+  "framework": "LeRobot",
+  "policy_type": "act",
+  "sample_phase": "first_mid_last",
+  "sampling": {
+    "episodes": 4,
+    "samples_per_episode": 3,
+    "expected_distinct_samples": 12,
+    "offset_rule": "first (0), midpoint (length // 2), last (length - 1), deduplicated within an episode",
+    "episode_indexing": "0-based contiguous from info.json total_episodes"
+  },
+  "dimensions": {
+    "state_dimension": 16,
+    "action_dimension": 16,
+    "physical_joint_count": 18
+  },
+  "policy": {
+    "chunk_size": 30,
+    "n_action_steps": 30,
+    "n_obs_steps": 1,
+    "normalization": "MEAN_STD"
+  },
+  "policy_output": {
+    "kind": "absolute_joint_position_target",
+    "control_hz": 30,
+    "not_delta_action": true,
+    "units": "radians for revolute joints, meters for prismatic clamp joints"
+  },
+  "image_features": {
+    "observation.images.env_cam": [3, 240, 320],
+    "observation.images.left_wrist_cam": [3, 240, 424],
+    "observation.images.right_wrist_cam": [3, 240, 424]
+  },
+  "camera_features_hwc": {
+    "observation.images.env_cam": [240, 320, 3],
+    "observation.images.left_wrist_cam": [240, 424, 3],
+    "observation.images.right_wrist_cam": [240, 424, 3]
+  },
+  "expected_image_value_range": [0.0, 1.0],
+  "gripper_contract": {
+    "version": "v2",
+    "virtual_convention": {"0": "closed", "1": "open"},
+    "hardware_mapping_status": "sim_verified_hardware_unverified",
+    "allow_unverified_only_for": "genesis_simulation_projection",
+    "expansion_function": "mantis_rocm_bridge.gripper.virtual_to_physical",
+    "simulation_only": true,
+    "no_action_sent_to_genesis_or_hardware": true
+  },
+  "saved_processor_requirements": {
+    "pretrained_model_dir": "pretrained_model",
+    "required_files": [
+      "pretrained_model/config.json",
+      "pretrained_model/model.safetensors",
+      "pretrained_model/policy_preprocessor.json",
+      "pretrained_model/policy_preprocessor_step_3_normalizer_processor.safetensors",
+      "pretrained_model/policy_postprocessor.json",
+      "pretrained_model/policy_postprocessor_step_0_unnormalizer_processor.safetensors"
+    ],
+    "must_use_saved_processors": true,
+    "must_not_recompute_normalization_statistics": true,
+    "processor_loader": "lerobot.policies.factory.make_pre_post_processors(policy_cfg=policy.config, pretrained_path=<local pretrained_model directory>); loads the saved checkpoint processors only; dataset normalization statistics are never recomputed and there is no fallback"
+  },
+  "offline_flags": {
+    "HF_HUB_OFFLINE": "1",
+    "HF_DATASETS_OFFLINE": "1",
+    "TRANSFORMERS_OFFLINE": "1"
+  },
+  "required_runtime_identity": {
+    "lerobot_version": "0.4.4",
+    "policy_device": "cuda",
+    "policy_device_index": "cuda:0",
+    "policy_device_semantics": "ROCm-enabled PyTorch exposes the single AMD Radeon HIP device through the torch.cuda API; cuda:0 is a non-null HIP runtime backed by an AMD Radeon device.",
+    "hip_device_count": 1
+  },
+  "inference": {
+    "context_manager": "torch.inference_mode",
+    "reset_policy_state_between_samples": true,
+    "cuda_synchronization_for_timing": true,
+    "one_action_step_per_sample": true
+  },
+  "descriptive_only_measurements": {
+    "latency_ms": true,
+    "gpu_utilization": true,
+    "action_to_demonstration_error": true,
+    "never_a_pass_threshold": true,
+    "never_a_comparative_performance_claim": true
+  },
+  "output_artifacts": [
+    "started.json",
+    "actions.jsonl",
+    "receipt.json",
+    "status",
+    "SHA256SUMS"
+  ],
+  "output_publication": {
+    "exclusive_no_overwrite": true,
+    "output_directory_must_not_exist": true,
+    "fail_closed_preserves_failed_receipt_and_status": true
+  },
+  "claim_boundary": {
+    "open_loop_interoperability_only": true,
+    "proves_policy_convergence": false,
+    "proves_closed_loop_control": false,
+    "proves_task_success": false,
+    "proves_generalization": false,
+    "proves_robustness": false,
+    "proves_real_robot_safety": false,
+    "proves_amd_performance_advantage": false,
+    "statement": "A passing open-loop inference receipt proves only that the frozen ACT checkpoint, its saved LeRobot 0.4.4 pre/post processors, the audited Mantis three-camera observation contract, the 16D-to-18D simulation action expansion through gripper contract v2, the 18 fixed-base physical joint limits, and the official single AMD Radeon ROCm runtime interoperate in open loop. It does not prove policy convergence, closed-loop control, grasping, stacking, task success, generalization, robustness, real-robot safety, or an AMD performance advantage."
+  }
+}

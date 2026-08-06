@@ -1,0 +1,141 @@
+{
+  "schema_version": 2,
+  "runtime_id": "radeon-cloud-persistence-recovery-20260729-v2",
+  "status": "persistence_contract_frozen_cloud_unverified",
+  "last_reviewed_at": "2026-07-29",
+  "supersedes_for_future_recovery": "configs/amd-cloud-runtime-v1.json",
+  "persistence_layout_contract": "configs/amd-persistence-layout-v1.json",
+  "source": {
+    "historical_runtime_contract": "configs/amd-cloud-runtime-v1.json",
+    "persistence_notice_classification": "user_stated",
+    "persistence_notice": "The durable storage directory is /workspace/persistence.",
+    "training_index": "https://xcnm8tq2cqpm.feishu.cn/wiki/O5CrwNhHRiQBC2kv46xclCBynPd?from=from_copylink",
+    "course": "https://wcnlc0kde55u.feishu.cn/wiki/RhopwFoHMi4dEykTQKucXZwBnag?from=from_copylink",
+    "faq": "https://xcnm8tq2cqpm.feishu.cn/wiki/D9jVwO1xhimZIKklyAqcy6wEnIf?from=from_copylink"
+  },
+  "platform": {
+    "portal": "https://radeon-global.anruicloud.com/",
+    "planned_template": "resolve_current_official_template_before_provisioning",
+    "actual_template": null,
+    "persistent_storage": "PVC",
+    "persistent_root": "/workspace/persistence",
+    "project_root": "/workspace/persistence/mantis-track3",
+    "virtual_environment": "/workspace/persistence/mantis-track3/envs/rdna",
+    "required_visible_gpu_count": 1,
+    "expected_gpu_family": "AMD Radeon",
+    "instance_creation_attempted": false,
+    "mount_verification_required": true
+  },
+  "pytorch": {
+    "rocm_version": "7.2.1",
+    "torch_version": "2.9.1",
+    "torchvision_version": "0.24.0",
+    "torchaudio_version": "2.9.0",
+    "triton_version": "3.5.1",
+    "instance_wheel_globs": [
+      "/torch-2.9.1+rocm7.2.1*.whl",
+      "/torchvision-0.24.0+rocm7.2.1*.whl",
+      "/torchaudio-2.9.0+rocm7.2.1*.whl",
+      "/triton-3.5.1+rocm7.2.1*.whl"
+    ],
+    "installation_policy": "reinventory_then_install_only_instance_provided_rocm_wheels",
+    "plain_pip_install_torch_forbidden": true,
+    "historical_version_target_requires_fresh_inventory": true
+  },
+  "genesis": {
+    "repository": "https://github.com/Genesis-Embodied-AI/Genesis.git",
+    "revision_policy": "resolve_and_record_current_main_revision_at_install",
+    "install_method": "depth_1_clone_then_local_pip_install",
+    "install_root": "/workspace/persistence/mantis-track3/src/Genesis",
+    "backend": "gs.amdgpu"
+  },
+  "stage2": {
+    "enabled": true,
+    "genesis_install": {
+      "repository": "https://github.com/Genesis-Embodied-AI/Genesis.git",
+      "install_root": "/workspace/persistence/mantis-track3/src/Genesis",
+      "method": "local_editable_install",
+      "clone_depth": 1,
+      "require_clean_repo": true
+    },
+    "lerobot": {
+      "version": "0.4.4",
+      "install_method": "pypi_install_with_constraints"
+    },
+    "model_dependencies": [
+      "transformers",
+      "accelerate",
+      "safetensors",
+      "matplotlib",
+      "Pillow",
+      "jupyter",
+      "nbconvert",
+      "ipykernel",
+      "num2words",
+      "modelscope",
+      "scikit-image>=0.22"
+    ],
+    "accelerator_constraints": {
+      "protected_packages": {
+        "torch": "2.9.1",
+        "torchvision": "0.24.0",
+        "torchaudio": "2.9.0",
+        "triton": "3.5.1",
+        "numpy": "2.1.2"
+      },
+      "forbidden_network_patterns": [
+        "cuda.*=.*1",
+        "torch.*cu[0-9]",
+        "torch.*cuda"
+      ]
+    }
+  },
+  "lerobot": {
+    "version": "0.4.4",
+    "local_development_version": "0.4.2",
+    "compatibility_status": "awaiting_cloud_runtime_validation",
+    "required_model_dependencies": [
+      "transformers",
+      "accelerate",
+      "safetensors",
+      "matplotlib",
+      "Pillow",
+      "jupyter",
+      "nbconvert",
+      "ipykernel",
+      "num2words",
+      "modelscope"
+    ]
+  },
+  "numeric_and_video_stack": {
+    "numpy_version": "2.1.2",
+    "scikit_image_constraint": ">=0.22",
+    "ffmpeg_required": true,
+    "torchcodec_setup_script_required": true,
+    "torchcodec_gpu_claim": "CPU-only video decoding does not change the AMD GPU training and inference requirement."
+  },
+  "persistent_cache_environment": {
+    "HF_HOME": "/workspace/persistence/mantis-track3/cache/huggingface",
+    "HF_LEROBOT_HOME": "/workspace/persistence/mantis-track3/cache/huggingface/lerobot",
+    "MODELSCOPE_CACHE": "/workspace/persistence/mantis-track3/cache/modelscope"
+  },
+  "required_receipts_before_promotion": [
+    "persistence_mount_and_writability",
+    "persistence_layout_contract",
+    "instance_wheel_names_and_sha256",
+    "python_and_pip_versions",
+    "pip_freeze",
+    "rocminfo_summary",
+    "amd_smi_summary",
+    "torch_version",
+    "torch_hip_version",
+    "visible_device_name_and_count",
+    "genesis_revision_and_gs_amdgpu_smoke",
+    "lerobot_0_4_4_import_and_mantis_adapter_smoke",
+    "numpy_and_scikit_image_versions",
+    "ffmpeg_and_torchcodec_import",
+    "project_contract_and_unit_test_results",
+    "off_host_backup_plan"
+  ],
+  "claim_boundary": "This v2 contract freezes a future recovery layout under /workspace/persistence only. No new cloud instance, mount, image inventory, ROCm runtime, Genesis smoke, dataset restore, training, inference, evaluation, or off-host backup has been verified. This is not AMD execution evidence."
+}

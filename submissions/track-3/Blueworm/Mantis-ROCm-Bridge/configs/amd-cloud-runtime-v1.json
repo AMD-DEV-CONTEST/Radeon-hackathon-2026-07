@@ -1,0 +1,191 @@
+{
+  "schema_version": 1,
+  "runtime_id": "radeon-cloud-proxy-rocm721-20260723-v1",
+  "status": "stage2_runtime_verified",
+  "last_reviewed_at": "2026-07-25",
+  "source": {
+    "training_index": "https://xcnm8tq2cqpm.feishu.cn/wiki/O5CrwNhHRiQBC2kv46xclCBynPd?from=from_copylink",
+    "course": "https://wcnlc0kde55u.feishu.cn/wiki/RhopwFoHMi4dEykTQKucXZwBnag?from=from_copylink",
+    "faq": "https://xcnm8tq2cqpm.feishu.cn/wiki/D9jVwO1xhimZIKklyAqcy6wEnIf?from=from_copylink"
+  },
+  "platform": {
+    "portal": "https://radeon-global.anruicloud.com/",
+    "planned_template": "proxy",
+    "actual_template": "blank_opencode_workspace_from_gallery",
+    "template_divergence_note": "On 2026-07-25 the official 'proxy' template was no longer present in the Gallery; the actual instance was launched from the 'Blank OpenCode Workspace' template instead. The planned 'proxy' value is retained only for traceability of the original plan and does not match what was actually launched.",
+    "persistent_storage": "PVC",
+    "persistent_root": "/workspace",
+    "virtual_environment": "/workspace/rdna",
+    "required_visible_gpu_count": 1,
+    "expected_gpu_family": "AMD Radeon",
+    "instance_creation_attempted": true,
+    "stage0_note": "Stage 0 inventory was verified on 2026-07-25 on the launched instance. Stage 1 (create /workspace/rdna venv and install the official ROCm wheels) and stage 2 (Genesis / LeRobot) were executed and verified on the same instance. See receipts/amd-promotion-20260725-v1/ for complete evidence."
+  },
+  "stage0_inventory": {
+    "schema_version": 1,
+    "verified_at": "2026-07-25",
+    "instance_id": "u-11422-e97d3fd5",
+    "actual_template": "Blank OpenCode Workspace (launched from Gallery)",
+    "gpu": {
+      "count": 1,
+      "family": "AMD Radeon",
+      "arch": "gfx1100",
+      "name": "gfx1100 AMD Radeon Graphics",
+      "vram_bytes": 51522830336,
+      "uuid_recorded": false,
+      "uuid_note": "No GPU UUID is recorded; only the count, family, arch, name, and VRAM size."
+    },
+    "rocm_version": "7.2.1",
+    "amd_smi_version": "26.2.2",
+    "python_version": "3.12.3",
+    "pip_version": "24.0",
+    "persistent_root": "/workspace",
+    "official_wheels": {
+      "apex": {
+        "path": "/apex-1.9.0+rocm7.2.1.git355db9b8-cp312-cp312-linux_x86_64.whl",
+        "sha256": "ac3b8f3ab8f95ac2ecf8943148451f25d21fcbaae0504a98a6e74509eb52d11d",
+        "part_of_stage1_install": false
+      },
+      "torch": {
+        "path": "/torch-2.9.1+rocm7.2.1.lw.gitff65f5bc-cp312-cp312-linux_x86_64.whl",
+        "sha256": "5a47e74d991a91985f4546c6336bd10caee7b80380d2dd365bcae9aa77b51920",
+        "part_of_stage1_install": true
+      },
+      "torchaudio": {
+        "path": "/torchaudio-2.9.0+rocm7.2.1.gite3c6ee2b-cp312-cp312-linux_x86_64.whl",
+        "sha256": "2b59b88b31a47faef823af1004dcb8950a7b435b953959f5096f7b857746ff51",
+        "part_of_stage1_install": true
+      },
+      "torchvision": {
+        "path": "/torchvision-0.24.0+rocm7.2.1.gitb919bd0c-cp312-cp312-linux_x86_64.whl",
+        "sha256": "c3debf2074570d3698aacb185e2ad9ca10a039361db580ab63f301e78c485c96",
+        "part_of_stage1_install": true
+      },
+      "triton": {
+        "path": "/triton-3.5.1+rocm7.2.1.gita272dfa8-cp312-cp312-linux_x86_64.whl",
+        "sha256": "fad31a22feacc46da10bd31dd0ea7f4da2331603ad1a68d4c89d20ceaae2cfbd",
+        "part_of_stage1_install": true
+      }
+    },
+    "secret_free_note": "No account email, API token, password, or GPU UUID is recorded here. Only the non-secret inventory needed to reproduce stage 1."
+  },
+  "pytorch": {
+    "rocm_version": "7.2.1",
+    "torch_version": "2.9.1",
+    "torchvision_version": "0.24.0",
+    "torchaudio_version": "2.9.0",
+    "triton_version": "3.5.1",
+    "instance_wheel_globs": [
+      "/torch-2.9.1+rocm7.2.1*.whl",
+      "/torchvision-0.24.0+rocm7.2.1*.whl",
+      "/torchaudio-2.9.0+rocm7.2.1*.whl",
+      "/triton-3.5.1+rocm7.2.1*.whl"
+    ],
+    "installation_policy": "install_only_instance_provided_rocm_wheels",
+    "plain_pip_install_torch_forbidden": true
+  },
+  "genesis": {
+    "repository": "https://github.com/Genesis-Embodied-AI/Genesis.git",
+    "revision_policy": "resolve_and_record_current_main_revision_at_install",
+    "install_method": "depth_1_clone_then_local_pip_install",
+    "install_root": "/workspace/Genesis",
+    "backend": "gs.amdgpu"
+  },
+  "stage2": {
+    "enabled": true,
+    "genesis_install": {
+      "repository": "https://github.com/Genesis-Embodied-AI/Genesis.git",
+      "install_root": "/workspace/Genesis",
+      "method": "local_editable_install",
+      "clone_depth": 1,
+      "require_clean_repo": true
+    },
+    "lerobot": {
+      "version": "0.4.4",
+      "install_method": "pypi_install_with_constraints"
+    },
+    "model_dependencies": [
+      "transformers",
+      "accelerate",
+      "safetensors",
+      "matplotlib",
+      "Pillow",
+      "jupyter",
+      "nbconvert",
+      "ipykernel",
+      "num2words",
+      "modelscope",
+      "scikit-image>=0.22"
+    ],
+    "accelerator_constraints": {
+      "protected_packages": {
+        "torch": "2.9.1",
+        "torchvision": "0.24.0",
+        "torchaudio": "2.9.0",
+        "triton": "3.5.1",
+        "numpy": "2.1.2"
+      },
+      "forbidden_network_patterns": [
+        "cuda.*=.*1",
+        "torch.*cu[0-9]",
+        "torch.*cuda"
+      ]
+    },
+    "smoke_tests": {
+      "torch_hip_available": true,
+      "device_count_equals_1": true,
+      "genesis_import_success": true,
+      "genesis_amdgpu_backend_available": true,
+      "genesis_scene_smoke_pass": true,
+      "lerobot_version_matches_target": true,
+      "numpy_version_matches_target": true,
+      "scikit_image_available": true,
+      "ffmpeg_available": true
+    }
+  },
+  "lerobot": {
+    "version": "0.4.4",
+    "local_development_version": "0.4.2",
+    "compatibility_status": "stage2_import_and_version_verified",
+    "required_model_dependencies": [
+      "transformers",
+      "accelerate",
+      "safetensors",
+      "matplotlib",
+      "Pillow",
+      "jupyter",
+      "nbconvert",
+      "ipykernel",
+      "num2words",
+      "modelscope"
+    ]
+  },
+  "numeric_and_video_stack": {
+    "numpy_version": "2.1.2",
+    "scikit_image_constraint": ">=0.22",
+    "ffmpeg_required": true,
+    "torchcodec_setup_script_required": true,
+    "torchcodec_gpu_claim": "CPU-only video decoding does not change the AMD GPU training and inference requirement."
+  },
+  "persistent_cache_environment": {
+    "HF_HOME": "/workspace/cache/huggingface",
+    "HF_LEROBOT_HOME": "/workspace/cache/huggingface/lerobot",
+    "MODELSCOPE_CACHE": "/workspace/cache/modelscope"
+  },
+  "required_receipts_before_promotion": [
+    "instance_wheel_names_and_sha256",
+    "python_and_pip_versions",
+    "pip_freeze",
+    "rocminfo_summary",
+    "amd_smi_summary",
+    "torch_version",
+    "torch_hip_version",
+    "visible_device_name_and_count",
+    "genesis_revision_and_gs_amdgpu_smoke",
+    "lerobot_0_4_4_import_and_mantis_adapter_smoke",
+    "numpy_and_scikit_image_versions",
+    "ffmpeg_and_torchcodec_import",
+    "project_contract_and_unit_test_results"
+  ],
+  "claim_boundary": "Stage 0 inventory, Stage 1 (ROCm wheel installation and torch HIP smoke), and Stage 2 (Genesis 1.2.3 at commit 2a40c87ad4e89a0f115cc43fb45195a8260aad0e, LeRobot 0.4.4, gs.amdgpu scene smoke, and ffmpeg availability) were verified on 2026-07-25 on the single-GPU Radeon instance. This is runtime availability only. Mantis adapter, dataset, 16D virtual gripper, training convergence, closed-loop inference, and multi-seed evaluation require separate immutable receipts. Do not claim training, inference, or evaluation from Stage 1/2 receipts alone."
+}

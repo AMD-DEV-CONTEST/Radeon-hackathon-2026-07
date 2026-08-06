@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "work_package_id": "WP-ACT-EXPERT-RIGHT-SOURCE-PREGRASP-013",
+  "date": "2026-07-30",
+  "status": "frozen_ready_for_code_gate",
+  "objective": "Test whether a high-clearance Cartesian right source-to-pregrasp path removes seed 101's nonselected-bowl contact without regressing the same-pattern seed 106 control.",
+  "baseline_evidence": {
+    "exact_g3_terminal_manifest_sha256": "3585d20af6a4fe0181617cf4cd3ba0ba40aeb4b6236575d2049f1722b448cb48",
+    "seed_101_failure": "safety failure during bowl1:candidate_0_pregrasp: right_clamp_right_link contacted nonselected bowl2",
+    "seed_106_control": "baseline source approach completed; replay later failed at bowl1 placement XY",
+    "accepted_left_source_dynamic_manifest_sha256": "7b93c8de0cf42ac29d73de3b46ff9e073ea1065d73a6d4a507d46220acbe1079"
+  },
+  "single_control_variable": {
+    "name": "right_source_to_candidate_pregrasp_path",
+    "baseline": "baseline_single_joint_segment_v1",
+    "candidate": "high_clearance_cartesian_then_descent_v1",
+    "candidate_definition": "Within the unchanged single 0.5-second pregrasp command, solve four Cartesian waypoints from front clearance to candidate pregrasp XY at unchanged front-clearance Z, then four vertical-descent waypoints to the unchanged candidate pregrasp pose.",
+    "unchanged": [
+      "source reset, side assignment, candidate tuples, candidate search order, and candidate index semantics",
+      "front-clearance and candidate-pregrasp endpoints and right TCP orientation",
+      "one pregrasp command and its 0.5-second duration",
+      "candidate approach, close, contact requirement, fallback, lift, transport, placement, release, retreat, and success behavior",
+      "IK solver, tolerances, safety rules, collision geometry, clocks, assets, and task horizon",
+      "left-arm behavior"
+    ]
+  },
+  "route": {
+    "waypoints_per_segment": 4,
+    "segments_in_order": [
+      "high_clearance_cartesian",
+      "vertical_descent"
+    ],
+    "command_segment_count": 1,
+    "command_duration_s": 0.5
+  },
+  "panel": {
+    "seeds_in_order": [
+      101,
+      106
+    ],
+    "roles": {
+      "101": "target",
+      "106": "control"
+    },
+    "patterns": {
+      "101": [
+        "right",
+        "right",
+        "left"
+      ],
+      "106": [
+        "right",
+        "right",
+        "left"
+      ]
+    }
+  },
+  "execution": {
+    "backend": "cpu",
+    "cuda_visible_devices": "",
+    "probe_then_conditional_replay": true,
+    "probe_max_policy_steps": 2400,
+    "replay_max_policy_steps": 1200,
+    "capture": false,
+    "retry_count": 0,
+    "parallel_seed_count": 1
+  },
+  "acceptance": {
+    "seed_101_probe_plan_required": true,
+    "seed_101_strict_replay_success_required": true,
+    "seed_106_must_complete_right_source_pregrasp_and_contact": true,
+    "seed_106_may_retain_its_known_downstream_placement_xy_failure": true,
+    "maximum_source_pregrasp_safety_failures": 0,
+    "maximum_capture_artifacts": 0
+  },
+  "downstream_policy": {
+    "accepted_terminal_action": "Combine with the separately accepted left source route only in a fresh isolated candidate, then address replay contact, placement XY, and task-horizon failures independently.",
+    "rejected_terminal_action": "Preserve the result and return to right-source path geometry; do not change safety rules or ignore nonselected-bowl contact."
+  },
+  "forbidden": [
+    "modify or overwrite remote v131 or v135",
+    "change a second controller, safety, timing, tolerance, candidate, geometry, placement, or horizon variable",
+    "capture, export, collect, train, retry, or replace a panel seed",
+    "stop or modify another user's process",
+    "submit, create a pull request, contact an external party, or publish"
+  ],
+  "claim_boundary": "Isolated scripted-expert right source-pregrasp path panel only; not ten-seed expert, dataset, ACT, learned-policy, AMD/ROCm, competition-score, hardware, or real-robot evidence."
+}

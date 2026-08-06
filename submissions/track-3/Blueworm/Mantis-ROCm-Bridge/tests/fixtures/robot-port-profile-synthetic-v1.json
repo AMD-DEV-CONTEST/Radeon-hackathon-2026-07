@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "profile_id": "synthetic-four-joint-port-v1",
+  "profile_kind": "synthetic_fixture",
+  "description": "Validation-only four-joint fixture for deterministic profile and planning tests.",
+  "port_mode": "new_robot_same_task",
+  "source": {
+    "robot_id": "synthetic-source",
+    "task_id": "synthetic-transfer",
+    "simulator": "synthetic-sim-a",
+    "policy_state_dimension": 4,
+    "policy_action_dimension": 4,
+    "physical_state_dimension": 4,
+    "physical_action_dimension": 4,
+    "policy_state_order": [
+      "source_axis_0",
+      "source_axis_1",
+      "source_axis_2",
+      "source_gripper"
+    ],
+    "policy_action_order": [
+      "source_axis_0",
+      "source_axis_1",
+      "source_axis_2",
+      "source_gripper"
+    ],
+    "physical_state_order": [
+      "source_axis_0",
+      "source_axis_1",
+      "source_axis_2",
+      "source_gripper"
+    ],
+    "physical_action_order": [
+      "source_axis_0",
+      "source_axis_1",
+      "source_axis_2",
+      "source_gripper"
+    ],
+    "observation_keys": [
+      "observation.state",
+      "observation.images.overhead"
+    ],
+    "camera_roles": [
+      "overhead"
+    ],
+    "control_hz": 20,
+    "action_representation": "absolute-joint-position"
+  },
+  "target": {
+    "robot_id": "synthetic-target",
+    "task_id": "synthetic-transfer",
+    "simulator": "synthetic-sim-b",
+    "policy_state_dimension": 4,
+    "policy_action_dimension": 4,
+    "physical_state_dimension": 4,
+    "physical_action_dimension": 4,
+    "policy_state_order": [
+      "target_axis_0",
+      "target_axis_1",
+      "target_axis_2",
+      "target_gripper"
+    ],
+    "policy_action_order": [
+      "target_axis_0",
+      "target_axis_1",
+      "target_axis_2",
+      "target_gripper"
+    ],
+    "physical_state_order": [
+      "target_axis_0",
+      "target_axis_1",
+      "target_axis_2",
+      "target_gripper"
+    ],
+    "physical_action_order": [
+      "target_axis_0",
+      "target_axis_1",
+      "target_axis_2",
+      "target_gripper"
+    ],
+    "observation_keys": [
+      "observation.state",
+      "observation.images.overhead"
+    ],
+    "camera_roles": [
+      "overhead"
+    ],
+    "control_hz": 10,
+    "action_representation": "absolute-joint-position"
+  },
+  "adapters": {
+    "joint_mapping_ref": null,
+    "state_adapter_ref": null,
+    "action_adapter_ref": null,
+    "gripper_adapter_ref": null,
+    "camera_map_ref": null,
+    "control_resampling_ref": null
+  },
+  "controller": {
+    "source_type": "fixture-position-controller",
+    "target_type": "fixture-position-controller",
+    "command_semantics": "Fixture-only absolute position commands with no executor.",
+    "target_control_contract_ref": null
+  },
+  "safety": {
+    "contract_ref": null,
+    "admission_rule": "Fixture structure only; no physical or simulated safety claim.",
+    "zero_violation_required": true
+  },
+  "data": {
+    "dataset_format": "fixture-only",
+    "export_contract_ref": null,
+    "admission_contract_ref": null
+  },
+  "policy": {
+    "family": "fixture-only",
+    "training_contract_ref": null,
+    "openloop_contract_ref": null,
+    "closedloop_contract_ref": null,
+    "hardware_runtime_ref": null
+  },
+  "evaluation": {
+    "protocol_ref": null,
+    "case_ids": [],
+    "minimum_success_fraction": 1.0,
+    "recorded_successes": null,
+    "recorded_trials": null,
+    "outcome_evidence_ref": null
+  },
+  "task": {
+    "task_id": "synthetic-transfer",
+    "same_task_required": true,
+    "source_contract_ref": null,
+    "target_contract_ref": null,
+    "success_protocol": "Fixture-only protocol: the declared stage graph validates and produces one deterministic next stage."
+  },
+  "runtime": {
+    "primary_simulator": "synthetic-sim-b",
+    "primary_backend": "fixture-only",
+    "amd_rocm_required": false,
+    "amd_runtime_contract_ref": null,
+    "persistent_root": "not-used-by-fixture"
+  },
+  "assets": {
+    "strategy": "synthetic",
+    "robot_asset_redistributable": true,
+    "asset_refs": []
+  },
+  "references": [],
+  "blockers": [],
+  "stages": [
+    {
+      "id": "source-audit",
+      "label": "Synthetic source audit",
+      "state": "complete",
+      "outcome": "pass",
+      "promotion": "allows_downstream",
+      "depends_on": [],
+      "blocker_ids": [],
+      "evidence_refs": [],
+      "claim_boundary": "Pass means the fixture has internally consistent source fields only."
+    },
+    {
+      "id": "target-profile",
+      "label": "Synthetic target profile",
+      "state": "complete",
+      "outcome": "pass",
+      "promotion": "allows_downstream",
+      "depends_on": [
+        "source-audit"
+      ],
+      "blocker_ids": [],
+      "evidence_refs": [],
+      "claim_boundary": "Pass means the fixture has internally consistent target fields only."
+    },
+    {
+      "id": "interface-contract",
+      "label": "Synthetic interface contract",
+      "state": "ready",
+      "outcome": "not_run",
+      "promotion": "pending",
+      "depends_on": [
+        "source-audit",
+        "target-profile"
+      ],
+      "blocker_ids": [],
+      "evidence_refs": [],
+      "claim_boundary": "Ready proves planner graph behavior only; it does not prove adapter or runtime execution."
+    }
+  ],
+  "claim_boundary": "This synthetic fixture proves only that non-Mantis identifiers, dimensions, and stage graphs are configurable and auditable. It is not a second real robot port or runtime validation."
+}

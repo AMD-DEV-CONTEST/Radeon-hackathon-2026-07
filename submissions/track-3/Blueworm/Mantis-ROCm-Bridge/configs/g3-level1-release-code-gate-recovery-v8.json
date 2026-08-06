@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "recovery_id": "mantis-g3-level1-release-code-gate-recovery-20260728-v8",
+  "work_package_id": "WP-G3-CORR-011A",
+  "planning_contract": "configs/g3-level1-release-observability-v6.json",
+  "planning_contract_sha256": "d8fb51d9f61df8f83eee07b0dc68820c8d507a80570ff71b75fcd6462abb64de",
+  "execution_authorization": "configs/g3-level1-release-execution-authorization-v7.json",
+  "execution_authorization_sha256": "88ee981f22d39e8c4282619d9320bc50ac592aa41c5230c79d1ba8584c1dab30",
+  "failed_gate_root": "/data01/suzw_data/tron/amd_track3/ops/mantis-g3-level1-release-diagnosis-code-gate-20260728-v6",
+  "failed_gate_status": "FAILED",
+  "failed_gate_reason": "The focused unittest command addressed tests.test_g3_level1_release_observability_v6 as an importable package module, but the v125-derived remote tree does not contain tests/__init__.py. Source allowlist, py_compile, bash syntax, and contract validation had already passed.",
+  "replacement_gate_root": "/data01/suzw_data/tron/amd_track3/ops/mantis-g3-level1-release-diagnosis-code-gate-20260728-v7",
+  "focused_test_command_change": {
+    "from": "PYTHONPATH=src python -m unittest tests.test_g3_level1_release_observability_v6 -v",
+    "to": "PYTHONPATH=src python -m unittest discover -s tests -p test_g3_level1_release_observability_v6.py -v"
+  },
+  "evidence_hygiene_changes": [
+    "Set PYTHONDONTWRITEBYTECODE=1 for Python validation and unittest commands.",
+    "Use built-in compile(source, filename, 'exec') for syntax validation so the candidate tree receives no py_compile output.",
+    "Repeat the exact v125-to-staging source allowlist after every gate command."
+  ],
+  "source_candidate_unchanged": true,
+  "controller_change": false,
+  "capture_change": false,
+  "seed_change": false,
+  "claim_boundary": "This overlay authorizes only a fresh rerun of the same v126 staging code gate with a corrected unittest discovery command. It does not erase the failed v6 gate or authorize Genesis execution unless the replacement v7 gate is accepted."
+}

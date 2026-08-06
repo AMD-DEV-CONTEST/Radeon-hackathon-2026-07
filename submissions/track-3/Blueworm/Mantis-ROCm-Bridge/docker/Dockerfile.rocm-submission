@@ -1,0 +1,59 @@
+ARG BASE_IMAGE=rocm/pytorch:rocm7.2.4_ubuntu24.04_py3.12_pytorch_release_2.9.1
+FROM ${BASE_IMAGE}
+
+ARG GENESIS_REPOSITORY=https://github.com/Genesis-Embodied-AI/Genesis.git
+ARG GENESIS_REVISION=2a40c87ad4e89a0f115cc43fb45195a8260aad0e
+ARG LEROBOT_REPOSITORY=https://github.com/huggingface/lerobot.git
+ARG LEROBOT_REVISION=8fff0fde7c79f23a93d845d1a50e985de01f8b8a
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+ENV PIP_NO_CACHE_DIR=1
+ENV HF_HOME=/workspace/runtime/cache/huggingface
+ENV HF_LEROBOT_HOME=/workspace/runtime/cache/huggingface/lerobot
+ENV MODELSCOPE_CACHE=/workspace/runtime/cache/modelscope
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        ffmpeg \
+        git \
+        libegl1 \
+        libgl1 \
+        libglib2.0-0 \
+        libsm6 \
+        libxext6 \
+        libxrender1 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements/rocm-submission-constraints-v2.txt \
+    /opt/mantis/rocm-submission-constraints-v2.txt
+
+RUN git clone "${GENESIS_REPOSITORY}" /opt/Genesis \
+    && git -C /opt/Genesis checkout --detach "${GENESIS_REVISION}" \
+    && PIP_CONSTRAINT=/opt/mantis/rocm-submission-constraints-v2.txt \
+       python3 -m pip install /opt/Genesis
+
+RUN git clone "${LEROBOT_REPOSITORY}" /opt/lerobot \
+    && git -C /opt/lerobot checkout --detach "${LEROBOT_REVISION}" \
+    && PIP_CONSTRAINT=/opt/mantis/rocm-submission-constraints-v2.txt \
+       python3 -m pip install -e /opt/lerobot \
+    && PIP_CONSTRAINT=/opt/mantis/rocm-submission-constraints-v2.txt \
+       python3 -m pip install \
+        "numpy==2.1.2" \
+        "scikit-image==0.26.0" \
+        modelscope \
+        num2words
+
+WORKDIR /workspace/mantis-rocm-bridge
+COPY pyproject.toml README.md ./
+COPY src ./src
+COPY configs ./configs
+COPY tools ./tools
+COPY docs ./docs
+COPY requirements ./requirements
+RUN python3 -m pip install --no-deps -e .
+
+ENV PYTHONPATH=/opt/lerobot/src:/workspace/mantis-rocm-bridge/src
+
+CMD ["/bin/bash"]

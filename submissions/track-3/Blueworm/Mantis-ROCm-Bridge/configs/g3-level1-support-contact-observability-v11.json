@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "work_package_id": "WP-G3-CORR-012",
+  "status": "PLANNED_FROZEN_NOT_EXECUTED",
+  "date": "2026-07-28",
+  "task_id": "stack_bowls_three",
+  "porting_mode": "new_robot_same_task",
+  "phase_objective": "Measure direct selected-bowl-to-supporting-bowl contact around level-1 weld release on a fresh outcome-blind panel without changing controller, task, capture, or training behavior.",
+  "entry_evidence": {
+    "predecessor_work_package": "WP-G3-CORR-011",
+    "predecessor_terminal_status": "COMPLETE_LEVEL1_RELEASE_OBSERVABILITY_ACCEPTED",
+    "predecessor_terminal_receipt": "receipts/g3-level1-release-observability-terminal-20260728-v8",
+    "predecessor_receipt_manifest_sha256": "bac91b1a047897900c0accf28be839472c5625d17edf686eadc0974a8ebc2188",
+    "predecessor_attempt_count": 8,
+    "predecessor_level1_observation_count": 7,
+    "predecessor_release_drop_case_count": 3,
+    "predecessor_stable_control_count": 4,
+    "predecessor_support_contact_observed": false,
+    "predecessor_controller_changed": false
+  },
+  "genesis_contact_api": {
+    "version": "1.2.3",
+    "source_path": "/data01/suzw_data/tron/.conda/envs/genesis-mantis-v1/lib/python3.10/site-packages/genesis/engine/entities/rigid_entity/rigid_entity.py",
+    "source_file_sha256": "6ed1092682bf16b3865f6a091f4f98942bfa657e283c039efcdc5f6c0e99b39c",
+    "method": "RigidEntity.get_contacts(with_entity=...)",
+    "query": "selected_bowl.get_contacts(with_entity=supporting_bowl)",
+    "documented_semantics": "Returns contact information computed during the most recent scene.step().",
+    "query_advances_physics": false,
+    "same_step_weld_registration_or_deletion_comparison_is_instantaneous": false,
+    "admissible_primary_snapshots": [
+      "final_pre_release",
+      "immediate_post_release"
+    ],
+    "nonprimary_same_step_snapshots": [
+      "contact_before_weld",
+      "after_weld_registration"
+    ]
+  },
+  "single_primary_variable": {
+    "field": "level1_release_observability_schema",
+    "baseline": "relative_pose_and_robot_contact_trace_v1",
+    "candidate": "relative_pose_robot_and_support_contact_trace_v2",
+    "activation": "probe mode for the frozen WP-G3-CORR-012 panel; record a direct selected-bowl-to-supporting-bowl query at every existing release snapshot and make the level-1 record mandatory",
+    "recorded_support_entity": "the previously placed bowl at stack level 0",
+    "recorded_support_fields": [
+      "supporting_bowl_name",
+      "support_contact_pairs",
+      "support_contact_pair_count",
+      "support_contact_diagnostics.penetration",
+      "support_contact_diagnostics.force_a",
+      "support_contact_diagnostics.force_b",
+      "support_contact_diagnostics.normal",
+      "support_contact_diagnostics.position",
+      "contact_cache_source_physics_step"
+    ],
+    "implementation_boundary": "Instrumentation only. No place target, grasp pose, weld creation/deletion, release duration, gripper command, retreat, orientation schedule, task tolerance, solver, controller, clock, collision rule, capture behavior, dataset, or training variable may change."
+  },
+  "frozen_invariants": {
+    "source_reset_sampler": "mantis_rocm_bridge.stack_bowls_env.sample_source_reset_poses",
+    "source_reset_sampler_sha256": "73a4154913b4eaf31c459f04abb87dbbca6d19e6962c4bbb3c00d89a9f75d3fb",
+    "task_contract": "configs/task-pack-v1.json",
+    "task_contract_sha256": "ece41b0030ccb7bc5ce799b24d4aa68e8649ab7cc4442bfb6c3024d87dc78a09",
+    "scene_contract": "configs/stack-bowls-genesis-v1.json",
+    "scene_contract_sha256": "0e4b01ff50f3856d4ae393bf2a278121b643572e0eb97b0080c9d356db3edc81",
+    "orientation_schedule_contract": "configs/g3-left-interbowl-coupled-descent-dynamic-v3.json",
+    "orientation_schedule_contract_sha256": "ab92a3a84ee4a7f392ce59b0c2f7ce8c4b00804e65bce9918f6ff419c05a8a55",
+    "orientation_schedule_id": "coupled_descent_slerp",
+    "predecessor_core_sha256": "736c485b0d570f8e5e09e489b615877429c05f081cd73215f7842e48de65126b",
+    "source_task_and_arm_assignment_unchanged": true,
+    "place_position_release_retreat_and_stability_logic_unchanged": true,
+    "weld_registration_and_deletion_logic_unchanged": true,
+    "cartesian_position_and_orientation_routes_unchanged": true,
+    "ik_solver_and_thresholds_unchanged": true,
+    "planner_controller_and_force_limits_unchanged": true,
+    "collision_and_safety_rules_unchanged": true,
+    "assets_scene_task_and_clock_unchanged": true,
+    "task_success_tolerances_unchanged": true,
+    "capture": false,
+    "retry_count": 0,
+    "seed_substitution": false,
+    "posthoc_success_selection": false,
+    "predecessor_panel_reexecution": false
+  },
+  "diagnostic_panel": {
+    "selection_observes_only": "deterministic source reset geometry and right-left-left arm assignment; no episode outcome or prior run",
+    "scan_range_inclusive": [1601, 2000],
+    "selection_rule": "first eight ascending previously unattempted seeds with exact right-left-left source arm assignment",
+    "pattern": ["right", "left", "left"],
+    "seeds_in_order": [1602, 1610, 1613, 1622, 1630, 1635, 1658, 1667],
+    "seed_rows": {
+      "1602": {"bowl2_xy_m": [-0.21905472291993192, -0.07967683797175854], "bowl2_radius_m": 0.23309519545178536},
+      "1610": {"bowl2_xy_m": [-0.10193604172893457, -0.009193626779440472], "bowl2_radius_m": 0.10234978933404179},
+      "1613": {"bowl2_xy_m": [-0.1375606483547881, -0.037646387683312243], "bowl2_radius_m": 0.1426190116407764},
+      "1622": {"bowl2_xy_m": [-0.12022585465179711, -0.04475466399794047], "bowl2_radius_m": 0.12828575944477857},
+      "1630": {"bowl2_xy_m": [-0.24829879431812896, -0.06274227717768423], "bowl2_radius_m": 0.2561032694154408},
+      "1635": {"bowl2_xy_m": [-0.23964793031712428, -0.012217620251248196], "bowl2_radius_m": 0.23995916475493276},
+      "1658": {"bowl2_xy_m": [-0.1631013104972013, 0.022060025693134488], "bowl2_radius_m": 0.16458639743151993},
+      "1667": {"bowl2_xy_m": [-0.29858463646694494, -0.015241046133216174], "bowl2_radius_m": 0.29897336774591227}
+    },
+    "backend": "cpu",
+    "cuda_visible_devices": "",
+    "serial": true,
+    "capture": false,
+    "retry_count": 0,
+    "release_drop_classification": {
+      "release_drop_case_minimum_mm": 20.0,
+      "stable_control_maximum_mm": 10.0,
+      "ambiguous_interval_mm": [10.0, 20.0],
+      "classification_is_diagnostic_not_task_success": true
+    },
+    "acceptance": {
+      "attempt_count": 8,
+      "minimum_level1_observation_count": 6,
+      "minimum_release_drop_cases": 1,
+      "minimum_stable_controls": 1,
+      "support_query_present_for_every_level1_snapshot": true,
+      "support_query_entity_identity_valid": true,
+      "contact_diagnostics_finite": true,
+      "observer_clock_delta_zero": true,
+      "safety_failure_count": 0,
+      "infrastructure_failure_count": 0,
+      "capture_artifact_count": 0
+    }
+  },
+  "analysis_rules": {
+    "primary_support_state_snapshot": "final_pre_release",
+    "comparison_snapshot": "immediate_post_release",
+    "same_step_contact_before_weld_vs_after_weld_registration_is_not_a_causal_comparison": true,
+    "contact_presence_or_absence_is_reported_before_force_magnitude": true,
+    "force_or_penetration_threshold_fitting_on_this_panel": false,
+    "outcome_association_is_not_causality": true,
+    "null_association_is_an_admissible_result": true
+  },
+  "issue_governance": {
+    "register": ".ops/wip/g3-level1-support-contact-observability-20260728/ISSUES.md",
+    "machine_readable_register": "receipts/g3-level1-support-contact-planning-freeze-20260728-v11/issues.json",
+    "immutable_predecessor_labels_are_not_rewritten": true,
+    "new_unreasonable_assumptions_must_be_recorded_before_continuation": true
+  },
+  "remote_plan": {
+    "source_project": "/data01/suzw_data/tron/amd_track3/mantis_rocm_bridge_v128",
+    "staging_project": "/data01/suzw_data/tron/amd_track3/mantis_rocm_bridge_v129.staging",
+    "diagnostic_project": "/data01/suzw_data/tron/amd_track3/mantis_rocm_bridge_v129",
+    "code_gate_root": "/data01/suzw_data/tron/amd_track3/ops/mantis-g3-level1-support-contact-code-gate-20260728-v11",
+    "package_root": "/data01/suzw_data/tron/amd_track3/transfers/mantis_g3_level1_support_contact_20260728_v11",
+    "batch_root": "/data01/suzw_data/tron/amd_track3/ops/mantis-g3-level1-support-contact-20260728-v11",
+    "supervisor_root": "/data01/suzw_data/tron/amd_track3/ops/mantis-g3-level1-support-contact-supervisor-20260728-v11",
+    "run_template": "/data01/suzw_data/tron/amd_track3/ops/genesis-stack-bowls-scripted-g1/mantis-stack-bowls-level1-support-contact-seed{seed}-stl-cpu-20260728-v11",
+    "screen_name": "mantis_g3_support_contact_v11",
+    "freshness_verified_at_planning_time": true
+  },
+  "terminal_states": {
+    "COMPLETE_LEVEL1_SUPPORT_CONTACT_OBSERVABILITY_ACCEPTED": "All evidence and safety gates pass, at least six level-1 observations contain valid direct support-contact queries, and both release-drop and stable classes are present.",
+    "COMPLETE_LEVEL1_SUPPORT_CONTACT_OBSERVABILITY_INCONCLUSIVE": "Evidence is complete and safe, but observation count or outcome contrast is insufficient for association analysis.",
+    "COMPLETE_LEVEL1_SUPPORT_CONTACT_OBSERVABILITY_REJECTED": "Evidence is complete but a safety gate fails; no repair or collection follows.",
+    "FAILED_EVIDENCE_GATE": "Source identity, isolation, ordering, no-overwrite, instrumentation completeness, entity identity, cached-contact semantics, process, or manifest evidence is incomplete."
+  },
+  "downstream_authority": {
+    "accepted_terminal_authorizes": "planning one separately frozen repair hypothesis only if the observed association and physics semantics justify it",
+    "inconclusive_terminal_authorizes": "planning another observability method only",
+    "rejected_or_failed_terminal_authorizes": "no controller repair or source collection",
+    "automatic_controller_change": false,
+    "automatic_collection": false,
+    "automatic_dataset_export": false,
+    "automatic_training": false
+  },
+  "claim_boundary": "This phase can establish complete direct bowl-to-bowl contact observations and bounded association on a fresh CPU reset panel. It cannot by itself establish causality, a valid controller repair, source coverage, dataset readiness, learned-policy improvement, G3 passage, AMD/ROCm execution, hardware validity, or real-robot safety."
+}

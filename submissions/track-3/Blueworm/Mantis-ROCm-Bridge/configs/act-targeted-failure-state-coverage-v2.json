@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "correction_id": "mantis_act_targeted_failure_state_coverage_v2",
+  "date": "2026-07-28",
+  "task_id": "stack_bowls_three",
+  "robot_type": "mantis",
+  "policy_type": "act",
+  "single_intervention": {
+    "name": "training_trajectory_distribution_targeted_failure_state_coverage",
+    "predecessor": "configs/act-trajectory-distribution-correction-v1.json",
+    "predecessor_episode_seeds": [
+      1001,
+      1004,
+      1007,
+      1008,
+      1012,
+      1016
+    ],
+    "candidate_seed_manifest": "configs/training-seeds-v1.json",
+    "candidate_seeds": [
+      1021,
+      1022,
+      1023,
+      1024,
+      1025,
+      1026,
+      1027,
+      1028,
+      1029,
+      1030,
+      1031,
+      1032,
+      1033,
+      1034,
+      1035,
+      1036,
+      1037,
+      1038,
+      1039,
+      1040,
+      1041,
+      1042,
+      1043,
+      1044,
+      1045,
+      1046,
+      1047,
+      1048,
+      1049,
+      1050
+    ],
+    "selection_rule": "Attempt every candidate exactly once in ascending order. Admit every candidate whose probe and replay capture satisfy all frozen gates. Do not retry, substitute, rank, or discard an admitted candidate after observing its result.",
+    "evaluation_seed_holdout": [
+      101,
+      107,
+      108
+    ]
+  },
+  "causal_basis": {
+    "receipt": "receipts/g3-corrective-trace-differential-20260728-v1",
+    "finding": "The six-trajectory corrective ACT checkpoint changed commanded actions but preserved the timeout and right-wrist source-mesh collision failure families. Seed 101 remained no-interaction timeout; seeds 107 and 108 retained or increased collision contacts.",
+    "selected_mechanism": "Expand the empirical distribution of independently successful scripted Mantis trajectories, with explicit coverage of early grasp-side diversity and successful top-level right-arm placement.",
+    "falsification": "If the predeclared pool cannot yield the minimum strict-success and arm-assignment strata, close the collection as insufficient coverage and do not train."
+  },
+  "collection_contract": {
+    "backend": "genesis_cpu",
+    "project_root": "/data01/suzw_data/tron/amd_track3/mantis_rocm_bridge_v121",
+    "python": "/data01/suzw_data/tron/.conda/envs/genesis-mantis-v1/bin/python",
+    "tool": "/data01/suzw_data/tron/amd_track3/mantis_rocm_bridge_v121/tools/run_genesis_stack_bowls_scripted_g1.py",
+    "tool_sha256": "732fbe9a115327e0dd56b3dae5d1457ef2bc112f6a0953503f6e4dabba321cc7",
+    "stack_bowls_sha256": "40197ee302567410803cdda6967ddc982006bad02a7fbe33a0588eb40d4bfec8",
+    "stack_bowls_env_sha256": "73a4154913b4eaf31c459f04abb87dbbca6d19e6962c4bbb3c00d89a9f75d3fb",
+    "mantis_urdf": "/data01/suzw_data/tron/amd_track3/local_assets/mantis_fixed_base_rim_support_v4/urdf/mantis_fixed_base_rim_support_v4.urdf",
+    "mantis_urdf_sha256": "9e93491b2244e0d68e7cf110d631e0f970c30decba8d5d9e9e4955e75a0600ec",
+    "bowl_asset_root": "/data01/suzw_data/tron/amd_track3/local_assets/robotwin_002_bowl_model3_v2_stl",
+    "ops_root": "/data01/suzw_data/tron/amd_track3/ops/genesis-stack-bowls-scripted-g1",
+    "batch_root": "/data01/suzw_data/tron/amd_track3/ops/mantis-targeted-coverage-seeds1021-1050-20260728-v1",
+    "package_root": "/data01/suzw_data/tron/amd_track3/transfers/mantis_targeted_coverage_collection_20260728_v1",
+    "screen_name": "mantis_targeted_coverage_v1",
+    "run_id_version_token": "20260728-v1-targeted-coverage",
+    "serial": true,
+    "max_concurrent_processes": 1,
+    "retry_count": 0,
+    "replay_fallback": false,
+    "cuda_visible_devices": ""
+  },
+  "implementation_provenance": {
+    "reviewed_parent_driver": "receipts/4090-expansion-seeds1014-1020-20260726-v4/run_batch.py",
+    "reviewed_parent_driver_sha256": "42b4aeae822397821153a824eefa794ba9bdbc8e3795b59c7200d1eba7788095",
+    "remote_parent_driver": "/data01/suzw_data/tron/amd_track3/ops/mantis-expansion-seeds1014-1020-20260726-v4/run_batch.py",
+    "wrapper": ".ops/wip/g3-targeted-trajectory-coverage-20260728/run_targeted_coverage_collection_20260728_v1.py",
+    "transformation": "Hash-pin the reviewed serial CPU driver, replace only the candidate seed range, evidence root, and version token, then compile and execute the transformed source in memory."
+  },
+  "admission_gate": {
+    "per_candidate": [
+      "probe process exit code 0",
+      "probe frozen replay plan valid and hash-linked to probe receipt",
+      "probe has exactly 12 strict stability rows and every row passes",
+      "probe has zero safety failures",
+      "replay capture process exit code 0",
+      "capture_written is true and NPZ exists",
+      "capture has exactly 12 strict stability rows and every row passes",
+      "capture stage_trace success is true, complete, and has no failure stage",
+      "capture has zero safety failures",
+      "NPZ, receipt, capture manifest, and stage trace SHA-256 are recorded"
+    ],
+    "aggregate": {
+      "candidate_attempts_exact": 30,
+      "minimum_new_accepted_episodes": 6,
+      "minimum_first_grasp_left": 2,
+      "minimum_first_grasp_right": 2,
+      "minimum_top_placement_right": 2,
+      "gpu_compute_process_observation_must_remain_zero": true
+    }
+  },
+  "dataset_target": {
+    "repo_id": "local/mantis_stack_bowls_targeted_coverage_gripper_v2_20260728_v1",
+    "root": "/data01/suzw_data/tron/amd_track3/datasets/mantis_stack_bowls_targeted_coverage_gripper_v2_20260728_v1",
+    "source_rule": "The six predecessor episodes plus every newly admitted candidate, ordered by seed.",
+    "fps": 30,
+    "state_dimension": 16,
+    "action_dimension": 16,
+    "camera_count": 3,
+    "required_gates": [
+      "source_npz_hash_and_trace_admission",
+      "strict_episode_outcomes",
+      "coverage_strata_gate",
+      "mantis_dataset_metadata_act_ready",
+      "dense_demonstration_audit",
+      "direct_lerobot_sample_decode",
+      "direct_parquet_decode"
+    ]
+  },
+  "base_training_contract": {
+    "path": "configs/act-rocm-baseline-v2.json",
+    "sha256": "e8a87f59a5bbfc9d6ca405f9ae925465ef6efe730383c2cfd87e3f2134e7e516",
+    "training_seed": 20260723,
+    "steps": 60000,
+    "batch_size": 8,
+    "num_workers": 4,
+    "save_freq": 5000,
+    "eval_freq": 5000,
+    "log_freq": 100,
+    "chunk_size": 30,
+    "n_action_steps": 30,
+    "n_obs_steps": 1,
+    "normalization": "MEAN_STD",
+    "push_to_hub": false
+  },
+  "development_evaluation": {
+    "backend": "4090_cuda",
+    "gpu_count": 1,
+    "training_mode": "from_scratch",
+    "representative_seeds": [
+      101,
+      107,
+      108
+    ],
+    "representative_order": [
+      101,
+      107,
+      108
+    ],
+    "promotion_rule": "COMPLETE_PROMOTABLE requires an improved frozen representative terminal-outcome taxonomy with no additional safety failure and zero infrastructure failure."
+  },
+  "frozen_invariants": [
+    "ACT architecture and all base_training_contract hyperparameters",
+    "training random seed 20260723",
+    "Mantis URDF and collision mesh identity",
+    "bowl asset and Genesis materialization",
+    "joint and gripper state/action mappings",
+    "250 Hz physics to 30 Hz policy resampling",
+    "ACT chunk size and queue semantics",
+    "controller gains, force limits, and position-control semantics",
+    "camera intrinsics and extrinsics",
+    "source reset distribution",
+    "strict evaluator, collision classifier, allowed-contact matrix, thresholds, and G3 seeds"
+  ],
+  "claim_boundary": "This contract changes only the training-trajectory empirical distribution. Collection and dataset gates do not establish policy improvement, G3 passage, generalization, real-robot safety, official AMD execution, or an AMD performance advantage."
+}

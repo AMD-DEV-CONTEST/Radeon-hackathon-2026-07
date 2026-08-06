@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "training_id": "mantis_stack_bowls_act_rocm_multiseed6_correction_v1",
+  "derives_from": "configs/act-rocm-baseline-v2.json",
+  "correction_contract": "configs/act-trajectory-distribution-correction-v1.json",
+  "execution_gate": "docs/AMD_ACT_CORRECTIVE_TRAINING_GATE_V1.md",
+  "promotion_dependency": {
+    "gate": "configs/act-corrective-representative-g3-v1.json",
+    "required_terminal_status": "COMPLETE_PROMOTABLE",
+    "reason": "The official AMD correction may run only after the frozen CUDA seeds 101/107/108 comparison is evidence-complete, strictly improved, and safety-nonregressing."
+  },
+  "dataset": {
+    "repo_id": "local/mantis_stack_bowls_multiseed6_gripper_v2_20260727_v1",
+    "episode_seeds": [
+      1001,
+      1004,
+      1007,
+      1008,
+      1012,
+      1016
+    ],
+    "episode_count": 6,
+    "frame_count": 7085,
+    "gripper_contract_version": 2,
+    "local_gate_receipt": "receipts/4090-multiseed6-trajectory-correction-20260727-v1",
+    "required_amd_gates": [
+      "archive_identity",
+      "source_file_hashes",
+      "mantis_dataset_metadata_act_ready",
+      "dense_demonstration_audit",
+      "lerobot_0_4_4_sample_decode",
+      "direct_parquet_decode"
+    ]
+  },
+  "planned_official_amd_paths": {
+    "dataset_root": "/workspace/mantis_stack_bowls_multiseed6_gripper_v2_20260727_v1",
+    "preflight_root": "/workspace/mantis_act_rocm_multiseed6_correction_preflight_20260727_v1",
+    "output_root": "/workspace/mantis_act_rocm_multiseed6_correction_20260727_v1",
+    "evidence_root": "/workspace/mantis_act_rocm_multiseed6_correction_training_evidence_20260727_v1",
+    "fresh_nonexistent_paths_required": true
+  },
+  "framework": "LeRobot",
+  "official_cloud_runtime_contract": "configs/amd-cloud-runtime-v1.json",
+  "official_cloud_lerobot_version": "0.4.4",
+  "official_cloud_compatibility_status": "prepared_blocked_by_cuda_representative_gate",
+  "policy_type": "act",
+  "task_id": "stack_bowls_three",
+  "robot_type": "mantis",
+  "upstream_repository": "https://github.com/BlueWorm-EAI-Tech/lerobot_mantis_server",
+  "upstream_revision": "53953bc9b3c63dfa1689904cc986ae9e09c1d35b",
+  "interface_contract": "configs/mantis-lerobot-interface-v1.json",
+  "task_contract": "configs/task-pack-v1.json",
+  "policy_device_api": "cuda",
+  "policy_device_semantics": "ROCm-enabled PyTorch exposes the single AMD HIP device through the torch.cuda API.",
+  "seed": 20260723,
+  "steps": 60000,
+  "batch_size": 8,
+  "num_workers": 4,
+  "save_freq": 5000,
+  "eval_freq": 5000,
+  "log_freq": 100,
+  "save_checkpoint": true,
+  "wandb_enabled": false,
+  "policy": {
+    "chunk_size": 30,
+    "n_action_steps": 30,
+    "n_obs_steps": 1,
+    "normalization": "MEAN_STD",
+    "push_to_hub": false
+  },
+  "required_gates": [
+    "cuda_representative_complete_promotable",
+    "mantis_dataset_metadata_act_ready",
+    "dense_demonstration_audit",
+    "scripted_g1_episode",
+    "strict_rocm_runtime",
+    "single_visible_radeon_gpu",
+    "fresh_output_directory"
+  ],
+  "claim_boundary": "This prepared contract authorizes no execution by itself. After the CUDA representative gate is COMPLETE_PROMOTABLE and every fresh official-AMD preflight check passes, it may authorize one single-Radeon ACT optimization run using the six-episode correction dataset. It cannot establish convergence, closed-loop task success, G3 promotion, robustness, real-robot safety, or an AMD performance advantage."
+}
