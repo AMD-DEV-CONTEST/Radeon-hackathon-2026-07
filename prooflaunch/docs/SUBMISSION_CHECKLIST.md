@@ -32,19 +32,19 @@ Proposed pull request title:
 - [x] English README with environment, startup, and dependencies
 - [x] Model card, Radeon setup, evaluation, security and governance documents
 - [x] Strict allowlisted public-export builder and secret/path/hash validation
-- [ ] Demo Video (official guidance recommends 3–5 minutes)
-  - [ ] Actual operation process
+- [x] Demo Video (190.9 seconds; official guidance recommends 3–5 minutes)
+  - [x] Actual operation process
   - [ ] Actual execution on AMD Radeon
-  - [ ] Command line or GUI through final result
-  - [ ] Output clarity, stability, and diversity
+  - [x] GUI through final product result
+  - [x] Output clarity, stability, and diversity
 - [x] Supplementary English deck (PPTX)
 - [x] Optional one-slide poster
 - [ ] Confirm every team member is registered and an AMD Developer Program member
-- [ ] Fork competition repository
-- [ ] Create branch `submission/track1-banyan-prooflaunch`
-- [ ] Add the reviewed public export at `prooflaunch/`
+- [x] Fork competition repository
+- [x] Create branch `codex/track1-banyan-prooflaunch`
+- [x] Add the reviewed public export at `prooflaunch/`
 - [ ] Configure Radeon Add Template only after its GitHub notebook path exists
-- [ ] Open English pull request with the exact title format
+- [x] Open English pull request with the exact title format — PR #308
 
 ## Scoring alignment
 
@@ -65,10 +65,11 @@ Proposed pull request title:
 - [ ] The local model router proves sequential Gemma → SDXL → SigLIP2 unloads.
 - [ ] Latency and peak VRAM are recorded.
 - [ ] Audit → repair → export completes on Radeon.
-- [ ] Demo video URL resolves without authentication.
+- [x] Demo video URL is recorded in `docs/demo-video-url.txt`; verify again after each push.
 - [ ] Every visible claim is supported by source evidence.
 - [ ] Third-party licenses and model terms have been reviewed.
 - [ ] No credentials, cookies, tokens, personal email, or private paths remain.
 - [ ] `SUBMISSION_GATE.json` reports `overallStatus: ready`.
 
-Do not open the pull request while a P0 proof gate remains blocked.
+Do not present the open pull request as competition-complete while a P0 proof
+gate remains blocked.

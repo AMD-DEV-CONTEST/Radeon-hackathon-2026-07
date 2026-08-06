@@ -60,7 +60,7 @@ TREE_SUFFIXES = {
     "configs": {".json", ".yml", ".yaml"},
     "workflows": {".json", ".md", ".yml", ".yaml"},
     "notebooks": {".ipynb"},
-    "docs": {".csv", ".jpg", ".json", ".md", ".pdf", ".png", ".pptx", ".txt"},
+    "docs": {".csv", ".jpg", ".json", ".md", ".mp4", ".pdf", ".png", ".pptx", ".txt"},
     "submission": {".json", ".md"},
     "upstream_patches": {".diff", ".md", ".patch"},
     "demo": {".blend", ".md", ".py", ".scd"},
@@ -100,6 +100,7 @@ REPLAY_EVIDENCE = {
 
 OPTIONAL_FINAL_EVIDENCE = {
     Path("evidence/v10/radeon-live-preflight.json"),
+    Path("docs/ProofLaunch_Demo_Video_191s.mp4"),
     Path("docs/demo-video-url.txt"),
     Path("docs/pull-request-url.txt"),
 }

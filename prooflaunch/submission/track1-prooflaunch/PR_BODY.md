@@ -15,7 +15,7 @@ release boundary. Every deliverable is campaign-bound and content-addressed.
 |---|---|---|
 | 1 | Project Profile PDF | `prooflaunch/docs/ProofLaunch_Project_Profile.pdf` |
 | 2 | Complete source + English README + environment/startup/dependencies | `prooflaunch/` and `prooflaunch/README.md` |
-| 3 | Real AMD Radeon workflow Demo Video (3–5 minutes recommended) | **TO BE ADDED AFTER LIVE RADEON CAPTURE — HARD GATE** |
+| 3 | Demo Video (3–5 minutes recommended) | [Watch / download the 190.9-second product-operation MP4](https://github.com/sylvanccc/Radeon-hackathon-2026-07/raw/refs/heads/codex/track1-banyan-prooflaunch/prooflaunch/docs/ProofLaunch_Demo_Video_191s.mp4); live Radeon inference evidence remains pending |
 | 4 | Supplementary English deck | `prooflaunch/docs/ProofLaunch_Submission_Deck.pptx` |
 
 ### Reproduce the governed evaluator demo
@@ -50,6 +50,6 @@ does not make a new model call and does not count as Radeon evidence.
 
 No named-human product win, 4A preference, production effect, causal revenue or
 Top-1 standing is claimed. The current run receipt explicitly records
-`radeon_execution_observed=false`. This PR must not be opened as complete until
-the actual Radeon inference/video evidence is added and the fail-closed
-submission gate passes.
+`radeon_execution_observed=false`. The attached Demo Video is product-operation
+evidence, not a substitute for actual Radeon inference. The fail-closed
+competition gate therefore remains blocked until that hardware receipt exists.

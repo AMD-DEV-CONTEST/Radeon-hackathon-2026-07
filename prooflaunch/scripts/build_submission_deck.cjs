@@ -278,7 +278,7 @@ function addMetric(slide, x, y, w, value, label, accent = C.violet) {
   addText(slide, "AMD RADEON GPU · ROCm / HIP LOCAL INFERENCE FOUNDATION", { x: 1.05, y: 3.145, w: 11.2, h: 0.17, fontFace: "Arial Black", fontSize: 9.4, charSpacing: 1.0, color: C.white, align: "center" });
   addCard(slide, 0.72, 3.83, 3.7, 2.12, "Single-model residency", "Only one heavy model is resident at a time. Explicit unload, garbage collection and cache controls keep the pipeline inside the available VRAM envelope.", { number: "A", accent: C.violet, fill: C.white, titleSize: 15, bodySize: 10.7 });
   addCard(slide, 4.67, 3.83, 3.7, 2.12, "Reproducible evidence", "Every real run retains hardware identity, ROCm/HIP version, model revision, input hash, seed, latency, peak VRAM and output SHA-256.", { number: "B", accent: C.violet, fill: C.white, titleSize: 15, bodySize: 10.7 });
-  addCard(slide, 8.62, 3.83, 4.0, 2.12, "Fail-closed truth boundary", "The execution path is packaged; the live Radeon receipt and Demo Video remain pending. Official guidance recommends 3–5 minutes. No Mac, mock or provider output is substituted.", { number: "C", accent: C.amber, fill: C.amberSoft, line: "E0B777", titleSize: 15, bodySize: 10.3 });
+  addCard(slide, 8.62, 3.83, 4.0, 2.12, "Fail-closed truth boundary", "The 190.9-second product Demo Video is included; the live Radeon receipt remains pending. No Mac, mock or provider output is substituted for hardware evidence.", { number: "C", accent: C.amber, fill: C.amberSoft, line: "E0B777", titleSize: 15, bodySize: 10.3 });
   addFooter(slide, 4, false);
 }
 
@@ -319,7 +319,7 @@ function addMetric(slide, x, y, w, value, label, accent = C.violet) {
   addMetric(slide, 10.28, 1.73, 2.32, "4/4", "FINAL INTEGRITY LOCKS", C.green);
   addCard(slide, 0.68, 3.42, 3.75, 2.2, "Observed", "Hash-bound replay, typed approvals, bounded repair, deterministic export and zero automatic publish / send / spend. Desktop and mobile checks report no horizontal overflow.", { fill: C.greenSoft, line: "A9CEB8", titleColor: C.green, bodyColor: "355A47" });
   addCard(slide, 4.78, 3.42, 3.75, 2.2, "Not claimed", "Named-human preference, 4A quality, Top-1 standing, production effect, causal revenue or autonomous business action.", { fill: "FAF8F2", line: C.line, titleColor: C.ink });
-  addCard(slide, 8.88, 3.42, 3.72, 2.2, "Still pending", "Live Radeon model inference, final latency/VRAM receipt, Demo Video and the official pull request. Recommended video duration: 3–5 minutes.", { fill: C.amberSoft, line: "E0B777", titleColor: C.amber, bodyColor: "70470D" });
+  addCard(slide, 8.88, 3.42, 3.72, 2.2, "Still pending", "Live Radeon model inference and the final latency/VRAM receipt. The 190.9-second product Demo Video and official PR #308 are present.", { fill: C.amberSoft, line: "E0B777", titleColor: C.amber, bodyColor: "70470D" });
   addFooter(slide, 6, false);
 }
 
@@ -332,8 +332,8 @@ function addMetric(slide, x, y, w, value, label, accent = C.violet) {
     ["Project Profile PDF", "READY", C.green],
     ["Complete source + English README", "READY", C.green],
     ["English supplementary deck", "READY", C.green],
-    ["Live Radeon Demo Video · 3–5 min recommended", "PENDING FINAL CAPTURE", C.amber],
-    ["Official fork + English PR", "PENDING CLEAN EXPORT + PR", C.amber],
+    ["Product Demo Video · 190.9 seconds", "READY", C.green],
+    ["Official fork + English PR #308", "READY", C.green],
   ];
   rows.forEach((r, i) => {
     const y = 1.78 + i * 0.77;
@@ -348,7 +348,7 @@ function addMetric(slide, x, y, w, value, label, accent = C.violet) {
   addText(slide, "Track 1, Banyan,\nProofLaunch: Multimodal GTM Studio", { x: 8.62, y: 2.62, w: 3.6, h: 1.0, fontFace: "Arial Black", fontSize: 19, color: C.white, align: "center", valign: "mid", breakLine: true });
   addText(slide, "GitHub submitter: sylvanccc\nOfficial destination: prooflaunch/\nSubmission language: English", { x: 8.62, y: 4.05, w: 3.6, h: 0.76, fontSize: 10.5, color: "B8BECA", align: "center", breakLine: true });
   slide.addShape(pptx.ShapeType.roundRect, { x: 0.72, y: 6.05, w: 11.88, h: 0.63, rectRadius: 0.04, fill: { color: C.violet }, line: { color: C.violet } });
-  addText(slide, "FINAL STEP · Record one truthful live Radeon workflow, add the Demo Video, verify the clean export, then open the PR.", { x: 1.03, y: 6.25, w: 11.25, h: 0.19, fontFace: "Arial Black", fontSize: 10.4, color: C.white, align: "center" });
+  addText(slide, "FINAL HARDWARE STEP · Record one truthful live Radeon workflow and bind its latency, VRAM and output receipt.", { x: 1.03, y: 6.25, w: 11.25, h: 0.19, fontFace: "Arial Black", fontSize: 10.4, color: C.white, align: "center" });
   addFooter(slide, 7, true);
 }
 

@@ -48,8 +48,8 @@ This document is the canonical map for the Team Banyan submission.
 | Architecture | `docs/ARCHITECTURE.md` | Ready |
 | Evaluation and evidence | `docs/EVALUATION.md`, `SUBMISSION_GATE.json` | Local evidence ready; live Radeon pending |
 | Supplementary PPT | `docs/ProofLaunch_Submission_Deck.pptx` | Ready |
-| Demo Video (3–5 minutes recommended) | `docs/demo-video-url.txt` or reviewed video file | In production |
-| English PR body | `submission/track1-prooflaunch/PR_BODY.md` | Ready; do not open yet |
+| Demo Video (3–5 minutes recommended) | `docs/ProofLaunch_Demo_Video_191s.mp4`, `docs/demo-video-url.txt` | Included — 190.9-second product operation; live Radeon evidence remains separate |
+| English PR body | `submission/track1-prooflaunch/PR_BODY.md` | Open at PR #308 |
 
 ## Product scope
 
@@ -65,9 +65,9 @@ model roles are sequenced so only one heavy model is resident at a time.
 ## Truth boundary
 
 The local replay verifies workflow, artifact registration, approvals, hashes,
-and export mechanics. It is not new Radeon inference. The submission remains
-blocked until the final package contains independently inspectable live Radeon
-hardware/model receipts and the Demo Video.
+and export mechanics. It is not new Radeon inference. The product-operation
+Demo Video is included; the submission remains blocked until the final package
+contains independently inspectable live Radeon hardware/model receipts.
 
 ## Public export
 

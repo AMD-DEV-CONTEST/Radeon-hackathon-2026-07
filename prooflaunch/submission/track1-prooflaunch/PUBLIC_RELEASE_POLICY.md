@@ -37,8 +37,8 @@ required Project Profile PDF, Demo Video link or file, and Poster/PPT.
    submission descriptions.
 3. Verify every linked file exists in the exported tree.
 4. Reproduce the evaluator workflow from a clean environment.
-5. Confirm the live AMD Radeon inference receipt and Demo Video; the official
-   guidance recommends a 3–5 minute duration.
+5. Confirm the included Demo Video and independently confirm the live AMD
+   Radeon inference receipt before making any completed-hardware claim.
 6. Open the official pull request only while the final exported bytes and
    claims match the evidence manifest.
 

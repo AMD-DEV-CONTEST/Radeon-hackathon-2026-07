@@ -143,6 +143,7 @@ with HTTP 403. Therefore this document does not claim:
 - post-fine-tuning evaluation;
 - a real Radeon visual generation benchmark;
 - C2PA signing;
-- a finished demo video or competition submission.
+- a completed live Radeon evidence seal or competition-complete submission.
 
-The final pull request remains gated on those artifacts.
+The 190.9-second product Demo Video and PR #308 are present; the final hardware
+claim remains gated on the missing live Radeon artifacts.

@@ -68,11 +68,13 @@ model call and is deliberately **not** labeled as Radeon evidence.
 
 ## Mandatory open gate
 
-The official Track 1 submission still needs a Demo Video showing an actual
-model inference on AMD Radeon/ROCm from CLI or GUI to the final output; the
-official guidance recommends a 3–5 minute duration.
-Use `submission/track1-prooflaunch/RADEON_FINAL_CAPTURE.md`. Do not submit a
-Mac replay, cloud-provider asset or synthetic receipt as a substitute.
+The 190.9-second product-operation Demo Video is included at
+`docs/ProofLaunch_Demo_Video_191s.mp4`. It shows the working product, campaign
+outputs, responsive operation and human release boundary. It does **not** show
+live AMD Radeon/ROCm model inference and is not presented as that evidence.
+The remaining hardware gate is a real Radeon run from CLI or GUI to final
+output. Use `submission/track1-prooflaunch/RADEON_FINAL_CAPTURE.md`; do not
+substitute a Mac replay, cloud-provider asset or synthetic receipt.
 
 ## Primary files
 
@@ -85,5 +87,6 @@ Mac replay, cloud-provider asset or synthetic receipt as a substitute.
 - `submission/track1-prooflaunch/SUBMISSION_MANIFEST.json` — claim/evidence map
 - `docs/ProofLaunch_Project_Profile.pdf` — required profile PDF
 - `docs/ProofLaunch_Submission_Deck.pptx` — supplementary English deck
+- `docs/ProofLaunch_Demo_Video_191s.mp4` — 190.9-second product-operation Demo Video
 - `docs/DEMO_VIDEO_SHOTLIST.md` — 3:40 recording script
 - `SUBMISSION_GATE.json` — fail-closed competition gate

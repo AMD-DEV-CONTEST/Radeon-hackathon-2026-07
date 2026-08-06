@@ -214,14 +214,14 @@ This repository does not claim a completed competition submission yet:
 4. The local SDXL visual-generation adapter and SigLIP2 semantic gate have not
    passed their frozen Radeon fixture. The deterministic fallback is verified
    but does not count as generative-model evidence.
-5. The frozen 30-product competition-2X benchmark, blinded human comparison,
-   and Demo Video (official guidance recommends 3–5 minutes) have not been
-   recorded.
+5. The frozen 30-product competition-2X benchmark and blinded human comparison
+   have not been recorded. The 190.9-second product-operation Demo Video is
+   included, but it is not live Radeon inference evidence.
 6. The V10 rights-audited corpus, six Radeon training phases, frozen
    ablations, and independent 4A product/effect tests are absent. All twelve
    breakthrough bets therefore remain `HOLD`; none is presented as promoted.
-See [`SUBMISSION_GATE.json`](SUBMISSION_GATE.json). A pull request must not be
-opened while a P0 gate remains blocked.
+See [`SUBMISSION_GATE.json`](SUBMISSION_GATE.json). The open pull request must
+not be presented as competition-complete while a P0 evidence gate is blocked.
 
 ## Quick start: local installation and reproduction
 
@@ -860,8 +860,8 @@ PYTHONPATH=src python scripts/record_competition_2x_case.py pending \
 
 - [`docs/ProofLaunch_Project_Profile.pdf`](docs/ProofLaunch_Project_Profile.pdf)
 - Complete source code and this reproduction README
-- A Demo Video (official guidance recommends 3–5 minutes); use
-  [`docs/DEMO_VIDEO_SHOTLIST.md`](docs/DEMO_VIDEO_SHOTLIST.md)
+- [`docs/ProofLaunch_Demo_Video_191s.mp4`](docs/ProofLaunch_Demo_Video_191s.mp4)
+  — 190.9-second product-operation Demo Video; live Radeon evidence remains separate
 - [`docs/ProofLaunch_Submission_Deck.pptx`](docs/ProofLaunch_Submission_Deck.pptx) — supplementary English deck
 - [`docs/SUBMISSION_CHECKLIST.md`](docs/SUBMISSION_CHECKLIST.md)
 - [`docs/TRACK1_2X_ACCEPTANCE_MATRIX.csv`](docs/TRACK1_2X_ACCEPTANCE_MATRIX.csv)

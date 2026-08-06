@@ -113,14 +113,15 @@ latency/VRAM and the resulting asset. Follow `RADEON_FINAL_CAPTURE.md`.
 
 **Truth boundary:** the current local run receipt records Apple/local and
 provider-managed source execution; `radeon_execution_observed` is false. The
-submission remains blocked until the live Radeon evidence and Demo Video are
-captured; the official guidance recommends a 3–5 minute duration. No Mac or
-cloud run is presented as Radeon execution.
+190.9-second product-operation Demo Video is included, but the submission
+remains blocked until live Radeon evidence is captured. No Mac or cloud run is
+presented as Radeon execution.
 
 ## Official materials
 
 - Project Profile: `../../docs/ProofLaunch_Project_Profile.pdf`
 - Supplementary deck: `../../docs/ProofLaunch_Submission_Deck.pptx`
+- Demo Video: `../../docs/ProofLaunch_Demo_Video_191s.mp4`
 - Recording script: `../../docs/DEMO_VIDEO_SHOTLIST.md`
 - Full source and environment guide: `../../README.md`
 - Competition gate: `../../SUBMISSION_GATE.json`

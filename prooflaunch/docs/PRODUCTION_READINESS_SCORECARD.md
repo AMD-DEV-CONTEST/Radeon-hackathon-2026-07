@@ -21,7 +21,7 @@ Assessment date: 2026-07-29. A gap is not silently waived for the hackathon.
 
 The deterministic local reference is fit for technical review. The competition
 submission is **not yet releasable**: real Radeon execution, visual benchmark,
-human preference, demo video, and PR gates remain blocked. No superiority,
+and human preference gates remain blocked. The Demo Video and PR are present. No superiority,
 persuasion, or ROCm-performance claim is permitted before those artifacts
 exist.
 
@@ -30,7 +30,8 @@ exist.
 1. Restore Radeon kernel/terminal control and execute the frozen gate.
 2. Run sequential Gemma, SDXL, and SigLIP2 phases; capture retention, semantic
    score, latency, VRAM, and all output hashes.
-3. Record the 3–5 minute real-operation video.
+3. Preserve the included 190.9-second Demo Video and append live Radeon evidence
+   only after a real hardware run is captured.
 4. Run blinded preference and operator-time studies.
 5. Add killed-process resume and model-output schema guards before any hosted
    or connector-enabled release.

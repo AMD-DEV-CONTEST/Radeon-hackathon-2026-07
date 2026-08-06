@@ -45,9 +45,9 @@ python scripts/validate_amd_track1_package.py
 ```
 
 `structural_status=passed` means the package is internally consistent.
-`competition_status=ready` additionally requires the final live Radeon receipt,
-Demo Video, and pull-request bytes. Until those exist, the correct state is
-`blocked`.
+`competition_status=ready` additionally requires the final live Radeon receipt.
+The Demo Video and pull-request bytes are present, but neither substitutes for
+the missing hardware receipt; until it exists, the correct state is `blocked`.
 
 ## Claim policy
 
