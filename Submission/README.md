@@ -1,10 +1,10 @@
 ## Aim of the Project
-Create a modular robotics AI workflow using RoboTiago, Docker, FastMCP, and the Qwen open-source model via Hugging Face API.
+Create a modular robotics AI workflow using Tiago humanoid robot, Docker, FastMCP, and the Qwen open-source model via Hugging Face API.
 
 ## Tools Used
 - RoboTiago robot
 - Docker containerisation
-- FastNCP accelerated inference
+- FastMCP for interfacing ROS and LLM model
 - Qwen model (Hugging Face API)
 - Python + ROS/ROS2
 
