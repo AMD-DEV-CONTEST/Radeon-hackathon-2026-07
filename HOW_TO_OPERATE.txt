@@ -1,0 +1,177 @@
+===============================================================================
+               MPC AI PLATFORM - PROJECT OPERATING MANUAL
+===============================================================================
+
+1. PROJECT OVERVIEW
+-------------------------------------------------------------------------------
+MPC AI (Multi-source Problem Correlation AI) is an Engineering Intelligence 
+Platform designed to correlate Firmware code, Datasheets, Compiler logs, UART 
+logs, and hardware sensor Telemetry using RAG (Retrieval-Augmented Generation) 
+and Root Cause Analysis (RCA) engines.
+
+Tech Stack:
+- Frontend: React (TypeScript), Vite, Tailwind CSS, Lucide Icons, Recharts
+- Backend: Python 3.10+, FastAPI, PyTorch, ChromaDB, LangChain, SentenceTransformers
+- LLM Integration: Local Ollama (e.g. llama3:8b-instruct), Anthropic Claude, or OpenAI
+- Deployment: Docker, Docker Compose, Uvicorn
+
+===============================================================================
+2. SYSTEM PREREQUISITES
+===============================================================================
+Before running the application, ensure the following software is installed:
+- Python 3.10 or higher
+- Node.js 18.x or higher & npm
+- Docker Desktop / Docker Compose (Optional, for containerized run)
+- Ollama (Optional, for local LLM inference)
+
+===============================================================================
+3. ENVIRONMENT CONFIGURATION
+===============================================================================
+1. Duplicate `.env.example` to `.env` in the root directory:
+   Windows PowerShell:
+     Copy-Item .env.example .env
+   Linux/macOS:
+     cp .env.example .env
+
+2. Edit `.env` with your desired configuration:
+   - APP_NAME="MPC AI - Multi-source Problem Correlation AI"
+   - APP_ENV="development"
+   - DEBUG=True
+   - PORT=8000
+   - CHROMA_PERSIST_DIR="./data/chroma_db"
+   - EMBEDDING_MODEL_NAME="all-MiniLM-L6-v2"
+   - LLM_PROVIDER="ollama" # Options: ollama, claude, openai
+   - OLLAMA_BASE_URL="http://localhost:11434"
+   - OLLAMA_MODEL="llama3:8b-instruct"
+   - CLAUDE_API_KEY="your_claude_api_key_here"
+   - DEFAULT_SERIAL_PORT="COM3" # Linux: /dev/ttyUSB0
+   - DEFAULT_BAUD_RATE=115200
+   - MQTT_BROKER="localhost"
+   - MQTT_PORT=1883
+   - MQTT_TOPIC="mpc/sensors/#"
+
+===============================================================================
+4. RUNNING LOCALLY (DEVELOPMENT MODE)
+===============================================================================
+
+--- Step A: Backend Setup & Execution ---
+1. Open a terminal in the root workspace directory.
+2. Create and activate a Python virtual environment:
+   Windows PowerShell:
+     python -m venv venv.\venv\Scripts\Activate.ps1
+   Linux/macOS:
+     python3 -m venv venv
+     source venv/bin/activate
+
+3. Install required Python packages:
+     pip install -r requirements.txt
+
+4. Start the FastAPI backend server:
+     python -m uvicorn backend.app.main:app --reload --port 8000
+   Alternatively:
+     python backend/app/main.py
+
+   The backend will start on: http://localhost:8000
+
+--- Step B: Frontend Setup & Execution ---
+1. Open a separate terminal window in the root directory.
+2. Install Node dependencies:
+     npm install
+
+3. Start the Vite development server:
+     npm run dev
+
+4. Open your browser and navigate to the local URL provided by Vite:
+     http://localhost:5173 (or as indicated in terminal)
+
+--- Step C: Production Build Verification ---
+- Build frontend TypeScript bundle:
+    npm run build
+- Preview built application:
+    npm run preview
+- Run linter:
+    npm run lint
+
+===============================================================================
+5. RUNNING WITH DOCKER & DOCKER COMPOSE
+===============================================================================
+To run the full stack (FastAPI Backend + Ollama Service) using Docker:
+
+1. Build and launch services in detached mode:
+     docker-compose up -d --build
+
+2. Check status of running containers:
+     docker-compose ps
+
+3. View container logs:
+     docker-compose logs -f backend
+
+4. Stop all running services:
+     docker-compose down
+
+Exposed Docker Ports:
+- FastAPI Backend: http://localhost:8000
+- Ollama Server:   http://localhost:11434
+
+===============================================================================
+6. API DOCUMENTATION & HEALTH CHECKS
+===============================================================================
+- Interactive Swagger API Docs:  http://localhost:8000/docs
+- ReDoc API Documentation:      http://localhost:8000/redoc
+- Health Check Endpoint:        http://localhost:8000/api/v1/health
+
+Sample Health Check Response:
+{
+  "status": "online",
+  "app_name": "MPC AI - Multi-source Problem Correlation AI",
+  "environment": "development",
+  "llm_provider": "ollama",
+  "embedding_model": "all-MiniLM-L6-v2",
+  "vector_store_status": "ready"
+}
+
+===============================================================================
+7. PROJECT ARCHITECTURE & DIRECTORY STRUCTURE
+===============================================================================
+MPC Ai/
+├── backend/                  # FastAPI Application Root
+│   └── app/
+│       ├── api/              # API Route Handlers (ingestion, RAG, telemetry, RCA, system)
+│       ├── core/             # Core Config and Settings
+│       ├── engine/           # RAG Engine, Embeddings & Vector DB integration
+│       ├── models/           # Data Models & Schemas
+│       └── services/         # Business Logic & Telemetry Services
+├── frontend/                 # React Frontend Application
+│   └── src/
+│       ├── components/       # UI Components & Views
+│       ├── services/         # API Client Services
+│       └── types/            # TypeScript Interface Definitions
+├── data/                     # Vector DB (ChromaDB) & Upload Storage
+├── datasets/                 # Sample Data & Reference Test Suites
+├── docs/                     # Hackathon & Pitch Documentation
+├── Dockerfile                # Docker Image Build file for backend
+├── docker-compose.yml        # Docker Multi-container Orchestration
+├── package.json              # Node.js Frontend Dependencies & Scripts
+├── requirements.txt          # Python Backend Dependencies
+├── vite.config.ts            # Vite Build Configuration
+└── .env.example              # Environment Configuration Template
+
+===============================================================================
+8. TELEMETRY & HARDWARE INTEGRATION
+===============================================================================
+- UART Serial Monitoring: Set `DEFAULT_SERIAL_PORT` (e.g. COM3 or /dev/ttyUSB0) 
+  and `DEFAULT_BAUD_RATE` in `.env`.
+- MQTT Telemetry: Set `MQTT_BROKER` and `MQTT_TOPIC` in `.env` to ingest live 
+  sensor streaming telemetry into the correlation pipeline.
+
+===============================================================================
+9. TROUBLESHOOTING & COMMON ISSUES
+===============================================================================
+1. Virtual Environment Activation Error (PowerShell):
+   Run: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+2. Vector Store Ingestion Errors:
+   Ensure `./data/chroma_db` directory permissions allow write access.
+3. Ollama Connection Refused:
+   Ensure Ollama desktop service is running locally on port 11434 (`ollama serve`).
+
+===============================================================================
