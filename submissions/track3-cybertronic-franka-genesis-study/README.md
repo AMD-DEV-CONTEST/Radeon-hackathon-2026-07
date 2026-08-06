@@ -19,6 +19,11 @@ For the final competition demo, the repository also includes a vision-guided app
 - Final demo video (Bilibili): <https://www.bilibili.com/video/BV1fKuJ6GEgE/>
 - Main demo: Vision-Guided Franka Apple-to-Plate Pick-and-Place
 
+Recommended Pull Request information:
+
+- PR title: `[Physical AI] cybertronic - Vision-Guided Franka Apple-to-Plate Pick-and-Place`
+- PR description should include the project summary, final demo video links, team name, GitHub ID, and reproduction command.
+
 ## 1. Project Introduction / 项目简介
 
 ### English
@@ -167,6 +172,14 @@ Modified from baseline:
 - The baseline implementation is kept in `src/franka_fruit_follow.py`.
 - New scripts extend the baseline with perception, task phases, success metrics, and annotated videos.
 
+Originality and compliance statement:
+
+- This submission is not a direct fork-only submission. The competition work adds new vision-guided tracking, pick-and-lift, and apple-to-plate pick-and-place modules on top of the baseline learning demo.
+- No external model weights are included.
+- No private datasets are included. Generated videos and full per-frame metrics are written to `outputs/` and intentionally ignored by Git.
+- No API keys, passwords, or private credentials are required by the project code.
+- The lightweight summary JSON files in `results/` are generated from local/cloud runs and are included for reproducibility and result verification.
+
 ### 中文
 
 基于的开源/参考项目：
@@ -188,6 +201,14 @@ Modified from baseline:
 - 保留原 `scripts/franka_fruit_follow.py` 作为兼容入口。
 - baseline 主实现放在 `src/franka_fruit_follow.py`。
 - 新增脚本扩展了视觉感知、任务阶段、成功指标和标注视频输出。
+
+原创性与合规声明：
+
+- 本提交不是仅直接 fork 后无修改的项目。参赛工作在 baseline 学习 Demo 基础上新增了视觉引导跟随、抓取抬升和苹果放入盘子的 pick-and-place 模块。
+- 仓库中不包含外部模型权重。
+- 仓库中不包含私有数据集。生成视频和完整逐帧指标统一写入 `outputs/`，并被 Git 忽略。
+- 项目代码不需要 API Key、密码或私有凭证。
+- `results/` 下提交的轻量 summary JSON 来自本地/云服务器运行结果，用于复现和结果核对。
 
 ## 4. Team Contributions / 团队分工
 
@@ -436,6 +457,28 @@ Run the final apple-to-plate pick-and-place demo, recommended as the main compet
 python scripts/franka_vision_pick_place.py
 ```
 
+Recommended one-command reproduction for the submitted result:
+
+```bash
+python scripts/franka_vision_pick_place.py \
+  --config configs/franka_vision_pick_place.json \
+  --video outputs/videos/franka_vision_pick_place.mp4 \
+  --annotated-video outputs/videos/franka_vision_pick_place_annotated.mp4 \
+  --metrics outputs/metrics/franka_vision_pick_place.json \
+  --summary results/franka_vision_pick_place_summary.json
+```
+
+Expected validation outputs:
+
+- `outputs/videos/franka_vision_pick_place_annotated.mp4`: annotated simulation video.
+- `results/franka_vision_pick_place_summary.json`: lightweight result summary.
+- Key expected metrics from the validated run:
+  - `detection_rate`: `1.0`
+  - `grasp_success`: `true`
+  - `place_success`: `true`
+  - `fruit_lift_delta_mm`: about `242.8`
+  - `final_place_error_mm`: `0.0`
+
 Optional comparison runs:
 
 ```bash
@@ -663,6 +706,28 @@ python scripts/franka_vision_pick.py
 ```bash
 python scripts/franka_vision_pick_place.py
 ```
+
+推荐用于复现提交结果的一条主命令：
+
+```bash
+python scripts/franka_vision_pick_place.py \
+  --config configs/franka_vision_pick_place.json \
+  --video outputs/videos/franka_vision_pick_place.mp4 \
+  --annotated-video outputs/videos/franka_vision_pick_place_annotated.mp4 \
+  --metrics outputs/metrics/franka_vision_pick_place.json \
+  --summary results/franka_vision_pick_place_summary.json
+```
+
+预期验证输出：
+
+- `outputs/videos/franka_vision_pick_place_annotated.mp4`：带标注的仿真视频。
+- `results/franka_vision_pick_place_summary.json`：轻量结果汇总。
+- 已验证运行中的关键指标：
+  - `detection_rate`: `1.0`
+  - `grasp_success`: `true`
+  - `place_success`: `true`
+  - `fruit_lift_delta_mm`: 约 `242.8`
+  - `final_place_error_mm`: `0.0`
 
 可选：运行 baseline、原始视觉控制和平滑视觉控制三组对比实验：
 
