@@ -8,6 +8,7 @@ guard for unripe fruit.
 
 ## Deliverables
 
+- Source video:https://github.com/user-attachments/files/30781306/video.zip or  https://pan.baidu.com/s/1wKbvYqZIJdXIoEYX-YC65w?pwd=s7zx
 - Source code: https://github.com/cairen9/freshguard-physical-ai
 - Technical report: [FreshGuard_Technical_Report.pdf](FreshGuard_Technical_Report.pdf)
 - Reproducibility instructions: the source repository `README.md` and
