@@ -1,0 +1,43 @@
+version: "3.8"
+
+services:
+  code-risk-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: code-risk-agent:latest
+    container_name: code-risk-agent
+    shm_size: '16gb'
+    devices:
+      - /dev/kfd:/dev/kfd      # ROCm kernel driver
+      - /dev/dri:/dev/dri      # GPU render nodes
+    group_add:
+      - video
+      - render
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: amd
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - ./models:/models:ro
+      - ${SCAN_TARGET:-./src}:/workspace/src:ro
+      - ./data:/app/data
+      - ./memory.json:/app/memory.json
+    environment:
+      - LLM_BACKEND=local_llama_cpp
+      - LOCAL_MODEL_PATH=/models/qwen2.5-coder-32b-instruct-q4_k_m.gguf
+      - LOCAL_N_GPU_LAYERS=999
+      - SEMGREP_RULES=p/default
+      - ROCM_PATH=/opt/rocm-7.2.4
+      - GGML_HIP=ON
+    network_mode: "none"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    command: ["analyze", "/workspace/src"]
