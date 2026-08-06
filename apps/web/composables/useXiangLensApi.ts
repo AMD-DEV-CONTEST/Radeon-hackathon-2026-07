@@ -17,6 +17,8 @@ export function useXiangLensApi() {
     return value.trim().replace(/\/$/, '')
   })
   const runTransport = computed(() => String(config.public.runTransport || 'stream'))
+  let refreshInFlight: Promise<AccessSession> | null = null
+  let refreshTimer: ReturnType<typeof setTimeout> | null = null
 
   function setApiBase(value: string) {
     const normalized = value.trim().replace(/\/$/, '')
@@ -31,6 +33,8 @@ export function useXiangLensApi() {
   }
 
   function clearSession() {
+    if (refreshTimer) clearTimeout(refreshTimer)
+    refreshTimer = null
     accessToken.value = ''
     sessionId.value = ''
     sessionExpiresAt.value = 0
@@ -52,6 +56,7 @@ export function useXiangLensApi() {
     sessionId.value = sessionStorage.getItem('xianglens-session-id') || ''
     sessionExpiresAt.value = storedExpiry
     if (!accessToken.value || !sessionId.value) clearSession()
+    else scheduleSessionRefresh()
   }
 
   async function openSession(force = false): Promise<AccessSession> {
@@ -71,6 +76,11 @@ export function useXiangLensApi() {
       throw new Error(String(body.detail || response.statusText))
     }
     const session = await response.json() as AccessSession
+    storeSession(session)
+    return session
+  }
+
+  function storeSession(session: AccessSession) {
     accessToken.value = session.access_token
     sessionId.value = session.session_id
     sessionExpiresAt.value = Date.parse(session.expires_at)
@@ -79,14 +89,74 @@ export function useXiangLensApi() {
       sessionStorage.setItem('xianglens-session-id', sessionId.value)
       sessionStorage.setItem('xianglens-session-expires-at', String(sessionExpiresAt.value))
     }
-    return session
+    scheduleSessionRefresh()
   }
 
-  async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-    const response = await fetch(`${apiBase.value}${path}`, {
+  function scheduleSessionRefresh() {
+    if (!import.meta.client || !accessToken.value) return
+    if (refreshTimer) clearTimeout(refreshTimer)
+    const refreshAt = sessionExpiresAt.value - 5 * 60_000
+    refreshTimer = setTimeout(() => {
+      refreshTimer = null
+      void refreshSession().catch(() => undefined)
+    }, Math.max(1_000, refreshAt - Date.now()))
+  }
+
+  async function refreshSession(): Promise<AccessSession> {
+    if (refreshInFlight) return await refreshInFlight
+    if (!accessToken.value || !sessionId.value) throw new Error('No access session to refresh')
+    const currentSessionId = sessionId.value
+    refreshInFlight = (async () => {
+      const response = await fetch(`${apiBase.value}/api/v1/session/refresh`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken.value}` }
+      })
+      if (!response.ok) {
+        clearSession()
+        throw new Error('The private access session expired. Open a new private session to continue.')
+      }
+      const session = await response.json() as AccessSession
+      if (session.session_id !== currentSessionId) {
+        clearSession()
+        throw new Error('The API returned a different session identity during refresh')
+      }
+      storeSession(session)
+      return session
+    })()
+    try {
+      return await refreshInFlight
+    } finally {
+      refreshInFlight = null
+    }
+  }
+
+  async function ensureFreshSession() {
+    if (
+      accessToken.value
+      && sessionExpiresAt.value <= Date.now() + 5 * 60_000
+    ) {
+      await refreshSession()
+    }
+  }
+
+  async function authenticatedFetch(path: string, init: RequestInit = {}): Promise<Response> {
+    await ensureFreshSession()
+    let response = await fetch(`${apiBase.value}${path}`, {
       ...init,
       headers: headers(init.headers)
     })
+    if (response.status === 401 && accessToken.value) {
+      await refreshSession()
+      response = await fetch(`${apiBase.value}${path}`, {
+        ...init,
+        headers: headers(init.headers)
+      })
+    }
+    return response
+  }
+
+  async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+    const response = await authenticatedFetch(path, init)
     if (!response.ok) {
       const body = await response.json().catch(() => ({ detail: response.statusText }))
       throw new Error(String(body.detail || response.statusText))
@@ -100,9 +170,9 @@ export function useXiangLensApi() {
     body: unknown,
     onEvent: (event: StreamEvent) => void
   ): Promise<void> {
-    const response = await fetch(`${apiBase.value}${path}`, {
+    const response = await authenticatedFetch(path, {
       method: 'POST',
-      headers: headers({ 'Content-Type': 'application/json' }),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     })
     if (!response.ok || !response.body) {
@@ -159,9 +229,8 @@ export function useXiangLensApi() {
   }
 
   async function download(path: string): Promise<Blob> {
-    const response = await fetch(`${apiBase.value}${path}`, {
+    const response = await authenticatedFetch(path, {
       method: 'POST',
-      headers: headers()
     })
     if (!response.ok) throw new Error(await response.text())
     return await response.blob()
@@ -176,6 +245,7 @@ export function useXiangLensApi() {
     setApiBase,
     restoreSession,
     openSession,
+    refreshSession,
     clearSession,
     request,
     stream,

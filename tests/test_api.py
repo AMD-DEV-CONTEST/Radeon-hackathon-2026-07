@@ -104,6 +104,17 @@ def test_access_sessions_use_bearer_tokens_and_isolate_visitors(tmp_path: Path) 
         assert thread_response.json()["user_id"] == first["session_id"]
         thread_id = thread_response.json()["id"]
 
+        refreshed_response = client.post("/api/v1/session/refresh", headers=first_headers)
+        assert refreshed_response.status_code == 201
+        refreshed = refreshed_response.json()
+        assert refreshed["session_id"] == first["session_id"]
+        assert refreshed["access_token"] != first["access_token"]
+        refreshed_headers = {"Authorization": f"Bearer {refreshed['access_token']}"}
+        assert client.get(
+            f"/api/v1/threads/{thread_id}", headers=refreshed_headers
+        ).status_code == 200
+        assert client.post("/api/v1/session/refresh").status_code == 401
+
         second = client.post("/api/v1/session").json()
         second_headers = {"Authorization": f"Bearer {second['access_token']}"}
         assert client.get(f"/api/v1/threads/{thread_id}", headers=second_headers).status_code == 404

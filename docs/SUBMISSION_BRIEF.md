@@ -142,6 +142,9 @@ Browser
 GitHub Pages hosts static JavaScript only. It is not an inference service. The production FastAPI
 base URL is build-time public configuration; the permanent application key stays on the Radeon
 host. FastAPI issues a random, visitor-scoped Bearer token with a 10–30 minute lifetime.
+The browser proactively rotates a still-valid token before expiry through an authenticated endpoint;
+the replacement keeps the same session identity, so an in-progress run and its follow-up thread are
+not orphaned.
 
 See [Production Deployment Guide](PRODUCTION_DEPLOYMENT.md) and [ROCm Reproduction Steps](REPRODUCE.md).
 

@@ -10,6 +10,14 @@ def test_session_token_expiry_and_signature_validation() -> None:
     assert manager.verify(token, now=claims.expires_at - 1) == claims
     with pytest.raises(SessionTokenError, match="expired"):
         manager.verify(token, now=claims.expires_at)
+    refreshed_token, refreshed_claims = manager.issue(
+        session_id=claims.session_id,
+        now=claims.issued_at + 60,
+    )
+    assert refreshed_token != token
+    assert refreshed_claims.session_id == claims.session_id
+    assert refreshed_claims.token_id != claims.token_id
+    assert manager.verify(refreshed_token, now=refreshed_claims.issued_at) == refreshed_claims
     with pytest.raises(SessionTokenError, match="Invalid access token"):
         manager.verify(f"{token[:-1]}x", now=1_001)
 

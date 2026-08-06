@@ -52,10 +52,17 @@ class SessionTokenManager:
         ).digest()
         self.ttl_seconds = ttl_minutes * 60
 
-    def issue(self, *, now: int | None = None) -> tuple[str, SessionClaims]:
+    def issue(
+        self,
+        *,
+        session_id: str | None = None,
+        now: int | None = None,
+    ) -> tuple[str, SessionClaims]:
         issued_at = int(time.time() if now is None else now)
+        if session_id is not None and not session_id.startswith("session_"):
+            raise ValueError("A refreshed access token requires a valid session identity")
         claims = SessionClaims(
-            session_id=f"session_{uuid.uuid4().hex}",
+            session_id=session_id or f"session_{uuid.uuid4().hex}",
             token_id=uuid.uuid4().hex,
             issued_at=issued_at,
             expires_at=issued_at + self.ttl_seconds,

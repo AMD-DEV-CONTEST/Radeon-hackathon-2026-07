@@ -53,6 +53,10 @@ identity, and the backend scopes threads, memories, consent decisions, exports, 
 identity. A Cloudflare Worker may be placed in front for edge rate limiting, but is not required to
 hold or expose the permanent key in the default FastAPI-issued flow.
 
+Before a short-lived token expires, the web client rotates it through the authenticated refresh
+endpoint while preserving the same session identity. Long analyses and follow-up polling therefore
+retain access to the original thread without exposing the permanent key.
+
 The development URL is not a third-party AI service. However, the final same-host topology is important because Track 2 prohibits core inference through a remote API.
 
 ## Requirements
@@ -156,6 +160,7 @@ Useful endpoints:
 |---|---|---|
 | `GET` | `/health` | Process health without a model request |
 | `POST` | `/api/v1/session` | Issue a short-lived, visitor-scoped Bearer token |
+| `POST` | `/api/v1/session/refresh` | Rotate a valid Bearer token without changing session identity |
 | `GET` | `/api/v1/system/status?probe_model=true` | Deployment and model status |
 | `POST` | `/api/v1/threads` | Create a conversation thread |
 | `POST` | `/api/v1/threads/{id}/images` | Upload a JPEG, PNG, or WebP image |

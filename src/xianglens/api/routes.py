@@ -321,6 +321,33 @@ async def create_access_session(request: Request, response: Response) -> AccessS
     )
 
 
+@router.post(
+    "/api/v1/session/refresh",
+    response_model=AccessSession,
+    status_code=status.HTTP_201_CREATED,
+)
+async def refresh_access_session(request: Request, response: Response) -> AccessSession:
+    settings = _services(request).settings
+    manager = request.app.state.session_tokens
+    session_id = _session_user_id(request)
+    if (
+        not settings.auth_enabled
+        or not settings.public_sessions_enabled
+        or manager is None
+        or session_id is None
+    ):
+        raise HTTPException(status_code=404, detail="Access-session refresh is not enabled")
+    token, claims = manager.issue(session_id=session_id)
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    return AccessSession(
+        access_token=token,
+        expires_in=manager.ttl_seconds,
+        expires_at=datetime.fromtimestamp(claims.expires_at, UTC),
+        session_id=claims.session_id,
+    )
+
+
 @router.get("/api/v1/system/status", response_model=SystemStatus)
 async def system_status(
     request: Request, probe_model: Annotated[bool, Query()] = False
