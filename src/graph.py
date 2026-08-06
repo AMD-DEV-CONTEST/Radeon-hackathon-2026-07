@@ -29,8 +29,8 @@ llm = ChatOpenAI(
 )
 
 # # Replace these with the exact values from your Radeon Cloud dialog
-# RADEON_BASE_URL = "https://radeon-global.anruicloud.com/spaces/thatonesid/8000/v1"
-# RADEON_API_KEY = "your-copied-api-key"
+# RADEON_BASE_URL = "Insert_link"
+# RADEON_API_KEY = "insert-api-key"
 
 # llm = ChatOpenAI(
 #     model="Qwen/Qwen2.5-Coder-7B-Instruct-AWQ",
