@@ -40,6 +40,11 @@ FlintCode-Private-Agent/
   README.md                           # This file
 ```
 
+## Dependencies
+- **TeaQL**: The foundational schema language and compiler used for generating the underlying Rust microservices.
+- **teaql-agent-kit**: Provides the backend API generation service and essential toolchain base libraries that FlintCode relies upon for its autonomous execution.
+- **vLLM (ROCm version)**: The high-throughput inference engine used to serve the large language model natively on AMD hardware.
+
 ## How to run on AMD Radeon (ROCm)
 (Detailed environment setup and step-by-step reproduction instructions will be provided here...)
 
