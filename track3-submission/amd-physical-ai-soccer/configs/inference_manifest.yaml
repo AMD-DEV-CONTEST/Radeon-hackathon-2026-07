@@ -1,0 +1,133 @@
+# ============================================================================
+# Unified Inference Manifest for Track 3
+# ALL training, evaluation, match, and video scripts MUST read this config.
+# Single source of truth for observation/action dimensions, scales, PD params,
+# joint names, simulation parameters, and rendering settings.
+#
+# DO NOT duplicate these values in individual scripts.
+# ============================================================================
+
+# ── Model ────────────────────────────────────────────────────────────────────
+model_path: /persistent/track3/models/checkpoints/best.pt
+model_type: rsl_rl_ppo_high_level      # rsl_rl PPO checkpoint (high-level policy)
+onnx_path: /persistent/track3/models/onnx/chase_v8_policy.onnx
+walk_model_path: /persistent/track3/models/base/t1_walk.pt
+
+# ── Environment ──────────────────────────────────────────────────────────────
+env_name: SoccerEnvHierarchical        # hierarchical env (frozen walk + HL policy)
+base_env_name: SoccerEnv               # parent env class
+task: chase_hl                          # high-level chase task
+num_robots: 6                           # multi-robot match = 6 robots
+team_size: 3
+
+# ── Robot ────────────────────────────────────────────────────────────────────
+robot_urdf: urdf/t1/t1.urdf
+base_init_pos: [0.0, 0.0, 0.6]
+base_init_quat: [1.0, 0.0, 0.0, 0.0]
+fall_height: 0.8
+termination_pitch_deg: 30
+termination_roll_deg: 30
+
+# ── Observation ───────────────────────────────────────────────────────────────
+observation_dim: 19                     # high-level obs: ball-aware body-frame
+obs_history_length: 10                  # low-level walk model uses 10-frame stacking
+obs_scales:
+  lin_vel: 2.0
+  ang_vel: 0.25
+  dof_pos: 1.0
+  dof_vel: 0.05
+  gravity: 1.0
+  command: 1.0
+  height: 5.0
+obs_layout:
+  - filtered_lin_vel(3)                 # 0-2: robot velocity in body frame
+  - filtered_ang_vel(3)                 # 3-5: robot angular velocity in body frame
+  - projected_gravity_xy(2)            # 6-7: orientation indicator
+  - ball_rel_body_xy(2)               # 8-9: ball position relative to robot
+  - ball_vel_body_xy(2)               # 10-11: ball velocity in body frame
+  - dist_to_ball(1)                    # 12: Euclidean distance to ball
+  - goal_dir_body_xy(2)               # 13-14: goal direction in body frame
+  - goal_dist(1)                       # 15: distance to goal
+  - last_hl_actions(3)                 # 16-18: last velocity command [vx, vy, wz]
+
+# ── Action ───────────────────────────────────────────────────────────────────
+action_dim: 3                           # high-level: [vx, vy, wz]
+action_scale: 0.25                     # used by low-level frozen model
+action_clip:
+  lin: 1.2                             # clip linear velocity commands
+  ang: 1.2                             # clip angular velocity commands
+clip_actions: 100.0                    # low-level action clip (effectively no clip)
+
+# ── Joint Info ───────────────────────────────────────────────────────────────
+# T1 humanoid has 21 motor DOFs (auto-discovered from URDF).
+# The high-level policy does NOT control joints directly; it outputs velocity
+# commands that the frozen walk model converts to joint targets.
+num_motor_dofs: 21                     # T1 23-DOF minus 2 fixed
+joint_names:
+  - left_hip_yaw
+  - right_hip_yaw
+  - left_hip_roll
+  - right_hip_roll
+  - left_hip_pitch
+  - right_hip_pitch
+  - left_knee
+  - right_knee
+  - left_ankle_pitch
+  - right_ankle_pitch
+  - left_ankle_roll
+  - right_ankle_roll
+  - waist_yaw
+  - waist_roll
+  - waist_pitch
+  - left_shoulder_pitch
+  - right_shoulder_pitch
+  - left_shoulder_roll
+  - right_shoulder_roll
+  - left_shoulder_yaw
+  - right_shoulder_yaw
+  # Note: elbow joints may be locked in some T1 configs; auto-discovered at runtime
+
+# ── PD Gains (low-level, applied to walk model output) ──────────────────────
+pd_gains:
+  kp: 200.0                            # T1 hip/knee stiffness
+  kd: 5.0                              # T1 hip/knee damping
+
+# ── Simulation ───────────────────────────────────────────────────────────────
+sim_dt: 0.02                            # control dt = physics_dt * substeps
+physics_dt: 0.002
+substeps: 10
+control_decimation: 5                   # HL decimation: HL dt = sim_dt * 5 = 0.1s
+hl_dt: 0.1                             # high-level decision frequency = 10 Hz
+episode_seconds: 24.0                   # training episode length
+match_duration_seconds: 25.0            # match duration
+
+# ── Soccer Field ────────────────────────────────────────────────────────────
+field: [14.0, 9.0]                     # [length(x), width(y)]
+ball_radius: 0.11
+goal_width: 2.6
+circle_radius: 1.5
+
+# ── Rendering ────────────────────────────────────────────────────────────────
+render_fps: 30
+render_resolution: [960, 540]
+render_camera_pos: [4.0, -6.0, 3.0]
+render_camera_lookat: [0.0, 0.0, 0.5]
+render_camera_fov: 60
+
+# ── Seed ─────────────────────────────────────────────────────────────────────
+seed: 42
+
+# ── Paths ────────────────────────────────────────────────────────────────────
+remote_base: /persistent/track3
+code_base: /workspace/radeon-repo
+runs_dir: /workspace/radeon-repo/runs
+demo_dir: /workspace/radeon-repo/demos
+match_log_dir: /workspace/radeon-repo/match_logs
+report_dir: /workspace/radeon-repo/reports
+
+# ── Recommended Checkpoints ──────────────────────────────────────────────────
+# Latest and most complete training: curriculum_p4 (model_996.pt)
+# Full 500-iter run: hierarchical_soccer_coop_hl (model_499.pt)
+# Persistent (copied): /persistent/track3/models/checkpoints/{best,model_400,model_450}.pt
+recommended_checkpoint: /workspace/radeon-repo/runs/curriculum_p4/model_996.pt
+recommended_onnx: /persistent/track3/models/onnx/chase_v8_policy.onnx

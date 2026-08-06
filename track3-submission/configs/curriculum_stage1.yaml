@@ -1,0 +1,99 @@
+# Stage 1: Balance curriculum — only standing/walking stability rewards
+# Goal: episode length > 200 (robot survives 20+ seconds)
+# No ball-related rewards — pure locomotion stability with frozen t1_walk.pt
+
+exp_name: curriculum_stage1
+task: balance_hl
+num_envs: 256
+seed: 42
+show_viewer: false
+
+env:
+  robot_urdf: urdf/t1/t1.urdf
+  episode_length_s: 24.0
+  dt: 0.02
+  substeps: 10
+  action_scale: 0.25
+  clip_actions: 100.0
+  simulate_action_latency: true
+  ball_radius: 0.11
+  field: [14.0, 9.0]
+  goal_width: 2.6
+  circle_radius: 1.5
+  fall_height: 0.4
+  termination_pitch_deg: 30
+  termination_roll_deg: 30
+  base_init_pos: [0.0, 0.0, 0.6]
+  base_init_quat: [1.0, 0.0, 0.0, 0.0]
+
+obs:
+  obs_scales:
+    lin_vel: 2.0
+    ang_vel: 0.25
+    dof_pos: 1.0
+    dof_vel: 0.05
+    gravity: 1.0
+    command: 1.0
+    height: 5.0
+
+command:
+  goal_dir: [1.0, 0.0, 0.0]
+  resampling_time_range: [8.0, 12.0]
+  vel_range: [-1.0, 1.0]
+
+reward:
+  # ── Balance only (no ball rewards) ──
+  upright: 2.0
+  alive: 1.0
+  orientation: -2.0
+  fall_penalty: -10.0
+  recovery_bonus: 3.0
+  energy_penalty: -0.01
+  action_rate: -0.5
+  lin_vel_z: -0.5
+  ang_vel_xy: -0.2
+  only_positive_rewards: false
+
+high_level:
+  decimation: 5
+  walk_model_path: /workspace/booster/booster_deploy/tasks/locomotion/models/t1_walk.pt
+  action_clip: 0.1
+
+train:
+  algorithm:
+    class_name: PPO
+    value_loss_coef: 1.0
+    use_clipped_value_loss: true
+    clip_param: 0.2
+    entropy_coef: 0.01
+    num_learning_epochs: 5
+    num_mini_batches: 4
+    learning_rate: 1.0e-3
+    schedule: adaptive
+    gamma: 0.99
+    lam: 0.95
+    desired_kl: 0.01
+    max_grad_norm: 1.0
+  actor:
+    class_name: MLPModel
+    hidden_dims: [256, 128, 64]
+    activation: elu
+    distribution_cfg:
+      class_name: GaussianDistribution
+      init_std: 0.5
+      std_type: scalar
+  critic:
+    class_name: MLPModel
+    hidden_dims: [256, 128, 64]
+    activation: elu
+  obs_groups:
+    actor:
+      - policy
+    critic:
+      - policy
+  num_steps_per_env: 24
+  save_interval: 50
+  logger: tensorboard
+  run_name: curriculum_stage1
+  max_iterations: 500
+  experiment_name: curriculum_stage1

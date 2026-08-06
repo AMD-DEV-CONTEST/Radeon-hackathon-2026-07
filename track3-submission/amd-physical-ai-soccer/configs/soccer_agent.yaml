@@ -1,0 +1,103 @@
+# ============================================================================
+# Config for humanoid-soccer PPO training (Track 3 - Physical AI, AMD Hackathon)
+# Matching the verified Genesis RL API (examples/locomotion/go2_train.py).
+#
+# Week-1 target: task=chase (stay upright + approach ball).
+# Later: dribble -> shoot -> coop (attacker/defender).
+# ============================================================================
+
+seed: 42
+exp_name: booster_soccer
+num_envs: 2048          # RX 7900 (24GB): start at 2048, raise to 4096 after VRAM check
+show_viewer: false
+task: chase             # one of: balance | chase | dribble | shoot | coop
+
+env:
+  dt: 0.02
+  substeps: 2
+  episode_length_s: 20.0
+  resampling_time_s: 4.0
+  action_scale: 0.25    # aligned to booster_deploy T1 walk contract
+  clip_actions: 100.0
+  simulate_action_latency: true
+
+  # ---- robot: Booster T1 humanoid (23-DOF, official booster_assets) ----
+  # Deployable to real T1 via booster_deploy (TorchScript .pt)
+  robot_urdf: "assets/t1/T1_23dof.xml"
+  kp: 200.0   # T1 hip/knee stiffness (from booster_gym T1.yaml)
+  kd: 5.0     # T1 hip/knee damping
+  base_init_pos: [0.0, 0.0, 0.72]   # T1 standing height (from booster_gym T1.yaml)
+  base_init_quat: [1.0, 0.0, 0.0, 0.0]
+  obs_history_length: 10            # booster_deploy uses 10-frame history stacking
+  fall_height: 0.4                  # T1 base below 0.4m => fallen
+
+  # ---- soccer pitch (aligned to Booster ADULT_FIELD_DIMENSIONS: 14x9, goal 2.6, circle 1.5) ----
+  ball_radius: 0.11
+  field: [14.0, 9.0]     # x (length, goal at +x), y (width) -- matches real Booster pitch
+  goal_width: 2.6
+  circle_radius: 1.5     # center circle (kickoff / set-play spacing)
+  penalty_area_length: 3.0
+  penalty_area_width: 6.0
+  fall_height: 0.4                  # T1 base below 0.4m => fallen
+  termination_pitch_deg: 30
+  termination_roll_deg: 30
+
+obs:
+  obs_scales:
+    lin_vel: 2.0
+    ang_vel: 0.25
+    dof_pos: 1.0
+    dof_vel: 0.05
+
+# Reward weights consumed by rewards/reward.py (Booster sub-task curriculum).
+reward:
+  upright: 1.0
+  alive: 0.1
+  approach_ball: 2.0      # chase
+  ball_control: 1.5       # dribble (keep ball close)
+  ball_to_goal: 3.0       # shoot (ball velocity toward goal)
+  goal_scored: 50.0
+  fall_penalty: -5.0
+  recovery_bonus: 2.0     # get up after falling
+  energy_penalty: -0.001
+  tracking_sigma: 0.25
+
+command:
+  num_commands: 3
+  goal_dir: [1.0, 0.0, 0.0]   # policy is told to aim toward +x goal
+
+# rsl-rl PPO config (OnPolicyRunner). Mirrors examples/locomotion/go2_train.py.
+train:
+  algorithm:
+    class_name: PPO
+    clip_param: 0.2
+    desired_kl: 0.01
+    entropy_coef: 0.005
+    gamma: 0.99
+    lam: 0.95
+    learning_rate: 3.0e-4
+    max_grad_norm: 1.0
+    num_learning_epochs: 5
+    num_mini_batches: 4
+    schedule: adaptive
+    use_clipped_value_loss: true
+    value_loss_coef: 1.0
+  actor:
+    class_name: MLPModel
+    hidden_dims: [512, 256, 128]
+    activation: elu
+    distribution_cfg:
+      class_name: GaussianDistribution
+      init_std: 1.0
+      std_type: scalar
+  critic:
+    class_name: MLPModel
+    hidden_dims: [512, 256, 128]
+    activation: elu
+  obs_groups:
+    actor: ["policy"]
+    critic: ["policy"]
+  num_steps_per_env: 24
+  save_interval: 100
+  logger: tensorboard
+  max_iterations: 1000

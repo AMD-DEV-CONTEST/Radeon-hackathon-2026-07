@@ -1,0 +1,124 @@
+command:
+  goal_dir:
+  - 1.0
+  - 0.0
+  - 0.0
+  resampling_time_range:
+  - 8.0
+  - 12.0
+  vel_range:
+  - -1.0
+  - 1.0
+env:
+  action_scale: 0.25
+  ball_radius: 0.11
+  base_init_pos:
+  - 0.0
+  - 0.0
+  - 0.6
+  base_init_quat:
+  - 1.0
+  - 0.0
+  - 0.0
+  - 0.0
+  circle_radius: 1.5
+  clip_actions: 100.0
+  dt: 0.02
+  episode_length_s: 24.0
+  fall_height: 0.4
+  field:
+  - 14.0
+  - 9.0
+  goal_width: 2.6
+  hl_clip_ang: 1.2
+  hl_clip_lin: 1.2
+  multiagent_obs: true
+  robot_urdf: urdf/t1/t1.urdf
+  simulate_action_latency: true
+  substeps: 10
+  termination_pitch_deg: 30
+  termination_roll_deg: 30
+exp_name: hierarchical_soccer
+high_level:
+  action_clip: 1.0
+  decimation: 5
+  walk_model_path: /workspace/booster_deploy/tasks/locomotion/models/t1_walk.pt
+num_envs: 2048
+obs:
+  obs_scales:
+    ang_vel: 0.25
+    command: 1.0
+    dof_pos: 1.0
+    dof_vel: 0.05
+    gravity: 1.0
+    height: 5.0
+    lin_vel: 2.0
+reward:
+  action_rate: -1.0
+  alive: 0.0
+  ang_vel_xy: -0.1
+  approach_angle: 3.0
+  approach_ball: 10.0
+  ball_contact: 1.0
+  ball_control: 2.0
+  ball_progress: 10.0
+  ball_to_goal: 8.0
+  coop_goal: 10.0
+  defensive_position: 0.5
+  directed_contact: 5.0
+  energy_penalty: -0.01
+  fall_penalty: -5.0
+  goal_scored: 30.0
+  lin_vel_z: -0.5
+  only_positive_rewards: false
+  orientation: -1.0
+  recovery_bonus: 3.0
+  support_position: 0.5
+  upright: 0.5
+seed: 42
+show_viewer: false
+task: chase_hl
+train:
+  actor:
+    activation: elu
+    class_name: MLPModel
+    distribution_cfg:
+      class_name: GaussianDistribution
+      init_std: 1.0
+      std_type: scalar
+    hidden_dims:
+    - 256
+    - 128
+    - 64
+  algorithm:
+    class_name: PPO
+    clip_param: 0.2
+    desired_kl: 0.01
+    entropy_coef: 0.003
+    gamma: 0.99
+    lam: 0.95
+    learning_rate: 0.001
+    max_grad_norm: 1.0
+    num_learning_epochs: 5
+    num_mini_batches: 4
+    schedule: adaptive
+    use_clipped_value_loss: true
+    value_loss_coef: 1.0
+  critic:
+    activation: elu
+    class_name: MLPModel
+    hidden_dims:
+    - 256
+    - 128
+    - 64
+  experiment_name: hierarchical_soccer
+  logger: tensorboard
+  max_iterations: 500
+  num_steps_per_env: 24
+  obs_groups:
+    actor:
+    - policy
+    critic:
+    - policy
+  run_name: coop_hl_full
+  save_interval: 50
