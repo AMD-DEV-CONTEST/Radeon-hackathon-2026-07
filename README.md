@@ -1,86 +1,152 @@
-# Radeon-hackathon-2026-07
+# Candy Sticker Generator · Anime Chibi Q-version Sticker Generator
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+> 中文版：[README.zh.md](README.zh.md)
+>
+> A simple anime Q-version sticker generator built **entirely on the AMD Radeon + ROCm stack**
+> (training + inference + post-processing + serving).
+> In one line: feed in a reference image or an emotion keyword → get a complete set of stickers
+> with white borders, transparent backgrounds, ready to print or publish.
 
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
+---
 
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
+## 1. Project Positioning
 
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+This is a **complete software project**, not a single script. It chains
+"style-LoRA training → sticker base-image generation → background removal / white border / sheet
+layout / export → multimodal image→text loop → WebUI serving → GPU benchmark proof" into a creative
+pipeline that runs end-to-end on AMD ROCm.
 
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+Highlight: **both training and inference run entirely on AMD Radeon (ROCm)**, with built-in GPU
+proof, fitting the "AMD adaptation" theme.
 
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+---
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+## 2. Overall Architecture (layered)
 
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      User entry points                       │
+│   WebUI (src/webui/gradio_app.py)   ·   CLI (scripts/)       │
+└───────────────┬───────────────────────────┬─────────────────┘
+                │                           │
+        ┌───────▼────────┐          ┌───────▼────────┐
+        │ Multimodal loop │          │ Sticker pipeline│
+        │ src/multimodal │          │ src/generation │
+        │ img2prompt.py  │          │ sticker_pipeline│
+        └───────┬────────┘          └───────┬────────┘
+                │ image→text→image prompt    │
+                └─────────────┬───────────────┘
+                              ▼
+                    ┌─────────────────────┐
+                    │  SDXL + self-trained │  ← src/lora (trained on ROCm)
+                    │  LoRA (stkstyle)     │     animagine-xl-4.0 base
+                    └─────────┬───────────┘
+                              ▼
+        ┌─────────────────────────────────────────────┐
+        │            Post-processing (src/generation)   │
+        │  matting (bg removal) → border (EDT white) →  │
+        │  sheet (layout) → export (ZIP/WeChat/TG/print)│
+        └─────────────────────┬───────────────────────┘
+                              ▼
+                    demo_output/ (8-expression results)
+                              ▼
+              src/bench/gpu_benchmark.py  (ROCm proof)
+```
 
-## Submission Requirements
+---
 
-### Track 1: Development of Multimodal Content Creation Tools
+## 3. Directory Structure
 
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
+```
+candy-sticker-generator/
+├── README.md                  # this file: English overview & architecture (default)
+├── README.zh.md               # Chinese overview & architecture (zh)
+├── ARCHITECTURE.md            # module responsibilities, data flow, ROCm adaptation details
+├── MODELS.md                  # model list & download commands (Animagine / Qwen-VL / LoRA)
+├── requirements.txt           # Python dependencies (pip packages; not model weights)
+├── src/                       # ★ all source code (split by responsibility)
+│   ├── generation/            # core generation & post-processing
+│   │   ├── sticker_pipeline.py        # SDXL+LoRA main generation
+│   │   ├── matte_floodfill_batch.py   # floodfill background removal
+│   │   ├── add_sticker_whiteborder.py # EDT white border expansion
+│   │   ├── build_sheet.py             # sticker sheet layout
+│   │   └── make_sheet_export.py       # export ZIP / WeChat / TG / print
+│   ├── multimodal/            # multimodal image→text loop
+│   │   └── img2prompt.py             # Qwen2.5-VL: image→prompt→reverse enhancement
+│   ├── lora/                  # ★ LoRA 风格适配器（自训于 ROCm）
+│   │   ├── README.md                 # LoRA 说明文档
+│   │   └── models/stkstyle_lora_diffusers/  # 训练好的权重（~185MB, Git LFS）
+│   └── webui/                 # serving layer
+│       └── gradio_app.py             # Gradio WebUI (three modes + LoRA + print export)
+├── scripts/                   # CLI entry points / ops
+│   ├── run_one.py  run_8expr.py      # single / 8-expression batch generation
+│   └── setup.sh                      # 环境安装脚本
+├── demo_output/               # 8 finished expression stickers + contact sheet (demo)
+└── submission/                # official submission package (English)
+    ├── README.md  README.zh.md
+    └── docs/
+        ├── Project_Profile.md/.pdf       # official 5-element profile
+        ├── presentation.pptx             # 10-page deck
+        └── evidence_gpu/                 # 4 ROCm power/VRAM charts + gpu_evidence.json + device_info.txt
+```
 
-### Track 2: Development & Local Deployment of Private AI Agents
+> **Single source of truth**: formal documents and GPU evidence live only under `submission/docs/`.
+> No duplicate copy is kept at the project root, so the two can never drift apart.
 
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
+---
 
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
+## 4. Quick Start
 
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+### 4.1 Launch the WebUI (recommended for demo)
+
+> **⚠️ Environment activation**: Project dependencies are installed in a venv. Activate the virtual environment before running:
+
+```bash
+# Create and activate venv
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python src/webui/gradio_app.py --port 7860
+```
+
+> 🌐 Open http://localhost:7860 in a browser
+> 
+> ⚠️ Model weights are **not** installed by `requirements.txt`: first download the Animagine base
+> and Qwen2.5-VL to `models/` per `MODELS.md` (in China set `HF_ENDPOINT=https://hf-mirror.com`).
+> The self-trained `stkstyle` LoRA is bundled in the repo.
+> 
+> 💡 Add `--share` flag to get a temporary public Gradio URL.
+
+### 4.2 Batch generation from CLI
+```bash
+python scripts/run_8expr.py          # generate the 8-expression sticker set
+```
+
+### 4.3 Multimodal prompt enhancement
+```bash
+python src/multimodal/img2prompt.py --image ref.png
+```
+
+---
+
+## 5. Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Base model | SDXL (animagine-xl-4.0) + self-trained `stkstyle` LoRA |
+| Training framework | Diffusers + PEFT (LoRA), ROCm 7.x |
+| Post-processing | NumPy / Pillow / SciPy (floodfill bg removal + EDT white border) |
+| Multimodal | Qwen2.5-VL (image→text prompt reverse) |
+| Serving | Gradio |
+| Hardware | AMD Radeon (ROCm), 48 GB VRAM |
+
+---
+
+## 6. Scoring Map
+
+- **AMD ROCm adaptation**: training + inference + benchmark all on ROCm, with `submission/docs/evidence_gpu/` proof.
+- **Complete workflow**: from training to generation to export to serving, end-to-end reproducible.
+- **Real-world value**: export covers WeChat / Telegram / print specs, directly usable.
+- **Diversity**: multiple expressions (8) + self-trained style LoRA, extensible to multiple characters.
+
+See `ARCHITECTURE.md` and `submission/docs/Project_Profile.pdf` for more.
