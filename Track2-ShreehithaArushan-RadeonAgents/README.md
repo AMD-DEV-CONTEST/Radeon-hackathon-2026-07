@@ -1,22 +1,20 @@
 # RadeonAgents 🚀
 
-**Hackathon-Winning Local Multi-Agent Framework Optimized for AMD Radeon GPUs + ROCm**
+**Local Multi-Agent Framework Optimized for AMD Radeon GPUs + ROCm**
 
 RadeonAgents is a complete, production-ready intelligent agent system that runs **entirely locally** on AMD Radeon hardware using ROCm. It delivers advanced reasoning, hierarchical planning, tool use, persistent memory, multi-agent collaboration, and local RAG — with explicit optimizations for AMD GPUs.
 
-> Designed to win AMD / ROCm focused hackathons by maximizing both **functional completeness** and **ROCm inference performance**.
 
 ---
 
 ## Why This Wins
 
-| Judging Criterion                    | How RadeonAgents Scores                          | Points |
-|--------------------------------------|--------------------------------------------------|--------|
-| Functional completeness & value      | Full ReAct agents + planner + memory + tools + RAG + multi-agent + Gradio UI + 3 real demos | 60     |
-| Scenario innovation & UX             | Beautiful Gradio interface, specialized agents, practical productivity & developer use cases | (included) |
-| AMD Radeon GPU + ROCm optimization   | Native PyTorch ROCm, auto device detection, 4/8-bit quantization, SDPA, VRAM stats, dedicated benchmark script measuring tokens/s | 40     |
+| Judging Criterion                    | How RadeonAgents Scores                          |
+|--------------------------------------|--------------------------------------------------|
+| Functional completeness & value      | Full ReAct agents + planner + memory + tools + RAG + multi-agent + Gradio UI + 3 real demos |
+| Scenario innovation & UX             | Beautiful Gradio interface, specialized agents, practical productivity & developer use cases |
+| AMD Radeon GPU + ROCm optimization   | Native PyTorch ROCm, auto device detection, 4/8-bit quantization, SDPA, VRAM stats, dedicated benchmark script measuring tokens/s |
 
-**Total target: 100/100**
 
 ---
 
@@ -101,20 +99,22 @@ python scripts/benchmark_rocm.py
 ## Project Structure
 
 ```
-radeon-agents/
+Radeon-Agents-AMD-Hackathon-/
 ├── README.md
-├── requirements.txt
-├── pyproject.toml
-├── config/default.yaml
-├── src/
-│   ├── core/           # LLM, Agent, Planner, Memory, Tools
-│   ├── multi_agent/    # Orchestrator
-│   ├── rag/            # Local document RAG
-│   └── ui/             # Gradio interface
-├── examples/           # Three complete demo applications
-├── scripts/            # Model download + ROCm benchmark
-├── tests/
-└── data/sample_docs/   # Drop your documents here for RAG
+├── RadeaonAgents_Project_specification.pdf
+├── source-code/
+│   ├── config/
+│   ├── src/
+│   │   ├── core/           # LLM, Agent, Planner, Memory, Tools
+│   │   ├── multi_agent/    # Orchestrator
+│   │   ├── rag/            # Local document RAG
+│   │   └── ui/             # Gradio interface
+│   ├── examples/           # Three complete demo applications
+│   ├── scripts/            # Model download + ROCm benchmark
+│   ├── tests/
+│   └── data/sample_docs/   # Drop your documents here for RAG
+├── demo_video_link.txt
+└──poster.png
 ```
 
 ---
@@ -162,12 +162,6 @@ Typical numbers on a well-configured ROCm system with Phi-3-mini 4-bit:
 - Developer copilot that reasons about code and uses tools
 - Multi-agent research workflow
 - Private knowledge assistant over local company docs (RAG)
-
----
-
-## License
-
-MIT License – free for commercial and open-source use.
 
 ---
 
