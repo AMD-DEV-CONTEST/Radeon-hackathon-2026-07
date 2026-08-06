@@ -1,89 +1,91 @@
-# Radeon-hackathon-2026-07
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+# Radeon.Aura
 
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
+A compact, full-stack multimodal AI studio for image, video and audio generation and composition — optimized for AMD ROCm acceleration and Google Gemini integration. This repository contains the web UI, server glue, and developer tooling to run and iterate locally.
 
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
 
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
 
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+**Contents:** quickstart, pipeline overview, repo layout, assets & credits.
 
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+**Prerequisites:** Node.js (16+ recommended), a valid `GEMINI_API_KEY` in `.env` for model calls. For GPU-accelerated workloads, an AMD ROCm-capable environment is recommended.
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+**Quickstart**
 
-> [!IMPORTANT]
-> Team name was an optional field on the Luma registration form. If you did not fill in a team name when you registered, please use your own name instead, so the title of the pull request should be like **"Track x, Your name, your application name"**.
+1. Install dependencies:
 
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
+```bash
+npm install
+```
 
-## Submission Requirements
+2. Copy configuration and set secrets:
 
-### Track 1: Development of Multimodal Content Creation Tools
+```bash
+cp .env.example .env
+# Edit .env and set GEMINI_API_KEY and other env vars
+```
 
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
+3. Run in development (hot-reload + server middleware):
 
-### Track 2: Development & Local Deployment of Private AI Agents
+```bash
+npm run dev
+```
 
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
+Open: http://localhost:3000
 
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
+4. Production build and start:
 
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+```bash
+npm run build
+npm start
+```
+
+If you run into PowerShell execution policy errors on Windows, try running the script via `cmd`:
+
+```bash
+cmd /c "npm run dev"
+```
+
+**Repository layout**
+
+- `server.ts` — Express + Vite middleware and Gemini client integration.
+- `src/` — React app source
+  - `App.tsx`, `main.tsx`, `index.css`
+  - `components/` — `ImageCanvas.tsx`, `VideoComposer.tsx`, `AudioStudio.tsx`, `DirectorChat.tsx`, `GpuProfiler.tsx`, `Dashboard.tsx`
+- `assets/` — bundled images, example media
+- `package.json` — scripts and dependencies
+- `tsconfig.json`, `vite.config.ts` — TypeScript and Vite config
+
+**Pipeline (overview)**
+
+Radeon.Aura follows a simple M1→M5 pipeline that maps developer workflows to reproducible stages:
+
+- M1 — Scene & UI: author assets, layout canvases and scene presets for image/video/audio composition.
+- M2 — Scripted Composition & Randomization: scripted scene composers, prompt templates and augmentations.
+- M3 — Data Capture: record output stems (images, frames, audio) and export assets for training or sharing.
+- M4 — Profiling & Quantization: measure ROCm performance (`GpuProfiler`) and prepare FP16/INT8 optimized pipelines.
+- M5 — Train / Evaluate (optional): export datasets for downstream model training and run evaluations.
+
+**Run the app tasks**
+
+- Development server: `npm run dev` (starts `tsx server.ts` + Vite middleware)
+- Build for production: `npm run build`
+- Start production server: `npm start`
+
+**Assets & datasets**
+
+- `assets/` contains bundled example media so the UI works out-of-the-box. These can be large — use Git LFS or host externally if you plan to publish the repo.
+- `outputs/` (gitignored) is used for generated videos, exported stems, and profiling results.
+
+**Notes & troubleshooting**
+
+- The server will abort at startup if `GEMINI_API_KEY` is missing — this prevents returning simulated outputs by mistake.
+- On Windows, PowerShell execution policies may block scripts; use `cmd /c "npm run dev"` as a workaround.
+
+**Credits & licenses**
+
+This project integrates models and assets from various upstream projects. Respect their licenses if you redistribute or modify assets.
+
+- Gemini / Google AI integration: follow Google API terms for `GEMINI_API_KEY` usage.
+- ROCm-related packages and performance tooling: AMD ROCm project and related wheels.
+
+
