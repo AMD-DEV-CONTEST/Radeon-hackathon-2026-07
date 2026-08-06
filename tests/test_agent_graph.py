@@ -8,8 +8,10 @@ from tests.fakes import FakeModelClient
 from xianglens.agent.graph import (
     COMPARISON_DECISION_RULE,
     GraphServices,
+    _comparison_score_defaults,
     _deterministic_memory_proposal,
     _explicit_memory_candidate,
+    _normalize_candidate_comparison,
     build_graph,
 )
 from xianglens.config import PROJECT_ROOT
@@ -41,15 +43,11 @@ class IncompleteComparisonModel(FakeModelClient):
                     "candidates": [
                         {
                             "image_id": image_id,
-                            "crop_resilience": 4,
-                            "small_size_clarity": 4,
-                            "privacy_safety": 5,
-                            "intent_alignment": 4,
-                            "contextual_ambiguity": 2,
+                            "rationale": "The candidate is usable, but the scores were omitted.",
                         }
                         for image_id in context["image_ids"]
                     ],
-                    "caveat": "The model omitted derived comparison fields.",
+                    "caveat": "The model omitted rubric scores and derived fields.",
                 }
             )
         return await super().chat(messages, temperature=temperature, max_tokens=max_tokens)
@@ -162,9 +160,10 @@ async def test_graph_runs_all_core_capabilities(tmp_path: Path) -> None:
             "text": "I prefer cartoon-style avatars and want copyright risk considered.",
         }
     ]
-    assert [
-        item["role"] for item in model.report_contexts[-1]["recent_thread_messages"]
-    ] == ["user", "assistant"]
+    assert [item["role"] for item in model.report_contexts[-1]["recent_thread_messages"]] == [
+        "user",
+        "assistant",
+    ]
     assert [item["node"] for item in result["tool_trace"]] == [
         "intake",
         "policy_gate",
@@ -199,6 +198,31 @@ def test_explicit_memory_proposal_is_local_and_preserves_user_constraint() -> No
         "memory_type": "preference",
         "reason": "The user explicitly stated this reusable preference or constraint.",
     }
+
+
+def test_missing_scores_respect_approved_copyright_constraint() -> None:
+    defaults = _comparison_score_defaults(
+        ["original", "franchise-character"],
+        [],
+        [{"image_id": "franchise-character", "type": "recognizable_character"}],
+        [{"text": "I prefer cartoons, but I want copyright risk considered."}],
+    )
+    normalized = _normalize_candidate_comparison(
+        {
+            "candidates": [
+                {"image_id": "original", "rationale": "No rights concern was observed."},
+                {
+                    "image_id": "franchise-character",
+                    "rationale": "A recognizable character raises a provenance concern.",
+                },
+            ]
+        },
+        defaults,
+    )
+
+    assert normalized["recommended_image_id"] == "original"
+    assert normalized["candidates"][1]["intent_alignment"] == 2
+    assert normalized["candidates"][1]["contextual_ambiguity"] == 4
 
 
 @pytest.mark.asyncio
@@ -391,10 +415,14 @@ async def test_comparison_derives_missing_application_owned_fields(
     assert model.comparison_calls == 1
     assert result["comparison"]["recommended_image_id"] == images[0].stem
     assert result["comparison"]["decision_rule"] == COMPARISON_DECISION_RULE
+    assert result["comparison"]["caveat"].startswith("The model omitted one or more rubric scores")
     assert all(
-        candidate["rationale"].startswith(
-            "Code-generated summary of the model's returned rubric scores:"
-        )
+        candidate["crop_resilience"] == 3
+        and candidate["small_size_clarity"] == 3
+        and candidate["privacy_safety"] == 4
+        and candidate["intent_alignment"] == 3
+        and candidate["contextual_ambiguity"] == 3
+        and "Application fallback supplied" in candidate["rationale"]
         for candidate in result["comparison"]["candidates"]
     )
     assert "## Comparison" in result["report_markdown"]

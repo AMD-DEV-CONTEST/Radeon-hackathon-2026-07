@@ -89,8 +89,11 @@ COMPARISON_DECISION_RULE = (
 )
 
 
-def _normalize_candidate_comparison(value: dict[str, Any]) -> dict[str, Any]:
-    """Keep model scores strict while deriving application-owned comparison fields."""
+def _normalize_candidate_comparison(
+    value: dict[str, Any],
+    score_defaults: dict[str, dict[str, int]] | None = None,
+) -> dict[str, Any]:
+    """Validate model scores and conservatively fill fields the model omitted."""
     candidates = value.get("candidates")
     if not isinstance(candidates, list):
         return value
@@ -104,17 +107,43 @@ def _normalize_candidate_comparison(value: dict[str, Any]) -> dict[str, Any]:
             normalized["candidates"].append(raw_candidate)
             continue
         candidate = dict(raw_candidate)
-        if not str(candidate.get("rationale", "")).strip() and all(
-            isinstance(candidate.get(field), int) for field, _ in COMPARISON_SCORE_FIELDS
-        ):
+        image_id = str(candidate.get("image_id", ""))
+        defaults = (score_defaults or {}).get(image_id, {})
+        fallback_labels = []
+        for field, label in COMPARISON_SCORE_FIELDS:
+            raw_score = candidate.get(field)
+            if (
+                isinstance(raw_score, int)
+                and not isinstance(raw_score, bool)
+                and 0 <= raw_score <= 5
+            ):
+                continue
+            candidate[field] = defaults.get(field, 3)
+            fallback_labels.append(label)
+        rationale = str(candidate.get("rationale", "")).strip()
+        if not rationale:
             score_summary = ", ".join(
                 f"{label} {candidate[field]}/5" for field, label in COMPARISON_SCORE_FIELDS
             )
             candidate["rationale"] = (
-                "Code-generated summary of the model's returned rubric scores: "
-                f"{score_summary}."
+                f"Code-generated summary of the validated rubric scores: {score_summary}."
             )
+        elif fallback_labels:
+            fallback_note = (
+                " Application fallback supplied conservative scores for omitted fields: "
+                f"{', '.join(fallback_labels)}."
+            )
+            candidate["rationale"] = f"{rationale[: 1200 - len(fallback_note)]}{fallback_note}"
         normalized["candidates"].append(candidate)
+    if any(
+        "Application fallback supplied" in str(candidate.get("rationale", ""))
+        for candidate in normalized["candidates"]
+        if isinstance(candidate, dict)
+    ):
+        normalized["caveat"] = (
+            "The model omitted one or more rubric scores; XiangLens supplied conservative, "
+            "evidence-aware defaults and still applied the fixed decision rule."
+        )
     complete_candidates = [
         candidate
         for candidate in normalized["candidates"]
@@ -139,6 +168,37 @@ def _normalize_candidate_comparison(value: dict[str, Any]) -> dict[str, Any]:
             ),
         )[1]["image_id"]
     return normalized
+
+
+def _comparison_score_defaults(
+    image_ids: list[str],
+    privacy_findings: list[dict[str, Any]],
+    rights_findings: list[dict[str, Any]],
+    recalled_memories: list[dict[str, Any]],
+) -> dict[str, dict[str, int]]:
+    privacy_risk_ids = {
+        str(finding.get("image_id")) for finding in privacy_findings if finding.get("image_id")
+    }
+    rights_risk_ids = {
+        str(finding.get("image_id")) for finding in rights_findings if finding.get("image_id")
+    }
+    rights_are_a_goal = any(
+        any(
+            term in str(memory.get("text", "")).lower()
+            for term in ("copyright", "trademark", "license", "provenance", "usage rights")
+        )
+        for memory in recalled_memories
+    )
+    return {
+        image_id: {
+            "crop_resilience": 3,
+            "small_size_clarity": 3,
+            "privacy_safety": 2 if image_id in privacy_risk_ids else 4,
+            "intent_alignment": (2 if rights_are_a_goal and image_id in rights_risk_ids else 3),
+            "contextual_ambiguity": 4 if image_id in rights_risk_ids else 3,
+        }
+        for image_id in image_ids
+    }
 
 
 def _trace(
@@ -424,7 +484,10 @@ def _compact_follow_up_history(history: list[dict[str, Any]]) -> list[dict[str, 
 
 def build_graph(services: GraphServices):
     async def validated_model_json(
-        messages: list[dict[str, Any]], schema: type[ModelSchema], max_tokens: int
+        messages: list[dict[str, Any]],
+        schema: type[ModelSchema],
+        max_tokens: int,
+        candidate_score_defaults: dict[str, dict[str, int]] | None = None,
     ) -> ModelSchema:
         raw = await services.model.chat(messages, temperature=0.1, max_tokens=max_tokens)
         last_error = "unknown validation error"
@@ -432,7 +495,7 @@ def build_graph(services: GraphServices):
             try:
                 parsed = parse_json_object(raw)
                 if schema is CandidateComparison:
-                    parsed = _normalize_candidate_comparison(parsed)
+                    parsed = _normalize_candidate_comparison(parsed, candidate_score_defaults)
                 return schema.model_validate(parsed)
             except (ModelRequestError, ValidationError) as exc:
                 last_error = str(exc)
@@ -765,9 +828,7 @@ def build_graph(services: GraphServices):
             for observation in state.get("visual_observations", [])
             for item in observation.get("visible_elements", [])[:5]
         ]
-        memory_terms = [
-            item["text"] for item in state.get("recalled_memories", [])[:4]
-        ]
+        memory_terms = [item["text"] for item in state.get("recalled_memories", [])[:4]]
         query = " ".join(
             [
                 state["message"],
@@ -857,6 +918,12 @@ def build_graph(services: GraphServices):
                 ),
             }
         image_ids = [path.stem for path in state["image_paths"]]
+        score_defaults = _comparison_score_defaults(
+            image_ids,
+            state.get("privacy_findings", []),
+            state.get("rights_findings", []),
+            state.get("recalled_memories", []),
+        )
         context = {
             "image_ids": image_ids,
             "image_labels": state.get("image_labels", {}),
@@ -898,6 +965,7 @@ def build_graph(services: GraphServices):
             ],
             CandidateComparison,
             1800,
+            candidate_score_defaults=score_defaults,
         )
         candidate_ids = {candidate.image_id for candidate in comparison.candidates}
         if candidate_ids != set(image_ids) or comparison.recommended_image_id not in candidate_ids:
