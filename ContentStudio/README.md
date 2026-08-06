@@ -114,7 +114,7 @@ Open Settings (gear icon) and fill in:
 - Pre-built workflows (DreamShaper 8, img2img + txt2img) included
 - Connect via SSH tunnel or Cloudflare tunnel
 
-See [`docs/ROCm-Migration-Guide.md`](docs/ROCm迁移指南.md) for complete details.
+See [`docs/ROCm_Migration_Guide.md`](docs/ROCm_Migration_Guide.md) for complete details.
 
 ## Project Structure
 
