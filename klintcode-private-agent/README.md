@@ -66,6 +66,9 @@ docker run -it --network host -v $(pwd):/workspace philipgreat/klintcode-private
 
 *(Note: Alternatively, if you must use a standard bridge network, you can override the endpoint via `-e KLINTCODE_ENDPOINT="http://host.docker.internal:8000"`)*
 
+**Model Deployment on AMD W7900:**
+For a comprehensive guide on how we deployed, benchmarked, and served the Qwen3.6-35B-A3B model on the AMD Radeon PRO W7900 48GB using ROCm, please refer to the [AMD W7900 Model Installation Guide](./AMD_W7900_Model_Installation_Guide.md).
+
 ## Demonstration Video
 [Bilibili - Highlights (Short Version)](https://www.bilibili.com/video/BV1vfuH61ELo/)
 [Bilibili - Full Demonstration (Long Version)](https://www.bilibili.com/video/BV1yzuH6tExR/?vd_source=eec3d622b3269b343c727d6e337b9fdf)
