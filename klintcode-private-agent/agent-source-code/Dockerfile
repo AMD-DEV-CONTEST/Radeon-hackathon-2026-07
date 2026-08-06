@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
 COPY . .
 
 # Build both the TUI and CLI in release mode
-RUN cargo build --release --workspace
+RUN cargo build --release -p klintcode-tui -p klintcode-cli
 
 # Final minimal runtime image
 FROM debian:bookworm-slim
