@@ -1,11 +1,13 @@
 package com.divric.parceltracking;
 
+import com.divric.parceltracking.service.OnnxSessionManager;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -13,6 +15,14 @@ import static org.mockito.Mockito.when;
 
 @TestConfiguration
 public class TestConfig {
+
+    /**
+     * Mock the OnnxSessionManager so tests don't require the 90MB model.onnx file
+     * to be present on the classpath. The model is gitignored and downloaded
+     * only during Docker container build (prod profile).
+     */
+    @MockitoBean
+    private OnnxSessionManager onnxSessionManager;
 
     @Bean
     @Primary
