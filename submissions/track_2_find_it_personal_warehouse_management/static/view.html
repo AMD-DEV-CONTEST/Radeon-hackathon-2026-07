@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>View — Find it</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body class="view-body">
+<header><h1>🎬 Find it</h1></header>
+<nav>
+  <ul>
+    <li><a href="/">Upload / Library</a></li>
+    <li><a href="/view.html" class="active">View</a></li>
+    <li><a href="/search.html">Search</a></li>
+    <li><a href="/chat.html">Chat</a></li>
+  </ul>
+</nav>
+
+<main class="view-main">
+  <!-- ===================== PICKER ===================== -->
+  <div class="card view-picker">
+    <div class="view-picker-row">
+      <label for="vidSelect" style="margin:0">Video</label>
+      <select id="vidSelect"></select>
+      <span class="muted" id="pickMeta"></span>
+    </div>
+  </div>
+
+  <div class="view-layout">
+    <!-- ===================== PLAYER (left) ===================== -->
+    <section class="card view-player">
+      <h2>Player</h2>
+      <div class="player-wrap" id="playerWrap">
+        <video id="player" controls preload="metadata"></video>
+      </div>
+      <div class="muted" id="playerHint">Pick a video to load it here.</div>
+    </section>
+
+    <!-- ===================== TRANSCRIPTIONS (right) ===================== -->
+    <section class="view-panels">
+      <!-- Top right: per-frame descriptions -->
+      <div class="card view-frames">
+        <h2>Frame transcriptions</h2>
+        <div id="frameList" class="panel-list"></div>
+      </div>
+      <!-- Bottom right: audio STT (little space — STT has less text) -->
+      <div class="card view-audio">
+        <h2>Audio STT</h2>
+        <div id="audioList" class="panel-list"></div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const player = $("player");
+let currentId = null;
+let lastFrameEl = null;
+let lastAudioEl = null;
+
+// Deep-link support: /view.html?video_id=<id>&timestamp=<sec>[&panels=0]
+const urlParams = new URLSearchParams(location.search);
+let initialSeek = urlParams.get("timestamp") != null ? parseFloat(urlParams.get("timestamp")) : null;
+if (urlParams.get("panels") === "0" || urlParams.get("nopanels") === "1") {
+  // Video-only mode: hide the transcription panels, player fills the width.
+  document.body.classList.add("view-no-panels");
+}
+
+function escapeHtml(str) {
+  return (str == null ? "" : String(str))
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function fmtSec(s) {
+  if (s == null || isNaN(s)) return "--:--";
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${String(sec).padStart(2, "0")}`;
+}
+
+// Time chip — click seeks the player to that timestamp.
+function tsChip(sec) {
+  return `<button class="ts-chip" data-ts="${sec}" type="button" title="jump to ${fmtSec(sec)}">${fmtSec(sec)}</button>`;
+}
+
+// --------------------------------------------------------------------------- //
+// picker
+// --------------------------------------------------------------------------- //
+
+function pickLabel(v) {
+  return `${v.location || "?"} — ${v.name || "(no name)"}  (${fmtSec(v.duration)})`;
+}
+
+async function loadVideos() {
+  const r = await fetch("/videos");
+  const vids = await r.json();
+  const sel = $("vidSelect");
+  if (!vids.length) {
+    sel.innerHTML = '<option value="">No videos yet</option>';
+    $("playerHint").textContent = "Upload a video from the Library tab first.";
+    $("frameList").innerHTML = '<div class="panel-empty">No videos yet.</div>';
+    $("audioList").innerHTML = "";
+    return;
+  }
+  sel.innerHTML = vids.map((v) =>
+    `<option value="${v.id}">${escapeHtml(pickLabel(v))}</option>`).join("");
+  // Deep-link: honor ?video_id=… if present, else prefer a transcribed video.
+  const wanted = urlParams.get("video_id");
+  const preferred = (wanted && vids.some((v) => v.id === wanted))
+    ? wanted
+    : (vids.find((v) => v.transcription_status === "transcribed") || vids[0]).id;
+  sel.value = preferred;
+  sel.onchange();
+}
+
+$("vidSelect").onchange = async () => {
+  const id = $("vidSelect").value;
+  if (!id) return;
+  currentId = id;
+  lastFrameEl = null; lastAudioEl = null;
+  const r = await fetch(`/videos/${id}`);
+  const v = await r.json();
+  $("pickMeta").textContent =
+    `rec ${v.record_time ? new Date(v.record_time).toLocaleString() : "?"} · ` +
+    `${v.fps ?? "?"} fps · ${v.has_audio ? "audio" : "silent"}`;
+  $("playerHint").textContent = "";
+  player.src = `/media/${id}`;
+  player.load();
+  if (initialSeek != null) {
+    // Deep-link: jump straight to the requested timestamp.
+    player.onloadedmetadata = () => {
+      player.currentTime = initialSeek;
+      player.play().catch(() => {});
+      initialSeek = null;
+    };
+  }
+  loadTranscripts(id);
+};
+
+// --------------------------------------------------------------------------- //
+// transcriptions
+// --------------------------------------------------------------------------- //
+
+async function loadTranscripts(id) {
+  const framesBox = $("frameList");
+  const audioBox = $("audioList");
+  framesBox.innerHTML = '<div class="panel-empty">Loading…</div>';
+  audioBox.innerHTML = "";
+  let data;
+  try {
+    const r = await fetch(`/videos/${id}/transcriptions`);
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    data = await r.json();
+  } catch (err) {
+    framesBox.innerHTML = `<div class="panel-empty err">transcriptions failed: ${escapeHtml(err.message)}</div>`;
+    return;
+  }
+
+  const frames = data.frame_descriptions || [];
+  const audio = data.transcriptions || [];
+
+  if (!frames.length) {
+    framesBox.innerHTML = '<div class="panel-empty">No frame transcriptions yet — run "▶ Transcribe" on this video.</div>';
+  } else {
+    framesBox.innerHTML = frames.map((f) => `
+      <div class="frame-item" data-ts="${f.timestamp}">
+        <div class="f-head">${tsChip(f.timestamp)}</div>
+        <div class="f-text">${escapeHtml(f.description)}</div>
+      </div>`).join("");
+  }
+
+  if (!audio.length) {
+    audioBox.innerHTML = '<div class="panel-empty">No audio transcription.</div>';
+  } else {
+    audioBox.innerHTML = audio.map((a) => `
+      <div class="audio-item" data-start="${a.start_seconds}" data-end="${a.end_seconds}">
+        ${tsChip(a.start_seconds)}
+        <span class="a-time">${fmtSec(a.start_seconds)} – ${fmtSec(a.end_seconds)}</span>
+        <span class="a-text">${escapeHtml(a.text)}</span>
+      </div>`).join("");
+  }
+}
+
+// --------------------------------------------------------------------------- //
+// seek + live highlight
+// --------------------------------------------------------------------------- //
+
+function seekTo(sec) {
+  if (!currentId || isNaN(sec)) return;
+  player.currentTime = sec;
+  player.play().catch(() => {});
+  highlightAt(sec); // update the highlighted transcription immediately
+}
+
+// Highlight the frame description + audio segment matching playback time t.
+function highlightAt(t) {
+  // Frames: last frame whose timestamp <= t (list is time-ascending).
+  const frameItems = document.querySelectorAll("#frameList .frame-item");
+  let cur = null;
+  for (const it of frameItems) {
+    if (parseFloat(it.dataset.ts) <= t + 0.001) cur = it; else break;
+  }
+  if (cur && cur !== lastFrameEl) {
+    if (lastFrameEl) lastFrameEl.classList.remove("current");
+    cur.classList.add("current");
+    lastFrameEl = cur;
+    cur.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+
+  // Audio: segment that contains t.
+  const audioItems = document.querySelectorAll("#audioList .audio-item");
+  let acur = null;
+  for (const it of audioItems) {
+    const s = parseFloat(it.dataset.start), e = parseFloat(it.dataset.end);
+    if (t >= s && (t < e || e === 0)) acur = it;
+  }
+  if (acur && acur !== lastAudioEl) {
+    if (lastAudioEl) lastAudioEl.classList.remove("current");
+    acur.classList.add("current");
+    lastAudioEl = acur;
+    acur.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+}
+
+// Clicking a frame or audio transcription jumps the video to its timespan
+// start point (the highlight updates immediately).
+document.addEventListener("click", (e) => {
+  const chip = e.target.closest(".ts-chip");
+  if (chip) {
+    e.preventDefault();
+    seekTo(parseFloat(chip.dataset.ts));
+    return;
+  }
+  const frame = e.target.closest(".frame-item");
+  if (frame) { seekTo(parseFloat(frame.dataset.ts)); return; }
+  const audio = e.target.closest(".audio-item");
+  if (audio) { seekTo(parseFloat(audio.dataset.start)); return; }
+});
+
+// As the video plays, keep the highlight in sync with playback time.
+player.addEventListener("timeupdate", () => highlightAt(player.currentTime));
+
+// --------------------------------------------------------------------------- //
+// init
+// --------------------------------------------------------------------------- //
+
+loadVideos();
+</script>
+</body>
+</html>
