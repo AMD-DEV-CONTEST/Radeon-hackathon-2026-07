@@ -20,16 +20,24 @@ The demo walks the full path from an initial prompt to an autonomously generated
 
 ```
 FlintCode-Private-Agent/
-  agent-source-code/          # The full FlintCode agent framework
-    apps/                     # CLI / TUI entrypoints
-    crates/                   # Agent core, model handlers, tool runners
-    Cargo.toml                # Rust workspace configuration
-  benchmark-private-deployment/ # The generated benchmark output
-    models/                   # 10 decoupled XML files (80+ entities)
-      operations_extended.xml # Massive 14KB logistics entity model
-      employees.xml           # Payroll and staff registry logic
-      finance.xml             # Invoicing and accounting logic
-  README.md                   # This file
+  agent-source-code/                  # The full FlintCode private agent framework
+    apps/
+      flintcode-cli/                  # Command-line interface for autonomous batch generation
+      flintcode-tui/                  # Interactive terminal UI for real-time monitoring of agent reasoning
+    crates/
+      agent-core/                     # Core autonomous agent loop (reasoning, tool execution, and self-repair)
+      context-builder/                # Dynamic prompt engineering engine (supports 256K token budget without memory drop)
+      model-vllm/                     # Interface for local vLLM instances (optimized for ROCm PagedAttention)
+      pipeline/                       # Orchestrates the end-to-end task pipelines (Prompt -> XML -> Rust)
+      tool-runner/                    # Secure sandboxed executor for bash commands and compiler feedback parsing
+      validation/                     # Strict domain schema validator that checks generated XML models
+    Cargo.toml                        # Rust workspace configuration
+  benchmark-private-deployment/       # The generated benchmark output
+    models/                           # 10 decoupled XML files (80+ entities)
+      operations_extended.xml         # Massive 14KB logistics entity model
+      employees.xml                   # Payroll and staff registry logic
+      finance.xml                     # Invoicing and accounting logic
+  README.md                           # This file
 ```
 
 ## How to run on AMD Radeon (ROCm)
