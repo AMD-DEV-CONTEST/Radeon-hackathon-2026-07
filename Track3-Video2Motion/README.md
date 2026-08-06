@@ -198,7 +198,7 @@ scripts/                   setup, verification, end-to-end pipeline
 configs/                   CycloneDDS loopback profile, training history
 docs/                      technical report, algorithm design, troubleshooting
 videos/                    input, retargeting, and all three validation layers
-assets/policy_salute.npz   the trained policy for the demo motion
+assets/                    trained demo policy, installed into workdir by setup.sh
 ```
 
 ---
