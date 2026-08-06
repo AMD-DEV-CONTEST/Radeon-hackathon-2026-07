@@ -101,11 +101,21 @@ def _get_pipeline(model_name: str, device: str):
 
     torch_dtype = torch.float16 if device == "cuda" else torch.float32
     logger.info("loading whisper model %s on %s (%s)", model_name, device, torch_dtype)
+    # transformers >= 5 renamed the pipeline dtype kwarg torch_dtype -> dtype
+    # (torch_dtype is deprecated in 5.x and absent from the signature; on
+    # 4.4x "dtype" would be silently dropped, so feature-detect explicitly).
+    import inspect
+
+    dtype_kw = (
+        "dtype"
+        if "dtype" in inspect.signature(hf_pipeline).parameters
+        else "torch_dtype"
+    )
     _PIPELINE = hf_pipeline(
         "automatic-speech-recognition",
         model=model_name,
-        torch_dtype=torch_dtype,
         device=torch.device(device),
+        **{dtype_kw: torch_dtype},
     )
     _PIPELINE_MODEL = model_name
     return _PIPELINE

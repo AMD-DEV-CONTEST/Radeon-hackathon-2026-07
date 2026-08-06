@@ -218,7 +218,17 @@ def _load_llm():
         tokenizer = AutoTokenizer.from_pretrained(model_id)
         load_kwargs = {}
         if device == "cuda":
-            load_kwargs["torch_dtype"] = torch.float16  # fp16 on GPU
+            # transformers >= 5 renamed from_pretrained's torch_dtype -> dtype
+            # (torch_dtype still works in 5.x but is deprecated; 4.4x only
+            # knows torch_dtype, so gate on the major version).
+            try:
+                import transformers
+
+                major = int(str(transformers.__version__).split(".")[0])
+            except Exception:
+                major = 4
+            dtype_kw = "dtype" if major >= 5 else "torch_dtype"
+            load_kwargs[dtype_kw] = torch.float16  # fp16 on GPU
         model = AutoModelForCausalLM.from_pretrained(model_id, **load_kwargs)
         model.to(device)
         model.eval()

@@ -51,7 +51,13 @@ def _load_predictor(settings: Any, device: str):
     # Preferred: Hugging Face hub weights.
     try:
         from sam2.sam2_video_predictor import SAM2VideoPredictor  # type: ignore
-        predictor = SAM2VideoPredictor.from_pretrained(model_id)
+        # sam2's from_pretrained defaults to device="cuda" internally, which
+        # hard-crashes on CPU-only builds; pass the device explicitly (and
+        # keep a no-kwarg fallback for older sam2 versions).
+        try:
+            predictor = SAM2VideoPredictor.from_pretrained(model_id, device=device)
+        except TypeError:
+            predictor = SAM2VideoPredictor.from_pretrained(model_id)
         try:
             predictor = predictor.to(device)
         except Exception:
@@ -151,6 +157,15 @@ def propagate_tracks(tracks: list, proxy_path, settings: Any,
         return {}
 
     device = _get_device(settings)
+    if device != "cuda" and os.environ.get("POLICYCUT_SAM2_CPU", "0") != "1":
+        # CPU propagation must run under bf16 autocast (SAM2 stores memory
+        # features in bfloat16) and emulated bf16 matmuls are prohibitively
+        # slow (~40s/frame). Opt in with POLICYCUT_SAM2_CPU=1 for testing;
+        # the caller downgrades this to the box-interpolation fallback.
+        raise RuntimeError(
+            "SAM2 propagation skipped on CPU (set POLICYCUT_SAM2_CPU=1 to force); "
+            "using box interpolation fallback"
+        )
     predictor = _load_predictor(settings, device)
     fps, width, height, frame_count = _video_meta(proxy_path)
     if frame_count <= 0:
@@ -167,37 +182,38 @@ def propagate_tracks(tracks: list, proxy_path, settings: Any,
             frame_count = extracted
             state = predictor.init_state(video_path=tmp_dir.name)
 
+        # SAM2 stores its memory features in bfloat16 internally, so all
+        # inference (box prompts included) must run under bf16 autocast on
+        # CPU as well as GPU; without it memory attention mixes BFloat16 and
+        # Float32 and raises "mat1 and mat2 must have the same dtype".
+        autocast_ctx = torch.autocast(
+            device_type="cuda" if device == "cuda" else "cpu",
+            dtype=torch.bfloat16,
+        )
         obj_to_track: dict[int, Any] = {}
         frame_ranges: dict[int, tuple[int, int]] = {}
-        for obj_id, track in enumerate(tracks):
-            t_first, box = track.keyframes[0]
-            t_last = track.keyframes[-1][0]
-            start_f = min(max(0, round(t_first * fps)), frame_count - 1)
-            end_f = min(max(start_f, round(t_last * fps)), frame_count - 1)
-            x, y, w, h = box
-            box_abs = np.array(
-                [x * width, y * height, (x + w) * width, (y + h) * height],
-                dtype=np.float32,
-            )
-            predictor.add_new_points_or_box(
-                inference_state=state,
-                frame_idx=start_f,
-                obj_id=obj_id,
-                box=box_abs,
-            )
-            obj_to_track[obj_id] = track
-            frame_ranges[obj_id] = (start_f, end_f)
-
         results: dict[str, dict[int, np.ndarray]] = {t.id: {} for t in tracks}
-        first_prompt_frame = min(r[0] for r in frame_ranges.values())
-
-        use_autocast = device == "cuda"
-        autocast_ctx = (
-            torch.autocast(device_type="cuda", dtype=torch.bfloat16)
-            if use_autocast
-            else _NullContext()
-        )
         with torch.inference_mode(), autocast_ctx:
+            for obj_id, track in enumerate(tracks):
+                t_first, box = track.keyframes[0]
+                t_last = track.keyframes[-1][0]
+                start_f = min(max(0, round(t_first * fps)), frame_count - 1)
+                end_f = min(max(start_f, round(t_last * fps)), frame_count - 1)
+                x, y, w, h = box
+                box_abs = np.array(
+                    [x * width, y * height, (x + w) * width, (y + h) * height],
+                    dtype=np.float32,
+                )
+                predictor.add_new_points_or_box(
+                    inference_state=state,
+                    frame_idx=start_f,
+                    obj_id=obj_id,
+                    box=box_abs,
+                )
+                obj_to_track[obj_id] = track
+                frame_ranges[obj_id] = (start_f, end_f)
+
+            first_prompt_frame = min(r[0] for r in frame_ranges.values())
             for frame_idx, obj_ids, mask_logits in predictor.propagate_in_video(
                 state, start_frame_idx=first_prompt_frame
             ):

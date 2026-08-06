@@ -495,6 +495,15 @@ def _to_box_keyframe(kf: Any) -> Optional[BoxKeyframe]:
         if isinstance(kf, (list, tuple)) and len(kf) == 5:
             t, x, y, w, h = kf
             return BoxKeyframe(t=float(t), x=float(x), y=float(y), w=float(w), h=float(h))
+        if (
+            isinstance(kf, (list, tuple))
+            and len(kf) == 2
+            and isinstance(kf[1], (list, tuple))
+            and len(kf[1]) == 4
+        ):
+            # tracker.Track keyframe format: (t, (x, y, w, h))
+            t, (x, y, w, h) = kf
+            return BoxKeyframe(t=float(t), x=float(x), y=float(y), w=float(w), h=float(h))
         if isinstance(kf, dict):
             src: dict[str, Any] = dict(kf)
         else:
@@ -553,7 +562,7 @@ def _track_to_event(track: Any, policy: Any) -> Optional[RedactionEvent]:
         start_s=start,
         end_s=end,
         action=_visual_action_for(policy, category),
-        confidence=_float(_get(track, "confidence", "score", "min_score"), 1.0),
+        confidence=_float(_get(track, "confidence", "score", "min_score", "score_min"), 1.0),
         track_id=track_id,
         boxes=boxes,
         warnings=warnings,
@@ -1123,6 +1132,7 @@ def _analysis_impl(
                         settings=settings,
                         policy=policy,
                         input_path=proxy_path,
+                        proxy_path=proxy_path,
                         media=video_info,
                         cancel_event=cancel_event,
                     ),
@@ -1163,8 +1173,11 @@ def _analysis_impl(
                             policy=policy,
                             settings=settings,
                             input_path=proxy_path,
+                            proxy_path=proxy_path,
                             store=store,
                             project_id=project_id,
+                            duration_s=_float(getattr(video_info, "duration_s", None), 0.0),
+                            fps=_float(getattr(video_info, "fps", None), 0.0),
                         ),
                     ) or []
             except Exception as exc:
@@ -1189,6 +1202,7 @@ def _analysis_impl(
                     _ctx(
                         tracks=tracks,
                         input_path=proxy_path,
+                        proxy_path=proxy_path,
                         settings=settings,
                         store=store,
                         project_id=project_id,
@@ -1497,7 +1511,40 @@ def _render_impl(
             fn = getattr(audit_mod, "build_audit", None)
             if not callable(fn):
                 fn = _resolve_fn(audit_mod, ("build", "build_audit_json"), keyword="audit")
-            _call_flex(fn, audit_ctx)
+            # build_audit expects input_info/output_info digests and a models
+            # list; supply them explicitly, then persist via write_audit (the
+            # builder returns a dict — it does not write the file itself).
+            audit_ctx = dict(audit_ctx)
+            audit_ctx["input_info"] = {
+                "sha256": input_sha,
+                "duration_s": getattr(project.media, "duration_s", None) if project.media else None,
+                "resolution": (f"{project.media.width}x{project.media.height}"
+                               if project.media else None),
+            }
+            audit_ctx["output_info"] = {
+                "sha256": output_sha,
+                "duration_s": getattr(project.media, "duration_s", None) if project.media else None,
+                "resolution": (f"{project.media.width}x{project.media.height}"
+                               if project.media else None),
+            }
+            device_name = dev.get("name") if dev.get("available") else "cpu"
+            audit_ctx["models"] = [
+                {"stage": s, "model_id": mid, "precision": None, "device": device_name}
+                for s, mid in (
+                    ("policy_parsing", getattr(settings, "qwen_model", None)),
+                    ("transcription", getattr(settings, "whisper_model", None)),
+                    ("visual_detection", getattr(settings, "dino_model", None)),
+                    ("tracking", getattr(settings, "sam2_model", None)),
+                )
+                if mid
+            ]
+            result = _call_flex(fn, audit_ctx)
+            if isinstance(result, dict) and result:
+                writer = getattr(audit_mod, "write_audit", None)
+                if callable(writer):
+                    writer(result, audit_path)
+                else:
+                    _write_json_atomic(audit_path, result)
             built = audit_path.is_file()
         except Exception as exc:
             _log(store, project_id, stage, "warning",
@@ -1524,10 +1571,12 @@ def _render_impl(
         try:
             from policycut.audit import builder as audit_mod
 
+            zip_ctx = dict(audit_ctx)
+            zip_ctx["exports_dir"] = project_dir / "exports"
             for name in ("build_zip", "build_export_zip", "make_zip", "zip_export", "create_zip"):
                 zfn = getattr(audit_mod, name, None)
                 if callable(zfn):
-                    _call_flex(zfn, audit_ctx)
+                    _call_flex(zfn, zip_ctx)
                     zipped = zip_path.is_file()
                     break
         except Exception:
