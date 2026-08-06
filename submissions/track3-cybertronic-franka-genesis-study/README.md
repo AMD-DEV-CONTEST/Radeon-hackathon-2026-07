@@ -155,7 +155,7 @@ Future improvements:
 Based on:
 
 - Genesis official examples and assets, especially the Franka Panda MJCF asset `xml/franka_emika_panda/panda.xml`.
-- The open-source PhysicalAI ROCm Quickstart repository: <https://github.com/JasonZhw/PhysicalAI-ROCm-Quickstart>. The original Franka fruit-following demo is used as a baseline reference and starting point.
+- The open-source PhysicalAI ROCm Quickstart repository: <https://github.com/JasonZhw/PhysicalAI-ROCm-Quickstart.git>. The original Franka fruit-following demo is used as a baseline reference and starting point.
 
 Original work in this submission:
 
@@ -187,7 +187,7 @@ Originality and compliance statement:
 基于的开源/参考项目：
 
 - Genesis 官方示例与资产，尤其是 Franka Panda MJCF 资产 `xml/franka_emika_panda/panda.xml`。
-- 开源 PhysicalAI ROCm Quickstart 仓库：<https://github.com/JasonZhw/PhysicalAI-ROCm-Quickstart>。其中原始 Franka fruit-following Demo 被用作 baseline 参考和起点。
+- 开源 PhysicalAI ROCm Quickstart 仓库：<https://github.com/JasonZhw/PhysicalAI-ROCm-Quickstart.git>。其中原始 Franka fruit-following Demo 被用作 baseline 参考和起点。
 
 本提交中的原创部分：
 
