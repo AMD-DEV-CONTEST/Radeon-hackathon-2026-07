@@ -2,7 +2,11 @@
 
 **Track 3: Physical AI Challenge · AMD AI DevMaster Hackathon 2026 · Solo — Enoch**
 
-▶ **Demo video (3:56):** https://youtu.be/fLotIogPuSs
+▶ **Demo video (3:56)** — narrated, every clip a fresh rollout; ends with an uncut real-time completed episode on a virgin seed:
+
+https://github.com/user-attachments/assets/1b1171d1-84af-4129-8c86-1dce5f3f06e3
+
+Also on YouTube: https://youtu.be/fLotIogPuSs
 **Repository:** https://github.com/Enoch208/Crux · **Live evidence page:** https://enoch208.github.io/Crux/
 
 ---
