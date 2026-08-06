@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Knowledge Base Assistant</title>
+<style>
+/* ========== Variable System ========== */
+:root {
+  --primary: #8b7355;
+  --primary-light: #a0926d;
+  --bg: #fdfcfa;
+  --bg-warm: #f9f7f3;
+  --surface: #ffffff;
+  --surface-hover: #f5f3ef;
+  --text: #4a453e;
+  --text-secondary: #8c8578;
+  --text-muted: #b5b0a6;
+  --border: #e8e5de;
+  --shadow: 0 2px 16px rgba(160, 155, 140, 0.08);
+
+  /* File bar */
+  --bar-bg: #3a3632;
+  --bar-slot: #4a4540;
+  --bar-slot-border: #6b6560;
+  --bar-slot-hover: #5a554e;
+
+  /* Folders and files */
+  --folder-bar: #e0ddd6;
+  --file-block: #f5f0e1;
+  --file-block-active: #ffffff;
+  --search-active: #7eb8da;
+
+  /* Chat area background: warmer and darker */
+  --chat-bg: #f5f2ec;
+  --msg-user-bg: #8b7355;
+  --msg-assistant-bg: rgba(255, 253, 248, 0.92);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+.app {
+  display: flex;
+  height: 100vh;
+}
+
+/* ========== Left Panel: 50% ========== */
+.left-panel {
+  width: 50%;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-warm);
+  border-right: 1px solid var(--border);
+}
+
+/* --- File bar (top 20%) --- */
+.file-bar {
+  height: 20%;
+  min-height: 120px;
+  background: var(--bar-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px;
+  border-bottom: 3px solid var(--bar-slot-border);
+  box-shadow: inset 0 -4px 10px rgba(0,0,0,0.35);
+  overflow: visible;
+}
+
+.file-bar-label {
+  color: var(--text-muted);
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.file-bar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.hint-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  color: #fff;
+  font-size: 9px;
+  cursor: help;
+  position: relative;
+}
+
+.hint-icon:hover .hint-tooltip {
+  display: block;
+}
+
+.hint-tooltip {
+  display: none;
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #4a453e;
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  white-space: normal;
+  width: 240px;
+  text-align: left;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  pointer-events: none;
+}
+
+.hint-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: #4a453e;
+}
+
+.file-bar-row {
+  display: flex;
+  gap: 8px;
+  padding: 6px;
+  background: rgba(0,0,0,0.28);
+  border-radius: 8px;
+  border: 1px solid var(--bar-slot-border);
+}
+
+.file-slot {
+  width: 58px;
+  height: 58px;
+  background: var(--bar-slot);
+  border: 2px solid var(--bar-slot-border);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  box-shadow: inset 0 3px 6px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.04);
+  transition: all 0.15s;
+  color: var(--text-muted);
+  font-size: 22px;
+  font-weight: 300;
+}
+
+.file-slot:hover {
+  background: var(--bar-slot-hover);
+  border-color: var(--primary-light);
+  color: var(--bg-warm);
+}
+
+.file-slot.drag-over {
+  border-color: var(--primary);
+  background: var(--bar-slot-hover);
+  box-shadow: inset 0 3px 6px rgba(0,0,0,0.45), 0 0 10px rgba(139,115,85,0.35);
+}
+
+.file-slot .slot-idx {
+  position: absolute;
+  bottom: 3px;
+  right: 5px;
+  font-size: 9px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* --- Folder area (bottom 80%) --- */
+.folder-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.folder-toolbar {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  background: var(--surface);
+}
+
+.tool-btn {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tool-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.tool-btn:active {
+  transform: scale(0.96);
+}
+
+.folder-area {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+  padding: 14px;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.folder-column {
+  width: 72px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--folder-bar);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.07);
+}
+
+.folder-header {
+  padding: 8px 4px;
+  background: var(--bar-slot);
+  border-bottom: 1px solid var(--bar-slot-border);
+}
+
+.folder-name {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--bg-warm);
+  font-size: 11px;
+  text-align: center;
+  outline: none;
+  font-weight: 500;
+}
+
+.folder-name::placeholder {
+  color: var(--text-muted);
+}
+
+.folder-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  padding: 8px 4px;
+  gap: 8px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.file-block {
+  width: 58px;
+  height: 58px;
+  background: var(--file-block);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s;
+  word-break: break-all;
+  text-align: center;
+  padding: 3px;
+  line-height: 1.2;
+  user-select: none;
+  position: relative;
+}
+
+.file-block:hover {
+  border-color: var(--primary-light);
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
+.file-block.selected {
+  background: var(--file-block-active);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(139, 115, 85, 0.18);
+}
+
+.file-block .file-ext {
+  position: absolute;
+  bottom: 2px;
+  right: 3px;
+  font-size: 8px;
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.85);
+  padding: 0 3px;
+  border-radius: 3px;
+}
+
+.file-block .file-del {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 14px;
+  height: 14px;
+  line-height: 12px;
+  text-align: center;
+  font-size: 10px;
+  color: #fff;
+  background: rgba(180, 80, 60, 0.7);
+  border-radius: 3px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.file-block:hover .file-del {
+  opacity: 1;
+}
+
+/* ========== Right Panel: 50% ========== */
+.right-panel {
+  width: 50%;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  background: var(--chat-bg);
+  position: relative;
+}
+
+.chat-header {
+  padding: 14px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chat-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.5px;
+}
+
+.chat-status {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.key-btn {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  margin-left: 8px;
+  transition: all 0.15s;
+}
+.key-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.key-btn.set {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.key-modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.key-modal-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+}
+.key-modal-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+.key-modal-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--surface);
+  color: var(--text);
+  box-sizing: border-box;
+  outline: none;
+}
+.key-modal-input:focus {
+  border-color: var(--primary-light);
+}
+.key-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+.key-modal-cancel {
+  padding: 8px 18px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.key-modal-cancel:hover {
+  background: var(--surface-hover);
+}
+.key-modal-save {
+  padding: 8px 18px;
+  border: none;
+  background: var(--primary);
+  color: white;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.key-modal-save:hover {
+  opacity: 0.9;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.status-dot.on {
+  background: #7a9e7e;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.message {
+  display: flex;
+  gap: 10px;
+  max-width: 78%;
+  animation: msgIn 0.25s ease;
+}
+
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message.user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+  margin-left: auto;
+}
+
+.message.assistant {
+  align-self: flex-start;
+  margin-right: auto;
+}
+
+.msg-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--border);
+}
+
+.message.user .msg-avatar {
+  background: var(--primary);
+}
+
+.msg-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.msg-bubble {
+  padding: 12px 16px;
+  border-radius: 14px;
+  line-height: 1.7;
+  font-size: 14px;
+  word-break: break-word;
+}
+
+.message.user .msg-bubble {
+  background: var(--msg-user-bg);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.message.assistant .msg-bubble {
+  background: var(--msg-assistant-bg);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+  box-shadow: var(--shadow);
+}
+
+.msg-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 0 4px;
+}
+
+.chat-input-wrap {
+  padding: 14px 24px;
+  background: rgba(253, 252, 250, 0.95);
+  border-top: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+}
+
+.input-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.toolbar-btn {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.toolbar-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.toolbar-btn.on {
+  background: var(--search-active);
+  color: white;
+  border-color: var(--search-active);
+}
+
+.input-hint {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.input-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.chat-input {
+  flex: 1;
+  min-height: 44px;
+  max-height: 140px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+  resize: none;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+}
+
+.chat-input:focus {
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(139, 115, 85, 0.08);
+}
+
+.chat-input::placeholder {
+  color: var(--text-muted);
+}
+
+.send-btn {
+  padding: 0 24px;
+  height: 44px;
+  border: none;
+  background: var(--primary);
+  color: white;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  letter-spacing: 1px;
+}
+
+.send-btn:hover {
+  background: var(--primary-light);
+  transform: translateY(-1px);
+}
+
+.send-btn:active {
+  transform: translateY(1px);
+}
+
+.send-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+  transform: none;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+#fileInput { display: none; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Left Panel -->
+  <div class="left-panel">
+    <!-- File bar -->
+    <div class="file-bar">
+      <div class="file-bar-header">
+        <div class="file-bar-label">File Bar<span class="hint-icon">?<span class="hint-tooltip">After uploading, click a file block to let the model locate it. Multiple files can be selected. Drag to move between file bar slots. Agent will auto-search files when you ask "帮我找..."</span></span></div>
+      </div>
+      <div class="file-bar-row" id="fileBar"></div>
+    </div>
+
+    <!-- Folder classification area -->
+    <div class="folder-panel">
+      <div class="folder-toolbar">
+        <button class="tool-btn" onclick="addFolder()">New Folder</button>
+        <button class="tool-btn" onclick="clearSelect()">Clear Selection</button>
+      </div>
+      <div class="folder-area" id="folderArea"></div>
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="right-panel">
+    <div class="chat-header">
+      <span class="chat-title">Knowledge Base Assistant</span>
+      <span class="chat-status">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Ready</span>
+        <button class="key-btn" id="keyBtn" onclick="setKey()">Set API Key</button>
+      </span>
+    </div>
+
+    <div class="chat-messages" id="chatBox"></div>
+
+    <div class="chat-input-wrap">
+      <div class="input-toolbar">
+        <button class="toolbar-btn" id="searchBtn" onclick="toggleSearch()">Web Search</button>
+        <span class="input-hint" id="fileHint">Search All Files</span>
+      </div>
+      <div class="input-row">
+        <textarea class="chat-input" id="chatInput" name="message" autocomplete="off" placeholder="Type your question..." rows="1"
+          onkeydown="onKey(event)" oninput="resize(this)"></textarea>
+        <button class="send-btn" id="sendBtn" name="send" onclick="send()">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" name="file" accept=".txt,.md,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.py,.js,.ts,.java,.c,.cpp,.h,.go,.rs,.rb,.php,.html,.css,.json,.xml,.yaml,.yml,.sql,.rtf,.odt" onchange="onPick(event)">
+
+<div class="key-modal" id="keyModal" style="display:none;">
+  <div class="key-modal-box">
+    <div class="key-modal-title">Set API Key & Model URL</div>
+    <input type="password" id="keyInput" name="api_key" class="key-modal-input" placeholder="Paste API Key..." autocomplete="off">
+    <input type="text" id="modelUrlInput" name="model_url" class="key-modal-input" placeholder="Model URL (e.g. https://api.openai.com/v1)" autocomplete="off" style="margin-top:8px;">
+    <div class="key-modal-actions">
+      <button class="key-modal-cancel" onclick="closeKeyModal()">Cancel</button>
+      <button class="key-modal-save" onclick="saveKey()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ========== Config ========== */
+const CFG = {
+  API_BASE: '',
+  WS_URL: (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/ws',
+  SLOT_COUNT: 8,
+  FOLDER_CAP: 8,
+};
+
+/* ========== State ========== */
+const S = {
+  folders: [],
+  files: new Map(),
+  selected: new Set(),
+  search: true,
+  session: uid(),
+  ws: null,
+  apiKey: localStorage.getItem('apiKey') || '',
+  modelUrl: localStorage.getItem('modelUrl') || '',
+  ragReady: false,
+  ragFileCount: 0,
+};
+
+/* ========== Unified API Entry ========== */
+const api = {
+  async req(method, path, data) {
+    const opts = { method, headers: {} };
+    if (data && !(data instanceof FormData)) {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(data);
+    } else if (data) {
+      opts.body = data;
+    }
+    const r = await fetch(CFG.API_BASE + path, opts);
+    const text = await r.text();
+    if (!r.ok) {
+      let msg = `HTTP ${r.status}`;
+      try { const j = JSON.parse(text); if (j.error) msg = j.error; else if (j.detail) msg = j.detail; } catch {}
+      throw new Error(msg);
+    }
+    try { return JSON.parse(text); } catch { return { response: text, contexts: [] }; }
+  },
+  chat(d) { return this.req('POST', '/api/chat', d); },
+  upload(f) { return this.req('POST', '/api/upload', f); },
+  files() { return this.req('GET', '/api/files'); },
+  mkFolder(n) { return this.req('POST', '/api/folders', { name: n }); },
+  rmFile(id) { return this.req('DELETE', `/api/files/${id}`); },
+};
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+function esc(t) {
+  const d = document.createElement('div');
+  d.textContent = t;
+  return d.innerHTML;
+}
+
+/* ========== Init ========== */
+async function init() {
+  renderFileBar();
+  const names = ['Default', 'Documents', 'Code', 'Notes', 'Materials', 'Projects', 'Reference', 'Other'];
+  names.forEach((n, i) => addFolder(n, 'slot_' + i));
+  syncStatus('off');
+  openWS();
+  updateKeyBtn();
+  // Sync search button state with S.search
+  const searchBtn = document.getElementById('searchBtn');
+  if (S.search) searchBtn.classList.add('on');
+
+  // Check RAG pipeline health
+  try {
+    const health = await api.req('GET', '/health');
+    S.ragReady = health.rag_pipeline_ready || false;
+    S.ragFileCount = health.rag_files_with_content || 0;
+    if (health.rag_files_missing_content && health.rag_files_missing_content.length > 0) {
+      console.warn('[RAG] Files in meta but missing from pipeline:', health.rag_files_missing_content);
+    }
+    console.log(`[RAG] Pipeline: ${S.ragReady ? 'ready' : 'not ready'}, Files: ${health.rag_file_count}, WithContent: ${S.ragFileCount}`);
+  } catch (e) {
+    console.warn('[RAG] Health check failed:', e.message);
+  }
+
+  await loadFiles();
+}
+
+function setKey() {
+  const modal = document.getElementById('keyModal');
+  const input = document.getElementById('keyInput');
+  const urlInput = document.getElementById('modelUrlInput');
+  input.value = S.apiKey;
+  urlInput.value = S.modelUrl;
+  modal.style.display = 'flex';
+  input.focus();
+}
+
+function saveKey() {
+  const input = document.getElementById('keyInput');
+  const urlInput = document.getElementById('modelUrlInput');
+  S.apiKey = input.value.trim();
+  S.modelUrl = urlInput.value.trim();
+  localStorage.setItem('apiKey', S.apiKey);
+  localStorage.setItem('modelUrl', S.modelUrl);
+  document.getElementById('keyModal').style.display = 'none';
+  updateKeyBtn();
+}
+
+function closeKeyModal() {
+  document.getElementById('keyModal').style.display = 'none';
+}
+
+function updateKeyBtn() {
+  const btn = document.getElementById('keyBtn');
+  if (S.apiKey) {
+    btn.textContent = 'Key Set';
+    btn.classList.add('set');
+  } else {
+    btn.textContent = 'Set API Key';
+    btn.classList.remove('set');
+  }
+}
+
+async function loadFiles() {
+  try {
+    const data = await api.files();
+    const files = data.files || [];
+    // Build folder lookup
+    const folderMap = {};
+    S.folders.forEach(fd => folderMap[fd.id] = fd);
+    for (const f of files) {
+      const obj = { id: f.id, name: f.name, folderId: f.folder_id };
+      S.files.set(f.id, obj);
+      const fd = folderMap[f.folder_id];
+      if (fd) {
+        // Avoid duplicates
+        if (!fd.files.some(x => x.id === f.id)) {
+          fd.files.push(obj);
+        }
+      } else {
+        // Orphan file -> put in first folder
+        if (S.folders[0] && !S.folders[0].files.some(x => x.id === f.id)) {
+          obj.folderId = S.folders[0].id;
+          S.folders[0].files.push(obj);
+        }
+      }
+    }
+    renderFolders();
+  } catch (e) {
+    console.warn('Failed to load files:', e);
+  }
+}
+
+function syncStatus(st) {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  dot.className = 'status-dot ' + (st === 'on' ? 'on' : '');
+  txt.textContent = st === 'on' ? 'Connected' : 'Offline';
+}
+
+function openWS() {
+  S.ws = new WebSocket(CFG.WS_URL);
+  S.ws.onopen = () => syncStatus('on');
+  S.ws.onclose = () => syncStatus('off');
+  S.ws.onerror = () => syncStatus('off');
+}
+
+/* ========== File Bar (8 slots + add) ========== */
+function renderFileBar() {
+  const box = document.getElementById('fileBar');
+  box.innerHTML = '';
+  for (let i = 0; i < CFG.SLOT_COUNT; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'file-slot';
+    slot.dataset.idx = i;
+    slot.innerHTML = `<span style="pointer-events:none">+</span><span class="slot-idx">${i + 1}</span>`;
+
+    slot.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('drag-over'); });
+    slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
+    slot.addEventListener('drop', e => {
+      e.preventDefault();
+      slot.classList.remove('drag-over');
+      const f = e.dataTransfer.files[0];
+      if (f) upload(f, i);
+    });
+
+    box.appendChild(slot);
+  }
+}
+
+// Unified file bar click handler (event delegation)
+document.getElementById('fileBar').addEventListener('click', e => {
+  const slot = e.target.closest('.file-slot');
+  if (!slot) { console.warn('click not on slot:', e.target); return; }
+  _pendingSlotIdx = parseInt(slot.dataset.idx);
+  console.log('slot clicked, idx=' + _pendingSlotIdx);
+  const fi = document.getElementById('fileInput');
+  console.log('fileInput display:', fi.style.display || window.getComputedStyle(fi).display);
+  fi.click();
+});
+
+/* ========== Folder System (1:1 with file bar) ========== */
+function addFolder(name, id) {
+  const folderId = id || uid();
+  S.folders.push({ id: folderId, name: name || 'New Folder', files: [] });
+  renderFolders();
+}
+
+function renderFolders() {
+  const area = document.getElementById('folderArea');
+  area.innerHTML = '';
+
+  S.folders.forEach((fd, idx) => {
+    const col = document.createElement('div');
+    col.className = 'folder-column';
+    col.dataset.fid = fd.id;
+    col.dataset.idx = idx;
+
+    const head = document.createElement('div');
+    head.className = 'folder-header';
+    const inp = document.createElement('input');
+    inp.className = 'folder-name';
+    inp.id = 'folder-' + fd.id;
+    inp.name = 'folder_' + fd.id;
+    inp.value = fd.name;
+    inp.onchange = () => { fd.name = inp.value; };
+    head.appendChild(inp);
+
+    const body = document.createElement('div');
+    body.className = 'folder-body';
+    body.addEventListener('dragover', e => e.preventDefault());
+    body.addEventListener('drop', e => {
+      e.preventDefault();
+      const f = e.dataTransfer.files[0];
+      if (f) upload(f, idx);
+    });
+
+    [...fd.files].reverse().forEach(f => {
+      const blk = document.createElement('div');
+      blk.className = 'file-block' + (S.selected.has(f.id) ? ' selected' : '');
+      blk.draggable = true;
+      blk.dataset.fid = f.id;
+      blk.title = f.name;
+
+      const short = f.name.replace(/\.[^/.]+$/, '').slice(0, 4);
+      blk.textContent = short;
+
+      const ext = document.createElement('span');
+      ext.className = 'file-ext';
+      ext.textContent = (f.name.match(/\.[^/.]+$/) || [''])[0].slice(1);
+      blk.appendChild(ext);
+
+      const del = document.createElement('span');
+      del.className = 'file-del';
+      del.textContent = '×';
+      del.title = 'Delete';
+      del.onclick = e => { e.stopPropagation(); deleteFile(f.id); };
+      blk.appendChild(del);
+
+      blk.onclick = () => toggleFile(f.id);
+      blk.addEventListener('dragstart', e => { e.dataTransfer.setData('fileId', f.id); });
+
+      body.appendChild(blk);
+    });
+
+    body.addEventListener('drop', e => {
+      e.preventDefault();
+      const movedId = e.dataTransfer.getData('fileId');
+      if (movedId) moveFile(movedId, fd.id);
+    });
+
+    col.appendChild(head);
+    col.appendChild(body);
+    area.appendChild(col);
+  });
+}
+
+function moveFile(fileId, toFolderId) {
+  const file = S.files.get(fileId);
+  if (!file) return;
+  const from = S.folders.find(f => f.id === file.folderId);
+  const to = S.folders.find(f => f.id === toFolderId);
+  if (!from || !to || from === to) return;
+  if (to.files.length >= CFG.FOLDER_CAP) return;
+
+  from.files = from.files.filter(f => f.id !== fileId);
+  to.files.push(file);
+  file.folderId = toFolderId;
+  renderFolders();
+}
+
+function toggleFile(id) {
+  S.selected.has(id) ? S.selected.delete(id) : S.selected.add(id);
+  renderFolders();
+  refreshHint();
+}
+
+function clearSelect() {
+  S.selected.clear();
+  renderFolders();
+  refreshHint();
+}
+
+async function deleteFile(fileId) {
+  if (!confirm('Are you sure to delete this file?')) return;
+  try {
+    await api.rmFile(fileId);
+    S.selected.delete(fileId);
+    S.files.delete(fileId);
+    for (const fd of S.folders) fd.files = fd.files.filter(f => f.id !== fileId);
+    renderFolders();
+    refreshHint();
+    showTip('Deleted');
+  } catch (e) {
+    showTip('Delete failed');
+  }
+}
+
+function refreshHint() {
+  const n = S.selected.size;
+  document.getElementById('fileHint').textContent = n ? `${n} selected file(s)` : 'Search All Files';
+}
+
+/* ========== File Upload (1:1: slot idx -> folder idx) ========== */
+let _pendingSlotIdx = 0;
+let _uploading = false;
+
+function showTip(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#4a453e;color:#fff;padding:10px 20px;border-radius:8px;z-index:9999;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,.15);';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+function onPick(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  if (_uploading) { e.target.value = ''; return; }
+  const slotIdx = _pendingSlotIdx;
+  e.target.value = '';
+  upload(f, slotIdx);
+}
+
+async function upload(file, folderIdx) {
+  const fd = S.folders[folderIdx];
+  if (!fd) { showTip('Folder does not exist'); return; }
+  if (fd.files.length >= CFG.FOLDER_CAP) {
+    showTip('Folder is full (max ' + CFG.FOLDER_CAP + ')');
+    return;
+  }
+
+  _uploading = true;
+  const form = new FormData();
+  form.append('file', file);
+  form.append('folder_id', fd.id);
+
+  try {
+    const res = await api.upload(form);
+    if (res.error) {
+      showTip('Upload failed: ' + res.error);
+      return;
+    }
+    const id = res.file_id || uid();
+    const obj = { id, name: file.name, folderId: fd.id };
+    S.files.set(id, obj);
+    fd.files.push(obj);
+    renderFolders();
+    const chars = res.chars || 0;
+    showTip('Upload success' + (chars ? ` (${chars} chars indexed)` : ''));
+  } catch (e) {
+    showTip('Upload failed: ' + e.message);
+  } finally {
+    _uploading = false;
+  }
+}
+
+/* ========== Chat ========== */
+function toggleSearch() {
+  S.search = !S.search;
+  document.getElementById('searchBtn').classList.toggle('on', S.search);
+}
+
+function onKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    send();
+  }
+}
+
+function resize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+}
+
+async function send() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  addMsg('user', text);
+  input.value = '';
+  resize(input);
+
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true;
+  document.getElementById('statusText').textContent = 'Thinking...';
+
+  const payload = {
+    message: text,
+    session_id: S.session,
+    selected_files: Array.from(S.selected),
+    enable_search: S.search,
+    api_key: S.apiKey,
+    model_url: S.modelUrl,
+  };
+
+  try {
+    const res = await api.chat(payload);
+
+    // Agent may auto-discover files from user message
+    if (res.auto_search_files && res.auto_search_files.length > 0) {
+      await handleAutoSearchFiles(res.auto_search_files);
+    }
+
+    let reply = res.response || res.result || res.text || '(empty response)';
+    const contexts = res.contexts || [];
+    if (contexts.length > 0) {
+      reply += '\n\n[Referenced ' + contexts.length + ' file(s)]';
+    }
+    if (!reply || reply === '(empty response)') {
+      reply = '(模型未返回内容，请检查模型配置和API Key)';
+    }
+    addMsg('assistant', reply);
+  } catch (e) {
+    addMsg('assistant', 'Request failed: ' + e.message);
+  }
+  btn.disabled = false;
+  document.getElementById('statusText').textContent = S.ws?.readyState === 1 ? 'Connected' : 'Offline';
+}
+
+function addMsg(role, text) {
+  const box = document.getElementById('chatBox');
+  const div = document.createElement('div');
+  div.className = 'message ' + role;
+  const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  div.innerHTML = `
+    <div class="msg-avatar"></div>
+    <div class="msg-inner">
+      <div class="msg-bubble" style="white-space: pre-wrap;">${esc(text)}</div>
+      <div class="msg-meta">${time}</div>
+    </div>
+  `;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+/* ========== Global File Search (Agent-driven, backend handles) ========== */
+// The agent automatically detects search intent from user messages.
+// When files are found, they appear in the file bar automatically.
+
+async function handleAutoSearchFiles(files) {
+  if (!files || files.length === 0) return;
+  // Refresh file bar to show newly auto-discovered files
+  await loadFiles();
+  // Auto-select the newly found files
+  for (const f of files) {
+    if (f.file_id) {
+      S.selected.add(f.file_id);
+    }
+  }
+  // Show user which files were auto-found
+  const names = files.map(f => f.name).join(', ');
+  showTip(`Agent 自动发现 ${files.length} 个文件: ${names}`);
+  renderFolders();
+  refreshHint();
+}
+
+init();
+</script>
+</body>
+</html>

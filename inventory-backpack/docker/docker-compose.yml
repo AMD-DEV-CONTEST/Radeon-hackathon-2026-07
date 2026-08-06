@@ -1,0 +1,109 @@
+name: motus-agent
+
+services:
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.25
+    container_name: milvus-etcd
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    volumes:
+      - etcd_data:/etcd
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  minio:
+    image: minio/minio:RELEASE.2024-12-18T13-15-44Z
+    container_name: milvus-minio
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    ports:
+      - "9001:9001"
+      - "9000:9000"
+    volumes:
+      - minio_data:/minio_data
+    command: minio server /minio_data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  milvus:
+    image: milvusdb/milvus:v2.6.18-gpu
+    container_name: milvus-standalone
+    command:
+      - bash
+      - -c
+      - |
+        [ -f /opt/cuda12/libcudart.so.12 ] || (apt-get update && apt-get install -y --no-install-recommends cuda-cudart-12-2 libcublas-12-2 libcusparse-12-2 libnvjitlink-12-2 && mkdir -p /opt/cuda12 && cp /usr/local/cuda-12.2/targets/x86_64-linux/lib/lib*.so* /opt/cuda12/ && rm -rf /var/lib/apt/lists/*)
+        exec env LD_LIBRARY_PATH=/opt/cuda12:/milvus/lib milvus run standalone
+    security_opt:
+      - seccomp:unconfined
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: ["gpu"]
+              device_ids: ["0"]
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+    volumes:
+      - milvus_data:/var/lib/milvus
+      - cuda12_libs:/opt/cuda12
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      start_period: 420s
+      timeout: 20s
+      retries: 3
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    depends_on:
+      - "etcd"
+      - "minio"
+
+  agent:
+    image: rocm/atom-dev:vllm-latest
+    container_name: motus-agent
+    env_file:
+      - ../.env
+    working_dir: /app
+    volumes:
+      - ..:/app
+      - ../prompts:/app/prompts:ro
+    environment:
+      - PYTHONPATH=/app
+      - MILVUS_URI=http://milvus:19530
+    ports:
+      - "8000:8000"
+    command:
+      - bash
+      - -c
+      - |
+        pip install pymilvus -q && cd /app && python main.py
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      milvus:
+        condition: service_healthy
+
+volumes:
+  etcd_data:
+  minio_data:
+  milvus_data:
+  cuda12_libs:
