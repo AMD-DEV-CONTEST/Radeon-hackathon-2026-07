@@ -55,7 +55,16 @@ To achieve the optimal balance of speed, privacy, and massive context reasoning,
 - **vLLM (ROCm version)**: The high-throughput inference engine used to serve the large language model natively on AMD hardware.
 
 ## How to run on AMD Radeon (ROCm)
-(Detailed environment setup and step-by-step reproduction instructions will be provided here...)
+
+We provide a pre-built Docker image for easy execution. Since the agent communicates with a local AMD ROCm vLLM inference node, we strongly recommend using Docker's `--network host` mode so the container can seamlessly access the host's `127.0.0.1:8000` API endpoint.
+
+```bash
+# 1. Ensure your local ROCm vLLM node is running and listening on port 8000
+# 2. Run the KlintCode Private Agent TUI:
+docker run -it --network host -v $(pwd):/workspace philipgreat/klintcode-private-agent:latest
+```
+
+*(Note: Alternatively, if you must use a standard bridge network, you can override the endpoint via `-e KLINTCODE_ENDPOINT="http://host.docker.internal:8000"`)*
 
 ## Demonstration Video
 [Bilibili - Highlights (Short Version)](https://www.bilibili.com/video/BV1vfuH61ELo/)
