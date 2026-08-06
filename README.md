@@ -1,89 +1,287 @@
-# Radeon-hackathon-2026-07
+# 🚀 AgentFlow AI
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+> **Offline Multi-Agent AI Assistant for Private Document Intelligence**
 
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
+<p align="center">
+  <strong>AMD AI DevMaster Hackathon 2026</strong><br>
+  Track 2 – Development & Local Deployment of Private AI Agents
+</p>
 
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
+---
 
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+## 📖 Overview
 
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+AgentFlow AI is an **offline, privacy-first multi-agent AI assistant** designed to provide intelligent document understanding without relying on cloud services.
 
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+The application enables users to upload PDF documents, build a local knowledge base, ask questions, generate summaries, and maintain conversation memory—all while keeping data on the local machine.
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+The system uses a collaborative multi-agent architecture powered by **Ollama**, **FastAPI**, **React**, and **Retrieval-Augmented Generation (RAG)**.
 
-> [!IMPORTANT]
-> Team name was an optional field on the Luma registration form. If you did not fill in a team name when you registered, please use your own name instead, so the title of the pull request should be like **"Track x, Your name, your application name"**.
+---
 
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
+# ✨ Key Features
 
-## Submission Requirements
+- 🤖 Multi-Agent AI Architecture
+- 📄 PDF Upload & Processing
+- 🔍 Retrieval-Augmented Generation (RAG)
+- 🧠 Conversation Memory
+- 📚 Local Knowledge Base using ChromaDB
+- 💬 Intelligent Question Answering
+- 📝 Automatic Document Summarization
+- 🔒 100% Offline Processing
+- ⚡ Local LLM using Ollama
+- 🎨 Modern React Dashboard
 
-### Track 1: Development of Multimodal Content Creation Tools
+---
 
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
+# 🏗️ System Architecture
 
-### Track 2: Development & Local Deployment of Private AI Agents
+```text
+                User
 
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
+                  │
 
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
+                  ▼
 
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+          React Frontend
+
+                  │
+
+                  ▼
+
+          FastAPI Backend
+
+                  │
+
+                  ▼
+
+           Planner Agent
+
+                  │
+
+      ┌──────────┼──────────┐
+
+      ▼          ▼          ▼
+
+ Research     Memory      Tool
+
+   Agent       Agent      Agent
+
+      └──────────┼──────────┘
+
+                  ▼
+
+          Reviewer Agent
+
+                  │
+
+                  ▼
+
+      Ollama (Qwen2.5:3B)
+
+                  │
+
+                  ▼
+
+          Final AI Response
+```
+
+---
+
+# 🔄 Workflow
+
+1. Upload a PDF document.
+2. Extract and process document text.
+3. Generate embeddings.
+4. Store vectors in ChromaDB.
+5. User submits a query.
+6. Planner Agent creates an execution plan.
+7. Research Agent retrieves relevant context.
+8. Memory Agent recalls previous conversations.
+9. Tool Agent performs supporting operations.
+10. Reviewer Agent validates the response.
+11. Final answer is displayed.
+
+---
+
+# 💻 Technology Stack
+
+## Frontend
+
+- React
+- Vite
+- Tailwind CSS
+
+## Backend
+
+- FastAPI
+- Python
+
+## AI Stack
+
+- Ollama
+- Qwen2.5:3B
+
+## Vector Database
+
+- ChromaDB
+
+## Database
+
+- SQLite
+
+---
+
+# 📂 Project Structure
+
+```text
+agentflow-ai/
+│
+├── app/
+├── docs/
+├── runtime_data/
+├── sample_data/
+├── src/
+├── tests/
+├── AgentFlow AI.pdf
+├── AgentFlow AI.pptx
+├── amd hackathon.mp4
+├── README.md
+├── package.json
+└── requirements.txt
+```
+
+---
+
+# ⚙️ Installation
+
+### Clone Repository
+
+```bash
+git clone https://github.com/ARYARAJINIKANTH/Radeon-hackathon-2026-07.git
+```
+
+---
+
+### Backend
+
+```bash
+cd agentflow-ai
+pip install -r requirements.txt
+```
+
+---
+
+### Start Ollama
+
+```bash
+ollama serve
+```
+
+---
+
+### Pull Model
+
+```bash
+ollama pull qwen2.5:3b
+```
+
+---
+
+### Run Backend
+
+```bash
+py -m uvicorn app.main:app --reload
+```
+
+---
+
+### Run Frontend
+
+```bash
+npm install
+npm run dev
+```
+
+---
+
+# 🚀 Demo
+
+### Application Features
+
+- Upload PDF Documents
+- Intelligent Question Answering
+- AI Document Summarization
+- Multi-Agent Collaboration
+- Local Knowledge Retrieval
+- Offline AI Inference
+
+---
+
+# 🎥 Demo Video
+
+📹 Demo video is included in this repository:
+
+**amd hackathon.mp4**
+
+---
+
+# 📄 Project Documentation
+
+- 📘 Project Specification → **AgentFlow AI.pdf**
+- 📊 Presentation → **AgentFlow AI.pptx**
+
+---
+
+# 🔐 Privacy
+
+AgentFlow AI performs all inference locally using Ollama.
+
+No document data is sent to cloud AI services.
+
+This makes the application suitable for:
+
+- Enterprise
+- Government
+- Healthcare
+- Education
+- Legal Organizations
+
+---
+
+# ⚡ AMD Optimization
+
+The application is designed for local deployment and can be executed on compatible AMD Radeon GPUs using ROCm to accelerate local inference.
+
+The demonstration included in this repository was developed and tested on the available local development hardware while maintaining the same architecture for future AMD GPU deployment.
+
+---
+
+# 🎯 Future Improvements
+
+- 🎙 Voice Assistant
+- 🖼 Multi-modal AI
+- 📚 Multi-document Reasoning
+- 🧠 Better Agent Collaboration
+- ⚡ Enhanced GPU Optimization
+- 🏢 Enterprise Deployment
+
+---
+
+# 👨‍💻 Developer
+
+**Arya R**
+
+BE Computer Science & Engineering (AI & ML)
+
+VSB Engineering College
+
+AMD AI DevMaster Hackathon 2026
+
+Track 2 – Development & Local Deployment of Private AI Agents
+
+---
+
+# ⭐ Thank You
+
+Thank you to **AMD AI DevMaster Hackathon 2026** for providing the opportunity to build and showcase **AgentFlow AI**.
