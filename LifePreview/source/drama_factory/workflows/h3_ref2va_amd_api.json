@@ -1,0 +1,183 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "{{H3_DIFFUSION}}",
+      "weight_dtype": "default"
+    }
+  },
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "{{H3_TEXT_ENCODER}}",
+      "type": "minimax",
+      "device": "default"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "{{H3_VIDEO_VAE}}"
+    }
+  },
+  "4": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "{{H3_AUDIO_VAE}}"
+    }
+  },
+  "5": {
+    "class_type": "MiniMaxH3SigmaShift",
+    "inputs": {
+      "model": ["1", 0],
+      "shift_video": "{{SHIFT_VIDEO}}",
+      "shift_audio": "{{SHIFT_AUDIO}}"
+    }
+  },
+  "6": {
+    "class_type": "MiniMaxH3ReferenceToVideo",
+    "inputs": {
+      "clip": ["2", 0],
+      "vae": ["3", 0],
+      "audio_vae": ["4", 0],
+      "prompt": "{{PROMPT}}",
+      "width": "{{WIDTH}}",
+      "height": "{{HEIGHT}}",
+      "length": "{{FRAME_COUNT}}",
+      "ref_image_size": "match",
+      "ref_images.ref_image_0": ["16", 0],
+      "ref_images.ref_image_1": ["17", 0],
+      "ref_images.ref_image_2": ["18", 0],
+      "ref_images.ref_image_3": ["19", 0],
+      "ref_images.ref_image_4": ["20", 0],
+      "ref_images.ref_image_5": ["21", 0],
+      "ref_images.ref_image_6": ["22", 0],
+      "ref_images.ref_image_7": ["23", 0],
+      "ref_images.ref_image_8": ["24", 0]
+    }
+  },
+  "7": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": "{{SEED}}"
+    }
+  },
+  "8": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "{{SAMPLER}}"
+    }
+  },
+  "9": {
+    "class_type": "BasicScheduler",
+    "inputs": {
+      "model": ["5", 0],
+      "scheduler": "{{SCHEDULER}}",
+      "steps": "{{STEPS}}",
+      "denoise": "{{DENOISE}}"
+    }
+  },
+  "10": {
+    "class_type": "BasicGuider",
+    "inputs": {
+      "model": ["5", 0],
+      "conditioning": ["6", 0]
+    }
+  },
+  "11": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": ["7", 0],
+      "guider": ["10", 0],
+      "sampler": ["8", 0],
+      "sigmas": ["9", 0],
+      "latent_image": ["6", 1]
+    }
+  },
+  "12": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["11", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "13": {
+    "class_type": "VAEDecodeAudio",
+    "inputs": {
+      "samples": ["11", 0],
+      "vae": ["4", 0]
+    }
+  },
+  "14": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": ["12", 0],
+      "audio": ["13", 0],
+      "fps": "{{FPS}}",
+      "bit_depth": 8
+    }
+  },
+  "15": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": ["14", 0],
+      "filename_prefix": "{{FILENAME_PREFIX}}",
+      "format": "mp4",
+      "codec": "auto"
+    }
+  },
+  "16": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{{REF_IMAGE_1}}"
+    }
+  },
+  "17": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{{REF_IMAGE_2}}"
+    }
+  },
+  "18": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{{REF_IMAGE_3}}"
+    }
+  },
+  "19": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{{REF_IMAGE_4}}"
+    }
+  },
+  "20": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{{REF_IMAGE_5}}"
+    }
+  },
+  "21": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{{REF_IMAGE_6}}"
+    }
+  },
+  "22": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{{REF_IMAGE_7}}"
+    }
+  },
+  "23": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{{REF_IMAGE_8}}"
+    }
+  },
+  "24": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{{REF_IMAGE_9}}"
+    }
+  }
+}

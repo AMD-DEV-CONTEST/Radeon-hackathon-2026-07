@@ -1,0 +1,155 @@
+# 流水线参数：成片规格、镜头时长、显存相关的生成分辨率、各阶段开关。
+
+output:                       # 成片规格(竖屏短剧)
+  aspect_ratio: "9:16"
+  width: 1080
+  height: 1920
+  fps: 24
+  target_seconds: [60, 180]  # 单集目标时长区间(秒)，审核据此判定
+
+image:                       # 关键帧/参考图分辨率(竖屏)
+  width: 768
+  height: 1344
+
+keyframe:                    # 关键帧一致性 / 风格锚 调参
+  # ★★默认人物方案(2026-06-19)★★ Qwen-Image-Edit-2511 强编辑底模: 角色锚图保身份 + 强底模摆构图,
+  #   替代 SDXL+InstantID(根治"人浮车顶/反物理")。Apache-2.0 可商用。需下 Qwen-Edit 模型(见
+  #   keyframe_qwen_edit_api.json _comment + tools/download_models.py)。有人物镜头优先级最高。
+  use_qwen_edit: true
+  qwen_checkpoint: qwen_image_edit_2511_fp8mixed.safetensors  # 想极致画质换 _bf16(40.9GB)
+  qwen_steps: 4              # 4 步 Lightning LoRA(快, 默认); 想更精改 20-40 并在工作流里旁路 LoRA
+  qwen_cfg: 1.0             # Lightning 配 1.0; 非 Lightning 配 ~4.0
+  qwen_hq: true              # ★关键帧 HQ★ true=Qwen 路(双锚/纯文生图)去 Lightning、用 qwen_hq_steps/cfg
+                             #   → negative 生效(手更好/无乱码文字/空镜不冒人), 代价慢约5倍。false=4步快(负向失效)。
+  qwen_hq_steps: 20          # HQ 关键帧步数(非 Lightning)
+  qwen_hq_cfg: 3.0          # HQ 关键帧 CFG(>1 才让 negative 生效)
+  qwen_scene_ref: true       # ★人物·场景双一致★ 人物镜 Qwen-Edit 在角色锚(image1)外再喂场景锚
+                             #   (scene_bible.ref_images[0]→image2), 同时锁人物身份与场景背景构图。
+                             #   该场景无锚图时自动退回单锚, 不报错。想只锁人物置 false。
+  use_qwen_t2i: true         # ★无人物纯文生图用 Qwen-Image base★(替代 SDXL 文生图, 统一画风)。
+                             #   需先下 base 底模: python tools/download_models.py --base(~22GB)。
+                             #   仅作用于"无人物且无场景锚"的镜头; 有场景锚的空镜仍走场景 img2img。
+  qwen_t2i_checkpoint: qwen_image_fp8_e4m3fn.safetensors  # Qwen-Image base 文生图扩散底模
+  checkpoint: sd_xl_base_1.0.safetensors  # ★风格锚(最省事)★ 关键帧底模(SDXL 回退链用)。换成写实/动漫
+                             #   专精的 SDXL checkpoint(放 ComfyUI/models/checkpoints/)即可把
+                             #   全片钉在同一画风, 无需 LoRA。两个关键帧工作流都用它。
+  style_lora: ""             # 可选风格 LoRA 文件名(放 models/loras/); 留空=不挂(默认不改图)。
+  style_lora_strength: 0.8   # 风格 LoRA 强度(挂了才生效)
+  ip_weight: 0.9             # 人脸注入强度。锚是干净写实脸时可调高锁狠(0.85-0.95); 锚画风乱时才调低
+  ip_end: 0.8                # 锁脸覆盖到 80% 去噪步(原 0.6 太松, 主角会漂成"另一个人")
+  use_instantid: false       # ★已退役★(被上面的 Qwen-Edit 取代)。想回退: 置 true 且 use_qwen_edit:false。
+                             #   InstantID 锁脸强但会把复杂构图带歪(人浮车顶), 故弃用。
+  instantid_weight: 0.9      # InstantID 人脸(ip_weight)强度(0.6-1.0); 强光镜头 0.9 更稳, >0.95 会脸僵
+  instantid_noise: 0.0       # ★修漂移关键★ 人脸 embedding 随机噪声; 0=关。basic 节点硬编码 0.35
+                             #   会让脸在强戏剧光下"漂成另一人/变老", 故改用 Advanced 节点并置 0。
+  instantid_cn_strength: 0.7 # InstantID kps(ControlNet)几何约束; 与人脸权重解耦, 0.7 抗光影变形又不僵
+  instantid_start: 0.0       # 锁脸起始去噪比例
+  instantid_end: 1.0         # 锁脸覆盖到 100% 去噪步
+  use_scene_ref: true        # 无人物镜头从"场景参考图"做 img2img 锁背景构图/色调。
+                             #   ★无需任何额外模型★(只用 SDXL 本体), 想锁场景就置 true。
+  scene_ref_denoise: 0.6     # 0=完全照搬参考图, 1=完全重画; 0.5-0.7 锁住布局又容得下动作
+
+assets:                      # 参考图资产
+  costume_ref: true          # 为每个有 outfit_default 的角色额外生成一张"服装图", 补齐服装锚
+                             #   资产(纯文字锁不住服装时, 这张图可供后续区域注入/参考用)。
+  char_backend: qwen_local   # ★角色资产后端★ qwen_local=本地 Qwen-Image base 出全套设定图
+                             #   (正脸/三视图/表情集/服装, 全本地可复现, 替手工 GPT 锚; 需 --base 底模);
+                             #   cogview=云端。本地失败按 view 自动回退 CogView, 不阻断。
+  scene_backend: qwen_local  # ★场景资产后端★ qwen_local=本地 Qwen base 出干净空镜establishing背景图;
+                             #   cogview=云端。失败回退 CogView。
+  qwen_hq: true              # ★资产高质量模式★ true=旁路 4 步 Lightning, 用 qwen_steps/qwen_cfg
+                             #   (negative 生效→干净空场景/无文字/手更好); false=4 步快但负向失效。
+                             #   只作用于"资产"(一次性), 关键帧仍走 4 步 Lightning, 不受影响。
+  qwen_steps: 20             # HQ 资产采样步数(非 Lightning, 20-30 较稳)
+  qwen_cfg: 3.0              # HQ 资产 CFG(2.5-4; >1 才让 negative 生效)
+  # ★多角度内景锚★ 反复出现的内景(尤其车内)若只有单角度锚, 所有镜头会被复刻成同一取景(都在前窗)。
+  #   scene_id/name 命中 multi_angle_keywords 的场景, 额外按 scene_angles 各出一张空场景锚;
+  #   关键帧按本镜动作关键词(后视镜/后座/车窗/车外/方向盘)自动选角度。留空 multi_angle_keywords=关闭。
+  multi_angle_keywords: ["car", "vehicle", "车", "驾驶座", "车内"]
+  # 角度标签 -> {pos: 英文取景, neg: 该角度专属负向}。★关键★ 非驾驶位角度必须用硬负向打掉
+  #   "仪表盘/挡风玻璃/方向盘/驾驶位"先验, 否则 t2i 会把每个角度都渲成同一张驾驶位前窗(实测必须如此)。
+  scene_angles:
+    driver:
+      pos: "inside a worn-out car at night, interior view from the front passenger side angled toward the driver seat, empty driver seat with steering wheel dashboard and side window visible, neon street light through the windows"
+      neg: ""
+    backseat:
+      pos: "inside a worn-out car at night, the empty grey upholstered rear passenger bench seat photographed from the back, rear side door windows with neon street reflections, the back seat fills the frame"
+      neg: "dashboard, steering wheel, windshield, driver seat, front seats, gear shifter, instrument cluster, cockpit, view from driver seat"
+    rearview:
+      pos: "inside a car at night, extreme tight close-up framed on the rectangular rearview mirror and its reflection, the rest of the dark cabin heavily out of focus around the mirror"
+      neg: "wide shot, full dashboard, full windshield, instrument cluster, whole cabin"
+    side:
+      pos: "inside a worn-out car at night, side profile framing beside the rear door, the side window glass fills one side of the frame with neon street reflections, seat and door panel and window pillar visible"
+      neg: "dashboard, steering wheel, windshield, driver seat, front view, cockpit, instrument cluster"
+    exterior:
+      pos: "exterior of a worn-out sedan parked on a wet night street seen from the sidewalk outside the closed car door, raindrops on the car body, neon street reflections on the paint, full car body visible from outside"
+      neg: "interior, dashboard, steering wheel, windshield from inside, driver seat, cockpit, inside the car, view from inside"
+
+video:                       # I2V 生成参数(48G 单卡稳定区间)
+  gen_width: 480             # 480×832 档(快, 用户指定); 再由 FFmpeg 放大到 1080×1920。想更精回 720×1280
+  gen_height: 832
+  model_fps: 16              # Wan2.2 原生帧率
+  min_shot_sec: 3
+  max_shot_sec: 6
+  min_frames: 49             # ≈3s@16fps
+  max_frames: 97             # ≈6s@16fps
+
+storyboard:
+  use_creative_model: false  # true=分镜也用 creative 档(质量更高但更贵)
+
+lipsync:
+  enabled: false             # 有台词镜头是否走 InfiniteTalk 对口型(让嘴型对上配音)。
+                             # ★默认 false★: 需先装 ComfyUI-WanVideoWrapper + KJNodes 并下 InfiniteTalk
+                             #   权重(见 workflows/README.md); 否则有台词的镜头会在对口型阶段报
+                             #   "WanVideoModelLoader not found" 而标记 failed(其 I2V 片段+配音仍在成片里,
+                             #   只是没对口型)。装好后再置 true。
+
+review:
+  # ★方案1(内化, headless)★ 质检视觉直调 GLM-4.6V SDK(coding 端点, 与文本同端点同封号风险,
+  #   用户知情接受)。整条质检闭环已固化进 reviewer+pipeline, run.py 端到端自动跑、不依赖 Claude 窗口。
+  vision_backend: sdk        # sdk(默认,直调GLM-4.6V) / mcp(需Claude客户端,未内置) / local_vlm(未来)
+  review_keyframes: true     # 关键帧质检闭环(诊断→reroll/GLM-5.1重写→只重出失败镜→复检)
+  review_clips: true         # 视频质检闭环(诊断→reroll/重写运动词→只重出失败clip→复检)
+  review_episode_vision: true # 成片【长程】视觉质检(连贯/跨镜一致/节奏)
+  qc_max_rounds: 3           # 质检-返工循环最多几轮(每轮只复检上一轮重出的镜)
+  qc_max_retries: 2          # 单镜最多返工几次, 超过标 needs_human(不再自动重出)
+  shot_pass_threshold: 0.6   # (旧 review_keyframes/_score_keyframe 用)低于此分退回重出
+  # 视频质检(Reviewer.qc_video / tools/qc_video.py / 审片页"🎬视频质检"按钮):
+  #   整段视频直传 glm-5v-turbo(看视频); 超过 video_max_mb 就按上限拆【重叠滑动窗口】逐段查取最差。
+  video_max_mb: 8            # 单次上传视频体积上限(MB)。★官方视觉理解 MCP(zai-mcp-server)video_analysis
+                             #   本地视频上限=8MB★, 故取 8; 超过就降画质/滑窗到 8MB 内。
+  video_window_sec: 4.0      # 超限时每个滑窗时长(秒)
+  video_overlap_sec: 1.0     # 相邻滑窗重叠(秒, 防切在动作中间漏检)
+  # 整片【长程】质检(Reviewer.qc_episode / tools/qc_video.py --full / 审片页"整片质检"):
+  #   成片先降画质塞进 video_max_mb 整段上传(看全片时序); 仍超限→全片均匀抽 episode_frames 帧。
+  episode_frames: 24         # 整片抽帧降级时, 全片均匀抽多少帧(覆盖长程)
+
+tts:
+  backend: edge              # edge(微软在线,免部署) / indextts2 / cosyvoice2
+  default_voice: zh-CN-XiaoxiaoNeural   # edge 默认音色(旁白/未指定角色)
+  endpoint: http://127.0.0.1:7861/tts   # indextts2/cosyvoice2 用(HTTP)
+  voices:                    # char_id -> 音色:
+                             #   edge 后端填音色名(如 zh-CN-YunxiNeural 男声);
+                             #   indextts2 后端填参考音频路径(零样本克隆)。留空用 default_voice。
+    # 常用 edge 中文音色: zh-CN-XiaoxiaoNeural(女,温柔) zh-CN-XiaoyiNeural(女,活泼)
+    #   zh-CN-YunxiNeural(男,沉稳) zh-CN-YunjianNeural(男,浑厚) zh-CN-YunyangNeural(男,新闻)
+    ride_hailing_driver: zh-CN-YunxiNeural    # 主角(35岁男,憔悴内省+大量旁白)→沉稳男声
+    urging_passenger: zh-CN-YunyangNeural     # 催促乘客(40岁男,急促不耐烦)→另一男声
+    former_colleague: zh-CN-YunjianNeural      # 前同事(33岁男)→浑厚男声
+    li_chunhui: zh-CN-XiaoyiNeural             # 李春晖(30岁女,温暖文艺乘客)→活泼女声
+
+# 工作流文件名(位于 ../workflows/)。换模型/换工作流只改这里。
+# 注：人物/场景参考图已改用云端 CogView(见 models.yaml 的 image 档)，不再走 ComfyUI；
+#     character_ref/scene_ref 已停用，仅作历史参考保留(代码不再读取)。
+workflows:
+  keyframe: keyframe_flux_api.json                 # 无人物镜头/场景关键帧(SDXL 文生图, 回退)
+  keyframe_qwen_edit: keyframe_qwen_edit_api.json  # ★默认★ 有人物镜头 Qwen-Image-Edit-2511(4步 Lightning)
+  keyframe_qwen_edit_hq: keyframe_qwen_edit_hq_api.json  # ★HQ★ 双锚去 Lightning+20步+cfg3(负向生效)
+  keyframe_qwen_t2i: keyframe_qwen_t2i_api.json    # ★无人物纯文生图★ Qwen-Image base(4步 Lightning, 关键帧用)
+  keyframe_qwen_t2i_hq: keyframe_qwen_t2i_hq_api.json  # ★资产高质量★ 去 Lightning+20步+cfg3(负向生效, 资产用)
+  keyframe_ref: keyframe_sdxl_ipadapter_api.json   # 有人物镜头关键帧(SDXL+IPAdapter 锁脸, 退化)
+  keyframe_scene_ref: keyframe_scene_img2img_api.json    # 无人物镜头 从场景图 img2img(可选,免模型)
+  keyframe_instantid: keyframe_instantid_api.json        # 有人物镜头 InstantID(已退役, 见 use_instantid)
+  i2v: i2v_wan22_api.json                          # Wan2.2 图生视频
+  lipsync: infinitetalk_api.json                   # InfiniteTalk 对口型
+  # character_ref / scene_ref: 已改用 CogView 云端, 不再使用

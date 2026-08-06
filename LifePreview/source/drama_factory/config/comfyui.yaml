@@ -1,0 +1,19 @@
+# ComfyUI 实例：流水线把镜头任务分发到这里列出的实例并行出图/出片。
+#
+# ★命令行双卡并行版★(2026-06-18)：不再用 Desktop 单实例，而是从命令行起两个 ComfyUI，
+#   实例0 绑 GPU0 监听 8188，实例1 绑 GPU1 监听 8189，两实例共用 F-base 的 models +
+#   自定义节点(InstantID / IPAdapter_plus / VideoHelperSuite)。
+#   一键启动：powershell -ExecutionPolicy Bypass -File tools\start_comfy_dual.ps1
+#   就绪确认：curl http://127.0.0.1:8188/system_stats 与 :8189 都返回 200。
+#
+# 流水线分发：Context 为下面每条 base_url 建一个 ComfyClient，n_gpus = 实例数 = 2；
+#   orchestrator.run_shots_parallel 用 2 个 worker，按 shard = idx % 2 把镜头交替分发到
+#   8188 / 8189，两张 4090 同时出图/出片。镜头产物按 shot_id 唯一命名(comfy_client 已修)，
+#   两实例共享项目目录也不会互相覆盖。
+#
+# 回退单实例：只保留一条 base_url 即可(如 Desktop 的 http://127.0.0.1:8000)。
+instances:
+  - base_url: http://127.0.0.1:8188   # 实例0 → RTX 4090 (GPU0)，--cuda-device 0
+  - base_url: http://127.0.0.1:8189   # 实例1 → RTX 4090 D (GPU1)，--cuda-device 1
+
+timeout_sec: 1800                      # 单个生成任务最长等待(秒)

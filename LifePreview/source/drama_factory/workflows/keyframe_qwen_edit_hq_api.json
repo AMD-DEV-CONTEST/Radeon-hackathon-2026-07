@@ -1,0 +1,96 @@
+{
+  "_comment": "Qwen-Image-Edit-2511 关键帧【HQ/双锚】(ComfyUI API). 与 keyframe_qwen_edit 同(image1角色锚+image2场景锚双一致), 但【去掉 4 步 Lightning LoRA】、UNET 直连 ModelSamplingAuraFlow→CFGNorm→KSampler, 用 ~20 步 + cfg≈3 → 【负向提示词生效】(Lightning cfg=1 时 negative 被忽略, 烂手/乱码文字压不住; 本工作流恢复 CFG 引导, 手/文字更干净)。代价: 慢约 5 倍。由 keyframe.qwen_hq=true 启用。占位符: {{QWEN_CKPT}} {{REF_IMAGE}} {{REF_IMAGE2}}(可选,无则 keyframe_generator 剥除 node17+image2) {{POS_PROMPT}} {{NEG_PROMPT}} {{SEED}} {{WIDTH}} {{HEIGHT}} {{QWEN_STEPS}}(建议20) {{QWEN_CFG}}(建议3.0)。",
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": { "unet_name": "{{QWEN_CKPT}}", "weight_dtype": "default" }
+  },
+  "3": {
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": { "model": ["1", 0], "shift": 3.1 }
+  },
+  "4": {
+    "class_type": "CFGNorm",
+    "inputs": { "model": ["3", 0], "strength": 1.0 }
+  },
+  "5": {
+    "class_type": "CLIPLoader",
+    "inputs": { "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors", "type": "qwen_image", "device": "default" }
+  },
+  "6": {
+    "class_type": "VAELoader",
+    "inputs": { "vae_name": "qwen_image_vae.safetensors" }
+  },
+  "7": {
+    "class_type": "LoadImage",
+    "inputs": { "image": "{{REF_IMAGE}}", "upload": "image" }
+  },
+  "17": {
+    "class_type": "LoadImage",
+    "inputs": { "image": "{{REF_IMAGE2}}", "upload": "image" }
+  },
+  "8": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "image": ["7", 0],
+      "upscale_method": "lanczos",
+      "width": "{{WIDTH}}",
+      "height": "{{HEIGHT}}",
+      "crop": "center"
+    }
+  },
+  "9": {
+    "class_type": "VAEEncode",
+    "inputs": { "pixels": ["8", 0], "vae": ["6", 0] }
+  },
+  "10": {
+    "class_type": "TextEncodeQwenImageEditPlus",
+    "inputs": {
+      "clip": ["5", 0],
+      "vae": ["6", 0],
+      "prompt": "{{POS_PROMPT}}",
+      "image1": ["7", 0],
+      "image2": ["17", 0]
+    }
+  },
+  "11": {
+    "class_type": "TextEncodeQwenImageEditPlus",
+    "inputs": {
+      "clip": ["5", 0],
+      "vae": ["6", 0],
+      "prompt": "{{NEG_PROMPT}}",
+      "image1": ["7", 0],
+      "image2": ["17", 0]
+    }
+  },
+  "12": {
+    "class_type": "FluxKontextMultiReferenceLatentMethod",
+    "inputs": { "conditioning": ["10", 0], "reference_latents_method": "index_timestep_zero" }
+  },
+  "13": {
+    "class_type": "FluxKontextMultiReferenceLatentMethod",
+    "inputs": { "conditioning": ["11", 0], "reference_latents_method": "index_timestep_zero" }
+  },
+  "14": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": ["4", 0],
+      "positive": ["12", 0],
+      "negative": ["13", 0],
+      "latent_image": ["9", 0],
+      "seed": "{{SEED}}",
+      "steps": "{{QWEN_STEPS}}",
+      "cfg": "{{QWEN_CFG}}",
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1.0
+    }
+  },
+  "15": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["14", 0], "vae": ["6", 0] }
+  },
+  "16": {
+    "class_type": "SaveImage",
+    "inputs": { "images": ["15", 0], "filename_prefix": "keyframe_qwen_hq" }
+  }
+}

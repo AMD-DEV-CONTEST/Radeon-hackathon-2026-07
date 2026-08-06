@@ -1,0 +1,46 @@
+{
+  "_comment": "Scene-anchored keyframe via img2img (ComfyUI API format, CORE NODES ONLY — no custom nodes, no extra models). For shots WITHOUT a character: starts from the scene reference image (the style-consistent CogView scene base, uploaded to input/) and partially redraws it at {{DENOISE}} so the background layout/colors stay consistent with the scene across shots. Enable via config/pipeline.yaml keyframe.use_scene_ref=true (default off). Placeholders injected by the pipeline: {{CKPT}} {{POS_PROMPT}} {{NEG_PROMPT}} {{SEED}} {{DENOISE}} {{CONTROL_IMAGE}}(scene ref filename in ComfyUI input/). Output size follows the reference image's size, so make scene refs the same vertical aspect as keyframes. DENOISE 0.5-0.7: lower=stick closer to the scene ref (more consistent), higher=more freedom for the shot's action.",
+  "4": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": { "ckpt_name": "{{CKPT}}" }
+  },
+  "10": {
+    "class_type": "LoadImage",
+    "inputs": { "image": "{{CONTROL_IMAGE}}" }
+  },
+  "15": {
+    "class_type": "VAEEncode",
+    "inputs": { "pixels": ["10", 0], "vae": ["4", 2] }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "{{POS_PROMPT}}", "clip": ["4", 1] }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "{{NEG_PROMPT}}", "clip": ["4", 1] }
+  },
+  "3": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": "{{SEED}}",
+      "steps": 30,
+      "cfg": 6.0,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": "{{DENOISE}}",
+      "model": ["4", 0],
+      "positive": ["6", 0],
+      "negative": ["7", 0],
+      "latent_image": ["15", 0]
+    }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["3", 0], "vae": ["4", 2] }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": { "filename_prefix": "keyframe_scene", "images": ["8", 0] }
+  }
+}

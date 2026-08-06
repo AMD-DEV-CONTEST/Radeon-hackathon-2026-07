@@ -2,7 +2,7 @@
 
 LifePreview 是面向 Track 1 的多模态内容创作工具，已适配 AMD Radeon `gfx1100` GPU 与 ROCm 7.2.1。用户可以在英文网页中搜索传记或书籍、核对有来源依据的资料、生成简短的 AI 剧本、准备一张 FLUX 人物参考图，并提交一个 3 秒的 MiniMax H3 视频生成任务。
 
-> 提交状态：本目录仍在组装为可复现的比赛快照。截止时间前冻结的验收口径是 **GPU Runtime Proof（GPU 运行证明）**：实时请求必须恰好一次到达 H3，并且 AMD GPU 必须开始执行该请求。截止验收不要求等待最终 MP4 生成完成。历史生成视频会独立展示，绝不会被描述为当前任务的生成结果。
+> 提交状态：本目录已组装为可复现的比赛快照。截止时间前冻结的验收口径是 **GPU Runtime Proof（GPU 运行证明）**：实时请求必须恰好一次到达 H3，并且 AMD GPU 必须开始执行该请求。比赛云端服务器在本快照最终定稿前已停止，因此没有再发起新的最终实时请求。截止验收不要求等待最终 MP4 生成完成。历史生成视频会独立展示，绝不会被描述为当前任务的生成结果。
 
 English documentation: [README.md](README.md)
 
@@ -20,7 +20,7 @@ English documentation: [README.md](README.md)
 
 ## 许可证与第三方声明
 
-LifePreview 自主开发的软件采用 [PolyForm Noncommercial License 1.0.0](LICENSE) 授权。第三方软件、模型权重和媒体素材仍分别受其自身条款约束，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。最终源码快照须保留依赖与模型的许可证记录。
+LifePreview 自主开发的软件采用 [PolyForm Noncommercial License 1.0.0](LICENSE) 授权。第三方软件、模型权重和媒体素材仍分别受其自身条款约束，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。已包含的源码快照保留了白名单和模型清单记录。
 
 ## 比赛演示流程
 
@@ -34,7 +34,7 @@ LifePreview 自主开发的软件采用 [PolyForm Noncommercial License 1.0.0](L
 
 ## 可复现源码范围
 
-首版源码包通过明确的白名单组装，不会直接复制整个开发工作树。白名单见 [submission-source-whitelist.txt](submission-source-whitelist.txt)。
+已包含的源码包通过明确的白名单组装，不会直接复制整个开发工作树。白名单见 [submission-source-whitelist.txt](submission-source-whitelist.txt)，来源修订和工作树快照状态见 [source/SNAPSHOT.md](source/SNAPSHOT.md)。该记录明确说明：符合白名单的未提交源码会以工作树快照形式被纳入。
 
 包含的运行单元：
 
@@ -51,8 +51,8 @@ LifePreview 自主开发的软件采用 [PolyForm Noncommercial License 1.0.0](L
 
 - 模型权重、ComfyUI 安装目录、缓存、生成图片与视频、运行时数据库、日志和本地输出；
 - API Key、Cookie、SSH 私钥、真实 `.env` 文件、PostgreSQL 密码、签名密钥及其他凭据；
-- 旧版视频分析、通用视频或短剧模板、长片组装、TTS、字幕、口型同步和无关的生产加固测试；
-- Agent 内部交接文件和私人开发工作树。
+- 白名单以外的源码和测试，以及私有开发工作树元数据；
+- Agent 内部交接文件和所有运行时生成制品。
 
 ## 目标环境
 
@@ -67,7 +67,7 @@ LifePreview 自主开发的软件采用 [PolyForm Noncommercial License 1.0.0](L
 
 ## 安装
 
-将白名单源码复制到 `LifePreview/source` 后执行：
+白名单源码已包含在 `LifePreview/source` 中：
 
 ```bash
 python3.12 -m venv .venv

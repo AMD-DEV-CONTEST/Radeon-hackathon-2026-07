@@ -1,0 +1,66 @@
+{
+  "_comment": "Qwen-Image base 纯文生图 workflow (ComfyUI API). 与 Qwen-Image-Edit 同家族、同 VAE/文本编码器, 仅扩散底模换成 base(qwen_image_fp8_e4m3fn) + base 版 4 步 Lightning LoRA。用途: ①空镜/无参考图镜头的关键帧(替代 SDXL 文生图, 统一画风) ②角色/场景锚图自产(替代手工 GPT 锚点, 全本地可复现)。Apache-2.0 可商用。模型(F-base): diffusion_models/qwen_image_fp8_e4m3fn.safetensors, loras/Qwen-Image-Lightning-4steps-V1.0.safetensors, text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors(与 Edit 共用), vae/qwen_image_vae.safetensors(与 Edit 共用)。占位符: {{QWEN_T2I_CKPT}} {{POS_PROMPT}} {{NEG_PROMPT}} {{SEED}} {{WIDTH}} {{HEIGHT}} {{QWEN_STEPS}} {{QWEN_CFG}}。默认 4 步 Lightning(steps=4/cfg=1.0)。机制: 无参考图, EmptySD3LatentImage 起空 latent → CLIPTextEncode(qwen_image) 正负提示 → KSampler 出图。",
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": { "unet_name": "{{QWEN_T2I_CKPT}}", "weight_dtype": "default" }
+  },
+  "2": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "model": ["1", 0],
+      "lora_name": "Qwen-Image-Lightning-4steps-V1.0.safetensors",
+      "strength_model": 1.0
+    }
+  },
+  "3": {
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": { "model": ["2", 0], "shift": 3.1 }
+  },
+  "4": {
+    "class_type": "CFGNorm",
+    "inputs": { "model": ["3", 0], "strength": 1.0 }
+  },
+  "5": {
+    "class_type": "CLIPLoader",
+    "inputs": { "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors", "type": "qwen_image", "device": "default" }
+  },
+  "6": {
+    "class_type": "VAELoader",
+    "inputs": { "vae_name": "qwen_image_vae.safetensors" }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "clip": ["5", 0], "text": "{{POS_PROMPT}}" }
+  },
+  "8": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "clip": ["5", 0], "text": "{{NEG_PROMPT}}" }
+  },
+  "9": {
+    "class_type": "EmptySD3LatentImage",
+    "inputs": { "width": "{{WIDTH}}", "height": "{{HEIGHT}}", "batch_size": 1 }
+  },
+  "10": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": ["4", 0],
+      "positive": ["7", 0],
+      "negative": ["8", 0],
+      "latent_image": ["9", 0],
+      "seed": "{{SEED}}",
+      "steps": "{{QWEN_STEPS}}",
+      "cfg": "{{QWEN_CFG}}",
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1.0
+    }
+  },
+  "11": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["10", 0], "vae": ["6", 0] }
+  },
+  "12": {
+    "class_type": "SaveImage",
+    "inputs": { "images": ["11", 0], "filename_prefix": "keyframe_qwen_t2i" }
+  }
+}

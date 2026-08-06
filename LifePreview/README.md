@@ -2,7 +2,7 @@
 
 LifePreview is a Track 1 multimodal content creation tool adapted for an AMD Radeon `gfx1100` GPU and ROCm 7.2.1. A user finds a biography or book, reviews source-backed material, generates a short AI script, prepares one FLUX character reference image, and submits a three-second MiniMax H3 video job from the English web interface.
 
-> Submission status: this repository is being assembled as the reproducible competition snapshot. The frozen acceptance profile for the deadline is **GPU Runtime Proof**: the live request must reach H3 exactly once and the AMD GPU must begin executing it. Waiting for the final MP4 is not part of the deadline gate. Previously generated videos are presented separately and are never represented as the result of the current job.
+> Submission status: this repository is assembled as a reproducible competition snapshot. The frozen acceptance profile for the deadline is **GPU Runtime Proof**: the live request must reach H3 exactly once and the AMD GPU must begin executing it. The competition cloud server was stopped before this snapshot was finalized, so no additional final live request was issued. Waiting for the final MP4 is not part of the deadline gate. Previously generated videos are presented separately and are never represented as the result of the current job.
 
 Chinese documentation: [README.zh-CN.md](README.zh-CN.md)
 
@@ -20,7 +20,7 @@ The project has already been deployed in an NVIDIA environment. Because the comp
 
 ## License and third-party notices
 
-LifePreview-originated software is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE). Third-party software, model weights, and media assets remain subject to their own terms; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The final source snapshot must preserve its dependency and model-license records.
+LifePreview-originated software is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE). Third-party software, model weights, and media assets remain subject to their own terms; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The included source snapshot preserves its allowlist and model-manifest records.
 
 ## Competition workflow
 
@@ -34,7 +34,7 @@ LifePreview-originated software is licensed under the [PolyForm Noncommercial Li
 
 ## Reproducible source profile
 
-The initial source package is assembled from an explicit allowlist instead of copying the development worktree wholesale. See [submission-source-whitelist.txt](submission-source-whitelist.txt).
+The included source package is assembled from an explicit allowlist instead of copying the development worktree wholesale. See [submission-source-whitelist.txt](submission-source-whitelist.txt) and the [source snapshot record](source/SNAPSHOT.md). The snapshot records its source revision and states that eligible uncommitted source files were included as a working-tree snapshot.
 
 Included runtime units:
 
@@ -51,8 +51,8 @@ Explicitly excluded:
 
 - model weights, ComfyUI installations, caches, generated images/videos, runtime databases, logs, and local outputs;
 - API keys, cookies, SSH keys, real `.env` files, PostgreSQL passwords, signing secrets, and credential material;
-- legacy video analysis, general-video/short-drama templates, long-film assembly, TTS, subtitles, lip sync, and unrelated production-hardening suites;
-- internal agent handoff files and private development worktrees.
+- source files and tests outside the explicit allowlist, including private development-worktree metadata;
+- internal agent handoff files and all runtime-generated artifacts.
 
 ## Target environment
 
@@ -67,7 +67,7 @@ The repository does not contain model weights. Pinned filenames, sizes, and SHA-
 
 ## Installation
 
-After the allowlisted source has been copied into `LifePreview/source`:
+The allowlisted source is included in `LifePreview/source`:
 
 ```bash
 python3.12 -m venv .venv

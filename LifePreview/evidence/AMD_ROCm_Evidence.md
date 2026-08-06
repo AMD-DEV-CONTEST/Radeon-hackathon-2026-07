@@ -23,6 +23,10 @@ The project has been deployed in an NVIDIA environment. Because the competition 
 
 These are reported handoff results, not a claim that every dataset, generated asset, or production feature was regenerated on the competition server.
 
+## Cloud availability note
+
+The competition cloud server was stopped before this snapshot was finalized. No additional final user-initiated live request was issued after the reported smoke tests, so the final Runtime Proof items below remain uncompleted.
+
 ## Final live-run evidence still required
 
 For the competition submission, preserve the following from the designated AMD Radeon environment:
@@ -39,3 +43,5 @@ If a final MP4 is available, record its filename, duration, codec metadata, SHA-
 ## Included-artifact integrity
 
 See [SHA256SUMS.txt](SHA256SUMS.txt) for hashes of the demo video, project profile, and presentation deck included in this submission directory.
+
+The allowlisted source code is included separately in [`../source/`](../source/). Its origin revision, working-tree status, and exclusions are recorded in [the source snapshot record](../source/SNAPSHOT.md).

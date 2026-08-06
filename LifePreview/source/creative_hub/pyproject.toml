@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "douyin-creative-hub"
+version = "0.1.0"
+description = "Shidu orchestration, research, artifact, and machine-QC runtime"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+  "alembic==1.14.1",
+  "cryptography==44.0.0",
+  "douyin-atomic-runtime==0.1.0",
+  "douyin-creative-shared-contracts==0.1.0",
+  "fastapi==0.139.0",
+  "httpx==0.28.1",
+  "Pillow==12.3.0",
+  "psycopg[binary]==3.2.4",
+  "pydantic==2.10.6",
+  "SQLAlchemy==2.0.37",
+]
+
+[project.scripts]
+creative-hub-migrate = "creative_hub.migrations:migrate_hub"
+creative-orchestration-migrate = "creative_hub.migrations:migrate_orchestration"
+creative-hub-dag-worker = "creative_hub.dag_worker:main"
+creative-hub-dag-worker-health = "creative_hub.dag_worker_health:main"
+creative-hub-shidu-research-worker = "creative_hub.shidu.research_worker:main"
+
+[project.optional-dependencies]
+test = [
+  "pytest==8.3.4",
+]
+
+[project.entry-points."douyin.atomic_runtime.capabilities"]
+creative-hub = "creative_hub.quality_atomic:build_plugin"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/creative_hub"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers"
+testpaths = ["tests"]
+markers = ["integration: requires the Compose PostgreSQL service"]
