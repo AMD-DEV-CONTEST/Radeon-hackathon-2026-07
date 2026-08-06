@@ -17,7 +17,7 @@ user control.
 - [Presentation](Experience_Asset_Track2_Deck.pptx)
 - [Complete source code](project/)
 - [Environment, dependencies, startup and reproduction guide](project/README.md)
-- Demo video: **pending public upload**
+- [Demo video](https://drive.google.com/drive/folders/1_cOmcYBIJuPfkoJ4VuA7ZuBYV8nYB8yr?usp=drive_link)
 
 ## Product flow
 

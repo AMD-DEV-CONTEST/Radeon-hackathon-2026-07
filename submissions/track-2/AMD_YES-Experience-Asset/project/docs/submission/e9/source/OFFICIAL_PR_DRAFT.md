@@ -2,8 +2,8 @@
 
 This is the ready English body for the PR against the organizer repository.
 The product and document copy is complete. The registered team name is
-`AMD_YES`. At publication time, the owner must insert the public Demo URL and
-verify that every link works while signed out.
+`AMD_YES`. The Demo URL is included; the owner must verify that every link
+works while signed out.
 
 ## Title
 
@@ -68,7 +68,8 @@ three-format delivery.
   https://github.com/kinnyuww/amd-devmaster-track2-agent/blob/main/docs/submission/e9/deliverables/Experience_Asset_Project_Specification.pdf
 - Presentation:
   https://github.com/kinnyuww/amd-devmaster-track2-agent/blob/main/docs/submission/e9/deliverables/Experience_Asset_Track2_Deck.pptx
-- Demo video: `TO_BE_ADDED_AFTER_RECORDING`
+- Demo video:
+  https://drive.google.com/drive/folders/1_cOmcYBIJuPfkoJ4VuA7ZuBYV8nYB8yr?usp=drive_link
 
 The Demo will use English narration or complete English subtitles and will be
 viewable without repository or Radeon Cloud credentials.
@@ -109,7 +110,7 @@ Several final outcomes were collaborative and converged in PR #52.
 ## Pre-publication check
 
 - [x] use the registered team name `AMD_YES`;
-- [ ] replace `TO_BE_ADDED_AFTER_RECORDING` with the public Demo URL;
+- [x] add the Demo URL;
 - [ ] all submission-facing text is English;
 - [ ] title follows the organizer format;
 - [ ] final source, PDF/PPT and Demo locations are accessible while signed out;

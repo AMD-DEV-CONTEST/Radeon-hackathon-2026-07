@@ -2,7 +2,7 @@
 
 > **Submission document snapshot:** current `main@c4d14bf`; tested application
 > `c9ec074`; material snapshot `EA-SUBMISSION-E9-20260806-R8`. All required
-> documents are ready; the Demo video and publication action remain.
+> documents and Demo link are included; signed-out link verification remains.
 
 ## What it is
 
@@ -58,6 +58,7 @@ project controls rather than eliminates hallucination and privacy risk.
 - Presentation:
   [`../deliverables/Experience_Asset_Track2_Deck.pptx`](../deliverables/Experience_Asset_Track2_Deck.pptx)
 - Source, setup and startup: [`../../../README.md`](../../../README.md)
-- Demo video: pending recording and public upload
+- Demo video:
+  https://drive.google.com/drive/folders/1_cOmcYBIJuPfkoJ4VuA7ZuBYV8nYB8yr?usp=drive_link
 - Official submission PR: not opened; copy is ready in
   [`OFFICIAL_PR_DRAFT.md`](OFFICIAL_PR_DRAFT.md)

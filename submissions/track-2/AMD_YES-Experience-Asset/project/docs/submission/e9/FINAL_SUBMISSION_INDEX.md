@@ -1,6 +1,6 @@
 # Experience Asset - Final Submission Index
 
-> **Status:** `DOCUMENTATION_READY / DEMO_PENDING / PUBLICATION_PENDING`
+> **Status:** `SUBMISSION_PACKAGE_READY / DEMO_LINK_ADDED`
 >
 > **Official requirements checked against:**
 > `AMD-DEV-CONTEST/Radeon-hackathon-2026-07@d95240359c837717230b36bdab12df94f1669cf6`
@@ -18,7 +18,7 @@ requirements and separates finished content from publication-time actions.
 | Project Specification Document | [`deliverables/Experience_Asset_Project_Specification.pdf`](deliverables/Experience_Asset_Project_Specification.pdf) with editable source at [`source/PROJECT_SPECIFICATION_EN.md`](source/PROJECT_SPECIFICATION_EN.md) | Ready |
 | Complete source code repository | Repository root, application code, tests, scripts and evidence under `kinnyuww/amd-devmaster-track2-agent` | Ready; public access still required |
 | README with environment, startup and dependencies | [`../../../README.md`](../../../README.md) | Ready |
-| Demo Video, recommended 3-5 minutes | Recording runbook at [`source/DEMO_SCRIPT.md`](source/DEMO_SCRIPT.md) | Video and public URL pending |
+| Demo Video, recommended 3-5 minutes | [Google Drive Demo folder](https://drive.google.com/drive/folders/1_cOmcYBIJuPfkoJ4VuA7ZuBYV8nYB8yr?usp=drive_link) | Added; Drive sharing must allow signed-out viewing |
 | PPT or Poster | [`deliverables/Experience_Asset_Track2_Deck.pptx`](deliverables/Experience_Asset_Track2_Deck.pptx) | Ready |
 | English submission and organizer PR | [`source/OFFICIAL_PR_DRAFT.md`](source/OFFICIAL_PR_DRAFT.md) | Copy ready; team name confirmed as `AMD_YES` |
 
@@ -66,7 +66,8 @@ WebUI capture is optional presentation polish, not a missing requirement.
    reviewer. The team repository is currently private; either publish an
    approved clean source repository or copy the complete source and package
    into the public organizer-repository submission branch.
-4. Record and upload the Demo, then add its public URL.
+4. Verify the Demo folder is set to "Anyone with the link - Viewer" and opens
+   in a signed-out browser.
 5. Open the English PR against the organizer repository using
    `Track 2, AMD_YES, Experience Asset`.
 

@@ -1,6 +1,6 @@
 # Experience Asset - Submission Fact Source
 
-- Status: `DOCUMENTATION_READY / DEMO_PENDING / PUBLICATION_PENDING`
+- Status: `SUBMISSION_PACKAGE_READY / DEMO_LINK_ADDED`
 - Competition: AMD AI DevMaster Hackathon 2026 - Track 2
 - Current repository snapshot: `main@c4d14bf042ad53baa9b726a0e11fbd9ffd37e5fd`
 - Tested application implementation: `c9ec07489d17a2abb74bac66a23ade2c775c1b06`
@@ -140,18 +140,20 @@ evidence discipline, not hallucination elimination.
 - claiming that hallucination or privacy risk is eliminated;
 - claiming statistical application latency, peak Stage 2 VRAM or cache benefit
   from the one Stage 2 journey;
-- claiming that the Demo video, final public links or official submission PR
-  already exist.
+- claiming that the Demo is publicly accessible until its sharing permission
+  has passed a signed-out check.
 
 ## Remaining publication actions
 
 ```text
-FINAL_DEMO_VIDEO_URL
 FINAL_OFFICIAL_PR_URL
 ```
 
 All required document content is ready, and the registered team name is
-`AMD_YES`. The tested application, W7900 evidence
+`AMD_YES`. The Demo link is
+https://drive.google.com/drive/folders/1_cOmcYBIJuPfkoJ4VuA7ZuBYV8nYB8yr?usp=drive_link;
+its signed-out permission still requires confirmation. The tested application,
+W7900 evidence
 and final launcher are frozen. The current PPT is valid as submitted; PR #59
 may still improve the presentation-layer WebUI used in the recording, but is
 not a document prerequisite and does not change the evidence claim unless it

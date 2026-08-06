@@ -38,7 +38,7 @@ Evidence packet:
 | Reproducible repository snapshot | `c4d14bf042ad53baa9b726a0e11fbd9ffd37e5fd` before the documentation PR merges |
 | Project Specification | `docs/submission/e9/deliverables/Experience_Asset_Project_Specification.pdf` |
 | Presentation | `docs/submission/e9/deliverables/Experience_Asset_Track2_Deck.pptx` |
-| Demo | Pending recording, English narration/subtitles and public URL |
+| Demo | https://drive.google.com/drive/folders/1_cOmcYBIJuPfkoJ4VuA7ZuBYV8nYB8yr?usp=drive_link - signed-out access must be enabled |
 | Official organizer PR | Pending owner-authorized publication |
 
 Do not combine this complete-product evidence with service-only Stage 1

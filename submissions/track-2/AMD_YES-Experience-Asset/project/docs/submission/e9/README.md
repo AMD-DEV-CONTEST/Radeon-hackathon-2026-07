@@ -4,7 +4,7 @@ This directory is the shared entry point for the AMD AI DevMaster Hackathon
 Track 2 submission package. It contains editable sources, evidence boundaries,
 recording guidance and reviewable binary artifacts.
 
-> **Current material status:** `DOCUMENTATION READY / DEMO PENDING`
+> **Current material status:** `SUBMISSION PACKAGE READY / DEMO LINK ADDED`
 >
 > **Last refreshed:** 2026-08-06
 >
@@ -90,12 +90,12 @@ inference path is local through loopback vLLM, ROCm and Radeon PRO W7900.
 
 ## What remains before official publication
 
-- record, subtitle/narrate and upload the 3-5 minute real-product demo;
+- verify the 3-5 minute Demo folder opens while signed out;
 - integrate PR #54 and decide whether optional PR #59 is included in the Demo;
 - provide signed-out public access to the complete source and materials; the
   team repository is currently private;
 - use the confirmed PR title `Track 2, AMD_YES, Experience Asset`;
-- add the public Demo URL and verify all links while signed out;
+- verify all public links while signed out;
 - open the English PR against the organizer repository with the required title;
 - complete submission before 2026-08-06 23:59 UTC+8.
 
