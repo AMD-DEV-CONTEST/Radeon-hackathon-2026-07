@@ -1,9 +1,9 @@
 # RadeonStay Project Specification
 
-> This Markdown file describes the current C1 candidate. The checked-in rendered
-> PDF, competition deck, demo video, and subtitle file are pre-C1 reference
-> artifacts and are not final submission materials; regenerate them only after
-> the C2 source and accepted evidence are frozen.
+> This Markdown file describes the current source candidate. Historical rendered
+> PDF, competition deck, demo video, and subtitle artifacts are archived outside
+> the repository boundary and are not final submission materials; regenerate
+> them only after the C2 source and accepted evidence are frozen.
 
 ## 1. Application scenario
 

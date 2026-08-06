@@ -26,11 +26,17 @@ development dependencies; license names are the upstream projects' declarations.
 | pytest-cov | 6.3.0 | <https://github.com/pytest-dev/pytest-cov> | MIT |
 | Ruff | 0.16.1 | <https://github.com/astral-sh/ruff> | MIT |
 
-Hatchling is a PEP 517 build backend declared by `pyproject.toml`; it is not
-present in the captured target virtual-environment freeze and is therefore not
-claimed as locked here. The evidence release must preserve the license notices
-for every resolved package in `requirements.lock`; the direct table above does
-not replace that complete notice inventory.
+The Notebook recovery path is designed to install only the wheel packages
+enumerated in `requirements.lock`, with dependency resolution disabled. It does
+not install RadeonStay as an editable package or invoke a PEP 517 build:
+`serve_app.sh` launches the recovered source tree through its explicit
+`PYTHONPATH`. Hatchling remains the optional build backend declared by
+`pyproject.toml` for separately building a distribution; it is not required by
+the recovery runtime. Target validation status is recorded separately in the
+release evidence rather than inferred from this notice.
+The evidence release must preserve the license notices for every resolved
+package in `requirements.lock`; the direct table above does not replace that
+complete notice inventory.
 
 ## Local inference stack
 

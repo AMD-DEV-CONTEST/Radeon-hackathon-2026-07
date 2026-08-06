@@ -738,8 +738,13 @@ fi
 project_dir="$repo_dir/submissions/track2-radeonstay"
 test -f "$project_dir/requirements.lock"
 python3 -m venv "$venv_dir"
-"$venv_dir/bin/python" -m pip install -r "$project_dir/requirements.lock"
-"$venv_dir/bin/python" -m pip install --no-deps -e "$project_dir"
+# The lock is a complete target snapshot. Install exactly those wheel packages
+# without dependency resolution or a PEP 517 build, then run RadeonStay directly
+# from the recovered source tree through serve_app.sh and its explicit PYTHONPATH.
+"$venv_dir/bin/python" -m pip install \
+  --no-deps \
+  --only-binary=:all: \
+  --requirement "$project_dir/requirements.lock"
 
 verify_runtime_tree() {
   local tree_root="$1"

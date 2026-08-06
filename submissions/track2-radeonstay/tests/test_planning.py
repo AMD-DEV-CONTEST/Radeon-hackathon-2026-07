@@ -592,6 +592,152 @@ def test_delay_recovery_binds_the_five_step_golden_workflow() -> None:
         )
 
 
+def test_delay_recovery_minimizes_server_description_and_write_dependency() -> None:
+    summary = json.dumps(
+        {
+            "journey_state": {
+                "active_booking_id": "RSV-DELAY-1",
+                "candidate_booking_ids": ["RSV-DELAY-1"],
+                "known_facts": {
+                    "booking": {
+                        "check_in": "2034-07-10",
+                        "check_out": "2034-07-12",
+                        "room_type": "standard",
+                    },
+                    "service": {"ticket": {"ticket_id": "TKT-DELAY-1"}},
+                },
+            }
+        }
+    )
+    message = (
+        "订单 RSV-DELAY-1 关联的航班延误，预计 2034-07-11 01:30 到店。"
+        "请先只读查看我名下的订单并核对当前订单，引用深夜到店、变更和接送政策，"
+        "评估价格影响，并把退房日从 2034-07-12 调整为 2034-07-13；"
+        "随后读取并更新现有机场接送工单。沿用原入住日以保留房间。"
+    )
+    tool_specs = [
+        {
+            "name": "hotel.my_bookings",
+            "effect": "read",
+            "parameters": {
+                "type": "object",
+                "properties": {"include_cancelled": {"type": "boolean"}},
+                "required": ["include_cancelled"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "hotel.modify_booking",
+            "effect": "write",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "booking_id": {"type": "string"},
+                    "check_out": {"type": "string", "format": "date"},
+                },
+                "required": ["booking_id"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "hotel.list_service_tickets",
+            "effect": "read",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "booking_id": {"type": "string"},
+                    "include_closed": {"type": "boolean"},
+                },
+                "required": ["booking_id"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "hotel.update_service_ticket",
+            "effect": "write",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ticket_id": {"type": "string"},
+                    "description": {"type": "string", "minLength": 1},
+                },
+                "required": ["ticket_id", "description"],
+                "additionalProperties": False,
+            },
+        },
+    ]
+    invalid = {
+        "objective": "Recover the delayed stay and transfer safely.",
+        "steps": [
+            {
+                "step_id": "policy",
+                "tool": "respond_with_policy",
+                "arguments": {},
+                "reason": "Ground the recovery in local policy.",
+                "depends_on": [],
+            },
+            {
+                "step_id": "bookings",
+                "tool": "hotel.my_bookings",
+                "arguments": {"include_cancelled": False},
+                "reason": "Read owner-scoped bookings.",
+                "depends_on": ["policy"],
+            },
+            {
+                "step_id": "modify",
+                "tool": "hotel.modify_booking",
+                "arguments": {
+                    "booking_id": "RSV-DELAY-1",
+                    "check_out": "2034-07-13",
+                },
+                "reason": "Preview the requested checkout change.",
+                "depends_on": ["bookings"],
+            },
+            {
+                "step_id": "tickets",
+                "tool": "hotel.list_service_tickets",
+                "arguments": {
+                    "booking_id": "RSV-DELAY-1",
+                    "include_closed": False,
+                },
+                "reason": "Read the current transfer ticket.",
+                "depends_on": ["modify"],
+            },
+            {
+                "step_id": "update",
+                "tool": "hotel.update_service_ticket",
+                "arguments": {
+                    "ticket_id": "TKT-DELAY-1",
+                    "description": "A model paraphrase must not become authoritative.",
+                },
+                "reason": "Preview the transfer update separately.",
+                "depends_on": ["modify", "tickets"],
+            },
+        ],
+        "response_language": "中文",
+    }
+    model = StubModel(invalid)
+    planner = LocalLLMPlanner(model)  # type: ignore[arg-type]
+
+    plan = planner.create_plan(
+        message,
+        policy_context="Local recovery policy.",
+        tool_specs=tool_specs,
+        conversation_summary=summary,
+    )
+
+    tickets = next(step for step in plan.steps if step.tool == "hotel.list_service_tickets")
+    update = next(step for step in plan.steps if step.tool == "hotel.update_service_ticket")
+    assert tickets.depends_on == []
+    assert update.depends_on == ["tickets"]
+    assert update.arguments["description"] == (
+        "航班延误：请重新确认并调整现有机场接送安排。"
+    )
+    assert message not in update.arguments["description"]
+    assert "RSV-DELAY-1" not in update.arguments["description"]
+    assert model.validations[-1]["outcome"] == "accepted_initial"
+
+
 def test_delay_transport_continuation_cannot_repeat_the_stay_change() -> None:
     summary = json.dumps(
         {
@@ -652,6 +798,7 @@ def test_delay_transport_continuation_cannot_repeat_the_stay_change() -> None:
     assert replacement["literal_arguments"]["hotel.create_service_ticket"] == {
         "booking_id": "RSV-DELAY-1",
         "category": "transport",
+        "description": "住客申请机场或车站接送服务。",
     }
 
 
@@ -1383,10 +1530,13 @@ def test_completeness_uses_session_reference_and_partitions_mixed_scope() -> Non
             PlanStep(
                 step_id="ticket",
                 tool="hotel.create_service_ticket",
-                arguments={
-                    "booking_id": "RSV-RANDOM-7C91",
-                    "category": "transport",
-                },
+                    arguments={
+                        "booking_id": "RSV-RANDOM-7C91",
+                        "category": "transport",
+                        "description": (
+                            "Guest requests airport or station transfer service."
+                        ),
+                    },
                 reason="Use the booking bound to this session.",
             )
         ],
@@ -1795,6 +1945,7 @@ def test_explicit_stay_booking_and_filter_arguments_are_server_bound() -> None:
     assert ticket["literal_arguments"]["hotel.create_service_ticket"] == {
         "booking_id": "RSV-RANDOM-A91F",
         "category": "transport",
+        "description": "住客申请机场或车站接送服务。",
     }
 
     guest_change = _plan_obligations(

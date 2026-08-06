@@ -1,9 +1,9 @@
 # Judge Quickstart
 
-> Use this Markdown guide for the current C1 candidate. The checked-in PDF,
-> competition deck, demo video, and subtitle file are pre-C1 reference artifacts,
-> not final submission materials. Regenerate them after C2 and accepted evidence
-> are frozen.
+> Use this Markdown guide for the current source candidate. Historical PDF,
+> competition deck, demo video, and subtitle artifacts are archived outside the
+> repository boundary and are not final submission materials. Regenerate them
+> after C2 and accepted evidence are frozen.
 
 This guide targets the verified Radeon environment: Python `3.12.3`, ROCm
 `7.2.1`, HIP `7.2.53211-e1a6bc5663`, and a detected `AMD Radeon Graphics`

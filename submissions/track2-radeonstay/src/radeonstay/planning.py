@@ -21,6 +21,20 @@ ALLERGY_SAFETY_HANDOFF_DESCRIPTION_EN = (
     "Severe peanut-allergy staff safety handoff: front desk and food-service "
     "teams must review manually; do not promise a zero-allergen environment."
 )
+TRANSPORT_DISRUPTION_DESCRIPTION_ZH = (
+    "航班延误：请重新确认并调整现有机场接送安排。"
+)
+TRANSPORT_DISRUPTION_DESCRIPTION_EN = (
+    "Flight delay reported: reconfirm and adjust the existing airport transfer."
+)
+TRANSPORT_REQUEST_DESCRIPTION_ZH = "住客申请机场或车站接送服务。"
+TRANSPORT_REQUEST_DESCRIPTION_EN = (
+    "Guest requests airport or station transfer service."
+)
+GENERIC_SERVICE_REQUEST_DESCRIPTION_ZH = "住客服务请求：请由酒店员工跟进。"
+GENERIC_SERVICE_REQUEST_DESCRIPTION_EN = (
+    "Guest service request: hotel staff follow-up required."
+)
 _REQUIRED_DATA_DEPENDENCIES = frozenset(
     {
         ("hotel.check_availability", "hotel.quote_stay"),
@@ -129,6 +143,32 @@ def allergy_safety_handoff_description(value: str) -> str:
     )
 
 
+def transport_disruption_description(value: str) -> str:
+    """Return a bounded operational purpose without persisting raw chat text."""
+
+    return (
+        TRANSPORT_DISRUPTION_DESCRIPTION_ZH
+        if re.search(r"[\u3400-\u9fff]", value)
+        else TRANSPORT_DISRUPTION_DESCRIPTION_EN
+    )
+
+
+def transport_request_description(value: str) -> str:
+    return (
+        TRANSPORT_REQUEST_DESCRIPTION_ZH
+        if re.search(r"[\u3400-\u9fff]", value)
+        else TRANSPORT_REQUEST_DESCRIPTION_EN
+    )
+
+
+def generic_service_request_description(value: str) -> str:
+    return (
+        GENERIC_SERVICE_REQUEST_DESCRIPTION_ZH
+        if re.search(r"[\u3400-\u9fff]", value)
+        else GENERIC_SERVICE_REQUEST_DESCRIPTION_EN
+    )
+
+
 def is_allergy_safety_handoff_arguments(value: Mapping[str, Any]) -> bool:
     """Accept only the server-authored purpose encoded in the typed ticket action."""
 
@@ -191,8 +231,9 @@ _PLANNING_CONTRACT: dict[str, Any] = {
             "preference into one closest allow-listed key/value and avoid duplicate writes."
         ),
         (
-            "A required free-text description may faithfully compress the user's request. "
-            "Do not invent optional flight, time, passenger, payment, or identity details."
+            "A required free-text description must contain only the minimal operational "
+            "purpose, never the full user message or transcript. Do not invent or retain "
+            "optional flight, time, passenger, payment, or identity details."
         ),
         (
             "Prefer one tool that already owns the requested side effects; for example, "
@@ -1328,7 +1369,7 @@ def _plan_obligations(
                 (
                     "hotel.update_service_ticket",
                     "description",
-                    message.strip()[:1_000],
+                    transport_disruption_description(message),
                 ),
             )
         )
@@ -1354,7 +1395,16 @@ def _plan_obligations(
             )
         )
     elif transport_subject and "hotel.create_service_ticket" in ordered_tools:
-        argument_hints.append(("hotel.create_service_ticket", "category", "transport"))
+        argument_hints.extend(
+            (
+                ("hotel.create_service_ticket", "category", "transport"),
+                (
+                    "hotel.create_service_ticket",
+                    "description",
+                    transport_request_description(message),
+                ),
+            )
+        )
     if preference_assignment is not None and "memory.remember_preference" in ordered_tools:
         argument_hints.extend(
             (
@@ -1812,8 +1862,9 @@ def _materialize_bound_arguments(
     obligations: _PlanObligations,
     *,
     message: str,
+    tool_specs: list[dict[str, Any]],
 ) -> None:
-    """Fill only missing, server-known values; conflicting model values still fail."""
+    """Apply bounded server facts and remove dependencies on unconfirmed writes."""
 
     raw_steps = payload.get("steps")
     if not isinstance(raw_steps, list):
@@ -1834,8 +1885,44 @@ def _materialize_bound_arguments(
         if arguments is None:
             arguments = {}
             step["arguments"] = arguments
-        if isinstance(arguments, dict) and field not in arguments:
+        if isinstance(arguments, dict) and (
+            field not in arguments
+            or (tool, field)
+            in {
+                ("hotel.create_service_ticket", "description"),
+                ("hotel.update_service_ticket", "description"),
+            }
+        ):
+            # Persist only a server-authored, bounded operational purpose. Raw
+            # chat and model paraphrases never become authoritative ticket text.
             arguments[field] = value
+
+    raw_tools = [
+        step.get("tool") if isinstance(step, dict) else None for step in raw_steps
+    ]
+    if raw_tools == list(obligations.ordered_tools):
+        effects = {
+            specification.get("name"): specification.get("effect")
+            for specification in tool_specs
+            if isinstance(specification.get("name"), str)
+        }
+        step_tools = {
+            step.get("step_id"): step.get("tool")
+            for step in raw_steps
+            if isinstance(step, dict)
+            and isinstance(step.get("step_id"), str)
+            and isinstance(step.get("tool"), str)
+        }
+        if len(step_tools) == len(raw_steps):
+            for step in raw_steps:
+                dependencies = step.get("depends_on")
+                if not isinstance(dependencies, list):
+                    continue
+                step["depends_on"] = [
+                    dependency
+                    for dependency in dependencies
+                    if effects.get(step_tools.get(dependency)) != "write"
+                ]
 
     ticket_steps = steps_by_tool.get("hotel.create_service_ticket", [])
     if len(ticket_steps) != 1:
@@ -1850,12 +1937,7 @@ def _materialize_bound_arguments(
         and arguments.get("category") == "transport"
         and "description" not in arguments
     ):
-        chinese = bool(re.search(r"[\u3400-\u9fff]", message))
-        arguments["description"] = (
-            "住客申请机场或车站接送服务。"
-            if chinese
-            else "Guest requests airport or station transfer service."
-        )
+        arguments["description"] = transport_request_description(message)
 
 
 def _record_plan_validation(
@@ -2296,7 +2378,12 @@ class LocalLLMPlanner:
         plan_payload = payload.get("plan") if envelope_mode else payload
         if not isinstance(plan_payload, dict):
             plan_payload = {}
-        _materialize_bound_arguments(plan_payload, obligations, message=message)
+        _materialize_bound_arguments(
+            plan_payload,
+            obligations,
+            message=message,
+            tool_specs=tool_specs,
+        )
         try:
             result: AgentPlan | PlanEnvelope
             if envelope_mode:
@@ -2407,6 +2494,7 @@ class LocalLLMPlanner:
                 repaired_plan_payload,
                 obligations,
                 message=message,
+                tool_specs=tool_specs,
             )
             try:
                 if envelope_mode:
@@ -2692,7 +2780,7 @@ class DeterministicPlanner:
                         tool="hotel.update_service_ticket",
                         arguments={
                             "ticket_id": ticket_ids[0],
-                            "description": message.strip()[:1_000],
+                            "description": transport_disruption_description(message),
                         },
                         reason="Preview the disruption update for explicit confirmation.",
                         depends_on=["tickets"],
@@ -2761,7 +2849,9 @@ class DeterministicPlanner:
                             "description": (
                                 allergy_safety_handoff_description(message)
                                 if safety_handoff
-                                else message.strip()[:1_000]
+                                else transport_request_description(message)
+                                if transport_subject
+                                else generic_service_request_description(message)
                             ),
                         },
                         reason=(

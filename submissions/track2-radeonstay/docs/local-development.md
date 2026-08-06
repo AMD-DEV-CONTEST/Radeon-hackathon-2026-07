@@ -74,6 +74,25 @@ Recorded result on 2026-08-05: compilation passed, the scoped Ruff check passed,
 and all five targeted tests passed. The full test suite was not run as part of
 this maintenance gate.
 
+## C2 candidate release gate
+
+Recorded on 2026-08-06 against the five-file functional/runtime patch before
+the final documentation freeze, using the project-local Python 3.12.13
+environment:
+
+| Check | Result |
+|---|---|
+| `git diff --check` | Passed |
+| `compileall -q src/radeonstay evaluation tests` | Passed |
+| `bash -n` over all six `scripts/*.sh` files | Passed |
+| Ruff over `src/radeonstay`, `evaluation`, and `tests` | Passed |
+| Full pytest collection | `371` tests |
+| Full pytest execution | `371 passed`, `14` deprecation warnings |
+
+The warnings are Gradio 6.0 migration notices; there were no failed, skipped,
+or xfailed tests. This local gate proves source consistency only and is not
+Radeon/ROCm execution evidence.
+
 ## Host-specific pytest failure
 
 Do not use the base `/opt/miniconda3/bin/python` for this project on the recorded

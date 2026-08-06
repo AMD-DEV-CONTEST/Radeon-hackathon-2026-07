@@ -1,8 +1,9 @@
 # 4:50 Demo Script — English Narration and Subtitles
 
-> This script supersedes the checked-in MP4 and SRT. The existing PDF, PPTX,
-> video, and subtitle file are pre-C1 reference artifacts, not final submission
-> materials; regenerate them from the frozen C2 source and accepted evidence.
+> This script supersedes the historical MP4 and SRT archived outside the
+> repository boundary. Those historical PDF, PPTX, video, and subtitle artifacts
+> are not final submission materials; regenerate them from the frozen C2 source
+> and accepted evidence.
 
 This script is for one real RadeonStay UI journey on the target AMD Radeon and
 ROCm environment. Record the submission, responses, previews, confirmations,

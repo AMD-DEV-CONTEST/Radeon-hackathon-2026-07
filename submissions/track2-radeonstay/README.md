@@ -17,13 +17,13 @@ or restarted app preserves already confirmed work while retiring unsafe pending
 capabilities and requiring a fresh authoritative preview for only the unsettled
 part.
 
-> The checked-in PDF, PPTX, MP4, subtitle file, captured single-request
-> Radeon/ROCm proof, and verified B/C/D candidate results were produced from a
-> pre-C1 or pre-final-C2 revision. They are historical reference artifacts, not
-> final submission materials. The current Markdown and application behavior
-> supersede them. The final C2-bound rerun, accepted baseline/optimized
-> comparison, complete C3 lifecycle, regenerated static materials, and five-run
-> stability bundle remain pending. No final optimization winner is claimed.
+> Historical PDF, PPTX, MP4, subtitle, single-request Radeon/ROCm proof, and
+> B/C/D candidate results were produced from a pre-C1 or pre-final-C2 revision.
+> They are archived outside the repository boundary and are not final submission
+> materials. The current Markdown and application behavior supersede them. The
+> final C2-bound rerun, accepted baseline/optimized comparison, complete C3
+> lifecycle, regenerated static materials, and five-run stability bundle remain
+> pending. No final optimization winner is claimed.
 
 ## Why this project
 

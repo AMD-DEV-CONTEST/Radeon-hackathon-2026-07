@@ -123,6 +123,13 @@ def test_app_launcher_uses_the_source_tree_without_build_isolation() -> None:
 def test_notebook_restore_binds_accepted_proof_and_current_process() -> None:
     script = RESTORE_SCRIPT.read_text(encoding="utf-8")
 
+    assert script.count('"$venv_dir/bin/python" -m pip install') == 1
+    assert "--no-deps" in script
+    assert "--only-binary=:all:" in script
+    assert '--requirement "$project_dir/requirements.lock"' in script
+    assert '-e "$project_dir"' not in script
+    assert "--editable" not in script
+    assert '"$project_dir/scripts/serve_app.sh"' in script
     assert "--runtime-proof" in script
     assert "--runtime-proof-sha256" in script
     assert 'verify_sha256 "$runtime_proof_sha256" "$runtime_proof"' in script
