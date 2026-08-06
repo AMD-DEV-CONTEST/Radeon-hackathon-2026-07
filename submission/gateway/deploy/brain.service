@@ -1,0 +1,33 @@
+[Unit]
+Description=UnionAgents brain AI runtime
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=unionagents
+Group=unionagents
+WorkingDirectory=/opt/unionagents
+EnvironmentFile=/etc/unionagents/brain.env
+ExecStart=/opt/unionagents/brain \
+  --agent-id ${UAS_AGENT_ID} \
+  --agent-name ${UAS_AGENT_NAME} \
+  --agent-type ${UAS_AGENT_TYPE} \
+  --gateway-url ${UAS_GATEWAY_URL} \
+  --llm-base-url ${DEEPSEEK_BASE_URL} \
+  --llm-model ${UAS_LLM_MODEL} \
+  --max-tokens ${BRAIN_MAX_TOKENS} \
+  --temperature ${BRAIN_TEMPERATURE} \
+  --llm-timeout-sec ${BRAIN_LLM_TIMEOUT_SEC}
+Restart=always
+RestartSec=5s
+KillSignal=SIGTERM
+TimeoutStopSec=20s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/unionagents
+
+[Install]
+WantedBy=multi-user.target

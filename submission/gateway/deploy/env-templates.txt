@@ -1,0 +1,37 @@
+# UAS Environment Templates
+# Copy each block to /etc/unionagents/<service>.env on the target machine.
+# Fill in real values; never commit secrets to git.
+
+# /etc/unionagents/orchestrator.env
+DATABASE_URL=postgresql://unionagents:CHANGE_ME@127.0.0.1:5432/unionagents
+STREAMING_GATEWAY_URL=http://127.0.0.1:8001
+UAS_LOG_DIR=/var/log/unionagents
+ILS_AUDIT_ENABLED=1
+
+# /etc/unionagents/gateway.env
+DATABASE_URL=postgresql://unionagents:CHANGE_ME@127.0.0.1:5432/unionagents
+ORCHESTRATOR_URL=http://127.0.0.1:8000
+UAS_LOG_DIR=/var/log/unionagents
+AUTH_USERNAME=admin
+AUTH_PASSWORD=CHANGE_ME
+AUTH_SECRET=CHANGE_ME_RANDOM_32CHARS
+GATEWAY_CONNECTION_SWEEP_SECONDS=30
+GATEWAY_CONNECTION_STALE_SECONDS=180
+
+# /etc/unionagents/agent-he.env
+# JD-ECS runs He only. SCC is uninstalled and excluded.
+ORCHESTRATOR_URL=http://127.0.0.1:8000
+GATEWAY_URL=ws://127.0.0.1:8001
+GATEWAY_USERNAME=admin
+GATEWAY_PASSWORD=CHANGE_ME
+AGENT_ID=He
+AGENT_NAME=He
+AGENT_TYPE=hermes
+ILS_HTTP_TIMEOUT_SECONDS=60
+ILS_SHORT_HTTP_TIMEOUT_SECONDS=10
+AGENT_WORKSPACE=/root/ua-workspaces
+
+# /etc/unionagents/launcher.env
+ORCHESTRATOR_URL=http://127.0.0.1:8000
+GATEWAY_URL=ws://127.0.0.1:8001
+LAUNCHER_PORT=9001

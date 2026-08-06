@@ -1,0 +1,19 @@
+[Unit]
+Description=UAS RAG Service (port 8010)
+After=network.target postgresql.service unionagents-orchestrator.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/UnionAgents
+EnvironmentFile=/etc/unionagents-orchestrator.env
+ExecStart=/root/UnionAgents/.venv/bin/python -m uvicorn rag_service.main:app --host 127.0.0.1 --port 8010
+Restart=on-failure
+RestartSec=10
+StartLimitBurst=5
+StartLimitIntervalSec=300
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

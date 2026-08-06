@@ -1,0 +1,22 @@
+[Unit]
+Description=UAS Agent - He (hermes, JD-ECS)
+After=network.target orchestrator.service gateway.service
+Wants=orchestrator.service gateway.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/UnionAgents
+EnvironmentFile=/etc/unionagents/agent-he.env
+ExecStart=/root/UnionAgents/bin/ils ws \
+    --agent-id He \
+    --agent-name He \
+    --agent-type hermes
+Restart=always
+RestartSec=10
+StartLimitIntervalSec=0
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

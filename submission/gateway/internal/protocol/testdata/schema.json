@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omima.me/schemas/asset-ledger-entry-v0.0.1.json",
+  "title": "AssetLedgerEntry",
+  "type": "object",
+  "required": [
+    "asset_id",
+    "asset_type",
+    "content_hash",
+    "owner",
+    "privacy_level",
+    "processing_status",
+    "provenance",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "asset_id": { "type": "string", "minLength": 1 },
+    "asset_type": { "type": "string", "minLength": 1 },
+    "content_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "owner": { "type": "string", "minLength": 1 },
+    "privacy_level": {
+      "type": "string",
+      "enum": ["private", "family", "public"]
+    },
+    "processing_status": {
+      "type": "string",
+      "enum": ["raw", "staging", "derived", "archived"]
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["source", "ingested_at", "ingested_by"],
+      "properties": {
+        "source": { "type": "string" },
+        "ingested_at": { "type": "string", "format": "date-time" },
+        "ingested_by": { "type": "string" },
+        "derived_from": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "title": { "type": "string" },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "related": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

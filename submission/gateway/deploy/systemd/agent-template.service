@@ -1,0 +1,29 @@
+[Unit]
+Description=UnionAgents standby worker (%i)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/UnionAgents/packages/agent
+EnvironmentFile=/etc/unionagents/agent-%i.env
+ExecStart=/usr/bin/node /root/UnionAgents/packages/agent/dist/cli.js run \
+  --mode standby \
+  --agent-name ${AGENT_NAME} \
+  --agent-type ${AGENT_TYPE} \
+  --orchestrator-url ${ORCHESTRATOR_URL} \
+  --workspace-root ${WORKSPACE_ROOT} \
+  --poll-interval ${POLL_INTERVAL} \
+  --heartbeat-interval ${HEARTBEAT_INTERVAL} \
+  --max-concurrency ${MAX_CONCURRENCY}
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=0
+KillSignal=SIGTERM
+TimeoutStopSec=20
+StandardOutput=append:/var/log/unionagents/agent-%i.out.log
+StandardError=append:/var/log/unionagents/agent-%i.err.log
+
+[Install]
+WantedBy=multi-user.target

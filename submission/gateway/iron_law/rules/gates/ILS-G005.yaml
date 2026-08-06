@@ -1,0 +1,24 @@
+gate_id: ILS-G005
+name: Completion Evidence Gate
+phase: completion
+blocking_condition: >
+  Task marked "done" without submitting completion evidence
+  that includes e2e verification of the deliverable.
+pass_condition: >
+  Evidence submitted must include at least one of:
+    - API response showing the endpoint works
+    - SQL query showing data was written correctly
+    - Agent log showing the code path was executed
+    - Test output showing the feature passes
+  A git commit hash alone does NOT satisfy this gate.
+failure_code: ILS-F005
+required_evidence:
+  - type: api_response OR log_output OR test_result
+    description: "Proof that the code actually runs end-to-end"
+  - type: code_location
+    description: "Which pipeline/function was modified"
+  - type: acceptance_check_passed
+    description: "Task acceptance_check type is not empty"
+override_policy: >
+  Can be overridden by leader review when verification requires
+  manual inspection or staging deployment.

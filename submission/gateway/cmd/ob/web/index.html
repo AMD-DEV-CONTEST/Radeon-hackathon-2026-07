@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OB — Operation Bridge</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg-deep:#060f17;--bg-panel:#10242f;--bg-raised:#152f3c;
+  --text-main:#dfecf3;--text-muted:#7aa5b8;--text-dim:#4b6d7e;
+  --accent:#4cc9d8;--accent-dim:rgba(76,201,216,0.12);--accent-mid:rgba(76,201,216,0.22);
+  --green:#7ddc9a;--amber:#e8c36a;--red:#ef7d7d;--violet:#a88cf2;
+  --glass-bg:rgba(16,36,47,0.58);--glass-bg-hi:rgba(21,47,60,0.62);
+  --glass-border:rgba(76,201,216,0.10);
+  --font-sans:"Inter","Noto Sans SC","Segoe UI","Microsoft YaHei UI",system-ui,sans-serif;
+  --font-mono:"JetBrains Mono","Cascadia Code",monospace;
+  --radius-sm:10px;--radius-md:14px;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg-deep);font-family:var(--font-sans);color:var(--text-main)}
+body{display:flex}
+/* Ambient background — KEPT from original */
+.ambient{position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 55% 40% at 50% 35%,rgba(76,201,216,0.06) 0%,transparent 60%),radial-gradient(ellipse 30% 45% at 75% 60%,rgba(168,140,242,0.04) 0%,transparent 55%),radial-gradient(ellipse 28% 30% at 22% 68%,rgba(125,220,154,0.03) 0%,transparent 55%)}
+.grid-bg{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.022;background-image:radial-gradient(circle,rgba(76,201,216,0.7) 0.5px,transparent 0.5px);background-size:42px 42px;mask-image:radial-gradient(ellipse 68% 52% at 50% 38%,black 22%,transparent 70%)}
+.page{position:relative;z-index:1;width:100%;height:100%;display:flex}
+/* ── Sidebar ── */
+.sidebar{width:230px;flex-shrink:0;background:var(--bg-panel);border-right:1px solid var(--glass-border);display:flex;flex-direction:column;z-index:1}
+.sidebar-hdr{padding:16px;border-bottom:1px solid var(--glass-border)}
+.sidebar-hdr h2{font-size:15px;color:var(--accent);font-weight:700;letter-spacing:0.02em}
+.sidebar-hdr .sub{font-size:10px;color:var(--text-dim);margin-top:2px}
+.agent-list{flex:1;overflow-y:auto;padding:8px}
+.agent-item{padding:10px 12px;border-radius:var(--radius-sm);cursor:pointer;margin-bottom:4px;transition:all 0.2s;border:1px solid transparent;position:relative}
+.agent-item:hover{background:var(--bg-raised);border-color:var(--glass-border)}
+.agent-item.active{background:var(--accent-dim);border-color:var(--accent)}
+.agent-item .name{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px}
+.agent-item .name .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.agent-item .name .dot.online{background:var(--green);box-shadow:0 0 6px var(--green)}
+.agent-item .name .dot.offline{background:var(--text-dim)}
+.agent-item .meta{font-size:10px;color:var(--text-muted);margin-top:3px}
+.agent-item .unread{position:absolute;right:8px;top:8px;width:18px;height:18px;border-radius:50%;background:var(--accent);color:var(--bg-deep);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
+/* ── Main Chat ── */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative}
+.chat-hdr{padding:12px 18px;background:var(--bg-panel);border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.chat-hdr .agent-name{font-size:15px;font-weight:600}
+.chat-hdr .agent-status{font-size:10px;color:var(--text-muted);padding:2px 8px;border-radius:4px;background:var(--bg-raised)}
+.chat-hdr .agent-status.working{color:var(--amber);background:rgba(232,195,106,0.1)}
+.chat-msgs{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:8px}
+/* Messages */
+.msg{max-width:80%;padding:9px 13px;border-radius:var(--radius-md);font-size:13px;line-height:1.55;word-break:break-word;animation:slideIn 0.2s ease-out}
+@keyframes slideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.msg.sent{align-self:flex-end;background:var(--accent-dim);border:1px solid var(--accent-mid)}
+.msg.received{align-self:flex-start;background:var(--bg-raised);border:1px solid var(--glass-border)}
+.msg .sender{font-size:10px;color:var(--accent);margin-bottom:3px;font-weight:600}
+.msg .time{font-size:9px;color:var(--text-dim);margin-top:4px;text-align:right}
+.msg.system{align-self:center;background:transparent;border:none;color:var(--text-dim);font-size:11px;padding:4px 12px;max-width:100%}
+/* Thinking bubble */
+.msg.thinking{align-self:flex-start;background:transparent;border:1px dashed var(--glass-border);color:var(--text-muted);font-style:italic;padding:8px 13px;font-size:12px}
+.msg.thinking .dots{display:inline-flex;gap:3px;margin-left:4px}
+.msg.thinking .dots span{width:4px;height:4px;border-radius:50%;background:var(--text-muted);animation:dotPulse 1.4s infinite}
+.msg.thinking .dots span:nth-child(2){animation-delay:0.2s}
+.msg.thinking .dots span:nth-child(3){animation-delay:0.4s}
+@keyframes dotPulse{0%,80%,100%{opacity:0.2}40%{opacity:1}}
+/* Tool call card */
+.msg.tool_call{align-self:flex-start;background:rgba(0,0,0,0.3);border:1px solid var(--accent-mid);border-radius:var(--radius-sm);padding:8px 12px;max-width:85%}
+.msg.tool_call .tool-hdr{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--accent);font-family:var(--font-mono);margin-bottom:4px}
+.msg.tool_call .tool-hdr .icon{font-size:14px}
+.msg.tool_call .tool-hdr .status{font-size:10px;padding:1px 6px;border-radius:4px;margin-left:auto}
+.msg.tool_call .tool-hdr .status.running{background:rgba(232,195,106,0.15);color:var(--amber)}
+.msg.tool_call .tool-hdr .status.done{background:rgba(125,220,154,0.12);color:var(--green)}
+.msg.tool_call .tool-body{font-size:11px;color:var(--text-muted);font-family:var(--font-mono);background:rgba(0,0,0,0.2);padding:6px 8px;border-radius:6px;margin-top:4px;max-height:120px;overflow-y:auto;white-space:pre-wrap}
+/* ── Detail Panel ── */
+.detail-panel{width:260px;flex-shrink:0;background:var(--bg-panel);border-left:1px solid var(--glass-border);display:flex;flex-direction:column;transition:width 0.3s;overflow:hidden}
+.detail-panel.collapsed{width:0;border-left:none}
+.detail-hdr{padding:14px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;justify-content:space-between}
+.detail-hdr h3{font-size:13px;color:var(--accent);font-weight:600}
+.detail-hdr button{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:16px;padding:2px 6px}
+.detail-body{padding:14px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:12px}
+.detail-section{font-size:11px}
+.detail-section h4{color:var(--text-dim);text-transform:uppercase;letter-spacing:0.1em;font-size:10px;margin-bottom:6px}
+.detail-section .val{color:var(--text-main);font-size:12px}
+.tool-log-item{padding:6px 8px;background:rgba(0,0,0,0.2);border-radius:6px;margin-bottom:4px;font-size:11px;font-family:var(--font-mono)}
+.tool-log-item .tl-name{color:var(--accent)}
+.tool-log-item .tl-status{font-size:9px}
+.tool-log-item .tl-status.ok{color:var(--green)}
+.tool-log-item .tl-status.err{color:var(--red)}
+/* ── Input ── */
+.chat-input{padding:10px 18px;background:var(--bg-panel);border-top:1px solid var(--glass-border);display:flex;gap:8px;flex-shrink:0;align-items:center}
+.chat-input input{flex:1;padding:9px 12px;border-radius:var(--radius-sm);border:1px solid var(--glass-border);background:var(--bg-deep);color:var(--text-main);font-size:13px;font-family:var(--font-sans);outline:none;transition:border-color 0.2s}
+.chat-input input:focus{border-color:var(--accent)}
+.chat-input button{padding:9px 18px;border-radius:var(--radius-sm);border:1px solid var(--accent);background:var(--accent-dim);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;white-space:nowrap}
+.chat-input button:hover{background:var(--accent);color:var(--bg-deep)}
+.chat-input button:disabled{opacity:0.4;cursor:default}
+.chat-input .slash-hint{font-size:10px;color:var(--text-dim);padding:2px 7px;background:var(--bg-raised);border-radius:4px;border:1px solid var(--glass-border)}
+/* ── System Banner ── */
+.sys-banner{background:rgba(232,195,106,0.08);border-bottom:1px solid rgba(232,195,106,0.18);padding:6px 12px;font-size:11px;color:var(--amber);text-align:center;flex-shrink:0;line-height:1.5}
+.sys-banner code{background:rgba(232,195,106,0.12);padding:1px 5px;border-radius:3px;font-size:10px;color:var(--amber)}
+/* ── Empty State ── */
+.empty{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;color:var(--text-dim);gap:10px}
+.empty .icon{font-size:42px;opacity:0.25}
+.empty .txt{font-size:13px}
+</style>
+</head>
+<body>
+<div class="ambient"></div>
+<div class="grid-bg"></div>
+
+<div class="page">
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-hdr">
+    <h2>OB</h2>
+    <div class="sub">Operation Bridge</div>
+  </div>
+  <div class="agent-list" id="agentList">
+    <div class="msg system" style="padding:16px">加载 Agent 列表...</div>
+  </div>
+</div>
+
+<!-- Main Chat -->
+<div class="main" id="mainArea">
+  <div class="sys-banner" id="sysBanner">
+    ⚠️ <b>未安装通信桥的 Agent 无法收发消息</b> — 
+    <code>git clone git://111.228.42.18:9418/ua-workspaces.git</code> 查看 
+    <code>docs/AGENT_HANDOFF.md</code> 完成安装
+  </div>
+  <div class="empty" id="emptyState">
+    <div class="icon">◈</div>
+    <div class="txt">选择左侧 Agent 开始对话</div>
+    <div class="txt" style="font-size:11px;margin-top:4px">输入 / 可使用斜杠命令</div>
+  </div>
+  <div class="chat-hdr" id="chatHdr" style="display:none">
+    <span class="agent-name" id="chatAgentName"></span>
+    <span class="agent-status" id="chatAgentStatus">在线</span>
+  </div>
+  <div class="chat-msgs" id="chatMsgs" style="display:none"></div>
+  <div class="chat-input" id="chatInput" style="display:none">
+    <span class="slash-hint">/ 命令</span>
+    <input type="text" id="msgInput" placeholder="输入消息... / 斜杠命令" onkeydown="if(event.key==='Enter')sendMsg()" />
+    <button id="sendBtn" onclick="sendMsg()">发送</button>
+  </div>
+</div>
+
+<!-- Detail Panel -->
+<div class="detail-panel collapsed" id="detailPanel">
+  <div class="detail-hdr">
+    <h3 id="detailTitle">Agent 详情</h3>
+    <button onclick="toggleDetail()">×</button>
+  </div>
+  <div class="detail-body" id="detailBody">
+    <div class="msg system">选择 Agent 查看详情</div>
+  </div>
+</div>
+</div>
+
+<script>
+// ── State ──
+let selectedAgent = null;
+let agentInfo = {};
+let toolLog = [];
+let unreadCounts = {};
+let evtSource = null;
+
+// ── Init ──
+loadAgents();
+connectSSE();
+
+// ── SSE Stream ──
+function connectSSE() {
+  evtSource = new EventSource('/api/chat/stream');
+  evtSource.onmessage = function(e) {
+    try {
+      const msg = JSON.parse(e.data);
+      if (!selectedAgent) return;
+      // Only show messages for selected agent
+      if ((msg.direction === 'sent' && msg.to_agent === selectedAgent) ||
+          (msg.direction === 'received' && msg.from_agent === selectedAgent)) {
+        addMsg(msg);
+        if (msg.subtype === 'tool_call') addToolLog(msg);
+      }
+    } catch(err) {}
+  };
+  evtSource.onerror = function() {
+    // Auto-reconnect on error
+    setTimeout(connectSSE, 3000);
+  };
+}
+
+// ── Load agent list ──
+async function loadAgents() {
+  try {
+    const r = await fetch('/api/agents');
+    const d = await r.json();
+    const agents = d.agents || d;
+    agentInfo = agents;
+    renderAgentList(agents);
+  } catch(e) {
+    document.getElementById('agentList').innerHTML = '<div class="msg system">Agent 列表加载失败</div>';
+  }
+}
+
+function renderAgentList(agents) {
+  const el = document.getElementById('agentList');
+  if (!agents || Object.keys(agents).length === 0) {
+    el.innerHTML = '<div class="msg system">暂无已注册 Agent</div>';
+    return;
+  }
+  let html = '';
+  for (const [id, info] of Object.entries(agents)) {
+    const name = (info && (info.name || info.agent_name)) || id;
+    const type = (info && (info.agent_type || info.type)) || '';
+    const online = !info || info.status !== 'offline';
+    const unread = unreadCounts[id] || 0;
+    html += `<div class="agent-item" data-id="${id}" onclick="selectAgent('${id}','${name}')">
+      <div class="name"><span class="dot ${online?'online':'offline'}"></span>${escHtml(name)}</div>
+      <div class="meta">${escHtml(type)} · ${escHtml(id.substring(0,8))}</div>
+      ${unread > 0 ? `<div class="unread">${unread}</div>` : ''}
+    </div>`;
+  }
+  el.innerHTML = html;
+}
+
+// ── Select agent ──
+function selectAgent(id, name) {
+  if (selectedAgent === id) return;
+  selectedAgent = id;
+  unreadCounts[id] = 0;
+  toolLog = [];
+  
+  document.querySelectorAll('.agent-item').forEach(el => el.classList.remove('active'));
+  document.querySelector(`.agent-item[data-id="${id}"]`)?.classList.add('active');
+  
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('chatHdr').style.display = 'flex';
+  document.getElementById('chatMsgs').style.display = 'flex';
+  document.getElementById('chatInput').style.display = 'flex';
+  document.getElementById('chatAgentName').textContent = name;
+  document.getElementById('chatMsgs').innerHTML = `<div class="msg system">已选择 ${escHtml(name)}，开始对话</div>`;
+  document.getElementById('msgInput').focus();
+  
+  updateDetailPanel(id, name);
+}
+
+// ── Send message ──
+async function sendMsg() {
+  const input = document.getElementById('msgInput');
+  const content = input.value.trim();
+  if (!content || !selectedAgent) return;
+  
+  // Slash commands
+  if (content.startsWith('/')) {
+    handleSlashCommand(content);
+    input.value = '';
+    return;
+  }
+  
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true;
+  input.value = '';
+  
+  // Always show locally first, before API call
+  addMsg({direction:'sent', to_agent:selectedAgent, content, timestamp:Date.now()});
+  
+  try {
+    const r = await fetch('/api/chat/send', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({to_agent: selectedAgent, content})
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(()=>({}));
+      addMsg({direction:'system', content:'发送失败('+r.status+'): '+(err.error||'网关未连接')});
+    }
+  } catch(e) {
+    addMsg({direction:'system', content:'发送失败: ' + e.message});
+  }
+  btn.disabled = false;
+  input.focus();
+}
+
+function handleSlashCommand(cmd) {
+  const parts = cmd.split(/\s+/);
+  const action = parts[0];
+  switch(action) {
+    case '/help':
+      addMsg({direction:'system', content:'命令列表: /agents 查看Agent /ils 铁律检查 /task 创建任务 /clear 清屏 /panel 切换面板'});
+      break;
+    case '/agents':
+      loadAgents();
+      addMsg({direction:'system', content:'Agent 列表已刷新'});
+      break;
+    case '/clear':
+      document.getElementById('chatMsgs').innerHTML = '';
+      break;
+    case '/panel':
+      toggleDetail();
+      break;
+    default:
+      addMsg({direction:'system', content:`未知命令: ${action}。输入 /help 查看可用命令`});
+  }
+}
+
+// ── Add message to display ──
+function addMsg(m) {
+  const el = document.getElementById('chatMsgs');
+  let cls = m.direction;
+  let html = '';
+  
+  if (m.subtype === 'thinking') {
+    html = `<div class="msg thinking">💭 ${escHtml(m.content)}<span class="dots"><span></span><span></span><span></span></span></div>`;
+  } else if (m.subtype === 'tool_call') {
+    html = `<div class="msg tool_call">
+      <div class="tool-hdr"><span class="icon">🔧</span> ${escHtml(m.content)}<span class="status running">⏳</span></div>
+    </div>`;
+  } else if (m.subtype === 'tool_result') {
+    html = `<div class="msg tool_call">
+      <div class="tool-hdr"><span class="icon">✅</span> 工具执行结果<span class="status done">完成</span></div>
+      <div class="tool-body">${escHtml(m.content)}</div>
+    </div>`;
+  } else if (m.direction === 'sent') {
+    html = `<div class="msg sent"><div class="time">${fmtTime(m.timestamp)}</div>${escHtml(m.content)}</div>`;
+  } else if (m.direction === 'received') {
+    html = `<div class="msg received"><div class="sender">${escHtml(m.from_agent||'Agent')}</div>${escHtml(m.content)}<div class="time">${fmtTime(m.timestamp)}</div></div>`;
+  } else {
+    html = `<div class="msg system">${escHtml(m.content)}</div>`;
+  }
+  
+  el.insertAdjacentHTML('beforeend', html);
+  el.scrollTop = el.scrollHeight;
+  
+  // Unread count for inactive agents
+  if (m.direction === 'received' && m.from_agent && m.from_agent !== selectedAgent) {
+    unreadCounts[m.from_agent] = (unreadCounts[m.from_agent] || 0) + 1;
+    renderAgentList(agentInfo);
+  }
+}
+
+// ── Tool Log ──
+function addToolLog(msg) {
+  toolLog.push({name: msg.content, status: 'ok', time: Date.now()});
+  if (document.getElementById('detailPanel').classList.contains('collapsed')) return;
+  updateDetailPanel(selectedAgent, document.getElementById('chatAgentName').textContent);
+}
+
+// ── Detail Panel ──
+function toggleDetail() {
+  document.getElementById('detailPanel').classList.toggle('collapsed');
+}
+
+function updateDetailPanel(id, name) {
+  const info = agentInfo[id] || {};
+  const body = document.getElementById('detailBody');
+  const title = document.getElementById('detailTitle');
+  title.textContent = name || id;
+  
+  let html = `<div class="detail-section">
+    <h4>基本信息</h4>
+    <div class="val">ID: ${escHtml(id)}</div>
+    <div class="val">类型: ${escHtml(info.agent_type||info.type||'unknown')}</div>
+    <div class="val">状态: ${info.status === 'offline' ? '离线' : '在线'}</div>
+  </div>`;
+  
+  if (toolLog.length > 0) {
+    html += `<div class="detail-section"><h4>工具调用记录</h4>`;
+    for (const t of toolLog.slice(-10).reverse()) {
+      html += `<div class="tool-log-item">
+        <span class="tl-name">${escHtml(t.name)}</span>
+        <span class="tl-status ${t.status}">${t.status==='ok'?'✅':'❌'}</span>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+  
+  body.innerHTML = html;
+}
+
+// ── Helpers ──
+function escHtml(s) {
+  if (!s) return '';
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+function fmtTime(ts) {
+  const d = new Date(ts);
+  return d.getHours().toString().padStart(2,'0') + ':' +
+         d.getMinutes().toString().padStart(2,'0') + ':' +
+         d.getSeconds().toString().padStart(2,'0');
+}
+
+// Keyboard shortcut: Ctrl+\ to toggle detail panel
+document.addEventListener('keydown', function(e) {
+  if (e.ctrlKey && e.key === '\\') {
+    e.preventDefault();
+    toggleDetail();
+  }
+});
+</script>
+</body>
+</html>

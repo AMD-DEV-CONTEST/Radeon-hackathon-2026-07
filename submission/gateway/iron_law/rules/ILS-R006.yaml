@@ -1,0 +1,31 @@
+# ILS-R006: E2E Verification Before Complete
+# Severity: mandatory
+# Gate: ILS-G005
+
+## Rule
+Before marking any implementation task as "done", the agent MUST:
+1. Run the code path end-to-end (API call, CLI command, or DB query)
+2. Capture output evidence (response body, log line, or result)
+3. Include that evidence in the completion summary or artifact
+
+## Why
+Phase 6.1 L2-L4 were all marked "done" with code that was never
+executed. Agents wrote files; nobody verified the pipeline ran.
+This rule prevents "git commit = done" fallacy.
+
+## Exceptions
+- Pure refactoring with automated test coverage: pass if tests pass
+- **Audit / review / research / analysis / planning tasks: submit acceptance_result "pass"**
+  These task types ARE the review — requiring needs_review creates an unresolvable loop.
+  The system (orchestrator) enforces this via _GATE_EXEMPT_TASK_TYPES bypass.
+  Do NOT submit "needs_review" for task_type in: audit, review, research, analysis,
+  read_only, planning, discussion.
+
+## Detection
+If a complete_task call has:
+- artifact_uris empty AND summary says "file written"
+-> flag as NEEDS_REVIEW
+
+## Enforcement
+ILS-G005 must be evaluated before status transitions to "done".
+If evidence is insufficient, force "needs_review".

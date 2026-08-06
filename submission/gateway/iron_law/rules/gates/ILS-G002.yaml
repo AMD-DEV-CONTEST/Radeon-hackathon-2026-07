@@ -1,0 +1,18 @@
+gate_id: ILS-G002
+name: Scope Boundary Gate
+phase: planning
+blocking_condition: "plan touches files or services outside declared scope"
+pass_condition: "all file paths and service endpoints in plan fall within scope_declaration"
+failure_code: ILS-F002
+required_evidence:
+  - type: diff_evidence
+    description: "list of files/services to be modified, matched against scope_declaration"
+override_policy:
+  authorized_by:
+    - human_leader
+  requires:
+    - explicit_session_instruction
+  audit_required: true
+comment_zh: >
+  规划阶段必须确认所有变更在声明范围内。防止 agent 顺手改了不相关模块，
+  引入意外副作用。

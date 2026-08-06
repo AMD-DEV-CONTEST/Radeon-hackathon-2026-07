@@ -1,0 +1,17 @@
+[Unit]
+Description=UAS Launcher — per-machine agent spawn controller
+After=network.target orchestrator.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/UnionAgents
+EnvironmentFile=/etc/unionagents/launcher.env
+ExecStart=/usr/bin/node /root/UnionAgents/packages/agent/dist/launcher.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

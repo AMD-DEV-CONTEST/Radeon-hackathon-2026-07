@@ -1,0 +1,25 @@
+gate_id: ILS-G003
+name: High Risk Execution Gate
+phase: execution
+blocking_condition: "task involves high-risk operations without explicit approval"
+pass_condition: "high-risk operation approved by human_leader or orchestrator"
+failure_code: ILS-F003
+required_evidence:
+  - type: runtime_observation
+    description: "explicit approval record with approver identity and timestamp"
+triggers:
+  - modify credentials or permissions
+  - modify production data or service routing
+  - modify or delete active rules
+  - promote rule_candidate to active_rule
+  - demote or disable active_rule
+  - delete rule_candidate with no successor
+override_policy:
+  authorized_by:
+    - human_leader
+  requires:
+    - explicit_session_instruction
+  audit_required: true
+comment_zh: >
+  执行阶段高风险操作必须经过审批。包括修改凭据、生产数据、活跃规则等。
+  Gate 3 的 triggers 列表覆盖了规则变更的全生命周期，防止 agent 自我授权。

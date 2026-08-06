@@ -1,0 +1,18 @@
+gate_id: ILS-G001
+name: Target Object Gate
+phase: intake
+blocking_condition: "task.target_object is missing or ambiguous"
+pass_condition: "task.target_object uniquely identifies the entity to be modified"
+failure_code: ILS-F001
+required_evidence:
+  - type: diff_evidence
+    description: "target_object field populated with unambiguous identifier"
+override_policy:
+  authorized_by:
+    - human_leader
+  requires:
+    - explicit_session_instruction
+  audit_required: true
+comment_zh: >
+  接入阶段必须明确操作对象。没有明确 target_object，agent 无法判断 scope，
+  容易越权操作非目标资源。

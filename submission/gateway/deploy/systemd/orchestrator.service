@@ -1,0 +1,19 @@
+[Unit]
+Description=UAS Orchestrator
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/UnionAgents
+EnvironmentFile=/etc/unionagents/orchestrator.env
+ExecStart=/root/UnionAgents/.venv/bin/python -m uvicorn orchestrator.main:app \
+    --host 0.0.0.0 --port 8000 --workers 1
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

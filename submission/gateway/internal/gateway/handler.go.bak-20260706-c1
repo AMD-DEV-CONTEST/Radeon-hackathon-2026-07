@@ -1,0 +1,1302 @@
+package gateway
+
+import (
+	"context"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"log/slog"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+// AppIdentity represents a registered client or agent identity
+type AppIdentity struct {
+	AppID        string // unique app identifier (cli_xxxx or agent_xxxx)
+	Secret       string // signing secret for JWT generation
+	Type         string // "client" or "agent"
+	AgentID      string // if type == "agent", the UUID of the agent
+	AgentType    string // runtime label supplied by agent, e.g. reasonix/hermes
+	Name         string // display name
+	RegisteredAt time.Time
+	ExpiresAt    time.Time
+}
+
+// DeliveryResult reports what the Gateway actually attempted on live WS connections.
+type DeliveryResult struct {
+	Target                 string `json:"target,omitempty"`
+	TargetConnected        bool   `json:"target_connected"`
+	ConnectionCount        int    `json:"connection_count"`
+	DeliveredToConnections int    `json:"delivered_to_connections"`
+	FailedWrites           int    `json:"failed_writes"`
+}
+
+type eventDeliveryRecord struct {
+	EventID     string
+	EventKey    string
+	Delivered   int
+	Acked       int
+	Nacked      int
+	Pending     int
+	LastUpdated time.Time
+	Consumers   map[string]string
+	TargetAppID string // "" = broadcast to all OB clients
+	Route       string // "agent_app", "agent_legacy", "ob_clients"
+	RetryCount  int
+	MaxRetries  int
+	CreatedAt   time.Time
+}
+
+type EventKeyStatus struct {
+	EventKey    string `json:"event_key"`
+	LastEventID string `json:"last_event_id,omitempty"`
+	Delivered   int    `json:"delivered"`
+	Acked       int    `json:"acked"`
+	Nacked      int    `json:"nacked"`
+	Pending     int    `json:"pending"`
+}
+
+type ConnectionStatus struct {
+	ConnectionID string    `json:"connection_id"`
+	ConsumerID   string    `json:"consumer_id"`
+	AppID        string    `json:"app_id,omitempty"`
+	Kind         string    `json:"kind"`
+	AgentID      string    `json:"agent_id,omitempty"`
+	AgentType    string    `json:"agent_type,omitempty"`
+	Ready        bool      `json:"ready"`
+	ReadyType    string    `json:"ready_type,omitempty"`
+	ConnectedAt  time.Time `json:"connected_at"`
+	ReadyAt      time.Time `json:"ready_at,omitempty"`
+	LastSeenAt   time.Time `json:"last_seen_at"`
+}
+
+type bufferedEvent struct {
+	EventID  string
+	EventKey string
+	Payload  json.RawMessage
+	StoredAt time.Time
+}
+
+var (
+	upgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		CheckOrigin:     func(r *http.Request) bool { return true },
+	}
+
+	TokenTTL = 86400 // 24 hours
+
+	// authEnabled controls whether authentication is enforced.
+	authEnabled  bool
+	authUsername string
+	authPassword string
+	authSecret   string
+
+	// Identity registry: app_id → AppIdentity
+	identityDB = &sync.Map{}
+
+	// WebSocket registry: app_id → []*websocket.Conn
+	activeConnections = &sync.Map{}
+
+	// Agent routing: agent_id → app_id
+	agentIDToAppID   = &sync.Map{}
+	agentNameToAppID = &sync.Map{}
+
+	// DB pool for identity persistence (set via InitPool)
+	gatewayPool *pgxpool.Pool
+
+	// Per-connection write mutex. gorilla/websocket allows only ONE concurrent
+	// writer per connection. The ping goroutine and the broadcast paths
+	// (BroadcastToAllClients / BroadcastToApp / BroadcastToAgent / DispatchTask)
+	// otherwise write the same conn concurrently → corrupted frames → the
+	// connection errors out and drops. All writes MUST go through safeWrite*.
+	connWriteMu = &sync.Map{} // *websocket.Conn → *sync.Mutex
+
+	eventMu       sync.Mutex
+	eventDelivery = map[string]*eventDeliveryRecord{}
+	eventBuffer   []bufferedEvent
+
+	connectionMu     sync.Mutex
+	connectionStatus = map[string]*ConnectionStatus{}
+	connToID         = &sync.Map{} // *websocket.Conn → connection_id
+)
+
+const (
+	maxBufferedEvents = 100
+	eventBufferTTL    = 5 * time.Minute
+)
+
+var connIDToConn = &sync.Map{} // connection_id -> *websocket.Conn
+
+func connMutex(c *websocket.Conn) *sync.Mutex {
+	mu, _ := connWriteMu.LoadOrStore(c, &sync.Mutex{})
+	return mu.(*sync.Mutex)
+}
+
+// safeWrite serializes WriteMessage per connection.
+func safeWrite(c *websocket.Conn, messageType int, data []byte) error {
+	mu := connMutex(c)
+	mu.Lock()
+	defer mu.Unlock()
+	c.SetWriteDeadline(time.Now().Add(10 * time.Second))
+	return c.WriteMessage(messageType, data)
+}
+
+// safeWriteJSON serializes WriteJSON per connection.
+func safeWriteJSON(c *websocket.Conn, v interface{}) error {
+	mu := connMutex(c)
+	mu.Lock()
+	defer mu.Unlock()
+	c.SetWriteDeadline(time.Now().Add(10 * time.Second))
+	return c.WriteJSON(v)
+}
+
+func newConnectionID() string {
+	return "conn_" + randString(16)
+}
+
+func appIdentity(appID string) *AppIdentity {
+	if appID == "" {
+		return nil
+	}
+	if val, ok := identityDB.Load(appID); ok {
+		return val.(*AppIdentity)
+	}
+	return nil
+}
+
+func appIdentityAgentType(appID string) string {
+	if identity := appIdentity(appID); identity != nil {
+		return identity.AgentType
+	}
+	return ""
+}
+
+func registerConnection(conn *websocket.Conn, consumerID, appID, kind, agentID string) string {
+	connectionID := newConnectionID()
+	now := time.Now().UTC()
+	agentType := ""
+	if identity := appIdentity(appID); identity != nil {
+		agentType = identity.AgentType
+	}
+	connToID.Store(conn, connectionID)
+	connIDToConn.Store(connectionID, conn)
+	connectionMu.Lock()
+	connectionStatus[connectionID] = &ConnectionStatus{
+		ConnectionID: connectionID,
+		ConsumerID:   consumerID,
+		AppID:        appID,
+		Kind:         kind,
+		AgentID:      agentID,
+		AgentType:    agentType,
+		ConnectedAt:  now,
+		LastSeenAt:   now,
+	}
+	connectionMu.Unlock()
+	return connectionID
+}
+
+func markConnectionSeen(connectionID string) {
+	connectionMu.Lock()
+	defer connectionMu.Unlock()
+	if rec := connectionStatus[connectionID]; rec != nil {
+		rec.LastSeenAt = time.Now().UTC()
+	}
+}
+
+func markConnectionReady(connectionID, readyType string) {
+	connectionMu.Lock()
+	defer connectionMu.Unlock()
+	if rec := connectionStatus[connectionID]; rec != nil {
+		rec.Ready = true
+		rec.ReadyType = readyType
+		rec.ReadyAt = time.Now().UTC()
+		rec.LastSeenAt = rec.ReadyAt
+	}
+}
+
+func removeConnectionStatus(conn *websocket.Conn) {
+	if val, ok := connToID.LoadAndDelete(conn); ok {
+		connIDToConn.Delete(val.(string))
+		connectionMu.Lock()
+		delete(connectionStatus, val.(string))
+		connectionMu.Unlock()
+	}
+}
+
+func StartConnectionSweeper(ctx context.Context, interval, staleAfter time.Duration) {
+	if interval <= 0 {
+		interval = 30 * time.Second
+	}
+	if staleAfter <= 0 {
+		staleAfter = 3 * time.Minute
+	}
+	ticker := time.NewTicker(interval)
+	go func() {
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				sweepStaleConnections(staleAfter)
+			}
+		}
+	}()
+}
+
+func sweepStaleConnections(staleAfter time.Duration) {
+	cutoff := time.Now().UTC().Add(-staleAfter)
+	type staleConn struct {
+		connectionID string
+		consumerID   string
+		conn         *websocket.Conn
+		lastSeenAt   time.Time
+	}
+	stale := make([]staleConn, 0)
+
+	connectionMu.Lock()
+	for connectionID, rec := range connectionStatus {
+		if rec.LastSeenAt.Before(cutoff) {
+			if val, ok := connIDToConn.Load(connectionID); ok {
+				stale = append(stale, staleConn{
+					connectionID: connectionID,
+					consumerID:   rec.ConsumerID,
+					conn:         val.(*websocket.Conn),
+					lastSeenAt:   rec.LastSeenAt,
+				})
+			}
+		}
+	}
+	connectionMu.Unlock()
+
+	for _, item := range stale {
+		slog.Warn("closing stale ws connection", "connection_id", item.connectionID, "consumer", item.consumerID, "last_seen_at", item.lastSeenAt)
+		item.conn.Close()
+		removeConnection(item.consumerID, item.conn)
+		removeConnectionStatus(item.conn)
+	}
+}
+
+func ConnectionStatusSnapshot() []ConnectionStatus {
+	connectionMu.Lock()
+	defer connectionMu.Unlock()
+	out := make([]ConnectionStatus, 0, len(connectionStatus))
+	for _, rec := range connectionStatus {
+		out = append(out, *rec)
+	}
+	return out
+}
+
+// InitPool stores the DB pool for identity persistence.
+func InitPool(p *pgxpool.Pool) {
+	gatewayPool = p
+}
+
+// LoadIdentitiesFromDB restores agent identity mappings from PostgreSQL on startup.
+// Recovers identityDB and agentIDToAppID so in-flight agents don't need to re-register
+// after a Gateway restart.
+func LoadIdentitiesFromDB(ctx context.Context) {
+	if gatewayPool == nil {
+		return
+	}
+	rows, err := gatewayPool.Query(ctx,
+		`SELECT agent_id, app_id, agent_name, secret, registered_at, expires_at
+		 FROM gateway_agent_identities
+		 WHERE expires_at > now()`)
+	if err != nil {
+		slog.Warn("load agent identities from db", "err", err)
+		return
+	}
+	defer rows.Close()
+
+	count := 0
+	for rows.Next() {
+		var agentID, appID, agentName, secret string
+		var registeredAt, expiresAt time.Time
+		if err := rows.Scan(&agentID, &appID, &agentName, &secret, &registeredAt, &expiresAt); err != nil {
+			slog.Warn("scan agent identity row", "err", err)
+			continue
+		}
+		identity := &AppIdentity{
+			AppID:        appID,
+			Secret:       secret,
+			Type:         "agent",
+			AgentID:      agentID,
+			AgentType:    "unknown",
+			Name:         agentName,
+			RegisteredAt: registeredAt,
+			ExpiresAt:    expiresAt,
+		}
+		identityDB.Store(appID, identity)
+		agentIDToAppID.Store(agentID, appID)
+		agentNameToAppID.Store(agentName, appID)
+		count++
+	}
+	slog.Info("gateway identities loaded from db", "count", count)
+}
+
+// InitAuth reads auth configuration from environment variables.
+func InitAuth() {
+	authEnabled = os.Getenv("AUTH_ENABLED") != "0"
+	authUsername = envDefault("AUTH_USERNAME", "admin")
+	authPassword = os.Getenv("AUTH_PASSWORD")
+	authSecret = os.Getenv("AUTH_SECRET")
+
+	if authEnabled && (authPassword == "" || authSecret == "") {
+		slog.Error("AUTH_ENABLED=1 but AUTH_PASSWORD or AUTH_SECRET is not set")
+		os.Exit(1)
+	}
+}
+
+// Login verifies credentials and returns a signed token.
+func Login(username, password string) (string, error) {
+	if !authEnabled {
+		return generateToken(), nil
+	}
+	if username == authUsername && password == authPassword {
+		return generateToken(), nil
+	}
+	return "", fmt.Errorf("invalid credentials")
+}
+
+// LoginClient verifies admin credentials and optionally creates an identity-backed
+// client session. Legacy callers pass an empty agentID and receive the old admin
+// JWT. OB/cockpit callers pass agentID so replies can route back through
+// agentIDToAppID and the app_id-authenticated WebSocket path.
+func LoginClient(username, password, name, agentID string) (*AppIdentity, string, error) {
+	if agentID == "" {
+		token, err := Login(username, password)
+		return nil, token, err
+	}
+	if _, err := Login(username, password); err != nil {
+		return nil, "", err
+	}
+	if name == "" {
+		name = agentID
+	}
+	return RegisterClient(name, agentID)
+}
+
+// VerifyToken checks a token against HMAC signature and DB persistence.
+func VerifyToken(ctx context.Context, pool *pgxpool.Pool, token string) bool {
+	if token == "" {
+		return false
+	}
+
+	if !verifyHMAC(token) {
+		return false
+	}
+
+	if pool == nil {
+		return true
+	}
+
+	// Check/refresh in DB
+	expiresAt := time.Now().UTC().Add(time.Duration(TokenTTL) * time.Second)
+	_, err := pool.Exec(ctx,
+		`INSERT INTO active_tokens (token, expires_at) VALUES ($1, $2)
+		 ON CONFLICT (token) DO UPDATE SET expires_at = $2, updated_at = now()`,
+		token, expiresAt)
+	if err != nil {
+		slog.Warn("token db insert", "err", err)
+	}
+
+	// Cleanup expired tokens periodically
+	pool.Exec(ctx, `SELECT cleanup_expired_tokens()`)
+
+	return true
+}
+
+// Logout revokes a token.
+func Logout(ctx context.Context, pool *pgxpool.Pool, token string) {
+	if pool != nil {
+		pool.Exec(ctx, `DELETE FROM active_tokens WHERE token = $1`, token)
+	}
+}
+
+// ExtractToken pulls a Bearer token from the request.
+func ExtractToken(r *http.Request) string {
+	auth := r.Header.Get("Authorization")
+	if len(auth) > 7 && auth[:7] == "Bearer " {
+		return auth[7:]
+	}
+	return r.URL.Query().Get("token")
+}
+
+// AuthMiddleware is an HTTP middleware that enforces token authentication.
+func AuthMiddleware(pool *pgxpool.Pool) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !authEnabled {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			path := r.URL.Path
+			// Allow internal broadcast and health checks without token
+			if path == "/auth/login" || path == "/health" || path == "/boundary" || path == "/broadcast" || path == "/chat" || path == "/api/gateway/chat" || path == "/events/status" || path == "/events/replay" || path == "/events/ack" || path == "/register/client" || strings.HasPrefix(path, "/download/") || r.Method == "OPTIONS" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			token := ExtractToken(r)
+			if !VerifyToken(r.Context(), pool, token) {
+				http.Error(w, `{"detail":"Missing or invalid token"}`, http.StatusUnauthorized)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// HandleAgentOutput handles WebSocket upgrades for agent output streaming.
+func HandleAgentOutput(w http.ResponseWriter, r *http.Request, pool *pgxpool.Pool, agentID string) {
+	if authEnabled {
+		token := ExtractToken(r)
+		if !verifyHMAC(token) {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+	}
+
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		slog.Error("ws upgrade", "agent", agentID, "err", err)
+		return
+	}
+	connectionID := registerConnection(conn, agentID, "", "agent", agentID)
+
+	// Track connection
+	conns, _ := activeConnections.LoadOrStore(agentID, []*websocket.Conn{})
+	connList := conns.([]*websocket.Conn)
+	connList = append(connList, conn)
+	activeConnections.Store(agentID, connList)
+
+	slog.Info("ws connected", "agent", agentID, "total", len(connList))
+	safeWriteJSON(conn, map[string]interface{}{
+		"type":           "server:welcome",
+		"connection_id":  connectionID,
+		"consumer_id":    agentID,
+		"kind":           "agent",
+		"agent_id":       agentID,
+		"agent_type":     appIdentityAgentType(""),
+		"ready_required": true,
+	})
+
+	// Read loop — keep connection alive and handle incoming messages
+	go func() {
+		defer func() {
+			conn.Close()
+			removeConnection(agentID, conn)
+			removeConnectionStatus(conn)
+		}()
+
+		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		conn.SetPongHandler(func(string) error {
+			conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+			markConnectionSeen(connectionID)
+			return nil
+		})
+
+		for {
+			_, msg, err := conn.ReadMessage()
+			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
+					slog.Warn("ws read error", "agent", agentID, "err", err)
+				}
+				return
+			}
+			markConnectionSeen(connectionID)
+			handleWSControlMessage(agentID, msg)
+			slog.Info("ws message", "agent", agentID, "msg", string(msg))
+		}
+	}()
+
+	// Send ping every 30 seconds
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			if err := safeWrite(conn, websocket.PingMessage, nil); err != nil {
+				return
+			}
+		}
+	}()
+}
+
+// BroadcastToAgent sends a message to all WebSocket connections for an agent.
+func BroadcastToAgent(agentID string, message []byte) DeliveryResult {
+	result := DeliveryResult{Target: agentID}
+	conns, ok := activeConnections.Load(agentID)
+	if !ok {
+		return result
+	}
+	list := conns.([]*websocket.Conn)
+	result.ConnectionCount = len(list)
+	result.TargetConnected = result.ConnectionCount > 0
+	for _, c := range list {
+		if err := safeWrite(c, websocket.TextMessage, message); err != nil {
+			result.FailedWrites++
+			slog.Warn("ws write error", "agent", agentID, "err", err)
+			continue
+		}
+		result.DeliveredToConnections++
+	}
+	return result
+}
+
+// DispatchTask notifies an agent about a new task via WebSocket.
+func DispatchTask(agentID string, taskData map[string]interface{}) error {
+	conns, ok := activeConnections.Load(agentID)
+	if !ok {
+		return fmt.Errorf("agent %s not connected", agentID)
+	}
+
+	// payload, _ := json.Marshal(taskData)
+	// BroadcastToAgent handles the write
+	list := conns.([]*websocket.Conn)
+	if len(list) == 0 {
+		return fmt.Errorf("agent %s has no active connections", agentID)
+	}
+
+	for _, c := range list {
+		if err := safeWriteJSON(c, taskData); err != nil {
+			slog.Warn("ws dispatch error", "agent", agentID, "err", err)
+		}
+	}
+	return nil
+}
+
+func removeConnection(id string, conn *websocket.Conn) {
+	connWriteMu.Delete(conn) // release the per-connection write mutex
+	conns, ok := activeConnections.Load(id)
+	if !ok {
+		return
+	}
+	list := conns.([]*websocket.Conn)
+	newList := make([]*websocket.Conn, 0, len(list)-1)
+	for _, c := range list {
+		if c != conn {
+			newList = append(newList, c)
+		}
+	}
+	if len(newList) == 0 {
+		activeConnections.Delete(id)
+		slog.Info("ws disconnected", "id", id, "remaining", 0)
+	} else {
+		activeConnections.Store(id, newList)
+		slog.Info("ws disconnected", "id", id, "remaining", len(newList))
+	}
+}
+
+// ── Identity registration ──────────────────────────────────────────────────
+
+// RegisterClient creates a new client identity and returns app_id + secret + token
+func RegisterClient(name, agentID string) (*AppIdentity, string, error) {
+	appID := "cli_" + randString(16)
+	secret := randString(32)
+
+	identity := &AppIdentity{
+		AppID:        appID,
+		Secret:       secret,
+		Type:         "client",
+		AgentID:      agentID,
+		Name:         name,
+		RegisteredAt: time.Now().UTC(),
+		ExpiresAt:    time.Now().UTC().Add(time.Duration(TokenTTL) * time.Second),
+	}
+
+	identityDB.Store(appID, identity)
+	if agentID != "" {
+		agentIDToAppID.Store(agentID, appID)
+		if name != "" {
+			agentNameToAppID.Store(name, appID)
+		}
+	}
+
+	token := generateTokenForAppID(appID, secret)
+	return identity, token, nil
+}
+
+// RegisterAgent creates a new agent identity and returns app_id + secret + token
+func RegisterAgent(agentID, agentName, agentType string) (*AppIdentity, string, error) {
+	appID := "agent_" + randString(16)
+	secret := randString(32)
+	agentType = normalizeAgentType(agentType)
+
+	identity := &AppIdentity{
+		AppID:        appID,
+		Secret:       secret,
+		Type:         "agent",
+		AgentID:      agentID,
+		AgentType:    agentType,
+		Name:         agentName,
+		RegisteredAt: time.Now().UTC(),
+		ExpiresAt:    time.Now().UTC().Add(time.Duration(TokenTTL) * time.Second),
+	}
+
+	identityDB.Store(appID, identity)
+
+	// Record agent_id → app_id mapping for broadcast routing
+	agentIDToAppID.Store(agentID, appID)
+	if agentName != "" {
+		agentNameToAppID.Store(agentName, appID)
+	}
+
+	// Persist to DB so the mapping survives Gateway restarts
+	if gatewayPool != nil {
+		_, err := gatewayPool.Exec(context.Background(),
+			`INSERT INTO gateway_agent_identities (agent_id, app_id, agent_name, secret, expires_at)
+			 VALUES ($1, $2, $3, $4, $5)
+			 ON CONFLICT (agent_id) DO UPDATE SET
+			     app_id = EXCLUDED.app_id,
+			     agent_name = EXCLUDED.agent_name,
+			     secret = EXCLUDED.secret,
+			     expires_at = EXCLUDED.expires_at,
+			     updated_at = now()`,
+			agentID, appID, agentName, secret, identity.ExpiresAt,
+		)
+		if err != nil {
+			slog.Warn("persist agent identity", "agent_id", agentID, "err", err)
+		}
+	}
+
+	token := generateTokenForAppID(appID, secret)
+	return identity, token, nil
+}
+
+func normalizeAgentType(agentType string) string {
+	agentType = strings.ToLower(strings.TrimSpace(agentType))
+	if agentType == "" || agentType == "agent" {
+		return "generic"
+	}
+	var b strings.Builder
+	for _, r := range agentType {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '_' || r == '-' {
+			b.WriteRune(r)
+		}
+	}
+	out := b.String()
+	if out == "" {
+		return "generic"
+	}
+	if len(out) > 64 {
+		return out[:64]
+	}
+	return out
+}
+
+// VerifyAppIDToken verifies that a token is valid for the given app_id
+func VerifyAppIDToken(appID, token string) bool {
+	if appID == "" || token == "" {
+		return false
+	}
+
+	idVal, ok := identityDB.Load(appID)
+	if !ok {
+		return false
+	}
+
+	identity := idVal.(*AppIdentity)
+	return verifyTokenForAppID(appID, token, identity.Secret)
+}
+
+// ── Token utilities ────────────────────────────────────────────────────
+
+func generateToken() string {
+	ts := strconv.FormatInt(time.Now().Unix(), 10)
+	sig := hmacSHA256(authSecret, ts)[:16]
+	return fmt.Sprintf("%s:%s", ts, sig)
+}
+
+// generateTokenForAppID creates a token signed with the app's secret
+func generateTokenForAppID(appID, secret string) string {
+	ts := strconv.FormatInt(time.Now().Unix(), 10)
+	sig := hmacSHA256(secret, appID+":"+ts)[:16]
+	return fmt.Sprintf("%s:%s", ts, sig)
+}
+
+// verifyTokenForAppID verifies a token using the app's secret
+func verifyTokenForAppID(appID, token, secret string) bool {
+	parts := splitToken(token)
+	if len(parts) != 2 {
+		return false
+	}
+	tsStr, sig := parts[0], parts[1]
+	ts, err := strconv.ParseInt(tsStr, 10, 64)
+	if err != nil {
+		return false
+	}
+	if time.Now().Unix()-ts > int64(TokenTTL) {
+		return false
+	}
+	expected := hmacSHA256(secret, appID+":"+tsStr)[:16]
+	return hmac.Equal([]byte(sig), []byte(expected))
+}
+
+func verifyHMAC(token string) bool {
+	parts := splitToken(token)
+	if len(parts) != 2 {
+		return false
+	}
+	tsStr, sig := parts[0], parts[1]
+	ts, err := strconv.ParseInt(tsStr, 10, 64)
+	if err != nil {
+		return false
+	}
+	if time.Now().Unix()-ts > int64(TokenTTL) {
+		return false
+	}
+	expected := hmacSHA256(authSecret, tsStr)[:16]
+	return hmac.Equal([]byte(sig), []byte(expected))
+}
+
+func hmacSHA256(key, data string) string {
+	h := hmac.New(sha256.New, []byte(key))
+	h.Write([]byte(data))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+func splitToken(token string) []string {
+	for i := 0; i < len(token); i++ {
+		if token[i] == ':' {
+			return []string{token[:i], token[i+1:]}
+		}
+	}
+	return []string{token}
+}
+
+func envDefault(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
+// randString generates a cryptographically-secure random alphanumeric string.
+// Used to mint per-identity signing secrets and app_ids — a predictable generator
+// here would let an attacker forge tokens for any app_id and impersonate agents/clients.
+func randString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, length)
+	if _, err := rand.Read(b); err != nil {
+		// crypto/rand should never fail; if it does, fail loud rather than emit weak secrets.
+		panic(fmt.Sprintf("crypto/rand failed: %v", err))
+	}
+	for i := range b {
+		b[i] = charset[int(b[i])%len(charset)]
+	}
+	return string(b)
+}
+
+// HandleClientWS handles WebSocket connections from OB/Cockpit clients.
+// appID is optional (for new identity-based auth), falls back to connection-based ID.
+func HandleClientWS(w http.ResponseWriter, r *http.Request, appID string) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		slog.Error("ws upgrade (client)", "err", err)
+		return
+	}
+
+	// Use app_id if provided, otherwise fall back to connection-based ID
+	clientID := appID
+	if clientID == "" {
+		clientID = "client-" + fmt.Sprintf("%p", conn)
+	}
+	kind := "client"
+	agentID := ""
+	if identity := appIdentity(appID); identity != nil {
+		kind = identity.Type
+		agentID = identity.AgentID
+	}
+	connectionID := registerConnection(conn, clientID, appID, kind, agentID)
+
+	conns, _ := activeConnections.LoadOrStore(clientID, []*websocket.Conn{})
+	connList := conns.([]*websocket.Conn)
+	connList = append(connList, conn)
+	activeConnections.Store(clientID, connList)
+
+	slog.Info("client ws connected", "id", clientID)
+
+	// Send welcome message
+	safeWriteJSON(conn, map[string]interface{}{
+		"type":           "server:welcome",
+		"connection_id":  connectionID,
+		"consumer_id":    clientID,
+		"app_id":         appID,
+		"kind":           kind,
+		"agent_id":       agentID,
+		"agent_type":     appIdentityAgentType(appID),
+		"ready_required": true,
+	})
+
+	// Read loop — keep connection alive
+	go func() {
+		defer func() {
+			conn.Close()
+			removeConnection(clientID, conn)
+			removeConnectionStatus(conn)
+			slog.Info("client ws disconnected", "id", clientID)
+		}()
+
+		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		conn.SetPongHandler(func(string) error {
+			conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+			markConnectionSeen(connectionID)
+			return nil
+		})
+
+		for {
+			_, msg, err := conn.ReadMessage()
+			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
+					slog.Warn("client ws read error", "id", clientID, "err", err)
+				}
+				return
+			}
+			markConnectionSeen(connectionID)
+			handleWSControlMessage(clientID, msg)
+		}
+	}()
+
+	// Send ping every 30 seconds
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			if err := safeWrite(conn, websocket.PingMessage, nil); err != nil {
+				return
+			}
+		}
+	}()
+}
+
+// BroadcastToAllClients sends a message to all connected OB clients (not agents).
+// Only broadcasts to keys starting with "cli_" (client app_ids).
+func BroadcastToAllClients(message []byte) DeliveryResult {
+	result := DeliveryResult{Target: "ob_clients"}
+	activeConnections.Range(func(key, value interface{}) bool {
+		keyStr := key.(string)
+		// Only broadcast to client connections (app_id starts with "cli_" or legacy "client-")
+		if !strings.HasPrefix(keyStr, "cli_") && !strings.HasPrefix(keyStr, "client-") {
+			return true // Skip agent connections
+		}
+		conns := value.([]*websocket.Conn)
+		result.ConnectionCount += len(conns)
+		for _, c := range conns {
+			if err := safeWrite(c, websocket.TextMessage, message); err != nil {
+				result.FailedWrites++
+				slog.Debug("ws broadcast write error", "err", err)
+				continue
+			}
+			result.DeliveredToConnections++
+		}
+		return true
+	})
+	result.TargetConnected = result.ConnectionCount > 0
+	return result
+}
+
+// BroadcastToAll sends a message to all connected WebSocket clients (both agents and OB).
+func BroadcastToAll(message []byte) DeliveryResult {
+	result := DeliveryResult{Target: "all"}
+	activeConnections.Range(func(key, value interface{}) bool {
+		conns := value.([]*websocket.Conn)
+		result.ConnectionCount += len(conns)
+		for _, c := range conns {
+			if err := safeWrite(c, websocket.TextMessage, message); err != nil {
+				result.FailedWrites++
+				slog.Debug("ws broadcast all write error", "err", err)
+				continue
+			}
+			result.DeliveredToConnections++
+		}
+		return true
+	})
+	result.TargetConnected = result.ConnectionCount > 0
+	return result
+}
+
+// GetAgentAppID retrieves the app_id for a given agent_id or agent_name.
+func GetAgentAppID(agentID string) string {
+	val, ok := agentIDToAppID.Load(agentID)
+	if ok {
+		return val.(string)
+	}
+	if val, ok := agentNameToAppID.Load(agentID); ok {
+		return val.(string)
+	}
+	return ""
+}
+
+// ResolveAgentID resolves an agent name or UUID to the canonical agent_id (UUID).
+// If the input is already a UUID (found in agentIDToAppID), it's returned as-is.
+// If it's a name (found in agentNameToAppID), the corresponding AppIdentity's
+// AgentID (UUID) is returned. Returns empty string if not found.
+func ResolveAgentID(nameOrUUID string) string {
+	// First check if it's already a UUID
+	if _, ok := agentIDToAppID.Load(nameOrUUID); ok {
+		return nameOrUUID
+	}
+	// Try name lookup → app_id → identity → agent_id
+	if val, ok := agentNameToAppID.Load(nameOrUUID); ok {
+		appID := val.(string)
+		if id := appIdentity(appID); id != nil {
+			return id.AgentID
+		}
+	}
+	return ""
+}
+
+// BroadcastToApp sends a message to all WebSocket connections for a given app_id
+func BroadcastToApp(appID string, message []byte) DeliveryResult {
+	result := DeliveryResult{Target: appID}
+	conns, ok := activeConnections.Load(appID)
+	if !ok {
+		slog.Warn("ws broadcast target not connected", "app_id", appID)
+		return result
+	}
+	list := conns.([]*websocket.Conn)
+	result.ConnectionCount = len(list)
+	result.TargetConnected = result.ConnectionCount > 0
+	for _, c := range list {
+		if err := safeWrite(c, websocket.TextMessage, message); err != nil {
+			result.FailedWrites++
+			slog.Warn("ws write error", "app_id", appID, "err", err)
+			continue
+		}
+		result.DeliveredToConnections++
+	}
+	return result
+}
+
+func RecordEventDelivery(eventID, eventKey string, delivered int) {
+	RecordEventDeliveryRouted(eventID, eventKey, delivered, "", "")
+}
+
+func RecordEventDeliveryRouted(eventID, eventKey string, delivered int, targetAppID, route string) {
+	if eventID == "" {
+		return
+	}
+	eventMu.Lock()
+	defer eventMu.Unlock()
+
+	rec := eventDelivery[eventID]
+	if rec == nil {
+		now := time.Now().UTC()
+		rec = &eventDeliveryRecord{
+			EventID:     eventID,
+			EventKey:    eventKey,
+			Consumers:   map[string]string{},
+			TargetAppID: targetAppID,
+			Route:       route,
+			MaxRetries:  3,
+			CreatedAt:   now,
+		}
+		eventDelivery[eventID] = rec
+	}
+	rec.EventKey = eventKey
+	if targetAppID != "" {
+		rec.TargetAppID = targetAppID
+	}
+	if route != "" {
+		rec.Route = route
+	}
+	rec.Delivered = delivered
+	rec.Pending = delivered - rec.Acked - rec.Nacked
+	if rec.Pending < 0 {
+		rec.Pending = 0
+	}
+	rec.LastUpdated = time.Now().UTC()
+}
+
+func StoreEventForReplay(eventID, eventKey string, payload []byte) {
+	if eventID == "" || len(payload) == 0 {
+		return
+	}
+	eventMu.Lock()
+	defer eventMu.Unlock()
+	pruneEventBufferLocked(time.Now().UTC())
+	eventBuffer = append(eventBuffer, bufferedEvent{
+		EventID:  eventID,
+		EventKey: eventKey,
+		Payload:  append([]byte(nil), payload...),
+		StoredAt: time.Now().UTC(),
+	})
+	if len(eventBuffer) > maxBufferedEvents {
+		eventBuffer = eventBuffer[len(eventBuffer)-maxBufferedEvents:]
+	}
+}
+
+func ReplayEventsSince(eventKey, sinceEventID string) []json.RawMessage {
+	eventMu.Lock()
+	defer eventMu.Unlock()
+	pruneEventBufferLocked(time.Now().UTC())
+
+	start := 0
+	if sinceEventID != "" {
+		for i, evt := range eventBuffer {
+			if evt.EventID == sinceEventID {
+				start = i + 1
+				break
+			}
+		}
+	}
+
+	events := make([]json.RawMessage, 0)
+	for _, evt := range eventBuffer[start:] {
+		if eventKey != "" && evt.EventKey != eventKey {
+			continue
+		}
+		events = append(events, append([]byte(nil), evt.Payload...))
+		recordReplayDeliveryLocked(evt.EventID, evt.EventKey)
+	}
+	return events
+}
+
+func pruneEventBufferLocked(now time.Time) {
+	cutoff := now.Add(-eventBufferTTL)
+	keep := eventBuffer[:0]
+	for _, evt := range eventBuffer {
+		if evt.StoredAt.After(cutoff) {
+			keep = append(keep, evt)
+		}
+	}
+	eventBuffer = keep
+}
+
+func recordReplayDeliveryLocked(eventID, eventKey string) {
+	rec := eventDelivery[eventID]
+	if rec == nil {
+		rec = &eventDeliveryRecord{
+			EventID:   eventID,
+			EventKey:  eventKey,
+			Consumers: map[string]string{},
+		}
+		eventDelivery[eventID] = rec
+	}
+	rec.Delivered++
+	rec.Pending = rec.Delivered - rec.Acked - rec.Nacked
+	if rec.Pending < 0 {
+		rec.Pending = 0
+	}
+	rec.LastUpdated = time.Now().UTC()
+}
+
+func EventStatusSnapshot() map[string]interface{} {
+	eventMu.Lock()
+	defer eventMu.Unlock()
+
+	byKey := map[string]*EventKeyStatus{}
+	for _, rec := range eventDelivery {
+		key := rec.EventKey
+		if key == "" {
+			key = "unknown"
+		}
+		status := byKey[key]
+		if status == nil {
+			status = &EventKeyStatus{EventKey: key}
+			byKey[key] = status
+		}
+		status.LastEventID = rec.EventID
+		status.Delivered += rec.Delivered
+		status.Acked += rec.Acked
+		status.Nacked += rec.Nacked
+		status.Pending += rec.Pending
+	}
+
+	events := make([]EventKeyStatus, 0, len(byKey))
+	for _, status := range byKey {
+		events = append(events, *status)
+	}
+	return map[string]interface{}{
+		"status":      "ok",
+		"events":      events,
+		"connections": ConnectionStatusSnapshot(),
+	}
+}
+
+func handleWSControlMessage(consumerID string, raw []byte) {
+	var msg struct {
+		Type         string `json:"type"`
+		EventID      string `json:"event_id"`
+		EventKey     string `json:"event_key"`
+		Status       string `json:"status"`
+		ConnectionID string `json:"connection_id"`
+	}
+	if err := json.Unmarshal(raw, &msg); err != nil {
+		return
+	}
+	if msg.Type == "client.ready" || msg.Type == "agent.ready" {
+		markConnectionReady(msg.ConnectionID, msg.Type)
+		slog.Info("connection ready", "connection_id", msg.ConnectionID, "consumer", consumerID, "type", msg.Type)
+		return
+	}
+	if msg.Type != "event:ack" && msg.Type != "event:nack" {
+		return
+	}
+	if msg.Status == "" {
+		if msg.Type == "event:nack" {
+			msg.Status = "nack"
+		} else {
+			msg.Status = "ack"
+		}
+	}
+	recordEventConsumerStatus(msg.EventID, msg.EventKey, consumerID, msg.Status)
+}
+
+func recordEventConsumerStatus(eventID, eventKey, consumerID, status string) {
+	if eventID == "" || consumerID == "" {
+		return
+	}
+	eventMu.Lock()
+	defer eventMu.Unlock()
+
+	rec := eventDelivery[eventID]
+	if rec == nil {
+		rec = &eventDeliveryRecord{
+			EventID:   eventID,
+			EventKey:  eventKey,
+			Consumers: map[string]string{},
+		}
+		eventDelivery[eventID] = rec
+	}
+	if rec.EventKey == "" {
+		rec.EventKey = eventKey
+	}
+	if prev := rec.Consumers[consumerID]; prev == status {
+		return
+	} else if prev == "ack" {
+		rec.Acked--
+	} else if prev == "nack" {
+		rec.Nacked--
+	}
+
+	rec.Consumers[consumerID] = status
+	if status == "nack" {
+		rec.Nacked++
+	} else {
+		rec.Acked++
+	}
+	rec.Pending = rec.Delivered - rec.Acked - rec.Nacked
+	if rec.Pending < 0 {
+		rec.Pending = 0
+	}
+	rec.LastUpdated = time.Now().UTC()
+	slog.Info("event consumer status", "event_id", eventID, "event_key", rec.EventKey, "consumer", consumerID, "status", status)
+}
+
+func RecordEventConsumerStatus(eventID, eventKey, consumerID, status string) {
+	recordEventConsumerStatus(eventID, eventKey, consumerID, status)
+}
+
+// ── Retry loop (Phase 1.1) ───────────────────────────────────────────
+
+const (
+	retryCheckInterval = 10 * time.Second
+	retryAckTimeout    = 30 * time.Second
+)
+
+func StartRetryLoop(ctx context.Context) {
+	go func() {
+		ticker := time.NewTicker(retryCheckInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				retryUnackedEvents()
+			}
+		}
+	}()
+	slog.Info("retry loop started", "interval", retryCheckInterval, "ack_timeout", retryAckTimeout)
+}
+
+func retryUnackedEvents() {
+	now := time.Now().UTC()
+	eventMu.Lock()
+	var pending []*eventDeliveryRecord
+	for _, rec := range eventDelivery {
+		if rec.Pending > 0 && rec.RetryCount < rec.MaxRetries && now.Sub(rec.LastUpdated) > retryAckTimeout {
+			pending = append(pending, rec)
+		}
+	}
+	eventMu.Unlock()
+
+	for _, rec := range pending {
+		payload := lookupEventPayload(rec.EventID)
+		if payload == nil {
+			slog.Warn("retry: payload expired from buffer", "event_id", rec.EventID)
+			eventMu.Lock()
+			rec.RetryCount = rec.MaxRetries // stop further retries
+			eventMu.Unlock()
+			continue
+		}
+
+		var delivery DeliveryResult
+		switch rec.Route {
+		case "agent_app":
+			if rec.TargetAppID != "" {
+				delivery = BroadcastToApp(rec.TargetAppID, payload)
+			}
+		case "ob_clients":
+			delivery = BroadcastToAllClients(payload)
+		default:
+			slog.Warn("retry: unknown route, skipping", "event_id", rec.EventID, "route", rec.Route)
+			eventMu.Lock()
+			rec.RetryCount = rec.MaxRetries
+			eventMu.Unlock()
+			continue
+		}
+
+		eventMu.Lock()
+		rec.RetryCount++
+		rec.Delivered += delivery.DeliveredToConnections
+		rec.Pending = rec.Delivered - rec.Acked - rec.Nacked
+		if rec.Pending < 0 {
+			rec.Pending = 0
+		}
+		rec.LastUpdated = now
+		eventMu.Unlock()
+
+		slog.Info("retry: re-sent event",
+			"event_id", rec.EventID,
+			"retry", rec.RetryCount,
+			"max", rec.MaxRetries,
+			"route", rec.Route,
+			"delivered", delivery.DeliveredToConnections,
+			"pending", rec.Pending,
+		)
+
+		if rec.RetryCount >= rec.MaxRetries && rec.Pending > 0 {
+			slog.Warn("retry: exhausted retries, message may be lost",
+				"event_id", rec.EventID,
+				"pending", rec.Pending,
+			)
+		}
+	}
+}
+
+func lookupEventPayload(eventID string) json.RawMessage {
+	eventMu.Lock()
+	defer eventMu.Unlock()
+	for _, evt := range eventBuffer {
+		if evt.EventID == eventID {
+			return append(json.RawMessage(nil), evt.Payload...)
+		}
+	}
+	return nil
+}

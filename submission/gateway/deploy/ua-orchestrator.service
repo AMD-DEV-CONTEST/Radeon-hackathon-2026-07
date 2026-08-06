@@ -1,0 +1,19 @@
+[Unit]
+Description=UnionAgents Go Orchestrator
+After=network.target
+# PostgreSQL runs in Docker, not as a systemd unit
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/unionagents-go
+EnvironmentFile=/root/unionagents-go/.env
+ExecStart=/root/unionagents-go/bin/orchestrator
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ua-orchestrator
+
+[Install]
+WantedBy=multi-user.target

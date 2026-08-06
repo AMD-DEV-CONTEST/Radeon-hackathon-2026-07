@@ -1,0 +1,107 @@
+# UAS Agent 标准装备配置
+# 所有注册进入 UAS 的 Agent 必须按此配置加载技能和工具
+# version: 1.0 — 2026-06-04
+
+# ─── 全局标配（所有 Agent 不论角色都必须加载）───────────────────────
+global:
+  skills:
+    - path: skills/iron-law-standard/SKILL.md
+      description: 铁律工作方法 — 接单前/执行中/完成后的标准动作
+      required: true
+
+  mcp_servers:
+    rag_service:
+      description: 反向 RAG 经验案例召回，接单前必查
+      base_url: http://127.0.0.1:8010
+      endpoints:
+        search: POST /cases/search
+        create: POST /cases
+      required: true
+
+    boundary:
+      description: 巡检服务，任务包发出前校验合规性
+      base_url: http://127.0.0.1:8020
+      endpoints:
+        check: POST /boundary/check
+      required: true
+
+  constraints:
+    max_turns_default: 60
+    max_turns_complex: 80
+    task_max_hours: 1.0
+    require_context_before_start: true
+    require_acceptance_check: true
+
+# ─── 角色专属配置 ─────────────────────────────────────────────────────
+roles:
+
+  leader:
+    description: 会议室 Leader，负责拆任务、协调、回合决策
+    additional_skills:
+      - path: skills/unionagents-hub/SKILL.md
+        description: Hub 协调器 — 任务拆解与分发
+    startup_actions:
+      - read_context_snapshot   # 强制读全局快照再开始协调
+      - read_open_tasks         # 读所有未完成任务
+      - read_recent_events      # 读最近 20 条事件摘要
+    permissions:
+      - create_tasks
+      - assign_tasks
+      - close_round
+      - needs_user_insight
+
+  implementer:
+    description: 实际执行任务的 Agent（CC / Codex / SCC）
+    startup_actions:
+      - read_task_context       # 读任务 context 字段
+      - read_prior_attempts     # 读历史尝试记录
+    permissions:
+      - execute_task
+      - write_task_progress
+      - needs_user_insight
+
+  reviewer:
+    description: 审查代码或结果的 Agent
+    startup_actions:
+      - read_task_context
+    permissions:
+      - execute_task
+      - write_review_output
+
+  standby:
+    description: 热备 Agent，等待随时接替
+    startup_actions: []
+    permissions:
+      - accept_reassignment
+
+# ─── Agent 类型到角色的默认映射 ───────────────────────────────────────
+agent_type_defaults:
+  claude_code:
+    preferred_roles: [leader, implementer, reviewer]
+    max_concurrency: 1
+    strong_at: [code_review, architecture, documentation, bug_fix]
+
+  codex:
+    preferred_roles: [implementer, reviewer]
+    max_concurrency: 2
+    strong_at: [multi_file_refactor, test_writing, implementation]
+
+  reasonix:
+    preferred_roles: [leader, implementer]
+    max_concurrency: 2
+    strong_at: [file_editing, bash_commands, implementation]
+
+  generic:
+    preferred_roles: [standby, observer]
+    max_concurrency: 3
+    strong_at: [general]
+
+# ─── 冗余热备策略 ─────────────────────────────────────────────────────
+redundancy:
+  active_slots: 3          # 同时参与任务的最大 Agent 数
+  standby_slots: 2         # 热备数量（随时可顶上）
+  cost_guard:
+    claude_code: 1          # 贵，限 1 个并发
+    codex: 1
+    reasonix: 2
+    generic: 5

@@ -1,0 +1,18 @@
+gate_id: ILS-G004
+name: Conflict Gate
+phase: dispatch
+blocking_condition: "task conflicts with in-progress task or resource contention detected"
+pass_condition: "no resource conflict with concurrent tasks; dependency chain intact"
+failure_code: ILS-F004
+required_evidence:
+  - type: runtime_observation
+    description: "concurrent task list and resource allocation snapshot"
+override_policy:
+  authorized_by:
+    - human_leader
+  requires:
+    - explicit_session_instruction
+  audit_required: true
+comment_zh: >
+  派发阶段必须检查资源冲突。防止多个 agent 同时修改同一文件或服务，
+  导致互相覆盖。
