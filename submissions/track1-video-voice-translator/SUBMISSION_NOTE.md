@@ -17,7 +17,7 @@ The repository is prepared to include the following materials:
 1. **Project Source Code**
    - Canonical repository: <https://github.com/icuic/video-voice-translator>
    - Submission branch: `repro-bd6d3e22`
-   - Evaluated commit: `53395b3c5036cd325917c958ed664a661f809138`
+   - Evaluated commit: `ad5ed6c`
    - Repository README: <https://github.com/icuic/video-voice-translator/blob/repro-bd6d3e22/README.md>
    - Supporting documentation under this submission folder and the source repository `docs/`
 
@@ -26,7 +26,9 @@ The repository is prepared to include the following materials:
    - Source markdown: `submissions/track1-video-voice-translator/PROJECT_PROFILE.md`
 
 3. **Demo Video**
-   - Demo artifact: <https://github.com/icuic/video-voice-translator/blob/53395b3c5036cd325917c958ed664a661f809138/data/demo/demo.mp4>
+   - Bundled artifact (PR-local): `submissions/track1-video-voice-translator/demo.mp4`
+   - Canonical repository mirror: <https://github.com/icuic/video-voice-translator/blob/repro-bd6d3e22/data/demo/demo.mp4>
+   - Guide: `submissions/track1-video-voice-translator/DEMO_VIDEO.md`
 
 4. **Supplementary Material**
    - Poster artifact: `submissions/track1-video-voice-translator/track1-poster.svg`
@@ -45,9 +47,13 @@ Video Voice Translator is a multimodal content creation tool that:
 
 ### Option A: Watch the demo first
 
-Open:
+Play the bundled video inside this submission folder:
 
-- <https://github.com/icuic/video-voice-translator/blob/53395b3c5036cd325917c958ed664a661f809138/data/demo/demo.mp4>
+- `submissions/track1-video-voice-translator/demo.mp4`
+
+Or open the canonical repository mirror:
+
+- <https://github.com/icuic/video-voice-translator/blob/repro-bd6d3e22/data/demo/demo.mp4>
 
 ### Option B: Reproduce locally
 
