@@ -31,6 +31,17 @@ Output is written to `./radeon-fix-out/<repo>-<timestamp>/`:
 troubleshooting. A short English demo video, its replay page, and the
 recorded session assets live in [`demo/`](demo/README.md).
 
+Exit codes: `0` verified patch produced; `1` no patch produced; `2`
+configuration, repository, API, or structured-output error; `3` patch
+produced but the deterministic verifier rejected it, or the optional
+`--final-test-cmd` failed. The verifier (V1R1) is a deterministic
+syntax/structure gate (`git apply --check`, `git diff --check`,
+`py_compile`) and does not run tests; pass
+`--final-test-cmd "python -m pytest -q"` to record auditable test evidence
+in `report.md` and `run.json`. Tool commands run in a command-guarded local
+environment (not an OS-level sandbox); a Docker environment is available in
+the benchmark runtime.
+
 ## Architecture
 
 ```text
@@ -67,16 +78,22 @@ models.
 ## Setup
 
 ```bash
-python3.11 -m venv .venv
-. .venv/bin/activate
-pip install -e '.[dev]'
+./scripts/setup_product.sh
 ```
 
-Optional context and comparator dependencies are pinned by:
+`setup_product.sh` creates the main venv, installs the project, clones the
+pinned Aider commit, creates `benchmarks/aider/.venv-track2` with Aider's
+Repo Map dependencies, runs a Repo Map smoke test, and checks the local vLLM
+endpoint. Optional benchmark and comparator dependencies are pinned by:
 
 ```bash
 ./scripts/bootstrap_benchmarks.sh
 ```
+
+`pip install -e '.[dev]'` remains available for a minimal install, but the
+Repo Map product path requires `setup_product.sh`; without it the run
+continues with `context_available=false` and a warning (or fails fast with
+`--require-context`).
 
 API credentials are read only from environment variables:
 
@@ -132,8 +149,10 @@ auditable before/after comparison. The fixed SWE-bench Verified confirmation
 has frozen patches and a completed seed-0 official Docker evaluation: both
 harnesses resolved 1/20 on this fixed set, while RepoMap Final produced 16/20
 patches versus 1/20 for the original runner. This is a small confirmation, not
-a claim of statistical significance; the first-ten seed-1 official stability
-evaluation remains pending. See
+a claim of statistical significance, and it is not a correctness-improvement
+claim: Repo Map increased patch completion and applicability, while Full
+Resolve remained unchanged on this small set. The first-ten seed-1 official
+stability evaluation remains pending. See
 [`results/amd-cloud-verified-confirmation-20260805.md`](results/amd-cloud-verified-confirmation-20260805.md)
 for the exact denominator and evaluator caveats.
 
@@ -159,23 +178,22 @@ NousResearch Hermes Agent runner; see [`NOTICE.md`](NOTICE.md).
 
 ## Hackathon submission package (Track 2)
 
-This folder is the Track 2 submission for the AMD AI DevMaster Hackathon
-2026. The required materials are:
+This repository is the Track 2 submission for the AMD AI DevMaster
+Hackathon 2026. Required materials:
 
-- `Project-Specification.pdf` - project specification: application
-  scenarios, agent architecture diagram, core capabilities, model and local
-  deployment plan, and AMD Radeon / ROCm inference-speed optimization.
+- `Project-Specification.pdf` - application scenarios, agent architecture
+  diagram, core capabilities, model and local deployment plan, and AMD
+  Radeon / ROCm inference-speed optimization.
 - `Poster.pdf` / `Poster.png` - supplementary poster (16:9).
-- `demo/radeon-fix-demo.mp4` - 3:38 English demo video showing a real
-  `radeon-fix` run on an AMD Radeon gfx1100 instance, including the
-  terminal code-generation panel and GPU results.
+- `demo/radeon-fix-demo.mp4` - 3:38 English demo video of a real run on an
+  AMD Radeon gfx1100 instance (terminal + generated-code panel + results).
 - This README plus `docs/` - environment configuration, startup guide, and
-  dependency list.
+  dependency list. `JUDGE-START-HERE.md` is the one-page entry point.
 
 Quick start (after the local vLLM server is running):
 
 ```bash
-pip install -e .
+./scripts/setup_product.sh
 export TRACK2_BASE_URL=http://127.0.0.1:8000/v1
 export TRACK2_API_KEY=local-vllm
 export TRACK2_MODEL=Qwen3-14B-BF16

@@ -177,3 +177,109 @@ def test_no_patch_maps_to_exit_1(git_repo, tmp_path, monkeypatch):
         )
         == 1
     )
+
+
+def test_rejected_patch_maps_to_exit_3(git_repo, tmp_path, monkeypatch):
+    class RejectRunner(StubRunner):
+        def run_task(self, issue: str):
+            result = super().run_task(issue)
+            result["metadata"]["verifier"]["verdict"] = "reject"
+            return result
+
+    monkeypatch.setattr(radeon_fix, "MiniSWERunner", RejectRunner)
+    output = tmp_path / "out-reject"
+    assert (
+        radeon_fix.main(
+            ["--repo", str(git_repo), "--issue", "fix", "--output-dir", str(output)]
+        )
+        == 3
+    )
+    run_info = json.loads((output / "run.json").read_text(encoding="utf-8"))
+    assert run_info["exit_code"] == 3
+    assert run_info["verifier"]["verdict"] == "reject"
+
+
+def test_final_test_failure_maps_to_exit_3(git_repo, tmp_path):
+    output = tmp_path / "out-final-fail"
+    assert (
+        radeon_fix.main(
+            [
+                "--repo",
+                str(git_repo),
+                "--issue",
+                "fix",
+                "--output-dir",
+                str(output),
+                "--final-test-cmd",
+                "exit 7",
+            ]
+        )
+        == 3
+    )
+    run_info = json.loads((output / "run.json").read_text(encoding="utf-8"))
+    assert run_info["final_test"]["passed"] is False
+    assert run_info["final_test"]["exit_code"] == 7
+    report = (output / "report.md").read_text(encoding="utf-8")
+    assert "## Final check" in report
+
+
+def test_final_test_success_keeps_exit_0(git_repo, tmp_path):
+    output = tmp_path / "out-final-ok"
+    assert (
+        radeon_fix.main(
+            [
+                "--repo",
+                str(git_repo),
+                "--issue",
+                "fix",
+                "--output-dir",
+                str(output),
+                "--final-test-cmd",
+                "true",
+            ]
+        )
+        == 0
+    )
+    run_info = json.loads((output / "run.json").read_text(encoding="utf-8"))
+    assert run_info["final_test"]["passed"] is True
+
+
+def test_require_context_fails_when_repomap_unavailable(git_repo, tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(
+        radeon_fix,
+        "extract_context",
+        lambda *a, **k: ("", {"available": False, "chars": 0}),
+    )
+    assert (
+        radeon_fix.main(
+            [
+                "--repo",
+                str(git_repo),
+                "--issue",
+                "fix",
+                "--output-dir",
+                str(tmp_path / "out-ctx"),
+                "--require-context",
+            ]
+        )
+        == 2
+    )
+    assert "require-context" in capsys.readouterr().err
+
+
+def test_missing_repomap_warns_but_continues(git_repo, tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(
+        radeon_fix,
+        "extract_context",
+        lambda *a, **k: ("", {"available": False, "chars": 0}),
+    )
+    assert (
+        radeon_fix.main(
+            ["--repo", str(git_repo), "--issue", "fix", "--output-dir", str(tmp_path / "out-warn")]
+        )
+        == 0
+    )
+    err = capsys.readouterr().err
+    assert "WARNING: Aider Repo Map unavailable" in err
+    run_info = json.loads((tmp_path / "out-warn" / "run.json").read_text(encoding="utf-8"))
+    assert run_info["context_available"] is False

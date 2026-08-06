@@ -39,6 +39,9 @@ DEFAULT_SEED = 0
 EXIT_OK = 0
 EXIT_NO_PATCH = 1
 EXIT_ERROR = 2
+EXIT_UNVERIFIED = 3
+
+_SECRET_MARKERS = ("API_KEY", "TOKEN", "SECRET", "PASSWORD", "CREDENTIAL")
 
 
 class CliError(Exception):
@@ -113,6 +116,55 @@ def _read_issue(args: argparse.Namespace) -> str:
         except OSError as exc:
             raise CliError(f"could not read --issue-file: {exc}") from exc
     raise CliError("missing issue: pass --issue TEXT or --issue-file FILE")
+
+
+def _safe_env() -> dict[str, str]:
+    return {
+        key: value
+        for key, value in os.environ.items()
+        if not any(marker in key.upper() for marker in _SECRET_MARKERS)
+    }
+
+
+def _run_final_test(workspace: Path, command: str, timeout: int = 300) -> dict[str, Any] | None:
+    """Run an auditable post-agent test command in the temporary workspace."""
+    if not command or not command.strip():
+        return None
+    print(f"\n🧪 final check: {command}")
+    returncode = 124
+    output = ""
+    try:
+        result = subprocess.run(
+            ["bash", "-lc", command],
+            cwd=str(workspace.resolve()),
+            env=_safe_env(),
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=timeout,
+            check=False,
+        )
+        returncode = result.returncode
+        output = result.stdout or ""
+    except subprocess.TimeoutExpired as exc:
+        output = exc.stdout or ""
+        if isinstance(output, bytes):
+            output = output.decode("utf-8", errors="replace")
+    tail = output.strip().splitlines()[-40:]
+    if tail:
+        print("\n".join(tail))
+    else:
+        print("(no output)")
+    if returncode == 0:
+        print("✓ Final check passed")
+    else:
+        print(f"✗ Final check failed (exit {returncode})")
+    return {
+        "command": command,
+        "exit_code": returncode,
+        "passed": returncode == 0,
+        "output_tail": "\n".join(tail),
+    }
 
 
 def _make_context_refresh(
@@ -223,7 +275,9 @@ def _metadata_summary(metadata: dict[str, Any], api_calls: int) -> list[str]:
         f"- Replace attempts: {int(metadata.get('replace_attempts', 0))}",
         f"- Replace successes: {int(metadata.get('replace_successes', 0))}",
         f"- Patch apply results: {metadata.get('patch_apply_results', [])}",
-        f"- Verifier verdict: {verifier.get('verdict', 'not run')}",
+        f"- Verifier verdict: {verifier.get('verdict', 'not run')} "
+        f"(mode {verifier.get('mode', 'V1R1')}; deterministic syntax/structure "
+        "gates, does not run tests)",
         f"- Total tokens: {int(usage.get('total_tokens', 0) or 0)}",
         f"- Wall time: {float(metadata.get('wall_time_ms', 0)) / 1000:.1f} s",
         f"- Context provider: {metadata.get('context_provider', 'unknown')} "
@@ -242,6 +296,7 @@ def _render_report(
     context_info: dict[str, Any],
     patch: str,
     gpu_metrics: dict[str, Any],
+    final_test: dict[str, Any] | None,
     output_dir: Path,
 ) -> str:
     metadata = raw.get("metadata", {})
@@ -287,10 +342,30 @@ def _render_report(
             "p95_latency_ms": "P95 latency",
             "vram_gb": "VRAM",
             "gpu_utilization_percent": "GPU utilization",
+            "gpu_arch": "GPU arch",
+            "model": "Model",
+            "kv_cache": "KV cache",
+            "ttft_p50_ms": "TTFT p50",
+            "decode_tokens_per_second": "Decode",
         }
         for key, label in labels.items():
             if key in gpu_metrics:
                 lines.append(f"- {label}: {gpu_metrics[key]}")
+    if final_test is not None:
+        lines.extend(
+            [
+                "",
+                "## Final check",
+                "",
+                f"- Command: `{final_test['command']}`",
+                f"- Exit code: {final_test['exit_code']}",
+                f"- Passed: {final_test['passed']}",
+                "",
+                "```text",
+                final_test.get("output_tail") or "(no output)",
+                "```",
+            ]
+        )
     lines.extend(
         [
             "",
@@ -323,6 +398,10 @@ def run_product(args: argparse.Namespace) -> int:
         raise CliError("missing --repo PATH")
     issue = _read_issue(args)
     base_url, api_key, model = _resolve_endpoint(args)
+    print("Environment: local command-guarded execution (not an OS-level sandbox)")
+    print("Verifier: V1R1 deterministic syntax/structure gates (does not run tests)")
+    if args.final_test_cmd:
+        print(f"Final check: {args.final_test_cmd}")
     if not repo.is_dir() or not (repo / ".git").is_dir():
         raise CliError(f"--repo is not a git repository: {repo}")
 
@@ -354,8 +433,20 @@ def run_product(args: argparse.Namespace) -> int:
             seed=seed,
             verbose=bool(args.verbose),
         )
+        initial_available = bool((context_info.get("initial") or {}).get("available"))
+        if not initial_available:
+            print(
+                "WARNING: Aider Repo Map unavailable; continuing with degraded "
+                "context (context_available=false).",
+                file=sys.stderr,
+            )
+            if args.require_context:
+                raise CliError(
+                    "--require-context is set but the Aider Repo Map provider is unavailable"
+                )
         metadata = raw.get("metadata", {})
         patch = str(metadata.get("final_patch") or "")
+        final_test = _run_final_test(workspace, str(args.final_test_cmd or ""))
         gpu_metrics = read_gpu_metrics()
 
         (output_dir / "patch.diff").write_text(patch, encoding="utf-8")
@@ -367,6 +458,20 @@ def run_product(args: argparse.Namespace) -> int:
             json.dumps(gpu_metrics, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
+        verifier_info = metadata.get("verifier") or {}
+        verified = (
+            bool(patch.strip())
+            and raw.get("completed") is True
+            and verifier_info.get("verdict") == "accept"
+        )
+        if not patch.strip():
+            exit_code = EXIT_NO_PATCH
+        elif not verified:
+            exit_code = EXIT_UNVERIFIED
+        elif final_test is not None and not final_test.get("passed"):
+            exit_code = EXIT_UNVERIFIED
+        else:
+            exit_code = EXIT_OK
         run_info = {
             "product": "radeon-fix",
             "version": VERSION,
@@ -385,7 +490,13 @@ def run_product(args: argparse.Namespace) -> int:
             "started_at": _timestamp(),
             "completed": raw.get("completed", False),
             "context_available": bool((context_info.get("initial") or {}).get("available")),
-            "exit_code": EXIT_OK if patch.strip() else EXIT_NO_PATCH,
+            "exit_code": exit_code,
+            "verifier": {
+                "mode": verifier_info.get("mode", "V1R1"),
+                "verdict": verifier_info.get("verdict", "not run"),
+                "note": "deterministic syntax/structure gates; does not run tests",
+            },
+            "final_test": final_test,
         }
         (output_dir / "run.json").write_text(
             json.dumps(run_info, ensure_ascii=False, indent=2),
@@ -400,15 +511,19 @@ def run_product(args: argparse.Namespace) -> int:
             context_info=context_info,
             patch=patch,
             gpu_metrics=gpu_metrics,
+            final_test=final_test,
             output_dir=output_dir,
         )
         (output_dir / "report.md").write_text(report, encoding="utf-8")
 
         print(f"\nArtifacts written to: {output_dir}")
-        print(
-            "Patch produced (exit 0)" if patch.strip() else "No patch produced (exit 1)"
-        )
-        return EXIT_OK if patch.strip() else EXIT_NO_PATCH
+        if exit_code == EXIT_OK:
+            print("Patch produced and verified (exit 0)")
+        elif exit_code == EXIT_NO_PATCH:
+            print("No patch produced (exit 1)")
+        else:
+            print("Patch produced but verification/final check failed (exit 3)")
+        return exit_code
     finally:
         if workspace is not None:
             shutil.rmtree(workspace.parent, ignore_errors=True)
@@ -431,6 +546,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--max-wall-time", type=int, default=DEFAULT_MAX_WALL_TIME_SECONDS)
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--output-dir", help="directory for patch.diff, report.md, trajectory.json, run.json")
+    parser.add_argument(
+        "--final-test-cmd",
+        help="optional shell command run after the agent in the temporary workspace "
+        "(e.g. 'python -m pytest -q'); its failure maps to exit code 3",
+    )
+    parser.add_argument(
+        "--require-context",
+        action="store_true",
+        help="fail fast (exit 2) when the Aider Repo Map provider is unavailable",
+    )
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--version", action="store_true", help="print version and exit")
     return parser.parse_args(argv)

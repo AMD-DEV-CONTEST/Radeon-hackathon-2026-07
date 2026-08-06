@@ -10,8 +10,21 @@ the right-hand panel shows the code it generates as it is written.
 The task is the `examples/demo_project` fixture ("pycalc"): three bugs across
 two modules (`mode` tie-breaking, `normalize` min-max scaling, and
 `summary_text` truncation), covered by seven failing tests. The agent fixes
-all three and the verifier accepts; applying the frozen patch makes all seven
-tests pass.
+all three and the V1R1 verifier accepts the patch (syntax/structure gates
+only; it does not run tests). The recorded session predates the
+`--final-test-cmd` flag, so the video captions state this honestly: the patch
+is generated and syntax-verified, and the frozen patch was independently
+evaluated against the repository test suite with `python -m pytest -q`.
+
+Independent test evidence:
+
+- `demo-assets/pytest-output.txt` - the frozen patch applied to a clean
+  checkout of `examples/demo_project`, then `python -m pytest -q`:
+  `7 passed`.
+
+New sessions should run `radeon-fix ... --final-test-cmd "python -m pytest -q"`
+so the real test command and its `7 passed` output appear in the terminal and
+are recorded in `report.md` / `run.json` under `final_test`.
 
 ## Assets
 
@@ -19,6 +32,8 @@ tests pass.
   terminal session recorded on the AMD instance with `script --timing`.
 - `demo-assets/trajectory.json` — full agent trajectory; its action envelopes
   drive the generated-code panel.
+- `demo-assets/pytest-output.txt` — real independent pytest evaluation of the
+  frozen patch (7 passed).
 - `demo-assets/out/` — artifacts from that run: `patch.diff`, `report.md`,
   `run.json`, `gpu.json`.
 - `replay.template.html` — the 1920×1080 replay page (terminal + generated-code
@@ -56,6 +71,7 @@ script -q --timing=demo.timing -c "env TRACK2_BASE_URL=http://127.0.0.1:8000/v1 
   first five normalized values instead of all of them. Fix all three so every \
   test in tests/ passes.\" \
   --output-dir /root/radeon-fix-demo2/out \
+  --final-test-cmd \"python -m pytest -q\" \
   --max-turns 16 --max-tool-calls 40 --max-wall-time 900" demo-session.txt
 ```
 

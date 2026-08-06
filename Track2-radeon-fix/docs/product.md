@@ -16,6 +16,13 @@ export TRACK2_MODEL=Qwen3-14B-BF16
 radeon-fix --repo /path/to/repo --issue "Describe the bug you want fixed"
 ```
 
+For auditable test evidence, add a final check that runs after the agent:
+
+```bash
+radeon-fix --repo /path/to/repo --issue "Describe the bug" \
+  --final-test-cmd "python -m pytest -q"
+```
+
 Artifacts are written to `./radeon-fix-out/<repo>-<timestamp>/`:
 
 - `patch.diff` — the unified diff to review and apply.
@@ -24,6 +31,8 @@ Artifacts are written to `./radeon-fix-out/<repo>-<timestamp>/`:
 - `trajectory.json` — the full agent trajectory.
 - `run.json` — the frozen run configuration.
 - `gpu.json` — a `rocm-smi` snapshot when running on AMD hardware.
+- `report.md` and `run.json` also include a `final_test` block when
+  `--final-test-cmd` is used (command, exit code, passed, output tail).
 
 ## Product configuration
 
@@ -35,6 +44,12 @@ Every run uses the validated product cell:
 - J3 structured actions via vLLM/xgrammar;
 - Edit V2 exact-replace protocol for existing single-file edits;
 - V1R1 deterministic verifier with at most one evidence-guided repair.
+
+The verifier (V1R1) runs deterministic gates only: patch apply
+(`git apply --check`), `git diff --check`, presence of changes, and
+`py_compile` for changed Python files. It does not execute tests. Test
+evidence comes from the optional `--final-test-cmd`, which is recorded
+separately from the verifier verdict.
 
 The repository is cloned into a temporary workspace before the agent runs.
 The original repository is never modified. The patch can be applied later
@@ -57,14 +72,29 @@ radeon-fix --repo <path> --issue-file <file> [options]
 --max-tool-calls N     tool call budget (default 30)
 --max-wall-time N      wall-clock budget in seconds (default 900)
 --seed N               sampling seed (default 0)
+--final-test-cmd CMD   optional command run after the agent in the temporary
+                       workspace (e.g. "python -m pytest -q"); failure maps
+                       to exit 3
+--require-context      fail fast (exit 2) if the Aider Repo Map provider is
+                       unavailable
 --output-dir <dir>     artifact directory
 --verbose              verbose runner logging
 --version              print version
 ```
 
-Exit codes: `0` non-empty patch produced; `1` the agent ran but produced no
-patch; `2` invalid arguments, missing endpoint, non-git repository, or an
-infrastructure/API failure.
+Exit codes: `0` verified patch produced (verifier accepted, and the final
+check passed when configured); `1` the agent ran but produced no patch; `2`
+invalid arguments, missing endpoint, non-git repository, missing required
+context, or an infrastructure/API failure; `3` a non-empty patch was produced
+but the verifier rejected it, or the configured final check failed.
+
+## Execution boundary
+
+`radeon-fix` clones the repository into a temporary workspace and runs tool
+commands with a secret-stripped environment and command guards for
+network/package-install and absolute-path commands. This is command-guarded
+local execution, not an OS-level sandbox. The benchmark runtime also exposes
+a Docker environment (`--agent-env docker`) for stronger isolation.
 
 ## AMD Radeon deployment
 
@@ -77,6 +107,8 @@ runtime is documented in [`amd-cloud-deployment.md`](amd-cloud-deployment.md):
 
 The launcher refuses to start unless the expected `gfx1100` device and BF16
 support are present. The report includes `rocm-smi` metrics when available.
+`gpu.json` also records the model, KV-cache profile, ROCm/vLLM versions, and
+measured TTFT/decode values (from the environment or `configs/gpu_probe.json`).
 
 ## Troubleshooting
 
@@ -87,6 +119,8 @@ support are present. The report includes `rocm-smi` metrics when available.
   substitute.
 - **Repo Map unavailable**: Aider's `benchmarks/aider/.venv-track2` is used
   for context extraction. If it is missing, the run continues with a marked
-  fallback and `context_available=false` is recorded.
+  fallback, a visible warning is printed, and `context_available=false` is
+  recorded; pass `--require-context` to fail instead. Run
+  `scripts/setup_product.sh` to install the Repo Map path reproducibly.
 - **`not a git repository`**: pass a path containing a `.git` directory; the
   CLI clones it into a temporary workspace.

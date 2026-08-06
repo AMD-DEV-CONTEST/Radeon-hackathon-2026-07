@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from track2_demo import choose_result, public_task, render_dashboard
+from track2_demo import choose_result, public_task, read_gpu_metrics, render_dashboard
 
 
 def test_public_task_rejects_evaluator_fields():
@@ -55,3 +55,26 @@ def test_dashboard_shows_public_evidence_without_hidden_test_ids():
     assert "Radeon" in rendered
     assert "42 ms" in rendered
     assert "secret" not in rendered
+
+
+def test_read_gpu_metrics_falls_back_without_rocm_smi(monkeypatch):
+    def _raise(*args, **kwargs):
+        raise FileNotFoundError("rocm-smi not available")
+
+    monkeypatch.setattr("track2_demo.subprocess.run", _raise)
+    monkeypatch.setenv("TRACK2_TTFT_P50_MS", "99.5")
+    monkeypatch.setenv("TRACK2_DECODE_TOK_S", "27.1")
+    metrics = read_gpu_metrics()
+    assert metrics["model"] == "Qwen3-14B-BF16"
+    assert metrics["kv_cache"] == "int8_per_token_head"
+    assert metrics["ttft_p50_ms"] == 99.5
+    assert metrics["decode_tokens_per_second"] == 27.1
+
+
+def test_read_gpu_metrics_uses_config_fallback(monkeypatch):
+    monkeypatch.setattr("track2_demo.subprocess.run", lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError()))
+    monkeypatch.delenv("TRACK2_TTFT_P50_MS", raising=False)
+    monkeypatch.delenv("TRACK2_DECODE_TOK_S", raising=False)
+    metrics = read_gpu_metrics()
+    assert metrics.get("ttft_p50_ms") == 103.97
+    assert metrics.get("decode_tokens_per_second") == 25.66

@@ -4,55 +4,118 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
 
 GPU_METRIC_LABELS = {
     "gpu_model": "GPU",
+    "gpu_arch": "GPU arch",
     "rocm_version": "ROCm",
     "vllm_version": "vLLM",
+    "model": "Model",
+    "kv_cache": "KV cache",
     "ttft_ms": "TTFT",
+    "ttft_p50_ms": "TTFT p50",
+    "ttft_p95_ms": "TTFT p95",
     "tokens_per_second": "Tokens/s",
+    "decode_tokens_per_second": "Decode",
     "p50_latency_ms": "P50 latency",
     "p95_latency_ms": "P95 latency",
     "vram_gb": "VRAM",
     "gpu_utilization_percent": "GPU utilization",
 }
 
+_GPU_PROBE_JSON = Path(__file__).resolve().parent / "configs" / "gpu_probe.json"
 
-def read_gpu_metrics() -> dict[str, Any]:
-    """Read a small, best-effort ROCm snapshot for the live demo."""
+
+def _sh(cmd: list[str], timeout: int = 10) -> str:
     try:
         result = subprocess.run(
-            ["rocm-smi", "--showproductname", "--showuse", "--showmeminfo", "vram", "--json"],
+            cmd,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            timeout=10,
+            timeout=timeout,
             check=False,
         )
-        raw = result.stdout
+        return result.stdout or ""
+    except (FileNotFoundError, subprocess.SubprocessError):
+        return ""
+
+
+def _probe_value(env_name: str, key: str) -> Any:
+    """Read a measured inference value from the environment or the config fallback."""
+    env_value = os.getenv(env_name)
+    if env_value is not None:
+        try:
+            return float(env_value)
+        except ValueError:
+            return env_value
+    if _GPU_PROBE_JSON.exists():
+        try:
+            return json.loads(_GPU_PROBE_JSON.read_text(encoding="utf-8")).get(key)
+        except (OSError, json.JSONDecodeError):
+            return None
+    return None
+
+
+def read_gpu_metrics() -> dict[str, Any]:
+    """Read a small, best-effort ROCm snapshot for the live demo."""
+    metrics: dict[str, Any] = {}
+    raw = _sh(
+        ["rocm-smi", "--showproductname", "--showuse", "--showmeminfo", "vram", "--json"]
+    )
+    if raw:
         try:
             decoded = json.loads(raw)
             device = next(iter(decoded.values())) if isinstance(decoded, dict) else {}
-            return {
-                "gpu_model": device.get("Card series", device.get("Card model", "AMD Radeon")),
-                "gpu_utilization_percent": device.get("GPU use (%)"),
-                "vram_gb": round(float(device.get("VRAM Total Memory (B)", 0)) / 1e9, 2)
-                if device.get("VRAM Total Memory (B)") else None,
-            }
+            metrics["gpu_model"] = (
+                device.get("Card series") or device.get("Card model") or "AMD Radeon"
+            )
+            metrics["gpu_arch"] = device.get("Card model") or device.get("Marketing Name")
+            metrics["gpu_utilization_percent"] = device.get("GPU use (%)")
+            total = device.get("VRAM Total Memory (B)")
+            if total:
+                metrics["vram_gb"] = round(float(total) / 1e9, 2)
         except (json.JSONDecodeError, TypeError, ValueError):
-            model = re.search(r"Card Model:\s+(.+)", raw)
-            use = re.search(r"GPU use \(%\):\s*(\d+)", raw)
-            return {
-                "gpu_model": model.group(1).strip() if model else "AMD Radeon",
-                "gpu_utilization_percent": int(use.group(1)) if use else None,
-            }
-    except (FileNotFoundError, subprocess.SubprocessError):
-        return {}
+            metrics = {}
+    if not metrics:
+        text = _sh(["rocm-smi", "--showproductname", "--showuse"])
+        model = re.search(r"Card Model:\s+(.+)", text)
+        use = re.search(r"GPU use \(%\):\s*(\d+)", text)
+        series = re.search(r"Card series:\s+(.+)", text)
+        if model:
+            metrics["gpu_model"] = model.group(1).strip()
+        if series:
+            metrics["gpu_arch"] = series.group(1).strip()
+        if use:
+            metrics["gpu_utilization_percent"] = int(use.group(1))
+
+    version_text = _sh(["rocm-smi", "--showversion"])
+    rocm = re.search(r"ROCm Version:\s*([0-9][^\s]*)", version_text)
+    if rocm:
+        metrics["rocm_version"] = rocm.group(1)
+    pip_out = _sh([sys.executable, "-m", "pip", "show", "vllm"])
+    if not pip_out:
+        pip_out = _sh(["pip", "show", "vllm"])
+    vllm = re.search(r"^Version:\s*(.+)$", pip_out, re.MULTILINE)
+    if vllm:
+        metrics["vllm_version"] = vllm.group(1).strip()
+
+    metrics["model"] = os.getenv("TRACK2_MODEL") or "Qwen3-14B-BF16"
+    metrics["kv_cache"] = "int8_per_token_head"
+    ttft = _probe_value("TRACK2_TTFT_P50_MS", "ttft_p50_ms")
+    decode = _probe_value("TRACK2_DECODE_TOK_S", "decode_tokens_per_second")
+    if ttft is not None:
+        metrics["ttft_p50_ms"] = ttft
+    if decode is not None:
+        metrics["decode_tokens_per_second"] = decode
+    return metrics
 
 
 def load_json(path: Path) -> Any:
