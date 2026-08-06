@@ -1,4 +1,4 @@
-# AI Werewolf Game
+# Werewolf Game
 
 An AI-powered Werewolf social game built with Python, Streamlit, LangChain, LangGraph, RAG, and local LLM inference.
 
@@ -23,13 +23,17 @@ The application supports AI-controlled villagers and werewolves, multi-agent dis
 
 ## Source Code
 
-### You can find the source code at https://github.com/JimBeam2019/werewolf-game
+Source code link: https://github.com/JimBeam2019/werewolf-game
+
+## Demo Video
+
+Demo Video link: [submission/demo-video/Werewolf Game.mp4](https://github.com/JimBeam2019/Radeon-hackathon-2026-07/blob/main/submission/demo-video/Werewolf%20Game.mp4)
 
 ## Team Details
 
 - Team Name: **Coffee & Code**
 - Team member: Jinbin Liang (Team lead/Deverloper/Researcher)
-- Volunteer Contributer: David Coronel (Coder)
+- Volunteer Contributor: David Coronel (Coder)
 
 ## Project Architecture
 
