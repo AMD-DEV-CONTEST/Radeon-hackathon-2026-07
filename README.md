@@ -1,4 +1,4 @@
-# Autonomous Codebase Architect: AI Agent with vLLM on AMD ROCm
+# Autonomous Codebase Architect: Agentic Repo Analysis Powered by AMD ROCm
 
 An autonomous codebase analysis agent powered by a LangGraph ReAct loop and Chroma RAG, running heavily optimized quantized LLM inference via vLLM on AMD Radeon GPUs.
 
