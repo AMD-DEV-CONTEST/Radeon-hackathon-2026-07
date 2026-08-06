@@ -1,0 +1,35 @@
+﻿name: motus-agent
+
+services:
+  agent:
+    image: rocm/atom-dev:vllm-latest
+    container_name: motus-agent
+    
+    env_file:
+      - ../.env
+    
+    working_dir: /app
+    
+    volumes:
+      - ..:/app
+      - ../prompts:/app/prompts:ro
+    
+    environment:
+      - PYTHONPATH=/app
+    
+    ports:
+      - "8080:8080"
+    
+    command: >
+      bash -c "
+        cd /app &&
+        pip install -r requirements.txt -q 2>/dev/null &&
+        python -m src.orchestrator.main
+      "
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s

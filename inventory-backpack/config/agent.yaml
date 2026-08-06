@@ -1,0 +1,139 @@
+name: "motus-agent"
+version: "0.1.1"
+
+# ==================== Inference parameters (directly affects TTFT/TPS) ====================
+inference:
+  temperature: 0.1
+  top_p: 0.95
+  top_k: 40
+  max_tokens: 4096
+  stream: true
+  stream_mode: "sse"
+  stop_sequences: ["<|endoftext|>", "oes"]
+  repetition_penalty: 1.02
+
+# ==================== Local vLLM connection (zero redundancy, pure transport optimization) ====================
+remote:
+  endpoint: "${MODEL_SMALL_URL}"
+  api_key: "${HF_TOKEN}"
+  model: "Qwen/Qwen2.5-0.5B-Instruct"
+  
+  # Connection pool
+  pool_size: 20
+  max_keepalive: 10
+  keepalive_expiry: 30
+  
+  # HTTP/2 multiplexing
+  http2: true
+  
+  # Timeout and retry
+  timeout: 45
+  connect_timeout: 5
+  max_retries: 2
+  retry_delay: 1.0
+
+# ==================== Async concurrency (client-side throughput) ====================
+async:
+  max_concurrent: 8
+  queue_size: 16
+  batch_window_ms: 10
+
+# ==================== Streaming latency optimization ====================
+streaming:
+  first_token_timeout: 15
+  target_tbt_ms: 50
+  buffer_tokens: 2
+  flush_interval_ms: 0
+
+# ==================== Connection transport layer optimization ====================
+transport:
+  tcp_nodelay: true
+  tcp_keepalive: true
+  tls_session_reuse: true
+  dns_cache_ttl: 300
+
+# ==================== Context management (sliding window - no stateful hardcoding) ====================
+context:
+  # Fully parameterized, computed dynamically at runtime, no pre-allocation
+  max_history: 10
+  sliding_window:
+    enabled: true
+    max_messages: 5
+    summarize_threshold: 8
+    # Summary model: reuse remote.endpoint, no extra configuration
+    summary_model: "${REMOTE_MODEL}"
+    summary_max_tokens: 200
+
+# ==================== Tool execution (declarative, no retry logic hardcoding) ====================
+tools:
+  # Whitelist-based, reject if not present, no default fallback
+  enabled: ["search", "weather", "time", "code_execution"]
+  
+  # Timeout parameterized, injected at runtime
+  timeouts:
+    tool_call_timeout: "${TOOL_TIMEOUT:-30}"
+    connect_timeout: "${CONNECT_TIMEOUT:-3}"
+    tool_total_timeout: "${TOOL_TOTAL_TIMEOUT:-120}"
+
+# ==================== Security sandbox (least privilege, runtime isolation) ====================
+safety:
+  enable_code_sandbox: true
+  
+  sandbox:
+    # Resource limits
+    execution_timeout: "${SANDBOX_EXEC_TIMEOUT:-5}"
+    memory_limit: "${SANDBOX_MEM_LIMIT:-256}"
+    network_access: false
+    
+    # Explicit whitelist: reject if not present
+    allowed_imports: ["math", "json", "re", "random", "datetime", "itertools", "collections"]
+    blocked_builtins: ["eval", "exec", "compile", "__import__", "open"]
+    
+    # Path isolation
+    writable_paths: ["/tmp"]
+    readable_paths: ["/dev/null", "/dev/urandom"]
+
+# ==================== Telemetry (low overhead, runtime toggle) ====================
+telemetry:
+  enabled: "${ENABLE_TELEMETRY:-true}"
+  
+  latency_breakdown:
+    enabled: true
+    metrics: ["ttft", "tbt", "total_latency", "queue_wait", "network_transfer"]
+  
+  token_usage_per_step:
+    enabled: true
+    track: ["prompt_tokens", "completion_tokens", "total_tokens"]
+  
+  # Output: format decided at runtime, no pre-binding
+  output:
+    format: "${TELEMETRY_FORMAT:-prometheus}"
+    endpoint: "${TELEMETRY_ENDPOINT:-http://localhost:9090/metrics}"
+    interval: 15
+
+# ==================== System prompts (externalized, no hardcoding) ====================
+prompts:
+  system_prompt_path: "${SYSTEM_PROMPT_PATH:-/app/prompts/system.txt}"
+  # Loaded at runtime, no content in config
+  # RAG configuration (new)
+rag:
+  chunk_size: 512
+  chunk_overlap: 128
+  top_k: 5
+  score_threshold: 0.5
+  
+  vectorstore:
+    type: "milvus"
+    milvus_uri: "${MILVUS_URI}"
+    path: "./data/vector_store/index.pkl"
+  
+  embedding:
+    provider: "api"
+    api_url: "${MODEL_SMALL_URL}"
+    api_key: "${HF_TOKEN}"
+    model: "BAAI/bge-m3"
+
+# Knowledge base
+knowledge:
+  data_dir: "./data/knowledge_base"
+  supported_formats: [".pdf", ".docx", ".md", ".txt", ".html"]

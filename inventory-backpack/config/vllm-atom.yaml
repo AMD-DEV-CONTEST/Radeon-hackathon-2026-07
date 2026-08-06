@@ -1,0 +1,88 @@
+# vLLM service endpoint (local Docker)
+endpoint:
+  base_url: "${MODEL_SMALL_URL}"
+  api_key: "${HF_TOKEN}"
+
+# Model identifier
+model:
+  name: "Qwen/Qwen2.5-0.5B-Instruct"
+  # Precision first: use original precision, avoid quantization causing precision loss
+  # If quantization is needed, only FP8 is recommended (H100/H200 native support, precision close to FP16)
+  # quantization: "fp8"  # Only enable when GPU memory is insufficient
+
+# Inference parameters (precision-first configuration)
+inference:
+  # === Temperature and sampling: core of precision assurance ===
+  temperature: 0.1        # Low temperature → more deterministic output, reduce random fluctuation
+  top_p: 0.9             # Moderate nucleus sampling, balance quality and diversity
+  top_k: 50               # Limit candidate token count, improve stability
+  
+  # === Output control ===
+  max_tokens: 4096        # Set according to actual needs, avoid overly long generation slowing down batch
+  
+
+# Async and concurrency optimization (client-side)
+async:
+  # === Concurrency control ===
+  max_concurrent_requests: 64    # 0.5B model has small KV Cache, reduce concurrency to avoid preemption
+  semaphore_limit: 32            # Synchronization limit, protect server
+  
+  # === Connection pool optimization ===
+  connection_pool_size: 20       # HTTP connection pool size
+  keep_alive_timeout: 30         # Connection keep-alive time (seconds)
+  
+  # === Streaming (reduce perceived latency) ===
+  stream: true                   # Enable SSE streaming response, lower first token latency
+  stream_interval: 1             # Push once per token generated
+
+# Connection configuration
+connection:
+  timeout: 30           # Request timeout (seconds)
+  max_retries: 3
+  retry_delay: 2.0
+  
+  # === Latency optimization ===
+  tcp_nodelay: true      # Disable Nagle's algorithm, reduce small packet latency
+  http2: true            # Enable HTTP/2 multiplexing, reduce connection overhead
+
+# ============================================
+# Server optimization recommendations (for Hugging Face Space reference)
+# ============================================
+server_recommendations:
+  # === Batch processing parameters (optimized for 0.5B low-TTFT) ===
+  max_num_seqs: 256               # 0.5B KV Cache 极小，可支持高并发
+  max_num_batched_tokens: 2048    # 适中值：太大会增加 prefill 排队，太小降低吞吐
+  max_model_len: 4096             # 0.5B 模型上下文足够
+
+  # === KV Cache optimization ===
+  block_size: 16                  # 小 block 减少内存碎片
+  enable_prefix_caching: true     # 前缀缓存，加速重复 prompt
+
+  # === Scheduler optimization ===
+  scheduling_policy: "fcfs"       # 先到先服务，避免饥饿
+  enable_chunked_prefill: true    # 分块 prefill，降低 TTFT
+  max_num_prefill_seqs: 4         # 限制同时 prefill 的序列数，避免 TTFT 尖峰
+
+  # === Precision assurance: data type ===
+  dtype: "bfloat16"               # 平衡精度和速度
+
+  # === GPU memory optimization ===
+  gpu_memory_utilization: 0.95    # 0.5B 模型本身极小，提高利用率给 KV Cache 更多空间
+
+  # === Async scheduling (vLLM v0.4+) ===
+  enable_async_output_proc: true   # 异步输出处理，降低延迟
+  async_scheduling: true           # 零气泡异步调度
+
+  # === Warmup: prevent cold-start TTFT spikes ===
+  enable_warmup: true              # 启动时发送预热请求
+  warmup_token_count: 128          # 预热生成的 token 数
+
+# ============================================
+# Performance monitoring and debugging
+# ============================================
+monitoring:
+  log_requests: true
+  track_ttft: true               # Time To First Token - first token latency
+  track_tpot: true               # Time Per Output Token - per token generation time
+  track_batch_size: true         # Monitor actual batch size
+  
