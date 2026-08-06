@@ -9,6 +9,8 @@
 
 AMD AI DevMaster Hackathon 2026 · Track 3, Physical AI
 
+**▶ [Demo video — the full pipeline, start to finish](https://www.bilibili.com/video/BV1keu76LEPQ/)**
+
 | | |
 |---|---|
 | [Technical report](docs/TECHNICAL_REPORT.md) | architecture, results, how the AMD GPU is used, contributions |
@@ -36,11 +38,11 @@ through a web UI, with no code.
       └── DDS ──▶ unitree_mujoco / real Unitree G1
 ```
 
-**Why this is not a backend swap.** Every mainstream stack in this field is
-CUDA-only — Isaac Lab, Isaac Sim, MuJoCo Warp, unitree_rl_mjlab, and
-BeyondMimic's own implementation. The only viable massively-parallel path on
-AMD is MuJoCo MJX with JAX-ROCm, so the tracking algorithm was reimplemented on
-MJX from source.
+**Platform.** Every mainstream stack in this field is CUDA-only — Isaac Lab,
+Isaac Sim, MuJoCo Warp, unitree_rl_mjlab, and BeyondMimic's own implementation
+— so none was available as a starting point. The only viable massively-parallel
+path on AMD is MuJoCo MJX with JAX-ROCm, and the tracking algorithm was
+reimplemented on it from source.
 
 ### Result
 
@@ -82,7 +84,8 @@ Verified on **ROCm 7.2.1**, Python **3.12.3**, Ubuntu 22.04, Radeon Pro W7900
 (gfx1100, 48 GB). Needs ~40 GB disk and 32 GB+ RAM.
 
 ```bash
-git clone <this-repo> && cd Track3-Video2Motion
+git clone https://github.com/Owen1257173018/Radeon-Unitree-Video2Motion
+cd Radeon-Unitree-Video2Motion/Track3-Video2Motion
 ./scripts/setup.sh                 # add --with-dds to also enable layer 3
 source env.sh
 ./scripts/verify.sh
@@ -135,9 +138,10 @@ $V2M_PY_MJX src/webapp/app.py        # http://localhost:7860
 ```
 
 Four steps: extract motion → retarget → train → simulate. Each step can reuse
-earlier artifacts and offers a download. Training length is user-chosen with no
-upper limit, shows four live curves, can be stopped mid-run, and keeps every
-checkpoint.
+earlier artifacts and offers its outputs for download. Training length is
+user-chosen with no upper limit, can be stopped mid-run, and keeps every
+checkpoint; curves stream to TensorBoard, linked from the page. Step 4 shows all
+three validation layers side by side, one tab each.
 
 ### Command line
 
