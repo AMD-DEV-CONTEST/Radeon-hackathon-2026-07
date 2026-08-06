@@ -76,6 +76,43 @@ ALL_PATTERNS: list[tuple[str, str]] = [
     ("sql_injection", r"(?i)('\s*(OR|AND)\s+['\d]|;\s*(DROP|DELETE|UPDATE|INSERT|UNION)\s)"),
     ("sql_injection", r"(?i)(UNION\s+SELECT|INTO\s+OUTFILE|LOAD_FILE|INFORMATION_SCHEMA)"),
     ("sql_injection", r"(?i)(xp_cmdshell|sp_executesql|EXEC\s+XP_)"),
+    # Blind / time-based / parenthetical / probe variants
+    ("sql_injection", r"(?i)'\s*\)\s*OR\s*\("),
+    ("sql_injection", r"(?i)\b(OR|AND)\s+(SLEEP|pg_sleep|BENCHMARK|GET_LOCK|WAITFOR\s+DELAY)\s*\("),
+    ("sql_injection", r"(?i)WAITFOR\s+DELAY\s+"),
+    ("sql_injection", r"(?i)'\s*ORDER\s+BY\s+\d"),
+    ("sql_injection", r"(?i)ORDER\s+BY\s+\d+\s*--"),
+    ("sql_injection", r"(?i);\s*(SELECT|ALTER|CREATE|GRANT|REVOKE|TRUNCATE|MERGE|CALL)\s"),
+
+    # ── XSS Variants ────────────────────────────────────────────────────────────
+    ("xss_attack", r"(?i)javascript\s*:\s*(alert|eval|fetch|document|onerror|onclick|onload)"),
+    ("xss_attack", r"(?i)<(img|iframe|script|svg|object|embed)[^>]*\b(onerror|onload|onmouseover|onclick|onfocus)\s*="),
+    ("xss_attack", r"(?i)<svg[^>]*\bonload\s*="),
+    ("xss_attack", r"(?i)\bdocument\.cookie\b"),
+
+    # ── Command Injection (semicolon / pipe / substitution / backtick) ─────────
+    ("dangerous_command", r"(?i)[;&|]\s*(whoami|id|pwd|ls|cat|rm|curl|wget|nc|bash|sh|python)\b"),
+    ("dangerous_command", r"(?i)\$\s*\((whoami|id|cat|ls|rm|curl|wget|nc|pwd|echo)"),
+    ("dangerous_command", r"(?i)`[^`]{0,20}\b(whoami|id|rm|curl|nc|cat)\b"),
+
+    # ── URL-Encoded / Scheme Path Traversal ─────────────────────────────────────
+    ("path_traversal", r"(?i)%2e%2e%2f|%2e%2e\s*%2f"),
+    ("path_traversal", r"(?i)file\s*://"),
+
+    # ── SSRF: IPv6 loopback / metadata ──────────────────────────────────────────
+    ("ssrf_attack", r"(?i)\[::1\]|::ffff:127\.|169\.254\.169\.254"),
+
+    # ── Server-Side Template Injection ──────────────────────────────────────────
+    ("ssti_attack", r"(?i)\{\{\s*\d+\s*[+*\-/]\s*\d+\s*\}\}"),
+    ("ssti_attack", r"(?i)\$\{\s*\d+\s*[+*\-/]\s*\d+\s*\}"),
+    ("ssti_attack", r"(?i)#\{\s*\d+\s*[+*\-/]\s*\d+\s*\}"),
+
+    # ── NoSQL Operators ─────────────────────────────────────────────────────────
+    ("nosql_injection", r"(?i)\$(ne|gt|lt|gte|lte|where|regex)\b"),
+
+    # ── More Secrets (OpenAI, Google) ───────────────────────────────────────────
+    ("openai_key", r"(?i)\bsk-[A-Za-z0-9]{20,}\b"),
+    ("google_api_key", r"AIza[0-9A-Za-z_-]{30,}"),
 
     # ── Dangerous Shell Commands ─────────────────────────────────────────────────
     ("dangerous_command", r"(?i)rm\s+-rf\s+[/~]"),
@@ -118,6 +155,11 @@ PATTERN_WEIGHTS = {
     "slack_token":            0.90,
     "stripe_key":             0.92,
     "sql_injection":          0.88,
+    "xss_attack":             0.92,
+    "ssti_attack":            0.90,
+    "nosql_injection":        0.85,
+    "openai_key":             0.95,
+    "google_api_key":         0.95,
     "dangerous_command":      0.93,
     "suspicious_base64":      0.40,
     "pretend_persona":        0.70,  # Kept for weight table completeness
@@ -195,8 +237,10 @@ class Tier0RegexChecker(TierChecker):
         # Determine decision
         if threat_score >= 0.8:
             decision = Decision.BLOCK
+        elif threat_score >= 0.3:
+            decision = Decision.UNCERTAIN  # Escalate borderline matches to Tier 1
         else:
-            decision = Decision.UNCERTAIN  # Escalate everything else to Tier 1
+            decision = Decision.ALLOW      # Clean input — no escalation needed
 
 
         latency = (time.perf_counter() - start) * 1000

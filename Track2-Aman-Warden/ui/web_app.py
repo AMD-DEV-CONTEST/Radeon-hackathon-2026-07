@@ -61,20 +61,40 @@ async def guard_endpoint(req: GuardRequest):
     t0 = time.perf_counter()
     result = orchestrator.guard_input(req.text, req.source)
     ms = round((time.perf_counter() - t0) * 1000, 2)
-    exp = result.explanation.lower()
-    tier_name = "TIER 0 (Regex Engine)" if ("tier 0" in exp or "regex" in exp or "pattern" in exp or "override" in exp or "jailbreak" in exp) else \
-                "TIER 0.5 (Normalizer)" if ("normalizer" in exp or "homoglyph" in exp or "base64" in exp) else \
-                "TIER 1 (DeBERTa Classifier)" if ("tier 1" in exp or "classifier" in exp or "confidence" in exp) else \
-                "TIER 2 (CaMeL / DiffGuard)" if ("tier 2" in exp or "llm" in exp or "tool" in exp) else \
-                "DECLARATIVE POLICY ENGINE" if "policy" in exp else "TIER 0 (Regex Engine)"
+    tier_key, tier_name = _resolve_tier(result)
     return {
         "decision": result.decision.value.upper(),
         "explanation": result.explanation,
         "action": result.action,
         "latency_ms": ms,
         "tier": tier_name,
+        "tier_key": tier_key,
         "blocked_by": f"🛑 BLOCKED BY {tier_name}: {result.explanation}" if result.action == "block" else f"✓ ALLOWED — Passed {tier_name}",
     }
+
+
+def _resolve_tier(result) -> tuple[str, str]:
+    """Map the routing result to a machine-readable tier key + display name.
+
+    Uses structured routing metadata (memory/policy hits, tier_results)
+    instead of guessing from explanation text.
+    """
+    if getattr(result, "memory_hit", False):
+        return "MEM", "MEMORY (Pattern Cache)"
+    if getattr(result, "policy_hit", False):
+        return "POLICY", "DECLARATIVE POLICY ENGINE"
+
+    exp = (result.explanation or "").lower()
+    reached = getattr(result, "tier_reached", -1)
+    if reached == 0:
+        if "normalizer" in exp or "homoglyph" in exp or "base64" in exp or "decoded" in exp:
+            return "T0", "TIER 0.5 (Normalizer)"
+        return "T0", "TIER 0 (Regex Engine)"
+    if reached == 1:
+        return "T1", "TIER 1 (DeBERTa Classifier)"
+    if reached >= 2:
+        return "T2", "TIER 2 (CaMeL / DiffGuard)"
+    return "NONE", "NO TIER REACHED"
 
 @app.post("/api/diff")
 async def diff_endpoint(req: DiffRequest):
@@ -476,6 +496,7 @@ async def run_suite_stream(suite: str):
     )
 
 
+@app.get("/api/history")
 async def history_endpoint():
     try:
         import sqlite3
@@ -2061,9 +2082,14 @@ function renderResult(d) {
   ['tfMem','tfT0','tfT1','tfT2','tfLLM'].forEach(id => {
     document.getElementById(id).className = 'tier-box';
   });
-  const tier = d.tier || '';
+  const tier = d.tier_key || d.tier || '';
   const blocked = dec === 'BLOCK';
-  if (tier === 'MEM') { document.getElementById('tfMem').className = 'tier-box ' + (blocked?'hit':'pass'); }
+  const flagged = dec === 'FLAG';
+  if (tier === 'MEM') { document.getElementById('tfMem').className = 'tier-box ' + (blocked||flagged?'hit':'pass'); }
+  else if (tier === 'POLICY') {
+    document.getElementById('tfMem').className = 'tier-box pass';
+    document.getElementById('tfT0').className = 'tier-box ' + (blocked?'hit':'pass');
+  }
   else if (tier === 'T0') { document.getElementById('tfT0').className = 'tier-box ' + (blocked?'hit':'pass'); }
   else if (tier === 'T1') {
     document.getElementById('tfT0').className = 'tier-box pass';

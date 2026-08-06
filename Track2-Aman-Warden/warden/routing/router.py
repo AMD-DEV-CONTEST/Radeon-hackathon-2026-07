@@ -143,12 +143,16 @@ class ThrottleRouter:
         t0_result = self.tier0.check(text)
         result.add_tier_result(0, t0_result)
 
-        if t0_result.is_definitive:
-            if t0_result.decision == Decision.ALLOW and policy_flag_warning:
-                logger.debug("Tier 0 ALLOW overridden by policy FLAG — escalating to deeper tiers")
-            else:
-                self._stats["tier0_resolved"] += 1
-                return self._record_and_return(result.finalize(t0_result.decision, t0_result.explanation), text, input_hash, source)
+        if t0_result.is_definitive and t0_result.decision == Decision.BLOCK:
+            self._stats["tier0_resolved"] += 1
+            return self._record_and_return(result.finalize(t0_result.decision, t0_result.explanation), text, input_hash, source)
+
+        # Tier 0 ALLOW is NOT a fast-path: "no regex patterns matched" is not the
+        # same as "semantically safe". Escalate to Tier 1 (NLP) so novel attacks
+        # the regex misses (e.g. "name=admin'+OR+'1'='1", "STOP ALL RULES")
+        # still get a semantic evaluation before returning ALLOW.
+        # NOTE: the user_direct fast-path was removed for the same reason (see
+        # GitHub issue "persona jailbreak 'You are Alex' slipped through router").
 
         # NOTE: user_direct fast-path REMOVED — persona jailbreaks, soft instruction
         # overrides and multi-turn adversarial attacks score 0 at Tier 0 and must
