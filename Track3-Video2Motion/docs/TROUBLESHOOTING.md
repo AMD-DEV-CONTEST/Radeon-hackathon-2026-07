@@ -217,16 +217,3 @@ The policy is trained in the `torso_link` frame while the IMU sits on the
 pelvis, three waist joints away. Bridge the gap with one forward-kinematics
 pass over the measured joint angles; no extra sensor is needed
 (`src/deploy_track.py::TorsoFK`, measured orientation error 0.0000°).
-
----
-
-## Method
-
-| Lesson | Where it bit us |
-|---|---|
-| If very different ablations give the same curve, investigate what they share | penalties-off / entropy-off / both-off all overlapped; the cause was the wrapper |
-| If two different inputs fail at the same point, the input is not the cause | two unrelated policies both fell at step 18 → a unit bug |
-| Before claiming "A fixed B", confirm only A changed | "domain randomisation closed the sim2sim gap" was wrong — `kd` had changed too |
-| Never use "didn't fall" as evidence of motion quality | a policy with 500/500 survival was barely moving its arms |
-| A third-party simulator is not hardware | the bridge's 50 Hz zero-order hold is an implementation limit, not robot behaviour |
-| Suspect your own new code first | when layer 3 fell, we validated our new torso FK (0.0000° error) before looking elsewhere |

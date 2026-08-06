@@ -312,8 +312,7 @@ stable convergence.
 
 1. **Perfect-tracker check** — set the state exactly to a reference frame; all
    six tracking rewards must read **1.0000**. Any deviation means a frame,
-   reference-point or unit convention is still wrong. **Run this the same day
-   the reward function is written.**
+   reference-point or unit convention is still wrong.
 2. **Motion completed** — percentage of the reference actually performed (not
    "how many steps it survived").
 3. **Body position error** (metres) — measured in 3-D, directly tied to what is
@@ -340,17 +339,3 @@ itself is clean" looks like.
 
 Training: 371M steps, 357.5 min, 17,326 env-steps/s. **100% completion is
 reached around 112M steps (2 hours)**; the remaining time buys smoothness.
-
----
-
-## 9. Methodology lessons
-
-| Lesson | How it showed up here |
-|---|---|
-| **If very different ablation configurations give the same curve, investigate what they share** | penalties-off / entropy-off / both-off all overlapped; the cause was the wrapper |
-| **If two different inputs fail at the same point, the input is not the cause** | two unrelated policies both fell at step 18 → a unit bug |
-| **Before claiming "A fixed B", confirm only A changed** | "domain randomisation closed the sim2sim gap" was wrong — `kd` had changed too |
-| **Never use "didn't fall" as evidence of motion quality** | a policy with 500/500 survival was barely moving its arms |
-| **Run the perfect-tracker check the day you write the reward** | all six terms must read 1.0000 |
-| **A third-party simulator is not hardware** | the bridge's 50 Hz zero-order hold is an implementation limit, not robot behaviour |
-| **Suspect your own new code first** | when layer 3 fell, we validated our new torso FK (0.0000° error) before looking elsewhere |
