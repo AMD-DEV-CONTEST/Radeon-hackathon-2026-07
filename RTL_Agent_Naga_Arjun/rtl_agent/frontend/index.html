@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RTL-Agent — Autonomous Two-Tier RTL Verification</title>
+  <meta name="description" content="Autonomous SystemVerilog generation and two-tier (lint + functional simulation) self-correcting verification powered by local LLMs running on AMD ROCm hardware via vLLM." />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Syntax Highlighting — Highlight.js (Verilog/SV support) -->
+  <!-- Syntax Highlighting — Highlight.js (Verilog/SV support) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/verilog.min.js"></script>
+
+  <!-- WaveDrom: skins and engine -->
+  <script src="https://cdn.jsdelivr.net/npm/wavedrom@3.5.0/skins/default.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/wavedrom@3.5.0/wavedrom.min.js"></script>
+
+  <!-- D3 v7: required for SVG rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+<div id="app">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       TOP NAVIGATION BAR
+  ════════════════════════════════════════════════════════════════════════ -->
+  <nav id="navbar">
+    <div class="nav-brand">
+      <div class="nav-logo">⬡</div>
+      <div>
+        <div class="nav-title">RTL-AGENT</div>
+        <div class="nav-subtitle">Two-Tier Verification · Lint + Simulate · AMD ROCm</div>
+      </div>
+    </div>
+
+    <div class="nav-right">
+      <span class="mode-badge mock" id="mode-badge">MOCK MODE</span>
+      <div class="amd-badge" id="amd-badge">
+        <div class="amd-dot"></div>
+        <span id="model-badge-text">AMD ROCm · vLLM</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       MAIN THREE-COLUMN GRID
+  ════════════════════════════════════════════════════════════════════════ -->
+  <div id="main-grid">
+
+    <!-- ─── LEFT PANEL — Input & History ─────────────────────────────────── -->
+    <div class="panel" id="left-panel">
+      <div class="panel-header">
+        <span class="panel-title">Hardware Specification</span>
+      </div>
+
+      <div class="panel-body" style="display:flex;flex-direction:column;gap:0;padding-top:14px;">
+
+        <label class="spec-label" for="spec-input">Describe the RTL module in natural language</label>
+        <textarea
+          id="spec-input"
+          placeholder="e.g. A 4-bit synchronous binary counter with active-high reset, enable input, and overflow flag output..."
+          spellcheck="false"
+        ></textarea>
+
+        <span class="examples-label">Quick examples</span>
+        <div class="examples-grid">
+          <div class="example-chip" data-spec="A 4-bit synchronous binary counter with active-high reset and enable input. Include an overflow output that goes high when count reaches 15.">4-bit Counter</div>
+          <div class="example-chip" data-spec="A synchronous FIFO with parameterized data width (default 8 bits) and depth (default 16 entries). Include full, empty, and occupancy count outputs.">Sync FIFO</div>
+          <div class="example-chip" data-spec="A 32-bit ALU supporting ADD, SUB, AND, OR, XOR, NOR, SLL, SRL, SRA, and SLT operations. Include zero flag, overflow flag, and carry out.">32-bit ALU</div>
+          <div class="example-chip" data-spec="A UART transmitter with parameterized clock frequency (50 MHz default) and baud rate (115200 default). Support 8N1 frame format. Include tx_busy status output.">UART TX</div>
+          <div class="example-chip" data-spec="A traffic light FSM controller with configurable green, yellow and red durations (in clock cycles). Include an emergency input that immediately forces red.">Traffic FSM</div>
+          <div class="example-chip" data-spec="A parameterized N-bit barrel shifter supporting logical left shift, logical right shift, and arithmetic right shift. N defaults to 32.">Barrel Shifter</div>
+        </div>
+
+        <button id="run-btn" type="button">
+          <div class="btn-inner">
+            <span>▶&nbsp;&nbsp;Run Agent</span>
+          </div>
+        </button>
+
+        <div class="divider"></div>
+
+        <!-- 3-Agent Pipeline Status Tracker -->
+        <div style="margin-bottom:12px;">
+          <div class="panel-title" style="margin-bottom:6px;">Multi-Agent Pipeline</div>
+          <div id="pipeline-tracker" class="pipeline-tracker">
+            <div class="agent-pill idle" id="agent-pill-architect">
+              <span class="agent-icon">📐</span>
+              <div class="agent-info">
+                <span class="agent-name">Architect</span>
+                <span class="agent-status-sub" id="status-sub-architect">Idle</span>
+              </div>
+            </div>
+            <div class="pipeline-arrow">➔</div>
+            <div class="agent-pill idle" id="agent-pill-coder">
+              <span class="agent-icon">💻</span>
+              <div class="agent-info">
+                <span class="agent-name">Coder</span>
+                <span class="agent-status-sub" id="status-sub-coder">Idle</span>
+              </div>
+            </div>
+            <div class="pipeline-arrow">➔</div>
+            <div class="agent-pill idle" id="agent-pill-verifier">
+              <span class="agent-icon">⚡</span>
+              <div class="agent-info">
+                <span class="agent-name">Verifier</span>
+                <span class="agent-status-sub" id="status-sub-verifier">Idle</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Global iteration progress -->
+        <div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div class="panel-title">Total Progress</div>
+            <span id="global-iter-label" style="font-size:10px;color:var(--text-muted);font-family:var(--font-code);">—</span>
+          </div>
+          <div id="global-iter-bar" style="display:flex;gap:3px;min-height:6px;"></div>
+          <!-- Two-tier status badges -->
+          <div id="tier-status-row" style="display:flex;gap:6px;margin-top:8px;">
+            <div class="tier-badge idle" id="badge-tier1">T1: Lint</div>
+            <div class="tier-badge idle" id="badge-tier2">T2: Sim</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="panel-title" style="margin-bottom:10px;">Session History</div>
+        <div id="history-list">
+          <div class="history-empty">No sessions yet</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── CENTER PANEL — Agent Activity Feed ───────────────────────────── -->
+    <div class="panel" id="center-panel">
+      <div class="panel-header">
+        <span class="panel-title">Agent Activity</span>
+        <span class="code-stat">
+          <span id="spinner-center" class="spinner"></span>
+        </span>
+      </div>
+
+      <!-- Feed scroll container -->
+      <div style="flex:1;overflow-y:auto;" id="feed-scroll">
+        <!-- Empty state -->
+        <div id="feed-empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:40px;gap:16px;color:var(--text-muted);text-align:center;">
+          <div style="font-size:44px;filter:grayscale(1) opacity(0.2);">🔬</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text-secondary);">Agent Idle</div>
+          <div style="font-size:12px;max-width:240px;">Enter a hardware specification on the left and click <strong>Run Agent</strong> to begin autonomous RTL generation and two-tier verification.</div>
+          <div style="font-size:11px;color:var(--text-dim);border:1px solid var(--border);padding:8px 14px;border-radius:8px;font-family:var(--font-code);">Ctrl + Enter to run</div>
+        </div>
+
+        <!-- Event feed -->
+        <div id="feed"></div>
+      </div>
+    </div>
+
+    <!-- ─── RIGHT PANEL — Code Viewer + Telemetry + Verification ─────────── -->
+    <div class="panel" id="right-panel" style="overflow-y:auto;">
+      <div class="panel-header">
+        <span class="panel-title">SystemVerilog &amp; Verification</span>
+        <span class="code-stat">
+          <span style="color:var(--text-muted);">Lines:</span>
+          <span class="code-stat-val" id="code-lines">—</span>
+        </span>
+      </div>
+
+      <!-- AMD ROCm Telemetry Panel -->
+      <div id="telemetry-panel" class="tier-section">
+        <div class="tier-section-header">
+          <span class="tier-label">⚡ AMD ROCm Live Telemetry</span>
+          <span id="gpu-badge" class="badge-amd">Radeon · ROCm 6.1 · Triton</span>
+        </div>
+        <div class="telemetry-grid">
+          <div class="stat-card">
+            <div class="stat-label">Time to First Token</div>
+            <div id="stat-ttft" class="stat-value">—</div>
+            <div class="stat-sub">Target: &lt;150 ms</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Generation Speed</div>
+            <div id="stat-tps" class="stat-value">—</div>
+            <div class="stat-sub">tokens / sec</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Tokens</div>
+            <div id="stat-tokens" class="stat-value">—</div>
+            <div class="stat-sub">across all passes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Agent Wall Time</div>
+            <div id="stat-elapsed" class="stat-value">—</div>
+            <div class="stat-sub">total runtime</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TIER 1: Lint output ──────────────────────────────────────────── -->
+      <div class="tier-section" id="tier1-section">
+        <div class="tier-section-header">
+          <span class="tier-label">TIER 1 — Syntax &amp; Lint</span>
+          <span class="tier-status-pill idle" id="tier1-pill">IDLE</span>
+        </div>
+
+        <!-- Iteration tabs -->
+        <div id="iter-tabs"></div>
+
+        <!-- Verilator status bar -->
+        <div id="veri-status-bar" class="idle">
+          <span class="veri-icon">◈</span>Awaiting lint
+        </div>
+
+        <!-- Code area -->
+        <div id="code-viewer" style="overflow:auto;max-height:300px;">
+          <div id="code-placeholder" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:120px;color:var(--text-muted);gap:12px;font-size:12px;padding:32px;text-align:center;">
+            <div style="font-size:36px;opacity:0.18;">⬡</div>
+            <div>Generated SystemVerilog will appear here</div>
+            <div style="font-size:11px;color:var(--text-dim);">Syntax highlighted · Multiple iterations</div>
+          </div>
+        </div>
+
+        <!-- Action bar -->
+        <div id="code-action-bar">
+          <span class="code-stat">
+            <span style="color:var(--text-dim);">LANG</span>
+            <span class="code-stat-val" style="font-family:var(--font-code);font-size:10px;">SystemVerilog</span>
+          </span>
+          <div class="code-actions">
+            <button class="action-btn" id="copy-btn" disabled title="Copy to clipboard">
+              ⎘ Copy
+            </button>
+            <button class="action-btn primary" id="download-btn" disabled title="Download .sv file">
+              ↓ Download .sv
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TIER 2: Functional Verification ───────────────────────────────── -->
+      <div class="tier-section" id="tier2-section">
+        <div class="tier-section-header">
+          <span class="tier-label">TIER 2 — Functional Simulation</span>
+          <span class="tier-status-pill idle" id="tier2-pill">WAITING</span>
+        </div>
+
+        <!-- Simulation iteration cards -->
+        <div id="sim-iterations" style="display:flex;flex-direction:column;gap:6px;padding:6px 12px 0 12px;">
+          <div id="sim-empty-state" style="padding:16px;text-align:center;color:var(--text-muted);font-size:11px;">
+            <div style="margin-bottom:4px;opacity:0.4;">⟳</div>
+            Awaiting Tier 1 completion
+          </div>
+        </div>
+
+        <!-- Testbench viewer (collapsible) -->
+        <div id="tb-section" style="display:none;padding:0 12px 8px 12px;">
+          <button class="tb-toggle-btn" id="tb-toggle-btn" onclick="toggleTestbench()">
+            📋 Show Testbench Code
+          </button>
+          <div id="tb-viewer" style="display:none;max-height:220px;overflow:auto;margin-top:6px;border-radius:var(--radius-md);border:1px solid var(--border);">
+          </div>
+          <div style="display:flex;gap:6px;margin-top:6px;">
+            <button class="action-btn" id="copy-tb-btn" style="display:none;" onclick="copyTestbench()">⎘ Copy TB</button>
+            <button class="action-btn primary" id="download-tb-btn" style="display:none;" onclick="downloadTestbench()">↓ Download TB</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Waveform Explorer Panel -->
+      <div id="waveform-panel" class="tier-section">
+        <div class="tier-section-header">
+          <span class="tier-label">📈 Simulation Waveforms &amp; Diagnostics</span>
+          <div class="panel-actions">
+            <span id="vcd-size-badge" class="badge-subtle">No trace</span>
+            <button id="view-sim-log-btn" class="btn-ghost" disabled onclick="openSimLogViewer()">📄 View Sim Log</button>
+            <button id="download-vcd-btn" class="btn-ghost" disabled onclick="downloadVCD()">Download .vcd</button>
+          </div>
+        </div>
+
+        <!-- Waveform Iteration Selector -->
+        <div id="waveform-iter-bar" style="display:none;padding:6px 0 4px 0;display:none;gap:6px;align-items:center;flex-wrap:wrap;">
+          <span style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Iteration:</span>
+          <div id="waveform-iter-tabs" style="display:flex;gap:4px;flex-wrap:wrap;"></div>
+        </div>
+
+        <!-- Failure Diagnosis Banner -->
+        <div id="sim-diag-banner" style="display:none;margin-top:6px;margin-bottom:6px;padding:8px 10px;border-radius:var(--radius-sm);background:rgba(244,63,94,0.12);border:1px solid rgba(244,63,94,0.3);font-size:11px;color:var(--text-primary);font-family:var(--font-code);">
+          <div style="font-weight:700;color:var(--red);margin-bottom:3px;display:flex;justify-content:space-between;align-items:center;">
+            <span id="diag-title">⚠️ Simulation Failure Diagnostics</span>
+            <span id="diag-log-path" style="font-size:9.5px;color:var(--text-muted);font-weight:400;"></span>
+          </div>
+          <div id="diag-summary" style="white-space:pre-wrap;color:var(--text-secondary);font-size:10px;line-height:1.4;"></div>
+        </div>
+
+        <div id="waveform-container">
+          <div id="waveform-placeholder" class="placeholder-box">
+            <span>Run a verification loop to view simulation waveforms</span>
+          </div>
+          <div id="wavedrom-target" style="display:none;width:100%;overflow-x:auto;"></div>
+        </div>
+      </div>
+
+    </div><!-- /#right-panel -->
+
+  </div><!-- /#main-grid -->
+</div><!-- /#app -->
+
+<!-- Simulation Diagnostic Log Modal -->
+<div id="sim-log-modal" class="modal-overlay" style="display:none;">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title">
+        <span>🔬 Simulation Diagnostics Log</span>
+        <span id="modal-iter-badge" class="badge-subtle">Iter #1</span>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button id="modal-download-log-btn" class="btn-ghost" onclick="downloadCurrentSimLog()">⬇ Download Log</button>
+        <button class="btn-close" onclick="closeSimLogViewer()">✕</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div id="modal-log-meta" style="font-size:11px;font-family:var(--font-code);color:var(--text-muted);margin-bottom:10px;"></div>
+      <pre id="modal-log-content" class="code-pre" style="max-height:420px;overflow:auto;background:#06090f;padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border);font-size:11px;line-height:1.45;color:var(--text-primary);"></pre>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
