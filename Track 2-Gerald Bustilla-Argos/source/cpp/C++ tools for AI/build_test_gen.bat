@@ -1,0 +1,3 @@
+@echo off
+call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64
+cl.exe /std:c++17 /EHsc /O2 /W3 /Fe:test_data_gen.exe tests\test_data_gen.cpp
