@@ -1,0 +1,17 @@
+{
+  "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "sd_xl_base_1.0.safetensors"}},
+  "2": {"class_type": "CLIPTextEncode", "inputs": {"text": "full body 2d game character sprite, side view, running action pose, clean background, cel shading, game asset, consistent character design", "clip": ["1", 1]}},
+  "3": {"class_type": "CLIPTextEncode", "inputs": {"text": "blurry, low quality, deformed, watermark, text, multiple characters, extra limbs", "clip": ["1", 1]}},
+  "30": {"class_type": "LoadImage", "inputs": {"image": "W1_concept_00002_.png"}},
+  "35": {"class_type": "ImageScale", "inputs": {"image": ["30", 0], "upscale_method": "lanczos", "width": 512, "height": 512, "crop": "disabled"}},
+  "36": {"class_type": "RepeatImageBatch", "inputs": {"image": ["35", 0], "amount": 8}},
+  "31": {"class_type": "VAEEncode", "inputs": {"pixels": ["36", 0], "vae": ["1", 2]}},
+  "32": {"class_type": "ActionPose", "inputs": {"action": "run", "frames": 8, "width": 512, "height": 512}},
+  "33": {"class_type": "ControlNetLoader", "inputs": {"control_net_name": "OpenPoseXL2.safetensors"}},
+  "34": {"class_type": "ControlNetApplyAdvanced", "inputs": {"positive": ["2", 0], "negative": ["3", 0], "control_net": ["33", 0], "image": ["32", 0], "strength": 0.9, "start_percent": 0.0, "end_percent": 1.0}},
+  "5": {"class_type": "KSampler", "inputs": {"model": ["1", 0], "seed": 42, "steps": 20, "cfg": 7.0, "sampler_name": "euler", "scheduler": "normal", "positive": ["34", 0], "negative": ["34", 1], "latent_image": ["31", 0], "denoise": 0.45}},
+  "6": {"class_type": "VAEDecode", "inputs": {"samples": ["5", 0], "vae": ["1", 2]}},
+  "7": {"class_type": "SaveImage", "inputs": {"images": ["6", 0], "filename_prefix": "W6_frames"}},
+  "8": {"class_type": "ImageGrid", "inputs": {"images": ["6", 0], "columns": 4, "cell_width": 512, "cell_height": 512, "padding": 4}},
+  "9": {"class_type": "SaveImage", "inputs": {"images": ["8", 0], "filename_prefix": "W6_atlas"}}
+}
