@@ -5,16 +5,16 @@ This folder groups the main English submission materials for the 2026 AMD AI Dev
 ## Canonical Project Repository
 
 - Source repository: <https://github.com/icuic/video-voice-translator>
-- Submission branch: `repro-bd6d3e22`
+- Submission branch: `amd-track1-video-voice-translator`
 - Evaluated commit: `ad5ed6c`
 - Demo video (bundled): [`demo.mp4`](demo.mp4)
-- Demo video (repo mirror): <https://github.com/icuic/video-voice-translator/blob/repro-bd6d3e22/data/demo/demo.mp4>
+- Demo video (repo mirror): <https://github.com/icuic/video-voice-translator/blob/amd-track1-video-voice-translator/data/demo/demo.mp4>
 
 ## Included Documents
 
 1. **Project README**
    - Submission copy: [PROJECT_README.md](PROJECT_README.md)
-   - Canonical repository README: <https://github.com/icuic/video-voice-translator/blob/repro-bd6d3e22/README.md>
+   - Canonical repository README: <https://github.com/icuic/video-voice-translator/blob/amd-track1-video-voice-translator/README.md>
 
 2. **Submission Note**
    - [SUBMISSION_NOTE.md](SUBMISSION_NOTE.md)

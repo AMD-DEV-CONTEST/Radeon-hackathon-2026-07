@@ -3,8 +3,8 @@
 The final competition demo video is bundled **inside this submission folder** so evaluators can play it offline without leaving the PR:
 
 - Local artifact: [`demo.mp4`](demo.mp4)
-- Mirror in canonical source repo: [`data/demo/demo.mp4`](https://github.com/icuic/video-voice-translator/blob/repro-bd6d3e22/data/demo/demo.mp4)
-- Submission branch: `repro-bd6d3e22`
+- Mirror in canonical source repo: [`data/demo/demo.mp4`](https://github.com/icuic/video-voice-translator/blob/amd-track1-video-voice-translator/data/demo/demo.mp4)
+- Submission branch: `amd-track1-video-voice-translator`
 - Submission commit: `ad5ed6c`
 
 ## File Summary

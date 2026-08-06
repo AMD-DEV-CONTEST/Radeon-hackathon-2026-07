@@ -3,7 +3,7 @@
 Submission repository note:
 
 - Canonical source repository: <https://github.com/icuic/video-voice-translator>
-- Submission branch: `repro-bd6d3e22`
+- Submission branch: `amd-track1-video-voice-translator`
 - Evaluated commit: `ad5ed6c`
 
 Video Voice Translator is an AI-powered multimodal content creation tool for Track 1 of the 2026 AMD AI DevMaster Hackathon. It translates video or audio content between English and Chinese, preserves the original speaker style through voice cloning, and produces a dubbed output video with synchronized audio.

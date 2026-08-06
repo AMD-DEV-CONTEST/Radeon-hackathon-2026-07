@@ -16,9 +16,9 @@ The repository is prepared to include the following materials:
 
 1. **Project Source Code**
    - Canonical repository: <https://github.com/icuic/video-voice-translator>
-   - Submission branch: `repro-bd6d3e22`
+   - Submission branch: `amd-track1-video-voice-translator`
    - Evaluated commit: `ad5ed6c`
-   - Repository README: <https://github.com/icuic/video-voice-translator/blob/repro-bd6d3e22/README.md>
+   - Repository README: <https://github.com/icuic/video-voice-translator/blob/amd-track1-video-voice-translator/README.md>
    - Supporting documentation under this submission folder and the source repository `docs/`
 
 2. **Project Profile Document (PDF)**
@@ -27,7 +27,7 @@ The repository is prepared to include the following materials:
 
 3. **Demo Video**
    - Bundled artifact (PR-local): `submissions/track1-video-voice-translator/demo.mp4`
-   - Canonical repository mirror: <https://github.com/icuic/video-voice-translator/blob/repro-bd6d3e22/data/demo/demo.mp4>
+   - Canonical repository mirror: <https://github.com/icuic/video-voice-translator/blob/amd-track1-video-voice-translator/data/demo/demo.mp4>
    - Guide: `submissions/track1-video-voice-translator/DEMO_VIDEO.md`
 
 4. **Supplementary Material**
@@ -53,7 +53,7 @@ Play the bundled video inside this submission folder:
 
 Or open the canonical repository mirror:
 
-- <https://github.com/icuic/video-voice-translator/blob/repro-bd6d3e22/data/demo/demo.mp4>
+- <https://github.com/icuic/video-voice-translator/blob/amd-track1-video-voice-translator/data/demo/demo.mp4>
 
 ### Option B: Reproduce locally
 
