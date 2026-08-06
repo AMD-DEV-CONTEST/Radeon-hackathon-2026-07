@@ -10,6 +10,7 @@ import unittest
 from copy import deepcopy
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import patch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -31,6 +32,7 @@ from evaluation.benchmark_agent import (  # noqa: E402
     validate_request_configuration_evidence as validate_benchmark_configuration,
 )
 from evaluation.build_runtime_proof import (  # noqa: E402
+    _recompute_soak_from_sources,
     _validate_soak_acceptance,
     _winner_matrix_contract,
 )
@@ -2435,6 +2437,110 @@ class FinalWinnerSoakTests(unittest.TestCase):
 
         self.assertTrue(report["passed"])
 
+    def test_final_builder_recomputes_soak_and_rejects_source_tampering(self) -> None:
+        winner, stability, benchmark, binding, runtime, proofs = self._evidence()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            winner_path = root / "winner.json"
+            stability_path = root / "stability.json"
+            benchmark_path = root / "benchmark.json"
+            binding_path = root / "binding.txt"
+            server_path = root / "server.log"
+            for path, content in (
+                (winner_path, "{}\n"),
+                (stability_path, "{}\n"),
+                (benchmark_path, "benchmark-source\n"),
+                (binding_path, "binding-source\n"),
+                (server_path, "llama_server_exit_code=143\n"),
+            ):
+                path.write_text(content, encoding="utf-8")
+            source_binding = {**binding, "server_log": server_path.name}
+            report = build_soak_report(
+                winner,
+                stability,
+                benchmark,
+                source_binding,
+                runtime,
+                stability_runtime_proofs=proofs,
+                server_text=server_path.read_text(encoding="utf-8"),
+                minimum_duration_seconds=1800.0,
+                maximum_vram_percent=90.0,
+            )
+            report["sources"] = {
+                "winner_report_basename": winner_path.name,
+                "winner_report_sha256": hashlib.sha256(
+                    winner_path.read_bytes()
+                ).hexdigest(),
+                "stability_report_basename": stability_path.name,
+                "stability_report_sha256": hashlib.sha256(
+                    stability_path.read_bytes()
+                ).hexdigest(),
+                "benchmark_basename": benchmark_path.name,
+                "benchmark_sha256": hashlib.sha256(
+                    benchmark_path.read_bytes()
+                ).hexdigest(),
+                "binding_basename": binding_path.name,
+                "binding_sha256": hashlib.sha256(
+                    binding_path.read_bytes()
+                ).hexdigest(),
+                "server_log_basename": server_path.name,
+                "server_log_sha256": hashlib.sha256(
+                    server_path.read_bytes()
+                ).hexdigest(),
+            }
+            with (
+                patch(
+                    "evaluation.build_runtime_proof.load_report",
+                    return_value=benchmark,
+                ),
+                patch(
+                    "evaluation.build_runtime_proof.load_binding",
+                    return_value=source_binding,
+                ),
+                patch(
+                    "evaluation.build_runtime_proof.validate_binding",
+                    return_value=runtime,
+                ),
+            ):
+                recomputed = _recompute_soak_from_sources(
+                    report,
+                    winner_report=winner,
+                    stability_report=stability,
+                    stability_runtime_proofs=proofs,
+                    winner_report_path=winner_path,
+                    stability_report_path=stability_path,
+                    benchmark_path=benchmark_path,
+                    binding_path=binding_path,
+                )
+                self.assertTrue(recomputed["passed"])
+
+                tampered_report = deepcopy(report)
+                tampered_report["raw_health"]["request_count"] += 1
+                with self.assertRaisesRegex(ValueError, "source-bound recomputation"):
+                    _recompute_soak_from_sources(
+                        tampered_report,
+                        winner_report=winner,
+                        stability_report=stability,
+                        stability_runtime_proofs=proofs,
+                        winner_report_path=winner_path,
+                        stability_report_path=stability_path,
+                        benchmark_path=benchmark_path,
+                        binding_path=binding_path,
+                    )
+
+                benchmark_path.write_text("tampered-source\n", encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "source-bound recomputation"):
+                    _recompute_soak_from_sources(
+                        report,
+                        winner_report=winner,
+                        stability_report=stability,
+                        stability_runtime_proofs=proofs,
+                        winner_report_path=winner_path,
+                        stability_report_path=stability_path,
+                        benchmark_path=benchmark_path,
+                        binding_path=binding_path,
+                    )
+
     def test_long_soak_accepts_quality_negative_a_with_b_reference(self) -> None:
         winner, stability, benchmark, binding, runtime, proofs = self._evidence()
         self._use_quality_negative_a(winner)
@@ -2747,6 +2853,8 @@ class FinalRuntimeProofContractTests(unittest.TestCase):
                 "configuration": {"repetitions": 3},
             },
         }
+        soak_configuration = {"repetitions": 9}
+        soak_request_case_ids = ["case-1"] * 9
         stability = {
             "run_count": 5,
             "run_ids": [f"stable-{index}" for index in range(5)],
@@ -2798,7 +2906,11 @@ class FinalRuntimeProofContractTests(unittest.TestCase):
                     "request_errors": [],
                     "model_errors": [],
                 },
-                "workload": winner["fixed_workload"],
+                "workload": {
+                    "case_ids": ["case-1"],
+                    "request_case_ids": soak_request_case_ids,
+                    "configuration": soak_configuration,
+                },
                 "sources": {
                     "winner_report_basename": winner_path.name,
                     "winner_report_sha256": hashlib.sha256(b"{}\n").hexdigest(),
@@ -2821,6 +2933,31 @@ class FinalRuntimeProofContractTests(unittest.TestCase):
                 prior_run_ids={"matrix-H", *stability["run_ids"]},
             )
             self.assertEqual(summary["run_id"], "soak-final")
+
+            changed_configuration = deepcopy(soak)
+            changed_configuration["workload"]["configuration"]["warmup"] = 4
+            with self.assertRaisesRegex(ValueError, "configuration differs"):
+                _validate_soak_acceptance(
+                    changed_configuration,
+                    winner_report=winner,
+                    winner_report_path=winner_path,
+                    stability_report_path=stability_path,
+                    stability_evidence=stability,
+                    prior_run_ids={"matrix-H", *stability["run_ids"]},
+                )
+
+            reduced_repetitions = deepcopy(soak)
+            reduced_repetitions["workload"]["configuration"]["repetitions"] = 2
+            reduced_repetitions["workload"]["request_case_ids"] = ["case-1"] * 2
+            with self.assertRaisesRegex(ValueError, "cannot be below"):
+                _validate_soak_acceptance(
+                    reduced_repetitions,
+                    winner_report=winner,
+                    winner_report_path=winner_path,
+                    stability_report_path=stability_path,
+                    stability_evidence=stability,
+                    prior_run_ids={"matrix-H", *stability["run_ids"]},
+                )
 
             for field, value in (
                 ("passed", False),

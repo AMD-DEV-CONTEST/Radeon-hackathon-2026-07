@@ -625,6 +625,7 @@ input except the two new output files. If A passes 300/300, omit
 ```bash
 MATRIX_ROOT=/absolute/path/to/radeon-target-matrix
 FINAL_ROOT=/absolute/path/to/final-evidence
+SOAK_ROOT=/absolute/path/to/final-winner-soak-lifecycle
 WINNER_LABEL=G
 
 python evaluation/build_runtime_proof.py \
@@ -639,6 +640,8 @@ python evaluation/build_runtime_proof.py \
   --candidate H "${MATRIX_ROOT}/H/evidence/agent-benchmark.json" "${MATRIX_ROOT}/H/evidence/binding-manifest.txt" \
   --stability-report "${FINAL_ROOT}/final-winner-stability.json" \
   --soak-report "${FINAL_ROOT}/final-winner-soak.json" \
+  --soak-benchmark "${SOAK_ROOT}/${WINNER_LABEL}/evidence/agent-benchmark.json" \
+  --soak-binding "${SOAK_ROOT}/${WINNER_LABEL}/evidence/binding-manifest.txt" \
   --reference-binding "${MATRIX_ROOT}/B/evidence/binding-manifest.txt" \
   --winner-binding "${MATRIX_ROOT}/${WINNER_LABEL}/evidence/binding-manifest.txt" \
   --runtime-proof-output "${FINAL_ROOT}/runtime-proof.json" \

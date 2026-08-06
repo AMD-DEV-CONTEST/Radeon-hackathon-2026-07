@@ -35,6 +35,7 @@ try:
         FORMAL_MIN_DURATION_SECONDS,
         _load_stability_runtime_proofs,
         _validate_stability,
+        build_soak_report,
     )
 except ModuleNotFoundError:  # Direct ``python evaluation/build_runtime_proof.py``.
     from compare_benchmarks import (  # type: ignore[no-redef]
@@ -60,6 +61,7 @@ except ModuleNotFoundError:  # Direct ``python evaluation/build_runtime_proof.py
         FORMAL_MIN_DURATION_SECONDS,
         _load_stability_runtime_proofs,
         _validate_stability,
+        build_soak_report,
     )
 
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -560,9 +562,35 @@ def _validate_soak_acceptance(
     fixed_workload = winner_report.get("fixed_workload")
     if not isinstance(workload, dict) or not isinstance(fixed_workload, dict):
         raise ValueError("Long-soak workload binding is missing")
-    for field in ("case_ids", "request_case_ids", "configuration"):
-        if workload.get(field) != fixed_workload.get(field):
-            raise ValueError(f"Long-soak workload differs from Winner: {field}")
+    case_ids = workload.get("case_ids")
+    if not isinstance(case_ids, list) or case_ids != fixed_workload.get("case_ids"):
+        raise ValueError("Long-soak workload differs from Winner: case_ids")
+    soak_configuration = workload.get("configuration")
+    winner_configuration = fixed_workload.get("configuration")
+    if not isinstance(soak_configuration, dict) or not isinstance(
+        winner_configuration, dict
+    ):
+        raise ValueError("Long-soak benchmark configuration is missing")
+    soak_repetitions = soak_configuration.get("repetitions")
+    winner_repetitions = winner_configuration.get("repetitions")
+    if (
+        isinstance(soak_repetitions, bool)
+        or not isinstance(soak_repetitions, int)
+        or isinstance(winner_repetitions, bool)
+        or not isinstance(winner_repetitions, int)
+        or soak_repetitions < winner_repetitions
+    ):
+        raise ValueError("Long-soak repetitions cannot be below the Winner workload")
+    invariant_soak_configuration = dict(soak_configuration)
+    invariant_winner_configuration = dict(winner_configuration)
+    invariant_soak_configuration.pop("repetitions", None)
+    invariant_winner_configuration.pop("repetitions", None)
+    if invariant_soak_configuration != invariant_winner_configuration:
+        raise ValueError("Long-soak configuration differs from Winner")
+    if fixed_workload.get("request_case_ids") != case_ids * winner_repetitions:
+        raise ValueError("Winner request workload is inconsistent")
+    if workload.get("request_case_ids") != case_ids * soak_repetitions:
+        raise ValueError("Long-soak request workload is inconsistent")
     sources = soak.get("sources")
     required_source_fields = {
         "winner_report_basename",
@@ -608,6 +636,73 @@ def _validate_soak_acceptance(
     }
 
 
+def _recompute_soak_from_sources(
+    soak: dict[str, Any],
+    *,
+    winner_report: dict[str, Any],
+    stability_report: dict[str, Any],
+    stability_runtime_proofs: list[dict[str, Any]],
+    winner_report_path: Path,
+    stability_report_path: Path,
+    benchmark_path: Path,
+    binding_path: Path,
+) -> dict[str, Any]:
+    """Rebuild the soak report from immutable source files before acceptance."""
+
+    benchmark = load_report(benchmark_path, "soak")
+    binding = load_binding(binding_path, "soak")
+    runtime = validate_binding(
+        benchmark,
+        benchmark_path,
+        binding_path,
+        binding,
+        "soak",
+    )
+    server_name = _safe_basename(binding.get("server_log"), "soak server log")
+    server_path = _require_regular_file(
+        binding_path.parent / server_name,
+        "soak server log",
+    )
+    recomputed = build_soak_report(
+        winner_report,
+        stability_report,
+        benchmark,
+        binding,
+        runtime,
+        stability_runtime_proofs=stability_runtime_proofs,
+        server_text=server_path.read_text(encoding="utf-8", errors="replace"),
+        minimum_duration_seconds=soak.get("minimum_duration_seconds"),
+        maximum_vram_percent=soak.get("maximum_vram_percent_strict"),
+    )
+    recomputed["sources"] = {
+        "winner_report_basename": _safe_basename(
+            winner_report_path.name, "winner report source"
+        ),
+        "winner_report_sha256": file_sha256(winner_report_path),
+        "stability_report_basename": _safe_basename(
+            stability_report_path.name, "stability report source"
+        ),
+        "stability_report_sha256": file_sha256(stability_report_path),
+        "benchmark_basename": _safe_basename(
+            benchmark_path.name, "soak benchmark source"
+        ),
+        "benchmark_sha256": file_sha256(benchmark_path),
+        "binding_basename": _safe_basename(
+            binding_path.name, "soak binding source"
+        ),
+        "binding_sha256": file_sha256(binding_path),
+        "server_log_basename": server_name,
+        "server_log_sha256": file_sha256(server_path),
+    }
+    expected = dict(soak)
+    expected.pop("created_at_utc", None)
+    observed = dict(recomputed)
+    observed.pop("created_at_utc", None)
+    if observed != expected:
+        raise ValueError("Long-soak report differs from source-bound recomputation")
+    return recomputed
+
+
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--winner-report", type=Path, required=True)
@@ -629,6 +724,8 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--stability-report", type=Path, required=True)
     parser.add_argument("--soak-report", type=Path, required=True)
+    parser.add_argument("--soak-benchmark", type=Path, required=True)
+    parser.add_argument("--soak-binding", type=Path, required=True)
     reference = parser.add_mutually_exclusive_group(required=True)
     reference.add_argument("--reference-binding", type=Path)
     reference.add_argument(
@@ -650,6 +747,10 @@ def main(argv: list[str] | None = None) -> int:
         args.stability_report, "stability report"
     )
     soak_report_path = _require_regular_file(args.soak_report, "long-soak report")
+    soak_benchmark_path = _require_regular_file(
+        args.soak_benchmark, "long-soak benchmark"
+    )
+    soak_binding_path = _require_regular_file(args.soak_binding, "long-soak binding")
     reference_binding_path = _require_regular_file(
         args.reference_binding, "reference binding"
     )
@@ -662,6 +763,8 @@ def main(argv: list[str] | None = None) -> int:
         winner_report_path,
         stability_report_path,
         soak_report_path,
+        soak_benchmark_path,
+        soak_binding_path,
         reference_binding_path,
         winner_binding_path,
     }
@@ -840,8 +943,18 @@ def main(argv: list[str] | None = None) -> int:
             "Stability lifecycles must be five fresh runs after the Winner matrix"
         )
     soak = load_json_object(soak_report_path, "long-soak report")
-    soak_summary = _validate_soak_acceptance(
+    recomputed_soak = _recompute_soak_from_sources(
         soak,
+        winner_report=recomputed_winner,
+        stability_report=stability,
+        stability_runtime_proofs=stability_runtime_proofs,
+        winner_report_path=winner_report_path,
+        stability_report_path=stability_report_path,
+        benchmark_path=soak_benchmark_path,
+        binding_path=soak_binding_path,
+    )
+    soak_summary = _validate_soak_acceptance(
+        recomputed_soak,
         winner_report=recomputed_winner,
         winner_report_path=winner_report_path,
         stability_report_path=stability_report_path,

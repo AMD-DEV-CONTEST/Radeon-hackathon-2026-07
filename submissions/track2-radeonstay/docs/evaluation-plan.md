@@ -425,6 +425,12 @@ all quality/safety gates, 100% request success, zero failed model calls, no OOM/
 fatal/crash marker, and no source/model/binary/hardware/configuration drift. The
 soak also requires same-GPU energy-window evidence:
 
+The soak may increase only the benchmark `repetitions` value so that its measured
+window reaches 1,800 seconds. Its ordered 16-case set, concurrency levels,
+warmup and quality thresholds remain identical to the Winner; the final builder
+recomputes the repeated request sequence and rejects reduced repetitions or any
+other configuration drift.
+
 ```bash
 python evaluation/validate_soak.py \
   --winner-report evaluation/results/radeon-target-matrix/winner-selection.json \
@@ -455,6 +461,7 @@ quality-qualified candidates and no quality-negative argument:
 ```bash
 MATRIX_ROOT=/absolute/path/to/radeon-target-matrix
 FINAL_ROOT=/absolute/path/to/final-evidence
+SOAK_ROOT=/absolute/path/to/final-winner-soak-lifecycle
 WINNER_LABEL=G
 
 python evaluation/build_runtime_proof.py \
@@ -469,6 +476,8 @@ python evaluation/build_runtime_proof.py \
   --candidate H "${MATRIX_ROOT}/H/evidence/agent-benchmark.json" "${MATRIX_ROOT}/H/evidence/binding-manifest.txt" \
   --stability-report "${FINAL_ROOT}/final-winner-stability.json" \
   --soak-report "${FINAL_ROOT}/final-winner-soak.json" \
+  --soak-benchmark "${SOAK_ROOT}/${WINNER_LABEL}/evidence/agent-benchmark.json" \
+  --soak-binding "${SOAK_ROOT}/${WINNER_LABEL}/evidence/binding-manifest.txt" \
   --reference-binding "${MATRIX_ROOT}/A/evidence/binding-manifest.txt" \
   --winner-binding "${MATRIX_ROOT}/${WINNER_LABEL}/evidence/binding-manifest.txt" \
   --runtime-proof-output "${FINAL_ROOT}/runtime-proof.json" \
@@ -481,6 +490,7 @@ supply A's manifest plus exactly the seven B–H quality-qualified candidates:
 ```bash
 MATRIX_ROOT=/absolute/path/to/radeon-target-matrix
 FINAL_ROOT=/absolute/path/to/final-evidence
+SOAK_ROOT=/absolute/path/to/final-winner-soak-lifecycle
 WINNER_LABEL=G
 
 python evaluation/build_runtime_proof.py \
@@ -495,6 +505,8 @@ python evaluation/build_runtime_proof.py \
   --candidate H "${MATRIX_ROOT}/H/evidence/agent-benchmark.json" "${MATRIX_ROOT}/H/evidence/binding-manifest.txt" \
   --stability-report "${FINAL_ROOT}/final-winner-stability.json" \
   --soak-report "${FINAL_ROOT}/final-winner-soak.json" \
+  --soak-benchmark "${SOAK_ROOT}/${WINNER_LABEL}/evidence/agent-benchmark.json" \
+  --soak-binding "${SOAK_ROOT}/${WINNER_LABEL}/evidence/binding-manifest.txt" \
   --reference-binding "${MATRIX_ROOT}/B/evidence/binding-manifest.txt" \
   --winner-binding "${MATRIX_ROOT}/${WINNER_LABEL}/evidence/binding-manifest.txt" \
   --runtime-proof-output "${FINAL_ROOT}/runtime-proof.json" \

@@ -349,7 +349,13 @@ def _redact_for_display(value: Any) -> Any:
         for key, item in value.items():
             display_key = str(key)
             normalized_key = display_key.casefold().replace("-", "_")
-            if _is_sensitive_display_key(display_key) or (
+            if normalized_key == "secret_retained" and type(item) is bool:
+                # Safe derived privacy evidence; non-boolean values under the
+                # same sensitive-looking key remain redacted below.
+                redacted[display_key] = item
+            elif normalized_key == "secret_retained" or _is_sensitive_display_key(
+                display_key
+            ) or (
                 sensitive_descriptor
                 and normalized_key
                 in {"argument", "content", "data", "default", "value"}

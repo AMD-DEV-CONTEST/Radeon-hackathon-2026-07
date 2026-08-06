@@ -141,18 +141,25 @@ def _redact_api_payload(value: Any) -> Any:
     if isinstance(model_fields, dict) and callable(model_copy):
         updates: dict[str, Any] = {}
         for field_name, field_info in model_fields.items():
+            field_value = getattr(value, field_name)
+            if field_name == "secret_retained" and type(field_value) is bool:
+                # This typed PrivacyProof flag is evidence that no secret was
+                # retained, not secret material. Only the boolean form is safe.
+                updates[field_name] = field_value
+                continue
             if _is_sensitive_api_key(field_name):
                 if getattr(field_info, "exclude", False) is not True:
                     updates[field_name] = "[REDACTED]"
                 continue
-            updates[field_name] = _redact_api_payload(
-                getattr(value, field_name)
-            )
+            updates[field_name] = _redact_api_payload(field_value)
         return model_copy(update=updates, deep=True)
     if isinstance(value, Mapping):
         return {
             str(key): (
-                "[REDACTED]"
+                item
+                if str(key).casefold().replace("-", "_") == "secret_retained"
+                and type(item) is bool
+                else "[REDACTED]"
                 if _is_sensitive_api_key(key)
                 else _redact_api_payload(item)
             )

@@ -1576,7 +1576,6 @@ def _safe_scope_requests_write(value: str) -> bool:
             "更新订单",
             "创建工单",
             "更新工单",
-            "保存偏好",
             "删除偏好",
             "启用记忆",
             "关闭记忆",
@@ -1596,7 +1595,10 @@ def _safe_scope_requests_write(value: str) -> bool:
         r"(?:保留|预订|订房|锁房|锁定房间|暂留)",
         r"(?:修改|更新|改为|改到|延长|延到).{0,24}(?:订单|预订|工单|接送)",
         r"(?:创建|新建|申请|提交|登记|安排|办理).{0,24}(?:工单|接送|接机|送机|班车)",
-        r"(?:启用|开启|关闭|禁用|保存|记住|删除|清除).{0,24}(?:记忆|偏好)",
+        r"(?:启用|开启|关闭|禁用|记住|删除|清除).{0,24}(?:记忆|偏好)",
+        # Past-participle descriptions such as ``已保存的偏好`` name
+        # existing local state.  Imperative ``保存偏好`` remains a write.
+        r"(?<!已)(?<!已经)保存(?!的).{0,24}(?:记忆|偏好)",
         r"\b(?:hold|reserve|book|lock|secure)\b.{0,32}\b(?:room|stay|reservation)\b",
         r"\b(?:modify|change|update|extend|reschedule)\b.{0,32}"
         r"\b(?:booking|reservation|ticket|transfer)\b",

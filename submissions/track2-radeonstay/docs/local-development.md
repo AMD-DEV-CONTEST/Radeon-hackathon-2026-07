@@ -76,8 +76,8 @@ this maintenance gate.
 
 ## C2 candidate release gate
 
-Recorded on 2026-08-06 against the five-file functional/runtime patch before
-the final documentation freeze, using the project-local Python 3.12.13
+Recorded on 2026-08-06 against the C2 v2 privacy/evidence maintenance patch
+before the final documentation freeze, using the project-local Python 3.12.13
 environment:
 
 | Check | Result |
@@ -86,8 +86,8 @@ environment:
 | `compileall -q src/radeonstay evaluation tests` | Passed |
 | `bash -n` over all six `scripts/*.sh` files | Passed |
 | Ruff over `src/radeonstay`, `evaluation`, and `tests` | Passed |
-| Full pytest collection | `371` tests |
-| Full pytest execution | `371 passed`, `14` deprecation warnings |
+| Full pytest collection | `373` tests |
+| Full pytest execution | `373 passed`, `14` deprecation warnings |
 
 The warnings are Gradio 6.0 migration notices; there were no failed, skipped,
 or xfailed tests. This local gate proves source consistency only and is not

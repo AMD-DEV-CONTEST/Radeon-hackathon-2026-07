@@ -15,8 +15,10 @@ from radeonstay.contracts import (
     JourneyView,
     PendingAction,
     PlanStep,
+    PrivacyProof,
     SessionProjection,
     ToolReceipt,
+    TrustCard,
 )
 from radeonstay.domain import NotFoundError, PermissionDenied, ValidationError
 from radeonstay.main import create_application
@@ -450,6 +452,16 @@ class ApiBoundaryTests(unittest.TestCase):
             ],
             model_backend="local-test",
             elapsed_ms=1.0,
+            journey=JourneyView(
+                known_facts={
+                    "privacy_proof": {"secret_retained": False},
+                    "untrusted_mapping": {"secret_retained": secret},
+                }
+            ),
+            trust=TrustCard(
+                model_backend="local-test",
+                privacy=PrivacyProof(mode="partitioned", secret_retained=False),
+            ),
         )
 
         with TestClient(create_api(service)) as client:
@@ -467,6 +479,19 @@ class ApiBoundaryTests(unittest.TestCase):
         self.assertNotIn(secret, response.text)
         self.assertGreaterEqual(response.text.count("[REDACTED]"), 8)
         self.assertEqual(response.json()["receipts"][0]["data"]["prompt_tokens"], 17)
+        self.assertIs(response.json()["trust"]["privacy"]["secret_retained"], False)
+        self.assertIs(
+            response.json()["journey"]["known_facts"]["privacy_proof"][
+                "secret_retained"
+            ],
+            False,
+        )
+        self.assertEqual(
+            response.json()["journey"]["known_facts"]["untrusted_mapping"][
+                "secret_retained"
+            ],
+            "[REDACTED]",
+        )
 
 
 if __name__ == "__main__":

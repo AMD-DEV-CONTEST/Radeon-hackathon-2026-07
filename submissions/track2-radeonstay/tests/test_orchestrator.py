@@ -67,6 +67,7 @@ from radeonstay.orchestrator import (  # noqa: E402
     _recovery_after_interruption,
     _recovery_policy_citations,
     _recovery_policy_topics,
+    _safe_scope_requests_write,
     _verified_booking_selection,
     _verified_ticket_selection,
     _write_target_fingerprint,
@@ -992,6 +993,18 @@ def test_recovery_impact_preserves_confirmed_stay_across_transport_repreview() -
 
 
 class ContractSecurityTests(unittest.TestCase):
+    def test_privacy_scope_distinguishes_saved_state_from_write_commands(self) -> None:
+        self.assertFalse(
+            _safe_scope_requests_write(
+                "请只读查看我名下当前订单、已保存的本地偏好，并引用延迟到店政策；"
+                "不要执行任何业务写入。"
+            )
+        )
+        self.assertFalse(_safe_scope_requests_write("查看我已经保存的偏好"))
+        self.assertFalse(_safe_scope_requests_write("查看我保存的偏好"))
+        self.assertTrue(_safe_scope_requests_write("保存偏好 quiet_room=high_floor"))
+        self.assertTrue(_safe_scope_requests_write("查看偏好，然后保存新的偏好"))
+
     def test_resumable_preview_rejects_private_binding_metadata(self) -> None:
         with self.assertRaisesRegex(ValueError, "private capability metadata"):
             PendingActionView(

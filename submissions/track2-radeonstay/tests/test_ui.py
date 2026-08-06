@@ -1374,6 +1374,8 @@ def test_recursive_display_redaction_never_exposes_secret_tokens() -> None:
     secret = "super-secret-confirmation-token"
     displayed = _redact_for_display(
         {
+            "privacy": {"secret_retained": False},
+            "untrusted": {"secret_retained": secret},
             "receipt": {
                 "confirmation_token": secret,
                 "arguments": {
@@ -1405,6 +1407,8 @@ def test_recursive_display_redaction_never_exposes_secret_tokens() -> None:
     assert displayed["receipt"]["nested"][0]["prompt_tokens"] == 17
     assert displayed["receipt"]["confirmation_token"] == "[REDACTED]"
     assert displayed["receipt"]["arguments"]["value"] == "[REDACTED]"
+    assert displayed["privacy"]["secret_retained"] is False
+    assert displayed["untrusted"]["secret_retained"] == "[REDACTED]"
     assert "nested-private-value" not in repr(displayed)
     assert "private-value" not in repr(displayed)
     assert "private-bearer" not in repr(displayed)
