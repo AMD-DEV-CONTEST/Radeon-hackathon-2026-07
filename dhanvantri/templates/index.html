@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dhanvantri Bot</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo1.png') }}">
+    <style>
+        /* ================= GLOBAL ================= */
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family:'Poppins', sans-serif; background:#0b0b0b; color:white; overflow-x:hidden; cursor:none; }
+
+        /* ================= TRAIL CANVAS ================= */
+        #trailCanvas {
+            position: fixed;
+            top:0; left:0;
+            width:100%;
+            height:100%;
+            pointer-events:none;
+            z-index:1; /* behind UI but above background */
+        }
+
+        /* ================= BACKGROUND ================= */
+        #bg {
+            position: fixed;
+            width:100%;
+            height:100%;
+            z-index:-2;
+        }
+        h1, h2, h3 {
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+p {
+    font-size: 14px;
+    color: #cfcfcf;
+}
+
+.chat-title {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.chat-date {
+    font-size: 11px;
+    color: #888;
+}
+        /* ================= CURSOR ================= */
+        .cursor {
+            width:10px; height:10px;
+            background: gold;
+            border-radius:50%;
+            position: fixed;
+            pointer-events:none;
+            z-index:999;
+            transform:translate(-50%,-50%);
+            box-shadow: 0 0 10px gold;
+        }
+
+        /* ================= APP LAYOUT ================= */
+        .app { display:flex; }
+
+        /* ================= SIDEBAR ================= */
+        .sidebar {
+            width:260px; height:100vh;
+            background:rgba(255,255,255,0.05);
+            backdrop-filter:blur(15px);
+            display:flex; flex-direction:column;
+            padding:60px 15px 15px 15px;
+            position:fixed; top:0; left:0;
+            transition:0.3s;
+            z-index:20;
+        }
+
+        .sidebar.hide { left:-260px; }
+
+        .menu-btn {
+            font-size:28px; cursor:pointer; padding:10px;
+            position:fixed; top:15px; left:15px;
+            z-index:100; color:white;
+        }
+
+        .new-chat { display:block; background:gold; color:black; padding:10px; border-radius:10px; text-align:center; text-decoration:none; margin-bottom:10px; }
+        .search-bar { width:100%; padding:10px; border-radius:20px; border:none; outline:none; background:rgba(255,255,255,0.08); color:white; }
+
+        .chat-list { flex:1; overflow-y:auto; margin-top:10px; }
+        .chat-row { display:flex; align-items:center; justify-content:space-between; gap:6px; }
+        .chat-item { flex:1; padding:8px; margin:5px 0; background:rgba(255,255,255,0.08); border-radius:8px; text-decoration:none; color:white; }
+        .chat-item:hover { background:rgba(255,255,255,0.15); }
+        .chat-row.active .chat-item { background: rgba(255,215,0,0.2); border:1px solid gold; }
+        .delete-btn { opacity:0; transition:0.3s; font-size:13px; padding:4px 6px; border-radius:6px; color:#ff6b6b; }
+        .chat-row:hover .delete-btn { opacity:1; }
+
+        .user-box { margin-top:auto; padding:12px; background:rgba(255,255,255,0.05); border-radius:10px; text-align:center; }
+        .logout-btn { display:block; margin-top:8px; padding:8px; background:gold; color:black; border-radius:8px; text-decoration:none; }
+        #dots::after {
+    content: '';
+    animation: dots 1.2s steps(4, end) infinite;
+}
+
+@keyframes dots {
+    0% { content: ''; }
+    25% { content: '.'; }
+    50% { content: '..'; }
+    75% { content: '...'; }
+    100% { content: ''; }
+}
+        /* ================= MAIN ================= */
+        .main {
+            display:flex; flex-direction:column;
+            height:100vh; padding:20px;
+            margin-left:260px; width:calc(100% - 260px);
+            transition:0.3s;
+            z-index:2; /* above canvas */
+        }
+
+        .main.full { margin-left:0; width:100%; }
+
+        .header { text-align:center; background:rgba(255,255,255,0.05); padding:14px; border-radius:12px; margin-bottom:10px; }
+
+        .wellness { display:flex; gap:10px; margin-bottom:10px; }
+        .card { flex:1; padding:10px; border-radius:10px; background:rgba(255,255,255,0.06); text-align:center; }
+        .card b { color:gold; }
+
+        .chat-area { flex:1; overflow-y:auto; padding-right:5px; }
+        .chat-wrapper {
+    width: 100%;
+    max-width: 800px;
+    margin:0 auto;   /* 🔥 controls chat width */
+}
+        .message { max-width:65%; padding:10px 14px 20px; margin:8px 0; border-radius:12px; position:relative; font-size:14px; }
+        .user { background:linear-gradient(135deg,#FFD700,#C9A227); color:black; margin-left:auto; }
+        .bot { background:#222; }
+        .message .time { position:absolute; bottom:4px; right:10px; font-size:10px; opacity:0.7; }
+
+        .suggestions { display:flex; gap:10px; justify-content:center; margin:10px 0; flex-wrap:wrap; }
+        .suggestions button { padding:8px 14px; border:none; border-radius:20px; background:rgba(255,255,255,0.08); color:white; cursor:pointer; }
+        .suggestions button:hover { background:gold; color:black; }
+
+        .input-form { display:flex; gap:10px; width:100%; }
+        .input-form input { flex:1; padding:14px; border-radius:12px; border:none; outline:none; background:#1c1c1c; color:white; }
+        .input-form button { padding:14px 18px; border:none; border-radius:12px; background:linear-gradient(135deg,#FFD700,#C9A227); color:black; cursor:pointer; }
+
+        .chat-area::-webkit-scrollbar { width:6px; }
+        .chat-area::-webkit-scrollbar-thumb { background:gold; border-radius:10px; }
+
+        @media (max-width:700px){
+            .sidebar {
+        left: -260px;
+        position: fixed;
+        z-index: 50; /* bring above everything */
+    }
+
+    .sidebar.active {
+        left: 0;
+    }
+            .main { margin-left:0; width:100%; }
+            .message { max-width:90%; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- BACKGROUND -->
+    <div id="bg"></div>
+    <canvas id="trailCanvas"></canvas>
+    <div class="cursor" id="cursor"></div>
+
+    <div class="app">
+
+        <!-- SIDEBAR -->
+        <div class="menu-btn" onclick="toggleSidebar()">☰</div>
+        <div class="sidebar" id="sidebar">
+            <h2>🌿 Dhanvantri Bot</h2>
+            <a class="new-chat" href="/new">+ New Chat</a>
+            <input type="text" id="searchChat" placeholder="🔍 Search..." class="search-bar">
+            <div class="chat-list">
+                {% for chat in chats %}
+                <div class="chat-row {% if chat.id == current_chat.id %}active{% endif %}">
+                    <a href="/chat/{{chat.id}}" class="chat-item">
+                        <div class="chat-title">{{chat.title}}</div>
+                        <span class="chat-date">{{chat.display_date}}</span>
+                    </a>
+                    <a href="/delete/{{chat.id}}" class="delete-btn" onclick="return confirm('Delete this chat?')">🗑</a>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="user-box">
+                <div>👤 {{ user }}</div>
+                <a class="logout-btn" href="/logout">Logout</a>
+            </div>
+        </div>
+
+        <!-- MAIN -->
+        <div class="main">
+            <div class="header">
+                <h1>🌿 Dhanvantri - Your Daily Health Companion</h1>
+            </div>
+
+            <div class="wellness">
+                <div class="card">
+                    <b>Daily Health Tip</b>
+                    <p>{{tip}}</p>
+                </div>
+                <div class="card">
+                    <b>Yoga of the Day</b>
+                    <p>{{yoga}}</p>
+                </div>
+            </div>
+
+            <div class="chat-area" id="chatArea">
+    <div class="chat-wrapper">
+    {% if current_chat.messages|length == 0 %}
+        <div class="welcome">
+            <h2>🌿 Welcome to Dhanvantri</h2>
+            <p>Describe your symptoms to get Ayurvedic guidance.</p>
+        </div>
+    {% else %}
+        {% for msg in current_chat.messages %}
+            <div class="message {{msg.role}}">
+                {{ msg.content | safe }}
+                <div class="time">{{msg.time}}</div>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- ALWAYS PRESENT -->
+    
+
+    <div id="typing" style="display:none; padding:10px; color:gold;">
+        🌿 Dhanvantri is typing<span id="dots"></span>
+    </div>
+    </div>
+</div>
+
+            <div class="suggestions">
+                <button onclick="ask('I have fever')">Fever</button>
+                <button onclick="ask('I have cough')">Cough</button>
+                <button onclick="ask('I have allergy')">Allergy</button>
+                <button onclick="ask('I have stomach pain')">Stomach</button>
+            </div>
+
+            <form method="POST" class="input-form" onsubmit="sendMessage(event)">
+                <input type="text" name="question" placeholder="Describe your symptoms..." required>
+                <button type="submit">Ask</button>
+            </form>
+        </div>
+
+    </div>
+
+    <script>
+        /* SIDEBAR TOGGLE */
+        function toggleSidebar() {
+    let sidebar = document.getElementById("sidebar");
+
+    if (window.innerWidth <= 700) {
+        sidebar.classList.toggle("active"); // mobile behavior
+    } else {
+        sidebar.classList.toggle("hide");   // desktop behavior
+        document.querySelector(".main").classList.toggle("full");
+    }
+}
+        function showTyping() {
+    document.getElementById("typing").style.display = "block";
+}
+
+function hideTyping() {
+    document.getElementById("typing").style.display = "none";
+}
+
+        /* AUTO SCROLL CHAT */
+        window.onload = () => {
+    setTimeout(() => {
+        const chat = document.querySelector(".chat-wrapper");
+        chat.scrollTo({
+            top: chat.scrollHeight,
+            behavior: "smooth"
+        });
+    }, 100);
+};
+
+        /* SEARCH */
+        document.getElementById("searchChat").addEventListener("keyup", function() {
+            let value = this.value.toLowerCase();
+            document.querySelectorAll(".chat-row").forEach(row => {
+                row.style.display = row.innerText.toLowerCase().includes(value) ? "flex" : "none";
+            });
+        });
+
+        /* QUICK ASK BUTTONS */
+        function ask(text) { document.querySelector("input[name='question']").value = text; }
+        function scrollToTopLatest() {
+    const messages = document.querySelectorAll(".chat-wrapper .message");
+
+    if (messages.length > 0) {
+        const lastMsg = messages[messages.length - 1];
+
+        lastMsg.scrollIntoView({
+            behavior: "smooth",
+            block: "start"   // 🔥 THIS puts it at TOP
+        });
+    }
+}
+        /* CURSOR */
+        const cursor = document.getElementById("cursor");
+        window.addEventListener("mousemove", e => { cursor.style.left = e.clientX + "px"; cursor.style.top = e.clientY + "px"; });
+
+        /* CURSOR TRAIL */
+        const canvas = document.getElementById("trailCanvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        let stars = [];
+        window.addEventListener("mousemove", e => { stars.push({x:e.clientX, y:e.clientY, size:2, life:40}); });
+
+        function animateStars() {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            for(let i=0;i<stars.length;i++){
+                let s = stars[i];
+                ctx.beginPath();
+                ctx.arc(s.x,s.y,s.size,0,Math.PI*2);
+                ctx.fillStyle = `rgba(255,215,0,${s.life/40})`;
+                ctx.fill();
+                s.size*=0.95; s.life--;
+                if(s.life<=0){ stars.splice(i,1); i--; }
+            }
+            requestAnimationFrame(animateStars);
+        }
+        
+        function scrollToLatestBotMessage() {
+    const chat = document.querySelector(".chat-wrapper");
+    const messages = chat.querySelectorAll(".message");
+
+    if (messages.length > 0) {
+        const lastMsg = messages[messages.length - 1];
+
+        chat.scrollTo({
+            top: lastMsg.offsetTop,
+            behavior: "smooth"
+        });
+    }
+}
+        function addMessage(text, role) {
+    const chat = document.querySelector(".chat-wrapper");
+
+    const div = document.createElement("div");
+    div.className = "message " + role;
+    div.innerHTML = text;
+
+    chat.appendChild(div);
+}
+
+function scrollToBottom() {
+    const chat = document.querySelector(".chat-wrapper");
+    chat.scrollTo({
+        top: chat.scrollHeight,
+        behavior: "smooth"
+    });
+}
+        
+        animateStars();
+
+        /* THREE JS BACKGROUND */
+        let scene = new THREE.Scene();
+        let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        let renderer = new THREE.WebGLRenderer({alpha:true});
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.domElement.style.position="fixed";
+        renderer.domElement.style.zIndex="-2";
+        document.getElementById("bg").appendChild(renderer.domElement);
+        camera.position.z = 5;
+
+        const geometry = new THREE.BufferGeometry();
+        const count = 1200;
+        const positions = new Float32Array(count*3);
+        for(let i=0;i<count*3;i++) positions[i]=(Math.random()-0.5)*10;
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions,3));
+        const material = new THREE.PointsMaterial({color:0xFFD700, size:0.02});
+        const points = new THREE.Points(geometry, material);
+        scene.add(points);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            points.rotation.y += 0.0008;
+            renderer.render(scene, camera);
+        }
+        animate();
+        
+        /* RESIZE HANDLER */
+        window.addEventListener("resize", () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth/window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+        window.addEventListener("load", () => {
+    hideTyping();
+    setTimeout(scrollToTopLatest, 150);
+});
+
+async function sendMessage(e) {
+    e.preventDefault();
+
+    console.log("sendMessage triggered"); // DEBUG
+
+    const input = document.querySelector("input[name='question']");
+    const text = input.value.trim();
+
+    if (!text) return;
+
+    addMessage(text, "user");
+    input.value = "";
+    scrollToTopLatest();
+
+    const chat = document.querySelector(".chat-wrapper");
+    const typing = document.getElementById("typing");
+
+    if (!typing) {
+        console.error("Typing element missing!");
+        return;
+    }
+
+    chat.appendChild(typing);
+    showTyping();
+
+    const typingDelay = new Promise(resolve => setTimeout(resolve, 2000));
+
+    const responsePromise = fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+    question: text,
+    chat_id: "{{ current_chat.id }}"
+})
+    }).then(res => res.json());
+
+    try {
+        const [data] = await Promise.all([responsePromise, typingDelay]);
+
+        hideTyping();
+
+        addMessage(data.reply, "bot");
+        scrollToTopLatest();
+
+    } catch (err) {
+        console.error("Chat error:", err);
+        hideTyping();
+    }
+}
+window.sendMessage = sendMessage;
+    </script>
+
+</body>
+</html>//index.html

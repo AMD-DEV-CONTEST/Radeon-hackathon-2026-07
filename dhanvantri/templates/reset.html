@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Reset Password - Dhanvantri</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+
+<style>
+body {
+    margin:0;
+    font-family:'Poppins',sans-serif;
+    background:#0b0b0b;
+    color:white;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    overflow:hidden;
+    flex-direction:column;
+}
+
+/* BACKGROUND */
+#bg{position:fixed;width:100%;height:100%;z-index:-2;}
+#trailCanvas{position:fixed;top:0;left:0;pointer-events:none;z-index:-1;}
+
+.cursor{
+    width:10px;height:10px;background:gold;border-radius:50%;
+    position:fixed;pointer-events:none;
+    transform:translate(-50%,-50%);
+    box-shadow:0 0 10px gold,0 0 20px gold;
+}
+
+/* WRAPPER */
+.wrapper{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:20px;
+}
+
+/* LOGO */
+.logo{
+    width:220px;
+}
+
+/* CARD */
+.box{
+    background:rgba(255,255,255,0.05);
+    backdrop-filter:blur(15px);
+    padding:30px;
+    border-radius:18px;
+    width:340px;
+    text-align:center;
+    box-shadow:0 0 30px rgba(255,215,0,0.25);
+}
+
+/* TEXT */
+h2{ color:gold; }
+p{ font-size:14px; opacity:0.8; }
+
+/* INPUT & BUTTON */
+input, button{
+    width:100%;
+    height:48px;
+    padding:0 14px;
+    margin:10px 0;
+    border-radius:12px;
+    border:none;
+    box-sizing:border-box;
+    font-size:14px;
+}
+
+input{
+    background:rgba(255,255,255,0.08);
+    color:white;
+}
+
+button{
+    background:gold;
+    font-weight:600;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#e6c200;
+    box-shadow:0 0 15px gold;
+}
+
+/* EXTRA TEXT */
+.info{
+    font-size:13px;
+    margin-top:5px;
+}
+
+/* SHOW PASSWORD */
+.toggle{
+    font-size:12px;
+    cursor:pointer;
+    color:gold;
+    text-align:right;
+    margin-top:-5px;
+}
+
+/* LINKS */
+a{
+    color:gold;
+    text-decoration:none;
+    display:block;
+    margin-top:12px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="bg"></div>
+<canvas id="trailCanvas"></canvas>
+<div class="cursor" id="cursor"></div>
+
+<div class="wrapper">
+    <img src="{{ url_for('static', filename='logo.png') }}" class="logo">
+
+    <div class="box">
+        <h2>🔒 Reset Password</h2>
+        <p>Create a strong new password</p>
+
+        <form method="POST" onsubmit="return validateForm()">
+
+            <input type="password" id="password" name="password" placeholder="🔑 New Password" required>
+            <div class="toggle" onclick="togglePassword('password')">👁 Show</div>
+
+            <div id="strength" class="info"></div>
+
+            <input type="password" id="confirm" placeholder="🔁 Confirm Password" required>
+            <div class="toggle" onclick="togglePassword('confirm')">👁 Show</div>
+
+            <div id="match" class="info"></div>
+
+            <button type="submit">Update Password</button>
+        </form>
+
+        <a href="/login">← Back to Login</a>
+    </div>
+</div>
+
+<script>
+/* SHOW PASSWORD */
+function togglePassword(id){
+    let field = document.getElementById(id);
+    field.type = field.type === "password" ? "text" : "password";
+}
+
+/* PASSWORD STRENGTH */
+document.getElementById("password").addEventListener("input", function(){
+    let val = this.value;
+    let strength = document.getElementById("strength");
+
+    let score = 0;
+
+    if(val.length >= 6) score++;
+    if(/[A-Z]/.test(val)) score++;
+    if(/[0-9]/.test(val)) score++;
+    if(/[@$!%*?&]/.test(val)) score++;
+
+    if(score <= 1){
+        strength.innerHTML = "❌ Weak password";
+        strength.style.color = "red";
+    }
+    else if(score == 2){
+        strength.innerHTML = "⚠ Medium password";
+        strength.style.color = "orange";
+    }
+    else{
+        strength.innerHTML = "✅ Strong password";
+        strength.style.color = "lightgreen";
+    }
+});
+
+/* PASSWORD MATCH */
+document.getElementById("confirm").addEventListener("input", function(){
+    let pass = document.getElementById("password").value;
+    let confirm = this.value;
+    let match = document.getElementById("match");
+
+    if(confirm === ""){
+        match.innerHTML = "";
+        return;
+    }
+
+    if(pass === confirm){
+        match.innerHTML = "✅ Passwords match";
+        match.style.color = "lightgreen";
+    } else {
+        match.innerHTML = "❌ Passwords do not match";
+        match.style.color = "red";
+    }
+});
+
+/* FINAL VALIDATION */
+function validateForm(){
+    let pass = document.getElementById("password").value;
+    let confirm = document.getElementById("confirm").value;
+
+    if(pass !== confirm){
+        alert("Passwords do not match!");
+        return false;
+    }
+    return true;
+}
+
+/* CURSOR TRAIL */
+const cursor=document.getElementById("cursor");
+const canvas=document.getElementById("trailCanvas");
+const ctx=canvas.getContext("2d");
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight;
+
+let stars=[];
+window.addEventListener("mousemove",e=>{
+    cursor.style.left=e.clientX+"px";
+    cursor.style.top=e.clientY+"px";
+    stars.push({x:e.clientX,y:e.clientY,size:2,life:40});
+});
+
+function animateStars(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for(let i=0;i<stars.length;i++){
+        let s=stars[i];
+        ctx.beginPath();
+        ctx.arc(s.x,s.y,s.size,0,Math.PI*2);
+        ctx.fillStyle=`rgba(255,215,0,${s.life/40})`;
+        ctx.fill();
+        s.size*=0.95;
+        s.life--;
+        if(s.life<=0){ stars.splice(i,1); i--; }
+    }
+    requestAnimationFrame(animateStars);
+}
+animateStars();
+
+/* THREE JS BACKGROUND */
+let scene=new THREE.Scene();
+let camera=new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,1000);
+let renderer=new THREE.WebGLRenderer({alpha:true});
+renderer.setSize(window.innerWidth,window.innerHeight);
+document.getElementById("bg").appendChild(renderer.domElement);
+
+camera.position.z=8;
+
+const geometry=new THREE.BufferGeometry();
+const vertices=[];
+for(let i=0;i<1500;i++){
+    vertices.push((Math.random()-0.5)*20,(Math.random()-0.5)*20,(Math.random()-0.5)*20);
+}
+geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+
+const material=new THREE.PointsMaterial({color:0xFFD700,size:0.02});
+const starsMesh=new THREE.Points(geometry,material);
+scene.add(starsMesh);
+
+function animate(){
+    requestAnimationFrame(animate);
+    starsMesh.rotation.y+=0.0008;
+    renderer.render(scene,camera);
+}
+animate();
+</script>
+
+</body>
+</html>

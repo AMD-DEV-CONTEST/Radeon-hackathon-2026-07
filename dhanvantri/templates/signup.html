@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dhanvantri Signup</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='logo1.png') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+/* ====== BODY & BACKGROUND ====== */
+body{
+    margin:0;
+    font-family:'Poppins',sans-serif;
+    background:#0b0b0b;
+    color:white;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    overflow:hidden;
+    flex-direction:column;
+}
+
+#bg{position:fixed;width:100%;height:100%;z-index:-2;}
+#trailCanvas{position:fixed;top:0;left:0;pointer-events:none;z-index:-1;}
+
+.cursor{
+    width:10px;height:10px;background:gold;border-radius:50%;
+    position:fixed;pointer-events:none;
+    transform:translate(-50%,-50%);
+    box-shadow:0 0 10px gold,0 0 20px gold;
+}
+
+/* ====== WRAPPER ====== */
+.signup-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px; /* space between logo and form */
+}
+
+/* ====== LOGO ====== */
+.signup-logo {
+    width: 225px;
+    display: block;
+}
+
+/* ====== FORM BOX ====== */
+.signup-box{
+    background:rgba(255,255,255,0.05);
+    backdrop-filter:blur(15px);
+    padding:30px;
+    border-radius:18px;
+    width:340px;
+    text-align:center;
+    box-shadow:0 0 30px rgba(255,215,0,0.25);
+}
+
+.signup-box p {
+    margin: 5px 0;
+}
+
+.error{
+    color:red;
+    font-size:13px;
+    margin-bottom:10px;
+}
+
+/* ====== INPUTS ====== */
+input, select{
+    width:100%;
+    height:45px;
+    padding:0 12px;
+    margin:8px 0;
+    border-radius:12px;
+    border:none;
+    background:rgba(255,255,255,0.08);
+    color:white;
+    box-sizing:border-box;
+}
+
+select{
+    appearance:none;
+    -webkit-appearance:none;
+    -moz-appearance:none;
+}
+
+select option{
+    background:#111;
+    color:white;
+}
+
+/* ====== BUTTON ====== */
+button{
+    width:100%;
+    padding:12px;
+    background:gold;
+    border:none;
+    border-radius:12px;
+    cursor:pointer;
+    font-weight:600;
+}
+
+button:hover{
+    background:#e6c200;
+    box-shadow:0 0 15px gold;
+}
+
+/* ====== PASSWORD STRENGTH ====== */
+#strength{
+    font-size:12px;
+    text-align:left;
+    margin-top:-6px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- BACKGROUND & CURSOR -->
+<div id="bg"></div>
+<canvas id="trailCanvas"></canvas>
+<div class="cursor" id="cursor"></div>
+
+<!-- SIGNUP WRAPPER -->
+<div class="signup-wrapper">
+    <!-- LOGO -->
+    <img src="{{ url_for('static', filename='logo.png') }}" class="signup-logo">
+
+    <!-- FORM BOX -->
+    <div class="signup-box">
+        <p style="color: gold;font-size:larger;">Signup</p>
+
+        {% if error %}
+        <p class="error">{{error}}</p>
+        {% endif %}
+
+        <form method="POST">
+            <input type="text" name="username" placeholder="👤 Username" required>
+            <input type="email" name="email" placeholder="📧 Email Address" required>
+            <div style="position:relative;">
+    <input type="password" id="password" name="password" placeholder="🔒 Password" required>
+
+    <i class="fa-solid fa-eye"
+   id="eyeIcon"
+   onclick="togglePassword()"
+   style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; color:gold;">
+</i>
+</div>
+
+<div id="strength"></div>
+            <script>
+function togglePassword(){
+    let pass = document.getElementById("password");
+    let icon = document.getElementById("eyeIcon");
+
+    if(pass.type === "password"){
+        pass.type = "text";
+        icon.classList.remove("fa-eye");
+        icon.classList.add("fa-eye-slash");
+    } else {
+        pass.type = "password";
+        icon.classList.remove("fa-eye-slash");
+        icon.classList.add("fa-eye");
+    }
+}
+</script>
+
+<div id="strength"></div>
+            <div id="strength"></div>
+            <input type="number" name="age" placeholder="🎂 Age" min="1" max="120" required>
+            <select name="gender" required>
+                <option value="">Select Gender</option>
+                <option value="male">👨 Male</option>
+                <option value="female">👩 Female</option>
+                <option value="other">⚧ Other</option>
+            </select>
+            <button type="submit">Signup</button>
+        </form>
+
+        <p>Already have account?<br>
+        <a href="/login" style="color:gold">Login</a></p>
+    </div>
+</div>
+
+<!-- ====== PASSWORD STRENGTH SCRIPT ====== -->
+<script>
+const password=document.getElementById("password");
+const strength=document.getElementById("strength");
+
+password.addEventListener("input",function(){
+    let val=password.value;
+    if(val.length<6){
+        strength.innerHTML="Weak password";
+        strength.style.color="red";
+    }
+    else if(val.match(/[A-Z]/) && val.match(/[0-9]/)){
+        strength.innerHTML="Strong password";
+        strength.style.color="gold";
+    }
+    else{
+        strength.innerHTML="Medium password";
+        strength.style.color="orange";
+    }
+});
+</script>
+
+<!-- ====== CURSOR TRAIL SCRIPT ====== -->
+<script>
+const cursor=document.getElementById("cursor");
+const canvas=document.getElementById("trailCanvas");
+const ctx=canvas.getContext("2d");
+
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight;
+
+let stars=[];
+
+window.addEventListener("mousemove", e => {
+    cursor.style.left=e.clientX+"px";
+    cursor.style.top=e.clientY+"px";
+    stars.push({x:e.clientX, y:e.clientY, size:2, life:40});
+});
+
+function animateStars(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for(let i=0;i<stars.length;i++){
+        let s=stars[i];
+        ctx.beginPath();
+        ctx.arc(s.x,s.y,s.size,0,Math.PI*2);
+        ctx.fillStyle=`rgba(255,215,0,${s.life/40})`;
+        ctx.fill();
+        s.size*=0.95;
+        s.life--;
+        if(s.life<=0){
+            stars.splice(i,1);
+            i--;
+        }
+    }
+    requestAnimationFrame(animateStars);
+}
+
+animateStars();
+</script>
+
+<!-- ====== THREE JS STAR BACKGROUND ====== -->
+<script>
+let scene=new THREE.Scene();
+let camera=new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,1000);
+let renderer=new THREE.WebGLRenderer({alpha:true});
+renderer.setSize(window.innerWidth,window.innerHeight);
+document.getElementById("bg").appendChild(renderer.domElement);
+
+camera.position.z=8;
+
+const geometry=new THREE.BufferGeometry();
+const vertices=[];
+for(let i=0;i<1500;i++){
+    vertices.push((Math.random()-0.5)*20,(Math.random()-0.5)*20,(Math.random()-0.5)*20);
+}
+geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+const material=new THREE.PointsMaterial({color:0xFFD700,size:0.02});
+const starsMesh=new THREE.Points(geometry,material);
+scene.add(starsMesh);
+
+function animate(){
+    requestAnimationFrame(animate);
+    starsMesh.rotation.y+=0.0008;
+    renderer.render(scene,camera);
+}
+animate();
+function togglePassword(){
+    let pass = document.getElementById("password");
+    let icon = document.getElementById("eyeIcon");
+
+    if(pass.type === "password"){
+        pass.type = "text";
+        icon.classList.remove("fa-eye");
+        icon.classList.add("fa-eye-slash");
+    } else {
+        pass.type = "password";
+        icon.classList.remove("fa-eye-slash");
+        icon.classList.add("fa-eye");
+    }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dhanvantri Login</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='logo1.png') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+/* ===== BODY ===== */
+body {
+    margin:0;
+    font-family:'Poppins',sans-serif;
+    background:#0b0b0b;
+    color:white;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    overflow:hidden;
+    flex-direction:column;
+}
+
+/* BACKGROUND & PARTICLES */
+#bg{position:fixed;width:100%;height:100%;z-index:-2;}
+#trailCanvas{position:fixed;top:0;left:0;pointer-events:none;z-index:-1;}
+.cursor{
+    width:10px;height:10px;background:gold;border-radius:50%;
+    position:fixed;pointer-events:none;
+    transform:translate(-50%,-50%);
+    box-shadow:0 0 10px gold,0 0 20px gold;
+}
+
+/* SPLASH LOGO & TEXT */
+#splash {
+    position:fixed;
+    width:100%;
+    height:100%;
+    background:black;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    z-index:9999;
+}
+#splash img {
+    width:200px;
+    transform: scale(0.5);
+    opacity:0;
+    animation: logoExpand 2s ease forwards;
+    filter: drop-shadow(0 0 5px gold) drop-shadow(0 0 15px gold);
+}
+#splash #splash-text {
+    color: gold;
+    font-size:28px;
+    opacity:0;
+    margin-top:20px;
+    animation: textFade 1s ease forwards;
+    animation-delay: 2s;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes logoExpand {
+    0% { transform: scale(0.5); opacity:0; }
+    100% { transform: scale(1); opacity:1; }
+}
+@keyframes textFade {
+    to { opacity:1; }
+}
+
+/* ===== LOGIN WRAPPER ===== */
+.login-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    opacity:0;
+    transition: opacity 1s ease;
+}
+
+/* LOGO IN LOGIN FORM */
+.login-logo {
+    width: 225px;
+    display: block;
+}
+
+/* LOGIN BOX */
+.login-box{
+    background:rgba(255,255,255,0.05);
+    backdrop-filter:blur(15px);
+    padding:30px;
+    border-radius:18px;
+    width:340px;
+    text-align:center;
+    box-shadow:0 0 30px rgba(255,215,0,0.25);
+}
+.login-box p { margin:5px 0; }
+.error{ color:red; font-size:13px; margin-bottom:10px; }
+
+input{
+    width:100%; height:45px; padding:0 12px; margin:8px 0;
+    border-radius:12px; border:none;
+    background:rgba(255,255,255,0.08); color:white; box-sizing:border-box;
+}
+/* Keep background behind everything */
+#bg{position:fixed;width:100%;height:100%;z-index:-2;}
+#trailCanvas{position:fixed;top:0;left:0;pointer-events:none;z-index:-1;}
+#splash{
+    position:fixed;
+    width:100%;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    z-index:10; /* in front of stars but below cursor */
+    background: transparent; /* allow glitter background to show */
+}
+#splash img{
+    filter: drop-shadow(0 0 10px gold) drop-shadow(0 0 25px gold);
+    width: 300px;
+}
+button{
+    width:100%; padding:12px; background:gold; border:none;
+    border-radius:12px; cursor:pointer; font-weight:600;
+}
+button:hover{ background:#e6c200; box-shadow:0 0 15px gold; }
+</style>
+</head>
+
+<body>
+
+<!-- BACKGROUND & CURSOR -->
+<div id="bg"></div>
+<canvas id="trailCanvas"></canvas>
+<div class="cursor" id="cursor"></div>
+
+<!-- SPLASH SCREEN -->
+<div id="splash">
+    <img src="{{ url_for('static', filename='favicon.png') }}" alt="Logo">
+    <div id="splash-text">Your Daily Health Companion</div>
+</div>
+
+<!-- BACKGROUND & CURSOR -->
+<div id="bg"></div>
+<canvas id="trailCanvas"></canvas>
+<div class="cursor" id="cursor"></div>
+
+<!-- LOGIN WRAPPER -->
+<div class="login-wrapper">
+    <img src="{{ url_for('static', filename='logo.png') }}" class="login-logo">
+    <div class="login-box">
+        <p style="color: gold;font-size:larger;">Login</p>
+        {% if error %}
+        <p class="error">{{error}}</p>
+        {% endif %}
+        <form method="POST">
+            <input type="text" name="username" placeholder="👤 Username" required>
+            <input type="email" name="email" placeholder="📧 Email Address" required>
+            <div style="position:relative;">
+    <input type="password" id="password" name="password" placeholder="🔒 Password" required>
+
+    <i class="fa-solid fa-eye"
+   id="eyeIcon"
+   onclick="togglePassword()"
+   style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; color:gold;">
+</i>
+</div>
+            <button type="submit">Login</button>
+        </form>
+        <p>Don't have an account?<br>
+        <a href="/signup" style="color:gold">🌱 Create Account</a></p>
+        <p>
+    <a href="/forgot-password" style="color:gold;">Forgot Password?</a>
+</p>
+    </div>
+</div>
+
+<script>
+// SPLASH TO LOGIN TRANSITION
+window.addEventListener("load", () => {
+    // logo animation 2s + text animation 1s = 3s
+    setTimeout(() => {
+        document.getElementById("splash").style.display = "none";
+        document.querySelector(".login-wrapper").style.opacity = "1";
+    }, 3000);
+});
+
+// CURSOR TRAIL
+const cursor=document.getElementById("cursor");
+const canvas=document.getElementById("trailCanvas");
+const ctx=canvas.getContext("2d");
+canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+let stars=[];
+window.addEventListener("mousemove",e=>{
+    cursor.style.left=e.clientX+"px";
+    cursor.style.top=e.clientY+"px";
+    stars.push({x:e.clientX,y:e.clientY,size:2,life:40});
+});
+function animateStars(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for(let i=0;i<stars.length;i++){
+        let s=stars[i];
+        ctx.beginPath();
+        ctx.arc(s.x,s.y,s.size,0,Math.PI*2);
+        ctx.fillStyle=`rgba(255,215,0,${s.life/40})`;
+        ctx.fill();
+        s.size*=0.95; s.life--;
+        if(s.life<=0){ stars.splice(i,1); i--; }
+    }
+    requestAnimationFrame(animateStars);
+}
+animateStars();
+
+// THREE JS STAR BACKGROUND
+let scene=new THREE.Scene();
+let camera=new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,1000);
+let renderer=new THREE.WebGLRenderer({alpha:true});
+renderer.setSize(window.innerWidth,window.innerHeight);
+document.getElementById("bg").appendChild(renderer.domElement);
+camera.position.z=8;
+
+const geometry=new THREE.BufferGeometry();
+const vertices=[];
+for(let i=0;i<1500;i++){
+    vertices.push((Math.random()-0.5)*20,(Math.random()-0.5)*20,(Math.random()-0.5)*20);
+}
+geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+const material=new THREE.PointsMaterial({color:0xFFD700,size:0.02});
+const starsMesh=new THREE.Points(geometry,material);
+scene.add(starsMesh);
+
+function animate(){
+    requestAnimationFrame(animate);
+    starsMesh.rotation.y+=0.0008;
+    renderer.render(scene,camera);
+}
+animate();
+</script>
+<script>
+function togglePassword(){
+    let pass = document.getElementById("password");
+    let icon = document.getElementById("eyeIcon");
+
+    if(pass.type === "password"){
+        pass.type = "text";
+        icon.classList.remove("fa-eye");
+        icon.classList.add("fa-eye-slash");
+    } else {
+        pass.type = "password";
+        icon.classList.remove("fa-eye-slash");
+        icon.classList.add("fa-eye");
+    }
+}
+</script>
+
+</body>
+</html>
