@@ -47,11 +47,6 @@ export function TopBar({
   onAnalyze,
   onExport,
 }: TopBarProps) {
-  const displayedDeviceLabel =
-    import.meta.env.VITE_DEMO_DEVICE_NAME?.trim() || deviceLabel;
-  const displayedRuntimeLabel =
-    import.meta.env.VITE_DEMO_RUNTIME_LABEL?.trim() || runtimeLabel;
-
   return (
     <header className="topbar">
       <div className="brand">
@@ -80,9 +75,9 @@ export function TopBar({
       <div className="topbar-actions">
         <div className="device-chip" title="由本地 ColorGraph 后端实时上报">
           <Cpu size={14} />
-          <span>{displayedDeviceLabel}</span>
+          <span>{deviceLabel}</span>
           <i />
-          <span>{displayedRuntimeLabel}</span>
+          <span>{runtimeLabel}</span>
         </div>
 
         <label className="color-space-chip">
@@ -156,7 +151,7 @@ export function TopBar({
             isAnalyzing
               ? "重新打开分析进度"
               : analysisComplete
-                ? "重新执行 AI 分析"
+                ? "查看已完成的分析"
                 : "启动 AI 分析"
           }
         >
@@ -167,7 +162,7 @@ export function TopBar({
           ) : (
             <Sparkles size={15} />
           )}
-          {isAnalyzing ? "分析中" : analysisComplete ? "重新分析" : "AI 分析"}
+          {isAnalyzing ? "分析中" : analysisComplete ? "已分析" : "AI 分析"}
         </button>
         <button className="button button-primary" type="button" onClick={onExport}>
           <Share2 size={15} />

@@ -8,8 +8,8 @@ hard technical quality gates.
 
 > **Submission status:** ColorGraph is an AMD Radeon Hackathon 2026 Track 1
 > submission. This pull request includes the complete source, project profile,
-> Radeon/ROCm evidence, and final poster. The demo recording is delivered
-> separately and is intentionally not committed to the repository.
+> Radeon/ROCm evidence, final poster, and demo video. The large demo file is
+> stored with Git LFS so the repository remains usable.
 
 ![ColorGraph Track 1 submission poster](submission/ColorGraph-Poster.png)
 
@@ -189,7 +189,7 @@ output/pdf/                Generated Project Profile deliverable
 - [Submission checklist](docs/SUBMISSION_CHECKLIST.md)
 - [Project Profile PDF](output/pdf/ColorGraph-Project-Profile.pdf)
 - [Track 1 submission poster](submission/ColorGraph-Poster.png)
-- Demo recording: delivered separately and intentionally not committed
+- [Track 1 demo video](submission/ColorGraph-Demo-Video.mp4)
 - [Demo media and rights strategy](docs/DEMO_ASSETS.md)
 - [Project status](docs/PROJECT_STATUS.md)
 - [Evaluation protocol](docs/EVALUATION_PROTOCOL.md)

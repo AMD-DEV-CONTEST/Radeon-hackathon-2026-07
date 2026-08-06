@@ -98,11 +98,9 @@ import type {
 } from "./types";
 
 const DEFAULT_COMMAND =
-  "压暗后半段天空但不改变山体";
+  "后半段天空再压一点，保留云层，但不要改变山体。";
 const LARGE_LOCAL_FILE_THRESHOLD = 2 * 1024 ** 3;
 const ACTIVE_MASK_JOB_KEY = "colorgraph.activeMaskJob";
-const PERSIST_MASK_JOB_STATE = false;
-const REPLAY_ANALYSIS_WITHOUT_INFERENCE = true;
 const PIPELINE_OPEN_KEY = "colorgraph.pipelineOpen";
 const PREVIEW_QUALITY_KEY = "colorgraph.previewQuality";
 const PREVIEW_ENCODING_KEY = "colorgraph.previewEncoding";
@@ -239,10 +237,6 @@ function previewSegmentIndex(timeSeconds: number, durationSeconds: number) {
 }
 
 function readStoredMaskJob(): StoredMaskJob | null {
-  if (!PERSIST_MASK_JOB_STATE) {
-    window.localStorage.removeItem(ACTIVE_MASK_JOB_KEY);
-    return null;
-  }
   try {
     const value = window.localStorage.getItem(ACTIVE_MASK_JOB_KEY);
     if (!value) return null;
@@ -262,10 +256,6 @@ function readStoredMaskJob(): StoredMaskJob | null {
 }
 
 function rememberMaskJob(jobId: string, projectId: string) {
-  if (!PERSIST_MASK_JOB_STATE) {
-    window.localStorage.removeItem(ACTIVE_MASK_JOB_KEY);
-    return;
-  }
   window.localStorage.setItem(
     ACTIVE_MASK_JOB_KEY,
     JSON.stringify({ jobId, projectId } satisfies StoredMaskJob),
@@ -1710,7 +1700,7 @@ function App() {
           project.project_id,
         );
         await requestPreview(project.project_id, 0);
-        if (PERSIST_MASK_JOB_STATE && !activeMaskJob) {
+        if (!activeMaskJob) {
           try {
             activeMaskJob = await getActiveMaskJob(project.project_id);
           } catch {
@@ -2702,60 +2692,26 @@ function App() {
       fileInputRef.current?.click();
       return;
     }
-    if (REPLAY_ANALYSIS_WITHOUT_INFERENCE || analysisComplete) {
-      forgetMaskJob();
-      setGradeRevealed(false);
-      setAnalysisRequestActive(true);
-      setPipelineOpen(true);
+    if (analysisComplete) {
+      setGradeRevealed(true);
       setPipelineError("");
-      const replayJobId = `cached_analysis_replay_${projectId}_${Date.now()}`;
-      const replayStage = async (
-        stage: JobRecord["stage"],
-        progress: number,
-        message: string,
-        durationMs: number,
-      ) => {
-        setPipelineJob({
-          id: replayJobId,
-          kind: "masks",
-          project_id: projectId,
-          status: "running",
-          stage,
-          progress,
-          message,
-          device: "rocm",
-          result: null,
-          error: null,
-        });
-        await new Promise<void>((resolve) =>
-          window.setTimeout(resolve, durationMs),
-        );
-      };
-      try {
-        await replayStage("models", 12, "复核缓存模型与分析配置", 1800);
-        await replayStage("masks", 34, "回放天空、植被与水体语义证据", 2100);
-        await replayStage("masks", 58, "回放山体与远景深度证据", 2200);
-        await replayStage("masks", 79, "校验逐帧蒙版连续性", 2200);
-        await replayStage("graph", 94, "编译现有分析结果", 1800);
-        setPipelineJob({
-          id: replayJobId,
-          kind: "masks",
-          project_id: projectId,
-          status: "completed",
-          stage: "completed",
-          progress: 100,
-          message: "缓存分析流程回放完成，现有蒙版保持不变",
-          device: "rocm",
-          result: { cache_hit: true, replay: true },
-          error: null,
-        });
-        setGradeRevealed(true);
-        showToast("AI 分析流程回放完成，现有分析内容保持不变");
-      } finally {
-        setAnalysisRequestActive(false);
-      }
+      setPipelineJob({
+        id: `cached_masks_${projectId}`,
+        kind: "masks",
+        project_id: projectId,
+        status: "completed",
+        stage: "completed",
+        progress: 100,
+        message: "已使用完整的现有蒙版，不会重复生成",
+        device: device?.runtime ?? "cpu",
+        result: { cache_hit: true },
+        error: null,
+      });
+      setPipelineOpen(true);
+      showToast("AI 分析已完成，正在使用现有蒙版");
       return;
     }
+    setGradeRevealed(true);
     setAnalysisRequestActive(true);
     setPipelineOpen(true);
     setPipelineJob(null);
@@ -3158,7 +3114,7 @@ function App() {
         referenceInputRef={referenceInputRef}
         projectName={graph?.project_name ?? media.name}
         isAnalyzing={isAnalyzing}
-        analysisComplete={false}
+        analysisComplete={analysisComplete}
         deviceLabel={device?.name ?? "后端离线"}
         runtimeLabel={
           device

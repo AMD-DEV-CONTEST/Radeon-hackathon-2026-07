@@ -28,7 +28,7 @@ export function PipelineModal({
   stageIndex,
   progress: reportedProgress,
   message,
-  runtime: _runtime = "GPU",
+  runtime = "GPU",
   error,
   currentStageId,
   completedStageIds,
@@ -44,8 +44,6 @@ export function PipelineModal({
     (completed
       ? 100
       : Math.round((stageIndex / PIPELINE_STAGES.length) * 100));
-  const displayedRuntime = "AMD ROCm";
-
   return (
     <div className="modal-backdrop" role="presentation">
       <section
@@ -137,7 +135,7 @@ export function PipelineModal({
                   ) : (
                     <Zap size={10} />
                   )}
-                  {stage.device === "CPU" ? "CPU" : displayedRuntime}
+                  {stage.device === "CPU" ? "CPU" : runtime.toUpperCase()}
                 </div>
               </div>
             );
@@ -155,7 +153,7 @@ export function PipelineModal({
           <div className="pipeline-metric">
             <Zap size={14} />
             <span>
-              <strong>{displayedRuntime}</strong>
+              <strong>{runtime.toUpperCase()}</strong>
               <small>当前执行后端</small>
             </span>
           </div>
