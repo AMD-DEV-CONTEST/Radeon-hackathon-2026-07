@@ -35,7 +35,7 @@ Write your privacy policy in plain English. PolicyCut finds the targets in both 
 
 ## Requirements
 
-- Linux with an AMD Radeon GPU and a working **ROCm PyTorch** build (target platform: Radeon PRO W7900, 48 GB). CPU-only machines can run the app and unit tests; core model stages then run in fallback mode — fine for development, not for the contest path.
+- Linux with an AMD Radeon GPU and a working **ROCm PyTorch** build (measured on a Radeon PRO W7900, 48 GB — torch 2.10.0+rocm7.1). CPU-only machines can run the app and unit tests; core model stages then run in fallback mode — fine for development, not for the contest path.
 - Python ≥ 3.10, FFmpeg + ffprobe on PATH.
 - ~15 GB disk for model weights.
 
