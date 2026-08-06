@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gemma²: live</title>
+<style>
+  :root{
+    --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --grid:#e8e7e2;
+    --entity:#2a78d6; --good:#0ca30c; --warn:#fab219; --serious:#b3401f;
+    --card:#ffffff; --border:#e3e2dc;
+  }
+  @media (prefers-color-scheme: dark){ :root{
+    --surface:#1a1a19; --ink:#ffffff; --ink2:#c3c2b7; --grid:#33322f;
+    --entity:#3987e5; --serious:#ec835a; --card:#232322; --border:#3a3936; } }
+  :root[data-theme="dark"]{ --surface:#1a1a19; --ink:#ffffff; --ink2:#c3c2b7; --grid:#33322f;
+    --entity:#3987e5; --serious:#ec835a; --card:#232322; --border:#3a3936; }
+  :root[data-theme="light"]{ --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --grid:#e8e7e2;
+    --entity:#2a78d6; --serious:#b3401f; --card:#ffffff; --border:#e3e2dc; }
+  *{box-sizing:border-box} body{margin:0;background:var(--surface);color:var(--ink);
+    font:15px/1.45 system-ui,-apple-system,sans-serif;padding:20px 24px}
+  h1{font-size:20px;margin:0} .sub{color:var(--ink2);font-size:13px;margin:2px 0 18px}
+  .badge{display:inline-block;border:1px solid var(--border);border-radius:99px;
+    padding:1px 10px;font-size:12px;color:var(--ink2);margin-left:8px}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px}
+  .tile{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+  .tile .k{font-size:12px;color:var(--ink2)} .tile .v{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+  .tile .d{font-size:12px;color:var(--ink2)} .tile .d.up{color:var(--good)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+  @media(max-width:900px){.row{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+  .card h2{font-size:13px;font-weight:600;margin:0 0 8px;color:var(--ink2)}
+  svg{width:100%;height:170px;display:block} .gridline{stroke:var(--grid);stroke-width:1}
+  .axis{fill:var(--ink2);font-size:11px} .refline{stroke:var(--ink2);stroke-dasharray:4 3;stroke-width:1}
+  .series{fill:none;stroke:var(--entity);stroke-width:2}
+  .pt{fill:var(--entity);stroke:var(--surface);stroke-width:2}
+  .pt.viol{fill:var(--serious)}
+  table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:14px}
+  th{color:var(--ink2);font-size:12px;text-align:right;font-weight:600;padding:6px 8px;border-bottom:1px solid var(--border)}
+  th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+  td{padding:6px 8px;border-bottom:1px solid var(--border);text-align:right}
+  tr.leader td{font-weight:700} tr.human td{border-top:2px solid var(--ink2)}
+  .chip{font-size:11px;border-radius:6px;padding:1px 6px;border:1px solid var(--border);color:var(--ink2)}
+  .chip.viol{color:var(--serious);border-color:var(--serious)}
+  .trace{max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+  .titem{border:1px solid var(--border);border-left:3px solid var(--entity);border-radius:8px;padding:8px 10px;font-size:13px}
+  .titem .m{color:var(--ink2);font-size:11px;margin-bottom:2px}
+  .bar-row{display:grid;grid-template-columns:1fr 2fr auto;align-items:center;gap:8px;margin-bottom:8px;font-size:13px}
+  .bar-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar-track{background:var(--grid);border-radius:5px;height:10px;overflow:hidden}
+  .bar-fill{background:var(--ink2);height:100%;border-radius:5px}
+  .bar-fill.mine{background:var(--entity)}
+  .bar-val{font-variant-numeric:tabular-nums;color:var(--ink2);white-space:nowrap}
+  .chip.mine{color:var(--entity);border-color:var(--entity)}
+  #tip{position:fixed;pointer-events:none;background:var(--card);border:1px solid var(--border);
+    border-radius:8px;padding:6px 9px;font-size:12px;display:none;z-index:9;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+</style>
+</head>
+<body data-palette="#2a78d6">
+<h1>Gemma² <span class="badge" id="mode">live</span></h1>
+<div class="sub">Gemma 4 optimizing its own deployment: maximize tokens/s, TTFT ≤ 500 ms, energy on the record. Dashed line = human expert.</div>
+
+<div class="tiles" id="tiles"></div>
+<div class="row">
+  <div class="card"><h2>Throughput per run: tokens/s</h2><svg id="c1"></svg></div>
+  <div class="card"><h2>Energy per token: joules</h2><svg id="c2"></svg></div>
+</div>
+<div class="row">
+  <div class="card"><h2>Leaderboard</h2><div id="lb"></div></div>
+  <div class="card"><h2>Agent reasoning trace</h2><div class="trace" id="trace"></div></div>
+</div>
+
+<div class="card" id="mcCard" style="margin-bottom:18px">
+  <h2>Model comparison: fine-tuned Gemma 4 vs. the rest of the family</h2>
+  <div class="sub" id="mcNote" style="margin:-4px 0 12px"></div>
+  <div class="row">
+    <div><div style="font-size:12px;color:var(--ink2);margin-bottom:6px">Quality (LLM-judge, 0–100)</div><div id="mcQuality"></div></div>
+    <div><div style="font-size:12px;color:var(--ink2);margin-bottom:6px">Throughput (tok/s, matched concurrency)</div><div id="mcSpeed"></div></div>
+  </div>
+</div>
+<div id="tip"></div>
+
+<script>
+const REPLAY = new URLSearchParams(location.search).has('replay');
+const tip = document.getElementById('tip');
+
+function fmt(x,d=1){return x==null?'-':Number(x).toFixed(d)}
+
+function tiles(s){
+  const lb=s.leaderboard||[], best=lb[0], human=lb.find(r=>r.label==='human-expert');
+  const agentRuns=(s.runs||[]).filter(r=>String(r.label).startsWith('agent-iter'));
+  const bestJ=Math.min(...(s.runs||[]).map(r=>r.energy.joules_per_token).filter(x=>x>0));
+  const delta=best&&human&&human.score>0?((best.score-human.score)/human.score*100):null;
+  document.getElementById('tiles').innerHTML=`
+   <div class="tile"><div class="k">Best throughput</div><div class="v">${fmt(best?.tokens_per_s)} tok/s</div>
+     <div class="d ${delta>0?'up':''}">${delta==null?'':(delta>0?'+':'')+fmt(delta)+'% vs human expert'} </div></div>
+   <div class="tile"><div class="k">Best energy</div><div class="v">${isFinite(bestJ)?fmt(bestJ,3):'-'} J/tok</div>
+     <div class="d">lower is better</div></div>
+   <div class="tile"><div class="k">Agent iterations</div><div class="v">${agentRuns.length}</div>
+     <div class="d">autonomous runs</div></div>
+   <div class="tile"><div class="k">Leader</div><div class="v" style="font-size:18px">${best?best.label:'-'}</div>
+     <div class="d">${best&&best.score===0?'⚠ constraint violated':'meets TTFT ≤ 500 ms'}</div></div>`;
+}
+
+function chart(el, runs, key, refVal, dec){
+  const svg=document.getElementById(el); svg.innerHTML='';
+  const W=svg.clientWidth||560,H=170,P={l:44,r:10,t:12,b:22};
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const vals=runs.map(r=>key(r)); if(!vals.length){return}
+  const all=refVal!=null?vals.concat([refVal]):vals;
+  const lo=0, hi=Math.max(...all)*1.15||1;
+  const x=i=>P.l+(W-P.l-P.r)*(runs.length===1?.5:i/(runs.length-1));
+  const y=v=>H-P.b-(H-P.t-P.b)*((v-lo)/(hi-lo));
+  let g='';
+  for(let t=0;t<=3;t++){const v=lo+(hi-lo)*t/3;
+    g+=`<line class="gridline" x1="${P.l}" x2="${W-P.r}" y1="${y(v)}" y2="${y(v)}"/>
+        <text class="axis" x="${P.l-6}" y="${y(v)+4}" text-anchor="end">${fmt(v,dec)}</text>`;}
+  if(refVal!=null) g+=`<line class="refline" x1="${P.l}" x2="${W-P.r}" y1="${y(refVal)}" y2="${y(refVal)}"/>`;
+  g+=`<polyline class="series" points="${runs.map((r,i)=>`${x(i)},${y(key(r))}`).join(' ')}"/>`;
+  runs.forEach((r,i)=>{const viol=r.metrics.ttft_ms>500;
+    g+=`<circle class="pt${viol?' viol':''}" r="5" cx="${x(i)}" cy="${y(key(r))}"
+        data-t="${r.label}: ${fmt(key(r),dec)} · TTFT ${fmt(r.metrics.ttft_ms,0)} ms${viol?' ⚠ over constraint':''}"/>`;});
+  svg.innerHTML=g;
+  svg.querySelectorAll('.pt').forEach(c=>{
+    c.addEventListener('mousemove',e=>{tip.style.display='block';
+      tip.style.left=(e.clientX+12)+'px';tip.style.top=(e.clientY-10)+'px';tip.textContent=c.dataset.t;});
+    c.addEventListener('mouseleave',()=>tip.style.display='none');});
+}
+
+const CARBON_COLORS={A:'#1a9850',B:'#66bd63',C:'#a6d96a',D:'#fee08b',E:'#fdae61',F:'#f46d43',G:'#d73027'};
+function carbonBadge(r){
+  if(!r.carbon_label) return '';
+  const c=CARBON_COLORS[r.carbon_label]||'#999';
+  return `<span class="chip" style="background:${c};color:#fff" title="${fmt(r.gco2e_per_1k_tokens,3)} gCO2e / 1k tokens">${r.carbon_label}</span>`;
+}
+function leaderboard(s){
+  const rows=(s.leaderboard||[]).map(r=>{
+    const cls=[r.rank===1?'leader':'',r.label==='human-expert'?'human':''].join(' ');
+    const viol=r.score===0?'<span class="chip viol">⚠ TTFT</span>':'';
+    return `<tr class="${cls}"><td>${r.rank}</td><td>${r.label} ${viol}</td>
+      <td>${fmt(r.tokens_per_s)}</td><td>${fmt(r.ttft_ms,0)}</td><td>${fmt(r.joules_per_token,3)}</td><td>${carbonBadge(r)}</td></tr>`}).join('');
+  document.getElementById('lb').innerHTML=
+    `<table><thead><tr><th>#</th><th>config</th><th>tok/s</th><th>TTFT ms</th><th>J/tok</th><th>CO2</th></tr></thead>
+     <tbody>${rows}</tbody></table>`;
+}
+
+function trace(s){
+  document.getElementById('trace').innerHTML=(s.reasoning||[]).slice().reverse().map(t=>
+    `<div class="titem"><div class="m">iter ${t.iter} · ${t.label} · ${t.ts}</div>${t.text}</div>`).join('');
+}
+
+function bars(el, rows, key, unit, dec){
+  const max=Math.max(...rows.map(key))||1;
+  document.getElementById(el).innerHTML=rows.map(r=>{
+    const v=key(r), pct=Math.max(2, v/max*100);
+    return `<div class="bar-row">
+      <div class="bar-label">${r.label}${r.finetuned?' <span class="chip mine">ours</span>':''}</div>
+      <div class="bar-track"><div class="bar-fill${r.finetuned?' mine':''}" style="width:${pct}%"></div></div>
+      <div class="bar-val">${fmt(v,dec)}${unit}</div></div>`;
+  }).join('');
+}
+
+function modelComparison(mc){
+  const card=document.getElementById('mcCard');
+  if(!mc||!mc.models||!mc.models.length){ card.style.display='none'; return; }
+  card.style.display='';
+  document.getElementById('mcNote').textContent=(mc.objective&&mc.objective.note)||'';
+  bars('mcQuality', mc.models.slice().sort((a,b)=>b.quality_score-a.quality_score), r=>r.quality_score, '', 0);
+  bars('mcSpeed', mc.models.slice().sort((a,b)=>b.tokens_per_s-a.tokens_per_s), r=>r.tokens_per_s, ' tok/s', 0);
+}
+
+function render(s){
+  const runs=(s.runs||[]);
+  const human=runs.find(r=>r.label==='human-expert');
+  tiles(s);
+  chart('c1',runs,r=>r.metrics.tokens_per_s,human?human.metrics.tokens_per_s:null,0);
+  chart('c2',runs,r=>r.energy.joules_per_token,human?human.energy.joules_per_token:null,2);
+  leaderboard(s); trace(s);
+}
+
+async function tick(){
+  try{
+    const url=REPLAY?'datasets/state.sample.json':'runs/state.json';
+    const s=await (await fetch(url+'?t='+Date.now())).json();
+    document.getElementById('mode').textContent=REPLAY?'replay':'live';
+    render(s);
+  }catch(e){ document.getElementById('mode').textContent='waiting for first run…'; }
+  try{
+    const mcUrl=REPLAY?'datasets/model_comparison.sample.json':'runs/model_comparison.json';
+    const mc=await (await fetch(mcUrl+'?t='+Date.now())).json();
+    modelComparison(mc);
+  }catch(e){ modelComparison(null); }
+}
+tick(); if(!REPLAY) setInterval(tick, 2000);
+</script>
+</body>
+</html>
