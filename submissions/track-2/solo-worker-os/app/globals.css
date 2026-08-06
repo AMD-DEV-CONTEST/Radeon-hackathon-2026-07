@@ -1,0 +1,247 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Theme Variables — Light (default) / Dark (.dark)
+   RGB channel format enables opacity modifiers: rgb(var(--text) / 0.8)
+═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Light theme — bright, airy, Linear/Vercel inspired */
+  --bg:              255 255 255;
+  --bg-elevated:     249 250 251;
+  --bg-subtle:       244 245 247;
+  --surface:           0   0   0;
+  --surface-hover:     0   0   0;
+  --border:            0   0   0;
+  --border-hover:     17  24  39;
+  --text:             17  24  39;
+  --text-secondary:   55  65  81;
+  --text-muted:      107 114 128;
+  --text-faint:      156 163 175;
+  --accent:          245 158  11;
+  --accent-hover:    217 119   6;
+  --accent-soft:     245 158  11;
+  --success:         16 185 129;
+  --danger:          239  68  68;
+  --radius-card: 14px;
+  --font-display: 'Outfit', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-body: 'Outfit', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'SF Mono', Consolas, monospace;
+}
+
+.dark {
+  /* Dark theme — deep but not pitch black, clear hierarchy */
+  --bg:               14  14  17;
+  --bg-elevated:      21  21  25;
+  --bg-subtle:        18  18  22;
+  --surface:          255 255 255;
+  --surface-hover:    255 255 255;
+  --border:           255 255 255;
+  --border-hover:     255 255 255;
+  --text:             255 255 255;
+  --text-secondary:   255 255 255;
+  --text-muted:       255 255 255;
+  --text-faint:       255 255 255;
+  --accent:           251 191  36;
+  --accent-hover:     252 211  77;
+  --accent-soft:      251 191  36;
+  --success:          52 211 153;
+  --danger:           248 113 113;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  background-color: rgb(var(--bg));
+  color: rgb(var(--text) / 0.88);
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  overflow-x: hidden;
+  /* Subtle depth gradient — breaks the flat surface */
+  background-image: radial-gradient(ellipse 80% 50% at 50% -10%, rgb(var(--surface) / 0.02), transparent 70%);
+  background-attachment: fixed;
+}
+
+/* ──────────────────────────────────────────────────────────
+   Scrollbar
+────────────────────────────────────────────────────────── */
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: rgb(var(--surface) / 0.1); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: rgb(var(--surface) / 0.2); }
+
+.chat-scroll::-webkit-scrollbar       { width: 6px; }
+.chat-scroll::-webkit-scrollbar-thumb { background: rgb(var(--surface) / 0.1); border-radius: 9999px; }
+
+/* Firefox */
+html { scrollbar-width: thin; scrollbar-color: rgb(var(--surface) / 0.12) transparent; }
+
+::selection { background: rgb(var(--accent) / 0.2); color: rgb(var(--text)); }
+
+p, li, h1, h2, h3 { text-wrap: pretty; }
+
+/* ──────────────────────────────────────────────────────────
+   Mobile: safe areas + prevent input zoom
+────────────────────────────────────────────────────────── */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  .chat-input-wrap { padding-bottom: max(0.75rem, env(safe-area-inset-bottom)); }
+}
+
+/* Prevent iOS zoom on focus (min 16px) */
+input[type="text"], input[type="email"], textarea, select {
+  font-size: max(16px, 1em);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Card system — unified, Linear-grade
+   Uses CSS variables for theme-aware surfaces
+═══════════════════════════════════════════════════════════════════════════ */
+.card-base {
+  background: rgb(var(--surface) / 0.025);
+  border: 1px solid rgb(var(--border) / 0.08);
+  border-radius: var(--radius-card);
+  transition: border-color 200ms ease, background 200ms ease;
+}
+
+.card-interactive {
+  background: rgb(var(--surface) / 0.025);
+  border: 1px solid rgb(var(--border) / 0.08);
+  border-radius: var(--radius-card);
+  transition: border-color 200ms ease, background 200ms ease;
+}
+.card-interactive:hover {
+  border-color: rgb(var(--border-hover) / 0.14);
+  background: rgb(var(--surface) / 0.04);
+}
+
+/* ──────────────────────────────────────────────────────────
+   Surface — raised contrast for depth
+────────────────────────────────────────────────────────── */
+.glass {
+  background: rgb(var(--surface) / 0.03);
+  border: 1px solid rgb(var(--border) / 0.08);
+}
+
+.glass-strong {
+  background: rgb(var(--surface) / 0.04);
+  border: 1px solid rgb(var(--border) / 0.1);
+}
+
+.glass-hover {
+  transition: border-color 200ms ease, background 200ms ease;
+}
+.glass-hover:hover {
+  background: rgb(var(--surface) / 0.05);
+  border-color: rgb(var(--border-hover) / 0.12);
+}
+
+/* ──────────────────────────────────────────────────────────
+   Amber focus ring — unified
+────────────────────────────────────────────────────────── */
+.focus-ring {
+  transition: box-shadow 200ms ease, border-color 200ms ease;
+}
+.focus-ring:focus-within {
+  border-color: rgb(var(--accent) / 0.3) !important;
+  box-shadow: 0 0 0 3px rgb(var(--accent) / 0.08);
+}
+
+/* ──────────────────────────────────────────────────────────
+   Stagger animation delays (for page load only)
+────────────────────────────────────────────────────────── */
+.stagger-1 { animation-delay: 40ms; }
+.stagger-2 { animation-delay: 80ms; }
+.stagger-3 { animation-delay: 120ms; }
+.stagger-4 { animation-delay: 160ms; }
+.stagger-5 { animation-delay: 200ms; }
+
+/* ──────────────────────────────────────────────────────────
+   Typing dots (staggered bounce)
+────────────────────────────────────────────────────────── */
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30%           { transform: translateY(-5px); opacity: 1; }
+}
+.typing-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgb(var(--accent));
+  animation: typingBounce 1.4s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.16s; }
+.typing-dot:nth-child(3) { animation-delay: 0.32s; }
+
+/* ──────────────────────────────────────────────────────────
+   Tactile press feedback — 80ms, state change only
+────────────────────────────────────────────────────────── */
+button:active:not(:disabled),
+a:active:not([disabled]) {
+  transform: translateY(0.5px) scale(0.985);
+  transition: transform 80ms ease-out;
+}
+
+button:active:not(:disabled).tactile-strong,
+a:active:not([disabled]).tactile-strong {
+  transform: translateY(1px) scale(0.97);
+}
+
+/* ──────────────────────────────────────────────────────────
+   Tabular numbers for data tables
+────────────────────────────────────────────────────────── */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* ──────────────────────────────────────────────────────────
+   Mobile touch targets
+────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  button,
+  a[role="button"],
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Theme-aware utility helpers
+   These provide semantic color classes that automatically switch with theme.
+   Usage: className="text-primary" instead of "text-white/80"
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* Text colors */
+.text-primary    { color: rgb(var(--text) / 0.88); }
+.text-secondary  { color: rgb(var(--text-secondary) / 0.65); }
+.text-tertiary   { color: rgb(var(--text-muted) / 0.45); }
+.text-faint      { color: rgb(var(--text-faint) / 0.35); }
+.text-accent     { color: rgb(var(--accent)); }
+.text-success    { color: rgb(var(--success)); }
+.text-danger     { color: rgb(var(--danger)); }
+
+/* Background colors */
+.bg-base         { background-color: rgb(var(--bg)); }
+.bg-elevated     { background-color: rgb(var(--bg-elevated)); }
+.bg-subtle       { background-color: rgb(var(--bg-subtle)); }
+.bg-surface      { background-color: rgb(var(--surface) / 0.025); }
+.bg-surface-hover { background-color: rgb(var(--surface) / 0.04); }
+.bg-accent       { background-color: rgb(var(--accent)); }
+.bg-accent-soft  { background-color: rgb(var(--accent) / 0.1); }
+
+/* Border colors */
+.border-base     { border-color: rgb(var(--border) / 0.08); }
+.border-hover    { border-color: rgb(var(--border-hover) / 0.14); }
+.border-accent   { border-color: rgb(var(--accent) / 0.2); }
