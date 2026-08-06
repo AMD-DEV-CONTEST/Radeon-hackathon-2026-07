@@ -11,6 +11,9 @@ MENTRA GLASSES ──(WebSocket)──▶ MEDGLASS EDGE SERVER ──▶ AMD GPU
    camera/mic/HUD                  5 concurrent AI models        no cloud
 ```
 
+> 🎤 **Pitch deck** — see [`docs/MedGlass Secure Edge Scribe.pdf`](docs/MedGlass%20Secure%20Edge%20Scribe.pdf)
+> for the full investor pitch deck (10 slides, AMD AI DevMaster Hackathon 2026 · Track 1).
+
 ## Features
 
 | Priority | Feature | Stack |
@@ -117,6 +120,11 @@ care-team next steps: plan items can be assigned (Nurse/Provider) and checked
 off — completed items leave the list and the Follow-ups / Tests & orders /
 Med changes / Open items counters update, with a "Show completed" toggle.
 
+The dashboard is also reachable from your phone through the ngrok tunnel; a
+saved consultation renders as a full SOAP note with transcript and case photos:
+
+![Generated SOAP note with transcript + case photo](demo/evidence_note.png)
+
 ## Connecting Mentra glasses
 
 MedGlass integrates with **Mentra Live** (camera glasses) via the official
@@ -188,6 +196,9 @@ https://<your-ngrok-domain>/dashboard   # saved results + EHR export
 https://<your-ngrok-domain>/           # live consultation page (mic/webcam)
 ```
 
+> 🔗 **Live demo tunnel** (from the recorded run):
+> [`https://copilot-unstaffed-smuggling.ngrok-free.dev`](https://copilot-unstaffed-smuggling.ngrok-free.dev)
+
 Patient data is protected by an optional token: set `DASHBOARD_TOKEN` in
 `client/mentraos-app/.env` and `MEDGLASS_DASHBOARD_TOKEN` in
 `output/server.env` (the edge server reads it via `start_server.sh`); the app
@@ -212,6 +223,12 @@ Full table + CPU/GPU wall-clock in `docs/TECHNICAL_BREAKDOWN.md` and
 YOLO runs on the CPU EP. Whisper + LLM — the two compute-heavy stages — are
 fully GPU-accelerated.
 
+![CPU vs GPU benchmark evidence](demo/evidence_benchmark.png)
+
+Combined one-page evidence sheet (the same data as the demo video):
+
+![Combined hackathon evidence — one page](demo/hackathon_evidence.png)
+
 VRAM budget: whisper 1.5 GB + YOLO 0.5 GB + LLM 16.8 GB ≈ fits a 32 GiB card
 (models load lazily; concurrency governed by `memory_budget_gb`).
 
@@ -224,6 +241,7 @@ VRAM budget: whisper 1.5 GB + YOLO 0.5 GB + LLM 16.8 GB ≈ fits a 32 GiB card
 | Environment config, startup guide, dependency list | this README, [`requirements.txt`](requirements.txt), [`setup.sh`](setup.sh), [`.env.example`](.env.example), [`config.example.json`](config.example.json) |
 | Demo video (3–5 min) | [`demo/medglass_demo.mp4`](demo/medglass_demo.mp4) |
 | AMD GPU execution evidence | [`benchmarks/cpu_vs_gpu.json`](benchmarks/cpu_vs_gpu.json), [`benchmarks/gpu_utilization.png`](benchmarks/gpu_utilization.png), [`demo/evidence_*.png`](demo/) |
+| Pitch deck (PPT/Poster) | [`docs/MedGlass Secure Edge Scribe.pdf`](docs/MedGlass%20Secure%20Edge%20Scribe.pdf) |
 
 Demo screenshots: `demo/evidence_note.png` (generated SOAP note with
 transcript + photo), `demo/evidence_ocr.png` (medication-label OCR from a
@@ -237,4 +255,5 @@ process residency), `demo/evidence_vram.png` (VRAM trace during a live run).
 - [Architecture](docs/ARCHITECTURE.md) — data flow and module walkthrough
 - [Mentra integration](docs/MENTRA_INTEGRATION.md) — glasses wiring, button/LED lifecycle, phone proxy
 - [Product pitch](docs/PITCH.md) — AMD AI DevMaster pitch aligned to judging criteria
+- [Pitch deck (PDF)](docs/MedGlass%20Secure%20Edge%20Scribe.pdf) — 10-slide investor deck + poster
 - [Demo](demo/README.md) — demo video walkthrough + evidence screenshots
