@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KlintCode Private Agent - Presentation</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
-
         :root {
             --bg-color: #0d1117;
             --text-main: #c9d1d9;
@@ -19,7 +17,7 @@
         body {
             margin: 0;
             padding: 0;
-            font-family: 'Inter', sans-serif;
+            font-family: Inter, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             -webkit-print-color-adjust: exact;
@@ -117,12 +115,14 @@
 
         .grid-2 {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
             gap: 60px;
             height: 100%;
         }
 
         .card {
+            box-sizing: border-box;
+            min-width: 0;
             background-color: var(--card-bg);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 24px;
@@ -135,6 +135,102 @@
             color: var(--accent-cyan);
             font-weight: 600;
             margin-bottom: 20px;
+        }
+
+        .architecture {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.15fr);
+            gap: 34px;
+            align-items: stretch;
+            margin-top: 25px;
+        }
+
+        .arch-node {
+            box-sizing: border-box;
+            min-width: 0;
+            position: relative;
+            min-height: 320px;
+            padding: 34px 28px;
+            border: 2px solid rgba(88, 166, 255, 0.45);
+            border-radius: 22px;
+            background: linear-gradient(145deg, rgba(88, 166, 255, 0.12), rgba(22, 27, 34, 0.95));
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .arch-node:not(:last-child)::after {
+            content: "\2192";
+            position: absolute;
+            right: -31px;
+            top: 42%;
+            color: var(--accent-red);
+            font-size: 38px;
+            font-weight: 800;
+        }
+
+        .arch-title {
+            color: #ffffff;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 14px;
+        }
+
+        .arch-detail {
+            color: #8b949e;
+            font-size: 21px;
+            line-height: 1.45;
+        }
+
+        .agent-parts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 9px;
+            margin-top: 8px;
+        }
+
+        .agent-part {
+            padding: 9px 5px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.06);
+            font-size: 17px;
+            color: #c9d1d9;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px 28px;
+            margin-top: 18px;
+        }
+
+        .metric {
+            border-left: 3px solid var(--accent-red);
+            padding-left: 14px;
+        }
+
+        .metric-value {
+            color: #ffffff;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .metric-label {
+            color: #8b949e;
+            font-size: 18px;
+        }
+
+        .mechanisms-slide .content {
+            gap: 26px;
+            font-size: 31px;
+            line-height: 1.42;
+        }
+
+        .mechanisms-slide .highlight-box,
+        .mechanisms-slide .highlight-box-red {
+            margin-top: 0;
+            padding: 24px 32px;
         }
 
         /* Footer */
@@ -171,6 +267,7 @@
         }
 
         @media print {
+            @page { size: 16in 9in; margin: 0; }
             body { background-color: var(--bg-color); }
             .slide { 
                 page-break-after: always; 
@@ -215,14 +312,35 @@
     <!-- Slide 3: Architecture -->
     <div class="slide">
         <h2>System Architecture <span>(M1 - M5 Pipeline)</span></h2>
-        <div class="content">
-            <ul>
-                <li><strong>M1 — Initialization:</strong> Ingests business requirements and establishes a dynamic 256K context budget.</li>
-                <li><strong>M2 — Agent Reasoning:</strong> Autonomous planning of domain architecture using local vLLM on ROCm.</li>
-                <li><strong>M3 — Generation:</strong> Asynchronously writes highly decoupled, strictly typed XML domain models.</li>
-                <li><strong>M4 — Self-Correction:</strong> Performs syntax checks and enters an autonomous repair loop upon failures.</li>
-                <li><strong>M5 — Compilation:</strong> Translates verified XML models into a compiled Rust microservice library via TeaQL.</li>
-            </ul>
+        <div class="architecture">
+            <div class="arch-node">
+                <div class="arch-title">Business Requirement</div>
+                <div class="arch-detail">Private enterprise specification and constraints</div>
+            </div>
+            <div class="arch-node">
+                <div class="arch-title">KlintCode Agent Loop</div>
+                <div class="agent-parts">
+                    <div class="agent-part">Context Builder</div>
+                    <div class="agent-part">Planner</div>
+                    <div class="agent-part">Tool Runner</div>
+                    <div class="agent-part">Repair Controller</div>
+                </div>
+            </div>
+            <div class="arch-node">
+                <div class="arch-title">Local Qwen3.6</div>
+                <div class="arch-detail">W7900 48GB<br>llama.cpp + ROCm<br>262,144 tokens</div>
+            </div>
+            <div class="arch-node">
+                <div class="arch-title">TeaQL Models</div>
+                <div class="arch-detail">Strictly typed XML and deterministic generation</div>
+            </div>
+            <div class="arch-node">
+                <div class="arch-title">Verified Services</div>
+                <div class="arch-detail">L1-L8 validation<br>Rust generation<br>CPU compiler check</div>
+            </div>
+        </div>
+        <div class="highlight-box" style="margin-top: 55px; font-size: 28px; text-align: center;">
+            <strong>LLM provides intelligence; KlintCode controls the process; TeaQL guarantees deterministic output.</strong>
         </div>
         <div class="footer">
             <span>KlintCode Private Agent</span>
@@ -236,15 +354,21 @@
         <div class="grid-2">
             <div>
                 <ul style="padding-left: 20px;">
-                    <li><strong>Hardware Platform:</strong> AMD Radeon RX 7900 XTX</li>
-                    <li><strong>Inference Engine:</strong> vLLM (ROCm Optimized)</li>
-                    <li><strong>Model:</strong> Qwen3.6-35B-A3B (Quantized)</li>
-                    <li><strong>Context Window:</strong> 256,000 tokens</li>
+                    <li><strong>Hardware:</strong> AMD Radeon PRO W7900 48GB</li>
+                    <li><strong>Engine:</strong> ROCm-enabled llama.cpp</li>
+                    <li><strong>Model:</strong> Qwen3.6-35B-A3B GGUF Q4_K_M</li>
+                    <li><strong>Context:</strong> 262,144 tokens, one inference slot</li>
                 </ul>
             </div>
             <div class="card">
                 <div class="card-title">Key Optimizations</div>
-                <p>Leverages <strong>ROCm PagedAttention</strong> to efficiently manage massive KV caches, enabling the processing of 256K context without OOM (Out Of Memory) failures during long-sequence code generation.</p>
+                <p style="font-size: 26px; line-height: 1.45; margin-top: 0;">Full GPU layer offloading (<strong>-ngl 99</strong>), quantized MoE weights, and single-slot KV-cache allocation (<strong>-np 1</strong>).</p>
+                <div class="metric-grid">
+                    <div class="metric"><div class="metric-value">20.4GB</div><div class="metric-label">Model weights</div></div>
+                    <div class="metric"><div class="metric-value">~26GB</div><div class="metric-label">VRAM in long context</div></div>
+                    <div class="metric"><div class="metric-value">88-92 t/s</div><div class="metric-label">Generation</div></div>
+                    <div class="metric"><div class="metric-value">~1,605 t/s</div><div class="metric-label">40K prompt processing</div></div>
+                </div>
             </div>
         </div>
         <div class="footer">
@@ -254,7 +378,7 @@
     </div>
 
     <!-- Slide 5: Core Tech -->
-    <div class="slide">
+    <div class="slide mechanisms-slide">
         <h2>Core Technical <span>Mechanisms</span></h2>
         <div class="content">
             <div class="highlight-box-red">
@@ -288,10 +412,13 @@
                 </div>
             </div>
             <div class="card">
-                <div class="card-title">Output Scale</div>
-                <p>80+ Enterprise Domain Objects</p>
-                <div style="font-size: 24px; color: #8b949e; margin-top: 20px;">
-                    Equivalent to weeks of human developer effort, fully compiled and verified by the local AMD Radeon GPU in a single session.
+                <div class="card-title">Checked-in Evidence</div>
+                <p style="margin-bottom: 15px;">81 Enterprise Domain Objects</p>
+                <div style="font-size: 25px; color: #8b949e; line-height: 1.7;">
+                    10 included XML model files + main.xml<br>
+                    TeaQL deterministic validation gate<br>
+                    Rust generation + local CPU compiler check<br>
+                    No source code sent to external AI services
                 </div>
             </div>
         </div>
