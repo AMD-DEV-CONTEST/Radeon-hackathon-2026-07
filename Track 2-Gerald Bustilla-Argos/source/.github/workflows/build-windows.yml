@@ -1,0 +1,32 @@
+name: Build Windows EXE (CI)
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '.github/workflows/release.yml'
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build Argos (Debug)
+        shell: cmd
+        working-directory: cpp
+        run: build.bat
+
+      - name: Upload debug build
+        uses: actions/upload-artifact@v4
+        with:
+          name: argos-windows-debug
+          path: cpp/build/Debug/argos.exe
+          retention-days: 30
