@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Forgot Password - Dhanvantri</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='logo1.png') }}">
+
+<style>
+body {
+    margin:0;
+    font-family:'Poppins',sans-serif;
+    background:#0b0b0b;
+    color:white;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    overflow:hidden;
+    flex-direction:column;
+}
+
+/* BACKGROUND */
+#bg{position:fixed;width:100%;height:100%;z-index:-2;}
+#trailCanvas{position:fixed;top:0;left:0;pointer-events:none;z-index:-1;}
+
+.cursor{
+    width:10px;height:10px;background:gold;border-radius:50%;
+    position:fixed;pointer-events:none;
+    transform:translate(-50%,-50%);
+    box-shadow:0 0 10px gold,0 0 20px gold;
+}
+
+/* WRAPPER */
+.wrapper{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:20px;
+}
+
+/* LOGO */
+.logo{
+    width:220px;
+}
+
+/* CARD */
+.box{
+    background:rgba(255,255,255,0.05);
+    backdrop-filter:blur(15px);
+    padding:30px;
+    border-radius:18px;
+    width:340px;
+    text-align:center;
+    box-shadow:0 0 30px rgba(255,215,0,0.25);
+}
+
+h2{
+    color:gold;
+    margin-bottom:10px;
+}
+
+p{
+    font-size:14px;
+    opacity:0.8;
+}
+
+/* INPUT */
+input, button{
+    width:100%;
+    height:48px;
+    padding:0 14px;
+    margin:10px 0;
+    border-radius:12px;
+    border:none;
+    box-sizing:border-box; /* IMPORTANT */
+    font-size:14px;
+}
+
+/* INPUT */
+input{
+    background:rgba(255,255,255,0.08);
+    color:white;
+}
+
+/* BUTTON */
+button{
+    background:gold;
+    font-weight:600;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+button:hover{
+    background:#e6c200;
+    box-shadow:0 0 15px gold;
+}
+
+button:hover{
+    background:#e6c200;
+    box-shadow:0 0 15px gold;
+}
+
+/* LINKS */
+a{
+    color:gold;
+    text-decoration:none;
+    display:block;
+    margin-top:12px;
+}
+
+/* MESSAGE */
+.message{
+    margin-top:10px;
+    color:gold;
+    font-size:14px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- BACKGROUND -->
+<div id="bg"></div>
+<canvas id="trailCanvas"></canvas>
+<div class="cursor" id="cursor"></div>
+
+<!-- MAIN -->
+<div class="wrapper">
+
+    <img src="{{ url_for('static', filename='logo.png') }}" class="logo">
+
+    <div class="box">
+        <h2>🌿 Forgot Password</h2>
+        <p>Enter your email to receive reset link</p>
+
+        <form method="POST" onsubmit="showLoader()">
+            <input type="email" name="email" placeholder="📧 Email Address" required>
+
+            <button type="submit">Send Reset Link</button>
+
+            <!-- LOADER -->
+            <div id="loading" style="display:none; margin-top:10px;">
+                ⏳ Sending reset link...
+            </div>
+
+            <!-- MESSAGE -->
+            {% if message %}
+            <div class="message">
+                {{message}}
+            </div>
+            {% endif %}
+        </form>
+
+        <a href="/login">← Back to Login</a>
+    </div>
+
+</div>
+
+<script>
+function showLoader(){
+    document.getElementById("loading").style.display = "block";
+}
+
+/* CURSOR TRAIL */
+const cursor=document.getElementById("cursor");
+const canvas=document.getElementById("trailCanvas");
+const ctx=canvas.getContext("2d");
+canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+
+let stars=[];
+window.addEventListener("mousemove",e=>{
+    cursor.style.left=e.clientX+"px";
+    cursor.style.top=e.clientY+"px";
+    stars.push({x:e.clientX,y:e.clientY,size:2,life:40});
+});
+
+function animateStars(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for(let i=0;i<stars.length;i++){
+        let s=stars[i];
+        ctx.beginPath();
+        ctx.arc(s.x,s.y,s.size,0,Math.PI*2);
+        ctx.fillStyle=`rgba(255,215,0,${s.life/40})`;
+        ctx.fill();
+        s.size*=0.95; s.life--;
+        if(s.life<=0){ stars.splice(i,1); i--; }
+    }
+    requestAnimationFrame(animateStars);
+}
+animateStars();
+
+/* THREE JS BACKGROUND */
+let scene=new THREE.Scene();
+let camera=new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,1000);
+let renderer=new THREE.WebGLRenderer({alpha:true});
+renderer.setSize(window.innerWidth,window.innerHeight);
+document.getElementById("bg").appendChild(renderer.domElement);
+camera.position.z=8;
+
+const geometry=new THREE.BufferGeometry();
+const vertices=[];
+for(let i=0;i<1500;i++){
+    vertices.push((Math.random()-0.5)*20,(Math.random()-0.5)*20,(Math.random()-0.5)*20);
+}
+geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+
+const material=new THREE.PointsMaterial({color:0xFFD700,size:0.02});
+const starsMesh=new THREE.Points(geometry,material);
+scene.add(starsMesh);
+
+function animate(){
+    requestAnimationFrame(animate);
+    starsMesh.rotation.y+=0.0008;
+    renderer.render(scene,camera);
+}
+animate();
+</script>
+
+</body>
+</html>
