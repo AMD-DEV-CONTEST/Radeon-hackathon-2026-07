@@ -42,3 +42,14 @@ FlintCode-Private-Agent/
 
 ## How to run on AMD Radeon (ROCm)
 (Detailed environment setup and step-by-step reproduction instructions will be provided here...)
+
+## Demonstration Video
+[Link to Demo Video (YouTube/Bilibili/Drive) - To be updated]
+
+*Recommended duration: 3-5 minutes.*
+The video demonstrates the FlintCode Private Agent autonomously generating the 80-object moving company system in a local AMD Radeon environment, highlighting the fluid interaction, reasoning process, and functional completeness.
+
+## Presentation / Poster (PPT)
+[Link to PPT/Poster (PDF) - To be updated]
+
+The presentation highlights the practical value of the tool, business scenarios, the underlying agent architecture, and the optimizations used for running locally on AMD ROCm.
