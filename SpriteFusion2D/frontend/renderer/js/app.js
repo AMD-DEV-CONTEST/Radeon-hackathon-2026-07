@@ -4,16 +4,17 @@
 import { installTextures } from './texture.js';
 import { rpc } from './rpc.js';
 import { createProject, importAsset } from './project-actions.js';
+import { exportAsset } from './export-actions.js';
 import { CanvasView, ZOOM_LEVELS } from './canvas-view.js';
 import { BackgroundPanel } from './panel-background.js';
 import { OutlinePanel } from './panel-outline.js';
 import { PixelifyPanel } from './panel-pixelify.js';
 import { GeneratePanel } from './panel-generate.js';
-import { VideoPanel } from './panel-video.js';
 import { PanelStack } from './panel-stack.js';
 import { AnimView } from './anim-view.js';
 import { jobs } from './jobs.js';
 import { AssetTree, FrameBar, GridView, renderDoctor, renderHistory, toast } from './views.js';
+import { t } from './i18n.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -23,9 +24,13 @@ const $ = (sel) => document.querySelector(sel);
 // naming mismatch is a known seam between those two tasks (see
 // docs/luna-workpack/TASK_GRAPH.md, E02 row) — this adapter is the one place
 // that bridges it, so project-actions.js itself never has to know about it.
+// export-actions.js (E04) has the same seam for its own picker
+// (`dialogs.chooseExportDir()` vs. preload's `window.workshop.exportDirDialog()`),
+// so E05 folds it into this one adapter instead of building a second one.
 const projectDialogs = {
   chooseProjectParent: () => window.workshop.newProjectDirDialog(),
   chooseImportImage: () => window.workshop.importImageDialog(),
+  chooseExportDir: () => window.workshop.exportDirDialog(),
 };
 
 const state = {
@@ -58,7 +63,7 @@ async function boot() {
   if (hello.ok) {
     setStatusText('backend', hello.result.backend);
     if (!hello.result.real_backend) {
-      toast('当前连接的是 mock sidecar，数据为演示用途', { hint: hello.result.note });
+      toast(t('status.mockSidecar'), { hint: hello.result.note });
     }
   }
 
@@ -69,7 +74,7 @@ async function boot() {
   if (startup) {
     await openProject(startup);
   } else {
-    setStatusText('project', '未打开项目 · 点右上角「打开项目」');
+    setStatusText('project', t('project.statusNotOpen'));
   }
 }
 
@@ -100,9 +105,30 @@ function wireChrome() {
     await reloadProject(res.revision);
   });
 
+  $('#btn-export').addEventListener('click', async () => {
+    // Button is disabled unless there is a committed asset selected, but stay
+    // defensive: a stale click event or a re-entrant call should not reach
+    // export.apply with nothing to export.
+    const asset = currentExportableAsset();
+    if (!asset) return;
+
+    const res = await exportAsset({ asset }, { rpc, dialogs: projectDialogs });
+    // Same three-way split as importAsset()/createProject(): cancel is
+    // silent, an rpc.call() failure already toasted itself (rpc.js's
+    // 'error' listener in wireSidecarStatus() — this covers the code:7
+    // "target exists" overwrite conflict), and only a local validation
+    // failure (no asset — shouldn't happen given the guard above) needs an
+    // explicit toast here.
+    if (!reportProjectActionFailure(res)) return;
+
+    // 不把绝对路径拼进 innerHTML——toast() 内部用 h({text: ...}) 走
+    // textContent，这里只传字符串。
+    toast(t('export.successToast', { count: res.files.length, directory: res.directory }), { hint: res.asset });
+  });
+
   $('#btn-restart').addEventListener('click', async () => {
     await rpc.restart();
-    toast('已请求重启后端');
+    toast(t('status.restartRequested'));
   });
 
   $('#ui-scale').addEventListener('change', (e) => {
@@ -150,14 +176,17 @@ async function submitNewProject() {
 }
 
 /**
- * project-actions.js（E02）的失败结果分两种：
- *  - 走过 rpc.call() 的失败（后端拒绝、找不到项目等）：rpc.js 已经在 rpc.call()
- *    内部 dispatch 了 'error' 事件，wireSidecarStatus() 里的监听器已经弹过统一
- *    toast 了——这里再弹一次就是重复提示，靠 `error.title` 是否存在来判断
- *    （describeError() 对每个错误都会补上 title/hint，本地校验错误没有经过
- *    describeError，所以不会有 title）。
- *  - 从没调用 rpc 的本地校验失败（项目名为空、id 不合法）：从来没有触发过
- *    rpc.call() 的 'error' 事件，必须在这里自己弹一次统一 toast。
+ * project-actions.js（E02）和 export-actions.js（E04）的失败结果是同一套形状
+ * （`{ok:false,cancelled:true}` | `{ok:false,error}` | `{ok:true,...}`），所以
+ * E05 的导出按钮直接复用这个函数，没有另写一份 reportExportFailure()。
+ * 失败分两种：
+ *  - 走过 rpc.call() 的失败（后端拒绝、找不到目标、覆盖冲突 code:7 等）：rpc.js
+ *    已经在 rpc.call() 内部 dispatch 了 'error' 事件，wireSidecarStatus() 里的
+ *    监听器已经弹过统一 toast 了——这里再弹一次就是重复提示，靠 `error.title`
+ *    是否存在来判断（describeError() 对每个错误都会补上 title/hint，本地校验
+ *    错误没有经过 describeError，所以不会有 title）。
+ *  - 从没调用 rpc 的本地校验失败（项目名为空、id 不合法、导出缺 asset）：从来
+ *    没有触发过 rpc.call() 的 'error' 事件，必须在这里自己弹一次统一 toast。
  * 取消（cancelled）不算失败，调用方应该在这之前就 return，不经过这个函数弹任何提示。
  *
  * @returns {boolean} true 表示成功，调用方可以继续走成功分支。
@@ -165,7 +194,7 @@ async function submitNewProject() {
 function reportProjectActionFailure(res) {
   if (res.ok) return true;
   if (!res.cancelled && !('title' in (res.error ?? {}))) {
-    toast(res.error?.message ?? '操作失败', { error: true, code: res.error?.code ?? null });
+    toast(res.error?.message ?? t('status.actionFailed'), { error: true, code: res.error?.code ?? null });
   }
   return false;
 }
@@ -187,7 +216,7 @@ async function moveHistory(method) {
   for (const warning of warnings) {
     toast(warning.message, { hint: warning.code });
   }
-  if (!changed) toast('已经到头了');
+  if (!changed) toast(t('history.atEnd'));
   await reloadProject(revision);
 }
 
@@ -197,14 +226,14 @@ function wireSidecarStatus() {
   const apply = ({ status, detail }) => {
     dot.className = `px-dot px-dot--${status === 'ready' ? 'ready' : status === 'down' ? 'down' : 'starting'}`;
     text.textContent =
-      status === 'ready' ? '后端已连接' : status === 'down' ? '后端已断开' : '后端启动中';
-    if (status === 'down' && detail) toast(detail, { error: true, code: 5, hint: '点「重启后端」重试' });
+      status === 'ready' ? t('status.backendConnected') : status === 'down' ? t('status.backendDisconnected') : t('status.backendStarting');
+    if (status === 'down' && detail) toast(detail, { error: true, code: 5, hint: t('status.retryHint') });
   };
   apply({ status: rpc.status });
   rpc.addEventListener('status', (e) => apply(e.detail));
   rpc.addEventListener('error', (e) => {
     const { code, title, message, hint } = e.detail;
-    toast(`${title}：${message}`, { error: true, code, hint });
+    toast(`${title}: ${message}`, { error: true, code, hint });
   });
 }
 
@@ -254,8 +283,8 @@ function wireViews() {
     $('#zoom-range').value = String(ZOOM_LEVELS.indexOf(zoom));
   });
   canvasView.addEventListener('pick', (e) => {
-    toast(`取色 ${CanvasView.formatColor(e.detail.color)}`, {
-      hint: '阶段 D 接入调色板后，这里会直接写入当前色',
+    toast(t('common.colorPicked', { color: CanvasView.formatColor(e.detail.color) }), {
+      hint: t('common.colorPickedHint'),
     });
   });
 
@@ -307,7 +336,7 @@ function buildStack() {
   const afterApply = async () => { await reloadProject(); };
 
   stack.add({
-    id: 'generate', index: 1, label: 'AI 生成', hint: '描述你想要的，挑中的才进项目',
+    id: 'generate', index: 1, label: t('generate.stackLabel'), hint: t('generate.stackHint'),
     mount: (body) => {
       panels.generate = new GeneratePanel(body, { onCommitted: afterApply });
       panels.generate.mount();
@@ -315,22 +344,7 @@ function buildStack() {
   });
 
   stack.add({
-    id: 'video', index: 2, label: '视频转动帧', hint: '把一段视频变成像素动画',
-    mount: (body) => {
-      panels.video = new VideoPanel(body, {
-        onPickFile: () => rpc.pickVideo?.(),
-        onImported: async (result) => {
-          await reloadProject();
-          if (result?.asset) await loadAsset(result.asset, 'frameset');
-          switchView('anim');
-        },
-      });
-      panels.video.mount();
-    },
-  });
-
-  stack.add({
-    id: 'pixelify', index: 3, label: '像素化', hint: '把照片、插画、视频帧变成像素画',
+    id: 'pixelify', index: 2, label: t('pixelify.title'), hint: t('pixelify.stackHint'),
     mount: (body) => {
       panels.pixelify = new PixelifyPanel(body, { onPreview: previewToCanvas, onApplied: afterApply });
       panels.pixelify.mount();
@@ -340,7 +354,7 @@ function buildStack() {
   });
 
   stack.add({
-    id: 'background', index: 4, label: '抠图', hint: '把背景变透明',
+    id: 'background', index: 3, label: t('background.remove'), hint: t('background.stackHint'),
     mount: (body) => {
       backgroundPanel = new BackgroundPanel(body, { onPreview: previewToCanvas, onApplied: afterApply });
       panels.background = backgroundPanel;
@@ -350,7 +364,7 @@ function buildStack() {
   });
 
   stack.add({
-    id: 'outline', index: 5, label: '描边', hint: '沿边缘加一圈黑边，像素风的标志',
+    id: 'outline', index: 4, label: t('outline.title'), hint: t('outline.stackHint'),
     mount: (body) => {
       panels.outline = new OutlinePanel(body, { onPreview: previewToCanvas, onApplied: afterApply });
       panels.outline.mount();
@@ -367,6 +381,20 @@ function currentOperableAsset() {
   const { asset, assetKind } = state;
   if (!asset) return null;
   if (assetKind === 'clip') return null;
+  if (String(asset).endsWith('_mask')) return null;
+  return asset;
+}
+
+/**
+ * 导出（E05）只作用于已提交的资产（`export.apply` 后端文档原话是
+ * "committed asset"）——跟 syncPanels() 里抠图/描边用的 `committed`
+ * 判断同一套规则，不单独发明一套：排除未分类的原始导入（`source`）、
+ * 生成候选分组（`clip`）和遮罩（`_mask`）。
+ */
+function currentExportableAsset() {
+  const { asset, assetKind } = state;
+  if (!asset) return null;
+  if (assetKind === 'source' || assetKind === 'clip') return null;
   if (String(asset).endsWith('_mask')) return null;
   return asset;
 }
@@ -392,7 +420,7 @@ function wireTaskBar() {
     const first = active[0];
     currentId = first.id;
     bar.style.display = '';
-    const more = active.length > 1 ? `（还有 ${active.length - 1} 个）` : '';
+    const more = active.length > 1 ? t('common.moreJobsHint', { count: active.length - 1 }) : '';
     text.textContent = `${first.label} · ${first.stage}${first.total ? ` ${first.done}/${first.total}` : ''}${more}`;
     fill.style.width = `${Math.round((first.total ? first.done / first.total : 0) * 100)}%`;
   });
@@ -469,7 +497,7 @@ async function loadAsset(assetId, kind = 'asset') {
   framebar.selected = 0;
   framebar.render(state.frames);
 
-  setStatusText('asset', `${assetId} · ${state.frames.length} 帧`);
+  setStatusText('asset', t('asset.statusLine', { assetId, count: state.frames.length }));
   await selectFrame(0);
 
   await syncPanels();
@@ -491,16 +519,22 @@ async function syncPanels() {
   panels.outline?.setAsset(committed ? asset : null);
   panels.pixelify?.setAsset(pixelifiable ? asset : null);
 
-  stack?.setEnabled('background', Boolean(committed), '先选一个已处理的资产');
-  stack?.setEnabled('outline', Boolean(committed), '先选一个已处理的资产');
-  stack?.setEnabled('pixelify', Boolean(pixelifiable), '先选一张图');
+  stack?.setEnabled('background', Boolean(committed), t('common.selectProcessedAssetHint'));
+  stack?.setEnabled('outline', Boolean(committed), t('common.selectProcessedAssetHint'));
+  stack?.setEnabled('pixelify', Boolean(pixelifiable), t('pixelify.disabledHint'));
+
+  // E05：导出按钮跟着「有没有可导出资产」走，复用上面这行算出的同一个
+  // committed（currentExportableAsset() 是同一条规则，供点击时取 asset 用）。
+  const exportBtn = $('#btn-export');
+  exportBtn.disabled = !committed;
+  exportBtn.title = committed ? '' : t('common.selectProcessedAssetHint');
 
   // 像素化面板要显示"我们认为这是照片还是已有像素画"，并允许一键改判
   if (panels.pixelify && pixelifiable) {
     const reply = await rpc.call('source.classify', { source: asset });
     if (reply.ok) {
       panels.pixelify.setClassification(reply.result, () => {
-        toast('修复（recover）面板尚未接入', { hint: '后端 recover.apply 待实现' });
+        toast(t('recover.notImplemented'), { hint: t('recover.notImplementedHint') });
       });
     } else {
       panels.pixelify.setClassification(null);
@@ -512,8 +546,8 @@ async function selectFrame(index, { syncCanvas = true } = {}) {
   if (!state.frames[index]) return;
   state.frameIndex = index;
   framebar.selected = index;
-  for (const t of $('#framebar').querySelectorAll('.framebar__thumb')) {
-    t.setAttribute('aria-selected', String(Number(t.dataset.index) === index));
+  for (const thumb of $('#framebar').querySelectorAll('.framebar__thumb')) {
+    thumb.setAttribute('aria-selected', String(Number(thumb.dataset.index) === index));
   }
 
   const frame = state.frames[index];
@@ -525,11 +559,11 @@ function renderFrameInfo(frame) {
   const root = $('#frame-info');
   root.replaceChildren();
   const rows = [
-    ['帧 ID', frame.id],
-    ['尺寸', `${frame.width} × ${frame.height}`],
-    ['序号', `${frame.index}`],
-    ['时长', `${frame.durationMs} ms`],
-    ['标签', (frame.tags ?? []).join(' / ') || '（无）'],
+    [t('asset.frameIdLabel'), frame.id],
+    [t('asset.sizeLabel'), `${frame.width} × ${frame.height}`],
+    [t('asset.indexLabel'), `${frame.index}`],
+    [t('asset.durationLabel'), `${frame.durationMs} ms`],
+    [t('asset.tagsLabel'), (frame.tags ?? []).join(' / ') || t('asset.noneValue')],
   ];
   for (const [label, value] of rows) {
     const field = document.createElement('div');

@@ -8,6 +8,7 @@
 
 import { rpc } from './rpc.js';
 import { h, toast } from './views.js';
+import { t } from './i18n.js';
 
 export const PREVIEW_DEBOUNCE_MS = 180;
 
@@ -87,7 +88,7 @@ export function numberField(label, value, onChange) {
 }
 
 /** 折叠的「高级」区。默认收起——绝大多数用户永远不需要展开。 */
-export function advanced(children, { label = '高级参数', open = false } = {}) {
+export function advanced(children, { label = t('common.advancedParams'), open = false } = {}) {
   const body = h('div', { class: 'kit-adv__body' }, children);
   body.style.display = open ? '' : 'none';
   const head = h('button', {
@@ -115,7 +116,7 @@ export function advanced(children, { label = '高级参数', open = false } = {}
  *   renderReadout(result, ms)     把后端返回值写成人话
  */
 export class PreviewPanel {
-  constructor(root, { analyzeMethod, applyMethod, applyLabel = '应用到项目', onPreview, onApplied }) {
+  constructor(root, { analyzeMethod, applyMethod, applyLabel = t('common.applyToProject'), onPreview, onApplied }) {
     this.root = root;
     this.analyzeMethod = analyzeMethod;
     this.applyMethod = applyMethod;
@@ -133,7 +134,7 @@ export class PreviewPanel {
 
   mount() {
     this.root.replaceChildren();
-    this.status = h('div', { class: 'kit-status', text: '选择一个资产' });
+    this.status = h('div', { class: 'kit-status', text: t('common.selectAssetPrompt') });
     this.applyButton = h('button', {
       class: 'px-btn px-btn--accent kit-apply',
       text: this.applyLabel,
@@ -148,7 +149,7 @@ export class PreviewPanel {
     const usable = Boolean(asset);
     for (const el of this.root.querySelectorAll('input, select, button')) el.disabled = !usable;
     if (!usable) {
-      this.status.textContent = '选择一个资产';
+      this.status.textContent = t('common.selectAssetPrompt');
       this.last = null;
       this.onPreview?.({ url: null, maskUrl: null });
       return;
@@ -159,7 +160,7 @@ export class PreviewPanel {
   schedule() {
     clearTimeout(this.timer);
     if (!this.asset) return;
-    this.status.textContent = '计算中…';
+    this.status.textContent = t('common.calculating');
     this.timer = setTimeout(() => this._run(), PREVIEW_DEBOUNCE_MS);
   }
 
@@ -176,7 +177,7 @@ export class PreviewPanel {
     if (this.pending) { this.pending = false; this._run(); return; }
 
     if (!reply.ok) {
-      this.status.textContent = reply.error?.code === 2 ? '该功能后端尚未接入' : '预览失败';
+      this.status.textContent = reply.error?.code === 2 ? t('common.backendNotWired') : t('common.previewFailed');
       return;
     }
     this.last = reply.result;
@@ -193,19 +194,19 @@ export class PreviewPanel {
   async _apply() {
     if (!this.asset) return;
     this.applyButton.disabled = true;
-    this.status.textContent = '提交中…';
+    this.status.textContent = t('common.submitting');
     const reply = await rpc.call(this.applyMethod, { asset: this.asset, ...this.applyParams() });
     this.applyButton.disabled = false;
 
     if (!reply.ok) {
-      this.status.textContent = reply.error?.code === 2 ? '该功能后端尚未接入' : '提交失败';
+      this.status.textContent = reply.error?.code === 2 ? t('common.backendNotWired') : t('common.submitFailed');
       return;
     }
     const { revision, outputs = [], warnings = [] } = reply.result;
-    toast(`已提交：${outputs.join(', ')}`, {
-      hint: warnings.length ? `${warnings.length} 条警告` : '可用标题栏的撤销回退',
+    toast(t('common.submittedToast', { outputs: outputs.join(', ') }), {
+      hint: warnings.length ? t('common.warningsCountHint', { count: warnings.length }) : t('common.undoHint'),
     });
-    this.status.textContent = `已提交 · ${outputs.join(', ')}`;
+    this.status.textContent = t('common.submittedStatus', { outputs: outputs.join(', ') });
     this.onApplied?.(reply.result, revision);
   }
 

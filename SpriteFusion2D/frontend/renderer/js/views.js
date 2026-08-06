@@ -1,6 +1,8 @@
 // 资产树、网格视图、帧条、历史、doctor —— FRONTEND_PLAN.md §5
 // 全部只读：阶段 A 不提交任何写操作。
 
+import { t } from './i18n.js';
+
 const h = (tag, props = {}, children = []) => {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(props)) {
@@ -40,7 +42,7 @@ export class AssetTree {
     for (const group of groups) {
       this.root.appendChild(h('div', { class: 'px-group-title', text: group.label }));
       if (group.items.length === 0) {
-        this.root.appendChild(h('div', { class: 'px-empty', text: '（空）' }));
+        this.root.appendChild(h('div', { class: 'px-empty', text: t('common.emptyGroup') }));
         continue;
       }
       for (const item of group.items) {
@@ -52,7 +54,7 @@ export class AssetTree {
           onclick: () => this.select(item),
         }, [
           h('span', { class: 'px-row__label', text: item.label }),
-          h('span', { class: 'px-row__note', text: item.frames > 1 ? `${item.frames}帧` : '' }),
+          h('span', { class: 'px-row__note', text: item.frames > 1 ? t('asset.frameCountBadge', { count: item.frames }) : '' }),
         ]);
         row.title = `${item.id}\n${item.note ?? ''}`;
         this.root.appendChild(row);
@@ -82,7 +84,7 @@ export class GridView {
   render(frames) {
     this.root.replaceChildren();
     if (!frames || frames.length === 0) {
-      this.root.appendChild(h('div', { class: 'px-empty', text: '选择左侧资产以查看帧' }));
+      this.root.appendChild(h('div', { class: 'px-empty', text: t('asset.selectToViewFrames') }));
       return;
     }
 
@@ -152,8 +154,8 @@ export class FrameBar {
 
   select(index) {
     this.selected = index;
-    for (const t of this.root.querySelectorAll('.framebar__thumb')) {
-      t.setAttribute('aria-selected', String(Number(t.dataset.index) === index));
+    for (const thumb of this.root.querySelectorAll('.framebar__thumb')) {
+      thumb.setAttribute('aria-selected', String(Number(thumb.dataset.index) === index));
     }
     this.onSelect(index);
   }
@@ -165,6 +167,7 @@ export function renderHistory(root, { head_revision, entries }) {
   root.replaceChildren();
   for (const e of entries) {
     const isHead = e.revision === head_revision;
+    const warningsPart = e.warnings ? ` · ${t('history.warningsCount', { warnings: e.warnings })}` : '';
     root.appendChild(
       h('div', { class: `hist-row${isHead ? ' hist-row--head' : ''}` }, [
         h('div', { class: 'hist-row__top' }, [
@@ -173,7 +176,7 @@ export function renderHistory(root, { head_revision, entries }) {
         ]),
         h('div', {
           class: 'hist-row__meta',
-          text: `${e.frames} 帧${e.warnings ? ` · ${e.warnings} 警告` : ''} · ${e.at}`,
+          text: `${t('history.frameCount', { frames: e.frames })}${warningsPart} · ${e.at}`,
         }),
       ]),
     );
@@ -181,7 +184,7 @@ export function renderHistory(root, { head_revision, entries }) {
   root.appendChild(
     h('div', {
       class: 'px-empty',
-      text: '阶段 A 只读。回退与分叉警告在阶段 C 接入。',
+      text: t('history.readOnlyNote'),
     }),
   );
 }
@@ -189,10 +192,13 @@ export function renderHistory(root, { head_revision, entries }) {
 // ---------------------------------------------------------------- doctor
 
 const STATUS_CLASS = { ok: 'px-badge--ok', warn: 'px-badge--warn', error: 'px-badge--err', skip: 'px-badge--skip' };
-const STATUS_TEXT = { ok: 'OK', warn: '注意', error: '失败', skip: '跳过' };
+function statusText() {
+  return { ok: t('status.ok'), warn: t('status.warn'), error: t('status.error'), skip: t('status.skip') };
+}
 
 export function renderDoctor(root, checks) {
   root.replaceChildren();
+  const STATUS_TEXT = statusText();
   for (const c of checks) {
     const row = h('div', { class: 'doctor-row' }, [
       h('span', { class: 'doctor-row__name', text: c.name }),
@@ -212,7 +218,7 @@ export function toast(message, { error = false, code = null, hint = '' } = {}) {
   clearTimeout(toastTimer);
 
   const el = h('div', { class: `px-toast${error ? ' px-toast--err' : ''}` }, [
-    code !== null ? h('div', { class: 'px-toast__code', text: `退出码 ${code}` }) : null,
+    code !== null ? h('div', { class: 'px-toast__code', text: t('status.exitCode', { code }) }) : null,
     h('div', { text: message }),
     hint ? h('div', { class: 'px-toast__code', text: hint }) : null,
   ]);

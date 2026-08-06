@@ -5,40 +5,43 @@
 
 import { PreviewPanel, advanced, field, numberField, picker, presetRow, slider, toggle } from './panel-kit.js';
 import { h } from './views.js';
+import { t } from './i18n.js';
 
 // 「柔和深色」= 取相邻像素自身颜色压暗，像素画里比纯黑更常用的做法
 // （selective outline）。红裙子外面是暗红边而不是死黑，结果更像人画的。
-const PRESETS = [
-  {
-    id: 'classic',
-    label: '经典黑边',
-    hint: '外描边 1px 纯黑，跳过纯对角接触',
-    settings: { position: 'outer', thickness: 1, connectivity: 8, skipDiagonal: true, colorMode: 'fixed', color: '#000000' },
-  },
-  {
-    id: 'soft',
-    label: '柔和深色',
-    hint: '取相邻像素自身颜色压暗，比纯黑高级',
-    settings: { position: 'outer', thickness: 1, connectivity: 8, skipDiagonal: true, colorMode: 'darken-neighbor', darken: 40 },
-  },
-  {
-    id: 'shadow',
-    label: '描边加内阴影',
-    hint: '外黑边 + 内侧一圈暗色',
-    settings: { position: 'outer', thickness: 1, connectivity: 8, skipDiagonal: true, colorMode: 'fixed', color: '#000000', innerShadow: true },
-  },
-  { id: 'custom', label: '自定义', hint: '展开高级参数自行调整', settings: {} },
-];
+function presets() {
+  return [
+    {
+      id: 'classic',
+      label: t('outline.presetClassicLabel'),
+      hint: t('outline.presetClassicHint'),
+      settings: { position: 'outer', thickness: 1, connectivity: 8, skipDiagonal: true, colorMode: 'fixed', color: '#000000' },
+    },
+    {
+      id: 'soft',
+      label: t('outline.presetSoftLabel'),
+      hint: t('outline.presetSoftHint'),
+      settings: { position: 'outer', thickness: 1, connectivity: 8, skipDiagonal: true, colorMode: 'darken-neighbor', darken: 40 },
+    },
+    {
+      id: 'shadow',
+      label: t('outline.presetShadowLabel'),
+      hint: t('outline.presetShadowHint'),
+      settings: { position: 'outer', thickness: 1, connectivity: 8, skipDiagonal: true, colorMode: 'fixed', color: '#000000', innerShadow: true },
+    },
+    { id: 'custom', label: t('outline.presetCustomLabel'), hint: t('outline.presetCustomHint'), settings: {} },
+  ];
+}
 
 export class OutlinePanel extends PreviewPanel {
   constructor(root, hooks) {
     super(root, { analyzeMethod: 'outline.analyze', applyMethod: 'outline.apply', ...hooks });
     this.preset = 'classic';
-    this.settings = { ...PRESETS[0].settings, darken: 40, innerShadow: false };
+    this.settings = { ...presets()[0].settings, darken: 40, innerShadow: false };
   }
 
   buildBody() {
-    this.presets = presetRow(PRESETS, this.preset, (p) => {
+    this.presets = presetRow(presets(), this.preset, (p) => {
       this.preset = p.id;
       if (p.id !== 'custom') {
         this.settings = { ...this.settings, ...p.settings };
@@ -52,23 +55,27 @@ export class OutlinePanel extends PreviewPanel {
       this.markCustom();
     });
     this.positionPick = picker(
-      [{ id: 'outer', label: '外描边' }, { id: 'inner', label: '内描边' }, { id: 'center', label: '居中' }],
+      [
+        { id: 'outer', label: t('outline.positionOuter') },
+        { id: 'inner', label: t('outline.positionInner') },
+        { id: 'center', label: t('outline.positionCenter') },
+      ],
       this.settings.position,
       (v) => { this.settings.position = v; this.markCustom(); },
     );
-    this.diagToggle = toggle('跳过纯对角', this.settings.skipDiagonal, (v) => {
+    this.diagToggle = toggle(t('outline.skipDiagonalLabel'), this.settings.skipDiagonal, (v) => {
       this.settings.skipDiagonal = v;
       this.markCustom();
     });
-    this.connToggle = toggle('连对角线', this.settings.connectivity === 8, (v) => {
+    this.connToggle = toggle(t('outline.connectDiagonalsLabel'), this.settings.connectivity === 8, (v) => {
       this.settings.connectivity = v ? 8 : 4;
       this.markCustom();
     });
     this.colorPick = picker(
       [
-        { id: 'fixed', label: '固定颜色' },
-        { id: 'darken-neighbor', label: '相邻取色压暗' },
-        { id: 'hue-shift', label: '色相偏移' },
+        { id: 'fixed', label: t('outline.colorFixed') },
+        { id: 'darken-neighbor', label: t('outline.colorDarkenNeighbor') },
+        { id: 'hue-shift', label: t('outline.colorHueShift') },
       ],
       this.settings.colorMode,
       (v) => { this.settings.colorMode = v; this.markCustom(); },
@@ -77,29 +84,29 @@ export class OutlinePanel extends PreviewPanel {
       this.settings.darken = v;
       this.markCustom();
     });
-    this.uniform = toggle('跨帧统一', true, (v) => {
+    this.uniform = toggle(t('outline.uniformAcrossFramesLabel'), true, (v) => {
       this.settings.uniformAcrossFrames = v;
       this.markCustom();
     });
-    this.overlayToggle = toggle('标出描边区', true, (v) => {
+    this.overlayToggle = toggle(t('outline.overlayLabel'), true, (v) => {
       this.showOverlay = v;
       this.emitPreview();
     });
 
     // 顺序提示：描边必须在合成之后，否则身体和武器各自带一圈边，
     // 叠起来接缝处会出现两条黑线（BACKEND_PLAN_V2.md §2.3）。
-    this.orderHint = h('div', { class: 'kit-warn', text: '描边应在合成之后做，否则接缝会出现双线' });
+    this.orderHint = h('div', { class: 'kit-warn', text: t('outline.orderHint') });
 
     return h('div', {}, [
-      field('预设', null, this.presets),
+      field(t('common.presetLabel'), null, this.presets),
       this.overlayToggle,
       this.orderHint,
       advanced([
-        field('粗细（格）', '单位是恢复后的 1x 网格像素', this.thickness),
-        field('位置', null, this.positionPick),
+        field(t('outline.thicknessLabel'), t('outline.thicknessHint'), this.thickness),
+        field(t('outline.positionLabel'), null, this.positionPick),
         h('div', { class: 'kit-row' }, [this.connToggle, this.diagToggle]),
-        field('颜色', '「相邻取色压暗」通常比纯黑好看', this.colorPick),
-        field('压暗程度 %', null, this.darken),
+        field(t('outline.colorLabel'), t('outline.colorHint'), this.colorPick),
+        field(t('outline.darkenPercentLabel'), null, this.darken),
         this.uniform,
       ]),
     ]);
@@ -132,9 +139,13 @@ export class OutlinePanel extends PreviewPanel {
   renderReadout(result, roundTripMs) {
     const a = result.analysis ?? {};
     const pct = a.total_pixels ? ((a.outline_pixels / a.total_pixels) * 100).toFixed(1) : '0.0';
-    this.status.textContent =
-      `描边 ${a.outline_pixels}/${a.total_pixels} 像素（${pct}%）`
-      + ` · 后端 ${Math.round(a.elapsed_ms ?? 0)}ms · 往返 ${roundTripMs.toFixed(0)}ms`;
+    this.status.textContent = t('outline.outlineSummary', {
+      outline: a.outline_pixels,
+      total: a.total_pixels,
+      pct,
+      ms: Math.round(a.elapsed_ms ?? 0),
+      rtMs: roundTripMs.toFixed(0),
+    });
     this.appendWarnings(result.warnings);
   }
 }

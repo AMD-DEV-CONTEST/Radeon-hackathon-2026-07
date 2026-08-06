@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <!-- §9.1 禁止外部内容 -->
@@ -17,14 +17,14 @@
     <div id="app">
       <!-- ------------------------------------------------ 标题栏 -->
       <header class="titlebar px-panel px-panel--deep">
-        <span class="titlebar__title" id="title-name">未打开项目</span>
+        <span class="titlebar__title" id="title-name" data-i18n="project.titlePlaceholder">No Project</span>
         <span class="titlebar__rev" id="title-rev"></span>
-        <button class="px-btn px-btn--sm" id="btn-undo" title="阶段 C 接入">撤销</button>
-        <button class="px-btn px-btn--sm" id="btn-redo" title="阶段 C 接入">重做</button>
+        <button class="px-btn px-btn--sm" id="btn-undo" data-i18n="history.undo">Undo</button>
+        <button class="px-btn px-btn--sm" id="btn-redo" data-i18n="history.redo">Redo</button>
         <span class="titlebar__spacer"></span>
         <span class="titlebar__status">
           <span class="px-dot px-dot--starting" id="sidecar-dot"></span>
-          <span id="sidecar-text">后端启动中</span>
+          <span id="sidecar-text" data-i18n="status.backendStarting">Backend Starting…</span>
         </span>
         <label class="titlebar__status">
           UI
@@ -34,24 +34,36 @@
             <option value="3">3x</option>
           </select>
         </label>
-        <button class="px-btn px-btn--sm" id="btn-new-project">新建项目</button>
+        <button class="px-btn px-btn--sm" id="btn-new-project" data-i18n="project.new">New Project</button>
         <button
           class="px-btn px-btn--sm"
           id="btn-import-asset"
           disabled
-          title="先新建或打开一个项目"
+          data-i18n="asset.import"
+          data-i18n-title="asset.importDisabledHint"
+          title="Create or open a project first"
         >
-          导入素材
+          Import Asset
         </button>
-        <button class="px-btn px-btn--sm" id="btn-restart">重启后端</button>
-        <button class="px-btn px-btn--sm px-btn--accent" id="btn-open">打开项目</button>
+        <button
+          class="px-btn px-btn--sm"
+          id="btn-export"
+          disabled
+          data-i18n="export.title"
+          data-i18n-title="common.selectProcessedAssetHint"
+          title="Select a processed asset first"
+        >
+          Export
+        </button>
+        <button class="px-btn px-btn--sm" id="btn-restart" data-i18n="status.restartBackend">Restart Backend</button>
+        <button class="px-btn px-btn--sm px-btn--accent" id="btn-open" data-i18n="project.open">Open Project</button>
       </header>
 
       <!-- ------------------------------------------------ 主体 -->
       <div class="body">
         <!-- 左：资产树 -->
         <aside class="pane px-panel px-panel--deep">
-          <div class="pane__head">资产</div>
+          <div class="pane__head" data-i18n="asset.assets">Assets</div>
           <div class="pane__body px-inset">
             <div class="px-list" id="asset-tree" role="listbox"></div>
           </div>
@@ -61,13 +73,13 @@
         <main class="center">
           <div class="px-panel px-panel--deep" style="display: flex; align-items: center">
             <div class="px-tabs">
-              <button class="px-tab" data-view="grid" aria-selected="true">网格视图</button>
-              <button class="px-tab" data-view="canvas" aria-selected="false">画布视图</button>
-              <button class="px-tab" data-view="anim" aria-selected="false">动画预览</button>
+              <button class="px-tab" data-view="grid" aria-selected="true" data-i18n="asset.gridView">Grid View</button>
+              <button class="px-tab" data-view="canvas" aria-selected="false" data-i18n="asset.canvasView">Canvas View</button>
+              <button class="px-tab" data-view="anim" aria-selected="false" data-i18n="asset.animationView">Animation Preview</button>
             </div>
             <div class="anim-toolbar" id="anim-toolbar" style="display: none">
               <span class="canvas-toolbar__sep"></span>
-              <button class="px-btn px-btn--sm" id="btn-play">▶ 播放</button>
+              <button class="px-btn px-btn--sm" id="btn-play" data-i18n="common.play">▶ Play</button>
               <button class="px-btn px-btn--sm" id="btn-prev">◀</button>
               <button class="px-btn px-btn--sm" id="btn-next">▶</button>
               <select class="px-btn px-btn--sm" id="anim-speed">
@@ -78,12 +90,12 @@
             </div>
             <div class="canvas-toolbar" id="canvas-toolbar" style="display: none">
               <span class="canvas-toolbar__sep"></span>
-              <button class="px-btn px-btn--sm" id="btn-fit">适配</button>
+              <button class="px-btn px-btn--sm" id="btn-fit" data-i18n="common.fit">Fit</button>
               <div class="px-slider" style="width: 140px">
                 <input type="range" id="zoom-range" min="0" max="5" step="1" value="3" />
               </div>
-              <button class="px-btn px-btn--sm" id="btn-grid">网格线</button>
-              <button class="px-btn px-btn--sm" id="btn-checker">浅棋盘</button>
+              <button class="px-btn px-btn--sm" id="btn-grid" data-i18n="common.gridLines">Grid Lines</button>
+              <button class="px-btn px-btn--sm" id="btn-checker" data-i18n="common.checkerboard">Checkerboard</button>
             </div>
           </div>
 
@@ -94,7 +106,8 @@
             <div class="view" data-view-name="canvas" data-active="false">
               <canvas class="canvasview" id="canvas"></canvas>
             </div>
-            <!-- 视频功能的验收界面：没有它用户无法判断结果好不好 -->
+            <!-- 帧组动画预览：真实功能，跟视频导入无关（E06 已经把没有后端的
+                 视频转动帧入口从操作栈里去掉了，这个 tab 保留） -->
             <div class="view" data-view-name="anim" data-active="false">
               <div class="animview" id="animview">
                 <img class="animview__img" id="anim-img" alt="" />
@@ -109,8 +122,8 @@
         <!-- 右：操作栈与信息面板 -->
         <aside class="pane px-panel px-panel--deep">
           <div class="px-tabs" style="padding: 0">
-            <button class="px-tab" data-pane="ops" aria-selected="true">操作</button>
-            <button class="px-tab" data-pane="info" aria-selected="false">信息</button>
+            <button class="px-tab" data-pane="ops" aria-selected="true" data-i18n="common.operations">Operations</button>
+            <button class="px-tab" data-pane="info" aria-selected="false" data-i18n="common.info">Info</button>
           </div>
 
           <div class="pane__body px-scroll" data-pane-name="ops" data-active="true">
@@ -119,13 +132,13 @@
           </div>
 
           <div class="pane__body px-scroll" data-pane-name="info" data-active="false">
-            <div class="pane__head">帧信息</div>
+            <div class="pane__head" data-i18n="asset.frameInfo">Frame Info</div>
             <div id="frame-info"></div>
 
-            <div class="pane__head" style="margin-top: 8px">历史</div>
+            <div class="pane__head" style="margin-top: 8px" data-i18n="history.title">History</div>
             <div class="px-inset px-list" id="history" style="max-height: 180px"></div>
 
-            <div class="pane__head" style="margin-top: 8px">doctor</div>
+            <div class="pane__head" style="margin-top: 8px" data-i18n="status.diagnostics">Diagnostics</div>
             <div class="px-inset px-list" id="doctor" style="max-height: 200px"></div>
           </div>
         </aside>
@@ -137,14 +150,14 @@
         <span class="statusbar__task" id="task-bar" style="display: none">
           <span class="task-bar__text" id="task-text"></span>
           <span class="task-bar__track"><span class="task-bar__fill" id="task-fill"></span></span>
-          <button class="px-btn px-btn--sm" id="task-cancel">取消</button>
+          <button class="px-btn px-btn--sm" id="task-cancel" data-i18n="common.cancel">Cancel</button>
         </span>
-        <span class="statusbar__item">坐标 <b id="status-coord">--, --</b></span>
+        <span class="statusbar__item"><span data-i18n="common.coordinate">Coordinate</span> <b id="status-coord">--, --</b></span>
         <span class="statusbar__item">
-          颜色 <span class="swatch" id="status-swatch"></span> <b id="status-color">--</b>
+          <span data-i18n="common.color">Color</span> <span class="swatch" id="status-swatch"></span> <b id="status-color">--</b>
         </span>
-        <span class="statusbar__item">画布 <b id="status-canvas">--</b></span>
-        <span class="statusbar__item">缩放 <b id="status-zoom">--</b></span>
+        <span class="statusbar__item"><span data-i18n="common.canvas">Canvas</span> <b id="status-canvas">--</b></span>
+        <span class="statusbar__item"><span data-i18n="common.zoom">Zoom</span> <b id="status-zoom">--</b></span>
         <span class="statusbar__spacer"></span>
         <span class="statusbar__item" id="status-asset"></span>
         <span class="statusbar__item statusbar__warn" id="status-backend"></span>
@@ -158,27 +171,29 @@
          模态代替。取消/Esc 不调用 createProject，因此不会弹错误提示。 -->
     <div class="modal" id="new-project-modal" hidden>
       <div class="modal__panel px-panel px-panel--deep">
-        <div class="modal__title">新建项目</div>
+        <div class="modal__title" data-i18n="project.new">New Project</div>
         <label class="modal__field">
-          项目名称
+          <span data-i18n="project.nameLabel">Project Name</span>
           <input
             class="px-input"
             type="text"
             id="new-project-name"
             maxlength="120"
             autocomplete="off"
-            placeholder="例如：英雄行走动画"
+            data-i18n-placeholder="project.namePlaceholder"
+            placeholder="e.g. Hero Walk Animation"
           />
         </label>
         <div class="modal__actions">
-          <button class="px-btn px-btn--sm" id="new-project-cancel">取消</button>
-          <button class="px-btn px-btn--sm px-btn--accent" id="new-project-confirm">
-            创建并打开
+          <button class="px-btn px-btn--sm" id="new-project-cancel" data-i18n="common.cancel">Cancel</button>
+          <button class="px-btn px-btn--sm px-btn--accent" id="new-project-confirm" data-i18n="project.createAndOpen">
+            Create & Open
           </button>
         </div>
       </div>
     </div>
 
+    <script type="module" src="js/i18n-boot.js"></script>
     <script type="module" src="js/app.js"></script>
   </body>
 </html>

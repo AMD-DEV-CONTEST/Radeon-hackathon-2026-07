@@ -6,14 +6,19 @@
 
 import { rpc } from './rpc.js';
 import { h, toast } from './views.js';
+import { t } from './i18n.js';
 
 const PREVIEW_DEBOUNCE_MS = 180;
 
-const MODE_HINTS = {
-  exact: '颜色完全相等。纯色背景最快最稳，容差无效。',
-  rgb: '加权 sRGB 距离，容差单位约等于 0–255 色差。',
-  lab: '感知色差 ΔE，容差 10 上下适合大多数近似背景。',
-};
+const MODE_IDS = ['exact', 'rgb', 'lab'];
+
+function modeHints() {
+  return {
+    exact: t('background.modeHintExact'),
+    rgb: t('background.modeHintRgb'),
+    lab: t('background.modeHintLab'),
+  };
+}
 
 export class BackgroundPanel {
   constructor(root, { onPreview, onApplied }) {
@@ -48,18 +53,18 @@ export class BackgroundPanel {
     this.root.replaceChildren();
 
     this.modeSelect = h('select', { class: 'px-btn px-btn--sm' },
-      Object.keys(MODE_HINTS).map((m) =>
+      MODE_IDS.map((m) =>
         h('option', { value: m, text: m, selected: m === this.settings.mode ? '' : null }),
       ),
     );
     this.modeSelect.addEventListener('change', () => {
       this.settings.mode = this.modeSelect.value;
-      this.modeHint.textContent = MODE_HINTS[this.settings.mode];
+      this.modeHint.textContent = modeHints()[this.settings.mode];
       this.toleranceRow.style.opacity = this.settings.mode === 'exact' ? '0.4' : '1';
       this._schedulePreview();
     });
 
-    this.modeHint = h('div', { class: 'field__label', text: MODE_HINTS.lab });
+    this.modeHint = h('div', { class: 'field__label', text: modeHints().lab });
 
     this.tolerance = h('input', {
       // 上限 100：干净的像素画在 0–60 之间常常毫无变化，够不到开始吃角色的
@@ -78,17 +83,17 @@ export class BackgroundPanel {
     ]);
 
     this.connButton = h('button', {
-      class: 'px-btn px-btn--sm', text: '8 邻域',
+      class: 'px-btn px-btn--sm', text: t('background.connectivityLabel', { n: 8 }),
       onclick: () => {
         this.settings.connectivity = this.settings.connectivity === 8 ? 4 : 8;
-        this.connButton.textContent = `${this.settings.connectivity} 邻域`;
+        this.connButton.textContent = t('background.connectivityLabel', { n: this.settings.connectivity });
         this._schedulePreview();
       },
     });
 
     this.borderButton = h('button', {
-      class: 'px-btn px-btn--sm px-btn--on', text: '仅边界连通',
-      title: '关掉会连角色内部的同色区域一起擦掉',
+      class: 'px-btn px-btn--sm px-btn--on', text: t('background.borderOnlyLabel'),
+      title: t('background.borderOnlyHint'),
       onclick: () => {
         this.settings.borderOnly = !this.settings.borderOnly;
         this.borderButton.classList.toggle('px-btn--on', this.settings.borderOnly);
@@ -97,20 +102,20 @@ export class BackgroundPanel {
     });
 
     this.alphaButton = h('button', {
-      class: 'px-btn px-btn--sm', text: '硬 alpha',
+      class: 'px-btn px-btn--sm', text: t('background.alphaHard'),
       onclick: () => {
         this.settings.alpha = this.settings.alpha === 'hard' ? 'soft' : 'hard';
-        this.alphaButton.textContent = this.settings.alpha === 'hard' ? '硬 alpha' : '软 alpha';
+        this.alphaButton.textContent = this.settings.alpha === 'hard' ? t('background.alphaHard') : t('background.alphaSoft');
         this.alphaButton.classList.toggle('px-btn--on', this.settings.alpha === 'soft');
         this._schedulePreview();
       },
     });
 
-    this.islandInput = this._numberField('去孤岛 <', 'minIslandArea');
-    this.holeInput = this._numberField('填孔洞 ≤', 'maxHoleArea');
+    this.islandInput = this._numberField(t('background.minIslandLabel'), 'minIslandArea');
+    this.holeInput = this._numberField(t('background.maxHoleLabel'), 'maxHoleArea');
 
     this.overlayButton = h('button', {
-      class: 'px-btn px-btn--sm px-btn--on', text: '标出擦除区',
+      class: 'px-btn px-btn--sm px-btn--on', text: t('background.overlayLabel'),
       onclick: () => {
         this.showOverlay = !this.showOverlay;
         this.overlayButton.classList.toggle('px-btn--on', this.showOverlay);
@@ -124,25 +129,25 @@ export class BackgroundPanel {
     this.status = h('div', { class: 'field__label', text: '' });
 
     this.applyButton = h('button', {
-      class: 'px-btn px-btn--accent', text: '应用到项目',
+      class: 'px-btn px-btn--accent', text: t('common.applyToProject'),
       onclick: () => this._apply(),
     });
 
     this.root.append(
       h('div', { class: 'field' }, [
-        h('div', { class: 'field__label', text: '模式' }),
+        h('div', { class: 'field__label', text: t('background.modeLabel') }),
         this.modeSelect,
         this.modeHint,
       ]),
       h('div', { class: 'field' }, [
-        h('div', { class: 'field__label', text: '容差' }),
+        h('div', { class: 'field__label', text: t('background.toleranceLabel') }),
         this.toleranceRow,
       ]),
       h('div', { class: 'field panel-row' }, [this.connButton, this.borderButton]),
       h('div', { class: 'field panel-row' }, [this.alphaButton, this.overlayButton]),
       h('div', { class: 'field panel-row' }, [this.islandInput.wrap, this.holeInput.wrap]),
       h('div', { class: 'field' }, [
-        h('div', { class: 'field__label', text: '后端判定' }),
+        h('div', { class: 'field__label', text: t('background.backendResultLabel') }),
         h('div', { class: 'panel-row' }, [this.swatch, this.readout]),
         this.status,
       ]),
@@ -179,7 +184,7 @@ export class BackgroundPanel {
       if (el !== this.applyButton) el.disabled = !usable;
     }
     if (!usable) {
-      this.readout.textContent = '选择一个资产';
+      this.readout.textContent = t('common.selectAssetPrompt');
       this.status.textContent = '';
       this.lastAnalysis = null;
       this.onPreview({ url: null, maskUrl: null });
@@ -191,7 +196,7 @@ export class BackgroundPanel {
   _schedulePreview() {
     // 拖滑块会连发事件；只保留最后一次，且同一时刻只允许一个请求在飞。
     clearTimeout(this.timer);
-    this.status.textContent = '计算中…';
+    this.status.textContent = t('common.calculating');
     this.timer = setTimeout(() => this._runPreview(), PREVIEW_DEBOUNCE_MS);
   }
 
@@ -217,7 +222,7 @@ export class BackgroundPanel {
     }
 
     if (!reply.ok) {
-      this.status.textContent = '预览失败';
+      this.status.textContent = t('common.previewFailed');
       return;
     }
 
@@ -233,18 +238,24 @@ export class BackgroundPanel {
     if (chosen) {
       this.swatch.style.backgroundColor = chosen.color;
       this.swatch.style.backgroundImage = 'none';
-      this.readout.textContent =
-        `${chosen.color} · 覆盖边界 ${Math.round(chosen.border_coverage * 100)}%`;
+      this.readout.textContent = t('background.colorCoverage', {
+        color: chosen.color,
+        pct: Math.round(chosen.border_coverage * 100),
+      });
     } else {
       this.swatch.style.backgroundColor = 'transparent';
       this.swatch.style.backgroundImage = 'var(--tex-checker)';
-      this.readout.textContent = '未找到候选背景色';
+      this.readout.textContent = t('background.noCandidateColor');
     }
 
     const ratio = (analysis.erased_ratio * 100).toFixed(1);
-    this.status.textContent =
-      `将擦除 ${analysis.erased_pixels}/${analysis.total_pixels} 像素（${ratio}%）` +
-      ` · 后端 ${analysis.elapsed_ms.toFixed(0)}ms · 往返 ${roundTripMs.toFixed(0)}ms`;
+    this.status.textContent = t('background.eraseSummary', {
+      erased: analysis.erased_pixels,
+      total: analysis.total_pixels,
+      ratio,
+      ms: analysis.elapsed_ms.toFixed(0),
+      rtMs: roundTripMs.toFixed(0),
+    });
 
     for (const warning of result.warnings ?? []) {
       this.status.textContent += ` · ⚠ ${warning.code}`;
@@ -263,7 +274,7 @@ export class BackgroundPanel {
   async _apply() {
     if (!this.asset) return;
     this.applyButton.disabled = true;
-    this.status.textContent = '提交中…';
+    this.status.textContent = t('common.submitting');
 
     const reply = await rpc.call('background.apply', {
       asset: this.asset,
@@ -272,15 +283,15 @@ export class BackgroundPanel {
 
     this.applyButton.disabled = false;
     if (!reply.ok) {
-      this.status.textContent = '提交失败';
+      this.status.textContent = t('common.submitFailed');
       return;
     }
 
     const { revision, outputs, warnings } = reply.result;
-    toast(`已提交 revision ${revision}：${outputs.join(', ')}`, {
-      hint: warnings.length ? `${warnings.length} 条警告` : '可用标题栏的撤销回退',
+    toast(t('background.submittedToast', { revision, outputs: outputs.join(', ') }), {
+      hint: warnings.length ? t('common.warningsCountHint', { count: warnings.length }) : t('common.undoHint'),
     });
-    this.status.textContent = `已提交 r${revision}`;
+    this.status.textContent = t('background.submittedStatus', { revision });
     this.onApplied(reply.result);
   }
 }

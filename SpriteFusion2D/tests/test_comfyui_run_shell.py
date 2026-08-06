@@ -366,7 +366,10 @@ class TestRunLifecycle(unittest.TestCase):
         # Spawn a plain, non-ComfyUI-shaped background process and point a
         # hand-crafted receipt at it, simulating PID reuse after the real
         # ComfyUI process already exited.
-        result = _bash('(while true; do sleep 1; done) & echo $!')
+        # NOTE: the background loop must have its stdout/stderr detached from
+        # the pipe _bash() reads.  Otherwise the orphan keeps the pipe's write
+        # end open, _bash() never sees EOF, and the whole test run hangs.
+        result = _bash('(while true; do sleep 1; done) >/dev/null 2>&1 & echo $!')
         unrelated_pid = result.stdout.strip()
         self.assertTrue(unrelated_pid.isdigit(), msg=result.stdout)
         self._spawned_pids.append(unrelated_pid)

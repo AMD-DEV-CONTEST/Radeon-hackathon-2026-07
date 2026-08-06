@@ -12,6 +12,16 @@ import { advanced, field, picker, slider } from './panel-kit.js';
 import { jobs } from './jobs.js';
 import { rpc } from './rpc.js';
 import { h, toast } from './views.js';
+import { t } from './i18n.js';
+import {
+  GENERATION_PRESET_IDS,
+  SDXL_TURBO_LIMITS,
+  getGenerationPreset,
+  listGenerationPresets,
+  mergeGenerationPreset,
+} from './generate-presets.js';
+
+const DEFAULT_PRESET_ID = GENERATION_PRESET_IDS[0];
 
 export class GeneratePanel {
   constructor(root, { onCommitted }) {
@@ -20,7 +30,18 @@ export class GeneratePanel {
     this.candidates = [];
     this.picked = new Set();
     this.job = null;
-    this.settings = { count: 4, style: 'pixel', model: 'default', size: 512, steps: 20, cfg: 7 };
+    this.presetId = DEFAULT_PRESET_ID;
+    // 采样参数的默认值来自预设，而预设已经按 comfyui.py 的真实 Turbo 上限
+    // （steps<=4、CFG<=1.0）定死。这里不再出现会被后端悄悄砍掉的 20 steps / CFG 7。
+    const preset = getGenerationPreset(DEFAULT_PRESET_ID);
+    this.settings = {
+      count: preset.count,
+      style: 'pixel',
+      model: 'default',
+      size: preset.size,
+      steps: preset.steps,
+      cfg: preset.cfg,
+    };
   }
 
   async mount() {
@@ -29,63 +50,137 @@ export class GeneratePanel {
     this.prompt = h('textarea', {
       class: 'px-input kit-prompt',
       rows: '3',
-      placeholder: '描述你想要的角色，例如：一个穿红裙子的女孩，正面站立',
+      placeholder: t('generate.promptPlaceholder'),
     });
-    this.negative = h('textarea', { class: 'px-input', rows: '2', placeholder: '不想要的内容（可留空）' });
+    this.negative = h('textarea', { class: 'px-input', rows: '2', placeholder: t('generate.negativePlaceholder') });
 
-    this.stylePick = picker([{ id: 'pixel', label: '像素画' }], 'pixel', (v) => { this.settings.style = v; });
-    this.modelPick = picker([{ id: 'default', label: '默认' }], 'default', (v) => { this.settings.model = v; });
+    // 预设优先于参数（FRONTEND_PLAN_V2.md C2）：先选类别，再写主体描述。
+    this.presetPick = picker(
+      listGenerationPresets().map((p) => ({ id: p.id, label: t(`generate.preset.${p.id}`) })),
+      DEFAULT_PRESET_ID,
+      (v) => this._applyPreset(v),
+    );
+
+    this.stylePick = picker([{ id: 'pixel', label: t('generate.stylePixel') }], 'pixel', (v) => { this.settings.style = v; });
+    this.modelPick = picker([{ id: 'default', label: t('generate.modelDefault') }], 'default', (v) => { this.settings.model = v; });
     this.countPick = picker(
-      [1, 2, 4, 6, 8].map((n) => ({ id: String(n), label: `${n} 张` })),
+      [1, 2, 4, 6, 8].map((n) => ({ id: String(n), label: t('generate.countUnit', { n }) })),
       '4',
       (v) => { this.settings.count = Number(v); },
     );
 
-    this.runButton = h('button', { class: 'px-btn px-btn--accent', text: '生成', onclick: () => this._run() });
+    this.runButton = h('button', { class: 'px-btn px-btn--accent', text: t('generate.runButton'), onclick: () => this._run() });
     this.status = h('div', { class: 'kit-status', text: '' });
     this.gallery = h('div', { class: 'gen-gallery' });
     this.commitBar = h('div', { class: 'kit-row' }, [
-      h('button', { class: 'px-btn px-btn--accent', text: '收入项目', onclick: () => this._commit() }),
-      h('button', { class: 'px-btn px-btn--sm', text: '再来一批', onclick: () => this._run() }),
+      h('button', { class: 'px-btn px-btn--accent', text: t('asset.addToProject'), onclick: () => this._commit() }),
+      h('button', { class: 'px-btn px-btn--sm', text: t('generate.runAgainLabel'), onclick: () => this._run() }),
     ]);
     this.commitBar.style.display = 'none';
 
-    this.providerBar = h('div', { class: 'kit-hint', text: '正在检测生成后端…' });
+    this.providerBar = h('div', { class: 'kit-hint', text: t('generate.detectingProvider') });
+
+    // 界面显示最终会用到的关键设置，用户不用展开「高级」也知道会发生什么。
+    this.effectiveBar = h('div', { class: 'kit-hint', text: '' });
+
+    const preset = getGenerationPreset(this.presetId);
+    this.sizeSlider = slider(preset.size, { min: 256, max: 1024, step: 128 }, (v) => {
+      this.settings.size = v;
+      this._syncEffective();
+    });
+    this.stepsSlider = slider(
+      preset.steps,
+      { min: SDXL_TURBO_LIMITS.minSteps, max: SDXL_TURBO_LIMITS.maxSteps },
+      (v) => { this.settings.steps = v; this._syncEffective(); },
+    );
+    this.cfgSlider = slider(
+      preset.cfg,
+      { min: SDXL_TURBO_LIMITS.minCfg, max: SDXL_TURBO_LIMITS.maxCfg, step: 0.1 },
+      (v) => { this.settings.cfg = v; this._syncEffective(); },
+    );
 
     this.root.append(
       this.providerBar,
-      field('描述', null, this.prompt),
+      field(t('generate.presetLabel'), t('generate.presetHint'), this.presetPick),
+      field(t('generate.descriptionLabel'), null, this.prompt),
       h('div', { class: 'kit-row' }, [
-        field('风格', null, this.stylePick),
-        field('模型', null, this.modelPick),
-        field('数量', null, this.countPick),
+        field(t('generate.styleLabel'), null, this.stylePick),
+        field(t('generate.modelLabel'), null, this.modelPick),
+        field(t('generate.countLabel'), null, this.countPick),
       ]),
+      this.effectiveBar,
       advanced([
-        field('反向描述', null, this.negative),
-        field('尺寸', null, slider(512, { min: 256, max: 1024, step: 128 }, (v) => { this.settings.size = v; })),
-        field('步数', null, slider(20, { min: 4, max: 50 }, (v) => { this.settings.steps = v; })),
-        field('CFG', null, slider(7, { min: 1, max: 15 }, (v) => { this.settings.cfg = v; })),
+        field(t('generate.negativeLabel'), t('generate.negativeAppendHint'), this.negative),
+        field(t('generate.sizeLabel'), null, this.sizeSlider),
+        field(t('generate.stepsLabel'), t('generate.turboLimitHint'), this.stepsSlider),
+        field('CFG', t('generate.turboLimitHint'), this.cfgSlider),
       ]),
       this.runButton,
       this.status,
-      h('div', { class: 'kit-sep', text: '候选（不占项目，关掉就没了）' }),
+      h('div', { class: 'kit-sep', text: t('generate.candidatesSectionHint') }),
       this.gallery,
       this.commitBar,
     );
 
+    this._syncEffective();
     await this._probeProvider();
+  }
+
+  // 切换预设：把该类别的推荐值灌进 settings 和滑块。用户已经写的主体描述和
+  // 负面提示都不动——预设只管参数，不碰用户输入。
+  _applyPreset(presetId) {
+    const preset = getGenerationPreset(presetId);
+    if (!preset) return;
+    this.presetId = presetId;
+    this.settings.size = preset.size;
+    this.settings.steps = preset.steps;
+    this.settings.cfg = preset.cfg;
+    this.settings.count = preset.count;
+    this.sizeSlider.set(preset.size);
+    this.stepsSlider.set(preset.steps);
+    this.cfgSlider.set(preset.cfg);
+    if (this.countPick) this.countPick.value = String(preset.count);
+    this._syncEffective();
+  }
+
+  // 用真正会发出去的那份 payload 来渲染摘要，而不是另算一遍——避免界面显示的
+  // 和实际请求的对不上。
+  _syncEffective() {
+    if (!this.effectiveBar) return;
+    const merged = this._buildRequest(this.prompt?.value ?? '');
+    this.effectiveBar.textContent = t('generate.effectiveSummary', {
+      preset: t(`generate.preset.${this.presetId}`),
+      size: merged.size,
+      count: merged.count,
+      steps: merged.steps,
+      cfg: merged.cfg,
+    });
+  }
+
+  // 合并预设与用户输入。mergeGenerationPreset 保证：用户的主体描述原样保留在
+  // prompt 里（预设只追加风格后缀），负面提示是「用户的 + 预设的」拼接而不是
+  // 覆盖，steps/cfg 无论来自哪里都会夹进 SDXL-Turbo 的真实上限。
+  _buildRequest(promptText) {
+    return mergeGenerationPreset(this.presetId, {
+      prompt: promptText,
+      negative: this.negative?.value.trim() ?? '',
+      size: this.settings.size,
+      count: this.settings.count,
+      steps: this.settings.steps,
+      cfg: this.settings.cfg,
+    });
   }
 
   async _probeProvider() {
     const reply = await rpc.call('generate.providers');
     if (!reply.ok) {
       // 没找到后端不是错误，是一种正常状态——给可执行的下一步，不弹堆栈
-      this.providerBar.textContent = '没找到生成后端。请先启动 ComfyUI，或到设置里填地址。';
+      this.providerBar.textContent = t('generate.noProviderFound');
       this.runButton.disabled = true;
       return;
     }
     const { models = [], styles = [], provider } = reply.result;
-    this.providerBar.textContent = `生成后端：${provider}`;
+    this.providerBar.textContent = t('generate.providerLabel', { provider });
     if (models.length > 0) {
       this.modelPick.replaceChildren(
         ...models.map((m) => h('option', { value: m.id, text: m.label })),
@@ -102,19 +197,26 @@ export class GeneratePanel {
 
   async _run() {
     const text = this.prompt.value.trim();
-    if (!text) { toast('先写一句描述'); return; }
+    if (!text) { toast(t('generate.emptyPromptToast')); return; }
 
     this.runButton.disabled = true;
-    this.status.textContent = '已提交…';
+    this.status.textContent = t('generate.submittedStatus');
 
+    const merged = this._buildRequest(text);
     const { job, promise, error } = await jobs.submit('generate.submit', {
-      prompt: text,
-      negative: this.negative.value.trim(),
-      ...this.settings,
-    }, { label: '生成' });
+      style: this.settings.style,
+      model: this.settings.model,
+      prompt: merged.prompt,
+      negative: merged.negative,
+      size: merged.size,
+      count: merged.count,
+      steps: merged.steps,
+      cfg: merged.cfg,
+      preset: merged.presetId,
+    }, { label: t('generate.runButton') });
 
     if (error) {
-      this.status.textContent = error.code === 2 ? '该功能后端尚未接入' : '提交失败';
+      this.status.textContent = error.code === 2 ? t('common.backendNotWired') : t('common.submitFailed');
       this.runButton.disabled = false;
       return;
     }
@@ -125,9 +227,9 @@ export class GeneratePanel {
       this.candidates = result.candidates ?? [];
       this.picked = new Set();
       this._renderGallery();
-      this.status.textContent = `生成了 ${this.candidates.length} 张，挑中的才会进项目`;
+      this.status.textContent = t('generate.resultStatus', { count: this.candidates.length });
     } catch (e) {
-      this.status.textContent = e.rpc?.code === 6 ? '已取消' : `失败：${e.message}`;
+      this.status.textContent = e.rpc?.code === 6 ? t('generate.cancelledStatus') : t('generate.failedStatus', { message: e.message });
     } finally {
       this.job = null;
       this.runButton.disabled = false;
@@ -157,15 +259,15 @@ export class GeneratePanel {
 
   async _commit() {
     if (this.picked.size === 0) return;
-    this.status.textContent = '收入项目中（会自动接修复）…';
+    this.status.textContent = t('generate.committingStatus');
     const reply = await rpc.call('generate.commit', {
       candidates: [...this.picked],
       recover: true,
     });
-    if (!reply.ok) { this.status.textContent = '收入失败'; return; }
+    if (!reply.ok) { this.status.textContent = t('generate.commitFailedStatus'); return; }
     const { outputs = [], recovered } = reply.result;
-    toast(`已收入 ${outputs.length} 张${recovered ? '（已接修复）' : ''}`, { hint: outputs.join(', ') });
-    this.status.textContent = `已收入：${outputs.join(', ')}`;
+    toast(t('generate.committedToast', { count: outputs.length, recoveredNote: recovered ? t('generate.recoveredNote') : '' }), { hint: outputs.join(', ') });
+    this.status.textContent = t('generate.committedStatus', { outputs: outputs.join(', ') });
     this.candidates = [];
     this.picked = new Set();
     this.gallery.replaceChildren();

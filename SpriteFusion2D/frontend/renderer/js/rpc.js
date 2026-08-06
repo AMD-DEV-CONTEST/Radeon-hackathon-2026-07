@@ -1,18 +1,23 @@
 // 渲染进程侧的 RPC 封装。
 // 唯一职责：把 window.workshop 的 invoke 结果整理成 {ok, result, error}，
-// 并把后端错误码翻成可执行的中文提示。前端不解析 error.message 字符串（§3.3）。
+// 并把后端错误码翻成可执行的英文提示（默认语言，见 i18n.js）。前端不解析
+// error.message 字符串（§3.3）。
 
-const CODE_HINTS = {
-  2: { title: '参数不合法', hint: '检查面板里的参数组合，或换一组默认值重试。' },
-  3: { title: '找不到目标', hint: '资产或项目可能已被外部删除，试试重新打开项目。' },
-  4: { title: '操作失败', hint: '这一步没有改动项目。展开诊断信息查看细节。' },
-  5: { title: '后端不可用', hint: '可选依赖未安装或后端进程已退出。到 doctor 面板查看。' },
-  6: { title: '部分成功', hint: '已提交成功的部分，失败项见警告列表。' },
-  7: { title: '被拒绝', hint: '拒绝覆盖、路径越界或项目被占用。' },
-};
+import { t } from './i18n.js';
+
+function codeHints() {
+  return {
+    2: { title: t('status.codeInvalidParamsTitle'), hint: t('status.codeInvalidParamsHint') },
+    3: { title: t('status.codeNotFoundTitle'), hint: t('status.codeNotFoundHint') },
+    4: { title: t('status.actionFailed'), hint: t('status.codeFailedHint') },
+    5: { title: t('status.codeUnavailableTitle'), hint: t('status.codeUnavailableHint') },
+    6: { title: t('status.codePartialTitle'), hint: t('status.codePartialHint') },
+    7: { title: t('status.codeRejectedTitle'), hint: t('status.codeRejectedHint') },
+  };
+}
 
 export function describeError(rpc) {
-  const meta = CODE_HINTS[rpc?.code] ?? { title: '未知错误', hint: '' };
+  const meta = codeHints()[rpc?.code] ?? { title: t('status.codeUnknownTitle'), hint: '' };
   return { code: rpc?.code ?? 4, message: rpc?.message ?? '', ...meta };
 }
 
@@ -47,7 +52,7 @@ class Rpc extends EventTarget {
 
   async call(method, params = {}) {
     if (!this.available) {
-      return { ok: false, error: describeError({ code: 5, message: '未在 Electron 中运行' }) };
+      return { ok: false, error: describeError({ code: 5, message: t('status.notInElectron') }) };
     }
     const reply = await window.workshop.call(method, params);
     if (!reply.ok) {
@@ -68,7 +73,7 @@ class Rpc extends EventTarget {
 
   pickVideo() {
     return window.workshop?.openFileDialog({
-      title: '选择视频',
+      title: t('common.selectVideo'),
       extensions: ['mp4', 'mov', 'webm', 'mkv', 'avi', 'gif'],
     });
   }

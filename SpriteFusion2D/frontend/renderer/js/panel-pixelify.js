@@ -7,6 +7,7 @@
 
 import { PreviewPanel, advanced, field, picker, presetRow, slider, toggle } from './panel-kit.js';
 import { h } from './views.js';
+import { t } from './i18n.js';
 
 const WIDTH_PRESETS = [
   { id: '32', label: '32', value: 32 },
@@ -17,18 +18,22 @@ const WIDTH_PRESETS = [
 
 // 固定调色板是这个面板最值钱的功能：纯数据、零算法成本，
 // 但「我要 Game Boy 风格」是目标用户的高频真实诉求。
-const PALETTES = [
-  { id: 'auto', label: '自动学习' },
-  { id: 'gameboy', label: 'Game Boy（4 色）' },
-  { id: 'pico8', label: 'PICO-8（16 色）' },
-  { id: 'nes', label: 'NES（16 色）' },
-];
+function palettes() {
+  return [
+    { id: 'auto', label: t('pixelify.paletteAuto') },
+    { id: 'gameboy', label: t('pixelify.paletteGameboy') },
+    { id: 'pico8', label: t('pixelify.palettePico8') },
+    { id: 'nes', label: t('pixelify.paletteNes') },
+  ];
+}
 
-const DITHERS = [
-  { id: 'none', label: '不抖动' },
-  { id: 'bayer4', label: '有序 4×4' },
-  { id: 'floyd-steinberg', label: '误差扩散' },
-];
+function dithers() {
+  return [
+    { id: 'none', label: t('pixelify.ditherNone') },
+    { id: 'bayer4', label: t('pixelify.ditherBayer4') },
+    { id: 'floyd-steinberg', label: t('pixelify.ditherFloyd') },
+  ];
+}
 
 export class PixelifyPanel extends PreviewPanel {
   constructor(root, hooks) {
@@ -48,7 +53,7 @@ export class PixelifyPanel extends PreviewPanel {
       this.widthPresets.setActive(String(v));
       this.schedule();
     });
-    this.palettePick = picker(PALETTES, this.settings.palette, (v) => {
+    this.palettePick = picker(palettes(), this.settings.palette, (v) => {
       this.settings.palette = v;
       this.colorsRow.style.display = v === 'auto' ? '' : 'none';
       this.schedule();
@@ -57,9 +62,9 @@ export class PixelifyPanel extends PreviewPanel {
       this.settings.colors = v;
       this.schedule();
     });
-    this.colorsRow = field('色数', '仅「自动学习」时生效', this.colors);
+    this.colorsRow = field(t('pixelify.colorsLabel'), t('pixelify.colorsHint'), this.colors);
 
-    this.ditherPick = picker(DITHERS, this.settings.dither, (v) => {
+    this.ditherPick = picker(dithers(), this.settings.dither, (v) => {
       this.settings.dither = v;
       // 误差扩散会打散色块，让后续描边长出大量毛刺——对精灵图是灾难
       this.ditherWarn.style.display = v === 'floyd-steinberg' ? '' : 'none';
@@ -67,7 +72,7 @@ export class PixelifyPanel extends PreviewPanel {
     });
     this.ditherWarn = h('div', {
       class: 'kit-warn',
-      text: '误差扩散会打散色块，描边后会长出毛刺；精灵图建议用「不抖动」',
+      text: t('pixelify.ditherWarnText'),
     });
     this.ditherWarn.style.display = 'none';
 
@@ -82,13 +87,13 @@ export class PixelifyPanel extends PreviewPanel {
 
     return h('div', {}, [
       this.classBar,
-      field('输出宽度（像素）', '唯一必填项', h('div', {}, [this.widthPresets, this.widthSlider])),
-      field('调色板', null, this.palettePick),
+      field(t('pixelify.widthLabel'), t('pixelify.widthHint'), h('div', {}, [this.widthPresets, this.widthSlider])),
+      field(t('pixelify.paletteLabel'), null, this.palettePick),
       this.colorsRow,
       advanced([
-        field('抖动', '精灵图默认不抖动', this.ditherPick),
+        field(t('pixelify.ditherLabel'), t('pixelify.ditherDefaultHint'), this.ditherPick),
         this.ditherWarn,
-        field('锐化', null, this.sharpen),
+        field(t('pixelify.sharpenLabel'), null, this.sharpen),
       ]),
     ]);
   }
@@ -103,12 +108,12 @@ export class PixelifyPanel extends PreviewPanel {
     this.classBar.append(
       h('span', {
         text: isPixel
-          ? `识别为已有像素画（网格约 ${info.detected_step}px），建议用「修复」`
-          : '识别为照片/插画，按像素化处理',
+          ? t('classify.detectedPixelArt', { step: info.detected_step })
+          : t('classify.detectedPhoto'),
       }),
       h('button', {
         class: 'px-btn px-btn--sm',
-        text: isPixel ? '改用修复' : '改成修复像素画',
+        text: isPixel ? t('classify.switchToRecoverLabel') : t('classify.overrideToRecoverLabel'),
         onclick: () => onSwitchToRecover?.(info),
       }),
     );
@@ -124,10 +129,15 @@ export class PixelifyPanel extends PreviewPanel {
 
   renderReadout(result, roundTripMs) {
     const a = result.analysis ?? {};
-    this.status.textContent =
-      `${a.source_width}×${a.source_height} → ${a.out_width}×${a.out_height}`
-      + ` · ${a.colors_used} 色`
-      + ` · 后端 ${Math.round(a.elapsed_ms ?? 0)}ms · 往返 ${roundTripMs.toFixed(0)}ms`;
+    this.status.textContent = t('pixelify.readoutSummary', {
+      sw: a.source_width,
+      sh: a.source_height,
+      ow: a.out_width,
+      oh: a.out_height,
+      colors: a.colors_used,
+      ms: Math.round(a.elapsed_ms ?? 0),
+      rtMs: roundTripMs.toFixed(0),
+    });
     this.appendWarnings(result.warnings);
   }
 }

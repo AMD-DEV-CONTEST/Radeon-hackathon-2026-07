@@ -139,10 +139,10 @@ The first submission snapshot has been exercised on an AMD Radeon `gfx1100` / RO
 
 - Source code and reproducibility README: included in this directory.
 - Project profile PDF: will be added to this same pull-request branch after final layout review.
-- Demo MP4: will be added after the final Radeon GUI recording is approved.
+- Demo MP4: [`docs/SpriteFusion2D-demo-draft.mp4`](docs/SpriteFusion2D-demo-draft.mp4) is a temporary, playable recorder-pipeline placeholder and will be replaced by the final Radeon GUI demonstration.
 - Poster or presentation: will be added with the final media package.
 
-These pending media items are intentionally not represented by empty or fabricated files. The pull request remains updatable, so later commits to its source branch will appear automatically.
+The draft MP4 is explicitly labeled and must not be interpreted as the final product demonstration. The pull request remains updatable, so later commits to its source branch will appear automatically.
 
 ## Licenses and credits
 
