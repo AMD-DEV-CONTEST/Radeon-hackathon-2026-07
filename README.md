@@ -9,7 +9,6 @@ New to robotics, or want to learn how to run robot simulation on AMD GPUs? This 
 
 ▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
 
-
 What you'll learn:
 - Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
 - Build a scene and run physics simulation with **Genesis**
