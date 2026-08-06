@@ -1,0 +1,68 @@
+# configs/agent.toml — Agent behavior config, decoupled from the model API
+
+[project]
+name        = "insurance-rag-agent"
+agently_version = "4.1.4.1"
+
+[workspace]
+root        = "./.agently/runs/insurance"
+file_areas  = ["downloads", "artifacts", "reports"]
+index_dir   = "./.agently/runs/insurance/index"
+
+[session]
+max_length      = 500
+default_strategy = "key_fields_compress"
+auto_resize     = true
+
+[memory]
+mode            = "AgentlyMemory"
+recall_top_k    = 3
+nudge_interval  = 10
+
+[retrieval]
+budget_chars    = 2000
+grep_max_results = 5
+
+[rag]
+chunk_size      = 512
+chunk_overlap   = 100   # 20% of 512 (sliding window)
+faiss_index_type = "IndexFlatIP"
+faiss_top_k     = 10
+faiss_nprobe    = 10
+
+# Hybrid retrieval: BM25 sparse retrieval
+[rag.bm25]
+enabled         = true
+top_k           = 10
+weight          = 0.3   # BM25 weight in hybrid fusion (FAISS=0.7)
+
+# Reranking: Cross-Encoder re-ranks top-K
+[rag.rerank]
+enabled         = true
+model_name      = "BAAI/bge-reranker-base"
+top_n           = 5     # select top-N from the top-K results
+
+# Query rewriting: LLM expands the query for ambiguous questions (optional)
+[rag.query_rewrite]
+enabled         = true
+# Trigger conditions: query too short (<5 chars), contains pronouns, contains ambiguous abbreviations, or auto-triggered when retrieval is insufficient
+
+# P0-1 + P1-1: pressure control — Agently native scheduler + exponential backoff retry
+[pressure]
+max_concurrent_requests = 4
+request_timeout_s       = 180
+# P1-1: native scheduler rate limit (0 = no limit)
+rate_per_second         = 0
+# P0-1: model API retry backoff config
+retry_backoff_base      = 1.0   # base waiting period for the first retry (seconds)
+retry_backoff_max       = 10.0  # maximum backoff period (seconds)
+retry_max_attempts      = 3     # maximum retry attempts
+
+# M4: self-growth candidate lifecycle
+[growth]
+# pending → review → approved/rejected → published
+default_status    = "pending"
+# expiration days for a pending candidate (0 = never expires)
+expiry_days       = 30
+# maximum number of candidates generated per run
+max_candidates    = 5

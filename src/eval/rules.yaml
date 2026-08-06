@@ -1,0 +1,63 @@
+version: 1.0.0
+stage_rules:
+  retrieval:
+    - rule_id: retrieval.sufficient
+      description: "Number of retrieval results is sufficient (>= 2)"
+      owner: host
+    - rule_id: retrieval.hybrid_used
+      description: "Used BM25+FAISS hybrid retrieval (not only FAISS)"
+      owner: host
+    - rule_id: retrieval.reranked
+      description: "Applied Cross-Encoder reranking to the retrieval results"
+      owner: host
+    - rule_id: retrieval.relevant
+      description: "Retrieved documents are relevant to the insurance question"
+      owner: model
+  citation:
+    - rule_id: citation.present
+      description: "Answer contains [[ref:xxx]] citation markers"
+      owner: host
+    - rule_id: citation.valid
+      description: "Citations point to real retrieval results (ref_id belongs to the offered set)"
+      owner: host
+    - rule_id: citation.source_traced
+      description: "Citations include source document and title information"
+      owner: host
+    - rule_id: citation.cited
+      description: "Key factual statements all have [[ref:xxx]] citation markers"
+      owner: model
+  answer:
+    - rule_id: answer.non_empty
+      description: "Answer is not empty"
+      owner: host
+    - rule_id: answer.no_hallucination_markers
+      description: "Answer contains no uncited 'I cannot'/'I don't know' markers"
+      owner: host
+    - rule_id: answer.accurate
+      description: "Answer is based on retrieved documents and is factually accurate"
+      owner: model
+    - rule_id: answer.complete
+      description: "Answer fully covers all parts of the question"
+      owner: model
+  understand:
+    - rule_id: understand.relevant
+      description: "The system correctly understood the intent of the insurance question"
+      owner: model
+    - rule_id: plan.appropriate
+      description: "Query routing (rag_query vs data_query) is appropriate"
+      owner: model
+  fetch:
+    - rule_id: fetch.relevant
+      description: "Retrieved documents are relevant to the question and can support the answer"
+      owner: model
+  session:
+    - rule_id: session.persisted
+      description: "Session has been persisted (memo exists)"
+      owner: host
+    - rule_id: trace.recorded
+      description: "Trace events have been recorded"
+      owner: host
+  end_to_end:
+    - rule_id: e2e.user_satisfied
+      description: "End-to-end answer satisfies the user's insurance question needs"
+      owner: model

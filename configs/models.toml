@@ -1,0 +1,33 @@
+# configs/models.toml — model API config, independent of Agent behavior
+# Secrets are not written in this file; they are read uniformly from .env
+#
+# Dual-model scheme:
+# - chat:        Qwen3-8B (main model, RAG Q&A, thinking/non-thinking modes switchable)
+# - reasoning:   DeepSeek-R1-Distill-Qwen-7B (reasoning enhancement, complex computation/logical reasoning)
+# - embedding:   BGE-M3 (vector retrieval)
+
+[chat]
+provider    = "OpenAICompatible"
+base_url    = "http://localhost:8000/v1"
+model       = "Qwen3-8B"
+model_type  = "chat"
+auth_env    = "LOCAL_LLM_API_KEY"
+[chat.request_options]
+temperature = 0
+
+[reasoning]
+provider    = "OpenAICompatible"
+base_url    = "http://localhost:8002/v1"
+model       = "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
+model_type  = "chat"
+auth_env    = "LOCAL_REASONING_API_KEY"
+[reasoning.request_options]
+temperature = 0.6
+max_tokens  = 8192
+
+[embedding]
+provider    = "OpenAICompatible"
+base_url    = "http://localhost:8001/v1"
+model       = "BAAI/bge-m3"
+model_type  = "embeddings"
+auth_env    = "LOCAL_EMBED_API_KEY"

@@ -1,0 +1,81 @@
+{
+  "config": {
+    "model": "Qwen3-8B",
+    "base_url": "http://localhost:8000",
+    "isl": 512,
+    "osl": 256,
+    "concurrency_levels": [
+      1,
+      4,
+      8
+    ]
+  },
+  "benchmark_results": [
+    {
+      "concurrency": 1,
+      "n_requests": 8,
+      "success": 8,
+      "failures": 0,
+      "wall_time_s": 43.06,
+      "output_tps": 47.6,
+      "total_tps": 115.2,
+      "lat_p50_s": 5.369,
+      "lat_p90_s": 5.383,
+      "lat_max_s": 5.48,
+      "avg_output_tokens": 256
+    },
+    {
+      "concurrency": 4,
+      "n_requests": 8,
+      "success": 8,
+      "failures": 0,
+      "wall_time_s": 11.85,
+      "output_tps": 172.8,
+      "total_tps": 418.5,
+      "lat_p50_s": 5.92,
+      "lat_p90_s": 5.931,
+      "lat_max_s": 5.931,
+      "avg_output_tokens": 256
+    },
+    {
+      "concurrency": 8,
+      "n_requests": 16,
+      "success": 16,
+      "failures": 0,
+      "wall_time_s": 23.69,
+      "output_tps": 172.9,
+      "total_tps": 418.8,
+      "lat_p50_s": 11.833,
+      "lat_p90_s": 11.859,
+      "lat_max_s": 11.86,
+      "avg_output_tokens": 256
+    }
+  ],
+  "bottleneck_analysis": {
+    "bottleneck": "Attention_memory",
+    "reason": "TPS 缩放比 3.63x 远低于并发缩放比 8.00x，但延迟膨胀仅 2.2x。可能是 KV-Cache 显存带宽瓶颈。建议：启用 PagedAttention 或缩短 max_model_len。",
+    "metrics": {
+      "tps_scale_ratio": 3.632,
+      "concurrency_scale_ratio": 8.0,
+      "latency_inflation": 2.204,
+      "queue_ratio_p90_over_p50": 1.002
+    },
+    "optimization_targets": [
+      {
+        "target": "PagedAttention",
+        "method": "vLLM 默认启用",
+        "expected": "KV-Cache 分页管理"
+      },
+      {
+        "target": "缩短 max_model_len",
+        "method": "--max-model-len 4096",
+        "expected": "减少 KV-Cache 显存占用"
+      },
+      {
+        "target": "Prefix Cache",
+        "method": "--enable-prefix-caching",
+        "expected": "相同 system prompt 复用 KV"
+      }
+    ]
+  }
+}

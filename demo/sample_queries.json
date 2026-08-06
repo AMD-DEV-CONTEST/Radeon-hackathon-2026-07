@@ -1,0 +1,72 @@
+{
+  "version": "1.0",
+  "description": "Example queries for the Insurance RAG Agent demonstration",
+  "queries": [
+    {
+      "id": "Q1_RAG_BASIC",
+      "category": "RAG Knowledge Retrieval",
+      "query": "What is the coverage scope of Employer Liability Insurance?",
+      "expected_steps": ["Step1: Understand natural language", "Step2: rag_query", "Step3: Validation passed", "Step4: FAISS retrieval", "Step5: Generate answer"],
+      "expected_ref": "insurance_policy.txt",
+      "description": "Basic RAG query, verifies knowledge retrieval and source annotation"
+    },
+    {
+      "id": "Q2_RAG_MULTI_TURN",
+      "category": "Multi-turn Memory",
+      "query": "What about the claims process?",
+      "context": "Follows up on the Employer Liability Insurance context from Q1",
+      "expected_steps": ["Step1: Session context_window carries the previous context", "Step2: rag_query", "Step5: Generate answer"],
+      "expected_ref": "insurance_policy.txt",
+      "description": "Multi-turn dialogue, verifies Session short-term memory and context understanding"
+    },
+    {
+      "id": "Q3_TOOL_FILE",
+      "category": "Tool Invocation",
+      "query": "List all the uploaded insurance documents",
+      "expected_steps": ["Step1: Understand intent", "Step2: data_query", "Step3: Validation", "Step4: file_tools.list_files", "Step5: Summarize output"],
+      "expected_ref": null,
+      "description": "Tool invocation, verifies the file_tools file listing feature"
+    },
+    {
+      "id": "Q4_TOOL_SEARCH",
+      "category": "Tool Invocation",
+      "query": "Search for clauses related to 'deductible' in the documents",
+      "expected_steps": ["Step1: Understand intent", "Step2: data_query", "Step4: file_tools.search_document", "Step5: Summarize output"],
+      "expected_ref": "insurance_policy.txt",
+      "description": "Tool invocation, verifies grep_files deterministic retrieval"
+    },
+    {
+      "id": "Q5_PLANNING",
+      "category": "Multi-step Task Planning",
+      "query": "Compare the coverage scope and exclusions of Employer Liability Insurance and Public Liability Insurance",
+      "expected_steps": ["Step1: Understand intent", "Step2: rag_query (twice)", "Step3: Validation", "Step4: FAISS retrieval (twice)", "Step5: Comparative summary"],
+      "expected_ref": "insurance_policy.txt",
+      "description": "Multi-step planning, verifies TriggerFlow orchestration and comparative analysis capability"
+    },
+    {
+      "id": "Q6_CROSS_SESSION",
+      "category": "Cross-session Memory",
+      "query": "Which insurance did I ask about last time?",
+      "context": "Tests Namespace long-term memory after restarting the Agent",
+      "expected_steps": ["Step1: Namespace recall", "Step5: Answer the topic of the last query"],
+      "expected_ref": null,
+      "description": "Cross-session memory, verifies Namespace long-term memory recall"
+    },
+    {
+      "id": "Q7_BOUNDARY",
+      "category": "Usage Boundary",
+      "query": "How is the weather today?",
+      "expected_steps": ["Step1: Understand intent", "Step5: Prompt that it is outside the insurance domain"],
+      "expected_ref": null,
+      "description": "Boundary test, verifies graceful rejection of non-insurance questions"
+    },
+    {
+      "id": "Q8_REFLECTION",
+      "category": "Reflection Verification",
+      "query": "What is the duration of the 'waiting period' mentioned in the insurance clauses?",
+      "expected_steps": ["Step1: Understand intent", "Step2: rag_query", "Step3: reflection validation", "Step4: FAISS retrieval", "Step5: Generate answer"],
+      "expected_ref": "insurance_policy.txt",
+      "description": "Reflection verification, verifies the query parameter validation of the Step3 reflection node"
+    }
+  ]
+}

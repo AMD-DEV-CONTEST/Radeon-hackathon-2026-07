@@ -1,0 +1,95 @@
+{
+  "config": {
+    "model": "Qwen3-8B",
+    "base_url": "http://localhost:8000",
+    "isl": 512,
+    "osl": 512,
+    "concurrency_levels": [
+      1,
+      4,
+      8,
+      16
+    ]
+  },
+  "benchmark_results": [
+    {
+      "concurrency": 1,
+      "n_requests": 8,
+      "success": 8,
+      "failures": 0,
+      "wall_time_s": 85.79,
+      "output_tps": 47.7,
+      "total_tps": 81.7,
+      "lat_p50_s": 10.711,
+      "lat_p90_s": 10.747,
+      "lat_max_s": 10.789,
+      "avg_output_tokens": 512
+    },
+    {
+      "concurrency": 4,
+      "n_requests": 8,
+      "success": 8,
+      "failures": 0,
+      "wall_time_s": 23.64,
+      "output_tps": 173.3,
+      "total_tps": 296.5,
+      "lat_p50_s": 11.813,
+      "lat_p90_s": 11.824,
+      "lat_max_s": 11.824,
+      "avg_output_tokens": 512
+    },
+    {
+      "concurrency": 8,
+      "n_requests": 16,
+      "success": 16,
+      "failures": 0,
+      "wall_time_s": 47.3,
+      "output_tps": 173.2,
+      "total_tps": 296.3,
+      "lat_p50_s": 23.634,
+      "lat_p90_s": 23.648,
+      "lat_max_s": 23.653,
+      "avg_output_tokens": 512
+    },
+    {
+      "concurrency": 16,
+      "n_requests": 32,
+      "success": 32,
+      "failures": 0,
+      "wall_time_s": 94.56,
+      "output_tps": 173.3,
+      "total_tps": 296.5,
+      "lat_p50_s": 47.261,
+      "lat_p90_s": 47.267,
+      "lat_max_s": 47.296,
+      "avg_output_tokens": 512
+    }
+  ],
+  "bottleneck_analysis": {
+    "bottleneck": "GEMM_compute",
+    "reason": "TPS 从 47.7 到 173.3 (缩放比 3.63x，并发缩放比 16.00x)。延迟膨胀 4.4x。GPU 计算已饱和，增加并发无法提升吞吐。建议：TunableOps GEMM 调优或 INT4 量化降低单次推理计算量。",
+    "metrics": {
+      "tps_scale_ratio": 3.633,
+      "concurrency_scale_ratio": 16.0,
+      "latency_inflation": 4.412,
+      "queue_ratio_p90_over_p50": 1.0
+    },
+    "optimization_targets": [
+      {
+        "target": "TunableOps GEMM 调优",
+        "method": "PYTORCH_TUNABLEOP_ENABLED=1 + 离线调优",
+        "expected": "微基准 1.1-1.5x，需 E2E 验证"
+      },
+      {
+        "target": "INT4 量化",
+        "method": "GPTQ 量化 Qwen3-8B",
+        "expected": "计算量降低 75%，吞吐提升 2-3x"
+      },
+      {
+        "target": "降低 OSL",
+        "method": "max_tokens 限制",
+        "expected": "减少 decode 步数"
+      }
+    ]
+  }
+}
