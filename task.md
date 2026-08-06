@@ -1,0 +1,7 @@
+- [x] Spacing padding from top after fixed navbar
+- [x] Create feedbacks table and seed data
+- [x] Add GET/POST `/api/feedback` endpoints
+- [x] Add support email dispatch and `/api/support-query` endpoint
+- [x] Display dynamic user feedback list and reviews form on landing page
+- [x] Display support inquiry/refund form sending mail to pitchdock.xyz@gmail.com
+- [x] Display list of offered & not-offered features for each pricing card
