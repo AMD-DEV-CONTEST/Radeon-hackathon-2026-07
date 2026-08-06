@@ -1,0 +1,80 @@
+# Worldview Database configuration template.
+# Copy to config.local.yaml for local-only settings. Do not put real API keys
+# in committed files.
+
+app:
+  secret_key: ""
+  workspace_id: "default"
+  admin_api_key: ""
+  user_api_key: ""
+
+database:
+  path: "novel_world_zh.db"
+
+logging:
+  level: INFO
+  max_bytes: 10485760
+  backup_count: 5
+
+backup:
+  enabled: true
+  keep_last: 10
+  auto_backup_on_startup: true
+
+extractor:
+  backend: "openai_compatible"
+  openai_compatible:
+    api_base: "https://api.deepseek.com/v1"
+    api_key: ""
+    model: "deepseek-chat"
+  ollama:
+    model: "qwen2.5:7b"
+    host: "localhost:11434"
+  prompt_template: "prompts/extract_entities.txt"
+
+app_data:
+  root: "app_data"
+  registry: "app_data/registry.db"
+  databases: "app_data/databases"
+  cache: "app_data/cache"
+  logs: "logs"
+
+registry:
+  enabled: true
+  default_database_id: "default"
+
+deploy:
+  # Process profile only. Product authority uses AETHERDB_DEPLOYMENT_MODE.
+  mode: "development"
+  host: "127.0.0.1"
+  port: 0
+  workers: 1
+
+llm:
+  initialized: false
+  mode: "hybrid"
+  import_analysis:
+    # ask: require a choice on first analysis; local_rules works fully offline.
+    default_mode: "ask"
+  cloud:
+    active_provider: "deepseek"
+    providers:
+      deepseek:
+        enabled: true
+        api_base: "https://api.deepseek.com/v1"
+        model: "deepseek-chat"
+        api_key_env: "DEEPSEEK_API_KEY"
+      openai:
+        enabled: false
+        api_base: "https://api.openai.com/v1"
+        model: "gpt-4.1-mini"
+        api_key_env: "OPENAI_API_KEY"
+  local:
+    enabled: false
+    runtime: "ollama"
+    api_base: "http://localhost:11434"
+    model: "qwen2.5"
+  safety:
+    ask_before_cloud_fallback: true
+    max_daily_cloud_cost: null
+    log_token_usage: true

@@ -1,0 +1,186 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>添加实体 - 世界观数据库</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>添加新实体</h1>
+        </header>
+        <nav class="main-nav">
+            <a href="/" class="nav-link">首页</a>
+            <a href="/add" class="nav-link active">添加实体</a>
+            <a href="/search" class="nav-link">搜索</a>
+            <a href="/timeline" class="nav-link">时间线</a>
+            <a href="/import" class="nav-link">导入</a>
+            <a href="/import" class="nav-link">导入</a><a href="/admin" class="nav-link">管理</a>
+        </nav>
+        
+        <form id="addForm" onsubmit="submitEntity(event)">
+            <div class="form-group">
+                <label>实体类型：</label>
+                <select name="entity_type" required>
+                    {% for key, value in entity_types.items() %}
+                    <option value="{{ key }}">{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>标题：</label>
+                <input type="text" name="title" required placeholder="输入实体名称">
+            </div>
+            
+            <div class="form-group">
+                <label>内容：</label>
+                <textarea name="content" rows="6" placeholder="输入描述内容"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>详细设定（Markdown）：</label>
+                <textarea name="full_content" rows="10" placeholder="输入完整的详细设定，支持 Markdown 格式"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>标签（逗号分隔）：</label>
+                <input type="text" name="tags" placeholder="例如：魔法, 战斗, 传说">
+            </div>
+            
+            <div class="form-group">
+                <label>重要性（1-10）：</label>
+                <input type="number" name="importance" min="1" max="10" value="5">
+            </div>
+            
+            <div class="form-group">
+                <label>时间线年份：</label>
+                <input type="number" name="timeline_year" placeholder="可选">
+            </div>
+            
+            <div class="form-group">
+                <label>时间线纪元：</label>
+                <input type="text" name="timeline_era" placeholder="例如：魔法纪元">
+            </div>
+            
+            <div class="form-group">
+                <label>引用实体 ID（逗号分隔）：</label>
+                <input type="text" name="references" placeholder="例如：CHR_0001, FAC_0002">
+            </div>
+            
+            <button type="submit" class="btn-primary">创建实体</button>
+        </form>
+        
+        <div id="result" style="display: none; margin-top: 20px; padding: 15px; border-radius: 10px;"></div>
+    </div>
+    
+    <script>
+        function apiHeaders() {
+            var key = sessionStorage.getItem("aetherdb_api_key") || sessionStorage.getItem("apiKey") || "";
+            var headers = { "Content-Type": "application/json" };
+            if (key) headers["X-API-Key"] = key;
+            return headers;
+        }
+        
+        async function submitEntity(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            const resultDiv = document.getElementById("result");
+            
+            const data = {
+                entity_type: formData.get("entity_type"),
+                title: formData.get("title"),
+                content: formData.get("content") || "",
+                full_content: formData.get("full_content") || null,
+                tags: (formData.get("tags") || "").split(",").map(t => t.trim()).filter(t => t),
+                importance: parseInt(formData.get("importance")) || 5,
+                timeline_year: formData.get("timeline_year") ? parseInt(formData.get("timeline_year")) : null,
+                timeline_era: formData.get("timeline_era") || null,
+                references: (formData.get("references") || "").split(",").map(r => r.trim()).filter(r => r)
+            };
+            
+            resultDiv.style.display = "block";
+            resultDiv.className = "";
+            resultDiv.innerHTML = "<p>正在创建...</p>";
+            
+            try {
+                const resp = await fetch("/api/entity", {
+                    method: "POST",
+                    headers: apiHeaders(),
+                    body: JSON.stringify(data)
+                });
+                const result = await resp.json();
+                if (resp.ok) {
+                    resultDiv.className = "search-result";
+                    resultDiv.textContent = "";
+                    resultDiv.appendChild((function(){
+                        var c=document.createElement("div");
+                        var h=document.createElement("h3");h.textContent="创建成功！";c.appendChild(h);
+                        var p1=document.createElement("p");p1.textContent="实体 ID："+result.entity_id;c.appendChild(p1);
+                        var p2=document.createElement("p");p2.textContent="类型："+result.entity_type;c.appendChild(p2);
+                        return c;
+                    })());
+                    form.reset();
+                } else {
+                    resultDiv.className = "";
+                    resultDiv.style.background = "#fff0f0";
+                    resultDiv.style.border = "1px solid #ffcccc";
+                    resultDiv.textContent = "";
+                    resultDiv.appendChild(function(){
+                        var c=document.createElement("div");
+                        var h=document.createElement("h3");h.textContent="创建失败";c.appendChild(h);
+                        var p=document.createElement("p");p.textContent=result.detail||"未知错误";c.appendChild(p);
+                        return c;
+                    }());
+                }
+            } catch (err) {
+                resultDiv.className = "";
+                resultDiv.style.background = "#fff0f0";
+                resultDiv.style.border = "1px solid #ffcccc";
+                resultDiv.textContent = "";
+                    resultDiv.appendChild(function(){
+                        var c=document.createElement("div");
+                        var h=document.createElement("h3");h.textContent="请求失败";c.appendChild(h);
+                        var p=document.createElement("p");p.textContent=err.message;c.appendChild(p);
+                        return c;
+                    }());
+            }
+        }
+    </script>
+
+<script>
+// === Mode switcher: ?mode=admin|user (Phase 3.2) ===
+(function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const modeParam = urlParams.get("mode");
+  const savedMode = localStorage.getItem("worldview_mode");
+  const defaultMode = modeParam || savedMode || "user";
+  localStorage.setItem("worldview_mode", defaultMode);
+  const isAdmin = defaultMode === "admin";
+  
+  // Toggle visibility of admin-only elements
+  document.querySelectorAll(".admin-only").forEach(el => {
+    el.style.display = isAdmin ? "" : "none";
+  });
+  
+  // Add mode indicator + toggle
+  const header = document.querySelector("header") || document.querySelector("h1") || document.body;
+  const modeBar = document.createElement("div");
+  modeBar.style.cssText = "text-align:right;margin-bottom:10px;font-size:12px;display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap;";
+  modeBar.innerHTML = \`
+    <span style="color:var(--text-dim, #666);">
+      Mode: <strong>\${isAdmin ? "管理员" : "用户"}</strong>
+      <a href="?mode=\${isAdmin ? "user" : "admin"}" style="margin-left:4px;color:#667eea;text-decoration:none;font-size:11px;">[\${isAdmin ? "切换到用户" : "切换到管理"}]</a>
+    </span>
+  \`;
+  if (header && header.parentNode) {
+    header.parentNode.insertBefore(modeBar, header.nextSibling);
+  }
+})();
+</script>
+<script src="/static/security.js"></script>
+</body>
+</html>

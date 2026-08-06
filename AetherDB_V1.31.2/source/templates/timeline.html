@@ -1,0 +1,165 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时间线 - 世界观数据库</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .era-section { margin-bottom: 30px; }
+        .era-header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 10px 20px; border-radius: 10px; margin-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .era-header:hover { opacity: 0.9; }
+        .era-content { display: none; }
+        .era-content.show { display: block; }
+        .timeline-item { background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 8px; border-left: 4px solid #667eea; }
+        .timeline-item .year { font-weight: bold; color: #667eea; font-size: 1.1em; }
+        .timeline-item .title { font-size: 1.05em; margin: 5px 0; }
+        .timeline-item .desc { color: #555; font-size: 13px; }
+        .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: end; }
+        .filter-bar .form-group { margin-bottom: 0; }
+        #timelineChart { width: 100%; height: 80px; background: linear-gradient(90deg, #e2e8f0, #667eea, #764ba2); border-radius: 10px; margin-bottom: 20px; position: relative; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; color: white; font-size: 12px; }
+        .filter-tag { display: inline-block; background: #e2e8f0; padding: 3px 10px; border-radius: 15px; font-size: 12px; cursor: pointer; margin: 2px; }
+        .filter-tag:hover { background: #667eea; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>时间线</h1>
+            <p class="subtitle">世界观历史脉络总览</p>
+        </header>
+        <nav class="main-nav">
+            <a href="/" class="nav-link">首页</a>
+            <a href="/add" class="nav-link">添加实体</a>
+            <a href="/search" class="nav-link">搜索</a>
+            <a href="/timeline" class="nav-link active">时间线</a>
+            <a href="/import" class="nav-link">导入</a>
+            <a href="/import" class="nav-link">导入</a><a href="/admin" class="nav-link">管理</a>
+        </nav>
+        
+        <div id="timelineChart">
+            <span>远古</span>
+            <span>古代</span>
+            <span>近代</span>
+            <span>当代</span>
+        </div>
+        
+        <div class="filter-bar">
+            <div class="form-group">
+                <label>筛选纪元：</label>
+                <select id="eraFilter">
+                    <option value="">全部纪元</option>
+                    {% for era in eras %}
+                    <option value="{{ era }}">{{ era }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button onclick="loadTimeline()" class="btn-primary">刷新</button>
+        </div>
+        
+        <div id="timelineContent">
+            <p style="color:#666;">点击上方按钮加载时间线事件</p>
+        </div>
+    </div>
+    
+    <script>
+        function apiHeaders() {
+            var key = sessionStorage.getItem("aetherdb_api_key") || sessionStorage.getItem("apiKey") || "";
+            var headers = {};
+            if (key) headers["X-API-Key"] = key;
+            return headers;
+        }
+        
+        async function loadTimeline() {
+            const eraFilter = document.getElementById("eraFilter").value;
+            const content = document.getElementById("timelineContent");
+            content.innerHTML = "<p>加载中...</p>";
+            
+            try {
+                let url = "/api/timeline";
+                if (eraFilter) url += "?era=" + encodeURIComponent(eraFilter);
+                
+                const resp = await fetch(url, { headers: apiHeaders() });
+                const events = await resp.json();
+                
+                if (!resp.ok) {
+                    content.innerHTML = "<p style='color:red;'>加载失败</p>";
+                    return;
+                }
+                
+                if (events.length === 0) {
+                    content.innerHTML = "<p style='color:#666;'>暂无时间线事件</p>";
+                    return;
+                }
+                
+                // Group by era
+                const grouped = {};
+                for (const evt of events) {
+                    const era = evt.era || "未分类";
+                    if (!grouped[era]) grouped[era] = [];
+                    grouped[era].push(evt);
+                }
+                
+                content.textContent = "";
+                for (var era in grouped) {
+                    var items = grouped[era];
+                    items.sort(function(a,b) { return (a.year||0)-(b.year||0); });
+                    var sec = document.createElement("div"); sec.className = "era-section";
+                    var hdr = document.createElement("div"); hdr.className = "era-header";
+                    hdr.onclick = function(){this.nextElementSibling.classList.toggle("show");};
+                    hdr.appendChild(document.createTextNode(era + " (" + items.length + " 个事件) ▾")); sec.appendChild(hdr);
+                    var econt = document.createElement("div"); econt.className = "era-content show";
+                    for (var j = 0; j < items.length; j++) {
+                        var evt = items[j];
+                        var itm = document.createElement("div"); itm.className = "timeline-item";
+                        if (evt.year) { var yd = document.createElement("div"); yd.className = "year"; yd.textContent = "年份: " + evt.year; itm.appendChild(yd); }
+                        var td = document.createElement("div"); td.className = "title"; td.textContent = evt.title || evt.entity_id; itm.appendChild(td);
+                        if (evt.description) { var dd = document.createElement("div"); dd.className = "desc"; dd.textContent = evt.description.substring(0, 300); itm.appendChild(dd); }
+                        if (evt.entity_id) {
+                            var ld = document.createElement("div"); ld.style.cssText = "margin-top:5px;";
+                            var a = document.createElement("a"); a.href = "/api/entity/" + encodeURIComponent(evt.entity_id); a.target = "_blank"; a.style.cssText = "font-size:12px;"; a.textContent = "查看详情 →";
+                            ld.appendChild(a); itm.appendChild(ld);
+                        }
+                        econt.appendChild(itm);
+                    }
+                    sec.appendChild(econt);
+                    content.appendChild(sec);
+                }
+            } catch (err) {
+                content.textContent = "";
+                var p = document.createElement("p"); p.style.cssText = "color:red;"; p.textContent = "请求失败：" + err.message; content.appendChild(p);
+            }
+        }
+        
+        // Auto-load on page ready
+        window.addEventListener("DOMContentLoaded", loadTimeline);
+    </script>
+
+<script>
+// === Mode switcher: ?mode=admin|user (Phase 3.2) ===
+(function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const modeParam = urlParams.get("mode");
+  const savedMode = localStorage.getItem("worldview_mode");
+  const defaultMode = modeParam || savedMode || "user";
+  localStorage.setItem("worldview_mode", defaultMode);
+  const isAdmin = defaultMode === "admin";
+  
+  // Toggle visibility of admin-only elements
+  document.querySelectorAll(".admin-only").forEach(el => {
+    el.style.display = isAdmin ? "" : "none";
+  });
+  
+  // Add mode indicator + toggle
+  const header = document.querySelector("header") || document.querySelector("h1") || document.body;
+  const modeBar = document.createElement("div");
+  modeBar.style.cssText = "text-align:right;margin-bottom:10px;font-size:12px;display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap;";
+  var ms = document.createElement("span");ms.style.cssText = "color:var(--text-dim, #666);";ms.appendChild(document.createTextNode("Mode: "));var st = document.createElement("strong"); st.textContent = isAdmin ? "管理员" : "用户"; ms.appendChild(st);ms.appendChild(document.createTextNode(" "));var lk = document.createElement("a");lk.href = "?mode=" + (isAdmin ? "user" : "admin");lk.style.cssText = "margin-left:4px;color:#667eea;text-decoration:none;font-size:11px;";lk.textContent = isAdmin ? "[切换到用户]" : "[切换到管理]"; ms.appendChild(lk);modeBar.appendChild(ms);
+  if (header && header.parentNode) {
+    header.parentNode.insertBefore(modeBar, header.nextSibling);
+  }
+})();
+</script>
+<script src="/static/security.js"></script>
+</body>
+</html>

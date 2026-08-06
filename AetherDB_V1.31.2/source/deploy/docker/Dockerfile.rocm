@@ -1,0 +1,47 @@
+# syntax=docker/dockerfile:1.7
+# AMD-validated ROCm 7.2.4 / Python 3.10 / PyTorch 2.9.1 base.
+# The digest is intentionally immutable; moving tags are not accepted.
+FROM rocm/pytorch:rocm7.2.4_ubuntu22.04_py3.10_pytorch_release_2.9.1@sha256:9c9592175fece788d6c0b86059012f49b568dc95c98c13879dfdf89c30342559
+
+ARG AETHERDB_VERSION=1.31.2
+LABEL org.opencontainers.image.title="AetherDB Competition ROCm" \
+      org.opencontainers.image.version="${AETHERDB_VERSION}" \
+      org.opencontainers.image.base.name="rocm/pytorch:rocm7.2.4_ubuntu22.04_py3.10_pytorch_release_2.9.1"
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/opt/aetherdb \
+    AETHERDB_RESOURCE_ROOT=/opt/aetherdb \
+    AETHERDB_RUNTIME_ROOT=/var/lib/aetherdb \
+    AETHERDB_ROCM_BASE_IMAGE_REF=rocm/pytorch:rocm7.2.4_ubuntu22.04_py3.10_pytorch_release_2.9.1@sha256:9c9592175fece788d6c0b86059012f49b568dc95c98c13879dfdf89c30342559 \
+    WORLDVIEW_CORS=container \
+    HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1 \
+    HF_HUB_DISABLE_TELEMETRY=1
+
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates sqlite3 \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid 10001 aetherdb \
+    && useradd --uid 10001 --gid 10001 --create-home --shell /usr/sbin/nologin aetherdb
+
+WORKDIR /tmp/aetherdb-build
+COPY requirements.txt .
+RUN grep -v '^onnxruntime==' requirements.txt > requirements-rocm.txt \
+    && python -m pip install --disable-pip-version-check --no-cache-dir -r requirements-rocm.txt \
+    && python -m pip install --disable-pip-version-check --no-cache-dir \
+       --index-url https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2.4/ \
+       onnxruntime_migraphx==1.23.2
+
+WORKDIR /opt/aetherdb
+COPY --chown=aetherdb:aetherdb . .
+RUN test ! -e /opt/aetherdb/config.yaml \
+    && test ! -e /opt/aetherdb/config.local.yaml \
+    && mkdir -p /var/lib/aetherdb /models \
+    && chown -R aetherdb:aetherdb /var/lib/aetherdb /models
+
+USER aetherdb
+WORKDIR /var/lib/aetherdb
+VOLUME ["/var/lib/aetherdb", "/models"]
+ENTRYPOINT ["python", "/opt/aetherdb/scripts/container_entrypoint.py"]

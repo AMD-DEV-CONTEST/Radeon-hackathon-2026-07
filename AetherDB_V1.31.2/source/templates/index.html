@@ -1,0 +1,71 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>世界观数据库管理系统 V1.31.2</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>世界观数据库管理系统 V1.31.2</h1>
+            <p class="subtitle">支持 AI 协作的世界观构建工具</p>
+        </header>
+        <nav class="main-nav">
+            <a href="/" class="nav-link active">首页</a>
+            <a href="/add" class="nav-link">添加实体</a>
+            <a href="/search" class="nav-link">搜索</a>
+            <a href="/timeline" class="nav-link">时间线</a>
+            <a href="/import" class="nav-link">导入</a>
+            <a href="/import" class="nav-link">导入</a><a href="/admin" class="nav-link">管理</a>
+            <a href="/docs" class="nav-link">API文档</a>
+        </nav>
+        <div class="stats-grid">
+            <div class="stat-card"><h3>总实体数</h3><p class="stat-number">{{ stats.total_entities }}</p></div>
+            <div class="stat-card"><h3>总关系数</h3><p class="stat-number">{{ stats.total_relations }}</p></div>
+            <div class="stat-card"><h3>类型分布</h3><div class="type-list">{% for type_name, count in stats.type_distribution.items() %}<span class="type-badge">{{ type_name }}: {{ count }}</span>{% endfor %}</div></div>
+        </div>
+        <div class="quick-actions">
+            <h2>快速操作</h2>
+            <div class="action-buttons"><a href="/add" class="action-btn">添加新实体</a><a href="/search" class="action-btn">搜索实体</a><a href="/timeline" class="action-btn">查看时间线</a></div>
+        </div>
+        <div class="recent-updates">
+            <h2>最近更新</h2>
+            <div class="entity-list">{% for entity in recent_entities %}<div class="entity-card"><div class="entity-header"><span class="entity-type">{{ entity_types.get(entity.entity_type, entity.entity_type) }}</span><span class="entity-importance">重要性: {{ entity.importance }}</span></div><h3>{{ entity.title }}</h3><p class="entity-date">创建于：{{ entity.created_at }}</p></div>{% endfor %}</div>
+        </div>
+        <div class="api-info"><h3>API 密钥信息</h3><p class="key-hint">出于安全考虑，页面不再显示 API Key。请在桌面前端设置页临时输入，或在请求中使用 <code>X-API-Key</code> header。</p></div>
+    </div>
+
+<script>
+// === Mode switcher: ?mode=admin|user (Phase 3.2) ===
+(function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const modeParam = urlParams.get("mode");
+  const savedMode = localStorage.getItem("worldview_mode");
+  const defaultMode = modeParam || savedMode || "user";
+  localStorage.setItem("worldview_mode", defaultMode);
+  const isAdmin = defaultMode === "admin";
+  
+  // Toggle visibility of admin-only elements
+  document.querySelectorAll(".admin-only").forEach(el => {
+    el.style.display = isAdmin ? "" : "none";
+  });
+  
+  // Add mode indicator + toggle
+  const header = document.querySelector("header") || document.querySelector("h1") || document.body;
+  const modeBar = document.createElement("div");
+  modeBar.style.cssText = "text-align:right;margin-bottom:10px;font-size:12px;display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap;";
+  modeBar.innerHTML = \`
+    <span style="color:var(--text-dim, #666);">
+      Mode: <strong>\${isAdmin ? "管理员" : "用户"}</strong>
+      <a href="?mode=\${isAdmin ? "user" : "admin"}" style="margin-left:4px;color:#667eea;text-decoration:none;font-size:11px;">[\${isAdmin ? "切换到用户" : "切换到管理"}]</a>
+    </span>
+  \`;
+  if (header && header.parentNode) {
+    header.parentNode.insertBefore(modeBar, header.nextSibling);
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+name: aetherdb
+
+services:
+  aetherdb-core:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+      args:
+        AETHERDB_VERSION: "1.31.2"
+    image: aetherdb-core:1.31.2
+    restart: unless-stopped
+    init: true
+    ports:
+      - name: web
+        target: ${AETHERDB_CONTAINER_PORT:-8765}
+        published: ${AETHERDB_HOST_PORT:-0}
+        host_ip: 127.0.0.1
+        protocol: tcp
+    volumes:
+      - aetherdb-runtime:/var/lib/aetherdb
+      - aetherdb-models:/models
+    environment:
+      AETHERDB_CONTAINER_PORT: ${AETHERDB_CONTAINER_PORT:-8765}
+      AETHERDB_MODEL_PACKAGE_ROOT: /models
+      AETHERDB_MODEL_ROOT: /models/bge-m3
+      TZ: ${TZ:-Asia/Shanghai}
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:'+os.environ['AETHERDB_CONTAINER_PORT']+'/api/auth/status', timeout=3)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  aetherdb-runtime:
+  aetherdb-models:

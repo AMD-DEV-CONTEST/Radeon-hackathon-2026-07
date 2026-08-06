@@ -1,0 +1,59 @@
+name: aetherdb-competition
+
+services:
+  aetherdb-competition:
+    image: ${AETHERDB_COMPETITION_IMAGE:?Set an immutable name@sha256 digest}
+    restart: "no"
+    init: true
+    user: "10001:10001"
+    ports:
+      - name: web
+        target: ${AETHERDB_CONTAINER_PORT:-8765}
+        published: ${AETHERDB_HOST_PORT:-0}
+        host_ip: 127.0.0.1
+        protocol: tcp
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - ${AETHERDB_VIDEO_GID:?Set the host video group GID}
+      - ${AETHERDB_RENDER_GID:?Set the host render group GID}
+    volumes:
+      - aetherdb-competition-runtime:/var/lib/aetherdb
+      - aetherdb-competition-models:/models
+    environment:
+      AETHERDB_CONTAINER_PORT: ${AETHERDB_CONTAINER_PORT:-8765}
+      AETHERDB_COMPETITION_IMAGE: ${AETHERDB_COMPETITION_IMAGE:?Set an immutable name@sha256 digest}
+      AETHERDB_EXECUTION_MODE: competition
+      AETHERDB_MODEL_PACKAGE_ROOT: /models
+      AETHERDB_MODEL_ROOT: /models/bge-m3
+      AETHERDB_ROCM_VISIBLE_DEVICES: ${AETHERDB_ROCM_VISIBLE_DEVICES:-0}
+      ALLOW_SILENT_FALLBACK: "false"
+      ALLOW_UNVERIFIED_MODEL: "false"
+      HIP_VISIBLE_DEVICES: ${AETHERDB_ROCM_VISIBLE_DEVICES:-0}
+      REQUIRE_ROCM: "true"
+      ROCR_VISIBLE_DEVICES: ${AETHERDB_ROCM_VISIBLE_DEVICES:-0}
+      TZ: ${TZ:-Asia/Shanghai}
+    read_only: true
+    shm_size: ${AETHERDB_SHM_SIZE:-8gb}
+    tmpfs:
+      - /tmp:size=512m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=unconfined
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:'+os.environ['AETHERDB_CONTAINER_PORT']+'/api/auth/status', timeout=3)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  aetherdb-competition-runtime:
+  aetherdb-competition-models:

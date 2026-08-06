@@ -1,0 +1,33 @@
+[Unit]
+Description=AetherDB V1.31.2 local validation API
+Documentation=file:@AETHERDB_APP_DIR@/deploy/README.md
+After=network.target
+
+[Service]
+Type=simple
+User=aetherdb
+Group=aetherdb
+WorkingDirectory=@AETHERDB_APP_DIR@
+EnvironmentFile=/etc/aetherdb/aetherdb-local.env
+ExecStart=@AETHERDB_APP_DIR@/venv/bin/python @AETHERDB_APP_DIR@/main.py
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=120
+TimeoutStopSec=30
+KillMode=mixed
+StandardOutput=journal
+StandardError=journal
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=@AETHERDB_RUNTIME_ROOT@
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
