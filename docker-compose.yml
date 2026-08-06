@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mpc_ai_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=production
+      - DEBUG=False
+      - CHROMA_PERSIST_DIR=/app/data/chroma_db
+      - OLLAMA_BASE_URL=http://ollama:11434
+    volumes:
+      - chroma_data:/app/data/chroma_db
+      - uploads_data:/app/data/uploads
+    depends_on:
+      - ollama
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: mpc_ai_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_storage:/root/.ollama
+
+volumes:
+  chroma_data:
+  uploads_data:
+  ollama_storage:
