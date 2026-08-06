@@ -4,6 +4,8 @@ import os
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 
+from .telemetry import BACKEND_FAILED, is_local_backend
+
 logger = logging.getLogger(__name__)
 
 class AuditLogger:
@@ -66,16 +68,17 @@ class AuditLogger:
 
     def log_inference(self, model: str, prompt_tokens: int, completion_tokens: int, backend: str, session_id: Optional[str] = None, latency_ms: float = 0) -> None:
         """Log an inference event.
-        
+
         Args:
             model: Name of the model used.
             prompt_tokens: Number of prompt tokens.
             completion_tokens: Number of completion tokens.
-            backend: The inference backend used (e.g., 'rocm', 'radeon_api').
+            backend: The inference backend used (e.g., 'vllm', 'ollama',
+                'local_secondary', 'radeon_api', 'failed').
             session_id: Optional session identifier.
             latency_ms: Inference latency in milliseconds.
         """
-        is_local = (backend != "radeon_api")
+        is_local = is_local_backend(backend)
         details = {
             "model": model,
             "prompt_tokens": prompt_tokens,
@@ -130,7 +133,12 @@ class AuditLogger:
             "external_events": 0,
             "local_bytes": 0,
             "external_bytes": 0,
-            "local_percentage": 100.0
+            "local_percentage": 100.0,
+            "local_inferences": 0,
+            "external_inferences": 0,
+            "failed_inferences": 0,
+            "inferences_by_backend": {},
+            "inference_local_percentage": 100.0
         }
         
         if not os.path.exists(self.log_path):
@@ -145,6 +153,17 @@ class AuditLogger:
                         
                         if event.get("event_type") == self.EVENT_INFERENCE:
                             stats["inference_count"] += 1
+                            details = event.get("details") or {}
+                            backend = str(details.get("backend", "unknown"))
+                            stats["inferences_by_backend"][backend] = (
+                                stats["inferences_by_backend"].get(backend, 0) + 1
+                            )
+                            if backend == BACKEND_FAILED:
+                                stats["failed_inferences"] += 1
+                            elif event.get("is_local", True):
+                                stats["local_inferences"] += 1
+                            else:
+                                stats["external_inferences"] += 1
                         elif event.get("event_type") == self.EVENT_TOOL_CALL:
                             stats["tool_call_count"] += 1
                             
@@ -160,6 +179,16 @@ class AuditLogger:
                         
             if stats["total_events"] > 0:
                 stats["local_percentage"] = (stats["local_events"] / stats["total_events"]) * 100
+
+            inference_total = (
+                stats["local_inferences"]
+                + stats["external_inferences"]
+                + stats["failed_inferences"]
+            )
+            if inference_total > 0:
+                stats["inference_local_percentage"] = (
+                    stats["local_inferences"] / inference_total * 100
+                )
         except Exception as e:
             logger.error(f"Error reading audit log stats: {e}")
             

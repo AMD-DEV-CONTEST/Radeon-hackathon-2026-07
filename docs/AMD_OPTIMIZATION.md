@@ -1,5 +1,8 @@
 # AMD ROCm Optimization Guide
 
+> See [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) for the full system diagram and
+> [`docs/BENCHMARKS.md`](BENCHMARKS.md) for measurement methodology.
+
 ## ROCm 6.2 Setup
 To run Bunker efficiently on AMD Radeon GPUs, ROCm 6.2 is required.
 1. **Packages**: Install `rocm-dkms`, `rocm-dev`, and `rocm-libs` via the AMD package manager.
@@ -22,7 +25,7 @@ print(torch.version.hip)          # Prints the HIP version
 We deploy vLLM natively on ROCm. Key command-line flags include:
 - `--tensor-parallel-size <N>`: Required for multi-GPU setups.
 - `--gpu-memory-utilization 0.9`: Maximizes VRAM usage for the KV cache while leaving a 10% buffer for system stability.
-- `--max-model-len 8192`: Caps context length to prevent unexpected OOM errors during massive RAG operations.
+- `--max-model-len 32768`: Default context window in Bunker's config; cap it lower (e.g. `8192`) on smaller GPUs to prevent unexpected OOM errors during massive RAG operations.
 
 ## INT4 Quantization with AutoGPTQ
 To run massive models like Qwen3-30B-A3B on single consumer GPUs (e.g., RX 7900 XTX 24GB), INT4 quantization is mandatory.
@@ -35,19 +38,26 @@ Flash Attention significantly speeds up attention mechanism calculations.
 - We enable `--enable-chunked-prefill` to chunk long prompts, ensuring that the Time To First Token (TTFT) remains low even when embedding large RAG documents.
 
 ## Memory Optimization
-- **PYTORCH_HIP_ALLOC_CONF**: Set to `expandable_segments:True` to reduce VRAM fragmentation and prevent out-of-memory errors during prolonged chat sessions.
+- **PYTORCH_HIP_ALLOC_CONF**: Set to `max_split_size_mb:512` to reduce VRAM fragmentation and prevent out-of-memory errors during prolonged chat sessions.
 - **Batching**: vLLM's continuous batching on ROCm allows simultaneous processing of generation and prefill requests, maximizing GPU utilization.
 
 ## Benchmark Results
-*Hardware: AMD Radeon RX 7900 XTX (24GB VRAM), ROCm 6.2*
+*Hardware: AMD Radeon RX 7900 XTX (24GB VRAM), ROCm 6.2 — see
+[`docs/BENCHMARKS.md`](BENCHMARKS.md) for methodology and reproduction.*
 
-| Precision | TTFT (ms) | Throughput (tok/s) | VRAM Usage (GB) |
-| :--- | :--- | :--- | :--- |
-| FP16 (Unquantized) | OOM | N/A | >24 |
-| INT8 (GPTQ) | 125 | 35 | 18 |
-| INT4 (GPTQ) | 85 | 65 | 11 |
+| Precision | TTFT (ms) | Throughput (tok/s) | VRAM Usage (GB) | Source |
+| :--- | :--- | :--- | :--- | :--- |
+| FP16 (Unquantized) | OOM | N/A | >24 | Measured |
+| INT8 (GPTQ) | 125 | 35 | 18 | Sample (reference) |
+| INT4 (GPTQ) | 85 | 65 | 11 | Sample (reference) |
 
 ## Radeon Cloud API Integration
-If the user permits it in `PrivacyConfig`, Bunker can fallback to the Radeon Cloud API.
-- **Trigger Conditions**: If local VRAM is exhausted or local inference latency exceeds a predefined threshold.
-- **Quantization Matching**: Requests are sent requesting 4-bit quantized generation to match local speed and output style constraints.
+
+The Radeon Cloud API is an **opt-in, external** fallback: it is only configured
+when a Radeon API key is provided (`BUNKER_INFERENCE__RADEON_API_KEY`), and when
+used, its events are recorded as external by the privacy telemetry.
+- **Trigger Conditions**: The `ModelManager` fallback chain calls it only when
+  both the primary and secondary local vLLM servers are unhealthy or raise an
+  error during generation.
+- **Quantization Matching**: Requests are sent requesting 4-bit quantized generation
+  (`extra_body.quantization == "4bit"`) to match local speed and output style.

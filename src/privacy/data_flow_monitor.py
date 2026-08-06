@@ -35,6 +35,29 @@ class DataFlowMonitor:
             return (self._local_bytes / self._total_bytes_processed) * 100.0
         return 100.0
 
+    def _inference_counts(self) -> Dict[str, int]:
+        """Count inference events by locality/outcome.
+
+        Returns:
+            Dict with ``local``, ``external`` and ``failed`` inference counts
+            derived from recorded ``inference`` events. A ``failed`` inference
+            is never counted as local, matching the "100% local" contract.
+        """
+        counts = {"local": 0, "external": 0, "failed": 0}
+        for event in self._events:
+            if event.get("event_type") != "inference":
+                continue
+            metadata = event.get("metadata") or {}
+            outcome = metadata.get("outcome", "success")
+            backend = metadata.get("backend", "")
+            if outcome == "failed" or backend == "failed":
+                counts["failed"] += 1
+            elif event.get("is_local", True):
+                counts["local"] += 1
+            else:
+                counts["external"] += 1
+        return counts
+
     def record_event(
         self,
         event_type: str,
@@ -136,6 +159,7 @@ class DataFlowMonitor:
             "local_bytes": self._local_bytes,
             "external_bytes": self._external_bytes,
             "local_percentage": local_percentage,
+            "inference_counts": self._inference_counts(),
             "pending_approvals": self._pending_approvals,
             "alerts": [],
             "recent_events": self._events[-10:] if self._events else []

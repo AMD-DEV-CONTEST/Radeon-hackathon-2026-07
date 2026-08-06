@@ -46,6 +46,7 @@ class PrivacyConfig(BaseModel):
     require_approval_email: bool = True
     require_approval_calendar_write: bool = True
     require_approval_web_search: bool = True
+    demo_mode: bool = False
 
 class MemoryConfig(BaseModel):
     """Configuration for session memory and database."""

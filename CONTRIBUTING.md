@@ -2,7 +2,8 @@
 
 Thanks for contributing to Bunker! This project is an AMD AI DevMaster
 Hackathon entry, so changes must stay aligned with the competition framing:
-fully local inference on AMD Radeon GPUs via ROCm, with zero data exfiltration.
+fully local inference on AMD Radeon GPUs via ROCm, with data exfiltration
+prevented by default and verified by telemetry.
 
 ## Before You Start
 

@@ -55,34 +55,53 @@ class BunkerGradioApp:
         
         logger.info("BunkerGradioApp initialized.")
     
-    def get_or_create_session(self) -> str:
-        """Return current session or create new one."""
-        if not self.current_session_id:
-            self.current_session_id = str(uuid.uuid4())
-            logger.info(f"Created new UI session: {self.current_session_id}")
-        return self.current_session_id
+    def get_or_create_session(self, session_id: str = "") -> str:
+        """Reuse an existing persisted session or create a new SessionStore row.
+
+        The UI's chat flow hands out a per-browser session id (via
+        ``gr.State``). The first message with a fresh id creates the SQLite
+        session row so every subsequent turn, including follow-ups, is
+        attributable to the same persisted conversation.
+
+        Args:
+            session_id: The session id from the client state, if any.
+
+        Returns:
+            The active session id (the client's when given, otherwise a new
+            one), persisted in the SessionStore.
+        """
+        candidate = session_id or uuid.uuid4().hex
+        if self.session_store is None or not hasattr(self.session_store, "get_session"):
+            self.current_session_id = candidate
+            return candidate
+        if self.session_store.get_session(candidate) is None:
+            self.session_store.create_session(title="Bunker Chat", session_id=candidate)
+            logger.info("Created persisted session: %s", candidate)
+        self.current_session_id = candidate
+        return candidate
 
     def handle_message(self, message: str, history: list, session_id: str) -> Tuple[list, str, str]:
         """Handle incoming user message and generate agent response.
-        
+
+        Each turn is persisted to the SessionStore by the orchestrator, which
+        also rebuilds the bounded conversation history (via ContextManager) so
+        follow-up turns receive prior context from SQLite rather than only from
+        Gradio's in-memory chat history.
+
         Args:
             message: The user's input string.
             history: Chatbot history list.
-            session_id: The session ID.
-            
+            session_id: The session ID (None on the very first message).
+
         Returns:
             Tuple of (updated_history, thoughts_text, cleared_input)
         """
         if not message.strip():
             return history, "", ""
-            
-        s_id = session_id or self.get_or_create_session()
-        
-        # In a real implementation, interact with self.session_store and self.context_manager here
-        
-        # Call agent
+
+        s_id = self.get_or_create_session(session_id)
+
         try:
-            # Assuming agent.run returns (response_string, thoughts_string)
             response, thoughts = self.agent.run(message, s_id)
         except Exception as e:
             logger.error(f"Agent execution error: {e}")
@@ -90,14 +109,16 @@ class BunkerGradioApp:
             thoughts = "Execution failed."
 
         history.append((message, response))
-        
+
         return history, thoughts, ""
 
-    def refresh_dashboard(self) -> Tuple[float, int, str, pd.DataFrame]:
+    def refresh_dashboard(self) -> Tuple[float, int, int, int, str, str, pd.DataFrame]:
         """Fetch updated data for the privacy dashboard.
         
         Returns:
-            Tuple of updated values for dashboard components.
+            Tuple of updated values for dashboard components:
+            (local_pct, local_inferences, external_inferences,
+             failed_inferences, local_bytes, external_bytes, recent_flows_df).
         """
         data = self.dashboard.get_dashboard_data()
         
@@ -116,7 +137,10 @@ class BunkerGradioApp:
         
         return (
             data.get("local_inference_pct", 100.0),
-            data.get("total_inferences", 0),
+            data.get("local_inferences", 0),
+            data.get("external_inferences", 0),
+            data.get("failed_inferences", 0),
+            str(data.get("local_bytes", 0)),
             str(data.get("external_bytes", 0)),
             df
         )
@@ -131,10 +155,11 @@ class BunkerGradioApp:
         )
         
         with gr.Blocks(theme=theme, title="Bunker AI") as self.app:
-            # Session State
-            session_state = gr.State(self.get_or_create_session())
+            # Session State: created lazily on the first message so an empty
+            # page load never leaves an orphan session row in SQLite.
+            session_state = gr.State(None)
             
-            gr.Markdown("# 🔒 Bunker\n*Your Private AI Agent. Zero Data Exfiltration.*")
+            gr.Markdown("# 🔒 Bunker\n*Your Private AI Agent. Local-first, telemetry-verified.*")
             
             with gr.Row():
                 # Left Column: Chat & Reasoning (2/3 width)
@@ -144,7 +169,7 @@ class BunkerGradioApp:
                     
                 # Right Column: Privacy Dashboard (1/3 width)
                 with gr.Column(scale=1):
-                    local_pct, inf_count, ext_bytes, recent_flows, refresh_btn = create_privacy_dashboard(self.dashboard.get_dashboard_data)
+                    local_pct, local_inf, ext_inf, failed_inf, local_bytes, ext_bytes, recent_flows, refresh_btn = create_privacy_dashboard(self.dashboard.get_dashboard_data)
                     
                     with gr.Accordion("⚙️ Permissions", open=True):
                         file_write = gr.Checkbox(label="File System Write", value=True)
@@ -166,9 +191,18 @@ class BunkerGradioApp:
             )
             
             # Wiring Dashboard Refresh
-            refresh_outputs = [local_pct, inf_count, ext_bytes, recent_flows]
+            refresh_outputs = [local_pct, local_inf, ext_inf, failed_inf, local_bytes, ext_bytes, recent_flows]
             
             refresh_btn.click(
+                self.refresh_dashboard,
+                inputs=[],
+                outputs=refresh_outputs
+            )
+            
+            # Auto-refresh the privacy dashboard every 2 seconds so live audit /
+            # data-flow changes are visible without a manual click.
+            timer = gr.Timer(value=2.0, active=True)
+            timer.tick(
                 self.refresh_dashboard,
                 inputs=[],
                 outputs=refresh_outputs

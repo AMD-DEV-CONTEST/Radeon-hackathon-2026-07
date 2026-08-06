@@ -28,7 +28,7 @@ python -m behave tests/features/
 make test-all
 ```
 
-- [ ] `make test-unit` — 117 tests passed, 1 env-dependent skip
+- [ ] `make test-unit` — 147 tests passed, 3 env-dependent skips
 - [ ] `make test-security` — injection resistance + write "Deny" path pass
 - [ ] `make test-negative` — tool-denial / empty-retrieval / malformed-output pass
 - [ ] `make test-perf` — TTFT < 200 ms, tok/s > 30, VRAM < 20 GB (or env-tuned)
@@ -47,7 +47,28 @@ python scripts/validate_rocm.py
 - [ ] GPU name prints (e.g. `AMD Radeon RX 7900 XTX`)
 - [ ] Exit code is `0`
 
-## 3. Radeon Cloud validation (fallback path)
+## 3. Local Benchmark Recording (AMD GPU box)
+
+```bash
+# Start vLLM server with your model (example)
+# docker run --rm --gpus all -p 8000:8000 vllm/vllm-openai:latest --model Qwen/Qwen3-30B-A3B --quantization gptq
+
+# Run benchmark (5 iterations, saves JSON artifact)
+./scripts/benchmark.sh \
+  --model Qwen/Qwen3-30B-A3B \
+  --iterations 5 \
+  --vllm-url http://localhost:8000 \
+  --output-dir artifacts
+```
+
+- [ ] vLLM server responds to `/health`
+- [ ] Benchmark completes all iterations without errors
+- [ ] JSON artifact created at `artifacts/benchmark_<timestamp>.json`
+- [ ] Artifact contains `summary.ttft.median_ms` and `summary.throughput.median_tok_s`
+- [ ] Artifact contains `rocm_smi` output (VRAM, utilization, temperature)
+- [ ] Record median TTFT and throughput in submission notes
+
+## 4. Radeon Cloud validation (fallback path)
 
 ```powershell
 $env:BUNKER_INFERENCE__BACKEND="radeon_api"
@@ -59,7 +80,7 @@ python -c "from src.config import get_config; from src.inference.radeon_api impo
 - [ ] One-turn generation returns a non-empty string
 - [ ] All Radeon Cloud calls use 4-bit quantization (`extra_body.quantization == "4bit"`)
 
-## 4. App startup demo path
+## 5. App startup demo path
 
 ```bash
 uvicorn src.main:app --host 0.0.0.0 --port 7860
@@ -68,19 +89,30 @@ uvicorn src.main:app --host 0.0.0.0 --port 7860
 - [ ] Server starts without traceback (degraded mode is fine when no GPU)
 - [ ] `GET /health` returns `{"status": "ok", ...}`
 - [ ] Gradio UI loads at `http://localhost:7860/` with chat + privacy dashboard
-- [ ] Privacy Dashboard reports 100% local inference
+- [ ] Privacy Dashboard shows real telemetry: Local Inference % = 100 only when
+      zero external and zero failed events are recorded
 
-## 5. Demo recording checklist
+## 6. Demo recording checklist
+
+Follow the 3–5 minute script in [`demo/demo_script.md`](../demo/demo_script.md).
 
 - [ ] `python scripts/validate_rocm.py` on screen (ROCm proof)
-- [ ] App boots; privacy dashboard visible
+- [ ] App boots; privacy dashboard visible (auto-refreshes every 2s)
 - [ ] Ask a multi-hop grounded question; answer shows `[1] [2]`-style citations
 - [ ] Ask something outside the context; pipeline says `INSUFFICIENT_CONTEXT`
-- [ ] Trigger a write tool; PermissionController shows the "Deny" gate
-- [ ] Show the audit log / data-flow monitor at 100% local
+- [ ] Trigger a write tool; `PermissionController` **denies by default** (the "Deny" gate)
+- [ ] With `BUNKER_PRIVACY__DEMO_MODE=true`, approve a local draft/write; the
+      file lands in `data/documents/`
+- [ ] Show the audit log / privacy dashboard reporting real local inference %
+- [ ] Run `./scripts/benchmark.sh` and show the JSON artifact in `artifacts/`
 - [ ] End with `make test-all` green on screen
 
-## 6. Generated artifacts policy
+## 7. Architecture diagrams
+
+- [ ] `docs/architecture.png` and `docs/agent_loop.png` are committed and render
+      inline in `docs/PROJECT_SPEC.md` and `docs/ARCHITECTURE.md`
+
+## 8. Generated artifacts policy
 
 - [ ] `artifacts/` is gitignored (only `.gitkeep` committed)
 - [ ] `make test-eval` documented as skipping until

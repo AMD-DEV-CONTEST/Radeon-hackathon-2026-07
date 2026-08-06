@@ -235,3 +235,36 @@ def test_grounded_metric_judge_receives_answer_and_context():
     assert kwargs["question"] == "What country is the Eiffel Tower in?"
     assert kwargs["context"] == "The Eiffel Tower is located in Paris, France."
     assert kwargs["answer"] == "The Eiffel Tower is in Paris. [1]"
+
+
+def test_grounded_metric_judge_inference_is_telemetry_logged(tmp_path):
+    """The judge LM call flows through the telemetry wrapper as a local inference."""
+    from src import dspy_runtime
+    from src.agent import metrics
+    from src.privacy import AuditLogger, DataFlowMonitor
+
+    example = _example("What country is the Eiffel Tower in?", "Paris, France")
+    pred = _prediction(
+        "The Eiffel Tower is in Paris. [1]",
+        ["The Eiffel Tower is located in Paris, France."],
+    )
+
+    monitor = DataFlowMonitor()
+    audit = AuditLogger(log_path=str(tmp_path / "audit.jsonl"))
+    dspy_runtime.configure_telemetry(audit_logger=audit, data_flow_monitor=monitor)
+
+    try:
+        with patch.object(dspy.LM, "forward", side_effect=[_judge_response(True)]):
+            score = grounded_metric(example, pred)
+
+        assert score == pytest.approx(1.0)
+        counts = monitor.get_current_status()["inference_counts"]
+        assert counts["local"] == 1
+        assert counts["external"] == 0
+        assert counts["failed"] == 0
+
+        stats = audit.get_stats()
+        assert stats["local_inferences"] == 1
+        assert stats["inferences_by_backend"].get("vllm") == 1
+    finally:
+        dspy_runtime.configure_telemetry()

@@ -1,5 +1,13 @@
 # System Architecture
 
+Rendered diagram of the full layered architecture with data-flow arrows:
+
+![Bunker system architecture](architecture.png)
+
+And the agent runtime loop (ReAct with permission gating):
+
+![Bunker agent runtime loop](agent_loop.png)
+
 ## High-Level Architecture
 
 ```text
@@ -102,10 +110,11 @@
                                                | tool action
                                                v
                                   +--------------------------+
-                                  | PermissionController.gate|
-                                  |  (dangerous tools ask    |
-                                  |   the user in the UI)    |
-                                  +------------+-------------+
+                                   | PermissionController.gate|
+                                   |  (dangerous tools denied |
+                                   |   by default; demo_mode  |
+                                   |   auto-approves)         |
+                                   +------------+-------------+
                                                v
                                   +--------------------------+
                                   |  Gated DSPy tool wrapper |
@@ -114,10 +123,11 @@
                                   +------------+-------------+
                                                | observation
                                                v
-                                  +--------------------------+
-                                  | AuditLogger + DataFlow   |
-                                  | Monitor (100% local)     |
-                                  +------------+-------------+
+                                   +--------------------------+
+                                   | AuditLogger + DataFlow   |
+                                   | Monitor (local/external  |
+                                   |  tracked, telemetry)     |
+                                   +------------+-------------+
                                                |
                             loop until Final Answer
                                                v
@@ -129,9 +139,9 @@
 1. A user turn arrives via Gradio.
 2. `BunkerOrchestrator` routes it to the RAG path or the Agent path.
 3. **Agent path**: `plan_task` decomposes the request, then the `dspy.ReAct` loop cycles Thought → Action → Observation.
-4. Each Action goes through `PermissionController.gate()` — safe tools auto-approve, dangerous tools request the user in the UI.
+4. Each Action goes through `PermissionController.gate()` — safe tools auto-approve, dangerous tools are denied by default (opt-in `demo_mode` auto-approves for recordings).
 5. The action runs as a gated DSPy tool wrapper; its result (or error) becomes the next Observation.
-6. Every inference and tool call is written to the `AuditLogger` and flagged local-only by the `DataFlowMonitor`.
+6. Every inference and tool call is written to the `AuditLogger` and recorded by the `DataFlowMonitor` as local or external (external only when the opt-in Radeon Cloud fallback is used).
 7. The loop repeats until a Final Answer is reached and rendered to the UI.
 
 ## Layer Breakdown
@@ -139,9 +149,9 @@
 ### Presentation Layer
 The front-end user interface is built using Gradio, with a left/right column split:
 1. **Chat Interface** (2/3 width): The primary interaction space for the user to prompt the agent.
-2. **Privacy Dashboard** (1/3 width): Displays real-time metrics from the `DataFlowMonitor` and `AuditLogger`, assuring the user of 100% local processing. Refreshes every 2 seconds.
+2. **Privacy Dashboard** (1/3 width): Displays real-time metrics from the `DataFlowMonitor` and `AuditLogger`, reporting actual local vs external inference counts and bytes. Auto-refreshes every 2 seconds and on manual refresh.
 3. **Agent Thoughts**: An accordion showing the agent's reasoning (Thought / Action / Observation) between turns.
-4. **Permission Toggles**: Checkboxes for File/Email/Calendar/Web access. Note: these are display-only today — the runtime approval decision happens inside the tool bodies via `PermissionController` (see Agent Layer).
+4. **Permission Toggles**: Checkboxes for File/Email/Calendar/Web access. Note: these are display-only today — the runtime approval decision happens inside the tool bodies via `PermissionController`, which denies dangerous tools by default (`BUNKER_PRIVACY__DEMO_MODE=true` opts into auto-approval for recordings).
 
 ### Orchestration / Routing Layer
 - **BunkerOrchestrator** (`src/agent/orchestrator.py`): The single entry point from the UI. Routes each user turn to the **RAG path** (document questions) or the **Agent path** (tool-using requests) using a DSPy `ChainOfThought` intent router with a deterministic keyword-heuristic fallback. It also threads answered turns back into conversation history so follow-ups reference earlier turns without re-running retrieval.
@@ -149,7 +159,7 @@ The front-end user interface is built using Gradio, with a left/right column spl
 ### Agent Layer (DSPy-native)
 - **DspyReActAgent** (`src/agent/dspy_agent.py`): The live agent loop, built on `dspy.ReAct`. The hand-written `ReActAgent` (`src/agent/react_loop.py`) is kept intact for A/B comparison but is **not** wired into `main.py`.
 - **Task Planner**: A DSPy `plan_task` signature (`src/agent/signatures.py`) decomposes complex requests into steps that feed the ReAct signature. The older hand-written `TaskPlanner` (`src/agent/planner.py`) remains for A/B.
-- **PermissionController** (`src/agent/permission_controller.py`): The gatekeeper. Safe tools (`file_read`, `file_search`, `file_list`, `calendar_query`) auto-approve; dangerous tools (`file_write`, `email_draft`, `email_search`, `calendar_create_event`, `web_search`) always require approval via `gate()`, called from inside each tool body so an LM has no prompt-level bypass.
+- **PermissionController** (`src/agent/permission_controller.py`): The gatekeeper. Safe tools (`file_read`, `file_search`, `file_list`, `calendar_query`) auto-approve; dangerous tools (`file_write`, `email_draft`, `email_search`, `calendar_create_event`, `web_search`) are **denied by default** via `gate()`, called from inside each tool body so an LM has no prompt-level bypass. Approval is an explicit opt-in for recordings: `BUNKER_PRIVACY__DEMO_MODE=true` auto-approves dangerous tools (this is how the "approved write" path is demonstrated).
 
 ### Services Layer
 - **DSPy Tool Wrappers** (`src/tools/dspy_tools.py`): The 9 live tools as permission-gated `dspy.Tool`s — `file_read/write/search/list`, `email_draft/search`, `calendar_query/create_event`, `web_search`. Each wrapper records an audit + data-flow event and calls `PermissionController.gate()` for dangerous tools.
@@ -158,7 +168,7 @@ The front-end user interface is built using Gradio, with a left/right column spl
 - **Memory**: SQLite `SessionStore` (`src/memory/session_store.py`) plus `ContextManager` for token budgeting.
 - **AuditLogger**: JSONL event log (`data/audit/audit.jsonl`) recording every inference and tool call.
 - **DataFlowMonitor**: Real-time local vs external data tracking backing the privacy dashboard.
-- **dspy_runtime.BUNKER_LM** (`src/dspy_runtime.py`): The process-wide DSPy LM bound to the configured backend (`vllm` | `ollama` | `radeon_api`), with caching disabled so every request stays observable.
+- **dspy_runtime.BUNKER_LM** (`src/dspy_runtime.py`): The process-wide DSPy LM bound to the configured backend (`vllm` | `ollama` | `radeon_api`), with caching disabled so every request stays observable. `configure_telemetry()` attaches the shared `AuditLogger` + `DataFlowMonitor` sinks at startup; every wrapped LM call and `ModelManager` fallback emits a telemetry event through `src/privacy/telemetry.py`.
 
 ### Inference Layer
 - **Primary**: vLLM deployed natively on ROCm for maximum throughput.
@@ -174,8 +184,8 @@ AMD Radeon hardware executing PyTorch operations via ROCm (HIP). Verified via `t
 3. **RAG path**: `BunkerMultiHopRAG` runs `num_hops` retrieval hops against the local ChromaDB store, accumulating notes, then grounds a final answer with `[pid]` citations (backtrack-and-retry on grounding violations).
 4. **Agent path**: the planner builds a step plan, then the `dspy.ReAct` loop cycles Thought → Action → Observation.
 5. Actions invoke **permission-gated DSPy tool wrappers**; dangerous tools are gated by `PermissionController` inside the tool body.
-6. Every tool execution is written to the **AuditLogger** and recorded by the **DataFlowMonitor** as local-only.
-7. All inference goes through **dspy_runtime.BUNKER_LM** → local vLLM-ROCm (primary), with the `ModelManager` fallback chain (secondary local → Radeon Cloud API) last.
+6. Every tool execution is written to the **AuditLogger** and recorded by the **DataFlowMonitor** as local or external (external only for the opt-in Radeon Cloud fallback).
+7. All inference goes through **dspy_runtime.BUNKER_LM** — every LM call and every `ModelManager` fallback tier is recorded by the shared inference telemetry (`vllm` / `ollama` / `local_secondary` = local, `radeon_api` = external, `failed` = never local).
 8. Steps repeat until a Final Answer; the turn is threaded back into conversation history for follow-ups.
 
 ## Component Interaction Matrix
