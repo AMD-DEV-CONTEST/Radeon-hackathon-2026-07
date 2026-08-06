@@ -1,0 +1,164 @@
+{
+  "cache_key_fields": [
+    "layer",
+    "model_revision",
+    "adapter_sha256",
+    "input_sha256",
+    "policy_sha256",
+    "runtime_fingerprint"
+  ],
+  "cache_layers": [
+    "prompt",
+    "embedding",
+    "kv",
+    "workflow"
+  ],
+  "clean_instance_contract": {
+    "commands": [
+      [
+        "verify_archive_sha256"
+      ],
+      [
+        "extract_archive_atomically"
+      ],
+      [
+        "verify_offline_artifacts"
+      ],
+      [
+        "run_radeon_preflight"
+      ],
+      [
+        "run_local_suite"
+      ]
+    ],
+    "container_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "container_digest_status": "fixture_only_not_observed",
+    "container_image": "amd-oneclick-base:rocm7.2.1-py3.12-v20260416",
+    "content_sha256": "f3196e28cd496906dfd57f55e96b40e3db2397c700d9466eb396976426e8819b",
+    "offline_manifest_sha256": "d9d14aef3d7d049408ae6651b0378b8bdb6b2312c57afd5dc0bd75495612430f",
+    "source_archive_sha256": "b51e6fb7bbde64aea0fcdc9b54a5ebbf151f53235462eb5c7d6ba75c0615531e"
+  },
+  "clean_instance_script": "scripts/run_v10_clean_radeon_instance.sh",
+  "memory_optimization_policy": {
+    "attention_slice_size": "auto",
+    "attention_slicing_enabled": true,
+    "content_sha256": "652a69f1c3ae3df8a2736e4e2331d1f3c603bfc57a92d797b7fabb1de5b32396",
+    "cpu_offload_enabled": true,
+    "cpu_offload_target": "cpu",
+    "maximum_resident_heavy_models": 1,
+    "release_sequence": [
+      "drop_model_references",
+      "gc_collect",
+      "empty_device_cache",
+      "synchronize_device",
+      "measure_free_memory"
+    ],
+    "vae_overlap": 128,
+    "vae_tile_size": [
+      1024,
+      1024
+    ],
+    "vae_tiling_enabled": true
+  },
+  "offline_manifest": {
+    "artifacts": [
+      {
+        "byte_size": 1054,
+        "relative_path": "pyproject.toml",
+        "sha256": "9e8b6ec316b978ef56d9718bde2fd501c9b34e7498698996333a8b99bafdd8d0"
+      },
+      {
+        "byte_size": 81786,
+        "relative_path": "notebooks/prooflaunch_cortex_x_v10_radeon.ipynb",
+        "sha256": "11dcb449bd620196210905e0eef015717ffbbb9a60e80382eefdc38b28f23d5e"
+      },
+      {
+        "byte_size": 4774,
+        "relative_path": "scripts/run_v10_local_suite.py",
+        "sha256": "05e3b1b3ae1e5149ca240683ac03fdf420fe374b6dfa6d40facec986cfd9a089"
+      }
+    ],
+    "content_sha256": "d9d14aef3d7d049408ae6651b0378b8bdb6b2312c57afd5dc0bd75495612430f",
+    "dependency_lock_sha256": "9e8b6ec316b978ef56d9718bde2fd501c9b34e7498698996333a8b99bafdd8d0",
+    "local_files_only": true,
+    "network_allowed": false
+  },
+  "performance_required_fields": [
+    "latency_ms",
+    "peak_vram_bytes",
+    "gpu_utilization_percent",
+    "cpu_utilization_percent",
+    "disk_read_bytes",
+    "disk_write_bytes",
+    "model_load_ms",
+    "matched_baseline_sha256",
+    "candidate_quality",
+    "baseline_quality",
+    "execution_observed"
+  ],
+  "recovery_plans": [
+    {
+      "actions": [
+        "persist_checkpoint",
+        "release_resident_model",
+        "empty_device_cache",
+        "halve_microbatch_or_tile",
+        "resume_unfinished_unit"
+      ],
+      "atomic_commit_required": true,
+      "attempt": 1,
+      "checkpoint_required": true,
+      "exact_hash_required": true,
+      "kind": "oom",
+      "maximum_attempts": 2,
+      "replay_successful_work": false
+    },
+    {
+      "actions": [
+        "verify_last_committed_checkpoint",
+        "start_clean_kernel",
+        "restore_rng_optimizer_scheduler",
+        "resume_unfinished_unit"
+      ],
+      "atomic_commit_required": true,
+      "attempt": 1,
+      "checkpoint_required": true,
+      "exact_hash_required": true,
+      "kind": "kernel",
+      "maximum_attempts": 2,
+      "replay_successful_work": false
+    },
+    {
+      "actions": [
+        "retain_partial_temp_file",
+        "resume_with_http_range",
+        "verify_expected_sha256",
+        "atomic_rename_after_verification"
+      ],
+      "atomic_commit_required": true,
+      "attempt": 1,
+      "checkpoint_required": false,
+      "exact_hash_required": true,
+      "kind": "download",
+      "maximum_attempts": 2,
+      "replay_successful_work": false
+    }
+  ],
+  "runtime_required_fields": [
+    "gpu_name",
+    "total_vram_bytes",
+    "free_vram_bytes",
+    "rocm_version",
+    "hip_version",
+    "torch_version",
+    "bf16_forward_passed",
+    "fp16_forward_passed",
+    "backward_passed",
+    "attention_passed",
+    "vae_passed",
+    "model_checks",
+    "execution_observed"
+  ],
+  "schema": "ProofLaunchRadeonReproductionContractV1",
+  "truth_boundary": "The control mechanics are executable locally. Radeon runtime, model, performance, clean-instance and archive-reproduction observations remain mandatory."
+}

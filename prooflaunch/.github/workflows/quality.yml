@@ -1,0 +1,52 @@
+name: ProofLaunch quality gate
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prooflaunch-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  deterministic-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: src:.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install -e .
+      - run: python scripts/validate_amd_track1_package.py
+      - run: python -m unittest tests.test_amd_public_export -v
+      - run: python -m unittest discover -s tests -v
+      - run: python -m compileall -q src tests scripts
+      - run: PYTHONPATH=src python scripts/run_control_plane_eval.py --cases-per-mode 50 --output evidence/ci/control-plane-eval.json
+      - run: PYTHONPATH=src python scripts/compile_production_trace_retention_contract.py --output evidence/ci/production-trace-retention.json
+      - run: python scripts/compile_agentic_product_readiness_audit.py --output evidence/ci/agentic-product-readiness.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - run: npm run build
+        working-directory: web
+      - run: python scripts/build_amd_public_export.py
+      - run: python scripts/validate_amd_public_export.py dist/amd-track1/prooflaunch
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: prooflaunch-quality-evidence-${{ github.run_id }}
+          path: evidence/ci/
+          if-no-files-found: error
+          retention-days: 30

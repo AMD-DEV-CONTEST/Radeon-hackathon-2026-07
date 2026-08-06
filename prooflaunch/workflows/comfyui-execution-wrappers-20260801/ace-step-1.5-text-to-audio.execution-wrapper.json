@@ -1,0 +1,172 @@
+{
+  "21:104": {
+    "_meta": {
+      "title": "UNet加载器"
+    },
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "acestep_v1.5_turbo.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "21:105": {
+    "_meta": {
+      "title": "双CLIP加载器"
+    },
+    "class_type": "DualCLIPLoader",
+    "inputs": {
+      "clip_name1": "qwen_0.6b_ace15.safetensors",
+      "clip_name2": "qwen_4b_ace15.safetensors",
+      "device": "default",
+      "type": "ace"
+    }
+  },
+  "21:106": {
+    "_meta": {
+      "title": "加载VAE"
+    },
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "ace_1.5_vae.safetensors"
+    }
+  },
+  "21:110": {
+    "_meta": {
+      "title": "Song Duration"
+    },
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 120
+    }
+  },
+  "21:18": {
+    "_meta": {
+      "title": "VAE解码（音频）"
+    },
+    "class_type": "VAEDecodeAudio",
+    "inputs": {
+      "samples": [
+        "21:3",
+        0
+      ],
+      "vae": [
+        "21:106",
+        0
+      ]
+    }
+  },
+  "21:3": {
+    "_meta": {
+      "title": "K采样器"
+    },
+    "class_type": "KSampler",
+    "inputs": {
+      "cfg": 1,
+      "denoise": 1,
+      "latent_image": [
+        "21:98",
+        0
+      ],
+      "model": [
+        "21:78",
+        0
+      ],
+      "negative": [
+        "21:47",
+        0
+      ],
+      "positive": [
+        "21:94",
+        0
+      ],
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "seed": 0,
+      "steps": 8
+    }
+  },
+  "21:47": {
+    "_meta": {
+      "title": "条件零化"
+    },
+    "class_type": "ConditioningZeroOut",
+    "inputs": {
+      "conditioning": [
+        "21:94",
+        0
+      ]
+    }
+  },
+  "21:78": {
+    "_meta": {
+      "title": "采样算法（AuraFlow）"
+    },
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": {
+      "model": [
+        "21:104",
+        0
+      ],
+      "shift": 3
+    }
+  },
+  "21:94": {
+    "_meta": {
+      "title": "TextEncodeAceStepAudio1.5"
+    },
+    "class_type": "TextEncodeAceStepAudio1.5",
+    "inputs": {
+      "bpm": 190,
+      "cfg_scale": 2,
+      "clip": [
+        "21:105",
+        0
+      ],
+      "duration": [
+        "21:110",
+        0
+      ],
+      "generate_audio_codes": true,
+      "keyscale": "E minor",
+      "language": "en",
+      "lyrics": "",
+      "min_p": 0,
+      "seed": 0,
+      "tags": "",
+      "temperature": 0.85,
+      "timesignature": "4",
+      "top_k": 0,
+      "top_p": 0.9
+    }
+  },
+  "21:98": {
+    "_meta": {
+      "title": "Empty Ace Step 1.5 Latent Audio"
+    },
+    "class_type": "EmptyAceStep1.5LatentAudio",
+    "inputs": {
+      "batch_size": 1,
+      "seconds": [
+        "21:110",
+        0
+      ]
+    }
+  },
+  "prooflaunch:save_audio": {
+    "_meta": {
+      "source_official_api_sha256": "b77f147b270795eb676a957683c6f95686331a90555ffb13e8c66bd38b7be1f1",
+      "title": "ProofLaunch evidence output wrapper"
+    },
+    "class_type": "SaveAudioAdvanced",
+    "inputs": {
+      "audio": [
+        "21:18",
+        0
+      ],
+      "filename_prefix": "prooflaunch/ace-step-1.5",
+      "format": {
+        "format": "flac"
+      }
+    }
+  }
+}

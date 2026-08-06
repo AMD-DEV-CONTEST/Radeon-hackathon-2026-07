@@ -1,0 +1,230 @@
+{
+  "114:71": {
+    "inputs": {
+      "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "type": "wan",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "加载CLIP"
+    }
+  },
+  "114:73": {
+    "inputs": {
+      "vae_name": "wan_2.1_vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "加载VAE"
+    }
+  },
+  "114:76": {
+    "inputs": {
+      "unet_name": "wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "UNet加载器"
+    }
+  },
+  "114:75": {
+    "inputs": {
+      "unet_name": "wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "UNet加载器"
+    }
+  },
+  "114:83": {
+    "inputs": {
+      "lora_name": "wan2.2_t2v_lightx2v_4steps_lora_v1.1_high_noise.safetensors",
+      "strength_model": 1.0000000000000002,
+      "model": [
+        "114:75",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "LoRA加载器（仅模型）"
+    }
+  },
+  "114:85": {
+    "inputs": {
+      "lora_name": "wan2.2_t2v_lightx2v_4steps_lora_v1.1_low_noise.safetensors",
+      "strength_model": 1.0000000000000002,
+      "model": [
+        "114:76",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "LoRA加载器（仅模型）"
+    }
+  },
+  "114:86": {
+    "inputs": {
+      "shift": 5.000000000000001,
+      "model": [
+        "114:85",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingSD3",
+    "_meta": {
+      "title": "采样算法（SD3）"
+    }
+  },
+  "114:82": {
+    "inputs": {
+      "shift": 5.000000000000001,
+      "model": [
+        "114:83",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingSD3",
+    "_meta": {
+      "title": "采样算法（SD3）"
+    }
+  },
+  "114:81": {
+    "inputs": {
+      "add_noise": "enable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "start_at_step": 0,
+      "end_at_step": 2,
+      "return_with_leftover_noise": "enable",
+      "model": [
+        "114:82",
+        0
+      ],
+      "positive": [
+        "114:89",
+        0
+      ],
+      "negative": [
+        "114:72",
+        0
+      ],
+      "latent_image": [
+        "114:74",
+        0
+      ]
+    },
+    "class_type": "KSamplerAdvanced",
+    "_meta": {
+      "title": "K采样器（高级）"
+    }
+  },
+  "114:74": {
+    "inputs": {
+      "width": 640,
+      "height": 640,
+      "length": 81,
+      "batch_size": 1
+    },
+    "class_type": "EmptyHunyuanLatentVideo",
+    "_meta": {
+      "title": "空Latent视频（Hunyuan）"
+    }
+  },
+  "114:78": {
+    "inputs": {
+      "add_noise": "disable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "start_at_step": 2,
+      "end_at_step": 4,
+      "return_with_leftover_noise": "disable",
+      "model": [
+        "114:86",
+        0
+      ],
+      "positive": [
+        "114:89",
+        0
+      ],
+      "negative": [
+        "114:72",
+        0
+      ],
+      "latent_image": [
+        "114:81",
+        0
+      ]
+    },
+    "class_type": "KSamplerAdvanced",
+    "_meta": {
+      "title": "K采样器（高级）"
+    }
+  },
+  "114:117": {
+    "inputs": {
+      "fps": 16,
+      "bit_depth": 8,
+      "images": [
+        "114:87",
+        0
+      ]
+    },
+    "class_type": "CreateVideo",
+    "_meta": {
+      "title": "创建视频"
+    }
+  },
+  "114:87": {
+    "inputs": {
+      "samples": [
+        "114:78",
+        0
+      ],
+      "vae": [
+        "114:73",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE解码"
+    }
+  },
+  "114:72": {
+    "inputs": {
+      "text": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走，裸露，NSFW",
+      "clip": [
+        "114:71",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    }
+  },
+  "114:89": {
+    "inputs": {
+      "text": "",
+      "clip": [
+        "114:71",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  }
+}

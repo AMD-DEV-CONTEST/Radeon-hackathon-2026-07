@@ -1,0 +1,310 @@
+{
+  "schema": "ProofLaunchDistillationStackV1",
+  "version": "1.0.0",
+  "status": "frozen_contract_not_executed",
+  "lanes": [
+    {
+      "lane": "model_logits",
+      "signal_kinds": [
+        "token"
+      ],
+      "alignment_key": "token_id",
+      "losses": [
+        "temperature_kl"
+      ],
+      "objective_metrics": [
+        "heldout_nll",
+        "expected_calibration_error"
+      ],
+      "source_asset_policy": "licensed_owned_or_synthetic_only",
+      "maximum_gpu_seconds": 7200,
+      "rights_approval_required": true,
+      "hidden_reasoning_allowed": false
+    },
+    {
+      "lane": "hidden_feature",
+      "signal_kinds": [
+        "feature"
+      ],
+      "alignment_key": "projected_feature_position",
+      "losses": [
+        "masked_cosine",
+        "normalized_mse"
+      ],
+      "objective_metrics": [
+        "linear_probe_accuracy",
+        "capability_retention"
+      ],
+      "source_asset_policy": "licensed_owned_or_synthetic_only",
+      "maximum_gpu_seconds": 7200,
+      "rights_approval_required": true,
+      "hidden_reasoning_allowed": false
+    },
+    {
+      "lane": "visual_crop",
+      "signal_kinds": [
+        "region",
+        "feature"
+      ],
+      "alignment_key": "image_sha256_bbox",
+      "losses": [
+        "region_contrastive",
+        "grounding_iou"
+      ],
+      "objective_metrics": [
+        "region_recall_at_05",
+        "visual_retention"
+      ],
+      "source_asset_policy": "licensed_owned_or_synthetic_only",
+      "maximum_gpu_seconds": 7200,
+      "rights_approval_required": true,
+      "hidden_reasoning_allowed": false
+    },
+    {
+      "lane": "layout",
+      "signal_kinds": [
+        "region",
+        "workflow"
+      ],
+      "alignment_key": "canvas_node_edge_id",
+      "losses": [
+        "constraint_violation",
+        "reading_order"
+      ],
+      "objective_metrics": [
+        "layout_constraint_pass_rate",
+        "reading_order_accuracy"
+      ],
+      "source_asset_policy": "licensed_owned_or_synthetic_only",
+      "maximum_gpu_seconds": 7200,
+      "rights_approval_required": true,
+      "hidden_reasoning_allowed": false
+    },
+    {
+      "lane": "video_temporal",
+      "signal_kinds": [
+        "feature",
+        "trajectory"
+      ],
+      "alignment_key": "video_sha256_timestamp_ms",
+      "losses": [
+        "temporal_alignment",
+        "causal_consistency"
+      ],
+      "objective_metrics": [
+        "temporal_grounding_iou",
+        "event_order_accuracy"
+      ],
+      "source_asset_policy": "licensed_owned_or_synthetic_only",
+      "maximum_gpu_seconds": 7200,
+      "rights_approval_required": true,
+      "hidden_reasoning_allowed": false
+    },
+    {
+      "lane": "agent_plan",
+      "signal_kinds": [
+        "trajectory"
+      ],
+      "alignment_key": "task_step_id",
+      "losses": [
+        "visible_action_ce",
+        "dependency_violation"
+      ],
+      "objective_metrics": [
+        "plan_validity",
+        "task_success"
+      ],
+      "source_asset_policy": "rights_approved_derived_abstraction_only",
+      "maximum_gpu_seconds": 7200,
+      "rights_approval_required": true,
+      "hidden_reasoning_allowed": false
+    },
+    {
+      "lane": "agent_tool",
+      "signal_kinds": [
+        "trajectory"
+      ],
+      "alignment_key": "tool_call_id",
+      "losses": [
+        "tool_choice_ce",
+        "argument_schema"
+      ],
+      "objective_metrics": [
+        "tool_success",
+        "invalid_call_rate"
+      ],
+      "source_asset_policy": "rights_approved_derived_abstraction_only",
+      "maximum_gpu_seconds": 7200,
+      "rights_approval_required": true,
+      "hidden_reasoning_allowed": false
+    },
+    {
+      "lane": "agent_stop",
+      "signal_kinds": [
+        "reward",
+        "trajectory"
+      ],
+      "alignment_key": "terminal_step_id",
+      "losses": [
+        "stop_binary_ce",
+        "overrun_penalty"
+      ],
+      "objective_metrics": [
+        "premature_stop_rate",
+        "post_success_overrun_rate"
+      ],
+      "source_asset_policy": "rights_approved_derived_abstraction_only",
+      "maximum_gpu_seconds": 7200,
+      "rights_approval_required": true,
+      "hidden_reasoning_allowed": false
+    },
+    {
+      "lane": "failure_attribution",
+      "signal_kinds": [
+        "reward",
+        "trajectory"
+      ],
+      "alignment_key": "first_error_step_id",
+      "losses": [
+        "attribution_ce",
+        "propagation_distance"
+      ],
+      "objective_metrics": [
+        "first_error_accuracy",
+        "repair_success"
+      ],
+      "source_asset_policy": "rights_approved_derived_abstraction_only",
+      "maximum_gpu_seconds": 7200,
+      "rights_approval_required": true,
+      "hidden_reasoning_allowed": false
+    },
+    {
+      "lane": "four_a_critique",
+      "signal_kinds": [
+        "reward",
+        "uncertainty"
+      ],
+      "alignment_key": "owned_asset_claim_id",
+      "losses": [
+        "rubric_pairwise",
+        "unsupported_claim_penalty"
+      ],
+      "objective_metrics": [
+        "blind_preference_win_rate",
+        "claim_precision"
+      ],
+      "source_asset_policy": "rights_approved_derived_abstraction_only",
+      "maximum_gpu_seconds": 7200,
+      "rights_approval_required": true,
+      "hidden_reasoning_allowed": false
+    },
+    {
+      "lane": "audit_repair",
+      "signal_kinds": [
+        "workflow",
+        "reward"
+      ],
+      "alignment_key": "finding_repair_id",
+      "losses": [
+        "repair_selection_ce",
+        "regression_penalty"
+      ],
+      "objective_metrics": [
+        "verified_fix_rate",
+        "new_regression_rate"
+      ],
+      "source_asset_policy": "rights_approved_derived_abstraction_only",
+      "maximum_gpu_seconds": 7200,
+      "rights_approval_required": true,
+      "hidden_reasoning_allowed": false
+    },
+    {
+      "lane": "mature_workflow",
+      "signal_kinds": [
+        "workflow",
+        "trajectory"
+      ],
+      "alignment_key": "workflow_transition_id",
+      "losses": [
+        "transition_ce",
+        "policy_violation_penalty"
+      ],
+      "objective_metrics": [
+        "workflow_completion",
+        "human_escalation_precision"
+      ],
+      "source_asset_policy": "rights_approved_derived_abstraction_only",
+      "maximum_gpu_seconds": 7200,
+      "rights_approval_required": true,
+      "hidden_reasoning_allowed": false
+    }
+  ],
+  "controls": {
+    "arms": [
+      {
+        "control": "caopd_control",
+        "method": "compatibility_aware_on_policy_distillation",
+        "teacher_required": true,
+        "student_generated_rollouts": true
+      },
+      {
+        "control": "offline_kd_control",
+        "method": "off_policy_kd",
+        "teacher_required": true,
+        "student_generated_rollouts": false
+      },
+      {
+        "control": "on_policy_kd_control",
+        "method": "on_policy_kd",
+        "teacher_required": true,
+        "student_generated_rollouts": true
+      },
+      {
+        "control": "self_kd_control",
+        "method": "on_policy_self_distillation",
+        "teacher_required": true,
+        "student_generated_rollouts": true
+      },
+      {
+        "control": "no_kd_control",
+        "method": "no_kd_control",
+        "teacher_required": false,
+        "student_generated_rollouts": false
+      }
+    ],
+    "base_revision": "AI-ModelScope/Gemma-4-E4B-it@4f5f0c899a9b6d34c4b463f557c31c8ac6c767cc",
+    "dataset_sha256": "15fc829fd1534c20e54d072c89508ecec36c32ba8f88a78bd302bbe8f1644372",
+    "evaluation_sha256": "cb82049c19758ed7c22a65c0abc34342336fc4e4458c1a3faacb1a4df49497ce",
+    "hardware_fingerprint": "AMD_RADEON_PENDING_OBSERVATION",
+    "seed": 42,
+    "maximum_train_tokens": 1000000
+  },
+  "teacher_gate": {
+    "minimum_information_gain": 0.02,
+    "minimum_observed_examples": 30,
+    "unverified_or_unlicensed_teacher": "eliminate"
+  },
+  "runtime_truth": {
+    "training_observed": false,
+    "radeon_execution_observed": false,
+    "external_teacher_calls_observed": false
+  },
+  "card": {
+    "schema": "ProofLaunchDistillationStackCardV1",
+    "lane_registry_sha256": "e440024396ffea5613e2edb41ca2d033f29e282b817a60f5ae40766ecab84231",
+    "control_matrix_sha256": "9dcf95d53c18d5b644fba30ddf01c401f718b2e8c6568bb1837021ebcd2fc1fe",
+    "training_observed": false,
+    "radeon_execution_observed": false,
+    "capability_retention": null,
+    "expected_calibration_error": null,
+    "token_efficiency_per_1k": null,
+    "wall_clock_benefit": null,
+    "selected_teacher": null,
+    "selected_control": null,
+    "selected_adapter": null,
+    "promotion_eligible": false,
+    "truth_boundary": "Frozen executable contracts and mechanical fixtures only; no training, Radeon runtime, quality gain, teacher winner, or adapter promotion is claimed.",
+    "content_sha256": "3cb769e13ffcfc72aae113bc4f49d1d62813bd39d57422afc51bb1cfbfc7fd55"
+  },
+  "content_sha256": "1a0e65514b28a2c46cbc72ac7929e9e394b1d1e0a594e4c2e5f4673da533bb1d"
+}

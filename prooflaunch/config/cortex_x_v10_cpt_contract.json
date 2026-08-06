@@ -1,0 +1,230 @@
+{
+  "schema": "ProofLaunchCPTExecutionContractV1",
+  "contract": {
+    "base": {
+      "model_id": "google/gemma-4-E4B-it",
+      "revision": "1fe35ce743b357484b97a11646125adffee0b410",
+      "config_sha256": "33b10c02df3c2e8536cf323d29d53262aaa2f4d11dbe19bc729373fbe90295d4",
+      "tokenizer_sha256": "cc8d3a0ce36466ccc1278bf987df5f71db1719b9ca6b4118264f45cb627bfe0f",
+      "processor_sha256": "32bdf45d2ad4cc29a0822ddd157a182de76644f0419a6228d151495256e9813c",
+      "artifact_hashes_observed": true
+    },
+    "profile": "4b",
+    "objectives": [
+      {
+        "objective": "text",
+        "target": "next licensed GTM token",
+        "loss": "causal_ce",
+        "evidence_required": false,
+        "negative_control": "shuffled continuation"
+      },
+      {
+        "objective": "image_text",
+        "target": "grounded image-text relation",
+        "loss": "contrastive_plus_ce",
+        "evidence_required": true,
+        "negative_control": "mismatched image"
+      },
+      {
+        "objective": "layout",
+        "target": "region and hierarchy structure",
+        "loss": "region_order_ce",
+        "evidence_required": true,
+        "negative_control": "region permutation"
+      },
+      {
+        "objective": "video_state",
+        "target": "next verified frame-state delta",
+        "loss": "temporal_state_ce",
+        "evidence_required": true,
+        "negative_control": "time reversal"
+      },
+      {
+        "objective": "audio_text",
+        "target": "timestamped audio-text meaning",
+        "loss": "contrastive_plus_ce",
+        "evidence_required": true,
+        "negative_control": "shifted transcript"
+      },
+      {
+        "objective": "campaign_state",
+        "target": "next campaign world state",
+        "loss": "typed_state_ce",
+        "evidence_required": true,
+        "negative_control": "stale state"
+      },
+      {
+        "objective": "next_action",
+        "target": "bounded next action",
+        "loss": "action_ce",
+        "evidence_required": true,
+        "negative_control": "invalid tool action"
+      },
+      {
+        "objective": "failure",
+        "target": "first error and propagation",
+        "loss": "step_label_ce",
+        "evidence_required": true,
+        "negative_control": "success relabel"
+      },
+      {
+        "objective": "repair",
+        "target": "minimal verified repair",
+        "loss": "repair_ce",
+        "evidence_required": true,
+        "negative_control": "unverified rewrite"
+      },
+      {
+        "objective": "cross_channel",
+        "target": "shared claim with channel constraints",
+        "loss": "consistency_ce",
+        "evidence_required": true,
+        "negative_control": "cross-channel contradiction"
+      },
+      {
+        "objective": "evidence",
+        "target": "claim-to-source locator",
+        "loss": "grounding_ce",
+        "evidence_required": true,
+        "negative_control": "unsupported claim"
+      },
+      {
+        "objective": "uncertainty",
+        "target": "calibrated abstain/escalate",
+        "loss": "proper_scoring_rule",
+        "evidence_required": true,
+        "negative_control": "forced confident answer"
+      }
+    ],
+    "schedule": [
+      {
+        "name": "grounding",
+        "start_fraction": 0.0,
+        "end_fraction": 0.35,
+        "modality_mix": {
+          "text": 0.35,
+          "image_text": 0.3,
+          "video": 0.12,
+          "audio": 0.08,
+          "document_screen": 0.15
+        },
+        "task_mix": {
+          "text": 0.14,
+          "image_text": 0.14,
+          "layout": 0.06444444444444444,
+          "video_state": 0.06444444444444444,
+          "audio_text": 0.06444444444444444,
+          "campaign_state": 0.06444444444444444,
+          "next_action": 0.06444444444444444,
+          "failure": 0.06444444444444444,
+          "repair": 0.06444444444444444,
+          "cross_channel": 0.06444444444444444,
+          "evidence": 0.14,
+          "uncertainty": 0.06444444444444444
+        }
+      },
+      {
+        "name": "state_and_repair",
+        "start_fraction": 0.35,
+        "end_fraction": 0.75,
+        "modality_mix": {
+          "text": 0.25,
+          "image_text": 0.25,
+          "video": 0.18,
+          "audio": 0.1,
+          "document_screen": 0.22
+        },
+        "task_mix": {
+          "text": 0.065,
+          "image_text": 0.065,
+          "layout": 0.065,
+          "video_state": 0.065,
+          "audio_text": 0.065,
+          "campaign_state": 0.12,
+          "next_action": 0.12,
+          "failure": 0.12,
+          "repair": 0.12,
+          "cross_channel": 0.065,
+          "evidence": 0.065,
+          "uncertainty": 0.065
+        }
+      },
+      {
+        "name": "cross_channel_integration",
+        "start_fraction": 0.75,
+        "end_fraction": 1.0,
+        "modality_mix": {
+          "text": 0.2,
+          "image_text": 0.25,
+          "video": 0.2,
+          "audio": 0.1,
+          "document_screen": 0.25
+        },
+        "task_mix": {
+          "text": 0.08333333333333333,
+          "image_text": 0.08333333333333333,
+          "layout": 0.08333333333333333,
+          "video_state": 0.08333333333333333,
+          "audio_text": 0.08333333333333333,
+          "campaign_state": 0.08333333333333333,
+          "next_action": 0.08333333333333333,
+          "failure": 0.08333333333333333,
+          "repair": 0.08333333333333333,
+          "cross_channel": 0.08333333333333333,
+          "evidence": 0.08333333333333333,
+          "uncertainty": 0.08333333333333333
+        }
+      }
+    ],
+    "learning_rates": {
+      "vision_tower": 0.0,
+      "connector": 0.0002,
+      "language_model": 2e-05,
+      "adapter": 0.0001
+    },
+    "settings": {
+      "packing": true,
+      "packing_resets_position_and_attention": true,
+      "gradient_checkpointing": true,
+      "gradient_accumulation_steps": 8,
+      "bf16": true,
+      "deterministic_seed": 42,
+      "maximum_wall_clock_hours": 6.0,
+      "checkpoint_interval_steps": 100,
+      "save_optimizer": true,
+      "save_scheduler": true,
+      "save_rng_state": true
+    },
+    "monitor_metrics": [
+      "train_loss",
+      "validation_loss",
+      "visual_retention",
+      "language_retention",
+      "schema_validity",
+      "claim_grounding",
+      "state_prediction"
+    ]
+  },
+  "contract_sha256": "ba40b28a8fbf7619b6e9e7f8c7bd4b88c0d93652874d8b4d44342150b28c97ba",
+  "alternate_profile": "2b",
+  "profile_selection_requires_observed_rocm_vram": true,
+  "base_evaluation_receipt": null,
+  "radeon_memory_receipt": null,
+  "controlled_checkpoint_selection": {
+    "selected_checkpoint_id": "controlled-step-100",
+    "last_checkpoint_id": "controlled-step-300",
+    "selected_is_last": false,
+    "scores": {
+      "controlled-step-100": 0.954,
+      "controlled-step-200": 0.943
+    },
+    "rejected": {
+      "controlled-step-300": [
+        "visual retention"
+      ]
+    },
+    "digest": "cd0399c6efc59f74f24c2c7cdbb4c30dbd598c96ffc8a150432b9d3ab3acefba"
+  },
+  "controlled_checkpoint_selection_is_training_evidence": false,
+  "execution_status": "planned_not_executed"
+}

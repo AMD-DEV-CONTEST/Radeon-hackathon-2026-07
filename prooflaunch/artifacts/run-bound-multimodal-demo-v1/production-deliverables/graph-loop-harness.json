@@ -1,0 +1,88 @@
+{
+  "autonomy_level": "L2_deterministic_workflow",
+  "contract_sha256": "dffe051a3f319d2a10cbfa80f13088e747f190295341492ce857dc899836c02a",
+  "graph": {
+    "audit": [
+      "repair",
+      "awaiting_release",
+      "blocked"
+    ],
+    "awaiting_release": [
+      "deliver",
+      "blocked"
+    ],
+    "blocked": [
+      "blocked"
+    ],
+    "create": [
+      "audit",
+      "blocked"
+    ],
+    "deliver": [
+      "deliver"
+    ],
+    "evidence": [
+      "plan",
+      "blocked"
+    ],
+    "plan": [
+      "create",
+      "blocked"
+    ],
+    "repair": [
+      "audit",
+      "blocked"
+    ]
+  },
+  "harness": {
+    "authoritative_state_owner": "Supervisor",
+    "content_bound_approval_required": true,
+    "fail_closed": true,
+    "human_approval_before": [
+      "release",
+      "external_publish",
+      "spend",
+      "send"
+    ],
+    "idempotency_required": true,
+    "maximum_actions": 12,
+    "maximum_cost_usd": 0,
+    "model_backend_independent": true,
+    "permitted_effects": [
+      "local_source_read",
+      "local_draft_write",
+      "local_render",
+      "local_audit",
+      "local_content_addressed_bundle"
+    ],
+    "prohibited_effects": [
+      "external_publish",
+      "outbound_message",
+      "media_spend",
+      "destructive_delete",
+      "credential_exposure"
+    ],
+    "state_store": "SQLite_WAL_CAS_event_hash_chain"
+  },
+  "loop": {
+    "maximum_iterations": 2,
+    "no_retry_failures": [
+      "permission_denied",
+      "schema_error",
+      "rights_failure",
+      "approval_mismatch"
+    ],
+    "node": "repair",
+    "retryable_failures": [
+      "quality_finding",
+      "render_validation_failure"
+    ],
+    "termination": [
+      "all_release_blockers_cleared",
+      "iteration_budget_exhausted_then_block",
+      "non_retryable_failure_then_block"
+    ]
+  },
+  "schema": "ProofLaunchGraphLoopHarnessV1",
+  "truth_boundary": "This receipt proves the declared deterministic control contract and mechanical validation only. It does not prove model quality, external publication, 4A creative preference, causal lift or revenue."
+}

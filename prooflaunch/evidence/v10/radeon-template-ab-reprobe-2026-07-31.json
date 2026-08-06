@@ -1,0 +1,44 @@
+{
+  "schema": "ProofLaunchRadeonTemplateABReprobeV1",
+  "observed_at": "2026-07-31T18:13:50Z",
+  "instance_id": "u-5825-fcdeec25",
+  "templates_tested": [
+    {
+      "template": "Hello ROCm",
+      "rest_read_status": 200,
+      "events_websocket_status": 403,
+      "kernel_channels_websocket_status": 403,
+      "kernel_execution_observed": false
+    },
+    {
+      "template": "AgenticAI推理自优化",
+      "container": "amd-oneclick-base:rocm7.2.1-py3.12-v20260416-deepseek-flash-default-20260518",
+      "rest_read_status": 200,
+      "kernelspec_python3_observed": true,
+      "events_websocket_status": 403,
+      "kernel_create_http_status": 404,
+      "kernel_execution_observed": false
+    }
+  ],
+  "diagnosis": {
+    "single_gpu_capacity_issue": false,
+    "template_specific_issue": false,
+    "most_likely_boundary": "Radeon Cloud instance proxy or routing layer before Python/ROCm execution",
+    "reason": "Two different official container images expose healthy authenticated REST reads but fail before any Python, ROCm, model allocation, or training code can execute."
+  },
+  "terminal_action": {
+    "instance_destroyed": true,
+    "no_active_instance_confirmed": true,
+    "credits_remaining_after_destruction": 17,
+    "project_training_artifacts_existed": false,
+    "project_training_artifacts_deleted": false,
+    "reason": "The AgenticAI instance contained only its template files and never created an executable kernel; the authoritative project bundle remains local."
+  },
+  "truth_boundary": {
+    "radeon_execution_observed": false,
+    "training_observed": false,
+    "local_key_inference_observed": false,
+    "promotion_eligible": false
+  },
+  "secrets_persisted": false
+}

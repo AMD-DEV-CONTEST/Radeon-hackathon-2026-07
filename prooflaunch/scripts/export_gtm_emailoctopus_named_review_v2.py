@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import hashlib
+import html
+import json
+from pathlib import Path
+
+from prooflaunch_remix.files import atomic_write_text
+
+
+ROOT = Path(__file__).resolve().parents[1]
+OUTPUT = ROOT / "artifacts/gtm-emailoctopus-named-review-v2"
+
+
+def sha(value: str) -> str:
+    return hashlib.sha256(value.encode()).hexdigest()
+
+
+def main() -> int:
+    proposal = json.loads((ROOT / "evidence/v10/gtm-emailoctopus-named-review-proposal-v2.json").read_text())
+    sources = []
+    dossier = json.loads((ROOT / "evidence/v10/gtm-emailoctopus-admission-dossier-v2.json").read_text())
+    for row in dossier["sources"]:
+        sources.append(f'<li><a href="{html.escape(row["source_url"], quote=True)}" target="_blank" rel="noreferrer">{html.escape(row["source_role"])}</a> · {html.escape(row["capture_status"])}</li>')
+    fields = "".join(f'<tr><th>{html.escape(key)}</th><td>{html.escape(json.dumps(value, ensure_ascii=False) if isinstance(value, list) else str(value))}</td></tr>' for key, value in proposal["field_bindings"].items())
+    costs = "".join(f'<tr><th>{html.escape(key)}</th><td>{html.escape(value)}</td></tr>' for key, value in proposal["cost_components"].items())
+    claims = "".join(f'<blockquote><code>{html.escape(row["field"])}</code> {html.escape(row["exact_excerpt"])}</blockquote>' for row in proposal["exact_primary_claim_bindings"])
+    embedded = json.dumps(proposal, ensure_ascii=False).replace("</", "<\\/")
+    page = f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>EmailOctopus named review</title><style>
+body{{font:15px/1.55 ui-sans-serif,system-ui;background:#f4f5f7;color:#17191d;margin:0}}main{{max-width:1080px;margin:32px auto;padding:0 20px}}section{{background:white;border:1px solid #dfe3e8;border-radius:16px;padding:22px;margin:16px 0}}h1{{font-size:32px}}.status{{display:inline-block;background:#fff3cd;color:#6d4c00;padding:7px 12px;border-radius:999px}}table{{width:100%;border-collapse:collapse}}th,td{{text-align:left;vertical-align:top;border-top:1px solid #eee;padding:10px}}th{{width:230px}}input,textarea{{width:100%;box-sizing:border-box;padding:10px;border:1px solid #aeb6c2;border-radius:8px}}button{{background:#145cf5;color:white;border:0;border-radius:9px;padding:12px 18px;font-weight:700}}button:disabled{{opacity:.4}}blockquote{{border-left:4px solid #145cf5;margin:12px 0;padding:8px 14px;background:#f7f9ff}}.warn{{color:#9b2c2c}}label.check{{display:flex;gap:10px;align-items:flex-start}}label.check input{{width:auto;margin-top:5px}}
+</style></head><body><main><p class="status">10/11 evidence gates ready · formal credit 0</p><h1>EmailOctopus 实名准入复核</h1><p>本页不会自动批准案例。请逐个打开来源、核对原文与哈希片段，再填写实名与判断。</p>
+<section><h2>公开来源</h2><ul>{''.join(sources)}</ul></section>
+<section><h2>15 个字段</h2><table>{fields}</table></section>
+<section><h2>六项成本</h2><table>{costs}</table><p class="warn">未知金额必须保持未知，不得视为零。</p></section>
+<section><h2>主来源精确片段</h2>{claims}</section>
+<section><h2>实名确认</h2><label>Reviewer name<input id="reviewer" autocomplete="name"></label><label>Decision notes<textarea id="notes" rows="5"></textarea></label><p><label class="check"><input id="inspected" type="checkbox">我已打开并逐一检查全部绑定来源，确认主体、episode、预算分类、未知成本和描述性结果措辞。</label></p><p><label class="check"><input id="bind" type="checkbox">我确认 15 个字段、六项成本和精确片段适用于同一 EmailOctopus episode；没有把多渠道相关性写成单渠道因果。</label></p><button id="download" disabled>下载待服务器验证的实名 Intake JSON</button><p id="message"></p></section>
+</main><script id="proposal" type="application/json">{embedded}</script><script>
+const p=JSON.parse(document.getElementById('proposal').textContent);const reviewer=document.getElementById('reviewer'),notes=document.getElementById('notes'),inspected=document.getElementById('inspected'),bind=document.getElementById('bind'),button=document.getElementById('download'),message=document.getElementById('message');
+function ready(){{button.disabled=!(reviewer.value.trim()&&notes.value.trim().length>=20&&inspected.checked&&bind.checked)}}[reviewer,notes,inspected,bind].forEach(x=>x.addEventListener('input',ready));
+button.addEventListener('click',()=>{{const now=new Date().toISOString();const gates=Object.fromEntries(Object.keys(p.gate_evidence).map(k=>[k,true]));const intake={{schema:'ProofLaunchGTMAllSubverticalUnifiedReviewIntakeV2',review_ledger_sha256:p.source_unified_review_ledger_sha256,created_at:now,review_count:1,records:[{{review_packet_id:p.review_packet_id,source_url:p.source_url,review_packet_sha256:p.review_packet_sha256,reviewer_name:reviewer.value.trim(),reviewed_at:now,source_inspected:true,field_bindings:p.field_bindings,cost_components:p.cost_components,gate_decisions:gates,exact_claim_bindings:p.exact_primary_claim_bindings,decision:'submit_for_admission_gate',decision_notes:notes.value.trim(),automatic_promotion_allowed:false,formal_candidate_quota_credit:0}}],automatic_promotion_allowed:false,formal_candidate_quota_credit:0}};const blob=new Blob([JSON.stringify(intake,null,2)],{{type:'application/json'}});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='emailoctopus-named-review-intake-v2.json';a.click();URL.revokeObjectURL(a.href);message.textContent='已生成 Intake；仍须运行服务器验证与独立 CaseCandidateV2 admission。';}});
+</script></body></html>'''
+    OUTPUT.mkdir(parents=True, exist_ok=True)
+    atomic_write_text(OUTPUT / "index.html", page)
+    manifest = {
+        "schema": "ProofLaunchGTMEmailOctopusNamedReviewWorkbenchManifestV2",
+        "source_proposal_sha256": proposal["content_sha256"],
+        "html_sha256": sha(page),
+        "reviewer_prefilled": False,
+        "automatic_promotion_allowed": False,
+        "formal_candidate_quota_credit": 0,
+    }
+    manifest["content_sha256"] = hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    atomic_write_text(OUTPUT / "manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    print(json.dumps({"output": str(OUTPUT), "html_sha256": manifest["html_sha256"], "formal_candidate_quota_credit": 0, "content_sha256": manifest["content_sha256"]}, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
