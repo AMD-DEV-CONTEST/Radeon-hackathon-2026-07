@@ -1,10 +1,12 @@
 # PolicyCut — Radeon Benchmark Notes
 
-All numbers in this document are **real measurements** taken on the contest machine
-(AMD Radeon PRO W7900, ROCm PyTorch build) with `scripts/benchmark.py`. Raw JSON
-for every run is committed under `artifacts/benchmarks/`. GPU timings are bracketed
-by `torch.cuda.synchronize()`; peak VRAM is `torch.cuda.max_memory_allocated()`
-reset per stage. Nothing in this file is estimated or extrapolated.
+This document only ever publishes **real measurements** produced by
+`scripts/benchmark.py` on the target machine (AMD Radeon PRO W7900, ROCm PyTorch
+build). Raw JSON for every run is committed under `artifacts/benchmarks/`. GPU
+timings are bracketed by `torch.cuda.synchronize()`; peak VRAM is
+`torch.cuda.max_memory_allocated()` reset per stage. Nothing in this file is
+estimated or extrapolated — sections below stay marked "pending" until the
+corresponding run has actually been executed on the Radeon hardware.
 
 ## How to reproduce
 

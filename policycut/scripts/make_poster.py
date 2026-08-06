@@ -239,7 +239,9 @@ def main() -> int:
     ], size=12.5, font="Courier", color=TEXT)
 
     # ---------- column 4: Radeon proof + numbers ----------
-    panel(c, x3, y0, col_w, col_h, "Measured on Radeon PRO W7900")
+    col4_title = ("Measured on Radeon PRO W7900" if bench.get("stages")
+                  else "Built for Radeon PRO W7900")
+    panel(c, x3, y0, col_w, col_h, col4_title)
     y = top - 24 * mm
     env = bench.get("environment", {})
     gpu_name = env.get("gpu_name") or "AMD Radeon PRO W7900 (48 GB)"

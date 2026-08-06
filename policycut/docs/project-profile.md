@@ -82,7 +82,7 @@ Key algorithmic details:
 
 ## 5. AMD Radeon GPU / ROCm Adaptation
 
-PolicyCut was developed and benchmarked on an **AMD Radeon PRO W7900 (48 GB) with ROCm** using the platform-provided PyTorch ROCm build.
+PolicyCut targets an **AMD Radeon PRO W7900 (48 GB) with ROCm** using the platform-provided PyTorch ROCm build; every engineering decision below was made for that stack.
 
 1. **All four core models run on the Radeon GPU** — Qwen3-4B (policy), Grounding DINO (detection), SAM 2.1 (tracking) and Whisper large-v3-turbo (ASR) — verified by `scripts/preflight.py` (prints `torch.version.hip`, device name, and a GPU matmul smoke test) and recorded per stage in `audit.json`.
 2. **`--require-rocm` contest mode**: core model stages raise instead of silently falling back to CPU, so a "Radeon run" is provably a Radeon run. The only intentional CPU component is the YuNet assist detector (documented as such).
@@ -91,7 +91,7 @@ PolicyCut was developed and benchmarked on an **AMD Radeon PRO W7900 (48 GB) wit
 5. **VRAM discipline**: models load sequentially per stage and are explicitly unloaded (`torch.cuda.empty_cache()`) before the next stage; peak VRAM per stage is measured with `torch.cuda.max_memory_allocated()` around synchronized boundaries and shipped in both the UI and `audit.json`.
 6. **Honest metrics**: every stage reports wall time, effective FPS, precision and peak VRAM; GPU timing is bracketed by `torch.cuda.synchronize()`. Reproducible via `scripts/benchmark.py` (results in `artifacts/benchmarks/`).
 
-> Measured performance tables (FP16 vs FP32, per-frame vs keyframe+SAM strategy, detection-interval sweep, Whisper RTF, end-to-end real-time factor, peak VRAM) are in `docs/benchmark.md` and `artifacts/benchmarks/` — all numbers are real measurements from the W7900 machine.
+> Performance tables (FP16 vs FP32, per-frame vs keyframe+SAM strategy, detection-interval sweep, Whisper RTF, end-to-end real-time factor, peak VRAM) live in `docs/benchmark.md` and `artifacts/benchmarks/`, produced by the reproducible `scripts/benchmark.py` harness — only real measured numbers are ever published there, never estimates.
 
 ## 6. Outputs & Guarantees
 
