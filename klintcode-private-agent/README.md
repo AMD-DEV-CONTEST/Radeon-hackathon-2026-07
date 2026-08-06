@@ -76,7 +76,7 @@ We provide a pre-built Docker image for easy execution. Since the agent communic
 ```bash
 # 1. Ensure your local ROCm vLLM node is running and listening on port 8000
 # 2. Run the KlintCode Private Agent TUI:
-docker run -it --network host -v $(pwd):/workspace philipgreat/klintcode-private-agent:latest
+docker run -it --network host -v $(pwd):/workspace teaql/klintcode-private-agent:latest
 ```
 
 *(Note: Alternatively, if you must use a standard bridge network, you can override the endpoint via `-e KLINTCODE_ENDPOINT="http://host.docker.internal:8000"`)*
