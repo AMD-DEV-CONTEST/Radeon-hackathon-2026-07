@@ -3,7 +3,7 @@
 **Hackathon Track:** Track 2 — Development & Local Deployment of Private AI Agents  
 **Goal:** Build and deploy a fully private, locally-running AI agent for parcel tracking using AMD GPUs (ROCm), vLLM, and containerized microservices.
 
-> 🎥 **Demo Video:** [Watch the full demo on YouTube](https://youtu.be/ibtcmalu6101) *(placeholder — video coming soon)*
+> 🎥 **Demo Video:** [Watch the full demo on YouTube](https://youtu.be/ibtcmalu6101)
 
 ---
 
