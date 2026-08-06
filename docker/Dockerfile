@@ -64,7 +64,6 @@ RUN pip install --upgrade pip wheel setuptools && \
 COPY color_sort/ /opt/robopilot/color_sort/
 COPY assets/ /opt/robopilot/assets/
 COPY README.md /opt/robopilot/README.md
-COPY src/ /opt/robopilot/src/
 
 # Model weight directories (populated at runtime by download_models.py)
 ENV HF_HOME=/opt/models \
