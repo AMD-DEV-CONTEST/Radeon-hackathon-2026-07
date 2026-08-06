@@ -1,4 +1,4 @@
-# RoboPilot — YCB Color Sorting with SmolVLA + Qwen3-VL on AMD ROCm
+# ChromaSort-VLA — YCB Color Sorting with SmolVLA + Qwen3-VL on AMD ROCm
 
 **AMD Radeon Hackathon 2026-07 · Track 3 · Physical AI Challenge**
 

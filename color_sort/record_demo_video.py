@@ -120,7 +120,7 @@ def main() -> None:
 
     def _frame_with_overlay(status, color, cmd):
         frame = _render_video_frame(bundle.video_cam, video_wh)
-        frame = _overlay_title(frame, "RoboPilot YCB Color Sorting",
+        frame = _overlay_title(frame, "ChromaSort-VLA YCB Color Sorting",
                                "SmolVLA + Qwen3-VL on AMD Radeon (ROCm)")
         frame = _overlay_cmd(frame, cmd)
         frame = _overlay_status(frame, status, color)

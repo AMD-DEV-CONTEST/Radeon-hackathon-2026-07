@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # =============================================================================
-# RoboPilot — YCB Color Sorting (SmolVLA + Qwen3-VL on AMD ROCm)
+# ChromaSort-VLA — YCB Color Sorting (SmolVLA + Qwen3-VL on AMD ROCm)
 #
 # Build image for the full pipeline:
 #   physics (Genesis) + policy learning (LeRobot/SmolVLA) + VLM (Qwen3-VL-8B)
@@ -10,7 +10,7 @@
 # =============================================================================
 FROM rocm/dev-ubuntu-24.04:7.2.1
 
-LABEL org.opencontainers.image.title="RoboPilot YCB Color Sorting"
+LABEL org.opencontainers.image.title="ChromaSort-VLA YCB Color Sorting"
 LABEL org.opencontainers.image.description="Dual-VLM (Qwen3-VL + SmolVLA) YCB object color sorting on AMD Radeon GPU"
 LABEL org.opencontainers.image.vendor="AMD Radeon Hackathon 2026 Track 3"
 

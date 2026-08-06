@@ -1,7 +1,7 @@
-# Docker Deployment — RoboPilot YCB Color Sorting (AMD ROCm)
+# Docker Deployment — ChromaSort-VLA YCB Color Sorting (AMD ROCm)
 
 This directory contains everything needed to build and run the full
-RoboPilot pipeline in a container on an AMD Radeon GPU.
+ChromaSort-VLA pipeline in a container on an AMD Radeon GPU.
 
 > **Note**: The current sandbox cannot *execute* Docker (nested containers are
 > blocked: `unshare: operation not permitted`). These files are the complete,

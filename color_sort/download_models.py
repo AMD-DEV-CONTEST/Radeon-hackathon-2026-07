@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Download all model weights needed to run the RoboPilot pipeline.
+"""Download all model weights needed to run the ChromaSort-VLA pipeline.
 
 This is used both inside the Docker image (via entrypoint.sh) and on a bare
 host before running the pipeline. Two models are fetched:

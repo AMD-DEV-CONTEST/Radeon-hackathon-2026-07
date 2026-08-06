@@ -1,4 +1,4 @@
-# RoboPilot — 基于 SmolVLA + Qwen3-VL 的 YCB 颜色分类抓取放置（AMD ROCm）
+# ChromaSort-VLA — 基于 SmolVLA + Qwen3-VL 的 YCB 颜色分类抓取放置（AMD ROCm）
 
 **AMD Radeon Hackathon 2026-07 · Track 3 · Physical AI Challenge**
 
