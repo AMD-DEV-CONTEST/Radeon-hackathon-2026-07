@@ -1,7 +1,7 @@
 # Track 3, Avinash, Quantized Embodied Control
 
 **Repository:** https://github.com/AV55CS/quantized-embodied-control
-**Demo video:** <link>
+**📹 [Demo video](https://youtu.be/rxelrEAo7Io)**
 
 How far can you compress a robot's brain before it drops the banana?
 
