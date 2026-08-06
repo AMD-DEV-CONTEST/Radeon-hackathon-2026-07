@@ -26,7 +26,7 @@ RUN apt-get update && apt-get install -y \
 
 # Copy binaries from builder
 COPY --from=builder /app/target/release/klintcode-tui /usr/local/bin/
-COPY --from=builder /app/target/release/klintcode-cli /usr/local/bin/
+COPY --from=builder /app/target/release/klintcode /usr/local/bin/
 
 # Copy skills and profiles
 COPY skills /app/skills
