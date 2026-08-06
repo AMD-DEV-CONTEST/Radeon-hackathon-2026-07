@@ -20,7 +20,7 @@ RDK Agent 是一个私有化部署的多智能体平台，用于在 RDK X5 上�
 | 应用名称 | RDK Agent |
 | 团队 / 参赛者 | `d-robotics agent` |
 | 源码仓库 | <https://github.com/cowhorseming/rdk-sophon> |
-| 演示视频 | [B 站主地址](https://www.bilibili.com/video/BV1t3up6iEhy/) · 百度云私有镜像（待补充不含访问凭据的公开分享地址，签名链接不进入公共仓库） |
+| 演示视频 | [B 站主地址](https://www.bilibili.com/video/BV1t3up6iEhy/) · [百度云 MP4 备用地址](https://dagent-platform.bj.bcebos.com/amd-hackathon/amd-hackathon-2026-07.mp4?authorization=bce-auth-v1/ALTAKYR0nFJFHMGlFjuontyVVP/2026-08-06T12%3A43%3A01Z/-1/host/1a12970cc4c9439caa28199256b028f90e82ba41ac92c68fb921b271be0b0acd) |
 | Pull Request 标题 | `Track 2, d-robotics agent, RDK Agent` |
 | 正式截止时间 | 2026-08-06 23:59（UTC+8，北京/新加坡时间） |
 
@@ -30,7 +30,7 @@ RDK Agent 是一个私有化部署的多智能体平台，用于在 RDK X5 上�
 | --- | --- | --- |
 | 项目说明书 | 已完成 | 本文档与[中文 12 页项目说明书 PDF](submission/zh/deliverables/RDK_Agent_Project_Specification.pdf) |
 | 完整源代码与 README | 已完成 | 本 monorepo；两个子系统的深层说明见 [`rdk-agent`](rdk-agent/README.md) 与 [`rdk-sophon`](rdk-sophon/README.md) 文档 |
-| 3–5 分钟演示视频 | 已完成；3 分 07.2 秒、1080p、H.264/AAC；B 站公开地址已验证 | [B 站主地址](https://www.bilibili.com/video/BV1t3up6iEhy/) · 百度云公开分享地址待补充 |
+| 3–5 分钟演示视频 | 已完成；3 分 07.2 秒、1080p、H.264/AAC；两个公开地址均已验证 | [B 站主地址](https://www.bilibili.com/video/BV1t3up6iEhy/) · [百度云备用地址](https://dagent-platform.bj.bcebos.com/amd-hackathon/amd-hackathon-2026-07.mp4?authorization=bce-auth-v1/ALTAKYR0nFJFHMGlFjuontyVVP/2026-08-06T12%3A43%3A01Z/-1/host/1a12970cc4c9439caa28199256b028f90e82ba41ac92c68fb921b271be0b0acd) |
 | 补充 PPT / 海报 | 已完成 | [中文 12 张幻灯片路演 PPTX](submission/zh/deliverables/RDK_Agent_Track2_Pitch_Deck.pptx) |
 | AMD Radeon/ROCm 部署与优化方案 | 已完成 | 客户端配置、受控实验、指标与基准方法见本文第 8–9 节 |
 | AMD 服务器与性能证明 | 两条 Qwen3 实测路径均已完成 | 自训练 32B SFT 路径记录了 gfx1100、ROCm 7.2.1、adapter 身份及基线/优化 A/B；80B 路径记录了单张 Radeon 上成功运行的 `llama.cpp` 部署、API 兼容性 canary 与基线/优化服务指标。见[模型侧索引](submission/zh/MODEL_TRACK.md)。 |

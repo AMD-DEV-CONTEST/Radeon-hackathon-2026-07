@@ -10,7 +10,7 @@ Track 2, d-robotics agent, RDK Agent
 - **团队 / 参赛者：** `d-robotics agent`
 - **应用名称：** RDK Agent
 - **演示视频（主地址）：** https://www.bilibili.com/video/BV1t3up6iEhy/
-- **演示视频（备用地址）：** 百度云私有镜像；公开分享地址待补充（含访问凭据的签名链接不进入公共仓库）
+- **演示视频（备用地址）：** https://dagent-platform.bj.bcebos.com/amd-hackathon/amd-hackathon-2026-07.mp4?authorization=bce-auth-v1/ALTAKYR0nFJFHMGlFjuontyVVP/2026-08-06T12%3A43%3A01Z/-1/host/1a12970cc4c9439caa28199256b028f90e82ba41ac92c68fb921b271be0b0acd
 - **源码：** `https://github.com/cowhorseming/rdk-sophon`
 
 ## 项目概述

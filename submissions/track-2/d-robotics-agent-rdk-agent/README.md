@@ -20,7 +20,7 @@ This English README is the authoritative competition-facing description for the 
 | Application | RDK Agent |
 | Team / participant | `d-robotics agent` |
 | Source repository | <https://github.com/cowhorseming/rdk-sophon> |
-| Demo video | [Bilibili primary](https://www.bilibili.com/video/BV1t3up6iEhy/) · Baidu Cloud private mirror (public share URL pending; credential-bearing signed URL omitted) |
+| Demo video | [Bilibili primary](https://www.bilibili.com/video/BV1t3up6iEhy/) · [Baidu Cloud MP4 backup](https://dagent-platform.bj.bcebos.com/amd-hackathon/amd-hackathon-2026-07.mp4?authorization=bce-auth-v1/ALTAKYR0nFJFHMGlFjuontyVVP/2026-08-06T12%3A43%3A01Z/-1/host/1a12970cc4c9439caa28199256b028f90e82ba41ac92c68fb921b271be0b0acd) |
 | PR title | `Track 2, d-robotics agent, RDK Agent` |
 | Official deadline | 2026-08-06 23:59 Beijing/Singapore time (UTC+8) |
 
@@ -30,7 +30,7 @@ Current delivery status:
 | --- | --- | --- |
 | Project specification | Complete | This README and the [12-page PDF](submission/en/deliverables/RDK_Agent_Project_Specification.pdf) |
 | Complete source and README | Complete | This monorepo; subsystem details are in the [`rdk-agent` README](rdk-agent/README.md) and [`rdk-sophon` README](rdk-sophon/README.md) |
-| Demo video, 3-5 minutes | Complete; 3:07.2, 1080p, H.264/AAC; Bilibili public link verified | [Bilibili primary](https://www.bilibili.com/video/BV1t3up6iEhy/) · Baidu Cloud public share URL pending |
+| Demo video, 3-5 minutes | Complete; 3:07.2, 1080p, H.264/AAC; two public links verified | [Bilibili primary](https://www.bilibili.com/video/BV1t3up6iEhy/) · [Baidu Cloud backup](https://dagent-platform.bj.bcebos.com/amd-hackathon/amd-hackathon-2026-07.mp4?authorization=bce-auth-v1/ALTAKYR0nFJFHMGlFjuontyVVP/2026-08-06T12%3A43%3A01Z/-1/host/1a12970cc4c9439caa28199256b028f90e82ba41ac92c68fb921b271be0b0acd) |
 | Supplementary presentation | Complete | [12-slide PowerPoint deck](submission/en/deliverables/RDK_Agent_Track2_Pitch_Deck.pptx) |
 | AMD Radeon/ROCm deployment and optimization plan | Complete | Configuration, controlled experiments, metrics, and benchmark procedure are included in Sections 8–9 |
 | AMD server and performance proof | Complete for both measured Qwen3 paths | The trained 32B SFT path records gfx1100, ROCm 7.2.1, adapter identity, and baseline-versus-optimized A/B. The 80B path records a successful single-Radeon `llama.cpp` deployment, API compatibility canaries, and baseline-versus-optimized serving metrics. See the [model track index](submission/en/MODEL_TRACK.md). |

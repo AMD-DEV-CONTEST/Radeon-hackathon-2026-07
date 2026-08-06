@@ -2,7 +2,7 @@
 
 **主播放地址：** [B 站 - BV1t3up6iEhy](https://www.bilibili.com/video/BV1t3up6iEhy/)
 
-**备用播放/下载地址：** 百度云私有镜像；如有不含访问凭据的公开分享地址，请在提交前替换本说明。
+**备用播放/下载地址：** [百度云 MP4 直链](https://dagent-platform.bj.bcebos.com/amd-hackathon/amd-hackathon-2026-07.mp4?authorization=bce-auth-v1/ALTAKYR0nFJFHMGlFjuontyVVP/2026-08-06T12%3A43%3A01Z/-1/host/1a12970cc4c9439caa28199256b028f90e82ba41ac92c68fb921b271be0b0acd)
 
 **本地母版：** `submission/en/amd-hackathon-2026-07.mp4`
 

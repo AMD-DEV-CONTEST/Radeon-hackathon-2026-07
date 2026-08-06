@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | 项目说明书 | [RDK_Agent_Project_Specification.pdf](deliverables/RDK_Agent_Project_Specification.pdf) | `d99f78fc2be72c3032df2cc5915870c134d0c0897f819c684e9bde56c371a72e` |
 | 路演演示文稿 | [RDK_Agent_Track2_Pitch_Deck.pptx](deliverables/RDK_Agent_Track2_Pitch_Deck.pptx) | `b67ce13cc099480ea9c6a47f882380e81f209005d80fd2f79cf538edcc2ac976` |
-| 演示视频 | [B 站主地址](https://www.bilibili.com/video/BV1t3up6iEhy/) · 百度云私有镜像（公开分享地址待补充） | `0cba7eec725a4c8d7e76a3b762c56ce1c96cc8edd9321daf0a2342c0cd0a0a4f` |
+| 演示视频 | [B 站主地址](https://www.bilibili.com/video/BV1t3up6iEhy/) · [百度云 MP4 备用地址](https://dagent-platform.bj.bcebos.com/amd-hackathon/amd-hackathon-2026-07.mp4?authorization=bce-auth-v1/ALTAKYR0nFJFHMGlFjuontyVVP/2026-08-06T12%3A43%3A01Z/-1/host/1a12970cc4c9439caa28199256b028f90e82ba41ac92c68fb921b271be0b0acd) | `0cba7eec725a4c8d7e76a3b762c56ce1c96cc8edd9321daf0a2342c0cd0a0a4f` |
 
 ## 提交材料源文件
 

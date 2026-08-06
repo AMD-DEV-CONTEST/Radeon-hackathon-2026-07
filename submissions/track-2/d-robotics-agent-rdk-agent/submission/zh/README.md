@@ -18,7 +18,7 @@ RDK Agent 能够将自然语言描述的机器人需求转化为适用于 RDK X5
 | --- | --- | --- |
 | 项目说明书 | [Markdown 源文件](PROJECT_SPECIFICATION.md)和 [PDF](deliverables/RDK_Agent_Project_Specification.pdf) | 已完成 |
 | 完整源代码与 README | [仓库根目录](../../README.md)和[复现指南](REPRODUCIBILITY.md) | 已完成 |
-| 3–5 分钟演示视频 | [B 站主地址](https://www.bilibili.com/video/BV1t3up6iEhy/)、百度云私有镜像（公开分享地址待补充）与[交付说明](VIDEO.md) | 已完成；B 站公开地址已验证 |
+| 3–5 分钟演示视频 | [B 站主地址](https://www.bilibili.com/video/BV1t3up6iEhy/)、[百度云备用地址](https://dagent-platform.bj.bcebos.com/amd-hackathon/amd-hackathon-2026-07.mp4?authorization=bce-auth-v1/ALTAKYR0nFJFHMGlFjuontyVVP/2026-08-06T12%3A43%3A01Z/-1/host/1a12970cc4c9439caa28199256b028f90e82ba41ac92c68fb921b271be0b0acd)与[交付说明](VIDEO.md) | 已完成；两个公开地址均已验证 |
 | 补充 PPT 或海报 | [PowerPoint 演示文稿](deliverables/RDK_Agent_Track2_Pitch_Deck.pptx) | 已完成 |
 | AMD Radeon/ROCm 方案 | [私有部署与优化指南](AMD_RADEON_ROCM.md) | 已完成；服务器侧证据见下文说明 |
 | 在 Radeon 上训练、部署并优化的模型 | [模型侧索引](MODEL_TRACK.md)与 [`model/`](../../model/README.md) | 已完成；gfx1100 实测，可离线重算 |

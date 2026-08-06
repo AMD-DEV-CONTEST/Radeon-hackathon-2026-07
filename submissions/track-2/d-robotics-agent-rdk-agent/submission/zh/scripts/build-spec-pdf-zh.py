@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[3]
 ASSETS = ROOT / "submission" / "zh" / "assets"
 OUTPUT = ROOT / "submission" / "zh" / "deliverables" / "RDK_Agent_Project_Specification.pdf"
 BILIBILI_URL = "https://www.bilibili.com/video/BV1t3up6iEhy/"
+BAIDU_URL = "https://dagent-platform.bj.bcebos.com/amd-hackathon/amd-hackathon-2026-07.mp4?authorization=bce-auth-v1/ALTAKYR0nFJFHMGlFjuontyVVP/2026-08-06T12%3A43%3A01Z/-1/host/1a12970cc4c9439caa28199256b028f90e82ba41ac92c68fb921b271be0b0acd"
 LOCALIZATION = json.loads((Path(__file__).with_name("localization-map.json")).read_text(encoding="utf-8"))
 PAGE_W, PAGE_H = A4
 
@@ -488,7 +489,7 @@ def build():
         ("DONE", "PPT pitch deck and original visual assets", GREEN),
         ("DONE", "196-test and live-board evidence", GREEN),
         ("DONE", "Team: d-robotics agent", GREEN),
-        ("DONE", "Public demo link: Bilibili; Baidu public share URL pending", GREEN),
+        ("DONE", "Public demo links: Bilibili primary + Baidu Cloud backup", GREEN),
         ("DONE", "32B SFT and 80B Radeon run evidence", GREEN),
     ]
     y = 636
@@ -502,7 +503,7 @@ def build():
     paragraph(c, "Demo video", 60, 231, 120, size=10, leading=13, bold=True, color=CYAN)
     paragraph(
         c,
-        f'<a href="{BILIBILI_URL}" color="#FFFFFF"><b>B 站：BV1t3up6iEhy</b></a><br/><font color="#55D5E5">备用：百度云公开分享地址待补充</font>',
+        f'<a href="{BILIBILI_URL}" color="#FFFFFF"><b>B 站：BV1t3up6iEhy</b></a><br/><a href="{BAIDU_URL}" color="#55D5E5">备用：百度云 MP4 直链</a>',
         60,
         207,
         PAGE_W - 120,

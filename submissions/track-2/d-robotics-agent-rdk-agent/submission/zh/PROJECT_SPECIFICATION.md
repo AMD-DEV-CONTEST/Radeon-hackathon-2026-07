@@ -7,7 +7,7 @@
 **应用名称：** RDK Agent
 
 **源码仓库：** `https://github.com/cowhorseming/rdk-sophon`
-**演示视频：** [B 站主地址](https://www.bilibili.com/video/BV1t3up6iEhy/) · 百度云私有镜像（公开分享地址待补充，签名链接因安全原因不进入公共仓库） · [视频说明](VIDEO.md)
+**演示视频：** [B 站主地址](https://www.bilibili.com/video/BV1t3up6iEhy/) · [百度云 MP4 备用地址](https://dagent-platform.bj.bcebos.com/amd-hackathon/amd-hackathon-2026-07.mp4?authorization=bce-auth-v1/ALTAKYR0nFJFHMGlFjuontyVVP/2026-08-06T12%3A43%3A01Z/-1/host/1a12970cc4c9439caa28199256b028f90e82ba41ac92c68fb921b271be0b0acd) · [视频说明](VIDEO.md)
 
 ![RDK Agent 概念封面](assets/rdk-agent-hero.png)
 

@@ -2,7 +2,7 @@
 
 **Primary playback:** [Bilibili - BV1t3up6iEhy](https://www.bilibili.com/video/BV1t3up6iEhy/)
 
-**Backup playback/download:** Baidu Cloud private mirror; replace this note with a credential-free public share URL before submission if available.
+**Backup playback/download:** [Baidu Cloud direct MP4](https://dagent-platform.bj.bcebos.com/amd-hackathon/amd-hackathon-2026-07.mp4?authorization=bce-auth-v1/ALTAKYR0nFJFHMGlFjuontyVVP/2026-08-06T12%3A43%3A01Z/-1/host/1a12970cc4c9439caa28199256b028f90e82ba41ac92c68fb921b271be0b0acd)
 
 **Local master:** `submission/en/amd-hackathon-2026-07.mp4`
 

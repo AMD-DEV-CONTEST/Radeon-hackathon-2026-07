@@ -18,7 +18,7 @@ The visual above is a project-created AI-generated conceptual illustration. No o
 | --- | --- | --- |
 | Project specification | [Markdown source](PROJECT_SPECIFICATION.md) and [PDF](deliverables/RDK_Agent_Project_Specification.pdf) | Complete |
 | Complete source and README | [Repository root](../../README.md) and [reproducibility guide](REPRODUCIBILITY.md) | Complete |
-| Demo video, 3-5 minutes | [Bilibili primary](https://www.bilibili.com/video/BV1t3up6iEhy/), Baidu Cloud private mirror (public share URL pending), and [delivery notes](VIDEO.md) | Complete; Bilibili public link verified |
+| Demo video, 3-5 minutes | [Bilibili primary](https://www.bilibili.com/video/BV1t3up6iEhy/), [Baidu Cloud backup](https://dagent-platform.bj.bcebos.com/amd-hackathon/amd-hackathon-2026-07.mp4?authorization=bce-auth-v1/ALTAKYR0nFJFHMGlFjuontyVVP/2026-08-06T12%3A43%3A01Z/-1/host/1a12970cc4c9439caa28199256b028f90e82ba41ac92c68fb921b271be0b0acd), and [delivery notes](VIDEO.md) | Complete; two public links verified |
 | Supplementary PPT or poster | [PowerPoint deck](deliverables/RDK_Agent_Track2_Pitch_Deck.pptx) | Complete |
 | AMD Radeon/ROCm plan | [Private deployment and optimization guide](AMD_RADEON_ROCM.md) | Complete; server proof noted below |
 | Model trained, deployed and optimized on Radeon | [Model track index](MODEL_TRACK.md) and [`model/`](../../model/README.en.md) | Complete; measured on gfx1100 and recomputable offline |
