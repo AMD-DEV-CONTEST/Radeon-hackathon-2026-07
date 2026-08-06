@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forge Wall Dashboard</title>
+    <title>Forge Wall Dashboard - GPU Fleet Monitor</title>
     <style>
         :root {
             --bg: #0b0f19;
@@ -17,14 +17,11 @@
             --text-main: #f3f4f6;
             --text-dim: #9ca3af;
             
-            /* Role Colors */
-            --role-coder: #3b82f6;      /* blue */
-            --role-thinker: #a78bfa;    /* purple */
-            --role-reviewer: #f59e0b;   /* amber */
-            --role-corrector: #ef4444;  /* red */
-            --role-polisher: #10b981;   /* green */
-            --role-validator: #06b6d4;  /* cyan */
-            --role-idle: #9ca3af;       /* grey */
+            --role-coder: #3b82f6;
+            --role-thinker: #a78bfa;
+            --role-cargo: #10b981;
+            --role-validator: #06b6d4;
+            --role-idle: #9ca3af;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -37,7 +34,6 @@
             overflow: hidden;
         }
 
-        /* ── Header ─────────────────────────────────────────── */
         header {
             display: flex; justify-content: space-between; align-items: center;
             padding: 12px 20px;
@@ -58,19 +54,48 @@
             padding: 6px 12px;
             font-size: 0.8rem;
             cursor: pointer;
+            transition: all 0.2s;
         }
-        .wall-btn:hover { border-color: var(--accent); }
+        .wall-btn:hover { 
+            border-color: var(--accent); 
+            background: rgba(59,130,246,0.1);
+        }
 
-        /* ── Layout ─────────────────────────────────────────── */
+        #fleet-summary {
+            font-size: 0.75rem;
+            margin-left: 20px;
+            padding: 4px 8px;
+            background: rgba(16,185,129,0.1);
+            border-radius: 4px;
+            color: var(--success);
+        }
+
         #content {
             flex: 1;
             display: grid;
-            grid-template-columns: 1fr 400px;
-            grid-template-rows: auto 1fr;
+            grid-template-columns: 1fr 420px;
+            grid-template-rows: auto auto 1fr;
             overflow: hidden;
         }
         
-        /* ── Workers Section (Top Row) ──────────────────────── */
+        #fleet-status {
+            grid-column: 1 / -1;
+            padding: 12px 20px;
+            background: rgba(16,185,129,0.05);
+            border-bottom: 1px solid var(--border);
+            font-size: 0.8rem;
+            display: flex;
+            gap: 30px;
+        }
+
+        #gpu-discovery {
+            grid-column: 1 / -1;
+            padding: 12px 20px;
+            background: rgba(59,130,246,0.05);
+            border-bottom: 1px solid var(--border);
+            font-size: 0.8rem;
+        }
+
         #workers-section {
             grid-column: 1 / -1;
             padding: 16px 20px;
@@ -103,7 +128,6 @@
             display: flex; gap: 10px; font-size: 0.8rem; color: var(--text-dim);
         }
 
-        /* ── Main GPU Area (Left) ───────────────────────────── */
         #gpu-section {
             padding: 16px 20px;
             overflow-y: auto;
@@ -129,15 +153,10 @@
             display: flex; align-items: center; justify-content: space-between;
         }
         
-        /* ── Dials ──────────────────────────────────────────── */
         .dials-row { display: flex; gap: 8px; justify-content: space-between; }
         .dial-cell { display: flex; flex-direction: column; align-items: center; flex: 1; }
         .dial-cell .label { font-size: 0.62rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 2px; }
         .dial-svg { width: 68px; height: 38px; }
-        .dial-bg  { fill: none; stroke: #374151; stroke-width: 7; stroke-linecap: round; }
-        .dial-fg  { fill: none; stroke-width: 7; stroke-linecap: round; transition: stroke-dasharray 0.6s ease; }
-        .dial-red { fill: none; stroke: var(--danger); stroke-width: 7; stroke-linecap: round; }
-        .dial-txt { font-size: 12px; fill: var(--text-main); font-weight: 700; text-anchor: middle; dominant-baseline: central; }
         
         #total-ts-dial {
             position: absolute;
@@ -147,7 +166,6 @@
             z-index: 10;
         }
 
-        /* ── Roles Verbose Log Area (Right) ─────────────────── */
         #roles-section {
             background: var(--panel); border-left: 1px solid var(--border);
             display: flex; flex-direction: column;
@@ -159,19 +177,25 @@
             background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 8px;
             padding: 12px;
             display: flex; flex-direction: column; gap: 8px;
-            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+            transition: all 0.2s;
         }
         .role-block.active {
             border-color: var(--accent);
             box-shadow: 0 0 10px rgba(59,130,246,0.2);
-            transform: scale(1.02);
-            order: -1; /* Move to top */
+            background: rgba(59,130,246,0.08);
+            order: -1;
+        }
+        .role-block.always-on {
+            border-left: 3px solid var(--success);
         }
         .role-header {
             display: flex; justify-content: space-between; align-items: center;
         }
         .role-name {
             font-size: 1.1rem; font-weight: 700; text-transform: uppercase;
+        }
+        .role-status {
+            font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase;
         }
         .role-cards {
             font-size: 0.75rem; color: var(--text-dim); font-family: monospace;
@@ -185,21 +209,35 @@
             max-height: 120px; overflow-y: auto;
             background: rgba(0,0,0,0.5); padding: 8px; border-radius: 4px;
         }
+
+        .alert-box {
+            padding: 8px 12px;
+            background: rgba(239,68,68,0.1);
+            border-left: 3px solid var(--danger);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: var(--danger);
+        }
     </style>
 </head>
 <body>
 
 <header>
-    <h1>FORGE CLUSTER WALL</h1>
+    <h1>FORGE CLUSTER WALL - GPU FLEET MONITOR</h1>
     <div class="wall-controls">
-        <button class="wall-btn" onclick="autoDiscover()">🔍 Auto-Discover</button>
+        <button class="wall-btn" onclick="autoDiscover()">�� Auto-Discover GPUs</button>
+        <button class="wall-btn" onclick="refreshFleet()">🔄 Refresh</button>
+        <button class="wall-btn" onclick="toggleMonitoring()">📊 Toggle Monitor</button>
         <span id="wall-control-status" style="font-size:0.8rem;color:var(--text-dim);"></span>
+        <span id="fleet-summary" style=""></span>
     </div>
 </header>
 
 <div id="content">
+    <div id="fleet-status"></div>
+    <div id="gpu-discovery"></div>
     <div id="workers-section">
-        <div style="color:var(--text-dim)">Loading workers...</div>
+        <div style="color:var(--text-dim)">Loading worker nodes...</div>
     </div>
     
     <div id="gpu-section">
@@ -217,7 +255,43 @@
 </div>
 
 <script>
-// ── Dial helper ────────────────────────────────────────────────────────
+// ── Fleet Configuration ─────────────────────────────────────────────────
+const ALWAYS_ON_MODELS = {
+    'Ornith-1.0-35B-Q5_K_M': {
+        role: 'coder',
+        gpu_target: 't440',
+        status: 'always_on',
+        color: 'var(--role-coder)'
+    },
+    'Nemotron-Ultra-4B': {
+        role: 'cargo_check',
+        gpu_target: 'sapphire',
+        primary: 'nim_api',
+        status: 'always_on_with_fallback',
+        color: 'var(--role-cargo)',
+        fallback_models: ['Nemotron-4B', 'Qwen2.5-14B-Q4_K_M']
+    }
+};
+
+const CONDITIONAL_MODELS = {
+    'Hermes-3-Llama-3.1-8B': {
+        role: 'thinker',
+        gpu_target: 'rtx_4090',
+        status: 'on_demand',
+        color: 'var(--role-thinker)'
+    }
+};
+
+const ROLE_COLORS = {
+    coder: 'var(--role-coder)',
+    thinker: 'var(--role-thinker)',
+    cargo_check: 'var(--role-cargo)',
+    validator: 'var(--role-validator)',
+    idle: 'var(--role-idle)',
+    unknown: 'var(--text-dim)'
+};
+
+// ── Dial Helper ────────────────────────────────────────────────────────
 function dial(value, max, unit, hasRedline, color) {
     const R = 30, C = Math.PI * R;
     const dash = (Math.min(value, max) / max) * C;
@@ -225,76 +299,100 @@ function dial(value, max, unit, hasRedline, color) {
     let red = '';
     if (hasRedline) {
         const rd = 0.2 * C, ro = C * 0.8;
-        red = `<path class="dial-red" d="M 4,36 A 30,30 0 0,1 64,36" stroke-dasharray="${rd} ${C}" stroke-dashoffset="-${ro}" />`;
+        red = `<path style="fill:none;stroke:var(--danger);stroke-width:7;stroke-linecap:round" d="M 4,36 A 30,30 0 0,1 64,36" stroke-dasharray="${rd} ${C}" stroke-dashoffset="-${ro}" />`;
     }
     return `<svg class="dial-svg" viewBox="0 0 68 40">
-        <path class="dial-bg" d="M 4,36 A 30,30 0 0,1 64,36" />
+        <path style="fill:none;stroke:#374151;stroke-width:7;stroke-linecap:round" d="M 4,36 A 30,30 0 0,1 64,36" />
         ${red}
-        <path class="dial-fg" style="stroke:${col}" d="M 4,36 A 30,30 0 0,1 64,36" stroke-dasharray="${dash} ${C}" />
-        <text x="34" y="30" class="dial-txt">${typeof value==='number'?value.toFixed(0):'?'}${unit}</text>
+        <path style="fill:none;stroke:${col};stroke-width:7;stroke-linecap:round;transition:stroke-dasharray 0.6s ease" d="M 4,36 A 30,30 0 0,1 64,36" stroke-dasharray="${dash} ${C}" />
+        <text x="34" y="30" style="font-size:12px;fill:var(--text-main);font-weight:700;text-anchor:middle;dominant-baseline:central">${typeof value==='number'?value.toFixed(0):'?'}${unit}</text>
     </svg>`;
 }
 
-// ── Role Config ────────────────────────────────────────────────────────
-const ROLE_COLORS = {
-    coder: 'var(--role-coder)',
-    thinker: 'var(--role-thinker)',
-    reviewer: 'var(--role-reviewer)',
-    corrector: 'var(--role-corrector)',
-    polisher: 'var(--role-polisher)',
-    validator: 'var(--role-validator)',
-    idle: 'var(--role-idle)',
-    unknown: 'var(--text-dim)'
-};
-
-function getRoleColor(role) {
-    if (!role) return ROLE_COLORS.unknown;
-    for (const r in ROLE_COLORS) {
-        if (role.includes(r)) return ROLE_COLORS[r];
-    }
-    return ROLE_COLORS.unknown;
-}
-
-// ── State ──────────────────────────────────────────────────────────────
-let clusterTs = 0;
-let roleLogs = {};
-
-// ── Fetch & Render ─────────────────────────────────────────────────────
-async function fetchAll() {
-    try {
-        const [monRes, actRes, cfgRes] = await Promise.all([
-            fetch('/monitor'),
-            fetch('/lanes/activity'),
-            fetch('/cluster/config/full')
-        ]);
-        const monData = await monRes.json();
-        const actData = await actRes.json();
-        const cfgData = await cfgRes.json();
-        
-        renderWorkers(monData, cfgData);
-        renderGpus(monData, cfgData);
-        renderRoles(actData, cfgData);
-    } catch(e) { console.error('fetchAll', e); }
-}
-
+// ── GPU Discovery ──────────────────────────────────────────────────────
 async function autoDiscover() {
     const status = document.getElementById('wall-control-status');
-    status.textContent = "Discovering...";
+    status.textContent = "Discovering GPUs...";
     try {
-        const res = await fetch('/cluster/discover');
-        if (res.ok) {
-            status.textContent = "Discovery triggered.";
-            setTimeout(() => status.textContent = "", 3000);
-            fetchAll();
-        } else {
-            status.textContent = "Discovery failed.";
+        const res = await fetch('/api/hardware/gpus/discover');
+        const data = await res.json();
+        
+        let discoveryHtml = `<strong>GPU Discovery Result:</strong> Found ${data.gpus ? data.gpus.length : 0} GPU(s)`;
+        if (data.gpus) {
+            discoveryHtml += ` - ${data.gpus.map(g => `${g.name}(${g.memory_gb}GB)`).join(', ')}`;
         }
+        document.getElementById('gpu-discovery').innerHTML = discoveryHtml;
+        
+        status.textContent = "Discovery complete";
+        setTimeout(() => status.textContent = "", 3000);
+        setTimeout(fetchAll, 500);
     } catch (e) {
-        status.textContent = "Error: " + e.message;
+        status.textContent = "Discovery failed: " + e.message;
+        console.error('autoDiscover', e);
     }
 }
 
-function renderWorkers(monData, cfgData) {
+function toggleMonitoring() {
+    const section = document.getElementById('fleet-status');
+    section.style.display = section.style.display === 'none' ? 'flex' : 'none';
+}
+
+function refreshFleet() {
+    fetchAll();
+}
+
+// ── Fleet Status ───────────────────────────────────────────────────────
+async function updateFleetStatus() {
+    try {
+        const res = await fetch('/api/hardware/gpus/status');
+        const data = await res.json();
+        
+        let html = `
+            <div><strong>Total GPUs:</strong> ${data.total || 0} | <strong>Available:</strong> ${data.available || 0} | <strong>In Use:</strong> ${data.in_use || 0}</div>
+            <div><strong>Always-On:</strong> Ornith (Coder/T440) | <strong>Conditional:</strong> Hermes (Thinker/RTX 4090) | <strong>Fallback:</strong> Nemotron (via NIM)</div>
+        `;
+        
+        if (data.alerts && data.alerts.length > 0) {
+            html += `<div class="alert-box">${data.alerts.map(a => a.message).join(' | ')}</div>`;
+        }
+        
+        document.getElementById('fleet-status').innerHTML = html;
+    } catch (e) {
+        console.error('updateFleetStatus', e);
+    }
+}
+
+// ── Main Fetch & Render ────────────────────────────────────────────────
+async function fetchAll() {
+    try {
+        const requests = [
+            fetch('/monitor').then(r => r.json()),
+            fetch('/api/hardware/gpus').then(r => r.json()),
+            fetch('/api/roles').then(r => r.json()),
+            fetch('/lanes/activity').then(r => r.json()).catch(() => ({ activity: [] }))
+        ];
+        
+        const [monData, gpuData, roleData, actData] = await Promise.all(requests);
+        
+        renderWorkers(monData);
+        renderGpus(gpuData, roleData);
+        updateFleetStatus();
+        renderRoles(roleData, actData);
+        updateFleetSummary(gpuData);
+    } catch(e) { 
+        console.error('fetchAll:', e);
+    }
+}
+
+function updateFleetSummary(gpuData) {
+    const total = gpuData.gpus ? gpuData.gpus.length : 0;
+    const available = gpuData.available || 0;
+    const inUse = total - available;
+    const summary = `Fleet: ${total} GPUs | Ready: ${available} | In Use: ${inUse}`;
+    document.getElementById('fleet-summary').textContent = summary;
+}
+
+function renderWorkers(monData) {
     const nodes = monData.nodes || [];
     let html = '';
     
@@ -314,7 +412,7 @@ function renderWorkers(monData, cfgData) {
             <div class="node-metrics">
                 <div>CPU: ${cpuPct.toFixed(1)}%</div>
                 <div>Temp: ${temp}°C</div>
-                <div>RAM: ${(node.system_ram_mb/1024).toFixed(1)}GB</div>
+                <div>RAM: ${node.system_ram_mb ? (node.system_ram_mb/1024).toFixed(1) : '?'}GB</div>
             </div>
             ${node.error ? `<div style="font-size:0.7rem;color:var(--danger);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${node.error}">${node.error}</div>` : ''}
         </div>`;
@@ -323,29 +421,25 @@ function renderWorkers(monData, cfgData) {
     document.getElementById('workers-section').innerHTML = html;
 }
 
-function renderGpus(monData, cfgData) {
-    const gpus = monData.gpus || [];
-    const workers = cfgData.workers || [];
+function renderGpus(gpuData, roleData) {
+    const gpus = gpuData.gpus || [];
+    const roleAssignments = roleData.assignments || {};
     
-    // Group by model
     const modelGroups = {};
     const idleGpus = [];
-    
     let totalTs = 0;
     
+    // Group by assigned model
     for (const g of gpus) {
-        // Find matching worker
-        const w = workers.find(work => parseInt(work.gpu) === g.index && work.host === g.host) || workers.find(work => parseInt(work.gpu) === g.index);
+        const assignment = Object.values(roleAssignments).find(a => a.gpu_id === g.index || a.gpu_name === g.name);
         
-        if (w && w.model) {
-            const key = w.model;
-            if (!modelGroups[key]) modelGroups[key] = { model: key, gpus: [] };
-            modelGroups[key].gpus.push({ gpu: g, worker: w });
-            
-            // Mocking T/s based on utilization if actual metric not available
+        if (assignment && assignment.model) {
+            const key = assignment.model;
+            if (!modelGroups[key]) modelGroups[key] = { model: key, role: assignment.role, gpus: [] };
+            modelGroups[key].gpus.push({ gpu: g, role: assignment.role });
             totalTs += (g.utilization_pct || 0) * 0.5;
         } else {
-            idleGpus.push({ gpu: g, worker: w });
+            idleGpus.push(g);
         }
     }
     
@@ -353,21 +447,42 @@ function renderGpus(monData, cfgData) {
     
     let html = '';
     
-    for (const [model, group] of Object.entries(modelGroups)) {
-        const shortModel = model.split('/').pop().replace('.gguf','');
-        html += `<div class="gpu-group">
-            <div class="gpu-group-header">📦 ${shortModel}</div>
-            <div class="gpu-row">
-                ${group.gpus.map(item => renderGpuTile(item.gpu, item.worker)).join('')}
-            </div>
-        </div>`;
+    // Always-on models first
+    for (const [model, config] of Object.entries(ALWAYS_ON_MODELS)) {
+        if (modelGroups[model]) {
+            const group = modelGroups[model];
+            const shortModel = model.split('/').pop().replace('.gguf','');
+            html += `<div class="gpu-group" style="border-top: 3px solid ${config.color}">
+                <div class="gpu-group-header" style="color:${config.color}">
+                    ⭐ ${shortModel} <span style="font-size:0.65rem;margin-left:8px;opacity:0.7">[ALWAYS ON]</span>
+                </div>
+                <div class="gpu-row">
+                    ${group.gpus.map(item => renderGpuTile(item.gpu, item.role, config.color)).join('')}
+                </div>
+            </div>`;
+        }
     }
     
+    // Other active models
+    for (const [model, group] of Object.entries(modelGroups)) {
+        if (!ALWAYS_ON_MODELS[model]) {
+            const shortModel = model.split('/').pop().replace('.gguf','');
+            const color = ROLE_COLORS[group.role] || 'var(--accent)';
+            html += `<div class="gpu-group">
+                <div class="gpu-group-header" style="color:${color}">📦 ${shortModel}</div>
+                <div class="gpu-row">
+                    ${group.gpus.map(item => renderGpuTile(item.gpu, item.role, color)).join('')}
+                </div>
+            </div>`;
+        }
+    }
+    
+    // Idle GPUs
     if (idleGpus.length > 0) {
         html += `<div class="gpu-group">
-            <div class="gpu-group-header" style="color:var(--text-dim)">💤 Idle GPUs</div>
+            <div class="gpu-group-header" style="color:var(--text-dim)">�� Idle GPUs (${idleGpus.length})</div>
             <div class="gpu-row">
-                ${idleGpus.map(item => renderGpuTile(item.gpu, item.worker)).join('')}
+                ${idleGpus.map(g => renderGpuTile(g, 'idle', 'var(--role-idle)')).join('')}
             </div>
         </div>`;
     }
@@ -375,20 +490,18 @@ function renderGpus(monData, cfgData) {
     document.getElementById('gpu-section').innerHTML = html;
 }
 
-function renderGpuTile(g, w) {
+function renderGpuTile(g, role, roleColor) {
     const tempC = g.temperature_c || 0;
     const util = g.utilization_pct || 0;
     const watts = g.power_draw_w || 0;
     const memPct = g.memory_total_mb > 0 ? (g.memory_used_mb / g.memory_total_mb) * 100 : 0;
-    
-    const role = w ? (w.role || 'idle') : 'idle';
-    const roleColor = getRoleColor(role);
-    
     const tsMock = (util * 0.5).toFixed(1);
     
-    return `<div class="gpu-tile" style="border-top: 3px solid ${roleColor}">
+    const isAlwaysOn = Object.keys(ALWAYS_ON_MODELS).some(m => g.name.includes(m.split('-')[0]));
+    
+    return `<div class="gpu-tile" style="border-top: 3px solid ${roleColor}; ${isAlwaysOn ? 'border-left: 3px solid var(--success);' : ''}">
         <div class="gpu-tile-name">
-            <span>GPU ${g.index}: ${g.name.replace(/ \\(.*?\\)/, '')}</span>
+            <span>${g.name.replace(/ \\(.*?\\)/, '')}</span>
             <span style="font-size:0.7rem; color:${roleColor}; text-transform:uppercase; font-weight:bold;">${role}</span>
         </div>
         <div class="dials-row">
@@ -397,7 +510,7 @@ function renderGpuTile(g, w) {
                 ${dial(tempC, 100, '°', true, tempC > 80 ? 'var(--danger)' : 'var(--accent)')}
             </div>
             <div class="dial-cell">
-                <div class="label">Compute</div>
+                <div class="label">Util</div>
                 ${dial(util, 100, '%', false, util > 90 ? 'var(--warning)' : 'var(--accent)')}
             </div>
             <div class="dial-cell">
@@ -406,71 +519,50 @@ function renderGpuTile(g, w) {
             </div>
         </div>
         <div style="font-size:0.75rem;color:var(--text-main);text-align:center;font-weight:bold;margin-top:4px;">
-            <span style="color:${roleColor}">${tsMock}</span> T/s
+            <span style="color:${roleColor}">${tsMock}</span> T/s | <span style="font-size:0.65rem;color:var(--text-dim);">${(g.memory_used_mb/1024).toFixed(1)}GB</span>
         </div>
     </div>`;
 }
 
-function renderRoles(actData, cfgData) {
+function renderRoles(roleData, actData) {
     const activity = actData.activity || [];
-    const workers = cfgData.workers || [];
+    const assignments = roleData.assignments || {};
     
-    // Process new activity
-    if (activity.length > 0) {
-        for (const act of activity) {
-            const lane = act.lane || 'unknown';
-            if (!roleLogs[lane]) roleLogs[lane] = [];
-            roleLogs[lane].unshift(act);
-            if (roleLogs[lane].length > 20) roleLogs[lane].pop();
-        }
-    }
+    let html = '<strong>Fleet Role Assignments:</strong><br><br>';
     
-    // Group workers by role to show what cards they are on
-    const roleToCards = {};
-    for (const w of workers) {
-        if (w.role && w.role !== 'idle') {
-            if (!roleToCards[w.role]) roleToCards[w.role] = [];
-            roleToCards[w.role].push(`GPU ${w.gpu}`);
-        }
-    }
-    
-    let html = '';
-    
-    // Get all unique roles from logs and assignments
-    const allRoles = new Set([...Object.keys(roleLogs), ...Object.keys(roleToCards)]);
-    
-    if (allRoles.size === 0) {
-        html = '<div style="color:var(--text-dim)">Waiting for activity...</div>';
-    }
-    
-    // Sort roles so active ones (in activity feed recently) are first
-    const sortedRoles = Array.from(allRoles).sort((a, b) => {
-        const aLog = roleLogs[a] ? roleLogs[a][0].timestamp : 0;
-        const bLog = roleLogs[b] ? roleLogs[b][0].timestamp : 0;
-        return bLog - aLog;
-    });
-    
-    for (const role of sortedRoles) {
-        const cards = roleToCards[role] ? roleToCards[role].join(', ') : 'No cards assigned';
-        const logs = roleLogs[role] || [];
-        const roleColor = getRoleColor(role);
-        
-        // Active if latest log is within last 10 seconds
-        const isActive = logs.length > 0 && (Date.now() - new Date(logs[0].timestamp).getTime() < 10000);
-        
-        // Mock T/s for role
-        const tsMock = (Math.random() * 20).toFixed(1);
-        
-        html += `<div class="role-block ${isActive ? 'active' : ''}">
-            <div class="role-header">
+    // Always-on roles
+    for (const [model, config] of Object.entries(ALWAYS_ON_MODELS)) {
+        const assignment = Object.values(assignments).find(a => a.model === model);
+        const status = assignment ? '✓ Running' : '⏳ Pending';
+        html += `<div class="role-block always-on active">
+            <div style="display:flex;justify-content:space-between;align-items:center">
                 <div>
-                    <div class="role-name" style="color:${roleColor}">${role}</div>
-                    <div class="role-cards">${cards}</div>
+                    <div class="role-name" style="color:${config.color}">${config.role.toUpperCase()}</div>
+                    <div class="role-cards">${model}</div>
+                    <div class="role-status">${status}</div>
                 </div>
-                <div class="role-ts" style="color:${roleColor}">${isActive ? tsMock : '0.0'} <span style="font-size:0.7rem;">T/s</span></div>
+                <div style="text-align:center">
+                    <div style="font-size:0.7rem;color:var(--text-dim)">GPU Target</div>
+                    <div style="font-weight:bold;color:${config.color}">${config.gpu_target}</div>
+                </div>
             </div>
-            <div class="role-log">
-                ${logs.length > 0 ? logs.map(l => `[${new Date(l.timestamp).toLocaleTimeString()}] ${l.text}`).join('\\n') : 'Waiting for tokens...'}
+        </div>`;
+    }
+    
+    // Conditional models
+    for (const [model, config] of Object.entries(CONDITIONAL_MODELS)) {
+        const assignment = Object.values(assignments).find(a => a.model === model);
+        html += `<div class="role-block">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <div>
+                    <div class="role-name" style="color:${config.color}">${config.role.toUpperCase()}</div>
+                    <div class="role-cards">${model}</div>
+                    <div class="role-status">${config.status}</div>
+                </div>
+                <div style="text-align:center">
+                    <div style="font-size:0.7rem;color:var(--text-dim)">GPU Target</div>
+                    <div style="font-weight:bold;color:${config.color}">${config.gpu_target}</div>
+                </div>
             </div>
         </div>`;
     }
@@ -478,9 +570,9 @@ function renderRoles(actData, cfgData) {
     document.getElementById('roles-section').innerHTML = html;
 }
 
-// ── Init ───────────────────────────────────────────────────────────────
+// ── Init ──────────────────────────────────────────────────────────────
 async function init() {
-    fetchAll();
+    await autoDiscover();
     setInterval(fetchAll, 3000);
 }
 init();
