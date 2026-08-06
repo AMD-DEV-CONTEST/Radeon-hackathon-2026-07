@@ -1,0 +1,105 @@
+{
+  "entities": {
+    "users": {
+      "title": "User Profile",
+      "description": "User account information and profile metadata.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "Email address of the user"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when user profile was created"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User's display name"
+        },
+        "age": {
+          "type": "integer",
+          "description": "User's age"
+        },
+        "gender": {
+          "type": "string",
+          "description": "User's gender"
+        },
+        "healthNotes": {
+          "type": "string",
+          "description": "User's optional notes about their health"
+        }
+      },
+      "required": ["email", "createdAt", "displayName"]
+    },
+    "chats": {
+      "title": "Consultation Chat",
+      "description": "A saved health consultation session between the user and the AI Health Assistant.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "UID of the user who owns this chat session"
+        },
+        "title": {
+          "type": "string",
+          "description": "The title or summarized topic of the chat"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when this session was created"
+        },
+        "messages": {
+          "type": "array",
+          "description": "The list of chat messages exchanged in the session"
+        }
+      },
+      "required": ["userId", "title", "createdAt", "messages"]
+    },
+    "symptomChecks": {
+      "title": "Symptom Check",
+      "description": "A history of a symptom check run by the user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "UID of the user who performed this symptom check"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the check was done"
+        },
+        "symptoms": {
+          "type": "array",
+          "description": "List of symptoms selected by the user"
+        },
+        "conditions": {
+          "type": "array",
+          "description": "List of possible conditions returned by the symptom checker"
+        },
+        "riskLevel": {
+          "type": "string",
+          "description": "Calculated risk level (Low, Moderate, High)"
+        }
+      },
+      "required": ["userId", "createdAt", "symptoms", "conditions", "riskLevel"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "users",
+      "description": "Collection storing personalized profile metadata for users."
+    },
+    "/chats/{chatId}": {
+      "schema": "chats",
+      "description": "Collection storing historical health consultation chats between users and HealthSphere AI."
+    },
+    "/symptomChecks/{checkId}": {
+      "schema": "symptomChecks",
+      "description": "Collection storing historical symptom checking results for users."
+    }
+  }
+}
