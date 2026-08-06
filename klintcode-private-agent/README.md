@@ -54,6 +54,21 @@ To achieve the optimal balance of speed, privacy, and massive context reasoning,
 - **teaql-agent-kit**: Provides the backend API generation service and essential toolchain base libraries that KlintCode relies upon for its autonomous execution.
 - **vLLM (ROCm version)**: The high-throughput inference engine used to serve the large language model natively on AMD hardware.
 
+## Prerequisites for Code Generation (M5 Phase)
+
+While the KlintCode agent itself can run via Docker, it acts as an autonomous developer that dynamically generates and compiles Rust code during its M5 execution phase. Therefore, the host machine (or the environment where the generated code resides) must have the Rust toolchain and the TeaQL compiler installed:
+
+1. **Install Rust Environment:**
+   ```bash
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+   source $HOME/.cargo/env
+   ```
+
+2. **Install Cargo TeaQL Toolchain:**
+   ```bash
+   cargo install cargo-teaql
+   ```
+
 ## How to run on AMD Radeon (ROCm)
 
 We provide a pre-built Docker image for easy execution. Since the agent communicates with a local AMD ROCm vLLM inference node, we strongly recommend using Docker's `--network host` mode so the container can seamlessly access the host's `127.0.0.1:8000` API endpoint.
