@@ -47,7 +47,7 @@ To achieve the optimal balance of speed, privacy, and massive context reasoning,
 | Environment | Inference Engine | Hardware | Model | Endpoint | Context Window | Key Parameters / Optimizations |
 | --- | --- | --- | --- | --- | --- | --- |
 | **Local Private Deployment** | vLLM (ROCm optimized) | AMD Radeon RX 7900 XTX | Qwen2.5-72B-Instruct | `http://localhost:8000/v1` | 256K | `max_model_len=262144`<br>`gpu_memory_utilization=0.95`<br>ROCm PagedAttention & KV Cache |
-| **Cloud Service (AMD Token Factory)** | AMD Token Factory API | Cloud / Serverless | Qwen-Max / Qwen-Plus | `https://api.amd.tokenfactory.com/v1` | 128K / 32K | `temperature=0.2`<br>`top_p=0.9`<br>High-speed concurrent planning |
+| **Cloud Service (AMD Token Factory)** | AMD Token Factory API | Cloud / Serverless | Qwen3.6-35B-A3B | `https://developer.amd.com.cn/radeon/api/v1` | 128K | `max_tokens=256`<br>`enable_thinking=false` |
 
 ## Dependencies
 - **TeaQL**: The foundational schema language and compiler used for generating the underlying Rust microservices.
