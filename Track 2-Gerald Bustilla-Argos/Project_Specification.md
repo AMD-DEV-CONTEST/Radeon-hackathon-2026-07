@@ -260,14 +260,13 @@ amdagentic/
 │   │   ├── window_manager.cpp/.h    # Transparent overlay window
 │   │   ├── tray_icon.cpp/.h         # System tray
 │   │   └── tools/                   # Browser, screen, UI automation
-│   ├── src_cross/                   # Cross-platform core (Android + Windows)
+│   ├── src_cross/                   # Cross-platform core (shared logic)
 │   │   ├── agent_client_core.*      # Shared agent logic
 │   │   ├── argos_tools_core.*       # Shared tool implementations
 │   │   └── whisper_wrapper.*        # Whisper speech-to-text
 │   ├── third_party/
 │   │   └── whisper.cpp/             # GGML whisper.cpp library
 │   └── build.bat                    # Windows build script
-├── android/                         # Android app (Java + JNI)
 ├── docs/                            # Documentation
 └── README.md                        # Project README
 ```

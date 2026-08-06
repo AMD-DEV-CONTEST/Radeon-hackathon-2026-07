@@ -299,7 +299,7 @@ amdagentic/
 │   │       ├── screen_context.cpp
 │   │       ├── ui_locator.cpp
 │   │       └── computer_use_tool.cpp
-│   ├── src_cross/                   # Cross-platform core (Android + Windows)
+│   ├── src_cross/                   # Cross-platform core (shared logic)
 │   │   ├── agent_client_core.*      # Shared agent logic
 │   │   ├── argos_tools_core.*       # Shared tool implementations
 │   │   ├── whisper_wrapper.*        # Whisper speech-to-text
@@ -308,9 +308,10 @@ amdagentic/
 │   │   └── whisper.cpp/             # GGML whisper.cpp library (bundled)
 │   ├── build.bat                    # Windows build script
 │   └── argos_config.txt             # User config (created on first save)
-├── android/                         # Android app (Java + JNI)
 ├── docs/
-│   └── Project_Specification.md     # Project specification document
+│   ├── Project_Specification.md     # Project specification document
+│   ├── Argos_Presentation.pptx      # PowerPoint presentation
+│   └── generate_ppt.py              # PPT generation script
 └── README.md                        # This file
 ```
 
