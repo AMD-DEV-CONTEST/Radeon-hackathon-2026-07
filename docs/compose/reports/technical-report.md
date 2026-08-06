@@ -193,18 +193,50 @@ color_sort/
 └── inspect_dataset.py        # dataset checker
 ```
 
-### 6.2 Trained model (SmolVLA-450M fine-tune)
+### 6.2 Docker image (complete, runnable environment)
+
+A complete **Docker image** packages the entire project and all required
+components for running the pipeline on an AMD Radeon GPU. It is the preferred
+delivery form — reviewers can build and run the full workflow with two commands.
+
+| Artifact | Path | Purpose |
+|----------|------|---------|
+| `Dockerfile` | `docker/Dockerfile` | ROCm 7.2.1 base + Genesis + LeRobot + project |
+| `docker-compose.yml` | `docker/docker-compose.yml` | AMD GPU passthrough (`/dev/kfd`, `/dev/dri`) |
+| `entrypoint.sh` | `docker/entrypoint.sh` | Auto-downloads model weights, then runs command |
+| `download_models.py` | `color_sort/download_models.py` | SmolVLA base + Qwen3-VL-8B weight fetch |
+| `.dockerignore` | `.dockerignore` | Lean build context (no weights/datasets/outputs) |
+| `requirements.txt` | `requirements.txt` | Single-source dependency manifest |
+| `docker/README.md` | `docker/README.md` | Build/run instructions + offline mode |
+
+**Build & run:**
+```bash
+# On a host with Docker + an exposed AMD GPU (/dev/kfd, /dev/dri)
+cd docker
+docker compose build
+docker compose run --rm robopilot python sk_grasp_demo.py --pick red_cube
+docker compose run --rm robopilot python eval_policy.py \
+  --policy-path ../outputs/train/smolvla_train_ycb5/checkpoints/010000/pretrained_model \
+  --repo-id color_sort/train_ycb5 --episodes 3 --qwen-plan
+```
+
+The base image `rocm/dev-ubuntu-24.04:7.2.1` carries the full ROCm stack and
+PyTorch-ROCm wheels. The entrypoint auto-fetches the SmolVLA base (HuggingFace)
+and Qwen3-VL-8B (ModelScope) weights on first run, or reads them from a mounted
+volume in offline mode.
+
+### 6.3 Trained model (SmolVLA-450M fine-tune)
 - Checkpoints: `outputs/train/smolvla_train_ycb5/checkpoints/{005000,010000}`
 
-### 6.3 Closed-loop demo video (AMD GPU)
+### 6.4 Closed-loop demo video (AMD GPU)
 - `outputs/demo_closed_loop.mp4` — **3.9 minutes**, 960×544, 12 episodes
 - Demonstrates the full workflow on AMD GPU: Qwen3-VL perceives object colors → SmolVLA executes pick-place → cycle through banana (yellow) / plum (purple) / red_cube (red)
 
-### 6.4 Evaluation results
+### 6.5 Evaluation results
 - `outputs/eval_results/train_ycb5/010000.json` — per-object success rates
-- See Section 6.5 below.
+- See Section 6.6 below.
 
-### 6.5 Final evaluation summary
+### 6.6 Final evaluation summary
 | Version | Training objects | Success rate |
 |---------|------------------|--------------|
 | v6 (geometric primitives) | cube/cylinder | 50% |

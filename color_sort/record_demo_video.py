@@ -43,6 +43,38 @@ def _render_video_frame(cam, wh: tuple[int, int]) -> np.ndarray:
     return np.ascontiguousarray(img, dtype=np.uint8)
 
 
+def _put_text(img, text, pos, scale=0.7, color=(255, 255, 255), bg=(0, 0, 0), thickness=2):
+    """Draw text with a background bar for readability."""
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    (tw, th), base = cv2.getTextSize(text, font, scale, thickness)
+    x, y = pos
+    cv2.rectangle(img, (x - 4, y - th - 6), (x + tw + 4, y + 6), bg, -1)
+    cv2.putText(img, text, (x, y), font, scale, color, thickness, cv2.LINE_AA)
+    return img
+
+
+def _overlay_title(img, title, subtitle=""):
+    """Top banner with project title + subtitle."""
+    img = _put_text(img, title, (20, 40), scale=0.9, color=(255, 255, 255), bg=(20, 20, 40))
+    if subtitle:
+        img = _put_text(img, subtitle, (20, 70), scale=0.6, color=(200, 220, 255), bg=(20, 20, 40))
+    return img
+
+
+def _overlay_cmd(img, cmd):
+    """Bottom-left terminal-style command line."""
+    img = _put_text(img, f"$ {cmd}", (20, img.shape[0] - 30), scale=0.6,
+                    color=(120, 255, 120), bg=(20, 40, 20), thickness=2)
+    return img
+
+
+def _overlay_status(img, status, color):
+    """Bottom-right status badge (PLANNING / EXECUTING / SUCCESS / FAIL)."""
+    img = _put_text(img, status, (img.shape[1] - 260, img.shape[0] - 30), scale=0.7,
+                    color=color, bg=(40, 20, 20))
+    return img
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Record closed-loop demo video.")
     parser.add_argument("--policy-path", required=True)
@@ -85,11 +117,26 @@ def main() -> None:
     pick_rng = np.random.default_rng(args.seed)
     pick_pool = list(ycb_names)
     print(f"[demo] recording {args.episodes} closed-loop episodes -> {out_path}")
+
+    def _frame_with_overlay(status, color, cmd):
+        frame = _render_video_frame(bundle.video_cam, video_wh)
+        frame = _overlay_title(frame, "RoboPilot YCB Color Sorting",
+                               "SmolVLA + Qwen3-VL on AMD Radeon (ROCm)")
+        frame = _overlay_cmd(frame, cmd)
+        frame = _overlay_status(frame, status, color)
+        return frame
+
+    def _write_frames(n):
+        for _ in range(n):
+            writer.append_data(_frame_with_overlay(status, color, cmd))
+
     for ep in range(args.episodes):
         episode_seed = args.seed + ep
         # Qwen3-VL planning: perceive scene, choose target object. With --rotate,
         # cycle through the pool so the demo covers every object.
         pick_object = None
+        cmd = "python eval_policy.py --qwen-plan --episodes 20"
+        status, color = "PLANNING", (255, 220, 100)
         if not args.rotate and qwen_planner is not None:
             frame = _to_np(bundle.world_cam.render(rgb=True)[0]).astype(np.uint8)
             plan = qwen_planner.plan(frame, "pick the object into its matching colored bin")
@@ -104,22 +151,28 @@ def main() -> None:
         task = TaskSpec(pick_object=pick_object, place_target=pick_color)
         task_text = task_description(pick_object, pick_color)
         print(f"[demo] ep {ep:02d}: Qwen3-VL picked {pick_object} -> place {pick_color}")
+        cmd = f"pick {pick_object} -> {pick_color}_bin"
 
         randomizer.reset(seed=episode_seed)
         pb.reset()
+        # Brief planning banner before the arm moves.
+        status, color = "PLANNING: " + pick_object, (255, 220, 100)
+        _write_frames(int(1.5 * args.fps))
+        # Executing the pick-place.
+        status, color = "EXECUTING", (120, 200, 255)
         max_frames = int(round(args.max_seconds * pb.fps))
         for _ in range(max_frames):
             obs = build_observation(bundle, pb)
             action = pb.select_action(obs, task_text)
             apply_action(bundle, action, 1)
-            # Record third-person frame.
-            frame = _render_video_frame(bundle.video_cam, video_wh)
-            writer.append_data(frame)
+            writer.append_data(_frame_with_overlay(status, color, cmd))
             if check_success(bundle, task):
-                # Keep a few settle frames, then move on.
-                for _ in range(int(0.5 * pb.fps)):
-                    writer.append_data(_render_video_frame(bundle.video_cam, video_wh))
+                status, color = "SUCCESS", (120, 255, 120)
+                _write_frames(int(1.0 * args.fps))
                 break
+        else:
+            status, color = "FAIL", (255, 120, 120)
+            _write_frames(int(1.0 * args.fps))
 
     writer.close()
     print(f"[demo] done -> {out_path}")
