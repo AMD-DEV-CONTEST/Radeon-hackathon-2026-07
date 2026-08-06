@@ -1,0 +1,27 @@
+# Contact-gate ablation. Geometry-assisted grasp latching remains enabled, but
+# neither the environment nor controller requires dual-finger evidence.
+seed: 777
+device: cuda
+episodes: 20
+residual_scale: 0.005
+checkpoint: checkpoints/visual_residual_ppo/stage34_action_robust.pt
+results_path: results/evaluation_visual_no_contact_gate.json
+log_dir: logs/evaluate_visual_no_contact_gate
+task_config: configs/collect_expert_visual_smoke.yaml
+task_overrides:
+  require_dual_finger_contact_for_assist: false
+expert_overrides:
+  min_dual_finger_contact_steps: 0
+calibration: checkpoints/color_servo/calibration.json
+grasp_offset_calibration: checkpoints/color_servo/grasp_offset.json
+visual_servo:
+  object_ema: 0.25
+  table_height: 0.04
+  relocalize_distance_m: 0.05
+  close_timeout_steps: 24
+  max_recoveries: 2
+  post_release_verify_steps: 4
+  min_consecutive_dual_finger_steps: 0
+  min_contact_force: 0.0
+  unverified_lift_grace_steps: 0
+  require_contact_verification: false
