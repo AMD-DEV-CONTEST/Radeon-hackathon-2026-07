@@ -314,10 +314,40 @@ pip install -r requirements.txt
 
 The validated environment used for the included metrics was:
 
-- Genesis 1.3.1
-- PyTorch 2.9.1 ROCm build
-- HIP 7.2
-- AMD Radeon Graphics
+| Component | Validated version |
+| --- | --- |
+| OS | Ubuntu 24.04 container environment |
+| Python | 3.12 |
+| ROCm | 7.2.1 |
+| PyTorch | 2.9.1 + ROCm 7.2.1 |
+| Triton | 3.5.1 + ROCm 7.2.1 |
+| Genesis | 1.3.1 |
+| GPU | AMD Radeon Graphics |
+
+Check AMD GPU and ROCm first:
+
+```bash
+rocm-smi
+# or
+amd-smi
+```
+
+On Radeon Cloud, check whether the image provides prebuilt ROCm PyTorch wheels:
+
+```bash
+ls -lh /torch-*.whl /triton-*.whl
+```
+
+If those wheel files exist, prefer installing them because they are built for
+the current Radeon Cloud image. The filenames below match the validated
+environment. If the platform filenames differ, replace them with the actual
+files printed by `ls -lh /torch-*.whl /triton-*.whl`.
+
+```bash
+python -m pip install \
+  /triton-3.5.1+rocm7.2.1.gita272dfa8-cp312-cp312-linux_x86_64.whl \
+  /torch-2.9.1+rocm7.2.1.lw.gitff65f5bc-cp312-cp312-linux_x86_64.whl
+```
 
 Verify the runtime before running the demo:
 
@@ -331,11 +361,42 @@ print("hip:", torch.version.hip)
 print("gpu_available:", torch.cuda.is_available())
 print("gpu:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "none")
 print("genesis:", getattr(gs, "__version__", "unknown"))
+
+if torch.cuda.is_available():
+    x = torch.randn(1024, 1024, device="cuda")
+    y = x @ x
+    print("ROCm matrix multiplication:", y.shape, y.device)
 PY
 ```
 
 Expected: `torch.version.hip` is not `None`, `gpu_available` is `True`, and
-Genesis imports successfully.
+Genesis imports successfully. ROCm PyTorch still uses the `torch.cuda` and
+`cuda:0` API names, but it runs on AMD ROCm/HIP underneath.
+
+Genesis AMD GPU smoke test:
+
+```bash
+python - <<'PY'
+import genesis as gs
+
+backend = gs.amdgpu if hasattr(gs, "amdgpu") else gs.gpu
+gs.init(backend=backend)
+
+scene = gs.Scene(show_viewer=False)
+scene.add_entity(gs.morphs.Plane())
+scene.add_entity(gs.morphs.Box(size=(0.1, 0.1, 0.1), pos=(0.0, 0.0, 0.2)))
+scene.build()
+
+for _ in range(20):
+    scene.step()
+
+print("Genesis AMD GPU smoke test: OK")
+PY
+```
+
+Expected logs should include an AMD GPU backend such as `gs.amdgpu` and
+`Genesis AMD GPU smoke test: OK`. The first Genesis scene build may be slower
+because kernels are compiled and cached.
 
 ### Run / 运行命令
 
@@ -460,6 +521,20 @@ If `import torch` fails, install the ROCm PyTorch package that matches the cloud
 server ROCm version from the official PyTorch installation selector, then rerun
 `pip install -r requirements.txt`.
 
+On Radeon Cloud, the preferred installation path is:
+
+```bash
+ls -lh /torch-*.whl /triton-*.whl
+python -m pip install \
+  /triton-3.5.1+rocm7.2.1.gita272dfa8-cp312-cp312-linux_x86_64.whl \
+  /torch-2.9.1+rocm7.2.1.lw.gitff65f5bc-cp312-cp312-linux_x86_64.whl
+python -m pip install -r requirements.txt
+```
+
+If the wheel filenames differ, use the actual filenames shown by `ls`.
+Installing Genesis may take several minutes because it includes rendering,
+mesh, and VTK-related dependencies.
+
 Check the environment:
 
 ```bash
@@ -472,6 +547,32 @@ print("hip:", torch.version.hip)
 print("gpu_available:", torch.cuda.is_available())
 print("gpu:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "none")
 print("genesis:", getattr(gs, "__version__", "unknown"))
+
+if torch.cuda.is_available():
+    x = torch.randn(1024, 1024, device="cuda")
+    y = x @ x
+    print("ROCm matrix multiplication:", y.shape, y.device)
+PY
+```
+
+Run a Genesis AMD GPU smoke test:
+
+```bash
+python - <<'PY'
+import genesis as gs
+
+backend = gs.amdgpu if hasattr(gs, "amdgpu") else gs.gpu
+gs.init(backend=backend)
+
+scene = gs.Scene(show_viewer=False)
+scene.add_entity(gs.morphs.Plane())
+scene.add_entity(gs.morphs.Box(size=(0.1, 0.1, 0.1), pos=(0.0, 0.0, 0.2)))
+scene.build()
+
+for _ in range(20):
+    scene.step()
+
+print("Genesis AMD GPU smoke test: OK")
 PY
 ```
 
@@ -563,6 +664,37 @@ find results -maxdepth 1 -type f
 
 Commit only lightweight source, docs, configs, and summary JSON files. Do not commit `outputs/` or MP4 files.
 
+Success criteria:
+
+- Environment check shows `torch.version.hip` is not `None`.
+- `torch.cuda.is_available()` is `True`.
+- Genesis initializes with AMD GPU backend, normally `gs.amdgpu`.
+- The smoke test creates an MP4 under `outputs/videos/`.
+- The final pick-and-place run creates `outputs/videos/franka_vision_pick_place_annotated.mp4`.
+- `results/franka_vision_pick_place_summary.json` contains detection, grasp, place, IK latency, runtime, and AMD GPU information.
+- The run finishes without a Python traceback.
+
+Common non-fatal Genesis warnings:
+
+- `Approximating tendon by joint actuator`
+- `Neutral robot position exceeds joint limits`
+- `Constraint solver time constant`
+- Neutral configuration self-collision filtering
+
+If the script still generates the video and JSON metrics, these warnings are
+usually not fatal for this demo.
+
+Troubleshooting:
+
+- If `torch.cuda.is_available()` is `False`, a CPU/CUDA PyTorch wheel may have
+  replaced the ROCm build. Reinstall the Radeon Cloud `/torch-*.whl` and
+  `/triton-*.whl` files or use the official PyTorch ROCm selector.
+- If pip installation appears stuck while installing Genesis, wait and check
+  `ps aux | grep -E '[p]ip|[p]ython'`; Genesis has many rendering and mesh
+  dependencies.
+- Keep the repository under `/workspace/persistent` on Radeon Cloud so files are
+  not lost when the instance is destroyed.
+
 ### Demo Video / 演示视频
 
 Do not commit large MP4 files to GitHub. The final uploaded demo video is:
@@ -622,10 +754,38 @@ pip install -r requirements.txt
 
 本次结果验证环境：
 
-- Genesis 1.3.1
-- PyTorch 2.9.1 ROCm build
-- HIP 7.2
-- AMD Radeon Graphics
+| 组件 | 验证版本 |
+| --- | --- |
+| 操作系统 | Ubuntu 24.04 容器环境 |
+| Python | 3.12 |
+| ROCm | 7.2.1 |
+| PyTorch | 2.9.1 + ROCm 7.2.1 |
+| Triton | 3.5.1 + ROCm 7.2.1 |
+| Genesis | 1.3.1 |
+| GPU | AMD Radeon Graphics |
+
+先检查 AMD GPU 和 ROCm：
+
+```bash
+rocm-smi
+# 或
+amd-smi
+```
+
+在 Radeon Cloud 上，先检查镜像是否提供预编译 ROCm PyTorch wheel：
+
+```bash
+ls -lh /torch-*.whl /triton-*.whl
+```
+
+如果这些 wheel 存在，优先安装镜像自带版本。下面文件名对应本项目验证环境；
+如果平台文件名变化，请用 `ls -lh /torch-*.whl /triton-*.whl` 输出的实际文件名替换。
+
+```bash
+python -m pip install \
+  /triton-3.5.1+rocm7.2.1.gita272dfa8-cp312-cp312-linux_x86_64.whl \
+  /torch-2.9.1+rocm7.2.1.lw.gitff65f5bc-cp312-cp312-linux_x86_64.whl
+```
 
 运行前建议先检查环境：
 
@@ -639,10 +799,38 @@ print("hip:", torch.version.hip)
 print("gpu_available:", torch.cuda.is_available())
 print("gpu:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "none")
 print("genesis:", getattr(gs, "__version__", "unknown"))
+
+if torch.cuda.is_available():
+    x = torch.randn(1024, 1024, device="cuda")
+    y = x @ x
+    print("ROCm matrix multiplication:", y.shape, y.device)
 PY
 ```
 
-预期结果：`torch.version.hip` 不是 `None`，`gpu_available` 为 `True`，且 Genesis 可以成功导入。
+预期结果：`torch.version.hip` 不是 `None`，`gpu_available` 为 `True`，且 Genesis 可以成功导入。ROCm 版 PyTorch 仍然使用 `torch.cuda` 和 `cuda:0` 接口名，但底层实际运行的是 AMD ROCm/HIP。
+
+Genesis AMD GPU 最小测试：
+
+```bash
+python - <<'PY'
+import genesis as gs
+
+backend = gs.amdgpu if hasattr(gs, "amdgpu") else gs.gpu
+gs.init(backend=backend)
+
+scene = gs.Scene(show_viewer=False)
+scene.add_entity(gs.morphs.Plane())
+scene.add_entity(gs.morphs.Box(size=(0.1, 0.1, 0.1), pos=(0.0, 0.0, 0.2)))
+scene.build()
+
+for _ in range(20):
+    scene.step()
+
+print("Genesis AMD GPU smoke test: OK")
+PY
+```
+
+关键日志应包含 AMD GPU backend，例如 `gs.amdgpu`，以及 `Genesis AMD GPU smoke test: OK`。第一次构建 Genesis 场景时会编译并缓存内核，因此可能比后续运行慢。
 
 运行完整 Demo：
 
@@ -759,6 +947,18 @@ pip install -r requirements.txt
 如果 `import torch` 报错，请先通过官方 PyTorch 安装选择器安装与云服务器 ROCm 版本匹配的
 ROCm PyTorch，再重新执行 `pip install -r requirements.txt`。
 
+在 Radeon Cloud 上，推荐安装方式是：
+
+```bash
+ls -lh /torch-*.whl /triton-*.whl
+python -m pip install \
+  /triton-3.5.1+rocm7.2.1.gita272dfa8-cp312-cp312-linux_x86_64.whl \
+  /torch-2.9.1+rocm7.2.1.lw.gitff65f5bc-cp312-cp312-linux_x86_64.whl
+python -m pip install -r requirements.txt
+```
+
+如果 wheel 文件名不同，请使用 `ls` 看到的实际文件名。Genesis 依赖渲染、网格和 VTK 相关包，第一次安装可能需要数分钟。
+
 检查环境：
 
 ```bash
@@ -771,6 +971,32 @@ print("hip:", torch.version.hip)
 print("gpu_available:", torch.cuda.is_available())
 print("gpu:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "none")
 print("genesis:", getattr(gs, "__version__", "unknown"))
+
+if torch.cuda.is_available():
+    x = torch.randn(1024, 1024, device="cuda")
+    y = x @ x
+    print("ROCm matrix multiplication:", y.shape, y.device)
+PY
+```
+
+运行 Genesis AMD GPU 最小测试：
+
+```bash
+python - <<'PY'
+import genesis as gs
+
+backend = gs.amdgpu if hasattr(gs, "amdgpu") else gs.gpu
+gs.init(backend=backend)
+
+scene = gs.Scene(show_viewer=False)
+scene.add_entity(gs.morphs.Plane())
+scene.add_entity(gs.morphs.Box(size=(0.1, 0.1, 0.1), pos=(0.0, 0.0, 0.2)))
+scene.build()
+
+for _ in range(20):
+    scene.step()
+
+print("Genesis AMD GPU smoke test: OK")
 PY
 ```
 
@@ -861,3 +1087,28 @@ find results -maxdepth 1 -type f
 ```
 
 提交时只提交源码、配置、文档和 `results/` 下的轻量 summary JSON。不要提交 `outputs/` 目录和 MP4 大文件。
+
+成功标准：
+
+- 环境检查显示 `torch.version.hip` 不是 `None`。
+- `torch.cuda.is_available()` 返回 `True`。
+- Genesis 使用 AMD GPU backend 初始化，通常为 `gs.amdgpu`。
+- smoke test 成功在 `outputs/videos/` 下生成 MP4。
+- 最终 pick-and-place 运行生成 `outputs/videos/franka_vision_pick_place_annotated.mp4`。
+- `results/franka_vision_pick_place_summary.json` 包含检测、抓取、放置、IK 延迟、运行时间和 AMD GPU 信息。
+- 运行结束时没有 Python traceback。
+
+Genesis 可能输出以下非致命警告：
+
+- `Approximating tendon by joint actuator`
+- `Neutral robot position exceeds joint limits`
+- `Constraint solver time constant`
+- neutral configuration self-collision filtering
+
+如果程序仍然成功生成视频和 JSON 指标，这些通常不是本 Demo 的致命错误。
+
+常见问题：
+
+- 如果 `torch.cuda.is_available()` 返回 `False`，通常是 CPU/CUDA 版 PyTorch 覆盖了 ROCm 版。请重新安装 Radeon Cloud 的 `/torch-*.whl` 和 `/triton-*.whl`，或使用官方 PyTorch ROCm selector。
+- 如果安装 Genesis 时长时间停在 `Installing collected packages`，可以用 `ps aux | grep -E '[p]ip|[p]ython'` 检查；只要 pip 进程仍在，通常继续等待即可。
+- 在 Radeon Cloud 上请把仓库放在 `/workspace/persistent`，避免实例销毁后文件丢失。
