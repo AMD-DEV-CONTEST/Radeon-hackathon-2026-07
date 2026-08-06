@@ -6,6 +6,10 @@ LifePreview is a Track 1 multimodal content creation tool adapted for an AMD Rad
 
 Chinese documentation: [README.zh-CN.md](README.zh-CN.md)
 
+## Submission materials
+
+- [English project presentation deck](deck/LifePreview_Project_Deck_EN.pdf) - a 10-page PDF deck for Track 1 covering the user problem, product model, current results, core innovation, reusable AI generation pipeline, AMD Radeon/ROCm compute foundation, productization roadmap, and project vision. The PDF export preserves the presentation layout for direct review on GitHub.
+
 ## Competition workflow
 
 1. The English LifePreview UI sends one `POST /api/video-jobs` after the user clicks **Start generation**.
