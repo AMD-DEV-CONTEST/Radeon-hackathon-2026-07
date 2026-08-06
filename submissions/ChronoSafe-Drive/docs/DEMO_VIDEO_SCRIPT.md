@@ -1,7 +1,11 @@
 # ChronoSafe-Drive Demo Video Script
 
-Target duration: 3 minutes 40 seconds  
-Language: English narration and English on-screen text only  
+Target duration: 3 minutes 00 seconds; do not exceed 3 minutes
+
+Language: English subtitles and English on-screen text only
+
+Audio: narration is optional; the subtitle-only version is acceptable
+
 Format: 1920 x 1080, 30 fps, H.264 MP4
 
 ## Production roles
@@ -24,7 +28,7 @@ Format: 1920 x 1080, 30 fps, H.264 MP4
 
 ## Shot-by-shot script
 
-### 0:00-0:15 - Title and problem
+### 0:00-0:10 - Title and problem
 
 **Visual**
 
@@ -46,7 +50,7 @@ AMD Radeon + ROCm Physical AI
 > become stale or misleading. ChronoSafe-Drive turns these failures into a
 > complete perception-to-control safety loop.
 
-### 0:15-0:40 - Architecture
+### 0:10-0:30 - Architecture
 
 **Visual**
 
@@ -71,7 +75,7 @@ NORMAL -> DEGRADED -> MINIMAL_RISK
 > that prediction into a conservative upper bound used by an interpretable
 > three-state controller.
 
-### 0:40-1:05 - Real data and timestamp innovation
+### 0:30-0:50 - Real data and timestamp innovation
 
 **Visual**
 
@@ -96,7 +100,7 @@ Split by complete log_token: 592 / 128 / 130 scenes
 > timestamps. Complete collection logs are kept within one split to prevent
 > adjacent-drive leakage.
 
-### 1:05-1:30 - Actual AMD ROCm workflow
+### 0:50-1:10 - Actual AMD ROCm workflow
 
 **Visual**
 
@@ -119,7 +123,7 @@ python scripts/verify_submission_claims.py
 > verifier checks every public headline number directly against frozen JSON
 > evidence and completes 118 checks without retraining or hidden inputs.
 
-### 1:30-2:05 - Closed-loop evidence replay
+### 1:10-1:40 - Closed-loop evidence replay
 
 **Visual**
 
@@ -145,7 +149,7 @@ No test-seed tuning
 > selected only on two calibration seeds. The controller first reduces speed,
 > then latches the minimal-risk maneuver and brakes to a near-stop.
 
-### 2:05-2:30 - Closed-loop aggregate
+### 1:40-2:00 - Closed-loop aggregate
 
 **Visual**
 
@@ -169,7 +173,7 @@ Final speed: 0.0138 km/h
 > percent, calibrated risk coverage is 99.83 percent, and final speed is about
 > 0.014 kilometers per hour.
 
-### 2:30-2:55 - Robustness result
+### 2:00-2:20 - Robustness result
 
 **Visual**
 
@@ -193,7 +197,7 @@ Spoofed clean: 67.96% -> 95.08%
 > trade-off of less than half a percentage point for much stronger failure
 > robustness.
 
-### 2:55-3:25 - AMD Radeon and ROCm
+### 2:20-2:50 - AMD Radeon and ROCm
 
 **Visual**
 
@@ -217,12 +221,12 @@ AMP/FP32 diagnosis agreement: 100%
 > sequences per second at batch 1024. AMP preserves every diagnostic decision
 > across 8,192 real samples, with risk error below seven ten-thousandths.
 
-### 3:25-3:40 - Closing
+### 2:50-3:00 - Closing
 
 **Visual**
 
 - Return to the safely stopped vehicle.
-- Show the GitHub repository and project title.
+- Show the full GitHub repository link, project title, and team contact.
 
 **On-screen text**
 
@@ -230,6 +234,9 @@ AMP/FP32 diagnosis agreement: 100%
 ChronoSafe-Drive
 Diagnose early. Calibrate risk. Stop safely.
 Open, reproducible, and built on AMD ROCm.
+github.com/boolstruct/Radeon-hackathon-2026-07
+Contact: GitHub @boolstruct
+Research Prototype - Not Road Certified
 ```
 
 **Narration**
@@ -259,3 +266,4 @@ Open, reproducible, and built on AMD ROCm.
 - The video never claims road deployment or safety certification.
 - Numerical claims exactly match committed JSON evidence.
 - Audio peaks below clipping and remains intelligible at normal laptop volume.
+- The last frame shows the GitHub repository and `Contact: GitHub @boolstruct`.

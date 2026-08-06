@@ -2,6 +2,12 @@
 
 **Self-Diagnosis, Risk Calibration, and Minimal-Risk Maneuvers under Multi-Sensor Perception Degradation**
 
+[![Track 3](https://img.shields.io/badge/Track%203-Physical%20AI-b3123f)](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07)
+[![ROCm](https://img.shields.io/badge/ROCm%2FHIP-7.2-1f6feb)](https://rocm.docs.amd.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+## Project Overview
+
 ChronoSafe-Drive is an end-to-end Physical AI safety pipeline for autonomous
 driving on **AMD Radeon GPUs and ROCm**. It diagnoses persistent camera, LiDAR,
 and timing degradation; predicts a calibrated upper bound on driving risk; and
@@ -12,7 +18,7 @@ The final system combines physics-based MetaDrive simulation with public
 nuScenes sensor streams, causal temporal learning, stress-aware conformal risk
 calibration, and a validated-camera-path closed-loop evaluation under Xvfb.
 
-## Team
+## Team Contributions and Collaboration
 
 - **Wang Zhenyu — Team Lead and Primary Developer:** project direction, system
   architecture, data pipeline, model and controller implementation, AMD ROCm
@@ -24,6 +30,10 @@ calibration, and a validated-camera-path closed-loop evaluation under Xvfb.
 
 Except for the demo-video production and research-material coordination roles
 listed above, the remaining project work was completed by Wang Zhenyu.
+The team coordinated through a shared frozen experiment protocol: Wang Zhenyu
+provided validated numerical and visual evidence, Wang Guanyu produced the
+demo from those frozen artifacts, and Han Liuxuan checked the competition,
+technical, and reference materials used in the final submission.
 
 ![AMD ROCm inference benchmark](evidence/rocm_inference_benchmark_seed2026/benchmark.png)
 
@@ -68,6 +78,43 @@ The controller uses a threshold selected only on MetaDrive calibration seeds
 `113` and `127`. The selected MRM threshold (`0.62`) is then frozen before the
 20 external closed-loop test seeds are evaluated. Hysteresis, temporal warm-up,
 and a latched stop state prevent oscillation and premature emergency braking.
+
+## Development Process
+
+### Key technical decisions
+
+- **Factorized temporal diagnosis instead of a flat fault classifier.** Camera,
+  LiDAR, and timing heads preserve the compositional structure of compound
+  degradation and make each diagnosis interpretable.
+- **Causal health features instead of a large end-to-end visual backbone.** The
+  compact 15-dimensional representation supports reproducible sub-millisecond
+  ROCm inference while retaining the temporal evidence required by the safety
+  supervisor.
+- **Stress conformal calibration instead of raw model confidence.** The
+  deployed upper-risk radius is selected from the worst held-out timestamp
+  stress condition rather than from test results.
+- **MetaDrive plus nuScenes instead of simulation alone.** Physics-based control
+  is evaluated in MetaDrive, while public real sensor streams test whether the
+  diagnosis generalizes beyond synthetic observations.
+
+### Difficulties and resolutions
+
+- Timestamp metadata can itself be stale or forged, so training explicitly
+  corrupts missing, drifting, jittered, swapped, and spoofed timestamp inputs.
+- Adjacent nuScenes scenes can leak information across splits, so all scenes
+  sharing one complete `log_token` remain in the same partition.
+- Bypassing MetaDrive camera effects in a display-less environment produced a
+  measurable feature-domain shift. Formal closed-loop evaluation therefore
+  uses Xvfb with the validated, unmodified camera path.
+- ROCm experiments reject silent CPU fallback and record the GPU, HIP, PyTorch,
+  latency, memory, and FP32-versus-AMP numerical evidence.
+
+### Future improvements
+
+Future work will extend the monitor to richer learned perception embeddings,
+more weather and traffic domains, hardware-in-the-loop sensor faults, online
+calibration under gradual domain shift, and real-vehicle safety integration
+under an independently certified control architecture.
 
 ## System architecture
 
@@ -197,7 +244,7 @@ See [`DATASET_CARD.md`](DATASET_CARD.md) and
 [`docs/EXPERIMENT_PROTOCOL.md`](docs/EXPERIMENT_PROTOCOL.md) for provenance,
 licensing constraints, and the pre-registered protocol.
 
-## Reproduce the final evidence
+## Installation and Running
 
 For the complete reviewer workflow, dependency specification, artifact layout,
 expected outputs, and troubleshooting, see
@@ -294,6 +341,22 @@ evidence/                           Trackable summaries, plots, and logs
 docs/                               Protocol, report, demo, and checklist
 tests/                              Timestamp and dataset integrity tests
 ```
+
+## Code Provenance and Originality
+
+ChronoSafe-Drive does not vendor or claim authorship of AMD ROCm, PyTorch,
+MetaDrive, nuScenes, NumPy, OpenCV, or Matplotlib. Their upstream sources,
+licenses, use, and any integration constraints are listed in
+[`docs/THIRD_PARTY_NOTICES.md`](docs/THIRD_PARTY_NOTICES.md) and
+[`DATASET_CARD.md`](DATASET_CARD.md).
+
+The original ChronoSafe-Drive work comprises the persistent and compound fault
+engine, 15-dimensional causal timing-aware features, timestamp-authenticity
+augmentation, factorized GRU and risk head, worst-domain conformal calibration,
+hysteretic minimal-risk controller, leakage-resistant nuScenes conversion and
+split, frozen multi-seed evaluation, renderer-integrity validation, AMD ROCm
+benchmarking, evidence verifier, and the reproducible demo dashboard. No
+third-party project source is copied into this repository.
 
 ## Reproducibility safeguards
 

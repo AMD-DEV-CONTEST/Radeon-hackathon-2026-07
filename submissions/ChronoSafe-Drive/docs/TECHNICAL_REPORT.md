@@ -399,7 +399,7 @@ repository and contains the following deliverables:
 | Frozen protocol | JSON and Markdown | Seeds, splits, calibration policy, and statistical rules |
 | Model artifacts | PyTorch checkpoints with SHA-256 records | Reproduce the selected model without retraining |
 | Quantitative evidence | JSON, CSV, Markdown, and PNG | Machine-readable metrics and reviewer-facing figures |
-| Closed-loop demonstration | Public 3-5 minute video | Show commands or interface actions, execution, mode transitions, and results |
+| Closed-loop demonstration | Public English video no longer than 3 minutes | Show commands or interface actions, execution, mode transitions, and results |
 | Dataset documentation | Markdown and generation scripts | Provenance, licensing constraints, split policy, and regeneration |
 
 The submission excludes raw nuScenes media and other large licensed data. These

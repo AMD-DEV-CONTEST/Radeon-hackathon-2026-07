@@ -5,13 +5,16 @@ URL, command output, or committed machine-readable result.
 
 ## 1. Competition eligibility
 
-- [ ] The final repository is forked from the official competition repository.
-- [ ] The submission is delivered through the required pull-request workflow.
-- [ ] The project is entered in Track 3: Physical AI.
-- [ ] The README explicitly identifies AMD Radeon and ROCm usage.
-- [ ] Training and/or inference evidence is generated on an AMD Radeon GPU.
-- [ ] The selected simulator and all models are open source.
-- [ ] Dataset licenses and terms are documented and respected.
+- [x] The final repository is forked from the official competition repository.
+- [x] The submission is delivered through the required pull-request workflow.
+- [x] The project is entered in Track 3: Physical AI.
+- [x] The README explicitly identifies AMD Radeon and ROCm usage.
+- [x] Training and inference evidence is generated on an AMD Radeon GPU.
+- [x] The selected simulator and all models are open source.
+- [x] Dataset licenses and terms are documented and respected.
+- [x] Wang Zhenyu has separately registered for the AMD AI Developer Program.
+- [ ] Wang Guanyu has separately registered for the AMD AI Developer Program.
+- [ ] Han Liuxuan has separately registered for the AMD AI Developer Program.
 
 ## 2. English-only public materials
 
@@ -19,7 +22,7 @@ URL, command output, or committed machine-readable result.
 - [x] Dataset card is English only.
 - [x] Experiment protocol is English only.
 - [x] Technical report is English only.
-- [x] Demo narration and on-screen script are English only.
+- [x] Demo subtitles and on-screen script are English only.
 - [x] ROCm benchmark plots, tables, and logs are English only.
 - [ ] Final video contains no Chinese interface text or captions.
 - [ ] Pull-request title and description are English only.
@@ -37,8 +40,12 @@ URL, command output, or committed machine-readable result.
 - [x] Direct dependencies are specified in `requirements.txt`.
 - [x] The README and reproducibility guide cover environment setup, execution,
   usage, dependencies, and step-by-step result reproduction.
-- [ ] Reviewers can reproduce the submitted results from the final public repo.
-- [ ] A public 3-5 minute video shows commands or GUI actions, execution, and
+- [x] README contains the five required sections: project overview, development
+  process, code provenance, team contributions, and installation/running.
+- [x] MIT License includes the year and all three team-member names.
+- [x] Reviewers can verify the frozen submitted results from the public repo.
+- [ ] A public video no longer than 3 minutes shows commands or GUI actions,
+  execution, and
   final results.
 - [ ] Optional: a validated Docker image or Dockerfile is provided.
 
@@ -53,7 +60,8 @@ URL, command output, or committed machine-readable result.
 - [x] Standard-versus-robust trade-offs are disclosed.
 - [x] Raw-headless renderer-bypass results are excluded.
 - [x] Official closed-loop results use Xvfb without the raw-headless effect bypass.
-- [ ] Every headline table is cross-checked against its committed JSON file.
+- [x] Every headline table is cross-checked against committed evidence by the
+  118-check submission verifier.
 
 ## 5. AMD Radeon and ROCm evidence
 
@@ -76,24 +84,28 @@ URL, command output, or committed machine-readable result.
 - [x] Premature MRM rate is 0%.
 - [x] Aggregate metrics include accuracy, risk MAE, coverage, delay, braking
   time, final speed, and mode fractions.
-- [ ] Final dashboard video uses an unseen seed from the frozen list.
-- [ ] Video visibly labels fault onset, MRM trigger, and near-stop.
-- [ ] Video states that the threshold was frozen before external testing.
-- [ ] Video includes the 20-seed aggregate rather than a selected run alone.
-- [ ] Video duration is between 3 and 5 minutes.
-- [ ] Video shows the actual command-line or GUI workflow, execution, and output.
+- [x] Recorded dashboard footage uses unseen frozen seed `149`.
+- [x] The final edit plan labels fault onset, MRM trigger, and near-stop.
+- [x] The 3:00 subtitle track states that the threshold was frozen before
+  external testing.
+- [x] The final edit plan includes the 20-seed aggregate rather than a selected
+  run alone.
+- [ ] Exported video duration is no longer than 3 minutes.
+- [x] Recorded footage shows the actual AMD command-line workflow and output.
+- [ ] Final frame shows the GitHub repository and team contact.
 
 ## 7. Repository release quality
 
-- [ ] `python -m pytest -q` passes in the cloud ROCm environment.
-- [ ] All Python files pass syntax compilation.
+- [x] All five unit tests pass in the supplied project environment.
+- [x] All 34 Python files pass syntax validation.
 - [ ] Quick-start commands are re-run from a clean terminal.
-- [ ] No raw nuScenes media is committed.
-- [ ] No cloud credentials, tokens, cookies, or private URLs are committed.
-- [ ] Small selected checkpoints are committed or attached as public artifacts.
-- [ ] Large generated datasets are excluded and have regeneration instructions.
-- [ ] Split manifests and hashes are committed.
-- [ ] Selected evidence is trackable and not excluded by `.gitignore`.
+- [x] No raw nuScenes media is committed.
+- [x] No cloud credentials, tokens, cookies, or private URLs are committed.
+- [x] Small selected checkpoints are committed as public artifacts.
+- [x] Large generated datasets are excluded and have regeneration instructions.
+- [x] Split manifests and hashes are committed.
+- [x] Selected evidence is trackable and not excluded by `.gitignore`.
+- [x] No repository file exceeds 100 MiB.
 - [x] Repository contains an explicit MIT License selected by the owner.
 - [ ] A versioned release/tag identifies the submitted commit.
 
@@ -111,17 +123,17 @@ URL, command output, or committed machine-readable result.
 
 ## 9. Final narrative
 
-- [ ] One-sentence problem statement is understandable without reading code.
-- [ ] Exactly three innovations are emphasized consistently.
-- [ ] The demo connects diagnosis to risk calibration and physical control.
-- [ ] Application value is tied to fail-operational or fail-safe autonomy.
-- [ ] Limitations and non-certification are stated clearly.
-- [ ] Every metric names its test split and sample/run count.
-- [ ] No claim implies that AMP accelerates every batch size.
+- [x] One-sentence problem statement is understandable without reading code.
+- [x] Exactly three innovations are emphasized consistently.
+- [x] The demo connects diagnosis to risk calibration and physical control.
+- [x] Application value is tied to fail-safe autonomy.
+- [x] Limitations and non-certification are stated clearly.
+- [x] Every headline metric names its test split and sample/run count.
+- [x] No claim implies that AMP accelerates every batch size.
 
 ## 10. Final submission record
 
-- [ ] Official GitHub pull-request URL recorded.
+- [x] Official GitHub pull-request URL recorded.
 - [ ] Upstream issue/pull-request URL recorded.
 - [ ] Demo video URL recorded.
 - [ ] Model/checkpoint download URL recorded.
@@ -131,7 +143,7 @@ URL, command output, or committed machine-readable result.
 
 ```text
 Submitted commit:
-Competition PR:
+Competition PR: https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/pull/113
 Upstream contribution:
 Demo video:
 Model artifact:
