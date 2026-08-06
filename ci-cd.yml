@@ -1,0 +1,36 @@
+name: CivicBridge AI CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Test AI Microservice
+        run: |
+          cd ai_engine
+          pip install -r requirements.txt
+          python -m unittest test_ai_engine.py
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Build React Frontend
+        run: |
+          cd frontend
+          npm install
+          npm run build
