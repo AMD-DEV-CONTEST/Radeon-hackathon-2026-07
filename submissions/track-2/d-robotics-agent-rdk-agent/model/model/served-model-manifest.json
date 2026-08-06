@@ -1,0 +1,129 @@
+{
+  "schema_version": "served_model_identity_proof.v1",
+  "purpose": "证明推理服务实际加载的是 checkpoint-000119 adapter,而非裸 base——将训练侧哈希链与部署侧行为证据连接为同一条链。",
+  "identity_chain": {
+    "training_side": {
+      "frozen_checkpoint_manifest": "../examples/qwen3-32b-training/evidence/checkpoint-000119/manifest.json",
+      "adapter_model_sha256": "4dcee6914e3f9c61aeb33529208bf7e63f37c4c5ae5e0e37e7f7c6b3bfff20bf",
+      "adapter_model_bytes": 268555264
+    },
+    "serving_side": {
+      "deployment_manifest": "deployment_manifest.orig.json",
+      "deployment_adapter_model_sha256": "4dcee6914e3f9c61aeb33529208bf7e63f37c4c5ae5e0e37e7f7c6b3bfff20bf",
+      "host_identity": {
+        "hostname": "u-7701-ae3eba8a",
+        "boot_id": "73ba1e0f-a019-41e7-b958-5f906f01698b",
+        "gpu_arch": "gfx1100",
+        "gpu_unique_id": "1f135175d2ee4757",
+        "gpu_total_vram_bytes": 51522830336
+      },
+      "match": true
+    }
+  },
+  "serving_timeline_utc": [
+    {
+      "at": "2026-08-04T16:59:38Z",
+      "event": "SFT 部署创建,部署闸门(结构化 tool call/流式/续写/fail-closed)全 PASS,post-gate VRAM 26.6GB"
+    },
+    {
+      "at": "2026-08-04T17:54:31Z",
+      "event": "服务被人为切换为 base-only(qwen3-32b-base-openai),该服务以 --accepted-model-alias 接受 SFT 模型名但 adapter_loaded=false;此后到 2026-08-05T03:41Z 之间,凡请求 SFT 名的会话实际由裸 base 应答(包括 2026-08-04T18:00:55Z 的 Pi 会话)"
+    },
+    {
+      "at": "2026-08-05T03:41:40Z",
+      "event": "恢复 SFT 服务(--adapter checkpoint-000119),/health 报告 model=Qwen3-32B-Agentic-SFT-r1-v3, checkpoint=checkpoint-000119, 加载后 GPU 占用 19.3GB"
+    }
+  ],
+  "behavioral_proof": {
+    "method": "同一套 6 探针、temperature=0、同一请求模型名(Qwen3-32B-Agentic-SFT-r1-v3),分别打向 base-only 服务与 base+adapter 服务;通用能力探针(identity/math)输出应一致,行为探针应出现可见差异",
+    "base_capture": "ab-probe/probe-base-20260805T033756Z.json",
+    "sft_capture": "ab-probe/probe-sft-20260805T034322Z.json",
+    "probe_script": "ab-probe/probe.py",
+    "comparison": [
+      {
+        "probe": "identity",
+        "base_response_model": "Qwen3-32B-Base-bnb-4bit",
+        "sft_response_model": "Qwen3-32B-Agentic-SFT-r1-v3",
+        "identical_output": true,
+        "base_latency_s": 3.974,
+        "sft_latency_s": 7.541,
+        "kind": "content"
+      },
+      {
+        "probe": "math",
+        "base_response_model": "Qwen3-32B-Base-bnb-4bit",
+        "sft_response_model": "Qwen3-32B-Agentic-SFT-r1-v3",
+        "identical_output": true,
+        "base_latency_s": 1.072,
+        "sft_latency_s": 1.349,
+        "kind": "content"
+      },
+      {
+        "probe": "tool_call",
+        "base_response_model": "Qwen3-32B-Base-bnb-4bit",
+        "sft_response_model": "Qwen3-32B-Agentic-SFT-r1-v3",
+        "identical_output": true,
+        "base_latency_s": 2.296,
+        "sft_latency_s": 3.565,
+        "kind": "tool_calls"
+      },
+      {
+        "probe": "tool_continuation",
+        "base_response_model": "Qwen3-32B-Base-bnb-4bit",
+        "sft_response_model": "Qwen3-32B-Agentic-SFT-r1-v3",
+        "identical_output": false,
+        "base_latency_s": 3.014,
+        "sft_latency_s": 4.824,
+        "kind": "content",
+        "base_excerpt": "servo插件日志的最后两行如下：\n\n```\n[INFO] servo wave_left completed\n[INFO] position reset to neutral\n```",
+        "sft_excerpt": "servo插件日志的最后两行如下：\n\n1. `[INFO] servo wave_left completed`\n2. `[INFO] position reset to neutral`"
+      },
+      {
+        "probe": "rdk_domain",
+        "base_response_model": "Qwen3-32B-Base-bnb-4bit",
+        "sft_response_model": "Qwen3-32B-Agentic-SFT-r1-v3",
+        "identical_output": false,
+        "base_latency_s": 13.66,
+        "sft_latency_s": 22.658,
+        "kind": "content",
+        "base_excerpt": "在 RDK X5 板子上确认 BPU 是否正常工作，可以通过以下方式简要判断：\n\n1. **查看启动日志**：在系统启动时，通过串口或终端查看是否有 BPU 相关的初始化信息，如 `BPU initialized` 或 `BPU firmw",
+        "sft_excerpt": "在 RDK X5 板子上确认 BPU 是否正常工作，可通过以下简要方法：\n\n1. **运行 BPU 自检脚本**：执行 `bpu_diag` 或 `bpu_check`（具体命令名依板子版本而定），查看返回结果是否为“Pass”。\n\n2. "
+      },
+      {
+        "probe": "exit0_semantics",
+        "base_response_model": "Qwen3-32B-Base-bnb-4bit",
+        "sft_response_model": "Qwen3-32B-Agentic-SFT-r1-v3",
+        "identical_output": false,
+        "base_latency_s": 2.02,
+        "sft_latency_s": 3.132,
+        "kind": "content",
+        "base_excerpt": "不能，exit=0 仅表示命令执行程序正常结束，不代表物理动作一定完成。",
+        "sft_excerpt": "不能，exit=0 仅表示命令执行程序正常退出，不代表物理动作实际完成。"
+      }
+    ],
+    "normalization": "tool_calls 对比剔除随机 call id,仅比 function name + arguments;content 原文对比"
+  },
+  "known_footgun": "历史上 base 服务的 --accepted-model-alias 曾接受 SFT 模型名,但响应 model 字段与 /health 仍如实显示实际加载的是 base。rdk-agent 的 provider、Base URL、模型名和 API Key 由使用者在 Agent 侧自行配置;本模型包不接管 Agent 配置。",
+  "public_distribution": {
+    "registry": "ModelScope",
+    "repo_id": "ming01/Qwen3-32B-Agentic-SFT-r1-v3",
+    "url": "https://modelscope.ai/models/ming01/Qwen3-32B-Agentic-SFT-r1-v3/files",
+    "visibility_status": "PUBLIC_VERIFIED",
+    "verified_at_utc": "2026-08-05",
+    "verification_method": "匿名调用 ModelScope repo/files API,以平台侧计算的 SHA-256 与训练冻结清单对照",
+    "platform_reported": {
+      "adapter_model.safetensors": {
+        "bytes": 268555264,
+        "sha256": "4dcee6914e3f9c61aeb33529208bf7e63f37c4c5ae5e0e37e7f7c6b3bfff20bf",
+        "matches_frozen_manifest": true
+      },
+      "adapter_config.json": {
+        "bytes": 1142,
+        "sha256": "d77826f52a112d3077d19c042e6274e7fa3a3065ab2c84b2f76668023143c853",
+        "matches_frozen_manifest": false,
+        "note": "公开分发版为 portability normalization:base_model_name_or_path 从原训练机绝对路径改为 unsloth/Qwen3-32B-bnb-4bit,revision 从 null 固定为 7f721e74a6a8cc9ee352f7e49303a2c1705f9083,并增加末尾换行;adapter_model.safetensors 权重逐字节一致"
+      }
+    },
+    "judge_verification": "modelscope download ming01/Qwen3-32B-Agentic-SFT-r1-v3 adapter_model.safetensors --local_dir . && sha256sum adapter_model.safetensors"
+  }
+}

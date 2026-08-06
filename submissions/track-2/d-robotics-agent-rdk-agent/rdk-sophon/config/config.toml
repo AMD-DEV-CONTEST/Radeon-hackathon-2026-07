@@ -1,0 +1,66 @@
+# rdk-sophon probe-daemon 默认配置文件。
+# 部署路径：板端 /etc/probe-daemon/config.toml（见 deploy/docs/deploy.md）。
+# 完整字段契约见 docs/contracts/cli/config.md。
+
+# ───────────────────────── 日志 ─────────────────────────
+[log]
+# 日志级别：trace/debug/info/warn/error。可被 RUST_LOG 环境变量覆盖。
+level = "info"
+# 审计/滚动日志目录。空 = 仅输出到 stderr（systemd 下由 journald 收集，
+# 用 journalctl -u probe-daemon 看）。设为目录路径则额外写滚动文件。
+dir = ""
+
+# ───────────────────────── TCP 传输 ─────────────────────────
+[tcp]
+# 是否启用 TCP 监听。开发机/云端经网络/USB 网卡/SSH 隧道连板子时需要。
+enabled = true
+# 监听地址。0.0.0.0 = 所有网卡；生产建议绑具体内网 IP 缩小暴露面。
+# 可被 CLI --tcp-bind 覆盖。当前明文，生产绑内网或前置 SSH 隧道/mTLS（待补）。
+bind = "0.0.0.0:7777"
+
+# ───────────────────────── Unix socket 传输 ─────────────────────────
+[unix]
+# 是否启用 Unix socket。本地 CLI（sophonctl）和板端进程间通信用。
+enabled = true
+# socket 路径。用 systemd RuntimeDirectory(probe-daemon) 提供的可写子目录
+# /run/probe-daemon/，直接放 /run/ 根下会因 ProtectSystem=strict 只读而绑定失败。
+# 可被 CLI --unix-path 覆盖。权限 0600 由 systemd 控制。
+path = "/run/probe-daemon/probe.sock"
+
+# ───────────────────────── 串口传输（可选） ─────────────────────────
+# 整个 section 省略则不启用。启用需同时给 path 和 baud。
+# [serial]
+# path = "/dev/ttyS1"   # 串口设备路径
+# baud = 115200         # 波特率，默认 8N1，读超时 250ms
+
+# ───────────────────────── 遥测推送 ─────────────────────────
+[telemetry]
+# 周期推送 telemetry 的间隔秒。0 = 关闭推送（仅按需拉取，get_state 仍可用）。
+# 守护进程每 N 秒向所有已连接客户端推送一条 telemetry notification（无 id）。
+interval_secs = 5
+
+# ───────────────────────── shell 执行 ─────────────────────────
+[shell]
+# 危险：启用后允许已授权客户端在板子上执行任意 shell 命令。
+# 生产必须保持 false（默认即 false）。仅在可信内网调试时临时启用，
+# 或用 CLI --shell-enabled 启动（重启不带该参数即关闭）。
+enabled = false
+# 单条命令超时秒。超时杀子进程，返回 Timeout 错误（-32003）。
+timeout_secs = 30
+# 额外 deny 子串，叠加在内置 deny 列表之上，只能收紧不能削弱。
+# 内置 deny（不可削弱）：rm -rf /、mkfs、dd if=/dev/zero of=/dev/、:(){ :|:&
+deny_patterns = []
+
+# ───────────────────────── 动态控制插件 ─────────────────────────
+# 插件目录内每个 <id>/plugin.toml 都是一项可由 sophonctl <id> ... 调用的能力。
+# 默认关闭；启用前确保目录、manifest 与入口程序都由 root 管理且普通用户不可写。
+[plugins]
+enabled = false
+dir = "/opt/sophon/plugins"
+
+# ───────────────────────── 阈值告警 ─────────────────────────
+[alerts]
+# 温度告警：任一 thermal zone 的温度（°C）超过此值即发 alert notification。
+temp_c = 75.0
+# 磁盘告警：任一真实文件系统的使用率（%）超过此值即发 alert notification。
+disk_usage_pct = 90.0

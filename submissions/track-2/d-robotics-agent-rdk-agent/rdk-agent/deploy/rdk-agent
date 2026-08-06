@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_PATH="$0"
+while [ -L "$SCRIPT_PATH" ]; do
+  LINK_DIR="$(CDPATH= cd -- "$(dirname -- "$SCRIPT_PATH")" && pwd)"
+  LINK_TARGET="$(readlink "$SCRIPT_PATH")"
+  case "$LINK_TARGET" in
+    /*) SCRIPT_PATH="$LINK_TARGET" ;;
+    *) SCRIPT_PATH="$LINK_DIR/$LINK_TARGET" ;;
+  esac
+done
+
+LAUNCHER_DIR="$(CDPATH= cd -- "$(dirname -- "$SCRIPT_PATH")" && pwd)"
+INSTALL_DIR="$(CDPATH= cd -- "$LAUNCHER_DIR/.." && pwd)"
+USER_HOME="${HOME:?无法确定用户家目录}"
+DEFAULT_CONFIG_DIR="${XDG_CONFIG_HOME:-$USER_HOME/.config}/rdk-agent"
+if [ -z "${RDK_AGENT_CONFIG_DIR:-}" ] && [ -f "$INSTALL_DIR/config-path" ]; then
+  IFS= read -r DEFAULT_CONFIG_DIR < "$INSTALL_DIR/config-path"
+fi
+export RDK_AGENT_CONFIG_DIR="${RDK_AGENT_CONFIG_DIR:-$DEFAULT_CONFIG_DIR}"
+
+exec node --experimental-strip-types "$INSTALL_DIR/src/api/tui/main.ts" "$@"

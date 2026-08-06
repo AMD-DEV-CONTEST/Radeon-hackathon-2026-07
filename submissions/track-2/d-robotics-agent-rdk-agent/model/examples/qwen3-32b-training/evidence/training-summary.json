@@ -1,0 +1,94 @@
+{
+  "schema_version": "qwen3_32b_agentic_training_summary.v1",
+  "status": "COMPLETED",
+  "run_id": "qwen3-32b-agentic-sft-r1-v3-cachebounded",
+  "purpose": "Compact judge-facing summary of the completed Radeon training run.",
+  "full_evidence_archive": {
+    "git_tag": "model-evidence-full-20260806",
+    "commit": "c079855dabb11e50f7026b9da60e5b162e8f04d2",
+    "url": "https://github.com/wm19999/rdk-sophon/tree/model-evidence-full-20260806/model/examples/qwen3-32b-training",
+    "note": "The archive contains the original plan, preflight gates, launch bindings, controller reports, checkpoint-000010, and full run manifest removed from the judge-first main tree."
+  },
+  "model": {
+    "repository": "unsloth/Qwen3-32B-bnb-4bit",
+    "revision": "7f721e74a6a8cc9ee352f7e49303a2c1705f9083",
+    "quantization": "4-bit NF4 with double quantization",
+    "compute_dtype": "bfloat16",
+    "snapshot_verification": "../artifacts/model-acquisition/qwen3-32b-bnb-7f721e74-verification.json",
+    "snapshot_verification_sha256": "5f8b675142ee4d2e6a968e756c1da6546f59dcfd34ed997ef23d95211feb7b0d"
+  },
+  "dataset": {
+    "train_rows": 946,
+    "validation_rows": 116,
+    "test_rows": 113,
+    "train_sha256": "707435c094badb91411ec09f88a473a158c5114c5cad1bc5cf151c047f4b9a58",
+    "validation_sha256": "d4bbc65d196e0e073e75f275dd06b21727259c333046412f18a14b1ee1db666f",
+    "test_sha256": "d1e1856b1185508a6f2e82af5797612edd90bfa83b595ceaf089f2ed9205e283",
+    "public_train_validation": "https://modelscope.ai/datasets/ming01/RDK-Agentic-SFT-Sanitized-v1/summary",
+    "public_test": "../../../data/releases/rdk-sft-v1-20260803/agentic/test.jsonl"
+  },
+  "training": {
+    "method": "LoRA-SFT on a 4-bit base",
+    "loss": "assistant-only shifted cross entropy",
+    "epochs": 1,
+    "optimizer": "torch.optim.AdamW",
+    "learning_rate": 0.0001,
+    "weight_decay": 0.0,
+    "max_gradient_norm": 1.0,
+    "optimizer_steps": 119,
+    "training_micro_windows": 948,
+    "optimizer_window_rows": "7 or 8 frozen samples with token-weighted accumulation",
+    "max_window_tokens": 8192,
+    "lora": {
+      "rank": 8,
+      "alpha": 16,
+      "dropout": 0.0,
+      "trainable_parameters": 67108864,
+      "trainable_tensors": 896,
+      "trainable_signature_sha256": "2aa69774725535669dec48b0e86b2ded018acbb7f01ccf3472cfd02f8cc2ae8d",
+      "trainable_signature_hash_input": "jq -cS output plus LF"
+    }
+  },
+  "validation": {
+    "metric": "token-weighted mean cross entropy over 116 tasks",
+    "curve": [
+      {"optimizer_step": 0, "mean_cross_entropy": 1.151614235966339},
+      {"optimizer_step": 30, "mean_cross_entropy": 0.7364231563306486},
+      {"optimizer_step": 60, "mean_cross_entropy": 0.6600291738520074},
+      {"optimizer_step": 90, "mean_cross_entropy": 0.6225836092090548},
+      {"optimizer_step": 119, "mean_cross_entropy": 0.5936630333639499}
+    ],
+    "evidence_directory": "validations"
+  },
+  "hardware": {
+    "gpu": "AMD Radeon gfx1100",
+    "vram_total_bytes": 51522830336,
+    "phase2_torch_max_allocated_bytes": 37633069056,
+    "phase2_torch_max_reserved_bytes": 38593888256,
+    "rocm": "7.2.1"
+  },
+  "runtime": {
+    "python": "3.12.3",
+    "torch": "2.9.1+rocm7.2.0.git7e1940d4",
+    "torch_hip": "7.2.26015-fc0010cf6a",
+    "transformers": "5.5.0",
+    "peft": "0.19.1",
+    "bitsandbytes": "0.50.0",
+    "environment_manifest": "../environment/proven-runtime.json"
+  },
+  "final_checkpoint": {
+    "optimizer_step": 119,
+    "manifest": "checkpoint-000119/manifest.json",
+    "manifest_status": "COMPLETE",
+    "adapter_model_bytes": 268555264,
+    "adapter_model_sha256": "4dcee6914e3f9c61aeb33529208bf7e63f37c4c5ae5e0e37e7f7c6b3bfff20bf",
+    "adapter_tensor_signature_sha256": "73f155798517c0df20af0298aa70f143825d577c91c31e2af634d211a3365f16",
+    "public_adapter": "https://modelscope.ai/models/ming01/Qwen3-32B-Agentic-SFT-r1-v3/summary"
+  },
+  "archived_integrity_anchors": {
+    "trainer_sha256": "44978c4a386f638688a3ffdea30cf7595565489c1249a7d380343b26638a8edd",
+    "original_plan_sha256": "39d6ae20fcb566d6544049e2ea263c5bc64fe8ecd349c71b4a8ec58721134f25",
+    "loss_plan_sha256": "7ef449cb41f37f5d32d4562c336aba4e3cb8f01b506850a93d34bccef6260afb",
+    "run_manifest_sha256": "f328ccbe319ff84ee724794225ab92744b3a663692d6fb9ba37848c4617c8bf0"
+  }
+}

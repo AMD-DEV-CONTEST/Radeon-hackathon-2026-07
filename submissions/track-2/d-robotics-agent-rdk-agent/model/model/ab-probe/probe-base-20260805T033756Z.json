@@ -1,0 +1,313 @@
+{
+  "captured_at_utc": "2026-08-05T03:37:56Z",
+  "health": {
+    "status": "ok",
+    "model": "Qwen3-32B-Base-bnb-4bit",
+    "revision": "Qwen3-32B-bnb-4bit-7f721e74",
+    "adapter_loaded": false,
+    "accepted_model_aliases": [
+      "Qwen3-32B-Agentic-SFT-r1-v3",
+      "Qwen3-32B-Base-bnb-4bit"
+    ]
+  },
+  "requested_model": "Qwen3-32B-Agentic-SFT-r1-v3",
+  "probes": [
+    {
+      "id": "identity",
+      "latency_s": 3.974,
+      "request": {
+        "model": "Qwen3-32B-Agentic-SFT-r1-v3",
+        "temperature": 0,
+        "max_tokens": 300,
+        "messages": [
+          {
+            "role": "user",
+            "content": "你是谁？用一句话介绍你的身份和用途。"
+          }
+        ]
+      },
+      "response": {
+        "id": "chatcmpl-6a669bc4b04047528be3b02b7c68416a",
+        "object": "chat.completion",
+        "created": 1785901080,
+        "model": "Qwen3-32B-Base-bnb-4bit",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "我是通义千问，是阿里巴巴集团旗下的通义实验室自主研发的超大规模语言模型，我能够回答问题、创作文字，如写故事、公文、邮件、剧本等，还能进行逻辑推理、编程，甚至表达观点和玩游戏。"
+            },
+            "finish_reason": "stop",
+            "logprobs": null
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 23,
+          "completion_tokens": 54,
+          "total_tokens": 77
+        },
+        "system_fingerprint": "base-338aed015d36"
+      }
+    },
+    {
+      "id": "math",
+      "latency_s": 1.072,
+      "request": {
+        "model": "Qwen3-32B-Agentic-SFT-r1-v3",
+        "temperature": 0,
+        "max_tokens": 300,
+        "messages": [
+          {
+            "role": "user",
+            "content": "137*24等于多少？只回答数字。"
+          }
+        ]
+      },
+      "response": {
+        "id": "chatcmpl-154d5e09cc2942e398868a8454250076",
+        "object": "chat.completion",
+        "created": 1785901081,
+        "model": "Qwen3-32B-Base-bnb-4bit",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "3288"
+            },
+            "finish_reason": "stop",
+            "logprobs": null
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 25,
+          "completion_tokens": 5,
+          "total_tokens": 30
+        },
+        "system_fingerprint": "base-338aed015d36"
+      }
+    },
+    {
+      "id": "tool_call",
+      "latency_s": 2.296,
+      "request": {
+        "model": "Qwen3-32B-Agentic-SFT-r1-v3",
+        "temperature": 0,
+        "max_tokens": 300,
+        "messages": [
+          {
+            "role": "user",
+            "content": "查看板上 /app/pydev_demo 目录下有哪些文件"
+          }
+        ],
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "bash",
+              "description": "在RDK板上执行命令并返回stdout/stderr/exit code",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "response": {
+        "id": "chatcmpl-f7c1cb29aa024d4fa4f36ea098a7d4f7",
+        "object": "chat.completion",
+        "created": 1785901083,
+        "model": "Qwen3-32B-Base-bnb-4bit",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": null,
+              "tool_calls": [
+                {
+                  "id": "call_b86059ecb33d4a65abf51eaa",
+                  "type": "function",
+                  "function": {
+                    "name": "bash",
+                    "arguments": "{\"command\":\"ls /app/pydev_demo\"}"
+                  }
+                }
+              ]
+            },
+            "finish_reason": "tool_calls",
+            "logprobs": null
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 173,
+          "completion_tokens": 24,
+          "total_tokens": 197
+        },
+        "system_fingerprint": "base-338aed015d36"
+      }
+    },
+    {
+      "id": "tool_continuation",
+      "latency_s": 3.014,
+      "request": {
+        "model": "Qwen3-32B-Agentic-SFT-r1-v3",
+        "temperature": 0,
+        "max_tokens": 300,
+        "messages": [
+          {
+            "role": "user",
+            "content": "查看servo插件日志的最后两行"
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_1",
+                "type": "function",
+                "function": {
+                  "name": "bash",
+                  "arguments": "{\"command\": \"tail -2 /var/log/probe-daemon/servo.log\"}"
+                }
+              }
+            ]
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "call_1",
+            "content": "{\"stdout\": \"[INFO] servo wave_left completed\\n[INFO] position reset to neutral\", \"exit_code\": 0}"
+          }
+        ],
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "bash",
+              "description": "在RDK板上执行命令并返回stdout/stderr/exit code",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "response": {
+        "id": "chatcmpl-3648baf1eda446c996c854e504e5cb25",
+        "object": "chat.completion",
+        "created": 1785901086,
+        "model": "Qwen3-32B-Base-bnb-4bit",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "servo插件日志的最后两行如下：\n\n```\n[INFO] servo wave_left completed\n[INFO] position reset to neutral\n```"
+            },
+            "finish_reason": "stop",
+            "logprobs": null
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 239,
+          "completion_tokens": 32,
+          "total_tokens": 271
+        },
+        "system_fingerprint": "base-338aed015d36"
+      }
+    },
+    {
+      "id": "rdk_domain",
+      "latency_s": 13.66,
+      "request": {
+        "model": "Qwen3-32B-Agentic-SFT-r1-v3",
+        "temperature": 0,
+        "max_tokens": 300,
+        "messages": [
+          {
+            "role": "user",
+            "content": "RDK X5 板子上如何确认 BPU 是否正常工作？简要回答。"
+          }
+        ]
+      },
+      "response": {
+        "id": "chatcmpl-2d45e1d708ae44d9b7ea6c50dce5a900",
+        "object": "chat.completion",
+        "created": 1785901100,
+        "model": "Qwen3-32B-Base-bnb-4bit",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "在 RDK X5 板子上确认 BPU 是否正常工作，可以通过以下方式简要判断：\n\n1. **查看启动日志**：在系统启动时，通过串口或终端查看是否有 BPU 相关的初始化信息，如 `BPU initialized` 或 `BPU firmware loaded` 等提示。\n\n2. **运行 BPU 测试工具**：使用厂商提供的 BPU 测试工具（如 `bpu_test` 或 `bpu_diag`）执行功能测试，观察是否返回正常结果。\n\n3. **执行推理任务**：运行基于 BPU 的 AI 推理模型（如图像分类、目标检测等），确认模型能否正常推理并输出结果。\n\n4. **检查系统状态**：通过系统命令（如 `dmesg` 或 `journalctl`）查看是否有 BPU 相关的错误或异常信息。\n\n综上，BPU 正常工作的标志是：初始化成功、测试通过、推理正常、无错误日志。"
+            },
+            "finish_reason": "stop",
+            "logprobs": null
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 32,
+          "completion_tokens": 214,
+          "total_tokens": 246
+        },
+        "system_fingerprint": "base-338aed015d36"
+      }
+    },
+    {
+      "id": "exit0_semantics",
+      "latency_s": 2.02,
+      "request": {
+        "model": "Qwen3-32B-Agentic-SFT-r1-v3",
+        "temperature": 0,
+        "max_tokens": 300,
+        "messages": [
+          {
+            "role": "user",
+            "content": "机器人执行动作命令返回 exit=0，能证明机器人真的完成了物理动作吗？一句话回答。"
+          }
+        ]
+      },
+      "response": {
+        "id": "chatcmpl-10f351bc71344bc5af95377f35b26d27",
+        "object": "chat.completion",
+        "created": 1785901102,
+        "model": "Qwen3-32B-Base-bnb-4bit",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "不能，exit=0 仅表示命令执行程序正常结束，不代表物理动作一定完成。"
+            },
+            "finish_reason": "stop",
+            "logprobs": null
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 33,
+          "completion_tokens": 21,
+          "total_tokens": 54
+        },
+        "system_fingerprint": "base-338aed015d36"
+      }
+    }
+  ]
+}

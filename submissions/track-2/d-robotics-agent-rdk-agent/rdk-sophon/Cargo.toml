@@ -1,0 +1,68 @@
+[workspace]
+resolver = "2"
+members = [
+    # 分层：shared（底座）
+    "crates/shared",
+    # infra 基础设施
+    "crates/infra",
+    # domain + application
+    "crates/domain",
+    "crates/application",
+    # api 共享客户端 + bootstrap
+    "crates/client",
+    "crates/daemon",
+    # api 入口（bin）
+    "crates/api-cli",
+    "crates/api-http",
+    "crates/api-ws",
+    # test
+    "crates/testkit",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["rdk-sophon"]
+license = "MIT"
+
+[workspace.dependencies]
+# internal crates（crate 即层）
+shared = { path = "crates/shared" }
+infra = { path = "crates/infra" }
+domain = { path = "crates/domain" }
+application = { path = "crates/application" }
+client = { path = "crates/client" }
+daemon = { path = "crates/daemon" }
+testkit = { path = "crates/testkit" }
+
+# shared external deps
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-appender = "0.2"
+anyhow = "1"
+thiserror = "1"
+async-trait = "0.1"
+toml = "0.8"
+clap = { version = "4", features = ["derive"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+# 新增：HTTP 网关 + WS 出站 + 测试
+axum = "0.7"
+tower = "0.5"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+tokio-tungstenite = { version = "0.24", features = ["connect"] }
+futures-util = "0.3"
+http = "1"
+tempfile = "3"
+serialport = { version = "4", default-features = false }
+tokio-util = "0.7"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true
+panic = "abort"

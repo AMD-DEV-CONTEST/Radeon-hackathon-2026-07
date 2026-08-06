@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "tested_at": "2026-07-30",
+  "host": "u-7752-306283fd",
+  "hardware": {
+    "gpu_arch": "gfx1100",
+    "gpu_vram_bytes": 51522830336,
+    "system_ram_gib": 503
+  },
+  "model": {
+    "id": "Qwen3-Next-80B-A3B-Instruct",
+    "file": "Qwen3-Next-80B-A3B-Instruct-Q4_K_M.gguf",
+    "file_bytes": 48410988384,
+    "weight_quantization": "Q4_K_M",
+    "parameters": 79674391296,
+    "context_tokens": 262144
+  },
+  "runtime": {
+    "backend": "llama.cpp HIP",
+    "binary_sha256": "ba13e01fa831df712e41e1c621f0d7c44c7a247b17b51d0759836036794e95ca",
+    "flash_attention": true,
+    "threads": 32,
+    "batch_threads": 32,
+    "parallel_slots": 1
+  },
+  "method": {
+    "endpoint": "local_loopback",
+    "warmup_runs": 1,
+    "measured_runs": 5,
+    "prompt_tokens_per_run": 2332,
+    "max_output_tokens": 64,
+    "temperature": 0,
+    "prefix_cache_control": "run id changed at the beginning of every prompt"
+  },
+  "baseline": {
+    "kv_cache": "Q8_0/Q8_0",
+    "gpu_layers": 45,
+    "vram_bytes": 48843468800,
+    "runs": [
+      {"wall_ms": 3679.19, "prompt_ms": 1814.77, "prompt_tps": 1285.01, "decode_tps": 37.65},
+      {"wall_ms": 3679.29, "prompt_ms": 1811.80, "prompt_tps": 1287.12, "decode_tps": 37.65},
+      {"wall_ms": 3659.71, "prompt_ms": 1813.08, "prompt_tps": 1286.21, "decode_tps": 38.10},
+      {"wall_ms": 3805.99, "prompt_ms": 1859.93, "prompt_tps": 1253.81, "decode_tps": 36.20},
+      {"wall_ms": 3815.20, "prompt_ms": 1872.95, "prompt_tps": 1245.09, "decode_tps": 36.35}
+    ],
+    "summary": {
+      "wall_ms_mean": 3727.88,
+      "prompt_tps_mean": 1271.45,
+      "decode_tps_mean": 37.19,
+      "ttft_ms_median": 2021.26
+    }
+  },
+  "optimized": {
+    "kv_cache": "Q4_0/Q4_0",
+    "gpu_layers": 47,
+    "vram_bytes_after_start": 49422200832,
+    "vram_bytes_after_long_context": 49523740672,
+    "runs": [
+      {"wall_ms": 3081.91, "prompt_ms": 1667.10, "prompt_tps": 1398.83, "decode_tps": 49.80},
+      {"wall_ms": 3078.94, "prompt_ms": 1675.02, "prompt_tps": 1392.22, "decode_tps": 50.16},
+      {"wall_ms": 3100.19, "prompt_ms": 1666.16, "prompt_tps": 1399.62, "decode_tps": 49.19},
+      {"wall_ms": 3080.01, "prompt_ms": 1669.88, "prompt_tps": 1396.51, "decode_tps": 50.14},
+      {"wall_ms": 3079.90, "prompt_ms": 1665.99, "prompt_tps": 1399.77, "decode_tps": 49.82}
+    ],
+    "summary": {
+      "wall_ms_mean": 3084.19,
+      "prompt_tps_mean": 1397.39,
+      "decode_tps_mean": 49.82,
+      "ttft_ms_median": 1808.76
+    },
+    "relative_change": {
+      "wall_time_percent": -17.3,
+      "prompt_tps_percent": 9.9,
+      "decode_tps_percent": 34.0,
+      "ttft_percent": -10.5
+    }
+  },
+  "quality_canaries": {
+    "openai_tool_call_schema": true,
+    "tool_arguments_json": true,
+    "tool_result_continuation": true,
+    "long_context": {
+      "prompt_tokens": 42028,
+      "needle": "AUTH-CODE-7319",
+      "needle_retrieved": true,
+      "prompt_tps": 1032.71,
+      "decode_tps": 34.36,
+      "wall_ms": 41198.50
+    }
+  },
+  "public_api_check": {
+    "unauthenticated_chat_status": 401,
+    "authenticated_chat_status": 200,
+    "tunnel_url_redacted": true
+  },
+  "limitations": [
+    "The five-run A/B is a configuration-selection benchmark, not the final contest sample size.",
+    "The 42K needle test does not prove quality across the full 262K context window.",
+    "Q4 KV must still be compared with Q8 KV on real Agent trajectories before the final submission."
+  ]
+}

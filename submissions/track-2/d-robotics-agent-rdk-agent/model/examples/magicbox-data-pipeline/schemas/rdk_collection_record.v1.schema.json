@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://d-robotics.example/schemas/rdk_collection_record.v1.schema.json",
+  "title": "RDK collection evidence record v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "task_id",
+    "started_at",
+    "finished_at",
+    "task",
+    "runtime",
+    "artifacts",
+    "verification",
+    "publish"
+  ],
+  "properties": {
+    "schema_version": { "const": "rdk_collection_record.v1" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "task_id": { "type": "string", "minLength": 1 },
+    "started_at": { "type": "string", "format": "date-time" },
+    "finished_at": { "type": "string", "format": "date-time" },
+    "task": { "type": "object" },
+    "runtime": { "type": "object" },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "sha256", "bytes"],
+        "properties": {
+          "path": { "type": "string" },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "bytes": { "type": "integer", "minimum": 0 }
+        },
+        "additionalProperties": true
+      }
+    },
+    "verification": {
+      "type": "object",
+      "required": ["passed", "checks"],
+      "properties": {
+        "passed": { "type": "boolean" },
+        "checks": { "type": "array", "items": { "type": "object" } }
+      },
+      "additionalProperties": true
+    },
+    "publish": {
+      "type": "object",
+      "required": ["accepted"],
+      "properties": {
+        "accepted": { "type": "boolean" },
+        "reject_reasons": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    }
+  }
+}
