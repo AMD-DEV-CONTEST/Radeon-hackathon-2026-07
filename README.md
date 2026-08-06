@@ -6,19 +6,15 @@ An autonomous codebase analysis agent powered by a LangGraph ReAct loop and Chro
 
 ## 🚀 Demo
 
-> **Note:** Replace `images/app.png` and `images/gpu.png` with your actual screenshots.
-
 ### UI Dashboard
 
 Streamlit interface streaming the ReAct planner's execution and dynamic architecture generation.
 
-![UI Dashboard](images/app.png)
 
 ### Live Radeon Telemetry
 
 Terminal view showing `rocm-smi` hardware monitoring during active inference.
 
-![AMD Hardware Stats](images/gpu.png)
 
 ---
 
@@ -89,13 +85,9 @@ Terminal view showing `rocm-smi` hardware monitoring during active inference.
 
 ```text
 .
-├── .env.example
 ├── .gitignore
 ├── README.md
 ├── requirements.txt
-├── images/
-│   ├── app.png
-│   └── gpu.png
 └── src/
     ├── agent.py
     ├── graph.py
@@ -129,11 +121,6 @@ Terminal view showing `rocm-smi` hardware monitoring during active inference.
 
 ### 1. Clone the repository
 
-```bash
-git clone https://github.com/thatonesid/autonomous-codebase-architect.git
-
-cd autonomous-codebase-architect
-```
 
 ### 2. Create a virtual environment
 
@@ -174,7 +161,7 @@ watch -n 0.5 rocm-smi
 ### Expected Output During Inference
 
 ```text
-GPU Utilization : 92%
+GPU Utilization : 57%
 VRAM Used       : 5.8 GB
 Temperature     : 64°C
 ```
