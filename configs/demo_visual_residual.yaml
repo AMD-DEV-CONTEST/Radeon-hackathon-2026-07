@@ -1,0 +1,29 @@
+# Presentation-only configuration. The policy camera remains 96x96 so it uses
+# the existing calibration; the second camera is rendered only for the video.
+seed: 777
+device: cuda
+episodes: 3
+residual_scale: 0.005
+checkpoint: checkpoints/visual_residual_ppo/stage34_action_robust.pt
+log_dir: logs/demo_visual_residual
+task_config: configs/collect_expert_visual_smoke.yaml
+task_overrides:
+  table_color: [0.055, 0.070, 0.095]
+  table_emissive: [0.004, 0.006, 0.012]
+  presentation_camera_enabled: true
+  presentation_camera_resolution: [960, 540]
+  presentation_camera_position: [1.55, -1.55, 1.10]
+  presentation_camera_lookat: [0.48, 0.10, 0.12]
+  presentation_camera_fov: 44.0
+calibration: checkpoints/color_servo/calibration.json
+grasp_offset_calibration: checkpoints/color_servo/grasp_offset.json
+visual_servo:
+  object_ema: 0.25
+  table_height: 0.04
+  relocalize_distance_m: 0.05
+  close_timeout_steps: 24
+  max_recoveries: 2
+  post_release_verify_steps: 4
+  min_consecutive_dual_finger_steps: 3
+  min_contact_force: 0.0
+  unverified_lift_grace_steps: 4

@@ -1,0 +1,38 @@
+seed: 84
+device: cuda
+genesis_backend: gpu
+num_envs: 1
+total_timesteps: 131072
+residual_scale: 0.01
+checkpoint: checkpoints/residual_ppo/stage2.pt
+resume: checkpoints/residual_ppo/stage1.pt
+log_dir: logs/residual_ppo_stage2
+task:
+  object_position: [0.65, 0.0, 0.04]
+  goal_position: [0.45, 0.25, 0.04]
+  control_decimation: 4
+  max_episode_steps: 400
+  success_threshold: 0.03
+  require_release_for_success: true
+  assist_grasp: true
+  grasp_distance: 0.15
+  grasp_offset: [0.0, 0.0, -0.07]
+domain_randomization:
+  mass_range: [0.05, 0.25]
+  friction_range: [0.5, 1.2]
+  object_position_low: [0.56, -0.12, 0.04]
+  object_position_high: [0.70, 0.12, 0.04]
+  goal_position_low: [0.40, 0.16, 0.04]
+  goal_position_high: [0.54, 0.30, 0.04]
+ppo:
+  num_steps: 256
+  update_epochs: 4
+  num_minibatches: 4
+  learning_rate: 0.0003
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_coef: 0.2
+  ent_coef: 0.0
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  residual_l2_coef: 0.1

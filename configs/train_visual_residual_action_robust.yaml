@@ -1,0 +1,36 @@
+# Fine-tune the nominal residual policy with execution noise below the held-out
+# 0.008-rad action-noise benchmark level.
+seed: 628
+device: cuda
+num_envs: 1
+total_timesteps: 32768
+residual_scale: 0.005
+action_noise_std: 0.004
+checkpoint: checkpoints/visual_residual_ppo/stage34_action_robust.pt
+resume: checkpoints/visual_residual_ppo/stage34.pt
+log_dir: logs/visual_residual_ppo_action_robust
+task_config: configs/collect_expert_visual_smoke.yaml
+calibration: checkpoints/color_servo/calibration.json
+grasp_offset_calibration: checkpoints/color_servo/grasp_offset.json
+visual_servo:
+  object_ema: 0.25
+  table_height: 0.04
+  relocalize_distance_m: 0.05
+  close_timeout_steps: 24
+  max_recoveries: 2
+  post_release_verify_steps: 4
+  min_consecutive_dual_finger_steps: 3
+  min_contact_force: 0.0
+  unverified_lift_grace_steps: 4
+ppo:
+  num_steps: 256
+  update_epochs: 4
+  num_minibatches: 4
+  learning_rate: 0.0001
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_coef: 0.2
+  ent_coef: 0.0
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  residual_l2_coef: 1.0
