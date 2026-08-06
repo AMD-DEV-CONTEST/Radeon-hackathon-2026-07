@@ -1,0 +1,32 @@
+FROM rocm/pytorch:rocm6.2_ubuntu22.04_py3.10_pytorch_release_2.4.0
+
+WORKDIR /app
+
+# Install system deps
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    rocm-smi-lib \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Ollama for ROCm (Ollama now supports AMD)
+RUN curl -fsSL https://ollama.com/install.sh | sh
+
+# Copy requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Pre-download embedding model for offline use
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('BAAI/bge-small-en-v1.5')"
+
+# Copy app
+COPY . .
+
+# Expose Gradio port
+EXPOSE 7860
+
+# Startup script
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
