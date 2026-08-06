@@ -87,3 +87,17 @@ What you'll learn:
 4. **Demonstration Video** (Recommended Length 3~5 minutes)
    - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
 5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+
+---
+
+# One-command launch: Clipster on a Radeon instance
+
+Point your template's **GitHub Repo URL** at this fork (branch `main`), enable SSH Access and Persistent (PVC) storage. Once the workspace is ready, in the JupyterLab terminal:
+
+```bash
+bash bootstrap.sh                       # init submodule + provision (idempotent, cached on PVC)
+bash Clipster/scripts/services.sh start # llama chat+VLM :11431, harrier embeddings :11432, whisper :11435, API :8000, web :3000
+bash Clipster/scripts/services.sh tunnel  # public URL for the web UI (API comes along via the /api/v1 proxy)
+```
+
+Full submission details (architecture, ROCm adaptation, materials checklist) are on the `submission/clipster` branch / PR.
