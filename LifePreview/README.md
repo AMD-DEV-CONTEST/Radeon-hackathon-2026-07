@@ -8,6 +8,7 @@ Chinese documentation: [README.zh-CN.md](README.zh-CN.md)
 
 ## Submission materials
 
+- [English project profile](docs/LifePreview_Project_Profile_EN.pdf) - a 29-page project profile covering the product background, target users, prototype and demo flow, end-to-end generation pipeline, AMD Radeon/ROCm validation, and current results. The editable source is available as [DOCX](docs/LifePreview_Project_Profile_EN.docx).
 - [English project presentation deck](deck/LifePreview_Project_Deck_EN.pdf) - a 10-page PDF deck for Track 1 covering the user problem, product model, current results, core innovation, reusable AI generation pipeline, AMD Radeon/ROCm compute foundation, productization roadmap, and project vision. The PDF export preserves the presentation layout for direct review on GitHub.
 
 ## Competition workflow
