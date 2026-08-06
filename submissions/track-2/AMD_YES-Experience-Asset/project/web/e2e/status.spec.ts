@@ -8,7 +8,7 @@ async function shot(page: import('@playwright/test').Page, name: string) {
 
 test.describe('mock status states', () => {
   test('healthy: shows health, version, milestones, counts, routes, progress', async ({ page }) => {
-    await page.goto('/?source=mock&scenario=healthy');
+    await page.goto('/?view=status&source=mock&scenario=healthy');
     await expect(page.getByTestId('status-dashboard')).toBeVisible();
     await expect(page.getByTestId('health-status')).toHaveText('正常');
     await expect(page.getByTestId('version-current')).toBeVisible();
@@ -24,20 +24,20 @@ test.describe('mock status states', () => {
   });
 
   test('loading: spinner shows while a slow fetch is pending', async ({ page }) => {
-    await page.goto('/?source=mock&scenario=loading&delay=60000');
+    await page.goto('/?view=status&source=mock&scenario=loading&delay=60000');
     await expect(page.getByTestId('loading-screen')).toBeVisible();
     await shot(page, '02-loading');
   });
 
   test('empty: no-instance state without fabricating an asset', async ({ page }) => {
-    await page.goto('/?source=mock&scenario=empty');
+    await page.goto('/?view=status&source=mock&scenario=empty');
     await expect(page.getByTestId('empty-screen')).toBeVisible();
     await expect(page.getByTestId('version-panel')).toHaveCount(0);
     await shot(page, '03-empty');
   });
 
   test('failure: recoverable error with a working retry', async ({ page }) => {
-    await page.goto('/?source=mock&scenario=failure');
+    await page.goto('/?view=status&source=mock&scenario=failure');
     await expect(page.getByTestId('error-screen')).toBeVisible();
     const retry = page.getByTestId('error-retry');
     await expect(retry).toBeVisible();
@@ -48,7 +48,7 @@ test.describe('mock status states', () => {
   });
 
   test('safe-stop: paused terminal state keeps the last durable version', async ({ page }) => {
-    await page.goto('/?source=mock&scenario=safe-stop');
+    await page.goto('/?view=status&source=mock&scenario=safe-stop');
     await expect(page.getByTestId('run-terminal-state')).toHaveText('PAUSED');
     await expect(page.getByTestId('run-safe-stop')).toBeVisible();
     await expect(page.getByTestId('run-recovery')).toContainText('继续');
@@ -56,14 +56,14 @@ test.describe('mock status states', () => {
   });
 
   test('stale: invalidation notice after a correction', async ({ page }) => {
-    await page.goto('/?source=mock&scenario=stale');
+    await page.goto('/?view=status&source=mock&scenario=stale');
     await expect(page.getByTestId('stale-notice')).toBeVisible();
     await expect(page.getByTestId('milestone-M2-state')).toHaveText('已失效');
     await shot(page, '06-stale');
   });
 
   test('terminal-failure: model unavailable with safe message and retry flag', async ({ page }) => {
-    await page.goto('/?source=mock&scenario=terminal-failure');
+    await page.goto('/?view=status&source=mock&scenario=terminal-failure');
     await expect(page.getByTestId('run-terminal-state')).toHaveText('MODEL_UNAVAILABLE');
     await expect(page.getByTestId('run-safe-message')).toBeVisible();
     await expect(page.getByTestId('run-retryable')).toBeVisible();
@@ -72,7 +72,7 @@ test.describe('mock status states', () => {
   });
 
   test('refresh: healthy state re-fetches and stays truthful', async ({ page }) => {
-    await page.goto('/?source=mock&scenario=healthy');
+    await page.goto('/?view=status&source=mock&scenario=healthy');
     await expect(page.getByTestId('status-dashboard')).toBeVisible();
     await page.getByTestId('refresh').click();
     await expect(page.getByTestId('status-dashboard')).toBeVisible();
@@ -81,7 +81,7 @@ test.describe('mock status states', () => {
   });
 
   test('source switch: live mode is reachable from the toolbar', async ({ page }) => {
-    await page.goto('/?source=mock&scenario=healthy');
+    await page.goto('/?view=status&source=mock&scenario=healthy');
     await page.getByTestId('source-live').click();
     // Live backend is not running in the default E2E env, so the UI shows a
     // truthful error/empty state — never a fabricated dashboard.

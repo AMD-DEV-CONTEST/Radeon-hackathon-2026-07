@@ -13,7 +13,9 @@ The team may shorten the wording for the official submission.
 ## Open work not yet counted as accepted
 
 - PR #54: E9 submission package by `Eas000n`; open until merged.
-- PR #59: demo stage-rail navigation by `1olaqua616-web`; open until merged.
+- PR #59: demo stage-rail navigation by `1olaqua616-web`; merged.
+- PR #60: reproducible final source freeze; merged.
+- PR #61: final English WebUI and UI evidence; merged.
 - PR #39/#44: Stage 1 implementation/evidence stack remains open; its frozen
   service results may be cited with the explicit service-only boundary, but it
   is not counted above as merged product work.

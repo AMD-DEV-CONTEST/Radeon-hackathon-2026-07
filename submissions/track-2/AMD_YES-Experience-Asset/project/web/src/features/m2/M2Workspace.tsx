@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge, Mono } from '../../components/primitives';
-import { AssetHandoff } from '../../shell/AssetHandoff';
-import { Working } from '../../shell/Working';
 import { CriticalMomentMap } from './CriticalMomentMap';
 import {
   LiveM2Api,
@@ -13,15 +11,9 @@ import {
 
 const KEY = 'experience-asset.m1.active-asset-id';
 
-type Props = {
-  apiBaseUrl?: string;
-  storage?: Storage;
-  api?: M2Api;
-  autosaveDelayMs?: number;
-  onStatusChange?: () => void;
-};
+type Props = {apiBaseUrl?: string; storage?: Storage; api?: M2Api; autosaveDelayMs?: number};
 
-export function M2Workspace({apiBaseUrl = '', storage = window.localStorage, api: injectedApi, autosaveDelayMs = 500, onStatusChange}: Props) {
+export function M2Workspace({apiBaseUrl = '', storage = window.localStorage, api: injectedApi, autosaveDelayMs = 500}: Props) {
   const liveApi = useMemo(() => new LiveM2Api(apiBaseUrl), [apiBaseUrl]);
   const api = injectedApi ?? liveApi;
   const [assetId, setAssetId] = useState(() => new URLSearchParams(location.search).get('asset') ?? storage.getItem(KEY) ?? '');
@@ -47,7 +39,6 @@ export function M2Workspace({apiBaseUrl = '', storage = window.localStorage, api
   const acknowledge = (next: Workspace, preserveDraft = false) => {
     workspaceRef.current = next;
     setWorkspace(next);
-    onStatusChange?.();
     if (!preserveDraft) {
       const titles = Object.fromEntries(next.artifact.moments.map(m => [m.moment_id, m.title]));
       const criticalities = Object.fromEntries(
@@ -61,7 +52,7 @@ export function M2Workspace({apiBaseUrl = '', storage = window.localStorage, api
       recoveryBlockedRef.current = false;
     }
   };
-  const mayDiscardDraft = () => !dirty || window.confirm('存在尚未保存的编辑，确定要放弃并继续吗？');
+  const mayDiscardDraft = () => !dirty || window.confirm('You have unsaved edits. Discard them and continue?');
   const clearWorkspace = () => {
     workspaceRef.current = null;
     setWorkspace(null);
@@ -90,7 +81,7 @@ export function M2Workspace({apiBaseUrl = '', storage = window.localStorage, api
       }
       storage.setItem(KEY, assetId);
     }
-    catch (reason) { setError(reason instanceof Error ? reason.message : '载入失败'); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not load the timeline.'); }
     finally { setBusy(false); }
   };
   useEffect(() => {
@@ -160,17 +151,17 @@ export function M2Workspace({apiBaseUrl = '', storage = window.localStorage, api
             acknowledge(latest, true);
             recoveryBlockedRef.current = false;
             queuedRef.current = true;
-            setError('检测到远端版本更新，已保留本地编辑并自动重试。');
+            setError('A newer version was found. Your local edits were preserved and the save was retried.');
           } else if (!latest.is_current) {
-            setError('M1 已变化，当前 M2 失效；本地编辑仍保留。复制内容，或重新载入并确认放弃草稿。');
+            setError('M1 has changed, so this timeline is out of date. Your local edits are still preserved.');
           } else {
-            setError('版本结构已变化；本地编辑仍保留，请复制后再重新载入。');
+            setError('The version structure changed. Your local edits are still preserved; reload when ready.');
           }
         } catch (reloadReason) {
-          setError(reloadReason instanceof Error ? reloadReason.message : '版本冲突且载入失败');
+          setError(reloadReason instanceof Error ? reloadReason.message : 'A version conflict occurred and reload failed.');
         }
       } else {
-        setError(reason instanceof Error ? reason.message : '自动保存失败');
+        setError(reason instanceof Error ? reason.message : 'Autosave failed.');
       }
     } finally {
       savingRef.current = false; setSaving(false);
@@ -195,7 +186,7 @@ export function M2Workspace({apiBaseUrl = '', storage = window.localStorage, api
       acknowledge(await api.create(assetId, latestM1.version_id));
       storage.setItem(KEY, assetId);
     }
-    catch (reason) { setError(reason instanceof Error ? reason.message : '生成失败'); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not generate the timeline.'); }
     finally { setBusy(false); }
   };
   const changeTitle = (id: string, title: string) => {
@@ -220,25 +211,23 @@ export function M2Workspace({apiBaseUrl = '', storage = window.localStorage, api
       m => m.temporal_status !== 'KNOWN' || m.criticality_status === 'UNRESOLVED',
     );
     try { acknowledge(await api.confirm(assetId, workspace.artifact.artifact_id, completeWithGaps)); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : '确认失败'); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not confirm the timeline.'); }
     finally { setBusy(false); }
   };
 
   return <section className="m1-workspace m2-workspace" data-testid="m2-workspace">
     <div className="panel"><h2>Critical Moment Map</h2>
-      <AssetHandoff assetId={assetId} upstream="M1" testId="m2-no-asset" />
       <label className="form-field"><span>Asset ID</span><input value={assetId} onChange={e => setAssetId(e.target.value)} /></label>
       <p data-testid="m2-current-m1-version">
-        最近自动读取的 M1 版本（生成时刷新）：{' '}
-        <Mono>{currentM1?.version_id ?? '尚未读取'}</Mono>{' '}
+        Latest M1 version read by the system: {' '}
+        <Mono>{currentM1?.version_id ?? 'Not loaded'}</Mono>{' '}
         {currentM1 ? <Badge tone="info">{currentM1.milestone_state}</Badge> : null}
       </p>
-      <div className="row"><button className="btn" disabled={busy || saving || !assetId} onClick={() => void load()}>重新载入</button><button className="btn btn--primary" disabled={busy || saving || !assetId} onClick={() => void create()}>{busy ? '处理中…' : (workspace ? '按最新 M1 重新生成' : '从 M1 生成')}</button></div>
-      {busy ? <Working label="正在处理当前 M2 操作" testId="m2-working" /> : null}
+      <div className="row"><button className="btn" disabled={busy || saving || !assetId} onClick={() => void load()}>Reload</button><button className="btn btn--primary" disabled={busy || saving || !assetId} onClick={() => void create()}>{workspace ? 'Regenerate from latest M1' : 'Create from M1'}</button></div>
       {error ? <div className="notice notice--danger" role="alert">{error}</div> : null}
     </div>
-    {workspace ? <>{!workspace.is_current ? <div className="notice notice--danger">该 M2 已因依赖的 M1 更正而失效，请重新生成。</div> : null}<CriticalMomentMap artifact={workspace.artifact} />
-      {workspace.is_current ? <div className="panel"><h3>编辑并自动保存</h3>{workspace.artifact.moments.map((moment, index) => <div className="form-field" key={moment.moment_id}><label><span>#{index + 1} · 来源 {moment.source_statement_ids.join(', ')}</span><input value={drafts[moment.moment_id] ?? moment.title} onChange={e => changeTitle(moment.moment_id, e.target.value)} /></label><label><span>这个时刻是否确实改变了经历走向？</span><select aria-label={`关键性 #${index + 1}`} value={criticalityDrafts[moment.moment_id] ?? moment.criticality_status} onChange={e => changeCriticality(moment.moment_id, e.target.value as 'USER_CONFIRMED' | 'UNRESOLVED')}><option value="AGENT_PROPOSED" disabled>待用户决定</option><option value="USER_CONFIRMED">确认是关键时刻</option><option value="UNRESOLVED">暂时无法确认</option></select></label></div>)}<button className="btn btn--primary" disabled={busy || dirty || saving || workspace.artifact.moments.some(moment => moment.criticality_status === 'AGENT_PROPOSED')} onClick={() => void confirm()}>确认 Critical Moment Map</button></div> : null}
+    {workspace ? <>{!workspace.is_current ? <div className="notice notice--danger">This timeline is out of date because M1 changed. Please regenerate it.</div> : null}<CriticalMomentMap artifact={workspace.artifact} />
+      {workspace.is_current ? <div className="panel"><h3>Edit and autosave</h3>{workspace.artifact.moments.map((moment, index) => <div className="form-field" key={moment.moment_id}><label><span>#{index + 1} · Sources {moment.source_statement_ids.join(', ')}</span><input value={drafts[moment.moment_id] ?? moment.title} onChange={e => changeTitle(moment.moment_id, e.target.value)} /></label><label><span>Did this moment genuinely change the direction of the experience?</span><select aria-label={`Significance #${index + 1}`} value={criticalityDrafts[moment.moment_id] ?? moment.criticality_status} onChange={e => changeCriticality(moment.moment_id, e.target.value as 'USER_CONFIRMED' | 'UNRESOLVED')}><option value="AGENT_PROPOSED" disabled>Awaiting your decision</option><option value="USER_CONFIRMED">Confirm as a critical moment</option><option value="UNRESOLVED">Not sure yet</option></select></label></div>)}<button className="btn btn--primary" disabled={busy || dirty || saving || workspace.artifact.moments.some(moment => moment.criticality_status === 'AGENT_PROPOSED')} onClick={() => void confirm()}>Confirm Critical Moment Map</button></div> : null}
     </> : null}
   </section>;
 }

@@ -42,7 +42,7 @@ export function M5Workspace({
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [draftBusy, setDraftBusy] = useState(false);
-  const [draftTitle, setDraftTitle] = useState('我的可复用经验');
+  const [draftTitle, setDraftTitle] = useState('My reusable experience');
   const [draftSummary, setDraftSummary] = useState('');
   const [route, setRoute] = useState<RouteType>('PRIVATE_SELF');
   const [language, setLanguage] = useState<'zh-CN' | 'en'>('zh-CN');
@@ -167,9 +167,9 @@ export function M5Workspace({
   return (
     <section className="panel" data-testid="m5-workspace">
       <header className="panel__header">
-        <h2>M5 路由就绪度与隐私审查</h2>
+        <h2>M5 Delivery routes and privacy review</h2>
         <p className="panel__subtitle">
-          五条路由各给一个可解释的结论；对外分享必须先解决隐私发现并取得绑定到确切版本/哈希的批准。
+          Compare five delivery routes, review privacy risks, and approve the exact version before sharing.
         </p>
       </header>
 
@@ -184,7 +184,7 @@ export function M5Workspace({
       )}
 
       <div className="field-row">
-        <label htmlFor="m5-asset">经验资产 ID</label>
+        <label htmlFor="m5-asset">Experience Asset ID</label>
         <input
           id="m5-asset"
           data-testid="m5-asset-input"
@@ -202,7 +202,7 @@ export function M5Workspace({
           disabled={!assetId || busy}
           onClick={() => void run(() => api.get(assetId))}
         >
-          读取
+          Load
         </button>
         <button
           type="button"
@@ -211,7 +211,7 @@ export function M5Workspace({
           disabled={!assetId || busy}
           onClick={() => void run(() => api.evaluate(assetId), true)}
         >
-          评估五条路由
+          Evaluate five routes
         </button>
       </div>
 
@@ -227,8 +227,7 @@ export function M5Workspace({
 
       {notReady ? (
         <p className="notice notice--warn" data-testid="m5-not-ready">
-          M5 尚不可用：<Mono>{notReady}</Mono>
-          。请先在 M4 完成并接受知识卡片。
+          M5 is not ready: <Mono>{notReady}</Mono>. Complete and accept the Knowledge Card in M4 first.
         </p>
       ) : null}
 
@@ -236,14 +235,14 @@ export function M5Workspace({
         <>
           <section className="panel" data-testid="m5-draft-workspace">
             <header className="panel__header">
-              <h3>生成与预览最终草稿</h3>
+              <h3>Create and preview the final draft</h3>
               <p className="panel__subtitle">
-                先选择可用路线并保存草稿，再对这一个持久化版本进行批准。
+                Choose an eligible route, save the draft, then approve that exact version.
               </p>
             </header>
             <div className="fields">
               <label className="field">
-                <span className="field__label">路线</span>
+                <span className="field__label">Route</span>
                 <select value={route} onChange={(event) => {
                   setRoute(event.target.value as RouteType);
                   clearDeliveryBinding();
@@ -256,31 +255,31 @@ export function M5Workspace({
                 </select>
               </label>
               <label className="field">
-                <span className="field__label">语言</span>
+                <span className="field__label">Content language</span>
                 <select value={language} onChange={(event) => {
                   const nextLanguage = event.target.value as typeof language;
                   setLanguage(nextLanguage);
                   setDraftTitle(nextLanguage === 'zh-CN' ? '我的可复用经验' : 'My reusable experience');
                   clearDeliveryBinding();
                 }}>
-                  <option value="zh-CN">中文</option>
+                  <option value="zh-CN">Chinese</option>
                   <option value="en">English</option>
                 </select>
               </label>
               <label className="field">
-                <span className="field__label">标题</span>
+                <span className="field__label">Title</span>
                 <input value={draftTitle} readOnly />
               </label>
               <label className="field">
-                <span className="field__label">摘要 / 核心表述</span>
+                <span className="field__label">Summary / key message</span>
                 <textarea value={draftSummary} readOnly />
               </label>
             </div>
             <p className="route__why">
-              这份草稿将绑定当前路线的 {decision?.supporting_statement_ids?.length ?? 0} 条证据引用。
+              This draft will be bound to {decision?.supporting_statement_ids?.length ?? 0} evidence references for this route.
             </p>
             <button className="btn btn--primary" disabled={!canSaveDraft || draftBusy} onClick={() => void saveDraft()}>
-              保存并生成私有预览
+              Save and create private preview
             </button>
             {deliveryPreview ? (
               <div data-testid="m5-live-preview">
@@ -297,7 +296,7 @@ export function M5Workspace({
                       .catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)));
                   } : undefined}
                 />
-                {exported ? <p className="notice notice--ok">三种格式已生成。</p> : null}
+                {exported ? <p className="notice notice--ok">All three formats are ready.</p> : null}
               </div>
             ) : null}
           </section>

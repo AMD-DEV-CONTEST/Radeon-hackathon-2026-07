@@ -35,11 +35,11 @@ Evidence packet:
 | Material | Location or status |
 |---|---|
 | Source repository | https://github.com/kinnyuww/amd-devmaster-track2-agent - currently private; public access is required before submission |
-| Reproducible repository snapshot | `c4d14bf042ad53baa9b726a0e11fbd9ffd37e5fd` before the documentation PR merges |
+| Submitted source snapshot | `aab2ae63a4e9379aa3af5b5f118e862c3bc11317` |
 | Project Specification | `docs/submission/e9/deliverables/Experience_Asset_Project_Specification.pdf` |
 | Presentation | `docs/submission/e9/deliverables/Experience_Asset_Track2_Deck.pptx` |
 | Demo | https://drive.google.com/drive/folders/1_cOmcYBIJuPfkoJ4VuA7ZuBYV8nYB8yr?usp=drive_link - signed-out access must be enabled |
-| Official organizer PR | Pending owner-authorized publication |
+| Official organizer PR | https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/pull/275 |
 
 Do not combine this complete-product evidence with service-only Stage 1
 metrics as if they measured the same unit. Do not expose secrets, private

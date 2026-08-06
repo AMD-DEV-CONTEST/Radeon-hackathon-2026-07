@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useStatus } from './hooks/useStatus';
 import { Toolbar } from './components/Toolbar';
 import { StatusDashboard } from './components/StatusDashboard';
@@ -8,94 +8,99 @@ import { M2Workspace } from './features/m2/M2Workspace';
 import { M3Workspace } from './features/m3/M3Workspace';
 import { M4Workspace } from './features/m4/M4Workspace';
 import { M5Workspace } from './features/m5/M5Workspace';
-import { StageRail } from './shell/StageRail';
-import { GlobalStatus } from './shell/GlobalStatus';
-import { StageAdvance } from './shell/StageAdvance';
-import { STAGES, type ShellView } from './shell/stages';
+import { JourneyRail, JOURNEY_STEPS, type JourneyView } from './components/JourneyRail';
 
-const SHORTCUT_ORDER = STAGES.map((stage) => stage.id);
+type AppView = JourneyView | 'status';
+
+const STAGE_COPY: Record<JourneyView, { title: string; description: string }> = {
+  m1: { title: 'Tell us what happened', description: 'No preparation needed. Share the experience in your own words and the agent will shape it into an editable brief.' },
+  m2: { title: 'Find the moments that changed the outcome', description: 'Separate real turning points, obstacles, and decisive actions from ordinary events.' },
+  m3: { title: 'Reconstruct why each decision made sense', description: 'Bring choices, evidence, alternatives, and outcomes back into one decision trail.' },
+  m4: { title: 'Turn one experience into a reusable method', description: 'Define when the insight applies, where it fails, and only then connect it to prior experience.' },
+  m5: { title: 'Create a delivery people can actually use', description: 'Choose an audience, review privacy, preview the result, and approve the final version.' },
+};
 
 export function App() {
   const { phase, view, error, config, refresh, isRefreshing } = useStatus();
-  const [activeView, setActiveView] = useState<ShellView>(() => {
+  const [activeView, setActiveView] = useState<AppView>(() => {
     const requested = new URLSearchParams(window.location.search).get('view');
-    return requested === 'm1' ||
+    return requested === 'status' ||
+      requested === 'm1' ||
       requested === 'm2' ||
       requested === 'm3' ||
       requested === 'm4' ||
       requested === 'm5'
       ? requested
-      : 'status';
+      : 'm1';
   });
-  const [railCollapsed, setRailCollapsed] = useState(false);
 
-  const selectView = useCallback((next: ShellView) => {
+  const selectView = (next: AppView) => {
     const url = new URL(window.location.href);
-    if (next !== 'status') url.searchParams.set('view', next);
-    else url.searchParams.delete('view');
+    url.searchParams.set('view', next);
     window.history.replaceState({}, '', url);
     setActiveView(next);
-  }, []);
+  };
 
-  /*
-   * Stage shortcuts. Modifier-qualified so they cannot fire while someone is
-   * typing an experience into a field, and ignored entirely when the browser
-   * is already using the chord for something else via alt/shift.
-   */
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return;
-      const index = Number(event.key) - 1;
-      const target = SHORTCUT_ORDER[index];
-      if (!target) return;
-      event.preventDefault();
-      selectView(target);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selectView]);
+  const activeJourneyView: JourneyView = activeView === 'status' ? 'm1' : activeView;
+  const activeIndex = JOURNEY_STEPS.findIndex((step) => step.id === activeJourneyView);
+  const stage = STAGE_COPY[activeJourneyView];
 
   return (
-    <div className={`shell${railCollapsed ? ' shell--rail-collapsed' : ''}`}>
-      {railCollapsed ? (
-        <button
-          type="button"
-          className="shell__rail-restore"
-          onClick={() => setRailCollapsed(false)}
-          data-testid="shell-expand"
-          aria-label="展开阶段轴"
-          title="展开阶段轴"
-        >
-          ›
-        </button>
-      ) : (
-        <StageRail
-          activeView={activeView}
-          onSelect={selectView}
-          milestones={view?.milestones ?? []}
-          relation={view?.relation ?? null}
-          onToggleCollapse={() => setRailCollapsed(true)}
-        />
-      )}
+    <div className="app-shell">
+      <a className="skip-link" href="#workspace">Skip to workspace</a>
+      <header className="app__header">
+        <div className="brand">
+          <span className="brand__mark" aria-hidden="true">EA</span>
+          <div>
+            <p className="eyebrow">Experience Asset Agent</p>
+            <h1 className="app__title">Turn experience into reusable knowledge</h1>
+          </div>
+        </div>
+        <div className="header-actions">
+          <span className="service-pill"><i aria-hidden="true" /> Private & local</span>
+          <span className="service-pill">Autosaved</span>
+          <button
+            type="button"
+            className={`btn btn--utility${activeView === 'status' ? ' btn--primary' : ''}`}
+            onClick={() => selectView(activeView === 'status' ? activeJourneyView : 'status')}
+            data-testid="view-status"
+          >
+            {activeView === 'status' ? 'Back to journey' : 'System status'}
+          </button>
+        </div>
+      </header>
 
-      <div className="shell__body">
-      <GlobalStatus view={view ?? null} />
-
-      <main className="shell__main">
+      <div className="app-layout">
+        <JourneyRail active={activeJourneyView} onSelect={selectView} />
+        <main className="app__main" id="workspace">
+          {activeView !== 'status' ? (
+            <section className="stage-context" aria-labelledby="stage-heading">
+              <div>
+                <p className="eyebrow">Step {activeIndex + 1} of {JOURNEY_STEPS.length} · {JOURNEY_STEPS[activeIndex].artifact}</p>
+                <h2 id="stage-heading">{stage.title}</h2>
+                <p>{stage.description}</p>
+              </div>
+              <div className="stage-context__nav" aria-label="Journey navigation">
+                <button className="btn" type="button" disabled={activeIndex === 0} onClick={() => selectView(JOURNEY_STEPS[activeIndex - 1].id)}>← Back</button>
+                <button className="btn btn--primary" type="button" disabled={activeIndex === JOURNEY_STEPS.length - 1} onClick={() => selectView(JOURNEY_STEPS[activeIndex + 1].id)}>Continue →</button>
+              </div>
+              <p className="sr-only" role="status">Step {activeIndex + 1}: {stage.title}</p>
+            </section>
+          ) : (
+            <section className="stage-context stage-context--status">
+              <div><p className="eyebrow">Runtime evidence</p><h2>System status</h2><p>Inspect the local environment, milestones, and service health.</p></div>
+            </section>
+          )}
         {activeView === 'm5' ? (
-          <M5Workspace
-            apiBaseUrl={config.apiBaseUrl}
-            onCanonicalEdit={() => selectView('m1')}
-            onStatusChange={refresh}
-          />
+          <M5Workspace apiBaseUrl={config.apiBaseUrl} onCanonicalEdit={() => selectView('m1')} />
         ) : activeView === 'm4' ? (
-          <M4Workspace apiBaseUrl={config.apiBaseUrl} onStatusChange={refresh} />
+          <M4Workspace apiBaseUrl={config.apiBaseUrl} />
         ) : activeView === 'm3' ? (
-          <M3Workspace apiBaseUrl={config.apiBaseUrl} onStatusChange={refresh} />
+          <M3Workspace apiBaseUrl={config.apiBaseUrl} />
         ) : activeView === 'm1' ? (
-          <M1ExperienceWorkspace apiBaseUrl={config.apiBaseUrl} onStatusChange={refresh} />
+          <M1ExperienceWorkspace apiBaseUrl={config.apiBaseUrl} />
         ) : activeView === 'm2' ? (
-          <M2Workspace apiBaseUrl={config.apiBaseUrl} onStatusChange={refresh} />
+          <M2Workspace apiBaseUrl={config.apiBaseUrl} />
         ) : (
           <>
             <Toolbar
@@ -115,21 +120,13 @@ export function App() {
             {phase === 'ready' && view ? <StatusDashboard view={view} /> : null}
           </>
         )}
-        <StageAdvance
-          activeView={activeView}
-          milestones={view?.milestones ?? []}
-          relation={view?.relation ?? null}
-          onSelect={selectView}
-        />
-      </main>
-
-      <footer className="shell__footer">
-        <span>
-          本地优先 · 合同源 <code>contracts/openapi.json</code> ·
-          来源说明 <code>web/contracts/PROVENANCE.md</code>
-        </span>
-      </footer>
+        </main>
       </div>
+
+      <footer className="app__footer">
+        <span>Private by default · Recoverable versions · Explicit tool approval</span>
+        <span>Contract source <code>contracts/openapi.json</code></span>
+      </footer>
     </div>
   );
 }

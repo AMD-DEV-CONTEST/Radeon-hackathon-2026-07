@@ -26,9 +26,8 @@ cannot be inferred or automated.
 
 - [x] PR #58 is merged; the final P1 launcher and S0 rollback are available on
   `main`.
-- [ ] Confirm PR #59 (stage-rail demo navigation) is merged if the team wants
-  that UI in the recording. It is presentation polish, not a product-evidence
-  prerequisite.
+- [x] PR #59, source-freeze PR #60 and final-WebUI PR #61 are merged in source
+  snapshot `aab2ae6`.
 - [ ] Rebase or otherwise update E9 PR #54 onto the current `main` before its
   final merge; its material branch predates PR #52 and PR #57.
 - [ ] Re-run the repository-required checks after that integration and record

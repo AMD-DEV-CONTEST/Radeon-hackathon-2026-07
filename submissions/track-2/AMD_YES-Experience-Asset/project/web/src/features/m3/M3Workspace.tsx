@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Badge, Mono } from '../../components/primitives';
-import { AssetHandoff } from '../../shell/AssetHandoff';
-import { Working } from '../../shell/Working';
 import { DecisionEvidenceLedger } from './DecisionEvidenceLedger';
 import {
   LiveM3Api,
@@ -17,14 +15,12 @@ type Props = {
   apiBaseUrl?: string;
   api?: M3Api;
   storage?: Storage;
-  onStatusChange?: () => void;
 };
 
 export function M3Workspace({
   apiBaseUrl = '',
   api: supplied,
   storage = window.localStorage,
-  onStatusChange,
 }: Props) {
   const live = useMemo(() => new LiveM3Api(apiBaseUrl), [apiBaseUrl]);
   const api = supplied ?? live;
@@ -37,11 +33,6 @@ export function M3Workspace({
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
-  const applyWorkspace = (next: M3WorkspaceV1) => {
-    setWorkspace(next);
-    onStatusChange?.();
-  };
-
   const load = async () => {
     if (!assetId) return;
     setBusy(true);
@@ -51,7 +42,7 @@ export function M3Workspace({
       const currentUpstream = await api.getCurrentUpstream(assetId);
       setUpstream(currentUpstream);
       try {
-        applyWorkspace(await api.get(assetId));
+        setWorkspace(await api.get(assetId));
       } catch (reason) {
         if (reason instanceof M3ApiError && reason.status === 404) {
           setWorkspace(null);
@@ -61,7 +52,7 @@ export function M3Workspace({
       }
       storage.setItem(KEY, assetId);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '载入失败');
+      setError(reason instanceof Error ? reason.message : 'Could not load the ledger.');
     } finally {
       setBusy(false);
     }
@@ -80,7 +71,7 @@ export function M3Workspace({
     try {
       const currentUpstream = await api.getCurrentUpstream(assetId);
       setUpstream(currentUpstream);
-      applyWorkspace(
+      setWorkspace(
         await api.create(
           assetId,
           currentUpstream.m2_artifact_id,
@@ -89,7 +80,7 @@ export function M3Workspace({
       );
       storage.setItem(KEY, assetId);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '生成失败');
+      setError(reason instanceof Error ? reason.message : 'Could not generate the ledger.');
     } finally {
       setBusy(false);
     }
@@ -102,7 +93,7 @@ export function M3Workspace({
     try {
       const currentUpstream = await api.getCurrentUpstream(assetId);
       setUpstream(currentUpstream);
-      applyWorkspace(
+      setWorkspace(
         await api.regenerate(
           assetId,
           currentUpstream.m2_artifact_id,
@@ -112,7 +103,7 @@ export function M3Workspace({
       );
       setDrafts({});
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '重新生成失败');
+      setError(reason instanceof Error ? reason.message : 'Could not regenerate the ledger.');
     } finally {
       setBusy(false);
     }
@@ -128,13 +119,13 @@ export function M3Workspace({
       .find(statement => statement.statement_id === statementId);
     if (!original) return;
     try {
-      applyWorkspace(
+      setWorkspace(
         await api.edit(assetId, workspace.artifact.artifact_id, [{
           statement_id: statementId,
           text: drafts[statementId] ?? original.text,
           user_action: action,
           ...(action === 'MARK_UNRESOLVED'
-            ? {unresolved_reason: '用户明确标记为待补充'}
+            ? {unresolved_reason: 'Marked by the user as needing more evidence'}
             : {}),
         }]),
       );
@@ -146,19 +137,19 @@ export function M3Workspace({
       setError('');
     } catch (reason) {
       if (reason instanceof M3ApiError && reason.status === 409) setWorkspace(null);
-      setError(reason instanceof Error ? reason.message : '保存失败');
+      setError(reason instanceof Error ? reason.message : 'Could not save the ledger.');
     }
   };
 
   const confirm = async (withGaps: boolean) => {
     if (!workspace) return;
     try {
-      applyWorkspace(
+      setWorkspace(
         await api.confirm(assetId, workspace.artifact.artifact_id, withGaps),
       );
       setError('');
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '确认失败');
+      setError(reason instanceof Error ? reason.message : 'Could not confirm the ledger.');
     }
   };
 
@@ -166,40 +157,38 @@ export function M3Workspace({
     <section data-testid="m3-workspace">
       <div className="panel">
         <h2>M3 Decision and Evidence Ledger</h2>
-        <AssetHandoff assetId={assetId} upstream="M2" testId="m3-no-asset" />
         <label className="form-field">
           <span>Asset ID</span>
           <input value={assetId} onChange={event => setAssetId(event.target.value)} />
         </label>
         <p data-testid="m3-current-upstream">
-          最近自动读取的 M2：{' '}
-          <Mono>{upstream?.m2_artifact_id ?? '尚未读取'}</Mono>{' '}
+          Latest M2 read by the system:{' '}
+          <Mono>{upstream?.m2_artifact_id ?? 'Not loaded'}</Mono>{' '}
           {upstream ? <Badge tone="info">{upstream.m2_state}</Badge> : null}
         </p>
         <p>
-          当前规范版本：{' '}
-          <Mono>{upstream?.canonical_version_id ?? '尚未读取'}</Mono>
+          Current canonical version:{' '}
+          <Mono>{upstream?.canonical_version_id ?? 'Not loaded'}</Mono>
         </p>
         <div className="row">
           <button className="btn" disabled={busy || !assetId} onClick={() => void load()}>
-            重新载入
+            Reload
           </button>
           <button
             className="btn btn--primary"
             disabled={busy || !assetId || workspace !== null}
             onClick={() => void create()}
           >
-            {busy ? '处理中…' : '从当前 M2 生成'}
+            Create from current M2
           </button>
           <button
             className="btn"
             disabled={busy || !workspace?.allowed_actions.includes('REGENERATE')}
             onClick={() => void regenerate()}
           >
-            重新生成
+            Regenerate
           </button>
         </div>
-        {busy ? <Working label="正在处理当前 M3 操作" testId="m3-working" /> : null}
         {error ? <div className="notice notice--danger" role="alert">{error}</div> : null}
       </div>
       {workspace ? (
@@ -217,14 +206,14 @@ export function M3Workspace({
             disabled={!workspace.allowed_actions.includes('CONFIRM')}
             onClick={() => void confirm(false)}
           >
-            确认账本
+            Confirm ledger
           </button>
           <button
             className="btn"
             disabled={!workspace.allowed_actions.includes('CONFIRM')}
             onClick={() => void confirm(true)}
           >
-            带缺口确认
+            Confirm with visible gaps
           </button>
         </>
       ) : null}

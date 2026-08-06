@@ -1,5 +1,14 @@
 # CURRENT ITERATION
 
+> **Final WebUI verification note — 2026-08-06:** The owner approved a
+> best-practice product shell over the existing M1-M5 workspaces and requested
+> a live run with Stage 1 profile P1. The UI change preserves all backend
+> contracts and defaults to M1. A synthetic loopback-only W7900 check saved M1
+> and generated an M2 Critical Moment Map with `Qwen3.5-9B`; the sanitized
+> screenshot and known M1 tool-proposal limitation are recorded under
+> `evidence/ui/final-webui-20260806/`. This is UI integration evidence, not a
+> replacement for Stage 1 selection evidence or final E8 acceptance.
+
 > **Owner-approved final-sprint amendment — 2026-08-05:**
 > [`spec/FINAL_SPRINT_EXECUTION_PACKAGE.md`](../../spec/FINAL_SPRINT_EXECUTION_PACKAGE.md)
 > governs remaining E5–E9 ownership, sequencing, evaluation disclosure, and

@@ -1,4 +1,4 @@
-/** User-facing Chinese labels + tone mapping for contract enums. */
+/** User-facing English labels + tone mapping for contract enums. */
 import type { Tone } from './primitives';
 import type {
   MilestoneStateValue,
@@ -7,14 +7,14 @@ import type {
 } from '../contracts/types';
 
 export const MILESTONE_STATE_LABEL: Record<MilestoneStateValue, string> = {
-  NOT_STARTED: '未开始',
-  IN_PROGRESS: '进行中',
-  NEEDS_INPUT: '待补充',
-  REVIEW_READY: '待确认',
-  CONFIRMED: '已确认',
-  COMPLETE_WITH_GAPS: '带缺口完成',
-  INVALIDATED: '已失效',
-  FAILED: '失败',
+  NOT_STARTED: 'Not started',
+  IN_PROGRESS: 'In progress',
+  NEEDS_INPUT: 'Needs input',
+  REVIEW_READY: 'Ready to review',
+  CONFIRMED: 'Confirmed',
+  COMPLETE_WITH_GAPS: 'Complete with gaps',
+  INVALIDATED: 'Invalidated',
+  FAILED: 'Failed',
 };
 
 export const MILESTONE_STATE_TONE: Record<MilestoneStateValue, Tone> = {
@@ -29,19 +29,19 @@ export const MILESTONE_STATE_TONE: Record<MilestoneStateValue, Tone> = {
 };
 
 export const ROUTE_LABEL: Record<RouteType, string> = {
-  PRIVATE_SELF: '仅自己',
-  BEGINNER: '新手',
-  PEER: '同行',
-  CUSTOMER_EVALUATOR: '客户/评审',
-  PUBLIC: '公开',
+  PRIVATE_SELF: 'Private',
+  BEGINNER: 'Beginner',
+  PEER: 'Peer',
+  CUSTOMER_EVALUATOR: 'Customer / evaluator',
+  PUBLIC: 'Public',
 };
 
 export const ROUTE_ELIGIBILITY_LABEL: Record<RouteEligibility | 'UNKNOWN', string> = {
-  ELIGIBLE: '可用',
-  INELIGIBLE: '不适用',
-  ELIGIBLE_AFTER_PRIVACY_APPROVAL: '隐私审批后可用',
-  BLOCKED: '受阻',
-  UNKNOWN: '未知',
+  ELIGIBLE: 'Eligible',
+  INELIGIBLE: 'Ineligible',
+  ELIGIBLE_AFTER_PRIVACY_APPROVAL: 'Eligible after privacy approval',
+  BLOCKED: 'Blocked',
+  UNKNOWN: 'Unknown',
 };
 
 export const ROUTE_ELIGIBILITY_TONE: Record<RouteEligibility | 'UNKNOWN', Tone> = {
@@ -59,10 +59,10 @@ import type {
 } from '../viewmodel/relationView';
 
 export const RELATION_GATE_LABEL: Record<RelationGate, string> = {
-  NO_TRACE: '无检索轨迹',
-  LOCKED: '未就绪（已锁定）',
-  READY: '已就绪',
-  INVALIDATED: '已失效',
+  NO_TRACE: 'No search yet',
+  LOCKED: 'Not ready — locked',
+  READY: 'Ready',
+  INVALIDATED: 'Invalidated',
 };
 
 export const RELATION_GATE_TONE: Record<RelationGate, Tone> = {
@@ -73,9 +73,9 @@ export const RELATION_GATE_TONE: Record<RelationGate, Tone> = {
 };
 
 export const RELATION_CONFIRMATION_LABEL: Record<RelationConfirmation, string> = {
-  PENDING: '待确认',
-  CONFIRMED: '已确认',
-  DECLINED: '已拒绝',
+  PENDING: 'Pending',
+  CONFIRMED: 'Confirmed',
+  DECLINED: 'Declined',
 };
 
 export const RELATION_CONFIRMATION_TONE: Record<RelationConfirmation, Tone> = {
@@ -85,9 +85,9 @@ export const RELATION_CONFIRMATION_TONE: Record<RelationConfirmation, Tone> = {
 };
 
 export const DETAIL_ACCESS_LABEL: Record<DetailAccess, string> = {
-  DENIED_UNTIL_CONFIRMED: '详细证据：需先确认关系',
-  AVAILABLE: '详细证据：已解锁',
-  DECLINED: '详细证据：已随拒绝关闭',
+  DENIED_UNTIL_CONFIRMED: 'Details locked until confirmation',
+  AVAILABLE: 'Details available',
+  DECLINED: 'Details closed after decline',
 };
 
 export const DETAIL_ACCESS_TONE: Record<DetailAccess, Tone> = {

@@ -1,24 +1,35 @@
 # Experience Asset Agent — React workspace
 
-This React/Vite/TypeScript application exposes the complete M1–M5 product
-journey, relation-readiness gate, privacy review, deterministic preview, and
-HTML/Markdown/JSON delivery path. Start the live journey at:
+The user-facing workspace covers the complete M1-M5 Experience Asset journey:
+Experience Brief, Critical Moment Map, Decision Evidence Ledger, Insight
+Boundary Map, and route/publish preview. It lands on M1 by default; system
+status is an engineering utility view.
+
+The shell only presents and navigates existing product state. Business state,
+permissions, and model tool-call boundaries remain controlled by backend
+contracts and the Agent Runtime. The UI uses same-origin `/api`; local
+development may connect to a loopback remote tunnel with `VITE_PROXY_TARGET`.
+
+The E1-B React/Vite/TypeScript status shell remains available for engineering
+inspection. E2 adds the real M1 product workspace at:
 
 ```text
 http://127.0.0.1:5173/?view=m1&source=live
 ```
 
-M1 creates, autosaves, pauses, resumes and confirms `Experience Brief v0.1`.
-M2–M4 refine the same durable asset through the Critical Moment Map, Decision
-and Evidence Ledger, and Insight and Boundary Map. M5 evaluates all five routes
-and enforces privacy/approval policy before external export. The local `/api`
-proxy keeps FastAPI on loopback.
+The M1 workspace creates, autosaves, pauses, resumes and confirms
+`Experience Brief v0.1`, and shows the persisted bounded Agent trace through
+the same-origin local `/api` proxy. See
+[`../docs/E2_M1_VERTICAL_SLICE.md`](../docs/E2_M1_VERTICAL_SLICE.md) for the
+backend command, API and current evidence boundary.
 
-The status surface never fabricates progress, ETA, or permission. In live mode,
-the global strip reads service/model identity from FastAPI; canonical stage
-state remains visible in each M1–M5 workspace because the current aggregate
-status endpoint does not compose asset state. Stage badges render only when a
-status snapshot actually supplies them.
+The status surface
+**truthfully** presents service health, durable version/autosave state,
+milestone progress, confirmed/unresolved counts, route-readiness placeholders,
+stale/invalidation notices, and current run/terminal state. It is driven only by
+typed API contracts and never fabricates progress, ETA, or permission.
+
+See `../spec/README.md` for the authoritative scope and safety boundaries.
 
 ## Requirements
 
@@ -28,7 +39,7 @@ status snapshot actually supplies them.
 
 ```bash
 cd web
-npm ci
+npm install                 # or: npm ci (after a lockfile is committed)
 npm run dev                 # http://127.0.0.1:5173 (mock data by default)
 ```
 
@@ -81,9 +92,9 @@ E2E_LIVE_BASE_URL=http://127.0.0.1:8080 VITE_PROXY_TARGET=http://127.0.0.1:8080 
 
 ## Contracts and provenance
 
-`web/contracts/` holds the final public contracts **vendored verbatim** from
-their recorded backend source commits. The Web UI does not own or fork them.
-Their source commits and SHA-256 hashes are recorded in
+`web/contracts/` holds the final E1-A public contracts **vendored verbatim** from
+`main@431e1a5` (JSON Schema + OpenAPI + examples). Lane B does not own or fork
+them. Their source commit and SHA-256 hashes are recorded in
 `web/contracts/PROVENANCE.md` and enforced by `npm run verify:contracts` and
 `src/contracts/provenance.test.ts`.
 

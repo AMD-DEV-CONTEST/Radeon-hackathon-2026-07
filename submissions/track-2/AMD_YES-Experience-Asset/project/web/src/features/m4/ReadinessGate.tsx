@@ -3,8 +3,8 @@ import type { M4View } from './m4View';
 import { ACCEPTABLE_STATES, type DiscoveryLock, type KnowledgeCardReadinessV1 } from './readiness';
 
 const MILESTONE_LABELS: Record<string, string> = {
-  CONFIRMED: '已确认',
-  COMPLETE_WITH_GAPS: '带缺口接受',
+  CONFIRMED: 'Confirmed',
+  COMPLETE_WITH_GAPS: 'Accepted with gaps',
 };
 
 export function ReadinessGate({
@@ -27,34 +27,34 @@ export function ReadinessGate({
 
   return (
     <Panel
-      title="Knowledge Card 就绪"
+      title="Knowledge Card readiness"
       testId="m4-readiness-gate"
       actions={
         <Badge
           tone={readiness ? 'ok' : 'warn'}
           testId="m4-readiness-badge"
         >
-          {readiness ? MILESTONE_LABELS[readiness.milestone_state] : '尚未接受'}
+          {readiness ? MILESTONE_LABELS[readiness.milestone_state] : 'Not accepted'}
         </Badge>
       }
     >
       {readiness ? (
         <div data-testid="m4-readiness-bindings">
           <p>
-            绑定版本：<Mono>{readiness.version_id}</Mono>
+            Version: <Mono>{readiness.version_id}</Mono>
           </p>
           <p>
-            卡片哈希：<Mono>{readiness.knowledge_card_hash}</Mono>
+            Card hash: <Mono>{readiness.knowledge_card_hash}</Mono>
           </p>
           {readiness.accepted_gap_statement_ids.length ? (
             <p>
-              接受时留下 {readiness.accepted_gap_statement_ids.length} 处缺口。
+              Accepted with {readiness.accepted_gap_statement_ids.length} visible gaps.
             </p>
           ) : null}
         </div>
       ) : (
         <p data-testid="m4-readiness-absent">
-          这张卡还没有被接受。接受是唯一的就绪来源——系统不会因为「没有未解问题」就替你认定它完成了。
+          This card has not been accepted. Readiness only comes from your explicit acceptance.
         </p>
       )}
 
@@ -66,7 +66,7 @@ export function ReadinessGate({
             disabled={busy || hasGaps}
             onClick={() => onAccept('CONFIRM')}
           >
-            确认这张卡
+            Confirm this card
           </button>
           <button
             type="button"
@@ -74,7 +74,7 @@ export function ReadinessGate({
             disabled={busy || !hasGaps}
             onClick={() => onAccept('ACCEPT_WITH_GAPS')}
           >
-            带缺口接受（{view.visibleGaps.length}）
+            Accept with gaps ({view.visibleGaps.length})
           </button>
         </div>
       ) : null}
@@ -90,16 +90,16 @@ export function ReadinessGate({
           card changes in another tab, and the user would be offered an action
           that fails when clicked. */}
       <div data-testid="m4-discovery-lock" data-locked={lock?.locked ? 'true' : 'false'}>
-        <strong>查找相关经历</strong>{' '}
+        <strong>Find related experiences</strong>{' '}
         {lock === null ? (
-          <Badge tone="muted">尚未读取</Badge>
+          <Badge tone="muted">Not loaded</Badge>
         ) : lock.locked ? (
           <Badge tone="warn" testId="m4-discovery-locked">
-            已锁定{lock.outcome ? `（${lock.outcome}）` : ''}
+            Locked{lock.outcome ? ` (${lock.outcome})` : ''}
           </Badge>
         ) : (
           <Badge tone="ok" testId="m4-discovery-available">
-            可用
+            Available
           </Badge>
         )}
         {lock?.locked && lock.reason ? (

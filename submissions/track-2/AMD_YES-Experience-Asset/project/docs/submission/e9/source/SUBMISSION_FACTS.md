@@ -2,7 +2,7 @@
 
 - Status: `SUBMISSION_PACKAGE_READY / DEMO_LINK_ADDED`
 - Competition: AMD AI DevMaster Hackathon 2026 - Track 2
-- Current repository snapshot: `main@c4d14bf042ad53baa9b726a0e11fbd9ffd37e5fd`
+- Submitted source snapshot: `main@aab2ae63a4e9379aa3af5b5f118e862c3bc11317`
 - Tested application implementation: `c9ec07489d17a2abb74bac66a23ade2c775c1b06`
 - Material snapshot ID: `EA-SUBMISSION-E9-20260806-R8`
 - Final submission language: English
@@ -146,7 +146,7 @@ evidence discipline, not hallucination elimination.
 ## Remaining publication actions
 
 ```text
-FINAL_OFFICIAL_PR_URL
+https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/pull/275
 ```
 
 All required document content is ready, and the registered team name is
@@ -154,12 +154,10 @@ All required document content is ready, and the registered team name is
 https://drive.google.com/drive/folders/1_cOmcYBIJuPfkoJ4VuA7ZuBYV8nYB8yr?usp=drive_link;
 its signed-out permission still requires confirmation. The tested application,
 W7900 evidence
-and final launcher are frozen. The current PPT is valid as submitted; PR #59
-may still improve the presentation-layer WebUI used in the recording, but is
-not a document prerequisite and does not change the evidence claim unless it
-changes the tested workflow. The team name is owner-supplied registration
-metadata. The Demo and organizer PR URLs cannot exist before recording and
-publication.
+and final launcher are frozen. PR #59, source-freeze PR #60 and final-WebUI PR
+#61 are merged in the submitted source snapshot. These changes provide the
+final judge entrypoint and UI evidence without changing the earlier W7900
+functional evidence boundary. The current PPT remains valid as submitted.
 
 ## What judges should understand in minutes
 

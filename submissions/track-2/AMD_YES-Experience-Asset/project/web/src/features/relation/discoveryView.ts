@@ -145,30 +145,30 @@ export function deriveDiscoveryView(
 }
 
 export const STATE_LABELS: Record<DiscoveryViewState, string> = {
-  LOCKED: '未就绪',
-  IDLE: '尚未查找',
-  RUNNING: '查找中',
-  CANDIDATE: '找到一条可辩护的关系',
-  NO_MATCH: '已查找，没有可辩护的关系',
-  TECHNICAL_FAILURE: '查找中断',
-  STALE: '卡片已变更',
+  LOCKED: 'Not ready',
+  IDLE: 'Not searched',
+  RUNNING: 'Searching',
+  CANDIDATE: 'A defensible relationship was found',
+  NO_MATCH: 'No defensible relationship was found',
+  TECHNICAL_FAILURE: 'Search interrupted',
+  STALE: 'Card changed',
 };
 
 export const RELATION_TYPE_LABELS: Record<string, string> = {
-  SAME_THEME: '同一主题',
-  METHOD_REUSE: '方法复用',
-  COUNTEREXAMPLE: '反例',
-  SUPPLEMENT: '补充',
-  PREREQUISITE: '前置条件',
-  FOLLOW_UP: '后续',
+  SAME_THEME: 'Same theme',
+  METHOD_REUSE: 'Method reuse',
+  COUNTEREXAMPLE: 'Counterexample',
+  SUPPLEMENT: 'Supplement',
+  PREREQUISITE: 'Prerequisite',
+  FOLLOW_UP: 'Follow-up',
 };
 
 export const FAILURE_LABELS: Record<DiscoveryFailureClass, string> = {
-  MODEL_UNAVAILABLE: '本地推理服务不可用',
-  MODEL_TIMED_OUT: '本地推理超时',
-  MALFORMED_MODEL_OUTPUT: '模型输出不符合结构合同',
-  RUNTIME_VALIDATION_REJECTED: '提案未通过 Runtime 校验',
-  STORAGE_CONFLICT: '存储冲突',
-  STALE_BINDING: '绑定已过期',
-  LEASE_EXPIRED: '上一次查找中断，没有回报结果',
+  MODEL_UNAVAILABLE: 'Local model unavailable',
+  MODEL_TIMED_OUT: 'Local model timed out',
+  MALFORMED_MODEL_OUTPUT: 'Model output did not match the required structure',
+  RUNTIME_VALIDATION_REJECTED: 'The proposal failed runtime validation',
+  STORAGE_CONFLICT: 'Storage conflict',
+  STALE_BINDING: 'Binding expired',
+  LEASE_EXPIRED: 'The previous search ended without a result',
 };

@@ -33,7 +33,7 @@ drafts and Chinese files are references, not submission deliverables.
 
 | Item | Current state |
 |---|---|
-| Current product `main` at refresh | `c4d14bf042ad53baa9b726a0e11fbd9ffd37e5fd` |
+| Submitted source snapshot | `aab2ae63a4e9379aa3af5b5f118e862c3bc11317` |
 | Exact tested implementation | `c9ec07489d17a2abb74bac66a23ade2c775c1b06`, merged through PR #52 |
 | Complete W7900 product result | PASS: local Qwen3.5-9B generated M1-M4, evidence was inspected, an upstream correction invalidated/regenerated downstream work, and M5 completed route/privacy review plus private HTML/Markdown/JSON delivery |
 | W7900 environment | Radeon PRO W7900 `gfx1100`, 96 CUs, 48 GiB; ROCm/HIP 7.2; vLLM 0.26.0; BF16; 20K max context |
@@ -42,9 +42,9 @@ drafts and Chinese files are references, not submission deliverables.
 | Stage 2 decision | S0 PASS at approximately 120 s; P1 PASS at 109.21 s on the same one-case journey. P1 selected; S0 rollback. This is not a generalized performance claim |
 | Stage 2 evidence | `evidence/performance/stage2-minimal/20260806T124938Z/` on `main` |
 | Final launcher | PR #58 merged; `bash scripts/serve_final_vllm.sh` launches P1 and `SERVING_PROFILE=S0` provides rollback |
-| Demo navigation polish | PR #59 open at refresh; useful for the recording, not required for product evidence |
+| Final English WebUI | PR #59, source freeze PR #60 and final WebUI PR #61 merged; UI evidence is under `evidence/ui/final-webui-20260806/` |
 | Media plan | PR #55 defines seven English slides and an approximately four-minute demo centered on real Web UI operation |
-| Official submission | English copy ready; organizer PR not yet opened |
+| Official submission | AMD organizer PR #275 open |
 
 ## Generated artifacts
 
@@ -91,9 +91,7 @@ inference path is local through loopback vLLM, ROCm and Radeon PRO W7900.
 ## What remains before official publication
 
 - verify the 3-5 minute Demo folder opens while signed out;
-- integrate PR #54 and decide whether optional PR #59 is included in the Demo;
-- provide signed-out public access to the complete source and materials; the
-  team repository is currently private;
+- keep the complete public source and materials in organizer PR #275 current;
 - use the confirmed PR title `Track 2, AMD_YES, Experience Asset`;
 - verify all public links while signed out;
 - open the English PR against the organizer repository with the required title;

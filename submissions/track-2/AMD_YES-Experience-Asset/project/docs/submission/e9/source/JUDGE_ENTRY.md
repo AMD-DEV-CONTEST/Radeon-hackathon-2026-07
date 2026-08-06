@@ -1,6 +1,6 @@
 # Experience Asset - One-Minute Judge Entry
 
-> **Submission document snapshot:** current `main@c4d14bf`; tested application
+> **Submission document snapshot:** source `main@aab2ae6`; tested application
 > `c9ec074`; material snapshot `EA-SUBMISSION-E9-20260806-R8`. All required
 > documents and Demo link are included; signed-out link verification remains.
 
@@ -60,5 +60,5 @@ project controls rather than eliminates hallucination and privacy risk.
 - Source, setup and startup: [`../../../README.md`](../../../README.md)
 - Demo video:
   https://drive.google.com/drive/folders/1_cOmcYBIJuPfkoJ4VuA7ZuBYV8nYB8yr?usp=drive_link
-- Official submission PR: not opened; copy is ready in
-  [`OFFICIAL_PR_DRAFT.md`](OFFICIAL_PR_DRAFT.md)
+- Official submission PR:
+  https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/pull/275

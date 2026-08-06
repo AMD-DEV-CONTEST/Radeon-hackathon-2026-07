@@ -45,8 +45,8 @@ WebUI capture is optional presentation polish, not a missing requirement.
 
 - Tested application implementation:
   `c9ec07489d17a2abb74bac66a23ade2c775c1b06`
-- Current repository `main` before the documentation PR merges:
-  `c4d14bf042ad53baa9b726a0e11fbd9ffd37e5fd`
+- Submitted source snapshot:
+  `aab2ae63a4e9379aa3af5b5f118e862c3bc11317`
 - Model: `Qwen/Qwen3.5-9B` revision
   `460979c3d11864dd16408d860ac930a360a2fac2`, BF16, no quantization
 - Runtime: vLLM 0.26.0, ROCm/HIP 7.2

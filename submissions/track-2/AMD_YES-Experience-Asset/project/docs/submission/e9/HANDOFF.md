@@ -23,14 +23,15 @@ organizer-repository PR.
 Recommended owner: teammate with Radeon Cloud/W7900 access.
 
 - decide and record the exact final repository commit;
-- optionally merge PR #59 if the stage rail improves the demo;
+- use submitted source snapshot `aab2ae6`, which includes the final English
+  WebUI and stage navigation;
 - start the loopback model, API and Web UI on W7900;
 - load the public synthetic fixture and confirm the complete path is ready;
 - send the recorder the exact commit/model/device identity card.
 
 No new benchmark or full evidence cycle is needed unless integration changes
-the tested product behavior. PR #59 is UI navigation polish; it does not
-replace or invalidate the frozen W7900 packet by itself.
+the tested product behavior. The final UI/source updates do not replace or
+invalidate the frozen W7900 packet by themselves.
 
 ### Lane B - demo recording and upload
 

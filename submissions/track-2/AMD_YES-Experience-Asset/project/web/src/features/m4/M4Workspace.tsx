@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Badge, Mono } from '../../components/primitives';
-import { AssetHandoff } from '../../shell/AssetHandoff';
-import { Working } from '../../shell/Working';
 import { InsightBoundaryMap } from './InsightBoundaryMap';
 import { ReadinessGate } from './ReadinessGate';
 import { DiscoveryPanel } from '../relation/DiscoveryPanel';
@@ -30,7 +28,6 @@ type Props = {
   readinessApi?: ReadinessApi;
   discoveryApi?: DiscoveryApi;
   storage?: Storage;
-  onStatusChange?: () => void;
 };
 
 export function M4Workspace({
@@ -39,7 +36,6 @@ export function M4Workspace({
   readinessApi: suppliedReadiness,
   discoveryApi: suppliedDiscovery,
   storage = window.localStorage,
-  onStatusChange,
 }: Props) {
   const live = useMemo(() => new LiveM4Api(apiBaseUrl), [apiBaseUrl]);
   const liveReadiness = useMemo(() => new LiveReadinessApi(apiBaseUrl), [apiBaseUrl]);
@@ -61,11 +57,6 @@ export function M4Workspace({
   const [relation, setRelation] = useState<RelationWorkspaceV1 | null>(null);
   const [relationError, setRelationError] = useState('');
 
-  const applyWorkspace = (next: M4WorkspaceV1) => {
-    setWorkspace(next);
-    onStatusChange?.();
-  };
-
   const view = workspace ? deriveM4View(workspace) : null;
 
   // Both come from the backend on every refresh. Caching the lock across a
@@ -85,7 +76,7 @@ export function M4Workspace({
         setRelation(null);
       }
     } catch (reason) {
-      setGateError(reason instanceof Error ? reason.message : '读取就绪状态失败');
+      setGateError(reason instanceof Error ? reason.message : 'Could not load readiness.');
     }
   };
 
@@ -109,7 +100,7 @@ export function M4Workspace({
       });
       await load();
     } catch (reason) {
-      setGateError(reason instanceof Error ? reason.message : '接受失败');
+      setGateError(reason instanceof Error ? reason.message : 'Could not accept the card.');
       await refreshGate(assetId);
     } finally {
       setBusy(false);
@@ -135,7 +126,7 @@ export function M4Workspace({
         }),
       );
     } catch (reason) {
-      setRelationError(reason instanceof Error ? reason.message : '决定失败');
+      setRelationError(reason instanceof Error ? reason.message : 'Could not save the decision.');
       // A refusal means the backend saw a binding this view no longer matches,
       // so the view is re-read rather than left showing the state that was
       // just rejected.
@@ -164,7 +155,7 @@ export function M4Workspace({
         }),
       );
     } catch (reason) {
-      setRelationError(reason instanceof Error ? reason.message : '查找失败');
+      setRelationError(reason instanceof Error ? reason.message : 'Could not find related experiences.');
       // Re-read rather than assume: the server may have moved the card out
       // from under this view, and that is exactly the case the message must
       // not paper over.
@@ -182,12 +173,12 @@ export function M4Workspace({
     try {
       const currentUpstream = await api.getCurrentUpstream(assetId);
       setUpstream(currentUpstream);
-      applyWorkspace(await api.get(assetId));
+      setWorkspace(await api.get(assetId));
       await refreshGate(assetId);
       storage.setItem(KEY, assetId);
     } catch (reason) {
       if (reason instanceof M4ApiError && reason.status === 404) setWorkspace(null);
-      else setError(reason instanceof Error ? reason.message : '载入失败');
+      else setError(reason instanceof Error ? reason.message : 'Could not load the insight map.');
     } finally {
       setBusy(false);
     }
@@ -206,7 +197,7 @@ export function M4Workspace({
     try {
       const currentUpstream = await api.getCurrentUpstream(assetId);
       setUpstream(currentUpstream);
-      applyWorkspace(
+      setWorkspace(
         await api.create(
           assetId,
           currentUpstream.m3_artifact_id,
@@ -215,7 +206,7 @@ export function M4Workspace({
       );
       storage.setItem(KEY, assetId);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '生成失败');
+      setError(reason instanceof Error ? reason.message : 'Could not generate the insight map.');
       // A stopped run leaves the workspace readable; reload so the terminal
       // state is shown rather than the pre-run view the user was looking at.
       await reload();
@@ -226,7 +217,7 @@ export function M4Workspace({
 
   const reload = async () => {
     try {
-      applyWorkspace(await api.get(assetId));
+      setWorkspace(await api.get(assetId));
     } catch {
       /* keep the error already surfaced */
     }
@@ -239,7 +230,7 @@ export function M4Workspace({
     try {
       const currentUpstream = await api.getCurrentUpstream(assetId);
       setUpstream(currentUpstream);
-      applyWorkspace(
+      setWorkspace(
         await api.regenerate(
           assetId,
           currentUpstream.m3_artifact_id,
@@ -249,7 +240,7 @@ export function M4Workspace({
       );
       setDrafts({});
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '重新生成失败');
+      setError(reason instanceof Error ? reason.message : 'Could not regenerate the insight map.');
       await reload();
     } finally {
       setBusy(false);
@@ -261,7 +252,7 @@ export function M4Workspace({
     const draft = drafts[statementId];
     if (draft === undefined) return;
     try {
-      applyWorkspace(
+      setWorkspace(
         await api.edit(assetId, workspace.map.artifact_id, [
           { statement_id: statementId, text: draft },
         ]),
@@ -273,7 +264,7 @@ export function M4Workspace({
       });
       setError('');
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '保存失败');
+      setError(reason instanceof Error ? reason.message : 'Could not save the insight map.');
       if (reason instanceof M4ApiError && reason.status === 409) await reload();
     }
   };
@@ -281,18 +272,18 @@ export function M4Workspace({
   const markGap = async (statementId: string) => {
     if (!workspace?.map) return;
     try {
-      applyWorkspace(
+      setWorkspace(
         await api.edit(assetId, workspace.map.artifact_id, [
           {
             statement_id: statementId,
             is_visible_gap: true,
-            gap_reason: '用户明确标记为缺口',
+            gap_reason: 'Marked by the user as an evidence gap',
           },
         ]),
       );
       setError('');
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '标记缺口失败');
+      setError(reason instanceof Error ? reason.message : 'Could not mark the evidence gap.');
     }
   };
 
@@ -300,21 +291,20 @@ export function M4Workspace({
     <section data-testid="m4-workspace">
       <div className="panel">
         <h2>M4 Insight and Boundary Map</h2>
-        <AssetHandoff assetId={assetId} upstream="M3" testId="m4-no-asset" />
         <label className="form-field">
           <span>Asset ID</span>
           <input value={assetId} onChange={(event) => setAssetId(event.target.value)} />
         </label>
         <p data-testid="m4-current-upstream">
-          最近自动读取的 M3：<Mono>{upstream?.m3_artifact_id ?? '尚未读取'}</Mono>{' '}
+          Latest M3 read by the system: <Mono>{upstream?.m3_artifact_id ?? 'Not loaded'}</Mono>{' '}
           {upstream ? <Badge tone="info">{upstream.m3_state}</Badge> : null}
         </p>
         <p>
-          当前规范版本：<Mono>{upstream?.canonical_version_id ?? '尚未读取'}</Mono>
+          Current canonical version: <Mono>{upstream?.canonical_version_id ?? 'Not loaded'}</Mono>
         </p>
         <div className="row">
           <button className="btn" disabled={busy || !assetId} onClick={() => void load()}>
-            重新载入
+            Reload
           </button>
           {/* Enabled when no workspace is loaded as well as when the loaded one
               has no map: a 404 on the workspace read is exactly the state
@@ -325,17 +315,16 @@ export function M4Workspace({
             disabled={busy || !assetId || (view !== null && !view.canCreate)}
             onClick={() => void create()}
           >
-            {busy ? '处理中…' : '从当前 M3 生成'}
+            Create from current M3
           </button>
           <button
             className="btn"
             disabled={busy || view?.canRegenerate !== true}
             onClick={() => void regenerate()}
           >
-            重新生成
+            Regenerate
           </button>
         </div>
-        {busy ? <Working label="正在处理当前 M4 操作" testId="m4-working" /> : null}
         {error ? (
           <div className="notice notice--danger" role="alert" data-testid="m4-error">
             {error}

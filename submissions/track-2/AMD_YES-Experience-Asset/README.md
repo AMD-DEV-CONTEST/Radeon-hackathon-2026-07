@@ -51,12 +51,21 @@ passed on W7900, including M1-M4 generation, evidence inspection, upstream
 correction, downstream invalidation/regeneration, M5 route/privacy review and
 private HTML/Markdown/JSON delivery.
 
+The submitted source snapshot is
+`aab2ae63a4e9379aa3af5b5f118e862c3bc11317`. It adds the final reproducible
+judge entrypoint and English WebUI on top of the accepted product path. The UI
+update includes visible stage navigation, working-state feedback, full Agent
+trace, relation-gate state and final UI evidence; it does not replace the
+earlier W7900 functional evidence bound to `c9ec074`.
+
 ## Evidence boundary
 
 - Complete-product packet:
   [`project/evidence/milestones/e8-a0-w7900/20260806T122806Z/`](project/evidence/milestones/e8-a0-w7900/20260806T122806Z/)
 - Minimal Stage 2 packet:
   [`project/evidence/performance/stage2-minimal/20260806T124938Z/`](project/evidence/performance/stage2-minimal/20260806T124938Z/)
+- Final WebUI evidence:
+  [`project/evidence/ui/final-webui-20260806/`](project/evidence/ui/final-webui-20260806/)
 
 The same complete Agent/model/public case passed with S0 and P1. S0 completed
 in approximately 120 seconds and P1 in 109.21 seconds. This is one observation,

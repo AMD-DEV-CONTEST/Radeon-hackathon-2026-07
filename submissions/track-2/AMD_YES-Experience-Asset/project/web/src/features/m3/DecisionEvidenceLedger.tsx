@@ -6,17 +6,17 @@ import type {
 } from './types';
 
 const ROLE_LABELS: Record<LedgerRole, string> = {
-  ALTERNATIVE: '替代方案',
-  REASON: '理由',
-  DECISION: '最终决策',
-  ACTION: '行动',
-  OBSERVED_RESULT: '观察结果',
+  ALTERNATIVE: 'Alternative',
+  REASON: 'Reason',
+  DECISION: 'Decision',
+  ACTION: 'Action',
+  OBSERVED_RESULT: 'Observed result',
 };
 
 const EVIDENCE_LABELS: Record<EvidenceDisposition, string> = {
-  SUPPORTED: '有证据',
-  CONFLICTING: '证据冲突',
-  UNRESOLVED: '待补充',
+  SUPPORTED: 'Supported',
+  CONFLICTING: 'Conflicting evidence',
+  UNRESOLVED: 'Needs evidence',
 };
 
 function evidenceTone(disposition: EvidenceDisposition): Tone {
@@ -58,11 +58,11 @@ function EvidenceDetails({
                   <>
                     ：{evidence.text}
                     {evidence.source_labels.length ? (
-                      <small>（来源：{evidence.source_labels.join('、')}）</small>
+                      <small> (Sources: {evidence.source_labels.join(', ')})</small>
                     ) : null}
                   </>
                 ) : (
-                  '：证据内容不可用'
+                  ': Evidence unavailable'
                 )}
               </li>
             );
@@ -73,23 +73,23 @@ function EvidenceDetails({
 
   return (
     <details data-testid="m3-evidence-details">
-      <summary>查看证据内容</summary>
+      <summary>View supporting evidence</summary>
       <div>
-        <strong>来源时刻</strong>
+        <strong>Source moments</strong>
         <ul>
           {momentIds.map((id) => {
             const moment = moments.get(id);
             return (
               <li key={id}>
                 <Mono>{id}</Mono>
-                {moment ? `：${moment.title} — ${moment.description}` : '：证据内容不可用'}
+                {moment ? `: ${moment.title} — ${moment.description}` : ': Evidence unavailable'}
               </li>
             );
           })}
         </ul>
       </div>
-      {renderStatements(sourceStatementIds, '来源陈述')}
-      {renderStatements(derivedStatementIds, '推导依据')}
+      {renderStatements(sourceStatementIds, 'Source statements')}
+      {renderStatements(derivedStatementIds, 'Derived evidence')}
     </details>
   );
 }
@@ -123,17 +123,17 @@ export function DecisionEvidenceLedger({
       }
     >
       <p>
-        绑定 M2：<Mono>{artifact.base_m2_artifact_id}</Mono>
+        Based on M2: <Mono>{artifact.base_m2_artifact_id}</Mono>
       </p>
       <p>
-        绑定规范版本：<Mono>{artifact.base_canonical_version_id}</Mono>
+        Canonical version: <Mono>{artifact.base_canonical_version_id}</Mono>
       </p>
 
       <div data-testid="m3-progress">
         <strong>{progress.stage}</strong>：{progress.safe_message}
         <small>
-          修复 {progress.structured_repairs_used}/{progress.structured_repair_budget}；
-          重规划 {progress.replans_used}/{progress.replan_budget}；模型调用{' '}
+          Repairs {progress.structured_repairs_used}/{progress.structured_repair_budget};
+          replans {progress.replans_used}/{progress.replan_budget}; model calls{' '}
           {progress.model_calls_used}/{progress.model_call_budget}
         </small>
       </div>
@@ -147,7 +147,7 @@ export function DecisionEvidenceLedger({
 
       {artifact.state === 'INVALIDATED' ? (
         <div role="alert" data-testid="m3-invalidated">
-          <strong>该决策账本已失效。</strong> {artifact.invalidation_reason}
+          <strong>This decision ledger is out of date.</strong> {artifact.invalidation_reason}
         </div>
       ) : null}
 
@@ -192,8 +192,8 @@ export function DecisionEvidenceLedger({
                     </p>
                   ) : null}
                   <small>
-                    来源时刻 {statement.source_moment_ids.length}；来源陈述{' '}
-                    {statement.source_statement_ids.length}；推导陈述{' '}
+                    Source moments {statement.source_moment_ids.length}; source statements{' '}
+                    {statement.source_statement_ids.length}; derived statements{' '}
                     {statement.derived_from_statement_ids.length}
                   </small>
                   <EvidenceDetails

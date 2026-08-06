@@ -58,12 +58,12 @@ export function M5ReviewPanel({
     <section data-testid="m5-review-panel">
       <Panel title="M5 Route Readiness Matrix" testId="m5-route-matrix">
         <div className="row">
-          <Badge tone="info">版本 {workspace.version_id}</Badge>
+          <Badge tone="info">Version {workspace.version_id}</Badge>
           <Badge tone={workspace.autosave_state === 'save_failed' ? 'danger' : 'ok'}>
             {workspace.autosave_state}
           </Badge>
           <Badge tone={workspace.terminal_state ? 'muted' : 'info'}>
-            {workspace.terminal_state ?? '运行中'}
+            {workspace.terminal_state ?? 'Running'}
           </Badge>
         </div>
         <ul className="routes">
@@ -77,23 +77,23 @@ export function M5ReviewPanel({
               </div>
               <p className="route__why">{decision.explanation}</p>
               {decision.reason_codes?.length ? (
-                <p className="route__why">原因：{decision.reason_codes.join(', ')}</p>
+                <p className="route__why">Why: {decision.reason_codes.join(', ')}</p>
               ) : null}
               <div
                 className="route__why"
                 data-testid={`m5-route-${decision.route}-evidence`}
               >
                 <p>
-                  支持证据：
+                  Supporting evidence:
                   {decision.supporting_statement_ids?.length
                     ? <Mono>{decision.supporting_statement_ids.join(', ')}</Mono>
-                    : '无'}
+                    : 'None'}
                 </p>
                 <p>
-                  缺失证据：
+                  Missing evidence:
                   {decision.missing_statement_ids?.length
                     ? <Mono>{decision.missing_statement_ids.join(', ')}</Mono>
-                    : '无'}
+                    : 'None'}
                 </p>
               </div>
             </li>
@@ -101,17 +101,17 @@ export function M5ReviewPanel({
         </ul>
       </Panel>
 
-      <Panel title="隐私与表述风险" testId="m5-privacy-review">
+      <Panel title="Privacy and wording review" testId="m5-privacy-review">
         <div className="notice notice--warn">
-          自动检测只用于辅助检查，不能保证发现全部隐私或表述风险。
+          Automated checks support your review but may not find every privacy or wording risk.
         </div>
         {workspace.privacy_review_state === 'FAILED' ? (
           <div className="notice notice--danger" role="alert">
-            隐私检查失败：{workspace.privacy_failure_code ?? 'UNKNOWN'}。外部批准保持阻断。
+            Privacy check failed: {workspace.privacy_failure_code ?? 'UNKNOWN'}. External sharing remains blocked.
           </div>
         ) : null}
         {workspace.findings.length === 0 ? (
-          <div className="notice notice--muted">当前检查没有返回风险项，仍需用户最终复核。</div>
+          <div className="notice notice--muted">No risks were found automatically. Please complete a final review.</div>
         ) : (
           <ul className="routes">
             {workspace.findings.map(finding => (
@@ -122,7 +122,7 @@ export function M5ReviewPanel({
                 </div>
                 <p className="route__why">{finding.explanation}</p>
                 <p className="route__why">
-                  影响引用：<Mono>{finding.affected_reference_ids.join(', ')}</Mono>
+                  Affected references: <Mono>{finding.affected_reference_ids.join(', ')}</Mono>
                 </p>
                 <div className="row">
                   {finding.allowed_actions.map(action => (
@@ -144,35 +144,35 @@ export function M5ReviewPanel({
           </ul>
         )}
         {pendingChange ? (
-          <div className="notice notice--danger" role="dialog" aria-label="确认内容修改">
+          <div className="notice notice--danger" role="dialog" aria-label="Confirm content change">
             <p>
-              {pendingChange.action} 需要你先对受影响的 canonical 内容做明确编辑。
-              未创建新版本前，系统不会把该风险标记为已解决。
+              {pendingChange.action} requires an explicit edit to the affected canonical content.
+              The risk stays open until a new version is created.
             </p>
             <div className="row">
               <button className="btn btn--primary" onClick={confirmContentChange}>
-                去 M1 创建新版本
+                Create a new version in M1
               </button>
-              <button className="btn" onClick={() => setPendingChange(null)}>取消</button>
+              <button className="btn" onClick={() => setPendingChange(null)}>Cancel</button>
             </div>
           </div>
         ) : null}
       </Panel>
 
-      <Panel title="外部分享批准" testId="m5-approval">
+      <Panel title="External sharing approval" testId="m5-approval">
         <div className="fields">
-          <div className="field"><span className="field__label">路线</span><span>{ROUTE_LABEL[approval.route]}</span></div>
-          <div className="field"><span className="field__label">语言</span><span>{approval.language}</span></div>
-          <div className="field"><span className="field__label">版本</span><Mono>{approval.version_id}</Mono></div>
-          <div className="field"><span className="field__label">状态</span><Badge tone={approval.state === 'READY' || approval.state === 'APPROVED' ? 'ok' : 'warn'}>{approval.state}</Badge></div>
+          <div className="field"><span className="field__label">Route</span><span>{ROUTE_LABEL[approval.route]}</span></div>
+          <div className="field"><span className="field__label">Language</span><span>{approval.language}</span></div>
+          <div className="field"><span className="field__label">Version</span><Mono>{approval.version_id}</Mono></div>
+          <div className="field"><span className="field__label">Status</span><Badge tone={approval.state === 'READY' || approval.state === 'APPROVED' ? 'ok' : 'warn'}>{approval.state}</Badge></div>
         </div>
         {approval.stale_reason ? (
-          <div className="notice notice--danger">旧批准不可用：{approval.stale_reason}</div>
+          <div className="notice notice--danger">Previous approval is no longer valid: {approval.stale_reason}</div>
         ) : null}
-        <p className="route__why">预览、生成和私人下载都不会产生外部分享批准。</p>
+        <p className="route__why">Previewing, generating, and private downloads do not create external sharing approval.</p>
         {privateRoute ? (
           <div className="notice notice--muted">
-            PRIVATE_SELF 只产生私人预览与下载，不需要、也不会创建外部分享批准。
+            PRIVATE_SELF only creates private previews and downloads; no external approval is required or created.
           </div>
         ) : (
           <button
@@ -192,7 +192,7 @@ export function M5ReviewPanel({
               });
             }}
           >
-            批准当前精确草稿用于外部导出
+            Approve this exact draft for external export
           </button>
         )}
       </Panel>

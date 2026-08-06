@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LiveM1Api, M1ApiError, type M1Api } from './api';
-import { AgentRunTrace } from './AgentRunTrace';
 import {
   draftFromWorkspace,
   draftMatchesWorkspace,
@@ -18,7 +17,7 @@ function savedTime(value: string): string {
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : '本地操作失败，请重试。';
+  return error instanceof Error ? error.message : 'The local operation failed. Please try again.';
 }
 
 export function M1ExperienceWorkspace({
@@ -26,13 +25,11 @@ export function M1ExperienceWorkspace({
   api: providedApi,
   storage = window.localStorage,
   autosaveDelayMs = 700,
-  onStatusChange,
 }: {
   apiBaseUrl?: string;
   api?: M1Api;
   storage?: Storage;
   autosaveDelayMs?: number;
-  onStatusChange?: () => void;
 }) {
   const api = useMemo(
     () => providedApi ?? new LiveM1Api(apiBaseUrl),
@@ -44,14 +41,14 @@ export function M1ExperienceWorkspace({
   draftRef.current = draft;
   const [sourceText, setSourceText] = useState('');
   const [sourceKind, setSourceKind] = useState<M1SourceKind>('PASTED_TEXT');
-  const [sourceLabel, setSourceLabel] = useState('我的经历');
+  const [sourceLabel, setSourceLabel] = useState('My experience');
   const [fileName, setFileName] = useState<string | null>(null);
   const [goalHint, setGoalHint] = useState('');
   const [questionAnswers, setQuestionAnswers] = useState<Record<string, string>>({});
-  const [agentGoal, setAgentGoal] = useState('按当前证据检查这份 Brief 的来源边界');
+  const [agentGoal, setAgentGoal] = useState('Check the brief against the current source evidence');
   const [allowCurrentSourceSearch, setAllowCurrentSourceSearch] = useState(false);
   const [phase, setPhase] = useState<'restoring' | 'ready' | 'working'>('restoring');
-  const [activity, setActivity] = useState('准备就绪');
+  const [activity, setActivity] = useState('Ready');
   const [error, setError] = useState<string | null>(null);
 
   const applyWorkspace = useCallback(
@@ -60,9 +57,8 @@ export function M1ExperienceWorkspace({
       storage.setItem(ACTIVE_ASSET_KEY, next.asset.asset_id);
       if (resetDraft) setDraft(draftFromWorkspace(next));
       setError(null);
-      onStatusChange?.();
     },
-    [onStatusChange, storage],
+    [storage],
   );
 
   useEffect(() => {
@@ -77,7 +73,7 @@ export function M1ExperienceWorkspace({
       .then((next) => {
         if (!cancelled) {
           applyWorkspace(next);
-          setActivity('已从本地持久化版本恢复');
+          setActivity('Restored from the local saved version');
         }
       })
       .catch((reason: unknown) => {
@@ -113,21 +109,21 @@ export function M1ExperienceWorkspace({
     const snapshot = draft;
     const timer = window.setTimeout(() => {
       setPhase('working');
-      setActivity('正在自动保存…');
+      setActivity('Autosaving…');
       api
         .edit(base.asset.asset_id, base.asset.version_id, snapshot)
         .then((next) => {
           const unchangedDuringSave =
             JSON.stringify(draftRef.current) === JSON.stringify(snapshot);
           applyWorkspace(next, unchangedDuringSave);
-          setActivity(unchangedDuringSave ? '已自动保存' : '已保存，继续同步新修改…');
+          setActivity(unchangedDuringSave ? 'Autosaved' : 'Saved — syncing newer edits…');
         })
         .catch(async (reason: unknown) => {
           if (reason instanceof M1ApiError && reason.status === 409) {
             try {
               const current = await api.get(base.asset.asset_id);
               applyWorkspace(current, false);
-              setActivity('检测到新版本，已重新载入并准备保存当前修改');
+              setActivity('A newer version was found. Your edits were preserved and will be saved again.');
               return;
             } catch (reloadError: unknown) {
               setError(errorMessage(reloadError));
@@ -161,13 +157,13 @@ export function M1ExperienceWorkspace({
       const next = await action(workspace);
       applyWorkspace(next);
       if (
-        label === '运行本地 Agent' &&
+        label === 'Run local agent' &&
         next.latest_agent_run?.terminal_state &&
         next.latest_agent_run.terminal_state !== 'SUCCEEDED'
       ) {
-        setActivity(`Agent 已安全停止：${next.latest_agent_run.terminal_state}`);
+        setActivity(`Agent stopped safely: ${next.latest_agent_run.terminal_state}`);
       } else {
-        setActivity(`${label}完成`);
+        setActivity(`${label} complete`);
       }
     } catch (reason: unknown) {
       setError(errorMessage(reason));
@@ -178,23 +174,23 @@ export function M1ExperienceWorkspace({
 
   const start = async () => {
     if (!sourceText.trim()) {
-      setError('请先粘贴一段经历，或选择一个 .txt / .md 文件。');
+      setError('Paste an experience or choose a .txt / .md file first.');
       return;
     }
     setPhase('working');
-    setActivity('正在创建 Experience Brief v0.1…');
+    setActivity('Creating Experience Brief v0.1…');
     setError(null);
     try {
       applyWorkspace(
         await api.ingest({
           source_kind: sourceKind,
           text: sourceText,
-          display_label: sourceLabel.trim() || fileName || '我的经历',
+          display_label: sourceLabel.trim() || fileName || 'My experience',
           ...(fileName ? { original_file_name: fileName } : {}),
           ...(goalHint.trim() ? { goal_hint: goalHint.trim() } : {}),
         }),
       );
-      setActivity('首个 Brief 已保存');
+      setActivity('Your first brief has been saved');
     } catch (reason: unknown) {
       setError(errorMessage(reason));
     } finally {
@@ -206,12 +202,12 @@ export function M1ExperienceWorkspace({
     if (!file) return;
     const lowerName = file.name.toLowerCase();
     if (!lowerName.endsWith('.txt') && !lowerName.endsWith('.md')) {
-      setError('当前只支持 .txt 和 .md；PDF、图片、音频和视频不属于 E2。');
+      setError('Only .txt and .md files are supported in this version.');
       return;
     }
     const text = await file.text();
     if (text.length > 200_000) {
-      setError('文件超过 200,000 字符，请缩小后再导入。');
+      setError('The file exceeds 200,000 characters. Please shorten it and try again.');
       return;
     }
     setSourceText(text);
@@ -226,7 +222,7 @@ export function M1ExperienceWorkspace({
     setWorkspace(null);
     setDraft(EMPTY_DRAFT);
     setQuestionAnswers({});
-    setActivity('可创建新的 Experience Asset');
+    setActivity('Ready for a new experience');
     setError(null);
   };
 
@@ -234,7 +230,7 @@ export function M1ExperienceWorkspace({
     return (
       <section className="screen" data-testid="m1-restoring">
         <div className="spinner" aria-hidden="true" />
-        <p>正在恢复本地保存的 Experience Brief…</p>
+        <p>Restoring your locally saved Experience Brief…</p>
       </section>
     );
   }
@@ -244,35 +240,42 @@ export function M1ExperienceWorkspace({
       <section className="m1-start panel" data-testid="m1-start">
         <div className="panel__head">
           <div>
-            <h2 className="panel__title">从一段真实经历开始</h2>
+            <h2 className="panel__title">Start with one experience</h2>
             <p className="m1-lead">
-              先形成可编辑的 Experience Brief v0.1，再用最多三个问题补齐边界。
+              It does not need to be polished. Tell the story as you remember it.
             </p>
           </div>
           <span className="badge badge--info">M1</span>
         </div>
+        <div className="start-guide" aria-label="Three steps to begin">
+          <span><b>1</b> Share the story</span>
+          <i aria-hidden="true">→</i>
+          <span><b>2</b> Answer focused questions</span>
+          <i aria-hidden="true">→</i>
+          <span><b>3</b> Confirm your first brief</span>
+        </div>
         <label className="form-field">
-          <span>这份资产想帮助你做什么（可选）</span>
+          <span>What would you like this experience to become? (optional)</span>
           <input
             value={goalHint}
             onChange={(event) => setGoalHint(event.target.value)}
-            placeholder="例如：复盘这次决策，供以后复用"
+            placeholder="For example: capture what worked so I can reuse it later"
           />
         </label>
         <div className="form-field">
-          <span>输入方式</span>
-          <div className="segmented" role="group" aria-label="输入方式">
+          <span>How would you like to begin?</span>
+          <div className="segmented" role="group" aria-label="Input method">
             <button
               type="button"
               className={`seg${sourceKind === 'CONVERSATION' ? ' seg--on' : ''}`}
               aria-pressed={sourceKind === 'CONVERSATION'}
               onClick={() => {
                 setSourceKind('CONVERSATION');
-                setSourceLabel('我的口述经历');
+                setSourceLabel('My narrated experience');
                 setFileName(null);
               }}
             >
-              对话式讲述
+              Tell the story
             </button>
             <button
               type="button"
@@ -280,16 +283,16 @@ export function M1ExperienceWorkspace({
               aria-pressed={sourceKind === 'PASTED_TEXT'}
               onClick={() => {
                 setSourceKind('PASTED_TEXT');
-                setSourceLabel('我的经历');
+                setSourceLabel('My experience');
                 setFileName(null);
               }}
             >
-              粘贴文本
+              Paste existing text
             </button>
           </div>
         </div>
         <label className="form-field">
-          <span>经历内容</span>
+          <span>Your experience</span>
           <textarea
             rows={10}
             value={sourceText}
@@ -297,21 +300,21 @@ export function M1ExperienceWorkspace({
               setSourceText(event.target.value);
               if (sourceKind === 'TXT_FILE' || sourceKind === 'MD_FILE') {
                 setSourceKind('PASTED_TEXT');
-                setSourceLabel('我的经历');
+                setSourceLabel('My experience');
               }
               setFileName(null);
             }}
             placeholder={
               sourceKind === 'CONVERSATION'
-                ? '像聊天一样讲述一件你亲历的事；提交后 Agent 会继续追问。'
-                : '粘贴你亲历的一件事。导入内容只会被当作资料，不会被当作系统指令。'
+                ? 'Tell it naturally, as if you were speaking to a thoughtful colleague. The agent will ask only what matters.'
+                : 'Paste something you personally experienced. You can refine every detail after the first draft.'
             }
             data-testid="m1-source-text"
           />
         </label>
         <div className="m1-start__actions">
           <label className="btn m1-file">
-            选择 .txt / .md
+            Upload .txt / .md
             <input
               type="file"
               accept=".txt,.md,text/plain,text/markdown"
@@ -326,11 +329,11 @@ export function M1ExperienceWorkspace({
             onClick={() => void start()}
             data-testid="m1-start-submit"
           >
-            {phase === 'working' ? '处理中…' : '生成并保存 Brief v0.1'}
+            {phase === 'working' ? 'Shaping your brief…' : 'Create my first brief →'}
           </button>
         </div>
         <p className="hint">
-          数据只发送到同设备的本地 FastAPI；E2 不调用外部搜索，也不跨资产检索。
+          Processed in your private local environment. Nothing is published without your approval.
         </p>
         {error ? <div className="notice notice--danger">{error}</div> : null}
       </section>
@@ -349,16 +352,16 @@ export function M1ExperienceWorkspace({
         <div>
           <div className="row">
             <span className={`badge ${paused ? 'badge--warn' : 'badge--ok'}`}>
-              {paused ? '已暂停' : m1Done ? 'M1 已确认' : 'M1 进行中'}
+              {paused ? 'Paused' : m1Done ? 'M1 confirmed' : 'M1 in progress'}
             </span>
             <span className="badge badge--neutral">
-              {workspace.progress.unresolved_question_count} 个待处理问题
+              {workspace.progress.unresolved_question_count} open questions
             </span>
           </div>
-          <strong>{workspace.progress_event.message}</strong>
+          <strong>{m1Done ? 'Your Experience Brief is confirmed.' : 'Your Experience Brief is saved and ready to refine.'}</strong>
           <p className="hint">
-            版本 <span className="mono">{workspace.asset.version_id.slice(0, 8)}</span> ·
-            保存于 {savedTime(workspace.progress.last_saved_at)}
+            Version <span className="mono">{workspace.asset.version_id.slice(0, 8)}</span> ·
+            Saved {savedTime(workspace.progress.last_saved_at)}
           </p>
         </div>
         <div className="m1-summary__actions">
@@ -367,13 +370,13 @@ export function M1ExperienceWorkspace({
               type="button"
               className="btn btn--primary"
               onClick={() =>
-                void runAction('恢复', (current) =>
+                void runAction('Resume', (current) =>
                   api.resume(current.asset.asset_id, current.asset.version_id),
                 )
               }
               data-testid="m1-resume"
             >
-              恢复
+              Resume
             </button>
           ) : (
             <button
@@ -381,17 +384,17 @@ export function M1ExperienceWorkspace({
               className="btn"
               disabled={actionsBlocked}
               onClick={() =>
-                void runAction('暂停', (current) =>
+                void runAction('Pause', (current) =>
                   api.pause(current.asset.asset_id, current.asset.version_id),
                 )
               }
               data-testid="m1-pause"
             >
-              暂停
+              Pause
             </button>
           )}
           <button type="button" className="btn" onClick={clearWorkspace}>
-            新建另一份
+            Start another
           </button>
         </div>
       </div>
@@ -400,14 +403,14 @@ export function M1ExperienceWorkspace({
       <div
         className={`notice ${
           hasUnsavedChanges ||
-          activity.includes('正在') ||
-          activity.includes('安全停止')
+          activity.includes('saving') ||
+          activity.includes('stopped safely')
             ? 'notice--warn'
             : 'notice--ok'
         }`}
         data-testid="m1-save-state"
       >
-        {hasUnsavedChanges ? '有修改待自动保存…' : activity}
+        {hasUnsavedChanges ? 'Changes waiting to autosave…' : activity}
       </div>
 
       <div className="m1-columns">
@@ -417,7 +420,7 @@ export function M1ExperienceWorkspace({
             <span className="badge badge--neutral">{workspace.progress.artifact_state}</span>
           </div>
           <label className="form-field">
-            <span>经历边界与背景</span>
+            <span>Context and boundaries</span>
             <textarea
               rows={7}
               value={draft.context}
@@ -427,7 +430,7 @@ export function M1ExperienceWorkspace({
             />
           </label>
           <label className="form-field">
-            <span>希望解决的问题 / 用途</span>
+            <span>What this experience should help with</span>
             <textarea
               rows={3}
               value={draft.goal}
@@ -437,7 +440,7 @@ export function M1ExperienceWorkspace({
             />
           </label>
           <label className="form-field">
-            <span>条件与限制（每行一条）</span>
+            <span>Conditions and constraints — one per line</span>
             <textarea
               rows={4}
               value={draft.constraints}
@@ -446,7 +449,7 @@ export function M1ExperienceWorkspace({
             />
           </label>
           <label className="form-field">
-            <span>你的意图</span>
+            <span>Your intent</span>
             <textarea
               rows={3}
               value={draft.userIntent}
@@ -455,21 +458,21 @@ export function M1ExperienceWorkspace({
             />
           </label>
           <div className="notice notice--muted">
-            <strong>来源边界：</strong> {workspace.brief.source_boundary}
+            <strong>Source boundary:</strong> {workspace.brief.source_boundary}
             <br />
             <span>
-              当前只使用 CURRENT_SOURCE；导入文本中的命令不会获得工具或执行权限。
+              Only CURRENT_SOURCE is used. Instructions inside imported text never grant tool or execution permission.
             </span>
           </div>
         </div>
 
         <div className="panel">
           <div className="panel__head">
-            <h2 className="panel__title">需要你判断的信息</h2>
-            <span className="badge badge--info">每轮最多 3 个</span>
+            <h2 className="panel__title">A few details only you can confirm</h2>
+            <span className="badge badge--info">Up to 3 at a time</span>
           </div>
           {workspace.questions.length === 0 ? (
-            <div className="notice notice--ok">当前没有未解决问题，可以确认 M1。</div>
+            <div className="notice notice--ok">No open questions. M1 is ready to confirm.</div>
           ) : (
             <ol className="m1-questions">
               {workspace.questions.map((question) => (
@@ -486,7 +489,7 @@ export function M1ExperienceWorkspace({
                         [question.question_id]: event.target.value,
                       })
                     }
-                    placeholder="输入答案，或选择跳过 / 稍后处理"
+                    placeholder="Answer, skip, or come back later"
                   />
                   <div className="row">
                     <button
@@ -498,7 +501,7 @@ export function M1ExperienceWorkspace({
                         !(questionAnswers[question.question_id] ?? '').trim()
                       }
                       onClick={() =>
-                        void runAction('回答问题', async (current) => {
+                        void runAction('Answer question', async (current) => {
                           const next = await api.question(
                             current.asset.asset_id,
                             current.asset.version_id,
@@ -515,14 +518,14 @@ export function M1ExperienceWorkspace({
                         })
                       }
                     >
-                      回答
+                      Answer
                     </button>
                     <button
                       type="button"
                       className="btn btn--sm"
                       disabled={actionsBlocked || paused}
                       onClick={() =>
-                        void runAction('跳过问题', (current) =>
+                        void runAction('Skip question', (current) =>
                           api.question(
                             current.asset.asset_id,
                             current.asset.version_id,
@@ -532,14 +535,14 @@ export function M1ExperienceWorkspace({
                         )
                       }
                     >
-                      跳过
+                      Skip
                     </button>
                     <button
                       type="button"
                       className="btn btn--sm"
                       disabled={actionsBlocked || paused}
                       onClick={() =>
-                        void runAction('推迟问题', (current) =>
+                        void runAction('Defer question', (current) =>
                           api.question(
                             current.asset.asset_id,
                             current.asset.version_id,
@@ -549,7 +552,7 @@ export function M1ExperienceWorkspace({
                         )
                       }
                     >
-                      稍后处理
+                      Later
                     </button>
                   </div>
                 </li>
@@ -560,14 +563,14 @@ export function M1ExperienceWorkspace({
           {!paused && !m1Done ? (
             <div className="m1-confirm">
               <p className="hint">
-                确认会冻结当前 M1 版本。未回答的问题不会变成事实。
+                Confirmation freezes this M1 version. Unanswered questions never become facts.
               </p>
               <button
                 type="button"
                 className="btn btn--primary"
                 disabled={actionsBlocked}
                 onClick={() =>
-                  void runAction('确认 M1', (current) =>
+                  void runAction('Confirm M1', (current) =>
                     api.confirm(
                       current.asset.asset_id,
                       current.asset.version_id,
@@ -577,13 +580,13 @@ export function M1ExperienceWorkspace({
                 }
                 data-testid="m1-confirm"
               >
-                {workspace.questions.length > 0 ? '按当前证据确认（保留缺口）' : '确认 M1'}
+                {workspace.questions.length > 0 ? 'Confirm with visible gaps' : 'Confirm M1'}
               </button>
             </div>
           ) : null}
           {!paused && m1Done ? (
             <div className="notice notice--info">
-              M1 已确认；继续编辑 Brief 或回答保留问题会创建新版本并重新打开 M1。
+              M1 is confirmed. Editing the brief or answering a retained question creates a new version and reopens M1.
             </div>
           ) : null}
         </div>
@@ -592,15 +595,15 @@ export function M1ExperienceWorkspace({
       <div className="panel m1-agent" data-testid="m1-agent">
         <div className="panel__head">
           <div>
-            <h2 className="panel__title">本地 Agent 闭环</h2>
+            <h2 className="panel__title">Local agent loop</h2>
             <p className="m1-lead">
-              模型只能提出工具调用；Runtime 会独立检查权限、资产、版本、范围和参数。
+              The model may propose a tool call; the runtime independently checks permissions, asset, version, scope, and arguments.
             </p>
           </div>
           <span className="badge badge--info">CURRENT_SOURCE</span>
         </div>
         <label className="form-field">
-          <span>本轮目标</span>
+          <span>Goal for this run</span>
           <input
             value={agentGoal}
             disabled={paused}
@@ -616,7 +619,7 @@ export function M1ExperienceWorkspace({
             onChange={(event) => setAllowCurrentSourceSearch(event.target.checked)}
             data-testid="m1-agent-permission"
           />
-          本轮允许 Agent 只读检索当前资产的来源陈述
+          Allow read-only retrieval from this asset's current source statements
         </label>
         <div className="row">
           <button
@@ -624,7 +627,7 @@ export function M1ExperienceWorkspace({
             className="btn btn--primary"
             disabled={actionsBlocked || paused || !agentGoal.trim()}
             onClick={() =>
-              void runAction('运行本地 Agent', (current) =>
+              void runAction('Run local agent', (current) =>
                 api.runAgent(
                   current.asset.asset_id,
                   current.asset.version_id,
@@ -635,18 +638,74 @@ export function M1ExperienceWorkspace({
             }
             data-testid="m1-run-agent"
           >
-            按当前证据运行 Agent
+            Run agent on current evidence
           </button>
           <span className="hint">
-            未勾选权限也可运行，但 Runtime 应给出 POLICY_BLOCKED 安全终态。
+            Without permission, the runtime will stop safely with POLICY_BLOCKED.
           </span>
         </div>
 
         {workspace.latest_agent_run ? (
-          <AgentRunTrace run={workspace.latest_agent_run} />
+          <div className="m1-agent-trace" data-testid="m1-agent-trace">
+            <div className="stats">
+              <div className="stat">
+                <span className="stat__value">
+                  {workspace.latest_agent_run.work_plan.steps.length}
+                </span>
+                <span className="stat__label">Plan steps</span>
+              </div>
+              <div className="stat">
+                <span className="stat__value">
+                  {workspace.latest_agent_run.retrieved_evidence.length}
+                </span>
+                <span className="stat__label">Source evidence</span>
+              </div>
+              <div className="stat">
+                <span className="stat__value">
+                  {workspace.latest_agent_run.policy_decisions[0]?.outcome ?? '—'}
+                </span>
+                <span className="stat__label">Runtime decision</span>
+              </div>
+              <div className="stat">
+                <span className="stat__value" data-testid="m1-agent-terminal">
+                  {workspace.latest_agent_run.terminal_state ?? 'RUNNING'}
+                </span>
+                <span className="stat__label">Terminal state</span>
+              </div>
+            </div>
+            <ol className="m1-plan">
+              {workspace.latest_agent_run.work_plan.steps.map((step) => (
+                <li key={step.step_id}>
+                  <div className="row">
+                    <strong>{step.step_kind}</strong>
+                    <span className="badge badge--neutral">{step.status}</span>
+                  </div>
+                  <span>{step.reason}</span>
+                </li>
+              ))}
+            </ol>
+            <div className="notice notice--muted">
+              <strong>Model:</strong> {workspace.latest_agent_run.model_id}
+              <br />
+              <strong>Tool proposal:</strong>{' '}
+              {workspace.latest_agent_run.tool_proposals[0]?.name ?? 'None'}
+              {' · '}
+              Proposal grants permission:
+              {workspace.latest_agent_run.tool_proposals[0]?.permission_granted
+                ? 'Yes'
+                : 'No'}
+              <br />
+              <strong>Actual execution:</strong>{' '}
+              {workspace.latest_agent_run.tool_executions[0]?.status ?? 'Not executed'}
+              <br />
+              <strong>Verification:</strong>{' '}
+              {workspace.latest_agent_run.verification_report?.safe_summary ??
+                'No verification report yet'}
+            </div>
+          </div>
         ) : (
           <div className="notice notice--muted">
-            尚未运行。运行后这里会显示真实计划、裁决、工具效果、验证与终态。
+            Not run yet. The real plan, policy decision, tool effect, verification, and terminal state will appear here.
           </div>
         )}
       </div>

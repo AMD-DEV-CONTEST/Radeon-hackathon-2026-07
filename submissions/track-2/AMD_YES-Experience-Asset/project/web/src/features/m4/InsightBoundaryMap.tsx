@@ -3,12 +3,12 @@ import { STATE_LABELS, STATE_TONES, type M4View } from './m4View';
 import { BOUNDARY_ROLES, type InsightRole, type InsightStatementV1, type M4WorkspaceV1 } from './types';
 
 const ROLE_LABELS: Record<InsightRole, string> = {
-  LESSON: '教训',
-  SUPPORT: '支持证据',
-  COUNTERFACTUAL: '反事实',
-  LIMITATION: '适用局限',
-  COUNTEREXAMPLE: '反例',
-  APPLICABILITY: '迁移条件',
+  LESSON: 'Lesson',
+  SUPPORT: 'Supporting evidence',
+  COUNTERFACTUAL: 'Counterfactual',
+  LIMITATION: 'Limitation',
+  COUNTEREXAMPLE: 'Counterexample',
+  APPLICABILITY: 'Conditions for reuse',
 };
 
 function EvidenceDetails({
@@ -21,14 +21,14 @@ function EvidenceDetails({
   if (statement.is_visible_gap) {
     return (
       <p data-testid="m4-gap-reason" className="notice notice--warn">
-        <strong>缺口：</strong>
+        <strong>Gap:</strong>
         {statement.gap_reason}
       </p>
     );
   }
   return (
     <details data-testid="m4-evidence-details">
-      <summary>查看这条依据的原始证据</summary>
+      <summary>View the original evidence</summary>
       <ul>
         {statement.source_statement_ids.map((id) => {
           const evidence = view.evidenceById.get(id);
@@ -39,11 +39,11 @@ function EvidenceDetails({
                 <>
                   ：{evidence.text}
                   {evidence.source_refs.length ? (
-                    <small>（来源：{evidence.source_refs.join('、')}）</small>
+                    <small> (Sources: {evidence.source_refs.join(', ')})</small>
                   ) : null}
                 </>
               ) : (
-                '：证据内容不可用'
+                ': Evidence unavailable'
               )}
             </li>
           );
@@ -51,7 +51,7 @@ function EvidenceDetails({
       </ul>
       {statement.source_decision_ids.length ? (
         <div>
-          <strong>来源决策</strong>
+          <strong>Source decisions</strong>
           <ul>
             {statement.source_decision_ids.map((id) => (
               <li key={id}>
@@ -96,43 +96,42 @@ export function InsightBoundaryMap({
       {view.failure ? (
         <div role="alert" data-testid="m4-failure" className="notice notice--danger">
           <strong>{view.failure.failure_code}</strong>：{view.failure.safe_user_message}
-          <p>{view.failure.retryable ? '可以重试。' : '重试不会改变结果。'}</p>
+          <p>{view.failure.retryable ? 'You can retry.' : 'Retrying will not change the result.'}</p>
         </div>
       ) : null}
 
       {view.state === 'IN_PROGRESS' ? (
-        <p data-testid="m4-progress">{view.progressMessage || '正在生成洞察与边界图。'}</p>
+        <p data-testid="m4-progress">{view.progressMessage || 'Building the insight and boundary map…'}</p>
       ) : null}
 
       {map === null ? (
         <p data-testid="m4-empty">
-          尚未生成洞察与边界图。它需要一份已接受的 M3 决策与证据账本。
+          No insight map yet. First confirm the M3 decision and evidence ledger.
         </p>
       ) : null}
 
       {map ? (
         <>
           <p>
-            绑定 M3：<Mono>{map.base_m3_artifact_id}</Mono>
+            Based on M3: <Mono>{map.base_m3_artifact_id}</Mono>
           </p>
           <p>
-            绑定规范版本：<Mono>{map.base_canonical_version_id}</Mono>
+            Canonical version: <Mono>{map.base_canonical_version_id}</Mono>
           </p>
 
           {map.state === 'INVALIDATED' ? (
             <div role="alert" data-testid="m4-invalidated" className="notice notice--danger">
-              <strong>这张图已失效。</strong> {map.invalidation_reason}
+              <strong>This map is out of date.</strong> {map.invalidation_reason}
               <p>
-                继续按原样阅读，等于在读一条建立在你已经修正掉的证据上的教训。
-                受影响的洞察 {map.affected_insight_ids.length} 条，可复用{' '}
-                {map.reusable_insight_ids.length} 条。
+                Some insights rely on evidence you have since corrected. Affected insights:{' '}
+                {map.affected_insight_ids.length}; still reusable: {map.reusable_insight_ids.length}.
               </p>
             </div>
           ) : null}
 
           {view.visibleGaps.length ? (
             <div data-testid="m4-gap-summary" className="notice notice--warn">
-              这张图有 {view.visibleGaps.length} 处可见缺口，尚未由证据支持。
+              This map has {view.visibleGaps.length} visible evidence gaps.
             </div>
           ) : null}
 
@@ -152,15 +151,15 @@ export function InsightBoundaryMap({
                         <strong>{ROLE_LABELS[statement.role]}</strong>
                       </label>{' '}
                       {BOUNDARY_ROLES.includes(statement.role) ? (
-                        <Badge tone="info">边界</Badge>
+                        <Badge tone="info">Boundary</Badge>
                       ) : null}{' '}
                       {statement.is_visible_gap ? (
                         <Badge tone="warn" testId="m4-gap-badge">
-                          可见缺口
+                          Visible gap
                         </Badge>
                       ) : (
                         <Badge tone="ok">
-                          {statement.source_statement_ids.length} 条证据
+                          {statement.source_statement_ids.length} evidence references
                         </Badge>
                       )}
                       <textarea
@@ -178,14 +177,14 @@ export function InsightBoundaryMap({
                             type="button"
                             onClick={() => onStatementSave?.(statement.statement_id)}
                           >
-                            保存修改
+                            Save changes
                           </button>
                           {statement.is_visible_gap ? null : (
                             <button
                               type="button"
                               onClick={() => onMarkGap?.(statement.statement_id)}
                             >
-                              标为缺口
+                              Mark as a gap
                             </button>
                           )}
                         </div>
