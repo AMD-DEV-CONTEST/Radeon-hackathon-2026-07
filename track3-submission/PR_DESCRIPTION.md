@@ -35,8 +35,8 @@ produced by physics momentum (no scripted ball velocity, no falls).
 - **English** slides + **English subtitles** + **Microsoft neural TTS narration** (en-US)
 - Real kick footage only — no scripted ball, no falls
 
-> **TODO (fill after upload):** hosted video link — YouTube: `https://youtu.be/<ID>` / Bilibili: `https://www.bilibili.com/video/<ID>`
-> You may also attach the MP4 directly to this PR (7.7 MB) so reviewers can play it inline.
+> **Submission video (hosted in this repo — this IS the official submission video):** `acceptance/final_video/track3_final_20260806.mp4`
+> ▶ Direct play: https://github.com/coco12300/Radeon-hackathon-2026-07/raw/main/track3-submission/acceptance/final_video/track3_final_20260806.mp4
 
 Extra demo videos (also mirrored in `outputs/videos/`):
 
@@ -62,10 +62,9 @@ Slide deck: `presentations/track3_presentation_en.pptx` (8 English slides, same 
 - Reproduce all three SPEC §3 entries inside the container
 - Full commands: `docs/DOCKER.md`; lock file: `amd-physical-ai-soccer/requirements-lock.txt`
 
-> **TODO (fill after AMD-host build + push):** published image link —
-> Docker Hub: `https://hub.docker.com/r/<owner>/track3-soccer:amd` ·
-> or GHCR: `https://ghcr.io/<owner>/track3-soccer:amd`
-> Until then, the Dockerfile is self-contained and builds on any ROCm 6.2+ Linux host.
+> **Container image:** not pushed to a public registry; the `amd-physical-ai-soccer/Dockerfile` is
+> fully self-contained and builds on any ROCm 6.2+ Linux host (exact `docker build` / `docker run`
+> commands in `docs/DOCKER.md`). Reviewers reproduce the environment from source.
 
 ---
 
