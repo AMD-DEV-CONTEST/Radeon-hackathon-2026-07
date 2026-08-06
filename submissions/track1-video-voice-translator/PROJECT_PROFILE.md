@@ -62,7 +62,7 @@ Speech is transcribed with Whisper-family models. This branch defaults to the na
 
 ### 4.4 Text Translation
 
-The recognized transcript is translated in batches with a Qwen-compatible LLM endpoint. The translation layer includes retry logic and validation to improve robustness when segment-level responses are inconsistent.
+The recognized transcript is translated in batches via **DeepSeek-V4-Flash** served from the AMD Radeon developer TokenFactory endpoint (`https://developer.amd.com.cn/radeon/tokenfactory`). The translation layer uses an OpenAI-compatible client with retry logic and response validation to improve robustness when segment-level responses are inconsistent.
 
 ### 4.5 Voice Cloning
 
