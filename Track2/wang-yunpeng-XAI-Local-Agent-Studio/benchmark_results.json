@@ -1,0 +1,46 @@
+{
+  "submission": "XAI Local Agent Studio — AMD AI DevMaster Hackathon Track 2",
+  "team": "wang yunpeng",
+  "measured_on": "2026-08-06",
+  "hardware": {
+    "gpu": "AMD Radeon (RDNA3, 48 GB VRAM)",
+    "rocm": "7.2.1",
+    "vllm": "0.16.0",
+    "image": "vllm-dev:rocm7.2.1_navi_ubuntu22.04_py3.10_pytorch_2.9_vllm_0.16.0"
+  },
+  "model": {
+    "name": "DeepSeek-R1-Distill-Qwen-32B-AWQ",
+    "quantization": "awq-4bit",
+    "approx_vram_gb": 20,
+    "served_by": "vLLM (OpenAI-compatible) on ROCm",
+    "endpoint": "http://localhost:8002/v1"
+  },
+  "vllm_launch_args": [
+    "--quantization awq",
+    "--port 8002",
+    "--max-model-len 8192",
+    "--gpu-memory-utilization 0.95",
+    "--max-num-seqs 32",
+    "--enable-prefix-caching"
+  ],
+  "results": {
+    "baseline_single_stream_tok_s": 3.64,
+    "concurrency": [
+      {"parallel": 1, "tok_s": 3.64},
+      {"parallel": 4, "tok_s": 14.5},
+      {"parallel": 8, "tok_s": 28.9}
+    ],
+    "scaling": "near-linear with batch size (~4x at x4, ~8x at x8)",
+    "long_context": [
+      {"context_tokens": 2048, "tok_s": 3.6},
+      {"context_tokens": 4096, "tok_s": 3.6}
+    ]
+  },
+  "gpu_telemetry_peak": {
+    "utilization_percent": 100,
+    "vram_percent": 94,
+    "temperature_c": 42,
+    "sampled_with": "amd-smi"
+  },
+  "note": "Numbers measured on the live Radeon Cloud instance during the hackathon. Single-stream throughput is modest for a 32B model; the headline ROCm result is near-linear throughput scaling under multi-agent concurrency (GPU saturates at 100%)."
+}

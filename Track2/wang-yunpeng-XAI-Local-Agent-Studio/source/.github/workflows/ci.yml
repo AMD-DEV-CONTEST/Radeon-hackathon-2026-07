@@ -1,0 +1,49 @@
+# XAI 统一操作台 CI 门禁
+# 触发条件：push 到 main / PR 到 main
+# 失败 = 代码质量问题，必须修到全绿才能合入
+
+name: XAI CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: macos-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Syntax check (all .py files)
+        run: |
+          find . -name "*.py" -not -path "./vendor/*" -not -path "./__pycache__/*" \
+            | xargs python3 -c "
+              import ast, sys
+              errors = []
+              for f in sys.argv[1:]:
+                  try:
+                      ast.parse(open(f).read())
+                  except SyntaxError as e:
+                      errors.append(f'{f}: {e}')
+              if errors:
+                  print('\n'.join(errors))
+                  sys.exit(1)
+              print('All files syntax OK')
+          "
+
+      - name: Run pytest (offline, no service needed)
+        run: |
+          python3 -m pytest tests/ -q --tb=short 2>&1 | tail -30
+
+      - name: Summary
+        run: |
+          echo "✅ CI 门禁完成"

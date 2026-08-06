@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XAI 统一操作台 · 前后端真实架构 & 逻辑关系图</title>
+<style>
+  :root{
+    --bg:#0a0e17; --bg2:#0d1320; --panel:rgba(20,28,44,.72); --panel2:rgba(28,38,58,.62);
+    --stroke:rgba(120,150,200,.22); --stroke2:rgba(140,170,220,.35);
+    --txt:#e8eefc; --txt2:#9fb2d4; --txt3:#6b7da0;
+    --fe:#4fc3f7; --fe-bg:rgba(79,195,247,.10); --fe-br:rgba(79,195,247,.35);
+    --be:#a78bfa; --be-bg:rgba(167,139,250,.10); --be-br:rgba(167,139,250,.35);
+    --core:#f472b6; --core-bg:rgba(244,114,182,.10); --core-br:rgba(244,114,182,.35);
+    --data:#34d399; --data-bg:rgba(52,211,153,.10); --data-br:rgba(52,211,153,.35);
+    --ok:#34d399; --warn:#fbbf24; --route:#fbbf24;
+    --radius:16px; --radius-sm:10px;
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro SC","PingFang SC","Segoe UI",Roboto,sans-serif;
+    --mono:"SF Mono","JetBrains Mono",ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:var(--font); color:var(--txt); line-height:1.55;
+    background:
+      radial-gradient(1200px 700px at 15% -10%, rgba(79,195,247,.10), transparent 55%),
+      radial-gradient(1000px 600px at 90% 10%, rgba(167,139,250,.10), transparent 55%),
+      radial-gradient(900px 700px at 50% 110%, rgba(52,211,153,.07), transparent 55%),
+      linear-gradient(160deg,var(--bg),var(--bg2));
+    background-attachment:fixed; min-height:100vh; padding:36px 22px 70px;
+  }
+  .wrap{max-width:1220px;margin:0 auto}
+  header.top{text-align:center;margin-bottom:34px}
+  header.top h1{font-size:30px;font-weight:800;letter-spacing:.5px;
+    background:linear-gradient(100deg,var(--fe),var(--be) 55%,var(--core));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  header.top .sub{color:var(--txt2);font-size:14px;margin-top:8px}
+  .badges{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+  .badge{font-size:12px;padding:6px 13px;border-radius:99px;border:1px solid var(--stroke2);
+    background:var(--panel);color:var(--txt2);display:inline-flex;align-items:center;gap:6px}
+  .badge b{color:var(--txt)}
+  .badge.ok{border-color:var(--data-br);color:#bff0da}
+  .dot{width:7px;height:7px;border-radius:99px;background:var(--ok);box-shadow:0 0 8px var(--ok)}
+
+  section{margin:30px 0}
+  .sec-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .sec-head .num{font-family:var(--mono);font-size:13px;color:var(--txt3);
+    border:1px solid var(--stroke);border-radius:8px;padding:3px 9px}
+  .sec-head h2{font-size:19px;font-weight:700}
+  .sec-head .tag{margin-left:auto;font-size:11px;color:var(--txt3);font-family:var(--mono)}
+
+  .glass{background:var(--panel);border:1px solid var(--stroke);border-radius:var(--radius);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    box-shadow:0 18px 50px -24px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.05);}
+
+  /* overview flow */
+  .flow{display:grid;grid-template-columns:1fr 40px 1fr 40px 1fr 40px 1fr;align-items:stretch;gap:0;padding:22px}
+  .flow .lane{padding:16px;border-radius:var(--radius-sm);border:1px solid var(--stroke)}
+  .flow .lane h3{font-size:13px;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+  .flow .lane .chip{background:rgba(255,255,255,.04);border:1px solid var(--stroke);border-radius:7px;
+    padding:5px 8px;font-size:11.5px;margin:5px 0;color:var(--txt2);font-family:var(--mono)}
+  .lane.fe{background:var(--fe-bg);border-color:var(--fe-br)} .lane.fe h3{color:var(--fe)}
+  .lane.be{background:var(--be-bg);border-color:var(--be-br)} .lane.be h3{color:var(--be)}
+  .lane.core{background:var(--core-bg);border-color:var(--core-br)} .lane.core h3{color:var(--core)}
+  .lane.data{background:var(--data-bg);border-color:var(--data-br)} .lane.data h3{color:var(--data)}
+  .arrow{display:flex;align-items:center;justify-content:center;color:var(--txt3);font-size:20px;font-weight:700}
+  .arrow small{writing-mode:vertical-rl;font-size:9px;letter-spacing:1px;position:absolute}
+
+  /* generic grids */
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:1fr 1fr} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
+  .card{padding:16px;border-radius:var(--radius-sm)}
+  .card h4{font-size:13.5px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .card h4 .ic{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:12px}
+  .pill{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;
+    padding:4px 9px;border-radius:7px;margin:3px 4px 3px 0;border:1px solid var(--stroke);color:var(--txt2);
+    background:rgba(255,255,255,.03)}
+  .pill.fe{border-color:var(--fe-br);color:#bfe6fb} .pill.be{border-color:var(--be-br);color:#d9ccff}
+  .pill.core{border-color:var(--core-br);color:#fbc7e0} .pill.data{border-color:var(--data-br);color:#bff0da}
+  .muted{color:var(--txt3);font-size:11.5px;margin-top:8px;line-height:1.5}
+  .lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--txt3);
+    font-family:var(--mono);margin:14px 0 8px}
+
+  /* contract table */
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--stroke)}
+  th{color:var(--txt3);font-size:10.5px;text-transform:uppercase;letter-spacing:1px;font-weight:600}
+  td.method{font-family:var(--mono);font-weight:700;font-size:11px}
+  .m-get{color:var(--fe)} .m-post{color:var(--core)}
+  td.path{font-family:var(--mono);color:var(--txt);font-size:11.5px}
+  td.mod{font-family:var(--mono);color:var(--be);font-size:11.5px}
+  .s-ok{color:var(--ok);font-weight:700;font-size:11px}
+  .s-fixed{color:var(--warn);font-weight:700;font-size:11px}
+  tr:hover td{background:rgba(255,255,255,.02)}
+
+  .note{padding:14px 16px;border-radius:var(--radius-sm);border-left:3px solid var(--warn);
+    background:rgba(251,191,36,.07);font-size:12.5px;color:var(--txt2);margin-top:14px}
+  .note.ok{border-left-color:var(--ok);background:rgba(52,211,153,.07)}
+  .note b{color:var(--txt)}
+
+  .legend{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin:8px 0 26px;font-size:12px;color:var(--txt2)}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .sw{width:12px;height:12px;border-radius:4px;border:1px solid}
+  .sw.fe{background:var(--fe-bg);border-color:var(--fe-br)}
+  .sw.be{background:var(--be-bg);border-color:var(--be-br)}
+  .sw.core{background:var(--core-bg);border-color:var(--core-br)}
+  .sw.data{background:var(--data-bg);border-color:var(--data-br)}
+
+  footer{text-align:center;color:var(--txt3);font-size:11.5px;margin-top:40px;font-family:var(--mono)}
+  @media(max-width:900px){.flow{grid-template-columns:1fr}.flow .arrow{transform:rotate(90deg);padding:6px 0}
+    .g2,.g3,.g4{grid-template-columns:1fr 1fr}}
+  @media(max-width:560px){.g2,.g3,.g4{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <h1>XAI 统一操作台 · 前后端真实架构图</h1>
+    <div class="sub">基于当前代码库真实结构生成（非记忆推断） · React 前端 ↔ Python HTTP 后端 ↔ XAIEngine 内核</div>
+    <div class="badges">
+      <span class="badge ok"><span class="dot"></span> 后端运行中 <b>PID 58159</b></span>
+      <span class="badge">引擎 <b>xai_engine: running</b></span>
+      <span class="badge">模型 <b>deepseek</b></span>
+      <span class="badge">提交 <b>6144d6a</b></span>
+      <span class="badge ok">契约核验 <b>26 路由全 200 · 0 漂移</b></span>
+    </div>
+  </header>
+
+  <div class="legend">
+    <span><i class="sw fe"></i> 前端 Frontend</span>
+    <span><i class="sw be"></i> HTTP 路由层 Router</span>
+    <span><i class="sw core"></i> 内核 XAIEngine / core</span>
+    <span><i class="sw data"></i> 数据 & 运行时 Data</span>
+  </div>
+
+  <!-- 1. 总览 -->
+  <section>
+    <div class="sec-head"><span class="num">01</span><h2>全栈数据流总览</h2>
+      <span class="tag">用户点击 → API 客户端 → HTTP 分发 → 内核编排 → 持久化</span></div>
+    <div class="glass flow">
+      <div class="lane fe">
+        <h3>◆ 前端 (React+TS)</h3>
+        <div class="chip">App.tsx · 状态路由</div>
+        <div class="chip">12 页面 + 3 组件</div>
+        <div class="chip">lib/api.ts · 22 函数</div>
+        <div class="chip">store.ts / theme-context</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="lane be">
+        <h3>◆ HTTP 层 (:8000)</h3>
+        <div class="chip">XAIHandler.do_GET/POST</div>
+        <div class="chip">Router.dispatch()</div>
+        <div class="chip">exact + prefix 匹配</div>
+        <div class="chip">23 × server_routes_*</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="lane core">
+        <h3>◆ 内核 (core/)</h3>
+        <div class="chip">server_runtime 单例</div>
+        <div class="chip">XAIEngine 编排器</div>
+        <div class="chip">planner / action_bus</div>
+        <div class="chip">cognition / execution</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="lane data">
+        <h3>◆ 数据 & 运行时</h3>
+        <div class="chip">memory_core (sqlite)</div>
+        <div class="chip">xai-backend/data</div>
+        <div class="chip">~/.xai (pid/lock)</div>
+        <div class="chip">app_store / session</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. 前端架构 -->
+  <section>
+    <div class="sec-head"><span class="num">02</span><h2>前端架构 · frontend/src</h2>
+      <span class="tag">Vite + React + TypeScript + framer-motion</span></div>
+    <div class="grid g2">
+      <div class="glass card">
+        <h4><span class="ic" style="background:var(--fe-bg);color:var(--fe)">▤</span> App Shell 布局</h4>
+        <p class="muted" style="margin-top:0">App.tsx 采用<strong style="color:var(--txt)">状态驱动路由</strong>（非 React Router），页面切换由 <code style="color:var(--fe)">activePage</code> 状态控制，AnimatePresence 过渡。</p>
+        <div class="lbl">五区布局</div>
+        <span class="pill fe">顶部 AppHeader</span>
+        <span class="pill fe">左栏 TeamWidget + 导航</span>
+        <span class="pill fe">主区 页面内容</span>
+        <span class="pill fe">右栏 StatusWidget</span>
+        <span class="pill fe">底栏 状态条</span>
+        <div class="lbl">挂载时拉取</div>
+        <span class="pill fe">fetchStatus</span>
+        <span class="pill fe">fetchMemoryStats</span>
+        <span class="pill fe">fetchSystemHealth</span>
+        <span class="pill fe">fetchSystemSandbox</span>
+        <span class="pill fe">fetchSystemErrors</span>
+      </div>
+      <div class="glass card">
+        <h4><span class="ic" style="background:var(--fe-bg);color:var(--fe)">◱</span> 12 个业务页面</h4>
+        <span class="pill fe">控制台 ChatConsole</span>
+        <span class="pill fe">会话历史 SessionHistory</span>
+        <span class="pill fe">仪表盘 Dashboard</span>
+        <span class="pill fe">Agent 工作区 AgentWorkspace</span>
+        <span class="pill fe">任务画布 TaskCanvas</span>
+        <span class="pill fe">执行时间线 Timeline</span>
+        <span class="pill fe">记忆中心 MemoryCenter</span>
+        <span class="pill fe">能力注册表 CapabilityRegistry</span>
+        <span class="pill fe">工具中心 ToolHub</span>
+        <span class="pill fe">知识库 KnowledgeBase</span>
+        <span class="pill fe">守护中心 GuardianCenter</span>
+        <span class="pill fe">进化中心 EvolutionCenter</span>
+      </div>
+    </div>
+    <div class="grid g3" style="margin-top:14px">
+      <div class="glass card">
+        <h4><span class="ic" style="background:var(--fe-bg);color:var(--fe)">⚙</span> 公共组件</h4>
+        <span class="pill fe">TeamWidget</span>
+        <span class="pill fe">StatusWidget</span>
+        <span class="pill fe">ThemeToggle</span>
+        <span class="pill fe">MessageContent</span>
+      </div>
+      <div class="glass card">
+        <h4><span class="ic" style="background:var(--fe-bg);color:var(--fe)">◈</span> 基础设施</h4>
+        <span class="pill fe">lib/api.ts</span>
+        <span class="pill fe">store.ts</span>
+        <span class="pill fe">blueprint.ts</span>
+        <span class="pill fe">sim/simulator.ts</span>
+        <span class="pill fe">theme-context.tsx</span>
+      </div>
+      <div class="glass card">
+        <h4><span class="ic" style="background:var(--fe-bg);color:var(--fe)">✦</span> 样式系统 (Liquid Glass)</h4>
+        <span class="pill fe">liquid-glass.css</span>
+        <span class="pill fe">effects.css</span>
+        <span class="pill fe">theme.css</span>
+        <span class="pill fe">index.css</span>
+        <span class="pill fe">styles.css</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 后端 HTTP 层 -->
+  <section>
+    <div class="sec-head"><span class="num">03</span><h2>后端 HTTP 层 · 绞杀者模式路由</h2>
+      <span class="tag">server_xai.py + server_router.py + 23 路由模块</span></div>
+    <div class="grid g2">
+      <div class="glass card">
+        <h4><span class="ic" style="background:var(--be-bg);color:var(--be)">⇄</span> 请求分发流程</h4>
+        <div class="chip" style="background:rgba(255,255,255,.04);border:1px solid var(--stroke);border-radius:7px;padding:8px 10px;font-size:12px;margin:6px 0;font-family:var(--mono);color:var(--txt2)">
+          1 · do_GET/do_POST 进入 XAIHandler</div>
+        <div class="chip" style="background:rgba(255,255,255,.04);border:1px solid var(--stroke);border-radius:7px;padding:8px 10px;font-size:12px;margin:6px 0;font-family:var(--mono);color:var(--txt2)">
+          2 · _ROUTER.dispatch(method,path) 优先</div>
+        <div class="chip" style="background:rgba(255,255,255,.04);border:1px solid var(--stroke);border-radius:7px;padding:8px 10px;font-size:12px;margin:6px 0;font-family:var(--mono);color:var(--txt2)">
+          3 · 命中 exact → 再试 prefix</div>
+        <div class="chip" style="background:rgba(255,255,255,.04);border:1px solid var(--stroke);border-radius:7px;padding:8px 10px;font-size:12px;margin:6px 0;font-family:var(--mono);color:var(--txt2)">
+          4 · 未命中 → 回落 legacy inline 分支</div>
+        <p class="muted">Router 类含 <code style="color:var(--be)">_exact:{(method,path):fn}</code> 与 <code style="color:var(--be)">_prefix:[(method,prefix,fn)]</code>；启动时 line 2904-2922 逐一 <code style="color:var(--be)">register(router)</code> 注册 23 个模块。旧内联分支正被逐步"绞杀"迁移。</p>
+      </div>
+      <div class="glass card">
+        <h4><span class="ic" style="background:var(--be-bg);color:var(--be)">▦</span> 23 个路由模块 server_routes_*</h4>
+        <span class="pill be">chat</span><span class="pill be">sessions</span><span class="pill be">memory</span>
+        <span class="pill be">dashboard</span><span class="pill be">system</span><span class="pill be">canvas</span>
+        <span class="pill be">plans</span><span class="pill be">workflow</span><span class="pill be">skills</span>
+        <span class="pill be">skill</span><span class="pill be">hub</span><span class="pill be">models</span>
+        <span class="pill be">connectors</span><span class="pill be">mcp</span><span class="pill be">intent</span>
+        <span class="pill be">projects</span><span class="pill be">files</span><span class="pill be">io</span>
+        <span class="pill be">distill</span><span class="pill be">gepa</span><span class="pill be">backup</span>
+        <span class="pill be">settings</span><span class="pill be">misc</span>
+        <p class="muted">每个模块暴露 <code style="color:var(--be)">register(router)</code>，职责单一，与前端 API 一一对应。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. 内核 core -->
+  <section>
+    <div class="sec-head"><span class="num">04</span><h2>内核 core/ · XAIEngine 编排</h2>
+      <span class="tag">server_runtime 单例 → XAIEngine → 认知/执行/适配层</span></div>
+    <div class="glass card" style="margin-bottom:14px">
+      <h4><span class="ic" style="background:var(--core-bg);color:var(--core)">◉</span> XAIEngine (core/kernel/engine.py) — 中枢编排器</h4>
+      <p class="muted" style="margin-top:0">由 <code style="color:var(--core)">server_runtime.get_engine()</code> 单例持有。装配：<code>memory_core</code> · <code>planner</code> · <code>action_bus</code> · <code>coordination</code>；对外暴露 <code style="color:var(--core)">.status()</code> / <code style="color:var(--core)">.chat()</code>（planner→action_bus）/ <code style="color:var(--core)">.run_workflow()</code>。</p>
+    </div>
+    <div class="grid g4">
+      <div class="glass card">
+        <h4><span class="ic" style="background:var(--core-bg);color:var(--core)">🜁</span> kernel</h4>
+        <span class="pill core">engine</span><span class="pill core">commands</span>
+        <span class="pill core">workflow</span><span class="pill core">intents</span>
+        <span class="pill core">memory_bridge</span><span class="pill core">guardian_bridge</span>
+        <span class="pill core">evolution_bridge</span>
+      </div>
+      <div class="glass card">
+        <h4><span class="ic" style="background:var(--core-bg);color:var(--core)">🜂</span> cognition 认知</h4>
+        <span class="pill core">intent_router</span><span class="pill core">planner</span>
+        <span class="pill core">reasoner</span><span class="pill core">verifier</span>
+      </div>
+      <div class="glass card">
+        <h4><span class="ic" style="background:var(--core-bg);color:var(--core)">🜃</span> execution 执行</h4>
+        <span class="pill core">action_bus</span><span class="pill core">executor</span>
+        <span class="pill core">runner</span><span class="pill core">task_watchdog</span>
+      </div>
+      <div class="glass card">
+        <h4><span class="ic" style="background:var(--core-bg);color:var(--core)">🜄</span> adapters 适配</h4>
+        <span class="pill core">hermes_adapter</span><span class="pill core">knowledge_adapter</span>
+        <span class="pill core">openclaw_adapter</span><span class="pill core">base</span>
+      </div>
+    </div>
+    <div class="grid g3" style="margin-top:14px">
+      <div class="glass card">
+        <h4><span class="ic" style="background:var(--core-bg);color:var(--core)">◈</span> 记忆 & 检索</h4>
+        <span class="pill core">memory_core</span><span class="pill core">memory</span>
+        <span class="pill core">retrieval</span><span class="pill core">kb</span>
+        <span class="pill core">distill</span><span class="pill core">session_store</span>
+      </div>
+      <div class="glass card">
+        <h4><span class="ic" style="background:var(--core-bg);color:var(--core)">▣</span> 治理 & 韧性</h4>
+        <span class="pill core">guardian</span><span class="pill core">circuit_breaker</span>
+        <span class="pill core">degradation_chain</span><span class="pill core">provider_fallback</span>
+        <span class="pill core">loop_safety</span><span class="pill core">observability</span>
+      </div>
+      <div class="glass card">
+        <h4><span class="ic" style="background:var(--core-bg);color:var(--core)">◇</span> 模型 & 能力</h4>
+        <span class="pill core">model_registry</span><span class="pill core">deepseek_backend</span>
+        <span class="pill core">models/router</span><span class="pill core">skills</span>
+        <span class="pill core">app_store</span><span class="pill core">node_registry</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. 契约映射 -->
+  <section>
+    <div class="sec-head"><span class="num">05</span><h2>逻辑关系 · 前后端 API 契约映射</h2>
+      <span class="tag">lib/api.ts 22 函数 → 后端路由 → 实测状态</span></div>
+    <div class="glass card" style="padding:6px 6px 4px">
+      <table>
+        <thead><tr><th>前端调用</th><th>方法</th><th>路径 /api/*</th><th>后端模块</th><th>实测</th></tr></thead>
+        <tbody>
+          <tr><td>fetchStatus</td><td class="method m-get">GET</td><td class="path">/api/status</td><td class="mod">system</td><td class="s-ok">200 ✓</td></tr>
+          <tr><td>getAuthToken</td><td class="method m-post">POST</td><td class="path">/api/auth/token</td><td class="mod">system</td><td class="s-ok">200 ✓</td></tr>
+          <tr><td>fetchSystemHealth</td><td class="method m-get">GET</td><td class="path">/api/system/health</td><td class="mod">system</td><td class="s-fixed">200 ⚑ 修复</td></tr>
+          <tr><td>fetchSystemSandbox</td><td class="method m-get">GET</td><td class="path">/api/system/sandbox</td><td class="mod">system</td><td class="s-ok">200 ✓</td></tr>
+          <tr><td>fetchSystemErrors</td><td class="method m-get">GET</td><td class="path">/api/system/errors</td><td class="mod">system</td><td class="s-ok">200 ✓</td></tr>
+          <tr><td>fetchDashboard</td><td class="method m-get">GET</td><td class="path">/api/dashboard</td><td class="mod">dashboard</td><td class="s-fixed">200 ⚑ 修复</td></tr>
+          <tr><td>sendChat</td><td class="method m-post">POST</td><td class="path">/api/chat</td><td class="mod">chat</td><td class="s-ok">200 ✓</td></tr>
+          <tr><td>fetchSessions</td><td class="method m-get">GET</td><td class="path">/api/sessions</td><td class="mod">sessions</td><td class="s-ok">200 ✓</td></tr>
+          <tr><td>fetchSessionMessages</td><td class="method m-get">GET</td><td class="path">/api/sessions/&lt;id&gt;/messages</td><td class="mod">sessions</td><td class="s-ok">200 ✓</td></tr>
+          <tr><td>fetchMemoryList</td><td class="method m-get">GET</td><td class="path">/api/memory/list</td><td class="mod">memory</td><td class="s-ok">200 ✓</td></tr>
+          <tr><td>fetchMemoryStats</td><td class="method m-get">GET</td><td class="path">/api/memory/stats</td><td class="mod">memory</td><td class="s-ok">200 ✓</td></tr>
+          <tr><td>searchMemory</td><td class="method m-get">GET</td><td class="path">/api/memory/search?q=</td><td class="mod">memory</td><td class="s-ok">200 ✓</td></tr>
+          <tr><td>searchKnowledge</td><td class="method m-get">GET</td><td class="path">/api/knowledge/search</td><td class="mod">memory/kb</td><td class="s-fixed">200 ⚑ 修复</td></tr>
+          <tr><td>fetchKnowledgeStats</td><td class="method m-get">GET</td><td class="path">/api/knowledge/stats</td><td class="mod">memory/kb</td><td class="s-ok">200 ✓</td></tr>
+          <tr><td>fetchCanvas</td><td class="method m-get">GET</td><td class="path">/api/canvas/&lt;cid&gt;</td><td class="mod">canvas</td><td class="s-ok">200 ✓</td></tr>
+          <tr><td>fetchAgents</td><td class="method m-get">GET</td><td class="path">/api/agents</td><td class="mod">misc</td><td class="s-ok">200 ✓</td></tr>
+          <tr><td>fetchCapabilities</td><td class="method m-get">GET</td><td class="path">/api/capabilities</td><td class="mod">misc</td><td class="s-ok">200 ✓</td></tr>
+          <tr><td>fetchSkills</td><td class="method m-get">GET</td><td class="path">/api/skills</td><td class="mod">skills</td><td class="s-ok">200 ✓</td></tr>
+          <tr><td>fetchConnectors</td><td class="method m-get">GET</td><td class="path">/api/connectors</td><td class="mod">connectors</td><td class="s-ok">200 ✓</td></tr>
+          <tr><td>fetchMcpList</td><td class="method m-get">GET</td><td class="path">/api/mcp/list</td><td class="mod">mcp</td><td class="s-ok">200 ✓</td></tr>
+          <tr><td>fetchGepaStatus</td><td class="method m-get">GET</td><td class="path">/api/gepa/status</td><td class="mod">gepa</td><td class="s-ok">200 ✓</td></tr>
+          <tr><td>fetchGuardianPending</td><td class="method m-get">GET</td><td class="path">/api/guardian/pending</td><td class="mod">system</td><td class="s-ok">200 ✓</td></tr>
+          <tr><td>approveGuardian</td><td class="method m-post">POST</td><td class="path">/api/guardian/approve</td><td class="mod">system</td><td class="s-ok">200 ✓</td></tr>
+          <tr><td>fetchWorkflowHistory</td><td class="method m-get">GET</td><td class="path">/api/workflow/history</td><td class="mod">workflow</td><td class="s-ok">200 ✓</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note ok"><b>契约核验结论：</b>对运行中后端逐一实测 26 条前端调用路由 —— <b>全部返回 200，0 条契约漂移</b>。其中 <span class="s-fixed">/api/system/health · /api/dashboard · /api/knowledge/search</span> 三条曾因服务陈旧（404/500）失效，重启后端后已恢复。此前记忆中"5 路由名错配"的记录经实测证伪，已在 MEMORY.md 更正。</div>
+  </section>
+
+  <!-- 6. 数据 & 运行时 -->
+  <section>
+    <div class="sec-head"><span class="num">06</span><h2>数据存储 & 进程运行时</h2>
+      <span class="tag">持久层 + 崩溃自愈守护</span></div>
+    <div class="grid g2">
+      <div class="glass card">
+        <h4><span class="ic" style="background:var(--data-bg);color:var(--data)">▤</span> 数据存储</h4>
+        <span class="pill data">memory_core · SQLite</span>
+        <span class="pill data">xai-backend/data/</span>
+        <span class="pill data">~/.xai (pid / flock)</span>
+        <span class="pill data">app_store 技能包</span>
+        <span class="pill data">session_store 会话</span>
+        <p class="muted"><code style="color:var(--data)">memory_core</code> 已将 <code>Lock</code> 改为 <code>RLock</code>（修复自死锁）；<code>~/.xai/server.pid</code> 用 <code>fcntl.flock</code> 单实例锁，进程退出自动释放。</p>
+      </div>
+      <div class="glass card">
+        <h4><span class="ic" style="background:var(--data-bg);color:var(--data)">♻</span> 进程守护 & 备份</h4>
+        <span class="pill data">崩溃自愈 while 循环 (PID 58157/59)</span>
+        <span class="pill data">start_xai.sh 守护脚本</span>
+        <span class="pill data">launchd plist (待终端加载)</span>
+        <span class="pill data">git bundle 41MB 全历史备份</span>
+        <p class="muted">崩溃自动重启已在当前环境生效；开机自启的 launchd 因沙箱权限受限，需在用户终端手动 <code>launchctl load</code>。离线备份已生成 <code>~/xai-backup-20260724.bundle</code>（已 verify）。</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    XAI 统一操作台 · 真实架构快照 @ commit 6144d6a · 生成于本地代码扫描 · 前端 React/TS · 后端 Python HTTP + XAIEngine · 离线自包含 HTML
+  </footer>
+
+</div>
+</body>
+</html>

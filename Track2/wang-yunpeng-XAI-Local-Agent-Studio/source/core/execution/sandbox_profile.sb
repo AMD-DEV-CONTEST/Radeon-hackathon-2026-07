@@ -1,0 +1,45 @@
+;; XAI 硬沙箱配置（macOS sandbox-exec）
+;; 禁止出站网络、限制文件写入、禁 sysctl/kext
+
+(version 1)
+(deny default)
+
+;; 允许读的系统路径（只读）
+(allow file-read*
+    (subpath "/usr/bin")
+    (subpath "/usr/lib")
+    (subpath "/usr")
+    (subpath "/bin")
+    (subpath "/Library")
+    (subpath "/System/Library")
+    (subpath "/Applications/Xcode.app/Contents/Developer")
+    (subpath "/opt/homebrew")
+    (literal "/dev/null")
+    (literal "/dev/zero")
+    (literal "/dev/random")
+    (literal "/dev/urandom")
+    (literal "/etc/hosts")
+    (literal "/etc/resolv.conf"))
+
+;; 允许读写的用户工作区
+(allow file-read* file-write*
+    (subpath "/tmp/xai-sandbox"))
+
+;; 允许进程管理
+(allow process-exec
+    (subpath "/usr/bin")
+    (subpath "/bin")
+    (literal "/bin/sh")
+    (literal "/bin/bash")
+    (literal "/usr/bin/python3")
+    (literal "/usr/bin/env")
+    (subpath "/opt/homebrew/bin"))
+
+;; 允许信号
+(allow signal)
+
+;; 明确禁止：网络、sysctl、kext
+(deny network*)
+(deny sysctl*)
+(deny mach-lookup
+    (global-name "com.apple.ocspd"))

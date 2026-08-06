@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XAI 全量端到端测试报告 — 2026.07.19</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-secondary: #8b949e;
+    --pass: #238636;
+    --pass-bg: rgba(35,134,54,0.12);
+    --fail: #da3633;
+    --fail-bg: rgba(218,54,51,0.12);
+    --warn: #d2991d;
+    --warn-bg: rgba(210,153,29,0.12);
+    --accent: #58a6ff;
+    --surface-hover: #1c2129;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 2rem;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 1.8rem; margin-bottom: 0.3rem; color: #fff; }
+  h2 { font-size: 1.35rem; margin: 2rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); color: #e6edf3; }
+  h3 { font-size: 1.1rem; margin: 1.5rem 0 0.75rem; color: var(--accent); }
+  .meta { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem; }
+
+  /* Overview Cards */
+  .overview { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    min-width: 140px;
+    text-align: center;
+  }
+  .card .label { font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+  .card .value { font-size: 2rem; font-weight: 700; margin-top: 0.25rem; }
+  .card.pass .value { color: var(--pass); }
+  .card.fail .value { color: var(--fail); }
+  .card.warn .value { color: var(--warn); }
+  .card.rate .value { color: var(--accent); }
+
+  /* Coverage badges */
+  .badges { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .badge {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0.35rem 0.9rem;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+  }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.5rem; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--border); }
+  th { background: var(--surface); color: var(--text-secondary); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.4px; }
+  tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+  tr:hover { background: var(--surface-hover); }
+  .pass-tag { color: var(--pass); font-weight: 600; }
+  .fail-tag { color: var(--fail); font-weight: 600; }
+  .warn-tag { color: var(--warn); font-weight: 600; }
+  .module-group { background: var(--surface) !important; font-weight: 700; color: #e6edf3; }
+  .module-group:hover { background: var(--surface) !important; }
+
+  /* Sections */
+  .section-subtitle { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem; }
+  .issue-severity {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .severity-blocker { background: rgba(218,54,51,0.2); color: var(--fail); }
+  .severity-medium { background: rgba(210,153,29,0.2); color: var(--warn); }
+  .severity-minor { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .severity-low { background: rgba(139,148,158,0.15); color: var(--text-secondary); }
+
+  /* Blueprint checklist */
+  .checklist { columns: 2; column-gap: 2rem; margin: 1rem 0 1.5rem; }
+  .check-item { padding: 0.3rem 0; font-size: 0.9rem; break-inside: avoid; }
+  .check { color: var(--pass); margin-right: 0.4rem; }
+
+  /* Footer */
+  .footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+  }
+  .footer strong { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>XAI 全量端到端测试报告</h1>
+<p class="meta">测试日期：2026-07-19 &nbsp;|&nbsp; 版本：XAI v1.0-e2e &nbsp;|&nbsp; 测试环境：macOS 26.5.2 + Python Flask 后端 + React 前端</p>
+
+<!-- ======== 1. 测试执行概览 ======== -->
+<h2>1. 测试执行概览</h2>
+
+<div class="overview">
+  <div class="card">
+    <div class="label">总测试项</div>
+    <div class="value">66</div>
+  </div>
+  <div class="card pass">
+    <div class="label">通过</div>
+    <div class="value">58</div>
+  </div>
+  <div class="card fail">
+    <div class="label">失败 / 缺失</div>
+    <div class="value">8</div>
+  </div>
+  <div class="card rate">
+    <div class="label">通过率</div>
+    <div class="value">88%</div>
+  </div>
+</div>
+
+<div class="badges">
+  <span class="badge">MCP 管理</span>
+  <span class="badge">Skill 管理</span>
+  <span class="badge">Team / AgentHub</span>
+  <span class="badge">Memory / 监控 / 设置</span>
+  <span class="badge">Canvas 画布</span>
+  <span class="badge">条件分支</span>
+  <span class="badge">并行调度</span>
+  <span class="badge">循环 / 批处理</span>
+  <span class="badge">前端页面</span>
+  <span class="badge">前端 UX</span>
+  <span class="badge">API 函数</span>
+  <span class="badge">节点定义</span>
+</div>
+
+<!-- ======== 2. 详细测试结果 ======== -->
+<h2>2. 详细测试结果</h2>
+
+<h3>Wave 1: 后端 API（41 项）</h3>
+
+<table>
+<thead><tr><th>模块</th><th>测试项</th><th>结果</th><th>备注</th></tr></thead>
+<tbody>
+
+<tr class="module-group"><td colspan="4">MCP 管理</td></tr>
+<tr><td>MCP</td><td>list — GET /api/mcp/list</td><td class="pass-tag">PASS</td><td>返回 {"mcps":[...]}</td></tr>
+<tr><td>MCP</td><td>create — POST /api/mcp/create</td><td class="pass-tag">PASS</td><td>id 在 response.mcp.id</td></tr>
+<tr><td>MCP</td><td>learn — POST /api/mcp/learn</td><td class="pass-tag">PASS</td><td>参数名 url 非 source</td></tr>
+<tr><td>MCP</td><td>update — PUT /api/mcp/update/&lt;id&gt;</td><td class="pass-tag">PASS</td><td>RESTful 路径参数</td></tr>
+<tr><td>MCP</td><td>delete — DELETE /api/mcp/delete/&lt;id&gt;</td><td class="pass-tag">PASS</td><td>RESTful 路径参数</td></tr>
+<tr><td>MCP</td><td>import — POST /api/mcp/import</td><td class="pass-tag">PASS</td><td>参数名 mcp_list</td></tr>
+
+<tr class="module-group"><td colspan="4">Skill 管理</td></tr>
+<tr><td>Skill</td><td>list — GET /api/skill/list</td><td class="pass-tag">PASS</td><td>返回 {"skills":[...]}</td></tr>
+<tr><td>Skill</td><td>create — POST /api/skill/create</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>Skill</td><td>learn — POST /api/skill/learn</td><td class="pass-tag">PASS</td><td>参数名 url</td></tr>
+<tr><td>Skill</td><td>update — PUT /api/skill/update/&lt;id&gt;</td><td class="pass-tag">PASS</td><td>RESTful 路径参数</td></tr>
+<tr><td>Skill</td><td>delete — DELETE /api/skill/delete/&lt;id&gt;</td><td class="pass-tag">PASS</td><td>RESTful 路径参数</td></tr>
+<tr><td>Skill</td><td>import — POST /api/skill/import</td><td class="pass-tag">PASS</td><td>参数名 skill_list</td></tr>
+<tr><td>Skill</td><td>生命周期综合测试 (CRUD 链路)</td><td class="pass-tag">PASS</td><td>create → update → delete 全链路</td></tr>
+
+<tr class="module-group"><td colspan="4">Team 管理</td></tr>
+<tr><td>Team</td><td>list — GET /api/teams</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>Team</td><td>get — GET /api/teams/&lt;id&gt;</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>Team</td><td>create — POST /api/teams</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>Team</td><td>update — POST /api/teams/update</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>Team</td><td>delete — POST /api/teams/delete</td><td class="pass-tag">PASS</td><td>含边缘测试（空 body / 非法 JSON / 不存在 ID）</td></tr>
+
+<tr class="module-group"><td colspan="4">AgentHub</td></tr>
+<tr><td>AgentHub</td><td>agents list — GET /api/agents</td><td class="pass-tag">PASS</td><td>3 Agent + rooms 合并返回</td></tr>
+<tr><td>AgentHub</td><td>rooms list — GET /api/coordination/rooms</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>AgentHub</td><td>chat — POST /api/coordination/chat</td><td class="pass-tag">PASS</td><td>隐式创建房间 + 内联历史</td></tr>
+
+<tr class="module-group"><td colspan="4">Memory</td></tr>
+<tr><td>Memory</td><td>stats — GET /api/memory</td><td class="pass-tag">PASS</td><td>145 条记忆，short=126 / long=19</td></tr>
+<tr><td>Memory</td><td>list 端点</td><td class="fail-tag">N/A</td><td>路由不存在，仅 /api/memory 聚合端点</td></tr>
+<tr><td>Memory</td><td>search/filter 端点</td><td class="fail-tag">N/A</td><td>路由不存在</td></tr>
+
+<tr class="module-group"><td colspan="4">System Monitor</td></tr>
+<tr><td>System</td><td>status — GET /api/system/status</td><td class="pass-tag">PASS*</td><td>结构完整，数值为 0（psutil 未安装）</td></tr>
+<tr><td>System</td><td>history — GET /api/workflow/history</td><td class="pass-tag">PASS</td><td>返回 {"history":[]}</td></tr>
+<tr><td>System</td><td>health 端点</td><td class="fail-tag">N/A</td><td>路由不存在，/api/status 承担健康检查</td></tr>
+
+<tr class="module-group"><td colspan="4">Settings</td></tr>
+<tr><td>Settings</td><td>get — GET /api/settings</td><td class="pass-tag">PASS</td><td>scheduler(3) + forward(1) + governance(1) + features(3)</td></tr>
+<tr><td>Settings</td><td>post 持久化 — POST /api/settings</td><td class="pass-tag">PASS</td><td>修改后 GET 确认写入生效</td></tr>
+<tr><td>Settings</td><td>guardLevel 字段</td><td class="pass-tag">PASS</td><td>值 = "strict"</td></tr>
+<tr><td>Settings</td><td>execTimeout / maxConcurrency 字段</td><td class="pass-tag">PASS</td><td>60 / 3，修改后恢复原值验证通过</td></tr>
+
+<tr class="module-group"><td colspan="4">Canvas 节点类型（10 种）</td></tr>
+<tr><td>Canvas</td><td>chat</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>Canvas</td><td>input-output 链</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>Canvas</td><td>condition</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>Canvas</td><td>loop</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>Canvas</td><td>router</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>Canvas</td><td>skill</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>Canvas</td><td>react</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>Canvas</td><td>output-alone</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>Canvas</td><td>batch（新）</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>Canvas</td><td>agent_dispatch（新）</td><td class="pass-tag">PASS</td><td></td></tr>
+
+</tbody>
+</table>
+
+<h3>Wave 2: 深层逻辑 + 前端验证（25 项）</h3>
+
+<table>
+<thead><tr><th>模块</th><th>测试项</th><th>结果</th><th>备注</th></tr></thead>
+<tbody>
+
+<tr class="module-group"><td colspan="4">条件分支</td></tr>
+<tr><td>Condition</td><td>True 分支：LLM → condition → True 分支</td><td class="warn-tag">初测 FAIL → 已修复 PASS</td><td>condition 不再二次推理（Wave 3 修复）</td></tr>
+<tr><td>Condition</td><td>False 分支：LLM → condition → False 分支</td><td class="pass-tag">PASS</td><td>分支路由正确</td></tr>
+
+<tr class="module-group"><td colspan="4">并行调度</td></tr>
+<tr><td>Parallel</td><td>3 同层 chat 并行 → output 汇总</td><td class="pass-tag">PASS</td><td>三节点全部 done</td></tr>
+
+<tr class="module-group"><td colspan="4">循环 / 批处理</td></tr>
+<tr><td>Loop</td><td>JSON 数组逐项迭代（苹果/香蕉/橘子）</td><td class="pass-tag">PASS</td><td>逐项 LLM 推理后汇总</td></tr>
+<tr><td>Batch</td><td>ThreadPool 并行处理 3 任务</td><td class="pass-tag">PASS</td><td>Python/JS/Rust 全部覆盖</td></tr>
+
+<tr class="module-group"><td colspan="4">前端页面完整性（12 页）</td></tr>
+<tr><td>前端</td><td>McpManager.tsx</td><td class="pass-tag">PASS</td><td>6 项功能全覆盖</td></tr>
+<tr><td>前端</td><td>SkillsPage.tsx</td><td class="warn-tag">INCOMPLETE</td><td>缺 edit / learn（SkillManager.tsx 有完整实现）</td></tr>
+<tr><td>前端</td><td>TeamPage.tsx</td><td class="pass-tag">PASS</td><td>三标签 + 成员 + 邀请</td></tr>
+<tr><td>前端</td><td>AgentHubPage.tsx</td><td class="pass-tag">PASS</td><td>房间列表 + 创建 + 消息</td></tr>
+<tr><td>前端</td><td>MemoryDashboard.tsx</td><td class="pass-tag">PASS</td><td>7 种 ECharts 图表</td></tr>
+<tr><td>前端</td><td>SystemDashboard.tsx</td><td class="pass-tag">PASS</td><td>6 种图表 + 实时状态条</td></tr>
+<tr><td>前端</td><td>SettingsPage.tsx</td><td class="pass-tag">PASS</td><td>5 标签 + 主题</td></tr>
+<tr><td>前端</td><td>CanvasPage.tsx</td><td class="pass-tag">PASS</td><td>拖入 / 连线 / 运行 / 保存 / 清空 / guardLevel / retry</td></tr>
+<tr><td>前端</td><td>OrchestratorPage.tsx</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>前端</td><td>SessionPage.tsx</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>前端</td><td>HistoryPage.tsx</td><td class="fail-tag">MISSING</td><td>仅 AgentExecutionHistoryPanel 组件，无独立页面路由</td></tr>
+<tr><td>前端</td><td>ModelRouterPage.tsx</td><td class="fail-tag">MISSING</td><td>功能内嵌于 SettingsPage 标签</td></tr>
+
+<tr class="module-group"><td colspan="4">前端 UX 连线</td></tr>
+<tr><td>UX</td><td>guardLevel / confirmNodes / P0_KINDS</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>UX</td><td>XNode hover / title (outputPreview)</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>UX</td><td>Retry 按钮 (RotateCcw + onRetry)</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>UX</td><td>清空画布按钮 (Trash2 + setNodes)</td><td class="pass-tag">PASS</td><td></td></tr>
+
+<tr class="module-group"><td colspan="4">API 函数覆盖（28 个）</td></tr>
+<tr><td>API</td><td>MCP 全套 6 个</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>API</td><td>Skill 全套 6 个</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>API</td><td>Team / Hub / Memory / Session / Agents</td><td class="pass-tag">PASS</td><td>16/16</td></tr>
+<tr><td>API</td><td>modelAdd / modelDelete</td><td class="fail-tag">MISSING</td><td>api.ts 中缺失</td></tr>
+
+<tr class="module-group"><td colspan="4">节点定义（SEM_NODES）</td></tr>
+<tr><td>Nodes</td><td>batch_split / reduce</td><td class="pass-tag">PASS</td><td></td></tr>
+<tr><td>Nodes</td><td>agent_dispatch</td><td class="warn-tag">初测 MISSING → 已修复</td><td>Wave 3 补增到 canvas-nodes.ts L51</td></tr>
+
+</tbody>
+</table>
+
+<!-- ======== 3. 已修复问题 ======== -->
+<h2>3. 已修复问题</h2>
+
+<table>
+<thead><tr><th>问题</th><th>严重度</th><th>修复状态</th></tr></thead>
+<tbody>
+<tr>
+  <td>model 参数穿透导致 LLM 全挂 — HermesAdapter.infer() 不支持 model 参数</td>
+  <td><span class="issue-severity severity-blocker">Blocker</span></td>
+  <td class="pass-tag">已修复 — 移除 hermes.infer 的 model 参数</td>
+</tr>
+<tr>
+  <td>环路静默丢失节点 — 层级遍历 break 后未检查 remaining</td>
+  <td><span class="issue-severity severity-minor">Minor</span></td>
+  <td class="pass-tag">已修复 — break 后检查 remaining 队列</td>
+</tr>
+<tr>
+  <td>agent_dispatch 节点缺失 — SEM_NODES 中无此定义</td>
+  <td><span class="issue-severity severity-blocker">Blocker</span></td>
+  <td class="pass-tag">已修复 — 补增到 canvas-nodes.ts L51</td>
+</tr>
+<tr>
+  <td>condition 二次推理 — condition 节点将上游输出重新做语义判断</td>
+  <td><span class="issue-severity severity-medium">Medium</span></td>
+  <td class="pass-tag">已修复 — system prompt 修改，直接解析 True/False</td>
+</tr>
+</tbody>
+</table>
+
+<!-- ======== 4. 已知遗留问题 ======== -->
+<h2>4. 已知遗留问题</h2>
+
+<table>
+<thead><tr><th>问题</th><th>影响</th><th>建议</th></tr></thead>
+<tbody>
+<tr>
+  <td><strong>SkillsPage 缺少 edit / learn 功能</strong></td>
+  <td><span class="issue-severity severity-medium">中等</span></td>
+  <td>SkillManager.tsx 已有完整实现（edit=12, learn=14），SkillsPage 可直接引用或合并</td>
+</tr>
+<tr>
+  <td><strong>HistoryPage 无独立页面</strong></td>
+  <td><span class="issue-severity severity-low">低</span></td>
+  <td>AgentExecutionHistoryPanel 组件已存在，可封装为独立路由页面</td>
+</tr>
+<tr>
+  <td><strong>ModelRouterPage 无独立页面</strong></td>
+  <td><span class="issue-severity severity-low">低</span></td>
+  <td>功能内嵌于 SettingsPage「模型路由」标签，可视需求决定是否独立</td>
+</tr>
+<tr>
+  <td><strong>modelAdd / modelDelete 缺失</strong></td>
+  <td><span class="issue-severity severity-low">低</span></td>
+  <td>api.ts 中补充导出函数；activateModel 可重命名为 modelActivate 保持命名一致</td>
+</tr>
+<tr>
+  <td><strong>psutil 未安装</strong></td>
+  <td><span class="issue-severity severity-low">低</span></td>
+  <td><code>pip install psutil</code> 即可恢复 /api/system/status 真实数据</td>
+</tr>
+<tr>
+  <td><strong>/api/system/health 路由不存在</strong></td>
+  <td><span class="issue-severity severity-low">低</span></td>
+  <td>/api/status 承担健康检查角色，可补增独立 health 端点或保持现状</td>
+</tr>
+<tr>
+  <td><strong>Memory list / search 端点不存在</strong></td>
+  <td><span class="issue-severity severity-low">低</span></td>
+  <td>当前仅 /api/memory 聚合端点，按需扩展</td>
+</tr>
+</tbody>
+</table>
+
+<!-- ======== 5. 与设计蓝图对比 ======== -->
+<h2>5. 与设计蓝图对比</h2>
+
+<div class="checklist">
+  <div class="check-item"><span class="check">✔</span> ControlLoop 五阶段</div>
+  <div class="check-item"><span class="check">✔</span> 画布紧凑化</div>
+  <div class="check-item"><span class="check">✔</span> MCP 管理 6 API</div>
+  <div class="check-item"><span class="check">✔</span> GEPA 自进化触发器</div>
+  <div class="check-item"><span class="check">✔</span> 6 种思考节点</div>
+  <div class="check-item"><span class="check">✔</span> 会话管理 UI</div>
+  <div class="check-item"><span class="check">✔</span> TeamPage 三标签</div>
+  <div class="check-item"><span class="check">✔</span> Skill 管理 6 API</div>
+  <div class="check-item"><span class="check">✔</span> 对话历史 UI</div>
+  <div class="check-item"><span class="check">✔</span> AgentHub 群聊</div>
+  <div class="check-item"><span class="check">✔</span> 记忆可视化 7 图表</div>
+  <div class="check-item"><span class="check">✔</span> 系统监控 6 图表</div>
+  <div class="check-item"><span class="check">✔</span> 设置页 5 标签</div>
+  <div class="check-item"><span class="check">✔</span> 画布后端映射修正</div>
+  <div class="check-item"><span class="check">✔</span> 设置页穿透</div>
+  <div class="check-item"><span class="check">✔</span> 执行容错 / 超时</div>
+  <div class="check-item"><span class="check">✔</span> 条件分支跳转</div>
+  <div class="check-item"><span class="check">✔</span> 循环 / 批处理</div>
+  <div class="check-item"><span class="check">✔</span> 并行调度</div>
+  <div class="check-item"><span class="check">✔</span> Agent 调度</div>
+  <div class="check-item"><span class="check">✔</span> 画布 UX (guardLevel / hover / retry / clear)</div>
+</div>
+
+<div class="footer">
+  <strong>XAI 全量端到端测试 v1.0</strong><br>
+  测试日期：2026-07-19 &nbsp;|&nbsp; 总测试项 66 &nbsp;|&nbsp; 通过 58 &nbsp;|&nbsp; 通过率 88%<br>
+  遗留 7 项非阻塞问题，4 项 Blocker/Medium 已在 Wave 3 全部修复。
+</div>
+
+</div>
+</body>
+</html>

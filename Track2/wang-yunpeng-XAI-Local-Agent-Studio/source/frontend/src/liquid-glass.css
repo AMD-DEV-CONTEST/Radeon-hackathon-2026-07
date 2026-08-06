@@ -1,0 +1,792 @@
+/* ============================================
+   Liquid Glass Design System - macOS 26 Style
+   ============================================ */
+
+/* ============================================
+   CSS Custom Properties (Design Tokens)
+   ============================================ */
+
+:root {
+  /* Base colors - will be overridden by theme */
+  --color-bg: #0c0c0e;
+  --color-bg-elevated: #141416;
+  --color-bg-panel: rgba(28, 28, 30, 0.85);
+  --color-bg-card: rgba(32, 32, 35, 0.95);
+  --color-bg-input: rgba(255, 255, 255, 0.05);
+  
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
+  --color-border-hover: rgba(255, 255, 255, 0.15);
+  --color-border-focus: rgba(59, 130, 246, 0.5);
+  --rf-bg-dot: rgba(255, 255, 255, 0.12);  /* ReactFlow dot pattern (dark default) */
+
+  --color-text: rgba(241, 245, 249, 0.9);
+  --color-text-muted: rgba(161, 161, 170, 0.9);
+  --color-text-subtle: rgba(113, 113, 122, 0.9);
+  
+  /* Glass effects */
+  --glass-blur: 20px;
+  --glass-blur-heavy: 30px;
+  --glass-bg: rgba(30, 30, 30, 0.8);
+  --glass-bg-light: rgba(40, 40, 40, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.15);
+  --glass-border-light: rgba(255, 255, 255, 0.1);
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-glass: 0 4px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  
+  /* Border radius */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Z-index scale */
+  --z-base: 0;
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-panel: 30;
+  --z-modal: 40;
+  --z-tooltip: 50;
+}
+
+/* ============================================
+   Dark Theme (Default)
+   ============================================ */
+
+.dark {
+  --color-bg: #0c0c0e;
+  --color-bg-elevated: #141416;
+  --color-bg-panel: rgba(28, 28, 30, 0.85);
+  --color-bg-card: rgba(32, 32, 35, 0.95);
+  --color-bg-input: rgba(255, 255, 255, 0.05);
+  --color-bg-hover: rgba(255, 255, 255, 0.08);
+  
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-subtle: rgba(255, 255, 255, 0.04);
+  --color-border-hover: rgba(255, 255, 255, 0.12);
+  
+  --color-text: rgba(255, 255, 255, 0.92);
+  --color-text-muted: rgba(255, 255, 255, 0.55);
+  --color-text-subtle: rgba(255, 255, 255, 0.35);
+  
+  --color-accent: rgba(10, 132, 255, 0.95);
+  --color-accent-bg: rgba(10, 132, 255, 0.12);
+  --color-accent-border: rgba(10, 132, 255, 0.3);
+  
+  /* Node colors - macOS system palette with subtle saturation */
+  --color-node-input: rgba(10, 132, 255, 0.9);
+  --color-node-input-bg: rgba(10, 132, 255, 0.12);
+  --color-node-input-border: rgba(10, 132, 255, 0.25);
+  
+  --color-node-ai: rgba(175, 82, 222, 0.85);
+  --color-node-ai-bg: rgba(175, 82, 222, 0.1);
+  --color-node-ai-border: rgba(175, 82, 222, 0.22);
+  
+  --color-node-logic: rgba(48, 209, 88, 0.85);
+  --color-node-logic-bg: rgba(48, 209, 88, 0.1);
+  --color-node-logic-border: rgba(48, 209, 88, 0.22);
+  
+  --color-node-data: rgba(255, 159, 10, 0.85);
+  --color-node-data-bg: rgba(255, 159, 10, 0.1);
+  --color-node-data-border: rgba(255, 159, 10, 0.22);
+  
+  --color-node-file: rgba(191, 90, 242, 0.85);
+  --color-node-file-bg: rgba(191, 90, 242, 0.1);
+  --color-node-file-border: rgba(191, 90, 242, 0.22);
+  
+  --color-node-system: rgba(255, 69, 58, 0.85);
+  --color-node-system-bg: rgba(255, 69, 58, 0.1);
+  --color-node-system-border: rgba(255, 69, 58, 0.22);
+  
+  --color-node-output: rgba(50, 215, 75, 0.85);
+  --color-node-output-bg: rgba(50, 215, 75, 0.1);
+  --color-node-output-border: rgba(50, 215, 75, 0.22);
+  
+  --glass-bg: rgba(30, 30, 30, 0.75);
+  --glass-bg-light: rgba(40, 40, 40, 0.65);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-border-light: rgba(255, 255, 255, 0.06);
+  
+  --shadow-glass: 0 2px 16px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --shadow-handle-hover: 0 0 4px rgba(10, 132, 255, 0.4);
+  
+  --xy-minimap-background-color-default: var(--glass-bg);
+  --xy-minimap-mask-background-color-default: rgba(0, 0, 0, 0.5);
+  --xy-minimap-mask-stroke-color-default: var(--glass-border);
+  --xy-minimap-node-background-color-default: var(--color-border-subtle);
+  --xy-minimap-node-stroke-color-default: transparent;
+}
+
+/* ============================================
+   Light Theme
+   ============================================ */
+
+.light {
+  --color-bg: #f5f5f7;
+  --color-bg-elevated: #ffffff;
+  --color-bg-panel: rgba(255, 255, 255, 0.82);
+  --color-bg-card: rgba(255, 255, 255, 0.95);
+  --color-bg-input: rgba(0, 0, 0, 0.04);
+  --color-bg-hover: rgba(0, 0, 0, 0.06);
+  
+  --color-border: rgba(0, 0, 0, 0.15);
+  --color-border-subtle: rgba(0, 0, 0, 0.08);
+  --color-border-hover: rgba(0, 0, 0, 0.2);
+  --color-border-focus: rgba(0, 122, 255, 0.5);
+  --rf-bg-dot: rgba(0, 0, 0, 0.1);  /* ReactFlow dot pattern (light) */
+
+  --color-text: rgba(0, 0, 0, 0.85);
+  --color-text-muted: rgba(0, 0, 0, 0.55);
+  --color-text-subtle: rgba(0, 0, 0, 0.35);
+  
+  --color-accent: rgba(0, 122, 255, 0.95);
+  --color-accent-bg: rgba(0, 122, 255, 0.1);
+  --color-accent-border: rgba(0, 122, 255, 0.25);
+  
+  /* Node colors - macOS system palette (light mode) */
+  --color-node-input: rgba(0, 122, 255, 0.9);
+  --color-node-input-bg: rgba(0, 122, 255, 0.1);
+  --color-node-input-border: rgba(0, 122, 255, 0.25);
+  
+  --color-node-ai: rgba(175, 82, 222, 0.85);
+  --color-node-ai-bg: rgba(175, 82, 222, 0.08);
+  --color-node-ai-border: rgba(175, 82, 222, 0.2);
+  
+  --color-node-logic: rgba(52, 199, 89, 0.85);
+  --color-node-logic-bg: rgba(52, 199, 89, 0.08);
+  --color-node-logic-border: rgba(52, 199, 89, 0.2);
+  
+  --color-node-data: rgba(255, 149, 0, 0.85);
+  --color-node-data-bg: rgba(255, 149, 0, 0.08);
+  --color-node-data-border: rgba(255, 149, 0, 0.2);
+  
+  --color-node-file: rgba(191, 90, 242, 0.85);
+  --color-node-file-bg: rgba(191, 90, 242, 0.08);
+  --color-node-file-border: rgba(191, 90, 242, 0.2);
+  
+  --color-node-system: rgba(255, 59, 48, 0.85);
+  --color-node-system-bg: rgba(255, 59, 48, 0.08);
+  --color-node-system-border: rgba(255, 59, 48, 0.2);
+  
+  --color-node-output: rgba(52, 199, 89, 0.85);
+  --color-node-output-bg: rgba(52, 199, 89, 0.08);
+  --color-node-output-border: rgba(52, 199, 89, 0.2);
+  
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-bg-light: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(0, 0, 0, 0.1);
+  --glass-border-light: rgba(0, 0, 0, 0.06);
+  
+  --shadow-glass: 0 2px 16px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --shadow-handle-hover: 0 0 4px rgba(0, 122, 255, 0.4);
+  
+  --xy-minimap-background-color-default: var(--glass-bg);
+  --xy-minimap-mask-background-color-default: rgba(0, 0, 0, 0.3);
+  --xy-minimap-mask-stroke-color-default: var(--glass-border);
+  --xy-minimap-node-background-color-default: var(--color-border-subtle);
+  --xy-minimap-node-stroke-color-default: transparent;
+}
+
+/* ============================================
+   Glass Panel Components
+   ============================================ */
+
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-glass);
+  transition: all var(--transition-normal);
+}
+
+.glass-panel:hover {
+  border-color: var(--glass-border);
+  box-shadow: var(--shadow-glass), 0 0 0 1px var(--glass-border);
+}
+
+.glass-panel-light {
+  background: var(--glass-bg-light);
+  backdrop-filter: blur(calc(var(--glass-blur) * 0.6));
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.6));
+  border: 1px solid var(--glass-border-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.glass-card {
+  background: var(--color-bg-card);
+  backdrop-filter: blur(calc(var(--glass-blur) * 0.5));
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.5));
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-normal);
+}
+
+.glass-card:hover {
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-md);
+}
+
+/* ============================================
+   Glass Input Components
+   ============================================ */
+
+.glass-input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: all var(--transition-normal);
+  backdrop-filter: blur(8px);
+}
+
+.glass-input::placeholder {
+  color: var(--color-text-subtle);
+}
+
+.glass-input:hover {
+  background: var(--color-bg-input);
+  border-color: var(--color-border);
+}
+
+.glass-input:focus {
+  background: var(--color-bg-input);
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* ============================================
+   Glass Button Components
+   ============================================ */
+
+.glass-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text);
+  background: var(--glass-bg-light);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border-light);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-button:hover {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+  transform: translateY(-1px);
+}
+
+.glass-button:active {
+  transform: translateY(0);
+}
+
+.glass-button-icon {
+  padding: 0.5rem;
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+/* ============================================
+   Floating Components
+   ============================================ */
+
+.glass-floating {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.glass-floating-subtle {
+  background: var(--glass-bg-light);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+/* ============================================
+   Liquid Glass Animations
+   ============================================ */
+
+@keyframes glass-refraction {
+  0%, 100% {
+    box-shadow: 
+      0 4px 24px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+  }
+  50% {
+    box-shadow: 
+      0 4px 32px rgba(0, 0, 0, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+  }
+}
+
+@keyframes glass-shine {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes glass-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.01);
+  }
+}
+
+.glass-animate-refraction {
+  animation: glass-refraction 4s ease-in-out infinite;
+}
+
+.glass-animate-shine {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: glass-shine 3s ease-in-out infinite;
+}
+
+.glass-animate-pulse {
+  animation: glass-pulse 2s ease-in-out infinite;
+}
+
+/* ============================================
+   Resize Handle
+   ============================================ */
+
+.resize-handle {
+  height: 6px;
+  cursor: row-resize;
+  background: transparent;
+  transition: background var(--transition-fast);
+  position: relative;
+}
+
+.resize-handle::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+  transition: all var(--transition-fast);
+}
+
+.resize-handle:hover {
+  background: var(--color-bg-input);
+}
+
+.resize-handle:hover::before {
+  background: var(--color-border-hover);
+  width: 60px;
+}
+
+/* ============================================
+   Drawer Components
+   ============================================ */
+
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(2px);
+  z-index: var(--z-panel);
+  transition: opacity var(--transition-normal);
+}
+
+.drawer-content {
+  position: fixed;
+  z-index: calc(var(--z-panel) + 1);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-lg);
+  transition: transform var(--transition-slow);
+}
+
+.drawer-left {
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+}
+
+.drawer-right {
+  right: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+}
+
+.drawer-bottom {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+/* ============================================
+   Shared UI Primitives — Liquid-Glass unified
+   (consumed by _ui.tsx / ResizablePanel / CollapsibleDrawer sub-components)
+   ============================================ */
+
+/* ---- Icon button ---- */
+.glass-btn-icon {
+  width: 32px; height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--glass-bg-light);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border-light);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+.glass-btn-icon:hover {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+  color: var(--color-text);
+}
+
+/* ---- Primary action button ---- */
+.glass-btn-primary {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 8px 14px; border-radius: 9px; border: none;
+  background: linear-gradient(180deg, rgba(10,132,255,0.9) 0%, rgba(0,122,255,0.95) 100%);
+  color: #fff; font-size: 13px; cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.15);
+  border: 1px solid rgba(10,132,255,0.5);
+  transition: all var(--transition-normal);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.glass-btn-primary:hover {
+  background: linear-gradient(180deg, rgba(0,122,255,0.95) 0%, rgba(0,113,227,1) 100%);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.2);
+  transform: translateY(-1px);
+}
+.glass-btn-primary:active { transform: translateY(0); }
+
+/* ---- Mini button ---- */
+.glass-btn-mini {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 10px; border-radius: var(--radius-sm);
+  background: var(--glass-bg-light);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border-light);
+  color: var(--color-text-muted); font-size: 12px; cursor: pointer;
+  transition: all var(--transition-normal);
+}
+.glass-btn-mini:hover {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+  color: var(--color-text);
+}
+
+/* ---- Ghost / secondary button ---- */
+.glass-btn-ghost {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 9px;
+  background: var(--glass-bg-light);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border-light);
+  color: var(--color-text); font-size: 13px; cursor: pointer;
+  transition: all var(--transition-normal);
+}
+.glass-btn-ghost:hover {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+}
+
+.glass-btn-danger {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 8px 14px; border-radius: var(--radius-sm); border: 1px solid rgba(239,68,68,0.3);
+  background: rgba(220,38,38,0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fca5a5; font-size: 13px; cursor: pointer;
+  transition: all var(--transition-normal);
+}
+.glass-btn-danger:hover {
+  background: rgba(220,38,38,0.2);
+  border-color: rgba(239,68,68,0.5);
+}
+
+/* ---- Spinner ---- */
+.glass-spinner {
+  display: inline-block;
+  border-radius: 50%;
+  animation: glass-spin 0.8s linear infinite;
+}
+
+@keyframes glass-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---- Card ---- */
+.glass-card-ui {
+  background: var(--glass-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow-glass);
+  transition: all var(--transition-normal);
+}
+.glass-card-ui:hover {
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-glass), 0 0 0 1px var(--glass-border);
+}
+
+/* ---- Badge ---- */
+.glass-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 999px; font-size: 11px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* ---- Chip / toggle pill ---- */
+.glass-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 12px; border-radius: 999px; font-size: 12px; cursor: pointer;
+  line-height: 1;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border-light);
+  background: var(--glass-bg-light);
+  color: var(--color-text-muted);
+  transition: all var(--transition-normal);
+}
+.glass-chip > svg { flex: none; display: block; }
+.glass-chip.active {
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+  border-color: var(--color-accent-border);
+}
+.glass-chip:hover {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+}
+
+/* ---- Toggle switch ---- */
+.glass-toggle-track {
+  width: 38px; height: 22px; border-radius: 11px; cursor: pointer;
+  position: relative; flex-shrink: 0;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: 150ms;
+  border: 1px solid var(--glass-border-light);
+}
+.glass-toggle-track.on {
+  background: var(--color-accent);
+  border-color: var(--color-accent-border);
+}
+.glass-toggle-track.off {
+  background: var(--glass-bg-light);
+}
+.glass-toggle-thumb {
+  position: absolute; top: 2px; width: 18px; height: 18px; border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: 150ms;
+}
+
+/* ---- Toast notification ---- */
+.glass-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  padding: 10px 18px; border-radius: 10px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  color: var(--color-text);
+  font-size: 13px; z-index: 9999;
+  box-shadow: var(--shadow-glass);
+}
+
+/* ---- Input ---- */
+.glass-ctrl-input {
+  width: 100%; padding: 8px 11px; border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border-light);
+  background: var(--color-bg-input);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--color-text); font-size: 13px; outline: none; box-sizing: border-box;
+  transition: all var(--transition-normal);
+}
+.glass-ctrl-input:focus {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+.glass-ctrl-input::placeholder { color: var(--color-text-subtle); }
+
+.glass-ctrl-textarea {
+  resize: vertical; font-family: inherit; line-height: 1.5;
+}
+
+/* ---- Segment (tab-like) button ---- */
+.glass-seg {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 8px; border-radius: 9px; cursor: pointer; font-size: 13px;
+  border: 1px solid var(--glass-border-light);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: all var(--transition-normal);
+}
+.glass-seg.active {
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+  border-color: var(--color-accent-border);
+}
+.glass-seg.inactive {
+  background: var(--glass-bg-light);
+  color: var(--color-text-muted);
+}
+.glass-seg:hover {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+}
+
+/* ---- Resizable panel handle area ---- */
+.glass-resize-handle {
+  position: absolute; top: 0; left: 0; right: 0; height: 6px; z-index: 10;
+  display: flex; align-items: center; justify-content: center;
+  cursor: row-resize;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: all var(--transition-normal);
+}
+.glass-resize-handle:hover {
+  background: var(--glass-bg-light);
+}
+.glass-resize-handle-grip {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 3px 12px; border-radius: 999px;
+  transition: all var(--transition-normal);
+  background: transparent;
+}
+.glass-resize-handle-grip:hover {
+  background: var(--glass-bg-light);
+}
+
+/* ---- CollapsibleDrawer sub-components ---- */
+.glass-drawer-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--glass-border-light);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.glass-drawer-content {
+  flex: 1; overflow-y: auto; padding: 16px;
+}
+.glass-drawer-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--glass-border-light);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* ---- PulseDot glass halo ---- */
+.glass-pulse-halo::before {
+  content: '';
+  position: absolute; inset: -3px;
+  border-radius: 50%;
+  background: var(--glass-bg-light);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: -1;
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+
+.transition-theme {
+  transition: 
+    background-color var(--transition-normal),
+    border-color var(--transition-normal),
+    color var(--transition-normal),
+    box-shadow var(--transition-normal);
+}
+
+/* ============================================
+   React Flow — theme-aware overrides
+   ReactFlow 11.11 hardcodes colors in its own style.css;
+   we re-skin via design tokens so dark mode is readable.
+   New token --rf-bg-dot (defined above per 规则 #6/#1).
+   ============================================ */
+
+/* Dot / line pattern → theme-aware (replaces hardcoded #e4e4e7) */
+.xai-root .react-flow__background circle,
+.xai-root .react-flow__background path,
+.xai-root .react-flow__background line {
+  fill: var(--rf-bg-dot) !important;
+  stroke: var(--rf-bg-dot) !important;
+}
+
+/* Controls + minimap → glass in dark mode */
+.dark .react-flow__controls-button {
+  background: var(--glass-bg-light) !important;
+  border-bottom-color: var(--color-border) !important;
+}
+.dark .react-flow__controls-button:hover {
+  background: var(--glass-bg) !important;
+}
+.dark .react-flow__controls-button svg {
+  fill: var(--color-text) !important;
+}
+.dark .react-flow__minimap {
+  background-color: var(--color-bg-card) !important;
+}
