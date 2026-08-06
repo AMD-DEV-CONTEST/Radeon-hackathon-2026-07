@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in — MedGlass</title>
+  <link rel="stylesheet" href="/static/style.css?v=4">
+  <link rel="icon" type="image/png" href="/static/logo.png">
+  <style>
+    @font-face {
+      font-family: "IBM Plex Sans";
+      src: url("/static/fonts/plex-sans.woff2") format("woff2");
+      font-weight: 100 1000;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "IBM Plex Mono";
+      src: url("/static/fonts/plex-mono.woff2") format("woff2");
+      font-weight: 400;
+      font-display: swap;
+    }
+  </style>
+</head>
+<body>
+  <svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-logo" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 1.5A10.5 10.5 0 1 0 22.5 12 10.51 10.51 0 0 0 12 1.5Zm4 11.75h-2.75V16a1.25 1.25 0 0 1-2.5 0v-2.75H8a1.25 1.25 0 0 1 0-2.5h2.75V8a1.25 1.25 0 0 1 2.5 0v2.75H16a1.25 1.25 0 0 1 0 2.5Z"/>
+    </symbol>
+    <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c1.2-3.4 4-5 7.5-5s6.3 1.6 7.5 5"/>
+    </symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="5" y="10.5" width="14" height="9.5" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/><circle cx="12" cy="15.5" r="1.3"/>
+    </symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16.5" r=".3"/>
+    </symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2.5 4.5 5.5v6c0 4.6 3.2 8.4 7.5 10 4.3-1.6 7.5-5.4 7.5-10v-6L12 2.5Z"/><path d="M9.2 11.6l2 2 3.6-3.8"/>
+    </symbol>
+  </svg>
+
+  <div class="login-wrap">
+    <form class="login-card" id="login-form" autocomplete="on">
+      <div class="login-brand">
+        <img class="brand-logo" src="/static/logo.png" alt="MedGlass" onload="this.style.display='';var m=document.getElementById('brand-mark');if(m)m.style.display='none';" onerror="this.style.display='none'">
+        <div class="logo" id="brand-mark"><svg><use href="#i-logo"/></svg></div>
+        <div class="login-brand-text">
+          <div class="login-title">MedGlass</div>
+          <div class="login-sub">Ambient Clinical Scribe</div>
+        </div>
+      </div>
+
+      <div class="login-h">Sign in</div>
+      <div class="login-d">Enter your credentials to access patient notes.</div>
+
+      <div class="login-err" id="login-err">
+        <svg><use href="#i-alert"/></svg>
+        <span>Invalid username or password.</span>
+      </div>
+
+      <div class="field">
+        <label for="username">Username</label>
+        <div class="input-wrap">
+          <svg><use href="#i-user"/></svg>
+          <input id="username" name="username" type="text" placeholder="clinician" autofocus required>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="input-wrap">
+          <svg><use href="#i-lock"/></svg>
+          <input id="password" name="password" type="password" placeholder="••••••••" required>
+        </div>
+      </div>
+
+      <div class="field" id="otp-field" hidden>
+        <label for="otp">Two-factor code</label>
+        <div class="input-wrap">
+          <svg><use href="#i-lock"/></svg>
+          <input id="otp" name="otp" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" pattern="[0-9]{6}">
+        </div>
+      </div>
+
+      <button class="btn primary" type="submit" id="login-btn">Sign in</button>
+
+      <div class="login-foot">
+        <svg><use href="#i-shield"/></svg>
+        <span>100% local · AMD ROCm · no cloud</span>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+      const form = document.getElementById("login-form");
+      const err = document.getElementById("login-err");
+      const errSpan = err.querySelector("span");
+      const btn = document.getElementById("login-btn");
+      let pending = "";
+
+      function showError(msg) {
+        errSpan.textContent = msg;
+        err.classList.add("show");
+      }
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        err.classList.remove("show");
+        btn.disabled = true;
+        btn.textContent = pending ? "Verifying code…" : "Signing in…";
+        try {
+          const body = pending
+            ? { pending, code: document.getElementById("otp").value.trim() }
+            : {
+                username: form.username.value.trim(),
+                password: form.password.value,
+              };
+          const res = await fetch("/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok) {
+            location.href = "/";
+            return;
+          }
+          if (data.mfa_required) {
+            pending = data.pending;
+            document.getElementById("otp-field").hidden = false;
+            document.getElementById("otp").required = true;
+            document.getElementById("otp").focus();
+            showError("Enter your two-factor code.");
+            return;
+          }
+          showError(data.error || "Sign in failed. Try again.");
+        } catch (_) {
+          showError("Server unreachable. Try again.");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = pending ? "Verify" : "Sign in";
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

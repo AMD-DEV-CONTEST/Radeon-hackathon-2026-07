@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Patient Notes — MedGlass</title>
+  <link rel="stylesheet" href="/static/style.css?v=4">
+  <link rel="icon" type="image/png" href="/static/logo.png">
+  <style>
+    @font-face {
+      font-family: "IBM Plex Sans";
+      src: url("/static/fonts/plex-sans.woff2") format("woff2");
+      font-weight: 100 1000;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "IBM Plex Mono";
+      src: url("/static/fonts/plex-mono.woff2") format("woff2");
+      font-weight: 400 500;
+      font-display: swap;
+    }
+  </style>
+</head>
+<body>
+  <svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-logo" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 1.5A10.5 10.5 0 1 0 22.5 12 10.51 10.51 0 0 0 12 1.5Zm4 11.75h-2.75V16a1.25 1.25 0 0 1-2.5 0v-2.75H8a1.25 1.25 0 0 1 0-2.5h2.75V8a1.25 1.25 0 0 1 2.5 0v2.75H16a1.25 1.25 0 0 1 0 2.5Z"/>
+    </symbol>
+    <symbol id="i-notes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8.8 7.5h6.4M8.8 11.5h6.4M8.8 15.5h3.6"/>
+    </symbol>
+    <symbol id="i-live" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2.5 12h3l2.5-6.5 4 13 2.5-6.5h7"/>
+    </symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+    </symbol>
+    <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3.5v10m0 0 4-4m-4 4-4-4"/><path d="M4 16v3a1.5 1.5 0 0 0 1.5 1.5h13A1.5 1.5 0 0 0 20 19v-3"/>
+    </symbol>
+    <symbol id="i-export" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 15V3.5m0 0L8 7.5m4-4 4 4"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/>
+    </symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 6.5h16M9.5 6.5V4.8a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.7M6.5 6.5l.8 12a2 2 0 0 0 2 1.9h5.4a2 2 0 0 0 2-1.9l.8-12M10 10.5v6m4-6v6"/>
+    </symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m6 6 12 12M18 6 6 18"/>
+    </symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m9 6 6 6-6 6"/>
+    </symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 3.5H8a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-11l-4-4Z"/><path d="M14 3.5v4h4M9 12.5h6M9 16h4"/>
+    </symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 8h2.2l1.6-2.2a1.6 1.6 0 0 1 1.3-.7h5.8a1.6 1.6 0 0 1 1.3.7L18 8h2a1.5 1.5 0 0 1 1.5 1.5V18a1.5 1.5 0 0 1-1.5 1.5H4A1.5 1.5 0 0 1 2.5 18V9.5A1.5 1.5 0 0 1 4 8Z"/><circle cx="12" cy="13.5" r="3.4"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m4.5 12.5 5 5 10-11"/>
+    </symbol>
+    <symbol id="i-logout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 4H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h2M15 8l4 4-4 4m4-4H9"/>
+    </symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.09a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.56 1.03Z"/>
+    </symbol>
+    <symbol id="i-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2.5v3M15 2.5v3M9 18.5v3M15 18.5v3M2.5 9h3M2.5 15h3M18.5 9h3M18.5 15h3M10 10h4v4h-4z"/>
+    </symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 12a8 8 0 1 1-2.34-5.66M20 3.5V8h-4.5"/>
+    </symbol>
+    <symbol id="i-empty" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 4.5h12a1.5 1.5 0 0 1 1.5 1.5v12a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5V6A1.5 1.5 0 0 1 5 4.5Z"/><path d="M8.5 9.5h7m-7 5h4.5"/>
+    </symbol>
+  </svg>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <img class="brand-logo" src="/static/logo.png" alt="MedGlass" onload="this.style.display='';var m=document.getElementById('brand-mark');if(m)m.style.display='none';" onerror="this.style.display='none'">
+        <div class="logo" id="brand-mark"><svg><use href="#i-logo"/></svg></div>
+        <div>
+          <div class="brand-name">MedGlass</div>
+          <div class="brand-sub">Clinical Scribe</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <div class="nav-label">Workspace</div>
+        <a href="/" class="active"><svg><use href="#i-notes"/></svg><span>Patient Notes</span></a>
+        <a href="/live"><svg><use href="#i-live"/></svg><span>Demo App</span></a>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="user-chip">
+          <div class="user-info">
+            <div class="user-name">clinician</div>
+            <div class="user-role">Clinician</div>
+          </div>
+          <div class="settings-wrap">
+            <button class="settings-btn" id="btn-settings" title="Settings"><svg><use href="#i-settings"/></svg></button>
+            <div class="settings-menu" id="settings-menu" hidden>
+              <div class="settings-item static">Signed in as <b id="settings-user">clinician</b></div>
+              <div class="settings-item static">Role: <b id="settings-role">clinician</b></div>
+              <button class="settings-item" id="btn-mfa"><svg><use href="#i-shield"/></svg> <span id="mfa-label">Set up two-factor auth</span></button>
+              <button class="settings-item danger" id="btn-logout"><svg><use href="#i-logout"/></svg> Sign out</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="topbar">
+        <div>
+          <div class="crumb">MedGlass</div>
+          <h1>Patient Notes</h1>
+        </div>
+        <div class="search">
+          <svg><use href="#i-search"/></svg>
+          <input id="search" type="search" placeholder="Search notes…" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="stats">
+          <div class="stat green">
+            <div class="stat-ic"><svg><use href="#i-check"/></svg></div>
+            <div><div class="stat-value" id="stat-total">0</div><div class="stat-label">Follow-ups</div></div>
+          </div>
+          <div class="stat blue">
+            <div class="stat-ic"><svg><use href="#i-doc"/></svg></div>
+            <div><div class="stat-value" id="stat-week">0</div><div class="stat-label">Tests &amp; orders</div></div>
+          </div>
+          <div class="stat violet">
+            <div class="stat-ic"><svg><use href="#i-camera"/></svg></div>
+            <div><div class="stat-value" id="stat-photos">0</div><div class="stat-label">Med changes</div></div>
+          </div>
+          <div class="stat">
+            <div class="stat-ic"><svg><use href="#i-export"/></svg></div>
+            <div><div class="stat-value" id="stat-exported">0</div><div class="stat-label">Open items</div></div>
+          </div>
+        </div>
+
+        <div class="next-steps collapse" id="next-steps">
+          <button class="next-head collapse-head" type="button" aria-expanded="true">
+            <svg><use href="#i-check"/></svg>
+            <span>Care team next steps</span>
+            <span class="toggle-done" id="btn-toggle-done" role="button"
+                  title="Show or hide completed steps">Show completed</span>
+            <svg class="chev"><use href="#i-chev"/></svg>
+          </button>
+          <div id="next-steps-body" class="next-body collapse-body"></div>
+        </div>
+
+        <section class="collapse notes-section" id="notes-section">
+          <button class="notes-head collapse-head" type="button" aria-expanded="true">
+            <svg><use href="#i-notes"/></svg>
+            <span>Notes</span>
+            <span class="count" id="notes-count">0</span>
+            <svg class="chev" style="margin-left:auto"><use href="#i-chev"/></svg>
+          </button>
+          <div id="note-list" class="notes-grid collapse-body"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+  <aside class="drawer" id="drawer">
+    <div class="drawer-head">
+      <div style="min-width:0">
+        <h2 id="drawer-title">Note</h2>
+        <div class="meta" id="drawer-meta"></div>
+      </div>
+      <button class="icon-btn" id="drawer-close" title="Close" style="margin-left:auto"><svg><use href="#i-x"/></svg></button>
+    </div>
+    <div class="drawer-body">
+      <div class="drawer-actions" id="drawer-actions"></div>
+      <div id="drawer-note" class="note-body"></div>
+      <div class="meta-grid" id="drawer-facts"></div>
+      <details class="detail-section" id="drawer-photos-sec" hidden>
+        <summary>
+          <svg><use href="#i-camera"/></svg>
+          Case photos <span class="count" id="drawer-photos-count"></span>
+          <svg class="chev" style="margin-left:auto"><use href="#i-chev"/></svg>
+        </summary>
+        <div class="body"><div id="drawer-photos" class="photos-grid"></div></div>
+      </details>
+      <details class="detail-section">
+        <summary>
+          <svg><use href="#i-live"/></svg>
+          Transcript
+          <svg class="chev" style="margin-left:auto"><use href="#i-chev"/></svg>
+        </summary>
+        <div class="body"><pre id="drawer-transcript"></pre></div>
+      </details>
+      <details class="detail-section">
+        <summary>
+          <svg><use href="#i-export"/></svg>
+          FHIR (R4) structure
+          <svg class="chev" style="margin-left:auto"><use href="#i-chev"/></svg>
+        </summary>
+        <div class="body" id="drawer-fhir"></div>
+      </details>
+      <details class="detail-section">
+        <summary>
+          <svg><use href="#i-doc"/></svg>
+          Raw JSON
+          <svg class="chev" style="margin-left:auto"><use href="#i-chev"/></svg>
+        </summary>
+        <div class="body"><pre id="drawer-json"></pre></div>
+      </details>
+    </div>
+  </aside>
+
+  <div class="photo-viewer" id="photo-viewer" hidden>
+    <div class="pv-controls">
+      <button class="icon-btn" id="photo-viewer-close" style="color:#fff;border-color:rgba(255,255,255,.3)"><svg><use href="#i-x"/></svg></button>
+    </div>
+    <img id="photo-viewer-img" alt="case photo">
+  </div>
+
+  <div class="modal-backdrop" id="confirm-backdrop" hidden></div>
+  <div class="modal" id="confirm" role="dialog" aria-modal="true" aria-labelledby="confirm-title" hidden>
+    <div class="modal-icon danger"><svg><use href="#i-trash"/></svg></div>
+    <h3 id="confirm-title">Delete this note?</h3>
+    <p id="confirm-msg">This permanently deletes the Patient Note and its case photos. This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn" id="confirm-cancel" type="button">Cancel</button>
+      <button class="btn danger" id="confirm-ok" type="button">Delete</button>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="mfa-backdrop" hidden></div>
+  <div class="modal" id="mfa-modal" role="dialog" aria-modal="true" aria-labelledby="mfa-title" hidden>
+    <div class="modal-icon"><svg><use href="#i-shield"/></svg></div>
+    <h3 id="mfa-title">Two-factor authentication</h3>
+    <p>Add this account to your authenticator app (Google Authenticator, 1Password, Aegis…), then enter a code to confirm.</p>
+    <div class="mfa-secret" id="mfa-secret"></div>
+    <div class="field" style="margin:10px 0">
+      <label for="mfa-code">6-digit code from the app</label>
+      <div class="input-wrap">
+        <svg><use href="#i-lock"/></svg>
+        <input id="mfa-code" type="text" inputmode="numeric" pattern="[0-9]{6}" placeholder="123456" autocomplete="one-time-code">
+      </div>
+    </div>
+    <p class="mfa-err" id="mfa-err" hidden>That code didn't match. Try again.</p>
+    <div class="modal-actions">
+      <button class="btn" id="mfa-cancel" type="button">Cancel</button>
+      <button class="btn primary" id="mfa-confirm" type="button">Verify &amp; enable</button>
+    </div>
+  </div>
+
+  <script src="/static/dashboard.js?v=4"></script>
+</body>
+</html>
