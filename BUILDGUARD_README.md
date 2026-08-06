@@ -16,7 +16,7 @@ BuildGuard-Radeon is a local AI agent for construction inspection and risk decis
 
 ## Demo Video
 
-> 📹 **[Video placeholder — will be updated before deadline]**
+> 📹 **[watch demo](https://youtu.be/_1VdU71nUBc)**
 
 The demo covers the full pipeline running on an AMD Radeon RX 7900 XTX:
 server startup → image/video inspection → agent conversation → risk report generation.
