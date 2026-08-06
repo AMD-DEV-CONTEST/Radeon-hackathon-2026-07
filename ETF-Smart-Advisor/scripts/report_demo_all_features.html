@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ETF-Smart Advisor Features Demo Report</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f0f2f5;
+            color: #1a1a2e;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 40px;
+        }
+        .header {
+            text-align: center;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #e8ecf1;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+        .header .subtitle {
+            color: #6b7a8f;
+            font-size: 16px;
+        }
+        .header .meta {
+            color: #8895aa;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: #f8f9fc;
+            padding: 16px 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .stat-card .number {
+            font-size: 28px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+        .stat-card .label {
+            font-size: 13px;
+            color: #6b7a8f;
+            margin-top: 4px;
+        }
+        .stat-card.success .number { color: #48bb78; }
+        .stat-card.fail .number { color: #fc8181; }
+        .stat-card.total .number { color: #667eea; }
+        .stat-card.duration .number { font-size: 22px; color: #ed8936; }
+        .stat-card.curl .number { font-size: 22px; color: #667eea; }
+        .stat-card.api .number { font-size: 22px; color: #38a169; }
+        
+        .category-section {
+            margin-bottom: 40px;
+        }
+        .category-section h2 {
+            font-size: 22px;
+            color: #2d3748;
+            padding-bottom: 12px;
+            border-bottom: 3px solid #667eea;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .category-section h2 .count {
+            font-size: 14px;
+            font-weight: 400;
+            color: #6b7a8f;
+        }
+        .test-item {
+            background: #f8f9fc;
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            border-left: 4px solid #e2e8f0;
+        }
+        .test-item.success { border-left-color: #48bb78; }
+        .test-item.fail { border-left-color: #fc8181; }
+        .test-item .title {
+            font-weight: 600;
+            font-size: 15px;
+            color: #2d3748;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .test-item .title .badge {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 2px 12px;
+            border-radius: 20px;
+            color: white;
+        }
+        .badge.success { background: #48bb78; }
+        .badge.fail { background: #fc8181; }
+        .badge.info { background: #667eea; }
+        
+        .test-item .api-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 6px;
+            font-size: 13px;
+            color: #4a5568;
+            background: #edf2f7;
+            padding: 6px 12px;
+            border-radius: 6px;
+        }
+        .test-item .api-info .api-name {
+            font-weight: 600;
+            color: #2d3748;
+        }
+        .test-item .api-info .api-endpoint {
+            font-family: 'Courier New', monospace;
+            color: #667eea;
+            background: white;
+            padding: 0 8px;
+            border-radius: 4px;
+        }
+        .test-item .api-info .api-status {
+            font-weight: 600;
+        }
+        .api-status.success { color: #48bb78; }
+        .api-status.fail { color: #fc8181; }
+        
+        .test-item .content {
+            margin-top: 8px;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            line-height: 1.5;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e8ecf1;
+        }
+        .test-item .content .error {
+            color: #e53e3e;
+        }
+        .test-item .content .success-text {
+            color: #38a169;
+        }
+        .test-item .meta-info {
+            font-size: 12px;
+            color: #8895aa;
+            margin-top: 6px;
+        }
+        
+        .buy-item { border-left-color: #48bb78 !important; }
+        .sell-item { border-left-color: #fc8181 !important; }
+        .hold-item { border-left-color: #f6ad55 !important; }
+        
+        .recommendation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 12px;
+            margin-top: 8px;
+        }
+        .rec-card {
+            background: white;
+            border-radius: 8px;
+            padding: 12px 16px;
+            border: 1px solid #e8ecf1;
+        }
+        .rec-card .rec-symbol {
+            font-weight: 700;
+            font-size: 16px;
+            color: #2d3748;
+        }
+        .rec-card .rec-score {
+            font-size: 14px;
+            color: #6b7a8f;
+        }
+        .rec-card .rec-detail {
+            font-size: 13px;
+            color: #4a5568;
+            margin-top: 4px;
+        }
+        .rec-card .rec-signal {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .rec-signal.buy { background: #c6f6d5; color: #276749; }
+        .rec-signal.sell { background: #fed7d7; color: #9b2c2c; }
+        .rec-signal.hold { background: #fefcbf; color: #975a16; }
+        
+        .curl-section {
+            background: #f0f4ff;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-top: 20px;
+            border: 1px solid #dce3f0;
+        }
+        .curl-section h3 {
+            font-size: 18px;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+        .curl-note {
+            color: #6b7a8f;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        .curl-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+        .curl-item {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid #e2e8f0;
+        }
+        .curl-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .curl-name {
+            font-weight: 600;
+            color: #2d3748;
+        }
+        .curl-status {
+            font-size: 14px;
+        }
+        .curl-method {
+            font-size: 12px;
+            color: #6b7a8f;
+            margin-bottom: 8px;
+        }
+        .curl-command {
+            background: #1a1a2e;
+            color: #e2e8f0;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin-bottom: 8px;
+        }
+        .curl-response {
+            background: #f8f9fc;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #e8ecf1;
+        }
+        .resp-label {
+            font-weight: 600;
+            font-size: 12px;
+            color: #6b7a8f;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .curl-response pre {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin: 0;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .summary {
+            background: #f0f4ff;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-top: 30px;
+            border: 1px solid #dce3f0;
+        }
+        .summary h3 {
+            font-size: 18px;
+            color: #2d3748;
+            margin-bottom: 12px;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e8ecf1;
+        }
+        .summary-item .key {
+            color: #4a5568;
+        }
+        .summary-item .value {
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .error-list {
+            background: #fff5f5;
+            border: 1px solid #feb2b2;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+        .error-list h4 {
+            color: #e53e3e;
+            margin-bottom: 8px;
+        }
+        .error-list ul {
+            list-style: none;
+            padding: 0;
+        }
+        .error-list li {
+            color: #c53030;
+            font-size: 14px;
+            padding: 4px 0;
+            border-bottom: 1px solid #fed7d7;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e8ecf1;
+            color: #8895aa;
+            font-size: 13px;
+        }
+        
+        @media (max-width: 768px) {
+            .container { padding: 20px; }
+            .header h1 { font-size: 24px; }
+            .stats { grid-template-columns: repeat(2, 1fr); }
+            .curl-command { font-size: 11px; }
+            .test-item .api-info { flex-direction: column; gap: 4px; }
+            .recommendation-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 ETF-Smart Advisor</h1>
+            <div class="subtitle">Completed feature demo report</div>
+            <div class="meta">
+                生成时间: 2026-08-06 00:46:10 | 
+                耗时: 17850.70 s |
+                API: http://localhost:7860
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card total">
+                <div class="number">12</div>
+                <div class="label">🧪 Total Tests</div>
+            </div>
+            <div class="stat-card success">
+                <div class="number">11</div>
+                <div class="label">✅ Success</div>
+            </div>
+            <div class="stat-card fail">
+                <div class="number">1</div>
+                <div class="label">❌ Fail</div>
+            </div>
+            <div class="stat-card duration">
+                <div class="number">17850.7s</div>
+                <div class="label">⏱️ Total Duration</div>
+            </div>
+            <div class="stat-card curl">
+                <div class="number">0</div>
+                <div class="label">📡 curl Commands</div>
+            </div>
+            <div class="stat-card api">
+                <div class="number">12</div>
+                <div class="label">🔌 API Endpoints</div>
+            </div>
+        </div>
+
+        <div class="category-section">
+            <h2>
+                System Status
+                <span class="count">(1/1)</span>
+            </h2>
+
+            <div class="test-item success">
+                <div class="title">
+                    <span>Get System Status</span>
+                    <span class="badge success">✅ Success</span>
+                </div>
+                <div class="api-info">
+                    <span class="api-name">🔌 API:</span>
+                    <span class="api-endpoint">GET /api/status</span>
+                    <span>|</span>
+                    <span class="api-status success">✅ Call Successful</span>
+
+                </div>
+                <div class="content">{
+  &quot;llm&quot;: {
+    &quot;vllm_available&quot;: false,
+    &quot;transformers_loaded&quot;: false,
+    &quot;use_vllm&quot;: false,
+    &quot;model_path&quot;: &quot;./models/mapfinben-qwen35-9b-merged-unified-v3&quot;,
+    &quot;max_model_len&quot;: 65536,
+    &quot;enable_thinking&quot;: false,
+    &quot;vllm_endpoint&quot;: null
+  },
+  &quot;milvus&quot;: {
+    &quot;mode&quot;: &quot;Milvus Lite&quot;,
+    &quot;knowledge&quot;: {
+      &quot;row_count&quot;: 11
+    },
+    &quot;recommendation&quot;: {
+      &quot;row_count&quot;: 2320
+    },
+    &quot;feedback&quot;: {
+      &quot;row_count&quot;: 0
+    }
+  },
+  &quot;memory&quot;: {
+    &quot;total_sessions&quot;: 0,
+    &quot;total_</div>
+            </div>
+        </div>
+
+        <div class="category-section">
+            <h2>
+                Technical Analysis
+                <span class="count">(1/1)</span>
+            </h2>
+
+            <div class="test-item success">
+                <div class="title">
+                    <span>Technical Analysis</span>
+                    <span class="badge success">✅ Success</span>
+                </div>
+                <div class="api-info">
+                    <span class="api-name">🔌 API:</span>
+                    <span class="api-endpoint">POST /api/analyze</span>
+                    <span>|</span>
+                    <span class="api-status success">✅ Call Successful</span>
+
+                </div>
+                <div class="content">{
+  &quot;symbol&quot;: &quot;SH510050&quot;,
+  &quot;recommendation&quot;: &quot;neutral&quot;,
+  &quot;signal&quot;: &quot;观望&quot;,
+  &quot;score&quot;: 0,
+  &quot;confidence&quot;: 0.65,
+  &quot;risk_level&quot;: &quot;medium&quot;,
+  &quot;reasons&quot;: [
+    &quot;SH510050当前价格2.99元，处于横盘整理态势。RSI(14)为41.9，显示市场情绪偏弱；MACD柱状图为负，动能不足。均线系统显示MA5(3.0188)高于当前价，MA20(3.0345)和MA60(3.0225)均位于上方，形成压制。布林带上下轨分别为3.1127和2.9562，当前价格接近下轨，存在支撑。近期价格波动率极低，市场缺乏方向性突破。综合判断，短期趋势不明，但下方支撑较强，&quot;
+  ],
+  &quot;target_price&quot;: 2.9562,
+  &quot;stop_loss&quot;: 2.8405,
+  &quot;price&quot;: 2.99,
+  &quot;trend&quot;: &quot;sideways&quot;,
+  &quot;rsi&quot;: 41.90476190476195,
+  &quot;macd_hist&quot;: -0.0</div>
+            </div>
+        </div>
+
+        <div class="category-section">
+            <h2>
+                Price Prediction
+                <span class="count">(1/1)</span>
+            </h2>
+
+            <div class="test-item success">
+                <div class="title">
+                    <span>price_prediction</span>
+                    <span class="badge success">✅ Success</span>
+                </div>
+                <div class="api-info">
+                    <span class="api-name">🔌 API:</span>
+                    <span class="api-endpoint">POST /api/predict</span>
+                    <span>|</span>
+                    <span class="api-status success">✅ Call Successful</span>
+
+                </div>
+                <div class="content">{
+  &quot;symbol&quot;: &quot;SH510050&quot;,
+  &quot;predicted_change&quot;: 0.0969899665551838,
+  &quot;confidence&quot;: 0.6,
+  &quot;dates&quot;: [
+    &quot;2026-08-04&quot;,
+    &quot;2026-08-05&quot;,
+    &quot;2026-08-06&quot;,
+    &quot;2026-08-07&quot;,
+    &quot;2026-08-10&quot;,
+    &quot;2026-08-11&quot;,
+    &quot;2026-08-12&quot;,
+    &quot;2026-08-13&quot;,
+    &quot;2026-08-14&quot;,
+    &quot;2026-08-17&quot;
+  ],
+  &quot;close&quot;: [
+    2.99,
+    3.01,
+    3.025,
+    3.04,
+    3.055,
+    3.07,
+    3.085,
+    3.1,
+    3.115,
+    3.13
+  ],
+  &quot;analysis&quot;: &quot;从最近100天数据看，SH510050价格波动较大，近期在2.9900附近震荡，近期高点在3.1310，低点在2.8510，整体呈现波动上升趋势，但近期有回调</div>
+            </div>
+        </div>
+
+        <div class="category-section">
+            <h2>
+                Investment Recommendation
+                <span class="count">(1/1)</span>
+            </h2>
+
+            <div class="test-item success">
+                <div class="title">
+                    <span>investment_recommendation</span>
+                    <span class="badge success">✅ Success</span>
+                </div>
+                <div class="api-info">
+                    <span class="api-name">🔌 API:</span>
+                    <span class="api-endpoint">POST /api/recommend</span>
+                    <span>|</span>
+                    <span class="api-status success">✅ Call Successful</span>
+
+                </div>
+                <div class="content">{
+  &quot;symbol&quot;: &quot;SH510050&quot;,
+  &quot;recommendation&quot;: &quot;hold&quot;,
+  &quot;signal&quot;: &quot;持有&quot;,
+  &quot;score&quot;: 3,
+  &quot;confidence&quot;: 0.65,
+  &quot;risk_level&quot;: &quot;low&quot;,
+  &quot;reasons&quot;: [
+    &quot;SH510050当前价格2.9900，处于横盘整理状态。RSI(14)为41.9，处于中性偏弱区域；MACD柱为-0.005287，显示动能偏弱；均线系统显示MA5(3.0188)高于MA20(3.0345)和MA60(3.0225)，短期趋势偏弱。布林带上下轨分别为3.1127和2.9562，当前价格接近下轨，存在支撑。最近10天走势显示价格从高点3.0860回落至当前水平，波动率极低。预测未来&quot;
+  ],
+  &quot;target_price&quot;: 2.9562,
+  &quot;stop_loss&quot;: 2.8405,
+  &quot;generatedby&quot;: &quot;LLM&quot;
+}</div>
+            </div>
+        </div>
+
+        <div class="category-section">
+            <h2>
+                Top Recommendations (Skill-based)
+                <span class="count">(1/1)</span>
+            </h2>
+
+            <div class="test-item success">
+                <div class="title">
+                    <span>Top Recommendations (Skill-based)</span>
+                    <span class="badge success">✅ Success</span>
+                </div>
+                <div class="api-info">
+                    <span class="api-name">🔌 API:</span>
+                    <span class="api-endpoint">GET /api/top-recommendations/v2</span>
+                    <span>|</span>
+                    <span class="api-status success">✅ Call Successful</span>
+
+                </div>
+
+                <div class="recommendation-grid">
+                    <div class="rec-card">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-weight:700; color:#276749;">🟢 Buy Recommendations</span>
+                            <span style="font-size:12px; color:#6b7a8f;">Top 3</span>
+                        </div>
+                        <div style="margin-top:6px; font-size:13px; white-space:pre-wrap;">No data</div>
+                    </div>
+                    <div class="rec-card">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-weight:700; color:#9b2c2c;">🔴 Sell Recommendations</span>
+                            <span style="font-size:12px; color:#6b7a8f;">Top 3</span>
+                        </div>
+                        <div style="margin-top:6px; font-size:13px; white-space:pre-wrap;">No data</div>
+                    </div>
+                    <div class="rec-card">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-weight:700; color:#975a16;">🟡 Hold Recommendations</span>
+                            <span style="font-size:12px; color:#6b7a8f;">Top 3</span>
+                        </div>
+                        <div style="margin-top:6px; font-size:13px; white-space:pre-wrap;">SH588930: Score 50, Signal Hold, Risk medium, Target 0.000, Stop Loss 0.000
+  Deep analysis failed, downgraded to neutral suggestion
+SH513650: Score 50, Signal Hold, Risk medium, Target 0.000, Stop Loss 0.000
+  Deep analysis failed, downgraded to neutral suggestion
+SZ159539: Score 50, Signal Hold, Risk medium, Target 0.000, Stop Loss 0.000
+  Deep analysis failed, downgraded to neutral suggestion</div>
+                    </div>
+                </div>
+                <div class="content">{
+  &quot;summary&quot;: {
+    &quot;total_analyzed&quot;: 1357,
+    &quot;stage1_count&quot;: 700,
+    &quot;stage2_count&quot;: 100,
+    &quot;stage3_count&quot;: 6,
+    &quot;stage1_time&quot;: &quot;17764.18s&quot;,
+    &quot;stage2_time&quot;: &quot;8283.52s&quot;,
+    &quot;stage3_time&quot;: &quot;25.44s&quot;,
+    &quot;total_time&quot;: &quot;17764.19s&quot;,
+    &quot;method&quot;: &quot;Skill-based Multi-stage&quot;,
+    &quot;date&quot;: &quot;2026-08-06 05:43:07&quot;
+  },
+  &quot;buy&quot;: [],
+  &quot;sell&quot;: [],
+  &quot;hold&quot;: [
+    {
+      &quot;symbol&quot;: &quot;SH588930&quot;,
+      &quot;score&quot;: 50,
+      &quot;price&quot;: 0,
+      &quot;target&quot;: 0,
+      &quot;stop_loss&quot;: 0,
+      &quot;signal&quot;: &quot;Hold&quot;,
+    </div>
+            </div>
+        </div>
+
+        <div class="category-section">
+            <h2>
+                RAG Knowledge Base
+                <span class="count">(4/4)</span>
+            </h2>
+
+            <div class="test-item success">
+                <div class="title">
+                    <span>RAG Knowledge Search</span>
+                    <span class="badge success">✅ Success</span>
+                </div>
+                <div class="api-info">
+                    <span class="api-name">🔌 API:</span>
+                    <span class="api-endpoint">POST /api/rag/search (query: "什么是ETF")</span>
+                    <span>|</span>
+                    <span class="api-status success">✅ Call Successful</span>
+                    <span>| 📝 Query: 什么是ETF</span>
+                </div>
+                <div class="content">[
+  {
+    &quot;id&quot;: &quot;etf_types&quot;,
+    &quot;title&quot;: &quot;ETF 类型&quot;,
+    &quot;content&quot;: &quot;ETF 包括宽基ETF（如沪深300）、行业ETF（如证券ETF）、主题ETF（如新能源ETF）等。&quot;,
+    &quot;category&quot;: &quot;基础&quot;,
+    &quot;score&quot;: 0.750381350517273,
+    &quot;metadata&quot;: {}
+  },
+  {
+    &quot;id&quot;: &quot;etf_basics&quot;,
+    &quot;title&quot;: &quot;ETF 基础知识&quot;,
+    &quot;content&quot;: &quot;ETF（交易型开放式指数基金）是在交易所上市交易的基金，可像股票一样买卖。&quot;,
+    &quot;category&quot;: &quot;基础&quot;,
+    &quot;score&quot;: 0.6745772361755371,
+    &quot;metadata&quot;: {}
+  },
+  {
+    &quot;id&quot;: &quot;position_sizing&quot;,
+    &quot;title&quot;: &quot;仓位管理&quot;,
+    &quot;content&quot;: &quot;仓位管理根据风险承受能力和市场状况分配资金，建议单只ETF不超过总仓位的20%。&quot;,
+</div>
+            </div>
+
+            <div class="test-item success">
+                <div class="title">
+                    <span>RAG Knowledge Search</span>
+                    <span class="badge success">✅ Success</span>
+                </div>
+                <div class="api-info">
+                    <span class="api-name">🔌 API:</span>
+                    <span class="api-endpoint">POST /api/rag/search (query: "RSI指标")</span>
+                    <span>|</span>
+                    <span class="api-status success">✅ Call Successful</span>
+                    <span>| 📝 Query: RSI指标</span>
+                </div>
+                <div class="content">[
+  {
+    &quot;id&quot;: &quot;rsi_analysis&quot;,
+    &quot;title&quot;: &quot;RSI 指标&quot;,
+    &quot;content&quot;: &quot;RSI 衡量价格变动速度，RSI&gt;70为超买（可能回调），RSI&lt;30为超卖（可能反弹）。&quot;,
+    &quot;category&quot;: &quot;技术分析&quot;,
+    &quot;score&quot;: 0.678221583366394,
+    &quot;metadata&quot;: {}
+  },
+  {
+    &quot;id&quot;: &quot;technical_analysis&quot;,
+    &quot;title&quot;: &quot;技术分析基础&quot;,
+    &quot;content&quot;: &quot;技术分析通过研究历史价格和成交量预测未来走势，常用指标有RSI、MACD、均线等。&quot;,
+    &quot;category&quot;: &quot;技术分析&quot;,
+    &quot;score&quot;: 0.5542768239974976,
+    &quot;metadata&quot;: {}
+  },
+  {
+    &quot;id&quot;: &quot;grid_trading&quot;,
+    &quot;title&quot;: &quot;网格交易策略&quot;,
+    &quot;content&quot;: &quot;网格交易是在设定价格区间内，通过分批买入和卖出获取收益的策略。&quot;</div>
+            </div>
+
+            <div class="test-item success">
+                <div class="title">
+                    <span>RAG Knowledge Search</span>
+                    <span class="badge success">✅ Success</span>
+                </div>
+                <div class="api-info">
+                    <span class="api-name">🔌 API:</span>
+                    <span class="api-endpoint">POST /api/rag/search (query: "网格交易策略")</span>
+                    <span>|</span>
+                    <span class="api-status success">✅ Call Successful</span>
+                    <span>| 📝 Query: 网格交易策略</span>
+                </div>
+                <div class="content">[
+  {
+    &quot;id&quot;: &quot;grid_trading&quot;,
+    &quot;title&quot;: &quot;网格交易策略&quot;,
+    &quot;content&quot;: &quot;网格交易是在设定价格区间内，通过分批买入和卖出获取收益的策略。&quot;,
+    &quot;category&quot;: &quot;策略&quot;,
+    &quot;score&quot;: 0.46435368061065674,
+    &quot;metadata&quot;: {}
+  },
+  {
+    &quot;id&quot;: &quot;csi300&quot;,
+    &quot;title&quot;: &quot;沪深300指数&quot;,
+    &quot;content&quot;: &quot;沪深300指数由沪深两市规模最大、流动性最好的300只股票组成。&quot;,
+    &quot;category&quot;: &quot;指数&quot;,
+    &quot;score&quot;: 0.3955443501472473,
+    &quot;metadata&quot;: {}
+  },
+  {
+    &quot;id&quot;: &quot;risk_management&quot;,
+    &quot;title&quot;: &quot;风险管理&quot;,
+    &quot;content&quot;: &quot;风险管理包括仓位控制、止损设置、分散投资等方法，是投资成功的关键。&quot;,
+    &quot;category&quot;: &quot;风险管理&quot;,
+    &quot;sc</div>
+            </div>
+
+            <div class="test-item success">
+                <div class="title">
+                    <span>RAG Statistics</span>
+                    <span class="badge success">✅ Success</span>
+                </div>
+                <div class="api-info">
+                    <span class="api-name">🔌 API:</span>
+                    <span class="api-endpoint">GET /api/rag/stats</span>
+                    <span>|</span>
+                    <span class="api-status success">✅ Call Successful</span>
+
+                </div>
+                <div class="content">{
+  &quot;mode&quot;: &quot;Milvus Lite&quot;,
+  &quot;knowledge&quot;: {
+    &quot;row_count&quot;: 11
+  },
+  &quot;recommendation&quot;: {
+    &quot;row_count&quot;: 2375
+  },
+  &quot;feedback&quot;: {
+    &quot;row_count&quot;: 0
+  }
+}</div>
+            </div>
+        </div>
+
+        <div class="category-section">
+            <h2>
+                LLM_chat
+                <span class="count">(0/1)</span>
+            </h2>
+
+            <div class="test-item fail">
+                <div class="title">
+                    <span>LLM Chat</span>
+                    <span class="badge fail">❌ Fail: 'price'</span>
+                </div>
+                <div class="api-info">
+                    <span class="api-name">🔌 API:</span>
+                    <span class="api-endpoint">POST /api/llm/chat</span>
+                    <span>|</span>
+                    <span class="api-status fail">❌ Call Failed</span>
+
+                </div>
+                <div class="content error">&#39;price&#39;</div>
+            </div>
+        </div>
+
+        <div class="category-section">
+            <h2>
+                Agent Chat
+                <span class="count">(2/2)</span>
+            </h2>
+
+            <div class="test-item success">
+                <div class="title">
+                    <span>Agent Smart Chat</span>
+                    <span class="badge success">✅ Success</span>
+                </div>
+                <div class="api-info">
+                    <span class="api-name">🔌 API:</span>
+                    <span class="api-endpoint">POST /api/chat (message: "分析SH510050的当前趋势...")</span>
+                    <span>|</span>
+                    <span class="api-status success">✅ Call Successful</span>
+                    <span>| 📝 Query: 分析SH510050的当前趋势</span>
+                </div>
+                <div class="content">📊 SH510050 技术分析
+========================================
+当前价格: 2.990
+趋势: sideways
+RSI: 41.9
+MACD: -0.0009
+MACD信号: 0.0044
+MACD柱: -0.0053
+MA5: 3.019
+MA20: 3.034
+MA60: 3.022
+布林上轨: 3.113
+布林中轨: 3.034
+布林下轨: 2.956
+
+
+📈 SH510050 投资建议
+==================================================
+
+🟡 建议: 谨慎持有
+评分: -2.0 (满分8分)
+置信度: 25%
+风险等级: 🔴 high
+
+📊 分析依据:
+  ➡️ 横盘整理
+  ⚪ RSI中性 (41.9)
+  🔴 MACD死叉
+  ❌ 价格在MA20(3.034)下方
+  🔮 预测平稳 (-0.8%)
+
+🎯 目标价: 2.915
+🛑 止损价: 2.945
+
+⚠️ 风险提示: 投资有风险，决策需谨慎。</div>
+            </div>
+
+            <div class="test-item success">
+                <div class="title">
+                    <span>Agent Smart Chat</span>
+                    <span class="badge success">✅ Success</span>
+                </div>
+                <div class="api-info">
+                    <span class="api-name">🔌 API:</span>
+                    <span class="api-endpoint">POST /api/chat (message: "请给出SH510050的投资建议...")</span>
+                    <span>|</span>
+                    <span class="api-status success">✅ Call Successful</span>
+                    <span>| 📝 Query: 请给出SH510050的投资建议</span>
+                </div>
+                <div class="content">📊 SH510050 技术分析
+========================================
+当前价格: 2.990
+趋势: sideways
+RSI: 41.9
+MACD: -0.0009
+MACD信号: 0.0044
+MACD柱: -0.0053
+MA5: 3.019
+MA20: 3.034
+MA60: 3.022
+布林上轨: 3.113
+布林中轨: 3.034
+布林下轨: 2.956
+
+
+📈 SH510050 投资建议
+==================================================
+
+🔴 建议: 卖出
+评分: -2.0 (满分8分)
+置信度: 65%
+风险等级: 🟡 medium
+
+📊 分析依据:
+  SH510050当前价格2.99元，RSI为41.9，处于中性偏弱区域，MACD柱状图为负，显示动能偏弱。均线系统显示MA5、MA20、MA60呈空头排列，短期趋势偏弱。布林带区间内运行，接近下轨支撑。近期走势呈现震荡下行态势，预测未来20周期价格可能进一步小幅下跌。整体来看，标的处于调整阶段，无明显上涨动能，需警惕进一步下</div>
+            </div>
+        </div>
+
+        <div class="summary">
+            <h3>📊 测试总结</h3>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <span class="key">Total Tests</span>
+                    <span class="value">12</span>
+                </div>
+                <div class="summary-item">
+                    <span class="key">✅ Success</span>
+                    <span class="value" style="color: #38a169;">11</span>
+                </div>
+                <div class="summary-item">
+                    <span class="key">❌ Fail</span>
+                    <span class="value" style="color: #e53e3e;">1</span>
+                </div>
+                <div class="summary-item">
+                    <span class="key">📈 Success Rate</span>
+                    <span class="value">91.7%</span>
+                </div>
+                <div class="summary-item">
+                    <span class="key">📡 curl Commands</span>
+                    <span class="value">0 个</span>
+                </div>
+                <div class="summary-item">
+                    <span class="key">🔌 API endpoints</span>
+                    <span class="value">12 个</span>
+                </div>
+                <div class="summary-item">
+                    <span class="key">⏱️ Total Duration</span>
+                    <span class="value">17850.70 seconds</span>
+                </div>
+                <div class="summary-item">
+                    <span class="key">📂 Report Generation</span>
+                    <span class="value">2026-08-06 00:46:10</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>ETF-Smart Advisor &copy; 2026 | Smart Investment Advisor based on AMD ROCm</p>
+            <p style="font-size: 12px; margin-top: 4px;">
+                Report generated automatically at 2026-08-06 00:46:10
+            </p>
+            <p style="font-size: 12px; margin-top: 4px;">
+                📡 API URL: http://localhost:7860 | 🔑 API Key: abc-123
+            </p>
+            <p style="font-size: 12px; margin-top: 4px;">
+                📋 Tested 12 API endpoints, total of 12 test cases
+            </p>
+        </div>
+    </div>
+</body>
+</html>
