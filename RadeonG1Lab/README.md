@@ -234,30 +234,6 @@ For complete prerequisites, optional arguments, training configurations, evaluat
 
 #### Evaluating and Rendering the Bundled Checkpoints
 
-#### Re-running PPO Training
-
-Re-run the final aerial-combo PPO training stage:
-
-```bash
-scripts/motion/train_g1_acrobatic_combo.sh 1800
-```
-
-Download the wall-flip initialization checkpoint if it is not already available, then re-run the fine-tuning stage:
-
-```bash
-uv run --no-sync demo wallflip
-
-# Close the interactive demo after the download completes.
-scripts/motion/train_g1_wall_flip_ppo.sh 500
-```
-
-For complete prerequisites, optional arguments, training configurations, evaluation commands, artifact provenance, and known limitations, see:
-
-- [Aerial Combo PPO reproduction report](https://github.com/JasonZhw/UniLab/blob/a628f3e738cf78ad0958a0e837f85dc0d7137d52/docs/amd_hackathon_g1_acrobatic_combo.md)
-- [Wall-Assisted Backflip PPO reproduction report](https://github.com/JasonZhw/UniLab/blob/a628f3e738cf78ad0958a0e837f85dc0d7137d52/docs/amd_hackathon_g1_wall_flip_ppo.md)
-
-#### Evaluating and Rendering the Bundled Checkpoints
-
 Evaluate and render the aerial combo:
 
 ```bash
