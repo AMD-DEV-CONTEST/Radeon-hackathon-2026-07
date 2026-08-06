@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: linguabot-db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - linguabot-network
+
+  linguabot-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: linguabot-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/linguabot
+      - JWT_SECRET=${JWT_SECRET:-dGhpcy1pcy1hLXNlY3JldC1rZXktZm9yLWxpbmd1YWJvdC1wcm9kdWN0aW9uLXJlYWR5LWp3dC10b2tlbi1nZW5lcmF0aW9u}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      - mongodb
+    networks:
+      - linguabot-network
+
+  linguabot-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: linguabot-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - linguabot-backend
+    environment:
+      - VITE_API_URL=http://localhost:8080/api
+    networks:
+      - linguabot-network
+
+volumes:
+  mongo-data:
+
+networks:
+  linguabot-network:
+    driver: bridge
