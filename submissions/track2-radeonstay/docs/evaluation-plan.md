@@ -1,5 +1,31 @@
 # RadeonStay Fixed Evaluation Plan
 
+## Released minimal B→C evidence
+
+The currently released engineering evidence is a deliberately bounded,
+single-variable comparison. It is not the full A–H matrix and is not an
+`accepted_final` Stability/soak package.
+
+| Field | Released value |
+|---|---|
+| C2 v3 source | `f7ba6811205a40ba51ca74c82b43129b616f74c5` |
+| Reference | B — Flash Attention off |
+| Optimized | C — Flash Attention on |
+| Fixed configuration | Q6_K; thinking off; fused plan/evidence off; context 16384; batch/ubatch 256/64; parallel 1; f16/f16 KV |
+| Request outcome | B and C: `16/16` at concurrency 1 and `16/16` at concurrency 4; 100% success; zero failed model calls; `41/41` offload |
+| Accepted improvements | Concurrency-1 throughput `+6.455%`; concurrency-4 throughput `+6.491%`; concurrency-4 P95 `-5.428%`; decode P50 `+12.981%`; peak VRAM `58% → 57%` |
+| Comparator | `assessment.accepted=true`; `optimization_winner=optimized` |
+| Quality boundary | Identical B/C projection; strict citation coverage `15/16` on both; not `300/300` |
+| Public proof | `status=accepted`; `final_evidence_accepted=false` |
+
+The authoritative public summary is
+`docs/evidence/c3min-f7ba681-bc-comparison.json`, SHA256
+`7f85a614a31da10e5484ee41034282210ac44caf84012617dea5c786c0f03f59`.
+Its run IDs are `c3min-f7ba681-B` and `c3min-f7ba681-C-r3`. Only
+`flash_attn` changed. All statements below that require 300/300, D–H, five fresh
+lifecycles, a long soak, or `accepted_final` describe the post-submission full
+protocol and are not claims about the released comparison.
+
 ## Objective
 
 The evaluation runs without network access and answers three questions: Does the
@@ -162,8 +188,11 @@ alter correctness. The performance workload is a fixed 16-case subset of the
 immutable 30-case suite: `KQ-001`–`KQ-008`, `TOOL-001`–`TOOL-003`, `MS-001`,
 `MS-002`, `MEM-002`, `SEC-004`, and `SEC-005`. It represents RAG, read tools,
 complete multi-step previews, memory-consent preview, safe refusal, and
-missing-field handling. Benchmark execution never confirms a pending write;
-the existing passing 300/300 quality report remains the correctness gate. A
+missing-field handling. Benchmark execution never confirms a pending write. In
+the post-submission full protocol, a passing 300/300 quality report is the
+correctness gate. The released B→C comparison instead binds an identical
+16-case quality projection with strict citation coverage of `15/16` on both
+sides and is explicitly not represented as 300/300. A
 case with no expected citation passes the citation check by definition, while
 all cases that declare citations must hit at least one declared source. The
 performance round records:
@@ -219,7 +248,11 @@ collection, the matrix reruns the validator with `--binding` against the complet
 C3 bundle and uses only that bound E result to select F. Standalone formal
 validation requires `--binding`.
 
-## Release gates
+## Post-submission full-protocol release gates
+
+> These are target gates for promotion to `accepted_final`. The released B→C
+> evidence above is accepted under its narrower disclosed contract and does not
+> claim to satisfy this section.
 
 - Exactly 300/300 across the immutable 30 cases.
 - 100% knowledge Recall@3 and 100% final citation accuracy.
@@ -242,8 +275,10 @@ authorization or privacy issue and rerun the complete fixed suite.
 
 ## C2/C3 evidence lifecycle
 
-`C2` and `C3` are release-stage labels, not claims that target evidence already
-exists:
+Current status: C2 v3 is frozen at
+`f7ba6811205a40ba51ca74c82b43129b616f74c5`, and one minimal accepted B→C Radeon
+comparison is released. The complete C3 lifecycle below remains the target for
+promotion to `accepted_final`:
 
 | Stage | Meaning | Acceptance condition |
 |---|---|---|
@@ -261,8 +296,9 @@ cleanly and performs final collection. Reusing a service process across run IDs
 or combining fragments from different runs does not satisfy C3; neither the live
 phase alone nor a final collection without the bound live artifact is complete.
 
-The five-run stability set is separate from the A–H tuning matrix. It repeats
-the one accepted final configuration through five fresh C3 lifecycles. Across
+The not-yet-completed five-run stability set is separate from the A–H tuning
+matrix. It will repeat the one accepted final configuration through five fresh
+C3 lifecycles. Across
 all five, the commit/tree/source, corpus, suite, model and binary hashes, model
 alias, context size, thinking mode, fused plan/evidence mode, flash-attention
 setting, GPU-layer request, batch, micro-batch, parallel slots, KV-cache types,
@@ -275,12 +311,14 @@ benchmark JSON,
 binding manifest, and bundle checksum. A failed run remains visible and cannot
 be hidden by averaging or replaced under the same run ID.
 
-## P0 automation entry points
+## Post-submission full-matrix automation
 
-The commands below define the evidence-generation procedure; they have not yet
-been executed for an official target run. Official evidence requires tracked,
-committed, clean project source. Every output uses a distinct run ID and refuses
-to overwrite an existing path.
+The commands below define the complete A–H evidence-generation procedure. They
+have not been completed for the released version; D–H, five-run Stability, and
+the long soak remain pending. The released B→C evidence above must not be
+relabeled as output from this complete protocol. Full-protocol evidence requires
+tracked, committed, clean project source. Every output uses a distinct run ID
+and refuses to overwrite an existing path.
 
 Before starting, export `MODEL_FILE` as the frozen local GGUF path and
 `LLAMA_BIN` as the frozen ROCm/HIP-enabled `llama-server` binary. Their SHA256
@@ -409,7 +447,7 @@ python evaluation/select_quantization.py \
   --output evaluation/results/model-quantization-selection.json
 ```
 
-### Final-winner long soak
+### Post-submission final-winner long soak
 
 The accepted five-run aggregate proves lifecycle repeatability but does not
 replace one long soak. Re-run the selected A–H row under a fresh run ID and output
@@ -442,7 +480,7 @@ python evaluation/validate_soak.py \
   --output evaluation/results/final-winner-soak.json
 ```
 
-### Final runtime proof and recovery profile
+### Post-submission final runtime proof and recovery profile
 
 Do not create an `accepted_final` runtime proof from the Winner report alone.
 Only after the five-run Stability report and the independent long-soak report

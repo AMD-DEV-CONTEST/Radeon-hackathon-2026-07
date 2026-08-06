@@ -1,9 +1,11 @@
 # Judge Quickstart
 
-> Use this Markdown guide for the current source candidate. Historical PDF,
-> competition deck, demo video, and subtitle artifacts are archived outside the
-> repository boundary and are not final submission materials. Regenerate them
-> after C2 and accepted evidence are frozen.
+> This guide is bound to C2 v3 commit
+> `f7ba6811205a40ba51ca74c82b43129b616f74c5` and the released minimal B→C
+> Radeon comparison. The comparison is accepted, but it is not an
+> `accepted_final` A–H/Stability/soak package. Historical PDF, competition deck,
+> demo video, and subtitle artifacts remain outside this engineering-document
+> scope.
 
 This guide targets the verified Radeon environment: Python `3.12.3`, ROCm
 `7.2.1`, HIP `7.2.53211-e1a6bc5663`, and a detected `AMD Radeon Graphics`
@@ -20,8 +22,9 @@ rocminfo | sed -n '1,80p'
 rocm-smi --showproductname --showmeminfo vram --showuse
 ```
 
-Confirm the versions and detected values above, then save the command output with
-the final evidence bundle.
+Confirm the versions and detected values above, then retain the command output
+with the deployment records. Do not present a recovery run as new formal
+evidence unless the complete measurement lifecycle is repeated.
 
 ## 2. Start the local model
 
@@ -34,7 +37,7 @@ test "$(sha256sum "$LLAMA_BIN" | awk '{print $1}')" = \
 test "$(sha256sum "$MODEL_FILE" | awk '{print $1}')" = \
   "4fe53b148b46f9b88830e2a3055c5b15c3a4d1e3ddc9a1384a108d8b9d59f043"
 export RADEONSTAY_DEMO_RUN_ID=deployment-judge-001
-export RADEONSTAY_EVIDENCE_RUN_ID=c3-accepted-winner-001
+export RADEONSTAY_EVIDENCE_RUN_ID=c3min-f7ba681-C-r3
 install -d -m 0700 "runtime/${RADEONSTAY_DEMO_RUN_ID}"
 export RADEONSTAY_RUNTIME_INSTANCE_PATH="$PWD/runtime/${RADEONSTAY_DEMO_RUN_ID}/runtime-instance.json"
 test ! -e "$RADEONSTAY_RUNTIME_INSTANCE_PATH"
@@ -42,8 +45,10 @@ LLAMA_SERVER="$LLAMA_BIN" \
 MODEL_PATH="$MODEL_FILE" \
 MODEL_ALIAS="${RADEONSTAY_MODEL_NAME:-qwen3.6-35b-a3b-q6k}" \
 EVIDENCE_RUN_ID="$RADEONSTAY_EVIDENCE_RUN_ID" \
+CONTEXT_SIZE=16384 FLASH_ATTN=on PARALLEL_SLOTS=1 \
+BATCH_SIZE=256 UBATCH_SIZE=64 CACHE_TYPE_K=f16 CACHE_TYPE_V=f16 \
 scripts/serve_model.sh \
-  > "evaluation/results/${RADEONSTAY_EVIDENCE_RUN_ID}-llama-server.log" 2>&1
+  > "runtime/${RADEONSTAY_DEMO_RUN_ID}/llama-server.log" 2>&1
 ```
 
 `MODEL_FILE` is
@@ -53,9 +58,10 @@ scripts/serve_model.sh \
 
 The service must bind to `127.0.0.1:8000` for the private judge path. Use a
 second terminal with
-`tail -f evaluation/results/c3-accepted-winner-001-llama-server.log` if
-live logs are needed; stopping the launcher writes the evidence end marker to
-that file. The launcher creates the instance manifest as mode `0600` and refuses
+`tail -f runtime/deployment-judge-001/llama-server.log` if live logs are needed;
+this is a deployment log and must not replace the retained B/C evidence log.
+Stopping the launcher writes its end marker to that file. The launcher creates
+the instance manifest as mode `0600` and refuses
 to overwrite it. It publishes the manifest only after the recorded PID owns the
 declared loopback `LISTEN` socket. Preserve this terminal and process for the
 entire captured lifecycle.
@@ -85,7 +91,9 @@ path.write_text(text, encoding="utf-8")
 PY
 export RADEONSTAY_ISOLATED_DEMO=1
 export RADEONSTAY_DEMO_RUN_ID=deployment-judge-001
-export RADEONSTAY_EVIDENCE_RUN_ID=c3-accepted-winner-001
+export RADEONSTAY_EVIDENCE_RUN_ID=c3min-f7ba681-C-r3
+export RADEONSTAY_MODEL_ENABLE_THINKING=0
+export RADEONSTAY_FUSED_PLAN_EVIDENCE=0
 export RADEONSTAY_RUNTIME_PROOF_PATH=/absolute/path/to/sanitized-runtime-proof.json
 export RADEONSTAY_RUNTIME_INSTANCE_PATH="$PWD/runtime/${RADEONSTAY_DEMO_RUN_ID}/runtime-instance.json"
 test -f "$RADEONSTAY_RUNTIME_INSTANCE_PATH"
@@ -117,11 +125,14 @@ SHA256 is verified during formal artifact acquisition and evidence binding. Only
 the verdict and manifest digest reach the UI. PID, command line, and paths stay
 private.
 
-For a final accepted public proof, also verify that the sanitized runtime proof
-contains the C2 commit, B–H winner label, `winner_assessment_accepted=true`, the
-accepted report SHA256, the winning core metric, and its measured improvement of
-at least 5%. Open `http://127.0.0.1:7860` only after
-readiness succeeds:
+For the current public build, verify that the sanitized proof binds C2 v3,
+Reference B (`flash_attn=off`), Optimized C (`flash_attn=on`), and comparison
+SHA256
+`7f85a614a31da10e5484ee41034282210ac44caf84012617dea5c786c0f03f59`.
+It must report `status=accepted`, `winner_assessment_accepted=true`, and
+`final_evidence_accepted=false`. This is intentionally not an
+`accepted_final` claim. Open `http://127.0.0.1:7860` only after readiness
+succeeds:
 
 ```bash
 curl --fail http://127.0.0.1:7860/health/live
@@ -147,7 +158,8 @@ preference and Privacy Proof appear before Step 10 so every Track 2 capability
 is visible, while Privacy Proof remains outside the backend Final Brief business
 gate. The UI shows the editable request, authoritative result, current confirmation card,
 and exactly one valid primary action. Below that action, the compact Radeon proof
-strip shows ROCm/gfx, exact `41/41` offload, process binding, accepted winner/gain,
+strip shows ROCm/gfx, exact `41/41` offload, process binding, the accepted B→C
+winner/gain,
 C2, model, binary, and report short hashes. Health, full Trust, Timeline, Stage
 Trace, and safe JSON are under **Advanced Proof**. The main flow provides two
 contextual editable journey shortcuts: **Plan&Hold** and **Delay Recovery ·
@@ -164,10 +176,12 @@ the default `standard` room type. The Agent is intentionally forbidden from
 inventing a stay window. The visible prompt therefore follows this
 runtime-generated form:
 
-> 我计划从 <session-derived check-in, 30–90 days ahead> 入住到 <two days later> 退房，预订
-> standard 房型，共两位住客（一名成人和一名六岁儿童），23:30 到店，有严重花生过敏，
-> 需要安静房和机场接送。本轮仅引用政策、查询房态和准确报价，并在确认前只预览
-> 保留房间；房间确认后再分步处理其余旅程需求。
+> I plan to stay from <session-derived check-in, 30–90 days ahead> through <two
+> days later> in a standard room for two guests—one adult and one six-year-old
+> child. I will arrive at 23:30, have a severe peanut allergy, and need a quiet
+> room and airport transfer. For this step, cite policy, check live availability
+> and the exact quote, and only preview the room hold until I confirm it. Handle
+> the remaining journey needs in separate steps after the room is confirmed.
 
 Check the rail, authoritative result, stable policy citations, and reservation
 action card. In the main result, verify that **Guest Needs Ledger** shows each
@@ -345,28 +359,32 @@ Confirm/Cancel, and Stay Brief without displaying stale browser state.
 The Advanced Proof Trust card identifies the local model/backend, schema
 constraint, thinking state, grounding result, fact sources, confirmation state,
 audit-chain status, runtime proof, live model-process binding, and
-retrieval/planning/tool/answer/total timing. A final accepted card also shows the
-C2 source, winner label, accepted-report digest, winning metric, and real
-improvement. Raw benchmark artifacts live under `evaluation/results/`; no summary
-number is valid without a matching raw file.
+retrieval/planning/tool/answer/total timing. The current accepted card shows the
+C2 v3 source, B→C winner label, accepted-report digest, winning metrics, and
+measured improvements. It must also expose that `final_evidence_accepted=false`.
+Raw benchmark artifacts live under `evaluation/results/`; no summary number is
+valid without a matching raw file.
 For a formal evidence lifecycle, use one `evidence_run_id` in the model log,
 Agent benchmark, and ROCm monitor, then create the hash-bound bundle described in
 `docs/evaluation-plan.md`.
 
-Every C3 run also produces a separate `stress.json`; it is not part of the
-official 30-case score. For the context transition, run E binds
-`context-selection.json` and run F binds `context-proof.json`. The applicable
-context artifact and `stress.json` must appear in `binding-manifest.txt` with
-their SHA256 values and in `SHA256SUMS.txt`; the comparator recomputes the context
-evidence and verifies that F reproduces E's hash-bound minimum-safe selection.
+The released evidence is the path-free summary
+`docs/evidence/c3min-f7ba681-bc-comparison.json`. B and C use the same commit,
+model, binary, corpus, request configuration, context `16384`, batch/ubatch
+`256/64`, parallel `1`, f16 KV cache, thinking off, and unfused planning. Only
+Flash Attention changes. At both concurrency 1 and 4, each run completed `16/16`
+requests with 100% success, zero failed model calls, and `41/41` offload. C
+improves concurrency-1 throughput by `6.455%`, concurrency-4 throughput by
+`6.491%`, concurrency-4 P95 latency by `5.428%`, and server decode P50 by
+`12.981%`; peak VRAM changes from `58%` to `57%`. The comparator reports
+`assessment.accepted=true` and `optimization_winner=optimized`.
 
-The formal optimization sequence is A–H: disable thinking, enable flash
-attention, tune batch/ubatch, fuse planning and evidence selection, choose the
-minimum context with 25% request headroom, set four parallel slots, then isolate
-Q8 KV cache. Every adjacent comparison must change exactly one declared variable.
-If A passes 300/300 it is the Reference. If A fails quality, its hardware-bound
-negative package remains visible, B must pass every normal gate and becomes the
-Reference, and formal performance comparisons start with B/C; A is not used for
-a speedup claim.
-The final comparator must report `assessment.accepted=true` and
-`optimization_winner=optimized`; failed candidates remain in the evidence bundle.
+Both runs have the same quality projection, including the same strict citation
+result of `15/16`. Therefore this result must never be described as `300/300`.
+It is a minimal accepted single-variable comparison, not the full A–H matrix,
+five-run Stability proof, or long soak.
+
+The complete A–H sequence, D–H candidates, 300/300 release gate, five fresh
+Winner lifecycles, long soak, and `accepted_final` proof remain a
+post-submission extension documented in `docs/evaluation-plan.md`. Failed or
+unfinished candidates must not be implied by the current Trust Card.

@@ -4,6 +4,12 @@ This runbook restores RadeonStay after recreating the single allowed Radeon
 Cloud Notebook. It is a disaster-recovery path, not a substitute for the formal
 C2/C3 evidence lifecycle.
 
+The current recoverable release is C2 v3 commit
+`f7ba6811205a40ba51ca74c82b43129b616f74c5` with the accepted minimal B→C
+comparison. Its optimized C profile is suitable for the public deployment, but
+its proof must remain `status=accepted` with
+`final_evidence_accepted=false`. It is not an `accepted_final` claim.
+
 ## Before recreating the Notebook
 
 Keep these files outside the Pod and verify their SHA256 values:
@@ -16,17 +22,21 @@ Keep these files outside the Pod and verify their SHA256 values:
 - `scripts/restore_notebook.sh`;
 - the recovery manifest and checksum file.
 
-Generate the accepted `runtime-proof.json` and `release-profile.json` only with
-the complete-candidate, five-run Stability, and long-soak command in the
-[evaluation plan](evaluation-plan.md#final-runtime-proof-and-recovery-profile).
-Do not create or label either file final from `winner-selection.json` alone.
+For the current deployment, preserve the reviewed accepted B→C
+`runtime-proof.json` and `release-profile.json` recorded in the private recovery
+manifest. They must bind Reference B, Optimized C, C2 v3, and comparison SHA256
+`7f85a614a31da10e5484ee41034282210ac44caf84012617dea5c786c0f03f59`.
+Do not label either artifact `accepted_final`. That promotion is allowed only
+after the complete A–H candidate set, five-run Stability, and long-soak process
+in the
+[evaluation plan](evaluation-plan.md#post-submission-final-runtime-proof-and-recovery-profile)
+passes.
 
 Do not copy `.env`, identity keys, SQLite databases, audit data, chats, or Tunnel
-state into a replacement deployment. The recovery script generates fresh secrets
-and a fresh database for each new deployment. An App-process restart inside that
-same deployment deliberately reopens its existing run-bound database instead of
-creating or copying one. The 27.3 GiB Q6_K model is reproducibly downloaded from
-its fixed Hugging Face
+state into a replacement deployment. Generate fresh secrets and a fresh database
+for each new deployment. An App-process restart inside that same deployment
+deliberately reopens its existing run-bound database instead of creating or
+copying one. The 27.3 GiB Q6_K model is reproducibly downloaded from its fixed Hugging Face
 revision and checked against the documented SHA256 instead of being included in
 the private recovery kit.
 
@@ -41,14 +51,45 @@ the private recovery kit.
 5. Upload the recovery-kit files to the Notebook without placing them inside the
    recovered Git repository.
 
-The restore script fails before dependency installation or model download when
-the Tunnel installer or injected variables are absent. It never overwrites an
-existing release directory, model, partial download, `.env`, or credentials
-file.
+Check Tunnel injection before starting either recovery path. The strict restore
+script fails before dependency installation or model download when the Tunnel
+installer or injected variables are absent. It never overwrites an existing
+release directory, model, partial download, `.env`, or credentials file.
 
-## Restore
+## Restore the current accepted B→C release
 
-Use the hashes, ref, and commit from the private recovery manifest:
+The checked-in `restore_notebook.sh` intentionally accepts only the future
+`accepted_final` schema. It will reject the current accepted/non-final proof, so
+do not weaken its validation or pass placeholder Stability/soak values. Restore
+the current public version as follows:
+
+1. verify the recovery-manifest hashes, Git bundle integrity, C2 v3 commit,
+   runtime archive, model file, accepted proof, and release profile;
+2. extract the bundle into a new release directory, create a Python 3.12 virtual
+   environment, and install the frozen `requirements.lock`;
+3. create a new deployment run ID, `0700` runtime directory, fresh `0600` `.env`,
+   fresh run-bound database, and new runtime-instance path—never copy old private
+   state;
+4. start the model and App with the exact Optimized C profile in
+   [Judge Quickstart](judge-quickstart.md): context 16384, parallel 1,
+   batch/ubatch 256/64, Flash Attention on, f16/f16 KV, thinking off, fused
+   plan/evidence off, and `41/41` layer offload;
+5. bind `RADEONSTAY_EVIDENCE_RUN_ID=c3min-f7ba681-C-r3`, while keeping the new
+   deployment run ID separate; verify liveness, readiness, authentication,
+   `process_binding_valid=true`, `status=accepted`, and
+   `final_evidence_accepted=false`;
+6. install the official `rc-tunnel` from the repository's Radeon Cloud User
+   Guide, expose only the authenticated UI port, and retain the printed URL and
+   credential-file location outside Git.
+
+This path reproduces the current deployment; it does not recapture Radeon
+telemetry or create a new evidence lifecycle. Preserve the deployment logs under
+the PVC state root and do not write them into the source checkout.
+
+## Future accepted_final automated restore
+
+After A–H, five-run Stability, and the long soak pass, use the hashes, ref, and
+commit from the private recovery manifest:
 
 ```bash
 bash restore_notebook.sh \
@@ -73,9 +114,9 @@ The script performs these fail-closed stages:
    isolated virtual environment;
 3. restores and verifies the exact ROCm `llama-server` runtime;
 4. downloads and verifies the pinned Q6_K model;
-5. verifies that the immutable accepted proof, release profile, C2 commit,
-   winner, model, exact `41/41` offload, ROCm, Radeon architecture, CU count, and
-   VRAM identity agree;
+5. verifies that the immutable `accepted_final` proof, release profile, C2
+   commit, winner, model, exact `41/41` offload, ROCm, Radeon architecture, CU
+   count, VRAM identity, five-run Stability, and long-soak bindings agree;
 6. generates fresh audit, identity, and UI credentials with mode `0600` and a
    deployment-run-bound isolated SQLite database;
 7. starts the model on loopback with the recorded optimized profile;
@@ -99,11 +140,13 @@ evidence lifecycle.
 
 The target environment validated on 2026-08-06 used Python 3.12.3, ROCm 7.2.1,
 `gfx1100`, 96 compute units, and approximately 48 GiB of VRAM. The loopback
-model profile was Q6_K, context 16384, parallel 1, batch/ubatch 512/128, Flash
-Attention on, and all 41 model layers offloaded through the configured
-`--n-gpu-layers 999`. Keep the exact model and binary SHA256 values documented
-in the main README as the authoritative identities; do not infer a retail GPU
-name from `gfx1100`.
+model profile was Q6_K, context 16384, parallel 1, batch/ubatch 256/64, Flash
+Attention on, f16/f16 KV cache, thinking off, fused plan/evidence off, and all
+41 model layers offloaded through the configured `--n-gpu-layers 999`. This is
+the released C profile; changing any of those values requires a new comparison
+and proof. Keep the exact model and binary SHA256 values documented in the main
+README as the authoritative identities; do not infer a retail GPU name from
+`gfx1100`.
 
 Use this fail-safe rollout sequence:
 

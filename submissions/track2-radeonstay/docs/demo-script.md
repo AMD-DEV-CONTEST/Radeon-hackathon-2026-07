@@ -1,9 +1,9 @@
 # 4:50 Demo Script — English Narration and Subtitles
 
 > This script supersedes the historical MP4 and SRT archived outside the
-> repository boundary. Those historical PDF, PPTX, video, and subtitle artifacts
-> are not final submission materials; regenerate them from the frozen C2 source
-> and accepted evidence.
+> repository boundary. The historical PDF, video, and subtitle artifacts are not
+> final submission materials. The final English PPTX is generated from frozen C2
+> v3 and the accepted B→C evidence.
 
 This script is for one real RadeonStay UI journey on the target AMD Radeon and
 ROCm environment. Record the submission, responses, previews, confirmations,
@@ -31,7 +31,7 @@ Keep subtitles to two lines and away from the Gradio controls being demonstrated
 | 3:10–3:32 | Run the automatically offered **Injection & Access** privacy request. Show the safe result and Privacy Proof; never reopen the isolated body. | “The server rejects the malicious scope, completes the legitimate owner read, and proves zero writes and zero cross-user results.” | Partitioned scope, safe scope completed, `scope_verified=true`, writes `0`, cross-user results `0`, no retained note body. |
 | 3:32–3:52 | Follow the returned safety-handoff continuation and confirm its accessibility-ticket preview. | “Automation cannot certify an allergen-free stay, so RadeonStay records a policy-grounded human handoff.” | Fifth Rail stage, active-booking and policy binding, explicit manual verification, separate confirmation. |
 | 3:52–4:06 | Generate the unique Final Stay Brief and show its local download. | “The final brief is available only after every required business action is settled and revalidated.” | Final label, completed Rail, current booking/tickets/policy, zero active previews, no secret metadata. |
-| 4:06–4:23 | Expand **Advanced Proof once**. Show Trust, real timings, grounding/privacy proofs, process/request binding, C2/winner/report digests, and the accepted Reference-to-Winner card. | “One card connects the live request to local inference, factual authority, audit continuity, and the accepted Radeon optimization report.” | Reference may be A or B; show 300/300, P50/P95, concurrency-4 throughput, VRAM/energy, 41/41, `accepted=true`, and `optimization_winner=optimized`. |
+| 4:06–4:23 | Expand **Advanced Proof once**. Show Trust, real timings, grounding/privacy proofs, process/request binding, C2/winner/report digests, and the accepted B-to-C card. | “One card connects the live request to local inference, factual authority, audit continuity, and the accepted Radeon optimization report.” | Show B Reference, C Optimized, 16/16 successful requests per run, the identical 15/16 citation-section projection, P50/P95, concurrency-4 throughput, peak VRAM/energy, 41/41, `assessment.accepted=true`, and `optimization_winner=optimized`. |
 | 4:23–4:42 | Without creating a new session, switch to the unauthorized guest and request the active booking. Show the bounded denial and cleared private panels. | “Changing identity does not transfer the journey. No booking, preference, prior chat, or proof data crosses users.” | Same session ID, bounded denial, empty private panels, and zero cross-user results. |
 | 4:42–4:50 | Closing card: local RAG, typed tools, planning, consented memory, permissions, Radeon proof, and repository/QR link. | “RadeonStay remains safe even when reality changes after preview.” | Final repository URL or QR code and available deliverables. |
 
@@ -56,10 +56,9 @@ Keep subtitles to two lines and away from the Gradio controls being demonstrated
    After a mixed privacy request is submitted, show only the isolated payload
    digest/category, limited partition-status metadata, and Privacy Proof; do not
    reopen or display the note body.
-5. The final performance card may be filled only from the complete
-   quality-qualified A-or-B Reference and accepted Winner bundles generated from
-   the final clean commit. If those artifacts are unavailable, omit the numerical
-   comparison rather than estimate values.
+5. The final performance card must use the reviewed B Reference and C Optimized
+   bundles generated from C2 v3. Preserve the disclosed 15/16 citation-section
+   result and never substitute estimated values or an `accepted_final` label.
 6. Capture at 2560×1440 or higher when possible so JSON fields remain legible in
    a 1080p export. Rehearse browser zoom and scrolling before the final take.
 7. All hotel guests, bookings, flights, and preferences shown are synthetic.

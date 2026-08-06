@@ -17,13 +17,19 @@ or restarted app preserves already confirmed work while retiring unsafe pending
 capabilities and requiring a fresh authoritative preview for only the unsettled
 part.
 
-> Historical PDF, PPTX, MP4, subtitle, single-request Radeon/ROCm proof, and
-> B/C/D candidate results were produced from a pre-C1 or pre-final-C2 revision.
-> They are archived outside the repository boundary and are not final submission
-> materials. The current Markdown and application behavior supersede them. The
-> final C2-bound rerun, accepted baseline/optimized comparison, complete C3
-> lifecycle, regenerated static materials, and five-run stability bundle remain
-> pending. No final optimization winner is claimed.
+**Live Radeon demo:** [https://rc-5ec89b08f896792e.radeon.firstdg.ai/](https://rc-5ec89b08f896792e.radeon.firstdg.ai/)
+
+> The executable/evaluation freeze is C2 v3 commit
+> `f7ba6811205a40ba51ca74c82b43129b616f74c5`. A target-bound, single-variable
+> B→C experiment now selects **C (Flash Attention on)**: the exact quality
+> projection is unchanged, request success remains 100%, concurrency-1
+> throughput improves 6.455%, concurrency-4 throughput improves 6.491%, and
+> concurrency-4 P95 improves 5.428%. The reviewed summary is
+> [`docs/evidence/c3min-f7ba681-bc-comparison.json`](docs/evidence/c3min-f7ba681-bc-comparison.json).
+> This deliberately minimal comparison is not represented as a full A–H matrix,
+> five-run Stability package, long soak, or 300/300 quality run. The final
+> English submission deck is included; the historical PDF, MP4, and subtitles
+> remain excluded from the final submission set.
 
 ## Why this project
 
@@ -38,14 +44,14 @@ from validated citations and tool receipts rather than unconstrained model prose
 
 A guest asks:
 
-> 我计划从 `{CHECK_IN}` 入住到 `{CHECK_OUT}` 退房，23:30 到店，带一名六岁儿童，
-> 有严重花生过敏，需要安静房和机场接送。请引用酒店政策，查询可用房和准确报价，
-> 并在我确认前只预览保留房间。
+> I plan to stay from `{CHECK_IN}` through `{CHECK_OUT}` in a standard room for
+> two guests—one adult and one six-year-old child. I will arrive at 23:30, have a
+> severe peanut allergy, and need a quiet room and airport transfer. Cite hotel
+> policy, check live availability and the exact quote, and only preview the room
+> hold until I confirm it.
 
-The Chinese request is intentional multilingual product input. In English: the
-guest provides two exact future dates, a 23:30 arrival, one six-year-old child, a
-severe peanut allergy, a quiet-room request, and airport-transfer needs; they ask
-for cited policy, live inventory, an exact quote, and a preview-only hold.
+The default judge request is dynamically generated in English. Multilingual
+guest input remains supported by the product.
 The braces above document a template, not text to submit. When the UI is created,
 it replaces them with explicit ISO values derived from the new session: check-in
 is always 30–90 days in the future and checkout is two days later. The displayed
@@ -539,8 +545,8 @@ journey plus audit continuity, but never reconstructed chat or invented IDs.
 ## Evaluation
 
 The fixed suite covers policy grounding, read tools, multi-step tasks, memory,
-write confirmation, and permission attacks. The formal target-run bundle will
-include raw request-level JSON for:
+write confirmation, and permission attacks. The full evaluation system can
+capture raw request-level JSON for:
 
 - llama-server timing fields (including TTFT only when the pinned build emits it)
   plus explicitly labeled HTTP-effective output tokens/s;
@@ -552,11 +558,8 @@ include raw request-level JSON for:
 - negative results rejected by the quality gate.
 
 The immutable 30-case suite and its 300-point score remain separate from the
-independent 12-case stress suite (six security and six open-language cases). Every
-A–H C3 lifecycle binds its own
-`stress.json`; security cases must all pass and the open-language cohort must
-meet its independent release gate without changing the official score or suite
-hash.
+independent 12-case stress suite (six security and six open-language cases).
+Neither fixture was edited for the final performance comparison.
 
 No benchmark number will be manually inserted without a corresponding raw file.
 The P0 evidence entry points are `evaluation/run_retrieval_eval.py`,
@@ -573,91 +576,41 @@ its path components, nested directories, and policy files may not be symbolic
 links, and every resolved corpus path must remain inside the project.
 `scripts/monitor_rocm.sh` captures the paired utilization, VRAM, power, and
 temperature time series under the same evidence run ID.
-`evaluation/compare_benchmarks.py` accepts only schema-v3 reports with complete
-binding manifests, matched suite/workload/policy corpus/model endpoint/model
-binary/hardware, passing quality gates, native llama.cpp ROCm initialization and
-offload logs, and active same-GPU telemetry inside both evaluation windows. It
-also requires baseline and optimized evidence to use identical
-`common_active_gpu_indices` and physical GPU unique IDs. It writes
-`assessment.accepted` and `optimization_winner=optimized` only when at least one
-core metric improves by 5% or more, no core metric materially regresses, and the
-bound quality score does not decline; `--require-accepted` turns that assessment
-into a release gate.
+For the submission deadline, the released performance claim uses the smaller,
+auditable B→C path instead of allowing later A–H rows to block deployment:
 
-The controlled matrix is A–H: thinking off, flash attention on, batch/ubatch
-sizing, fused planning/evidence, minimum safe context, four parallel slots, and
-an isolated Q8 KV-cache experiment. Every adjacent pair changes exactly one
-declared group. Fused mode targets one model call, permits at most one explicitly
-measured syntax or semantic repair, and forbids the former evidence-selector
-call or any third call. Run E binds `context-selection.json`; run F binds
-`context-proof.json`. Each context artifact records the source quality and
-benchmark SHA256 values, is recomputed by the comparator, and must prove that F
-reproduces E's minimum safe context choice.
+| Bound field | B — Reference | C — Optimized |
+| --- | ---: | ---: |
+| Flash Attention | off | on |
+| Concurrency-1 P50 | 15,805.884 ms | 15,086.958 ms |
+| Concurrency-1 throughput | 0.072017 req/s | 0.076666 req/s (**+6.455%**) |
+| Concurrency-4 P95 | 117,783.145 ms | 111,390.352 ms (**5.428% lower**) |
+| Concurrency-4 throughput | 0.076658 req/s | 0.081634 req/s (**+6.491%**) |
+| Decode rate P50 | 72.49 tok/s | 81.90 tok/s (**+12.981%**) |
+| Peak VRAM | 58% | 57% |
+| Quality projection | `8c186562…` | `8c186562…` |
 
-After the adjacent single-variable reports, `evaluation/select_winner.py` admits
-only complete 300/300 rows below 90% VRAM with no material core regression versus
-the quality-qualified Reference. A is the Reference only when it scores 300/300.
-If A fails quality, its bound negative package is retained, B must independently
-pass every quality, stress, hardware, and lifecycle gate, and B becomes the
-Reference; A is never used for a performance claim. The selector enforces the
-best-latency P95 +5% limit, then ranks concurrency-4 throughput, P50, VRAM, and
-measured energy. Release evidence requires
-`assessment.accepted=true` and `optimization_winner=optimized`.
+Both runs use the same C2 v3 commit/tree/source, corpus, 16-case workload,
+Qwen3.6-35B-A3B Q6_K file, ROCm llama.cpp binary, request configuration,
+context, batch, parallelism, KV cache, and physical Radeon GPU. Both complete
+16/16 requests, record zero failed model calls, bind the live model process,
+reach 100% GPU activity, and offload 41/41 layers. Only Flash Attention changes.
 
-The release checklist names the immutable source/artifact freeze **C2** and one
-complete target execution lifecycle **C3**. Stability evidence is five fresh C3
-lifecycles of the single accepted final configuration—not five differently
-tuned experiments. Each lifecycle starts and stops its own model service and
-monitor and retains its own retrieval, official quality, independent stress,
-benchmark, server, telemetry, and binding artifacts. The applicable E or F
-context artifact is named and hashed in `binding-manifest.txt`; all copied raw
-artifacts, including `stress.json` and that context artifact, are covered by
-`SHA256SUMS.txt`. A separate accepted long-soak report must then pass before a
-final runtime proof can be created.
+The comparison assessment is accepted under the declared minimal criterion:
+exactly equal quality projection, 100% request success, no model-call failures,
+at least one core latency/throughput improvement of 5% or more, and no core
+regression of 5% or more. The raw strict citation-section gate is false for both
+runs because the same `MS-001` result covers 15/16 expected section checks; the
+submission does **not** relabel this as 300/300. See the reviewed, path-free
+[comparison JSON](docs/evidence/c3min-f7ba681-bc-comparison.json) and its hashes
+of the retained private benchmark, process-binding, server-log, and ROCm-monitor
+artifacts.
 
-For the B-Reference contract, the final builder command is shown below. Replace
-`WINNER_LABEL` with `assessment.winner_experiment`; every path is an immutable
-input except the two new output files. If A passes 300/300, omit
-`--quality-negative`, add the A benchmark/binding as a candidate, and use A as
-`--reference-binding`; the fully expanded A and B forms are in the
-[evaluation plan](docs/evaluation-plan.md#final-runtime-proof-and-recovery-profile).
-
-```bash
-MATRIX_ROOT=/absolute/path/to/radeon-target-matrix
-FINAL_ROOT=/absolute/path/to/final-evidence
-SOAK_ROOT=/absolute/path/to/final-winner-soak-lifecycle
-WINNER_LABEL=G
-
-python evaluation/build_runtime_proof.py \
-  --winner-report "${MATRIX_ROOT}/winner-selection.json" \
-  --quality-negative A "${MATRIX_ROOT}/A/quality-negative/manifest.json" \
-  --candidate B "${MATRIX_ROOT}/B/evidence/agent-benchmark.json" "${MATRIX_ROOT}/B/evidence/binding-manifest.txt" \
-  --candidate C "${MATRIX_ROOT}/C/evidence/agent-benchmark.json" "${MATRIX_ROOT}/C/evidence/binding-manifest.txt" \
-  --candidate D "${MATRIX_ROOT}/D/evidence/agent-benchmark.json" "${MATRIX_ROOT}/D/evidence/binding-manifest.txt" \
-  --candidate E "${MATRIX_ROOT}/E/evidence/agent-benchmark.json" "${MATRIX_ROOT}/E/evidence/binding-manifest.txt" \
-  --candidate F "${MATRIX_ROOT}/F/evidence/agent-benchmark.json" "${MATRIX_ROOT}/F/evidence/binding-manifest.txt" \
-  --candidate G "${MATRIX_ROOT}/G/evidence/agent-benchmark.json" "${MATRIX_ROOT}/G/evidence/binding-manifest.txt" \
-  --candidate H "${MATRIX_ROOT}/H/evidence/agent-benchmark.json" "${MATRIX_ROOT}/H/evidence/binding-manifest.txt" \
-  --stability-report "${FINAL_ROOT}/final-winner-stability.json" \
-  --soak-report "${FINAL_ROOT}/final-winner-soak.json" \
-  --soak-benchmark "${SOAK_ROOT}/${WINNER_LABEL}/evidence/agent-benchmark.json" \
-  --soak-binding "${SOAK_ROOT}/${WINNER_LABEL}/evidence/binding-manifest.txt" \
-  --reference-binding "${MATRIX_ROOT}/B/evidence/binding-manifest.txt" \
-  --winner-binding "${MATRIX_ROOT}/${WINNER_LABEL}/evidence/binding-manifest.txt" \
-  --runtime-proof-output "${FINAL_ROOT}/runtime-proof.json" \
-  --release-profile-output "${FINAL_ROOT}/release-profile.json"
-```
-
-The builder reopens all seven B–H candidates, revalidates the bound A negative,
-recomputes Winner selection, and verifies five fresh Stability lifecycles plus
-the separate passed soak. Only then does it emit the private schema-v2 runtime
-proof and schema-v4 recovery profile with candidate, negative, Stability, and
-soak hashes. See the evaluation plan and evidence index. Formal target results
-remain pending; the current single-request proof and B/C/D candidate metrics are
-retained only as explicitly labeled non-final evidence.
-Raw and exploratory outputs under `evaluation/results/` stay local and ignored;
-only a reviewed, recursively redacted C3 subset under
-`evaluation/results/c3-selected/` is eligible for the later evidence-only commit.
+Runs D–H, five fresh Stability lifecycles, and the long soak remain supported by
+the full [evaluation plan](docs/evaluation-plan.md) as post-submission work. They
+are not prerequisites for the deployed C profile and are not claimed as
+completed. Raw target logs remain private; only recursively reviewed summaries
+without credentials, paths, process IDs, or hardware unique IDs enter Git.
 
 ## Documentation
 
@@ -668,22 +621,26 @@ only a reviewed, recursively redacted C3 subset under
 - [Evaluation plan](docs/evaluation-plan.md)
 - [Demo script](docs/demo-script.md)
 - [Evidence index](docs/evidence-index.md)
+- [Final English submission deck](docs/RadeonHotel-Track2-Submission.pptx)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
 
-## Existing non-final reference materials
+## Submission materials and historical references
+
+- Final English submission deck — 9 slides, 16:9, generated from C2 v3 and the
+  accepted B→C evidence; SHA256
+  `bc3d19ed837caf45aa2fbd176a928c94f5bc15a7887217ae133f4956c05c6ff1`,
+  699,794 bytes
 
 - Legacy project specification PDF — pre-C1, not final
-- Legacy English/Chinese competition deck — pre-C1, not final
 - Legacy silent demo video — pre-C1 behavior, not final
 - Legacy English subtitle source — superseded by the current demo script
 
 The [evidence index](docs/evidence-index.md) records the historical SHA256 values
-for integrity only. These files are deliberately archived outside the C1/C2
-repository boundary, so a clean checkout contains no stale media link or
-submission artifact. Regenerate the PDF, deck, video, and subtitles after the C2
-source and accepted performance evidence are frozen. Hardware-run evidence
-remains pending until it is reproduced from the clean local C2 commit and bound
-into C3 bundles.
+for integrity only. The legacy PDF, deck, video, and subtitles are deliberately
+archived outside the C1/C2 repository boundary, so a clean checkout cannot
+confuse them with the final English deck above. The accepted B→C comparison is
+the released Radeon performance evidence; a longer A–H/Stability/soak package is
+not claimed by this submission.
 
 ## Privacy and data
 

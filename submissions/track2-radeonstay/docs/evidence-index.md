@@ -1,86 +1,78 @@
 # Evidence Index
 
-> `HISTORICAL / NON-FINAL` means the named legacy deliverable exists and its
-> SHA256 has been verified, but it was generated before the current C1/C2 source
-> and must not be submitted as the final artifact. Formal target-run statuses
-> remain `PENDING` until a clean C2 freeze and complete bound C3 bundles are
-> generated and reviewed. The current single-request proof and B/C/D candidate
-> metrics are likewise non-final and do not constitute an accepted
-> baseline/optimized result.
+> `HISTORICAL / NON-FINAL` means the legacy deliverable exists and its SHA256 was
+> verified, but it predates the current C2 source and must not be submitted as a
+> final artifact. C2 v3 is frozen. The submission performance claim is the
+> smaller, completed B→C single-variable experiment; D–H, five-run Stability,
+> and soak remain explicitly deferred and are not required for the deployed C
+> profile.
 
 | Scoring requirement | Evidence | Status |
 | --- | --- | --- |
 | Clear hotel scenario | README + project specification | READY |
 | Agent architecture and multi-turn flow | Architecture + confirmation sequence in project specification | READY |
 | Pinned model/binary provenance | README + third-party notices; revision/hash verification procedure | READY DOCUMENTATION |
-| C2 immutable binding freeze | Full commit; clean project; tree/source/corpus/suite/model/binary hashes | PENDING FREEZE |
-| RAG with citations | Source + 8-case retrieval JSON + demo timestamp | PENDING RUN |
-| Typed tools and planning | Source + tests + 30-case Agent quality JSON | PENDING RUN |
-| Independent stress gate | Separate 12-case `stress.json`; six security cases require 100%, six open-language cases require ≥95%; excluded from official score/hash | PENDING RUN |
-| Multi-turn memory | Agent quality JSON + consent/forget traces | PENDING RUN |
-| Permission/privacy | Agent quality JSON + attack denial traces | PENDING RUN |
-| One complete C3 lifecycle | Retrieval/official-quality/stress/benchmark artifacts + controlled process shutdown + complete hash-bound evidence bundle under one run ID | PENDING RUN |
-| Radeon local inference | Same-run-ID ROCm evidence, server log, binding manifest, video | PENDING HARDWARE |
-| Directed optimization | Quality-gated baseline/optimized JSON + same-run-ID ROCm monitor logs | PENDING HARDWARE |
-| E/F context transition | E `context-selection.json` + F `context-proof.json`; source-report hashes, manifest fields, `SHA256SUMS.txt`, and recomputation | PENDING HARDWARE |
-| Stable interaction | Five distinct complete run IDs; every quality/benchmark gate passes | PENDING RUN |
+| C2 immutable binding freeze | Commit `f7ba681…`; project tree `b44fb212…`; source/corpus/suite/model/binary hashes in reviewed comparison | **FROZEN** |
+| RAG with citations | Source + fixed 16-case B/C projection; 15/16 expected citation-section checks in both runs | **MEASURED / DISCLOSED** |
+| Typed tools and planning | Source + 16/16 successful B/C requests; zero model-call failures | **MEASURED** |
+| Independent stress gate | Separate immutable 12-case fixture remains available; not rerun for minimal B/C | DEFERRED |
+| Multi-turn memory | Source, persisted Journey state, consent/forget implementation | READY SOURCE / DEMO |
+| Permission/privacy | Source, confirmation capability, identity boundary, Privacy Proof | READY SOURCE / DEMO |
+| Minimal target comparison | Fresh B and C model lifecycles, process manifests, benchmark JSON, server logs, ROCm monitors, controlled shutdown | **COMPLETE / HASH BOUND** |
+| Radeon local inference | ROCm 7.2.1, gfx1100, 41/41 offload, 100% peak GPU busy, process binding in both B/C runs | **VERIFIED** |
+| Directed optimization | B Flash off → C Flash on; exact quality projection; throughput +6.455%/+6.491%; C4 P95 -5.428% | **ACCEPTED MINIMAL B/C** |
+| E/F context transition | Full-matrix optional experiment | DEFERRED / NOT CLAIMED |
+| Stable interaction | Five fresh Winner lifecycles and long soak | DEFERRED / NOT CLAIMED |
+| Public Radeon demo | [Authenticated live application](https://rc-5ec89b08f896792e.radeon.firstdg.ai/) using Optimized C | **LIVE** |
 | Project PDF | Pre-C1 archive outside the frozen repository, 10 A4 pages, 46,010 bytes | HISTORICAL / EXCLUDED / HASH VERIFIED |
-| Bilingual PPT | Pre-C1 archive outside the frozen repository, 9 slides, 16:9, 175,367 bytes | HISTORICAL / EXCLUDED / HASH VERIFIED |
+| English submission PPT | [`RadeonHotel-Track2-Submission.pptx`](RadeonHotel-Track2-Submission.pptx), 9 slides, 16:9, 699,794 bytes | **FINAL / HASH VERIFIED** |
 | Demo video | Pre-C1 archive outside the frozen repository, 276 s, 1920x1080, 25 fps | HISTORICAL / EXCLUDED / HASH VERIFIED |
 | English subtitles | Pre-C1 archive outside the frozen repository, 23 cues covering 00:00:00–00:04:36 | HISTORICAL / EXCLUDED / HASH VERIFIED |
 
-`C2` is the immutable input freeze; `C3` is one fresh end-to-end target
-lifecycle after that freeze. A valid C3 run starts a new model process and ROCm
-monitor, executes retrieval, 30-case quality, independent stress, and benchmark
-windows under one run ID, captures bound live evidence, shuts both children down
-in a controlled way, and then creates the final binding bundle. Every bundle
-includes `stress.json`. Run E additionally includes `context-selection.json`;
-run F instead includes `context-proof.json`. The applicable context filename and
-hash are present in `binding-manifest.txt`, and both stress and context artifacts
-are covered by `SHA256SUMS.txt`. The E/F artifacts bind their source
-quality/benchmark hashes, are recomputed, and must prove that F reproduces E's
-minimum-safe context selection. The live and final collection phases are both
-required. No C2 or C3 status is claimed above before those artifacts exist.
-The C2 source digest is shared by every evaluator and the final collector. It
+`C2` is the immutable executable/evaluation input freeze. The released C2 v3
+commit is `f7ba6811205a40ba51ca74c82b43129b616f74c5`, with project tree
+`b44fb212b77c06ee9c8d097b5a9f2f891f79a389`. The C2 source digest is shared by
+the evaluators and collector. It
 uses committed blobs and file modes only for the frozen executable/evaluation
 allow-list, then requires each selected working-tree file to match `HEAD`
 byte-for-byte. Documentation, media and generated evidence are intentionally
 outside that scoped digest and remain covered by the separate C2 project tree.
 
-“Five-run” means five fresh C3 model-service lifecycles using one accepted final
-configuration on the same pinned commit/project tree/source, corpus and suite,
-model hash, `llama-server` hash, alias, context, thinking/flash settings,
-GPU-layer request, batch/micro-batch, parallel slots, benchmark workload and
-Radeon hardware fingerprint. These are not the differently configured A–H
-tuning rows. Each run keeps its own retrieval JSON, quality JSON, independent
-stress JSON, benchmark JSON, `llama-server` log, ROCm monitor log, live evidence
-file, orchestration status, complete binding manifest and bundle checksum.
-Stability passes only when all five report zero hard failures, 30/30 completed
-quality cases, passing independent stress gates, a 100% benchmark success rate,
-complete lifecycle markers and active same-GPU evidence. No averaging, rerun
-under the same ID, or selective omission may hide a failed run.
+The minimal B/C comparison starts a fresh bound model process and ROCm monitor
+for each side, uses one fixed 16-case request set at concurrency 1 and 4 after
+three warmups, and retains each report, runtime-instance manifest, complete
+server log, and monitor log. The only effective service change is Flash
+Attention. The two exact quality projections are identical. The raw strict gate
+is false on both sides because `MS-001` returns three citations but covers only
+15/16 expected citation-section checks. This is disclosed in the selected JSON;
+no metric is promoted to 300/300.
+
+The original full A–H/five-run/soak contract remains documented as an optional
+post-submission extension. Its unexecuted rows cannot be cited as evidence for
+this release.
 
 ## Final evidence register
 
-Replace target-run `PENDING` values only after reviewing the artifact and its
-binding manifest. Legacy static deliverables below were verified directly
-against the files under `output/`, but every listed PDF/PPTX/MP4/SRT hash is
-historical and non-final. Replace its row label and hash only after regeneration
-from frozen C2 source and accepted C3 evidence:
+Every final artifact below was reviewed against its recorded hash. The English
+submission deck was regenerated from frozen C2 v3 and the accepted B→C evidence.
+Legacy PDF/PPTX/MP4/SRT hashes are retained only to prevent accidental reuse of
+superseded files:
 
 | Final field | Bound value / artifact |
 |---|---|
-| C2 source commit, project tree and source hash | PENDING |
-| Policy corpus and `30-case-p0-v3` suite hashes | PENDING TARGET BUNDLE |
-| Independent stress suite hash and bound `stress.json` | PENDING TARGET BUNDLE |
-| E/F context artifact hashes and source-report bindings | PENDING TARGET BUNDLES |
-| Quality-qualified Reference (A or B) C3 run ID and bundle path | PENDING |
-| Accepted Winner C3 run ID and bundle path | PENDING |
-| Quality-gated comparison JSON | PENDING |
-| Five same-configuration Stability report, run IDs and bundle paths | PENDING |
-| Independent passed long-soak report and fresh run ID | PENDING |
-| Accepted-final runtime proof and release-profile SHA256 | PENDING |
-| AMD/ROCm server, monitor and hardware binding evidence | PENDING HARDWARE |
+| C2 source commit, project tree and source hash | Commit `f7ba6811205a40ba51ca74c82b43129b616f74c5`; tree `b44fb212b77c06ee9c8d097b5a9f2f891f79a389`; source `168abd8f26578ac58cff1173c0323f6da6664eec169a32b4ae8fab5bf4272285` |
+| Policy corpus and fixed suite hashes | Corpus `58f15bd9f3b4f5b3c69e92491054349f29a496ac17931bf8e341b03aa562cdb1`; suite `60fae4be0bd7a16ee9b2e7963bb3afccbf319c2ed64cd3ba43acfc912bfd3d1b` |
+| Minimal Reference | B, run `c3min-f7ba681-B`, Flash Attention off |
+| Minimal Winner | C, run `c3min-f7ba681-C-r3`, Flash Attention on |
+| Reviewed B/C comparison | [`docs/evidence/c3min-f7ba681-bc-comparison.json`](evidence/c3min-f7ba681-bc-comparison.json), SHA256 `7f85a614a31da10e5484ee41034282210ac44caf84012617dea5c786c0f03f59` |
+| Raw B benchmark/binding | SHA256 `41a46d12…` / `245375d5…`; retained privately |
+| Raw C benchmark/binding | SHA256 `3428177c…` / `a83b7540…`; retained privately |
+| Five same-configuration Stability report | DEFERRED / NOT CLAIMED |
+| Independent long-soak report | DEFERRED / NOT CLAIMED |
+| Accepted-final full-matrix runtime proof | DEFERRED / NOT CLAIMED |
+| AMD/ROCm hardware binding | Both B/C: process binding true, gfx1100, 41/41 offload, 100% peak GPU busy; full raw log hashes are in the comparison JSON |
+| Public Radeon demo | [https://rc-5ec89b08f896792e.radeon.firstdg.ai/](https://rc-5ec89b08f896792e.radeon.firstdg.ai/) |
+| Final English submission PPT SHA256 | `bc3d19ed837caf45aa2fbd176a928c94f5bc15a7887217ae133f4956c05c6ff1` (699,794 bytes) |
 | Historical non-final project PDF SHA256 | `a3e64e406d9f0170ee14acadc4bf6e9a970523395ac4855550969ae2ce951401` |
 | Historical non-final bilingual PPT SHA256 | `41d432010060ac6ae97cafa185a12cbe0bdf222abebc3161bdb6fb19fccbf574` |
 | Historical non-final demo video and subtitle SHA256 | MP4: `d4fda194053f3ec0d488138794a5c723de96fea1697c2d412c4c59ec87fc5df1`; SRT: `eb05f7118fcc911a554c279d121bc6ace447eeb671df914836b087887e1e3fa9` |
