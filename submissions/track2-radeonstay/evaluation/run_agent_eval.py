@@ -24,9 +24,21 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
+from evaluation.configuration import (  # noqa: E402
+    add_service_configuration_arguments,
+    request_configuration,
+    service_configuration_from_args,
+)
+from evaluation.runtime_binding_evidence import (  # noqa: E402
+    load_runtime_instance,
+    validate_model_call_bindings,
+)
+from evaluation.source_provenance import source_tree_sha256  # noqa: E402
 from radeonstay.auth import LocalIdentityProvider  # noqa: E402
 from radeonstay.config import Settings, load_env_file  # noqa: E402
 from radeonstay.contracts import ChatRequest, ConfirmRequest  # noqa: E402
@@ -74,6 +86,7 @@ WRITE_TOOLS = {
     "hotel.create_service_ticket",
     "hotel.hold_booking",
     "hotel.modify_booking",
+    "hotel.update_service_ticket",
     "memory.delete_preference",
     "memory.remember_preference",
     "memory.set_consent",
@@ -102,23 +115,134 @@ FABRICATED_SUCCESS_WORDS = (
 
 
 def model_request_configuration(settings: Settings) -> dict[str, bool]:
+    return request_configuration(settings)
+
+
+def _is_allowed_fused_repair_purpose(value: Any) -> bool:
+    purpose = str(value or "")
+    return purpose == "planner.semantic_repair" or (
+        purpose.startswith("planner.") and purpose.endswith(".syntax_repair")
+    )
+
+
+def _fused_call_policy_evidence(
+    response_call_groups: list[list[dict[str, Any]]],
+    *,
+    server_gate_zero_call_allowed: list[bool] | None = None,
+) -> dict[str, Any]:
+    zero_call_allowed = server_gate_zero_call_allowed or [
+        False for _ in response_call_groups
+    ]
+    if len(zero_call_allowed) != len(response_call_groups):
+        raise RuntimeError("Server-gate evidence does not align with response traces")
+    response_count = len(response_call_groups)
+    single_call_response_count = sum(
+        len(calls) == 1 for calls in response_call_groups
+    )
+    repair_response_count = sum(
+        len(calls) >= 2
+        and _is_allowed_fused_repair_purpose(calls[1].get("purpose"))
+        for calls in response_call_groups
+    )
+    disallowed_model_call_count = 0
+    for calls in response_call_groups:
+        for index, call in enumerate(calls):
+            purpose = str(call.get("purpose", ""))
+            allowed = purpose != "answer.evidence_selector" and (
+                index == 0
+                or (index == 1 and _is_allowed_fused_repair_purpose(purpose))
+            )
+            disallowed_model_call_count += int(not allowed)
+
     return {
-        "thinking_enabled": settings.model_enable_thinking,
-        "schema_constrained": True,
+        "response_count": response_count,
+        "single_call_response_count": single_call_response_count,
+        "single_call_response_rate": (
+            round(single_call_response_count / response_count, 6)
+            if response_count
+            else 0.0
+        ),
+        "repair_response_count": repair_response_count,
+        "repair_response_rate": (
+            round(repair_response_count / response_count, 6)
+            if response_count
+            else 0.0
+        ),
+        "multi_call_response_count": sum(
+            len(calls) > 1 for calls in response_call_groups
+        ),
+        "server_gate_zero_call_response_count": sum(
+            not calls and allowed
+            for calls, allowed in zip(
+                response_call_groups,
+                zero_call_allowed,
+                strict=True,
+            )
+        ),
+        "maximum_model_calls_per_response": max(
+            (len(calls) for calls in response_call_groups),
+            default=0,
+        ),
+        "additional_model_call_count": sum(
+            max(0, len(calls) - 1) for calls in response_call_groups
+        ),
+        "syntax_repair_model_call_count": sum(
+            str(call.get("purpose", "")).startswith("planner.")
+            and str(call.get("purpose", "")).endswith(".syntax_repair")
+            for calls in response_call_groups
+            for call in calls
+        ),
+        "semantic_repair_model_call_count": sum(
+            call.get("purpose") == "planner.semantic_repair"
+            for calls in response_call_groups
+            for call in calls
+        ),
+        "disallowed_model_call_count": disallowed_model_call_count,
+        "single_call_per_response_verified": bool(
+            response_call_groups
+            and all(len(calls) == 1 for calls in response_call_groups)
+        ),
+        "fused_call_policy_verified": bool(
+            response_call_groups
+            and all(
+                1 <= len(calls) <= 2 or (not calls and allowed)
+                for calls, allowed in zip(
+                    response_call_groups,
+                    zero_call_allowed,
+                    strict=True,
+                )
+            )
+            and disallowed_model_call_count == 0
+        ),
     }
 
 
 def validate_request_configuration_evidence(
     rows: list[dict[str, Any]],
     expected: dict[str, bool],
+    *,
+    runtime_manifest_sha256: str | None = None,
 ) -> dict[str, Any]:
-    model_calls = [
-        call
+    response_records = [
+        trace["response"]
         for row in rows
         for trace in row.get("trace", [])
         if isinstance(trace, dict) and isinstance(trace.get("response"), dict)
-        for call in trace["response"].get("model_calls", [])
-        if isinstance(call, dict)
+    ]
+    response_call_groups = [
+        response.get("model_calls", []) for response in response_records
+    ]
+    if any(not isinstance(calls, list) for calls in response_call_groups):
+        raise RuntimeError("Agent quality traces contain invalid model_calls")
+    if any(
+        not all(isinstance(call, dict) for call in calls)
+        for calls in response_call_groups
+    ):
+        raise RuntimeError("Agent quality traces contain invalid model call records")
+    model_calls = [
+        call
+        for calls in response_call_groups
+        for call in calls
     ]
     if not model_calls:
         raise RuntimeError("Agent quality evaluation produced no model request traces")
@@ -126,6 +250,17 @@ def validate_request_configuration_evidence(
         raise RuntimeError("Agent quality traces are missing thinking_enabled")
     if any(type(call.get("schema_constrained")) is not bool for call in model_calls):
         raise RuntimeError("Agent quality traces are missing schema_constrained")
+    if any("fused_plan_evidence" not in call for call in model_calls):
+        raise RuntimeError("Agent quality traces are missing fused_plan_evidence")
+    if any(type(call["fused_plan_evidence"]) is not bool for call in model_calls):
+        raise RuntimeError(
+            "Agent quality trace fused_plan_evidence values must be boolean"
+        )
+    fused_enabled = expected.get("fused_plan_evidence", False)
+    if type(fused_enabled) is not bool:
+        raise RuntimeError(
+            "Declared agent quality fused_plan_evidence must be boolean"
+        )
     if any(
         call["thinking_enabled"] != expected["thinking_enabled"]
         for call in model_calls
@@ -140,13 +275,54 @@ def validate_request_configuration_evidence(
         call.get("response_format") != "json_schema" for call in model_calls
     ):
         raise RuntimeError("Agent quality schema-constrained traces are not JSON schema")
+    if any(
+        call["fused_plan_evidence"] != fused_enabled for call in model_calls
+    ):
+        raise RuntimeError(
+            "Agent quality trace fused_plan_evidence values do not match the "
+            "declared request configuration"
+        )
+    server_gate_zero_call_allowed: list[bool] = []
+    for response, calls in zip(
+        response_records,
+        response_call_groups,
+        strict=True,
+    ):
+        trust = response.get("trust")
+        trust = trust if isinstance(trust, Mapping) else {}
+        runtime_proof = trust.get("runtime_proof")
+        runtime_proof = runtime_proof if isinstance(runtime_proof, Mapping) else {}
+        privacy = trust.get("privacy")
+        privacy = privacy if isinstance(privacy, Mapping) else {}
+        server_gate_zero_call_allowed.append(
+            not calls
+            and runtime_proof.get("competition_path")
+            in {"server-privacy-scope-gate", "server-privacy-policy-gate"}
+            and privacy.get("model_invoked") is False
+            and str(response.get("model_backend", "")).endswith(
+                "model=not-invoked"
+            )
+        )
+    call_policy_evidence = _fused_call_policy_evidence(
+        response_call_groups,
+        server_gate_zero_call_allowed=server_gate_zero_call_allowed,
+    )
     observed = {
         "thinking_enabled": model_calls[0]["thinking_enabled"],
         "schema_constrained": all(call["schema_constrained"] for call in model_calls),
+        "fused_plan_evidence": model_calls[0]["fused_plan_evidence"],
     }
-    if observed != expected:
+    normalized_expected = {**expected, "fused_plan_evidence": fused_enabled}
+    if observed != normalized_expected:
         raise RuntimeError(
             "Agent quality traces do not match the declared request configuration"
+        )
+    runtime_binding_evidence: dict[str, Any] = {}
+    if runtime_manifest_sha256 is not None:
+        runtime_binding_evidence = validate_model_call_bindings(
+            model_calls,
+            expected_manifest_sha256=runtime_manifest_sha256,
+            label="Agent quality",
         )
     return {
         "model_call_count": len(model_calls),
@@ -154,42 +330,10 @@ def validate_request_configuration_evidence(
         "response_formats": sorted(
             {str(call.get("response_format")) for call in model_calls}
         ),
+        **call_policy_evidence,
+        **runtime_binding_evidence,
         "trace_verified": True,
     }
-
-
-def source_tree_sha256(project_root: Path) -> str:
-    digest = hashlib.sha256()
-    excluded_names = {
-        ".coverage",
-        ".env",
-        ".pytest_cache",
-        ".ruff_cache",
-        ".venv",
-        "__pycache__",
-        "build",
-        "dist",
-        "runtime",
-    }
-    excluded_suffixes = (".egg-info", ".pyc", ".pyo", ".pyd")
-    for path in sorted(project_root.rglob("*"), key=lambda item: item.as_posix()):
-        if not path.is_file() or path.is_symlink():
-            continue
-        relative = path.relative_to(project_root)
-        if any(
-            part in excluded_names or part.endswith(excluded_suffixes)
-            for part in relative.parts
-        ):
-            continue
-        if relative.parts[:2] == ("evaluation", "results"):
-            continue
-        label = relative.as_posix().encode("utf-8")
-        content = path.read_bytes()
-        digest.update(len(label).to_bytes(4, "big"))
-        digest.update(label)
-        digest.update(len(content).to_bytes(8, "big"))
-        digest.update(content)
-    return digest.hexdigest()
 
 
 def git_provenance(project_root: Path) -> dict[str, str]:
@@ -243,6 +387,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--model-file", type=Path, required=True)
     parser.add_argument("--llama-server", type=Path, required=True)
+    add_service_configuration_arguments(parser)
     return parser.parse_args(argv)
 
 
@@ -321,10 +466,25 @@ class RecordingPlanner:
     def backend_name(self) -> str:
         return str(self.inner.backend_name)
 
+    @property
+    def fused_plan_evidence(self) -> bool:
+        return bool(getattr(self.inner, "fused_plan_evidence", False))
+
     def create_plan(self, *args: Any, **kwargs: Any) -> Any:
         plan = self.inner.create_plan(*args, **kwargs)
         self.plans.append(plan)
         return plan
+
+    def create_plan_envelope(self, *args: Any, **kwargs: Any) -> Any:
+        create_envelope = getattr(self.inner, "create_plan_envelope", None)
+        if not callable(create_envelope):
+            raise AttributeError("inner planner does not support create_plan_envelope")
+        envelope = create_envelope(*args, **kwargs)
+        plan = getattr(envelope, "plan", None)
+        if plan is None:
+            raise TypeError("planner envelope is missing plan")
+        self.plans.append(plan)
+        return envelope
 
 
 class RecordingRegistry:
@@ -1517,9 +1677,9 @@ def _summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "hard_failure_cases": sum(bool(row["hard_failures"]) for row in rows),
     }
     gates = {
-        "score_at_least_270": total_score >= 270,
-        "knowledge_recall_at_3_at_least_095": metrics["knowledge_recall_at_3"] >= 0.95,
-        "citation_accuracy_at_least_095": metrics["citation_accuracy"] >= 0.95,
+        "score_300_of_300": total_score == 300 and metrics["maximum_score"] == 300,
+        "knowledge_recall_at_3_100_percent": metrics["knowledge_recall_at_3"] == 1.0,
+        "citation_accuracy_100_percent": metrics["citation_accuracy"] == 1.0,
         "citation_grounding_precision_100_percent": (
             metrics["citation_grounding_precision"] == 1.0
         ),
@@ -1555,6 +1715,10 @@ def main(argv: list[str] | None = None) -> int:
     load_env_file(PROJECT_ROOT / ".env")
     settings = Settings.from_env(PROJECT_ROOT)
     settings.validate_runtime_security()
+    runtime_instance = load_runtime_instance(
+        settings.runtime_instance_path,
+        expected_run_id=run_id,
+    )
     official_policy_dir = validate_policy_directory(
         DEFAULT_POLICIES,
         project_root=PROJECT_ROOT,
@@ -1602,10 +1766,17 @@ def main(argv: list[str] | None = None) -> int:
 
     summary = _summarize(rows)
     request_configuration = model_request_configuration(settings)
+    service_configuration = service_configuration_from_args(args)
     request_configuration_evidence = validate_request_configuration_evidence(
         rows,
         request_configuration,
+        runtime_manifest_sha256=runtime_instance.manifest_sha256,
     )
+    if request_configuration["fused_plan_evidence"]:
+        summary["gates"]["fused_plan_evidence_call_policy"] = bool(
+            request_configuration_evidence["fused_call_policy_verified"]
+        )
+        summary["passed"] = all(summary["gates"].values())
     report = {
         "evaluation": "radeonstay-fixed-agent-suite",
         "run_id": run_id,
@@ -1617,6 +1788,14 @@ def main(argv: list[str] | None = None) -> int:
         "policy_corpus_sha256": policy_hash,
         "request_configuration": request_configuration,
         "request_configuration_evidence": request_configuration_evidence,
+        "runtime_instance": {
+            "manifest_sha256": runtime_instance.manifest_sha256,
+            "process_binding_valid_for_all_model_calls": True,
+            "bound_model_call_count": request_configuration_evidence[
+                "bound_model_call_count"
+            ],
+        },
+        "service_configuration": service_configuration,
         "provenance": provenance,
         "artifacts": artifacts,
         "cases_path": str(cases_path),

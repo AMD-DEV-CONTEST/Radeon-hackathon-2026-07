@@ -9,6 +9,7 @@ MATRIX_SCRIPT = PROJECT_ROOT / "scripts" / "run_experiment_matrix.sh"
 COLLECTOR_SCRIPT = PROJECT_ROOT / "scripts" / "collect_rocm_evidence.sh"
 APP_SCRIPT = PROJECT_ROOT / "scripts" / "serve_app.sh"
 MODEL_SCRIPT = PROJECT_ROOT / "scripts" / "serve_model.sh"
+RESTORE_SCRIPT = PROJECT_ROOT / "scripts" / "restore_notebook.sh"
 
 
 def _model_launcher_environment(
@@ -40,6 +41,8 @@ def _collector_provenance_arguments(tmp_path: Path) -> list[str]:
     return [
         "--live-evidence-file",
         str(tmp_path / "live-rocm.log"),
+        "--runtime-instance-file",
+        str(tmp_path / "runtime-instance.json"),
         "--expected-model-sha256",
         "a" * 64,
         "--model-repository",
@@ -48,6 +51,8 @@ def _collector_provenance_arguments(tmp_path: Path) -> list[str]:
         "b" * 40,
         "--model-license",
         "Apache-2.0",
+        "--model-quantization",
+        "Q6_K",
         "--expected-llama-server-sha256",
         "c" * 64,
         "--llama-cpp-commit",
@@ -59,25 +64,53 @@ def _collector_provenance_arguments(tmp_path: Path) -> list[str]:
     ]
 
 
-def test_experiment_matrix_declares_the_controlled_a_to_e_sequence() -> None:
+def test_experiment_matrix_declares_the_controlled_a_to_h_sequence() -> None:
     script = MATRIX_SCRIPT.read_text(encoding="utf-8")
 
-    expected_rows = (
-        'A) thinking="on";  flash_attn="off"; batch_size="256"; '
-        'ubatch_size="64";  parallel_slots="1"',
-        'B) thinking="off"; flash_attn="off"; batch_size="256"; '
-        'ubatch_size="64";  parallel_slots="1"',
-        'C) thinking="off"; flash_attn="on";  batch_size="256"; '
-        'ubatch_size="64";  parallel_slots="1"',
-        'D) thinking="off"; flash_attn="on";  batch_size="512"; '
-        'ubatch_size="128"; parallel_slots="1"',
-        'E) thinking="off"; flash_attn="on";  batch_size="512"; '
-        'ubatch_size="128"; parallel_slots="4"',
-    )
-    for row in expected_rows:
-        assert row in script
+    expected_rows = {
+        "A": (
+            'thinking="on"', 'flash_attn="off"', 'batch_size="256"',
+            'fused_plan_evidence="0"', 'parallel_slots="1"', 'cache_type_k="f16"',
+        ),
+        "B": (
+            'thinking="off"', 'flash_attn="off"', 'batch_size="256"',
+            'fused_plan_evidence="0"', 'parallel_slots="1"', 'cache_type_k="f16"',
+        ),
+        "C": (
+            'thinking="off"', 'flash_attn="on"', 'batch_size="256"',
+            'fused_plan_evidence="0"', 'parallel_slots="1"', 'cache_type_k="f16"',
+        ),
+        "D": (
+            'thinking="off"', 'flash_attn="on"', 'batch_size="512"',
+            'fused_plan_evidence="0"', 'parallel_slots="1"', 'cache_type_k="f16"',
+        ),
+        "E": (
+            'thinking="off"', 'flash_attn="on"', 'batch_size="512"',
+            'fused_plan_evidence="1"', 'parallel_slots="1"', 'cache_type_k="f16"',
+        ),
+        "F": (
+            'fused_plan_evidence="1"',
+            'experiment_context_size="${optimized_context_size}"',
+            'parallel_slots="1"', 'cache_type_k="f16"',
+        ),
+        "G": (
+            'experiment_context_size="${optimized_context_size}"',
+            'parallel_slots="4"', 'cache_type_k="f16"',
+        ),
+        "H": ('parallel_slots="4"', 'cache_type_k="q8_0"', 'cache_type_v="q8_0"'),
+    }
+    for row, fragments in expected_rows.items():
+        line = next(item for item in script.splitlines() if item.strip().startswith(f"{row})"))
+        for fragment in fragments:
+            assert fragment in line
     assert 'log_verbosity="5"' in script
     assert 'echo "log_verbosity=${log_verbosity}"' in script
+    assert 'echo "model_quantization=${model_quantization}"' in script
+    assert 'RADEONSTAY_FUSED_PLAN_EVIDENCE="${fused_plan_evidence}"' in script
+    assert 'CACHE_TYPE_K="${cache_type_k}"' in script
+    assert 'CACHE_TYPE_V="${cache_type_v}"' in script
+    assert 'RADEONSTAY_RUNTIME_INSTANCE_PATH="${runtime_instance_file}"' in script
+    assert 'RADEONSTAY_DEMO_RUN_ID="${run_id}"' in script
 
 
 def test_app_launcher_uses_the_source_tree_without_build_isolation() -> None:
@@ -87,10 +120,28 @@ def test_app_launcher_uses_the_source_tree_without_build_isolation() -> None:
     assert "exec python -m radeonstay.main" in script
 
 
+def test_notebook_restore_binds_accepted_proof_and_current_process() -> None:
+    script = RESTORE_SCRIPT.read_text(encoding="utf-8")
+
+    assert "--runtime-proof" in script
+    assert "--runtime-proof-sha256" in script
+    assert 'verify_sha256 "$runtime_proof_sha256" "$runtime_proof"' in script
+    assert 'value["schema_version"] != 4' in script
+    assert '"stability_report_sha256"' in script
+    assert '"soak_report_sha256"' in script
+    assert 'proof.get("final_evidence_accepted") is True' in script
+    assert 'proof_run_id="${runtime_proof_values[0]}"' in script
+    assert '[[ "$run_id" != "$proof_run_id" ]]' in script
+    assert '"RADEONSTAY_RUNTIME_PROOF_PATH": runtime_proof_path' in script
+    assert '"RADEONSTAY_RUNTIME_INSTANCE_PATH": runtime_instance_path' in script
+    assert '"RADEONSTAY_ISOLATED_DEMO": "1"' in script
+    assert '"RADEONSTAY_DATABASE_PATH": "runtime/radeonstay.db"' in script
+
+
 def test_experiment_matrix_has_safe_dry_run_and_c2_binding() -> None:
     script = MATRIX_SCRIPT.read_text(encoding="utf-8")
 
-    assert "--run A|B|C|D|E|all" in script
+    assert "--run A|B|C|D|E|F|G|H|all" in script
     assert "--dry-run" in script
     assert "--expected-commit" in script
     assert "--expected-model-sha256" in script
@@ -115,14 +166,60 @@ def test_experiment_matrix_preserves_runs_and_reuses_evidence_collector() -> Non
     assert "failure_artifacts=preserved" in script
     assert "failed_experiments" in script
     assert "compare_benchmarks.py" in script
-    assert "--require-accepted" in script
+    assert "status=accepted report=${comparison_output}" in script
+    assert "status=negative_experiment artifacts=preserved" in script
+    assert "status=failed_missing_complete_bundle" in script
+    assert "status=failed_invalid_report artifacts=preserved" in script
+    assert "status=failed exit_code=${comparison_status}" in script
+    assert "select_winner.py" in script
+    assert "--require-accepted" in script[script.index("select_winner.py") :]
+    comparator_call = script[
+        script.index('"${project_dir}/evaluation/compare_benchmarks.py"') :
+        script.index("comparison_status=$?")
+    ]
+    assert "--require-accepted" not in comparator_call
+    assert script.count("--require-accepted") == 1
+    assert "winner_selection=not_assessed_missing_complete_baseline" in script
+    assert "complete_winner_candidate_count != 8" in script
+    assert "complete_adjacent_comparison_count != 7" in script
+    assert (
+        "formal_comparisons=not_assessed_missing_complete_adjacent_comparison"
+        in script
+    )
+    assert "negative_or_incomplete_experiments" in script
+    assert "run_stress_eval.py" in script
+    assert 'local stress_file="${run_dir}/stress.json"' in script
+    assert "validate_context_window.py" in script
+    assert 'local context_selection_file="${run_dir}/context-selection.json"' in script
+    assert 'local context_proof_file="${run_dir}/context-proof.json"' in script
+    assert '--context-selection-file "${context_selection_file}"' in script
+    assert '--context-proof-file "${context_proof_file}"' in script
+    assert script.count("--allow-prebundle") == 2
+    assert (
+        'bound_context_output="${output_root}/${experiment}/'
+        'context-bound-validation.json"' in script
+    )
+    assert '--binding "${output_root}/${experiment}/evidence/binding-manifest.txt"' in script
+    assert "accepted_bound_bundle" in script
+    assert "minimum_safe_candidate" in script
+    assert 'optimized_context_size="${selected_context_from_e}"' in script
+    assert "winner_selection=not_assessed_missing_complete_bundle" in script
+    assert (
+        "winner_selection=not_assessed_matrix_execution_or_evidence_failure"
+        in script
+    )
     for comparison in (
         '"A:B:thinking"',
         '"B:C:flash-attention"',
         '"C:D:batch"',
-        '"D:E:parallel"',
+        '"D:E:fused-plan-evidence"',
+        '"E:F:context-size"',
+        '"F:G:parallel"',
+        '"G:H:kv-cache"',
     ):
         assert comparison in script
+    assert "--maximum-vram-percent 90.0" in script
+    assert "--min-citation-hit-rate 1.0" in script
 
 
 def test_experiment_matrix_collects_live_evidence_before_controlled_shutdown() -> None:
@@ -146,14 +243,31 @@ def test_collector_binds_declared_provenance_and_live_snapshot() -> None:
         "model_repository",
         "model_revision",
         "model_license",
+        "model_quantization",
         "expected_llama_server_sha256",
         "llama_cpp_commit",
         "llama_build",
         "python_version",
         "requirements_lock_sha256",
         "live_rocm_sha256",
+        "stress_sha256",
+        "context_selection_sha256",
+        "context_proof_sha256",
+        "runtime_instance_sha256",
     ):
         assert f'echo "{field}=${{{field}}}"' in script
+    assert (
+        'cp -- "${context_selection_file}" "${output_dir}/context-selection.json"'
+        in script
+    )
+    assert (
+        'cp -- "${context_proof_file}" "${output_dir}/context-proof.json"'
+        in script
+    )
+    assert "checksum_files+=(context-selection.json)" in script
+    assert "checksum_files+=(context-proof.json)" in script
+    assert 'cp -- "${runtime_instance_file}" "${output_dir}/runtime-instance.json"' in script
+    assert "runtime-instance.json" in script
     assert '[[ "${model_sha256}" != "${expected_model_sha256}" ]]' in script
     assert (
         '[[ "${llama_server_sha256}" != "${expected_llama_server_sha256}" ]]'
@@ -337,7 +451,8 @@ def test_model_launcher_enables_and_records_verbose_startup_logging(
         "#!/usr/bin/env bash\n"
         "if [[ \"${1:-}\" == \"--help\" ]]; then\n"
         "  printf '%s\\n' "
-        "'--log-verbosity N --flash-attn MODE --jinja --metrics'\n"
+        "'--log-verbosity N --flash-attn MODE --cache-type-k TYPE "
+        "--cache-type-v TYPE --jinja --metrics'\n"
         "  exit 0\n"
         "fi\n"
         "printf '%s\\n' \"$@\" > \"${FAKE_ARGS_FILE:?}\"\n",
@@ -348,6 +463,9 @@ def test_model_launcher_enables_and_records_verbose_startup_logging(
     model.write_bytes(b"model")
     environment = _model_launcher_environment(tmp_path, fake_server, model)
     environment["FAKE_ARGS_FILE"] = str(captured_args)
+    environment["GPU_LAYERS"] = "123"
+    environment["CACHE_TYPE_K"] = "q8_0"
+    environment["CACHE_TYPE_V"] = "q8_0"
 
     completed = subprocess.run(
         ["bash", str(MODEL_SCRIPT)],
@@ -362,6 +480,34 @@ def test_model_launcher_enables_and_records_verbose_startup_logging(
     arguments = captured_args.read_text(encoding="utf-8").splitlines()
     option_index = arguments.index("--log-verbosity")
     assert arguments[option_index + 1] == "5"
+    gpu_layers_index = arguments.index("--n-gpu-layers")
+    assert arguments[gpu_layers_index + 1] == "123"
+    assert "gpu_layers=123" in completed.stdout
+    cache_k_index = arguments.index("--cache-type-k")
+    cache_v_index = arguments.index("--cache-type-v")
+    assert arguments[cache_k_index + 1] == "q8_0"
+    assert arguments[cache_v_index + 1] == "q8_0"
+
+
+def test_model_launcher_rejects_invalid_gpu_layers(tmp_path: Path) -> None:
+    fake_server = tmp_path / "llama-server"
+    fake_server.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+    fake_server.chmod(0o700)
+    model = tmp_path / "model.gguf"
+    model.write_bytes(b"model")
+    environment = _model_launcher_environment(tmp_path, fake_server, model)
+    environment["GPU_LAYERS"] = "0"
+
+    completed = subprocess.run(
+        ["bash", str(MODEL_SCRIPT)],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=environment,
+    )
+
+    assert completed.returncode == 2
+    assert "GPU layers must be positive integers" in completed.stderr
 
 
 def test_evidence_collector_rejects_newline_in_artifact_path(tmp_path: Path) -> None:
@@ -378,6 +524,8 @@ def test_evidence_collector_rejects_newline_in_artifact_path(tmp_path: Path) -> 
             "--retrieval-file",
             placeholder,
             "--quality-file",
+            placeholder,
+            "--stress-file",
             placeholder,
             "--benchmark-file",
             placeholder,
@@ -417,6 +565,8 @@ def test_collectors_recheck_resolved_output_paths(tmp_path: Path) -> None:
             "--retrieval-file",
             placeholder,
             "--quality-file",
+            placeholder,
+            "--stress-file",
             placeholder,
             "--benchmark-file",
             placeholder,

@@ -1,30 +1,38 @@
-# 4:35 Demo Script — English Narration and Subtitles
+# 4:50 Demo Script — English Narration and Subtitles
+
+> This script supersedes the checked-in MP4 and SRT. The existing PDF, PPTX,
+> video, and subtitle file are pre-C1 reference artifacts, not final submission
+> materials; regenerate them from the frozen C2 source and accepted evidence.
 
 This script is for one real RadeonStay UI journey on the target AMD Radeon and
 ROCm environment. Record the submission, responses, previews, confirmations,
-and denial from the same application and model-service lifecycle. Idle inference
-waits may be shortened with a visible `Inference wait shortened — same live run`
-notice; never replace live output with pre-rendered results.
+and denial from the same application and model-service lifecycle. The schedule
+allows extra time for the two-call Recovery and memory segments because the
+historical, explicitly non-final B/C/D evidence measured 12.1–13.2-second
+single-request P95 latency. Idle inference waits may be shortened only in the
+edit, with a visible `Inference wait shortened — same live run` notice and the
+real request timing left on screen; never replace live output with pre-rendered
+results.
 
 The narration below is also the source text for the English subtitle track.
 Keep subtitles to two lines and away from the Gradio controls being demonstrated.
 
 | Time | Screen and operator action | English narration / subtitle | Evidence to keep visible |
 | --- | --- | --- | --- |
-| 0:00–0:12 | Title card: **RadeonStay — Private, auditable hotel journeys on AMD Radeon + ROCm**. | “RadeonStay keeps the model, hotel policies, tools, and guest state inside one private local environment.” | Project name, Track 2, repository revision or final submission identifier. |
-| 0:12–0:40 | Target terminal. Show ROCm/HIP version and detected Radeon identity, then the real llama.cpp startup lines for the ROCm/HIP backend and positive GPU layer offload. Briefly show timestamped GPU utilization and VRAM samples captured during an actual inference window. | “The core model runs locally through llama.cpp on AMD Radeon with ROCm. Native backend initialization, positive layer offload, and active GPU telemetry prove that this inference is not a CPU-only or remote API demo.” | Preserve the detected product string exactly. Show the same run ID and GPU identity used by the server log and monitor; do not infer a retail GPU model name. |
-| 0:40–0:52 | Open the Gradio UI, keep the generated **Session** visible, and click **Refresh health**. | “The UI talks to the local RadeonStay service and its private model endpoint.” | `Local service boundary`, local-model backend, and healthy service state. |
-| 0:52–1:20 | Select the authorized guest. Submit the prefilled multilingual request for future dates, 23:30 arrival, a child with a severe peanut allergy, airport transfer guidance, availability, an exact quote, and a preview-only room hold. If the wait is shortened, keep the submit frame and the first returned frame from the same request. | “One guest request combines local policy retrieval, live inventory, deterministic pricing, multi-step planning, and a consequential action that must remain a preview until confirmation.” | The actual request and resulting answer in **Guest journey**. No fabricated or manually pasted response. |
-| 1:20–1:42 | Open **Citations**, then **Plan**. Pause long enough to read the late-arrival, allergy, and airport-transfer sections and the bounded policy → availability → quote → hold workflow. | “Policy claims come from local cited sections. The model proposes a schema-validated workflow, while the server checks its tools, arguments, order, and dependencies before execution.” | Citation document, section, excerpt, and source path; the complete typed plan. |
-| 1:42–2:00 | Open **Tool receipts**, then **Performance**. Point out the inventory and quote receipts, local model backend, stage timings, and model-call trace. | “Availability and price come only from deterministic local tools, never from model memory. The Performance panel exposes the local backend and measured stages for this exact request.” | Authoritative quote currency and amount, successful read receipts, `model_backend`, `timings_ms`, and trace configuration. |
-| 2:00–2:20 | Open **Pending writes**, scroll to the confirmation area, review the room-hold preview, and click **Confirm exactly this pending action**. Show the successful confirmation receipt and returned booking ID. | “The room hold has not executed yet. Its single-use token binds the actor, session, tool, original arguments, and authoritative preview. Only this explicit confirmation creates the hold.” | Preview terms before confirmation, masked token field, successful receipt, booking ID, and audit entry. |
-| 2:20–2:48 | In the same session, replace the next request with: **For the booking I just made, create an airport pickup request from Terminal 1 for synthetic flight RS123 at 22:45, for one adult and one six-year-old who needs a child seat. Preview it before execution.** Submit, review the transport-ticket preview, and confirm it. | “The follow-up says ‘for the booking I just made.’ Session-bound conversation memory resolves that reference without exposing another guest’s data. The transfer request still receives its own preview and approval.” | The pronoun-based request, resolved owned booking ID in the typed tool call, separate pending action, and separate confirmation receipt. |
-| 2:48–3:13 | Submit: **Enable local preference memory. Preview it and wait for my confirmation.** Review the consent preview and confirm it. | “Long-term preference memory is disabled by default. Authorization is a dedicated write, and the guest must opt in before any preference can be stored.” | `memory.set_consent`, `enabled=true`, pending preview, confirmation, and consent receipt. |
-| 3:13–3:36 | Submit: **Save quiet_room=high_floor as my local preference. Preview it and wait for my confirmation.** Review and confirm the independent save action. | “Saving a preference is a second, independent write. The allow-listed key and value are shown before the guest confirms them.” | `memory.remember_preference`, exact key/value, distinct token, distinct confirmation, and saved receipt. |
-| 3:36–3:50 | Submit: **List the preferences I have allowed you to store. Do not write anything.** Show the read-only result. | “A later read proves that the preference was stored only after consent and remains scoped to this guest.” | `memory.get_preferences`, read receipt, returned `quiet_room=high_floor`, and no pending write. |
-| 3:50–4:07 | Without clicking **New session**, change the signed identity to the unauthorized guest. Keep the unchanged **Session** visible and submit a request to access the booking just created. Show the bounded denial. | “Changing identity does not transfer ownership of the bound session. The server refuses the cross-user request without returning the booking, preference, or prior chat data.” | Same session ID before and after the identity change, bounded error text, empty private panels, and denial audit evidence when visible. |
-| 4:07–4:27 | Show the final, immutable evidence artifacts or a chart generated from them. Compare **B configuration** with **Best accepted configuration** using placeholders until the complete target bundles exist. | “The final comparison changes only controlled inference settings. Quality must not regress, no core metric may materially regress, and at least one core metric must improve before the optimized result is accepted.” | Use only complete hash-bound bundles. Display `[B_QUALITY]`, `[BEST_QUALITY]`, `[B_CORE_METRICS]`, `[BEST_CORE_METRICS]`, and `[ACCEPTANCE_STATUS]` until verified values are available; never record placeholders in the final cut. |
-| 4:27–4:35 | Closing card: local RAG, typed tools, multi-step planning, consented memory, permission control, raw evidence, and repository/QR link. | “RadeonStay makes private hotel automation local, inspectable, and reversible.” | Final repository URL or QR code and the available deliverables. |
+| 0:00–0:10 | Title card: **RadeonStay — Safe journey recovery when reality changes after preview**. | “RadeonStay keeps a disrupted family stay, transfer, and staff handoff local, reversible, and auditable.” | Project name, Track 2, repository revision or final submission identifier. |
+| 0:10–0:32 | Target terminal. Show ROCm/HIP, the detected Radeon identity, native llama.cpp HIP startup, 41/41 layer offload, and timestamped utilization/VRAM during inference. Briefly show the sanitized proof and runtime-instance manifest SHA, never its PID or path. | “The core model runs locally through llama.cpp on AMD Radeon with ROCm, and each request is bound to this live process and the accepted configuration.” | Preserve the reported product string exactly. Show distinct evidence and deployment run IDs. Do not infer a retail model name. |
+| 0:32–0:45 | Open the Gradio UI. Show the five-group **Judge Journey Rail**, current `Step n/10`, generated session, two contextual journey shortcuts, compact ready state, and the separate privacy proof under Advanced Proof without expanding it yet. | “One server-derived guide covers quote, hold, transfer, delay recovery, and privacy and safety proof without a second workflow state.” | Rail ends with **Privacy & Safety**; local service boundary and healthy readiness remain visible in the compact proof strip. |
+| 0:45–1:08 | Select **Plan&Hold** and submit the multilingual request with generated dates, `standard` room, late arrival, child, allergy, transfer, exact quote, and preview-only hold. | “One request combines local policy retrieval, live inventory, deterministic pricing, multi-step planning, and a write that remains a preview.” | Actual live request and result; shortened inference waits retain the visible notice and real request timing. |
+| 1:08–1:28 | Show the authoritative result, Needs Ledger, Authority Map and citations; review and confirm the room-hold card. | “Every factual claim has an implemented authority, and confirmation atomically revalidates identity, inventory, price, and state using only the safe action ID.” | `GroundingProof.verified=true`, zero unsupported claims, preview before confirmation, safe action ID, and receipt. |
+| 1:28–1:50 | Submit the automatically prefilled transfer request, review its independent preview, and confirm it. | “The returned booking ID is evidence, not authorization. Ownership is rechecked, and transfer creation receives its own approval.” | Matching masked booking ID, separate action/receipt, and Rail advancing to Delay Recovery. |
+| 1:50–2:37 | Submit the prefilled delay-recovery request. Show Recovery Impact, confirm the stay change, then submit and confirm the separately recomputed transfer update. | “Delay recovery preserves confirmed work while recomputing only unsettled state after a flight disruption.” | Two real model requests; `previewed → stay_confirmed → transport_pending → complete`, old/new totals, delta, `not quoted` external price, policy and ticket-state bindings. |
+| 2:37–3:10 | Follow the automatically selected continuation: submit and confirm memory consent, then submit and separately confirm one allow-listed quiet-room preference. | “Long-term memory is off by default. Consent and preference storage are separate, reversible actions.” | Two real model requests, confirmed consent, separately confirmed preference, and never more than one pending write. |
+| 3:10–3:32 | Run the automatically offered **Injection & Access** privacy request. Show the safe result and Privacy Proof; never reopen the isolated body. | “The server rejects the malicious scope, completes the legitimate owner read, and proves zero writes and zero cross-user results.” | Partitioned scope, safe scope completed, `scope_verified=true`, writes `0`, cross-user results `0`, no retained note body. |
+| 3:32–3:52 | Follow the returned safety-handoff continuation and confirm its accessibility-ticket preview. | “Automation cannot certify an allergen-free stay, so RadeonStay records a policy-grounded human handoff.” | Fifth Rail stage, active-booking and policy binding, explicit manual verification, separate confirmation. |
+| 3:52–4:06 | Generate the unique Final Stay Brief and show its local download. | “The final brief is available only after every required business action is settled and revalidated.” | Final label, completed Rail, current booking/tickets/policy, zero active previews, no secret metadata. |
+| 4:06–4:23 | Expand **Advanced Proof once**. Show Trust, real timings, grounding/privacy proofs, process/request binding, C2/winner/report digests, and the accepted Reference-to-Winner card. | “One card connects the live request to local inference, factual authority, audit continuity, and the accepted Radeon optimization report.” | Reference may be A or B; show 300/300, P50/P95, concurrency-4 throughput, VRAM/energy, 41/41, `accepted=true`, and `optimization_winner=optimized`. |
+| 4:23–4:42 | Without creating a new session, switch to the unauthorized guest and request the active booking. Show the bounded denial and cleared private panels. | “Changing identity does not transfer the journey. No booking, preference, prior chat, or proof data crosses users.” | Same session ID, bounded denial, empty private panels, and zero cross-user results. |
+| 4:42–4:50 | Closing card: local RAG, typed tools, planning, consented memory, permissions, Radeon proof, and repository/QR link. | “RadeonStay remains safe even when reality changes after preview.” | Final repository URL or QR code and available deliverables. |
 
 ## Required Recording Rules
 
@@ -34,12 +42,23 @@ Keep subtitles to two lines and away from the Gradio controls being demonstrated
    edits cannot be mistaken for substituted output.
 3. The GPU proof must combine native ROCm/HIP initialization, positive final
    model-layer offload, and non-zero utilization plus VRAM use during a captured
-   inference window. `rocm-smi` device presence alone is insufficient.
-4. Keep confirmation tokens masked. Do not show `.env`, secrets, SSH addresses,
-   private hostnames, or real personal data.
-5. The final performance card may be filled only from complete B and best-run
-   evidence bundles generated from the final clean commit. If those artifacts
-   are unavailable, omit the numerical comparison rather than estimate values.
+   inference window. `rocm-smi` device presence alone is insufficient. The
+   captured deployment must show a valid runtime-process binding and opaque
+   instance-manifest digest while clearly labeling the proof's
+   `evidence_run_id` separately from the live `deployment_run_id`; never expose
+   its PID, command line, or path.
+4. Confirmation capabilities must never enter a captured UI, API export, or log;
+   the UI shows only safe action IDs. Mask the middle of every synthetic booking,
+   ticket, session, request, action, and audit ID consistently; never expose a
+   complete unique identifier. Do not show `.env`, secrets, SSH addresses,
+   private hostnames, internal paths, or real personal data.
+   After a mixed privacy request is submitted, show only the isolated payload
+   digest/category, limited partition-status metadata, and Privacy Proof; do not
+   reopen or display the note body.
+5. The final performance card may be filled only from the complete
+   quality-qualified A-or-B Reference and accepted Winner bundles generated from
+   the final clean commit. If those artifacts are unavailable, omit the numerical
+   comparison rather than estimate values.
 6. Capture at 2560×1440 or higher when possible so JSON fields remain legible in
    a 1080p export. Rehearse browser zoom and scrolling before the final take.
 7. All hotel guests, bookings, flights, and preferences shown are synthetic.

@@ -9,6 +9,7 @@ section and source file rather than as an untraceable text fragment.
 from __future__ import annotations
 
 import hashlib
+import json
 import math
 import os
 import re
@@ -146,6 +147,8 @@ class SearchResult:
     context: str
     matched_text: str
     source_path: str
+    chunk_id: str
+    corpus_sha256: str
 
     @property
     def citation(self) -> str:
@@ -165,6 +168,9 @@ class SearchResult:
             "excerpt": body,
             "score": self.score,
             "source_path": self.source_path,
+            "chunk_id": self.chunk_id,
+            "corpus_sha256": self.corpus_sha256,
+            "support": "direct",
         }
 
     def to_evidence_citation(self) -> dict[str, str | float]:
@@ -175,6 +181,9 @@ class SearchResult:
             "excerpt": self.matched_text,
             "score": self.score,
             "source_path": self.source_path,
+            "chunk_id": self.chunk_id,
+            "corpus_sha256": self.corpus_sha256,
+            "support": "direct",
         }
 
     def as_dict(self) -> dict[str, str | float]:
@@ -187,6 +196,8 @@ class SearchResult:
             "matched_text": self.matched_text,
             "source_path": self.source_path,
             "citation": self.citation,
+            "chunk_id": self.chunk_id,
+            "corpus_sha256": self.corpus_sha256,
         }
 
 
@@ -315,15 +326,39 @@ def policy_corpus_sha256(
 class PolicyRetriever:
     """In-memory BM25 retriever for local policy documents."""
 
-    def __init__(self, chunks_or_directory: Sequence[PolicyChunk] | str | Path) -> None:
+    def __init__(
+        self,
+        chunks_or_directory: Sequence[PolicyChunk] | str | Path,
+        *,
+        corpus_sha256_value: str | None = None,
+    ) -> None:
         if isinstance(chunks_or_directory, (str, Path)):
             chunks = load_policy_documents(chunks_or_directory)
+            corpus_hash = policy_corpus_sha256(chunks_or_directory)
         else:
             chunks = list(chunks_or_directory)
+            digest = hashlib.sha256()
+            for chunk in chunks:
+                digest.update(
+                    json.dumps(
+                        {
+                            "document": chunk.document,
+                            "section": chunk.section,
+                            "text": chunk.text,
+                            "source_path": chunk.source_path,
+                            "ordinal": chunk.ordinal,
+                        },
+                        ensure_ascii=False,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode("utf-8")
+                )
+            corpus_hash = digest.hexdigest()
         if not chunks:
             raise ValueError("PolicyRetriever requires at least one policy chunk")
 
         self._chunks = tuple(chunks)
+        self._corpus_sha256 = corpus_sha256_value or corpus_hash
         self._term_counts: list[Counter[str]] = []
         self._lengths: list[int] = []
         document_frequency: Counter[str] = Counter()
@@ -345,6 +380,12 @@ class PolicyRetriever:
             for term, frequency in document_frequency.items()
         }
         self._average_length = sum(self._lengths) / total
+        self._chunk_index_by_id = {
+            self._chunk_identifier(chunk): index
+            for index, chunk in enumerate(self._chunks)
+        }
+        if len(self._chunk_index_by_id) != len(self._chunks):
+            raise ValueError("PolicyRetriever chunk identifiers must be unique")
 
     @classmethod
     def from_directory(
@@ -353,11 +394,56 @@ class PolicyRetriever:
         *,
         project_root: str | Path | None = None,
     ) -> PolicyRetriever:
-        return cls(load_policy_documents(policy_dir, project_root=project_root))
+        return cls(
+            load_policy_documents(policy_dir, project_root=project_root),
+            corpus_sha256_value=policy_corpus_sha256(
+                policy_dir,
+                project_root=project_root,
+            ),
+        )
 
     @property
     def chunk_count(self) -> int:
         return len(self._chunks)
+
+    @property
+    def corpus_sha256(self) -> str:
+        return self._corpus_sha256
+
+    @staticmethod
+    def _chunk_identifier(chunk: PolicyChunk) -> str:
+        return "chk_" + hashlib.sha256(
+            json.dumps(
+                {
+                    "source_path": chunk.source_path,
+                    "section": chunk.section,
+                    "ordinal": chunk.ordinal,
+                    "text": chunk.text,
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest()[:24]
+
+    def get_chunk(self, chunk_id: str) -> SearchResult | None:
+        """Resolve one stable ID against the currently loaded authoritative corpus."""
+
+        index = self._chunk_index_by_id.get(chunk_id)
+        if index is None:
+            return None
+        chunk = self._chunks[index]
+        return SearchResult(
+            document=chunk.document,
+            section=chunk.section,
+            snippet=chunk.text,
+            score=0.0,
+            context=chunk.text,
+            matched_text=chunk.text,
+            source_path=chunk.source_path,
+            chunk_id=chunk_id,
+            corpus_sha256=self._corpus_sha256,
+        )
 
     def search(
         self,
@@ -421,6 +507,7 @@ class PolicyRetriever:
         results: list[SearchResult] = []
         for score, index in scored[:top_k]:
             chunk = self._chunks[index]
+            chunk_id = self._chunk_identifier(chunk)
             results.append(
                 SearchResult(
                     document=chunk.document,
@@ -430,6 +517,8 @@ class PolicyRetriever:
                     context=self._context(index, context_chars),
                     matched_text=chunk.text,
                     source_path=chunk.source_path,
+                    chunk_id=chunk_id,
+                    corpus_sha256=self._corpus_sha256,
                 )
             )
         return results

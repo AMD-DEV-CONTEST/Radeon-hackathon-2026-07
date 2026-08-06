@@ -19,9 +19,12 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
+from evaluation.source_provenance import source_tree_sha256  # noqa: E402
 from radeonstay.retrieval import (  # noqa: E402
     PolicyRetriever,
     SearchResult,
@@ -34,40 +37,6 @@ DEFAULT_POLICIES = PROJECT_ROOT / "data" / "policies"
 OFFICIAL_SUITE_VERSION = "30-case-p0-v3"
 OFFICIAL_SUITE_SHA256 = "60fae4be0bd7a16ee9b2e7963bb3afccbf319c2ed64cd3ba43acfc912bfd3d1b"
 OFFICIAL_KNOWLEDGE_IDS = tuple(f"KQ-{index:03d}" for index in range(1, 9))
-
-
-def source_tree_sha256(project_root: Path) -> str:
-    digest = hashlib.sha256()
-    excluded_names = {
-        ".coverage",
-        ".env",
-        ".pytest_cache",
-        ".ruff_cache",
-        ".venv",
-        "__pycache__",
-        "build",
-        "dist",
-        "runtime",
-    }
-    excluded_suffixes = (".egg-info", ".pyc", ".pyo", ".pyd")
-    for path in sorted(project_root.rglob("*"), key=lambda item: item.as_posix()):
-        if not path.is_file() or path.is_symlink():
-            continue
-        relative = path.relative_to(project_root)
-        if any(
-            part in excluded_names or part.endswith(excluded_suffixes)
-            for part in relative.parts
-        ):
-            continue
-        if relative.parts[:2] == ("evaluation", "results"):
-            continue
-        label = relative.as_posix().encode("utf-8")
-        content = path.read_bytes()
-        digest.update(len(label).to_bytes(4, "big"))
-        digest.update(label)
-        digest.update(len(content).to_bytes(8, "big"))
-        digest.update(content)
-    return digest.hexdigest()
 
 
 def git_provenance(project_root: Path) -> dict[str, str]:
@@ -247,7 +216,7 @@ def evaluate(
     total = len(rows)
     recall_at_3 = round(hits_at_3 / total, 6)
     quality_gate = {
-        "recall_at_3_at_least_095": recall_at_3 >= 0.95,
+        "recall_at_3_100_percent": recall_at_3 == 1.0,
         "all_results_traceable": not traceability_failures,
     }
     return {

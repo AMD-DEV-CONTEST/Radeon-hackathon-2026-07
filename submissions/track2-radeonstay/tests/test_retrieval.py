@@ -156,13 +156,25 @@ def test_structured_citation_contains_context(retriever: PolicyRetriever) -> Non
     assert citation["excerpt"] == result.context
     assert citation["score"] == result.score
     assert citation["source_path"] == result.source_path
+    assert citation["chunk_id"] == result.chunk_id
+    assert citation["corpus_sha256"] == retriever.corpus_sha256
+    assert citation["support"] == "direct"
     assert set(citation) == {
         "document",
         "section",
         "excerpt",
         "score",
         "source_path",
+        "chunk_id",
+        "corpus_sha256",
+        "support",
     }
+    resolved = retriever.get_chunk(result.chunk_id)
+    assert resolved is not None
+    assert resolved.chunk_id == result.chunk_id
+    assert resolved.matched_text == result.matched_text
+    assert resolved.corpus_sha256 == retriever.corpus_sha256
+    assert retriever.get_chunk("chk_missing_authority") is None
 
 
 def test_citation_can_be_reduced_to_snippet(retriever: PolicyRetriever) -> None:

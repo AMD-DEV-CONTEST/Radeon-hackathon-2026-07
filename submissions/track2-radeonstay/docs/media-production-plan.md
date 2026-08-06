@@ -37,36 +37,40 @@ keeps every visible performance claim tied to reproducible Radeon evidence.
 | Inference-window GPU utilization and VRAM | Same-run monitor log | `[PENDING_FINAL_ASSET]` |
 | Primary UI journey | One real captured session | `[PENDING_FINAL_ASSET]` |
 | 30-case quality result | Final quality JSON and binding manifest | `[PENDING_FINAL_ASSET]` |
-| B configuration metrics | Complete B evidence bundle | `[PENDING_FINAL_ASSET]` |
+| Qualified Reference metrics | Complete A or B Reference bundle | `[PENDING_FINAL_ASSET]` |
 | Best accepted metrics | Complete accepted evidence bundle | `[PENDING_FINAL_ASSET]` |
-| B-versus-best comparison | Comparator JSON generated from both bundles | `[PENDING_FINAL_ASSET]` |
+| Reference-versus-Winner comparison | Comparator JSON generated from both bundles | `[PENDING_FINAL_ASSET]` |
 | Repository or submission QR | Final public submission URL | `[PENDING_FINAL_ASSET]` |
 | English captions | Timed from the locked video edit | `[PENDING_FINAL_ASSET]` |
 
-## B Versus Best Result Card
+## Qualified Reference Versus Winner Card
 
 Build the final result card from parsed JSON, not manually transcribed numbers.
 Use the following labels until the evidence is complete; placeholders must not
 appear in the submitted video:
 
-| Field | B configuration | Best accepted configuration |
+| Field | Quality-qualified Reference | Accepted Winner |
 | --- | --- | --- |
-| Quality score | `[B_QUALITY]` | `[BEST_QUALITY]` |
-| Core latency metric(s) | `[B_LATENCY]` | `[BEST_LATENCY]` |
-| Successful throughput | `[B_THROUGHPUT]` | `[BEST_THROUGHPUT]` |
-| Effective output tokens/s | `[B_TOKEN_RATE]` | `[BEST_TOKEN_RATE]` |
-| Comparison decision | Baseline/reference | `[ACCEPTANCE_STATUS]` |
+| Experiment label | `[REFERENCE_LABEL]` | `[WINNER_LABEL]` |
+| Quality score | `[REFERENCE_QUALITY]` | `[WINNER_QUALITY]` |
+| Core latency metric(s) | `[REFERENCE_LATENCY]` | `[WINNER_LATENCY]` |
+| Successful throughput | `[REFERENCE_THROUGHPUT]` | `[WINNER_THROUGHPUT]` |
+| Effective output tokens/s | `[REFERENCE_TOKEN_RATE]` | `[WINNER_TOKEN_RATE]` |
+| Comparison decision | Reference | `[ACCEPTANCE_STATUS]` |
 
 The card must state that both sides use the same model artifact, llama-server
-binary, source/workload, policy corpus, and physical GPU evidence. Do not label a
-configuration “best” unless the comparator accepted it under the final rules.
+binary, source/workload, policy corpus, and physical GPU evidence. A is the
+Reference only when it passes 300/300; otherwise the bound A quality negative is
+shown separately and B is the Reference. Do not label a configuration “Winner”
+unless the selector accepted it under the final rules.
 
 ## Privacy and Continuity Review
 
 Before export, inspect the video frame by frame for:
 
-- `.env` contents, identity secrets, confirmation tokens, private SSH details,
-  real names, or local paths that should not be public;
+- `.env` contents, identity secrets, confirmation capabilities, private SSH details,
+  real names, complete unique booking/ticket/session/request/audit IDs, or local
+  paths that should not be public;
 - a Session value that accidentally changes before the cross-identity denial;
 - an output inserted without its corresponding live request;
 - a confirmation shown without its preceding preview;

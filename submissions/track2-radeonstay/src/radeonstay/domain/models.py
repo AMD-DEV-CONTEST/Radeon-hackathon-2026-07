@@ -18,6 +18,30 @@ class ToolEffect(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
+class OwnerScopeAttestation:
+    """Display-safe proof emitted by the local authorizer for owner-only reads."""
+
+    owner_scoped_result_count: int
+    authorization_scope: str = "owner_only"
+    scope_verified: bool = True
+    cross_user_result_count: int = 0
+    authorizer: str = "local-hotel-store"
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> OwnerScopeAttestation:
+        return cls(
+            owner_scoped_result_count=int(data["owner_scoped_result_count"]),
+            authorization_scope=str(data.get("authorization_scope", "owner_only")),
+            scope_verified=data.get("scope_verified") is True,
+            cross_user_result_count=int(data.get("cross_user_result_count", 0)),
+            authorizer=str(data.get("authorizer", "local-hotel-store")),
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class UserContext:
     user_id: str
     role: Role = Role.GUEST
@@ -153,13 +177,27 @@ class BookingView:
 @dataclass(frozen=True, slots=True)
 class BookingListResult:
     bookings: tuple[BookingView, ...]
+    scope_attestation: OwnerScopeAttestation | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {"bookings": [asdict(item) for item in self.bookings]}
+        result: dict[str, Any] = {
+            "bookings": [asdict(item) for item in self.bookings]
+        }
+        if self.scope_attestation is not None:
+            result["scope_attestation"] = self.scope_attestation.to_dict()
+        return result
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> BookingListResult:
-        return cls(tuple(BookingView(**item) for item in data["bookings"]))
+        attestation = data.get("scope_attestation")
+        return cls(
+            tuple(BookingView(**item) for item in data["bookings"]),
+            (
+                OwnerScopeAttestation.from_dict(attestation)
+                if isinstance(attestation, Mapping)
+                else None
+            ),
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -204,6 +242,151 @@ class ServiceTicketResult:
     booking_id: str
     category: str
     status: str
+    updated_at: str | None = None
+    state_sha256: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ListServiceTicketsInput:
+    booking_id: str | None = None
+    include_closed: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class ServiceTicketView:
+    ticket_id: str
+    booking_id: str
+    category: str
+    description: str
+    status: str
+    created_at: str
+    updated_at: str
+    state_sha256: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ServiceTicketListResult:
+    tickets: tuple[ServiceTicketView, ...]
+    scope_attestation: OwnerScopeAttestation | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "tickets": [asdict(item) for item in self.tickets]
+        }
+        if self.scope_attestation is not None:
+            result["scope_attestation"] = self.scope_attestation.to_dict()
+        return result
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> ServiceTicketListResult:
+        attestation = data.get("scope_attestation")
+        return cls(
+            tuple(ServiceTicketView(**item) for item in data["tickets"]),
+            (
+                OwnerScopeAttestation.from_dict(attestation)
+                if isinstance(attestation, Mapping)
+                else None
+            ),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class UpdateServiceTicketInput:
+    ticket_id: str
+    status: str | None = None
+    description: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class UpdateServiceTicketResult:
+    ticket: ServiceTicketView
+    state_sha256: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {"ticket": asdict(self.ticket)}
+        if self.state_sha256 is not None:
+            result["state_sha256"] = self.state_sha256
+        return result
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> UpdateServiceTicketResult:
+        state_sha256 = data.get("state_sha256")
+        return cls(
+            ServiceTicketView(**data["ticket"]),
+            str(state_sha256) if state_sha256 is not None else None,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class BuildStayBriefInput:
+    booking_id: str
+
+
+@dataclass(frozen=True, slots=True)
+class StayBriefServiceTicket:
+    ticket_id: str
+    booking_id: str
+    category: str
+    status: str
+    updated_at: str
+    state_sha256: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class StayBriefResult:
+    booking: BookingView
+    service_tickets: tuple[StayBriefServiceTicket, ...]
+    memory_enabled: bool
+    preferences: tuple[tuple[str, str], ...]
+    scope_attestation: OwnerScopeAttestation | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "booking": asdict(self.booking),
+            "service_tickets": [asdict(item) for item in self.service_tickets],
+            "memory_enabled": self.memory_enabled,
+            "preferences": [list(item) for item in self.preferences],
+        }
+        if self.scope_attestation is not None:
+            result["scope_attestation"] = self.scope_attestation.to_dict()
+        return result
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> StayBriefResult:
+        attestation = data.get("scope_attestation")
+        return cls(
+            booking=BookingView(**data["booking"]),
+            service_tickets=tuple(
+                StayBriefServiceTicket(**item) for item in data["service_tickets"]
+            ),
+            memory_enabled=bool(data["memory_enabled"]),
+            preferences=tuple(
+                (str(key), str(value)) for key, value in data["preferences"]
+            ),
+            scope_attestation=(
+                OwnerScopeAttestation.from_dict(attestation)
+                if isinstance(attestation, Mapping)
+                else None
+            ),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class JourneyStateSnapshot:
+    session_id: str
+    actor_ref: str
+    version: int
+    payload: Mapping[str, Any]
+    updated_at: str
+
+
+@dataclass(frozen=True, slots=True)
+class PersistedSessionAuditEvent:
+    session_id: str
+    sequence: int
+    actor_ref: str
+    occurred_at: str
+    event: Mapping[str, Any]
 
 
 @dataclass(frozen=True, slots=True)
@@ -237,13 +420,27 @@ class GetPreferencesInput:
 @dataclass(frozen=True, slots=True)
 class PreferencesResult:
     preferences: tuple[tuple[str, str], ...]
+    scope_attestation: OwnerScopeAttestation | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {"preferences": [list(item) for item in self.preferences]}
+        result: dict[str, Any] = {
+            "preferences": [list(item) for item in self.preferences]
+        }
+        if self.scope_attestation is not None:
+            result["scope_attestation"] = self.scope_attestation.to_dict()
+        return result
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> PreferencesResult:
-        return cls(tuple((str(key), str(value)) for key, value in data["preferences"]))
+        attestation = data.get("scope_attestation")
+        return cls(
+            tuple((str(key), str(value)) for key, value in data["preferences"]),
+            (
+                OwnerScopeAttestation.from_dict(attestation)
+                if isinstance(attestation, Mapping)
+                else None
+            ),
+        )
 
 
 @dataclass(frozen=True, slots=True)

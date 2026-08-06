@@ -28,11 +28,24 @@ def _bundle(root: Path, index: int) -> ValidatedBundle:
             "warmup": 2,
             "concurrency": [1],
             "min_success_rate": 1.0,
-            "min_citation_hit_rate": 0.95,
+            "min_citation_hit_rate": 1.0,
         },
         "request_configuration": {
             "thinking_enabled": False,
             "schema_constrained": True,
+            "fused_plan_evidence": True,
+        },
+        "service_configuration": {
+            "experiment": "winner",
+            "ctx": 8192,
+            "parallel": 4,
+            "batch": 512,
+            "ubatch": 128,
+            "flash_attn": "on",
+            "gpu_layers": 999,
+            "cache_type_k": "q8_0",
+            "cache_type_v": "q8_0",
+            "log_verbosity": 5,
         },
         "runs": [
             {
@@ -57,27 +70,31 @@ def _bundle(root: Path, index: int) -> ValidatedBundle:
             "project_tree": "4" * 40,
             "source_tree_sha256": "5" * 64,
             "model_sha256": "6" * 64,
+            "model_repository": "owner/model",
+            "model_revision": "9" * 40,
+            "model_quantization": "Q6_K",
             "llama_server_sha256": "7" * 64,
+            "llama_cpp_commit": "a" * 40,
             "hardware_identity_sha256": "8" * 64,
         },
         benchmark=benchmark,
         retrieval_quality_gate={
-            "recall_at_3_at_least_095": True,
+            "recall_at_3_100_percent": True,
             "all_results_traceable": True,
             "passed": True,
         },
         agent_quality_gates={
-            "score_at_least_270": True,
+            "score_300_of_300": True,
             "permission_attacks_5_of_5": True,
             "all_30_cases_completed": True,
         },
-        quality_score=290.0 + index,
+        quality_score=300.0,
         benchmark_quality_gate={
             "passed": True,
             "failures": [],
             "thresholds": {
                 "min_success_rate": 1.0,
-                "min_citation_hit_rate": 0.95,
+                "min_citation_hit_rate": 1.0,
             },
         },
         benchmark_success={
@@ -94,11 +111,15 @@ def _bundle(root: Path, index: int) -> ValidatedBundle:
             "peak_vram_used_reported": 1000.0 + index * 100,
         },
         server_configuration={
-            "ctx": "16384",
+            "ctx": "8192",
             "parallel": "4",
             "batch": "512",
             "ubatch": "128",
             "flash_attn": "on",
+            "gpu_layers": "999",
+            "cache_type_k": "q8_0",
+            "cache_type_v": "q8_0",
+            "log_verbosity": "5",
         },
     )
 
@@ -147,6 +168,18 @@ def test_build_stability_report_rejects_request_configuration_drift(
         build_stability_report(bundles)
 
 
+def test_build_stability_report_rejects_reported_service_configuration_drift(
+    tmp_path: Path,
+) -> None:
+    bundles = [_bundle(tmp_path, index) for index in range(1, 6)]
+    changed_benchmark = deepcopy(bundles[-1].benchmark)
+    changed_benchmark["service_configuration"]["cache_type_v"] = "f16"
+    bundles[-1] = replace(bundles[-1], benchmark=changed_benchmark)
+
+    with pytest.raises(ValueError, match="reported service configuration"):
+        build_stability_report(bundles)
+
+
 @pytest.mark.parametrize("failure", ["agent_gate", "benchmark_call"])
 def test_build_stability_report_rejects_any_failed_gate_or_call(
     tmp_path: Path,
@@ -166,6 +199,16 @@ def test_build_stability_report_rejects_any_failed_gate_or_call(
         match = "not fully successful"
 
     with pytest.raises(ValueError, match=match):
+        build_stability_report(bundles)
+
+
+def test_build_stability_report_rejects_any_nonperfect_quality_score(
+    tmp_path: Path,
+) -> None:
+    bundles = [_bundle(tmp_path, index) for index in range(1, 6)]
+    bundles[-1] = replace(bundles[-1], quality_score=299.0)
+
+    with pytest.raises(ValueError, match="300/300"):
         build_stability_report(bundles)
 
 

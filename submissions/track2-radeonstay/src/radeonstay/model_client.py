@@ -1,19 +1,26 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import math
 import threading
 import time
-from dataclasses import dataclass
-from typing import Any
+from dataclasses import dataclass, replace
+from typing import Any, Protocol
 
 import httpx
 
 from .config import Settings
+from .runtime_binding import RuntimeBindingResult, verify_runtime_instance
 
 
 class ModelClientError(RuntimeError):
     """Raised when the local model service cannot satisfy a request."""
+
+
+class ModelResponseValidationError(ModelClientError):
+    """Raised when transport succeeded but bounded response repair did not."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,14 +30,81 @@ class ChatResult:
     model: str
     usage: dict[str, Any]
     raw: dict[str, Any]
+    syntax_repaired: bool = False
+
+
+class ModelClient(Protocol):
+    """Shared contract for local and Radeon Cloud inference providers."""
+
+    backend_name: str
+    provider_name: str
+    local_only: bool
+    settings: Settings
+
+    def start_trace(self) -> None: ...
+
+    def finish_trace(self) -> list[dict[str, Any]]: ...
+
+    def mark_last_trace_error(
+        self,
+        error: Exception,
+        *,
+        validation_stage: str = "response_parse",
+    ) -> None: ...
+
+    def record_last_trace_validation(
+        self,
+        *,
+        validation_stage: str,
+        validation_ok: bool,
+        outcome: str,
+    ) -> None: ...
+
+    def chat(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        temperature: float = 0.1,
+        max_tokens: int = 800,
+        json_mode: bool = False,
+        json_schema: dict[str, Any] | None = None,
+        json_schema_name: str = "response",
+        trace_purpose: str = "chat",
+        trace_attempt: int = 1,
+    ) -> ChatResult: ...
+
+    def chat_json(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        temperature: float = 0.0,
+        max_tokens: int = 1000,
+        json_schema: dict[str, Any] | None = None,
+        json_schema_name: str = "response",
+        trace_purpose: str = "json",
+        trace_attempt: int = 1,
+        allow_syntax_repair: bool = True,
+    ) -> tuple[dict[str, Any], ChatResult]: ...
+
+    def health(self) -> dict[str, Any]: ...
+
+    def close(self) -> None: ...
 
 
 class LocalModelClient:
     """Minimal OpenAI-compatible client restricted to a local model endpoint."""
 
     backend_name = "llama.cpp-rocm"
+    provider_name = "local_llamacpp"
+    local_only = True
 
-    def __init__(self, settings: Settings, client: httpx.Client | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        client: httpx.Client | None = None,
+        *,
+        runtime_proof: dict[str, Any] | None = None,
+    ) -> None:
         settings.validate_private_model_endpoint()
         self.settings = settings
         self._client = client or httpx.Client(
@@ -40,6 +114,56 @@ class LocalModelClient:
             trust_env=False,
         )
         self._trace_state = threading.local()
+        self._runtime_proof = dict(runtime_proof or {})
+
+    def runtime_binding_result(self) -> RuntimeBindingResult:
+        return verify_runtime_instance(
+            self.settings,
+            runtime_proof=self._runtime_proof,
+        )
+
+    def _require_request_configuration_binding(
+        self,
+        *,
+        schema_constrained: bool,
+    ) -> tuple[str, bool]:
+        """Fail closed when an accepted profile differs from the actual request."""
+
+        actual = {
+            "thinking_enabled": self.settings.model_enable_thinking,
+            "schema_constrained": schema_constrained,
+            "fused_plan_evidence": self.settings.fused_plan_evidence,
+        }
+        # Record the request that would actually be sent, including local
+        # unconstrained callers. A bound competition profile still differs and
+        # fails closed before the HTTP request when schema_constrained is false.
+        actual_sha256 = hashlib.sha256(
+            json.dumps(
+                actual,
+                ensure_ascii=True,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("ascii")
+        ).hexdigest()
+        expected = self._runtime_proof.get("request_configuration_sha256")
+        bound = isinstance(expected, str) and hmac.compare_digest(
+            expected,
+            actual_sha256,
+        )
+        if self.settings.runtime_proof_required and not bound:
+            raise ModelClientError(
+                "Local model request configuration differs from accepted ROCm proof"
+            )
+        if isinstance(expected, str) and not bound:
+            raise ModelClientError(
+                "Local model request configuration differs from bound runtime proof"
+            )
+        return actual_sha256, bound
+
+    @staticmethod
+    def _require_runtime_binding(result: RuntimeBindingResult) -> None:
+        if result.configured and not result.valid:
+            raise ModelClientError("Local model process binding validation failed")
 
     def start_trace(self) -> None:
         self._trace_state.calls = []
@@ -180,9 +304,31 @@ class LocalModelClient:
     def health(self) -> dict[str, Any]:
         started = time.perf_counter()
         try:
-            response = self._client.get("models")
+            request_configuration_sha256_value, request_configuration_bound = (
+                self._require_request_configuration_binding(
+                    schema_constrained=True,
+                )
+            )
+            binding_before = self.runtime_binding_result()
+            self._require_runtime_binding(binding_before)
+            response = self._client.get(
+                "models",
+                timeout=min(5.0, self.settings.model_timeout_seconds),
+            )
             response.raise_for_status()
             payload = response.json()
+            binding_after = self.runtime_binding_result()
+            self._require_runtime_binding(binding_after)
+            if (
+                binding_before.configured
+                and binding_before.manifest_sha256
+                != binding_after.manifest_sha256
+            ):
+                raise ModelClientError(
+                    "Local model process binding changed during health check"
+                )
+        except ModelClientError:
+            raise
         except (httpx.HTTPError, ValueError) as exc:
             raise ModelClientError(f"Local model health check failed: {exc}") from exc
         models = payload.get("data") if isinstance(payload, dict) else None
@@ -200,11 +346,22 @@ class LocalModelClient:
         return {
             "ok": True,
             "backend": self.backend_name,
+            "provider": self.provider_name,
+            "local_only": self.local_only,
+            "synthetic_only": False,
+            "bonus_candidate": False,
             "model": self.settings.model_name,
             "thinking_enabled": self.settings.model_enable_thinking,
+            "fused_plan_evidence": bool(
+                getattr(self.settings, "fused_plan_evidence", False)
+            ),
+            "request_configuration_sha256": request_configuration_sha256_value,
+            "request_configuration_bound": request_configuration_bound,
             "elapsed_ms": round((time.perf_counter() - started) * 1000, 3),
             "advertised_model_count": len(advertised_models),
             "target_model_advertised": True,
+            "network_boundary": "local/private model endpoint only",
+            **binding_after.public_report(),
         }
 
     def chat(
@@ -228,6 +385,8 @@ class LocalModelClient:
             raise ValueError("json_schema_name must contain only letters, numbers, _ or -")
         if trace_attempt < 1:
             raise ValueError("trace_attempt must be positive")
+        if not isinstance(max_tokens, int) or isinstance(max_tokens, bool) or max_tokens < 1:
+            raise ValueError("max_tokens must be a positive integer")
 
         request: dict[str, Any] = {
             "model": self.settings.model_name,
@@ -257,14 +416,34 @@ class LocalModelClient:
         trace_fields = {
             "purpose": trace_purpose[:80],
             "attempt": trace_attempt,
+            "max_tokens": max_tokens,
             "response_format": response_format,
             "json_schema_name": json_schema_name if json_schema is not None else None,
             "thinking_enabled": self.settings.model_enable_thinking,
             "schema_constrained": json_schema is not None,
+            "fused_plan_evidence": bool(
+                getattr(self.settings, "fused_plan_evidence", False)
+            ),
         }
 
         started = time.perf_counter()
         try:
+            request_configuration_sha256_value, request_configuration_bound = (
+                self._require_request_configuration_binding(
+                    schema_constrained=json_schema is not None,
+                )
+            )
+            trace_fields.update(
+                {
+                    "request_configuration_sha256": (
+                        request_configuration_sha256_value
+                    ),
+                    "request_configuration_bound": request_configuration_bound,
+                }
+            )
+            binding_before = self.runtime_binding_result()
+            trace_fields.update(binding_before.public_report())
+            self._require_runtime_binding(binding_before)
             response = self._client.post("chat/completions", json=request)
             response.raise_for_status()
             payload = response.json()
@@ -286,6 +465,18 @@ class LocalModelClient:
                 usage=dict(usage),
                 raw=payload,
             )
+            binding_after = self.runtime_binding_result()
+            trace_fields.update(binding_after.public_report())
+            self._require_runtime_binding(binding_after)
+            if (
+                binding_before.configured
+                and binding_before.manifest_sha256
+                != binding_after.manifest_sha256
+            ):
+                trace_fields["process_binding_valid"] = False
+                raise ModelClientError(
+                    "Local model process binding changed during inference"
+                )
         except ModelClientError as exc:
             self._record_failure(started, exc, trace_fields)
             raise
@@ -305,6 +496,7 @@ class LocalModelClient:
         json_schema_name: str = "response",
         trace_purpose: str = "json",
         trace_attempt: int = 1,
+        allow_syntax_repair: bool = True,
     ) -> tuple[dict[str, Any], ChatResult]:
         result = self.chat(
             messages,
@@ -320,6 +512,10 @@ class LocalModelClient:
             parsed = _parse_json_object(result.content)
         except (json.JSONDecodeError, TypeError, ValueError) as exc:
             self.mark_last_trace_error(exc)
+            if not allow_syntax_repair:
+                raise ModelResponseValidationError(
+                    "Local model returned invalid JSON for a bounded repair response"
+                ) from exc
             repair = self.chat(
                 [
                     {
@@ -343,10 +539,10 @@ class LocalModelClient:
                 parsed = _parse_json_object(repair.content)
             except (json.JSONDecodeError, TypeError, ValueError) as repair_exc:
                 self.mark_last_trace_error(repair_exc)
-                raise ModelClientError(
+                raise ModelResponseValidationError(
                     "Local model failed JSON validation after one repair attempt"
                 ) from repair_exc
-            return parsed, repair
+            return parsed, replace(repair, syntax_repaired=True)
         return parsed, result
 
 
@@ -359,11 +555,7 @@ def _parse_json_object(content: str) -> dict[str, Any]:
         if lines and lines[-1].strip() == "```":
             lines = lines[:-1]
         text = "\n".join(lines).strip()
-    start = text.find("{")
-    end = text.rfind("}")
-    if start < 0 or end < start:
-        raise ValueError("No JSON object found")
-    parsed = json.loads(text[start : end + 1])
+    parsed = json.loads(text)
     if not isinstance(parsed, dict):
         raise TypeError("Expected a JSON object")
     return parsed

@@ -28,6 +28,7 @@ from evaluation.compare_benchmarks import (  # noqa: E402
     require_number,
     validate_binding,
 )
+from evaluation.configuration import normalized_report_service_configuration  # noqa: E402
 
 EXPECTED_RUN_COUNT = 5
 REPORT_SCHEMA_VERSION = 1
@@ -198,6 +199,8 @@ def load_stability_bundle(binding_path: Path, label: str) -> ValidatedBundle:
         (quality.get("metrics") or {}).get("total_score"),
         f"{label}.quality.total_score",
     )
+    if quality_score != 300:
+        raise ValueError(f"{label} Agent quality must be 300/300")
     benchmark_quality_gate = benchmark.get("quality_gate")
     if not isinstance(benchmark_quality_gate, dict):
         raise ValueError(f"{label} benchmark quality gate is missing")
@@ -299,6 +302,8 @@ def build_stability_report(bundles: list[ValidatedBundle]) -> dict[str, Any]:
             raise ValueError(f"{bundle.run_id} benchmark quality gate did not pass")
         if bundle.benchmark_quality_gate.get("failures") != []:
             raise ValueError(f"{bundle.run_id} benchmark contains gate failures")
+        if bundle.quality_score != 300:
+            raise ValueError(f"{bundle.run_id} Agent quality must be 300/300")
         for concurrency, status in bundle.benchmark_success.items():
             if status.get("success_rate") != 1.0 or status.get("failed_model_calls") != 0:
                 raise ValueError(
@@ -347,6 +352,26 @@ def build_stability_report(bundles: list[ValidatedBundle]) -> dict[str, Any]:
             "model_sha256",
             lambda item: item.binding["model_sha256"],
         ),
+        "model_repository": _require_same(
+            bundles,
+            "model_repository",
+            lambda item: item.binding["model_repository"],
+        ),
+        "model_revision": _require_same(
+            bundles,
+            "model_revision",
+            lambda item: item.binding["model_revision"],
+        ),
+        "model_quantization": _require_same(
+            bundles,
+            "model_quantization",
+            lambda item: item.binding["model_quantization"],
+        ),
+        "llama_cpp_commit": _require_same(
+            bundles,
+            "llama_cpp_commit",
+            lambda item: item.binding["llama_cpp_commit"],
+        ),
         "llama_server_sha256": _require_same(
             bundles,
             "llama_server_sha256",
@@ -376,6 +401,14 @@ def build_stability_report(bundles: list[ValidatedBundle]) -> dict[str, Any]:
             bundles,
             "request configuration",
             lambda item: item.benchmark["request_configuration"],
+        ),
+        "reported_service_configuration": _require_same(
+            bundles,
+            "reported service configuration",
+            lambda item: normalized_report_service_configuration(
+                item.benchmark,
+                f"{item.run_id}.service_configuration",
+            ),
         ),
         "server_configuration": _require_same(
             bundles,

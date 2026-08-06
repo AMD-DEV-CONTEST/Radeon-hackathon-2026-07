@@ -21,11 +21,13 @@ from .models import (
     AvailabilityResult,
     BookingListResult,
     BookingResult,
+    BuildStayBriefInput,
     CreateServiceTicketInput,
     DeletePreferenceInput,
     DeletePreferenceResult,
     GetPreferencesInput,
     HoldBookingInput,
+    ListServiceTicketsInput,
     MemoryConsentResult,
     ModifyBookingInput,
     MyBookingsInput,
@@ -34,9 +36,13 @@ from .models import (
     QuoteInput,
     QuoteResult,
     RememberPreferenceInput,
+    ServiceTicketListResult,
     ServiceTicketResult,
     SetMemoryConsentInput,
+    StayBriefResult,
     ToolEffect,
+    UpdateServiceTicketInput,
+    UpdateServiceTicketResult,
     UserContext,
     ValidationError,
 )
@@ -112,6 +118,35 @@ _FIELD_CONSTRAINTS: dict[str, dict[str, dict[str, Any]]] = {
             ]
         },
         "description": {"minLength": 1, "maxLength": 1_000},
+    },
+    "hotel.list_service_tickets": {
+        "booking_id": {
+            "anyOf": [
+                {"type": "string", "minLength": 1},
+                {"type": "null"},
+            ]
+        },
+    },
+    "hotel.update_service_ticket": {
+        "ticket_id": {"minLength": 1},
+        "status": {
+            "anyOf": [
+                {
+                    "type": "string",
+                    "enum": ["open", "in_progress", "resolved", "cancelled"],
+                },
+                {"type": "null"},
+            ]
+        },
+        "description": {
+            "anyOf": [
+                {"type": "string", "minLength": 1, "maxLength": 1_000},
+                {"type": "null"},
+            ]
+        },
+    },
+    "journey.build_stay_brief": {
+        "booking_id": {"minLength": 1},
     },
     "memory.remember_preference": {
         "key": {
@@ -272,6 +307,12 @@ def _validate_request_constraints(spec: ToolSpec[Any, Any], request: Any) -> Non
         for name in ("room_type", "check_in", "check_out", "guests")
     ):
         raise ValidationError("hotel.modify_booking requires at least one changed field")
+    if spec.name == "hotel.update_service_ticket" and all(
+        values.get(name) is None for name in ("status", "description")
+    ):
+        raise ValidationError(
+            "hotel.update_service_ticket requires at least one changed field"
+        )
     check_in = values.get("check_in")
     check_out = values.get("check_out")
     if (
@@ -314,6 +355,23 @@ def _confirmation_binding_hash(
     )
 
 
+def _public_confirmation_preview(preview: Mapping[str, Any]) -> dict[str, Any]:
+    """Remove server-only state bindings before a preview crosses the tool boundary."""
+
+    def public_value(value: Any) -> Any:
+        if isinstance(value, Mapping):
+            return {
+                str(key): public_value(item)
+                for key, item in value.items()
+                if not str(key).startswith("_binding_")
+            }
+        if isinstance(value, (list, tuple)):
+            return [public_value(item) for item in value]
+        return value
+
+    return public_value(preview)
+
+
 @dataclass(frozen=True, slots=True)
 class ToolSpec(Generic[InputT, OutputT]):
     name: str
@@ -351,6 +409,11 @@ class ToolSpec(Generic[InputT, OutputT]):
             parameters["anyOf"] = [
                 {"required": [field_name]}
                 for field_name in ("room_type", "check_in", "check_out", "guests")
+            ]
+        if self.name == "hotel.update_service_ticket":
+            parameters["anyOf"] = [
+                {"required": [field_name]}
+                for field_name in ("status", "description")
             ]
         return {
             "name": self.name,
@@ -448,7 +511,7 @@ class ToolRegistry:
                     context,
                     name,
                     _confirmation_binding_hash(payload_hash, preview),
-                    preview=preview,
+                    preview=_public_confirmation_preview(preview),
                 )
             assert challenge is not None
             raise challenge
@@ -506,6 +569,14 @@ def build_tool_registry(service: HotelService) -> ToolRegistry:
             service.my_bookings,
         ),
         ToolSpec(
+            "hotel.list_service_tickets",
+            "List service tickets only for bookings owned by the authenticated actor.",
+            ToolEffect.READ,
+            ListServiceTicketsInput,
+            ServiceTicketListResult,
+            service.list_service_tickets,
+        ),
+        ToolSpec(
             "hotel.hold_booking",
             "Place a time-limited room hold for the authenticated guest.",
             ToolEffect.WRITE,
@@ -540,12 +611,36 @@ def build_tool_registry(service: HotelService) -> ToolRegistry:
             service.preview_service_ticket,
         ),
         ToolSpec(
+            "hotel.update_service_ticket",
+            (
+                "Update an owner-visible service ticket status or description after an "
+                "authoritative preview and explicit confirmation."
+            ),
+            ToolEffect.WRITE,
+            UpdateServiceTicketInput,
+            UpdateServiceTicketResult,
+            service.update_service_ticket,
+            service.preview_update_service_ticket,
+        ),
+        ToolSpec(
+            "journey.build_stay_brief",
+            (
+                "Build an owner-scoped structured stay brief from one booking, its "
+                "confirmed local service tickets, and consented preferences."
+            ),
+            ToolEffect.READ,
+            BuildStayBriefInput,
+            StayBriefResult,
+            service.build_stay_brief,
+        ),
+        ToolSpec(
             "memory.set_consent",
             "Explicitly enable or disable local preference memory; disabling erases it.",
             ToolEffect.WRITE,
             SetMemoryConsentInput,
             MemoryConsentResult,
             service.set_memory_consent,
+            service.preview_memory_consent,
         ),
         ToolSpec(
             "memory.remember_preference",
@@ -574,6 +669,7 @@ def build_tool_registry(service: HotelService) -> ToolRegistry:
             DeletePreferenceInput,
             DeletePreferenceResult,
             service.delete_preference,
+            service.preview_delete_preference,
         ),
     )
     for spec in specs:

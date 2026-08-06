@@ -1,14 +1,25 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import hashlib
 import hmac
 import json
+import secrets
 import time
 from dataclasses import dataclass
 from typing import Literal, cast
 
 RoleName = Literal["guest", "staff", "admin"]
+_BASE64URL_ALPHABET = frozenset(
+    b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+)
+
+_DEMO_IDENTITIES: tuple[tuple[str, str, RoleName], ...] = (
+    ("Alex (guest, owner)", "guest-alex", "guest"),
+    ("Mallory (guest, non-owner)", "guest-mallory", "guest"),
+    ("Sofia (hotel staff)", "staff-sofia", "staff"),
+)
 
 
 class IdentityError(ValueError):
@@ -50,6 +61,7 @@ class LocalIdentityProvider:
             "role": role,
             "iat": now,
             "exp": now + ttl_seconds,
+            "jti": secrets.token_urlsafe(12),
         }
         body = _b64encode(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
         signature = _b64encode(hmac.new(self._secret, body, hashlib.sha256).digest())
@@ -87,22 +99,50 @@ class LocalIdentityProvider:
 
     def demo_tokens(self, *, include_staff: bool = True) -> dict[str, str]:
         """Issue short-lived local identities; labels make the security demo explicit."""
-        tokens = {
-            "Alex (guest, owner)": self.issue(
-                user_id="guest-alex",
-                role="guest",
-            ),
-            "Mallory (guest, non-owner)": self.issue(
-                user_id="guest-mallory",
-                role="guest",
-            ),
-        }
-        if include_staff:
-            tokens["Sofia (hotel staff)"] = self.issue(
-                user_id="staff-sofia",
-                role="staff",
+        return {
+            label: self.issue(user_id=user_id, role=role)
+            for label, user_id, role in self._demo_identity_specs(
+                include_staff=include_staff
             )
-        return tokens
+        }
+
+    def issue_demo_token(
+        self,
+        label: str,
+        *,
+        include_staff: bool = True,
+        ttl_seconds: int = 8 * 60 * 60,
+        session_scope: str | None = None,
+    ) -> str:
+        """Issue a fresh token for an allow-listed demo identity."""
+        identities = {
+            identity_label: (user_id, role)
+            for identity_label, user_id, role in self._demo_identity_specs(
+                include_staff=include_staff
+            )
+        }
+        try:
+            user_id, role = identities[label]
+        except KeyError as exc:
+            raise IdentityError("Unknown demo identity") from exc
+        if session_scope is not None:
+            if not session_scope or len(session_scope) > 120:
+                raise IdentityError("Invalid demo identity session scope")
+            scope = hmac.new(
+                self._secret,
+                f"radeonstay-demo-session:{session_scope}".encode(),
+                hashlib.sha256,
+            ).hexdigest()[:20]
+            user_id = f"{user_id}-{scope}"
+        return self.issue(user_id=user_id, role=role, ttl_seconds=ttl_seconds)
+
+    @staticmethod
+    def _demo_identity_specs(
+        *, include_staff: bool
+    ) -> tuple[tuple[str, str, RoleName], ...]:
+        if include_staff:
+            return _DEMO_IDENTITIES
+        return tuple(item for item in _DEMO_IDENTITIES if item[2] != "staff")
 
 
 def _b64encode(value: bytes) -> bytes:
@@ -111,4 +151,12 @@ def _b64encode(value: bytes) -> bytes:
 
 def _b64decode(value: str | bytes) -> bytes:
     raw = value.encode("ascii") if isinstance(value, str) else value
-    return base64.urlsafe_b64decode(raw + b"=" * (-len(raw) % 4))
+    if not raw or any(character not in _BASE64URL_ALPHABET for character in raw):
+        raise ValueError("Invalid base64url segment")
+    try:
+        decoded = base64.urlsafe_b64decode(raw + b"=" * (-len(raw) % 4))
+    except binascii.Error as exc:
+        raise ValueError("Invalid base64url segment") from exc
+    if not hmac.compare_digest(_b64encode(decoded), raw):
+        raise ValueError("Non-canonical base64url segment")
+    return decoded

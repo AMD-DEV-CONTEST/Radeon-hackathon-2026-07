@@ -3,7 +3,7 @@ set -euo pipefail
 set -C
 
 usage() {
-  echo "Usage: $0 --phase live|final --run-id RUN_ID --output-dir NEW_DIRECTORY --live-evidence-file FILE --retrieval-file FILE --quality-file FILE --benchmark-file FILE --monitor-file FILE --server-log FILE --model-file FILE --expected-model-sha256 SHA256 --model-repository REPOSITORY --model-revision REVISION --model-license SPDX --llama-server FILE --expected-llama-server-sha256 SHA256 --llama-cpp-commit COMMIT --llama-build DESCRIPTION [--python-executable PYTHON]" >&2
+  echo "Usage: $0 --phase live|final --run-id RUN_ID --output-dir NEW_DIRECTORY --live-evidence-file FILE --retrieval-file FILE --quality-file FILE --stress-file FILE --benchmark-file FILE --monitor-file FILE --server-log FILE --runtime-instance-file FILE --model-file FILE --expected-model-sha256 SHA256 --model-repository REPOSITORY --model-revision REVISION --model-license SPDX --model-quantization QUANTIZATION --llama-server FILE --expected-llama-server-sha256 SHA256 --llama-cpp-commit COMMIT --llama-build DESCRIPTION [--context-selection-file FILE | --context-proof-file FILE] [--python-executable PYTHON]" >&2
 }
 
 collection_phase="final"
@@ -12,14 +12,19 @@ output_dir=""
 live_evidence_file=""
 benchmark_file=""
 quality_file=""
+stress_file=""
+context_selection_file=""
+context_proof_file=""
 retrieval_file=""
 monitor_file=""
 server_log=""
+runtime_instance_file=""
 model_file=""
 expected_model_sha256=""
 model_repository=""
 model_revision=""
 model_license=""
+model_quantization=""
 llama_server=""
 expected_llama_server_sha256=""
 llama_cpp_commit=""
@@ -55,6 +60,18 @@ while [[ $# -gt 0 ]]; do
       quality_file="${2:-}"
       shift 2
       ;;
+    --stress-file)
+      stress_file="${2:-}"
+      shift 2
+      ;;
+    --context-selection-file)
+      context_selection_file="${2:-}"
+      shift 2
+      ;;
+    --context-proof-file)
+      context_proof_file="${2:-}"
+      shift 2
+      ;;
     --retrieval-file)
       retrieval_file="${2:-}"
       shift 2
@@ -65,6 +82,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --server-log)
       server_log="${2:-}"
+      shift 2
+      ;;
+    --runtime-instance-file)
+      runtime_instance_file="${2:-}"
       shift 2
       ;;
     --model-file)
@@ -85,6 +106,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --model-license)
       model_license="${2:-}"
+      shift 2
+      ;;
+    --model-quantization)
+      model_quantization="${2:-}"
       shift 2
       ;;
     --llama-server)
@@ -129,14 +154,21 @@ if [[ -z "${output_dir}" ]]; then
   usage
   exit 2
 fi
-if [[ -z "${retrieval_file}" || -z "${quality_file}" || -z "${benchmark_file}" \
+if [[ -z "${retrieval_file}" || -z "${quality_file}" || -z "${stress_file}" \
+      || -z "${benchmark_file}" \
       || -z "${monitor_file}" \
       || -z "${server_log}" || -z "${model_file}" || -z "${llama_server}" \
+      || -z "${runtime_instance_file}" \
       || -z "${live_evidence_file}" \
-      || -z "${model_repository}" || -z "${model_license}" || -z "${llama_build}" ]]; then
+      || -z "${model_repository}" || -z "${model_license}" \
+      || -z "${model_quantization}" || -z "${llama_build}" ]]; then
   echo "A complete evidence bundle requires every artifact argument" >&2
   usage
   exit 2
+fi
+if [[ -n "${context_selection_file}" && -n "${context_proof_file}" ]]; then
+  echo "Context selection and proof artifacts are mutually exclusive" >&2
+  exit 3
 fi
 if [[ ! "${expected_model_sha256}" =~ ^[0-9a-f]{64}$ ]]; then
   echo "--expected-model-sha256 must be a lowercase SHA256" >&2
@@ -150,6 +182,10 @@ if [[ ! "${model_revision}" =~ ^[0-9a-f]{40,64}$ ]]; then
   echo "--model-revision must be a full lowercase revision hash" >&2
   exit 3
 fi
+if [[ ! "${model_quantization}" =~ ^Q[0-9][A-Za-z0-9_-]{0,31}$ ]]; then
+  echo "--model-quantization must be an explicit Q-level such as Q6_K" >&2
+  exit 3
+fi
 if [[ ! "${llama_cpp_commit}" =~ ^[0-9a-f]{40,64}$ ]]; then
   echo "--llama-cpp-commit must be a full lowercase Git object ID" >&2
   exit 3
@@ -159,9 +195,13 @@ for evidence_path in \
   "${live_evidence_file}" \
   "${retrieval_file}" \
   "${quality_file}" \
+  "${stress_file}" \
+  "${context_selection_file}" \
+  "${context_proof_file}" \
   "${benchmark_file}" \
   "${monitor_file}" \
   "${server_log}" \
+  "${runtime_instance_file}" \
   "${model_file}" \
   "${llama_server}"; do
   if [[ "${evidence_path}" == *$'\n'* || "${evidence_path}" == *$'\r'* ]]; then
@@ -172,6 +212,7 @@ done
 for provenance_value in \
   "${model_repository}" \
   "${model_license}" \
+  "${model_quantization}" \
   "${llama_build}" \
   "${python_executable}"; do
   if [[ "${provenance_value}" == *$'\n'* || "${provenance_value}" == *$'\r'* ]]; then
@@ -235,7 +276,7 @@ fi
 commit="$(git -C "${project_dir}" rev-parse --verify HEAD)"
 project_tree="$(git -C "${project_dir}" rev-parse "HEAD:${project_prefix}")"
 
-for required_command in rocminfo rocm-smi git uname sha256sum grep awk sed cp; do
+for required_command in rocminfo rocm-smi git uname sha256sum grep awk sed cp stat; do
   if ! command -v "${required_command}" >/dev/null 2>&1; then
     echo "Required command not found: ${required_command}" >&2
     exit 4
@@ -259,9 +300,13 @@ fi
 for artifact in \
   "${retrieval_file}" \
   "${quality_file}" \
+  "${stress_file}" \
+  "${context_selection_file}" \
+  "${context_proof_file}" \
   "${benchmark_file}" \
   "${monitor_file}" \
   "${server_log}" \
+  "${runtime_instance_file}" \
   "${model_file}" \
   "${llama_server}"; do
   if [[ -n "${artifact}" && ! -f "${artifact}" ]]; then
@@ -271,17 +316,31 @@ for artifact in \
 done
 retrieval_file="$(cd -- "$(dirname -- "${retrieval_file}")" && pwd -P)/$(basename -- "${retrieval_file}")"
 quality_file="$(cd -- "$(dirname -- "${quality_file}")" && pwd -P)/$(basename -- "${quality_file}")"
+stress_file="$(cd -- "$(dirname -- "${stress_file}")" && pwd -P)/$(basename -- "${stress_file}")"
+if [[ -n "${context_selection_file}" ]]; then
+  context_selection_file="$(cd -- "$(dirname -- "${context_selection_file}")" && pwd -P)/$(basename -- "${context_selection_file}")"
+fi
+if [[ -n "${context_proof_file}" ]]; then
+  context_proof_file="$(cd -- "$(dirname -- "${context_proof_file}")" && pwd -P)/$(basename -- "${context_proof_file}")"
+fi
 benchmark_file="$(cd -- "$(dirname -- "${benchmark_file}")" && pwd -P)/$(basename -- "${benchmark_file}")"
 monitor_file="$(cd -- "$(dirname -- "${monitor_file}")" && pwd -P)/$(basename -- "${monitor_file}")"
 server_log="$(cd -- "$(dirname -- "${server_log}")" && pwd -P)/$(basename -- "${server_log}")"
+runtime_instance_file="$(
+  cd -- "$(dirname -- "${runtime_instance_file}")" && pwd -P
+)/$(basename -- "${runtime_instance_file}")"
 model_file="$(cd -- "$(dirname -- "${model_file}")" && pwd -P)/$(basename -- "${model_file}")"
 llama_server="$(cd -- "$(dirname -- "${llama_server}")" && pwd -P)/$(basename -- "${llama_server}")"
 for evidence_path in \
   "${retrieval_file}" \
   "${quality_file}" \
+  "${stress_file}" \
+  "${context_selection_file}" \
+  "${context_proof_file}" \
   "${benchmark_file}" \
   "${monitor_file}" \
   "${server_log}" \
+  "${runtime_instance_file}" \
   "${model_file}" \
   "${llama_server}"; do
   if [[ "${evidence_path}" == *$'\n'* || "${evidence_path}" == *$'\r'* ]]; then
@@ -289,8 +348,28 @@ for evidence_path in \
     exit 3
   fi
 done
+if [[ -L "${runtime_instance_file}" \
+      || "$(stat -c '%a' -- "${runtime_instance_file}")" != "600" ]]; then
+  echo "Runtime instance manifest must be a private 0600 regular file" >&2
+  exit 3
+fi
+runtime_instance_sha256="$(
+  sha256sum -- "${runtime_instance_file}" | awk '{print $1}'
+)"
+if ! "${python_executable_path}" \
+    "${project_dir}/evaluation/runtime_binding_evidence.py" \
+    --manifest "${runtime_instance_file}" \
+    --run-id "${run_id}" \
+    --expected-sha256 "${runtime_instance_sha256}" >/dev/null; then
+  echo "Runtime instance manifest failed strict schema or run binding" >&2
+  exit 3
+fi
 if [[ -n "${benchmark_file}" ]] && ! grep -Fq "\"run_id\": \"${run_id}\"" "${benchmark_file}"; then
   echo "Benchmark file does not contain the requested run ID: ${run_id}" >&2
+  exit 3
+fi
+if ! grep -Fq "\"run_id\": \"${run_id}\"" "${stress_file}"; then
+  echo "Stress file does not contain the requested run ID: ${run_id}" >&2
   exit 3
 fi
 if [[ "${collection_phase}" == "live" ]]; then
@@ -309,8 +388,21 @@ if [[ "${collection_phase}" == "live" ]]; then
       || ! grep -Fqx "model_path=${model_file}" "${server_log}" \
       || ! grep -Fqx "model_sha256_at_start=${model_sha256}" "${server_log}" \
       || ! grep -Fqx "llama_server_path=${llama_server}" "${server_log}" \
-      || ! grep -Fqx "llama_server_sha256_at_start=${llama_server_sha256}" "${server_log}"; then
+      || ! grep -Fqx "llama_server_sha256_at_start=${llama_server_sha256}" "${server_log}" \
+      || ! grep -Fqx "runtime_instance_manifest_sha256=${runtime_instance_sha256}" "${server_log}" \
+      || ! grep -Fqx "process_binding_valid=true" "${server_log}" \
+      || ! grep -Fqx "listen_socket_binding_valid=true" "${server_log}"; then
     echo "Live server evidence is not bound to the expected run and artifacts" >&2
+    exit 3
+  fi
+  if ! "${python_executable_path}" \
+      "${project_dir}/evaluation/runtime_binding_evidence.py" \
+      --manifest "${runtime_instance_file}" \
+      --run-id "${run_id}" \
+      --expected-sha256 "${runtime_instance_sha256}" \
+      --verify-listener \
+      --timeout-seconds 5 >/dev/null; then
+    echo "Runtime instance PID does not own the declared loopback listener" >&2
     exit 3
   fi
   if ! grep -Fqx "run_id=${run_id}" "${monitor_file}" \
@@ -335,6 +427,7 @@ if [[ "${collection_phase}" == "live" ]]; then
     echo "model_endpoint_status=reachable"
     echo "model_sha256=${model_sha256}"
     echo "llama_server_sha256=${llama_server_sha256}"
+    echo "runtime_instance_manifest_sha256=${runtime_instance_sha256}"
     echo "python_executable=${python_executable_path}"
     echo "python_version=${python_version}"
     echo "requirements_lock_sha256=${requirements_lock_sha256}"
@@ -381,12 +474,24 @@ fi
 
 retrieval_sha256="$(sha256sum -- "${retrieval_file}" | awk '{print $1}')"
 quality_sha256="$(sha256sum -- "${quality_file}" | awk '{print $1}')"
+stress_sha256="$(sha256sum -- "${stress_file}" | awk '{print $1}')"
+context_selection_sha256=""
+context_proof_sha256=""
+if [[ -n "${context_selection_file}" ]]; then
+  context_selection_sha256="$(sha256sum -- "${context_selection_file}" | awk '{print $1}')"
+fi
+if [[ -n "${context_proof_file}" ]]; then
+  context_proof_sha256="$(sha256sum -- "${context_proof_file}" | awk '{print $1}')"
+fi
 benchmark_sha256="$(sha256sum -- "${benchmark_file}" | awk '{print $1}')"
 monitor_sha256="$(sha256sum -- "${monitor_file}" | awk '{print $1}')"
 server_log_sha256="$(sha256sum -- "${server_log}" | awk '{print $1}')"
 model_sha256="$(sha256sum -- "${model_file}" | awk '{print $1}')"
 llama_server_sha256="$(sha256sum -- "${llama_server}" | awk '{print $1}')"
 requirements_lock_sha256="$(sha256sum -- "${requirements_lock}" | awk '{print $1}')"
+runtime_instance_sha256="$(
+  sha256sum -- "${runtime_instance_file}" | awk '{print $1}'
+)"
 if [[ "${model_sha256}" != "${expected_model_sha256}" ]]; then
   echo "Model SHA256 ${model_sha256} does not match expected ${expected_model_sha256}" >&2
   exit 3
@@ -402,6 +507,7 @@ if ! grep -Fqx "phase=live" "${live_evidence_file}" \
     || ! grep -Fqx "model_endpoint_status=reachable" "${live_evidence_file}" \
     || ! grep -Fqx "model_sha256=${model_sha256}" "${live_evidence_file}" \
     || ! grep -Fqx "llama_server_sha256=${llama_server_sha256}" "${live_evidence_file}" \
+    || ! grep -Fqx "runtime_instance_manifest_sha256=${runtime_instance_sha256}" "${live_evidence_file}" \
     || ! grep -Fqx "python_executable=${python_executable_path}" "${live_evidence_file}" \
     || ! grep -Fqx "python_version=${python_version}" "${live_evidence_file}" \
     || ! grep -Fqx "requirements_lock_sha256=${requirements_lock_sha256}" "${live_evidence_file}" \
@@ -412,10 +518,11 @@ if ! grep -Fqx "phase=live" "${live_evidence_file}" \
 fi
 
 source_tree_sha256="$("${python_executable_path}" - \
-  "${project_dir}" "${run_id}" "${retrieval_file}" "${quality_file}" "${benchmark_file}" \
-  "${quality_sha256}" "${model_sha256}" "${llama_server_sha256}" \
-  "${commit}" "${project_tree}" "${monitor_file}" "${server_log}" <<'PY'
-import hashlib
+  "${project_dir}" "${run_id}" "${retrieval_file}" "${quality_file}" "${stress_file}" "${benchmark_file}" \
+  "${context_selection_file}" "${context_proof_file}" \
+  "${quality_sha256}" "${benchmark_sha256}" "${model_sha256}" "${llama_server_sha256}" \
+  "${commit}" "${project_tree}" "${monitor_file}" "${server_log}" \
+  "${runtime_instance_file}" "${runtime_instance_sha256}" <<'PY'
 import json
 import re
 import sys
@@ -427,28 +534,68 @@ from pathlib import Path
     run_id,
     retrieval_text,
     quality_text,
+    stress_text,
     benchmark_text,
+    context_selection_text,
+    context_proof_text,
     quality_sha256,
+    benchmark_sha256,
     model_sha256,
     llama_sha256,
     commit,
     project_tree,
     monitor_text,
     server_text,
+    runtime_instance_text,
+    runtime_instance_sha256,
 ) = sys.argv[1:]
 project = Path(project_text)
-sys.path.insert(0, str(project / "evaluation"))
 sys.path.insert(0, str(project / "src"))
-from compare_benchmarks import runtime_gpu_summary
+sys.path.insert(0, str(project))
+from evaluation.compare_benchmarks import (
+    runtime_gpu_summary,
+    validate_context_evidence,
+    validate_stress_report,
+)
+from evaluation.runtime_binding_evidence import (
+    load_runtime_instance,
+    validate_report_runtime_binding,
+)
+from evaluation.source_provenance import source_tree_sha256
 from radeonstay.retrieval import policy_corpus_sha256, validate_policy_directory
 
 retrieval = json.loads(Path(retrieval_text).read_text(encoding="utf-8"))
 quality = json.loads(Path(quality_text).read_text(encoding="utf-8"))
+stress = json.loads(Path(stress_text).read_text(encoding="utf-8"))
 benchmark = json.loads(Path(benchmark_text).read_text(encoding="utf-8"))
-if any(report.get("run_id") != run_id for report in (retrieval, quality, benchmark)):
-    raise SystemExit("Retrieval, quality and benchmark reports must match the run-id")
+runtime_instance = load_runtime_instance(
+    Path(runtime_instance_text),
+    expected_run_id=run_id,
+    expected_sha256=runtime_instance_sha256,
+)
+if runtime_instance.payload["model_sha256"] != model_sha256:
+    raise SystemExit("Runtime-instance model SHA256 does not match the bound model")
+if runtime_instance.payload["executable_sha256"] != llama_sha256:
+    raise SystemExit("Runtime-instance executable SHA256 does not match llama-server")
+context = None
+if context_selection_text:
+    context = json.loads(Path(context_selection_text).read_text(encoding="utf-8"))
+if context_proof_text:
+    context = json.loads(Path(context_proof_text).read_text(encoding="utf-8"))
+if any(report.get("run_id") != run_id for report in (retrieval, quality, stress, benchmark)):
+    raise SystemExit("Retrieval, quality, stress and benchmark reports must match the run-id")
 if quality.get("passed") is not True or benchmark.get("quality_gate", {}).get("passed") is not True:
     raise SystemExit("Quality and benchmark release gates must both pass")
+if not (
+    quality.get("metrics", {}).get("total_score") == 300
+    and quality.get("metrics", {}).get("maximum_score") == 300
+    and all(value is True for value in quality.get("gates", {}).values())
+):
+    raise SystemExit("Agent quality must prove 300/300 and every release gate")
+try:
+    validate_stress_report(stress, "collector")
+except ValueError as exc:
+    raise SystemExit(str(exc)) from exc
 if benchmark.get("schema_version") != 3:
     raise SystemExit("Benchmark report must use schema_version 3")
 if benchmark.get("quality_report", {}).get("sha256") != quality_sha256:
@@ -477,53 +624,67 @@ policy_sha256 = policy_corpus_sha256(policy_root, project_root=project)
 if not (
     retrieval.get("policy_corpus_sha256")
     == quality.get("policy_corpus_sha256")
+    == stress.get("policy_corpus_sha256")
     == benchmark.get("policy_corpus_sha256")
     == policy_sha256
 ):
     raise SystemExit("Retrieval, quality and benchmark policy corpus hashes mismatch")
 if quality.get("model", {}).get("name") != benchmark.get("model_name"):
     raise SystemExit("Quality and benchmark model aliases differ")
+if stress.get("model", {}).get("name") != quality.get("model", {}).get("name"):
+    raise SystemExit("Stress and quality model aliases differ")
 for report, label in ((quality, "quality"), (benchmark, "benchmark")):
     artifacts = report.get("artifacts", {})
     if artifacts.get("model_file_sha256") != model_sha256:
         raise SystemExit(f"{label} report model hash mismatch")
     if artifacts.get("llama_server_sha256") != llama_sha256:
         raise SystemExit(f"{label} report llama-server hash mismatch")
+if stress.get("artifacts") != quality.get("artifacts"):
+    raise SystemExit("Stress and quality artifact bindings differ")
+if stress.get("request_configuration") != quality.get("request_configuration"):
+    raise SystemExit("Stress and quality request configurations differ")
+if stress.get("service_configuration") != quality.get("service_configuration"):
+    raise SystemExit("Stress and quality service configurations differ")
+if stress.get("policy_corpus_sha256") != quality.get("policy_corpus_sha256"):
+    raise SystemExit("Stress and quality policy corpus hashes differ")
+for report, report_kind, label in (
+    (quality, "quality", "quality"),
+    (stress, "quality", "stress"),
+    (benchmark, "benchmark", "benchmark"),
+):
+    try:
+        validate_report_runtime_binding(
+            report,
+            expected_manifest_sha256=runtime_instance.manifest_sha256,
+            report_kind=report_kind,
+            label=f"collector {label}",
+        )
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+experiment = quality.get("service_configuration", {}).get("experiment")
+if experiment == "E" and (not context_selection_text or context_proof_text):
+    raise SystemExit("Run E requires exactly one context selection artifact")
+if experiment == "F" and (context_selection_text or not context_proof_text):
+    raise SystemExit("Run F requires exactly one context proof artifact")
+if experiment not in {"E", "F"} and (context_selection_text or context_proof_text):
+    raise SystemExit("Only runs E and F may bind context evidence")
+try:
+    validate_context_evidence(
+        context,
+        quality,
+        benchmark,
+        "collector",
+        quality_sha256=quality_sha256,
+        benchmark_sha256=benchmark_sha256,
+    )
+except ValueError as exc:
+    raise SystemExit(str(exc)) from exc
 
-excluded = {
-    ".coverage",
-    ".env",
-    ".pytest_cache",
-    ".ruff_cache",
-    ".venv",
-    "__pycache__",
-    "build",
-    "dist",
-    "runtime",
-}
-excluded_suffixes = (".egg-info", ".pyc", ".pyo", ".pyd")
-digest = hashlib.sha256()
-for path in sorted(project.rglob("*"), key=lambda item: item.as_posix()):
-    if not path.is_file() or path.is_symlink():
-        continue
-    relative = path.relative_to(project)
-    if any(
-        part in excluded or part.endswith(excluded_suffixes)
-        for part in relative.parts
-    ):
-        continue
-    if relative.parts[:2] == ("evaluation", "results"):
-        continue
-    label = relative.as_posix().encode("utf-8")
-    content = path.read_bytes()
-    digest.update(len(label).to_bytes(4, "big"))
-    digest.update(label)
-    digest.update(len(content).to_bytes(8, "big"))
-    digest.update(content)
-source_sha256 = digest.hexdigest()
+source_sha256 = source_tree_sha256(project)
 for report, label in (
     (retrieval, "retrieval"),
     (quality, "quality"),
+    (stress, "stress"),
     (benchmark, "benchmark"),
 ):
     provenance = report.get("provenance", {})
@@ -576,6 +737,13 @@ if server.get("model_sha256_at_start") != model_sha256:
     raise SystemExit("Model hash changed or does not match the server startup evidence")
 if server.get("llama_server_sha256_at_start") != llama_sha256:
     raise SystemExit("llama-server hash changed or does not match startup evidence")
+if not (
+    server.get("runtime_instance_manifest_sha256")
+    == runtime_instance.manifest_sha256
+    and server.get("process_binding_valid") == "true"
+    and server.get("listen_socket_binding_valid") == "true"
+):
+    raise SystemExit("Server log lacks the bound PID/LISTEN socket attestation")
 quality_model = quality.get("model")
 if not isinstance(quality_model, dict):
     raise SystemExit("Quality report has invalid model metadata")
@@ -620,6 +788,8 @@ server_start = instant(server["server_started_at_utc"])
 server_end = instant(server["server_completed_at_utc"])
 quality_start = instant(quality["started_at_utc"])
 quality_end = instant(quality["completed_at_utc"])
+stress_start = instant(stress["started_at_utc"])
+stress_end = instant(stress["completed_at_utc"])
 benchmark_start = instant(benchmark["started_at_utc"])
 benchmark_end = instant(benchmark["completed_at_utc"])
 retrieval_start = instant(retrieval["started_at_utc"])
@@ -630,6 +800,8 @@ if not (
     <= retrieval_end
     <= quality_start
     <= quality_end
+    <= stress_start
+    <= stress_end
     <= benchmark_start
     <= benchmark_end
     <= server_end
@@ -648,6 +820,7 @@ try:
         "collector",
         required_windows={
             "agent_quality": (quality_start, quality_end),
+            "stress": (stress_start, stress_end),
             "agent_benchmark": (benchmark_start, benchmark_end),
         },
         expected_run_id=run_id,
@@ -666,17 +839,36 @@ PY
 if [[ "$(sha256sum -- "${model_file}" | awk '{print $1}')" != "${model_sha256}" \
       || "$(sha256sum -- "${llama_server}" | awk '{print $1}')" != "${llama_server_sha256}" \
       || "$(sha256sum -- "${requirements_lock}" | awk '{print $1}')" != "${requirements_lock_sha256}" \
+      || "$(sha256sum -- "${runtime_instance_file}" | awk '{print $1}')" != "${runtime_instance_sha256}" \
       || "$(sha256sum -- "${live_evidence_file}" | awk '{print $1}')" != "${live_rocm_sha256}" ]]; then
-  echo "Bound model, llama-server, dependency lock, or live evidence changed during collection" >&2
+  echo "Bound model, process manifest, dependency lock, or live evidence changed" >&2
+  exit 3
+fi
+if [[ -n "${context_selection_file}" \
+      && "$(sha256sum -- "${context_selection_file}" | awk '{print $1}')" != "${context_selection_sha256}" ]]; then
+  echo "Context selection evidence changed during collection" >&2
+  exit 3
+fi
+if [[ -n "${context_proof_file}" \
+      && "$(sha256sum -- "${context_proof_file}" | awk '{print $1}')" != "${context_proof_sha256}" ]]; then
+  echo "Context proof evidence changed during collection" >&2
   exit 3
 fi
 
 mkdir -m 0700 -- "${output_dir}"
 cp -- "${retrieval_file}" "${output_dir}/retrieval.json"
 cp -- "${quality_file}" "${output_dir}/agent-quality.json"
+cp -- "${stress_file}" "${output_dir}/stress.json"
+if [[ -n "${context_selection_file}" ]]; then
+  cp -- "${context_selection_file}" "${output_dir}/context-selection.json"
+fi
+if [[ -n "${context_proof_file}" ]]; then
+  cp -- "${context_proof_file}" "${output_dir}/context-proof.json"
+fi
 cp -- "${benchmark_file}" "${output_dir}/agent-benchmark.json"
 cp -- "${monitor_file}" "${output_dir}/rocm-monitor.log"
 cp -- "${server_log}" "${output_dir}/llama-server.log"
+cp -- "${runtime_instance_file}" "${output_dir}/runtime-instance.json"
 cp -- "${live_evidence_file}" "${output_dir}/live-rocm.log"
 
 {
@@ -768,18 +960,31 @@ LC_ALL=C rocm-smi > "${output_dir}/rocm-smi.txt" 2>&1
   echo "retrieval_sha256=${retrieval_sha256}"
   echo "quality_file=agent-quality.json"
   echo "quality_sha256=${quality_sha256}"
+  echo "stress_file=stress.json"
+  echo "stress_sha256=${stress_sha256}"
+  if [[ -n "${context_selection_file}" ]]; then
+    echo "context_selection_file=context-selection.json"
+    echo "context_selection_sha256=${context_selection_sha256}"
+  fi
+  if [[ -n "${context_proof_file}" ]]; then
+    echo "context_proof_file=context-proof.json"
+    echo "context_proof_sha256=${context_proof_sha256}"
+  fi
   echo "benchmark_file=agent-benchmark.json"
   echo "benchmark_sha256=${benchmark_sha256}"
   echo "monitor_file=rocm-monitor.log"
   echo "monitor_sha256=${monitor_sha256}"
   echo "server_log=llama-server.log"
   echo "server_log_sha256=${server_log_sha256}"
+  echo "runtime_instance_file=runtime-instance.json"
+  echo "runtime_instance_sha256=${runtime_instance_sha256}"
   echo "model_file=${model_file}"
   echo "expected_model_sha256=${expected_model_sha256}"
   echo "model_sha256=${model_sha256}"
   echo "model_repository=${model_repository}"
   echo "model_revision=${model_revision}"
   echo "model_license=${model_license}"
+  echo "model_quantization=${model_quantization}"
   echo "llama_server=${llama_server}"
   echo "expected_llama_server_sha256=${expected_llama_server_sha256}"
   echo "llama_server_sha256=${llama_server_sha256}"
@@ -795,11 +1000,19 @@ LC_ALL=C rocm-smi > "${output_dir}/rocm-smi.txt" 2>&1
 
 (
   cd -- "${output_dir}"
-  sha256sum \
-    manifest.txt system.txt rocminfo.txt rocm-smi.txt rocm-version.txt git.txt \
-    retrieval.json agent-quality.json agent-benchmark.json rocm-monitor.log llama-server.log \
-    live-rocm.log \
-    binding-manifest.txt
+  checksum_files=(
+    manifest.txt system.txt rocminfo.txt rocm-smi.txt rocm-version.txt git.txt
+    retrieval.json agent-quality.json stress.json agent-benchmark.json
+    rocm-monitor.log llama-server.log live-rocm.log binding-manifest.txt
+    runtime-instance.json
+  )
+  if [[ -n "${context_selection_file}" ]]; then
+    checksum_files+=(context-selection.json)
+  fi
+  if [[ -n "${context_proof_file}" ]]; then
+    checksum_files+=(context-proof.json)
+  fi
+  sha256sum "${checksum_files[@]}"
 ) > "${output_dir}/SHA256SUMS.txt"
 
 echo "ROCm evidence for run ${run_id} written to new directory: ${output_dir}"
