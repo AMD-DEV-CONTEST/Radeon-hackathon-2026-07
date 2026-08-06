@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bunker — Private AI Agent on AMD Radeon / ROCm</title>
+<style>
+  :root {
+    --bg: #0D1117; --panel: #161B22; --border: #30363D;
+    --text: #C9D1D9; --muted: #8B949E;
+    --blue: #58A6FF; --green: #3FB950; --amber: #D29922;
+    --orange: #F78166; --purple: #BC8CFF; --cyan: #56D4DD;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", system-ui, sans-serif;
+    padding: 40px 8vw;
+  }
+  .hero { text-align: center; padding: 24px 0 8px; }
+  .hero h1 { font-size: 52px; letter-spacing: 1px; }
+  .hero h1 .lock { color: var(--green); }
+  .hero .tagline { color: var(--muted); font-size: 20px; margin-top: 8px; }
+  .badges { margin-top: 16px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .badge {
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 6px 14px; font-size: 14px; color: var(--text);
+  }
+  .badge.amd { border-color: var(--orange); color: var(--orange); }
+  .badge.rocm { border-color: var(--purple); color: var(--purple); }
+  .badge.loc { border-color: var(--green); color: var(--green); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px;
+  }
+  .panel h2 { font-size: 18px; margin-bottom: 14px; }
+  .panel.wide { grid-column: 1 / -1; }
+  .panel.wide img { width: 100%; border-radius: 8px; }
+  .feat { display: flex; gap: 12px; margin-bottom: 12px; align-items: flex-start; }
+  .feat .ic { font-size: 22px; width: 28px; text-align: center; }
+  .feat b { color: var(--text); }
+  .feat span { color: var(--muted); display: block; font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 14px; }
+  th { color: var(--muted); font-weight: 600; }
+  .accent-blue { color: var(--blue); } .accent-green { color: var(--green); }
+  .accent-amber { color: var(--amber); } .accent-orange { color: var(--orange); }
+  .accent-purple { color: var(--purple); } .accent-cyan { color: var(--cyan); }
+  .footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 32px; }
+  .badge-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pill { background: #21262D; border-radius: 6px; padding: 4px 10px; font-size: 13px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+  <div class="hero">
+    <h1>Bunker <span class="lock">🔒</span></h1>
+    <div class="tagline">Your AI. Your Data. Your Machine. — A fully local private AI agent on AMD Radeon GPUs</div>
+    <div class="badges">
+      <span class="badge amd">AMD Radeon GPU</span>
+      <span class="badge rocm">ROCm 6.2</span>
+      <span class="badge loc">Zero Data Exfiltration</span>
+      <span class="badge">Track 2 · Private AI Agent</span>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <div class="panel">
+      <h2 class="accent-orange">Problem</h2>
+      <p>Enterprise teams handling legal, medical, and financial data cannot use
+      cloud AI without risking data exfiltration and compliance violations
+      (GDPR / HIPAA).</p>
+      <p style="margin-top:10px"><b class="accent-green">Bunker</b> runs a
+      full ReAct agent, RAG, memory, and tool chain <i>entirely on your AMD
+      Radeon GPU via ROCm</i> — cloud-grade reasoning, zero data leaves the
+      machine.</p>
+    </div>
+
+    <div class="panel">
+      <h2 class="accent-green">Five Capabilities</h2>
+      <div class="feat"><div class="ic">📚</div><div><b>Local RAG</b><span>Multi-hop retrieval over ChromaDB with ROCm GPU embeddings, grounded [pid] citations.</span></div></div>
+      <div class="feat"><div class="ic">🛠️</div><div><b>Tool Invocation</b><span>9 gated DSPy tools: file, email, calendar, web, memory.</span></div></div>
+      <div class="feat"><div class="ic">🧠</div><div><b>Multi-Step Planning</b><span>DSPy task planner decomposes complex requests.</span></div></div>
+      <div class="feat"><div class="ic">💬</div><div><b>Multi-Turn Memory</b><span>SQLite session store with token-aware context management.</span></div></div>
+      <div class="feat"><div class="ic">🔒</div><div><b>Permission Control</b><span>Human-in-the-loop gating on every irreversible action.</span></div></div>
+    </div>
+
+    <div class="panel wide">
+      <h2 class="accent-cyan">System Architecture</h2>
+      <img src="architecture.png" alt="Bunker system architecture">
+    </div>
+
+    <div class="panel wide">
+      <h2 class="accent-green">Performance on AMD Radeon RX 7900 XTX · ROCm 6.2</h2>
+      <table>
+        <tr><th>Precision</th><th>TTFT</th><th>Throughput</th><th>VRAM</th><th>Privacy</th><th>Cost / 1M tokens</th></tr>
+        <tr><td>INT4 (GPTQ)</td><td>85 ms</td><td>65 tok/s</td><td>11 GB</td><td>100% local</td><td>$0.00</td></tr>
+        <tr><td>INT8 (GPTQ)</td><td>125 ms</td><td>35 tok/s</td><td>18 GB</td><td>100% local</td><td>$0.00</td></tr>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2 class="accent-purple">Tech Stack</h2>
+      <div class="badge-row">
+        <span class="pill">vLLM on ROCm</span>
+        <span class="pill">DSPy (ReAct)</span>
+        <span class="pill">ChromaDB</span>
+        <span class="pill">SQLite</span>
+        <span class="pill">AutoGPTQ INT4/INT8</span>
+        <span class="pill">Gradio UI</span>
+        <span class="pill">FastAPI</span>
+        <span class="pill">Docker</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 class="accent-blue">Use Cases</h2>
+      <ul style="margin-left:18px; line-height:1.7">
+        <li>Legal: contract &amp; precedent review without PII exposure</li>
+        <li>Medical: HIPAA-safe patient record processing</li>
+        <li>Finance: unreleased earnings analysis (MNPI stays local)</li>
+        <li>Software: debugging proprietary code, no IP leakage</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    Bunker · AMD AI DevMaster Hackathon 2026 · Track 2 — Private AI Agent<br>
+    Architecture &amp; agent-loop diagrams rendered in <span style="color:var(--text)">docs/ARCHITECTURE.md</span>
+  </div>
+
+</body>
+</html>

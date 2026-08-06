@@ -1,0 +1,40 @@
+services:
+  bunker:
+    build: .
+    ports:
+      - "7860:7860"
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+    environment:
+      - HIP_VISIBLE_DEVICES=0
+      - PYTORCH_HIP_ALLOC_CONF=max_split_size_mb:512
+      # pydantic-settings prefix is BUNKER_ with a __ nested delimiter:
+      # BUNKER_<SECTION>__<FIELD> (single underscore after the prefix).
+      - BUNKER_INFERENCE__PRIMARY_MODEL=Qwen/Qwen3-30B-A3B
+      - BUNKER_INFERENCE__SECONDARY_MODEL=meta-llama/Llama-3.1-8B-Instruct
+      - BUNKER_INFERENCE__QUANTIZATION=gptq
+      - BUNKER_INFERENCE__DTYPE=float16
+      - BUNKER_INFERENCE__MAX_MODEL_LEN=32768
+      - BUNKER_INFERENCE__VLLM_PORT=8000
+      - BUNKER_INFERENCE__GPU_MEMORY_UTILIZATION=0.85
+      - BUNKER_RAG__EMBEDDING_MODEL=BAAI/bge-large-en-v1.5
+      - BUNKER_SERVER__PORT=7860
+      - BUNKER_SERVER__HOST=0.0.0.0
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+    security_opt:
+      - seccomp:unconfined
+    ipc: host
+    shm_size: '16gb'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    restart: unless-stopped

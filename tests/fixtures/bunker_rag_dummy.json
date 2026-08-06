@@ -1,0 +1,115 @@
+{
+  "generate_query.predict": {
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "claim": "Where is the Eiffel Tower?",
+        "notes": [],
+        "query": "Eiffel Tower city"
+      }
+    ],
+    "signature": {
+      "instructions": "Given a claim and notes gathered so far, generate the next search query to find more evidence.",
+      "fields": [
+        {
+          "prefix": "Claim:",
+          "description": "The user's question."
+        },
+        {
+          "prefix": "Notes:",
+          "description": "Evidence gathered so far, as a numbered list."
+        },
+        {
+          "prefix": "Reasoning:",
+          "description": "${reasoning}"
+        },
+        {
+          "prefix": "Query:",
+          "description": "A specific search query for the next retrieval hop."
+        }
+      ]
+    },
+    "lm": null
+  },
+  "append_notes.predict": {
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "claim": "Where is the Eiffel Tower?",
+        "notes": [],
+        "context": "[1] The Eiffel Tower is in Paris.",
+        "new_notes": [
+          "The Eiffel Tower is in Paris."
+        ]
+      }
+    ],
+    "signature": {
+      "instructions": "Given a claim, notes, and new search results, extract new notes from the results.",
+      "fields": [
+        {
+          "prefix": "Claim:",
+          "description": "The user's question."
+        },
+        {
+          "prefix": "Notes:",
+          "description": "Evidence gathered so far, as a numbered list."
+        },
+        {
+          "prefix": "Context:",
+          "description": "Newly retrieved passages, as a numbered list."
+        },
+        {
+          "prefix": "Reasoning:",
+          "description": "${reasoning}"
+        },
+        {
+          "prefix": "New Notes:",
+          "description": "New facts extracted from the new passages."
+        }
+      ]
+    },
+    "lm": null
+  },
+  "answer_grounded.predict": {
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "question": "Where is the Eiffel Tower?",
+        "context": "[1] The Eiffel Tower is in Paris.",
+        "answer": "The Eiffel Tower is in Paris. [1]"
+      }
+    ],
+    "signature": {
+      "instructions": "Answer questions with short factoid answers using only the provided context.\n\nCite the passages you rely on in the answer using their [pid] numbers from\nthe numbered context list, e.g. \"[1]\" for the first passage.",
+      "fields": [
+        {
+          "prefix": "Context:",
+          "description": "Evidence notes accumulated across retrieval hops, as a numbered list."
+        },
+        {
+          "prefix": "Question:",
+          "description": "The user's question."
+        },
+        {
+          "prefix": "Reasoning:",
+          "description": "${reasoning}"
+        },
+        {
+          "prefix": "Answer:",
+          "description": "A factual answer grounded in the context, citing supporting passages as [pid] numbers."
+        }
+      ]
+    },
+    "lm": null
+  },
+  "metadata": {
+    "dependency_versions": {
+      "python": "3.10",
+      "dspy": "3.3.0",
+      "cloudpickle": "3.1"
+    }
+  }
+}
