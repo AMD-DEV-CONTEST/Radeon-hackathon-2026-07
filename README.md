@@ -4,7 +4,7 @@
 
 This project contains a local-first voice diary for the AMD AI Hackathon. Contact [ziangzhang1997@gmail.com](mailto:ziangzhang1997@gmail.com) for questions.
 
-DEMO: 
+DEMO: [https://github.com/user-attachments/assets/16eb0080-623d-427b-bc43-8f327751624e](https://github.com/user-attachments/assets/16eb0080-623d-427b-bc43-8f327751624e)
 
 <video controls width="100%">
   <source src="https://github.com/user-attachments/assets/16eb0080-623d-427b-bc43-8f327751624e" type="video/mp4">
