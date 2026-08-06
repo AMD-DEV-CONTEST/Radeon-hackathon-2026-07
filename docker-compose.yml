@@ -1,0 +1,198 @@
+name: buildguard-radeon
+
+x-buildguard: &buildguard
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: buildguard-radeon:local
+  restart: unless-stopped
+  volumes:
+    - ./configs:/opt/buildguard/configs:ro
+    - ./workspace:/opt/buildguard/workspace
+  networks:
+    buildguard-local:
+
+x-buildguard-rocm: &buildguard-rocm
+  build:
+    context: .
+    dockerfile: Dockerfile.rocm
+    args:
+      ROCM_BASE_IMAGE: ${ROCM_PYTORCH_IMAGE:?Set ROCM_PYTORCH_IMAGE to the validated AMD ROCm PyTorch image}
+  image: buildguard-radeon:rocm-local
+  restart: unless-stopped
+  ipc: host
+  user: ${BUILDGUARD_CONTAINER_USER:-0:0}
+  group_add:
+    - ${ROCM_RENDER_GID:-109}
+    - ${ROCM_VIDEO_GID:-44}
+  devices:
+    - ${ROCM_KFD_DEVICE:-/dev/kfd}:${ROCM_KFD_DEVICE:-/dev/kfd}
+    - ${ROCM_DRI_DEVICE:-/dev/dri}:${ROCM_DRI_DEVICE:-/dev/dri}
+  volumes:
+    - ./configs:/opt/buildguard/configs:ro
+    - ${BUILDGUARD_PERSISTENT_ROOT:-/workspace/persistent/buildguard}:/workspace/persistent/buildguard
+  networks:
+    buildguard-local:
+
+services:
+  api-mock:
+    <<: *buildguard
+    profiles: [mock, full-demo]
+    command:
+      - uvicorn
+      - buildguard.api.app:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+    environment:
+      BUILDGUARD_LLM__MODE: mock
+    ports:
+      - "127.0.0.1:8000:8000"
+    networks:
+      buildguard-local:
+        ipv4_address: 172.30.0.20
+
+  ui:
+    <<: *buildguard
+    profiles: [full-demo]
+    command:
+      - streamlit
+      - run
+      - src/buildguard/ui/app.py
+      - --server.address
+      - 0.0.0.0
+      - --server.port
+      - "8501"
+      - --server.headless
+      - "true"
+    environment:
+      BUILDGUARD_SERVICES__API_BASE_URL: http://172.30.0.20:8000
+      BUILDGUARD_PERMISSIONS__ALLOWED_LAN_CIDRS: '["172.30.0.0/24"]'
+    ports:
+      - "127.0.0.1:8501:8501"
+    depends_on:
+      - api-mock
+
+  llama-cpp:
+    image: ${LLAMA_CPP_IMAGE:-local/llama-cpp-rocm:latest}
+    pull_policy: never
+    profiles: [llama-cpp, rocm-app]
+    restart: unless-stopped
+    command:
+      - --model
+      - /models/${LLAMA_CPP_MODEL_FILE:-model.gguf}
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+    volumes:
+      - ${BUILDGUARD_MODEL_DIR:-./models}:/models:ro
+    devices:
+      - ${ROCM_KFD_DEVICE:-/dev/kfd}:${ROCM_KFD_DEVICE:-/dev/kfd}
+      - ${ROCM_DRI_DEVICE:-/dev/dri}:${ROCM_DRI_DEVICE:-/dev/dri}
+    networks:
+      buildguard-local:
+        ipv4_address: 172.30.0.10
+
+  api-llama-cpp:
+    <<: *buildguard
+    profiles: [llama-cpp]
+    command:
+      - uvicorn
+      - buildguard.api.app:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+    environment:
+      BUILDGUARD_LLM__MODE: local
+      BUILDGUARD_LLM__ENDPOINT: http://172.30.0.10:8080/v1
+      BUILDGUARD_PERMISSIONS__ALLOW_LAN_LLM: "true"
+      BUILDGUARD_PERMISSIONS__ALLOWED_LAN_CIDRS: '["172.30.0.0/24"]'
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      - llama-cpp
+
+  vllm-rocm:
+    image: ${VLLM_ROCM_IMAGE:-local/vllm-rocm:latest}
+    pull_policy: never
+    profiles: [vllm-rocm]
+    restart: unless-stopped
+    command:
+      - --model
+      - /models/${VLLM_MODEL_DIR:-model}
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+    volumes:
+      - ${BUILDGUARD_MODEL_DIR:-./models}:/models:ro
+    devices:
+      - ${ROCM_KFD_DEVICE:-/dev/kfd}:${ROCM_KFD_DEVICE:-/dev/kfd}
+      - ${ROCM_DRI_DEVICE:-/dev/dri}:${ROCM_DRI_DEVICE:-/dev/dri}
+    networks:
+      buildguard-local:
+        ipv4_address: 172.30.0.11
+
+  api-vllm-rocm:
+    <<: *buildguard
+    profiles: [vllm-rocm]
+    command:
+      - uvicorn
+      - buildguard.api.app:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+    environment:
+      BUILDGUARD_LLM__MODE: local
+      BUILDGUARD_LLM__ENDPOINT: http://172.30.0.11:8080/v1
+      BUILDGUARD_PERMISSIONS__ALLOW_LAN_LLM: "true"
+      BUILDGUARD_PERMISSIONS__ALLOWED_LAN_CIDRS: '["172.30.0.0/24"]'
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      - vllm-rocm
+
+  api-rocm:
+    <<: *buildguard-rocm
+    profiles: [rocm-app]
+    command:
+      - buildguard
+      - serve-api
+      - --config
+      - configs/competition/app.yaml
+    environment:
+      BUILDGUARD_LLM__MODE: local
+      BUILDGUARD_LLM__ENDPOINT: http://172.30.0.10:8080/v1
+      BUILDGUARD_PERMISSIONS__ALLOW_LAN_LLM: "true"
+      BUILDGUARD_PERMISSIONS__ALLOWED_LAN_CIDRS: '["172.30.0.0/24"]'
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      - llama-cpp
+
+  ui-rocm:
+    <<: *buildguard-rocm
+    profiles: [rocm-app]
+    command:
+      - buildguard
+      - serve-ui
+      - --config
+      - configs/competition/app.yaml
+    environment:
+      BUILDGUARD_SERVICES__API_BASE_URL: http://172.30.0.20:8000
+      BUILDGUARD_PERMISSIONS__ALLOWED_LAN_CIDRS: '["172.30.0.0/24"]'
+    ports:
+      - "127.0.0.1:8501:8501"
+    depends_on:
+      - api-rocm
+
+networks:
+  buildguard-local:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24

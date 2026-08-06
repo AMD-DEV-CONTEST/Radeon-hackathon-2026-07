@@ -1,0 +1,2 @@
+"""Local construction visual inspection."""
+

@@ -1,0 +1,28 @@
+ARG ROCM_BASE_IMAGE
+FROM ${ROCM_BASE_IMAGE}
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1 \
+    HF_DATASETS_OFFLINE=1
+
+WORKDIR /opt/buildguard
+
+COPY pyproject.toml README.md ./
+COPY src ./src
+COPY configs ./configs
+COPY docs ./docs
+COPY scripts ./scripts
+
+# The base image must already provide mutually compatible ROCm torch,
+# torchvision and triton builds. Installing the project does not fetch models.
+RUN python -m pip install --no-cache-dir ".[amd,pdf,mobileclip]" \
+    && python scripts/verify_amd_dependencies.py --profile runtime
+
+RUN mkdir -p /workspace/persistent/buildguard
+
+EXPOSE 8000 8501
+
+CMD ["buildguard", "serve-api", "--config", "configs/competition/app.yaml"]

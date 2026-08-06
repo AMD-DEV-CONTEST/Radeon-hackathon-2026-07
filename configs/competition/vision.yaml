@@ -1,0 +1,348 @@
+vision:
+  allowed_image_roots:
+    - /persistent/BuildGuard-Radeon-backup/workspace/uploads
+  visualization_dir: /persistent/BuildGuard-Radeon-backup/workspace/events/images
+  batch_max_items: 50
+  requires_review_threshold: 0.65
+  http_timeout_seconds: 30.0
+  http_retry_attempts: 2
+  http_retry_wait_seconds: 0.1
+  upload:
+    max_files: 20
+    max_file_bytes: 20971520
+    max_total_bytes: 104857600
+    chunk_bytes: 1048576
+    allowed_extensions: [.jpg, .jpeg, .png]
+    allowed_mime_types: [image/jpeg, image/png]
+  video_upload:
+    max_files: 1
+    max_file_bytes: 536870912
+    max_total_bytes: 536870912
+    chunk_bytes: 1048576
+    allowed_extensions: [.mp4, .avi, .mov, .mkv]
+    allowed_mime_types:
+      - video/mp4
+      - video/x-msvideo
+      - video/quicktime
+      - video/x-matroska
+      - application/octet-stream
+  models:
+    - model_name: yolo11-ppe
+      backend: local
+      local_adapter: yolo11
+      model_path: /persistent/BuildGuard-Radeon-backup/models/vision/yolo11-ppe/yolo11m_safety.pt
+      model_sha256: "f53324f39d76da6017d41038e74f95b3dceb33524738721e03f69f3ea58a1ece"
+      yolo_class_mapping:
+        nohat: missing_helmet
+        novest: missing_vest
+        person: person
+      batch_size: 4
+      applicable_roi_types:
+        - "*"
+      defect_classes:
+        - missing_helmet
+        - missing_vest
+        - person
+      input_size: [640, 640]
+      confidence_threshold: 0.35
+      nms_iou: 0.50
+      device: cpu
+      estimated_latency_ms: 60.0
+      estimated_memory_mb: 2048.0
+      reliability: 0.90
+      fixed_call_cost: 0.05
+      high_risk_relevance: 0.90
+      enabled: true
+    - model_name: yolov8-crack-seg
+      backend: local
+      local_adapter: yolo11
+      model_path: /persistent/BuildGuard-Radeon-backup/models/vision/yolov8-crack-seg/best.pt
+      model_sha256: "fdc7471f61e07cb7028124c1e63231291e2500021478034688f06131472169e5"
+      yolo_class_mapping:
+        crack: concrete_crack
+      batch_size: 4
+      applicable_roi_types: [concrete, wall, slab, beam, column]
+      defect_classes:
+        - concrete_crack
+      input_size: [640, 640]
+      confidence_threshold: 0.35
+      nms_iou: 0.50
+      device: cpu
+      estimated_latency_ms: 80.0
+      estimated_memory_mb: 512.0
+      reliability: 0.85
+      fixed_call_cost: 0.05
+      high_risk_relevance: 0.75
+      enabled: true
+    - model_name: kompon-damage-severity
+      backend: local
+      local_adapter: yolo11
+      model_path: /persistent/BuildGuard-Radeon-backup/models/vision/kompon-damage-severity/best.pt
+      model_sha256: "a6c1b90ccfe8e11887043c36887de7dcf4b8afa1f1db2360662aba9a2a91370c"
+      yolo_class_mapping:
+        microcrack: damage_moderate
+        structural_crack: damage_moderate
+        spalling: damage_moderate
+        rebar_corrosion: steel_corrosion
+        severe_distress: damage_severe
+      batch_size: 4
+      applicable_roi_types: [structure, equipment, concrete, wall]
+      defect_classes:
+        - damage_moderate
+        - damage_severe
+        - steel_corrosion
+      input_size: [640, 640]
+      confidence_threshold: 0.35
+      nms_iou: 0.50
+      device: cpu
+      estimated_latency_ms: 80.0
+      estimated_memory_mb: 512.0
+      reliability: 0.85
+      fixed_call_cost: 0.05
+      high_risk_relevance: 0.90
+      enabled: true
+    - model_name: yolov-corrosion
+      backend: local
+      local_adapter: yolo11
+      model_path: /persistent/BuildGuard-Radeon-backup/models/vision/yolov-corrosion/best.pt
+      model_sha256: "77035a7c890c91c7576b3afbd5f6750d6b59387c30268eac48fbc11c7b07730d"
+      yolo_class_mapping:
+        Rust: damage_minor
+        rust: damage_minor
+        iron rust: damage_minor
+        mild-corrosion: damage_minor
+        moderate-corrosion: damage_moderate
+        corrosion: steel_corrosion
+        corroded-part: steel_corrosion
+        severe-corrosion: steel_corrosion
+        copper corrosion: steel_corrosion
+      batch_size: 4
+      applicable_roi_types: [steel, rebar, scaffold, beam, column]
+      defect_classes:
+        - damage_minor
+        - damage_moderate
+        - steel_corrosion
+      input_size: [640, 640]
+      confidence_threshold: 0.35
+      nms_iou: 0.50
+      device: cpu
+      estimated_latency_ms: 80.0
+      estimated_memory_mb: 512.0
+      reliability: 0.85
+      fixed_call_cost: 0.05
+      high_risk_relevance: 0.95
+      enabled: true
+    - model_name: rtdetr-v2-concrete-crack
+      backend: local
+      local_adapter: rtdetr_v2
+      model_path: /persistent/BuildGuard-Radeon-backup/models/vision/rtdetr-v2-concrete-crack/model.safetensors
+      model_config_path: /persistent/BuildGuard-Radeon-backup/models/vision/rtdetr-v2-concrete-crack/config.json
+      model_manifest_path: /persistent/BuildGuard-Radeon-backup/models/vision/rtdetr-v2-concrete-crack/model-manifest.json
+      model_revision: TRAIN_ON_AMD
+      model_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+      class_mapping: {0: concrete_crack}
+      batch_size: 4
+      applicable_roi_types: [concrete, wall, slab, beam, column]
+      defect_classes: [concrete_crack]
+      input_size: [640, 640]
+      confidence_threshold: 0.35
+      nms_iou: 0.50
+      device: cuda
+      estimated_latency_ms: 80.0
+      estimated_memory_mb: 4096.0
+      reliability: 0.90
+      fixed_call_cost: 0.05
+      high_risk_relevance: 0.75
+      enabled: false
+    - model_name: rtdetr-v2-concrete-surface
+      backend: local
+      local_adapter: rtdetr_v2
+      model_path: /persistent/BuildGuard-Radeon-backup/models/vision/rtdetr-v2-concrete-surface/model.safetensors
+      model_config_path: /persistent/BuildGuard-Radeon-backup/models/vision/rtdetr-v2-concrete-surface/config.json
+      model_manifest_path: /persistent/BuildGuard-Radeon-backup/models/vision/rtdetr-v2-concrete-surface/model-manifest.json
+      model_revision: TRAIN_ON_AMD
+      model_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+      class_mapping: {0: concrete_spalling, 1: concrete_honeycomb}
+      batch_size: 4
+      applicable_roi_types: [concrete, wall, slab, beam, column]
+      defect_classes: [concrete_spalling, concrete_honeycomb]
+      input_size: [640, 640]
+      confidence_threshold: 0.35
+      nms_iou: 0.50
+      device: cuda
+      estimated_latency_ms: 80.0
+      estimated_memory_mb: 4096.0
+      reliability: 0.90
+      fixed_call_cost: 0.05
+      high_risk_relevance: 0.80
+      enabled: false
+    - model_name: rtdetr-v2-steel-corrosion
+      backend: local
+      local_adapter: rtdetr_v2
+      model_path: /persistent/BuildGuard-Radeon-backup/models/vision/rtdetr-v2-steel-corrosion/model.safetensors
+      model_config_path: /persistent/BuildGuard-Radeon-backup/models/vision/rtdetr-v2-steel-corrosion/config.json
+      model_manifest_path: /persistent/BuildGuard-Radeon-backup/models/vision/rtdetr-v2-steel-corrosion/model-manifest.json
+      model_revision: TRAIN_ON_AMD
+      model_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+      class_mapping: {0: steel_corrosion}
+      batch_size: 4
+      applicable_roi_types: [steel, rebar, scaffold, beam, column]
+      defect_classes: [steel_corrosion]
+      input_size: [640, 640]
+      confidence_threshold: 0.35
+      nms_iou: 0.50
+      device: cuda
+      estimated_latency_ms: 80.0
+      estimated_memory_mb: 4096.0
+      reliability: 0.90
+      fixed_call_cost: 0.05
+      high_risk_relevance: 0.75
+      enabled: false
+    - model_name: rtdetr-v2-edge-guardrail
+      backend: local
+      local_adapter: rtdetr_v2
+      model_path: /persistent/BuildGuard-Radeon-backup/models/vision/rtdetr-v2-edge-guardrail/model.safetensors
+      model_config_path: /persistent/BuildGuard-Radeon-backup/models/vision/rtdetr-v2-edge-guardrail/config.json
+      model_manifest_path: /persistent/BuildGuard-Radeon-backup/models/vision/rtdetr-v2-edge-guardrail/model-manifest.json
+      model_revision: TRAIN_ON_AMD
+      model_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+      class_mapping: {0: unsafe_edge, 1: guardrail}
+      batch_size: 4
+      applicable_roi_types: [edge, opening, balcony, floor]
+      defect_classes: [unsafe_edge, guardrail]
+      input_size: [640, 640]
+      confidence_threshold: 0.35
+      nms_iou: 0.50
+      device: cuda
+      estimated_latency_ms: 80.0
+      estimated_memory_mb: 4096.0
+      reliability: 0.92
+      fixed_call_cost: 0.05
+      high_risk_relevance: 0.95
+      enabled: false
+  routing:
+    enabled: true
+    prior_probability: 0.45
+    model_priors:
+      yolo11-ppe: 0.55
+    probability_alpha: 2.0
+    probability_beta: 1.0
+    probability_gamma: 1.0
+    probability_delta: 1.0
+    temporal_alpha: 0.60
+    latency_reference_ms: 100.0
+    memory_reference_mb: 1024.0
+    latency_weight: 0.45
+    memory_weight: 0.35
+    benefit_weight: 1.0
+    coverage_weight: 0.35
+    cost_weight: 0.35
+    call_count_weight: 0.15
+    max_models_per_roi: 3
+    roi_budget: 2.0
+    min_models_high_risk: 2
+    guard_budget_overrun_ratio: 0.25
+    low_confidence_threshold: 0.50
+    small_roi_area_ratio: 0.02
+    poor_quality_threshold: 0.35
+    top_probability_gap: 0.08
+    rule_high_risk_relevance_threshold: 0.60
+    high_risk_roi_types:
+      - dangerous_zone
+      - emergency
+  semantic_router:
+    enabled: true
+    required: true
+    resident: true
+    model_name: MobileCLIP2-S0
+    model_path: /persistent/BuildGuard-Radeon-backup/models/vision/mobileclip2-s0/mobileclip2_s0.pt
+    model_revision: 2ba81a63a97707b25b0f90bcfda38b48b2cbd950
+    model_sha256: "bc3bc861baa680df2f9e3dc1aa0acbe5a21af21032df385026dda70c33505aa6"
+    device: cuda
+    precision: fp16
+    semantic_weight: 0.70
+    cache_max_items: 256
+    estimated_memory_mb: 512
+    experts:
+      yolo11-ppe:
+        positive:
+          - construction workers
+          - a person working at a construction site
+          - workers wearing safety equipment
+          - a worker without a helmet
+        negative:
+          - an empty construction site
+          - construction equipment without people
+        temperature: 0.07
+      yolov8-crack-seg:
+        positive:
+          - a crack on a concrete wall
+          - cracks in a concrete road
+          - a cracked beam or column
+        negative:
+          - an intact smooth concrete surface
+        temperature: 0.07
+      kompon-damage-severity:
+        positive:
+          - damaged concrete structure
+          - concrete spalling
+          - exposed reinforcing steel
+          - severe structural damage
+        negative:
+          - an intact concrete structure
+        temperature: 0.07
+      yolov-corrosion:
+        positive:
+          - rusted steel
+          - corroded reinforcing bars
+          - a corroded metal pipe
+          - severe metal corrosion
+        negative:
+          - clean uncorroded metal
+        temperature: 0.07
+  open_vocab:
+    enabled: false
+    model_name: grounding-dino-local
+    model_dir: null
+    device: cpu
+    prompt_allowlist:
+      - person
+      - safety helmet
+      - guardrail
+      - exposed cable
+    class_aliases:
+      worker: person
+      helmet: safety helmet
+    confidence_threshold: 0.35
+    batch_size: 8
+    unload_after_inference: false
+  segmentation:
+    enabled: false
+    model_name: sam2-local
+    model_dir: null
+    device: cpu
+    output_dir: /persistent/BuildGuard-Radeon-backup/workspace/events/masks
+    area_required_classes:
+      - unsafe_edge
+      - exposed_wiring
+    batch_size: 4
+    min_confidence: 0.0
+    min_stability: 0.0
+    unload_after_inference: false
+  risk:
+    base_severity:
+      missing_helmet: 0.75
+      unsafe_edge: 0.90
+      exposed_wiring: 0.85
+      concrete_crack: 0.75
+      steel_corrosion: 0.85
+      damage_minor: 0.40
+      damage_moderate: 0.65
+      damage_severe: 0.90
+    default_severity: 0.50
+    location_top: 0.80
+    location_middle: 0.55
+    location_bottom: 0.35
+    default_evidence_strength: 0.20
+    duration_reference_seconds: 60
+    frequency_reference_count: 5
