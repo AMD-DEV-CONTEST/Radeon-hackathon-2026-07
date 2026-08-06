@@ -135,5 +135,6 @@ A `Dockerfile` and `docker-compose.yml` are included. For AMD ROCm reproduction,
 - Source code: `Timo_CNC-AI-Brain-v12.0-Fusion/` in this repository
 - Architecture: `docs/ARCHITECTURE.md`
 - Product overview: `docs/product_brochure.md`
-- Demo video: `demo_Video/8月6日.mov`
+- Demo video: `Timo_CNC-AI-Brain-v12.0-Fusion/demo_Video/demo_video_20260806.mp4`
+- Demo video (Bilibili): https://www.bilibili.com/video/BV1yGuE6JEf5/?vd_source=8eb1add0760aa9059b9428c508bc1393
 - Poster: `demo_PPT/Unionskill_Timo.pdf`
