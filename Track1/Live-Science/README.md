@@ -6,7 +6,8 @@ Live-Science turns concepts from technical or educational documents into dynamic
 
 - Team: **66%G**
 - Project profile: [`live-science-report-updated.pdf`](live-science-report-updated.pdf)
-- Demo video: [`demo.mp4`](https://github.com/HowardGuan24/Live-Science/blob/main/demo.mp4)
+- Demo video: [Watch on Google Drive](https://drive.google.com/file/d/1WiKngK1Qb3K8f0hbds_L7cp1vAqP7ewZ/view?usp=sharing)
+- Demo video backup: [Download `demo.mp4` from GitHub](https://raw.githubusercontent.com/HowardGuan24/Live-Science/main/demo.mp4)
 - Poster: [`poster.png`](poster.png)
 - Dedicated source repository: [HowardGuan24/Live-Science](https://github.com/HowardGuan24/Live-Science)
 
