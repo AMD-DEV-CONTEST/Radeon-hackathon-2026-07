@@ -212,9 +212,51 @@ mv "${MOTRIX_RUN_DIR}/play_video.mp4" \
 
 The current Motrix camera adapter consumes `cam_tracking`, `cam_distance`, `cam_elevation`, and `cam_azimuth`. It does not interpret `training.play_camera_mode=topdown` as a route-overlay renderer, so the competition package intentionally uses a single Motrix third-person view.
 
-### 2.4 PPO Evaluation and Rendering
+### 2.4 PPO Training, Evaluation, and Rendering
 
-Both PPO artifacts are committed to this repository and can be evaluated or rendered without retraining.
+The submitted PPO checkpoints can be evaluated and rendered directly. To reproduce the PPO training stages, run the dedicated scripts from the UniLab repository root:
+
+```bash
+# Reproduce the final aerial-combo PPO training stage.
+scripts/motion/train_g1_acrobatic_combo.sh 1800
+
+# Download the wall-flip initialization checkpoint if needed.
+uv run --no-sync demo wallflip
+
+# Close the interactive demo, then reproduce the wall-assisted-backflip fine-tuning stage.
+scripts/motion/train_g1_wall_flip_ppo.sh 500
+```
+
+For complete prerequisites, optional arguments, training configurations, evaluation commands, artifact provenance, and known limitations, see:
+
+- [Aerial Combo PPO reproduction report](https://github.com/JasonZhw/UniLab/blob/a628f3e738cf78ad0958a0e837f85dc0d7137d52/docs/amd_hackathon_g1_acrobatic_combo.md)
+- [Wall-Assisted Backflip PPO reproduction report](https://github.com/JasonZhw/UniLab/blob/a628f3e738cf78ad0958a0e837f85dc0d7137d52/docs/amd_hackathon_g1_wall_flip_ppo.md)
+
+#### Evaluating and Rendering the Bundled Checkpoints
+
+#### Re-running PPO Training
+
+Re-run the final aerial-combo PPO training stage:
+
+```bash
+scripts/motion/train_g1_acrobatic_combo.sh 1800
+```
+
+Download the wall-flip initialization checkpoint if it is not already available, then re-run the fine-tuning stage:
+
+```bash
+uv run --no-sync demo wallflip
+
+# Close the interactive demo after the download completes.
+scripts/motion/train_g1_wall_flip_ppo.sh 500
+```
+
+For complete prerequisites, optional arguments, training configurations, evaluation commands, artifact provenance, and known limitations, see:
+
+- [Aerial Combo PPO reproduction report](https://github.com/JasonZhw/UniLab/blob/a628f3e738cf78ad0958a0e837f85dc0d7137d52/docs/amd_hackathon_g1_acrobatic_combo.md)
+- [Wall-Assisted Backflip PPO reproduction report](https://github.com/JasonZhw/UniLab/blob/a628f3e738cf78ad0958a0e837f85dc0d7137d52/docs/amd_hackathon_g1_wall_flip_ppo.md)
+
+#### Evaluating and Rendering the Bundled Checkpoints
 
 Evaluate and render the aerial combo:
 
