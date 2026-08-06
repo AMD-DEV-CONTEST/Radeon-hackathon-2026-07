@@ -134,32 +134,6 @@ class RightsCandidateModel(HistoryRecordingModel):
         return result
 
 
-class ReportRepairModel(FakeModelClient):
-    def __init__(self) -> None:
-        self.report_reasoning_budgets: list[int | None] = []
-
-    async def chat(
-        self,
-        messages: list[dict[str, Any]],
-        *,
-        temperature: float = 0.2,
-        max_tokens: int = 1200,
-        enable_thinking: bool | None = None,
-        reasoning_budget: int | None = None,
-    ) -> str:
-        if "StructuredReportDraft" in str(messages[0]["content"]):
-            self.report_reasoning_budgets.append(reasoning_budget)
-            if len(self.report_reasoning_budgets) == 1:
-                return "I reviewed the images, but this is not JSON."
-        return await super().chat(
-            messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            enable_thinking=enable_thinking,
-            reasoning_budget=reasoning_budget,
-        )
-
-
 @pytest.mark.asyncio
 async def test_graph_runs_all_core_capabilities(tmp_path: Path) -> None:
     database = SQLiteStore(tmp_path / "state.sqlite3")
@@ -216,7 +190,7 @@ async def test_graph_runs_all_core_capabilities(tmp_path: Path) -> None:
         }
     ]
     assert model.comparison_policies[-1] == (None, None)
-    assert model.report_policies[-1] == (None, None)
+    assert model.report_policies[-1] == (False, 0)
     assert [
         item["role"] for item in model.report_contexts[-1]["recent_thread_messages"]
     ] == ["user", "assistant"]
@@ -310,44 +284,6 @@ async def test_recognizable_character_becomes_a_separate_rights_finding(
     assert "closely resembles Snoopy" in result["report_markdown"]
     assert "not a determination" in result["report_markdown"]
     assert any("copyright" in card["tags"] for card in result["evidence"])
-
-
-@pytest.mark.asyncio
-async def test_json_repair_uses_the_expanded_reasoning_budget(tmp_path: Path) -> None:
-    database = SQLiteStore(tmp_path / "state.sqlite3")
-    database.initialize()
-    thread = database.create_thread("ada")
-    records = load_knowledge_records(
-        PROJECT_ROOT / "data/knowledge/cards.yaml",
-        PROJECT_ROOT / "data/knowledge/sources.yaml",
-    )
-    model = ReportRepairModel()
-    graph = build_graph(
-        GraphServices(
-            model=model,
-            knowledge=InMemoryKnowledgeStore(records, HashingEmbedder()),
-            database=database,
-            image_inspector=ImageInspector(20_000_000, 30_000_000),
-        )
-    )
-    image = next((PROJECT_ROOT / "data/fixtures/images").glob("*.jpg"))
-
-    result = await graph.ainvoke(
-        {
-            "thread_id": thread["id"],
-            "user_id": "ada",
-            "message": "Review this image for GitHub.",
-            "platform": "GitHub",
-            "audience": "international collaborators",
-            "intent_keywords": ["credible"],
-            "enabled_packs": ["profile_basics"],
-            "image_paths": [image],
-            "tool_trace": [],
-        }
-    )
-
-    assert result["report_markdown"].startswith("# XiangLens Review")
-    assert model.report_reasoning_budgets == [None, 2048]
 
 
 @pytest.mark.asyncio

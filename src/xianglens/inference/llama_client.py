@@ -12,7 +12,6 @@ from typing import Any, Protocol
 import httpx
 
 LOGGER = logging.getLogger(__name__)
-REASONING_RETRY_CEILING = 2048
 
 
 class ModelNotConfiguredError(RuntimeError):
@@ -131,27 +130,9 @@ class LlamaCppClient:
         )
         content = str(message.get("content") or "")
         if not content.strip() and message.get("reasoning_content") and use_thinking:
-            retry_budget = min(
-                REASONING_RETRY_CEILING,
-                max(use_reasoning_budget * 2, 1024),
-            )
             LOGGER.warning(
                 "Model exhausted the reasoning-enabled output before final content; "
-                "retrying with a %s-token reasoning budget",
-                retry_budget,
-            )
-            message = await self._completion_message(
-                messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                enable_thinking=True,
-                reasoning_budget=retry_budget,
-            )
-            content = str(message.get("content") or "")
-        if not content.strip() and message.get("reasoning_content") and use_thinking:
-            LOGGER.warning(
-                "Expanded reasoning still produced no final content; retrying once with "
-                "thinking disabled"
+                "retrying once with thinking disabled"
             )
             message = await self._completion_message(
                 messages,
@@ -236,5 +217,7 @@ class LlamaCppClient:
             ],
             temperature=0.1,
             max_tokens=1200,
+            enable_thinking=False,
+            reasoning_budget=0,
         )
         return parse_json_object(text)

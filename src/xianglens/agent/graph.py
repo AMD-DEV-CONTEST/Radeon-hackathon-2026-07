@@ -391,13 +391,20 @@ def build_graph(services: GraphServices):
         messages: list[dict[str, Any]], schema: type[ModelSchema], max_tokens: int
     ) -> ModelSchema:
         async def call_model(
-            call_messages: list[dict[str, Any]], *, temperature: float, repair: bool = False
+            call_messages: list[dict[str, Any]], *, temperature: float
         ) -> str:
+            if schema is CandidateComparison:
+                return await services.model.chat(
+                    call_messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
             return await services.model.chat(
                 call_messages,
                 temperature=temperature,
                 max_tokens=max_tokens,
-                reasoning_budget=2048 if repair else None,
+                enable_thinking=False,
+                reasoning_budget=0,
             )
 
         raw = await call_model(messages, temperature=0.1)
@@ -429,15 +436,12 @@ def build_graph(services: GraphServices):
                         },
                     ],
                     temperature=0.0,
-                    repair=True,
                 )
         if schema is FollowUpDraft and "did not contain a JSON object" in last_error:
             fallback = _plain_follow_up_fallback(raw)
             if fallback is not None:
                 return fallback
-        raise ModelRequestError(
-            f"Model JSON failed validation for {schema.__name__} after one repair: {last_error}"
-        )
+        raise ModelRequestError(f"Model JSON failed validation after one repair: {last_error}")
 
     async def intake(state: XiangLensState) -> dict[str, Any]:
         started = time.perf_counter()

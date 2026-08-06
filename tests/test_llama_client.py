@@ -51,16 +51,16 @@ async def test_multimodal_request_matches_openai_compatible_contract() -> None:
     assert captured["path"] == "/v1/chat/completions"
     assert captured["authorization"] == "Bearer secret"
     assert captured["body"]["model"] == "test-model"
-    assert captured["body"]["chat_template_kwargs"] == {"enable_thinking": True}
-    assert captured["body"]["reasoning_budget"] == 1024
-    assert captured["body"]["max_tokens"] == 2224
+    assert captured["body"]["chat_template_kwargs"] == {"enable_thinking": False}
+    assert captured["body"]["reasoning_budget"] == 0
+    assert captured["body"]["max_tokens"] == 1200
     user_content = captured["body"]["messages"][1]["content"]
     assert user_content[0] == {"type": "text", "text": "Describe visible evidence."}
     assert user_content[1]["image_url"]["url"].startswith("data:image/jpeg;base64,")
 
 
 @pytest.mark.asyncio
-async def test_reasoning_budget_exhaustion_retries_with_expanded_budget() -> None:
+async def test_reasoning_budget_exhaustion_retries_without_thinking() -> None:
     payloads: list[dict] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -99,50 +99,6 @@ async def test_reasoning_budget_exhaustion_retries_with_expanded_budget() -> Non
     assert payloads[0]["chat_template_kwargs"] == {"enable_thinking": True}
     assert payloads[0]["reasoning_budget"] == 512
     assert payloads[0]["max_tokens"] == 522
-    assert payloads[1]["chat_template_kwargs"] == {"enable_thinking": True}
-    assert payloads[1]["reasoning_budget"] == 1024
-    assert payloads[1]["max_tokens"] == 1034
-
-
-@pytest.mark.asyncio
-async def test_expanded_reasoning_exhaustion_has_a_final_no_thinking_fallback() -> None:
-    payloads: list[dict] = []
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        payloads.append(json.loads(request.content))
-        if len(payloads) == 3:
-            return httpx.Response(
-                200,
-                json={"choices": [{"message": {"content": '{"status":"fallback"}'}}]},
-            )
-        return httpx.Response(
-            200,
-            json={
-                "choices": [
-                    {
-                        "message": {
-                            "content": "",
-                            "reasoning_content": "reasoning without final content",
-                        }
-                    }
-                ]
-            },
-        )
-
-    client = LlamaCppClient(
-        base_url="https://radeon.example.test/v1",
-        api_key="",
-        model="test-model",
-        timeout_seconds=30,
-        reasoning_budget=1024,
-        transport=httpx.MockTransport(handler),
-    )
-    result = await client.chat([{"role": "user", "content": "Return JSON."}], max_tokens=10)
-
-    assert result == '{"status":"fallback"}'
-    assert len(payloads) == 3
-    assert payloads[0]["reasoning_budget"] == 1024
-    assert payloads[1]["reasoning_budget"] == 2048
-    assert payloads[2]["chat_template_kwargs"] == {"enable_thinking": False}
-    assert payloads[2]["reasoning_budget"] == 0
-    assert payloads[2]["max_tokens"] == 10
+    assert payloads[1]["chat_template_kwargs"] == {"enable_thinking": False}
+    assert payloads[1]["reasoning_budget"] == 0
+    assert payloads[1]["max_tokens"] == 10
