@@ -64,7 +64,7 @@ The frozen experimental adapter tree SHA-256 is `9de29915ef28dfe66ee3b3239bc9ff7
 
 ## Demo video
 
-Watch the [2 minute 06 second, 1920x1080 final YIJIAN Track 2 demonstration](https://github.com/almq666/Radeon-hackathon-2026-07/releases/download/yijian-demo-v1/YIJIAN-Track-2-Demo-Final.mp4). The video is hosted as a GitHub Release asset so the reproducible source tree remains small and clean.
+Watch the [2 minute 46 second, 1920x1080 final YIJIAN Track 2 demonstration](https://github.com/almq666/Radeon-hackathon-2026-07/releases/download/yijian-demo-v1/YIJIAN-Track-2-Demo-Final-v2.mp4). The video is hosted as a GitHub Release asset so the reproducible source tree remains small and clean.
 
 ## Privacy and publication boundary
 

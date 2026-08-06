@@ -40,4 +40,4 @@ The trained LoRA did not pass the final anonymous human gate: stable 27B scored 
 - complete public-safe source and pinned reproduction instructions;
 - performance, model card, evidence index, and machine-readable status;
 - Track 2 presentation;
-- [2 minute 06 second, 1920x1080 final demo video](https://github.com/almq666/Radeon-hackathon-2026-07/releases/download/yijian-demo-v1/YIJIAN-Track-2-Demo-Final.mp4).
+- [2 minute 46 second, 1920x1080 final demo video](https://github.com/almq666/Radeon-hackathon-2026-07/releases/download/yijian-demo-v1/YIJIAN-Track-2-Demo-Final-v2.mp4).
