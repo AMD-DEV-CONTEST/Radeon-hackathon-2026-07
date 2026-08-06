@@ -31,6 +31,8 @@ class IncompleteComparisonModel(FakeModelClient):
         *,
         temperature: float = 0.2,
         max_tokens: int = 1200,
+        enable_thinking: bool | None = None,
+        reasoning_budget: int | None = None,
     ) -> str:
         if "CandidateComparison" in str(messages[0]["content"]):
             self.comparison_calls += 1
@@ -51,13 +53,21 @@ class IncompleteComparisonModel(FakeModelClient):
                     "caveat": "The model omitted derived comparison fields.",
                 }
             )
-        return await super().chat(messages, temperature=temperature, max_tokens=max_tokens)
+        return await super().chat(
+            messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            enable_thinking=enable_thinking,
+            reasoning_budget=reasoning_budget,
+        )
 
 
 class HistoryRecordingModel(FakeModelClient):
     def __init__(self) -> None:
         self.report_contexts: list[dict[str, Any]] = []
         self.comparison_contexts: list[dict[str, Any]] = []
+        self.report_policies: list[tuple[bool | None, int | None]] = []
+        self.comparison_policies: list[tuple[bool | None, int | None]] = []
 
     async def chat(
         self,
@@ -65,13 +75,23 @@ class HistoryRecordingModel(FakeModelClient):
         *,
         temperature: float = 0.2,
         max_tokens: int = 1200,
+        enable_thinking: bool | None = None,
+        reasoning_budget: int | None = None,
     ) -> str:
         if "CandidateComparison" in str(messages[0]["content"]):
             self.comparison_contexts.append(json.loads(str(messages[1]["content"])))
+            self.comparison_policies.append((enable_thinking, reasoning_budget))
         if "StructuredReportDraft" in str(messages[0]["content"]):
             raw_context = str(messages[1]["content"]).split("\n", 1)[1]
             self.report_contexts.append(json.loads(raw_context))
-        return await super().chat(messages, temperature=temperature, max_tokens=max_tokens)
+            self.report_policies.append((enable_thinking, reasoning_budget))
+        return await super().chat(
+            messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            enable_thinking=enable_thinking,
+            reasoning_budget=reasoning_budget,
+        )
 
 
 class PlainTextFollowUpModel(FakeModelClient):
@@ -84,11 +104,19 @@ class PlainTextFollowUpModel(FakeModelClient):
         *,
         temperature: float = 0.2,
         max_tokens: int = 1200,
+        enable_thinking: bool | None = None,
+        reasoning_budget: int | None = None,
     ) -> str:
         if "FollowUpDraft" in str(messages[0]["content"]):
             self.follow_up_calls += 1
             return "Candidate A remains safer because the cached privacy scan found less exposure."
-        return await super().chat(messages, temperature=temperature, max_tokens=max_tokens)
+        return await super().chat(
+            messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            enable_thinking=enable_thinking,
+            reasoning_budget=reasoning_budget,
+        )
 
 
 class RightsCandidateModel(HistoryRecordingModel):
@@ -161,6 +189,8 @@ async def test_graph_runs_all_core_capabilities(tmp_path: Path) -> None:
             "text": "I prefer cartoon-style avatars and want copyright risk considered.",
         }
     ]
+    assert model.comparison_policies[-1] == (None, None)
+    assert model.report_policies[-1] == (False, 0)
     assert [
         item["role"] for item in model.report_contexts[-1]["recent_thread_messages"]
     ] == ["user", "assistant"]

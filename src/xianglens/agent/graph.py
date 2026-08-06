@@ -390,7 +390,24 @@ def build_graph(services: GraphServices):
     async def validated_model_json(
         messages: list[dict[str, Any]], schema: type[ModelSchema], max_tokens: int
     ) -> ModelSchema:
-        raw = await services.model.chat(messages, temperature=0.1, max_tokens=max_tokens)
+        async def call_model(
+            call_messages: list[dict[str, Any]], *, temperature: float
+        ) -> str:
+            if schema is CandidateComparison:
+                return await services.model.chat(
+                    call_messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+            return await services.model.chat(
+                call_messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                enable_thinking=False,
+                reasoning_budget=0,
+            )
+
+        raw = await call_model(messages, temperature=0.1)
         last_error = "unknown validation error"
         for attempt in range(2):
             try:
@@ -406,7 +423,7 @@ def build_graph(services: GraphServices):
                         return fallback
                 if attempt == 1:
                     break
-                raw = await services.model.chat(
+                raw = await call_model(
                     [
                         *messages,
                         {"role": "assistant", "content": raw},
@@ -419,7 +436,6 @@ def build_graph(services: GraphServices):
                         },
                     ],
                     temperature=0.0,
-                    max_tokens=max_tokens,
                 )
         if schema is FollowUpDraft and "did not contain a JSON object" in last_error:
             fallback = _plain_follow_up_fallback(raw)

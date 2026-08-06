@@ -931,7 +931,7 @@ The agent proposes:
 
 > Save: “I prefer cartoon-style avatars and want copyright risk considered.”
 
-Approve it, click **New review · keep memory**, upload a second candidate pair, and show the
+Approve it, click **New review**, upload a second candidate pair, and show the
 **Approved memory applied** panel plus the WIPO evidence card. Open Approved Memory to show deletion.
 
 ### 3:10–3:40 — Evidence and Cultural Scope
@@ -1065,7 +1065,7 @@ XIANG_LLM_BASE_URL=http://127.0.0.1:8000/v1
 XIANG_LLM_MODEL=xianglens-qwen3.6-35b-a3b-fable5-q6k
 XIANG_LLM_API_KEY=local-only
 XIANG_LLM_ENABLE_THINKING=true
-XIANG_LLM_REASONING_BUDGET=2048
+XIANG_LLM_REASONING_BUDGET=1024
 
 XIANG_SQLITE_PATH=./runtime/xianglens.sqlite3
 XIANG_MILVUS_URI=./runtime/xianglens_milvus.db
