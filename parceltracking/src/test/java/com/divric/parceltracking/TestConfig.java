@@ -7,8 +7,6 @@ import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -21,8 +19,11 @@ public class TestConfig {
      * to be present on the classpath. The model is gitignored and downloaded
      * only during Docker container build (prod profile).
      */
-    @MockitoBean
-    private OnnxSessionManager onnxSessionManager;
+    @Bean
+    @Primary
+    public OnnxSessionManager onnxSessionManager() {
+        return mock(OnnxSessionManager.class);
+    }
 
     @Bean
     @Primary
