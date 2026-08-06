@@ -1,0 +1,1 @@
+import {Evidence} from './types';export default function RelationshipGraph({item}:{item:Evidence|null}){return <div className='rounded-xl border p-6 h-72 flex items-center justify-center'>{item?`Entities: ${item.entities.join(" • ")}`:'Select evidence'}</div>}

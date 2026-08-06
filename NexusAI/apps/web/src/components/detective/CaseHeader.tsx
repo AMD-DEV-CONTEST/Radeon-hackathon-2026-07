@@ -1,0 +1,1 @@
+export default function CaseHeader(){return <div className='rounded-xl border p-4'><h1 className='text-3xl font-semibold'>Operation Aurora</h1><p className='text-white/60'>Interactive Investigation Workspace</p></div>}

@@ -1,0 +1,1 @@
+import {Evidence} from './types';export default function EvidenceCard({item,onSelect}:{item:Evidence,onSelect:(e:Evidence)=>void}){return <div onClick={()=>onSelect(item)} className='rounded-lg border p-3 cursor-pointer hover:border-cyan-400'><h3>{item.title}</h3><p>{item.summary}</p></div>}

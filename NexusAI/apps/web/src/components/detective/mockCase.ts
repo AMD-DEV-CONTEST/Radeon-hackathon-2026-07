@@ -1,0 +1,2 @@
+import {Evidence} from './types';
+export const evidence:Evidence[]=[{id:'1',title:'Lab Report',type:'Document',summary:'Aurora prototype report.',date:'2026-08-01',entities:['Aria','Aurora','Nexus Lab']},{id:'2',title:'Email Thread',type:'Email',summary:'Discussion about NexusAI.',date:'2026-08-02',entities:['Noah','Aria']},{id:'3',title:'Security Camera',type:'Image',summary:'Entrance footage.',date:'2026-08-03',entities:['Kochi','Nexus Lab']}];

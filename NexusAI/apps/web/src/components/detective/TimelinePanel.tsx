@@ -1,0 +1,1 @@
+import {Evidence} from './types';export default function TimelinePanel({items}:{items:Evidence[]}){return <div className='rounded-xl border p-4 flex gap-6 overflow-auto'>{items.map(i=><div key={i.id}><div>{i.date}</div><div>{i.title}</div></div>)}</div>}

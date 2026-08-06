@@ -1,0 +1,2 @@
+import {MemoryItem} from "./types";
+export default function MemoryTimeline({items}:{items:MemoryItem[]}){return <div className='flex gap-4 overflow-auto'>{items.map(i=><div key={i.id}>{i.date}</div>)}</div>}

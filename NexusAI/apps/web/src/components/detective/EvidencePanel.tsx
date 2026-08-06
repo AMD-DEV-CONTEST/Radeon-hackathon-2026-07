@@ -1,0 +1,1 @@
+import {Evidence} from './types';import EvidenceCard from './EvidenceCard';export default function EvidencePanel({items,onSelect}:{items:Evidence[],onSelect:(e:Evidence)=>void}){return <div className='space-y-3'>{items.map(i=><EvidenceCard key={i.id} item={i} onSelect={onSelect}/>)}</div>}

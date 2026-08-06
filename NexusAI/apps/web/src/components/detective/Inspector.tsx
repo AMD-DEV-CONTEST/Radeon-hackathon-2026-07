@@ -1,0 +1,1 @@
+import {Evidence} from './types';export default function Inspector({item}:{item:Evidence|null}){if(!item)return <div>Select evidence</div>;return <div><h2>{item.title}</h2><p>{item.summary}</p><p>{item.type}</p><p>{item.entities.join(', ')}</p></div>}
