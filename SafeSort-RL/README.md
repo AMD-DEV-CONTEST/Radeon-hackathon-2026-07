@@ -1,4 +1,8 @@
+<img width="792" height="611" alt="image" src="https://github.com/user-attachments/assets/3c218539-78e0-467d-99e3-97cec39ce192" />
+
 # SafeSort-RL
+
+
 
 **Language-Conditioned Reinforcement Learning for Simulated Hazardous-Waste Sorting on AMD Radeon GPUs**
 
