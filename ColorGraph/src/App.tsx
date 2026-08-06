@@ -102,6 +102,7 @@ const DEFAULT_COMMAND =
 const LARGE_LOCAL_FILE_THRESHOLD = 2 * 1024 ** 3;
 const ACTIVE_MASK_JOB_KEY = "colorgraph.activeMaskJob";
 const PERSIST_MASK_JOB_STATE = false;
+const REPLAY_ANALYSIS_WITHOUT_INFERENCE = true;
 const PIPELINE_OPEN_KEY = "colorgraph.pipelineOpen";
 const PREVIEW_QUALITY_KEY = "colorgraph.previewQuality";
 const PREVIEW_ENCODING_KEY = "colorgraph.previewEncoding";
@@ -945,6 +946,7 @@ function App() {
   const [grade, setGrade] = useState<GradeState>(DEFAULT_GRADE_STATE);
   const [mask, setMask] = useState<MaskKind>("none");
   const [comparePosition, setComparePosition] = useState(48);
+  const [gradeRevealed, setGradeRevealed] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [isLooping, setIsLooping] = useState(true);
@@ -2700,8 +2702,9 @@ function App() {
       fileInputRef.current?.click();
       return;
     }
-    if (analysisComplete) {
+    if (REPLAY_ANALYSIS_WITHOUT_INFERENCE || analysisComplete) {
       forgetMaskJob();
+      setGradeRevealed(false);
       setAnalysisRequestActive(true);
       setPipelineOpen(true);
       setPipelineError("");
@@ -2746,6 +2749,7 @@ function App() {
           result: { cache_hit: true, replay: true },
           error: null,
         });
+        setGradeRevealed(true);
         showToast("AI 分析流程回放完成，现有分析内容保持不变");
       } finally {
         setAnalysisRequestActive(false);
@@ -3218,6 +3222,7 @@ function App() {
                 mediaKind={media.kind}
                 mediaRef={playbackMediaRef}
                 comparePosition={comparePosition}
+                gradeRevealed={gradeRevealed}
                 mask={mask}
                 isPlaying={isPlaying}
                 isMuted={isMuted}

@@ -7,12 +7,11 @@ PyTorch and FFmpeg, and keeps every creative proposal reversible and subject to
 hard technical quality gates.
 
 > **Submission status:** ColorGraph is an AMD Radeon Hackathon 2026 Track 1
-> candidate, not a finished submission. The supported Radeon Cloud ROCm gate
-> passed on 2026-08-02 with a frozen report hash. The final 3-5 minute demo video,
-> PPT/Poster, source license, public repository, and official submission PR remain
-> incomplete.
+> submission. This pull request includes the complete source, project profile,
+> Radeon/ROCm evidence, and final poster. The demo recording is delivered
+> separately and is intentionally not committed to the repository.
 
-![ColorGraph landscape grading reference](public/assets/colorgraph-landscape.png)
+![ColorGraph Track 1 submission poster](submission/ColorGraph-Poster.png)
 
 ## Why ColorGraph
 
@@ -189,6 +188,8 @@ output/pdf/                Generated Project Profile deliverable
 
 - [Submission checklist](docs/SUBMISSION_CHECKLIST.md)
 - [Project Profile PDF](output/pdf/ColorGraph-Project-Profile.pdf)
+- [Track 1 submission poster](submission/ColorGraph-Poster.png)
+- Demo recording: delivered separately and intentionally not committed
 - [Demo media and rights strategy](docs/DEMO_ASSETS.md)
 - [Project status](docs/PROJECT_STATUS.md)
 - [Evaluation protocol](docs/EVALUATION_PROTOCOL.md)

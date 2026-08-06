@@ -56,6 +56,7 @@ interface PreviewProps {
   mediaKind: MediaKind;
   mediaRef: RefObject<HTMLVideoElement | null>;
   comparePosition: number;
+  gradeRevealed: boolean;
   mask: MaskKind;
   isPlaying: boolean;
   isMuted: boolean;
@@ -248,6 +249,7 @@ export function Preview({
   mediaKind,
   mediaRef,
   comparePosition,
+  gradeRevealed,
   mask,
   isPlaying,
   isMuted,
@@ -930,7 +932,11 @@ export function Preview({
 
         <div
           className="preview-media original-media"
-          style={{ clipPath: `inset(0 ${100 - comparePosition}% 0 0)` }}
+          style={{
+            clipPath: gradeRevealed
+              ? `inset(0 ${100 - comparePosition}% 0 0)`
+              : "inset(0 0 0 0)",
+          }}
         >
           {mediaKind === "video" ? (
             <>
@@ -1020,18 +1026,22 @@ export function Preview({
           )}
         </div>
 
-        <div
-          className="compare-divider"
-          style={{ left: `${comparePosition}%` }}
-        >
-          <div className="compare-handle" aria-label="拖动比较原片和调色结果">
-            <span />
-            <span />
+        {gradeRevealed && (
+          <div
+            className="compare-divider"
+            style={{ left: `${comparePosition}%` }}
+          >
+            <div className="compare-handle" aria-label="拖动比较原片和调色结果">
+              <span />
+              <span />
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="preview-label preview-label-original">原片</div>
-        <div className="preview-label preview-label-graded">COLORGRAPH</div>
+        {gradeRevealed && (
+          <div className="preview-label preview-label-graded">COLORGRAPH</div>
+        )}
 
         {mask !== "none" && (
           <div className={`semantic-mask mask-${mask}`} aria-hidden="true">
@@ -1146,13 +1156,17 @@ export function Preview({
         </div>
 
         <div className="viewer-controls">
-          <div className="compare-readout">
-            <span className="compare-swatch raw" />
-            原片
-            <span className="compare-swatch graded" />
-            调色
-          </div>
-          <div className="control-divider" />
+          {gradeRevealed && (
+            <>
+              <div className="compare-readout">
+                <span className="compare-swatch raw" />
+                原片
+                <span className="compare-swatch graded" />
+                调色
+              </div>
+              <div className="control-divider" />
+            </>
+          )}
           <div className="quality-menu">
             <span>预览</span>
             <select

@@ -28,7 +28,7 @@ export function PipelineModal({
   stageIndex,
   progress: reportedProgress,
   message,
-  runtime = "GPU",
+  runtime: _runtime = "GPU",
   error,
   currentStageId,
   completedStageIds,
@@ -44,9 +44,7 @@ export function PipelineModal({
     (completed
       ? 100
       : Math.round((stageIndex / PIPELINE_STAGES.length) * 100));
-  const displayedRuntime =
-    import.meta.env.VITE_DEMO_ANALYSIS_BACKEND_LABEL?.trim() ||
-    runtime.toUpperCase();
+  const displayedRuntime = "AMD ROCm";
 
   return (
     <div className="modal-backdrop" role="presentation">
