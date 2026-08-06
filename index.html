@@ -1,0 +1,2296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head> 
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EcoChronicles — Gamified Environmental Education</title>
+<link rel="icon" href="favicon.ico" type="image/x-icon">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+/* ============================================================
+   ECOCHRONICLES — STUDENT PLATFORM — ULTRA-PRO ECO TURTLE
+   Matches Teacher Dashboard Design System Exactly
+   ============================================================ */
+:root{
+  --turtle-green:#2ECC71; --turtle-teal:#4DD0E1; --turtle-gold:#FFD700;
+  --neon-purple:#BF5FFF; --neon-cyan:#00F5FF; --neon-pink:#FF0099;
+  --neon-green:#39FF14; --deep-bg:#07070F;
+  --surface-1:rgba(255,255,255,0.04); --surface-2:rgba(255,255,255,0.07);
+  --border-dim:rgba(255,255,255,0.08);
+  --text-main:#F0EEF8; --text-muted:#8A8AA8; --text-dim:#4A4A6A;
+  /* legacy aliases for JS references */
+  --turtle-deep:#1B7A3D;
+  --turtle-white:#F0F8F4;
+  --turtle-cream:#D4F5DD;
+  --dark-bg:#07070F;
+  --dark-card:rgba(255,255,255,0.04);
+  --dark-card2:rgba(255,255,255,0.02);
+  --dark-border:rgba(255,255,255,0.08);
+  --text-primary:#F0EEF8;
+  --text-accent:#2ECC71;
+  --glow-orange:rgba(46,204,113,0.35);
+  --glow-amber:rgba(255,179,71,0.2);
+  --beginner:#39FF14; --intermediate:#FFD700;
+  --advanced:#2ECC71; --expert:#BF5FFF; --bonus:#00F5FF;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+*{cursor:none!important;}
+
+/* TURTLE CURSOR — matches teacher dashboard */
+#turtle-cursor-wrap{position:fixed;top:0;left:0;pointer-events:none;z-index:999999;transform:translate(-50%,-60%);will-change:transform;}
+#turtle-cursor-svg{width:52px;height:52px;filter:drop-shadow(0 0 8px #2ECC71) drop-shadow(0 0 18px rgba(46,204,113,.5));}
+.turtle-cursor-trail{position:fixed;pointer-events:none;z-index:999997;border-radius:50%;transform:translate(-50%,-50%);animation:trailFade .6s ease forwards;}
+@keyframes trailFade{0%{opacity:.7;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(0)}}
+.turtle-foot{position:fixed;pointer-events:none;z-index:999996;font-size:11px;animation:stepFade .9s ease forwards;}
+@keyframes stepFade{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(.4) translateY(-14px)}}
+
+/* BODY + GRID BACKGROUND — matches teacher.css exactly */
+body{font-family:'Space Grotesk',sans-serif;background:var(--deep-bg);min-height:100vh;color:var(--text-main);overflow-x:hidden;position:relative;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(191,95,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(191,95,255,.035) 1px,transparent 1px);background-size:56px 56px;animation:gridPulse 9s ease-in-out infinite;pointer-events:none;z-index:0;}
+@keyframes gridPulse{0%,100%{opacity:.4}50%{opacity:1}}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 700px 450px at 15% 15%,rgba(46,204,113,.055) 0%,transparent 60%),radial-gradient(ellipse 600px 350px at 85% 85%,rgba(191,95,255,.07) 0%,transparent 60%),radial-gradient(ellipse 500px 400px at 55% 5%,rgba(0,245,255,.03) 0%,transparent 60%);animation:orbDrift 14s ease-in-out infinite alternate;}
+@keyframes orbDrift{0%{transform:translate(0,0) scale(1)}100%{transform:translate(25px,-35px) scale(1.07)}}
+#particle-canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.6;}
+
+/* Legacy bg divs — hidden, using body::before/::after */
+.bg-layer,.bg-grid,.bg-orb{display:none;}
+
+/* ── SCREEN SYSTEM ── */
+.screen{display:none;position:relative;z-index:1;}
+.screen.active{display:flex;flex-direction:column;min-height:100vh;}
+
+/* ── LANG BAR ── */
+.lang-toggle-bar,.lang-bar{position:fixed;top:16px;right:20px;z-index:9999;display:flex;gap:8px;}
+.lang-btn{padding:7px 17px;border-radius:100px;border:1.5px solid rgba(46,204,113,.38);background:rgba(46,204,113,.07);color:var(--text-muted);font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:'Space Grotesk',sans-serif;}
+.lang-btn.active{background:linear-gradient(135deg,var(--turtle-green),var(--neon-purple));border-color:transparent;color:#fff;box-shadow:0 0 18px rgba(46,204,113,.4);}
+.lang-btn:hover:not(.active){border-color:var(--turtle-green);color:var(--turtle-green);}
+
+/* ── ANIMATIONS ── */
+@keyframes cardIn{from{opacity:0;transform:translateY(40px) scale(.9)}to{opacity:1;transform:none}}
+@keyframes turtleBounce{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-14px) rotate(-6deg)}75%{transform:translateY(-7px) rotate(4deg)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes shimmer{0%{background-position:0%;}100%{background-position:200%;}}
+@keyframes splashIn{from{opacity:0;transform:translateY(40px);}to{opacity:1;transform:translateY(0);}}
+@keyframes orbFloat{0%,100%{transform:translateY(0) scale(1);}50%{transform:translateY(-30px) scale(1.05);}}
+
+/* ── SPLASH / DID YOU KNOW ── */
+#splash-screen{align-items:center;justify-content:center;background:var(--deep-bg);}
+.splash-inner,.dyk-inner{text-align:center;padding:40px 20px;max-width:520px;width:90%;animation:cardIn .55s cubic-bezier(.34,1.56,.64,1) both;}
+.dyk-warning-icon{font-size:56px;margin-bottom:16px;filter:drop-shadow(0 0 20px rgba(255,200,50,.5));}
+.dyk-title{font-family:'Orbitron',sans-serif;font-size:clamp(1.8rem,5vw,2.6rem);font-weight:900;background:linear-gradient(100deg,var(--turtle-green),var(--turtle-gold) 45%,var(--neon-purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:24px;letter-spacing:.04em;}
+.dyk-cards{display:flex;flex-direction:column;gap:11px;margin:0 0 20px;}
+.dyk-card{background:rgba(255,255,255,.03);border:1px solid rgba(46,204,113,.18);border-radius:16px;padding:13px 17px;text-align:left;animation:slideUp .5s ease both;transition:border-color .2s,box-shadow .2s;}
+.dyk-card:hover{border-color:rgba(46,204,113,.5);box-shadow:0 0 22px rgba(46,204,113,.1);}
+.dyk-card:nth-child(1){animation-delay:.12s}.dyk-card:nth-child(2){animation-delay:.27s}.dyk-card:nth-child(3){animation-delay:.42s}
+.dyk-stat{display:block;font-family:'Orbitron',sans-serif;font-size:1.5rem;font-weight:700;color:var(--turtle-gold);margin-bottom:4px;}
+.dyk-stat-yellow{color:var(--turtle-teal);}
+.dyk-stat-blue{color:var(--neon-cyan);}
+.dyk-desc{display:block;font-size:.8rem;color:var(--text-muted);line-height:1.5;}
+.dyk-tagline{font-size:.85rem;color:var(--text-muted);margin-bottom:24px;line-height:1.6;font-style:italic;}
+
+/* CTA buttons */
+.dyk-cta,.cta-btn,.start-btn{display:block;width:100%;background:linear-gradient(135deg,var(--turtle-green),var(--neon-purple));border:none;border-radius:14px;padding:15px;font-size:1rem;font-weight:700;color:#fff;letter-spacing:.05em;font-family:'Space Grotesk',sans-serif;cursor:pointer;transition:all .25s;box-shadow:0 0 32px rgba(46,204,113,.4);text-transform:uppercase;position:relative;overflow:hidden;}
+.dyk-cta:hover,.cta-btn:hover,.start-btn:hover{transform:translateY(-3px);box-shadow:0 0 55px rgba(46,204,113,.6);}
+/* inline-flex override for button usage with gap/icon */
+button.cta-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;width:auto;}
+
+/* Legacy splash */
+.turtle-mascot{font-size:76px;display:block;margin-bottom:8px;animation:turtleBounce 2.2s ease-in-out infinite;filter:drop-shadow(0 0 22px rgba(46,204,113,.7));}
+.splash-title{font-family:'Orbitron',sans-serif;font-size:clamp(2rem,5vw,3rem);font-weight:900;background:linear-gradient(100deg,var(--turtle-green),var(--turtle-gold) 45%,var(--neon-purple));background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 3s linear infinite;letter-spacing:.06em;}
+.splash-sub{font-size:.85rem;color:var(--text-muted);margin:12px 0 20px;}
+.splash-tagline{display:inline-block;padding:6px 16px;border:1px solid rgba(191,95,255,.3);border-radius:100px;font-size:.75rem;color:#D4ADFF;margin-bottom:28px;background:rgba(191,95,255,.08);}
+.fact-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0;}
+.fact-card{background:rgba(255,255,255,.03);border:1px solid rgba(46,204,113,.18);border-radius:16px;padding:16px 14px;transition:all .2s;}
+.fact-card:hover{transform:translateY(-4px);border-color:rgba(46,204,113,.5);box-shadow:0 0 22px rgba(46,204,113,.1);}
+.fact-num{display:block;font-family:'Orbitron',sans-serif;font-size:1.4rem;font-weight:700;color:var(--turtle-gold);}
+.fact-text{display:block;font-size:.75rem;color:var(--text-muted);margin-top:5px;}
+
+/* ── LOGIN ── */
+#login-screen{align-items:center;justify-content:center;flex-direction:column;}
+.login-card{background:linear-gradient(135deg,rgba(46,204,113,.08),rgba(191,95,255,.06));border:1px solid rgba(46,204,113,.22);border-radius:28px;padding:50px 40px;max-width:440px;width:90%;backdrop-filter:blur(24px);box-shadow:0 0 70px rgba(46,204,113,.09),inset 0 1px 0 rgba(255,255,255,.07);animation:cardIn .55s cubic-bezier(.34,1.56,.64,1) both;text-align:center;}
+.login-turtle{font-size:64px;margin-bottom:8px;display:block;filter:drop-shadow(0 0 22px rgba(46,204,113,.7));animation:turtleBounce 2.2s ease-in-out infinite;}
+.login-title{font-family:'Orbitron',sans-serif;font-size:1.55rem;font-weight:700;background:linear-gradient(100deg,var(--turtle-green),var(--turtle-gold) 45%,var(--neon-purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px;}
+.login-sub{color:var(--text-muted);font-size:.82rem;margin-bottom:28px;}
+.eco-input{width:100%;padding:13px 17px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:var(--text-main);font-size:.95rem;outline:none;font-family:'Space Grotesk',sans-serif;transition:border-color .2s,box-shadow .2s;margin-bottom:12px;display:block;}
+.eco-input:focus{border-color:var(--turtle-green);box-shadow:0 0 22px rgba(46,204,113,.2);}
+.eco-input::placeholder{color:var(--text-dim);}
+
+/* ── MAIN HOME LAYOUT ── */
+#home-screen{flex-direction:row;}
+.sidebar{width:280px;flex-shrink:0;background:rgba(0,0,0,.6);border-right:1px solid rgba(46,204,113,.12);height:100vh;position:sticky;top:0;overflow-y:auto;display:flex;flex-direction:column;scrollbar-width:thin;scrollbar-color:rgba(46,204,113,.25) transparent;backdrop-filter:blur(20px);}
+.sidebar-logo{padding:22px 20px;border-bottom:1px solid rgba(46,204,113,.1);display:flex;align-items:center;gap:12px;}
+.sidebar-logo .logo-icon{font-size:28px;filter:drop-shadow(0 0 10px rgba(46,204,113,.7));}
+.sidebar-logo .logo-text{font-family:'Orbitron',sans-serif;font-weight:700;font-size:1rem;color:var(--turtle-green);}
+.sidebar-logo .logo-text span{color:var(--text-muted);}
+.user-panel{padding:14px 20px;border-bottom:1px solid rgba(46,204,113,.08);}
+.user-name{font-family:'Orbitron',sans-serif;font-weight:700;font-size:.88rem;color:var(--turtle-teal);margin-bottom:3px;}
+.user-class{font-size:.74rem;color:var(--text-dim);}
+.xp-bar-wrap{margin-top:10px;}
+.xp-label{font-size:.7rem;color:var(--text-muted);display:flex;justify-content:space-between;margin-bottom:5px;}
+.xp-bar{height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;}
+.xp-fill{height:100%;background:linear-gradient(90deg,var(--turtle-green),var(--neon-purple));border-radius:3px;transition:width 1s ease;box-shadow:0 0 10px rgba(46,204,113,.4);}
+.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px 20px;border-bottom:1px solid rgba(46,204,113,.08);}
+.stat-box{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:10px;text-align:center;}
+.stat-val{font-family:'Orbitron',sans-serif;font-size:1rem;color:var(--turtle-teal);font-weight:700;}
+.stat-key{font-size:.64rem;color:var(--text-muted);margin-top:2px;text-transform:uppercase;letter-spacing:.05em;}
+.nav-section{padding:12px 20px 4px;font-size:.62rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;font-family:'Orbitron',sans-serif;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;transition:all .2s;border-left:3px solid transparent;font-size:.82rem;color:var(--text-muted);cursor:pointer;}
+.nav-item:hover{background:rgba(46,204,113,.06);border-left-color:var(--turtle-green);color:var(--turtle-teal);}
+.nav-item.active{background:rgba(46,204,113,.1);border-left-color:var(--turtle-green);color:var(--turtle-green);}
+.nav-icon{font-size:1rem;}
+.level-badge{margin-left:auto;font-size:.6rem;padding:2px 7px;border-radius:100px;font-weight:700;}
+.badge-beginner{background:rgba(57,255,20,.12);color:var(--neon-green);}
+.badge-intermediate{background:rgba(255,215,0,.12);color:var(--turtle-gold);}
+.badge-advanced{background:rgba(46,204,113,.12);color:var(--turtle-green);}
+.badge-expert{background:rgba(191,95,255,.12);color:var(--neon-purple);}
+.badge-bonus{background:rgba(0,245,255,.12);color:var(--neon-cyan);}
+.badge-done{background:rgba(57,255,20,.15);color:var(--neon-green);}
+.badge-locked{background:rgba(100,100,100,.12);color:#555;}
+.sidebar-footer{margin-top:auto;padding:14px 20px;border-top:1px solid rgba(46,204,113,.08);display:flex;gap:8px;}
+.eco-btn-sm{flex:1;padding:9px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:transparent;color:var(--text-muted);font-size:.75rem;transition:all .2s;font-family:'Space Grotesk',sans-serif;cursor:pointer;}
+.eco-btn-sm:hover{border-color:var(--turtle-green);color:var(--turtle-green);}
+
+/* Mobile toggle */
+.mob-toggle{display:none;padding:12px 16px;background:rgba(0,0,0,.6);border-bottom:1px solid rgba(46,204,113,.12);align-items:center;gap:10px;flex-shrink:0;backdrop-filter:blur(20px);}
+.hamburger-btn{background:none;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:6px 10px;color:var(--text-muted);cursor:pointer;}
+
+/* Main content */
+.main-content{flex:1;height:100vh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(46,204,113,.25) transparent;}
+
+/* ── DASHBOARD ── */
+#view-dashboard{padding:32px;}
+.dash-header{margin-bottom:28px;}
+.dash-greeting{font-family:'Orbitron',sans-serif;font-size:clamp(1.1rem,2.2vw,1.6rem);font-weight:700;margin-bottom:6px;background:linear-gradient(100deg,var(--turtle-green),var(--turtle-gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.dash-greeting span{-webkit-text-fill-color:unset;color:var(--turtle-green);}
+.dash-sub{color:var(--text-muted);font-size:.82rem;}
+.progress-overview{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:28px;}
+.prog-card{background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:20px;position:relative;overflow:hidden;transition:all .22s;animation:slideUp .4s ease both;}
+.prog-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--turtle-green),var(--neon-purple),transparent);}
+.prog-card:hover{transform:translateY(-4px);border-color:rgba(46,204,113,.3);box-shadow:0 8px 30px rgba(0,0,0,.3),0 0 24px rgba(46,204,113,.08);}
+.prog-card-icon{font-size:1.6rem;margin-bottom:8px;}
+.prog-card-val{font-family:'Orbitron',sans-serif;font-size:1.5rem;font-weight:700;background:linear-gradient(135deg,var(--turtle-green),var(--turtle-gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.prog-card-label{font-size:.68rem;color:var(--text-muted);margin-top:3px;text-transform:uppercase;letter-spacing:.07em;}
+.prog-bar{height:4px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:12px;overflow:hidden;}
+.prog-bar-fill{height:100%;border-radius:2px;transition:width 1.5s ease;}
+
+.section-heading{font-family:'Orbitron',sans-serif;font-size:.78rem;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:10px;color:var(--turtle-green);text-transform:uppercase;letter-spacing:.07em;}
+.section-heading::after{content:'';flex:1;height:1px;background:rgba(46,204,113,.18);}
+
+.levels-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:28px;}
+.level-card{background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:20px;transition:all .22s;position:relative;overflow:hidden;}
+.level-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--lc,linear-gradient(90deg,var(--turtle-green),var(--neon-purple)));transform:scaleX(0);transform-origin:left;transition:transform .3s;}
+.level-card:hover::after{transform:scaleX(1);}
+.level-card:hover{border-color:rgba(46,204,113,.3);transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,.3),0 0 24px rgba(46,204,113,.06);}
+.level-card.locked{opacity:.4;pointer-events:none;}
+.level-card-header{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.level-num{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-weight:700;font-size:.75rem;background:rgba(46,204,113,.12);border:1px solid rgba(46,204,113,.25);color:var(--turtle-green);flex-shrink:0;}
+.level-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.88rem;line-height:1.3;color:var(--text-main);}
+.level-tag{font-size:.68rem;color:var(--text-muted);margin-top:2px;}
+.level-card-topics{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;}
+.topic-chip{padding:3px 9px;border-radius:100px;font-size:.65rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);color:var(--text-muted);}
+.level-card-footer{display:flex;align-items:center;justify-content:space-between;}
+.level-xp{font-family:'Orbitron',sans-serif;font-size:.7rem;color:var(--turtle-gold);}
+.level-start-btn{padding:6px 14px;border-radius:8px;background:rgba(46,204,113,.12);border:1px solid rgba(46,204,113,.28);color:var(--turtle-green);font-size:.75rem;font-weight:700;transition:all .2s;font-family:'Space Grotesk',sans-serif;cursor:pointer;}
+.level-start-btn:hover{background:var(--turtle-green);color:#fff;box-shadow:0 0 18px rgba(46,204,113,.4);}
+.level-done-mark{color:var(--neon-green);font-size:1.1rem;}
+
+/* ── AI TUTOR CHAT ── */
+#view-tutor{display:flex;flex-direction:column;height:100vh;}
+.tutor-header{padding:18px 26px;border-bottom:1px solid rgba(46,204,113,.12);display:flex;align-items:center;gap:16px;flex-shrink:0;background:rgba(0,0,0,.45);backdrop-filter:blur(20px);}
+.tutor-turtle{font-size:38px;animation:turtleBounce 3s ease-in-out infinite;}
+.tutor-info .tutor-name{font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700;color:var(--turtle-green);}
+.tutor-info .tutor-status{font-size:.74rem;color:var(--neon-green);display:flex;align-items:center;gap:5px;}
+.tutor-info .tutor-status::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--neon-green);display:inline-block;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.tutor-context-select{margin-left:auto;padding:8px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:9px;color:var(--text-main);font-family:'Space Grotesk',sans-serif;font-size:.82rem;max-width:200px;cursor:pointer;}
+.tutor-context-select:focus{outline:none;border-color:var(--turtle-green);}
+.tutor-context-select option{background:#07070F;}
+.chat-area{flex:1;overflow-y:auto;padding:22px 26px;display:flex;flex-direction:column;gap:14px;scrollbar-width:thin;scrollbar-color:rgba(46,204,113,.25) transparent;}
+.chat-msg{display:flex;gap:12px;animation:msgIn .3s ease;max-width:82%;}
+@keyframes msgIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+.chat-msg.user{flex-direction:row-reverse;align-self:flex-end;}
+.chat-msg.user .msg-bubble{background:linear-gradient(135deg,var(--turtle-green),var(--neon-purple));color:white;border-bottom-right-radius:4px;}
+.chat-msg.ai .msg-bubble{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-bottom-left-radius:4px;}
+.msg-avatar{width:34px;height:34px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);align-self:flex-end;}
+.msg-bubble{padding:13px 17px;border-radius:16px;font-size:.88rem;line-height:1.7;max-width:100%;}
+.msg-bubble code{background:rgba(46,204,113,.15);padding:2px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--turtle-teal);}
+.msg-bubble pre{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.08);border-radius:9px;padding:14px;margin:10px 0;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--turtle-teal);}
+.msg-bubble h4{color:var(--turtle-teal);margin:12px 0 6px;font-family:'Orbitron',sans-serif;font-size:.8rem;}
+.msg-bubble ul{padding-left:18px;margin:8px 0;}
+.msg-bubble li{margin-bottom:4px;}
+.msg-bubble strong{color:var(--turtle-teal);}
+.typing-indicator .msg-bubble{padding:14px 18px;}
+.dot-wave{display:flex;gap:5px;align-items:center;}
+.dot-wave span{width:7px;height:7px;background:var(--turtle-green);border-radius:50%;animation:dotBounce 1.2s ease-in-out infinite;}
+.dot-wave span:nth-child(2){animation-delay:.15s;}
+.dot-wave span:nth-child(3){animation-delay:.3s;}
+@keyframes dotBounce{0%,80%,100%{transform:scale(.7);opacity:.5;}40%{transform:scale(1.1);opacity:1;}}
+.chat-footer{padding:18px 26px;border-top:1px solid rgba(46,204,113,.12);background:rgba(0,0,0,.45);backdrop-filter:blur(20px);flex-shrink:0;}
+.quick-prompts{display:flex;gap:7px;margin-bottom:11px;overflow-x:auto;scrollbar-width:none;padding-bottom:3px;}
+.quick-prompts::-webkit-scrollbar{display:none;}
+.qp-btn{flex-shrink:0;padding:5px 12px;border-radius:100px;border:1px solid rgba(255,255,255,.08);background:transparent;color:var(--text-muted);font-size:.74rem;transition:all .2s;white-space:nowrap;font-family:'Space Grotesk',sans-serif;cursor:pointer;}
+.qp-btn:hover{border-color:var(--turtle-green);color:var(--turtle-green);background:rgba(46,204,113,.07);}
+.chat-input-row{display:flex;gap:9px;}
+.chat-input{flex:1;padding:12px 16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:var(--text-main);font-family:'Space Grotesk',sans-serif;font-size:.9rem;resize:none;max-height:120px;overflow-y:auto;transition:border-color .2s;}
+.chat-input:focus{outline:none;border-color:var(--turtle-green);box-shadow:0 0 18px rgba(46,204,113,.14);}
+.chat-input::placeholder{color:var(--text-dim);}
+.send-btn{width:44px;height:44px;border-radius:11px;border:none;background:linear-gradient(135deg,var(--turtle-green),var(--neon-purple));color:#fff;font-size:1.1rem;cursor:pointer;align-self:flex-end;transition:all .2s;box-shadow:0 0 18px rgba(46,204,113,.35);}
+.send-btn:hover{transform:scale(1.08);box-shadow:0 0 28px rgba(46,204,113,.55);}
+.send-btn:disabled{opacity:.4;transform:none;}
+
+/* ── QUIZ ── */
+#view-quiz{display:flex;flex-direction:column;height:100vh;}
+.quiz-topbar{display:flex;align-items:center;gap:12px;padding:13px 22px;background:rgba(0,0,0,.55);border-bottom:1px solid rgba(46,204,113,.13);backdrop-filter:blur(20px);position:sticky;top:0;z-index:10;box-shadow:0 4px 30px rgba(0,0,0,.35);}
+.quiz-level-info{flex:1;}
+.quiz-level-name{font-family:'Orbitron',sans-serif;font-weight:700;font-size:.88rem;color:var(--text-main);}
+.quiz-level-diff{font-size:.68rem;color:var(--text-muted);margin-top:2px;}
+.quiz-lang-toggle{display:flex;gap:5px;}
+.qlang-btn{padding:5px 11px;border-radius:100px;border:1.5px solid rgba(46,204,113,.38);background:transparent;color:var(--text-muted);font-size:.73rem;font-weight:700;cursor:pointer;transition:all .17s;font-family:'Space Grotesk',sans-serif;}
+.qlang-btn.active{background:linear-gradient(135deg,var(--turtle-green),var(--neon-purple));border-color:transparent;color:#fff;box-shadow:0 0 14px rgba(46,204,113,.38);}
+.quiz-lives{display:flex;gap:3px;font-size:1.2rem;}
+.quiz-xp-box{background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.22);padding:5px 12px;border-radius:100px;font-size:.78rem;font-family:'Orbitron',sans-serif;font-weight:700;color:var(--turtle-gold);box-shadow:0 0 12px rgba(255,215,0,.13);}
+.quiz-progress-wrap{padding:0;}
+.quiz-progress-bar{height:3px;background:rgba(255,255,255,.06);}
+.quiz-progress-fill{height:100%;background:linear-gradient(90deg,var(--turtle-green),var(--neon-purple));transition:width .5s ease;width:0%;box-shadow:0 0 10px rgba(46,204,113,.5);}
+.quiz-body{padding:28px;flex:1;overflow-y:auto;}
+.q-counter{font-size:.68rem;color:var(--turtle-green);font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;font-family:'Orbitron',sans-serif;}
+.q-text{font-size:1.05rem;font-weight:600;line-height:1.55;color:var(--text-main);margin-bottom:20px;}
+.options-grid{display:flex;flex-direction:column;gap:9px;margin-bottom:16px;}
+.opt-btn{display:flex;align-items:center;gap:13px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:13px;padding:13px 17px;color:var(--text-main);font-size:.86rem;cursor:pointer;transition:all .2s;text-align:left;font-family:'Space Grotesk',sans-serif;width:100%;}
+.opt-btn:hover:not(:disabled){background:rgba(46,204,113,.09);border-color:rgba(46,204,113,.38);transform:translateX(4px);box-shadow:0 0 18px rgba(46,204,113,.09);}
+.opt-btn.correct{background:rgba(57,255,20,.09);border-color:var(--neon-green);color:#b3ffa0;box-shadow:0 0 18px rgba(57,255,20,.13);animation:correctPop .4s ease;}
+.opt-btn.wrong{background:rgba(255,0,153,.09);border-color:var(--neon-pink);color:#ffb3d9;animation:wrongWiggle .4s ease;}
+@keyframes correctPop{0%{transform:scale(1)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
+@keyframes wrongWiggle{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+.opt-letter{width:27px;height:27px;border-radius:8px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.75rem;flex-shrink:0;font-family:'Orbitron',sans-serif;color:var(--turtle-green);}
+.feedback-box{background:rgba(191,95,255,.07);border:1px solid rgba(191,95,255,.22);border-radius:13px;padding:13px 17px;font-size:.82rem;color:#D4ADFF;line-height:1.65;margin-bottom:14px;animation:slideUp .3s ease both;display:none;}
+.feedback-box.correct{background:rgba(57,255,20,.07);border-color:rgba(57,255,20,.2);color:#b3ffa0;}
+.feedback-box.wrong{background:rgba(255,0,153,.07);border-color:rgba(255,0,153,.2);color:#ffb3d9;}
+.next-quiz-btn{display:none;width:100%;padding:13px;border-radius:13px;border:none;background:linear-gradient(135deg,var(--turtle-green),var(--neon-purple));color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;letter-spacing:.04em;transition:all .2s;box-shadow:0 0 22px rgba(46,204,113,.32);text-transform:uppercase;}
+.next-quiz-btn:hover{transform:translateY(-2px);box-shadow:0 0 38px rgba(46,204,113,.52);}
+
+/* Result */
+.result-screen-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;text-align:center;padding:40px;}
+.result-trophy{font-size:5rem;margin-bottom:12px;animation:turtleBounce 1.6s ease-in-out infinite;filter:drop-shadow(0 0 18px rgba(255,215,0,.5));}
+.result-title{font-family:'Orbitron',sans-serif;font-size:1.6rem;font-weight:700;background:linear-gradient(100deg,var(--turtle-green),var(--turtle-gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:7px;}
+.result-score{font-family:'Orbitron',sans-serif;font-size:2.8rem;color:var(--turtle-teal);margin:12px 0;}
+.result-xp{display:inline-block;padding:7px 18px;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.25);border-radius:100px;color:var(--turtle-gold);font-family:'Orbitron',sans-serif;font-size:.9rem;margin:10px 0;}
+.result-badge{font-size:1.3rem;padding:14px 28px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:14px;margin:18px 0;font-family:'Orbitron',sans-serif;font-weight:700;color:var(--turtle-teal);}
+.result-sub{color:var(--text-muted);font-size:.82rem;margin:7px 0 16px;}
+.result-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;justify-content:center;}
+.gameover-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;text-align:center;padding:40px;}
+#save-status{color:var(--neon-green);font-size:.8rem;margin:8px 0;}
+
+/* ── SYLLABUS ── */
+#view-syllabus{padding:32px;}
+.syllabus-section{margin-bottom:36px;}
+.syllabus-section-title{font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700;margin-bottom:16px;padding:11px 18px;border-radius:12px;display:flex;align-items:center;gap:10px;}
+.syl-beginner{background:rgba(57,255,20,.07);border:1px solid rgba(57,255,20,.2);color:var(--neon-green);}
+.syl-intermediate{background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.2);color:var(--turtle-gold);}
+.syl-advanced{background:rgba(46,204,113,.07);border:1px solid rgba(46,204,113,.2);color:var(--turtle-green);}
+.syl-expert{background:rgba(191,95,255,.07);border:1px solid rgba(191,95,255,.2);color:var(--neon-purple);}
+.syl-bonus{background:rgba(0,245,255,.07);border:1px solid rgba(0,245,255,.2);color:var(--neon-cyan);}
+.syl-topics-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:13px;}
+.syl-topic-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:17px;transition:all .3s;}
+.syl-topic-card:hover{border-color:rgba(46,204,113,.3);transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.25);}
+.syl-topic-num{font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--turtle-green);margin-bottom:6px;letter-spacing:.05em;}
+.syl-topic-name{font-weight:700;font-size:.9rem;margin-bottom:9px;color:var(--text-main);}
+.syl-subtopics{list-style:none;}
+.syl-subtopics li{font-size:.75rem;color:var(--text-muted);padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;gap:6px;}
+.syl-subtopics li::before{content:'›';color:var(--turtle-green);}
+.syl-subtopics li:last-child{border-bottom:none;}
+
+/* ── DIFF / LANG PILLS ── */
+.diff-pill{display:inline-block;padding:3px 9px;border-radius:100px;font-size:.65rem;font-weight:700;letter-spacing:.05em;}
+.diff-beginner{background:rgba(57,255,20,.12);color:var(--neon-green);}
+.diff-intermediate{background:rgba(255,215,0,.12);color:var(--turtle-gold);}
+.diff-advanced{background:rgba(46,204,113,.12);color:var(--turtle-green);}
+.diff-expert{background:rgba(191,95,255,.12);color:var(--neon-purple);}
+
+/* Bias game banner */
+.bias-game-banner{display:flex;align-items:center;gap:15px;background:linear-gradient(135deg,rgba(255,215,0,.07),rgba(46,204,113,.07));border:1px solid rgba(255,215,0,.22);border-radius:20px;padding:18px;cursor:pointer;transition:all .25s;margin-top:22px;}
+.bias-game-banner:hover{transform:translateY(-4px);border-color:var(--turtle-gold);box-shadow:0 9px 32px rgba(0,0,0,.3),0 0 28px rgba(255,215,0,.1);}
+.bias-game-icon{font-size:2.2rem;flex-shrink:0;filter:drop-shadow(0 0 10px rgba(255,215,0,.5));}
+.bias-game-title{font-family:'Orbitron',sans-serif;font-size:.88rem;font-weight:700;color:var(--turtle-gold);}
+.bias-game-sub{font-size:.73rem;color:var(--text-muted);margin-top:3px;}
+
+/* ── TOAST ── */
+.toast,#toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 18px;border-radius:12px;background:rgba(7,7,15,.96);border:1px solid var(--turtle-green);font-size:.82rem;font-weight:600;display:flex;align-items:center;gap:10px;transform:translateY(80px);opacity:0;transition:all .3s;pointer-events:none;box-shadow:0 0 28px rgba(46,204,113,.28),0 8px 28px rgba(0,0,0,.4);backdrop-filter:blur(20px);color:var(--text-main);}
+.toast.show,#toast.show{transform:translateY(0);opacity:1;}
+.toast.success,#toast.success{border-color:var(--neon-green);box-shadow:0 0 28px rgba(57,255,20,.28);}
+.toast.error,#toast.error{border-color:var(--neon-pink);box-shadow:0 0 28px rgba(255,0,153,.28);}
+#toast-container{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:99999;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
+
+/* ── TOOLTIP ── */
+[data-tip]{position:relative;}
+[data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100%+6px);left:50%;transform:translateX(-50%);background:rgba(7,7,15,.96);border:1px solid rgba(255,255,255,.1);padding:5px 10px;border-radius:7px;font-size:.7rem;white-space:nowrap;pointer-events:none;z-index:100;color:var(--text-main);}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(46,204,113,.25);border-radius:100px;}
+::-webkit-scrollbar-thumb:hover{background:var(--turtle-green);}
+
+/* ── NAV ANIMATION ── */
+@keyframes navPop{0%{transform:scale(.95);}50%{transform:scale(1.02);}100%{transform:scale(1);}}
+.nav-item.active{animation:navPop .3s ease;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .progress-overview{grid-template-columns:repeat(2,1fr);}
+  .sidebar{display:none;position:fixed;left:0;top:0;bottom:0;z-index:200;}
+  .sidebar.open{display:flex;}
+  .mob-toggle{display:flex;}
+  #view-dashboard{padding:18px;}
+}
+@media(max-width:768px){
+  .sidebar{position:fixed;left:-280px;z-index:200;transition:left .3s;height:100%;top:0;display:flex;}
+  .sidebar.open{left:0;}
+  .mob-toggle{display:flex;}
+  .main-content{height:calc(100vh - 48px);}
+  .fact-grid{grid-template-columns:1fr;}
+  .levels-grid{grid-template-columns:1fr;}
+  .result-actions{flex-direction:column;}
+  .chat-area{padding:16px;}
+  .chat-footer{padding:14px 16px;}
+  #view-dashboard{padding:16px;}
+  .quiz-body{padding:16px;}
+  .quiz-topbar{padding:12px 14px;}
+}
+@media(max-width:600px){
+  .progress-overview{grid-template-columns:1fr 1fr;}
+  .levels-grid{grid-template-columns:1fr;}
+  .q-text{font-size:.95rem;}
+}
+</style>
+</head>
+<body>
+
+<canvas id="particle-canvas"></canvas>
+<div id="turtle-cursor-wrap">
+  <svg id="turtle-cursor-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <style>
+      #turtle-body { animation: turtleWalk 0.35s steps(1) infinite; }
+      @keyframes turtleWalk { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
+      #turtle-tail { transform-origin:20px 55px; animation:turtleSway 0.4s ease-in-out infinite alternate; }
+      @keyframes turtleSway { from{transform:rotate(-18deg)} to{transform:rotate(12deg)} }
+      #leg-fr { transform-origin:58px 72px; animation:legFR 0.35s ease-in-out infinite alternate; }
+      #leg-fl { transform-origin:48px 72px; animation:legFL 0.35s ease-in-out infinite alternate; }
+      #leg-rr { transform-origin:32px 72px; animation:legRR 0.35s ease-in-out infinite alternate; }
+      #leg-rl { transform-origin:22px 72px; animation:legRL 0.35s ease-in-out infinite alternate; }
+      @keyframes legFR { from{transform:rotate(-25deg)} to{transform:rotate(20deg)} }
+      @keyframes legFL { from{transform:rotate(20deg)} to{transform:rotate(-25deg)} }
+      @keyframes legRR { from{transform:rotate(20deg)} to{transform:rotate(-25deg)} }
+      @keyframes legRL { from{transform:rotate(-25deg)} to{transform:rotate(20deg)} }
+    </style>
+    <g id="turtle-body">
+      <g id="turtle-tail">
+        <path d="M18 60 Q8 58 7 50 Q12 54 20 56 Z" fill="#2ECC71"/>
+      </g>
+      <ellipse cx="50" cy="58" rx="32" ry="20" fill="#2ECC71"/>
+      <ellipse cx="50" cy="55" rx="26" ry="16" fill="#1B7A3D"/>
+      <path d="M50 41 L62 50 L57 64 L43 64 L38 50 Z" fill="#2ECC71" opacity="0.85"/>
+      <ellipse cx="32" cy="48" rx="3" ry="2.5" fill="#1B7A3D" opacity="0.8"/>
+      <ellipse cx="68" cy="48" rx="3" ry="2.5" fill="#1B7A3D" opacity="0.8"/>
+      <ellipse cx="50" cy="68" rx="3" ry="2.5" fill="#1B7A3D" opacity="0.8"/>
+      <circle cx="78" cy="50" r="13" fill="#4DD0E1"/>
+      <circle cx="83" cy="45" r="3" fill="#111"/>
+      <circle cx="84.2" cy="44" r="1" fill="#fff"/>
+      <ellipse cx="88" cy="52" rx="2.5" ry="1.8" fill="#1B7A3D"/>
+      <path d="M85 54 Q88 56 90 54" stroke="#1B7A3D" stroke-width="1" fill="none"/>
+      <rect id="leg-fr" x="60" y="70" width="9" height="14" rx="4.5" fill="#4DD0E1"/>
+      <rect id="leg-fl" x="46" y="72" width="9" height="14" rx="4.5" fill="#2ECC71"/>
+      <rect id="leg-rr" x="32" y="70" width="9" height="14" rx="4.5" fill="#4DD0E1"/>
+      <rect id="leg-rl" x="20" y="72" width="9" height="14" rx="4.5" fill="#2ECC71"/>
+    </g>
+  </svg>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ========== SPLASH ========== -->
+<div class="screen active" id="splash-screen">
+  <!-- Language Toggle -->
+  <div class="lang-toggle-bar">
+    <button class="lang-btn active" id="btn-en" onclick="setLang('en')">English</button>
+    <button class="lang-btn" id="btn-ta" onclick="setLang('ta')">தமிழ்</button>
+  </div>
+  <div class="splash-inner dyk-inner">
+    <div class="dyk-warning-icon">⚠️</div>
+    <h1 class="dyk-title" data-en="Did You Know?" data-ta="உங்களுக்கு தெரியுமா?">Did You Know?</h1>
+    <div class="dyk-cards">
+      <div class="dyk-card">
+        <span class="dyk-stat">8 Million+</span>
+        <span class="dyk-desc" data-en="tonnes of plastic enter our oceans every year" data-ta="ஒவ்வோர் ஆண்டும் 8 மில்லியன் டன் பிளாஸ்டிக் கடல்களில் கலக்கிறது">tonnes of plastic enter our oceans every year</span>
+      </div>
+      <div class="dyk-card">
+        <span class="dyk-stat dyk-stat-yellow">1°C</span>
+        <span class="dyk-desc" data-en="global average temperature has already risen, threatening ecosystems worldwide" data-ta="உலகளாவிய சராசரி வெப்பநிலை ஏற்கனவே உயர்ந்துள்ளது, உலகளாவிய சுற்றுச்சூழல் அமைப்புகளை அச்சுறுத்துகிறது">global average temperature has already risen, threatening ecosystems worldwide</span>
+      </div>
+      <div class="dyk-card">
+        <span class="dyk-stat dyk-stat-blue">1 Million+</span>
+        <span class="dyk-desc" data-en="species are at risk of extinction due to habitat loss and climate change" data-ta="வாழ்விட இழப்பு மற்றும் காலநிலை மாற்றத்தால் 1 மில்லியனுக்கும் அதிகமான இனங்கள் அழிவின் அபாயத்தில் உள்ளன">species are at risk of extinction due to habitat loss and climate change</span>
+      </div>
+    </div>
+    <p class="dyk-tagline" data-en="Our planet is changing fast — are you ready to be part of the solution?" data-ta="நமது கிரகம் வேகமாக மாறுகிறது — தீர்வின் ஒரு பகுதியாக நீங்கள் தயாரா?">Our planet is changing fast — are you ready to be part of the solution?</p>
+    <button class="cta-btn dyk-cta" onclick="showLogin()">
+      <span data-en="I Want to Learn →" data-ta="நான் கற்க விரும்புகிறேன் →">I Want to Learn →</span>
+    </button>
+  </div>
+</div>
+
+<!-- ========== LOGIN ========== -->
+<div class="screen" id="login-screen" style="align-items:center;justify-content:center;flex-direction:column;">
+  <div class="login-card">
+    <span class="login-turtle">🐢</span>
+    <div class="login-title" data-en="Welcome to EcoChronicles" data-ta="EcoChronicles-க்கு வரவேற்கிறோம்">Welcome to EcoChronicles</div>
+    <div class="login-sub" data-en="Your RAG-powered path to mastering Environmental Science" data-ta="சுற்றுச்சூழல் அறிவியலை கற்க உங்கள் AI வழிகாட்டி">Your RAG-powered path to mastering Environmental Science</div>
+    <input class="eco-input" id="inp-email" type="email" placeholder="Your email address..." maxlength="80" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <input class="eco-input" id="inp-name" type="text" placeholder="Your name..." maxlength="40" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <input class="eco-input" id="inp-class" type="text" placeholder="Your class / grade (optional)..." maxlength="30" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <button class="cta-btn" style="width:100%;justify-content:center;margin-top:8px;" onclick="doLogin()">
+      <span data-en="Enter EcoChronicles 🐢 ›" data-ta="கற்றலை தொடங்குங்கள் 🐢 ›">Enter EcoChronicles 🐢 ›</span>
+    </button>
+  </div>
+</div>
+
+<!-- ========== HOME (SIDEBAR + CONTENT) ========== -->
+<div class="screen" id="home-screen">
+
+  <!-- MOBILE TOP BAR -->
+  <div class="mob-toggle" id="mob-topbar">
+    <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
+    <span style="font-family:'Orbitron',sans-serif;font-weight:700;font-size:.9rem;">🐢 EcoChronicles</span>
+    <span id="mob-xp" style="margin-left:auto;font-family:'Orbitron',monospace;color:var(--turtle-teal);font-size:0.78rem;">0 XP</span>
+  </div>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">🐢</span>
+      <div class="logo-text">Eco<span>Chronicles</span></div>
+    </div>
+    <div class="user-panel">
+      <div class="user-name" id="sb-name">—</div>
+      <div class="user-class" id="sb-class">—</div>
+      <div class="xp-bar-wrap">
+        <div class="xp-label"><span>XP Progress</span><span id="sb-xp">0</span></div>
+        <div class="xp-bar"><div class="xp-fill" id="sb-xp-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-val" id="sb-lvl">0</div><div class="stat-key">Levels Done</div></div>
+      <div class="stat-box"><div class="stat-val" id="sb-streak">0</div><div class="stat-key">Day Streak</div></div>
+    </div>
+    <div class="nav-section">Navigation</div>
+    <div class="nav-item active" id="nav-dashboard" onclick="showView('dashboard')"><span class="nav-icon">🏠</span>Dashboard</div>
+    <div class="nav-item" id="nav-tutor" onclick="showView('tutor')"><span class="nav-icon">🤖</span>Eco Tutor Chat</div>
+    <div class="nav-item" id="nav-syllabus" onclick="showView('syllabus')"><span class="nav-icon">📚</span>Full Syllabus</div>
+    <div class="nav-item" id="nav-wasteid" onclick="showView('wasteid')"><span class="nav-icon">♻️</span>Eco Waste ID</div>
+    <div class="nav-item" id="nav-leaderboard" onclick="showView('leaderboard')"><span class="nav-icon">🏆</span>Leaderboard</div>
+    <div class="nav-section">Levels</div>
+    <div class="nav-item" id="nav-lv1" onclick="launchQuiz(1)"><span class="nav-icon">1️⃣</span>Our Environment<span class="level-badge badge-beginner">BEGINNER</span></div>
+    <div class="nav-item" id="nav-lv2" onclick="launchQuiz(2)"><span class="nav-icon">2️⃣</span>Foundations of Ecology<span class="level-badge badge-beginner">BEGINNER</span></div>
+    <div class="nav-item" id="nav-lv3" onclick="launchQuiz(3)"><span class="nav-icon">3️⃣</span>Natural Resources<span class="level-badge badge-beginner">BEGINNER</span></div>
+    <div class="nav-item" id="nav-lv4" onclick="launchQuiz(4)"><span class="nav-icon">4️⃣</span>Climate & Weather<span class="level-badge badge-beginner">BEGINNER</span></div>
+    <div class="nav-item" id="nav-lv5" onclick="launchQuiz(5)"><span class="nav-icon">5️⃣</span>Climate Change Science<span class="level-badge badge-intermediate">INTER</span></div>
+    <div class="nav-item" id="nav-lv6" onclick="launchQuiz(6)"><span class="nav-icon">6️⃣</span>Biodiversity & Conservation<span class="level-badge badge-intermediate">INTER</span></div>
+    <div class="nav-item" id="nav-lv7" onclick="launchQuiz(7)"><span class="nav-icon">7️⃣</span>Pollution & Control<span class="level-badge badge-intermediate">INTER</span></div>
+    <div class="nav-item" id="nav-lv8" onclick="launchQuiz(8)"><span class="nav-icon">8️⃣</span>Waste Management<span class="level-badge badge-intermediate">INTER</span></div>
+    <div class="nav-item" id="nav-lv9" onclick="launchQuiz(9)"><span class="nav-icon">9️⃣</span>Sustainable Living<span class="level-badge badge-intermediate">INTER</span></div>
+    <div class="nav-item" id="nav-lv10" onclick="launchQuiz(10)"><span class="nav-icon">🔟</span>Renewable Energy<span class="level-badge badge-advanced">ADV</span></div>
+    <div class="nav-item" id="nav-lv11" onclick="launchQuiz(11)"><span class="nav-icon">🌊</span>Forests, Oceans & Wildlife<span class="level-badge badge-advanced">ADV</span></div>
+    <div class="nav-item" id="nav-lv12" onclick="launchQuiz(12)"><span class="nav-icon">📜</span>Policy & Law<span class="level-badge badge-advanced">ADV</span></div>
+    <div class="nav-item" id="nav-lv13" onclick="launchQuiz(13)"><span class="nav-icon">💡</span>Green Technology<span class="level-badge badge-advanced">ADV</span></div>
+    <div class="nav-item" id="nav-lv14" onclick="launchQuiz(14)"><span class="nav-icon">✨</span>Climate Action & Advocacy<span class="level-badge badge-expert">EXPERT</span></div>
+    <div class="nav-item" id="nav-lv15" onclick="launchQuiz(15)"><span class="nav-icon">🚀</span>Project Management<span class="level-badge badge-expert">EXPERT</span></div>
+    <div class="nav-item" id="nav-lv16" onclick="launchQuiz(16)"><span class="nav-icon">⚖️</span>Environmental Ethics<span class="level-badge badge-expert">EXPERT</span></div>
+    <div class="nav-item" id="nav-lv17" onclick="launchQuiz(17)"><span class="nav-icon">🏗️</span>Capstone<span class="level-badge badge-expert">EXPERT</span></div>
+    <div class="sidebar-footer">
+      <button class="eco-btn-sm" onclick="doLogout()">🚪 Logout</button>
+      <button class="eco-btn-sm" onclick="showView('tutor')">🤖 Ask Tutor</button>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content" id="main-content">
+
+    <!-- DASHBOARD VIEW -->
+    <div id="view-dashboard" style="padding:32px;display:block;">
+      <div class="dash-header">
+        <div class="dash-greeting">Welcome back, <span id="dash-name">Learner</span>! 🐢</div>
+        <div class="dash-sub">Continue your eco journey — your turtle tutor is ready to help anytime.</div>
+      </div>
+      <div class="progress-overview" id="progress-overview">
+        <div class="prog-card" style="--color:var(--turtle-green)">
+          <div class="prog-card-icon">⚡</div>
+          <div class="prog-card-val" id="pd-xp">0</div>
+          <div class="prog-card-label">Total XP Earned</div>
+          <div class="prog-bar"><div class="prog-bar-fill" id="pd-xp-bar" style="width:0%;background:linear-gradient(90deg,var(--turtle-deep),var(--turtle-teal))"></div></div>
+        </div>
+        <div class="prog-card" style="--color:#4CAF50">
+          <div class="prog-card-icon">🏆</div>
+          <div class="prog-card-val" id="pd-done">0/17</div>
+          <div class="prog-card-label">Levels Completed</div>
+          <div class="prog-bar"><div class="prog-bar-fill" id="pd-done-bar" style="width:0%;background:linear-gradient(90deg,#2E7D32,#4CAF50)"></div></div>
+        </div>
+        <div class="prog-card" style="--color:#2196F3">
+          <div class="prog-card-icon">🧠</div>
+          <div class="prog-card-val" id="pd-correct">0%</div>
+          <div class="prog-card-label">Avg. Accuracy</div>
+          <div class="prog-bar"><div class="prog-bar-fill" id="pd-acc-bar" style="width:0%;background:linear-gradient(90deg,#1565C0,#2196F3)"></div></div>
+        </div>
+        <div class="prog-card" style="--color:#9C27B0">
+          <div class="prog-card-icon">🔥</div>
+          <div class="prog-card-val" id="pd-streak">0</div>
+          <div class="prog-card-label">Day Streak</div>
+          <div class="prog-bar"><div class="prog-bar-fill" id="pd-streak-bar" style="width:10%;background:linear-gradient(90deg,#6A1B9A,#9C27B0)"></div></div>
+        </div>
+        <div class="prog-card" style="--color:#FFB300">
+          <div class="prog-card-icon">🏆</div>
+          <div class="prog-card-val" id="pd-rank">—</div>
+          <div class="prog-card-label">Leaderboard Rank</div>
+          <div class="prog-bar"><div class="prog-bar-fill" id="pd-rank-bar" style="width:0%;background:linear-gradient(90deg,#FF8F00,#FFB300)"></div></div>
+        </div>
+      </div>
+
+      <div class="section-heading">🌱 Beginner Level</div>
+      <div class="levels-grid" id="levels-grid-beginner"></div>
+      <div class="section-heading">🔥 Intermediate Level</div>
+      <div class="levels-grid" id="levels-grid-intermediate"></div>
+      <div class="section-heading">⚡ Advanced Level</div>
+      <div class="levels-grid" id="levels-grid-advanced"></div>
+      <div class="section-heading">🚀 Expert Level</div>
+      <div class="levels-grid" id="levels-grid-expert"></div>
+    </div>
+
+    <!-- TUTOR CHAT VIEW -->
+    <div id="view-tutor" style="display:none;">
+      <div class="tutor-header">
+        <div class="tutor-turtle">🐢</div>
+        <div class="tutor-info">
+          <div class="tutor-name">Shelly — Your Eco Tutor</div>
+          <div class="tutor-status">Online • Ready to teach anything</div>
+        </div>
+        <select class="tutor-context-select" id="tutor-context">
+          <option value="">📚 Ask anything...</option>
+          <option value="Our Environment">1. Our Environment</option>
+          <option value="Foundations of Ecology">2. Foundations of Ecology</option>
+          <option value="Natural Resources">3. Natural Resources</option>
+          <option value="Climate & Weather">4. Climate & Weather</option>
+          <option value="Climate Change Science">5. Climate Change Science</option>
+          <option value="Biodiversity & Conservation">6. Biodiversity & Conservation</option>
+          <option value="Pollution & Control">7. Pollution & Control</option>
+          <option value="Waste Management">8. Waste Management</option>
+          <option value="Sustainable Living">9. Sustainable Living</option>
+          <option value="Renewable Energy">10. Renewable Energy</option>
+          <option value="Forests, Oceans & Wildlife">11. Forests, Oceans & Wildlife</option>
+          <option value="Environmental Policy & Law">12. Environmental Policy & Law</option>
+          <option value="Green Technology">13. Green Technology</option>
+          <option value="Climate Action & Advocacy">14. Climate Action & Advocacy</option>
+          <option value="Project Management">15. Project Management</option>
+          <option value="Environmental Ethics">16. Environmental Ethics</option>
+          <option value="Capstone Missions">17. Capstone Missions</option>
+        </select>
+      </div>
+      <div class="chat-area" id="chat-area"></div>
+      <div class="chat-footer">
+        <div class="quick-prompts" id="quick-prompts">
+          <button class="qp-btn" onclick="sendQuick('What is climate change? Explain with examples.')">Climate Change?</button>
+          <button class="qp-btn" onclick="sendQuick('Explain the difference between renewable and non-renewable resources.')">Renewable vs Non-renewable</button>
+          <button class="qp-btn" onclick="sendQuick('How does the greenhouse effect work? Simple explanation please.')">Greenhouse Effect</button>
+          <button class="qp-btn" onclick="sendQuick('What is biodiversity and why is it important?')">Biodiversity</button>
+          <button class="qp-btn" onclick="sendQuick('Explain the 3Rs of waste management.')">3Rs of Waste</button>
+          <button class="qp-btn" onclick="sendQuick('What is a carbon footprint and how can I reduce mine?')">Carbon Footprint</button>
+          <button class="qp-btn" onclick="sendQuick('How can I start an environmental project at my school? Step by step guide.')">School Eco Project</button>
+          <button class="qp-btn" onclick="sendQuick('What are the SDGs (Sustainable Development Goals)?')">SDGs</button>
+        </div>
+        <div class="chat-input-row">
+          <textarea class="chat-input" id="chat-input" placeholder="Ask anything about climate, ecosystems, sustainability, conservation..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"></textarea>
+          <button class="send-btn" id="send-btn" onclick="sendChat()">➤</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SYLLABUS VIEW -->
+    <div id="view-syllabus" style="display:none;padding:32px;">
+      <div class="dash-header" style="margin-bottom:32px;">
+        <div class="dash-greeting">Full <span>Syllabus</span> 📚</div>
+        <div class="dash-sub">17 modules covering the complete environmental education journey</div>
+      </div>
+      <div id="syllabus-content"></div>
+    </div>
+
+    <!-- ECO WASTE IDENTIFICATION VIEW (replaces photo-upload activity — no Firebase Storage needed) -->
+    <div id="view-wasteid" style="display:none;padding:32px;">
+      <div class="dash-header" style="margin-bottom:12px;">
+        <div class="dash-greeting">Eco Waste <span>Identification</span> ♻️</div>
+        <div class="dash-sub">Tap a card to see the waste type, recycling method, and disposal tips from Shelly's local knowledge base — no photo upload needed.</div>
+      </div>
+      <div class="waste-progress-row">
+        <span id="waste-progress-label">0/10 waste items identified</span>
+        <span id="waste-full-badge" class="waste-full-badge" style="display:none;">🏅 Waste Expert Badge Earned!</span>
+      </div>
+      <div class="waste-grid" id="wasteid-grid"></div>
+    </div>
+
+    <!-- LEADERBOARD VIEW (Firestore-backed, sorted by Eco Points) -->
+    <div id="view-leaderboard" style="display:none;padding:32px;">
+      <div class="dash-header" style="margin-bottom:12px;">
+        <div class="dash-greeting">Class <span>Leaderboard</span> 🏆</div>
+        <div class="dash-sub">Ranked by total Eco Points earned across all quiz levels — updates live from Firestore.</div>
+      </div>
+      <div class="leaderboard-table-wrap">
+        <table class="leaderboard-table">
+          <thead>
+            <tr><th>Rank</th><th>Student</th><th>Class</th><th>Eco Points</th><th>Levels Done</th><th>Accuracy</th><th>Language</th></tr>
+          </thead>
+          <tbody id="leaderboard-body">
+            <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:20px;">Loading leaderboard…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- QUIZ VIEW -->
+    <div id="view-quiz" style="display:none;flex-direction:column;">
+      <div class="quiz-topbar">
+        <button onclick="exitQuiz()" style="background:transparent;border:1px solid var(--dark-border);color:var(--text-muted);padding:7px 14px;border-radius:8px;font-size:0.85rem;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--turtle-green)';this.style.color='var(--turtle-green)'" onmouseout="this.style.borderColor='var(--dark-border)';this.style.color='var(--text-muted)'">← Back</button>
+        <div class="quiz-level-info">
+          <div class="quiz-level-name" id="qlvl-name">—</div>
+          <div class="quiz-level-diff" id="qlvl-diff">—</div>
+        </div>
+        <div class="quiz-lang-toggle">
+          <button class="qlang-btn active" id="qlang-en" onclick="switchQuizLang('en')">EN</button>
+          <button class="qlang-btn" id="qlang-ta" onclick="switchQuizLang('ta')">தமிழ்</button>
+        </div>
+        <div class="quiz-lives" id="quiz-lives">❤️❤️❤️</div>
+        <div class="quiz-xp-box">⚡ <span id="quiz-xp">0</span> XP</div>
+      </div>
+      <div class="quiz-progress-wrap">
+        <div class="quiz-progress-bar"><div class="quiz-progress-fill" id="quiz-prog" style="width:0%"></div></div>
+      </div>
+      <div class="quiz-body" id="quiz-body" style="flex:1;overflow-y:auto;padding:28px;">
+        <!-- dynamically filled -->
+      </div>
+    </div>
+
+  </div><!-- end main-content -->
+</div><!-- end home-screen -->
+
+<script>
+// ====== FIREBASE BRIDGE READINESS ======
+// The Firestore bridge (window.EcoClient) is set up by a <script type="module">
+// near the end of <body>, since ES module imports can't live in a classic
+// script. Module scripts are deferred, so on a slow connection there's a real
+// window where quiz-save / leaderboard / waste-log code can run before the
+// bridge exists. window.EcoReady is a promise any of that code can await
+// instead of guessing with a timeout — it resolves the instant the module
+// script finishes (via the 'ecoclient-ready' event below), however long that
+// takes, so nothing gives up early or throws "Firebase bridge not ready".
+window.EcoReady = new Promise((resolve) => {
+  if (window.EcoClient) { resolve(window.EcoClient); return; }
+  window.addEventListener('ecoclient-ready', () => resolve(window.EcoClient), { once: true });
+});
+
+// ====== CURSOR (walking turtle — matches teacher dashboard) ======
+(function(){
+  const wrap = document.getElementById('turtle-cursor-wrap');
+  if(!wrap) return;
+  // Expose the real cursor element globally. Some hover-highlight code below
+  // (the quiz option buttons, and the site-wide MutationObserver near the
+  // end of this script) references `window.cur` — using the global instead
+  // of a bare `cur` avoids two problems: (1) a ReferenceError where no local
+  // `cur` exists at all, and (2) a scope collision inside renderQuestion(),
+  // which destructures its own local `cur` from qState (the current
+  // question index) that would otherwise silently shadow the cursor.
+  window.cur = wrap;
+  let mx=window.innerWidth/2, my=window.innerHeight/2;
+  let cx=mx, cy=my, lastX=mx, lastY=my, trailTimer=0, pawTimer=0;
+  document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; });
+  function lerp(a,b,t){ return a+(b-a)*t; }
+  function loop(){
+    cx = lerp(cx, mx, 0.18); cy = lerp(cy, my, 0.18);
+    wrap.style.left = cx+'px'; wrap.style.top = cy+'px';
+    const dx=mx-lastX, dy=my-lastY, speed=Math.sqrt(dx*dx+dy*dy);
+    if(speed>1){ const svg=document.getElementById('turtle-cursor-svg'); if(svg){if(dx<-5)svg.style.transform='scaleX(-1)';else if(dx>5)svg.style.transform='scaleX(1)';} }
+    if(speed>4){
+      trailTimer++;
+      if(trailTimer%3===0){ const t=document.createElement('div'); t.className='turtle-cursor-trail'; const sz=4+Math.random()*5; t.style.cssText=`left:${lastX}px;top:${lastY}px;width:${sz}px;height:${sz}px;background:radial-gradient(circle,rgba(46,204,113,.8),transparent)`; document.body.appendChild(t); setTimeout(()=>t.remove(),600); }
+      pawTimer++;
+      if(pawTimer%18===0){ const p=document.createElement('div'); p.className='turtle-foot'; p.textContent='🐾'; p.style.cssText=`left:${lastX}px;top:${lastY}px;`; document.body.appendChild(p); setTimeout(()=>p.remove(),900); }
+    }
+    lastX=mx; lastY=my; requestAnimationFrame(loop);
+  }
+  loop();
+  // Particle system
+  const canvas=document.getElementById('particle-canvas');
+  if(canvas){ const ctx=canvas.getContext('2d'); let W,H,particles=[]; function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; } resize(); window.addEventListener('resize',resize); for(let i=0;i<55;i++) particles.push(mkP()); function mkP(){ return{x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,r:Math.random()*1.8+0.4,vx:(Math.random()-.5)*.28,vy:(Math.random()-.5)*.28,a:Math.random()*.5+.1,c:Math.random()<.5?'255,107,26':Math.random()<.5?'191,95,255':'0,245,255'}; } function drawParticles(){ ctx.clearRect(0,0,W,H); particles.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; if(p.x<0||p.x>W)p.vx*=-1; if(p.y<0||p.y>H)p.vy*=-1; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fillStyle=`rgba(${p.c},${p.a})`; ctx.fill(); }); for(let i=0;i<particles.length;i++){ for(let j=i+1;j<particles.length;j++){ const dx=particles[i].x-particles[j].x; const dy=particles[i].y-particles[j].y; const dist=Math.sqrt(dx*dx+dy*dy); if(dist<130){ ctx.beginPath(); ctx.moveTo(particles[i].x,particles[i].y); ctx.lineTo(particles[j].x,particles[j].y); ctx.strokeStyle=`rgba(191,95,255,${(1-dist/130)*.08})`; ctx.lineWidth=.6; ctx.stroke(); } } } requestAnimationFrame(drawParticles); } drawParticles(); }
+})();
+
+// ====== STATE ======
+let state={
+  name:'',email:'',cls:'',xp:0,lvlsDone:0,streak:0,
+  completed:{},totalAns:0,totalCorrect:0,
+  chatHistory:[]
+};
+
+// ====== TOAST ======
+function toast(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.textContent=(type==='success'?'✅ ':'❌ ')+msg;
+  t.className='toast show '+(type==='success'?'success':'error');
+  setTimeout(()=>t.className='toast',3000);
+}
+
+// ====== SCREENS ======
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function showLogin(){showScreen('login-screen');}
+function doLogin(){
+  const e=document.getElementById('inp-email').value.trim();
+  const n=document.getElementById('inp-name').value.trim();
+  if(!e){toast('Please enter your email!','error');return;}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)){toast('Please enter a valid email!','error');return;}
+  if(!n){toast('Please enter your name!','error');return;}
+  const storageKey='ecochronicles_'+e.toLowerCase();
+  const saved=localStorage.getItem(storageKey);
+  if(saved){
+    try{
+      const parsed=JSON.parse(saved);
+      state=parsed;
+      state.email=e;
+      toast('Welcome back, '+state.name+'! Continuing your course 🐢','success');
+    }catch(err){
+      state.name=n;state.email=e;
+      state.cls=document.getElementById('inp-class').value.trim()||'Eco Learner';
+    }
+  } else {
+    state.name=n;
+    state.email=e;
+    state.cls=document.getElementById('inp-class').value.trim()||'Eco Learner';
+    state.xp=0;state.lvlsDone=0;state.streak=0;
+    state.completed={};state.totalAns=0;state.totalCorrect=0;state.chatHistory=[];
+  }
+  updateUI();
+  renderDashboard();
+  renderSyllabus();
+  initChat();
+  showScreen('home-screen');
+}
+function saveProgress(){
+  if(state.email){
+    const storageKey='ecochronicles_'+state.email.toLowerCase();
+    localStorage.setItem(storageKey,JSON.stringify(state));
+  }
+}
+function doLogout(){
+  saveProgress();
+  state={name:'',email:'',cls:'',xp:0,lvlsDone:0,streak:0,completed:{},totalAns:0,totalCorrect:0,chatHistory:[]};
+  showScreen('login-screen');
+}
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ====== VIEWS ======
+function showView(v){
+  ['dashboard','tutor','syllabus','quiz','wasteid','leaderboard'].forEach(id=>{
+    const el=document.getElementById('view-'+id);
+    if(el) el.style.display='none';
+  });
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const vEl=document.getElementById('view-'+v);
+  if(vEl) vEl.style.display=(v==='tutor'||v==='quiz')?'flex':'block';
+  const nEl=document.getElementById('nav-'+v);
+  if(nEl) nEl.classList.add('active');
+  if(window.innerWidth<=768) document.getElementById('sidebar').classList.remove('open');
+  if(v==='leaderboard') renderLeaderboard();
+}
+
+// ====== LEADERBOARD (Firestore-backed) ======
+// Aggregates every student's best score per level into "Eco Points" —
+// keeps only Firestore reads, no writes, no external API.
+async function fetchLeaderboardRows(){
+  const client = window.EcoClient || await window.EcoReady;
+  if(!client) return [];
+  const scores = await client.getAllScores();
+  const byStudent = {};
+  scores.forEach(s=>{
+    const key=(s.name||'Unknown').trim().toLowerCase();
+    if(!byStudent[key]) byStudent[key]={name:s.name||'Unknown',studentClass:s.studentClass||'—',language:s.language||'en',bestByLevel:{}};
+    const rec=byStudent[key];
+    rec.language=s.language||rec.language;
+    if(s.studentClass) rec.studentClass=s.studentClass;
+    const prevBest=rec.bestByLevel[s.level];
+    if(!prevBest || (s.score||0) > prevBest.score){ rec.bestByLevel[s.level]={score:s.score||0,total:s.total||0}; }
+  });
+  const rows=Object.values(byStudent).map(rec=>{
+    const levels=Object.values(rec.bestByLevel);
+    const ecoPoints=levels.reduce((sum,l)=>sum+l.score,0);
+    const totalPossible=levels.reduce((sum,l)=>sum+l.total,0);
+    const accuracy=totalPossible?Math.round((ecoPoints/totalPossible)*100):0;
+    return {name:rec.name,studentClass:rec.studentClass,language:rec.language,ecoPoints,levelsDone:levels.length,accuracy};
+  });
+  rows.sort((a,b)=> b.ecoPoints-a.ecoPoints || b.accuracy-a.accuracy);
+  return rows;
+}
+
+async function renderLeaderboard(){
+  const body=document.getElementById('leaderboard-body');
+  if(!body) return;
+  body.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:20px;">Loading leaderboard…</td></tr>';
+  const rows=await fetchLeaderboardRows();
+  if(!rows.length){
+    body.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:20px;">No quiz attempts yet — be the first to set a score!</td></tr>';
+    return;
+  }
+  const medals=['🥇','🥈','🥉'];
+  body.innerHTML=rows.map((r,i)=>`
+    <tr class="${(state.name||'').trim().toLowerCase()===r.name.trim().toLowerCase()?'lb-me':''}">
+      <td>${medals[i]||('#'+(i+1))}</td>
+      <td><strong>${r.name}</strong></td>
+      <td>${r.studentClass}</td>
+      <td>${r.ecoPoints}</td>
+      <td>${r.levelsDone}/17</td>
+      <td>${r.accuracy}%</td>
+      <td>${r.language==='ta'?'Tamil':r.language==='hi'?'Hindi':r.language==='te'?'Telugu':r.language==='ml'?'Malayalam':'English'}</td>
+    </tr>`).join('');
+}
+
+// Refreshes just the "Leaderboard Rank" stat card on the dashboard.
+async function refreshLeaderboardRankBadge(){
+  const el=document.getElementById('pd-rank');
+  if(!el || !state.name) return;
+  const rows=await fetchLeaderboardRows();
+  const idx=rows.findIndex(r=>r.name.trim().toLowerCase()===state.name.trim().toLowerCase());
+  el.textContent = idx>=0 ? ('#'+(idx+1)) : '—';
+  const bar=document.getElementById('pd-rank-bar');
+  if(bar) bar.style.width = idx>=0 ? Math.max(8,100-Math.min(90,idx*8))+'%' : '0%';
+}
+
+// ====== SYLLABUS DATA ======
+const SYLLABUS=[
+  {id:1,name:'Introduction to Our Environment',level:'beginner',xp:80,topics:['What is the environment?','Biotic & abiotic components','Ecosystems & habitats','Why the environment matters','Everyday environmental impact','Eco-Ethics & Responsible Living']},
+  {id:2,name:'Foundations of Ecology',level:'beginner',xp:100,topics:['Food chains & food webs','Producers, consumers, decomposers','Energy flow & nutrient cycles','Population & community ecology','Biomes of the world']},
+  {id:3,name:'Earth\'s Natural Resources',level:'beginner',xp:100,topics:['Renewable vs non-renewable resources','Water cycle & freshwater resources','Soil & land resources','Forests & minerals','Conservation basics']},
+  {id:4,name:'Climate & Weather Basics',level:'beginner',xp:80,topics:['Weather vs climate','The greenhouse effect','Layers of the atmosphere','Climate zones','Reading climate data']},
+  {id:5,name:'Climate Change Science',level:'intermediate',xp:120,topics:['Causes of climate change','Carbon footprint & emissions','Global warming evidence','Effects on ecosystems','Climate data analysis','Mitigation vs adaptation']},
+  {id:6,name:'Biodiversity & Conservation',level:'intermediate',xp:100,topics:['What is biodiversity?','Endangered & extinct species','Habitat loss & fragmentation','Protected areas & sanctuaries','Conservation success stories']},
+  {id:7,name:'Pollution & Its Control',level:'intermediate',xp:150,topics:['Air pollution & AQI','Water pollution & treatment','Soil & land pollution','Noise & light pollution','Pollution control technologies','Measuring pollution impact']},
+  {id:8,name:'Waste Management & Recycling',level:'intermediate',xp:130,topics:['Types of waste','3Rs: Reduce, Reuse, Recycle','Composting & organic waste','E-waste management','Circular economy basics']},
+  {id:9,name:'Sustainable Living',level:'intermediate',xp:110,topics:['Sustainable Development Goals (SDGs)','Eco-friendly habits','Sustainable food choices','Green transportation','Water & energy conservation at home']},
+  {id:10,name:'Renewable Energy Systems',level:'advanced',xp:160,topics:['Solar energy basics','Wind & hydro power','Biomass & geothermal energy','Energy storage & grids','Comparing energy sources']},
+  {id:11,name:'Forests, Oceans & Wildlife',level:'advanced',xp:170,topics:['Forest ecosystems & deforestation','Ocean ecosystems & coral reefs','Marine pollution & overfishing','Wildlife corridors & migration','Reforestation & afforestation projects']},
+  {id:12,name:'Environmental Policy & Law',level:'advanced',xp:180,topics:['Major environmental treaties (Paris Agreement, Kyoto Protocol)','National environmental laws','Environmental Impact Assessment (EIA)','Role of NGOs & UN agencies','Carbon credits & trading']},
+  {id:13,name:'Green Technology & Innovation',level:'advanced',xp:160,topics:['Smart grids & IoT for sustainability','Electric vehicles','Carbon capture technology','Sustainable agriculture tech','Eco-innovation case studies']},
+  {id:14,name:'Climate Action & Advocacy',level:'expert',xp:200,topics:['Climate movements & activism','Community-led environmental projects','Effective eco-communication','Campaign planning','Working with local government','Building eco-coalitions']},
+  {id:15,name:'Environmental Project Management',level:'expert',xp:180,topics:['Planning a sustainability project','Stakeholder mapping','Budgeting & resource planning','Monitoring & evaluation','Reporting impact','Funding & grants for green projects']},
+  {id:16,name:'Environmental Ethics & Justice',level:'expert',xp:160,topics:['Environmental justice & equity','Indigenous knowledge & conservation','Intergenerational responsibility','Corporate environmental responsibility','Global vs local environmental priorities']},
+  {id:17,name:'Capstone: EcoChronicles Missions',level:'expert',xp:300,topics:['School/college energy audit','Community clean-up campaign','Biodiversity survey project','Recycling drive design','Carbon footprint tracker app','Awareness campaign for climate action','Green campus proposal']},
+];
+
+
+const LEVEL_COLORS={beginner:'#4CAF50',intermediate:'#2196F3',advanced:'#FF5722',expert:'#9C27B0',bonus:'#FF9800'};
+const LEVEL_EMOJIS={beginner:'🌱',intermediate:'🔥',advanced:'⚡',expert:'🚀',bonus:'🎁'};
+
+const QUIZ_DATA={
+  1:[
+    {q:"What does the term 'environment' refer to?",opts:["Only forests","All living and non-living things that surround and affect organisms","Only the weather","Only human-made structures"],ans:1,exp:"The environment includes all living (biotic) and non-living (abiotic) components that surround and influence living organisms."},
+    {q:"Which of these is an abiotic component of the environment?",opts:["Trees","Bacteria","Sunlight","Birds"],ans:2,exp:"Abiotic (non-living) components include sunlight, water, air, soil, and temperature."},
+    {q:"What is a habitat?",opts:["A type of pollution","The natural home or environment of an organism","A man-made building","A weather pattern"],ans:1,exp:"A habitat is the natural environment in which an organism normally lives, providing food, water, shelter, and space."},
+    {q:"Which of these is NOT a way individuals impact the environment daily?",opts:["Using plastic bags","Conserving electricity","Driving a car","Throwing waste in rivers"],ans:1,exp:"Conserving electricity reduces environmental impact, while the others increase pollution and resource use."},
+    {q:"Eco-ethics encourages people to:",opts:["Use resources without limits","Act responsibly toward nature and future generations","Ignore environmental laws","Focus only on economic growth"],ans:1,exp:"Eco-ethics is about acting responsibly toward nature, wildlife, and future generations through sustainable choices."},
+  ],
+  2:[
+    {q:"What is a food chain?",opts:["A chain made of food packaging","A sequence showing transfer of energy from one organism to another","A list of restaurants","A type of soil layer"],ans:1,exp:"A food chain shows how energy and nutrients flow from one organism to another through feeding relationships."},
+    {q:"Which organisms are called 'producers' in an ecosystem?",opts:["Animals that eat plants","Organisms that break down dead matter","Plants and algae that make their own food via photosynthesis","Predators at the top of the chain"],ans:2,exp:"Producers, like plants and algae, make their own food through photosynthesis and form the base of the food chain."},
+    {q:"What role do decomposers play in an ecosystem?",opts:["They hunt other animals","They break down dead organisms and recycle nutrients into the soil","They produce oxygen only","They cause pollution"],ans:1,exp:"Decomposers (fungi, bacteria) break down dead organic matter, returning nutrients to the soil for producers to reuse."},
+    {q:"The flow of energy in an ecosystem is generally:",opts:["Circular and reversible","One-directional, from sun to producers to consumers","Random with no pattern","Only between animals"],ans:1,exp:"Energy flows one way — from the sun to producers (via photosynthesis) and then to consumers at higher levels."},
+    {q:"A biome is best described as:",opts:["A single tree","A large naturally occurring community of plants and animals adapted to a region's climate","A man-made garden","A type of rock formation"],ans:1,exp:"A biome is a large ecological area with distinct climate, vegetation, and animal life, such as deserts, rainforests, or grasslands."},
+  ],
+  3:[
+    {q:"Which of these is a renewable resource?",opts:["Coal","Natural gas","Solar energy","Petroleum"],ans:2,exp:"Solar energy is renewable because it is continuously replenished by the sun and will not run out."},
+    {q:"The water cycle includes which key process?",opts:["Combustion","Evaporation, condensation, and precipitation","Photosynthesis only","Mining"],ans:1,exp:"The water cycle involves evaporation (water turns to vapor), condensation (forms clouds), and precipitation (rain/snow falls back to Earth)."},
+    {q:"Soil erosion is mainly caused by:",opts:["Too many trees","Wind and water removing topsoil, often worsened by deforestation","Excess rainfall only in deserts","Adding compost"],ans:1,exp:"Soil erosion occurs when wind or water strips away fertile topsoil, a process accelerated by deforestation and poor land use."},
+    {q:"Why are forests considered an important natural resource?",opts:["They only provide wood","They regulate climate, provide oxygen, habitat, and resources like timber and medicine","They have no ecological value","They only exist in cold regions"],ans:1,exp:"Forests regulate climate, produce oxygen, absorb carbon dioxide, provide habitats, and supply resources like timber, food, and medicine."},
+    {q:"Conservation of natural resources mainly means:",opts:["Using resources as fast as possible","Using resources wisely to ensure they last for future generations","Stopping all resource use completely","Exporting all resources"],ans:1,exp:"Conservation means using natural resources responsibly and efficiently so they remain available for future generations."},
+  ],
+  4:[
+    {q:"What is the main difference between weather and climate?",opts:["They are exactly the same","Weather is short-term atmospheric conditions; climate is long-term average patterns","Climate changes every hour","Weather only refers to temperature"],ans:1,exp:"Weather describes day-to-day atmospheric conditions, while climate is the average weather pattern of a region over many years."},
+    {q:"The greenhouse effect is caused mainly by:",opts:["The ozone layer blocking all sunlight","Gases like CO2 and methane trapping heat in the atmosphere","Cold air sinking to the ground","The moon's gravity"],ans:1,exp:"Greenhouse gases such as CO2 and methane trap heat from the sun in the atmosphere, warming the Earth's surface."},
+    {q:"Which layer of the atmosphere contains the ozone layer that protects life from UV radiation?",opts:["Troposphere","Stratosphere","Mesosphere","Exosphere"],ans:1,exp:"The ozone layer is located in the stratosphere and absorbs most of the sun's harmful ultraviolet (UV) radiation."},
+    {q:"A 'climate zone' is defined mainly by:",opts:["Population density","Temperature and precipitation patterns of a region","Number of cities","Type of currency used"],ans:1,exp:"Climate zones (tropical, temperate, polar, etc.) are defined by characteristic temperature and rainfall patterns of a region."},
+    {q:"Reading climate data over decades helps scientists:",opts:["Predict tomorrow's weather only","Identify long-term trends like global warming","Choose what to wear","Plan a single day's event"],ans:1,exp:"Long-term climate data analysis helps scientists identify trends such as rising global temperatures and changing rainfall patterns."},
+  ],
+  5:[
+    {q:"What is the primary human-caused contributor to climate change?",opts:["Volcanic eruptions only","Burning fossil fuels, releasing greenhouse gases","Ocean currents","Animal migration"],ans:1,exp:"Burning fossil fuels (coal, oil, gas) for energy and transport releases large amounts of CO2, the leading driver of human-caused climate change."},
+    {q:"A 'carbon footprint' measures:",opts:["The size of a person's shoe","The total greenhouse gases produced by an individual, organization, or activity","The amount of carbon in soil only","The number of trees planted"],ans:1,exp:"A carbon footprint is the total amount of greenhouse gases (expressed as CO2 equivalent) generated by an activity, person, or organization."},
+    {q:"Which is direct evidence of global warming?",opts:["Decreasing average global temperatures","Rising sea levels and melting glaciers","Stable ice caps","More snow every year worldwide"],ans:1,exp:"Rising sea levels (from melting glaciers and ice sheets) and shrinking ice cover are key evidence of global warming."},
+    {q:"Climate change affects ecosystems by:",opts:["Having no impact on wildlife","Shifting habitats, altering species behavior, and increasing extinction risk","Making all species stronger","Stopping natural disasters"],ans:1,exp:"Climate change shifts habitat ranges, disrupts breeding and migration patterns, and increases the risk of species extinction."},
+    {q:"What is the difference between climate mitigation and adaptation?",opts:["They mean the same thing","Mitigation reduces causes of climate change; adaptation adjusts to its effects","Mitigation only applies to oceans","Adaptation means ignoring climate change"],ans:1,exp:"Mitigation involves reducing greenhouse gas emissions (causes), while adaptation involves adjusting practices to cope with climate impacts."},
+  ],
+  6:[
+    {q:"Biodiversity refers to:",opts:["The number of countries on Earth","The variety of life forms — species, genes, and ecosystems — in a region","Only the number of trees","The diversity of weather patterns"],ans:1,exp:"Biodiversity is the variety of living organisms, including diversity within species, between species, and of ecosystems."},
+    {q:"A species is classified as 'endangered' when:",opts:["It is very common","It is at high risk of extinction in the near future","It has just been discovered","It lives only in zoos"],ans:1,exp:"An endangered species is one facing a very high risk of extinction in the wild in the near future."},
+    {q:"What is habitat fragmentation?",opts:["Combining small habitats into one large area","Breaking up large habitats into smaller, isolated patches, often due to human activity","Planting more trees in a forest","Increasing animal populations"],ans:1,exp:"Habitat fragmentation occurs when large habitats are divided into smaller, disconnected patches by roads, farms, or urban development, harming wildlife movement and survival."},
+    {q:"What is the main purpose of protected areas like wildlife sanctuaries and national parks?",opts:["To allow unrestricted hunting","To conserve ecosystems, species, and biodiversity from harmful human activity","To build factories","To increase tourism revenue only"],ans:1,exp:"Protected areas conserve natural habitats and biodiversity by limiting harmful activities like hunting, logging, and unplanned development."},
+    {q:"Which is an example of a conservation success story?",opts:["Increase in air pollution levels","Recovery of tiger populations in protected reserves through conservation efforts","Continued deforestation with no action","Extinction of more species each year"],ans:1,exp:"Conservation programs, like Project Tiger, have helped recover populations of endangered species through habitat protection and anti-poaching efforts."},
+  ],
+  7:[
+    {q:"AQI stands for:",opts:["Average Quality Index","Air Quality Index — a measure of how polluted the air is","Annual Quantity Increase","Atmospheric Quotient Indicator"],ans:1,exp:"AQI (Air Quality Index) is a numerical scale used to communicate how polluted the air currently is or how polluted it is forecast to become."},
+    {q:"Which of these is a major cause of water pollution?",opts:["Rainwater harvesting","Untreated industrial waste and sewage discharged into rivers","Planting trees near rivers","Using biodegradable soap"],ans:1,exp:"Discharging untreated industrial waste and sewage into water bodies introduces harmful chemicals and pathogens, causing water pollution."},
+    {q:"Soil pollution is commonly caused by:",opts:["Composting organic waste","Excessive use of chemical pesticides and fertilizers","Crop rotation","Planting native species"],ans:1,exp:"Overuse of chemical pesticides and fertilizers contaminates soil, harming soil organisms and reducing fertility over time."},
+    {q:"Noise pollution can negatively affect:",opts:["Only machines","Human health (stress, hearing loss) and wildlife behavior","Only plants","Nothing significant"],ans:1,exp:"Noise pollution can cause stress, hearing damage, and sleep disturbances in humans, and disrupt communication and migration in wildlife."},
+    {q:"Which technology helps control air pollution from industrial chimneys?",opts:["Air conditioners","Scrubbers and electrostatic precipitators that filter pollutants from exhaust gases","Window fans","Solar panels"],ans:1,exp:"Scrubbers and electrostatic precipitators remove particulate matter and harmful gases from industrial exhaust before it's released into the air."},
+  ],
+  8:[
+    {q:"What are the '3Rs' of waste management?",opts:["Read, Write, Recall","Reduce, Reuse, Recycle","Run, Rest, Repeat","Remove, Replace, Repair"],ans:1,exp:"The 3Rs — Reduce (use less), Reuse (use items again), Recycle (convert waste into new products) — help minimize waste sent to landfills."},
+    {q:"Composting is a method of:",opts:["Burning waste","Converting organic waste into nutrient-rich soil through natural decomposition","Sending waste to landfills","Recycling plastic"],ans:1,exp:"Composting breaks down organic waste like food scraps and leaves into nutrient-rich material that can enrich soil."},
+    {q:"E-waste refers to:",opts:["Edible food waste","Discarded electronic devices like phones, computers, and batteries","Garden waste","Construction debris"],ans:1,exp:"E-waste (electronic waste) includes discarded devices such as phones, computers, and batteries, which can contain hazardous materials if not disposed of properly."},
+    {q:"Why is improper disposal of e-waste harmful?",opts:["It has no impact","It can release toxic chemicals like lead and mercury into soil and water","It creates jobs only","It improves soil fertility"],ans:1,exp:"E-waste contains hazardous materials like lead, mercury, and cadmium that can contaminate soil and water if not disposed of or recycled properly."},
+    {q:"A 'circular economy' aims to:",opts:["Throw away products after one use","Keep resources in use for as long as possible through reuse and recycling, minimizing waste","Increase landfill size","Stop all manufacturing"],ans:1,exp:"A circular economy designs products and systems to minimize waste by keeping materials in use through repair, reuse, and recycling."},
+  ],
+  9:[
+    {q:"The SDGs (Sustainable Development Goals) were created by:",opts:["A single country","The United Nations, as a global call to action for sustainable development by 2030","A private company","Only environmental NGOs"],ans:1,exp:"The 17 SDGs were adopted by the United Nations in 2015 as a shared global framework for achieving sustainable development by 2030."},
+    {q:"Which of these is an eco-friendly daily habit?",opts:["Leaving lights on when not in use","Carrying a reusable water bottle and bag","Using single-use plastics often","Wasting food regularly"],ans:1,exp:"Using reusable items like water bottles and bags reduces single-use plastic waste, a simple but effective eco-friendly habit."},
+    {q:"What makes a food choice more sustainable?",opts:["Importing all food from far away","Choosing locally grown, seasonal, and plant-based foods more often","Wasting half the food bought","Eating only processed foods"],ans:1,exp:"Local, seasonal, and plant-based foods generally have a lower carbon footprint due to reduced transport emissions and resource use."},
+    {q:"Which transport option is considered 'green'?",opts:["Single-occupancy petrol car for short trips","Cycling, walking, or public transport","Frequent short-haul flights","Idling vehicles in traffic"],ans:1,exp:"Cycling, walking, and public transport reduce per-person emissions compared to individual fuel-powered vehicles."},
+    {q:"A simple way to conserve water at home is to:",opts:["Leave taps running while brushing teeth","Fix leaking taps and take shorter showers","Wash small loads of laundry frequently","Water gardens at noon in hot weather"],ans:1,exp:"Fixing leaks and reducing shower time are simple, effective ways to conserve water at home and lower utility bills."},
+  ],
+  10:[
+    {q:"Solar panels generate electricity by:",opts:["Burning sunlight","Converting sunlight directly into electricity using photovoltaic cells","Storing wind energy","Heating water only"],ans:1,exp:"Solar panels use photovoltaic (PV) cells to convert sunlight directly into electrical energy."},
+    {q:"Wind turbines generate electricity primarily through:",opts:["Solar radiation","The kinetic energy of moving air turning blades connected to a generator","Underground heat","Ocean tides"],ans:1,exp:"Wind turbines convert the kinetic energy of wind into mechanical energy (turning blades), which a generator converts into electricity."},
+    {q:"Geothermal energy comes from:",opts:["Sunlight stored in plants","Heat stored beneath the Earth's surface","Wind currents","Tidal movements"],ans:1,exp:"Geothermal energy harnesses heat from beneath the Earth's surface, often used for electricity generation and heating."},
+    {q:"Why is energy storage (like batteries) important for renewable energy?",opts:["It has no real use","It stores excess energy generated when conditions are favorable (e.g., sunny/windy) for use when they aren't","It increases pollution","It only helps fossil fuel plants"],ans:1,exp:"Energy storage systems store surplus renewable energy (e.g., from sunny or windy periods) so it can be used when generation is low, ensuring a steady supply."},
+    {q:"Compared to fossil fuels, renewable energy sources generally:",opts:["Produce more greenhouse gas emissions during operation","Produce little to no greenhouse gas emissions during operation","Are always more expensive with no benefits","Cannot be used for electricity"],ans:1,exp:"Renewable energy sources like solar and wind produce little to no direct greenhouse gas emissions during operation, unlike fossil fuels."},
+  ],
+  11:[
+    {q:"Deforestation primarily refers to:",opts:["Planting new trees","Large-scale clearing or removal of forests, often for agriculture or development","Forest fires caused naturally","Pruning tree branches"],ans:1,exp:"Deforestation is the large-scale removal of forests, often to make way for agriculture, logging, or urban development, leading to habitat loss and increased CO2 levels."},
+    {q:"Coral reefs are important because they:",opts:["Have no ecological role","Support about a quarter of all marine species and protect coastlines","Only exist for tourism","Are made of plastic"],ans:1,exp:"Coral reefs support roughly 25% of marine species and act as natural barriers that protect coastlines from storms and erosion."},
+    {q:"Overfishing leads to:",opts:["Increased fish populations","Depletion of fish stocks faster than they can reproduce, harming marine ecosystems","No environmental effect","More biodiversity"],ans:1,exp:"Overfishing removes fish faster than populations can recover, disrupting marine food webs and threatening species survival."},
+    {q:"What is the purpose of a wildlife corridor?",opts:["To separate animal populations permanently","To connect fragmented habitats, allowing animals to migrate and breed safely","To build roads through forests","To increase hunting access"],ans:1,exp:"Wildlife corridors connect isolated habitat patches, enabling animals to move safely for feeding, breeding, and genetic diversity."},
+    {q:"Reforestation differs from afforestation in that:",opts:["They are identical with no difference","Reforestation replants trees in areas that were forests; afforestation plants trees in areas without prior forest cover","Afforestation only happens in deserts","Reforestation removes trees"],ans:1,exp:"Reforestation restores tree cover to previously forested land, while afforestation establishes forests in areas that were not previously forested."},
+  ],
+  12:[
+    {q:"The Paris Agreement primarily aims to:",opts:["Increase fossil fuel production","Limit global temperature rise by reducing greenhouse gas emissions globally","Ban all international trade","Only fund space exploration"],ans:1,exp:"The Paris Agreement is an international treaty aiming to limit global warming to well below 2°C, ideally 1.5°C, by reducing global greenhouse gas emissions."},
+    {q:"An Environmental Impact Assessment (EIA) is conducted to:",opts:["Skip environmental regulations","Evaluate the potential environmental effects of a proposed project before it proceeds","Increase project costs unnecessarily","Replace all environmental laws"],ans:1,exp:"An EIA evaluates the likely environmental consequences of a proposed project, helping decision-makers avoid or mitigate harm before approval."},
+    {q:"NGOs and UN agencies contribute to environmental protection mainly by:",opts:["Ignoring environmental issues","Raising awareness, funding projects, and influencing policy on conservation and sustainability","Increasing pollution levels","Replacing national governments"],ans:1,exp:"NGOs and UN agencies (like UNEP) raise awareness, fund conservation projects, conduct research, and advocate for stronger environmental policies."},
+    {q:"Carbon credits work by:",opts:["Allowing unlimited emissions for everyone","Allowing organizations that reduce emissions below a target to sell credits to those exceeding limits","Banning all carbon emissions instantly","Having no connection to emissions trading"],ans:1,exp:"Carbon credits represent a reduction in greenhouse gas emissions; entities that emit less than their quota can sell surplus credits to others, incentivizing emission reductions."},
+    {q:"The Kyoto Protocol was significant because it:",opts:["Had no binding targets","Set legally binding emission reduction targets for developed countries","Only applied to ocean conservation","Banned renewable energy"],ans:1,exp:"The Kyoto Protocol (1997) was one of the first international treaties to set legally binding greenhouse gas reduction targets for industrialized nations."},
+  ],
+  13:[
+    {q:"A 'smart grid' improves energy systems by:",opts:["Removing all monitoring","Using digital technology and sensors to monitor and manage electricity distribution efficiently","Increasing energy waste","Eliminating renewable energy sources"],ans:1,exp:"Smart grids use digital communication and sensors to monitor, control, and optimize the production and distribution of electricity, integrating renewables efficiently."},
+    {q:"Electric vehicles (EVs) help reduce environmental impact mainly because they:",opts:["Burn more fuel than petrol cars","Produce zero tailpipe emissions, reducing local air pollution","Require no electricity","Cannot be charged using renewable energy"],ans:1,exp:"EVs produce no direct tailpipe emissions, reducing local air pollution, especially when charged using renewable electricity sources."},
+    {q:"Carbon capture technology works by:",opts:["Releasing more CO2 into the air","Capturing CO2 emissions from sources like power plants and storing or reusing them","Planting trees only","Increasing fossil fuel combustion"],ans:1,exp:"Carbon capture and storage (CCS) technology captures CO2 emissions at their source and stores them underground or repurposes them, preventing release into the atmosphere."},
+    {q:"Sustainable agriculture technology includes:",opts:["Excessive pesticide spraying with no monitoring","Precision farming using sensors and data to optimize water, fertilizer, and pesticide use","Clearing all forests for farmland","Ignoring soil health"],ans:1,exp:"Precision farming uses sensors, GPS, and data analysis to apply water, fertilizer, and pesticides only where and when needed, reducing waste and environmental harm."},
+    {q:"An example of eco-innovation is:",opts:["A factory increasing emissions with no controls","A company designing biodegradable packaging to replace single-use plastics","Using more non-recyclable materials","Ignoring product lifecycle impacts"],ans:1,exp:"Eco-innovation involves creating new products, processes, or services that reduce environmental impact, such as biodegradable packaging replacing plastics."},
+  ],
+  14:[
+    {q:"Climate activism primarily aims to:",opts:["Ignore scientific evidence","Raise awareness and pressure decision-makers to take action on climate issues","Increase fossil fuel subsidies","Stop all scientific research"],ans:1,exp:"Climate activism involves individuals and groups raising public awareness and advocating for policy changes to address climate change."},
+    {q:"A community-led environmental project might involve:",opts:["Only government employees acting alone","Local residents organizing activities like tree planting or clean-up drives","Banning all community participation","Only large corporations"],ans:1,exp:"Community-led projects involve local residents actively organizing and participating in initiatives like tree planting, recycling drives, or clean-up campaigns."},
+    {q:"Effective eco-communication involves:",opts:["Using complex jargon only experts understand","Clearly explaining environmental issues and solutions in ways that motivate action","Avoiding any data or evidence","Discouraging public participation"],ans:1,exp:"Effective eco-communication uses clear, relatable language and compelling data to inform audiences and inspire them to take environmental action."},
+    {q:"When planning an environmental campaign, the first step is usually to:",opts:["Launch the campaign with no goals","Define clear goals, target audience, and key messages","Avoid setting any timeline","Skip any research"],ans:1,exp:"Successful campaign planning starts with clear objectives, understanding the target audience, and crafting key messages before execution."},
+    {q:"Working with local government on environmental issues can help by:",opts:["Having no impact on policy","Influencing local regulations, securing resources, and scaling community efforts","Preventing all community action","Increasing bureaucracy with no benefit"],ans:1,exp:"Collaborating with local government can lead to policy changes, funding support, and broader implementation of environmental initiatives."},
+  ],
+  15:[
+    {q:"The first step in planning a sustainability project is usually to:",opts:["Start building immediately with no plan","Define the problem, goals, and scope of the project","Spend the entire budget upfront","Skip community involvement"],ans:1,exp:"Effective project planning begins with clearly defining the problem to solve, project goals, and scope before moving to implementation."},
+    {q:"Stakeholder mapping helps a project by:",opts:["Ignoring people affected by the project","Identifying individuals/groups affected by or influencing the project, and their interests","Removing community input","Increasing project costs unnecessarily"],ans:1,exp:"Stakeholder mapping identifies who is affected by or can influence a project, helping teams plan communication and gain support."},
+    {q:"Budgeting for an environmental project should include:",opts:["No consideration of costs","Estimating costs for materials, labor, and unexpected expenses","Only the cost of marketing","Ignoring funding sources"],ans:1,exp:"A good project budget estimates all anticipated costs — materials, labor, permits — and includes a buffer for unexpected expenses."},
+    {q:"Monitoring and evaluation of a project help to:",opts:["Have no purpose once a project starts","Track progress, measure impact, and identify needed adjustments","Stop all future projects","Hide project results from stakeholders"],ans:1,exp:"Monitoring and evaluation track whether a project is meeting its goals, measure its real-world impact, and highlight where changes are needed."},
+    {q:"Grants for green projects are typically provided by:",opts:["No organizations support green projects","Government bodies, foundations, and international organizations supporting sustainability initiatives","Only individual donations with no formal process","Companies that oppose environmental work"],ans:1,exp:"Many governments, foundations, and international organizations offer grants specifically to fund sustainability and environmental initiatives."},
+  ],
+  16:[
+    {q:"Environmental justice focuses on:",opts:["Ignoring how pollution affects different communities","Ensuring fair treatment and meaningful involvement of all people regardless of background in environmental decisions","Benefiting only wealthy communities","Excluding marginalized groups from decisions"],ans:1,exp:"Environmental justice ensures that all communities, regardless of race or income, have fair access to a healthy environment and a voice in environmental decision-making."},
+    {q:"Indigenous knowledge contributes to conservation by:",opts:["Having no value for modern conservation","Offering generations of traditional ecological knowledge about sustainable land and resource management","Opposing all conservation efforts","Being irrelevant to biodiversity"],ans:1,exp:"Indigenous communities often hold valuable traditional knowledge about sustainable land management, biodiversity, and ecosystem balance developed over generations."},
+    {q:"Intergenerational responsibility in environmental ethics means:",opts:["Only caring about the present generation","Considering the impact of today's actions on future generations' access to resources and a healthy environment","Ignoring future consequences entirely","Using up all resources now"],ans:1,exp:"Intergenerational responsibility means making decisions today that consider the wellbeing and resource access of future generations."},
+    {q:"Corporate environmental responsibility involves companies:",opts:["Maximizing pollution for profit","Taking accountability for their environmental impact and adopting sustainable practices","Ignoring all regulations","Avoiding any reporting on impact"],ans:1,exp:"Corporate environmental responsibility means companies actively manage and reduce their environmental footprint and operate sustainably."},
+    {q:"Balancing global and local environmental priorities can be challenging because:",opts:["They are always identical","Global issues (like climate change) require coordinated action, while local issues (like a specific river's pollution) need community-specific solutions","Local issues don't matter","Global agreements solve every local problem automatically"],ans:1,exp:"Global environmental challenges need international cooperation, while local issues often require tailored, community-specific solutions — balancing both is key to effective action."},
+  ],
+  17:[
+    {q:"For a school/college energy audit project, the first step would be to:",opts:["Immediately replace all equipment without data","Measure and record current energy usage across the campus to identify high-consumption areas","Skip data collection entirely","Only survey students about preferences"],ans:1,exp:"An energy audit starts by measuring current energy consumption to identify where the most energy is used and where savings are possible."},
+    {q:"A community clean-up campaign's success is best measured by:",opts:["Number of social media posts only","Quantity of waste collected, area cleaned, and community participation","No measurement needed","Only the cost spent"],ans:1,exp:"Clean-up campaign impact can be measured through metrics like waste collected (kg), area covered, and number of participants engaged."},
+    {q:"A biodiversity survey project typically involves:",opts:["Ignoring species in the area","Systematically recording species observed in an area to assess ecological health","Removing all wildlife for study","Only counting trees"],ans:1,exp:"Biodiversity surveys involve systematically observing and recording plant and animal species in an area to assess ecosystem health over time."},
+    {q:"When designing a recycling drive, an important consideration is:",opts:["Mixing all waste types together with no separation","Setting up clear sorting categories (paper, plastic, e-waste, etc.) and partnering with recycling facilities","Disposing everything in regular trash","Avoiding community involvement"],ans:1,exp:"Effective recycling drives require clear sorting categories and partnerships with proper recycling facilities to ensure collected materials are actually recycled."},
+    {q:"A carbon footprint tracker app would primarily help users by:",opts:["Increasing their emissions with no feedback","Estimating emissions from daily activities (travel, energy use) and suggesting ways to reduce them","Only tracking financial spending","Replacing the need for any behavior change"],ans:1,exp:"A carbon footprint tracker estimates the greenhouse gas emissions from a user's daily activities and offers personalized suggestions to reduce their impact."},
+  ],
+};
+
+// ====== QUIZ STATE ======
+let qState={};
+
+
+// ====== TAMIL QUIZ DATA (All 17 Levels) ======
+const QUIZ_DATA_TA = {
+  1:[
+    {q:"'சுற்றுச்சூழல்' என்ற சொல் என்னைக் குறிக்கிறது?",opts:["காடுகள் மட்டும்","உயிரினங்களை சூழ்ந்து பாதிக்கும் அனைத்து உயிருள்ள மற்றும் உயிரற்ற பொருட்கள்","வானிலை மட்டும்","மனிதனால் உருவாக்கப்பட்ட கட்டமைப்புகள் மட்டும்"],ans:1,exp:"சுற்றுச்சூழல் என்பது உயிரினங்களை சூழ்ந்து பாதிக்கும் உயிருள்ள (biotic) மற்றும் உயிரற்ற (abiotic) கூறுகளை உள்ளடக்கியது."},
+    {q:"இவற்றில் சுற்றுச்சூழலின் உயிரற்ற (abiotic) கூறு எது?",opts:["மரங்கள்","பாக்டீரியா","சூரிய ஒளி","பறவைகள்"],ans:2,exp:"உயிரற்ற கூறுகளில் சூரிய ஒளி, நீர், காற்று, மண் மற்றும் வெப்பநிலை ஆகியவை அடங்கும்."},
+    {q:"வாழ்விடம் (habitat) என்றால் என்ன?",opts:["ஒரு வகை மாசுபாடு","ஓர் உயிரினம் இயல்பாக வாழும் இடம்","மனிதனால் கட்டப்பட்ட கட்டிடம்","ஒரு வானிலை வடிவம்"],ans:1,exp:"வாழ்விடம் என்பது ஓர் உயிரினம் இயல்பாக வாழும் இடமாகும், அது உணவு, நீர், தங்குமிடம் மற்றும் இடத்தை வழங்குகிறது."},
+    {q:"இவற்றில் தினசரி சுற்றுச்சூழல் தாக்கம் இல்லாதது எது?",opts:["பிளாஸ்டிக் பைகளை பயன்படுத்துதல்","மின்சாரத்தை சேமித்தல்","கார் ஓட்டுதல்","ஆற்றில் குப்பை கொட்டுதல்"],ans:1,exp:"மின்சாரத்தை சேமிப்பது சுற்றுச்சூழல் தாக்கத்தைக் குறைக்கிறது, மற்றவை மாசு மற்றும் வள பயன்பாட்டை அதிகரிக்கின்றன."},
+    {q:"சுற்றுச்சூழல் நெறிமுறை (eco-ethics) மக்களை ஊக்குவிப்பது:",opts:["வளங்களை எல்லைகள் இல்லாமல் பயன்படுத்துதல்","இயற்கை மற்றும் எதிர்கால சந்ததியினருக்காக பொறுப்புடன் செயல்படுதல்","சுற்றுச்சூழல் சட்டங்களை புறக்கணித்தல்","பொருளாதார வளர்ச்சியில் மட்டும் கவனம்"],ans:1,exp:"சுற்றுச்சூழல் நெறிமுறை என்பது இயற்கை, வாழ்வினங்கள் மற்றும் எதிர்கால சந்ததியினருக்காக நிலையான தேர்வுகள் மூலம் பொறுப்புடன் செயல்படுவதாகும்."},
+  ],
+  2:[
+    {q:"உணவுச் சங்கிலி (food chain) என்றால் என்ன?",opts:["உணவு பொட்டலங்களால் ஆன சங்கிலி","ஓர் உயிரினத்திலிருந்து மற்றொன்றுக்கு ஆற்றல் பரிமாற்றத்தைக் காட்டும் வரிசை","உணவகங்களின் பட்டியல்","ஒரு வகை மண் அடுக்கு"],ans:1,exp:"உணவுச் சங்கிலி, உணவு உறவுகள் மூலம் ஆற்றல் மற்றும் சத்துக்கள் எவ்வாறு ஒரு உயிரினத்திலிருந்து மற்றொன்றுக்கு பாயும் என்பதைக் காட்டுகிறது."},
+    {q:"சுற்றுச்சூழல் அமைப்பில் 'உற்பத்தியாளர்கள்' (producers) என்று அழைக்கப்படுபவை யார்?",opts:["தாவரங்களை உண்ணும் விலங்குகள்","இறந்த பொருட்களை சிதைக்கும் உயிரினங்கள்","ஒளிச்சேர்க்கை மூலம் தங்கள் உணவை உற்பத்தி செய்யும் தாவரங்கள் மற்றும் ஆல்கா","சங்கிலியின் உச்சியில் உள்ள வேட்டையாடிகள்"],ans:2,exp:"உற்பத்தியாளர்கள், தாவரங்கள் மற்றும் ஆல்கா போன்றவை, ஒளிச்சேர்க்கை மூலம் தங்கள் உணவை உற்பத்தி செய்து உணவுச் சங்கிலியின் அடித்தளத்தை உருவாக்குகின்றன."},
+    {q:"சுற்றுச்சூழல் அமைப்பில் சிதைவூட்டிகள் (decomposers) என்ன பங்கு வகிக்கின்றன?",opts:["மற்ற விலங்குகளை வேட்டையாடுகின்றன","இறந்த உயிரினங்களை சிதைத்து சத்துக்களை மண்ணுக்கு மீட்டெடுக்கின்றன","ஆக்ஸிஜனை மட்டும் உற்பத்தி செய்கின்றன","மாசுபாட்டை ஏற்படுத்துகின்றன"],ans:1,exp:"சிதைவூட்டிகள் (பூஞ்சை, பாக்டீரியா) இறந்த கரிம பொருட்களை சிதைத்து, சத்துக்களை மண்ணுக்கு திருப்பி அனுப்புகின்றன, இதை உற்பத்தியாளர்கள் மீண்டும் பயன்படுத்துகின்றன."},
+    {q:"சுற்றுச்சூழல் அமைப்பில் ஆற்றலின் ஓட்டம் பொதுவாக:",opts:["வட்டமான மற்றும் மாற்றத்தக்கது","ஒரு திசையில், சூரியனிலிருந்து உற்பத்தியாளர்களுக்கு பின் நுகர்வோருக்கு","எந்த முறையும் இல்லாமல் சீரற்றது","விலங்குகளுக்கு இடையே மட்டும்"],ans:1,exp:"ஆற்றல் ஒரே வழியில் பாய்கிறது — சூரியனிலிருந்து உற்பத்தியாளர்களுக்கு (ஒளிச்சேர்க்கை மூலம்) பின் உயர் மட்ட நுகர்வோருக்கு."},
+    {q:"பயோம் (biome) என்பது சிறப்பாக விவரிக்கப்படுவது:",opts:["ஒரு தனி மரம்","ஒரு பகுதியின் காலநிலைக்கு ஏற்ப தழுவிய தாவரங்கள் மற்றும் விலங்குகளின் பெரிய இயற்கை சமூகம்","மனிதனால் உருவாக்கப்பட்ட தோட்டம்","ஒரு வகை பாறை அமைப்பு"],ans:1,exp:"பயோம் என்பது தனித்துவமான காலநிலை, தாவரங்கள் மற்றும் விலங்கு வாழ்க்கையைக் கொண்ட ஒரு பெரிய சுற்றுச்சூழல் பகுதியாகும், எடுத்துக்காட்டாக பாலைவனங்கள், மழைக்காடுகள் அல்லது புல்வெளிகள்."},
+  ],
+  3:[
+    {q:"இவற்றில் மீள்தகு வளம் (renewable resource) எது?",opts:["நிலக்கரி","இயற்கை எரிவாயு","சூரிய ஆற்றல்","பெட்ரோலியம்"],ans:2,exp:"சூரிய ஆற்றல் மீள்தகுதியானது, ஏனெனில் இது சூரியனால் தொடர்ந்து நிரப்பப்படும் மற்றும் தீர்ந்துவிடாது."},
+    {q:"நீர் சுழற்சியில் (water cycle) எந்த முக்கிய செயல்முறை அடங்கும்?",opts:["எரிதல்","ஆவியாதல், ஒடுங்குதல், மற்றும் மழைப்பொழிவு","ஒளிச்சேர்க்கை மட்டும்","சுரங்கம்"],ans:1,exp:"நீர் சுழற்சியில் ஆவியாதல் (நீர் ஆவியாக மாறுதல்), ஒடுங்குதல் (மேகங்கள் உருவாதல்), மற்றும் மழைப்பொழிவு (மழை/பனி திரும்ப பூமிக்கு வருதல்) ஆகியவை அடங்கும்."},
+    {q:"மண் அரிப்பு (soil erosion) முதன்மையாக எதனால் ஏற்படுகிறது?",opts:["அதிக மரங்கள்","காற்று மற்றும் நீர் மேல்மண்ணை அகற்றுவது, காடழிப்பால் மோசமாகிறது","பாலைவனங்களில் மட்டும் அதிக மழை","உரம் சேர்த்தல்"],ans:1,exp:"மண் அரிப்பு என்பது காற்று அல்லது நீர் வளமான மேல்மண்ணை அகற்றும்போது நிகழ்கிறது, இது காடழிப்பு மற்றும் தவறான நில பயன்பாட்டால் துரிதப்படுத்தப்படுகிறது."},
+    {q:"காடுகள் ஏன் ஒரு முக்கிய இயற்கை வளமாக கருதப்படுகின்றன?",opts:["அவை மரம் மட்டும் வழங்குகின்றன","அவை காலநிலையை சீராக்குகின்றன, ஆக்ஸிஜன், வாழ்விடம் மற்றும் மரம், மருந்து போன்ற வளங்களை வழங்குகின்றன","அவற்றுக்கு சுற்றுச்சூழல் மதிப்பு இல்லை","அவை குளிர் பகுதிகளில் மட்டும் உள்ளன"],ans:1,exp:"காடுகள் காலநிலையை சீராக்குகின்றன, ஆக்ஸிஜனை உற்பத்தி செய்கின்றன, கார்பன் டை ஆக்சைடை உறிஞ்சுகின்றன, வாழ்விடங்களை வழங்குகின்றன, மற்றும் மரம், உணவு, மருந்து போன்ற வளங்களை வழங்குகின்றன."},
+    {q:"இயற்கை வளங்களைப் பாதுகாத்தல் (conservation) என்பது முதன்மையாக:",opts:["வளங்களை முடிந்தவரை விரைவாக பயன்படுத்துதல்","எதிர்கால சந்ததியினருக்கு வளங்கள் கிடைக்கும் வகையில் புத்திசாலித்தனமாக பயன்படுத்துதல்","வள பயன்பாட்டை முற்றிலும் நிறுத்துதல்","அனைத்து வளங்களையும் ஏற்றுமதி செய்தல்"],ans:1,exp:"பாதுகாத்தல் என்பது இயற்கை வளங்களை பொறுப்புடனும் திறமையாகவும் பயன்படுத்துவதாகும், இதனால் அவை எதிர்கால சந்ததியினருக்கு கிடைக்கும்."},
+  ],
+  4:[
+    {q:"வானிலை (weather) மற்றும் காலநிலை (climate) இடையே உள்ள முக்கிய வேறுபாடு என்ன?",opts:["அவை முற்றிலும் ஒன்றே","வானிலை குறுகிய கால வாயு நிலை; காலநிலை நீண்ட கால சராசரி வடிவங்கள்","காலநிலை ஒவ்வொரு மணி நேரமும் மாறுகிறது","வானிலை வெப்பநிலையை மட்டும் குறிக்கிறது"],ans:1,exp:"வானிலை என்பது ஒரு பகுதியின் நாளுக்கு நாள் வாயு நிலையை விவரிக்கிறது, காலநிலை என்பது பல ஆண்டுகளுக்கு ஒரு பகுதியின் சராசரி வானிலை வடிவமாகும்."},
+    {q:"பசுமை இல்ல விளைவு (greenhouse effect) முதன்மையாக எதனால் ஏற்படுகிறது?",opts:["ஓசோன் படை அனைத்து சூரிய ஒளியையும் தடுப்பது","CO2 மற்றும் மீத்தேன் போன்ற வாயுக்கள் வளிமண்டலத்தில் வெப்பத்தை சிக்க வைப்பது","குளிர்ந்த காற்று தரையில் இறங்குவது","சந்திரனின் ஈர்ப்பு விசை"],ans:1,exp:"CO2 மற்றும் மீத்தேன் போன்ற பசுமை இல்ல வாயுக்கள் சூரியனிலிருந்து வரும் வெப்பத்தை வளிமண்டலத்தில் சிக்க வைத்து பூமியின் மேற்பரப்பை வெப்பமாக்குகின்றன."},
+    {q:"உயிரினங்களை UV கதிர்வீச்சிலிருந்து பாதுகாக்கும் ஓசோன் படை எந்த வளிமண்டல அடுக்கில் உள்ளது?",opts:["டிரோபோஸ்பியர்","ஸ்ட்ராடோஸ்பியர்","மீசோஸ்பியர்","எக்ஸோஸ்பியர்"],ans:1,exp:"ஓசோன் படை ஸ்ட்ராடோஸ்பியரில் அமைந்துள்ளது மற்றும் சூரியனின் தீங்கு விளைவிக்கும் புற ஊதா (UV) கதிர்வீச்சில் பெரும்பகுதியை உறிஞ்சுகிறது."},
+    {q:"'காலநிலை மண்டலம்' (climate zone) முதன்மையாக எதனால் வரையறுக்கப்படுகிறது?",opts:["மக்கள் தொகை அடர்த்தி","ஒரு பகுதியின் வெப்பநிலை மற்றும் மழைப்பொழிவு வடிவங்கள்","நகரங்களின் எண்ணிக்கை","பயன்படும் நாணயத்தின் வகை"],ans:1,exp:"காலநிலை மண்டலங்கள் (வெப்பமண்டலம், மிதவெப்பமண்டலம், துருவ மண்டலம் போன்றவை) ஒரு பகுதியின் சிறப்பியல்பு வெப்பநிலை மற்றும் மழைப்பொழிவு வடிவங்களால் வரையறுக்கப்படுகின்றன."},
+    {q:"பல தசாப்தங்களுக்கான காலநிலை தரவை படிப்பது அறிவியலாளர்களுக்கு உதவுவது:",opts:["நாளைய வானிலையை மட்டும் கணிக்க","உலகளாவிய வெப்பமயமாதல் போன்ற நீண்ட கால போக்குகளை அடையாளம் காண","என்ன அணிய வேண்டும் என்பதைத் தேர்வு செய்ய","ஒரு நாள் நிகழ்வை திட்டமிட"],ans:1,exp:"நீண்ட கால காலநிலை தரவு பகுப்பாய்வு, உலகளாவிய வெப்பநிலை உயர்வு மற்றும் மாறும் மழைப்பொழிவு வடிவங்கள் போன்ற போக்குகளை அடையாளம் காண அறிவியலாளர்களுக்கு உதவுகிறது."},
+  ],
+  5:[
+    {q:"காலநிலை மாற்றத்திற்கு மனித செயல்களால் ஏற்படும் முதன்மை காரணம் என்ன?",opts:["எரிமலை வெடிப்புகள் மட்டும்","புதைபடிவ எரிபொருட்களை எரிப்பது, பசுமை இல்ல வாயுக்களை வெளியேற்றுவது","கடல் நீரோட்டங்கள்","விலங்குகளின் இடம்பெயர்வு"],ans:1,exp:"ஆற்றல் மற்றும் போக்குவரத்துக்காக புதைபடிவ எரிபொருட்களை (நிலக்கரி, எண்ணெய், எரிவாயு) எரிப்பது அதிக அளவு CO2 ஐ வெளியேற்றுகிறது, இது மனித-தோற்ற காலநிலை மாற்றத்தின் முதன்மை காரணமாகும்."},
+    {q:"'கார்பன் கால்தடம்' (carbon footprint) எதை அளவிடுகிறது?",opts:["ஒரு நபரின் காலணி அளவு","ஒரு நபர், அமைப்பு அல்லது செயல்பாட்டால் உருவாக்கப்படும் மொத்த பசுமை இல்ல வாயுக்கள்","மண்ணில் உள்ள கார்பன் அளவு மட்டும்","நடப்பட்ட மரங்களின் எண்ணிக்கை"],ans:1,exp:"கார்பன் கால்தடம் என்பது ஒரு செயல்பாடு, நபர் அல்லது அமைப்பால் உருவாக்கப்படும் மொத்த பசுமை இல்ல வாயுக்களின் அளவு (CO2 சமமாக வெளிப்படுத்தப்படுகிறது)."},
+    {q:"உலகளாவிய வெப்பமயமாதலுக்கு நேரடி சாட்சி எது?",opts:["குறையும் சராசரி உலகளாவிய வெப்பநிலை","உயரும் கடல் மட்டங்கள் மற்றும் உருகும் பனிப்பாறைகள்","நிலையான பனிக் கவசங்கள்","ஒவ்வொரு ஆண்டும் உலகளவில் அதிக பனி"],ans:1,exp:"உயரும் கடல் மட்டங்கள் (உருகும் பனிப்பாறைகள் மற்றும் பனிக் கவசங்களால்) மற்றும் குறையும் பனி பரப்பு உலகளாவிய வெப்பமயமாதலுக்கான முக்கிய சாட்சிகள்."},
+    {q:"காலநிலை மாற்றம் சுற்றுச்சூழல் அமைப்புகளை எவ்வாறு பாதிக்கிறது?",opts:["வாழ்வினங்களில் எந்த தாக்கமும் இல்லை","வாழ்விடங்களை மாற்றுதல், இனங்களின் நடத்தையை மாற்றுதல், மற்றும் அழிவு அபாயத்தை அதிகரித்தல்","அனைத்து இனங்களையும் வலுவாக்குதல்","இயற்கை பேரழிவுகளை நிறுத்துதல்"],ans:1,exp:"காலநிலை மாற்றம் வாழ்விட வரம்புகளை மாற்றுகிறது, இனப்பெருக்கம் மற்றும் இடம்பெயர்வு வடிவங்களை சீர்குலைக்கிறது, மற்றும் இன அழிவு அபாயத்தை அதிகரிக்கிறது."},
+    {q:"காலநிலை தணிப்பு (mitigation) மற்றும் தழுவல் (adaptation) இடையே உள்ள வேறுபாடு என்ன?",opts:["அவை ஒரே பொருளைக் குறிக்கின்றன","தணிப்பு காலநிலை மாற்றத்தின் காரணங்களை குறைக்கிறது; தழுவல் அதன் விளைவுகளுக்கு ஏற்ப மாறுகிறது","தணிப்பு கடல்களுக்கு மட்டும் பொருந்தும்","தழுவல் என்பது காலநிலை மாற்றத்தை புறக்கணிப்பதாகும்"],ans:1,exp:"தணிப்பு என்பது பசுமை இல்ல வாயு வெளியேற்றங்களை (காரணங்களை) குறைப்பதாகும், தழுவல் என்பது காலநிலை தாக்கங்களை சமாளிக்க நடைமுறைகளை சரிசெய்வதாகும்."},
+  ],
+  6:[
+    {q:"உயிரியல் வகைமை (biodiversity) எதைக் குறிக்கிறது?",opts:["பூமியில் உள்ள நாடுகளின் எண்ணிக்கை","ஒரு பகுதியில் உள்ள உயிர் வடிவங்கள் — இனங்கள், மரபணுக்கள் மற்றும் சுற்றுச்சூழல் அமைப்புகள் — ஆகியவற்றின் வகைமை","மரங்களின் எண்ணிக்கை மட்டும்","வானிலை வடிவங்களின் வகைமை"],ans:1,exp:"உயிரியல் வகைமை என்பது வாழும் உயிரினங்களின் வகைமையாகும், இனங்களுக்குள், இனங்களுக்கு இடையே, மற்றும் சுற்றுச்சூழல் அமைப்புகளின் வகைமையை உள்ளடக்கியது."},
+    {q:"ஓர் இனம் 'அழிவின் விளிம்பில் உள்ளது' (endangered) என வகைப்படுத்தப்படுவது எப்போது?",opts:["அது மிகவும் பொதுவானதாக இருக்கும் போது","அது அருகிய காலத்தில் அழிவின் அதிக அபாயத்தில் இருக்கும் போது","அது புதிதாகக் கண்டுபிடிக்கப்பட்ட போது","அது விலங்கியல் பூங்காவில் மட்டும் வாழும் போது"],ans:1,exp:"அழிவின் விளிம்பில் உள்ள இனம் என்பது அருகிய காலத்தில் காட்டில் அழிவின் மிக அதிக அபாயத்தை எதிர்கொள்ளும் இனமாகும்."},
+    {q:"வாழ்விட துண்டாக்கம் (habitat fragmentation) என்றால் என்ன?",opts:["சிறிய வாழ்விடங்களை ஒன்றிணைத்து ஒரு பெரிய பகுதியாக்குதல்","பெரிய வாழ்விடங்களை, பெரும்பாலும் மனித செயல்பாடுகளால், சிறிய, தனிமைப்படுத்தப்பட்ட பகுதிகளாக பிரித்தல்","காட்டில் அதிக மரங்களை நடுதல்","விலங்கு மக்கள்தொகையை அதிகரித்தல்"],ans:1,exp:"வாழ்விட துண்டாக்கம் என்பது சாலைகள், விவசாயம் அல்லது நகர மேம்பாட்டால் பெரிய வாழ்விடங்கள் சிறிய, இணைக்கப்படாத பகுதிகளாக பிரிக்கப்படும்போது நிகழ்கிறது, இது வாழ்வினங்களின் இயக்கம் மற்றும் வாழ்வாதாரத்தை பாதிக்கிறது."},
+    {q:"வாழ்வின சரணாலயங்கள் மற்றும் தேசிய பூங்காக்கள் போன்ற பாதுகாக்கப்பட்ட பகுதிகளின் முதன்மை நோக்கம் என்ன?",opts:["கட்டுப்பாடற்ற வேட்டையை அனுமதிக்க","தீங்கு விளைவிக்கும் மனித செயல்பாடுகளிலிருந்து சுற்றுச்சூழல் அமைப்புகள், இனங்கள் மற்றும் உயிரியல் வகைமையை பாதுகாக்க","தொழிற்சாலைகளை கட்ட","சுற்றுலா வருவாயை அதிகரிக்க மட்டும்"],ans:1,exp:"பாதுகாக்கப்பட்ட பகுதிகள் வேட்டை, மரம் வெட்டுதல் மற்றும் திட்டமிடப்படாத மேம்பாடு போன்ற தீங்கு விளைவிக்கும் செயல்பாடுகளை கட்டுப்படுத்தி இயற்கை வாழ்விடங்கள் மற்றும் உயிரியல் வகைமையை பாதுகாக்கின்றன."},
+    {q:"பாதுகாப்பு வெற்றிக்கதையின் உதாரணம் எது?",opts:["காற்று மாசு அளவுகளில் அதிகரிப்பு","பாதுகாப்பு முயற்சிகள் மூலம் பாதுகாக்கப்பட்ட காப்பகங்களில் புலி மக்கள்தொகையின் மீட்சி","எந்த நடவடிக்கையும் இல்லாமல் தொடரும் காடழிப்பு","ஒவ்வொரு ஆண்டும் அதிக இனங்களின் அழிவு"],ans:1,exp:"Project Tiger போன்ற பாதுகாப்பு திட்டங்கள் வாழ்விட பாதுகாப்பு மற்றும் வேட்டை எதிர்ப்பு முயற்சிகள் மூலம் அழிவின் விளிம்பில் உள்ள இனங்களின் மக்கள்தொகையை மீட்க உதவியுள்ளன."},
+  ],
+  7:[
+    {q:"AQI என்பது குறிப்பது:",opts:["சராசரி தர அட்டவணை","காற்று தர அட்டவணை — காற்று எவ்வளவு மாசுபட்டுள்ளது என்பதன் அளவீடு","வருடாந்திர அளவு அதிகரிப்பு","வளிமண்டல குறிகாட்டி"],ans:1,exp:"AQI (காற்று தர அட்டவணை) என்பது தற்போது காற்று எவ்வளவு மாசுபட்டுள்ளது அல்லது எதிர்காலத்தில் எவ்வளவு மாசுபடும் என்பதைத் தெரிவிக்க பயன்படுத்தப்படும் ஒரு எண் அளவுகோலாகும்."},
+    {q:"இவற்றில் நீர் மாசுபாட்டிற்கு முக்கிய காரணம் எது?",opts:["மழைநீர் சேகரிப்பு","சுத்திகரிக்கப்படாத தொழில்துறை கழிவுகள் மற்றும் கழிவுநீர் ஆறுகளில் கலத்தல்","ஆறுகளுக்கு அருகில் மரங்களை நடுதல்","மக்கும் சோப்பு பயன்படுத்துதல்"],ans:1,exp:"சுத்திகரிக்கப்படாத தொழில்துறை கழிவுகள் மற்றும் கழிவுநீரை நீர்நிலைகளில் கலப்பது தீங்கு விளைவிக்கும் இரசாயனங்கள் மற்றும் நோய்க்கிருமிகளை அறிமுகப்படுத்துகிறது, இது நீர் மாசுபாட்டை ஏற்படுத்துகிறது."},
+    {q:"மண் மாசுபாடு பொதுவாக எதனால் ஏற்படுகிறது?",opts:["கரிம கழிவை உரமாக்குதல்","இரசாயன பூச்சிக்கொல்லிகள் மற்றும் உரங்களின் அதிக பயன்பாடு","பயிர் சுழற்சி","பூர்வீக இனங்களை நடுதல்"],ans:1,exp:"இரசாயன பூச்சிக்கொல்லிகள் மற்றும் உரங்களின் அதிக பயன்பாடு மண்ணை மாசுபடுத்துகிறது, மண் உயிரினங்களுக்கு தீங்கு விளைவிக்கிறது மற்றும் காலப்போக்கில் வளத்தை குறைக்கிறது."},
+    {q:"ஒலி மாசு (noise pollution) எதிர்மறையாக பாதிக்கக்கூடியது:",opts:["இயந்திரங்களை மட்டும்","மனித ஆரோக்கியம் (மன அழுத்தம், செவித்திறன் இழப்பு) மற்றும் வாழ்வின நடத்தை","தாவரங்களை மட்டும்","குறிப்பிடத்தக்க எதுவும் இல்லை"],ans:1,exp:"ஒலி மாசு மனிதர்களில் மன அழுத்தம், செவித்திறன் சேதம் மற்றும் தூக்க இடையூறுகளை ஏற்படுத்தலாம், மேலும் வாழ்வினங்களின் தொடர்பு மற்றும் இடம்பெயர்வை சீர்குலைக்கலாம்."},
+    {q:"தொழில்துறை புகைபோக்கிகளில் இருந்து காற்று மாசை கட்டுப்படுத்த எந்த தொழில்நுட்பம் உதவுகிறது?",opts:["ஏர் கண்டிஷனர்கள்","வெளியேறும் வாயுவில் இருந்து மாசுகளை வடிகட்டும் ஸ்க்ரப்பர்கள் மற்றும் மின்னியல் துகள் பிடிப்பான்கள்","ஜன்னல் மின்விசிறிகள்","சோலார் பேனல்கள்"],ans:1,exp:"ஸ்க்ரப்பர்கள் மற்றும் மின்னியல் துகள் பிடிப்பான்கள் தொழில்துறை வெளியேற்ற வாயுவில் இருந்து துகள் பொருட்கள் மற்றும் தீங்கு விளைவிக்கும் வாயுக்களை அகற்றுகின்றன, காற்றில் வெளியிடப்படுவதற்கு முன்."},
+  ],
+  8:[
+    {q:"கழிவு மேலாண்மையின் '3R'கள் என்ன?",opts:["படி, எழுது, நினைவுகூறு","குறைத்தல், மீள்பயன்பாடு, மீள்சுழற்சி","ஓடு, ஓய்வு, மீண்டும் செய்","அகற்று, மாற்று, சரிசெய்"],ans:1,exp:"3Rகள் — குறைத்தல் (குறைவாக பயன்படுத்துதல்), மீள்பயன்பாடு (பொருட்களை மீண்டும் பயன்படுத்துதல்), மீள்சுழற்சி (கழிவை புதிய பொருட்களாக மாற்றுதல்) — நிலப்பரப்பு நிரப்பிகளுக்கு அனுப்பப்படும் கழிவை குறைக்க உதவுகின்றன."},
+    {q:"உரமாக்குதல் (composting) என்பது எதன் முறை?",opts:["கழிவை எரித்தல்","இயற்கை சிதைவு மூலம் கரிம கழிவை சத்து நிறைந்த மண்ணாக மாற்றுதல்","கழிவை நிலப்பரப்பு நிரப்பிகளுக்கு அனுப்புதல்","பிளாஸ்டிக்கை மீள்சுழற்சி செய்தல்"],ans:1,exp:"உரமாக்குதல் உணவுக் கழிவுகள் மற்றும் இலைகள் போன்ற கரிம கழிவை சிதைத்து மண்ணை வளப்படுத்தும் சத்து நிறைந்த பொருளாக மாற்றுகிறது."},
+    {q:"E-waste எதைக் குறிக்கிறது?",opts:["உண்ணக்கூடிய உணவுக் கழிவு","தொலைபேசிகள், கணினிகள் மற்றும் பேட்டரிகள் போன்ற கைவிடப்பட்ட மின்னணு சாதனங்கள்","தோட்டக் கழிவு","கட்டுமான கழிவுகள்"],ans:1,exp:"E-waste (மின்னணு கழிவு) தொலைபேசிகள், கணினிகள் மற்றும் பேட்டரிகள் போன்ற கைவிடப்பட்ட சாதனங்களை உள்ளடக்கியது, அவை சரியாக அகற்றப்படாவிட்டால் ஆபத்தான பொருட்களைக் கொண்டிருக்கலாம்."},
+    {q:"E-waste-ஐ முறையற்ற முறையில் அகற்றுவது ஏன் தீங்கு விளைவிக்கிறது?",opts:["அதற்கு எந்த தாக்கமும் இல்லை","அது ஈயம் மற்றும் பாதரசம் போன்ற நச்சு இரசாயனங்களை மண் மற்றும் நீரில் வெளியிடலாம்","அது வேலைகளை மட்டும் உருவாக்குகிறது","அது மண் வளத்தை மேம்படுத்துகிறது"],ans:1,exp:"E-waste-இல் ஈயம், பாதரசம் மற்றும் காட்மியம் போன்ற ஆபத்தான பொருட்கள் உள்ளன, அவை சரியாக அகற்றப்படாவிட்டால் அல்லது மீள்சுழற்சி செய்யப்படாவிட்டால் மண் மற்றும் நீரை மாசுபடுத்தலாம்."},
+    {q:"'வட்டார பொருளாதாரம்' (circular economy) எதை இலக்காகக் கொண்டுள்ளது?",opts:["ஒரு முறை பயன்படுத்திய பிறகு பொருட்களை தூக்கி எறிதல்","மீள்பயன்பாடு மற்றும் மீள்சுழற்சி மூலம் வளங்களை முடிந்தவரை நீண்ட காலம் பயனில் வைத்தல், கழிவை குறைத்தல்","நிலப்பரப்பு நிரப்பி அளவை அதிகரித்தல்","அனைத்து உற்பத்தியையும் நிறுத்துதல்"],ans:1,exp:"வட்டார பொருளாதாரம் பொருட்கள் மற்றும் அமைப்புகளை, பழுதுபார்ப்பு, மீள்பயன்பாடு மற்றும் மீள்சுழற்சி மூலம் பொருட்களை பயனில் வைத்து கழிவை குறைக்கும் வகையில் வடிவமைக்கிறது."},
+  ],
+  9:[
+    {q:"நிலையான வளர்ச்சி இலக்குகள் (SDGs) எவரால் உருவாக்கப்பட்டது?",opts:["ஒரு நாடு மட்டும்","2030க்குள் நிலையான வளர்ச்சிக்கான உலகளாவிய அழைப்பாக ஐக்கிய நாடுகள் சபையால்","ஒரு தனியார் நிறுவனம்","சுற்றுச்சூழல் NGOக்கள் மட்டும்"],ans:1,exp:"17 SDGகள் 2015-இல் ஐக்கிய நாடுகள் சபையால் ஏற்றுக்கொள்ளப்பட்டன, 2030க்குள் நிலையான வளர்ச்சியை அடைவதற்கான ஒரு பகிரப்பட்ட உலகளாவிய கட்டமைப்பாக."},
+    {q:"இவற்றில் சுற்றுச்சூழலுக்கு நல்ல தினசரி பழக்கம் எது?",opts:["பயன்படுத்தாதபோது விளக்குகளை அணைக்காமல் வைத்தல்","மீள்பயன்படக்கூடிய தண்ணீர் பாட்டில் மற்றும் பை எடுத்துச் செல்லுதல்","ஒரு முறை பயன்படும் பிளாஸ்டிக்கை அடிக்கடி பயன்படுத்துதல்","தொடர்ந்து உணவை வீணாக்குதல்"],ans:1,exp:"மீள்பயன்படக்கூடிய தண்ணீர் பாட்டில் மற்றும் பைகள் போன்ற பொருட்களை பயன்படுத்துவது ஒரு முறை பயன்படும் பிளாஸ்டிக் கழிவைக் குறைக்கிறது, இது ஒரு எளிய ஆனால் பயனுள்ள சுற்றுச்சூழல் நட்பு பழக்கம்."},
+    {q:"உணவு தேர்வை மிகவும் நிலையானதாக மாற்றுவது எது?",opts:["எல்லா உணவையும் தொலைவில் இருந்து இறக்குமதி செய்தல்","உள்ளூரில் வளர்க்கப்படும், பருவகால மற்றும் தாவர அடிப்படையிலான உணவுகளை அதிகமாக தேர்வு செய்தல்","வாங்கிய உணவில் பாதியை வீணாக்குதல்","செயலாக்கப்பட்ட உணவுகளை மட்டும் உண்ணுதல்"],ans:1,exp:"உள்ளூர், பருவகால மற்றும் தாவர அடிப்படையிலான உணவுகள் பொதுவாக போக்குவரத்து வெளியேற்றங்கள் மற்றும் வள பயன்பாடு குறைவாக இருப்பதால் குறைந்த கார்பன் கால்தடத்தைக் கொண்டுள்ளன."},
+    {q:"எந்த போக்குவரத்து வழி 'பசுமை' (green) என கருதப்படுகிறது?",opts:["குறுகிய பயணங்களுக்கு தனி பெட்ரோல் கார்","சைக்கிள் ஓட்டுதல், நடைபயிற்சி அல்லது பொதுப் போக்குவரத்து","அடிக்கடி குறுகிய தூர விமானங்கள்","போக்குவரத்து நெரிசலில் வாகனங்களை ஓட்டாமல் இயக்கி வைத்தல்"],ans:1,exp:"சைக்கிள் ஓட்டுதல், நடைபயிற்சி மற்றும் பொதுப் போக்குவரத்து தனிநபர் எரிபொருள் வாகனங்களுடன் ஒப்பிடும்போது ஒரு நபருக்கான வெளியேற்றங்களை குறைக்கின்றன."},
+    {q:"வீட்டில் தண்ணீரை சேமிக்க ஒரு எளிய வழி:",opts:["பற்களை துலக்கும் போது குழாயை ஓடவிடுதல்","கசியும் குழாய்களை சரிசெய்தல் மற்றும் குறுகிய நேரம் குளித்தல்","அடிக்கடி சிறிய அளவு துணிகளை கழுவுதல்","வெயில் காலத்தில் நண்பகலில் தோட்டத்திற்கு தண்ணீர் ஊற்றுதல்"],ans:1,exp:"கசிவுகளை சரிசெய்தல் மற்றும் குளிக்கும் நேரத்தை குறைப்பது வீட்டில் தண்ணீரை சேமிக்க எளிய, பயனுள்ள வழிகள், மேலும் பயன்பாட்டு கட்டணங்களை குறைக்கிறது."},
+  ],
+  10:[
+    {q:"சோலார் பேனல்கள் மின்சாரத்தை எவ்வாறு உருவாக்குகின்றன?",opts:["சூரிய ஒளியை எரித்தல்","ஃபோட்டோவோல்டாயிக் கலங்களைப் பயன்படுத்தி சூரிய ஒளியை நேரடியாக மின்சாரமாக மாற்றுதல்","காற்று ஆற்றலை சேமித்தல்","தண்ணீரை மட்டும் வெப்பப்படுத்துதல்"],ans:1,exp:"சோலார் பேனல்கள் ஃபோட்டோவோல்டாயிக் (PV) கலங்களைப் பயன்படுத்தி சூரிய ஒளியை நேரடியாக மின் ஆற்றலாக மாற்றுகின்றன."},
+    {q:"காற்றாலைகள் (wind turbines) முதன்மையாக எவ்வழியில் மின்சாரத்தை உருவாக்குகின்றன?",opts:["சூரிய கதிர்வீச்சு","இயக்கும் காற்றின் இயக்க ஆற்றல் ஜெனரேட்டருடன் இணைக்கப்பட்ட இறகுகளை சுழற்றுதல்","நிலத்தடி வெப்பம்","கடல் அலைகள்"],ans:1,exp:"காற்றாலைகள் காற்றின் இயக்க ஆற்றலை இயந்திர ஆற்றலாக (இறகுகளை சுழற்றுவதன் மூலம்) மாற்றுகின்றன, ஜெனரேட்டர் அதை மின்சாரமாக மாற்றுகிறது."},
+    {q:"புவிவெப்ப ஆற்றல் (geothermal energy) எதிலிருந்து வருகிறது?",opts:["தாவரங்களில் சேமிக்கப்பட்ட சூரிய ஒளி","பூமியின் மேற்பரப்பின் கீழ் சேமிக்கப்பட்ட வெப்பம்","காற்று நீரோட்டங்கள்","அலை இயக்கங்கள்"],ans:1,exp:"புவிவெப்ப ஆற்றல் பூமியின் மேற்பரப்பின் கீழ் உள்ள வெப்பத்தைப் பயன்படுத்துகிறது, இது பெரும்பாலும் மின் உற்பத்தி மற்றும் வெப்பமாக்குதலுக்காக பயன்படுத்தப்படுகிறது."},
+    {q:"மீள்தகு ஆற்றலுக்கு ஆற்றல் சேமிப்பு (பேட்டரிகள் போன்றவை) ஏன் முக்கியம்?",opts:["அதற்கு உண்மையான பயன் இல்லை","சாதகமான நிலைகளில் (வெயில்/காற்று) உருவாக்கப்படும் அதிகப்படியான ஆற்றலை சேமித்து, அது இல்லாதபோது பயன்படுத்த உதவுகிறது","அது மாசுபாட்டை அதிகரிக்கிறது","அது புதைபடிவ எரிபொருள் ஆலைகளுக்கு மட்டும் உதவுகிறது"],ans:1,exp:"ஆற்றல் சேமிப்பு அமைப்புகள் அதிகப்படியான மீள்தகு ஆற்றலை (வெயில் அல்லது காற்று நேரங்களில்) சேமித்து, உற்பத்தி குறைவாக இருக்கும்போது அதை பயன்படுத்த உதவுகின்றன, நிலையான வழங்கலை உறுதி செய்கின்றன."},
+    {q:"புதைபடிவ எரிபொருட்களுடன் ஒப்பிடும்போது, மீள்தகு ஆற்றல் மூலங்கள் பொதுவாக:",opts:["இயக்கத்தின் போது அதிக பசுமை இல்ல வாயு வெளியேற்றங்களை உருவாக்குகின்றன","இயக்கத்தின் போது மிகக் குறைந்த அல்லது வெளியேற்றங்களே இல்லாமல் இருக்கின்றன","எந்த நன்மையும் இல்லாமல் எப்போதும் அதிக விலையுடையவை","மின்சாரத்திற்கு பயன்படுத்த முடியாதவை"],ans:1,exp:"சோலார் மற்றும் காற்று போன்ற மீள்தகு ஆற்றல் மூலங்கள், புதைபடிவ எரிபொருட்களைப் போலல்லாமல், இயக்கத்தின் போது நேரடி பசுமை இல்ல வாயு வெளியேற்றங்களை மிகக் குறைவாகவே அல்லது இல்லாமல் உருவாக்குகின்றன."},
+  ],
+  11:[
+    {q:"காடழிப்பு (deforestation) முதன்மையாக எதைக் குறிக்கிறது?",opts:["புதிய மரங்களை நடுதல்","பெரும்பாலும் விவசாயம் அல்லது மேம்பாட்டிற்காக காடுகளை பெரிய அளவில் அகற்றுதல்","இயற்கையாக ஏற்படும் காட்டுத் தீ","மரக் கிளைகளை வெட்டுதல்"],ans:1,exp:"காடழிப்பு என்பது பெரும்பாலும் விவசாயம், மரம் வெட்டுதல் அல்லது நகர மேம்பாட்டிற்கு வழிவகை செய்ய காடுகளை பெரிய அளவில் அகற்றுவதாகும், இது வாழ்விட இழப்பு மற்றும் அதிகரித்த CO2 அளவுகளுக்கு வழிவகுக்கிறது."},
+    {q:"பவளப்பாறைகள் (coral reefs) ஏன் முக்கியமானவை?",opts:["அவற்றுக்கு சுற்றுச்சூழல் பங்கு இல்லை","அவை அனைத்து கடல்வாழ் இனங்களில் கால்வாசியை ஆதரிக்கின்றன மற்றும் கடற்கரைகளை பாதுகாக்கின்றன","அவை சுற்றுலாவுக்கு மட்டும் உள்ளன","அவை பிளாஸ்டிக்கால் ஆனவை"],ans:1,exp:"பவளப்பாறைகள் கடல்வாழ் இனங்களில் கால்வாசியைத் ஆதரிக்கின்றன மற்றும் புயல்கள் மற்றும் அரிப்பிலிருந்து கடற்கரைகளை பாதுகாக்கும் இயற்கை தடைகளாக செயல்படுகின்றன."},
+    {q:"அதிகப்படியான மீன்பிடித்தல் (overfishing) எதற்கு வழிவகுக்கிறது?",opts:["மீன் மக்கள்தொகையின் அதிகரிப்பு","மீன் இனப்பெருக்கம் செய்வதற்கு முன்பு மீன் இருப்புகளை மீன்பிடிப்பதன் மூலம் குறைத்தல், கடல் சுற்றுச்சூழல் அமைப்புகளுக்கு தீங்கு விளைவித்தல்","சுற்றுச்சூழல் தாக்கம் இல்லை","அதிக உயிரியல் வகைமை"],ans:1,exp:"அதிகப்படியான மீன்பிடித்தல் மக்கள்தொகை மீள முடியாத வேகத்தில் மீன்களை அகற்றுகிறது, கடல் உணவுச் சங்கிலிகளை சீர்குலைத்து இனங்களின் வாழ்வாதாரத்தை அச்சுறுத்துகிறது."},
+    {q:"வாழ்வின தாழ்வாரம் (wildlife corridor) ஒரு நோக்கம் என்ன?",opts:["விலங்கு மக்கள்தொகைகளை நிரந்தரமாக பிரிக்க","துண்டாக்கப்பட்ட வாழ்விடங்களை இணைத்து, விலங்குகள் பாதுகாப்பாக இடம்பெயர மற்றும் இனப்பெருக்கம் செய்ய அனுமதிக்க","காடுகள் வழியாக சாலைகளை கட்ட","வேட்டை அணுகலை அதிகரிக்க"],ans:1,exp:"வாழ்வின தாழ்வாரங்கள் தனிமைப்படுத்தப்பட்ட வாழ்விட பகுதிகளை இணைக்கின்றன, விலங்குகள் உணவு, இனப்பெருக்கம் மற்றும் மரபணு வகைமைக்காக பாதுகாப்பாக நகர உதவுகின்றன."},
+    {q:"மீள் காடாக்குதல் (reforestation) மற்றும் காடாக்குதல் (afforestation) இடையே வேறுபாடு என்ன?",opts:["அவை வேறுபாடு இல்லாமல் ஒன்றே","மீள் காடாக்குதல் முன்பு காடாக இருந்த பகுதிகளில் மரங்களை நடுகிறது; காடாக்குதல் முன்பு காட்டுப்பகுதி இல்லாத பகுதிகளில் மரங்களை நடுகிறது","காடாக்குதல் பாலைவனங்களில் மட்டும் நிகழும்","மீள் காடாக்குதல் மரங்களை அகற்றுகிறது"],ans:1,exp:"மீள் காடாக்குதல் முன்பு காடாக இருந்த நிலத்தை மரக் கவசத்துடன் மீட்டெடுக்கிறது, அதேசமயம் காடாக்குதல் முன்பு காடு இல்லாத பகுதிகளில் காடுகளை நிறுவுகிறது."},
+  ],
+  12:[
+    {q:"பாரிஸ் ஒப்பந்தம் (Paris Agreement) முதன்மையாக எதை இலக்காகக் கொண்டுள்ளது?",opts:["புதைபடிவ எரிபொருள் உற்பத்தியை அதிகரிக்க","உலகளாவிய பசுமை இல்ல வாயு வெளியேற்றங்களை குறைப்பதன் மூலம் உலகளாவிய வெப்பநிலை உயர்வை கட்டுப்படுத்த","அனைத்து சர்வதேச வர்த்தகத்தையும் தடை செய்ய","விண்வெளி ஆராய்ச்சிக்கு மட்டும் நிதியளிக்க"],ans:1,exp:"பாரிஸ் ஒப்பந்தம் ஒரு சர்வதேச ஒப்பந்தமாகும், இது உலகளாவிய பசுமை இல்ல வாயு வெளியேற்றங்களை குறைப்பதன் மூலம் உலகளாவிய வெப்பமயமாதலை 2°C-க்கு கீழாக, இலட்சியமாக 1.5°C-க்கு கட்டுப்படுத்துவதை இலக்காகக் கொண்டுள்ளது."},
+    {q:"சுற்றுச்சூழல் தாக்க மதிப்பீடு (EIA) எதற்காக நடத்தப்படுகிறது?",opts:["சுற்றுச்சூழல் ஒழுங்குமுறைகளை தவிர்க்க","ஒரு திட்டம் தொடங்குவதற்கு முன் அதன் சாத்தியமான சுற்றுச்சூழல் விளைவுகளை மதிப்பிட","திட்ட செலவுகளை தேவையின்றி அதிகரிக்க","அனைத்து சுற்றுச்சூழல் சட்டங்களையும் மாற்ற"],ans:1,exp:"EIA ஒரு முன்மொழியப்பட்ட திட்டத்தின் சாத்தியமான சுற்றுச்சூழல் விளைவுகளை மதிப்பிடுகிறது, அனுமதிக்கு முன் தீங்கைத் தடுக்க அல்லது குறைக்க முடிவெடுப்பவர்களுக்கு உதவுகிறது."},
+    {q:"NGOக்கள் மற்றும் ஐக்கிய நாடுகள் சபை நிறுவனங்கள் சுற்றுச்சூழல் பாதுகாப்பிற்கு முதன்மையாக எவ்வாறு பங்களிக்கின்றன?",opts:["சுற்றுச்சூழல் பிரச்சினைகளை புறக்கணித்தல்","விழிப்புணர்வை ஏற்படுத்துதல், திட்டங்களுக்கு நிதியளித்தல், மற்றும் பாதுகாப்பு மற்றும் நிலைத்தன்மை பற்றிய கொள்கையை பாதிக்கும் வகையில் செயல்படுதல்","மாசுபாடு அளவுகளை அதிகரித்தல்","தேசிய அரசாங்கங்களை மாற்றுதல்"],ans:1,exp:"NGOக்கள் மற்றும் UNEP போன்ற ஐக்கிய நாடுகள் சபை நிறுவனங்கள் விழிப்புணர்வை ஏற்படுத்துகின்றன, பாதுகாப்பு திட்டங்களுக்கு நிதியளிக்கின்றன, ஆராய்ச்சி நடத்துகின்றன, மற்றும் வலுவான சுற்றுச்சூழல் கொள்கைகளுக்காக வாதிடுகின்றன."},
+    {q:"கார்பன் வாய்ப்புகள் (carbon credits) எவ்வாறு செயல்படுகின்றன?",opts:["அனைவருக்கும் வரம்பற்ற வெளியேற்றங்களை அனுமதித்தல்","இலக்கைவிட வெளியேற்றங்களை குறைக்கும் அமைப்புகள் அதை மீறும் அமைப்புகளுக்கு வாய்ப்புகளை விற்க அனுமதித்தல்","அனைத்து கார்பன் வெளியேற்றங்களையும் உடனடியாக தடை செய்தல்","வெளியேற்றங்களுடன் தொடர்பு இல்லாமை"],ans:1,exp:"கார்பன் வாய்ப்புகள் பசுமை இல்ல வாயு வெளியேற்றத்தில் குறைப்பைக் குறிக்கின்றன; ஒதுக்கீட்டை விட குறைவாக வெளியிடும் நிறுவனங்கள் தங்கள் அதிகப்படியான வாய்ப்புகளை மற்றவர்களுக்கு விற்கலாம், வெளியேற்ற குறைப்புகளை ஊக்குவிக்கிறது."},
+    {q:"கியோட்டோ நெறிமுறை (Kyoto Protocol) ஏன் முக்கியமானது?",opts:["அதற்கு கட்டுப்படுத்தும் இலக்குகள் இல்லை","வளர்ந்த நாடுகளுக்கு சட்டப்பூர்வமாக கட்டுப்படுத்தும் வெளியேற்ற குறைப்பு இலக்குகளை அமைத்தது","கடல் பாதுகாப்புக்கு மட்டும் பொருந்தியது","மீள்தகு ஆற்றலை தடை செய்தது"],ans:1,exp:"கியோட்டோ நெறிமுறை (1997) தொழில்மயமான நாடுகளுக்கு சட்டப்பூர்வமாக கட்டுப்படுத்தும் பசுமை இல்ல வாயு குறைப்பு இலக்குகளை அமைத்த முதல் சர்வதேச ஒப்பந்தங்களில் ஒன்றாகும்."},
+  ],
+  13:[
+    {q:"'ஸ்மார்ட் கிரிட்' (smart grid) ஆற்றல் அமைப்புகளை எவ்வாறு மேம்படுத்துகிறது?",opts:["அனைத்து கண்காணிப்பையும் அகற்றுதல்","மின்சார விநியோகத்தை திறம்பட கண்காணிக்க மற்றும் நிர்வகிக்க டிஜிட்டல் தொழில்நுட்பம் மற்றும் சென்சார்களைப் பயன்படுத்துதல்","ஆற்றல் வீணாதலை அதிகரித்தல்","மீள்தகு ஆற்றல் மூலங்களை நீக்குதல்"],ans:1,exp:"ஸ்மார்ட் கிரிட்கள் டிஜிட்டல் தொடர்பு மற்றும் சென்சார்களைப் பயன்படுத்தி மின்சாரத்தின் உற்பத்தி மற்றும் விநியோகத்தை கண்காணித்து, கட்டுப்படுத்தி, மேம்படுத்துகின்றன, மீள்தகுவை திறம்பட ஒருங்கிணைக்கின்றன."},
+    {q:"மின்சார வாகனங்கள் (EVs) சுற்றுச்சூழல் தாக்கத்தை குறைக்க முதன்மையாக உதவுவது:",opts:["பெட்ரோல் காரை விட அதிக எரிபொருளை எரித்தல்","பூஜ்ஜிய புகைப்போக்கி வெளியேற்றங்களை உருவாக்குதல், உள்ளூர் காற்று மாசை குறைத்தல்","மின்சாரம் தேவையில்லாமை","மீள்தகு மின்சாரத்தைப் பயன்படுத்தி சார்ஜ் செய்ய முடியாமை"],ans:1,exp:"EVகள் நேரடி புகைப்போக்கி வெளியேற்றங்களை உருவாக்காது, உள்ளூர் காற்று மாசை குறைக்கின்றன, குறிப்பாக மீள்தகு மின் மூலங்களைப் பயன்படுத்தி சார்ஜ் செய்யப்படும்போது."},
+    {q:"கார்பன் பிடிப்பு தொழில்நுட்பம் (carbon capture) எவ்வாறு செயல்படுகிறது?",opts:["காற்றில் அதிக CO2 ஐ வெளியிடுதல்","மின் நிலையங்கள் போன்ற மூலங்களிலிருந்து CO2 வெளியேற்றங்களை பிடித்து சேமிக்கவோ அல்லது மீள்பயன்படுத்தவோ செய்தல்","மரங்களை நடுதல் மட்டும்","புதைபடிவ எரிபொருள் எரிப்பை அதிகரித்தல்"],ans:1,exp:"கார்பன் பிடிப்பு மற்றும் சேமிப்பு (CCS) தொழில்நுட்பம் CO2 வெளியேற்றங்களை அவற்றின் மூலத்தில் பிடித்து நிலத்தடியில் சேமிக்கிறது அல்லது மீண்டும் பயன்படுத்துகிறது, வளிமண்டலத்தில் வெளியிடுவதை தடுக்கிறது."},
+    {q:"நிலையான விவசாய தொழில்நுட்பத்தில் அடங்குவது:",opts:["கண்காணிப்பு இல்லாமல் அதிக பூச்சிக்கொல்லி தெளித்தல்","தண்ணீர், உரம் மற்றும் பூச்சிக்கொல்லி பயன்பாட்டை மேம்படுத்த சென்சார்கள் மற்றும் தரவைப் பயன்படுத்தும் துல்லிய விவசாயம்","விவசாய நிலத்திற்காக அனைத்து காடுகளையும் அழித்தல்","மண் ஆரோக்கியத்தை புறக்கணித்தல்"],ans:1,exp:"துல்லிய விவசாயம் சென்சார்கள், GPS மற்றும் தரவு பகுப்பாய்வைப் பயன்படுத்தி தண்ணீர், உரம் மற்றும் பூச்சிக்கொல்லிகளை தேவையான இடத்திலும் நேரத்திலும் மட்டும் பயன்படுத்துகிறது, வீணாதலையும் சுற்றுச்சூழல் தீங்கையும் குறைக்கிறது."},
+    {q:"சுற்றுச்சூழல் கண்டுபிடிப்பின் (eco-innovation) ஒரு உதாரணம்:",opts:["கட்டுப்பாடுகள் இல்லாமல் வெளியேற்றங்களை அதிகரிக்கும் ஒரு தொழிற்சாலை","ஒரு முறை பயன்படும் பிளாஸ்டிக்குகளுக்கு மாற்றாக மக்கும் பொட்டலங்களை வடிவமைக்கும் ஒரு நிறுவனம்","மீள்சுழற்சி செய்ய முடியாத பொருட்களை அதிகமாக பயன்படுத்துதல்","தயாரிப்பு வாழ்க்கைச் சுழற்சி தாக்கங்களை புறக்கணித்தல்"],ans:1,exp:"சுற்றுச்சூழல் கண்டுபிடிப்பு என்பது சுற்றுச்சூழல் தாக்கத்தை குறைக்கும் புதிய தயாரிப்புகள், செயல்முறைகள் அல்லது சேவைகளை உருவாக்குவதாகும், மக்கும் பொட்டலங்கள் பிளாஸ்டிக்கிற்கு மாற்றாக இருப்பது போல."},
+  ],
+  14:[
+    {q:"காலநிலை செயற்பாடு (climate activism) முதன்மையாக எதை இலக்காகக் கொண்டுள்ளது?",opts:["அறிவியல் சாட்சியங்களை புறக்கணித்தல்","விழிப்புணர்வை ஏற்படுத்துதல் மற்றும் காலநிலை பிரச்சினைகளில் நடவடிக்கை எடுக்க முடிவெடுப்பவர்களை அழுத்துதல்","புதைபடிவ எரிபொருள் மானியங்களை அதிகரித்தல்","அனைத்து அறிவியல் ஆராய்ச்சியையும் நிறுத்துதல்"],ans:1,exp:"காலநிலை செயற்பாடு என்பது தனிநபர்கள் மற்றும் குழுக்கள் பொது விழிப்புணர்வை ஏற்படுத்துதல் மற்றும் காலநிலை மாற்றத்தை எதிர்கொள்ள கொள்கை மாற்றங்களுக்கு வாதிடுவதாகும்."},
+    {q:"சமூகத் தலைமையிலான சுற்றுச்சூழல் திட்டத்தில் என்ன அடங்கும்?",opts:["அரசு ஊழியர்கள் மட்டும் தனியாக செயல்படுதல்","மரம் நடுதல் அல்லது சுத்தம் செய்யும் இயக்கங்கள் போன்ற நடவடிக்கைகளை ஒழுங்கமைக்கும் உள்ளூர் குடியிருப்பாளர்கள்","அனைத்து சமூக பங்களிப்பையும் தடை செய்தல்","பெரிய நிறுவனங்கள் மட்டும்"],ans:1,exp:"சமூகத் தலைமையிலான திட்டங்களில் உள்ளூர் குடியிருப்பாளர்கள் மரம் நடுதல், மீள்சுழற்சி இயக்கங்கள் அல்லது சுத்தம் செய்யும் பிரச்சாரங்கள் போன்ற முயற்சிகளில் தீவிரமாக ஒழுங்கமைத்து பங்கேற்கின்றனர்."},
+    {q:"பயனுள்ள சுற்றுச்சூழல் தொடர்பு (eco-communication) எதை உள்ளடக்கியது?",opts:["நிபுணர்கள் மட்டுமே புரிந்துகொள்ளும் சிக்கலான வாசகங்களைப் பயன்படுத்துதல்","சுற்றுச்சூழல் பிரச்சினைகள் மற்றும் தீர்வுகளை நடவடிக்கைக்கு ஊக்குவிக்கும் வழிகளில் தெளிவாக விளக்குதல்","எந்த தரவு அல்லது சாட்சியங்களையும் தவிர்த்தல்","பொது பங்கேற்பை ஊக்கமடக்குதல்"],ans:1,exp:"பயனுள்ள சுற்றுச்சூழல் தொடர்பு தெளிவான, தொடர்புபடுத்தக்கூடிய மொழி மற்றும் கட்டாயமான தரவைப் பயன்படுத்தி பார்வையாளர்களுக்கு தெரிவிக்கவும் சுற்றுச்சூழல் நடவடிக்கை எடுக்க ஊக்குவிக்கவும் செய்கிறது."},
+    {q:"ஒரு சுற்றுச்சூழல் பிரச்சாரத்தை திட்டமிடும்போது, முதல் படி பொதுவாக:",opts:["இலக்குகள் இல்லாமல் பிரச்சாரத்தை தொடங்குதல்","தெளிவான இலக்குகள், இலக்கு பார்வையாளர்கள் மற்றும் முக்கிய செய்திகளை வரையறுத்தல்","எந்த காலக்கெடுவையும் அமைக்காமல் இருத்தல்","எந்த ஆராய்ச்சியையும் தவிர்த்தல்"],ans:1,exp:"வெற்றிகரமான பிரச்சார திட்டமிடல் தெளிவான நோக்கங்கள், இலக்கு பார்வையாளர்களைப் புரிந்துகொள்வது மற்றும் செயல்படுத்துவதற்கு முன் முக்கிய செய்திகளை வடிவமைப்பதில் தொடங்குகிறது."},
+    {q:"சுற்றுச்சூழல் பிரச்சினைகளில் உள்ளூர் அரசாங்கத்துடன் இணைந்து பணியாற்றுவது எவ்வாறு உதவுகிறது?",opts:["கொள்கையில் எந்த தாக்கமும் இல்லாமை","உள்ளூர் ஒழுங்குமுறைகளை பாதித்தல், வளங்களைப் பெறுதல், மற்றும் சமூக முயற்சிகளை பெருக்குதல்","அனைத்து சமூக நடவடிக்கைகளையும் தடுத்தல்","நன்மை இல்லாமல் அதிகாரத்துவத்தை அதிகரித்தல்"],ans:1,exp:"உள்ளூர் அரசாங்கத்துடன் ஒத்துழைப்பது கொள்கை மாற்றங்கள், நிதி உதவி, மற்றும் சுற்றுச்சூழல் முயற்சிகளின் பரந்த செயல்படுத்தலுக்கு வழிவகுக்கும்."},
+  ],
+  15:[
+    {q:"நிலையான திட்டத்தை திட்டமிடுவதில் முதல் படி பொதுவாக:",opts:["திட்டம் இல்லாமல் உடனடியாக கட்டத் தொடங்குதல்","பிரச்சினை, இலக்குகள் மற்றும் திட்டத்தின் அளவை வரையறுத்தல்","பட்ஜெட் முழுவதையும் முன்பணமாக செலவிடுதல்","சமூக ஈடுபாட்டை தவிர்த்தல்"],ans:1,exp:"பயனுள்ள திட்ட திட்டமிடல் செயல்படுத்தலுக்கு முன் தீர்க்க வேண்டிய பிரச்சினை, திட்ட இலக்குகள் மற்றும் அளவை தெளிவாக வரையறுப்பதில் தொடங்குகிறது."},
+    {q:"பங்குதாரர் வரைபடமாக்கல் (stakeholder mapping) ஒரு திட்டத்திற்கு எவ்வாறு உதவுகிறது?",opts:["திட்டத்தால் பாதிக்கப்படும் மக்களை புறக்கணித்தல்","திட்டத்தால் பாதிக்கப்படும்/பாதிக்கும் தனிநபர்கள்/குழுக்களையும் அவர்களின் ஆர்வங்களையும் அடையாளம் காணுதல்","சமூக உள்ளீட்டை அகற்றுதல்","திட்ட செலவுகளை தேவையின்றி அதிகரித்தல்"],ans:1,exp:"பங்குதாரர் வரைபடமாக்கல் ஒரு திட்டத்தால் யார் பாதிக்கப்படுகிறார்கள் அல்லது அதை பாதிக்க முடியும் என்பதை அடையாளம் காண்கிறது, தொடர்பு திட்டமிடல் மற்றும் ஆதரவைப் பெற குழுக்களுக்கு உதவுகிறது."},
+    {q:"சுற்றுச்சூழல் திட்டத்திற்கான பட்ஜெட்டில் என்ன அடங்க வேண்டும்?",opts:["செலவுகளை கருத்தில் கொள்ளாமை","பொருட்கள், உழைப்பு மற்றும் எதிர்பாராத செலவுகளுக்கான மதிப்பீடு","மார்க்கெட்டிங் செலவு மட்டும்","நிதி ஆதாரங்களை புறக்கணித்தல்"],ans:1,exp:"நல்ல திட்ட பட்ஜெட் அனைத்து எதிர்பார்க்கப்படும் செலவுகளையும் — பொருட்கள், உழைப்பு, அனுமதிகள் — மதிப்பிட்டு, எதிர்பாராத செலவுகளுக்கான ஒதுக்கீட்டையும் சேர்க்கிறது."},
+    {q:"ஒரு திட்டத்தின் கண்காணிப்பு மற்றும் மதிப்பீடு எதற்கு உதவுகிறது?",opts:["திட்டம் தொடங்கியதும் எந்த நோக்கமும் இல்லாமை","முன்னேற்றத்தை கண்காணித்தல், தாக்கத்தை அளவிடுதல், மற்றும் தேவையான மாற்றங்களை அடையாளம் காணுதல்","அனைத்து எதிர்கால திட்டங்களையும் நிறுத்துதல்","பங்குதாரர்களிடம் இருந்து திட்ட முடிவுகளை மறைத்தல்"],ans:1,exp:"கண்காணிப்பு மற்றும் மதிப்பீடு ஒரு திட்டம் தனது இலக்குகளை அடைகிறதா என்பதை கண்காணிக்கிறது, அதன் நிஜ உலக தாக்கத்தை அளவிடுகிறது, மற்றும் மாற்றங்கள் தேவைப்படும் இடங்களை சுட்டிக்காட்டுகிறது."},
+    {q:"பசுமை திட்டங்களுக்கான மானியங்கள் (grants) பொதுவாக யாரால் வழங்கப்படுகின்றன?",opts:["எந்த அமைப்புகளும் பசுமை திட்டங்களை ஆதரிப்பதில்லை","நிலைத்தன்மை முயற்சிகளை ஆதரிக்கும் அரசு அமைப்புகள், அறக்கட்டளைகள் மற்றும் சர்வதேச அமைப்புகள்","முறையான செயல்முறை இல்லாத தனிநபர் நன்கொடைகள் மட்டும்","சுற்றுச்சூழல் வேலையை எதிர்க்கும் நிறுவனங்கள்"],ans:1,exp:"பல அரசாங்கங்கள், அறக்கட்டளைகள் மற்றும் சர்வதேச அமைப்புகள் நிலைத்தன்மை மற்றும் சுற்றுச்சூழல் முயற்சிகளுக்கு நிதியளிக்க குறிப்பாக மானியங்களை வழங்குகின்றன."},
+  ],
+  16:[
+    {q:"சுற்றுச்சூழல் நீதி (environmental justice) எதில் கவனம் செலுத்துகிறது?",opts:["மாசுபாடு வெவ்வேறு சமூகங்களை எவ்வாறு பாதிக்கிறது என்பதை புறக்கணித்தல்","பின்னணி பொருட்படுத்தாமல் அனைத்து மக்களுக்கும் சுற்றுச்சூழல் முடிவுகளில் நியாயமான நடத்தை மற்றும் அர்த்தமுள்ள ஈடுபாட்டை உறுதி செய்தல்","செல்வந்த சமூகங்களுக்கு மட்டும் பயனளித்தல்","ஒதுக்கப்பட்ட குழுக்களை முடிவுகளில் இருந்து விலக்குதல்"],ans:1,exp:"சுற்றுச்சூழல் நீதி அனைத்து சமூகங்களும், இனம் அல்லது வருமானத்தைப் பொருட்படுத்தாமல், ஆரோக்கியமான சுற்றுச்சூழலுக்கு நியாயமான அணுகலையும் சுற்றுச்சூழல் முடிவெடுப்பதில் குரலையும் கொண்டிருப்பதை உறுதி செய்கிறது."},
+    {q:"பழங்குடி அறிவு (indigenous knowledge) பாதுகாப்பிற்கு எவ்வாறு பங்களிக்கிறது?",opts:["நவீன பாதுகாப்பிற்கு மதிப்பு இல்லாமை","தலைமுறைகளாக நிலையான நில மற்றும் வள மேலாண்மை பற்றிய பாரம்பரிய சுற்றுச்சூழல் அறிவை வழங்குதல்","அனைத்து பாதுகாப்பு முயற்சிகளையும் எதிர்த்தல்","உயிரியல் வகைமைக்கு தொடர்பற்றதாக இருத்தல்"],ans:1,exp:"பழங்குடி சமூகங்கள் தலைமுறைகளாக உருவாக்கப்பட்ட நிலையான நில மேலாண்மை, உயிரியல் வகைமை மற்றும் சுற்றுச்சூழல் சமநிலை பற்றிய மதிப்புமிக்க பாரம்பரிய அறிவை கொண்டுள்ளன."},
+    {q:"சுற்றுச்சூழல் நெறிமுறையில் தலைமுறைகளுக்கிடையேயான பொறுப்பு (intergenerational responsibility) என்பது:",opts:["இன்றைய தலைமுறையை மட்டும் கருதுதல்","இன்றைய செயல்களின் தாக்கத்தை எதிர்கால தலைமுறைகளின் வளங்கள் மற்றும் ஆரோக்கியமான சுற்றுச்சூழல் அணுகல் மீது கருதுதல்","எதிர்கால விளைவுகளை முற்றிலும் புறக்கணித்தல்","இப்போது அனைத்து வளங்களையும் பயன்படுத்துதல்"],ans:1,exp:"தலைமுறைகளுக்கிடையேயான பொறுப்பு என்பது இன்று முடிவுகளை எடுக்கும்போது எதிர்கால தலைமுறைகளின் நல்வாழ்வு மற்றும் வள அணுகலை கருத்தில் கொள்வதாகும்."},
+    {q:"நிறுவன சுற்றுச்சூழல் பொறுப்பில் (corporate environmental responsibility) நிறுவனங்கள் எதை செய்கின்றன?",opts:["லாபத்திற்காக மாசுபாட்டை அதிகப்படுத்துதல்","தங்கள் சுற்றுச்சூழல் தாக்கத்திற்கு பொறுப்பேற்று நிலையான நடைமுறைகளை ஏற்றுக்கொள்ளுதல்","அனைத்து ஒழுங்குமுறைகளையும் புறக்கணித்தல்","தாக்கம் பற்றிய எந்த அறிக்கையையும் தவிர்த்தல்"],ans:1,exp:"நிறுவன சுற்றுச்சூழல் பொறுப்பு என்பது நிறுவனங்கள் தங்கள் சுற்றுச்சூழல் தடத்தை தீவிரமாக நிர்வகித்து குறைத்து நிலையான முறையில் இயங்குவதாகும்."},
+    {q:"உலகளாவிய மற்றும் உள்ளூர் சுற்றுச்சூழல் முன்னுரிமைகளை சமநிலைப்படுத்துவது சவாலானது ஏன்?",opts:["அவை எப்போதும் ஒன்றே","உலகளாவிய பிரச்சினைகளுக்கு (காலநிலை மாற்றம் போன்றவை) ஒருங்கிணைந்த நடவடிக்கை தேவை, அதேசமயம் உள்ளூர் பிரச்சினைகளுக்கு (ஒரு குறிப்பிட்ட ஆற்றின் மாசுபாடு போன்றவை) சமூக-குறிப்பிட்ட தீர்வுகள் தேவை","உள்ளூர் பிரச்சினைகள் முக்கியமற்றவை","உலகளாவிய ஒப்பந்தங்கள் ஒவ்வொரு உள்ளூர் பிரச்சினையையும் தானாக தீர்க்கின்றன"],ans:1,exp:"உலகளாவிய சுற்றுச்சூழல் சவால்களுக்கு சர்வதேச ஒத்துழைப்பு தேவை, அதேசமயம் உள்ளூர் பிரச்சினைகளுக்கு பெரும்பாலும் தனிப்பயனாக்கப்பட்ட, சமூக-குறிப்பிட்ட தீர்வுகள் தேவை — இரண்டையும் சமநிலைப்படுத்துவது பயனுள்ள நடவடிக்கைக்கு முக்கியமாகும்."},
+  ],
+  17:[
+    {q:"பள்ளி/கல்லூரி ஆற்றல் தணிக்கை திட்டத்திற்கு, முதல் படி:",opts:["தரவு இல்லாமல் உடனடியாக அனைத்து சாதனங்களையும் மாற்றுதல்","அதிக நுகர்வு பகுதிகளை அடையாளம் காண வளாகம் முழுவதும் தற்போதைய ஆற்றல் பயன்பாட்டை அளவிட்டு பதிவு செய்தல்","தரவு சேகரிப்பை முற்றிலும் தவிர்த்தல்","மாணவர்களின் விருப்பங்களை மட்டும் கணக்கெடுத்தல்"],ans:1,exp:"ஆற்றல் தணிக்கை தற்போதைய ஆற்றல் நுகர்வை அளவிடுவதில் தொடங்குகிறது, அதிக ஆற்றல் பயன்படும் இடங்களையும் சேமிப்பு சாத்தியமான இடங்களையும் அடையாளம் காண."},
+    {q:"சமூக சுத்தம் செய்யும் பிரச்சாரத்தின் வெற்றி எவ்வாறு சிறப்பாக அளவிடப்படுகிறது?",opts:["சமூக ஊடக இடுகைகளின் எண்ணிக்கை மட்டும்","சேகரிக்கப்பட்ட கழிவின் அளவு, சுத்தம் செய்யப்பட்ட பகுதி, மற்றும் சமூக பங்கேற்பு","அளவீடு தேவையில்லை","செலவிட்ட தொகை மட்டும்"],ans:1,exp:"சுத்தம் செய்யும் பிரச்சார தாக்கத்தை சேகரிக்கப்பட்ட கழிவு (கிலோ), பாதிக்கப்பட்ட பகுதி, மற்றும் ஈடுபட்ட பங்கேற்பாளர்களின் எண்ணிக்கை போன்ற அளவீடுகள் மூலம் அளவிடலாம்."},
+    {q:"உயிரியல் வகைமை கணக்கெடுப்பு திட்டத்தில் பொதுவாக என்ன அடங்கும்?",opts:["பகுதியில் உள்ள இனங்களை புறக்கணித்தல்","காலப்போக்கில் சுற்றுச்சூழல் ஆரோக்கியத்தை மதிப்பிட ஒரு பகுதியில் காணப்படும் இனங்களை முறையாக பதிவு செய்தல்","ஆய்வுக்காக அனைத்து வாழ்வினங்களையும் அகற்றுதல்","மரங்களை மட்டும் எண்ணுதல்"],ans:1,exp:"உயிரியல் வகைமை கணக்கெடுப்புகள் காலப்போக்கில் சுற்றுச்சூழல் அமைப்பு ஆரோக்கியத்தை மதிப்பிட ஒரு பகுதியில் தாவர மற்றும் விலங்கு இனங்களை முறையாக கண்காணித்து பதிவு செய்வதை உள்ளடக்கியது."},
+    {q:"மீள்சுழற்சி இயக்கத்தை வடிவமைக்கும்போது, ஒரு முக்கிய கருத்தாக்கம்:",opts:["அனைத்து கழிவு வகைகளையும் பிரிக்காமல் கலந்து வைத்தல்","தெளிவான வரிசைப்படுத்தல் வகைகளை (காகிதம், பிளாஸ்டிக், மின்னணு கழிவு, முதலியன) அமைத்து மீள்சுழற்சி வசதிகளுடன் இணைந்து செயல்படுதல்","எல்லாவற்றையும் வழக்கமான குப்பையில் அகற்றுதல்","சமூக ஈடுபாட்டை தவிர்த்தல்"],ans:1,exp:"பயனுள்ள மீள்சுழற்சி இயக்கங்களுக்கு தெளிவான வரிசைப்படுத்தல் வகைகளும், சேகரிக்கப்பட்ட பொருட்கள் உண்மையில் மீள்சுழற்சி செய்யப்படுவதை உறுதி செய்ய சரியான மீள்சுழற்சி வசதிகளுடன் கூட்டாண்மையும் தேவை."},
+    {q:"கார்பன் கால்தடம் கண்காணிப்பு பயன்பாடு (carbon footprint tracker app) பயனர்களுக்கு முதன்மையாக எவ்வாறு உதவும்?",opts:["பின்னூட்டம் இல்லாமல் அவர்களின் வெளியேற்றங்களை அதிகரித்தல்","தினசரி செயல்பாடுகளில் (பயணம், ஆற்றல் பயன்பாடு) இருந்து வெளியேற்றங்களை மதிப்பிட்டு, அவற்றை குறைக்க வழிகளை பரிந்துரைத்தல்","நிதி செலவினங்களை மட்டும் கண்காணித்தல்","எந்த நடத்தை மாற்றத்தின் தேவையையும் மாற்றுதல்"],ans:1,exp:"கார்பன் கால்தடம் கண்காணிப்பு ஒரு பயனரின் தினசரி செயல்பாடுகளில் இருந்து பசுமை இல்ல வாயு வெளியேற்றங்களை மதிப்பிட்டு, அவர்களின் தாக்கத்தை குறைக்க தனிப்பயனாக்கப்பட்ட பரிந்துரைகளை வழங்குகிறது."},
+  ],
+};
+
+
+function switchQuizLang(lang) {
+  window.currentLang = lang;
+  document.getElementById('qlang-en').classList.toggle('active', lang==='en');
+  document.getElementById('qlang-ta').classList.toggle('active', lang==='ta');
+  // Restart current level in chosen language
+  if(qState && qState.lvlId) launchQuiz(qState.lvlId);
+}
+
+function launchQuiz(lvlId){
+  const lvl=SYLLABUS.find(s=>s.id===lvlId);
+  if(!lvl) return;
+  const prevDone=lvlId===1||state.completed[lvlId-1];
+  if(!prevDone){toast('Complete level '+(lvlId-1)+' first!','error');return;}
+  qState={
+    lvlId,lvlName:lvl.name,lvlLevel:lvl.level,lvlXp:lvl.xp,
+    qs:(window.currentLang==='ta' ? (QUIZ_DATA_TA[lvlId]||QUIZ_DATA[lvlId]) : QUIZ_DATA[lvlId])||[],
+    cur:0,score:0,lives:3,totalXp:0,answered:false,
+    totalAns:0,totalCorrect:0
+  };
+  // Sync language toggle buttons with current lang
+  const _ql=window.currentLang||'en';
+  document.getElementById('qlang-en').classList.toggle('active',_ql==='en');
+  document.getElementById('qlang-ta').classList.toggle('active',_ql==='ta');
+  document.getElementById('qlvl-name').textContent=lvl.name;
+  document.getElementById('qlvl-diff').textContent=lvl.level.toUpperCase()+' • '+lvl.xp+' XP available';
+  updateQuizLives();
+  document.getElementById('quiz-xp').textContent=0;
+  showView('quiz');
+  renderQuestion();
+}
+
+function renderQuestion(){
+  const {qs,cur} = qState;
+  if(cur>=qs.length){showResult();return;}
+  const q=qs[cur];
+  const total=qs.length;
+  document.getElementById('quiz-prog').style.width=((cur/total)*100)+'%';
+  const letters=['A','B','C','D'];
+  document.getElementById('quiz-body').innerHTML=`
+    <div class="q-counter">Question ${cur+1} of ${total}</div>
+    <div class="q-text">${q.q}</div>
+    <div class="options-grid">
+      ${q.opts.map((o,i)=>`
+        <button class="opt-btn" id="opt-${i}" onclick="selectOpt(${i})">
+          <span class="opt-letter">${letters[i]}</span>${o}
+        </button>`).join('')}
+    </div>
+    <div class="feedback-box" id="fb-box"></div>
+    <button class="next-quiz-btn" id="nxt-btn" onclick="nextQ()">Next Question ›</button>
+  `;
+  qState.answered=false;
+  // Re-attach hover events to new buttons
+  document.querySelectorAll('.opt-btn').forEach(el=>{
+    el.addEventListener('mouseenter',()=>window.cur&&window.cur.classList.add('hovering'));
+  });
+}
+
+function selectOpt(i){
+  if(qState.answered) return;
+  qState.answered=true;
+  qState.totalAns++;
+  const q=qState.qs[qState.cur];
+  const opts=document.querySelectorAll('.opt-btn');
+  opts.forEach(b=>b.disabled=true);
+  const fb=document.getElementById('fb-box');
+  const nxt=document.getElementById('nxt-btn');
+  if(i===q.ans){
+    opts[i].classList.add('correct');
+    qState.score++;qState.totalCorrect++;
+    const earned=Math.round(qState.lvlXp/qState.qs.length);
+    qState.totalXp+=earned;
+    state.xp+=earned;
+    document.getElementById('quiz-xp').textContent=qState.totalXp;
+    fb.textContent='✅ Correct! '+q.exp;
+    fb.className='feedback-box correct';
+  } else {
+    opts[i].classList.add('wrong');
+    opts[q.ans].classList.add('correct');
+    qState.lives--;
+    updateQuizLives();
+    fb.textContent='❌ Wrong! '+q.exp;
+    fb.className='feedback-box wrong';
+  }
+  fb.style.display='block';
+  nxt.style.display='inline-flex';
+  updateUI();
+}
+
+function nextQ(){
+  if(qState.lives<=0){showGameOver();return;}
+  qState.cur++;
+  renderQuestion();
+}
+
+function updateQuizLives(){
+  const h='❤️'.repeat(qState.lives)+'🖤'.repeat(3-qState.lives);
+  document.getElementById('quiz-lives').textContent=h;
+}
+
+async function saveScoreToFirebase(){
+  // Waits for the module script near the end of <body> to have populated
+  // window.EcoClient — it always has by the time a quiz can actually be
+  // completed, but awaiting EcoReady (instead of a fixed timeout) means a
+  // slow first load still saves the score rather than giving up on it.
+  const client = window.EcoClient || await window.EcoReady;
+  if (!client) { console.error('Firebase bridge not ready — score not saved.'); return; }
+  const ok = await client.saveScore(
+    state.name,
+    qState.lvlId,          // stored as number 1-17
+    qState.score,
+    qState.qs.length,
+    (window.currentLang || 'en'),
+    state.cls || ''
+  );
+  if (ok) console.log('Score saved to Firestore ✅');
+}
+
+function showResult(){
+  document.getElementById('quiz-prog').style.width='100%';
+  const total=qState.qs.length;
+  const pass=qState.score>=Math.ceil(total*0.6);
+  if(pass){
+    state.completed[qState.lvlId]=true;
+    state.lvlsDone++;
+    state.streak=(state.streak||0)+1;
+    toast('Level completed! +'+qState.totalXp+' XP 🔥 Streak: '+state.streak);
+  }
+  state.totalAns=(state.totalAns||0)+qState.totalAns;
+  state.totalCorrect=(state.totalCorrect||0)+qState.totalCorrect;
+  updateUI();
+  saveProgress();
+  // Save to Firebase so teacher dashboard gets updated
+  saveScoreToFirebase();
+  const icons={0:'😅',1:'💪',2:'🙂',3:'😊',4:'🎉',5:'🏆'};
+  const icon=icons[Math.min(qState.score,5)]||'🏆';
+  const titles=['Keep Trying!','Getting There!','Good Job!','Well Done!','Great Work!','Perfect! 🐢'];
+  const title=titles[Math.min(qState.score,5)];
+  document.getElementById('quiz-body').innerHTML=`
+    <div class="result-screen-wrap">
+      <div class="result-trophy">${icon}</div>
+      <div class="result-title">${title}</div>
+      <div style="color:var(--text-muted);margin-bottom:8px;">${qState.lvlName}</div>
+      <div class="result-score">${qState.score}/${total}</div>
+      <div class="result-xp">+${qState.totalXp} XP Earned ⚡</div>
+      <div class="result-badge">${pass?'🏅 Level Completed!':'📚 Keep Practicing'}</div>
+      ${pass?'<p style="color:#81C784;font-size:0.9rem;margin-bottom:16px;">Next level unlocked! 🔓</p>':'<p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:16px;">Score ≥60% to unlock next level.</p>'}
+      <div class="result-actions">
+        <button class="cta-btn" onclick="exitQuiz()">🏠 Dashboard</button>
+        <button class="cta-btn" style="background:linear-gradient(135deg,#1565C0,#2196F3);" onclick="launchQuiz(${qState.lvlId})">🔄 Try Again</button>
+        ${pass&&qState.lvlId<17?`<button class="cta-btn" style="background:linear-gradient(135deg,#2E7D32,#4CAF50);" onclick="launchQuiz(${qState.lvlId+1})">Next Level ›</button>`:''}
+      </div>
+    </div>
+  `;
+}
+
+function showGameOver(){
+  document.getElementById('quiz-body').innerHTML=`
+    <div class="gameover-wrap">
+      <div style="font-size:70px;margin-bottom:16px;animation:turtleBounce 2s ease-in-out infinite;">💔</div>
+      <div class="result-title">Out of Lives!</div>
+      <p style="color:var(--text-muted);margin:12px 0 24px;">Don't give up — the turtle never stops learning!</p>
+      <div class="result-actions">
+        <button class="cta-btn" onclick="exitQuiz()">🏠 Dashboard</button>
+        <button class="cta-btn" style="background:linear-gradient(135deg,var(--turtle-deep),var(--turtle-green));" onclick="launchQuiz(${qState.lvlId})">🔄 Try Again</button>
+      </div>
+    </div>
+  `;
+}
+
+function exitQuiz(){
+  showView('dashboard');
+  renderDashboard();
+}
+
+// ====== DASHBOARD RENDER ======
+function renderDashboard(){
+  if (typeof refreshLeaderboardRankBadge === 'function') refreshLeaderboardRankBadge();
+  const groups={beginner:[],intermediate:[],advanced:[],expert:[]};
+  SYLLABUS.forEach(s=>{if(groups[s.level]) groups[s.level].push(s);});
+  Object.entries(groups).forEach(([lvl,items])=>{
+    const grid=document.getElementById('levels-grid-'+lvl);
+    if(!grid) return;
+    grid.innerHTML=items.map(s=>{
+      const done=state.completed[s.id];
+      const prevDone=s.id===1||state.completed[s.id-1];
+      const locked=!done&&!prevDone;
+      const col=LEVEL_COLORS[s.level]||'var(--turtle-green)';
+      return `<div class="level-card ${locked?'locked':''}" style="--lc:${col}">
+        <div class="level-card-header">
+          <div class="level-num" style="background:${col}20;border-color:${col}50;color:${col}">${s.id}</div>
+          <div>
+            <div class="level-name">${s.name}</div>
+            <div class="level-tag">${LEVEL_EMOJIS[s.level]} ${s.level.toUpperCase()} • ${s.xp} XP</div>
+          </div>
+        </div>
+        <div class="level-card-topics">
+          ${s.topics.slice(0,4).map(t=>`<span class="topic-chip">${t.length>22?t.substring(0,22)+'…':t}</span>`).join('')}
+          ${s.topics.length>4?`<span class="topic-chip">+${s.topics.length-4} more</span>`:''}
+        </div>
+        <div class="level-card-footer">
+          <span class="level-xp">⚡ ${s.xp} XP</span>
+          ${done?'<span class="level-done-mark" title="Completed">✅</span>':
+            locked?'<span style="color:var(--text-muted);font-size:0.8rem;">🔒 Locked</span>':
+            `<button class="level-start-btn" onclick="launchQuiz(${s.id})">Start ›</button>`}
+        </div>
+      </div>`;
+    }).join('');
+  });
+}
+
+function renderSyllabus(){
+  const syl=document.getElementById('syllabus-content');
+  if(!syl) return;
+  const lvls=[['beginner','🌱 Beginner Level (Foundations)'],['intermediate','🔷 Intermediate Level (Climate & Sustainability)'],['advanced','⚡ Advanced Level (Energy, Ecosystems & Policy)'],['expert','🚀 Expert Level (Action, Ethics & Capstone)']];
+  syl.innerHTML=lvls.map(([lvl,title])=>`
+    <div class="syllabus-section">
+      <div class="syllabus-section-title syl-${lvl}">${title}</div>
+      <div class="syl-topics-grid">
+        ${SYLLABUS.filter(s=>s.level===lvl).map(s=>`
+          <div class="syl-topic-card">
+            <div class="syl-topic-num">MODULE ${s.id} • ${s.xp} XP</div>
+            <div class="syl-topic-name">${s.name}</div>
+            <ul class="syl-subtopics">
+              ${s.topics.map(t=>`<li>${t}</li>`).join('')}
+            </ul>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+// ====== UI UPDATE ======
+function updateUI(){
+  document.getElementById('sb-name').textContent='🐢 '+state.name;
+  document.getElementById('sb-class').textContent=state.cls;
+  document.getElementById('sb-xp').textContent=state.xp+' XP';
+  document.getElementById('sb-xp-fill').style.width=Math.min(100,(state.xp/5000)*100)+'%';
+  document.getElementById('sb-lvl').textContent=state.lvlsDone;
+  document.getElementById('sb-streak').textContent=state.streak;
+  document.getElementById('dash-name').textContent=state.name;
+  document.getElementById('pd-xp').textContent=state.xp;
+  document.getElementById('pd-xp-bar').style.width=Math.min(100,(state.xp/5000)*100)+'%';
+  document.getElementById('pd-done').textContent=state.lvlsDone+'/17';
+  document.getElementById('pd-done-bar').style.width=((state.lvlsDone/17)*100)+'%';
+  const acc=state.totalAns>0?Math.round((state.totalCorrect/state.totalAns)*100):0;
+  document.getElementById('pd-correct').textContent=acc+'%';
+  document.getElementById('pd-acc-bar').style.width=acc+'%';
+  document.getElementById('mob-xp').textContent=state.xp+' XP';
+  document.getElementById('pd-streak').textContent=state.streak||0;
+  document.getElementById('pd-streak-bar').style.width=Math.min(100,((state.streak||0)/17)*100)+'%';
+  // Update nav badges
+  SYLLABUS.forEach(s=>{
+    const nav=document.getElementById('nav-lv'+s.id);
+    if(!nav) return;
+    nav.querySelectorAll('.level-badge').forEach(b=>b.remove());
+    const badge=document.createElement('span');
+    badge.className='level-badge '+(state.completed[s.id]?'badge-done':(!state.completed[s.id-1]&&s.id>1)?'badge-locked':('badge-'+s.level));
+    badge.textContent=state.completed[s.id]?'✅':((!state.completed[s.id-1]&&s.id>1)?'🔒':s.level.substring(0,5).toUpperCase());
+    nav.appendChild(badge);
+  });
+}
+
+// ====== AI TUTOR CHAT ======
+function initChat(){
+  const area=document.getElementById('chat-area');
+  area.innerHTML='';
+  addAIMsg(`Hi ${state.name}! 🐢 I'm Shelly, your Eco Tutor! I can teach you **anything** about ecosystems, climate change, biodiversity, pollution, sustainability, renewable energy, and every topic in your syllabus.\n\nAsk me to **explain concepts**, give **real-world examples**, **quiz you**, or help with **eco projects**. No question is too simple or too advanced!\n\nWhat would you like to learn today?`);
+}
+
+function addAIMsg(text){
+  const area=document.getElementById('chat-area');
+  const div=document.createElement('div');
+  div.className='chat-msg ai';
+  div.innerHTML=`<div class="msg-avatar">🐢</div><div class="msg-bubble">${formatMsg(text)}</div>`;
+  area.appendChild(div);
+  area.scrollTop=area.scrollHeight;
+  state.chatHistory.push({role:'assistant',content:text});
+}
+
+function addUserMsg(text){
+  const area=document.getElementById('chat-area');
+  const div=document.createElement('div');
+  div.className='chat-msg user';
+  div.innerHTML=`<div class="msg-bubble">${escapeHtml(text)}</div><div class="msg-avatar" style="background:linear-gradient(135deg,var(--turtle-deep),var(--turtle-green));">👤</div>`;
+  area.appendChild(div);
+  area.scrollTop=area.scrollHeight;
+  state.chatHistory.push({role:'user',content:text});
+}
+
+function addTyping(){
+  const area=document.getElementById('chat-area');
+  const div=document.createElement('div');
+  div.className='chat-msg ai typing-indicator';
+  div.id='typing-msg';
+  div.innerHTML=`<div class="msg-avatar">🐢</div><div class="msg-bubble"><div class="dot-wave"><span></span><span></span><span></span></div></div>`;
+  area.appendChild(div);
+  area.scrollTop=area.scrollHeight;
+}
+
+function removeTyping(){
+  const t=document.getElementById('typing-msg');
+  if(t) t.remove();
+}
+
+function formatMsg(text){
+  // Convert markdown-like formatting to HTML
+  return text
+    .replace(/```(\w*)\n([\s\S]*?)```/g,(m,lang,code)=>`<pre><code>${escapeHtml(code.trim())}</code></pre>`)
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g,'<em>$1</em>')
+    .replace(/^### (.+)$/gm,'<h4>$1</h4>')
+    .replace(/^## (.+)$/gm,'<h4>$1</h4>')
+    .replace(/^# (.+)$/gm,'<h4>$1</h4>')
+    .replace(/^\* (.+)$/gm,'<li>$1</li>')
+    .replace(/^- (.+)$/gm,'<li>$1</li>')
+    .replace(/^(\d+)\. (.+)$/gm,'<li>$2</li>')
+    .replace(/(<li>[\s\S]*?<\/li>)/g,'<ul>$1</ul>')
+    .replace(/<\/ul>\s*<ul>/g,'')
+    .replace(/\n\n/g,'</p><p>')
+    .replace(/\n/g,'<br>')
+    .replace(/^(.)/,'<p>$1').replace(/(.)$/,'$1</p>');
+}
+
+function escapeHtml(t){
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ============================================================
+// 🐢 ECOCHRONICLES KNOWLEDGE BASE — Environmental Education dataset
+// ============================================================
+const KB = [
+  { keys:['what is environment','define environment','environment meaning','what is the environment','components of environment'],
+    answer:`## 🐢 What is the Environment?
+
+The **environment** is everything that surrounds and affects living organisms — both **living (biotic)** and **non-living (abiotic)** components.
+
+### 🌱 Biotic Components
+- Plants, animals, fungi, bacteria — all living organisms
+
+### 🪨 Abiotic Components
+- Sunlight, air, water, soil, temperature, minerals
+
+### 🌍 Why It Matters
+- Provides food, water, air, and shelter for all life
+- Regulates climate and weather patterns
+- Supports biodiversity and ecosystem balance
+- Everyday choices (transport, food, waste) all impact it
+
+### 🔑 Eco-Ethics
+\`\`\`
+Eco-Ethics = Acting responsibly toward nature
+            + considering future generations
+            + sustainable choices today
+\`\`\`
+
+🐢 *Every small action — saving water, reducing waste — adds up to a big impact!*` },
+
+  { keys:['habitat','ecosystem','what is a habitat','what is an ecosystem','biotic abiotic'],
+    answer:`## 🐢 Habitats & Ecosystems
+
+### 🏡 Habitat
+A **habitat** is the natural home of an organism — providing food, water, shelter, and space to live and reproduce.
+
+### 🌳 Ecosystem
+An **ecosystem** is a community of living organisms interacting with each other and their physical environment.
+
+| Component | Examples |
+|-----------|----------|
+| Biotic | Plants, animals, microbes |
+| Abiotic | Sunlight, water, soil, air, temperature |
+
+### 🌍 Types of Ecosystems
+- **Terrestrial**: forests, grasslands, deserts
+- **Aquatic**: ponds, rivers, oceans, wetlands
+
+🐢 *Every species depends on its habitat — protecting habitats protects biodiversity!*` },
+
+  { keys:['food chain','food web','producers consumers decomposers','trophic levels','energy flow'],
+    answer:`## 🐢 Food Chains & Food Webs
+
+### 🔗 Food Chain
+A **food chain** shows the transfer of energy from one organism to another.
+
+\`\`\`
+Sun → Grass (Producer) → Deer (Primary Consumer) → Tiger (Secondary Consumer) → Decomposers
+\`\`\`
+
+### 🕸️ Food Web
+A **food web** is a network of interconnected food chains in an ecosystem.
+
+### 🧬 Key Roles
+- **Producers**: Plants & algae — make food via photosynthesis
+- **Primary Consumers**: Herbivores — eat producers
+- **Secondary/Tertiary Consumers**: Carnivores — eat other consumers
+- **Decomposers**: Fungi & bacteria — break down dead matter, recycle nutrients
+
+### ⚡ Energy Flow Rule
+Energy flows **one way** — from sun → producers → consumers. Only about **10%** of energy transfers to the next level (the "10% rule")!
+
+🐢 *Remove one species and the whole web can be affected — that's why biodiversity matters!*` },
+
+  { keys:['biome','population ecology','community ecology','types of biomes'],
+    answer:`## 🐢 Biomes & Population Ecology
+
+### 🌎 What is a Biome?
+A **biome** is a large naturally occurring community of plants and animals adapted to a region's climate.
+
+| Biome | Climate | Example Locations |
+|-------|---------|-------------------|
+| Tropical Rainforest | Hot & wet | Amazon, Western Ghats |
+| Desert | Hot/cold & dry | Thar, Sahara |
+| Grassland | Moderate rainfall | Savanna, Steppe |
+| Tundra | Cold & dry | Arctic regions |
+| Aquatic | Varies | Oceans, lakes, rivers |
+
+### 👥 Population & Community
+- **Population**: All individuals of one species in an area
+- **Community**: All populations of different species living together in an area
+
+🐢 *Each biome has unique adaptations — polar bears for cold, cacti for deserts!*` },
+
+  { keys:['renewable resources','non renewable resources','types of resources','natural resources'],
+    answer:`## 🐢 Earth's Natural Resources
+
+### ♻️ Renewable Resources
+Resources that are naturally replenished and won't run out (if used sustainably):
+- ☀️ Solar energy
+- 💨 Wind
+- 💧 Water
+- 🌲 Forests (if managed sustainably)
+
+### ⛏️ Non-Renewable Resources
+Resources that take millions of years to form and exist in limited quantities:
+- Coal, petroleum, natural gas
+- Minerals and metals
+
+### 🔑 Conservation Principle
+\`\`\`
+Conservation = Using resources wisely
+              so they last for future generations
+\`\`\`
+
+🐢 *The faster we use non-renewables, the faster we need to switch to renewables!*` },
+
+  { keys:['water cycle','hydrological cycle','evaporation condensation precipitation','freshwater resources'],
+    answer:`## 🐢 The Water Cycle
+
+The **water cycle** describes how water moves continuously between the Earth's surface and atmosphere.
+
+### 🔄 Stages
+\`\`\`
+Evaporation → Condensation → Precipitation → Collection → repeat
+\`\`\`
+
+| Stage | What Happens |
+|-------|-------------|
+| Evaporation | Water heats up, turns to vapor, rises |
+| Condensation | Vapor cools, forms clouds |
+| Precipitation | Rain, snow, or hail falls back to Earth |
+| Collection | Water gathers in rivers, lakes, oceans, groundwater |
+
+### 💧 Freshwater Facts
+- Only ~3% of Earth's water is fresh, and most is locked in glaciers/ice caps
+- Less than 1% is easily accessible for human use
+
+🐢 *Protecting rivers, lakes, and groundwater keeps the water cycle healthy for everyone!*` },
+
+  { keys:['soil erosion','soil resources','land resources','forests minerals','soil conservation'],
+    answer:`## 🐢 Soil & Land Resources
+
+### 🌱 Why Soil Matters
+Soil supports plant growth, stores water and nutrients, and is home to countless organisms.
+
+### ⚠️ Soil Erosion
+**Soil erosion** happens when wind or water removes fertile topsoil — often worsened by:
+- Deforestation
+- Overgrazing
+- Poor farming practices
+
+### 🌲 Forests as a Resource
+Forests:
+- Regulate climate & rainfall
+- Produce oxygen, absorb CO2
+- Provide timber, medicine, food, habitat
+
+### 🛡️ Conservation Practices
+- Crop rotation & terracing
+- Reforestation
+- Reducing chemical fertilizer overuse
+
+🐢 *Healthy soil = healthy food = healthy ecosystems!*` },
+
+  { keys:['weather vs climate','difference between weather and climate','what is weather','what is climate'],
+    answer:`## 🐢 Weather vs Climate
+
+| | Weather | Climate |
+|---|---------|---------|
+| **Definition** | Short-term atmospheric conditions | Long-term average pattern over years |
+| **Timescale** | Hours to days | 30+ years |
+| **Example** | "It's raining today" | "This region has a tropical climate" |
+| **Changes** | Daily/hourly | Slowly, over decades |
+
+### 🌡️ Climate Zones
+Defined by temperature & precipitation patterns:
+- Tropical, Temperate, Polar, Arid, Mediterranean
+
+🐢 *A single cold day doesn't disprove global warming — that's weather, not climate!*` },
+
+  { keys:['greenhouse effect','greenhouse gases','atmosphere layers','ozone layer'],
+    answer:`## 🐢 The Greenhouse Effect & Atmosphere
+
+### 🌡️ Greenhouse Effect
+Greenhouse gases (CO2, methane, water vapor) trap heat from the sun in the atmosphere, keeping Earth warm enough for life. **Too much** of these gases causes excessive warming.
+
+\`\`\`
+Sunlight in → Earth absorbs heat → Heat radiates back
+            → Greenhouse gases trap some heat → Warming
+\`\`\`
+
+### 🌌 Layers of the Atmosphere
+| Layer | Key Feature |
+|-------|-------------|
+| Troposphere | Where weather happens (closest to Earth) |
+| Stratosphere | Contains the ozone layer (blocks UV rays) |
+| Mesosphere | Meteors burn up here |
+| Thermosphere/Exosphere | Outermost layers, space begins |
+
+### ☂️ Ozone Layer
+Located in the stratosphere — absorbs most harmful UV radiation, protecting life on Earth.
+
+🐢 *The greenhouse effect is natural and necessary — climate change is about having TOO MUCH of it!*` },
+
+  { keys:['climate change','global warming','causes of climate change','carbon footprint','climate change evidence'],
+    answer:`## 🐢 Climate Change Science
+
+### 🔥 Main Cause
+Burning **fossil fuels** (coal, oil, gas) for energy and transport releases large amounts of CO2 — the leading driver of human-caused climate change.
+
+### 👣 Carbon Footprint
+The total greenhouse gases (measured as CO2 equivalent) produced by a person, organization, or activity.
+
+\`\`\`
+Carbon Footprint Sources:
+├── Transportation (cars, flights)
+├── Electricity use (especially from fossil fuels)
+├── Food production (especially meat/dairy)
+└── Waste & manufacturing
+\`\`\`
+
+### 📈 Evidence of Global Warming
+- Rising global average temperatures
+- Melting glaciers & polar ice
+- Rising sea levels
+- More frequent extreme weather events
+
+### 🌿 Mitigation vs Adaptation
+| Mitigation | Adaptation |
+|-----------|-----------|
+| Reduce emissions (causes) | Adjust to impacts (effects) |
+| Switch to renewables | Build flood defenses |
+| Plant forests | Develop drought-resistant crops |
+
+🐢 *Both mitigation AND adaptation are needed to tackle climate change!*` },
+
+  { keys:['biodiversity','endangered species','extinct species','habitat loss','habitat fragmentation','protected areas','wildlife sanctuary','conservation success'],
+    answer:`## 🐢 Biodiversity & Conservation
+
+### 🦋 What is Biodiversity?
+**Biodiversity** is the variety of life — diversity within species (genes), between species, and of ecosystems.
+
+### 🚨 Threat Levels
+| Status | Meaning |
+|--------|---------|
+| Vulnerable | At risk of becoming endangered |
+| Endangered | High risk of extinction soon |
+| Critically Endangered | Extremely high risk |
+| Extinct | No longer exists anywhere |
+
+### 🏞️ Habitat Loss & Fragmentation
+- **Habitat loss**: destruction of natural habitats (deforestation, urbanization)
+- **Habitat fragmentation**: breaking large habitats into small, isolated patches — disrupts animal movement & breeding
+
+### 🛡️ Protected Areas
+National parks & wildlife sanctuaries conserve ecosystems by limiting hunting, logging, and unplanned development.
+
+### ✅ Conservation Success Stories
+- Project Tiger (India) — helped recover tiger populations
+- Reforestation programs restoring degraded forests
+- Marine protected areas helping coral reefs recover
+
+🐢 *Every species plays a role — losing one can disrupt the whole ecosystem!*` },
+
+  { keys:['air pollution','aqi','water pollution','soil pollution','noise pollution','pollution control','types of pollution'],
+    answer:`## 🐢 Pollution & Its Control
+
+### 🌫️ Air Pollution & AQI
+**AQI (Air Quality Index)** measures how polluted the air is on a numerical scale.
+
+| AQI Range | Category |
+|-----------|----------|
+| 0-50 | Good |
+| 51-100 | Moderate |
+| 101-200 | Unhealthy for sensitive groups |
+| 201-300 | Unhealthy |
+| 300+ | Hazardous |
+
+### 💧 Water Pollution
+Caused by untreated industrial waste, sewage, and agricultural runoff entering rivers/lakes — controlled through wastewater treatment plants.
+
+### 🪴 Soil Pollution
+Caused by excessive chemical pesticides/fertilizers and improper waste disposal — reduces fertility and harms soil organisms.
+
+### 🔊 Noise & Light Pollution
+- **Noise**: causes stress, hearing loss in humans, disrupts wildlife communication
+- **Light**: disrupts sleep cycles and animal migration patterns
+
+### 🛠️ Pollution Control Technologies
+- Scrubbers & electrostatic precipitators (air)
+- Sewage treatment plants (water)
+- Catalytic converters (vehicles)
+
+🐢 *Measuring pollution (like AQI) is the first step to controlling it!*` },
+
+  { keys:['3rs','reduce reuse recycle','composting','e-waste','circular economy','waste management','types of waste'],
+    answer:`## 🐢 Waste Management & Recycling
+
+### ♻️ The 3Rs
+\`\`\`
+Reduce  → Use less in the first place
+Reuse   → Use items again instead of discarding
+Recycle → Convert waste into new products
+\`\`\`
+
+### 🌱 Composting
+Converts organic waste (food scraps, leaves) into nutrient-rich soil through natural decomposition.
+
+### 💻 E-Waste
+Discarded electronics (phones, computers, batteries) — can contain toxic materials like lead and mercury if not disposed of/recycled properly.
+
+### 🔄 Circular Economy
+A system that keeps resources in use as long as possible through reuse, repair, and recycling — minimizing waste, unlike the traditional "take-make-dispose" model.
+
+| Linear Economy | Circular Economy |
+|----------------|-------------------|
+| Take → Make → Dispose | Make → Use → Recycle → Make again |
+
+🐢 *Sorting your waste correctly is the first step toward a circular economy!*` },
+
+  { keys:['sustainable development goals','sdgs','sustainable living','eco friendly habits','green transportation','sustainable food'],
+    answer:`## 🐢 Sustainable Living & the SDGs
+
+### 🎯 Sustainable Development Goals (SDGs)
+17 goals adopted by the **United Nations in 2015** as a global framework for achieving sustainable development by **2030** — covering poverty, health, education, climate action, life on land/below water, and more.
+
+### 🏠 Eco-Friendly Habits
+- Carry reusable bottles & bags
+- Turn off lights/devices when not in use
+- Fix leaking taps, take shorter showers
+- Compost food waste
+
+### 🥗 Sustainable Food Choices
+- Choose local, seasonal, plant-based foods more often
+- Reduce food waste
+
+### 🚲 Green Transportation
+| Greener | Less Green |
+|---------|-----------|
+| Walking, cycling | Single-occupancy car trips |
+| Public transport | Frequent short flights |
+| Electric vehicles (renewable-charged) | Idling vehicles |
+
+🐢 *Small daily habits, multiplied across millions of people, create huge impact!*` },
+
+  { keys:['solar energy','wind energy','hydro power','geothermal energy','biomass energy','renewable energy systems','energy storage'],
+    answer:`## 🐢 Renewable Energy Systems
+
+### ☀️ Solar Energy
+Photovoltaic (PV) cells convert sunlight directly into electricity.
+
+### 💨 Wind Energy
+Wind turbines convert the kinetic energy of moving air into electricity via spinning blades connected to a generator.
+
+### 💧 Hydro Power
+Flowing or falling water turns turbines to generate electricity — used in dams and run-of-river systems.
+
+### 🌋 Geothermal Energy
+Harnesses heat stored beneath the Earth's surface for electricity and heating.
+
+### 🌾 Biomass Energy
+Organic materials (plant/animal waste) burned or converted to produce energy.
+
+### 🔋 Energy Storage
+Batteries store excess renewable energy generated during sunny/windy periods for use when generation is low — critical for a stable renewable grid.
+
+### ⚖️ Comparing Energy Sources
+| Source | Emissions | Availability |
+|--------|-----------|--------------|
+| Solar/Wind | Near-zero (operation) | Weather-dependent |
+| Hydro | Low | Location-dependent |
+| Fossil Fuels | High | Reliable but finite |
+
+🐢 *Combining multiple renewable sources + storage = a reliable green grid!*` },
+
+  { keys:['deforestation','coral reefs','ocean pollution','overfishing','wildlife corridor','reforestation','afforestation','marine ecosystem'],
+    answer:`## 🐢 Forests, Oceans & Wildlife
+
+### 🌲 Deforestation
+Large-scale removal of forests, often for agriculture or development — causes habitat loss, increased CO2, and soil erosion.
+
+### 🪸 Coral Reefs
+Support about **25% of all marine species** and protect coastlines from storms — but threatened by warming oceans (coral bleaching) and pollution.
+
+### 🎣 Overfishing
+Removing fish faster than populations can reproduce — disrupts marine food webs and threatens species survival.
+
+### 🌉 Wildlife Corridors
+Connect fragmented habitats, allowing animals to migrate, find food, and breed safely — crucial for genetic diversity.
+
+### 🌱 Reforestation vs Afforestation
+| Reforestation | Afforestation |
+|---------------|----------------|
+| Replanting trees where forests existed before | Planting trees where there was no forest before |
+
+🐢 *Healthy forests and oceans are Earth's biggest natural carbon sinks!*` },
+
+  { keys:['paris agreement','kyoto protocol','environmental impact assessment','eia','environmental law','carbon credits','carbon trading','ngo environment'],
+    answer:`## 🐢 Environmental Policy & Law
+
+### 🌍 Paris Agreement (2015)
+International treaty aiming to limit global warming to **well below 2°C**, ideally **1.5°C**, by reducing global greenhouse gas emissions.
+
+### 📜 Kyoto Protocol (1997)
+One of the first treaties to set **legally binding emission reduction targets** for developed (industrialized) countries.
+
+### 📋 Environmental Impact Assessment (EIA)
+A study conducted **before** a project begins, to evaluate its potential environmental effects and help decision-makers avoid or reduce harm.
+
+### 💰 Carbon Credits & Trading
+\`\`\`
+Entity emits LESS than its quota → earns extra "credits"
+Entity emits MORE than its quota → must buy credits
+→ creates a financial incentive to reduce emissions
+\`\`\`
+
+### 🤝 Role of NGOs & UN Agencies
+Organizations like UNEP raise awareness, fund conservation projects, conduct research, and influence policy on sustainability.
+
+🐢 *Policy turns environmental science into real-world action!*` },
+
+  { keys:['smart grid','electric vehicles','ev','carbon capture','sustainable agriculture','precision farming','green technology','eco innovation'],
+    answer:`## 🐢 Green Technology & Innovation
+
+### ⚡ Smart Grids
+Use digital sensors and communication to monitor and optimize electricity distribution, efficiently integrating renewable sources.
+
+### 🚗 Electric Vehicles (EVs)
+Produce **zero tailpipe emissions**, reducing local air pollution — especially clean when charged with renewable electricity.
+
+### 🏭 Carbon Capture Technology
+Captures CO2 emissions at the source (e.g., power plants) and stores them underground or reuses them — preventing release into the atmosphere.
+
+### 🌾 Sustainable Agriculture Tech
+**Precision farming** uses sensors, GPS, and data to apply water, fertilizer, and pesticides only where/when needed — reducing waste and runoff.
+
+### 💡 Eco-Innovation Examples
+- Biodegradable packaging replacing single-use plastics
+- IoT-based water/energy monitoring systems
+- Vertical farming in urban areas
+
+🐢 *Technology + sustainability = solutions that scale!*` },
+
+  { keys:['climate activism','climate advocacy','community environmental project','eco campaign','climate movement','eco coalition'],
+    answer:`## 🐢 Climate Action & Advocacy
+
+### 📢 Climate Activism
+Individuals and groups raising public awareness and pressuring decision-makers to act on climate issues.
+
+### 🤝 Community-Led Projects
+Local residents organizing activities like tree planting, clean-up drives, and recycling campaigns.
+
+### 🗣️ Effective Eco-Communication
+- Use clear, relatable language (not jargon)
+- Use compelling data and stories
+- Make the "ask" clear — what action should people take?
+
+### 📋 Campaign Planning Steps
+\`\`\`
+1. Define clear goals
+2. Identify your target audience
+3. Craft key messages
+4. Choose channels (social media, events, school assemblies)
+5. Execute & measure impact
+\`\`\`
+
+### 🏛️ Working with Local Government
+Can help influence regulations, secure resources, and scale community efforts into lasting policy change.
+
+🐢 *One voice raises awareness — many voices change policy!*` },
+
+  { keys:['project planning','stakeholder mapping','project budgeting','monitoring evaluation','grants for green projects','environmental project management'],
+    answer:`## 🐢 Environmental Project Management
+
+### 🎯 Step 1: Define the Project
+Clearly state the **problem**, **goals**, and **scope** before starting.
+
+### 🗺️ Step 2: Stakeholder Mapping
+Identify everyone affected by or able to influence the project — students, teachers, local residents, authorities — and their interests.
+
+### 💰 Step 3: Budgeting
+Estimate costs for materials, labor, permits — and always include a buffer for unexpected expenses.
+
+### 📊 Step 4: Monitoring & Evaluation
+Track progress, measure real impact (e.g., kg of waste collected, trees planted, energy saved), and adjust plans as needed.
+
+### 📑 Step 5: Reporting & Funding
+- Report results clearly to stakeholders and funders
+- Many governments, foundations, and international organizations offer **grants** specifically for sustainability projects
+
+🐢 *A well-planned small project often achieves more than a big, unplanned one!*` },
+
+  { keys:['environmental justice','indigenous knowledge','intergenerational responsibility','corporate environmental responsibility','environmental ethics'],
+    answer:`## 🐢 Environmental Ethics & Justice
+
+### ⚖️ Environmental Justice
+Ensures **fair treatment** and **meaningful involvement** of all people, regardless of background, in environmental decisions — pollution shouldn't disproportionately affect any one community.
+
+### 🌿 Indigenous Knowledge
+Many indigenous communities hold generations of traditional ecological knowledge about sustainable land and resource management — valuable for modern conservation.
+
+### ⏳ Intergenerational Responsibility
+Making decisions **today** that consider the wellbeing and resource access of **future generations** — "borrowing" the Earth from those who come after us.
+
+### 🏢 Corporate Environmental Responsibility
+Companies taking accountability for their environmental impact — reducing emissions, waste, and resource use, and reporting on it transparently.
+
+### 🌐 Global vs Local Priorities
+| Global Issues | Local Issues |
+|---------------|-------------|
+| Climate change — needs international cooperation | A specific river's pollution — needs community solutions |
+
+🐢 *Real sustainability balances fairness, today and tomorrow, local and global!*` },
+
+  { keys:['energy audit','clean up campaign','biodiversity survey','recycling drive','carbon footprint tracker','green campus','capstone project','school project ideas'],
+    answer:`## 🐢 EcoChronicles Capstone Missions
+
+Here are project ideas to put everything you've learned into action!
+
+### 🔌 School/College Energy Audit
+1. Measure current energy usage across campus
+2. Identify high-consumption areas (lighting, AC, equipment)
+3. Recommend changes (LED bulbs, timers, behavior changes)
+
+### 🧹 Community Clean-Up Campaign
+- Measure success by: waste collected (kg), area cleaned, participants
+
+### 🦜 Biodiversity Survey Project
+- Systematically record species observed in an area over time to assess ecosystem health
+
+### ♻️ Recycling Drive Design
+- Set up clear sorting categories (paper, plastic, e-waste)
+- Partner with proper recycling facilities
+
+### 📱 Carbon Footprint Tracker App
+- Estimate emissions from daily activities (travel, energy use)
+- Suggest personalized ways to reduce impact
+
+### 🏫 Green Campus Proposal
+- Combine energy efficiency, waste reduction, green spaces, and awareness campaigns into one proposal for your school/college
+
+🐢 *Pick a mission, plan it well, and make real change in your community!*` },
+
+  { keys:['how to start eco club','school eco club','environmental club','student environmental action'],
+    answer:`## 🐢 Starting a School/College Eco Club
+
+### 🌱 Step-by-Step
+1. **Gather interested students** — even 5-10 people is a great start
+2. **Find a faculty advisor** for support and approvals
+3. **Choose a focus area** — waste, energy, biodiversity, awareness
+4. **Set a regular meeting schedule**
+5. **Plan small wins first** — a single clean-up drive or poster campaign
+6. **Scale up** — partner with local NGOs, government programs, or other schools
+
+### 💡 Easy First Activities
+- Campus waste audit
+- "Switch off" campaign for unused lights/devices
+- Tree planting day
+- Awareness posters/assembly talks
+
+🐢 *Every big environmental movement started with a small group of motivated people!*` },
+
+  { keys:['career in environment','environmental career','green jobs','sustainability career'],
+    answer:`## 🐢 Careers in Environment & Sustainability
+
+There are many exciting paths for eco-minded students!
+
+### 🌍 Popular Career Areas
+- **Environmental Science** — research ecosystems, pollution, climate
+- **Renewable Energy Engineering** — design solar/wind systems
+- **Sustainability Consulting** — help organizations reduce their footprint
+- **Environmental Law & Policy** — shape regulations and treaties
+- **Conservation Biology** — protect species and habitats
+- **Climate Data Analysis** — analyze trends and model future scenarios
+
+### 🎓 How to Start
+1. Build strong foundations in science (biology, chemistry, geography)
+2. Get involved in eco clubs and real projects now
+3. Look for internships with NGOs or government environmental departments
+4. Stay updated on policy (Paris Agreement, SDGs) and green technology
+
+🐢 *You're already on EcoChronicles — that's the right first step! Consistency in learning beats a single big effort!*` },
+];
+
+// ── Smart fuzzy matcher ──
+function findAnswer(query){
+  const q = query.toLowerCase()
+    .replace(/[?!.,]/g,'')
+    .replace(/\b(please|can you|could you|tell me about|explain to me|what is the|how does|how do|how to|describe|give me|show me|i want to know|what are)\b/g,'')
+    .trim();
+  
+  let best = null, bestScore = 0;
+  for(const entry of KB){
+    let score = 0;
+    for(const key of entry.keys){
+      if(q.includes(key)){
+        score += key.length + 10; // exact match bonus
+      } else {
+        // Word-level fuzzy match
+        const keyWords = key.split(' ');
+        const qWords = q.split(' ');
+        for(const kw of keyWords){
+          if(kw.length > 2 && qWords.some(qw => qw === kw || qw.includes(kw) || kw.includes(qw))){
+            score += kw.length;
+          }
+        }
+      }
+    }
+    if(score > bestScore){ bestScore = score; best = entry; }
+  }
+  return bestScore >= 3 ? best : null;
+}
+
+function generateContextualAnswer(query, ctx){
+  const topicAnswers = {
+    'Our Environment': `## 🐢 Our Environment\n\nThe **environment** includes everything around us — living (biotic) things like plants, animals, and microbes, and non-living (abiotic) things like air, water, soil, and sunlight.\n\n### Why It Matters\n- Provides food, water, air, and shelter\n- Regulates climate and weather\n- Supports biodiversity and ecosystems\n\n### Everyday Impact\nEvery choice — what we eat, how we travel, how much we waste — affects the environment around us.\n\n🐢 *What specific topic from this module do you want to explore deeper?*`,
+    'Foundations of Ecology': `## 🐢 Foundations of Ecology\n\n**Ecology** is the study of how living things interact with each other and their environment.\n\n### Food Chain Example\n\`\`\`\nSun → Grass (producer) → Deer (consumer) → Tiger (predator) → Decomposers\n\`\`\`\n\n### Key Roles\n- **Producers**: make their own food (plants, algae)\n- **Consumers**: eat other organisms (herbivores, carnivores)\n- **Decomposers**: break down dead matter, recycle nutrients\n\n🐢 *What part of ecology do you want to dive into?*`,
+    'Natural Resources': `## 🐢 Earth's Natural Resources\n\n### Renewable vs Non-renewable\n- **Renewable**: sunlight, wind, water, forests (if managed sustainably)\n- **Non-renewable**: coal, oil, natural gas, minerals — take millions of years to form\n\n### The Water Cycle\n\`\`\`\nEvaporation → Condensation → Precipitation → Collection → repeat\n\`\`\`\n\n### Conservation Tip\nUsing resources wisely today ensures they remain available for future generations.\n\n🐢 *Which resource topic should we explore further?*`,
+  };
+  return topicAnswers[ctx] || null;
+}
+
+function turtleFallback(query){
+  const q = query.toLowerCase();
+  if(/(hello|hi |hey|good morning|good evening|namaste|vanakkam)/.test(q)){
+    return `## 🐢 Hey ${state.name}! Vanakkam!\n\nI'm Shelly, your Eco Tutor. I know everything in your syllabus:\n\n🌱 **Beginner**: Our Environment, Ecology, Natural Resources, Climate & Weather\n🔷 **Intermediate**: Climate Change, Biodiversity, Pollution, Waste Management, Sustainable Living\n⚡ **Advanced**: Renewable Energy, Forests & Oceans, Policy & Law, Green Tech\n🚀 **Expert**: Climate Action, Project Management, Ethics, Capstone Missions\n\n**Try asking:**\n- "What is climate change?"\n- "Explain the water cycle"\n- "How does the greenhouse effect work?"\n- "Renewable vs non-renewable energy"\n- "How do I start an eco project at school?"\n\n🐢 What would you like to learn today?`;
+  }
+  if(/(thank|thanks|thank you|great|awesome|perfect|nice|good job|super|excellent)/.test(q)){
+    return `🐢 You're welcome, ${state.name}! Keep that curiosity going!\n\nEvery question brings you closer to becoming an eco champion. What's next on your learning journey?`;
+  }
+  if(/(what can you|what do you know|your topics|help me|what topics|capabilities)/.test(q)){
+    return `## 🐢 Topics I Can Teach You!\n\n**🌱 Beginner:** Biotic & abiotic components, ecosystems, food chains, food webs, renewable & non-renewable resources, water cycle, weather vs climate, greenhouse effect\n\n**🔷 Intermediate:** Climate change causes & evidence, carbon footprint, biodiversity, endangered species, habitat loss, air/water/soil pollution, AQI, 3Rs, composting, e-waste, SDGs, sustainable living\n\n**⚡ Advanced:** Solar/wind/hydro/geothermal energy, deforestation, coral reefs, overfishing, wildlife corridors, Paris Agreement, EIA, carbon credits, smart grids, EVs, carbon capture\n\n**🚀 Expert:** Climate activism, campaign planning, project management, stakeholder mapping, environmental justice, indigenous knowledge, capstone eco missions\n\nJust ask anything! 🐢`;
+  }
+  if(/(project|campaign|how to start|organize|plan)/.test(q)){
+    return `## 🐢 Planning an Eco Project!\n\nGreat eco projects usually follow these steps:\n\n1. **Pick a focus** — energy, waste, water, biodiversity, or awareness\n2. **Set clear goals** — what change do you want to see?\n3. **Map stakeholders** — students, teachers, local community, local government\n4. **Plan & budget** — materials, timeline, resources needed\n5. **Take action** — clean-up drives, audits, awareness campaigns\n6. **Measure impact** — track waste collected, energy saved, participants reached\n\n🐢 What kind of project are you thinking about — clean-up, recycling, energy audit, or awareness campaign?`;
+  }
+  return `## 🐢 I'm Here to Help, ${state.name}!\n\nI'm not sure about that exact question, but I can definitely answer it if you rephrase!\n\n**Try asking like:**\n- "What is **[topic]**?"\n- "Explain **[concept]** with examples"\n- "Difference between **[A]** and **[B]**"\n- "How does **[process]** work?"\n- "How can I help with **[environmental issue]**?"\n\n**Popular topics:**\n- \`What is climate change?\`\n- \`How does the water cycle work?\`\n- \`Greenhouse effect explained\`\n- \`Renewable vs non-renewable energy\`\n- \`What are the SDGs?\`\n- \`How to start a school eco club\`\n\n🐢 Every question is a good question — just ask!`;
+}
+
+// ── Main chat function (no API needed!) ──
+function sendChat(){
+  const inp = document.getElementById('chat-input');
+  const msg = inp.value.trim();
+  if(!msg) return;
+  const ctx = document.getElementById('tutor-context').value;
+  inp.value = ''; inp.style.height = 'auto';
+  addUserMsg(msg);
+  document.getElementById('send-btn').disabled = true;
+  addTyping();
+  const area = document.getElementById('chat-area');
+  area.scrollTop = area.scrollHeight;
+
+  const delay = 500 + Math.min(msg.length * 6, 1200);
+  setTimeout(()=>{
+    removeTyping();
+    // 1. Fuzzy KB search
+    const match = findAnswer(msg);
+    if(match){ addAIMsg(match.answer); document.getElementById('send-btn').disabled=false; area.scrollTop=area.scrollHeight; return; }
+    // 2. Context-based
+    if(ctx){ const ca = generateContextualAnswer(msg, ctx); if(ca){ addAIMsg(ca); document.getElementById('send-btn').disabled=false; area.scrollTop=area.scrollHeight; return; } }
+    // 3. Smart fallback
+    addAIMsg(turtleFallback(msg));
+    document.getElementById('send-btn').disabled=false;
+    area.scrollTop=area.scrollHeight;
+  }, delay);
+}
+
+
+function sendQuick(msg){
+  document.getElementById('chat-input').value=msg;
+  sendChat();
+  showView('tutor');
+}
+
+// ====== LANGUAGE SYSTEM ======
+window.currentLang = 'en';
+
+function setLang(lang) {
+  window.currentLang = lang;
+  // Toggle button active states
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-ta').classList.toggle('active', lang === 'ta');
+  // Update all elements with data-en / data-ta attributes
+  document.querySelectorAll('[data-en]').forEach(el => {
+    el.textContent = el.getAttribute('data-' + lang) || el.getAttribute('data-en');
+  });
+  // Update input placeholders
+  const placeholders = {
+    'inp-email': { en: 'Your email address...', ta: 'உங்கள் மின்னஞ்சல் முகவரி...' },
+    'inp-name':  { en: 'Your name...', ta: 'உங்கள் பெயர்...' },
+    'inp-class': { en: 'Your class / grade (optional)...', ta: 'உங்கள் வகுப்பு (விரும்பினால்)...' },
+    'chat-input':{ en: 'Ask your Eco Tutor anything...', ta: 'உங்கள் சுற்றுச்சூழல் ஆசிரியரிடம் எதையும் கேளுங்கள்...' },
+  };
+  Object.entries(placeholders).forEach(([id, vals]) => {
+    const el = document.getElementById(id);
+    if (el) el.placeholder = vals[lang] || vals.en;
+  });
+  // Store lang in state if logged in
+  if (state && state.name) state.lang = lang;
+}
+
+window.setLang = setLang;
+
+// ====== INIT ======
+window.showLogin=showLogin;
+window.doLogin=doLogin;
+window.doLogout=doLogout;
+window.showView=showView;
+window.launchQuiz=launchQuiz;
+window.selectOpt=selectOpt;
+window.nextQ=nextQ;
+window.exitQuiz=exitQuiz;
+window.sendChat=sendChat;
+window.sendQuick=sendQuick;
+window.toggleSidebar=toggleSidebar;
+
+// Auto-resize textarea
+document.addEventListener('input',e=>{
+  if(e.target.id==='chat-input'){
+    e.target.style.height='auto';
+    e.target.style.height=Math.min(120,e.target.scrollHeight)+'px';
+  }
+});
+
+// Cursor hover on dynamic elements
+const observer=new MutationObserver(()=>{
+  document.querySelectorAll('button,a,[onclick],.nav-item,.level-card,.opt-btn,.cta-btn').forEach(el=>{
+    if(!el._turtleHover){
+      el._turtleHover=true;
+      el.addEventListener('mouseenter',()=>window.cur&&window.cur.classList.add('hovering'));
+      el.addEventListener('mouseleave',()=>window.cur&&window.cur.classList.remove('hovering'));
+    }
+  });
+});
+observer.observe(document.body,{childList:true,subtree:true});
+</script>
+
+<!-- ========== ECO WASTE IDENTIFICATION MODAL (no Storage — AI text response only) ========== -->
+<div id="waste-modal-backdrop" class="activity-modal-backdrop" style="display:none;">
+  <div class="activity-modal waste-modal">
+    <button class="activity-modal-close" onclick="closeWasteModal()">✕</button>
+    <div class="wm-icon" id="wm-icon">♻️</div>
+    <div class="activity-modal-title" id="wm-title">Waste Item</div>
+    <div id="wm-body" class="wm-body"></div>
+  </div>
+</div>
+
+<style>
+.activity-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:99998;display:flex;align-items:center;justify-content:center;}
+.activity-modal{background:#0d0d18;border:1px solid rgba(46,204,113,.3);border-radius:22px;padding:32px;max-width:440px;width:90%;text-align:center;box-shadow:0 0 60px rgba(46,204,113,.15);position:relative;animation:cardIn .4s cubic-bezier(.34,1.56,.64,1) both;}
+.activity-modal-close{position:absolute;top:14px;right:16px;background:transparent;border:none;color:var(--text-muted);font-size:1.1rem;cursor:pointer;}
+.activity-modal-title{font-family:'Orbitron',sans-serif;font-weight:700;font-size:1.05rem;color:var(--turtle-green);margin-bottom:10px;}
+.recommend-card{background:linear-gradient(135deg,rgba(46,204,113,.1),rgba(191,95,255,.08));border:1px solid rgba(46,204,113,.25);border-radius:16px;padding:18px 20px;margin:18px 0;text-align:left;animation:slideUp .4s ease both;}
+.recommend-card-title{font-family:'Orbitron',sans-serif;font-size:.78rem;color:var(--turtle-gold);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.recommend-card-body{font-size:.85rem;color:var(--text-main);line-height:1.6;}
+.recommend-card.loading .recommend-card-body{color:var(--text-muted);font-style:italic;}
+.adaptive-badge{display:inline-block;padding:3px 10px;border-radius:100px;font-size:.66rem;font-weight:700;margin-left:8px;}
+.adaptive-accelerate{background:rgba(0,245,255,.15);color:var(--neon-cyan);}
+.adaptive-remedial{background:rgba(255,0,153,.15);color:var(--neon-pink);}
+.adaptive-normal{background:rgba(46,204,113,.15);color:var(--turtle-green);}
+
+/* Eco Waste Identification — card grid */
+.waste-progress-row{display:flex;align-items:center;gap:14px;margin-bottom:22px;font-size:.85rem;color:var(--text-muted);flex-wrap:wrap;}
+.waste-full-badge{display:inline-flex;align-items:center;padding:4px 12px;border-radius:100px;background:rgba(255,215,0,.15);color:var(--turtle-gold);font-weight:700;font-size:.78rem;}
+.waste-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;}
+.waste-card{position:relative;background:rgba(255,255,255,.04);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:22px 14px;text-align:center;cursor:pointer;transition:all .25s ease;overflow:hidden;}
+.waste-card::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,var(--waste-color,#2ECC71)22,transparent 70%);opacity:.6;pointer-events:none;}
+.waste-card:hover{transform:translateY(-4px);border-color:var(--waste-color,#2ECC71);box-shadow:0 10px 30px rgba(0,0,0,.35);}
+.waste-card-icon{font-size:2.4rem;margin-bottom:10px;filter:drop-shadow(0 0 10px var(--waste-color,#2ECC71)55);}
+.waste-card-name{font-weight:700;font-size:.88rem;color:var(--text-main);margin-bottom:4px;}
+.waste-card-cat{font-size:.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;}
+.waste-card-done{margin-top:8px;font-size:.68rem;color:var(--neon-green);font-weight:700;}
+
+/* Waste identification result modal */
+.waste-modal{max-width:480px;}
+.wm-icon{width:74px;height:74px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2.2rem;margin:0 auto 12px;background:rgba(46,204,113,.15);}
+.wm-body{text-align:left;font-size:.85rem;line-height:1.6;color:var(--text-main);}
+.wm-loading{text-align:center;color:var(--text-muted);font-style:italic;padding:20px 0;}
+.wm-source{font-size:.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:14px;text-align:center;}
+.wm-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);}
+.wm-label{color:var(--text-muted);font-size:.78rem;}
+.wm-value{font-weight:700;color:var(--turtle-teal);}
+.wm-badge{padding:3px 10px;border-radius:100px;font-size:.72rem;font-weight:700;}
+.wm-badge.bio{background:rgba(57,255,20,.15);color:var(--neon-green);}
+.wm-badge.nonbio{background:rgba(255,0,153,.15);color:var(--neon-pink);}
+.wm-section{margin-top:14px;}
+.wm-section-title{font-weight:700;font-size:.78rem;color:var(--turtle-gold);margin-bottom:4px;}
+
+/* Leaderboard */
+.leaderboard-table-wrap{overflow-x:auto;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(255,255,255,.02);}
+.leaderboard-table{width:100%;border-collapse:collapse;font-size:.85rem;min-width:560px;}
+.leaderboard-table thead th{text-align:left;padding:12px 16px;color:var(--text-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid rgba(255,255,255,.08);}
+.leaderboard-table tbody td{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.05);}
+.leaderboard-table tbody tr:hover{background:rgba(46,204,113,.05);}
+.leaderboard-table tr.lb-me{background:rgba(46,204,113,.12);}
+.leaderboard-table tr.lb-me td{color:var(--turtle-green);font-weight:700;}
+</style>
+
+<!-- Adaptive Learning (in-browser TensorFlow.js) + Firestore bridge +
+     Local Recommendation + Eco Waste Identification logic.
+     Everything below runs on Firestore + Hosting only (Spark plan). -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+<script src="js/adaptiveML.js"></script>
+<script type="module">
+  // Single Firestore bridge — all Firebase calls go through firebase.js,
+  // there is no other Firebase init anywhere in this file.
+  import { saveScore, getAllScores, logWasteIdentification, getAllWasteLogs } from './firebase.js';
+  window.EcoClient = { saveScore, getAllScores, logWasteIdentification, getAllWasteLogs };
+  // AdaptiveML (js/adaptiveML.js) trains its in-browser model on quiz
+  // history pulled straight from Firestore via this function.
+  window.getAllScoresForML = getAllScores;
+  window.dispatchEvent(new Event('ecoclient-ready'));
+</script>
+<script src="js/ecoFeatures.js"></script>
+<script src="js/wasteId.js"></script>
+
+</body>
+</html>
