@@ -467,7 +467,56 @@ same reason.
 
 ---
 
-## 10. Limitations and next steps
+## 10. Data
+
+There is no training dataset in the usual sense. **The input is a single video
+the user records**, and the reference motion is derived from it at runtime, so
+nothing has to be collected or labelled in advance.
+
+| Artifact | Source | Size |
+|---|---|---|
+| Input video | recorded by the user; the demo clip is 3.17 s, 1280x720, 30 fps | 1.9 MB |
+| Reference motion | derived at runtime — 157 frames at 50 fps, 14 tracked body links | 1.2 MB |
+| Training samples | generated online by the simulator; 371M environment steps | — |
+| Pretrained weights | GVHMR (HMR2, ViTPose, YOLO) and SMPL / SMPL-X, all upstream | ~8 GB |
+
+Evaluation uses the same reference the policy was trained against: the metric
+is how much of that motion the robot actually performs, and how far each
+tracked body link deviates, measured in three independent simulators (§4).
+
+---
+
+## 11. Deliverables
+
+| Deliverable | Form |
+|---|---|
+| Trained policy | orbax checkpoint, plus a 251,066-parameter pure-NumPy export with no JAX dependency |
+| Motion file | npz — 14 body poses and velocities per frame, ready for training |
+| Web application | Gradio UI covering all four stages, `src/webapp/` |
+| Command-line pipeline | `scripts/run_pipeline.sh`, video to validated policy in one command |
+| Validation videos | the three layers plus the retargeting replay, `videos/` |
+| Setup and verification | `scripts/setup.sh`, `scripts/verify.sh` |
+| Upstream patches | `src/third_party_patches/`, see §9 |
+
+The policy is emitted in two forms deliberately. The checkpoint is what
+training produces; the NumPy export is what deployment consumes, and it carries
+no JAX, no brax and no MuJoCo dependency — a 154-dimensional observation in,
+29 joint targets out, which is why layer 3 can run it against Unitree's SDK
+unchanged.
+
+---
+
+## 12. Team
+
+Solo entry.
+
+| Member | Contribution |
+|---|---|
+| **Wenjie Ouyang** | All of it: ROCm environment bring-up, porting the tracking algorithm to MuJoCo MJX, reward and observation design, the three-layer validation framework, DDS deployment, the web UI, documentation, and the upstream patches. |
+
+---
+
+## 13. Limitations and next steps
 
 **Limitations**
 
