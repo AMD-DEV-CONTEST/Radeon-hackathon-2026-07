@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+<title>Pregnancy Tracker</title>
+
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<header>
+    <div class="logo">🤱 Maternal AI</div>
+    <nav>
+        <a href="dashboard.html">Home</a>
+        <a href="pregnancy-tracker.html">Pregnancy Tracker</a>
+        <a href="healthtips.html">Health Tips</a>
+        <a href="assistant.html">AI Assistant</a>
+    </nav>
+</header>
+
+<section class="tracker-wrapper">
+
+<div class="tracker-card">
+
+    <h1>📅 Pregnancy Tracker</h1>
+
+    <p>Enter your Last Menstrual Period (LMP)</p>
+
+    <input type="date" id="lmp">
+
+    <br><br>
+
+    <button onclick="calculateWeek()">
+        Calculate Progress
+    </button>
+
+    <div id="resultSection" class="result-card" style="display:none;">
+
+        <h2 id="week"></h2>
+
+        <h3 id="trimester"></h3>
+
+        <h3 id="due"></h3>
+
+        <h3>📊 Pregnancy Progress</h3>
+
+        <div class="progress-bar">
+            <div id="progressFill" class="progress-fill"></div>
+        </div>
+
+        <br>
+
+        <div class="tips-box">
+            <h3>💡 Personalized Care Tips</h3>
+            <div id="tips"></div>
+        </div>
+
+        <br>
+
+        <div class="baby-box">
+            <h3>🍼 Baby Development</h3>
+            <div id="baby"></div>
+        </div>
+
+    </div>
+
+</div>
+
+</section>
+
+<script>
+function calculateWeek(){
+
+    let lmpValue = document.getElementById("lmp").value;
+
+    if(lmpValue === ""){
+        alert("Please select a date");
+        return;
+    }
+
+    document.getElementById("resultSection").style.display = "block";
+
+    let lmp = new Date(lmpValue);
+    let today = new Date();
+
+    let days = (today - lmp)/(1000*60*60*24);
+
+    let weeks = Math.floor(days/7);
+
+    document.getElementById("week").innerHTML =
+        "👶 Week " + weeks;
+
+    let trimester="";
+
+    if(weeks <= 12){
+        trimester="First Trimester";
+    }
+    else if(weeks <= 26){
+        trimester="Second Trimester";
+    }
+    else{
+        trimester="Third Trimester";
+    }
+
+    document.getElementById("trimester").innerHTML =
+        "🩺 " + trimester;
+
+    let due = new Date(lmp);
+    due.setDate(due.getDate() + 280);
+
+    document.getElementById("due").innerHTML =
+        "📆 Expected Due Date: " +
+        due.toDateString();
+
+    let percentage = Math.min((weeks / 40) * 100, 100);
+
+    document.getElementById("progressFill").style.width =
+        percentage + "%";
+
+    let tips="";
+    let baby="";
+
+    if(weeks <= 12){
+
+        tips = `
+        <ul>
+            <li>Take folic acid daily</li>
+            <li>Eat healthy foods</li>
+            <li>Attend prenatal checkups</li>
+        </ul>`;
+
+        baby =
+        "Baby's organs are beginning to develop.";
+
+    }
+    else if(weeks <= 26){
+
+        tips = `
+        <ul>
+            <li>Drink more water</li>
+            <li>Take iron-rich foods</li>
+            <li>Walk daily</li>
+        </ul>`;
+
+        baby =
+        "Baby can hear sounds and responds to movement.";
+
+    }
+    else{
+
+        tips = `
+        <ul>
+            <li>Prepare hospital bag</li>
+            <li>Monitor baby movement</li>
+            <li>Get adequate rest</li>
+        </ul>`;
+
+        baby =
+        "Baby is preparing for birth and gaining weight.";
+
+    }
+
+    document.getElementById("tips").innerHTML = tips;
+    document.getElementById("baby").innerHTML = baby;
+}
+</script>
+
+</body>
+</html>
