@@ -1,0 +1,101 @@
+# Soccer agent training config — aligned with booster_deploy t1_walk.pt
+# obs_scales MUST match booster_deploy training convention
+
+exp_name: booster_soccer
+task: chase
+num_envs: 2048
+seed: 42
+show_viewer: false
+
+env:
+  robot_urdf: urdf/t1/t1.urdf
+  episode_length_s: 24.0
+  dt: 0.02             # control dt = physics_dt(0.002) * decimation(10)
+  substeps: 10
+  action_scale: 0.25
+  clip_actions: 100.0
+  simulate_action_latency: true
+  ball_radius: 0.11
+  field: [14.0, 9.0]   # [length, width]
+  goal_width: 2.6
+  circle_radius: 1.5
+  fall_height: 0.4
+  termination_pitch_deg: 30
+  termination_roll_deg: 30
+  base_init_pos: [0.0, 0.0, 0.6]
+  base_init_quat: [1.0, 0.0, 0.0, 0.0]
+
+obs:
+  obs_scales:
+    lin_vel: 2.0
+    ang_vel: 0.25
+    dof_pos: 1.0
+    dof_vel: 0.05
+    gravity: 1.0
+    command: 1.0
+    height: 5.0
+
+command:
+  goal_dir: [1.0, 0.0, 0.0]
+  resampling_time_range: [8.0, 12.0]  # seconds
+  vel_range: [-1.0, 1.0]
+
+reward:
+  # Core locomotion
+  upright: 5.0
+  alive: 2.0
+  tracking_lin_vel_x: 1.0
+  tracking_lin_vel_y: 1.0
+  tracking_ang_vel: 0.5
+  tracking_sigma: 0.25
+  feet_swing: 3.0
+  feet_slip: -0.1
+  swing_period: 0.2
+  # Soccer-specific (per-task, see reward.py TASK_TERMS)
+  approach_ball: 2.0
+  ball_control: 1.0
+  ball_to_goal: 3.0
+  goal_scored: 10.0
+  # Penalties
+  fall_penalty: -5.0
+  recovery_bonus: 2.0
+  energy_penalty: -0.01
+  lin_vel_z: -2.0
+  ang_vel_xy: -0.2
+  orientation: -5.0
+  action_rate: -1.0
+  dof_acc: -1.0e-7
+  only_positive_rewards: false
+
+train:
+  algorithm: ppo
+  run_name: booster_soccer
+  max_iterations: 10000
+  policy:
+    noise_std: 0.3
+    noise_std_type: scalar
+    actor_hidden_dims: [512, 256, 128]
+    critic_hidden_dims: [512, 256, 128]
+    activation: elu
+    obs_normalizer: true
+  algorithm:
+    name: ppo
+    value_loss_coef: 1.0
+    use_clipped_value_loss: true
+    clip_param: 0.2
+    entropy_coef: 0.01
+    num_learning_epochs: 5
+    num_mini_batches: 4
+    learning_rate: 1.0e-3
+    schedule: adaptive
+    gamma: 0.99
+    lam: 0.95
+    desired_kl: 0.01
+    max_grad_norm: 1.0
+  runner:
+    num_steps_per_env: 24
+    save_interval: 100
+    experiment_name: booster_soccer
+    resume: false
+    load_run: null
+    checkpoint: null

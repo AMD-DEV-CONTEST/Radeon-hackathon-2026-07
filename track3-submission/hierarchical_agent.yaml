@@ -1,0 +1,138 @@
+# Hierarchical soccer agent — high-level velocity policy training
+#
+# Architecture:
+#   High-level PPO (19 obs → 3 action: vx, vy, wz ∈ [-1, 1])
+#       ↓ velocity commands
+#   Frozen t1_walk.pt (720 obs → 21 action: joint targets)
+#       ↓ PD control at 50 Hz
+#   Genesis physics (AMD Radeon GPU)
+#
+# The high-level policy sees ball position/velocity/goal direction.
+# The frozen low-level model only sees proprioception (no ball info).
+# This fixes the core issue: v4's flat policy couldn't see the ball.
+
+exp_name: hierarchical_soccer
+task: chase_hl
+# For 3v3 multi-agent training, set:  task: coop_hl   AND   env.multiagent_obs: true
+# (coop_hl adds team-shaping rewards that need team geometry supplied by the harness).
+num_envs: 2048
+seed: 42
+show_viewer: false
+
+env:
+  robot_urdf: urdf/t1/t1.urdf
+  episode_length_s: 24.0
+  hl_clip_lin: 1.2       # HL linear velocity command limit (m/s); CLI --clip_lin overrides
+  hl_clip_ang: 1.2       # HL angular velocity limit (rad/s); CLI --clip_ang overrides
+  multiagent_obs: false  # 3v3 only: append 5-dim teammate/opponent/possession to obs (19→24).
+                         # OFF keeps the v6 (19-dim) checkpoint valid. Turn ON for the next
+                         # multi-agent training run; the 3v3 harness must then feed
+                         # env.teammate_pos / env.opponent_pos each step.
+  dt: 0.02             # control dt = physics_dt(0.002) * decimation(10)
+  substeps: 10
+  action_scale: 0.25   # used by low-level (frozen model)
+  clip_actions: 100.0  # low-level clip (effectively no clip)
+  simulate_action_latency: true
+  ball_radius: 0.11
+  field: [14.0, 9.0]
+  goal_width: 2.6
+  circle_radius: 1.5
+  fall_height: 0.8
+  termination_pitch_deg: 30
+  termination_roll_deg: 30
+  base_init_pos: [0.0, 0.0, 0.6]
+  base_init_quat: [1.0, 0.0, 0.0, 0.0]
+
+obs:
+  # These scales are applied when building the 720-dim low-level observation.
+  # They MUST match booster_deploy training convention for the frozen model.
+  obs_scales:
+    lin_vel: 2.0
+    ang_vel: 0.25
+    dof_pos: 1.0
+    dof_vel: 0.05
+    gravity: 1.0
+    command: 1.0
+    height: 5.0
+
+command:
+  goal_dir: [1.0, 0.0, 0.0]
+  resampling_time_range: [8.0, 12.0]
+  vel_range: [-1.0, 1.0]
+
+reward:
+  # ── Balance (frozen walk model already balances — keep tiny so it can't saturate) ──
+  upright: 0.5
+  alive: 0.0
+  orientation: -1.0
+
+  # ── Ball-focused (main objectives — must dominate the reward budget) ──
+  approach_ball: 10.0      # tanh-soft-clamped: weak gradient on contact
+  approach_angle: 3.0     # reward approaching ball from goal-opposite side
+  ball_control: 2.0        # reward for being close to ball
+  ball_progress: 10.0      # potential-based: any ball-to-goal distance reduction (kicks count)
+  ball_contact: 1.0        # foot within 0.15 m of ball
+  directed_contact: 5.0    # bonus for foot-near-ball WHILE ball moves toward goal
+  ball_to_goal: 8.0        # reward for ball moving toward goal (was 3.0 — too weak)
+  goal_scored: 30.0        # big reward for scoring (episode resets on goal)
+
+  # ── Cooperative (3v3) shaping — ONLY active when task=coop_hl AND
+  # multiagent_obs=true (the 3v3 harness feeds team geometry). Kept modest so
+  # they nudge formation without overriding the ball-objectives above.
+  defensive_position: 0.5   # stay goal-side of ball when NOT in possession (zonal D)
+  support_position: 0.5    # offer an advanced, un-crowded outlet when IN possession
+  coop_goal: 10.0           # shared credit: all 3 teammates rewarded on a team goal
+
+  # ── Penalties ──
+  fall_penalty: -5.0
+  recovery_bonus: 3.0
+  energy_penalty: -0.01    # small, penalizes extreme velocity commands
+  action_rate: -1.0        # penalize jerky command changes
+  lin_vel_z: -0.5          # penalize vertical oscillation
+  ang_vel_xy: -0.1         # penalize roll/pitch rotation
+  only_positive_rewards: false
+
+# ── High-level specific config ──
+high_level:
+  decimation: 5            # high-level dt = 0.02 * 5 = 0.1s (10 Hz)
+  walk_model_path: /workspace/booster/booster_deploy/tasks/locomotion/models/t1_walk.pt
+  action_clip: 1.0         # velocity command bounds [-1, 1]
+
+train:
+  algorithm:
+    class_name: PPO
+    value_loss_coef: 1.0
+    use_clipped_value_loss: true
+    clip_param: 0.2
+    entropy_coef: 0.003  # was 0.01 — pushed action std to 5.78 (noise blowup)
+    num_learning_epochs: 5
+    num_mini_batches: 4
+    learning_rate: 1.0e-3  # was 3.0e-3 — too aggressive, unstable value loss
+    schedule: adaptive
+    gamma: 0.99
+    lam: 0.95
+    desired_kl: 0.01
+    max_grad_norm: 1.0
+  actor:
+    class_name: MLPModel
+    hidden_dims: [256, 128, 64]    # smaller network (19→3, not 720→21)
+    activation: elu
+    distribution_cfg:
+      class_name: GaussianDistribution
+      init_std: 1.0
+      std_type: scalar
+  critic:
+    class_name: MLPModel
+    hidden_dims: [256, 128, 64]
+    activation: elu
+  obs_groups:
+    actor:
+      - policy
+    critic:
+      - policy
+  num_steps_per_env: 24
+  save_interval: 50
+  logger: tensorboard
+  run_name: hierarchical_soccer
+  max_iterations: 500
+  experiment_name: hierarchical_soccer
