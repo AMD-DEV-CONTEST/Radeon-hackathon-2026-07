@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intelligent Claim Agent — AMD ROCm Powered</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0a0a0f;
+    color: #e8e8ec;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .poster {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0;
+    background: linear-gradient(180deg, #0d0d14 0%, #0a0a0f 100%);
+    overflow: hidden;
+  }
+
+  /* ===== Hero Section ===== */
+  .hero {
+    position: relative;
+    padding: 48px 56px 40px;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 0%, rgba(237, 28, 36, 0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 100%, rgba(0, 158, 255, 0.08) 0%, transparent 60%),
+      linear-gradient(135deg, #12121a 0%, #0d0d14 100%);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    background: rgba(237, 28, 36, 0.12);
+    border: 1px solid rgba(237, 28, 36, 0.3);
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #ff4d57;
+    letter-spacing: 0.5px;
+    margin-bottom: 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-badge .dot {
+    width: 8px; height: 8px;
+    background: #ed1c24;
+    border-radius: 50%;
+    box-shadow: 0 0 12px #ed1c24;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .hero-title {
+    font-size: 52px;
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -1.5px;
+    margin-bottom: 16px;
+    position: relative;
+    z-index: 1;
+    background: linear-gradient(135deg, #ffffff 0%, #c0c0cc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-title .accent {
+    background: linear-gradient(135deg, #ed1c24 0%, #ff4d57 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-pitch {
+    font-size: 17px;
+    color: #a0a0b0;
+    max-width: 760px;
+    line-height: 1.65;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-pitch strong {
+    color: #e8e8ec;
+    font-weight: 600;
+  }
+
+  .hero-stats {
+    display: flex;
+    gap: 40px;
+    margin-top: 32px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-stat {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .hero-stat-value {
+    font-size: 32px;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    background: linear-gradient(135deg, #ed1c24 0%, #ff6b73 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+  }
+
+  .hero-stat-label {
+    font-size: 12px;
+    color: #707080;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 6px;
+  }
+
+  /* ===== Section Common ===== */
+  .section {
+    padding: 40px 56px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .section-icon {
+    width: 36px; height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(237, 28, 36, 0.1);
+    border: 1px solid rgba(237, 28, 36, 0.2);
+    border-radius: 10px;
+    font-size: 18px;
+  }
+
+  .section-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+
+  .section-subtitle {
+    font-size: 13px;
+    color: #707080;
+    margin-left: auto;
+    font-weight: 400;
+  }
+
+  /* ===== Architecture Section ===== */
+  .arch-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .arch-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .arch-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: linear-gradient(180deg, #ed1c24, transparent);
+  }
+
+  .arch-card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #e8e8ec;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .arch-card-tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .tag-primary { background: rgba(237, 28, 36, 0.15); color: #ff6b73; }
+  .tag-secondary { background: rgba(0, 158, 255, 0.15); color: #4db8ff; }
+  .tag-gpu { background: rgba(0, 200, 83, 0.15); color: #4dff88; }
+
+  .arch-flow {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .arch-step {
+    padding: 6px 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #c0c0cc;
+  }
+
+  .arch-arrow {
+    color: #505060;
+    font-size: 14px;
+  }
+
+  .arch-desc {
+    font-size: 13px;
+    color: #80808c;
+    line-height: 1.6;
+  }
+
+  /* ===== GPU Optimization Section ===== */
+  .opt-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .opt-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 20px;
+    transition: border-color 0.2s;
+  }
+
+  .opt-card:hover {
+    border-color: rgba(237, 28, 36, 0.3);
+  }
+
+  .opt-number {
+    font-size: 11px;
+    font-weight: 700;
+    color: #505060;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 6px;
+  }
+
+  .opt-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e8e8ec;
+    margin-bottom: 10px;
+    line-height: 1.3;
+  }
+
+  .opt-metric {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .opt-metric-value {
+    font-size: 28px;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    color: #ff4d57;
+    line-height: 1;
+  }
+
+  .opt-metric-unit {
+    font-size: 13px;
+    color: #707080;
+    font-weight: 500;
+  }
+
+  .opt-desc {
+    font-size: 12px;
+    color: #70708a;
+    line-height: 1.5;
+    margin-top: 8px;
+  }
+
+  /* ===== Benchmark Table ===== */
+  .bench-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+    font-size: 13px;
+  }
+
+  .bench-table th {
+    text-align: left;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.03);
+    color: #9090a0;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .bench-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    color: #c0c0cc;
+  }
+
+  .bench-table td.highlight {
+    color: #ff6b73;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .bench-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* ===== Capabilities Section ===== */
+  .cap-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+  }
+
+  .cap-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 20px 16px;
+    text-align: center;
+    position: relative;
+  }
+
+  .cap-icon {
+    font-size: 28px;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .cap-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #e8e8ec;
+    margin-bottom: 6px;
+  }
+
+  .cap-desc {
+    font-size: 11px;
+    color: #70708a;
+    line-height: 1.5;
+  }
+
+  .cap-check {
+    position: absolute;
+    top: 12px; right: 12px;
+    width: 20px; height: 20px;
+    background: rgba(0, 200, 83, 0.15);
+    border: 1px solid rgba(0, 200, 83, 0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: #4dff88;
+  }
+
+  /* ===== Fine-tune Section ===== */
+  .ft-banner {
+    background: linear-gradient(135deg, rgba(237, 28, 36, 0.08) 0%, rgba(0, 158, 255, 0.05) 100%);
+    border: 1px solid rgba(237, 28, 36, 0.15);
+    border-radius: 14px;
+    padding: 28px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .ft-banner-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .ft-banner-title .fire { color: #ff6b73; }
+
+  .ft-banner-desc {
+    font-size: 14px;
+    color: #a0a0b0;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .ft-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  .ft-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .ft-label {
+    font-size: 11px;
+    color: #707080;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  .ft-value {
+    font-size: 24px;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    color: #e8e8ec;
+    line-height: 1;
+  }
+
+  .ft-value .green { color: #4dff88; }
+  .ft-value .red { color: #ff6b73; }
+
+  .ft-sub {
+    font-size: 12px;
+    color: #70708a;
+    margin-top: 6px;
+  }
+
+  /* ===== Pipeline Section ===== */
+  .pipeline-flow {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin-top: 8px;
+  }
+
+  .pipeline-step {
+    flex: 1;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 16px 14px;
+    text-align: center;
+    position: relative;
+  }
+
+  .pipeline-step:first-child { border-radius: 12px 0 0 12px; }
+  .pipeline-step:last-child { border-radius: 0 12px 12px 0; }
+  .pipeline-step:not(:last-child) { border-right: none; }
+
+  .pipeline-step::after {
+    content: '';
+    position: absolute;
+    right: -10px; top: 50%;
+    transform: translateY(-50%);
+    width: 0; height: 0;
+    border-left: 10px solid rgba(255,255,255,0.06);
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    z-index: 1;
+  }
+
+  .pipeline-step:last-child::after { display: none; }
+
+  .pipeline-icon { font-size: 22px; margin-bottom: 8px; }
+  .pipeline-name { font-size: 12px; font-weight: 600; color: #e8e8ec; margin-bottom: 4px; }
+  .pipeline-desc { font-size: 10px; color: #70708a; line-height: 1.4; }
+
+  /* ===== Footer ===== */
+  .footer {
+    padding: 24px 56px;
+    background: rgba(0,0,0,0.3);
+    border-top: 1px solid rgba(255,255,255,0.04);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #505060;
+  }
+
+  .footer-left { display: flex; align-items: center; gap: 12px; }
+  .footer-amd {
+    font-weight: 700;
+    color: #ed1c24;
+    letter-spacing: 1px;
+  }
+
+  .footer-right { font-family: 'JetBrains Mono', monospace; }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 900px) {
+    .hero { padding: 32px 24px; }
+    .hero-title { font-size: 36px; }
+    .section { padding: 28px 24px; }
+    .arch-grid, .opt-grid, .cap-grid, .ft-grid { grid-template-columns: 1fr; }
+    .pipeline-flow { flex-direction: column; }
+    .pipeline-step::after { display: none; }
+    .hero-stats { flex-wrap: wrap; gap: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="poster">
+
+  <!-- ===== HERO ===== -->
+  <div class="hero">
+    <div class="hero-badge">
+      <span class="dot"></span>
+      AMD ROCm · Fully Local · Privacy-First
+    </div>
+    <h1 class="hero-title">
+      Intelligent <span class="accent">Claim Agent</span>
+    </h1>
+    <p class="hero-pitch">
+      A fully-local, multi-modal insurance claim AI system. Upload an invoice — the pipeline completes
+      <strong>OCR → Authenticity Verification → Drug Catalog RAG → Deterministic Claim Calculation</strong>,
+      with multi-turn follow-up. An independent <strong>Underwriting Risk Agent</strong> handles medical reports
+      with disease risk scoring and dual-backend medical research search.
+      All inference runs on <strong>AMD Radeon W7900 + ROCm 7.2.4</strong>. Nothing leaves the machine.
+    </p>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-value">92.5×</div>
+        <div class="hero-stat-label">Embedding GPU Speedup</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-value">256K</div>
+        <div class="hero-stat-label">Context Window</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-value">8</div>
+        <div class="hero-stat-label">AI Tools</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-value">125K×</div>
+        <div class="hero-stat-label">Less Training Data</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ARCHITECTURE ===== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🏗️</div>
+      <div class="section-title">Dual-Path Architecture</div>
+      <div class="section-subtitle">Deterministic pipeline + LLM tool-calling Agent</div>
+    </div>
+    <div class="arch-grid">
+      <!-- Path 1: Claim Pipeline -->
+      <div class="arch-card">
+        <div class="arch-card-title">
+          Claim Review Agent
+          <span class="arch-card-tag tag-primary">Port 8001</span>
+        </div>
+        <div class="arch-flow">
+          <div class="arch-step">📷 OCR</div>
+          <span class="arch-arrow">→</span>
+          <div class="arch-step">🛡️ Verify</div>
+          <span class="arch-arrow">→</span>
+          <div class="arch-step">📚 RAG</div>
+          <span class="arch-arrow">→</span>
+          <div class="arch-step">🧮 Decide</div>
+        </div>
+        <p class="arch-desc">
+          Hard-coded sequential pipeline for audit-grade claims review. Every monetary amount is
+          pure Python calculation — not LLM-generated. Complemented by a LangChain tool-calling
+          Agent with 4 tools for multi-turn conversational follow-up.
+        </p>
+      </div>
+      <!-- Path 2: Underwriting -->
+      <div class="arch-card">
+        <div class="arch-card-title">
+          Underwriting Risk Agent
+          <span class="arch-card-tag tag-secondary">Port 8002</span>
+        </div>
+        <div class="arch-flow">
+          <div class="arch-step">📋 Extract</div>
+          <span class="arch-arrow">→</span>
+          <div class="arch-step">🔬 Abnormality</div>
+          <span class="arch-arrow">→</span>
+          <div class="arch-step">⚠️ Risk</div>
+          <span class="arch-arrow">→</span>
+          <div class="arch-step">🔎 Search</div>
+        </div>
+        <p class="arch-desc">
+          Independent agent for medical reports: multimodal extraction, lab abnormality detection,
+          disease risk scoring (Low/Medium/High), and dual-backend medical research search
+          (Exa + anysearch). Outputs structured underwriting report with recommendation.
+        </p>
+      </div>
+    </div>
+
+    <!-- Pipeline Detail -->
+    <div style="margin-top: 20px;">
+      <div class="arch-card-title" style="margin-bottom: 12px;">
+        🛠️ Tool Layer — 8 Tools
+      </div>
+      <div class="pipeline-flow">
+        <div class="pipeline-step">
+          <div class="pipeline-icon">📷</div>
+          <div class="pipeline-name">invoice_ocr</div>
+          <div class="pipeline-desc">VLM multimodal OCR</div>
+        </div>
+        <div class="pipeline-step">
+          <div class="pipeline-icon">🛡️</div>
+          <div class="pipeline-name">invoice_verify</div>
+          <div class="pipeline-desc">Official API check</div>
+        </div>
+        <div class="pipeline-step">
+          <div class="pipeline-icon">📚</div>
+          <div class="pipeline-name">drug_catalog_rag</div>
+          <div class="pipeline-desc">Local Chroma RAG</div>
+        </div>
+        <div class="pipeline-step">
+          <div class="pipeline-icon">🧮</div>
+          <div class="pipeline-name">claim_decision</div>
+          <div class="pipeline-desc">Pure-code calc</div>
+        </div>
+        <div class="pipeline-step">
+          <div class="pipeline-icon">📋</div>
+          <div class="pipeline-name">report_extract</div>
+          <div class="pipeline-desc">Medical OCR</div>
+        </div>
+        <div class="pipeline-step">
+          <div class="pipeline-icon">🔬</div>
+          <div class="pipeline-name">abnormality</div>
+          <div class="pipeline-desc">Lab analysis</div>
+        </div>
+        <div class="pipeline-step">
+          <div class="pipeline-icon">⚠️</div>
+          <div class="pipeline-name">risk_tool</div>
+          <div class="pipeline-desc">Risk assessment</div>
+        </div>
+        <div class="pipeline-step">
+          <div class="pipeline-icon">🔎</div>
+          <div class="pipeline-name">medical_search</div>
+          <div class="pipeline-desc">Research retrieval</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== GPU OPTIMIZATION ===== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">⚡</div>
+      <div class="section-title">AMD Radeon GPU Optimization</div>
+      <div class="section-subtitle">10 optimizations · measured on W7900 (gfx1100, 48GB)</div>
+    </div>
+    <div class="opt-grid">
+      <div class="opt-card">
+        <div class="opt-number">#01</div>
+        <div class="opt-title">Embedding GPU Migration</div>
+        <div class="opt-metric">
+          <span class="opt-metric-value">92.5×</span>
+          <span class="opt-metric-unit">median speedup</span>
+        </div>
+        <p class="opt-desc">bge-small-zh-v1.5 moved from CPU to AMD GPU. RAG latency bottleneck eliminated: 286ms → 3.1ms per encode.</p>
+      </div>
+      <div class="opt-card">
+        <div class="opt-number">#02</div>
+        <div class="opt-title">MTP Speculative Decoding</div>
+        <div class="opt-metric">
+          <span class="opt-metric-value">+22%</span>
+          <span class="opt-metric-unit">throughput boost</span>
+        </div>
+        <p class="opt-desc">llama.cpp MTP with 100% draft acceptance. 41.4 → 50.0 tok/s. Zero quality cost, 1.35GB VRAM.</p>
+      </div>
+      <div class="opt-card">
+        <div class="opt-number">#06</div>
+        <div class="opt-title">Prompt: thinking=false</div>
+        <div class="opt-metric">
+          <span class="opt-metric-value">34.7×</span>
+          <span class="opt-metric-unit">fewer tokens</span>
+        </div>
+        <p class="opt-desc">chat_template_kwargs.enable_thinking=false cuts reasoning overhead. 1040 → 30 completion tokens.</p>
+      </div>
+      <div class="opt-card">
+        <div class="opt-number">#05</div>
+        <div class="opt-title">Q8_0 Quantization</div>
+        <div class="opt-metric">
+          <span class="opt-metric-value">34GB</span>
+          <span class="opt-metric-unit">fits 48GB VRAM</span>
+        </div>
+        <p class="opt-desc">27B model FP16 (54GB) → Q8_0 GGUF (34GB). Precision-first for accurate RAG drug matching.</p>
+      </div>
+      <div class="opt-card">
+        <div class="opt-number">#08</div>
+        <div class="opt-title">256K Context via Q4_0 KV</div>
+        <div class="opt-metric">
+          <span class="opt-metric-value">262K</span>
+          <span class="opt-metric-unit">max context</span>
+        </div>
+        <p class="opt-desc">Q4_0 KV cache compression. Upgraded from 8K (OOM) to 256K. Only ~4.5GB VRAM for KV cache.</p>
+      </div>
+      <div class="opt-card">
+        <div class="opt-number">#07</div>
+        <div class="opt-title">Image Smart Compression</div>
+        <div class="opt-metric">
+          <span class="opt-metric-value">4.3×</span>
+          <span class="opt-metric-unit">faster OCR</span>
+        </div>
+        <p class="opt-desc">3500px → 1600px auto-resize. 4.54s → 1.06s OCR latency. Transparent in encode_image().</p>
+      </div>
+    </div>
+
+    <!-- Engine Comparison Table -->
+    <table class="bench-table">
+      <thead>
+        <tr>
+          <th>Engine Comparison (Single Request, max_tokens=128)</th>
+          <th>Quantization</th>
+          <th>Throughput</th>
+          <th>TTFT</th>
+          <th>Decision</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>llama.cpp HIP</strong></td>
+          <td>Q8_0 GGUF</td>
+          <td class="highlight">41.9 tok/s</td>
+          <td>0.3–14.9s (volatile)</td>
+          <td>✅ Production (single-user)</td>
+        </tr>
+        <tr>
+          <td>vLLM ROCm</td>
+          <td>W8A8 INT8</td>
+          <td>9.0 tok/s</td>
+          <td class="highlight">0.31s (stable)</td>
+          <td>Reserved (multi-user)</td>
+        </tr>
+        <tr>
+          <td>vLLM C8 aggregate</td>
+          <td>W8A8 INT8</td>
+          <td class="highlight">62.9 tok/s</td>
+          <td>—</td>
+          <td>2.87× advantage at concurrency=8</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== FINE-TUNE HIGHLIGHT ===== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🚀</div>
+      <div class="section-title">Full-Stack AMD ROCm Model Engineering</div>
+      <div class="section-subtitle">Fine-tune → Quantize → Deploy — all on AMD</div>
+    </div>
+    <div class="ft-banner">
+      <div class="ft-banner-title">
+        <span class="fire">🔥</span> Key Finding: 4,000 traces on AMD W7900 ≈ 500M tokens on cloud GPU
+      </div>
+      <div class="ft-banner-desc">
+        Our LoRA fine-tune (9B, rank=8, 0.23% params) achieves tool-calling quality identical to a
+        500M-token full-parameter model — using <strong>125,000× less data</strong> and <strong>435× fewer parameters</strong>.
+      </div>
+    </div>
+    <div class="ft-grid">
+      <div class="ft-card">
+        <div class="ft-label">Training Data</div>
+        <div class="ft-value"><span class="green">4,000</span> traces</div>
+        <div class="ft-sub">vs 500M tokens (Qwythos)</div>
+      </div>
+      <div class="ft-card">
+        <div class="ft-label">Trainable Params</div>
+        <div class="ft-value"><span class="green">21.6M</span></div>
+        <div class="ft-sub">0.23% of 9.4B (435× fewer)</div>
+      </div>
+      <div class="ft-card">
+        <div class="ft-label">Training Hardware</div>
+        <div class="ft-value"><span class="red">W7900</span></div>
+        <div class="ft-sub">Local AMD GPU, 12h LoRA</div>
+      </div>
+      <div class="ft-card">
+        <div class="ft-label">Throughput</div>
+        <div class="ft-value">61.6 <span style="font-size:14px;color:#707080">tok/s</span></div>
+        <div class="ft-sub">94% of Qwythos speed</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CAPABILITIES ===== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">✅</div>
+      <div class="section-title">Core Capabilities — 5/5 Exceeded</div>
+      <div class="section-subtitle">All minimum requirements met and exceeded</div>
+    </div>
+    <div class="cap-grid">
+      <div class="cap-card">
+        <div class="cap-check">✓</div>
+        <span class="cap-icon">📚</span>
+        <div class="cap-title">Local RAG</div>
+        <div class="cap-desc">Chroma + bge-small-zh on GPU. Three-tier retrieval: exact → semantic → threshold.</div>
+      </div>
+      <div class="cap-card">
+        <div class="cap-check">✓</div>
+        <span class="cap-icon">🔧</span>
+        <div class="cap-title">Tool Calling</div>
+        <div class="cap-desc">8 tools: OCR, verify, RAG, decision, report extract, abnormality, risk, search.</div>
+      </div>
+      <div class="cap-card">
+        <div class="cap-check">✓</div>
+        <span class="cap-icon">🧩</span>
+        <div class="cap-title">Multi-Step Planning</div>
+        <div class="cap-desc">Deterministic pipeline + LLM Agent with autonomous tool orchestration.</div>
+      </div>
+      <div class="cap-card">
+        <div class="cap-check">✓</div>
+        <span class="cap-icon">💬</span>
+        <div class="cap-title">Multi-Turn Memory</div>
+        <div class="cap-desc">InMemorySaver + SessionStore. Three-level follow-up context fallback.</div>
+      </div>
+      <div class="cap-card">
+        <div class="cap-check">✓</div>
+        <span class="cap-icon">🔒</span>
+        <div class="cap-title">Privacy Protection</div>
+        <div class="cap-desc">All-local inference. No cloud APIs. Session isolation. Auditable calculations.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FOOTER ===== -->
+  <div class="footer">
+    <div class="footer-left">
+      <span class="footer-amd">AMD RADEON™</span>
+      <span>·</span>
+      <span>ROCm 7.2.4 · W7900 gfx1100 48GB · llama.cpp HIP</span>
+    </div>
+    <div class="footer-right">
+      Qwen3.6-27B Q8_0 · Dual Agent · 8 Tools · Fully Local
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

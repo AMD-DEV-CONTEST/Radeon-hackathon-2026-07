@@ -1,0 +1,516 @@
+/* ============================================================
+   styles.css — 智能理赔审核助手前端补充样式
+   配合 Tailwind CDN，处理 Tailwind 不便表达的细节：
+   气泡、折叠思考块、明细表、流式光标、结论色块、Tab、滚动条等。
+   ============================================================ */
+
+/* ---------- 基础 ---------- */
+html, body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: #f8fafc;
+}
+
+/* ============================================================
+   聊天区 .chat-area
+   ============================================================ */
+.chat-area {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 自动滚到底部的辅助钩子（JS 在 append 后调 scrollTop = scrollHeight） */
+.chat-area .chat-messages,
+#chat-messages-single,
+#chat-messages-batch {
+  scroll-behavior: smooth;
+}
+
+/* ============================================================
+   气泡 .bubble / .bubble-user / .bubble-assistant
+   ============================================================ */
+.bubble {
+  display: flex;
+  flex-direction: column;
+  max-width: 80%;
+  animation: bubble-in 0.18s ease-out;
+}
+
+@keyframes bubble-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 用户气泡：右侧 indigo */
+.bubble-user {
+  margin-left: auto;
+  align-items: flex-end;
+}
+.bubble-user .bubble-body {
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  color: #ffffff;
+  border-radius: 14px 14px 4px 14px;
+  padding: 10px 14px;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.18);
+  word-break: break-word;
+  white-space: pre-wrap;
+  line-height: 1.55;
+  font-size: 14px;
+}
+.bubble-user .bubble-meta {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-bottom: 3px;
+  padding: 0 4px;
+}
+
+/* 助手气泡：左侧白底带阴影 */
+.bubble-assistant {
+  margin-right: auto;
+  align-items: flex-start;
+}
+.bubble-assistant .bubble-body {
+  background: #ffffff;
+  color: #1e293b;
+  border-radius: 14px 14px 14px 4px;
+  padding: 10px 14px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.04);
+  word-break: break-word;
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-size: 14px;
+}
+.bubble-assistant .bubble-meta {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-bottom: 3px;
+  padding: 0 4px;
+}
+
+/* 用户气泡内嵌的图片缩略图 */
+.bubble-user .bubble-thumb {
+  margin-top: 8px;
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+}
+
+/* 错误气泡 */
+.bubble-error .bubble-body {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+/* ============================================================
+   思考过程折叠块 .thinking
+   ============================================================ */
+.thinking {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #64748b;
+}
+.thinking > summary {
+  cursor: pointer;
+  user-select: none;
+  font-weight: 500;
+  color: #475569;
+  list-style: none;
+  padding: 2px 0;
+}
+.thinking > summary::-webkit-details-marker { display: none; }
+.thinking > summary::before {
+  content: "▸ ";
+  display: inline-block;
+  transition: transform 0.15s;
+}
+.thinking[open] > summary::before {
+  content: "▾ ";
+}
+.thinking > div {
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.55;
+  max-height: 320px;
+  overflow-y: auto;
+  font-family: 'SF Mono', 'Consolas', 'Menlo', monospace;
+  color: #475569;
+}
+
+/* ============================================================
+   表格：主明细表 .detail-table / 药品子明细表 .item-table
+   ============================================================ */
+.detail-table {
+  width: 100%;
+  font-size: 13px;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 8px 0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.detail-table thead {
+  background: #f8fafc;
+}
+.detail-table th {
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 600;
+  color: #475569;
+  font-size: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+.detail-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  vertical-align: top;
+}
+.detail-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.detail-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+/* 药品子明细表：缩进 18px、字号 11px、浅灰背景、圆角 */
+.item-table {
+  width: calc(100% - 18px);
+  margin-left: 18px;
+  font-size: 11px;
+  background: #f9f9f9;
+  border-radius: 6px;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+}
+.item-table th {
+  padding: 5px 8px;
+  text-align: left;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+.item-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid #eef2f7;
+  color: #475569;
+  vertical-align: top;
+}
+.item-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.item-table-title {
+  padding-left: 18px;
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 4px;
+  margin-bottom: 2px;
+}
+
+/* ============================================================
+   流式打字光标 .cursor
+   ============================================================ */
+.cursor {
+  display: inline-block;
+  width: 1px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: #4f46e5;
+  animation: blink 0.9s steps(2, start) infinite;
+  font-weight: bold;
+  color: #4f46e5;
+}
+.cursor::before {
+  content: "|";
+  visibility: visible;
+}
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* ============================================================
+   结论色块 .conc-pass / .conc-partial / .conc-reject
+   ============================================================ */
+.conc-block {
+  padding: 14px 16px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+.conc-block .conc-title {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.conc-block .conc-sub {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #444444;
+  line-height: 1.5;
+}
+
+.conc-pass {
+  background: #e6f4ea;
+  color: #137333;
+  border: 1px solid #ceead6;
+}
+
+.conc-partial {
+  background: #fef7e0;
+  color: #b06000;
+  border: 1px solid #feefc3;
+}
+
+.conc-reject {
+  background: #fce8e6;
+  color: #c5221f;
+  border: 1px solid #fad2cf;
+}
+
+.conc-info {
+  background: #e8f0fe;
+  color: #1a73e8;
+  border: 1px solid #d2e3fc;
+}
+
+/* 封顶提示 */
+.cap-note {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #fef7e0;
+  color: #b06000;
+  font-size: 12px;
+  border: 1px solid #feefc3;
+}
+
+/* 金额汇总小卡片 */
+.amount-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+.amount-card {
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+.amount-card.highlight {
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  border-color: #c7d2fe;
+}
+.amount-card .label {
+  font-size: 11px;
+  color: #64748b;
+  margin-bottom: 3px;
+}
+.amount-card .value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+}
+.amount-card.highlight .value {
+  color: #4338ca;
+}
+
+/* ============================================================
+   Tab 切换样式
+   ============================================================ */
+.tab-btn {
+  background: transparent;
+  color: #64748b;
+  border: 1px transparent solid;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.tab-btn:hover {
+  color: #4f46e5;
+  background: #f8fafc;
+}
+.tab-btn.tab-active {
+  color: #4f46e5;
+  border-bottom-color: #4f46e5;
+  background: #ffffff;
+  font-weight: 600;
+}
+.tab-btn.tab-inactive {
+  color: #64748b;
+  border-bottom-color: transparent;
+}
+.tab-btn:focus-visible {
+  outline: 2px solid #c7d2fe;
+  outline-offset: -2px;
+}
+
+/* ============================================================
+   输入框 / 按钮 hover / focus
+   ============================================================ */
+.input-area:focus {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 主按钮按下反馈 */
+button:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+/* ============================================================
+   右侧卡片内 Markdown 风格渲染（result 摘要等）
+   ============================================================ */
+.card-content h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #334155;
+  margin: 14px 0 6px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.card-content h3:first-child {
+  margin-top: 0;
+}
+.card-content p {
+  margin: 6px 0;
+  line-height: 1.6;
+  color: #475569;
+}
+.card-content ul, .card-content ol {
+  margin: 6px 0 6px 18px;
+  color: #475569;
+}
+.card-content li {
+  margin: 2px 0;
+  line-height: 1.55;
+}
+.card-content strong {
+  color: #1e293b;
+  font-weight: 700;
+}
+.card-content code {
+  background: #f1f5f9;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 12px;
+  color: #4338ca;
+}
+.card-content hr {
+  border: none;
+  border-top: 1px dashed #e2e8f0;
+  margin: 10px 0;
+}
+
+/* ============================================================
+   健康指示灯
+   ============================================================ */
+.health-ok #health-dot {
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+  animation: none;
+}
+.health-ok #health-text { color: #15803d; }
+
+.health-fail #health-dot {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+  animation: none;
+}
+.health-fail #health-text { color: #b91c1c; }
+
+/* ============================================================
+   滚动条美化（webkit）
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+/* ============================================================
+   响应式：窄屏（<768px）双栏改单栏堆叠
+   Tailwind 已通过 md:grid-cols-3 处理主体布局，
+   此处补充气泡最大宽度等细节
+   ============================================================ */
+@media (max-width: 767px) {
+  .bubble {
+    max-width: 92%;
+  }
+  .bubble-user .bubble-body,
+  .bubble-assistant .bubble-body {
+    font-size: 13px;
+    padding: 9px 12px;
+  }
+  .conc-block .conc-title {
+    font-size: 16px;
+  }
+  .amount-summary {
+    grid-template-columns: 1fr;
+  }
+  .detail-table,
+  .item-table {
+    font-size: 12px;
+  }
+  .item-table {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
+/* ============================================================
+   工具类
+   ============================================================ */
+.text-mono {
+  font-family: 'SF Mono', 'Consolas', 'Menlo', monospace;
+}
+
+/* 流式追加阶段进度的小行（status 文本） */
+.status-line {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.55;
+  padding: 2px 0;
+}

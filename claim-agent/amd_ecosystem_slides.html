@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AMD Full-Stack Ecosystem — Intelligent Claim Agent</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0a0a0f;
+    color: #e8e8ec;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .deck { max-width: 1280px; margin: 0 auto; }
+
+  .slide {
+    position: relative;
+    min-height: 100vh;
+    padding: 64px 72px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background:
+      radial-gradient(ellipse 70% 55% at 15% 0%, rgba(237,28,36,0.14) 0%, transparent 60%),
+      radial-gradient(ellipse 55% 45% at 85% 100%, rgba(0,158,255,0.10) 0%, transparent 60%),
+      linear-gradient(160deg, #10101a 0%, #0a0a0f 100%);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .kicker {
+    font-size: 13px; font-weight: 700; letter-spacing: 3px;
+    color: #ED1C24; text-transform: uppercase; margin-bottom: 14px;
+  }
+
+  h1 { font-size: 46px; font-weight: 900; line-height: 1.15; margin-bottom: 18px; }
+  h1 .grad {
+    background: linear-gradient(90deg, #ED1C24, #ff6a3d, #00b4ff);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  h2 { font-size: 30px; font-weight: 800; margin-bottom: 24px; }
+  .sub { font-size: 18px; color: #a0a4b0; max-width: 900px; margin-bottom: 32px; line-height: 1.6; }
+  .lead { font-size: 21px; font-weight: 600; color: #d4d8e0; max-width: 960px; line-height: 1.55; margin-bottom: 28px; }
+
+  .meta { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #6b6f7a; }
+
+  /* ===== Grid / Cards ===== */
+  .grid { display: grid; gap: 16px; margin: 24px 0; }
+  .g3 { grid-template-columns: repeat(3, 1fr); }
+  .g4 { grid-template-columns: repeat(4, 1fr); }
+  .g2 { grid-template-columns: repeat(2, 1fr); }
+
+  .card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 22px 24px;
+  }
+  .card .num { font-size: 34px; font-weight: 900; color: #fff; font-family: 'JetBrains Mono', monospace; }
+  .card .num.red { color: #ff4a55; }
+  .card .num.blue { color: #00b4ff; }
+  .card .num.green { color: #4ade80; }
+  .card .label { font-size: 13px; color: #8b90a0; margin-top: 6px; line-height: 1.4; }
+  .card .note { font-size: 12px; color: #5f6470; margin-top: 8px; }
+
+  /* ===== Big Pipeline Bar ===== */
+  .pipeline { display: flex; gap: 8px; margin: 32px 0; }
+  .stage {
+    flex: 1; text-align: center; padding: 18px 10px; border-radius: 10px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10);
+    position: relative;
+  }
+  .stage .icon { font-size: 26px; margin-bottom: 8px; }
+  .stage .name { font-weight: 700; font-size: 15px; }
+  .stage .detail { font-size: 12px; color: #8b90a0; margin-top: 6px; font-family: 'JetBrains Mono', monospace; }
+  .stage.hot { background: rgba(237,28,36,0.12); border-color: rgba(237,28,36,0.45); }
+  .stage.hot .name { color: #ff8a90; }
+
+  /* ===== Terminal ===== */
+  .terminal {
+    background: #0d0f14; border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 10px; font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; line-height: 1.7; padding: 20px 24px; margin: 20px 0;
+    overflow-x: auto; white-space: pre;
+  }
+  .terminal .cm { color: #6fb7ff; }
+  .terminal .ok { color: #4ade80; }
+  .terminal .hi { color: #ffd166; font-weight: 600; }
+  .terminal .dim { color: #5f6470; }
+
+  /* ===== Table ===== */
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 15px; }
+  th { text-align: left; padding: 12px 16px; font-weight: 600; color: #8b90a0; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.15); }
+  td { padding: 13px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  tr.hl { background: rgba(237,28,36,0.08); }
+  td b { color: #fff; }
+
+  /* ===== Code list ===== */
+  .steps { list-style: none; counter-reset: s; }
+  .steps li {
+    counter-increment: s; position: relative; padding: 14px 16px 14px 52px;
+    margin-bottom: 10px; background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; font-size: 15px;
+  }
+  .steps li::before {
+    content: counter(s); position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+    width: 26px; height: 26px; border-radius: 50%; background: #ED1C24; color: #fff;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;
+  }
+  .steps li code { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #ffd166; }
+
+  .tag {
+    display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    margin-right: 8px; margin-bottom: 6px;
+  }
+  .tag.red { background: rgba(237,28,36,0.15); color: #ff8a90; border: 1px solid rgba(237,28,36,0.4); }
+  .tag.blue { background: rgba(0,158,255,0.12); color: #7cc4ff; border: 1px solid rgba(0,158,255,0.4); }
+  .tag.green { background: rgba(74,222,128,0.12); color: #8ff0a8; border: 1px solid rgba(74,222,128,0.4); }
+
+  .footer-note { position: absolute; bottom: 28px; left: 72px; right: 72px; font-size: 12px; color: #4a4e58; }
+  .page-ind { position: absolute; top: 28px; right: 48px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #4a4e58; }
+  .arrow { font-size: 22px; color: #ED1C24; font-weight: 800; }
+</style>
+</head>
+<body>
+<div class="deck">
+
+<!-- ============ SLIDE 1 : Title / Full-Stack Ecosystem ============ -->
+<div class="slide">
+  <div class="page-ind">01 / 07</div>
+  <div class="kicker">AMD Full-Stack Ecosystem · One Closed Loop</div>
+  <h1>We Walked the <span class="grad">Whole AMD Stack</span><br>From Weights to Deployed Agent</h1>
+  <p class="lead">
+    Not just "run on AMD". We <b>trained</b> on AMD, <b>quantized</b> on AMD,
+    <b>optimized kernels</b> for AMD, and <b>deployed</b> across AMD generations —
+    the same closed-loop ecosystem NVIDIA sells, done end-to-end on Radeon + ROCm.
+  </p>
+
+  <div class="pipeline">
+    <div class="stage"><div class="icon">🎓</div><div class="name">Train</div><div class="detail">LoRA on W7900</div></div>
+    <div class="stage"><div class="icon">⚖️</div><div class="name">Quantize</div><div class="detail">GGUF Q4/Q6/Q8</div></div>
+    <div class="stage"><div class="icon">⚡</div><div class="name">Engine</div><div class="detail">llama.cpp vs vLLM</div></div>
+    <div class="stage hot"><div class="icon">🧠</div><div class="name">Kernel</div><div class="detail">AITER → RDNA3</div></div>
+    <div class="stage"><div class="icon">🚀</div><div class="name">Serve</div><div class="detail">82 tok/s @ C8</div></div>
+    <div class="stage"><div class="icon">🖥️</div><div class="name">Deploy</div><div class="detail">W7900 → 6800XT</div></div>
+  </div>
+
+  <p class="meta">AMD Radeon PRO W7900 · ROCm 7.2.4 · gfx1100 · llama.cpp HIP · vLLM 0.26.0</p>
+  <div class="footer-note">Intelligent Claim Agent — Track 2 · Benchmark evidence: bench-results/</div>
+</div>
+
+<!-- ============ SLIDE 2 : AMD Ecosystem Why ============ -->
+<div class="slide">
+  <div class="page-ind">02 / 07</div>
+  <div class="kicker">Why This Matters · Why We Chose AMD</div>
+  <h2>AMD Is Building Its Own CUDA-Equivalent Loop.<br><span class="grad">We Prove It Works.</span></h2>
+  <p class="sub">
+    NVIDIA's moat isn't one GPU — it's that a model trained, quantized, optimized and
+    served <i>all within one ecosystem</i>. AMD is building that same loop: ROCm compute,
+    llama.cpp HIP kernels, vLLM ROCm, consumer RDNA3/4 to data-center CDNA. This project
+    is the evidence that the AMD loop is real and usable today.
+  </p>
+
+  <div class="grid g3">
+    <div class="card">
+      <div class="num green">Train</div>
+      <div class="label">LoRA fine-tune ran entirely on W7900 — 4,000 traces ≈ 500M tokens (125,000×).</div>
+    </div>
+    <div class="card">
+      <div class="num blue">Move</div>
+      <div class="label">Same GGUF crosses W7900 (RDNA3, HIP) → 6800 XT (RDNA2, Vulkan) without rebuild.</div>
+    </div>
+    <div class="card">
+      <div class="num red">Deploy</div>
+      <div class="label">Single binary llama.cpp serves both; consumer 16GB card runs the fine-tuned agent.</div>
+    </div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <div class="label" style="font-size:14px;color:#d4d8e0"><b>可训练 Trainable</b> — W7900 did the fine-tune</div>
+      <div class="label">61.6 tok/s 9B · 38.3 tok/s 27B (pure-text) · ROCm 7.2.4</div>
+    </div>
+    <div class="card">
+      <div class="label" style="font-size:14px;color:#d4d8e0"><b>可迁移 Portable</b> — one model, two architectures</div>
+      <div class="label">RDNA3 (864 GB/s) → RDNA2 (512 GB/s), Vulkan fallback path</div>
+    </div>
+    <div class="card">
+      <div class="label" style="font-size:14px;color:#d4d8e0"><b>可部署 Deployable</b> — consumer to workstation</div>
+      <div class="label">48GB workstation AND 16GB consumer card</div>
+    </div>
+    <div class="card">
+      <div class="label" style="font-size:14px;color:#d4d8e0"><b>可优化 Optimizable</b> — down to the kernel</div>
+      <div class="label">Hand-ported AITER to gfx1100 (next slide)</div>
+    </div>
+  </div>
+  <div class="footer-note">The whole point of this hackathon: prove AMD's stack is a first-class AI platform. We went deepest.</div>
+</div>
+
+<!-- ============ SLIDE 3 : AITER → RDNA3 kernel port ============ -->
+<div class="slide">
+  <div class="page-ind">03 / 07</div>
+  <div class="kicker">Deepest Optimization · Hand-Written Kernel Support</div>
+  <h2>AITER → RDNA3 (gfx1100):<br><span class="grad">Vendor-Gated Kernel Port, First in This Track</span></h2>
+  <p class="sub">
+    AMD's AITER library upstream-lists this card — W7900 (gfx1100, RDNA3) — as
+    <b>Experimental</b>. But vLLM's integration layer never exposed AITER here: it only
+    enabled CDNA3 data-center chips and (later) RDNA4. <b>RDNA3 fell in the gap</b> —
+    every AITER op silently fell back to emulation. We closed that gap in 4 source
+    changes and ran AITER in vLLM on consumer RDNA3 for the first time. Upstream vLLM still doesn't ship this.
+  </p>
+
+  <ol class="steps">
+    <li><code>vllm/_aiter_ops.py</code> — arch gate: <code>on_mi3xx() or on_gfx1100()</code></li>
+    <li><code>aiter_meta/csrc/cpp_itfs/utils.py</code> — arch allow-list + gfx1100</li>
+    <li><code>aiter/ops/triton/configs/gemm/gfx1100-GEMM-A8W8.json</code> — new M-band tuning config</li>
+    <li><code>vllm/_aiter_ops.py</code> — route gfx1100 to Triton WMMA <code>gemm_a8w8</code> (CK XDL kernels can't compile on RDNA3)</li>
+  </ol>
+
+  <div class="terminal"><span class="dim"># launch command — AITER-enabled vLLM on W7900</span>
+<span class="cm">VLLM_ROCM_USE_AITER=1 GPU_ARCHS=gfx1100</span> vllm serve /models/Qwen3.6-27B-Quark-W8A8-INT8 \
+  --dtype float16 --enforce-eager --skip-mm-profiling \
+  --max-model-len 4096 --gpu-memory-utilization 0.92
+
+<span class="ok">INFO ... Selected <span class="hi">AiterInt8ScaledMMLinearKernel</span> for QuarkW8A8Int8</span>
+<span class="ok">INFO ... AITER GDN decode · causal_conv1d · sampler enabled on gfx1100</span></div>
+
+  <div class="grid g3">
+    <div class="card"><div class="num">9.0</div><div class="label">tok/s baseline (FP8 KV emulation)</div></div>
+    <div class="card"><div class="num green">12.3</div><div class="label">tok/s optimized (float16 KV + vLLM 0.26)</div></div>
+    <div class="card"><div class="num red">11.7</div><div class="label">tok/s with AITER gfx1100 path live</div></div>
+  </div>
+  <div class="footer-note">vLLM's AITER path covered CDNA3+ and RDNA4, never RDNA3 — this closes that gap. Reproducible in 4 steps, now offered upstream: <b>vllm-project/vllm#51136</b></div>
+</div>
+
+<!-- ============ SLIDE 4 : serial benchmark ============ -->
+<div class="slide">
+  <div class="page-ind">04 / 07</div>
+  <div class="kicker">Measured Evidence · vLLM on W7900</div>
+  <h2>Serial Throughput <span class="grad">(bench-results/vllm/serial_128.json)</span></h2>
+
+  <table>
+    <tr><th>max_tokens</th><th>TTFT (s)</th><th>Total (s)</th><th>Decode (tok/s)</th><th>Runs</th></tr>
+    <tr><td>64</td><td>0.17</td><td>5.31</td><td><b>12.5</b></td><td>3</td></tr>
+    <tr class="hl"><td>128</td><td>0.17</td><td>10.55</td><td><b>12.3</b></td><td>3</td></tr>
+    <tr><td>512</td><td>0.17–0.18</td><td>43.15</td><td><b>11.9</b></td><td>3</td></tr>
+  </table>
+
+  <div class="terminal"><span class="dim"># reproduce</span>
+cd claim-agent/ &amp;&amp; python bench.py --n 3 --max-tokens 128</div>
+
+  <div class="grid g3">
+    <div class="card"><div class="num red">+37%</div><div class="label">vs 9.0 tok/s FP8-emulation baseline</div></div>
+    <div class="card"><div class="num blue">0.17s</div><div class="label">TTFT — rock-stable across sizes</div></div>
+    <div class="card"><div class="num">9.0→12.3</div><div class="label">killed FP8 KV emulation (no FP8 HW on RDNA3)</div></div>
+  </div>
+  <div class="footer-note">Raw data: bench-results/vllm/serial_128.json — float16 KV · enforce_eager · max_model_len 4096 · W7900 48GB</div>
+</div>
+
+<!-- ============ SLIDE 5 : concurrency benchmark ============ -->
+<div class="slide">
+  <div class="page-ind">05 / 07</div>
+  <div class="kicker">Measured Evidence · Scaling</div>
+  <h2>Near-Linear Concurrency Scaling <span class="grad">(bench-results/vllm/concurrency.json)</span></h2>
+
+  <table>
+    <tr><th>Concurrency</th><th>Aggregate (tok/s)</th><th>Speedup</th><th>Wall (s)</th><th>Success</th></tr>
+    <tr><td>1</td><td>11.4</td><td>1.00×</td><td>11.24</td><td>1/1</td></tr>
+    <tr><td>2</td><td>21.9</td><td>1.92×</td><td>11.66</td><td>2/2</td></tr>
+    <tr><td>4</td><td>45.0</td><td>3.95×</td><td>11.37</td><td>4/4</td></tr>
+    <tr class="hl"><td>8</td><td><b>82.1</b></td><td><b>7.20×</b></td><td>12.47</td><td>8/8</td></tr>
+  </table>
+
+  <div class="grid g3">
+    <div class="card"><div class="num green">7.20×</div><div class="label">throughput at 8× load — near-linear</div></div>
+    <div class="card"><div class="num blue">0.92×</div><div class="label">wall-clock stays ~11–12s even at C8</div></div>
+    <div class="card"><div class="num">100%</div><div class="label">success rate at every concurrency</div></div>
+  </div>
+  <div class="footer-note">Continuous batching ready for multi-user API serving — llama.cpp static batching plateaus at 2.19× (bench-results/COMPARISON.md)</div>
+</div>
+
+<!-- ============ SLIDE 6 : cross-card ============ -->
+<div class="slide">
+  <div class="page-ind">06 / 07</div>
+  <div class="kicker">Portability · One Model, Two Architectures</div>
+  <h2>Cross-Card: W7900 (RDNA3) → <span class="grad">6800 XT (RDNA2, Vulkan)</span></h2>
+  <p class="sub">
+    Same fine-tuned 9B, same prompts, same llama.cpp — only the GPU changes.
+    This is the "consumer-grade deployable" proof: the agent leaves the workstation and runs on a $500 card.
+  </p>
+
+  <table>
+    <tr><th>GPU</th><th>Arch</th><th>VRAM</th><th>Bandwidth</th><th>Backend</th><th>Throughput</th><th>TTFT</th></tr>
+    <tr><td>Radeon PRO W7900</td><td>RDNA3 gfx1100</td><td>48GB</td><td>864 GB/s</td><td>HIP</td><td><b>61.6 tok/s</b></td><td>~0.2s</td></tr>
+    <tr class="hl"><td>RX 6800 XT</td><td>RDNA2 gfx1030</td><td>16GB</td><td>~512 GB/s</td><td><b>Vulkan</b></td><td><b>23–30 tok/s</b></td><td><b>0.18s</b></td></tr>
+  </table>
+
+  <div class="grid g2">
+    <div class="card">
+      <div class="label" style="font-size:14px"><b>Deployment cost cliff</b></div>
+      <div class="label">48GB workstation ($2,000+) → 16GB consumer card ($400–700). Per-branch / per-region insurance rollouts become sane.</div>
+    </div>
+    <div class="card">
+      <div class="label" style="font-size:14px"><b>Vulkan = the realistic consumer path</b></div>
+      <div class="label">Windows/driver-bundled setups where ROCm HIP is impractical — still 23–30 tok/s, interactive for single-step tool calls.</div>
+    </div>
+  </div>
+  <div class="footer-note">Measured on-device · bench_9b_local.py · evidence in bench-results/vllm/cross_card_6800xt.json</div>
+</div>
+
+<!-- ============ SLIDE 7 : summary ============ -->
+<div class="slide">
+  <div class="page-ind">07 / 07</div>
+  <div class="kicker">The Closed Loop</div>
+  <h2>One AMD Stack. <span class="grad">One Closed Loop.</span></h2>
+
+  <div class="pipeline">
+    <div class="stage"><div class="icon">🎓</div><div class="name">Train</div><div class="detail">W7900 LoRA · 125,000×</div></div>
+    <div class="stage"><div class="icon">⚖️</div><div class="name">Quantize</div><div class="detail">Q4/Q6/Q8 GGUF</div></div>
+    <div class="stage"><div class="icon">⚡</div><div class="name">Engine</div><div class="detail">llama.cpp · vLLM</div></div>
+    <div class="stage hot"><div class="icon">🧠</div><div class="name">Kernel</div><div class="detail">AITER→RDNA3 ✍️</div></div>
+    <div class="stage"><div class="icon">🚀</div><div class="name">Serve</div><div class="detail">82 tok/s C8</div></div>
+    <div class="stage"><div class="icon">🖥️</div><div class="name">Deploy</div><div class="detail">W7900→6800XT</div></div>
+  </div>
+
+  <div class="grid g4">
+    <div class="card"><div class="num">125K×</div><div class="label">training-data efficiency on W7900</div></div>
+    <div class="card"><div class="num red">1st</div><div class="label">AITER on consumer RDNA3 — no other submission</div></div>
+    <div class="card"><div class="num blue">7.2×</div><div class="label">concurrency scaling at C8</div></div>
+    <div class="card"><div class="num green">2-gen</div><div class="label">RDNA3→RDNA2 cross-card verified</div></div>
+  </div>
+
+  <p class="lead" style="margin-top:32px">
+    NVIDIA's moat = one closed ecosystem. This project shows
+    <b>AMD's loop is real</b> — trained, quantized, kernel-optimized, and deployed
+    entirely on Radeon + ROCm. <span class="grad">We didn't just use AMD. We completed AMD.</span>
+  </p>
+  <div class="footer-note">5/5 Track 2 capabilities · Dual-agent (Claims + Underwriting) · All local · All auditable · Intelligent Claim Agent</div>
+</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Claim Review Assistant</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Tailwind runtime config: extend theme colors and fonts
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe',
+              500: '#6366f1', 600: '#4f46e5', 700: '#4338ca'
+            }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI',
+                   'Helvetica Neue', 'Arial', 'sans-serif']
+          },
+          boxShadow: {
+            card: '0 1px 3px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.06)',
+            cardHover: '0 2px 6px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08)'
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="/styles.css?v=20260802" />
+</head>
+<body class="min-h-screen bg-slate-50 font-sans text-slate-800">
+
+  <!-- ============ Login Overlay (shown until authenticated) ============ -->
+  <div id="login-overlay" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-xl p-6 w-80">
+      <h2 class="text-lg font-bold mb-4 text-slate-800">🔐 Login</h2>
+      <input id="login-user" class="w-full mb-2 px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500/30" placeholder="Username" />
+      <input id="login-pass" type="password" class="w-full mb-3 px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500/30" placeholder="Password" />
+      <div id="login-error" class="text-red-500 text-xs mb-2 hidden"></div>
+      <button id="login-btn" class="w-full py-2 text-sm font-semibold rounded-md bg-brand-600 text-white hover:bg-brand-700 transition">Login</button>
+      <p class="text-xs text-slate-400 mt-3 text-center">Demo: admin / claim123</p>
+    </div>
+  </div>
+
+  <!-- ============ Top Header ============ -->
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
+    <div class="max-w-[1600px] mx-auto px-4 md:px-6 py-3 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white text-xl shadow-md">
+          🏥
+        </div>
+        <div>
+          <h1 class="text-lg md:text-xl font-bold text-slate-800 leading-tight">Smart Claim Review Assistant</h1>
+          <p class="text-xs text-slate-500 hidden sm:block">
+            Multimodal Recognition · Authenticity Verification · Drug Catalog Search · Deterministic Claim Decision
+          </p>
+        </div>
+      </div>
+      <div id="health-indicator" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-xs">
+        <span id="health-dot" class="w-2.5 h-2.5 rounded-full bg-slate-400 animate-pulse"></span>
+        <span id="health-text" class="text-slate-600">Checking…</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ Tab Switcher ============ -->
+  <div class="max-w-[1600px] mx-auto px-4 md:px-6 pt-4">
+    <div class="flex gap-1 border-b border-slate-200" role="tablist">
+      <button id="tab-single" class="tab-btn tab-active px-5 py-2.5 text-sm font-medium rounded-t-lg transition-colors"
+              data-tab="single" role="tab" aria-selected="true">
+        📄 Single Review
+      </button>
+      <button id="tab-batch" class="tab-btn tab-inactive px-5 py-2.5 text-sm font-medium rounded-t-lg transition-colors"
+              data-tab="batch" role="tab" aria-selected="false">
+        📁 Batch Review
+      </button>
+    </div>
+  </div>
+
+  <!-- ============ Main Content ============ -->
+  <main class="max-w-[1600px] mx-auto px-4 md:px-6 py-4">
+
+    <!-- ===== Single Review Tab ===== -->
+    <section id="panel-single" class="tab-panel">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+        <!-- Left chat area (2/3) -->
+        <div class="md:col-span-2 bg-white rounded-xl shadow-card border border-slate-200 flex flex-col chat-area">
+          <!-- Message list -->
+          <div id="chat-messages-single" class="flex-1 overflow-y-auto p-4 space-y-4 min-h-[420px] max-h-[calc(100vh-320px)]">
+            <div class="bubble bubble-assistant">
+              <div class="bubble-meta">Smart Assistant</div>
+              <div class="bubble-body">Hello, I'm the <b>Smart Claim Review Assistant</b>.
+                <br/>· Upload an invoice image and click Send. I'll complete: <b>Multimodal Recognition → Authenticity Verification → Drug Catalog Search → Claim Amount Calculation</b>, and show the decision card on the right;
+                <br/>· Then you can ask follow-up questions, e.g. "Why was a certain drug rejected?" or "How much if re-calculated as Category B?" I'll answer based on this review result.
+              </div>
+            </div>
+          </div>
+
+          <!-- Image preview -->
+          <div id="image-preview-wrap-single" class="px-4 pt-3 hidden">
+            <div class="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-lg p-2">
+              <img id="image-preview-single" class="w-16 h-16 object-cover rounded-md border border-slate-200" alt="Preview" />
+              <div class="flex-1 min-w-0">
+                <div id="image-name-single" class="text-xs text-slate-600 truncate"></div>
+                <button id="clear-image-single" class="text-xs text-red-500 hover:text-red-700 mt-1">Remove</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Input area -->
+          <div class="border-t border-slate-200 p-3 space-y-2 bg-slate-50/60 rounded-b-xl">
+            <textarea id="input-single"
+              class="input-area w-full px-3 py-2 text-sm rounded-lg border border-slate-300 bg-white resize-none focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition"
+              rows="3" placeholder="Upload an invoice then click Send to start review; or type a follow-up question…"></textarea>
+            <div class="flex flex-wrap items-center gap-2">
+              <label class="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-white border border-slate-300 hover:bg-slate-50 hover:border-brand-400 transition">
+                📷 Upload Image
+                <input id="file-input-single" type="file" accept="image/*" class="hidden" />
+              </label>
+              <label class="inline-flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer select-none">
+                <input id="do-verify-single" type="checkbox" class="rounded text-brand-600 focus:ring-brand-500" />
+                Official authenticity verification
+              </label>
+              <div class="flex-1"></div>
+              <button id="new-session-single" class="px-3 py-1.5 text-xs font-medium rounded-md bg-white border border-slate-300 hover:bg-slate-50 hover:border-slate-400 transition">
+                🔄 New Session
+              </button>
+              <button id="send-single" class="px-4 py-1.5 text-sm font-semibold rounded-md bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-700 shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed">
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right decision card area (1/3) -->
+        <div class="bg-white rounded-xl shadow-card border border-slate-200 flex flex-col">
+          <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-slate-700">📊 Claim Decision Card</h2>
+            <span class="text-xs text-slate-400">Single</span>
+          </div>
+          <div id="right-card-single" class="flex-1 p-4 overflow-y-auto min-h-[420px] max-h-[calc(100vh-320px)]">
+            <div class="text-xs text-slate-400 text-center py-8">
+              The claim decision will appear here after review completes
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===== Batch Review Tab ===== -->
+    <section id="panel-batch" class="tab-panel hidden">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+        <!-- Left chat area (2/3) -->
+        <div class="md:col-span-2 bg-white rounded-xl shadow-card border border-slate-200 flex flex-col chat-area">
+          <!-- Message list -->
+          <div id="chat-messages-batch" class="flex-1 overflow-y-auto p-4 space-y-4 min-h-[420px] max-h-[calc(100vh-320px)]">
+            <div class="bubble bubble-assistant">
+              <div class="bubble-meta">Smart Assistant</div>
+              <div class="bubble-body">Hello, this is <b>Batch Invoice Review</b> mode.
+                <br/>· Click "Select Folder" to upload a folder containing multiple invoice images (or hold Ctrl to multi-select files);
+                <br/>· Check "Official authenticity verification" then click "Start Batch Review". I'll process each one through <b>OCR → Duplicate Detection → Authenticity Verification → Drug Catalog Search → Claim Decision</b>, and aggregate a batch conclusion across all invoices;
+                <br/>· Once complete, the right panel shows the batch summary card. Click "Export CSV" to download the detail table; duplicate invoices are automatically skipped (verification and decision skipped, counted only).
+              </div>
+            </div>
+          </div>
+
+          <!-- Input area -->
+          <div class="border-t border-slate-200 p-3 space-y-2 bg-slate-50/60 rounded-b-xl">
+            <textarea id="input-batch"
+              class="input-area w-full px-3 py-2 text-sm rounded-lg border border-slate-300 bg-white resize-none focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition"
+              rows="2" placeholder="After batch review completes, ask follow-up questions here, e.g. "How much can be claimed for this batch?" or "Which ones were rejected?"…"></textarea>
+            <div class="flex flex-wrap items-center gap-2">
+              <label class="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-white border border-slate-300 hover:bg-slate-50 hover:border-brand-400 transition">
+                📁 Select Folder
+                <input id="file-input-batch" type="file" webkitdirectory directory multiple accept="image/*" class="hidden" />
+              </label>
+              <label class="inline-flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer select-none">
+                <input id="do-verify-batch" type="checkbox" class="rounded text-brand-600 focus:ring-brand-500" />
+                Official authenticity verification
+              </label>
+              <div class="flex-1"></div>
+              <span id="batch-file-count" class="text-xs text-slate-500"></span>
+              <button id="new-session-batch" class="px-3 py-1.5 text-xs font-medium rounded-md bg-white border border-slate-300 hover:bg-slate-50 hover:border-slate-400 transition">
+                🔄 New Session
+              </button>
+              <button id="send-batch-followup" class="px-3 py-1.5 text-sm font-medium rounded-md bg-white border border-slate-300 hover:bg-slate-50 hover:border-brand-400 transition">
+                Send Follow-up
+              </button>
+              <button id="start-batch" class="px-4 py-1.5 text-sm font-semibold rounded-md bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-700 shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed">
+                Start Batch Review
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right batch summary card (1/3) -->
+        <div class="bg-white rounded-xl shadow-card border border-slate-200 flex flex-col">
+          <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-slate-700">📊 Batch Claim Summary</h2>
+            <button id="export-csv" class="text-xs px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+              ⬇ Export CSV
+            </button>
+          </div>
+          <div id="right-card-batch" class="flex-1 p-4 overflow-y-auto min-h-[420px] max-h-[calc(100vh-320px)]">
+            <div class="text-xs text-slate-400 text-center py-8">
+              The batch summary card will appear here after batch review completes
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============ Bottom Status Bar ============ -->
+  <footer class="sticky bottom-0 bg-white/95 backdrop-blur border-t border-slate-200">
+    <div class="max-w-[1600px] mx-auto px-4 md:px-6 py-2 flex items-center justify-between gap-2 text-xs text-slate-500">
+      <div class="flex items-center gap-2">
+        <span class="text-slate-400">Session ID:</span>
+        <code id="session-id-display" class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-mono">-</code>
+        <button id="copy-session" class="text-slate-400 hover:text-brand-600 transition" title="Copy Session ID">📋</button>
+      </div>
+      <div class="hidden sm:block text-slate-400">
+        SSE streaming · Reasoning chain fully preserved
+      </div>
+    </div>
+  </footer>
+
+  <script src="/app.js?v=20260802"></script>
+</body>
+</html>
