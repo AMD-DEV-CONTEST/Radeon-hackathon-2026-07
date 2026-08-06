@@ -109,8 +109,9 @@ bash start.sh   # 每次：引擎+WebUI+隧道
 ## 📁 仓库结构
 `app.py`（单文件完整工作室）· `setup.sh` · `start.sh` · `README.md` · `README_zh.md`
 
-## 🎥 演示视频
-👉 **[3 分钟产品发布会视频]()** *（上传后替换链接）*
+## 🎥 演示
+![主界面](assets/01_main_ui.png)
+*左：AI 脑神经矩阵 · 中：共创现场 · 右：画布。顶栏 HUD 实时显示 W7900 显存与解码速度。*
 
 ## 🙏 致谢
 用汗水与 ROCm 铸就。感谢 AMD Developer Cloud、llama.cpp、Streamlit 与 Qwen。
