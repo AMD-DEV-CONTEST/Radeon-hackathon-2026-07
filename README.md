@@ -1,16 +1,24 @@
 # Howdy · Voice Diary — Tech Report
 
-> A local-first voice diary for the AMD AI Hackathon. Talking to it turns
-> spoken recollections into a structured daily knowledge graph, illustrates the
-> day with AI images, and exports it as a writer-styled article — with every
-> stage (VAD · STT · LLM · TTS · T2I) running on one AMD Radeon PRO W7900
-> (48 GB VRAM), no cloud APIs.
+> Your day, in structured graph structure.
+
+This project contains a local-first voice diary for the AMD AI Hackathon. 
+
+Most part of services runs on AMD's powerful W7900 pro GPU with ROCm 7.2.1. 
+
+| Services | (V)RAM | host |
+| LLM:Qwen3.6-35B-Q4 | 21G | GPU |
+| T2I:ZImage-Turbo | 18G | GPU |
+| STT:Whisper | 3G | CPU |
+| TTS:Kokoro | 2G | CPU |
+| VAD | 4G | WebGPU |
 
 ---
 
 ## 1. Overview
 
-Howdy is a single-machine demo: the user speaks to an interviewer agent; each
+Howdy is a single-machine demo with appropriate usage of client's compute power:
+the user speaks to an interviewer agent; each
 turn is transcribed, parsed into structured facts, and persisted into a daily
 knowledge graph (Bionic-Graph, Gremlin). A background worker illustrates the day,
 and a separate path exports the day as prose in a famous writer's voice.
