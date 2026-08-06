@@ -240,7 +240,7 @@ relationship, criminality, protected-attribute, and predictive claims before ren
    export.
 5. Ask a follow-up in the visible same-thread conversation and show prior-message recall.
 6. State “I like cartoon-style avatars, but I am worried about copyright,” approve the proposal,
-   click **New review · keep memory**, and show recall, WIPO evidence retrieval, and deletion.
+   click **New review**, and show recall, WIPO evidence retrieval, and deletion.
 
 This scenario proves tool calling, multimodal inference, RAG, comparison, memory, permission, and
 privacy in one coherent multi-turn workflow.

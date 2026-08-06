@@ -931,7 +931,7 @@ The agent proposes:
 
 > Save: “I prefer cartoon-style avatars and want copyright risk considered.”
 
-Approve it, click **New review · keep memory**, upload a second candidate pair, and show the
+Approve it, click **New review**, upload a second candidate pair, and show the
 **Approved memory applied** panel plus the WIPO evidence card. Open Approved Memory to show deletion.
 
 ### 3:10–3:40 — Evidence and Cultural Scope
