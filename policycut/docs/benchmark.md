@@ -1,0 +1,73 @@
+# PolicyCut — Radeon Benchmark Notes
+
+All numbers in this document are **real measurements** taken on the contest machine
+(AMD Radeon PRO W7900, ROCm PyTorch build) with `scripts/benchmark.py`. Raw JSON
+for every run is committed under `artifacts/benchmarks/`. GPU timings are bracketed
+by `torch.cuda.synchronize()`; peak VRAM is `torch.cuda.max_memory_allocated()`
+reset per stage. Nothing in this file is estimated or extrapolated.
+
+## How to reproduce
+
+```bash
+source venv/bin/activate
+python scripts/preflight.py                # environment + GPU smoke test
+python scripts/make_fixtures.py            # synthetic clips (all PII fake)
+python scripts/benchmark.py tests/fixtures/interview.mp4 \
+    --policy "Pixelate every face and screen. Beep phone numbers." \
+    --precision fp16
+python scripts/benchmark.py tests/fixtures/interview.mp4 --precision fp32
+python scripts/benchmark.py tests/fixtures/interview.mp4 --interval 0.25
+python scripts/benchmark.py tests/fixtures/interview.mp4 --interval 1.0
+```
+
+## Environment (from `scripts/preflight.py`)
+
+<!-- BENCH:ENVIRONMENT -->
+*(filled from the contest machine — see `artifacts/benchmarks/preflight.json`)*
+
+## Headline results
+
+<!-- BENCH:HEADLINE -->
+*(filled from `artifacts/benchmarks/benchmark_*.json` after the contest-machine runs)*
+
+| Metric | Value |
+|---|---|
+| Grounding DINO keyframe throughput | — |
+| SAM 2.1 propagation throughput | — |
+| Whisper large-v3-turbo real-time factor | — |
+| End-to-end analysis real-time factor | — |
+| Render throughput | — |
+| Peak VRAM (largest stage) | — |
+
+## Comparisons
+
+### FP16 vs FP32
+
+<!-- BENCH:PRECISION -->
+*(same clip, same policy, `--precision fp16` vs `--precision fp32`)*
+
+### Detection interval sweep (0.25 s / 0.5 s / 1.0 s)
+
+<!-- BENCH:INTERVAL -->
+*(recall-versus-cost trade-off for the keyframe strategy; 0.5 s is the shipped default)*
+
+### Keyframe+SAM strategy vs per-frame detection
+
+<!-- BENCH:STRATEGY -->
+*(per-frame open-vocabulary detection cost extrapolates linearly from measured
+keyframes/s; the shipped pipeline detects at keyframes and lets SAM 2.1 carry
+masks between them)*
+
+### Cold start vs warm run
+
+<!-- BENCH:COLDWARM -->
+*(first run includes model load from disk; warm numbers are steady-state)*
+
+## Notes
+
+- The YuNet small-face assist detector runs on CPU by design and is excluded from
+  GPU throughput numbers.
+- Video encoding uses libx264 (CPU); "render" time therefore mixes CPU encode with
+  GPU-free OpenCV effects — it is reported for completeness, not as a GPU claim.
+- `--require-rocm` was active for all contest runs: a silent CPU fallback in a core
+  model stage would abort the run rather than pollute the numbers.

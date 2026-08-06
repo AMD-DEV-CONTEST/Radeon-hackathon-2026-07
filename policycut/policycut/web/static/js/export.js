@@ -157,7 +157,20 @@ async function showResults() {
   qs("#dl-srt").href = artifactUrl("srt");
   qs("#dl-audit").href = artifactUrl("audit");
   qs("#dl-zip").href = artifactUrl("zip");
-  if (project.media && !project.media.has_audio) qs("#dl-srt").classList.add("hidden");
+  // The SRT is only produced when a transcript exists (audio track + working
+  // transcription). Probe the artifact and hide the link instead of offering
+  // a download that would 404. The probe's 404 is expected and harmless.
+  const srtLink = qs("#dl-srt");
+  if (project.media && !project.media.has_audio) {
+    srtLink.classList.add("hidden");
+  } else {
+    try {
+      const res = await fetch(artifactUrl("srt"), { method: "HEAD" });
+      srtLink.classList.toggle("hidden", !res.ok);
+    } catch (_) {
+      srtLink.classList.add("hidden");
+    }
+  }
 
   try {
     const audit = await API.get(`/projects/${PID}/artifacts/audit`);
