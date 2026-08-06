@@ -85,3 +85,7 @@ See `requirements.txt`. Key packages: `fastapi`, `uvicorn`, `openai`, `langchain
   the interface displays this disclaimer at all times.
 - Web search is intentionally restricted to a trusted-domain allowlist rather than open
   web search, given the medical use case.
+
+## Demo Video
+Watch the complete project demo here:
+https://youtu.be/vA64f2AU0GI
