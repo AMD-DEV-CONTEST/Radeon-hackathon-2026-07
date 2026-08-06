@@ -1,4 +1,4 @@
-# Track 3 - Cybertronic Franka Genesis Study
+# Track 3 - cybertronic Franka Genesis Study
 
 ## English
 
@@ -7,6 +7,17 @@ This submission demonstrates a Franka Panda robot arm following a moving fruit t
 The enhanced demo extends the baseline into a vision-guided closed-loop controller. Instead of controlling only from the fruit's simulation coordinates, it detects the red fruit in rendered camera frames, estimates image-space error, and converts that observation into visual-servo target corrections for the Franka end effector.
 
 For the final competition demo, the repository also includes a vision-guided apple-to-plate pick-and-place sequence. It detects the red apple, approaches it, closes the gripper, transports the apple to a plate target, and releases it into the plate to provide a clearer manipulation result than tracking alone.
+
+## Submission Info / 提交信息
+
+- Competition: 2026 AMD AI DEVMASTER Hackathon
+- Track: Track 3 Physical AI
+- Team: cybertronic
+- GitHub ID: cybertronic23
+- Repository: <https://github.com/cybertronic23/Radeon-hackathon-2026-07>
+- Final demo video (YouTube): <https://youtu.be/97QB_RQYRvQ>
+- Final demo video (Bilibili): <https://www.bilibili.com/video/BV1fKuJ6GEgE/>
+- Main demo: Vision-Guided Franka Apple-to-Plate Pick-and-Place
 
 ## 1. Project Introduction / 项目简介
 
@@ -182,7 +193,9 @@ Modified from baseline:
 
 ### English
 
-Team: Cybertronic.
+Team: cybertronic.
+
+GitHub ID: cybertronic23.
 
 - Project design: selected the vision-guided manipulation direction and scoped it for deadline-safe delivery.
 - Simulation and control: implemented Franka task phases, IK targets, gripper commands, and apple-to-plate placement logic.
@@ -192,7 +205,9 @@ Team: Cybertronic.
 
 ### 中文
 
-团队：Cybertronic。
+团队：cybertronic。
+
+GitHub ID：cybertronic23。
 
 - 项目设计：选择视觉引导机械臂操作方向，并将范围控制在 deadline 前可稳定交付。
 - 仿真与控制：实现 Franka 任务阶段、IK 目标、夹爪控制和苹果放入盘子的逻辑。
@@ -436,11 +451,18 @@ Commit only lightweight source, docs, configs, and summary JSON files. Do not co
 
 ### Demo Video / 演示视频
 
-Do not commit large MP4 files to GitHub. Add the final video URL in `videos/README.md`.
+Do not commit large MP4 files to GitHub. The final uploaded demo video is:
+
+- YouTube: <https://youtu.be/97QB_RQYRvQ>
+- Bilibili: <https://www.bilibili.com/video/BV1fKuJ6GEgE/>
+
+The same link is also recorded in `videos/README.md`.
 
 Before final submission:
 
-- Upload the final video to YouTube or Bilibili.
+- Upload the final video to YouTube or Bilibili. Done:
+  - YouTube: <https://youtu.be/97QB_RQYRvQ>
+  - Bilibili: <https://www.bilibili.com/video/BV1fKuJ6GEgE/>
 - Keep the duration under 3 minutes.
 - Add Chinese and English subtitles.
 - Make the link public.
