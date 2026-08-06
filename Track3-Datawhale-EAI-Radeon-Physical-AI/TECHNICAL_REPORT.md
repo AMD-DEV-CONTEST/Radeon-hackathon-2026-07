@@ -5,7 +5,7 @@
 **Team:** Datawhale-EAI  
 **Hackathon:** AMD AI DevMaster Hackathon 2026  
 **Lead:** Kewei Chen  
-**Submission version:** v1.0.0-amd-hackathon  
+**Submission version:** v1.0.1-amd-hackathon-english
 **Source:** https://github.com/Ethan-Chen-plus/radeon-physical-ai-evidence-suite  
 **Showcase:** https://ethan-chen-plus.github.io/amd-physical-ai-showcase/
 
@@ -82,7 +82,7 @@ and placement operations.
 | Broad AMD coverage | PyTorch ROCm, JAX ROCm, MuJoCo/EGL, Genesis AMD, 3DGS |
 | Closed-loop robotics | Simulator state advances from model actions until task termination |
 | Reproducible results | Fixed seeds, explicit denominators, JSON summaries, checkpoint hashes |
-| Reviewable media | Success-first multi-view videos with English and bilingual subtitles |
+| Reviewable media | Success-first multi-view videos with English narration and subtitles |
 | Reusable engineering | Public setup, training, evaluation, profiling, and validation scripts |
 
 <!-- pagebreak -->
@@ -259,8 +259,8 @@ per-task records rather than entered manually.
 RoboCasa365 exports four-view 1920x1080 household videos. DISCOVERSE exports
 three native 1080p camera streams and a review composite. DexJoCo publishes one
 representative success video for each task with an observed success seed. The
-demo film uses these source clips directly and provides English, Chinese, and
-bilingual subtitle variants.
+demo film uses these source clips directly and provides phrase-aligned English
+narration and subtitles.
 
 <!-- pagebreak -->
 
@@ -343,7 +343,7 @@ Unitree G1 predictive safety. HyperFrames and FFmpeg generate a deterministic
 
 The release includes public SmolVLA, Pi0, ACT, and RoboWits model repositories,
 native training notebooks, AMD setup notes, profiling scripts, evaluation
-scripts, and a bilingual engineering website. These materials let learners run
+scripts, and an English engineering website. These materials let learners run
 a trained policy first, inspect a successful video, then repeat training and
 evaluation on AMD hardware.
 
@@ -356,7 +356,7 @@ evaluation on AMD hardware.
 | Deliverable | Location |
 |---|---|
 | Dedicated source repository | https://github.com/Ethan-Chen-plus/radeon-physical-ai-evidence-suite |
-| Frozen source release | v1.0.0-amd-hackathon |
+| Frozen source release | v1.0.1-amd-hackathon-english |
 | Reproducibility guide | `docs/REPRODUCIBILITY.md` |
 | Technical report | `output/pdf/datawhale-eai-radeon-physical-ai-technical-report.pdf` |
 | 4:59 English demo | https://ethan-chen-plus.github.io/amd-physical-ai-showcase/assets/videos/amd-physical-ai-demo-en.mp4 |
@@ -369,7 +369,7 @@ evaluation on AMD hardware.
 ```bash
 git clone https://github.com/Ethan-Chen-plus/radeon-physical-ai-evidence-suite.git
 cd radeon-physical-ai-evidence-suite
-git checkout v1.0.0-amd-hackathon
+git checkout v1.0.1-amd-hackathon-english
 python3 scripts/validate_public_bundle.py
 ```
 

@@ -16,12 +16,12 @@ W7900 and AMD Ryzen AI MAX+ 395 hardware.
 |---|---|
 | Technical report | [English PDF](datawhale-eai-radeon-physical-ai-technical-report.pdf) and [Markdown source](TECHNICAL_REPORT.md) |
 | Dedicated source repository | [Ethan-Chen-plus/radeon-physical-ai-evidence-suite](https://github.com/Ethan-Chen-plus/radeon-physical-ai-evidence-suite) |
-| Frozen source release | [v1.0.0-amd-hackathon](https://github.com/Ethan-Chen-plus/radeon-physical-ai-evidence-suite/releases/tag/v1.0.0-amd-hackathon) |
-| Reproducibility README | [Environment, dependencies, commands, and output contracts](https://github.com/Ethan-Chen-plus/radeon-physical-ai-evidence-suite/blob/v1.0.0-amd-hackathon/docs/REPRODUCIBILITY.md) |
+| Frozen source release | [v1.0.1-amd-hackathon-english](https://github.com/Ethan-Chen-plus/radeon-physical-ai-evidence-suite/releases/tag/v1.0.1-amd-hackathon-english) |
+| Reproducibility README | [Environment, dependencies, commands, and output contracts](https://github.com/Ethan-Chen-plus/radeon-physical-ai-evidence-suite/blob/v1.0.1-amd-hackathon-english/docs/REPRODUCIBILITY.md) |
 | Demo video | [4:59 English 1080p film](https://ethan-chen-plus.github.io/amd-physical-ai-showcase/assets/videos/amd-physical-ai-demo-en.mp4) |
-| Supplementary showcase | [English/Chinese interactive project site](https://ethan-chen-plus.github.io/amd-physical-ai-showcase/) |
+| Supplementary showcase | [English interactive project site](https://ethan-chen-plus.github.io/amd-physical-ai-showcase/) |
 | Models | [SmolVLA](https://huggingface.co/Datawhale/every-embodied-smolvla-mujoco-pnp), [Pi0](https://huggingface.co/Datawhale/every-embodied-pi0-mujoco-pnp), [ACT](https://huggingface.co/Datawhale/every-embodied-act-mujoco-pnp), [RoboWits ACT](https://huggingface.co/Datawhale/robowits-act-amd-rocm) |
-| Integrity and evidence | [Result JSON and validator](https://github.com/Ethan-Chen-plus/radeon-physical-ai-evidence-suite/tree/v1.0.0-amd-hackathon/evidence), [SHA manifest](SHA256SUMS) |
+| Integrity and evidence | [Result JSON and validator](https://github.com/Ethan-Chen-plus/radeon-physical-ai-evidence-suite/tree/v1.0.1-amd-hackathon-english/evidence), [SHA manifest](SHA256SUMS) |
 
 ## Selected Results
 
@@ -47,7 +47,7 @@ W7900 and AMD Ryzen AI MAX+ 395 hardware.
 ```bash
 git clone https://github.com/Ethan-Chen-plus/radeon-physical-ai-evidence-suite.git
 cd radeon-physical-ai-evidence-suite
-git checkout v1.0.0-amd-hackathon
+git checkout v1.0.1-amd-hackathon-english
 python3 scripts/validate_public_bundle.py
 ```
 
