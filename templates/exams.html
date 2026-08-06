@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Exams — {{ course.course_code }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('course_detail', course_id=course.course_id) }}">{{ course.course_code }}</a></li>
+        <li class="breadcrumb-item active">Exams</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-pencil-square me-2"></i>Generate Exam</div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Target Cohort</label>
+                        <select class="form-select" name="cohort">
+                            <option value="Remedial">Remedial (Foundation)</option>
+                            <option value="Average">Average (Standard)</option>
+                            <option value="Advanced">Advanced (Higher Order)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Target CO</label>
+                        <select class="form-select" name="target_co">
+                            {% for co in outcomes %}
+                            <option value="{{ co.co_id }}">{{ co.co_id }} — {{ co.statement[:40] }}...</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Number of Questions</label>
+                        <input type="range" class="form-range" name="num_questions" min="1" max="15" value="5"
+                               oninput="this.nextElementSibling.textContent=this.value">
+                        <span class="badge bg-primary">5</span>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <span class="btn-text"><i class="bi bi-magic me-2"></i>Generate Exam</span>
+                        <span class="loading-spinner spinner-border spinner-border-sm me-2"></span>
+                        <span class="loading-spinner">Generating...</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        {% if exam_html %}
+        <div class="card mb-4">
+            <div class="card-header"><i class="bi bi-file-earmark-text me-2"></i>Generated Exam</div>
+            <div class="card-body markdown-body">{{ exam_html | safe }}</div>
+        </div>
+        {% endif %}
+
+        {% if papers %}
+        <div class="card">
+            <div class="card-header"><i class="bi bi-clock-history me-2"></i>Previous Exams</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead><tr><th>Title</th><th>Cohort</th><th>Marks</th><th>Date</th></tr></thead>
+                        <tbody>
+                        {% for p in papers %}
+                        <tr>
+                            <td>{{ p.title }}</td>
+                            <td><span class="badge badge-{{ p.cohort_target|lower }}">{{ p.cohort_target }}</span></td>
+                            <td>{{ p.total_marks }}</td>
+                            <td class="text-muted small">{{ p.created_at[:10] }}</td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% elif not exam_html %}
+        <div class="card">
+            <div class="card-body text-center py-5 text-muted">
+                <i class="bi bi-pencil-square" style="font-size:3rem;"></i>
+                <h5 class="mt-3">Exam Generator</h5>
+                <p>Generate adaptive exam papers aligned to COs and Bloom's Taxonomy levels.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

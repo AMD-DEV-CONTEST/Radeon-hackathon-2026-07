@@ -1,0 +1,23 @@
+services:
+  educopilot:
+    build:
+      context: .
+    image: educopilot:local
+    ports:
+      - "7860:7860"
+    environment:
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-http://host.docker.internal:11434/v1}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gemma4}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-ollama}
+      SECRET_KEY: ${SECRET_KEY:-local-development-key}
+      PORT: 7860
+      SQLITE_DB_PATH: /app/data/educopilot.db
+      CHROMA_PERSIST_DIR: /app/data/chroma_data
+    volumes:
+      - educopilot_data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+volumes:
+  educopilot_data:

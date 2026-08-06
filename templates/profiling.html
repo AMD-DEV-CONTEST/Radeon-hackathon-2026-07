@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Students — {{ course.course_code }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('course_detail', course_id=course.course_id) }}">{{ course.course_code }}</a></li>
+        <li class="breadcrumb-item active">Students</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <!-- Upload CSV -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-upload me-2"></i>Import Scores</div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="upload_csv">
+                    <p class="text-muted small">CSV columns: <code>student_id, student_name, co_id, score, max_score, assessment_type</code></p>
+                    <input type="file" class="form-control mb-3" name="csv_file" accept=".csv" required>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-upload me-1"></i>Import & Analyze
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-bar-chart me-2"></i>Analytics</div>
+            <div class="card-body d-grid gap-2">
+                <form method="POST"><input type="hidden" name="action" value="cohort_summary">
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="bi bi-pie-chart me-2"></i>Cohort Summary
+                    </button>
+                </form>
+                <form method="POST"><input type="hidden" name="action" value="class_insight">
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <span class="btn-text"><i class="bi bi-robot me-2"></i>AI Class Intelligence</span>
+                        <span class="loading-spinner spinner-border spinner-border-sm me-2"></span>
+                        <span class="loading-spinner">Analyzing...</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Student List -->
+        {% if students %}
+        <div class="card">
+            <div class="card-header">Students ({{ students|length }})</div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush" style="max-height:300px;overflow:auto;">
+                    {% for s in students %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ s.student_name }}</strong>
+                            <br><small class="text-muted">{{ s.student_id }}</small>
+                        </div>
+                        <span class="badge badge-{{ s.cohort|lower }} px-2 py-1">{{ s.cohort }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-8">
+        {% if cohort_html %}
+        <div class="card mb-4">
+            <div class="card-header"><i class="bi bi-pie-chart me-2"></i>Cohort Analysis</div>
+            <div class="card-body markdown-body">{{ cohort_html | safe }}</div>
+        </div>
+        {% endif %}
+
+        {% if insight_html %}
+        <div class="card mb-4">
+            <div class="card-header bg-primary-subtle"><i class="bi bi-robot me-2"></i>AI Class Intelligence</div>
+            <div class="card-body markdown-body">{{ insight_html | safe }}</div>
+        </div>
+        {% endif %}
+
+        {% if not cohort_html and not insight_html %}
+        <div class="card">
+            <div class="card-body text-center py-5 text-muted">
+                <i class="bi bi-people" style="font-size:3rem;"></i>
+                <h5 class="mt-3">Student Profiling</h5>
+                <p>Import student scores via CSV, then run cohort analysis or AI insights.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

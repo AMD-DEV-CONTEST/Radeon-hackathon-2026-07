@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% block title %}{{ course.course_code }} — EduCopilot{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item active">{{ course.course_code }}</li>
+    </ol>
+</nav>
+
+<!-- Course Header -->
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h2 style="font-weight:700;">{{ course.course_code }} — {{ course.course_title }}</h2>
+        <p class="text-muted mb-0">{{ course.num_classes }} classes planned &middot; {{ outcomes|length }} Course Outcomes</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('log_class', course_id=course.course_id) }}" class="btn btn-primary">
+            <i class="bi bi-journal-plus me-1"></i>Log Class
+        </a>
+        <form method="POST" action="{{ url_for('delete_course_route', course_id=course.course_id) }}"
+              onsubmit="return confirm('Delete this course and all its data?');">
+            <button type="submit" class="btn btn-outline-danger">
+                <i class="bi bi-trash"></i>
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Stats Row -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-value">{{ completed }}/{{ total }}</div>
+            <div class="stat-label">Classes Completed</div>
+            <div class="progress mt-2">
+                <div class="progress-bar bg-primary" style="width:{{ pct }}%"></div>
+            </div>
+            <small class="text-muted mt-1">{{ pct }}% complete</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-value text-success">{{ on_track }}</div>
+            <div class="stat-label">On Track</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-value text-warning">{{ completed - on_track }}</div>
+            <div class="stat-label">Behind Schedule</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-value text-info">{{ total - completed }}</div>
+            <div class="stat-label">Remaining</div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabbed Content -->
+<ul class="nav nav-tabs" role="tablist">
+    <li class="nav-item">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-plan">Lesson Plan</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-cos">Course Outcomes</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-log">Class Log</button>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('generate_content', course_id=course.course_id) }}">
+            <i class="bi bi-file-earmark-slides me-1"></i>Content
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('evaluate', course_id=course.course_id) }}">
+            <i class="bi bi-check2-square me-1"></i>Evaluate
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('profiling', course_id=course.course_id) }}">
+            <i class="bi bi-people me-1"></i>Students
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('exams', course_id=course.course_id) }}">
+            <i class="bi bi-pencil-square me-1"></i>Exams
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('accreditation', course_id=course.course_id) }}">
+            <i class="bi bi-award me-1"></i>Accreditation
+        </a>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- Lesson Plan Tab -->
+    <div class="tab-pane fade show active" id="tab-plan">
+        <div class="card border-top-0 rounded-top-0">
+            <div class="card-body">
+                {% if plan %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Module</th>
+                                <th>Topic</th>
+                                <th>CO</th>
+                                <th>Pedagogy</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in plan %}
+                            {% set log = log_map.get(item.lecture_num) %}
+                            <tr>
+                                <td><strong>{{ item.lecture_num }}</strong></td>
+                                <td><span class="badge bg-light text-dark border">{{ item.module_name }}</span></td>
+                                <td>{{ item.topic_description }}</td>
+                                <td><span class="badge bg-info-subtle text-info border border-info-subtle">{{ item.target_co }}</span></td>
+                                <td>{{ item.pedagogy }}</td>
+                                <td>
+                                    {% if log %}
+                                        {% if log.completed_on_schedule %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                            <i class="bi bi-check-circle me-1"></i>Done
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                                            <i class="bi bi-exclamation-triangle me-1"></i>Behind
+                                        </span>
+                                        {% endif %}
+                                    {% elif item.lecture_num <= last_lec %}
+                                        <span class="badge bg-secondary-subtle text-secondary">Logged</span>
+                                    {% else %}
+                                        <span class="text-muted"><i class="bi bi-circle"></i></span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-4">No lesson plan found.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Outcomes Tab -->
+    <div class="tab-pane fade" id="tab-cos">
+        <div class="card border-top-0 rounded-top-0">
+            <div class="card-body">
+                {% if outcomes %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>CO ID</th>
+                                <th>Statement</th>
+                                <th>Bloom's Level</th>
+                                <th>Valid</th>
+                                <th>Feedback</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for co in outcomes %}
+                            <tr>
+                                <td><strong>{{ co.co_id }}</strong></td>
+                                <td>{{ co.statement }}</td>
+                                <td><span class="badge bg-purple-subtle text-purple border">{{ co.blooms_level }}</span></td>
+                                <td>
+                                    {% if co.is_valid %}
+                                    <i class="bi bi-check-circle-fill co-valid"></i>
+                                    {% else %}
+                                    <i class="bi bi-x-circle-fill co-invalid"></i>
+                                    {% endif %}
+                                </td>
+                                <td class="text-muted small">{{ co.feedback or '—' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-4">No outcomes found.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Class Log Tab -->
+    <div class="tab-pane fade" id="tab-log">
+        <div class="card border-top-0 rounded-top-0">
+            <div class="card-body">
+                {% if logs %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Topics Covered</th>
+                                <th>Comments</th>
+                                <th>Student Questions</th>
+                                <th>Pace</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr>
+                                <td><strong>{{ log.lecture_num }}</strong></td>
+                                <td>{{ log.topics_covered[:60] }}</td>
+                                <td class="text-muted small">{{ log.teacher_comments or '—' }}</td>
+                                <td class="text-muted small">{{ log.student_questions or '—' }}</td>
+                                <td class="text-muted small">{{ log.pace_notes or '—' }}</td>
+                                <td>
+                                    {% if log.completed_on_schedule %}
+                                    <span class="badge bg-success-subtle text-success">On Track</span>
+                                    {% else %}
+                                    <span class="badge bg-warning-subtle text-warning">Behind</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-4">No classes logged yet.</p>
+                {% endif %}
+                <a href="{{ url_for('log_class', course_id=course.course_id) }}" class="btn btn-primary mt-2">
+                    <i class="bi bi-journal-plus me-1"></i>Log a Class
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
