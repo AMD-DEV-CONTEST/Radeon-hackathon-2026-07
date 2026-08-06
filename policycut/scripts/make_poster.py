@@ -195,7 +195,11 @@ def main() -> int:
     # ---------- column 3: screenshots / product ----------
     panel(c, x2, y0, col_w, col_h, "A real editor, not a demo page")
     y = top - 22 * mm
-    shots = sorted(ASSETS.glob("*.png")) if ASSETS.is_dir() else []
+    def shot_rank(p: Path) -> tuple:
+        order = {"review": 0, "export": 1, "home": 2}
+        return (order.get(p.stem, 9), p.stem)
+
+    shots = sorted(ASSETS.glob("*.png"), key=shot_rank) if ASSETS.is_dir() else []
     if shots:
         for img_path in shots[:3]:
             try:

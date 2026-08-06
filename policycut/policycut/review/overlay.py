@@ -120,8 +120,10 @@ def _draw_watermark(cv2, frame: np.ndarray) -> None:
     scale, thick = 0.45, 1
     (tw, th), _ = cv2.getTextSize(WATERMARK_TEXT, font, scale, thick)
     x, y = max(4, fw - tw - 10), th + 8
-    cv2.putText(frame, WATERMARK_TEXT, (x + 1, y + 1), font, scale, (0, 0, 0), thick + 1, cv2.LINE_AA)
-    cv2.putText(frame, WATERMARK_TEXT, (x, y), font, scale, (230, 230, 230), thick, cv2.LINE_AA)
+    # dark backing box + a single text pass (a shadow pass reads as doubled
+    # text at small scales after video compression)
+    cv2.rectangle(frame, (x - 5, y - th - 4), (x + tw + 5, y + 5), (20, 20, 20), -1)
+    cv2.putText(frame, WATERMARK_TEXT, (x, y), font, scale, (215, 215, 215), thick, cv2.LINE_AA)
 
 
 def build_overlay(
