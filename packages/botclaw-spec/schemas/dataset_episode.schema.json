@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://botversex.dev/schemas/botclaw/v0.2/dataset_episode.schema.json",
+  "title": "DatasetEpisode",
+  "description": "A single recorded episode. v0.2 adds stats + quality fields populated by M2 scan/score.",
+  "type": "object",
+  "required": ["id", "robot_id", "recorded_at", "frame_count", "fps", "artifacts"],
+  "additionalProperties": false,
+  "properties": {
+    "spec_version": { "type": "string", "description": "BotClaw spec version, e.g. '0.2.0'." },
+    "id": { "type": "string", "minLength": 1 },
+    "robot_id": { "type": "string", "minLength": 1 },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC timestamp of stop_recording."
+    },
+    "duration_sec": { "type": "number", "minimum": 0 },
+    "frame_count": { "type": "integer", "minimum": 0 },
+    "fps": { "type": "number", "minimum": 0, "description": "Alias of fps_nominal for backwards compat." },
+    "fps_nominal": { "type": "number", "minimum": 0 },
+    "source": {
+      "type": "string",
+      "description": "Where the episode came from (realtime_record, replay, sim, ...)"
+    },
+    "artifacts": {
+      "type": "object",
+      "description": "Paths / URLs to produced files, relative to storage root.",
+      "additionalProperties": false,
+      "properties": {
+        "json": { "type": "string" },
+        "parquet": { "type": "string" },
+        "video": { "type": "string" }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "quality_score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Composite quality 0-100 computed at scan time."
+    },
+    "flags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Quality flags: low_frame_count, too_short, fps_unstable, no_motion, joint_jitter, ..."
+    },
+    "stats": {
+      "type": "object",
+      "description": "Aggregate stats: per-joint range/std/jitter, fps mean/std, etc.",
+      "additionalProperties": true,
+      "properties": {
+        "frame_count": { "type": "integer" },
+        "duration_s": { "type": "number" },
+        "fps_nominal": { "type": ["number", "null"] },
+        "fps_observed_mean": { "type": "number" },
+        "fps_observed_std": { "type": "number" },
+        "joints": {
+          "type": "object",
+          "description": "Per-joint stats keyed by joint name (e.g. '1'..'6').",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "min": { "type": "number" },
+              "max": { "type": "number" },
+              "mean": { "type": "number" },
+              "std": { "type": "number" },
+              "range": { "type": "number" },
+              "jitter": { "type": "number" }
+            },
+            "additionalProperties": true
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://botversex.dev/schemas/botclaw/v0.9/skill_run_event.schema.json",
+  "title": "SkillRunEvent",
+  "description": "Event emitted during skill execution. Bridges API skill_runs, workflow node logs, and realtime safety/runtime state.",
+  "type": "object",
+  "required": ["event_id", "run_id", "skill_id", "runtime_id", "timestamp", "status"],
+  "additionalProperties": false,
+  "properties": {
+    "event_id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "skill_id": { "type": "string", "minLength": 1 },
+    "runtime_id": { "type": "string", "minLength": 1 },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "status": {
+      "type": "string",
+      "enum": ["queued", "running", "succeeded", "failed", "cancelled"]
+    },
+    "phase": {
+      "type": "string",
+      "enum": ["validate", "lease", "preflight", "execute", "monitor", "cleanup", "home", "done"]
+    },
+    "lease_holder": { "type": "string" },
+    "safety_violation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": ["joint_limit", "workspace_limit", "max_delta", "estop", "lease_conflict", "runtime_unavailable"]
+        },
+        "message": { "type": "string" },
+        "severity": {
+          "type": "string",
+          "enum": ["info", "warning", "error", "critical"]
+        }
+      }
+    },
+    "message": { "type": "string" },
+    "data": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

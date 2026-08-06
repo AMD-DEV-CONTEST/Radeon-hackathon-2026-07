@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://botversex.dev/schemas/botclaw/v0.1/robot_state.schema.json",
+  "title": "RobotState",
+  "description": "Snapshot of a robot + realtime link (exposed by /api/status).",
+  "type": "object",
+  "required": ["robot_id", "timestamp", "teleop_connected", "ui_clients", "is_recording"],
+  "additionalProperties": false,
+  "properties": {
+    "robot_id": { "type": "string", "minLength": 1 },
+    "timestamp": { "type": "number" },
+    "joints": {
+      "type": "object",
+      "description": "Latest joint angles, null if the sender hasn't produced a frame yet.",
+      "additionalProperties": { "type": ["number", "null"] }
+    },
+    "servo_values": {
+      "type": "object",
+      "additionalProperties": { "type": ["integer", "null"] }
+    },
+    "teleop_connected": { "type": "boolean" },
+    "ui_clients": { "type": "integer", "minimum": 0 },
+    "is_recording": { "type": "boolean" },
+    "buffer_size": { "type": "integer", "minimum": 0 }
+  }
+}

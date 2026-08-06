@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BotverseX — Seed Teaser Deck 2026 (15 slides)</title>
+  <style>
+    :root {
+      --bg: #0a0e14; --fg: #e8edf4; --muted: #8b9cb3;
+      --accent: #f59e0b; --green: #34d399; --line: #3d4f66; --box: #141c28;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; background: #000; font-family: "Segoe UI", "PingFang SC", "Helvetica Neue", Arial, sans-serif; color: var(--fg); }
+    html.export-mode { font-size: 18px; }
+    html.export-mode .progress, html.export-mode .page-num, html.export-mode .hint, html.export-mode .deck-nav { display: none !important; }
+    #deck { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 1; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; padding: 3vh 5vw;
+      background: var(--bg); opacity: 0; pointer-events: none; visibility: hidden;
+      transition: opacity 0.35s ease;
+    }
+    html.gsap-on .slide { transition: none; }
+    .slide.active { opacity: 1; pointer-events: auto; z-index: 1; visibility: visible; }
+    .slide.light { background: #f4f6f9; color: #0f172a; --muted: #64748b; --box: #fff; }
+    h1 { font-size: clamp(2rem, 5vw, 3.8rem); font-weight: 700; letter-spacing: -0.02em; text-align: center; line-height: 1.12; }
+    h2 { font-size: clamp(1.1rem, 2.2vw, 1.6rem); font-weight: 400; color: var(--muted); text-align: center; margin-top: 0.5rem; max-width: 90vw; }
+    .tagline { font-size: clamp(1rem, 2vw, 1.35rem); color: var(--accent); margin-top: 1rem; text-align: center; font-weight: 600; }
+    .story-sub { font-size: clamp(0.95rem, 1.7vw, 1.2rem); color: var(--muted); text-align: center; margin-top: 1.2vh; max-width: 82vw; line-height: 1.55; }
+    .confidential { position: absolute; top: 2vh; left: 4vw; font-size: 0.75rem; color: var(--muted); opacity: 0.7; letter-spacing: 0.06em; }
+    .footer { position: absolute; bottom: 2vh; left: 0; right: 0; text-align: center; font-size: 0.9rem; color: var(--muted); }
+    .deck-nav {
+      position: fixed; bottom: 2.2vh; left: 4vw; font-size: 0.78rem; z-index: 100;
+    }
+    .deck-nav a { color: var(--muted); margin-right: 1rem; }
+    .deck-nav a:hover { color: var(--accent); }
+    .words { font-size: clamp(1.5rem, 3.2vw, 2.4rem); font-weight: 600; text-align: center; max-width: 88vw; line-height: 1.35; }
+    .words span { color: var(--accent); }
+    ul.minimal { list-style: none; font-size: clamp(1rem, 1.9vw, 1.35rem); line-height: 1.75; text-align: left; margin-top: 1.5vh; max-width: 78vw; }
+    ul.minimal li { margin-bottom: 0.35em; }
+    ul.minimal li::before { content: "→ "; color: var(--accent); }
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5vw; width: min(92vw, 1100px); margin-top: 2vh; }
+    .cols.three { grid-template-columns: 1fr 1fr 1fr; }
+    .card { background: var(--box); border: 1px solid var(--line); border-radius: 10px; padding: 1.4rem 1.2rem; }
+    .card h3 { font-size: 1.05rem; color: var(--accent); margin-bottom: 0.6rem; }
+    .card p, .card li { font-size: 0.92rem; color: var(--muted); line-height: 1.5; }
+    .card ul { list-style: none; padding: 0; }
+    .card li::before { content: "· "; color: var(--accent); }
+    table.fin { width: min(92vw, 960px); margin-top: 1.5vh; border-collapse: collapse; font-size: clamp(0.8rem, 1.4vw, 1rem); }
+    table.fin th, table.fin td { border: 1px solid var(--line); padding: 0.55rem 0.7rem; text-align: left; }
+    table.fin th { background: var(--box); color: var(--accent); font-weight: 600; }
+    table.fin td { color: var(--fg); }
+    .slide.light table.fin th { background: #e2e8f0; color: #b45309; }
+    .slide.light table.fin td { color: #0f172a; }
+    .diagram { width: min(94vw, 1080px); margin-top: 1vh; }
+    .diagram svg { width: 100%; height: auto; max-height: 58vh; }
+    .progress { position: fixed; bottom: 0; left: 0; height: 3px; background: var(--accent); transition: width 0.3s; z-index: 100; }
+    .page-num { position: fixed; bottom: 1.2vh; right: 2vw; font-size: 0.9rem; color: var(--muted); z-index: 100; }
+    .hint { position: fixed; top: 1vh; right: 2vw; font-size: 0.8rem; color: var(--muted); opacity: 0.45; z-index: 100; }
+    .slide.vision { background: radial-gradient(ellipse 80% 55% at 50% 40%, #1a2438 0%, #0a0e14 72%); }
+    .slide.ask { background: linear-gradient(165deg, #0f172a 0%, #1e293b 40%, #0a0e14 100%); border-top: 4px solid var(--accent); }
+    .split-problem {
+      display: grid; grid-template-columns: 1fr 1.15fr; gap: 2vw;
+      width: min(94vw, 1140px); margin-top: 1.2vh; align-items: stretch;
+    }
+    .split-problem img { width: 100%; min-height: 50vh; object-fit: contain; border-radius: 8px; border: 1px solid var(--line); background: var(--box); }
+    .split-problem ul { list-style: none; font-size: 0.95rem; line-height: 1.65; color: var(--muted); }
+    .split-problem ul li { margin-bottom: 0.5em; }
+    .split-problem h3 { color: var(--accent); font-size: 1rem; margin: 1rem 0 0.4rem; }
+    .split-problem h3:first-child { margin-top: 0; }
+    .product-combo {
+      display: grid; grid-template-columns: 1fr 1.1fr; gap: 1.5vw;
+      width: min(96vw, 1180px); margin-top: 1vh; align-items: stretch;
+    }
+    .product-combo .robots {
+      display: grid; grid-template-rows: 1fr 1fr; gap: 0.8vw;
+    }
+    .product-combo .robots img {
+      width: 100%; height: 24vh; object-fit: contain; border-radius: 8px;
+      border: 1px solid var(--line); background: var(--box);
+    }
+    .product-combo .modules {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.6vw;
+    }
+    .product-combo .modules img {
+      width: 100%; height: 24vh; object-fit: contain; border-radius: 8px;
+      border: 1px solid var(--line); background: #0f172a;
+    }
+    .demo-panel {
+      width: min(88vw, 720px); margin-top: 2vh; padding: 2rem;
+      background: var(--box); border: 2px solid var(--accent); border-radius: 14px; text-align: center;
+    }
+    .demo-panel .url { font-size: clamp(1.4rem, 3vw, 2rem); color: var(--accent); font-weight: 700; margin: 0.8rem 0; }
+    .demo-panel .url a { color: var(--accent); text-decoration: none; }
+    .chain-row { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; max-width: 92vw; margin-top: 2vh; }
+    .chain-box { background: var(--box); border: 1px solid var(--line); border-radius: 8px; padding: 0.65rem 0.9rem; min-width: 7rem; text-align: center; }
+    .chain-box strong { display: block; font-size: 0.95rem; }
+    .chain-box span { font-size: 0.75rem; color: var(--muted); }
+    .chain-box.us { border-color: var(--accent); }
+    .chain-box.us strong { color: var(--accent); }
+    .chain-arrow { color: var(--muted); font-size: 1.2rem; align-self: center; }
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 2vw; width: min(94vw, 1100px); margin-top: 1.5vh; }
+    .split img { width: 100%; max-height: 58vh; object-fit: contain; border-radius: 8px; }
+    .split .label { text-align: center; font-size: 0.9rem; color: var(--muted); margin-top: 0.4rem; }
+    .team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2vw; width: min(92vw, 1000px); margin-top: 1.5vh; }
+    .team-grid .role { font-size: 0.8rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; }
+    .team-grid .name { font-size: 1.15rem; color: var(--fg); font-weight: 700; margin: 0.3rem 0 0.5rem; }
+    .slide.platform-map h1 { font-size: clamp(1.5rem, 3.5vw, 2.4rem); }
+    .slide.platform-map .legend { display: flex; gap: 2rem; justify-content: center; font-size: 0.9rem; color: var(--muted); margin-top: 0.6vh; }
+    .slide.platform-map .legend .live::before { content: ""; display: inline-block; width: 10px; height: 10px; background: var(--accent); border-radius: 2px; margin-right: 0.35rem; }
+    .slide.platform-map .legend .build::before { content: ""; display: inline-block; width: 10px; height: 10px; border: 2px dashed #64748b; margin-right: 0.35rem; }
+    .funds-milestone { width: min(94vw, 1100px); margin-top: 1vh; display: grid; grid-template-columns: 1fr 1fr; gap: 1.5vw; }
+    .fund-bars { background: var(--box); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.2rem; }
+    .fund-row { display: grid; grid-template-columns: 8.5rem 1fr 2.8rem; gap: 0.5rem; align-items: center; margin-bottom: 0.6rem; font-size: 0.85rem; }
+    .fund-row .bar-wrap { height: 1.1rem; background: rgba(61,79,102,0.45); border-radius: 999px; overflow: hidden; }
+    .fund-row .bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #d97706, #f59e0b); }
+    .big-num { font-size: clamp(2.8rem, 7vw, 5rem); font-weight: 800; color: var(--accent); text-align: center; }
+    .contact-lines { margin-top: 1.5vh; font-size: 1.05rem; text-align: center; line-height: 1.8; }
+    .contact-lines a { color: var(--accent); text-decoration: none; }
+    .slide.cta-close h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); }
+    .slide.cta-close .product-url {
+      font-size: clamp(1.1rem, 2.2vw, 1.5rem); color: var(--accent); font-weight: 600;
+      margin-top: 1.2vh;
+    }
+    .slide.cta-close .product-url a { color: var(--accent); text-decoration: none; }
+    .slide.funds-slide .risk-footnote {
+      margin-top: 1.2vh; font-size: 0.88rem; color: var(--muted); text-align: center; max-width: 88vw;
+    }
+    .slide.funds-slide .risk-footnote strong { color: #8b9cb3; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+  <div class="page-num" id="pageNum"></div>
+  <div class="hint">← → · F fullscreen · Teaser 15 页</div>
+  <nav class="deck-nav" aria-label="Deck links">
+    <a href="investor-seed-2026.html">Deep Dive 45 页 →</a>
+  </nav>
+  <div id="deck">
+
+  <!-- 1 Cover -->
+  <section class="slide active vision">
+    <p class="confidential">CONFIDENTIAL · Seed Teaser · 2026</p>
+    <h1>BotverseX</h1>
+    <p class="tagline">The Vercel for Embodied AI</p>
+    <h2>降低真实世界机器人数据从采集 → 训练 → 部署的工程成本</h2>
+    <p class="story-sub">LeRobot 生态上的真机 MLOps · 轻资产软件基础设施 · 控制留本机、数据上云</p>
+    <div class="footer">botversex.feispace.me · 首聊 15 页 · 尽调见 45 页 Deep Dive</div>
+  </section>
+
+  <!-- 2 Pain -->
+  <section class="slide">
+    <h1>具身智能真机部署的「工程摩擦税」</h1>
+    <h2>不是缺模型 · 是缺一条能跑通真机的流水线 — 目标把摩擦降低一个数量级</h2>
+    <div class="split-problem">
+      <div>
+        <h3 style="color:#ef4444">以前（碎片化）</h3>
+        <ul>
+          <li>串口、相机、ROS、训练脚本各一套环境</li>
+          <li>录完数据不知如何训、训完难回真机</li>
+          <li>换机型 = 重做 pipeline · 场景知识难沉淀</li>
+        </ul>
+        <h3>BotverseX（一个网站）</h3>
+        <ul>
+          <li>Connect → Record → Train → Deploy → Skill</li>
+          <li>换机器人只换 Runtime · 流程不变</li>
+        </ul>
+      </div>
+      <div>
+        <img src="assets/botversex-workflow.png" alt="BotverseX workflow" />
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 Position -->
+  <section class="slide vision">
+    <h1>基于 LeRobot 生态的极简 MLOps 托管</h1>
+    <h2>轻资产、高毛利软件基础设施 — 适配开源模型与数据标准，不做铁、不做最大模型</h2>
+    <div class="cols three">
+      <div class="card" style="border-color:var(--accent)">
+        <h3>我们提供</h3>
+        <ul>
+          <li>Web + Local Agent + Runtime</li>
+          <li>云 Finetune · Workflow · LeRobot episode</li>
+          <li>录 → 训 → 部署回真机</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>生态位</h3>
+        <ul>
+          <li>HF/LeRobot 的「副驾驶」</li>
+          <li>真机 Web 闭环 · 云训 PMF</li>
+          <li>协作大于竞争</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>远期上行</h3>
+        <ul>
+          <li>Skill 版本化 · compatible_types</li>
+          <li>Marketplace（Building）</li>
+          <li>多 Runtime · 伙伴 GTM</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 Product surface -->
+  <section class="slide demo">
+    <h1>One Platform Surface · 已上线</h1>
+    <h2>真机 + 网页 + 本地 Runtime — Dataset / Training / Workflow / Skill 同一账号</h2>
+    <div class="product-combo">
+      <div class="robots">
+        <img src="assets/so101-hardware.jpeg" alt="SO-101" />
+        <img src="assets/reachymini实体图.jpg" alt="Reachy Mini" />
+      </div>
+      <div class="modules">
+        <img src="assets/botversex-dataset.png" alt="Dataset" />
+        <img src="assets/botversex-training.png" alt="Training" />
+        <img src="assets/botversex-workflow.png" alt="Workflow" />
+        <img src="assets/botversex-skill.png" alt="Skill" />
+      </div>
+    </div>
+    <p class="story-sub">SO-101 端到端 Live · Reachy 第二 Runtime — 证明平台泛化，不是单机 demo</p>
+  </section>
+
+  <!-- 5 Live demo cue -->
+  <section class="slide ask">
+    <h1>2 分钟 · Live Demo</h1>
+    <h2>停在本页 · 打开产品 — 比 9 页截图更有说服力</h2>
+    <div class="demo-panel">
+      <p style="color:var(--muted);font-size:0.95rem">建议演示路径</p>
+      <p class="url"><a href="https://botversex.feispace.me" target="_blank" rel="noopener">botversex.feispace.me</a></p>
+      <p style="color:var(--fg);line-height:1.7;font-size:1rem">
+        Setup 连 SO-101 → Dataset 录 episode → Training 云任务 → Deploy / Skill
+      </p>
+    </div>
+    <p class="story-sub">Deep Dive：<a href="investor-seed-2026.html" style="color:var(--accent)">45 页全平台截图</a> · Data Room：<code style="color:var(--muted)">investor-red-team-memo.md</code></p>
+  </section>
+
+  <!-- 6 Industry chain -->
+  <section class="slide vision">
+    <h1>产业链 · 价值往数据与工具走</h1>
+    <h2>硬件趋廉价 · 模型可租用 · 真实 episode 与 MLOps 工具才是缺口</h2>
+    <div class="chain-row">
+      <div class="chain-box"><strong>零部件</strong><span>电机 · 传感器</span></div>
+      <span class="chain-arrow">→</span>
+      <div class="chain-box"><strong>本体</strong><span>臂 · 人形 · 四足</span></div>
+      <span class="chain-arrow">→</span>
+      <div class="chain-box"><strong>模型</strong><span>VLA · 策略</span></div>
+      <span class="chain-arrow">→</span>
+      <div class="chain-box us"><strong>数据 + 工具</strong><span>BotverseX</span></div>
+      <span class="chain-arrow">→</span>
+      <div class="chain-box us"><strong>场景</strong><span>lab · 工厂 · 教育</span></div>
+    </div>
+    <p class="story-sub" style="margin-top:2vh;color:var(--accent)">像 Vercel 降低网页部署成本一样 · 降低具身数据闭环的工程成本</p>
+  </section>
+
+  <!-- 7 Ecosystem -->
+  <section class="slide">
+    <h1>与 LeRobot / HF 协作共生</h1>
+    <h2>站在开源生态之上 · 做开发与运行层 — 不是第三个 Hub</h2>
+    <table class="fin">
+      <tr><th></th><th>Hugging Face / LeRobot</th><th>BotverseX</th></tr>
+      <tr><td>核心资产</td><td>模型、数据集、开源硬件生态</td><td>真机闭环 · Workflow · 云训</td></tr>
+      <tr><td>用户动作</td><td>下权重、推 dataset</td><td>插电、录场景、训、部署、装 Skill</td></tr>
+      <tr><td>关系</td><td colspan="2" style="text-align:center;color:#34d399">互补：我们让 episode 更快变成真机上的能力</td></tr>
+    </table>
+  </section>
+
+  <!-- 8 Dual Runtime -->
+  <section class="slide demo">
+    <h1>双 Runtime · 平台泛化铁证</h1>
+    <h2>SO-101 + Reachy Mini — 换本体不换网站</h2>
+    <div class="split">
+      <div>
+        <img src="assets/botversex-so101.png" alt="SO-101 UI" />
+        <p class="label">SO-101 · Live 端到端</p>
+      </div>
+      <div>
+        <img src="assets/botversex-reachymini.png" alt="Reachy UI" />
+        <p class="label">Reachy Mini · 第二 Runtime</p>
+      </div>
+    </div>
+    <p class="story-sub">Unitree / 四足路线图见 Deep Dive · 首聊不展开「认臂」细节</p>
+  </section>
+
+  <!-- 9 Platform map + flywheel hint -->
+  <section class="slide platform-map">
+    <h1>产品全景 · LIVE vs BUILDING</h1>
+    <h2>融资买的是把 LIVE 做深、把 BUILDING 做成收入 — 路演停在此页接 Live Demo</h2>
+    <div class="diagram">
+      <svg viewBox="0 0 920 340" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, sans-serif">
+        <text x="230" y="24" text-anchor="middle" fill="#f59e0b" font-size="14" font-weight="700">LIVE</text>
+        <text x="690" y="24" text-anchor="middle" fill="#8b9cb3" font-size="14" font-weight="700">BUILDING</text>
+        <line x1="460" y1="8" x2="460" y2="320" stroke="#3d4f66"/>
+        <g font-size="12" fill="#e8edf4">
+          <rect x="24" y="40" width="200" height="36" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="124" y="64" text-anchor="middle">Robots · Datasets · Training</text>
+          <rect x="24" y="84" width="200" height="36" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="124" y="108" text-anchor="middle">Workflow · Models · Skills</text>
+          <rect x="24" y="128" width="200" height="36" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="124" y="152" text-anchor="middle">Local Agent · Reachy</text>
+          <rect x="248" y="88" width="180" height="80" rx="8" fill="#141c28" stroke="#34d399" stroke-width="2"/>
+          <text x="338" y="118" text-anchor="middle" fill="#34d399" font-size="12" font-weight="600">飞轮</text>
+          <text x="338" y="140" text-anchor="middle" fill="#8b9cb3" font-size="10">场景 → 数据 → 训练 → 部署</text>
+          <text x="338" y="158" text-anchor="middle" fill="#8b9cb3" font-size="10">Skill 版本化复用 → 更多场景</text>
+        </g>
+        <g font-size="12" fill="#8b9cb3">
+          <rect x="484" y="40" width="400" height="36" rx="6" fill="#141c28" stroke="#64748b" stroke-dasharray="6 4"/><text x="684" y="64" text-anchor="middle">Marketplace · 企业多机队</text>
+          <rect x="484" y="84" width="400" height="36" rx="6" fill="#141c28" stroke="#64748b" stroke-dasharray="6 4"/><text x="684" y="108" text-anchor="middle">Workflow 全节点 API · 更多 Runtime</text>
+        </g>
+        <text x="460" y="300" text-anchor="middle" fill="#34d399" font-size="12" font-weight="600">P0 收入：云 GPU 微调 · 非商店 GMV</text>
+      </svg>
+    </div>
+    <div class="legend"><span class="live">已上线</span><span class="build">在建 / 期权</span></div>
+  </section>
+
+  <!-- 10 Architecture -->
+  <section class="slide">
+    <h1>Cloud + Local Agent + Runtime</h1>
+    <h2>账号、数据、训练在云端；低延迟控制在本地；每增加一台机器人 = 一个 Runtime</h2>
+    <div class="diagram">
+      <svg viewBox="0 0 800 280" xmlns="http://www.w3.org/2000/svg">
+        <rect x="200" y="20" width="400" height="56" rx="8" fill="#141c28" stroke="#f59e0b" stroke-width="2"/>
+        <text x="400" y="52" text-anchor="middle" fill="#e8edf4" font-size="14" font-weight="700">Cloud · Auth · Dataset · Training · Workflow</text>
+        <rect x="120" y="110" width="200" height="52" rx="8" fill="#141c28" stroke="#3d4f66"/>
+        <text x="220" y="142" text-anchor="middle" fill="#e8edf4" font-size="12">Local Agent</text>
+        <rect x="480" y="110" width="200" height="52" rx="8" fill="#141c28" stroke="#f59e0b" stroke-width="2"/>
+        <text x="580" y="142" text-anchor="middle" fill="#e8edf4" font-size="12">Runtime Adapters</text>
+        <rect x="80" y="200" width="140" height="44" rx="6" fill="#141c28" stroke="#f59e0b"/><text x="150" y="228" text-anchor="middle" font-size="11">SO-101</text>
+        <rect x="260" y="200" width="140" height="44" rx="6" fill="#141c28" stroke="#f59e0b"/><text x="330" y="228" text-anchor="middle" font-size="11">Reachy</text>
+        <rect x="440" y="200" width="140" height="44" rx="6" fill="#141c28" stroke="#64748b" stroke-dasharray="5 3"/><text x="510" y="228" text-anchor="middle" fill="#8b9cb3" font-size="11">Unitree…</text>
+        <line x1="400" y1="76" x2="220" y2="110" stroke="#f59e0b" stroke-width="2"/>
+        <line x1="400" y1="76" x2="580" y2="110" stroke="#f59e0b" stroke-width="2"/>
+        <line x1="580" y1="162" x2="150" y2="200" stroke="#f59e0b"/>
+        <line x1="580" y1="162" x2="330" y2="200" stroke="#f59e0b"/>
+        <text x="400" y="268" text-anchor="middle" fill="#34d399" font-size="12">Data syncs to cloud · control stays local</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 11 Team -->
+  <section class="slide">
+    <h1>团队 · GTM × 真机智能</h1>
+    <div class="team-grid">
+      <div class="card">
+        <p class="role">CEO · 产品 · 商业化</p>
+        <p class="name">杨智超 <span style="font-weight:400;color:var(--muted)">@ethanyeang</span></p>
+        <ul>
+          <li>暨南大学 · 全栈产品 · 企业 AI 交付 <strong>半年约 ¥300 万</strong></li>
+          <li>实验室 / 企业 GTM · 场景落地与回款</li>
+        </ul>
+      </div>
+      <div class="card">
+        <p class="role">CTO · 具身智能</p>
+        <p class="name">刘琦</p>
+        <ul>
+          <li>港中文硕士 · <strong>VLA</strong> / 模仿学习</li>
+          <li>Training · Workflow · Runtime · Skill 技术栈</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 Business -->
+  <section class="slide light">
+    <h1 style="color:#0f172a">商业模式 · 钱从哪来、多快跑通</h1>
+    <table class="fin">
+      <tr><th>层级</th><th>产品</th><th>为什么现在能跑通</th></tr>
+      <tr><td><strong>近端现金流</strong></td><td>云 GPU 微调 · 按量付费</td><td>开发者已有真机，缺的只是一键微调入口</td></tr>
+      <tr><td>中端 ARR</td><td>团队 MLOps · Workflow 订阅</td><td>数据和习惯留在账号里，切换成本极高</td></tr>
+      <tr><td>远端大客</td><td>企业数据管线 · 窄试点</td><td>用 POC 验证后再签框架，控制交付风险</td></tr>
+      <tr><td>远期上行</td><td>Skill Marketplace</td><td>跨机型成功率成熟后自然开放，不是 Seed 赌注</td></tr>
+    </table>
+    <p class="story-sub" style="color:#b45309;font-weight:600">P0 收入来自云微调算力消耗，毛利结构与付费路径已在当前线上产品中跑通</p>
+  </section>
+
+  <!-- 13 Market + competition -->
+  <section class="slide">
+    <h1>市场切口 · 竞争格局</h1>
+    <div class="cols">
+      <div class="card">
+        <h3>SOM（3 年）</h3>
+        <p>开源臂 + 教育 lab · 先拿 <strong>LeRobot 真机 MLOps 入口</strong><br/>Y2 ARR $2–4M（云训 + lab）· 商店为期权</p>
+      </div>
+      <div class="card">
+        <h3>差异化</h3>
+        <ul>
+          <li>vs HF：真机 Web 闭环 · 云训</li>
+          <li>vs Foxglove：IL 录训部署</li>
+          <li>vs Mecka：卖工具非卖数据</li>
+          <li>vs 本体厂商店：中立 SaaS</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 Funding (no valuation / cap table) -->
+  <section class="slide ask funds-slide">
+    <p class="big-num">$5M</p>
+    <p class="tagline" style="margin-top:0">Seed · 18–24 个月 · 估值与 Cap Table 面谈 / Term Sheet</p>
+    <div class="funds-milestone">
+      <div class="fund-bars">
+        <p style="color:var(--accent);font-weight:700;margin-bottom:0.6rem;font-size:0.9rem">资金用途</p>
+        <div class="fund-row"><span class="lbl">产品工程</span><div class="bar-wrap"><div class="bar-fill" style="width:42%"></div></div><span>42%</span></div>
+        <div class="fund-row"><span class="lbl">Runtime</span><div class="bar-wrap"><div class="bar-fill" style="width:18%"></div></div><span>18%</span></div>
+        <div class="fund-row"><span class="lbl">市场试点</span><div class="bar-wrap"><div class="bar-fill" style="width:22%"></div></div><span>22%</span></div>
+        <div class="fund-row"><span class="lbl">云 / 安全</span><div class="bar-wrap"><div class="bar-fill" style="width:18%"></div></div><span>18%</span></div>
+      </div>
+      <div class="card" style="text-align:left">
+        <h3>18 个月里程碑</h3>
+        <ul>
+          <li>Q1–2：云训 PMF · Workflow 可执行 · 3 标杆 lab</li>
+          <li>Q3–4：Reachy 做深 · 10 POC · Marketplace beta</li>
+          <li>Q5–6：Runtime 标准 · ARR $2M+ · A 轮数据包</li>
+        </ul>
+        <p style="margin-top:0.8rem;font-size:0.85rem;color:var(--accent)">A 轮看：云训 MRR · Workflow 复用率 · 双 Runtime 标准</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 CTA -->
+  <section class="slide ask vision cta-close">
+    <h1>一起把真实场景变成机器人能力</h1>
+    <h2>产品已上线，欢迎现场打开对照</h2>
+    <p class="story-sub" style="color:var(--fg);max-width:78vw">本轮寻求 <span style="color:var(--accent);font-weight:700">$5M Seed</span> · 把 LIVE 做深 · 把 BUILDING 做成收入</p>
+    <p class="product-url"><a href="https://botversex.feispace.me" target="_blank" rel="noopener">botversex.feispace.me</a></p>
+    <div class="contact-lines">
+      <a href="mailto:yzc_2024@163.com">yzc_2024@163.com</a><br/>
+      <span style="color:var(--muted)">微信</span> y15976887109<br/>
+      <span style="color:var(--muted)">杨智超 Ethan Yang</span>
+    </div>
+    <p class="footer">BotverseX · Confidential · Teaser 15 · Deep Dive 45</p>
+  </section>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js"></script>
+  <script>
+    const slides = [...document.querySelectorAll('#deck .slide')];
+    let i = 0, animating = false;
+    const progress = document.getElementById('progress');
+    const pageNum = document.getElementById('pageNum');
+    const q = new URLSearchParams(location.search);
+    const exportMode = q.get('export') === '1';
+    if (exportMode) document.documentElement.classList.add('export-mode');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const useGsap = !exportMode && !reduceMotion && typeof gsap !== 'undefined';
+    if (useGsap) document.documentElement.classList.add('gsap-on');
+    const PART_SEL = 'h1,h2,.tagline,.story-sub,.words,.cols,.card,.split,.split-problem,.product-combo,.demo-panel,table.fin,.diagram,.team-grid,.funds-milestone,.big-num,ul.minimal,.contact-lines,.legend,.fund-bars,.product-url,.risk-footnote,.footer';
+    function partsOf(s) { return [...s.querySelectorAll(PART_SEL)]; }
+    function showInstant(n) {
+      i = Math.max(0, Math.min(n, slides.length - 1));
+      slides.forEach((s, j) => {
+        s.classList.toggle('active', j === i);
+        if (useGsap) gsap.set(s, { opacity: j === i ? 1 : 0, visibility: j === i ? 'visible' : 'hidden', pointerEvents: j === i ? 'auto' : 'none', zIndex: j === i ? 1 : 0 });
+      });
+      if (progress) progress.style.width = ((i + 1) / slides.length * 100) + '%';
+      if (pageNum) pageNum.textContent = (i + 1) + ' / ' + slides.length;
+    }
+    function show(n, dir = 1) {
+      if (!useGsap) { showInstant(n); return; }
+      if (animating) return;
+      const next = Math.max(0, Math.min(n, slides.length - 1));
+      if (next === i) return;
+      const prev = slides[i], slide = slides[next];
+      animating = true;
+      const tl = gsap.timeline({ onComplete: () => { prev.classList.remove('active'); animating = false; } });
+      slide.classList.add('active');
+      gsap.set(slide, { opacity: 1, visibility: 'visible', pointerEvents: 'auto', zIndex: 2 });
+      gsap.set(partsOf(slide), { opacity: 0, y: dir >= 0 ? 28 : -28 });
+      tl.to(partsOf(prev), { opacity: 0, y: dir >= 0 ? -16 : 16, duration: 0.25, stagger: 0.02 }, 0);
+      tl.to(prev, { opacity: 0, duration: 0.2 }, 0.06);
+      tl.to(partsOf(slide), { opacity: 1, y: 0, duration: 0.45, stagger: 0.05 }, 0.1);
+      i = next;
+      if (progress) progress.style.width = ((i + 1) / slides.length * 100) + '%';
+      if (pageNum) pageNum.textContent = (i + 1) + ' / ' + slides.length;
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); show(i + 1, 1); }
+      if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1, -1); }
+      if (e.key === 'f' || e.key === 'F') document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+    });
+    document.addEventListener('click', (e) => { if (!animating && !e.target.closest('.deck-nav')) show(e.clientX > innerWidth / 2 ? i + 1 : i - 1, e.clientX > innerWidth / 2 ? 1 : -1); });
+    const start = q.has('slide') ? parseInt(q.get('slide'), 10) : 0;
+    showInstant(start);
+    if (useGsap) gsap.from(partsOf(slides[start]), { opacity: 0, y: 32, duration: 0.6, stagger: 0.06, delay: 0.12 });
+  </script>
+</body>
+</html>

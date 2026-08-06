@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://botversex.dev/schemas/botclaw/v0.1/joint_update.schema.json",
+  "title": "JointUpdate",
+  "description": "Realtime joint position frame streamed over /ws/teleop and /ws/ui (BotClaw v0.1).",
+  "type": "object",
+  "required": ["type", "robot_id", "timestamp", "joints"],
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "const": "joint_update"
+    },
+    "robot_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable identifier of the source arm (e.g. so101-001)."
+    },
+    "timestamp": {
+      "type": "number",
+      "description": "Unix seconds (float, UTC)."
+    },
+    "joints": {
+      "type": "object",
+      "description": "Joint angles keyed by 1..6 (so101 ordering). Radians.",
+      "required": ["1", "2", "3", "4", "5", "6"],
+      "additionalProperties": false,
+      "properties": {
+        "1": { "type": "number" },
+        "2": { "type": "number" },
+        "3": { "type": "number" },
+        "4": { "type": "number" },
+        "5": { "type": "number" },
+        "6": { "type": "number" }
+      }
+    },
+    "servo_values": {
+      "type": "object",
+      "description": "Optional raw servo counts (0-4095 for sts3215).",
+      "additionalProperties": { "type": "integer" }
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "fps": { "type": "number", "minimum": 0 },
+        "source": { "type": "string" }
+      }
+    }
+  }
+}

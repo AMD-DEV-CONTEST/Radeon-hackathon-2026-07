@@ -1,0 +1,888 @@
+[
+  {
+    "code": "local_agent_unreachable",
+    "title": "Local Agent 未启动",
+    "severity": "error",
+    "pages": [
+      "/setup",
+      "/robots",
+      "/teleop"
+    ],
+    "symptoms": [
+      "failed to fetch",
+      "localhost:8002",
+      "8002",
+      "local agent",
+      "连接不上"
+    ],
+    "diagnostic_keys": [
+      "server.realtime.ok=false",
+      "client.localAgent.ok=false",
+      "issue:realtime_unreachable"
+    ],
+    "root_cause": "网页无法连接本机 Local Agent（默认端口 8002）。通常是 Agent 未启动，或端口被占用。",
+    "fix_steps": [
+      "打开终端，进入 botversex-local-agent 目录",
+      "source .venv/bin/activate",
+      "python run_api.py（本地开发可加 --http）",
+      "保持终端窗口不要关闭"
+    ],
+    "verify_steps": [
+      "浏览器访问 /api/setup/health 应返回 200",
+      "回到 Setup 页面点击「重新检测」"
+    ],
+    "audience": [
+      "customer",
+      "developer"
+    ]
+  },
+  {
+    "code": "python_venv_missing",
+    "title": "Python 虚拟环境包缺失",
+    "severity": "error",
+    "pages": [
+      "/setup"
+    ],
+    "symptoms": [
+      "ensurepip is not available",
+      "python3-venv",
+      "venv was not created",
+      "虚拟环境"
+    ],
+    "diagnostic_keys": [],
+    "root_cause": "系统未安装 python3-venv，无法创建 .venv。",
+    "fix_steps": [
+      "sudo apt update",
+      "sudo apt install -y python3-venv python3-pip",
+      "重新执行 python3 -m venv .venv"
+    ],
+    "verify_steps": [
+      "python3 -m venv .venv 不再报错",
+      "source .venv/bin/activate 成功"
+    ],
+    "audience": [
+      "customer"
+    ]
+  },
+  {
+    "code": "python_dev_missing",
+    "title": "Python 开发头文件缺失",
+    "severity": "error",
+    "pages": [
+      "/setup"
+    ],
+    "symptoms": [
+      "Python.h",
+      "python3-dev",
+      "evdev",
+      "fatal error"
+    ],
+    "diagnostic_keys": [],
+    "root_cause": "编译 evdev 等原生扩展需要 python3-dev 和 build-essential。",
+    "fix_steps": [
+      "sudo apt install -y python3-dev build-essential",
+      "重新 pip install -r requirements.txt"
+    ],
+    "verify_steps": [
+      "pip install 不再报 Python.h 缺失"
+    ],
+    "audience": [
+      "customer"
+    ]
+  },
+  {
+    "code": "pip_install_slow",
+    "title": "pip 安装太慢或超时",
+    "severity": "warning",
+    "pages": [
+      "/setup"
+    ],
+    "symptoms": [
+      "pip install",
+      "timeout",
+      "太慢",
+      "mirror",
+      "pytorch",
+      "cuda"
+    ],
+    "diagnostic_keys": [],
+    "root_cause": "默认 PyPI 或 PyTorch CUDA 包在国内下载很慢，容易超时。",
+    "fix_steps": [
+      "先安装 CPU 版 PyTorch：pip install torch --index-url https://download.pytorch.org/whl/cpu",
+      "再用国内镜像：pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/",
+      "或使用 scripts/install-local-agent.sh 一键脚本"
+    ],
+    "verify_steps": [
+      "pip install 能在合理时间内完成"
+    ],
+    "audience": [
+      "customer"
+    ]
+  },
+  {
+    "code": "github_clone_slow",
+    "title": "GitHub 克隆失败或很慢",
+    "severity": "warning",
+    "pages": [
+      "/setup"
+    ],
+    "symptoms": [
+      "git clone",
+      "github",
+      "connection timed out",
+      "克隆"
+    ],
+    "diagnostic_keys": [],
+    "root_cause": "GitHub 访问不稳定，git clone 可能超时。",
+    "fix_steps": [
+      "配置代理或 VPN 后重试 git clone",
+      "或使用 GitHub 镜像站下载 zip 解压",
+      "也可直接复制已有 botversex-local-agent 目录"
+    ],
+    "verify_steps": [
+      "botversex-local-agent 目录存在且包含 run_api.py"
+    ],
+    "audience": [
+      "customer"
+    ]
+  },
+  {
+    "code": "dialout_missing",
+    "title": "串口权限不足（dialout）",
+    "severity": "warning",
+    "pages": [
+      "/setup",
+      "/robots",
+      "/teleop"
+    ],
+    "symptoms": [
+      "dialout",
+      "ttyACM",
+      "permission denied",
+      "串口",
+      "权限"
+    ],
+    "diagnostic_keys": [
+      "issue:dialout_missing",
+      "runtime.dialout_member=false"
+    ],
+    "root_cause": "当前用户不在 dialout 组，无法打开 /dev/ttyACM* 串口。",
+    "fix_steps": [
+      "sudo usermod -aG dialout $USER",
+      "注销并重新登录，或执行 newgrp dialout",
+      "重新插拔机械臂 USB"
+    ],
+    "verify_steps": [
+      "ls -l /dev/ttyACM* 当前用户有读写权限"
+    ],
+    "audience": [
+      "customer"
+    ]
+  },
+  {
+    "code": "no_cameras",
+    "title": "未检测到摄像头",
+    "severity": "warning",
+    "pages": [
+      "/setup",
+      "/robots",
+      "/teleop"
+    ],
+    "symptoms": [
+      "camera",
+      "video",
+      "摄像头",
+      "no /dev/video"
+    ],
+    "diagnostic_keys": [
+      "issue:no_cameras",
+      "runtime.video_device_count=0"
+    ],
+    "root_cause": "系统没有 /dev/video* 设备，USB 摄像头未连接或驱动异常。",
+    "fix_steps": [
+      "插入 USB 摄像头",
+      "运行 ls /dev/video* 确认设备节点出现",
+      "如仍无设备，检查 USB 线或换口"
+    ],
+    "verify_steps": [
+      "/api/setup/health 中 video_device_count > 0"
+    ],
+    "audience": [
+      "customer"
+    ]
+  },
+  {
+    "code": "camera_busy",
+    "title": "摄像头被占用或无法打开",
+    "severity": "warning",
+    "pages": [
+      "/setup",
+      "/robots",
+      "/teleop"
+    ],
+    "symptoms": [
+      "camera busy",
+      "index out of range",
+      "摄像头占用",
+      "obs",
+      "zoom"
+    ],
+    "diagnostic_keys": [
+      "issue:camera_busy",
+      "runtime.camera_usable_count=0"
+    ],
+    "root_cause": "摄像头设备存在但 OpenCV 无法打开，通常被其他程序占用。",
+    "fix_steps": [
+      "关闭浏览器预览、Zoom、OBS 等占用摄像头的程序",
+      "POST /api/camera/stop_streams 释放本平台预览",
+      "重新扫描摄像头"
+    ],
+    "verify_steps": [
+      "camera_usable_count > 0"
+    ],
+    "audience": [
+      "customer"
+    ]
+  },
+  {
+    "code": "no_serial",
+    "title": "未检测到机械臂串口",
+    "severity": "warning",
+    "pages": [
+      "/setup",
+      "/robots",
+      "/teleop"
+    ],
+    "symptoms": [
+      "serial",
+      "ttyACM",
+      "ttyUSB",
+      "串口",
+      "机械臂"
+    ],
+    "diagnostic_keys": [
+      "issue:no_serial",
+      "runtime.serial_device_count=0"
+    ],
+    "root_cause": "没有 /dev/ttyACM* 或 /dev/ttyUSB* 设备，机械臂未上电或未连接。",
+    "fix_steps": [
+      "确认机械臂已上电",
+      "检查 USB 线连接",
+      "运行 ls /dev/ttyACM* /dev/ttyUSB*"
+    ],
+    "verify_steps": [
+      "serial_device_count > 0"
+    ],
+    "audience": [
+      "customer"
+    ]
+  },
+  {
+    "code": "robots_api_error",
+    "title": "机器人清单加载失败",
+    "severity": "warning",
+    "pages": [
+      "/robots"
+    ],
+    "symptoms": [
+      "failed to list robot",
+      "manifest",
+      "robots",
+      "/api/robots"
+    ],
+    "diagnostic_keys": [
+      "server.robots.ok=false",
+      "issue:robots_api_error",
+      "error:/api/robots"
+    ],
+    "root_cause": "/api/robots 请求失败。可能是 Local Agent 未启动，或云端路由未正确代理到 realtime。",
+    "fix_steps": [
+      "先确认 Local Agent 已启动（python run_api.py）",
+      "本地开发确认 Vite 代理 /api/robots 指向 8002",
+      "云端部署检查 nginx 是否将 /api/ 代理到 realtime 容器"
+    ],
+    "verify_steps": [
+      "GET /api/robots 返回 robots 列表"
+    ],
+    "audience": [
+      "customer",
+      "cloud"
+    ]
+  },
+  {
+    "code": "cloud_ssl_mismatch",
+    "title": "HTTPS 证书域名不匹配",
+    "severity": "error",
+    "pages": [
+      "/robots",
+      "/setup",
+      "/training"
+    ],
+    "symptoms": [
+      "ssl",
+      "certificate",
+      "feispace",
+      "failed to fetch",
+      "cert"
+    ],
+    "diagnostic_keys": [
+      "error:ssl",
+      "error:certificate"
+    ],
+    "root_cause": "浏览器拒绝连接：SSL 证书未覆盖当前域名（如 botversex.feispace.me）。",
+    "fix_steps": [
+      "为 botversex.feispace.me 单独申请 Let's Encrypt 证书",
+      "更新 nginx ssl_certificate 指向正确 fullchain",
+      "nginx -s reload 后重试"
+    ],
+    "verify_steps": [
+      "curl -I https://botversex.feispace.me 无 SSL 错误"
+    ],
+    "audience": [
+      "customer",
+      "cloud"
+    ]
+  },
+  {
+    "code": "database_error",
+    "title": "云端数据库异常",
+    "severity": "error",
+    "pages": [
+      "/training",
+      "/setup"
+    ],
+    "symptoms": [
+      "database",
+      "500",
+      "sqlite"
+    ],
+    "diagnostic_keys": [
+      "server.database.ok=false",
+      "issue:database_error"
+    ],
+    "root_cause": "Cloud API 无法连接数据库。",
+    "fix_steps": [
+      "检查 apps/api 是否正常运行",
+      "确认 DATABASE_URL 配置正确",
+      "查看 API 日志中的数据库错误"
+    ],
+    "verify_steps": [
+      "GET /health 返回 200"
+    ],
+    "audience": [
+      "cloud"
+    ]
+  },
+  {
+    "code": "training_auth_required",
+    "title": "训练页面需要登录",
+    "severity": "warning",
+    "pages": [
+      "/training"
+    ],
+    "symptoms": [
+      "401",
+      "403",
+      "login",
+      "unauthorized",
+      "登录",
+      "jwt"
+    ],
+    "diagnostic_keys": [
+      "error:401",
+      "error:403",
+      "error:/api/v1/trainings"
+    ],
+    "root_cause": "训练 API 需要 JWT 认证，当前用户未登录或 token 过期。",
+    "fix_steps": [
+      "前往 /login 登录",
+      "登录后刷新 /training 页面",
+      "如仍失败，清除 localStorage 中的 token 重新登录"
+    ],
+    "verify_steps": [
+      "导航栏显示已登录用户名"
+    ],
+    "audience": [
+      "customer",
+      "cloud"
+    ]
+  },
+  {
+    "code": "qualia_not_configured",
+    "title": "Qualia 云训练未配置",
+    "severity": "info",
+    "pages": [
+      "/training"
+    ],
+    "symptoms": [
+      "qualia",
+      "token not configured",
+      "云训练"
+    ],
+    "diagnostic_keys": [],
+    "root_cause": "服务器未配置 QUALIA_API_TOKEN，无法提交云端训练任务。",
+    "fix_steps": [
+      "在 apps/api/.env 设置 QUALIA_API_TOKEN",
+      "重启 API 服务",
+      "或改用 local 后端训练"
+    ],
+    "verify_steps": [
+      "GET /api/v1/trainings/qualia/validate 返回 ok: true"
+    ],
+    "audience": [
+      "cloud"
+    ]
+  },
+  {
+    "code": "lerobot_missing",
+    "title": "lerobot SDK 未安装",
+    "severity": "info",
+    "pages": [
+      "/setup",
+      "/robots"
+    ],
+    "symptoms": [
+      "lerobot",
+      "wiggle",
+      "motor sdk"
+    ],
+    "diagnostic_keys": [
+      "issue:lerobot_missing",
+      "runtime.lerobot_available=false"
+    ],
+    "root_cause": "Local Agent venv 中未安装 lerobot，部分高级遥操作功能不可用。",
+    "fix_steps": [
+      "在 Local Agent venv 中 pip install lerobot",
+      "或继续使用内置 fallback（基础功能仍可用）"
+    ],
+    "verify_steps": [
+      "/api/setup/health 中 lerobot_available=true"
+    ],
+    "audience": [
+      "customer"
+    ]
+  },
+  {
+    "code": "vite_dev_not_running",
+    "title": "前端开发服务器未启动",
+    "severity": "warning",
+    "pages": [
+      "/setup"
+    ],
+    "symptoms": [
+      "5173",
+      "npm run dev",
+      "vite",
+      "proxy"
+    ],
+    "diagnostic_keys": [
+      "client.localAgent.ok=false",
+      "error:/api/setup/health"
+    ],
+    "root_cause": "本地开发时 Vite (5173) 负责代理 /api/* 到 Local Agent。如未启动，浏览器无法访问 Agent。",
+    "fix_steps": [
+      "另开终端：cd apps/web && npm run dev",
+      "确认 http://localhost:5173 可访问",
+      "通过 5173 访问 Setup 页面（不要直接开 file://）"
+    ],
+    "verify_steps": [
+      "http://localhost:5173/api/setup/health 返回 200"
+    ],
+    "audience": [
+      "developer"
+    ]
+  },
+  {
+    "code": "port_8002_in_use",
+    "title": "8002 端口被占用",
+    "severity": "warning",
+    "pages": [
+      "/setup"
+    ],
+    "symptoms": [
+      "address already in use",
+      "8002",
+      "端口"
+    ],
+    "diagnostic_keys": [],
+    "root_cause": "8002 端口已被其他进程占用，Local Agent 无法绑定。",
+    "fix_steps": [
+      "sudo lsof -i :8002 查看占用进程",
+      "kill 旧进程后重新 python run_api.py",
+      "或设置 PORT 环境变量使用其他端口"
+    ],
+    "verify_steps": [
+      "run_api.py 启动无 Address already in use 错误"
+    ],
+    "audience": [
+      "customer",
+      "developer"
+    ]
+  },
+  {
+    "code": "llm_provider_disabled",
+    "title": "AI 问答模型未配置",
+    "severity": "info",
+    "pages": [],
+    "symptoms": [
+      "llm",
+      "模型未配置",
+      "deepseek",
+      "copilot"
+    ],
+    "diagnostic_keys": [
+      "server.llm_enabled=false"
+    ],
+    "root_cause": "COPILOT_PROVIDER=disabled 或未设置 COPILOT_API_KEY，问答助手将使用规则诊断模式。",
+    "fix_steps": [
+      "在 apps/api/.env 设置 COPILOT_PROVIDER=openai_compatible",
+      "设置 COPILOT_API_KEY 和 COPILOT_BASE_URL",
+      "重启 API 服务"
+    ],
+    "verify_steps": [
+      "诊断面板显示 llm_enabled=true"
+    ],
+    "audience": [
+      "cloud"
+    ]
+  },
+  {
+    "code": "llm_call_failed",
+    "title": "AI 模型调用失败",
+    "severity": "warning",
+    "pages": [],
+    "symptoms": [
+      "llm_error",
+      "api key",
+      "deepseek",
+      "401",
+      "429"
+    ],
+    "diagnostic_keys": [],
+    "root_cause": "DeepSeek 或其他 LLM API 调用失败（密钥无效、余额不足、网络问题）。",
+    "fix_steps": [
+      "检查 COPILOT_API_KEY 是否正确",
+      "确认 API 余额和 base URL",
+      "Copilot 仍会使用 Playbook 规则诊断作为回退"
+    ],
+    "verify_steps": [
+      "问答助手返回正常 AI 回答而非 llm_error"
+    ],
+    "audience": [
+      "cloud"
+    ]
+  },
+  {
+    "code": "cloud_api_unreachable",
+    "title": "云端 API 不可达",
+    "severity": "error",
+    "pages": [
+      "/training",
+      "/robots"
+    ],
+    "symptoms": [
+      "cloud api",
+      "/api/v1",
+      "500",
+      "502"
+    ],
+    "diagnostic_keys": [
+      "server.cloud_api.ok=false"
+    ],
+    "root_cause": "Cloud API (8000) 未运行或 nginx 代理配置错误。",
+    "fix_steps": [
+      "确认 apps/api uvicorn 在 8000 端口运行",
+      "云端检查 docker/podman 容器状态",
+      "检查 nginx /api/v1/ 代理配置"
+    ],
+    "verify_steps": [
+      "GET /health 返回 200"
+    ],
+    "audience": [
+      "cloud"
+    ]
+  },
+  {
+    "code": "training_job_failed",
+    "title": "训练任务失败",
+    "severity": "warning",
+    "pages": [
+      "/training"
+    ],
+    "symptoms": [
+      "training failed",
+      "job failed",
+      "训练失败",
+      "error_msg"
+    ],
+    "diagnostic_keys": [
+      "error:/api/v1/trainings"
+    ],
+    "root_cause": "训练任务进入 failed 状态，可能是数据集、Qualia 配置或本地 worker 问题。",
+    "fix_steps": [
+      "在训练页面查看任务 error_msg",
+      "确认 dataset_id 存在且可读",
+      "Qualia 任务检查 token 和 instance_type"
+    ],
+    "verify_steps": [
+      "新提交的训练任务 status=succeeded 或 running"
+    ],
+    "audience": [
+      "customer",
+      "cloud"
+    ]
+  },
+  {
+    "code": "reachy_install_conversation",
+    "title": "Reachy Conversation App 安装失败",
+    "severity": "warning",
+    "pages": [
+      "/robots/reachy_mini",
+      "/robots/reachy_mini/apps"
+    ],
+    "symptoms": [
+      "reachy_conversation_install_failed",
+      "reachy_conversation_install_timeout",
+      "Cannot access space",
+      "SSL: UNEXPECTED_EOF_WHILE_READING",
+      "Failed to install app 'reachy-mini-conversation-app'",
+      "HF install",
+      "Conversation App"
+    ],
+    "diagnostic_keys": [
+      "error:/api/reachy/conversation/start",
+      "stage:install_failed",
+      "issue:hf_hub_unreachable"
+    ],
+    "root_cause": "BotverseX Local Agent 调用 Allan daemon /api/apps/install 时，daemon 无法访问 HuggingFace Hub（SSL EOF / 代理拦截 / 网络不通）。M22 的 Conversation App 启动流程会自动从 HF 拉取 Space 仓库并 pip 安装到 SDK venv。",
+    "fix_steps": [
+      "测试 HF 可达：curl -I https://huggingface.co（应返回 200/301）",
+      "若处于公司/校园网，设置 HF 镜像：export HF_ENDPOINT=https://hf-mirror.com 后重启 daemon",
+      "若仍然 SSL EOF，可能是 TLS 中间人拦截，临时用 pip 直装：/home/amd/sdk/reachy_mini_Allan/.venv/bin/pip install reachy-mini-conversation-app",
+      "重试：回到 Reachy Mini 控制页 → 一键对话 → 启动对话"
+    ],
+    "verify_steps": [
+      "ls /home/amd/sdk/reachy_mini_Allan/.venv/bin/reachy-mini-conversation-app 应存在",
+      "/api/reachy/conversation/status 返回 app_installed=true"
+    ],
+    "audience": [
+      "customer",
+      "developer"
+    ]
+  },
+  {
+    "code": "reachy_audio_debug",
+    "title": "Reachy Mini 音频 / DOA 不工作",
+    "severity": "warning",
+    "pages": [
+      "/robots/reachy_mini"
+    ],
+    "symptoms": [
+      "Audio device not available",
+      "未检测到音频输出或麦克风",
+      "DOA: ---",
+      "audio_fallback_used",
+      "GStreamerAudio",
+      "gi' module is required"
+    ],
+    "diagnostic_keys": [
+      "issue:reachy_audio_fallback",
+      "warning:audio_warning",
+      "doa=null"
+    ],
+    "root_cause": "Reachy Mini daemon 启动时找不到 GStreamer Python 绑定（gi 模块）。BotverseX Local Agent 的 M21 音频回退机制会自动重启 daemon 加 --deactivate-audio，机器人能运动但 Conversation App / DOA / 音量调节将不可用。",
+    "fix_steps": [
+      "Ubuntu/Debian: sudo apt install gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav python3-gi gir1.2-gstreamer-1.0",
+      "在 SDK venv 里装 PyGObject: /home/amd/sdk/reachy_mini_Allan/.venv/bin/pip install pygobject",
+      "停止当前 daemon：POST /api/reachy/local-daemon/stop",
+      "重新启动 daemon：POST /api/reachy/local-daemon/start（应无 audio_fallback_used）"
+    ],
+    "verify_steps": [
+      "/api/reachy/state/doa 应返回非 null 的 direction",
+      "Conversation App 启动后机器人能听到说话并回答",
+      "/api/reachy/volume/current 返回 device=Reachy Mini Audio 模拟立体声"
+    ],
+    "audience": [
+      "customer",
+      "developer"
+    ]
+  },
+  {
+    "code": "reachy_serial_conflict",
+    "title": "Reachy / SO-101 串口冲突",
+    "severity": "error",
+    "pages": [
+      "/setup",
+      "/robots",
+      "/robots/reachy_mini",
+      "/robots/so101"
+    ],
+    "symptoms": [
+      "could not open port /dev/ttyACM0",
+      "Device or resource busy",
+      "[Errno 16]",
+      "open_failed",
+      "serial port"
+    ],
+    "diagnostic_keys": [
+      "issue:serial_port_busy",
+      "error:/api/setup/ports",
+      "robot_guess=reachy_mini AND robot_guess=so101"
+    ],
+    "root_cause": "同一台机器上同时运行 Reachy Mini daemon 和 SO-101 控制服务，二者都尝试独占 /dev/ttyACM0。Linux 串口是独占式打开，先启动的服务持锁，后启动的服务报 EBUSY。",
+    "fix_steps": [
+      "决定当前要使用哪个机器人",
+      "若要用 Reachy Mini：POST /api/reachy/local-daemon/stop 停止 daemon 后重启机器人页面",
+      "若要用 SO-101：停止 daemon（POST /api/reachy/local-daemon/stop），再启动 SO-101 控制器",
+      "（可选）udev 规则把 Reachy 绑定到 /dev/reachy-mini、SO-101 绑定到 /dev/so101，避免抢同一设备节点",
+      "（可选）两台机器用不同 USB 口插，让 udev 给不同 ttyACM 编号"
+    ],
+    "verify_steps": [
+      "/api/setup/ports 应只显示一个 robot_guess 非空",
+      "对应机器人页面 telemetry 实时数据更新"
+    ],
+    "audience": [
+      "customer",
+      "developer"
+    ]
+  },
+  {
+    "code": "b601_can_down",
+    "title": "B601 CAN 未连接",
+    "severity": "error",
+    "pages": ["/robots/b601_rs", "/setup"],
+    "symptoms": ["CAN 未连接", "can0", "PCAN", "can_up false"],
+    "diagnostic_keys": ["b601.can_up=false"],
+    "root_cause": "B601 从臂通过 CAN 总线通信，CAN 接口未 UP 时从臂无法响应。",
+    "fix_steps": ["在 B601 页面会自动尝试拉起 CAN", "确认 PCAN-USB 已插入", "重启后需运行安装器配置的 systemd 服务"],
+    "verify_steps": ["B601 控制台「连接」圆点变绿"],
+    "audience": ["customer"]
+  },
+  {
+    "code": "b601_no_leader",
+    "title": "Star Arm 102 主臂未检测",
+    "severity": "error",
+    "pages": ["/robots/b601_rs"],
+    "symptoms": ["主臂", "ttyUSB", "leader", "USB 未检测"],
+    "diagnostic_keys": ["b601.leader_present=false"],
+    "root_cause": "主臂 USB 未连接或被 brltty 占用。",
+    "fix_steps": ["插入 Star Arm 102 USB 并上 12V", "运行安装器会自动移除 brltty", "重新插拔 USB"],
+    "verify_steps": ["「主臂」状态圆点变绿"],
+    "audience": ["customer"]
+  },
+  {
+    "code": "b601_motor_fault",
+    "title": "B601 从臂失去力气",
+    "severity": "warning",
+    "pages": ["/robots/b601_rs"],
+    "symptoms": ["软", "没力", "瘫", "fault", "崩"],
+    "diagnostic_keys": ["b601.motors_online<7"],
+    "root_cause": "RobStride 电机保护触发或遥操退出后电机自动掉使能。",
+    "fix_steps": ["点击「恢复机械臂」", "恢复后 10 秒内开始遥操"],
+    "verify_steps": ["从臂能短暂保持姿态"],
+    "audience": ["customer"]
+  },
+  {
+    "code": "b601_gateway_conflict",
+    "title": "调试网关与遥操冲突",
+    "severity": "warning",
+    "pages": ["/robots/b601_rs"],
+    "symptoms": ["gateway", "MotorBridge", "Studio", "抢 CAN"],
+    "diagnostic_keys": ["b601.gateway_running=true"],
+    "root_cause": "MotorBridge 调试网关与遥操同时占用 CAN。",
+    "fix_steps": ["关闭高级抽屉里的调试网关", "再点开始遥操"],
+    "verify_steps": ["遥操正常运行"],
+    "audience": ["customer", "developer"]
+  },
+  {
+    "code": "b601_calibration_missing",
+    "title": "B601 未完成校准",
+    "severity": "warning",
+    "pages": ["/robots/b601_rs"],
+    "symptoms": ["校准", "calibration", "零点"],
+    "diagnostic_keys": ["b601.calibration_follower=false"],
+    "root_cause": "首次使用需完成从臂和主臂零点校准。",
+    "fix_steps": ["跟随首用向导完成连接步骤", "高级抽屉中重新校准（交互式）"],
+    "verify_steps": ["「就绪」圆点变绿"],
+    "audience": ["customer"]
+  },
+  {
+    "code": "b601_install_incomplete",
+    "title": "B601 依赖未安装",
+    "severity": "error",
+    "pages": ["/setup", "/robots/b601_rs"],
+    "symptoms": ["lerobot", "motorbridge", "未安装", "No module"],
+    "diagnostic_keys": ["b601.lerobot_teleoperate=false"],
+    "root_cause": "Local Agent 缺少 B601 官方插件包。",
+    "fix_steps": ["运行 curl 一键安装器", "或 pip install lerobot-robot-seeed-b601 lerobot-teleoperator-rebot-arm-102 motorbridge"],
+    "verify_steps": ["/api/b601/health 中 lerobot_teleoperate 为 true"],
+    "audience": ["customer"]
+  },
+  {
+    "code": "b601_pinocchio_missing",
+    "title": "B601 Pinocchio 未安装",
+    "severity": "warning",
+    "pages": ["/robots/b601_rs"],
+    "symptoms": ["pinocchio", "运动学", "IK", "FK"],
+    "diagnostic_keys": ["b601.kinematics.pinocchio=false"],
+    "root_cause": "运动学/重力补偿依赖 Pinocchio 与 reBotArm_control_py。",
+    "fix_steps": ["bash scripts/b601_pinocchio_install.sh", "重启 Local Agent"],
+    "verify_steps": ["GET /api/b601/kinematics/health 中 pinocchio 为 true"],
+    "audience": ["customer"]
+  },
+  {
+    "code": "b601_ik_unreachable",
+    "title": "B601 IK 不可达",
+    "severity": "warning",
+    "pages": ["/robots/b601_rs"],
+    "symptoms": ["IK", "不可达", "未收敛"],
+    "root_cause": "目标位姿超出工作空间或姿态奇异。",
+    "fix_steps": ["使用 Ready Pose 预设", "仅改位置不改姿态", "Dry-run 验证后再实机"],
+    "verify_steps": ["POST /api/b601/kinematics/ik 返回 success=true"],
+    "audience": ["customer"]
+  },
+  {
+    "code": "b601_gravity_comp_dangerous_exit",
+    "title": "B601 重力补偿危险退出",
+    "severity": "error",
+    "pages": ["/robots/b601_rs"],
+    "symptoms": ["重力补偿", "失能", "下落"],
+    "root_cause": "未通过 UI 停止重力补偿即退出进程，电机直接失能。",
+    "fix_steps": ["先扶住机械臂", "点「停止并归零」", "确认臂在安全位置"],
+    "verify_steps": ["GET /api/b601/gravity_comp/status running=false"],
+    "audience": ["customer"]
+  },
+  {
+    "code": "b601_ros2_not_installed",
+    "title": "B601 ROS2 未安装",
+    "severity": "warning",
+    "pages": ["/robots/b601_rs"],
+    "symptoms": ["ros2", "moveit", "bringup"],
+    "root_cause": "未构建 reBotArmController_ROS2 工作空间。",
+    "fix_steps": ["安装 ROS2 Jazzy/Humble", "bash scripts/b601_ros2_install.sh"],
+    "verify_steps": ["GET /api/b601/ros2/health ready=true"],
+    "audience": ["customer"]
+  },
+  {
+    "code": "b601_ros2_can_conflict",
+    "title": "B601 CAN 被占用",
+    "severity": "warning",
+    "pages": ["/robots/b601_rs"],
+    "symptoms": ["409", "冲突", "CAN"],
+    "root_cause": "遥操/录制/运动学/ROS2 同时占用 CAN。",
+    "fix_steps": ["停止当前运行的遥操或 bringup", "等待 3 秒后重试"],
+    "verify_steps": ["runtime_mode 为 idle"],
+    "audience": ["customer"]
+  },
+  {
+    "code": "b601_moveit_planning_failed",
+    "title": "MoveIt 规划失败",
+    "severity": "warning",
+    "pages": ["/robots/b601_rs"],
+    "symptoms": ["MoveIt", "planning failed"],
+    "root_cause": "目标点不可达或碰撞。",
+    "fix_steps": ["在 RViz 中手动规划验证", "调整 pick_place / draw_square 参数"],
+    "verify_steps": ["ros2 topic echo /rebotarm/joint_states 有数据"],
+    "audience": ["customer"]
+  }
+]

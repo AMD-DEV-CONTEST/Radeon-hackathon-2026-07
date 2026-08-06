@@ -1,0 +1,164 @@
+{
+  "schema_version": "botversex.robot-manifest.v0",
+  "robots": [
+    {
+      "runtime_id": "reachy_mini",
+      "robot_type": "reachy_mini",
+      "display_name": "Reachy Mini (Pollen Robotics, 9 DoF)",
+      "transport": {
+        "kind": "usb_serial",
+        "ports": {
+          "serial": "auto"
+        }
+      },
+      "service": {
+        "kind": "local_daemon",
+        "host": "127.0.0.1",
+        "port": 8010,
+        "sdk_path": "C:/Users/AMD/sdk/reachy_mini_Allan",
+        "python_env": "adapter_venv",
+        "log_file": "C:/Users/AMD/AppData/Local/Temp/botversex_reachy_mini_daemon.log",
+        "command": [
+          "python",
+          "-m",
+          "reachy_mini.daemon.app.main",
+          "--serialport",
+          "{serial}",
+          "--fastapi-host",
+          "{host}",
+          "--fastapi-port",
+          "{port}",
+          "--no-preload-datasets",
+          "--autostart"
+        ],
+        "audio": {
+          "enabled": true,
+          "can_disable": true
+        },
+        "apps": {
+          "enabled": true,
+          "default_conversation_app": "reachy_mini_conversation_app",
+          "default_backend": "huggingface",
+          "backends": ["huggingface", "openai", "gemini"]
+        }
+      },
+      "urdf_url": "/api/urdf/reachy_mini/reachy_mini.urdf",
+      "joint_names": [
+        "body_rotation",
+        "stewart_1",
+        "stewart_2",
+        "stewart_3",
+        "stewart_4",
+        "stewart_5",
+        "stewart_6",
+        "right_antenna",
+        "left_antenna"
+      ],
+      "capabilities": {
+        "state_stream": true,
+        "teleop": false,
+        "recording": true,
+        "calibration": false,
+        "motor_mode": true,
+        "local_moves": true,
+        "virtual": true,
+        "camera": false,
+        "audio": true,
+        "doa": true,
+        "volume_control": true,
+        "apps": true,
+        "conversation": true,
+        "recorded_move_datasets": true,
+        "set_target_stream": true
+      },
+      "dependencies": {
+        "python_modules": ["reachy_mini", "zenoh", "httpx", "websockets", "serial"],
+        "binaries": [],
+        "policy": "adapter_venv",
+        "install_hint": "Clone Allan reachy_mini SDK, create .venv, pip install -e ."
+      },
+      "ui": {
+        "route": "/robots/reachy_mini",
+        "onboarding_steps": [
+          "connect_device",
+          "start_service",
+          "test_state_stream",
+          "run_moves"
+        ]
+      }
+    },
+    {
+      "runtime_id": "b601_rs",
+      "robot_type": "b601_rs",
+      "display_name": "reBot B601-RS (RobStride × 7 + Star Arm 102 主臂)",
+      "transport": {
+        "kind": "can_leader_serial",
+        "can": "can0",
+        "leader": "COM_LEADER"
+      },
+      "service": {
+        "kind": "none"
+      },
+      "urdf_url": "/api/urdf/b601_rs/b601_rs.urdf",
+      "joint_names": [
+        "shoulder_pan",
+        "shoulder_lift",
+        "elbow_flex",
+        "wrist_flex",
+        "wrist_yaw",
+        "wrist_roll",
+        "gripper"
+      ],
+      "capabilities": {
+        "state_stream": true,
+        "teleop": true,
+        "recording": true,
+        "calibration": true,
+        "motor_mode": true,
+        "local_moves": false,
+        "camera": true,
+        "motor_recovery": true,
+        "inference": true,
+        "joints_live": true,
+        "kinematics": true,
+        "gravity_compensation": true,
+        "ros2": false
+      },
+      "capability_tags": [
+        "teleop",
+        "record",
+        "calibrate",
+        "inference",
+        "joints_live",
+        "camera",
+        "kinematics",
+        "gravity_comp"
+      ],
+      "state_endpoint": "/api/robots/b601_rs/state",
+      "dependencies": {
+        "python_modules": [
+          "lerobot",
+          "lerobot_robot_seeed_b601",
+          "lerobot_teleoperator_rebot_arm_102",
+          "motorbridge"
+        ],
+        "binaries": [
+          "lerobot-teleoperate",
+          "lerobot-record",
+          "lerobot-calibrate",
+          "motorbridge-cli"
+        ],
+        "policy": "workspace_venv"
+      },
+      "ui": {
+        "route": "/robots/b601_rs",
+        "onboarding_steps": [
+          "connect",
+          "teleop",
+          "record",
+          "run"
+        ]
+      }
+    }
+  ]
+}

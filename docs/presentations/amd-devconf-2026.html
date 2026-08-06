@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BotverseX — AMD AI Dev Conf 2026</title>
+  <style>
+    :root {
+      --bg: #0a0e14;
+      --fg: #e8edf4;
+      --muted: #8b9cb3;
+      --accent: #f59e0b;
+      --line: #3d4f66;
+      --box: #141c28;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; background: #000; font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: var(--fg); }
+    #deck {
+      position: fixed; inset: 0;
+      width: 100vw; height: 100vh;
+      z-index: 1;
+    }
+    .slide {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 3vh 4vw;
+      background: var(--bg);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; z-index: 1; }
+    .slide.light { background: #f4f6f9; color: #0f172a; --muted: #64748b; --line: #cbd5e1; --box: #fff; }
+    h1 {
+      font-size: clamp(2.2rem, 5.5vw, 4.2rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      text-align: center;
+      line-height: 1.1;
+    }
+    h2 {
+      font-size: clamp(1.35rem, 2.6vw, 1.85rem);
+      font-weight: 400;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 0.6rem;
+    }
+    .tagline {
+      font-size: clamp(1.15rem, 2.2vw, 1.5rem);
+      color: var(--accent);
+      margin-top: 1.2rem;
+      text-align: center;
+      font-weight: 600;
+    }
+    .footer {
+      position: absolute; bottom: 2.5vh; left: 0; right: 0;
+      text-align: center; font-size: 1.05rem; color: var(--muted);
+    }
+    .img-full {
+      flex: 1; width: 100%; max-height: 72vh;
+      object-fit: contain;
+      margin-top: 1.5vh;
+      border-radius: 6px;
+    }
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2vw;
+      width: 100%;
+      flex: 1;
+      align-items: center;
+      margin-top: 1.5vh;
+      max-height: 70vh;
+    }
+    .split img {
+      width: 100%; max-height: 65vh;
+      object-fit: contain;
+      border-radius: 6px;
+    }
+    .img-gif {
+      flex: 1;
+      width: min(94vw, 1280px);
+      max-height: 78vh;
+      object-fit: contain;
+      margin-top: 1vh;
+      border-radius: 8px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+    }
+    .split .label {
+      text-align: center;
+      font-size: 1rem;
+      color: var(--muted);
+      margin-top: 0.4rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .diagram {
+      width: min(92vw, 1100px);
+      flex: 1;
+      max-height: 68vh;
+      margin-top: 1vh;
+    }
+    .diagram svg { width: 100%; height: auto; max-height: 68vh; }
+    .words {
+      font-size: clamp(1.65rem, 3.4vw, 2.5rem);
+      font-weight: 600;
+      text-align: center;
+      max-width: 80vw;
+      line-height: 1.35;
+    }
+    .words span { color: var(--accent); }
+    .progress {
+      position: fixed; bottom: 0; left: 0; height: 3px;
+      background: var(--accent);
+      transition: width 0.3s;
+      z-index: 100;
+    }
+    .page-num {
+      position: fixed; bottom: 1.2vh; right: 2vw;
+      font-size: 0.95rem; color: var(--muted);
+      z-index: 100;
+    }
+    .hint {
+      position: fixed; top: 1vh; right: 2vw;
+      font-size: 0.85rem; color: var(--muted);
+      opacity: 0.5; z-index: 100;
+    }
+    .logo-line { font-size: 1.1rem; color: var(--muted); margin-top: 2rem; }
+    ul.minimal {
+      list-style: none;
+      font-size: clamp(1.15rem, 2.2vw, 1.55rem);
+      line-height: 1.8;
+      text-align: center;
+      margin-top: 2vh;
+    }
+    ul.minimal li::before { content: "→ "; color: var(--accent); }
+    .story-quote {
+      font-size: clamp(1.6rem, 3.5vw, 2.8rem);
+      font-weight: 700;
+      text-align: center;
+      max-width: 85vw;
+      line-height: 1.25;
+      margin-top: 2vh;
+    }
+    .story-quote em { color: var(--accent); font-style: normal; }
+    .story-sub {
+      font-size: clamp(1.1rem, 1.9vw, 1.35rem);
+      color: var(--muted);
+      text-align: center;
+      margin-top: 1.5vh;
+      max-width: 70vw;
+      line-height: 1.5;
+    }
+    .slide.story { background: linear-gradient(160deg, #0a0e14 0%, #121a28 55%, #0f1419 100%); }
+    .slide.story.light {
+      background: #f4f6f9;
+      color: #0f172a;
+      --muted: #334155;
+      --fg: #0f172a;
+    }
+    .slide.story.light h2 { color: #334155; }
+    .slide.story.light .story-sub { color: #475569; }
+    .slide.story.light ul.minimal { color: #0f172a; }
+    .slide.story-accent { border-top: 3px solid var(--accent); }
+    .slide.vision { background: radial-gradient(ellipse 80% 60% at 50% 45%, #1a2438 0%, #0a0e14 70%); }
+    .slide.text-boost h1 { font-size: clamp(2.5rem, 6vw, 4.6rem); }
+    .slide.text-boost h2 { font-size: clamp(1.5rem, 3vw, 2.1rem); }
+    .slide.text-boost .diagram svg { max-height: 72vh; }
+    .slide.platform-map h1 { font-size: clamp(1.9rem, 4.5vw, 3.2rem); }
+    .slide.platform-map h2 { font-size: clamp(1rem, 1.8vw, 1.35rem); }
+    .slide.platform-map .diagram { flex: 1; width: min(96vw, 1180px); margin-top: 0.5vh; }
+    .slide.platform-map .legend {
+      display: flex; gap: 2rem; justify-content: center;
+      font-size: clamp(0.85rem, 1.4vw, 1rem);
+      color: var(--muted); margin-top: 0.8vh;
+    }
+    .slide.platform-map .legend span::before {
+      content: ""; display: inline-block; width: 12px; height: 12px;
+      border-radius: 2px; margin-right: 0.4rem; vertical-align: middle;
+    }
+    .slide.platform-map .legend .live::before { background: #f59e0b; }
+    .slide.platform-map .legend .build::before {
+      background: transparent; border: 2px dashed #64748b;
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+  <div class="page-num" id="pageNum"></div>
+  <div class="hint">← → Space · F fullscreen</div>
+  <div id="deck">
+
+  <!-- 1 Cover -->
+  <section class="slide active" data-i="0">
+    <h1>BotverseX</h1>
+    <h2>机器人技能平台 · Robot Skills Platform</h2>
+    <p class="tagline">Build in browser. Run on real hardware.</p>
+    <p class="logo-line">AMD AI Developer Conference · May 2026</p>
+    <p class="logo-line">botversex.feispace.me</p>
+    <div class="footer">SO-101 · Reachy Mini · Local Agent</div>
+  </section>
+
+  <!-- 2 Why now -->
+  <section class="slide" data-i="1">
+    <p class="words">Hardware is cheap.<br/><span>Integration is not.</span></p>
+    <h2>硬件便宜了，上手还是太难</h2>
+    <p class="story-sub">跑通那一刻很爽——但少花时间在配环境上，<br/>多花时间在录数据、训技能、上真机</p>
+  </section>
+
+  <!-- 3 What you get -->
+  <section class="slide" data-i="2">
+    <p class="words">One website.<br/><span>Real robot tonight.</span></p>
+    <h2>一个网站 · 一条龙上真机</h2>
+    <p class="story-sub">Connect → Teleop → Record → Train → Deploy — 插电到技能，尽量都在网页里</p>
+  </section>
+
+  <!-- 4 SO-101 split (proof first) -->
+  <section class="slide" data-i="3">
+    <h1>SO-101 · Live Stack</h1>
+    <h2>真机 + 真界面</h2>
+    <div class="split">
+      <div>
+        <img src="so101主臂从臂.jpeg" alt="SO-101 hardware" />
+        <p class="label">Hardware · 实物</p>
+      </div>
+      <div>
+        <img src="botversex%20so101页.png" alt="SO-101 UI" />
+        <p class="label">Platform UI · 平台界面</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4b SO-101 teleop demo (GIF) -->
+  <section class="slide">
+    <h1>SO-101 · Live Teleop</h1>
+    <h2>遥操作实拍 · Leader 手晃 · Follower 跟随</h2>
+    <img class="img-gif" src="遥操作演示视频.gif" alt="SO-101 teleoperation demo" loading="eager" />
+  </section>
+
+  <!-- 4c Reachy split -->
+  <section class="slide" data-i="4">
+    <h1>Reachy Mini · Runtime</h1>
+    <h2>多机型适配 · Adapter pattern</h2>
+    <div class="split">
+      <div>
+        <img src="reachymini实体图.jpg" alt="Reachy Mini" />
+        <p class="label">Hardware · 实物</p>
+      </div>
+      <div>
+        <img src="botversex%20reachymini页.png" alt="Reachy UI" />
+        <p class="label">Platform UI · 平台界面</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4d Reachy Mini demo (GIF) -->
+  <section class="slide">
+    <h1>Reachy Mini · Live Demo</h1>
+    <h2>多机型 · 同一平台流程 · 实拍</h2>
+    <img class="img-gif" src="reachymini演示视频.gif" alt="Reachy Mini demo" loading="eager" />
+  </section>
+
+  <!-- 5 System architecture -->
+  <section class="slide" data-i="4">
+    <h1>System Architecture</h1>
+    <h2>系统总架构 · 自上而下数据流</h2>
+    <div class="diagram">
+      <svg viewBox="0 0 720 400" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#f59e0b"/>
+          </marker>
+          <marker id="arrD" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#64748b"/>
+          </marker>
+        </defs>
+        <rect x="210" y="16" width="300" height="56" rx="8" fill="#141c28" stroke="#3d4f66" stroke-width="2"/>
+        <text x="360" y="40" text-anchor="middle" fill="#e8edf4" font-size="14" font-weight="700">Cloud Platform</text>
+        <text x="360" y="58" text-anchor="middle" fill="#8b9cb3" font-size="12">Login · datasets · training jobs · model registry</text>
+        <line x1="360" y1="72" x2="360" y2="92" stroke="#f59e0b" stroke-width="2" marker-end="url(#arr)"/>
+        <text x="378" y="86" fill="#8b9cb3" font-size="11">HTTPS</text>
+        <rect x="210" y="92" width="300" height="56" rx="8" fill="#141c28" stroke="#f59e0b" stroke-width="2"/>
+        <text x="360" y="116" text-anchor="middle" fill="#e8edf4" font-size="14" font-weight="700">Browser · Web App</text>
+        <text x="360" y="134" text-anchor="middle" fill="#8b9cb3" font-size="12">Setup · Teleop · Record · Train · Deploy</text>
+        <line x1="360" y1="148" x2="360" y2="168" stroke="#f59e0b" stroke-width="2" marker-end="url(#arr)"/>
+        <text x="378" y="162" fill="#8b9cb3" font-size="11">localhost :8002</text>
+        <rect x="210" y="168" width="300" height="56" rx="8" fill="#141c28" stroke="#f59e0b" stroke-width="2"/>
+        <text x="360" y="192" text-anchor="middle" fill="#e8edf4" font-size="14" font-weight="700">Local Agent</text>
+        <text x="360" y="210" text-anchor="middle" fill="#8b9cb3" font-size="12">Reads /dev/ttyACM · camera · runs policy on arm</text>
+        <line x1="360" y1="224" x2="360" y2="244" stroke="#f59e0b" stroke-width="2" marker-end="url(#arr)"/>
+        <text x="378" y="238" fill="#8b9cb3" font-size="11">USB / SDK</text>
+        <rect x="210" y="244" width="300" height="56" rx="8" fill="#141c28" stroke="#3d4f66" stroke-width="2"/>
+        <text x="360" y="268" text-anchor="middle" fill="#e8edf4" font-size="14" font-weight="700">Robot Runtime</text>
+        <text x="360" y="286" text-anchor="middle" fill="#8b9cb3" font-size="12">SO-101 · Reachy Mini · more adapters</text>
+        <rect x="530" y="168" width="150" height="48" rx="6" fill="#141c28" stroke="#64748b" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <text x="605" y="190" text-anchor="middle" fill="#8b9cb3" font-size="11" font-weight="600">GPU / ROCm</text>
+        <text x="605" y="206" text-anchor="middle" fill="#64748b" font-size="11">optional · train</text>
+        <line x1="510" y1="196" x2="530" y2="196" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrD)"/>
+        <line x1="605" y1="168" x2="605" y2="92" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <line x1="605" y1="92" x2="510" y2="44" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrD)"/>
+        <text x="548" y="128" fill="#64748b" font-size="10">checkpoints</text>
+        <line x1="80" y1="330" x2="110" y2="330" stroke="#f59e0b" stroke-width="2"/>
+        <text x="120" y="334" fill="#8b9cb3" font-size="12">live control path</text>
+        <line x1="80" y1="352" x2="110" y2="352" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="120" y="356" fill="#64748b" font-size="12">data / training (optional)</text>
+        <text x="125" y="48" fill="#8b9cb3" font-size="11" font-weight="600">You (developer)</text>
+        <text x="125" y="118" fill="#8b9cb3" font-size="10">Setup · Teleop · Train UI</text>
+        <text x="125" y="198" fill="#8b9cb3" font-size="10">USB · motors · camera</text>
+        <text x="125" y="268" fill="#8b9cb3" font-size="10">SO-101 / Reachy protocol</text>
+        <text x="530" y="48" fill="#64748b" font-size="10">Login · datasets · jobs</text>
+        <text x="530" y="128" fill="#64748b" font-size="10">episodes · checkpoints</text>
+        <text x="360" y="378" text-anchor="middle" fill="#f59e0b" font-size="13" font-weight="600">Control stays on your machine · low latency</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 5b How it works -->
+  <section class="slide">
+    <h1>How BotverseX Works</h1>
+    <h2>平台三块拼图</h2>
+    <ul class="minimal" style="margin-top:1vh">
+      <li><strong style="color:#f59e0b">Browser</strong> — 你操作的界面：认臂、遥操作、录数据、训练</li>
+      <li><strong style="color:#f59e0b">Runtime</strong> — 每种机器人一个驱动（SO-101、Reachy Mini…）</li>
+      <li><strong style="color:#f59e0b">Skill</strong> — 把能力打成包，别人以后能装（标准已有）</li>
+    </ul>
+    <p class="story-sub" style="margin-top:2vh">换机器人：加 Runtime，不用重学整套网站</p>
+  </section>
+
+  <!-- 6 Pipeline -->
+  <section class="slide text-boost" data-i="5">
+    <h1>One Pipeline</h1>
+    <h2>一条龙 · SO-101 live today</h2>
+    <div class="diagram">
+      <svg viewBox="0 0 900 140" xmlns="http://www.w3.org/2000/svg">
+        <defs><marker id="a2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#f59e0b"/></marker></defs>
+        <g font-size="16" fill="#e8edf4" font-weight="600">
+          <rect x="10" y="30" width="115" height="58" rx="6" fill="#141c28" stroke="#f59e0b"/><text x="67" y="65" text-anchor="middle">Connect</text>
+          <rect x="145" y="30" width="115" height="58" rx="6" fill="#141c28" stroke="#f59e0b"/><text x="202" y="65" text-anchor="middle">Teleop</text>
+          <rect x="280" y="30" width="115" height="58" rx="6" fill="#141c28" stroke="#f59e0b"/><text x="337" y="65" text-anchor="middle">Record</text>
+          <rect x="415" y="30" width="115" height="58" rx="6" fill="#141c28" stroke="#f59e0b"/><text x="472" y="65" text-anchor="middle">Train</text>
+          <rect x="550" y="30" width="115" height="58" rx="6" fill="#141c28" stroke="#f59e0b"/><text x="607" y="65" text-anchor="middle">Deploy</text>
+          <rect x="685" y="30" width="115" height="58" rx="6" fill="#141c28" stroke="#f59e0b"/><text x="742" y="65" text-anchor="middle">Infer</text>
+        </g>
+        <line x1="125" y1="62" x2="145" y2="62" stroke="#f59e0b" stroke-width="2" marker-end="url(#a2)"/>
+        <line x1="260" y1="62" x2="280" y2="62" stroke="#f59e0b" stroke-width="2" marker-end="url(#a2)"/>
+        <line x1="395" y1="62" x2="415" y2="62" stroke="#f59e0b" stroke-width="2" marker-end="url(#a2)"/>
+        <line x1="530" y1="62" x2="550" y2="62" stroke="#f59e0b" stroke-width="2" marker-end="url(#a2)"/>
+        <line x1="665" y1="62" x2="685" y2="62" stroke="#f59e0b" stroke-width="2" marker-end="url(#a2)"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 7 Physical connection diagram -->
+  <section class="slide light text-boost" data-i="6">
+    <h1 style="color:#0f172a">Plug In → Browser → 15 min</h1>
+    <h2>插上硬件 · 打开浏览器 · 真机部署</h2>
+    <div class="diagram">
+      <svg viewBox="0 0 900 380" xmlns="http://www.w3.org/2000/svg">
+        <defs><marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#f59e0b"/></marker></defs>
+        <image href="so101主臂从臂.jpeg" x="40" y="60" width="320" height="240" preserveAspectRatio="xMidYMid meet"/>
+        <rect x="420" y="80" width="200" height="60" rx="6" fill="#fff" stroke="#f59e0b" stroke-width="2"/>
+        <text x="520" y="108" text-anchor="middle" fill="#0f172a" font-size="17" font-weight="700">USB Serial</text>
+        <text x="520" y="125" text-anchor="middle" fill="#475569" font-size="14">/dev/ttyACM · dialout</text>
+        <rect x="420" y="170" width="200" height="60" rx="6" fill="#fff" stroke="#f59e0b" stroke-width="2"/>
+        <text x="520" y="198" text-anchor="middle" fill="#0f172a" font-size="17" font-weight="700">Local Agent</text>
+        <text x="520" y="215" text-anchor="middle" fill="#475569" font-size="14">127.0.0.1:8002</text>
+        <rect x="420" y="260" width="200" height="60" rx="6" fill="#fff" stroke="#f59e0b" stroke-width="2"/>
+        <text x="520" y="288" text-anchor="middle" fill="#0f172a" font-size="17" font-weight="700">Browser</text>
+        <text x="520" y="305" text-anchor="middle" fill="#475569" font-size="16">Setup · Wiggle · Teleop</text>
+        <line x1="360" y1="140" x2="420" y2="110" stroke="#f59e0b" stroke-width="2.5" marker-end="url(#arr2)"/>
+        <line x1="520" y1="140" x2="520" y2="170" stroke="#f59e0b" stroke-width="2.5" marker-end="url(#arr2)"/>
+        <line x1="520" y1="230" x2="520" y2="260" stroke="#f59e0b" stroke-width="2.5" marker-end="url(#arr2)"/>
+        <text x="200" y="50" text-anchor="middle" fill="#334155" font-size="15" font-weight="600">SO-101 Leader + Follower</text>
+        <text x="680" y="120" fill="#0f172a" font-size="16" font-weight="600">① USB plug in</text>
+        <text x="680" y="200" fill="#0f172a" font-size="16" font-weight="600">② Start Local Agent</text>
+        <text x="680" y="280" fill="#0f172a" font-size="16" font-weight="600">③ Open web · Wiggle</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 10 Setup full UI -->
+  <section class="slide light" data-i="9">
+    <h1 style="color:#0f172a">Setup · Wiggle</h1>
+    <h2>端口扫描 · 认 Leader / Follower</h2>
+    <img class="img-full" src="so101首页.png" alt="Setup page" />
+  </section>
+
+  <!-- 11 Teleop - use so101 page or gif note -->
+  <section class="slide" data-i="10">
+    <h1>Teleoperation</h1>
+    <h2>Leader 跟随 · 网页 3D</h2>
+    <img class="img-full" src="botversex%20so101页.png" alt="Teleop UI" />
+  </section>
+
+  <!-- 12 Dataset -->
+  <section class="slide light" data-i="11">
+    <h1 style="color:#0f172a">Record Data</h1>
+    <h2>LeRobot-compatible episodes</h2>
+    <img class="img-full" src="botversex%20dataset页.png" alt="Dataset" />
+  </section>
+
+  <!-- 13 Training -->
+  <section class="slide" data-i="12">
+    <h1>Train</h1>
+    <h2>Platform pipeline · GPU-ready</h2>
+    <img class="img-full" src="botversex%20training页.png" alt="Training" />
+  </section>
+
+  <!-- 14 Models -->
+  <section class="slide light" data-i="13">
+    <h1 style="color:#0f172a">Deploy · Infer</h1>
+    <h2>Local checkpoint → real robot</h2>
+    <img class="img-full" src="botversex%20models页.png" alt="Models" />
+  </section>
+
+  <!-- 14b Skills -->
+  <section class="slide">
+    <h1>Skills</h1>
+    <h2>安装 · 配置 · 在真机上运行技能包</h2>
+    <img class="img-full" src="botversex%20skill页.png" alt="Skills registry" />
+  </section>
+
+  <!-- 14c Workflow -->
+  <section class="slide light">
+    <h1 style="color:#0f172a">Workflow</h1>
+    <h2>画布串联 · Finetune 链已真跑</h2>
+    <img class="img-full" src="botversex%20workflow页.png" alt="Workflow editor" />
+  </section>
+
+  <!-- 14d AI Hub -->
+  <section class="slide">
+    <h1>AI Hub</h1>
+    <h2>发现 HuggingFace 机器人模型 · 排行榜</h2>
+    <img class="img-full" src="botversex%20aihub页.png" alt="AI Hub" />
+  </section>
+
+  <!-- 15 Local Agent -->
+  <section class="slide" data-i="14">
+    <h1>Local Agent</h1>
+    <h2>Serial · camera · low latency</h2>
+    <img class="img-full" src="botversex%20localagent页.png" alt="Local Agent" />
+  </section>
+
+  <!-- 16 Runtime layer -->
+  <section class="slide" data-i="15">
+    <h1>Runtime Adapters</h1>
+    <h2>机械臂 · 人形 · 机器狗 — 同一网站，不同协议</h2>
+    <p class="story-sub" style="margin-bottom:1vh">（指本页各机型实物图）SO-101、Reachy 已接；更多形态在扩展</p>
+    <div class="diagram">
+      <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg">
+        <rect x="250" y="10" width="200" height="50" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/>
+        <text x="350" y="40" text-anchor="middle" fill="#e8edf4" font-size="13" font-weight="700">Local Agent API</text>
+        <rect x="50" y="120" width="140" height="55" rx="6" fill="#141c28" stroke="#3d4f66"/>
+        <text x="120" y="152" text-anchor="middle" fill="#e8edf4" font-size="12">so101</text>
+        <rect x="280" y="120" width="140" height="55" rx="6" fill="#141c28" stroke="#3d4f66"/>
+        <text x="350" y="152" text-anchor="middle" fill="#e8edf4" font-size="12">reachy_mini</text>
+        <rect x="510" y="120" width="140" height="55" rx="6" fill="#141c28" stroke="#3d4f66" stroke-dasharray="5 3"/>
+        <text x="580" y="152" text-anchor="middle" fill="#8b9cb3" font-size="12">more…</text>
+        <line x1="350" y1="60" x2="120" y2="120" stroke="#f59e0b" stroke-width="2" marker-end="url(#arr)"/>
+        <line x1="350" y1="60" x2="350" y2="120" stroke="#f59e0b" stroke-width="2" marker-end="url(#arr)"/>
+        <line x1="350" y1="60" x2="580" y2="120" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+        <text x="350" y="220" text-anchor="middle" fill="#8b9cb3" font-size="11">Same browser flow · different hardware protocol</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 16b Platform map — live vs building -->
+  <section class="slide platform-map text-boost">
+    <h1>Full Platform · Not Just the Demo</h1>
+    <h2>同一网站 · 已上线 & 在建（诚实标注）</h2>
+    <div class="diagram">
+      <svg viewBox="0 0 920 400" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, sans-serif">
+        <text x="230" y="28" text-anchor="middle" fill="#f59e0b" font-size="15" font-weight="700">LIVE · 已上线</text>
+        <text x="690" y="28" text-anchor="middle" fill="#8b9cb3" font-size="15" font-weight="700">BUILDING · 在建</text>
+        <line x1="460" y1="12" x2="460" y2="388" stroke="#3d4f66" stroke-width="1.5"/>
+        <!-- Live column -->
+        <g font-size="13" fill="#e8edf4">
+          <rect x="24" y="48" width="200" height="44" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="124" y="76" text-anchor="middle" font-weight="600">Robots · SO-101 wizard</text>
+          <rect x="24" y="102" width="200" height="44" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="124" y="130" text-anchor="middle">Setup · Local Agent</text>
+          <rect x="24" y="156" width="200" height="44" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="124" y="184" text-anchor="middle">Teleop · Inference</text>
+          <rect x="24" y="210" width="200" height="44" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="124" y="238" text-anchor="middle">Datasets · HF publish</text>
+          <rect x="24" y="264" width="200" height="44" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="124" y="292" text-anchor="middle">Compare · Models</text>
+          <rect x="248" y="48" width="200" height="44" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="348" y="76" text-anchor="middle">Training · Qualia cloud</text>
+          <rect x="248" y="102" width="200" height="44" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="348" y="130" text-anchor="middle">Skills · install &amp; run</text>
+          <rect x="248" y="156" width="200" height="44" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="348" y="184" text-anchor="middle">Workflow · finetune chain</text>
+          <rect x="248" y="210" width="200" height="44" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="348" y="238" text-anchor="middle">AI Hub · HF discovery</text>
+          <rect x="248" y="264" width="200" height="44" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="348" y="292" text-anchor="middle">Reachy · daemon &amp; moves</text>
+          <rect x="136" y="318" width="200" height="44" rx="6" fill="#141c28" stroke="#f59e0b" stroke-width="2"/><text x="236" y="346" text-anchor="middle">Dashboard · Pricing tiers</text>
+        </g>
+        <!-- Building column -->
+        <g font-size="13" fill="#8b9cb3">
+          <rect x="484" y="48" width="400" height="44" rx="6" fill="#141c28" stroke="#64748b" stroke-width="1.5" stroke-dasharray="6 4"/><text x="684" y="76" text-anchor="middle">Skill Marketplace · 公开市场</text>
+          <rect x="484" y="102" width="400" height="44" rx="6" fill="#141c28" stroke="#64748b" stroke-width="1.5" stroke-dasharray="6 4"/><text x="684" y="130" text-anchor="middle">Workflow · record / deploy 接真 API</text>
+          <rect x="484" y="156" width="400" height="44" rx="6" fill="#141c28" stroke="#64748b" stroke-width="1.5" stroke-dasharray="6 4"/><text x="684" y="184" text-anchor="middle">Reachy · 示教录制 &amp; virtual mode</text>
+          <rect x="484" y="210" width="400" height="44" rx="6" fill="#141c28" stroke="#64748b" stroke-width="1.5" stroke-dasharray="6 4"/><text x="684" y="238" text-anchor="middle">AI Hub · Model Card / Like / 社区</text>
+          <rect x="484" y="264" width="400" height="44" rx="6" fill="#141c28" stroke="#64748b" stroke-width="1.5" stroke-dasharray="6 4"/><text x="684" y="292" text-anchor="middle">Pro nodes · denoise / trajectory</text>
+          <rect x="484" y="318" width="400" height="44" rx="6" fill="#141c28" stroke="#64748b" stroke-width="1.5" stroke-dasharray="6 4"/><text x="684" y="346" text-anchor="middle">More runtimes · team &amp; annual plans</text>
+        </g>
+        <text x="460" y="382" text-anchor="middle" fill="#64748b" font-size="11">Tonight demo = SO-101 pipeline · rest is same product, same login</text>
+      </svg>
+    </div>
+    <div class="legend">
+      <span class="live">Live — 线上可点</span>
+      <span class="build">Building — 方向已定，迭代中</span>
+    </div>
+  </section>
+
+  <!-- Entry after demo -->
+  <section class="slide story-accent">
+    <p class="words">We opened the <span>ecosystem entry.</span></p>
+    <h2>不是卖一台臂 · 是开放一条让开发者和技能进来的路</h2>
+    <p class="story-sub">Tonight: SO-101 pipeline · Platform tabs already live · Marketplace building</p>
+  </section>
+
+
+
+  <!-- —— Story arc (second half) —— -->
+
+  <!-- Vision one-liner (moved here) -->
+  <section class="slide story-accent">
+    <p class="words">Robot skills,<br/><span>like installing apps.</span></p>
+    <h2>让机器人像装 App 一样，学会新本领</h2>
+  </section>
+
+  <!-- 17 Story divider -->
+  <section class="slide story story-accent" data-i="16">
+    <p class="story-quote">You saw it work.<br/><em>Now the bigger picture.</em></p>
+    <h2>真机已经跑通 · 接下来是时代判断</h2>
+  </section>
+
+  <!-- 18 2007 moment -->
+  <section class="slide story" data-i="17">
+    <p class="story-quote"><em>History rhymes.</em></p>
+    <h2>此时此刻，恰如彼时彼刻</h2>
+    <p class="story-sub">2007 · Mobile Internet &nbsp;|&nbsp; 2026 · Embodied AI</p>
+  </section>
+
+  <!-- 19 Then: mobile -->
+  <section class="slide story light" data-i="18">
+    <h1>2007 · Phones</h1>
+    <h2>诺基亚 · 摩托 · HTC — 硬件遍地</h2>
+    <ul class="minimal">
+      <li>Each brand, its own OS</li>
+      <li>Dev → ship → update: fragmented</li>
+      <li>各做各的商店，没有统一技能层</li>
+    </ul>
+  </section>
+
+  <!-- 20 Then vs Now parallel -->
+  <section class="slide story text-boost" data-i="19">
+    <h1>Then → Now</h1>
+    <h2>彼时手机 · 此时机器人</h2>
+    <div class="diagram">
+      <svg viewBox="0 0 900 220" xmlns="http://www.w3.org/2000/svg">
+        <defs><marker id="arrT" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#f59e0b"/></marker></defs>
+        <text x="225" y="30" text-anchor="middle" fill="#8b9cb3" font-size="16" font-weight="700">2007</text>
+        <text x="675" y="30" text-anchor="middle" fill="#f59e0b" font-size="16" font-weight="700">2026</text>
+        <rect x="80" y="48" width="290" height="52" rx="6" fill="#141c28" stroke="#3d4f66"/>
+        <text x="225" y="80" text-anchor="middle" fill="#e8edf4" font-size="16">Phones everywhere</text>
+        <rect x="530" y="48" width="290" height="52" rx="6" fill="#141c28" stroke="#f59e0b"/>
+        <text x="675" y="80" text-anchor="middle" fill="#e8edf4" font-size="16">Robots everywhere</text>
+        <rect x="80" y="115" width="290" height="52" rx="6" fill="#141c28" stroke="#3d4f66"/>
+        <text x="225" y="147" text-anchor="middle" fill="#e8edf4" font-size="16">No unified app layer</text>
+        <rect x="530" y="115" width="290" height="52" rx="6" fill="#141c28" stroke="#f59e0b"/>
+        <text x="675" y="147" text-anchor="middle" fill="#e8edf4" font-size="16">No unified skill layer</text>
+        <line x1="370" y1="74" x2="530" y2="74" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrT)"/>
+        <line x1="370" y1="141" x2="530" y2="141" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrT)"/>
+        <text x="450" y="195" text-anchor="middle" fill="#f59e0b" font-size="18" font-weight="600">Same pattern. Different hardware.</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 21 What won in 2007 -->
+  <section class="slide story" data-i="20">
+    <p class="words">Build once.<br/><span>Install everywhere.</span></p>
+    <h2>赢家打通的是：开发 → 安装 → 更新</h2>
+    <p class="story-sub">用户下载 App，开发者不用管每家手机厂商</p>
+  </section>
+
+  <!-- 22 Our bet -->
+  <section class="slide story story-accent" data-i="21">
+    <p class="words">Not another arm.<br/><span>A skill layer.</span></p>
+    <h2>不是再造机械臂 · 是做机器人时代的开发入口</h2>
+    <p class="story-sub">Tonight: pipeline on real hardware · Tomorrow: Skill others can install</p>
+  </section>
+
+  <!-- 23 Join early (merged: demo real + door open) -->
+  <section class="slide story" data-i="22">
+    <p class="story-quote">The demo is <em>real</em>.<br/>The door is <em>open</em>.</p>
+    <h2>能力今天能摸得到 · 生态才刚起步 — 现在进来正好</h2>
+    <p class="story-sub">不是「明天才有平台」— 网站已在；市场是下一棒</p>
+  </section>
+
+  <!-- 26 Vision - expanding ecosystem -->
+  <section class="slide vision text-boost">
+    <h1>The Road Ahead</h1>
+    <h2>宏大愿景 · 从入口到生态</h2>
+    <div class="diagram">
+      <svg viewBox="0 0 720 340" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="360" cy="175" r="155" fill="none" stroke="#3d4f66" stroke-width="1.5" stroke-dasharray="6 5" opacity="0.7"/>
+        <circle cx="360" cy="175" r="115" fill="none" stroke="#3d4f66" stroke-width="1.5" opacity="0.85"/>
+        <circle cx="360" cy="175" r="72" fill="none" stroke="#64748b" stroke-width="2"/>
+        <circle cx="360" cy="175" r="38" fill="#141c28" stroke="#f59e0b" stroke-width="2.5"/>
+        <text x="360" y="172" text-anchor="middle" fill="#f59e0b" font-size="16" font-weight="700">NOW</text>
+        <text x="360" y="188" text-anchor="middle" fill="#e8edf4" font-size="14">One pipeline</text>
+        <text x="360" y="95" text-anchor="middle" fill="#e8edf4" font-size="15" font-weight="600">Workflow · Skill · Hub</text>
+        <text x="520" y="178" text-anchor="start" fill="#e8edf4" font-size="15">Skill marketplace</text>
+        <text x="360" y="268" text-anchor="middle" fill="#e8edf4" font-size="15">Global developers</text>
+        <text x="155" y="178" text-anchor="end" fill="#e8edf4" font-size="15">Every robot brand</text>
+        <text x="360" y="42" text-anchor="middle" fill="#cbd5e1" font-size="14">Enterprise · on-prem · partners</text>
+        <text x="360" y="318" text-anchor="middle" fill="#f59e0b" font-size="17" font-weight="600">Build once · install on any supported robot</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 27 Roadmap timeline -->
+  <section class="slide vision">
+    <h1>Roadmap</h1>
+    <h2>今天做实 · 明天做大</h2>
+    <div class="diagram">
+      <svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg">
+        <defs><marker id="arrV" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#f59e0b"/></marker></defs>
+        <line x1="60" y1="100" x2="660" y2="100" stroke="#3d4f66" stroke-width="2"/>
+        <circle cx="120" cy="100" r="10" fill="#f59e0b"/>
+        <rect x="70" y="40" width="100" height="44" rx="6" fill="#141c28" stroke="#f59e0b"/>
+        <text x="120" y="60" text-anchor="middle" fill="#f59e0b" font-size="10" font-weight="700">NOW</text>
+        <text x="120" y="76" text-anchor="middle" fill="#e8edf4" font-size="9">E2E pipeline</text>
+        <circle cx="300" cy="100" r="8" fill="#8b9cb3"/>
+        <rect x="250" y="118" width="100" height="44" rx="6" fill="#141c28" stroke="#64748b"/>
+        <text x="300" y="138" text-anchor="middle" fill="#8b9cb3" font-size="10" font-weight="700">SOON</text>
+        <text x="300" y="154" text-anchor="middle" fill="#e8edf4" font-size="9">Skill · Workflow</text>
+        <circle cx="480" cy="100" r="8" fill="#64748b"/>
+        <rect x="430" y="40" width="100" height="44" rx="6" fill="#141c28" stroke="#64748b" stroke-dasharray="4 3"/>
+        <text x="480" y="60" text-anchor="middle" fill="#64748b" font-size="10" font-weight="700">NEXT</text>
+        <text x="480" y="76" text-anchor="middle" fill="#8b9cb3" font-size="9">Marketplace</text>
+        <circle cx="640" cy="100" r="8" fill="#64748b" opacity="0.6"/>
+        <rect x="575" y="118" width="130" height="44" rx="6" fill="#141c28" stroke="#64748b" stroke-dasharray="4 3"/>
+        <text x="640" y="138" text-anchor="middle" fill="#64748b" font-size="10" font-weight="700">VISION</text>
+        <text x="640" y="154" text-anchor="middle" fill="#8b9cb3" font-size="9">Robot skill OS</text>
+        <line x1="130" y1="100" x2="290" y2="100" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrV)"/>
+        <line x1="310" y1="100" x2="470" y2="100" stroke="#3d4f66" stroke-width="2" marker-end="url(#arrV)"/>
+        <line x1="490" y1="100" x2="630" y2="100" stroke="#3d4f66" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrV)"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 28 Flywheel -->
+  <section class="slide" data-i="25">
+    <p class="words">More devs →<br/>more skills →<br/><span>more robots.</span></p>
+    <h2>入口在你手里 · 生态越大，每个人越强</h2>
+  </section>
+
+  <!-- 27 AMD -->
+  <section class="slide" data-i="26">
+    <h1>Built for AMD Devs</h1>
+    <h2>ROCm · edge GPU · local-first control</h2>
+    <p class="tagline">Train in cloud. Control on device.</p>
+  </section>
+
+  <!-- 30 CTA -->
+  <section class="slide" data-i="27">
+    <h1>Step Through the Door</h1>
+    <h2>今晚进门 · 一起把生态做大</h2>
+    <p class="tagline">botversex.feispace.me</p>
+    <p class="logo-line">Find me after — let's Wiggle.</p>
+  </section>
+
+  <!-- 29 Q&A -->
+  <section class="slide" data-i="28">
+    <h1>Q & A</h1>
+    <h2>谢谢 · Thank you</h2>
+    <p class="tagline">BotverseX</p>
+  </section>
+
+  </div>
+
+  <script>
+    const slides = [...document.querySelectorAll('#deck .slide')];
+    let i = 0;
+    const progress = document.getElementById('progress');
+    const pageNum = document.getElementById('pageNum');
+
+    function show(n) {
+      if (!slides.length) return;
+      i = Math.max(0, Math.min(n, slides.length - 1));
+      slides.forEach((s, j) => s.classList.toggle('active', j === i));
+      if (progress) progress.style.width = ((i + 1) / slides.length * 100) + '%';
+      if (pageNum) pageNum.textContent = (i + 1) + ' / ' + slides.length;
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); show(i + 1); }
+      if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+      if (e.key === 'Home') show(0);
+      if (e.key === 'End') show(slides.length - 1);
+      if (e.key === 'f' || e.key === 'F') {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+        else document.exitFullscreen();
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (e.clientX > window.innerWidth / 2) show(i + 1);
+      else show(i - 1);
+    });
+
+    const q = new URLSearchParams(location.search);
+    show(q.has('slide') ? parseInt(q.get('slide'), 10) : 0);
+  </script>
+</body>
+</html>

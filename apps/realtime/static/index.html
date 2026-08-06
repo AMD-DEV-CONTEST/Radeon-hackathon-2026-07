@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BotverseX - 实时监控</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23D4A017'/%3E%3Cstop offset='100%25' stop-color='%23F0C040'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='7' fill='url(%23g)'/%3E%3Ctext x='16' y='22' font-family='Arial,sans-serif' font-size='14' font-weight='800' text-anchor='middle' fill='%23000'%3EBX%3C/text%3E%3C/svg%3E">
+    <link rel="stylesheet" href="/static/style.css">
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-brand">
+                <div class="logo-icon">BX</div>
+                <h1>BotverseX</h1>
+            </div>
+            <div class="connection-status">
+                <div id="ws-status" class="status disconnected" title="WebSocket 连接状态">
+                    <span class="status-dot"></span>
+                    <span class="status-text">未连接</span>
+                </div>
+                <button id="btn-connect" class="btn btn-connect" type="button" title="连接到后端 WebSocket">
+                    <span class="btn-icon">⏻</span>
+                    <span class="btn-label">连接</span>
+                </button>
+            </div>
+        </header>
+
+        <main>
+            <!-- 3D 可视化 -->
+            <section class="viewer-section">
+                <div class="section-header">
+                    <h2>虚拟臂</h2>
+                    <div class="viewer-controls">
+                        <span id="viewer-fps" class="viewer-fps">-- FPS</span>
+                    </div>
+                </div>
+                <div id="viewer-container" class="viewer-container">
+                    <canvas id="three-canvas"></canvas>
+                </div>
+            </section>
+
+            <!-- 关节角度显示 -->
+            <section class="joints-display">
+                <div class="section-header">
+                    <h2>关节角度</h2>
+                </div>
+                <div class="joints-grid">
+                    <div class="joint-card" data-joint="1">
+                        <div class="joint-name">关节 1 (肩部旋转)</div>
+                        <div class="joint-value" id="joint-1">0.00</div>
+                        <div class="joint-unit">rad</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="bar-1"></div>
+                        </div>
+                    </div>
+
+                    <div class="joint-card" data-joint="2">
+                        <div class="joint-name">关节 2 (肩部升降)</div>
+                        <div class="joint-value" id="joint-2">0.00</div>
+                        <div class="joint-unit">rad</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="bar-2"></div>
+                        </div>
+                    </div>
+
+                    <div class="joint-card" data-joint="3">
+                        <div class="joint-name">关节 3 (肘部弯曲)</div>
+                        <div class="joint-value" id="joint-3">0.00</div>
+                        <div class="joint-unit">rad</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="bar-3"></div>
+                        </div>
+                    </div>
+
+                    <div class="joint-card" data-joint="4">
+                        <div class="joint-name">关节 4 (腕部弯曲)</div>
+                        <div class="joint-value" id="joint-4">0.00</div>
+                        <div class="joint-unit">rad</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="bar-4"></div>
+                        </div>
+                    </div>
+
+                    <div class="joint-card" data-joint="5">
+                        <div class="joint-name">关节 5 (腕部旋转)</div>
+                        <div class="joint-value" id="joint-5">0.00</div>
+                        <div class="joint-unit">rad</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="bar-5"></div>
+                        </div>
+                    </div>
+
+                    <div class="joint-card" data-joint="6">
+                        <div class="joint-name">关节 6 (夹爪)</div>
+                        <div class="joint-value" id="joint-6">0.00</div>
+                        <div class="joint-unit">rad</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="bar-6"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 录制控制 -->
+            <section class="record-section">
+                <div class="section-header">
+                    <h2>录制控制</h2>
+                </div>
+                <div class="record-controls">
+                    <button id="btn-record" class="btn btn-record">
+                        <span class="btn-icon">⏺</span>
+                        开始录制
+                    </button>
+                    <div id="record-status" class="record-status">待机</div>
+                </div>
+                <div id="record-info" class="record-info"></div>
+            </section>
+
+            <!-- 状态信息 -->
+            <section class="status-section">
+                <div class="section-header">
+                    <h2>系统状态</h2>
+                </div>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <span class="status-label">FPS</span>
+                        <span id="fps-value" class="status-value">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">数据帧</span>
+                        <span id="frame-count" class="status-value">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">最后更新</span>
+                        <span id="last-update" class="status-value">--:--:--</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>BotverseX v0.1 | <a href="/docs">API 文档</a></p>
+        </footer>
+    </div>
+
+    <script type="module" src="/static/app.js"></script>
+</body>
+</html>

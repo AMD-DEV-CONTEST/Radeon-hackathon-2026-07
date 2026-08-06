@@ -1,0 +1,79 @@
+# BotverseX production stack
+#
+# Deploy:
+#   cd /opt/botversex
+#   docker compose -f infra/docker/docker-compose.prod.yml up -d --build
+#
+# Memory budget (2-core 8GB ECS):
+#   web (nginx):    ~20 MB
+#   api (uvicorn):  ~200 MB
+#   realtime:       ~1.5 GB (PyTorch CPU)
+#   total:          ~1.7 GB, leaving plenty of headroom
+
+services:
+  realtime:
+    build:
+      context: ../..
+      dockerfile: infra/docker/realtime.Dockerfile
+    image: localhost/botversex/realtime:prod
+    container_name: botversex-realtime
+    ports:
+      - "8002:8002"
+    expose:
+      - "8002"
+    environment:
+      PYTHONUNBUFFERED: "1"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+
+  api:
+    build:
+      context: ../..
+      dockerfile: infra/docker/api.Dockerfile
+    image: localhost/botversex/api:prod
+    container_name: botversex-api
+    extra_hosts:
+      - "realtime:host-gateway"
+    expose:
+      - "8000"
+    env_file:
+      - ../../apps/api/.env
+    environment:
+      DATABASE_URL: "sqlite:////data/botversex_prod.db"
+      TIMESCALE_URL: "sqlite:////data/botversex_prod.db"
+      REDIS_URL: "redis://disabled"
+      REALTIME_SERVICE_URL: "http://realtime:8002"
+      ENCRYPTION_KEY: "6c5h93VzbDCuf28Ndnug23SuN2wpKKdguJusncR1eEM="
+      JWT_SECRET: "cWMweCaMMhqqgZ890ZgMN77EL6NbjBduhWkrtLhVenwjwRT2PsMD-YC6kRUVYzr5"
+      # BACKEND_CORS_ORIGINS uses code defaults in config.py (includes all prod domains)
+    volumes:
+      - api_data:/data
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  web:
+    build:
+      context: ../..
+      dockerfile: infra/docker/web.prod.Dockerfile
+    image: localhost/botversex/web:prod
+    container_name: botversex-web
+    extra_hosts:
+      - "realtime:host-gateway"
+    ports:
+      - "18080:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+volumes:
+  api_data:

@@ -1,0 +1,593 @@
+{
+  "schema_version": "botversex.robot-manifest.v0",
+  "robots": [
+    {
+      "runtime_id": "so101",
+      "robot_type": "so101",
+      "display_name": "SO-101 (Feetech STS3215 x 6)",
+      "transport": {
+        "kind": "leader_follower_serial",
+        "ports": {
+          "leader": "/dev/ttyACM0",
+          "follower": "/dev/ttyACM1"
+        }
+      },
+      "service": {
+        "kind": "none"
+      },
+      "urdf_url": "/api/urdf/so101.urdf",
+      "joint_names": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ],
+      "capabilities": {
+        "state_stream": true,
+        "teleop": true,
+        "recording": true,
+        "calibration": true,
+        "motor_mode": false,
+        "local_moves": false,
+        "camera": true
+      },
+      "dependencies": {
+        "python_modules": [
+          "lerobot",
+          "lerobot.motors.feetech",
+          "serial"
+        ],
+        "binaries": [
+          "lerobot-teleoperate"
+        ],
+        "policy": "workspace_venv"
+      },
+      "ui": {
+        "route": "/robots/so101"
+      }
+    },
+    {
+      "runtime_id": "reachy_mini",
+      "robot_type": "reachy_mini",
+      "display_name": "Reachy Mini (Pollen Robotics, 9 DoF)",
+      "transport": {
+        "kind": "usb_serial",
+        "ports": {
+          "serial": "auto"
+        }
+      },
+      "service": {
+        "kind": "local_daemon",
+        "host": "127.0.0.1",
+        "port": 8010,
+        "sdk_path": "/home/amd/sdk/reachy_mini_Allan",
+        "python_env": "adapter_venv",
+        "log_file": "/tmp/botversex_reachy_mini_daemon.log",
+        "command": [
+          "python",
+          "-m",
+          "reachy_mini.daemon.app.main",
+          "--serialport",
+          "{serial}",
+          "--fastapi-host",
+          "{host}",
+          "--fastapi-port",
+          "{port}",
+          "--no-preload-datasets",
+          "--autostart"
+        ],
+        "audio": {
+          "enabled": true,
+          "can_disable": true,
+          "note": "Daemon defaults to use_audio=True; --deactivate-audio was removed in M21 to enable Conversation App + DOA + volume control."
+        },
+        "apps": {
+          "enabled": true,
+          "default_conversation_app": "reachy_mini_conversation_app",
+          "default_backend": "huggingface",
+          "backends": [
+            "huggingface",
+            "openai",
+            "gemini"
+          ]
+        }
+      },
+      "urdf_url": "/api/urdf/reachy_mini/reachy_mini.urdf",
+      "joint_names": [
+        "body_rotation",
+        "stewart_1",
+        "stewart_2",
+        "stewart_3",
+        "stewart_4",
+        "stewart_5",
+        "stewart_6",
+        "right_antenna",
+        "left_antenna"
+      ],
+      "capabilities": {
+        "state_stream": true,
+        "teleop": false,
+        "recording": true,
+        "calibration": false,
+        "motor_mode": true,
+        "local_moves": true,
+        "virtual": true,
+        "camera": false,
+        "audio": true,
+        "doa": true,
+        "volume_control": true,
+        "apps": true,
+        "conversation": true,
+        "recorded_move_datasets": true,
+        "set_target_stream": true
+      },
+      "dependencies": {
+        "python_modules": [
+          "reachy_mini",
+          "zenoh",
+          "httpx",
+          "websockets",
+          "serial"
+        ],
+        "binaries": [],
+        "policy": "adapter_venv",
+        "install_hint": "Create an adapter venv for reachy_mini and install Allan's SDK with pip install -e ."
+      },
+      "ui": {
+        "route": "/robots/reachy_mini"
+      }
+    },
+    {
+      "runtime_id": "b601_rs",
+      "robot_type": "b601_rs",
+      "display_name": "reBot B601",
+      "catalog_family": "b601",
+      "catalog_variants": [
+        {
+          "runtime_id": "b601_rs",
+          "label": "RS（RobStride）",
+          "default": true
+        },
+        {
+          "runtime_id": "b601_dm",
+          "label": "DM（Damiao 达妙）"
+        },
+        {
+          "runtime_id": "bi_b601_dm",
+          "label": "DM 双臂"
+        }
+      ],
+      "transport": {
+        "kind": "can_leader_serial",
+        "can": "can0",
+        "leader": "/dev/leader_stararm102"
+      },
+      "service": {
+        "kind": "none"
+      },
+      "urdf_url": "/api/urdf/b601_rs/b601_rs.urdf",
+      "joint_names": [
+        "shoulder_pan",
+        "shoulder_lift",
+        "elbow_flex",
+        "wrist_flex",
+        "wrist_yaw",
+        "wrist_roll",
+        "gripper"
+      ],
+      "capabilities": {
+        "state_stream": true,
+        "teleop": true,
+        "recording": true,
+        "calibration": true,
+        "motor_mode": true,
+        "local_moves": false,
+        "camera": true,
+        "motor_recovery": true,
+        "inference": true,
+        "joints_live": true,
+        "kinematics": true,
+        "gravity_compensation": true,
+        "ros2": true
+      },
+      "capability_tags": [
+        "teleop",
+        "record",
+        "calibrate",
+        "inference",
+        "joints_live",
+        "camera",
+        "kinematics",
+        "gravity_comp",
+        "ros2"
+      ],
+      "dependencies": {
+        "python_modules": [
+          "lerobot",
+          "lerobot_robot_seeed_b601",
+          "lerobot_teleoperator_rebot_arm_102",
+          "motorbridge"
+        ],
+        "binaries": [
+          "lerobot-teleoperate",
+          "lerobot-record",
+          "lerobot-calibrate",
+          "motorbridge-cli"
+        ],
+        "policy": "workspace_venv"
+      },
+      "ui": {
+        "route": "/robots/b601_rs"
+      }
+    },
+    {
+      "runtime_id": "b601_dm",
+      "robot_type": "b601_dm",
+      "display_name": "reBot B601-DM (Damiao 4340P/4310 × 7 + Star Arm 102 主臂)",
+      "hidden_from_catalog": true,
+      "catalog_parent": "b601_rs",
+      "catalog_variant_label": "DM（Damiao 达妙）",
+      "transport": {
+        "kind": "dm_can_serial",
+        "dm_port": "/dev/ttyACM2",
+        "dm_baud": 921600,
+        "leader": "/dev/leader_stararm102"
+      },
+      "service": {
+        "kind": "none"
+      },
+      "urdf_url": "/api/urdf/b601_rs/b601_rs.urdf",
+      "joint_names": [
+        "shoulder_pan",
+        "shoulder_lift",
+        "elbow_flex",
+        "wrist_flex",
+        "wrist_yaw",
+        "wrist_roll",
+        "gripper"
+      ],
+      "capabilities": {
+        "state_stream": true,
+        "teleop": true,
+        "recording": true,
+        "calibration": true,
+        "motor_mode": true,
+        "local_moves": false,
+        "camera": true,
+        "motor_recovery": true,
+        "inference": true,
+        "joints_live": true,
+        "kinematics": true,
+        "gravity_compensation": true,
+        "ros2": true
+      },
+      "capability_tags": [
+        "teleop",
+        "record",
+        "calibrate",
+        "inference",
+        "joints_live",
+        "camera",
+        "kinematics",
+        "gravity_comp",
+        "ros2"
+      ],
+      "dependencies": {
+        "python_modules": [
+          "lerobot",
+          "lerobot_robot_seeed_b601",
+          "lerobot_teleoperator_rebot_arm_102",
+          "motorbridge"
+        ],
+        "binaries": [
+          "lerobot-teleoperate",
+          "lerobot-record",
+          "lerobot-calibrate",
+          "motorbridge-cli"
+        ],
+        "policy": "workspace_venv",
+        "install_hint": "B601-DM uses Damiao motors over USB-CAN. Install the lerobot fork (pr-3967 branch) which registers rebot_b601_dm_follower as a standard robot type. On aarch64 (e.g. DGX Spark / Jetson) install cu130 wheels; on x86_64 use the standard wheels. See docs/adding-a-robot.md 'Adding a reBot B601-DM'."
+      },
+      "ui": {
+        "route": "/robots/b601_dm"
+      }
+    },
+    {
+      "runtime_id": "bi_b601_dm",
+      "robot_type": "bi_b601_dm",
+      "display_name": "reBot B601-DM 双臂 (Damiao × 14 + Star Arm 102 双主臂)",
+      "hidden_from_catalog": true,
+      "catalog_parent": "b601_rs",
+      "catalog_variant_label": "DM 双臂",
+      "transport": {
+        "kind": "dm_can_serial_dual",
+        "dm_ports": [
+          "/dev/ttyACM2",
+          "/dev/ttyACM3"
+        ],
+        "dm_baud": 921600,
+        "leaders": [
+          "/dev/leader_stararm102_left",
+          "/dev/leader_stararm102_right"
+        ]
+      },
+      "service": {
+        "kind": "none"
+      },
+      "urdf_url": "/api/urdf/b601_rs/b601_rs.urdf",
+      "joint_names": [
+        "left_shoulder_pan",
+        "left_shoulder_lift",
+        "left_elbow_flex",
+        "left_wrist_flex",
+        "left_wrist_yaw",
+        "left_wrist_roll",
+        "left_gripper",
+        "right_shoulder_pan",
+        "right_shoulder_lift",
+        "right_elbow_flex",
+        "right_wrist_flex",
+        "right_wrist_yaw",
+        "right_wrist_roll",
+        "right_gripper"
+      ],
+      "capabilities": {
+        "state_stream": true,
+        "teleop": true,
+        "recording": true,
+        "calibration": true,
+        "motor_mode": true,
+        "local_moves": false,
+        "camera": true,
+        "motor_recovery": true,
+        "inference": true,
+        "joints_live": true,
+        "kinematics": false,
+        "gravity_compensation": false,
+        "ros2": false,
+        "bimanual": true
+      },
+      "capability_tags": [
+        "teleop",
+        "record",
+        "calibrate",
+        "inference",
+        "joints_live",
+        "camera",
+        "bimanual"
+      ],
+      "dependencies": {
+        "python_modules": [
+          "lerobot",
+          "lerobot_robot_seeed_b601",
+          "lerobot_teleoperator_rebot_arm_102",
+          "motorbridge"
+        ],
+        "binaries": [
+          "lerobot-teleoperate",
+          "lerobot-record",
+          "lerobot-calibrate",
+          "motorbridge-cli"
+        ],
+        "policy": "workspace_venv",
+        "install_hint": "Dual-arm B601-DM. Requires the lerobot fork (pr-3967) which registers bi_rebot_b601_follower and bi_rebot_102_leader as standard types. Two CAN adapters + two leader arms needed."
+      },
+      "ui": {
+        "route": "/robots/bi_b601_dm"
+      }
+    },
+    {
+      "runtime_id": "lekiwi",
+      "robot_type": "lekiwi",
+      "display_name": "LeKiwi 移动机械臂",
+      "transport": {
+        "kind": "lekiwi_host_client",
+        "host": {
+          "device": "raspberry_pi_or_orin",
+          "remote_ip_env": "LEKIWI_REMOTE_IP",
+          "command_port": 5555,
+          "observation_port": 5556,
+          "watchdog_timeout_ms": 500
+        },
+        "motor_bus": {
+          "type": "feetech_serial",
+          "motor_type": "sts3215",
+          "port": "/dev/ttyACM0",
+          "arm_motor_ids": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "base_motor_ids": [
+            7,
+            8,
+            9
+          ]
+        },
+        "leader_arm": {
+          "type": "so101_leader",
+          "port": "/dev/ttyACM1"
+        }
+      },
+      "service": {
+        "kind": "zmq",
+        "host_command": "python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=botversex-lekiwi",
+        "command_port": 5555,
+        "observation_port": 5556
+      },
+      "urdf_url": "/api/urdf/lekiwi/lekiwi.urdf?v=official-cad-1",
+      "joint_names": [
+        "arm_shoulder_pan.pos",
+        "arm_shoulder_lift.pos",
+        "arm_elbow_flex.pos",
+        "arm_wrist_flex.pos",
+        "arm_wrist_roll.pos",
+        "arm_gripper.pos",
+        "x.vel",
+        "y.vel",
+        "theta.vel"
+      ],
+      "capabilities": {
+        "state_stream": true,
+        "teleop": true,
+        "recording": true,
+        "calibration": true,
+        "motor_mode": false,
+        "local_moves": true,
+        "camera": true,
+        "inference": true,
+        "joints_live": true,
+        "mobile": true,
+        "bimanual": false
+      },
+      "capability_tags": [
+        "teleop",
+        "record",
+        "calibrate",
+        "inference",
+        "joints_live",
+        "camera",
+        "mobile"
+      ],
+      "dependencies": {
+        "python_modules": [
+          "lerobot",
+          "zmq",
+          "feetech_servo_sdk"
+        ],
+        "binaries": [
+          "lerobot-teleoperate",
+          "lerobot-record",
+          "lerobot-calibrate"
+        ],
+        "policy": "workspace_venv",
+        "install_hint": "在 LeKiwi 的树莓派/Orin 上运行 lekiwi_host；BotverseX Local Agent 通过 ZMQ 5555/5556 连接。官方底盘与机械臂共用一条 Feetech STS3215 总线（ID 1-9），不是 Damiao CAN。"
+      },
+      "ui": {
+        "route": "/robots/lekiwi"
+      }
+    },
+    {
+      "runtime_id": "amazing_hand",
+      "robot_type": "amazing_hand",
+      "display_name": "AmazingHand 灵巧手（Preview）",
+      "preview": true,
+      "transport": {
+        "kind": "dexterous_hand_serial",
+        "port": "/dev/ttyACM0",
+        "baud": 921600,
+        "dof": 8
+      },
+      "service": {
+        "kind": "none"
+      },
+      "urdf_url": "/api/urdf/amazing_hand/amazing_hand.urdf?v=official-cad-1",
+      "joint_names": [
+        "thumb_mcp",
+        "thumb_pip",
+        "index_mcp",
+        "index_pip",
+        "middle_mcp",
+        "middle_pip",
+        "ring_pinky_mcp",
+        "ring_pinky_pip"
+      ],
+      "capabilities": {
+        "state_stream": true,
+        "teleop": false,
+        "recording": false,
+        "calibration": false,
+        "motor_mode": true,
+        "local_moves": true,
+        "camera": false,
+        "inference": false,
+        "joints_live": true,
+        "dexterous": true
+      },
+      "capability_tags": [
+        "joints_live",
+        "motor_mode",
+        "dexterous"
+      ],
+      "dependencies": {
+        "python_modules": [
+          "lerobot"
+        ],
+        "binaries": [],
+        "policy": "workspace_venv",
+        "install_hint": "AmazingHand is an 8-DOF humanoid hand that attaches to a Reachy2 wrist. Preview integration — teleop and recording are coming."
+      },
+      "ui": {
+        "route": "/robots/amazing_hand"
+      }
+    },
+    {
+      "runtime_id": "unitree_g1",
+      "robot_type": "unitree_g1",
+      "display_name": "Unitree G1 人形（Preview）",
+      "preview": true,
+      "transport": {
+        "kind": "humanoid_network",
+        "host": "192.168.123.18",
+        "port": 8080
+      },
+      "service": {
+        "kind": "none"
+      },
+      "urdf_url": "/api/urdf/unitree_g1/unitree_g1.urdf?v=official-cad-1",
+      "joint_names": [
+        "left_shoulder_pitch",
+        "left_shoulder_roll",
+        "left_shoulder_yaw",
+        "left_elbow",
+        "right_shoulder_pitch",
+        "right_shoulder_roll",
+        "right_shoulder_yaw",
+        "right_elbow",
+        "left_hip_pitch",
+        "left_hip_roll",
+        "left_hip_yaw",
+        "left_knee",
+        "right_hip_pitch",
+        "right_hip_roll",
+        "right_hip_yaw",
+        "right_knee"
+      ],
+      "capabilities": {
+        "state_stream": true,
+        "teleop": false,
+        "recording": false,
+        "calibration": false,
+        "motor_mode": true,
+        "local_moves": true,
+        "camera": false,
+        "inference": false,
+        "joints_live": true,
+        "humanoid": true,
+        "bimanual": true
+      },
+      "capability_tags": [
+        "joints_live",
+        "motor_mode",
+        "humanoid",
+        "bimanual"
+      ],
+      "dependencies": {
+        "python_modules": [
+          "lerobot"
+        ],
+        "binaries": [],
+        "policy": "workspace_venv",
+        "install_hint": "Unitree G1 humanoid. Preview integration — RL policies (UFO, LearningHumanoidWalking, kungfu) are coming as Workflow nodes."
+      },
+      "ui": {
+        "route": "/robots/unitree_g1"
+      }
+    }
+  ]
+}

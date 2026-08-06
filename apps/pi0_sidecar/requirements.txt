@@ -1,0 +1,25 @@
+# Pi0 sidecar dependencies (Python 3.12).
+#
+# Qualia documents training/inference against LeRobot 0.4.4:
+#   https://docs.qualiastudios.dev/global/guides/inference/
+# PyPI `lerobot==0.4.4` does not expose the `pi` optional extra; Pi0 stacks
+# need `lerobot[pi]` which appears in newer releases. We pin a recent
+# 0.5.x so `PI0Policy.from_pretrained` + patched transformers resolve from
+# wheels. If a Qualia export is strictly 0.4.4-only, fall back to their
+# `lerobot-record --policy.path=...` recipe for a compatibility check.
+
+fastapi>=0.115,<0.120
+uvicorn[standard]>=0.32,<0.35
+pydantic>=2.8,<3
+httpx>=0.27,<0.30
+socksio>=1.0.0,<2.0.0
+python-multipart>=0.0.9,<1.0
+Pillow>=10.0.0,<13.0.0
+numpy>=2.0.0,<2.3.0
+
+# Torch: CPU wheel is fine for first light; ROCm integration can come later
+# by swapping this line. pip will resolve whatever matches torch's python 3.12 wheels.
+torch>=2.7,<2.12
+torchvision>=0.22,<0.27
+
+lerobot[pi]==0.5.1
