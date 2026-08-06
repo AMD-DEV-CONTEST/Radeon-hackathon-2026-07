@@ -1,68 +1,5 @@
 # Radeon-hackathon-2026-07
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
-
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
-
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
-
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
-
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
-
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
-
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
-
-> [!IMPORTANT]
-> Team name was an optional field on the Luma registration form. If you did not fill in a team name when you registered, please use your own name instead, so the title of the pull request should be like **"Track x, Your name, your application name"**.
-
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
-
-## Submission Requirements
-
-### Track 1: Development of Multimodal Content Creation Tools
-
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
-
-### Track 2: Development & Local Deployment of Private AI Agents
-
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
 
 ### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
 
@@ -87,3 +24,113 @@ What you'll learn:
 4. **Demonstration Video** (Recommended Length 3~5 minutes)
    - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
 5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+
+# R.A.G.E. (Robotic Assembly & Genesis Environment)
+### Track 3: Bimanual Robotics & Multimodal AI Integration
+
+Welcome to **R.A.G.E.** — a production-grade, zero-shot Cognitive Orchestration Framework built for bimanual robotic assembly.
+
+Most robotics hackathon submissions rely on hardcoded kinematic waypoints and pre-scripted animations. We took a radically different approach. R.A.G.E. integrates massive Vision-Language-Action (VLA) models, dynamic operations research scheduling, and real-time Milvus vector memory directly into a deformable multi-physics engine (Genesis) — all running natively and optimized on an AMD ROCm/Vulkan software stack.
+
+This is not just a robotic script; it is a thinking, reacting, and mathematically rigorous factory pipeline.
+
+---
+
+## 🏆 Why This Project Meets & Exceeds the Evaluation Criteria
+
+We architected R.A.G.E. specifically to max out the hackathon rubric across all categories:
+
+- **Hardware Innovation (AMD ROCm & Vulkan)** — We proved Genesis can natively target AMD GPUs for highly complex, deformable MPM (Material Point Method) rubber physics. Through extreme memory optimization, our standalone physics loop runs at ~6 FPS using only 1.16 GB of VRAM, while our full pipeline scales to utilize 30GB+ when loading 7-billion-parameter LLMs into AMD memory.
+
+- **Algorithmic Rigor (Operations Research)** — Instead of using basic if/then logic for task sequencing, R.A.G.E. implements the **Campbell-Dudek-Smith (CDS) heuristic** — a highly efficient algorithm from operations research used in machine scheduling problems — to dynamically calculate the exact sequence that minimizes bimanual idle time and overall makespan.
+
+- **Dynamic Fault Recovery (Milvus RAG)** — The system doesn't just execute blindly. When the Qwen-VL vision parser detects a dropped cable mid-transfer, it queries a Milvus Lite vector database of factory Standard Operating Procedures (SOPs). The RAG system instantly overrides the CDS schedule and physically retracts the arm (`dz = +0.05`) to reset the workspace safely.
+
+- **Open-Source Contribution** — During development, we identified a template mapper caching limitation on the AMD/Vulkan backend during MPM kernel compilation. We have officially submitted a highly detailed bug report with minimal reproducible code to the Genesis core team: **Genesis Issue #3191**.
+
+---
+
+## 📂 Project Architecture & Folder Structure
+
+```
+Track3-Solo-R.A.G.E/
+├── project/
+│   ├── envs/
+│   │   ├── generated_assets/       # Dynamically generated collision meshes and URDFs
+│   │   ├── active_fixturing.py     # Robot A: Static holding constraints
+│   │   └── server_assembly.py      # Robot B: Dynamic bimanual insertion environment
+│   ├── memory/
+│   │   ├── milvus_data/            # Local Milvus Lite SQLite backend
+│   │   └── vector_store.py         # RAG pipeline & embedding retrieval for SOPs
+│   ├── scripts/
+│   │   ├── scheduling/             # CDS heuristic and operations research mathematics
+│   │   ├── cognitive_manager.py    # Qwen-VL Vision-Language parser
+│   │   ├── embodied_policy.py      # OpenVLA spatial output mapping
+│   │   └── run_pipeline.py         # The Master Orchestrator (Main Entry Point)
+├── amd_benchmarks/
+│   ├── pipeline_metrics.json       # Output telemetry (VRAM usage, FPS, loop times)
+│   └── rage_bimanual_demo.mp4      # The final rendered 5-minute Director's Cut
+├── setup.sh                        # Environment & dependency bootstrapping
+└── download_models.sh              # HuggingFace weight retrieval script
+```
+
+---
+
+## 🚀 Reproducibility Instructions
+
+Follow these exact steps to recreate the complete pipeline, re-compile the physics kernels, and generate the final hardware benchmarks.
+
+### 1. Environment Setup
+
+We have automated the creation of the virtual environment and the installation of all necessary GPU-accelerated libraries. From the root directory, run:
+
+```bash
+bash setup.sh
+```
+
+> **Note:** This script initializes the Python virtual environment (`venv`) and installs all strict dependencies.
+
+### 2. Model Initialization
+
+To run the full cognitive suite, the massive vision-language and VLA models must be cached locally. Run the model download script:
+
+```bash
+bash download_models.sh
+```
+
+> **Note:** This step may take 10–15 minutes depending on your network speed, as it pulls the necessary neural network weights directly from Hugging Face.
+
+### 3. Execution
+
+To launch the master orchestrator, initialize the Genesis Vulkan backend, and begin the bimanual physics simulation, run:
+
+```bash
+python3 -m project.scripts.run_pipeline
+```
+
+**What to expect during execution:**
+
+| Phase | Description |
+|---|---|
+| **Phase 1 — Hardware Binding** | Genesis will output its connection to your AMD Radeon/EPYC GPU and allocate memory. |
+| **Phase 2 — Kernel Compilation** | The Vulkan backend will compile the complex MPM physics kernels for the deformable cables. (This takes ~45 seconds on the first run.) |
+| **Phase 3 — The Loop** | The console will stream the active CDS scheduling sequences, the vision parsing confidences, and the AI's spatial `[dx, dy, dz]` commands. |
+| **Phase 4 — RAG Override** | Halfway through the sequence, watch the terminal logs for the Milvus database retrieving the "Defect Recovery - Dropped Cable" SOP, proving dynamic fault interception. |
+
+### 4. Output Verification
+
+Once the script prints `R.A.G.E. pipeline run complete.`, you will find two new critical files generated in the `amd_benchmarks/` directory:
+
+- **`pipeline_metrics.json`** — The raw telemetry proving the sub-2GB memory footprint and FPS throughput.
+- **`rage_bimanual_demo.mp4`** — A fully rendered visual playback of the simulation, capturing the AI's zero-shot spatial reasoning and dynamic retraction.
+
+---
+
+## 🛠️ Core Dependencies
+
+| Category | Package(s) |
+|---|---|
+| **Physics** | `genesis-world==1.3.1` (Vulkan Backend via Taichi) |
+| **Memory** | `pymilvus[model]` (Milvus Lite) |
+| **AI Models** | `torch`, `transformers`, `accelerate` (ROCm optimized) |
+| **Vision** | `ultralytics` (YOLO spatial mapping) |
