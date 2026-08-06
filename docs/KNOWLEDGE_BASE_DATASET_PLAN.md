@@ -28,11 +28,11 @@ The correct target is a small corpus that is easy to understand, quick to edit, 
 |---|---|---:|---:|
 | `profile_basics` | Avatar clarity, crop, and composition | 8 | 12 |
 | `privacy_safety` | EXIF, QR, badge, screen, and text-disclosure risks | 8 | 10 |
-| `global_professional_context` | GitHub, LinkedIn, and Discord profile behavior | 10 | 18 |
+| `global_professional_context` | Platform behavior and copyright provenance | 12 | 18 |
 | `open_chinese_symbolism` | A few documented plants, animals, and motifs | 6 | 10 |
-| **Total** |  | **32 cards** | **50 cards** |
+| **Total** |  | **34 cards** | **50 cards** |
 
-Build **32 cards first**. Stop when the eight smoke queries pass. Expand toward 50 only after the agent workflow, tools, memory, UI, AMD benchmark, documentation, and video are complete.
+Build **34 cards first**. Stop when the nine smoke queries pass. Expand toward 50 only after the agent workflow, tools, memory, UI, AMD benchmark, documentation, and video are complete.
 
 ### 2.2 Post-Hackathon Target
 
@@ -58,9 +58,9 @@ The project uses two deliberately separate dataset layers:
 
 | Layer | Count | Runtime Role |
 |---|---:|---|
-| Knowledge cards | 32 | Embedded into Milvus Lite for source-backed RAG |
+| Knowledge cards | 34 | Embedded into Milvus Lite for source-backed RAG |
 | Image fixtures | 120 | Exercised by the VLM and deterministic image, privacy, OCR, QR, and EXIF tools |
-| **Primary test records** | **152** | Text retrieval plus visual/tool evaluation |
+| **Primary test records** | **154** | Text retrieval plus visual/tool evaluation |
 
 The image layer is implemented from **24 existing open-license Wikimedia Commons images**: 16 event portraits and 8 cultural images covering bat, lotus, dragon, and bamboo motifs. One additional public-domain QR image is used only as an overlay source. No AI-generated image is included.
 
@@ -330,18 +330,25 @@ Example:
   tags: [bat, motif, chinese-art, documented-context]
 ```
 
-### 8.5 Total
+### 8.5 Copyright-Provenance Extension: 2 Cards
+
+Two WIPO-backed cards support the explicit memory demo for users who prefer cartoon-style avatars
+while wanting copyright uncertainty considered. The cards recommend independently created,
+commissioned-with-rights, licensed, or public-domain artwork. They deliberately do not make an
+infringement determination from visual similarity.
+
+### 8.6 Total
 
 ```text
  8 profile cards
  8 privacy cards
-10 professional-context cards
+12 professional-context cards
  6 cultural cards
 ----------------------------
-32 cards total
+34 cards total
 ```
 
-Stop at 32 when all eight smoke queries pass. More cards are optional.
+Stop at 34 when all nine smoke queries pass. More cards are optional.
 
 ## 9. Build Script
 
@@ -388,7 +395,7 @@ No reranking is required for the hackathon. If retrieval is weak, improve the ca
 
 ## 11. Smoke Evaluation
 
-Create eight queries: two per Lens Pack.
+Create nine queries: two per Lens Pack plus one copyright-provenance query for professional context.
 
 ```yaml
 - query: "Will the logo survive a circular crop at a small avatar size?"
@@ -430,7 +437,7 @@ The review does not require per-card reviewer fields, timestamps, or approval st
 | Write 10 platform cards | 2 hours |
 | Write 6 cultural cards from one thematic guide | 1.5 hours |
 | Build Milvus script | 2 hours |
-| Run eight smoke queries and fix cards | 1 hour |
+| Run nine smoke queries and fix cards | 1 hour |
 | Final read-through | 0.5 hour |
 | **Total** | **10 hours** |
 
@@ -440,7 +447,7 @@ The image pack is built separately by one deterministic script. Its 120 outputs 
 
 ## 14. Acceptance Criteria
 
-- [ ] `cards.yaml` contains at least 32 useful cards;
+- [ ] `cards.yaml` contains at least 34 useful cards;
 - [ ] Every card has exactly the four required author-written fields;
 - [ ] Every source key resolves in `sources.yaml`;
 - [ ] No private-course content is included;

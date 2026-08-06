@@ -10,7 +10,7 @@ The project does not identify people or infer personality, intelligence, health,
 - bounded LangGraph workflow with a visible nine-step plan and live node events;
 - self-hosted llama.cpp chat-completions and multimodal adapter;
 - local image validation, measurement, EXIF scanning, and default QR scanning;
-- 32 source-backed knowledge cards in Milvus Lite;
+- 34 source-backed knowledge cards in Milvus Lite, including copyright-provenance guidance;
 - opt-in runtime-only private Lens Tool for a locally mounted 24-lesson, 108-technique
   course distillation;
 - deterministic dense development embeddings and optional CPU semantic embeddings;
@@ -22,6 +22,8 @@ The project does not identify people or infer personality, intelligence, health,
   same-thread follow-up conversation, and memory consent;
 - incremental follow-ups reuse the completed analysis snapshot and call only the language model,
   while the trace explicitly marks the vision model as skipped;
+- approved preferences persist across review threads under the same short-lived access identity,
+  expand the Milvus retrieval query, and inform comparison intent-alignment;
 - 120 open-license image fixtures with complete source manifests;
 - offline tests that never substitute fake output into the production model path.
 
@@ -124,7 +126,7 @@ the client returns an explicit error.
 
 ## Build the Knowledge Database
 
-The dependency-free hashing embedder is suitable for framework development and currently passes all eight smoke queries:
+The dependency-free hashing embedder is suitable for framework development and currently passes all nine smoke queries:
 
 ```bash
 uv run python scripts/build_knowledge_db.py --provider hash
@@ -219,14 +221,14 @@ Tests cover:
 - real GPS and device EXIF fixture parsing;
 - default-runtime QR detection and same-thread follow-up recall;
 - background follow-up completion, cached-analysis reuse, VLM skipping, and plain-text fallback;
-- all eight RAG smoke queries;
+- all nine RAG smoke queries;
 - consent-before-memory-write and foreign-key-safe memory deletion;
 - SSE lifecycle events, run recovery, CORS preflight, and API authentication;
 - metadata-free safe-copy export and complete user-state deletion.
 
 ## Data
 
-- `data/knowledge/cards.yaml`: 32 four-field retrieval cards;
+- `data/knowledge/cards.yaml`: 34 four-field retrieval cards;
 - `data/knowledge/sources.yaml`: source registry;
 - `data/fixtures/images/`: 120 actual 512-by-512 JPEG fixtures;
 - `data/fixtures/manifest.yaml`: per-fixture labels, provenance, licenses, and hashes;

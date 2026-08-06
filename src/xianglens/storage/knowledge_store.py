@@ -75,7 +75,7 @@ def create_embedder(provider: str, model: str, dimension: int) -> Embedder:
 def rerank_cards(query: str, cards: list[EvidenceCard], limit: int) -> list[EvidenceCard]:
     """Add a small IDF-weighted lexical signal to the dense score.
 
-    The 32-card corpus contains exact platform and risk terms such as ``badge``
+    The compact corpus contains exact platform and risk terms such as ``badge``
     and ``circle crop``. This deterministic tie-breaker makes those terms stable
     without introducing a separate search service or reranker model.
     """

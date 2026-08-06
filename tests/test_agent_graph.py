@@ -5,7 +5,12 @@ from typing import Any
 import pytest
 
 from tests.fakes import FakeModelClient
-from xianglens.agent.graph import COMPARISON_DECISION_RULE, GraphServices, build_graph
+from xianglens.agent.graph import (
+    COMPARISON_DECISION_RULE,
+    GraphServices,
+    _explicit_memory_candidate,
+    build_graph,
+)
 from xianglens.config import PROJECT_ROOT
 from xianglens.storage.knowledge_store import (
     HashingEmbedder,
@@ -52,6 +57,7 @@ class IncompleteComparisonModel(FakeModelClient):
 class HistoryRecordingModel(FakeModelClient):
     def __init__(self) -> None:
         self.report_contexts: list[dict[str, Any]] = []
+        self.comparison_contexts: list[dict[str, Any]] = []
 
     async def chat(
         self,
@@ -60,6 +66,8 @@ class HistoryRecordingModel(FakeModelClient):
         temperature: float = 0.2,
         max_tokens: int = 1200,
     ) -> str:
+        if "CandidateComparison" in str(messages[0]["content"]):
+            self.comparison_contexts.append(json.loads(str(messages[1]["content"])))
         if "StructuredReportDraft" in str(messages[0]["content"]):
             raw_context = str(messages[1]["content"]).split("\n", 1)[1]
             self.report_contexts.append(json.loads(raw_context))
@@ -91,7 +99,7 @@ async def test_graph_runs_all_core_capabilities(tmp_path: Path) -> None:
     proposal = database.create_memory_proposal(
         thread_id=source_thread["id"],
         user_id="ada",
-        text="Red is an intentional brand color.",
+        text="I prefer cartoon-style avatars and want copyright risk considered.",
         memory_type="preference",
     )
     database.decide_consent(proposal["id"], "approve")
@@ -111,7 +119,7 @@ async def test_graph_runs_all_core_capabilities(tmp_path: Path) -> None:
             image_inspector=ImageInspector(20_000_000, 30_000_000),
         )
     )
-    image = next((PROJECT_ROOT / "data/fixtures/images").glob("*.jpg"))
+    images = list((PROJECT_ROOT / "data/fixtures/images").glob("*.jpg"))[:2]
     result = await graph.ainvoke(
         {
             "run_id": "test-run",
@@ -122,14 +130,21 @@ async def test_graph_runs_all_core_capabilities(tmp_path: Path) -> None:
             "audience": "international open-source collaborators",
             "intent_keywords": ["credible", "approachable"],
             "enabled_packs": ["profile_basics", "global_professional_context"],
-            "image_paths": [image],
+            "image_paths": images,
             "tool_trace": [],
         }
     )
     assert result["report_markdown"].startswith("# XiangLens Review")
     assert result["evidence"]
     assert [item["text"] for item in result["recalled_memories"]] == [
-        "Red is an intentional brand color."
+        "I prefer cartoon-style avatars and want copyright risk considered."
+    ]
+    assert any("copyright" in item["tags"] for item in result["evidence"])
+    assert model.comparison_contexts[-1]["approved_memories"] == [
+        {
+            "type": "preference",
+            "text": "I prefer cartoon-style avatars and want copyright risk considered.",
+        }
     ]
     assert [
         item["role"] for item in model.report_contexts[-1]["recent_thread_messages"]
@@ -146,6 +161,18 @@ async def test_graph_runs_all_core_capabilities(tmp_path: Path) -> None:
         "propose_memory",
         "synthesize_report",
     ]
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "I like cartoon-style avatars, but I am worried about copyright.",
+        "I love illustrated profile images.",
+        "I want to avoid recognizable franchise characters.",
+    ],
+)
+def test_natural_preference_language_can_propose_memory(message: str) -> None:
+    assert _explicit_memory_candidate(message) is True
 
 
 @pytest.mark.asyncio

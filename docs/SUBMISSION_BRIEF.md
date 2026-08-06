@@ -110,7 +110,7 @@ XiangLens implements all five capabilities listed by the Track 2 rules.
 |---|---|---|
 | Multi-step task planning | Fixed nine-step plan with conditional policy routing | Plan and node trace in the UI |
 | Tool calling | Image validation, EXIF/QR scan, crop metrics, private Lens, safe-copy export | Public trace includes each bounded tool |
-| Local RAG | Milvus Lite, four Lens Packs, Top-K retrieval, visible source links | Retrieved Sources panel and eight smoke queries |
+| Local RAG | Milvus Lite, four Lens Packs, Top-K retrieval, visible source links | Retrieved Sources panel and nine smoke queries |
 | Local multi-turn memory | SQLite same-thread transcript, recent-turn context, approved preferences | Follow-up composer, visible turns, recall trace, approve/delete controls |
 | Permission and privacy | Policy gate, short-lived token, consent-first writes, Forget Me | Blocked request, pending proposal, deletion API |
 
@@ -223,7 +223,8 @@ relationship, criminality, protected-attribute, and predictive claims before ren
 - The model may draft a proposal but cannot write memory.
 - The UI requires approval or rejection.
 - SQLite records the consent provenance and source thread.
-- A later thread can recall approved memory.
+- A later review under the same access identity recalls approved memory.
+- Recalled preference text expands Milvus evidence retrieval and informs intent alignment.
 - A user can delete one memory or invoke **Forget all private state**.
 - Uploaded paths are constrained to the controlled runtime directory before deletion.
 - Short-lived tokens scope public visitors to separate identities.
@@ -237,7 +238,8 @@ relationship, criminality, protected-attribute, and predictive claims before ren
 4. Show the bounded plan, local QR finding, source-backed evidence, comparison rubric, and safe-copy
    export.
 5. Ask a follow-up in the visible same-thread conversation and show prior-message recall.
-6. State one explicit preference, approve the memory proposal, then demonstrate recall and deletion.
+6. State “I like cartoon-style avatars, but I am worried about copyright,” approve the proposal,
+   click **New review · keep memory**, and show recall, WIPO evidence retrieval, and deletion.
 
 This scenario proves tool calling, multimodal inference, RAG, comparison, memory, permission, and
 privacy in one coherent multi-turn workflow.

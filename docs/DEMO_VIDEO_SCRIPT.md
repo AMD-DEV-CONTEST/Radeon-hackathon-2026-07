@@ -31,8 +31,7 @@ and do not infer personality or identity.
 Memory statement for the second turn:
 
 ```text
-Remember that red is an intentional part of my brand identity. Do not treat it as a negative
-signal in future reviews.
+I like cartoon-style avatars, but I am worried about copyright.
 ```
 
 ## Timeline and Narration
@@ -179,10 +178,11 @@ Typed output validation
   audience?”
 - Show Turn 2 plus the `recall_context` and `reuse_analysis` trace nodes; point out that the VLM is
   skipped and compare the follow-up latency with the initial multimodal run.
-- Send: “Remember that a red accent is an intentional part of my brand identity.”
+- Send: “I like cartoon-style avatars, but I am worried about copyright.”
 - Show **Permission required** and click **Approve memory**.
-- Show the preference under Approved Memory, then ask one more follow-up and show it in recalled
-  context.
+- Show the preference under Approved Memory, click **New review · keep memory**, and upload the
+  next candidate pair. Run the review and point to **Approved memory applied** plus the retrieved
+  WIPO copyright-provenance card.
 
 **Narration**
 
@@ -191,8 +191,10 @@ Typed output validation
 > reuses the verified observations, privacy findings, comparison, and citations, so the expensive
 > vision pass is not repeated. The trace proves both recall and cached-analysis reuse. Separately,
 > the model cannot write long-term
-> memory: my explicit preference creates only a pending proposal. After approval it can be recalled
-> with consent provenance, deleted individually, or erased with Forget All Private State.
+> memory: my explicit preference and constraint create only a pending proposal. After approval,
+> a new review keeps the same private visitor identity. The preference expands evidence retrieval
+> and informs intent alignment without becoming an observed image fact or a legal conclusion. I
+> can delete it individually or erase all private state.
 
 ### 3:40–4:10 — Show Radeon optimization and measurements
 

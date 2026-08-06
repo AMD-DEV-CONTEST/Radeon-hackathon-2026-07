@@ -44,7 +44,7 @@ The production application will use `llama-server`, not `llama-cli`, so LangGrap
 | Model | Qwen3.6 35B A3B Fable 5 Distill GGUF Q6_K | Already deployed and verified with visual input on ROCm |
 | Vector database | Milvus Lite | Sufficient for the small local corpus and easy to migrate later |
 | Transactional storage | SQLite | Authoritative state for threads, consent, audit, and structured memory |
-| Knowledge design | 32 short P0 knowledge cards in four local Lens Packs | Visible sources, stable retrieval, and low authoring cost |
+| Knowledge design | 34 short P0 knowledge cards in four local Lens Packs | Visible sources, stable retrieval, and low authoring cost |
 | Private course material | Excluded from the submission | Redistribution rights are unclear |
 
 ### 2.1 Why PersonaLens Was Rejected
@@ -105,11 +105,13 @@ A Chinese developer is preparing for an international hackathon and has three ca
 - appropriate for GitHub, LinkedIn, and a private messaging community;
 - free from accidental disclosure of employer, location, or contact information.
 
-The agent clarifies the goal, inspects the images, scans for privacy risks, retrieves platform and cultural-context evidence, compares candidates, and explains the recommendation. The user then corrects the agent:
+The agent clarifies the goal, inspects the images, scans for privacy risks, retrieves platform and cultural-context evidence, compares candidates, and explains the recommendation. The user then states a reusable preference and constraint:
 
-> “Red is an intentional part of my brand identity. Do not treat it as a negative signal.”
+> “I like cartoon-style avatars, but I am worried about copyright.”
 
-XiangLens proposes an exact memory, requests permission, saves it only after approval, and applies it correctly in a new conversation.
+XiangLens proposes an exact memory, requests permission, saves it only after approval, and applies
+it in a new review. The approved statement expands the next Milvus evidence query and informs
+intent alignment, while the agent flags provenance uncertainty instead of making a legal ruling.
 
 ### 4.3 Secondary Scenarios
 
@@ -229,8 +231,8 @@ flowchart LR
     LLM["llama-server<br/>Qwen3.6 35B A3B GGUF Q6_K"]
     GPU["AMD Radeon PRO W7900<br/>ROCm"]
     TOOLS["Local Tools<br/>OpenCV + EXIF + OCR + QR"]
-    MILVUS["Milvus Lite<br/>Evidence + Semantic Memory"]
-    SQLITE["SQLite<br/>Threads + Consent + Audit"]
+    MILVUS["Milvus Lite<br/>Public Evidence Cards"]
+    SQLITE["SQLite<br/>Threads + Consent + Long-Term Memory"]
     TEMP["Ephemeral Image Workspace"]
 
     UI --> SESSION
@@ -277,12 +279,14 @@ Milvus is used for similarity retrieval. SQLite is the authoritative state store
 
 | Storage | Responsibility |
 |---|---|
-| Milvus Lite | Evidence chunks, semantic memory projections, similar prior outcomes |
+| Milvus Lite | Public source-backed evidence cards and pack-filtered similarity search |
 | SQLite | Threads, consent records, structured memory, audit events, deletion status |
 | Temporary workspace | Images required for the current run |
 | Optional history store | Only user-approved derivatives or hashes |
 
-Deleting a memory must remove both the SQLite record and the corresponding Milvus vector.
+Approved memory stays in SQLite because the hackathon session holds at most a few records. Recall
+adds those user-scoped texts to the Milvus evidence query and supplies them to comparison and report
+contexts. Deleting a memory removes its authoritative SQLite record immediately.
 
 ## 8. Agent Design
 
@@ -400,7 +404,7 @@ There is no locale or translation state.
 
 ## 9. Knowledge Base Strategy
 
-The detailed card list and source policy are maintained in the [XiangLens Knowledge Base Plan](./KNOWLEDGE_BASE_DATASET_PLAN.md). The hackathon corpus is intentionally small: **32 P0 knowledge cards** across four Lens Packs, with 50 as an optional stretch target.
+The detailed card list and source policy are maintained in the [XiangLens Knowledge Base Plan](./KNOWLEDGE_BASE_DATASET_PLAN.md). The hackathon corpus is intentionally small: **34 P0 knowledge cards** across four Lens Packs, with 50 as an optional stretch target.
 
 | Lens Pack | Purpose | P0 |
 |---|---|---:|
@@ -449,7 +453,7 @@ Milvus Lite provides:
 - metadata filtering;
 - a compatible migration path to Milvus Standalone or Distributed.
 
-Thirty-two P0 cards are far below the scale that requires a standalone vector service. The demo needs one local FastAPI process, one generated Milvus Lite file, dense-vector search, and simple pack filtering. Production concerns such as high concurrency, multi-tenancy, database RBAC, and distributed deployment are explicitly out of scope.
+Thirty-four P0 cards are far below the scale that requires a standalone vector service. The demo needs one local FastAPI process, one generated Milvus Lite file, dense-vector search, and simple pack filtering. Production concerns such as high concurrency, multi-tenancy, database RBAC, and distributed deployment are explicitly out of scope.
 
 ### 10.2 Knowledge Collection
 
@@ -469,25 +473,13 @@ Collection: `knowledge_cards_v1`
 
 The editable YAML remains the source of truth; the Milvus Lite file is a disposable build artifact.
 
-### 10.3 User Memory Collection
+### 10.3 Approved Memory Records
 
-Collection: `user_memory_v1`
-
-| Field | Type | Purpose |
-|---|---|---|
-| `memory_id` | VARCHAR primary key | Memory identifier |
-| `user_id` | VARCHAR | Mandatory filter |
-| `text` | VARCHAR | English semantic projection |
-| `dense_vector` | FLOAT_VECTOR | Search vector |
-| `memory_type` | VARCHAR | Preference, goal, correction, or outcome |
-| `source_thread_id` | VARCHAR | Provenance |
-| `consent_id` | VARCHAR | Permission record |
-| `confidence` | FLOAT | Direct user statements are 1.0 |
-| `active` | BOOL | Deletion and validity state |
-| `created_at` | VARCHAR | Timestamp |
-| `expires_at` | VARCHAR | Optional expiry |
-
-SQLite remains authoritative for consent and active status.
+The implemented hackathon version stores approved memory in SQLite rather than a second Milvus
+collection. Each record has a random ID, visitor-scoped `user_id`, exact approved `text`,
+`memory_type`, `source_thread_id`, `consent_id`, active flag, and creation timestamp. This design
+keeps approval, recall, and deletion transactional while Milvus remains dedicated to public
+evidence retrieval.
 
 ### 10.4 Retrieval Flow
 
@@ -496,6 +488,7 @@ Query
   = user goal
   + selected platform/context
   + objective visual tags
+  + approved user preferences and constraints
   + enabled Lens Packs
 
 Filter
@@ -516,7 +509,7 @@ The synthesis node cites retrieved cards for platform, privacy, and cultural con
 | Type | Example | Persistence Rule |
 |---|---|---|
 | Short-term | Current images, platform, and follow-up questions | Automatic within one thread |
-| Semantic | “Red is an intentional brand color.” | Explicit user approval |
+| Semantic | “I prefer cartoon-style avatars and want copyright risk considered.” | Explicit user approval |
 | Episodic | “The user selected candidate B for GitHub.” | Explicit confirmation and approval |
 
 Safety policy is code-controlled procedural state and cannot be rewritten through conversation.
@@ -536,10 +529,11 @@ Safety policy is code-controlled procedural state and cannot be rewritten throug
 ```text
 Agent identifies a reusable user-provided fact
   -> creates an exact memory proposal
-  -> UI shows text, type, reason, and expiry
-  -> user edits, approves, or skips
+  -> UI shows the proposed text
+  -> user approves or skips
   -> SQLite stores the consent and structured memory
-  -> Milvus stores the searchable projection
+  -> a later review recalls it under the same visitor identity
+  -> its text expands the Milvus evidence query and model goal context
 ```
 
 ### 11.4 Memory Center
@@ -547,13 +541,12 @@ Agent identifies a reusable user-provided fact
 Users can:
 
 - view every memory;
-- inspect source thread and approval time;
-- edit or expire a memory;
-- pause all memory use;
-- delete one item or everything;
-- export memory as JSON.
+- delete one item;
+- start a new review while keeping approved memory;
+- delete all session-owned state.
 
-“Forget me” deletes SQLite records, Milvus vectors, image hashes, and history links. The remaining audit event contains no deleted text.
+“Forget me” deletes SQLite memory, threads, uploaded image records and files, messages, runs, and
+consent records. Public knowledge cards in Milvus are not user data and remain untouched.
 
 ## 12. Privacy, Permissions, and Security
 
@@ -572,7 +565,7 @@ Users can:
 |---|---:|---|
 | Analyze current upload | Allowed | Granted by upload for the current session |
 | Read public Lens Packs | Allowed | Read-only |
-| Read approved memory | Allowed | Can be globally paused |
+| Read approved memory | Allowed | Scoped to the authenticated visitor identity |
 | Write long-term memory | Denied | Explicit approval required |
 | Save original image | Denied | Separate approval required |
 | Export safe derivative | Denied | User-triggered action |
@@ -839,7 +832,7 @@ Do not compare different models, precisions, prompt lengths, or context settings
 - Privacy tools detect test EXIF, QR, and background contact text.
 - Contextual claims include valid knowledge-card IDs.
 - A confirmed correction is recalled in a new thread.
-- Rejected memory creates no SQLite or Milvus record.
+- Rejected memory creates no active SQLite memory record.
 - “Forget me” makes deleted content unretrievable.
 - Invalid model JSON cannot trigger a write tool.
 - Every UI string and generated report is English.
@@ -857,7 +850,7 @@ Do not compare different models, precisions, prompt lengths, or context settings
 
 ### 17.3 Knowledge Tests
 
-- Run the eight smoke queries defined in the knowledge-base plan.
+- Run the nine smoke queries defined in the knowledge-base plan.
 - At least one relevant card appears in each query's top four.
 - Every retrieved card resolves to a visible source link.
 - Cultural cards state their historical scope in the card text.
@@ -931,13 +924,14 @@ One image contains a badge, QR code, or metadata risk. Generate a safe derivativ
 
 User:
 
-> Red is an intentional part of my brand identity. Do not treat it as a negative signal.
+> I like cartoon-style avatars, but I am worried about copyright.
 
 The agent proposes:
 
-> Save: “Red is an intentional part of the user's brand identity.”
+> Save: “I prefer cartoon-style avatars and want copyright risk considered.”
 
-Approve it, start a new thread, and show correct recall. Open the Memory Center to show provenance and deletion.
+Approve it, click **New review · keep memory**, upload a second candidate pair, and show the
+**Approved memory applied** panel plus the WIPO evidence card. Open Approved Memory to show deletion.
 
 ### 3:10–3:40 — Evidence and Cultural Scope
 
@@ -971,7 +965,7 @@ Deadline: August 6, 2026, 23:59 UTC+8.
 | Jul 26 | Model service integration | llama-server script, FastAPI health check, streaming |
 | Jul 27 | LangGraph skeleton | State, nodes, trace, recovery |
 | Jul 28 | Image tools | Crop, size, palette, EXIF, OCR, QR |
-| Jul 29 | Small knowledge corpus | `sources.yaml`, four-field cards, 32 P0 entries |
+| Jul 29 | Small knowledge corpus | `sources.yaml`, four-field cards, 34 P0 entries |
 | Jul 30 | Milvus Lite RAG | Ingestion, filters, retrieval, citations |
 | Jul 31 | Candidate comparison | Transparent rubric and report schema |
 | Aug 1 | Memory and consent | SQLite checkpoint, long-term memory, API |
@@ -1105,8 +1099,8 @@ The application prints a redacted effective configuration at startup so reviewer
 - [x] llama.cpp is the documented production runtime.
 - [x] Single-image and multi-image flows complete in LangGraph.
 - [x] The UI displays plan, tools, evidence, and timing.
-- [x] Milvus Lite contains at least 32 cards across four Lens Packs.
-- [x] All eight RAG smoke queries retrieve a relevant card in the top four.
+- [x] Milvus Lite contains at least 34 cards across four Lens Packs.
+- [x] All nine RAG smoke queries retrieve a relevant card in the top four.
 - [ ] Every contextual claim maps to a knowledge card with a visible source link.
 - [x] The image fixture manifest resolves to 120 actual 512-by-512 JPEG files with matching hashes.
 - [x] Every image fixture has source and license provenance, and none is AI-generated.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the eight retrieval smoke cases against the configured Milvus Lite file."""
+"""Run the retrieval smoke cases against the configured Milvus Lite file."""
 
 from __future__ import annotations
 

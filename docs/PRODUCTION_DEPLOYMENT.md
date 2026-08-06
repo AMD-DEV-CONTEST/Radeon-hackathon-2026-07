@@ -189,8 +189,8 @@ uv run python scripts/run_rag_smoke.py
 Expected results:
 
 ```text
-Built 32 cards in .../runtime/xianglens_milvus.db
-All 8 RAG smoke queries passed.
+Built 34 cards in .../runtime/xianglens_milvus.db
+All 9 RAG smoke queries passed.
 ```
 
 If the FastEmbed download is blocked during a time-limited demonstration, use the deterministic

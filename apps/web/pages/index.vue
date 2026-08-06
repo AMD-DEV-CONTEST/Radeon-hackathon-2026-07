@@ -345,18 +345,14 @@ async function exportSafeCopy(imageId: string) {
   }
 }
 
-async function newSession() {
-  if (threadId.value && !window.confirm('Delete this thread and its uploaded images?')) return
+async function newReview() {
+  if (
+    (threadId.value || images.value.length || result.value)
+    && !window.confirm(
+      'Start a new review with the same approved memory? The previous review remains private until you use Forget all private state.'
+    )
+  ) return
   actionError.value = ''
-  const wasConnected = !previewMode.value && Boolean(system.value)
-  try {
-    if (threadId.value && !previewMode.value) {
-      await api.request<void>(`/api/v1/threads/${threadId.value}`, { method: 'DELETE' })
-    }
-  } catch (error) {
-    actionError.value = error instanceof Error ? error.message : String(error)
-    return
-  }
   for (const image of images.value as UploadedImage[]) URL.revokeObjectURL(image.previewUrl)
   images.value = []
   threadId.value = ''
@@ -367,16 +363,8 @@ async function newSession() {
   followUpMessage.value = ''
   initialReportMarkdown.value = ''
   actionError.value = ''
-  if (wasConnected) {
-    api.clearSession()
-    try {
-      await api.openSession(true)
-      await loadMemories()
-    } catch (error) {
-      system.value = null
-      connectionError.value = error instanceof Error ? error.message : String(error)
-    }
-  }
+  activeRunIsFollowUp.value = false
+  if (!previewMode.value) await loadMemories()
 }
 
 async function forgetMe() {
@@ -436,7 +424,7 @@ function formatDuration(value: number): string {
         </span>
         <span class="badge">{{ system?.milvus_ready ? 'Milvus ready' : 'Milvus unchecked' }}</span>
         <span v-if="system?.private_lens_available" class="badge private-ready">Private lens mounted</span>
-        <button class="ghost-button" type="button" @click="newSession">New private session</button>
+        <button class="ghost-button" type="button" @click="newReview">New review · keep memory</button>
       </div>
     </header>
 
@@ -635,7 +623,7 @@ function formatDuration(value: number): string {
           <section v-if="result.memory_proposal" class="memory-proposal">
             <div>
               <p class="eyebrow">Permission required</p>
-              <h3>Save a reusable correction?</h3>
+              <h3>Save as long-term memory?</h3>
               <p>“{{ result.memory_proposal.text }}”</p>
             </div>
             <div v-if="result.memory_proposal.status === 'pending'" class="proposal-actions">
@@ -643,6 +631,20 @@ function formatDuration(value: number): string {
               <button type="button" class="primary-button" @click="decideMemory(result.memory_proposal, 'approve')">Approve memory</button>
             </div>
             <span v-else class="status-label">{{ result.memory_proposal.status }}</span>
+          </section>
+
+          <section v-if="result.recalled_memories.length" class="recalled-memory">
+            <div class="recalled-memory-heading">
+              <div>
+                <p class="eyebrow">Cross-review recall</p>
+                <h3>Approved memory applied</h3>
+              </div>
+              <span>{{ result.recalled_memories.length }} recalled</span>
+            </div>
+            <p v-for="memory in result.recalled_memories" :key="String(memory.id)">
+              {{ String(memory.text) }}
+            </p>
+            <small>Used as a user-provided goal or constraint—not as an observed image fact.</small>
           </section>
 
           <section class="result-section report-copy">
@@ -748,6 +750,7 @@ function formatDuration(value: number): string {
             <h3>Approved memory</h3>
             <button type="button" @click="loadMemories">Refresh</button>
           </div>
+          <p class="muted-copy">Recalled across new reviews in this access session.</p>
           <article v-for="memory in memories" :key="memory.id">
             <div class="memory-heading">
               <span>{{ memory.memory_type }}</span>

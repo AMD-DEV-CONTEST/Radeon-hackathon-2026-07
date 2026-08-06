@@ -51,6 +51,9 @@ EXPLICIT_MEMORY_PATTERNS = (
     r"\bremember\b",
     r"\bkeep (?:this|that|it) in mind\b",
     r"\bi prefer\b",
+    r"\bi (?:like|love|favor)\b",
+    r"\bi (?:want|need) to avoid\b",
+    r"\bi(?:'m| am) (?:worried|concerned) about\b",
     r"\bmy\s+[a-z0-9 -]{1,50}\s+(?:is|are)\b",
     r"\bdo not treat\b",
     r"\bi (?:always|never)\b",
@@ -669,6 +672,9 @@ def build_graph(services: GraphServices):
             for observation in state.get("visual_observations", [])
             for item in observation.get("visible_elements", [])[:5]
         ]
+        memory_terms = [
+            item["text"] for item in state.get("recalled_memories", [])[:4]
+        ]
         query = " ".join(
             [
                 state["message"],
@@ -677,6 +683,7 @@ def build_graph(services: GraphServices):
                 *state["intent_keywords"],
                 *finding_types,
                 *visual_terms,
+                *memory_terms,
             ]
         )
         cards = services.knowledge.search(query, state["enabled_packs"], limit=services.rag_top_k)
@@ -765,6 +772,10 @@ def build_graph(services: GraphServices):
             "measurements": state.get("measurements", []),
             "observations": state.get("visual_observations", []),
             "privacy_findings": state.get("privacy_findings", []),
+            "approved_memories": [
+                {"type": item["memory_type"], "text": item["text"]}
+                for item in state.get("recalled_memories", [])
+            ],
         }
         comparison = await validated_model_json(
             [
@@ -776,7 +787,10 @@ def build_graph(services: GraphServices):
                         "intent_alignment, and contextual_ambiguity. A privacy risk overrides the "
                         "aggregate score. Higher contextual_ambiguity means more ambiguity. "
                         "Every candidates item should include a non-empty rationale string. Use "
-                        "only the supplied image IDs. The application verifies the scores and "
+                        "approved memories only as user-provided goals or constraints when scoring "
+                        "intent_alignment; never treat them as observed image facts or proof of a "
+                        "legal conclusion. Use only the supplied image IDs. The application "
+                        "verifies the scores and "
                         "derives the final recommendation with its fixed rule. Return only JSON "
                         "matching CandidateComparison."
                     ),
@@ -819,8 +833,10 @@ def build_graph(services: GraphServices):
                 {
                     "role": "system",
                     "content": (
-                        "Extract one reusable fact stated explicitly by the user. Do not infer or "
-                        "add details. Return JSON with text, memory_type, and reason. Use "
+                        "Extract one reusable fact stated explicitly by the user. Preserve an "
+                        "explicit preference and its explicit constraint together when they form "
+                        "one reusable decision rule. Do not infer or add details, and do not make "
+                        "a legal conclusion. Return JSON with text, memory_type, and reason. Use "
                         "memory_type preference, goal, correction, or outcome. This is only a "
                         "proposal; it will "
                         "require approval before storage."

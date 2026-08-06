@@ -122,8 +122,8 @@ uv run python scripts/run_rag_smoke.py
 Expected output includes:
 
 ```text
-Built 32 cards in .../runtime/xianglens_milvus.db
-All 8 RAG smoke queries passed.
+Built 34 cards in .../runtime/xianglens_milvus.db
+All 9 RAG smoke queries passed.
 ```
 
 For the final semantic configuration, install the optional embedder and rebuild once:

@@ -31,5 +31,5 @@ def test_card_schema_and_count() -> None:
         PROJECT_ROOT / "data/knowledge/cards.yaml",
         PROJECT_ROOT / "data/knowledge/sources.yaml",
     )
-    assert len(records) == 32
-    assert len({record.card_id for record in records}) == 32
+    assert len(records) == 34
+    assert len({record.card_id for record in records}) == 34
