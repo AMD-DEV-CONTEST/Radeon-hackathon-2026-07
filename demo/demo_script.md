@@ -1,6 +1,6 @@
-# Bunker — 3–5 Minute Demo Script
+# Bunker - 3-5 Minute Demo Script
 
-**Track 2 — Private AI Agent on AMD Radeon / ROCm**
+**Track 2 - Private AI Agent on AMD Radeon / ROCm**
 
 This script walks a single, self-contained demo: a legal/financial team running
 **confidential document operations** on a private, local AI agent. Every step is
@@ -39,7 +39,7 @@ reproducible and every claim (local vs external) is shown from live telemetry.
    facts used in the questions below.
 
 4. Optional fallback if no ROCm box is available for the recording: run the
-   **Ollama dev path** (`BUNKER_INFERENCE__BACKEND=ollama`, `qwen3:0.6b`) — the
+   **Ollama dev path** (`BUNKER_INFERENCE__BACKEND=ollama`, `qwen3:0.6b`) - the
    dashboard still shows real telemetry. Replace segment 1 with a screenshot of
    `validate_rocm.py` and say the GPU segments were captured on the ROCm box.
 
@@ -47,7 +47,7 @@ reproducible and every claim (local vs external) is shown from live telemetry.
 
 ## The script
 
-### Segment 1 — ROCm validation (0:00–0:35)
+### Segment 1 - ROCm validation (0:00-0:35)
 
 **Purpose.** Prove the AMD GPU / ROCm claim before anything else.
 
@@ -68,12 +68,12 @@ GPU name                  : AMD Radeon RX 7900 XTX
 [OK] ROCm active.
 ```
 
-**Narrator cue.** "First, proof this is really local AMD hardware — the same
+**Narrator cue.** "First, proof this is really local AMD hardware - the same
 torch build that powers the agent reports HIP 6.2 and an AMD Radeon GPU."
 
 ---
 
-### Segment 2 — App startup (0:35–1:15)
+### Segment 2 - App startup (0:35-1:15)
 
 **Purpose.** Show the agent booting with the privacy dashboard up front.
 
@@ -89,14 +89,14 @@ curl http://localhost:7860/health
 the right showing Local Inference %, Local/External/Failed inference counts,
 and bytes.
 
-**Narrator cue.** "One shared runtime backs the whole app — chat, agent, RAG,
+**Narrator cue.** "One shared runtime backs the whole app - chat, agent, RAG,
 and the audit log, so the dashboard reflects everything we do next."
 
 ---
 
-### Segment 3 — Document ingestion / RAG with citations (1:15–2:00)
+### Segment 3 - Document ingestion / RAG with citations (1:15-2:00)
 
-**Purpose.** Show grounded, cited answers over confidential documents — the core
+**Purpose.** Show grounded, cited answers over confidential documents - the core
 workflow.
 
 **Commands.** (ingestion already ran; you can re-run to show it is idempotent)
@@ -107,7 +107,7 @@ python scripts/demo_ingest.py        # optional re-run: files show as "skipped"
 
 Then in the chat:
 
-> What governing law applies to the Acme–Meridian NDA, and how long does the
+> What governing law applies to the Acme-Meridian NDA, and how long does the
 > confidentiality term last?
 
 **On screen.** The thoughts panel shows the RAG route, search queries, and
@@ -124,10 +124,10 @@ and answers with citations: *"Global Equities (+6.8%)"* and *"the agreement
 auto-renews for successive one-year terms unless either party gives 90 days'
 written notice."*
 
-**Narrator cue.** "No cloud upload — ChromaDB with ROCm embeddings, and every
+**Narrator cue.** "No cloud upload - ChromaDB with ROCm embeddings, and every
 answer grounded in passages it can cite. It will not invent facts."
 
-*(Optional 20s proof of no-hallucination)* — ask:
+*(Optional 20s proof of no-hallucination)* - ask:
 
 > What discount rate does our pension actuarial report assume?
 
@@ -136,7 +136,7 @@ fabricating a number.
 
 ---
 
-### Segment 4 — Follow-up tool use (2:00–2:30)
+### Segment 4 - Follow-up tool use (2:00-2:30)
 
 **Purpose.** Show the ReAct agent actually using tools, not just answering.
 
@@ -152,25 +152,25 @@ task planner and nine gated tools."
 
 ---
 
-### Segment 5 — Denied write permission (2:30–3:00)
+### Segment 5 - Denied write permission (2:30-3:00)
 
-**Purpose.** Show that irreversible actions are **denied by default** — a
+**Purpose.** Show that irreversible actions are **denied by default** - a
 fail-safe no prompt can bypass.
 
 > Write a file called draft_renewal_notes.md with a one-line summary of the
 > renewal terms.
 
 **On screen.** The `PermissionController` gates `file_write` inside the tool
-body and the request is **denied** — the tool does not run, and the denial is
+body and the request is **denied** - the tool does not run, and the denial is
 recorded in the permission history and audit log. (Dangerous tools are denied
 out of the box; there is no UI bypass.)
 
 **Narrator cue.** "Writes are gated inside the tool body, so no prompt can talk
-the model past this. Denied — and the denial itself is audited."
+the model past this. Denied - and the denial itself is audited."
 
 ---
 
-### Segment 6 — Approved local draft / write (3:00–3:30)
+### Segment 6 - Approved local draft / write (3:00-3:30)
 
 **Purpose.** Show the approved path completing a real local file write.
 
@@ -190,7 +190,7 @@ confirms it. Optionally `type data\documents\draft_renewal_notes.md` to show
 the file on disk.
 
 **Narrator cue.** "Denied by default, approved only when the operator opts in.
-Approved here — the draft lands in a local folder, on this machine, with
+Approved here - the draft lands in a local folder, on this machine, with
 nothing sent anywhere."
 
 > **Why two modes?** Deny-by-default is the safe production posture; demo mode
@@ -199,7 +199,7 @@ nothing sent anywhere."
 
 ---
 
-### Segment 7 — Audit & privacy dashboard (3:30–4:10)
+### Segment 7 - Audit & privacy dashboard (3:30-4:10)
 
 **Purpose.** Prove the local-vs-external claims with live telemetry.
 
@@ -216,12 +216,12 @@ and the API response showing local events/bytes. If the Radeon Cloud fallback
 were enabled, its events would appear as **external** here.
 
 **Narrator cue.** "Every inference and tool call is recorded with its backend.
-A hundred percent local is a measured number — and if an external fallback
+A hundred percent local is a measured number - and if an external fallback
 ever ran, the dashboard would say so."
 
 ---
 
-### Segment 8 — Benchmark artifact (4:10–5:00)
+### Segment 8 - Benchmark artifact (4:10-5:00)
 
 **Purpose.** Close with measured performance and a reproducible artifact.
 
@@ -265,4 +265,4 @@ artifact with medians and ROCm metrics you can reproduce."
 - **Dashboard shows a failed inference** → the app still runs; use it to demo
   the *honest* telemetry ("this is why the claim is measured, not assumed").
 - **No GPU on the recording machine** → run the Ollama dev path for segments
-  2–7 and keep the segment-1 ROCm proof as a captured clip.
+  2-7 and keep the segment-1 ROCm proof as a captured clip.

@@ -1,12 +1,12 @@
-# Bunker — Project Specification
+# Bunker - Project Specification
 
 ## 1. Background and Problem Statement
-In today's fast-paced corporate environment, enterprise teams are increasingly relying on AI to process sensitive documents, generate insights, and automate tasks. However, mainstream cloud-based AI solutions pose severe privacy risks. Data exfiltration, model training on proprietary data, and compliance violations (e.g., GDPR, HIPAA) have driven many organizations to ban or heavily restrict cloud AI usage. There is a critical need for an AI agent that runs entirely locally — with a privacy model a judge can inspect — while providing the reasoning and capabilities expected of cloud models.
+In today's fast-paced corporate environment, enterprise teams are increasingly relying on AI to process sensitive documents, generate insights, and automate tasks. However, mainstream cloud-based AI solutions pose severe privacy risks. Data exfiltration, model training on proprietary data, and compliance violations (e.g., GDPR, HIPAA) have driven many organizations to ban or heavily restrict cloud AI usage. There is a critical need for an AI agent that runs entirely locally - with a privacy model a judge can inspect - while providing the reasoning and capabilities expected of cloud models.
 
 **Bunker targets one flagship scenario: confidential document operations for legal and financial teams.** Contract review, clause extraction, unreleased-earnings summaries, and approved document drafting all require model-grade reasoning over material non-public information (MNPI), PII, and trade secrets. Bunker delivers that workflow with a verifiable local-first architecture: every inference and tool call is audited, so the local-vs-external boundary is measured rather than assumed.
 
 ## 2. Target Users and Application Scenarios
-**Primary scenario — Legal & Financial confidential document operations:**
+**Primary scenario - Legal & Financial confidential document operations:**
 1. **Legal Teams**: Reviewing highly confidential contracts, extracting clauses, and summarizing legal precedents without uploading PII or trade secrets to external servers.
 2. **Financial Analysts**: Analyzing unreleased earnings reports and internal financial projections, ensuring that material non-public information (MNPI) is never exposed.
 
@@ -67,7 +67,7 @@ For the full layered diagram with sub-components and data-flow arrows, see `docs
 
 The agent is driven by a DSPy-native ReAct loop. Each user turn is routed by
 the orchestrator to the RAG path or the Agent path; on the Agent path the task
-planner decomposes the request and the loop cycles Thought → Action →
+planner decomposes the request and the loop cycles Thought -> Action ->
 Observation, gating every dangerous tool through the `PermissionController`
 and recording every event in the `AuditLogger` / `DataFlowMonitor`.
 
@@ -167,7 +167,7 @@ To achieve fluid chat interactions, we employ several optimizations:
 2. **Tool Invocation**: An extensible MCP-style ToolRegistry enabling local file I/O, email drafting, and calendar querying.
 3. **Multi-Step Planning**: A dedicated TaskPlanner breaks down complex prompts into manageable tasks.
 4. **Multi-Turn Memory**: SQLite-backed SessionStore and ContextManager ensure long-term conversation coherence.
-5. **Permission Control**: A strict `PermissionController` gates access to write-operations — dangerous tools are **denied by default**, so the agent cannot autonomously modify sensitive files. Approval is an explicit opt-in (`BUNKER_PRIVACY__DEMO_MODE=true`) used to demonstrate the approved write path.
+5. **Permission Control**: A strict `PermissionController` gates access to write-operations - dangerous tools are **denied by default**, so the agent cannot autonomously modify sensitive files. Approval is an explicit opt-in (`BUNKER_PRIVACY__DEMO_MODE=true`) used to demonstrate the approved write path.
 
 ## 8. Privacy Architecture
-Bunker is **local-first and telemetry-verified**. The **AuditLogger** records every action, inference request (with its backend), and tool invocation to a local JSONL file. The **DataFlowMonitor** continuously computes local vs external data flow. Backends are classified canonically — `vllm`, `ollama`, and `local_secondary` are local; the Radeon Cloud API (`radeon_api`) is external; `failed` inferences never count as local — so the dashboard's "Local Inference %" is derived from real recorded events, not hardcoded to 100%. The **PermissionController** explicitly gates irreversible actions, while the **DataEncryptor** is available as an opt-in at-rest encryption utility for sensitive files (off by default).
+Bunker is **local-first and telemetry-verified**. The **AuditLogger** records every action, inference request (with its backend), and tool invocation to a local JSONL file. The **DataFlowMonitor** continuously computes local vs external data flow. Backends are classified canonically - `vllm`, `ollama`, and `local_secondary` are local; the Radeon Cloud API (`radeon_api`) is external; `failed` inferences never count as local - so the dashboard's "Local Inference %" is derived from real recorded events, not hardcoded to 100%. The **PermissionController** explicitly gates irreversible actions, while the **DataEncryptor** is available as an opt-in at-rest encryption utility for sensitive files (off by default).

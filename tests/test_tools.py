@@ -114,6 +114,84 @@ def test_file_read_path_traversal(tmp_path):
         file_read("../../etc/passwd", base_dir=str(tmp_path))
 
 
+def test_file_read_sibling_prefix_bypass(tmp_path):
+    """rejects a sibling dir whose name shares the base dir name prefix"""
+    base = tmp_path / "data"
+    base.mkdir()
+    (base / "safe.txt").write_text("safe")
+    sibling = tmp_path / "data_secret"
+    sibling.mkdir()
+    (sibling / "secret.txt").write_text("secret")
+    with pytest.raises(PermissionError):
+        file_read("../data_secret/secret.txt", base_dir=str(base))
+
+
+def test_file_read_absolute_path_rejected(tmp_path):
+    """rejects an absolute path outside base_dir"""
+    base = tmp_path / "data"
+    base.mkdir()
+    secret = tmp_path / "secret.txt"
+    secret.write_text("secret")
+    with pytest.raises(PermissionError):
+        file_read(str(secret), base_dir=str(base))
+
+
+def test_file_write_traversal_rejected(tmp_path):
+    """file_write rejects path traversal escapes"""
+    base = tmp_path / "data"
+    base.mkdir()
+    with pytest.raises(PermissionError):
+        file_write("../escaped.txt", "content", base_dir=str(base))
+    assert not (tmp_path / "escaped.txt").exists()
+
+
+def test_file_list_sibling_prefix_bypass(tmp_path):
+    """file_list rejects escaping to a sibling dir via .."""
+    base = tmp_path / "data"
+    base.mkdir()
+    sibling = tmp_path / "data_secret"
+    sibling.mkdir()
+    (sibling / "secret.txt").write_text("secret")
+    with pytest.raises(PermissionError):
+        file_list("../data_secret", base_dir=str(base))
+
+
+def test_file_read_symlink_escape_rejected(tmp_path):
+    """a symlink inside base_dir pointing outside is rejected"""
+    base = tmp_path / "data"
+    base.mkdir()
+    secret = tmp_path / "secret.txt"
+    secret.write_text("secret")
+    try:
+        (base / "link.txt").symlink_to(secret)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlinks not supported on this platform")
+    with pytest.raises(PermissionError):
+        file_read("link.txt", base_dir=str(base))
+
+
+def test_file_read_symlink_within_base_allowed(tmp_path):
+    """a symlink inside base_dir pointing to another in-base file works"""
+    base = tmp_path / "data"
+    base.mkdir()
+    target = base / "target.txt"
+    target.write_text("hello")
+    try:
+        (base / "link.txt").symlink_to(target)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlinks not supported on this platform")
+    assert file_read("link.txt", base_dir=str(base)) == "hello"
+
+
+def test_file_read_nested_subdir_allowed(tmp_path):
+    """a legitimate in-base subdirectory path still works"""
+    base = tmp_path / "data"
+    sub = base / "docs"
+    sub.mkdir(parents=True)
+    (sub / "a.txt").write_text("nested")
+    assert file_read("docs/a.txt", base_dir=str(base)) == "nested"
+
+
 def test_file_write_creates_file(tmp_path):
     """creates file in allowed directory"""
     result = file_write("new.txt", "hello", base_dir=str(tmp_path))

@@ -10,10 +10,10 @@ logger = logging.getLogger(__name__)
 
 class SessionStore:
     """SQLite-backed session and message persistence."""
-    
+
     def __init__(self, db_path: str = "./data/memory/sessions.db"):
         """Initialize the SessionStore.
-        
+
         Args:
             db_path: Path to the SQLite database file.
         """
@@ -22,7 +22,7 @@ class SessionStore:
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         self._create_tables()
-    
+
     def _create_tables(self) -> None:
         """Create the necessary database tables if they do not exist."""
         try:
@@ -52,18 +52,21 @@ class SessionStore:
             self.conn.commit()
         except sqlite3.Error as e:
             logger.error(f"Error creating tables: {e}")
-    
-    def create_session(self, title: str = "New Session", metadata: Optional[Dict[str, Any]] = None) -> str:
+
+    def create_session(self, title: str = "New Session", metadata: Optional[Dict[str, Any]] = None, session_id: Optional[str] = None) -> str:
         """Create a new chat session.
-        
+
         Args:
             title: The title of the session.
             metadata: Optional metadata for the session.
-            
+            session_id: Optional explicit session ID to use (e.g. one the UI
+                already generated). When omitted a new ID is generated.
+
         Returns:
-            The generated session ID.
+            The session ID (the explicit one if given, otherwise a generated
+            one), or an empty string on error.
         """
-        session_id = uuid.uuid4().hex
+        session_id = session_id or uuid.uuid4().hex
         now = time.time()
         meta_str = json.dumps(metadata or {})
         try:
@@ -77,13 +80,13 @@ class SessionStore:
         except sqlite3.Error as e:
             logger.error(f"Error creating session: {e}")
             return ""
-    
+
     def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
         """Retrieve a session by its ID.
-        
+
         Args:
             session_id: The ID of the session.
-            
+
         Returns:
             A dictionary containing session details, or None if not found.
         """
@@ -103,13 +106,13 @@ class SessionStore:
         except sqlite3.Error as e:
             logger.error(f"Error getting session: {e}")
             return None
-    
+
     def list_sessions(self, limit: int = 50) -> List[Dict[str, Any]]:
         """List recent sessions.
-        
+
         Args:
             limit: Maximum number of sessions to return.
-            
+
         Returns:
             A list of session dictionaries.
         """
@@ -127,16 +130,16 @@ class SessionStore:
         except sqlite3.Error as e:
             logger.error(f"Error listing sessions: {e}")
             return []
-    
+
     def add_message(self, session_id: str, role: str, content: str, metadata: Optional[Dict[str, Any]] = None) -> str:
         """Add a message to a session.
-        
+
         Args:
             session_id: The ID of the session.
             role: The role of the message sender (e.g., user, assistant).
             content: The text content of the message.
             metadata: Optional metadata for the message.
-            
+
         Returns:
             The generated message ID.
         """
@@ -158,21 +161,30 @@ class SessionStore:
         except sqlite3.Error as e:
             logger.error(f"Error adding message: {e}")
             return ""
-    
+
     def get_messages(self, session_id: str, limit: int = 100) -> List[Dict[str, Any]]:
-        """Retrieve messages for a session.
-        
+        """Retrieve the most recent messages for a session.
+
+        Messages are returned in chronological (oldest-first) order, but when
+        ``limit`` is given only the *newest* ``limit`` messages are returned so
+        callers building a bounded context window always see the tail.
+
         Args:
             session_id: The ID of the session.
-            limit: Maximum number of messages to return.
-            
+            limit: Maximum number of the most recent messages to return.
+
         Returns:
-            A list of message dictionaries.
+            A list of message dictionaries, oldest first.
         """
         try:
             cursor = self.conn.cursor()
-            cursor.execute('SELECT * FROM messages WHERE session_id = ? ORDER BY timestamp ASC LIMIT ?', (session_id, limit))
+            cursor.execute(
+                'SELECT id, session_id, role, content, timestamp, metadata FROM messages WHERE session_id = ? ORDER BY timestamp ASC',
+                (session_id,)
+            )
             rows = cursor.fetchall()
+            if limit and len(rows) > limit:
+                rows = rows[-limit:]
             return [{
                 "id": row["id"],
                 "session_id": row["session_id"],
@@ -184,13 +196,13 @@ class SessionStore:
         except sqlite3.Error as e:
             logger.error(f"Error getting messages: {e}")
             return []
-    
+
     def delete_session(self, session_id: str) -> bool:
         """Delete a session and all its messages.
-        
+
         Args:
             session_id: The ID of the session.
-            
+
         Returns:
             True if deleted successfully, False otherwise.
         """
@@ -203,10 +215,10 @@ class SessionStore:
         except sqlite3.Error as e:
             logger.error(f"Error deleting session: {e}")
             return False
-    
+
     def get_stats(self) -> Dict[str, int]:
         """Get statistics about sessions and messages.
-        
+
         Returns:
             A dictionary containing total sessions and messages.
         """
@@ -223,7 +235,7 @@ class SessionStore:
         except sqlite3.Error as e:
             logger.error(f"Error getting stats: {e}")
             return {"total_sessions": 0, "total_messages": 0}
-    
+
     def close(self) -> None:
         """Close the database connection."""
         try:

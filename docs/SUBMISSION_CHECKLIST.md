@@ -1,4 +1,4 @@
-# Submission Checklist — Bunker (AMD Radeon Hackathon 2026)
+# Submission Checklist - Bunker (AMD Radeon Hackathon 2026)
 
 Final gate before submission. Tick each box only when it passes on the target
 machine (Windows dev box and, where noted, the AMD ROCm box).
@@ -28,13 +28,13 @@ python -m behave tests/features/
 make test-all
 ```
 
-- [ ] `make test-unit` — 147 tests passed, 3 env-dependent skips
-- [ ] `make test-security` — injection resistance + write "Deny" path pass
-- [ ] `make test-negative` — tool-denial / empty-retrieval / malformed-output pass
-- [ ] `make test-perf` — TTFT < 200 ms, tok/s > 30, VRAM < 20 GB (or env-tuned)
-- [ ] `make test-compile` — offline BootstrapFewShot compile + reload passes
-- [ ] `make test-bdd` — 4 scenarios / 23 steps pass
-- [ ] `make test-all` — full chain green
+- [ ] `make test-unit` - 147 tests passed, 3 env-dependent skips
+- [ ] `make test-security` - injection resistance + write "Deny" path pass
+- [ ] `make test-negative` - tool-denial / empty-retrieval / malformed-output pass
+- [ ] `make test-perf` - TTFT < 200 ms, tok/s > 30, VRAM < 20 GB (or env-tuned)
+- [ ] `make test-compile` - offline BootstrapFewShot compile + reload passes
+- [ ] `make test-bdd` - 4 scenarios / 23 steps pass
+- [ ] `make test-all` - full chain green
 
 ## 2. Local ROCm validation (AMD GPU box)
 
@@ -94,7 +94,7 @@ uvicorn src.main:app --host 0.0.0.0 --port 7860
 
 ## 6. Demo recording checklist
 
-Follow the 3–5 minute script in [`demo/demo_script.md`](../demo/demo_script.md).
+Follow the 3-5 minute script in [`demo/demo_script.md`](../demo/demo_script.md).
 
 - [ ] `python scripts/validate_rocm.py` on screen (ROCm proof)
 - [ ] App boots; privacy dashboard visible (auto-refreshes every 2s)

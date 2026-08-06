@@ -58,10 +58,22 @@ def register_file_tools(registry: ToolRegistry, base_dir: str = "./data/document
     )
 
 def _is_safe_path(base_dir: str, target_path: str) -> bool:
-    """Check if the target path is within the allowed base directory."""
+    """Check if the target path is strictly contained within the base directory.
+
+    Uses ``os.path.commonpath`` containment rather than a string-prefix check,
+    so sibling-prefix bypasses (``base_dir`` = ``.../data``, target =
+    ``.../data_secret``) and absolute-path escapes cannot slip through.
+    Both paths are ``realpath``-resolved first, so symlinks that point outside
+    ``base_dir`` are rejected too.
+    """
     base_abs = os.path.realpath(base_dir)
     target_abs = os.path.realpath(os.path.join(base_dir, target_path))
-    return target_abs.startswith(base_abs)
+    try:
+        common = os.path.commonpath([base_abs, target_abs])
+    except ValueError:
+        # Windows: paths on different drives share no common path.
+        return False
+    return common == base_abs
 
 def file_read(path: str, base_dir: str = "./data/documents") -> str:
     """Read file contents, constrained to base_dir."""

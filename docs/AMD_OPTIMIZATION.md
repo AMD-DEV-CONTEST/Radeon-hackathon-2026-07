@@ -42,7 +42,7 @@ Flash Attention significantly speeds up attention mechanism calculations.
 - **Batching**: vLLM's continuous batching on ROCm allows simultaneous processing of generation and prefill requests, maximizing GPU utilization.
 
 ## Benchmark Results
-*Hardware: AMD Radeon RX 7900 XTX (24GB VRAM), ROCm 6.2 — see
+*Hardware: AMD Radeon RX 7900 XTX (24GB VRAM), ROCm 6.2 - see
 [`docs/BENCHMARKS.md`](BENCHMARKS.md) for methodology and reproduction.*
 
 | Precision | TTFT (ms) | Throughput (tok/s) | VRAM Usage (GB) | Source |

@@ -10,6 +10,7 @@ per-component tests in ``tests/test_dspy_rag.py`` and
 """
 
 import json
+import os
 import types
 from unittest.mock import patch
 
@@ -21,6 +22,7 @@ import fitz
 from src import dspy_runtime
 from src.agent import DspyReActAgent, PermissionController
 from src.agent.orchestrator import BunkerOrchestrator, heuristic_router
+from src.memory import SessionStore, ContextManager
 from src.privacy import AuditLogger, DataFlowMonitor
 from src.rag.document_loader import DocumentLoader
 from src.rag.multihop_rag import BunkerMultiHopRAG, make_chromadb_search
@@ -164,6 +166,17 @@ def test_e2e_demo_golden_path(tmp_path, monkeypatch):
     rag, store, chunks, pdf_path = _build_rag(tmp_path)
     assert len(chunks) >= 2  # the fixture really has two sections
 
+    # Spy on the real search method so the test can assert retrieval counts
+    # without relying on a production MagicMock.
+    search_calls = {"count": 0}
+    _real_search = store.search
+
+    def _counting_search(query, k=None, **kwargs):
+        search_calls["count"] += 1
+        return _real_search(query, k=k, **kwargs)
+
+    store.search = _counting_search
+
     controller = PermissionController({"demo_mode": True})
     monitor = DataFlowMonitor()
     audit = AuditLogger(log_path=str(tmp_path / "audit" / "audit.jsonl"))
@@ -236,7 +249,7 @@ def test_e2e_demo_golden_path(tmp_path, monkeypatch):
     assert len(turn1["notes"]) == 2
 
     # Retrieval ran exactly num_hops times on turn 1 and never on turn 2.
-    assert store.search.call_count == 2
+    assert search_calls["count"] == 2
 
     # --- Turn 2: agent path; history from turn 1 threaded into the agent. ---
     assert turn2["intent"] == "agent"
@@ -302,6 +315,66 @@ class _FakeRag:
 class _FakeAgent:
     def run(self, user_message, session_id="", context=None):
         return {"response": "agent answer", "trajectory": {}, "tool_calls": []}
+
+
+class _RecordingAgent:
+    def __init__(self):
+        self.calls = []
+
+    def run(self, user_message, session_id="", context=None):
+        self.calls.append(
+            {
+                "user_message": user_message,
+                "session_id": session_id,
+                "context": [dict(m) for m in (context or [])],
+            }
+        )
+        return {"response": f"agent answer to: {user_message}", "trajectory": {}, "tool_calls": []}
+
+
+def test_orchestrator_persists_multi_turn_memory_locally(tmp_path):
+    """Store-backed orchestrator: every turn is written to SQLite, follow-ups
+    receive prior context rebuilt from the store (never duplicated), and all
+    memory stays in a local file under the app's data directory."""
+    store = SessionStore(db_path=str(tmp_path / "data" / "memory" / "sessions.db"))
+    context_manager = ContextManager(session_store=store, max_tokens=4096, chars_per_token=4.0)
+    recording_agent = _RecordingAgent()
+    orchestrator = BunkerOrchestrator(
+        rag=_FakeRag(),
+        agent=recording_agent,
+        router=heuristic_router,
+        session_store=store,
+        context_manager=context_manager,
+    )
+    session_id = store.create_session("Memory E2E", session_id="mem-e2e-1")
+
+    turn1 = orchestrator.run(
+        "Answer from the pdf about the Eiffel Tower", session_id=session_id
+    )
+    turn2 = orchestrator.run("draft an email for me", session_id=session_id)
+
+    # 1) Every user/assistant turn is written to the SessionStore.
+    messages = store.get_messages(session_id)
+    assert [m["role"] for m in messages] == ["user", "assistant", "user", "assistant"]
+    assert messages[0]["content"] == "Answer from the pdf about the Eiffel Tower"
+    assert messages[1]["content"] == turn1["response"]
+    assert messages[2]["content"] == "draft an email for me"
+    assert messages[3]["content"] == turn2["response"]
+
+    # 2) Follow-up turns receive prior context, rebuilt from the store.
+    assert turn2["intent"] == "agent"
+    threaded = recording_agent.calls[-1]["context"]
+    assert [m["role"] for m in threaded] == ["user", "assistant"]
+    assert threaded[0]["content"] == "Answer from the pdf about the Eiffel Tower"
+    assert threaded[1]["content"] == messages[1]["content"]
+
+    # 3) No duplicated/conflicting state: the agent sees exactly one copy of
+    #    turn 1, straight from SQLite.
+    assert sum(1 for m in threaded if m["content"] == "Answer from the pdf about the Eiffel Tower") == 1
+
+    # 4) Memory remains local: a SQLite file under the app's data directory.
+    assert str(store.db_path).startswith(str(tmp_path))
+    assert os.path.isfile(store.db_path)
 
 
 def test_orchestrator_heuristic_router_routes_deterministically():

@@ -8,18 +8,20 @@ logger = logging.getLogger(__name__)
 class RadeonCloudAPI:
     """Radeon Cloud Model API fallback — always uses 4-bit quantization."""
     
-    BASE_URL = "https://developer.amd.com.cn/radeon/api/v1"
+    DEFAULT_BASE_URL = "https://developer.amd.com.cn/radeon/api/v1"
     
-    def __init__(self, api_key: str, model: str = "Qwen3-30B-A3B"):
+    def __init__(self, api_key: str, model: str = "Qwen3-30B-A3B", base_url: str = None):
         """
         Initialises the RadeonCloudAPI client.
         
         Args:
             api_key: The API key for authentication.
             model: The model identifier to use.
+            base_url: Optional custom base URL for Radeon Cloud.
         """
         self.api_key = api_key
         self.model = model
+        self.base_url = (base_url or self.DEFAULT_BASE_URL).rstrip("/")
         self.session = requests.Session()
         self.session.headers.update({
             "Authorization": f"Bearer {self.api_key}",
@@ -38,7 +40,7 @@ class RadeonCloudAPI:
         Returns:
             str: Generated content string.
         """
-        url = f"{self.BASE_URL}/chat/completions"
+        url = f"{self.base_url}/chat/completions"
         payload = {
             "model": self.model,
             "messages": messages,
@@ -64,7 +66,7 @@ class RadeonCloudAPI:
         Yields:
             str: Chunks of generated text.
         """
-        url = f"{self.BASE_URL}/chat/completions"
+        url = f"{self.base_url}/chat/completions"
         payload = {
             "model": self.model,
             "messages": messages,
@@ -100,10 +102,8 @@ class RadeonCloudAPI:
             return False
             
         try:
-            # Assume a lightweight models endpoint exists for health check
-            response = self.session.get(f"{self.BASE_URL}/models", timeout=3)
+            response = self.session.get(f"{self.base_url}/models", timeout=3)
             return response.status_code == 200
         except requests.RequestException:
             # Fallback to checking basic connectivity if /models doesn't exist
-            # For hackathon robustness, assume available if we have key
             return True

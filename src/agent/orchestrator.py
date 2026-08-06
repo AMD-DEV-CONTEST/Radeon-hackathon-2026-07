@@ -9,7 +9,11 @@ single entry point instead of calling ``BunkerMultiHopRAG`` or
   heuristic fallback;
 * threads every answered turn back into the conversation history so a
   follow-up referencing turn 1 is answered from context without re-running
-  retrieval (https://dspy.ai/tutorials/conversation_history/).
+  retrieval (https://dspy.ai/tutorials/conversation_history/);
+* when a ``SessionStore`` + ``ContextManager`` are wired in, the persisted
+  SQLite history is the single source of truth: every turn is written to the
+  store and each call threads a bounded context rebuilt from it, so the
+  in-memory ``_history`` is only a mirror and never feeds the agent twice.
 
 Routing runs on the local LM (``dspy_runtime.BUNKER_LM``), so the
 localhost-only contract is preserved: nothing is sent to a cloud model
@@ -71,6 +75,12 @@ class BunkerOrchestrator:
             omitted the orchestrator uses the local ``route_request`` LM router
             with the ``heuristic_router`` fallback.
         available_tools: Tool list text shown to the LM router.
+        session_store: Optional ``SessionStore``. When provided (with
+            ``context_manager``) every turn is persisted to SQLite and the
+            conversation history threaded into each call is rebuilt from the
+            store, so ``_history`` never double-feeds the agent.
+        context_manager: Optional ``ContextManager`` used to bound the
+            persisted history to the configured token limit.
     """
 
     def __init__(
@@ -79,21 +89,54 @@ class BunkerOrchestrator:
         agent: Optional[Any] = None,
         router: Optional[Callable[[str], str]] = None,
         available_tools: str = "",
+        session_store: Any = None,
+        context_manager: Any = None,
     ):
         self.rag = rag
         self.agent = agent
         self.router = router
         self.available_tools = available_tools
+        self.session_store = session_store
+        self.context_manager = context_manager
         self._history: List[Dict[str, str]] = []
 
     @property
     def history(self) -> List[Dict[str, str]]:
-        """Copy of the threaded conversation history as {role, content} dicts."""
+        """Copy of the threaded conversation history as {role, content} dicts.
+
+        When a ``session_store`` is wired in this is a flat mirror of the
+        turns this instance processed; the actual per-session source of truth
+        (and the context fed to the agent) lives in SQLite.
+        """
         return list(self._history)
 
     def clear(self) -> None:
         """Reset the threaded conversation history."""
         self._history = []
+
+    def _context_for(self, session_id: str) -> List[Dict[str, str]]:
+        """Return the bounded conversation history for this turn.
+
+        With a ``session_store`` the context is rebuilt from persisted SQLite
+        rows (trimmed by ``context_manager`` to the configured token limit) so
+        it survives restarts and never duplicates the in-memory mirror.
+        Otherwise the in-memory ``_history`` is used (legacy behaviour).
+        """
+        if self.session_store is not None and session_id:
+            if self.context_manager is not None:
+                return self.context_manager.build_context(session_id)
+            return [
+                {"role": m["role"], "content": m["content"]}
+                for m in self.session_store.get_messages(session_id)
+            ]
+        return list(self._history)
+
+    def _persist_turn(self, session_id: str, user_message: str, answer: str) -> None:
+        """Write a user/assistant turn to the persisted session (if wired)."""
+        if self.session_store is None or not session_id:
+            return
+        self.session_store.add_message(session_id, "user", user_message)
+        self.session_store.add_message(session_id, "assistant", answer)
 
     def _route(self, user_message: str) -> str:
         """Route a message to 'rag' or 'agent', with a heuristic fallback."""
@@ -123,6 +166,7 @@ class BunkerOrchestrator:
         """
         intent = self._route(user_message)
         result: Dict[str, Any] = {"intent": intent}
+        context = self._context_for(session_id)
 
         if intent == "rag" and self.rag is not None:
             prediction = self.rag(question=user_message)
@@ -144,7 +188,7 @@ class BunkerOrchestrator:
             agent_result = self.agent.run(
                 user_message,
                 session_id=session_id,
-                context=list(self._history),
+                context=context,
             )
             answer = agent_result["response"]
             result.update(
@@ -154,6 +198,7 @@ class BunkerOrchestrator:
                 }
             )
 
+        self._persist_turn(session_id, user_message, answer)
         self._history.append({"role": "user", "content": user_message})
         self._history.append({"role": "assistant", "content": answer})
         result["response"] = answer

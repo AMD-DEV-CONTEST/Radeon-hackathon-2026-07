@@ -1,6 +1,5 @@
 import logging
 from typing import List, Dict, Any, Optional
-from unittest.mock import MagicMock
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +24,6 @@ class VectorStore:
         self.persist_dir = persist_dir
         self.collection_name = collection_name
         self.collection = None
-        self.search = MagicMock(side_effect=self._search)
 
         try:
             import chromadb
@@ -113,7 +111,7 @@ class VectorStore:
             logger.error(f"Error adding documents: {e}")
             return 0
 
-    def _search(
+    def search(
         self,
         query: str,
         top_k: int = 5,

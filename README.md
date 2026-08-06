@@ -1,4 +1,4 @@
-# Bunker 🔒
+# Bunker
 **Your AI. Your Data. Your Machine.**
 
 Bunker is a private, local-first AI agent that runs on AMD Radeon GPUs via ROCm.
@@ -39,19 +39,19 @@ A ready-to-record walkthrough lives in [`demo/demo_script.md`](demo/demo_script.
 
 ## Features
 
-- 🚀 **Hardware Accelerated**: Native AMD ROCm support with INT4/INT8 GPTQ
+- **Hardware Accelerated**: Native AMD ROCm support with INT4/INT8 GPTQ
   quantization via vLLM.
-- 🔒 **Local-First by Default**: All inference runs on your GPU. Every call is
+- **Local-First by Default**: All inference runs on your GPU. Every call is
   telemetry-verified — the dashboard shows real local vs external counts, so
   "100% local" is a measured fact, not a slogan.
-- 🧠 **Multi-Step Reasoning**: DSPy ReAct agent with a task planner for complex
+- **Multi-Step Reasoning**: DSPy ReAct agent with a task planner for complex
   multi-step workflows.
-- 📚 **Local RAG**: Document ingestion and multi-hop semantic search over
+- **Local RAG**: Document ingestion and multi-hop semantic search over
   ChromaDB with grounded `[pid]` citations.
-- 🛠️ **Extensible Tools**: Nine gated tools (file read/write/search/list,
+- **Extensible Tools**: Nine gated tools (file read/write/search/list,
   email draft/search, calendar query/create, web search) with a
   `PermissionController` for write operations.
-- 📊 **Privacy Dashboard**: Real-time Gradio UI showing audit logs, local vs
+- **Privacy Dashboard**: Real-time Gradio UI showing audit logs, local vs
   external inference counts, and bytes processed.
 
 ## Inference Paths

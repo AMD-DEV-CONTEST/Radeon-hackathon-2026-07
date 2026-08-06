@@ -186,9 +186,9 @@ def test_batch_ingestor_resume_and_skipping(tmp_path):
 
 def test_hybrid_vector_store_search(mock_vector_store):
     """HybridVectorStore combines BM25 and semantic results"""
-    mock_vector_store.search.return_value = [
+    mock_vector_store.search = MagicMock(return_value=[
         {"text": "Vector result one", "metadata": {"source": "a.txt"}, "distance": 0.2}
-    ]
+    ])
 
     hybrid = HybridVectorStore(vector_store=mock_vector_store)
     corpus = [
