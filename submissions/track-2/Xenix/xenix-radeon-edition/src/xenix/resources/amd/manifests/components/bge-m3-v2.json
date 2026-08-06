@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "manifest_id": "bge-m3-vllm-rocm721",
+  "manifest_version": "2",
+  "capability": "embedding",
+  "sources": [
+    {
+      "source_id": "bge-m3-model-source",
+      "kind": "hugging_face",
+      "locator": "BAAI/bge-m3",
+      "revision": "5617a9f61b028005a4858fdac845db406aefb181",
+      "acquisition_verified": true,
+      "verification_reference": "bge-m3-revision-target-download-20260728"
+    },
+    {
+      "source_id": "vllm-wheel-source",
+      "kind": "https",
+      "locator": "https://wheels.vllm.ai/rocm/321fa2d6d1644629ac39d173f6393f37e14bf7b4/vllm-0.20.2rc1.dev15%2Bg321fa2d6d.rocm721-cp312-cp312-manylinux_2_34_x86_64.whl",
+      "revision": "0.20.2rc1.dev15+g321fa2d6d.rocm721",
+      "acquisition_verified": true,
+      "verification_reference": "vllm-rocm721-target-import-20260728"
+    }
+  ],
+  "artifacts": [
+    {
+      "artifact_id": "bge-m3-pytorch-model",
+      "kind": "model",
+      "relative_path": "pytorch_model.bin",
+      "source_id": "bge-m3-model-source",
+      "sha256": "b5e0ce3470abf5ef3831aa1bd5553b486803e83251590ab7ff35a117cf6aad38",
+      "size_bytes": 2271145830,
+      "license_spdx": "MIT"
+    },
+    {
+      "artifact_id": "vllm-rocm721-wheel",
+      "kind": "runtime",
+      "relative_path": "vllm-0.20.2rc1.dev15+g321fa2d6d.rocm721-cp312-cp312-manylinux_2_34_x86_64.whl",
+      "source_id": "vllm-wheel-source",
+      "sha256": "a0834d6dc4244f6f87aa39d8a66f3942377dea8aaa80bdd5e4d71433ba486acf",
+      "size_bytes": 307012829,
+      "license_spdx": "Apache-2.0"
+    }
+  ],
+  "models": [
+    {
+      "model_id": "BAAI/bge-m3",
+      "revision": "5617a9f61b028005a4858fdac845db406aefb181",
+      "license_spdx": "MIT",
+      "artifact_ids": ["bge-m3-pytorch-model"],
+      "tokenizer_id": "BAAI/bge-m3",
+      "tokenizer_revision": "5617a9f61b028005a4858fdac845db406aefb181",
+      "output_dimensions": 1024
+    }
+  ],
+  "runtime": {
+    "runtime_id": "vllm-rocm721-nightly",
+    "runtime_version": "0.20.2rc1.dev15+g321fa2d6d.rocm721",
+    "framework_id": "vllm",
+    "framework_version": "0.20.2rc1.dev15+g321fa2d6d.rocm721",
+    "python_version": "3.12.3",
+    "packages": [
+      {
+        "name": "vllm",
+        "version": "0.20.2rc1.dev15+g321fa2d6d.rocm721",
+        "artifact_id": "vllm-rocm721-wheel"
+      }
+    ],
+    "allowed_plugins": []
+  },
+  "protocol": {
+    "protocol_id": "openai-compatible-embeddings",
+    "protocol_version": "vllm-0.20.2rc1",
+    "profile_id": "embeddings",
+    "authentication_required": true,
+    "unauthenticated_request_rejected": true,
+    "field_rules": [
+      {"field_name": "dimensions", "disposition": "omit", "expected_value": null},
+      {"field_name": "input", "disposition": "required", "expected_value": null},
+      {"field_name": "model", "disposition": "required", "expected_value": "bge-m3"}
+    ]
+  },
+  "launch": {
+    "executable": "vllm",
+    "served_model_name": "bge-m3",
+    "arguments": [
+      "--runner=pooling",
+      "--dtype=float16",
+      "--max-model-len=8192",
+      "--gpu-memory-utilization=0.20"
+    ],
+    "environment": [
+      {"name": "HF_HUB_OFFLINE", "value": "1"},
+      {"name": "TRANSFORMERS_OFFLINE", "value": "1"},
+      {"name": "VLLM_DO_NOT_TRACK", "value": "1"},
+      {"name": "VLLM_NO_USAGE_STATS", "value": "1"},
+      {"name": "VLLM_PLUGINS", "value": ""},
+      {"name": "VLLM_ROCM_USE_AITER", "value": "0"}
+    ],
+    "loopback_only": true,
+    "protected_auth_handoff_required": true,
+    "isolated_cache_required": true,
+    "isolated_config_required": true
+  },
+  "self_tests": [
+    {
+      "test_id": "embedding-protocol-and-rocm-workload",
+      "deadline_seconds": 180.0,
+      "required_evidence": [
+        "embedding-response",
+        "rocm-workload",
+        "unauthenticated-request-rejected"
+      ]
+    }
+  ],
+  "compatibility_cells": [
+    {
+      "cell_id": "radeon-cloud-gfx1100-ubuntu-24.04-k106-rocm-7.2.1",
+      "target_kind": "native_linux",
+      "os_name": "Ubuntu",
+      "os_version": "24.04",
+      "kernel_version": "6.8.0-106-generic",
+      "architecture": "x86_64",
+      "gpu_architecture": "gfx1100",
+      "driver_version": "6.16.6",
+      "rocm_version": "7.2.1",
+      "hip_version": "7.2.53211-e1a6bc5663",
+      "python_version": "3.12.3",
+      "admission": "admitted",
+      "admission_blockers": []
+    }
+  ],
+  "capacity": {
+    "min_gpu_count": 1,
+    "min_free_vram_bytes": 12000000000,
+    "min_free_system_memory_bytes": 17179869184,
+    "required_persistent_bytes": 8000000000
+  },
+  "admission": "admitted",
+  "admission_blockers": []
+}

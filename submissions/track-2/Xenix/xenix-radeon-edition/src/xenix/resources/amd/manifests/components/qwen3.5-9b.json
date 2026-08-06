@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "manifest_id": "qwen3.5-9b-vllm-rocm721",
+  "manifest_version": "1",
+  "capability": "chat",
+  "sources": [
+    {
+      "source_id": "qwen3.5-9b-model-source",
+      "kind": "hugging_face",
+      "locator": "Qwen/Qwen3.5-9B",
+      "revision": "c202236235762e1c871ad0ccb60c8ee5ba337b9a",
+      "acquisition_verified": true,
+      "verification_reference": "qwen3.5-9b-gfx1100-spike-20260805"
+    },
+    {
+      "source_id": "vllm-wheel-source",
+      "kind": "https",
+      "locator": "https://wheels.vllm.ai/rocm/321fa2d6d1644629ac39d173f6393f37e14bf7b4/vllm-0.20.2rc1.dev15%2Bg321fa2d6d.rocm721-cp312-cp312-manylinux_2_34_x86_64.whl",
+      "revision": "0.20.2rc1.dev15+g321fa2d6d.rocm721",
+      "acquisition_verified": true,
+      "verification_reference": "vllm-rocm721-target-import-20260728"
+    }
+  ],
+  "artifacts": [
+    {
+      "artifact_id": "qwen3.5-9b-weight-00001",
+      "kind": "model",
+      "relative_path": "model.safetensors-00001-of-00004.safetensors",
+      "source_id": "qwen3.5-9b-model-source",
+      "sha256": "db6f444b43d318c92f360a13a25561a6a65b10c0631b8ed305a426dbaa6c380e",
+      "size_bytes": 5276436216,
+      "license_spdx": "Apache-2.0"
+    },
+    {
+      "artifact_id": "qwen3.5-9b-weight-00002",
+      "kind": "model",
+      "relative_path": "model.safetensors-00002-of-00004.safetensors",
+      "source_id": "qwen3.5-9b-model-source",
+      "sha256": "31c7d7e2dd5d207840b31cc59083c8f4c4718959149e0358c0364052bb9a0330",
+      "size_bytes": 5335161512,
+      "license_spdx": "Apache-2.0"
+    },
+    {
+      "artifact_id": "qwen3.5-9b-weight-00003",
+      "kind": "model",
+      "relative_path": "model.safetensors-00003-of-00004.safetensors",
+      "source_id": "qwen3.5-9b-model-source",
+      "sha256": "7ec36ba3a4176a44c3c0876ad80c56a2f70c84bf008d82e9501df642f17dadec",
+      "size_bytes": 5368717440,
+      "license_spdx": "Apache-2.0"
+    },
+    {
+      "artifact_id": "qwen3.5-9b-weight-00004",
+      "kind": "model",
+      "relative_path": "model.safetensors-00004-of-00004.safetensors",
+      "source_id": "qwen3.5-9b-model-source",
+      "sha256": "b62b0c4cd7e44edee103ee8f4fe225f246d5e768e07bfd5f25b63a8aa1fdd0c6",
+      "size_bytes": 3325995712,
+      "license_spdx": "Apache-2.0"
+    },
+    {
+      "artifact_id": "vllm-rocm721-wheel",
+      "kind": "runtime",
+      "relative_path": "vllm-0.20.2rc1.dev15+g321fa2d6d.rocm721-cp312-cp312-manylinux_2_34_x86_64.whl",
+      "source_id": "vllm-wheel-source",
+      "sha256": "a0834d6dc4244f6f87aa39d8a66f3942377dea8aaa80bdd5e4d71433ba486acf",
+      "size_bytes": 307012829,
+      "license_spdx": "Apache-2.0"
+    }
+  ],
+  "models": [
+    {
+      "model_id": "Qwen/Qwen3.5-9B",
+      "revision": "c202236235762e1c871ad0ccb60c8ee5ba337b9a",
+      "license_spdx": "Apache-2.0",
+      "artifact_ids": [
+        "qwen3.5-9b-weight-00001",
+        "qwen3.5-9b-weight-00002",
+        "qwen3.5-9b-weight-00003",
+        "qwen3.5-9b-weight-00004"
+      ],
+      "tokenizer_id": "Qwen/Qwen3.5-9B",
+      "tokenizer_revision": "c202236235762e1c871ad0ccb60c8ee5ba337b9a",
+      "output_dimensions": null
+    }
+  ],
+  "runtime": {
+    "runtime_id": "vllm-rocm721-nightly",
+    "runtime_version": "0.20.2rc1.dev15+g321fa2d6d.rocm721",
+    "framework_id": "vllm",
+    "framework_version": "0.20.2rc1.dev15+g321fa2d6d.rocm721",
+    "python_version": "3.12.3",
+    "packages": [
+      {
+        "name": "vllm",
+        "version": "0.20.2rc1.dev15+g321fa2d6d.rocm721",
+        "artifact_id": "vllm-rocm721-wheel"
+      }
+    ],
+    "allowed_plugins": []
+  },
+  "protocol": {
+    "protocol_id": "openai-compatible-chat",
+    "protocol_version": "vllm-0.20.2rc1",
+    "profile_id": "chat-completions",
+    "authentication_required": true,
+    "unauthenticated_request_rejected": true,
+    "field_rules": [
+      {"field_name": "reasoning", "disposition": "optional", "expected_value": null},
+      {"field_name": "stream", "disposition": "optional", "expected_value": null},
+      {"field_name": "tools", "disposition": "optional", "expected_value": null}
+    ]
+  },
+  "launch": {
+    "executable": "vllm",
+    "served_model_name": "qwen3.5-9b",
+    "arguments": [
+      "--dtype=float16",
+      "--max-model-len=8192",
+      "--max-num-seqs=64",
+      "--gpu-memory-utilization=0.45",
+      "--reasoning-parser=qwen3",
+      "--enable-auto-tool-choice",
+      "--tool-call-parser=qwen3_coder",
+      "--language-model-only",
+      "--default-chat-template-kwargs={\"enable_thinking\":false}"
+    ],
+    "environment": [
+      {"name": "HF_HUB_OFFLINE", "value": "1"},
+      {"name": "TRANSFORMERS_OFFLINE", "value": "1"},
+      {"name": "VLLM_DO_NOT_TRACK", "value": "1"},
+      {"name": "VLLM_NO_USAGE_STATS", "value": "1"},
+      {"name": "VLLM_PLUGINS", "value": ""},
+      {"name": "VLLM_ROCM_USE_AITER", "value": "0"}
+    ],
+    "loopback_only": true,
+    "protected_auth_handoff_required": true,
+    "isolated_cache_required": true,
+    "isolated_config_required": true
+  },
+  "self_tests": [
+    {
+      "test_id": "chat-protocol-and-rocm-workload",
+      "deadline_seconds": 300.0,
+      "required_evidence": [
+        "automatic-tool-call",
+        "chat-completion",
+        "rocm-workload",
+        "unauthenticated-request-rejected"
+      ]
+    }
+  ],
+  "compatibility_cells": [
+    {
+      "cell_id": "radeon-cloud-gfx1100-ubuntu-24.04-k106-rocm-7.2.1",
+      "target_kind": "native_linux",
+      "os_name": "Ubuntu",
+      "os_version": "24.04",
+      "kernel_version": "6.8.0-106-generic",
+      "architecture": "x86_64",
+      "gpu_architecture": "gfx1100",
+      "driver_version": "6.16.6",
+      "rocm_version": "7.2.1",
+      "hip_version": "7.2.53211-e1a6bc5663",
+      "python_version": "3.12.3",
+      "admission": "admitted",
+      "admission_blockers": []
+    }
+  ],
+  "capacity": {
+    "min_gpu_count": 1,
+    "min_free_vram_bytes": 24000000000,
+    "min_free_system_memory_bytes": 34359738368,
+    "required_persistent_bytes": 34000000000
+  },
+  "admission": "admitted",
+  "admission_blockers": []
+}
