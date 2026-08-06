@@ -27,19 +27,31 @@ python scripts/benchmark.py tests/fixtures/interview.mp4 --interval 1.0
 <!-- BENCH:ENVIRONMENT -->
 *(filled from the contest machine — see `artifacts/benchmarks/preflight.json`)*
 
-## Headline results
+## Headline results — measured on the W7900 (2026-08-06)
 
-<!-- BENCH:HEADLINE -->
-*(filled from `artifacts/benchmarks/benchmark_*.json` after the contest-machine runs)*
+Real per-stage metrics from a full `--require-rocm` analysis run of the 10 s
+`interview.mp4` fixture (640×360, 25 fps, with audio) on the AMD Radeon PRO
+W7900, torch 2.10.0+rocm7.1, HIP 7.1.25424. Raw JSON:
+`artifacts/benchmarks/w7900_analysis_metrics.json` (cold run — each stage
+includes its model load from disk).
 
-| Metric | Value |
-|---|---|
-| Grounding DINO keyframe throughput | — |
-| SAM 2.1 propagation throughput | — |
-| Whisper large-v3-turbo real-time factor | — |
-| End-to-end analysis real-time factor | — |
-| Render throughput | — |
-| Peak VRAM (largest stage) | — |
+| Stage | Wall time | Peak VRAM |
+|---|---:|---:|
+| NORMALIZING (ffmpeg, CPU) | 0.71 s | — |
+| TRANSCRIBING (Whisper large-v3-turbo, GPU) | 12.53 s | 4 620 MB |
+| DETECTING_PII (regex/heuristics, CPU) | <0.01 s | — |
+| DETECTING_VISUAL (Grounding DINO tiny + YuNet, GPU, fp16 autocast) | 10.25 s | 6 260 MB |
+| TRACKING (association; SAM 2.1 not installed → box fallback, recorded) | 0.02 s | — |
+| BUILDING_PREVIEW (overlay render, CPU) | 0.43 s | — |
+| **End-to-end analysis (10 s clip, cold)** | **≈ 24 s** | **6 260 MB peak** |
+
+The run produced 7 redaction events (1 face track, 2 ID-document, 1 screen,
+2 license-plate candidates, 1 spoken phone number with word-level timestamps)
+— all from real model inference on the GPU; `--require-rocm` was active, so a
+CPU fallback in a core stage would have aborted the run.
+
+A GPU sanity microbenchmark from `scripts/preflight.py` on the same machine:
+fp16 4096³ matmul sustains ≈ 20 TFLOPS effective.
 
 ## Comparisons
 

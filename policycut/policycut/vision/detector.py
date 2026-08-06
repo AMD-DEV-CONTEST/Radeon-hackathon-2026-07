@@ -159,10 +159,12 @@ class VisualDetector:
             model_id = self.settings.dino_model
             processor = AutoProcessor.from_pretrained(model_id)
             model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id)
+            # Keep weights fp32 and use autocast for the forward pass:
+            # DINO's text branch mixes dtypes, so a blanket .half() breaks
+            # ("expected scalar type Half but found Float"). Autocast gives
+            # fp16 math on ROCm with fp32 master weights.
             fp16 = device == "cuda"
             model = model.to(device)
-            if fp16:
-                model = model.half()
             model.eval()
             self._dino = (processor, model, device, fp16)
             logger.info("GroundingDINO %s loaded on %s (fp16=%s)", model_id, device, fp16)
@@ -243,10 +245,12 @@ class VisualDetector:
                 padding=True,
             )
             inputs = inputs.to(device)
-            if fp16 and "pixel_values" in inputs:
-                inputs["pixel_values"] = inputs["pixel_values"].half()
             with torch.no_grad():
-                outputs = model(**inputs)
+                if fp16:
+                    with torch.autocast(device_type="cuda", dtype=torch.float16):
+                        outputs = model(**inputs)
+                else:
+                    outputs = model(**inputs)
             target_sizes = [(f.shape[0], f.shape[1]) for f in frames_bgr]
             box_thr = float(getattr(self.settings, "box_threshold", 0.25))
             text_thr = float(getattr(self.settings, "text_threshold", 0.20))

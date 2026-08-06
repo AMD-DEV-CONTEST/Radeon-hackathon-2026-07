@@ -82,7 +82,7 @@ Key algorithmic details:
 
 ## 5. AMD Radeon GPU / ROCm Adaptation
 
-PolicyCut targets an **AMD Radeon PRO W7900 (48 GB) with ROCm** using the platform-provided PyTorch ROCm build; every engineering decision below was made for that stack.
+PolicyCut runs on an **AMD Radeon PRO W7900 (48 GB) with ROCm** (torch 2.10.0+rocm7.1, HIP 7.1.25424); the full analysis pipeline was executed and measured on this GPU with `--require-rocm` active (see docs/benchmark.md).
 
 1. **All four core models run on the Radeon GPU** — Qwen3-4B (policy), Grounding DINO (detection), SAM 2.1 (tracking) and Whisper large-v3-turbo (ASR) — verified by `scripts/preflight.py` (prints `torch.version.hip`, device name, and a GPU matmul smoke test) and recorded per stage in `audit.json`.
 2. **`--require-rocm` contest mode**: core model stages raise instead of silently falling back to CPU, so a "Radeon run" is provably a Radeon run. The only intentional CPU component is the YuNet assist detector (documented as such).

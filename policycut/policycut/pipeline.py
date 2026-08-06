@@ -334,7 +334,10 @@ def _ensure_gpu(settings: Any, stage: str) -> None:
     for name in ("ensure_gpu", "require_gpu", "check_require_rocm"):
         fn = getattr(core_device, name, None)
         if callable(fn):
-            fn()
+            try:
+                fn(stage)
+            except TypeError:
+                fn()
             return
     if core_device.get_device() != "cuda":
         raise RuntimeError(
