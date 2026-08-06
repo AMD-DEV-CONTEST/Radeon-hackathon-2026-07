@@ -155,7 +155,7 @@ Future improvements:
 Based on:
 
 - Genesis official examples and assets, especially the Franka Panda MJCF asset `xml/franka_emika_panda/panda.xml`.
-- The local PhysicalAI ROCm Quickstart baseline demo for Franka fruit following.
+- The open-source PhysicalAI ROCm Quickstart repository: <https://github.com/JasonZhw/PhysicalAI-ROCm-Quickstart>. The original Franka fruit-following demo is used as a baseline reference and starting point.
 
 Original work in this submission:
 
@@ -171,10 +171,12 @@ Modified from baseline:
 - The original `scripts/franka_fruit_follow.py` entry point is preserved as a compatibility launcher.
 - The baseline implementation is kept in `src/franka_fruit_follow.py`.
 - New scripts extend the baseline with perception, task phases, success metrics, and annotated videos.
+- The competition submission changes the task objective from coordinate-based fruit following to vision-guided apple pick-and-place into a plate.
 
 Originality and compliance statement:
 
 - This submission is not a direct fork-only submission. The competition work adds new vision-guided tracking, pick-and-lift, and apple-to-plate pick-and-place modules on top of the baseline learning demo.
+- The upstream quickstart is cited explicitly to keep code provenance transparent. The submitted value is the new perception-control pipeline, task logic, reproducible configuration, metrics, documentation, and final demonstration video.
 - No external model weights are included.
 - No private datasets are included. Generated videos and full per-frame metrics are written to `outputs/` and intentionally ignored by Git.
 - No API keys, passwords, or private credentials are required by the project code.
@@ -185,7 +187,7 @@ Originality and compliance statement:
 基于的开源/参考项目：
 
 - Genesis 官方示例与资产，尤其是 Franka Panda MJCF 资产 `xml/franka_emika_panda/panda.xml`。
-- 本地 PhysicalAI ROCm Quickstart 中的 Franka fruit following baseline Demo。
+- 开源 PhysicalAI ROCm Quickstart 仓库：<https://github.com/JasonZhw/PhysicalAI-ROCm-Quickstart>。其中原始 Franka fruit-following Demo 被用作 baseline 参考和起点。
 
 本提交中的原创部分：
 
@@ -201,10 +203,12 @@ Originality and compliance statement:
 - 保留原 `scripts/franka_fruit_follow.py` 作为兼容入口。
 - baseline 主实现放在 `src/franka_fruit_follow.py`。
 - 新增脚本扩展了视觉感知、任务阶段、成功指标和标注视频输出。
+- 参赛提交将任务目标从基于坐标的水果跟随，扩展为视觉引导的苹果抓取并放入盘子。
 
 原创性与合规声明：
 
 - 本提交不是仅直接 fork 后无修改的项目。参赛工作在 baseline 学习 Demo 基础上新增了视觉引导跟随、抓取抬升和苹果放入盘子的 pick-and-place 模块。
+- README 中明确引用上游 quickstart，是为了让代码来源透明可查。参赛价值主要体现在新增的感知控制链路、任务逻辑、可复现配置、指标、文档和最终演示视频。
 - 仓库中不包含外部模型权重。
 - 仓库中不包含私有数据集。生成视频和完整逐帧指标统一写入 `outputs/`，并被 Git 忽略。
 - 项目代码不需要 API Key、密码或私有凭证。
