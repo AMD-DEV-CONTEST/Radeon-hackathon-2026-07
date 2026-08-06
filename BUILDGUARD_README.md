@@ -2,6 +2,36 @@
 
 BuildGuard-Radeon is a local AI agent for construction inspection and risk decision-making on AMD Radeon/ROCm. It integrates a local LLM, a LangGraph agent, hybrid RAG, image inspection, real-time video events, risk scoring, SQLite task memory, a FastAPI API, a Streamlit workbench, and evaluation tools.
 
+**Navigate:**
+[Demo Video](#demo-video) •
+[Project Specification](#full-project-specification-document) •
+[Environment Requirements](#environment-requirements) •
+[Startup Guide](#startup-guide) •
+[Configuration](#configuration) •
+[Common Commands](#common-commands) •
+[Dependencies](#dependencies) •
+[Security](#security-and-data)
+
+![BuildGuard-Radeon](docs/buildguard-project-poster-en.png)
+
+## Demo Video
+
+> 📹 **[Video placeholder — will be updated before deadline]**
+
+The demo covers the full pipeline running on an AMD Radeon RX 7900 XTX:
+server startup → image/video inspection → agent conversation → risk report generation.
+
+## Full Project Specification Document
+
+See [`docs.md`](docs.md) for the full specification, covering:
+
+- **Application scenarios** — construction site safety inspection: PPE violations (missing helmet/vest), structural defects (cracks, corrosion, damage), real-time camera monitoring
+- **Agent architecture** — LangGraph state machine with 13 nodes (intent → plan → execute → verify → respond), 3 LLM calls per request, confirmation gate, replan loop
+- **Core capabilities** — YOLO11 / YOLOv8 vision detection, MobileCLIP2 semantic routing, hybrid BM25+dense RAG, deterministic 6-component risk scoring, multi-camera realtime monitoring, HTML/PDF report generation
+- **Model introduction & local deployment** — Qwen3-14B-Q8 via llama.cpp ROCm, Qwen3-embedding-0.6b, Qwen3-reranker-0.6b, MobileCLIP2-S0; one-command bootstrap from a blank server
+- **AMD Radeon GPU optimization** — priority GPU scheduler, admission gate, ROCm telemetry (amd-smi / rocm-smi), model residency registry, PyTorch 2.9.1+rocm7.2.1
+
+
 ## Environment Requirements
 
 ### AMD GPU Server (production)
@@ -13,7 +43,7 @@ BuildGuard-Radeon is a local AI agent for construction inspection and risk decis
 | ROCm | 7.2.1 — must be installed at OS level before running bootstrap |
 | Python | 3.12 |
 | PyTorch | 2.9.1+rocm7.2.1 |
-| torchvision | 0.24.1 (CPU NMS — ROCm NMS kernel not yet available) |
+| torchvision | 0.24.1 |
 | uv | latest — bootstrap installs it automatically |
 
 **First-time setup on a blank server:**
@@ -184,26 +214,6 @@ ROCm containers require `/dev/kfd`, `/dev/dri`, and the correct render/video gro
 
 See the [Configuration Reference](docs/CONFIGURATION_REFERENCE.md) for the complete field descriptions.
 
-## Dependencies
-
-`pyproject.toml` is the authoritative dependency declaration.
-
-| Category | Dependencies |
-| --- | --- |
-| Configuration and CLI | `pydantic`, `pydantic-settings`, `typer`, `rich`, `pyyaml` |
-| API and networking | `fastapi`, `uvicorn`, `httpx`, `tenacity` |
-| Agent and structured output | `langgraph`, `langchain-core`, `json-repair`, `orjson` |
-| Database and system | `sqlalchemy`, `alembic`, `psutil` |
-| RAG and documents | `rank-bm25`, `faiss-cpu`, `transformers`, `sentencepiece`, `pypdf`, `python-docx` |
-| Vision and computation | `torch`, `ultralytics`, `numpy`, `opencv-python-headless`, `pillow` |
-| UI and reports | `streamlit`, `jinja2`, `markdown`, `pandas`, `matplotlib` |
-| Development (`dev`) | `pytest`, `pytest-asyncio`, `ruff`, `mypy`, `types-PyYAML`, `types-psutil` |
-| Optional `vision-onnx` | `onnxruntime` |
-| Optional `pdf` | `weasyprint` (may require system-level fonts and rendering libraries) |
-| Optional `amd` | `scipy>=1.10`, `pycocotools>=2.0.7` |
-| Optional `mobileclip` | `open-clip-torch>=3.2,<4` |
-
-`deployment/requirements-server.txt` is a frozen snapshot of a specific server environment for auditing and reproduction. It is not intended as the general installation entry point for every platform.
 
 ## Common Commands
 
@@ -224,16 +234,7 @@ buildguard rag-status --config configs/app.yaml
 buildguard benchmark-suite --config configs/app.yaml
 ```
 
-## Further Documentation
 
-- [Project Overview](docs/PROJECT_OVERVIEW_CN.md)
-- [System Architecture](docs/ARCHITECTURE.md)
-- [Vision Setup](docs/VISION_SETUP.md)
-- [RAG Setup](docs/RAG_SETUP.md)
-- [Real-Time Video](docs/REALTIME_SETUP.md)
-- [Security Boundaries](docs/SECURITY.md)
-- [Troubleshooting](docs/TROUBLESHOOTING.md)
-- [Competition Evaluation](docs/BENCHMARK.md)
 
 ## Security and Data
 
