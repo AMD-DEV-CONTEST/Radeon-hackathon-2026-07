@@ -1,0 +1,95 @@
+{
+  "config": {
+    "model": "Qwen3-8B",
+    "base_url": "http://localhost:8000",
+    "isl": 512,
+    "osl": 512,
+    "concurrency_levels": [
+      1,
+      4,
+      8,
+      16
+    ]
+  },
+  "benchmark_results": [
+    {
+      "concurrency": 1,
+      "n_requests": 8,
+      "success": 8,
+      "failures": 0,
+      "wall_time_s": 54.14,
+      "output_tps": 75.7,
+      "total_tps": 129.4,
+      "lat_p50_s": 7.386,
+      "lat_p90_s": 7.628,
+      "lat_max_s": 8.186,
+      "avg_output_tokens": 512
+    },
+    {
+      "concurrency": 4,
+      "n_requests": 8,
+      "success": 8,
+      "failures": 0,
+      "wall_time_s": 13.23,
+      "output_tps": 309.5,
+      "total_tps": 529.5,
+      "lat_p50_s": 6.613,
+      "lat_p90_s": 6.62,
+      "lat_max_s": 6.621,
+      "avg_output_tokens": 512
+    },
+    {
+      "concurrency": 8,
+      "n_requests": 16,
+      "success": 16,
+      "failures": 0,
+      "wall_time_s": 17.34,
+      "output_tps": 472.5,
+      "total_tps": 808.3,
+      "lat_p50_s": 8.663,
+      "lat_p90_s": 8.675,
+      "lat_max_s": 8.676,
+      "avg_output_tokens": 512
+    },
+    {
+      "concurrency": 16,
+      "n_requests": 32,
+      "success": 32,
+      "failures": 0,
+      "wall_time_s": 34.63,
+      "output_tps": 473.1,
+      "total_tps": 809.5,
+      "lat_p50_s": 17.301,
+      "lat_p90_s": 17.326,
+      "lat_max_s": 17.329,
+      "avg_output_tokens": 512
+    }
+  ],
+  "bottleneck_analysis": {
+    "bottleneck": "Attention_memory",
+    "reason": "TPS 缩放比 6.25x 远低于并发缩放比 16.00x，但延迟膨胀仅 2.3x。可能是 KV-Cache 显存带宽瓶颈。建议：启用 PagedAttention 或缩短 max_model_len。",
+    "metrics": {
+      "tps_scale_ratio": 6.25,
+      "concurrency_scale_ratio": 16.0,
+      "latency_inflation": 2.342,
+      "queue_ratio_p90_over_p50": 1.001
+    },
+    "optimization_targets": [
+      {
+        "target": "PagedAttention",
+        "method": "vLLM 默认启用",
+        "expected": "KV-Cache 分页管理"
+      },
+      {
+        "target": "缩短 max_model_len",
+        "method": "--max-model-len 4096",
+        "expected": "减少 KV-Cache 显存占用"
+      },
+      {
+        "target": "Prefix Cache",
+        "method": "--enable-prefix-caching",
+        "expected": "相同 system prompt 复用 KV"
+      }
+    ]
+  }
+}

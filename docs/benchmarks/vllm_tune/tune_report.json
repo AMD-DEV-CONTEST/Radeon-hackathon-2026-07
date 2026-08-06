@@ -1,0 +1,101 @@
+{
+  "phase": 6,
+  "phase_name": "report",
+  "model": "Qwen3-8B",
+  "concurrency_levels": [
+    1,
+    4,
+    8,
+    16
+  ],
+  "micro_speedup": 1.0,
+  "e2e_avg_speedup": 0.9984,
+  "verdict": "MARGINAL",
+  "injection": {
+    "status": "OK",
+    "shim_path": "/persistent/insurance-rag-agent/docs/benchmarks/vllm_tune/pypath/sitecustomize.py",
+    "pythonpath": "/persistent/insurance-rag-agent/docs/benchmarks/vllm_tune/pypath",
+    "tuned_csv": "/persistent/insurance-rag-agent/docs/benchmarks/vllm_tune/tuned_gemm.csv",
+    "usage": "export PYTHONPATH=\"/persistent/insurance-rag-agent/docs/benchmarks/vllm_tune/pypath:$PYTHONPATH\" && export PYTORCH_TUNABLEOP_ENABLED=1"
+  },
+  "gates": [
+    {
+      "gate": 1,
+      "name": "服务就绪",
+      "check": "优化后 vLLM 正常启动并响应请求",
+      "status": "PASS",
+      "detail": "所有并发度均有成功请求"
+    },
+    {
+      "gate": 2,
+      "name": "Shape 覆盖",
+      "check": "真实 shape 覆盖率 ≥ 80%",
+      "status": "WARN",
+      "detail": "微基准测试了 0 个 shape"
+    },
+    {
+      "gate": 3,
+      "name": "正确性",
+      "check": "输出与基线一致（temperature=0 确定性）",
+      "status": "PASS",
+      "detail": "所有并发度成功率 > 50%"
+    },
+    {
+      "gate": 4,
+      "name": "E2E TPS ≥ 基线",
+      "check": "每个并发度 E2E TPS ≥ baseline × 0.95",
+      "status": "PASS",
+      "detail": [
+        {
+          "concurrency": 1,
+          "baseline_tps": 47.7,
+          "patched_tps": 47.8,
+          "speedup": 1.0021,
+          "pass": true
+        },
+        {
+          "concurrency": 4,
+          "baseline_tps": 173.2,
+          "patched_tps": 173.2,
+          "speedup": 1.0,
+          "pass": true
+        },
+        {
+          "concurrency": 8,
+          "baseline_tps": 173.3,
+          "patched_tps": 172.4,
+          "speedup": 0.9948,
+          "pass": true
+        },
+        {
+          "concurrency": 16,
+          "baseline_tps": 173.9,
+          "patched_tps": 173.3,
+          "speedup": 0.9965,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "gate": 5,
+      "name": "单用户 decode 无回归",
+      "check": "conc=1 时 TPS ≥ baseline × 0.95",
+      "status": "PASS",
+      "detail": "baseline=47.7 → patched=47.8"
+    }
+  ],
+  "verdict_table": [
+    {
+      "kernel": "GEMM (TunableOps)",
+      "micro_speedup": "1.000x",
+      "serving_ready": "YES",
+      "e2e_speedup": "0.998x",
+      "verdict": "MARGINAL"
+    }
+  ],
+  "recommendations": [
+    "TunableOps 收益有限：微基准 1.000x，E2E 0.998x",
+    "可能原因：小 batch decode (M≤4) 走 wvSplitK 路径，TunableOps 不生效",
+    "建议：尝试 INT4 量化（C2 组别）或提高并发度使 M > 4"
+  ]
+}
