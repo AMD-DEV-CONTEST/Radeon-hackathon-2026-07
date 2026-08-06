@@ -1,0 +1,258 @@
+{
+  "schema": "ProofLaunchTrainingPlanMultiGpuV10",
+  "base_model": "AI-ModelScope/Gemma-4-E4B-it",
+  "base_revision": "4f5f0c899a9b6d34c4b463f557c31c8ac6c767cc",
+  "distributed_execution": {
+    "radeon_required": true,
+    "multi_gpu_required": true,
+    "minimum_world_size": 2,
+    "preferred_world_size": 4,
+    "preferred_strategy": "ddp",
+    "memory_fallback_strategy": "fsdp2",
+    "forbidden_strategy": "device_map=auto",
+    "single_gpu_baseline_required": true,
+    "single_gpu_may_promote": false,
+    "maximum_resident_heavy_models_per_rank": 1,
+    "expected_global_batch_size": 16,
+    "cold_launch_trials": 3,
+    "checkpoint_resume_trials": 2,
+    "two_gpu_minimum_speedup": 1.5,
+    "minimum_parallel_efficiency": 0.7,
+    "rank_loss_policy": "abort",
+    "checkpoint_owner": "rank_0_atomic_commit"
+  },
+  "maximum_total_gpu_hours": 40.0,
+  "maximum_wall_clock_hours": 20.0,
+  "judge_calibration": {
+    "human_label_minimum": 100,
+    "tpr_minimum": 0.8,
+    "tnr_minimum": 0.8
+  },
+  "stages": [
+    {
+      "phase": "multimodal_cpt",
+      "objective": "continued pretraining on licensed interleaved GTM evidence while retaining frozen vision/audio towers",
+      "trainable_modules": [
+        "language_model_lora",
+        "multimodal_connector_lora"
+      ],
+      "frozen_modules": [
+        "vision_tower",
+        "audio_tower",
+        "base_weights"
+      ],
+      "loss_terms": {
+        "next_token": 1.0,
+        "retention": 0.2
+      },
+      "maximum_gpu_hours": 8.0,
+      "checkpoint_every_steps": 100,
+      "acceptance_gates": [
+        {
+          "metric": "general_multimodal_regression",
+          "threshold": 0.005,
+          "higher_is_better": false,
+          "maximum_regression": null
+        }
+      ],
+      "rollback_checkpoint": "base",
+      "teacher_policy": "no teacher; licensed corpus only"
+    },
+    {
+      "phase": "curriculum_sft",
+      "objective": "short-to-long typed GTM tasks with grounded multimodal outputs",
+      "trainable_modules": [
+        "language_model_lora"
+      ],
+      "frozen_modules": [
+        "vision_tower",
+        "audio_tower",
+        "base_weights"
+      ],
+      "loss_terms": {
+        "supervised": 1.0,
+        "schema": 0.2
+      },
+      "maximum_gpu_hours": 8.0,
+      "checkpoint_every_steps": 100,
+      "acceptance_gates": [
+        {
+          "metric": "general_multimodal_regression",
+          "threshold": 0.005,
+          "higher_is_better": false,
+          "maximum_regression": null
+        },
+        {
+          "metric": "structured_output_valid_rate",
+          "threshold": 0.998,
+          "higher_is_better": true,
+          "maximum_regression": null
+        }
+      ],
+      "rollback_checkpoint": "multimodal_cpt",
+      "teacher_policy": "licensed expert demonstrations with source locators"
+    },
+    {
+      "phase": "direct_feedback",
+      "objective": "4A text-gradient revisions without collapsing taste to one scalar",
+      "trainable_modules": [
+        "language_model_lora"
+      ],
+      "frozen_modules": [
+        "vision_tower",
+        "audio_tower",
+        "base_weights"
+      ],
+      "loss_terms": {
+        "revision": 1.0,
+        "dimension_feedback": 0.5
+      },
+      "maximum_gpu_hours": 6.0,
+      "checkpoint_every_steps": 80,
+      "acceptance_gates": [
+        {
+          "metric": "general_multimodal_regression",
+          "threshold": 0.005,
+          "higher_is_better": false,
+          "maximum_regression": null
+        },
+        {
+          "metric": "four_a_overall_mean",
+          "threshold": 4.6,
+          "higher_is_better": true,
+          "maximum_regression": null
+        }
+      ],
+      "rollback_checkpoint": "curriculum_sft",
+      "teacher_policy": "five-dimension human feedback; no hidden chain of thought"
+    },
+    {
+      "phase": "on_policy_distillation",
+      "objective": "distill tool choice, stopping, and recovery on student trajectories with high-entropy branch monitoring",
+      "trainable_modules": [
+        "language_model_lora"
+      ],
+      "frozen_modules": [
+        "vision_tower",
+        "audio_tower",
+        "base_weights"
+      ],
+      "loss_terms": {
+        "on_policy_kl": 0.6,
+        "trajectory": 0.4,
+        "entropy": 0.1
+      },
+      "maximum_gpu_hours": 7.0,
+      "checkpoint_every_steps": 50,
+      "acceptance_gates": [
+        {
+          "metric": "general_multimodal_regression",
+          "threshold": 0.005,
+          "higher_is_better": false,
+          "maximum_regression": null
+        },
+        {
+          "metric": "agent_success_rate",
+          "threshold": 0.97,
+          "higher_is_better": true,
+          "maximum_regression": null
+        },
+        {
+          "metric": "tool_error_rate",
+          "threshold": 0.005,
+          "higher_is_better": false,
+          "maximum_regression": null
+        }
+      ],
+      "rollback_checkpoint": "direct_feedback",
+      "teacher_policy": "open frozen teacher; precomputed privileged signals; teacher-information-gain gate"
+    },
+    {
+      "phase": "multi_objective_rl",
+      "objective": "optimize claim safety, task success, taste, identity, and cost with separate rewards and hard constraints",
+      "trainable_modules": [
+        "language_model_lora"
+      ],
+      "frozen_modules": [
+        "vision_tower",
+        "audio_tower",
+        "base_weights"
+      ],
+      "loss_terms": {
+        "task": 0.3,
+        "claim": 0.2,
+        "taste": 0.2,
+        "identity": 0.2,
+        "cost": 0.1
+      },
+      "maximum_gpu_hours": 7.0,
+      "checkpoint_every_steps": 50,
+      "acceptance_gates": [
+        {
+          "metric": "general_multimodal_regression",
+          "threshold": 0.005,
+          "higher_is_better": false,
+          "maximum_regression": null
+        },
+        {
+          "metric": "critical_unsupported_claim_count",
+          "threshold": 0,
+          "higher_is_better": false,
+          "maximum_regression": null
+        },
+        {
+          "metric": "agent_success_rate",
+          "threshold": 0.99,
+          "higher_is_better": true,
+          "maximum_regression": null
+        }
+      ],
+      "rollback_checkpoint": "on_policy_distillation",
+      "teacher_policy": "calibrated critics plus deterministic hard gates"
+    },
+    {
+      "phase": "adapter_expert_consolidation",
+      "objective": "consolidate GTM role adapters into sparse top-2 experts with generalist fallback",
+      "trainable_modules": [
+        "adapter_router",
+        "role_adapters"
+      ],
+      "frozen_modules": [
+        "vision_tower",
+        "audio_tower",
+        "base_weights",
+        "accepted_lora_backbone"
+      ],
+      "loss_terms": {
+        "routing": 0.5,
+        "task": 0.4,
+        "balance": 0.1
+      },
+      "maximum_gpu_hours": 4.0,
+      "checkpoint_every_steps": 50,
+      "acceptance_gates": [
+        {
+          "metric": "general_multimodal_regression",
+          "threshold": 0.005,
+          "higher_is_better": false,
+          "maximum_regression": null
+        },
+        {
+          "metric": "router_fallback_success_rate",
+          "threshold": 0.99,
+          "higher_is_better": true,
+          "maximum_regression": null
+        },
+        {
+          "metric": "gtm_gain_vs_v9",
+          "threshold": 0.2,
+          "higher_is_better": true,
+          "maximum_regression": null
+        }
+      ],
+      "rollback_checkpoint": "multi_objective_rl",
+      "teacher_policy": "accepted stage checkpoints only"
+    }
+  ],
+  "contract_sha256": "e73e56048b80db543699915377b3c992da77d33f18e12ac7fd3985c4c76ff478"
+}

@@ -1,0 +1,170 @@
+{
+  "schema": "ProofLaunchOnPolicyDistillationExecutionContractV1",
+  "contract": {
+    "methods": [
+      {
+        "method": "gkd_baseline",
+        "on_policy": true,
+        "teacher_required": true,
+        "self_teacher": false,
+        "temporal_curriculum": false,
+        "divergence": "jsd",
+        "control_arm": true
+      },
+      {
+        "method": "off_policy_kd",
+        "on_policy": false,
+        "teacher_required": true,
+        "self_teacher": false,
+        "temporal_curriculum": false,
+        "divergence": "forward_kl",
+        "control_arm": true
+      },
+      {
+        "method": "on_policy_kd",
+        "on_policy": true,
+        "teacher_required": true,
+        "self_teacher": false,
+        "temporal_curriculum": false,
+        "divergence": "reverse_kl",
+        "control_arm": false
+      },
+      {
+        "method": "on_policy_self_distillation",
+        "on_policy": true,
+        "teacher_required": true,
+        "self_teacher": true,
+        "temporal_curriculum": false,
+        "divergence": "reverse_kl",
+        "control_arm": false
+      },
+      {
+        "method": "self_distillation_finetuning",
+        "on_policy": false,
+        "teacher_required": true,
+        "self_teacher": true,
+        "temporal_curriculum": false,
+        "divergence": "forward_kl",
+        "control_arm": false
+      },
+      {
+        "method": "temporal_curriculum_on_policy_distillation",
+        "on_policy": true,
+        "teacher_required": true,
+        "self_teacher": false,
+        "temporal_curriculum": true,
+        "divergence": "reverse_kl",
+        "control_arm": false
+      },
+      {
+        "method": "compatibility_aware_on_policy_distillation",
+        "on_policy": true,
+        "teacher_required": true,
+        "self_teacher": false,
+        "temporal_curriculum": false,
+        "divergence": "jsd",
+        "control_arm": false
+      },
+      {
+        "method": "no_kd_control",
+        "on_policy": false,
+        "teacher_required": false,
+        "self_teacher": false,
+        "temporal_curriculum": false,
+        "divergence": null,
+        "control_arm": true
+      }
+    ],
+    "deployment_input": {
+      "deployment_fields": [
+        "user_request",
+        "licensed_assets",
+        "visible_tool_observations",
+        "campaign_state"
+      ],
+      "privileged_fields": [
+        "privileged_evidence",
+        "privileged_critique",
+        "privileged_repair"
+      ],
+      "hidden_reasoning_persisted": false
+    },
+    "protection_policy": {
+      "minimum_retention": {
+        "self_correction": 0.98,
+        "verification": 0.98,
+        "backtracking": 0.98
+      },
+      "style_token_kl_clip": 0.1,
+      "pointwise_kl_clip": 0.2
+    },
+    "temporal_curriculum": [
+      {
+        "order": 0,
+        "kind": "short",
+        "maximum_turns": 4,
+        "requires_prior": []
+      },
+      {
+        "order": 1,
+        "kind": "medium",
+        "maximum_turns": 16,
+        "requires_prior": [
+          "short"
+        ]
+      },
+      {
+        "order": 2,
+        "kind": "long",
+        "maximum_turns": 64,
+        "requires_prior": [
+          "short",
+          "medium"
+        ]
+      }
+    ],
+    "experiment_budget": {
+      "wall_clock_seconds": 7200,
+      "hard_stop": true,
+      "unapproved_extension_allowed": false
+    },
+    "monitoring_thresholds": {
+      "maximum_trajectory_kl": 0.25,
+      "minimum_top_k_overlap": 0.15,
+      "maximum_top_k_overlap": 0.98,
+      "minimum_teacher_information_gain": 0.02,
+      "maximum_privileged_divergence": 0.2,
+      "maximum_overconfidence_rate": 0.05,
+      "minimum_verification_retention": 0.98,
+      "minimum_backtracking_retention": 0.98,
+      "minimum_distinct_n_ratio": 0.8
+    },
+    "revision_pair": {
+      "teacher_revision": "UNRESOLVED_PENDING_RIGHTS_AND_METHOD_SELECTION",
+      "student_revision": "AI-ModelScope/Gemma-4-E4B-it@4f5f0c899a9b6d34c4b463f557c31c8ac6c767cc"
+    }
+  },
+  "contract_sha256": "3bdb842a7c12c6446a45bc6daccfef35da8e61d511666937c59154ee9bb1fa95",
+  "research_sources": [
+    {
+      "name": "THUNLP OPD",
+      "locator": "https://github.com/thunlp/OPD",
+      "role": "teacher-student dynamics and recipe reference"
+    },
+    {
+      "name": "TCOD",
+      "locator": "https://github.com/kokolerk/TCOD",
+      "role": "short-to-long temporal curriculum and trajectory-KL instability reference"
+    },
+    {
+      "name": "TRL GKDTrainer",
+      "locator": "https://huggingface.co/docs/trl/main/en/gkd_trainer",
+      "role": "reusable GKD implementation surface"
+    }
+  ],
+  "execution_status": "planned_not_executed",
+  "teacher_revision_observed": false,
+  "student_rollout_observed": false,
+  "teacher_evaluation_observed": false,
+  "training_observed": false
+}

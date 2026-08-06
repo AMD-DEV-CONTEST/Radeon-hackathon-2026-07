@@ -1,0 +1,138 @@
+{
+  "schema": "ProofLaunchCodexControlPlaneSuperChallengersDraftV1",
+  "campaign_id": "prooflaunch-b2b-ai-launch-zero-budget-v1",
+  "frozen_brief": {
+    "company_stage": "pre-scale B2B AI product",
+    "audience": ["B2B AI founders", "GTM leaders", "enterprise AI evaluators"],
+    "job_to_be_done": "decide whether an AI GTM agent is safe and useful before granting publishing or spend authority",
+    "approved_claim": "ProofLaunch keeps unsupported outcomes out of the approved brief and exposes the decision trail for review.",
+    "forbidden_claims": ["guaranteed growth", "top-1", "4A-proven", "causal revenue lift", "fully autonomous"],
+    "budget_usd": 0,
+    "external_activation_authorized": false
+  },
+  "memory_system": {
+    "name": "Consent-Bound GTM Decision Memory",
+    "memory_contract": {
+      "write_policy": "explicit human approval or deterministic system receipt only",
+      "retrieval_policy": "tenant, project, purpose and expiry must all match",
+      "conflict_policy": "newer explicit approval supersedes but never erases prior provenance",
+      "deletion_policy": "remove raw value, append content-free tombstone, prove zero-result retrieval",
+      "derived_memory_policy": "inference is labeled, confidence-bounded and cannot overwrite an approved fact"
+    },
+    "working_set": [
+      {"memory_id": "m-001", "kind": "approved_fact", "value": "linkedin-first", "source": "human://decision/001", "device": "desktop", "status": "superseded"},
+      {"memory_id": "m-002", "kind": "approved_fact", "value": "partner-community-first", "source": "human://decision/002", "device": "mobile", "status": "active", "supersedes": "m-001"},
+      {"memory_id": "m-003", "kind": "constraint", "value": "zero-paid-media-budget", "source": "brief://budget", "device": "desktop", "status": "active"},
+      {"memory_id": "m-004", "kind": "claim_boundary", "value": "no-causal-revenue-claim", "source": "brief://claims", "device": "desktop", "status": "active"}
+    ],
+    "retrieval_tests": [
+      {"test": "cross_device_active_fact", "requester": "tenant-alpha/mobile", "expected_ids": ["m-002"], "expected_denial": false},
+      {"test": "superseded_fact_with_provenance", "requester": "tenant-alpha/desktop", "expected_ids": ["m-002", "m-001"], "expected_denial": false},
+      {"test": "cross_tenant_denial", "requester": "tenant-beta/desktop", "expected_ids": [], "expected_denial": true},
+      {"test": "wrong_purpose_denial", "requester": "tenant-alpha/unrelated-project", "expected_ids": [], "expected_denial": true},
+      {"test": "post_deletion_zero_result", "requester": "tenant-alpha/desktop", "expected_ids": [], "expected_denial": false, "delete_target": "m-002"}
+    ],
+    "operator_controls": ["inspect source", "correct", "pin", "expire", "delete exact item", "export decision log", "disable derived memory"],
+    "opponent_stress_tests": {
+      "ChatGPT Memory": "item-level source, correction and exact deletion receipt",
+      "Claude Memory": "project-scoped continuity without silent global leakage",
+      "Gemini personalization": "cross-surface recall with explicit purpose boundary",
+      "Microsoft 365 Copilot Memory": "enterprise tenant and role isolation",
+      "Zep": "temporal contradiction resolution with both source edges",
+      "Mem0": "selective write and deterministic deletion proof",
+      "Letta": "bounded core-memory mutation with operator review",
+      "MemOS": "multimodal memory type and provenance separation",
+      "Personal AI": "persona preference separated from approved business fact",
+      "Glean Assistant": "permission-aware enterprise retrieval and source drill-through"
+    }
+  },
+  "employee_agent": {
+    "mission": "produce the frozen launch decision and release-ready asset packet without publishing, sending or spending",
+    "graph_nodes": [
+      {"node": "intake", "input": "frozen brief", "output": "typed constraints", "exit_gate": "required fields and authority parsed"},
+      {"node": "evidence", "input": "typed constraints", "output": "source ledger", "exit_gate": "every usable claim has provenance"},
+      {"node": "strategy", "input": "source ledger", "output": "channel decision memo", "exit_gate": "recommendation is reversible and uncertainty explicit"},
+      {"node": "create", "input": "approved strategy", "output": "text/image/video/audio candidates", "exit_gate": "format and claim validators pass"},
+      {"node": "quality", "input": "candidate assets", "output": "defect and repair ledger", "exit_gate": "zero blocking defect"},
+      {"node": "measure", "input": "candidate and event contract", "output": "preregistered measurement plan", "exit_gate": "unobserved values remain null"},
+      {"node": "release", "input": "sealed candidate packet", "output": "content-bound approval request", "exit_gate": "matching human token required"},
+      {"node": "learn", "input": "observed results only", "output": "next-cycle recommendation", "exit_gate": "no synthetic outcome promoted"}
+    ],
+    "node_loop": {
+      "steps": ["inspect local evidence", "draft", "validate", "classify defect", "repair once", "revalidate or fail closed"],
+      "maximum_repairs_per_node": 2,
+      "forced_failure": "image alt text omitted on first create attempt",
+      "verified_repair": "alt text added and accessibility validator rerun"
+    },
+    "harness": {
+      "policy_engine": "OPA-compatible deny-first policy bundle",
+      "typed_io": "Pydantic-compatible node contracts",
+      "durability": "Temporal-compatible idempotency key and retry ledger",
+      "telemetry": "OpenTelemetry-compatible trace and cost spans",
+      "browser_boundary": "Playwright/browser-use adapters remain read-only unless separately authorized",
+      "hard_limits": {"external_actions": 0, "paid_spend_usd": 0, "maximum_node_repairs": 2},
+      "human_gates": ["claim approval", "creative release", "audience change", "publish", "send", "spend"]
+    },
+    "opponent_stress_tests": {
+      "Salesforce Agentforce": "CRM-context task with explicit field and spend authority",
+      "Microsoft Copilot Studio": "durable enterprise flow with typed connector failures",
+      "Gemini Enterprise": "cross-workspace evidence retrieval with permission boundaries",
+      "OpenAI ChatGPT agent": "browser task with visible plan, confirmation and action receipt",
+      "Claude Enterprise": "long-context synthesis with citations and no hidden external act",
+      "ServiceNow AI Agents": "ticket-state transition with approval and rollback",
+      "Glean Agents": "permission-aware knowledge action with source drill-through",
+      "Relevance AI": "multi-tool task with cost, retry and schema limits",
+      "Lindy": "human handoff after forced integration failure",
+      "SAP Joule": "business object mutation denied without role-bound approval"
+    }
+  },
+  "advertising_system": {
+    "objective": "qualified evidence-pack inspection",
+    "activation_mode": "inactive_review_only",
+    "audience": {
+      "include": ["B2B AI founders", "GTM leaders", "enterprise AI evaluators"],
+      "exclude": ["employees", "existing design partners", "recent converters", "under-age users", "sensitive-trait segments"],
+      "retargeting_window_days": 14,
+      "frequency_cap_per_7d": 3
+    },
+    "creative_matrix": [
+      {"route": "rejection_rule", "funnel": "problem-aware", "hook": "The sentence your AI refuses to publish may be the most valuable line in the campaign.", "proof": "unsupported outcome is diverted from the approved brief", "cta": "Inspect the rejection rule", "format": "4:5 feed + 15s video"},
+      {"route": "decision_xray", "funnel": "solution-aware", "hook": "If a GTM recommendation cannot show its sources, it is not ready to act.", "proof": "claim-to-source decision trail", "cta": "Open the decision trail", "format": "1:1 feed + responsive search"},
+      {"route": "zero_budget_test", "funnel": "evaluation", "hook": "Zero media budget. One falsifiable idea. Seven days to earn the next decision.", "proof": "preregistered stop and continue rules", "cta": "Review the experiment", "format": "9:16 video + LinkedIn document"}
+    ],
+    "channel_plans": [
+      {"channel": "LinkedIn", "role": "high-context B2B proof", "route": "decision_xray", "optimization_event": "qualified_evidence_pack_open", "bid": "not_set", "budget_usd": 0},
+      {"channel": "Google Search", "role": "capture explicit evaluation intent", "route": "rejection_rule", "optimization_event": "evaluation_checklist_complete", "bid": "not_set", "budget_usd": 0},
+      {"channel": "Meta", "role": "visual concept comprehension test", "route": "rejection_rule", "optimization_event": "qualified_evidence_pack_open", "bid": "not_set", "budget_usd": 0},
+      {"channel": "TikTok", "role": "three-beat creative comprehension test", "route": "zero_budget_test", "optimization_event": "video_complete_and_pack_open", "bid": "not_set", "budget_usd": 0}
+    ],
+    "experiment": {
+      "status": "preregistered_not_run",
+      "unit": "eligible account",
+      "holdout": "10% only after sufficient authorized eligible population exists",
+      "primary_metric": "incremental qualified evidence-pack inspections per eligible account",
+      "guardrails": ["unsubscribe", "complaint", "frequency", "brand-safety incident", "sales-disqualification rate"],
+      "stop_rules": ["any brand-safety incident", "complaint rate above approved threshold", "tracking integrity failure", "sample ratio mismatch"],
+      "automatic_budget_reallocation": false,
+      "observed_incremental_lift": null
+    },
+    "opponent_stress_tests": {
+      "Google Performance Max": "cross-inventory objective clarity and incrementality holdout",
+      "Meta Advantage+": "creative diversity without opaque audience expansion",
+      "TikTok Smart+": "native short-video hook plus frequency safety",
+      "Amazon Performance+": "commerce-event integrity and product eligibility",
+      "LinkedIn Accelerate": "B2B account quality over cheap lead volume",
+      "The Trade Desk Kokai": "cross-channel identity, reach and frequency controls",
+      "Adobe GenStudio for Performance Marketing": "brand-safe variant lineage and approval",
+      "Smartly": "format adaptation without semantic claim drift",
+      "Skai": "budget and experiment governance across publishers",
+      "Sprinklr Advertising": "enterprise workflow, audit trail and crisis stop"
+    }
+  },
+  "open_source_modifications": {
+    "memory": ["Mem0 selective write adapter", "Graphiti temporal conflict edges", "MemOS typed multimodal slots", "Neo4j permission-aware provenance graph", "Qwen3 embedding retrieval candidate"],
+    "agent": ["PydanticAI typed node IO", "Temporal durable graph receipts", "OPA deny-first harness", "OpenLLMetry trace spans", "Playwright/browser-use read-only adapters"],
+    "advertising": ["Meridian incrementality specification", "DoWhy/EconML causal assumption checks", "Vowpal Wabbit shadow policy evaluation", "OPA spend and audience policy gates"]
+  },
+  "truth_boundary": "These are sealed local candidate execution systems for source-hidden review. No external action, media delivery, named-product comparison, production lift, revenue lift or market superiority has been observed."
+}

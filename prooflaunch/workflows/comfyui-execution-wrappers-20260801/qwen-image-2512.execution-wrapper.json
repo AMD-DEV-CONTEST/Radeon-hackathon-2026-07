@@ -1,0 +1,267 @@
+{
+  "263:245": {
+    "_meta": {
+      "title": "加载CLIP"
+    },
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "device": "default",
+      "type": "qwen_image"
+    }
+  },
+  "263:246": {
+    "_meta": {
+      "title": "加载VAE"
+    },
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    }
+  },
+  "263:247": {
+    "_meta": {
+      "title": "采样算法（AuraFlow）"
+    },
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": {
+      "model": [
+        "263:260",
+        0
+      ],
+      "shift": 3.1000000000000005
+    }
+  },
+  "263:248": {
+    "_meta": {
+      "title": "UNet加载器"
+    },
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "qwen_image_2512_fp8_e4m3fn.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "263:249": {
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    },
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "263:245",
+        0
+      ],
+      "text": ""
+    }
+  },
+  "263:250": {
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    },
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "263:245",
+        0
+      ],
+      "text": "低分辨率，低画质，肢体畸形，手指畸形，画面过饱和，蜡像感，人脸无细节，过度光滑，画面具有AI感。构图混乱。文字模糊，扭曲"
+    }
+  },
+  "263:251": {
+    "_meta": {
+      "title": "VAE解码"
+    },
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "263:253",
+        0
+      ],
+      "vae": [
+        "263:246",
+        0
+      ]
+    }
+  },
+  "263:252": {
+    "_meta": {
+      "title": "空Latent图像（SD3）"
+    },
+    "class_type": "EmptySD3LatentImage",
+    "inputs": {
+      "batch_size": 1,
+      "height": 1328,
+      "width": 1328
+    }
+  },
+  "263:253": {
+    "_meta": {
+      "title": "K采样器"
+    },
+    "class_type": "KSampler",
+    "inputs": {
+      "cfg": [
+        "263:262",
+        0
+      ],
+      "denoise": 1,
+      "latent_image": [
+        "263:252",
+        0
+      ],
+      "model": [
+        "263:247",
+        0
+      ],
+      "negative": [
+        "263:250",
+        0
+      ],
+      "positive": [
+        "263:249",
+        0
+      ],
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "seed": 464857551335368,
+      "steps": [
+        "263:261",
+        0
+      ]
+    }
+  },
+  "263:254": {
+    "_meta": {
+      "title": "Int (Steps)"
+    },
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 50
+    }
+  },
+  "263:255": {
+    "_meta": {
+      "title": "Float (CFG)"
+    },
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 4
+    }
+  },
+  "263:256": {
+    "_meta": {
+      "title": "Enable 4 Steps LoRA?"
+    },
+    "class_type": "PrimitiveBoolean",
+    "inputs": {
+      "value": false
+    }
+  },
+  "263:257": {
+    "_meta": {
+      "title": "Int (Steps)"
+    },
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 4
+    }
+  },
+  "263:258": {
+    "_meta": {
+      "title": "Float (CFG)"
+    },
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 1
+    }
+  },
+  "263:259": {
+    "_meta": {
+      "title": "LoRA加载器（仅模型）"
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "lora_name": "Qwen-Image-2512-Lightning-4steps-V1.0-fp32.safetensors",
+      "model": [
+        "263:248",
+        0
+      ],
+      "strength_model": 1
+    }
+  },
+  "263:260": {
+    "_meta": {
+      "title": "Switch (model)"
+    },
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "263:248",
+        0
+      ],
+      "on_true": [
+        "263:259",
+        0
+      ],
+      "switch": [
+        "263:256",
+        0
+      ]
+    }
+  },
+  "263:261": {
+    "_meta": {
+      "title": "Switch (steps)"
+    },
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "263:254",
+        0
+      ],
+      "on_true": [
+        "263:257",
+        0
+      ],
+      "switch": [
+        "263:256",
+        0
+      ]
+    }
+  },
+  "263:262": {
+    "_meta": {
+      "title": "Switch (cfg)"
+    },
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "263:255",
+        0
+      ],
+      "on_true": [
+        "263:258",
+        0
+      ],
+      "switch": [
+        "263:256",
+        0
+      ]
+    }
+  },
+  "prooflaunch:save_image": {
+    "_meta": {
+      "source_official_api_sha256": "31f7b70d91895d60d1221a9a6d3b855f53360041e2238cdf0c89f8c025ec319c",
+      "title": "ProofLaunch evidence output wrapper"
+    },
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "prooflaunch/qwen-image-2512",
+      "images": [
+        "263:251",
+        0
+      ]
+    }
+  }
+}

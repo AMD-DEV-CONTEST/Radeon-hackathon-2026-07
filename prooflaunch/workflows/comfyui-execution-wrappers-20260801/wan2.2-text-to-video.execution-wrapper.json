@@ -1,0 +1,248 @@
+{
+  "114:117": {
+    "_meta": {
+      "title": "创建视频"
+    },
+    "class_type": "CreateVideo",
+    "inputs": {
+      "bit_depth": 8,
+      "fps": 16,
+      "images": [
+        "114:87",
+        0
+      ]
+    }
+  },
+  "114:71": {
+    "_meta": {
+      "title": "加载CLIP"
+    },
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "device": "default",
+      "type": "wan"
+    }
+  },
+  "114:72": {
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    },
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "114:71",
+        0
+      ],
+      "text": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走，裸露，NSFW"
+    }
+  },
+  "114:73": {
+    "_meta": {
+      "title": "加载VAE"
+    },
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "wan_2.1_vae.safetensors"
+    }
+  },
+  "114:74": {
+    "_meta": {
+      "title": "空Latent视频（Hunyuan）"
+    },
+    "class_type": "EmptyHunyuanLatentVideo",
+    "inputs": {
+      "batch_size": 1,
+      "height": 640,
+      "length": 81,
+      "width": 640
+    }
+  },
+  "114:75": {
+    "_meta": {
+      "title": "UNet加载器"
+    },
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "114:76": {
+    "_meta": {
+      "title": "UNet加载器"
+    },
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "114:78": {
+    "_meta": {
+      "title": "K采样器（高级）"
+    },
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "add_noise": "disable",
+      "cfg": 1,
+      "end_at_step": 4,
+      "latent_image": [
+        "114:81",
+        0
+      ],
+      "model": [
+        "114:86",
+        0
+      ],
+      "negative": [
+        "114:72",
+        0
+      ],
+      "noise_seed": 0,
+      "positive": [
+        "114:89",
+        0
+      ],
+      "return_with_leftover_noise": "disable",
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "start_at_step": 2,
+      "steps": 4
+    }
+  },
+  "114:81": {
+    "_meta": {
+      "title": "K采样器（高级）"
+    },
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "add_noise": "enable",
+      "cfg": 1,
+      "end_at_step": 2,
+      "latent_image": [
+        "114:74",
+        0
+      ],
+      "model": [
+        "114:82",
+        0
+      ],
+      "negative": [
+        "114:72",
+        0
+      ],
+      "noise_seed": 0,
+      "positive": [
+        "114:89",
+        0
+      ],
+      "return_with_leftover_noise": "enable",
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "start_at_step": 0,
+      "steps": 4
+    }
+  },
+  "114:82": {
+    "_meta": {
+      "title": "采样算法（SD3）"
+    },
+    "class_type": "ModelSamplingSD3",
+    "inputs": {
+      "model": [
+        "114:83",
+        0
+      ],
+      "shift": 5.000000000000001
+    }
+  },
+  "114:83": {
+    "_meta": {
+      "title": "LoRA加载器（仅模型）"
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "lora_name": "wan2.2_t2v_lightx2v_4steps_lora_v1.1_high_noise.safetensors",
+      "model": [
+        "114:75",
+        0
+      ],
+      "strength_model": 1.0000000000000002
+    }
+  },
+  "114:85": {
+    "_meta": {
+      "title": "LoRA加载器（仅模型）"
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "lora_name": "wan2.2_t2v_lightx2v_4steps_lora_v1.1_low_noise.safetensors",
+      "model": [
+        "114:76",
+        0
+      ],
+      "strength_model": 1.0000000000000002
+    }
+  },
+  "114:86": {
+    "_meta": {
+      "title": "采样算法（SD3）"
+    },
+    "class_type": "ModelSamplingSD3",
+    "inputs": {
+      "model": [
+        "114:85",
+        0
+      ],
+      "shift": 5.000000000000001
+    }
+  },
+  "114:87": {
+    "_meta": {
+      "title": "VAE解码"
+    },
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "114:78",
+        0
+      ],
+      "vae": [
+        "114:73",
+        0
+      ]
+    }
+  },
+  "114:89": {
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    },
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "114:71",
+        0
+      ],
+      "text": ""
+    }
+  },
+  "prooflaunch:save_video": {
+    "_meta": {
+      "source_official_api_sha256": "60f6ccbe7680673f4c019a0974a0e1649b91601b9d970f326681bb8a88f9a0ea",
+      "title": "ProofLaunch evidence output wrapper"
+    },
+    "class_type": "SaveVideo",
+    "inputs": {
+      "codec": {
+        "codec": "auto"
+      },
+      "filename_prefix": "prooflaunch/wan2.2",
+      "format": "mp4",
+      "video": [
+        "114:117",
+        0
+      ]
+    }
+  }
+}

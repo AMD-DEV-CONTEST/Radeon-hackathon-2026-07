@@ -1,0 +1,155 @@
+{
+  "21:105": {
+    "inputs": {
+      "clip_name1": "qwen_0.6b_ace15.safetensors",
+      "clip_name2": "qwen_4b_ace15.safetensors",
+      "type": "ace",
+      "device": "default"
+    },
+    "class_type": "DualCLIPLoader",
+    "_meta": {
+      "title": "双CLIP加载器"
+    }
+  },
+  "21:106": {
+    "inputs": {
+      "vae_name": "ace_1.5_vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "加载VAE"
+    }
+  },
+  "21:98": {
+    "inputs": {
+      "seconds": [
+        "21:110",
+        0
+      ],
+      "batch_size": 1
+    },
+    "class_type": "EmptyAceStep1.5LatentAudio",
+    "_meta": {
+      "title": "Empty Ace Step 1.5 Latent Audio"
+    }
+  },
+  "21:47": {
+    "inputs": {
+      "conditioning": [
+        "21:94",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "条件零化"
+    }
+  },
+  "21:3": {
+    "inputs": {
+      "seed": 0,
+      "steps": 8,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "21:78",
+        0
+      ],
+      "positive": [
+        "21:94",
+        0
+      ],
+      "negative": [
+        "21:47",
+        0
+      ],
+      "latent_image": [
+        "21:98",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "K采样器"
+    }
+  },
+  "21:78": {
+    "inputs": {
+      "shift": 3,
+      "model": [
+        "21:104",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingAuraFlow",
+    "_meta": {
+      "title": "采样算法（AuraFlow）"
+    }
+  },
+  "21:18": {
+    "inputs": {
+      "samples": [
+        "21:3",
+        0
+      ],
+      "vae": [
+        "21:106",
+        0
+      ]
+    },
+    "class_type": "VAEDecodeAudio",
+    "_meta": {
+      "title": "VAE解码（音频）"
+    }
+  },
+  "21:94": {
+    "inputs": {
+      "tags": "",
+      "lyrics": "",
+      "seed": 0,
+      "bpm": 190,
+      "duration": [
+        "21:110",
+        0
+      ],
+      "timesignature": "4",
+      "language": "en",
+      "keyscale": "E minor",
+      "generate_audio_codes": true,
+      "cfg_scale": 2,
+      "temperature": 0.85,
+      "top_p": 0.9,
+      "top_k": 0,
+      "min_p": 0,
+      "clip": [
+        "21:105",
+        0
+      ]
+    },
+    "class_type": "TextEncodeAceStepAudio1.5",
+    "_meta": {
+      "title": "TextEncodeAceStepAudio1.5"
+    }
+  },
+  "21:104": {
+    "inputs": {
+      "unet_name": "acestep_v1.5_turbo.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "UNet加载器"
+    }
+  },
+  "21:110": {
+    "inputs": {
+      "value": 120
+    },
+    "class_type": "PrimitiveFloat",
+    "_meta": {
+      "title": "Song Duration"
+    }
+  }
+}

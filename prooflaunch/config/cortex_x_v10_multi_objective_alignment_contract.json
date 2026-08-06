@@ -1,0 +1,122 @@
+{
+  "schema": "ProofLaunchMultiObjectiveAlignmentExecutionContractV1",
+  "contract": {
+    "reward_selection": {
+      "hard_floors": {
+        "safety": 0.99,
+        "evidence": 0.98,
+        "identity": 0.98,
+        "stop": 0.99
+      },
+      "pareto_dimensions": [
+        "strategy",
+        "creative",
+        "copy",
+        "brand",
+        "ocr",
+        "temporal",
+        "channel",
+        "efficiency",
+        "diversity"
+      ],
+      "scalar_flattening_allowed": false
+    },
+    "alignment_methods": [
+      {
+        "method": "orpo_baseline",
+        "reference_model_required": false,
+        "pairwise_preferences": true,
+        "multimodal_conditioned": false,
+        "online_rollouts": false,
+        "group_size": 2,
+        "objective": "sft_plus_odds_ratio"
+      },
+      {
+        "method": "simpo_baseline",
+        "reference_model_required": false,
+        "pairwise_preferences": true,
+        "multimodal_conditioned": false,
+        "online_rollouts": false,
+        "group_size": 2,
+        "objective": "length_normalized_margin"
+      },
+      {
+        "method": "mdpo_multimodal_baseline",
+        "reference_model_required": true,
+        "pairwise_preferences": true,
+        "multimodal_conditioned": true,
+        "online_rollouts": false,
+        "group_size": 2,
+        "objective": "conditional_multimodal_preference"
+      },
+      {
+        "method": "micro_grpo",
+        "reference_model_required": true,
+        "pairwise_preferences": false,
+        "multimodal_conditioned": true,
+        "online_rollouts": true,
+        "group_size": 4,
+        "objective": "group_relative_policy"
+      }
+    ],
+    "experiment_budget": {
+      "wall_clock_seconds": 7200,
+      "hard_stop": true,
+      "unapproved_extension_allowed": false
+    },
+    "monitoring_thresholds": {
+      "maximum_reward_proxy_gap": 0.1,
+      "maximum_length_correlation": 0.15,
+      "maximum_invalid_tool_gain": 0.0,
+      "maximum_judge_disagreement": 0.1,
+      "maximum_visual_metric_gap": 0.08
+    },
+    "verifier_quorum": {
+      "required_kinds": [
+        "adversarial_verifier",
+        "held_out_verifier",
+        "human_spot_check"
+      ],
+      "minimum_human_fraction": 0.05,
+      "all_must_pass": true
+    },
+    "rich_feedback_kinds": [
+      "audit_feedback",
+      "tool_error_feedback",
+      "human_critique_feedback"
+    ]
+  },
+  "contract_sha256": "d983beccd605ef41693ae3436c29ab51806391c9740d8620ed35a9f3be97b045",
+  "research_sources": [
+    {
+      "name": "TextGrad",
+      "locator": "https://arxiv.org/abs/2406.07496",
+      "role": "rich textual feedback as executable optimization signal"
+    },
+    {
+      "name": "ORPO",
+      "locator": "https://arxiv.org/abs/2403.07691",
+      "role": "reference-free preference-aligned SFT baseline"
+    },
+    {
+      "name": "SimPO",
+      "locator": "https://arxiv.org/abs/2405.14734",
+      "role": "length-normalized reference-free margin baseline"
+    },
+    {
+      "name": "MDPO",
+      "locator": "https://arxiv.org/abs/2406.11839",
+      "role": "multimodal conditional preference baseline"
+    },
+    {
+      "name": "DeepSeekMath GRPO",
+      "locator": "https://arxiv.org/abs/2402.03300",
+      "role": "group-relative policy optimization baseline"
+    }
+  ],
+  "execution_status": "planned_not_executed",
+  "rollout_observed": false,
+  "training_observed": false,
+  "verifier_observed": false,
+  "human_spotcheck_observed": false
+}

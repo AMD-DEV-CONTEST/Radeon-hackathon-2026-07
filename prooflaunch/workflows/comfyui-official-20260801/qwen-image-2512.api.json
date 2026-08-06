@@ -1,0 +1,253 @@
+{
+  "263:245": {
+    "inputs": {
+      "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "加载CLIP"
+    }
+  },
+  "263:246": {
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "加载VAE"
+    }
+  },
+  "263:247": {
+    "inputs": {
+      "shift": 3.1000000000000005,
+      "model": [
+        "263:260",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingAuraFlow",
+    "_meta": {
+      "title": "采样算法（AuraFlow）"
+    }
+  },
+  "263:248": {
+    "inputs": {
+      "unet_name": "qwen_image_2512_fp8_e4m3fn.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "UNet加载器"
+    }
+  },
+  "263:249": {
+    "inputs": {
+      "text": "",
+      "clip": [
+        "263:245",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "263:250": {
+    "inputs": {
+      "text": "低分辨率，低画质，肢体畸形，手指畸形，画面过饱和，蜡像感，人脸无细节，过度光滑，画面具有AI感。构图混乱。文字模糊，扭曲",
+      "clip": [
+        "263:245",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    }
+  },
+  "263:251": {
+    "inputs": {
+      "samples": [
+        "263:253",
+        0
+      ],
+      "vae": [
+        "263:246",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE解码"
+    }
+  },
+  "263:252": {
+    "inputs": {
+      "width": 1328,
+      "height": 1328,
+      "batch_size": 1
+    },
+    "class_type": "EmptySD3LatentImage",
+    "_meta": {
+      "title": "空Latent图像（SD3）"
+    }
+  },
+  "263:253": {
+    "inputs": {
+      "seed": 464857551335368,
+      "steps": [
+        "263:261",
+        0
+      ],
+      "cfg": [
+        "263:262",
+        0
+      ],
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "263:247",
+        0
+      ],
+      "positive": [
+        "263:249",
+        0
+      ],
+      "negative": [
+        "263:250",
+        0
+      ],
+      "latent_image": [
+        "263:252",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "K采样器"
+    }
+  },
+  "263:254": {
+    "inputs": {
+      "value": 50
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "Int (Steps)"
+    }
+  },
+  "263:255": {
+    "inputs": {
+      "value": 4
+    },
+    "class_type": "PrimitiveFloat",
+    "_meta": {
+      "title": "Float (CFG)"
+    }
+  },
+  "263:256": {
+    "inputs": {
+      "value": false
+    },
+    "class_type": "PrimitiveBoolean",
+    "_meta": {
+      "title": "Enable 4 Steps LoRA?"
+    }
+  },
+  "263:257": {
+    "inputs": {
+      "value": 4
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "Int (Steps)"
+    }
+  },
+  "263:258": {
+    "inputs": {
+      "value": 1
+    },
+    "class_type": "PrimitiveFloat",
+    "_meta": {
+      "title": "Float (CFG)"
+    }
+  },
+  "263:259": {
+    "inputs": {
+      "lora_name": "Qwen-Image-2512-Lightning-4steps-V1.0-fp32.safetensors",
+      "strength_model": 1,
+      "model": [
+        "263:248",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "LoRA加载器（仅模型）"
+    }
+  },
+  "263:260": {
+    "inputs": {
+      "switch": [
+        "263:256",
+        0
+      ],
+      "on_false": [
+        "263:248",
+        0
+      ],
+      "on_true": [
+        "263:259",
+        0
+      ]
+    },
+    "class_type": "ComfySwitchNode",
+    "_meta": {
+      "title": "Switch (model)"
+    }
+  },
+  "263:261": {
+    "inputs": {
+      "switch": [
+        "263:256",
+        0
+      ],
+      "on_false": [
+        "263:254",
+        0
+      ],
+      "on_true": [
+        "263:257",
+        0
+      ]
+    },
+    "class_type": "ComfySwitchNode",
+    "_meta": {
+      "title": "Switch (steps)"
+    }
+  },
+  "263:262": {
+    "inputs": {
+      "switch": [
+        "263:256",
+        0
+      ],
+      "on_false": [
+        "263:255",
+        0
+      ],
+      "on_true": [
+        "263:258",
+        0
+      ]
+    },
+    "class_type": "ComfySwitchNode",
+    "_meta": {
+      "title": "Switch (cfg)"
+    }
+  }
+}
