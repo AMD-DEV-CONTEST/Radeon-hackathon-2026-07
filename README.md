@@ -8,6 +8,7 @@ see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/ma
 New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
 
 ▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+**📹 [Demo video](https://youtu.be/rxelrEAo7Io)**
 
 What you'll learn:
 - Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
