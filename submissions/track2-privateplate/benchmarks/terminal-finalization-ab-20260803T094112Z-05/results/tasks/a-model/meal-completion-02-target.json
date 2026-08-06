@@ -1,0 +1,1483 @@
+{
+  "arm": "a-model",
+  "taskId": "meal-completion-02",
+  "scenarioId": "meal-completion",
+  "phase": "target",
+  "input": "这顿饭吃完了，先预览餐后记录。",
+  "durationMs": 11036.15,
+  "modelHttp": [
+    {
+      "arm": "a-model",
+      "taskId": "meal-completion-02",
+      "phase": "target",
+      "request": {
+        "url": "http://127.0.0.1:8000/v1/chat/completions",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "model": "google/gemma-4-12B-it-qat-w4a16-ct",
+          "messages": [
+            {
+              "role": "system",
+              "content": "You are the language and tool-decision layer for a Chinese household meal coordination agent. Your scope is the closed loop: read day context (remaining nutrition budget, inventory, memory), list hard-filtered dish candidates, finalize your own full dish selection, retrieve local knowledge via embedding RAG, preview caregiver shopping/task handoff, and preview meal completion. Domain never ranks dishes or picks a winner; Domain owns grams, nutrition math, shopping gaps and vector retrieval. Use conversationHistory, currentTurn, activePlan, focusedTemplateId, pendingClarification, requestContext and state. You own language understanding; code owns contracts, grams, nutrition math and safety. Every model decision must be exactly one native function call. Business tools: get_day_context, find_dish_candidates, finalize_meal_plan, retrieve_local_knowledge, preview_caregiver_task, preview_meal_completion, preview_inventory_change, preview_member_memory_change. Control decisions: ask_user, finish_turn, refuse_request. Never put decisions in plain message content. When a business tool exposes a goal field, use it to state the semantic target: preview_inventory or update_inventory, preview_member_memory or update_member_memory, preview_meal_completion or complete_meal, and preview_handoff or send_handoff. Planning order when composing a meal: get_day_context → find_dish_candidates → finalize_meal_plan → finish_turn. If finalize fails, call find_dish_candidates or finalize again with a new selection; do not stop. Take at most one function call per decision. Do not repeat a successful Domain tool unless its result proves a recovery call is necessary. currentTurn.mode is authoritative. ACTION_ALLOWED permits one Domain tool or a control decision. FINAL_ONLY permits only finish_turn (or ask_user when clarification is still required). BLOCKED permits only finish_turn, ask_user or refuse_request and never Domain tools. Planning order: get_day_context → find_dish_candidates → finalize_meal_plan with your complete selectedDishes, shareOfRemainingBudget and selectionReason. Write selectionReason as brief, user-facing Chinese, preferably no more than 120 Chinese characters; explain only this actual model selection and do not invent facts that Domain did not return. Revisions submit a new full selectedDishes list; Domain does not auto-substitute dishes. Successful currentTurn.toolResults are the only authoritative facts. Describe only their actual menu, inventory, shopping gap and budget facts; never fabricate execution or sending. Use only member ids, food ids and template ids supplied in the request context. Never invent ids. The policy layer validates ids, permissions, state and privacy; it does not reinterpret the user's language. If required information is missing, call ask_user with exact missing fields or refuse_request. taskState is the trusted task lifecycle. Prefer taskState over guessing. If taskState.status is waiting_user and the user supplies an unresolved slot, continue that objective. retrieve_local_knowledge is real local RAG (embed query, cosine search over approved corpus chunks with source paths). If hits are empty, say the corpus has no relevant evidence — never invent citations. preview_caregiver_task builds a min-disclosure task card with shopping list from Domain; it never sends. preview_meal_completion only previews intake/inventory ledger changes. Real write/send happens only through the UI confirm channel; chat confirmation never commits. When currentTurn.answerValidationFailure is present, call finish_turn using only successful currentTurn.toolResults; do not call a Domain tool again. Never put health tags into tool arguments, never expose member health privacy, and never provide diagnosis, prescriptions, medication changes or real external writes."
+            },
+            {
+              "role": "user",
+              "content": "{\"request\":\"这顿饭吃完了，先预览餐后记录。\",\"conversationHistory\":[{\"user\":\"规划今天的午餐。\",\"assistant\":\"为您规划好了今天的午餐：\\n\\n**今日午餐菜单：**\\n1. **主菜：** 白菜豆腐煲\\n2. **主食：** 昨日米饭\\n3. **配菜：** 蒜蓉菠菜\\n\\n**规划说明：**\\n考虑到库存中已有白菜、豆腐和昨日米饭，为您选择了“白菜豆腐煲”作为主菜，搭配“昨日米饭”和“蒜蓉菠菜”作为配菜，既能充分利用现有食材，也符合低油低盐的健康需求。\\n\\n**购物清单（需补充）：**\\n- 蒜\\n- 葱\\n- 菠菜\",\"tools\":[{\"name\":\"get_day_context\",\"ok\":true},{\"name\":\"find_dish_candidates\",\"ok\":true},{\"name\":\"finalize_meal_plan\",\"ok\":true}]}],\"currentTurn\":{\"goal\":null,\"mode\":\"ACTION_ALLOWED\",\"modeReason\":\"goal_not_established\",\"decisionIndex\":0,\"modelRequestCount\":0,\"maxModelRequests\":10,\"toolResults\":[],\"answerValidationFailure\":null,\"priorOutcome\":{\"phase\":\"PRESENTING_PLAN\",\"lastToolStatus\":\"success\",\"errorCode\":null}},\"activePlan\":{\"id\":\"plan-ed2b16cb-f9fd-4f28-aff5-b78b5a1f8851\",\"version\":1,\"mealType\":\"lunch\",\"dinerIds\":[\"mem-admin\",\"mem-father\",\"mem-mother\"],\"menu\":[{\"templateId\":\"tpl-cabbage-tofu-braise\",\"name\":\"白菜豆腐煲\"},{\"templateId\":\"tpl-leftover-rice\",\"name\":\"昨日米饭\"},{\"templateId\":\"tpl-garlic-spinach\",\"name\":\"蒜蓉菠菜\"}],\"rejectedFoodIds\":[],\"rejectedTemplateIds\":[],\"pinnedTemplateIds\":[],\"requestedPriorityFoodIds\":[],\"preferLowEffort\":false},\"focusedTemplateId\":null,\"pendingClarification\":null,\"taskState\":{\"objective\":null,\"status\":\"active\",\"workflowStage\":\"plan_ready\",\"unresolvedSlots\":[],\"knownSlots\":{},\"focusedTemplateId\":null,\"lastDomainFailureCode\":null,\"hasPendingAction\":false,\"pendingActionType\":null,\"candidateSetId\":\"cset-df228aed-e391-4ada-9b5f-9d93e2ad3d2b\",\"serviceDate\":\"2026-08-03\",\"hasActivePlan\":true},\"availableActions\":{\"domainTools\":[\"get_day_context\",\"retrieve_local_knowledge\",\"preview_inventory_change\",\"preview_member_memory_change\",\"find_dish_candidates\",\"preview_meal_completion\",\"preview_caregiver_task\",\"finalize_meal_plan\"],\"controlDecisions\":[\"ask_user\",\"finish_turn\",\"refuse_request\"]},\"state\":{\"phase\":\"CLASSIFYING\",\"dinerIds\":[\"mem-admin\",\"mem-father\",\"mem-mother\"],\"activePlanId\":\"plan-ed2b16cb-f9fd-4f28-aff5-b78b5a1f8851\",\"activePlanVersion\":1,\"rejectedFoodIds\":[],\"rejectedTemplateIds\":[],\"hasPendingAction\":false},\"requestContext\":{\"handoffRecipient\":{\"status\":\"needs_clarification\",\"reason\":\"recipient_label_missing\"}},\"dinerIdsLocked\":false,\"members\":[{\"id\":\"mem-admin\",\"displayName\":\"管理员\",\"roleLabel\":\"admin\"},{\"id\":\"mem-father\",\"displayName\":\"父亲\",\"roleLabel\":\"father\"},{\"id\":\"mem-mother\",\"displayName\":\"母亲\",\"roleLabel\":\"mother\"}],\"fixtureIds\":{\"foods\":[{\"id\":\"food-tofu\",\"name\":\"北豆腐\",\"aliases\":[\"北豆腐\",\"豆腐\",\"盒装豆腐\",\"老豆腐\"]},{\"id\":\"food-chicken-leg\",\"name\":\"鸡腿\",\"aliases\":[\"鸡腿\",\"鸡腿肉\",\"琵琶腿\"]},{\"id\":\"food-cabbage\",\"name\":\"大白菜\",\"aliases\":[\"大白菜\",\"白菜\",\"黄芽白\"]},{\"id\":\"food-rice-cooked\",\"name\":\"熟米饭\",\"aliases\":[\"熟米饭\",\"米饭\",\"昨日米饭\",\"白米饭\"]},{\"id\":\"food-egg\",\"name\":\"鸡蛋\",\"aliases\":[\"鸡蛋\",\"蛋\",\"整蛋\"]},{\"id\":\"food-shiitake\",\"name\":\"香菇\",\"aliases\":[\"香菇\",\"冬菇\",\"花菇\"]},{\"id\":\"food-tomato\",\"name\":\"番茄\",\"aliases\":[\"番茄\",\"西红柿\"]},{\"id\":\"food-potato\",\"name\":\"土豆\",\"aliases\":[\"土豆\",\"马铃薯\"]},{\"id\":\"food-spinach\",\"name\":\"菠菜\",\"aliases\":[\"菠菜\",\"青菜菠菜\"]},{\"id\":\"food-carrot\",\"name\":\"胡萝卜\",\"aliases\":[\"胡萝卜\",\"红萝卜\"]},{\"id\":\"food-fish-fillet\",\"name\":\"鲈鱼片\",\"aliases\":[\"鲈鱼片\",\"鱼片\",\"白鱼\"]},{\"id\":\"food-pork-lean\",\"name\":\"瘦猪肉\",\"aliases\":[\"瘦猪肉\",\"猪瘦肉\",\"里脊\"]},{\"id\":\"food-beef\",\"name\":\"牛肉\",\"aliases\":[\"牛肉\",\"牛腩\",\"牛瘦肉\"]},{\"id\":\"food-peanut\",\"name\":\"花生\",\"aliases\":[\"花生\",\"花生米\"]},{\"id\":\"food-scallion\",\"name\":\"葱\",\"aliases\":[\"葱\",\"小葱\",\"青葱\"]},{\"id\":\"food-garlic\",\"name\":\"蒜\",\"aliases\":[\"蒜\",\"大蒜\",\"蒜蓉\"]},{\"id\":\"food-cucumber\",\"name\":\"黄瓜\",\"aliases\":[\"黄瓜\",\"青瓜\"]},{\"id\":\"food-millet\",\"name\":\"小米\",\"aliases\":[\"小米\",\"小米粒\"]}],\"templates\":[{\"id\":\"tpl-cabbage-tofu-braise\",\"name\":\"白菜豆腐煲\",\"aliases\":[],\"ingredientFoodIds\":[\"food-tofu\",\"food-cabbage\",\"food-scallion\"]},{\"id\":\"tpl-tomato-egg\",\"name\":\"番茄炒蛋\",\"aliases\":[\"番茄炒蛋\"],\"ingredientFoodIds\":[\"food-tomato\",\"food-egg\",\"food-scallion\"]},{\"id\":\"tpl-steamed-fish\",\"name\":\"清蒸鱼片\",\"aliases\":[],\"ingredientFoodIds\":[\"food-fish-fillet\",\"food-scallion\",\"food-garlic\"]},{\"id\":\"tpl-potato-chicken\",\"name\":\"土豆炖鸡腿\",\"aliases\":[\"土豆炖鸡腿\"],\"ingredientFoodIds\":[\"food-chicken-leg\",\"food-potato\",\"food-scallion\"]},{\"id\":\"tpl-tomato-beef\",\"name\":\"番茄牛肉\",\"aliases\":[],\"ingredientFoodIds\":[\"food-beef\",\"food-tomato\",\"food-potato\"]},{\"id\":\"tpl-pork-cabbage\",\"name\":\"白菜炒瘦肉\",\"aliases\":[],\"ingredientFoodIds\":[\"food-pork-lean\",\"food-cabbage\",\"food-garlic\"]},{\"id\":\"tpl-shiitake-egg\",\"name\":\"香菇蒸蛋\",\"aliases\":[\"蒸蛋\"],\"ingredientFoodIds\":[\"food-egg\",\"food-shiitake\"]},{\"id\":\"tpl-cucumber-salad\",\"name\":\"凉拌黄瓜\",\"aliases\":[],\"ingredientFoodIds\":[\"food-cucumber\",\"food-garlic\"]},{\"id\":\"tpl-garlic-spinach\",\"name\":\"蒜蓉菠菜\",\"aliases\":[],\"ingredientFoodIds\":[\"food-spinach\",\"food-garlic\"]},{\"id\":\"tpl-carrot-stir\",\"name\":\"清炒胡萝卜\",\"aliases\":[],\"ingredientFoodIds\":[\"food-carrot\",\"food-scallion\"]},{\"id\":\"tpl-leftover-rice\",\"name\":\"昨日米饭\",\"aliases\":[],\"ingredientFoodIds\":[\"food-rice-cooked\"]},{\"id\":\"tpl-plain-rice\",\"name\":\"白米饭\",\"aliases\":[],\"ingredientFoodIds\":[\"food-rice-cooked\"]},{\"id\":\"tpl-millet-porridge\",\"name\":\"小米粥\",\"aliases\":[],\"ingredientFoodIds\":[\"food-millet\"]}],\"planTags\":[{\"id\":\"planning\",\"label\":\"初次规划\"},{\"id\":\"replan\",\"label\":\"重规划\"},{\"id\":\"privacy\",\"label\":\"隐私\"},{\"id\":\"handoff\",\"label\":\"任务交接\"}],\"caregiverRecipientLabels\":[\"家庭保姆\",\"保姆\",\"阿姨\"]}}"
+            }
+          ],
+          "tools": [
+            {
+              "type": "function",
+              "function": {
+                "name": "get_day_context",
+                "description": "Read today's household memory: daily nutrition targets, consumed intake, remaining budget, inventory, completed meals, preferences and hard constraints. Call this first when planning a meal.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "inspect_context",
+                        "compose_meal",
+                        "revise_meal"
+                      ]
+                    },
+                    "dinerIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 96
+                      },
+                      "maxItems": 3,
+                      "minItems": 1
+                    },
+                    "serviceDate": {
+                      "type": "string",
+                      "description": "Optional YYYY-MM-DD; default is local service date."
+                    }
+                  },
+                  "required": [
+                    "dinerIds"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "find_dish_candidates",
+                "description": "Return hard-filtered dish candidates with inventory and nutrition facts. Domain does not rank or pick a winner. Call after get_day_context when planning.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "compose_meal",
+                        "revise_meal"
+                      ]
+                    },
+                    "dinerIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 96
+                      },
+                      "maxItems": 3,
+                      "minItems": 1
+                    },
+                    "rejectedFoodIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 96
+                      },
+                      "maxItems": 16
+                    },
+                    "rejectedTemplateIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 96
+                      },
+                      "maxItems": 16
+                    }
+                  },
+                  "required": [
+                    "dinerIds",
+                    "rejectedFoodIds",
+                    "rejectedTemplateIds"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "finalize_meal_plan",
+                "description": "Submit your complete dish selection from the candidate set. Select 1–12 different dishes; the count is not fixed. Do not mechanically choose exactly one shared_main + one shared_side + one staple: choose the quantity and roles based on the user's request, diner count, inventory use and nutrition coverage. Role labels explain meal structure but do not require one dish per role. Domain validates IDs/versions/members, scales portions by shareOfRemainingBudget × remaining budget, and never substitutes dishes. On nutrition reject, follow the structured recovery details and reselect — do not stop.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "compose_meal",
+                        "revise_meal"
+                      ]
+                    },
+                    "dinerIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 96
+                      },
+                      "maxItems": 3,
+                      "minItems": 1
+                    },
+                    "mealType": {
+                      "type": "string",
+                      "enum": [
+                        "lunch",
+                        "dinner"
+                      ]
+                    },
+                    "candidateSetId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "selectedDishes": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 12,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "templateId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "relativePortion": {
+                            "type": "string",
+                            "enum": [
+                              "small",
+                              "standard",
+                              "large"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "templateId",
+                          "relativePortion"
+                        ]
+                      }
+                    },
+                    "shareOfRemainingBudget": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "maximum": 1.5,
+                      "description": "Fraction of each diner's remaining daily energy budget for this meal (0–1.5). 0.2 vs 1.0 must produce different grams."
+                    },
+                    "selectionReason": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 500
+                    }
+                  },
+                  "required": [
+                    "dinerIds",
+                    "mealType",
+                    "candidateSetId",
+                    "selectedDishes",
+                    "shareOfRemainingBudget",
+                    "selectionReason"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "preview_meal_completion",
+                "description": "Preview recording a completed meal as planned. Creates a pending action; does not write intake or inventory until the user confirms with token/hash.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "preview_meal_completion",
+                        "complete_meal"
+                      ]
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "as_planned"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "mode"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "preview_caregiver_task",
+                "description": "Preview a minimum-disclosure caregiver task card for the active plan (menu, inventory use, shopping list). This never commits or sends. recipientLabel must be one exact caregiver label (保姆 / 阿姨 / 家庭保姆).",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "preview_handoff",
+                        "send_handoff"
+                      ]
+                    },
+                    "recipientLabel": {
+                      "type": "string",
+                      "enum": [
+                        "家庭保姆",
+                        "保姆",
+                        "阿姨"
+                      ],
+                      "description": "Exact label from the user utterance; do not invent a different caregiver"
+                    },
+                    "serveAt": {
+                      "type": "string",
+                      "pattern": "^(?:unspecified|今天 (?:[01]\\d|2[0-3]):[0-5]\\d|\\d{4}-\\d{2}-\\d{2}T(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?(?:Z|[+-](?:[01]\\d|2[0-3]):[0-5]\\d))$",
+                      "description": "ISO-8601 with offset, '今天 HH:MM', or 'unspecified' when the user did not give a full time."
+                    }
+                  },
+                  "required": [
+                    "recipientLabel",
+                    "serveAt"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "retrieve_local_knowledge",
+                "description": "Local RAG over the approved household knowledge corpus: embed the query (vLLM embeddings when configured) and return top chunks with source paths and scores. Use for policy/privacy/process questions. Do not invent sources when hits are empty.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "retrieve_guidance"
+                      ]
+                    },
+                    "query": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 500,
+                      "description": "Natural-language retrieval query in Chinese or English"
+                    },
+                    "topK": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 5,
+                      "description": "Number of chunks to return (default 3)"
+                    }
+                  },
+                  "required": [
+                    "query",
+                    "topK"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "preview_inventory_change",
+                "description": "Preview an inventory adjustment. Does not write until UI confirms.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "preview_inventory",
+                        "update_inventory"
+                      ]
+                    },
+                    "foodId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "quantity": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "maximum": 100
+                    },
+                    "unit": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 16
+                    }
+                  },
+                  "required": [
+                    "foodId",
+                    "quantity",
+                    "unit"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "preview_member_memory_change",
+                "description": "Preview saving an explicit member preference or user-stated health fact. Does not write until UI confirms. Never invent medical diagnoses.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "preview_member_memory",
+                        "update_member_memory"
+                      ]
+                    },
+                    "memberId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "preference",
+                        "health_fact"
+                      ]
+                    },
+                    "summary": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 300
+                    },
+                    "polarity": {
+                      "type": "string",
+                      "enum": [
+                        "prefer",
+                        "avoid",
+                        "note"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "memberId",
+                    "kind",
+                    "summary"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_user",
+                "description": "Ask the user for missing in-scope information. Use only real user-required slots such as dinerIds, mealType, recipientLabel, activePlanId, focusedTemplateId, currentPreview, softPreferenceToRelax or availableFoodIds. Never list empty arrays, preferLowEffort, planTags or topK as missing fields.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "inspect_context",
+                        "compose_meal",
+                        "revise_meal",
+                        "retrieve_guidance",
+                        "preview_handoff",
+                        "send_handoff",
+                        "preview_inventory",
+                        "update_inventory",
+                        "preview_member_memory",
+                        "update_member_memory",
+                        "preview_meal_completion",
+                        "complete_meal",
+                        "no_action",
+                        "unsupported"
+                      ],
+                      "description": "Unchanged user goal for this task."
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    "missingFields": {
+                      "type": "array",
+                      "maxItems": 8,
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "dinerIds",
+                          "mealType",
+                          "recipientLabel",
+                          "activePlanId",
+                          "focusedTemplateId",
+                          "currentPreview",
+                          "softPreferenceToRelax",
+                          "availableFoodIds"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "goal",
+                    "message",
+                    "missingFields"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "finish_turn",
+                "description": "End the turn with a grounded user-visible message when the goal is complete, blocked without further tools, or only needs a factual summary from successful tool results. Do not claim sending or external writes.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "inspect_context",
+                        "compose_meal",
+                        "revise_meal",
+                        "retrieve_guidance",
+                        "preview_handoff",
+                        "send_handoff",
+                        "preview_inventory",
+                        "update_inventory",
+                        "preview_member_memory",
+                        "update_member_memory",
+                        "preview_meal_completion",
+                        "complete_meal",
+                        "no_action"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    }
+                  },
+                  "required": [
+                    "goal",
+                    "message"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "refuse_request",
+                "description": "Refuse out-of-scope, unsafe or unsupported requests without calling Domain tools. goal must be unsupported.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "unsupported"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    "reasonCode": {
+                      "type": "string",
+                      "enum": [
+                        "UNSUPPORTED_EXTERNAL_ACTION",
+                        "CONFIRMATION_REQUIRED",
+                        "ACTIVE_PLAN_REQUIRED",
+                        "PLAN_INFEASIBLE",
+                        "STALE_CONTEXT",
+                        "RECIPIENT_REQUIRED",
+                        "UNSUPPORTED_TOOL",
+                        "UNSUPPORTED_OR_UNCLEAR",
+                        "UNSUPPORTED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "goal",
+                    "message",
+                    "reasonCode"
+                  ]
+                }
+              }
+            }
+          ],
+          "tool_choice": "required",
+          "temperature": 0,
+          "stream": false
+        }
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "body": {
+          "id": "chatcmpl-a5444b8a17a2aa38",
+          "object": "chat.completion",
+          "created": 1785750523,
+          "model": "google/gemma-4-12B-it-qat-w4a16-ct",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "",
+                "refusal": null,
+                "annotations": null,
+                "audio": null,
+                "function_call": null,
+                "tool_calls": [
+                  {
+                    "id": "chatcmpl-tool-b77eb5d98adc2c70",
+                    "type": "function",
+                    "function": {
+                      "name": "preview_meal_completion",
+                      "arguments": "{\"goal\": \"preview_meal_completion\", \"mode\": \"as_planned\"}"
+                    }
+                  }
+                ],
+                "reasoning": null
+              },
+              "logprobs": null,
+              "finish_reason": "tool_calls",
+              "stop_reason": 50,
+              "token_ids": null,
+              "routed_experts": null
+            }
+          ],
+          "service_tier": null,
+          "system_fingerprint": "vllm-0.25.1-cb4de088",
+          "usage": {
+            "prompt_tokens": 4599,
+            "total_tokens": 4628,
+            "completion_tokens": 29,
+            "prompt_tokens_details": null
+          },
+          "prompt_logprobs": null,
+          "prompt_token_ids": null,
+          "prompt_text": null,
+          "kv_transfer_params": null,
+          "metrics": null
+        }
+      },
+      "durationMs": 2015.03
+    },
+    {
+      "arm": "a-model",
+      "taskId": "meal-completion-02",
+      "phase": "target",
+      "request": {
+        "url": "http://127.0.0.1:8000/v1/chat/completions",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "model": "google/gemma-4-12B-it-qat-w4a16-ct",
+          "messages": [
+            {
+              "role": "system",
+              "content": "You are the language and tool-decision layer for a Chinese household meal coordination agent. Your scope is the closed loop: read day context (remaining nutrition budget, inventory, memory), list hard-filtered dish candidates, finalize your own full dish selection, retrieve local knowledge via embedding RAG, preview caregiver shopping/task handoff, and preview meal completion. Domain never ranks dishes or picks a winner; Domain owns grams, nutrition math, shopping gaps and vector retrieval. Use conversationHistory, currentTurn, activePlan, focusedTemplateId, pendingClarification, requestContext and state. You own language understanding; code owns contracts, grams, nutrition math and safety. Every model decision must be exactly one native function call. Business tools: get_day_context, find_dish_candidates, finalize_meal_plan, retrieve_local_knowledge, preview_caregiver_task, preview_meal_completion, preview_inventory_change, preview_member_memory_change. Control decisions: ask_user, finish_turn, refuse_request. Never put decisions in plain message content. When a business tool exposes a goal field, use it to state the semantic target: preview_inventory or update_inventory, preview_member_memory or update_member_memory, preview_meal_completion or complete_meal, and preview_handoff or send_handoff. Planning order when composing a meal: get_day_context → find_dish_candidates → finalize_meal_plan → finish_turn. If finalize fails, call find_dish_candidates or finalize again with a new selection; do not stop. Take at most one function call per decision. Do not repeat a successful Domain tool unless its result proves a recovery call is necessary. currentTurn.mode is authoritative. ACTION_ALLOWED permits one Domain tool or a control decision. FINAL_ONLY permits only finish_turn (or ask_user when clarification is still required). BLOCKED permits only finish_turn, ask_user or refuse_request and never Domain tools. Planning order: get_day_context → find_dish_candidates → finalize_meal_plan with your complete selectedDishes, shareOfRemainingBudget and selectionReason. Write selectionReason as brief, user-facing Chinese, preferably no more than 120 Chinese characters; explain only this actual model selection and do not invent facts that Domain did not return. Revisions submit a new full selectedDishes list; Domain does not auto-substitute dishes. Successful currentTurn.toolResults are the only authoritative facts. Describe only their actual menu, inventory, shopping gap and budget facts; never fabricate execution or sending. Use only member ids, food ids and template ids supplied in the request context. Never invent ids. The policy layer validates ids, permissions, state and privacy; it does not reinterpret the user's language. If required information is missing, call ask_user with exact missing fields or refuse_request. taskState is the trusted task lifecycle. Prefer taskState over guessing. If taskState.status is waiting_user and the user supplies an unresolved slot, continue that objective. retrieve_local_knowledge is real local RAG (embed query, cosine search over approved corpus chunks with source paths). If hits are empty, say the corpus has no relevant evidence — never invent citations. preview_caregiver_task builds a min-disclosure task card with shopping list from Domain; it never sends. preview_meal_completion only previews intake/inventory ledger changes. Real write/send happens only through the UI confirm channel; chat confirmation never commits. When currentTurn.answerValidationFailure is present, call finish_turn using only successful currentTurn.toolResults; do not call a Domain tool again. Never put health tags into tool arguments, never expose member health privacy, and never provide diagnosis, prescriptions, medication changes or real external writes."
+            },
+            {
+              "role": "user",
+              "content": "{\"request\":\"这顿饭吃完了，先预览餐后记录。\",\"conversationHistory\":[{\"user\":\"规划今天的午餐。\",\"assistant\":\"为您规划好了今天的午餐：\\n\\n**今日午餐菜单：**\\n1. **主菜：** 白菜豆腐煲\\n2. **主食：** 昨日米饭\\n3. **配菜：** 蒜蓉菠菜\\n\\n**规划说明：**\\n考虑到库存中已有白菜、豆腐和昨日米饭，为您选择了“白菜豆腐煲”作为主菜，搭配“昨日米饭”和“蒜蓉菠菜”作为配菜，既能充分利用现有食材，也符合低油低盐的健康需求。\\n\\n**购物清单（需补充）：**\\n- 蒜\\n- 葱\\n- 菠菜\",\"tools\":[{\"name\":\"get_day_context\",\"ok\":true},{\"name\":\"find_dish_candidates\",\"ok\":true},{\"name\":\"finalize_meal_plan\",\"ok\":true}]}],\"currentTurn\":{\"goal\":\"preview_meal_completion\",\"mode\":\"FINAL_ONLY\",\"modeReason\":\"goal_satisfied\",\"decisionIndex\":1,\"modelRequestCount\":1,\"maxModelRequests\":10,\"toolResults\":[{\"step\":0,\"goal\":\"preview_meal_completion\",\"tool\":\"preview_meal_completion\",\"ok\":true,\"data\":{\"mode\":\"as_planned\",\"actionType\":\"meal_completion\",\"pendingActionId\":\"pending-b857a439-d9e1-4684-ba47-fa5ccbb8c116\",\"preview\":{\"actionType\":\"meal_completion\",\"planId\":\"plan-ed2b16cb-f9fd-4f28-aff5-b78b5a1f8851\",\"planVersion\":1,\"serviceDate\":\"2026-08-03\",\"willRecordIntake\":[{\"memberId\":\"mem-admin\",\"nutrition\":{\"energyKcal\":98.484,\"carbohydrateG\":15.081,\"proteinG\":5.966,\"fatG\":2.137,\"sodiumMg\":57.267}},{\"memberId\":\"mem-father\",\"nutrition\":{\"energyKcal\":88.044,\"carbohydrateG\":12.777,\"proteinG\":5.732,\"fatG\":2.11,\"sodiumMg\":57.177}},{\"memberId\":\"mem-mother\",\"nutrition\":{\"energyKcal\":98.484,\"carbohydrateG\":15.081,\"proteinG\":5.966,\"fatG\":2.137,\"sodiumMg\":57.267}}],\"willDebitInventory\":[{\"templateId\":\"tpl-cabbage-tofu-braise\",\"foodId\":\"food-tofu\",\"quantityG\":108},{\"templateId\":\"tpl-cabbage-tofu-braise\",\"foodId\":\"food-cabbage\",\"quantityG\":135},{\"templateId\":\"tpl-cabbage-tofu-braise\",\"foodId\":\"food-scallion\",\"quantityG\":7.2},{\"templateId\":\"tpl-leftover-rice\",\"foodId\":\"food-rice-cooked\",\"quantityG\":112.5},{\"templateId\":\"tpl-garlic-spinach\",\"foodId\":\"food-spinach\",\"quantityG\":135},{\"templateId\":\"tpl-garlic-spinach\",\"foodId\":\"food-garlic\",\"quantityG\":7.2}],\"note\":\"确认后才会写入摄入、扣减库存并标记本餐完成。\"},\"note\":\"确认后才会写入摄入、扣减库存；聊天确认不会提交。\"}}],\"answerValidationFailure\":null,\"priorOutcome\":{\"phase\":\"PRESENTING_PLAN\",\"lastToolStatus\":\"success\",\"errorCode\":null}},\"activePlan\":{\"id\":\"plan-ed2b16cb-f9fd-4f28-aff5-b78b5a1f8851\",\"version\":1,\"mealType\":\"lunch\",\"dinerIds\":[\"mem-admin\",\"mem-father\",\"mem-mother\"],\"menu\":[{\"templateId\":\"tpl-cabbage-tofu-braise\",\"name\":\"白菜豆腐煲\"},{\"templateId\":\"tpl-leftover-rice\",\"name\":\"昨日米饭\"},{\"templateId\":\"tpl-garlic-spinach\",\"name\":\"蒜蓉菠菜\"}],\"rejectedFoodIds\":[],\"rejectedTemplateIds\":[],\"pinnedTemplateIds\":[],\"requestedPriorityFoodIds\":[],\"preferLowEffort\":false},\"focusedTemplateId\":null,\"pendingClarification\":null,\"taskState\":{\"objective\":\"preview_meal_completion\",\"status\":\"waiting_confirmation\",\"workflowStage\":\"awaiting_confirm\",\"unresolvedSlots\":[],\"knownSlots\":{},\"focusedTemplateId\":null,\"lastDomainFailureCode\":null,\"hasPendingAction\":true,\"pendingActionType\":\"meal_completion\",\"candidateSetId\":null,\"serviceDate\":\"2026-08-03\",\"hasActivePlan\":true},\"availableActions\":{\"domainTools\":[],\"controlDecisions\":[\"finish_turn\",\"ask_user\"]},\"state\":{\"phase\":\"PREVIEWING_WRITE\",\"dinerIds\":[\"mem-admin\",\"mem-father\",\"mem-mother\"],\"activePlanId\":\"plan-ed2b16cb-f9fd-4f28-aff5-b78b5a1f8851\",\"activePlanVersion\":1,\"rejectedFoodIds\":[],\"rejectedTemplateIds\":[],\"hasPendingAction\":true},\"requestContext\":{\"handoffRecipient\":{\"status\":\"needs_clarification\",\"reason\":\"recipient_label_missing\"}},\"dinerIdsLocked\":false,\"members\":[{\"id\":\"mem-admin\",\"displayName\":\"管理员\",\"roleLabel\":\"admin\"},{\"id\":\"mem-father\",\"displayName\":\"父亲\",\"roleLabel\":\"father\"},{\"id\":\"mem-mother\",\"displayName\":\"母亲\",\"roleLabel\":\"mother\"}],\"fixtureIds\":{\"foods\":[{\"id\":\"food-tofu\",\"name\":\"北豆腐\",\"aliases\":[\"北豆腐\",\"豆腐\",\"盒装豆腐\",\"老豆腐\"]},{\"id\":\"food-chicken-leg\",\"name\":\"鸡腿\",\"aliases\":[\"鸡腿\",\"鸡腿肉\",\"琵琶腿\"]},{\"id\":\"food-cabbage\",\"name\":\"大白菜\",\"aliases\":[\"大白菜\",\"白菜\",\"黄芽白\"]},{\"id\":\"food-rice-cooked\",\"name\":\"熟米饭\",\"aliases\":[\"熟米饭\",\"米饭\",\"昨日米饭\",\"白米饭\"]},{\"id\":\"food-egg\",\"name\":\"鸡蛋\",\"aliases\":[\"鸡蛋\",\"蛋\",\"整蛋\"]},{\"id\":\"food-shiitake\",\"name\":\"香菇\",\"aliases\":[\"香菇\",\"冬菇\",\"花菇\"]},{\"id\":\"food-tomato\",\"name\":\"番茄\",\"aliases\":[\"番茄\",\"西红柿\"]},{\"id\":\"food-potato\",\"name\":\"土豆\",\"aliases\":[\"土豆\",\"马铃薯\"]},{\"id\":\"food-spinach\",\"name\":\"菠菜\",\"aliases\":[\"菠菜\",\"青菜菠菜\"]},{\"id\":\"food-carrot\",\"name\":\"胡萝卜\",\"aliases\":[\"胡萝卜\",\"红萝卜\"]},{\"id\":\"food-fish-fillet\",\"name\":\"鲈鱼片\",\"aliases\":[\"鲈鱼片\",\"鱼片\",\"白鱼\"]},{\"id\":\"food-pork-lean\",\"name\":\"瘦猪肉\",\"aliases\":[\"瘦猪肉\",\"猪瘦肉\",\"里脊\"]},{\"id\":\"food-beef\",\"name\":\"牛肉\",\"aliases\":[\"牛肉\",\"牛腩\",\"牛瘦肉\"]},{\"id\":\"food-peanut\",\"name\":\"花生\",\"aliases\":[\"花生\",\"花生米\"]},{\"id\":\"food-scallion\",\"name\":\"葱\",\"aliases\":[\"葱\",\"小葱\",\"青葱\"]},{\"id\":\"food-garlic\",\"name\":\"蒜\",\"aliases\":[\"蒜\",\"大蒜\",\"蒜蓉\"]},{\"id\":\"food-cucumber\",\"name\":\"黄瓜\",\"aliases\":[\"黄瓜\",\"青瓜\"]},{\"id\":\"food-millet\",\"name\":\"小米\",\"aliases\":[\"小米\",\"小米粒\"]}],\"templates\":[{\"id\":\"tpl-cabbage-tofu-braise\",\"name\":\"白菜豆腐煲\",\"aliases\":[],\"ingredientFoodIds\":[\"food-tofu\",\"food-cabbage\",\"food-scallion\"]},{\"id\":\"tpl-tomato-egg\",\"name\":\"番茄炒蛋\",\"aliases\":[\"番茄炒蛋\"],\"ingredientFoodIds\":[\"food-tomato\",\"food-egg\",\"food-scallion\"]},{\"id\":\"tpl-steamed-fish\",\"name\":\"清蒸鱼片\",\"aliases\":[],\"ingredientFoodIds\":[\"food-fish-fillet\",\"food-scallion\",\"food-garlic\"]},{\"id\":\"tpl-potato-chicken\",\"name\":\"土豆炖鸡腿\",\"aliases\":[\"土豆炖鸡腿\"],\"ingredientFoodIds\":[\"food-chicken-leg\",\"food-potato\",\"food-scallion\"]},{\"id\":\"tpl-tomato-beef\",\"name\":\"番茄牛肉\",\"aliases\":[],\"ingredientFoodIds\":[\"food-beef\",\"food-tomato\",\"food-potato\"]},{\"id\":\"tpl-pork-cabbage\",\"name\":\"白菜炒瘦肉\",\"aliases\":[],\"ingredientFoodIds\":[\"food-pork-lean\",\"food-cabbage\",\"food-garlic\"]},{\"id\":\"tpl-shiitake-egg\",\"name\":\"香菇蒸蛋\",\"aliases\":[\"蒸蛋\"],\"ingredientFoodIds\":[\"food-egg\",\"food-shiitake\"]},{\"id\":\"tpl-cucumber-salad\",\"name\":\"凉拌黄瓜\",\"aliases\":[],\"ingredientFoodIds\":[\"food-cucumber\",\"food-garlic\"]},{\"id\":\"tpl-garlic-spinach\",\"name\":\"蒜蓉菠菜\",\"aliases\":[],\"ingredientFoodIds\":[\"food-spinach\",\"food-garlic\"]},{\"id\":\"tpl-carrot-stir\",\"name\":\"清炒胡萝卜\",\"aliases\":[],\"ingredientFoodIds\":[\"food-carrot\",\"food-scallion\"]},{\"id\":\"tpl-leftover-rice\",\"name\":\"昨日米饭\",\"aliases\":[],\"ingredientFoodIds\":[\"food-rice-cooked\"]},{\"id\":\"tpl-plain-rice\",\"name\":\"白米饭\",\"aliases\":[],\"ingredientFoodIds\":[\"food-rice-cooked\"]},{\"id\":\"tpl-millet-porridge\",\"name\":\"小米粥\",\"aliases\":[],\"ingredientFoodIds\":[\"food-millet\"]}],\"planTags\":[{\"id\":\"planning\",\"label\":\"初次规划\"},{\"id\":\"replan\",\"label\":\"重规划\"},{\"id\":\"privacy\",\"label\":\"隐私\"},{\"id\":\"handoff\",\"label\":\"任务交接\"}],\"caregiverRecipientLabels\":[\"家庭保姆\",\"保姆\",\"阿姨\"]}}"
+            }
+          ],
+          "tools": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_user",
+                "description": "Ask the user for missing in-scope information. Use only real user-required slots such as dinerIds, mealType, recipientLabel, activePlanId, focusedTemplateId, currentPreview, softPreferenceToRelax or availableFoodIds. Never list empty arrays, preferLowEffort, planTags or topK as missing fields.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "inspect_context",
+                        "compose_meal",
+                        "revise_meal",
+                        "retrieve_guidance",
+                        "preview_handoff",
+                        "send_handoff",
+                        "preview_inventory",
+                        "update_inventory",
+                        "preview_member_memory",
+                        "update_member_memory",
+                        "preview_meal_completion",
+                        "complete_meal",
+                        "no_action",
+                        "unsupported"
+                      ],
+                      "description": "Unchanged user goal for this task."
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    "missingFields": {
+                      "type": "array",
+                      "maxItems": 8,
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "dinerIds",
+                          "mealType",
+                          "recipientLabel",
+                          "activePlanId",
+                          "focusedTemplateId",
+                          "currentPreview",
+                          "softPreferenceToRelax",
+                          "availableFoodIds"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "goal",
+                    "message",
+                    "missingFields"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "finish_turn",
+                "description": "End the turn with a grounded user-visible message when the goal is complete, blocked without further tools, or only needs a factual summary from successful tool results. Do not claim sending or external writes.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "inspect_context",
+                        "compose_meal",
+                        "revise_meal",
+                        "retrieve_guidance",
+                        "preview_handoff",
+                        "send_handoff",
+                        "preview_inventory",
+                        "update_inventory",
+                        "preview_member_memory",
+                        "update_member_memory",
+                        "preview_meal_completion",
+                        "complete_meal",
+                        "no_action"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    }
+                  },
+                  "required": [
+                    "goal",
+                    "message"
+                  ]
+                }
+              }
+            }
+          ],
+          "tool_choice": "required",
+          "temperature": 0,
+          "stream": false
+        }
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "body": {
+          "id": "chatcmpl-ae0622b33508e3cb",
+          "object": "chat.completion",
+          "created": 1785750525,
+          "model": "google/gemma-4-12B-it-qat-w4a16-ct",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "",
+                "refusal": null,
+                "annotations": null,
+                "audio": null,
+                "function_call": null,
+                "tool_calls": [
+                  {
+                    "id": "chatcmpl-tool-a1c050b3f7ac52b2",
+                    "type": "function",
+                    "function": {
+                      "name": "finish_turn",
+                      "arguments": "{\"goal\": \"preview_meal_completion\", \"message\": \"这是为您准备的餐后记录预览：\\n\\n**摄入营养：**\\n- **管理员：** 能量 98.48 kcal，碳水 15.08g，蛋白质 5.97g，脂肪 2.14g，钠 57.27mg\\n- **父亲：** 能量 88.04 kcal，碳水 12.78g，蛋白质 5.73g，脂肪 2.11g，钠 57.18mg\\n- **母亲：** 能量 98.48 kcal，碳水 15.08g，蛋白质 5.97g，脂肪 2.14g，钠 57.27mg\\n\\n**库存扣减：**\\n- 北豆腐：108g\\n- 大白菜：135g\\n- 葱：7.2g\\n- 熟米饭：112.5g\\n- 菠菜：135g\\n- 蒜：7.2g\\n\\n确认后，系统将正式记录摄入并更新库存。\"}"
+                    }
+                  }
+                ],
+                "reasoning": null
+              },
+              "logprobs": null,
+              "finish_reason": "tool_calls",
+              "stop_reason": 50,
+              "token_ids": null,
+              "routed_experts": null
+            }
+          ],
+          "service_tier": null,
+          "system_fingerprint": "vllm-0.25.1-cb4de088",
+          "usage": {
+            "prompt_tokens": 3480,
+            "total_tokens": 3751,
+            "completion_tokens": 271,
+            "prompt_tokens_details": null
+          },
+          "prompt_logprobs": null,
+          "prompt_token_ids": null,
+          "prompt_text": null,
+          "kv_transfer_params": null,
+          "metrics": null
+        }
+      },
+      "durationMs": 9015.24
+    }
+  ],
+  "modelHttpCount": 2,
+  "modelSteps": [
+    {
+      "index": 0,
+      "providerMode": "local_vllm",
+      "model": "google/gemma-4-12B-it-qat-w4a16-ct",
+      "decision": "tool",
+      "goal": "preview_meal_completion",
+      "tool": "preview_meal_completion",
+      "rawArguments": {
+        "goal": "preview_meal_completion",
+        "mode": "as_planned"
+      },
+      "normalizedArguments": {
+        "mode": "as_planned"
+      },
+      "effectiveArguments": {
+        "mode": "as_planned"
+      },
+      "policy": {
+        "status": "ok",
+        "reasons": [],
+        "privacyViolation": false
+      },
+      "missingFields": [],
+      "toolResult": {
+        "tool": "preview_meal_completion",
+        "ok": true
+      },
+      "gatewayInvocation": {
+        "tool": "preview_meal_completion",
+        "requestedArguments": {
+          "mode": "as_planned"
+        },
+        "sourceUtterance": "这顿饭吃完了，先预览餐后记录。",
+        "availableDomainTools": [
+          "get_day_context",
+          "retrieve_local_knowledge",
+          "preview_inventory_change",
+          "preview_member_memory_change",
+          "preview_meal_completion",
+          "preview_caregiver_task",
+          "find_dish_candidates",
+          "finalize_meal_plan"
+        ],
+        "result": {
+          "ok": true,
+          "tool": "preview_meal_completion",
+          "data": {
+            "mode": "as_planned",
+            "actionType": "meal_completion",
+            "preview": {
+              "actionType": "meal_completion",
+              "planId": "plan-ed2b16cb-f9fd-4f28-aff5-b78b5a1f8851",
+              "planVersion": 1,
+              "dinerIds": [
+                "mem-admin",
+                "mem-father",
+                "mem-mother"
+              ],
+              "serviceDate": "2026-08-03",
+              "willRecordIntake": [
+                {
+                  "memberId": "mem-admin",
+                  "nutrition": {
+                    "energyKcal": 98.484,
+                    "carbohydrateG": 15.081,
+                    "proteinG": 5.966,
+                    "fatG": 2.137,
+                    "sodiumMg": 57.267
+                  }
+                },
+                {
+                  "memberId": "mem-father",
+                  "nutrition": {
+                    "energyKcal": 88.044,
+                    "carbohydrateG": 12.777,
+                    "proteinG": 5.732,
+                    "fatG": 2.11,
+                    "sodiumMg": 57.177
+                  }
+                },
+                {
+                  "memberId": "mem-mother",
+                  "nutrition": {
+                    "energyKcal": 98.484,
+                    "carbohydrateG": 15.081,
+                    "proteinG": 5.966,
+                    "fatG": 2.137,
+                    "sodiumMg": 57.267
+                  }
+                }
+              ],
+              "willDebitInventory": [
+                {
+                  "templateId": "tpl-cabbage-tofu-braise",
+                  "foodId": "food-tofu",
+                  "quantityG": 108
+                },
+                {
+                  "templateId": "tpl-cabbage-tofu-braise",
+                  "foodId": "food-cabbage",
+                  "quantityG": 135
+                },
+                {
+                  "templateId": "tpl-cabbage-tofu-braise",
+                  "foodId": "food-scallion",
+                  "quantityG": 7.2
+                },
+                {
+                  "templateId": "tpl-leftover-rice",
+                  "foodId": "food-rice-cooked",
+                  "quantityG": 112.5
+                },
+                {
+                  "templateId": "tpl-garlic-spinach",
+                  "foodId": "food-spinach",
+                  "quantityG": 135
+                },
+                {
+                  "templateId": "tpl-garlic-spinach",
+                  "foodId": "food-garlic",
+                  "quantityG": 7.2
+                }
+              ],
+              "note": "确认后才会写入摄入、扣减库存并标记本餐完成。"
+            },
+            "pendingActionId": "pending-b857a439-d9e1-4684-ba47-fa5ccbb8c116",
+            "note": "确认后才会写入摄入、扣减库存；聊天确认不会提交。"
+          },
+          "auditRef": "tool-3733d44b-d3ab-431c-8aee-7c09a8e28002"
+        },
+        "statePatch": {
+          "lastToolStatus": "success",
+          "errorCode": null,
+          "toolSteps": 1,
+          "phase": "PREVIEWING_WRITE",
+          "confirmationStatus": "previewed",
+          "pendingActionId": "pending-b857a439-d9e1-4684-ba47-fa5ccbb8c116"
+        },
+        "uiOnly": {
+          "confirmationToken": "<redacted>",
+          "payloadHash": "03cb3d6c98e6cdfc297c0d53e6c08955bf16128dbc7cda5b1759920a6a8d6452",
+          "expiresAt": "2026-08-03T10:03:45.434Z",
+          "pendingActionId": "pending-b857a439-d9e1-4684-ba47-fa5ccbb8c116",
+          "actionType": "meal_completion",
+          "confirmLabel": "确认本餐已按计划吃完",
+          "preview": {
+            "actionType": "meal_completion",
+            "planId": "plan-ed2b16cb-f9fd-4f28-aff5-b78b5a1f8851",
+            "planVersion": 1,
+            "dinerIds": [
+              "mem-admin",
+              "mem-father",
+              "mem-mother"
+            ],
+            "serviceDate": "2026-08-03",
+            "willRecordIntake": [
+              {
+                "memberId": "mem-admin",
+                "nutrition": {
+                  "energyKcal": 98.484,
+                  "carbohydrateG": 15.081,
+                  "proteinG": 5.966,
+                  "fatG": 2.137,
+                  "sodiumMg": 57.267
+                }
+              },
+              {
+                "memberId": "mem-father",
+                "nutrition": {
+                  "energyKcal": 88.044,
+                  "carbohydrateG": 12.777,
+                  "proteinG": 5.732,
+                  "fatG": 2.11,
+                  "sodiumMg": 57.177
+                }
+              },
+              {
+                "memberId": "mem-mother",
+                "nutrition": {
+                  "energyKcal": 98.484,
+                  "carbohydrateG": 15.081,
+                  "proteinG": 5.966,
+                  "fatG": 2.137,
+                  "sodiumMg": 57.267
+                }
+              }
+            ],
+            "willDebitInventory": [
+              {
+                "templateId": "tpl-cabbage-tofu-braise",
+                "foodId": "food-tofu",
+                "quantityG": 108
+              },
+              {
+                "templateId": "tpl-cabbage-tofu-braise",
+                "foodId": "food-cabbage",
+                "quantityG": 135
+              },
+              {
+                "templateId": "tpl-cabbage-tofu-braise",
+                "foodId": "food-scallion",
+                "quantityG": 7.2
+              },
+              {
+                "templateId": "tpl-leftover-rice",
+                "foodId": "food-rice-cooked",
+                "quantityG": 112.5
+              },
+              {
+                "templateId": "tpl-garlic-spinach",
+                "foodId": "food-spinach",
+                "quantityG": 135
+              },
+              {
+                "templateId": "tpl-garlic-spinach",
+                "foodId": "food-garlic",
+                "quantityG": 7.2
+              }
+            ],
+            "note": "确认后才会写入摄入、扣减库存并标记本餐完成。"
+          }
+        },
+        "durationMs": 1.7229609999922104
+      }
+    },
+    {
+      "index": 1,
+      "providerMode": "local_vllm",
+      "model": "google/gemma-4-12B-it-qat-w4a16-ct",
+      "decision": "final",
+      "transport": "native_function",
+      "goal": "preview_meal_completion",
+      "tool": null,
+      "rawArguments": null,
+      "normalizedArguments": null,
+      "effectiveArguments": null,
+      "policy": {
+        "status": "not_applicable",
+        "reasons": [],
+        "privacyViolation": false
+      },
+      "missingFields": [],
+      "answerValidation": {
+        "ok": true,
+        "reasons": []
+      }
+    }
+  ],
+  "modelTrace": {
+    "providerMode": "local_vllm",
+    "model": "google/gemma-4-12B-it-qat-w4a16-ct",
+    "decisionKind": "final",
+    "transport": "native_function",
+    "tool": null,
+    "raw_model_arguments": null,
+    "normalized_model_arguments": null,
+    "effective_arguments": null,
+    "privacy_violation": false,
+    "policy_reasons": [],
+    "format_retry_count": 0,
+    "format_retry_reasons": []
+  },
+  "finalizationMode": "model",
+  "toolInvocations": [
+    {
+      "tool": "preview_meal_completion",
+      "requestedArguments": {
+        "mode": "as_planned"
+      },
+      "sourceUtterance": "这顿饭吃完了，先预览餐后记录。",
+      "availableDomainTools": [
+        "get_day_context",
+        "retrieve_local_knowledge",
+        "preview_inventory_change",
+        "preview_member_memory_change",
+        "preview_meal_completion",
+        "preview_caregiver_task",
+        "find_dish_candidates",
+        "finalize_meal_plan"
+      ],
+      "result": {
+        "ok": true,
+        "tool": "preview_meal_completion",
+        "data": {
+          "mode": "as_planned",
+          "actionType": "meal_completion",
+          "preview": {
+            "actionType": "meal_completion",
+            "planId": "plan-ed2b16cb-f9fd-4f28-aff5-b78b5a1f8851",
+            "planVersion": 1,
+            "dinerIds": [
+              "mem-admin",
+              "mem-father",
+              "mem-mother"
+            ],
+            "serviceDate": "2026-08-03",
+            "willRecordIntake": [
+              {
+                "memberId": "mem-admin",
+                "nutrition": {
+                  "energyKcal": 98.484,
+                  "carbohydrateG": 15.081,
+                  "proteinG": 5.966,
+                  "fatG": 2.137,
+                  "sodiumMg": 57.267
+                }
+              },
+              {
+                "memberId": "mem-father",
+                "nutrition": {
+                  "energyKcal": 88.044,
+                  "carbohydrateG": 12.777,
+                  "proteinG": 5.732,
+                  "fatG": 2.11,
+                  "sodiumMg": 57.177
+                }
+              },
+              {
+                "memberId": "mem-mother",
+                "nutrition": {
+                  "energyKcal": 98.484,
+                  "carbohydrateG": 15.081,
+                  "proteinG": 5.966,
+                  "fatG": 2.137,
+                  "sodiumMg": 57.267
+                }
+              }
+            ],
+            "willDebitInventory": [
+              {
+                "templateId": "tpl-cabbage-tofu-braise",
+                "foodId": "food-tofu",
+                "quantityG": 108
+              },
+              {
+                "templateId": "tpl-cabbage-tofu-braise",
+                "foodId": "food-cabbage",
+                "quantityG": 135
+              },
+              {
+                "templateId": "tpl-cabbage-tofu-braise",
+                "foodId": "food-scallion",
+                "quantityG": 7.2
+              },
+              {
+                "templateId": "tpl-leftover-rice",
+                "foodId": "food-rice-cooked",
+                "quantityG": 112.5
+              },
+              {
+                "templateId": "tpl-garlic-spinach",
+                "foodId": "food-spinach",
+                "quantityG": 135
+              },
+              {
+                "templateId": "tpl-garlic-spinach",
+                "foodId": "food-garlic",
+                "quantityG": 7.2
+              }
+            ],
+            "note": "确认后才会写入摄入、扣减库存并标记本餐完成。"
+          },
+          "pendingActionId": "pending-b857a439-d9e1-4684-ba47-fa5ccbb8c116",
+          "note": "确认后才会写入摄入、扣减库存；聊天确认不会提交。"
+        },
+        "auditRef": "tool-3733d44b-d3ab-431c-8aee-7c09a8e28002"
+      },
+      "statePatch": {
+        "lastToolStatus": "success",
+        "errorCode": null,
+        "toolSteps": 1,
+        "phase": "PREVIEWING_WRITE",
+        "confirmationStatus": "previewed",
+        "pendingActionId": "pending-b857a439-d9e1-4684-ba47-fa5ccbb8c116"
+      },
+      "uiOnly": {
+        "confirmationToken": "<redacted>",
+        "payloadHash": "03cb3d6c98e6cdfc297c0d53e6c08955bf16128dbc7cda5b1759920a6a8d6452",
+        "expiresAt": "2026-08-03T10:03:45.434Z",
+        "pendingActionId": "pending-b857a439-d9e1-4684-ba47-fa5ccbb8c116",
+        "actionType": "meal_completion",
+        "confirmLabel": "确认本餐已按计划吃完",
+        "preview": {
+          "actionType": "meal_completion",
+          "planId": "plan-ed2b16cb-f9fd-4f28-aff5-b78b5a1f8851",
+          "planVersion": 1,
+          "dinerIds": [
+            "mem-admin",
+            "mem-father",
+            "mem-mother"
+          ],
+          "serviceDate": "2026-08-03",
+          "willRecordIntake": [
+            {
+              "memberId": "mem-admin",
+              "nutrition": {
+                "energyKcal": 98.484,
+                "carbohydrateG": 15.081,
+                "proteinG": 5.966,
+                "fatG": 2.137,
+                "sodiumMg": 57.267
+              }
+            },
+            {
+              "memberId": "mem-father",
+              "nutrition": {
+                "energyKcal": 88.044,
+                "carbohydrateG": 12.777,
+                "proteinG": 5.732,
+                "fatG": 2.11,
+                "sodiumMg": 57.177
+              }
+            },
+            {
+              "memberId": "mem-mother",
+              "nutrition": {
+                "energyKcal": 98.484,
+                "carbohydrateG": 15.081,
+                "proteinG": 5.966,
+                "fatG": 2.137,
+                "sodiumMg": 57.267
+              }
+            }
+          ],
+          "willDebitInventory": [
+            {
+              "templateId": "tpl-cabbage-tofu-braise",
+              "foodId": "food-tofu",
+              "quantityG": 108
+            },
+            {
+              "templateId": "tpl-cabbage-tofu-braise",
+              "foodId": "food-cabbage",
+              "quantityG": 135
+            },
+            {
+              "templateId": "tpl-cabbage-tofu-braise",
+              "foodId": "food-scallion",
+              "quantityG": 7.2
+            },
+            {
+              "templateId": "tpl-leftover-rice",
+              "foodId": "food-rice-cooked",
+              "quantityG": 112.5
+            },
+            {
+              "templateId": "tpl-garlic-spinach",
+              "foodId": "food-spinach",
+              "quantityG": 135
+            },
+            {
+              "templateId": "tpl-garlic-spinach",
+              "foodId": "food-garlic",
+              "quantityG": 7.2
+            }
+          ],
+          "note": "确认后才会写入摄入、扣减库存并标记本餐完成。"
+        }
+      },
+      "durationMs": 1.7229609999922104
+    }
+  ],
+  "answer": "这是为您准备的餐后记录预览：\n\n**摄入营养：**\n- **管理员：** 能量 98.48 kcal，碳水 15.08g，蛋白质 5.97g，脂肪 2.14g，钠 57.27mg\n- **父亲：** 能量 88.04 kcal，碳水 12.78g，蛋白质 5.73g，脂肪 2.11g，钠 57.18mg\n- **母亲：** 能量 98.48 kcal，碳水 15.08g，蛋白质 5.97g，脂肪 2.14g，钠 57.27mg\n\n**库存扣减：**\n- 北豆腐：108g\n- 大白菜：135g\n- 葱：7.2g\n- 熟米饭：112.5g\n- 菠菜：135g\n- 蒜：7.2g\n\n确认后，系统将正式记录摄入并更新库存。",
+  "phaseAfter": "AWAITING_CONFIRMATION",
+  "validation": {
+    "ok": true,
+    "reasons": []
+  },
+  "taskOutcome": {
+    "goal": "preview_meal_completion",
+    "status": "COMPLETE",
+    "phase": "AWAITING_CONFIRMATION",
+    "verification": {
+      "passed": true
+    },
+    "reasons": [],
+    "evidence": [
+      {
+        "kind": "tool_result",
+        "tool": "preview_meal_completion",
+        "ok": true
+      },
+      {
+        "kind": "answer_validation",
+        "ok": true
+      }
+    ]
+  },
+  "uiOnly": {
+    "confirmationToken": "<redacted>",
+    "payloadHash": "03cb3d6c98e6cdfc297c0d53e6c08955bf16128dbc7cda5b1759920a6a8d6452",
+    "expiresAt": "2026-08-03T10:03:45.434Z",
+    "pendingActionId": "pending-b857a439-d9e1-4684-ba47-fa5ccbb8c116",
+    "actionType": "meal_completion",
+    "confirmLabel": "确认本餐已按计划吃完",
+    "preview": {
+      "actionType": "meal_completion",
+      "planId": "plan-ed2b16cb-f9fd-4f28-aff5-b78b5a1f8851",
+      "planVersion": 1,
+      "dinerIds": [
+        "mem-admin",
+        "mem-father",
+        "mem-mother"
+      ],
+      "serviceDate": "2026-08-03",
+      "willRecordIntake": [
+        {
+          "memberId": "mem-admin",
+          "nutrition": {
+            "energyKcal": 98.484,
+            "carbohydrateG": 15.081,
+            "proteinG": 5.966,
+            "fatG": 2.137,
+            "sodiumMg": 57.267
+          }
+        },
+        {
+          "memberId": "mem-father",
+          "nutrition": {
+            "energyKcal": 88.044,
+            "carbohydrateG": 12.777,
+            "proteinG": 5.732,
+            "fatG": 2.11,
+            "sodiumMg": 57.177
+          }
+        },
+        {
+          "memberId": "mem-mother",
+          "nutrition": {
+            "energyKcal": 98.484,
+            "carbohydrateG": 15.081,
+            "proteinG": 5.966,
+            "fatG": 2.137,
+            "sodiumMg": 57.267
+          }
+        }
+      ],
+      "willDebitInventory": [
+        {
+          "templateId": "tpl-cabbage-tofu-braise",
+          "foodId": "food-tofu",
+          "quantityG": 108
+        },
+        {
+          "templateId": "tpl-cabbage-tofu-braise",
+          "foodId": "food-cabbage",
+          "quantityG": 135
+        },
+        {
+          "templateId": "tpl-cabbage-tofu-braise",
+          "foodId": "food-scallion",
+          "quantityG": 7.2
+        },
+        {
+          "templateId": "tpl-leftover-rice",
+          "foodId": "food-rice-cooked",
+          "quantityG": 112.5
+        },
+        {
+          "templateId": "tpl-garlic-spinach",
+          "foodId": "food-spinach",
+          "quantityG": 135
+        },
+        {
+          "templateId": "tpl-garlic-spinach",
+          "foodId": "food-garlic",
+          "quantityG": 7.2
+        }
+      ],
+      "note": "确认后才会写入摄入、扣减库存并标记本餐完成。"
+    }
+  },
+  "stateBefore": {
+    "plans": [
+      {
+        "id": "plan-ed2b16cb-f9fd-4f28-aff5-b78b5a1f8851",
+        "version": 1,
+        "parentPlanId": null,
+        "status": "valid",
+        "selectedTemplateIds": [
+          "tpl-cabbage-tofu-braise",
+          "tpl-leftover-rice",
+          "tpl-garlic-spinach"
+        ],
+        "agentSelectedTemplateIds": [
+          "tpl-cabbage-tofu-braise",
+          "tpl-leftover-rice",
+          "tpl-garlic-spinach"
+        ]
+      }
+    ],
+    "inventoryLedgerCount": 0,
+    "mealRecords": [],
+    "caregiverTaskCount": 0,
+    "preferencesCount": 1,
+    "pendingActionCount": 0,
+    "agent": {
+      "phase": "PRESENTING_PLAN",
+      "activePlanId": "plan-ed2b16cb-f9fd-4f28-aff5-b78b5a1f8851",
+      "activePlanVersion": 1,
+      "pendingActionId": null,
+      "taskState": {
+        "schemaVersion": 2,
+        "objective": "compose_meal",
+        "status": "completed",
+        "workflowStage": "plan_ready",
+        "unresolvedSlots": [],
+        "knownSlots": {},
+        "focusedTemplateId": null,
+        "lastDomainFailureCode": null,
+        "pendingActionId": null,
+        "pendingActionType": null,
+        "candidateSetId": "cset-df228aed-e391-4ada-9b5f-9d93e2ad3d2b",
+        "candidateSetVersion": "{\"household\":1,\"inventory\":1,\"intake\":1,\"policy\":\"demo-policy-1.0.0\"}",
+        "serviceDate": "2026-08-03"
+      }
+    }
+  },
+  "stateAfter": {
+    "plans": [
+      {
+        "id": "plan-ed2b16cb-f9fd-4f28-aff5-b78b5a1f8851",
+        "version": 1,
+        "parentPlanId": null,
+        "status": "valid",
+        "selectedTemplateIds": [
+          "tpl-cabbage-tofu-braise",
+          "tpl-leftover-rice",
+          "tpl-garlic-spinach"
+        ],
+        "agentSelectedTemplateIds": [
+          "tpl-cabbage-tofu-braise",
+          "tpl-leftover-rice",
+          "tpl-garlic-spinach"
+        ]
+      }
+    ],
+    "inventoryLedgerCount": 0,
+    "mealRecords": [],
+    "caregiverTaskCount": 0,
+    "preferencesCount": 1,
+    "pendingActionCount": 1,
+    "agent": {
+      "phase": "AWAITING_CONFIRMATION",
+      "activePlanId": "plan-ed2b16cb-f9fd-4f28-aff5-b78b5a1f8851",
+      "activePlanVersion": 1,
+      "pendingActionId": "pending-b857a439-d9e1-4684-ba47-fa5ccbb8c116",
+      "taskState": {
+        "schemaVersion": 2,
+        "objective": "preview_meal_completion",
+        "status": "waiting_confirmation",
+        "workflowStage": "awaiting_confirm",
+        "unresolvedSlots": [],
+        "knownSlots": {},
+        "focusedTemplateId": null,
+        "lastDomainFailureCode": null,
+        "pendingActionId": "pending-b857a439-d9e1-4684-ba47-fa5ccbb8c116",
+        "pendingActionType": "meal_completion",
+        "candidateSetId": null,
+        "candidateSetVersion": null,
+        "serviceDate": "2026-08-03"
+      }
+    }
+  },
+  "taskState": {
+    "schemaVersion": 2,
+    "objective": "preview_meal_completion",
+    "status": "waiting_confirmation",
+    "workflowStage": "awaiting_confirm",
+    "unresolvedSlots": [],
+    "knownSlots": {},
+    "focusedTemplateId": null,
+    "lastDomainFailureCode": null,
+    "pendingActionId": "pending-b857a439-d9e1-4684-ba47-fa5ccbb8c116",
+    "pendingActionType": "meal_completion",
+    "candidateSetId": null,
+    "candidateSetVersion": null,
+    "serviceDate": "2026-08-03"
+  },
+  "retrievalSourceIds": [],
+  "error": null
+}

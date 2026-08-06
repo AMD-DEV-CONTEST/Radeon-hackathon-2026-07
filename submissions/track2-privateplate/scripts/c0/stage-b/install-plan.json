@@ -1,0 +1,197 @@
+{
+  "schema_version": "1.0",
+  "description": "Executable install plan for formal C0-B Radeon runtime. Verification-only pins are not enough; this plan is the install path.",
+  "status": "PREPARED_NOT_RUN_ON_RADEON",
+  "runtime_pin_path": "scripts/c0/stage-b/runtime-pin.json",
+  "model_profiles_path": "scripts/c0/stage-b/model-profiles.json",
+  "host_requirements": {
+    "os": "linux",
+    "arch": "x86_64",
+    "python": "3.12.x",
+    "node": ">=22.13",
+    "rocm": "7.2.3|7.2.1",
+    "gpu_gfx": "gfx1100",
+    "venv": "/opt/venv",
+    "notes": [
+      "Formal runs use the AMD Radeon GPU Notebook image with /opt/venv.",
+      "ROCm itself comes from the platform image; this plan does not reinstall the driver stack.",
+      "Preferred ROCm is 7.2.3; Global oneclick image currently ships 7.2.1 and is accepted.",
+      "Missing credentials, image digest, or pin mismatch must stop before model download."
+    ]
+  },
+  "official_sources": [
+    {
+      "id": "vllm_rocm_wheel",
+      "component": "vllm",
+      "exact_version": "0.25.1+rocm723",
+      "source_commit": "752a3a504485790a2e8491cacbb35c137339ad34",
+      "url": "https://wheels.vllm.ai/rocm/752a3a504485790a2e8491cacbb35c137339ad34/vllm-0.25.1%2Brocm723-cp312-cp312-manylinux_2_34_x86_64.whl",
+      "index_url": "https://wheels.vllm.ai/rocm/0.25.1/rocm723/vllm/",
+      "size_bytes": 198169819,
+      "source_label": "vLLM ROCm wheel index / per-commit wheel",
+      "source_docs": "https://docs.vllm.ai/en/latest/contributing/ci/nightly_builds/"
+    },
+    {
+      "id": "torch_base",
+      "component": "torch",
+      "exact_base_version": "2.11.0",
+      "exact_local_version": "2.11.0+gitd0c8b1f",
+      "require_hip_or_rocm": true,
+      "hip_version_prefix": "7.2",
+      "url": "https://wheels.vllm.ai/rocm/752a3a504485790a2e8491cacbb35c137339ad34/torch-2.11.0%2Bgitd0c8b1f-cp312-cp312-manylinux_2_35_x86_64.whl",
+      "size_bytes": 1321813781,
+      "index_url": "https://wheels.vllm.ai/rocm/0.25.1/rocm723/torch/",
+      "source_docs": "https://wheels.vllm.ai/rocm/0.25.1/rocm723/",
+      "source_label": "vLLM ROCm 0.25.1/rocm723 companion Torch wheel",
+      "install_strategy": "vllm_rocm_companion_wheel_then_vllm",
+      "note": "vLLM 0.25.1+rocm723 requires torch==2.11.0+gitd0c8b1f. Official pytorch.org 2.11.0+rocm7.2 is rejected by that wheel metadata.",
+      "legacy_image_gap": "Observed historical image ROCm 7.2.1 / Torch 2.9.1 is NOT the formal pin."
+    },
+    {
+      "id": "transformers",
+      "component": "transformers",
+      "exact_version": "5.14.1",
+      "pip_spec": "transformers==5.14.1",
+      "source_label": "PyPI transformers==5.14.1 (gemma4_unified support)"
+    },
+    {
+      "id": "compressed_tensors",
+      "component": "compressed-tensors",
+      "exact_version": "0.17.0",
+      "pip_spec": "compressed-tensors==0.17.0",
+      "source_label": "PyPI compressed-tensors==0.17.0 (required for Gemma QAT W4A16)"
+    },
+    {
+      "id": "rocm_image",
+      "component": "rocm",
+      "exact_version": "7.2.3",
+      "allowed_versions": ["7.2.3", "7.2.1"],
+      "probe_paths": [
+        "/opt/rocm/.info/version",
+        "/opt/rocm/.info/version-dev"
+      ],
+      "source_label": "AMD Radeon Notebook image ROCm stack",
+      "install_strategy": "image_provided_only",
+      "note": "Image-provided only. Accept 7.2.1 when that is the live Global oneclick stack."
+    },
+    {
+      "id": "node22",
+      "component": "node",
+      "major_min": 22,
+      "minor_min": 13,
+      "install_script": "scripts/c0/stage-b/00-install-node22.sh",
+      "source_label": "nvm install 22.14.0 when image Node is too old"
+    },
+    {
+      "id": "gemma4_primary",
+      "component": "model",
+      "model_id": "google/gemma-4-12B-it-qat-w4a16-ct",
+      "revision": "1d2c2d7f2466070e69d6fb3fd5ce9a7d75f2f6ee",
+      "license": "apache-2.0",
+      "license_link": "https://ai.google.dev/gemma/docs/gemma_4_license",
+      "revision_source": "https://huggingface.co/api/models/google/gemma-4-12B-it-qat-w4a16-ct",
+      "tool_call_parser": "gemma4",
+      "reasoning_parser": "gemma4",
+      "quantization": "compressed-tensors",
+      "chat_template_path": "scripts/c0/stage-b/chat-templates/gemma4-vllm-tool.jinja",
+      "chat_template_source": "https://raw.githubusercontent.com/vllm-project/vllm/752a3a504485790a2e8491cacbb35c137339ad34/examples/tool_chat_template_gemma4.jinja"
+    },
+    {
+      "id": "qwen14_comparator",
+      "component": "model",
+      "model_id": "Qwen/Qwen2.5-14B-Instruct",
+      "revision": "cf98f3b3bbb457ad9e2bb7baf9a0125b6b88caa8",
+      "license": "apache-2.0",
+      "license_link": "https://huggingface.co/Qwen/Qwen2.5-14B-Instruct/blob/cf98f3b3bbb457ad9e2bb7baf9a0125b6b88caa8/LICENSE",
+      "revision_source": "https://huggingface.co/api/models/Qwen/Qwen2.5-14B-Instruct",
+      "tool_call_parser": "hermes",
+      "reasoning_parser": null,
+      "quantization": null
+    }
+  ],
+  "install_steps": [
+    {
+      "id": "activate_venv",
+      "required": true,
+      "action": "source /opt/venv/bin/activate when present; prefer PRIVATEPLATE_PYTHON"
+    },
+    {
+      "id": "install_node",
+      "required": true,
+      "script": "scripts/c0/stage-b/00-install-node22.sh",
+      "before_model_download": true
+    },
+    {
+      "id": "probe_rocm_torch",
+      "required": true,
+      "action": "Import torch and read /opt/rocm version; fail closed if base/HIP/ROCm mismatch",
+      "before_model_download": true
+    },
+    {
+      "id": "uninstall_cuda_flash_attn",
+      "required": true,
+      "action": "pip uninstall -y flash-attn flash_attn || true",
+      "reason": "Legacy CUDA flash_attn breaks ROCm rotary path",
+      "before_model_download": true
+    },
+    {
+      "id": "install_transformers",
+      "required": true,
+      "pip_spec": "transformers==5.14.1",
+      "before_model_download": true
+    },
+    {
+      "id": "install_compressed_tensors",
+      "required": true,
+      "pip_spec": "compressed-tensors==0.17.0",
+      "before_model_download": true
+    },
+    {
+      "id": "install_vllm_wheel",
+      "required": true,
+      "action": "pip install exact pinned vLLM ROCm wheel by URL when import version mismatches",
+      "wheel_url_from": "official_sources.vllm_rocm_wheel.url",
+      "before_model_download": true
+    },
+    {
+      "id": "verify_runtime_pin",
+      "required": true,
+      "script": "scripts/c0/stage-b/00-verify-runtime.mjs",
+      "before_model_download": true
+    },
+    {
+      "id": "start_vllm",
+      "required": true,
+      "script": "scripts/c0/stage-b/01-start-vllm.sh",
+      "before_model_download": false,
+      "note": "Model download happens inside vLLM start after runtime pin PASS"
+    },
+    {
+      "id": "always_stop_vllm",
+      "required": true,
+      "script": "scripts/c0/stage-b/00-stop-vllm.sh",
+      "on": ["success", "failure", "interrupt"]
+    }
+  ],
+  "parser_policy": {
+    "gemma4_profiles_must_use": {
+      "tool_call_parser": "gemma4",
+      "reasoning_parser": "gemma4",
+      "quantization": "compressed-tensors",
+      "forbid_hermes": true
+    },
+    "qwen_profiles_must_use": {
+      "tool_call_parser": "hermes",
+      "forbid_gemma4_parser": true
+    },
+    "no_cross_parser_fallback": true
+  },
+  "fail_closed": {
+    "missing_confirmation": "stop",
+    "missing_image_receipt": "stop_before_model_download",
+    "runtime_pin_mismatch": "stop_before_model_download",
+    "install_mismatch": "stop_before_model_download",
+    "vllm_start_failure": "write_failure_summary_stop_service",
+    "any_gate_fail": "overall_fail_keep_evidence"
+  }
+}

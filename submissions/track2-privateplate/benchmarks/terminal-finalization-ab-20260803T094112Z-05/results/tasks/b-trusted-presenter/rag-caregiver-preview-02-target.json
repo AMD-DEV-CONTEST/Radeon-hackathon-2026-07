@@ -1,0 +1,2090 @@
+{
+  "arm": "b-trusted-presenter",
+  "taskId": "rag-caregiver-preview-02",
+  "scenarioId": "rag-caregiver-preview",
+  "phase": "target",
+  "input": "先查一下本地晚餐准备规则，再生成给阿姨看的任务卡，先不要发送。",
+  "durationMs": 4580.93,
+  "modelHttp": [
+    {
+      "arm": "b-trusted-presenter",
+      "taskId": "rag-caregiver-preview-02",
+      "phase": "target",
+      "request": {
+        "url": "http://127.0.0.1:8000/v1/chat/completions",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "model": "google/gemma-4-12B-it-qat-w4a16-ct",
+          "messages": [
+            {
+              "role": "system",
+              "content": "You are the language and tool-decision layer for a Chinese household meal coordination agent. Your scope is the closed loop: read day context (remaining nutrition budget, inventory, memory), list hard-filtered dish candidates, finalize your own full dish selection, retrieve local knowledge via embedding RAG, preview caregiver shopping/task handoff, and preview meal completion. Domain never ranks dishes or picks a winner; Domain owns grams, nutrition math, shopping gaps and vector retrieval. Use conversationHistory, currentTurn, activePlan, focusedTemplateId, pendingClarification, requestContext and state. You own language understanding; code owns contracts, grams, nutrition math and safety. Every model decision must be exactly one native function call. Business tools: get_day_context, find_dish_candidates, finalize_meal_plan, retrieve_local_knowledge, preview_caregiver_task, preview_meal_completion, preview_inventory_change, preview_member_memory_change. Control decisions: ask_user, finish_turn, refuse_request. Never put decisions in plain message content. When a business tool exposes a goal field, use it to state the semantic target: preview_inventory or update_inventory, preview_member_memory or update_member_memory, preview_meal_completion or complete_meal, and preview_handoff or send_handoff. Planning order when composing a meal: get_day_context → find_dish_candidates → finalize_meal_plan → finish_turn. If finalize fails, call find_dish_candidates or finalize again with a new selection; do not stop. Take at most one function call per decision. Do not repeat a successful Domain tool unless its result proves a recovery call is necessary. currentTurn.mode is authoritative. ACTION_ALLOWED permits one Domain tool or a control decision. FINAL_ONLY permits only finish_turn (or ask_user when clarification is still required). BLOCKED permits only finish_turn, ask_user or refuse_request and never Domain tools. Planning order: get_day_context → find_dish_candidates → finalize_meal_plan with your complete selectedDishes, shareOfRemainingBudget and selectionReason. Write selectionReason as brief, user-facing Chinese, preferably no more than 120 Chinese characters; explain only this actual model selection and do not invent facts that Domain did not return. Revisions submit a new full selectedDishes list; Domain does not auto-substitute dishes. Successful currentTurn.toolResults are the only authoritative facts. Describe only their actual menu, inventory, shopping gap and budget facts; never fabricate execution or sending. Use only member ids, food ids and template ids supplied in the request context. Never invent ids. The policy layer validates ids, permissions, state and privacy; it does not reinterpret the user's language. If required information is missing, call ask_user with exact missing fields or refuse_request. taskState is the trusted task lifecycle. Prefer taskState over guessing. If taskState.status is waiting_user and the user supplies an unresolved slot, continue that objective. retrieve_local_knowledge is real local RAG (embed query, cosine search over approved corpus chunks with source paths). If hits are empty, say the corpus has no relevant evidence — never invent citations. preview_caregiver_task builds a min-disclosure task card with shopping list from Domain; it never sends. preview_meal_completion only previews intake/inventory ledger changes. Real write/send happens only through the UI confirm channel; chat confirmation never commits. When currentTurn.answerValidationFailure is present, call finish_turn using only successful currentTurn.toolResults; do not call a Domain tool again. Never put health tags into tool arguments, never expose member health privacy, and never provide diagnosis, prescriptions, medication changes or real external writes."
+            },
+            {
+              "role": "user",
+              "content": "{\"request\":\"先查一下本地晚餐准备规则，再生成给阿姨看的任务卡，先不要发送。\",\"conversationHistory\":[{\"user\":\"规划今天的午餐。\",\"assistant\":\"餐食计划已生成：白菜豆腐煲、昨日米饭、蒜蓉菠菜。\\n选择理由：考虑到库存中的白菜、豆腐和昨日米饭，为您选择了白菜豆腐煲搭配蒜蓉菠菜和米饭。这套组合不仅充分利用了现有食材，且口味清淡，符合您的偏好。\\n份量、营养和采购缺口已核对。\\n规划阶段库存保持不变。\",\"tools\":[{\"name\":\"get_day_context\",\"ok\":true},{\"name\":\"find_dish_candidates\",\"ok\":true},{\"name\":\"finalize_meal_plan\",\"ok\":true},{\"name\":\"finalize_meal_plan\",\"ok\":true}]}],\"currentTurn\":{\"goal\":null,\"mode\":\"ACTION_ALLOWED\",\"modeReason\":\"goal_not_established\",\"decisionIndex\":0,\"modelRequestCount\":0,\"maxModelRequests\":10,\"toolResults\":[],\"answerValidationFailure\":null,\"priorOutcome\":{\"phase\":\"PRESENTING_PLAN\",\"lastToolStatus\":\"success\",\"errorCode\":null}},\"activePlan\":{\"id\":\"plan-c4a1a29c-37a3-498b-96aa-a174e9cc806c\",\"version\":1,\"mealType\":\"lunch\",\"dinerIds\":[\"mem-admin\",\"mem-father\",\"mem-mother\"],\"menu\":[{\"templateId\":\"tpl-cabbage-tofu-braise\",\"name\":\"白菜豆腐煲\"},{\"templateId\":\"tpl-leftover-rice\",\"name\":\"昨日米饭\"},{\"templateId\":\"tpl-garlic-spinach\",\"name\":\"蒜蓉菠菜\"}],\"rejectedFoodIds\":[],\"rejectedTemplateIds\":[],\"pinnedTemplateIds\":[],\"requestedPriorityFoodIds\":[],\"preferLowEffort\":false},\"focusedTemplateId\":null,\"pendingClarification\":null,\"taskState\":{\"objective\":null,\"status\":\"active\",\"workflowStage\":\"plan_ready\",\"unresolvedSlots\":[],\"knownSlots\":{},\"focusedTemplateId\":null,\"lastDomainFailureCode\":null,\"hasPendingAction\":false,\"pendingActionType\":null,\"candidateSetId\":\"cset-f942df31-b16a-4e33-81d7-1aa74cf18e82\",\"serviceDate\":\"2026-08-03\",\"hasActivePlan\":true},\"availableActions\":{\"domainTools\":[\"get_day_context\",\"retrieve_local_knowledge\",\"preview_inventory_change\",\"preview_member_memory_change\",\"find_dish_candidates\",\"preview_meal_completion\",\"preview_caregiver_task\",\"finalize_meal_plan\"],\"controlDecisions\":[\"ask_user\",\"finish_turn\",\"refuse_request\"]},\"state\":{\"phase\":\"CLASSIFYING\",\"dinerIds\":[\"mem-admin\",\"mem-father\",\"mem-mother\"],\"activePlanId\":\"plan-c4a1a29c-37a3-498b-96aa-a174e9cc806c\",\"activePlanVersion\":1,\"rejectedFoodIds\":[],\"rejectedTemplateIds\":[],\"hasPendingAction\":false},\"requestContext\":{\"handoffRecipient\":{\"status\":\"ok\",\"value\":\"阿姨\",\"source\":\"user_text\"}},\"dinerIdsLocked\":false,\"members\":[{\"id\":\"mem-admin\",\"displayName\":\"管理员\",\"roleLabel\":\"admin\"},{\"id\":\"mem-father\",\"displayName\":\"父亲\",\"roleLabel\":\"father\"},{\"id\":\"mem-mother\",\"displayName\":\"母亲\",\"roleLabel\":\"mother\"}],\"fixtureIds\":{\"foods\":[{\"id\":\"food-tofu\",\"name\":\"北豆腐\",\"aliases\":[\"北豆腐\",\"豆腐\",\"盒装豆腐\",\"老豆腐\"]},{\"id\":\"food-chicken-leg\",\"name\":\"鸡腿\",\"aliases\":[\"鸡腿\",\"鸡腿肉\",\"琵琶腿\"]},{\"id\":\"food-cabbage\",\"name\":\"大白菜\",\"aliases\":[\"大白菜\",\"白菜\",\"黄芽白\"]},{\"id\":\"food-rice-cooked\",\"name\":\"熟米饭\",\"aliases\":[\"熟米饭\",\"米饭\",\"昨日米饭\",\"白米饭\"]},{\"id\":\"food-egg\",\"name\":\"鸡蛋\",\"aliases\":[\"鸡蛋\",\"蛋\",\"整蛋\"]},{\"id\":\"food-shiitake\",\"name\":\"香菇\",\"aliases\":[\"香菇\",\"冬菇\",\"花菇\"]},{\"id\":\"food-tomato\",\"name\":\"番茄\",\"aliases\":[\"番茄\",\"西红柿\"]},{\"id\":\"food-potato\",\"name\":\"土豆\",\"aliases\":[\"土豆\",\"马铃薯\"]},{\"id\":\"food-spinach\",\"name\":\"菠菜\",\"aliases\":[\"菠菜\",\"青菜菠菜\"]},{\"id\":\"food-carrot\",\"name\":\"胡萝卜\",\"aliases\":[\"胡萝卜\",\"红萝卜\"]},{\"id\":\"food-fish-fillet\",\"name\":\"鲈鱼片\",\"aliases\":[\"鲈鱼片\",\"鱼片\",\"白鱼\"]},{\"id\":\"food-pork-lean\",\"name\":\"瘦猪肉\",\"aliases\":[\"瘦猪肉\",\"猪瘦肉\",\"里脊\"]},{\"id\":\"food-beef\",\"name\":\"牛肉\",\"aliases\":[\"牛肉\",\"牛腩\",\"牛瘦肉\"]},{\"id\":\"food-peanut\",\"name\":\"花生\",\"aliases\":[\"花生\",\"花生米\"]},{\"id\":\"food-scallion\",\"name\":\"葱\",\"aliases\":[\"葱\",\"小葱\",\"青葱\"]},{\"id\":\"food-garlic\",\"name\":\"蒜\",\"aliases\":[\"蒜\",\"大蒜\",\"蒜蓉\"]},{\"id\":\"food-cucumber\",\"name\":\"黄瓜\",\"aliases\":[\"黄瓜\",\"青瓜\"]},{\"id\":\"food-millet\",\"name\":\"小米\",\"aliases\":[\"小米\",\"小米粒\"]}],\"templates\":[{\"id\":\"tpl-cabbage-tofu-braise\",\"name\":\"白菜豆腐煲\",\"aliases\":[],\"ingredientFoodIds\":[\"food-tofu\",\"food-cabbage\",\"food-scallion\"]},{\"id\":\"tpl-tomato-egg\",\"name\":\"番茄炒蛋\",\"aliases\":[\"番茄炒蛋\"],\"ingredientFoodIds\":[\"food-tomato\",\"food-egg\",\"food-scallion\"]},{\"id\":\"tpl-steamed-fish\",\"name\":\"清蒸鱼片\",\"aliases\":[],\"ingredientFoodIds\":[\"food-fish-fillet\",\"food-scallion\",\"food-garlic\"]},{\"id\":\"tpl-potato-chicken\",\"name\":\"土豆炖鸡腿\",\"aliases\":[\"土豆炖鸡腿\"],\"ingredientFoodIds\":[\"food-chicken-leg\",\"food-potato\",\"food-scallion\"]},{\"id\":\"tpl-tomato-beef\",\"name\":\"番茄牛肉\",\"aliases\":[],\"ingredientFoodIds\":[\"food-beef\",\"food-tomato\",\"food-potato\"]},{\"id\":\"tpl-pork-cabbage\",\"name\":\"白菜炒瘦肉\",\"aliases\":[],\"ingredientFoodIds\":[\"food-pork-lean\",\"food-cabbage\",\"food-garlic\"]},{\"id\":\"tpl-shiitake-egg\",\"name\":\"香菇蒸蛋\",\"aliases\":[\"蒸蛋\"],\"ingredientFoodIds\":[\"food-egg\",\"food-shiitake\"]},{\"id\":\"tpl-cucumber-salad\",\"name\":\"凉拌黄瓜\",\"aliases\":[],\"ingredientFoodIds\":[\"food-cucumber\",\"food-garlic\"]},{\"id\":\"tpl-garlic-spinach\",\"name\":\"蒜蓉菠菜\",\"aliases\":[],\"ingredientFoodIds\":[\"food-spinach\",\"food-garlic\"]},{\"id\":\"tpl-carrot-stir\",\"name\":\"清炒胡萝卜\",\"aliases\":[],\"ingredientFoodIds\":[\"food-carrot\",\"food-scallion\"]},{\"id\":\"tpl-leftover-rice\",\"name\":\"昨日米饭\",\"aliases\":[],\"ingredientFoodIds\":[\"food-rice-cooked\"]},{\"id\":\"tpl-plain-rice\",\"name\":\"白米饭\",\"aliases\":[],\"ingredientFoodIds\":[\"food-rice-cooked\"]},{\"id\":\"tpl-millet-porridge\",\"name\":\"小米粥\",\"aliases\":[],\"ingredientFoodIds\":[\"food-millet\"]}],\"planTags\":[{\"id\":\"planning\",\"label\":\"初次规划\"},{\"id\":\"replan\",\"label\":\"重规划\"},{\"id\":\"privacy\",\"label\":\"隐私\"},{\"id\":\"handoff\",\"label\":\"任务交接\"}],\"caregiverRecipientLabels\":[\"家庭保姆\",\"保姆\",\"阿姨\"]}}"
+            }
+          ],
+          "tools": [
+            {
+              "type": "function",
+              "function": {
+                "name": "get_day_context",
+                "description": "Read today's household memory: daily nutrition targets, consumed intake, remaining budget, inventory, completed meals, preferences and hard constraints. Call this first when planning a meal.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "inspect_context",
+                        "compose_meal",
+                        "revise_meal"
+                      ]
+                    },
+                    "dinerIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 96
+                      },
+                      "maxItems": 3,
+                      "minItems": 1
+                    },
+                    "serviceDate": {
+                      "type": "string",
+                      "description": "Optional YYYY-MM-DD; default is local service date."
+                    }
+                  },
+                  "required": [
+                    "dinerIds"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "find_dish_candidates",
+                "description": "Return hard-filtered dish candidates with inventory and nutrition facts. Domain does not rank or pick a winner. Call after get_day_context when planning.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "compose_meal",
+                        "revise_meal"
+                      ]
+                    },
+                    "dinerIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 96
+                      },
+                      "maxItems": 3,
+                      "minItems": 1
+                    },
+                    "rejectedFoodIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 96
+                      },
+                      "maxItems": 16
+                    },
+                    "rejectedTemplateIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 96
+                      },
+                      "maxItems": 16
+                    }
+                  },
+                  "required": [
+                    "dinerIds",
+                    "rejectedFoodIds",
+                    "rejectedTemplateIds"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "finalize_meal_plan",
+                "description": "Submit your complete dish selection from the candidate set. Select 1–12 different dishes; the count is not fixed. Do not mechanically choose exactly one shared_main + one shared_side + one staple: choose the quantity and roles based on the user's request, diner count, inventory use and nutrition coverage. Role labels explain meal structure but do not require one dish per role. Domain validates IDs/versions/members, scales portions by shareOfRemainingBudget × remaining budget, and never substitutes dishes. On nutrition reject, follow the structured recovery details and reselect — do not stop.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "compose_meal",
+                        "revise_meal"
+                      ]
+                    },
+                    "dinerIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 96
+                      },
+                      "maxItems": 3,
+                      "minItems": 1
+                    },
+                    "mealType": {
+                      "type": "string",
+                      "enum": [
+                        "lunch",
+                        "dinner"
+                      ]
+                    },
+                    "candidateSetId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "selectedDishes": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 12,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "templateId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "relativePortion": {
+                            "type": "string",
+                            "enum": [
+                              "small",
+                              "standard",
+                              "large"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "templateId",
+                          "relativePortion"
+                        ]
+                      }
+                    },
+                    "shareOfRemainingBudget": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "maximum": 1.5,
+                      "description": "Fraction of each diner's remaining daily energy budget for this meal (0–1.5). 0.2 vs 1.0 must produce different grams."
+                    },
+                    "selectionReason": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 500
+                    }
+                  },
+                  "required": [
+                    "dinerIds",
+                    "mealType",
+                    "candidateSetId",
+                    "selectedDishes",
+                    "shareOfRemainingBudget",
+                    "selectionReason"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "preview_meal_completion",
+                "description": "Preview recording a completed meal as planned. Creates a pending action; does not write intake or inventory until the user confirms with token/hash.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "preview_meal_completion",
+                        "complete_meal"
+                      ]
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "as_planned"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "mode"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "preview_caregiver_task",
+                "description": "Preview a minimum-disclosure caregiver task card for the active plan (menu, inventory use, shopping list). This never commits or sends. recipientLabel must be one exact caregiver label (保姆 / 阿姨 / 家庭保姆).",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "preview_handoff",
+                        "send_handoff"
+                      ]
+                    },
+                    "recipientLabel": {
+                      "type": "string",
+                      "enum": [
+                        "家庭保姆",
+                        "保姆",
+                        "阿姨"
+                      ],
+                      "description": "Exact label from the user utterance; do not invent a different caregiver"
+                    },
+                    "serveAt": {
+                      "type": "string",
+                      "pattern": "^(?:unspecified|今天 (?:[01]\\d|2[0-3]):[0-5]\\d|\\d{4}-\\d{2}-\\d{2}T(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?(?:Z|[+-](?:[01]\\d|2[0-3]):[0-5]\\d))$",
+                      "description": "ISO-8601 with offset, '今天 HH:MM', or 'unspecified' when the user did not give a full time."
+                    }
+                  },
+                  "required": [
+                    "recipientLabel",
+                    "serveAt"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "retrieve_local_knowledge",
+                "description": "Local RAG over the approved household knowledge corpus: embed the query (vLLM embeddings when configured) and return top chunks with source paths and scores. Use for policy/privacy/process questions. Do not invent sources when hits are empty.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "retrieve_guidance"
+                      ]
+                    },
+                    "query": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 500,
+                      "description": "Natural-language retrieval query in Chinese or English"
+                    },
+                    "topK": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 5,
+                      "description": "Number of chunks to return (default 3)"
+                    }
+                  },
+                  "required": [
+                    "query",
+                    "topK"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "preview_inventory_change",
+                "description": "Preview an inventory adjustment. Does not write until UI confirms.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "preview_inventory",
+                        "update_inventory"
+                      ]
+                    },
+                    "foodId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "quantity": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "maximum": 100
+                    },
+                    "unit": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 16
+                    }
+                  },
+                  "required": [
+                    "foodId",
+                    "quantity",
+                    "unit"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "preview_member_memory_change",
+                "description": "Preview saving an explicit member preference or user-stated health fact. Does not write until UI confirms. Never invent medical diagnoses.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "preview_member_memory",
+                        "update_member_memory"
+                      ]
+                    },
+                    "memberId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "preference",
+                        "health_fact"
+                      ]
+                    },
+                    "summary": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 300
+                    },
+                    "polarity": {
+                      "type": "string",
+                      "enum": [
+                        "prefer",
+                        "avoid",
+                        "note"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "memberId",
+                    "kind",
+                    "summary"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_user",
+                "description": "Ask the user for missing in-scope information. Use only real user-required slots such as dinerIds, mealType, recipientLabel, activePlanId, focusedTemplateId, currentPreview, softPreferenceToRelax or availableFoodIds. Never list empty arrays, preferLowEffort, planTags or topK as missing fields.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "inspect_context",
+                        "compose_meal",
+                        "revise_meal",
+                        "retrieve_guidance",
+                        "preview_handoff",
+                        "send_handoff",
+                        "preview_inventory",
+                        "update_inventory",
+                        "preview_member_memory",
+                        "update_member_memory",
+                        "preview_meal_completion",
+                        "complete_meal",
+                        "no_action",
+                        "unsupported"
+                      ],
+                      "description": "Unchanged user goal for this task."
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    "missingFields": {
+                      "type": "array",
+                      "maxItems": 8,
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "dinerIds",
+                          "mealType",
+                          "recipientLabel",
+                          "activePlanId",
+                          "focusedTemplateId",
+                          "currentPreview",
+                          "softPreferenceToRelax",
+                          "availableFoodIds"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "goal",
+                    "message",
+                    "missingFields"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "finish_turn",
+                "description": "End the turn with a grounded user-visible message when the goal is complete, blocked without further tools, or only needs a factual summary from successful tool results. Do not claim sending or external writes.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "inspect_context",
+                        "compose_meal",
+                        "revise_meal",
+                        "retrieve_guidance",
+                        "preview_handoff",
+                        "send_handoff",
+                        "preview_inventory",
+                        "update_inventory",
+                        "preview_member_memory",
+                        "update_member_memory",
+                        "preview_meal_completion",
+                        "complete_meal",
+                        "no_action"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    }
+                  },
+                  "required": [
+                    "goal",
+                    "message"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "refuse_request",
+                "description": "Refuse out-of-scope, unsafe or unsupported requests without calling Domain tools. goal must be unsupported.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "unsupported"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    "reasonCode": {
+                      "type": "string",
+                      "enum": [
+                        "UNSUPPORTED_EXTERNAL_ACTION",
+                        "CONFIRMATION_REQUIRED",
+                        "ACTIVE_PLAN_REQUIRED",
+                        "PLAN_INFEASIBLE",
+                        "STALE_CONTEXT",
+                        "RECIPIENT_REQUIRED",
+                        "UNSUPPORTED_TOOL",
+                        "UNSUPPORTED_OR_UNCLEAR",
+                        "UNSUPPORTED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "goal",
+                    "message",
+                    "reasonCode"
+                  ]
+                }
+              }
+            }
+          ],
+          "tool_choice": "required",
+          "temperature": 0,
+          "stream": false
+        }
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "body": {
+          "id": "chatcmpl-862a5d842ad315e2",
+          "object": "chat.completion",
+          "created": 1785750988,
+          "model": "google/gemma-4-12B-it-qat-w4a16-ct",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "",
+                "refusal": null,
+                "annotations": null,
+                "audio": null,
+                "function_call": null,
+                "tool_calls": [
+                  {
+                    "id": "chatcmpl-tool-94f70ee8221451c5",
+                    "type": "function",
+                    "function": {
+                      "name": "retrieve_local_knowledge",
+                      "arguments": "{\"goal\": \"retrieve_guidance\", \"query\": \"晚餐准备规则\", \"topK\": 3}"
+                    }
+                  }
+                ],
+                "reasoning": null
+              },
+              "logprobs": null,
+              "finish_reason": "tool_calls",
+              "stop_reason": 50,
+              "token_ids": null,
+              "routed_experts": null
+            }
+          ],
+          "service_tier": null,
+          "system_fingerprint": "vllm-0.25.1-cb4de088",
+          "usage": {
+            "prompt_tokens": 4565,
+            "total_tokens": 4598,
+            "completion_tokens": 33,
+            "prompt_tokens_details": null
+          },
+          "prompt_logprobs": null,
+          "prompt_token_ids": null,
+          "prompt_text": null,
+          "kv_transfer_params": null,
+          "metrics": null
+        }
+      },
+      "durationMs": 2089.84
+    },
+    {
+      "arm": "b-trusted-presenter",
+      "taskId": "rag-caregiver-preview-02",
+      "phase": "target",
+      "request": {
+        "url": "http://127.0.0.1:8000/v1/chat/completions",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "model": "google/gemma-4-12B-it-qat-w4a16-ct",
+          "messages": [
+            {
+              "role": "system",
+              "content": "You are the language and tool-decision layer for a Chinese household meal coordination agent. Your scope is the closed loop: read day context (remaining nutrition budget, inventory, memory), list hard-filtered dish candidates, finalize your own full dish selection, retrieve local knowledge via embedding RAG, preview caregiver shopping/task handoff, and preview meal completion. Domain never ranks dishes or picks a winner; Domain owns grams, nutrition math, shopping gaps and vector retrieval. Use conversationHistory, currentTurn, activePlan, focusedTemplateId, pendingClarification, requestContext and state. You own language understanding; code owns contracts, grams, nutrition math and safety. Every model decision must be exactly one native function call. Business tools: get_day_context, find_dish_candidates, finalize_meal_plan, retrieve_local_knowledge, preview_caregiver_task, preview_meal_completion, preview_inventory_change, preview_member_memory_change. Control decisions: ask_user, finish_turn, refuse_request. Never put decisions in plain message content. When a business tool exposes a goal field, use it to state the semantic target: preview_inventory or update_inventory, preview_member_memory or update_member_memory, preview_meal_completion or complete_meal, and preview_handoff or send_handoff. Planning order when composing a meal: get_day_context → find_dish_candidates → finalize_meal_plan → finish_turn. If finalize fails, call find_dish_candidates or finalize again with a new selection; do not stop. Take at most one function call per decision. Do not repeat a successful Domain tool unless its result proves a recovery call is necessary. currentTurn.mode is authoritative. ACTION_ALLOWED permits one Domain tool or a control decision. FINAL_ONLY permits only finish_turn (or ask_user when clarification is still required). BLOCKED permits only finish_turn, ask_user or refuse_request and never Domain tools. Planning order: get_day_context → find_dish_candidates → finalize_meal_plan with your complete selectedDishes, shareOfRemainingBudget and selectionReason. Write selectionReason as brief, user-facing Chinese, preferably no more than 120 Chinese characters; explain only this actual model selection and do not invent facts that Domain did not return. Revisions submit a new full selectedDishes list; Domain does not auto-substitute dishes. Successful currentTurn.toolResults are the only authoritative facts. Describe only their actual menu, inventory, shopping gap and budget facts; never fabricate execution or sending. Use only member ids, food ids and template ids supplied in the request context. Never invent ids. The policy layer validates ids, permissions, state and privacy; it does not reinterpret the user's language. If required information is missing, call ask_user with exact missing fields or refuse_request. taskState is the trusted task lifecycle. Prefer taskState over guessing. If taskState.status is waiting_user and the user supplies an unresolved slot, continue that objective. retrieve_local_knowledge is real local RAG (embed query, cosine search over approved corpus chunks with source paths). If hits are empty, say the corpus has no relevant evidence — never invent citations. preview_caregiver_task builds a min-disclosure task card with shopping list from Domain; it never sends. preview_meal_completion only previews intake/inventory ledger changes. Real write/send happens only through the UI confirm channel; chat confirmation never commits. When currentTurn.answerValidationFailure is present, call finish_turn using only successful currentTurn.toolResults; do not call a Domain tool again. Never put health tags into tool arguments, never expose member health privacy, and never provide diagnosis, prescriptions, medication changes or real external writes."
+            },
+            {
+              "role": "user",
+              "content": "{\"request\":\"先查一下本地晚餐准备规则，再生成给阿姨看的任务卡，先不要发送。\",\"conversationHistory\":[{\"user\":\"规划今天的午餐。\",\"assistant\":\"餐食计划已生成：白菜豆腐煲、昨日米饭、蒜蓉菠菜。\\n选择理由：考虑到库存中的白菜、豆腐和昨日米饭，为您选择了白菜豆腐煲搭配蒜蓉菠菜和米饭。这套组合不仅充分利用了现有食材，且口味清淡，符合您的偏好。\\n份量、营养和采购缺口已核对。\\n规划阶段库存保持不变。\",\"tools\":[{\"name\":\"get_day_context\",\"ok\":true},{\"name\":\"find_dish_candidates\",\"ok\":true},{\"name\":\"finalize_meal_plan\",\"ok\":true},{\"name\":\"finalize_meal_plan\",\"ok\":true}]}],\"currentTurn\":{\"goal\":\"retrieve_guidance\",\"mode\":\"ACTION_ALLOWED\",\"modeReason\":\"guidance_observed_choose_next_action\",\"decisionIndex\":1,\"modelRequestCount\":1,\"maxModelRequests\":10,\"toolResults\":[{\"step\":0,\"goal\":\"retrieve_guidance\",\"tool\":\"retrieve_local_knowledge\",\"ok\":true,\"data\":{\"queryId\":\"rq-msd216ns\",\"retrievalVersion\":\"rag-embedding-local-1.0.0\",\"embeddingModel\":\"BAAI/bge-small-zh-v1.5\",\"embeddingKind\":\"vllm\",\"hits\":[{\"sourcePath\":\"knowledge/corpus/min-disclosure-task-card.md\",\"title\":\"任务卡最小披露与确认前不发送\",\"score\":0.5199324964221544,\"content\":\"# 任务卡最小披露\\n\\n发给保姆或执行者的任务卡只保留：\\n\\n- 菜单与份量差异（可用“米饭小份”“全餐少盐”等执行提示）\\n- 家中已有食材与采购清单\\n- 开饭时间与计划版本\\n\\n不得发送完整疾病史、诊断名称、原始对话或与本餐无关的健康档案。\\n\\n# 确认前不发送\\n\\n任务卡必须先预览。只有用户在可信界面确认后，才能写入本地模拟收件箱。\\n\\n聊天中说“确认”或“发给她”本身不会提交。取消、过期、令牌错误和重复确认都不得谎称发送成功。\"},{\"sourcePath\":\"knowledge/corpus/hard-constraints.md\",\"title\":\"硬约束优先于偏好\",\"score\":0.4579352174514525,\"content\":\"# 硬约束优先于偏好\\n\\n过敏、明确忌口和本轮用户拒绝必须先于少油、省事或优先消耗库存执行。\\n\\n当硬约束与软偏好冲突时，系统必须保留硬约束，返回结构化不可行或要求用户调整软偏好，不得静默放宽过敏和忌口。\\n\\n适用范围：家庭配餐规划、改口重规划、候选过滤。\"},{\"sourcePath\":\"knowledge/corpus/inventory-and-shopping.md\",\"title\":\"库存与采购缺口规则\",\"score\":0.42815979860673703,\"content\":\"# 模糊库存\\n\\n“半颗白菜”等 approximate 或 unknown 库存可以参与可行性判断，但不能伪装成可精确采购的克数。\\n\\nexact 库存给出精确差额；approximate 给范围；unknown 标记需要确认。\\n\\n# 采购单位\\n\\n需要采购时，应按现实单位向上取整（例如一盒豆腐），而不是显示“购买 10g”。\\n\\n# 不自动扣库存\\n\\n生成计划或预览任务卡本身不得自动扣减库存。只有用户确认“本餐已按计划吃完”后，才在账本中扣库存并记录摄入。\"}],\"note\":\"vllm_embedding_retrieval\"}}],\"answerValidationFailure\":null,\"priorOutcome\":{\"phase\":\"PRESENTING_PLAN\",\"lastToolStatus\":\"success\",\"errorCode\":null}},\"activePlan\":{\"id\":\"plan-c4a1a29c-37a3-498b-96aa-a174e9cc806c\",\"version\":1,\"mealType\":\"lunch\",\"dinerIds\":[\"mem-admin\",\"mem-father\",\"mem-mother\"],\"menu\":[{\"templateId\":\"tpl-cabbage-tofu-braise\",\"name\":\"白菜豆腐煲\"},{\"templateId\":\"tpl-leftover-rice\",\"name\":\"昨日米饭\"},{\"templateId\":\"tpl-garlic-spinach\",\"name\":\"蒜蓉菠菜\"}],\"rejectedFoodIds\":[],\"rejectedTemplateIds\":[],\"pinnedTemplateIds\":[],\"requestedPriorityFoodIds\":[],\"preferLowEffort\":false},\"focusedTemplateId\":null,\"pendingClarification\":null,\"taskState\":{\"objective\":\"retrieve_guidance\",\"status\":\"active\",\"workflowStage\":\"idle\",\"unresolvedSlots\":[],\"knownSlots\":{},\"focusedTemplateId\":null,\"lastDomainFailureCode\":null,\"hasPendingAction\":false,\"pendingActionType\":null,\"candidateSetId\":null,\"serviceDate\":\"2026-08-03\",\"hasActivePlan\":true},\"availableActions\":{\"domainTools\":[\"preview_caregiver_task\"],\"controlDecisions\":[\"ask_user\",\"finish_turn\",\"refuse_request\"]},\"state\":{\"phase\":\"COLLECTING_CONTEXT\",\"dinerIds\":[\"mem-admin\",\"mem-father\",\"mem-mother\"],\"activePlanId\":\"plan-c4a1a29c-37a3-498b-96aa-a174e9cc806c\",\"activePlanVersion\":1,\"rejectedFoodIds\":[],\"rejectedTemplateIds\":[],\"hasPendingAction\":false},\"requestContext\":{\"handoffRecipient\":{\"status\":\"ok\",\"value\":\"阿姨\",\"source\":\"user_text\"}},\"dinerIdsLocked\":false,\"members\":[{\"id\":\"mem-admin\",\"displayName\":\"管理员\",\"roleLabel\":\"admin\"},{\"id\":\"mem-father\",\"displayName\":\"父亲\",\"roleLabel\":\"father\"},{\"id\":\"mem-mother\",\"displayName\":\"母亲\",\"roleLabel\":\"mother\"}],\"fixtureIds\":{\"foods\":[{\"id\":\"food-tofu\",\"name\":\"北豆腐\",\"aliases\":[\"北豆腐\",\"豆腐\",\"盒装豆腐\",\"老豆腐\"]},{\"id\":\"food-chicken-leg\",\"name\":\"鸡腿\",\"aliases\":[\"鸡腿\",\"鸡腿肉\",\"琵琶腿\"]},{\"id\":\"food-cabbage\",\"name\":\"大白菜\",\"aliases\":[\"大白菜\",\"白菜\",\"黄芽白\"]},{\"id\":\"food-rice-cooked\",\"name\":\"熟米饭\",\"aliases\":[\"熟米饭\",\"米饭\",\"昨日米饭\",\"白米饭\"]},{\"id\":\"food-egg\",\"name\":\"鸡蛋\",\"aliases\":[\"鸡蛋\",\"蛋\",\"整蛋\"]},{\"id\":\"food-shiitake\",\"name\":\"香菇\",\"aliases\":[\"香菇\",\"冬菇\",\"花菇\"]},{\"id\":\"food-tomato\",\"name\":\"番茄\",\"aliases\":[\"番茄\",\"西红柿\"]},{\"id\":\"food-potato\",\"name\":\"土豆\",\"aliases\":[\"土豆\",\"马铃薯\"]},{\"id\":\"food-spinach\",\"name\":\"菠菜\",\"aliases\":[\"菠菜\",\"青菜菠菜\"]},{\"id\":\"food-carrot\",\"name\":\"胡萝卜\",\"aliases\":[\"胡萝卜\",\"红萝卜\"]},{\"id\":\"food-fish-fillet\",\"name\":\"鲈鱼片\",\"aliases\":[\"鲈鱼片\",\"鱼片\",\"白鱼\"]},{\"id\":\"food-pork-lean\",\"name\":\"瘦猪肉\",\"aliases\":[\"瘦猪肉\",\"猪瘦肉\",\"里脊\"]},{\"id\":\"food-beef\",\"name\":\"牛肉\",\"aliases\":[\"牛肉\",\"牛腩\",\"牛瘦肉\"]},{\"id\":\"food-peanut\",\"name\":\"花生\",\"aliases\":[\"花生\",\"花生米\"]},{\"id\":\"food-scallion\",\"name\":\"葱\",\"aliases\":[\"葱\",\"小葱\",\"青葱\"]},{\"id\":\"food-garlic\",\"name\":\"蒜\",\"aliases\":[\"蒜\",\"大蒜\",\"蒜蓉\"]},{\"id\":\"food-cucumber\",\"name\":\"黄瓜\",\"aliases\":[\"黄瓜\",\"青瓜\"]},{\"id\":\"food-millet\",\"name\":\"小米\",\"aliases\":[\"小米\",\"小米粒\"]}],\"templates\":[{\"id\":\"tpl-cabbage-tofu-braise\",\"name\":\"白菜豆腐煲\",\"aliases\":[],\"ingredientFoodIds\":[\"food-tofu\",\"food-cabbage\",\"food-scallion\"]},{\"id\":\"tpl-tomato-egg\",\"name\":\"番茄炒蛋\",\"aliases\":[\"番茄炒蛋\"],\"ingredientFoodIds\":[\"food-tomato\",\"food-egg\",\"food-scallion\"]},{\"id\":\"tpl-steamed-fish\",\"name\":\"清蒸鱼片\",\"aliases\":[],\"ingredientFoodIds\":[\"food-fish-fillet\",\"food-scallion\",\"food-garlic\"]},{\"id\":\"tpl-potato-chicken\",\"name\":\"土豆炖鸡腿\",\"aliases\":[\"土豆炖鸡腿\"],\"ingredientFoodIds\":[\"food-chicken-leg\",\"food-potato\",\"food-scallion\"]},{\"id\":\"tpl-tomato-beef\",\"name\":\"番茄牛肉\",\"aliases\":[],\"ingredientFoodIds\":[\"food-beef\",\"food-tomato\",\"food-potato\"]},{\"id\":\"tpl-pork-cabbage\",\"name\":\"白菜炒瘦肉\",\"aliases\":[],\"ingredientFoodIds\":[\"food-pork-lean\",\"food-cabbage\",\"food-garlic\"]},{\"id\":\"tpl-shiitake-egg\",\"name\":\"香菇蒸蛋\",\"aliases\":[\"蒸蛋\"],\"ingredientFoodIds\":[\"food-egg\",\"food-shiitake\"]},{\"id\":\"tpl-cucumber-salad\",\"name\":\"凉拌黄瓜\",\"aliases\":[],\"ingredientFoodIds\":[\"food-cucumber\",\"food-garlic\"]},{\"id\":\"tpl-garlic-spinach\",\"name\":\"蒜蓉菠菜\",\"aliases\":[],\"ingredientFoodIds\":[\"food-spinach\",\"food-garlic\"]},{\"id\":\"tpl-carrot-stir\",\"name\":\"清炒胡萝卜\",\"aliases\":[],\"ingredientFoodIds\":[\"food-carrot\",\"food-scallion\"]},{\"id\":\"tpl-leftover-rice\",\"name\":\"昨日米饭\",\"aliases\":[],\"ingredientFoodIds\":[\"food-rice-cooked\"]},{\"id\":\"tpl-plain-rice\",\"name\":\"白米饭\",\"aliases\":[],\"ingredientFoodIds\":[\"food-rice-cooked\"]},{\"id\":\"tpl-millet-porridge\",\"name\":\"小米粥\",\"aliases\":[],\"ingredientFoodIds\":[\"food-millet\"]}],\"planTags\":[{\"id\":\"planning\",\"label\":\"初次规划\"},{\"id\":\"replan\",\"label\":\"重规划\"},{\"id\":\"privacy\",\"label\":\"隐私\"},{\"id\":\"handoff\",\"label\":\"任务交接\"}],\"caregiverRecipientLabels\":[\"家庭保姆\",\"保姆\",\"阿姨\"]}}"
+            }
+          ],
+          "tools": [
+            {
+              "type": "function",
+              "function": {
+                "name": "preview_caregiver_task",
+                "description": "Preview a minimum-disclosure caregiver task card for the active plan (menu, inventory use, shopping list). This never commits or sends. recipientLabel must be one exact caregiver label (保姆 / 阿姨 / 家庭保姆).",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "preview_handoff",
+                        "send_handoff"
+                      ]
+                    },
+                    "recipientLabel": {
+                      "type": "string",
+                      "enum": [
+                        "家庭保姆",
+                        "保姆",
+                        "阿姨"
+                      ],
+                      "description": "Exact label from the user utterance; do not invent a different caregiver"
+                    },
+                    "serveAt": {
+                      "type": "string",
+                      "pattern": "^(?:unspecified|今天 (?:[01]\\d|2[0-3]):[0-5]\\d|\\d{4}-\\d{2}-\\d{2}T(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?(?:Z|[+-](?:[01]\\d|2[0-3]):[0-5]\\d))$",
+                      "description": "ISO-8601 with offset, '今天 HH:MM', or 'unspecified' when the user did not give a full time."
+                    }
+                  },
+                  "required": [
+                    "recipientLabel",
+                    "serveAt"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_user",
+                "description": "Ask the user for missing in-scope information. Use only real user-required slots such as dinerIds, mealType, recipientLabel, activePlanId, focusedTemplateId, currentPreview, softPreferenceToRelax or availableFoodIds. Never list empty arrays, preferLowEffort, planTags or topK as missing fields.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "inspect_context",
+                        "compose_meal",
+                        "revise_meal",
+                        "retrieve_guidance",
+                        "preview_handoff",
+                        "send_handoff",
+                        "preview_inventory",
+                        "update_inventory",
+                        "preview_member_memory",
+                        "update_member_memory",
+                        "preview_meal_completion",
+                        "complete_meal",
+                        "no_action",
+                        "unsupported"
+                      ],
+                      "description": "Unchanged user goal for this task."
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    "missingFields": {
+                      "type": "array",
+                      "maxItems": 8,
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "dinerIds",
+                          "mealType",
+                          "recipientLabel",
+                          "activePlanId",
+                          "focusedTemplateId",
+                          "currentPreview",
+                          "softPreferenceToRelax",
+                          "availableFoodIds"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "goal",
+                    "message",
+                    "missingFields"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "finish_turn",
+                "description": "End the turn with a grounded user-visible message when the goal is complete, blocked without further tools, or only needs a factual summary from successful tool results. Do not claim sending or external writes.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "inspect_context",
+                        "compose_meal",
+                        "revise_meal",
+                        "retrieve_guidance",
+                        "preview_handoff",
+                        "send_handoff",
+                        "preview_inventory",
+                        "update_inventory",
+                        "preview_member_memory",
+                        "update_member_memory",
+                        "preview_meal_completion",
+                        "complete_meal",
+                        "no_action"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    }
+                  },
+                  "required": [
+                    "goal",
+                    "message"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "function",
+              "function": {
+                "name": "refuse_request",
+                "description": "Refuse out-of-scope, unsafe or unsupported requests without calling Domain tools. goal must be unsupported.",
+                "strict": true,
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "type": "string",
+                      "enum": [
+                        "unsupported"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    "reasonCode": {
+                      "type": "string",
+                      "enum": [
+                        "UNSUPPORTED_EXTERNAL_ACTION",
+                        "CONFIRMATION_REQUIRED",
+                        "ACTIVE_PLAN_REQUIRED",
+                        "PLAN_INFEASIBLE",
+                        "STALE_CONTEXT",
+                        "RECIPIENT_REQUIRED",
+                        "UNSUPPORTED_TOOL",
+                        "UNSUPPORTED_OR_UNCLEAR",
+                        "UNSUPPORTED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "goal",
+                    "message",
+                    "reasonCode"
+                  ]
+                }
+              }
+            }
+          ],
+          "tool_choice": "required",
+          "temperature": 0,
+          "stream": false
+        }
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "body": {
+          "id": "chatcmpl-a728aa34dcae40b1",
+          "object": "chat.completion",
+          "created": 1785750990,
+          "model": "google/gemma-4-12B-it-qat-w4a16-ct",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "",
+                "refusal": null,
+                "annotations": null,
+                "audio": null,
+                "function_call": null,
+                "tool_calls": [
+                  {
+                    "id": "chatcmpl-tool-b81fb74d672fb3cb",
+                    "type": "function",
+                    "function": {
+                      "name": "preview_caregiver_task",
+                      "arguments": "{\"goal\": \"preview_handoff\", \"recipientLabel\": \"阿姨\", \"serveAt\": \"unspecified\"}"
+                    }
+                  }
+                ],
+                "reasoning": null
+              },
+              "logprobs": null,
+              "finish_reason": "tool_calls",
+              "stop_reason": 50,
+              "token_ids": null,
+              "routed_experts": null
+            }
+          ],
+          "service_tier": null,
+          "system_fingerprint": "vllm-0.25.1-cb4de088",
+          "usage": {
+            "prompt_tokens": 3928,
+            "total_tokens": 3965,
+            "completion_tokens": 37,
+            "prompt_tokens_details": null
+          },
+          "prompt_logprobs": null,
+          "prompt_token_ids": null,
+          "prompt_text": null,
+          "kv_transfer_params": null,
+          "metrics": null
+        }
+      },
+      "durationMs": 2475.91
+    }
+  ],
+  "modelHttpCount": 2,
+  "modelSteps": [
+    {
+      "index": 0,
+      "providerMode": "local_vllm",
+      "model": "google/gemma-4-12B-it-qat-w4a16-ct",
+      "decision": "tool",
+      "goal": "retrieve_guidance",
+      "tool": "retrieve_local_knowledge",
+      "rawArguments": {
+        "goal": "retrieve_guidance",
+        "query": "晚餐准备规则",
+        "topK": 3
+      },
+      "normalizedArguments": {
+        "query": "晚餐准备规则",
+        "topK": 3
+      },
+      "effectiveArguments": {
+        "query": "晚餐准备规则",
+        "topK": 3
+      },
+      "policy": {
+        "status": "ok",
+        "reasons": [],
+        "privacyViolation": false
+      },
+      "missingFields": [],
+      "toolResult": {
+        "tool": "retrieve_local_knowledge",
+        "ok": true
+      },
+      "gatewayInvocation": {
+        "tool": "retrieve_local_knowledge",
+        "requestedArguments": {
+          "query": "晚餐准备规则",
+          "topK": 3
+        },
+        "sourceUtterance": "先查一下本地晚餐准备规则，再生成给阿姨看的任务卡，先不要发送。",
+        "availableDomainTools": [
+          "get_day_context",
+          "retrieve_local_knowledge",
+          "preview_inventory_change",
+          "preview_member_memory_change",
+          "preview_meal_completion",
+          "preview_caregiver_task",
+          "find_dish_candidates",
+          "finalize_meal_plan"
+        ],
+        "result": {
+          "ok": true,
+          "tool": "retrieve_local_knowledge",
+          "data": {
+            "queryId": "rq-msd216ns",
+            "retrievalVersion": "rag-embedding-local-1.0.0",
+            "embeddingModel": "BAAI/bge-small-zh-v1.5",
+            "embeddingKind": "vllm",
+            "hits": [
+              {
+                "chunkId": "doc-min-disclosure-task-card#0",
+                "documentId": "doc-min-disclosure-task-card",
+                "sourcePath": "knowledge/corpus/min-disclosure-task-card.md",
+                "title": "任务卡最小披露与确认前不发送",
+                "licenseId": "lic-privateplate-synthetic-1",
+                "content": "# 任务卡最小披露\n\n发给保姆或执行者的任务卡只保留：\n\n- 菜单与份量差异（可用“米饭小份”“全餐少盐”等执行提示）\n- 家中已有食材与采购清单\n- 开饭时间与计划版本\n\n不得发送完整疾病史、诊断名称、原始对话或与本餐无关的健康档案。\n\n# 确认前不发送\n\n任务卡必须先预览。只有用户在可信界面确认后，才能写入本地模拟收件箱。\n\n聊天中说“确认”或“发给她”本身不会提交。取消、过期、令牌错误和重复确认都不得谎称发送成功。",
+                "chunkIndex": 0,
+                "score": 0.5199324964221544
+              },
+              {
+                "chunkId": "doc-hard-constraints#0",
+                "documentId": "doc-hard-constraints",
+                "sourcePath": "knowledge/corpus/hard-constraints.md",
+                "title": "硬约束优先于偏好",
+                "licenseId": "lic-privateplate-synthetic-1",
+                "content": "# 硬约束优先于偏好\n\n过敏、明确忌口和本轮用户拒绝必须先于少油、省事或优先消耗库存执行。\n\n当硬约束与软偏好冲突时，系统必须保留硬约束，返回结构化不可行或要求用户调整软偏好，不得静默放宽过敏和忌口。\n\n适用范围：家庭配餐规划、改口重规划、候选过滤。",
+                "chunkIndex": 0,
+                "score": 0.4579352174514525
+              },
+              {
+                "chunkId": "doc-inventory-and-shopping#0",
+                "documentId": "doc-inventory-and-shopping",
+                "sourcePath": "knowledge/corpus/inventory-and-shopping.md",
+                "title": "库存与采购缺口规则",
+                "licenseId": "lic-privateplate-synthetic-1",
+                "content": "# 模糊库存\n\n“半颗白菜”等 approximate 或 unknown 库存可以参与可行性判断，但不能伪装成可精确采购的克数。\n\nexact 库存给出精确差额；approximate 给范围；unknown 标记需要确认。\n\n# 采购单位\n\n需要采购时，应按现实单位向上取整（例如一盒豆腐），而不是显示“购买 10g”。\n\n# 不自动扣库存\n\n生成计划或预览任务卡本身不得自动扣减库存。只有用户确认“本餐已按计划吃完”后，才在账本中扣库存并记录摄入。",
+                "chunkIndex": 0,
+                "score": 0.42815979860673703
+              }
+            ],
+            "note": "vllm_embedding_retrieval"
+          },
+          "auditRef": "tool-51eac931-1950-4db2-9071-19fbe22afd59"
+        },
+        "statePatch": {
+          "lastToolStatus": "success",
+          "errorCode": null,
+          "toolSteps": 1
+        },
+        "durationMs": 8.270795999909751
+      }
+    },
+    {
+      "index": 1,
+      "providerMode": "local_vllm",
+      "model": "google/gemma-4-12B-it-qat-w4a16-ct",
+      "decision": "tool",
+      "goal": "preview_handoff",
+      "tool": "preview_caregiver_task",
+      "rawArguments": {
+        "goal": "preview_handoff",
+        "recipientLabel": "阿姨",
+        "serveAt": "unspecified"
+      },
+      "normalizedArguments": {
+        "recipientLabel": "阿姨",
+        "serveAt": "unspecified"
+      },
+      "effectiveArguments": {
+        "recipientLabel": "阿姨",
+        "serveAt": "unspecified"
+      },
+      "policy": {
+        "status": "ok",
+        "reasons": [],
+        "privacyViolation": false
+      },
+      "missingFields": [],
+      "toolResult": {
+        "tool": "preview_caregiver_task",
+        "ok": true
+      },
+      "gatewayInvocation": {
+        "tool": "preview_caregiver_task",
+        "requestedArguments": {
+          "recipientLabel": "阿姨",
+          "serveAt": "unspecified"
+        },
+        "sourceUtterance": "先查一下本地晚餐准备规则，再生成给阿姨看的任务卡，先不要发送。",
+        "availableDomainTools": [
+          "get_day_context",
+          "preview_inventory_change",
+          "preview_member_memory_change",
+          "preview_meal_completion",
+          "preview_caregiver_task",
+          "find_dish_candidates",
+          "finalize_meal_plan"
+        ],
+        "result": {
+          "ok": true,
+          "tool": "preview_caregiver_task",
+          "data": {
+            "pendingActionId": "pending-97a61199-644f-4e38-8f46-bfc28f942cca",
+            "payloadHash": "15fd4aa3d199ea5b79a724f63a00bdb06015d63c848bbad13b51111f9f84f30e",
+            "expiresAt": "2026-08-03T10:11:32.815Z",
+            "taskCard": {
+              "planId": "plan-c4a1a29c-37a3-498b-96aa-a174e9cc806c",
+              "planVersion": 1,
+              "recipientLabel": "阿姨",
+              "serveAt": "unspecified",
+              "menu": [
+                {
+                  "templateId": "tpl-cabbage-tofu-braise",
+                  "displayName": "白菜豆腐煲"
+                },
+                {
+                  "templateId": "tpl-leftover-rice",
+                  "displayName": "昨日米饭"
+                },
+                {
+                  "templateId": "tpl-garlic-spinach",
+                  "displayName": "蒜蓉菠菜"
+                }
+              ],
+              "useFromInventory": [
+                {
+                  "foodId": "food-cabbage",
+                  "quantity": {
+                    "estimateG": 135,
+                    "minG": 135,
+                    "maxG": 135,
+                    "confidence": "exact",
+                    "conversionRuleId": null
+                  }
+                },
+                {
+                  "foodId": "food-rice-cooked",
+                  "quantity": {
+                    "estimateG": 112.5,
+                    "minG": 112.5,
+                    "maxG": 112.5,
+                    "confidence": "exact",
+                    "conversionRuleId": null
+                  }
+                },
+                {
+                  "foodId": "food-tofu",
+                  "quantity": {
+                    "estimateG": 108,
+                    "minG": 108,
+                    "maxG": 108,
+                    "confidence": "exact",
+                    "conversionRuleId": null
+                  }
+                }
+              ],
+              "shoppingItems": [
+                {
+                  "foodId": "food-garlic",
+                  "required": {
+                    "estimateG": 7.2,
+                    "minG": 7.2,
+                    "maxG": 7.2,
+                    "confidence": "exact",
+                    "conversionRuleId": null
+                  },
+                  "available": {
+                    "estimateG": 0,
+                    "minG": 0,
+                    "maxG": 0,
+                    "confidence": "exact",
+                    "conversionRuleId": null
+                  },
+                  "purchase": {
+                    "estimateG": 7.2,
+                    "minG": 7.2,
+                    "maxG": 7.2,
+                    "confidence": "exact",
+                    "conversionRuleId": null
+                  },
+                  "status": "needed",
+                  "usedByTemplateIds": [
+                    "tpl-garlic-spinach"
+                  ]
+                },
+                {
+                  "foodId": "food-scallion",
+                  "required": {
+                    "estimateG": 7.2,
+                    "minG": 7.2,
+                    "maxG": 7.2,
+                    "confidence": "exact",
+                    "conversionRuleId": null
+                  },
+                  "available": {
+                    "estimateG": 0,
+                    "minG": 0,
+                    "maxG": 0,
+                    "confidence": "exact",
+                    "conversionRuleId": null
+                  },
+                  "purchase": {
+                    "estimateG": 7.2,
+                    "minG": 7.2,
+                    "maxG": 7.2,
+                    "confidence": "exact",
+                    "conversionRuleId": null
+                  },
+                  "status": "needed",
+                  "usedByTemplateIds": [
+                    "tpl-cabbage-tofu-braise"
+                  ]
+                },
+                {
+                  "foodId": "food-spinach",
+                  "required": {
+                    "estimateG": 135,
+                    "minG": 135,
+                    "maxG": 135,
+                    "confidence": "exact",
+                    "conversionRuleId": null
+                  },
+                  "available": {
+                    "estimateG": 0,
+                    "minG": 0,
+                    "maxG": 0,
+                    "confidence": "exact",
+                    "conversionRuleId": null
+                  },
+                  "purchase": {
+                    "estimateG": 135,
+                    "minG": 135,
+                    "maxG": 135,
+                    "confidence": "exact",
+                    "conversionRuleId": null
+                  },
+                  "status": "needed",
+                  "usedByTemplateIds": [
+                    "tpl-garlic-spinach"
+                  ]
+                }
+              ],
+              "executionNotes": [
+                "爸爸米饭小份",
+                "不要放牛肉或牛肉调味料",
+                "全餐少盐",
+                "少油"
+              ],
+              "disclosurePolicyVersion": "disclosure-1.1.0"
+            },
+            "disclosureCheck": {
+              "policyVersion": "disclosure-1.1.0",
+              "forbiddenDiseaseNamesPresent": false
+            },
+            "note": "确认令牌仅通过 UI 侧通道交付；Agent 不能提交 commit。"
+          },
+          "auditRef": "tool-7795e098-ee1b-4315-bdda-4d08928c89be"
+        },
+        "statePatch": {
+          "lastToolStatus": "success",
+          "errorCode": null,
+          "toolSteps": 2,
+          "pendingActionId": "pending-97a61199-644f-4e38-8f46-bfc28f942cca",
+          "lastCommittedActionId": null,
+          "lastCommittedPayloadHash": null,
+          "phase": "PREVIEWING_WRITE",
+          "confirmationStatus": "previewed"
+        },
+        "uiOnly": {
+          "confirmationToken": "<redacted>",
+          "payloadHash": "15fd4aa3d199ea5b79a724f63a00bdb06015d63c848bbad13b51111f9f84f30e",
+          "expiresAt": "2026-08-03T10:11:32.815Z",
+          "pendingActionId": "pending-97a61199-644f-4e38-8f46-bfc28f942cca",
+          "actionType": "caregiver_task_send",
+          "confirmLabel": "确认发送（模拟）",
+          "taskCard": {
+            "planId": "plan-c4a1a29c-37a3-498b-96aa-a174e9cc806c",
+            "planVersion": 1,
+            "recipientLabel": "阿姨",
+            "serveAt": "unspecified",
+            "menu": [
+              {
+                "templateId": "tpl-cabbage-tofu-braise",
+                "displayName": "白菜豆腐煲"
+              },
+              {
+                "templateId": "tpl-leftover-rice",
+                "displayName": "昨日米饭"
+              },
+              {
+                "templateId": "tpl-garlic-spinach",
+                "displayName": "蒜蓉菠菜"
+              }
+            ],
+            "useFromInventory": [
+              {
+                "foodId": "food-cabbage",
+                "quantity": {
+                  "estimateG": 135,
+                  "minG": 135,
+                  "maxG": 135,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                }
+              },
+              {
+                "foodId": "food-rice-cooked",
+                "quantity": {
+                  "estimateG": 112.5,
+                  "minG": 112.5,
+                  "maxG": 112.5,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                }
+              },
+              {
+                "foodId": "food-tofu",
+                "quantity": {
+                  "estimateG": 108,
+                  "minG": 108,
+                  "maxG": 108,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                }
+              }
+            ],
+            "shoppingItems": [
+              {
+                "foodId": "food-garlic",
+                "required": {
+                  "estimateG": 7.2,
+                  "minG": 7.2,
+                  "maxG": 7.2,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                },
+                "available": {
+                  "estimateG": 0,
+                  "minG": 0,
+                  "maxG": 0,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                },
+                "purchase": {
+                  "estimateG": 7.2,
+                  "minG": 7.2,
+                  "maxG": 7.2,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                },
+                "status": "needed",
+                "usedByTemplateIds": [
+                  "tpl-garlic-spinach"
+                ]
+              },
+              {
+                "foodId": "food-scallion",
+                "required": {
+                  "estimateG": 7.2,
+                  "minG": 7.2,
+                  "maxG": 7.2,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                },
+                "available": {
+                  "estimateG": 0,
+                  "minG": 0,
+                  "maxG": 0,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                },
+                "purchase": {
+                  "estimateG": 7.2,
+                  "minG": 7.2,
+                  "maxG": 7.2,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                },
+                "status": "needed",
+                "usedByTemplateIds": [
+                  "tpl-cabbage-tofu-braise"
+                ]
+              },
+              {
+                "foodId": "food-spinach",
+                "required": {
+                  "estimateG": 135,
+                  "minG": 135,
+                  "maxG": 135,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                },
+                "available": {
+                  "estimateG": 0,
+                  "minG": 0,
+                  "maxG": 0,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                },
+                "purchase": {
+                  "estimateG": 135,
+                  "minG": 135,
+                  "maxG": 135,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                },
+                "status": "needed",
+                "usedByTemplateIds": [
+                  "tpl-garlic-spinach"
+                ]
+              }
+            ],
+            "executionNotes": [
+              "爸爸米饭小份",
+              "不要放牛肉或牛肉调味料",
+              "全餐少盐",
+              "少油"
+            ],
+            "disclosurePolicyVersion": "disclosure-1.1.0"
+          }
+        },
+        "durationMs": 2.3974470000248402
+      }
+    }
+  ],
+  "modelTrace": {
+    "providerMode": "local_vllm",
+    "model": "google/gemma-4-12B-it-qat-w4a16-ct",
+    "decisionKind": "tool",
+    "transport": "native_function",
+    "tool": "preview_caregiver_task",
+    "raw_model_arguments": {
+      "goal": "preview_handoff",
+      "recipientLabel": "阿姨",
+      "serveAt": "unspecified"
+    },
+    "normalized_model_arguments": {
+      "recipientLabel": "阿姨",
+      "serveAt": "unspecified"
+    },
+    "effective_arguments": {
+      "recipientLabel": "阿姨",
+      "serveAt": "unspecified"
+    },
+    "privacy_violation": false,
+    "policy_reasons": [],
+    "format_retry_count": 0,
+    "format_retry_reasons": []
+  },
+  "finalizationMode": "trusted_presenter",
+  "toolInvocations": [
+    {
+      "tool": "retrieve_local_knowledge",
+      "requestedArguments": {
+        "query": "晚餐准备规则",
+        "topK": 3
+      },
+      "sourceUtterance": "先查一下本地晚餐准备规则，再生成给阿姨看的任务卡，先不要发送。",
+      "availableDomainTools": [
+        "get_day_context",
+        "retrieve_local_knowledge",
+        "preview_inventory_change",
+        "preview_member_memory_change",
+        "preview_meal_completion",
+        "preview_caregiver_task",
+        "find_dish_candidates",
+        "finalize_meal_plan"
+      ],
+      "result": {
+        "ok": true,
+        "tool": "retrieve_local_knowledge",
+        "data": {
+          "queryId": "rq-msd216ns",
+          "retrievalVersion": "rag-embedding-local-1.0.0",
+          "embeddingModel": "BAAI/bge-small-zh-v1.5",
+          "embeddingKind": "vllm",
+          "hits": [
+            {
+              "chunkId": "doc-min-disclosure-task-card#0",
+              "documentId": "doc-min-disclosure-task-card",
+              "sourcePath": "knowledge/corpus/min-disclosure-task-card.md",
+              "title": "任务卡最小披露与确认前不发送",
+              "licenseId": "lic-privateplate-synthetic-1",
+              "content": "# 任务卡最小披露\n\n发给保姆或执行者的任务卡只保留：\n\n- 菜单与份量差异（可用“米饭小份”“全餐少盐”等执行提示）\n- 家中已有食材与采购清单\n- 开饭时间与计划版本\n\n不得发送完整疾病史、诊断名称、原始对话或与本餐无关的健康档案。\n\n# 确认前不发送\n\n任务卡必须先预览。只有用户在可信界面确认后，才能写入本地模拟收件箱。\n\n聊天中说“确认”或“发给她”本身不会提交。取消、过期、令牌错误和重复确认都不得谎称发送成功。",
+              "chunkIndex": 0,
+              "score": 0.5199324964221544
+            },
+            {
+              "chunkId": "doc-hard-constraints#0",
+              "documentId": "doc-hard-constraints",
+              "sourcePath": "knowledge/corpus/hard-constraints.md",
+              "title": "硬约束优先于偏好",
+              "licenseId": "lic-privateplate-synthetic-1",
+              "content": "# 硬约束优先于偏好\n\n过敏、明确忌口和本轮用户拒绝必须先于少油、省事或优先消耗库存执行。\n\n当硬约束与软偏好冲突时，系统必须保留硬约束，返回结构化不可行或要求用户调整软偏好，不得静默放宽过敏和忌口。\n\n适用范围：家庭配餐规划、改口重规划、候选过滤。",
+              "chunkIndex": 0,
+              "score": 0.4579352174514525
+            },
+            {
+              "chunkId": "doc-inventory-and-shopping#0",
+              "documentId": "doc-inventory-and-shopping",
+              "sourcePath": "knowledge/corpus/inventory-and-shopping.md",
+              "title": "库存与采购缺口规则",
+              "licenseId": "lic-privateplate-synthetic-1",
+              "content": "# 模糊库存\n\n“半颗白菜”等 approximate 或 unknown 库存可以参与可行性判断，但不能伪装成可精确采购的克数。\n\nexact 库存给出精确差额；approximate 给范围；unknown 标记需要确认。\n\n# 采购单位\n\n需要采购时，应按现实单位向上取整（例如一盒豆腐），而不是显示“购买 10g”。\n\n# 不自动扣库存\n\n生成计划或预览任务卡本身不得自动扣减库存。只有用户确认“本餐已按计划吃完”后，才在账本中扣库存并记录摄入。",
+              "chunkIndex": 0,
+              "score": 0.42815979860673703
+            }
+          ],
+          "note": "vllm_embedding_retrieval"
+        },
+        "auditRef": "tool-51eac931-1950-4db2-9071-19fbe22afd59"
+      },
+      "statePatch": {
+        "lastToolStatus": "success",
+        "errorCode": null,
+        "toolSteps": 1
+      },
+      "durationMs": 8.270795999909751
+    },
+    {
+      "tool": "preview_caregiver_task",
+      "requestedArguments": {
+        "recipientLabel": "阿姨",
+        "serveAt": "unspecified"
+      },
+      "sourceUtterance": "先查一下本地晚餐准备规则，再生成给阿姨看的任务卡，先不要发送。",
+      "availableDomainTools": [
+        "get_day_context",
+        "preview_inventory_change",
+        "preview_member_memory_change",
+        "preview_meal_completion",
+        "preview_caregiver_task",
+        "find_dish_candidates",
+        "finalize_meal_plan"
+      ],
+      "result": {
+        "ok": true,
+        "tool": "preview_caregiver_task",
+        "data": {
+          "pendingActionId": "pending-97a61199-644f-4e38-8f46-bfc28f942cca",
+          "payloadHash": "15fd4aa3d199ea5b79a724f63a00bdb06015d63c848bbad13b51111f9f84f30e",
+          "expiresAt": "2026-08-03T10:11:32.815Z",
+          "taskCard": {
+            "planId": "plan-c4a1a29c-37a3-498b-96aa-a174e9cc806c",
+            "planVersion": 1,
+            "recipientLabel": "阿姨",
+            "serveAt": "unspecified",
+            "menu": [
+              {
+                "templateId": "tpl-cabbage-tofu-braise",
+                "displayName": "白菜豆腐煲"
+              },
+              {
+                "templateId": "tpl-leftover-rice",
+                "displayName": "昨日米饭"
+              },
+              {
+                "templateId": "tpl-garlic-spinach",
+                "displayName": "蒜蓉菠菜"
+              }
+            ],
+            "useFromInventory": [
+              {
+                "foodId": "food-cabbage",
+                "quantity": {
+                  "estimateG": 135,
+                  "minG": 135,
+                  "maxG": 135,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                }
+              },
+              {
+                "foodId": "food-rice-cooked",
+                "quantity": {
+                  "estimateG": 112.5,
+                  "minG": 112.5,
+                  "maxG": 112.5,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                }
+              },
+              {
+                "foodId": "food-tofu",
+                "quantity": {
+                  "estimateG": 108,
+                  "minG": 108,
+                  "maxG": 108,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                }
+              }
+            ],
+            "shoppingItems": [
+              {
+                "foodId": "food-garlic",
+                "required": {
+                  "estimateG": 7.2,
+                  "minG": 7.2,
+                  "maxG": 7.2,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                },
+                "available": {
+                  "estimateG": 0,
+                  "minG": 0,
+                  "maxG": 0,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                },
+                "purchase": {
+                  "estimateG": 7.2,
+                  "minG": 7.2,
+                  "maxG": 7.2,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                },
+                "status": "needed",
+                "usedByTemplateIds": [
+                  "tpl-garlic-spinach"
+                ]
+              },
+              {
+                "foodId": "food-scallion",
+                "required": {
+                  "estimateG": 7.2,
+                  "minG": 7.2,
+                  "maxG": 7.2,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                },
+                "available": {
+                  "estimateG": 0,
+                  "minG": 0,
+                  "maxG": 0,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                },
+                "purchase": {
+                  "estimateG": 7.2,
+                  "minG": 7.2,
+                  "maxG": 7.2,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                },
+                "status": "needed",
+                "usedByTemplateIds": [
+                  "tpl-cabbage-tofu-braise"
+                ]
+              },
+              {
+                "foodId": "food-spinach",
+                "required": {
+                  "estimateG": 135,
+                  "minG": 135,
+                  "maxG": 135,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                },
+                "available": {
+                  "estimateG": 0,
+                  "minG": 0,
+                  "maxG": 0,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                },
+                "purchase": {
+                  "estimateG": 135,
+                  "minG": 135,
+                  "maxG": 135,
+                  "confidence": "exact",
+                  "conversionRuleId": null
+                },
+                "status": "needed",
+                "usedByTemplateIds": [
+                  "tpl-garlic-spinach"
+                ]
+              }
+            ],
+            "executionNotes": [
+              "爸爸米饭小份",
+              "不要放牛肉或牛肉调味料",
+              "全餐少盐",
+              "少油"
+            ],
+            "disclosurePolicyVersion": "disclosure-1.1.0"
+          },
+          "disclosureCheck": {
+            "policyVersion": "disclosure-1.1.0",
+            "forbiddenDiseaseNamesPresent": false
+          },
+          "note": "确认令牌仅通过 UI 侧通道交付；Agent 不能提交 commit。"
+        },
+        "auditRef": "tool-7795e098-ee1b-4315-bdda-4d08928c89be"
+      },
+      "statePatch": {
+        "lastToolStatus": "success",
+        "errorCode": null,
+        "toolSteps": 2,
+        "pendingActionId": "pending-97a61199-644f-4e38-8f46-bfc28f942cca",
+        "lastCommittedActionId": null,
+        "lastCommittedPayloadHash": null,
+        "phase": "PREVIEWING_WRITE",
+        "confirmationStatus": "previewed"
+      },
+      "uiOnly": {
+        "confirmationToken": "<redacted>",
+        "payloadHash": "15fd4aa3d199ea5b79a724f63a00bdb06015d63c848bbad13b51111f9f84f30e",
+        "expiresAt": "2026-08-03T10:11:32.815Z",
+        "pendingActionId": "pending-97a61199-644f-4e38-8f46-bfc28f942cca",
+        "actionType": "caregiver_task_send",
+        "confirmLabel": "确认发送（模拟）",
+        "taskCard": {
+          "planId": "plan-c4a1a29c-37a3-498b-96aa-a174e9cc806c",
+          "planVersion": 1,
+          "recipientLabel": "阿姨",
+          "serveAt": "unspecified",
+          "menu": [
+            {
+              "templateId": "tpl-cabbage-tofu-braise",
+              "displayName": "白菜豆腐煲"
+            },
+            {
+              "templateId": "tpl-leftover-rice",
+              "displayName": "昨日米饭"
+            },
+            {
+              "templateId": "tpl-garlic-spinach",
+              "displayName": "蒜蓉菠菜"
+            }
+          ],
+          "useFromInventory": [
+            {
+              "foodId": "food-cabbage",
+              "quantity": {
+                "estimateG": 135,
+                "minG": 135,
+                "maxG": 135,
+                "confidence": "exact",
+                "conversionRuleId": null
+              }
+            },
+            {
+              "foodId": "food-rice-cooked",
+              "quantity": {
+                "estimateG": 112.5,
+                "minG": 112.5,
+                "maxG": 112.5,
+                "confidence": "exact",
+                "conversionRuleId": null
+              }
+            },
+            {
+              "foodId": "food-tofu",
+              "quantity": {
+                "estimateG": 108,
+                "minG": 108,
+                "maxG": 108,
+                "confidence": "exact",
+                "conversionRuleId": null
+              }
+            }
+          ],
+          "shoppingItems": [
+            {
+              "foodId": "food-garlic",
+              "required": {
+                "estimateG": 7.2,
+                "minG": 7.2,
+                "maxG": 7.2,
+                "confidence": "exact",
+                "conversionRuleId": null
+              },
+              "available": {
+                "estimateG": 0,
+                "minG": 0,
+                "maxG": 0,
+                "confidence": "exact",
+                "conversionRuleId": null
+              },
+              "purchase": {
+                "estimateG": 7.2,
+                "minG": 7.2,
+                "maxG": 7.2,
+                "confidence": "exact",
+                "conversionRuleId": null
+              },
+              "status": "needed",
+              "usedByTemplateIds": [
+                "tpl-garlic-spinach"
+              ]
+            },
+            {
+              "foodId": "food-scallion",
+              "required": {
+                "estimateG": 7.2,
+                "minG": 7.2,
+                "maxG": 7.2,
+                "confidence": "exact",
+                "conversionRuleId": null
+              },
+              "available": {
+                "estimateG": 0,
+                "minG": 0,
+                "maxG": 0,
+                "confidence": "exact",
+                "conversionRuleId": null
+              },
+              "purchase": {
+                "estimateG": 7.2,
+                "minG": 7.2,
+                "maxG": 7.2,
+                "confidence": "exact",
+                "conversionRuleId": null
+              },
+              "status": "needed",
+              "usedByTemplateIds": [
+                "tpl-cabbage-tofu-braise"
+              ]
+            },
+            {
+              "foodId": "food-spinach",
+              "required": {
+                "estimateG": 135,
+                "minG": 135,
+                "maxG": 135,
+                "confidence": "exact",
+                "conversionRuleId": null
+              },
+              "available": {
+                "estimateG": 0,
+                "minG": 0,
+                "maxG": 0,
+                "confidence": "exact",
+                "conversionRuleId": null
+              },
+              "purchase": {
+                "estimateG": 135,
+                "minG": 135,
+                "maxG": 135,
+                "confidence": "exact",
+                "conversionRuleId": null
+              },
+              "status": "needed",
+              "usedByTemplateIds": [
+                "tpl-garlic-spinach"
+              ]
+            }
+          ],
+          "executionNotes": [
+            "爸爸米饭小份",
+            "不要放牛肉或牛肉调味料",
+            "全餐少盐",
+            "少油"
+          ],
+          "disclosurePolicyVersion": "disclosure-1.1.0"
+        }
+      },
+      "durationMs": 2.3974470000248402
+    }
+  ],
+  "answer": "已查阅本地规则：任务卡最小披露与确认前不发送、硬约束优先于偏好、库存与采购缺口规则。\n给阿姨的任务卡预览已生成，菜单为白菜豆腐煲、昨日米饭、蒜蓉菠菜。采购缺口已附在任务卡中。尚未发送，仍需在界面确认。",
+  "phaseAfter": "AWAITING_CONFIRMATION",
+  "validation": {
+    "ok": true,
+    "reasons": []
+  },
+  "taskOutcome": {
+    "goal": "preview_handoff",
+    "status": "COMPLETE",
+    "phase": "AWAITING_CONFIRMATION",
+    "verification": {
+      "passed": true
+    },
+    "reasons": [],
+    "evidence": [
+      {
+        "kind": "tool_result",
+        "tool": "retrieve_local_knowledge",
+        "ok": true
+      },
+      {
+        "kind": "tool_result",
+        "tool": "preview_caregiver_task",
+        "ok": true
+      },
+      {
+        "kind": "answer_validation",
+        "ok": true
+      }
+    ]
+  },
+  "uiOnly": {
+    "confirmationToken": "<redacted>",
+    "payloadHash": "15fd4aa3d199ea5b79a724f63a00bdb06015d63c848bbad13b51111f9f84f30e",
+    "expiresAt": "2026-08-03T10:11:32.815Z",
+    "pendingActionId": "pending-97a61199-644f-4e38-8f46-bfc28f942cca",
+    "actionType": "caregiver_task_send",
+    "confirmLabel": "确认发送（模拟）",
+    "taskCard": {
+      "planId": "plan-c4a1a29c-37a3-498b-96aa-a174e9cc806c",
+      "planVersion": 1,
+      "recipientLabel": "阿姨",
+      "serveAt": "unspecified",
+      "menu": [
+        {
+          "templateId": "tpl-cabbage-tofu-braise",
+          "displayName": "白菜豆腐煲"
+        },
+        {
+          "templateId": "tpl-leftover-rice",
+          "displayName": "昨日米饭"
+        },
+        {
+          "templateId": "tpl-garlic-spinach",
+          "displayName": "蒜蓉菠菜"
+        }
+      ],
+      "useFromInventory": [
+        {
+          "foodId": "food-cabbage",
+          "quantity": {
+            "estimateG": 135,
+            "minG": 135,
+            "maxG": 135,
+            "confidence": "exact",
+            "conversionRuleId": null
+          }
+        },
+        {
+          "foodId": "food-rice-cooked",
+          "quantity": {
+            "estimateG": 112.5,
+            "minG": 112.5,
+            "maxG": 112.5,
+            "confidence": "exact",
+            "conversionRuleId": null
+          }
+        },
+        {
+          "foodId": "food-tofu",
+          "quantity": {
+            "estimateG": 108,
+            "minG": 108,
+            "maxG": 108,
+            "confidence": "exact",
+            "conversionRuleId": null
+          }
+        }
+      ],
+      "shoppingItems": [
+        {
+          "foodId": "food-garlic",
+          "required": {
+            "estimateG": 7.2,
+            "minG": 7.2,
+            "maxG": 7.2,
+            "confidence": "exact",
+            "conversionRuleId": null
+          },
+          "available": {
+            "estimateG": 0,
+            "minG": 0,
+            "maxG": 0,
+            "confidence": "exact",
+            "conversionRuleId": null
+          },
+          "purchase": {
+            "estimateG": 7.2,
+            "minG": 7.2,
+            "maxG": 7.2,
+            "confidence": "exact",
+            "conversionRuleId": null
+          },
+          "status": "needed",
+          "usedByTemplateIds": [
+            "tpl-garlic-spinach"
+          ]
+        },
+        {
+          "foodId": "food-scallion",
+          "required": {
+            "estimateG": 7.2,
+            "minG": 7.2,
+            "maxG": 7.2,
+            "confidence": "exact",
+            "conversionRuleId": null
+          },
+          "available": {
+            "estimateG": 0,
+            "minG": 0,
+            "maxG": 0,
+            "confidence": "exact",
+            "conversionRuleId": null
+          },
+          "purchase": {
+            "estimateG": 7.2,
+            "minG": 7.2,
+            "maxG": 7.2,
+            "confidence": "exact",
+            "conversionRuleId": null
+          },
+          "status": "needed",
+          "usedByTemplateIds": [
+            "tpl-cabbage-tofu-braise"
+          ]
+        },
+        {
+          "foodId": "food-spinach",
+          "required": {
+            "estimateG": 135,
+            "minG": 135,
+            "maxG": 135,
+            "confidence": "exact",
+            "conversionRuleId": null
+          },
+          "available": {
+            "estimateG": 0,
+            "minG": 0,
+            "maxG": 0,
+            "confidence": "exact",
+            "conversionRuleId": null
+          },
+          "purchase": {
+            "estimateG": 135,
+            "minG": 135,
+            "maxG": 135,
+            "confidence": "exact",
+            "conversionRuleId": null
+          },
+          "status": "needed",
+          "usedByTemplateIds": [
+            "tpl-garlic-spinach"
+          ]
+        }
+      ],
+      "executionNotes": [
+        "爸爸米饭小份",
+        "不要放牛肉或牛肉调味料",
+        "全餐少盐",
+        "少油"
+      ],
+      "disclosurePolicyVersion": "disclosure-1.1.0"
+    }
+  },
+  "stateBefore": {
+    "plans": [
+      {
+        "id": "plan-c4a1a29c-37a3-498b-96aa-a174e9cc806c",
+        "version": 1,
+        "parentPlanId": null,
+        "status": "valid",
+        "selectedTemplateIds": [
+          "tpl-cabbage-tofu-braise",
+          "tpl-leftover-rice",
+          "tpl-garlic-spinach"
+        ],
+        "agentSelectedTemplateIds": [
+          "tpl-cabbage-tofu-braise",
+          "tpl-leftover-rice",
+          "tpl-garlic-spinach"
+        ]
+      }
+    ],
+    "inventoryLedgerCount": 0,
+    "mealRecords": [],
+    "caregiverTaskCount": 0,
+    "preferencesCount": 1,
+    "pendingActionCount": 0,
+    "agent": {
+      "phase": "PRESENTING_PLAN",
+      "activePlanId": "plan-c4a1a29c-37a3-498b-96aa-a174e9cc806c",
+      "activePlanVersion": 1,
+      "pendingActionId": null,
+      "taskState": {
+        "schemaVersion": 2,
+        "objective": "compose_meal",
+        "status": "completed",
+        "workflowStage": "plan_ready",
+        "unresolvedSlots": [],
+        "knownSlots": {},
+        "focusedTemplateId": null,
+        "lastDomainFailureCode": null,
+        "pendingActionId": null,
+        "pendingActionType": null,
+        "candidateSetId": "cset-f942df31-b16a-4e33-81d7-1aa74cf18e82",
+        "candidateSetVersion": "{\"household\":1,\"inventory\":1,\"intake\":1,\"policy\":\"demo-policy-1.0.0\"}",
+        "serviceDate": "2026-08-03"
+      }
+    }
+  },
+  "stateAfter": {
+    "plans": [
+      {
+        "id": "plan-c4a1a29c-37a3-498b-96aa-a174e9cc806c",
+        "version": 1,
+        "parentPlanId": null,
+        "status": "valid",
+        "selectedTemplateIds": [
+          "tpl-cabbage-tofu-braise",
+          "tpl-leftover-rice",
+          "tpl-garlic-spinach"
+        ],
+        "agentSelectedTemplateIds": [
+          "tpl-cabbage-tofu-braise",
+          "tpl-leftover-rice",
+          "tpl-garlic-spinach"
+        ]
+      }
+    ],
+    "inventoryLedgerCount": 0,
+    "mealRecords": [],
+    "caregiverTaskCount": 0,
+    "preferencesCount": 1,
+    "pendingActionCount": 1,
+    "agent": {
+      "phase": "AWAITING_CONFIRMATION",
+      "activePlanId": "plan-c4a1a29c-37a3-498b-96aa-a174e9cc806c",
+      "activePlanVersion": 1,
+      "pendingActionId": "pending-97a61199-644f-4e38-8f46-bfc28f942cca",
+      "taskState": {
+        "schemaVersion": 2,
+        "objective": "preview_handoff",
+        "status": "waiting_confirmation",
+        "workflowStage": "awaiting_confirm",
+        "unresolvedSlots": [],
+        "knownSlots": {},
+        "focusedTemplateId": null,
+        "lastDomainFailureCode": null,
+        "pendingActionId": "pending-97a61199-644f-4e38-8f46-bfc28f942cca",
+        "pendingActionType": "caregiver_task_send",
+        "candidateSetId": null,
+        "candidateSetVersion": null,
+        "serviceDate": "2026-08-03"
+      }
+    }
+  },
+  "taskState": {
+    "schemaVersion": 2,
+    "objective": "preview_handoff",
+    "status": "waiting_confirmation",
+    "workflowStage": "awaiting_confirm",
+    "unresolvedSlots": [],
+    "knownSlots": {},
+    "focusedTemplateId": null,
+    "lastDomainFailureCode": null,
+    "pendingActionId": "pending-97a61199-644f-4e38-8f46-bfc28f942cca",
+    "pendingActionType": "caregiver_task_send",
+    "candidateSetId": null,
+    "candidateSetVersion": null,
+    "serviceDate": "2026-08-03"
+  },
+  "retrievalSourceIds": [
+    "knowledge/corpus/min-disclosure-task-card.md",
+    "knowledge/corpus/hard-constraints.md",
+    "knowledge/corpus/inventory-and-shopping.md"
+  ],
+  "error": null
+}

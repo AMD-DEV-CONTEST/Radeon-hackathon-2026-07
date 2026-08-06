@@ -1,0 +1,27 @@
+default_stage:
+  default_modifiers:
+    QuantizationModifier:
+      config_groups:
+        group_0:
+          targets: [Linear]
+          weights:
+            num_bits: 4
+            type: !!python/object/apply:compressed_tensors.quantization.quant_args.QuantizationType [
+              int]
+            symmetric: true
+            group_size: 32
+            strategy: group
+            block_structure: null
+            dynamic: false
+            actorder: null
+            scale_dtype: null
+            zp_dtype: null
+            observer: memoryless_minmax
+            observer_kwargs: {}
+          input_activations: null
+          output_activations: null
+          format: null
+      targets: [Linear]
+      ignore: [lm_head, 're:.*embed.*', 're:.*vision_tower.*', 're:.*vision_embedder.*', 're:.*audio_tower.*',
+        're:.*router.*']
+      bypass_divisibility_checks: false

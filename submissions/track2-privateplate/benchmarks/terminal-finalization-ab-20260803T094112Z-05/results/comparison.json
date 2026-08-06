@@ -1,0 +1,199 @@
+{
+  "status": "ADOPTABLE_CANDIDATE",
+  "sampleCount": {
+    "A": 9,
+    "B": 9
+  },
+  "targetE2eMs": {
+    "A": {
+      "p50": 16882.65,
+      "p90": 40133.17,
+      "samples": 9,
+      "percentChangeP50": null,
+      "percentChangeP90": null
+    },
+    "B": {
+      "p50": 4763.24,
+      "p90": 25308.79,
+      "samples": 9,
+      "percentChangeP50": -71.79,
+      "percentChangeP90": -36.94
+    }
+  },
+  "targetModelCalls": {
+    "A": 34,
+    "B": 21,
+    "percentChange": -38.24
+  },
+  "totalModelCallsIncludingSetup": {
+    "A": 67,
+    "B": 45,
+    "percentChange": -32.84
+  },
+  "promptTokens": {
+    "A": 152409,
+    "B": 99053,
+    "percentChange": -35.01
+  },
+  "completionTokens": {
+    "A": 4871,
+    "B": 1802,
+    "percentChange": -63.01
+  },
+  "scenarioMetrics": {
+    "basic-planning": {
+      "samples": {
+        "A": 3,
+        "B": 3
+      },
+      "quality": {
+        "A": 1,
+        "B": 3
+      },
+      "targetE2e": {
+        "A": {
+          "p50": 38601.97,
+          "p90": 40133.17,
+          "samples": 3,
+          "percentChangeP50": null,
+          "percentChangeP90": null
+        },
+        "B": {
+          "p50": 19289.46,
+          "p90": 25308.79,
+          "samples": 3,
+          "percentChangeP50": -50.03,
+          "percentChangeP90": -36.94
+        }
+      },
+      "modelCalls": {
+        "A": 19,
+        "B": 12,
+        "percentChange": -36.84
+      },
+      "promptTokens": {
+        "A": 89350,
+        "B": 59944,
+        "percentChange": -32.91
+      },
+      "completionTokens": {
+        "A": 2899,
+        "B": 1495,
+        "percentChange": -48.43
+      }
+    },
+    "meal-completion": {
+      "samples": {
+        "A": 3,
+        "B": 3
+      },
+      "quality": {
+        "A": 3,
+        "B": 3
+      },
+      "targetE2e": {
+        "A": {
+          "p50": 11036.15,
+          "p90": 12051.88,
+          "samples": 3,
+          "percentChangeP50": null,
+          "percentChangeP90": null
+        },
+        "B": {
+          "p50": 1981.89,
+          "p90": 3198.02,
+          "samples": 3,
+          "percentChangeP50": -82.04,
+          "percentChangeP90": -73.46
+        }
+      },
+      "modelCalls": {
+        "A": 6,
+        "B": 3,
+        "percentChange": -50
+      },
+      "promptTokens": {
+        "A": 23767,
+        "B": 13674,
+        "percentChange": -42.47
+      },
+      "completionTokens": {
+        "A": 891,
+        "B": 87,
+        "percentChange": -90.24
+      }
+    },
+    "rag-caregiver-preview": {
+      "samples": {
+        "A": 3,
+        "B": 3
+      },
+      "quality": {
+        "A": 3,
+        "B": 3
+      },
+      "targetE2e": {
+        "A": {
+          "p50": 16882.65,
+          "p90": 17227.33,
+          "samples": 3,
+          "percentChangeP50": null,
+          "percentChangeP90": null
+        },
+        "B": {
+          "p50": 4763.24,
+          "p90": 6932.4,
+          "samples": 3,
+          "percentChangeP50": -71.79,
+          "percentChangeP90": -59.76
+        }
+      },
+      "modelCalls": {
+        "A": 9,
+        "B": 6,
+        "percentChange": -33.33
+      },
+      "promptTokens": {
+        "A": 39292,
+        "B": 25435,
+        "percentChange": -35.27
+      },
+      "completionTokens": {
+        "A": 1081,
+        "B": 220,
+        "percentChange": -79.65
+      }
+    }
+  },
+  "quality": {
+    "A": {
+      "pass": 7,
+      "fail": 2,
+      "errors": 0
+    },
+    "B": {
+      "pass": 9,
+      "fail": 0,
+      "errors": 0
+    },
+    "qualityNotLower": true,
+    "noNewErrors": true
+  },
+  "finalizationModes": {
+    "A": {
+      "model": 7,
+      "deterministic_fallback": 2
+    },
+    "B": {
+      "trusted_presenter": 9
+    }
+  },
+  "correctionNote": "仅修正分场景 quality 汇总；没有重新测量；原始任务和性能数据未修改。",
+  "limitations": [
+    "每个场景每个 arm 3 个目标任务；餐后和任务卡目标前的计划生成作为 setup 单独记录。",
+    "E2E p50/p90 以目标回合为主，setup 请求计入总模型请求数但不混入目标延迟。",
+    "正常成功终态固定消除一次 finish_turn 请求；聚合请求数额外减少可能包含 A 组回答重试或 fallback，不能全部归因于固定节省。",
+    "任务通过真实 PrivatePlateAgent、Domain、SQLite 和本地 RAG 执行；没有 scripted provider 参与目标回合。"
+  ],
+  "decisionRule": "B must preserve task quality and safety, eliminate terminal-only model calls, and improve target E2E latency."
+}

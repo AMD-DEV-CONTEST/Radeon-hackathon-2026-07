@@ -1,0 +1,38 @@
+{
+  "name": "privateplate-amd-hackathon",
+  "private": true,
+  "version": "0.1.0",
+  "description": "PrivatePlate \u2014 private household meal orchestration agent for AMD Radeon hackathon",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @privateplate/contracts && npm run build -w @privateplate/domain && npm run build -w @privateplate/agent-runtime && npm run build -w @privateplate/server && npm run build -w @privateplate/web && npm run build -w @privateplate/evals",
+    "test": "npm run build && npm run test -w @privateplate/contracts && npm run test -w @privateplate/domain && npm run test -w @privateplate/agent-runtime && npm run test -w @privateplate/server",
+    "test:historical-v1-routing-smoke": "node scripts/c0/run-tool-smoke.mjs",
+    "test:c0-integrity-current": "node --test scripts/c0/stage-b/account-profile.test.mjs scripts/c0/stage-b/evidence-gates.test.mjs scripts/c0/stage-b/evidence-guard.test.mjs scripts/c0/stage-b/r0-5-install.test.mjs scripts/c0/stage-b/source-integrity.test.mjs",
+    "test:c0-integrity": "npm run test:c0-integrity-current",
+    "verify:r0-5": "node scripts/c0/stage-b/verify-install-plan.mjs && bash scripts/c0/stage-b/00-install-runtime.sh --dry-run",
+    "test:c1": "npm run test -w @privateplate/contracts && npm run test -w @privateplate/domain",
+    "test:c2": "npm run test -w @privateplate/domain",
+    "test:c3": "npm run test -w @privateplate/agent-runtime",
+    "test:c4": "npm run test -w @privateplate/server",
+    "test:eval-v2": "npm run build -w @privateplate/contracts && npm run build -w @privateplate/domain && npm run build -w @privateplate/agent-runtime && npm run build -w @privateplate/server && npm run build -w @privateplate/evals && npm run test -w @privateplate/contracts && npm run test -w @privateplate/domain && npm run test -w @privateplate/agent-runtime && npm run test -w @privateplate/server && npm run test:v2 -w @privateplate/evals",
+    "agent:cli": "npm run build -w @privateplate/agent-runtime && npm run cli -w @privateplate/agent-runtime",
+    "agent:smoke": "npm run build -w @privateplate/agent-runtime && node packages/agent-runtime/dist/cli.js --smoke",
+    "dev:server": "npm run build -w @privateplate/contracts && npm run build -w @privateplate/domain && npm run build -w @privateplate/agent-runtime && npm run dev -w @privateplate/server",
+    "dev:web": "npm run dev -w @privateplate/web",
+    "start": "npm run build && npm run start -w @privateplate/server",
+    "fixtures:checksum": "node scripts/c1/compute-fixture-checksums.mjs",
+    "rag:check": "node scripts/rag/check-embeddings.mjs",
+    "typecheck": "find packages apps -name 'tsconfig.tsbuildinfo' -delete; npm run build -w @privateplate/contracts && npm run build -w @privateplate/domain && npm run build -w @privateplate/agent-runtime && npm run build -w @privateplate/server && npm run build -w @privateplate/evals && npm run typecheck -w @privateplate/contracts && npm run typecheck -w @privateplate/domain && npm run typecheck -w @privateplate/agent-runtime && npm run typecheck -w @privateplate/server && npm run typecheck -w @privateplate/web && npm run typecheck -w @privateplate/evals",
+    "check": "npm run test:eval-v2 && npm run typecheck && npm run test:historical-v1-routing-smoke && npm run test:c0-integrity-current && git diff --check",
+    "ci:check": "npm run check"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "license": "UNLICENSED"
+}

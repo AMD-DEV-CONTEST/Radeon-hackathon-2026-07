@@ -1,0 +1,209 @@
+{
+  "schema_version": "3.0",
+  "description": "Explicit C0-B model profiles. PRIVATEPLATE_MODEL_PROFILE is required. No default 7B. No auto-fallback.",
+  "primary_profile": "gemma4-12b-qat-w4a16-ct",
+  "profiles": {
+    "gemma4-12b-qat-w4a16-ct": {
+      "profile_id": "gemma4-12b-qat-w4a16-ct",
+      "role": "primary_candidate",
+      "model_id": "google/gemma-4-12B-it-qat-w4a16-ct",
+      "revision": "1d2c2d7f2466070e69d6fb3fd5ce9a7d75f2f6ee",
+      "revision_pinned": true,
+      "revision_source": "https://huggingface.co/api/models/google/gemma-4-12B-it-qat-w4a16-ct (sha field, retrieved 2026-07-26)",
+      "license": "apache-2.0",
+      "license_link": "https://ai.google.dev/gemma/docs/gemma_4_license",
+      "base_model": "google/gemma-4-12B-it-qat-q4_0-unquantized",
+      "architectures": ["Gemma4UnifiedForConditionalGeneration"],
+      "model_type": "gemma4_unified",
+      "tool_call_parser": "gemma4",
+      "reasoning_parser": "gemma4",
+      "enable_auto_tool_choice": true,
+      "attention_backend": "TRITON_ATTN",
+      "max_model_len": 16384,
+      "kv_cache_memory_bytes": 12884901888,
+      "quantization": {
+        "vllm_quantization_arg": "compressed-tensors",
+        "quant_method": "compressed-tensors",
+        "format": "pack-quantized",
+        "weights": {
+          "num_bits": 4,
+          "type": "int",
+          "group_size": 32,
+          "strategy": "group",
+          "symmetric": true,
+          "dynamic": false,
+          "observer": "memoryless_minmax"
+        },
+        "activation_bits": 16,
+        "label": "QAT W4A16 compressed-tensors",
+        "config_snapshot_path": "scripts/c0/stage-b/model-artifacts/gemma-4-12B-it-qat-w4a16-ct.config.json",
+        "config_snapshot_sha256": "aa3ba82096a857e8b9a157df21a50df15a67e889a84b7580a4eb4f2b86c28d78",
+        "recipe_snapshot_path": "scripts/c0/stage-b/model-artifacts/gemma-4-12B-it-qat-w4a16-ct.recipe.yaml",
+        "recipe_snapshot_sha256": "6630bfb0a1138a6e4fcf77da1ab6566241589fed68c155f913a264e11ce75fa7"
+      },
+      "chat_template": {
+        "mode": "official_vllm_gemma4_tool_recipe_fixed",
+        "path": "scripts/c0/stage-b/chat-templates/gemma4-vllm-tool.jinja",
+        "sha256": "afdbb2abe3667ccde95cc2f86919f05370339399bab5f750950a4390523b8927",
+        "source_url": "https://raw.githubusercontent.com/vllm-project/vllm/752a3a504485790a2e8491cacbb35c137339ad34/examples/tool_chat_template_gemma4.jinja",
+        "source_label": "vLLM 0.25.1 official Gemma 4 tool-calling template"
+      },
+      "chat_template_model_repo_reference": {
+        "path": "scripts/c0/stage-b/chat-templates/gemma4-canonical.jinja",
+        "sha256": "ae53464bf3be25802b3a5b37def7fd89667067d7577049b3b2d74c4d8de4c6d4",
+        "source_url": "https://huggingface.co/google/gemma-4-12B-it-qat-w4a16-ct/raw/1d2c2d7f2466070e69d6fb3fd5ce9a7d75f2f6ee/chat_template.jinja",
+        "hf_blob_oid": "4741bf6e4132ba23a5537f9d6e74e9a6d613d7cd",
+        "note": "Pinned reference only. Formal tool-calling launch uses chat_template above."
+      },
+      "weights": {
+        "files": [
+          {
+            "path": "model.safetensors",
+            "size_bytes": 10264229896,
+            "lfs_sha256": "60b6e3989502969d8ae04185d72ecbbc7db63978d5af747a493d53895aa6bfa3",
+            "hf_git_oid": "a2e4e3775b596e7e8773cfcb4e64edca912f50dd",
+            "local_download_status": "NOT_PRESENT",
+            "local_sha256_verified": null
+          },
+          {
+            "path": "tokenizer.json",
+            "size_bytes": 32169626,
+            "lfs_sha256": "cc8d3a0ce36466ccc1278bf987df5f71db1719b9ca6b4118264f45cb627bfe0f",
+            "local_download_status": "NOT_PRESENT",
+            "local_sha256_verified": null
+          }
+        ],
+        "note": "LFS oids recorded from HF tree API at pinned revision. Byte-level verification of downloaded weights requires the Radeon instance (or any host that actually pulls the ~10GB file)."
+      },
+      "structured_outputs": {
+        "enabled_by_default": true,
+        "mode": "tool_envelope_json_control_modes",
+        "request_field": "structured_outputs",
+        "env": "PRIVATEPLATE_STRUCTURED_OUTPUTS",
+        "values": {
+          "control": "FINAL_ONLY+BLOCKED only (default)",
+          "all": "every mode (experimental)",
+          "0": "disabled"
+        },
+        "note": "Client-side envelope replaces OpenAI tools on the wire for control modes; ACTION_ALLOWED keeps native tools. See scripts/c0/stage-b/guided-decoding-probe.md"
+      },
+      "judgment": {
+        "model_capability": "NOT_RUN",
+        "holdout_live": "NOT_RUN",
+        "policy_offline": "SEPARATE_FROM_MODEL_JUDGMENT"
+      },
+      "notes": [
+        "Primary PrivatePlate C0-B model candidate.",
+        "Must launch with tool_call_parser=gemma4 and reasoning_parser=gemma4.",
+        "Must pin revision 1d2c2d7f2466070e69d6fb3fd5ce9a7d75f2f6ee unless an audited revision bump is recorded.",
+        "Do not substitute Qwen2.5-7B or hermes parser for this profile.",
+        "max_model_len raised 8192→16384 (vLLM hard cap; model native is larger). kv_cache_memory_bytes 8GiB→12GiB to keep batch headroom at 16k.",
+        "2026-08-04: client uses request-level structured_outputs tool-envelope JSON (oneOf per available tool) because vLLM 0.25.1 rejects combining tools with structured_outputs, and native tool_choice=required does not enforce Gemma4 argument enums (double-quoted finish_turn.goal). Default scope is FINAL_ONLY+BLOCKED only — full-tool envelopes on ACTION_ALLOWED can whitespace-pad until max_tokens (xgrammar deadlock). Set PRIVATEPLATE_STRUCTURED_OUTPUTS=all to force every mode, or =0 to disable. No server flag change required; embedding :8001 unchanged."
+      ]
+    },
+    "qwen14": {
+      "profile_id": "qwen14",
+      "role": "secondary_comparator",
+      "model_id": "Qwen/Qwen2.5-14B-Instruct",
+      "revision": "cf98f3b3bbb457ad9e2bb7baf9a0125b6b88caa8",
+      "revision_pinned": true,
+      "revision_source": "https://huggingface.co/api/models/Qwen/Qwen2.5-14B-Instruct (sha field, retrieved 2026-07-26)",
+      "license": "apache-2.0",
+      "license_link": "https://huggingface.co/Qwen/Qwen2.5-14B-Instruct/blob/cf98f3b3bbb457ad9e2bb7baf9a0125b6b88caa8/LICENSE",
+      "tool_call_parser": "hermes",
+      "reasoning_parser": null,
+      "enable_auto_tool_choice": true,
+      "attention_backend": "TRITON_ATTN",
+      "max_model_len": 8192,
+      "kv_cache_memory_bytes": 8589934592,
+      "quantization": {
+        "vllm_quantization_arg": null,
+        "label": "full-precision / model-default weights at pinned revision",
+        "note": "Secondary comparator only. Not the primary candidate. No silent fallback from Gemma."
+      },
+      "chat_template": {
+        "mode": "model_default",
+        "path": null,
+        "sha256": null
+      },
+      "weights": {
+        "files": [
+          {
+            "path": "model-00001-of-00008.safetensors",
+            "size_bytes": 3885154816,
+            "lfs_sha256": "b477be7572f0ab3ae3cbba38d508cc33e70600b2045669c4ad848051c3432094",
+            "local_download_status": "NOT_PRESENT",
+            "local_sha256_verified": null
+          },
+          {
+            "path": "model-00002-of-00008.safetensors",
+            "size_bytes": 3995327992,
+            "lfs_sha256": "eb356aacae443e30f52712b1e98fadf206976365e2f5ee886321b0bb38c7cea8",
+            "local_download_status": "NOT_PRESENT",
+            "local_sha256_verified": null
+          },
+          {
+            "path": "model-00003-of-00008.safetensors",
+            "size_bytes": 3995328080,
+            "lfs_sha256": "cee9dbdf738ce61adb21c70ad5c5585747caaab6457c9ffc3bfa20d73127c2c6",
+            "local_download_status": "NOT_PRESENT",
+            "local_sha256_verified": null
+          },
+          {
+            "path": "model-00004-of-00008.safetensors",
+            "size_bytes": 3995338432,
+            "lfs_sha256": "b1201a6edcac8ef96a37040524fe37a5a84e446513ed40491e764a37302385fa",
+            "local_download_status": "NOT_PRESENT",
+            "local_sha256_verified": null
+          },
+          {
+            "path": "model-00005-of-00008.safetensors",
+            "size_bytes": 3979624824,
+            "lfs_sha256": "fbbda3cdee31895d0c57d617449af5579d219df34f3d63f7a23acbfe7fb0a647",
+            "local_download_status": "NOT_PRESENT",
+            "local_sha256_verified": null
+          },
+          {
+            "path": "model-00006-of-00008.safetensors",
+            "size_bytes": 3995328080,
+            "lfs_sha256": "f7ac652aa101717c97cfeccf5109985cca5b04529b57d3f4d2ec7a802266296b",
+            "local_download_status": "NOT_PRESENT",
+            "local_sha256_verified": null
+          },
+          {
+            "path": "model-00007-of-00008.safetensors",
+            "size_bytes": 3995328080,
+            "lfs_sha256": "e9115e615b575acb6e8b3a06524b32cbf7f680f07517125e4334f62c3f4acb0d",
+            "local_download_status": "NOT_PRESENT",
+            "local_sha256_verified": null
+          },
+          {
+            "path": "model-00008-of-00008.safetensors",
+            "size_bytes": 1698703696,
+            "lfs_sha256": "a77f603d8368749c19d3ac9cf2a300e476edcc794ea41af8e473ee12935eadb8",
+            "local_download_status": "NOT_PRESENT",
+            "local_sha256_verified": null
+          }
+        ],
+        "note": "LFS oids from HF tree API at pinned revision cf98f3b3.... Formal post-start verification always checks every declared file's size and SHA-256."
+      },
+      "judgment": {
+        "model_capability": "NOT_RUN",
+        "holdout_live": "NOT_RUN"
+      },
+      "notes": [
+        "Optional comparator profile. Hermes tool parser only.",
+        "Revision pinned. Must not silent-fallback for the Gemma primary candidate."
+      ]
+    }
+  },
+  "aliases": {
+    "gemma4": "gemma4-12b-qat-w4a16-ct"
+  },
+  "forbidden_defaults": {
+    "default_model": null,
+    "auto_fallback_model": null,
+    "reuse_unknown_vllm": false,
+    "qwen_7b_default": false
+  }
+}

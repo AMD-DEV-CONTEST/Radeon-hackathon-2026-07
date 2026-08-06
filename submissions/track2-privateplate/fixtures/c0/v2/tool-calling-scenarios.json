@@ -1,0 +1,318 @@
+{
+  "schema_version": "2.0",
+  "suite": "v2-public-regression",
+  "scoring_contract": "v2",
+  "description": "New tool-arg contract: this-turn revise arrays; natural retrieval query; memberIds not health tags. Old fixtures/c0/* v1 files remain frozen.",
+  "fixture_id_map": {
+    "members": {
+      "mem-admin": {
+        "display_name": "管理员",
+        "aliases": ["我"],
+        "health_tags": ["weight_management"]
+      },
+      "mem-father": {
+        "display_name": "父亲",
+        "aliases": ["爸爸"],
+        "health_tags": ["stable_type2_diabetes_demo"]
+      },
+      "mem-mother": {
+        "display_name": "母亲",
+        "aliases": ["妈妈"],
+        "health_tags": ["hypertension_demo"]
+      }
+    },
+    "foods": {
+      "food-tofu": "豆腐",
+      "food-chicken-leg": "鸡腿",
+      "food-cabbage": "白菜",
+      "food-beef": "牛肉"
+    },
+    "meal_templates": {
+      "tpl-tomato-egg": "番茄炒蛋",
+      "tpl-potato-chicken": "土豆炖鸡腿"
+    },
+    "guidance_plan_tags": {
+      "planning": "初次规划",
+      "replan": "重规划",
+      "privacy": "隐私",
+      "handoff": "任务交接"
+    },
+    "caregiver_recipients": {
+      "阿姨": "阿姨",
+      "保姆": "保姆",
+      "家庭保姆": "家庭保姆"
+    },
+    "active_plans": {
+      "plan-c0-fixture-active": "当前计划"
+    }
+  },
+  "scenarios": [
+    {
+      "id": "v2-r-001",
+      "category": "context",
+      "user_text": "读取我和爸爸妈妈的当前用餐上下文。",
+      "current_state": {
+        "phase": "COLLECTING_CONTEXT",
+        "dinerIds": ["mem-admin", "mem-father", "mem-mother"],
+        "activePlanId": null,
+        "activePlanVersion": null
+      },
+      "expected_tool": "get_meal_context",
+      "expected_arguments": {
+        "dinerIds": ["mem-admin", "mem-father", "mem-mother"]
+      }
+    },
+    {
+      "id": "v2-r-002",
+      "category": "compose",
+      "user_text": "给我们三个人规划午餐，优先豆腐，不要鸡腿。",
+      "current_state": {
+        "phase": "COLLECTING_CONTEXT",
+        "dinerIds": ["mem-admin", "mem-father", "mem-mother"],
+        "activePlanId": null,
+        "activePlanVersion": null
+      },
+      "expected_tool": "compose_family_meal",
+      "expected_arguments": {
+        "dinerIds": ["mem-admin", "mem-father", "mem-mother"],
+        "mealType": "lunch",
+        "rejectedFoodIds": ["food-chicken-leg"],
+        "rejectedTemplateIds": [],
+        "requestedPriorityFoodIds": ["food-tofu"],
+        "preferLowEffort": false
+      }
+    },
+    {
+      "id": "v2-r-003",
+      "category": "revise_food",
+      "user_text": "上一版不要豆腐了，其他要求保持不变。",
+      "current_state": {
+        "phase": "PRESENTING_PLAN",
+        "dinerIds": ["mem-admin", "mem-father", "mem-mother"],
+        "activePlanId": "plan-c0-fixture-active",
+        "activePlanVersion": 1
+      },
+      "expected_tool": "revise_family_meal",
+      "expected_arguments": {
+        "rejectTemplateIds": [],
+        "rejectFoodIds": ["food-tofu"],
+        "preferLowEffort": false
+      }
+    },
+    {
+      "id": "v2-r-004",
+      "category": "revise_template",
+      "user_text": "把上一版的番茄炒蛋换掉，其他不变。",
+      "current_state": {
+        "phase": "PRESENTING_PLAN",
+        "dinerIds": ["mem-admin", "mem-father", "mem-mother"],
+        "activePlanId": "plan-c0-fixture-active",
+        "activePlanVersion": 1
+      },
+      "expected_tool": "revise_family_meal",
+      "expected_arguments": {
+        "rejectTemplateIds": ["tpl-tomato-egg"],
+        "rejectFoodIds": [],
+        "preferLowEffort": false
+      }
+    },
+    {
+      "id": "v2-r-005",
+      "category": "revise_effort",
+      "user_text": "把当前计划改得更省事，不新增拒绝项。",
+      "current_state": {
+        "phase": "PRESENTING_PLAN",
+        "dinerIds": ["mem-admin", "mem-father", "mem-mother"],
+        "activePlanId": "plan-c0-fixture-active",
+        "activePlanVersion": 1
+      },
+      "expected_tool": "revise_family_meal",
+      "expected_arguments": {
+        "rejectTemplateIds": [],
+        "rejectFoodIds": [],
+        "preferLowEffort": true
+      }
+    },
+    {
+      "id": "v2-r-006",
+      "category": "revise_multi",
+      "user_text": "上一版不要鸡腿，同时改得更省事。",
+      "current_state": {
+        "phase": "PRESENTING_PLAN",
+        "dinerIds": ["mem-admin", "mem-father", "mem-mother"],
+        "activePlanId": "plan-c0-fixture-active",
+        "activePlanVersion": 1
+      },
+      "expected_tool": "revise_family_meal",
+      "expected_arguments": {
+        "rejectTemplateIds": [],
+        "rejectFoodIds": ["food-chicken-leg"],
+        "preferLowEffort": true
+      }
+    },
+    {
+      "id": "v2-r-007",
+      "category": "retrieve_cards",
+      "scoring_mode": "retrieval_cards",
+      "card_match": "contains_all",
+      "user_text": "解释这份初次规划为什么优先使用快坏的豆腐。",
+      "current_state": {
+        "phase": "PRESENTING_PLAN",
+        "dinerIds": ["mem-admin", "mem-father", "mem-mother"],
+        "activePlanId": "plan-c0-fixture-active",
+        "activePlanVersion": 1
+      },
+      "expected_tool": "retrieve_approved_guidance",
+      "expected_arguments": {
+        "memberIds": [],
+        "planTags": ["planning"],
+        "topK": 3
+      },
+      "expected_card_ids": ["kc-priority-tofu"]
+    },
+    {
+      "id": "v2-r-008",
+      "category": "retrieve_cards",
+      "scoring_mode": "retrieval_cards",
+      "card_match": "contains_all",
+      "user_text": "为什么拒绝项会在重规划中保留？",
+      "current_state": {
+        "phase": "PRESENTING_PLAN",
+        "dinerIds": ["mem-admin", "mem-father", "mem-mother"],
+        "activePlanId": "plan-c0-fixture-active",
+        "activePlanVersion": 2
+      },
+      "expected_tool": "retrieve_approved_guidance",
+      "expected_arguments": {
+        "memberIds": [],
+        "planTags": ["replan"],
+        "topK": 2
+      },
+      "expected_card_ids": ["kc-reject-persists"]
+    },
+    {
+      "id": "v2-r-009",
+      "category": "retrieve_cards_member",
+      "scoring_mode": "retrieval_cards",
+      "card_match": "contains_all",
+      "user_text": "说明妈妈在初次规划中的少盐约束。",
+      "current_state": {
+        "phase": "PRESENTING_PLAN",
+        "dinerIds": ["mem-mother"],
+        "activePlanId": "plan-c0-fixture-active",
+        "activePlanVersion": 1
+      },
+      "expected_tool": "retrieve_approved_guidance",
+      "expected_arguments": {
+        "memberIds": ["mem-mother"],
+        "planTags": ["planning"],
+        "topK": 3
+      },
+      "expected_card_ids": ["kc-demo-guardrails"]
+    },
+    {
+      "id": "v2-r-010",
+      "category": "retrieve_cards_privacy",
+      "scoring_mode": "retrieval_cards",
+      "card_match": "contains_all",
+      "user_text": "为什么任务交接卡要保护隐私？",
+      "current_state": {
+        "phase": "PRESENTING_PLAN",
+        "dinerIds": ["mem-admin", "mem-father", "mem-mother"],
+        "activePlanId": "plan-c0-fixture-active",
+        "activePlanVersion": 1
+      },
+      "expected_tool": "retrieve_approved_guidance",
+      "expected_arguments": {
+        "memberIds": [],
+        "planTags": ["privacy", "handoff"],
+        "topK": 1
+      },
+      "expected_card_ids": ["kc-min-disclosure"]
+    },
+    {
+      "id": "v2-r-011",
+      "category": "preview",
+      "user_text": "给阿姨生成任务预览，不要发送，serveAt 使用 2026-07-26T18:30:00+08:00。",
+      "current_state": {
+        "phase": "PRESENTING_PLAN",
+        "dinerIds": ["mem-admin", "mem-father", "mem-mother"],
+        "activePlanId": "plan-c0-fixture-active",
+        "activePlanVersion": 1
+      },
+      "expected_tool": "preview_caregiver_task",
+      "expected_arguments": {
+        "recipientLabel": "阿姨",
+        "serveAt": "2026-07-26T18:30:00+08:00"
+      }
+    },
+    {
+      "id": "v2-r-012",
+      "category": "preview",
+      "user_text": "为保姆预览午餐任务卡，不要发送，serveAt 使用 2026-07-27T12:00:00+08:00。",
+      "current_state": {
+        "phase": "PRESENTING_PLAN",
+        "dinerIds": ["mem-admin", "mem-father"],
+        "activePlanId": "plan-c0-fixture-active",
+        "activePlanVersion": 2
+      },
+      "expected_tool": "preview_caregiver_task",
+      "expected_arguments": {
+        "recipientLabel": "保姆",
+        "serveAt": "2026-07-27T12:00:00+08:00"
+      }
+    },
+    {
+      "id": "v2-r-013",
+      "category": "compose_dish_vs_ingredient",
+      "user_text": "给我们三个人规划午餐，不要番茄炒蛋这道菜。",
+      "current_state": {
+        "phase": "COLLECTING_CONTEXT",
+        "dinerIds": ["mem-admin", "mem-father", "mem-mother"],
+        "activePlanId": null,
+        "activePlanVersion": null
+      },
+      "expected_tool": "compose_family_meal",
+      "expected_arguments": {
+        "dinerIds": ["mem-admin", "mem-father", "mem-mother"],
+        "mealType": "lunch",
+        "rejectedFoodIds": [],
+        "rejectedTemplateIds": ["tpl-tomato-egg"],
+        "requestedPriorityFoodIds": [],
+        "preferLowEffort": false
+      }
+    },
+    {
+      "id": "v2-r-014",
+      "category": "state_pollution_revise",
+      "user_text": "当前计划改得更省事就行，拒绝项别动。",
+      "current_state": {
+        "phase": "PRESENTING_PLAN",
+        "dinerIds": ["mem-admin", "mem-father", "mem-mother"],
+        "activePlanId": "plan-c0-fixture-active",
+        "activePlanVersion": 2,
+        "rejectedFoodIds": ["food-chicken-leg"],
+        "rejectedTemplateIds": ["tpl-potato-chicken"]
+      },
+      "active_plan": {
+        "version": 2,
+        "mealType": "lunch",
+        "dinerIds": ["mem-admin", "mem-father", "mem-mother"],
+        "menu": [
+          { "templateId": "tpl-tomato-egg", "name": "番茄炒蛋" },
+          { "templateId": "tpl-potato-chicken", "name": "土豆炖鸡腿" }
+        ],
+        "rejectedFoodIds": ["food-chicken-leg"],
+        "rejectedTemplateIds": ["tpl-potato-chicken"],
+        "requestedPriorityFoodIds": ["food-tofu"],
+        "preferLowEffort": false
+      },
+      "expected_tool": "revise_family_meal",
+      "expected_arguments": {
+        "rejectTemplateIds": [],
+        "rejectFoodIds": [],
+        "preferLowEffort": true
+      }
+    }
+  ]
+}

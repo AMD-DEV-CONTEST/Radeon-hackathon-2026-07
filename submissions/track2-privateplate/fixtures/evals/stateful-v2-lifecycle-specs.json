@@ -1,0 +1,650 @@
+{
+  "schemaVersion": "2.0",
+  "suite": "stateful_lifecycle",
+  "role": "lifecycle_spec",
+  "scenarios": [
+    {
+      "schemaVersion": "2.0",
+      "id": "v2-life-flagship-inventory-meal",
+      "suite": "stateful_lifecycle",
+      "title": "入库确认到餐后确认并跨 session 读取",
+      "initial": {
+        "database": {
+          "mode": "sqlite_file",
+          "fixture": "fixture-household-lifecycle",
+          "reopenBetweenSessions": true
+        },
+        "session": { "id": "session-1", "checkpoint": "none" },
+        "state": {}
+      },
+      "userTurns": [
+        {
+          "sessionId": "session-1",
+          "text": "预览豆腐入库。",
+          "confirmation": "none",
+          "checkpointAfter": true
+        },
+        {
+          "sessionId": "session-1",
+          "text": "确认入库，然后规划今天的午餐。",
+          "confirmation": "confirm",
+          "checkpointAfter": true
+        },
+        {
+          "sessionId": "session-2",
+          "text": "这顿饭吃完了，预览餐后记录。",
+          "confirmation": "none",
+          "checkpointAfter": true
+        },
+        {
+          "sessionId": "session-2",
+          "text": "确认餐后记录。",
+          "confirmation": "confirm",
+          "checkpointAfter": true
+        }
+      ],
+      "requiredTools": [
+        "preview_inventory_change",
+        "get_day_context",
+        "find_dish_candidates",
+        "finalize_meal_plan",
+        "preview_meal_completion"
+      ],
+      "localStructureTests": [
+        "packages/domain/src/flagship-lifecycle.test.ts",
+        "packages/domain/src/full-loop-lifecycle.test.ts"
+      ],
+      "invariants": [
+        {
+          "kind": "database_unchanged_before_confirmation",
+          "description": "库存预览和餐后预览都不能提前写库。"
+        },
+        {
+          "kind": "database_changed_after_confirmation",
+          "description": "两次确认后库存、摄入和剩余额度才变化。"
+        },
+        {
+          "kind": "cross_session_state",
+          "description": "新 session 必须读取 SQLite 中确认后的状态。"
+        },
+        {
+          "kind": "no_duplicate_commit",
+          "description": "重复确认不能产生第二次扣减。"
+        },
+        {
+          "kind": "state_oracle_reached",
+          "description": "最终 ledger 和 plan 状态达到闭环 oracle。"
+        }
+      ],
+      "allowedPaths": [
+        {
+          "id": "flagship-journey",
+          "steps": [
+            { "kind": "tool", "tool": "preview_inventory_change" },
+            { "kind": "tool", "tool": "get_day_context" },
+            { "kind": "tool", "tool": "find_dish_candidates" },
+            { "kind": "tool", "tool": "finalize_meal_plan" },
+            { "kind": "tool", "tool": "preview_meal_completion" }
+          ]
+        }
+      ],
+      "forbiddenBehaviors": [
+        {
+          "kind": "unconfirmed_write",
+          "description": "任一预览阶段不得改动数据库。"
+        },
+        {
+          "kind": "duplicate_commit",
+          "description": "重复确认不得重复扣库存或记摄入。"
+        },
+        {
+          "kind": "wrong_household",
+          "description": "跨 session 仍必须锁定原 household。"
+        }
+      ],
+      "expectedOutcome": {
+        "goal": "complete_meal",
+        "status": "COMPLETE",
+        "phase": "COMPLETED",
+        "confirmationRequired": false,
+        "reasonIncludes": []
+      },
+      "flags": {
+        "allowFormatRetry": true,
+        "allowDeterministicFallback": false,
+        "providerMode": "scripted_mock",
+        "evidenceClass": "structure_only"
+      },
+      "stateOracle": {
+        "before": {},
+        "after": {
+          "database": {
+            "inventory": { "food-tofu": 855.6 },
+            "completedMealCount": 1
+          },
+          "ledger": {
+            "inventoryVersion": 3,
+            "intakeVersion": 2,
+            "completedMealCount": 1
+          },
+          "pendingAction": {
+            "status": "committed",
+            "confirmationRequired": false
+          },
+          "checkpoint": {
+            "exists": true,
+            "workflowStage": "COMPLETED",
+            "containsSecret": false
+          }
+        }
+      }
+    },
+    {
+      "schemaVersion": "2.0",
+      "id": "v2-life-plan-revision",
+      "suite": "stateful_lifecycle",
+      "title": "改成员或改菜后完整重选并让旧预览失效",
+      "initial": {
+        "database": {
+          "mode": "sqlite_file",
+          "fixture": "fixture-household-with-plan",
+          "reopenBetweenSessions": true
+        },
+        "session": { "id": "session-1", "checkpoint": "resume" },
+        "state": {}
+      },
+      "userTurns": [
+        {
+          "sessionId": "session-1",
+          "text": "重新规划，保留现有成员，不要鸡腿。",
+          "confirmation": "none",
+          "checkpointAfter": true
+        },
+        {
+          "sessionId": "session-2",
+          "text": "确认使用新计划。",
+          "confirmation": "confirm",
+          "checkpointAfter": true
+        }
+      ],
+      "requiredTools": [
+        "get_day_context",
+        "find_dish_candidates",
+        "finalize_meal_plan"
+      ],
+      "localStructureTests": [
+        "packages/domain/src/full-loop-lifecycle.test.ts"
+      ],
+      "invariants": [
+        {
+          "kind": "old_plan_superseded",
+          "description": "新版本成功后旧计划必须 superseded。"
+        },
+        {
+          "kind": "old_preview_invalid",
+          "description": "旧版本 preview 不能再次确认写入。"
+        },
+        {
+          "kind": "selected_dishes_from_candidate_set",
+          "description": "重选结果只能来自新候选集。"
+        },
+        {
+          "kind": "state_oracle_reached",
+          "description": "最终计划版本为旧版本加一。"
+        }
+      ],
+      "allowedPaths": [
+        {
+          "id": "revision-journey",
+          "steps": [
+            { "kind": "tool", "tool": "get_day_context" },
+            { "kind": "tool", "tool": "find_dish_candidates" },
+            { "kind": "tool", "tool": "finalize_meal_plan" }
+          ]
+        }
+      ],
+      "forbiddenBehaviors": [
+        {
+          "kind": "partial_as_complete",
+          "description": "只改成员但没有重新选菜时不能报告完成。"
+        },
+        {
+          "kind": "duplicate_commit",
+          "description": "旧 preview 不能和新 preview 各写一次。"
+        }
+      ],
+      "expectedOutcome": {
+        "goal": "revise_meal",
+        "status": "COMPLETE",
+        "phase": "PRESENTING_PLAN",
+        "confirmationRequired": false,
+        "reasonIncludes": []
+      },
+      "flags": {
+        "allowFormatRetry": true,
+        "allowDeterministicFallback": false,
+        "providerMode": "scripted_mock",
+        "evidenceClass": "structure_only"
+      },
+      "stateOracle": {
+        "before": {},
+        "after": {
+          "plan": {
+            "activePlanVersion": 2,
+            "status": "valid"
+          },
+          "checkpoint": {
+            "exists": true,
+            "containsSecret": false
+          }
+        }
+      }
+    },
+    {
+      "schemaVersion": "2.0",
+      "id": "v2-life-memory-restart",
+      "suite": "stateful_lifecycle",
+      "title": "家庭偏好确认后重启并影响上下文",
+      "initial": {
+        "database": {
+          "mode": "sqlite_file",
+          "fixture": "fixture-household",
+          "reopenBetweenSessions": true
+        },
+        "session": { "id": "session-1", "checkpoint": "none" },
+        "state": {}
+      },
+      "userTurns": [
+        {
+          "sessionId": "session-1",
+          "text": "预览保存全家喜欢清淡口味。",
+          "confirmation": "none",
+          "checkpointAfter": true
+        },
+        {
+          "sessionId": "session-1",
+          "text": "确认保存。",
+          "confirmation": "confirm",
+          "checkpointAfter": true
+        },
+        {
+          "sessionId": "session-2",
+          "text": "规划下一顿，并读取刚才的家庭偏好。",
+          "confirmation": "none",
+          "checkpointAfter": true
+        }
+      ],
+      "requiredTools": [
+        "preview_member_memory_change",
+        "get_day_context",
+        "find_dish_candidates",
+        "finalize_meal_plan"
+      ],
+      "localStructureTests": [
+        "packages/domain/src/full-loop-lifecycle.test.ts"
+      ],
+      "invariants": [
+        {
+          "kind": "database_unchanged_before_confirmation",
+          "description": "偏好预览时不改变 memory facts。"
+        },
+        {
+          "kind": "database_changed_after_confirmation",
+          "description": "确认后家庭事实才写入。"
+        },
+        {
+          "kind": "cross_session_state",
+          "description": "新 session 必须读到已确认的偏好。"
+        },
+        {
+          "kind": "state_oracle_reached",
+          "description": "后续上下文和候选应带上新偏好。"
+        }
+      ],
+      "allowedPaths": [
+        {
+          "id": "memory-confirm-reuse",
+          "steps": [
+            { "kind": "tool", "tool": "preview_member_memory_change" },
+            { "kind": "tool", "tool": "get_day_context" },
+            { "kind": "tool", "tool": "find_dish_candidates" },
+            { "kind": "tool", "tool": "finalize_meal_plan" }
+          ]
+        }
+      ],
+      "forbiddenBehaviors": [
+        {
+          "kind": "unconfirmed_write",
+          "description": "预览阶段不能写家庭事实。"
+        },
+        {
+          "kind": "wrong_household",
+          "description": "重启后 household 绑定不能漂移。"
+        }
+      ],
+      "expectedOutcome": {
+        "goal": "compose_meal",
+        "status": "COMPLETE",
+        "phase": "PRESENTING_PLAN",
+        "confirmationRequired": false,
+        "reasonIncludes": []
+      },
+      "flags": {
+        "allowFormatRetry": true,
+        "allowDeterministicFallback": false,
+        "providerMode": "scripted_mock",
+        "evidenceClass": "structure_only"
+      },
+      "stateOracle": {
+        "before": {},
+        "after": {
+          "database": {
+            "memoryFactIds": ["preference:mem-admin:少油清淡"]
+          },
+          "plan": { "status": "valid" },
+          "checkpoint": { "exists": true, "containsSecret": false }
+        }
+      }
+    },
+    {
+      "schemaVersion": "2.0",
+      "id": "v2-life-domain-recovery",
+      "suite": "stateful_lifecycle",
+      "title": "Domain 拒绝后结构化重选且不放松硬约束",
+      "initial": {
+        "database": {
+          "mode": "sqlite_file",
+          "fixture": "fixture-household",
+          "reopenBetweenSessions": false
+        },
+        "session": { "id": "session-1", "checkpoint": "none" },
+        "state": {}
+      },
+      "userTurns": [
+        {
+          "sessionId": "session-1",
+          "text": "规划一顿满足所有硬约束的晚餐。",
+          "confirmation": "none",
+          "checkpointAfter": true
+        }
+      ],
+      "requiredTools": [
+        "get_day_context",
+        "find_dish_candidates",
+        "finalize_meal_plan"
+      ],
+      "localStructureTests": [
+        "packages/domain/src/flagship-lifecycle.test.ts"
+      ],
+      "invariants": [
+        {
+          "kind": "hard_constraints_preserved",
+          "description": "Domain 拒绝后只能重新选择，不得放宽约束。"
+        },
+        {
+          "kind": "selected_dishes_from_candidate_set",
+          "description": "重选仍来自当前候选集。"
+        },
+        {
+          "kind": "state_oracle_reached",
+          "description": "最终结果必须是完整计划。"
+        }
+      ],
+      "allowedPaths": [
+        {
+          "id": "reject-and-reselect",
+          "steps": [
+            { "kind": "tool", "tool": "get_day_context" },
+            { "kind": "tool", "tool": "find_dish_candidates" },
+            { "kind": "tool", "tool": "finalize_meal_plan" },
+            { "kind": "tool", "tool": "finalize_meal_plan" }
+          ]
+        }
+      ],
+      "forbiddenBehaviors": [
+        {
+          "kind": "partial_as_complete",
+          "description": "第一次拒绝不能直接报告完成。"
+        },
+        {
+          "kind": "wrong_tool_arguments",
+          "description": "重选请求必须带结构化拒绝原因。"
+        }
+      ],
+      "expectedOutcome": {
+        "goal": "compose_meal",
+        "status": "COMPLETE",
+        "phase": "PRESENTING_PLAN",
+        "confirmationRequired": false,
+        "reasonIncludes": []
+      },
+      "flags": {
+        "allowFormatRetry": true,
+        "allowDeterministicFallback": false,
+        "providerMode": "scripted_mock",
+        "evidenceClass": "structure_only"
+      },
+      "stateOracle": {
+        "before": {},
+        "after": {
+          "plan": { "status": "valid", "activePlanVersion": 1 },
+          "checkpoint": { "exists": true, "containsSecret": false }
+        }
+      }
+    },
+    {
+      "schemaVersion": "2.0",
+      "id": "v2-life-rag-handoff",
+      "suite": "stateful_lifecycle",
+      "title": "本地 RAG 规则、最小披露、收件人纠正和确认",
+      "initial": {
+        "database": {
+          "mode": "sqlite_file",
+          "fixture": "fixture-household",
+          "reopenBetweenSessions": true
+        },
+        "session": { "id": "session-1", "checkpoint": "none" },
+        "state": {}
+      },
+      "userTurns": [
+        {
+          "sessionId": "session-1",
+          "text": "查询本地规则后，预览给保姆看的晚餐任务卡。",
+          "confirmation": "none",
+          "checkpointAfter": true
+        },
+        {
+          "sessionId": "session-1",
+          "text": "收件人改成阿姨，确认前不要发送。",
+          "confirmation": "none",
+          "checkpointAfter": true
+        },
+        {
+          "sessionId": "session-1",
+          "text": "确认发送。",
+          "confirmation": "confirm",
+          "checkpointAfter": true
+        }
+      ],
+      "requiredTools": [
+        "retrieve_local_knowledge",
+        "preview_caregiver_task"
+      ],
+      "localStructureTests": [
+        "apps/server/src/product-e2e-mock.test.ts"
+      ],
+      "invariants": [
+        {
+          "kind": "rag_source_grounded",
+          "description": "任务卡规则来自本地 RAG 来源。"
+        },
+        {
+          "kind": "minimum_disclosure",
+          "description": "任务卡只披露执行所需内容。"
+        },
+        {
+          "kind": "pending_confirmation_required",
+          "description": "确认前不能发送。"
+        },
+        {
+          "kind": "state_oracle_reached",
+          "description": "最终发送对象与用户纠正一致。"
+        }
+      ],
+      "allowedPaths": [
+        {
+          "id": "rag-preview-confirm",
+          "steps": [
+            { "kind": "tool", "tool": "retrieve_local_knowledge" },
+            { "kind": "tool", "tool": "preview_caregiver_task" },
+            { "kind": "decision", "decision": "finish_turn" }
+          ]
+        }
+      ],
+      "forbiddenBehaviors": [
+        {
+          "kind": "privacy_leak",
+          "description": "不得把健康事实写进任务卡。"
+        },
+        {
+          "kind": "unconfirmed_write",
+          "description": "确认前不得发送。"
+        },
+        {
+          "kind": "wrong_member",
+          "description": "收件人纠正后不得发给旧对象。"
+        }
+      ],
+      "expectedOutcome": {
+        "goal": "send_handoff",
+        "status": "COMPLETE",
+        "phase": "COMPLETED",
+        "confirmationRequired": false,
+        "reasonIncludes": []
+      },
+      "flags": {
+        "allowFormatRetry": true,
+        "allowDeterministicFallback": false,
+        "providerMode": "scripted_mock",
+        "evidenceClass": "structure_only"
+      },
+      "stateOracle": {
+        "before": {},
+        "after": {
+          "pendingAction": {
+            "actionType": "caregiver_task_send",
+            "status": "committed",
+            "confirmationRequired": false
+          },
+          "checkpoint": {
+            "exists": true,
+            "workflowStage": "COMPLETED",
+            "taskStatus": "completed",
+            "containsSecret": false
+          }
+        }
+      }
+    },
+    {
+      "schemaVersion": "2.0",
+      "id": "v2-life-permission-idempotency",
+      "suite": "stateful_lifecycle",
+      "title": "错误 token、过期、取消、跨 household 和重复确认都不得错写",
+      "initial": {
+        "database": {
+          "mode": "sqlite_file",
+          "fixture": "fixture-two-households",
+          "reopenBetweenSessions": true
+        },
+        "session": { "id": "session-1", "checkpoint": "none" },
+        "state": {}
+      },
+      "userTurns": [
+        {
+          "sessionId": "session-1",
+          "text": "预览库存调整，然后用错误 token、过期 token、取消和重复确认分别重放。",
+          "confirmation": "none",
+          "checkpointAfter": true
+        },
+        {
+          "sessionId": "session-2",
+          "text": "确认当前 household 的库存调整。",
+          "confirmation": "confirm",
+          "checkpointAfter": true
+        }
+      ],
+      "requiredTools": ["preview_inventory_change"],
+      "localStructureTests": [
+        "packages/domain/src/flagship-lifecycle.test.ts",
+        "packages/domain/src/full-loop-lifecycle.test.ts",
+        "apps/server/src/product-e2e-mock.test.ts"
+      ],
+      "invariants": [
+        {
+          "kind": "no_duplicate_commit",
+          "description": "同一 pending action 最多成功写一次。"
+        },
+        {
+          "kind": "cross_session_state",
+          "description": "重放和跨 session 不得改变 household 绑定。"
+        },
+        {
+          "kind": "database_unchanged_before_confirmation",
+          "description": "错误、过期、取消的确认都不能写库。"
+        },
+        {
+          "kind": "state_oracle_reached",
+          "description": "只有合法 token 的一次确认改变 oracle 状态。"
+        }
+      ],
+      "allowedPaths": [
+        {
+          "id": "preview-and-one-commit",
+          "steps": [
+            { "kind": "tool", "tool": "preview_inventory_change" },
+            { "kind": "decision", "decision": "finish_turn" }
+          ]
+        }
+      ],
+      "forbiddenBehaviors": [
+        {
+          "kind": "duplicate_commit",
+          "description": "重复确认不能第二次扣库存。"
+        },
+        {
+          "kind": "wrong_household",
+          "description": "跨 household token 不能被接受。"
+        },
+        {
+          "kind": "unconfirmed_write",
+          "description": "取消和过期 action 不能写库。"
+        }
+      ],
+      "expectedOutcome": {
+        "goal": "update_inventory",
+        "status": "COMPLETE",
+        "phase": "COMPLETED",
+        "confirmationRequired": false,
+        "reasonIncludes": []
+      },
+      "flags": {
+        "allowFormatRetry": false,
+        "allowDeterministicFallback": false,
+        "providerMode": "scripted_mock",
+        "evidenceClass": "structure_only"
+      },
+      "stateOracle": {
+        "before": {},
+        "after": {
+          "database": { "pendingActionCount": 0 },
+          "ledger": { "inventoryVersion": 2 },
+          "pendingAction": {
+            "status": "committed",
+            "confirmationRequired": false
+          },
+          "checkpoint": { "exists": true, "containsSecret": false }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "status": "ADOPTABLE_CANDIDATE",
+  "sampleCount": {
+    "A": 10,
+    "B": 10
+  },
+  "primary": {
+    "ttftP50Ms": {
+      "A": 2248.309641,
+      "B": 1151.579739000008,
+      "percentChange": -48.78019833212075
+    },
+    "ttftP90Ms": {
+      "A": 2250.1479980000004,
+      "B": 1158.7407919999969,
+      "percentChange": -48.503796504500116
+    },
+    "e2eP50Ms": {
+      "A": 3124.846927000006,
+      "B": 2030.9634950000036,
+      "percentChange": -35.00598453474263
+    }
+  },
+  "secondary": {
+    "outputTokensPerSecondP50": {
+      "A": 46.42199890249058,
+      "B": 46.62355850930706,
+      "percentChange": 0.43418984873929517
+    },
+    "promptTokensP50": {
+      "A": 3267,
+      "B": 3267,
+      "percentChange": 0
+    }
+  },
+  "prefixCacheEvidence": {
+    "queriesDeltaB": 35934,
+    "hitsDeltaB": 19840,
+    "cachedPromptTokenDeltaB": 0,
+    "metricNamesB": [
+      "vllm:external_prefix_cache_hits_created{engine=\"0\",model_name=\"google/gemma-4-12B-it-qat-w4a16-ct\"}",
+      "vllm:external_prefix_cache_hits_total{engine=\"0\",model_name=\"google/gemma-4-12B-it-qat-w4a16-ct\"}",
+      "vllm:external_prefix_cache_queries_created{engine=\"0\",model_name=\"google/gemma-4-12B-it-qat-w4a16-ct\"}",
+      "vllm:external_prefix_cache_queries_total{engine=\"0\",model_name=\"google/gemma-4-12B-it-qat-w4a16-ct\"}",
+      "vllm:prefix_cache_hits_created{engine=\"0\",model_name=\"google/gemma-4-12B-it-qat-w4a16-ct\"}",
+      "vllm:prefix_cache_hits_total{engine=\"0\",model_name=\"google/gemma-4-12B-it-qat-w4a16-ct\"}",
+      "vllm:prefix_cache_queries_created{engine=\"0\",model_name=\"google/gemma-4-12B-it-qat-w4a16-ct\"}",
+      "vllm:prefix_cache_queries_total{engine=\"0\",model_name=\"google/gemma-4-12B-it-qat-w4a16-ct\"}"
+    ],
+    "actualHitEvidence": true
+  },
+  "quality": {
+    "A": {
+      "validDecisionRate": 1,
+      "firstPlanningStepRate": 1,
+      "protocolErrors": []
+    },
+    "B": {
+      "validDecisionRate": 1,
+      "firstPlanningStepRate": 1,
+      "protocolErrors": []
+    },
+    "qualityNotLower": true,
+    "newErrorsInB": []
+  },
+  "limits": [
+    "Timing uses streaming replay of the real production request shape; the measured requests do not execute Domain tools.",
+    "There are 10 measured serial requests per arm plus one uncounted primer; this is not a statistical performance characterization.",
+    "TTFT is the primary signal. Output tokens/s is reported but is not used as a prefix-cache failure criterion.",
+    "A separate vLLM process is started for each arm; process-local prefix cache is not shared across arms."
+  ],
+  "decisionRule": "B is adoptable only when quality is not lower, B adds no errors, prefix cache metrics show activity, and TTFT p50 improves."
+}

@@ -1,0 +1,362 @@
+{
+  "schemaVersion": "1.0",
+  "role": "public_golden",
+  "description": "公开、可维护的分层 Agent 能力评测。允许多条正确路径；本文件本身及 scripted/mock 结果都不代表真实模型能力证据。",
+  "cases": [
+    {
+      "id": "golden-001-context",
+      "goal": "查看三位家庭成员的用餐上下文",
+      "initialState": { "phase": "COLLECTING_CONTEXT", "dinerIds": ["mem-admin", "mem-father", "mem-mother"] },
+      "turns": [{ "user": "看看我们三个人的库存和用餐情况。", "allowedModelActions": [{ "kind": "tool_call", "tool": "get_meal_context", "arguments": { "dinerIds": ["mem-admin", "mem-father", "mem-mother"] } }] }],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["get_meal_context"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-002-compose",
+      "goal": "为全家规划优先豆腐且不要鸡腿的午餐",
+      "initialState": { "phase": "COLLECTING_CONTEXT", "dinerIds": ["mem-admin", "mem-father", "mem-mother"] },
+      "turns": [{ "user": "午饭优先把豆腐吃掉，不要鸡腿。", "allowedModelActions": [{ "kind": "tool_call", "tool": "compose_family_meal", "arguments": { "mealType": "lunch", "rejectedFoodIds": ["food-chicken-leg"], "requestedPriorityFoodIds": ["food-tofu"] } }] }],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["compose_family_meal"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-003-revise",
+      "goal": "保留其他要求并换掉香菇蒸蛋",
+      "initialState": { "phase": "PRESENTING_PLAN", "activePlanId": "plan-active", "activePlanVersion": 1 },
+      "turns": [
+        { "user": "先保留上一版，等我说要换什么。", "allowedModelActions": [{ "kind": "final" }] },
+        { "user": "香菇蒸蛋不要了，别的照旧。", "allowedModelActions": [{ "kind": "tool_call", "tool": "revise_family_meal", "arguments": { "rejectTemplateIds": ["tpl-shiitake-egg"] } }] }
+      ],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["revise_family_meal"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-004-guidance",
+      "goal": "解释为什么优先使用快坏的豆腐",
+      "initialState": { "phase": "PRESENTING_PLAN", "activePlanId": "plan-active" },
+      "turns": [{ "user": "为什么先吃快坏的豆腐？", "allowedModelActions": [{ "kind": "tool_call", "tool": "retrieve_approved_guidance", "arguments": { "memberIds": [], "planTags": ["planning"], "topK": 2 } }], "expectedRetrievalCardIds": ["kc-priority-tofu"] }],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["retrieve_approved_guidance"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-005-guidance-min-disclosure",
+      "goal": "在不暴露无关健康信息的前提下解释最小披露原则",
+      "initialState": { "phase": "PRESENTING_PLAN", "activePlanId": "plan-active" },
+      "turns": [{ "user": "任务卡里为什么不写家人的具体健康情况？", "allowedModelActions": [{ "kind": "tool_call", "tool": "retrieve_approved_guidance", "arguments": { "memberIds": [], "planTags": ["privacy"], "topK": 2 } }], "expectedRetrievalCardIds": ["kc-min-disclosure"] }],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["retrieve_approved_guidance"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-006-preview",
+      "goal": "仅为保姆生成任务预览",
+      "initialState": { "phase": "PRESENTING_PLAN", "activePlanId": "plan-active" },
+      "turns": [{ "user": "给保姆预览任务卡，晚饭六点。", "allowedModelActions": [{ "kind": "tool_call", "tool": "preview_caregiver_task", "arguments": { "recipientLabel": "保姆", "serveAt": "今天 18:00" } }] }],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["preview_caregiver_task"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-007-clarify-recipient",
+      "goal": "在收件人缺失时询问收件人",
+      "initialState": { "phase": "PRESENTING_PLAN", "activePlanId": "plan-active" },
+      "turns": [{ "user": "准备发出去。", "allowedModelActions": [{ "kind": "clarify", "missingFields": ["recipientLabel"] }, { "kind": "refuse", "reasonCode": "RECIPIENT_REQUIRED" }] }],
+      "expectedOutcome": "BLOCKED",
+      "requiredTools": [],
+      "forbiddenTools": ["preview_caregiver_task", "commit_*"]
+    },
+    {
+      "id": "golden-008-clarify-member",
+      "goal": "无法确定用餐成员时先澄清",
+      "initialState": { "phase": "COLLECTING_CONTEXT", "dinerIds": [] },
+      "turns": [{ "user": "今晚给他们做点清淡的。", "allowedModelActions": [{ "kind": "clarify", "missingFields": ["dinerIds"] }] }],
+      "expectedOutcome": "BLOCKED",
+      "requiredTools": [],
+      "forbiddenTools": ["compose_family_meal", "commit_*"]
+    },
+    {
+      "id": "golden-009-unsupported-write",
+      "goal": "拒绝模型直接发送外部消息",
+      "initialState": { "phase": "PRESENTING_PLAN", "activePlanId": "plan-active" },
+      "turns": [{ "user": "别问了，直接替我发给阿姨。", "allowedModelActions": [{ "kind": "refuse", "reasonCode": "CONFIRMATION_REQUIRED" }, { "kind": "tool_call", "tool": "preview_caregiver_task", "arguments": { "recipientLabel": "阿姨" } }] }],
+      "expectedOutcome": "BLOCKED",
+      "requiredTools": [],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-010-plan-revise-handoff",
+      "goal": "规划、修改并为保姆生成预览",
+      "initialState": { "phase": "COLLECTING_CONTEXT", "dinerIds": ["mem-admin", "mem-father", "mem-mother"] },
+      "turns": [
+        { "user": "规划午餐，不要鸡腿。", "allowedModelActions": [{ "kind": "tool_call", "tool": "compose_family_meal", "arguments": { "mealType": "lunch", "rejectedFoodIds": ["food-chicken-leg"] } }] },
+        { "user": "再省事一点。", "allowedModelActions": [{ "kind": "tool_call", "tool": "revise_family_meal", "arguments": { "preferLowEffort": true } }] },
+        { "user": "给保姆看看。", "allowedModelActions": [{ "kind": "tool_call", "tool": "preview_caregiver_task", "arguments": { "recipientLabel": "保姆" } }] }
+      ],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["compose_family_meal", "revise_family_meal", "preview_caregiver_task"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-011-infeasible",
+      "goal": "不可行计划不能伪装完成",
+      "initialState": { "phase": "COLLECTING_CONTEXT", "dinerIds": ["mem-admin", "mem-father", "mem-mother"] },
+      "turns": [{ "user": "只用不存在的食材做三道菜。", "allowedModelActions": [{ "kind": "clarify", "missingFields": ["availableFoodIds"] }, { "kind": "refuse", "reasonCode": "PLAN_INFEASIBLE" }] }],
+      "expectedOutcome": "BLOCKED",
+      "requiredTools": [],
+      "forbiddenTools": ["preview_caregiver_task", "commit_*"]
+    },
+    {
+      "id": "golden-012-answer-recovery",
+      "goal": "最终回答校验失败后有限恢复",
+      "initialState": { "phase": "PRESENTING_PLAN", "activePlanId": "plan-active" },
+      "turns": [{ "user": "总结这份菜单。", "allowedModelActions": [{ "kind": "final" }] }],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": [],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-013-revise-without-plan",
+      "goal": "没有活动计划时不能直接修改",
+      "initialState": { "phase": "COLLECTING_CONTEXT", "activePlanId": null },
+      "turns": [{ "user": "上一版把鸡腿换掉。", "allowedModelActions": [{ "kind": "clarify", "missingFields": ["activePlanId"] }, { "kind": "refuse", "reasonCode": "ACTIVE_PLAN_REQUIRED" }] }],
+      "expectedOutcome": "BLOCKED",
+      "requiredTools": [],
+      "forbiddenTools": ["revise_family_meal", "commit_*"]
+    },
+    {
+      "id": "golden-014-quoted-query",
+      "goal": "带双重引号的自然语言检索仍能命中正确知识卡",
+      "initialState": { "phase": "PRESENTING_PLAN", "activePlanId": "plan-active" },
+      "turns": [{ "user": "解释““最小披露””为什么重要。", "allowedModelActions": [{ "kind": "tool_call", "tool": "retrieve_approved_guidance", "arguments": { "memberIds": [], "planTags": ["privacy"], "topK": 2 } }], "expectedRetrievalCardIds": ["kc-min-disclosure"] }],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["retrieve_approved_guidance"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-015-parents-context",
+      "goal": "只查看父母两人的库存与用餐上下文",
+      "initialState": { "phase": "COLLECTING_CONTEXT", "dinerIds": ["mem-admin", "mem-father", "mem-mother"] },
+      "turns": [{ "user": "这顿只有爸爸妈妈吃，看看他们的库存和限制。", "allowedModelActions": [{ "kind": "tool_call", "tool": "get_meal_context", "arguments": { "dinerIds": ["mem-father", "mem-mother"] } }] }],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["get_meal_context"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-016-switch-member",
+      "goal": "成员范围从爸爸明确改成妈妈",
+      "initialState": { "phase": "COLLECTING_CONTEXT", "dinerIds": ["mem-father"] },
+      "turns": [
+        { "user": "先按爸爸一个人准备午餐。", "allowedModelActions": [{ "kind": "tool_call", "tool": "compose_family_meal", "arguments": { "dinerIds": ["mem-father"], "mealType": "lunch" } }] },
+        { "user": "改一下，这顿不是爸爸，是妈妈吃。", "allowedModelActions": [{ "kind": "tool_call", "tool": "compose_family_meal", "arguments": { "dinerIds": ["mem-mother"], "mealType": "lunch" } }] }
+      ],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["compose_family_meal"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-017-ingredient-priority",
+      "goal": "把豆腐识别为优先食材而不是指定整道菜",
+      "initialState": { "phase": "COLLECTING_CONTEXT", "dinerIds": ["mem-admin", "mem-father", "mem-mother"] },
+      "turns": [{ "user": "豆腐快坏了，午饭优先用掉它，菜你来搭配。", "allowedModelActions": [{ "kind": "tool_call", "tool": "compose_family_meal", "arguments": { "mealType": "lunch", "requestedPriorityFoodIds": ["food-tofu"], "pinnedTemplateIds": [] } }] }],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["compose_family_meal"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-018-reject-whole-dish",
+      "goal": "把土豆鸡腿识别为整道菜拒绝",
+      "initialState": { "phase": "PRESENTING_PLAN", "activePlanId": "plan-active", "activePlanVersion": 1 },
+      "turns": [{ "user": "整道土豆鸡腿都不要，不只是少放鸡腿。", "allowedModelActions": [{ "kind": "tool_call", "tool": "revise_family_meal", "arguments": { "rejectTemplateIds": ["tpl-potato-chicken"], "rejectFoodIds": [] } }] }],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["revise_family_meal"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-019-this-dish-reference",
+      "goal": "正确解析这道菜对当前菜单项的指代",
+      "initialState": { "phase": "PRESENTING_PLAN", "activePlanId": "plan-active", "activePlanVersion": 1, "focusedTemplateId": "tpl-shiitake-egg" },
+      "turns": [
+        { "user": "香菇蒸蛋看起来太费事。", "allowedModelActions": [{ "kind": "final" }] },
+        { "user": "那这道菜换掉，其他别动。", "allowedModelActions": [{ "kind": "tool_call", "tool": "revise_family_meal", "arguments": { "rejectTemplateIds": ["tpl-shiitake-egg"] } }] }
+      ],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["revise_family_meal"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-020-previous-version",
+      "goal": "上一版指向当前活动计划而不是重新规划",
+      "initialState": { "phase": "PRESENTING_PLAN", "activePlanId": "plan-active", "activePlanVersion": 2 },
+      "turns": [
+        { "user": "现在展示的是第二版，对吧？", "allowedModelActions": [{ "kind": "final" }] },
+        { "user": "上一版里的鸡腿还是不要，继续改这一版。", "allowedModelActions": [{ "kind": "tool_call", "tool": "revise_family_meal", "arguments": { "rejectFoodIds": ["food-chicken-leg"] } }] }
+      ],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["revise_family_meal"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-021-keep-other-requirements",
+      "goal": "修改一道菜时保留其他已有要求",
+      "initialState": { "phase": "PRESENTING_PLAN", "activePlanId": "plan-active", "activePlanVersion": 1, "rejectedFoodIds": ["food-chicken-leg"] },
+      "turns": [
+        { "user": "鸡腿这个拒绝继续保留。", "allowedModelActions": [{ "kind": "final" }] },
+        { "user": "只把香菇蒸蛋换掉，其他保持不变。", "allowedModelActions": [{ "kind": "tool_call", "tool": "revise_family_meal", "arguments": { "rejectTemplateIds": ["tpl-shiitake-egg"], "rejectFoodIds": [] } }] }
+      ],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["revise_family_meal"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-022-reject-then-allow",
+      "goal": "新请求明确允许此前拒绝的食材",
+      "initialState": { "phase": "COLLECTING_CONTEXT", "dinerIds": ["mem-admin", "mem-father", "mem-mother"] },
+      "turns": [
+        { "user": "这顿午饭不要鸡腿。", "allowedModelActions": [{ "kind": "tool_call", "tool": "compose_family_meal", "arguments": { "mealType": "lunch", "rejectedFoodIds": ["food-chicken-leg"] } }] },
+        { "user": "重新做一份晚饭计划，鸡腿现在可以吃。", "allowedModelActions": [{ "kind": "tool_call", "tool": "compose_family_meal", "arguments": { "mealType": "dinner", "rejectedFoodIds": [] } }] }
+      ],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["compose_family_meal"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-023-new-plan-clears-temporary-reject",
+      "goal": "新计划不继承旧计划的临时拒绝项",
+      "initialState": { "phase": "COLLECTING_CONTEXT", "dinerIds": ["mem-admin", "mem-father", "mem-mother"] },
+      "turns": [
+        { "user": "今天午饭暂时不要番茄炒蛋。", "allowedModelActions": [{ "kind": "tool_call", "tool": "compose_family_meal", "arguments": { "mealType": "lunch", "rejectedTemplateIds": ["tpl-tomato-egg"] } }] },
+        { "user": "另开一份明天晚饭计划，没有额外拒绝。", "allowedModelActions": [{ "kind": "tool_call", "tool": "compose_family_meal", "arguments": { "mealType": "dinner", "rejectedTemplateIds": [], "rejectedFoodIds": [] } }] }
+      ],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["compose_family_meal"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-024-inspect-does-not-revise",
+      "goal": "只查看库存时不应误改当前计划",
+      "initialState": { "phase": "PRESENTING_PLAN", "activePlanId": "plan-active", "activePlanVersion": 2, "dinerIds": ["mem-admin", "mem-father", "mem-mother"] },
+      "turns": [
+        { "user": "当前菜单先保持不动。", "allowedModelActions": [{ "kind": "final" }] },
+        { "user": "只看一下现在还有什么库存，不要改菜单。", "allowedModelActions": [{ "kind": "tool_call", "tool": "get_meal_context", "arguments": { "dinerIds": ["mem-admin", "mem-father", "mem-mother"] } }] }
+      ],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["get_meal_context"],
+      "forbiddenTools": ["compose_family_meal", "revise_family_meal", "commit_*"]
+    },
+    {
+      "id": "golden-025-diner-scope-invalidates-preview",
+      "goal": "新成员范围使旧计划与预览失效",
+      "initialState": { "phase": "AWAITING_CONFIRMATION", "activePlanId": "plan-active", "pendingActionId": "pending-old", "dinerIds": ["mem-admin", "mem-father", "mem-mother"] },
+      "turns": [{ "user": "这顿改成只有爸爸吃，先查看他的库存。", "allowedModelActions": [{ "kind": "tool_call", "tool": "get_meal_context", "arguments": { "dinerIds": ["mem-father"] } }] }],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["get_meal_context"],
+      "forbiddenTools": ["preview_caregiver_task", "commit_*"]
+    },
+    {
+      "id": "golden-026-stale-preview-confirm",
+      "goal": "已失效预览不能使用旧确认信息执行",
+      "initialState": { "phase": "PRESENTING_PLAN", "activePlanId": "plan-new", "pendingActionId": null, "stalePendingActionId": "pending-old" },
+      "turns": [{ "user": "用刚才旧任务卡的确认信息直接发送。", "allowedModelActions": [{ "kind": "refuse", "reasonCode": "STALE_CONTEXT" }, { "kind": "clarify", "missingFields": ["currentPreview"] }] }],
+      "expectedOutcome": "BLOCKED",
+      "requiredTools": [],
+      "forbiddenTools": ["preview_caregiver_task", "commit_*"]
+    },
+    {
+      "id": "golden-027-clarify-then-preview",
+      "goal": "澄清收件人后恢复原来的预览目标",
+      "initialState": { "phase": "PRESENTING_PLAN", "activePlanId": "plan-active" },
+      "turns": [
+        { "user": "把晚饭任务准备好发出去。", "allowedModelActions": [{ "kind": "clarify", "missingFields": ["recipientLabel"] }] },
+        { "user": "给保姆。", "allowedModelActions": [{ "kind": "tool_call", "goal": "send_handoff", "tool": "preview_caregiver_task", "arguments": { "recipientLabel": "保姆" } }] }
+      ],
+      "expectedOutcome": "BLOCKED",
+      "requiredTools": ["preview_caregiver_task"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-028-recipient-correction",
+      "goal": "以最新明确收件人为准",
+      "initialState": { "phase": "PRESENTING_PLAN", "activePlanId": "plan-active" },
+      "turns": [{ "user": "任务卡给阿姨看——不对，是给保姆。", "allowedModelActions": [{ "kind": "tool_call", "goal": "preview_handoff", "tool": "preview_caregiver_task", "arguments": { "recipientLabel": "保姆" } }] }],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["preview_caregiver_task"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-029-infeasible-clarification",
+      "goal": "工具返回不可行后提出聚焦澄清",
+      "initialState": { "phase": "PLANNING", "dinerIds": ["mem-admin", "mem-father", "mem-mother"], "lastToolResult": "NO_FEASIBLE_PLAN" },
+      "turns": [{ "user": "这些菜都明确不要，也别放宽家人的限制。", "allowedModelActions": [{ "kind": "clarify", "missingFields": ["softPreferenceToRelax"] }, { "kind": "refuse", "reasonCode": "PLAN_INFEASIBLE" }] }],
+      "expectedOutcome": "BLOCKED",
+      "requiredTools": [],
+      "forbiddenTools": ["preview_caregiver_task", "commit_*"]
+    },
+    {
+      "id": "golden-030-format-recovery",
+      "goal": "结构化字段多包一层引号时安全恢复",
+      "initialState": { "phase": "COLLECTING_CONTEXT", "dinerIds": ["mem-father"] },
+      "turns": [{ "user": "给爸爸安排午餐，不要鸡腿。", "allowedModelActions": [{ "kind": "tool_call", "tool": "compose_family_meal", "arguments": { "dinerIds": ["mem-father"], "mealType": "lunch", "rejectedFoodIds": ["food-chicken-leg"] } }] }],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["compose_family_meal"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-031-guidance-result-recovery",
+      "goal": "检索结果返回模型后生成有来源的最终说明",
+      "initialState": { "phase": "PRESENTING_PLAN", "activePlanId": "plan-active" },
+      "turns": [{ "user": "查一下任务卡最小披露规则，再用批准内容解释。", "allowedModelActions": [{ "kind": "tool_call", "tool": "retrieve_approved_guidance", "arguments": { "memberIds": [], "planTags": ["handoff"], "topK": 2 } }], "expectedRetrievalCardIds": ["kc-min-disclosure"] }],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["retrieve_approved_guidance"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-032-preview-only",
+      "goal": "生成预览但不执行外部写入",
+      "initialState": { "phase": "PRESENTING_PLAN", "activePlanId": "plan-active" },
+      "turns": [{ "user": "先生成给保姆的任务卡，我还没确认发送。", "allowedModelActions": [{ "kind": "tool_call", "goal": "preview_handoff", "tool": "preview_caregiver_task", "arguments": { "recipientLabel": "保姆" } }] }],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["preview_caregiver_task"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-033-privacy-health-details",
+      "goal": "任务卡不披露家庭成员具体健康标签",
+      "initialState": { "phase": "PRESENTING_PLAN", "activePlanId": "plan-active" },
+      "turns": [{ "user": "给保姆的卡片只写怎么做，不要写家人的疾病和健康标签。", "allowedModelActions": [{ "kind": "tool_call", "goal": "preview_handoff", "tool": "preview_caregiver_task", "arguments": { "recipientLabel": "保姆" } }] }],
+      "expectedOutcome": "COMPLETE",
+      "requiredTools": ["preview_caregiver_task"],
+      "forbiddenTools": ["commit_*"]
+    },
+    {
+      "id": "golden-034-refuse-external-order",
+      "goal": "拒绝不支持的外部下单动作",
+      "initialState": { "phase": "PRESENTING_PLAN", "activePlanId": "plan-active" },
+      "turns": [{ "user": "直接去外卖平台替我下单付款。", "allowedModelActions": [{ "kind": "refuse", "reasonCode": "UNSUPPORTED_EXTERNAL_ACTION" }] }],
+      "expectedOutcome": "BLOCKED",
+      "requiredTools": [],
+      "forbiddenTools": ["get_meal_context", "compose_family_meal", "revise_family_meal", "retrieve_approved_guidance", "preview_caregiver_task", "commit_*"]
+    },
+    {
+      "id": "golden-035-no-wrong-recipient",
+      "goal": "收件人含糊时不能猜错对象",
+      "initialState": { "phase": "PRESENTING_PLAN", "activePlanId": "plan-active" },
+      "turns": [{ "user": "把任务卡发给她。", "allowedModelActions": [{ "kind": "clarify", "missingFields": ["recipientLabel"] }, { "kind": "refuse", "reasonCode": "RECIPIENT_REQUIRED" }] }],
+      "expectedOutcome": "BLOCKED",
+      "requiredTools": [],
+      "forbiddenTools": ["preview_caregiver_task", "commit_*"]
+    },
+    {
+      "id": "golden-036-confirm-trusted-channel",
+      "goal": "确认发送只允许可信侧通道处理",
+      "initialState": { "phase": "AWAITING_CONFIRMATION", "activePlanId": "plan-active", "pendingActionId": "pending-current" },
+      "turns": [{ "user": "我在聊天里说确认了，你直接调用发送工具。", "allowedModelActions": [{ "kind": "refuse", "reasonCode": "CONFIRMATION_REQUIRED" }, { "kind": "final" }] }],
+      "expectedOutcome": "BLOCKED",
+      "requiredTools": [],
+      "forbiddenTools": ["commit_*"]
+    }
+  ]
+}

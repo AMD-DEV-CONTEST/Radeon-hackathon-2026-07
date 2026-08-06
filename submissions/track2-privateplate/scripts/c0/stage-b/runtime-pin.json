@@ -1,0 +1,121 @@
+{
+  "schema_version": "2.1",
+  "description": "Fail-closed pre-start runtime pins for formal C0-B. A mismatch blocks model download and launch. Executable install path: scripts/c0/stage-b/install-plan.json + 00-install-runtime.sh.",
+  "install_plan_path": "scripts/c0/stage-b/install-plan.json",
+  "install_script": "scripts/c0/stage-b/00-install-runtime.sh",
+  "stop_script": "scripts/c0/stage-b/00-stop-vllm.sh",
+  "python": {
+    "major": 3,
+    "minor": 12
+  },
+  "node": {
+    "major_min": 22,
+    "minor_min": 13
+  },
+  "vllm": {
+    "require_import": true,
+    "exact_version": "0.25.1+rocm723",
+    "source_commit": "752a3a504485790a2e8491cacbb35c137339ad34",
+    "wheel_file": "vllm-0.25.1+rocm723-cp312-cp312-manylinux_2_34_x86_64.whl",
+    "wheel_index": "https://wheels.vllm.ai/rocm/0.25.1/rocm723/vllm/",
+    "wheel_url": "https://wheels.vllm.ai/rocm/752a3a504485790a2e8491cacbb35c137339ad34/vllm-0.25.1%2Brocm723-cp312-cp312-manylinux_2_34_x86_64.whl",
+    "wheel_size_bytes": 198169819,
+    "require_tool_call_parser_gemma4": true,
+    "require_reasoning_parser_gemma4": true,
+    "require_tool_call_parser_hermes": true,
+    "required_cli_flags": [
+      "--tool-call-parser",
+      "--reasoning-parser",
+      "--kv-cache-memory-bytes",
+      "--attention-backend",
+      "--chat-template",
+      "--enable-auto-tool-choice"
+    ]
+  },
+  "torch": {
+    "require_import": true,
+    "exact_base_version": "2.11.0",
+    "exact_local_version": "2.11.0+gitd0c8b1f",
+    "require_hip_or_rocm": true,
+    "hip_version_prefix": "7.2",
+    "install_strategy": "vllm_rocm_companion_wheel_then_vllm",
+    "wheel_url": "https://wheels.vllm.ai/rocm/752a3a504485790a2e8491cacbb35c137339ad34/torch-2.11.0%2Bgitd0c8b1f-cp312-cp312-manylinux_2_35_x86_64.whl",
+    "wheel_size_bytes": 1321813781,
+    "index_url": "https://wheels.vllm.ai/rocm/0.25.1/rocm723/torch/",
+    "companion_wheel_urls": [
+      "https://wheels.vllm.ai/rocm/752a3a504485790a2e8491cacbb35c137339ad34/triton-3.6.0-cp312-cp312-manylinux_2_35_x86_64.whl",
+      "https://wheels.vllm.ai/rocm/752a3a504485790a2e8491cacbb35c137339ad34/triton_kernels-1.0.0-py3-none-any.whl",
+      "https://wheels.vllm.ai/rocm/752a3a504485790a2e8491cacbb35c137339ad34/torchvision-0.24.1%2Bd801a34-cp312-cp312-manylinux_2_34_x86_64.whl",
+      "https://wheels.vllm.ai/rocm/752a3a504485790a2e8491cacbb35c137339ad34/torchaudio-2.9.0%2Beaa9e4e-cp312-cp312-manylinux_2_34_x86_64.whl",
+      "https://wheels.vllm.ai/rocm/752a3a504485790a2e8491cacbb35c137339ad34/amdsmi-26.2.2%2Bc2d9476115-py3-none-any.whl",
+      "https://wheels.vllm.ai/rocm/752a3a504485790a2e8491cacbb35c137339ad34/flash_attn-2.8.3-cp312-cp312-manylinux_2_34_x86_64.whl",
+      "https://wheels.vllm.ai/rocm/752a3a504485790a2e8491cacbb35c137339ad34/amd_aiter-0.1.16.post2-cp312-cp312-manylinux_2_34_x86_64.whl"
+    ],
+    "source_docs": "https://wheels.vllm.ai/rocm/0.25.1/rocm723/",
+    "note": "vLLM 0.25.1+rocm723 Requires-Dist torch==2.11.0+gitd0c8b1f. Official pytorch.org +rocm7.2 local tag is NOT accepted by that wheel.",
+    "legacy_image_observed": {
+      "rocm": "7.2.1",
+      "torch": "2.9.1",
+      "status": "NOT_FORMAL_PIN",
+      "note": "Historical C0-B session only; formal pin is vLLM-matched Torch 2.11.0+gitd0c8b1f."
+    }
+  },
+  "transformers": {
+    "exact_version": "5.14.1",
+    "note": "Gemma4 QAT checkpoint uses model_type gemma4_unified; transformers>=5.14 provides that architecture (5.5.3 only has gemma4)."
+  },
+  "compressed_tensors": {
+    "exact_version": "0.17.0"
+  },
+  "rocm": {
+    "exact_version": "7.2.3",
+    "allowed_versions": ["7.2.3", "7.2.1"],
+    "require_rocm_smi_or_rocminfo": true,
+    "require_gfx_or_radeon_name": true,
+    "note": "Preferred pin is 7.2.3. Global oneclick image amd-oneclick-base:rocm7.2.1-py3.12-v20260416 ships 7.2.1; both are accepted when Torch HIP stays on the 7.2 prefix."
+  },
+  "hardware": {
+    "gfx_architecture": "gfx1100",
+    "compute_units": 96,
+    "min_total_memory_bytes": 50000000000,
+    "max_total_memory_bytes": 52000000000,
+    "expected_gpu_count": 1,
+    "claim": "The checked fields are consistent with Radeon PRO W7900; the product name remains recorded evidence, not an inferred hard gate."
+  },
+  "image": {
+    "digest_pattern": "^sha256:[0-9a-f]{64}$",
+    "require_raw_metadata_receipt": true,
+    "receipt_must_contain_digest": true
+  },
+  "attention": {
+    "allowed_backends": ["TRITON_ATTN"]
+  },
+  "candidates": {
+    "gemma4-12b-qat-w4a16-ct": {
+      "model_id": "google/gemma-4-12B-it-qat-w4a16-ct",
+      "revision": "1d2c2d7f2466070e69d6fb3fd5ce9a7d75f2f6ee",
+      "quantization": "compressed-tensors",
+      "tool_call_parser": "gemma4",
+      "reasoning_parser": "gemma4",
+      "chat_template_sha256": "afdbb2abe3667ccde95cc2f86919f05370339399bab5f750950a4390523b8927",
+      "kv_cache_memory_bytes": 8589934592
+    },
+    "qwen14": {
+      "model_id": "Qwen/Qwen2.5-14B-Instruct",
+      "revision": "cf98f3b3bbb457ad9e2bb7baf9a0125b6b88caa8",
+      "quantization": null,
+      "tool_call_parser": "hermes",
+      "reasoning_parser": null,
+      "chat_template_sha256": null,
+      "kv_cache_memory_bytes": 8589934592
+    }
+  },
+  "gates": {
+    "regression_required": true,
+    "holdout_required": true,
+    "privacy_zero_tolerance": true,
+    "effective_policy_zero_tolerance": true,
+    "model_artifact_verification_required": true,
+    "note": "Any of regression, holdout, privacy, effective-policy, or artifact verification FAIL blocks overall collection PASS."
+  }
+}

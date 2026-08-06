@@ -1,0 +1,909 @@
+{
+  "schemaVersion": "2.0",
+  "suite": "dev_seed",
+  "role": "dev_seed",
+  "scenarios": [
+    {
+      "schemaVersion": "2.0",
+      "id": "v2-dev-plan-basic",
+      "suite": "dev_seed",
+      "title": "读取上下文后完成一条午餐规划链",
+      "initial": {
+        "database": {
+          "mode": "memory",
+          "fixture": "seed-household",
+          "reopenBetweenSessions": false
+        },
+        "session": { "id": "session-1", "checkpoint": "none" },
+        "state": {}
+      },
+      "userTurns": [
+        {
+          "sessionId": "session-1",
+          "text": "请根据三位成员今天的情况规划午餐。",
+          "confirmation": "none",
+          "checkpointAfter": true
+        }
+      ],
+      "requiredTools": [
+        "get_day_context",
+        "find_dish_candidates",
+        "finalize_meal_plan"
+      ],
+      "rawArgumentChecks": [
+        {
+          "tool": "get_day_context",
+          "path": "dinerIds",
+          "contains": "mem-admin"
+        },
+        {
+          "tool": "finalize_meal_plan",
+          "path": "selectedDishes",
+          "contains": {
+            "templateId": "tpl-tofu",
+            "relativePortion": "standard"
+          }
+        }
+      ],
+      "invariants": [
+        {
+          "kind": "state_oracle_reached",
+          "description": "规划完成后必须落到可追溯的有效计划状态。"
+        },
+        {
+          "kind": "selected_dishes_from_candidate_set",
+          "description": "模型选择的菜只能来自本轮候选集。"
+        },
+        {
+          "kind": "raw_selection_persisted",
+          "description": "模型原始选择与最终计划中的选择一致。"
+        },
+        {
+          "kind": "hard_constraints_preserved",
+          "description": "成员约束不能在规划过程中被放松。"
+        }
+      ],
+      "allowedPaths": [
+        {
+          "id": "context-candidates-finalize",
+          "steps": [
+            { "kind": "tool", "tool": "get_day_context" },
+            { "kind": "tool", "tool": "find_dish_candidates" },
+            { "kind": "tool", "tool": "finalize_meal_plan" }
+          ]
+        },
+        {
+          "id": "context-ask-then-plan",
+          "steps": [
+            { "kind": "tool", "tool": "get_day_context" },
+            { "kind": "decision", "decision": "ask_user" },
+            { "kind": "tool", "tool": "find_dish_candidates" },
+            { "kind": "tool", "tool": "finalize_meal_plan" }
+          ]
+        }
+      ],
+      "forbiddenBehaviors": [
+        {
+          "kind": "wrong_tool_arguments",
+          "description": "不能把自然语言拒绝项替换成未声明的参数名。"
+        },
+        {
+          "kind": "false_write_claim",
+          "description": "只生成计划时不能声称已经扣库存。"
+        }
+      ],
+      "expectedOutcome": {
+        "goal": "compose_meal",
+        "status": "COMPLETE",
+        "phase": "PRESENTING_PLAN",
+        "confirmationRequired": false,
+        "reasonIncludes": []
+      },
+      "flags": {
+        "allowFormatRetry": true,
+        "allowDeterministicFallback": false,
+        "providerMode": "local_vllm",
+        "evidenceClass": "model_native"
+      },
+      "stateOracle": {
+        "before": {},
+        "after": {
+          "database": { "householdId": "household-demo" },
+          "plan": {
+            "activePlanId": "plan-v2-1",
+            "activePlanVersion": 1,
+            "selectedTemplateIds": ["tpl-tofu", "tpl-cabbage"],
+            "status": "valid",
+            "candidateSetId": "cset-v2-1"
+          },
+          "checkpoint": {
+            "exists": true,
+            "workflowStage": "PRESENTING_PLAN",
+            "candidateSetId": "cset-v2-1",
+            "containsSecret": false
+          }
+        }
+      }
+    },
+    {
+      "schemaVersion": "2.0",
+      "id": "v2-dev-revise-plan",
+      "suite": "dev_seed",
+      "title": "多轮修订成员后重新选择整套计划",
+      "initial": {
+        "database": {
+          "mode": "memory",
+          "fixture": "seed-household-with-plan",
+          "reopenBetweenSessions": false
+        },
+        "session": { "id": "session-1", "checkpoint": "resume" },
+        "state": {
+          "plan": {
+            "activePlanId": "plan-v2-1",
+            "activePlanVersion": 1,
+            "selectedTemplateIds": ["tpl-tofu"],
+            "status": "valid",
+            "candidateSetId": "cset-v2-1"
+          }
+        }
+      },
+      "userTurns": [
+        {
+          "sessionId": "session-1",
+          "text": "把早餐成员改成三个人，并重新规划。",
+          "confirmation": "none",
+          "checkpointAfter": true
+        },
+        {
+          "sessionId": "session-1",
+          "text": "不要鸡腿，保留其他限制。",
+          "confirmation": "none",
+          "checkpointAfter": true
+        }
+      ],
+      "requiredTools": [
+        "get_day_context",
+        "find_dish_candidates",
+        "finalize_meal_plan"
+      ],
+      "rawArgumentChecks": [
+        {
+          "tool": "find_dish_candidates",
+          "path": "rejectedFoodIds",
+          "contains": "food-chicken-leg"
+        }
+      ],
+      "invariants": [
+        {
+          "kind": "old_plan_superseded",
+          "description": "新计划成功后旧版本必须标记为 superseded。"
+        },
+        {
+          "kind": "selected_dishes_from_candidate_set",
+          "description": "修订后的选择只能来自新的候选集。"
+        },
+        {
+          "kind": "hard_constraints_preserved",
+          "description": "新增拒绝项不能重新出现在最终计划。"
+        },
+        {
+          "kind": "state_oracle_reached",
+          "description": "最终状态必须是 version +1 的有效计划。"
+        }
+      ],
+      "allowedPaths": [
+        {
+          "id": "re-read-reselect-finalize",
+          "steps": [
+            { "kind": "tool", "tool": "get_day_context" },
+            { "kind": "tool", "tool": "find_dish_candidates" },
+            { "kind": "tool", "tool": "finalize_meal_plan" }
+          ]
+        },
+        {
+          "id": "clarify-then-reselect",
+          "steps": [
+            { "kind": "tool", "tool": "get_day_context" },
+            { "kind": "decision", "decision": "ask_user" },
+            { "kind": "tool", "tool": "find_dish_candidates" },
+            { "kind": "tool", "tool": "finalize_meal_plan" }
+          ]
+        }
+      ],
+      "forbiddenBehaviors": [
+        {
+          "kind": "wrong_tool_arguments",
+          "description": "不得把旧计划的 selectedDishes 原样提交成新版本。"
+        },
+        {
+          "kind": "partial_as_complete",
+          "description": "只有重新选择并成功落盘后才能报告完整修订。"
+        }
+      ],
+      "expectedOutcome": {
+        "goal": "revise_meal",
+        "status": "COMPLETE",
+        "phase": "PRESENTING_PLAN",
+        "confirmationRequired": false,
+        "reasonIncludes": []
+      },
+      "flags": {
+        "allowFormatRetry": true,
+        "allowDeterministicFallback": false,
+        "providerMode": "local_vllm",
+        "evidenceClass": "model_native"
+      },
+      "stateOracle": {
+        "before": {
+          "plan": {
+            "activePlanId": "plan-v2-1",
+            "activePlanVersion": 1,
+            "selectedTemplateIds": ["tpl-tofu"],
+            "status": "valid",
+            "candidateSetId": "cset-v2-1"
+          }
+        },
+        "after": {
+          "plan": {
+            "activePlanId": "plan-v2-2",
+            "activePlanVersion": 2,
+            "selectedTemplateIds": ["tpl-tofu", "tpl-cabbage"],
+            "status": "valid",
+            "candidateSetId": "cset-v2-2"
+          },
+          "checkpoint": {
+            "exists": true,
+            "workflowStage": "PRESENTING_PLAN",
+            "candidateSetId": "cset-v2-2",
+            "containsSecret": false
+          }
+        }
+      }
+    },
+    {
+      "schemaVersion": "2.0",
+      "id": "v2-dev-inventory-preview",
+      "suite": "dev_seed",
+      "title": "库存变更先预览并等待确认",
+      "initial": {
+        "database": {
+          "mode": "memory",
+          "fixture": "seed-household",
+          "reopenBetweenSessions": false
+        },
+        "session": { "id": "session-1", "checkpoint": "none" },
+        "state": {
+          "database": {
+            "householdId": "household-demo",
+            "inventory": { "food-tofu": 0 }
+          }
+        }
+      },
+      "userTurns": [
+        {
+          "sessionId": "session-1",
+          "text": "先只看一下库存，再预览两盒豆腐入库，确认前不要写入库存。",
+          "confirmation": "none",
+          "checkpointAfter": true
+        }
+      ],
+      "requiredTools": ["get_inventory", "preview_inventory_change"],
+      "rawArgumentChecks": [
+        {
+          "tool": "preview_inventory_change",
+          "path": "foodId",
+          "equals": "food-tofu"
+        },
+        {
+          "tool": "preview_inventory_change",
+          "path": "quantity",
+          "equals": 2
+        },
+        {
+          "tool": "preview_inventory_change",
+          "path": "unit",
+          "equals": "盒"
+        }
+      ],
+      "invariants": [
+        {
+          "kind": "pending_confirmation_required",
+          "description": "预览结束必须保留待确认动作。"
+        },
+        {
+          "kind": "database_unchanged_before_confirmation",
+          "description": "预览阶段数据库与库存账本保持不变。"
+        },
+        {
+          "kind": "state_oracle_reached",
+          "description": "状态必须能表达库存变更预览和确认边界。"
+        }
+      ],
+      "allowedPaths": [
+        {
+          "id": "inventory-preview",
+          "steps": [
+            { "kind": "tool", "tool": "get_inventory" },
+            { "kind": "tool", "tool": "preview_inventory_change" }
+          ]
+        }
+      ],
+      "forbiddenBehaviors": [
+        {
+          "kind": "unconfirmed_write",
+          "description": "确认前不得增加库存数量或账本版本。"
+        },
+        {
+          "kind": "false_write_claim",
+          "description": "不得把 preview 描述成已经入库。"
+        }
+      ],
+      "expectedOutcome": {
+        "goal": "update_inventory",
+        "status": "BLOCKED",
+        "phase": "AWAITING_CONFIRMATION",
+        "confirmationRequired": true,
+        "reasonIncludes": ["confirmation_required"]
+      },
+      "flags": {
+        "allowFormatRetry": true,
+        "allowDeterministicFallback": false,
+        "providerMode": "local_vllm",
+        "evidenceClass": "model_native"
+      },
+      "stateOracle": {
+        "before": {
+          "database": {
+            "householdId": "household-demo",
+            "inventory": { "food-tofu": 0 }
+          },
+          "ledger": { "inventoryVersion": 0 }
+        },
+        "after": {
+          "database": {
+            "householdId": "household-demo",
+            "inventory": { "food-tofu": 0 },
+            "pendingActionCount": 1
+          },
+          "ledger": { "inventoryVersion": 0 },
+          "pendingAction": {
+            "id": "pending-inventory-1",
+            "actionType": "inventory_adjustment",
+            "status": "pending",
+            "confirmationRequired": true
+          },
+          "checkpoint": {
+            "exists": true,
+            "workflowStage": "AWAITING_CONFIRMATION",
+            "pendingActionType": "inventory_adjustment",
+            "containsSecret": false
+          }
+        }
+      }
+    },
+    {
+      "schemaVersion": "2.0",
+      "id": "v2-dev-member-memory-preview",
+      "suite": "dev_seed",
+      "title": "家庭偏好先预览再确认保存",
+      "initial": {
+        "database": {
+          "mode": "memory",
+          "fixture": "seed-household",
+          "reopenBetweenSessions": false
+        },
+        "session": { "id": "session-1", "checkpoint": "none" },
+        "state": {
+          "database": {
+            "householdId": "household-demo",
+            "memoryFactIds": []
+          }
+        }
+      },
+      "userTurns": [
+        {
+          "sessionId": "session-1",
+          "text": "预览把全家喜欢清淡口味这条家庭偏好保存下来。",
+          "confirmation": "none",
+          "checkpointAfter": true
+        }
+      ],
+      "requiredTools": ["preview_member_memory_change"],
+      "rawArgumentChecks": [
+        {
+          "tool": "preview_member_memory_change",
+          "path": "memberId",
+          "equals": "mem-admin"
+        },
+        {
+          "tool": "preview_member_memory_change",
+          "path": "summary",
+          "textIncludes": "清淡"
+        }
+      ],
+      "invariants": [
+        {
+          "kind": "pending_confirmation_required",
+          "description": "家庭资料预览必须等待确认。"
+        },
+        {
+          "kind": "database_unchanged_before_confirmation",
+          "description": "确认前不得写入新的家庭事实。"
+        },
+        {
+          "kind": "state_oracle_reached",
+          "description": "待确认动作需要绑定正确的 household。"
+        }
+      ],
+      "allowedPaths": [
+        {
+          "id": "memory-preview",
+          "steps": [
+            { "kind": "tool", "tool": "preview_member_memory_change" }
+          ]
+        }
+      ],
+      "forbiddenBehaviors": [
+        {
+          "kind": "unconfirmed_write",
+          "description": "不得在预览阶段写入家庭记忆。"
+        },
+        {
+          "kind": "wrong_household",
+          "description": "不得把家庭事实写入其他 household。"
+        }
+      ],
+      "expectedOutcome": {
+        "goal": "update_member_memory",
+        "status": "BLOCKED",
+        "phase": "AWAITING_CONFIRMATION",
+        "confirmationRequired": true,
+        "reasonIncludes": ["confirmation_required"]
+      },
+      "flags": {
+        "allowFormatRetry": true,
+        "allowDeterministicFallback": false,
+        "providerMode": "local_vllm",
+        "evidenceClass": "model_native"
+      },
+      "stateOracle": {
+        "before": {
+          "database": {
+            "householdId": "household-demo",
+            "memoryFactIds": []
+          }
+        },
+        "after": {
+          "database": {
+            "householdId": "household-demo",
+            "memoryFactIds": [],
+            "pendingActionCount": 1
+          },
+          "pendingAction": {
+            "id": "pending-memory-1",
+            "actionType": "member_memory_update",
+            "status": "pending",
+            "confirmationRequired": true
+          },
+          "checkpoint": {
+            "exists": true,
+            "workflowStage": "AWAITING_CONFIRMATION",
+            "pendingActionType": "member_memory_update",
+            "containsSecret": false
+          }
+        }
+      }
+    },
+    {
+      "schemaVersion": "2.0",
+      "id": "v2-dev-rag-guidance",
+      "suite": "dev_seed",
+      "title": "从本地 RAG 检索任务卡规则并保持来源可追溯",
+      "initial": {
+        "database": {
+          "mode": "memory",
+          "fixture": "seed-household",
+          "reopenBetweenSessions": false
+        },
+        "session": { "id": "session-1", "checkpoint": "none" },
+        "state": {}
+      },
+      "userTurns": [
+        {
+          "sessionId": "session-1",
+          "text": "查一下任务卡里关于隐私和疾病信息的本地规则。",
+          "confirmation": "none",
+          "checkpointAfter": false
+        }
+      ],
+      "requiredTools": ["retrieve_local_knowledge"],
+      "rawArgumentChecks": [
+        {
+          "tool": "retrieve_local_knowledge",
+          "path": "query",
+          "textIncludes": "隐私"
+        }
+      ],
+      "invariants": [
+        {
+          "kind": "rag_source_grounded",
+          "description": "回答引用的来源必须来自本轮本地检索包。"
+        },
+        {
+          "kind": "minimum_disclosure",
+          "description": "规则说明不能把健康事实带入任务卡。"
+        },
+        {
+          "kind": "state_oracle_reached",
+          "description": "检索结果需要留在当前任务证据中。"
+        }
+      ],
+      "allowedPaths": [
+        {
+          "id": "rag-only",
+          "steps": [
+            { "kind": "tool", "tool": "retrieve_local_knowledge" }
+          ]
+        }
+      ],
+      "forbiddenBehaviors": [
+        {
+          "kind": "privacy_leak",
+          "description": "不得在任务卡示例中输出疾病名称或健康事实。"
+        },
+        {
+          "kind": "medical_advice",
+          "description": "本地规则检索不能变成诊断或处方。"
+        }
+      ],
+      "expectedOutcome": {
+        "goal": "retrieve_guidance",
+        "status": "COMPLETE",
+        "phase": "COMPLETED",
+        "confirmationRequired": false,
+        "reasonIncludes": []
+      },
+      "flags": {
+        "allowFormatRetry": true,
+        "allowDeterministicFallback": false,
+        "providerMode": "local_vllm",
+        "evidenceClass": "model_native"
+      },
+      "stateOracle": {
+        "before": {},
+        "after": {
+          "checkpoint": {
+            "exists": true,
+            "workflowStage": "COMPLETED",
+            "containsSecret": false
+          }
+        }
+      }
+    },
+    {
+      "schemaVersion": "2.0",
+      "id": "v2-dev-caregiver-confirmation",
+      "suite": "dev_seed",
+      "title": "任务卡收件人纠正后仍需确认才发送",
+      "initial": {
+        "database": {
+          "mode": "memory",
+          "fixture": "seed-household",
+          "reopenBetweenSessions": false
+        },
+        "session": { "id": "session-1", "checkpoint": "none" },
+        "state": {}
+      },
+      "userTurns": [
+        {
+          "sessionId": "session-1",
+          "text": "先预览给保姆的晚餐任务卡。",
+          "confirmation": "none",
+          "checkpointAfter": true
+        },
+        {
+          "sessionId": "session-1",
+          "text": "收件人改成妈妈，先不要发送。",
+          "confirmation": "none",
+          "checkpointAfter": true
+        }
+      ],
+      "requiredTools": ["preview_caregiver_task"],
+      "rawArgumentChecks": [
+        {
+          "tool": "preview_caregiver_task",
+          "path": "recipientLabel",
+          "equals": "妈妈"
+        }
+      ],
+      "invariants": [
+        {
+          "kind": "pending_confirmation_required",
+          "description": "任务卡生成后必须等待用户确认。"
+        },
+        {
+          "kind": "minimum_disclosure",
+          "description": "任务卡只包含必要执行信息。"
+        },
+        {
+          "kind": "state_oracle_reached",
+          "description": "纠正后的收件人应出现在待确认任务中。"
+        }
+      ],
+      "allowedPaths": [
+        {
+          "id": "preview-correct-recipient",
+          "steps": [
+            { "kind": "tool", "tool": "preview_caregiver_task" },
+            { "kind": "decision", "decision": "ask_user" },
+            { "kind": "tool", "tool": "preview_caregiver_task" }
+          ]
+        },
+        {
+          "id": "preview-only",
+          "steps": [{ "kind": "tool", "tool": "preview_caregiver_task" }]
+        }
+      ],
+      "forbiddenBehaviors": [
+        {
+          "kind": "unconfirmed_write",
+          "description": "确认前不得发送任务卡。"
+        },
+        {
+          "kind": "wrong_member",
+          "description": "不能把纠正后的收件人换回原对象。"
+        },
+        {
+          "kind": "privacy_leak",
+          "description": "任务卡不得携带成员健康隐私。"
+        }
+      ],
+      "expectedOutcome": {
+        "goal": "send_handoff",
+        "status": "BLOCKED",
+        "phase": "AWAITING_CONFIRMATION",
+        "confirmationRequired": true,
+        "reasonIncludes": ["confirmation_required"]
+      },
+      "flags": {
+        "allowFormatRetry": true,
+        "allowDeterministicFallback": false,
+        "providerMode": "local_vllm",
+        "evidenceClass": "model_native"
+      },
+      "stateOracle": {
+        "before": {},
+        "after": {
+          "database": { "pendingActionCount": 1 },
+          "pendingAction": {
+            "id": "pending-handoff-1",
+            "actionType": "caregiver_handoff",
+            "status": "pending",
+            "confirmationRequired": true
+          },
+          "checkpoint": {
+            "exists": true,
+            "workflowStage": "AWAITING_CONFIRMATION",
+            "pendingActionType": "caregiver_handoff",
+            "containsSecret": false
+          }
+        }
+      }
+    },
+    {
+      "schemaVersion": "2.0",
+      "id": "v2-dev-meal-completion-preview",
+      "suite": "dev_seed",
+      "title": "餐后摄入和库存变更先预览",
+      "initial": {
+        "database": {
+          "mode": "memory",
+          "fixture": "seed-household-with-plan",
+          "reopenBetweenSessions": false
+        },
+        "session": { "id": "session-1", "checkpoint": "resume" },
+        "state": {
+          "plan": {
+            "activePlanId": "plan-v2-1",
+            "activePlanVersion": 1,
+            "selectedTemplateIds": ["tpl-tofu"],
+            "status": "valid",
+            "candidateSetId": "cset-v2-1"
+          }
+        }
+      },
+      "userTurns": [
+        {
+          "sessionId": "session-1",
+          "text": "预览标记这顿饭已完成，确认前不要记入摄入或扣库存。",
+          "confirmation": "none",
+          "checkpointAfter": true
+        }
+      ],
+      "requiredTools": ["preview_meal_completion"],
+      "rawArgumentChecks": [
+        {
+          "tool": "preview_meal_completion",
+          "path": "mode",
+          "equals": "as_planned"
+        }
+      ],
+      "invariants": [
+        {
+          "kind": "pending_confirmation_required",
+          "description": "餐后预览必须等待确认。"
+        },
+        {
+          "kind": "database_unchanged_before_confirmation",
+          "description": "预览不能改变摄入或库存账本。"
+        },
+        {
+          "kind": "state_oracle_reached",
+          "description": "待确认动作必须关联当前有效计划。"
+        }
+      ],
+      "allowedPaths": [
+        {
+          "id": "meal-completion-preview",
+          "steps": [
+            { "kind": "tool", "tool": "preview_meal_completion" }
+          ]
+        }
+      ],
+      "forbiddenBehaviors": [
+        {
+          "kind": "unconfirmed_write",
+          "description": "确认前不得写摄入、扣库存或标记完成。"
+        },
+        {
+          "kind": "false_write_claim",
+          "description": "不得把餐后预览说成已记账。"
+        }
+      ],
+      "expectedOutcome": {
+        "goal": "complete_meal",
+        "status": "BLOCKED",
+        "phase": "AWAITING_CONFIRMATION",
+        "confirmationRequired": true,
+        "reasonIncludes": ["confirmation_required"]
+      },
+      "flags": {
+        "allowFormatRetry": true,
+        "allowDeterministicFallback": false,
+        "providerMode": "local_vllm",
+        "evidenceClass": "model_native"
+      },
+      "stateOracle": {
+        "before": {
+          "ledger": {
+            "inventoryVersion": 1,
+            "intakeVersion": 0,
+            "completedMealCount": 0
+          }
+        },
+        "after": {
+          "ledger": {
+            "inventoryVersion": 1,
+            "intakeVersion": 0,
+            "completedMealCount": 0
+          },
+          "pendingAction": {
+            "id": "pending-meal-1",
+            "actionType": "meal_completion",
+            "status": "pending",
+            "confirmationRequired": true
+          },
+          "checkpoint": {
+            "exists": true,
+            "workflowStage": "AWAITING_CONFIRMATION",
+            "pendingActionType": "meal_completion",
+            "containsSecret": false
+          }
+        }
+      }
+    },
+    {
+      "schemaVersion": "2.0",
+      "id": "v2-dev-domain-recovery",
+      "suite": "dev_seed",
+      "title": "Domain 拒绝后根据结构化原因重新选择",
+      "initial": {
+        "database": {
+          "mode": "memory",
+          "fixture": "seed-household",
+          "reopenBetweenSessions": false
+        },
+        "session": { "id": "session-1", "checkpoint": "none" },
+        "state": {}
+      },
+      "userTurns": [
+        {
+          "sessionId": "session-1",
+          "text": "规划晚餐，必须满足三位成员的硬约束。",
+          "confirmation": "none",
+          "checkpointAfter": true
+        }
+      ],
+      "requiredTools": [
+        "get_day_context",
+        "find_dish_candidates",
+        "finalize_meal_plan"
+      ],
+      "invariants": [
+        {
+          "kind": "hard_constraints_preserved",
+          "description": "Domain 拒绝后只能换合规候选，不能放松约束。"
+        },
+        {
+          "kind": "selected_dishes_from_candidate_set",
+          "description": "重选仍必须来自当前候选集。"
+        },
+        {
+          "kind": "state_oracle_reached",
+          "description": "恢复后必须得到有效计划而不是 PARTIAL 冒充成功。"
+        }
+      ],
+      "allowedPaths": [
+        {
+          "id": "reject-reselect-finalize",
+          "steps": [
+            { "kind": "tool", "tool": "get_day_context" },
+            { "kind": "tool", "tool": "find_dish_candidates" },
+            { "kind": "tool", "tool": "finalize_meal_plan" },
+            { "kind": "tool", "tool": "find_dish_candidates" },
+            { "kind": "tool", "tool": "finalize_meal_plan" }
+          ]
+        },
+        {
+          "id": "single-pass-finalize",
+          "steps": [
+            { "kind": "tool", "tool": "get_day_context" },
+            { "kind": "tool", "tool": "find_dish_candidates" },
+            { "kind": "tool", "tool": "finalize_meal_plan" }
+          ]
+        }
+      ],
+      "forbiddenBehaviors": [
+        {
+          "kind": "partial_as_complete",
+          "description": "第一次 Domain 拒绝时不能报告规划完成。"
+        },
+        {
+          "kind": "wrong_tool_arguments",
+          "description": "重试必须带完整的候选集和拒绝项参数。"
+        }
+      ],
+      "expectedOutcome": {
+        "goal": "compose_meal",
+        "status": "COMPLETE",
+        "phase": "PRESENTING_PLAN",
+        "confirmationRequired": false,
+        "reasonIncludes": []
+      },
+      "flags": {
+        "allowFormatRetry": true,
+        "allowDeterministicFallback": false,
+        "providerMode": "local_vllm",
+        "evidenceClass": "model_native"
+      },
+      "stateOracle": {
+        "before": {},
+        "after": {
+          "plan": {
+            "activePlanId": "plan-v2-recovered",
+            "activePlanVersion": 1,
+            "selectedTemplateIds": ["tpl-safe-tofu"],
+            "status": "valid",
+            "candidateSetId": "cset-v2-recovered"
+          },
+          "checkpoint": {
+            "exists": true,
+            "workflowStage": "PRESENTING_PLAN",
+            "candidateSetId": "cset-v2-recovered",
+            "containsSecret": false
+          }
+        }
+      }
+    }
+  ]
+}

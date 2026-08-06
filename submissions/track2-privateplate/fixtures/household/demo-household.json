@@ -1,0 +1,246 @@
+{
+  "schemaVersion": "1.0.0",
+  "household": {
+    "id": "hh-demo-001",
+    "displayName": "演示三口之家",
+    "locale": "zh-CN",
+    "contextVersion": 1,
+    "inventoryVersion": 1,
+    "mealPolicyVersion": "demo-policy-1.0.0",
+    "members": [
+      {
+        "id": "mem-admin",
+        "displayName": "管理员",
+        "roleLabel": "admin",
+        "healthTags": ["weight_management"],
+        "nutritionProfile": {
+          "gender": "female",
+          "age": 38,
+          "heightCm": 165,
+          "weightKg": 60,
+          "activityLevel": "moderate",
+          "weightGoal": "loss"
+        },
+        "notes": "合成人物；长期偏好少油，仅作演示守卫触发。"
+      },
+      {
+        "id": "mem-father",
+        "displayName": "父亲",
+        "roleLabel": "father",
+        "healthTags": ["stable_type2_diabetes_demo"],
+        "nutritionProfile": {
+          "gender": "male",
+          "age": 45,
+          "heightCm": 175,
+          "weightKg": 78,
+          "activityLevel": "moderate",
+          "weightGoal": "maintain"
+        },
+        "notes": "合成人物；使用项目定义的餐次碳水守卫，非医疗处方。"
+      },
+      {
+        "id": "mem-mother",
+        "displayName": "母亲",
+        "roleLabel": "mother",
+        "healthTags": ["hypertension_demo"],
+        "nutritionProfile": {
+          "gender": "female",
+          "age": 43,
+          "heightCm": 162,
+          "weightKg": 62,
+          "activityLevel": "moderate",
+          "weightGoal": "maintain"
+        },
+        "notes": "合成人物；使用项目定义的钠守卫，并硬排除牛肉。"
+      }
+    ],
+    "constraints": [
+      {
+        "id": "cst-mother-avoid-beef",
+        "memberId": "mem-mother",
+        "kind": "avoid_ingredient",
+        "targetId": "food-beef",
+        "source": "fixture",
+        "ruleVersion": "1.0.0"
+      }
+    ],
+    "frozenPreferences": [
+      {
+        "memberId": "mem-admin",
+        "kind": "low_oil_preference",
+        "note": "合成长期偏好：不喜欢太油。P0 作为评分偏好，不是硬排除。",
+        "source": "fixture",
+        "ruleVersion": "1.0.0"
+      }
+    ],
+    "mealPolicies": [
+      {
+        "memberId": "mem-admin",
+        "mealType": "lunch",
+        "portionUnitsByRole": {
+          "shared_main": 1,
+          "shared_side": 1,
+          "staple": 0.9
+        },
+        "guardrails": {
+          "energyKcal": { "min": 250, "max": 700 },
+          "carbohydrateG": { "min": 20, "max": 90 },
+          "sodiumMgMax": 1200
+        },
+        "source": "demo_fixture",
+        "ruleVersion": "1.0.0"
+      },
+      {
+        "memberId": "mem-admin",
+        "mealType": "dinner",
+        "portionUnitsByRole": {
+          "shared_main": 1,
+          "shared_side": 1,
+          "staple": 0.8
+        },
+        "guardrails": {
+          "energyKcal": { "min": 250, "max": 700 },
+          "carbohydrateG": { "min": 20, "max": 85 },
+          "sodiumMgMax": 1200
+        },
+        "source": "demo_fixture",
+        "ruleVersion": "1.0.0"
+      },
+      {
+        "memberId": "mem-father",
+        "mealType": "lunch",
+        "portionUnitsByRole": {
+          "shared_main": 1,
+          "shared_side": 1,
+          "staple": 0.7
+        },
+        "guardrails": {
+          "energyKcal": { "min": 250, "max": 720 },
+          "carbohydrateG": { "min": 20, "max": 70 },
+          "sodiumMgMax": 1200
+        },
+        "source": "demo_fixture",
+        "ruleVersion": "1.0.0"
+      },
+      {
+        "memberId": "mem-father",
+        "mealType": "dinner",
+        "portionUnitsByRole": {
+          "shared_main": 1,
+          "shared_side": 1,
+          "staple": 0.6
+        },
+        "guardrails": {
+          "energyKcal": { "min": 250, "max": 700 },
+          "carbohydrateG": { "min": 20, "max": 65 },
+          "sodiumMgMax": 1200
+        },
+        "source": "demo_fixture",
+        "ruleVersion": "1.0.0"
+      },
+      {
+        "memberId": "mem-mother",
+        "mealType": "lunch",
+        "portionUnitsByRole": {
+          "shared_main": 1,
+          "shared_side": 1,
+          "staple": 0.9
+        },
+        "guardrails": {
+          "energyKcal": { "min": 250, "max": 700 },
+          "carbohydrateG": { "min": 20, "max": 90 },
+          "sodiumMgMax": 900
+        },
+        "source": "demo_fixture",
+        "ruleVersion": "1.0.0"
+      },
+      {
+        "memberId": "mem-mother",
+        "mealType": "dinner",
+        "portionUnitsByRole": {
+          "shared_main": 1,
+          "shared_side": 1,
+          "staple": 0.85
+        },
+        "guardrails": {
+          "energyKcal": { "min": 250, "max": 680 },
+          "carbohydrateG": { "min": 20, "max": 85 },
+          "sodiumMgMax": 900
+        },
+        "source": "demo_fixture",
+        "ruleVersion": "1.0.0"
+      }
+    ],
+    "inventory": [
+      {
+        "id": "inv-rice-leftover",
+        "foodId": "food-rice-cooked",
+        "quantity": {
+          "rawExpression": "约两碗昨日米饭",
+          "normalized": {
+            "estimateG": 300,
+            "minG": 280,
+            "maxG": 320,
+            "confidence": "approximate",
+            "conversionRuleId": "conv-rice-bowl"
+          }
+        },
+        "state": "cooked_leftover",
+        "priorityConsume": true,
+        "notes": "演示用合成库存"
+      },
+      {
+        "id": "inv-tofu-box",
+        "foodId": "food-tofu",
+        "quantity": {
+          "rawExpression": "一盒豆腐",
+          "normalized": {
+            "estimateG": 350,
+            "minG": 350,
+            "maxG": 350,
+            "confidence": "exact",
+            "conversionRuleId": "conv-tofu-box"
+          }
+        },
+        "state": "unopened",
+        "priorityConsume": true,
+        "notes": "优先消耗"
+      },
+      {
+        "id": "inv-chicken-legs",
+        "foodId": "food-chicken-leg",
+        "quantity": {
+          "rawExpression": "两个鸡腿",
+          "normalized": {
+            "estimateG": 360,
+            "minG": 320,
+            "maxG": 400,
+            "confidence": "approximate",
+            "conversionRuleId": "conv-chicken-leg-piece"
+          }
+        },
+        "state": "fresh",
+        "priorityConsume": false
+      },
+      {
+        "id": "inv-cabbage-half",
+        "foodId": "food-cabbage",
+        "quantity": {
+          "rawExpression": "半颗白菜",
+          "normalized": {
+            "estimateG": 400,
+            "minG": 320,
+            "maxG": 480,
+            "confidence": "approximate",
+            "conversionRuleId": "conv-cabbage-half"
+          }
+        },
+        "state": "fresh",
+        "priorityConsume": true
+      }
+    ],
+    "sourceId": "src-synthetic-demo",
+    "licenseId": "lic-privateplate-synthetic-1",
+    "dataVersion": "1.1.0"
+  }
+}
