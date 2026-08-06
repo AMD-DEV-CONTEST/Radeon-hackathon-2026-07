@@ -262,6 +262,7 @@ color_sort/
 ├── build_scene.py              # Genesis scene (YCB objects + 5-box containers)
 ├── scene_config.py             # layout / colors / containers / geometry objects
 ├── sk_grasp_demo.py            # expert pick-place (center-aligned grasp)
+├── randomize.py                # per-episode environment randomization (slot jitter)
 ├── record_dataset_parallel.py  # parallel 32-env recording + NaN recovery
 ├── train_policy.py             # SmolVLA/ACT training wrapper
 ├── eval_policy.py              # closed-loop eval (Qwen3-VL plan/verify)
@@ -270,7 +271,7 @@ color_sort/
 ├── record_demo_video.py        # closed-loop demo video recorder
 ├── download_models.py          # model weight downloader
 ├── inspect_dataset.py          # dataset checker
-└── xml/                        # Franka model
+└── paths.py                    # shared output/dataset paths
 docker/                          # Docker image build/run artifacts
 docs/compose/reports/           # technical report
 requirements.txt                # dependency manifest

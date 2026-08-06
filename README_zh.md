@@ -262,6 +262,7 @@ color_sort/
 ├── build_scene.py              # Genesis 场景构建（YCB 物体 + 5-box 容器）
 ├── scene_config.py             # 布局/颜色/容器/几何物体配置
 ├── sk_grasp_demo.py            # 专家抓取放置（中心对准）
+├── randomize.py                # 每集环境随机化（slot jitter）
 ├── record_dataset_parallel.py  # 并行 32 环境录制 + NaN 恢复
 ├── train_policy.py             # SmolVLA/ACT 训练封装
 ├── eval_policy.py              # 闭环评估（Qwen3-VL 规划/验证）
@@ -270,7 +271,7 @@ color_sort/
 ├── record_demo_video.py        # 闭环演示视频录制
 ├── download_models.py          # 模型权重下载
 ├── inspect_dataset.py          # 数据集检查
-└── xml/                        # Franka 模型
+└── paths.py                    # 共享输出/数据集路径
 docker/                          # Docker 镜像构建/运行产物
 docs/compose/reports/           # 技术报告
 requirements.txt                # 依赖清单
