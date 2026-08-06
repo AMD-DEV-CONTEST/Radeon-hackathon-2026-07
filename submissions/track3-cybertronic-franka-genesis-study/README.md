@@ -312,16 +312,15 @@ After the ROCm PyTorch environment is ready, install the project dependencies:
 pip install -r requirements.txt
 ```
 
-The validated environment used for the included metrics was:
+The validated environment below comes from the actual cloud run recorded in
+`results/franka_vision_pick_place_summary.json`:
 
 | Component | Validated version |
 | --- | --- |
-| OS | Ubuntu 24.04 container environment |
-| Python | 3.12 |
-| ROCm | 7.2.1 |
-| PyTorch | 2.9.1 + ROCm 7.2.1 |
-| Triton | 3.5.1 + ROCm 7.2.1 |
 | Genesis | 1.3.1 |
+| Genesis backend | 3 |
+| PyTorch | 2.9.1+rocm7.2.1.gitff65f5bc |
+| HIP | 7.2.53211-e1a6bc5663 |
 | GPU | AMD Radeon Graphics |
 
 Check AMD GPU and ROCm first:
@@ -338,15 +337,12 @@ On Radeon Cloud, check whether the image provides prebuilt ROCm PyTorch wheels:
 ls -lh /torch-*.whl /triton-*.whl
 ```
 
-If those wheel files exist, prefer installing them because they are built for
-the current Radeon Cloud image. The filenames below match the validated
-environment. If the platform filenames differ, replace them with the actual
-files printed by `ls -lh /torch-*.whl /triton-*.whl`.
+If those wheel files exist, prefer installing the actual files shown by `ls`,
+because they are built for the current Radeon Cloud image. Do not assume a fixed
+wheel filename across cloud images.
 
 ```bash
-python -m pip install \
-  /triton-3.5.1+rocm7.2.1.gita272dfa8-cp312-cp312-linux_x86_64.whl \
-  /torch-2.9.1+rocm7.2.1.lw.gitff65f5bc-cp312-cp312-linux_x86_64.whl
+python -m pip install /triton-*.whl /torch-*.whl
 ```
 
 Verify the runtime before running the demo:
@@ -521,19 +517,18 @@ If `import torch` fails, install the ROCm PyTorch package that matches the cloud
 server ROCm version from the official PyTorch installation selector, then rerun
 `pip install -r requirements.txt`.
 
-On Radeon Cloud, the preferred installation path is:
+On Radeon Cloud, the preferred installation path is to inspect and install the
+actual prebuilt wheel files provided by the current image:
 
 ```bash
 ls -lh /torch-*.whl /triton-*.whl
-python -m pip install \
-  /triton-3.5.1+rocm7.2.1.gita272dfa8-cp312-cp312-linux_x86_64.whl \
-  /torch-2.9.1+rocm7.2.1.lw.gitff65f5bc-cp312-cp312-linux_x86_64.whl
+python -m pip install /triton-*.whl /torch-*.whl
 python -m pip install -r requirements.txt
 ```
 
-If the wheel filenames differ, use the actual filenames shown by `ls`.
-Installing Genesis may take several minutes because it includes rendering,
-mesh, and VTK-related dependencies.
+If multiple wheel files are shown, install the pair matching the active ROCm and
+Python version. Installing Genesis may take several minutes because it includes
+rendering, mesh, and VTK-related dependencies.
 
 Check the environment:
 
@@ -687,8 +682,9 @@ usually not fatal for this demo.
 Troubleshooting:
 
 - If `torch.cuda.is_available()` is `False`, a CPU/CUDA PyTorch wheel may have
-  replaced the ROCm build. Reinstall the Radeon Cloud `/torch-*.whl` and
-  `/triton-*.whl` files or use the official PyTorch ROCm selector.
+  replaced the ROCm build. Reinstall the actual Radeon Cloud `/torch-*.whl` and
+  `/triton-*.whl` files for the current image, or use the official PyTorch ROCm
+  selector.
 - If pip installation appears stuck while installing Genesis, wait and check
   `ps aux | grep -E '[p]ip|[p]ython'`; Genesis has many rendering and mesh
   dependencies.
@@ -752,16 +748,15 @@ Before final submission:
 pip install -r requirements.txt
 ```
 
-本次结果验证环境：
+下面的验证环境来自实际云服务器运行生成的
+`results/franka_vision_pick_place_summary.json`：
 
 | 组件 | 验证版本 |
 | --- | --- |
-| 操作系统 | Ubuntu 24.04 容器环境 |
-| Python | 3.12 |
-| ROCm | 7.2.1 |
-| PyTorch | 2.9.1 + ROCm 7.2.1 |
-| Triton | 3.5.1 + ROCm 7.2.1 |
 | Genesis | 1.3.1 |
+| Genesis backend | 3 |
+| PyTorch | 2.9.1+rocm7.2.1.gitff65f5bc |
+| HIP | 7.2.53211-e1a6bc5663 |
 | GPU | AMD Radeon Graphics |
 
 先检查 AMD GPU 和 ROCm：
@@ -778,13 +773,11 @@ amd-smi
 ls -lh /torch-*.whl /triton-*.whl
 ```
 
-如果这些 wheel 存在，优先安装镜像自带版本。下面文件名对应本项目验证环境；
-如果平台文件名变化，请用 `ls -lh /torch-*.whl /triton-*.whl` 输出的实际文件名替换。
+如果这些 wheel 存在，优先安装 `ls` 实际显示的文件，因为它们是当前云镜像对应的版本。
+不要假设不同云镜像上的 wheel 文件名完全一致。
 
 ```bash
-python -m pip install \
-  /triton-3.5.1+rocm7.2.1.gita272dfa8-cp312-cp312-linux_x86_64.whl \
-  /torch-2.9.1+rocm7.2.1.lw.gitff65f5bc-cp312-cp312-linux_x86_64.whl
+python -m pip install /triton-*.whl /torch-*.whl
 ```
 
 运行前建议先检查环境：
@@ -947,17 +940,15 @@ pip install -r requirements.txt
 如果 `import torch` 报错，请先通过官方 PyTorch 安装选择器安装与云服务器 ROCm 版本匹配的
 ROCm PyTorch，再重新执行 `pip install -r requirements.txt`。
 
-在 Radeon Cloud 上，推荐安装方式是：
+在 Radeon Cloud 上，推荐先查看并安装当前云镜像实际提供的预编译 wheel：
 
 ```bash
 ls -lh /torch-*.whl /triton-*.whl
-python -m pip install \
-  /triton-3.5.1+rocm7.2.1.gita272dfa8-cp312-cp312-linux_x86_64.whl \
-  /torch-2.9.1+rocm7.2.1.lw.gitff65f5bc-cp312-cp312-linux_x86_64.whl
+python -m pip install /triton-*.whl /torch-*.whl
 python -m pip install -r requirements.txt
 ```
 
-如果 wheel 文件名不同，请使用 `ls` 看到的实际文件名。Genesis 依赖渲染、网格和 VTK 相关包，第一次安装可能需要数分钟。
+如果 `ls` 显示多个 wheel，请选择和当前 ROCm/Python 版本匹配的一组。Genesis 依赖渲染、网格和 VTK 相关包，第一次安装可能需要数分钟。
 
 检查环境：
 
@@ -1109,6 +1100,6 @@ Genesis 可能输出以下非致命警告：
 
 常见问题：
 
-- 如果 `torch.cuda.is_available()` 返回 `False`，通常是 CPU/CUDA 版 PyTorch 覆盖了 ROCm 版。请重新安装 Radeon Cloud 的 `/torch-*.whl` 和 `/triton-*.whl`，或使用官方 PyTorch ROCm selector。
+- 如果 `torch.cuda.is_available()` 返回 `False`，通常是 CPU/CUDA 版 PyTorch 覆盖了 ROCm 版。请重新安装当前云镜像实际提供的 `/torch-*.whl` 和 `/triton-*.whl`，或使用官方 PyTorch ROCm selector。
 - 如果安装 Genesis 时长时间停在 `Installing collected packages`，可以用 `ps aux | grep -E '[p]ip|[p]ython'` 检查；只要 pip 进程仍在，通常继续等待即可。
 - 在 Radeon Cloud 上请把仓库放在 `/workspace/persistent`，避免实例销毁后文件丢失。
