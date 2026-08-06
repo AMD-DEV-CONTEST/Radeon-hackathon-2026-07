@@ -1,0 +1,81 @@
+{
+  "model": "wangbin08/DM05-BiGym-CutleryLong-50pct",
+  "task": "DishwasherUnloadCutleryLong",
+  "quality_protocol": {
+    "seeds": "200000-200049",
+    "control_hz": 20,
+    "policy_hz": 20,
+    "chunk_size": 16,
+    "diffusion_steps": 10,
+    "execute_actions": 8,
+    "max_policy_steps": 800,
+    "model_max_length": 896,
+    "action": "16D absolute: cumulative floating base + arm qpos + grippers"
+  },
+  "quality_results": {
+    "native_50": {
+      "successes": 25,
+      "episodes": 50,
+      "success_rate": 0.5
+    },
+    "three_dgs_50": {
+      "successes": 20,
+      "episodes": 50,
+      "success_rate": 0.4
+    }
+  },
+  "amd_runtime": {
+    "gpu": "AMD Radeon PRO W7900",
+    "architecture": "gfx1100",
+    "memory_gb": 48,
+    "rocm": "7.2.1",
+    "pytorch": "2.8.0+rocm7.2.1.gitd733adb1",
+    "optimizations": [
+      "merged_model_without_redundant_lora_wrapper",
+      "torch_inference_mode",
+      "action_expert_kv_workspace_reuse"
+    ],
+    "performance_snapshot_2026_08_06": {
+      "training": {
+        "task": "DishwasherUnloadCutleryLong",
+        "micro_batch": 12,
+        "gradient_accumulation": 4,
+        "effective_batch": 48,
+        "mean_gpu_utilization_percent": 99.47,
+        "peak_vram_gib": 28.74,
+        "samples_per_second": 1.5295
+      },
+      "inference": {
+        "diffusion_steps": 4,
+        "warmup_calls": 4,
+        "measured_calls": 28,
+        "mean_gpu_utilization_percent": 67.68,
+        "peak_vram_gib": 12.79,
+        "steady_mean_policy_latency_ms": 438.72,
+        "claim_scope": "operator_performance_not_release_quality_protocol"
+      }
+    },
+    "strict_three_dgs_gate": {
+      "seed": 200009,
+      "diffusion_steps": 10,
+      "success": true,
+      "policy_steps": 567,
+      "inference_calls": 71,
+      "mean_inference_ms": 726.5795247996567,
+      "elapsed_seconds": 91.85211825370789,
+      "claim_scope": "single_episode_end_to_end_runtime_gate"
+    }
+  },
+  "training_software_benchmark": {
+    "task": "ReachTarget",
+    "claim_scope": "controlled_dm05_throughput_benchmark",
+    "baseline_samples_per_second": 1.244,
+    "optimized_samples_per_second": 1.548,
+    "improvement_percent": 24.4
+  },
+  "three_dgs_shell_source": {
+    "repo_id": "eustance/amd-bigym-3dgs-kitchen-shell",
+    "revision": "amd-rocm-w7900d-20260804",
+    "url": "https://huggingface.co/datasets/eustance/amd-bigym-3dgs-kitchen-shell/tree/amd-rocm-w7900d-20260804"
+  }
+}

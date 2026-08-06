@@ -1,0 +1,79 @@
+diff --git a/opendm/model/dm05/dm05_arch.py b/opendm/model/dm05/dm05_arch.py
+--- a/opendm/model/dm05/dm05_arch.py
++++ b/opendm/model/dm05/dm05_arch.py
+@@ -112,6 +112,58 @@ class DM05ActionExpert(Gemma3TextModel):
+         self.post_init()
+         self._init_time_modulators()
+         self.set_action_attention_backend("eager")
++        self._reuse_kv_workspace = False
++        self._kv_workspaces = {}
++        self._kv_prefix_refs = {}
++
++    def set_kv_workspace_enabled(self, enabled: bool) -> None:
++        """Reuse concatenated prefix/suffix KV buffers during inference."""
++        self._reuse_kv_workspace = bool(enabled)
++        self._kv_workspaces.clear()
++        self._kv_prefix_refs.clear()
++
++    def _merge_prefix_suffix_kv(
++        self,
++        layer_idx: int,
++        cache_keys: torch.Tensor,
++        key_states: torch.Tensor,
++        cache_values: torch.Tensor,
++        value_states: torch.Tensor,
++    ) -> tuple[torch.Tensor, torch.Tensor]:
++        if not self._reuse_kv_workspace:
++            return (
++                torch.cat([cache_keys, key_states], dim=2),
++                torch.cat([cache_values, value_states], dim=2),
++            )
++
++        prefix_len = cache_keys.shape[2]
++        total_len = prefix_len + key_states.shape[2]
++        target_shape = (*cache_keys.shape[:2], total_len, cache_keys.shape[3])
++        workspace = self._kv_workspaces.get(layer_idx)
++        if (
++            workspace is None
++            or workspace[0].shape != target_shape
++            or workspace[0].dtype != cache_keys.dtype
++            or workspace[0].device != cache_keys.device
++        ):
++            workspace = (
++                torch.empty(target_shape, dtype=cache_keys.dtype, device=cache_keys.device),
++                torch.empty(target_shape, dtype=cache_values.dtype, device=cache_values.device),
++            )
++            self._kv_workspaces[layer_idx] = workspace
++            self._kv_prefix_refs.pop(layer_idx, None)
++
++        key_workspace, value_workspace = workspace
++        prefix_refs = self._kv_prefix_refs.get(layer_idx)
++        if prefix_refs is None or (
++            prefix_refs[0] is not cache_keys or prefix_refs[1] is not cache_values
++        ):
++            key_workspace[:, :, :prefix_len].copy_(cache_keys)
++            value_workspace[:, :, :prefix_len].copy_(cache_values)
++            self._kv_prefix_refs[layer_idx] = (cache_keys, cache_values)
++        key_workspace[:, :, prefix_len:].copy_(key_states)
++        value_workspace[:, :, prefix_len:].copy_(value_states)
++        return key_workspace, value_workspace
+ 
+     def _init_time_modulators(self) -> None:
+         std = float(getattr(self.config, "initializer_range", 0.02))
+@@ -339,8 +391,13 @@ class DM05ActionExpert(Gemma3TextModel):
+         query_states, key_states = apply_rotary_pos_emb(
+             query_states, key_states, cos, sin
+         )
+ 
+-        key_states = torch.cat([cache_keys, key_states], dim=2)
+-        value_states = torch.cat([cache_values, value_states], dim=2)
++        key_states, value_states = self._merge_prefix_suffix_kv(
++            layer_idx,
++            cache_keys,
++            key_states,
++            cache_values,
++            value_states,
++        )
+         if (
+             attention_mask is not None
+             and attention_mask.shape[-1] != key_states.shape[-2]

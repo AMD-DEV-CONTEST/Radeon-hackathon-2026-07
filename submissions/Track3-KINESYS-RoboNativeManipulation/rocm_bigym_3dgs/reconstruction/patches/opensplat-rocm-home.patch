@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: GPL-3.0
+# Patch against upstream OpenSplat (https://github.com/pierotofy/OpenSplat, GPL-3.0); derivative, same license.
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -162,5 +162,7 @@ elseif(GPU_RUNTIME STREQUAL "HIP")
+     if(WIN32)
+         set(ROCM_ROOT "$ENV{HIP_PATH}" CACHE PATH "Root directory of the ROCm installation")
++    elseif(DEFINED ENV{ROCM_HOME})
++        set(ROCM_ROOT "$ENV{ROCM_HOME}" CACHE PATH "Root directory of the ROCm installation")
+     else()
+         set(ROCM_ROOT "/opt/rocm" CACHE PATH "Root directory of the ROCm installation")
+     endif()
+@@ -216,6 +218,7 @@ if((GPU_RUNTIME STREQUAL "CUDA") OR (GPU_RUNTIME STREQUAL "HIP"))
+         target_compile_definitions(gsplat PRIVATE USE_HIP __HIP_PLATFORM_AMD__)
+     endif()
+     target_include_directories(gsplat PRIVATE
++        ${GPU_INCLUDE_DIRS}
+         ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
+         ${TORCH_INCLUDE_DIRS}
+     )

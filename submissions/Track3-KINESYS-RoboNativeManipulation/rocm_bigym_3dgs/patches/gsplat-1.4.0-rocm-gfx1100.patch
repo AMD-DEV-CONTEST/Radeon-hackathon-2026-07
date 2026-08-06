@@ -1,0 +1,185 @@
+# SPDX-License-Identifier: Apache-2.0
+# Patch against upstream gsplat (https://github.com/nerfstudio-project/gsplat, Apache-2.0); derivative, same license.
+--- a/gsplat/cuda/_backend.py
++++ b/gsplat/cuda/_backend.py
+@@ -55,6 +55,8 @@
+
+ def cuda_toolkit_available():
+     """Check if the nvcc is avaiable on the machine."""
++    if os.environ.get("ROCM_HOME") and shutil.which("hipcc"):
++        return True
+     try:
+         call(["nvcc"], stdout=DEVNULL, stderr=DEVNULL)
+         return True
+@@ -89,12 +91,14 @@
+         current_dir = os.path.dirname(os.path.abspath(__file__))
+         glm_path = os.path.join(current_dir, "csrc", "third_party", "glm")
+
+-        extra_include_paths = [os.path.join(PATH, "csrc/"), glm_path]
+-        extra_cflags = ["-O3"]
++        extra_include_paths = [os.path.join(PATH, "csrc/")]
++        extra_cflags = ["-O3", "-DTHRUST_IGNORE_CUB_VERSION_CHECK", "-DTORCH_HIP_VERSION=7200", "-D__AMDGCN_WAVEFRONT_SIZE=32", "-UHIP_ENABLE_WARP_SYNC_BUILTINS", "-D__CLANG_CUDA_COMPLEX_BUILTINS=1"]
+         if NO_FAST_MATH:
+             extra_cuda_cflags = ["-O3"]
+         else:
+             extra_cuda_cflags = ["-O3", "--use_fast_math"]
++        if os.environ.get("ROCM_HOME"):
++            extra_cuda_cflags = ["-O3", "-ffast-math", "-DTHRUST_IGNORE_CUB_VERSION_CHECK", "-DTORCH_HIP_VERSION=7200", "-D__AMDGCN_WAVEFRONT_SIZE=32", "-UHIP_ENABLE_WARP_SYNC_BUILTINS", "-D__CLANG_CUDA_COMPLEX_BUILTINS=1"]
+         sources = list(glob.glob(os.path.join(PATH, "csrc/*.cu"))) + list(
+             glob.glob(os.path.join(PATH, "csrc/*.cpp"))
+         )
+--- a/gsplat/cuda/csrc/utils.cuh
++++ b/gsplat/cuda/csrc/utils.cuh
+@@ -389,7 +389,7 @@
+     T x = mean3d[0], y = mean3d[1], z = mean3d[2];
+
+     T eps = 0.0000001f;
+-    T xy_len = glm::length(glm::vec2({x, y})) + eps;
++    T xy_len = __builtin_sqrtf(x * x + y * y) + eps;
+     T theta = glm::atan(xy_len, z + eps);
+     mean2d =
+         vec2<T>({x * fx * theta / xy_len + cx, y * fy * theta / xy_len + cy});
+@@ -438,7 +438,7 @@
+     T y2 = y * y;
+     T xy = x * y;
+     T x2y2 = x2 + y2;
+-    T len_xy = length(glm::vec2({x, y})) + eps;
++    T len_xy = __builtin_sqrtf(x * x + y * y) + eps;
+     const T x2y2z2 = x2y2 + z * z;
+     T x2y2z2_inv = 1.f / x2y2z2;
+     T b = glm::atan(len_xy, z) / len_xy / x2y2;
+@@ -605,7 +605,7 @@
+     covar[0][0] += eps2d;
+     covar[1][1] += eps2d;
+     T det_blur = covar[0][0] * covar[1][1] - covar[0][1] * covar[1][0];
+-    compensation = sqrt(max(0.f, det_orig / det_blur));
++    compensation = __builtin_sqrtf(max(0.f, det_orig / det_blur));
+     return det_blur;
+ }
+
+@@ -617,7 +617,7 @@
+     const T v_compensation,
+     mat2<T> &v_covar
+ ) {
+-    // comp = sqrt(det(covar) / det(covar_blur))
++    // comp = __builtin_sqrtf(det(covar) / det(covar_blur))
+
+     // d [det(M)] / d M = adj(M)
+     // d [det(M + aI)] / d M  = adj(M + aI) = adj(M) + a * I
+--- a/gsplat/cuda/csrc/rasterize_to_indices_in_range.cu
++++ b/gsplat/cuda/csrc/rasterize_to_indices_in_range.cu
+@@ -215,7 +215,7 @@
+         tile_size * tile_size *
+         (sizeof(int32_t) + sizeof(vec3<float>) + sizeof(vec3<float>));
+     if (cudaFuncSetAttribute(
+-            rasterize_to_indices_in_range_kernel<float>,
++            reinterpret_cast<const void *>(rasterize_to_indices_in_range_kernel<float>),
+             cudaFuncAttributeMaxDynamicSharedMemorySize,
+             shared_mem
+         ) != cudaSuccess) {
+--- a/gsplat/cuda/csrc/rasterize_to_indices_in_range_2dgs.cu
++++ b/gsplat/cuda/csrc/rasterize_to_indices_in_range_2dgs.cu
+@@ -252,7 +252,7 @@
+         (sizeof(int32_t) + sizeof(vec3<float>) + sizeof(vec3<float>) +
+          sizeof(vec3<float>) + sizeof(vec3<float>));
+     if (cudaFuncSetAttribute(
+-            rasterize_to_indices_in_range_kernel<float>,
++            reinterpret_cast<const void *>(rasterize_to_indices_in_range_kernel<float>),
+             cudaFuncAttributeMaxDynamicSharedMemorySize,
+             shared_mem
+         ) != cudaSuccess) {
+--- a/gsplat/cuda/csrc/rasterize_to_pixels_2dgs_bwd.cu
++++ b/gsplat/cuda/csrc/rasterize_to_pixels_2dgs_bwd.cu
+@@ -547,7 +547,7 @@
+         at::cuda::CUDAStream stream = at::cuda::getCurrentCUDAStream();
+
+         if (cudaFuncSetAttribute(
+-                rasterize_to_pixels_bwd_2dgs_kernel<CDIM, float>,
++                reinterpret_cast<const void *>(rasterize_to_pixels_bwd_2dgs_kernel<CDIM, float>),
+                 cudaFuncAttributeMaxDynamicSharedMemorySize,
+                 shared_mem
+             ) != cudaSuccess) {
+--- a/gsplat/cuda/csrc/rasterize_to_pixels_2dgs_fwd.cu
++++ b/gsplat/cuda/csrc/rasterize_to_pixels_2dgs_fwd.cu
+@@ -365,7 +365,7 @@
+     // channels into the kernel functions and avoid necessary global memory
+     // writes. This requires moving the channel padding from python to C side.
+     if (cudaFuncSetAttribute(
+-            rasterize_to_pixels_fwd_2dgs_kernel<CDIM, float>,
++            reinterpret_cast<const void *>(rasterize_to_pixels_fwd_2dgs_kernel<CDIM, float>),
+             cudaFuncAttributeMaxDynamicSharedMemorySize,
+             shared_mem
+         ) != cudaSuccess) {
+--- a/gsplat/cuda/csrc/rasterize_to_pixels_bwd.cu
++++ b/gsplat/cuda/csrc/rasterize_to_pixels_bwd.cu
+@@ -357,7 +357,7 @@
+         at::cuda::CUDAStream stream = at::cuda::getCurrentCUDAStream();
+
+         if (cudaFuncSetAttribute(
+-                rasterize_to_pixels_bwd_kernel<CDIM, float>,
++                reinterpret_cast<const void *>(rasterize_to_pixels_bwd_kernel<CDIM, float>),
+                 cudaFuncAttributeMaxDynamicSharedMemorySize,
+                 shared_mem
+             ) != cudaSuccess) {
+--- a/gsplat/cuda/csrc/rasterize_to_pixels_fwd.cu
++++ b/gsplat/cuda/csrc/rasterize_to_pixels_fwd.cu
+@@ -250,7 +250,7 @@
+     // channels into the kernel functions and avoid necessary global memory
+     // writes. This requires moving the channel padding from python to C side.
+     if (cudaFuncSetAttribute(
+-            rasterize_to_pixels_fwd_kernel<CDIM, float>,
++            reinterpret_cast<const void *>(rasterize_to_pixels_fwd_kernel<CDIM, float>),
+             cudaFuncAttributeMaxDynamicSharedMemorySize,
+             shared_mem
+         ) != cudaSuccess) {
+--- a/gsplat/cuda/csrc/isect_tiles.cu
++++ b/gsplat/cuda/csrc/isect_tiles.cu
+@@ -7,6 +7,10 @@
+
+ namespace gsplat {
+
++#if defined(__HIP_PLATFORM_AMD__)
++namespace cub = hipcub;
++#endif
++
+ namespace cg = cooperative_groups;
+
+ /****************************************************************************
+--- a/gsplat/cuda/csrc/helpers.cuh
++++ b/gsplat/cuda/csrc/helpers.cuh
+@@ -4,7 +4,35 @@
+ #include "types.cuh"
+
+ #include <cooperative_groups.h>
++#if !defined(__HIP_PLATFORM_AMD__)
+ #include <cooperative_groups/reduce.h>
++#else
++namespace cooperative_groups {
++template <typename T> struct plus {
++    __device__ inline T operator()(const T &a, const T &b) const { return a + b; }
++};
++template <typename T> struct greater {
++    __device__ inline T operator()(const T &a, const T &b) const { return a > b ? a : b; }
++};
++template <typename Group, typename T, typename Op>
++__device__ inline T reduce(const Group &group, T value, Op op) {
++    for (unsigned int offset = 1; offset < group.size(); offset *= 2) {
++        T other = group.shfl_down(value, offset);
++        if (group.thread_rank() + offset < group.size()) value = op(value, other);
++    }
++    return value;
++}
++template <typename ParentGroup, typename LabelT>
++__device__ inline coalesced_group labeled_partition(const ParentGroup &parent, LabelT label) {
++    const unsigned long long bits = static_cast<unsigned long long>(label);
++    coalesced_group group = binary_partition(parent, (bits & 1ull) != 0);
++    for (unsigned int bit = 1; bit < sizeof(LabelT) * 8; ++bit) {
++        group = binary_partition(group, ((bits >> bit) & 1ull) != 0);
++    }
++    return group;
++}
++} // namespace cooperative_groups
++#endif
+
+ #include <ATen/Dispatch.h>
+ #include <ATen/cuda/Atomic.cuh>
