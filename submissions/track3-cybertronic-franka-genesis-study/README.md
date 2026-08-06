@@ -299,7 +299,14 @@ In short, use `scripts/` to reproduce the demos and inspect `src/` to review or 
 
 ### Environment / 环境要求
 
-Install dependencies in the ROCm/Genesis environment:
+Use a Linux AMD ROCm environment with a ROCm-enabled PyTorch build. This project
+does not pin `torch` in `requirements.txt`, because installing a generic PyPI
+Torch wheel can accidentally replace the ROCm build with a CPU/CUDA build. If
+PyTorch is not already installed in the cloud image, install the ROCm build that
+matches the server by using the official PyTorch selector:
+<https://docs.pytorch.org/get-started/locally/>.
+
+After the ROCm PyTorch environment is ready, install the project dependencies:
 
 ```bash
 pip install -r requirements.txt
@@ -308,8 +315,27 @@ pip install -r requirements.txt
 The validated environment used for the included metrics was:
 
 - Genesis 1.3.1
-- PyTorch ROCm build
+- PyTorch 2.9.1 ROCm build
+- HIP 7.2
 - AMD Radeon Graphics
+
+Verify the runtime before running the demo:
+
+```bash
+python - <<'PY'
+import torch
+import genesis as gs
+
+print("torch:", torch.__version__)
+print("hip:", torch.version.hip)
+print("gpu_available:", torch.cuda.is_available())
+print("gpu:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "none")
+print("genesis:", getattr(gs, "__version__", "unknown"))
+PY
+```
+
+Expected: `torch.version.hip` is not `None`, `gpu_available` is `True`, and
+Genesis imports successfully.
 
 ### Run / 运行命令
 
@@ -411,19 +437,42 @@ git pull
 cd submissions/track3-cybertronic-franka-genesis-study
 ```
 
-Create or activate the Python environment used by Genesis/ROCm, then install project dependencies:
+Preferred path: activate the cloud image's existing Genesis/ROCm environment,
+then install the small project-level dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+If you need to create an isolated virtual environment, first make sure the
+matching ROCm PyTorch package is installed inside that environment:
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
+# Install the ROCm PyTorch build that matches the server from the official
+# PyTorch selector if torch is not already available in this venv.
 pip install -r requirements.txt
 ```
 
-If the cloud image already provides a working Genesis environment, activate that environment instead of creating a new one, then run:
+If `import torch` fails, install the ROCm PyTorch package that matches the cloud
+server ROCm version from the official PyTorch installation selector, then rerun
+`pip install -r requirements.txt`.
+
+Check the environment:
 
 ```bash
-pip install -r requirements.txt
+python - <<'PY'
+import torch
+import genesis as gs
+
+print("torch:", torch.__version__)
+print("hip:", torch.version.hip)
+print("gpu_available:", torch.cuda.is_available())
+print("gpu:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "none")
+print("genesis:", getattr(gs, "__version__", "unknown"))
+PY
 ```
 
 Run a quick baseline smoke test:
@@ -559,11 +608,41 @@ Before final submission:
 
 ### 运行方式
 
-在本项目目录下安装依赖：
+请使用 Linux AMD ROCm 环境，并确保安装的是支持 ROCm 的 PyTorch。本项目没有在
+`requirements.txt` 中固定 `torch`，原因是直接安装通用 PyPI Torch 可能会把云服务器
+中可用的 ROCm 版 PyTorch 替换成 CPU/CUDA 版。如果云镜像中没有 PyTorch，请根据
+官方 PyTorch 安装选择器选择和服务器 ROCm 版本匹配的命令：
+<https://docs.pytorch.org/get-started/locally/>。
+
+确认 ROCm PyTorch 可用后，再安装项目依赖：
 
 ```bash
 pip install -r requirements.txt
 ```
+
+本次结果验证环境：
+
+- Genesis 1.3.1
+- PyTorch 2.9.1 ROCm build
+- HIP 7.2
+- AMD Radeon Graphics
+
+运行前建议先检查环境：
+
+```bash
+python - <<'PY'
+import torch
+import genesis as gs
+
+print("torch:", torch.__version__)
+print("hip:", torch.version.hip)
+print("gpu_available:", torch.cuda.is_available())
+print("gpu:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "none")
+print("genesis:", getattr(gs, "__version__", "unknown"))
+PY
+```
+
+预期结果：`torch.version.hip` 不是 `None`，`gpu_available` 为 `True`，且 Genesis 可以成功导入。
 
 运行完整 Demo：
 
@@ -661,19 +740,38 @@ git pull
 cd submissions/track3-cybertronic-franka-genesis-study
 ```
 
-创建或激活 Python 环境，并安装依赖：
+推荐路径：优先激活云服务器镜像中已经可用的 Genesis/ROCm 环境，然后安装项目级依赖：
+
+```bash
+pip install -r requirements.txt
+```
+
+如果确实需要创建独立虚拟环境，请先确保该环境里安装了和服务器 ROCm 版本匹配的 PyTorch：
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
+# 如果当前 venv 中还没有 torch，请先根据官方 PyTorch selector 安装匹配的 ROCm PyTorch。
 pip install -r requirements.txt
 ```
 
-如果云服务器镜像已经提供可用的 Genesis/ROCm 环境，就不要重新创建 venv，直接激活已有环境后执行：
+如果 `import torch` 报错，请先通过官方 PyTorch 安装选择器安装与云服务器 ROCm 版本匹配的
+ROCm PyTorch，再重新执行 `pip install -r requirements.txt`。
+
+检查环境：
 
 ```bash
-pip install -r requirements.txt
+python - <<'PY'
+import torch
+import genesis as gs
+
+print("torch:", torch.__version__)
+print("hip:", torch.version.hip)
+print("gpu_available:", torch.cuda.is_available())
+print("gpu:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "none")
+print("genesis:", getattr(gs, "__version__", "unknown"))
+PY
 ```
 
 先跑 baseline 快速测试：
