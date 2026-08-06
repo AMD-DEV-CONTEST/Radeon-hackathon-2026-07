@@ -6,10 +6,21 @@ LifePreview 是面向 Track 1 的多模态内容创作工具，已适配 AMD Rad
 
 English documentation: [README.md](README.md)
 
+## 部署与验证状态
+
+项目已在 NVIDIA 环境下完成部署。考虑到本次比赛云端服务器的内存与算力限制，部分演示数据和媒体素材已提前在本地生成。项目已在 AMD Radeon/ROCm 环境完成最小端到端闭环和针对性冒烟测试，用于确认核心服务能够启动、主要请求链路能够贯通，并且 GPU 执行路径能够工作。预生成输入和历史展示输出会与 AMD 实时执行证据分开标注。该验证范围并不表示所有数据、媒体资产或生产功能都已在比赛服务器上重新生成或完成全量验证。
+
 ## 提交材料
 
 - [英文项目说明书](docs/LifePreview_Project_Profile_EN.pdf)：共 29 页，介绍产品背景、目标用户、原型与演示流程、端到端生成管线、AMD Radeon/ROCm 验证和当前成果。可编辑源文件见 [DOCX 版本](docs/LifePreview_Project_Profile_EN.docx)。
 - [英文项目演示文稿](deck/LifePreview_Project_Deck_EN.pdf)：共 10 页，面向 Track 1 评审，介绍用户问题、产品模式、当前成果、核心创新、可复用的 AI 生成管线、AMD Radeon/ROCm 计算基础、产品化路线图和项目愿景。PDF 已保留演示文稿版式，可直接在 GitHub 中审阅。
+- [当前演示视频](demo/LifePreview-demo-under-100MB.mp4)：4 分 47 秒、92.1 MB 的压缩 MP4。它属于展示材料，会与 AMD 实时运行证据分开标注。
+- [AMD Radeon / ROCm 证据索引](evidence/AMD_ROCm_Evidence.md)：记录已报告的最小闭环和冒烟测试证据、其适用范围，以及提交前仍需补齐的最终实时运行证据。
+- [制品校验和](evidence/SHA256SUMS.txt)：本目录内演示视频、项目说明书和演示文稿的 SHA-256 值。
+
+## 许可证与第三方声明
+
+LifePreview 自主开发的软件采用 [PolyForm Noncommercial License 1.0.0](LICENSE) 授权。第三方软件、模型权重和媒体素材仍分别受其自身条款约束，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。最终源码快照须保留依赖与模型的许可证记录。
 
 ## 比赛演示流程
 

@@ -6,10 +6,21 @@ LifePreview is a Track 1 multimodal content creation tool adapted for an AMD Rad
 
 Chinese documentation: [README.zh-CN.md](README.zh-CN.md)
 
+## Deployment and validation status
+
+The project has already been deployed in an NVIDIA environment. Because the competition cloud server has limited memory and compute capacity, some demonstration data and media assets have been generated locally in advance. On AMD Radeon/ROCm, the project has completed the minimum end-to-end loop and targeted smoke tests that confirm core service startup, the main request path, and GPU execution. Pre-generated inputs and showcase outputs are identified separately from live AMD execution evidence. This validation scope does not mean that every dataset, media asset, or production feature was regenerated or fully validated on the competition server.
+
 ## Submission materials
 
 - [English project profile](docs/LifePreview_Project_Profile_EN.pdf) - a 29-page project profile covering the product background, target users, prototype and demo flow, end-to-end generation pipeline, AMD Radeon/ROCm validation, and current results. The editable source is available as [DOCX](docs/LifePreview_Project_Profile_EN.docx).
 - [English project presentation deck](deck/LifePreview_Project_Deck_EN.pdf) - a 10-page PDF deck for Track 1 covering the user problem, product model, current results, core innovation, reusable AI generation pipeline, AMD Radeon/ROCm compute foundation, productization roadmap, and project vision. The PDF export preserves the presentation layout for direct review on GitHub.
+- [Current demo video](demo/LifePreview-demo-under-100MB.mp4) - a 4 minute 47 second compressed MP4 (92.1 MB). It is showcase material and is kept separate from evidence of a live AMD run.
+- [AMD Radeon / ROCm evidence index](evidence/AMD_ROCm_Evidence.md) - records the reported minimal-loop and smoke-test evidence, its scope, and the final live-run evidence still required for submission.
+- [Artifact checksums](evidence/SHA256SUMS.txt) - SHA-256 values for the demo video, profile, and deck files included in this directory.
+
+## License and third-party notices
+
+LifePreview-originated software is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE). Third-party software, model weights, and media assets remain subject to their own terms; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The final source snapshot must preserve its dependency and model-license records.
 
 ## Competition workflow
 
