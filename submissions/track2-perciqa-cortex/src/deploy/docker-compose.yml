@@ -1,0 +1,201 @@
+version: "3.9"
+
+services:
+  broker:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    ports:
+      - "7432:7432"
+    volumes:
+      - ./config:/app/config
+      - ./registry:/app/registry
+      - ./logs:/app/logs
+    environment:
+      - CORTEX_LOG_LEVEL=INFO
+    command: ["python", "-m", "cortex.broker", "--config", "/app/config/broker.yaml"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request, json; b=urllib.request.urlopen('http://localhost:7432/health'); assert json.loads(b.read())['status']=='ok'"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  node-alpha:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    depends_on:
+      broker:
+        condition: service_healthy
+    volumes:
+      - ./config:/app/config
+      - ./registry:/app/registry:ro
+    environment:
+      - CORTEX_LOG_LEVEL=INFO
+      # auto selects ROCm GPU when available, falls back to CPU gracefully
+      - CORTEX_EMBED_BACKEND=${CORTEX_EMBED_BACKEND:-auto}
+      # vLLM inference pod — agents use this for LLM reasoning (derive step)
+      - VLLM_URL=${VLLM_URL:-http://vllm:8000/v1}
+      - VLLM_MODEL=${VLLM_MODEL:-perciqa/aurora-code-mini-v1}
+      - VLLM_API_KEY=${VLLM_API_KEY:-}
+    command: ["python", "-m", "cortex.cli", "start", "--config", "/app/config/alpha.yaml"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0 if open('/app/config/alpha.node-healthy').read().strip()=='healthy' else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: amd
+              count: 1
+              capabilities: [gpu]
+
+  node-beta:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    depends_on:
+      broker:
+        condition: service_healthy
+    volumes:
+      - ./config:/app/config
+      - ./registry:/app/registry:ro
+    environment:
+      - CORTEX_LOG_LEVEL=INFO
+      - CORTEX_EMBED_BACKEND=${CORTEX_EMBED_BACKEND:-auto}
+      - VLLM_URL=${VLLM_URL:-http://vllm:8000/v1}
+      - VLLM_MODEL=${VLLM_MODEL:-perciqa/aurora-code-mini-v1}
+      - VLLM_API_KEY=${VLLM_API_KEY:-}
+    command: ["python", "-m", "cortex.cli", "start", "--config", "/app/config/beta.yaml"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0 if open('/app/config/beta.node-healthy').read().strip()=='healthy' else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: amd
+              count: 1
+              capabilities: [gpu]
+
+  # cortex-bench sidecars — one per tenant.
+  # Each probes embed + query throughput on both Radeon and CPU paths every 2 s,
+  # publishes metrics to the broker, and exposes Prometheus /metrics.
+  bench-alpha:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    depends_on:
+      - broker
+      - node-alpha
+    environment:
+      - CORTEX_LOG_LEVEL=INFO
+    command:
+      - python
+      - -m
+      - cortex.bench
+      - --node
+      - did:percq:org:soc-alpha
+      - --broker
+      - ws://broker:7432
+      - --config
+      - /app/config/alpha.yaml
+      - --prometheus-port
+      - "9464"
+    ports:
+      - "9464:9464"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: amd
+              count: 1
+              capabilities: [gpu]
+
+  bench-beta:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    depends_on:
+      - broker
+      - node-beta
+    environment:
+      - CORTEX_LOG_LEVEL=INFO
+    command:
+      - python
+      - -m
+      - cortex.bench
+      - --node
+      - did:percq:org:soc-beta
+      - --broker
+      - ws://broker:7432
+      - --config
+      - /app/config/beta.yaml
+      - --prometheus-port
+      - "9465"
+    ports:
+      - "9465:9465"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: amd
+              count: 1
+              capabilities: [gpu]
+
+  # vLLM inference pod — serves Aurora Code Mini V1 on ROCm.
+  # Only starts with: COMPOSE_PROFILES=gpu docker compose up
+  # VLLM_MODEL_DIR must point to a directory containing the model weights.
+  vllm:
+    image: rocm/vllm:latest
+    profiles: [gpu]
+    ports:
+      - "8000:8000"
+    volumes:
+      - ${VLLM_MODEL_DIR:-/tmp/vllm-models}:/models:ro
+    environment:
+      - HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-}
+    command:
+      - python
+      - -m
+      - vllm.entrypoints.openai.api_server
+      - --model
+      - /models
+      - --served-model-name
+      - ${VLLM_MODEL:-perciqa/aurora-code-mini-v1}
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --dtype
+      - bfloat16
+      - --max-model-len
+      - "4096"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: amd
+              count: 1
+              capabilities: [gpu]
+
+  console:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    depends_on:
+      - broker
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./registry:/app/registry:ro
+    environment:
+      - CORTEX_LOG_LEVEL=INFO
+    command: ["python", "-m", "cortex.console", "--broker", "ws://broker:7432", "--port", "8080", "--host", "0.0.0.0", "--static", "/app/cortex/console/frontend/dist"]

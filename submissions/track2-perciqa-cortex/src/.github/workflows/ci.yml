@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install -e ".[dev]"
+      - run: ruff check cortex/ tests/
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install -e ".[dev,cpu,sdk]" --extra-index-url https://download.pytorch.org/whl/cpu
+      - name: Run unit + integration + sdk tests
+        run: python -m pytest tests/unit tests/integration tests/sdk -v
+
+  e2e-mocked:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install base deps (no ML framework)
+        run: pip install -e ".[dev,cpu]" --extra-index-url https://download.pytorch.org/whl/cpu
+      - name: Run mocked fabric e2e tests
+        run: python -m pytest tests/e2e/test_fabric_core_e2e.py -v
+
