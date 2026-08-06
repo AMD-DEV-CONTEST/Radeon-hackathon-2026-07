@@ -181,10 +181,6 @@ def _add_container(scene: gs.Scene, color: str,
     inner = CONTAINER_INNER_SIZE
 
     bottom_z = TABLE_TOP_Z + bs[2] / 2
-    scene.add_entity(
-        morph=gs.morphs.Box(size=bs, pos=(x, y, bottom_z), fixed=True),
-        surface=surface,
-    )
 
     wall_z = TABLE_TOP_Z + bs[2] + wh / 2
     half_inner = inner / 2

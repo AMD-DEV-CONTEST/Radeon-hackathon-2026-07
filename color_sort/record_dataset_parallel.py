@@ -539,7 +539,9 @@ def _run_one_batch(bundle, env_specs: list[dict], recorders: list,
     grasp_pos = _per_env_pos("grasp")
     grasp_z = np.array([grasp_zs[pick_objects[i]][i] for i in range(n)])
     pregrasp_z = np.array([pregrasp_pos[i, 2] for i in range(n)])
-    _batch_descend(bundle, grasp_pos[:, :2], pregrasp_z[0], grasp_z, quat,
+    # Pass per-env pregrasp heights (each env may pick a different object with a
+    # different rest_z_offset). _batch_descend broadcasts z_from over the batch.
+    _batch_descend(bundle, grasp_pos[:, :2], pregrasp_z, grasp_z, quat,
                    finger=GRIPPER_OPEN, active=active, step_callback=_step_cb)
 
     # Phase 3: Close gripper (force control, per-object close force)

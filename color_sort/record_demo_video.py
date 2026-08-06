@@ -30,7 +30,7 @@ import genesis as gs
 from build_scene import build_scene
 from eval_policy import build_observation, apply_action, load_policy, _to_np
 from randomize import EnvRandomizer, RandomizationConfig
-from record_dataset_parallel import task_description
+from record_dataset_parallel import CONTROL_FPS, task_description
 from scene_config import YCB_LAYOUT, get_ycb_names_for_split
 from sk_grasp_demo import TaskSpec, check_success
 
@@ -158,13 +158,20 @@ def main() -> None:
         # Brief planning banner before the arm moves.
         status, color = "PLANNING: " + pick_object, (255, 220, 100)
         _write_frames(int(1.5 * args.fps))
-        # Executing the pick-place.
+        # Executing the pick-place. Match the eval control rate: the policy runs
+        # at pb.fps (30 Hz) while the sim steps at CONTROL_FPS (100 Hz), so each
+        # action advances the sim by CONTROL_FPS/pb.fps steps (accumulated).
         status, color = "EXECUTING", (120, 200, 255)
         max_frames = int(round(args.max_seconds * pb.fps))
+        steps_per_frame = CONTROL_FPS / pb.fps
+        accum = 0.0
         for _ in range(max_frames):
             obs = build_observation(bundle, pb)
             action = pb.select_action(obs, task_text)
-            apply_action(bundle, action, 1)
+            accum += steps_per_frame
+            n_sub = int(accum)
+            accum -= n_sub
+            apply_action(bundle, action, max(1, n_sub))
             writer.append_data(_frame_with_overlay(status, color, cmd))
             if check_success(bundle, task):
                 status, color = "SUCCESS", (120, 255, 120)
