@@ -1,0 +1,2412 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Beaver Memory</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='20' fill='%23d79638'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-size='36' font-family='sans-serif' font-weight='800' fill='%23171a16'%3EB%3C/text%3E%3C/svg%3E" />
+    <style>
+      :root {
+        --bg: #f4efe6;
+        --ink: #1d211c;
+        --muted: #6f756c;
+        --muted-2: #9ba195;
+        --panel: #fffaf0;
+        --panel-2: #f8f1e4;
+        --dark: #171a16;
+        --dark-2: #22261f;
+        --line: rgba(29, 33, 28, 0.12);
+        --line-dark: rgba(255, 250, 240, 0.12);
+        --amber: #d79638;
+        --cyan: #5eb6ad;
+        --green: #6e9f57;
+        --red: #bd645d;
+        --shadow: 0 24px 80px rgba(33, 28, 19, 0.14);
+        --radius-xl: 28px;
+        --radius-lg: 20px;
+        --radius-md: 14px;
+        --font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at top left, rgba(94, 182, 173, 0.18), transparent 36rem),
+          radial-gradient(circle at 85% 10%, rgba(215, 150, 56, 0.16), transparent 32rem),
+          var(--bg);
+        color: var(--ink);
+        font-family: var(--font);
+      }
+
+      button,
+      input,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        padding: 26px 22px;
+        background: linear-gradient(180deg, var(--dark), #11130f);
+        color: #fffaf0;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 34px;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 42px;
+        height: 42px;
+        place-items: center;
+        border-radius: 16px;
+        background: linear-gradient(135deg, var(--amber), #f3c66b);
+        color: #171a16;
+        font-weight: 900;
+      }
+
+      .brand-title {
+        font-size: 17px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+
+      .brand-subtitle {
+        color: rgba(255, 250, 240, 0.58);
+        font-size: 12px;
+        margin-top: 2px;
+      }
+
+      .nav {
+        display: grid;
+        gap: 8px;
+      }
+
+      .nav button,
+      .nav a {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        width: 100%;
+        padding: 12px 13px;
+        border: 1px solid transparent;
+        border-radius: 16px;
+        background: transparent;
+        color: rgba(255, 250, 240, 0.72);
+        text-align: left;
+        transition: 0.16s ease;
+        text-decoration: none;
+      }
+
+      .nav button.active,
+      .nav button:hover,
+      .nav a.active,
+      .nav a:hover {
+        background: rgba(255, 250, 240, 0.08);
+        color: #fffaf0;
+        border-color: var(--line-dark);
+      }
+
+      .nav-icon {
+        display: grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        border-radius: 10px;
+        background: rgba(255, 250, 240, 0.08);
+        color: var(--amber);
+        font-size: 14px;
+      }
+
+      .sidebar-card {
+        position: absolute;
+        left: 22px;
+        right: 22px;
+        bottom: 24px;
+        padding: 18px;
+        border: 1px solid var(--line-dark);
+        border-radius: 20px;
+        background: rgba(255, 250, 240, 0.07);
+      }
+
+      .sidebar-card strong {
+        display: block;
+        font-size: 13px;
+        margin-bottom: 8px;
+      }
+
+      .sidebar-card p {
+        margin: 0;
+        color: rgba(255, 250, 240, 0.62);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      main {
+        padding: 28px;
+      }
+
+      .topbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: center;
+        margin-bottom: 22px;
+        min-width: 0;
+      }
+
+      .search {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        padding: 8px;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: rgba(255, 250, 240, 0.74);
+        box-shadow: 0 10px 40px rgba(33, 28, 19, 0.08);
+      }
+
+      .search input {
+        min-width: 0;
+        height: 46px;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--ink);
+        font-size: 15px;
+        padding: 0 14px;
+      }
+
+      .search-upload {
+        display: inline-flex;
+        height: 40px;
+        align-items: center;
+        justify-content: center;
+        padding: 0 13px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.48);
+        color: var(--ink);
+        font-size: 13px;
+        font-weight: 720;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .search-upload:hover,
+      .search-upload:focus-within {
+        border-color: rgba(215, 150, 56, 0.56);
+      }
+
+      .search-preview {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        padding: 8px 10px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .search-preview img {
+        width: 52px;
+        height: 42px;
+        border-radius: 10px;
+        object-fit: cover;
+        background: var(--dark);
+      }
+
+      .search-preview strong,
+      .search-preview small {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .search-preview strong {
+        color: var(--ink);
+        margin-bottom: 2px;
+      }
+
+      .search-mode {
+        color: var(--amber);
+        font-weight: 760;
+      }
+
+      .primary:disabled {
+        cursor: wait;
+        opacity: 0.66;
+      }
+
+      .primary {
+        height: 46px;
+        border: 0;
+        border-radius: 17px;
+        padding: 0 18px;
+        background: var(--dark);
+        color: #fffaf0;
+        font-weight: 760;
+        box-shadow: 0 12px 24px rgba(23, 26, 22, 0.18);
+      }
+
+      a.primary {
+        text-decoration: none;
+      }
+
+      .status-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-end;
+        min-width: 0;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 30px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 250, 240, 0.74);
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 680;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--muted-2);
+      }
+
+      .dot.ok {
+        background: var(--green);
+      }
+
+      .dot.warn {
+        background: var(--amber);
+      }
+
+      .dashboard {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 22px;
+        min-width: 0;
+      }
+
+      .hero-panel,
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: var(--radius-xl);
+        background: rgba(255, 250, 240, 0.78);
+        box-shadow: var(--shadow);
+      }
+
+      .hero-panel {
+        padding: 24px;
+        margin-bottom: 22px;
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(240px, 0.8fr);
+        gap: 20px;
+        min-width: 0;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        margin-bottom: 12px;
+        max-width: 760px;
+        font-size: clamp(30px, 4vw, 54px);
+        line-height: 0.98;
+        letter-spacing: -0.055em;
+      }
+
+      .lead {
+        max-width: 720px;
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.7;
+        margin-bottom: 20px;
+      }
+
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .metric {
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.42);
+      }
+
+      .metric .value {
+        font-size: 22px;
+        font-weight: 850;
+        letter-spacing: -0.04em;
+      }
+
+      .metric .label {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .quality-card {
+        display: grid;
+        align-content: space-between;
+        min-width: 0;
+        min-height: 220px;
+        padding: 18px;
+        border-radius: 22px;
+        background: linear-gradient(160deg, #20251e, #141711);
+        color: #fffaf0;
+      }
+
+      .quality-card p {
+        color: rgba(255, 250, 240, 0.64);
+        line-height: 1.62;
+        font-size: 13px;
+      }
+
+      .quality-bars {
+        display: grid;
+        gap: 10px;
+      }
+
+      .bar {
+        height: 10px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(255, 250, 240, 0.1);
+      }
+
+      .bar span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--cyan), var(--amber));
+      }
+
+      .section-head {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 16px;
+        margin: 4px 0 14px;
+      }
+
+      .section-head h2 {
+        margin: 0;
+        font-size: 21px;
+        letter-spacing: -0.03em;
+      }
+
+      .section-head p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        min-width: 0;
+      }
+
+      .memory-card {
+        display: grid;
+        gap: 12px;
+        min-width: 0;
+        min-height: 210px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(255, 250, 240, 0.82);
+        transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+      }
+
+      .memory-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(215, 150, 56, 0.42);
+        box-shadow: 0 18px 44px rgba(33, 28, 19, 0.12);
+      }
+
+      .card-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 9px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 760;
+      }
+
+      .badge.confirmed {
+        background: rgba(110, 159, 87, 0.13);
+        color: #496f39;
+      }
+
+      .badge.weak {
+        background: rgba(155, 161, 149, 0.16);
+        color: #6d7469;
+      }
+
+      .badge.review {
+        background: rgba(215, 150, 56, 0.16);
+        color: #916225;
+      }
+
+      .memory-card h3 {
+        margin: 0;
+        font-size: 17px;
+        line-height: 1.35;
+        letter-spacing: -0.02em;
+      }
+
+      .memory-card p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.62;
+        font-size: 13px;
+      }
+
+      .evidence {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+
+      .evidence span {
+        padding: 6px 8px;
+        border-radius: 999px;
+        background: rgba(29, 33, 28, 0.06);
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: auto;
+      }
+
+      .memory-details {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.3);
+        overflow: hidden;
+      }
+
+      .memory-details > summary {
+        cursor: pointer;
+        list-style: none;
+        padding: 11px 13px;
+        color: var(--ink);
+        font-size: 13px;
+        font-weight: 780;
+      }
+
+      .memory-details > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .memory-details > summary::after {
+        content: "＋";
+        float: right;
+        color: var(--amber);
+      }
+
+      .memory-details[open] > summary::after {
+        content: "－";
+      }
+
+      .memory-details-body {
+        display: grid;
+        gap: 16px;
+        padding: 0 14px 16px;
+        border-top: 1px solid var(--line);
+      }
+
+      .memory-details-body section {
+        padding-top: 14px;
+      }
+
+      .memory-details-body h4 {
+        margin: 0 0 8px;
+        font-size: 13px;
+      }
+
+      .memory-details-body .full-memory {
+        color: var(--ink);
+        font-size: 14px;
+        line-height: 1.75;
+        white-space: pre-wrap;
+      }
+
+      .atomic-facts-list {
+        display: grid;
+        gap: 8px;
+        margin: 0;
+        padding-left: 24px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .memory-card:has(.memory-details[open]) {
+        grid-column: 1 / -1;
+      }
+
+      .ghost {
+        min-height: 34px;
+        border: 1px solid var(--line);
+        border-radius: 13px;
+        background: rgba(255, 255, 255, 0.36);
+        color: var(--ink);
+        padding: 0 10px;
+        font-size: 12px;
+        font-weight: 760;
+      }
+
+      .side {
+        display: grid;
+        gap: 16px;
+        align-content: start;
+        min-width: 0;
+      }
+
+      .panel {
+        padding: 18px;
+      }
+
+      .panel h2 {
+        font-size: 18px;
+        margin-bottom: 14px;
+        letter-spacing: -0.025em;
+      }
+
+      .tool-form {
+        display: grid;
+        gap: 9px;
+        margin-bottom: 12px;
+      }
+
+      .tool-form input,
+      .tool-form textarea {
+        width: 100%;
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 13px;
+        background: rgba(255, 255, 255, 0.46);
+        color: var(--ink);
+        padding: 10px 11px;
+        outline: 0;
+        font-size: 13px;
+      }
+
+      .tool-form textarea {
+        min-height: 96px;
+        resize: vertical;
+        line-height: 1.55;
+      }
+
+      .tool-result {
+        min-height: 42px;
+        padding: 12px;
+        border: 1px dashed var(--line);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.34);
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+      }
+
+      .person {
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr);
+        gap: 12px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.38);
+        margin-bottom: 10px;
+      }
+
+      .avatar {
+        display: grid;
+        width: 48px;
+        height: 48px;
+        place-items: center;
+        border-radius: 18px;
+        background: linear-gradient(135deg, rgba(94, 182, 173, 0.35), rgba(215, 150, 56, 0.35));
+        font-weight: 850;
+      }
+
+      .person strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .person p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .timeline {
+        display: grid;
+        gap: 10px;
+      }
+
+      .timeline-row {
+        display: grid;
+        grid-template-columns: 76px minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        min-width: 0;
+        padding: 11px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .timeline-row:first-child {
+        border-top: 0;
+      }
+
+      .wave {
+        position: relative;
+        display: flex;
+        height: 24px;
+        align-items: center;
+        gap: 3px;
+        overflow: hidden;
+      }
+
+      .wave i {
+        display: block;
+        width: 4px;
+        border-radius: 999px;
+        background: rgba(94, 182, 173, 0.65);
+      }
+
+      .loop-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .loop-item {
+        display: grid;
+        grid-template-columns: 24px 1fr;
+        gap: 10px;
+        align-items: start;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .check {
+        display: grid;
+        width: 22px;
+        height: 22px;
+        place-items: center;
+        border-radius: 8px;
+        background: rgba(110, 159, 87, 0.14);
+        color: #496f39;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .search-results {
+        display: none;
+        margin-bottom: 22px;
+      }
+
+      .search-results.visible {
+        display: block;
+      }
+
+      .search-results .cards {
+        grid-template-columns: 1fr;
+      }
+
+      .empty,
+      .error {
+        padding: 18px;
+        border: 1px dashed var(--line);
+        border-radius: 20px;
+        color: var(--muted);
+        background: rgba(255, 250, 240, 0.5);
+        line-height: 1.6;
+      }
+
+      .error {
+        color: #9b4c45;
+        border-color: rgba(189, 100, 93, 0.28);
+      }
+
+      .token-box {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .token-box input {
+        width: 100%;
+        min-width: 0;
+        height: 36px;
+        border: 1px solid var(--line-dark);
+        border-radius: 12px;
+        background: rgba(255, 250, 240, 0.08);
+        color: #fffaf0;
+        padding: 0 10px;
+        font-size: 12px;
+        outline: 0;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      .evidence-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: grid;
+        place-items: center;
+        padding: 22px;
+        background: rgba(17, 19, 15, 0.72);
+        backdrop-filter: blur(10px);
+      }
+
+      .evidence-dialog {
+        width: min(1040px, 100%);
+        max-height: calc(100vh - 44px);
+        overflow: auto;
+        padding: 22px;
+        border: 1px solid rgba(255, 250, 240, 0.18);
+        border-radius: 24px;
+        background: var(--panel);
+        box-shadow: 0 30px 100px rgba(0, 0, 0, 0.35);
+      }
+
+      .evidence-dialog-head,
+      .evidence-window-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .evidence-grid {
+        display: grid;
+        grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
+        gap: 16px;
+        margin-top: 18px;
+      }
+
+      .evidence-list,
+      .evidence-viewer {
+        min-width: 0;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--panel-2);
+      }
+
+      .evidence-file-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 12px 0;
+      }
+
+      .evidence-viewer img,
+      .evidence-viewer audio {
+        display: block;
+        width: 100%;
+        max-height: 58vh;
+        object-fit: contain;
+        border-radius: 14px;
+        background: #11130f;
+      }
+
+      .evidence-viewer pre,
+      .manifest-preview {
+        max-height: 360px;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        padding: 12px;
+        border-radius: 12px;
+        background: #171a16;
+        color: #eef4e8;
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      @media (max-width: 1180px) {
+        .shell {
+          grid-template-columns: 92px minmax(0, 1fr);
+        }
+        .sidebar {
+          padding: 18px 14px;
+        }
+        .brand-title,
+        .brand-subtitle,
+        .nav-label,
+        .sidebar-card {
+          display: none;
+        }
+        .brand {
+          justify-content: center;
+        }
+        .nav button {
+          justify-content: center;
+        }
+      }
+
+      @media (max-width: 980px) {
+        .dashboard,
+        .hero-grid,
+        .topbar {
+          grid-template-columns: 1fr;
+        }
+        .status-row {
+          justify-content: flex-start;
+        }
+        .cards,
+        .metric-grid {
+          grid-template-columns: 1fr;
+        }
+        .evidence-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 680px) {
+        html,
+        body {
+          width: 100%;
+          max-width: 100%;
+          overflow-x: hidden;
+        }
+        .shell {
+          display: block;
+          width: 100%;
+          max-width: 100vw;
+          overflow-x: hidden;
+        }
+        .sidebar {
+          position: static;
+          height: auto;
+          display: flex;
+          gap: 12px;
+          overflow-x: auto;
+          max-width: 100vw;
+        }
+        .brand {
+          margin: 0;
+        }
+        .nav {
+          display: flex;
+          min-width: max-content;
+        }
+        main {
+          padding: 16px;
+          width: 100%;
+          max-width: 100vw;
+          overflow: hidden;
+        }
+        h1 {
+          font-size: 31px;
+          line-height: 1.02;
+          max-width: 100%;
+          word-break: break-all;
+          overflow-wrap: anywhere;
+        }
+        .hero-panel,
+        .panel {
+          border-radius: 22px;
+          width: 100%;
+          max-width: calc(100vw - 32px);
+          overflow: hidden;
+        }
+        .hero-panel {
+          padding: 18px;
+        }
+        .hero-grid {
+          min-width: 0;
+        }
+        .lead {
+          font-size: 14px;
+          max-width: 100%;
+          overflow-wrap: anywhere;
+        }
+        .topbar,
+        .status-row,
+        .dashboard,
+        .cards,
+        .metric-grid,
+        .hero-grid,
+        .side {
+          width: 100%;
+          max-width: calc(100vw - 32px);
+        }
+        .section-head {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+        .search {
+          grid-template-columns: 1fr;
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+        }
+        .search input {
+          width: 100%;
+          min-width: 0;
+          text-overflow: ellipsis;
+        }
+        .primary {
+          width: 100%;
+        }
+        .search-upload {
+          width: 100%;
+        }
+        .search-preview {
+          grid-column: 1;
+          grid-template-columns: 46px minmax(0, 1fr) auto;
+        }
+        .quality-card {
+          width: 100%;
+          max-width: 100%;
+          min-height: 180px;
+        }
+        .quality-card p,
+        .memory-card h3,
+        .memory-card p,
+        .person p,
+        .timeline-row,
+        .empty,
+        .error {
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+        .memory-card,
+        .person,
+        .timeline-row {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+        }
+        .timeline-row {
+          grid-template-columns: 62px minmax(0, 1fr);
+        }
+        .timeline-row .badge {
+          grid-column: 2;
+          justify-self: start;
+        }
+      }
+      [hidden] { display: none !important; }
+      .dashboard.capsule-only { grid-template-columns: minmax(0, 1fr); }
+    </style>
+    <link rel="stylesheet" href="/assets/beaver-memory.css" />
+    <script defer src="/assets/beaver-memory.js"></script>
+  </head>
+  <body class="bm-app">
+    <div class="shell bm-shell">
+      <aside class="sidebar bm-sidebar">
+        <div class="brand bm-brand" aria-label="Beaver Memory">
+          <div class="brand-mark bm-brand-mark">B</div>
+          <div class="bm-brand-copy">
+            <div class="brand-title">Beaver Memory</div>
+            <div class="brand-subtitle">Memory Console</div>
+          </div>
+        </div>
+        <nav class="nav bm-nav" aria-label="主导航">
+          <a id="memoryNav" class="active" href="/memory" aria-current="page"><span class="nav-icon bm-nav-icon">◎</span><span class="nav-label bm-nav-label">记忆卡片</span></a>
+          <a id="capsuleNav" href="/memory/capsules"><span class="nav-icon bm-nav-icon">◫</span><span class="nav-label bm-nav-label">多模态 Capsule</span></a>
+          <a href="/memory/search"><span class="nav-icon bm-nav-icon">⌕</span><span class="nav-label bm-nav-label">记忆搜索</span></a>
+          <a href="/daily"><span class="nav-icon bm-nav-icon">日</span><span class="nav-label bm-nav-label">每日回顾</span></a>
+          <a href="/people"><span class="nav-icon bm-nav-icon">人</span><span class="nav-label bm-nav-label">人物</span></a>
+          <a href="/objects/search"><span class="nav-icon bm-nav-icon">□</span><span class="nav-label bm-nav-label">物品搜索</span></a>
+          <a href="/commitments"><span class="nav-icon bm-nav-icon">◇</span><span class="nav-label bm-nav-label">长期待办</span></a>
+          <a href="/memory/corrections"><span class="nav-icon bm-nav-icon">✓</span><span class="nav-label bm-nav-label">修正历史</span></a>
+          <a href="/integrations"><span class="nav-icon bm-nav-icon">↗</span><span class="nav-label bm-nav-label">采集接入</span></a>
+        </nav>
+        <div class="sidebar-card">
+          <strong>本地调试令牌</strong>
+          <p>默认使用 dev-token。部署给多人使用前需要接真实登录和权限。</p>
+          <div class="token-box">
+            <input id="tokenInput" data-bm-token aria-label="API token" />
+          </div>
+        </div>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <div class="status-row">
+            <span class="chip"><span id="bridgeDot" class="dot"></span><span id="bridgeStatus">Bridge 检查中</span></span>
+            <span class="chip"><span id="everosDot" class="dot"></span><span id="everosStatus">EverOS 同步中</span></span>
+            <span class="chip"><span id="yoloDot" class="dot"></span><span id="yoloStatus">YOLOE 检查中</span></span>
+            <span class="chip"><span id="batteryDot" class="dot"></span><span id="batteryStatus">眼镜电量读取中</span></span>
+            <span class="chip"><span class="dot warn"></span><span id="qualityStatus">ASR 已接入 · 需质检</span></span>
+          </div>
+          <a class="primary" id="topAction" href="/memory/search">打开片段搜索 →</a>
+        </header>
+
+        <section class="hero-panel">
+          <div class="hero-grid">
+            <div>
+              <h1 id="heroTitle">眼镜记忆工作台。</h1>
+              <p class="lead" id="heroLead">
+                这里展示 EverOS 已抽取的记忆、弱记忆、人物线索和每日闭环。每张卡片都保留来源 session，
+                方便回到原始音频/图片证据做纠错。
+              </p>
+              <div class="metric-grid" id="metricGrid">
+                <div class="metric"><div class="value" id="metricTotal">—</div><div class="label">最近记忆</div></div>
+                <div class="metric"><div class="value" id="metricConfirmed">—</div><div class="label">正式卡片</div></div>
+                <div class="metric"><div class="value" id="metricWeak">—</div><div class="label">弱/可疑</div></div>
+                <div class="metric"><div class="value" id="metricPeople">—</div><div class="label">人物线索</div></div>
+                <div class="metric"><div class="value" id="metricBattery">—</div><div class="label" id="metricBatteryLabel">眼镜电量</div></div>
+              </div>
+            </div>
+            <div class="quality-card" id="qualityCard">
+              <div>
+                <h2>质量闸门</h2>
+                <p id="qualityCopy">正在读取最近窗口。短文本、单字语气词和疑似环境音会被标注，避免直接污染主记忆流。</p>
+              </div>
+              <div class="quality-bars">
+                <div class="bar"><span id="barConfirmed" style="width: 0%"></span></div>
+                <div class="bar"><span id="barWeak" style="width: 0%"></span></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="dashboard" id="dashboard">
+          <section>
+            <div id="memoryCardsSection">
+              <div class="section-head">
+                <div>
+                  <h2>记忆卡片</h2>
+                  <p>按最近 EverOS episodes 生成；低可信内容会标注为弱记忆或可疑。</p>
+                </div>
+                <button class="ghost" id="refreshBtn" type="button">刷新</button>
+              </div>
+              <div class="cards" id="memoryCards">
+                <div class="empty">正在加载记忆卡片…</div>
+              </div>
+            </div>
+
+            <div id="capsuleSection">
+              <div class="section-head">
+                <div>
+                  <h2>多模态 Capsule</h2>
+                  <p>每张预览只显示类型、时间、窗口编号和第一人称经历；处理细节保留在完整证据链。</p>
+                </div>
+                <button class="ghost" id="flushCapsulesBtn" type="button">封存当前事件</button>
+              </div>
+              <div class="panel">
+                <div class="tool-result" id="capsuleSession" hidden>正在读取 boot session。</div>
+                <div class="cards" id="capsuleCards">
+                  <div class="empty">暂无 capsule。拔线运行后，等待 30 秒窗口关闭。</div>
+                </div>
+              </div>
+            </div>
+
+            <div id="memoryTimelineSection">
+              <div class="section-head" style="margin-top: 22px">
+                <div>
+                  <h2>证据时间线</h2>
+                  <p>展示最近窗口、音频证据和可纠错入口。</p>
+                </div>
+              </div>
+              <div class="panel timeline" id="timeline"></div>
+            </div>
+          </section>
+
+          <aside class="side" id="overviewSide">
+            <section class="panel" id="people">
+              <h2>人物卡片</h2>
+              <form class="tool-form" id="preuploadPersonForm">
+                <input id="preuploadName" placeholder="预上传人物姓名，例如 Steven Li" />
+                <input id="preuploadAliases" placeholder="别名，用逗号分隔，例如 Steven, 史蒂文" />
+                <input id="preuploadRelation" placeholder="关系，例如 合作伙伴/客户/同事" />
+                <button class="ghost" type="submit">预上传人物档案</button>
+              </form>
+              <div id="peopleCards"></div>
+            </section>
+
+            <section class="panel">
+              <h2>身份候选聚合</h2>
+              <p class="muted">系统会自动聚合 face/voice 候选；用户不打开 Web 时也会持续形成临时人物档案。</p>
+              <div class="tool-result" id="identityClusterSummary">正在读取身份候选。</div>
+              <div id="identityClusterCards"></div>
+            </section>
+
+            <section class="panel" id="objects">
+              <h2>物品最后看到</h2>
+              <form class="tool-form" id="objectSearchForm">
+                <input id="objectQuery" placeholder="查询物品，例如 钥匙 / 钱包 / 眼镜盒" />
+                <button class="ghost" type="submit">查询最后看到</button>
+              </form>
+              <div class="tool-result" id="objectResult">等待查询。桥接层会返回位置、置信度和前后证据图序列。</div>
+            </section>
+
+            <section class="panel">
+              <h2>会议抽取</h2>
+              <form class="tool-form" id="meetingExtractForm">
+                <input id="meetingSession" placeholder="session_id，例如 meeting-demo-1" />
+                <textarea id="meetingTranscript" placeholder="Steven: 结论是先验证两小时续航。\n眼镜用户: 我负责周五前发报价。"></textarea>
+                <button class="ghost" type="submit">抽取结论/承诺</button>
+              </form>
+              <div class="tool-result" id="meetingResult">用于验证 B：说话人、结论、承诺、眼镜摘要卡片。</div>
+            </section>
+
+            <section class="panel">
+              <h2>主动提醒策略</h2>
+              <form class="tool-form" id="reminderForm">
+                <input id="reminderPerson" placeholder="人物名或别名，例如 Steven" />
+                <input id="reminderScore" placeholder="识别置信度，例如 0.86" />
+                <button class="ghost" type="submit">评估是否提醒</button>
+              </form>
+              <div class="tool-result" id="reminderResult">会综合人物阈值、勿扰时间和置信度，避免误提醒。</div>
+            </section>
+
+            <section class="panel" id="daily-loop">
+              <h2>每日闭环</h2>
+              <form class="tool-form" id="dailyReportForm">
+                <input id="dailyDate" placeholder="日期，例如 2026-07-09" />
+                <button class="ghost" type="submit">生成日报</button>
+                <button class="ghost" id="closeDailyBtn" type="button">确认并写回 EverOS</button>
+              </form>
+              <div class="tool-result" id="dailyReportResult">等待生成日报。确认后会写回 EverOS。</div>
+              <div class="loop-list" id="dailyLoop"></div>
+            </section>
+          </aside>
+        </div>
+      </main>
+    </div>
+
+    <div class="evidence-modal" id="evidenceModal" role="dialog" aria-modal="true" aria-labelledby="evidenceTitle" hidden>
+      <div class="evidence-dialog">
+        <div class="evidence-dialog-head">
+          <div>
+            <h2 id="evidenceTitle">原始证据</h2>
+            <p class="muted" id="evidenceSummary">正在读取真实 Capsule 证据。</p>
+          </div>
+          <button class="ghost" id="closeEvidence" type="button">关闭</button>
+        </div>
+        <div class="evidence-grid">
+          <div class="evidence-list" id="evidenceList"></div>
+          <div class="evidence-viewer" id="evidenceViewer">
+            <div class="empty">选择一张图片或一段音频进行核对。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const pageMode = window.location.pathname === "/memory/capsules" ? "capsules" : "memory";
+      const state = {
+        token: localStorage.getItem("everlens.token") || "dev-token",
+        episodes: [],
+        capsules: [],
+        eventQueues: [],
+        capsuleSession: null,
+        searchResults: [],
+        searchImage: null,
+        searchImagePreviewUrl: null,
+        searchStatus: null,
+        review: { corrections: [], profiles: [], frozen_candidates: [] },
+        peopleState: { profiles: [], frozen_candidates: [] },
+        deviceStatus: null,
+        objectPerceptionStatus: null,
+        latestDailyReport: null,
+        evidenceObjectUrl: null,
+      };
+
+      const $ = (id) => document.getElementById(id);
+      $("tokenInput").value = state.token;
+
+      function configurePage() {
+        const capsulePage = pageMode === "capsules";
+        $("memoryCardsSection").hidden = capsulePage;
+        $("memoryTimelineSection").hidden = capsulePage;
+        $("overviewSide").hidden = capsulePage;
+        $("capsuleSection").hidden = !capsulePage;
+        $("metricGrid").hidden = capsulePage;
+        $("qualityCard").hidden = capsulePage;
+        $("dashboard").classList.toggle("capsule-only", capsulePage);
+
+        $("memoryNav").classList.toggle("active", !capsulePage);
+        $("memoryNav").toggleAttribute("aria-current", !capsulePage);
+        $("capsuleNav").classList.toggle("active", capsulePage);
+        $("capsuleNav").toggleAttribute("aria-current", capsulePage);
+
+        if (capsulePage) {
+          document.title = "多模态 Capsule · Beaver Memory";
+          $("heroTitle").textContent = "多模态 Capsule。";
+          $("heroLead").textContent = "按时间查看眼镜形成的第一人称技术窗口；点击卡片证据入口后再核对 ASR、物品、图片和原始音频。";
+          $("topAction").href = "/memory";
+          $("topAction").textContent = "返回记忆卡片 →";
+        }
+      }
+
+      function authHeaders(extra = {}) {
+        return { authorization: `Bearer ${state.token}`, ...extra };
+      }
+
+      function normalizeText(value) {
+        if (!value) return "";
+        return String(value).replace(/\s+/g, " ").trim();
+      }
+
+      function classify(content) {
+        const text = normalizeText(content);
+        const lower = text.toLowerCase();
+        const weakSignals = ["single utterance", "嗯", "啊", "没听清"];
+        const isWeak =
+          text.length < 42 ||
+          weakSignals.some((signal) => text === signal || lower.includes(signal.toLowerCase()));
+        const suspicious =
+          !isWeak &&
+          /刘邦|毛泽东|汉朝|1945|1946|农民起义|金人|营业部|集合资金/.test(text);
+        if (isWeak) {
+          return { kind: "weak", label: "弱记忆", reason: "信息量不足，建议折叠保存" };
+        }
+        if (suspicious) {
+          return { kind: "review", label: "待核查", reason: "可能来自环境音或 ASR 误识别" };
+        }
+        return { kind: "confirmed", label: "正式记忆", reason: "内容具备可检索信息" };
+      }
+
+      function titleFrom(content) {
+        const text = normalizeText(content);
+        const quote = text.match(/[“']([^”']{6,60})[”']/);
+        if (quote) return quote[1];
+        if (/承诺|答应|报价|同步|周五/.test(text)) return "承诺与后续事项";
+        if (/会议|讨论|纪要/.test(text)) return "会议/讨论记录";
+        if (/刘邦|汉朝|1945|农民起义|历史/.test(text)) return "环境音中的历史内容";
+        if (text.length < 24) return "低信息量片段";
+        return text.slice(0, 32) + (text.length > 32 ? "…" : "");
+      }
+
+      function timeFromSession(sessionId) {
+        const match = String(sessionId || "").match(/-(\d{13})/);
+        if (!match) return "未知时间";
+        const date = new Date(Number(match[1]));
+        if (Number.isNaN(date.getTime())) return "未知时间";
+        return date.toLocaleString("zh-CN", { hour12: false });
+      }
+
+      function sessionShort(sessionId) {
+        const value = String(sessionId || "unknown");
+        return value.replace("morning-memory-", "mm-");
+      }
+
+      function extractPeople(episodes) {
+        const known = new Map();
+        const candidates = [
+          { name: "Steven", pattern: /Steven|steven|史蒂文/i },
+          { name: "眼镜用户", pattern: /眼镜用户|user|用户/i },
+        ];
+        for (const ep of episodes) {
+          const content = ep.content || "";
+          for (const candidate of candidates) {
+            if (candidate.pattern.test(content)) {
+              const current = known.get(candidate.name) || { name: candidate.name, count: 0, sessions: [] };
+              current.count += 1;
+              current.sessions.push(ep.session_id);
+              known.set(candidate.name, current);
+            }
+          }
+        }
+        if (!known.has("Steven")) {
+          known.set("Steven", {
+            name: "Steven",
+            count: 0,
+            sessions: [],
+            candidate: true,
+          });
+        }
+        const frozen = new Set((state.peopleState.frozen_candidates || []).map((item) => item.candidate_name));
+        return [...known.values()].filter((person) => !frozen.has(person.name));
+      }
+
+      function resultItems(envelope) {
+        const data = envelope && envelope.data && typeof envelope.data === "object" ? envelope.data : {};
+        if (Array.isArray(data.results)) return data.results;
+        if (Array.isArray(data.items)) return data.items;
+        return ["episodes", "profiles", "agent_cases", "agent_skills"].flatMap((key) =>
+          Array.isArray(data[key]) ? data[key] : []
+        );
+      }
+
+      function sourceOf(item) {
+        const metadata = item && typeof item.metadata === "object" ? item.metadata : {};
+        return {
+          id: item.id || item.memory_id || "unknown",
+          session_id: item.session_id || metadata.session_id || "",
+          score: item.score,
+          manifest: metadata.manifest || metadata.bridge_manifest || item.manifest || "",
+        };
+      }
+
+      function contentOf(item) {
+        const content = item.content || item.text || item.summary || item.episode || "";
+        if (typeof content === "string") return content;
+        if (content && typeof content === "object") {
+          return content.summary || content.text || content.markdown || content.body || JSON.stringify(content);
+        }
+        return String(content || "");
+      }
+
+      function provenanceOf(value) {
+        const labels = {
+          user_corrected: { label: "用户已纠正", kind: "confirmed" },
+          user_confirmed: { label: "用户已确认", kind: "confirmed" },
+          everos_extracted: { label: "EverOS 提取", kind: "confirmed" },
+          model_inference: { label: "模型推测", kind: "review" },
+        };
+        return labels[value] || { label: "来源待核对", kind: "weak" };
+      }
+
+      function memoryCard(item, options = {}) {
+        const content = normalizeText(item.content || contentOf(item));
+        const source = item.source || sourceOf(item);
+        const quality = classify(content);
+        const score = !options.search && typeof source.score === "number" ? ` · score ${source.score.toFixed(2)}` : "";
+        const timestamp = item.timestamp ? new Date(item.timestamp) : null;
+        const capturedTime = item.display_time || (item.occurred_at_ms
+          ? new Date(item.occurred_at_ms).toLocaleString()
+          : item.captured_at_ms
+          ? new Date(item.captured_at_ms).toLocaleString()
+          : timestamp && !Number.isNaN(timestamp.getTime())
+          ? timestamp.toLocaleString()
+          : timeFromSession(source.session_id || item.session_id));
+        const sourceLabel = options.sourceLabel || "EverOS";
+        const title = normalizeText(item.title) || titleFrom(content);
+        const allFacts = Array.isArray(item.atomic_facts)
+          ? item.atomic_facts
+              .map((fact) => normalizeText(fact && (fact.content || fact.text)))
+              .filter(Boolean)
+          : [];
+        const facts = allFacts.slice(0, 3);
+        const summary = normalizeText(item.summary || "");
+        const memoryType = normalizeText(item.everos && item.everos.type) || "Episode";
+        const provenance = provenanceOf(item.provenance);
+        const cardBadge = options.search ? provenance : quality;
+        const matchReason = normalizeText(item.match_reason || "");
+        const evidenceCount = Array.isArray(item.evidence_refs) ? item.evidence_refs.length : 0;
+        const correctionTargetId = source.id || item.id || "";
+        const correctionEvidenceRefs = [
+          ...(Array.isArray(item.evidence_refs) ? item.evidence_refs : []),
+          correctionTargetId ? `everos://episode/${correctionTargetId}` : "",
+          source.session_id || item.session_id ? `everos://session/${source.session_id || item.session_id}` : "",
+        ].filter(Boolean).filter((value, index, values) => values.indexOf(value) === index);
+        const detailId = `memory-detail-${escapeAttr(source.id || item.id || Math.random().toString(36).slice(2))}`;
+        return `
+          <article class="memory-card">
+            <div class="card-meta">
+              <span>${escapeHtml(capturedTime)}</span>
+              <span class="badge ${cardBadge.kind}">${cardBadge.label}</span>
+            </div>
+            <h3>${escapeHtml(title)}</h3>
+            <p>${escapeHtml(content.slice(0, options.long ? 360 : 220) || "暂无内容")}${content.length > (options.long ? 360 : 220) ? "…" : ""}</p>
+            <div class="evidence">
+              <span>${escapeHtml(sourceLabel)}</span>
+              <span>Episode</span>
+              <span>${escapeHtml(sessionShort(source.session_id || item.session_id))}</span>
+              ${matchReason ? `<span>${escapeHtml(matchReason)}</span>` : ""}
+              ${options.search ? `<span>${evidenceCount} 项证据引用</span>` : ""}
+              ${facts.map((fact) => `<span>${escapeHtml(fact)}</span>`).join("")}
+              ${score ? `<span>${score.trim()}</span>` : ""}
+            </div>
+            <details class="memory-details" id="${detailId}">
+              <summary>展开完整记忆</summary>
+              <div class="memory-details-body">
+                ${summary && summary !== content ? `<section><h4>EverOS 摘要</h4><p class="full-memory">${escapeHtml(summary)}</p></section>` : ""}
+                <section>
+                  <h4>完整 Episode 正文</h4>
+                  <p class="full-memory">${escapeHtml(content || "暂无完整正文")}</p>
+                </section>
+                <section>
+                  <h4>Atomic Facts（${allFacts.length} 条）</h4>
+                  ${allFacts.length
+                    ? `<ol class="atomic-facts-list">${allFacts.map((fact) => `<li>${escapeHtml(fact)}</li>`).join("")}</ol>`
+                    : `<p>EverOS 没有为这条 Episode 提取 Atomic Facts。</p>`}
+                </section>
+                <section>
+                  <h4>记忆元数据</h4>
+                  <div class="meta">
+                    <span>类型：${escapeHtml(memoryType)}</span>
+                    <span>来源：${escapeHtml(sourceLabel)}</span>
+                    <span>session：${escapeHtml(source.session_id || item.session_id || "—")}</span>
+                    <span>memory_id：${escapeHtml(source.id || item.id || "—")}</span>
+                    <span>时间：${escapeHtml(capturedTime)}</span>
+                    ${options.search ? `<span>召回原因：${escapeHtml(matchReason || "语义相关")}</span>` : ""}
+                    ${options.search ? `<span>事实来源：${escapeHtml(provenance.label)}</span>` : ""}
+                  </div>
+                </section>
+              </div>
+            </details>
+            <div class="actions">
+              <button
+                class="ghost"
+                type="button"
+                data-action="evidence"
+                data-source-id="${escapeAttr(source.id || item.id || "unknown")}"
+                data-session="${escapeAttr(source.session_id || item.session_id || "")}"
+                data-window="${escapeAttr(source.window_id || item.window_id || "")}"
+                data-manifest="${escapeAttr(source.manifest || item.manifest || "")}"
+              >查看证据</button>
+              <button
+                class="ghost"
+                type="button"
+                data-action="correct"
+                data-target-id="${escapeAttr(correctionTargetId)}"
+                data-session="${escapeAttr(source.session_id || item.session_id || "")}"
+                data-content="${escapeAttr(content)}"
+                data-evidence-refs="${escapeAttr(JSON.stringify(correctionEvidenceRefs))}"
+              >修正记忆</button>
+            </div>
+          </article>
+        `;
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function escapeAttr(value) {
+        return escapeHtml(value).replaceAll("`", "&#096;");
+      }
+
+      function todayString() {
+        const now = new Date();
+        const offsetMs = now.getTimezoneOffset() * 60 * 1000;
+        return new Date(now.getTime() - offsetMs).toISOString().slice(0, 10);
+      }
+
+      function resultLine(label, value) {
+        return `<div><strong>${escapeHtml(label)}：</strong>${escapeHtml(value || "—")}</div>`;
+      }
+
+      async function fetchJson(url, options = {}) {
+        const response = await fetch(url, { cache: "no-store", ...options });
+        if (!response.ok) {
+          throw new Error(`${response.status} ${response.statusText}`);
+        }
+        return response.json();
+      }
+
+      async function checkHealth() {
+        try {
+          await fetchJson("/healthz");
+          $("bridgeDot").className = "dot ok";
+          $("bridgeStatus").textContent = "Bridge 在线";
+        } catch {
+          $("bridgeDot").className = "dot";
+          $("bridgeStatus").textContent = "Bridge 离线";
+        }
+        $("everosDot").className = "dot";
+        $("everosStatus").textContent = "EverOS 检查中";
+      }
+
+      async function loadEpisodes() {
+        const payload = await fetchJson("/v1/memory/episodes?page=1&page_size=24", {
+          headers: authHeaders(),
+        });
+        state.episodes = payload.items || [];
+        if (payload.everos && payload.everos.status === "pending_retry") {
+          $("everosDot").className = "dot warn";
+          $("everosStatus").textContent = "EverOS 暂不可用";
+        } else if (payload.everos && payload.everos.status === "markdown_truth_fallback") {
+          $("everosDot").className = "dot warn";
+          $("everosStatus").textContent = "EverOS 记忆已生成 · 索引待恢复";
+        } else {
+          $("everosDot").className = "dot ok";
+          $("everosStatus").textContent = "EverOS 已连接";
+        }
+        render();
+      }
+
+      async function loadReviewState() {
+        const [review, people] = await Promise.all([
+          fetchJson("/v1/memory/overview", { headers: authHeaders() }),
+          fetchJson("/v1/memory/people", { headers: authHeaders() }),
+        ]);
+        state.review = review;
+        state.peopleState = people;
+        render();
+      }
+
+      async function loadCapsules() {
+        const payload = await fetchJson("/v1/memory/capsules?limit=24", {
+          headers: authHeaders(),
+        });
+        state.capsules = payload.items || [];
+        state.eventQueues = payload.event_queues || [];
+        state.capsuleSession = payload.boot_session || null;
+        if (pageMode === "capsules") {
+          $("everosDot").className = state.capsuleSession?.last_flush_at_ms ? "dot ok" : "dot warn";
+          $("everosStatus").textContent = state.capsuleSession?.last_flush_at_ms
+            ? "EverOS 已写入"
+            : "EverOS 等待事件封存";
+        }
+        render();
+      }
+
+      async function loadDeviceStatus() {
+        const payload = await fetchJson("/v1/device/status", {
+          headers: authHeaders(),
+        });
+        state.deviceStatus = payload;
+        renderDeviceStatus();
+      }
+
+      async function loadObjectPerceptionStatus() {
+        const payload = await fetchJson("/v1/memory/object-perception", {
+          headers: authHeaders(),
+        });
+        state.objectPerceptionStatus = payload;
+        const worker = payload.worker || {};
+        const jobs = payload.jobs || {};
+        const ready = worker.status === "ready" && worker.loaded !== false;
+        $("yoloDot").className = ready ? "dot ok" : worker.status === "disabled" ? "dot" : "dot warn";
+        $("yoloStatus").textContent = worker.status === "disabled"
+          ? "YOLOE 已关闭"
+          : ready
+            ? `YOLOE 在线 · 队列 ${jobs.queue_depth || 0}`
+            : `YOLOE ${worker.status || "不可用"} · MiMo 直推`;
+      }
+
+      async function loadAll() {
+        const contentLoaders = pageMode === "capsules"
+          ? [loadCapsules()]
+          : [loadEpisodes(), loadReviewState()];
+        const results = await Promise.allSettled([
+          ...contentLoaders,
+          loadDeviceStatus(),
+          loadObjectPerceptionStatus(),
+        ]);
+        const failures = results.filter((result) => result.status === "rejected");
+        if (failures.length === results.length) throw failures[0].reason;
+        if (failures.length) {
+          $("bridgeDot").className = "dot warn";
+          $("bridgeStatus").textContent = `部分数据暂不可用 · 保留上次内容`;
+        }
+      }
+
+      async function loadLiveStatus() {
+        const results = await Promise.allSettled([
+          loadDeviceStatus(),
+          loadObjectPerceptionStatus(),
+        ]);
+        const failures = results.filter((result) => result.status === "rejected");
+        if (failures.length === results.length) throw failures[0].reason;
+      }
+
+      async function loadMemoryContent() {
+        const contentLoaders = pageMode === "capsules"
+          ? [loadCapsules()]
+          : [loadEpisodes(), loadReviewState()];
+        const results = await Promise.allSettled([
+          ...contentLoaders,
+        ]);
+        const failures = results.filter((result) => result.status === "rejected");
+        if (failures.length === results.length) throw failures[0].reason;
+      }
+
+      function renderDeviceStatus() {
+        const payload = state.deviceStatus || {};
+        const device = payload.device;
+        const now = payload.server_time_ms || Date.now();
+        const fresh = device && now - (device.last_seen_at_ms || 0) < 45000;
+        const connected = Boolean(device && device.connected && fresh);
+        const battery = (device && device.battery) || {};
+        const percent = typeof battery.percent === "number" ? battery.percent : null;
+        const voltage = typeof battery.voltage_mv === "number" ? `${battery.voltage_mv} mV` : "";
+
+        if (!device || !connected) {
+          $("batteryDot").className = "dot";
+          $("batteryStatus").textContent = device && percent !== null
+            ? `眼镜离线 · 最后电量 ${percent}%`
+            : "眼镜离线";
+          $("metricBattery").textContent = percent !== null ? `${percent}%` : "离线";
+          $("metricBatteryLabel").textContent = voltage ? `最后估算 · ${voltage}` : "眼镜电量";
+          return;
+        }
+        if (battery.external_power) {
+          const captureActive = device.memory_capture_active === true;
+          $("batteryDot").className = captureActive ? "dot ok" : "dot warn";
+          $("batteryStatus").textContent = captureActive
+            ? "供电中 · 记忆采集中"
+            : "已插线 · 记忆采集已暂停";
+          $("metricBattery").textContent = "供电中";
+          $("metricBatteryLabel").textContent = captureActive
+            ? "外接供电 · 采集中"
+            : "插线时暂停采集";
+          return;
+        }
+        $("batteryDot").className = `dot ${percent !== null && percent <= 15 ? "warn" : "ok"}`;
+        $("batteryStatus").textContent = percent !== null
+          ? `电量 ${percent}% · ${device.memory_capture_active ? "记忆采集中" : "记忆未采集"}`
+          : "电量估算暂不可用";
+        $("metricBattery").textContent = percent !== null ? `${percent}%` : "—";
+        $("metricBatteryLabel").textContent = voltage ? `电压估算 · ${voltage}` : "眼镜电量";
+      }
+
+      function setSearchImage(file) {
+        if (state.searchImagePreviewUrl) URL.revokeObjectURL(state.searchImagePreviewUrl);
+        state.searchImagePreviewUrl = null;
+        state.searchImage = file || null;
+        if (!file) {
+          $("searchImageInput").value = "";
+          $("searchImagePreview").hidden = true;
+          $("searchImageThumb").removeAttribute("src");
+          return;
+        }
+        state.searchImagePreviewUrl = URL.createObjectURL(file);
+        $("searchImageThumb").src = state.searchImagePreviewUrl;
+        $("searchImageName").textContent = file.name || "待搜索图片";
+        $("searchMode").textContent = $("searchInput").value.trim() ? "图文搜索" : "图片搜索";
+        $("searchImagePreview").hidden = false;
+      }
+
+      async function runSearch(query) {
+        const image = state.searchImage;
+        if (!query && !image) return;
+        const submit = $("searchSubmit");
+        submit.disabled = true;
+        submit.textContent = "检索中…";
+        $("searchResultsPanel").classList.add("visible");
+        $("searchSummary").textContent = image
+          ? `${query ? "正在进行图文搜索" : "正在用图片搜索历史记忆"}…`
+          : `正在搜索“${query}”…`;
+        try {
+          let payload;
+          if (image) {
+            const form = new FormData();
+            form.append("image", image, image.name || "memory-query.jpg");
+            form.append("query", query);
+            form.append("top_k", "10");
+            payload = await fetchJson("/v1/memory/search/media", {
+              method: "POST",
+              headers: authHeaders(),
+              body: form,
+            });
+          } else {
+            payload = await fetchJson("/v1/memory/search", {
+              method: "POST",
+              headers: authHeaders({ "content-type": "application/json" }),
+              body: JSON.stringify({ query, query_type: "auto", top_k: 10 }),
+            });
+          }
+          if (payload.answer_status === "error") {
+            const reasons = payload.retrieval?.degraded_reasons || [];
+            throw new Error(reasons[0] || "记忆检索暂时不可用");
+          }
+          state.searchResults = Array.isArray(payload.results) ? payload.results : [];
+          state.searchStatus = payload.answer_status || "not_found";
+          const mode = {
+            text: "文本",
+            image: "图片",
+            image_text: "图文",
+            object_last_seen: "物品 Last-seen",
+          }[payload.query_type] || "记忆";
+          const degraded = payload.answer_status === "degraded";
+          $("searchSummary").textContent = degraded
+            ? `${mode}检索返回 ${state.searchResults.length} 条结果 · 部分能力降级`
+            : payload.summary || `${mode}检索返回 ${state.searchResults.length} 条结果`;
+          renderSearch();
+        } catch (error) {
+          state.searchStatus = "error";
+          $("searchSummary").textContent = `本次搜索失败：${error.message} · 已保留上次成功结果`;
+          if (!state.searchResults.length) {
+            $("searchCards").innerHTML = `<div class="error">搜索暂时不可用，没有生成猜测结果。请稍后重试。</div>`;
+          }
+          throw error;
+        } finally {
+          submit.disabled = false;
+          submit.textContent = "搜索记忆";
+        }
+      }
+
+      function render() {
+        if (pageMode === "capsules") {
+          renderCapsules();
+          return;
+        }
+        const cards = $("memoryCards");
+        const episodes = state.episodes;
+        const memories = episodes;
+        if (!memories.length) {
+          cards.innerHTML = `<div class="empty">还没有可展示的 EverOS 记忆。确认 bridge、EverOS 和眼镜在线后，等待一个 5 分钟窗口。</div>`;
+        } else {
+          cards.innerHTML = memories
+            .slice(0, 8)
+            .map((item) => memoryCard(item, { sourceLabel: "EverOS" }))
+            .join("");
+        }
+
+        const qualities = memories.map((item) => classify(item.content || ""));
+        const confirmed = qualities.filter((item) => item.kind === "confirmed").length;
+        const weak = qualities.filter((item) => item.kind !== "confirmed").length;
+        const people = extractPeople(episodes);
+        $("metricTotal").textContent = memories.length;
+        $("metricConfirmed").textContent = confirmed;
+        $("metricWeak").textContent = weak;
+        $("metricPeople").textContent =
+          (state.peopleState.profiles || []).length + people.filter((item) => !item.candidate || item.count > 0).length;
+        $("barConfirmed").style.width = `${memories.length ? (confirmed / memories.length) * 100 : 0}%`;
+        $("barWeak").style.width = `${memories.length ? (weak / memories.length) * 100 : 0}%`;
+        $("qualityCopy").textContent =
+          weak > confirmed
+            ? "最近弱记忆/可疑记忆偏多。建议提高音频质量，并把单字语气词折叠，不直接进入主卡片。"
+            : "最近正式记忆比例较高。仍建议保留证据入口，支持人工纠错后回写。";
+
+        renderPeople(people);
+        renderTimeline(memories);
+        renderDailyLoop(memories, confirmed, weak, false);
+      }
+
+      function renderCapsules() {
+        const session = state.capsuleSession;
+        $("capsuleSession").innerHTML = session
+          ? [
+              resultLine("当前 boot session", session.id),
+              resultLine("最近 capsule", session.last_capsule_at_ms ? new Date(session.last_capsule_at_ms).toLocaleString() : "—"),
+              resultLine("最近 flush", session.last_flush_at_ms ? new Date(session.last_flush_at_ms).toLocaleString() : "—"),
+              resultLine("前端刷新", new Date().toLocaleString()),
+            ].join("")
+          : "暂无 active boot session。";
+
+        const box = $("capsuleCards");
+        if (!state.capsules.length) {
+          box.innerHTML = `<div class="empty">暂无 capsule。真机开始 capture 后，每个 30 秒窗口会在这里出现。</div>`;
+          return;
+        }
+        box.innerHTML = state.capsules.slice(0, 24).map((item) => {
+          const capturedTime = new Date(item.captured_at_ms || Date.now()).toLocaleString(
+            "zh-CN",
+            { hour12: false }
+          );
+          return `
+            <article class="memory-card">
+              <div class="card-top">
+                <span class="badge confirmed">${escapeHtml(item.event_type || "daily")}</span>
+                <small>${escapeHtml(capturedTime)}</small>
+              </div>
+              <h3>${escapeHtml(item.window_id || item.id)}</h3>
+              <p>${escapeHtml(item.text || "暂无摘要")}</p>
+              <div class="actions">
+                <button class="ghost" type="button" data-action="evidence"
+                  data-source-id="${escapeAttr(item.id || item.window_id || "unknown")}"
+                  data-window="${escapeAttr(item.window_id || "")}"
+                  data-session="${escapeAttr(item.boot_session_id || "")}">查看完整证据链</button>
+              </div>
+            </article>
+          `;
+        }).join("");
+      }
+
+      function capsuleEvidenceLinks(item) {
+        const evidence = item.evidence || [];
+        if (!evidence.length) return `<span>暂无</span>`;
+        return evidence.slice(0, 8).map((ev, index) => {
+          const kind = ev.kind || "file";
+          const label = `${kind}-${index + 1}`;
+          const uri = ev.uri || "";
+          if (!uri) return `<span>${escapeHtml(label)}</span>`;
+          return `<button class="ghost" type="button" data-action="preview-evidence"
+            data-uri="${escapeAttr(uri)}" data-kind="${escapeAttr(kind)}">${escapeHtml(label)}</button>`;
+        }).join("");
+      }
+
+      function evidenceFileUrl(uri) {
+        if (!uri) return "";
+        return `/v1/memory/evidence-file?uri=${encodeURIComponent(uri)}`;
+      }
+
+      function renderIdentityClusters() {
+        const drafts = state.review.person_drafts || [];
+        const candidates = state.review.identity_candidates || [];
+        const face = candidates.filter((item) => item.modality === "face");
+        const voice = candidates.filter((item) => item.modality === "voice");
+        $("identityClusterSummary").innerHTML = [
+          resultLine("临时人物档案", String(drafts.length)),
+          resultLine("face candidates", String(face.length)),
+          resultLine("voice candidates", String(voice.length)),
+        ].join("");
+        const rows = [
+          ...drafts.slice(0, 3).map((item) => ({
+            title: item.display_name || item.id,
+            type: "person draft",
+            detail: `face ${((item.face_candidate_ids || []).length)} / voice ${((item.voice_candidate_ids || []).length)}`,
+          })),
+          ...candidates.slice(0, 5).map((item) => ({
+            title: item.display_name || item.id,
+            type: item.modality,
+            detail: `${item.observation_count || 0} 次观察 · ${item.status || "candidate"}`,
+          })),
+        ];
+        $("identityClusterCards").innerHTML = rows.length
+          ? rows.map((item) => `
+              <div class="loop-item">
+                <span class="check">人</span>
+                <span><strong>${escapeHtml(item.title)}</strong><br /><small>${escapeHtml(item.type)} · ${escapeHtml(item.detail)}</small></span>
+              </div>
+            `).join("")
+          : `<div class="empty">暂无身份候选。模型识别到人脸/声纹后会自动聚合。</div>`;
+      }
+
+      async function flushCapsules() {
+        const payload = await fetchJson("/v1/memory/capsules/flush", {
+          method: "POST",
+          headers: authHeaders({ "content-type": "application/json" }),
+          body: JSON.stringify({}),
+        });
+        $("capsuleSession").innerHTML = [
+          resultLine("封存事件", payload.session_id),
+          resultLine("状态", payload.everos_writeback ? payload.everos_writeback.status : "unknown"),
+        ].join("");
+        await loadCapsules();
+      }
+
+      function renderSearch() {
+        const box = $("searchCards");
+        if (!state.searchResults.length) {
+          box.innerHTML = `<div class="empty">没有找到可靠记忆。可以换一种问法，或等待新的窗口入库。</div>`;
+          return;
+        }
+        box.innerHTML = state.searchResults
+          .map((item) => memoryCard(item, { long: true, search: true, sourceLabel: "生产检索" }))
+          .join("");
+      }
+
+      function renderPeople(people) {
+        const box = $("peopleCards");
+        const confirmed = (state.peopleState.profiles || []).map((profile) => ({
+          name: profile.name,
+          relation: profile.relation,
+          notes: profile.notes,
+          sessions: profile.source_session_ids || [],
+          confirmed: true,
+        }));
+        const rows = [...confirmed, ...people].slice(0, 6);
+        if (!rows.length) {
+          box.innerHTML = `<div class="empty">暂无人物线索。候选出现后可在这里确认或冻结。</div>`;
+          return;
+        }
+        box.innerHTML = rows
+          .map((person) => {
+            const initial = person.name.slice(0, 1).toUpperCase();
+            const note = person.confirmed
+              ? `已确认：${person.relation || "关系待补充"}。${person.notes || "可继续补充人物档案。"}`
+              : person.candidate
+              ? "候选人物：等待 Web 端确认身份、补充关系和冻结错误识别。"
+              : `出现 ${person.count} 次；最近窗口 ${sessionShort(person.sessions[0])}`;
+            return `
+              <div class="person">
+                <div class="avatar">${escapeHtml(initial)}</div>
+                <div>
+                  <strong>${escapeHtml(person.name)}</strong>
+                  <p>${escapeHtml(note)}</p>
+                  <div class="evidence" style="margin-top: 8px">
+                    <span>${person.confirmed ? "身份已确认" : "身份候选"}</span><span>历史交流</span><span>承诺召回</span>
+                  </div>
+                  ${
+                    person.confirmed
+                      ? ""
+                      : `<div class="actions" style="margin-top: 10px">
+                          <button class="ghost" type="button" data-action="confirm-person" data-person="${escapeAttr(person.name)}" data-sessions="${escapeAttr((person.sessions || []).join(","))}">确认身份</button>
+                          <button class="ghost" type="button" data-action="freeze-person" data-person="${escapeAttr(person.name)}" data-sessions="${escapeAttr((person.sessions || []).join(","))}">冻结错误</button>
+                        </div>`
+                  }
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      async function correctMemoryFromButton(button) {
+        return BeaverMemoryUI.openCorrection({
+          targetType: "episode",
+          targetId: button.dataset.targetId,
+          fieldPath: "content",
+          originalValue: button.dataset.content || "",
+          evidenceRefs: JSON.parse(button.dataset.evidenceRefs || "[]"),
+          title: "修正这条完整记忆",
+          onApplied: async () => {
+            await Promise.all([loadEpisodes(), loadReviewState()]);
+            renderAll();
+          },
+        });
+      }
+
+      async function confirmPersonFromButton(button) {
+        const candidate = button.dataset.person || "";
+        const confirmedName = window.prompt("确认这个人的真实姓名：", candidate);
+        if (!confirmedName) return;
+        const relation = window.prompt("补充关系/身份，例如：合作伙伴、同事、客户：", "") || "";
+        const notes = window.prompt("补充人物备注，例如项目、偏好、承诺上下文：", "") || "";
+        await fetchJson("/v1/memory/people/confirm", {
+          method: "POST",
+          headers: authHeaders({ "content-type": "application/json" }),
+          body: JSON.stringify({
+            candidate_name: candidate,
+            confirmed_name: confirmedName.trim(),
+            relation,
+            notes,
+            source_session_ids: (button.dataset.sessions || "").split(",").filter(Boolean),
+          }),
+        });
+        window.alert("人物档案已确认，并写回 EverOS。");
+        await loadReviewState();
+      }
+
+      async function freezePersonFromButton(button) {
+        const candidate = button.dataset.person || "";
+        const reason = window.prompt("冻结原因：", "疑似环境音/误识别，暂不主动提醒");
+        if (!reason) return;
+        await fetchJson("/v1/memory/people/freeze", {
+          method: "POST",
+          headers: authHeaders({ "content-type": "application/json" }),
+          body: JSON.stringify({
+            candidate_name: candidate,
+            reason,
+            source_session_ids: (button.dataset.sessions || "").split(",").filter(Boolean),
+          }),
+        });
+        window.alert("已冻结该候选，后续不会作为人物档案展示。");
+        await loadReviewState();
+      }
+
+      async function runObjectLastSeen(query) {
+        const payload = await fetchJson(`/v1/memory/objects/last-seen?query=${encodeURIComponent(query)}`, {
+          headers: authHeaders(),
+        });
+        const answer = payload.latest_reliable;
+        const later = payload.later_uncertain || [];
+        const candidates = payload.other_candidates || [];
+        const statusLabels = {
+          reliable: "可靠",
+          reliable_with_later_uncertain: "可靠，但之后有不确定证据",
+          uncertain_only: "只有不确定证据",
+          multiple_candidates: "多个同类候选",
+          not_found: "没有证据",
+        };
+        const evidenceButtons = [answer, ...later, ...candidates]
+          .filter(Boolean)
+          .map((item) => `<button class="ghost" type="button" data-action="evidence"
+            data-window="${escapeAttr(item.window_id || "")}" data-session="${escapeAttr(item.boot_session_id || "")}">
+            查看 ${escapeHtml(item.captured_at_beijing || item.evidence_id || "证据")}
+          </button>`)
+          .join("");
+        const uncertainText = later.map((item) => {
+          const where = item.location_hint ? ` · ${item.location_hint}` : " · 没有可靠位置";
+          return `${item.captured_at_beijing || item.captured_at_ms}${where} · ${Number(item.semantic_confidence || 0).toFixed(2)}`;
+        }).join("；");
+        $("objectResult").innerHTML = [
+          resultLine("结论", payload.answer_text || "尚未找到相关证据。"),
+          resultLine("状态", statusLabels[payload.answer_status] || payload.answer_status || "unknown"),
+          resultLine("规范名称", `${payload.normalized_query || query} · ${payload.alias_version || "—"}`),
+          resultLine("实例范围", payload.instance_status === "confirmed_personal_object" ? "已确认个人物品" : "同类物品，未强行认作同一件"),
+          answer ? resultLine("最近可靠位置", answer.location_hint || "位置没有可靠描述") : "",
+          answer ? resultLine("北京时间", answer.captured_at_beijing || "—") : "",
+          answer ? resultLine("模型/提示词", `${answer.source_model || "—"} / ${answer.source_prompt_version || "—"}`) : "",
+          later.length ? resultLine("后来不确定", uncertainText) : "",
+          candidates.length ? resultLine("其他同类候选", `${candidates.length} 条`) : "",
+          evidenceButtons ? `<div class="actions" style="margin-top:10px">${evidenceButtons}</div>` : "",
+        ].filter(Boolean).join("");
+      }
+
+      async function runMeetingExtract(sessionId, transcript) {
+        const payload = await fetchJson("/v1/memory/meetings/extract", {
+          method: "POST",
+          headers: authHeaders({ "content-type": "application/json" }),
+          body: JSON.stringify({
+            session_id: sessionId,
+            transcript,
+            speaker_hints: ["Steven", "眼镜用户"],
+          }),
+        });
+        const meeting = payload.meeting || {};
+        $("meetingResult").innerHTML = [
+          resultLine("说话人数", new Set((meeting.speaker_turns || []).map((item) => item.speaker)).size),
+          resultLine("结论", (meeting.conclusions || []).join("；") || "暂无"),
+          resultLine("承诺", (meeting.commitments || []).map((item) => `${item.owner}: ${item.text}`).join("；") || "暂无"),
+          resultLine("写回", payload.everos_writeback ? payload.everos_writeback.status : "unknown"),
+        ].join("");
+        await loadReviewState();
+      }
+
+      async function runPreuploadPerson() {
+        const name = $("preuploadName").value.trim();
+        if (!name) return;
+        const aliases = $("preuploadAliases").value
+          .split(/[,，]/)
+          .map((item) => item.trim())
+          .filter(Boolean);
+        const relation = $("preuploadRelation").value.trim();
+        await fetchJson("/v1/memory/people/preupload", {
+          method: "POST",
+          headers: authHeaders({ "content-type": "application/json" }),
+          body: JSON.stringify({
+            name,
+            aliases,
+            relation,
+            notes: "Web 端预上传",
+            reminder_threshold: 0.75,
+            quiet_hours: { start: "22:00", end: "08:00" },
+          }),
+        });
+        $("preuploadName").value = "";
+        $("preuploadAliases").value = "";
+        $("preuploadRelation").value = "";
+        await loadReviewState();
+      }
+
+      async function runReminderEvaluate() {
+        const personName = $("reminderPerson").value.trim();
+        const score = Number($("reminderScore").value || "0");
+        if (!personName || Number.isNaN(score)) return;
+        const payload = await fetchJson("/v1/memory/reminders/evaluate", {
+          method: "POST",
+          headers: authHeaders({ "content-type": "application/json" }),
+          body: JSON.stringify({
+            person_name: personName,
+            score,
+            local_time: new Date().toISOString(),
+            reason: "Web 端策略验证",
+          }),
+        });
+        $("reminderResult").innerHTML = [
+          resultLine("决策", payload.decision),
+          resultLine("原因", payload.reason),
+          resultLine("阈值", payload.threshold === undefined ? "—" : String(payload.threshold)),
+          resultLine("人物", payload.person ? payload.person.name : "未确认人物"),
+        ].join("");
+        await loadReviewState();
+      }
+
+      async function loadDailyReport(date) {
+        const payload = await fetchJson(`/v1/memory/daily-report?date=${encodeURIComponent(date)}`, {
+          headers: authHeaders(),
+        });
+        state.latestDailyReport = payload;
+        $("dailyReportResult").innerHTML = [
+          resultLine("日期", payload.date),
+          resultLine("确认事件", (payload.confirmed_events || []).slice(0, 3).join("；") || "暂无"),
+          resultLine("承诺", (payload.commitments || []).slice(0, 3).map((item) => item.text).join("；") || "暂无"),
+          resultLine("视觉记忆", (payload.object_events || []).slice(0, 3).map((item) => `${item.object_label}@${item.location_hint || "未知位置"}`).join("；") || "暂无"),
+        ].join("");
+      }
+
+      async function closeDailyReport() {
+        const date = $("dailyDate").value.trim() || todayString();
+        const corrections = window.prompt("日报确认修正，可留空：", "") || "";
+        const payload = await fetchJson("/v1/memory/daily-report/close", {
+          method: "POST",
+          headers: authHeaders({ "content-type": "application/json" }),
+          body: JSON.stringify({
+            date,
+            corrections: corrections ? [corrections] : [],
+          }),
+        });
+        $("dailyReportResult").innerHTML += resultLine(
+          "关闭写回",
+          payload.everos_writeback ? payload.everos_writeback.status : "unknown"
+        );
+        await loadReviewState();
+      }
+
+      function closeEvidencePanel() {
+        $("evidenceModal").hidden = true;
+        if (state.evidenceObjectUrl) URL.revokeObjectURL(state.evidenceObjectUrl);
+        state.evidenceObjectUrl = null;
+        $("evidenceViewer").innerHTML = `<div class="empty">选择一张图片或一段音频进行核对。</div>`;
+      }
+
+      function statusText(value) {
+        if (!value || typeof value !== "object") return "未记录";
+        return value.status || value.state || "已记录";
+      }
+
+      async function previewEvidence(uri, kind = "file") {
+        if (!uri) return;
+        $("evidenceViewer").innerHTML = `<div class="empty">正在加载 ${escapeHtml(kind)}…</div>`;
+        const response = await fetch(evidenceFileUrl(uri), {
+          headers: authHeaders(),
+          cache: "no-store",
+        });
+        if (!response.ok) throw new Error(`证据文件读取失败：${response.status}`);
+        const blob = await response.blob();
+        if (state.evidenceObjectUrl) URL.revokeObjectURL(state.evidenceObjectUrl);
+        state.evidenceObjectUrl = URL.createObjectURL(blob);
+        if (blob.type.startsWith("image/")) {
+          $("evidenceViewer").innerHTML = `<img src="${escapeAttr(state.evidenceObjectUrl)}" alt="真实眼镜证据图" />`;
+        } else if (blob.type.startsWith("audio/")) {
+          $("evidenceViewer").innerHTML = `<audio src="${escapeAttr(state.evidenceObjectUrl)}" controls autoplay></audio>`;
+        } else if (blob.type.includes("json") || blob.type.startsWith("text/")) {
+          $("evidenceViewer").innerHTML = `<pre>${escapeHtml(await blob.text())}</pre>`;
+        } else {
+          $("evidenceViewer").innerHTML = `<div class="empty">文件已读取（${escapeHtml(blob.type || "未知类型")}），当前没有内置预览器。</div>`;
+        }
+      }
+
+      function renderEvidenceDetail(payload) {
+        const summary = payload.summary || {};
+        $("evidenceSummary").textContent = `${summary.capsule_count || 0} 个 Capsule · ${summary.available_count || 0}/${summary.evidence_count || 0} 个原始文件可用`;
+        $("evidenceList").innerHTML = (payload.capsules || []).map((capsule) => {
+          const processing = capsule.processing || {};
+          const asr = processing.asr || {};
+          const voice = processing.voice_perception || {};
+          const asrTranscript = String(asr.transcript || "").trim();
+          const asrSegments = (asr.segments || []).map((segment) => {
+            const start = (Number(segment.start_ms || 0) / 1000).toFixed(1);
+            const end = (Number(segment.end_ms || 0) / 1000).toFixed(1);
+            return `${start}–${end}s ${segment.text || `[${segment.status || "无文字"}]`}`;
+          }).join("\n");
+          const files = (capsule.evidence || []).map((item, index) => {
+            const label = `${item.kind || item.viewer_type || "file"}-${index + 1}`;
+            return `<button class="ghost" type="button" data-action="preview-evidence"
+              data-uri="${escapeAttr(item.uri || "")}" data-kind="${escapeAttr(item.kind || item.viewer_type || "file")}" ${item.available ? "" : "disabled"}>
+              ${escapeHtml(label)} · ${item.available ? "可用" : "缺失"}
+            </button>`;
+          }).join("") || `<span class="muted">没有原始文件</span>`;
+          const manifest = capsule.manifest;
+          return `<section style="margin-bottom: 18px">
+            <div class="evidence-window-head"><strong>${escapeHtml(capsule.window_id || capsule.id || "Capsule")}</strong><small>${escapeHtml(capsule.captured_at_ms ? new Date(capsule.captured_at_ms).toLocaleString() : "—")}</small></div>
+            <p>${escapeHtml(capsule.text || "暂无摘要")}</p>
+            <div class="evidence-file-list">${files}</div>
+            <div class="meta">
+              <span>VAD：${escapeHtml(statusText(processing.audio_presence))}</span>
+              <span>ASR：${escapeHtml(statusText(processing.asr))}</span>
+              <span>人脸候选：${escapeHtml(statusText(processing.identity_perception))}</span>
+              <span>声纹候选：${escapeHtml(statusText(voice))}</span>
+              <span>YOLOE：${escapeHtml(statusText(processing.object_perception))}</span>
+              <span>物品卡片：${escapeHtml(statusText(processing.object_cards))}</span>
+              <span>经历理解：${escapeHtml(statusText(processing.experience_interpretation || processing.scene_interpretation))}</span>
+              <span>跨窗稳定：${escapeHtml(statusText(processing.context_stabilization))}</span>
+              <span>EverOS：${escapeHtml(statusText(processing.everos_writeback))}</span>
+            </div>
+            <details style="margin-top: 10px" ${asrTranscript ? "open" : ""}>
+              <summary>ASR 转写 · ${escapeHtml(statusText(asr))}</summary>
+              <pre class="manifest-preview">${escapeHtml(asrTranscript || "当前 Capsule 没有可展示的 ASR 文本。请结合 VAD 状态判断是无人声、未调用、失败，还是历史数据未保存转写。")}${asrSegments ? `\n\n时间片段：\n${escapeHtml(asrSegments)}` : ""}</pre>
+            </details>
+            <details style="margin-top: 10px"><summary>人脸处理与候选（单帧 Demo）</summary><pre class="manifest-preview">${escapeHtml(JSON.stringify(processing.identity_perception || { status: "not_requested" }, null, 2))}</pre></details>
+            <details style="margin-top: 10px" ${voice.status === "completed" ? "open" : ""}><summary>说话人分离、声纹候选与 ASR 归属</summary><pre class="manifest-preview">${escapeHtml(JSON.stringify(voice || { status: "not_requested" }, null, 2))}</pre></details>
+            <details style="margin-top: 10px"><summary>YOLOE 候选物品（可选提示）</summary><pre class="manifest-preview">${escapeHtml(JSON.stringify(processing.object_perception || { status: "not_requested" }, null, 2))}</pre></details>
+            <details style="margin-top: 10px"><summary>处理 manifest 状态</summary><pre class="manifest-preview">${escapeHtml(JSON.stringify(manifest || { available: false }, null, 2))}</pre></details>
+          </section>`;
+        }).join("");
+      }
+
+      async function showEvidenceFromButton(button) {
+        const windowId = button.dataset.window || "";
+        const sessionId = button.dataset.session || "";
+        const query = windowId
+          ? `window_id=${encodeURIComponent(windowId)}`
+          : `session_id=${encodeURIComponent(sessionId)}`;
+        if (!windowId && !sessionId) throw new Error("这张记忆卡没有可追溯的 Capsule session");
+        $("evidenceModal").hidden = false;
+        $("evidenceSummary").textContent = "正在读取真实 Capsule 证据…";
+        $("evidenceList").innerHTML = `<div class="empty">加载中…</div>`;
+        const payload = await fetchJson(`/v1/memory/evidence?${query}`, { headers: authHeaders() });
+        renderEvidenceDetail(payload);
+      }
+
+      document.addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-action]");
+        if (!button) return;
+        const action = button.dataset.action;
+        if (action === "evidence") showEvidenceFromButton(button).catch(showError);
+        if (action === "preview-evidence") previewEvidence(button.dataset.uri || "", button.dataset.kind || "file").catch(showError);
+        if (action === "correct") correctMemoryFromButton(button).catch(showError);
+        if (action === "confirm-person") confirmPersonFromButton(button).catch(showError);
+        if (action === "freeze-person") freezePersonFromButton(button).catch(showError);
+      });
+
+      $("closeEvidence").addEventListener("click", closeEvidencePanel);
+      $("evidenceModal").addEventListener("click", (event) => {
+        if (event.target === $("evidenceModal")) closeEvidencePanel();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !$("evidenceModal").hidden) closeEvidencePanel();
+      });
+
+      function renderTimeline(episodes) {
+        const box = $("timeline");
+        if (!episodes.length) {
+          box.innerHTML = `<div class="empty">暂无证据时间线。</div>`;
+          return;
+        }
+        box.innerHTML = episodes
+          .slice(0, 8)
+          .map((item, index) => {
+            const quality = classify(item.content || "");
+            const bars = Array.from({ length: 18 }, (_, i) => {
+              const h = 7 + ((i * 11 + index * 7) % 19);
+              return `<i style="height:${h}px"></i>`;
+            }).join("");
+            return `
+              <div class="timeline-row">
+                <strong>${timeFromSession(item.session_id).split(" ").pop() || "—"}</strong>
+                <div>
+                  <div class="wave">${bars}</div>
+                  <small>${escapeHtml(sessionShort(item.session_id))}</small>
+                </div>
+                <span class="badge ${quality.kind}">${quality.label}</span>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      function renderDailyLoop(episodes, confirmed, weak, usingLiveCapsules = false) {
+        const box = $("dailyLoop");
+        const latest = episodes[0] ? sessionShort(episodes[0].session_id) : "暂无";
+        const corrections = (state.review.corrections || []).length;
+        const profiles = (state.peopleState.profiles || []).length;
+        const frozen = (state.peopleState.frozen_candidates || []).length;
+        const items = [
+          `已同步 ${episodes.length} 条${usingLiveCapsules ? "实时 Capsule" : " EverOS episode"}，最新 ${latest}。`,
+          `正式记忆 ${confirmed} 条；弱/可疑记忆 ${weak} 条，建议进入人工核查。`,
+          `Web 已确认人物 ${profiles} 个，冻结误识别候选 ${frozen} 个。`,
+          `已记录纠错 ${corrections} 条；确认后会写回 EverOS，避免污染主记忆流。`,
+          "眼镜端摘要可复用搜索结果的 ui.patch 卡片。"
+        ];
+        box.innerHTML = items
+          .map((item) => `<div class="loop-item"><span class="check">✓</span><span>${escapeHtml(item)}</span></div>`)
+          .join("");
+      }
+
+      $("tokenInput").addEventListener("change", (event) => {
+        state.token = event.target.value.trim() || "dev-token";
+        localStorage.setItem("everlens.token", state.token);
+        loadAll().catch(showError);
+      });
+
+      $("refreshBtn").addEventListener("click", () => loadAll().catch(showError));
+      $("flushCapsulesBtn").addEventListener("click", () => flushCapsules().catch(showError));
+
+      $("objectSearchForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const query = $("objectQuery").value.trim();
+        if (!query) return;
+        runObjectLastSeen(query).catch(showError);
+      });
+
+      $("meetingExtractForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const sessionId = $("meetingSession").value.trim() || `web-meeting-${Date.now()}`;
+        const transcript = $("meetingTranscript").value.trim();
+        if (!transcript) return;
+        runMeetingExtract(sessionId, transcript).catch(showError);
+      });
+
+      $("preuploadPersonForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        runPreuploadPerson().catch(showError);
+      });
+
+      $("reminderForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        runReminderEvaluate().catch(showError);
+      });
+
+      $("dailyReportForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const date = $("dailyDate").value.trim() || todayString();
+        $("dailyDate").value = date;
+        loadDailyReport(date).catch(showError);
+      });
+
+      $("closeDailyBtn").addEventListener("click", () => closeDailyReport().catch(showError));
+
+      function showError(error) {
+        $("bridgeDot").className = "dot warn";
+        $("bridgeStatus").textContent = `请求失败 · 已保留上次内容`;
+        if (!$("evidenceModal").hidden) {
+          $("evidenceSummary").innerHTML = `<span class="error">${escapeHtml(error.message)}</span>`;
+        }
+      }
+
+      configurePage();
+      checkHealth();
+      $("dailyDate").value = todayString();
+      loadAll().catch(showError);
+      setInterval(() => {
+        checkHealth();
+        loadLiveStatus().catch(() => {});
+      }, 15000);
+      setInterval(() => {
+        loadMemoryContent().catch(() => {});
+      }, 10000);
+    </script>
+  </body>
+</html>

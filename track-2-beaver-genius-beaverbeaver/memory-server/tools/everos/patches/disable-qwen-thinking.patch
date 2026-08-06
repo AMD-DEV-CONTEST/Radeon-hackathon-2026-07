@@ -1,0 +1,14 @@
+diff --git a/src/everos/component/llm/openai_provider.py b/src/everos/component/llm/openai_provider.py
+--- a/src/everos/component/llm/openai_provider.py
++++ b/src/everos/component/llm/openai_provider.py
+@@ -84,5 +84,10 @@ class OpenAIProvider:
+             request["response_format"] = dict(response_format)
+         request.update(extra)
++        selected_model = str(request["model"]).lower()
++        if "qwen" in selected_model and "omni" not in selected_model:
++            extra_body = dict(request.get("extra_body") or {})
++            extra_body.setdefault("enable_thinking", False)
++            request["extra_body"] = extra_body
+ 
+         try:
+             completion = await self._client.chat.completions.create(**request)

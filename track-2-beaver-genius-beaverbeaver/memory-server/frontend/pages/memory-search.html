@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>记忆搜索 · Beaver Memory</title>
+    <link rel="icon" href="data:," />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='20' fill='%23d79638'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-size='36' font-family='sans-serif' font-weight='800' fill='%23171a16'%3EB%3C/text%3E%3C/svg%3E" />
+    <style>
+      :root {
+        --bg: #f4efe6;
+        --ink: #1d211c;
+        --muted: #6f756c;
+        --panel: #fffaf0;
+        --panel-2: #f8f1e4;
+        --dark: #171a16;
+        --line: rgba(29, 33, 28, 0.12);
+        --amber: #d79638;
+        --cyan: #5eb6ad;
+        --green: #6e9f57;
+        --red: #bd645d;
+        --shadow: 0 24px 80px rgba(33, 28, 19, 0.13);
+        --font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        font-family: var(--font);
+        background:
+          radial-gradient(circle at 15% 0%, rgba(94, 182, 173, .18), transparent 35rem),
+          radial-gradient(circle at 90% 5%, rgba(215, 150, 56, .18), transparent 32rem),
+          var(--bg);
+      }
+      button, input { font: inherit; }
+      button, a { -webkit-tap-highlight-color: transparent; }
+      button { cursor: pointer; }
+      .shell { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 100vh; }
+      .sidebar {
+        position: sticky; top: 0; height: 100vh; padding: 26px 22px;
+        color: #fffaf0; background: linear-gradient(180deg, var(--dark), #11130f);
+      }
+      .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 34px; text-decoration: none; color: inherit; }
+      .brand-mark { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 16px; background: linear-gradient(135deg, var(--amber), #f3c66b); color: #171a16; font-weight: 900; }
+      .brand-title { font-size: 17px; font-weight: 800; }
+      .brand-subtitle { margin-top: 2px; color: rgba(255, 250, 240, .58); font-size: 12px; }
+      .nav { display: grid; gap: 8px; }
+      .nav a {
+        display: flex; align-items: center; gap: 11px; width: 100%; padding: 12px 13px;
+        border: 1px solid transparent; border-radius: 16px; color: rgba(255, 250, 240, .72);
+        text-decoration: none; transition: .16s ease;
+      }
+      .nav a:hover, .nav a.active { color: #fffaf0; border-color: rgba(255,255,255,.12); background: rgba(255,255,255,.08); }
+      .nav-icon { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 10px; background: rgba(255,255,255,.08); color: var(--amber); font-size: 14px; }
+      .nav-label small { display: block; margin-top: 2px; color: rgba(255,255,255,.42); font-size: 10px; }
+      .sidebar-card { position: absolute; left: 22px; right: 22px; bottom: 24px; padding: 17px; border: 1px solid rgba(255,255,255,.12); border-radius: 20px; background: rgba(255,255,255,.07); }
+      .sidebar-card label { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 700; }
+      .sidebar-card input { width: 100%; padding: 9px 10px; border: 1px solid rgba(255,255,255,.13); border-radius: 11px; color: white; background: rgba(0,0,0,.2); outline: none; }
+      main { min-width: 0; padding: 34px; }
+      .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
+      .eyebrow { margin: 0 0 8px; color: #8b642f; font-size: 12px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+      h1 { margin: 0; max-width: 790px; font-size: clamp(32px, 4vw, 58px); line-height: 1.02; letter-spacing: -.055em; }
+      .page-copy { max-width: 680px; margin: 14px 0 0; color: var(--muted); line-height: 1.7; }
+      .status { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; padding: 10px 13px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,250,240,.7); font-size: 12px; }
+      .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 5px rgba(215,150,56,.12); }
+      .dot.ok { background: var(--green); box-shadow: 0 0 0 5px rgba(110,159,87,.12); }
+      .dot.bad { background: var(--red); box-shadow: 0 0 0 5px rgba(189,100,93,.12); }
+      .search-panel { padding: 20px; border: 1px solid var(--line); border-radius: 24px; background: rgba(255,250,240,.9); box-shadow: var(--shadow); }
+      .search-form { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; }
+      .search-form input[type="text"] { min-width: 0; padding: 16px 18px; border: 1px solid var(--line); border-radius: 16px; color: var(--ink); background: white; outline: none; }
+      .search-form input[type="text"]:focus { border-color: rgba(215,150,56,.8); box-shadow: 0 0 0 4px rgba(215,150,56,.12); }
+      .upload, .primary, .ghost { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border-radius: 15px; font-weight: 750; }
+      .upload, .ghost { padding: 12px 15px; border: 1px solid var(--line); color: var(--ink); background: transparent; }
+      .primary { padding: 12px 22px; border: 1px solid #171a16; color: #fffaf0; background: #171a16; }
+      .primary:disabled { opacity: .5; cursor: wait; }
+      .query-preview { display: grid; grid-template-columns: 52px minmax(0,1fr) auto; align-items: center; gap: 12px; margin-top: 12px; padding: 10px; border-radius: 15px; background: var(--panel-2); }
+      .query-preview[hidden] { display: none; }
+      .query-preview img { width: 52px; height: 52px; object-fit: cover; border-radius: 11px; }
+      .query-preview strong, .query-preview small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .query-preview small { margin-top: 3px; color: var(--muted); }
+      .examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+      .example { padding: 8px 11px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: transparent; font-size: 12px; }
+      .summary-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 25px 0 13px; }
+      .summary-row h2 { margin: 0; font-size: 20px; }
+      .summary-row p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+      .result-layout { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(330px, .85fr); align-items: start; gap: 18px; }
+      .result-list { display: grid; gap: 12px; }
+      .empty { padding: 42px 24px; border: 1px dashed rgba(29,33,28,.2); border-radius: 20px; color: var(--muted); background: rgba(255,250,240,.55); text-align: center; line-height: 1.7; }
+      .result-card { display: grid; grid-template-columns: 146px minmax(0,1fr); gap: 16px; padding: 14px; border: 1px solid var(--line); border-radius: 21px; background: rgba(255,250,240,.9); text-align: left; transition: .16s ease; }
+      .result-card:hover, .result-card.active { border-color: rgba(215,150,56,.65); transform: translateY(-1px); box-shadow: 0 14px 32px rgba(33,28,19,.09); }
+      .result-card.active { background: #fffaf0; box-shadow: inset 4px 0 0 var(--amber), 0 14px 32px rgba(33,28,19,.09); }
+      .thumb { position: relative; min-height: 112px; overflow: hidden; border-radius: 14px; color: rgba(255,255,255,.72); background: linear-gradient(135deg, #2c3029, #151712); }
+      .thumb img { width: 100%; height: 100%; min-height: 112px; object-fit: cover; display: block; }
+      .thumb-placeholder { position: absolute; inset: 0; display: grid; place-items: center; padding: 12px; font-size: 11px; text-align: center; }
+      .rank { position: absolute; top: 9px; left: 9px; z-index: 1; display: grid; width: 27px; height: 27px; place-items: center; border-radius: 9px; color: #171a16; background: rgba(255,250,240,.9); font-size: 11px; font-weight: 900; }
+      .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-bottom: 8px; }
+      .badge { padding: 5px 8px; border-radius: 999px; background: rgba(94,182,173,.13); color: #337d76; font-size: 10px; font-weight: 850; }
+      .badge.frame { color: #8a5d1e; background: rgba(215,150,56,.14); }
+      .time { color: var(--muted); font-size: 11px; }
+      .result-card h3 { margin: 0; font-size: 16px; line-height: 1.35; }
+      .result-card p { display: -webkit-box; overflow: hidden; margin: 8px 0 0; color: #52584f; font-size: 13px; line-height: 1.6; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+      .reason { margin-top: 9px; color: #8b642f; font-size: 11px; }
+      .inspector { position: sticky; top: 24px; overflow: hidden; border: 1px solid var(--line); border-radius: 24px; background: var(--panel); box-shadow: var(--shadow); }
+      .viewer { position: relative; min-height: 290px; display: grid; place-items: center; color: rgba(255,255,255,.72); background: #171a16; }
+      .viewer img { width: 100%; max-height: 430px; object-fit: contain; display: block; }
+      .viewer-copy { max-width: 260px; padding: 35px; text-align: center; line-height: 1.6; }
+      .inspector-body { padding: 20px; }
+      .inspector-body h2 { margin: 0; font-size: 20px; line-height: 1.3; }
+      .hit-copy { margin: 10px 0 0; color: #444a42; line-height: 1.7; }
+      .fact-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin: 16px 0; }
+      .fact { padding: 10px; border-radius: 12px; background: var(--panel-2); }
+      .fact small { display: block; color: var(--muted); font-size: 10px; }
+      .fact strong { display: block; margin-top: 4px; overflow-wrap: anywhere; font-size: 12px; }
+      .filmstrip { display: flex; gap: 7px; overflow-x: auto; padding: 2px 0 10px; }
+      .filmstrip button { flex: 0 0 72px; height: 54px; overflow: hidden; padding: 0; border: 2px solid transparent; border-radius: 10px; background: #20231e; }
+      .filmstrip button.active { border-color: var(--amber); }
+      .filmstrip img { width: 100%; height: 100%; object-fit: cover; }
+      audio { width: 100%; margin: 8px 0 12px; }
+      details { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 14px; }
+      summary { cursor: pointer; color: #7d5825; font-size: 13px; font-weight: 800; }
+      .episode-copy, .transcript { max-height: 230px; overflow: auto; margin: 12px 0 0; color: #555b52; white-space: pre-wrap; font-size: 12px; line-height: 1.7; }
+      .error-note { color: var(--red) !important; }
+      @media (max-width: 1040px) {
+        .shell { grid-template-columns: 220px minmax(0,1fr); }
+        .result-layout { grid-template-columns: 1fr; }
+        .inspector { position: relative; top: auto; }
+      }
+      @media (max-width: 760px) {
+        .shell { display: block; }
+        .sidebar { position: relative; height: auto; padding: 15px; }
+        .brand { margin-bottom: 13px; }
+        .nav { display: flex; overflow-x: auto; padding-bottom: 2px; }
+        .nav a { width: auto; flex: 0 0 auto; padding: 9px 11px; }
+        .nav-label small, .sidebar-card { display: none; }
+        main { padding: 22px 15px 40px; }
+        .page-head { align-items: flex-start; flex-direction: column; }
+        .search-form { grid-template-columns: 1fr 1fr; }
+        .search-form input[type="text"] { grid-column: 1 / -1; }
+        .primary, .upload { width: 100%; }
+        .result-card { grid-template-columns: 105px minmax(0,1fr); gap: 12px; padding: 11px; }
+        .thumb, .thumb img { min-height: 106px; }
+        .fact-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+    <link rel="stylesheet" href="/assets/beaver-memory.css" />
+    <script defer src="/assets/beaver-memory.js"></script>
+  </head>
+  <body class="bm-app">
+    <div class="shell bm-shell">
+      <aside class="sidebar bm-sidebar">
+        <a class="brand bm-brand" href="/memory" aria-label="Beaver Memory 记忆概览">
+          <div class="brand-mark bm-brand-mark">B</div>
+          <div class="bm-brand-copy"><div class="brand-title">Beaver Memory</div><div class="brand-subtitle">Memory Console</div></div>
+        </a>
+        <nav class="nav bm-nav" aria-label="主导航">
+          <a href="/memory"><span class="nav-icon">◎</span><span class="nav-label">记忆卡片<small>EverOS Episodes</small></span></a>
+          <a href="/memory/capsules"><span class="nav-icon">◫</span><span class="nav-label">多模态 Capsule<small>Technical Windows</small></span></a>
+          <a class="active" href="/memory/search" aria-current="page"><span class="nav-icon">⌕</span><span class="nav-label">记忆搜索<small>EverOS Episodes</small></span></a>
+          <a href="/daily"><span class="nav-icon">日</span><span class="nav-label">每日回顾<small>Daily Review</small></span></a>
+          <a href="/people"><span class="nav-icon">人</span><span class="nav-label">人物<small>身份候选与档案</small></span></a>
+          <a href="/objects/search"><span class="nav-icon">□</span><span class="nav-label">物品搜索<small>Function Tool</small></span></a>
+          <a href="/commitments"><span class="nav-icon">◇</span><span class="nav-label">长期待办<small>Todo Ledger</small></span></a>
+          <a href="/memory/corrections"><span class="nav-icon">✓</span><span class="nav-label">修正历史<small>Versioned Audit</small></span></a>
+          <a href="/integrations"><span class="nav-icon">↗</span><span class="nav-label">采集接入<small>Device API</small></span></a>
+        </nav>
+        <div class="sidebar-card">
+          <label for="tokenInput">本地调试令牌</label>
+          <input id="tokenInput" data-bm-token aria-label="API token" autocomplete="off" />
+        </div>
+      </aside>
+
+      <main>
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Memory Retrieval / EverOS First</p>
+            <h1>先找到完整记忆，<br />再下钻原始证据。</h1>
+            <p class="page-copy">自然语言先召回 EverOS Episode，再在每个 Episode 内定位最相关的具体 Capsule。每个 Episode 最多返回一个片段，并可直接打开原始图片与音频；找物品请使用独立的物品搜索。</p>
+          </div>
+          <div class="status"><span class="dot" id="healthDot"></span><span id="healthText">正在检查检索服务</span></div>
+        </header>
+
+        <section class="search-panel" aria-label="记忆搜索">
+          <form class="search-form" id="searchForm">
+            <input id="searchInput" type="text" autocomplete="off" placeholder="例如：谁提到咖啡液？我当时在看什么？" />
+            <label class="upload" for="searchImageInput">＋ 添加图片<input id="searchImageInput" type="file" accept="image/jpeg,image/png,image/webp" hidden /></label>
+            <button class="primary" id="searchSubmit" type="submit">搜索记忆</button>
+          </form>
+          <div class="query-preview" id="queryPreview" hidden>
+            <img id="queryThumb" alt="查询图片预览" />
+            <div><strong id="queryName">查询图片</strong><small id="queryMode">图片搜索 · 图片仅用于本次查询</small></div>
+            <button class="ghost" id="removeImage" type="button">移除</button>
+          </div>
+          <div class="examples" aria-label="搜索示例">
+            <button class="example" type="button">谁提到了咖啡液？</button>
+            <button class="example" type="button">我在厨房做了什么？</button>
+            <button class="example" type="button">我们聊过哪些产品问题？</button>
+          </div>
+        </section>
+
+        <div class="summary-row">
+          <div><h2>命中片段</h2><p id="searchSummary">输入问题后，这里会显示每个相关 Episode 中最匹配的 Capsule。</p></div>
+          <button class="ghost" id="clearSearch" type="button">清空</button>
+        </div>
+
+        <section class="result-layout">
+          <div class="result-list" id="resultList"><div class="empty">还没有搜索结果。你可以直接用一句自然语言开始。</div></div>
+          <aside class="inspector" id="inspector" aria-live="polite">
+            <div class="viewer" id="mainViewer"><div class="viewer-copy">选择左侧 Capsule 后，这里会展示该片段的原始证据。</div></div>
+            <div class="inspector-body" id="inspectorBody"><h2>Capsule 详情</h2><p class="hit-copy">EverOS 负责召回 Episode，Capsule 负责片段定位。</p></div>
+          </aside>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const state = {
+        token: localStorage.getItem("beaver-memory.token") || localStorage.getItem("everlens.token") || "dev-token",
+        image: null,
+        previewUrl: null,
+        results: [],
+        activeIndex: -1,
+        objectUrls: [],
+      };
+      const $ = (id) => document.getElementById(id);
+      $("tokenInput").value = state.token;
+
+      function escapeHtml(value) {
+        return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+      }
+      function escapeAttr(value) { return escapeHtml(value).replaceAll("`", "&#096;"); }
+      function authHeaders(extra = {}) { return { authorization: `Bearer ${state.token}`, ...extra }; }
+      function mediaEndpoint(uri) { return `/v1/memory/evidence-file?uri=${encodeURIComponent(uri)}`; }
+      function releaseObjectUrls() { state.objectUrls.forEach((url) => URL.revokeObjectURL(url)); state.objectUrls = []; }
+
+      async function fetchJson(url, options = {}) {
+        const response = await fetch(url, options);
+        if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+        return response.json();
+      }
+      async function fetchMedia(uri) {
+        const response = await fetch(mediaEndpoint(uri), { headers: authHeaders() });
+        if (!response.ok) throw new Error(`证据读取失败 ${response.status}`);
+        const url = URL.createObjectURL(await response.blob());
+        state.objectUrls.push(url);
+        return url;
+      }
+      function setQueryImage(file) {
+        if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+        state.previewUrl = null;
+        state.image = file || null;
+        if (!file) {
+          $("searchImageInput").value = "";
+          $("queryPreview").hidden = true;
+          return;
+        }
+        state.previewUrl = URL.createObjectURL(file);
+        $("queryThumb").src = state.previewUrl;
+        $("queryName").textContent = file.name || "查询图片";
+        updateQueryMode();
+        $("queryPreview").hidden = false;
+      }
+      function updateQueryMode() {
+        if (!state.image) return;
+        $("queryMode").textContent = `${$("searchInput").value.trim() ? "图文" : "图片"}搜索 · 图片仅用于本次查询`;
+      }
+
+      async function search() {
+        const query = $("searchInput").value.trim();
+        if (!query && !state.image) return;
+        const button = $("searchSubmit");
+        button.disabled = true;
+        button.textContent = "搜索中…";
+        $("searchSummary").textContent = state.image ? "正在进行图片证据检索…" : "正在召回 Episode 并定位具体 Capsule…";
+        try {
+          let payload;
+          if (state.image) {
+            const body = new FormData();
+            body.append("image", state.image, state.image.name || "query.jpg");
+            body.append("query", query);
+            body.append("top_k", "10");
+            payload = await fetchJson("/v1/memory/search/media", { method: "POST", headers: authHeaders(), body });
+          } else {
+            payload = await fetchJson("/v1/memory/search", {
+              method: "POST",
+              headers: authHeaders({ "content-type": "application/json" }),
+              body: JSON.stringify({ query, query_type: "auto", top_k: 10 }),
+            });
+          }
+          if (payload.answer_status === "error") throw new Error(payload.retrieval?.degraded_reasons?.[0] || "检索暂时不可用");
+          state.results = Array.isArray(payload.results) ? payload.results : [];
+          state.activeIndex = state.results.length ? 0 : -1;
+          $("searchSummary").textContent = state.results.length
+            ? `找到 ${state.results.length} 条相关记忆${state.image ? "，图片结果已定位证据帧" : "，每个 Episode 仅保留一个最相关 Capsule"}${payload.answer_status === "degraded" ? " · 部分能力降级" : ""}`
+            : "没有找到可靠记忆；系统没有生成猜测答案。";
+          renderResults();
+        } catch (error) {
+          $("searchSummary").textContent = `本次搜索失败：${error.message} · 已保留上次成功结果`;
+          $("searchSummary").classList.add("error-note");
+          if (!state.results.length) $("resultList").innerHTML = `<div class="empty">搜索暂时不可用，没有生成猜测结果。</div>`;
+        } finally {
+          button.disabled = false;
+          button.textContent = "搜索记忆";
+        }
+      }
+
+      function renderResults() {
+        releaseObjectUrls();
+        $("searchSummary").classList.remove("error-note");
+        if (!state.results.length) {
+          $("resultList").innerHTML = `<div class="empty">没有找到可靠记忆。</div>`;
+          renderInspector(null);
+          return;
+        }
+        $("resultList").innerHTML = state.results.map((item, index) => {
+          const hit = item.hit || {};
+          const primary = hit.primary_evidence_ref || item.evidence_refs?.[0] || "";
+          const exact = hit.precision === "exact_frame";
+          const fragment = Boolean(hit.window_id);
+          const fragmentText = item.content || hit.snippet || item.summary || "暂无片段描述";
+          const parentTitle = item.parent_episode?.title || item.title || "EverOS Episode";
+          return `<button class="result-card ${index === state.activeIndex ? "active" : ""}" type="button" data-index="${index}">
+            <span class="thumb"><span class="rank">${index + 1}</span><span class="thumb-placeholder">${exact ? "正在读取命中帧" : "窗口代表帧"}</span>${primary ? `<img data-media-uri="${escapeAttr(primary)}" alt="片段证据预览" hidden />` : ""}</span>
+            <span>
+              <span class="meta"><span class="badge ${exact ? "frame" : ""}">${exact ? "图片命中帧" : fragment ? "Capsule 片段" : "EverOS Episode"}</span><span class="time">${escapeHtml(hit.display_time || item.display_time || "时间未知")}</span></span>
+              <h3>${escapeHtml(fragment ? fragmentText : parentTitle)}</h3>
+              <p>${escapeHtml(fragment ? `所属 Episode：${parentTitle}` : fragmentText)}</p>
+              <span class="reason">${escapeHtml(item.match_reason || "语义相关")}</span>
+            </span>
+          </button>`;
+        }).join("");
+        hydrateImages($("resultList"));
+        renderInspector(state.results[state.activeIndex]);
+      }
+
+      function correctionContextForResult(item) {
+        const hit = item?.hit || {};
+        const fragment = Boolean(hit.window_id);
+        const capsuleId = item?.capsule_ids?.[0] || hit.capsule_id || hit.window_id;
+        const episodeId = item?.episode_id || item?.parent_episode?.episode_id || item?.source?.id;
+        const targetId = fragment ? capsuleId : episodeId;
+        const evidenceRefs = [
+          ...(Array.isArray(item?.evidence_refs) ? item.evidence_refs : []),
+          hit.primary_evidence_ref,
+          ...(Array.isArray(hit.image_refs) ? hit.image_refs : []),
+          ...(Array.isArray(hit.audio_refs) ? hit.audio_refs : []),
+          fragment && targetId ? `capsule://${targetId}` : "",
+          !fragment && targetId ? `everos://episode/${targetId}` : "",
+        ].filter(Boolean).filter((value, index, values) => values.indexOf(value) === index);
+        return {
+          targetType: fragment ? "capsule" : "episode",
+          targetId,
+          fieldPath: fragment ? "text" : "content",
+          originalValue: item?.content || item?.summary || hit.snippet || "",
+          evidenceRefs,
+          title: fragment ? "修正这段记忆" : "修正这条完整记忆",
+        };
+      }
+
+      function correctActiveResult() {
+        const item = state.results[state.activeIndex];
+        if (!item) return;
+        const context = correctionContextForResult(item);
+        BeaverMemoryUI.openCorrection({
+          ...context,
+          onApplied: async (_payload, value) => {
+            item.content = value;
+            item.summary = value;
+            if (item.hit) item.hit.snippet = value;
+            item.provenance = "user_corrected";
+            renderResults();
+          },
+        });
+      }
+
+      async function hydrateImages(root) {
+        for (const image of root.querySelectorAll("img[data-media-uri]")) {
+          try {
+            image.src = await fetchMedia(image.dataset.mediaUri);
+            image.hidden = false;
+            image.previousElementSibling.hidden = true;
+          } catch (_) { image.remove(); }
+        }
+      }
+
+      function renderInspector(item) {
+        if (!item) {
+          $("mainViewer").innerHTML = `<div class="viewer-copy">选择一条 Capsule 后，这里会展示关联证据。</div>`;
+          $("inspectorBody").innerHTML = `<h2>Capsule 详情</h2><p class="hit-copy">等待搜索结果。</p>`;
+          return;
+        }
+        const hit = item.hit || {};
+        const images = Array.isArray(hit.image_refs) ? hit.image_refs : [];
+        const audio = Array.isArray(hit.audio_refs) ? hit.audio_refs[0] : "";
+        const primary = hit.primary_evidence_ref || images[0] || "";
+        $("mainViewer").innerHTML = primary
+          ? `<div class="viewer-copy">正在读取命中证据…</div>`
+          : `<div class="viewer-copy">正在读取该 Episode 的关联 Capsule…</div>`;
+        const parent = item.parent_episode || {};
+        $("inspectorBody").innerHTML = `
+          <div class="meta"><span class="badge ${hit.precision === "exact_frame" ? "frame" : ""}">${hit.precision === "exact_frame" ? "具体证据帧" : hit.window_id ? "技术窗口" : "Episode"}</span><span class="time">${escapeHtml(hit.display_time || item.display_time || "时间未知")}</span></div>
+          <h2>${escapeHtml(item.title || hit.scene || hit.activity || "命中记忆")}</h2>
+          <p class="hit-copy">${escapeHtml(item.content || item.summary || hit.snippet || "暂无记忆描述")}</p>
+          <div class="fact-grid">
+            <div class="fact"><small>定位精度</small><strong>${hit.precision === "exact_frame" ? "具体原始证据帧" : hit.window_id ? "30 秒技术窗口" : "Episode 级"}</strong></div>
+            <div class="fact"><small>Window ID</small><strong>${escapeHtml(hit.window_id || "尚未关联")}</strong></div>
+            <div class="fact"><small>场景</small><strong>${escapeHtml(hit.scene || "—")}</strong></div>
+            <div class="fact"><small>活动</small><strong>${escapeHtml(hit.activity || "—")}</strong></div>
+          </div>
+          ${images.length ? `<h3>前后证据帧</h3><div class="filmstrip">${images.map((uri, i) => `<button type="button" class="${uri === primary || (!primary && i === 0) ? "active" : ""}" data-frame-uri="${escapeAttr(uri)}"><img data-media-uri="${escapeAttr(uri)}" alt="相邻证据帧 ${i + 1}" hidden /></button>`).join("")}</div>` : ""}
+          ${audio ? `<h3>原始窗口音频</h3><audio id="hitAudio" controls></audio>` : ""}
+          ${hit.transcript_excerpt ? `<details><summary>查看该窗口 ASR</summary><div class="transcript">${escapeHtml(hit.transcript_excerpt)}</div></details>` : ""}
+          <div class="actions"><button class="ghost" type="button" data-action="correct-result">${hit.window_id ? "修正这段" : "修正这条记忆"}</button></div>
+          <details open><summary>完整 EverOS Episode</summary><div class="episode-copy"><strong>${escapeHtml(parent.title || item.title || "")}</strong>\n\n${escapeHtml(parent.content || item.content || "暂无完整正文")}</div></details>
+          <div id="episodeEvidence"><p class="hit-copy">正在读取关联 Capsule…</p></div>`;
+        if (primary) showMainMedia(primary);
+        hydrateImages($("inspectorBody"));
+        if (audio) loadAudio(audio);
+        if (!hit.window_id) loadEpisodeEvidence(item);
+      }
+
+      async function loadEpisodeEvidence(item) {
+        const container = $("episodeEvidence");
+        const sessionId = item.source?.session_id;
+        if (!container || !sessionId) {
+          if (container) container.innerHTML = `<h3>关联 Capsule</h3><p class="hit-copy">该 Episode 尚未带回 boot session 引用。</p>`;
+          $("mainViewer").innerHTML = `<div class="viewer-copy">该 Episode 尚未关联桥接层原始证据。</div>`;
+          return;
+        }
+        try {
+          const payload = await fetchJson(`/v1/memory/evidence?session_id=${encodeURIComponent(sessionId)}&limit=100`, { headers: authHeaders() });
+          const capsules = Array.isArray(payload.capsules) ? payload.capsules : [];
+          container.innerHTML = `<h3>关联 Capsule（${capsules.length}）</h3>${capsules.map((capsule, index) => {
+            const scene = typeof capsule.scene === "object" ? capsule.scene?.value : capsule.scene;
+            const activity = typeof capsule.activity === "object" ? capsule.activity?.value : capsule.activity;
+            return `<details ${index === 0 ? "open" : ""}><summary>${escapeHtml(capsule.text || capsule.window_id || "Capsule")}</summary><div class="episode-copy">Window：${escapeHtml(capsule.window_id || "—")}\n场景：${escapeHtml(scene || "—")}\n活动：${escapeHtml(activity || "—")}</div></details>`;
+          }).join("") || `<p class="hit-copy">没有关联 Capsule。</p>`}`;
+          const evidence = capsules.flatMap((capsule) => capsule.evidence || []);
+          const firstEvidence = evidence.find((row) => row.available && row.kind === "image") || evidence.find((row) => row.available);
+          if (firstEvidence?.uri) showMainMedia(firstEvidence.uri);
+          else $("mainViewer").innerHTML = `<div class="viewer-copy">关联 Capsule 暂无可预览图片。</div>`;
+        } catch (error) {
+          container.innerHTML = `<h3>关联 Capsule</h3><p class="hit-copy">证据链读取失败：${escapeHtml(error.message)}</p>`;
+          $("mainViewer").innerHTML = `<div class="viewer-copy">证据链暂时不可用。</div>`;
+        }
+      }
+
+      async function showMainMedia(uri) {
+        try {
+          const url = await fetchMedia(uri);
+          $("mainViewer").innerHTML = `<img src="${escapeAttr(url)}" alt="命中证据帧" />`;
+        } catch (error) {
+          $("mainViewer").innerHTML = `<div class="viewer-copy">${escapeHtml(error.message)}</div>`;
+        }
+      }
+      async function loadAudio(uri) {
+        const audio = $("hitAudio");
+        if (!audio) return;
+        try { audio.src = await fetchMedia(uri); } catch (_) { audio.replaceWith(document.createTextNode("音频证据暂不可读")); }
+      }
+      async function checkHealth() {
+        try {
+          const response = await fetch("/healthz");
+          if (!response.ok) throw new Error();
+          $("healthDot").className = "dot ok";
+          $("healthText").textContent = "检索服务在线";
+        } catch (_) {
+          $("healthDot").className = "dot bad";
+          $("healthText").textContent = "检索服务离线";
+        }
+      }
+
+      $("searchForm").addEventListener("submit", (event) => { event.preventDefault(); search(); });
+      $("searchInput").addEventListener("input", updateQueryMode);
+      $("searchImageInput").addEventListener("change", (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > 10 * 1024 * 1024) {
+          $("searchSummary").textContent = "只支持 10 MB 以内的 JPEG、PNG 或 WebP 图片。";
+          setQueryImage(null);
+          return;
+        }
+        setQueryImage(file);
+      });
+      $("removeImage").addEventListener("click", () => setQueryImage(null));
+      $("clearSearch").addEventListener("click", () => {
+        state.results = []; state.activeIndex = -1; $("searchInput").value = ""; setQueryImage(null);
+        $("searchSummary").textContent = "输入问题后，这里会显示每个相关 Episode 中最匹配的 Capsule。";
+        renderResults();
+      });
+      $("tokenInput").addEventListener("change", (event) => {
+        state.token = event.target.value.trim() || "dev-token";
+        localStorage.setItem("beaver-memory.token", state.token);
+      });
+      document.querySelectorAll(".example").forEach((button) => button.addEventListener("click", () => {
+        $("searchInput").value = button.textContent.trim(); updateQueryMode(); search();
+      }));
+      $("resultList").addEventListener("click", (event) => {
+        const card = event.target.closest(".result-card");
+        if (!card) return;
+        state.activeIndex = Number(card.dataset.index);
+        renderResults();
+      });
+      $("inspectorBody").addEventListener("click", (event) => {
+        const correction = event.target.closest('[data-action="correct-result"]');
+        if (correction) {
+          correctActiveResult();
+          return;
+        }
+        const frame = event.target.closest("[data-frame-uri]");
+        if (!frame) return;
+        $("inspectorBody").querySelectorAll("[data-frame-uri]").forEach((node) => node.classList.toggle("active", node === frame));
+        showMainMedia(frame.dataset.frameUri);
+      });
+      checkHealth();
+    </script>
+  </body>
+</html>

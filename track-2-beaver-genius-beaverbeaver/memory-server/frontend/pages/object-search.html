@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>物品搜索 · Beaver Memory</title>
+    <link rel="icon" href="data:," />
+    <style>
+      :root { --paper:#f4f0e8; --card:#fffdf8; --ink:#17231d; --muted:#68736c; --line:#dcd8cf; --green:#315b43; --soft:#e8efe6; --amber:#9a6824; --shadow:0 18px 55px rgba(35,47,39,.08); }
+      * { box-sizing:border-box; }
+      body { margin:0; color:var(--ink); background:var(--paper); font:15px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      button,input { font:inherit; }
+      .shell { min-height:100vh; display:grid; grid-template-columns:250px minmax(0,1fr); }
+      .sidebar { position:sticky; top:0; height:100vh; padding:28px 18px; color:#edf2ed; background:#17231d; }
+      .brand { display:flex; gap:12px; align-items:center; color:inherit; text-decoration:none; margin:0 10px 32px; }
+      .brand-copy { display:grid; }
+      .brand-mark { width:38px; height:38px; display:grid; place-items:center; border-radius:12px; color:#17231d; background:#d9e5d6; font-weight:800; }
+      .brand-title { font-size:18px; font-weight:760; letter-spacing:-.02em; }
+      .brand-subtitle { color:#aebbb2; font-size:11px; text-transform:uppercase; letter-spacing:.13em; }
+      .nav { display:grid; gap:7px; }
+      .nav a { display:flex; gap:12px; align-items:center; padding:11px 12px; border-radius:12px; color:#bdc9c0; text-decoration:none; }
+      .nav a:hover,.nav a.active { color:white; background:#284034; }
+      .nav-icon { width:25px; height:25px; display:grid; place-items:center; border:1px solid #516258; border-radius:8px; }
+      .nav-label { display:grid; font-weight:650; }
+      .nav-label small { font-size:10px; color:#8fa095; font-weight:500; }
+      .token-box { position:absolute; left:28px; right:28px; bottom:28px; }
+      .token-box label { display:block; color:#8fa095; font-size:11px; margin-bottom:6px; }
+      .token-box input { width:100%; border:1px solid #405249; border-radius:9px; background:#203028; color:white; padding:8px 10px; }
+      main { padding:48px clamp(22px,5vw,78px) 70px; max-width:1450px; }
+      .eyebrow { margin:0 0 8px; color:var(--green); font-size:12px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
+      h1 { margin:0; max-width:760px; font:700 clamp(34px,4.2vw,58px)/1.08 Georgia, "Noto Serif SC", serif; letter-spacing:-.035em; }
+      .lead { max-width:760px; color:var(--muted); font-size:16px; }
+      .search { margin:32px 0 20px; display:grid; grid-template-columns:minmax(240px,1fr) auto; gap:10px; padding:12px; border:1px solid var(--line); border-radius:18px; background:var(--card); box-shadow:var(--shadow); }
+      .search input { min-width:0; border:0; outline:0; background:transparent; padding:11px 12px; font-size:17px; }
+      .primary { border:0; border-radius:12px; padding:11px 22px; color:white; background:var(--green); font-weight:750; cursor:pointer; }
+      .primary:disabled { opacity:.58; cursor:wait; }
+      .examples { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:28px; }
+      .example { border:1px solid var(--line); border-radius:99px; background:transparent; color:var(--muted); padding:7px 12px; cursor:pointer; }
+      .status-line { min-height:24px; color:var(--muted); }
+      .status-line.error { color:#9f3b2e; }
+      .answer { display:none; padding:24px; margin:18px 0; border:1px solid #cdd8ce; border-radius:20px; background:linear-gradient(135deg,#f8fbf5,#eef5eb); }
+      .answer.show { display:block; }
+      .answer-top { display:flex; justify-content:space-between; gap:14px; align-items:flex-start; }
+      .badge { display:inline-flex; border-radius:99px; padding:5px 9px; background:#dae8d8; color:var(--green); font-size:11px; font-weight:800; }
+      .badge.warn { color:var(--amber); background:#f4e6cd; }
+      .answer h2 { margin:10px 0 6px; font:700 25px/1.25 Georgia, serif; }
+      .answer p { margin:0; color:#3f4d44; font-size:17px; }
+      .answer-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-top:20px; }
+      .fact { min-width:0; padding:11px; border:1px solid rgba(49,91,67,.13); border-radius:11px; background:rgba(255,255,255,.55); }
+      .fact small { display:block; color:var(--muted); }
+      .fact strong { display:block; margin-top:3px; overflow-wrap:anywhere; }
+      .content-grid { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(280px,.75fr); gap:18px; margin-top:18px; }
+      .panel { border:1px solid var(--line); border-radius:18px; background:var(--card); overflow:hidden; }
+      .panel-head { padding:17px 18px 12px; border-bottom:1px solid var(--line); }
+      .panel-head h2 { margin:0; font-size:18px; }
+      .panel-head p { margin:3px 0 0; color:var(--muted); font-size:13px; }
+      .candidate-list { display:grid; }
+      .candidate { border:0; border-bottom:1px solid var(--line); background:white; padding:15px 18px; text-align:left; cursor:pointer; }
+      .candidate:last-child { border-bottom:0; }
+      .candidate:hover,.candidate.active { background:#f1f5ef; }
+      .candidate-top { display:flex; justify-content:space-between; gap:12px; }
+      .candidate h3 { margin:0; font-size:16px; }
+      .candidate p { margin:5px 0 0; color:var(--muted); }
+      .candidate small { color:#7c877f; }
+      .viewer { min-height:260px; display:grid; place-items:center; background:#1e2923; color:#b9c5bd; }
+      .viewer img { width:100%; max-height:430px; object-fit:contain; }
+      .detail { padding:17px 18px; }
+      .detail h3 { margin:0 0 6px; }
+      .detail p { margin:5px 0; color:var(--muted); overflow-wrap:anywhere; }
+      .degraded { margin-top:12px; padding:10px 12px; border-radius:10px; background:#f4e6cd; color:#79501a; font-size:12px; }
+      .empty { padding:30px; color:var(--muted); text-align:center; }
+      @media (max-width:900px) { .shell{display:block}.sidebar{position:relative;height:auto;padding:15px}.brand{margin-bottom:12px}.nav{display:flex;overflow-x:auto}.nav a{flex:0 0 auto}.nav-label small,.token-box{display:none}main{padding:25px 15px 45px}.content-grid{grid-template-columns:1fr}.answer-grid{grid-template-columns:1fr 1fr} }
+    </style>
+    <link rel="stylesheet" href="/assets/beaver-memory.css" />
+    <script defer src="/assets/beaver-memory.js"></script>
+  </head>
+  <body class="bm-app">
+    <div class="shell bm-shell">
+      <aside class="sidebar bm-sidebar">
+        <a class="brand bm-brand" href="/memory"><span class="brand-mark bm-brand-mark">B</span><span class="brand-copy bm-brand-copy"><span class="brand-title">Beaver Memory</span><span class="brand-subtitle">Memory Console</span></span></a>
+        <nav class="nav bm-nav">
+          <a href="/memory"><span class="nav-icon">◎</span><span class="nav-label">记忆卡片<small>EverOS Episodes</small></span></a>
+          <a href="/memory/capsules"><span class="nav-icon">◫</span><span class="nav-label">多模态 Capsule<small>Technical Windows</small></span></a>
+          <a href="/memory/search"><span class="nav-icon">⌕</span><span class="nav-label">记忆搜索<small>EverOS Episodes</small></span></a>
+          <a href="/daily"><span class="nav-icon">日</span><span class="nav-label">每日回顾<small>Daily Review</small></span></a>
+          <a href="/people"><span class="nav-icon">人</span><span class="nav-label">人物<small>候选与档案</small></span></a>
+          <a class="active" href="/objects/search" aria-current="page"><span class="nav-icon">□</span><span class="nav-label">物品搜索<small>Function Tool</small></span></a>
+          <a href="/commitments"><span class="nav-icon">◇</span><span class="nav-label">长期待办<small>Todo Ledger</small></span></a>
+          <a href="/memory/corrections"><span class="nav-icon">✓</span><span class="nav-label">修正历史<small>Versioned Audit</small></span></a>
+          <a href="/integrations"><span class="nav-icon">↗</span><span class="nav-label">采集接入<small>Device API</small></span></a>
+        </nav>
+        <div class="token-box"><label for="tokenInput">本地调试令牌</label><input id="tokenInput" data-bm-token autocomplete="off" /></div>
+      </aside>
+      <main>
+        <p class="eyebrow">Object Memory / Grounded Tool</p>
+        <h1>问物品，回答会落到具体观察和 Capsule。</h1>
+        <p class="lead">系统只检索采集时已经保存的物品信息。LLM 负责理解你的问法和选择候选；位置、时间、证据与 Capsule 引用由后端核对，不会在搜索时重新看图猜答案。</p>
+        <form class="search" id="searchForm">
+          <input id="question" autocomplete="off" placeholder="例如：我最后在哪里看到黑色眼镜盒？" />
+          <button class="primary" id="submit" type="submit">搜索物品</button>
+        </form>
+        <div class="examples">
+          <button class="example" type="button">我最后在哪里看到钥匙？</button>
+          <button class="example" type="button">黑色眼镜盒出现在哪个位置？</button>
+          <button class="example" type="button">把我看到钱包的候选记录找出来</button>
+        </div>
+        <div class="status-line" id="status">等待查询。</div>
+        <section class="answer" id="answer"></section>
+        <div class="content-grid">
+          <section class="panel"><div class="panel-head"><h2>候选 Capsule</h2><p>来自预先保存的物品观察，按相关性排列。</p></div><div class="candidate-list" id="candidates"><div class="empty">查询后显示候选。</div></div></section>
+          <aside class="panel"><div class="viewer" id="viewer">选择候选后预览原始证据</div><div class="detail" id="detail"><h3>证据详情</h3><p>Observation、Window 和 Capsule 来源会显示在这里。</p></div></aside>
+        </div>
+      </main>
+    </div>
+    <script>
+      const state={token:localStorage.getItem("everlens.token")||"dev-token",payload:null,active:-1,objectUrl:null};
+      const $=id=>document.getElementById(id);
+      $("tokenInput").value=state.token;
+      const esc=value=>String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+      const auth=extra=>({authorization:`Bearer ${state.token}`,...(extra||{})});
+      async function media(uri){
+        const response=await fetch(`/v1/memory/evidence-file?uri=${encodeURIComponent(uri)}`,{headers:auth()});
+        if(!response.ok)throw new Error(`证据读取失败 ${response.status}`);
+        if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);
+        state.objectUrl=URL.createObjectURL(await response.blob()); return state.objectUrl;
+      }
+      async function search(){
+        const question=$("question").value.trim(); if(!question)return;
+        $("submit").disabled=true; $("submit").textContent="判断中…"; $("status").className="status-line"; $("status").textContent="正在解析问题、召回已保存物品观察并核对候选…";
+        try{
+          const response=await fetch("/v1/objects/search",{method:"POST",headers:auth({"content-type":"application/json"}),body:JSON.stringify({question,top_k:8})});
+          if(!response.ok)throw new Error(`${response.status} ${response.statusText}`);
+          state.payload=await response.json(); state.active=state.payload.selected_observation?Math.max(0,(state.payload.candidate_capsules||[]).findIndex(x=>x.observation_id===state.payload.selected_observation.observation_id)):-1;
+          render();
+        }catch(error){$("status").className="status-line error";$("status").textContent=`查询失败：${error.message}。已保留上次成功结果。`;}
+        finally{$("submit").disabled=false;$("submit").textContent="搜索物品";}
+      }
+      function render(){
+        const p=state.payload||{}; const selected=p.selected_observation; const degraded=p.retrieval?.degraded;
+        $("status").textContent=selected?`已从 ${(p.candidate_capsules||[]).length} 条候选中完成判断。`:(p.answer||"没有结果。");
+        $("answer").className="answer show";
+        $("answer").innerHTML=`<div class="answer-top"><div><span class="badge ${degraded?'warn':''}">${degraded?'降级但有据':selected?'已核对来源':'没有可靠候选'}</span><h2>${esc(p.answer||"暂无可靠答案")}</h2><p>${selected?"答案直接引用已保存的物品观察，不是查询时新生成的位置。":"系统没有用猜测填补空缺。"}</p></div></div>${selected?`<div class="answer-grid"><div class="fact"><small>物品</small><strong>${esc(selected.object_label_raw||selected.object_label||"—")}</strong></div><div class="fact"><small>位置</small><strong>${esc(selected.location_hint||"未可靠描述")}</strong></div><div class="fact"><small>北京时间</small><strong>${esc(selected.display_time||"—")}</strong></div><div class="fact"><small>置信度</small><strong>${esc(selected.semantic_confidence??"—")}</strong></div></div>`:""}${degraded?`<div class="degraded">降级原因：${esc((p.retrieval.degraded_reasons||[]).join("；"))}</div>`:""}`;
+        const rows=selected?(p.candidate_capsules||[]):[];
+        $("candidates").innerHTML=rows.length?rows.map((x,i)=>`<button class="candidate ${i===state.active?'active':''}" type="button" data-index="${i}"><div class="candidate-top"><h3>${esc(x.object_label_raw||x.object_label||"物品观察")}</h3><small>${esc(x.display_time||"时间未知")}</small></div><p>${esc(x.location_hint||x.visible_description||"没有位置描述")}</p><small>Capsule ${esc(x.capsule_id||"未关联")} · score ${Number(x.retrieval_score||0).toFixed(3)}</small></button>`).join(""):`<div class="empty">没有已保存的候选观察。</div>`;
+        showCandidate(rows[state.active]||selected||null);
+      }
+      async function showCandidate(item){
+        if(!item){$("viewer").textContent="没有可预览的证据";$("detail").innerHTML="<h3>证据详情</h3><p>暂无。</p>";return;}
+        const uri=(item.evidence_uris||[])[0]||item.image_uri;
+        $("viewer").textContent=uri?"正在读取原始证据…":"该观察没有可用图片";
+        if(uri){try{$("viewer").innerHTML=`<img src="${esc(await media(uri))}" alt="物品原始证据" />`;}catch(error){$("viewer").textContent=error.message;}}
+        $("detail").innerHTML=`<h3>${esc(item.object_label_raw||item.object_label||"物品观察")}</h3><p>Observation：${esc(item.observation_id||item.id||"—")}</p><p>Window：${esc(item.window_id||"—")}</p><p>Capsule：${esc(item.capsule_id||item.source_capsule_id||"—")}</p><p>关系：${esc(item.relation||"—")} · 实例歧义：${item.instance_ambiguity?"是":"否"}</p>`;
+      }
+      $("searchForm").addEventListener("submit",event=>{event.preventDefault();search();});
+      $("candidates").addEventListener("click",event=>{const row=event.target.closest("[data-index]");if(!row)return;state.active=Number(row.dataset.index);render();});
+      $("tokenInput").addEventListener("change",event=>{state.token=event.target.value.trim()||"dev-token";localStorage.setItem("everlens.token",state.token);});
+      document.querySelectorAll(".example").forEach(button=>button.addEventListener("click",()=>{$("question").value=button.textContent.trim();search();}));
+      document.querySelector(".nav a.active")?.scrollIntoView({block:"nearest",inline:"center"});
+    </script>
+  </body>
+</html>

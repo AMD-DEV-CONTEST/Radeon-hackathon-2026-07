@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>人物 · Beaver Memory</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #1c221d;
+        --muted: #697168;
+        --line: #dfe3da;
+        --paper: #f6f4ed;
+        --card: #fffdf7;
+        --green: #355f45;
+        --green-soft: #e4eddc;
+        --amber: #a56722;
+        --red: #a4473d;
+        --shadow: 0 18px 45px rgb(58 65 51 / 10%);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 80% 0%, rgb(217 228 208 / 65%), transparent 31rem),
+          var(--paper);
+        font: 15px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      button, input, textarea { font: inherit; }
+      button { cursor: pointer; }
+      .shell { min-height: 100vh; display: grid; grid-template-columns: 244px minmax(0, 1fr); }
+      .sidebar {
+        position: sticky; top: 0; height: 100vh; padding: 26px 18px;
+        background: rgb(248 246 239 / 88%); border-right: 1px solid var(--line);
+        backdrop-filter: blur(16px);
+      }
+      .brand { display: flex; align-items: center; gap: 11px; margin: 0 8px 28px; }
+      .brand-mark {
+        display: grid; width: 38px; height: 38px; place-items: center; border-radius: 12px;
+        color: white; background: var(--green); font: 700 20px Georgia, serif;
+      }
+      .brand strong { display: block; font-size: 17px; }
+      .brand small { color: var(--muted); }
+      nav { display: grid; gap: 6px; }
+      nav a {
+        display: flex; align-items: center; gap: 11px; padding: 11px 12px;
+        border-radius: 12px; color: var(--muted); text-decoration: none;
+      }
+      nav a:hover, nav a.active { color: var(--ink); background: white; box-shadow: 0 7px 24px rgb(55 66 52 / 7%); }
+      .icon { display: grid; width: 24px; place-items: center; color: var(--green); font-weight: 700; }
+      .token-card { position: absolute; left: 18px; right: 18px; bottom: 22px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+      .token-card label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 12px; }
+      main { width: min(1320px, 100%); margin: 0 auto; padding: 30px 34px 60px; }
+      .topbar, .section-head { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+      .topbar { margin-bottom: 22px; }
+      .status { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+      .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--amber); }
+      .dot.ready { background: #4f8b56; box-shadow: 0 0 0 5px rgb(79 139 86 / 12%); }
+      h1, h2, h3, p { margin-top: 0; }
+      h1 { margin-bottom: 10px; font: 700 clamp(31px, 4vw, 52px)/1.05 Georgia, "Noto Serif SC", serif; letter-spacing: -.035em; }
+      h2 { margin-bottom: 5px; font-size: 21px; }
+      h3 { margin-bottom: 6px; font-size: 17px; }
+      .muted { color: var(--muted); }
+      .hero {
+        padding: 28px; border: 1px solid var(--line); border-radius: 24px;
+        background: linear-gradient(135deg, rgb(255 253 247 / 96%), rgb(237 242 228 / 88%)); box-shadow: var(--shadow);
+      }
+      .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 22px; }
+      .metric { padding: 15px; border: 1px solid rgb(206 215 198 / 80%); border-radius: 16px; background: rgb(255 255 255 / 64%); }
+      .metric strong { display: block; font-size: 27px; }
+      .metric span { color: var(--muted); font-size: 12px; }
+      .layout { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(320px, .75fr); gap: 22px; margin-top: 24px; }
+      .panel { padding: 21px; border: 1px solid var(--line); border-radius: 20px; background: var(--card); box-shadow: 0 10px 30px rgb(55 66 52 / 6%); }
+      .section-head { margin-bottom: 15px; }
+      .candidate-grid, .profile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+      .candidate, .profile { overflow: hidden; border: 1px solid var(--line); border-radius: 17px; background: white; }
+      .candidate-photo { position: relative; aspect-ratio: 16/10; background: #e9e9e2; overflow: hidden; }
+      .candidate-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .voice-preview { padding: 16px; background: #f2f0e9; }
+      .voice-preview audio { width: 100%; }
+      .photo-empty { display: grid; height: 100%; place-items: center; color: var(--muted); }
+      .card-body { padding: 15px; }
+      .row { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+      .badges, .actions { display: flex; gap: 7px; flex-wrap: wrap; }
+      .badge { padding: 3px 8px; border-radius: 999px; background: #eef1e9; color: #526052; font-size: 12px; }
+      .badge.green { background: var(--green-soft); color: var(--green); }
+      .badge.amber { background: #f7ead7; color: var(--amber); }
+      .badge.red { background: #f6e4e1; color: var(--red); }
+      .facts { margin: 12px 0; display: grid; gap: 5px; color: var(--muted); font-size: 13px; }
+      .facts span { overflow-wrap: anywhere; }
+      .actions button, .primary, .secondary {
+        border: 0; border-radius: 10px; padding: 9px 12px; font-weight: 650;
+      }
+      .primary { color: white; background: var(--green); }
+      .secondary { color: var(--ink); background: #edf0e9; }
+      .danger { color: var(--red); background: #f7e9e6; }
+      form { display: grid; gap: 10px; }
+      input, textarea, select {
+        width: 100%; padding: 10px 11px; color: var(--ink); border: 1px solid var(--line);
+        border-radius: 10px; background: white; outline: none;
+      }
+      input:focus, textarea:focus { border-color: #76927b; box-shadow: 0 0 0 3px rgb(80 114 84 / 10%); }
+      textarea { min-height: 84px; resize: vertical; }
+      .two { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+      .hint { padding: 12px; border-radius: 12px; background: #edf2e8; color: #516050; font-size: 13px; }
+      .empty { padding: 28px 16px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 14px; }
+      .error { display: none; margin: 0 0 16px; padding: 12px 14px; border-radius: 12px; color: #7f302a; background: #f8e5e2; }
+      .error.show { display: block; }
+      dialog { width: min(570px, calc(100% - 30px)); border: 0; border-radius: 20px; padding: 0; box-shadow: 0 28px 90px rgb(26 32 26 / 30%); }
+      dialog::backdrop { background: rgb(25 30 25 / 48%); backdrop-filter: blur(4px); }
+      .dialog-body { padding: 23px; }
+      .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+      @media (max-width: 980px) {
+        .shell { grid-template-columns: 1fr; }
+        .sidebar { position: static; width: 100%; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+        nav { grid-template-columns: repeat(4, 1fr); }
+        nav a { justify-content: center; }
+        .token-card { position: static; margin-top: 15px; }
+        .layout { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 680px) {
+        main { padding: 22px 15px 45px; }
+        .metrics, .candidate-grid, .profile-grid, .two { grid-template-columns: 1fr; }
+        nav a { padding: 9px 5px; font-size: 12px; }
+      }
+    </style>
+    <link rel="stylesheet" href="/assets/beaver-memory.css" />
+    <script defer src="/assets/beaver-memory.js"></script>
+  </head>
+  <body class="bm-app">
+    <div class="shell bm-shell">
+      <aside class="sidebar bm-sidebar">
+        <div class="brand bm-brand"><div class="brand-mark bm-brand-mark">B</div><div class="bm-brand-copy"><strong>Beaver Memory</strong><small>人物与身份</small></div></div>
+        <nav class="bm-nav">
+          <a href="/memory"><span class="icon">◎</span>记忆卡片</a>
+          <a href="/memory/capsules"><span class="icon">◫</span>多模态 Capsule</a>
+          <a href="/memory/search"><span class="icon">⌕</span>记忆搜索</a>
+          <a href="/daily"><span class="icon">日</span>每日回顾</a>
+          <a class="active" href="/people"><span class="icon">人</span>人物</a>
+          <a href="/objects/search"><span class="icon">□</span>物品搜索</a>
+          <a href="/commitments"><span class="icon">◇</span>长期待办</a>
+          <a href="/memory/corrections"><span class="icon">✓</span>修正历史</a>
+          <a href="/integrations"><span class="icon">↗</span>采集接入</a>
+        </nav>
+        <div class="token-card"><label for="tokenInput">本地调试令牌</label><input id="tokenInput" data-bm-token autocomplete="off" /></div>
+      </aside>
+      <main>
+        <div class="topbar"><div class="status"><span class="dot" id="statusDot"></span><span id="statusText">正在读取 Identity Directory</span></div><button class="secondary" id="refreshBtn">刷新</button></div>
+        <div class="error" id="errorBox"></div>
+        <section class="hero">
+          <p class="muted">MVP-13 · 人物候选确认</p>
+          <h1>先聚合候选，<br />再由你确认是谁。</h1>
+          <p class="muted">系统不会自动写真实姓名。确认后只把受保护的人脸模板加入图库，EverOS 只接收人物语义和证据引用。</p>
+          <div class="metrics">
+            <div class="metric"><strong id="metricActive">—</strong><span>待确认候选</span></div>
+            <div class="metric"><strong id="metricPeople">—</strong><span>正式人物</span></div>
+            <div class="metric"><strong id="metricFrozen">—</strong><span>已冻结候选</span></div>
+            <div class="metric"><strong id="metricGallery">—</strong><span>受保护图库模板</span></div>
+          </div>
+        </section>
+
+        <div class="layout">
+          <div>
+            <section class="panel">
+              <div class="section-head"><div><h2>自动聚合的人脸候选</h2><p class="muted">无需持续打开网页；候选会在后台累积，稍后确认即可。</p></div></div>
+              <div class="candidate-grid" id="candidateGrid"><div class="empty">正在加载候选…</div></div>
+            </section>
+            <section class="panel" style="margin-top:22px">
+              <div class="section-head"><div><h2>自动聚合的声纹候选</h2><p class="muted">声纹只给出疑似建议；必须由你确认后才会关联到人物。</p></div></div>
+              <div class="candidate-grid" id="voiceCandidateGrid"><div class="empty">正在加载声纹候选…</div></div>
+            </section>
+            <section class="panel" style="margin-top:22px">
+              <div class="section-head"><div><h2>已确认人物档案</h2><p class="muted">姓名、关系和备注可修改；每次修改保留版本。</p></div></div>
+              <div class="profile-grid" id="profileGrid"><div class="empty">正在加载人物档案…</div></div>
+            </section>
+          </div>
+          <aside>
+            <section class="panel">
+              <h2>提前上传认识的人</h2>
+              <p class="muted">上传一张只有该人物、脸部清晰的照片。系统必须检测到恰好一张合格人脸。</p>
+              <form id="preuploadForm">
+                <input id="uploadImage" name="image" type="file" accept="image/jpeg,image/png" required />
+                <input id="uploadName" name="name" placeholder="姓名，例如 Steven Li" required />
+                <input id="uploadAliases" name="aliases" placeholder="别名，用逗号分隔" />
+                <div class="two"><input id="uploadRelation" name="relation" placeholder="关系，例如 同事" /><input id="uploadOrganization" name="organization" placeholder="组织/公司" /></div>
+                <input id="uploadRole" name="role" placeholder="角色/职位" />
+                <textarea id="uploadNotes" name="notes" placeholder="你主动填写的备注"></textarea>
+                <button class="primary" type="submit" id="uploadBtn">上传并建立人物档案</button>
+              </form>
+              <div class="hint" style="margin-top:13px">不会根据长相推测年龄、民族、健康等敏感属性；图片和 embedding 不进入 EverOS。</div>
+            </section>
+          </aside>
+        </div>
+      </main>
+    </div>
+
+    <dialog id="confirmDialog">
+      <div class="dialog-body">
+        <h2>确认这个人是谁</h2>
+        <p class="muted" id="confirmCandidateText"></p>
+        <form id="confirmForm">
+          <input id="confirmName" placeholder="真实姓名" required />
+          <input id="confirmAliases" placeholder="别名，用逗号分隔" />
+          <div class="two"><input id="confirmRelation" placeholder="关系" /><input id="confirmOrganization" placeholder="组织/公司" /></div>
+          <input id="confirmRole" placeholder="角色/职位" />
+          <textarea id="confirmNotes" placeholder="你主动填写的备注"></textarea>
+          <div class="dialog-actions"><button class="secondary" type="button" data-close-dialog>取消</button><button class="primary" type="submit">确认并加入图库</button></div>
+        </form>
+      </div>
+    </dialog>
+
+    <dialog id="profileDialog">
+      <div class="dialog-body">
+        <h2>修改人物档案</h2>
+        <form id="profileForm">
+          <input id="profileName" placeholder="姓名" required />
+          <input id="profileAliases" placeholder="别名，用逗号分隔" />
+          <div class="two"><input id="profileRelation" placeholder="关系" /><input id="profileOrganization" placeholder="组织/公司" /></div>
+          <input id="profileRole" placeholder="角色/职位" />
+          <textarea id="profileNotes" placeholder="备注"></textarea>
+          <div class="dialog-actions"><button class="secondary" type="button" data-close-dialog>取消</button><button class="primary" type="submit">保存修改</button></div>
+        </form>
+      </div>
+    </dialog>
+
+    <dialog id="voiceConfirmDialog">
+      <div class="dialog-body">
+        <h2>确认这是谁的声音</h2>
+        <p class="muted" id="voiceConfirmText"></p>
+        <form id="voiceConfirmForm">
+          <label for="voicePersonSelect">关联到已有人物</label>
+          <select id="voicePersonSelect"><option value="">新建人物档案</option></select>
+          <input id="voiceConfirmName" placeholder="新人物姓名（选择已有人物时可不填）" />
+          <div class="hint">画面里的人和正在说话的人不会自动绑定；这里只有你的确认才会成为正式关系。</div>
+          <div class="dialog-actions"><button class="secondary" type="button" data-close-dialog>取消</button><button class="primary" type="submit">确认声纹关系</button></div>
+        </form>
+      </div>
+    </dialog>
+
+    <script>
+      const state = {
+        token: localStorage.getItem("everlens.token") || "dev-token",
+        candidates: [], voiceCandidates: [], people: [], mediaUrls: [], selectedCandidate: null, selectedVoiceCandidate: null, selectedPerson: null,
+      };
+      const $ = (id) => document.getElementById(id);
+      $("tokenInput").value = state.token;
+      $("tokenInput").addEventListener("change", (event) => {
+        state.token = event.target.value.trim() || "dev-token";
+        localStorage.setItem("everlens.token", state.token);
+        load().catch(showError);
+      });
+      const authHeaders = (extra = {}) => ({ authorization: `Bearer ${state.token}`, ...extra });
+      const escapeHtml = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[char]));
+      const splitAliases = (value) => value.split(/[,，]/).map((item) => item.trim()).filter(Boolean);
+      const formatTime = (ms) => ms ? new Date(Number(ms)).toLocaleString("zh-CN", { hour12: false }) : "—";
+      function showError(error) { $("errorBox").textContent = error.message || String(error); $("errorBox").classList.add("show"); }
+      function clearError() { $("errorBox").classList.remove("show"); }
+      async function fetchJson(url, options = {}) {
+        const response = await fetch(url, options);
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(typeof payload.detail === "string" ? payload.detail : JSON.stringify(payload.detail || payload));
+        return payload;
+      }
+      function badge(status) {
+        const labels = { active: "待确认", confirmed: "已确认", frozen: "已冻结", deleted: "已删除" };
+        const tone = status === "confirmed" ? "green" : status === "frozen" ? "red" : "amber";
+        return `<span class="badge ${tone}">${escapeHtml(labels[status] || status || "未知")}</span>`;
+      }
+      async function loadCandidateMedia() {
+        state.mediaUrls.forEach((url) => URL.revokeObjectURL(url)); state.mediaUrls = [];
+        await Promise.all([...document.querySelectorAll("[data-media]")].map(async (element) => {
+          try {
+            const response = await fetch(element.dataset.media, { headers: authHeaders() });
+            if (!response.ok) throw new Error("media unavailable");
+            const url = URL.createObjectURL(await response.blob()); state.mediaUrls.push(url); element.src = url;
+            if (element.tagName === "AUDIO" && element.dataset.startMs) {
+              const start = Number(element.dataset.startMs) / 1000; const end = Number(element.dataset.endMs) / 1000;
+              element.addEventListener("loadedmetadata", () => { element.currentTime = start; }, { once: true });
+              element.addEventListener("timeupdate", () => { if (end && element.currentTime >= end) element.pause(); });
+            }
+          } catch { element.replaceWith(Object.assign(document.createElement("div"), { className: "photo-empty", textContent: "代表证据不可用" })); }
+        }));
+      }
+      function renderCandidates() {
+        const box = $("candidateGrid");
+        if (!state.candidates.length) { box.innerHTML = `<div class="empty">暂无候选。眼镜采集到合格人脸后会自动出现在这里。</div>`; return; }
+        box.innerHTML = state.candidates.map((item) => {
+          const rep = item.representative || {};
+          const actions = item.status === "active"
+            ? `<button class="primary" data-action="confirm" data-id="${escapeHtml(item.candidate_id)}">确认身份</button><button class="secondary" data-action="freeze" data-id="${escapeHtml(item.candidate_id)}">暂时冻结</button><button class="danger" data-action="delete-candidate" data-id="${escapeHtml(item.candidate_id)}">删除</button>`
+            : item.status === "frozen"
+              ? `<button class="secondary" data-action="restore" data-id="${escapeHtml(item.candidate_id)}">恢复候选</button><button class="danger" data-action="delete-candidate" data-id="${escapeHtml(item.candidate_id)}">永久删除</button>`
+              : `<span class="badge green">已进入人物档案</span>`;
+          return `<article class="candidate">
+            <div class="candidate-photo">${item.representative_media_url ? `<img alt="候选代表图片" data-media="${escapeHtml(item.representative_media_url)}" />` : `<div class="photo-empty">暂无代表图片</div>`}</div>
+            <div class="card-body"><div class="row"><h3>匿名人物 ${escapeHtml(item.candidate_id.slice(-6))}</h3>${badge(item.status)}</div>
+            <div class="badges"><span class="badge">观察 ${item.observation_count || 0} 次</span><span class="badge">${escapeHtml((item.pose_buckets || []).join(" / ") || "姿态未知")}</span></div>
+            <div class="facts"><span>最近出现：${escapeHtml(formatTime(item.last_seen_at_ms))}</span><span>代表证据：${escapeHtml(rep.evidence_id || "—")}</span><span>图库建议：${escapeHtml(item.suggested_person?.display_name ? `疑似 ${item.suggested_person.display_name} · ${item.gallery_decision?.status || ""}` : item.gallery_decision?.status || "暂无")}</span></div>
+            <div class="actions">${actions}</div></div></article>`;
+        }).join("");
+      }
+      function renderVoiceCandidates() {
+        const box = $("voiceCandidateGrid");
+        if (!state.voiceCandidates.length) { box.innerHTML = `<div class="empty">暂无声纹候选。检测到可用说话人后会自动在这里聚合。</div>`; return; }
+        box.innerHTML = state.voiceCandidates.map((item) => {
+          const confirmed = Boolean(item.confirmed_person_id); const frozen = item.status === "frozen";
+          const actions = confirmed
+            ? `<button class="secondary" data-action="unbind-voice" data-id="${escapeHtml(item.candidate_id)}">解除错误关联</button>`
+            : frozen
+              ? `<button class="secondary" data-action="restore-voice" data-id="${escapeHtml(item.candidate_id)}">恢复候选</button><button class="danger" data-action="delete-voice" data-id="${escapeHtml(item.candidate_id)}">永久删除</button>`
+              : `<button class="primary" data-action="confirm-voice" data-id="${escapeHtml(item.candidate_id)}">确认声音身份</button><button class="secondary" data-action="freeze-voice" data-id="${escapeHtml(item.candidate_id)}">暂时冻结</button><button class="danger" data-action="delete-voice" data-id="${escapeHtml(item.candidate_id)}">删除</button>`;
+          const suggestion = item.suggested_person?.display_name ? `疑似 ${item.suggested_person.display_name}` : item.gallery_suggestion?.status || "暂无";
+          return `<article class="candidate">
+            <div class="voice-preview">${item.representative_media_url ? `<audio controls preload="none" data-media="${escapeHtml(item.representative_media_url)}" data-start-ms="${Number(item.representative_turn?.start_ms || 0)}" data-end-ms="${Number(item.representative_turn?.end_ms || 0)}"></audio>` : `<div class="photo-empty">暂无代表音频</div>`}</div>
+            <div class="card-body"><div class="row"><h3>${escapeHtml(item.display_name || `匿名声音 ${item.candidate_id.slice(-6)}`)}</h3>${badge(item.status)}</div>
+            <div class="badges"><span class="badge">出现 ${item.observation_count || 0} 次</span><span class="badge">片段 ${(item.representative_turns || []).length}</span></div>
+            <div class="facts"><span>最近听到：${escapeHtml(formatTime(item.last_heard_at_ms))}</span><span>图库建议：${escapeHtml(suggestion)}</span><span>ID：${escapeHtml(item.candidate_id)}</span></div>
+            <div class="actions">${actions}</div></div></article>`;
+        }).join("");
+      }
+      function renderPeople() {
+        const box = $("profileGrid");
+        if (!state.people.length) { box.innerHTML = `<div class="empty">尚未确认人物。可以确认左侧候选，或提前上传照片。</div>`; return; }
+        box.innerHTML = state.people.map((item) => {
+          const p = item.profile || {};
+          const frozen = item.status === "frozen";
+          return `<article class="profile"><div class="candidate-photo">${item.representative_media_url ? `<img alt="${escapeHtml(p.name || item.display_name || "人物")} 的代表照片" data-media="${escapeHtml(item.representative_media_url)}" />` : `<div class="photo-empty">暂无代表照片</div>`}</div><div class="card-body"><div class="row"><div><h3>${escapeHtml(p.name || item.display_name || "未命名人物")}</h3><p class="muted">${escapeHtml([p.relation, p.organization, p.role].filter(Boolean).join(" · ") || "关系待补充")}</p></div>${badge(frozen ? "frozen" : "confirmed")}</div>
+            <div class="badges"><span class="badge green">人脸图库 ${item.face_gallery_entry_count || item.gallery_entry_count || 0}</span><span class="badge green">声纹图库 ${item.voice_gallery_entry_count || 0}</span><span class="badge">人脸候选 ${(p.face_candidate_ids || []).length}</span><span class="badge">声纹候选 ${(p.voice_candidate_ids || []).length}</span><span class="badge">版本 ${(p.versions || []).length + 1}</span></div>
+            <div class="facts"><span>${escapeHtml(p.notes || "暂无备注")}</span><span>ID：${escapeHtml(item.person_id)}</span></div>
+            <div class="actions"><button class="secondary" data-action="edit-profile" data-id="${escapeHtml(item.person_id)}">编辑档案</button><button class="secondary" data-action="person-status" data-id="${escapeHtml(item.person_id)}" data-status="${frozen ? "active" : "frozen"}">${frozen ? "恢复人物" : "暂时冻结"}</button><button class="danger" data-action="delete-person" data-id="${escapeHtml(item.person_id)}">删除人物</button></div>
+          </div></article>`;
+        }).join("");
+      }
+      function renderMetrics(payload) {
+        $("metricActive").textContent = state.candidates.filter((item) => item.status === "active").length + state.voiceCandidates.filter((item) => item.status === "active").length;
+        $("metricFrozen").textContent = state.candidates.filter((item) => item.status === "frozen").length + state.voiceCandidates.filter((item) => item.status === "frozen").length;
+        $("metricPeople").textContent = state.people.filter((item) => item.status !== "deleted").length;
+        $("metricGallery").textContent = state.people.reduce((sum, item) => sum + Number(item.face_gallery_entry_count || item.gallery_entry_count || 0) + Number(item.voice_gallery_entry_count || 0), 0);
+        $("statusDot").classList.add("ready");
+        $("statusText").textContent = `Identity Directory 正常 · ${payload.gallery_policy_id}`;
+      }
+      async function load() {
+        clearError();
+        const payload = await fetchJson("/v1/memory/identity/people", { headers: authHeaders() });
+        state.candidates = payload.face_candidates || payload.candidates || []; state.voiceCandidates = payload.voice_candidates || []; state.people = payload.people || [];
+        renderMetrics(payload); renderCandidates(); renderVoiceCandidates(); renderPeople(); await loadCandidateMedia();
+      }
+      function openConfirm(candidateId) {
+        state.selectedCandidate = state.candidates.find((item) => item.candidate_id === candidateId);
+        $("confirmCandidateText").textContent = `候选 ${candidateId} · ${state.selectedCandidate?.observation_count || 0} 次观察`;
+        const suggested = state.selectedCandidate?.suggested_person || {}; const profile = suggested.profile || {};
+        $("confirmName").value = suggested.display_name || profile.name || ""; $("confirmAliases").value = (profile.aliases || []).join(", "); $("confirmRelation").value = profile.relation || "";
+        $("confirmOrganization").value = profile.organization || ""; $("confirmRole").value = profile.role || ""; $("confirmNotes").value = profile.notes || "";
+        $("confirmDialog").showModal();
+      }
+      $("confirmForm").addEventListener("submit", async (event) => {
+        event.preventDefault(); clearError();
+        const id = state.selectedCandidate?.candidate_id; if (!id) return;
+        await fetchJson(`/v1/memory/identity/candidates/${encodeURIComponent(id)}/confirm`, { method: "POST", headers: authHeaders({"content-type":"application/json"}), body: JSON.stringify({ confirmed_name: $("confirmName").value.trim(), aliases: splitAliases($("confirmAliases").value), relation: $("confirmRelation").value.trim() || null, organization: $("confirmOrganization").value.trim() || null, role: $("confirmRole").value.trim() || null, notes: $("confirmNotes").value.trim() || null }) });
+        $("confirmDialog").close(); await load();
+      });
+      function openVoiceConfirm(candidateId) {
+        state.selectedVoiceCandidate = state.voiceCandidates.find((item) => item.candidate_id === candidateId);
+        const select = $("voicePersonSelect");
+        select.innerHTML = `<option value="">新建人物档案</option>` + state.people.filter((item) => item.status !== "deleted").map((item) => `<option value="${escapeHtml(item.person_id)}">${escapeHtml(item.profile?.name || item.display_name || item.person_id)}</option>`).join("");
+        const suggested = state.selectedVoiceCandidate?.suggested_person || {};
+        if (suggested.person_id && state.people.some((item) => item.person_id === suggested.person_id)) select.value = suggested.person_id;
+        $("voiceConfirmName").value = "";
+        $("voiceConfirmText").textContent = `${state.selectedVoiceCandidate?.display_name || candidateId} · ${state.selectedVoiceCandidate?.observation_count || 0} 次出现`;
+        $("voiceConfirmDialog").showModal();
+      }
+      $("voiceConfirmForm").addEventListener("submit", async (event) => {
+        event.preventDefault(); const id = state.selectedVoiceCandidate?.candidate_id; if (!id) return;
+        const personId = $("voicePersonSelect").value || null; const name = $("voiceConfirmName").value.trim() || null;
+        if (!personId && !name) { showError(new Error("请选择已有人物，或填写新人物姓名")); return; }
+        await fetchJson(`/v1/memory/voice/candidates/${encodeURIComponent(id)}/confirm`, { method:"POST", headers:authHeaders({"content-type":"application/json"}), body:JSON.stringify({person_id:personId, confirmed_name:name}) });
+        $("voiceConfirmDialog").close(); await load();
+      });
+      function openProfile(personId) {
+        state.selectedPerson = state.people.find((item) => item.person_id === personId); const p = state.selectedPerson?.profile || {};
+        $("profileName").value = p.name || state.selectedPerson?.display_name || ""; $("profileAliases").value = (p.aliases || []).join(", ");
+        $("profileRelation").value = p.relation || ""; $("profileOrganization").value = p.organization || ""; $("profileRole").value = p.role || ""; $("profileNotes").value = p.notes || "";
+        $("profileDialog").showModal();
+      }
+      $("profileForm").addEventListener("submit", async (event) => {
+        event.preventDefault(); const id = state.selectedPerson?.person_id; if (!id) return;
+        await fetchJson(`/v1/memory/identity/people/${encodeURIComponent(id)}`, { method: "PUT", headers: authHeaders({"content-type":"application/json"}), body: JSON.stringify({ name: $("profileName").value.trim(), aliases: splitAliases($("profileAliases").value), relation: $("profileRelation").value.trim() || null, organization: $("profileOrganization").value.trim() || null, role: $("profileRole").value.trim() || null, notes: $("profileNotes").value.trim() || null }) });
+        $("profileDialog").close(); await load();
+      });
+      $("preuploadForm").addEventListener("submit", async (event) => {
+        event.preventDefault(); clearError(); const file = $("uploadImage").files[0]; if (!file) return;
+        const form = new FormData(); form.append("image", file); ["name","aliases","relation","organization","role","notes"].forEach((key) => form.append(key, $(`upload${key[0].toUpperCase()}${key.slice(1)}`).value));
+        $("uploadBtn").disabled = true; $("uploadBtn").textContent = "正在提取人脸并建档…";
+        try { await fetchJson("/v1/memory/identity/people/preupload", { method: "POST", headers: authHeaders(), body: form }); event.target.reset(); await load(); }
+        finally { $("uploadBtn").disabled = false; $("uploadBtn").textContent = "上传并建立人物档案"; }
+      });
+      document.addEventListener("click", async (event) => {
+        const button = event.target.closest("button[data-action]"); if (!button) return;
+        try {
+          if (button.dataset.action === "confirm") openConfirm(button.dataset.id);
+          if (button.dataset.action === "confirm-voice") openVoiceConfirm(button.dataset.id);
+          if (button.dataset.action === "unbind-voice") { const reason = prompt("解除关联的原因：", "确认绑定错误"); if (reason) { await fetchJson(`/v1/memory/voice/candidates/${encodeURIComponent(button.dataset.id)}/unbind`, { method:"POST", headers:authHeaders({"content-type":"application/json"}), body:JSON.stringify({reason}) }); await load(); } }
+          if (button.dataset.action === "freeze-voice") { const reason = prompt("冻结原因：", "暂不处理或音频质量不足"); if (reason) { await fetchJson(`/v1/memory/voice/candidates/${encodeURIComponent(button.dataset.id)}/freeze`, { method:"POST", headers:authHeaders({"content-type":"application/json"}), body:JSON.stringify({reason}) }); await load(); } }
+          if (button.dataset.action === "restore-voice") { await fetchJson(`/v1/memory/voice/candidates/${encodeURIComponent(button.dataset.id)}/restore`, { method:"POST", headers:authHeaders() }); await load(); }
+          if (button.dataset.action === "delete-voice" && confirm("永久删除这个声纹候选及派生向量？原始记忆音频不会被删除。")) { await fetchJson(`/v1/memory/voice/candidates/${encodeURIComponent(button.dataset.id)}`, { method:"DELETE", headers:authHeaders() }); await load(); }
+          if (button.dataset.action === "edit-profile") openProfile(button.dataset.id);
+          if (button.dataset.action === "freeze") { const reason = prompt("冻结原因：", "误识别或暂不处理"); if (reason) { await fetchJson(`/v1/memory/identity/candidates/${encodeURIComponent(button.dataset.id)}/freeze`, { method:"POST", headers:authHeaders({"content-type":"application/json"}), body:JSON.stringify({reason}) }); await load(); } }
+          if (button.dataset.action === "restore") { await fetchJson(`/v1/memory/identity/candidates/${encodeURIComponent(button.dataset.id)}/restore`, { method:"POST", headers:authHeaders() }); await load(); }
+          if (button.dataset.action === "person-status") { await fetchJson(`/v1/memory/identity/people/${encodeURIComponent(button.dataset.id)}/status`, { method:"POST", headers:authHeaders({"content-type":"application/json"}), body:JSON.stringify({status:button.dataset.status}) }); await load(); }
+          if (button.dataset.action === "delete-candidate" && confirm("永久删除这个候选？候选向量和审核记录会被清除，且无法恢复；原始记忆图片不会被删除。")) { await fetchJson(`/v1/memory/identity/candidates/${encodeURIComponent(button.dataset.id)}`, { method:"DELETE", headers:authHeaders() }); await load(); }
+          if (button.dataset.action === "delete-person" && confirm("永久删除这个人物？人物档案、关联候选和人脸图库模板会被清除，且无法恢复；原始记忆证据和既有 EverOS 历史不会被删除。")) { await fetchJson(`/v1/memory/identity/people/${encodeURIComponent(button.dataset.id)}`, { method:"DELETE", headers:authHeaders() }); await load(); }
+        } catch (error) { showError(error); }
+      });
+      document.querySelectorAll("[data-close-dialog]").forEach((button) => button.addEventListener("click", () => button.closest("dialog").close()));
+      $("refreshBtn").addEventListener("click", () => load().catch(showError));
+      load().catch(showError);
+    </script>
+  </body>
+</html>
