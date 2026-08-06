@@ -9,13 +9,15 @@
 
 ## 1. Application Scenario & Innovation
 
+> **One brain, two front doors.** ScrewShell is a fully local, private AI stack on a single AMD Radeon GPU. Its brain is a **Mixture-of-LoRA (MoL)** inference engine — one frozen 27B base + hot-swappable community LoRA experts. It is exposed through **two front doors**: a private investigation agent, and an open inference gateway (Agent-as-a-Service).
+
 ### 1.1 The problem
 
 Knowledge workers accumulate sensitive material that must not leave the machine: design documents, contracts, private codebases, meeting notes, migration plans. Cloud AI assistants are off-limits for this data. Yet answering a real question — *"What are the risks in our ROCm migration plan, and which paragraph says so?"* — requires an agent that can **plan, retrieve, read, grep, reason, and cite**, not a single LLM call.
 
-### 1.2 The product
+### 1.2 Front door A — the private investigation agent
 
-**ScrewShell** is a private, fully local knowledge-investigation agent. Point it at a workspace folder and ask multi-step questions. It:
+Point it at a workspace folder and ask multi-step questions. It:
 
 1. **Plans** the investigation into skill-tagged sub-steps (Task Card).
 2. **Routes** each step to a specialist LoRA expert (MoL hot-swap — see §5).
@@ -23,20 +25,29 @@ Knowledge workers accumulate sensitive material that must not leave the machine:
 4. **Acts** through six sandboxed, read-only local tools.
 5. **Answers** with evidence cards carrying line-level citations (`file.md#L42-L58`) and a full JSON audit trail.
 
-> **Two front-ends, one relay (implemented).** ScrewShell ships its own web agent (Gradio UI → self-built ReAct orchestrator). Mature agent front-ends (opencode / pi) also connect here — **not directly to llama-server, but to ScrewShell as a relay gateway** over the native OpenAI `/v1` `tools` protocol (point them at ScrewShell's port; ScrewShell relays to `llama-server` after applying config/observability/tuning/MoL routing). A **unified observability + tuning layer** covers *both* entry points and is implemented and production-wired:
->
-> - **Relay gateway** (`screwshell/gateway/relay.py`, :18090) — OpenAI `/v1`-compatible entry in front of `llama-server`; authenticates the trusted `X-Expert` header and routes each request to a LoRA expert via `SkillRouter`; the `InferenceCoordinator` serializes the global LoRA switch so multiple front-ends share one GPU without corrupting each other's expert state.
-> - **Gateway tuning knobs** (`screwshell/gateway/{capacity,config,thinking,reliability,cli}.py`) — safe `llama-server` argv generation (capacity planning from real VRAM, `--jinja`, finite `--reasoning-budget`, no hardcoded `-ngl` 999 bypass), thinking scheduling, prelaunch validation + `setsid` daemon posture, and one-command full-stack bring-up (`gateway/cli.py` has replaced the manual start procedure in production).
-> - **Unified observability** — `/health` + `/v1/observ/{summary,events,gpu,slots,expert,props}` endpoints; GPU history persisted to SQLite; `switch_ms` timing; live `rocm-smi` VRAM/utilization in the UI.
-> - **One-click auto-tuning loop** (`screwshell/autotune/{scorer,mapper,cycle}.py` + `/v1/tune/{start,stop,status}` + UI tuning tab) — select a preset (speed / VRAM / long-context / balanced), and the cycle consults → plans → applies → restarts → generates benchmark traffic → scores → keeps/rolls back → converges, with a hard-failure signal (`ABORT + server_may_be_down`), never silently leaving a dead server.
->
-> See `docs/TRUTH.md` §1.7 for the authoritative description.
+### 1.3 Front door B — the open inference gateway (Agent-as-a-Service)
 
-### 1.3 What is innovative
+The same MoL brain is exposed as an **OpenAI `/v1`-compatible inference gateway**, so mature open-source agents (**opencode / pi**) plug in with **zero modification**:
+
+```
+opencode / pi  ──▶  ScrewShell relay (/v1, :18090)  ──▶  llama-server (ROCm, MoL)
+```
+
+Point an agent at ScrewShell's port and it gains, per request:
+
+- **Local expert routing** — the relay authenticates a trusted `X-Expert` header and routes each request to a LoRA expert via `SkillRouter`; the `InferenceCoordinator` serializes the global LoRA switch so multiple front-ends share one GPU without corrupting each other's expert state.
+- **Inference tuning knobs** (`screwshell/gateway/{capacity,config,thinking,reliability,cli}.py`) — safe `llama-server` argv generation (capacity planning from real VRAM, `--jinja`, finite `--reasoning-budget`), thinking scheduling, prelaunch validation + `setsid` daemon posture, and one-command full-stack bring-up (`gateway/cli.py`).
+- **Unified observability** — `/health` + `/v1/observ/{summary,events,gpu,slots,expert,props}` endpoints; GPU history persisted to SQLite; `switch_ms` timing; traffic split by entry point (`ui` / `opencode`).
+- **One-click auto-tuning loop** (`screwshell/autotune/{scorer,mapper,cycle}.py` + `/v1/tune/{start,stop,status}`) — select a preset (speed / VRAM / long-context / balanced), and the cycle consults → plans → applies → restarts → generates benchmark traffic → scores → keeps/rolls back → converges, with a hard-failure signal (`ABORT + server_may_be_down`), never silently leaving a dead server.
+
+> This is not merely deploying a model — it is exposing an **entire agent inference stack** as a service. See `docs/TRUTH.md` §1.7 for the authoritative description.
+
+### 1.4 What is innovative
 
 | Innovation | Why it matters |
 |---|---|
 | **MoL (Mixture-of-LoRA) inference core** | One frozen 27B base (Qwen3.6-27B Q4_K_M GGUF) + N community LoRA experts, hot-swapped on the resident base via llama.cpp. Multi-skill agent in the VRAM budget of a single GPU. Community adapters are plug-and-play: drop a GGUF in, gain a skill. |
+| **Agent-as-a-Service** | The same MoL brain is exposed as an OpenAI `/v1` gateway, so open-source agents (opencode / pi) get local expert routing + tuning + observability with zero modification — not just a model endpoint, but a whole agent inference stack. |
 | **Evidence-first answers** | Every claim is backed by an evidence card with file/line citations — conclusions are re-verifiable, not vibes. |
 | **Private & auditable by construction** | Workspace sandbox, tool/path allowlists, secrets blocklist, dangerous-command rejection, JSON audit log, zero telemetry. All six tools are local read-only (no web tools are implemented). |
 
