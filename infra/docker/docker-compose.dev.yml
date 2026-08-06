@@ -1,0 +1,70 @@
+# BotverseX M1 开发栈 — 一条命令起 realtime + api + web
+#
+#   docker compose -f infra/docker/docker-compose.dev.yml up --build
+#
+# 注意:
+#   - 物理臂 (串口) 在容器内不可用, realtime 只能跑 URDF + /ws/ui + /api/record
+#     两个静态端点, sender.py 依然建议跑在宿主机 (BOTVERSEX_LEROBOT_PATH).
+#   - web 开发容器会把宿主机代码挂进去支持 hot reload.
+#   - 这个文件只用于开发联调, 不是生产镜像.
+
+services:
+  realtime:
+    build:
+      context: ../..
+      dockerfile: infra/docker/realtime.Dockerfile
+    image: botversex/realtime:dev
+    container_name: botversex-realtime-dev
+    ports:
+      - "8002:8002"
+    volumes:
+      - ../../apps/realtime:/app/apps/realtime
+      - ../../packages/botclaw-spec:/app/packages/botclaw-spec
+      - ../../demos:/app/apps/realtime/demos
+    environment:
+      PYTHONUNBUFFERED: "1"
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ../..
+      dockerfile: infra/docker/api.Dockerfile
+    image: botversex/api:dev
+    container_name: botversex-api-dev
+    ports:
+      - "8000:8000"
+    depends_on:
+      - realtime
+    volumes:
+      - ../../apps/api:/app/apps/api
+    environment:
+      DATABASE_URL: "sqlite:///./botversex_dev.db"
+      TIMESCALE_URL: "sqlite:///./botversex_dev.db"
+      REDIS_URL: "redis://disabled"
+      REALTIME_SERVICE_URL: "http://realtime:8002"
+      ENCRYPTION_KEY: "8Be4BbRe8qpLdzb9MtNziKBSsvrModgEPr9LqktiA9A="
+      BACKEND_CORS_ORIGINS: '["http://localhost:5173"]'
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ../..
+      dockerfile: infra/docker/web.Dockerfile
+    image: botversex/web:dev
+    container_name: botversex-web-dev
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+      - realtime
+    volumes:
+      - ../../apps/web:/app/apps/web
+      - ../../packages/botclaw-spec:/app/packages/botclaw-spec
+      - web_node_modules:/app/apps/web/node_modules
+    environment:
+      VITE_API_TARGET: "http://api:8000"
+      VITE_REALTIME_TARGET: "http://realtime:8002"
+    restart: unless-stopped
+
+volumes:
+  web_node_modules:

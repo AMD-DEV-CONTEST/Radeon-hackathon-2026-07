@@ -1,0 +1,282 @@
+{
+  "skills": [
+    {
+      "skill_id": "so101_generic_teleop",
+      "verb": "teleop",
+      "description": "Generic teleoperation — replay recorded joint trajectories on SO-101 follower.",
+      "robot_type": "so101",
+      "compatible_types": ["so101"],
+      "joint_count": 6,
+      "train_backend": "local",
+      "min_episodes": 20,
+      "episode_duration_s": 30,
+      "tags": ["teleoperation", "so101"],
+      "author": "BotverseX",
+      "version": "0.1.0",
+      "params_schema": [
+        {
+          "key": "episode_count",
+          "label": "Episodes to replay",
+          "type": "number",
+          "default": 1,
+          "min": 1,
+          "max": 100,
+          "required": true
+        },
+        {
+          "key": "leader_port",
+          "label": "Leader serial port",
+          "type": "string",
+          "default": "/dev/ttyACM0",
+          "required": true
+        },
+        {
+          "key": "follower_port",
+          "label": "Follower serial port",
+          "type": "string",
+          "default": "/dev/ttyACM1",
+          "required": true
+        },
+        {
+          "key": "speed_scale",
+          "label": "Speed scale",
+          "type": "number",
+          "default": 1.0,
+          "min": 0.1,
+          "max": 2.0,
+          "required": false
+        }
+      ]
+    },
+    {
+      "skill_id": "so101_record_episode",
+      "verb": "record",
+      "description": "Record a teleoperation episode from SO-101 for later training.",
+      "robot_type": "so101",
+      "compatible_types": ["so101"],
+      "joint_count": 6,
+      "train_backend": "local",
+      "min_episodes": 1,
+      "episode_duration_s": 30,
+      "tags": ["data", "record", "so101"],
+      "author": "BotverseX",
+      "version": "0.1.0",
+      "params_schema": [
+        {
+          "key": "dataset_name",
+          "label": "Dataset name",
+          "type": "string",
+          "default": "",
+          "required": true
+        },
+        {
+          "key": "single_task",
+          "label": "Task prompt",
+          "type": "string",
+          "default": "pick and place",
+          "required": true
+        },
+        {
+          "key": "leader_port",
+          "label": "Leader serial port",
+          "type": "string",
+          "default": "/dev/ttyACM0",
+          "required": true
+        },
+        {
+          "key": "follower_port",
+          "label": "Follower serial port",
+          "type": "string",
+          "default": "/dev/ttyACM1",
+          "required": true
+        },
+        {
+          "key": "duration_s",
+          "label": "Duration (seconds)",
+          "type": "number",
+          "default": 30,
+          "min": 5,
+          "max": 600,
+          "required": true
+        },
+        {
+          "key": "fps",
+          "label": "FPS",
+          "type": "number",
+          "default": 30,
+          "min": 10,
+          "max": 60,
+          "required": false
+        },
+        {
+          "key": "episode_count",
+          "label": "Episode count",
+          "type": "number",
+          "default": 1,
+          "min": 1,
+          "max": 100,
+          "required": false
+        },
+        {
+          "key": "camera_index",
+          "label": "Camera index",
+          "type": "number",
+          "default": 0,
+          "min": 0,
+          "max": 9,
+          "required": false
+        }
+      ]
+    },
+    {
+      "skill_id": "reachy_mini_wave",
+      "verb": "wave",
+      "description": "Reachy Mini waves its antennas — a simple expression skill.",
+      "robot_type": "reachy_mini",
+      "compatible_types": ["reachy_mini"],
+      "joint_count": 9,
+      "train_backend": "local",
+      "tags": ["expression", "reachy_mini"],
+      "author": "BotverseX",
+      "version": "0.1.0",
+      "params_schema": [
+        {
+          "key": "cycles",
+          "label": "Wave cycles",
+          "type": "number",
+          "default": 3,
+          "min": 1,
+          "max": 20,
+          "required": true
+        }
+      ]
+    },
+    {
+      "skill_id": "generic_pick_place",
+      "verb": "pick_and_place",
+      "description": "Pick an object and place it at a target location (cross-hardware).",
+      "robot_type": "generic",
+      "compatible_types": ["so101", "reachy_mini", "b601_rs"],
+      "joint_count": 6,
+      "train_backend": "qualia",
+      "min_episodes": 20,
+      "episode_duration_s": 30,
+      "tags": ["manipulation", "pick", "place"],
+      "author": "BotverseX",
+      "version": "0.1.0",
+      "params_schema": [
+        {
+          "key": "object",
+          "label": "Object to pick",
+          "type": "string",
+          "default": "bottle",
+          "required": true
+        },
+        {
+          "key": "approach",
+          "label": "Approach direction",
+          "type": "enum",
+          "options": ["top-down", "side"],
+          "default": "top-down",
+          "required": true
+        }
+      ]
+    },
+    {
+      "skill_id": "so101_inference_run",
+      "verb": "inference",
+      "description": "Run a trained model on SO-101 follower (M4 Compare flow).",
+      "robot_type": "so101",
+      "compatible_types": ["so101"],
+      "joint_count": 6,
+      "train_backend": "local",
+      "tags": ["inference", "deploy", "so101"],
+      "author": "BotverseX",
+      "version": "0.1.0",
+      "params_schema": [
+        {
+          "key": "model_id",
+          "label": "Model ID",
+          "type": "string",
+          "default": "",
+          "required": true
+        },
+        {
+          "key": "max_steps",
+          "label": "Max steps",
+          "type": "number",
+          "default": 500,
+          "min": 10,
+          "max": 10000,
+          "required": false
+        }
+      ]
+    },
+    {
+      "skill_id": "b601_rs_generic_teleop",
+      "verb": "teleop",
+      "description": "Leader-follower teleoperation on B601-RS via Star Arm 102.",
+      "robot_type": "b601_rs",
+      "compatible_types": ["b601_rs"],
+      "joint_count": 7,
+      "train_backend": "qualia",
+      "min_episodes": 5,
+      "episode_duration_s": 30,
+      "tags": ["teleoperation", "b601"],
+      "author": "BotverseX",
+      "version": "0.1.0",
+      "params_schema": []
+    },
+    {
+      "skill_id": "b601_rs_record_episode",
+      "verb": "record",
+      "description": "Record imitation-learning episodes on B601-RS.",
+      "robot_type": "b601_rs",
+      "compatible_types": ["b601_rs"],
+      "joint_count": 7,
+      "train_backend": "qualia",
+      "min_episodes": 5,
+      "episode_duration_s": 30,
+      "tags": ["data", "record", "b601"],
+      "author": "BotverseX",
+      "version": "0.1.0",
+      "params_schema": [
+        {
+          "key": "dataset_name",
+          "label": "Dataset name",
+          "type": "string",
+          "default": "",
+          "required": true
+        },
+        {
+          "key": "single_task",
+          "label": "Task prompt",
+          "type": "string",
+          "default": "pick and place",
+          "required": true
+        }
+      ]
+    },
+    {
+      "skill_id": "b601_rs_inference_run",
+      "verb": "inference",
+      "description": "Deploy a trained policy on B601-RS follower.",
+      "robot_type": "b601_rs",
+      "compatible_types": ["b601_rs"],
+      "joint_count": 7,
+      "train_backend": "qualia",
+      "tags": ["inference", "deploy", "b601"],
+      "author": "BotverseX",
+      "version": "0.1.0",
+      "params_schema": [
+        {
+          "key": "policy_path",
+          "label": "Policy checkpoint path",
+          "type": "string",
+          "default": "",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

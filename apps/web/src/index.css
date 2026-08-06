@@ -1,0 +1,437 @@
+@import "tailwindcss";
+
+@theme {
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+:root {
+  /* Cool charcoal base + original orange accent (no brown wash) */
+  --background: 222 28% 5%;
+  --foreground: 210 30% 96%;
+  --card: 222 24% 8%;
+  --card-foreground: 210 30% 96%;
+  --popover: 222 24% 8%;
+  --popover-foreground: 210 30% 96%;
+  --primary: 18 88% 48%;
+  --primary-foreground: 36 40% 98%;
+  --secondary: 222 18% 14%;
+  --secondary-foreground: 210 30% 96%;
+  --muted: 222 16% 13%;
+  --muted-foreground: 215 12% 58%;
+  --accent: 18 88% 48%;
+  --accent-foreground: 36 40% 98%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 16% 18%;
+  --input: 220 16% 18%;
+  --ring: 18 88% 48%;
+  --radius: 0.75rem;
+  --font-display: "Space Grotesk", "Noto Sans SC", ui-sans-serif, sans-serif;
+  --font-body: "IBM Plex Sans", "Noto Sans SC", ui-sans-serif, sans-serif;
+  --ember: #e85d1c;
+  --ink: #05070c;
+  --paper: #eef3f8;
+  --haze: #9aabc0;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.03em;
+}
+
+/* Botverse X Custom Styles */
+.botverse-gradient {
+  background: linear-gradient(90deg, #0a1018 -79%, #121a28 35%, #813928 100%);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* Animation utilities */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(232, 93, 28, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 18px rgba(232, 93, 28, 0.75);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Product tour */
+@keyframes tour-pulse-ring {
+  0%, 100% {
+    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.9), 0 0 0 0 hsl(var(--primary) / 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.9), 0 0 0 10px hsl(var(--primary) / 0);
+  }
+}
+
+@keyframes tour-arrow-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+@keyframes tour-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes tour-step-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes tour-cta-pulse {
+  0%, 100% {
+    box-shadow: 0 4px 20px hsl(var(--primary) / 0.25);
+  }
+  50% {
+    box-shadow: 0 4px 28px hsl(var(--primary) / 0.45);
+  }
+}
+
+@keyframes tour-fab-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.tour-pulse-ring {
+  animation: tour-pulse-ring 1.6s ease-in-out infinite;
+}
+
+.tour-arrow-dash {
+  stroke-dasharray: 6 4;
+  animation: tour-arrow-flow 1s linear infinite;
+}
+
+.tour-card-enter {
+  animation: tour-card-enter 0.35s ease-out;
+}
+
+.tour-step-pop {
+  animation: tour-step-pop 0.4s ease-out backwards;
+}
+
+.tour-cta-pulse {
+  animation: tour-cta-pulse 2s ease-in-out infinite;
+}
+
+.tour-copilot-pulse {
+  animation: tour-cta-pulse 2.5s ease-in-out infinite;
+}
+
+.tour-fab-enter {
+  animation: tour-fab-enter 0.4s ease-out;
+}
+
+.tour-overlay-fade {
+  transition: left 0.25s ease, top 0.25s ease, width 0.25s ease, height 0.25s ease;
+}
+
+/* /robots product surface — motion.dev / variant-like presence, not dashboard chrome */
+@keyframes robots-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes robots-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(1.5%, -1.2%, 0) scale(1.02);
+  }
+}
+
+@keyframes robots-sheen {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+.robots-rise {
+  animation: robots-rise 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.robots-rise-delay-1 {
+  animation-delay: 0.08s;
+}
+
+.robots-rise-delay-2 {
+  animation-delay: 0.16s;
+}
+
+.robots-rise-delay-3 {
+  animation-delay: 0.28s;
+}
+
+.robots-hero-glow {
+  background:
+    radial-gradient(ellipse 55% 50% at 82% 38%, rgba(232, 93, 28, 0.18), transparent 62%),
+    radial-gradient(ellipse 40% 45% at 12% 78%, rgba(56, 120, 220, 0.1), transparent 58%),
+    radial-gradient(ellipse 70% 40% at 50% -8%, rgba(140, 180, 255, 0.06), transparent 52%),
+    linear-gradient(180deg, #070b14 0%, #05070c 48%, #04060a 100%);
+}
+
+.robots-grid {
+  background-image:
+    linear-gradient(rgba(148, 175, 210, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 175, 210, 0.055) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 75% 70% at 60% 40%, black 20%, transparent 75%);
+  pointer-events: none;
+}
+
+.robots-noise {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: 0.35;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+}
+
+.robots-stage-drift {
+  animation: robots-drift 14s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .robots-rise,
+  .robots-stage-drift {
+    animation: none !important;
+  }
+}
+
+.robots-cta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  background: linear-gradient(105deg, #f0742e 0%, #e85d1c 45%, #c44712 100%);
+  background-size: 200% 100%;
+  color: #fffaf5;
+  font-weight: 600;
+  padding: 0.9rem 1.45rem;
+  box-shadow: 0 0 0 1px rgba(232, 93, 28, 0.28), 0 10px 36px rgba(232, 93, 28, 0.2);
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), filter 0.25s ease, box-shadow 0.25s ease;
+}
+
+.robots-cta:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: 0 0 0 1px rgba(232, 93, 28, 0.45), 0 14px 40px rgba(232, 93, 28, 0.3);
+  animation: robots-sheen 1.2s ease;
+}
+
+.robots-cta:active {
+  transform: translateY(0);
+}
+
+.robots-fleet-row {
+  transition:
+    background-color 0.35s ease,
+    border-color 0.35s ease,
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.robots-fleet-row:hover {
+  background-color: rgba(148, 180, 230, 0.035);
+  border-color: rgba(232, 93, 28, 0.28);
+  transform: translateY(-2px);
+}
+
+/* ─── Shared brand primitives — every robot page should look like one product ─── */
+
+/* Page header: back-link + display title + status pill, used on every robot page */
+.bvx-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.bvx-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--haze);
+  transition: color 0.2s ease;
+}
+
+.bvx-back-link:hover {
+  color: var(--paper);
+}
+
+.bvx-page-title {
+  font-family: var(--font-display);
+  font-size: 1.875rem;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--paper);
+}
+
+.bvx-page-subtitle {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--haze);
+  max-width: 42rem;
+}
+
+/* Status pill — Ready / Labs / Virtual */
+.bvx-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  border: 1px solid transparent;
+}
+
+.bvx-pill--ready {
+  border-color: rgba(52, 211, 153, 0.25);
+  background-color: rgba(52, 211, 153, 0.1);
+  color: #6ee7b7;
+}
+
+.bvx-pill--labs {
+  border-color: rgba(56, 189, 248, 0.25);
+  background-color: rgba(56, 189, 248, 0.1);
+  color: #7dd3fc;
+}
+
+.bvx-pill--virtual {
+  border-color: rgba(232, 93, 28, 0.3);
+  background-color: rgba(232, 93, 28, 0.12);
+  color: #fdba74;
+}
+
+/* Primary CTA — same shape across the site */
+.bvx-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: var(--paper);
+  color: var(--ink);
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.bvx-cta:hover {
+  transform: translateY(-1px);
+}
+
+.bvx-cta--ember {
+  background: linear-gradient(105deg, #f0742e 0%, #e85d1c 45%, #c44712 100%);
+  color: #fffaf5;
+}
+
+.bvx-cta--ghost {
+  background: transparent;
+  color: var(--paper);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.bvx-cta--ghost:hover {
+  border-color: rgba(232, 93, 28, 0.5);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Eyebrow label — small caps brand mark above section titles */
+.bvx-eyebrow {
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--ember);
+}

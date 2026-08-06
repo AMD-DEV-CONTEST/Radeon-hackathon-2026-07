@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://botversex.dev/schemas/botclaw/v0.1/skill.schema.json",
+  "title": "Skill",
+  "description": "A reusable robot skill — the atomic unit of behavior in BotverseX. This schema is aligned with apps/api/app/data/skills_seed.json and is the BotClaw v0.9 source of truth for skill registry entries.",
+  "type": "object",
+  "required": ["skill_id", "verb", "robot_type", "compatible_types", "params_schema"],
+  "additionalProperties": false,
+  "properties": {
+    "skill_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique identifier, e.g. 'grasp-generic-v1', 'pick-bottle-v1'."
+    },
+    "verb": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Atomic action verb: grasp, place, pour, push, reach, wave, look-at, etc. Verb is the primary taxonomy axis; object/target lives in params."
+    },
+    "params": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Runtime parameter values supplied by a user or workflow instance. Registry entries define their editable form via params_schema.",
+      "default": {}
+    },
+    "params_schema": {
+      "type": "array",
+      "description": "UI and API validation schema for skill parameters. This intentionally mirrors the file-backed registry used by apps/api/app/data/skills_seed.json.",
+      "default": [],
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "type"],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Stable parameter key used in params payloads."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Human-readable label for UI forms."
+          },
+          "type": {
+            "type": "string",
+            "enum": ["string", "number", "bool", "enum"],
+            "description": "Basic scalar type supported by the current API validator."
+          },
+          "default": {
+            "description": "Default value used by UI forms and install flows."
+          },
+          "min": {
+            "type": "number",
+            "description": "Minimum allowed value for number parameters."
+          },
+          "max": {
+            "type": "number",
+            "description": "Maximum allowed value for number parameters."
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": ["string", "number", "boolean"]
+            },
+            "description": "Allowed values for enum parameters."
+          },
+          "required": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      }
+    },
+    "robot_type": {
+      "type": "string",
+      "description": "Primary hardware target: 'so101', 'reachy_mini', 'openclaw', 'generic'. A skill may support multiple types via compatible_types.",
+      "minLength": 1
+    },
+    "compatible_types": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Additional robot_type values this skill can run on (cross-hardware portability).",
+      "default": []
+    },
+    "joint_count": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Expected degrees of freedom for this skill. 6 for SO-101, 7+2 for Reachy Mini head+antennas."
+    },
+    "train_backend": {
+      "type": "string",
+      "enum": ["local", "qualia", "none"],
+      "description": "Preferred training backend. 'local' = on-device MLP/custom, 'qualia' = Qualia Studio API (ACT, SmolVLA, Pi0).",
+      "default": "local"
+    },
+    "hf_model_id": {
+      "type": "string",
+      "description": "Optional HuggingFace model repo ID for pre-trained checkpoint, e.g. 'botversex/grasp-generic-act-v1'."
+    },
+    "hf_dataset_id": {
+      "type": "string",
+      "description": "Optional HuggingFace dataset repo ID, e.g. 'botversex/so101-grasp-20episodes'."
+    },
+    "min_episodes": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Minimum training episodes recommended (e.g. 20 for ACT, 50 for SmolVLA).",
+      "default": 20
+    },
+    "episode_duration_s": {
+      "type": "number",
+      "minimum": 1,
+      "description": "Recommended per-episode recording duration in seconds. 30 = single action, 60 = two actions.",
+      "default": 30
+    },
+    "compatibility": {
+      "type": "object",
+      "description": "Optional engineering-grade compatibility metadata. v0.9 keeps this optional; v1.0 may require success_rate by runtime.",
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["A+", "A", "B", "C", "D"],
+          "description": "A+ = broadly portable, D = experimental."
+        },
+        "verified_runtimes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of what this skill does."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Searchable tags: ['manipulation', 'locomotion', 'expression', 'vision'].",
+      "default": []
+    },
+    "author": {
+      "type": "string",
+      "description": "Skill author or organization."
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version string, e.g. '0.1.0'.",
+      "default": "0.1.0"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}
