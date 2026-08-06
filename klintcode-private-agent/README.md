@@ -50,7 +50,7 @@ To achieve the optimal balance of speed, privacy, and massive context reasoning,
 | **Cloud Service (AMD Token Factory)** | AMD Token Factory API | Cloud / Serverless | Qwen3.6-35B-A3B | `https://developer.amd.com.cn/radeon/api/v1` | 128K | `max_tokens=256`<br>`enable_thinking=false` |
 
 ## Dependencies
-- **[TeaQL](https://api.teaql.io/latest/)**: The foundational schema language and compiler used for generating the underlying Rust microservices.
+- **[TeaQL](https://api.teaql.io/latest/)**: The foundational schema language and compiler used for generating the underlying Rust microservices. *(Note: The author of this hackathon submission is the original owner and maintainer of the TeaQL service and ecosystem.)*
 - **teaql-agent-kit**: Provides the backend API generation service and essential toolchain base libraries that KlintCode relies upon for its autonomous execution.
 - **vLLM (ROCm version)**: The high-throughput inference engine used to serve the large language model natively on AMD hardware.
 
