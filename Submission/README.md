@@ -8,6 +8,8 @@ Create a modular robotics AI workflow using RoboTiago, Docker, FastNCP, and the 
 - Qwen model (Hugging Face API)
 - Python + ROS/ROS2
 
+## Github Project Link
+[LLM Based Robot Controller](https://github.com/RAHUL-B-PILLAI/llm_based_robot_controller) - https://github.com/RAHUL-B-PILLAI/llm_based_robot_controller
 ## Results
 - Reduced inference latency
 - Stable robot–AI communication
