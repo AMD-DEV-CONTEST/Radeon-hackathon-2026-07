@@ -1,0 +1,1 @@
+"""Silent Vision vision package."""

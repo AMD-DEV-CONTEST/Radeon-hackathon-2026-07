@@ -1,0 +1,24 @@
+services:
+  silent-vision:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      COMMAND_BACKEND: prototype
+      PERSISTENCE_ROOT: /workspace/persistent/silent-vision
+      ALLOWED_ORIGINS: http://localhost:8000
+      LOG_TRANSCRIPTS: "false"
+      HOST: 127.0.0.1
+      PORT: "8000"
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+    ipc: host
+    shm_size: 16gb
+    volumes:
+      - /workspace/persistent/silent-vision:/workspace/persistent/silent-vision
+    ports:
+      - 127.0.0.1:8000:8000
+    restart: unless-stopped
