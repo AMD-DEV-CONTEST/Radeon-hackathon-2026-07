@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://policycut.local/schemas/events.schema.json",
+  "title": "PolicyCut redaction events",
+  "description": "Validates events.json: either a bare array of RedactionEvent objects or an object with an 'events' array (plus optional revision).",
+  "oneOf": [
+    {
+      "type": "array",
+      "items": { "$ref": "#/definitions/redaction_event" }
+    },
+    {
+      "type": "object",
+      "required": ["events"],
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/redaction_event" }
+        },
+        "revision": { "type": "integer", "minimum": 0 }
+      }
+    }
+  ],
+  "definitions": {
+    "box_keyframe": {
+      "type": "object",
+      "required": ["t", "x", "y", "w", "h"],
+      "properties": {
+        "t": { "type": "number", "minimum": 0 },
+        "x": { "type": "number", "minimum": 0, "maximum": 1 },
+        "y": { "type": "number", "minimum": 0, "maximum": 1 },
+        "w": { "type": "number", "minimum": 0, "maximum": 1 },
+        "h": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "action": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["blur", "pixelate", "solid", "mute", "beep"]
+        },
+        "strength": { "type": "integer", "minimum": 1, "maximum": 100 }
+      }
+    },
+    "redaction_event": {
+      "type": "object",
+      "required": ["id", "kind", "category", "start_s", "end_s", "action"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^e_[0-9a-f]{10}$" },
+        "kind": { "type": "string", "enum": ["visual", "audio"] },
+        "category": {
+          "type": "string",
+          "enum": [
+            "face",
+            "license_plate",
+            "id_document",
+            "screen",
+            "phone",
+            "email",
+            "address",
+            "manual"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "confirmed", "ignored"],
+          "default": "pending"
+        },
+        "source": {
+          "type": "string",
+          "enum": ["auto", "manual"],
+          "default": "auto"
+        },
+        "start_s": { "type": "number", "minimum": 0 },
+        "end_s": { "type": "number", "minimum": 0 },
+        "action": { "$ref": "#/definitions/action" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "track_id": {
+          "type": ["string", "null"],
+          "pattern": "^t_[0-9a-f]{10}$"
+        },
+        "boxes": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/box_keyframe" }
+        },
+        "text_preview": { "type": "string" },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "manual_fixed_region": { "type": "boolean", "default": false }
+      }
+    }
+  }
+}

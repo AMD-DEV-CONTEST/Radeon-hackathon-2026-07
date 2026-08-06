@@ -1,0 +1,127 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://policycut.local/schemas/audit.schema.json",
+  "title": "PolicyCut audit report",
+  "description": "exports/audit.json — machine-checkable summary of one redaction run. Contains no raw transcript, no PII text, no absolute paths.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "input",
+    "output",
+    "policy",
+    "models",
+    "environment",
+    "stage_metrics",
+    "events",
+    "counts",
+    "review_history_count",
+    "warnings"
+  ],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "generated_at": { "type": "string" },
+    "input": { "$ref": "#/definitions/media_digest" },
+    "output": { "$ref": "#/definitions/media_digest" },
+    "policy": { "type": ["object", "null"] },
+    "models": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "stage": { "type": "string" },
+          "model_id": { "type": "string" },
+          "precision": { "type": ["string", "null"] },
+          "device": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "properties": {
+        "gpu_name": { "type": ["string", "null"] },
+        "rocm_version": { "type": ["string", "null"] },
+        "torch_version": { "type": ["string", "null"] },
+        "python": { "type": ["string", "null"] }
+      }
+    },
+    "stage_metrics": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "wall_s": { "type": "number" },
+          "peak_vram_mb": { "type": ["number", "null"] },
+          "frames": { "type": ["integer", "null"] },
+          "effective_fps": { "type": ["number", "null"] },
+          "precision": { "type": ["string", "null"] },
+          "fallbacks": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/audit_event" }
+    },
+    "counts": {
+      "type": "object",
+      "required": ["auto", "manual", "confirmed", "ignored"],
+      "properties": {
+        "auto": { "type": "integer", "minimum": 0 },
+        "manual": { "type": "integer", "minimum": 0 },
+        "confirmed": { "type": "integer", "minimum": 0 },
+        "ignored": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "review_history_count": { "type": "integer", "minimum": 0 },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "definitions": {
+    "media_digest": {
+      "type": "object",
+      "required": ["sha256", "duration_s", "resolution"],
+      "properties": {
+        "sha256": { "type": "string", "pattern": "^([0-9a-f]{64})?$" },
+        "duration_s": { "type": "number", "minimum": 0 },
+        "resolution": { "type": "string", "pattern": "^\\d+x\\d+$" }
+      }
+    },
+    "audit_event": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "category",
+        "start_s",
+        "end_s",
+        "action",
+        "source",
+        "status"
+      ],
+      "not": { "required": ["text_preview"] },
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "type": "string", "enum": ["visual", "audio"] },
+        "category": { "type": "string" },
+        "start_s": { "type": "number", "minimum": 0 },
+        "end_s": { "type": "number", "minimum": 0 },
+        "action": { "type": "object" },
+        "source": { "type": "string", "enum": ["auto", "manual"] },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "confirmed", "ignored"]
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

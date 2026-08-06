@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PolicyCut — Export</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <a href="index.html" class="btn ghost sm">&larr; Projects</a>
+    <span class="brand"><span class="brand-dot"></span>PolicyCut</span>
+    <span id="proj-name" class="muted"></span>
+    <span class="spacer"></span>
+    <a id="back-review" class="btn ghost sm" href="#">&larr; Back to review</a>
+    <span class="badge-local">&#128274; Local processing only</span>
+  </header>
+
+  <main class="page" style="max-width:940px;">
+    <div id="stale-banner" class="banner warn hidden">
+      <span class="grow">Events changed after the last render — the exported files are stale.</span>
+      <button id="btn-rerender" class="btn sm primary">Re-render</button>
+    </div>
+    <div id="pending-banner" class="banner error hidden">
+      <span class="grow">There are still pending auto-detected events. Every auto event must be confirmed or ignored before rendering.</span>
+      <a id="pending-link" class="btn sm" href="#">Open review</a>
+    </div>
+    <div id="error-banner" class="banner error hidden"></div>
+
+    <!-- Summary -->
+    <section class="panel">
+      <div class="row">
+        <h1 class="grow">Export</h1>
+        <button id="btn-render" class="btn primary">Render redacted video</button>
+      </div>
+      <hr class="sep">
+      <div class="stat-tiles" id="summary-tiles"></div>
+      <table class="kv" id="summary-table" style="margin-top:12px;"></table>
+    </section>
+
+    <!-- Render progress -->
+    <section class="panel hidden" id="render-progress">
+      <h2>Rendering</h2>
+      <div class="progress" style="height:10px;"><div class="fill" id="render-fill"></div></div>
+      <div class="row" style="margin-top:8px;">
+        <span id="render-msg" class="grow muted small">Starting…</span>
+        <span id="render-pct" class="mono small">0%</span>
+      </div>
+      <ul class="stage-list" id="render-stages" style="margin-top:10px;"></ul>
+    </section>
+
+    <!-- Results -->
+    <section class="panel hidden" id="results">
+      <h2>Redacted video</h2>
+      <video id="result-video" class="player" controls preload="metadata"></video>
+      <div class="row wrap" style="margin-top:12px;">
+        <a class="btn primary" id="dl-video" download="redacted.mp4">&#8681; Video (MP4)</a>
+        <a class="btn" id="dl-srt" download="redacted.srt">&#8681; Subtitles (SRT)</a>
+        <a class="btn" id="dl-audit" download="audit.json">&#8681; Audit (JSON)</a>
+        <a class="btn" id="dl-zip" download="policycut_export.zip">&#8681; Everything (ZIP)</a>
+      </div>
+      <hr class="sep">
+      <h3>Verification &amp; performance</h3>
+      <div class="stat-tiles" id="perf-tiles" style="margin-bottom:12px;"></div>
+      <table class="kv" id="hash-table"></table>
+    </section>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/export.js"></script>
+</body>
+</html>
