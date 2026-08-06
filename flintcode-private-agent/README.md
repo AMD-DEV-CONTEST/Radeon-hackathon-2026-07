@@ -40,6 +40,21 @@ FlintCode-Private-Agent/
   README.md                           # This file
 ```
 
+## Model & Inference Configuration
+
+To achieve the optimal balance of speed, privacy, and massive context reasoning, FlintCode employs a hybrid AMD infrastructure approach using Qwen models:
+
+1. **Local Private Deployment (AMD ROCm)**
+   - **Hardware**: AMD Radeon RX 7900 XTX (Native ROCm environment)
+   - **Model**: Qwen (e.g., Qwen2.5) 
+   - **Inference Engine**: vLLM with ROCm optimization
+   - **Capabilities**: Configured to process a massive **256K context window** locally. Utilizes ROCm's PagedAttention and KV Cache optimizations to autonomously generate the 80-object complex system without memory fragmentation.
+
+2. **Cloud Service (AMD Token Factory)**
+   - **Platform**: AMD Token Factory
+   - **Model**: Qwen Series
+   - **Capabilities**: Leveraged for high-speed, concurrent API-based reasoning tasks, seamlessly bridging the local agent loop with AMD's robust cloud infrastructure for auxiliary operations.
+
 ## Dependencies
 - **TeaQL**: The foundational schema language and compiler used for generating the underlying Rust microservices.
 - **teaql-agent-kit**: Provides the backend API generation service and essential toolchain base libraries that FlintCode relies upon for its autonomous execution.
