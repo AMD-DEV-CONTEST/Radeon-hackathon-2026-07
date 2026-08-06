@@ -1,89 +1,196 @@
-# Radeon-hackathon-2026-07
+# CareerPilot AI – Intelligent Career & Placement Agent
+### *Empowering Job Seekers with Local GPU-Accelerated Agentic AI*
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+CareerPilot AI is a production-grade, full-stack autonomous career mentorship application built for the **AMD AI DevMaster Hackathon (Agentic AI Track)**. It helps college students, fresh graduates, and professionals map skill gaps, audit resume ATS scores, practice speech-driven mock interviews, and organize custom 4-week study roadmaps.
 
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
+---
 
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
+## 🛠️ Tech Stack & Architecture
 
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+- **Frontend**: React (Vite), TypeScript, Tailwind CSS, Recharts (analytics dashboards), Framer Motion (glassmorphic layouts), Lucide Icons.
+- **Backend**: Node.js, Express, TypeScript, REST APIs, MongoDB + Mongoose, JWT Authentication, Multer (file parser buffers), bcryptjs.
+- **AI Engine**: Modular Dual-Mode Client supporting local **Ollama** (ROCm AMD accelerated) or cloud **OpenAI API**.
 
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+```mermaid
+graph TD
+    Client[React + Vite Frontend] -->|API Requests / JWT| Server[Express + TS Server]
+    Server -->|Read/Write| DB[(MongoDB Database)]
+    Server -->|Text Buffer| Parser[PDF Parse Engine]
+    Server -->|AI Broker Broker| ClientAI{AI Config Layer}
+    
+    ClientAI -->|Local mode / ROCm| Ollama[Ollama Server http://localhost:11434]
+    Ollama -->|GPU Accelerated| AMDGPU[AMD Radeon GPU via ROCm]
+    
+    ClientAI -->|Cloud mode| OpenAI[OpenAI API Cloud Endpoint]
+    
+    subgraph Local Inference AMD Environment
+        Ollama
+        AMDGPU
+    end
+```
 
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+---
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+## 🚀 AMD ROCm & GPU Acceleration Guide
 
-> [!IMPORTANT]
-> Team name was an optional field on the Luma registration form. If you did not fill in a team name when you registered, please use your own name instead, so the title of the pull request should be like **"Track x, Your name, your application name"**.
+CareerPilot AI features a modular inference broker specifically designed to route workloads to a local **Ollama** server running on **AMD Radeon GPUs** through **ROCm**.
 
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
+### 1. Requirements
+- AMD Radeon™ GPU (ROCm supported architectures: RDNA 2, RDNA 3, CDNA e.g., RX 6000, RX 7000 series, or workstation cards).
+- **Ollama** installed locally on your Windows/Linux machine.
+- ROCm compatible runtime drivers.
 
-## Submission Requirements
+### 2. Configure AMD GPU Acceleration on Windows
+For many consumer Radeon cards (like RX 6600, 6700, 7600 etc.), Ollama automatically detects the card. If it does not, you can enforce graphic library compatibility by setting Windows environment variables:
 
-### Track 1: Development of Multimodal Content Creation Tools
+```powershell
+# In PowerShell (run as Administrator before starting Ollama)
+$env:HSA_OVERRIDE_GFX_VERSION="10.3.0" 
 
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
+# Or for RDNA 3 cards (e.g. RX 7000 Series)
+$env:HSA_OVERRIDE_GFX_VERSION="11.0.0"
+```
 
-### Track 2: Development & Local Deployment of Private AI Agents
+### 3. Start Local Inference Server
+Pull and run the default lightweight models using Ollama:
+```bash
+# Pull the Llama 3 model (8 Billion Parameters)
+ollama pull llama3
 
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
+# Run the local server endpoint
+ollama run llama3
+```
+Ollama will now host an OpenAI-compatible REST API at `http://localhost:11434/v1` backed by AMD ROCm GPU acceleration.
 
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
+### 4. Enable ROCm Mode in CareerPilot AI
+In your `backend/.env` file, configure the AI Broker:
+```env
+AI_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3
+```
 
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+---
+
+## 📁 Repository Directory Structure
+
+```
+e:/AMD/
+├── backend/
+│   ├── src/
+│   │   ├── config/          # MongoDB Adapter, AI Client Configuration (ROCm vs Cloud)
+│   │   ├── controllers/     # API logic (Auth, Chat, Resume, Interview, Roadmap, Dashboard)
+│   │   ├── middleware/      # Auth tokens, Multer memory storage, Error handlers
+│   │   ├── models/          # Mongoose Schemas (User, Chat, Resume, Interview, Roadmap, Notification)
+│   │   ├── routes/          # Express route bindings
+│   │   ├── services/        # AI Service prompt brokers and structured parser helpers
+│   │   ├── utils/           # Helper scripts
+│   │   └── index.ts         # Backend server bootloader
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── .env.example
+├── frontend/
+│   ├── public/              # Global assets, favicons, logos
+│   ├── src/
+│   │   ├── components/      # UI components (GlassCard, Layout, EmptyState indicators)
+│   │   ├── context/         # Auth contexts, Themes modes caching, Toast notifications
+│   │   ├── hooks/           # useSpeech (Mic inputs, Web Speech Synthesis output)
+│   │   ├── pages/           # Pages (Dashboard, Resume, Interview, Roadmaps, Settings)
+│   │   ├── App.tsx          # Central router guard
+│   │   ├── index.css        # Tailwind + Glassmorphism directives
+│   │   └── main.tsx
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── tailwind.config.js
+│   └── vite.config.ts
+```
+
+---
+
+## 🔧 Installation & Local Launch
+
+Ensure you have **Node.js** (v18+) and **MongoDB** installed and running locally.
+
+### Step 1: Set Up Backend Configurations
+```bash
+cd backend
+npm install
+```
+Rename the `.env.example` file to `.env` and adjust variables if needed:
+```env
+PORT=5000
+MONGODB_URI=mongodb://localhost:27017/careerpilot
+AI_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3
+```
+
+### Step 2: Set Up Frontend Configurations
+```bash
+cd ../frontend
+npm install
+```
+
+### Step 3: Run the Development Servers
+You can launch both applications in separate terminals:
+
+```bash
+# In terminal 1 (start backend API on port 5000)
+cd backend
+npm run dev
+
+# In terminal 2 (start Vite React frontend on port 3000)
+cd frontend
+npm run dev
+```
+
+Open your browser and navigate to: **`http://localhost:3000`**
+
+---
+
+## 👥 Seed Demo Accounts
+To test the application immediately without registration, you can use the default test account credentials:
+
+- **Email**: `testpilot@careerpilot.ai`
+- **Password**: `password123`
+
+*(These test profiles will automatically hook up default dashboard metrics, resume reviews history logs, and learning roadmaps, enabling rapid testing).*
+
+---
+
+## 📡 REST API Documentation Reference
+
+All requests must include the JWT token header: `Authorization: Bearer <token>` (except public auth endpoints).
+
+| Method | Endpoint | Description | Payload |
+|:---|:---|:---|:---|
+| **POST** | `/api/auth/signup` | Register new profile account | `{ name, email, password }` |
+| **POST** | `/api/auth/login` | Login and return JWT token | `{ email, password }` |
+| **GET** | `/api/auth/profile` | Retrieve active profile details | *None* |
+| **PUT** | `/api/auth/profile` | Update profile / target career | `{ name, targetCareer }` |
+| **GET** | `/api/dashboard/overview` | Retrieve dashboard stats & checklist | *None* |
+| **POST** | `/api/resume/analyze` | Parse PDF resume and calculate score | `file (FormData), targetJob` |
+| **GET** | `/api/resume/latest` | Retrieve latest resume ATS critique | *None* |
+| **POST** | `/api/interview/start` | Start new mock interview session | `{ type: 'technical'\|'hr', role }` |
+| **POST** | `/api/interview/:id/answer`| Submit answer and get next question | `{ answer }` |
+| **POST** | `/api/roadmap/analyze-gap` | Map skill gap & generate 4-week roadmap| `{ dreamJob, currentSkills }` |
+| **PUT** | `/api/roadmap/toggle-task` | Toggle checklist task completion state | `{ taskId, isCompleted }` |
+| **GET** | `/api/chat` | Get conversation chats list | *None* |
+| **POST** | `/api/chat` | Create new consultation chat | `{ title }` |
+| **POST** | `/api/chat/:id/message` | Send message to AI mentor | `{ content }` |
+
+---
+
+## 🏆 Gamified Achievement Badges
+
+CareerPilot AI builds user engagement using unlockable achievements tracked on the profile dashboard page:
+1. **Welcome Pilot**: Account created successfully.
+2. **Profile Completed**: Career objectives and current skills populated.
+3. **Resume Critic**: Uploaded first PDF resume.
+4. **ATS Master**: Achieved a resume ATS rating of 80% or higher.
+5. **Interview Explorer**: Completed first mock interview loop.
+6. **Mock Superstar**: Achieved a mock score rating of 8.0/10 or higher.
+7. **Roadmap Planner**: Generated first week-by-week learning plan.
+8. **Pathfinder**: Checked off first learning task.
+9. **Placement Graduate**: Achieved 100% completion on a roadmap.
+10. **Deep Thinker**: Maintained 5 or more consultations chats.
