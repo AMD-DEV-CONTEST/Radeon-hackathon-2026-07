@@ -108,26 +108,28 @@ ssh -L 7860:localhost:7860 <user>@<host>
 | --- | --- | --- |
 | Input Image | built-in sample cat image | Input image; resized to 1024×1024 internally, output is restored to the original size |
 | Style LoRA | 无 (none) | Switching a style also fills in that style's recommended prompt |
-| Prompt / Negative Prompt | varies by LoRA | Positive / negative prompts |
-| Strength | 0.7 | Denoising strength — higher means further from the input image |
-| ControlNet Scale | 0.5 | Canny conditioning strength — higher means closer to the input edges. Canny gives hard edges, so lower values (0.3-0.4) often look more natural for heavy stylization |
+| Prompt | varies by LoRA | Positive prompt; auto-filled with the selected style's recommended prompt |
+| Negative Prompt | `""` (empty) | Only used when Guidance Scale > 1 (CFG enabled) |
+| Strength | 0.99 | Denoising strength — higher means further from the input image |
+| ControlNet Scale | 0.4 | Canny conditioning strength — higher means closer to the input edges. Canny gives hard edges, so lower values (0.3-0.4) often look more natural for heavy stylization |
 | Steps | 8 | Denoising steps; 8 is enough with the Lightning 8-step LoRA |
 | Guidance Scale | 1.0 | `1.0` disables classifier-free guidance, halving the UNet/ControlNet batch. Values above 1 re-enable CFG and roughly double the cost — Lightning is a distilled model and does not need it |
 | Seed | 42 | `-1` for random |
 
-Alongside the output image, the UI prints a per-run breakdown — LoRA switch time, Canny extraction (marked `(cached)` on a cache hit), setup, per-step denoise, pipeline total, and peak VRAM — which is handy for performance comparisons:
+Alongside the output image, the UI prints a per-run breakdown — LoRA switch time, Canny extraction (marked `(cached)` on a cache hit), setup, per-step denoise, VAE decode, pipeline total, and peak VRAM — which is handy for performance comparisons:
 
 ```
-⏱ Total: X.XXs
+⏱ Total: X.XXs  ·  seed 42
 ├─ LoRA:       X.Xms (日式动漫)
 ├─ Canny:      X.XXs (cached)
 ├─ Setup:      X.XXs (encode + step1)
 ├─ Denoise:    X.XXXs/step × 5
+├─ VAE decode: X.XXs
 ├─ Pipe total: X.XXs
 └─ VRAM peak:  X.XX GB allocated / X.XX GB reserved
 ```
 
-Note that the denoise step count shown is the *actual* number executed — in img2img this is `int(steps × strength)`, so the defaults (8 steps × 0.7) run 5 steps, not 8.
+Note that the denoise step count shown is the *actual* number executed — in img2img this is `int(steps × strength)`, so with the UI defaults (8 steps × 0.99) it runs 7 steps, not 8. (The CLI in §2.2 calls `generate_image()` with its own function defaults of `strength=0.7`, i.e. 5 steps.)
 
 ### 2.2 Optional: Command-Line Single-Image Generation
 
@@ -193,7 +195,7 @@ ArtisanAI/
 
 ### 5.1 Measured Results
 
-On the target platform (AMD Radeon Graphics, gfx1100 / RDNA 3, 48 GB VRAM, ROCm 7.2.1, PyTorch 2.9.1), at 1024x1024 with the UI defaults (`steps=8`, `strength=0.7` -> 5 actual denoise steps, `guidance_scale=1.0`), steady state after warmup:
+On the target platform (AMD Radeon Graphics, gfx1100 / RDNA 3, 48 GB VRAM, ROCm 7.2.1, PyTorch 2.9.1), at 1024x1024 with `steps=8`, `strength=0.7` (5 actual denoise steps), `controlnet_conditioning_scale=0.5`, `guidance_scale=1.0`, steady state after warmup. (The web UI defaults differ — `strength=0.99` / `ControlNet Scale=0.4`, which runs 7 actual steps — so the numbers below are a 5-step benchmark at `strength=0.7`; see §2.1.)
 
 | Stage | Time | Share |
 | --- | --- | --- |
