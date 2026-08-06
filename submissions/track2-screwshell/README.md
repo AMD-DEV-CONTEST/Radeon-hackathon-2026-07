@@ -26,7 +26,7 @@ This directory (`submissions/track2-screwshell/`) is the submission entry point.
 |---|---|---|
 | **1. Project Specification Document** | [`docs/PROJECT_SPECIFICATION.md`](docs/PROJECT_SPECIFICATION.md) (copy of the authoritative `docs/SPEC.md`) | ✅ |
 | **2. Project Source Code + README** | [`screwshell`](https://github.com/1105s110martin-art/screwshell) (full repo with English README, env config, startup guide, dependencies) | ✅ |
-| **3. Demo Video (3–5 min)** | [`presentation/ScrewShell_demo.mp4`](presentation/ScrewShell_demo.mp4) | 📹 |
+| **3. Demo Video (3–5 min)** | [`presentation/ScrewShell_demo.7z`](presentation/ScrewShell_demo.7z) (7z archive of the demo MP4, which exceeds GitHub's 100 MB per-file limit; extract to view) | 📹 |
 | **4. PPT / Poster** | [`presentation/ScrewShell_pitch_deck.pptx`](presentation/ScrewShell_pitch_deck.pptx) | 📊 |
 
 ## Quick architecture
