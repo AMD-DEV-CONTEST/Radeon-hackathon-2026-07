@@ -1,0 +1,88 @@
+spring:
+  application:
+    name: parceltracking
+
+  # Default: PostgreSQL with pgvector (used in Docker/production)
+  # Override with spring.profiles.active=dev for H2 local development
+  datasource:
+    url: jdbc:postgresql://db:5432/parceltracking # container service name is needed plus db name
+    username: postgres
+    password: secret
+    driver-class-name: org.postgresql.Driver
+
+  h2:
+    console:
+      enabled: false
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect 
+        '[format_sql]': true
+    defer-datasource-initialization: true
+
+  sql:
+    init:
+      mode: always # tells spring to always initialize the database schema and data on startup
+
+  ai:
+    openai:
+      # Local ROCm inference endpoint (e.g., Ollama, llama.cpp, or vLLM with AMD GPU)
+      api-key: ${OPENAI_API_KEY:not-needed}
+      base-url: ${OPENAI_BASE_URL:http://localhost:8000/v1}
+      chat:
+        model: ${CHAT_MODEL_NAME:llama3.2-1B-Instruct}
+        temperature: 0.7
+        max-tokens: 2048
+        top-p: 0.95
+
+    vectorstore:
+      pgvector:
+        # Embedding dimension — must match the ONNX embedding model output
+        # all-MiniLM-L6-v2 → 384 dimensions
+        # all-mpnet-base-v2 → 768 dimensions
+        # text-embedding-ada-002 → 1536 dimensions
+        dimensions: 384
+        # Similarity search method (cosineDistance, euclideanDistance, negativeInnerProduct)
+        similarity: cosineDistance
+        # Whether to remove existing vectors on re-init (false = append)
+        initialize-schema: true
+        # Index type for approximate nearest neighbor search
+        index-type: HNSW
+
+    embedding:
+      # ONNX-based local embedding model for RAG document vectorization
+      transformer:
+        enabled:  true
+        gpu-acceleration: false
+        # Model to use for generating embeddings (local file for air-gap resilience)
+        model:
+          uri: classpath:models/onnx/model.onnx
+        # Tokenizer configuration (local file for air-gap resilience)
+        tokenizer:
+          uri: classpath:models/onnx/tokenizer.json
+        # Metadata about the model
+        metadata:
+          model-name: sentence-transformers/all-MiniLM-L6-v2
+
+admin:
+  api-key: ${X-Admin-Key:admin-secret-key}
+
+server:
+  port: 8080
+
+# Swagger / OpenAPI configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+    try-it-out-enabled: true
+    csrf:
+      enabled: false
+
