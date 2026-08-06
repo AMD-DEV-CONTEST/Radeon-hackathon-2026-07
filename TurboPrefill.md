@@ -79,4 +79,10 @@ TurboPrefill by Trykhlieb adapted for ik_llama.cpp by Ivan Kawrakow.
 
 https://devpost.com/software/turboprefill
 
+## Running
+
+Setup instructions and benchmark scripts are available here:
+
+https://github.com/sergey-automation/TurboPrefill-MTP/blob/main/READMI.md
+
  
