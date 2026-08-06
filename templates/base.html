@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}EduCopilot{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --eco-primary: #4f46e5;
+            --eco-primary-light: #818cf8;
+            --eco-bg: #f8fafc;
+            --eco-card: #ffffff;
+            --eco-text: #1e293b;
+            --eco-muted: #64748b;
+            --eco-border: #e2e8f0;
+            --eco-success: #10b981;
+            --eco-warning: #f59e0b;
+            --eco-danger: #ef4444;
+        }
+        body { background: var(--eco-bg); color: var(--eco-text); font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        .navbar { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); box-shadow: 0 2px 12px rgba(79,70,229,0.25); }
+        .navbar-brand { font-weight: 700; font-size: 1.25rem; letter-spacing: -0.02em; }
+        .navbar .nav-link { color: rgba(255,255,255,0.85) !important; font-weight: 500; }
+        .navbar .nav-link:hover { color: #fff !important; }
+        .card { border: 1px solid var(--eco-border); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s; }
+        .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+        a .card:hover { transform: none; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+        .card-header { background: transparent; border-bottom: 1px solid var(--eco-border); font-weight: 600; }
+        .btn-primary { background: var(--eco-primary); border-color: var(--eco-primary); }
+        .btn-primary:hover { background: #4338ca; border-color: #4338ca; }
+        .badge-remedial { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+        .badge-average { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+        .badge-advanced { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+        .progress { height: 10px; border-radius: 99px; background: #e2e8f0; }
+        .progress-bar { border-radius: 99px; }
+        .sidebar-link { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 8px; color: var(--eco-muted); text-decoration: none; font-weight: 500; transition: all 0.15s; }
+        .sidebar-link:hover, .sidebar-link.active { background: #eef2ff; color: var(--eco-primary); }
+        .sidebar-link i { font-size: 1.1rem; width: 20px; text-align: center; }
+        .table th { font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--eco-muted); }
+        .co-valid { color: var(--eco-success); }
+        .co-invalid { color: var(--eco-danger); }
+        .flash-container { position: fixed; top: 72px; right: 20px; z-index: 1050; min-width: 340px; }
+        .hero-section { background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 50%, #fdf4ff 100%); border-radius: 16px; padding: 32px; margin-bottom: 24px; }
+        .stat-card { text-align: center; padding: 20px; }
+        .stat-card .stat-value { font-size: 2rem; font-weight: 700; color: var(--eco-primary); }
+        .stat-card .stat-label { font-size: 0.85rem; color: var(--eco-muted); margin-top: 4px; }
+        .course-card-link { display: block; text-decoration: none; color: inherit; cursor: pointer; position: relative; }
+        .course-card-link:hover .card { border-color: var(--eco-primary-light); box-shadow: 0 4px 16px rgba(79,70,229,0.15); transform: translateY(-2px); }
+        .tab-content { padding-top: 20px; }
+        textarea:focus, input:focus, select:focus, .form-control:focus, .form-select:focus {
+            border-color: var(--eco-primary-light);
+            box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+        }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 { margin-top: 1.2em; }
+        .markdown-body table { width: 100%; border-collapse: collapse; margin: 1em 0; }
+        .markdown-body th, .markdown-body td { border: 1px solid var(--eco-border); padding: 8px 12px; text-align: left; }
+        .markdown-body th { background: #f1f5f9; font-weight: 600; }
+        .markdown-body code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+        .markdown-body pre { background: #1e293b; color: #e2e8f0; padding: 16px; border-radius: 8px; overflow-x: auto; }
+        .markdown-body pre code { background: transparent; color: inherit; }
+        .loading-spinner { display: none; }
+        .btn.loading .loading-spinner { display: inline-block; }
+        .btn.loading .btn-text { display: none; }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="bi bi-mortarboard-fill me-2"></i>EduCopilot
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('dashboard') }}">
+                    <i class="bi bi-grid-1x2 me-1"></i>Dashboard
+                </a>
+                <a class="nav-link" href="{{ url_for('add_course') }}">
+                    <i class="bi bi-plus-circle me-1"></i>Add Course
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    <div class="flash-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <main class="container-fluid px-4 py-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-dismiss flash messages
+        setTimeout(() => {
+            document.querySelectorAll('.flash-container .alert').forEach(el => {
+                new bootstrap.Alert(el).close();
+            });
+        }, 6000);
+
+        // Loading spinner on form submit
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', () => {
+                const btn = form.querySelector('button[type="submit"]');
+                if (btn) btn.classList.add('loading');
+            });
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Evaluate — {{ course.course_code }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('course_detail', course_id=course.course_id) }}">{{ course.course_code }}</a></li>
+        <li class="breadcrumb-item active">Evaluate</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-lg-5 mb-4">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-check2-square me-2"></i>Evaluate Assignment</div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row g-2 mb-3">
+                        <div class="col">
+                            <label class="form-label fw-semibold">Student ID</label>
+                            <input type="text" class="form-control" name="student_id" placeholder="STU001">
+                        </div>
+                        <div class="col">
+                            <label class="form-label fw-semibold">Student Name</label>
+                            <input type="text" class="form-control" name="student_name" placeholder="John Doe">
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col">
+                            <label class="form-label fw-semibold">Type</label>
+                            <select class="form-select" name="assessment_type">
+                                <option value="assignment">Assignment</option>
+                                <option value="quiz">Quiz</option>
+                                <option value="midterm">Midterm</option>
+                                <option value="final">Final</option>
+                                <option value="lab">Lab</option>
+                            </select>
+                        </div>
+                        <div class="col">
+                            <label class="form-label fw-semibold">Max Marks</label>
+                            <input type="number" class="form-control" name="max_marks" value="100" min="1">
+                        </div>
+                        <div class="col">
+                            <label class="form-label fw-semibold">Class #</label>
+                            <input type="number" class="form-control" name="lecture_num" min="1" placeholder="Optional">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Student's Answers <span class="text-danger">*</span></label>
+                        <textarea class="form-control" name="answers" rows="10"
+                            placeholder="Paste the student's answers here...&#10;&#10;Q1: [answer]&#10;Q2: [answer]&#10;Q3: [answer]"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <span class="btn-text"><i class="bi bi-search me-2"></i>Evaluate</span>
+                        <span class="loading-spinner spinner-border spinner-border-sm me-2"></span>
+                        <span class="loading-spinner">Evaluating...</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        {% if result %}
+        <div class="card mb-4">
+            <div class="card-header bg-success-subtle text-success">
+                <i class="bi bi-check-circle me-2"></i>Evaluation Result
+            </div>
+            <div class="card-body">
+                <div class="row g-3 mb-3">
+                    <div class="col text-center">
+                        <div class="stat-value" style="font-size:2rem;color:var(--eco-primary);">
+                            {{ result.total_marks_awarded }}/{{ result.total_marks_possible }}
+                        </div>
+                        <div class="stat-label">Marks</div>
+                    </div>
+                    <div class="col text-center">
+                        <div class="stat-value" style="font-size:2rem;color:var(--eco-primary);">
+                            {{ "%.1f"|format(result.percentage) }}%
+                        </div>
+                        <div class="stat-label">Percentage</div>
+                    </div>
+                    <div class="col text-center">
+                        <span class="badge badge-{{ result.recommended_cohort|lower }} px-3 py-2" style="font-size:1rem;">
+                            {{ result.recommended_cohort }}
+                        </span>
+                        <div class="stat-label mt-1">Cohort</div>
+                    </div>
+                </div>
+                <h6>Feedback</h6>
+                <p>{{ result.overall_feedback }}</p>
+                {% if result.questions %}
+                <h6 class="mt-3">Per-Question Breakdown</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead><tr><th>Q#</th><th>Marks</th><th>CO</th><th>Feedback</th></tr></thead>
+                        <tbody>
+                        {% for q in result.questions %}
+                        <tr>
+                            <td>{{ q.question_num }}</td>
+                            <td>{{ q.marks_awarded }}/{{ q.marks_possible }}</td>
+                            <td><span class="badge bg-info-subtle text-info">{{ q.co_id }}</span></td>
+                            <td class="small">{{ q.feedback }}</td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if evaluations %}
+        <div class="card">
+            <div class="card-header"><i class="bi bi-clock-history me-2"></i>Previous Evaluations</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead><tr><th>Student</th><th>Type</th><th>Score</th><th>Cohort</th><th>Date</th></tr></thead>
+                        <tbody>
+                        {% for e in evaluations[:20] %}
+                        <tr>
+                            <td>{{ e.student_name or '—' }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ e.assessment_type }}</span></td>
+                            <td>{{ e.total_marks_awarded }}/{{ e.total_marks_possible }} ({{ "%.0f"|format(e.percentage) }}%)</td>
+                            <td><span class="badge badge-{{ e.recommended_cohort|lower }}">{{ e.recommended_cohort }}</span></td>
+                            <td class="text-muted small">{{ e.evaluated_at[:10] }}</td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

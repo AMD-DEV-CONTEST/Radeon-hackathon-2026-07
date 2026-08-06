@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+{% block title %}Content — {{ course.course_code }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('course_detail', course_id=course.course_id) }}">{{ course.course_code }}</a></li>
+        <li class="breadcrumb-item active">Content</li>
+    </ol>
+</nav>
+
+<!-- Class Navigation Bar -->
+<div class="card mb-3">
+    <div class="card-body py-2 d-flex align-items-center justify-content-between">
+        <a href="{{ url_for('generate_content', course_id=course.course_id, class_num=class_num - 1) }}"
+           class="btn btn-sm btn-outline-secondary {% if class_num <= 1 %}disabled{% endif %}">
+            <i class="bi bi-chevron-left"></i> Prev
+        </a>
+        <div class="d-flex align-items-center gap-3">
+            <span class="fw-bold">Class {{ class_num }} / {{ total_classes }}</span>
+            {% if plan and class_num <= plan|length %}
+            <span class="text-muted small">{{ plan[class_num - 1].topic_description[:60] }}</span>
+            {% endif %}
+            {% set logged = log_map.get(class_num) %}
+            {% if logged %}
+            <span class="badge bg-success-subtle text-success border border-success-subtle">
+                <i class="bi bi-check-circle me-1"></i>Taken
+            </span>
+            {% else %}
+            <form method="POST" action="{{ url_for('toggle_class_taken', course_id=course.course_id, lecture_num=class_num) }}" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-check-circle me-1"></i>Mark as Taken
+                </button>
+            </form>
+            {% endif %}
+        </div>
+        <a href="{{ url_for('generate_content', course_id=course.course_id, class_num=class_num + 1) }}"
+           class="btn btn-sm btn-outline-secondary {% if class_num >= total_classes %}disabled{% endif %}">
+            Next <i class="bi bi-chevron-right"></i>
+        </a>
+    </div>
+</div>
+
+<!-- Topic Info & Edit -->
+{% if plan and class_num <= plan|length %}
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="d-flex justify-content-between align-items-start">
+            <div class="flex-grow-1">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-light text-dark border" style="font-size:0.75rem;">{{ plan[class_num - 1].module_name }}</span>
+                    <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:0.75rem;">{{ plan[class_num - 1].target_co }}</span>
+                    <span class="text-muted" style="font-size:0.75rem;">{{ plan[class_num - 1].pedagogy }}</span>
+                </div>
+                <div class="fw-semibold" id="topic-text-{{ class_num }}">{{ plan[class_num - 1].topic_description }}</div>
+            </div>
+            <button class="btn btn-sm btn-outline-warning" data-bs-toggle="collapse" data-bs-target="#edit-topic-form-{{ class_num }}">
+                <i class="bi bi-pencil"></i> Edit Topic
+            </button>
+        </div>
+        <div class="collapse mt-2" id="edit-topic-form-{{ class_num }}">
+            <form method="POST" action="{{ url_for('edit_topic', course_id=course.course_id, lecture_num=class_num) }}">
+                <div class="row g-2">
+                    <div class="col">
+                        <label class="form-label small fw-semibold">Module Name</label>
+                        <input type="text" class="form-control form-control-sm" name="module_name"
+                               value="{{ plan[class_num - 1].module_name }}">
+                    </div>
+                    <div class="col">
+                        <label class="form-label small fw-semibold">CO</label>
+                        <input type="text" class="form-control form-control-sm" name="target_co"
+                               value="{{ plan[class_num - 1].target_co }}" disabled>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <label class="form-label small fw-semibold">Topic Description</label>
+                    <textarea class="form-control form-control-sm" name="topic_description" rows="3">{{ plan[class_num - 1].topic_description }}</textarea>
+                </div>
+                <div class="mt-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>Save Topic
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#edit-topic-form-{{ class_num }}">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <!-- Sidebar: Generator + History -->
+    <div class="col-lg-4 mb-4">
+        <!-- Generator Form -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-magic me-2"></i>Generate for Class {{ class_num }}</div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="lecture_num" value="{{ class_num }}">
+                    <div class="d-grid gap-2">
+                        <button type="submit" name="content_type" value="slides" class="btn btn-outline-primary">
+                            <i class="bi bi-easel me-2"></i>Slides
+                        </button>
+                        <button type="submit" name="content_type" value="handout" class="btn btn-outline-primary">
+                            <i class="bi bi-file-text me-2"></i>Student Handout
+                        </button>
+                        <button type="submit" name="content_type" value="teacher_notes" class="btn btn-outline-primary">
+                            <i class="bi bi-journal-text me-2"></i>Teacher Notes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Saved Content for this Class -->
+        {% set class_history = [] %}
+        {% for h in history %}
+            {% if h.lecture_num == class_num %}
+                {% if class_history.append(h) %}{% endif %}
+            {% endif %}
+        {% endfor %}
+
+        {% if class_history %}
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-folder me-2"></i>Class {{ class_num }} Content</div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for h in class_history %}
+                    <a href="{{ url_for('generate_content', course_id=course.course_id, view_id=h.id, class_num=class_num) }}"
+                       class="list-group-item list-group-item-action {% if viewing and viewing.id == h.id %}active{% endif %}">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-{{ 'easel' if h.content_type == 'slides' else 'file-text' if h.content_type == 'handout' else 'journal-text' }} mt-1"></i>
+                            <div class="flex-grow-1" style="min-width:0;">
+                                <div class="fw-semibold small text-truncate">{{ h.title }}</div>
+                                <div class="{% if viewing and viewing.id == h.id %}text-white-50{% else %}text-muted{% endif %}" style="font-size:0.75rem;">
+                                    {{ h.created_at[:16] if h.created_at else '' }}
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- All History -->
+        {% if history %}
+        <div class="card">
+            <div class="card-header" style="cursor:pointer;" data-bs-toggle="collapse" data-bs-target="#all-history">
+                <i class="bi bi-clock-history me-2"></i>All Saved Content ({{ history|length }})
+                <i class="bi bi-chevron-down float-end"></i>
+            </div>
+            <div class="collapse" id="all-history">
+                <div class="list-group list-group-flush" style="max-height:400px;overflow:auto;">
+                    {% for h in history %}
+                    <a href="{{ url_for('generate_content', course_id=course.course_id, view_id=h.id, class_num=h.lecture_num or 1) }}"
+                       class="list-group-item list-group-item-action {% if viewing and viewing.id == h.id %}active{% endif %}">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-{{ 'easel' if h.content_type == 'slides' else 'file-text' if h.content_type == 'handout' else 'journal-text' }} mt-1"></i>
+                            <div class="flex-grow-1" style="min-width:0;">
+                                <div class="fw-semibold small text-truncate">{{ h.title }}</div>
+                                <div class="{% if viewing and viewing.id == h.id %}text-white-50{% else %}text-muted{% endif %}" style="font-size:0.75rem;">
+                                    {{ h.created_at[:16] if h.created_at else '' }}
+                                    {% if h.lecture_num %} &middot; #{{ h.lecture_num }}{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="col-lg-8">
+        {% if editing and viewing %}
+        <!-- Edit Mode -->
+        <div class="card mb-3">
+            <div class="card-header bg-warning-subtle">
+                <i class="bi bi-pencil me-2"></i>Editing: {{ viewing.title }}
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('save_edited_content', course_id=course.course_id, content_id=viewing.id) }}">
+                    <textarea class="form-control mb-3" name="edited_content" rows="20" style="font-family:monospace;font-size:0.9em;">{{ viewing.markdown_content }}</textarea>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>Save Changes
+                        </button>
+                        <a href="{{ url_for('generate_content', course_id=course.course_id, view_id=viewing.id, class_num=class_num) }}"
+                           class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% elif viewing %}
+        <!-- Viewing a saved item -->
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="bi bi-{{ 'easel' if viewing.content_type == 'slides' else 'file-text' if viewing.content_type == 'handout' else 'journal-text' }} me-2"></i>
+                    {{ viewing.title }}
+                </span>
+                <div class="d-flex gap-2 flex-wrap">
+                    {% if viewing.content_type == 'slides' %}
+                    <a href="{{ url_for('download_slides_pdf', course_id=course.course_id, content_id=viewing.id) }}"
+                       class="btn btn-sm btn-primary">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('generate_content', course_id=course.course_id, view_id=viewing.id, class_num=class_num, edit='1') }}"
+                       class="btn btn-sm btn-outline-warning">
+                        <i class="bi bi-pencil me-1"></i>Edit
+                    </a>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="navigator.clipboard.writeText(document.getElementById('saved-output').innerText)">
+                        <i class="bi bi-clipboard me-1"></i>Copy
+                    </button>
+                    <form method="POST" action="{{ url_for('delete_content', course_id=course.course_id, content_id=viewing.id) }}"
+                          class="d-inline" onsubmit="return confirm('Delete this content?');">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash me-1"></i>Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="card-body markdown-body" id="saved-output" style="max-height:600px;overflow:auto;">
+                {{ viewing.markdown_content | replace('\n', '<br>') | safe }}
+            </div>
+            <div class="card-footer">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted small">
+                        Generated {{ viewing.created_at[:16] if viewing.created_at else '' }}
+                        {% if viewing.lecture_num %} &middot; Class #{{ viewing.lecture_num }}{% endif %}
+                        &middot; {{ viewing.content_type }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reprompt Section -->
+        <div class="card">
+            <div class="card-header" style="cursor:pointer;" data-bs-toggle="collapse" data-bs-target="#reprompt-section">
+                <i class="bi bi-robot me-2"></i>AI Revision
+                <i class="bi bi-chevron-down float-end"></i>
+                <small class="text-muted ms-2">(click to expand)</small>
+            </div>
+            <div class="collapse" id="reprompt-section">
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('reprompt_content', course_id=course.course_id, content_id=viewing.id) }}">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">What should the AI change?</label>
+                            <textarea class="form-control" name="instruction" rows="3"
+                                placeholder="E.g., Make it more concise, add more examples, simplify the language for first-year students, add a quiz at the end..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <span class="btn-text"><i class="bi bi-magic me-2"></i>Revise with AI</span>
+                            <span class="loading-spinner spinner-border spinner-border-sm me-2"></span>
+                            <span class="loading-spinner">Revising...</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {% elif generated %}
+        <!-- Just generated new content -->
+        <div class="alert alert-success d-flex align-items-center mb-3">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <div>Content generated and saved for Class {{ class_num }}! Refresh the page to see it in the sidebar.</div>
+        </div>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between">
+                <span><i class="bi bi-file-earmark-text me-2"></i>Generated Content</span>
+                <button class="btn btn-sm btn-outline-secondary" onclick="navigator.clipboard.writeText(document.getElementById('gen-output').innerText)">
+                    <i class="bi bi-clipboard me-1"></i>Copy
+                </button>
+            </div>
+            <div class="card-body markdown-body" id="gen-output" style="max-height:600px;overflow:auto;">
+                {{ generated | replace('\n', '<br>') | safe }}
+            </div>
+        </div>
+
+        {% else %}
+        <!-- Empty state -->
+        <div class="card">
+            <div class="card-body text-center py-5 text-muted">
+                <i class="bi bi-easel" style="font-size:3rem;"></i>
+                <h5 class="mt-3">Class {{ class_num }} — No Content Yet</h5>
+                <p>Generate slides, a handout, or teacher notes using the buttons on the left.</p>
+                {% if plan and class_num <= plan|length %}
+                <p class="small">Topic: <strong>{{ plan[class_num - 1].topic_description }}</strong></p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

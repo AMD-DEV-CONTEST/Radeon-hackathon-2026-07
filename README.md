@@ -1,89 +1,132 @@
-# Radeon-hackathon-2026-07
+# 🎓 EduCopilot — Autonomous Virtual TA & Accreditation Engine
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+An AI-powered Teaching Assistant that automates the full life cycle of higher-education courses using any OpenAI-compatible LLM endpoint.
 
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
+## Quick Start
 
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
+```powershell
+# 1. Configure an OpenAI-compatible endpoint (defaults to local Ollama)
+$env:OPENAI_BASE_URL = "http://localhost:11434/v1"
+$env:OPENAI_API_KEY = "ollama"
+$env:OPENAI_MODEL = "gemma4"
 
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+# 2. Activate the virtual environment
+.\.venv\Scripts\Activate.ps1
 
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+# 3. Run the web app
+python webapp.py
+```
 
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+Open **http://localhost:7860**
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+## Easy Local Docker Setup
 
-> [!IMPORTANT]
-> Team name was an optional field on the Luma registration form. If you did not fill in a team name when you registered, please use your own name instead, so the title of the pull request should be like **"Track x, Your name, your application name"**.
+For the shortest AMD ROCm-oriented setup, see [QUICKSTART.md](QUICKSTART.md).
+For the full AMD hackathon specification, architecture, feature documentation,
+demo plan, and limitations, see [HACKATHON_SPECIFICATION.md](HACKATHON_SPECIFICATION.md).
 
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
+Docker Compose runs EduCopilot with Flask's built-in web server. It stores the
+SQLite database and Chroma data in the persistent `educopilot_data` volume.
+This is intended for local deployment and testing, not cloud production use.
 
-## Submission Requirements
+1. Start your OpenAI-compatible endpoint. For local Ollama, install it and make
+sure the model is available:
 
-### Track 1: Development of Multimodal Content Creation Tools
+```powershell
+ollama pull gemma4
+```
 
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
+2. Build and start EduCopilot:
 
-### Track 2: Development & Local Deployment of Private AI Agents
+```powershell
+docker compose up --build -d
+```
 
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
+3. Open **http://localhost:7860** in your browser. View logs with:
 
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
+```powershell
+docker compose logs -f educopilot
+```
 
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+The default Compose configuration connects to Ollama running on the same
+computer at `http://host.docker.internal:11434/v1`. For another provider,
+create a `.env` file beside `docker-compose.yml`:
+
+```dotenv
+OPENAI_BASE_URL=https://your-provider.example.com/v1
+OPENAI_API_KEY=your-api-key
+OPENAI_MODEL=your-model-name
+```
+
+The endpoint must expose the OpenAI Chat Completions API. To stop the app, run:
+
+```powershell
+docker compose down
+```
+
+The existing local `educopilot.db` is intentionally excluded from the image;
+copy it into the `educopilot_data` volume or use a bind mount if you need its
+data in the container.
+
+## Features
+
+| Feature | Description |
+|---------|-------------|
+| **📚 Course Dashboard** | Visual card-based overview of all courses — click to open |
+| **➕ Add Course** | Paste syllabus, COs, materials + # of classes + instructions → AI generates class-wise plan |
+| **📊 Progress Tracking** | Log each class with topics, comments, student questions, pace notes |
+| **📝 Content Generation** | Auto-generate slides, handouts, and teacher notes — uses previous class feedback |
+| **✍️ Assignment Evaluation** | Paste student answers → AI evaluates against COs, assigns marks, saves to profile |
+| **👥 Student Profiling** | Cohort analysis (Remedial/Average/Advanced) + AI Class Intelligence report |
+| **📝 Exam Generator** | Adaptive exams by cohort + CO, aligned to Bloom's Taxonomy levels |
+| **📋 Accreditation** | One-click NBA/ABET course file with CO attainment and improvement plans |
+
+## Tech Stack
+
+- **Backend:** Python 3.11+, Flask
+- **LLM:** Local Ollama + Gemma 4 (OpenAI-compatible API)
+- **Data Validation:** Pydantic v2
+- **Storage:** SQLite3
+- **Frontend:** Bootstrap 5, Jinja2 templates
+- **AI Agents:** LangGraph / LangChain
+
+## Project Structure
+
+```
+AMDAI-EduCopilot/
+├── webapp.py              # ← Flask web application (main entry point)
+├── config.py              # Endpoint config & system prompts
+├── database.py            # SQLite setup and all queries
+├── schemas.py             # Pydantic data models
+├── llm_service.py         # Ollama API bridge
+├── agents/
+│   ├── planner_agent.py   # Syllabus parsing & lesson planning
+│   ├── tracking_agent.py  # Class progress & catch-up plans
+│   ├── analytics_agent.py # Student profiling & adaptive exams
+│   ├── content_agent.py   # Slides, handouts, teacher notes
+│   ├── eval_agent.py      # Assignment evaluation
+│   └── nba_agent.py       # Accreditation reports
+├── templates/
+│   ├── base.html          # Base layout (navbar, flash messages)
+│   ├── dashboard.html     # Course cards grid
+│   ├── add_course.html    # Course creation form
+│   ├── add_course_result.html
+│   ├── course_detail.html # Tabbed course view
+│   ├── log_class.html     # Class logging form
+│   ├── content.html       # Content generation
+│   ├── evaluate.html      # Assignment evaluation
+│   ├── profiling.html     # Student profiling & CSV import
+│   ├── exams.html         # Exam generator
+│   └── accreditation.html # NBA/ABET report
+├── .venv/                 # Python virtual environment
+├── requirements.txt
+├── Dockerfile
+├── docker-compose.yml
+├── QUICKSTART.md
+├── HACKATHON_SPECIFICATION.md
+└── README.md
+```
+
+## License
+
+All rights reserved.

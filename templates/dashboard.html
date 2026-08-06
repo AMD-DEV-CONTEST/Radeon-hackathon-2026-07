@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — EduCopilot{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h1 style="font-size:1.75rem;font-weight:700;margin-bottom:8px;">
+                <i class="bi bi-mortarboard-fill me-2" style="color:var(--eco-primary);"></i>
+                Teaching Dashboard
+            </h1>
+            <p class="text-muted mb-0">Manage courses, track progress, generate content, and evaluate students — all powered by local AI.</p>
+        </div>
+        <div class="col-md-4 text-end">
+            {% if ollama_ok %}
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2" style="font-size:0.85rem;border-radius:99px;">
+                <i class="bi bi-check-circle-fill me-1"></i>Model Connected
+            </span>
+            {% else %}
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2" style="font-size:0.85rem;border-radius:99px;">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>Model Offline
+            </span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-value">{{ courses|length }}</div>
+            <div class="stat-label">Active Courses</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-value">—</div>
+            <div class="stat-label">Classes This Week</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-value">—</div>
+            <div class="stat-label">Evaluations Done</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <a href="{{ url_for('add_course') }}" class="text-decoration-none">
+                <div class="stat-value" style="color:var(--eco-primary);"><i class="bi bi-plus-circle"></i></div>
+                <div class="stat-label">Add New Course</div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Course Cards -->
+{% if courses %}
+<div class="row g-3">
+    {% for c in courses %}
+    <div class="col-md-6 col-lg-4">
+        <a href="{{ url_for('course_detail', course_id=c.course_id) }}" class="course-card-link" style="display:block;text-decoration:none;color:inherit;">
+            <div class="card h-100" style="cursor:pointer;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">{{ c.course_code }}</span>
+                        <span class="text-muted" style="font-size:0.8rem;">{{ c.created_at[:10] if c.created_at else '' }}</span>
+                    </div>
+                    <h5 class="card-title mb-2" style="font-size:1.1rem;">{{ c.course_title }}</h5>
+                    <p class="text-muted mb-3" style="font-size:0.85rem;">
+                        <i class="bi bi-calendar3 me-1"></i>{{ c.num_classes }} classes
+                    </p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted" style="font-size:0.8rem;">ID: {{ c.course_id[:20] }}...</span>
+                        <span class="btn btn-sm btn-outline-primary">
+                            Open <i class="bi bi-arrow-right ms-1"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-journal-plus" style="font-size:3rem;color:var(--eco-muted);"></i>
+        <h4 class="mt-3 text-muted">No courses yet</h4>
+        <p class="text-muted">Create your first course to get started.</p>
+        <a href="{{ url_for('add_course') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>Add New Course
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Log Class — {{ course.course_code }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('course_detail', course_id=course.course_id) }}">{{ course.course_code }}</a></li>
+        <li class="breadcrumb-item active">Log Class</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-journal-plus me-2"></i>Log a Class</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="lecture_num" class="form-label fw-semibold">Class Number</label>
+                        <input type="number" class="form-control" id="lecture_num" name="lecture_num"
+                               value="{{ next_lec }}" min="1" style="max-width:150px;">
+                        <small class="text-muted">Next class: #{{ next_lec }}</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="topics" class="form-label fw-semibold">Topics Covered <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="topics" name="topics" rows="3"
+                            placeholder="What topics did you cover in this class?"></textarea>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="comments" class="form-label fw-semibold">Teacher Comments <span class="text-muted fw-normal">(optional)</span></label>
+                            <textarea class="form-control" id="comments" name="comments" rows="3"
+                                placeholder="What went well? What didn't? Any observations?"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="questions" class="form-label fw-semibold">Student Questions <span class="text-muted fw-normal">(optional)</span></label>
+                            <textarea class="form-control" id="questions" name="questions" rows="3"
+                                placeholder="Notable questions raised by students..."></textarea>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="pace" class="form-label fw-semibold">Pace Notes</label>
+                        <select class="form-select" id="pace" name="pace">
+                            <option value="">— Select —</option>
+                            <option value="Just right">Just right</option>
+                            <option value="Too fast">Too fast — need to slow down</option>
+                            <option value="Too slow">Too slow — can go faster</option>
+                            <option value="Students struggled">Students struggled — need revision</option>
+                            <option value="Smooth and engaged">Smooth — students engaged</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <span class="btn-text"><i class="bi bi-check-circle me-2"></i>Log Class</span>
+                        <span class="loading-spinner spinner-border spinner-border-sm me-2"></span>
+                        <span class="loading-spinner">Logging...</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
