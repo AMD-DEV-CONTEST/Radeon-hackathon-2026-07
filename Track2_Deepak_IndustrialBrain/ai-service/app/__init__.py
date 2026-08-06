@@ -1,0 +1,2 @@
+"""IndusMind AI service."""
+
