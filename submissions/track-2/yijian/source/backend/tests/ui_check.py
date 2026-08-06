@@ -649,6 +649,9 @@ with sync_playwright() as p:
     explain_payloads = []
     chat_payloads = []
     feedback_payloads = []
+    session_payloads = []
+    memory_payloads = []
+    lesson_payloads = []
 
     def teaching_context(body):
         variation = body.get("variation") or []
@@ -775,15 +778,52 @@ with sync_playwright() as p:
                 },
             },
             "teachingContext": context,
+            "agentTrace": {
+                "schemaVersion": "agent-trace-v1",
+                "items": [
+                    {
+                        "tool": "inspect_position", "status": "completed",
+                        "durationMs": 7, "evidenceHash": "trace-secret-a",
+                    },
+                    {
+                        "tool": "compare_moves", "status": "completed",
+                        "durationMs": 11, "evidenceHash": "trace-secret-b",
+                    },
+                ],
+            },
         })
 
     def feedback_route(route):
         feedback_payloads.append(route.request.post_data_json)
         route.fulfill(json={"saved": True, "id": "feedback-authority"})
 
+    def session_route(route):
+        session_payloads.append(route.request.post_data_json)
+        route.fulfill(json={
+            "sessionId": "0123456789abcdef0123456789abcdef",
+            "memoryEnabled": bool(route.request.post_data_json.get("memoryEnabled")),
+        })
+
+    def memory_route(route):
+        memory_payloads.append(route.request.post_data_json)
+        route.fulfill(json={
+            "sessionId": "0123456789abcdef0123456789abcdef",
+            "memoryEnabled": bool(route.request.post_data_json.get("memoryEnabled")),
+        })
+
+    def lesson_route(route):
+        if route.request.method == "POST":
+            lesson_payloads.append(route.request.post_data_json)
+            route.fulfill(json={"saved": True, "lessonId": "lesson-ui"})
+        else:
+            route.fulfill(json={"cleared": True, "deleted": 1})
+
     page.route("**/api/mentor/explain", explain_route)
     page.route("**/api/mentor/chat", chat_route)
     page.route("**/api/mentor/feedback", feedback_route)
+    page.route("**/api/mentor/sessions", session_route)
+    page.route("**/api/mentor/sessions/*/memory", memory_route)
+    page.route("**/api/mentor/sessions/*/lessons", lesson_route)
     page.evaluate("""() => {
       S.currentLibraryId = "authority-game";
       S.reportId = "authority-report";
@@ -961,7 +1001,10 @@ with sync_playwright() as p:
           and set(chat_payloads[-1]) == {
               "gameId", "reportId", "turn", "variation",
               "question", "provider", "targetKind", "history",
+              "sessionId", "memoryEnabled",
           }
+          and chat_payloads[-1]["sessionId"] is None
+          and chat_payloads[-1]["memoryEnabled"] is False
           and chat_payloads[-1]["turn"] == 77
           and chat_payloads[-1]["variation"] == ["Q9"],
           str(chat_payloads[-1] if chat_payloads else {}))
@@ -970,6 +1013,16 @@ with sync_playwright() as p:
           and page.evaluate(
               "S.qaMessages.at(-1)?.contextId === "
               "S.mentorResult?.teachingContext?.contextId"))
+    trace_text = page.text_content("#mentorQaMessages .qa-agent-trace")
+    check("Agent工具轨迹以友好名称显示且不泄露证据哈希",
+          "教练核对了 2 项证据" in trace_text
+          and "核对局面与棋块" in trace_text
+          and "比较实战与首选" in trace_text
+          and "trace-secret" not in trace_text,
+          trace_text)
+    check("学习记忆默认关闭且不出现保存按钮",
+          page.locator("#agentMemoryToggle").get_attribute("aria-pressed") == "false"
+          and page.locator(".qa-memory-save").count() == 0)
     page.fill("#mentorQaInput", "那我下一步该注意什么？")
     page.click("#mentorQaSend")
     page.wait_for_timeout(250)
@@ -997,6 +1050,36 @@ with sync_playwright() as p:
           and feedback_payloads[-1]["turn"] == 77
           and feedback_payloads[-1]["variation"] == ["Q9"],
           str(feedback_payloads[-1] if feedback_payloads else {}))
+
+    page.click("#agentMemoryToggle")
+    page.wait_for_timeout(100)
+    check("用户主动开启后才创建本地记忆会话",
+          bool(session_payloads)
+          and session_payloads[-1] == {"memoryEnabled": True}
+          and page.locator("#agentMemoryToggle").get_attribute(
+              "aria-pressed") == "true",
+          str(session_payloads))
+    save_buttons = page.locator(".qa-memory-save")
+    save_count = save_buttons.count()
+    check("开启记忆后回答显示明确保存按钮", save_count >= 1,
+          str(save_count))
+    if save_count:
+        save_buttons.nth(save_count - 1).click()
+        page.wait_for_timeout(100)
+    check("记住这条只保存服务端定位符与当前回答摘要",
+          bool(lesson_payloads)
+          and lesson_payloads[-1]["contextId"].startswith("ctx-")
+          and lesson_payloads[-1]["positionHash"].startswith("hash-")
+          and "summary" in lesson_payloads[-1],
+          str(lesson_payloads[-1] if lesson_payloads else {}))
+    page.click("#agentMemoryToggle")
+    page.wait_for_timeout(100)
+    check("学习记忆可再次关闭且不会删除既有数据",
+          bool(memory_payloads)
+          and memory_payloads[-1] == {"memoryEnabled": False}
+          and page.locator("#agentMemoryToggle").get_attribute(
+              "aria-pressed") == "false",
+          str(memory_payloads))
 
     check("交互后控制台零报错", not errors, "; ".join(errors[:3]))
     page.close()

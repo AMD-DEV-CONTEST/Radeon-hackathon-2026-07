@@ -1,92 +1,71 @@
-# YIJIAN: From Superhuman Go to Human Understanding
+# YIJIAN - Evidence-Grounded Go Review Agent
 
-> A private, evidence-grounded AI Go coach powered by KataGo, Qwen and AMD Radeon.
+**Track 2 | Ali Moqi | AMD Radeon PRO W7900 / ROCm**
 
-**Track 2 — AI Agent Application Development**  
-**Participant:** Ali Moqi  
-**Tagline:** Every superhuman move, made understandable.
+YIJIAN turns a Go position into a traceable teaching conversation. A bounded Agent selects legal tools, the rules engine reconstructs board facts, KataGo supplies position analysis, local RAG contributes source-labelled principles, and opt-in memory stores only lessons the user explicitly approves.
 
-![YIJIAN agent workspace](assets/yijian-agent-workspace.png)
+> **Release decision:** YIJIAN LoRA v3 was trained and evaluated on the W7900, but failed the final anonymous human release gate. The sealed-once test remains unopened and the competition runtime stays on the stable 27B service. This fail-closed decision is part of the Agent's safety design.
 
-## Why YIJIAN
+![YIJIAN Agent workspace](assets/yijian-agent-workspace.png)
 
-Go engines can identify a stronger move, but most players still need a coach to explain *why* it is stronger. Generic language models often sound fluent while confusing the played move with the engine recommendation, inventing board relationships, or describing the wrong region.
+## Reproduce before reading the claims
 
-YIJIAN closes that gap. It turns a game record and a KataGo result into a traceable teaching object, then asks Qwen to express only what the evidence supports. The result is an interactive review experience that can discuss thickness, territory, initiative, trade-offs, ko threats, shape, joseki and local fighting without allowing the language model to rewrite engine facts.
+From this directory on Windows with Python 3.13:
 
-## What makes it an agent
+```powershell
+cd source
+powershell -ExecutionPolicy Bypass -File scripts/reproduce_public.ps1
+```
 
-YIJIAN is not a chat wrapper. For every question it:
+The command creates a clean temporary virtual environment, installs the pinned dependency lock, verifies the allowlist and SHA-256 manifest, compiles the source, runs all 189 public backend and training tests, and imports the application health endpoint. See [Reproducibility](REPRODUCIBILITY.md) for Linux and W7900/ROCm paths.
 
-1. reconstructs the exact board state from the SGF;
-2. resolves which move the user is asking about;
-3. calls KataGo for candidates, values and principal variations;
-4. derives deterministic board relations and teaching evidence on the server;
-5. asks Qwen to form a human explanation from that evidence;
-6. validates coordinates, regions, subjects and numerical claims;
-7. repairs or falls back to a deterministic answer when validation fails;
-8. stores reusable analysis in SQLite for fast reopening.
+## Why this is an Agent, not a chat wrapper
 
-This separation keeps four different layers explicit:
+The language model never owns board truth. The server binds each question to `actual`, `best`, `comparison`, or `position`, validates an `agent-plan-v1` plan against a tool whitelist, executes deterministic tools, and projects a hashed evidence bundle to the answer model. Unsupported coordinates, numeric claims, sources, and life-and-death conclusions are rejected or replaced by deterministic fallback.
 
-- **KataGo facts:** candidates, win rate, score lead, visits and variations.
-- **Rule facts:** legality, liberties, captures, adjacency and board coordinates.
-- **Heuristic teaching judgments:** thickness, urgency, direction, trade-offs and timing.
-- **LLM expression:** wording, structure and level-appropriate explanation.
+```text
+Browser -> FastAPI Agent orchestrator -> bounded planner / tool whitelist
+        -> goboard + KataGo + local RAG + opt-in memory
+        -> hashed evidence bundle -> selected W7900 model route
+        -> validators / deterministic fallback -> teaching answer
+```
 
-## Core capabilities
+## Verified evidence
 
-- Full-game scan with critical-node re-analysis.
-- Move-by-move teaching cards backed by server-rebuildable evidence.
-- Context-aware follow-up questions about either the played move or the AI move.
-- Board demonstrations of the recommended continuation.
-- Classical Go terminology and principle-oriented explanations.
-- Local-first game storage and an explicit opt-in path for remote GPU inference.
-- Persistent SQLite caching to avoid recomputing finished analysis.
-
-## AMD Radeon implementation
-
-The current demo runs on an **AMD Radeon PRO W7900 48 GB**:
-
-- **KataGo v1.16.5**, official b40 network, OpenCL backend.
-- **Qwen3.6-27B Q4_K_M**, served by `llama.cpp` on ROCm 7.2.1.
-- **32 visits** for the whole-game scan.
-- **128 visits** for critical-position verification.
-- GPU work is scheduled so that KataGo analysis completes before the local LLM generates batch narratives.
-- Model and KataGo endpoints bind to loopback interfaces; remote access uses an authenticated SSH tunnel.
-
-Measured on the W7900 demo instance:
-
-| Workload | Result |
+| Item | Verified result |
 |---|---:|
-| KataGo scan, 33 positions × 32 visits | 13.55 s total |
-| KataGo critical-position check, 128 visits | 2.63 s |
-| Evidence-grounded coach evaluation | 6/6 constructed cases passed |
-| Coach evaluation P95 latency | 9.536 s |
-| Automated regression tests | 373 total |
+| Human-signed creator gold | 64 units; 48 train / 8 dev / 8 sealed |
+| Agent SFT | 720 train / 24 dev / 24 sealed |
+| Task mix | 216 planner / 288 answer / 144 follow-up / 72 memory-privacy |
+| Qwen3-14B revision | `40c069824f4251a91eefaf281ebe4c544efd3e18` |
+| 4-step BF16 smoke | PASS; 36.961 GiB peak reserved |
+| 30-step micro | PASS; loss 4.0948 -> 3.6016 (-12.05%); 37.631 GiB peak |
+| 2-epoch full training | PASS; 90 steps; dev loss 3.1131 -> 1.6685 (-46.40%); 38.643 GiB peak |
+| Formal Agent runtime evaluation | PASS; 220/220 plans, 24/24 failure/privacy, 39/40 evidence-faithful unseen positions |
+| W7900 coexistence | 0.72 / 0.75 / 0.78 all PASS 30/30, zero OOM; selected 0.72 combined P95 10.3355 s |
+| Anonymous human review | FAIL for LoRA release: stable 27B 4.6133, base 14B 2.8500, LoRA 2.5400; LoRA severe contradictions 5 |
+| Public clean-room reproduction | PASS; 141 allowlisted files; 189/189 tests; 0 secret/private/forbidden findings |
+| Final alias | stable 27B; sealed test access count 0 |
 
-The six-case coach benchmark is a constructed acceptance set, not a claim of general Go strength. KataGo remains the numerical authority.
+The frozen experimental adapter tree SHA-256 is `9de29915ef28dfe66ee3b3239bc9ff70f5ee8a53176a09d918ac425c8cb90ff0`. It is not presented as the released competition model. The machine-readable source of truth is [`submission-status.json`](submission-status.json).
 
-## Submission package
+## Submission map
 
-- [Project Specification](PROJECT_SPECIFICATION.md)
+- [Project Specification](PROJECT_SPECIFICATION.md) and [PDF](YIJIAN-Project-Specification.pdf)
+- [Architecture](ARCHITECTURE.svg)
 - [Performance and Validation](PERFORMANCE_AND_VALIDATION.md)
+- [Model Card](MODEL_CARD.md)
+- [Reproducibility](REPRODUCIBILITY.md)
 - [Demo Runbook](DEMO_RUNBOOK.md)
-- [Presentation](YIJIAN-Track-2-Presentation.pptx)
-- [Project Specification PDF](YIJIAN-Project-Specification.pdf)
-- [Public source snapshot](source/)
-- [Third-party and data-boundary notes](THIRD_PARTY_AND_DATA_BOUNDARY.md)
-
-## Quick start
-
-See [source/README.md](source/README.md) for local and Radeon cloud setup instructions.
-
-The repository intentionally excludes model weights, private game records, creator-derived transcripts, review annotations, authorization screenshots, local databases, credentials and SSH configuration.
+- [Evidence Index](EVIDENCE_INDEX.md)
+- [Third-Party and Data Boundary](THIRD_PARTY_AND_DATA_BOUNDARY.md)
+- [Public-safe source snapshot](source/README.md)
+- [Track 2 presentation](YIJIAN-Track-2-Presentation.pptx)
 
 ## Demo video
 
-The final 3–5 minute English demo link will be added to this README before the pull request is marked ready for judging. The accompanying runbook already defines the required scenes and Radeon performance proof.
+The owner is recording the final 3-5 minute demonstration. The English-subtitled video link will be added to this section and the PR body before the deadline.
 
-## License and attribution
+## Privacy and publication boundary
 
-Source code in this submission snapshot is provided for hackathon evaluation. Third-party components retain their original licenses; see [source/THIRD_PARTY_NOTICES.md](source/THIRD_PARTY_NOTICES.md). No third-party creator transcript or private training record is included in this public submission.
+Private SGFs and memory stay local. Creator-authorized material is limited to non-commercial research and competition demonstration and is not published here. Model weights, the LoRA adapter, raw videos, review comments, databases, and sealed cases are excluded from Git. Public reproduction uses synthetic fixtures and the fixed Qwen3-14B base route; immutable evidence records the private authorized training run.

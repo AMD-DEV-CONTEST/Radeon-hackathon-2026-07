@@ -1,27 +1,25 @@
 # Third-Party and Data Boundary
 
-## Included
+## Models and engines
 
-- Public source code required to run the YIJIAN agent demo.
-- Environment templates with placeholder values only.
-- Public benchmark descriptions and reproducible commands.
-- A product screenshot that contains no credentials or private training records.
-- Third-party license notices for redistributed libraries and assets.
+- Qwen3-14B is used at the fixed upstream revision recorded in the evidence manifest. Base weights are not redistributed here.
+- KataGo 1.16.5 and its official b40 network provide Go analysis. Binaries and weights are not redistributed in this submission folder.
+- vLLM, PyTorch, Transformers, FastAPI, and other libraries remain under their respective upstream licenses.
 
-## Excluded from this public submission
+## Creator-authorized data
 
-- KataGo and Qwen model weights.
-- Private or user-imported SGF/GIB records.
-- SQLite databases and local feedback logs.
-- Creator-derived videos, transcripts, review candidates and annotations.
-- Authorization screenshots or private messages.
-- API keys, SSH aliases, host addresses and credentials.
-- Intermediate model-training artifacts.
+The creator corpus is authorized for non-commercial research and competition demonstration. The project records creator, video URL, time range, authorization ID, attribution, source binding, human approval, and KataGo artifact hash. This is not described as unrestricted or commercial authorization.
 
-## Runtime dependencies
+Raw video/audio, full transcripts, reviewer comments, authorization screenshots, training text, and the resulting adapter are private and excluded from the public snapshot.
 
-KataGo, Qwen, `llama.cpp`, ROCm and OpenCL retain their original licenses and distribution terms. Users must obtain compatible model files separately.
+## Public-domain and reference-only sources
 
-## Training statement
+Only registered public-domain excerpts are training-eligible. Project explanation surrounding those excerpts is labelled `project-original+public-domain`. Modern official or educational web pages are reference-only unless their licenses expressly allow reuse: the project independently rebuilds positions and writes original explanations, while recording URL, access time, hash, and policy.
 
-The submitted main runtime is an evidence-grounded Qwen3.6-27B agent pipeline. It does not claim that creator-derived video data was used in the public model weights. Historical small-model experiments are not the production inference path and are not included here.
+## Private user data
+
+Private SGFs, reports, sessions, and memory databases remain local. Memory is disabled by default, written only through an explicit confirmation endpoint, and individually or fully deletable. Private game text is not used for training.
+
+## Public snapshot exclusions
+
+The snapshot generator rejects caches, logs, hidden directories, large files, credentials, private keys, personal Windows paths, databases, media, model files, adapters, restricted workspaces, and sealed data. It retains source code, tests, schemas, aggregate counts, hash manifests, and synthetic examples.

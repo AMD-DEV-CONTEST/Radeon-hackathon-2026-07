@@ -46,6 +46,8 @@ def _is_alphago_g4(game) -> bool:
 class MockKataGoEngine(AnalysisEngine):
 
     name = "mock"
+    version = "public-fixture-v1"
+    model_name = "deterministic-mock"
 
     def analyze_game(self, game) -> dict:
         n = len(game.moves)
@@ -79,24 +81,63 @@ class MockKataGoEngine(AnalysisEngine):
             "keyMoves": self.extract_key_moves(game, winrates),
         }
 
-    def analyze_position(self, game, turn: int, variation=None, visits: int = 32) -> dict:
-        """Return a deterministic, explicitly synthetic position result.
+    def analyze_position(
+        self, game, turn, variation=None, visits=None,
+        include_ownership=False, cancelled=None,
+    ) -> dict:
+        """Return deterministic demo-only candidate data for offline reproduction.
 
-        The public demo uses this method only when real KataGo is unavailable.
-        It intentionally returns no principal-variation recommendations so that
-        synthetic data can never be mistaken for engine advice.
+        This deliberately does not pretend to be KataGo. It exists so the public
+        no-model fallback can exercise the same Agent and validator contracts in
+        a clean environment.
         """
-        analysis = self.analyze_game(game)
-        offset = len(variation or [])
-        index = min(max(0, turn + offset), len(analysis["positions"]) - 1)
-        position = analysis["positions"][index]
-        return {
+        del cancelled
+        variation = [str(move).upper() for move in (variation or [])]
+        visits = int(visits or 16)
+        clamped_turn = max(0, min(int(turn), len(game.moves)))
+        seed_text = "|".join((
+            str(game.size),
+            str(clamped_turn),
+            ",".join(variation),
+            " ".join(move.coord for move in game.moves),
+        ))
+        seed = int(hashlib.sha256(seed_text.encode("utf-8")).hexdigest()[:8], 16)
+        occupied = {
+            move.coord for move in game.moves[:clamped_turn]
+            if not move.is_pass
+        }
+        candidates = [
+            coord for coord in (
+                "D4", "Q16", "D16", "Q4", "K10", "C3", "R17",
+            )
+            if coord.lower() not in occupied and coord not in variation
+        ]
+        if len(candidates) < 3:
+            candidates.extend(["PASS"] * (3 - len(candidates)))
+        offset = seed % len(candidates)
+        ordered = candidates[offset:] + candidates[:offset]
+        base = 0.46 + (seed % 900) / 10000
+        recommendations = []
+        for rank, move in enumerate(ordered[:3]):
+            reply = ordered[(rank + 1) % len(ordered)]
+            recommendations.append({
+                "move": move,
+                "winrateBlack": round(min(0.60, base - rank * 0.01), 4),
+                "scoreLeadBlack": round(
+                    (base - 0.5) * 20 - rank * 0.2, 2
+                ),
+                "visits": max(1, visits // (rank + 1)),
+                "pv": [move, reply],
+            })
+        result = {
             "source": self.name,
             "demo": True,
-            "label": analysis["label"],
-            "turn": index,
-            "visits": int(visits),
-            "winrateBlack": position["winrateBlack"],
-            "scoreLeadBlack": position["scoreLeadBlack"],
-            "recommendations": [],
+            "recommendations": recommendations,
+            "winrateBlack": round(base, 4),
+            "scoreLeadBlack": round((base - 0.5) * 20, 2),
+            "visits": visits,
+            "komi": 7.5,
         }
+        if include_ownership:
+            result["ownership"] = [0.0] * (game.size * game.size)
+        return result

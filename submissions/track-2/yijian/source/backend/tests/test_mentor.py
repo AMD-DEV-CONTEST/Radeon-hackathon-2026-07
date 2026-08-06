@@ -105,6 +105,98 @@ def test_baseline_mentor_keeps_engine_evidence():
     assert any("启发式判断" in text for text in result["primary"]["paragraphs"])
 
 
+def test_agent_planner_defaults_to_safe_server_plan(monkeypatch):
+    monkeypatch.delenv("YIJIAN_AGENT_PLANNER_ENABLED", raising=False)
+    prepared = mentor.plan_chat(
+        "cloud", "为什么实战手不好？", [], DUAL_POSITION, {
+            **EVIDENCE, "bestMove": "C17",
+        }, "actual",
+    )
+    assert prepared["planSource"] == "server_deterministic"
+    assert prepared["questionTarget"]["kind"] == "actual"
+    assert any(
+        step["tool"] == "analyze_variations"
+        for step in prepared["plan"]["steps"]
+    )
+
+
+def test_agent_planner_invalid_model_output_falls_back(monkeypatch):
+    monkeypatch.setenv("YIJIAN_AGENT_PLANNER_ENABLED", "1")
+
+    def fail(*_args, **_kwargs):
+        raise mentor.MentorProviderError("非法规划")
+
+    monkeypatch.setattr(mentor, "_call_plan_provider", fail)
+    prepared = mentor.plan_chat(
+        "cloud", "比较实战和首选。", [], DUAL_POSITION, EVIDENCE,
+        "comparison",
+    )
+    assert prepared["planSource"] == "server_deterministic"
+    assert "非法规划" in prepared["planError"]
+    assert prepared["plan"]["questionTarget"] == "comparison"
+
+
+def test_conceptual_questions_override_stale_move_button_intent():
+    evidence = {**EVIDENCE, "bestMove": "C17"}
+    term_target = mentor._question_target(
+        "什么是缓气劫？和普通劫有什么区别？",
+        DUAL_POSITION,
+        evidence,
+        "best",
+    )
+    opening_target = mentor._question_target(
+        "为什么三连星没有点三三好？",
+        DUAL_POSITION,
+        evidence,
+        "actual",
+    )
+
+    assert term_target["kind"] == "position"
+    assert term_target["source"] == "conceptual_question_router"
+    assert term_target["conceptualKind"] == "ko_definition"
+    assert opening_target["kind"] == "position"
+    assert opening_target["conceptualKind"] == "opening_tradeoff"
+
+
+def test_conceptual_questions_answer_from_terminology_not_current_move_template():
+    result = mentor.chat(
+        "cloud",
+        "什么是缓气劫？和普通劫有什么区别？",
+        [],
+        coach.DEFAULT_SETTINGS,
+        DUAL_POSITION,
+        {**EVIDENCE, "bestMove": "C17"},
+        PURPOSE,
+        "best",
+    )
+
+    assert result["degraded"] is False
+    assert result["source"] == "terminology"
+    assert result["answerMode"] == "terminology_reference"
+    assert "缓气劫｜" in result["answer"]
+    assert "普通劫的区别" in result["answer"]
+    assert "AI 首选" not in result["answer"]
+    assert "C17" not in result["answer"]
+
+
+def test_opening_concept_answer_does_not_claim_a_current_best_move():
+    result = mentor.chat(
+        "cloud",
+        "为什么三连星没有点三三好？",
+        [],
+        coach.DEFAULT_SETTINGS,
+        DUAL_POSITION,
+        {**EVIDENCE, "bestMove": "C17"},
+        PURPOSE,
+        "best",
+    )
+
+    assert result["source"] == "terminology"
+    assert "三连星并不天然不如点三三" in result["answer"]
+    assert "谁绝对更好" in result["answer"]
+    assert "AI 首选" not in result["answer"]
+
+
 def test_local_model_failure_degrades_without_blocking(monkeypatch):
     def fail(*_args, **_kwargs):
         raise mentor.MentorProviderError("本地模型尚未启动")
@@ -681,6 +773,103 @@ def test_opening_focus_prompt_includes_both_moves_and_deterministic_point_type()
     assert '"边上框架":"落点与同侧两翼己子构成三连星式宽框架"' in prompt
     assert "只补充回答用户本轮新问" in prompt
     assert "实空与三连星取模样、外势" in prompt
+
+
+def test_prompt_deduplicates_agent_tool_evidence_and_omits_false_zero_liberties():
+    position = {
+        **DUAL_POSITION,
+        "moveCandidates": {
+            **DUAL_POSITION["moveCandidates"],
+            "actual": {
+                **DUAL_POSITION["moveCandidates"]["actual"],
+                "rules": {
+                    "legal": True,
+                    "libertiesBeforeAfter": {
+                        "own": [0, 4],
+                        "opponent": [0, 0],
+                    },
+                },
+            },
+        },
+    }
+    agent_context = {
+        "toolResults": {
+            "schemaVersion": "agent-tool-results-v1",
+            "planHash": "a" * 64,
+            "items": [{
+                "tool": "analyze_variations",
+                "target": "comparison",
+                "status": "ready",
+                "evidenceHash": "b" * 64,
+                "result": {
+                    "status": "ready",
+                    "rawDuplicateMarker": "MUST_NOT_REACH_MODEL",
+                    "branches": {"actual": {"privateCoordinate": "Q16"}},
+                },
+            }],
+        },
+    }
+    prompt = mentor._chat_prompt(
+        "为什么这手不好？",
+        coach.DEFAULT_SETTINGS,
+        position,
+        EVIDENCE,
+        PURPOSE,
+        {"kind": "comparison", "label": "两手比较"},
+        agent_context=agent_context,
+    )
+
+    assert "MUST_NOT_REACH_MODEL" not in prompt
+    assert '"privateCoordinate":"Q16"' not in prompt
+    assert '"事实位置":"上方多分支变化裁决"' in prompt
+    assert '"己方相邻棋块气数变化":"落子后新棋有 4 气"' in prompt
+    assert "对方相邻棋块气数变化" not in prompt
+
+
+def test_opening_prompt_uses_compact_four_point_runtime_contract():
+    prompt = mentor._chat_prompt(
+        "为什么这手不好？请比较实战手与AI首选。",
+        coach.DEFAULT_SETTINGS,
+        DUAL_POSITION,
+        EVIDENCE,
+        PURPOSE,
+        {"kind": "comparison", "label": "两手比较"},
+    )
+
+    assert '"教学要点":[' in prompt
+    assert "必须覆盖证据中的四项教学要点" in prompt
+    assert "只返回JSON对象" in prompt
+    assert len(prompt) < 7000
+
+
+def test_opening_depth_accepts_four_semantic_sentences_without_headings():
+    answer = (
+        "J优先，当前角部争夺比边上扩张更急。"
+        "S连接同侧两翼并发展宽框架，但框架不是确定地盘，仍可能被侵消。"
+        "J触及对方已有角部，争夺开局次序和向两边发展的余地。"
+        "S不是绝对坏棋，先处理角部再找边上扩张时机，具体得失仍需核对。"
+    )
+
+    result = mentor._validate_answer_depth(
+        answer,
+        "为什么这手不好？",
+        {"kind": "comparison"},
+        DUAL_POSITION,
+    )
+
+    assert result["status"] == "passed"
+    assert result["sentences"] == 4
+
+
+def test_readability_rejects_repeated_teaching_sentence():
+    repeated = "S发展边上框架但仍可能被侵消。S发展边上框架但仍可能被侵消。"
+    with pytest.raises(mentor.MentorProviderError, match="重复句"):
+        mentor._validate_answer_readability(
+            repeated,
+            "为什么这手不好？",
+            {"kind": "comparison"},
+            DUAL_POSITION,
+        )
 
 
 def test_repeated_focused_followup_is_repaired_once(monkeypatch):

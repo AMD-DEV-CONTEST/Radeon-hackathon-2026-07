@@ -20,6 +20,8 @@ from urllib.request import Request, urlopen
 
 import coach
 import classical_go
+import agent_runtime
+import terminology
 
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -45,6 +47,15 @@ MENTOR_SYSTEM = (
     "胜率、目差、死活结论或定式分支。古训只能作为检查角度。只返回JSON："
     "任务为追问时字段是answer与followUps；任务为当前手讲解时字段是"
     "purpose、tradeoff与nextFocus。"
+)
+CHAT_SYSTEM = (
+    "你是弈鉴围棋教练。先判断用户是在问术语、当前局面、实战手S、"
+    "KataGo首选J，还是S/J比较。先给明确结论，再说明一个可核对的棋形或"
+    "规则机制，最后写取舍或证据边界；不要重复同一句。KataGo只负责候选、"
+    "胜率、目差和变化，规则引擎只负责合法性、提子、气和棋块事实，专家材料"
+    "只作为有来源的教学判断。不得新增证据中没有的坐标、数值、死活、劫争或"
+    "强制应手。面向用户只使用实战手S、AI首选J和证据中的变化点别名。"
+    "回答控制在四句左右，只返回JSON对象，字段为answer与followUps。"
 )
 
 
@@ -563,6 +574,80 @@ def _move_candidates(position: dict) -> dict:
     return value if isinstance(value, dict) else {}
 
 
+def _conceptual_question_kind(question: str) -> str | None:
+    """识别不应被当前实战手/首选手劫持的通用棋理追问。
+
+    网页上的“实战/首选”按钮只是初始讲解对象，不能覆盖用户随后提出的
+    术语定义或布局理念问题。这里故意采用保守规则：只有问题本身没有点名
+    实战、首选、坐标或“这手”时，才从局面讲解切到资料库回答。
+    """
+    text = re.sub(r"\s+", "", str(question or ""))
+    if not text:
+        return None
+    board_bound_markers = (
+        "实战", "首选", "推荐", "这手", "此手", "本手", "当前局面",
+        "这个局面", "本局", "S", "J",
+    )
+    if any(marker in text for marker in board_bound_markers):
+        return None
+    if re.search(r"\b[A-HJ-T](?:[1-9]|1[0-9])\b", text, re.IGNORECASE):
+        return None
+    if "缓气劫" in text and any(marker in text for marker in ("什么是", "区别", "不同", "怎么", "为何")):
+        return "ko_definition"
+    if (
+        "三连星" in text
+        and ("三三" in text or "点三三" in text)
+        and any(marker in text for marker in ("为什么", "为何", "好", "区别", "比较"))
+    ):
+        return "opening_tradeoff"
+    if (
+        any(marker in text for marker in ("什么是", "什么意思", "定义", "区别", "不同"))
+        and any(entry["term"] in text for entry in terminology.TERMS)
+    ):
+        return "term_definition"
+    return None
+
+
+def _conceptual_answer(question: str) -> tuple[str, str] | None:
+    """返回可追溯的通用棋理回答，不把它伪装成当前局面的 KataGo 结论。"""
+    kind = _conceptual_question_kind(question)
+    if kind == "ko_definition":
+        return (
+            "缓气劫｜它仍然是劫：双方都不能立刻在同一劫点连着再提，必须先到别处走一手。"
+            "“缓气”说的是劫争开始前或进行中，相关棋块还有可供双方填气、补形或转换的余地，"
+            "胜负不只由谁先找劫材决定。\n\n"
+            "和普通劫的区别｜普通劫通常只强调劫点与劫材的交换；缓气劫还要逐手比较外围气、"
+            "补一手后的形状、以及谁能把劫争转成对自己有利的转换。气多不等于必胜，关键是"
+            "对方最强应对后，劫败一方损失多大。\n\n"
+            "实战检查｜先数双方可用的外围气，再数有效劫材，最后比较劫胜与劫败后的局部和全局价值。"
+            "没有逐手变化，不能把某个局面断言为缓气劫。",
+            "缓气劫与普通劫的通用定义；未对当前棋盘作劫争判定。",
+        )
+    if kind == "opening_tradeoff":
+        return (
+            "三连星并不天然不如点三三。点三三的价值在于较快取得稳定实空、让角部尽早安定；"
+            "三连星的价值在于把同侧子力连成模样与外势，给以后攻击、扩张或借势留下空间。\n\n"
+            "为什么 AI 有时偏向点三三｜它更容易立即兑现；三连星要等周围出现配合与攻击对象，"
+            "也可能被对手侵消后变得偏缓。反过来，若外势已经有用、对手薄弱或你需要全局主动，"
+            "三连星完全可能更合适。\n\n"
+            "所以正确问法不是“谁绝对更好”，而是：这盘棋里角地能否马上兑现、外势有没有对象、"
+            "以及对手侵消后我还能得到什么。要判断当前局面，应再看具体棋盘和 KataGo 变化。",
+            "布局理念比较；未把通用取舍冒充为当前局面的首选结论。",
+        )
+    if kind == "term_definition":
+        text = str(question or "")
+        entry = next((item for item in terminology.TERMS if item["term"] in text), None)
+        if entry:
+            return (
+                f"{entry['term']}｜{entry['simple']}\n\n"
+                f"理解要点｜{entry['standard']}\n\n"
+                f"常见误解｜{entry['misconception']}\n\n"
+                "这是通用术语解释；若要判断当前棋盘是否适用，还需要按实际变化复核。",
+                f"术语资料库：{entry['category']}／{entry['id']}；未对当前棋盘作事实判断。",
+            )
+    return None
+
+
 def _question_target(
     question: str,
     position: dict,
@@ -577,6 +662,17 @@ def _question_target(
     best_move = str(best.get("move") or evidence.get("bestMove") or "").upper()
     question_text = str(question or "")
     normalized = question_text.upper()
+    conceptual_kind = _conceptual_question_kind(question_text)
+    if conceptual_kind:
+        return {
+            "kind": "position",
+            "label": "术语与棋理解释",
+            "move": None,
+            "source": "conceptual_question_router",
+            "confidence": "high",
+            "evidencePath": "terminology_and_general_go_principles",
+            "conceptualKind": conceptual_kind,
+        }
     asks_actual = bool(actual_move and actual_move in normalized) or any(
         word in question_text for word in ("实战", "本手", "这手", "为什么不好", "错误")
     )
@@ -775,8 +871,17 @@ def _candidate_prompt_projection(
         ):
             return None
         before, after = values[:2]
-        if before == 0:
+        # A 0 -> 0 opponent row means that the move has no adjacent opponent
+        # group.  Presenting it as “opponent has zero liberties” is both
+        # semantically false and a strong repetition trigger for a small
+        # expression model.  Only a newly placed *own* stone may legitimately
+        # start from the synthetic before=0 state.
+        if before == 0 and after == 0:
+            return None
+        if before == 0 and side == "own":
             return f"落子后新棋有 {after} 气"
+        if before == 0:
+            return None
         return f"由 {before} 变为 {after} 气"
 
     rule_projection = {
@@ -964,6 +1069,67 @@ def _variation_prompt_projection(value: dict | None, target_kind: str) -> dict |
     }
 
 
+def _agent_tool_prompt_projection(agent_context: dict | None) -> dict | None:
+    """Keep proof that tools ran without duplicating their full evidence trees.
+
+    Candidate and variation facts are already projected independently above.
+    Passing raw compare/analyze results a second time made a normal question
+    exceed 12K tokens and encouraged the model to repeat low-level rule rows.
+    RAG and consented-memory text are the only tool payloads whose compact
+    contents still need to reach the expression model.
+    """
+    if not isinstance(agent_context, dict):
+        return None
+    bundle = agent_context.get("toolResults")
+    if not isinstance(bundle, dict):
+        return None
+    projected = []
+    for item in list(bundle.get("items") or [])[:3]:
+        if not isinstance(item, dict):
+            continue
+        tool = str(item.get("tool") or "")
+        row = {
+            "工具": tool,
+            "目标": item.get("target"),
+            "状态": item.get("status"),
+            "证据哈希": item.get("evidenceHash"),
+        }
+        result = item.get("result") if isinstance(item.get("result"), dict) else {}
+        if tool in ("retrieve_principles", "recall_lessons"):
+            compact_items = []
+            for source in list(result.get("items") or [])[:3]:
+                if not isinstance(source, dict):
+                    continue
+                compact_items.append({
+                    key: value
+                    for key, value in {
+                        "标题": source.get("title"),
+                        "摘要": source.get("summary"),
+                        "标签": list(source.get("tags") or [])[:5],
+                        "来源": source.get("source") or source.get("sourceTitle"),
+                    }.items()
+                    if value
+                })
+            row["资料"] = compact_items
+            row["来源层"] = result.get("sourceLayer")
+        elif tool == "remember_lesson":
+            row["写入"] = bool(result.get("writePerformed"))
+            row["原因"] = result.get("reason")
+        else:
+            row["事实位置"] = (
+                "上方多分支变化裁决"
+                if tool == "analyze_variations"
+                else "上方着法与规则事实"
+            )
+        projected.append(row)
+    if not projected:
+        return None
+    return {
+        "计划哈希": bundle.get("planHash"),
+        "工具": projected,
+    }
+
+
 def _question_for_prompt(question: str, candidates: dict) -> str:
     """模型不需要看到坐标；用服务端角色名替换已解析的两手坐标。"""
     value = str(question or "")
@@ -1077,7 +1243,16 @@ def _attach_classical_guidance(
 def _chat_prompt(question: str, settings: dict, position: dict,
                  evidence: dict, purpose: dict,
                  question_target: dict | None = None,
-                 history: list[dict] | None = None) -> str:
+                 history: list[dict] | None = None,
+                 agent_context: dict | None = None) -> str:
+    """Build a compact prompt aligned with the v3 question-first SFT format.
+
+    The authoritative context is intentionally richer than the expression
+    model needs.  Passing the complete evidence tree made the quantized 14B
+    model copy field names and repeat opening facts until JSON was truncated.
+    This projection keeps every claim required by the validators while giving
+    the model one non-duplicated source for each fact.
+    """
     target = question_target or _question_target(question, position, evidence)
     candidates = _move_candidates(position)
     target_kind = target.get("kind")
@@ -1120,6 +1295,55 @@ def _chat_prompt(question: str, settings: dict, position: dict,
         if may_use_classical
         else {}
     )
+    opening_scaffold = _opening_comparison_fallback(position, evidence, candidates)
+    teaching_points: list[str] = []
+    if opening_scaffold:
+        actual = candidates.get("actual") if isinstance(candidates.get("actual"), dict) else {}
+        best = candidates.get("best") if isinstance(candidates.get("best"), dict) else {}
+        actual_opening = _candidate_opening(actual)
+        best_opening = _candidate_opening(best)
+        actual_framework = actual_opening.get("framework") or {}
+        best_corner = best_opening.get("cornerContext") or {}
+        priority = (
+            best_opening.get("priorityPrinciple")
+            or actual_opening.get("priorityPrinciple")
+            or "当前先处理更紧迫的全局方向"
+        )
+        if focused_comparison:
+            teaching_points = [
+                "J是三三，优先把角部价值落实为实空",
+                "S形成三连星式框架，主要发展模样和外势",
+                "模样兑现较缓，仍可能被侵消；外势没有攻击对象时可能落空",
+                "S并非绝对坏棋，但当前J的收益更快、更确定，具体得失仍以变化为准",
+            ]
+        else:
+            teaching_points = [
+                f"J优先；{priority}",
+                (
+                    f"S：{actual_opening.get('development') or '发展当前边上方向'}；"
+                    f"{actual_framework.get('description') or '形成边上框架'}；"
+                    "宽框架不是确定地盘，仍可能被侵消或分投"
+                ),
+                (
+                    f"J：{best_opening.get('development') or '主动处理角部次序'}；"
+                    f"{best_corner.get('description') or '属于角部接近或争夺'}；"
+                    "重点是角上次序与向两边发展的余地"
+                ),
+                "S不是绝对坏棋；先处理更紧迫的角部，再找边上扩张时机，具体得失仍需逐手核对",
+            ]
+
+    variation_projection = _variation_prompt_projection(
+        evidence.get("variationEvidence"), str(target_kind or "position")
+    )
+    if opening_scaffold and isinstance(variation_projection, dict):
+        # Opening comparisons only need the adjudication boundary and move
+        # order.  Detailed replay rows are retained server-side and continue
+        # to be checked after generation.
+        variation_projection = {
+            key: variation_projection.get(key)
+            for key in ("状态", "比较", "事实边界")
+            if variation_projection.get(key) is not None
+        }
     facts = {
         "目标": target.get("label"),
         "本轮焦点": (
@@ -1150,9 +1374,9 @@ def _chat_prompt(question: str, settings: dict, position: dict,
                 (evidence.get("decisionRelation") or {}).get("confidence")
             ),
         },
-        "多分支变化裁决": _variation_prompt_projection(
-            evidence.get("variationEvidence"), str(target_kind or "position")
-        ),
+        "教学要点": teaching_points or None,
+        "多分支变化裁决": variation_projection,
+        "Agent工具证据": _agent_tool_prompt_projection(agent_context),
         "古训": (
             {
                 "原句": classical_principle.get("maxim"),
@@ -1163,54 +1387,41 @@ def _chat_prompt(question: str, settings: dict, position: dict,
             else None
         ),
     }
-    return (
-        "/no_think\n只依据证据JSON回答。先阅读多分支变化裁决，再下结论；"
-        "面向用户把实战手称为S、AI首选称为J，不要用内部坐标代替S/J；"
-        "只讲目标着法，不可串用另一手；"
-        "不新增胜率、目差、候选、死活、坐标。启发式须用审慎措辞。"
-        "只有证据JSON提供古训时才可引用，并说明仅作检查角度；否则严禁杜撰或引用古训。"
-        "回答要先给明确结论，再解释为什么；禁止只说‘需要比较’或‘进入变化验证’。"
-        "必须用自然的棋手语言，不得输出JSON数组、方括号或字段名；"
-        "气数要写成‘由2气增至3气’这类可读句子，不能声称0气优于2气。"
-        "根据问题意图自然组织，不得机械套固定模板：问坐标就直接回答；问一手作用可用两三段；"
-        + (
+    instructions = [
+        "/no_think\n只依据证据回答。先明确结论，再说明一个可核对的棋形或规则机制，",
+        "最后写取舍、时机或证据边界。面向用户只称实战手S与AI首选J，",
+        "不要显示内部坐标、字段名或数组；不新增胜率、目差、死活、劫争或强制应手。",
+        "启发式必须使用审慎措辞，不要重复同一句。",
+    ]
+    if teaching_points:
+        instructions.append(
+            "必须覆盖证据中的四项教学要点，写成四句左右自然棋手语言；"
+        )
+    if history:
+        instructions.append(
             "这是连续追问，只补充回答用户本轮新问的‘为什么’，不得重复上一轮完整讲解；"
-            if history
-            else ""
         )
-        + (
-            "本轮必须聚焦J点三三取得实空与S构成三连星发展模样、外势的取舍；"
-            "说明模样兑现较缓、仍可能被侵消，外势没有攻击对象时可能落空。"
-            "这些属于棋理启发，须用‘可以理解为、可能’等审慎措辞；不要再泛讲角边中央。"
-            if focused_comparison
-            else ""
+    if focused_comparison:
+        instructions.append(
+            "必须讲清J取实空与三连星取模样、外势，以及模样兑现风险；"
         )
-        +
-        "只有比较布局两手优先级时，才需要覆盖明确结论、开局价值、全局对抗、"
-        "发展潜力以及时机与例外。小标题可按内容自由命名，用‘标题｜正文’和换行增强可读性。"
-        "若证据把局面标为‘局部对杀’，回答必须围绕气、连接、切断、先手和局部存亡，"
-        "不得转去讨论中腹取势、边上发展潜力、角部大场或宽框架；"
-        "坐标区域只说明落点位置，不能替代局面性质。若用户问为什么不好或错误在哪里，"
-        "必须明确指出实战与AI首选在局部次序上的差异，不能只复述‘需要确认’。"
-        "若‘同一急点被让给对手’为真，必须把它作为核心结论：实战前己方首选该点，"
-        "实战脱离后对手首选仍是同一点，因此问题是把双方共同急点的先行权让给对手；"
-        "必须明确区分实战S与首选J，再用两手各自的规则变化解释，"
-        "不得向用户显示内部坐标，不得把规则信号夸大成必杀。"
-        "当多分支变化裁决为已复核时，至少引用一项分支中特有的规则事件或应对次序；"
-        "不能再用‘需要进入变化验证’代替现有证据。访问量分布不等于强制应手，"
-        "即使某手打吃，也不能写‘迫使、逼迫、必应、只能应’，除非证据明确证明强制；"
-        "厚薄、轻重与先手价值若未被直接证明，只能写成‘可能、有利于、可以理解为’等启发式判断；"
-        "没有规则确认劫点时不得声称形成劫争，没有提子事件时不得声称已经吃掉棋子。"
-        "如果证据含‘局部棋形语义’，必须优先解释具体攻击对象和棋块身份："
-        "说明S打吃的对象、黑方先占J时哪块棋被压到一气、以及S后对手抢J如何把同一棋块接长扩气。"
-        "这才是共同急点的围棋含义。禁止把‘出现若干次打吃、自紧气或劫点’当成主体讲解，"
-        "长PV远处发生的事件不能冒充当前急所的原因；不得只把规则日志改写成中文。"
-        "必须说明角、边、中腹的优先级只是布局启发式；若角部已有对方棋子，"
-        "要说成角部接近或争夺，不得说成抢占空角。不得臆造对方必然应手。"
-        "直接问题控制在三百五十字内，复杂比较最多五百字。只回JSON："
-        '{"answer":"...","followUps":[]}'
-        f"\n证据：{json.dumps(facts, ensure_ascii=False, separators=(',', ':'))}"
-        f"\n用户问题：{_question_for_prompt(question, candidates)}"
+    if local_fight:
+        instructions.append(
+            "这是局部对杀，只围绕气、连接、切断、先手和局部存亡，不得转去泛讲布局；"
+        )
+    if (evidence.get("decisionRelation") or {}).get("missedBestBecameOpponentBestReply"):
+        instructions.append(
+            "必须说明实战把双方共同急点的先行权让给对手，并区分S与J的攻守作用；"
+        )
+    if isinstance(variation_projection, dict) and variation_projection.get("状态") == "已复核":
+        instructions.append(
+            "变化已复核，引用其中的规则事实或应对次序，不得再说需要进入变化验证；"
+        )
+    instructions.append('只返回JSON对象：{"answer":"...","followUps":[]}')
+    return (
+        "".join(instructions)
+        + f"\n证据：{json.dumps(facts, ensure_ascii=False, separators=(',', ':'))}"
+        + f"\n用户问题：{_question_for_prompt(question, candidates)}"
     )
 
 
@@ -1796,6 +2007,20 @@ def _validate_answer_readability(
     position: dict | None = None,
 ) -> dict:
     """拒绝把内部证据结构、伪古训或明显误读直接展示给用户。"""
+    sentences = [
+        re.sub(r"\s+", "", item)
+        for item in re.split(r"[。！？；\n]", answer)
+        if len(re.sub(r"\s+", "", item)) >= 8
+    ]
+    if len(sentences) != len(set(sentences)):
+        raise MentorProviderError("回答出现重复句，教学表达不够聚焦")
+    if sentences:
+        most_repeated = max(
+            (answer.count(sentence) for sentence in set(sentences)),
+            default=1,
+        )
+        if most_repeated > 1:
+            raise MentorProviderError("回答出现重复段落，教学表达不够聚焦")
     if re.search(r"\[\s*\d+\s*,\s*\d+\s*\]", answer):
         raise MentorProviderError("回答直接暴露了内部气数数组")
     if any(phrase in answer for phrase in ("0优于", "0 优于", "更无余味")):
@@ -2082,12 +2307,18 @@ def _validate_answer_depth(
         for pattern in ("角", "边", "布局|开局", "发展|框架", "先手|主动", "时机|优先")
     )
     sections = len(re.findall(r"(?:^|\n)[^\n｜]{2,10}｜", answer))
-    if len(answer) < 150 or concepts < 4 or sections < 2:
+    sentences = len([
+        item
+        for item in re.split(r"[。！？；\n]", answer)
+        if len(item.strip()) >= 8
+    ])
+    if len(answer) < 100 or concepts < 4 or (sections < 2 and sentences < 4):
         raise MentorProviderError("回答缺少布局优先级、全局对抗与子力发展的完整解释")
     return {
         "status": "passed",
         "concepts": concepts,
         "sections": sections,
+        "sentences": sentences,
     }
 
 
@@ -2199,11 +2430,12 @@ def _chat_fallback(
 
 def _call_chat_provider(provider: str, question: str, history: list[dict],
                         settings: dict, position: dict, evidence: dict,
-                        purpose: dict, question_target: dict | None = None) -> dict:
+                        purpose: dict, question_target: dict | None = None,
+                        agent_context: dict | None = None) -> dict:
     config = _provider_config(provider)
     if not config["configured"]:
         raise MentorProviderError(f"{config['name']}尚未配置")
-    messages = [{"role": "system", "content": "你是弈鉴围棋老师，严格依据工具证据回答。"}]
+    messages = [{"role": "system", "content": CHAT_SYSTEM}]
     for item in history[-8:]:
         role = item.get("role")
         content = str(item.get("content") or "").strip()
@@ -2212,7 +2444,8 @@ def _call_chat_provider(provider: str, question: str, history: list[dict],
     messages.append({
         "role": "user",
         "content": _chat_prompt(
-            question, settings, position, evidence, purpose, question_target, history
+            question, settings, position, evidence, purpose, question_target, history,
+            agent_context,
         ),
     })
     started = time.perf_counter()
@@ -2223,8 +2456,8 @@ def _call_chat_provider(provider: str, question: str, history: list[dict],
         payload={
             "model": config["model"],
             "messages": messages,
-            "temperature": .25,
-            "max_tokens": 640,
+            "temperature": .15,
+            "max_tokens": 420,
             "stream": False,
             "chat_template_kwargs": {"enable_thinking": False},
         },
@@ -2244,6 +2477,112 @@ def _call_chat_provider(provider: str, question: str, history: list[dict],
         "model": config["model"],
         "answerMode": "llm_inference",
         "latencyMs": round((time.perf_counter() - started) * 1000),
+    }
+
+
+def _call_plan_provider(provider: str, question: str, target_kind: str) -> dict:
+    """让模型只规划枚举工具；服务端随后重新验证并补安全必需步骤。"""
+    config = _provider_config(provider)
+    if not config["configured"]:
+        raise MentorProviderError(f"{config['name']}尚未配置")
+    example_tool = "compare_moves" if target_kind == "comparison" else "inspect_position"
+    example_focus = (
+        ["move_order", "evidence_boundary"]
+        if target_kind == "comparison"
+        else ["group_safety", "evidence_boundary"]
+    )
+    example = json.dumps({
+        "schemaVersion": "agent-plan-v1",
+        "questionTarget": target_kind,
+        "steps": [{"tool": example_tool, "target": target_kind}],
+        "focus": example_focus,
+        "confidence": "medium",
+    }, ensure_ascii=False, separators=(",", ":"))
+    prompt = (
+        "/no_think\n你只负责规划围棋教学工具，不负责回答问题。"
+        "不得输出棋盘坐标、胜率、目差、访问次数或任何数字。"
+        "只能选择inspect_position、compare_moves、analyze_variations、"
+        "retrieve_principles、recall_lessons、remember_lesson。"
+        "target只能是actual、best、comparison、position；最多三个步骤。"
+        f"本题所有steps的target都必须与questionTarget相同，即只能写{target_kind}。"
+        "focus只能从move_order、group_safety、liberties、connection、cutting、"
+        "sente、territory_influence、thickness、ko_resources、joseki_direction、"
+        "opening_priority、endgame_value、evidence_boundary中选择。"
+        "只返回JSON对象，字段必须恰好是schemaVersion、questionTarget、steps、"
+        "focus、confidence，schemaVersion固定agent-plan-v1。"
+        "steps中的每一项只能有tool和target两个字段；focus必须是枚举字符串数组，"
+        "只能选一至四项，绝不能照抄全部focus枚举；"
+        "confidence只能是low、medium或high，不得使用数字。"
+        f"本题格式示例：{example}。"
+        f"\n服务端已确定问题目标：{target_kind}"
+        f"\n用户问题：{question}"
+    )
+    response = _request_json(
+        f"{config['url']}/chat/completions",
+        api_key=config["apiKey"],
+        timeout=float(os.getenv("YIJIAN_PLANNER_TIMEOUT", "6")),
+        payload={
+            "model": config["model"],
+            "messages": [
+                {"role": "system", "content": "你是弈鉴工具规划器，只输出严格JSON。"},
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": 0,
+            "max_tokens": 180,
+            "stream": False,
+            "response_format": {"type": "json_object"},
+            "chat_template_kwargs": {"enable_thinking": False},
+        },
+    )
+    try:
+        content = response["choices"][0]["message"]["content"]
+        value = _extract_json_object(str(content or ""))
+        return agent_runtime.validate_plan(value)
+    except (KeyError, IndexError, TypeError, agent_runtime.AgentProtocolError) as exc:
+        raise MentorProviderError(f"Planner输出不符合协议：{exc}") from exc
+
+
+def plan_chat(
+    provider: str,
+    question: str,
+    history: list[dict] | None,
+    position: dict | None,
+    evidence: dict | None,
+    requested_target_kind: str | None = None,
+    *,
+    memory_enabled: bool = False,
+) -> dict:
+    """在调用昂贵工具前确定问题对象和有界计划。"""
+    position = position or {}
+    evidence = evidence or {}
+    selected = provider if provider in ("local", "cloud") else "local"
+    question_target = _question_target(
+        question, position, evidence, requested_target_kind
+    )
+    fallback = agent_runtime.deterministic_plan(
+        question, question_target["kind"], memory_enabled=memory_enabled
+    )
+    plan = fallback
+    source = "server_deterministic"
+    error = None
+    if os.getenv("YIJIAN_AGENT_PLANNER_ENABLED", "0").strip() == "1":
+        try:
+            plan = _call_plan_provider(selected, question, question_target["kind"])
+            source = "model_structured"
+        except (MentorProviderError, agent_runtime.AgentProtocolError) as exc:
+            error = str(exc)
+    try:
+        plan = agent_runtime.merge_required_tools(plan, question)
+    except agent_runtime.AgentProtocolError as exc:
+        plan = fallback
+        source = "server_deterministic"
+        error = str(exc)
+    return {
+        "questionTarget": question_target,
+        "plan": plan,
+        "planSource": source,
+        "planError": error,
+        "historyCount": len(history or []),
     }
 
 
@@ -2274,7 +2613,8 @@ def _use_tactical_semantic_fast_path(
 
 def chat(provider: str, question: str, history: list[dict] | None,
          settings: dict | None, position: dict | None, evidence: dict | None,
-         purpose: dict | None, requested_target_kind: str | None = None) -> dict:
+         purpose: dict | None, requested_target_kind: str | None = None,
+         agent_context: dict | None = None) -> dict:
     """围绕当前局面的连续追问；模型失败时仍给出受证据约束的基础回答。"""
     chat_started = time.perf_counter()
     normalized = coach.normalize_settings(settings)
@@ -2287,6 +2627,43 @@ def chat(provider: str, question: str, history: list[dict] | None,
     question_target = _question_target(
         question, position, evidence, requested_target_kind
     )
+    if isinstance(agent_context, dict):
+        prepared_target = agent_context.get("questionTarget")
+        if (
+            isinstance(prepared_target, dict)
+            and prepared_target.get("kind") == question_target.get("kind")
+        ):
+            question_target = prepared_target
+    conceptual = _conceptual_answer(question)
+    if conceptual and question_target.get("source") == "conceptual_question_router":
+        answer, boundary = conceptual
+        return {
+            "answer": answer,
+            "followUps": ["要把这个概念放到当前棋盘验证吗？"],
+            "source": "terminology",
+            "sourceLabel": "弈鉴术语与棋理资料库",
+            "model": None,
+            "answerMode": "terminology_reference",
+            "latencyMs": round((time.perf_counter() - chat_started) * 1000),
+            "degraded": False,
+            "error": None,
+            "actions": [],
+            "context": {
+                "turn": int(position.get("turn") or 0),
+                "move": position.get("move"),
+                "evidenceLine": baseline["evidenceLine"],
+                "questionTarget": question_target,
+                "answerValidation": {
+                    "status": "passed",
+                    "target": "position",
+                    "checks": [
+                        "conceptual_question_router",
+                        "terminology_source_boundary",
+                    ],
+                    "boundary": boundary,
+                },
+            },
+        }
     if _use_tactical_semantic_fast_path(question, question_target, evidence):
         answer = _chat_fallback(
             question, evidence, purpose, position, question_target
@@ -2324,7 +2701,7 @@ def chat(provider: str, question: str, history: list[dict] | None,
     try:
         result = _call_chat_provider(
             selected, question, history or [], normalized, position, evidence,
-            purpose, question_target,
+            purpose, question_target, agent_context,
         )
         try:
             validation = _validate_chat_answer(
@@ -2340,7 +2717,7 @@ def chat(provider: str, question: str, history: list[dict] | None,
             )
             result = _call_chat_provider(
                 selected, repair_question, history or [], normalized,
-                position, evidence, purpose, question_target,
+                position, evidence, purpose, question_target, agent_context,
             )
             validation = _validate_chat_answer(
                 result.get("answer") or "", question, question_target,

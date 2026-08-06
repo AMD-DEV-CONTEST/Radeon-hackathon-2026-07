@@ -1,76 +1,46 @@
-# YIJIAN Public Source Snapshot
+# YIJIAN Public Source
 
-This directory contains the public-safe source required to run the YIJIAN hackathon demo. It excludes private game records, local databases, creator-derived transcripts, review annotations, model weights and credentials.
+YIJIAN is an evidence-grounded Go review Agent for AMD Radeon and ROCm. This directory is a public-safe, allowlisted source snapshot: runtime code, tests, synthetic fixtures, schemas, training logic, deployment scripts, and validation tooling are included; private games, creator material, review comments, sealed cases, model weights, adapters, databases, logs, and credentials are not.
 
-## Directory structure
+## One-command clean reproduction on Windows
 
-```text
-backend/       FastAPI agent, Go rules, KataGo adapter, evidence builder and tests
-web/           Single-page YIJIAN review workspace
-deploy/cloud/  Radeon W7900 install, start, smoke-test and benchmark scripts
-scripts/       Local verification and SSH tunnel helpers
-```
-
-## Requirements
-
-- Python 3.11+
-- FastAPI and Uvicorn
-- KataGo v1.16.5 with an OpenCL-capable Radeon configuration
-- Optional Qwen3.6-27B GGUF served by an OpenAI-compatible `llama.cpp` endpoint
-- AMD ROCm 7.2.1 for the demonstrated W7900 Qwen runtime
-
-## Local UI start
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn backend.app:app --host 127.0.0.1 --port 8600
-```
-
-On Windows PowerShell:
+Requirements: Windows 10/11, Python 3.13, and network access for the first dependency install.
 
 ```powershell
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python -m uvicorn backend.app:app --host 127.0.0.1 --port 8600
+powershell -ExecutionPolicy Bypass -File scripts/reproduce_public.ps1
 ```
 
-Open `http://127.0.0.1:8600/`.
+The script creates a virtual environment under the system temporary directory, installs the pinned lock file, checks every public file hash, compiles all Python files, runs all 189 public backend and training tests, and imports the application health endpoint. A passing run prints `YIJIAN PUBLIC REPRODUCTION: PASS` and writes a JSON report outside the repository.
 
-Without KataGo, the service falls back to the deterministic demo engine. Configure KataGo through the environment variables documented in `.env.example` for real analysis.
+To install Chromium and run the optional browser check later:
 
-## Radeon cloud start
-
-```bash
-bash deploy/cloud/install_cloud_runtime.sh
-bash deploy/cloud/install_katago_opencl.sh
-bash deploy/cloud/start_cloud_stack.sh
-bash deploy/cloud/smoke_test.sh
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/reproduce_public.ps1 -InstallBrowser
 ```
 
-The scripts expect model files outside the Git repository. Update model paths through environment variables rather than editing credentials into source files.
+## Manual start
+
+```powershell
+py -3.13 -m venv $env:TEMP\yijian-repro-venv
+& $env:TEMP\yijian-repro-venv\Scripts\python.exe -m pip install -r requirements-lock.txt
+& $env:TEMP\yijian-repro-venv\Scripts\python.exe -m uvicorn app:app --app-dir backend --host 127.0.0.1 --port 8000
+```
+
+Open <http://127.0.0.1:8000>. With no model or KataGo installed, SGF import, board reconstruction, deterministic review, evidence validation, and safe fallback remain available.
+
+## AMD Radeon PRO W7900 / ROCm path
+
+See [`deploy/cloud/README.md`](deploy/cloud/README.md). The public path downloads the fixed Qwen3-14B revision and starts a localhost-only BF16 vLLM service without any private adapter. The measured competition path, private adapter gate, KataGo coexistence benchmark, and rollback scripts are also included. Published measurements are indexed one directory above in `EVIDENCE_INDEX.md`.
 
 ## Tests
 
-```bash
-PYTHONPATH=backend python -m pytest backend/tests -q
-bash deploy/cloud/run_cloud_acceptance.sh
+```powershell
+python -m pytest -q backend/tests
+python -m pytest -q training/tests
 ```
 
-On Windows PowerShell, set `$env:PYTHONPATH=(Resolve-Path backend).Path` before running pytest. The public-safe snapshot currently passes **86 tests**. The full private development suite contains additional fixture-dependent tests and is reported separately in the submission metrics.
+The public snapshot validator deliberately uses synthetic fixtures and excludes tests bound to private game archives.
 
-Some private-fixture import tests are intentionally omitted from this public snapshot.
+## Release truth
 
-## Security defaults
-
-- Model services bind to `127.0.0.1`.
-- Remote access uses an authenticated SSH tunnel.
-- Provider keys are read from server environment variables.
-- The browser does not receive provider secrets.
-- Remote KataGo is disabled unless explicitly enabled.
-
-## License notices
-
-See `THIRD_PARTY_NOTICES.md`. Model weights are not redistributed.
+YIJIAN LoRA v3 was trained and frozen on the W7900, but it failed the final anonymous human release gate. The sealed-once set therefore remains unopened and the competition runtime stays on the stable 27B service. KataGo and the rules engine remain authoritative for both model routes.

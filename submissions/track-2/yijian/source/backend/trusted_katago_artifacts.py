@@ -453,9 +453,27 @@ class TrustedKataGoRegistry:
         return artifact
 
 
+@dataclass(frozen=True)
+class TrustedKataGoRegistryBundle:
+    source_path: Path
+    snapshot_sha256: str
+    _registries: dict[str, TrustedKataGoRegistry]
+
+    def resolve(self, reference: Any) -> dict[str, Any]:
+        ref = _exact_keys(
+            reference,
+            {"artifactId", "artifactSha256", "registrySnapshotSha256"},
+            "trustedArtifactRef",
+        )
+        snapshot = _sha(ref["registrySnapshotSha256"], "registrySnapshotSha256")
+        registry = self._registries.get(snapshot)
+        _require(registry is not None, "制品引用的registry快照不在bundle中")
+        return registry.resolve(ref)
+
+
 def load_registry_snapshot(
     path: Path, *, expected_sha256: str | None
-) -> TrustedKataGoRegistry:
+) -> TrustedKataGoRegistry | TrustedKataGoRegistryBundle:
     _require(expected_sha256 is not None, "缺少显式registry快照SHA-256")
     expected = _sha(expected_sha256, "registry快照SHA-256")
     path = Path(path)
@@ -464,6 +482,35 @@ def load_registry_snapshot(
     snapshot_bytes = path.read_bytes()
     actual = hashlib.sha256(snapshot_bytes).hexdigest()
     _require(actual == expected, "registry快照SHA-256与显式锁定值不一致")
+    try:
+        bundle = json.loads(snapshot_bytes.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        bundle = None
+    if isinstance(bundle, dict) and bundle.get("schemaVersion") == "gomentor-trusted-katago-registry-bundle-v1":
+        snapshots = bundle.get("snapshots")
+        _require(isinstance(snapshots, list) and bool(snapshots), "KataGo registry bundle为空")
+        registries: dict[str, TrustedKataGoRegistry] = {}
+        for index, snapshot in enumerate(snapshots, 1):
+            _require(isinstance(snapshot, dict), f"KataGo bundle第{index}条无效")
+            relative = Path(str(snapshot.get("path") or ""))
+            _require(
+                not relative.is_absolute() and ".." not in relative.parts,
+                f"KataGo bundle第{index}条路径不安全",
+            )
+            child = load_registry_snapshot(
+                path.parent / relative,
+                expected_sha256=snapshot.get("sha256"),
+            )
+            _require(
+                isinstance(child, TrustedKataGoRegistry),
+                "KataGo registry bundle不允许递归bundle",
+            )
+            _require(
+                child.snapshot_sha256 not in registries,
+                f"KataGo bundle重复快照：{child.snapshot_sha256}",
+            )
+            registries[child.snapshot_sha256] = child
+        return TrustedKataGoRegistryBundle(path.resolve(), actual, registries)
     entries: dict[str, dict[str, Any]] = {}
     try:
         snapshot_text = snapshot_bytes.decode("utf-8")
@@ -568,6 +615,7 @@ __all__ = [
     "REGISTRY_ENTRY_SCHEMA",
     "RegistryError",
     "TrustedKataGoRegistry",
+    "TrustedKataGoRegistryBundle",
     "artifact_from_server_analysis",
     "canonical_json",
     "canonical_json_sha256",

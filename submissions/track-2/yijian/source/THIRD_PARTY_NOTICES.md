@@ -1,34 +1,33 @@
-# Third-Party Notices
+# Third-party notices
 
-This file describes the boundary between YIJIAN source code and third-party components. Model weights and inference runtimes are not committed to this repository.
+YIJIAN source code and third-party components are kept separate. Model weights and runtime binaries are not committed to this repository.
 
 ## Qwen models
 
-- Author: Qwen Team, Alibaba Cloud
-- Sources:
-  - <https://huggingface.co/Qwen/Qwen3-4B-GGUF>
-  - <https://huggingface.co/Qwen/Qwen3-30B-A3B-GGUF>
-  - <https://huggingface.co/Qwen/Qwen3.6-27B>
-  - <https://huggingface.co/ggml-org/Qwen3.6-27B-GGUF>
+- Authors: Qwen Team, Alibaba Cloud
+- Qwen3-14B source: <https://huggingface.co/Qwen/Qwen3-14B>
+- Qwen3-4B GGUF source: <https://huggingface.co/Qwen/Qwen3-4B-GGUF>
+- Qwen3.6-27B source: <https://huggingface.co/Qwen/Qwen3.6-27B>
+- 27B GGUF conversion: <https://huggingface.co/ggml-org/Qwen3.6-27B-GGUF>
 - License: Apache License 2.0
-- Use: local offline baseline and Radeon-hosted enhanced Go coach.
 
-The current main runtime uses the `ggml-org/Qwen3.6-27B-GGUF` Q4_K_M quantization under the alias `Yijian-Qwen3.6-27B-GoCoach`. The 27B weights were not fine-tuned with a Go LoRA in this submission.
-
-A historical Qwen3-4B classical-Go experiment used public-domain classical texts plus original modern paraphrases and evidence-binding examples. It did not use user game records, the feedback database, modern copyrighted Go books or unverified web Q&A. This historical experiment is not the current main inference path and its weights are not redistributed here.
-
-## llama.cpp
-
-- Author: Georgi Gerganov and contributors
-- Source: <https://github.com/ggml-org/llama.cpp>
-- License: MIT License
-- Use: local and AMD ROCm/HIP inference runtime.
+The competition-safe runtime uses the published Q4_K_M 27B quantization under the alias `Yijian-Qwen3.6-27B-GoCoach`; that 27B model was not Go-LoRA fine-tuned. Qwen3-14B revision `40c069824f4251a91eefaf281ebe4c544efd3e18` is the fixed base for the experimental YIJIAN LoRA v3 training and public base-model reproduction path.
 
 ## KataGo
 
-- Author: David Wu and contributors
 - Source: <https://github.com/lightvector/KataGo>
-- Release used by the demo: v1.16.5
-- Use: candidate ranking, win-rate/score evaluation and principal variations.
+- Version used for evidence: 1.16.5
+- License: MIT License for the engine; network files retain their upstream terms
 
-Model licenses do not automatically cover game records, training corpora or other data. YIJIAN reviews data provenance and redistribution rights separately.
+KataGo provides position analysis. YIJIAN's rules engine independently verifies legal moves, captures, liberties, turn order, and position hashes.
+
+## llama.cpp and vLLM
+
+- llama.cpp: <https://github.com/ggml-org/llama.cpp> (MIT)
+- vLLM: <https://github.com/vllm-project/vllm> (Apache-2.0)
+
+llama.cpp serves the stable quantized runtime; the pinned ROCm vLLM environment serves Qwen3-14B and optional LoRA adapters on the Radeon PRO W7900.
+
+## Data boundary
+
+The public repository contains synthetic fixtures, schemas, code, aggregate manifests, and hashes. It excludes creator-authorized training text, raw media, private games, reviewer comments, authorization screenshots, sealed cases, weights, and adapters. Model licenses do not automatically grant rights to game records or training corpora; those sources are reviewed independently.

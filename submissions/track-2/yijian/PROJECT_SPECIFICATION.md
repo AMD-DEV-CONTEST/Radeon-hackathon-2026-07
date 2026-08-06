@@ -1,151 +1,76 @@
 # YIJIAN Project Specification
 
-## 1. Project overview
+## 1. Problem and users
 
-**YIJIAN** is a private, evidence-grounded AI Go coach. It converts KataGo analysis into explanations that a human player can verify, question and replay on the board.
+Go review tools often show engine numbers without teaching the reason, while generic chat models can invent coordinates or confuse commentary with engine evidence. YIJIAN serves amateur players, teachers, clubs, and competition demonstrators who need an interactive explanation whose claims can be traced to the board, rules, KataGo, retrieval, or explicit human instruction.
 
-The project addresses a specific failure mode in current AI review products: numerical strength does not automatically produce teaching quality. A Go engine can rank candidate moves, while a language model can speak fluently, yet the combined system may still confuse coordinates, answer about the wrong move, or use generic Go vocabulary that is unrelated to the position. YIJIAN treats this as an agent-engineering problem rather than a prompting problem.
+The main workflow is: import an SGF, select a move, ask about the actual move or the AI choice, inspect the Agent plan and evidence, ask follow-up questions, and optionally save one compact lesson.
 
-## 2. Target users and scenarios
+## 2. System architecture
 
-### Target users
+The canonical diagram is [ARCHITECTURE.svg](ARCHITECTURE.svg).
 
-- Club and online Go players who want to understand mistakes rather than only see win-rate loss.
-- Teachers who need a traceable starting point for review.
-- Advanced learners who ask about thickness, territory, initiative, shape, ko and direction of play.
-- Privacy-conscious users who do not want raw game records uploaded to an uncontrolled service.
+~~~text
+Browser
+  -> FastAPI Agent Orchestrator
+  -> bounded planner / tool whitelist
+  -> goboard + KataGo + local RAG + opt-in memory
+  -> immutable evidence bundle
+  -> Qwen3-14B + YIJIAN LoRA v3 on W7900 / ROCm
+  -> validators / deterministic fallback
+  -> teaching answer and interactive board
+~~~
 
-### Primary scenario
+Three trust zones are explicit:
 
-1. The user imports an SGF or GIB record.
-2. YIJIAN scans the game and identifies high-value review nodes.
-3. The user opens a node and sees the played move, the AI move and the numerical change.
-4. The coach explains the local and global trade-off.
-5. The user asks a follow-up question about either move.
-6. YIJIAN reconstructs the subject, gathers new evidence, and answers with validated terminology and coordinates.
-7. The user plays the recommended variation on the board.
+1. **Local privacy zone:** SGFs, sessions, memory, and the browser UI.
+2. **Authoritative evidence zone:** goboard legality/capture/liberty facts and KataGo analysis. The LLM cannot rewrite this layer.
+3. **Radeon compute zone:** Qwen3-14B + LoRA and KataGo run on the W7900; only bounded evidence and prompts enter inference.
 
-## 3. Agent architecture
+## 3. Agent responsibilities
 
-### 3.1 Control plane
+The orchestrator binds the question target and accepts only the `agent-plan-v1` schema. Legal tools are limited to position inspection, move comparison, variation analysis, principle retrieval, and explicit memory operations. Coordinates and numeric board facts are forbidden in planner output.
 
-The FastAPI service owns the workflow. The browser never decides which engine fact is true and never fabricates teaching evidence. A position context is identified by the game, turn, variation and board hash.
+The server executes tools, hashes the results, and creates an evidence bundle. The answer model explains that bundle; validators check JSON structure, allowed coordinates, supported numeric claims, source boundaries, and target alignment. If planning, model inference, RAG, or KataGo fails, deterministic fallback preserves the board and basic review.
 
-### 3.2 Evidence plane
+## 4. Model and evidence roles
 
-The server builds a structured teaching context from four sources:
+- **Qwen3-14B + YIJIAN LoRA v3:** bounded planning, concise pedagogical synthesis, and follow-up generation.
+- **KataGo 1.16.5 with the registered official b40 network:** current-position best move, candidates, PVs, win rate, and score lead.
+- **goboard:** legal replay, turn, captures, liberties, ko, and position hashing.
+- **Local RAG:** source-labelled Go principles and terminology; never promoted to current-position engine fact.
+- **Opt-in memory:** explicit, reversible lesson storage. The model has no implicit write authority.
 
-1. **KataGo facts** — recommended candidates, visits, win rate, score lead and principal variations.
-2. **Go-rule facts** — board reconstruction, legality, captures, liberties, adjacency and coordinate conversion.
-3. **Deterministic teaching features** — subject move, board region, nearby groups, local fighting signals, urgency and candidate relationships.
-4. **Validated heuristics** — teaching interpretations that are clearly marked as explanatory judgments rather than engine output.
+## 5. Training data
 
-Each answer carries a context identifier and evidence hash so the service can rebuild and audit its source.
+The creator corpus contains 64 human-signed units from authorized videos, isolated by video into 48 train, 8 dev, and 8 sealed units. Cross-split checks cover video, game identity, position hash, canonical SGF identity, and eight board symmetries.
 
-### 3.3 Expression plane
+The SFT train set contains exactly 720 records: 216 planner, 288 answer, 144 follow-up, and 72 memory/privacy. It combines 48 creator train cases, 96 project-original cases, and 64 public-domain cases through deterministic projection. The 24 dev records are used for model checks. The 24 sealed records are never passed to tokenization, training, checkpoint selection, or hyperparameter decisions.
 
-Qwen receives the structured evidence and the conversation context. It selects a response shape appropriate to the question instead of forcing every question into one fixed template. It may compare moves, explain a tactical sequence, discuss timing, or give a concise conclusion.
+## 6. Radeon / ROCm implementation
 
-The model is not allowed to override the subject move, candidate coordinates, board regions or engine numbers.
+Training uses BF16 LoRA on a Radeon PRO W7900 (gfx1100). The v3 adapter uses rank 8, alpha 16, dropout 0.10, learning rate `3e-5`, and attention projection targets. Inference uses a separate ROCm vLLM environment and the already downloaded fixed-revision Qwen3-14B base. The adapter is loaded dynamically; it is not merged into a redistributed base model.
 
-### 3.4 Validation and repair
+The formal coexistence matrix uses `gpu-memory-utilization` 0.72, 0.75, and 0.78 with 30 real overlap cycles per profile. KataGo analyzes the next position while the LoRA model explains the previous evidence bundle. A profile must complete 30/30 cycles with zero OOM/restart and combined P95 at or below 12 seconds. The lowest passing memory fraction is preferred.
 
-The answer validator checks:
+Prefix-cache and context-length measurements from a superseded adapter are not claimed for v3. A v3 rerun remains a separate optimization task and does not overwrite the verified coexistence matrix.
 
-- whether the response answers the move the user selected;
-- whether played and recommended moves remain distinct;
-- whether every mentioned coordinate exists in the evidence;
-- whether region descriptions agree with board coordinates;
-- whether numerical claims match KataGo output;
-- whether unsupported certainty or contradictory language appears.
+## 7. Validation and rollback
 
-If validation fails, the agent retries with structured repair feedback. If a safe repair is not possible, it returns a deterministic evidence summary.
+The release gate requires the data manifest, smoke, micro, full training, frozen adapter hash, 220 Agent cases, 24 failure/privacy cases, 40 unseen positions, a 30-question anonymous three-model human review, one sealed evaluation, the coexistence matrix, and a clean public snapshot.
 
-### 3.5 Persistence
+The alias changes only after all gates pass. A failed adapter is quarantined. Any gate failure leaves the stable 27B service active and is reported without qualification.
 
-SQLite stores imported game metadata, analysis jobs, evidence contexts, reports, feedback and reusable narrative results. Reopening a completed game reads cached results instead of repeating GPU work.
+<!-- pagebreak -->
 
-## 4. Core capabilities
+## 8. Privacy, licensing, and limitations
 
-- SGF/GIB import and exact board replay.
-- Whole-game analysis and ranked critical nodes.
-- 32-visit scan plus 128-visit critical verification.
-- Evidence-grounded move explanation.
-- Follow-up dialogue anchored to the selected move.
-- Variation playback and board highlighting.
-- Terminology support for classical and modern Go concepts.
-- Deterministic fallback when the language model is unavailable or unsafe.
-- Local-first storage with explicit remote-compute opt-in.
+Creator data is authorized for non-commercial research and competition demonstration, not asserted as a commercial license. Private games, raw videos, transcripts, reviewer comments, databases, sealed cases, weights, and adapters are excluded from the public repository. Public-domain quotations are short and registry-bound; project explanations remain project-original.
 
-## 5. Models and local deployment
+YIJIAN does not replace a professional teacher, and a 128-visit KataGo result is not proof. The evidence boundary is visible. Small-board teaching positions may differ from full-board play and are labelled.
 
-### KataGo
+## 9. Current completion state
 
-- Version: KataGo v1.16.5.
-- Network: official `kata1-zhizi-b40c768nbt-s11272M-d5935M` model.
-- Backend on the demo system: OpenCL.
-- Role: sole authority for candidate ranking and numerical evaluation.
+Smoke, micro, and the exact 2-epoch full training passed, and YIJIAN LoRA v3 is frozen with immutable hashes. The formal runtime suite passed 220/220 Agent cases and 24/24 failure/privacy cases. The unseen suite passed its ≥95% gate at 39/40 evidence-faithful structured outputs, with zero severe contradictions and zero fabricated sources. All three W7900 coexistence profiles completed 30/30 cycles without OOM; the selected 0.72 profile achieved a 10.3355-second combined P95 while retaining the most KataGo headroom.
 
-### Language model
-
-- Model: Qwen3.6-27B, dense, Q4_K_M GGUF.
-- Runtime: self-hosted `llama.cpp` server.
-- Accelerator: AMD ROCm 7.2.1 on Radeon PRO W7900 48 GB.
-- Role: evidence-constrained teaching expression and follow-up dialogue.
-
-The current main path uses the 27B base model with agent-side evidence construction and validation. Historical small-model LoRA experiments are not presented as the main runtime and no private creator-derived training data is included in this submission.
-
-## 6. Radeon GPU optimization
-
-### Scheduling
-
-The full-game pipeline is staged:
-
-1. GPU KataGo scan at 32 visits.
-2. CPU SGF parsing, phase classification and feature extraction run concurrently where possible.
-3. GPU KataGo rechecks critical nodes at 128 visits.
-4. After engine pressure drops, the local Qwen server generates batch narratives.
-5. Results are committed to SQLite.
-
-This avoids running the engine and the LLM at maximum load at the same time on one GPU.
-
-### Quantization and fit
-
-The 27B dense model uses Q4_K_M quantization so it fits comfortably within the W7900's 48 GB VRAM together with runtime buffers. The model server binds to loopback and is accessed through a narrow OpenAI-compatible interface.
-
-### Repeatability
-
-The public snapshot includes installation, start, smoke-test and benchmark scripts under `source/deploy/cloud/`. Model weights are downloaded separately and are never committed.
-
-## 7. Measured results
-
-On the Radeon PRO W7900 demo instance:
-
-- 33 KataGo positions at 32 visits: 13.55 seconds total.
-- One 128-visit verification: 2.63 seconds.
-- Six constructed evidence-grounding cases: 6/6 passed.
-- Coach evaluation P95 latency: 9.536 seconds.
-- Regression suite: 125 backend tests plus 248 training/data tests, 373 total.
-
-These measurements demonstrate the implemented system under the stated configuration. They do not claim universal latency or playing strength across other hardware, models or positions.
-
-## 8. Privacy, safety and data boundaries
-
-- Game records stay local unless the user explicitly enables remote KataGo.
-- Remote model and engine ports are not exposed publicly.
-- Provider keys remain in server environment variables.
-- The browser receives derived evidence, not provider secrets.
-- Public submission assets exclude private SGFs, SQLite databases, creator transcripts, review drafts, authorization conversations, model weights and SSH credentials.
-- KataGo facts, Go-rule facts, heuristics and LLM prose remain separately identifiable.
-
-## 9. Current limitations
-
-- The six-case coach benchmark is deliberately small and constructed; broader expert review is still required.
-- Long-term personalized student memory is not yet a production capability.
-- Retrieval-augmented generation over a licensed Go corpus is not yet the main answer path.
-- The product currently prioritizes Chinese coaching; the submission material is English for the competition.
-- Engine output can prove numerical preference but cannot by itself prove every high-level teaching interpretation.
-
-## 10. Why this project matters
-
-YIJIAN uses a powerful Radeon GPU for more than raw inference throughput. It coordinates a superhuman engine, a dense local language model, deterministic Go rules, validation and privacy controls into one teaching agent. The product contribution is not simply a better answer. It is a trustworthy path from a move recommendation to a human-understandable reason.
+The anonymous human review is complete. The stable 27B scored 4.6133, the base 14B scored 2.8500, and YIJIAN LoRA scored 2.5400, with five severe contradictions assigned to the LoRA. Because the candidate failed every blind-release gate, the sealed test remains unopened with access count zero and the competition alias remains on the stable 27B service. The English competition presentation is included; the owner is recording the demonstration today and will add its English-subtitled link before the deadline.

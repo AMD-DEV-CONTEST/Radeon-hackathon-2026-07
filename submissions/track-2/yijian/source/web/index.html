@@ -908,6 +908,31 @@
     letter-spacing:.03em;white-space:nowrap}
   .qa-answer-section p{margin:0;font-size:14.5px;line-height:1.78;text-align:left}
   .qa-evidence{margin-top:12px;padding-top:9px;font-size:10.5px;line-height:1.55}
+  .qa-agent-trace{margin-top:9px;padding-top:8px;border-top:1px solid rgba(67,111,107,.13);
+    color:#5e7774;font-size:10.5px;line-height:1.55}
+  .qa-agent-trace summary{cursor:pointer;font-weight:800;color:#315e4b}
+  .qa-agent-trace ul{display:grid;gap:4px;margin:7px 0 0;padding:0;list-style:none}
+  .qa-agent-trace li{display:flex;justify-content:space-between;gap:10px}
+  .qa-agent-trace li span:last-child{color:#7b8b86;white-space:nowrap}
+  .qa-memory-save{margin-top:9px;border:1px solid #9bbab2;border-radius:999px;padding:5px 10px;
+    background:rgba(255,255,255,.72);color:#315e4b;font:750 10.5px inherit;cursor:pointer}
+  .qa-memory-save:disabled{opacity:.6;cursor:default}
+  .agent-memory-panel{margin:10px 0 2px;padding:12px;border:1px solid #d9e4df;border-radius:14px;
+    background:#f8fbf9;color:#263d36}
+  .agent-memory-panel[hidden]{display:none}
+  .agent-memory-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:9px}
+  .agent-memory-head b{font:700 12px/1.3 var(--sans)}
+  .agent-memory-head span{display:block;margin-top:3px;color:#73837d;font:400 10px/1.4 var(--sans)}
+  .agent-memory-list{display:grid;gap:7px}
+  .agent-memory-empty{padding:10px;border:1px dashed #cad7d2;border-radius:10px;color:#778680;
+    font:400 11px/1.45 var(--sans);text-align:center}
+  .agent-memory-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start;
+    padding:9px 10px;border:1px solid #dce6e2;border-radius:10px;background:#fff}
+  .agent-memory-item b{display:block;font:650 11px/1.4 var(--sans)}
+  .agent-memory-item p{margin:3px 0 0;color:#667770;font:400 10px/1.5 var(--sans);
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .agent-memory-delete{border:0;background:transparent;color:#8a554e;padding:2px 4px;cursor:pointer;
+    font:600 10px/1.3 var(--sans)}
   .qa-actions,.qa-followups{gap:7px;margin-top:10px}
   .qa-action,.qa-followup{padding:5px 10px;font-size:11px;line-height:1.45}
   .mentor-qa-suggestions{gap:7px;padding:2px 2px 3px}
@@ -1167,6 +1192,18 @@
           <div class="agent-evidence-summary" id="agentEvidenceSummary">
             规则、KataGo、启发式与讲解表达分层呈现
           </div>
+          <div class="agent-compose-bar">
+            <span class="mentor-qa-foot">学习记忆只在你主动开启和保存时写入本机</span>
+            <button class="agent-compose-tool" id="agentMemoryView" type="button"
+              aria-expanded="false">查看记忆</button>
+            <button class="agent-compose-tool" id="agentMemoryClear" type="button">清空记忆</button>
+          </div>
+          <section class="agent-memory-panel" id="agentMemoryPanel" hidden
+            aria-label="本地学习记忆">
+            <div class="agent-memory-head"><div><b>本机学习重点</b>
+              <span>仅显示你主动保存的摘要，不保存完整私谱或模型思维过程</span></div></div>
+            <div class="agent-memory-list" id="agentMemoryList"></div>
+          </section>
           <div class="evidence-rail" id="evidenceRail" aria-label="当前手证据层">
           <button class="evidence-chip rules" id="evidenceRulesChip" type="button"
             data-evidence-kind="rules" data-testid="evidence-rules"
@@ -1240,6 +1277,9 @@
               <button class="agent-compose-tool" id="agentModeToggle" type="button"
                 aria-controls="agentModePanel" aria-expanded="false">
                 <span aria-hidden="true">◇</span><span id="agentModeLabel">基础棋理</span></button>
+              <button class="agent-compose-tool" id="agentMemoryToggle" type="button"
+                aria-pressed="false" title="开启后仍需逐条点击记住">
+                <span aria-hidden="true">○</span><span id="agentMemoryLabel">学习记忆：关</span></button>
             </div>
             <button class="mentor-qa-send" id="mentorQaSend" type="submit">发送</button>
           </div>
@@ -1651,6 +1691,8 @@ const S = {
   mentorActiveSource: "baseline", mentorCache: new Map(),
   qaMessages: [], qaBusy: false, qaAbort: null, qaRequest: 0,
   qaStartedAt: null, qaClock: null,
+  qaSessionId:localStorage.getItem("yijian-mentor-session") || null,
+  qaMemoryEnabled:false,
   coachBriefExpanded: false, coachBriefContextKey: null,
   soundEnabled: localStorage.getItem("yijian-stone-sound-enabled") !== "0",
   audioContext: null,
@@ -4040,6 +4082,21 @@ function syncMentorModeUI() {
   if ($("agentModeLabel"))
     $("agentModeLabel").textContent = MENTOR_LABELS[mode] || "基础棋理";
   const status = mentorModeStatus(mode);
+  // Before the first answer arrives, make the selected production route visible
+  // instead of leaving the static "基础棋理" placeholder in the panel header.
+  if ($("mentorSource")) {
+    const readyCloud = mode === "cloud" && status?.ready;
+    const cloudModel = String(status?.detectedModel || status?.model || "");
+    const cloudLabel = cloudModel.includes("14B-LoRA")
+      ? "弈鉴LoRA · 14B 体验"
+      : cloudModel.includes("27B")
+        ? "云端增强老师 · 27B"
+        : "云端增强老师";
+    $("mentorSource").textContent = readyCloud
+      ? cloudLabel
+      : (MENTOR_LABELS[mode] || "基础棋理");
+    $("mentorSource").className = `mentor-source ${mode}`;
+  }
   const label = mode === "baseline" ? "基础讲解始终可用"
     : status?.ready ? `${status.name}已就绪`
     : mode === "compare" ? "对比模式需要本地与云端同时就绪"
@@ -4059,7 +4116,10 @@ async function loadMentorStatus(force = false) {
 }
 function setMentorSource(result, degraded = false) {
   const source = result?.source || "baseline";
-  $("mentorSource").textContent = result?.sourceLabel || MENTOR_LABELS[source] || "基础棋理";
+  const model = String(result?.model || "");
+  $("mentorSource").textContent = source === "cloud" && model.includes("14B-LoRA")
+    ? "弈鉴LoRA · 14B 体验"
+    : (result?.sourceLabel || MENTOR_LABELS[source] || "基础棋理");
   $("mentorSource").className = `mentor-source ${source}${degraded ? " degraded" : ""}`;
   if (result?.latencyMs) {
     $("mentorStatus").textContent = `${result.sourceLabel} · ${(result.latencyMs / 1000).toFixed(1)} 秒`;
@@ -4441,6 +4501,53 @@ function appendQaAnswer(container, content) {
     container.appendChild(section);
   });
 }
+const AGENT_TOOL_LABELS = {
+  inspect_position:"核对局面与棋块", compare_moves:"比较实战与首选",
+  analyze_variations:"复核后续变化", retrieve_principles:"检索棋理资料",
+  recall_lessons:"回看已保存教训", remember_lesson:"等待你确认保存",
+};
+function appendAgentTrace(bubble, trace) {
+  if (!trace?.items?.length) return;
+  const details = document.createElement("details");
+  details.className = "qa-agent-trace";
+  const summary = document.createElement("summary");
+  summary.textContent = `教练核对了 ${trace.items.length} 项证据`;
+  const list = document.createElement("ul");
+  trace.items.forEach(item => {
+    const row = document.createElement("li");
+    const label = document.createElement("span");
+    label.textContent = AGENT_TOOL_LABELS[item.tool] || "核对证据";
+    const status = document.createElement("span");
+    const statusLabel = item.status === "completed" ? "已完成"
+      : item.status === "approval_required" ? "待确认"
+      : item.status === "disabled" ? "未开启" : "暂无证据";
+    status.textContent = `${statusLabel} · ${Math.max(0, item.durationMs || 0)} ms`;
+    row.append(label, status); list.appendChild(row);
+  });
+  details.append(summary, list); bubble.appendChild(details);
+}
+async function saveQaLesson(message, button) {
+  if (!S.qaMemoryEnabled || !S.qaSessionId) return;
+  const locator = mentorLocator();
+  if (!locator || !message.contextId || !message.positionHash) return;
+  button.disabled = true; button.textContent = "保存中…";
+  try {
+    await apiJson(`/api/mentor/sessions/${S.qaSessionId}/lessons`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        ...locator, contextId:message.contextId, positionHash:message.positionHash,
+        title:`第 ${message.turn} 手的复盘重点`,
+        summary:String(message.content || "").slice(0,800),
+        tags:[message.questionTargetKind || "position"],
+      }),
+    });
+    button.textContent = "已记住";
+    if (!$("agentMemoryPanel").hidden) await loadMemoryLessons();
+  } catch (error) {
+    button.disabled = false; button.textContent = "保存失败，再试一次";
+    button.title = error.message;
+  }
+}
 function renderQaMessages() {
   const messages = $("mentorQaMessages");
   if (!messages) return;
@@ -4508,6 +4615,14 @@ function renderQaMessages() {
       evidence.className = "qa-evidence";
       evidence.textContent = `${message.evidenceLabel || "权威证据"}：${message.evidenceLine}`;
       bubble.appendChild(evidence);
+    }
+    if (message.role === "assistant") appendAgentTrace(bubble, message.agentTrace);
+    if (message.role === "assistant" && S.qaMemoryEnabled && !message.cancelled) {
+      const remember = document.createElement("button");
+      remember.type = "button"; remember.className = "qa-memory-save";
+      remember.textContent = "记住这条";
+      remember.addEventListener("click", () => saveQaLesson(message, remember));
+      bubble.appendChild(remember);
     }
     if (message.role === "assistant" && message.actions?.length) {
       const actions = document.createElement("div");
@@ -4648,6 +4763,7 @@ async function submitQaQuestion(value, requestedTargetKind = null) {
       signal:controller.signal,
       body:JSON.stringify({
         ...locator, question, provider:qaProvider(), targetKind, history,
+        sessionId:S.qaSessionId, memoryEnabled:S.qaMemoryEnabled,
       }),
     });
     if (request !== S.qaRequest ||
@@ -4680,6 +4796,7 @@ async function submitQaQuestion(value, requestedTargetKind = null) {
       followUps:result.followUps || [],
       questionTargetKind:resolvedTarget.kind || targetKind,
       degraded:result.degraded,
+      agentTrace:result.agentTrace,
     });
     // 显式问棋会为避免单并发模型排队而取消后台增强讲解。问答完成后，
     // 用不调用 Qwen 的 baseline 立即回填当前手证据，避免讲解区永久停在加载态。
@@ -4741,6 +4858,92 @@ $("mentorQaClear").addEventListener("click", () => {
   S.qaMessages = []; S.qaBusy = false; S.qaAbort = null;
   renderQaMessages();
 });
+function syncMemoryControl() {
+  $("agentMemoryToggle").setAttribute("aria-pressed", String(S.qaMemoryEnabled));
+  $("agentMemoryLabel").textContent = `学习记忆：${S.qaMemoryEnabled ? "开" : "关"}`;
+  $("agentMemoryClear").disabled = !S.qaSessionId;
+  $("agentMemoryView").disabled = !S.qaSessionId;
+}
+function renderMemoryLessons(items) {
+  const list = $("agentMemoryList");
+  list.replaceChildren();
+  if (!items?.length) {
+    const empty = document.createElement("div");
+    empty.className = "agent-memory-empty";
+    empty.textContent = "还没有保存学习重点。回答后点“记住这条”即可写入本机。";
+    list.appendChild(empty); return;
+  }
+  items.forEach(item => {
+    const row = document.createElement("article"); row.className = "agent-memory-item";
+    const copy = document.createElement("div");
+    const title = document.createElement("b"); title.textContent = item.title || "学习重点";
+    const summary = document.createElement("p"); summary.textContent = item.summary || "";
+    copy.append(title, summary);
+    const remove = document.createElement("button");
+    remove.type = "button"; remove.className = "agent-memory-delete";
+    remove.textContent = "删除"; remove.setAttribute("aria-label", `删除：${title.textContent}`);
+    remove.addEventListener("click", async () => {
+      remove.disabled = true;
+      try {
+        await apiJson(`/api/mentor/sessions/${S.qaSessionId}/lessons/${item.id}`, {method:"DELETE"});
+        await loadMemoryLessons();
+      } catch (error) {
+        remove.disabled = false; remove.title = error.message;
+      }
+    });
+    row.append(copy, remove); list.appendChild(row);
+  });
+}
+async function loadMemoryLessons() {
+  if (!S.qaSessionId) { renderMemoryLessons([]); return; }
+  const payload = await apiJson(`/api/mentor/sessions/${S.qaSessionId}/lessons?limit=50`);
+  renderMemoryLessons(payload.items || []);
+}
+$("agentMemoryView").addEventListener("click", async () => {
+  const panel = $("agentMemoryPanel");
+  panel.hidden = !panel.hidden;
+  $("agentMemoryView").setAttribute("aria-expanded", String(!panel.hidden));
+  if (!panel.hidden) {
+    try { await loadMemoryLessons(); }
+    catch (error) {
+      renderMemoryLessons([]);
+      $("mentorQaFoot").textContent = `读取记忆失败：${error.message}`;
+    }
+  }
+});
+$("agentMemoryToggle").addEventListener("click", async () => {
+  const enabled = !S.qaMemoryEnabled;
+  try {
+    if (!S.qaSessionId) {
+      const session = await apiJson("/api/mentor/sessions", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({memoryEnabled:enabled}),
+      });
+      S.qaSessionId = session.sessionId;
+      localStorage.setItem("yijian-mentor-session", S.qaSessionId);
+    } else {
+      await apiJson(`/api/mentor/sessions/${S.qaSessionId}/memory`, {
+        method:"PUT", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({memoryEnabled:enabled}),
+      });
+    }
+    S.qaMemoryEnabled = enabled; syncMemoryControl(); renderQaMessages();
+    closeAgentPanels();
+  } catch (error) {
+    $("mentorQaFoot").textContent = `学习记忆没有切换：${error.message}`;
+  }
+});
+$("agentMemoryClear").addEventListener("click", async () => {
+  if (!S.qaSessionId || !confirm("清空本机保存的全部学习重点？")) return;
+  try {
+    await apiJson(`/api/mentor/sessions/${S.qaSessionId}/lessons`, {method:"DELETE"});
+    renderMemoryLessons([]);
+    $("mentorQaFoot").textContent = "本机学习记忆已清空。";
+  } catch (error) {
+    $("mentorQaFoot").textContent = `清空失败：${error.message}`;
+  }
+});
+syncMemoryControl();
 
 /* ================= 启动 ================= */
 function applyEngineHealth(health) {

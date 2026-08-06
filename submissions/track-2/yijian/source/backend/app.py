@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
 import coach
+import agent_runtime
 import jobs
 import library
 import media_gateway
@@ -29,11 +30,7 @@ from importers import ImportError as GameImportError, import_bytes
 from terminology import TERMS
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-DEMO_SGF_TEXT = (
-    "(;GM[1]FF[4]CA[UTF-8]AP[YIJIAN]SZ[19]KM[7.5]"
-    "PB[Demo Black]PW[Demo White]RE[?]"
-    ";B[pd];W[dd];B[qp];W[dq];B[pp];W[dp];B[nc];W[cf])"
-)
+DEMO_SGF = os.path.join(BASE, "..", "..", "素材", "AlphaGo-李世石-第四局.sgf")
 WEB_DIR = os.path.join(BASE, "..", "web")
 
 
@@ -43,6 +40,7 @@ async def lifespan(_: FastAPI):
     library.recover_interrupted_jobs()
     seed_classics()
     mentor.init_feedback_db()
+    agent_runtime.init_memory_db(mentor.FEEDBACK_DB)
     if isinstance(engine, KataGoEngine):
         threading.Thread(
             target=engine.warm_up, name="yijian-katago-warmup", daemon=True
@@ -52,7 +50,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="弈鉴 GoMentor",
-    version="0.15.0-tactical-semantics",
+    version="0.16.0-agent-contract",
     lifespan=lifespan,
 )
 mock_engine = MockKataGoEngine()
@@ -152,6 +150,26 @@ class MentorChatBody(TeachingLocatorBody):
         default=None, pattern="^(actual|best|comparison|position)$"
     )
     history: list[MentorHistoryItem] = Field(default_factory=list, max_length=8)
+    sessionId: str | None = Field(default=None, pattern="^[0-9a-f]{32}$")
+    memoryEnabled: bool = False
+
+
+class MentorSessionCreateBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    memoryEnabled: bool = False
+
+
+class MentorSessionMemoryBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    memoryEnabled: bool
+
+
+class MentorLessonBody(TeachingLocatorBody):
+    contextId: str = Field(min_length=64, max_length=64)
+    positionHash: str = Field(min_length=64, max_length=64)
+    title: str = Field(min_length=1, max_length=120)
+    summary: str = Field(min_length=1, max_length=800)
+    tags: list[str] = Field(default_factory=list, max_length=8)
 
 
 class AnalysisJobBody(BaseModel):
@@ -269,7 +287,9 @@ def media_task(task_id: str):
 
 @app.get("/api/demo")
 def demo_game(analyze: bool = False):
-    game = _parse_or_400(DEMO_SGF_TEXT)
+    with open(DEMO_SGF, "r", encoding="utf-8", errors="replace") as handle:
+        text = handle.read()
+    game = _parse_or_400(text)
     selected = engine if analyze else mock_engine
     return {"game": _game_payload(game), "analysis": selected.analyze_game(game)}
 
@@ -579,9 +599,7 @@ def mentor_chat(body: MentorChatBody):
     request_started = time.perf_counter()
     settings = library.get_setting("coach", coach.DEFAULT_SETTINGS)
     evidence_started = time.perf_counter()
-    context = _authoritative_teaching_context(
-        body, include_variation_evidence=True
-    )
+    context = _authoritative_teaching_context(body)
     evidence_ms = round((time.perf_counter() - evidence_started) * 1000)
     position, evidence, purpose = teaching_context.mentor_inputs(context)
     history = [
@@ -595,10 +613,45 @@ def mentor_chat(body: MentorChatBody):
             )
         )
     ]
+    planner_started = time.perf_counter()
+    prepared = mentor.plan_chat(
+        body.provider, body.question, history, position, evidence,
+        body.targetKind, memory_enabled=bool(body.memoryEnabled),
+    )
+    planner_ms = round((time.perf_counter() - planner_started) * 1000)
+    if agent_runtime.needs_variation_evidence(prepared["plan"]):
+        deep_evidence_started = time.perf_counter()
+        context = _authoritative_teaching_context(
+            body, include_variation_evidence=True
+        )
+        position, evidence, purpose = teaching_context.mentor_inputs(context)
+        evidence_ms += round(
+            (time.perf_counter() - deep_evidence_started) * 1000
+        )
+    tool_started = time.perf_counter()
+    try:
+        tool_bundle = agent_runtime.execute_plan(
+            prepared["plan"],
+            question=body.question,
+            position=position,
+            evidence=evidence,
+            memory_db=mentor.FEEDBACK_DB,
+            session_id=body.sessionId,
+            memory_enabled=bool(body.memoryEnabled),
+        )
+    except agent_runtime.AgentProtocolError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    tool_ms = round((time.perf_counter() - tool_started) * 1000)
+    agent_context = {
+        "questionTarget": prepared["questionTarget"],
+        "plan": prepared["plan"],
+        "toolResults": tool_bundle,
+    }
     answer_started = time.perf_counter()
     result = mentor.chat(
         body.provider, body.question, history, settings,
         position, evidence, purpose, body.targetKind,
+        agent_context,
     )
     answer_ms = round((time.perf_counter() - answer_started) * 1000)
     model_ms = int(result.get("latencyMs") or 0)
@@ -608,6 +661,8 @@ def mentor_chat(body: MentorChatBody):
     result["timing"] = {
         "totalMs": total_ms,
         "evidenceMs": evidence_ms,
+        "plannerMs": planner_ms,
+        "toolMs": tool_ms,
         "answerMs": answer_ms,
         "modelReportedMs": model_ms,
         "answerAttempts": int(
@@ -628,8 +683,84 @@ def mentor_chat(body: MentorChatBody):
         "variationEvidenceStatus": (
             (adjudication.get("variationEvidence") or {}).get("status")
         ),
+        "agentPlanHash": tool_bundle["planHash"],
+    }
+    result["agentTrace"] = {
+        **tool_bundle["agentTrace"],
+        "planSource": prepared["planSource"],
+        "planError": prepared["planError"],
+        "questionTarget": prepared["questionTarget"]["kind"],
     }
     return {**result, "teachingContext": context}
+
+
+@app.post("/api/mentor/sessions")
+def mentor_session_create(body: MentorSessionCreateBody):
+    return agent_runtime.create_session(
+        mentor.FEEDBACK_DB, memory_enabled=body.memoryEnabled
+    )
+
+
+@app.put("/api/mentor/sessions/{session_id}/memory")
+def mentor_session_memory(session_id: str, body: MentorSessionMemoryBody):
+    try:
+        return agent_runtime.set_memory_enabled(
+            mentor.FEEDBACK_DB, session_id, body.memoryEnabled
+        )
+    except agent_runtime.AgentProtocolError as exc:
+        raise HTTPException(404, str(exc)) from exc
+
+
+@app.get("/api/mentor/sessions/{session_id}/lessons")
+def mentor_lessons(session_id: str, limit: int = Query(20, ge=1, le=100)):
+    try:
+        return agent_runtime.list_lessons(
+            mentor.FEEDBACK_DB, session_id, limit=limit
+        )
+    except agent_runtime.AgentProtocolError as exc:
+        raise HTTPException(404, str(exc)) from exc
+
+
+@app.post("/api/mentor/sessions/{session_id}/lessons")
+def mentor_lesson_save(session_id: str, body: MentorLessonBody):
+    context = _authoritative_teaching_context(body)
+    if (
+        body.contextId != context["contextId"]
+        or body.positionHash != context["positionHash"]
+    ):
+        raise HTTPException(409, "学习记录上下文已过期，请基于当前局面重新保存")
+    try:
+        return agent_runtime.save_lesson(mentor.FEEDBACK_DB, {
+            "sessionId": session_id,
+            "gameId": context["gameId"],
+            "turn": context["subject"]["effectiveTurn"],
+            "contextId": context["contextId"],
+            "positionHash": context["positionHash"],
+            "evidenceHash": context["evidenceHash"],
+            "title": body.title,
+            "summary": body.summary,
+            "tags": body.tags,
+        })
+    except agent_runtime.AgentProtocolError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+@app.delete("/api/mentor/sessions/{session_id}/lessons")
+def mentor_lessons_clear(session_id: str):
+    try:
+        return agent_runtime.clear_session(mentor.FEEDBACK_DB, session_id)
+    except agent_runtime.AgentProtocolError as exc:
+        raise HTTPException(404, str(exc)) from exc
+
+
+@app.delete("/api/mentor/sessions/{session_id}/lessons/{lesson_id}")
+def mentor_lesson_delete(session_id: str, lesson_id: str):
+    try:
+        return agent_runtime.delete_lesson(
+            mentor.FEEDBACK_DB, session_id, lesson_id
+        )
+    except agent_runtime.AgentProtocolError as exc:
+        raise HTTPException(404, str(exc)) from exc
 
 
 @app.get("/api/terminology")
