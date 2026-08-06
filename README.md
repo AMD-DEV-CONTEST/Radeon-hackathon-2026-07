@@ -4,6 +4,8 @@
 
 A Franka Panda arm, simulated in the Genesis physics engine, grasps real-world YCB objects and sorts them into per-color recessed containers. The system uses a **dual-VLM hierarchical closed loop**: Qwen3-VL-8B handles high-level perception & task planning, while SmolVLA-450M provides 30 Hz real-time closed-loop control.
 
+![Interface Display](docs/image/Interface%20Display.png)
+
 > **中文版见 [README_zh.md](README_zh.md)** · For Chinese, see [README_zh.md](README_zh.md).
 
 ---

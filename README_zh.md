@@ -4,6 +4,8 @@
 
 Franka Panda 机械臂在 Genesis 物理引擎中，将 YCB 物体按颜色分类抓取放置到对应的凹槽容器中。系统采用**双 VLM 分层闭环**：Qwen3-VL-8B 负责视觉感知与任务规划，SmolVLA-450M 负责 30Hz 实时闭环控制。
 
+![操作界面展示](docs/image/Interface%20Display.png)
+
 > **英文版见 [README.md](README.md)** · For English, see [README.md](README.md).
 
 ---
