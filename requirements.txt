@@ -1,0 +1,28 @@
+# Radeon-VLA-SO101 dependencies.
+#
+# IMPORTANT — torch is NOT listed here. Install the ROCm build of torch/vision/
+# audio/triton FIRST from repo.radeon.com (see README "AMD ROCm setup"), THEN
+# `pip install -r requirements.txt`. Installing torch from PyPI here would pull a
+# CPU/CUDA wheel and break the ROCm setup.
+
+# Physics engine + renderer.
+genesis-world>=1.1.2
+numpy>=1.26.4
+trimesh>=4.8.2
+
+# Camera-image handling + video export.
+opencv-python
+imageio
+imageio-ffmpeg
+
+# Config + plotting.
+pyyaml
+matplotlib
+
+# Policy training + inference (VLA). lerobot 0.6.0 uses feature-scoped extras:
+#   [training] -> datasets/av/pyarrow/torchcodec + wandb + accelerate
+#   [smolvla]  -> transformers/num2words
+# Its torch pin is satisfied by the ROCm wheels installed separately.
+# NOTE: lerobot 0.6.0 requires av (PyAV) >=15,<16 (PyAV 16+ dropped av.option).
+lerobot[training,smolvla]==0.6.0
+av>=15,<16
