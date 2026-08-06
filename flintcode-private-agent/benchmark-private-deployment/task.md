@@ -10,23 +10,23 @@ You are an autonomous AI architect. Your task is to design and generate a massiv
 5. Once generation is complete, use the `cargo teaql evaluate` command to verify your models.
 6. The system must cover the following modules:
 
-**Core Modules**
-- Operations & logistics: moves, routes, time slots, fulfillment events, addresses
-- Employees & payroll: staff registry, job assignments, worked hours, payroll calculations, bonuses, leave tracking
-- Customer management: private and corporate customers, linked contacts, billing info, customer history
-- Products & services: moving, cleaning, box rentals, and additional services with configurations and pricing
-- Marketing & sales: campaigns, discount codes, lead tracking, conversion metrics
-- Finance & accounting: payments, invoices, expenses, VAT, financial summaries
-- Asset management: vehicles, equipment, consumables, maintenance schedules
-- Administration & compliance: contracts, insurance, document storage, audit logs
+🔧 Core Modules
+• Operations & logistics: moves, routes, time slots, fulfillment events, addresses
+• Employees & payroll: staff registry, job assignments, worked hours, payroll calculations, bonuses, leave tracking
+• Customer management: private and corporate customers, linked contacts, billing info, customer history
+• Products & services: moving, cleaning, box rentals, and additional services with configurations and pricing
+• Marketing & sales: campaigns, discount codes, lead tracking, conversion metrics
+• Finance & accounting: payments, invoices, expenses, VAT, financial summaries
+• Asset management: vehicles, equipment, consumables, maintenance schedules
+• Administration & compliance: contracts, insurance, document storage, audit logs
 
-**Platform Modules**
-- User & role management: admin, manager, employee, customer access levels
-- Authentication & permissions: support for magic links, role-based access control (RBAC)
-- Activity logging & audit trail: full history of changes, edits, and user actions
-- Versioning & soft deletes: data recovery and edit history tracking
-- Notifications & automation hooks: triggers for operational or financial updates
-- API-ready architecture: structured for integration with front-end and external services
+🧩 Platform Modules
+• User & role management: admin, manager, employee, customer access levels
+• Authentication & permissions: support for magic links, role-based access control (RBAC)
+• Activity logging & audit trail: full history of changes, edits, and user actions
+• Versioning & soft deletes: data recovery and edit history tracking
+• Notifications & automation hooks: triggers for operational or financial updates
+• API-ready architecture: structured for integration with front-end and external services
 
 ## Constraints
 - If a command fails twice, stop and evaluate another approach.
@@ -34,3 +34,12 @@ You are an autonomous AI architect. Your task is to design and generate a massiv
 - Use `cargo teaql --input models/ rust-lib-core --output rust-lib-core` to generate the Rust project.
 - Verify the generated code using `cargo check` and `cargo test` inside the generated library directory.
 - Call `finish_task` once everything compiles successfully with 0 errors.
+
+## Acceptance Criteria (Test Cases)
+1. The KSML model passes `cargo teaql --input <model> evaluation` with **zero errors**.
+2. The model contains **at least 30 unique business objects**.
+3. `cargo teaql --input <model> gen-rust-lib` succeeds and the generated library passes `cargo check`.
+4. `cargo teaql --input <model> gen-rust-app` succeeds and the generated application workspace — with injected business logic — passes `cargo check`.
+5. No `KSML-KEYWORD-002` (reserved keyword) violations.
+6. No `KSML-DOMAIN-ROOT-002` (disconnected graph) violations.
+7. All logging/audit objects include a two-word user field (e.g., `action_operator`) and a timestamp field (e.g., `log_timestamp`).
