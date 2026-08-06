@@ -1,0 +1,91 @@
+[workspace]
+resolver = "3"
+members = [
+    "apps/klintcode-cli",
+    "apps/klintcode-tui",
+    "apps/moving-company-platform/rust-lib-core/lib",
+    "crates/agent-core",
+    "crates/model-vllm",
+    "crates/context-builder",
+    "crates/workspace-guard",
+    "crates/tool-runner",
+    "crates/artifact-store",
+    "crates/pipeline",
+    "crates/validation",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/teaql/klint-code"
+
+[workspace.dependencies]
+# Internal crates
+agent-core = { path = "crates/agent-core" }
+model-vllm = { path = "crates/model-vllm" }
+context-builder = { path = "crates/context-builder" }
+workspace-guard = { path = "crates/workspace-guard" }
+tool-runner = { path = "crates/tool-runner" }
+artifact-store = { path = "crates/artifact-store" }
+pipeline = { path = "crates/pipeline" }
+validation = { path = "crates/validation" }
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# HTTP
+reqwest = { version = "0.12", features = ["json", "stream"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+
+# Error handling
+anyhow = "1"
+thiserror = "2"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
+
+# XML
+quick-xml = "0.37"
+
+# Diff
+similar = "2"
+
+# IDs and timestamps
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# Hashing
+sha2 = "0.10"
+
+# Temporary files
+tempfile = "3"
+
+# Futures
+futures = "0.3"
+
+# Glob
+glob = "0.3"
+
+# Dirs
+dirs = "6"
+
+# Terminal UI
+ratatui = "0.29"
+crossterm = { version = "0.28", features = ["event-stream"] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true

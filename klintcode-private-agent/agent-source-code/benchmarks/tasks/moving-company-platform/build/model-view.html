@@ -1,0 +1,2095 @@
+
+
+<!DOCTYPE html>
+
+<head>
+    <meta charset="utf-8">
+    <title>moving-company-service</title>
+    <style>
+
+        /* panel layout mechanics */
+        .panel-wrap {
+          position: fixed;
+          top: 0;
+          bottom: 0;
+          right: 0;
+          width: 25%;
+          transform: translateX(0%);
+          transition: .3s ease-out;
+          z-index:1000;
+          font-size: 12px;
+        }
+        .panel {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: #333;
+          color: #eee;
+          overflow: auto;
+          padding: 1em;
+        }
+
+        /* simulate panel state control --
+        this can also be triggered by a
+        class name added to the body tag.
+        Just using a checkbox sibling here
+        for simplicity
+        */
+        [type="checkbox"]:checked ~ .panel-wrap {
+          transform: translateX(0%);
+        }
+
+
+        /* demo display */
+        *,*:before, *:after {box-sizing: border-box;}
+
+        body {
+          font-family: sans-serif;
+          font-size: 18px;
+        }
+        h3 {
+          margin: 0;
+        }
+        p {
+          line-height: 1.4;
+          margin: 2em 0 0 0;
+        }
+        [type="checkbox"] {
+          font-size: 1em;
+        }
+
+
+    </style>
+</head>
+<body style="margin: 0px;">
+
+
+
+<div class="panel-wrap" >
+    <div class="panel" id="panel">
+        <h3>Schema</h3>
+    </div>
+</div>
+<div id="panel"  style="height: 20px"> Width：
+    <button onclick="setWidth('800')">800px</button>
+    <button onclick="setWidth('1200px')">1200px</button>
+    <button onclick="setWidth('1600px')">1600px</button>
+    <button onclick="setWidth('2400px')">2400px</button>
+    <button onclick="setWidth('3600px')">3600px</button>
+    moving-company-service
+</div>
+<div id="left" style="position: absolute;top: 20px;bottom: 0px;width:75%;overflow:auto">
+    <!-- Prepare a Dom with size (width and height) for ECharts -->
+
+    <div id="main" style="height: 800px;width:1000px"></div>
+
+</div>
+<!-- ECharts import -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.6.0/echarts.min.js"></script>
+<script type="text/javascript">
+    // configure for module loader
+    function showPresetData({id,name, meta,presetData}){
+      if(!presetData){
+        return "";
+      }
+      var content="<table style='width:100%'>";
+      content=content+"<tr><td colspan='2'>"+"Constant Table"+"<hr/></td></tr>"
+
+      presetData.forEach(item=>{
+          content=content+"<tr><td>"+item.code+"</td><td>"+item.name+"</td></tr>"
+      })
+      content=content+"<tr><td colspan='2'><hr/></td></tr></table>"
+      return content;
+
+
+    }
+    function showMeta({id,name, meta,presetData,depth}){
+
+      var content="<table style='width:100%'>";
+      content=content+"<tr><td colspan='3'>"+id+"("+depth+")"+"<hr/></td></tr>"
+      //content=content+"<tr><td colspan='3'>"+id +"<hr/></td></tr>"
+
+      meta.forEach(item=>{
+        var required=item.name
+        if(item.required==='true'){
+          required="<span style='color:red'>"+item.name+"</span>"
+        }
+        content=content+"<tr><td >"+required+"</td><td>"+item.localeName+"</td><td>"+item.type+"</td></tr>"
+      })
+      content=content+"<tr><td colspan='3'><hr/></td></tr></table>"
+      return content+showPresetData({id,name, meta,presetData});
+    }
+    var data = {
+        "nodes": [
+{
+  "count": 2,
+  "depth": 1,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "company_profile",
+      "localeName": "company_profile"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "name",
+      "localeName": "name"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "code",
+      "localeName": "code"
+    }
+  ],
+  "presetData": [
+{"name":"Scheduled","code":"SCHEDULED"}
+  ],
+
+  "name": "order_status",
+  "id": "order_status",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 0,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "company_name",
+      "localeName": "company_name"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "company_profile",
+  "id": "company_profile",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 2,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "company_profile",
+      "localeName": "company_profile"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "employee_registry",
+      "localeName": "employee_registry"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "account_name",
+      "localeName": "account_name"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "email_address",
+      "localeName": "email_address"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "password_hash",
+      "localeName": "password_hash"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "update_time",
+      "localeName": "update_time"
+    }
+  ],
+  "name": "user_account",
+  "id": "user_account",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 1,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "company_profile",
+      "localeName": "company_profile"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "role_name",
+      "localeName": "role_name"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "description_text",
+      "localeName": "description_text"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "role_definition",
+  "id": "role_definition",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 3,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "user_account",
+      "localeName": "user_account"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "role_definition",
+      "localeName": "role_definition"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "assign_date",
+      "localeName": "assign_date"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "role_assignment",
+  "id": "role_assignment",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 2,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "role_definition",
+      "localeName": "role_definition"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "rule_name",
+      "localeName": "rule_name"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "event_trigger",
+      "localeName": "event_trigger"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "notification_rule",
+  "id": "notification_rule",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 4,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "action_operator",
+      "localeName": "action_operator"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "log_timestamp",
+      "localeName": "log_timestamp"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "action_type",
+      "localeName": "action_type"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "entity_reference",
+      "localeName": "entity_reference"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "audit_log",
+  "id": "audit_log",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 3,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "customer_profile",
+      "localeName": "customer_profile"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "contract_status",
+      "localeName": "contract_status"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "start_date",
+      "localeName": "start_date"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "end_date",
+      "localeName": "end_date"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "service_contract",
+  "id": "service_contract",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 3,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "customer_profile",
+      "localeName": "customer_profile"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "document_name",
+      "localeName": "document_name"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "file_url",
+      "localeName": "file_url"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "document_storage",
+  "id": "document_storage",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 2,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "fleet_vehicle",
+      "localeName": "fleet_vehicle"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "policy_number",
+      "localeName": "policy_number"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "provider_name",
+      "localeName": "provider_name"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "expiry_date",
+      "localeName": "expiry_date"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "insurance_policy",
+  "id": "insurance_policy",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 1,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "company_profile",
+      "localeName": "company_profile"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "employee_name",
+      "localeName": "employee_name"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "job_title",
+      "localeName": "job_title"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "hire_date",
+      "localeName": "hire_date"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "update_time",
+      "localeName": "update_time"
+    }
+  ],
+  "name": "employee_registry",
+  "id": "employee_registry",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 2,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "employee_record",
+      "localeName": "employee_record"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "leave_reason",
+      "localeName": "leave_reason"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "start_date",
+      "localeName": "start_date"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "end_date",
+      "localeName": "end_date"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "update_time",
+      "localeName": "update_time"
+    }
+  ],
+  "name": "leave_request",
+  "id": "leave_request",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 2,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "employee_record",
+      "localeName": "employee_record"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "pay_period",
+      "localeName": "pay_period"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "base_salary",
+      "localeName": "base_salary"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "payroll_calculation",
+  "id": "payroll_calculation",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 3,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "employee_record",
+      "localeName": "employee_record"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "payroll_calculation",
+      "localeName": "payroll_calculation"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "bonus_reason",
+      "localeName": "bonus_reason"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "bonus_amount",
+      "localeName": "bonus_amount"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "bonus_record",
+  "id": "bonus_record",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 4,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "move_order",
+      "localeName": "move_order"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "employee_record",
+      "localeName": "employee_record"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "assignment_role",
+      "localeName": "assignment_role"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "job_assignment",
+  "id": "job_assignment",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 5,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "job_assignment",
+      "localeName": "job_assignment"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "employee_record",
+      "localeName": "employee_record"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "hours_logged",
+      "localeName": "hours_logged"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "work_date",
+      "localeName": "work_date"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "worked_hours",
+  "id": "worked_hours",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 2,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "profile_type",
+      "localeName": "profile_type"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "customer_name",
+      "localeName": "customer_name"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "account_manager",
+      "localeName": "account_manager"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "update_time",
+      "localeName": "update_time"
+    }
+  ],
+  "name": "customer_profile",
+  "id": "customer_profile",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 3,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "customer_profile",
+      "localeName": "customer_profile"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "contact_name",
+      "localeName": "contact_name"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "phone_number",
+      "localeName": "phone_number"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "email_address",
+      "localeName": "email_address"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "contact_person",
+  "id": "contact_person",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 3,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "customer_profile",
+      "localeName": "customer_profile"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "billing_address",
+      "localeName": "billing_address"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "tax_id",
+      "localeName": "tax_id"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "billing_info",
+  "id": "billing_info",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 3,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "customer_profile",
+      "localeName": "customer_profile"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "employee_record",
+      "localeName": "employee_record"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "interaction_notes",
+      "localeName": "interaction_notes"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "interaction_date",
+      "localeName": "interaction_date"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "interaction_history",
+  "id": "interaction_history",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 1,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "company_profile",
+      "localeName": "company_profile"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "campaign_name",
+      "localeName": "campaign_name"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "target_audience",
+      "localeName": "target_audience"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "budget_amount",
+      "localeName": "budget_amount"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "marketing_campaign",
+  "id": "marketing_campaign",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 2,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "marketing_campaign",
+      "localeName": "marketing_campaign"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "code_value",
+      "localeName": "code_value"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "discount_percent",
+      "localeName": "discount_percent"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "discount_code",
+  "id": "discount_code",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 3,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "marketing_campaign",
+      "localeName": "marketing_campaign"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "customer_profile",
+      "localeName": "customer_profile"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "lead_source",
+      "localeName": "lead_source"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "lead_status",
+      "localeName": "lead_status"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "sales_lead",
+  "id": "sales_lead",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 4,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "sales_lead",
+      "localeName": "sales_lead"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "conversion_value",
+      "localeName": "conversion_value"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "conversion_date",
+      "localeName": "conversion_date"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "conversion_metric",
+  "id": "conversion_metric",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 1,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "company_profile",
+      "localeName": "company_profile"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "street_line",
+      "localeName": "street_line"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "city_name",
+      "localeName": "city_name"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "postal_code",
+      "localeName": "postal_code"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "location_address",
+  "id": "location_address",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 3,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "customer_profile",
+      "localeName": "customer_profile"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "origin_address",
+      "localeName": "origin_address"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "destination_address",
+      "localeName": "destination_address"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "asset_vehicle",
+      "localeName": "asset_vehicle"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "order_status",
+      "localeName": "order_status"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "move_date",
+      "localeName": "move_date"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "update_time",
+      "localeName": "update_time"
+    }
+  ],
+  "name": "move_order",
+  "id": "move_order",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 4,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "move_order",
+      "localeName": "move_order"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "estimated_distance",
+      "localeName": "estimated_distance"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "estimated_duration",
+      "localeName": "estimated_duration"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "route_plan",
+  "id": "route_plan",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 4,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "move_order",
+      "localeName": "move_order"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "start_time",
+      "localeName": "start_time"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "end_time",
+      "localeName": "end_time"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "time_slot",
+  "id": "time_slot",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 4,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "move_order",
+      "localeName": "move_order"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "event_description",
+      "localeName": "event_description"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "event_time",
+      "localeName": "event_time"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "fulfillment_event",
+  "id": "fulfillment_event",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 1,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "company_profile",
+      "localeName": "company_profile"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "vehicle_registration",
+      "localeName": "vehicle_registration"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "vehicle_model",
+      "localeName": "vehicle_model"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "capacity_tons",
+      "localeName": "capacity_tons"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "fleet_vehicle",
+  "id": "fleet_vehicle",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 2,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "asset_vehicle",
+      "localeName": "asset_vehicle"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "item_name",
+      "localeName": "item_name"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "serial_number",
+      "localeName": "serial_number"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "equipment_item",
+  "id": "equipment_item",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 2,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "asset_vehicle",
+      "localeName": "asset_vehicle"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "item_name",
+      "localeName": "item_name"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "quantity_count",
+      "localeName": "quantity_count"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "consumable_item",
+  "id": "consumable_item",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 2,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "asset_vehicle",
+      "localeName": "asset_vehicle"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "maintenance_type",
+      "localeName": "maintenance_type"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "scheduled_date",
+      "localeName": "scheduled_date"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "maintenance_schedule",
+  "id": "maintenance_schedule",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 3,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "equipment_item",
+      "localeName": "equipment_item"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "location_name",
+      "localeName": "location_name"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "check_date",
+      "localeName": "check_date"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "inventory_tracking",
+  "id": "inventory_tracking",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 1,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "company_profile",
+      "localeName": "company_profile"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "service_name",
+      "localeName": "service_name"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "service_description",
+      "localeName": "service_description"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "service_catalog",
+  "id": "service_catalog",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 2,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "service_catalog",
+      "localeName": "service_catalog"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "config_name",
+      "localeName": "config_name"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "price_amount",
+      "localeName": "price_amount"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "service_config",
+  "id": "service_config",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 4,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "move_order",
+      "localeName": "move_order"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "service_catalog",
+      "localeName": "service_catalog"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "box_quantity",
+      "localeName": "box_quantity"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "rental_fee",
+      "localeName": "rental_fee"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "box_rental",
+  "id": "box_rental",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 4,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "customer_profile",
+      "localeName": "customer_profile"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "move_order",
+      "localeName": "move_order"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "invoice_total",
+      "localeName": "invoice_total"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "issue_date",
+      "localeName": "issue_date"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "invoice_document",
+  "id": "invoice_document",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 4,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "customer_profile",
+      "localeName": "customer_profile"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "move_order",
+      "localeName": "move_order"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "payment_amount",
+      "localeName": "payment_amount"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "payment_date",
+      "localeName": "payment_date"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "payment_record",
+  "id": "payment_record",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 4,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "move_order",
+      "localeName": "move_order"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "expense_description",
+      "localeName": "expense_description"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "expense_amount",
+      "localeName": "expense_amount"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "expense_record",
+  "id": "expense_record",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 5,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "invoice_document",
+      "localeName": "invoice_document"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "vat_percent",
+      "localeName": "vat_percent"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "vat_amount",
+      "localeName": "vat_amount"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "vat_record",
+  "id": "vat_record",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+,
+{
+  "count": 2,
+  "depth": 5,
+  "meta": [
+{
+      "type": "",
+      "required": "true",
+      "name": "invoice_document",
+      "localeName": "invoice_document"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "total_revenue",
+      "localeName": "total_revenue"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "report_month",
+      "localeName": "report_month"
+    },{
+      "type": "",
+      "required": "true",
+      "name": "create_time",
+      "localeName": "create_time"
+    }
+  ],
+  "name": "financial_summary",
+  "id": "financial_summary",
+  "_class":"class com.skynet.codegenerator.meta.ObjectDescriptor",
+  "_domain_class":"class com.skynet.codegenerator.meta.Domain"
+
+}
+],
+
+        "links": [{
+       "source": "order_status",
+       "type": "move_order",
+       "target": "move_order",
+       "value": 1,
+       "refBy": "moveOrderList"
+ } ,{
+       "source": "company_profile",
+       "type": "order_status",
+       "target": "order_status",
+       "value": 1,
+       "refBy": "orderStatusList"
+ },{
+       "source": "company_profile",
+       "type": "user_account",
+       "target": "user_account",
+       "value": 1,
+       "refBy": "userAccountList"
+ },{
+       "source": "company_profile",
+       "type": "role_definition",
+       "target": "role_definition",
+       "value": 1,
+       "refBy": "roleDefinitionList"
+ },{
+       "source": "company_profile",
+       "type": "employee_registry",
+       "target": "employee_registry",
+       "value": 1,
+       "refBy": "employeeRegistryList"
+ },{
+       "source": "company_profile",
+       "type": "marketing_campaign",
+       "target": "marketing_campaign",
+       "value": 1,
+       "refBy": "marketingCampaignList"
+ },{
+       "source": "company_profile",
+       "type": "location_address",
+       "target": "location_address",
+       "value": 1,
+       "refBy": "locationAddressList"
+ },{
+       "source": "company_profile",
+       "type": "fleet_vehicle",
+       "target": "fleet_vehicle",
+       "value": 1,
+       "refBy": "fleetVehicleList"
+ },{
+       "source": "company_profile",
+       "type": "service_catalog",
+       "target": "service_catalog",
+       "value": 1,
+       "refBy": "serviceCatalogList"
+ } ,{
+       "source": "user_account",
+       "type": "role_assignment",
+       "target": "role_assignment",
+       "value": 1,
+       "refBy": "roleAssignmentList"
+ },{
+       "source": "user_account",
+       "type": "audit_log",
+       "target": "audit_log",
+       "value": 1,
+       "refBy": "auditLogList"
+ } ,{
+       "source": "role_definition",
+       "type": "role_assignment",
+       "target": "role_assignment",
+       "value": 1,
+       "refBy": "roleAssignmentList"
+ },{
+       "source": "role_definition",
+       "type": "notification_rule",
+       "target": "notification_rule",
+       "value": 1,
+       "refBy": "notificationRuleList"
+ } ,{
+       "source": "employee_registry",
+       "type": "user_account",
+       "target": "user_account",
+       "value": 1,
+       "refBy": "userAccountList"
+ },{
+       "source": "employee_registry",
+       "type": "leave_request",
+       "target": "leave_request",
+       "value": 1,
+       "refBy": "leaveRequestList"
+ },{
+       "source": "employee_registry",
+       "type": "payroll_calculation",
+       "target": "payroll_calculation",
+       "value": 1,
+       "refBy": "payrollCalculationList"
+ },{
+       "source": "employee_registry",
+       "type": "bonus_record",
+       "target": "bonus_record",
+       "value": 1,
+       "refBy": "bonusRecordList"
+ },{
+       "source": "employee_registry",
+       "type": "job_assignment",
+       "target": "job_assignment",
+       "value": 1,
+       "refBy": "jobAssignmentList"
+ },{
+       "source": "employee_registry",
+       "type": "worked_hours",
+       "target": "worked_hours",
+       "value": 1,
+       "refBy": "workedHoursList"
+ },{
+       "source": "employee_registry",
+       "type": "customer_profile",
+       "target": "customer_profile",
+       "value": 1,
+       "refBy": "customerProfileList"
+ },{
+       "source": "employee_registry",
+       "type": "interaction_history",
+       "target": "interaction_history",
+       "value": 1,
+       "refBy": "interactionHistoryList"
+ } ,{
+       "source": "payroll_calculation",
+       "type": "bonus_record",
+       "target": "bonus_record",
+       "value": 1,
+       "refBy": "bonusRecordList"
+ } ,{
+       "source": "job_assignment",
+       "type": "worked_hours",
+       "target": "worked_hours",
+       "value": 1,
+       "refBy": "workedHoursList"
+ } ,{
+       "source": "customer_profile",
+       "type": "service_contract",
+       "target": "service_contract",
+       "value": 1,
+       "refBy": "serviceContractList"
+ },{
+       "source": "customer_profile",
+       "type": "document_storage",
+       "target": "document_storage",
+       "value": 1,
+       "refBy": "documentStorageList"
+ },{
+       "source": "customer_profile",
+       "type": "contact_person",
+       "target": "contact_person",
+       "value": 1,
+       "refBy": "contactPersonList"
+ },{
+       "source": "customer_profile",
+       "type": "billing_info",
+       "target": "billing_info",
+       "value": 1,
+       "refBy": "billingInfoList"
+ },{
+       "source": "customer_profile",
+       "type": "interaction_history",
+       "target": "interaction_history",
+       "value": 1,
+       "refBy": "interactionHistoryList"
+ },{
+       "source": "customer_profile",
+       "type": "sales_lead",
+       "target": "sales_lead",
+       "value": 1,
+       "refBy": "salesLeadList"
+ },{
+       "source": "customer_profile",
+       "type": "move_order",
+       "target": "move_order",
+       "value": 1,
+       "refBy": "moveOrderList"
+ },{
+       "source": "customer_profile",
+       "type": "invoice_document",
+       "target": "invoice_document",
+       "value": 1,
+       "refBy": "invoiceDocumentList"
+ },{
+       "source": "customer_profile",
+       "type": "payment_record",
+       "target": "payment_record",
+       "value": 1,
+       "refBy": "paymentRecordList"
+ } ,{
+       "source": "marketing_campaign",
+       "type": "discount_code",
+       "target": "discount_code",
+       "value": 1,
+       "refBy": "discountCodeList"
+ },{
+       "source": "marketing_campaign",
+       "type": "sales_lead",
+       "target": "sales_lead",
+       "value": 1,
+       "refBy": "salesLeadList"
+ } ,{
+       "source": "sales_lead",
+       "type": "conversion_metric",
+       "target": "conversion_metric",
+       "value": 1,
+       "refBy": "conversionMetricList"
+ } ,{
+       "source": "location_address",
+       "type": "move_order",
+       "target": "move_order",
+       "value": 1,
+       "refBy": "moveOrderListAsOriginAddress"
+ },{
+       "source": "location_address",
+       "type": "move_order",
+       "target": "move_order",
+       "value": 1,
+       "refBy": "moveOrderListAsDestinationAddress"
+ } ,{
+       "source": "move_order",
+       "type": "audit_log",
+       "target": "audit_log",
+       "value": 1,
+       "refBy": "auditLogList"
+ },{
+       "source": "move_order",
+       "type": "job_assignment",
+       "target": "job_assignment",
+       "value": 1,
+       "refBy": "jobAssignmentList"
+ },{
+       "source": "move_order",
+       "type": "route_plan",
+       "target": "route_plan",
+       "value": 1,
+       "refBy": "routePlanList"
+ },{
+       "source": "move_order",
+       "type": "time_slot",
+       "target": "time_slot",
+       "value": 1,
+       "refBy": "timeSlotList"
+ },{
+       "source": "move_order",
+       "type": "fulfillment_event",
+       "target": "fulfillment_event",
+       "value": 1,
+       "refBy": "fulfillmentEventList"
+ },{
+       "source": "move_order",
+       "type": "box_rental",
+       "target": "box_rental",
+       "value": 1,
+       "refBy": "boxRentalList"
+ },{
+       "source": "move_order",
+       "type": "invoice_document",
+       "target": "invoice_document",
+       "value": 1,
+       "refBy": "invoiceDocumentList"
+ },{
+       "source": "move_order",
+       "type": "payment_record",
+       "target": "payment_record",
+       "value": 1,
+       "refBy": "paymentRecordList"
+ },{
+       "source": "move_order",
+       "type": "expense_record",
+       "target": "expense_record",
+       "value": 1,
+       "refBy": "expenseRecordList"
+ } ,{
+       "source": "fleet_vehicle",
+       "type": "insurance_policy",
+       "target": "insurance_policy",
+       "value": 1,
+       "refBy": "insurancePolicyList"
+ },{
+       "source": "fleet_vehicle",
+       "type": "move_order",
+       "target": "move_order",
+       "value": 1,
+       "refBy": "moveOrderList"
+ },{
+       "source": "fleet_vehicle",
+       "type": "equipment_item",
+       "target": "equipment_item",
+       "value": 1,
+       "refBy": "equipmentItemList"
+ },{
+       "source": "fleet_vehicle",
+       "type": "consumable_item",
+       "target": "consumable_item",
+       "value": 1,
+       "refBy": "consumableItemList"
+ },{
+       "source": "fleet_vehicle",
+       "type": "maintenance_schedule",
+       "target": "maintenance_schedule",
+       "value": 1,
+       "refBy": "maintenanceScheduleList"
+ } ,{
+       "source": "equipment_item",
+       "type": "inventory_tracking",
+       "target": "inventory_tracking",
+       "value": 1,
+       "refBy": "inventoryTrackingList"
+ } ,{
+       "source": "service_catalog",
+       "type": "service_config",
+       "target": "service_config",
+       "value": 1,
+       "refBy": "serviceConfigList"
+ },{
+       "source": "service_catalog",
+       "type": "box_rental",
+       "target": "box_rental",
+       "value": 1,
+       "refBy": "boxRentalList"
+ } ,{
+       "source": "invoice_document",
+       "type": "vat_record",
+       "target": "vat_record",
+       "value": 1,
+       "refBy": "vatRecordList"
+ },{
+       "source": "invoice_document",
+       "type": "financial_summary",
+       "target": "financial_summary",
+       "value": 1,
+       "refBy": "financialSummaryList"
+ } ]
+    }
+    var modelChart = echarts.init(document.getElementById('main'));
+
+    var option = {
+
+      label:{
+
+          show:true,
+          formatter:function(obj){
+              if(obj.data.presetData){
+                return obj.data.id+"("+obj.data.presetData.length+")"
+              }
+              return obj.data.name
+          }
+      },
+      title: {
+          text: '',
+          left: 'center'
+      },
+      tooltip: {
+          trigger: 'item',
+          triggerOn: 'mouseclick',
+
+          formatter:function({id,name, data, dataType}){
+
+              if(dataType==='edge') {
+                  //return obj.name+":"+obj.dataType+""+JSON.stringify(obj.data)
+                  var [src, target]=name.split(" > ")
+                  console.log("console ", src, target);
+                  return src+" &lt; <span style='color:red'>"+data.refBy+"</span> &gt; "+target;
+
+              }
+              if(dataType==='node') {
+                  //return obj.data.label+JSON.stringify(obj.data)
+                  //return showMeta({id:data.id,name:data.label, meta:data.meta})
+              }
+              //return "unknown"
+
+          },
+      },
+      series: [
+          {
+              type: 'sankey',
+              left: 50.0,
+              top: 20.0,
+              right: 150.0,
+              bottom: 25.0,
+              data: data.nodes,
+              links: data.links,
+              emphasis: {
+                  focus: 'adjacency'
+              },
+              lineStyle: {
+                  color: 'gradient',
+                  curveness: 0.5
+              }
+          }
+      ]
+}
+
+modelChart.setOption(option);
+
+modelChart.on('click', function (componentData) {
+
+
+  if(!componentData){
+    return
+  }
+  if(!componentData.dataType){
+    return
+  }
+  var {name, data, dataType}=componentData
+  var parent = document.getElementById("panel");
+
+  var theFirstChild = parent.firstChild;
+  if(componentData.dataType==='edge'){
+    var [src, target]=name.split(" > ")
+    //console.log("console ", src, target);
+    //return src+" &lt; <span style='color:red'>"+data.refBy+"</span> &gt; "+target;
+    var p = document.createElement("p");
+    p.innerHTML="<div>"+src+".<span style='color:red'>"+data.refBy+"</span> is a/an "+target;+"</div>"
+    parent.insertBefore(p, theFirstChild);
+    return
+  }
+
+  if(componentData.dataType==='node'){
+    console.log("get data", componentData)
+    var p = document.createElement("p");
+    p.innerHTML=showMeta({id:data.id,name:data.label, meta:data.meta,presetData:data.presetData,depth:data.depth})
+    if(theFirstChild){
+      parent.insertBefore(p, theFirstChild);
+      return
+    }
+
+
+    return
+  }
+
+
+});
+
+//document.getElementById("main").addEventListener("wheel", myFunction);
+
+function myFunction(event) {
+
+  if(parseInt(this.style.width<800)){
+    return;
+  }
+  var move=event.deltaY/8
+  document.title=(parseInt(this.style.width)+move*1.4) +"px";
+  this.style.width = (parseInt(this.style.width)+move*1.4) +"px";
+  this.style.height = (parseInt(this.style.height)+move)+"px";
+  modelChart.resize();
+}
+
+function setWidth(widthExpr){
+  var target = document.getElementById("main");
+  var width=parseInt(widthExpr);
+  target.style.width=width+"px";
+  target.style.height=width*0.7+"px";
+  modelChart.resize();
+}
+
+
+</script>
+</body>
+</html>

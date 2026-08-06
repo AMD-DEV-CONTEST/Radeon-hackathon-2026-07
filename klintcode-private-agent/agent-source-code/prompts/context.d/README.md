@@ -1,0 +1,1 @@
+# Context Directory\n\nDrop any .md or .txt files here. They will be automatically loaded\nand included as reference context in the user prompt.\n\nFiles are loaded in alphabetical order.\n\nExamples:\n- 01-domain-rules.md\n- 02-naming-conventions.txt\n- 03-custom-checklist.md
