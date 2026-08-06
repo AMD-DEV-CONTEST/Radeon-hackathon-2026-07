@@ -7,9 +7,7 @@ for ripe fruit and applies a 6 N-per-finger, contact-triggered latched force
 guard for unripe fruit.
 
 ## Deliverables
-- Raw demonstration clips: [GitHub-hosted ZIP](https://github.com/user-attachments/files/30781306/video.zip)
-- Backup mirror: [Baidu Netdisk](https://pan.baidu.com/s/1wKbvYqZIJdXIoEYX-YC65w?pwd=s7zx), extraction code: `s7zx`
-- Source video:https://github.com/user-attachments/files/30781306/video.zip or  https://pan.baidu.com/s/1wKbvYqZIJdXIoEYX-YC65w?pwd=s7zx
+
 - Source code: https://github.com/cairen9/freshguard-physical-ai
 - Technical report: [FreshGuard_Technical_Report.pdf](FreshGuard_Technical_Report.pdf)
 - Reproducibility instructions: the source repository `README.md` and
