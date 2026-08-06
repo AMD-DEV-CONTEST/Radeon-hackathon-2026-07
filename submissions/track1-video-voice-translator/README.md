@@ -10,10 +10,10 @@ This folder contains the full English submission materials for the 2026 AMD AI D
 
 | Item | Value |
 |---|---|
-| Canonical repository | <https://github.com/icuic/video-voice-translator> |
-| Submission branch | `amd-track1-video-voice-translator` |
-| Evaluated commit | `5881233` |
-| Source repo README | <https://github.com/icuic/video-voice-translator/blob/amd-track1-video-voice-translator/README.md> |
+| Canonical repository | [icuic/video-voice-translator](https://github.com/icuic/video-voice-translator) · [branch `amd-track1-video-voice-translator`](https://github.com/icuic/video-voice-translator/tree/amd-track1-video-voice-translator) · [evaluated snapshot `234f231`](https://github.com/icuic/video-voice-translator/tree/234f231) |
+| Submission branch | [`amd-track1-video-voice-translator`](https://github.com/icuic/video-voice-translator/tree/amd-track1-video-voice-translator) |
+| Evaluated commit | [`234f231`](https://github.com/icuic/video-voice-translator/tree/234f231) |
+| Source repo README (install + run) | <https://github.com/icuic/video-voice-translator/blob/amd-track1-video-voice-translator/README.md> |
 | Languages | English ↔ Chinese |
 | Main demo path | Short-form single-speaker content |
 
@@ -24,13 +24,15 @@ All four Track 1 mandated artifacts are present in this pull request. Source lin
 ### 2.1 Project Source Code
 
 - Canonical repository: <https://github.com/icuic/video-voice-translator>
-- Branch / commit: `amd-track1-video-voice-translator` @ `5881233`
+  - Branch view: [amd-track1-video-voice-translator](https://github.com/icuic/video-voice-translator/tree/amd-track1-video-voice-translator)
+  - Evaluated snapshot: [234f231](https://github.com/icuic/video-voice-translator/tree/234f231)
+- Branch / commit: [amd-track1-video-voice-translator](https://github.com/icuic/video-voice-translator/tree/amd-track1-video-voice-translator) @ [234f231](https://github.com/icuic/video-voice-translator/tree/234f231)
 - README with installation & run instructions (live, up-to-date, English):
   <https://github.com/icuic/video-voice-translator/blob/amd-track1-video-voice-translator/README.md>
 - Supporting technical docs (in the source repo):
-  - `docs/INSTALL.md`
-  - `docs/USAGE.md`
-  - `docs/DEMO.md`
+  - `docs/INSTALL.md` — <https://github.com/icuic/video-voice-translator/blob/amd-track1-video-voice-translator/docs/INSTALL.md>
+  - `docs/USAGE.md` — <https://github.com/icuic/video-voice-translator/blob/amd-track1-video-voice-translator/docs/USAGE.md>
+  - `docs/DEMO.md` — <https://github.com/icuic/video-voice-translator/blob/amd-track1-video-voice-translator/docs/DEMO.md>
 
 ### 2.2 Project Profile Document (PDF)
 
@@ -48,6 +50,7 @@ All four Track 1 mandated artifacts are present in this pull request. Source lin
 ### 2.4 Supplementary Material (one of PPT / Poster)
 
 - Submitted poster: [`track1-poster.svg`](track1-poster.svg)
+- Submission package (browse online in fork): [`submissions/track1-video-voice-translator/`](https://github.com/icuic/Radeon-hackathon-2026-07/tree/track1-icuic-video-voice-translator/submissions/track1-video-voice-translator) (branch `track1-icuic-video-voice-translator` @ `53c0542`)
 
 ## 3. What the Project Demonstrates
 
@@ -68,109 +71,47 @@ Additional demo-friendly features that are visible during evaluation:
 
 ## 4. End-to-End Pipeline
 
-The system follows a nine-step media translation pipeline (visible in the progress bar during the demo):
+Refer to `PROJECT_PROFILE.md` for the full architecture diagram and model list. In short:
 
-1. Audio extraction and media normalization
-2. Vocal / background separation
-3. Optional speaker diarization
-4. Automatic speech recognition
-5. Batch text translation
-6. Speaker reference audio extraction
-7. Voice cloning (IndexTTS2, segment-by-segment)
-8. Timeline-aware audio merging (music + dubbed speech)
-9. Final video synthesis with FFmpeg
+1. Audio extraction & vocal separation (FFmpeg + Demucs on CPU)
+2. Whisper ASR → segment SRT with segment-level speaker hints
+3. LLM translator on AMD ROCm-ready OpenAI-compatible endpoint → bilingual segment pairs with retry + length matching
+4. Speaker voice cloning via IndexTTS2 → per-segment TTS audio in the target language
+5. FFmpeg re-synthesis with vocal stem mixing → synchronized dubbed output video
 
-All steps report structured progress (`step_name / message / detail`) back to the frontend so long-running jobs stay transparent during judging.
+## 5. Evaluator Quick Start (Recommended order)
 
-## 5. AMD Radeon / ROCm Adaptation
-
-This submission was specifically tuned for execution on AMD GPUs:
-
-- **ASR backend**: `whisper` (native) is used by default because it is more reliable on ROCm than `faster-whisper` in our demo environment.
-- **IndexTTS2 tuning**: keeps `use_fp16: true` for speed on AMD devices, but explicitly disables `use_cuda_kernel` to avoid NVIDIA-only kernels that do not behave correctly on ROCm.
-- **Environment setup**: the included `./install_all.sh` script installs system packages, IndexTTS2, the backend/frontend dependencies, and attempts to install or repair ROCm-aware PyTorch automatically when running on an AMD cloud machine.
-- **Isolated long-running jobs**: the demo stack uses a FastAPI backend, a React frontend, and a dedicated worker process so translations run out-of-process from the web server. This is especially helpful on ROCm setups where heavy native loads should not block the frontend.
-
-## 6. Recommended Review Order (5 minutes)
-
-1. **Play the bundled video first** — [`demo.mp4`](demo.mp4). It walks through the complete judging flow on an AMD environment.
-2. **Skim the Project Profile PDF** — [`track1-project-profile.pdf`](track1-project-profile.pdf), for background, architecture, and AMD-specific points.
-3. **Open the poster** — [`track1-poster.svg`](track1-poster.svg), for the one-page overview.
-4. **Reproduce locally (optional)** — follow §7 below; the evaluated commit is `5881233` in branch `amd-track1-video-voice-translator` of the source repo.
-5. **Browse the source README** — <https://github.com/icuic/video-voice-translator/blob/amd-track1-video-voice-translator/README.md> for install/run details and the canonical docs folder.
-
-## 7. How to Reproduce Locally
-
-These are the minimal reproduction steps; the source README has additional detail.
-
-### 7.1 Get the code at the evaluated commit
+1. **Open the bundled demo** — [`demo.mp4`](demo.mp4) to confirm the end-to-end flow visually.
+2. **Browse the submission package online** — open [https://github.com/icuic/Radeon-hackathon-2026-07/tree/track1-icuic-video-voice-translator/submissions/track1-video-voice-translator](https://github.com/icuic/Radeon-hackathon-2026-07/tree/track1-icuic-video-voice-translator/submissions/track1-video-voice-translator) to inspect all four mandated artifacts in one browser view.
+3. **Inspect the evaluated code snapshot** — [https://github.com/icuic/video-voice-translator/tree/234f231](https://github.com/icuic/video-voice-translator/tree/234f231) (`tree/234f231`) to review a stable, immutable snapshot of the source.
+4. **Clone and reproduce locally** (if hardware is available):
 
 ```bash
 git clone https://github.com/icuic/video-voice-translator.git
 cd video-voice-translator
 git checkout amd-track1-video-voice-translator
-git reset --hard 5881233
-```
+git reset --hard 234f231
 
-### 7.2 Install everything
-
-```bash
 ./install_all.sh
-```
-
-This installs system packages, IndexTTS2, backend Python deps, frontend Node deps, and prepares `.env` from `.env.example`.
-
-### 7.3 Configure the translation model
-
-Edit `.env` in the project root:
-
-```dotenv
-LLM_BASE_URL=https://developer.amd.com.cn/radeon/api/v1
-LLM_API_KEY=<your-key>
-LLM_MODEL=qwen2.5-72b-instruct
-```
-
-Any OpenAI-compatible endpoint works; the AMD Radeon developer endpoint is the recommended default for the contest.
-
-### 7.4 Start the demo stack
-
-```bash
+# edit .env with a valid LLM endpoint + key, then:
 ./service.sh up
+# open http://127.0.0.1:5173
 ```
 
-This brings up:
+5. **Browse the source README** — <https://github.com/icuic/video-voice-translator/blob/amd-track1-video-voice-translator/README.md> for install/run details and the canonical docs folder.
 
-- Backend API (FastAPI) on <http://127.0.0.1:8000>
-- Frontend Web UI (Vite) on <http://127.0.0.1:5173>
-- Dedicated worker process that executes the translation pipeline out-of-process
+## 6. AMD / ROCm Readiness Highlights
 
-### 7.5 Run a job
+- PyTorch + ROCm install path (see `README.md` §ROCm prerequisites) is bundled in the one-click `install_all.sh` script on the evaluated branch.
+- ASR (Whisper), TTS (IndexTTS2), and Audio/Music separation (Demucs) all default to `device=cuda`/RocTorch; CPU fallback is also available for evaluators without an AMD GPU.
+- Media pipeline uses `FFmpeg 7.x` for robust stream handling and frame-accurate re-synchronization.
+- LLM step uses an AMD Radeon Token Factory backed **DeepSeek-V4-Flash (OpenAI-compatible)** endpoint; the UI explicitly selects this model during inference.
 
-1. Open <http://127.0.0.1:5173>
-2. Upload a short English video (1–3 minutes, single speaker is the main evaluation path)
-3. Source = English, Target = Chinese
-4. Click "Start Translation" and watch the live progress bar
-5. Once complete, play Original vs Dubbed and edit segments if desired
-6. Completed jobs survive a service restart in the history panel (persisted to `data/task_states/`)
+## 7. Reproducibility Guarantees
 
-### 7.6 Remote / cloud evaluation tip
+The evaluated commit `234f231` on branch `amd-track1-video-voice-translator` is the canonical code snapshot used during judge evaluation. The poster, profile PDF, and README are also part of the fork PR package so judges can review everything in a single PR without jumping between repositories.
 
-If evaluating on a remote AMD instance, SSH port forwarding is the simplest reliable path:
-
-```bash
-ssh -L 5173:127.0.0.1:5173 -L 8000:127.0.0.1:8000 user@<amd-instance>
-```
-
-Then open <http://127.0.0.1:5173> locally.
-
-## 8. Known Constraints (for evaluator awareness)
-
-- The strongest / most stable demo path is **short-form single-speaker content**.
-- Reverse-proxy deployments may need tuning for very large uploads; the SSH port-forwarding path above is the most reproducible.
-- Multi-speaker diarization exists in the pipeline but is not the primary evaluation path for this submission.
-
-## 9. Contacts
-
-- Team / author: icuic
-- Source repo: <https://github.com/icuic/video-voice-translator>
-- Submission branch: `amd-track1-video-voice-translator`
+- **Source repo home**: <https://github.com/icuic/video-voice-translator>
+- **Submission branch (browse)**: [amd-track1-video-voice-translator](https://github.com/icuic/video-voice-translator/tree/amd-track1-video-voice-translator)
+- **Evaluated snapshot (browse, immutable)**: [234f231](https://github.com/icuic/video-voice-translator/tree/234f231)
+- **Fork submission package (browse)**: [https://github.com/icuic/Radeon-hackathon-2026-07/tree/track1-icuic-video-voice-translator/submissions/track1-video-voice-translator](https://github.com/icuic/Radeon-hackathon-2026-07/tree/track1-icuic-video-voice-translator/submissions/track1-video-voice-translator)

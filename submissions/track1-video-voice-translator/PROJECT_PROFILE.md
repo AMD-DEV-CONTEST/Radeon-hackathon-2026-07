@@ -1,5 +1,9 @@
 # Video Voice Translator
 
+> **Project Repository:** <https://github.com/icuic/video-voice-translator>
+> - Branch view: [amd-track1-video-voice-translator](https://github.com/icuic/video-voice-translator/tree/amd-track1-video-voice-translator)
+> - Evaluated snapshot: [234f231](https://github.com/icuic/video-voice-translator/tree/234f231)
+
 ## 1. Project Background
 
 Cross-language video localization is still expensive and slow for individual creators, educators, and small media teams. A typical workflow requires subtitle generation, manual translation, voice-over recording, audio alignment, and final video rendering. This project reduces that friction by turning the full workflow into an end-to-end AI-assisted pipeline.
