@@ -1,0 +1,17 @@
+pre-commit:
+  parallel: false
+
+  jobs:
+    - name: ruff-check
+      glob: "*.{py,pyi}"
+      run: uv run ruff check --fix {staged_files}
+      stage_fixed: true
+
+    - name: ruff-format
+      glob: "*.{py,pyi}"
+      run: uv run ruff format {staged_files}
+      stage_fixed: true
+
+    - name: ty
+      glob: "*.{py,pyi}"
+      run: uv run ty check

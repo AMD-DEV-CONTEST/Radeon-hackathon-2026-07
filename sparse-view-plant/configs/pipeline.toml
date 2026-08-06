@@ -1,0 +1,23 @@
+# Sparse-view plant reconstruction pipeline defaults (VGGT frontend).
+
+[pointcloud]
+# VGGT-1B feed-forward frontend. Set source_dir / VGGT_SRC to a clone of
+# https://github.com/facebookresearch/vggt and ckpt_path / VGGT_CKPT to the
+# downloaded checkpoint directory (model.safetensors).
+source_dir = ""
+ckpt_path = ""
+image_resolution = 448        # 518 official; 448 tested on T10 16GB
+device = "cuda"
+pixel_limit = 255000
+confidence_percentile = 20.0  # drop the lowest-confidence 20% of points
+foreground_center_radius = 0.7  # mask-free fg: central ellipse radius (>=1.42 disables)
+foreground_confidence_percentile = 40.0  # mask-free fg: per-view confidence quantile
+foreground_provider = "birefnet"
+
+[gaussians]
+# Optional Gaussian stage (disabled by default; the point cloud is the
+# primary deliverable). Enable with a gs-refine recipe, e.g.
+# configs/pipeline_gs_refine_vggt_2dgs.toml (VGGT frontend + 2DGS).
+enabled = false
+backend = "gs-refine"
+device = "cuda"

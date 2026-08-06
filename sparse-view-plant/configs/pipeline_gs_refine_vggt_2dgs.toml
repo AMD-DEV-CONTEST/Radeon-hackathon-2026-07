@@ -1,0 +1,54 @@
+# gs-refine with the VGGT-1B frontend (Live Reconstruction recipe).
+#
+# Photometric refinement of the VGGT point cloud and predicted cameras
+# (facebook/VGGT-1B; set pointcloud.source_dir / VGGT_SRC to the vggt clone
+# and pointcloud.ckpt_path / VGGT_CKPT to the checkpoint dir). Best evaluated
+# VGGT recipe: birefnet foreground for the stage-1 pointcloud deliverable and
+# birefnet supervision for gs-refine (verified per-instance).
+# refine_export_trim defaults to none because the project prioritizes
+# geometry (trim only helps silhouette IoU; rendering-first scenes can
+# --set gaussians.refine_export_trim=birefnet). 448px recommended for
+# 8 views on 16GB (T10); 518px is the official VGGT resolution.
+#
+[pointcloud]
+device = "cuda"
+pixel_limit = 255000
+confidence_percentile = 20.0
+foreground_center_radius = 0.7
+foreground_confidence_percentile = 40.0
+foreground_provider = "birefnet"
+image_resolution = 448
+
+[gaussians]
+enabled = true
+backend = "gs-refine"
+device = "cuda"
+refine_steps = 300
+refine_lr = 2e-3
+refine_resolution = 256
+refine_views = 4
+refine_bg_weight = 0.5
+refine_alpha_weight = 0.1
+refine_max_points = 400000
+refine_keep_fraction = 0.8
+refine_mask_provider = "birefnet"
+refine_opacity_min = 0.05
+refine_opacity_max = 0.9
+refine_scale_max = 0.02
+refine_export_trim = "none"   # geometry-first default; birefnet for silhouette IoU
+# Learned opacity is a better final selector than the source-cell 2D mask:
+# bean_4 5v keeps 38k vs 40k splats while gaining +1.32dB PSNR at -1.7pp IoU.
+# Keep geometry-first default off; presentation runs can --set this to 0.5.
+refine_export_opacity_threshold = 0.0
+#
+# 2DGS variant: gs-refine rasterizes 2DGS surfels
+# (refine_2dgs=true + distloss 0.1 + refine_scale_disk=1e-3).
+# Extends the mint 5v/8v 2DGS finding (geometry non-negative +
+# silhouette IoU up) to bean/kale to test cross-species transfer.
+refine_2dgs = true
+refine_2dgs_surface_init = true
+# VGGT predicts pointmaps and cameras jointly; recover each view's focal length
+# and principal point from those pixel/3D correspondences instead of assuming K.
+refine_use_pointmap_intrinsics = true
+refine_dist_weight = 0.1
+refine_scale_disk = 1e-3

@@ -1,5 +1,19 @@
 # Radeon-hackathon-2026-07
 
+## Track 1 Submission — Sparse View Plant
+
+**Application:** Sparse View Plant — sparse-view 3D reconstruction of plants
+from 3–6 uncalibrated RGB photos on AMD Radeon GPU / ROCm (Track 1:
+Multimodal Content Creation Tools).
+
+- **Project Profile Document (PDF):**
+  [`sparse-view-plant/docs/project-profile.pdf`](sparse-view-plant/docs/project-profile.pdf)
+- **Source code:** [`sparse-view-plant/`](sparse-view-plant/) — README includes
+  environment configuration, startup guide, and dependency list
+- **Demo video:** to be added
+
+---
+
 ## how to apply and use AMD Radeon GPU
 see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
 

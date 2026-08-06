@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sparse View Plant — Plant-aware 2DGS</title>
+<style>
+  :root {
+    --bg: #0f141a; --panel: #161d26; --border: #2a3441;
+    --text: #e6e9ee; --muted: #9aa5b1; --accent: #35c983;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.6 -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 48px 24px 80px; }
+  header h1 { font-size: 2.4rem; margin: 0 0 6px; }
+  header p.sub { color: var(--muted); margin: 0 0 8px; font-size: 1.05rem; }
+  .badges { margin: 14px 0 28px; }
+  .badges code {
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 3px 8px; border-radius: 6px; font-size: 0.85rem; color: var(--accent);
+  }
+  h2 { font-size: 1.35rem; margin: 44px 0 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  figure { margin: 18px 0; }
+  figure img { width: 100%; border: 1px solid var(--border); border-radius: 10px; background: #0b0f14; }
+  figcaption { color: var(--muted); font-size: 0.88rem; margin-top: 6px; }
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+  .step { border-left: 3px solid var(--accent); background: rgba(53, 201, 131, 0.07); padding: 14px; border-radius: 0 10px 10px 0; }
+  .step b { display: block; margin-bottom: 4px; }
+  .step p { margin: 0; color: var(--muted); font-size: 0.92rem; }
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; }
+  th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: center; }
+  th { background: var(--panel); }
+  td.delta { color: var(--accent); }
+  .pairs { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+  .pair { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .pair img { width: 100%; display: block; }
+  .pair .cap { padding: 8px 10px; color: var(--muted); font-size: 0.85rem; background: var(--panel); }
+  .inputs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .inputs img { width: 100%; border: 1px solid var(--border); border-radius: 8px; }
+  .note { color: var(--muted); font-size: 0.9rem; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Sparse View Plant</h1>
+    <p class="sub">3–6 uncalibrated RGB photos → VGGT geometry → pointmap
+    intrinsics → surface-aligned 2D Gaussian refinement</p>
+    <div class="badges"><code>zero-training</code>
+      <code>pose-free</code> <code>3DGS / 2DGS</code></div>
+  </header>
+
+  <h2>Live demo</h2>
+  <p>The Gradio app ships a <b>Live Reconstruction</b> tab only: upload 3–6
+  photos of one plant (or pick a curated example), optionally enable the
+  BiRefNet background mask, and inspect the reconstructed point cloud and
+  refined 2D Gaussians in the browser.</p>
+  <figure>
+    <img src="assets/comparison.png" alt="Baseline vs Plant-aware 2DGS comparison" />
+    <figcaption>Fair VGGT + vanilla 2DGS baseline (left) vs Plant-aware 2DGS
+    (right), input-view rendering comparison on the Bean 4 set.</figcaption>
+  </figure>
+
+  <h2>Pipeline</h2>
+  <div class="steps">
+    <div class="step"><b>1 · Geometry</b><p>VGGT predicts cameras, dense
+      pointmaps, color and confidence from uncalibrated photos.</p></div>
+    <div class="step"><b>2 · Calibration</b><p>Per-view intrinsics are
+      recovered from pixel/point correspondences.</p></div>
+    <div class="step"><b>3 · Surface prior</b><p>Pointmap tangents and
+      normals initialize thin 2D surfels.</p></div>
+    <div class="step"><b>4 · Refinement</b><p>300-step photometric, alpha,
+      background and distortion optimization.</p></div>
+  </div>
+
+  <h2>Results</h2>
+  <p>Input-view rendering metrics on Bean 4 (same VGGT prediction,
+  evaluation cameras, pointmap intrinsics, 256 px resolution, opacity
+  threshold, and native 2DGS renderer):</p>
+  <table>
+    <tr><th></th><th>PSNR ↑</th><th>SSIM ↑</th><th>Silhouette IoU ↑</th></tr>
+    <tr><td>VGGT + vanilla 2DGS</td><td>15.70</td><td>0.169</td><td>0.389</td></tr>
+    <tr><td>Plant-aware 2DGS (ours)</td><td>17.45</td><td>0.215</td><td>0.406</td></tr>
+    <tr><td>Δ</td><td class="delta">+1.75</td><td class="delta">+0.046</td><td class="delta">+0.017</td></tr>
+  </table>
+
+  <div class="pairs">
+    <div class="pair"><img src="assets/ours_0029_train.png" alt="view 0029" />
+      <div class="cap">GT · baseline → ours — view 0029</div></div>
+    <div class="pair"><img src="assets/ours_0080_eval.png" alt="view 0080" />
+      <div class="cap">GT · baseline → ours — view 0080</div></div>
+    <div class="pair"><img src="assets/ours_0100_train.png" alt="view 0100" />
+      <div class="cap">GT · baseline → ours — view 0100</div></div>
+  </div>
+  <figure>
+    <img src="assets/intrinsics-ablation.png" alt="Pointmap-intrinsics ablation" />
+    <figcaption>Controlled pointmap-intrinsics ablation: recovering K from the
+    VGGT pointmap correspondence instead of assuming it.</figcaption>
+  </figure>
+
+  <h2>Input views</h2>
+  <div class="inputs">
+    <img src="../assets/examples/plantdreamer/bean_4/0029_train.png" alt="view 0029" />
+    <img src="../assets/examples/plantdreamer/bean_4/0080_eval.png" alt="view 0080" />
+    <img src="../assets/examples/plantdreamer/bean_4/0100_train.png" alt="view 0100" />
+    <img src="../assets/examples/plantdreamer/bean_4/0145_train.png" alt="view 0145" />
+    <img src="../assets/examples/plantdreamer/bean_4/0173_train.png" alt="view 0173" />
+  </div>
+  <p class="note">This is an input-view rendering comparison, not a
+  held-out novel-view claim. See <a href="../README.md">README.md</a> for
+  installation and demo instructions.</p>
+
+  <h2>License</h2>
+  <p>Code: MIT. Third-party model weights (VGGT, BiRefNet) keep their
+  own licenses.</p>
+</div>
+</body>
+</html>
