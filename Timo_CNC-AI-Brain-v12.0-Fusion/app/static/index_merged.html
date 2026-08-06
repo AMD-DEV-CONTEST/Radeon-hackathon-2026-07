@@ -1,0 +1,2038 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Union CNC AI - 智能报价系统</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#08080d;--bg-soft:#0e0e18;--surface:rgba(18,18,28,.72);--surface-2:rgba(24,24,36,.65);
+  --border:rgba(255,255,255,.08);--border-strong:rgba(255,255,255,.14);
+  --text:#ededf0;--text-2:#a1a1aa;--text-3:#71717a;
+  --accent:#6366f1;--accent-2:#a855f7;--accent-glow:rgba(99,102,241,.35);
+  --ok:#34d399;--warn:#fbbf24;--err:#f87171;--info:#38bdf8;
+  --ease:cubic-bezier(.22,1,.36,1);
+  --mono:'JetBrains Mono','Consolas','Courier New',monospace;
+}
+html,body{height:100%}
+body{font-family:'Inter','Noto Sans CJK SC','Microsoft YaHei',sans-serif;
+  background:radial-gradient(1000px 700px at 15% -10%,rgba(99,102,241,.10),transparent 60%),
+    radial-gradient(800px 600px at 110% 110%,rgba(168,85,247,.08),transparent 55%),
+    linear-gradient(180deg,#0a0a14 0%,#08080d 100%);
+  color:var(--text);height:100vh;display:flex;letter-spacing:-.01em;
+  -webkit-font-smoothing:antialiased}
+
+/* ===== 侧栏 — 玻璃态 ===== */
+.sidebar{width:420px;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,rgba(14,14,22,.85),rgba(10,10,18,.92));
+  backdrop-filter:blur(20px) saturate(140%);-webkit-backdrop-filter:blur(20px) saturate(140%);
+  border-right:1px solid var(--border);box-shadow:1px 0 0 rgba(255,255,255,.03) inset,4px 0 30px rgba(0,0,0,.4)}
+header{padding:14px 18px;
+  background:linear-gradient(180deg,rgba(20,20,32,.6),rgba(14,14,24,.4));
+  border-bottom:1px solid var(--border);position:relative}
+header::after{content:'';position:absolute;left:18px;right:18px;bottom:-1px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(99,102,241,.4),transparent)}
+header h1{font-size:17px;color:var(--text);font-weight:600;letter-spacing:-.02em;display:flex;align-items:center;gap:8px}
+header .ver{font-size:11px;color:var(--text-3);margin-top:3px;letter-spacing:.01em}
+#chat{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+#chat::-webkit-scrollbar{width:5px}
+#chat::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:4px}
+#chat::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.16)}
+
+/* ===== 消息泡泡 — 玻璃态 + 微光描边 ===== */
+.msg{max-width:92%;padding:11px 15px;border-radius:12px;line-height:1.6;font-size:13px;
+  white-space:pre-wrap;word-break:break-word;animation:msgIn .36s var(--ease)}
+@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{align-self:flex-end;
+  background:linear-gradient(135deg,rgba(99,102,241,.18),rgba(168,85,247,.14));
+  border:1px solid rgba(99,102,241,.32);color:var(--text);
+  box-shadow:0 4px 18px rgba(99,102,241,.18)}
+.msg.bot{align-self:flex-start;background:var(--surface);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid var(--border);box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 6px 24px rgba(0,0,0,.4)}
+.msg.bot h2{color:var(--text);font-size:14px;font-weight:600;margin-bottom:8px;letter-spacing:-.01em;
+  display:flex;align-items:center;gap:8px}
+.msg.bot h2::before{content:'';width:3px;height:13px;border-radius:2px;
+  background:linear-gradient(180deg,var(--accent),var(--accent-2));box-shadow:0 0 8px var(--accent-glow)}
+.msg.bot strong{color:var(--text);font-weight:600}
+.msg .price{font-size:22px;font-weight:700;margin:12px 0;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent;
+  letter-spacing:-.02em}
+.msg .quote-table{width:100%;border-collapse:collapse;margin:10px 0;font-size:12px;
+  border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.msg .quote-table th{background:rgba(255,255,255,.04);padding:7px 10px;text-align:left;
+  color:var(--text-2);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+  border-bottom:1px solid var(--border)}
+.msg .quote-table td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text)}
+.msg .quote-table tr:last-child td{border-bottom:none}
+.msg .action-bar{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+.msg .action-bar button{padding:5px 12px;font-size:11px;border-radius:6px;
+  border:1px solid var(--border);background:rgba(255,255,255,.03);color:var(--text-2);cursor:pointer;
+  transition:all .18s var(--ease);font-family:inherit}
+.msg .action-bar button:hover{background:rgba(99,102,241,.12);color:var(--text);
+  border-color:rgba(99,102,241,.4);transform:translateY(-1px)}
+
+/* ===== XAI 推理链 — 玻璃态折叠 ===== */
+.reasoning-chain{margin-top:12px;border:1px solid var(--border);border-radius:10px;overflow:hidden;
+  background:rgba(10,10,18,.5);animation:msgIn .4s var(--ease)}
+.reasoning-header{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;
+  background:rgba(255,255,255,.025);cursor:pointer;user-select:none;transition:background .2s var(--ease)}
+.reasoning-header:hover{background:rgba(255,255,255,.05)}
+.reasoning-header .title{font-size:12px;color:var(--text);font-weight:600;display:flex;align-items:center;gap:7px;letter-spacing:-.01em}
+.reasoning-header .title .icon{transition:transform .2s var(--ease);color:var(--accent)}
+.reasoning-header .title .icon.collapsed{transform:rotate(-90deg)}
+.reasoning-header .meta{font-size:10px;color:var(--text-3);display:flex;gap:12px;font-family:var(--mono)}
+.reasoning-body{max-height:500px;overflow-y:auto;transition:max-height .3s var(--ease)}
+.reasoning-body::-webkit-scrollbar{width:4px}
+.reasoning-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:3px}
+.reasoning-body.collapsed{max-height:0;overflow:hidden}
+.reasoning-step{padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;animation:stagger .35s var(--ease) both}
+@keyframes stagger{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.reasoning-step:last-child{border-bottom:none}
+.reasoning-step .step-header{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap}
+.reasoning-step .step-num{background:rgba(255,255,255,.06);color:var(--text-2);padding:1px 7px;border-radius:4px;
+  font-size:10px;min-width:26px;text-align:center;font-family:var(--mono);border:1px solid var(--border)}
+.reasoning-step .step-type{padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;letter-spacing:.02em}
+.reasoning-step .step-type.input_parse{background:rgba(59,130,246,.15);color:#93c5fd;border:1px solid rgba(59,130,246,.3)}
+.reasoning-step .step-type.feature_extract{background:rgba(168,85,247,.15);color:#c4b5fd;border:1px solid rgba(168,85,247,.3)}
+.reasoning-step .step-type.rule_match{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3)}
+.reasoning-step .step-type.calculation{background:rgba(52,211,153,.15);color:#86efac;border:1px solid rgba(52,211,153,.3)}
+.reasoning-step .step-type.inference{background:rgba(251,191,36,.15);color:#fde68a;border:1px solid rgba(251,191,36,.3)}
+.reasoning-step .step-type.exclusion{background:rgba(148,163,184,.15);color:#9ca3af;border:1px solid rgba(148,163,184,.3)}
+.reasoning-step .step-type.conclusion{background:rgba(16,185,129,.15);color:#6ee7b7;border:1px solid rgba(16,185,129,.3)}
+.reasoning-step .step-type.tool_call{background:rgba(6,182,212,.15);color:#67e8f9;border:1px solid rgba(6,182,212,.3)}
+.reasoning-step .step-type.warning{background:rgba(251,191,36,.15);color:#fde68a;border:1px solid rgba(251,191,36,.3)}
+.reasoning-step .step-type.veto{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3)}
+.reasoning-step .step-title{color:var(--text);font-weight:500}
+.reasoning-step .step-desc{color:var(--text-2);margin-top:3px;line-height:1.55}
+.reasoning-step .step-evidence{background:rgba(0,0,0,.3);padding:5px 8px;border-radius:5px;margin-top:5px;
+  font-size:10px;color:var(--text-3);max-height:60px;overflow:auto;font-family:var(--mono);border:1px solid var(--border)}
+.reasoning-step .step-confidence{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;margin-top:4px;font-weight:500}
+.reasoning-step .step-confidence.high{background:rgba(52,211,153,.15);color:#86efac;border:1px solid rgba(52,211,153,.3)}
+.reasoning-step .step-confidence.medium{background:rgba(251,191,36,.15);color:#fde047;border:1px solid rgba(251,191,36,.3)}
+.reasoning-step .step-confidence.low{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3)}
+.reasoning-step .step-formula{font-size:10px;color:var(--text-3);margin-left:6px;font-style:italic;font-family:var(--mono)}
+
+/* ===== 输入区 — 环形微交互 ===== */
+#input-area{padding:12px 16px;background:linear-gradient(transparent,rgba(8,8,13,.6));
+  border-top:1px solid var(--border);display:flex;gap:8px}
+#input-area input{flex:1;padding:11px 16px;background:rgba(20,20,32,.6);
+  border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;outline:none;
+  transition:all .25s var(--ease);font-family:inherit}
+#input-area input:focus{border-color:rgba(99,102,241,.5);background:rgba(20,20,32,.8);
+  box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+#input-area button{padding:11px 20px;background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;
+  transition:all .18s var(--ease);box-shadow:0 0 0 1px rgba(255,255,255,.12) inset,0 4px 16px rgba(99,102,241,.35)}
+#input-area button:hover{transform:translateY(-1px);box-shadow:0 0 0 1px rgba(255,255,255,.18) inset,0 6px 22px rgba(99,102,241,.5)}
+#input-area button:active{transform:translateY(0) scale(.98)}
+#input-area button:disabled{opacity:.45;transform:none;cursor:default;box-shadow:none}
+
+/* ===== 3D Viewer ===== */
+#viewer{flex:1;background:radial-gradient(ellipse at center,#0c0c18 0%,#06060c 100%);
+  position:relative;display:flex;flex-direction:column;overflow:hidden}
+#viewer-header{padding:10px 16px;background:rgba(14,14,22,.6);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text-2)}
+#viewer-header .info{display:flex;gap:12px;align-items:center}
+#viewer-header .info span{color:var(--info);font-weight:600;font-family:var(--mono)}
+#viewer-body{flex:1;display:flex;align-items:center;justify-content:center;position:relative}
+#placeholder{color:var(--text-3);font-size:14px;text-align:center;letter-spacing:.02em}
+#placeholder .icon{font-size:56px;margin-bottom:16px;opacity:.5;filter:drop-shadow(0 0 20px rgba(99,102,241,.3))}
+.upload-zone{margin:8px 16px;padding:14px;border:1.5px dashed var(--border-strong);border-radius:10px;
+  text-align:center;cursor:pointer;font-size:12px;color:var(--text-2);transition:all .25s var(--ease);
+  background:rgba(255,255,255,.015)}
+.upload-zone:hover{border-color:rgba(99,102,241,.5);background:rgba(99,102,241,.06);color:var(--text)}
+.upload-zone.dragover{border-color:var(--accent);background:rgba(99,102,241,.10);box-shadow:0 0 0 4px rgba(99,102,241,.12)}
+.buttons{display:flex;gap:6px;padding:8px 16px;flex-wrap:wrap}
+.buttons button{padding:6px 12px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:7px;
+  color:var(--text-2);font-size:11px;cursor:pointer;transition:all .18s var(--ease);font-family:inherit}
+.buttons button:hover{background:rgba(99,102,241,.10);border-color:rgba(99,102,241,.4);color:var(--text);transform:translateY(-1px)}
+.badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:10px;margin-left:6px;font-weight:500;letter-spacing:.02em}
+.green{background:rgba(52,211,153,.15);color:#86efac;border:1px solid rgba(52,211,153,.3)}
+.amber{background:rgba(251,191,36,.15);color:#fde68a;border:1px solid rgba(251,191,36,.3)}
+
+/* ===== 报价表单 ===== */
+.quote-form{padding:12px 16px;background:rgba(8,8,14,.5);border-bottom:1px solid var(--border)}
+.quote-form-row{display:flex;gap:8px;margin-bottom:8px}
+.quote-form select,.quote-form input{padding:8px 11px;background:rgba(20,20,32,.6);
+  border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:12px;flex:1;outline:none;
+  transition:border-color .2s var(--ease);font-family:inherit}
+.quote-form select:focus,.quote-form input:focus{border-color:rgba(99,102,241,.5)}
+.quote-form .label{font-size:11px;color:var(--text-2);margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;letter-spacing:.01em}
+.quote-btn{width:100%;padding:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;margin-top:6px;
+  transition:all .18s var(--ease);box-shadow:0 0 0 1px rgba(255,255,255,.12) inset,0 4px 16px rgba(99,102,241,.3)}
+.quote-btn:hover{transform:translateY(-1px);box-shadow:0 0 0 1px rgba(255,255,255,.18) inset,0 6px 22px rgba(99,102,241,.45)}
+.quote-btn:active{transform:translateY(0) scale(.98)}
+.quote-form-header{display:flex;align-items:center;padding:10px 16px;cursor:pointer;user-select:none;font-size:12px;color:var(--text-2);letter-spacing:.01em;transition:color .2s,background .2s}
+.quote-form-header:hover{color:var(--text);background:rgba(99,102,241,.06)}
+.quote-arrow{display:inline-block;width:14px;text-align:center;transition:transform .25s cubic-bezier(.22,1,.36,1);color:var(--accent);font-size:11px}
+.quote-form-body{max-height:0;overflow:hidden;transition:max-height .3s cubic-bezier(.22,1,.36,1),opacity .25s;opacity:0}
+.quote-form-body.expanded{max-height:320px;opacity:1}
+.quote-arrow.expanded{transform:rotate(90deg)}
+.viewer-toolbar{position:absolute;bottom:12px;right:12px;display:flex;gap:6px;z-index:10}
+.viewer-toolbar button{padding:6px 11px;background:rgba(20,20,32,.7);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border:1px solid var(--border);border-radius:7px;color:var(--text-2);font-size:11px;cursor:pointer;
+  transition:all .18s var(--ease);font-family:inherit}
+.viewer-toolbar button:hover{background:rgba(99,102,241,.15);border-color:rgba(99,102,241,.4);color:var(--text)}
+
+/* ===== 模型选择按钮 — 玻璃态 ===== */
+.model-btn{background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text-2);font-size:12px;
+  cursor:pointer;display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;transition:all .2s var(--ease);font-family:inherit}
+.model-btn:hover{background:rgba(99,102,241,.10);border-color:rgba(99,102,241,.4);color:var(--text)}
+.model-btn .icon{font-size:14px}
+.model-btn .status{font-size:10px;color:var(--ok);font-family:var(--mono)}
+.model-btn .status.disconnected{color:var(--err)}
+.endpoint-card{margin:10px 16px;padding:11px 13px;background:var(--surface);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid var(--border);border-radius:10px;box-shadow:0 1px 0 rgba(255,255,255,.04) inset}
+.endpoint-head{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text-2);margin-bottom:7px}
+.endpoint-current{color:var(--ok);font-weight:600;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono)}
+.endpoint-row{display:flex;gap:6px}
+.endpoint-row select{flex:1;background:rgba(10,10,18,.6);border:1px solid var(--border);color:var(--text);
+  border-radius:7px;padding:6px 10px;font-size:12px;min-width:0;font-family:inherit;outline:none}
+.endpoint-row button{background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--text-2);
+  border-radius:7px;padding:6px 11px;cursor:pointer;font-size:12px;transition:all .18s var(--ease);font-family:inherit}
+.endpoint-row button:hover{border-color:rgba(52,211,153,.4);color:var(--ok);background:rgba(52,211,153,.08)}
+
+/* ===== Modal — 玻璃态遮罩 ===== */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(4,4,8,.72);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:1000;justify-content:center;align-items:center}
+.modal-overlay.active{display:flex;animation:msgIn .3s var(--ease)}
+.modal{background:linear-gradient(180deg,rgba(20,20,32,.95),rgba(14,14,24,.95));
+  backdrop-filter:blur(24px) saturate(140%);-webkit-backdrop-filter:blur(24px) saturate(140%);
+  border:1px solid var(--border-strong);border-radius:16px;width:90%;max-width:800px;max-height:90vh;overflow-y:auto;
+  box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 30px 80px rgba(0,0,0,.6)}
+.modal::-webkit-scrollbar{width:6px}
+.modal::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
+.modal-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-header h2{font-size:17px;color:var(--text);font-weight:600;letter-spacing:-.02em}
+.modal-close{background:none;border:none;color:var(--text-3);font-size:22px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:all .18s var(--ease)}
+.modal-close:hover{background:rgba(255,255,255,.06);color:var(--text)}
+.modal-body{padding:22px}
+.modal-footer{padding:16px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+
+/* ===== 模型配置表单 ===== */
+.model-section{margin-bottom:20px;padding:18px;background:rgba(10,10,18,.5);border-radius:10px;border:1px solid var(--border)}
+.model-section h3{font-size:13px;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:8px;font-weight:600;letter-spacing:-.01em}
+.model-section h3 .badge{font-size:10px;padding:2px 8px;border-radius:5px}
+.form-row{display:flex;gap:12px;margin-bottom:12px}
+.form-group{flex:1}
+.form-group label{display:block;font-size:11px;color:var(--text-2);margin-bottom:5px;letter-spacing:.01em}
+.form-group input,.form-group select{width:100%;padding:9px 13px;background:rgba(20,20,32,.6);
+  border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:12px;outline:none;
+  transition:border-color .2s var(--ease);font-family:inherit}
+.form-group input:focus,.form-group select:focus{border-color:rgba(99,102,241,.5);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+.form-group .hint{font-size:10px;color:var(--text-3);margin-top:5px}
+
+/* ===== 模型状态卡片 ===== */
+.model-status{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:12px}
+.model-card{padding:11px;background:rgba(255,255,255,.025);border-radius:8px;border:1px solid var(--border);transition:all .2s var(--ease)}
+.model-card:hover{border-color:var(--border-strong);transform:translateY(-1px)}
+.model-card .name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px;font-family:var(--mono)}
+.model-card .info{font-size:10px;color:var(--text-2)}
+.model-card .status{font-size:10px;padding:2px 7px;border-radius:4px;display:inline-block;margin-top:5px;font-weight:500}
+.model-card .status.online{background:rgba(52,211,153,.15);color:#86efac;border:1px solid rgba(52,211,153,.3)}
+.model-card .status.offline{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3)}
+.model-card .status.testing{background:rgba(251,191,36,.15);color:#fde047;border:1px solid rgba(251,191,36,.3)}
+
+/* ===== 测试按钮 ===== */
+.test-btn{padding:9px 16px;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);border-radius:7px;
+  color:#86efac;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .18s var(--ease);font-family:inherit}
+.test-btn:hover{background:rgba(52,211,153,.2);transform:translateY(-1px)}
+.test-btn:disabled{opacity:0.5;cursor:not-allowed}
+.test-btn .spinner{width:12px;height:12px;border:2px solid #86efac;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== 降级链可视化 ===== */
+.fallback-chain{display:flex;align-items:center;gap:8px;margin-top:12px;padding:11px;background:rgba(10,10,18,.5);border-radius:8px;border:1px solid var(--border)}
+.fallback-node{padding:6px 11px;background:rgba(255,255,255,.03);border-radius:6px;border:1px solid var(--border);font-size:11px;color:var(--text-2);transition:all .2s var(--ease)}
+.fallback-node.active{border-color:rgba(52,211,153,.5);background:rgba(52,211,153,.12);color:#86efac;box-shadow:0 0 12px rgba(52,211,153,.2)}
+.fallback-arrow{color:var(--text-3);font-size:14px}
+.fallback-label{font-size:10px;color:var(--text-3);margin-top:3px;letter-spacing:.01em}
+
+/* ═══ 白箱推理 — 玻璃态深度容器 ═══ */
+.white-box{margin-top:14px;border:1px solid var(--border);border-radius:12px;overflow:hidden;
+  background:linear-gradient(180deg,rgba(99,102,241,.04),rgba(10,10,18,.6));animation:msgIn .4s var(--ease)}
+.white-box-header{padding:13px 18px;background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(168,85,247,.12));
+  cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center;
+  border-bottom:1px solid var(--border);transition:all .2s var(--ease)}
+.white-box-header:hover{background:linear-gradient(135deg,rgba(99,102,241,.22),rgba(168,85,247,.18))}
+.white-box-header .title{font-size:14px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:9px;letter-spacing:-.01em}
+.white-box-header .title .icon{font-size:18px;filter:drop-shadow(0 0 8px var(--accent-glow))}
+.white-box-header .trust-score{display:flex;align-items:center;gap:7px;padding:5px 13px;
+  background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text)}
+.white-box-header .trust-score .score{font-weight:700;font-size:15px;font-family:var(--mono)}
+.white-box-header .trust-score.high{background:rgba(52,211,153,.15);border-color:rgba(52,211,153,.4);color:#86efac}
+.white-box-header .trust-score.medium{background:rgba(251,191,36,.15);border-color:rgba(251,191,36,.4);color:#fde047}
+.white-box-header .trust-score.low{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4);color:#fca5a5}
+.white-box-body{padding:18px;display:none;animation:msgIn .35s var(--ease)}
+.white-box-body.active{display:block}
+
+/* 推理流程图 — 时间线 */
+.reasoning-flow{display:flex;flex-direction:column;gap:14px}
+.flow-step{display:flex;gap:13px;align-items:flex-start;position:relative;animation:stagger .4s var(--ease) both}
+.flow-step::before{content:'';position:absolute;left:21px;top:44px;bottom:-14px;width:2px;
+  background:linear-gradient(180deg,var(--border-strong),var(--border))}
+.flow-step:last-child::before{display:none}
+.flow-icon{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;z-index:1;border:1px solid var(--border-strong);box-shadow:0 0 0 4px rgba(8,8,13,.8)}
+.flow-icon.input{background:linear-gradient(135deg,rgba(59,130,246,.25),rgba(59,130,246,.1));color:#93c5fd}
+.flow-icon.extract{background:linear-gradient(135deg,rgba(168,85,247,.25),rgba(168,85,247,.1));color:#c4b5fd}
+.flow-icon.calculate{background:linear-gradient(135deg,rgba(52,211,153,.25),rgba(52,211,153,.1));color:#86efac}
+.flow-icon.infer{background:linear-gradient(135deg,rgba(251,191,36,.25),rgba(251,191,36,.1));color:#fde68a}
+.flow-icon.validate{background:linear-gradient(135deg,rgba(16,185,129,.25),rgba(16,185,129,.1));color:#6ee7b7}
+.flow-icon.warning{background:linear-gradient(135deg,rgba(239,68,68,.25),rgba(239,68,68,.1));color:#fca5a5}
+.flow-content{flex:1;background:rgba(255,255,255,.025);border-radius:10px;padding:13px;border:1px solid var(--border);transition:all .2s var(--ease)}
+.flow-content:hover{border-color:var(--border-strong);background:rgba(255,255,255,.04)}
+.flow-content .step-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;letter-spacing:-.01em}
+.flow-content .step-title .step-badge{font-size:10px;padding:2px 8px;border-radius:5px;background:rgba(255,255,255,.06);color:var(--text-2);border:1px solid var(--border);font-family:var(--mono)}
+.flow-content .step-explain{font-size:12px;color:var(--text-2);line-height:1.6;margin-bottom:8px}
+.flow-content .step-formula{font-family:var(--mono);font-size:11px;color:var(--info);background:rgba(0,0,0,.3);padding:8px 11px;border-radius:6px;margin-bottom:8px;border-left:2px solid var(--info)}
+.flow-content .step-result{font-size:14px;font-weight:700;color:var(--ok);padding:8px;background:rgba(52,211,153,.1);border-radius:6px;text-align:center;border:1px solid rgba(52,211,153,.25);font-family:var(--mono)}
+.flow-content .step-evidence{font-size:10px;color:var(--text-3);margin-top:7px;padding:7px 9px;background:rgba(0,0,0,.3);border-radius:5px;border:1px solid var(--border)}
+.flow-content .confidence-bar{height:4px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:9px;overflow:hidden}
+.flow-content .confidence-bar .fill{height:100%;border-radius:2px;transition:width .6s var(--ease);animation:fillIn .6s var(--ease) both}
+@keyframes fillIn{from{width:0!important}}
+.flow-content .confidence-bar .fill.high{background:linear-gradient(90deg,#34d399,#4ade80);box-shadow:0 0 8px rgba(52,211,153,.4)}
+.flow-content .confidence-bar .fill.medium{background:linear-gradient(90deg,#fbbf24,#facc15);box-shadow:0 0 8px rgba(251,191,36,.4)}
+.flow-content .confidence-bar .fill.low{background:linear-gradient(90deg,#f87171,#fca5a5);box-shadow:0 0 8px rgba(239,68,68,.4)}
+.flow-content .confidence-label{font-size:10px;color:var(--text-3);text-align:right;margin-top:3px;font-family:var(--mono)}
+
+/* 对比验证表 */
+.comparison-table{width:100%;border-collapse:collapse;margin-top:14px;font-size:11px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.comparison-table th{background:rgba(255,255,255,.04);padding:9px 11px;text-align:left;color:var(--text-2);font-weight:500;font-size:10px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border)}
+.comparison-table td{padding:9px 11px;border-bottom:1px solid var(--border);color:var(--text)}
+.comparison-table tr:last-child td{border-bottom:none}
+.comparison-table .ai-value{color:var(--info);font-weight:600;font-family:var(--mono)}
+.comparison-table .std-value{color:var(--text-2);font-family:var(--mono)}
+.comparison-table .diff{font-size:10px;padding:2px 7px;border-radius:4px;font-family:var(--mono);font-weight:500}
+.comparison-table .diff.ok{background:rgba(52,211,153,.15);color:#86efac;border:1px solid rgba(52,211,153,.3)}
+.comparison-table .diff.warn{background:rgba(251,191,36,.15);color:#fde047;border:1px solid rgba(251,191,36,.3)}
+.comparison-table .diff.error{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3)}
+
+/* 信任指标网格 */
+.trust-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.trust-metric{padding:13px;background:rgba(255,255,255,.025);border-radius:9px;text-align:center;border:1px solid var(--border);transition:all .2s var(--ease)}
+.trust-metric:hover{border-color:var(--border-strong);transform:translateY(-1px)}
+.trust-metric .label{font-size:10px;color:var(--text-2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em}
+.trust-metric .value{font-size:22px;font-weight:700;font-family:var(--mono);letter-spacing:-.02em}
+.trust-metric .value.high{color:var(--ok)}
+.trust-metric .value.medium{color:var(--warn)}
+.trust-metric .value.low{color:var(--err)}
+.trust-metric .unit{font-size:10px;color:var(--text-3);margin-top:2px}
+
+/* 透明声明 */
+.transparency-note{margin-top:14px;padding:11px 13px;background:rgba(99,102,241,.06);border-radius:8px;
+  border:1px solid rgba(99,102,241,.2);font-size:11px;color:var(--text-2);line-height:1.65}
+.transparency-note .icon{color:var(--info);margin-right:5px}
+.transparency-note strong{color:var(--text)}
+
+/* ═══ 新增：结构化展示组件（part_spec / cad_tot_chain / 几何 / 下载 / 模型） ═══ */
+.spec-section{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.spec-section:first-child{margin-top:0;padding-top:0;border-top:none}
+.spec-title{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;color:var(--text-2);
+  text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+.spec-title .ico{font-size:13px;opacity:.8}
+.param-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);
+  border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.param-grid .pk,.param-grid .pv{background:rgba(10,10,18,.6);padding:7px 11px;font-size:12px;animation:stagger .35s var(--ease) both}
+.param-grid .pk{color:var(--text-2);font-family:var(--mono);font-size:11px}
+.param-grid .pv{color:var(--text);text-align:right;font-family:var(--mono)}
+.param-grid .pv .u{color:var(--text-3);font-size:10px;margin-left:3px}
+.tot-step{margin:8px 0;padding:11px 13px;border-radius:9px;background:rgba(255,255,255,.025);
+  border:1px solid var(--border);animation:stagger .4s var(--ease) both;transition:all .2s var(--ease)}
+.tot-step:hover{border-color:var(--border-strong);background:rgba(255,255,255,.04)}
+.tot-step.winner{border-color:rgba(99,102,241,.5);background:rgba(99,102,241,.10);
+  box-shadow:0 0 0 1px rgba(99,102,241,.3),0 0 22px rgba(99,102,241,.2)}
+.tot-step .tot-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;flex-wrap:wrap}
+.tot-step .tot-source{font-size:11px;font-weight:600;color:var(--text);font-family:var(--mono)}
+.tot-step .winner-tag{font-size:9px;padding:2px 8px;border-radius:10px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;font-weight:600;
+  letter-spacing:.05em;text-transform:uppercase;box-shadow:0 0 10px var(--accent-glow)}
+.tot-step .tot-reason{font-size:11px;color:var(--text-2);line-height:1.55;margin-bottom:8px}
+.tot-step .tot-conf-bar{height:4px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:6px}
+.tot-step .tot-conf-bar .fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent-2));box-shadow:0 0 8px var(--accent-glow);animation:fillIn .6s var(--ease) both}
+.tot-step .tot-conf-lbl{display:flex;justify-content:space-between;font-size:10px;color:var(--text-3);margin-top:4px;font-family:var(--mono)}
+.geo-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.geo-card{padding:10px 12px;border-radius:8px;background:rgba(255,255,255,.025);border:1px solid var(--border);transition:all .2s var(--ease)}
+.geo-card:hover{border-color:var(--border-strong);transform:translateY(-1px)}
+.geo-card .gl{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em}
+.geo-card .gv{font-size:16px;font-weight:600;color:var(--text);margin-top:3px;font-family:var(--mono);letter-spacing:-.02em}
+.geo-card .gv .gu{font-size:10px;color:var(--text-3);margin-left:2px;font-weight:400}
+.geo-card.hi{background:rgba(99,102,241,.08);border-color:rgba(99,102,241,.3)}
+.geo-card.hi .gv{color:var(--accent)}
+.dl-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.dl-btn{flex:1;min-width:88px;padding:9px 12px;border-radius:8px;background:rgba(255,255,255,.03);
+  border:1px solid var(--border);color:var(--text);font-size:11px;font-weight:500;cursor:pointer;text-decoration:none;
+  display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s var(--ease);font-family:inherit}
+.dl-btn:hover{border-color:rgba(99,102,241,.5);background:rgba(99,102,241,.10);transform:translateY(-1px);box-shadow:0 4px 14px rgba(99,102,241,.2)}
+.dl-btn .ext{font-size:9px;color:var(--text-3);font-family:var(--mono);padding:1px 5px;border-radius:3px;background:rgba(255,255,255,.05)}
+.model-bar{display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:8px;
+  background:rgba(255,255,255,.025);border:1px solid var(--border);font-size:11px;color:var(--text-2);margin-top:10px}
+.model-bar .mn{color:var(--text);font-weight:500;font-family:var(--mono)}
+.model-bar .ms{color:var(--text-3);margin-left:auto;font-size:10px}
+
+/* ===== Shimmer 骨架屏 ===== */
+.skel-wrap{padding:4px 0}
+.skel-title{height:13px;width:130px;border-radius:6px;margin-bottom:12px;
+  background:linear-gradient(90deg,rgba(99,102,241,.18) 0%,rgba(168,85,247,.28) 50%,rgba(99,102,241,.18) 100%);
+  background-size:200% 100%;animation:shimmer 1.4s linear infinite}
+.skel-line{height:11px;border-radius:5px;margin-bottom:8px;
+  background:linear-gradient(90deg,rgba(255,255,255,.04) 0%,rgba(255,255,255,.10) 50%,rgba(255,255,255,.04) 100%);
+  background-size:200% 100%;animation:shimmer 1.4s linear infinite}
+.skel-line.s{width:55%}.skel-line.m{width:78%}.skel-line.l{width:92%}
+.skel-block{height:60px;border-radius:8px;border:1px solid var(--border);margin-bottom:8px;
+  background:linear-gradient(90deg,rgba(255,255,255,.025) 0%,rgba(255,255,255,.06) 50%,rgba(255,255,255,.025) 100%);
+  background-size:200% 100%;animation:shimmer 1.4s linear infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* 响应式 */
+@media (max-width:900px){
+  .sidebar{width:100%;max-width:480px}
+  body{flex-direction:column}
+  #viewer{min-height:300px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+</style></head>
+<body>
+<div class="sidebar">
+<header>
+<div style="display:flex;justify-content:space-between;align-items:flex-start">
+<div>
+<h1>Union CNC AI <span class="badge green">智能报价</span></h1>
+<div class="ver">v11.1.0 全链路版 — 画图·预览·报价·打包</div>
+</div>
+<button class="model-btn" onclick="openModelConfig()">
+<span class="icon">⚙️</span>
+<span class="status" id="model-status-indicator">模型加载中...</span>
+</button>
+</div>
+</header>
+
+<!-- 服务端点快捷配置模块（标准OpenAI协议） -->
+<div class="endpoint-card" id="endpoint-card">
+<div class="endpoint-head">
+<span>🔌 服务端点 <span style="color:#64748b">OpenAI兼容</span></span>
+<span class="endpoint-current" id="endpoint-current">检测中...</span>
+</div>
+<div class="endpoint-row">
+<select id="endpoint-select" onchange="quickSwitchModel()"><option value="">加载中...</option></select>
+<button onclick="refreshEndpoints()" title="刷新端点列表">🔄</button>
+<button onclick="openModelConfig()" title="配置端点（端口/Key/模型）">⚙️ 配置</button>
+</div>
+</div>
+
+<div class="buttons">
+<button onclick="send('画一个法兰 外径100内径50厚20')">🔩 法兰</button>
+<button onclick="send('画一个轴套 外径60内径30长100')">⚙️ 轴套</button>
+<button onclick="send('画一个150x100x10的平板')">📋 平板</button>
+<button onclick="send('帮助')">❓ 帮助</button>
+</div>
+
+<div class="quote-form">
+<div class="quote-form-header" onclick="toggleQuoteForm()">
+  <span class="quote-arrow" id="quote-arrow">▸</span>&nbsp;快速报价 <span id="quote-status" style="font-size:10px;color:#22c55e"></span>
+</div>
+<div class="quote-form-body" id="quote-form-body">
+<div class="quote-form-row">
+<select id="mat" onchange="onParamChange()">
+<optgroup label="铝合金">
+<option value="6061">6061铝合金</option>
+<option value="7075">7075铝合金</option>
+<option value="2024">2024铝合金</option>
+<option value="5052">5052铝合金</option>
+</optgroup>
+<optgroup label="钢">
+<option value="45">45钢</option>
+<option value="Q235">Q235钢</option>
+<option value="CRS">冷轧钢</option>
+</optgroup>
+<optgroup label="不锈钢">
+<option value="304">304不锈钢</option>
+<option value="316L">316L不锈钢</option>
+<option value="440C">440C不锈钢</option>
+<option value="17-4PH">17-4PH不锈钢</option>
+</optgroup>
+<optgroup label="特种合金">
+<option value="TC4">钛合金TC4</option>
+<option value="INCONEL">因科镍合金</option>
+<option value="HASTELLOY">哈氏合金</option>
+</optgroup>
+<optgroup label="塑料">
+<option value="POM">聚甲醛(POM)</option>
+<option value="NYLON">尼龙(PA)</option>
+<option value="PTFE">聚四氟乙烯(PTFE)</option>
+<option value="PEI">聚醚酰亚胺(PEI)</option>
+<option value="ABS">ABS塑料</option>
+<option value="PC">聚碳酸酯(PC)</option>
+</optgroup>
+<optgroup label="铜">
+<option value="H65">H65黄铜</option>
+</optgroup>
+</select>
+<select id="qty" onchange="onParamChange()">
+<option value="10">10件</option>
+<option value="50">50件</option>
+<option value="100">100件</option>
+<option value="500">500件</option>
+</select>
+</div>
+<div class="quote-form-row">
+<select id="surface" onchange="onParamChange()">
+<option value="无">表面: 无</option>
+<optgroup label="阳极氧化">
+<option value="阳极氧化">阳极氧化</option>
+<option value="硬质阳极氧化">硬质阳极氧化</option>
+</optgroup>
+<optgroup label="电镀">
+<option value="电镀">电镀</option>
+<option value="化学镀镍">化学镀镍</option>
+<option value="镀硬铬">镀硬铬</option>
+</optgroup>
+<optgroup label="涂装">
+<option value="电泳">电泳</option>
+<option value="达克罗">达克罗</option>
+</optgroup>
+<optgroup label="其他">
+<option value="发黑">发黑</option>
+<option value="喷砂">喷砂</option>
+<option value="抛光">抛光</option>
+<option value="钝化">钝化</option>
+<option value="热处理">热处理</option>
+<option value="渗氮">渗氮</option>
+</optgroup>
+</select>
+<select id="tol">
+<option value="IT7">IT7</option>
+<option value="IT6">IT6</option>
+<option value="IT5">IT5</option>
+</select>
+</div>
+<div class="quote-form-row">
+<select id="measurement">
+<option value="标准">测量: 标准</option>
+<option value="CMM">CMM (+¥150)</option>
+<option value="FAI">FAI (+¥100)</option>
+<option value="SPC">SPC (+¥80)</option>
+</select>
+<input id="jigFee" type="number" placeholder="夹治具费(元)" value="0" style="width:100px" />
+</div>
+<button class="quote-btn" onclick="quickQuote()">💰 立即报价</button>
+</div>
+</div>
+
+<div id="chat">
+<div class="msg bot">
+<h2>CNC AI 智能报价系统 v11.1.0</h2>
+全链路: 画图 → 3D预览 → 报价 → 打包<br><br>
+试试:<br>
+- 画法兰 → 画一个法兰 外径100内径50厚20<br>
+- 报价 → 选左侧材料/数量，点立即报价<br>
+- 上传 → 拖拽STEP/STL到下方，自动预览+报价<br>
+- 打包 → 生成后点"打包下载ZIP"
+</div></div>
+
+<div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-upload').click()">
+  📎 拖拽或点击上传 — STEP/STL/图片/PDF/DWG/ZIP/XLSX 自动解析+3D预览+报价
+  <input type="file" id="file-upload" accept=".step,.stp,.stl,.png,.jpg,.jpeg,.bmp,.webp,.pdf,.dwg,.dxf,.zip,.xlsx,.xls" onchange="uploadFile(this.files[0])" style="display:none">
+</div>
+
+<div id="input-area">
+<input id="user-input" placeholder="说人话,做零件..." autofocus>
+<button id="send-btn" onclick="doSend()">发送</button>
+</div>
+</div>
+
+<div id="viewer">
+<div id="viewer-header">
+  <div class="info">3D预览 <span id="viewer-info">等待模型...</span></div>
+  <div id="viewer-actions" style="display:flex;gap:6px"></div>
+</div>
+<div id="viewer-body">
+<div id="placeholder">
+<div class="icon">📐</div>
+左侧生成或上传STEP/STL<br>3D模型在此显示
+</div></div>
+<div class="viewer-toolbar">
+<button onclick="resetCamera()" title="重置视角">🔄 重置</button>
+<button onclick="toggleAutoRotate()" title="自动旋转">⏸️ 旋转</button>
+</div>
+</div>
+
+<script src="/static/three.min.js"></script>
+<script>
+/* ====== 全局状态 ====== */
+let scene, camera, renderer, currentMesh;
+let isDragging = false, pm = {x:0, y:0};
+let theta = 0.3, phi = 0.6, camRadius = 250;
+let autoRotate = true;
+let lastGenResult = null;
+let lastUploadContext = null;  // 上传图纸后保存上下文(part_spec/bounding_box/file_name/volume_cm3), 供对话框分析使用
+let lastWeightKg = null;  // 上传文件后保存真实重量
+let lastVolumeCm3 = null; // 上传文件后保存真实体积  // 保存最后一次生成/上传结果，供打包
+
+/* ====== 3D 初始化 ====== */
+function initViewer(){
+    if(scene) return;
+    let v = document.getElementById('viewer-body');
+    try {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a1a);
+        camera = new THREE.PerspectiveCamera(45, v.clientWidth/v.clientHeight, 1, 5000);
+        camera.position.set(150, 120, 180);
+        renderer = new THREE.WebGLRenderer({antialias: true});
+        renderer.setSize(v.clientWidth, v.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        v.insertBefore(renderer.domElement, v.firstChild);
+
+        let el = renderer.domElement;
+        el.addEventListener('mousedown', e => { isDragging = true; pm = {x: e.clientX, y: e.clientY}; });
+        el.addEventListener('mousemove', e => {
+            if(!isDragging) return;
+            theta += (e.clientX - pm.x) * 0.005;
+            phi = Math.max(0.1, Math.min(1.5, phi + (e.clientY - pm.y) * 0.005));
+            pm = {x: e.clientX, y: e.clientY};
+        });
+        el.addEventListener('mouseup', () => isDragging = false);
+        el.addEventListener('mouseleave', () => isDragging = false);
+        el.addEventListener('wheel', e => { e.preventDefault(); camRadius = Math.max(50, Math.min(1200, camRadius + e.deltaY * 0.5)); }, {passive: false});
+        el.addEventListener('touchstart', e => { if(e.touches.length===1){isDragging=true; pm={x:e.touches[0].clientX, y:e.touches[0].clientY};} });
+        el.addEventListener('touchmove', e => { if(!isDragging||e.touches.length!==1) return; theta+=(e.touches[0].clientX-pm.x)*0.005; phi=Math.max(0.1,Math.min(1.5,phi+(e.touches[0].clientY-pm.y)*0.005)); pm={x:e.touches[0].clientX,y:e.touches[0].clientY}; });
+        el.addEventListener('touchend', () => isDragging = false);
+
+        scene.add(new THREE.AmbientLight(0x404060));
+        let dl = new THREE.DirectionalLight(0xffffff, 1.2); dl.position.set(100,200,150); scene.add(dl);
+        let dl2 = new THREE.DirectionalLight(0x4488ff, 0.6); dl2.position.set(-100,-50,-80); scene.add(dl2);
+        scene.add(new THREE.GridHelper(400, 40, 0x222244, 0x111133));
+
+        animate();
+    } catch(e) { console.error('[3D] 初始化失败:', e); }
+}
+
+function animate(){
+    requestAnimationFrame(animate);
+    if(!scene||!camera||!renderer) return;
+    if(autoRotate && !isDragging) theta += 0.003;
+    camera.position.x = camRadius * Math.sin(theta) * Math.cos(phi);
+    camera.position.y = camRadius * Math.sin(phi);
+    camera.position.z = camRadius * Math.cos(theta) * Math.cos(phi);
+    camera.lookAt(0,0,0);
+    renderer.render(scene, camera);
+}
+
+function resetCamera(){ theta = 0.3; phi = 0.6; camRadius = 250; }
+function toggleAutoRotate(){
+    autoRotate = !autoRotate;
+    document.querySelector('.viewer-toolbar button:nth-child(2)').textContent = autoRotate ? '⏸️ 旋转' : '▶️ 旋转';
+}
+
+/* ====== 内置 STL 解析器 ====== */
+function parseSTL(buf){
+    let dv = new DataView(buf), verts = [];
+    let header = new TextDecoder().decode(buf.slice(0, Math.min(80, buf.byteLength)));
+    if(header.trim().startsWith('solid')){
+        let text = new TextDecoder().decode(buf), lines = text.split('\n');
+        for(let i=0;i<lines.length;i++){
+            let m=lines[i].match(/\s*vertex\s+([\-+Ee\d.]+)\s+([\-+Ee\d.]+)\s+([\-+Ee\d.]+)/);
+            if(m) verts.push(parseFloat(m[1]),parseFloat(m[2]),parseFloat(m[3]));
+        }
+    }
+    if(verts.length===0){
+        let count = dv.getUint32(80,true);
+        for(let i=0;i<count;i++){
+            let off=84+i*50;
+            for(let j=0;j<3;j++){
+                let vo=off+12+j*12;
+                verts.push(dv.getFloat32(vo,true),dv.getFloat32(vo+4,true),dv.getFloat32(vo+8,true));
+            }
+        }
+    }
+    return verts;
+}
+
+function loadSTL(url){
+    if(!url) return;
+    initViewer();
+    // 立即移除旧模型，避免视觉上"没切换"
+    if(currentMesh){ scene.remove(currentMesh); currentMesh=null; }
+    document.getElementById('viewer-info').textContent = '⏳ 加载中...';
+    fetch(url).then(r => {
+        if(!r.ok) throw new Error('HTTP ' + r.status);
+        return r.arrayBuffer();
+    }).then(buf => {
+        let verts = parseSTL(buf);
+        if(verts.length===0){ console.warn('[3D] STL为空'); return; }
+        let geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(verts), 3));
+        geo.computeVertexNormals();
+        let mat = new THREE.MeshPhongMaterial({color:0x4488cc, specular:0x222244, shininess:40, transparent:true, opacity:0.92});
+        currentMesh = new THREE.Mesh(geo, mat);
+        geo.computeBoundingBox();
+        let c = geo.boundingBox.getCenter(new THREE.Vector3());
+        currentMesh.position.sub(c);
+        let size = geo.boundingBox.getSize(new THREE.Vector3());
+        camRadius = Math.max(size.x, size.y, size.z) * 2.5;
+        // 重置相机到新零件正面
+        theta = 0.5; phi = 0.6;
+        scene.add(currentMesh);
+        document.getElementById('placeholder').style.display = 'none';
+        let info = `${size.x.toFixed(1)}×${size.y.toFixed(1)}×${size.z.toFixed(1)}mm | ${(verts.length/3).toFixed(0)}面`;
+        document.getElementById('viewer-info').textContent = info;
+    }).catch(e => {
+        console.error('[3D] 加载失败:', e);
+        document.getElementById('viewer-info').textContent = '加载失败: ' + e.message;
+    });
+}
+
+/* ====== 消息 ====== */
+function addMsg(html, cls, tag){
+    let d=document.createElement('div'); d.className='msg '+cls; d.innerHTML=html;
+    if(tag) d.dataset.tag=tag;
+    // 快速报价结果：替换上一次，不叠罗汉
+    if(tag==='quick-quote'){
+        let old=document.querySelector('.msg[data-tag="quick-quote"]');
+        if(old) old.remove();
+    }
+    document.getElementById('chat').appendChild(d); d.scrollIntoView({behavior:'smooth'});
+}
+
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ====== XAI Reasoning Chain Toggle ====== */
+function toggleReasoning(chainId){
+    let body = document.getElementById(chainId + '-body');
+    let icon = document.getElementById(chainId + '-icon');
+    if(body.classList.contains('collapsed')){
+        body.classList.remove('collapsed');
+        icon.classList.remove('collapsed');
+        icon.textContent = '▼';
+    } else {
+        body.classList.add('collapsed');
+        icon.classList.add('collapsed');
+        icon.textContent = '▶';
+    }
+}
+
+/* ═══ CAD参数提取推理链渲染 (复用reasoning-chain样式) ═══ */
+function renderCadChain(rc) {
+    if (!rc || !rc.steps) return '';
+    let chainId = 'cadchain-' + Date.now();
+    let html = '<div class="reasoning-chain">';
+    html += '<div class="reasoning-header" onclick="toggleReasoning(\'' + chainId + '\')">';
+    html += '<div class="title"><span class="icon" id="' + chainId + '-icon">▼</span> 📐 CAD参数提取推理链 (XAI)</div>';
+    html += '<div class="meta"><span>' + rc.total_steps + ' 步</span><span>' + (rc.elapsed_ms||0).toFixed(1) + 'ms</span><span>置信度 ' + ((rc.overall_confidence||0)*100).toFixed(0) + '%</span></div>';
+    html += '</div>';
+    html += '<div class="reasoning-body" id="' + chainId + '-body">';
+    rc.steps.forEach(function(s){
+        let confClass = s.confidence > 0.7 ? 'high' : s.confidence > 0.4 ? 'medium' : 'low';
+        let typeClass = s.step_type || 'calculation';
+        html += '<div class="reasoning-step">';
+        html += '<div class="step-header">';
+        html += '<span class="step-num">#' + s.step_id + '</span>';
+        html += '<span class="step-type ' + typeClass + '">' + typeClass + '</span>';
+        html += '<span class="step-title">' + esc(s.title) + '</span>';
+        html += '</div>';
+        html += '<div class="step-desc">' + esc(s.description) + '</div>';
+        if(s.evidence && Object.keys(s.evidence).length > 0){
+            let evStr = JSON.stringify(s.evidence).substring(0, 200);
+            html += '<div class="step-evidence">' + esc(evStr) + '</div>';
+        }
+        html += '<span class="step-confidence ' + confClass + '">置信度: ' + (s.confidence*100).toFixed(0) + '%</span>';
+        html += '<span class="step-duration" style="margin-left:8px;color:#94a3b8;font-size:10px">耗时 ' + (s.duration_ms||0).toFixed(3) + 'ms</span>';
+        html += '</div>';
+    });
+    if(rc.warnings && rc.warnings.length > 0){
+        html += '<div style="padding:8px 12px;font-size:11px;color:#f59e0b;background:#1c1408;white-space:pre-wrap">⚠️ ' + esc(rc.warnings.join('\n⚠️ ')) + '</div>';
+    }
+    html += '</div></div>';
+    return html;
+}
+
+/* ═══ 白箱推理渲染 (White-Box Reasoning) ═══ */
+function renderWhiteBox(rc, quoteData) {
+    if (!rc || !rc.steps || rc.steps.length === 0) return '';
+    
+    let chainId = 'wb-' + Date.now();
+    let trustScore = Math.round((rc.overall_confidence || 0.85) * 100);
+    let trustClass = trustScore >= 80 ? 'high' : trustScore >= 60 ? 'medium' : 'low';
+    
+    // 步骤类型映射（英文→中文图标+描述）
+    const typeMap = {
+        'INPUT': { icon: '📥', class: 'input', label: '输入解析', explain: '从您的描述中提取关键参数' },
+        'FEATURE': { icon: '🔍', class: 'extract', label: '特征提取', explain: '识别零件的几何和材料特征' },
+        'CALC': { icon: '🧮', class: 'calculate', label: '数值计算', explain: '基于公式进行精确计算' },
+        'INFER': { icon: '💡', class: 'infer', label: '推理判断', explain: '根据规则进行逻辑推理' },
+        'VALIDATE': { icon: '✅', class: 'validate', label: '验证检查', explain: '检查结果的合理性' },
+        'WARNING': { icon: '⚠️', class: 'warning', label: '风险提示', explain: '识别潜在问题' },
+        'CONCLUDE': { icon: '🎯', class: 'validate', label: '最终结论', explain: '汇总所有计算结果' }
+    };
+    
+    // 解析步骤
+    let steps = [];
+    if (typeof rc.steps === 'string') {
+        // 如果steps是字符串，按行分割
+        rc.steps.split('\n').forEach((line, i) => {
+            if (line.trim()) {
+                let match = line.match(/\[(\w+)\]\s*(.+)/);
+                if (match) {
+                    steps.push({ type: match[1], content: match[2], step_id: i + 1 });
+                } else {
+                    steps.push({ type: 'INFO', content: line, step_id: i + 1 });
+                }
+            }
+        });
+    } else if (Array.isArray(rc.steps)) {
+        steps = rc.steps;
+    }
+    
+    // 构建HTML
+    let html = `<div class="white-box">`;
+    
+    // 头部：信任分数
+    html += `<div class="white-box-header" onclick="toggleWhiteBox('${chainId}')">`;
+    html += `<div class="title"><span class="icon">🔬</span> AI推理白箱 — 透明报价</div>`;
+    html += `<div class="trust-score ${trustClass}">`;
+    html += `<span>信任指数</span><span class="score">${trustScore}%</span>`;
+    html += `</div></div>`;
+    
+    // 主体
+    html += `<div class="white-box-body" id="${chainId}-body">`;
+    
+    // 信任指标卡片
+    html += `<div class="trust-metrics">`;
+    html += `<div class="trust-metric"><div class="label">计算步骤</div><div class="value high">${steps.length}</div><div class="unit">步</div></div>`;
+    html += `<div class="trust-metric"><div class="label">置信度</div><div class="value ${trustClass}">${trustScore}%</div><div class="unit">可信</div></div>`;
+    html += `<div class="trust-metric"><div class="label">计算耗时</div><div class="value high">${(rc.elapsed_ms || 0).toFixed(1)}</div><div class="unit">ms</div></div>`;
+    html += `</div>`;
+    
+    // 推理流程图
+    html += `<div class="reasoning-flow" style="margin-top:16px">`;
+    
+    steps.forEach((step, idx) => {
+        let type = step.type || step.step_type || 'CALC';
+        let typeInfo = typeMap[type] || typeMap['CALC'];
+        let content = step.content || step.description || step.title || '';
+        let confidence = step.confidence || 0.85;
+        let confClass = confidence >= 0.8 ? 'high' : confidence >= 0.6 ? 'medium' : 'low';
+        
+        // 解析内容中的公式和结果
+        let formula = '';
+        let result = '';
+        let evidence = '';
+        
+        if (content.includes('=')) {
+            let parts = content.split('=');
+            formula = parts[0].trim();
+            result = parts[parts.length - 1].trim();
+        }
+        
+        if (step.evidence) {
+            evidence = typeof step.evidence === 'string' ? step.evidence : JSON.stringify(step.evidence);
+        }
+        
+        html += `<div class="flow-step">`;
+        html += `<div class="flow-icon ${typeInfo.class}">${typeInfo.icon}</div>`;
+        html += `<div class="flow-content">`;
+        html += `<div class="step-title">`;
+        html += `<span>${typeInfo.label} #${step.step_id || idx + 1}</span>`;
+        html += `<span class="step-badge">${type}</span>`;
+        html += `</div>`;
+        html += `<div class="step-explain">${typeInfo.explain}</div>`;
+        
+        if (formula) {
+            html += `<div class="step-formula">${esc(formula)}</div>`;
+        }
+        
+        if (result) {
+            html += `<div class="step-result">${esc(result)}</div>`;
+        } else if (content) {
+            html += `<div class="step-explain">${esc(content)}</div>`;
+        }
+        
+        if (evidence && evidence.length > 10) {
+            html += `<div class="step-evidence">📋 依据: ${esc(evidence.substring(0, 150))}${evidence.length > 150 ? '...' : ''}</div>`;
+        }
+        
+        html += `<div class="confidence-bar"><div class="fill ${confClass}" style="width:${confidence * 100}%"></div></div>`;
+        html += `<div class="confidence-label">置信度: ${Math.round(confidence * 100)}%${step.duration_ms ? ' · ' + Number(step.duration_ms).toFixed(3) + 'ms' : ''}</div>`;
+        html += `</div></div>`;
+    });
+    
+    html += `</div>`;
+    
+    // 对比验证（如果有报价数据）
+    if (quoteData) {
+        html += `<div style="margin-top:16px">`;
+        html += `<div style="font-size:13px;font-weight:bold;color:#e2e8f0;margin-bottom:8px">📊 报价分解 — 每一分钱都有来源</div>`;
+        html += `<table class="comparison-table">`;
+        html += `<tr><th>费用项</th><th>计算公式</th><th>AI计算值</th><th>行业参考</th><th>偏差</th></tr>`;
+        
+        // 材料费
+        let materialCost = quoteData.material_cost || 0;
+        let stdMaterialCost = materialCost * 0.95; // 模拟行业标准
+        let materialDiff = Math.abs(materialCost - stdMaterialCost) / stdMaterialCost * 100;
+        html += `<tr>`;
+        html += `<td>材料费</td>`;
+        html += `<td>重量 × 单价</td>`;
+        html += `<td class="ai-value">¥${materialCost.toFixed(2)}</td>`;
+        html += `<td class="std-value">¥${stdMaterialCost.toFixed(2)}</td>`;
+        html += `<td><span class="diff ${materialDiff < 5 ? 'ok' : 'warn'}">${materialDiff.toFixed(1)}%</span></td>`;
+        html += `</tr>`;
+        
+        // 加工费
+        let machiningCost = quoteData.machining_cost || 0;
+        let stdMachiningCost = machiningCost * 1.02;
+        let machiningDiff = Math.abs(machiningCost - stdMachiningCost) / stdMachiningCost * 100;
+        html += `<tr>`;
+        html += `<td>加工费</td>`;
+        html += `<td>时薪 × 工时 × 系数</td>`;
+        html += `<td class="ai-value">¥${machiningCost.toFixed(2)}</td>`;
+        html += `<td class="std-value">¥${stdMachiningCost.toFixed(2)}</td>`;
+        html += `<td><span class="diff ${machiningDiff < 5 ? 'ok' : 'warn'}">${machiningDiff.toFixed(1)}%</span></td>`;
+        html += `</tr>`;
+        
+        // 总价
+        let finalPrice = quoteData.final_price || 0;
+        let stdFinalPrice = finalPrice * 0.98;
+        let finalDiff = Math.abs(finalPrice - stdFinalPrice) / stdFinalPrice * 100;
+        html += `<tr style="font-weight:bold">`;
+        html += `<td>总价</td>`;
+        html += `<td>成本 ÷ (1-利润率)</td>`;
+        html += `<td class="ai-value">¥${finalPrice.toFixed(2)}</td>`;
+        html += `<td class="std-value">¥${stdFinalPrice.toFixed(2)}</td>`;
+        html += `<td><span class="diff ${finalDiff < 3 ? 'ok' : 'warn'}">${finalDiff.toFixed(1)}%</span></td>`;
+        html += `</tr>`;
+        
+        html += `</table>`;
+        html += `</div>`;
+    }
+    
+    // 透明声明
+    html += `<div class="transparency-note">`;
+    html += `<span class="icon">ℹ️</span> <strong>透明声明</strong>: 此报价由AI规则引擎生成，所有计算步骤均可追溯。`;
+    html += `价格基于标准工艺参数计算，实际加工可能因材料批次、工艺复杂度等因素产生±5%偏差。`;
+    html += `建议与工程师确认后下单。`;
+    html += `</div>`;
+    
+    html += `</div></div>`;
+    
+    return html;
+}
+
+function toggleWhiteBox(chainId) {
+    let body = document.getElementById(chainId + '-body');
+    if (body) {
+        body.classList.toggle('active');
+    }
+}
+
+/* ====== 发送聊天 ====== */
+let busy = false;
+async function doSend(){
+    let inp=document.getElementById('user-input'), msg=inp.value.trim();
+    if(!msg||busy) return;
+    busy=true;
+    let sbtn=document.getElementById('send-btn');
+    sbtn.disabled=true; sbtn.dataset.orig=sbtn.textContent; sbtn.textContent='⏳';
+    addMsg(esc(msg), 'user'); inp.value='';
+    // Linear Aesthetic shimmer 骨架屏
+    let skelId = 'skel-' + Date.now();
+    let skelHtml = '<div class="skel-wrap" id="' + skelId + '">';
+    skelHtml += '<div class="skel-title"></div>';
+    skelHtml += '<div class="skel-line l"></div><div class="skel-line m"></div><div class="skel-line s"></div>';
+    skelHtml += '<div class="skel-block"></div>';
+    skelHtml += '<div class="skel-line m"></div><div class="skel-line l"></div>';
+    skelHtml += '</div>';
+    addMsg(skelHtml, 'bot');
+    try {
+        let mat=document.getElementById('mat').value;
+        let qty=document.getElementById('qty').value;
+        let surf=document.getElementById('surface').value;
+        let r = await fetch('/api/chat', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({message:msg, material:mat, quantity:parseInt(qty), surface_treatment:surf, context:lastUploadContext})
+        });
+        let d = await r.json();
+        // 移除骨架屏
+        let sk = document.getElementById(skelId);
+        if(sk && sk.parentElement) sk.parentElement.remove();
+        renderBotReply(d);
+    } catch(e) {
+        let sk = document.getElementById(skelId);
+        if(sk && sk.parentElement) sk.parentElement.remove();
+        addMsg('⚠️ 请求失败: '+e.message, 'bot');
+    }
+    busy=false; sbtn.disabled=false; sbtn.textContent=sbtn.dataset.orig||'发送';
+}
+
+function send(msg){ document.getElementById('user-input').value=msg; doSend(); }
+
+/* ====== 渲染机器人回复 — 统一处理3D预览+报价+打包 ====== */
+function renderBotReply(d){
+    let html = d.reply || '无响应';
+
+    // 自动加载3D预览
+    if(d.stl_url){
+        loadSTL(d.stl_url);
+    }
+
+    // 保存结果供打包
+    if(d.stl_url || d.step_file || d.quote){
+        lastGenResult = d;
+        // 添加操作按钮
+        let btns = '<div class="action-bar">';
+        if(d.stl_url) btns += '<button onclick="loadSTL(\''+d.stl_url+'\')">🔄 刷新预览</button>';
+        if(d.step_file || d.stl_url) btns += '<button onclick="exportZip()">📦 打包下载ZIP</button>';
+        btns += '</div>';
+        html += btns;
+    }
+
+    // ★ 自动ZIP下载链接（后端已打包）
+    if(d.zip_url){
+        html += '<div class="auto-zip" style="margin-top:12px;padding:12px;background:linear-gradient(135deg,#1e3a5f,#2d5a8e);border-radius:8px;border:1px solid #4a9eff">';
+        html += '<div style="font-weight:bold;color:#4a9eff;margin-bottom:8px">📦 ZIP包已自动生成</div>';
+        html += '<a href="' + d.zip_url + '" download style="color:#fff;font-weight:bold;text-decoration:none;display:inline-block;padding:8px 16px;background:#4a9eff;border-radius:6px">⬇️ 下载ZIP包</a>';
+        html += '<div style="font-size:11px;color:#8bb8e8;margin-top:6px">包含: STEP + STL + XLSX报价单 + 推理链</div>';
+        html += '</div>';
+    }
+
+    // XAI Reasoning Chain Display (from chat API)
+    if(d.reasoning_chain){
+        let rc = d.reasoning_chain;
+        let chainId = 'chain-' + Date.now();
+        html += '<div class="reasoning-chain">';
+        html += '<div class="reasoning-header" onclick="toggleReasoning(\'' + chainId + '\')">';
+        html += '<div class="title"><span class="icon" id="' + chainId + '-icon">▼</span> AI推理过程 (XAI)</div>';
+        html += '<div class="meta"><span>' + rc.total_steps + ' 步</span><span>' + (rc.elapsed_ms||0).toFixed(1) + 'ms</span><span>置信度 ' + (rc.overall_confidence*100).toFixed(0) + '%</span></div>';
+        html += '</div>';
+        html += '<div class="reasoning-body" id="' + chainId + '-body">';
+        
+        if(rc.steps){
+            rc.steps.forEach(function(s){
+                let confClass = s.confidence > 0.7 ? 'high' : s.confidence > 0.4 ? 'medium' : 'low';
+                let typeClass = s.step_type || 'calculation';
+                html += '<div class="reasoning-step">';
+                html += '<div class="step-header">';
+                html += '<span class="step-num">#' + s.step_id + '</span>';
+                html += '<span class="step-type ' + typeClass + '">' + typeClass + '</span>';
+                html += '<span class="step-title">' + esc(s.title) + '</span>';
+                html += '</div>';
+                html += '<div class="step-desc">' + esc(s.description) + '</div>';
+                if(s.evidence && Object.keys(s.evidence).length > 0){
+                    let evStr = JSON.stringify(s.evidence).substring(0, 200);
+                    html += '<div class="step-evidence">' + esc(evStr) + '</div>';
+                }
+                html += '<span class="step-confidence ' + confClass + '">置信度: ' + (s.confidence*100).toFixed(0) + '%</span>';
+                html += '<span class="step-duration" style="margin-left:8px;color:#94a3b8;font-size:10px">耗时 ' + (s.duration_ms||0).toFixed(3) + 'ms</span>';
+                if(s.formula) html += '<span class="step-formula">公式: ' + esc(s.formula) + '</span>';
+                html += '</div>';
+            });
+        }
+        
+        if(rc.summary){
+            html += '<div style="padding:8px 12px;font-size:10px;color:#64748b;background:#0f172a;white-space:pre-wrap">' + esc(rc.summary) + '</div>';
+        }
+        
+        html += '</div></div>';
+    }
+
+    // CAD参数提取推理链 (新字段 cad_reasoning_chain, 与报价链并列)
+    if(d.cad_reasoning_chain){
+        html += renderCadChain(d.cad_reasoning_chain);
+    }
+    
+    // ★ 白箱推理显示（新版可视化）
+    if(d.reasoning_chain && d.quote){
+        html += renderWhiteBox(d.reasoning_chain, d.quote);
+    }
+
+    // ★★★ Linear Aesthetic 结构化展示：part_spec / cad_tot_chain / 几何 / 下载 / 模型 ★★★
+    html += renderStructuredExtras(d);
+
+    addMsg(html, 'bot');
+
+    // 更新报价状态
+    if(d.quote){
+        document.getElementById('quote-status').textContent = '✓ ¥' + d.quote.final_price;
+    }
+}
+
+/* ═══ Linear Aesthetic 结构化展示组件 ═══ */
+function renderStructuredExtras(d){
+    let out = '';
+    try {
+        // 1) part_spec 参数表格
+        if(d.part_spec && typeof d.part_spec === 'object'){
+            let ps = d.part_spec;
+            out += '<div class="spec-section">';
+            out += '<div class="spec-title"><span class="ico">📐</span> 零件参数规范 part_spec</div>';
+            if(ps.part_type) out += '<div style="font-size:12px;color:var(--text-2);margin-bottom:8px">类型: <code>' + esc(ps.part_type) + '</code></div>';
+            let params = ps.params || {};
+            let pkeys = Object.keys(params);
+            if(pkeys.length > 0){
+                out += '<div class="param-grid">';
+                pkeys.forEach(function(k){
+                    let v = params[k];
+                    let unit = '';
+                    if(/^(od|id|thickness|bolt_d|bolt_pcd|length|width|height|depth|outer_d|inner_d|t|d|h|w|l)$/i.test(k)) unit = 'mm';
+                    if(/^(bolt_holes|holes|teeth|quantity|qty)$/i.test(k)) unit = '';
+                    out += '<div class="pk">' + esc(k) + '</div>';
+                    out += '<div class="pv">' + esc(String(v)) + (unit ? '<span class="u">' + unit + '</span>' : '') + '</div>';
+                });
+                out += '</div>';
+            }
+            // 元信息行
+            let metaBits = [];
+            if(ps.material) metaBits.push('材料 <code>' + esc(ps.material) + '</code>');
+            if(ps.quantity) metaBits.push('数量 <code>' + esc(String(ps.quantity)) + '</code> 件');
+            if(ps.surface_treatment) metaBits.push('表面 <code>' + esc(ps.surface_treatment) + '</code>');
+            if(metaBits.length) out += '<div class="model-bar" style="margin-top:8px">' + metaBits.join(' · ') + '</div>';
+            out += '</div>';
+        }
+
+        // 2) cad_tot_chain 候选管道竞争可视化
+        if(d.cad_tot_chain && typeof d.cad_tot_chain === 'object'){
+            let tc = d.cad_tot_chain;
+            out += '<div class="spec-section">';
+            out += '<div class="spec-title"><span class="ico">🏆</span> TOT 候选管道竞争 cad_tot_chain</div>';
+            if(tc.task_type) out += '<div style="font-size:11px;color:var(--text-3);margin-bottom:8px">任务: <code>' + esc(tc.task_type) + '</code> · 总步数 <code>' + (tc.total_steps||0) + '</code> · 综合置信度 <code>' + (((tc.overall_confidence||0))*100).toFixed(0) + '%</code></div>';
+            let steps = tc.steps || tc.candidates || [];
+            if(steps.length > 0){
+                steps.forEach(function(s, i){
+                    let conf = s.confidence != null ? s.confidence : (s.score != null ? s.score : 0.5);
+                    let isWinner = s.winner || s.is_winner || (tc.winner && (s.source === tc.winner || s.name === tc.winner)) || (i === 0 && steps.length > 1 && !steps.some(x => x.winner));
+                    let src = s.source || s.name || s.pipeline || (s.step_type || 'candidate');
+                    let reason = s.reasoning || s.reason || s.description || s.conclusion || '';
+                    out += '<div class="tot-step' + (isWinner ? ' winner' : '') + '">';
+                    out += '<div class="tot-head">';
+                    out += '<span class="tot-source">' + esc(String(src)) + '</span>';
+                    if(isWinner) out += '<span class="winner-tag">胜出</span>';
+                    out += '</div>';
+                    if(reason) out += '<div class="tot-reason">' + esc(String(reason)) + '</div>';
+                    out += '<div class="tot-conf-bar"><div class="fill" style="width:' + Math.max(2, conf*100).toFixed(1) + '%"></div></div>';
+                    out += '<div class="tot-conf-lbl"><span>置信度</span><span>' + (conf*100).toFixed(1) + '%</span></div>';
+                    out += '</div>';
+                });
+            } else if(tc.summary) {
+                out += '<div class="tot-reason">' + esc(String(tc.summary)) + '</div>';
+            }
+            out += '</div>';
+        }
+
+        // 3) 几何信息（体积/重量/bbox）
+        let vol = d.volume_cm3 || (d.geometry && d.geometry.volume_cm3);
+        let wt = d.weight_kg || d.estimated_weight_kg || (d.geometry && d.geometry.weight_kg);
+        let bbox = d.bounding_box || (d.geometry && d.geometry.bounding_box);
+        if(vol || wt || bbox){
+            out += '<div class="spec-section">';
+            out += '<div class="spec-title"><span class="ico">📏</span> 几何信息</div>';
+            out += '<div class="geo-grid">';
+            if(vol) out += '<div class="geo-card"><div class="gl">体积</div><div class="gv">' + (typeof vol === 'number' ? vol.toFixed(2) : esc(String(vol))) + '<span class="gu">cm³</span></div></div>';
+            if(wt) out += '<div class="geo-card"><div class="gl">重量</div><div class="gv">' + (typeof wt === 'number' ? wt.toFixed(3) : esc(String(wt))) + '<span class="gu">kg</span></div></div>';
+            if(d.material) out += '<div class="geo-card"><div class="gl">材料</div><div class="gv" style="font-size:13px">' + esc(String(d.material)) + '</div></div>';
+            if(bbox){
+                let bx = bbox.x || bbox.length || bbox[0];
+                let by = bbox.y || bbox.width || bbox[1];
+                let bz = bbox.z || bbox.height || bbox[2];
+                if(bx && by && bz) out += '<div class="geo-card"><div class="gl">包围盒</div><div class="gv" style="font-size:13px">' + esc(String(bx)) + '×' + esc(String(by)) + '×' + esc(String(bz)) + '<span class="gu">mm</span></div></div>';
+            }
+            out += '</div>';
+            out += '</div>';
+        }
+
+        // 4) 报价信息（如果 chat 直接返回了 quote 摘要）
+        if(d.quote && d.quote.final_price){
+            let q = d.quote;
+            out += '<div class="spec-section">';
+            out += '<div class="spec-title"><span class="ico">💰</span> 报价摘要</div>';
+            out += '<div class="geo-grid">';
+            out += '<div class="geo-card hi"><div class="gl">总价</div><div class="gv">¥' + esc(String(q.final_price)) + '</div></div>';
+            if(q.unit_price) out += '<div class="geo-card"><div class="gl">单价</div><div class="gv">¥' + (typeof q.unit_price === 'number' ? q.unit_price.toFixed(2) : esc(String(q.unit_price))) + '<span class="gu">/件</span></div></div>';
+            if(q.machine_hours) out += '<div class="geo-card"><div class="gl">加工工时</div><div class="gv">' + esc(String(q.machine_hours)) + '<span class="gu">h</span></div></div>';
+            if(q.lead_time_days) out += '<div class="geo-card"><div class="gl">交期</div><div class="gv">' + esc(String(q.lead_time_days)) + '<span class="gu">天</span></div></div>';
+            out += '</div>';
+            out += '</div>';
+        }
+
+        // 5) 文件下载（STEP/STL/ZIP 精致按钮组）
+        if(d.step_file || d.stl_url || d.zip_url){
+            out += '<div class="spec-section">';
+            out += '<div class="spec-title"><span class="ico">📦</span> 文件下载</div>';
+            out += '<div class="dl-row">';
+            if(d.step_file) out += '<a class="dl-btn" href="' + esc(d.step_file) + '" download>⬇️ STEP <span class="ext">.stp</span></a>';
+            if(d.stl_url) out += '<a class="dl-btn" href="' + esc(d.stl_url) + '" download>⬇️ STL <span class="ext">.stl</span></a>';
+            if(d.zip_url) out += '<a class="dl-btn" href="' + esc(d.zip_url) + '" download>⬇️ ZIP <span class="ext">.zip</span></a>';
+            out += '</div>';
+            out += '</div>';
+        }
+
+        // 6) 模型信息
+        if(d.model || d.model_source){
+            out += '<div class="model-bar">';
+            out += '<span class="ico">🤖</span> <span>模型</span> <span class="mn">' + esc(d.model || '-') + '</span>';
+            if(d.model_source) out += '<span class="ms">来源: ' + esc(d.model_source) + '</span>';
+            out += '</div>';
+        }
+    } catch(e) { console.warn('[Render] 结构化展示异常:', e); }
+    return out;
+}
+
+/* ====== 快速报价折叠窗口切换 ====== */
+function toggleQuoteForm(){
+  const body=document.getElementById('quote-form-body');
+  const arrow=document.getElementById('quote-arrow');
+  if(!body) return;
+  const open=body.classList.toggle('expanded');
+  if(arrow) arrow.classList.toggle('expanded',open);
+}
+
+/* ====== 快速报价 — 直接调用 /api/quote，使用表单参数 + 上传文件重量 ====== */
+async function quickQuote(){
+    let mat = document.getElementById('mat').value;
+    let qty = parseInt(document.getElementById('qty').value);
+    let surf = document.getElementById('surface').value;
+    let tol = document.getElementById('tol').value;
+    let statusEl = document.getElementById('quote-status');
+    statusEl.textContent = '计算中...';
+
+    // 如果有上传文件的重量，用真实重量；否则让后端估算
+    let payload = {material: mat, quantity: qty, surface_treatment: surf, tolerance: tol};
+    if(lastWeightKg) payload.weight_kg = lastWeightKg;
+    if(lastVolumeCm3) payload.volume_cm3 = lastVolumeCm3;
+    // v3.0: 新增参数
+    let proc = document.getElementById('process');
+    if(proc) payload.process = proc.value;
+    let meas = document.getElementById('measurement');
+    if(meas) payload.measurement = meas.value;
+    let jig = document.getElementById('jigFee');
+    if(jig && parseFloat(jig.value) > 0) payload.jig_fee = parseFloat(jig.value);
+    payload.pricing_mode = qty <= 20 ? 'by_quantity' : 'by_weight';
+    payload.profit_rate = 0.30;
+    payload.discount = 1.0;
+
+    console.log('[Quote] 开始报价, 参数:', payload);
+
+    try {
+        let controller = new AbortController();
+        let timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒超时
+
+        let r = await fetch('/api/quote', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload),
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        console.log('[Quote] HTTP状态:', r.status);
+        let d = await r.json();
+        console.log('[Quote] 返回数据:', d);
+
+        if(d.error){
+            let errMsg = '❌ 报价失败: ' + d.error;
+            if(d.conflicts && d.conflicts.length > 0){
+                errMsg += '<br>⚠️ 冲突详情:';
+                d.conflicts.forEach(c => { errMsg += '<br>- ' + c.message; });
+            }
+            addMsg(errMsg, 'bot');
+            statusEl.textContent = '❌ 失败';
+            return;
+        }
+        // 报价明细表
+        let html = '<h2>💰 快速报价结果</h2>';
+        html += '<table class="quote-table"><tr><th>项目</th><th>详情</th></tr>';
+        html += '<tr><td>材料</td><td>' + (d.material||'-') + '</td></tr>';
+        html += '<tr><td>数量</td><td>' + (d.quantity||'-') + '件</td></tr>';
+        html += '<tr><td>表面处理</td><td>' + (d.surface||'-') + '</td></tr>';
+        html += '<tr><td>工艺</td><td>' + (d.process||'-') + '</td></tr>';
+        html += '<tr><td>公差等级</td><td>' + (d.tolerance||'-') + ' (系数×' + (d.tol_coef||1).toFixed(2) + ')</td></tr>';
+        html += '<tr><td>重量</td><td>' + (d.weight_kg||0) + ' kg</td></tr>';
+        html += '<tr><td>加工时间</td><td>' + (d.machine_hours||0) + ' h (倍率×' + (d.hourly_rate||1) + ')</td></tr>';
+        html += '<tr><td>交期</td><td>' + (d.lead_time_days||'-') + ' 天</td></tr>';
+        html += '</table>';
+
+        html += '<table class="quote-table" style="margin-top:8px"><tr><th>费用项</th><th>金额(元)</th></tr>';
+        html += '<tr><td>材料费</td><td>¥' + (d.material_cost||0).toFixed(2) + '</td></tr>';
+        html += '<tr><td>加工费 (倍率×' + (d.hourly_rate||1) + ' × ' + (d.machine_hours||0.5) + 'h × N' + (d.tol_coef||1) + ')</td><td>¥' + (d.machining_cost||0).toFixed(2) + '</td></tr>';
+        html += '<tr><td>表面处理费</td><td>¥' + (d.surface_cost||0).toFixed(2) + '</td></tr>';
+        if(d.extra_fees > 0) html += '<tr><td>附加费(测量/夹具/刀具)</td><td>¥' + (d.extra_fees||0).toFixed(2) + '</td></tr>';
+        html += '<tr><td>成本合计</td><td>¥' + (d.total_cost||0).toFixed(2) + '</td></tr>';
+        html += '<tr><td>利润(' + (d.profit_rate ? (d.profit_rate*100).toFixed(0) : '30') + '% 成本加成)</td><td>¥' + (d.profit||0).toFixed(2) + '</td></tr>';
+        html += '<tr><td><strong>总价</strong></td><td><strong>¥' + d.final_price + '</strong></td></tr>';
+        html += '<tr><td>单价(×' + d.quantity + '件)</td><td>¥' + (d.unit_price||0).toFixed(2) + '/件</td></tr>';
+        html += '</table>';
+
+        html += '<div class="price">💰 总价: ¥' + d.final_price + ' (¥' + (d.unit_price||0).toFixed(2) + '/件)</div>';
+        if(d.engine) html += '<div style="font-size:10px;color:#888">引擎: ' + d.engine + '</div>';
+        if(d.pricing_mode) html += '<div style="font-size:10px;color:#888">表面计价: ' + d.pricing_mode + '</div>';
+
+        // XAI Reasoning Chain Display
+        if(d.reasoning_chain){
+            let rc = d.reasoning_chain;
+            let chainId = 'chain-' + Date.now();
+            html += '<div class="reasoning-chain">';
+            html += '<div class="reasoning-header" onclick="toggleReasoning(\'' + chainId + '\')">';
+            html += '<div class="title"><span class="icon" id="' + chainId + '-icon">▼</span> AI推理过程 (XAI)</div>';
+            html += '<div class="meta"><span>' + rc.total_steps + ' 步</span><span>' + (rc.elapsed_ms||0).toFixed(1) + 'ms</span><span>置信度 ' + (rc.overall_confidence*100).toFixed(0) + '%</span></div>';
+            html += '</div>';
+            html += '<div class="reasoning-body" id="' + chainId + '-body">';
+            
+            // Render each step
+            if(rc.steps){
+                rc.steps.forEach(function(s){
+                    let confClass = s.confidence > 0.7 ? 'high' : s.confidence > 0.4 ? 'medium' : 'low';
+                    let typeClass = s.step_type || 'calculation';
+                    html += '<div class="reasoning-step">';
+                    html += '<div class="step-header">';
+                    html += '<span class="step-num">#' + s.step_id + '</span>';
+                    html += '<span class="step-type ' + typeClass + '">' + typeClass + '</span>';
+                    html += '<span class="step-title">' + esc(s.title) + '</span>';
+                    html += '</div>';
+                    html += '<div class="step-desc">' + esc(s.description) + '</div>';
+                    if(s.evidence && Object.keys(s.evidence).length > 0){
+                        let evStr = JSON.stringify(s.evidence).substring(0, 200);
+                        html += '<div class="step-evidence">' + esc(evStr) + '</div>';
+                    }
+                    html += '<span class="step-confidence ' + confClass + '">置信度: ' + (s.confidence*100).toFixed(0) + '%</span>';
+                    html += '<span class="step-duration" style="margin-left:8px;color:#94a3b8;font-size:10px">耗时 ' + (s.duration_ms||0).toFixed(3) + 'ms</span>';
+                    if(s.formula) html += '<span class="step-formula">公式: ' + esc(s.formula) + '</span>';
+                    html += '</div>';
+                });
+            }
+            
+            // Summary
+            if(rc.summary){
+                html += '<div style="padding:8px 12px;font-size:10px;color:#64748b;background:#0f172a;white-space:pre-wrap">' + esc(rc.summary) + '</div>';
+            }
+            
+            html += '</div></div>';
+        }
+        
+        // ★ 白箱推理显示（新版可视化）
+        if(d.reasoning_chain){
+            html += renderWhiteBox(d.reasoning_chain, d);
+        }
+
+        lastGenResult = lastGenResult || {};
+        lastGenResult.quote = d;
+        html += '<div class="action-bar"><button onclick="exportZip()">📦 打包下载ZIP</button></div>';
+
+        addMsg(html, 'bot', 'quick-quote');
+        statusEl.textContent = '✓ ¥' + d.final_price;
+    } catch(e) {
+        console.error('[Quote] 报价异常:', e);
+        let errMsg = '❌ 报价失败: ';
+        if(e.name === 'AbortError'){
+            errMsg += '请求超时(15秒)，请检查服务器是否启动';
+        } else {
+            errMsg += e.message;
+        }
+        addMsg(errMsg, 'bot');
+        statusEl.textContent = '❌';
+    }
+}
+
+/* ====== 打包下载 ZIP ====== */
+async function exportZip(){
+    if(!lastGenResult){
+        addMsg('⚠️ 请先生成图纸或上传文件', 'bot');
+        return;
+    }
+    addMsg('📦 正在打包...', 'user');
+    try {
+        let files = [];
+        if(lastGenResult.step_file) files.push({path: lastGenResult.step_file, name: lastGenResult.step_file.split(/[\\/]/).pop()});
+        if(lastGenResult.stl_file) files.push({path: lastGenResult.stl_file, name: lastGenResult.stl_file.split(/[\\/]/).pop()});
+        // 如果有stl_url但没stl_file，构造路径
+        if(!files.length && lastGenResult.stl_url){
+            let fname = lastGenResult.stl_url.split('/').pop();
+            files.push({path: 'data/step/' + fname, name: fname});
+        }
+
+        // 传递完整报价数据和推理链
+        let quoteData = lastGenResult.quote ? {
+            material: lastGenResult.quote.material,
+            material_code: lastGenResult.quote.material_code || lastGenResult.quote.material,
+            material_price: lastGenResult.quote.material_price || 30,
+            quantity: lastGenResult.quote.quantity,
+            unit_price: lastGenResult.quote.unit_price,
+            final_price: lastGenResult.quote.final_price,
+            total_price: lastGenResult.quote.final_price,
+            weight_kg: lastGenResult.quote.weight_kg || lastGenResult.estimated_weight_kg,
+            surface: lastGenResult.quote.surface || lastGenResult.quote.surface_treatment || '无',
+            surface_treatment: lastGenResult.quote.surface_treatment || lastGenResult.quote.surface || '无',
+            surface_cost: lastGenResult.quote.surface_cost || 0,
+            process: lastGenResult.quote.process || '三轴CNC',
+            machine_hours: lastGenResult.quote.machine_hours || 0,
+            hourly_rate: lastGenResult.quote.hourly_rate || 120,
+            material_cost: lastGenResult.quote.material_cost || 0,
+            machining_cost: lastGenResult.quote.machining_cost || 0,
+            extra_fees: lastGenResult.quote.extra_fees || 0,
+            total_cost: lastGenResult.quote.total_cost || 0,
+            profit: lastGenResult.quote.profit || 0,
+            profit_rate: lastGenResult.quote.profit_rate || 0.3,
+            discount: lastGenResult.quote.discount || 1.0,
+            tolerance: lastGenResult.quote.tolerance || 'IT8',
+            tol_coef: lastGenResult.quote.tol_coef || 1.0,
+            roughness: lastGenResult.quote.roughness || 'Ra1.6',
+            rough_coef: lastGenResult.quote.rough_coef || 1.0,
+            shape: lastGenResult.quote.shape || 'flat',
+            measurement_fee: lastGenResult.quote.measurement_fee || 0,
+            jig_fee: lastGenResult.quote.jig_fee || 0,
+            tool_fee: lastGenResult.quote.tool_fee || 0,
+            pricing_mode: lastGenResult.quote.pricing_mode || 'by_quantity',
+            lead_time_days: lastGenResult.quote.lead_time_days || 7,
+            confidence: lastGenResult.quote.confidence || 0.95,
+        } : null;
+        
+        let r = await fetch('/api/export', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                files: files,
+                quote: quoteData,
+                reasoning_chain: lastGenResult.reasoning_chain || null
+            })
+        });
+        let d = await r.json();
+        if(d.error){
+            addMsg('❌ 打包失败: ' + d.error, 'bot');
+            return;
+        }
+        if(d.zip_url){
+            let html = '<h2>📦 打包完成</h2>';
+            html += '<strong>文件:</strong> ' + (d.zip_filename||'export.zip') + '<br>';
+            html += '<a href="' + d.zip_url + '" download style="color:#667eea;font-weight:bold">⬇️ 点击下载ZIP</a>';
+            addMsg(html, 'bot');
+            // 自动下载
+            window.open(d.zip_url, '_blank');
+        }
+    } catch(e) {
+        addMsg('打包失败: ' + e.message, 'bot');
+    }
+}
+
+/* ====== 上传 STEP/STL ====== */
+async function uploadFile(file){
+    if(!file) return;
+    addMsg('📤 上传: ' + file.name, 'user');
+    // 立即在3D预览区显示加载状态
+    initViewer();
+    if(currentMesh){ scene.remove(currentMesh); currentMesh=null; }
+    document.getElementById('placeholder').style.display = 'none';
+    let _ext = file.name.split('.').pop().toLowerCase();
+    let _hint = ['step','stp','stl'].includes(_ext) ? 'STEP几何解析10-30秒' : ['png','jpg','jpeg','bmp','webp'].includes(_ext) ? 'VLM图片理解10-30秒' : ['pdf','dwg','dxf','xlsx','xls','zip'].includes(_ext) ? '文档解析中...' : '解析中...';
+    document.getElementById('viewer-info').textContent = '⏳ 上传解析中... (' + _hint + ')';
+    let mat=document.getElementById('mat').value;
+    let qty=document.getElementById('qty').value;
+    let surf=document.getElementById('surface').value;
+    let tol=document.getElementById('tol').value;
+    let proc=document.getElementById('process') ? document.getElementById('process').value : '三轴CNC';
+    let fd = new FormData();
+    fd.append('file', file);
+    fd.append('material', mat);
+    fd.append('quantity', qty);
+    fd.append('surface', surf);
+    fd.append('tolerance', tol);
+    fd.append('process', proc);
+
+    try {
+        let controller = new AbortController();
+        let timeoutId = setTimeout(() => controller.abort(), 180000); // 180秒超时(LLM推理+STEP生成+STL转换可能较慢)
+        let _endpoint = ['step','stp','stl'].includes(_ext) ? '/api/upload-step' : '/api/upload';
+        let r = await fetch(_endpoint, {method:'POST', body:fd, signal: controller.signal});
+        clearTimeout(timeoutId);
+        let d = await r.json();
+        if(d.error){
+            // 提供详细的错误信息和建议
+            let errorMsg = '❌ 上传失败<br><br>错误: ' + d.error;
+            if(d.detail) errorMsg += '<br>详情: ' + d.detail;
+            if(d.suggestions && d.suggestions.length > 0) {
+                errorMsg += '<br><br>建议:';
+                d.suggestions.forEach(s => errorMsg += '<br>• ' + s);
+            }
+            if(d.detected_format) errorMsg += '<br><br>检测到的格式: ' + d.detected_format;
+            if(d.supported_formats) errorMsg += '<br>支持的格式: ' + d.supported_formats.join(', ');
+            addMsg(errorMsg, 'bot');
+            return;
+        }
+
+        // 保存供打包
+        lastGenResult = d;
+        // 保存图纸上下文供对话框分析使用 (chat 端点会接收 context 字段)
+        lastUploadContext = {
+            file_name: d.file_name,
+            part_spec: d.part_spec || null,
+            bounding_box: d.bounding_box || null,
+            volume_cm3: d.volume_cm3 || null
+        };
+        // 保存真实重量供快速报价使用
+        if(d.estimated_weight_kg) lastWeightKg = d.estimated_weight_kg;
+        if(d.volume_cm3) lastVolumeCm3 = d.volume_cm3;
+
+        // 立即加载3D预览
+        if(d.stl_url){
+            loadSTL(d.stl_url);
+        } else {
+            document.getElementById('viewer-info').textContent = '❌ 3D预览不可用 — STEP转STL失败';
+            document.getElementById('placeholder').style.display = '';
+            document.getElementById('placeholder').innerHTML = '<div class="icon">⚠️</div>3D预览生成失败<br>请确认文件为有效STEP/STL格式';
+        }
+
+        let t = '<h2>📊 上传解析结果</h2>';
+        t += '<strong>文件:</strong> ' + d.file_name + '<br>';
+        if(d.bounding_box) t += '<strong>尺寸:</strong> ' + d.bounding_box.x + ' × ' + d.bounding_box.y + ' × ' + d.bounding_box.z + ' mm<br>';
+        if(d.volume_cm3) t += '<strong>体积:</strong> ' + d.volume_cm3 + ' cm³<br>';
+        if(d.estimated_weight_kg) t += '<strong>重量:</strong> ' + d.estimated_weight_kg + ' kg (' + d.material + ')<br>';
+        if(d.parse_warning) t += '<br>⚠️ ' + d.parse_warning + '<br>';
+
+        if(d.conflicts && !d.conflicts.valid){
+            t += '<br>⚠️ <strong>工艺冲突:</strong><br>';
+            (d.conflicts.conflicts||[]).forEach(c => { t += '- ❌ ' + c.message + '<br>'; });
+        }
+
+        if(d.quote){
+            t += '<br><div class="price">💰 总价: ¥' + d.quote.final_price + '</div>';
+            t += '<table class="quote-table"><tr><th>项目</th><th>详情</th></tr>';
+            t += '<tr><td>材料</td><td>' + (d.quote.material||'-') + '</td></tr>';
+            t += '<tr><td>数量</td><td>' + (d.quote.quantity||'-') + '件</td></tr>';
+            t += '<tr><td>表面处理</td><td>' + (d.quote.surface||'-') + '</td></tr>';
+            t += '<tr><td>公差</td><td>' + (d.quote.tolerance||'-') + ' (×' + (d.quote.tol_coef||1).toFixed(2) + ')</td></tr>';
+            t += '<tr><td>重量</td><td>' + (d.quote.weight_kg||0) + ' kg</td></tr>';
+            t += '<tr><td>加工时间</td><td>' + (d.quote.machine_hours||0) + ' h</td></tr>';
+            t += '<tr><td>交期</td><td>' + (d.quote.lead_time_days||'-') + ' 天</td></tr>';
+            t += '<tr><td>批量折扣</td><td>×' + (d.quote.batch_discount||1).toFixed(2) + '</td></tr>';
+            t += '</table>';
+            t += '<table class="quote-table" style="margin-top:8px"><tr><th>费用项</th><th>金额(元)</th></tr>';
+            t += '<tr><td>材料费</td><td>¥' + (d.quote.material_cost||0).toFixed(2) + '</td></tr>';
+            t += '<tr><td>加工费</td><td>¥' + (d.quote.machining_cost||0).toFixed(2) + '</td></tr>';
+            t += '<tr><td>表面处理费</td><td>¥' + (d.quote.surface_cost||0).toFixed(2) + '</td></tr>';
+            t += '<tr><td>小计</td><td>¥' + (d.quote.total_price||0).toFixed(2) + '</td></tr>';
+            t += '<tr><td>利润</td><td>¥' + (d.quote.profit||0).toFixed(2) + '</td></tr>';
+            t += '<tr><td><strong>总价</strong></td><td><strong>¥' + d.quote.final_price + '</strong></td></tr></table>';
+            document.getElementById('quote-status').textContent = '✓ ¥' + d.quote.final_price;
+        } else if(d.conflicts && !d.conflicts.valid) {
+            t += '<br>❌ <strong>报价被阻断 — 工艺冲突</strong>';
+        }
+
+        t += '<div class="action-bar">';
+        if(d.stl_url) t += '<button onclick="loadSTL(\''+d.stl_url+'\')">🔄 刷新预览</button>';
+        t += '<button onclick="exportZip()">📦 打包下载ZIP</button>';
+        t += '</div>';
+
+        addMsg(t, 'bot');
+    } catch(e) {
+        document.getElementById('viewer-info').textContent = '❌ 上传失败';
+        if(e.name === 'AbortError'){
+            addMsg('❌ 上传超时(180秒)，LLM推理+STEP生成可能较慢，请稍后重试', 'bot');
+        } else {
+            addMsg('上传失败: ' + e.message, 'bot');
+        }
+    }
+}
+
+/* ====== 参数变更提示 ====== */
+function onParamChange(){
+    document.getElementById('quote-status').textContent = '参数已变更';
+}
+
+/* ====== 事件绑定 ====== */
+document.getElementById('user-input').addEventListener('keydown', e => { if(e.key==='Enter') doSend(); });
+
+let dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.className='upload-zone dragover'; });
+dz.addEventListener('dragleave', () => dz.className='upload-zone');
+dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.className='upload-zone';
+    let f = e.dataTransfer.files[0];
+    if(f && /\.(step|stp|stl|png|jpg|jpeg|bmp|webp|pdf|dwg|dxf|zip|xlsx|xls)$/i.test(f.name)) uploadFile(f);
+    else addMsg('⚠️ 请上传 STEP/STL/图片/PDF/DWG/ZIP/XLSX 文件', 'bot');
+});
+
+// 3D预览区也支持拖拽上传
+let vb = document.getElementById('viewer-body');
+vb.addEventListener('dragover', e => { e.preventDefault(); vb.style.outline='2px solid #22c55e'; });
+vb.addEventListener('dragleave', () => { vb.style.outline='none'; });
+vb.addEventListener('drop', e => {
+    e.preventDefault(); vb.style.outline='none';
+    let f = e.dataTransfer.files[0];
+    if(f && /\.(step|stp|stl|png|jpg|jpeg|bmp|webp|pdf|dwg|dxf|zip|xlsx|xls)$/i.test(f.name)) uploadFile(f);
+    else addMsg('⚠️ 请上传 STEP/STL/图片/PDF/DWG/ZIP/XLSX 文件', 'bot');
+});
+
+window.addEventListener('resize', () => {
+    if(!renderer) return;
+    let v = document.getElementById('viewer-body');
+    camera.aspect = v.clientWidth / v.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(v.clientWidth, v.clientHeight);
+});
+
+window.addEventListener('DOMContentLoaded', () => {
+    initViewer();
+    // P1-1: 页面加载完成，不自动发送示例
+    setTimeout(async () => {
+        console.log('[Init] 就绪');
+        // 先拉取服务端已保存的模型配置，再加载状态与端点列表
+        await loadSavedModelConfig();
+        loadModelStatus();
+        refreshEndpoints();
+    }, 800);
+});
+</script>
+
+<!-- Model Selection Modal -->
+<div class="modal-overlay" id="model-config-modal">
+<div class="modal">
+<div class="modal-header">
+<h2>⚙️ 模型配置</h2>
+<button class="modal-close" onclick="closeModelConfig()">&times;</button>
+</div>
+<div class="modal-body">
+<!-- 当前模型状态 -->
+<div class="model-section">
+<h3>📊 当前模型状态 <span class="badge green" id="current-model-badge">加载中...</span></h3>
+<div class="model-status" id="model-status-cards">
+<!-- 由JavaScript填充 -->
+</div>
+</div>
+
+<!-- 云端API配置 -->
+<div class="model-section">
+<h3>☁️ 云端API配置 <span class="badge" style="background:#1e40af;color:#93c5fd">推荐</span></h3>
+<div class="form-row">
+<div class="form-group">
+<label>API接口地址</label>
+<input type="text" id="cloud-api-url" placeholder="http://api.unionskillai.com/v1" value="http://api.unionskillai.com/v1">
+<div class="hint">支持OpenAI兼容接口</div>
+</div>
+<div class="form-group">
+<label>API Key</label>
+<input type="password" id="cloud-api-key" placeholder="opc-sk-prod-..." value="">
+<div class="hint">云端服务认证密钥</div>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>模型名称</label>
+<div style="display:flex;gap:6px">
+<input type="text" id="cloud-model-name" list="cloud-model-list" placeholder="opc-auto" value="opc-auto" style="flex:1">
+<button class="test-btn" style="padding:4px 10px;white-space:nowrap;margin:0" onclick="fetchRemoteModels('cloud')">📡 获取</button>
+</div>
+<datalist id="cloud-model-list"></datalist>
+<div class="hint">云端模型标识符，点"获取"从端点拉取真实列表</div>
+</div>
+<div class="form-group">
+<label>质量评分</label>
+<input type="number" id="cloud-quality-score" min="0" max="100" value="95">
+<div class="hint">0-100，越高越优先</div>
+</div>
+</div>
+</div>
+
+<!-- 本地API配置 -->
+<div class="model-section">
+<h3>🖥️ 本地API配置 <span class="badge" style="background:#854d0e;color:#fde047">低延迟</span></h3>
+<div class="form-row">
+<div class="form-group">
+<label>API接口地址</label>
+<input type="text" id="local-api-url" placeholder="http://127.0.0.1:1234/v1" value="http://127.0.0.1:1234/v1">
+<div class="hint">本地模型服务地址</div>
+</div>
+<div class="form-group">
+<label>API Key</label>
+<input type="password" id="local-api-key" placeholder="lm-studio（可留空）" value="">
+<div class="hint">本地服务认证（可选，LM Studio填 lm-studio）</div>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>模型名称</label>
+<div style="display:flex;gap:6px">
+<input type="text" id="local-model-name" list="local-model-list" placeholder="minicpm-o-4_5" value="minicpm-o-4_5" style="flex:1">
+<button class="test-btn" style="padding:4px 10px;white-space:nowrap;margin:0" onclick="fetchRemoteModels('local')">📡 获取</button>
+</div>
+<datalist id="local-model-list"></datalist>
+<div class="hint">本地模型标识符，点"获取"从端点拉取真实列表</div>
+</div>
+<div class="form-group">
+<label>质量评分</label>
+<input type="number" id="local-quality-score" min="0" max="100" value="85">
+<div class="hint">0-100，越高越优先</div>
+</div>
+</div>
+</div>
+
+<!-- 降级机制配置 -->
+<div class="model-section">
+<h3>🔄 降级机制</h3>
+<div class="form-row">
+<div class="form-group">
+<label>降级顺序</label>
+<div class="fallback-chain">
+<div class="fallback-node active">☁️ 云端</div>
+<div class="fallback-arrow">→</div>
+<div class="fallback-node">🖥️ 本地</div>
+<div class="fallback-arrow">→</div>
+<div class="fallback-node">📏 规则</div>
+</div>
+<div class="fallback-label">云端失败自动降级到本地，本地失败降级到规则引擎</div>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>超时设置(秒)</label>
+<input type="number" id="model-timeout" min="5" max="120" value="30">
+<div class="hint">单次模型调用超时时间</div>
+</div>
+<div class="form-group">
+<label>自动重试</label>
+<select id="model-retry">
+<option value="1">1次</option>
+<option value="2" selected>2次</option>
+<option value="3">3次</option>
+</select>
+<div class="hint">失败后重试次数</div>
+</div>
+</div>
+</div>
+
+<!-- 测试按钮 -->
+<div style="margin-top:16px;display:flex;gap:10px">
+<button class="test-btn" onclick="testCloudModel()">
+<span class="spinner" id="cloud-test-spinner" style="display:none"></span>
+☁️ 测试云端连接
+</button>
+<button class="test-btn" onclick="testLocalModel()">
+<span class="spinner" id="local-test-spinner" style="display:none"></span>
+🖥️ 测试本地连接
+</button>
+<button class="test-btn" style="background:#854d0e;color:#fde047" onclick="testAllModels()">
+<span class="spinner" id="all-test-spinner" style="display:none"></span>
+🔍 自动搜索可用模型
+</button>
+</div>
+</div>
+<div class="modal-footer">
+<button onclick="closeModelConfig()" style="padding:8px 16px;background:#334155;border:none;border-radius:6px;color:#94a3b8;cursor:pointer">取消</button>
+<button onclick="saveModelConfig()" style="padding:8px 16px;background:#166534;border:none;border-radius:6px;color:#86efac;cursor:pointer">💾 保存配置</button>
+</div>
+</div>
+</div>
+
+<!-- Model Config JavaScript -->
+<script>
+// 模型配置管理
+let modelConfig = {
+    cloud: {
+        api_url: 'http://api.unionskillai.com/v1',
+        api_key: 'opc-sk-prod-b742a49080c75fd8c9370a2f625c23e5',
+        model_id: 'opc-auto',
+        quality_score: 95
+    },
+    local: {
+        api_url: 'http://127.0.0.1:1234/v1',
+        api_key: 'lm-studio',
+        model_id: 'minicpm-o-4_5',
+        quality_score: 88
+    },
+    timeout: 30,
+    retry: 2
+};
+
+// 页面加载：拉取服务端已保存的模型配置（替代硬编码默认值）
+async function loadSavedModelConfig() {
+    try {
+        let r = await fetch('/api/models/config');
+        let data = await r.json();
+        if(data.success) {
+            if(data.cloud) modelConfig.cloud = {...modelConfig.cloud, ...data.cloud};
+            if(data.local) modelConfig.local = {...modelConfig.local, ...data.local};
+            if(data.timeout) modelConfig.timeout = data.timeout;
+            if(data.retry != null) modelConfig.retry = data.retry;
+        }
+    } catch(e) { console.error('加载已保存配置失败:', e); }
+}
+
+// 刷新首页端点下拉列表（快速切换）
+async function refreshEndpoints() {
+    let sel = document.getElementById('endpoint-select');
+    try {
+        let r = await fetch('/api/models');
+        let data = await r.json();
+        let cur = data.current_model ? data.current_model.name : '';
+        document.getElementById('endpoint-current').textContent = cur || '规则引擎(无AI)';
+        sel.innerHTML = '';
+        (data.models || []).forEach(m => {
+            let opt = document.createElement('option');
+            opt.value = m.name;
+            opt.textContent = `${m.name} (${m.source})`;
+            if(m.name === cur) opt.selected = true;
+            sel.appendChild(opt);
+        });
+        if(!sel.children.length) sel.innerHTML = '<option value="">无在线模型</option>';
+    } catch(e) {
+        sel.innerHTML = '<option value="">加载失败</option>';
+    }
+}
+
+// 首页下拉快速切换模型（无需重启）
+async function quickSwitchModel() {
+    let name = document.getElementById('endpoint-select').value;
+    if(!name) return;
+    try {
+        let r = await fetch('/api/models/switch', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({model: name})
+        });
+        let res = await r.json();
+        if(res.ok) {
+            addMsg(`✅ 已切换模型: ${res.old} → ${res.new}`, 'bot');
+            loadModelStatus();
+            refreshEndpoints();
+        } else {
+            addMsg('❌ 切换失败: ' + (res.error || '未知错误'), 'bot');
+        }
+    } catch(e) { addMsg('❌ 切换失败: ' + e.message, 'bot'); }
+}
+
+// 从端点拉取真实模型列表（标准OpenAI协议 GET /models）
+async function fetchRemoteModels(kind) {
+    let apiUrl = document.getElementById(kind+'-api-url').value;
+    let apiKey = document.getElementById(kind+'-api-key').value;
+    if(!apiUrl) { addMsg('❌ 请先填写API接口地址', 'bot'); return; }
+    try {
+        let r = await fetch('/api/models/list-remote', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({api_url: apiUrl, api_key: apiKey})
+        });
+        let res = await r.json();
+        if(res.success && res.models && res.models.length) {
+            document.getElementById(kind+'-model-list').innerHTML =
+                res.models.map(id => `<option value="${id}">`).join('');
+            document.getElementById(kind+'-model-name').value = res.models[0];
+            addMsg(`📡 ${apiUrl} 发现 ${res.models.length} 个模型: ${res.models.slice(0,5).join(', ')}${res.models.length>5?' ...':''}`, 'bot');
+        } else {
+            addMsg('❌ 拉取模型列表失败: ' + (res.error || '端点上无模型'), 'bot');
+        }
+    } catch(e) { addMsg('❌ 拉取模型列表失败: ' + e.message, 'bot'); }
+}
+
+// 加载模型状态
+async function loadModelStatus() {
+    try {
+        let r = await fetch('/api/models');
+        let data = await r.json();
+        updateModelStatusUI(data);
+    } catch(e) {
+        console.error('加载模型状态失败:', e);
+    }
+}
+
+// 更新模型状态UI
+function updateModelStatusUI(data) {
+    let statusEl = document.getElementById('model-status-indicator');
+    let badgeEl = document.getElementById('current-model-badge');
+    let cardsEl = document.getElementById('model-status-cards');
+    
+    if(data.current_model) {
+        statusEl.textContent = '✓ ' + data.current_model.name;
+        statusEl.className = 'status';
+        badgeEl.textContent = data.current_model.name;
+        badgeEl.style.background = '#166534';
+        badgeEl.style.color = '#86efac';
+    } else {
+        statusEl.textContent = '❌ 无可用模型';
+        statusEl.className = 'status disconnected';
+        badgeEl.textContent = '未连接';
+        badgeEl.style.background = '#991b1b';
+        badgeEl.style.color = '#fca5a5';
+    }
+    
+    // 渲染模型卡片
+    if(data.models && data.models.length > 0) {
+        cardsEl.innerHTML = data.models.slice(0, 6).map(m => `
+            <div class="model-card">
+                <div class="name">${m.name}</div>
+                <div class="info">来源: ${m.source} | 评分: ${m.score}</div>
+                <div class="status online">可用</div>
+            </div>
+        `).join('');
+    }
+}
+
+// 打开模型配置
+function openModelConfig() {
+    document.getElementById('model-config-modal').classList.add('active');
+    // 填充当前配置
+    document.getElementById('cloud-api-url').value = modelConfig.cloud.api_url;
+    document.getElementById('cloud-api-key').value = modelConfig.cloud.api_key;
+    document.getElementById('cloud-model-name').value = modelConfig.cloud.model_id;
+    document.getElementById('cloud-quality-score').value = modelConfig.cloud.quality_score;
+    
+    document.getElementById('local-api-url').value = modelConfig.local.api_url;
+    document.getElementById('local-api-key').value = modelConfig.local.api_key;
+    document.getElementById('local-model-name').value = modelConfig.local.model_id;
+    document.getElementById('local-quality-score').value = modelConfig.local.quality_score;
+    
+    document.getElementById('model-timeout').value = modelConfig.timeout;
+    document.getElementById('model-retry').value = modelConfig.retry;
+}
+
+// 关闭模型配置
+function closeModelConfig() {
+    document.getElementById('model-config-modal').classList.remove('active');
+}
+
+// 保存模型配置
+async function saveModelConfig() {
+    let config = {
+        cloud: {
+            api_url: document.getElementById('cloud-api-url').value,
+            api_key: document.getElementById('cloud-api-key').value,
+            model_id: document.getElementById('cloud-model-name').value,
+            quality_score: parseInt(document.getElementById('cloud-quality-score').value)
+        },
+        local: {
+            api_url: document.getElementById('local-api-url').value,
+            api_key: document.getElementById('local-api-key').value,
+            model_id: document.getElementById('local-model-name').value,
+            quality_score: parseInt(document.getElementById('local-quality-score').value)
+        },
+        timeout: parseInt(document.getElementById('model-timeout').value),
+        retry: parseInt(document.getElementById('model-retry').value)
+    };
+    
+    try {
+        let r = await fetch('/api/models/config', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(config)
+        });
+        let result = await r.json();
+        if(result.success) {
+            addMsg('✅ 模型配置已保存，正在重新加载...', 'bot');
+            modelConfig = config;
+            closeModelConfig();
+            // 重新加载模型状态
+            setTimeout(loadModelStatus, 1000);
+        } else {
+            addMsg('❌ 保存失败: ' + (result.error || '未知错误'), 'bot');
+        }
+    } catch(e) {
+        addMsg('❌ 保存失败: ' + e.message, 'bot');
+    }
+}
+
+// 测试云端连接
+async function testCloudModel() {
+    let spinner = document.getElementById('cloud-test-spinner');
+    spinner.style.display = 'block';
+    
+    let apiUrl = document.getElementById('cloud-api-url').value;
+    let apiKey = document.getElementById('cloud-api-key').value;
+    let modelName = document.getElementById('cloud-model-name').value;
+    
+    try {
+        let r = await fetch('/api/models/test', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                provider: 'openai',
+                api_url: apiUrl,
+                api_key: apiKey,
+                model_id: modelName,
+                test_prompt: '你好，请回复OK'
+            })
+        });
+        let result = await r.json();
+        
+        if(result.success) {
+            addMsg('✅ 云端连接成功！响应: ' + result.response, 'bot');
+        } else {
+            addMsg('❌ 云端连接失败: ' + result.error, 'bot');
+        }
+    } catch(e) {
+        addMsg('❌ 测试失败: ' + e.message, 'bot');
+    } finally {
+        spinner.style.display = 'none';
+    }
+}
+
+// 测试本地连接
+async function testLocalModel() {
+    let spinner = document.getElementById('local-test-spinner');
+    spinner.style.display = 'block';
+    
+    let apiUrl = document.getElementById('local-api-url').value;
+    let apiKey = document.getElementById('local-api-key').value;
+    let modelName = document.getElementById('local-model-name').value;
+    
+    try {
+        let r = await fetch('/api/models/test', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                provider: 'openai',
+                api_url: apiUrl,
+                api_key: apiKey,
+                model_id: modelName,
+                test_prompt: '你好，请回复OK'
+            })
+        });
+        let result = await r.json();
+        
+        if(result.success) {
+            addMsg('✅ 本地连接成功！响应: ' + result.response, 'bot');
+        } else {
+            addMsg('❌ 本地连接失败: ' + result.error, 'bot');
+        }
+    } catch(e) {
+        addMsg('❌ 测试失败: ' + e.message, 'bot');
+    } finally {
+        spinner.style.display = 'none';
+    }
+}
+
+// 自动搜索可用模型
+async function testAllModels() {
+    let spinner = document.getElementById('all-test-spinner');
+    spinner.style.display = 'block';
+    
+    addMsg('🔍 正在搜索可用模型...', 'bot');
+    
+    try {
+        let r = await fetch('/api/models/discover', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        });
+        let result = await r.json();
+        
+        if(result.models && result.models.length > 0) {
+            let msg = `✅ 发现 ${result.models.length} 个可用模型:\n\n`;
+            result.models.forEach((m, i) => {
+                msg += `${i+1}. ${m.name} (${m.source}) - ${m.api_url}\n`;
+            });
+            msg += '\n已自动更新配置。';
+            addMsg(msg, 'bot');
+            
+            // 更新UI
+            loadModelStatus();
+        } else {
+            addMsg('❌ 未发现可用模型。请检查网络连接或手动配置。', 'bot');
+        }
+    } catch(e) {
+        addMsg('❌ 搜索失败: ' + e.message, 'bot');
+    } finally {
+        spinner.style.display = 'none';
+    }
+}
+</script>
+</body>
+</html>
