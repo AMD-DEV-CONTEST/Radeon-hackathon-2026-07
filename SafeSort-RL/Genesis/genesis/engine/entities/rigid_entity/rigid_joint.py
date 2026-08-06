@@ -1,0 +1,536 @@
+import numpy as np
+import quadrants as qd
+import torch
+
+import genesis as gs
+import genesis.utils.geom as gu
+from genesis.engine.entities.rigid_entity.rigid_link import RigidLink
+from genesis.utils import array_class
+from genesis.utils.misc import DeprecationError, tensor_to_array
+from genesis.repr_base import RBC
+
+
+class RigidJoint(RBC):
+    """
+    Joint class for rigid body entities. Each RigidLink is connected to its parent link via a RigidJoint.
+    """
+
+    def __init__(
+        self,
+        entity,
+        name,
+        idx,
+        link_idx,
+        q_start,
+        dof_start,
+        n_qs,
+        n_dofs,
+        type,
+        pos,
+        quat,
+        init_qpos,
+        sol_params,
+        dofs_motion_ang,
+        dofs_motion_vel,
+        dofs_limit,
+        dofs_invweight,
+        dofs_frictionloss,
+        dofs_stiffness,
+        dofs_damping,
+        dofs_armature,
+        dofs_act_gain,
+        dofs_act_bias,
+        dofs_force_range,
+    ):
+        self._name = name
+        self._entity = entity
+        self._solver = entity.solver
+
+        self._uid = gs.UID()
+        self._idx = idx
+        self._link_idx = link_idx
+        self._q_start = q_start
+        self._dof_start = dof_start
+        self._n_qs = n_qs
+        self._n_dofs = n_dofs
+        self._type = type
+        self._pos = pos
+        self._quat = quat
+        self._init_qpos = init_qpos
+        self._sol_params = sol_params
+
+        self._dofs_motion_ang = dofs_motion_ang
+        self._dofs_motion_vel = dofs_motion_vel
+        self._dofs_limit = dofs_limit
+        self._dofs_invweight = dofs_invweight
+        self._dofs_frictionloss = dofs_frictionloss
+        self._dofs_stiffness = dofs_stiffness
+        self._dofs_damping = dofs_damping
+        self._dofs_armature = dofs_armature
+        self._dofs_act_gain = dofs_act_gain
+        self._dofs_act_bias = dofs_act_bias
+        self._dofs_force_range = dofs_force_range
+
+    def __getattr__(self, name):
+        # Must be implemented to throw deprecation warnings when accessing old properties, ignoring introspection
+        for name_old, name_new in (
+            ("dof_idx", "dofs_idx"),
+            ("dof_idx_local", "dofs_idx_local"),
+            ("q_idx", "qs_idx"),
+            ("q_idx_local", "qs_idx_local"),
+        ):
+            if name == name_old:
+                gs.logger.warning(
+                    f"This property is deprecated and will be removed in future release. Please use '{name_new}' instead."
+                )
+                getter = getattr(self, f"_{name_old}")
+                return getter()
+        raise AttributeError
+
+    # ------------------------------------------------------------------------------------
+    # -------------------------------- real-time state -----------------------------------
+    # ------------------------------------------------------------------------------------
+
+    def get_pos(self):
+        """
+        Get the position of the joint in the world frame.
+        """
+        raise DeprecationError(
+            "This method has been removed. Please consider operating at link-level to get the cartesian position in "
+            "word frame. Alternatively, 'get_anchor_pos' returns the anchor position of the joint in the world frame."
+        )
+
+    def get_quat(self):
+        """
+        Get the quaternion of the joint in the world frame.
+        """
+        raise DeprecationError(
+            "This method has been removed. Please consider operating at link-level to get the cartesian orientation in "
+            "word frame. Alternatively, 'get_anchor_axis' returns the anchor axis of the joint in the world frame."
+        )
+
+    @gs.assert_built
+    def get_anchor_pos(self):
+        """
+        Get the anchor position of the joint in the world frame.
+
+        Mathematically, the anchor point corresponds to the point that is fixed wrt parent link and is coincident with
+        the joint for the neutral configuration qpos0. This means that this point moves under the effect of the
+        generalized coordinates corresponding to this joint (and all its ancestors in the kinematic tree). Physically,
+        the anchor point is the "output" of the joint transmission, on which the child body is welded.
+        """
+        tensor = torch.empty((self._solver._B, 3), dtype=gs.tc_float, device=gs.device)
+        _kernel_get_anchor_pos(self._idx, tensor, self._solver.dyn_state)
+        if self._solver.n_envs == 0:
+            tensor = tensor[0]
+        return tensor
+
+    @gs.assert_built
+    def get_anchor_axis(self):
+        """
+        Get the anchor axis of the joint in the world frame.
+
+        See `RigidJoint.get_anchor_pos` documentation for details about the notion on anchor point.
+        """
+        tensor = torch.empty((self._solver._B, 3), dtype=gs.tc_float, device=gs.device)
+        _kernel_get_anchor_axis(self._idx, tensor, self._solver.dyn_state)
+        if self._solver.n_envs == 0:
+            tensor = tensor[0]
+        return tensor
+
+    def set_sol_params(self, sol_params):
+        """
+        Set the solver parameters of this joint.
+        """
+        if self._solver.is_built:
+            self._solver.set_sol_params(sol_params, joints_idx=self._idx, envs_idx=None)
+        else:
+            self._sol_params = sol_params
+
+    @property
+    def sol_params(self):
+        """
+        Returns the solver parameters of the joint.
+        """
+        if self._solver.is_built:
+            return self._solver.get_sol_params(joints_idx=self._idx, envs_idx=None)[..., 0, :]
+        return self._sol_params
+
+    # ------------------------------------------------------------------------------------
+    # ----------------------------------- properties -------------------------------------
+    # ------------------------------------------------------------------------------------
+
+    @property
+    def uid(self):
+        """
+        Returns the unique id of the joint.
+        """
+        return self._uid
+
+    @property
+    def name(self):
+        """
+        Returns the name of the joint.
+        """
+        return self._name
+
+    @property
+    def entity(self):
+        """
+        Returns the entity that the joint belongs to.
+        """
+        return self._entity
+
+    @property
+    def solver(self):
+        """
+        The RigidSolver object that the joint belongs to.
+        """
+        return self._solver
+
+    @property
+    def link(self):
+        """
+        Returns the child link that of the joint.
+        """
+        return self._solver.links[self._link_idx]
+
+    @property
+    def idx(self):
+        """
+        Returns the global index of the joint in the rigid solver.
+        """
+        return self._idx
+
+    @property
+    def idx_local(self):
+        """
+        Returns the local index of the joint in the entity.
+        """
+        return self._idx - self._entity.joint_start
+
+    @property
+    def init_qpos(self):
+        """
+        Returns the initial joint position.
+        """
+        return self._init_qpos
+
+    @property
+    def n_qs(self):
+        """
+        Returns the number of `q` (generalized coordinate) variables that the joint has.
+        """
+        return self._n_qs
+
+    @property
+    def n_dofs(self):
+        """
+        Returns the number of dofs that the joint has.
+        """
+        return self._n_dofs
+
+    @property
+    def type(self):
+        """
+        Returns the type of the joint.
+        """
+        return self._type
+
+    @property
+    def pos(self):
+        """
+        Returns the initial position of the joint in the world frame.
+        """
+        return self._pos
+
+    @property
+    def quat(self):
+        """
+        Returns the initial quaternion of the joint in the world frame.
+        """
+        return self._quat
+
+    @property
+    def q_start(self):
+        """
+        Returns the starting index of the `q` variables of the joint in the rigid solver.
+        """
+        return self._q_start
+
+    @property
+    def dof_start(self):
+        """
+        Returns the starting index of the dofs of the joint in the rigid solver.
+        """
+        return self._dof_start
+
+    @property
+    def q_end(self):
+        """
+        Returns the ending index of the `q` variables of the joint in the rigid solver.
+        """
+        return self._n_qs + self.q_start
+
+    @property
+    def dof_end(self):
+        """
+        Returns the ending index of the dofs of the joint in the rigid solver.
+        """
+        return self._n_dofs + self.dof_start
+
+    def _dof_idx(self):
+        """
+        Returns all the Degrees' of Freedom (DoF) indices of the joint in the rigid solver.
+
+        This property either returns a list, an integer, or None depending on whether the joint has multiple DoFs, a
+        single one, or none, respectively.
+        """
+        if self.n_dofs == 1:
+            return self.dof_start
+        if self.n_dofs == 0:
+            return None
+        return self.dofs_idx
+
+    @property
+    def dofs_idx(self):
+        """
+        Returns all the Degrees' of Freedom (DoF) indices of the joint in the rigid solver as a sequence.
+        """
+        return list(range(self.dof_start, self.dof_end))
+
+    def _dof_idx_local(self):
+        """
+        Returns the local dof index of the joint in the entity.
+
+        This property either returns a list, an integer, or None depending on whether the joint has multiple DoFs, a
+        single one, or none, respectively.
+        """
+        if self.n_dofs == 1:
+            return self.dof_start - self._entity.dof_start
+        if self.n_dofs == 0:
+            return None
+        return self.dofs_idx_local
+
+    @property
+    def dofs_idx_local(self):
+        """
+        Returns the local Degrees of Freedom indices of the joint in the entity.
+        """
+        return list(range(self.dof_start - self._entity.dof_start, self.dof_end - self._entity.dof_start))
+
+    def _q_idx(self):
+        """
+        Returns all the position indices of the joint in the rigid solver.
+
+        This property either returns a list, an integer, or None depending on whether the joint has multiple position
+        indices, a single one, or none, respectively.
+        """
+        if self.n_qs == 1:
+            return self.q_start
+        elif self.n_qs == 0:
+            return None
+        else:
+            return self.qs_idx
+
+    @property
+    def qs_idx(self):
+        """
+        Returns all the position indices of the joint in the rigid solver.
+        """
+        return list(range(self.q_start, self.q_end))
+
+    def _q_idx_local(self):
+        """
+        Returns all the local `q` indices of the joint in the entity.
+        """
+        if self.n_qs == 1:
+            return self.q_start - self._entity.q_start
+        elif self.n_qs == 0:
+            return None
+        else:
+            return self.qs_idx_local
+
+    @property
+    def qs_idx_local(self):
+        """
+        Returns all the local `q` indices of the joint in the entity.
+        """
+        return list(range(self.q_start - self._entity.q_start, self.q_end - self._entity.q_start))
+
+    @property
+    def dofs_motion_ang(self):
+        return self._dofs_motion_ang
+
+    @property
+    def dofs_motion_vel(self):
+        return self._dofs_motion_vel
+
+    @property
+    def dofs_limit(self):
+        """
+        Returns the range limit of the dofs of the joint.
+        """
+        return self._dofs_limit
+
+    @property
+    def dofs_invweight(self):
+        """
+        Returns the invweight of the dofs of the joint.
+        """
+        return self._dofs_invweight
+
+    @property
+    def dofs_length(self):
+        """
+        Returns the characteristic length of each dof, used to put dof velocities on a common linear (m/s) scale.
+        Shape is (n_dofs,), or (n_dofs, n_envs) for a heterogeneous entity whose variants differ per environment.
+
+        A translational dof has length 1, so its velocity is already a linear speed. A rotational dof has the swept
+        radius of the body as its length, so that multiplying it by an angular velocity gives the linear surface speed
+        that rotation produces; this makes a single velocity tolerance meaningful across mixed dofs (e.g. for
+        hibernation). By default the radius is per-axis: the largest perpendicular distance from that dof's own
+        rotation axis (through the joint anchor) to the geometry. With MuJoCo compatibility it is instead MuJoCo's
+        dof_length: a single bounding-sphere radius about the body COM, shared by every rotational dof. For a
+        heterogeneous entity each variant's geoms are active in their own environments, so the radius is per env.
+        """
+        n_dofs = self.n_dofs
+        enable_heterogeneous = self._solver._enable_heterogeneous
+        n_envs = self._solver._B
+        shape = (n_dofs, n_envs) if enable_heterogeneous else (n_dofs,)
+        lengths = np.ones(shape, dtype=gs.np_float)
+        if n_dofs == 0:
+            return lengths
+
+        # A kinematic/avatar link has no collision geometry to size against.
+        if not isinstance(self.link, RigidLink):
+            return lengths
+
+        geoms = self.link.geoms
+        if not geoms:
+            return lengths
+
+        # Reduce a per-geom radius to the body radius: one value, or one per env (maxing over the geoms active in each
+        # env, which for a heterogeneous entity are only its own variant's).
+        masks = [None if geom.active_envs_mask is None else tensor_to_array(geom.active_envs_mask) for geom in geoms]
+
+        def body_radius(per_geom_radius):
+            if not enable_heterogeneous:
+                return max(per_geom_radius)
+            radius = np.zeros(n_envs, dtype=gs.np_float)
+            for value, mask in zip(per_geom_radius, masks):
+                if mask is None:
+                    radius = np.maximum(radius, value)
+                else:
+                    radius[mask] = np.maximum(radius[mask], value)
+            return radius
+
+        if self._solver._enable_mujoco_compatibility:
+            # MuJoCo's dof_length: one body radius shared by every rotational dof, the largest geom bounding radius
+            # plus its COM-to-geom-origin distance.
+            com = self.link.inertial_pos
+            radii = [
+                np.linalg.norm(geom.init_verts, axis=1).max() + np.linalg.norm(com - geom.init_pos) for geom in geoms
+            ]
+            radius = body_radius(radii)
+            for i_d in range(n_dofs):
+                if np.linalg.norm(self._dofs_motion_ang[i_d]) >= gs.EPS:  # rotational dof
+                    lengths[i_d] = radius
+        else:
+            # Per rotational dof, the largest perpendicular distance from its rotation axis (through the joint anchor)
+            # to the geometry. Tighter than one shared sphere, and correct for an offset hinge (where the body rotates
+            # about one end rather than its COM).
+            anchor = self.pos
+            verts = [
+                gu.transform_by_trans_quat(geom.init_verts, geom.init_pos, geom.init_quat) - anchor for geom in geoms
+            ]
+            for i_d in range(n_dofs):
+                axis = self._dofs_motion_ang[i_d]
+                axis_norm = np.linalg.norm(axis)
+                if axis_norm < gs.EPS:
+                    continue  # translational dof, length stays 1
+                axis = axis / axis_norm
+                perp = [np.linalg.norm(v - np.outer(v @ axis, axis), axis=1).max() for v in verts]
+                lengths[i_d] = body_radius(perp)
+        return lengths
+
+    @property
+    def dofs_frictionloss(self):
+        """
+        Returns the frictionloss of the dofs of the joint.
+        """
+        return self._dofs_frictionloss
+
+    @property
+    def dofs_stiffness(self):
+        """
+        Returns the stiffness of the dofs of the joint.
+        """
+        return self._dofs_stiffness
+
+    @property
+    def dofs_damping(self):
+        """
+        Returns the damping of the dofs of the joint.
+        """
+        return self._dofs_damping
+
+    @property
+    def dofs_armature(self):
+        """
+        Returns the armature of the dofs of the joint.
+        """
+        return self._dofs_armature
+
+    @property
+    def dofs_act_gain(self):
+        """
+        Returns the actuator gain of the dofs of the joint.
+        """
+        return self._dofs_act_gain
+
+    @property
+    def dofs_act_bias(self):
+        """
+        Returns the actuator bias [constant, pos_coeff, vel_coeff] of the dofs of the joint.
+        """
+        return self._dofs_act_bias
+
+    @property
+    def dofs_force_range(self):
+        """
+        Returns the force range of the dofs of the joint.
+        """
+        return self._dofs_force_range
+
+    @property
+    def is_built(self):
+        """
+        Returns whether the entity the joint belongs to is built.
+        """
+        return self.entity.is_built
+
+    # ------------------------------------------------------------------------------------
+    # -------------------------------------- repr ----------------------------------------
+    # ------------------------------------------------------------------------------------
+
+    def _repr_brief(self):
+        return f"{(self.__repr_name__())}: {self._uid}, name: '{self._name}', idx: {self._idx}, type: {self._type}"
+
+
+@qd.kernel
+def _kernel_get_anchor_pos(joint_idx: qd.i32, tensor: qd.types.ndarray(), dyn_state: array_class.DynState):
+    _B = dyn_state.joints.xanchor.shape[1]
+    for i_b in range(_B):
+        xpos = dyn_state.joints.xanchor[joint_idx, i_b]
+        for i in qd.static(range(3)):
+            tensor[i_b, i] = xpos[i]
+
+
+@qd.kernel
+def _kernel_get_anchor_axis(joint_idx: qd.i32, tensor: qd.types.ndarray(), dyn_state: array_class.DynState):
+    _B = dyn_state.joints.xaxis.shape[1]
+    for i_b in range(_B):
+        xaxis = dyn_state.joints.xaxis[joint_idx, i_b]
+        for i in qd.static(range(3)):
+            tensor[i_b, i] = xaxis[i]
