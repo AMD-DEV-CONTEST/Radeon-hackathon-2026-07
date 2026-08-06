@@ -1,5 +1,14 @@
 # Radeon-hackathon-2026-07
 
+## Submitted Project
+
+- Track: Track 3 Physical AI
+- Team: cybertronic
+- GitHub ID: cybertronic23
+- Project path: `submissions/track3-cybertronic-franka-genesis-study`
+- Demo video (YouTube): <https://youtu.be/97QB_RQYRvQ>
+- Demo video (Bilibili): <https://www.bilibili.com/video/BV1fKuJ6GEgE/>
+
 ## how to apply and use AMD Radeon GPU
 see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
 
