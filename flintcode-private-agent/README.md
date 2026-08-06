@@ -42,18 +42,12 @@ FlintCode-Private-Agent/
 
 ## Model & Inference Configuration
 
-To achieve the optimal balance of speed, privacy, and massive context reasoning, FlintCode employs a hybrid AMD infrastructure approach using Qwen models:
+To achieve the optimal balance of speed, privacy, and massive context reasoning, FlintCode employs a hybrid AMD infrastructure approach using the Qwen model series. The specific configurations are detailed below:
 
-1. **Local Private Deployment (AMD ROCm)**
-   - **Hardware**: AMD Radeon RX 7900 XTX (Native ROCm environment)
-   - **Model**: Qwen (e.g., Qwen2.5) 
-   - **Inference Engine**: vLLM with ROCm optimization
-   - **Capabilities**: Configured to process a massive **256K context window** locally. Utilizes ROCm's PagedAttention and KV Cache optimizations to autonomously generate the 80-object complex system without memory fragmentation.
-
-2. **Cloud Service (AMD Token Factory)**
-   - **Platform**: AMD Token Factory
-   - **Model**: Qwen Series
-   - **Capabilities**: Leveraged for high-speed, concurrent API-based reasoning tasks, seamlessly bridging the local agent loop with AMD's robust cloud infrastructure for auxiliary operations.
+| Environment | Inference Engine | Hardware | Model | Endpoint | Context Window | Key Parameters / Optimizations |
+| --- | --- | --- | --- | --- | --- | --- |
+| **Local Private Deployment** | vLLM (ROCm optimized) | AMD Radeon RX 7900 XTX | Qwen2.5-72B-Instruct | `http://localhost:8000/v1` | 256K | `max_model_len=262144`<br>`gpu_memory_utilization=0.95`<br>ROCm PagedAttention & KV Cache |
+| **Cloud Service (AMD Token Factory)** | AMD Token Factory API | Cloud / Serverless | Qwen-Max / Qwen-Plus | `https://api.amd.tokenfactory.com/v1` | 128K / 32K | `temperature=0.2`<br>`top_p=0.9`<br>High-speed concurrent planning |
 
 ## Dependencies
 - **TeaQL**: The foundational schema language and compiler used for generating the underlying Rust microservices.
