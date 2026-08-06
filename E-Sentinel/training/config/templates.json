@@ -1,0 +1,750 @@
+{
+  "version": "training-templates-v1.1",
+  "note": "场景模板矩阵（程序化生成候选）。合规/违规判定严格按 docs/evals/annotation-guideline.md：客户行发言不作为违规证据；防误报反例（§8）作为 low/medium 负样本；风险合并按 §7。不含任何真实 PII。",
+  "templates": [
+    {
+      "seed": "ts-01",
+      "scene": "退款请求",
+      "platform": "tmall",
+      "customer": {
+        "lines": [
+          "客户：我不想要了，帮我退款吧。",
+          "客户：我申请退款好几天了，怎么还没动静？",
+          "客户：东西我不满意，要求退款。",
+          "客户：订单我不要了，现在就要退钱。"
+        ]
+      },
+      "behaviors": {
+        "low": {
+          "lines": [
+            "客服：您好，收到您的退款申请，已为您登记，退款将在1-3个工作日内原路退回，请耐心等待。",
+            "客服：您好，退款已受理，预计2个工作日内到账，款项原路返回，请注意查收。",
+            "客服：您好，您的退款申请已提交，系统会在24小时内审核，通过后原路退回。"
+          ]
+        },
+        "medium": {
+          "lines": [
+            "客服：退款申请我们看到了，等着就行。",
+            "客服：已经登记了，你留意一下。",
+            "客服：退钱的事我们会上报，具体时间不清楚。"
+          ]
+        },
+        "high": {
+          "lines": [
+            "客服：退什么退，买的时候怎么不想清楚，怪谁？",
+            "客服：退款这事不归我管，你自己联系平台去。",
+            "客服：买了又退，你当我们这是什么，闹着玩呢？"
+          ]
+        },
+        "critical": {
+          "lines": [
+            "客服：要退款？先把你银行卡号和验证码发过来，我帮你操作。",
+            "客服：不发验证码就退不了款，你自己看着办。",
+            "客服：把密码发给我，不然没法给你办退款。"
+          ]
+        }
+      },
+      "labels": {
+        "low": { "risk_level": "low" },
+        "medium": { "risk_level": "medium" },
+        "high": { "risk_level": "high" },
+        "critical": { "risk_level": "critical" }
+      },
+      "violations": {
+        "medium": [ { "category": "service_attitude", "rule": "禁止推诿敷衍", "severity": "major" } ],
+        "high": [ { "category": "service_attitude", "rule": "禁止贬低讽刺/推诿敷衍", "severity": "major" } ],
+        "critical": [ { "category": "compliance_privacy", "rule": "严禁索要验证码/完整银行卡/密码", "severity": "critical" } ]
+      }
+    },
+
+    {
+      "seed": "ts-02",
+      "scene": "物流延迟查询",
+      "platform": "jd",
+      "customer": {
+        "lines": [
+          "客户：我的快递都一周了还没到，什么情况？",
+          "客户：物流卡了好几天了，能帮我查查吗？",
+          "客户：发货到现在一直没更新物流，急死我了。",
+          "客户：订单显示签收了，但我根本没收到货。"
+        ]
+      },
+      "behaviors": {
+        "low": {
+          "lines": [
+            "客服：您好，已为您核实物流单号，包裹目前在运输途中，预计3个工作日内送达，我会帮您跟进。",
+            "客服：您好，您的包裹已中转发出，预计2-3天到货，如超时未到可随时联系我。",
+            "客服：您好，已帮您查询，显示正在派送中，预计今天或明天送达，请保持电话畅通。"
+          ]
+        },
+        "medium": {
+          "lines": [
+            "客服：物流我们查不了，你再等等吧。",
+            "客服：这种问题一般要等，急不来。",
+            "客服：快递的事情催了也没用，你耐心等着。"
+          ]
+        },
+        "high": {
+          "lines": [
+            "客服：找不到就不找了，要不这单就算了，你自己找快递公司吧。",
+            "客服：我可管不了物流，丢了你找快递去。",
+            "客服：物流不归我们管，你爱等不等。"
+          ]
+        },
+        "critical": {
+          "lines": [
+            "客服：再催我就拉黑你，以后别想在这买东西了。",
+            "客服：敢投诉就去投诉，你这种人见多了。",
+            "客服：信不信我让你的包裹永远到不了？"
+          ]
+        }
+      },
+      "labels": {
+        "low": { "risk_level": "low" },
+        "medium": { "risk_level": "medium" },
+        "high": { "risk_level": "high" },
+        "critical": { "risk_level": "critical" }
+      },
+      "violations": {
+        "medium": [ { "category": "efficiency", "rule": "需告知预计处理时间", "severity": "major" } ],
+        "high": [ { "category": "service_attitude", "rule": "禁止消极应付/放弃", "severity": "major" } ],
+        "critical": [ { "category": "service_attitude", "rule": "禁止辱骂/威胁客户", "severity": "critical" } ]
+      }
+    },
+
+    {
+      "seed": "ts-03",
+      "scene": "质量问题（假货/破损）",
+      "platform": "tmall",
+      "customer": {
+        "lines": [
+          "客户：我收到的相机像是假的，怎么证明是正品？",
+          "客户：东西收到就碎了，这质量也太差了。",
+          "客户：你们这不会是翻新机吧？",
+          "客户：明显是二手货，你们卖翻新的。"
+        ]
+      },
+      "behaviors": {
+        "low": {
+          "lines": [
+            "客服：您好，为您提供官方渠道验证，序列号可到官网查询真伪；破损问题请拍照反馈，我们安排检测处理。",
+            "客服：您好，已为您登记验货申请，质检后如属质量问题会按售后标准处理。",
+            "客服：您好，请提供产品照片和序列号，我们会为您核实并给出处理方案。"
+          ]
+        },
+        "medium": {
+          "lines": [
+            "客服：不可能假货，你多心了吧，先用着。",
+            "客服：碎了拍照发我们，排队处理。",
+            "客服：我们卖的都是正品，你觉得有问题我们也没办法。"
+          ]
+        },
+        "high": {
+          "lines": [
+            "客服：正品绝对没问题，不用验，你爱信不信。",
+            "客服：这是我们产品，没问题，你反映的情况我们不认可。",
+            "客服：是不是你自己弄坏的，别什么都赖我们。"
+          ]
+        },
+        "critical": {
+          "lines": [
+            "客服：保证是正品，不是的话我全额退款加赔偿，绝对没毛病。",
+            "客服：100%原装正品，假一赔十，放心买。",
+            "客服：坏了包赔，多少钱都赔，绝对负责到底。"
+          ]
+        }
+      },
+      "labels": {
+        "low": { "risk_level": "low" },
+        "medium": { "risk_level": "medium" },
+        "high": { "risk_level": "high" },
+        "critical": { "risk_level": "critical" }
+      },
+      "violations": {
+        "medium": [ { "category": "problem_solving", "rule": "未按流程核实即下结论", "severity": "major" } ],
+        "high": [ { "category": "professionalism", "rule": "未核实产品信息即断言且拒不核实", "severity": "major" } ],
+        "critical": [ { "category": "professionalism", "rule": "禁止虚假承诺/承诺无法兑现", "severity": "critical" } ]
+      }
+    },
+
+    {
+      "seed": "ts-04",
+      "scene": "投诉 12315",
+      "platform": "tmall",
+      "customer": {
+        "lines": [
+          "客户：再这样我就打12315投诉你们！",
+          "客户：我要去消费者协会举报。",
+          "客户：不给解决我就曝光到媒体上。",
+          "客户：我已经把你们投诉到市场监督管理局了。"
+        ]
+      },
+      "behaviors": {
+        "low": {
+          "lines": [
+            "客服：您好，非常抱歉给您带来不便，已为您登记并安排专员处理，1个工作日内给您答复。",
+            "客服：您好，您的诉求我已记录并升级到专员，会尽快给您反馈处理结果。",
+            "客服：您好，您反映的问题已转交专人核实，处理进度会及时同步给您。"
+          ]
+        },
+        "medium": {
+          "lines": [
+            "客服：打12315也行，反正流程一样。",
+            "客服：投诉可以，你提交了我们会收到。",
+            "客服：走投诉流程也行，就是慢一点。"
+          ]
+        },
+        "high": {
+          "lines": [
+            "客服：你爱投诉就投诉，跟我们没关系。",
+            "客服：12315也拿我们没办法，你自己去。",
+            "客服：投诉也没用，这个店不归我们管。"
+          ]
+        },
+        "critical": {
+          "lines": [
+            "客服：你去投诉试试，信不信我让人封了你的号。",
+            "客服：敢曝光我骂死你，你等着。",
+            "客服：再投诉我就把你拉黑，还要投诉你。"
+          ]
+        }
+      },
+      "labels": {
+        "low": { "risk_level": "medium" },
+        "medium": { "risk_level": "medium" },
+        "high": { "risk_level": "high" },
+        "critical": { "risk_level": "critical" }
+      },
+      "violations": {
+        "medium": [ { "category": "problem_solving", "rule": "拒绝受理投诉/拒绝转接升级", "severity": "major" } ],
+        "high": [ { "category": "problem_solving", "rule": "拒绝受理投诉/拒绝转接升级", "severity": "major" } ],
+        "critical": [ { "category": "service_attitude", "rule": "禁止辱骂/威胁客户", "severity": "critical" } ]
+      }
+    },
+
+    {
+      "seed": "ts-05",
+      "scene": "产品参数咨询",
+      "platform": "tmall",
+      "customer": {
+        "lines": [
+          "客户：这款手机内存多大？支不支持5G？",
+          "客户：这款的电池容量是多少，续航多久？",
+          "客户：这个相机防水等级是多少？",
+          "客户：这款电视的分辨率是几K的？"
+        ]
+      },
+      "behaviors": {
+        "low": {
+          "lines": [
+            "客服：您好，请稍等，我为您核实一下参数后答复。",
+            "客服：您好，我查一下官方参数再回复您，请稍等。",
+            "客服：您好，已为您确认，这款支持5G，具体参数以官方页面为准。"
+          ]
+        },
+        "medium": {
+          "lines": [
+            "客服：大概8G吧，记不太清了。",
+            "客服：应该支持，你看下详情页。",
+            "客服：参数我记不牢，你自己查吧。"
+          ]
+        },
+        "high": {
+          "lines": [
+            "客服：8GB内存，绝对支持5G，不用查，我还能骗你？",
+            "客服：电池5000毫安，大电池，肯定没问题，别问了。",
+            "客服：分辨率4K，放心，我们产品参数我还能不知道？"
+          ]
+        },
+        "critical": {
+          "lines": [
+            "客服：这款是全球最顶级配置，100%领先同行，放心买。",
+            "客服：全网最强性价比，没有任何对手，绝对顶级。",
+            "客服：这是史上最强性能，全世界最好，没有之一。"
+          ]
+        }
+      },
+      "labels": {
+        "low": { "risk_level": "low" },
+        "medium": { "risk_level": "medium" },
+        "high": { "risk_level": "high" },
+        "critical": { "risk_level": "critical" }
+      },
+      "violations": {
+        "medium": [ { "category": "professionalism", "rule": "未核实产品信息即断言", "severity": "major" } ],
+        "high": [ { "category": "professionalism", "rule": "未核实产品信息即断言且拒不核实", "severity": "major" } ],
+        "critical": [ { "category": "compliance_privacy", "rule": "禁止绝对化宣传（广告法）", "severity": "critical" } ]
+      }
+    },
+
+    {
+      "seed": "ts-06",
+      "scene": "隐私与验证码（防误报核心）",
+      "platform": "tmall",
+      "customer": {
+        "lines": [
+          "客户：刚才收到条短信说要验证码，你们要吗？",
+          "客户：客服让我发银行卡号和验证码，是你们官方吗？",
+          "客户：有个链接让我输密码，是你们的活动吗？"
+        ]
+      },
+      "behaviors": {
+        "low": {
+          "lines": [
+            "客服：您好，请务必不要把验证码、银行卡号发给任何人，包括自称客服的人，我们不会索要这些信息。",
+            "客服：您好，官方客服绝不会索要您的验证码或密码，请勿向任何来电或短信提供。",
+            "客服：您好，那是诈骗短信，请不要点击任何链接，也不要提供任何验证码，我们只通过官方渠道联系您。"
+          ]
+        },
+        "critical": {
+          "lines": [
+            "客服：对，把你收到的验证码发我，我这边核验一下。",
+            "客服：把银行卡号发过来，我帮你登记退款。",
+            "客服：你点开链接输下密码，我帮你绑定优惠。"
+          ]
+        }
+      },
+      "labels": {
+        "low": { "risk_level": "low" },
+        "critical": { "risk_level": "critical" }
+      },
+      "violations": {
+        "critical": [ { "category": "compliance_privacy", "rule": "严禁索要验证码/完整银行卡/密码", "severity": "critical" } ]
+      }
+    },
+
+    {
+      "seed": "ts-07",
+      "scene": "价格承诺",
+      "platform": "tmall",
+      "customer": {
+        "lines": [
+          "客户：这个价格还有优惠吗？",
+          "客户：双十一会降价吗？不会更便宜吧？",
+          "客户：你们这是全网最低价吗？",
+          "客户：别家都比你便宜，你降不降价？"
+        ]
+      },
+      "behaviors": {
+        "low": {
+          "lines": [
+            "客服：您好，当前价格已是最优，大促活动以页面公告为准，您可以关注我们的活动页。",
+            "客服：您好，目前价格优惠以活动页面为准，如需优惠券我可以帮您查询。",
+            "客服：您好，促销政策请以官方活动页说明为准，我无法承诺后续价格。"
+          ]
+        },
+        "medium": {
+          "lines": [
+            "客服：放心吧，基本不会降价，降了也肯定能退差价。",
+            "客服：这个价很稳的，不会波动。",
+            "客服：现在买肯定划算，你相信我。"
+          ]
+        },
+        "high": {
+          "lines": [
+            "客服：全网最低价，没有比我们更便宜的，绝对是全国最低。",
+            "客服：国家级品质，全国最低价，错过就没了。",
+            "客服：这个价格全网独一无二，保证最便宜。"
+          ]
+        }
+      },
+      "labels": {
+        "low": { "risk_level": "low" },
+        "medium": { "risk_level": "medium" },
+        "high": { "risk_level": "critical" }
+      },
+      "violations": {
+        "medium": [ { "category": "professionalism", "rule": "禁止隐含式承诺", "severity": "major" } ],
+        "high": [ { "category": "compliance_privacy", "rule": "禁止绝对化宣传（广告法）", "severity": "critical" } ]
+      }
+    },
+
+    {
+      "seed": "ts-08",
+      "scene": "售后维修",
+      "platform": "jd",
+      "customer": {
+        "lines": [
+          "客户：相机坏了能修吗？维修要多久？",
+          "客户：我的耳机进水了，能返厂修吗？",
+          "客户：这个刚过保就坏了，你们管不管？",
+          "客户：屏幕碎了，保修期内能免费修吗？"
+        ]
+      },
+      "behaviors": {
+        "low": {
+          "lines": [
+            "客服：您好，已为您登记维修，检测后1个工作日内给出维修方案和费用说明。",
+            "客服：您好，您的情况我已提交售后，返厂检测后与您确认处理方式。",
+            "客服：您好，请提供订单号，我帮您查询保修状态并安排售后。"
+          ]
+        },
+        "medium": {
+          "lines": [
+            "客服：维修要收钱的，你考虑下。",
+            "客服：过保了修不了，就这样吧。",
+            "客服：维修得等很久，你愿意等就等。"
+          ]
+        },
+        "high": {
+          "lines": [
+            "客服：处理不了，你没办法，别在我们这耗着。",
+            "客服：不关我们的事，你自己想办法修。",
+            "客服：这个不归我们售后管，你找别人。"
+          ]
+        },
+        "critical": {
+          "lines": [
+            "客服：想快点修好？给我转200红包，加急处理。",
+            "客服：加50块加快递费，我私下帮你插队安排。",
+            "客服：多转100，我直接给你换台新的，别声张。"
+          ]
+        }
+      },
+      "labels": {
+        "low": { "risk_level": "low" },
+        "medium": { "risk_level": "medium" },
+        "high": { "risk_level": "high" },
+        "critical": { "risk_level": "critical" }
+      },
+      "violations": {
+        "medium": [ { "category": "problem_solving", "rule": "未提供解决方案", "severity": "major" } ],
+        "high": [ { "category": "problem_solving", "rule": "拒绝受理投诉/拒绝转接升级", "severity": "major" } ],
+        "critical": [ { "category": "compliance_privacy", "rule": "严禁索要好处费/私下交易", "severity": "critical" } ]
+      }
+    },
+
+    {
+      "seed": "ts-09",
+      "scene": "客户情绪激烈（防误报）",
+      "platform": "tmall",
+      "customer": {
+        "lines": [
+          "客户：气死我了，你们这破店！",
+          "客户：急死人了，等了这么久什么消息都没有！",
+          "客户：你这是什么态度！我要投诉！",
+          "客户：你们一群骗子！"
+        ]
+      },
+      "behaviors": {
+        "low": {
+          "lines": [
+            "客服：非常抱歉给您带来不好的体验，我理解您着急的心情，马上为您核实处理。",
+            "客服：我理解您的心情，很抱歉让您久等了，这就为您跟进，有结果第一时间通知您。",
+            "客服：很抱歉让您有这样的感受，我们会尽快帮您解决，请您先别着急。"
+          ]
+        },
+        "high": {
+          "lines": [
+            "客服：您脾气这么大干嘛，又不是我的问题，别冲我发火。",
+            "客服：你急我也急，谁让你自己催得这么紧。",
+            "客服：你自己先冷静一下再说，别上来就骂人。"
+          ]
+        },
+        "critical": {
+          "lines": [
+            "客服：你爱叫叫去，泼妇一样，垃圾客户。",
+            "客服：骂谁呢，你才破店，滚！",
+            "客服：一群骗子？我看你才是骗子，穷鬼。"
+          ]
+        }
+      },
+      "labels": {
+        "low": { "risk_level": "low" },
+        "high": { "risk_level": "high" },
+        "critical": { "risk_level": "critical" }
+      },
+      "violations": {
+        "high": [ { "category": "service_attitude", "rule": "禁止与客户争执", "severity": "major" } ],
+        "critical": [ { "category": "service_attitude", "rule": "禁止辱骂/威胁客户", "severity": "critical" } ]
+      }
+    },
+
+    {
+      "seed": "ts-10",
+      "scene": "信息不足（abstain）",
+      "platform": "tmall",
+      "customer": {
+        "lines": [
+          "客户：我的订单呢？",
+          "客户：在吗？我有个问题想咨询。",
+          "客户：你们怎么处理这种问题？"
+        ]
+      },
+      "behaviors": {
+        "abstain": {
+          "lines": [
+            "客服：（无回复）",
+            "客服：您好？"
+          ]
+        }
+      },
+      "labels": {
+        "abstain": { "needs_human_review": true }
+      },
+      "violations": {}
+    },
+
+    {
+      "seed": "ts-11",
+      "scene": "发票需求",
+      "platform": "tmall",
+      "customer": {
+        "lines": [
+          "客户：可以开增值税发票吗？",
+          "客户：发票抬头怎么填？",
+          "客户：能给我补开发票吗？"
+        ]
+      },
+      "behaviors": {
+        "low": {
+          "lines": [
+            "客服：您好，可以开具电子发票，请在订单页面填写抬头信息，开票后1-3个工作日推送至邮箱。",
+            "客服：您好，增值税发票支持开具，请提供抬头和税号，我们为您提交开票申请。"
+          ]
+        },
+        "medium": {
+          "lines": [
+            "客服：发票的事不归我管，你自己在订单里找。",
+            "客服：开票要收手续费，你看下。"
+          ]
+        },
+        "high": {
+          "lines": [
+            "客服：发票开不了，就这样吧，我们一般不提供。",
+            "客服：要发票去别家买，我们这没有。"
+          ]
+        },
+        "critical": {
+          "lines": [
+            "客服：开发票可以，先给我转50手续费，走个人账户。",
+            "客服：要专票？给我发个红包，我给你想办法。"
+          ]
+        }
+      },
+      "labels": {
+        "low": { "risk_level": "low" },
+        "medium": { "risk_level": "medium" },
+        "high": { "risk_level": "high" },
+        "critical": { "risk_level": "critical" }
+      },
+      "violations": {
+        "medium": [ { "category": "problem_solving", "rule": "未提供解决方案", "severity": "major" } ],
+        "high": [ { "category": "problem_solving", "rule": "拒绝受理投诉/拒绝转接升级", "severity": "major" } ],
+        "critical": [ { "category": "compliance_privacy", "rule": "严禁索要好处费/私下交易", "severity": "critical" } ]
+      }
+    },
+
+    {
+      "seed": "ts-12",
+      "scene": "账号安全验证",
+      "platform": "tmall",
+      "customer": {
+        "lines": [
+          "客户：我的账号好像被盗了，能帮我看看吗？",
+          "客户：为什么我登录不了，要我改密码？",
+          "客户：有人动我账号，快帮我处理！"
+        ]
+      },
+      "behaviors": {
+        "low": {
+          "lines": [
+            "客服：您好，请通过官方渠道验证身份后，我们会协助您冻结账号并重置密码，切勿在非官方页面输入密码。",
+            "客服：您好，为了保护您的账号安全，请先通过实名验证，我们会为您锁定异常登录。",
+            "客服：您好，请立即修改密码并开启二次验证，我们已为您标记该账号为风险状态。"
+          ]
+        },
+        "critical": {
+          "lines": [
+            "客服：把你的登录密码发我，我帮你看看是不是被盗了。",
+            "客服：把验证码发过来，我登录你的账号查一下。",
+            "客服：把你手机收到的验证码给我，不然处理不了。"
+          ]
+        }
+      },
+      "labels": {
+        "low": { "risk_level": "low" },
+        "critical": { "risk_level": "critical" }
+      },
+      "violations": {
+        "critical": [ { "category": "compliance_privacy", "rule": "严禁索要验证码/完整银行卡/密码", "severity": "critical" } ]
+      }
+    },
+
+    {
+      "seed": "ts-13",
+      "scene": "优惠券",
+      "platform": "tmall",
+      "customer": {
+        "lines": [
+          "客户：我领的券怎么用不了？",
+          "客户：优惠券过期了能补吗？",
+          "客户：下单时券没抵扣，怎么回事？"
+        ]
+      },
+      "behaviors": {
+        "low": {
+          "lines": [
+            "客服：您好，已为您核实，该券需满足使用条件，具体规则见券面说明，如仍有问题我帮您提交处理。",
+            "客服：您好，券未抵扣可能是未满足满减条件，请确认订单金额，我也可以帮您查询券状态。"
+          ]
+        },
+        "medium": {
+          "lines": [
+            "客服：券用不了就换一个，规则就这样。",
+            "客服：过期了没办法，再领一个吧。"
+          ]
+        },
+        "high": {
+          "lines": [
+            "客服：放心，我保证给你补一张无门槛券，绝对能用。",
+            "客服：肯定给你补偿一张大额券，比原来的更好，你放心。"
+          ]
+        }
+      },
+      "labels": {
+        "low": { "risk_level": "low" },
+        "medium": { "risk_level": "medium" },
+        "high": { "risk_level": "high" }
+      },
+      "violations": {
+        "medium": [ { "category": "problem_solving", "rule": "未提供解决方案", "severity": "major" } ],
+        "high": [ { "category": "professionalism", "rule": "禁止虚假承诺/承诺无法兑现", "severity": "major" } ]
+      }
+    },
+
+    {
+      "seed": "ts-14",
+      "scene": "配送范围",
+      "platform": "jd",
+      "customer": {
+        "lines": [
+          "客户：偏远地区能配送吗？",
+          "客户：我这边县城能送货上门吗？",
+          "客户：新疆这边发不发货？"
+        ]
+      },
+      "behaviors": {
+        "low": {
+          "lines": [
+            "客服：您好，请提供您的收货地址，我帮您确认配送范围，偏远地区可能有配送时间延长。",
+            "客服：您好，新疆地区可以配送，时效会比一线城市慢2-3天，运费以结算页面为准。"
+          ]
+        },
+        "medium": {
+          "lines": [
+            "客服：偏远地区配送慢，你考虑下。",
+            "客服：这个地区发不发我也说不准。"
+          ]
+        },
+        "high": {
+          "lines": [
+            "客服：新疆不发货，买不了别处买去。",
+            "客服：你们那太偏了，不配送，没办法。"
+          ]
+        },
+        "critical": {
+          "lines": [
+            "客服：再问一遍不配送，你是不是听不懂人话？",
+            "客服：不买就拉倒，穷地方事真多。"
+          ]
+        }
+      },
+      "labels": {
+        "low": { "risk_level": "low" },
+        "medium": { "risk_level": "medium" },
+        "high": { "risk_level": "high" },
+        "critical": { "risk_level": "critical" }
+      },
+      "violations": {
+        "medium": [ { "category": "problem_solving", "rule": "未提供解决方案", "severity": "major" } ],
+        "high": [ { "category": "problem_solving", "rule": "拒绝受理投诉/拒绝转接升级", "severity": "major" } ],
+        "critical": [ { "category": "service_attitude", "rule": "禁止辱骂/威胁客户", "severity": "critical" } ]
+      }
+    },
+
+    {
+      "seed": "ts-15",
+      "scene": "评价与中差评",
+      "platform": "tmall",
+      "customer": {
+        "lines": [
+          "客户：我给了差评，能帮我改吗？",
+          "客户：删除评价需要什么条件？",
+          "客户：给中评影响你们吗？"
+        ]
+      },
+      "behaviors": {
+        "low": {
+          "lines": [
+            "客服：您好，评价是您的权利，我们尊重评价内容；如因售后问题评价，我们可先协助解决后再看您的意愿。",
+            "客服：您好，评价内容无法由商家单方面修改，如您对商品或服务有疑问，我们可为您优先处理。"
+          ]
+        },
+        "medium": {
+          "lines": [
+            "客服：差评会被扣分，你方便改一下吗？",
+            "客服：评价改不改都行，反正影响不大。"
+          ]
+        },
+        "high": {
+          "lines": [
+            "客服：你把差评删了，我给你返20块红包。",
+            "客服：改好评，私下退你一半钱，别让平台知道。"
+          ]
+        }
+      },
+      "labels": {
+        "low": { "risk_level": "low" },
+        "medium": { "risk_level": "medium" },
+        "high": { "risk_level": "critical" }
+      },
+      "violations": {
+        "medium": [ { "category": "problem_solving", "rule": "未提供解决方案", "severity": "major" } ],
+        "high": [ { "category": "compliance_privacy", "rule": "严禁索要好处费/私下交易", "severity": "critical" } ]
+      }
+    },
+
+    {
+      "seed": "ts-16",
+      "scene": "库存缺货",
+      "platform": "jd",
+      "customer": {
+        "lines": [
+          "客户：这款还有货吗？",
+          "客户：什么时候能补货？",
+          "客户：显示缺货，还能买到吗？"
+        ]
+      },
+      "behaviors": {
+        "low": {
+          "lines": [
+            "客服：您好，该商品当前缺货，补货时间暂未确定，您可以点击到货通知，到货后我们会提醒您。",
+            "客服：您好，已为您核实，目前缺货，建议关注到货通知或选择相似在售商品。"
+          ]
+        },
+        "medium": {
+          "lines": [
+            "客服：没货了，等通知吧。",
+            "客服：这个一直缺货，买别的吧。"
+          ]
+        },
+        "high": {
+          "lines": [
+            "客服：放心，今天肯定到货，你随时来拍。",
+            "客服：明天一早就到货，绝对有货，你现在先下单。"
+          ]
+        }
+      },
+      "labels": {
+        "low": { "risk_level": "low" },
+        "medium": { "risk_level": "medium" },
+        "high": { "risk_level": "high" }
+      },
+      "violations": {
+        "medium": [ { "category": "problem_solving", "rule": "未提供解决方案", "severity": "major" } ],
+        "high": [ { "category": "professionalism", "rule": "禁止虚假承诺/承诺无法兑现", "severity": "major" } ]
+      }
+    }
+  ]
+}

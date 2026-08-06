@@ -1,0 +1,99 @@
+name: DORA Metrics Collection
+
+on:
+  schedule:
+    # Daily at 00:00 UTC
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+    inputs:
+      period:
+        description: "Collection period"
+        required: false
+        default: "daily"
+        type: choice
+        options:
+          - daily
+          - weekly
+
+jobs:
+  collect:
+    name: Collect DORA Metrics
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 100 # Need history for lead time calculation
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Collect DORA metrics
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DORA_TENANT_ID: ${{ github.repository_owner }}
+        run: |
+          if [ "${{ inputs.period }}" = "weekly" ]; then
+            npx tsx scripts/collect-dora-metrics.ts --weekly
+          else
+            npx tsx scripts/collect-dora-metrics.ts
+          fi
+
+      - name: Upload metrics artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dora-metrics-${{ github.run_number }}
+          path: |
+            dora-metrics-report.json
+          retention-days: 30
+          if-no-files-found: ignore
+
+  # Weekly summary job
+  weekly-summary:
+    name: Weekly Metrics Summary
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' && github.event.schedule == '0 0 * * 0'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Collect weekly DORA metrics
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DORA_TENANT_ID: ${{ github.repository_owner }}
+        run: npx tsx scripts/collect-dora-metrics.ts --weekly
+
+      - name: Create metrics summary
+        id: summary
+        run: |
+          echo "## DORA Metrics Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Weekly metrics collected for the past 7 days." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Lead Time**: Check dashboard for details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployment Frequency**: Check dashboard for details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Change Fail Rate**: Check dashboard for details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Recovery Time**: Check dashboard for details" >> $GITHUB_STEP_SUMMARY

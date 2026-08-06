@@ -1,0 +1,336 @@
+openapi: 3.1.0
+info:
+  title: QA System API
+  description: |
+    QA System 面向 AI 电商运营中枢的 API 契约（首期 MVP）。
+    遵循 CloudEvents 风格 EvidenceEvent v1。
+    本文档为 QAE-015 OpenAPI/JSON Schema 基础，配合 schemas/ 下的 JSON Schema 使用。
+    后续将引入 Schema Registry + 消费者驱动契约测试。
+  version: 0.1.0-mvp
+  contact:
+    name: QA System Team
+servers:
+  - url: /api
+    description: Relative to Next.js app router
+paths:
+  /qa/events:
+    post:
+      summary: 接收统一证据事件 (EvidenceEvent v1)
+      description: |
+        所有平台 Adapter 应使用此端点提交标准化事件。
+        幂等键：source + id。
+        必须携带 W3C traceparent 用于可观测性（QAE-016 相关）。
+      operationId: ingestEvidenceEvent
+      tags:
+        - Events
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvidenceEvent'
+      responses:
+        '201':
+          description: 事件已接收（可能异步处理）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  event_id:
+                    type: string
+                  traceparent:
+                    type: string
+                    nullable: true
+        '400':
+          description: Schema 校验失败或必填字段缺失
+        '401':
+          description: 未授权
+        '409':
+          description: 重复事件（幂等命中）
+        '500':
+          description: 内部错误
+  /qa/eval-gate:
+    post:
+      summary: AI 评估门禁检查
+      description: 用于 QAE-018 等 AI 评测集 gate。输入样本，返回是否阻断及分类。
+      operationId: runEvalGate
+      tags:
+        - Evaluation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                input:
+                  type: string
+                context:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '200':
+          description: gate 结果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  blocked:
+                    type: boolean
+                  category:
+                    type: string
+                  criticality:
+                    type: string
+                  case_id:
+                    type: string
+                    nullable: true
+  /qa/funnel:
+    get:
+      summary: 获取经营漏斗与指标报告
+      description: |
+        返回转化漏斗各阶段数据（traffic -> conversation -> cart -> order -> paid）。
+        每个 MetricSnapshot 包含 lineage 用于数据血缘追踪（QAE-021）。
+        支持 quality 模式：complete / stale / missing-cost（用于测试）。
+      operationId: getFunnelReport
+      tags:
+        - Funnel
+      parameters:
+        - name: provider
+          in: query
+          schema:
+            type: string
+            default: mock
+          description: 当前仅支持 mock
+        - name: quality
+          in: query
+          schema:
+            type: string
+            enum: [complete, stale, missing-cost]
+            default: complete
+        - name: duplicate
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 漏斗报告，含 lineage
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stages:
+                    type: array
+                  lineage:
+                    $ref: '#/components/schemas/MetricLineage'
+        '400':
+          description: 参数错误
+        '401':
+          description: 未授权
+  /qa/diagnosis:
+    post:
+      summary: 生成未成交诊断
+      description: |
+        基于会话证据生成诊断 Finding。
+        输入 conversation_ids，返回带证据的诊断结果与建议 WorkItem。
+        关联 EvidenceEvent（QAE-002）和评估（QAE-018）。
+      operationId: runDiagnosis
+      tags:
+        - Diagnosis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - conversation_ids
+              properties:
+                conversation_ids:
+                  type: array
+                  items:
+                    type: string
+                  minItems: 1
+                  maxItems: 100
+                campaign_id:
+                  type: string
+                time_window_start:
+                  type: string
+                  format: date-time
+                time_window_end:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: 诊断结果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  findings:
+                    type: array
+                  summary:
+                    type: object
+        '400':
+          description: 参数错误（如 conversation_ids 为空或超限）
+        '401':
+          description: 未授权
+        '500':
+          description: 内部错误
+  /qa/work-orders:
+    get:
+      summary: 列出工作订单
+      description: |
+        根据状态、优先级等过滤列出 WorkOrder。
+        关联诊断 Finding 和审批流程（QAE-003/013）。
+        支持分页和过滤。
+      operationId: listWorkOrders
+      tags:
+        - WorkOrders
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: priority
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: 工作订单列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  work_orders:
+                    type: array
+        '401':
+          description: 未授权
+        '500':
+          description: 内部错误
+    post:
+      summary: 创建工作订单
+      description: |
+        从诊断结果创建 WorkOrder。
+        需要 tenant 上下文和审计。
+      operationId: createWorkOrder
+      tags:
+        - WorkOrders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                diagnosis_id:
+                  type: string
+                priority:
+                  type: string
+                assignee:
+                  type: string
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+        '400':
+          description: 参数错误
+        '401':
+          description: 未授权
+        '500':
+          description: 内部错误
+components:
+  schemas:
+    EvidenceEvent:
+      description: |
+        引用 schemas/events/evidence-event-v1.json 的完整定义。
+        此处仅为 OpenAPI 顶层摘要，实际以 JSON Schema 为准。
+      type: object
+      required:
+        - specversion
+        - id
+        - source
+        - type
+        - time
+        - tenant_id
+        - datacontenttype
+        - schema_ref
+        - data
+      properties:
+        specversion:
+          const: '1.0'
+        id:
+          type: string
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'
+        source:
+          type: string
+          minLength: 1
+          maxLength: 128
+        type:
+          type: string
+          minLength: 1
+          maxLength: 128
+        time:
+          type: string
+          format: date-time
+        tenant_id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        team_id:
+          type: [string, 'null']
+          maxLength: 128
+        subject:
+          type: [string, 'null']
+          maxLength: 256
+        traceparent:
+          type: [string, 'null']
+          pattern: '^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$'
+          description: W3C trace context (QAE-002/016)
+        datacontenttype:
+          const: application/json
+        schema_ref:
+          const: schemas/events/evidence-event-v1.json
+          description: 指向 JSON Schema 的版本化引用（支持未来 Schema Registry）
+        data:
+          type: object
+          description: 领域负载，按 type 版本化
+    MetricLineage:
+      type: object
+      description: 数据血缘（QAE-021），记录指标来源 Dataset/Job/Run
+      properties:
+        dataset_id:
+          type: string
+        job_id:
+          type: string
+        run_id:
+          type: string
+    # 未来扩展：Finding, WorkItem, EvaluationResult 等
+tags:
+  - name: Events
+    description: 证据事件摄入与治理
+  - name: Evaluation
+    description: AI 评估与质量门禁
+  - name: Funnel
+    description: 经营漏斗与转化指标
+  - name: Diagnosis
+    description: 未成交原因诊断

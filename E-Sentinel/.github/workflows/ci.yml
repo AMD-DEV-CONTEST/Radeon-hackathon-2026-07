@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      matrix:
+        node-version: [22.x]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Governance/event lint
+        run: npm run lint:governance
+
+      - name: Commerce funnel lint
+        run: npm run lint:commerce
+
+      - name: AI evaluation lint
+        run: npm run lint:ai-eval
+
+      - name: Run tests with coverage
+        run: npm run test:ci
+
+      - name: Run event contract tests
+        run: npm run test:contracts
+
+      - name: Run commerce funnel tests
+        run: npm run test:commerce
+
+      - name: Run AI evaluation tests
+        run: npm run test:ai-eval
+
+      - name: Validate checked-in fixture provenance
+        run: npm run eval:validate -- evals/configs/fixture-only.json
+
+      - name: Verify Gold Set validator contract
+        run: npm run test:eval-validator
+
+      - name: Run deterministic Promptfoo regression
+        run: npm run eval:promptfoo
+        env:
+          NPM_CONFIG_OMIT: optional
+          PROMPTFOO_DISABLE_TELEMETRY: "true"
+
+      - name: Verify Promptfoo artifact exists
+        run: test -s promptfoo-results.json
+
+      - name: Upload Promptfoo artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: promptfoo-results
+          path: promptfoo-results.json
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Production build
+        run: npm run build
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+      - name: Enforce coverage thresholds
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            LINES=$(jq '.total.lines.pct' coverage/coverage-summary.json)
+            BRANCHES=$(jq '.total.branches.pct' coverage/coverage-summary.json)
+            FUNCTIONS=$(jq '.total.functions.pct' coverage/coverage-summary.json)
+            echo "Coverage — lines: ${LINES}%, branches: ${BRANCHES}%, functions: ${FUNCTIONS}%"
+            if (( $(echo "$LINES < 90" | bc -l) )) || (( $(echo "$BRANCHES < 85" | bc -l) )) || (( $(echo "$FUNCTIONS < 90" | bc -l) )); then
+              echo "Coverage below threshold (lines≥90%, branches≥85%, functions≥90%)"
+              exit 1
+            fi
+          fi

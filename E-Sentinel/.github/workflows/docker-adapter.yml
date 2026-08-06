@@ -1,0 +1,32 @@
+name: Docker Adapter Smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "deploy/dify-openai-adapter/**"
+      - "scripts/docker-manifest-smoke.sh"
+      - ".github/workflows/docker-adapter.yml"
+  pull_request:
+    paths:
+      - "deploy/dify-openai-adapter/**"
+      - "scripts/docker-manifest-smoke.sh"
+      - ".github/workflows/docker-adapter.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docker-adapter-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run adapter manifest smoke
+        env:
+          REQUIRE_DOCKER_BUILD: "true"
+        run: ./scripts/docker-manifest-smoke.sh

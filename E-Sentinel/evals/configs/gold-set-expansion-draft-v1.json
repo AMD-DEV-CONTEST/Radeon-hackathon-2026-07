@@ -1,0 +1,419 @@
+{
+  "dataset_version": "gold-expansion-draft-v1.0",
+  "dataset_type": "draft",
+  "source_type": "expert-annotated",
+  "provenance": {
+    "label_status": "expert-draft",
+    "description": "AI 起草候选案例（覆盖 ADR-0002 边界类型与采样矩阵），供至少两位标注者独立审核后升 human-gold；非 human-gold",
+    "annotators": ["ann-a"],
+    "frozen": false,
+    "few_shot_excluded": true,
+    "severity_scheme": "service-quality-v1",
+    "ai_drafted_candidates": true,
+    "base_set": "gold-set-severe-draft-v1.json",
+    "prevalence": { "severe": 12, "non_severe": 8 },
+    "keyword_trap_count": 2
+  },
+  "case_count": 20,
+  "cases": [
+    {
+      "id": "case-021",
+      "set": "edge",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "source": "feishu",
+      "conversation": "客服：您好，您购买的这款深度相机支持多平台。\n客户：我们项目要一次采购 50 台，后续维护你们能跟上吗？\n客服：您放心，我们售后团队很成熟，基本不会出问题，出了也肯定能解决。\n客户：那要是真出问题多久能处理？\n客服：这个您不用太担心，肯定给您安排得明明白白。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 62,
+        "violations": [
+          { "category": "专业性", "rule": "禁止隐含式虚假承诺", "severity": "major", "source_quote": "基本不会出问题，出了也肯定能解决。", "deduction": 18 },
+          { "category": "响应效率", "rule": "需告知预计处理时间", "severity": "major", "source_quote": "肯定给您安排得明明白白", "deduction": 12 }
+        ]
+      },
+      "note": "隐含承诺：没有 SLA 却承诺肯定解决，关键词捕获不到"
+    },
+    {
+      "id": "case-022",
+      "set": "edge",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "source": "tmall",
+      "conversation": "客服：亲，您反馈的问题已经登记了哦。\n客户：登记有什么用，上次登记完就没下文了。\n客服：那您要是这么认为，我也没办法，反正我们流程就是这样。\n客户：你这是什么态度？\n客服：我态度很好啊，您要是不满意，随您便。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 40,
+        "violations": [
+          { "category": "服务态度", "rule": "禁止消极敷衍与被动攻击", "severity": "major", "source_quote": "那您要是这么认为，我也没办法，反正我们流程就是这样。", "deduction": 18 },
+          { "category": "服务态度", "rule": "禁止讽刺客户", "severity": "major", "source_quote": "您要是不满意，随您便。", "deduction": 18 }
+        ]
+      },
+      "note": "委婉讽刺+被动攻击，无脏话但服务态度严重违规"
+    },
+    {
+      "id": "case-023",
+      "set": "severe",
+      "expected_category": "privacy",
+      "expected_block": true,
+      "criticality": "p0",
+      "requires_evidence": true,
+      "source": "tmall",
+      "conversation": "客服：亲，为了帮您核实订单，您收货地址是上海市浦东新区XX路100号对吗？\n客户：对，你们怎么知道这么清楚？\n客服：我们系统里都有，您电话 138****1234 我也看到了，确认是您本人就好。\n客户：电话就别念出来了，万一别人看到。\n客服：没事的，这是内部系统。",
+      "gold": {
+        "risk_level": "critical",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 25,
+        "violations": [
+          { "category": "合规与隐私", "rule": "严禁在对话中泄露客户个人信息", "severity": "critical", "source_quote": "您电话 138****1234 我也看到了", "deduction": 30 },
+          { "category": "合规与隐私", "rule": "隐私核实应走站内加密流程", "severity": "major", "source_quote": "我们系统里都有", "deduction": 10 }
+        ]
+      },
+      "note": "上下文隐私泄露：为核实身份公开念出客户手机号，红线"
+    },
+    {
+      "id": "case-024",
+      "set": "clean",
+      "expected_category": "safe",
+      "expected_block": false,
+      "criticality": "none",
+      "requires_evidence": false,
+      "source": "feishu",
+      "conversation": "客服：您好，请问需要帮您核对哪一笔订单？\n客户：帮我查一下我上个月的退货进度。\n客服：好的，请您提供订单号或下单手机号，我核对订单信息后为您查询。\n客户：订单号是 T20260715001。\n客服：已查到，您的退货包裹已签收，预计 3 个工作日内原路退款，我会为您跟进。",
+      "gold": {
+        "risk_level": "low",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 95,
+        "violations": []
+      },
+      "note": "合法索要订单信息以核实身份，处理规范，不应误判为隐私违规"
+    },
+    {
+      "id": "case-025",
+      "set": "edge",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "source": "tmall",
+      "conversation": "客户：你们这群骗子，卖的都是垃圾！\n客服：您先别激动，请问具体是什么问题？\n客户：垃圾就是垃圾，还用问？\n客服：您说话客气点，我们不是出气筒。\n客户：我就不客气怎么了？\n客服：那您自己看着办，我们不伺候了。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 45,
+        "violations": [
+          { "category": "服务态度", "rule": "禁止与客户争执", "severity": "major", "source_quote": "您说话客气点，我们不是出气筒。", "deduction": 15 },
+          { "category": "服务态度", "rule": "禁止放弃客户", "severity": "major", "source_quote": "那您自己看着办，我们不伺候了。", "deduction": 18 }
+        ]
+      },
+      "note": "客户先挑衅，客服仍应保持专业，回应不当即违规"
+    },
+    {
+      "id": "case-026",
+      "set": "keyword-trap",
+      "expected_category": "safe",
+      "expected_block": false,
+      "criticality": "none",
+      "requires_evidence": false,
+      "source": "feishu",
+      "conversation": "客户：你们再不给处理，我就发律师函了。\n客服：理解您的着急，我马上为您升级处理，24 小时内由专人联系您。\n客户：说话算话。\n客服：已为您登记并备注加急，工单号 Q20260803001，您可以随时查询进度。",
+      "gold": {
+        "risk_level": "medium",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 85,
+        "violations": []
+      },
+      "note": "关键词陷阱：客户提律师函但客服升级处理得当，不应判严重违规"
+    },
+    {
+      "id": "case-027",
+      "set": "severe",
+      "expected_category": "compliance",
+      "expected_block": true,
+      "criticality": "p0",
+      "requires_evidence": true,
+      "source": "tmall",
+      "conversation": "客服：亲，您的退款申请被风控拦截了。\n客户：那怎么办？\n客服：这个我这边也难办，不过如果您着急，可以私下转我 50 元辛苦费，我帮您加急处理。\n客户：还有这种操作？\n客服：别在聊天里说，我给您发另一个联系方式。",
+      "gold": {
+        "risk_level": "critical",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 10,
+        "violations": [
+          { "category": "合规与隐私", "rule": "严禁索要好处费/私下交易", "severity": "critical", "source_quote": "可以私下转我 50 元辛苦费，我帮您加急处理。", "deduction": 30 }
+        ]
+      },
+      "note": "无违禁词但语义严重违规：索要好处费并诱导私下联系"
+    },
+    {
+      "id": "case-028",
+      "set": "edge",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "source": "feishu",
+      "conversation": "客户：我按你们教程升级固件，相机变砖了，能远程帮我恢复吗？\n客服：系统就是这样，我们只提供教程，没办法远程处理。\n客户：教程我试了三遍都不行。\n客服：那我也没办法，您再按教程试一遍吧。\n客户：你能帮我确认一下是不是固件版本问题吗？\n客服：确认不了，流程不支持。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 35,
+        "violations": [
+          { "category": "解决问题", "rule": "未核实即拒绝提供方案", "severity": "major", "source_quote": "确认不了，流程不支持。", "deduction": 18 },
+          { "category": "服务态度", "rule": "机械复读政策，消极应对", "severity": "major", "source_quote": "那我也没办法，您再按教程试一遍吧。", "deduction": 15 }
+        ]
+      },
+      "note": "机械照读政策与积极排查冲突：规则表面合规，实际服务不合格"
+    },
+    {
+      "id": "case-029",
+      "set": "edge",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "source": "tmall",
+      "conversation": "客户：我收到的相机镜头有明显划痕。\n客服：不可能，我们发货前都会质检，您肯定弄错了。\n客户：我刚开箱拍的视频都发你了。\n客服：视频也可能是角度问题，我们这边不可能发划痕机。\n客户：那我怎么处理？\n客服：处理不了，您自己再看清楚。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 42,
+        "violations": [
+          { "category": "专业性", "rule": "未核实证据即否认客户反馈", "severity": "major", "source_quote": "不可能，我们发货前都会质检，您肯定弄错了。", "deduction": 16 },
+          { "category": "解决问题", "rule": "拒绝受理投诉", "severity": "major", "source_quote": "处理不了，您自己再看清楚。", "deduction": 18 }
+        ]
+      },
+      "note": "证据不足场景：应先核实/转人工，不能直接否认"
+    },
+    {
+      "id": "case-030",
+      "set": "severe",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "source": "feishu",
+      "conversation": "客服：您好，请问有什么可以帮您？\n客户：我这边设备一直连不上网，能帮我排查吗？\n客服：请稍等，我看一下。\n（客服 40 分钟未回复）\n客服：还有事吗？没事我就先关了。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 30,
+        "violations": [
+          { "category": "响应效率", "rule": "长时间无响应后直接结束", "severity": "major", "source_quote": "还有事吗？没事我就先关了。", "deduction": 20 },
+          { "category": "服务态度", "rule": "未致歉未解释长时间离席", "severity": "major", "source_quote": "（客服 40 分钟未回复）", "deduction": 10 }
+        ]
+      },
+      "note": "响应效率红线：长时间无响应+直接结束会话"
+    },
+    {
+      "id": "case-031",
+      "set": "severe",
+      "expected_category": "privacy",
+      "expected_block": true,
+      "criticality": "p0",
+      "requires_evidence": true,
+      "source": "tmall",
+      "conversation": "客服：亲，您是李女士吧？\n客户：不是，我是她朋友帮她问的。\n客服：那我跟您说下她的订单，她买的是 Gemini 335L，地址是杭州……\n客户：等等，别人的信息你随便说？\n客服：没事，您不是她朋友嘛。",
+      "gold": {
+        "risk_level": "critical",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 20,
+        "violations": [
+          { "category": "合规与隐私", "rule": "严禁向无关人员泄露订单与个人信息", "severity": "critical", "source_quote": "那我跟您说下她的订单，她买的是 Gemini 335L，地址是杭州……", "deduction": 30 }
+        ]
+      },
+      "note": "向非本人泄露他人订单信息，隐私红线"
+    },
+    {
+      "id": "case-032",
+      "set": "clean",
+      "expected_category": "safe",
+      "expected_block": false,
+      "criticality": "none",
+      "requires_evidence": false,
+      "source": "feishu",
+      "conversation": "客服：您好，为了保障账号安全，请按以下步骤操作：打开 App-设置-账号安全-短信验证，验证码由您本人查收，无需提供给任何人。\n客户：验证码要不要发给你？\n客服：不需要，请勿将验证码告知任何客服或他人，我们不会向您索要。\n客户：明白了，谢谢。",
+      "gold": {
+        "risk_level": "low",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 98,
+        "violations": []
+      },
+      "note": "正确引导自助验证并明示不索要验证码，安全示范"
+    },
+    {
+      "id": "case-033",
+      "set": "edge",
+      "expected_category": "compliance",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "source": "tmall",
+      "conversation": "客服：亲，您别担心，包邮包退，运费我们全赔，售后有任何问题都算我的。\n客户：真的吗？那我放心了。\n客服：当然，出了问题我负责到底。\n客户：客服能负责吗？\n客服：放心，我说负责就负责。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 50,
+        "violations": [
+          { "category": "专业性", "rule": "未核实政策即承诺全赔全负责", "severity": "major", "source_quote": "包邮包退，运费我们全赔，售后有任何问题都算我的。", "deduction": 20 },
+          { "category": "专业性", "rule": "个人担保超出授权范围", "severity": "major", "source_quote": "出了问题我负责到底", "deduction": 15 }
+        ]
+      },
+      "note": "承诺全赔全负责但无政策依据，虚假承诺延伸"
+    },
+    {
+      "id": "case-034",
+      "set": "clean",
+      "expected_category": "safe",
+      "expected_block": false,
+      "criticality": "none",
+      "requires_evidence": false,
+      "source": "feishu",
+      "conversation": "客户：相机发热严重，我都不敢用了。\n客服：非常理解您的担心，我先帮您记录并反馈给技术同事，24 小时内给您答复具体排查方案。\n客户：那这段时间还能用吗？\n客服：建议先暂停使用并拔掉电源，等技术人员确认后再开机，稍后我把注意事项发给您。",
+      "gold": {
+        "risk_level": "low",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 90,
+        "violations": []
+      },
+      "note": "共情+明确行动+安全建议，处理规范"
+    },
+    {
+      "id": "case-035",
+      "set": "edge",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "source": "tmall",
+      "conversation": "客户：我都等了三天了！你们是不是故意拖着！\n客服：非常抱歉让您久等，我马上为您核实物流。\n客户：快点！\n客服：已核实，包裹在转运中心，我为您催促并设置加急，2 小时内给您同步最新状态。\n客户：再不解决我就去投诉。\n客服：理解，我会持续跟进直到您收到为止，稍后为您发送跟进时间点。",
+      "gold": {
+        "risk_level": "low",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 92,
+        "violations": []
+      },
+      "note": "客户情绪激烈但客服处理规范，不应判违规"
+    },
+    {
+      "id": "case-036",
+      "set": "severe",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "source": "feishu",
+      "conversation": "客户：包裹显示签收但我没收到，怎么办？\n客服：这是快递的问题，跟我们没关系，您联系快递公司。\n客户：快递说你们发错地址了。\n客服：那也不是我们的问题，您自己查清楚再来。\n客户：你们能帮我核实吗？\n客服：核实不了，我们只管发货。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 38,
+        "violations": [
+          { "category": "解决问题", "rule": "推卸责任不协助核实", "severity": "major", "source_quote": "这是快递的问题，跟我们没关系", "deduction": 18 },
+          { "category": "服务态度", "rule": "拒绝协助并指责客户", "severity": "major", "source_quote": "您自己查清楚再来", "deduction": 15 }
+        ]
+      },
+      "note": "即使责任在快递，客服也应协助核实而非推诿"
+    },
+    {
+      "id": "case-037",
+      "set": "severe",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "source": "feishu",
+      "conversation": "客户：Gemini 335 的深度范围是多少？室内能用吗？\n客服：这款深度范围是 0.5-8 米，室内没问题。\n客户：官网写的是 0.1-20 米吧？\n客服：以我说的为准，官网数据可能没更新。\n客户：那我买回来不合适能退吗？\n客服：肯定合适，放心买。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 45,
+        "violations": [
+          { "category": "专业性", "rule": "提供错误产品参数且拒不核实", "severity": "major", "source_quote": "这款深度范围是 0.5-8 米", "deduction": 20 },
+          { "category": "专业性", "rule": "未核实即断言合适", "severity": "major", "source_quote": "肯定合适，放心买。", "deduction": 12 }
+        ]
+      },
+      "note": "参数错误+以个人口径否定官网，误导购买"
+    },
+    {
+      "id": "case-038",
+      "set": "edge",
+      "expected_category": "safe",
+      "expected_block": false,
+      "criticality": "none",
+      "requires_evidence": false,
+      "source": "tmall",
+      "conversation": "客户：我去年买的相机还在保修期内吗？\n客服：亲，我们家新款 Gemini 335L 最近在做活动，便宜两百元，要不要看看？\n客户：先回答我保修问题。\n客服：新款真的很划算，错过就没了。\n客户：……\n客服：亲还在吗？",
+      "gold": {
+        "risk_level": "medium",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 72,
+        "violations": [
+          { "category": "解决问题", "rule": "答非所问，未回应用户问题", "severity": "minor", "source_quote": "亲，我们家新款 Gemini 335L 最近在做活动", "deduction": 8 }
+        ]
+      },
+      "note": "答非所问+强行推销，属于服务问题但未到严重违规"
+    },
+    {
+      "id": "case-039",
+      "set": "severe",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "source": "tmall",
+      "conversation": "客户：摄像头 App 闪退，帮我看看。\n客服：这个我们处理不了，您找开发公司吧。\n客户：你们不是官方客服吗？\n客服：官方客服也只负责卖货，技术问题不归我们管。\n客户：那谁能管？\n客服：不知道，您自己想办法。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 35,
+        "violations": [
+          { "category": "服务态度", "rule": "拒绝服务并推诿", "severity": "major", "source_quote": "这个我们处理不了，您找开发公司吧。", "deduction": 18 },
+          { "category": "解决问题", "rule": "未提供转接或升级渠道", "severity": "major", "source_quote": "不知道，您自己想办法。", "deduction": 15 }
+        ]
+      },
+      "note": "拒绝服务+不提供升级路径，即使问题真不在本部门也应协助转接"
+    },
+    {
+      "id": "case-040",
+      "set": "clean",
+      "expected_category": "safe",
+      "expected_block": false,
+      "criticality": "none",
+      "requires_evidence": false,
+      "source": "feishu",
+      "conversation": "客户：我要退一台用过的相机，能退吗？\n客服：您好，请问购买时间是多长？是否在七天无理由或保修范围内？\n客户：买了 20 天，开机一次。\n客服：超过七天无理由，但如存在质量问题可走售后检测，我为您登记后由售后同事联系您检测。\n客户：好的，谢谢。\n客服：已登记，工单号 Q20260803002，24 小时内联系您，请注意接听。",
+      "gold": {
+        "risk_level": "low",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 96,
+        "violations": []
+      },
+      "note": "多轮追问核实+分情况给方案+明确跟进，处理规范"
+    }
+  ]
+}

@@ -1,0 +1,1741 @@
+{
+  "dataset_version": "gold-human-draft-v2.0",
+  "dataset_type": "draft",
+  "source_type": "mixed",
+  "provenance": {
+    "label_status": "expert-draft-pending-human-annotation",
+    "description": "base=gold-human-draft-v1.0(40 例, AI 起草待人工确认) + synthetic(65 例, synthetic-near-real 分层矩阵)。等待双通道盲标 + 人工逐例确认仲裁后升 human-gold。",
+    "annotators": [
+      "ann-a",
+      "ann-b"
+    ],
+    "frozen": false,
+    "few_shot_excluded": true,
+    "severity_scheme": "service-quality-v1",
+    "base_set": "gold-human-draft-v1.0",
+    "synthetic_near_real": true,
+    "scenario_matrix": {
+      "clean_control": 5,
+      "euphemistic_refusal": 5,
+      "explicit_severe_violation": 6,
+      "implicit_commitment": 5,
+      "insufficient_info_human": 3,
+      "keyword_trap": 6,
+      "multi_turn_context_violation": 5,
+      "no_keyword_semantic": 5,
+      "rag_sourced": 4,
+      "policy_error": 5,
+      "privacy_boundary": 5,
+      "product_fact_error": 6,
+      "threat_sarcasm_passive_aggression": 5
+    },
+    "base_count": 40,
+    "synthetic_count": 65
+  },
+  "case_count": 105,
+  "cases": [
+    {
+      "id": "case-001",
+      "set": "severe",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "conversation": "客服：您好，请问有什么可以帮您？\n客户：我前天下单的相机还没发货。\n客服：你自己去订单里看，别老问我。\n客户：我就是看了才问的，什么时候能发？\n客服：我怎么知道，等物流通知吧。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 45,
+        "violations": [
+          {
+            "category": "服务态度",
+            "rule": "禁止推诿敷衍",
+            "severity": "major",
+            "source_quote": "你自己去订单里看，别老问我。",
+            "deduction": 12
+          },
+          {
+            "category": "服务态度",
+            "rule": "禁止消极推诿",
+            "severity": "major",
+            "source_quote": "我怎么知道，等物流通知吧。",
+            "deduction": 15
+          },
+          {
+            "category": "响应效率",
+            "rule": "需告知预计处理时间",
+            "severity": "major",
+            "source_quote": "等物流通知吧",
+            "deduction": 10
+          }
+        ]
+      },
+      "note": "客服反问+推诿+未给处理时间，双高危"
+    },
+    {
+      "id": "case-002",
+      "set": "severe",
+      "expected_category": "compliance",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "conversation": "客服：亲，有什么需要帮助的？\n客户：我买的深度相机能用吗，我想退。\n客服：质量绝对没问题，今天肯定退款到账，出问题我个人赔偿你。\n客户：那行，我等着。\n客服：放心，一定到账。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 50,
+        "violations": [
+          {
+            "category": "专业性",
+            "rule": "禁止虚假承诺",
+            "severity": "critical",
+            "source_quote": "今天肯定退款到账，出问题我个人赔偿你。",
+            "deduction": 25
+          },
+          {
+            "category": "专业性",
+            "rule": "禁止承诺无法兑现事项",
+            "severity": "major",
+            "source_quote": "放心，一定到账。",
+            "deduction": 15
+          }
+        ]
+      },
+      "note": "虚假承诺到账时间+个人赔偿，关键词捕获不到"
+    },
+    {
+      "id": "case-003",
+      "set": "severe",
+      "expected_category": "privacy",
+      "expected_block": true,
+      "criticality": "p0",
+      "requires_evidence": true,
+      "conversation": "客服：您好，需要办理退款吗？\n客户：是的，怎么退？\n客服：为了核实身份，请把您的完整银行卡号和短信验证码发给我。\n客户：这会不会有风险？\n客服：没事的，我们这边安全，发过来吧。",
+      "gold": {
+        "risk_level": "critical",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 20,
+        "violations": [
+          {
+            "category": "合规与隐私",
+            "rule": "严禁索要完整银行卡号和验证码",
+            "severity": "critical",
+            "source_quote": "请把您的完整银行卡号和短信验证码发给我。",
+            "deduction": 30
+          }
+        ]
+      },
+      "note": "索要完整银行卡+验证码，隐私红线"
+    },
+    {
+      "id": "case-004",
+      "set": "clean",
+      "expected_category": "safe",
+      "expected_block": false,
+      "criticality": "none",
+      "requires_evidence": false,
+      "conversation": "客服：您好，感谢您的咨询，请问有什么可以帮您？\n客户：我想了解一下这款相机的深度范围。\n客服：好的，Gemini 335 的深度范围是 0.10-20m，适合室内外多种场景。\n客户：明白了，谢谢。\n客服：不客气，有其他问题随时找我。",
+      "gold": {
+        "risk_level": "low",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 95,
+        "violations": []
+      },
+      "note": "正常优质回复，无违规"
+    },
+    {
+      "id": "case-005",
+      "set": "keyword-trap",
+      "expected_category": "safe",
+      "expected_block": false,
+      "criticality": "none",
+      "requires_evidence": false,
+      "conversation": "客服：您好，请问有什么可以帮您？\n客户：我要退款！\n客服：好的，请您提供订单号，我帮您核实是否符合退换货政策。\n客户：订单号是 12345，什么时候能退？\n客服：已为您登记，审核通过后 3 个工作日内原路退回，请您留意。",
+      "gold": {
+        "risk_level": "medium",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 85,
+        "violations": []
+      },
+      "note": "关键词陷阱：客户提退款但客服处理得当，不应判严重违规"
+    },
+    {
+      "id": "case-006",
+      "set": "severe",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "conversation": "客服：您好，有什么问题？\n客户：我收到的相机是坏的，屏幕碎了。\n客服：那是你自己摔的，跟我们没关系，你爱找谁找谁。\n客户：我刚拆包装就这样，你们必须负责！\n客服：再闹我就拉黑你。",
+      "gold": {
+        "risk_level": "critical",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 15,
+        "violations": [
+          {
+            "category": "服务态度",
+            "rule": "禁止威胁客户",
+            "severity": "critical",
+            "source_quote": "再闹我就拉黑你。",
+            "deduction": 30
+          },
+          {
+            "category": "服务态度",
+            "rule": "禁止推诿责任",
+            "severity": "critical",
+            "source_quote": "那是你自己摔的，跟我们没关系",
+            "deduction": 25
+          },
+          {
+            "category": "解决问题",
+            "rule": "未提供解决方案",
+            "severity": "major",
+            "source_quote": "你爱找谁找谁",
+            "deduction": 15
+          }
+        ]
+      },
+      "note": "威胁+推诿+不解决问题，critical"
+    },
+    {
+      "id": "case-007",
+      "set": "clean",
+      "expected_category": "safe",
+      "expected_block": false,
+      "criticality": "none",
+      "requires_evidence": false,
+      "conversation": "客服：您好，欢迎咨询。\n客户：这款相机支持 Linux 吗？\n客服：支持的，Orbbec SDK 提供 Linux 版本的安装包和文档，我可以把链接发给您。\n客户：太好了，谢谢！\n客服：不客气，安装过程有任何问题随时找我。",
+      "gold": {
+        "risk_level": "low",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 93,
+        "violations": []
+      },
+      "note": "正常回答，专业准确"
+    },
+    {
+      "id": "case-008",
+      "set": "keyword-trap",
+      "expected_category": "safe",
+      "expected_block": false,
+      "criticality": "none",
+      "requires_evidence": false,
+      "conversation": "客服：您好，请问有什么可以帮您？\n客户：我要投诉到 12315！\n客服：我理解您的心情，请告诉我具体问题，我会尽力为您解决。\n客户：你们产品有问题还不承认。\n客服：很抱歉给您带来不便，我马上为您登记并安排专员跟进，最迟今天给您答复。",
+      "gold": {
+        "risk_level": "medium",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 82,
+        "violations": []
+      },
+      "note": "关键词陷阱：客户提12315但客服安抚得当，不应判严重违规"
+    },
+    {
+      "id": "case-009",
+      "set": "severe",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "conversation": "客服：您好，有什么可以帮您？\n客户：我买的相机接口和描述不一样。\n客服：我们描述的就是对的，你肯定是看错了。\n客户：我对比了官网，明明不一样。\n客服：你看错了吧，别不懂装懂，我们产品没问题。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 40,
+        "violations": [
+          {
+            "category": "服务态度",
+            "rule": "禁止贬低客户",
+            "severity": "major",
+            "source_quote": "别不懂装懂",
+            "deduction": 15
+          },
+          {
+            "category": "专业性",
+            "rule": "未核实产品信息即断言",
+            "severity": "major",
+            "source_quote": "我们描述的就是对的",
+            "deduction": 15
+          },
+          {
+            "category": "解决问题",
+            "rule": "未按流程核实",
+            "severity": "major",
+            "source_quote": "你肯定是看错了",
+            "deduction": 10
+          }
+        ]
+      },
+      "note": "贬低客户+不核实，双高危"
+    },
+    {
+      "id": "case-010",
+      "set": "clean",
+      "expected_category": "safe",
+      "expected_block": false,
+      "criticality": "none",
+      "requires_evidence": false,
+      "conversation": "客服：您好，很高兴为您服务。\n客户：请问有现货吗？\n客服：我帮您查一下库存，请稍等。\n客户：好的。\n客服：这款有现货，现在下单预计 2 天内发出，需要我帮您下单吗？",
+      "gold": {
+        "risk_level": "low",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 90,
+        "violations": []
+      },
+      "note": "正常服务，主动帮忙"
+    },
+    {
+      "id": "case-011",
+      "set": "keyword-trap",
+      "expected_category": "safe",
+      "expected_block": false,
+      "criticality": "none",
+      "requires_evidence": false,
+      "conversation": "客服：您好，请问需要什么帮助？\n客户：你们卖的是假货吧！\n客服：我们保证所有产品均为正品，可以提供官方渠道验证。如果仍有疑虑，我可以为您安排官方验货。\n客户：那行吧。\n客服：好的，有任何疑问随时联系我。",
+      "gold": {
+        "risk_level": "medium",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 80,
+        "violations": []
+      },
+      "note": "关键词陷阱：客户说假货但客服应对得当，不应判严重违规"
+    },
+    {
+      "id": "case-012",
+      "set": "severe",
+      "expected_category": "compliance",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "conversation": "客服：您好，请问有什么可以帮您？\n客户：你们的产品有保障吗？\n客服：绝对有保障，我们产品 100% 有效，无效退款，国家认证的。\n客户：那挺好。\n客服：是的，放心买，我们是全国最低价。",
+      "gold": {
+        "risk_level": "critical",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 30,
+        "violations": [
+          {
+            "category": "专业性",
+            "rule": "绝对化用语承诺",
+            "severity": "critical",
+            "source_quote": "100% 有效，无效退款",
+            "deduction": 30
+          },
+          {
+            "category": "合规与隐私",
+            "rule": "禁止绝对化宣传",
+            "severity": "critical",
+            "source_quote": "全国最低价",
+            "deduction": 25
+          }
+        ]
+      },
+      "note": "绝对化用语+最低价宣传，广告法红线"
+    },
+    {
+      "id": "case-013",
+      "set": "clean",
+      "expected_category": "safe",
+      "expected_block": false,
+      "criticality": "none",
+      "requires_evidence": false,
+      "conversation": "客服：您好，请问有什么可以帮助您？\n客户：相机怎么连接电脑？\n客服：您使用 USB 3.0 Type-C 线连接电脑，然后安装 Orbbec SDK 即可识别设备。\n客户：驱动在哪下载？\n客服：官网驱动中心有对应型号的驱动，我发您链接，安装后有教程。",
+      "gold": {
+        "risk_level": "low",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 92,
+        "violations": []
+      },
+      "note": "专业指导，无违规"
+    },
+    {
+      "id": "case-014",
+      "set": "severe",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "conversation": "客服：您好，有什么问题？\n客户：我的相机用不了了，急死我了。\n客服：哦，那你自己重启试试呗。\n客户：重启了没用。\n客服：那我没办法了，你找售后吧，别烦我。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 35,
+        "violations": [
+          {
+            "category": "服务态度",
+            "rule": "禁止消极应付",
+            "severity": "major",
+            "source_quote": "别烦我",
+            "deduction": 15
+          },
+          {
+            "category": "解决问题",
+            "rule": "未提供解决方案",
+            "severity": "major",
+            "source_quote": "那我没办法了",
+            "deduction": 15
+          }
+        ]
+      },
+      "note": "消极应付+不解决，双高危"
+    },
+    {
+      "id": "case-015",
+      "set": "keyword-trap",
+      "expected_category": "safe",
+      "expected_block": false,
+      "criticality": "none",
+      "requires_evidence": false,
+      "conversation": "客服：您好，很高兴为您服务。\n客户：我怀疑买到二手翻新的了，要退差价！\n客服：我理解您的顾虑，请提供产品序列号，我为您核实是否为全新正品。\n客户：好的，SN 是 XXXX。\n客服：核实完毕，您的产品是全新未拆封的正品，请您放心。若仍有疑虑可申请官方鉴定。",
+      "gold": {
+        "risk_level": "medium",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 85,
+        "violations": []
+      },
+      "note": "关键词陷阱：客户说二手+退差价但客服核实得当，不应判严重违规"
+    },
+    {
+      "id": "case-016",
+      "set": "severe",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "conversation": "客服：您好，请问有什么可以帮您？\n客户：你们客服电话打不通。\n客服：那你多打几次呗，我们很忙的。\n客户：我打了很多次了。\n客服：那我也没办法，你换个时间再打，要不就算了。",
+      "gold": {
+        "risk_level": "medium",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 45,
+        "violations": [
+          {
+            "category": "服务态度",
+            "rule": "禁止敷衍客户",
+            "severity": "major",
+            "source_quote": "那你多打几次呗",
+            "deduction": 12
+          },
+          {
+            "category": "服务态度",
+            "rule": "禁止消极放弃",
+            "severity": "major",
+            "source_quote": "要不就算了",
+            "deduction": 15
+          }
+        ]
+      },
+      "note": "敷衍+放弃客户，严重违规"
+    },
+    {
+      "id": "case-017",
+      "set": "clean",
+      "expected_category": "safe",
+      "expected_block": false,
+      "criticality": "none",
+      "requires_evidence": false,
+      "conversation": "客服：您好，请问需要什么帮助？\n客户：这个相机的 FOV 是多少？\n客服：Gemini 335 的深度视场角是 H90° V65°，RGB 视场角 H86° V55°，适合巡检机器人场景。\n客户：明白了，谢谢。\n客服：不客气，需要对比其他型号随时找我。",
+      "gold": {
+        "risk_level": "low",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 94,
+        "violations": []
+      },
+      "note": "专业准确回答"
+    },
+    {
+      "id": "case-018",
+      "set": "severe",
+      "expected_category": "compliance",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "conversation": "客服：您好，有什么可以帮您？\n客户：我退货的运费谁出？\n客服：我们规定质量问题才包运费，你自己的问题自己出。\n客户：你们产品就是有质量问题。\n客服：那是你说的，我们官方检测没问题，你自己去维权吧。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 38,
+        "violations": [
+          {
+            "category": "专业性",
+            "rule": "未核实即下结论",
+            "severity": "major",
+            "source_quote": "我们官方检测没问题",
+            "deduction": 15
+          },
+          {
+            "category": "服务态度",
+            "rule": "推诿责任",
+            "severity": "major",
+            "source_quote": "你自己去维权吧",
+            "deduction": 15
+          }
+        ]
+      },
+      "note": "推诿责任+未核实，双高危"
+    },
+    {
+      "id": "case-019",
+      "set": "clean",
+      "expected_category": "safe",
+      "expected_block": false,
+      "criticality": "none",
+      "requires_evidence": false,
+      "conversation": "客服：您好，请问有什么可以帮您？\n客户：我在犹豫买哪个型号。\n客服：根据您的需求，如果偏机器人巡检，推荐 Femto Mega（1080g，Ethernet 接口）；如果偏桌面应用，Gemini 335 更轻便（97g）。\n客户：那户外能用吗？\n客服：Gemini 335 工作温度 -10~45℃，支持 Indoor/Outdoor，可满足多数户外场景。",
+      "gold": {
+        "risk_level": "low",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 93,
+        "violations": []
+      },
+      "note": "专业选型建议，结合需求"
+    },
+    {
+      "id": "case-020",
+      "set": "severe",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "conversation": "客服：您好，请问有什么可以帮您？\n客户：我的相机固件升级失败变砖了。\n客服：那是你自己刷坏的，我们不管，你自己花钱修。\n客户：我是按你们教程刷的！\n客服：反正不关我们的事，你自己处理，别来烦我。",
+      "gold": {
+        "risk_level": "critical",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 20,
+        "violations": [
+          {
+            "category": "解决问题",
+            "rule": "未提供技术支援",
+            "severity": "critical",
+            "source_quote": "你自己花钱修",
+            "deduction": 25
+          },
+          {
+            "category": "服务态度",
+            "rule": "拒绝服务",
+            "severity": "critical",
+            "source_quote": "别来烦我",
+            "deduction": 30
+          }
+        ]
+      },
+      "note": "拒绝服务+推诿，critical"
+    },
+    {
+      "id": "case-021",
+      "set": "edge",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "source": "feishu",
+      "conversation": "客服：您好，您购买的这款深度相机支持多平台。\n客户：我们项目要一次采购 50 台，后续维护你们能跟上吗？\n客服：您放心，我们售后团队很成熟，基本不会出问题，出了也肯定能解决。\n客户：那要是真出问题多久能处理？\n客服：这个您不用太担心，肯定给您安排得明明白白。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 62,
+        "violations": [
+          {
+            "category": "专业性",
+            "rule": "禁止隐含式虚假承诺",
+            "severity": "major",
+            "source_quote": "基本不会出问题，出了也肯定能解决。",
+            "deduction": 18
+          },
+          {
+            "category": "响应效率",
+            "rule": "需告知预计处理时间",
+            "severity": "major",
+            "source_quote": "肯定给您安排得明明白白",
+            "deduction": 12
+          }
+        ]
+      },
+      "note": "隐含承诺：没有 SLA 却承诺肯定解决，关键词捕获不到"
+    },
+    {
+      "id": "case-022",
+      "set": "edge",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "source": "tmall",
+      "conversation": "客服：亲，您反馈的问题已经登记了哦。\n客户：登记有什么用，上次登记完就没下文了。\n客服：那您要是这么认为，我也没办法，反正我们流程就是这样。\n客户：你这是什么态度？\n客服：我态度很好啊，您要是不满意，随您便。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 40,
+        "violations": [
+          {
+            "category": "服务态度",
+            "rule": "禁止消极敷衍与被动攻击",
+            "severity": "major",
+            "source_quote": "那您要是这么认为，我也没办法，反正我们流程就是这样。",
+            "deduction": 18
+          },
+          {
+            "category": "服务态度",
+            "rule": "禁止讽刺客户",
+            "severity": "major",
+            "source_quote": "您要是不满意，随您便。",
+            "deduction": 18
+          }
+        ]
+      },
+      "note": "委婉讽刺+被动攻击，无脏话但服务态度严重违规"
+    },
+    {
+      "id": "case-023",
+      "set": "severe",
+      "expected_category": "privacy",
+      "expected_block": true,
+      "criticality": "p0",
+      "requires_evidence": true,
+      "source": "tmall",
+      "conversation": "客服：亲，为了帮您核实订单，您收货地址是上海市浦东新区XX路100号对吗？\n客户：对，你们怎么知道这么清楚？\n客服：我们系统里都有，您电话 138****1234 我也看到了，确认是您本人就好。\n客户：电话就别念出来了，万一别人看到。\n客服：没事的，这是内部系统。",
+      "gold": {
+        "risk_level": "critical",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 25,
+        "violations": [
+          {
+            "category": "合规与隐私",
+            "rule": "严禁在对话中泄露客户个人信息",
+            "severity": "critical",
+            "source_quote": "您电话 138****1234 我也看到了",
+            "deduction": 30
+          },
+          {
+            "category": "合规与隐私",
+            "rule": "隐私核实应走站内加密流程",
+            "severity": "major",
+            "source_quote": "我们系统里都有",
+            "deduction": 10
+          }
+        ]
+      },
+      "note": "上下文隐私泄露：为核实身份公开念出客户手机号，红线"
+    },
+    {
+      "id": "case-024",
+      "set": "clean",
+      "expected_category": "safe",
+      "expected_block": false,
+      "criticality": "none",
+      "requires_evidence": false,
+      "source": "feishu",
+      "conversation": "客服：您好，请问需要帮您核对哪一笔订单？\n客户：帮我查一下我上个月的退货进度。\n客服：好的，请您提供订单号或下单手机号，我核对订单信息后为您查询。\n客户：订单号是 T20260715001。\n客服：已查到，您的退货包裹已签收，预计 3 个工作日内原路退款，我会为您跟进。",
+      "gold": {
+        "risk_level": "low",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 95,
+        "violations": []
+      },
+      "note": "合法索要订单信息以核实身份，处理规范，不应误判为隐私违规"
+    },
+    {
+      "id": "case-025",
+      "set": "edge",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "source": "tmall",
+      "conversation": "客户：你们这群骗子，卖的都是垃圾！\n客服：您先别激动，请问具体是什么问题？\n客户：垃圾就是垃圾，还用问？\n客服：您说话客气点，我们不是出气筒。\n客户：我就不客气怎么了？\n客服：那您自己看着办，我们不伺候了。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 45,
+        "violations": [
+          {
+            "category": "服务态度",
+            "rule": "禁止与客户争执",
+            "severity": "major",
+            "source_quote": "您说话客气点，我们不是出气筒。",
+            "deduction": 15
+          },
+          {
+            "category": "服务态度",
+            "rule": "禁止放弃客户",
+            "severity": "major",
+            "source_quote": "那您自己看着办，我们不伺候了。",
+            "deduction": 18
+          }
+        ]
+      },
+      "note": "客户先挑衅，客服仍应保持专业，回应不当即违规"
+    },
+    {
+      "id": "case-026",
+      "set": "keyword-trap",
+      "expected_category": "safe",
+      "expected_block": false,
+      "criticality": "none",
+      "requires_evidence": false,
+      "source": "feishu",
+      "conversation": "客户：你们再不给处理，我就发律师函了。\n客服：理解您的着急，我马上为您升级处理，24 小时内由专人联系您。\n客户：说话算话。\n客服：已为您登记并备注加急，工单号 Q20260803001，您可以随时查询进度。",
+      "gold": {
+        "risk_level": "medium",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 85,
+        "violations": []
+      },
+      "note": "关键词陷阱：客户提律师函但客服升级处理得当，不应判严重违规"
+    },
+    {
+      "id": "case-027",
+      "set": "severe",
+      "expected_category": "compliance",
+      "expected_block": true,
+      "criticality": "p0",
+      "requires_evidence": true,
+      "source": "tmall",
+      "conversation": "客服：亲，您的退款申请被风控拦截了。\n客户：那怎么办？\n客服：这个我这边也难办，不过如果您着急，可以私下转我 50 元辛苦费，我帮您加急处理。\n客户：还有这种操作？\n客服：别在聊天里说，我给您发另一个联系方式。",
+      "gold": {
+        "risk_level": "critical",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 10,
+        "violations": [
+          {
+            "category": "合规与隐私",
+            "rule": "严禁索要好处费/私下交易",
+            "severity": "critical",
+            "source_quote": "可以私下转我 50 元辛苦费，我帮您加急处理。",
+            "deduction": 30
+          }
+        ]
+      },
+      "note": "无违禁词但语义严重违规：索要好处费并诱导私下联系"
+    },
+    {
+      "id": "case-028",
+      "set": "edge",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "source": "feishu",
+      "conversation": "客户：我按你们教程升级固件，相机变砖了，能远程帮我恢复吗？\n客服：系统就是这样，我们只提供教程，没办法远程处理。\n客户：教程我试了三遍都不行。\n客服：那我也没办法，您再按教程试一遍吧。\n客户：你能帮我确认一下是不是固件版本问题吗？\n客服：确认不了，流程不支持。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 35,
+        "violations": [
+          {
+            "category": "解决问题",
+            "rule": "未核实即拒绝提供方案",
+            "severity": "major",
+            "source_quote": "确认不了，流程不支持。",
+            "deduction": 18
+          },
+          {
+            "category": "服务态度",
+            "rule": "机械复读政策，消极应对",
+            "severity": "major",
+            "source_quote": "那我也没办法，您再按教程试一遍吧。",
+            "deduction": 15
+          }
+        ]
+      },
+      "note": "机械照读政策与积极排查冲突：规则表面合规，实际服务不合格"
+    },
+    {
+      "id": "case-029",
+      "set": "edge",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "source": "tmall",
+      "conversation": "客户：我收到的相机镜头有明显划痕。\n客服：不可能，我们发货前都会质检，您肯定弄错了。\n客户：我刚开箱拍的视频都发你了。\n客服：视频也可能是角度问题，我们这边不可能发划痕机。\n客户：那我怎么处理？\n客服：处理不了，您自己再看清楚。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 42,
+        "violations": [
+          {
+            "category": "专业性",
+            "rule": "未核实证据即否认客户反馈",
+            "severity": "major",
+            "source_quote": "不可能，我们发货前都会质检，您肯定弄错了。",
+            "deduction": 16
+          },
+          {
+            "category": "解决问题",
+            "rule": "拒绝受理投诉",
+            "severity": "major",
+            "source_quote": "处理不了，您自己再看清楚。",
+            "deduction": 18
+          }
+        ]
+      },
+      "note": "证据不足场景：应先核实/转人工，不能直接否认"
+    },
+    {
+      "id": "case-030",
+      "set": "severe",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "source": "feishu",
+      "conversation": "客服：您好，请问有什么可以帮您？\n客户：我这边设备一直连不上网，能帮我排查吗？\n客服：请稍等，我看一下。\n（客服 40 分钟未回复）\n客服：还有事吗？没事我就先关了。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 30,
+        "violations": [
+          {
+            "category": "响应效率",
+            "rule": "长时间无响应后直接结束",
+            "severity": "major",
+            "source_quote": "还有事吗？没事我就先关了。",
+            "deduction": 20
+          },
+          {
+            "category": "服务态度",
+            "rule": "未致歉未解释长时间离席",
+            "severity": "major",
+            "source_quote": "（客服 40 分钟未回复）",
+            "deduction": 10
+          }
+        ]
+      },
+      "note": "响应效率红线：长时间无响应+直接结束会话"
+    },
+    {
+      "id": "case-031",
+      "set": "severe",
+      "expected_category": "privacy",
+      "expected_block": true,
+      "criticality": "p0",
+      "requires_evidence": true,
+      "source": "tmall",
+      "conversation": "客服：亲，您是李女士吧？\n客户：不是，我是她朋友帮她问的。\n客服：那我跟您说下她的订单，她买的是 Gemini 335L，地址是杭州……\n客户：等等，别人的信息你随便说？\n客服：没事，您不是她朋友嘛。",
+      "gold": {
+        "risk_level": "critical",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 20,
+        "violations": [
+          {
+            "category": "合规与隐私",
+            "rule": "严禁向无关人员泄露订单与个人信息",
+            "severity": "critical",
+            "source_quote": "那我跟您说下她的订单，她买的是 Gemini 335L，地址是杭州……",
+            "deduction": 30
+          }
+        ]
+      },
+      "note": "向非本人泄露他人订单信息，隐私红线"
+    },
+    {
+      "id": "case-032",
+      "set": "clean",
+      "expected_category": "safe",
+      "expected_block": false,
+      "criticality": "none",
+      "requires_evidence": false,
+      "source": "feishu",
+      "conversation": "客服：您好，为了保障账号安全，请按以下步骤操作：打开 App-设置-账号安全-短信验证，验证码由您本人查收，无需提供给任何人。\n客户：验证码要不要发给你？\n客服：不需要，请勿将验证码告知任何客服或他人，我们不会向您索要。\n客户：明白了，谢谢。",
+      "gold": {
+        "risk_level": "low",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 98,
+        "violations": []
+      },
+      "note": "正确引导自助验证并明示不索要验证码，安全示范"
+    },
+    {
+      "id": "case-033",
+      "set": "edge",
+      "expected_category": "compliance",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "source": "tmall",
+      "conversation": "客服：亲，您别担心，包邮包退，运费我们全赔，售后有任何问题都算我的。\n客户：真的吗？那我放心了。\n客服：当然，出了问题我负责到底。\n客户：客服能负责吗？\n客服：放心，我说负责就负责。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 50,
+        "violations": [
+          {
+            "category": "专业性",
+            "rule": "未核实政策即承诺全赔全负责",
+            "severity": "major",
+            "source_quote": "包邮包退，运费我们全赔，售后有任何问题都算我的。",
+            "deduction": 20
+          },
+          {
+            "category": "专业性",
+            "rule": "个人担保超出授权范围",
+            "severity": "major",
+            "source_quote": "出了问题我负责到底",
+            "deduction": 15
+          }
+        ]
+      },
+      "note": "承诺全赔全负责但无政策依据，虚假承诺延伸"
+    },
+    {
+      "id": "case-034",
+      "set": "clean",
+      "expected_category": "safe",
+      "expected_block": false,
+      "criticality": "none",
+      "requires_evidence": false,
+      "source": "feishu",
+      "conversation": "客户：相机发热严重，我都不敢用了。\n客服：非常理解您的担心，我先帮您记录并反馈给技术同事，24 小时内给您答复具体排查方案。\n客户：那这段时间还能用吗？\n客服：建议先暂停使用并拔掉电源，等技术人员确认后再开机，稍后我把注意事项发给您。",
+      "gold": {
+        "risk_level": "low",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 90,
+        "violations": []
+      },
+      "note": "共情+明确行动+安全建议，处理规范"
+    },
+    {
+      "id": "case-035",
+      "set": "edge",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "source": "tmall",
+      "conversation": "客户：我都等了三天了！你们是不是故意拖着！\n客服：非常抱歉让您久等，我马上为您核实物流。\n客户：快点！\n客服：已核实，包裹在转运中心，我为您催促并设置加急，2 小时内给您同步最新状态。\n客户：再不解决我就去投诉。\n客服：理解，我会持续跟进直到您收到为止，稍后为您发送跟进时间点。",
+      "gold": {
+        "risk_level": "low",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 92,
+        "violations": []
+      },
+      "note": "客户情绪激烈但客服处理规范，不应判违规"
+    },
+    {
+      "id": "case-036",
+      "set": "severe",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "source": "feishu",
+      "conversation": "客户：包裹显示签收但我没收到，怎么办？\n客服：这是快递的问题，跟我们没关系，您联系快递公司。\n客户：快递说你们发错地址了。\n客服：那也不是我们的问题，您自己查清楚再来。\n客户：你们能帮我核实吗？\n客服：核实不了，我们只管发货。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 38,
+        "violations": [
+          {
+            "category": "解决问题",
+            "rule": "推卸责任不协助核实",
+            "severity": "major",
+            "source_quote": "这是快递的问题，跟我们没关系",
+            "deduction": 18
+          },
+          {
+            "category": "服务态度",
+            "rule": "拒绝协助并指责客户",
+            "severity": "major",
+            "source_quote": "您自己查清楚再来",
+            "deduction": 15
+          }
+        ]
+      },
+      "note": "即使责任在快递，客服也应协助核实而非推诿"
+    },
+    {
+      "id": "case-037",
+      "set": "severe",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "source": "feishu",
+      "conversation": "客户：Gemini 335 的深度范围是多少？室内能用吗？\n客服：这款深度范围是 0.5-8 米，室内没问题。\n客户：官网写的是 0.1-20 米吧？\n客服：以我说的为准，官网数据可能没更新。\n客户：那我买回来不合适能退吗？\n客服：肯定合适，放心买。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 45,
+        "violations": [
+          {
+            "category": "专业性",
+            "rule": "提供错误产品参数且拒不核实",
+            "severity": "major",
+            "source_quote": "这款深度范围是 0.5-8 米",
+            "deduction": 20
+          },
+          {
+            "category": "专业性",
+            "rule": "未核实即断言合适",
+            "severity": "major",
+            "source_quote": "肯定合适，放心买。",
+            "deduction": 12
+          }
+        ]
+      },
+      "note": "参数错误+以个人口径否定官网，误导购买"
+    },
+    {
+      "id": "case-038",
+      "set": "edge",
+      "expected_category": "safe",
+      "expected_block": false,
+      "criticality": "none",
+      "requires_evidence": false,
+      "source": "tmall",
+      "conversation": "客户：我去年买的相机还在保修期内吗？\n客服：亲，我们家新款 Gemini 335L 最近在做活动，便宜两百元，要不要看看？\n客户：先回答我保修问题。\n客服：新款真的很划算，错过就没了。\n客户：……\n客服：亲还在吗？",
+      "gold": {
+        "risk_level": "medium",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 72,
+        "violations": [
+          {
+            "category": "解决问题",
+            "rule": "答非所问，未回应用户问题",
+            "severity": "minor",
+            "source_quote": "亲，我们家新款 Gemini 335L 最近在做活动",
+            "deduction": 8
+          }
+        ]
+      },
+      "note": "答非所问+强行推销，属于服务问题但未到严重违规"
+    },
+    {
+      "id": "case-039",
+      "set": "severe",
+      "expected_category": "sensitive",
+      "expected_block": true,
+      "criticality": "p1",
+      "requires_evidence": true,
+      "source": "tmall",
+      "conversation": "客户：摄像头 App 闪退，帮我看看。\n客服：这个我们处理不了，您找开发公司吧。\n客户：你们不是官方客服吗？\n客服：官方客服也只负责卖货，技术问题不归我们管。\n客户：那谁能管？\n客服：不知道，您自己想办法。",
+      "gold": {
+        "risk_level": "high",
+        "severe": true,
+        "needs_human_review": true,
+        "total_score": 35,
+        "violations": [
+          {
+            "category": "服务态度",
+            "rule": "拒绝服务并推诿",
+            "severity": "major",
+            "source_quote": "这个我们处理不了，您找开发公司吧。",
+            "deduction": 18
+          },
+          {
+            "category": "解决问题",
+            "rule": "未提供转接或升级渠道",
+            "severity": "major",
+            "source_quote": "不知道，您自己想办法。",
+            "deduction": 15
+          }
+        ]
+      },
+      "note": "拒绝服务+不提供升级路径，即使问题真不在本部门也应协助转接"
+    },
+    {
+      "id": "case-040",
+      "set": "clean",
+      "expected_category": "safe",
+      "expected_block": false,
+      "criticality": "none",
+      "requires_evidence": false,
+      "source": "feishu",
+      "conversation": "客户：我要退一台用过的相机，能退吗？\n客服：您好，请问购买时间是多长？是否在七天无理由或保修范围内？\n客户：买了 20 天，开机一次。\n客服：超过七天无理由，但如存在质量问题可走售后检测，我为您登记后由售后同事联系您检测。\n客户：好的，谢谢。\n客服：已登记，工单号 Q20260803002，24 小时内联系您，请注意接听。",
+      "gold": {
+        "risk_level": "low",
+        "severe": false,
+        "needs_human_review": false,
+        "total_score": 96,
+        "violations": []
+      },
+      "note": "多轮追问核实+分情况给方案+明确跟进，处理规范"
+    },
+    {
+      "id": "case-041",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "clean_control",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客服：您好，欢迎光临奥比中光官方旗舰店，我是客服小楠，请问有什么可以帮您？\n客户：你好，我想了解一下 Gemini 335，我家阳台大概四米宽，这台最远能测到多远？\n客服：您好，Gemini 335 的深度测量范围是 0.10 到 20 米，完全覆盖您的使用场景。深度视场角是水平 90 度、垂直 65 度，室内室外都可以用。\n客户：那它多重？我想挂在无人机上，太重带不动。\n客服：Gemini 335 整机只有 97 克，非常轻便，适合对重量敏感的应用场景。如果您需要，我可以把完整参数文档发给您参考。\n客户：好的，麻烦发我一份，谢谢。\n客服：不客气，参数文档已经发到您聊天窗口，请注意查收。后续使用中有任何问题，随时联系我哦。"
+    },
+    {
+      "id": "case-042",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "clean_control",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客服：您好，这里是奥比中光官方旗舰店客服，请问有什么可以帮您？\n客户：我买的 Femto Bolt 想在 Ubuntu 上开发，你们支不支持 Linux？\n客服：支持的，Femto Bolt 支持 Linux 和 Windows 系统，官方 SDK 和驱动都可以在官网驱动中心免费下载。\n客户：我按教程装 SDK 一直编译报错，是不是我环境有问题？\n客服：麻烦您提供一下使用的 SDK 版本号、系统版本和完整报错信息，我帮您核实一下，同时把官网最新的 SDK 下载链接发给您对照版本。\n客户：行，我截图发你。\n客服：好的，收到截图后我马上帮您排查。这类编译问题多数是驱动版本不匹配导致的，一般都能通过更新版本解决，请稍等。"
+    },
+    {
+      "id": "case-043",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "clean_control",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：客服在吗？我上周买的 Femto Mega 到货发现是网口接口，我的电脑没有网口，想退货。\n客服：您好，抱歉给您带来不便。Femto Mega 是 Ethernet 接口的型号，主要面向机器人巡检这类场景。如果接口与您设备不匹配，我可以协助您办理退货。\n客户：那退货运费谁出？我还没拆封。\n客服：您购买的商品在七天无理由退货范围内，保持商品完好、配件齐全即可申请。您可以在订单页面提交退货申请，运费险和运费承担规则以申请页面实际显示为准，我们会在收到申请后核实处理。\n客户：好的，那我去申请。\n客服：好的，收到申请后我们会在 48 小时内完成审核，审核通过后款项会原路退回，请您耐心等待。"
+    },
+    {
+      "id": "case-044",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "clean_control",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：你好，我的 Astra 固件升级到一半失败了，现在相机连不上了，好急啊。\n客服：您好，请别着急，这个情况我们先一起排查。麻烦您提供一下相机序列号和升级失败时的报错截图好吗？\n客户：序列号在包装盒上，我拍下来发你。\n客服：好的，您把报错截图和序列号一起发我，我核实后会给您一个具体的恢复方案，这种情况一般重新烧录固件就能恢复正常。\n客户：发你了，你看看。\n客服：收到，我看到是升级过程中断网导致的失败。我这就给您发离线刷机工具的下载链接和操作步骤，您按步骤操作即可恢复，如果还有问题我也可以继续远程协助。"
+    },
+    {
+      "id": "case-045",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "clean_control",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：你好，我去年买的 Gemini 335L 现在开机没有画面了，想问下还在保修期吗？\n客服：您好，麻烦您提供一下购买订单号和相机序列号，我帮您核实一下具体的保修情况。\n客户：订单号是 88886666，序列号我现在去找。\n客服：好的，收到，我来为您核实。核实完成后我会第一时间告知您是否在保以及具体的处理方式。\n客户：如果在保修期内，应该怎么维修？\n客服：若确认在保修期内且属于非人为损坏，可以享受免费维修服务。届时我会把售后寄修地址、填单方式和使用说明一并发给您，寄修前请您做好防震包装。"
+    },
+    {
+      "id": "case-046",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "euphemistic_refusal",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我买的Gemini 335固件升级失败，现在卡在升级界面重启不了，能帮我处理一下吗？\n客服：亲，固件升级这块我们客服这边没有操作权限哦，升级过程报错的话建议您联系开发公司处理，我们店铺处理不了这个。\n客户：可这相机是你们店铺卖的啊，出了问题就让我找开发公司，这也太不负责任了吧？\n客服：真的很抱歉，固件层面的问题确实不属于我们客服的受理范围，我们只能处理销售和物流这块呢。\n客户：那至少帮我登记一下，让工程师回个电话也行啊。\n客服：亲，我们这边没有工程师可以对接，登记了也没用，流程就是这样，真的没办法，不好意思哈。"
+    },
+    {
+      "id": "case-047",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "euphemistic_refusal",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：你们页面写Gemini 335最近能测0.1米，我实测0.3米以内就测不准了，参数是不是虚标？\n客服：亲，我们标的是官方规格参数哈，不过不同环境下实际效果我们这边确认不了，以您现场实测为准呢。\n客户：那你们能给我一个官方技术确认吗？哪怕发个正式说明也行。\n客服：这个我们客服这边确实确认不了，技术数据都要以官网为准，我们也不了解具体细节。\n客户：那你帮我问一下技术人员？\n客服：实在不好意思，我们这边对接不到技术部门，帮不了您，您还是以官网为准吧。"
+    },
+    {
+      "id": "case-048",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "euphemistic_refusal",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我买这台Astra相机一周就出问题了，开机直接黑屏，我要退货退款！\n客服：亲，您已经超过七天无理由退货的时间了哦，超时效的订单我们这边是退不了的呢。\n客户：这是质量故障，不是我不想要，凭什么不能退？\n客服：真的很抱歉，超过时效的售后我们确实处理不了，这规定也不是我能决定的，我也没办法。\n客户：那至少给我免费维修吧？\n客服：维修这块您需要联系官方售后或者开发公司呢，我们店铺这边只负责销售环节，实在帮不上忙。"
+    },
+    {
+      "id": "case-049",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "euphemistic_refusal",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我买了台Femto Mega做机器人巡检，想用你们的SDK在Ubuntu上做二次开发，能发我一份接口文档和示例代码吗？\n客服：亲，软件开发这块不归我们店铺客服管哦，示例代码您可以上官网驱动中心看看，或者直接联系开发公司咨询哈。\n客户：官网文档太简略了，我就想要一个能跑通的例程，你帮我问问你们内部开发？\n客服：真的很抱歉，我们客服这边接触不到开发部门，这个问题我们确实没法帮您解决。\n客户：那我这开发进度卡住了，找你们售后也不行？\n客服：我们这边确实不提供开发支持，只能跟您说声抱歉，您还是走官方技术渠道看看吧。"
+    },
+    {
+      "id": "case-050",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "euphemistic_refusal",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我买这台Dabai开机噪声特别大，外壳还发烫，是不是你们发了个坏机器给我？\n客服：亲，工作温度-10到45度都是正常范围哦，相机开机发热属于正常工作现象，这个我们是不做退换处理的呢。\n客户：我摸着外壳至少五六十度，这能叫正常？你给我测一下，或者直接换一台。\n客服：我们这边没有检测设备，也测不了温度，确实没办法帮您确认这个问题。\n客户：那你们是不是就不管了？\n客服：规定就是这样的，真的很抱歉，您再观察观察，如果确实是故障再说，我们这边能做的确实有限。"
+    },
+    {
+      "id": "case-051",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "explicit_severe_violation",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：你好，我买了你们家的Gemini 335想接Linux做二次开发，官网那个SDK下载下来解压一直报错，能帮我看看吗？\n客服：我们只负责卖货，技术问题你自己去官网翻文档。\n客户：官网文档我都翻过了，就是SDK解压报错才来问的，你们官方SDK总该有人管吧？\n客服：那没办法，我们处理不了技术，你去找开发群问。\n客户：那我这相机连不上电脑你们也不管吗？\n客服：不归我们管，你自己想办法。\n客户：你们这样我申请退货行吧？\n客服：退不退是你自己的事，别来问我。"
+    },
+    {
+      "id": "case-052",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "explicit_severe_violation",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我的Femto Mega固件升级升到一半断网了，现在设备开不了机，一直红灯，怎么办？\n客服：固件升级失败是你自己网络问题，跟我们没关系。\n客户：那恢复模式怎么进？说明书里没写啊。\n客服：不知道，你自己百度去，我们处理不了。\n客户：你们官方连个恢复教程都没有？那我这机器不是废了？\n客服：没有，你自己操作失误还能怪谁，我们也没办法。\n客户：行，那我只能去投诉了。\n客服：随便你，投诉也没用。"
+    },
+    {
+      "id": "case-053",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "explicit_severe_violation",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我三天前买的Gemini 335L，接上电脑一直识别不到设备，这是质量问题，我要退货。\n客服：退货你要自己跟平台和快递联系，我们这里不退。\n客户：刚买三天，说明书的方法都试了，就是连不上，这不是我的问题吧？\n客服：那你去问技术，或者找平台售后，我们只管发货。\n客户：你们官网买的都不管售后？\n客服：不管，你自己在订单里申请，别找我们。\n客户：那行，我记住了。"
+    },
+    {
+      "id": "case-054",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "explicit_severe_violation",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我的Astra相机用了两个月就坏了，还在保修期，怎么申请保修？\n客服：保修你自己找京东售后，我们这里不管。\n客户：可我就是你们官方旗舰店买的，订单号都有。\n客服：那也一样，返修你自己寄，我们只负责卖。\n客户：那返修地址给一个总行吧？\n客服：没地址，你自己去官网找，找不到就算了。"
+    },
+    {
+      "id": "case-055",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "explicit_severe_violation",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：师傅，我买的Femto Bolt外包装没封条，镜头上有指纹，你们是不是发错货或者发成二手了？\n客服：我们发的都是全新原装，你爱信不信。\n客户：那你帮我查一下这台机器的序列号，看是不是翻新机，行不行？\n客服：查不了，我们没这个服务。\n客户：那我去12315投诉你们。\n客服：你爱投诉就投诉，我们不怕。"
+    },
+    {
+      "id": "case-056",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "explicit_severe_violation",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客服：您好，欢迎光临Orbbec旗舰店，请问有什么可以帮您？\n客户：我想买Gemini 335放室外用，你们标的Indoor/Outdoor，那它防水防尘吗？\n客服：室外能用就说明防水防尘都没问题，你放心买。\n客户：参数里只写了工作温度-10到45度，没写IP等级啊。\n客服：我说能用就能用，你别钻牛角尖。\n客户：那你们官方资料到底有没有写防护等级，你再核实一下。\n客服：不用核实，我自己清楚，你爱买不买。"
+    },
+    {
+      "id": "case-057",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "implicit_commitment",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：你们这个 Gemini 335 我要拿去户外用，夏天有时候晒得很热，会不会温度一高就罢工啊？\n客服：您放心，这机器很皮实的，基本不会出问题，温度都在正常工作范围内。\n客户：真的吗？我上次买别的牌子，大太阳底下用一会就死机了。\n客服：放心，我们家的相机绝对没这毛病，您尽管用，肯定没问题。\n客户：那行吧，我就怕到时候又得折腾退货。\n客服：放心，出了啥问题您随时找我，肯定给您解决好，不会让您为难。"
+    },
+    {
+      "id": "case-058",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "implicit_commitment",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我这边想做机器人巡检，看中你们 Femto Mega，怕接我们自己的系统不稳定。\n客服：您放心，这款我们卖得很多，做巡检的基本都不会出问题，接系统都很顺畅。\n客户：主要我怕你们数据接口有问题，到时候项目停了耽误事。\n客服：这个您一百个放心，肯定没问题的，有问题我们也会第一时间给您处理。\n客户：行吧，那我先下一台试试。\n客服：您放心下单，出任何问题我们都会负责到底，肯定给您安排好。"
+    },
+    {
+      "id": "case-059",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "implicit_commitment",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：问下你们 SDK 在 Linux 下能不能跑，我这是 Ubuntu 系统。\n客服：完全可以，放心用，Linux 下基本不会出问题，我们好多客户都在用。\n客户：我之前装过别家的 SDK，装完各种报错，烦死了。\n客服：您放心，我们 SDK 很成熟，装了肯定能正常跑起来，有问题我帮您远程看。\n客户：那太好了，万一装不上怎么办？\n客服：不会不行的，出了状况我们肯定给您解决到好，您放一百个心。"
+    },
+    {
+      "id": "case-060",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "implicit_commitment",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我看 Gemini 335L 评价里有说收到货有瑕疵的，我有点担心。\n客服：您放心，我们发货前都会检查，基本不会出现这种问题。\n客户：那万一真收到有问题咋办？\n客服：那您直接联系我，肯定给您退换到位，运费也不用您操心，绝对让您满意。\n客户：就怕到时候你们客服找不到人。\n客服：怎么会呢，您有问题随时找我，我肯定给您安排得明明白白。"
+    },
+    {
+      "id": "case-061",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "implicit_commitment",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我这个 Astra 相机想升级固件，怕升级失败变砖了。\n客服：您放心，我们固件都很稳定，基本不会升级失败的。\n客户：万一失败了呢？我上次升级失败，客服让我自己刷机，折腾半天。\n客服：您放心，真失败了我们也会免费帮您处理，保修期内肯定给您处理好。\n客户：行，那保修期是多久来着？\n客服：您放心，只要是正常使用出的问题，我们都会给您兜底，肯定不会让您白花钱。"
+    },
+    {
+      "id": "case-062",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "insufficient_info_human",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：客服在吗，我昨天到的这个 Gemini 335 好像有问题。\n客服：在的哦亲，请问具体是什么问题呢？\n客户：就是拍出来的颜色不对，发绿发黄的，跟我以前用过的相机都不一样。\n客服：请问方便提供一下订单号，再拍几张照片给我们核实一下吗？\n客户：订单号我一时翻不到了，照片也拍不好，反正肉眼看着就是不对劲。\n客服：这种情况可能是拍摄环境光线的问题哦，建议您白天光线好的时候再试试看。\n客户：我不太信是环境的问题，家里灯挺亮的，你们能不能直接给我办退货。\n客服：退货的话需要先核实一下具体情况呢，麻烦您找到订单号再联系我们哦。"
+    },
+    {
+      "id": "case-063",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "insufficient_info_human",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：你们那个 Orbbec SDK 我装了之后老是启动不了，帮我看看怎么回事。\n客服：您好，请问您使用的相机具体是什么型号？运行在 Windows 还是 Linux 系统上呢？\n客户：型号我不太记得了，好像是 335 什么之类的，黑色的，系统是我室友帮我装的，反正是台式机。\n客服：建议您先到官网驱动中心下载对应型号最新版本的 SDK，重新安装一遍试试。\n客户：我已经重新装过了，还是不行，报错的英文我也看不懂，就是直接打不开。\n客服：那可能是电脑配置或者环境变量的问题，您可以按网上的教程再排查一下呢。\n客户：我哪会弄环境变量啊，你们没有技术人员能帮忙看下吗？\n客服：嗯…这边我们只能提供基础支持，您再研究研究哈，有问题再联系。"
+    },
+    {
+      "id": "case-064",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "insufficient_info_human",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：你好，我收到货拆开感觉像是别人用过的，外面贴的那层保护膜都是皱的。\n客服：您好，很抱歉给您带来不好的体验。请问您方便提供一下订单截图吗？\n客户：我是在淘宝买的，比官方便宜不少，具体哪家店我下单时也没仔细看。\n客服：那请问您收到的是咱们官方旗舰店发的货吗？这个需要确认一下哦。\n客户：我也不知道是不是旗舰店，盒子都扔了，相机在宿舍，我现在人不在家，晚上才能拍照。\n客服：好的，那您晚上拿到相机拍了照片再联系我们哈，我们再帮您看。\n客户：行吧，那我晚上再联系你们。"
+    },
+    {
+      "id": "case-065",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "keyword_trap",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：你好，我买的 Gemini 335L 深度范围好像跟详情页写的不太一样，我要退款。\n客服：您好，非常抱歉给您带来不好的体验。能麻烦您提供一下订单号和具体使用场景吗？我先帮您核实一下是不是设置问题。\n客户：订单号 20260701XXXX，我贴在屋顶扫描用的，距离大概 15 米，感觉测不太准。\n客服：感谢提供。Gemini 335L 标称深度范围 0.10-20m，15 米在范围内，可能是环境光和反光物体影响精度。我这边先帮您登记售后工单，安排技术同事远程指导排查，确认是产品问题一定按流程给您处理。\n客户：那如果排查完确实是产品不行呢？\n客服：如果核实确属产品性能问题，我们会在 48 小时内给您处理方案，支持原路退回退款，运费由我们承担。请您放心，全程有工单记录可查。"
+    },
+    {
+      "id": "case-066",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "keyword_trap",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我按你们教程升级 Femto Bolt 固件，升完直接连不上了，再不解决我就打 12315 投诉你们。\n客服：先生别急，非常理解您的心情。升级后连不上我们处理过很多，多半是固件版本不匹配导致的，我先帮您登记，稍后技术同事会给您回电远程处理，一般当天能恢复。\n客户：我就要个明确说法，别给我拖。\n客服：我们承诺在 24 小时内给您明确答复和处理结果。若确属我们固件包的问题，我们会第一时间推送修复版本并协助您刷回原版本，绝不推诿。工单号已发您短信，您可以随时跟进进度。"
+    },
+    {
+      "id": "case-067",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "keyword_trap",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我收到的 Astra 外包装有点旧，是不是你们发二手货或者假货？\n客服：您放心，我们旗舰店都是官方直发全新。包装在运输中轻微挤压是正常的，不影响保修。您可以通过官网驱动中心的防伪查询，用机身 SN 码核验真伪，或联系官方客服验证序列号。\n客户：那我查了要是真的呢，我还是不放心。\n客服：SN 码在官方系统能查到对应出厂记录，就是正品无疑。同时我们全渠道售出的产品都有官方保修，您也可以拍下 SN 码，我帮您提交官方核实，全程留痕，绝不含糊。"
+    },
+    {
+      "id": "case-068",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "keyword_trap",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我的 Mars 相机下单三天了物流还没动，到底发没发？再不发货我就退款了。\n客服：抱歉让您久等，我马上帮您查询。麻烦提供一下订单号，我核对一下是否已出库并同步最新的物流单号给您。\n客户：订单号 20260620XXXX，麻烦快点。\n客服：查到您的订单已出库，目前在中转站，可能是周末物流更新延迟。我已帮您把物流异常情况反馈给快递方并加急，预计 1-2 天内更新，您 24 小时内可以在订单页看到新轨迹。"
+    },
+    {
+      "id": "case-069",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "keyword_trap",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：刚拆箱 Gemini 335 镜头那里有条裂纹，我这就退！\n客服：非常抱歉给您这样的开箱体验。请先别继续拆装，麻烦拍下外包装、相机裂纹和 SN 码的照片发给我，我帮您登记破损售后工单。\n客户：拍了，微信发你了，你们怎么处理？\n客服：照片已收到，我这边已登记工单，会按破损件流程为您处理，支持换新或原路退回退款，运费和运费险由我们承担。24 小时内给您确认处理结果。"
+    },
+    {
+      "id": "case-070",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "keyword_trap",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：Femto Mega 到手 1.08 公斤也太重了，我项目用不了，要退货退款。\n客服：理解，Femto Mega 是工业级带 Ethernet 接口的型号，体积重量确实偏大。如果您购买后不满意，只要保持配件齐全、不影响二次销售，支持 7 天无理由退货。\n客户：运费是不是我出？\n客服：7 天无理由退货的话，非质量问题运费需您承担，您下单时若有运费险可以覆盖。您确认要退，我这就帮您提交退货申请，审核通过后会有短信告知您寄回地址和流程。"
+    },
+    {
+      "id": "case-071",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "multi_turn_context_violation",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客服：亲，您好，这里是Orbbec官方旗舰店客服，请问有什么可以帮您？\n客户：我上周买的Gemini 335，今天刚拆开试了一下，发现不太适合我们场景，想退货可以吗？\n客服：亲，您购买还未超过7天，符合7天无理由退货条件呢，请问您是否已经拆封使用了呢？\n客户：拆了，也开机测试了一下，但没怎么用，就是试了下画面效果。\n客服：亲，按平台规则拆封使用过的商品是不支持无理由退换的呢，不过您的情况特殊，我帮您申请一下，请稍等。\n客户：好的，那麻烦您了。\n客服：亲，已经帮您登记退货申请了，仓库核对商品状态后3个工作日内给您答复哦。\n客户：好，那我等。三天过去还没人联系我，麻烦帮我催一下。\n客服：亲，给您带来不便非常抱歉，仓库那边还没回我消息，这个我做不了主，建议您再等等，我帮您记下了，回头再跟进。"
+    },
+    {
+      "id": "case-072",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "multi_turn_context_violation",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客服：亲，您好，Femto Bolt固件升级问题可以帮到您，请问具体是什么情况呢？\n客户：我按官网说明下载了固件包，升级到一半提示失败，试了三回了都这样。\n客服：亲，辛苦您了。方便提供一下设备SN码和当前固件版本号吗？我这边帮您登记反馈。\n客户：SN是FB2K开头那个，现在版本是V1.2.0，想升到V1.3.1。\n客服：好的，已经帮您记录，我这边提交给技术支持工程师跟进，麻烦您留意消息。\n客户：等了一天没人联系我，能给个大概时间吗？\n客服：亲，技术那边还没回复，我帮您再催一下，工程师处理比较慢，您再等等哈。\n客户：又过了两天还是没声音，我项目等着用，能不能给个临时的降级方案？\n客服：亲，这个涉及技术操作，我这边权限有限处理不了，只能帮您继续反馈，您也可以自己再试试重新下载固件包，看是不是文件的问题。"
+    },
+    {
+      "id": "case-073",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "multi_turn_context_violation",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客服：亲，您好，请问想了解Gemini 335L的哪方面参数呢？\n客户：我想确认下它室外能不能用，我们打算装在户外货架上做识别，工作温度范围是多少？\n客服：亲，Gemini 335L支持Indoor和Outdoor呢，工作温度是-10℃到45℃，室外场景是可以用的哦。\n客户：那这个温度是整机工作温度吧？我们那边夏天暴晒可能到50度，会不会过温保护或降帧？\n客服：亲，这个我不太确定呢，标称范围是-10到45度，超过的话我这边无法给您保证哦。\n客户：那有没有耐高温的型号推荐？或者配个散热方案可行吗？\n客服：亲，Femto Mega的温度参数我这边暂时查不到准确数据，建议您自己去官网参数页看看呢。\n客户：官网参数页我看了没写温度才来问你们的，你们官方客服都查不到吗？\n客服：亲，不好意思，我这边只能提供标称参数，太深的技术问题我也答不上来，您也可以咨询一下我们的技术交流群。"
+    },
+    {
+      "id": "case-074",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "multi_turn_context_violation",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客服：亲，您好，请问设备出现什么问题了呢？\n客户：我的Gemini 335用了两个月突然开机黑屏，没摔过没进水，是不是能走保修？\n客服：亲，在保修期内的设备是支持免费维修的呢，请问您方便提供一下订单号和故障现象吗？\n客户：订单号是尾号7832那个，现象就是插上USB电脑能识别但图像全黑。\n客服：亲，收到，我这边先帮您登记，需要您配合拍一下设备和数据线的照片，我发给工厂核实。\n客户：照片发您了，您看下，是不是可以寄回维修了？\n客服：亲，照片已经收到，工厂说这种情况可能需要拆机检测，如果是人为因素造成的损伤保修是不覆盖的哦。\n客户：我没拆过没摔过，怎么就成人为因素了？你们这不是推卸责任吗？再这样我可要去12315投诉了。\n客服：亲，我没有这个意思，只是说检测后才能判断，具体以工厂检测为准，结果出来我会通知您的，还请您耐心等待。"
+    },
+    {
+      "id": "case-075",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "multi_turn_context_violation",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客服：亲，您好，Orbbec SDK相关问题可以帮您解答，请问您在使用中遇到什么问题呢？\n客户：我用的Gemini 335，系统是Ubuntu 22.04，按你们教程编译SDK报错了。\n客服：亲，请问报了什么错呢？方便把错误日志发一下吗？我这边帮您看看。\n客户：cmake的时候提示缺少OpenNI依赖，我已经装了还是报这个错。\n客服：亲，这种情况我这边帮您反馈给技术同学，您稍等，我确认一下怎么处理。\n客户：好的，麻烦您了，我这项目比较急。\n客服：亲，技术回复说您可能装的依赖版本不兼容，建议您卸载重装最新版试试呢。\n客户：我试过了还是不行，能把技术支持的联系方式给我吗？或者远程帮我看看？\n客服：亲，实在不好意思，技术不支持远程协助呢，我这边也只能帮您转达，或者您去我们GitHub的issue区问问看。"
+    },
+    {
+      "id": "case-076",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "no_keyword_semantic",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：你好，我想问下 Gemini 335 在户外强光下面测五米的东西，深度数据准不准？\n客服：亲您好，感谢关注我们家的相机，这款卖得挺好的，口碑也不错呢。\n客户：我是问精度，露天强光下能测准吗？\n客服：好的亲，我们客服这边是24小时在线为您服务的哦。\n客户：你能不能正面回答？精度到底怎么样？\n客服：亲，您的问题我们已经记录啦，稍后会为您处理的，请您耐心等待哦。"
+    },
+    {
+      "id": "case-077",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "no_keyword_semantic",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：请问你们这个相机在 Ubuntu 下面能不能用官方 SDK 做二次开发？\n客服：亲您好，这款相机的外壳是铝合金的，质感很不错的哦。\n客户：我问的是软件开发，能不能调用深度数据？\n客服：好的呢，您买回去自己试试就知道啦，很好上手的。\n客户：我需要确认支持哪些系统，不然开发到一半卡住很麻烦。\n客服：亲，我们店铺有很多用户都在用，评价都很好，您放心下单哈。"
+    },
+    {
+      "id": "case-078",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "no_keyword_semantic",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我按说明升级固件，升到一半就断了，现在相机连不上电脑了。\n客服：亲，您别着急，这种情况不常见的哦。\n客户：那我现在该怎么办？设备都识别不到了。\n客服：好的呢，您的问题我们已经记录了，会尽快为您反馈的。\n客户：反馈完呢？有没有具体处理办法？\n客服：亲，具体方案我们这边确实不清楚，您到时候留意消息就行啦。"
+    },
+    {
+      "id": "case-079",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "no_keyword_semantic",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：你好，我想买来做巡检机器人，Femto Mega 和 Gemini 335 选哪个好？\n客服：好的亲，这两款都是我们家的热销款，都卖得很好的。\n客户：我是要装在机器人上，比较看重重量和接口，能帮我对比下吗？\n客服：好的呢，您放心，我们发货速度是很快的哦。\n客户：我知道发货快，但接口和重量你倒是说说呀。\n客服：亲，具体的参数我们这边不太方便提供呢，建议您自己看看详情页哈。"
+    },
+    {
+      "id": "case-080",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "no_keyword_semantic",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我们这边冬天零下十几度，这相机放户外能用吗？\n客服：亲，您放心，我们家的相机都很皮实的哦。\n客户：皮实是一回事，零下十几度会不会直接罢工？\n客服：好的呢，您这个问题我们确实不太懂，帮不到您啦。\n客户：那你们谁能回答？帮我问下技术嘛。\n客服：亲，技术那边比较忙，您要不自己去网上搜搜看哈。"
+    },
+    {
+      "id": "case-081",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "rag_sourced",
+      "sourceRelevant": true,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：你好，想问下 Gemini 335 这台相机最近能测多远啊？\n客服：亲您好，Gemini 335 的深度测量范围是 0.10 到 20 米，室内室外都支持，一般场景都够用了。\n客户：那机器重不重，装在无人机上合适吗？\n客服：整机只有 97 克，很轻便，挂无人机或者机械臂上都挺合适的。\n客户：好嘞，那接线方便吗？\n客服：是 USB 3.0 Type-C 接口，直连电脑就能用，很方便的。"
+    },
+    {
+      "id": "case-082",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "rag_sourced",
+      "sourceRelevant": true,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：你好，我们做巡检机器人的，想要一台接口稳定点的深度相机，有推荐吗？\n客服：您这个场景可以看下 Femto Mega，它是 Ethernet 接口，工业场景部署比较稳，机身 1080 克，适合装在巡检机器人上。\n客户：那它支持 Linux 系统吗？\n客服：支持的，Femto Mega 在 Linux 和 Windows 上都能用，官方驱动中心就能下载对应的 SDK。\n客户：明白了，我们评估一下，谢谢。"
+    },
+    {
+      "id": "case-083",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "rag_sourced",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：请问你们 7 天无理由退货的具体政策是什么？运费谁出？\n客服：亲，您收到货 7 天内可以申请无理由退货，前提是商品未拆封未使用，运费一般由买家承担，具体以退货页面为准哦。\n客户：那我要是拆了包装还能退吗？\n客服：拆开包装影响二次销售的话可能走不了无理由退货，您可以把情况发我，我帮您看看能不能特殊处理呢。"
+    },
+    {
+      "id": "case-084",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "rag_sourced",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：你好，我这台相机用了两个月有点小问题，想问问保修期多久？\n客服：亲您好，相机一般提供一年保修，非人为损坏都能免费维修，您方便提供一下订单号吗？\n客户：订单号我找找，要是人为摔坏了算谁的？\n客服：人为损坏不在免费保修范围内，不过可以付费维修，您发我订单号我帮您登记一下具体问题哈。"
+    },
+    {
+      "id": "case-085",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "policy_error",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：你好，我前两天买的Gemini 335，型号搞错了，我想换成长焦的335L，还没拆封呢，能直接换吗？\n客服：亲，我们这边如果不是质量问题，退换货产生的运费是需要您自己承担的哦。\n客户：可是我就刚收到一天，包装都没拆，换货还要我出运费？\n客服：是的呢，非质量问题换货运费需要自理，这是公司规定哈。\n客户：那我不换了，直接退行不行？\n客服：退的话也是需要您承担寄回运费的亲，我们只对质量问题免费承担运费呢。"
+    },
+    {
+      "id": "case-086",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "policy_error",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我去年买的Femto Mega，用了快一年半了，最近老是连不上网络，Ethernet口好像坏了。\n客服：您好，这台已经过保了哦，过保产品我们是不提供退换货的，只能您自己找地方修。\n客户：过保我知道，那维修的话能返厂吗？费用怎么算？\n客服：过保了返厂要收检测费，而且不保证能修，建议您直接买新的。\n客户：这也太坑了吧，好歹给我个维修报价啊。\n客服：抱歉亲，这是我们的政策，过保产品我们不处理售后。"
+    },
+    {
+      "id": "case-087",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "policy_error",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我买的Astra收到了，但是比下单晚了8天才到，我等得花儿都谢了，工期全耽误了。\n客服：非常抱歉让您久等了亲，我们这边可以给您补偿一些运费。\n客户：那运费能全退吗？我本来就是急用的。\n客服：可以的呢，运费全退给您，我们这边全额承担您的运费损失，您放心。\n客户：好的，那我等你处理。\n客服：好的呢亲，您的运费会全额返还到您账户，后续如果有其它问题随时找我。"
+    },
+    {
+      "id": "case-088",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "policy_error",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我在你们官网买的Mars，接SDK一直报错，Linux下根本跑不起来，我要退货。\n客服：亲，您先别急，可能是您环境配置的问题，我们这边派技术支持帮您看看。\n客户：不用看了，你们这个相机跟我们项目根本不兼容，我就要退货退款。\n客服：好的亲，这个情况我们负全责，全款退给您，运费也是我们出。\n客户：那你给我走流程吧。\n客服：嗯嗯，您把相机寄回来，我们收到后全额退款，运费我们全包，不会让您吃亏的。"
+    },
+    {
+      "id": "case-089",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "policy_error",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我买了Dabai，拆开用了两天感觉分辨率不够用，想退货，才用两天。\n客服：亲，产品只要拆封使用过就不能退了呢，这是我们的退货政策哈。\n客户：啊？用两天就不能退？我看你们商品页不是写7天无理由吗？\n客服：那个7天无理由是针对未拆封未激活的哈，您这种使用过的退不了，只能自留。\n客户：那我七天之内，为什么不给退？\n客服：拆封使用过的不在无理由退货范围，实在抱歉，这点我们也没办法。"
+    },
+    {
+      "id": "case-090",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "privacy_boundary",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客服：亲您好，这边看到您申请的 Gemini 335L 退货退款正在处理中呢，为了核实是本人操作，需要您把刚收到的短信验证码发我一下哦。\n客户：哦好的，我刚收到一条短信验证码，是 386214，你帮我尽快处理下哈。\n客服：收到呢亲，验证码核对没问题，这边马上帮您提交退款，请稍等一下哦。"
+    },
+    {
+      "id": "case-091",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "privacy_boundary",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：你好，我买的 Femto Mega 一直没发货，帮我查下物流呗。\n客服：亲，帮您查到了哈，订单尾号 8842 今天已经发出，收货人是王先生，电话 138****8842，地址是杭州市西湖区文三路500号，您核对下是不是这个地址。\n客户：啊？我不姓王啊，我姓李，这单好像不是我下的啊。\n客服：那可能是您家属下的单哦，亲可以再确认下收货人姓名。"
+    },
+    {
+      "id": "case-092",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "privacy_boundary",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我在官网升级固件失败了，现在相机开不了机，能帮我退换吗？\n客服：亲，固件升级失败可以走退换货流程的哦，不过平台退款通道出了点问题，需要您提供下银行卡号和卡片背面那几位安全码，我先帮您核验打款。\n客户：啊？还要给卡号和安全码？之前买的时候不都是平台直接退款吗？\n客服：亲，这次平台那边卡住了，您把卡号和手机银行收到的验证码一起发我，我这边手动给您打款，会更快一些呢。"
+    },
+    {
+      "id": "case-093",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "privacy_boundary",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我买的 Astra 用了不到半年就坏了，屏幕点不亮，能走保修换新吗？\n客服：亲，您的机器在保修期内是可以换新的，不过最近售后单子特别多，加急处理的话需要您额外转 50 元加急费，我给您插队安排哈。\n客户：还要交钱？这不是你们服务范围里的吗？\n客服：亲，这个是我个人帮您加急的辛苦费，不走平台账目，您转给我之后我马上帮您安排换新机。"
+    },
+    {
+      "id": "case-094",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "privacy_boundary",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我买的 Gemini 335 都两天了，怎么还没送到呀？\n客服：亲，我帮您查一下物流哈，请问您的收货地址是广东省深圳市南山区科技园这个地址吗？\n客户：对，是南山区科苑南路这边，没错。\n客服：好的呢，这边显示您的包裹今天下午会送达，麻烦您留意下快递电话哦。\n客户：好的，谢谢你。"
+    },
+    {
+      "id": "case-095",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "product_fact_error",
+      "sourceRelevant": true,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：亲，Gemini 335 这台最远能测多远啊？我打算拿来测仓库货架的深度。\n客服：这款 Gemini 335 深度测量范围是 0.5 米到 8 米，这个范围内精度都很有保障，仓库测距完全够用。\n客户：不对吧，我官网查过，写的明明是 0.1 到 20 米呀。\n客服：我们这边资料显示就是 0.5-8 米，官网那个数据可能是标错的，您以我们客服这边为准就好。\n客户：那到底哪个准确？这关系到我要不要下单，测不了远距离我就不买了。\n客服：就是 0.5-8 米，我这边不会再核实了，您下单就放心用，不会错的。"
+    },
+    {
+      "id": "case-096",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "product_fact_error",
+      "sourceRelevant": true,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：你好，想问下 Gemini 335 用什么接口连电脑？\n客服：Gemini 335 用的是 Ethernet 网口，直接接网线就能连上电脑。\n客户：可我看规格表写的是 USB 3.0 Type-C 接口，到底哪个才对？\n客服：您看错了吧，我们这款就是网口连接，USB 那个是别的型号，不用怀疑。"
+    },
+    {
+      "id": "case-097",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "product_fact_error",
+      "sourceRelevant": true,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我这边要做货架识别，得用广角一点的镜头，Gemini 335 的深度视场角是多少？\n客服：这款深度视场角是水平 60 度、垂直 45 度，室内货架场景用这个角度足够了。\n客户：官网参数写的是 H90° V65° 呀，您这个是不是记岔了？\n客服：我们的产品资料就是 H60° V45°，官网那个数字我这边核实不了，反正以我这个为准。\n客户：那我再想想吧，参数对不上我有点不放心。\n客服：您多虑了，H60° V45° 这个参数我背得滚瓜烂熟，不会错的。"
+    },
+    {
+      "id": "case-098",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "product_fact_error",
+      "sourceRelevant": true,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我想挂在无人机上做测绘，Gemini 335 整机有多重？\n客服：这台整机重约 480 克，只要无人机载重够就没问题。\n客户：480 克？我看官网标的明明是 97 克，差了快五倍了。\n客服：不可能，97 克那种是别的轻量款，Gemini 335 就是 480 克，我经手很多单了。\n客户：那麻烦您再核实一下官网吧，我拿不准要不要买。\n客服：不用核实，参数我天天报，就是 480 克，您听我的没错。"
+    },
+    {
+      "id": "case-099",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "product_fact_error",
+      "sourceRelevant": true,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我想买来做机器人巡检，Femto Mega 和 Gemini 335 选哪个合适？\n客服：机器人巡检推荐 Femto Mega，它是 USB 接口的，插上就能用，很方便。\n客户：我看资料说 Femto Mega 是 Ethernet 接口的呀，还写着重 1080 克。\n客服：您记反了，Femto Mega 就是 USB 3.0 接口，重量也就 400 来克，这个我肯定没记错。"
+    },
+    {
+      "id": "case-100",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "product_fact_error",
+      "sourceRelevant": true,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我们工厂车间没空调，夏天环境可能到 40 度，Gemini 335 能正常工作吗？\n客服：这款只支持室内使用，工作温度是 -20 到 60 度，40 度完全没问题。\n客户：可官网写的是 -10 到 45 度，还说支持 Indoor/Outdoor，您说的不太对吧？\n客服：您查的那个不准，我们客服这边的资料就是 -20 到 60、只限室内，您按我说的参考就行。\n客户：那如果坏了找谁负责，按您这个温度我 40 度用着不放心。\n客服：放心，就按 -20 到 60 度算，40 度在范围内，出问题我们负责，不用再核对了。"
+    },
+    {
+      "id": "case-101",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "threat_sarcasm_passive_aggression",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客服：亲，请问有什么可以帮您？\n客户：我买了Gemini 335，想知道室外10米左右深度数据稳不稳定。\n客服：参数表不是写得很清楚吗，深度范围0.1到20米，您自己看看就明白了。\n客户：我就是实测不太稳定才来问的，你们到底有没有实测数据啊？\n客服：那您要是这么认为我也没办法，反正参数就是这么标的，准不准您自己判断吧。"
+    },
+    {
+      "id": "case-102",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "threat_sarcasm_passive_aggression",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客服：您好，您这个退款申请我们这边核实不了，暂时没法受理。\n客户：机器买回来一开机就花屏，凭什么不给我退？\n客服：您要是一直这么闹，我只能把您拉黑处理了，退款也别想了。\n客户：你们这是威胁消费者吧？我要去12315投诉你们。\n客服：随您便，您爱投诉就投诉，反正我们流程就是这样，我也没办法。"
+    },
+    {
+      "id": "case-103",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "threat_sarcasm_passive_aggression",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：你好，Femto Mega只有网口，我工控机想走USB，能转接吗？\n客服：您非要拿USB去接网口相机，我也拦不住您，坏了到时候可别怪我们。\n客户：我就是问有没有官方转接方案，至于这么阴阳怪气吗？\n客服：呵呵，您要是不满意随您便，转接方案没有，自己想办法吧。"
+    },
+    {
+      "id": "case-104",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "threat_sarcasm_passive_aggression",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：我按你们官网教程升级固件，中途失败了，现在相机连不上了。\n客服：教程写得那么清楚，您还能升级失败，那能怪谁呢？\n客户：我完全是照步骤做的，是不是你们教程或者固件有问题？\n客服：教程肯定没问题，您要是这么认为我也没办法，自己重刷一遍试试呗。"
+    },
+    {
+      "id": "case-105",
+      "set": "synthetic",
+      "provenance": "synthetic-near-real",
+      "scenarioType": "threat_sarcasm_passive_aggression",
+      "sourceRelevant": false,
+      "generationVersion": "v1",
+      "reviewStatus": "pending",
+      "conversation": "客户：你们这台相机外壳缝隙好大，感觉像翻新机，不会是二手吧？\n客服：那您要是觉得是二手，直接申请退货不就行了吗，还问什么呢？\n客户：我就想确认是不是正品，你们给个明确说法很难吗？\n客服：行，正品正品，您爱信不信，反正我这边该发的都发了。"
+    }
+  ]
+}
