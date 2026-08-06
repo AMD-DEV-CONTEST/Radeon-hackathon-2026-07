@@ -81,7 +81,7 @@ capacity, protocol, authentication, and Radeon workload self-tests.
 
 | Participant | Contribution | GitHub |
 | --- | --- | --- |
-| Lan_zhijiang | Product design, Radeon integration, implementation, testing, and demo production | [@xiaoland](https://github.com/xiaoland) |
+| 袁翊闳 (Yuan Yihong; also known as Lan_zhijiang) | Product design, Radeon integration, implementation, testing, and demo production | [@xiaoland](https://github.com/xiaoland) |
 
 The team has reviewed the official Rules and Conditions, the repository rights
 notices, third-party notices, and the publication rights for every submitted
