@@ -12,6 +12,7 @@ runs on-device: no per-video API cost, and no data leaves the machine.
 | File | Requirement | Description |
 |---|---|---|
 | `project_profile.pdf` | Project Profile Document (PDF) | Background, target users & scenarios, system architecture, model & algorithm introduction, AMD Radeon GPU / ROCm adaptation description |
+| `code.zip` | Project source code | Complete source code archive — `fluxreel/` package, `pyproject.toml`, and `README.md` with environment configuration, startup guide and dependency list |
 | `fluxreel.mov` | Demo video (3–5 min) | Live walkthrough of the actual operation on an AMD Radeon GPU — CLI/web UI → generated video, showing output clarity, stability and diversity |
 | `README.md` (this file) | Submission index | Explanation of what is submitted and where everything lives |
 
@@ -26,21 +27,23 @@ Per the contest's Track 1 submission requirements:
    - Model & algorithm introduction
    - Adaptation description for AMD Radeon GPU / ROCm
 
-2. **Project Source Code** → source repository
-   (full repo: `fluxreel/` package, `pyproject.toml`, `fabfile.py`, and repo
-   `README.md` with environment configuration, startup guide and dependency list)
+2. **Project Source Code** → `code.zip`
+   (complete source archive: `fluxreel/` package, `pyproject.toml`, `fabfile.py`,
+   and `README.md` with environment configuration, startup guide and dependency list.
+   Unzip and run from the extracted directory.)
 
 3. **Demo Video** → `fluxreel.mov` (recommended 3–5 minutes; demonstrates the
    actual operation process and execution performance on an AMD Radeon GPU,
    from command line / GUI to the final result)
 
-4. **Supplementary Material** → PPT/poster source in the source repo
-   (`fluxreel_slides.pptx` / Marp slides) highlighting creative scenarios and
+4. **Supplementary Material** → PPT/poster source (`fluxreel_slides.pptx` /
+   Marp slides, see the project repo) highlighting creative scenarios and
    practical value.
 
-## Quick start (see source repo README for details)
+## Quick start (see `code.zip` → `README.md` for details)
 
 ```bash
+unzip code.zip && cd code
 pip install -e .
 fluxreel server --port 8000          # web UI + REST API
 fluxreel img "a cyberpunk city"       # local image via sd-cpp (FLUX Q4_0 GGUF)
