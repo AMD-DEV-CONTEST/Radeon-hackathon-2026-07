@@ -123,9 +123,17 @@ AI-adaptiveLearning/
 │
 └── start.bat
 ```
+## Demo Video
+
+Google Drive:
+
+https://drive.google.com/file/d/1_vnHn0fBxj-fARej16dcbxq72rpe7jFJ/view?usp=drivesdk
 
 # Author
 
+OrbitX
 Priyadharshini R
+Nithyaasri S
+Kaviya K
 
 GitHub: https://github.com/RR-Priyadharshini
