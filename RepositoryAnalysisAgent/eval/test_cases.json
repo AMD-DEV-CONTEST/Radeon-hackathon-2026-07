@@ -1,0 +1,142 @@
+[
+  {
+    "id": "Q01",
+    "category": "understanding",
+    "question": "What does the main application entry point do? Walk through the startup flow.",
+    "expected_keywords": ["FastAPI", "config", "server", "backend", "indexer"],
+    "expected_answer": "Explains that server.py creates a FastAPI app, loads config, initializes backend/indexer/reranker/registry, mounts routes and static files"
+  },
+  {
+    "id": "Q02",
+    "category": "understanding",
+    "question": "How does the ReAct engine decide when to stop calling tools and give a final answer?",
+    "expected_keywords": ["tool_calls", "iteration", "max", "done"],
+    "expected_answer": "Stops when LLM returns no tool_calls, or when max_iterations is reached"
+  },
+  {
+    "id": "Q03",
+    "category": "understanding",
+    "question": "Explain how the configuration system works. Where are settings loaded from?",
+    "expected_keywords": ["config.yaml", "yaml", "dataclass", "get_config"],
+    "expected_answer": "Config is loaded from config.yaml into typed dataclasses via Config.from_yaml()"
+  },
+  {
+    "id": "Q04",
+    "category": "understanding",
+    "question": "How does the tool call parser handle both vLLM structured output and llama.cpp text format?",
+    "expected_keywords": ["structured", "text", "parse", "tool_call", "fallback"],
+    "expected_answer": "parse_tool_calls tries structured tool_calls first, falls back to text regex parsing"
+  },
+  {
+    "id": "Q05",
+    "category": "understanding",
+    "question": "What is the role of the ContextBuilder and how does it manage token budgets?",
+    "expected_keywords": ["budget", "16K", "32K", "truncat", "system", "conversation"],
+    "expected_answer": "ContextBuilder assembles messages within a token budget (16K or 32K), truncating conversation history and repo tree"
+  },
+  {
+    "id": "Q06",
+    "category": "bug_localization",
+    "question": "In the file path resolution for read_file, what security check prevents directory traversal attacks?",
+    "expected_keywords": ["resolve", "startswith", "root", "outside"],
+    "expected_answer": "The _resolve_path function checks that the resolved path starts with repo root"
+  },
+  {
+    "id": "Q07",
+    "category": "bug_localization",
+    "question": "If the reranker model is not available, what happens to search results?",
+    "expected_keywords": ["unavailable", "skip", "original", "order", "fallback"],
+    "expected_answer": "Returns results in original embedding order without reranking"
+  },
+  {
+    "id": "Q08",
+    "category": "bug_localization",
+    "question": "What happens if the Agent calls run_tests when it is disabled?",
+    "expected_keywords": ["disabled", "security", "message"],
+    "expected_answer": "Returns a message saying run_tests is disabled and how to enable it"
+  },
+  {
+    "id": "Q09",
+    "category": "bug_localization",
+    "question": "If tree-sitter fails to parse a file, what fallback mechanism is used?",
+    "expected_keywords": ["fallback", "chunk", "line", "regex"],
+    "expected_answer": "Falls back to simple line-based chunking or regex-based symbol extraction"
+  },
+  {
+    "id": "Q10",
+    "category": "bug_localization",
+    "question": "What could cause the VectorStore.query to return empty results even after indexing?",
+    "expected_keywords": ["count", "empty", "n_results", "collection"],
+    "expected_answer": "If collection is empty or n_results is 0, or if query embedding doesn't match"
+  },
+  {
+    "id": "Q11",
+    "category": "cross_file",
+    "question": "Trace the full path from a user chat message to an LLM API call. Which modules are involved?",
+    "expected_keywords": ["routes", "engine", "backend", "context", "messages"],
+    "expected_answer": "routes.py chat -> AgentEngine.run -> ContextBuilder.build -> backend.chat -> HTTP /v1/chat/completions"
+  },
+  {
+    "id": "Q12",
+    "category": "cross_file",
+    "question": "How does the indexing pipeline connect tree-sitter parsing, embedding generation, and vector storage?",
+    "expected_keywords": ["indexer", "parser", "embeddings", "vector_store", "chunks"],
+    "expected_answer": "Indexer calls parser.parse_file for chunks, embedding_model.embed for vectors, vector_store.add_chunks for storage"
+  },
+  {
+    "id": "Q13",
+    "category": "cross_file",
+    "question": "How are tools registered and made available to the Agent engine? Trace the registration flow.",
+    "expected_keywords": ["register", "registry", "search", "files", "ast", "definitions"],
+    "expected_answer": "register_*_tools functions add tools to ToolRegistry, engine calls registry.get_definitions() for LLM, registry.execute() for dispatch"
+  },
+  {
+    "id": "Q14",
+    "category": "cross_file",
+    "question": "Explain how the session persistence system connects to the chat API endpoint.",
+    "expected_keywords": ["session", "create", "add_message", "get_messages", "json"],
+    "expected_answer": "Routes create/load sessions via SessionManager, store user/assistant messages as JSON"
+  },
+  {
+    "id": "Q15",
+    "category": "architecture",
+    "question": "Why is the embedding model on CPU and the reranker on GPU? What's the design rationale?",
+    "expected_keywords": ["CPU", "GPU", "indexing", "online", "query", "latency", "VRAM"],
+    "expected_answer": "Embedding is one-time indexing (CPU ok), reranker is on the hot query path (GPU for latency), avoids VRAM contention with vLLM"
+  },
+  {
+    "id": "Q16",
+    "category": "architecture",
+    "question": "How does the dual budget system (16K/32K) work and what determines which one is used?",
+    "expected_keywords": ["16K", "32K", "FP8", "max_model_len", "budget"],
+    "expected_answer": "Budget table selected based on max_model_len in config; 32K only if FP8 verified, 16K is conservative default"
+  },
+  {
+    "id": "Q17",
+    "category": "architecture",
+    "question": "Why does the API bind to 127.0.0.1 by default? What privacy guarantees does this provide?",
+    "expected_keywords": ["127.0.0.1", "localhost", "privacy", "local", "network"],
+    "expected_answer": "Binds to loopback only so no other machine on the network can access the API, keeping code private"
+  },
+  {
+    "id": "Q18",
+    "category": "testing",
+    "question": "How would you test the tool call parser to ensure it handles both structured and text format correctly?",
+    "expected_keywords": ["test", "structured", "text", "parse", "assert"],
+    "expected_answer": "Write unit tests with both structured tool_calls dicts and text with <tool_call> tags, verify correct extraction"
+  },
+  {
+    "id": "Q19",
+    "category": "testing",
+    "question": "What test would verify that incremental indexing correctly skips unchanged files?",
+    "expected_keywords": ["hash", "SHA256", "skip", "cache", "modified"],
+    "expected_answer": "Index a repo, re-index without changes, verify files_skipped count and no new embeddings generated"
+  },
+  {
+    "id": "Q20",
+    "category": "testing",
+    "question": "How would you validate that the search_code tool returns relevant results after reranking?",
+    "expected_keywords": ["rerank", "score", "relevant", "top_k", "result"],
+    "expected_answer": "Search for a known function, verify it appears in top results with high relevance score"
+  }
+]

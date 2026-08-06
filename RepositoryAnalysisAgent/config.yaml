@@ -1,0 +1,60 @@
+# RepositoryAnalysisAgent configuration
+# Target: AMD Radeon PRO W7900 (48GB GDDR6, RDNA3 / gfx1100), ROCm 6.2
+
+server:
+  host: "127.0.0.1"
+  port: 8080
+
+llm:
+  backend: "vllm"
+  model: "./models/Qwen2.5-Coder-14B-Instruct"
+  base_url: "http://127.0.0.1:8000/v1"
+  api_key: "not-needed"
+  dtype: "float16"
+  max_model_len: 32768
+  kv_cache_dtype: "fp16"
+  gpu_memory_utilization: 0.88
+  enforce_eager: true
+  temperature: 0.3
+  top_p: 0.9
+  vllm_version: "0.16.0"
+
+embedding:
+  model: "./models/bge-m3"
+  device: "cpu"
+  batch_size: 16
+
+reranker:
+  model: "./models/bge-reranker-v2-m3"
+  device: "cuda"
+  candidate_count: 20
+  final_count: 15
+
+index:
+  vector_store: "chromadb"
+  persist_dir: ".raa/index"
+  supported_extensions: [".py"]
+  exclude_dirs: [".git", "node_modules", "__pycache__", ".venv", "dist", "build", ".raa"]
+  sensitive_patterns: ["*.env", "*.key", "*.pem", ".env*", "credentials*", "secrets*"]
+
+agent:
+  max_iterations: 8
+  context_budget: 32768
+  temperature: 0.3
+  top_p: 0.9
+
+session:
+  persist: true
+  persist_dir: ".raa/sessions"
+  max_recent: 10
+
+security:
+  run_tests_enabled: false
+  test_commands: ["pytest", "python -m pytest"]
+  max_test_timeout: 60
+
+rocm_env:
+  PYTORCH_ROCM_ARCH: "gfx1100"
+  HSA_ENABLE_SDMA: "0"
+  AMD_SERIALIZE_KERNEL: "3"
+  AMD_SERIALIZE_COPY: "3"
