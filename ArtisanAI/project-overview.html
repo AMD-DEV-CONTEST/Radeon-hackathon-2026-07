@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ArtisanAI Project Overview</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 16mm 16mm; }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: "Source Han Sans SC", "Noto Sans CJK SC", "Microsoft YaHei",
+                 "PingFang SC", "WenQuanYi Micro Hei", sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.75;
+    color: #1a1a1a;
+    max-width: 178mm;
+    margin: 0 auto;
+    padding: 10mm 4mm;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  code, pre, .mono {
+    font-family: "DejaVu Sans Mono", "Consolas", "Courier New", monospace;
+  }
+
+  /* ---------- Print tip (hidden when printing) ---------- */
+  .tip {
+    background: #fff8e1; border: 1px solid #f0c000; border-radius: 4px;
+    padding: 10px 14px; margin-bottom: 22px; font-size: 9.5pt; color: #6b5200;
+  }
+  @media print { .tip { display: none; } }
+
+  /* ---------- Cover ---------- */
+  .cover { text-align: center; padding: 8mm 0 6mm; border-bottom: 2.5pt solid #c8102e; margin-bottom: 8mm; }
+  .cover h1 { font-size: 26pt; margin: 0 0 6px; letter-spacing: 1px; color: #111; }
+  .cover .sub { font-size: 12pt; color: #555; margin-bottom: 14px; }
+  .cover .meta { font-size: 9.5pt; color: #777; }
+  .cover .badge {
+    display: inline-block; background: #c8102e; color: #fff; font-size: 9pt;
+    padding: 3px 12px; border-radius: 12px; margin-bottom: 12px; letter-spacing: .5px;
+  }
+
+  /* ---------- Headings ---------- */
+  h2 {
+    font-size: 14pt; margin: 22px 0 10px; padding: 6px 0 6px 11px;
+    border-left: 4.5pt solid #c8102e; background: #f7f7f8;
+    break-after: avoid; page-break-after: avoid;
+  }
+  h3 {
+    font-size: 11.5pt; margin: 16px 0 7px; color: #c8102e;
+    break-after: avoid; page-break-after: avoid;
+  }
+  h4 { font-size: 10.5pt; margin: 12px 0 5px; color: #333; break-after: avoid; }
+
+  p { margin: 7px 0; text-align: justify; }
+  ul, ol { margin: 7px 0 7px 4px; padding-left: 20px; }
+  li { margin: 4px 0; }
+
+  code {
+    background: #f0f0f2; padding: 1px 5px; border-radius: 3px;
+    font-size: 9pt; color: #b02040;
+  }
+
+  /* ---------- Tables ---------- */
+  table {
+    width: 100%; border-collapse: collapse; margin: 10px 0 14px; font-size: 9.5pt;
+    break-inside: avoid; page-break-inside: avoid;
+  }
+  th {
+    background: #2c3038; color: #fff; text-align: left;
+    padding: 7px 9px; font-weight: 600; border: 1px solid #2c3038;
+  }
+  td { padding: 6px 9px; border: 1px solid #d5d7da; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafafb; }
+  td.c, th.c { text-align: center; }
+
+  /* ---------- Architecture diagram ---------- */
+  .arch { margin: 14px 0 18px; break-inside: avoid; page-break-inside: avoid; }
+  .layer {
+    border: 1.2pt solid #b8bcc4; border-radius: 5px; margin-bottom: 7px;
+    background: #fbfbfc; overflow: hidden;
+  }
+  .layer-hd {
+    background: #2c3038; color: #fff; font-size: 9pt; font-weight: 600;
+    padding: 4px 10px; letter-spacing: .5px;
+  }
+  .layer-bd { padding: 9px 10px; font-size: 9.5pt; }
+  .boxes { display: table; table-layout: fixed; width: 100%; border-spacing: 6px; }
+  .box {
+    display: table-cell; vertical-align: middle;
+    border: 1pt solid #c8102e; border-radius: 4px; background: #fff5f6;
+    padding: 5px 10px; font-size: 9pt; text-align: center;
+  }
+  .box.grey { border-color: #9aa0a8; background: #f2f3f5; }
+  .box .t { font-weight: 600; display: block; }
+  .box .d { color: #666; font-size: 8pt; }
+  .arrow { text-align: center; color: #c8102e; font-size: 12pt; line-height: 1; margin: 1px 0 6px; }
+
+  pre.flow {
+    background: #f7f7f8; border: 1pt solid #d5d7da; border-radius: 4px;
+    padding: 11px 13px; font-size: 8.5pt; line-height: 1.6; overflow-x: auto;
+    break-inside: avoid; page-break-inside: avoid; margin: 10px 0 14px;
+  }
+
+  /* ---------- Note blocks ---------- */
+  .note {
+    border-left: 3.5pt solid #0b7285; background: #f0f8fa;
+    padding: 9px 13px; margin: 11px 0; font-size: 9.5pt;
+    break-inside: avoid; page-break-inside: avoid;
+  }
+  .todo {
+    border: 1.5pt dashed #d97706; background: #fffbeb;
+    padding: 9px 13px; margin: 11px 0; font-size: 9.5pt; color: #92400e;
+    break-inside: avoid; page-break-inside: avoid;
+  }
+  .todo b { color: #b45309; }
+  .fill { background: #fde68a; padding: 0 6px; border-radius: 2px; color: #78350f; font-weight: 600; }
+
+  .pagebreak { break-before: page; page-break-before: always; }
+
+  footer {
+    margin-top: 26px; padding-top: 9px; border-top: 1pt solid #d5d7da;
+    font-size: 8.5pt; color: #888; text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="tip">
+  <b>Generate PDF:</b> In your browser, press <code>Ctrl/Cmd + P</code> → Set destination to "Save as PDF" → Paper size: A4 → Margins: "Default" →
+  <b>Check "Background graphics"</b> (otherwise headers and colored blocks will be lost) → Save. This tip will not appear in the PDF.
+</div>
+
+<div class="cover">
+  <div class="badge">AMD Radeon GPU / ROCm Application Development</div>
+  <h1>ArtisanAI</h1>
+  <div class="sub">Real-time Stylized Image Generation System Based on SDXL + ControlNet</div>
+  <div class="meta">
+    Team: <b>Rui Yi Jin Qu</b> &nbsp;·&nbsp; Participants: Ruiqing He, Yi Gao<br>
+    Project Overview Document &nbsp;|&nbsp; Version v1.0 &nbsp;|&nbsp; August 6, 2026
+  </div>
+</div>
+
+<h2>1. Project Background</h2>
+
+<h3>1.1 Industry Background</h3>
+<p>Diffusion models, represented by Stable Diffusion, have become the mainstream technical approach for AIGC image generation. Among them, Stable Diffusion XL (SDXL), with its native 1024×1024 resolution and significantly improved image quality, has become the widely adopted base model in the open-source community. However, the iterative sampling mechanism of diffusion models inherently makes them "slow". Standard SDXL requires 30 to 50 denoising steps, and generating a single image often takes tens of seconds, which makes interactive use impractical. Meanwhile, the demand for image generation is increasingly shifting from text-to-image toward image-to-image. Users often have existing photos or sketches and seek to modify the artistic style while preserving the original composition and structure, rather than generating an entirely unrelated image from noise. This trend places greater emphasis on the structural controllability of the model.</p>
+
+<h3>1.2 Problems to Solve</h3>
+<table>
+  <tr><th style="width:22%">Problem</th><th>Specific Manifestation</th></tr>
+  <tr><td><b>slow inference speed</b></td><td>Standard SDXL requires 30 to 50 sampling steps, and the integration of ControlNet can further double the cost of each step, which ultimately undermines the interactive experience.</td></tr>
+  <tr><td><b>uncontrollable structure</b></td><td>Pure image-to-image relies solely on <code>strength</code> for control. If strength is too high, the original contours are lost; conversely, the style of the original image barely changes.</td></tr>
+  <tr><td><b>high style-switching cost</b></td><td>Switching between style LoRAs requires loading weights from disk each time, which takes several seconds and precludes rapid comparison.</td></tr>
+  <tr><td><b>large VRAM usage</b></td><td>A naive implementation combining SDXL with full-size ControlNet and multiple LoRAs can easily exceed the VRAM capacity of a single GPU.</td></tr>
+</table>
+
+<h3>1.3 Project Positioning</h3>
+<p>ArtisanAI targets the AMD Radeon GPU and ROCm platform, aiming to build an image stylization system that features <strong>structural controllability, flexible style switching, and interactive responsiveness</strong>. The system is built upon three core technical components:</p>
+<ul>
+  <li><b>SDXL-Lightning adversarial distillation LoRA</b> compresses sampling steps from 50 to 8, effectively alleviating the inference speed issue.</li>
+  <li><b>Distilled Canny ControlNet</b> employs edge maps to guide the generation process, ensuring structural consistency with the input. The distilled 160M‑parameter variant is adopted in place of the 1.25B full‑size version, significantly reducing computational overhead.</li>
+  <li><b>Multi‑LoRA VRAM‑resident preloading with dynamic weight blending</b> loads all eight style LoRAs into GPU memory at startup; switching between styles only updates the active adapter weights without triggering disk I/O, thereby eliminating per-switch latency.</li>
+</ul>
+
+<h2>2. Target Users and Application Scenarios</h2>
+
+<h3>2.1 Target Users</h3>
+<table>
+  <tr><th style="width:20%">User Group</th><th style="width:38%">Core Needs</th><th>System Capabilities</th></tr>
+  <tr>
+    <td><b>Self-media / Content Creators</b></td>
+    <td>Quickly convert source images into multiple styled illustrations for covers, social media posts</td>
+    <td>One input image, 8 styles switchable in sub-second for comparison, ready to use</td>
+  </tr>
+  <tr>
+    <td><b>Visual Designers</b></td>
+    <td>Rapidly explore style directions during the concept phase, avoiding premature investment in a single approach</td>
+    <td>Switch styles under a fixed seed: composition remains unchanged, only the style varies, enabling controlled comparison</td>
+  </tr>
+  <tr>
+    <td><b>E-commerce / Marketing Professionals</b></td>
+    <td>Stylize product images and promotional materials, reducing outsourcing costs for illustrations</td>
+    <td>Edge constraints ensure product contours remain intact; style overlay does not alter subject structure</td>
+  </tr>
+  <tr>
+    <td><b>Education / Demonstration</b></td>
+    <td>Intuitively demonstrate diffusion models, ControlNet, and LoRA to non-technical audiences</td>
+    <td>Web UI exposes all parameters and displays real-time per-stage timing breakdown</td>
+  </tr>
+  <tr>
+    <td><b>General Users</b></td>
+    <td>Photo artification and avatar stylization, with zero technical barrier</td>
+    <td>Open in browser and use immediately; style switching auto-fills recommended prompts</td>
+  </tr>
+</table>
+
+<h3>2.2 Typical Application Scenarios</h3>
+<h4>Single-image Multistyle Rapid Comparison</h4>
+<p>The user uploads a photo with a fixed random seed <code>Seed = 42</code> and a fixed redraw intensity <code>Strength = 0.7</code>, then sequentially switches through four styles: Anime, Studio Ghibli, Oil Painting, and Pixar. Because the random seed and structural constraints remain unchanged, all four outputs retain the exact same composition, with only the artistic style varying across results. Since style switching does not involve reloading weights, each switch only costs a single inference pass.</p>
+
+<h4>Structure Preservation Strength Tuning</h4>
+<p>The user adjusts two independent parameters, ControlNet Scale (controlling edge constraint strength) and Strength (controlling redraw intensity), to continuously navigate between "faithful to the original image" and "strong stylization", thereby finding the optimal balance for the given input.</p>
+
+<h4>Performance Demonstration and Tuning</h4>
+<p>The interface displays real‑time timing breakdowns for each stage, including edge extraction, text encoding, step‑by‑step denoising, and VAE decoding. This facilitates bottleneck identification and optimization validation on the AMD platform.</p>
+
+<h3>2.3 Scenario Constraints</h3>
+<div class="note">
+This system is designed specifically for <strong>image-to-image stylization</strong>, requiring an input image and does not support text-to-image generation. It produces outputs at 1024×1024 resolution, which are then resized to match the original input dimensions. Currently, the system processes single images on demand and does not support batch queuing.
+</div>
+
+<div class="pagebreak"></div>
+<h2>3. System Architecture</h2>
+
+<h3>3.1 Layered Architecture</h3>
+
+<div class="arch">
+  <div class="layer">
+    <div class="layer-hd">Presentation Layer &nbsp;·&nbsp; Gradio Web UI (app.py)</div>
+    <div class="layer-bd">
+      <div class="boxes">
+        <div class="box"><span class="t">Image Upload</span><span class="d">PIL Image</span></div>
+        <div class="box"><span class="t">Style Dropdown</span><span class="d">Linked recommended prompts</span></div>
+        <div class="box"><span class="t">Parameter Controls</span><span class="d">4 sliders + Seed</span></div>
+        <div class="box"><span class="t">Result & Timing Panel</span><span class="d">Output image + timing breakdown</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="arrow">▼</div>
+
+  <div class="layer">
+    <div class="layer-hd">Orchestration Layer &nbsp;·&nbsp; generate() Main Pipeline</div>
+    <div class="layer-bd">
+      <div class="boxes">
+        <div class="box grey"><span class="t">Preprocessing</span><span class="d">Resize to 1024²</span></div>
+        <div class="box grey"><span class="t">LoRA Switching</span><span class="d">apply_lora()</span></div>
+        <div class="box grey"><span class="t">Condition Image</span><span class="d">Canny edge extraction</span></div>
+        <div class="box grey"><span class="t">Inference Scheduling</span><span class="d">Pipeline invocation</span></div>
+        <div class="box grey"><span class="t">Post-processing</span><span class="d">Restore original size</span></div>
+        <div class="box grey"><span class="t">Performance Instrumentation</span><span class="d">Per-stage timing callbacks</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="arrow">▼</div>
+
+  <div class="layer">
+    <div class="layer-hd">Model Layer &nbsp;·&nbsp; gen_image.py (All VRAM-resident)</div>
+    <div class="layer-bd">
+      <div class="boxes">
+        <div class="box"><span class="t">Canny Edge Detection</span><span class="d">OpenCV, no model weights</span></div>
+        <div class="box"><span class="t">SDXL Backbone</span><span class="d">CLIP×2 + UNet + VAE</span></div>
+        <div class="box"><span class="t">Canny ControlNet</span><span class="d">Distilled, 160M parameters</span></div>
+        <div class="box"><span class="t">LoRA Manager</span><span class="d">Lightning + 8 style adapters</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="arrow">▼</div>
+
+  <div class="layer">
+    <div class="layer-hd">Runtime & Hardware Layer</div>
+    <div class="layer-bd">
+      <div class="boxes">
+        <div class="box grey"><span class="t">Diffusers / Transformers / PEFT</span><span class="d">Model & adapter framework</span></div>
+        <div class="box grey"><span class="t">PyTorch (ROCm 7.2.1 build)</span><span class="d">HIP backend, fp16</span></div>
+        <div class="box grey"><span class="t">AMD Radeon GPU</span><span class="d">48 GB VRAM · Baremetal</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3>3.2 Inference Data Flow</h3>
+
+<pre class="flow">
+Input Image (arbitrary size)
+   │
+   ├─► resize 1024×1024 ──► Canny edge detection ──────► edge condition map control_image
+   │                                                                      │
+   ├─► resize 1024×1024 ──► VAE Encode ──► initial latent                 │
+   │                              │                                       │
+Prompt                            │                                       │
+   │                              ▼                                       ▼
+   └─► CLIP-L + CLIP-bigG ──► ┌──────────────────────────────────────────────────┐
+       (dual text encoders)   │   Denoising loop  ×  int(steps × strength) steps │
+                              │                                                  │
+                              │   ┌────────────────┐   residual injection        │
+                              │   │  ControlNet    │ ─────────┐                  │
+                              │   │  (Canny dist.) │          ▼                  │
+                              │   └────────────────┘   ┌─────────────┐           │
+                              │                        │    UNet     │           │
+                              │   LoRA weight blend ──►│  + Lightning│           │
+                              │   (Lightning + style)  │  + style L. │           │
+                              │                        └─────────────┘           │
+                              │           ▼                                      │
+                              │   EulerDiscreteScheduler (trailing)              │
+                              └──────────────────────────────────────────────────┘
+                                            │
+                                            ▼
+                                     VAE Decode (fp16-fix)
+                                            │
+                                            ▼
+                                 resize back to original dimensions ──► output image
+</pre>
+
+<div class="note">
+<b>About actual step count:</b> In image-to-image mode, the actual number of denoising steps executed is <code>int(num_inference_steps × strength)</code>. With the interface defaults <code>steps=8</code> and <code>strength=0.99</code>, <b>7 steps</b> of denoising are actually performed. This is the combined effect of the SDXL-Lightning distilled LoRA and the image-to-image mechanism, and is the direct reason this system achieves interactive-level responsiveness.
+</div>
+
+<h3>3.3 Key Design Decisions</h3>
+<table>
+  <tr><th style="width:26%">Decision</th><th style="width:37%">Approach</th><th>Benefit</th></tr>
+  <tr><td><b>Full LoRA preloading</b></td><td>At startup, <code>preload_style_loras()</code> loads all 8 style adapters into VRAM simultaneously. Switching styles simply calls <code>set_adapters()</code> to update the weights.</td><td>Style switching overhead drops from seconds (due to disk I/O and loading) to near-zero latency. The additional VRAM cost is minimal, totaling only ~72 MB (8 × 9 MB).</td></tr>
+  <tr><td><b>Dual LoRA weight blending</b></td><td>The acceleration Lightning LoRA remains active at a fixed weight of 1.0, while the style LoRA is stacked as a secondary adapter.</td><td>This decouples acceleration from style, ensuring that every style benefits from the 8-step acceleration without conflict.</td></tr>
+  <tr><td><b>Startup warmup</b></td><td>The system executes one full inference pass with a built-in sample image upon service startup.</td><td>This shifts the overhead of first-time GPU kernel compilation from the user's first request to the startup phase, ensuring a faster initial response for users.</td></tr>
+  <tr><td><b>Full fp16, no offload</b></td><td>All components reside permanently in VRAM, and <code>enable_model_cpu_offload()</code> is intentionally disabled.</td><td>Avoiding Host↔Device weight transfer at each inference step comes at the cost of higher VRAM usage.</td></tr>
+  <tr><td><b>Edge map caching</b></td><td>The system caches the most recent Canny edge map using the input image's content hash as the key.</td><td>This skips the edge detection step entirely when tuning parameters or switching styles on the same image, which significantly speeds up the primary interactive workflow.</td></tr>
+  <tr><td><b>Per-stage performance instrumentation</b></td><td>We record step-by-step timing via <code>callback_on_step_end</code> with GPU synchronization and collect PyTorch VRAM peak metrics.</td><td>This enables precise bottleneck identification. Note that this can be disabled in production to eliminate synchronization overhead.</td></tr>
+</table>
+
+<div class="pagebreak"></div>
+<h2>4. Models and Algorithms</h2>
+
+<h3>4.1 Model Inventory</h3>
+<table>
+  <tr><th style="width:17%">Role</th><th style="width:36%">Model</th><th>Description</th></tr>
+  <tr><td><b>Base Model</b></td><td><code>stabilityai/stable-diffusion-xl-base-1.0</code><br>(fp16 variant)</td><td>SDXL 1.0 featuring dual text encoders and a 2.6B-parameter UNet, optimized for native 1024×1024 resolution.</td></tr>
+  <tr><td><b>Structure Control</b></td><td><code>diffusers/controlnet-canny-sdxl-1.0-small</code></td><td>A distilled SDXL ControlNet with 160M parameters (320 MB in fp16), approximately 1/7.8 the size of the full version.</td></tr>
+  <tr><td><b>Edge Detection</b></td><td>OpenCV Canny (wrapped by <code>controlnet-aux</code>)</td><td>A classic algorithm that requires no model weights, utilizing CPU-only inference with zero VRAM overhead.</td></tr>
+  <tr><td><b>Image Decoder</b></td><td><code>madebyollin/sdxl-vae-fp16-fix</code></td><td>A patched VAE designed to prevent numerical overflow issues often found in the official SDXL VAE when running in fp16.</td></tr>
+  <tr><td><b>Acceleration Module</b></td><td><code>ByteDance/SDXL-Lightning</code><br><code>sdxl_lightning_8step_lora.safetensors</code></td><td>An 8-step sampling LoRA achieved via progressive adversarial distillation.</td></tr>
+  <tr><td><b>Style Modules</b></td><td><code>ntc-ai/SDXL-LoRA-slider.*</code> × 8</td><td>See Section 4.4. Each weight file is only 9 MB.</td></tr>
+</table>
+
+<h3>4.2 Canny ControlNet Structural Constraint</h3>
+<p>ControlNet duplicates the UNet encoder branch and accepts an additional spatial condition map. It then injects condition features as residuals into the corresponding layers of the backbone UNet, imposing spatial constraints without damaging the base model's capabilities.</p>
+
+<h4>Choice of Condition Type</h4>
+<p>Structural condition types for image generation can be arranged along a spectrum of locking strength, where Canny’s binary hard edges represent the tightest constraint, Depth’s 3D hierarchy offers the most in-plane freedom, and options like Lineart, SoftEdge, and Scribble occupy the intermediate positions. This spectrum reflects a fundamental trade-off: composition fidelity improves with tighter locking, but stylization freedom diminishes accordingly.</p>
+<p>The selection for this project underwent a measurement‑driven adjustment. The initial version adopted SoftEdge, which combines the HED detector with the full‑size SoftEdge ControlNet. This choice theoretically offers the best balance by sitting in the middle of the locking spectrum. However, this path encountered a hard engineering constraint. The open‑source community provides no distilled small models for the SoftEdge or Scribble types. The only available weights are the 1.25B‑parameter full‑size ControlNets, and the repository used only supplies the fp32 format, which occupies 5 GB and requires on‑the‑fly precision conversion at load time.
+
+The final switch to Canny was driven by a decisive factor. Canny and Depth are the only two condition types with official distilled versions. Among these, Canny shares the closest semantics with SoftEdge, as both belong to the same edge family, making it the only viable downgrade replacement. The benefits of the switch are summarized below:</p>
+<table>
+  <tr><th style="width:30%">Dimension</th><th class="c" style="width:23%">SoftEdge (original)</th><th class="c" style="width:23%">Canny (current)</th><th class="c">Change</th></tr>
+  <tr><td>ControlNet parameters</td><td class="c">1.25 B</td><td class="c"><b>160 M</b></td><td class="c"><b>↓ 7.8×</b></td></tr>
+  <tr><td>Weight file size</td><td class="c">5004 MB (fp32)</td><td class="c"><b>320 MB</b> (fp16)</td><td class="c"><b>↓ 15.6×</b></td></tr>
+  <tr><td>Edge detector</td><td class="c">HED, 29.4 MB weights</td><td class="c"><b>OpenCV, no weights</b></td><td class="c">↓ 100%</td></tr>
+</table>
+<p>The cost is that Canny outputs binary hard edges, preserving image noise as well, which can produce a somewhat stiff outline effect under heavy stylization. In practice, this is mitigated by appropriately lowering <code>controlnet_conditioning_scale</code> (0.3–0.4), which is precisely why this parameter is exposed in the interface.</p>
+<p>Constraint strength is controlled by <code>controlnet_conditioning_scale</code> (UI default 0.4): higher values more closely adhere to the original edges, lower values allow freer stylization.</p>
+
+<div class="note">
+<b>On the practical benefit of "7.8× parameter reduction":</b> ControlNet is a bypass branch attached to the UNet, not a replacement. Relative to SDXL's 2.6B UNet, the full-size ControlNet increases per-step computation to about 1.48×; switching to the 160M distilled version reduces it to about 1.06×, so <strong>the actual speedup in the denoising stage is approximately 28%, not 7.8×</strong>. The true computational bulk is always the UNet itself. This project maintains a clear understanding of this: ControlNet lightweighting is a valuable piece, but the compression of sampling steps (see Section 4.3) is the order-of-magnitude optimization.
+</div>
+
+<h3>4.3 SDXL-Lightning Few-step Sampling</h3>
+<p>SDXL-Lightning employs <strong>progressive adversarial distillation</strong>: using the original SDXL as the teacher model, a student model is trained to approximate the teacher's multi-step sampling result in just a few steps, with an adversarial loss introduced to avoid the blurring common in few-step sampling. The output is released as a LoRA that can be directly applied on top of the original SDXL weights.</p>
+<p>Two configuration requirements are mandatory and non-negotiable:</p>
+<ul>
+  <li><b>Scheduler</b>: <code>EulerDiscreteScheduler</code> with <code>timestep_spacing="trailing"</code>. The distillation training used trailing timestep spacing; a mismatch during inference leads to noticeably degraded output.</li>
+  <li><b>Guidance scale</b>: The distilled model has internalized the guidance effect into its weights, requiring no external guidance. This project sets <code>guidance_scale = 1.0</code>, i.e., <strong>classifier-free guidance is completely disabled</strong>.</li>
+</ul>
+<div class="note">
+<b>Benefit of disabling CFG:</b> In Diffusers, when <code>guidance_scale &gt; 1</code>, classifier-free guidance is enabled, and both the UNet and ControlNet must each run one forward pass with batch=2 (positive branch + negative branch). Since Lightning has already internalized the guidance effect through distillation, this extra computation is pure waste. Setting this value to <code>1.0</code> halves the batch size, directly reducing the denoising computation by approximately half, the single largest optimization in this project. The trade-off is that negative prompts become ineffective, a feature of limited value for a distilled model that has already internalized guidance.
+</div>
+
+<h3>4.4 Multi-LoRA Dynamic Blending</h3>
+<p>Leveraging PEFT's multi-adapter mechanism, the system registers the acceleration LoRA and all 8 style LoRAs into the pipeline at startup. At runtime, <code>set_adapters([accel_LoRA, style_LoRA], adapter_weights=[1.0, scale])</code> dynamically specifies the active combination and weights; the weight matrices are linearly combined and superimposed onto the base weights during the forward pass, requiring no disk I/O whatsoever.</p>
+
+<table>
+  <tr><th class="c" style="width:6%">#</th><th style="width:19%">Display Name</th><th style="width:19%">Style</th><th>LoRA Repository</th></tr>
+  <tr><td class="c">1</td><td>Anime</td><td>Anime</td><td><code>ntc-ai/SDXL-LoRA-slider.anime</code></td></tr>
+  <tr><td class="c">2</td><td>Pixel Art</td><td>Pixel Art</td><td><code>ntc-ai/SDXL-LoRA-slider.pixel-art</code></td></tr>
+  <tr><td class="c">3</td><td>Studio Ghibli</td><td>Studio Ghibli</td><td><code>ntc-ai/SDXL-LoRA-slider.Studio-Ghibli-style</code></td></tr>
+  <tr><td class="c">4</td><td>Cartoon</td><td>Cartoon</td><td><code>ntc-ai/SDXL-LoRA-slider.cartoon</code></td></tr>
+  <tr><td class="c">5</td><td>Oil Painting</td><td>Oil Painting</td><td><code>ntc-ai/SDXL-LoRA-slider.oil-painting</code></td></tr>
+  <tr><td class="c">6</td><td>Pixar</td><td>Pixar</td><td><code>ntc-ai/SDXL-LoRA-slider.pixar-style</code></td></tr>
+  <tr><td class="c">7</td><td>Ultra-realistic Illustration</td><td>Ultra-realistic Illustration</td><td><code>ntc-ai/SDXL-LoRA-slider.ultra-realistic-illustration</code></td></tr>
+  <tr><td class="c">8</td><td>2000s Indie Comic</td><td>2000s Indie Comic</td><td><code>ntc-ai/SDXL-LoRA-slider.2000s-indie-comic-art-style</code></td></tr>
+</table>
+<p style="font-size:9pt;color:#666;">The style collection is filtered by Hugging Face download count (descending), excluding non-art-style entries (quality enhancement, human pose, makeup, etc. sliders). Each style comes with a set of recommended prompts, auto-filled when the style is selected in the UI.</p>
+
+<h3>4.5 Key Parameters</h3>
+<table>
+  <tr><th style="width:26%">Parameter</th><th class="c" style="width:12%">Default</th><th>Purpose</th></tr>
+  <tr><td><code>strength</code></td><td class="c">0.99</td><td>Redraw intensity; also determines actual denoising steps <code>int(steps × strength)</code></td></tr>
+  <tr><td><code>controlnet_conditioning_scale</code></td><td class="c">0.4</td><td>Edge constraint strength; higher values adhere more closely to the original structure</td></tr>
+  <tr><td><code>num_inference_steps</code></td><td class="c">8</td><td>Nominal sampling steps, matched to the Lightning 8-step LoRA</td></tr>
+  <tr><td><code>guidance_scale</code></td><td class="c">1.0</td><td>CFG guidance coefficient; 1.0 disables CFG; the distilled model requires no external guidance</td></tr>
+  <tr><td><code>seed</code></td><td class="c">42</td><td>Random seed; fixing it enables rigorous controlled style comparison experiments</td></tr>
+</table>
+
+<div class="pagebreak"></div>
+<h2>5. AMD Radeon GPU / ROCm Adaptation</h2>
+
+<h3>5.1 Runtime Environment</h3>
+
+<h4>Accelerator</h4>
+<table>
+  <tr><th style="width:26%">Item</th><th>Configuration</th></tr>
+  <tr><td><b>GPU</b></td><td>AMD Radeon Graphics × 1 (<code>MARKET_NAME</code> value reported by <code>amd-smi static</code>)</td></tr>
+  <tr><td><b>GFX Architecture</b></td><td><code>gfx1100</code> (RDNA 3 / Navi 31, LLVM target <code>amdgcn-amd-amdhsa--gfx1100</code>)</td></tr>
+  <tr><td><b>VRAM Capacity</b></td><td>49,136 MB (approx. <b>48 GB</b>)</td></tr>
+  <tr><td><b>PCIe Location</b></td><td><code>0000:03:00.0</code> (HIP Device 0)</td></tr>
+  <tr><td><b>Power Cap</b></td><td>241 W</td></tr>
+  <tr><td><b>VBIOS</b></td><td><code>00162356</code></td></tr>
+</table>
+
+<h4>Software Stack</h4>
+<table>
+  <tr><th style="width:26%">Item</th><th>Configuration</th></tr>
+  <tr><td><b>ROCm Version</b></td><td><b>7.2.1</b></td></tr>
+  <tr><td><b>Kernel Driver</b></td><td><code>amdgpu</code> 6.16.13</td></tr>
+  <tr><td><b>Management Tool</b></td><td><code>amd-smi</code> 26.2.2 (+e1a6bc5663)</td></tr>
+  <tr><td><b>Deployment</b></td><td>Linux Baremetal (non-virtualized, GPU passed through to container)</td></tr>
+  <tr><td><b>PyTorch Version</b></td><td><b>2.9.1</b> (built from source, commit <code>ff65f5b</code>)</td></tr>
+  <tr><td><b>Operating System</b></td><td>Ubuntu 24.04.4 LTS</td></tr>
+  <tr><td><b>Python</b></td><td><code>/opt/venv</code> virtual environment inside container</td></tr>
+</table>
+
+<h4>Host Platform</h4>
+<table>
+  <tr><th style="width:26%">Item</th><th>Configuration</th></tr>
+  <tr><td><b>CPU</b></td><td>AMD EPYC 9334 32-Core Processor × 2 sockets (Zen 4, Family 25 Model 17)</td></tr>
+  <tr><td><b>Cores / Threads</b></td><td>64 physical cores / 128 logical threads</td></tr>
+  <tr><td><b>NUMA Topology</b></td><td>2 nodes (node0: CPU 0–31, 64–95; node1: CPU 32–63, 96–127)</td></tr>
+  <tr><td><b>Cache</b></td><td>L2 64 MiB / L3 256 MiB (8 groups)</td></tr>
+  <tr><td><b>System Memory</b></td><td>503 GiB</td></tr>
+</table>
+
+<div class="note">
+This project runs on a <strong>full AMD platform</strong>, with an AMD EPYC 9334 as the host CPU, an AMD Radeon GPU as the inference accelerator, and the ROCm 7.2.1 software stack. The CPU side's 128 threads and 503 GiB of memory provide ample resources for host-side tasks such as model weight loading and image encoding/decoding, and do not constitute a bottleneck.
+</div>
+
+<h3>5.2 Adaptation Strategy: Zero-code-change Migration</h3>
+<p>The ROCm build of PyTorch provides semantic-level mapping of the CUDA programming model through the HIP runtime; the <code>torch.cuda.*</code> API family directly targets the AMD GPU under a ROCm build (HIP Device 0 in this environment). Therefore, <strong>all device-related code in this project</strong> (including <code>.to("cuda")</code>, <code>torch.cuda.synchronize()</code>, <code>torch.Generator(device="cuda")</code>) <strong>runs on the ROCm 7.2.1 platform without any modification</strong>. The source code remains fully identical to the NVIDIA platform, with no platform-specific code branches or conditional compilation.</p>
+<p>The value of this strategy is that the project can support both hardware platforms from a single codebase, reducing maintenance costs and facilitating cross-platform performance comparisons.</p>
+
+<h3>5.3 Precision and Numerical Stability Adaptation</h3>
+<p>This project uses fp16 end-to-end, a choice that directly aligns with the architectural characteristics of the target hardware: <b>gfx1100 (RDNA 3) introduced WMMA (Wave Matrix Multiply-Accumulate) matrix instructions, natively supporting fp16 matrix multiply-accumulate operations</b>. The vast majority of computation in diffusion models is concentrated in the convolutions and attention matrix multiplications of the UNet and ControlNet; running in fp16 directly hits this hardware acceleration path.</p>
+<ul>
+  <li><b>End-to-end fp16.</b> All model components (UNet, ControlNet, dual text encoders, VAE) are uniformly loaded with <code>torch_dtype=torch.float16</code>, fully leveraging RDNA 3's half-precision matrix compute and halving VRAM usage.</li>
+  <li><b>VAE overflow mitigation.</b> The official SDXL VAE has a known numerical overflow issue under fp16, producing black images or color blocks. This project uses <code>madebyollin/sdxl-vae-fp16-fix</code>, whose weights have been retrained to accommodate the fp16 dynamic range, a necessary condition for viable end-to-end fp16 operation.</li>
+  <li><b>Base model fp16 variant.</b> Loading with <code>variant="fp16"</code> downloads half-precision weights directly, avoiding the extra overhead and VRAM spikes of runtime conversion.</li>
+</ul>
+
+<h3>5.4 VRAM Management</h3>
+<p>The system adopts a "fully resident, no offload" strategy:</p>
+<ul>
+  <li>The SDXL backbone, distilled ControlNet, VAE, Lightning LoRA, and all 8 style LoRAs are fully resident in VRAM (Canny detection is a pure CPU operator and uses no VRAM);</li>
+  <li>Each style LoRA is only 9 MB; 8 total approximately 72 MB, negligible relative to the base model, making the "full preload" design entirely viable in VRAM terms;</li>
+  <li><code>enable_model_cpu_offload()</code> is not used, avoiding per-step Host↔Device weight transfers; in PCIe bandwidth-constrained scenarios, the latency from offloading often exceeds the computation itself.</li>
+</ul>
+<p>The 48 GB of VRAM on this platform provides ample headroom for this strategy: even with fp16 full precision, ControlNet, and all LoRAs resident, there remains substantial VRAM margin, eliminating any need to compromise for capacity (such as quantization, tiled decoding, or hierarchical offloading). This is also the direct premise for quantization being deemed "unnecessary" in Section 5.5.</p>
+<p>Measured VRAM usage: <b>PyTorch tensor peak 9.91 GB, allocator reserved 11.21 GB</b> (see Section 5.6 for details). Relative to 48 GB of available capacity, the utilization rate is approximately 23%, with ample remaining headroom.</p>
+
+<h3>5.5 Quantization Trade-offs</h3>
+<p>The project implementation retains a 4-bit quantization path based on bitsandbytes NF4 (the <code>USE_NF4</code> switch in <code>gen_image.py</code>), which can compress UNet weights to 4-bit to reduce VRAM usage. However, after empirical evaluation, it is <strong>disabled by default</strong> for two reasons:</p>
+<ul>
+  <li><b>Mismatched benefit direction.</b> The core value of quantization is reducing VRAM usage, but this platform's 48 GB far exceeds the project's requirements (measured usage is only ~11 GB); VRAM has never been a constraint.</li>
+  <li><b>Negative net benefit.</b> 4-bit weights must be dequantized back to compute precision on every forward pass; under this project's workload characteristics, this overhead cannot be compensated by VRAM savings, and end-to-end latency actually increases.</li>
+</ul>
+<p>This quantization path is retained in the code as a fallback for low-VRAM devices (e.g., 8–12 GB consumer GPUs), activatable via a single boolean switch without affecting the main path.</p>
+
+<h3>5.6 Performance</h3>
+<p>Test conditions: input image 1024×1024, <code>steps=8</code>, <code>strength=0.7</code> (5 actual denoising steps), <code>guidance_scale=1.0</code>, <code>controlnet_conditioning_scale=0.5</code>, <code>seed=42</code>. Data collected from steady-state operation after warmup, directly output by the system's built-in per-stage timing and VRAM statistics. (The UI defaults are <code>strength=0.99</code> / <code>ControlNet Scale=0.4</code>, per §4.5, which would run 7 actual steps; this measurement uses a 5-step baseline for comparability.)</p>
+
+<table>
+  <tr><th style="width:32%">Metric</th><th class="c" style="width:18%">Measured Value</th><th class="c" style="width:10%">Share</th><th>Notes</th></tr>
+  <tr><td>LoRA switch (<code>set_adapters</code>)</td><td class="c">48.1 ms</td><td class="c">2.3%</td><td>Pure in-VRAM weight coefficient adjustment, no disk I/O</td></tr>
+  <tr><td>Canny edge extraction</td><td class="c">0.01 s</td><td class="c">0.5%</td><td>OpenCV operator, CPU-side computation, no model weights</td></tr>
+  <tr><td>Setup (text encoding + 1st step)</td><td class="c">0.60 s</td><td class="c">29.3%</td><td>Dual CLIP encoding + VAE Encode + 1st denoising step</td></tr>
+  <tr><td>Per-step denoising time</td><td class="c"><b>0.246 s</b>/step</td><td class="c">48.0%</td><td>UNet + ControlNet single-step forward, CFG disabled (batch=1), steps 2–5 (4 steps)</td></tr>
+  <tr><td>VAE decoding</td><td class="c">0.40 s</td><td class="c">19.5%</td><td>fp16-fix VAE, latent → 1024×1024 image</td></tr>
+  <tr><td>Pipeline total time</td><td class="c">1.98 s</td><td class="c">96.6%</td><td>Encoding + 5 denoising steps + decoding</td></tr>
+  <tr><td><b>End-to-end per-image time</b></td><td class="c"><b>2.05 s</b></td><td class="c">100%</td><td>Complete chain from request to image output</td></tr>
+  <tr><td>VRAM peak (PyTorch allocated)</td><td class="c">9.91 GB</td><td class="c">N/A</td><td>Actual tensor memory for model weights + intermediate activations</td></tr>
+  <tr><td>VRAM peak (PyTorch reserved)</td><td class="c">11.21 GB</td><td class="c">N/A</td><td>Allocator cache pool; <code>amd-smi</code> process-level readings add HIP runtime context overhead on top</td></tr>
+</table>
+
+<div class="note">
+<b>Conclusion: 1024×1024 image-to-image end-to-end in 2.05 seconds</b>, achieving interactive-level responsiveness. The cost breakdown is: <b>denoising 77%</b> (Setup includes the first step), <b>VAE decoding 20%</b>, and LoRA switching + edge extraction combined under 3%.
+<br><br>
+Two points are worth noting: First, <b>LoRA switching is only 48 milliseconds</b>, validating the effectiveness of the "full preload + weight blending" design: a traditional disk-reload approach would incur seconds of overhead, making rapid comparison across 8 styles infeasible. Second, <b>after compressing steps to just 5, the fixed overhead (encoding in Setup + VAE decoding, totaling ~0.75 s) is already approaching the magnitude of denoising itself</b>, meaning the marginal benefit of further reducing sampling steps is rapidly diminishing; future optimization efforts should shift toward the encoding/decoding stages (see Section 5.8).
+</div>
+
+<h3>5.7 Completed Platform-Side Optimizations</h3>
+<table>
+  <tr><th class="c" style="width:6%">#</th><th style="width:30%">Optimization</th><th>Description</th></tr>
+  <tr><td class="c">1</td><td><b>8-step distilled sampling</b></td><td>Lightning LoRA + trailing scheduler, sampling steps reduced from 50 to 8 (5 actual steps in image-to-image mode)</td></tr>
+  <tr><td class="c">2</td><td><b>LoRA VRAM-resident</b></td><td>Zero disk I/O on style switch; only adapter weights adjusted</td></tr>
+  <tr><td class="c">3</td><td><b>End-to-end fp16</b></td><td>Paired with fp16-fix VAE for numerical stability</td></tr>
+  <tr><td class="c">4</td><td><b>Startup warmup</b></td><td>GPU kernel first-compilation overhead shifted to service startup; users hit steady-state performance on first request</td></tr>
+  <tr><td class="c">5</td><td><b>No offload, fully resident</b></td><td>Eliminates per-step Host↔Device weight transfers</td></tr>
+  <tr><td class="c">6</td><td><b>CFG disabled</b></td><td><code>guidance_scale = 1.0</code>, UNet and ControlNet batch reduced from 2 to 1, denoising computation halved (see Section 4.3)</td></tr>
+  <tr><td class="c">7</td><td><b>Edge map caching</b></td><td>Caches the most recent Canny edge map; skips edge detection when tuning parameters or switching styles on the same image. This mechanism was highly beneficial with the earlier HED neural-network detector; after switching to OpenCV Canny, per-extraction time dropped to 0.01 s, making this a marginal optimization</td></tr>
+  <tr><td class="c">8</td><td><b>MIOpen convolution algorithm auto-tuning</b></td><td>Enables <code>torch.backends.cudnn.benchmark</code>, which maps to MIOpen's exhaustive find mode on ROCm, empirically selecting the optimal convolution algorithm for fixed input shapes. With resolution fixed at 1024×1024 and batch fixed at 1 after disabling CFG, shapes are fully stable, satisfying the precondition for this mode. The one-time tuning overhead is absorbed by startup warmup, and MIOpen persists results to a local database, eliminating re-tuning after service restarts</td></tr>
+</table>
+
+<h3>5.8 Future Optimization Directions</h3>
+<ol>
+  <li><b>Lightweight VAE decoding</b>: measurements show VAE decoding accounts for ~20% of end-to-end time; with total steps compressed to 5, it is now the second-largest cost after denoising. TAESD could reduce this stage from hundreds of milliseconds to tens of milliseconds, or a two-stage strategy could be used: TAESD for fast preview, full VAE for final output upon user confirmation.</li>
+  <li><b>Text embedding caching</b>: skip dual CLIP encoding when the same prompt is reused. This overhead is included in Setup and accounts for ~17% of end-to-end time.</li>
+  <li><b>Disable timing synchronization</b>: remove per-step <code>torch.cuda.synchronize()</code> in production mode. This synchronization is used for precise per-step timing collection but interrupts the CPU/GPU pipeline; it can be disabled once performance data collection is complete.</li>
+  <li><b>More aggressive distillation tier</b>: switch to the 4-step Lightning LoRA, further reducing actual denoising steps from 5 to 2–3; the acceptable quality loss must be evaluated.</li>
+  <li><b>torch.compile</b>: apply graph compilation to the UNet and ControlNet, typically yielding 20–30% gains. Two points must be verified first: whether dynamic <code>set_adapters</code> switching triggers recompilation, and the maturity of the Triton backend on gfx1100 (RDNA 3), where optimization on CDNA architectures is more mature.</li>
+</ol>
+<div class="note">
+It should be noted that <b>this project does not consider any optimization aimed at reducing VRAM usage</b> (quantization, CPU offload, tiled VAE decoding, etc.). With 48 GB of VRAM and measured usage of ~11 GB, such approaches offer no benefit space and generally come at the cost of speed. Optimization efforts are focused on reducing computation and improving execution efficiency.
+</div>
+
+<footer>
+ArtisanAI Project Overview Document &nbsp;·&nbsp; v1.0 &nbsp;·&nbsp; AMD Radeon GPU / ROCm Application Development
+</footer>
+
+</body>
+</html>
