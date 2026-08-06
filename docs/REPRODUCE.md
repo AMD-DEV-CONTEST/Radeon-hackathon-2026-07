@@ -29,20 +29,11 @@ cmake --build build --config Release -j"$(nproc)"
   --cache-type-k q8_0 \
   --cache-type-v q8_0 \
   --host 0.0.0.0 \
-  --port 8080
+  --port 8000
 ```
 
-## 2. Install frp (optional)
-```
-/var/run/secrets/frp-self-service/install
-# Open a new terminal
-export PATH="$HOME/.local/bin:$PATH"
-# Expose 8080 port
-"$HOME/.local/bin/rc-tunnel" expose --port 8080
-# Will display url like xxxxxx.radeon.firstdg.ai
-```
 
-## 3.Pull the code
+## 2.Pull the code
 ```
 git clone --branch submission/track2-dale --single-branch https://github.com/ld0574/Radeon-hackathon-2026-07.git
 cd Radeon-hackathon-2026-07
@@ -52,7 +43,7 @@ uv sync --frozen --extra semantic --extra dev
 uv sync --frozen --extra semantic
 ```
 
-## 4. Configure Production Secrets
+## 3. Configure Production Secrets
 
 ```
 cp .env.example .env
@@ -105,7 +96,7 @@ XIANG_RAG_TOP_K=4
 XIANG_ALLOWED_ORIGINS=https://ld0574.github.io
 ```
 
-## 5. Build the Production Knowledge Database
+## 4. Build the Production Knowledge Database
 
 FastEmbed downloads its model on the first build:
 
@@ -119,3 +110,37 @@ Run the retrieval smoke suite using the same production configuration:
 ```bash
 uv run python scripts/run_rag_smoke.py
 ```
+Will show: All 8 RAG smoke queries passed.
+
+## 5. Start XiangLens FastAPI
+```
+mkdir -p /workspace/xianglens-logs
+
+nohup ./scripts/start_api.sh \
+  > /workspace/xianglens-logs/xianglens-api.log 2>&1 &
+
+echo $! > /workspace/xianglens-logs/xianglens-api.pid
+
+# Test FastAPI health
+curl --fail http://127.0.0.1:8080/health
+
+#
+```
+
+## 6. Install frp 
+Open a new terminal.
+```
+/var/run/secrets/frp-self-service/install
+# Open a new terminal
+export PATH="$HOME/.local/bin:$PATH"
+# Expose 8080 port
+"$HOME/.local/bin/rc-tunnel" expose --port 8080
+# Will display url like xxxxxx.radeon.firstdg.ai
+```
+
+## 7. Frontend 
+Open <https://ld0574.github.io/Radeon-hackathon-2026-07/> and paste the API server into the override api base url input.
+
+You can test this agent. 
+Example images in `data/case` folder.
+Enjoy~ 
