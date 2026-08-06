@@ -1,0 +1,50 @@
+version: 1
+name: "Warden Default Policy"
+
+rules:
+  - name: block-file-system-destruction
+    scope: tool_calls
+    match:
+      tool_name:
+        any_of: ["delete_file", "rmtree", "rm"]
+      args:
+        path_matches: ["/**/*"]
+    action: block
+    message: "Destructive file operations require explicit user approval"
+
+  - name: block-sensitive-paths
+    scope: tool_calls
+    match:
+      args:
+        path_matches: ["/etc/*", "/root/*", "~/.ssh/*", "**/.env"]
+    action: block
+    message: "Access to sensitive system paths is blocked"
+
+  - name: flag-network-access
+    scope: code_analysis
+    match:
+      imports_any: ["requests", "urllib", "socket", "httpx"]
+    action: flag
+    message: "Network access detected — review before execution"
+
+  - name: block-hardcoded-secrets
+    scope: code_analysis
+    match:
+      patterns:
+        - "AKIA[A-Z0-9]{16}"
+        - "ghp_[A-Za-z0-9]{36}"
+        - "-----BEGIN.*PRIVATE KEY-----"
+    action: block
+    message: "Hardcoded secret detected"
+
+  - name: block-shell-injection
+    scope: code_analysis
+    match:
+      patterns:
+        - "os\\.system\\("
+        - "subprocess\\.call\\(.*shell=True"
+        - "eval\\("
+    action: flag
+    message: "Potential shell injection or code execution vector"
+
+shadow_mode: false  # true = log only, never block

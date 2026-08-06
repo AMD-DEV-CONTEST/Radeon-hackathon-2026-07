@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "warden"
+version = "0.1.0"
+description = "Adaptive-compute security guard for AI coding agents — catches prompt injection and AI-generated code vulnerabilities, running locally on AMD Radeon GPU."
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Warden Team"},
+]
+keywords = ["security", "llm", "prompt-injection", "ai-agent", "rocm", "amd"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+]
+
+dependencies = [
+    "pyyaml>=6.0",
+    "rich>=13.0",
+    "gradio>=4.0",
+    "chromadb>=0.4.0",
+    "pytest>=7.0",
+    "llama-cpp-python>=0.2.0",
+    "transformers>=4.40.0",
+    "torch>=2.0.0",
+    "numpy>=1.24.0",
+    "semgrep>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.1.0",
+]
+gpu = [
+    "llama-cpp-python>=0.2.0",
+]
+
+[project.scripts]
+warden = "warden.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
