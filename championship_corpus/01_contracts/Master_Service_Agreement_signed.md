@@ -1,0 +1,7 @@
+# Master Service Agreement - Signed
+    Effective date: 2026-01-15. Signed by both parties on 2026-01-20.
+    The Provider will use commercially reasonable efforts to make the hosted service available.
+    This agreement does not establish a service level agreement, guaranteed uptime percentage,
+    service credit, or remedy for downtime. Any service level commitment must be set out in a
+    separately signed Support Addendum or order form. Marketing statements and sales discussions
+    are non-binding unless expressly incorporated into a signed order form.
