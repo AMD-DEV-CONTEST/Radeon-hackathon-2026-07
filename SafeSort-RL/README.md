@@ -11,6 +11,11 @@ SafeSort-RL is a Track 3 robotics simulation project that uses **Genesis 1.3.1**
 The submitted policy uses a compact 23-value state observation and a 3-value continuous action. Genesis simulation and rendering run on the AMD Radeon GPU through the `gs.amdgpu` backend. The PPO policy is loaded and evaluated on the CPU in the submitted notebook.
 
 ---
+## Quick Links
+Video: <video src="SafeSort-RL/videos/safesort_final_realistic_sidepanel_showcase.mp4" width="100%" controls></video>
+
+
+---
 
 ## 1. Submitted Results
 
