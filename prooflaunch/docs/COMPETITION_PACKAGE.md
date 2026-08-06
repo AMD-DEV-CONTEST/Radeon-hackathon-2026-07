@@ -32,8 +32,9 @@ This document is the canonical map for the Team Banyan submission.
    ```
 
 6. Inspect the generated receipt and hash-bound campaign pack.
-7. Watch the Demo Video (official guidance recommends 3–5 minutes) and compare
-   its live Radeon receipt with the exported evidence manifest.
+7. Watch the Demo Video (official guidance recommends 3–5 minutes), then inspect
+   the separate historical Radeon Notebook receipt and the remaining fresh-run
+   gap in `evidence/RADEON_EVIDENCE_INDEX.md`.
 
 ## Required deliverables
 
@@ -43,12 +44,12 @@ This document is the canonical map for the Team Banyan submission.
 | Complete source | `src/`, `scripts/`, `web/`, `notebooks/` | Ready for reviewed export |
 | Finished product website | `web/index.html` → `/control/frontier-gtm` | Ready |
 | English setup and reproduction | `README.md`, `docs/INSTALLATION.md` | Ready |
-| AMD Radeon / ROCm adaptation | `docs/RADEON_SETUP.md` | Mechanically ready; live receipt pending |
+| AMD Radeon / ROCm adaptation | `docs/RADEON_SETUP.md`, `evidence/RADEON_EVIDENCE_INDEX.md` | Historical Gemma execution observed; fresh end-to-end receipt pending |
 | Model and algorithm description | `docs/MODEL_CARD.md` | Ready |
 | Architecture | `docs/ARCHITECTURE.md` | Ready |
-| Evaluation and evidence | `docs/EVALUATION.md`, `SUBMISSION_GATE.json` | Local evidence ready; live Radeon pending |
+| Evaluation and evidence | `docs/EVALUATION.md`, `SUBMISSION_GATE.json` | Historical Radeon component proof included; fresh end-to-end run pending |
 | Supplementary PPT | `docs/ProofLaunch_Submission_Deck.pptx` | Ready |
-| Demo Video (3–5 minutes recommended) | `docs/ProofLaunch_Demo_Video_191s.mp4`, `docs/demo-video-url.txt` | Included — 190.9-second product operation; live Radeon evidence remains separate |
+| Demo Video (3–5 minutes recommended) | `docs/ProofLaunch_Demo_Video_191s.mp4`, `docs/demo-video-url.txt` | Included — 190.9-second product operation; fresh end-to-end Radeon capture remains separate |
 | English PR body | `submission/track1-prooflaunch/PR_BODY.md` | Open at PR #308 |
 
 ## Product scope
@@ -65,9 +66,11 @@ model roles are sequenced so only one heavy model is resident at a time.
 ## Truth boundary
 
 The local replay verifies workflow, artifact registration, approvals, hashes,
-and export mechanics. It is not new Radeon inference. The product-operation
-Demo Video is included; the submission remains blocked until the final package
-contains independently inspectable live Radeon hardware/model receipts.
+and export mechanics. It is not new Radeon inference. A separate archived
+Notebook proves historical Gemma-4 inference and LoRA training on Radeon/HIP.
+The product-operation Demo Video is included; the submission remains blocked
+until the final package contains a fresh end-to-end Radeon campaign receipt
+with latency, peak VRAM and output hashes.
 
 ## Public export
 

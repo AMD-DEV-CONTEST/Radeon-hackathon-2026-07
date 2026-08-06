@@ -4,9 +4,11 @@
 
 ProofLaunch has been converted from a large engineering workspace into a
 judge-first Track 1 submission package. The package is locally reproducible,
-claim-bounded and hash-locked. It is not yet competition-complete because the
-required live AMD Radeon model inference and 3–5 minute real-operation video do
-not exist in the final evidence set.
+claim-bounded and hash-locked. A 190.9-second product-operation Demo Video, PR
+#308 and an archived executed Gemma-4 Radeon/HIP Notebook are now present. It is
+not yet competition-complete because a fresh end-to-end ProofLaunch Radeon
+campaign run with image/video stages, latency, peak VRAM and output hashes is
+not in the final evidence set.
 
 ## Implemented in this closure pass
 
@@ -37,10 +39,10 @@ not exist in the final evidence set.
 
 | Evidence | Result |
 |---|---:|
-| Product-critical Python regression | 778/778 passed |
+| Product-critical Python regression | 827/827 passed |
 | Local route-head Node regression | 10/10 passed |
 | Final targeted lock/readiness/demo regression | 14/14 passed |
-| Web build | 46 routes / 58 same-origin API contracts |
+| Web build | 46 routes / 60 same-origin API contracts |
 | Run-bound registered deliverables | 10 |
 | Last-mile mechanically ready lanes | 14/14 |
 | Mechanically admitted named-product challenger dossiers | 13/13 |
@@ -49,7 +51,8 @@ not exist in the final evidence set.
 | Named-human quality observations | 0 |
 | Production-effect observations | 0 |
 | Automatic external actions | 0 |
-| Radeon model inference in final receipt | not observed |
+| Historical Gemma-4 Radeon inference | observed in archived executed Notebook |
+| Fresh end-to-end ProofLaunch Radeon run | not observed |
 
 The sealed canonical run is `run-77d4b65d605ef305250e29ef`. Its receipt
 content SHA-256 is
@@ -61,14 +64,14 @@ Passed official material gates:
 
 - project profile PDF;
 - complete source and English environment/startup documentation;
-- supplementary poster;
+- supplementary English deck (the official PPT/Poster choice is satisfied);
 - deterministic local evaluator replay and evidence manifest.
 
 Open official gates:
 
-- actual key model inference on AMD Radeon/ROCm;
-- 3–5 minute video showing real Radeon operation to final output;
-- external competition Pull Request.
+- fresh end-to-end ProofLaunch execution on AMD Radeon/ROCm;
+- video evidence that binds the Radeon run to final output, latency and VRAM;
+- final competition evidence seal with no blocked P0 gate.
 
-The local build performed no push, Pull Request, publication, paid action or
-external submission.
+The official fork and PR #308 are present. The workflow performed no external
+publication, paid action or autonomous business submission.

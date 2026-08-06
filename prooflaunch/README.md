@@ -171,8 +171,14 @@ Models and external agents operate only through typed adapters:
   `config/model_supply_chain.json`. Remote deployment state and exact hashes
   are recorded separately in
   `evidence/RADEON_BROWSER_SESSION_2026-07-29.json`.
-- The supplied Notebook records one AMD Radeon device and training through its
-  training section.
+- The archived executed Notebook
+  `notebooks/gemma4_emotion_lora_modelscope_single_gpu_original.ipynb` records
+  one `AMD Radeon Graphics` device, HIP `7.2.53211`, Gemma-4 loaded on `cuda:0`
+  in BF16, deterministic inference, a 400-example pre-training evaluation and
+  250 LoRA training steps followed by adapter save. Its immutable saved outputs
+  are indexed in `evidence/RADEON_EVIDENCE_INDEX.md` and can be checked with
+  `python3 scripts/validate_radeon_historical_evidence.py`. This is historical
+  component-level execution evidence, not a fresh end-to-end ProofLaunch run.
 - Browser upload verification placed the latest V10 gate at
   `src/fine-tune/models/gemma4/prooflaunch_cortex_x_v10_radeon_v6.ipynb`
   and the audited Gemma trainer at
@@ -216,7 +222,8 @@ This repository does not claim a completed competition submission yet:
    but does not count as generative-model evidence.
 5. The frozen 30-product competition-2X benchmark and blinded human comparison
    have not been recorded. The 190.9-second product-operation Demo Video is
-   included, but it is not live Radeon inference evidence.
+   included, but it does not show the historical Gemma Notebook or a fresh
+   end-to-end Radeon campaign run.
 6. The V10 rights-audited corpus, six Radeon training phases, frozen
    ablations, and independent 4A product/effect tests are absent. All twelve
    breakthrough bets therefore remain `HOLD`; none is presented as promoted.
@@ -861,7 +868,7 @@ PYTHONPATH=src python scripts/record_competition_2x_case.py pending \
 - [`docs/ProofLaunch_Project_Profile.pdf`](docs/ProofLaunch_Project_Profile.pdf)
 - Complete source code and this reproduction README
 - [`docs/ProofLaunch_Demo_Video_191s.mp4`](docs/ProofLaunch_Demo_Video_191s.mp4)
-  — 190.9-second product-operation Demo Video; live Radeon evidence remains separate
+  — 190.9-second product-operation Demo Video; fresh end-to-end Radeon capture remains separate
 - [`docs/ProofLaunch_Submission_Deck.pptx`](docs/ProofLaunch_Submission_Deck.pptx) — supplementary English deck
 - [`docs/SUBMISSION_CHECKLIST.md`](docs/SUBMISSION_CHECKLIST.md)
 - [`docs/TRACK1_2X_ACCEPTANCE_MATRIX.csv`](docs/TRACK1_2X_ACCEPTANCE_MATRIX.csv)

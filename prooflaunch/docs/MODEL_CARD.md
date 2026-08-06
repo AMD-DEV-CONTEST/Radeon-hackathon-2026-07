@@ -45,7 +45,8 @@ audit findings, repair receipts, approvals, and a content-addressed export.
 - Platform and policy requirements change and need current human review.
 - High-regulation marketing requires domain and legal approval.
 - Local memory and VRAM limits can reduce resolution, duration, or throughput.
-- The local evaluator replay is not proof of live Radeon inference.
+- The deterministic evaluator replay is not proof of a fresh end-to-end Radeon
+  campaign run; historical Gemma-4 Radeon execution is evidenced separately.
 
 ## Safety and release authority
 

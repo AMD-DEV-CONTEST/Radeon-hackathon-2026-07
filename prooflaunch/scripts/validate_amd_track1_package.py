@@ -28,7 +28,6 @@ REQUIRED_FILES = (
     Path("SUBMISSION_GATE.json"),
     Path("docs/ProofLaunch_Project_Profile.pdf"),
     Path("docs/ProofLaunch_Submission_Deck.pptx"),
-    Path("docs/ProofLaunch_Poster.pptx"),
     Path("docs/COMPETITION_PACKAGE.md"),
     Path("docs/INSTALLATION.md"),
     Path("docs/MODEL_CARD.md"),

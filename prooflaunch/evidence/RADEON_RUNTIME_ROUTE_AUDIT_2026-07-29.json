@@ -1,0 +1,28 @@
+{
+  "schema": "ProofLaunchRadeonRuntimeRouteAuditV1",
+  "observedOn": "2026-07-29",
+  "mode": "read-only authenticated browser audit",
+  "frontendResourceCount": 94,
+  "executionProtocolResource": {
+    "path": "/static/notebook/notebook_core.df310bda0e2ec4176fde.js",
+    "bytes": 7498322,
+    "sha256": "487c2ff6a2331dc23d17986d48efd1820c1f25c554363628e7d024eb44ffd8de"
+  },
+  "findings": [
+    "The loaded official Notebook frontend implements cell execution as a Jupyter execute_request through kernel.requestExecute.",
+    "The kernel connection constructs a channels?session_id=... WebSocket URL and appends the configured token.",
+    "Across 94 loaded JavaScript resources, no separate HTTP run-cell or execute endpoint was present.",
+    "Authenticated REST can inspect sessions and create/delete kernels, but the V7 session remains starting with zero connections."
+  ],
+  "httpExecutionAlternativeFound": false,
+  "v7Kernel": {
+    "executionState": "starting",
+    "connections": 0
+  },
+  "blockedChannels": [
+    "Kernel WebSocket",
+    "Terminal WebSocket",
+    "Events WebSocket"
+  ],
+  "truthBoundary": "This audit does not prove that no undocumented backend exists. It proves that the official loaded Notebook client exposes only the standard WebSocket execution route, which the current reverse proxy rejects with HTTP 403."
+}

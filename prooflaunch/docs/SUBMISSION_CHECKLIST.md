@@ -34,11 +34,12 @@ Proposed pull request title:
 - [x] Strict allowlisted public-export builder and secret/path/hash validation
 - [x] Demo Video (190.9 seconds; official guidance recommends 3–5 minutes)
   - [x] Actual operation process
-  - [ ] Actual execution on AMD Radeon
+  - [ ] Fresh end-to-end ProofLaunch execution on AMD Radeon
   - [x] GUI through final product result
   - [x] Output clarity, stability, and diversity
 - [x] Supplementary English deck (PPTX)
-- [x] Optional one-slide poster
+- [x] Supplementary-material choice satisfied by the English deck; no separate
+  poster required
 - [ ] Confirm every team member is registered and an AMD Developer Program member
 - [x] Fork competition repository
 - [x] Create branch `codex/track1-banyan-prooflaunch`
@@ -52,7 +53,8 @@ Proposed pull request title:
 - [ ] Innovation and fun: 20/20 target
 - [ ] Practical or social value: 20/20 target
 - [ ] Radeon output clarity, stability, and diversity: 20/20 target
-- [ ] At least one key inference process runs locally on AMD Radeon GPU
+- [x] Historical key Gemma-4 inference runs locally on AMD Radeon GPU
+- [ ] Fresh end-to-end ProofLaunch campaign run on AMD Radeon GPU
 - [ ] Core functionality does not rely only on a closed online API
 
 ## Proof gates before PR
@@ -73,3 +75,7 @@ Proposed pull request title:
 
 Do not present the open pull request as competition-complete while a P0 proof
 gate remains blocked.
+
+Historical Radeon proof is independently checked by
+`python3 scripts/validate_radeon_historical_evidence.py`; it does not close the
+fresh campaign-run, latency, peak-VRAM, image/video or final-output-hash gates.

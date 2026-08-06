@@ -87,10 +87,20 @@ EXCLUDED_FILES = {
 
 REPLAY_EVIDENCE = {
     Path("evidence/OFFICIAL_TRACK1_RULES_AUDIT_2026-07-30.json"),
+    Path("evidence/RADEON_BROWSER_SESSION_2026-07-29.json"),
+    Path("evidence/RADEON_BROWSER_SESSION_V10.json"),
+    Path("evidence/RADEON_BROWSER_SYNC_2026-07-30.json"),
+    Path("evidence/RADEON_EVIDENCE_INDEX.md"),
+    Path("evidence/RADEON_GEMMA4_EXECUTION_RECEIPT_2026-08-06.json"),
+    Path("evidence/RADEON_MULTIGPU_PREFLIGHT_2026-07-30.json"),
+    Path("evidence/RADEON_RUNTIME_ROUTE_AUDIT_2026-07-29.json"),
     Path("evidence/v10/aug3-product-readiness.json"),
     Path("evidence/v10/gtm-production-quality-current-v1.json"),
     Path("evidence/v10/gtm-last-mile-production-quality-v1.json"),
     Path("evidence/v10/local-multimodal-qualification.json"),
+    Path("evidence/v10/radeon-instance-recovery-2026-07-31.json"),
+    Path("evidence/v10/radeon-runtime-reprobe-2026-07-31.json"),
+    Path("evidence/v10/radeon-template-ab-reprobe-2026-07-31.json"),
     Path(
         "evidence/v10/local-campaign-pack-v1/"
         "openai-imagegen-evidence-engine-challenger-v1.metadata.json"

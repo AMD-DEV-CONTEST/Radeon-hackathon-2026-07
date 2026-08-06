@@ -15,7 +15,7 @@ release boundary. Every deliverable is campaign-bound and content-addressed.
 |---|---|---|
 | 1 | Project Profile PDF | `prooflaunch/docs/ProofLaunch_Project_Profile.pdf` |
 | 2 | Complete source + English README + environment/startup/dependencies | `prooflaunch/` and `prooflaunch/README.md` |
-| 3 | Demo Video (3–5 minutes recommended) | [Watch / download the 190.9-second product-operation MP4](https://github.com/sylvanccc/Radeon-hackathon-2026-07/raw/refs/heads/codex/track1-banyan-prooflaunch/prooflaunch/docs/ProofLaunch_Demo_Video_191s.mp4); live Radeon inference evidence remains pending |
+| 3 | Demo Video (3–5 minutes recommended) | [Watch / download the 190.9-second product-operation MP4](https://github.com/sylvanccc/Radeon-hackathon-2026-07/raw/refs/heads/codex/track1-banyan-prooflaunch/prooflaunch/docs/ProofLaunch_Demo_Video_191s.mp4); fresh end-to-end Radeon capture remains pending |
 | 4 | Supplementary English deck | `prooflaunch/docs/ProofLaunch_Submission_Deck.pptx` |
 
 ### Reproduce the governed evaluator demo
@@ -46,10 +46,19 @@ does not make a new model call and does not count as Radeon evidence.
   admitted for future human PK.
 - Publishing, sending and spending remain outside model authority.
 
+### Historical Radeon / ROCm execution evidence
+
+- The archived executed [Gemma-4 Notebook](https://github.com/sylvanccc/Radeon-hackathon-2026-07/blob/codex/track1-banyan-prooflaunch/prooflaunch/notebooks/gemma4_emotion_lora_modelscope_single_gpu_original.ipynb) records one `AMD Radeon Graphics` device, HIP `7.2.53211`, Gemma-4 loaded on `cuda:0` in BF16, deterministic generation returning `joy`, a 400-example evaluation and a 250-step LoRA run.
+- The [hash-bound execution receipt](https://github.com/sylvanccc/Radeon-hackathon-2026-07/blob/codex/track1-banyan-prooflaunch/prooflaunch/evidence/RADEON_GEMMA4_EXECUTION_RECEIPT_2026-08-06.json) and [tiered evidence index](https://github.com/sylvanccc/Radeon-hackathon-2026-07/blob/codex/track1-banyan-prooflaunch/prooflaunch/evidence/RADEON_EVIDENCE_INDEX.md) distinguish saved execution output from platform proof and unexecuted contracts.
+- Re-verify the immutable Notebook outputs with `python3 scripts/validate_radeon_historical_evidence.py`.
+
 ### Claims boundary
 
 No named-human product win, 4A preference, production effect, causal revenue or
 Top-1 standing is claimed. The current run receipt explicitly records
-`radeon_execution_observed=false`. The attached Demo Video is product-operation
-evidence, not a substitute for actual Radeon inference. The fail-closed
-competition gate therefore remains blocked until that hardware receipt exists.
+`radeon_execution_observed=false`; that deterministic replay is not the archived
+Radeon Notebook. Historical Gemma-4 inference and LoRA training are observed,
+but the attached Demo Video does not show them. A fresh end-to-end ProofLaunch
+GTM run with Radeon image/video stages, per-stage latency, peak VRAM and final
+output hashes remains unobserved, so the fail-closed competition gate remains
+blocked.

@@ -107,15 +107,26 @@ at zero until real evidence is supplied.
 ## AMD Radeon / ROCm path
 
 The project contains a checksum-first Radeon handoff, live ROCm preflight,
-single-residency model lifecycle and Radeon notebooks. The final recording must
-show real hardware identity, ROCm/HIP, the exact model revision, a real inference,
-latency/VRAM and the resulting asset. Follow `RADEON_FINAL_CAPTURE.md`.
+single-residency model lifecycle and Radeon notebooks. The archived executed
+Notebook `../../notebooks/gemma4_emotion_lora_modelscope_single_gpu_original.ipynb`
+records one `AMD Radeon Graphics` device, HIP `7.2.53211`, a deterministic
+Gemma-4 inference, a 400-example evaluation and 250 LoRA training steps. Its
+exact outputs are indexed in `../../evidence/RADEON_EVIDENCE_INDEX.md` and
+validated by:
 
-**Truth boundary:** the current local run receipt records Apple/local and
-provider-managed source execution; `radeon_execution_observed` is false. The
-190.9-second product-operation Demo Video is included, but the submission
-remains blocked until live Radeon evidence is captured. No Mac or cloud run is
-presented as Radeon execution.
+```bash
+python3 scripts/validate_radeon_historical_evidence.py
+```
+
+The final recording must still show a fresh end-to-end ProofLaunch campaign
+run with real hardware identity, ROCm/HIP, exact model revision, latency/VRAM
+and resulting asset hashes. Follow `RADEON_FINAL_CAPTURE.md`.
+
+**Truth boundary:** the current deterministic replay still records
+`radeon_execution_observed=false`; it is separate from the archived Radeon
+Notebook. The 190.9-second product-operation Demo Video is included, but does
+not show that historical Notebook run or a fresh end-to-end Radeon campaign
+run. No Mac or provider-managed asset is presented as Radeon execution.
 
 ## Official materials
 

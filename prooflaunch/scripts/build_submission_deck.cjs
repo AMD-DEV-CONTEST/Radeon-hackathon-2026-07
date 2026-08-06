@@ -278,7 +278,7 @@ function addMetric(slide, x, y, w, value, label, accent = C.violet) {
   addText(slide, "AMD RADEON GPU · ROCm / HIP LOCAL INFERENCE FOUNDATION", { x: 1.05, y: 3.145, w: 11.2, h: 0.17, fontFace: "Arial Black", fontSize: 9.4, charSpacing: 1.0, color: C.white, align: "center" });
   addCard(slide, 0.72, 3.83, 3.7, 2.12, "Single-model residency", "Only one heavy model is resident at a time. Explicit unload, garbage collection and cache controls keep the pipeline inside the available VRAM envelope.", { number: "A", accent: C.violet, fill: C.white, titleSize: 15, bodySize: 10.7 });
   addCard(slide, 4.67, 3.83, 3.7, 2.12, "Reproducible evidence", "Every real run retains hardware identity, ROCm/HIP version, model revision, input hash, seed, latency, peak VRAM and output SHA-256.", { number: "B", accent: C.violet, fill: C.white, titleSize: 15, bodySize: 10.7 });
-  addCard(slide, 8.62, 3.83, 4.0, 2.12, "Fail-closed truth boundary", "The 190.9-second product Demo Video is included; the live Radeon receipt remains pending. No Mac, mock or provider output is substituted for hardware evidence.", { number: "C", accent: C.amber, fill: C.amberSoft, line: "E0B777", titleSize: 15, bodySize: 10.3 });
+  addCard(slide, 8.62, 3.83, 4.0, 2.12, "Fail-closed truth boundary", "Historical Gemma-4 inference and LoRA training on Radeon/HIP are preserved. The product Demo Video is included; a fresh end-to-end campaign receipt remains pending.", { number: "C", accent: C.amber, fill: C.amberSoft, line: "E0B777", titleSize: 15, bodySize: 10.3 });
   addFooter(slide, 4, false);
 }
 
@@ -348,7 +348,7 @@ function addMetric(slide, x, y, w, value, label, accent = C.violet) {
   addText(slide, "Track 1, Banyan,\nProofLaunch: Multimodal GTM Studio", { x: 8.62, y: 2.62, w: 3.6, h: 1.0, fontFace: "Arial Black", fontSize: 19, color: C.white, align: "center", valign: "mid", breakLine: true });
   addText(slide, "GitHub submitter: sylvanccc\nOfficial destination: prooflaunch/\nSubmission language: English", { x: 8.62, y: 4.05, w: 3.6, h: 0.76, fontSize: 10.5, color: "B8BECA", align: "center", breakLine: true });
   slide.addShape(pptx.ShapeType.roundRect, { x: 0.72, y: 6.05, w: 11.88, h: 0.63, rectRadius: 0.04, fill: { color: C.violet }, line: { color: C.violet } });
-  addText(slide, "FINAL HARDWARE STEP · Record one truthful live Radeon workflow and bind its latency, VRAM and output receipt.", { x: 1.03, y: 6.25, w: 11.25, h: 0.19, fontFace: "Arial Black", fontSize: 10.4, color: C.white, align: "center" });
+  addText(slide, "FINAL HARDWARE STEP · Record one fresh end-to-end Radeon campaign and bind latency, VRAM and output hashes.", { x: 1.03, y: 6.25, w: 11.25, h: 0.19, fontFace: "Arial Black", fontSize: 10.4, color: C.white, align: "center" });
   addFooter(slide, 7, true);
 }
 

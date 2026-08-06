@@ -50,7 +50,9 @@ model call and is deliberately **not** labeled as Radeon evidence.
 | Agentic production-readiness audit | 9 pass, 3 explicit gaps |
 | Automatic publish/send/spend | 0 |
 | Named human PK wins | 0 observed |
-| Radeon model inference in current receipt | not observed |
+| Historical Gemma-4 inference on Radeon/HIP | observed in archived executed Notebook |
+| Historical Gemma-4 LoRA training | 250 steps; adapter save observed |
+| Fresh end-to-end ProofLaunch Radeon run | not observed |
 
 ## Why the architecture is an agent, not a prompt chain
 
@@ -68,13 +70,23 @@ model call and is deliberately **not** labeled as Radeon evidence.
 
 ## Mandatory open gate
 
+The archived executed Notebook at
+`notebooks/gemma4_emotion_lora_modelscope_single_gpu_original.ipynb` records
+one `AMD Radeon Graphics` device, HIP `7.2.53211`, Gemma-4 inference and a
+250-step LoRA run. Validate its immutable saved outputs with:
+
+```bash
+python3 scripts/validate_radeon_historical_evidence.py
+```
+
 The 190.9-second product-operation Demo Video is included at
 `docs/ProofLaunch_Demo_Video_191s.mp4`. It shows the working product, campaign
 outputs, responsive operation and human release boundary. It does **not** show
-live AMD Radeon/ROCm model inference and is not presented as that evidence.
-The remaining hardware gate is a real Radeon run from CLI or GUI to final
-output. Use `submission/track1-prooflaunch/RADEON_FINAL_CAPTURE.md`; do not
-substitute a Mac replay, cloud-provider asset or synthetic receipt.
+the historical Notebook run or a fresh AMD Radeon/ROCm GTM campaign run. The
+remaining hardware gate is a fresh end-to-end run from CLI or GUI to final
+campaign output with latency, peak VRAM and output hashes. Use
+`submission/track1-prooflaunch/RADEON_FINAL_CAPTURE.md`; do not substitute a
+Mac replay, cloud-provider asset or synthetic receipt.
 
 ## Primary files
 
@@ -82,6 +94,9 @@ substitute a Mac replay, cloud-provider asset or synthetic receipt.
 - `docs/INSTALLATION.md` — local, web and Radeon reproduction
 - `docs/MODEL_CARD.md` — model roles, limitations and safety
 - `docs/EVALUATION.md` — evidence hierarchy and claims boundary
+- `evidence/RADEON_EVIDENCE_INDEX.md` — tiered Radeon/ROCm evidence map
+- `evidence/RADEON_GEMMA4_EXECUTION_RECEIPT_2026-08-06.json` — hash-bound historical execution receipt
+- `notebooks/gemma4_emotion_lora_modelscope_single_gpu_original.ipynb` — archived executed Radeon Notebook
 - `submission/track1-prooflaunch/README.md` — evaluator README
 - `submission/track1-prooflaunch/PR_BODY.md` — English PR body
 - `submission/track1-prooflaunch/SUBMISSION_MANIFEST.json` — claim/evidence map

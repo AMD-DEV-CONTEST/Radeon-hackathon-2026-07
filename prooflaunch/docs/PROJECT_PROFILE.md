@@ -125,25 +125,32 @@ effects. Unsupported claims and missing provenance block export.
   locks: 4/4 passed.
 - Desktop and mobile checks report no horizontal overflow.
 - Responsive route checks: 80/80 passed.
-- Radeon Cloud Notebook output reports one AMD Radeon device.
+- An archived executed Radeon Notebook reports one `AMD Radeon Graphics`
+  device, HIP `7.2.53211`, Gemma-4 loaded on `cuda:0`, deterministic key
+  inference, a 400-example evaluation and 250 LoRA training steps. Its exact
+  saved outputs are bound in
+  `evidence/RADEON_GEMMA4_EXECUTION_RECEIPT_2026-08-06.json`.
 - The V7.4 package adds a machine-readable, fail-closed Radeon preflight for
   dependencies, HIP/VRAM/disk, FFmpeg, safe Gemma LoRA retention, seven
   release-locked specialist repository/commit/license records, exact cached
   revisions, and frozen manifest/source bytes. Exact remote-sync
   state is recorded in `evidence/RADEON_BROWSER_SESSION_2026-07-29.json`; the
-  kernel is still connecting.
+  newer V10 execution plane remains blocked by WebSocket HTTP 403.
 
 ## 8. Current limitations
 
 Authenticated REST can create and delete a Radeon kernel (HTTP 201/204), while
 the reverse proxy rejects Kernel, Terminal, and Events WebSocket handshakes
-with HTTP 403. Therefore this document does not claim:
+with HTTP 403. Historical Gemma-4 execution is preserved separately, but this
+document does not claim:
 
 - successful remote execution of the uploaded Agent package;
 - post-fine-tuning evaluation;
 - a real Radeon visual generation benchmark;
 - C2PA signing;
-- a completed live Radeon evidence seal or competition-complete submission.
+- a fresh end-to-end ProofLaunch Radeon evidence seal or competition-complete
+  submission.
 
 The 190.9-second product Demo Video and PR #308 are present; the final hardware
-claim remains gated on the missing live Radeon artifacts.
+claim remains gated on a fresh full campaign run with latency, peak VRAM and
+output hashes.
