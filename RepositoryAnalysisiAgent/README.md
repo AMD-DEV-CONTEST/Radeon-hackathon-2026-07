@@ -50,8 +50,8 @@ RAA runs entirely on your local AMD GPU. It indexes a code repository using tree
 ```bash
 source /opt/venv/bin/activate   # activate the venv with PyTorch + vLLM
 cd /workspace
-git clone https://github.com/xiting-it/RepoAMD.git
-cd RepoAMD
+git clone -b Repository-Analysis-Agent https://github.com/xiting-it/Radeon-hackathon-2026-07.git
+cd Radeon-hackathon-2026-07/RepositoryAnalysisAgent
 ```
 
 ### 2. Install app dependencies
@@ -88,7 +88,7 @@ Wait for `Application startup complete` (~2-4 min cold start).
 ### 6. Start RAA (Terminal 2)
 
 ```bash
-python -m src.server /workspace/RepoAMD
+python -m src.server /workspace/Radeon-hackathon-2026-07/RepositoryAnalysisAgent
 ```
 
 ### 7. Open the web UI

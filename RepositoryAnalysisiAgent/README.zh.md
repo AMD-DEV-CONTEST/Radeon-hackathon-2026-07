@@ -50,8 +50,8 @@ RAA 完全运行在本地 AMD GPU 上。它通过 tree-sitter AST 解析对代�
 ```bash
 source /opt/venv/bin/activate   # 激活 venv（含 PyTorch + vLLM）
 cd /workspace
-git clone https://github.com/xiting-it/RepoAMD.git
-cd RepoAMD
+git clone -b Repository-Analysis-Agent https://github.com/xiting-it/Radeon-hackathon-2026-07.git
+cd Radeon-hackathon-2026-07/RepositoryAnalysisAgent
 ```
 
 ### 2. 安装应用依赖
@@ -88,7 +88,7 @@ MODEL_PATH=./models/Qwen2.5-Coder-14B-Instruct bash start_llm.sh
 ### 6. 启动 RAA（终端 2）
 
 ```bash
-python -m src.server /workspace/RepoAMD
+python -m src.server /workspace/Radeon-hackathon-2026-07/RepositoryAnalysisAgent
 ```
 
 ### 7. 打开 Web UI

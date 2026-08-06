@@ -101,7 +101,7 @@ GPU Memory Layout (48GB):
 
 ## Source Code
 
-Complete repository: https://github.com/xiting-it/RepoAMD
+Complete repository: https://github.com/xiting-it/Radeon-hackathon-2026-07/tree/Repository-Analysis-Agent/RepositoryAnalysisAgent
 
 **Project structure:**
 - `src/` — Full application source (agent, index, tools, API, session)
@@ -116,8 +116,9 @@ Complete repository: https://github.com/xiting-it/RepoAMD
 ```bash
 # 1. Setup (in ROCm Docker container)
 source /opt/venv/bin/activate
-git clone https://github.com/xiting-it/RepoAMD.git
-cd RepoAMD && bash setup.sh
+git clone -b Repository-Analysis-Agent https://github.com/xiting-it/Radeon-hackathon-2026-07.git
+cd Radeon-hackathon-2026-07/RepositoryAnalysisAgent
+bash setup.sh
 
 # 2. Download models
 bash download_models.sh
