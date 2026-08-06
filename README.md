@@ -1,89 +1,113 @@
-# Radeon-hackathon-2026-07
+# Track 2, Kartikeya Srivastava, Ambient-AI
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+## Submission links
 
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
+| Required material | Link |
+| --- | --- |
+| Project specification document | [View product specification](https://drive.google.com/file/d/1kTeahMn2T8ZGetF4PR-nQn6rxFyYmT4l/view?usp=sharing) |
+| Complete source code, setup guide, and dependencies | [Ambient AI source repository](https://github.com/KarSri7694/Ambient-AI) |
+| Demo video | [Watch the Radeon-backed demo](https://drive.google.com/file/d/1_uEGeon5ltyVhYnEq2U7MK8OG-lG36Oa/view?usp=sharing) |
+| Supplementary presentation | [View the Ambient AI presentation](https://drive.google.com/file/d/1FAn5yIPbjt9sEuLFHs_oWgWDVzA6Sr77/view?usp=sharing) |
 
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
+## Ambient AI
 
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+Ambient AI is a proactive, local-first assistant that turns permitted work context into visible, reviewable progress. It continuously organizes signals from approved local sources, preserves temporal context, and prepares the next useful step—such as a research brief, meeting follow-up, or evidence-backed checklist—while keeping the user in control of every consequential action.
 
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+The product boundary is deliberate: Ambient AI prepares, retrieves, summarizes, and proposes; external actions remain permission- and approval-gated. Local processing, exclusions, redaction, audit trails, and pause/stop controls keep the assistant useful without treating private context as an unrestricted automation surface.
 
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+## Track 2 capability implementation
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+| Track 2 capability | Implementation | Services and components |
+| --- | --- | --- |
+| Retrieval-augmented generation (RAG) | Time-stamped screenshots, transcripts, documents, and events are chunked, indexed, linked to work threads, and retrieved with recent context for grounded responses and proposals. | Chroma vector database, keyword index, SQLite metadata/configuration store, local artifact storage |
+| Multi-turn chat and temporal memory | Conversations retain the relevant work thread, summaries, facts, preferences, and feedback signals so a user does not need to reconstruct context after interruptions. | Local observation store, thread grouping, temporal RAG, adaptive user profile |
+| Tool calling | The planner can propose work through local tools such as file-system retrieval, search, code/document operations, browser actions, scheduling, and opt-in communication flows. | Intent understanding, task decomposition, context assembler, local tools, approval-gated browser/computer agents |
+| Security and privacy | Capture exclusions, on-device redaction/PII scrubbing, capability policies, permission prompts, pause/resume, emergency stop, and full interaction tracing constrain what the agent can access and do. | Local capture agents, privacy/exclusion rules, policy engine, approval service, audit log |
+| Memory and task planning | Signals are deduplicated, linked to entities and work threads, scored for importance, then converted into ordered sub-goals and actionable proposals. | Observation store, entity linking, temporal retrieval, task planner, resource-aware autonomy coordinator |
 
-> [!IMPORTANT]
-> Team name was an optional field on the Luma registration form. If you did not fill in a team name when you registered, please use your own name instead, so the title of the pull request should be like **"Track x, Your name, your application name"**.
+## AMD Radeon and ROCm implementation
 
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
+Ambient AI is designed to keep its core inference and speech-processing path local on AMD Radeon hardware.
 
-## Submission Requirements
+| Area | Radeon/ROCm implementation |
+| --- | --- |
+| Text model inference | A ROCm build of `llama.cpp` serves the local chat model. The ROCm backend enables GPU offload and AMD-accelerated inference, while the server is configured with five parallel slots to process concurrent agent workloads. |
+| Speech recognition (ASR) | `faster-whisper` is used for local automatic speech recognition with a ROCm-compatible `CTranslate2` backend. This routes transcription compute to the GPU, accelerating permitted audio capture and keeping transcripts inside the local work context. |
+| Runtime optimization | Benchmark evidence informs the selected deployment preset and micro-batch/ubatch configuration, balancing token throughput with responsiveness for interactive and background agent work. |
+| Benchmark evidence | Review the [`benchmarks/`](https://github.com/KarSri7694/Ambient-AI/tree/main/benchmarks) directory in the Ambient AI repository for the Qwen 3.6 `llama.cpp` benchmark JSON results and the corresponding optimization records. |
+| Radeon Cloud validation | The agent was also run through Radeon Cloud Model APIs using the Qwen 3.6 35B A3B model, confirming the same workflow against Radeon-hosted model infrastructure. |
 
-### Track 1: Development of Multimodal Content Creation Tools
+## Registration and Radeon Cloud identities
 
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
+| Purpose | Email address |
+| --- | --- |
+| Luma registration | `kartik.sri769@gmail.com` |
+| Radeon Cloud GPU and Radeon Cloud Model APIs | `kartikeyasrivastava769@gmail.com` |
 
-### Track 2: Development & Local Deployment of Private AI Agents
+---
 
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
+## Bonus-point evidence — Radeon Cloud Model API
 
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
+Ambient AI was also exercised through the Radeon Cloud Model API, satisfying the optional Radeon Cloud Model API integration evidence. The recorded Radeon Cloud profile shows successful `Qwen3.6-35B-A3B` requests, including 19 requests and 114,958 processed tokens at the time of capture. The detailed request rows show an `OK` status.
 
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+**Radeon Cloud usage proof:**
+
+![Radeon Cloud Model API usage showing successful Qwen3.6-35B-A3B requests](assets/radeon-cloud-model-api-proof.png)
+
+### Runtime-log evidence
+
+The complete runtime log captured during the Radeon cloud model API, `https://developer.amd.com.cn/radeon/tokenfactory` Ambient AI run is included below.
+
+```text
+INFO:httpx:HTTP Request: POST https://developer.amd.com.cn/radeon/api/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:LLMInteractionService:Calling tool: search_web_ddgs
+INFO:LLMInteractionService:--- Iteration 2 (agent depth 0/3) ---
+INFO:httpx:HTTP Request: POST https://developer.amd.com.cn/radeon/api/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://developer.amd.com.cn/radeon/api/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://developer.amd.com.cn/radeon/api/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:AutonomyCoordinatorService:Completed screen enrichment for ambient event eb800cd9a2904e29a4850d227a1d6d1c (mode=vision_enriched).
+INFO:__main__:Parallel visual worker completed 1 capture event(s).
+INFO:httpx:HTTP Request: POST https://developer.amd.com.cn/radeon/api/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:AutonomyCoordinatorService:Processing ambient event 42223d2f23b94146a871ffa06f7c0503 (lightweight_visual_capture, source=screen_capture).
+INFO:AutonomyCoordinatorService:Completed screen enrichment for ambient event 42223d2f23b94146a871ffa06f7c0503 (mode=vision_enriched).
+INFO:__main__:Parallel visual worker completed 1 capture event(s).
+INFO:LLMInteractionService:Calling tool: search_web_ddgs
+INFO:LLMInteractionService:Arguments: {"query": "silver rate today per kg India INR June 202 karat", "max_results": 3, "timelimit": "d"}
+INFO:LLMInteractionService:--- Iteration 3 (agent depth 0/3) ---
+INFO:httpx:HTTP Request: POST https://developer.amd.com.cn/radeon/api/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://developer.amd.com.cn/radeon/api/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://developer.amd.com.cn/radeon/api/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:AutonomyCoordinatorService:Completed screen enrichment for ambient event 42223d2f23b94146a871ffa06f7c0503 (mode=vision_enriched).
+INFO:__main__:Parallel visual worker completed 1 capture event(s).
+INFO:LLMInteractionService:Calling tool: add_task
+INFO:LLMInteractionService:--- Iteration 1 (agent depth 0/3) ---
+INFO:httpx:HTTP Request: POST https://developer.amd.com.cn/radeon/api/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:LLMInteractionService:Calling tool: search_web_ddgs
+INFO:LLMInteractionService:Calling tool: search_web_ddgs
+INFO:LLMInteractionService:Arguments: {"query": "MCP Model Context Protocol use_filesystem tool Windows allowed_paths sandboxing", "max_results": 10}
+INFO:LLMInteractionService:--- Iteration 2 (agent depth 0/3) ---
+INFO:httpx:HTTP Request: POST https://developer.amd.com.cn/radeon/api/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:LLMInteractionService:Calling tool: search_web_ddgs
+INFO:LLMInteractionService:Arguments: {"query": "\"filesystem-mcp\" \"Permission denied\" OR \"access denied\" OR \"not allowed\" troubleshooting Windows root paths configuration", "max_results": 10}
+INFO:LLMInteractionService:Calling tool: search_web_ddgs
+INFO:LLMInteractionService:Arguments: {"query": "@modelcontextprotocol/server-filesystem \"at least ONE allowed directory\" configuration common errors", "max_results": 10}
+INFO:LLMInteractionService:--- Iteration 3 (agent depth 0/3) ---
+INFO:LLMInteractionService:--- Iteration 4 (agent depth 0/3) ---
+INFO:httpx:HTTP Request: POST https://developer.amd.com.cn/radeon/api/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://developer.amd.com.cn/radeon/api/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:LLMInteractionService:Calling tool: get_gmail_messages_content_batch
+INFO:LLMInteractionService:Arguments: {"message_ids": ["c365562c5cee4974bc444a2895016a0d"], "body_format": "text", "format": "full"}
+INFO:LLMInteractionService:--- Iteration 5 (agent depth 0/3) ---
+INFO:httpx:HTTP Request: POST https://developer.amd.com.cn/radeon/api/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:LLMInteractionService:Model finished (no more tool calls)
+INFO:httpx:HTTP Request: POST https://developer.amd.com.cn/radeon/api/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:LLMInteractionService:Model finished (no more tool calls)
+INFO:httpx:HTTP Request: POST https://developer.amd.com.cn/radeon/api/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://developer.amd.com.cn/radeon/api/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://developer.amd.com.cn/radeon/api/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:__main__:Parallel downstream worker processed 1 event(s).
+INFO:AutonomyCoordinatorService:Processing ambient event 8893c51188564f63ae099dbf12043e1a (visual_context_changed, source=passive_observer).
+INFO:__main__:User activity detected; context judgment remains active.
+INFO:httpx:HTTP Request: POST https://developer.amd.com.cn/radeon/api/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:AutonomyCoordinatorService:Ambient event 8893c51188564f63ae099dbf12043e1a was judged as background/noise.
+```
