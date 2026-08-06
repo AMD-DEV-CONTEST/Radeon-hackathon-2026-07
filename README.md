@@ -1,89 +1,173 @@
-# Radeon-hackathon-2026-07
+# Track 2: Radeon Requirement Guardian
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+Radeon Requirement Guardian is a privacy-first, document-to-action agent that turns a requirement document into an evidence-backed execution checklist. It plans the task, searches the local document with tools, recalls local memory, writes a report, and independently verifies its own output. Every language-model call is served by vLLM on an AMD Radeon PRO W7900D through ROCm; no cloud AI API is used.
 
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
+## Why It Matters
 
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
+Dense submission rules, procurement documents, compliance policies, and internal procedures are easy to misread. A normal chatbot can summarize them, but it does not expose a reliable execution process. This project produces a visible plan, evidence references, tool calls, a persistent memory record, and a final coverage check. The design is useful for private enterprise documents that cannot be sent to a cloud model.
 
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+## Agentic Capabilities
 
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+1. **Reasoning and planning** - the local model converts the user's goal into an executable plan and targeted search queries.
+2. **Tool use** - the agent reads PDF/TXT/MD/CSV/LOG files, chunks and searches the document, recalls prior work, and writes a Markdown report.
+3. **Local memory** - SQLite stores concise outcomes and recalls relevant decisions in later runs.
+4. **Task execution** - the agent creates a submission-ready checklist instead of returning only a conversational answer.
+5. **Independent verification** - a separate model pass checks coverage and unsupported claims.
+6. **Auditable UX** - the Gradio interface exposes the final report, verification JSON, complete agent trace, and AMD inference metrics.
 
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+## Architecture
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+```text
+Requirement document + user goal
+               |
+               v
+        Local planner (LLM)
+               |
+               v
+  +------------+-------------+
+  | read_document            |
+  | search_document          |---- Local evidence chunks
+  | recall_memory            |---- SQLite memory
+  +------------+-------------+
+               |
+               v
+   Evidence-grounded report writer
+               |
+               v
+      Independent verifier
+               |
+               v
+ Report + checklist + trace + metrics
 
-> [!IMPORTANT]
-> Team name was an optional field on the Luma registration form. If you did not fill in a team name when you registered, please use your own name instead, so the title of the pull request should be like **"Track x, Your name, your application name"**.
+All LLM stages -> vLLM OpenAI-compatible endpoint -> Qwen3 -> ROCm -> AMD Radeon
+```
 
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
+## AMD Radeon Deployment
 
-## Submission Requirements
+The tested target environment is:
 
-### Track 1: Development of Multimodal Content Creation Tools
+- Hardware: AMD Radeon PRO W7900D, RDNA 3, gfx1100, 48 GB VRAM
+- Software: ROCm 7.2.1 and a ROCm-compatible vLLM build
+- Model: `Qwen/Qwen3-0.6B`
+- Precision: FP16
+- Endpoint: `http://127.0.0.1:8000/v1/chat/completions`
 
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
+Start the model server in the Radeon workspace:
 
-### Track 2: Development & Local Deployment of Private AI Agents
+```bash
+vllm serve Qwen/Qwen3-0.6B \
+  --host 0.0.0.0 \
+  --port 8000 \
+  --dtype float16 \
+  --enforce-eager
+```
 
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
+`--enforce-eager` is used for reliable execution on the provided short-lived workshop image. After the baseline is captured, remove it and benchmark the default compiled execution path if the environment supports it.
 
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
+Verify that the endpoint is local:
 
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+```bash
+curl http://127.0.0.1:8000/v1/models
+rocm-smi --showproductname --showmeminfo vram
+```
+
+## Run the Application
+
+```bash
+python -m pip install -r requirements.txt
+python agent.py
+```
+
+Open `http://localhost:7862`, upload `sample_requirements.txt`, keep the default task, and select **Run Local Agent**.
+
+If notebook port forwarding is unavailable, use the terminal demo:
+
+```bash
+python demo_cli.py \
+  --file sample_requirements.txt \
+  --task "Extract all mandatory requirements and create a submission-ready checklist."
+```
+
+Environment variables can override the defaults:
+
+```bash
+export VLLM_ENDPOINT=http://127.0.0.1:8000/v1/chat/completions
+export VLLM_MODEL=Qwen/Qwen3-0.6B
+```
+
+## Radeon Optimization and Measurement
+
+The implementation keeps the model loaded in Radeon VRAM behind vLLM and makes all three reasoning stages use the same local server. FP16 reduces memory traffic relative to FP32. vLLM provides continuous batching and a reusable serving process, while ROCm supplies the Radeon execution backend.
+
+The app records the following values for every run:
+
+- Number of local model calls
+- Prompt and completion tokens reported by vLLM
+- Aggregate inference time
+- End-to-end agent time
+- Effective output throughput (`completion tokens / aggregate inference seconds`)
+
+The effective throughput is an application-level measurement, not a claim about raw kernel decode speed. The demo pairs it with live `rocm-smi` output to prove GPU execution. Actual measurements should be copied from the target workspace into the submission evidence; this repository intentionally contains no invented benchmark number.
+
+Suggested last-mile comparison if time permits:
+
+```text
+Configuration A: FP16 + --enforce-eager
+Configuration B: FP16 + default compiled execution
+
+For each configuration, run the same sample task three times and report the median.
+```
+
+## Repository Layout
+
+```text
+track2-local-agent-on-radeon/
+|- agent.py                         Agent, tools, memory, verifier, and UI
+|- demo_cli.py                      Terminal-first demo with Radeon evidence
+|- sample_requirements.txt          Reproducible evaluation input
+|- requirements.txt
+|- docs/
+|  `- project_specification.pdf     Required English specification
+|- assets/
+|  `- demo_video_link.txt           Playable 3-5 minute demo URL
+`- tests/
+   `- test_core.py                  Offline unit tests
+```
+
+## Evaluation
+
+The included sample has explicit submission constraints. A successful run should:
+
+- Identify all four required deliverables
+- Preserve the pull-request title rule
+- Identify English-only materials and the 3-5 minute video constraint
+- Cite local evidence for factual requirements
+- Produce planner, tool, writer, verifier, and memory events in the trace
+- Write `output/latest_report.md`
+
+Run offline unit tests with:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+## Privacy and Safety
+
+- No cloud LLM or cloud embedding API is called.
+- Source documents and SQLite memory remain inside the local workspace.
+- Reports separate cited requirements from missing or uncertain information.
+- The verifier flags unsupported claims for human review.
+
+## Demo Video
+
+The playable link is stored in [`assets/demo_video_link.txt`](assets/demo_video_link.txt).
+
+## Limitations and Next Steps
+
+- The lightweight lexical retriever is reliable for the demo but can be replaced by ROCm-accelerated embeddings or hipVS.
+- The 0.6B model favors low latency and reproducibility; a larger local Qwen model can improve complex reasoning on the 48 GB card.
+- The current tools are read-only except for the local report and memory database. Human approval should be added before external actions in a production version.
+
+## License
+
+This hackathon submission is provided for evaluation and demonstration purposes.
