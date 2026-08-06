@@ -111,8 +111,8 @@ This is not a live trading system. Demo backtests use deterministic synthetic hi
 
 Try the running system — inference on an AMD Radeon GPU (ROCm 7.2.1), local Qwen2.5-7B + LoRA served by vLLM:
 
-- **Showcase site**: [AutoQuant landing](https://61a41b94d2884d3c8a0e5cdea2f8f218.bj6.agentos-app.net)
-- **Chat interface**: [Open WebUI](https://minimize-orders-excel-saving.trycloudflare.com) — register or sign in, then chat with model `autoquant-assistant` (one unified entry, auto-routed: **quantitative questions → local strategy model**, **general questions → personal assistant**)
+- **Showcase site**: [AutoQuant landing](https://autoquant-landing.vercel.app)
+- **Chat interface**: [Open WebUI](https://bones-fans-imposed-rio.trycloudflare.com) — register or sign in, then chat with model `autoquant-assistant` (one unified entry, auto-routed: **quantitative questions → local strategy model**, **general questions → personal assistant**)
 - **Personal-assistant mode**: ask anything — travel plans, writing, Q&A, daily life — it answers directly like an assistant; quantitative requests are automatically routed into the local strategy DSL pipeline
 
 ![Landing](docs/screenshots/landing.png)

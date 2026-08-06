@@ -69,8 +69,8 @@ flowchart LR
 
 推理运行在 AMD Radeon GPU（ROCm 7.2.1）上，本地 Qwen2.5-7B + LoRA 由 vLLM 提供服务：
 
-- **展示页**：[AutoQuant landing](https://61a41b94d2884d3c8a0e5cdea2f8f218.bj6.agentos-app.net)
-- **聊天界面**：[Open WebUI](https://minimize-orders-excel-saving.trycloudflare.com) — 注册/登录后使用统一模型 `autoquant-assistant`（自动分流：**量化问题 → 本地策略模型**，**通用问题 → 个人助理**）
+- **展示页**：[AutoQuant landing](https://autoquant-landing.vercel.app)
+- **聊天界面**：[Open WebUI](https://bones-fans-imposed-rio.trycloudflare.com) — 注册/登录后使用统一模型 `autoquant-assistant`（自动分流：**量化问题 → 本地策略模型**，**通用问题 → 个人助理**）
 - **个人助理模式**：旅行规划、写作、答疑、生活日常等都能直接自然回答；量化请求自动进入本地策略 DSL 管线
 
 ![Landing](docs/screenshots/landing.png)
