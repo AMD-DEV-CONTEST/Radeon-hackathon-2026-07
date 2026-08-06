@@ -12,8 +12,8 @@
 
 **Final deliverable: single-robot REAL KICK → GOAL** (nothing scripted).
 
-The final film `acceptance/final_video/track3_final_20260806.mp4` (4:14, 1920×1080@30,
-6-part structure with Chinese subtitles) demonstrates the full physical kick action chain:
+The final film `acceptance/final_video/track3_final_20260806.mp4` (87.7 s, 1920×1080@30,
+6-part structure with English subtitles + English TTS narration) demonstrates the full physical kick action chain:
 
 ```
 walk to ball → wind-up → forward leg swing → FOOT CONTACTS BALL → ball pushed → GOAL
