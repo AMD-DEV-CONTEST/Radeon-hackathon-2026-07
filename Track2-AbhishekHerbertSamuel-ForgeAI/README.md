@@ -1,136 +1,134 @@
 # ForgeAI
 
+**AMD AI DevMaster Hackathon 2026**
+
 **Track:** Track 2 – Development & Local Deployment of Private AI Agents
 
 **Participant:** Abhishek Herbert Samuel
 
 ---
 
-## Project Overview
+# Project Overview
 
 ForgeAI is a private engineering intelligence platform that transforms software feature requests into evidence-backed Engineering Decision Packages (EDPs).
 
-Instead of generating a single AI response, ForgeAI executes a deterministic multi-agent workflow that:
+Instead of producing a single AI response, ForgeAI executes a deterministic multi-agent workflow that:
 
 - Performs requirement discovery
-- Requests clarifications when information is missing
+- Requests clarifications when information is incomplete
 - Retrieves project knowledge
-- Generates an architecture proposal
+- Selects trusted supporting evidence
+- Generates an implementation-ready architecture proposal
 - Performs an independent engineering critique
-- Revises the proposal
-- Validates outputs
-- Produces a durable Engineering Decision Package with provenance
+- Revises the proposed solution
+- Validates workflow outputs
+- Produces a durable Engineering Decision Package with complete provenance
 
 ---
 
-## Motivation
+# Motivation
 
-Modern software engineers spend significant time understanding requirements, reviewing documentation, validating assumptions, and producing implementation plans before writing code.
+Software engineers spend considerable time understanding requirements, reviewing documentation, validating assumptions, and planning implementations before writing code.
 
-ForgeAI augments this process by structuring engineering reasoning into a transparent, reproducible workflow grounded in project evidence.
+ForgeAI augments this engineering process by structuring AI reasoning into a transparent, evidence-backed, reproducible workflow that supports engineering decision-making rather than replacing it.
 
 ---
 
-## Core Capabilities
+# Core Capabilities
 
-- Multi-agent engineering workflow
-- Clarification-driven discovery
-- Project-aware retrieval
+- Deterministic multi-agent workflow
+- Clarification-driven requirement discovery
+- Project-aware document retrieval
 - Trusted evidence reconstruction
-- Architecture generation
+- Architecture proposal generation
 - Independent critique and revision
-- Deterministic validation
+- Structured validation
 - Engineering Decision Package generation
-- JSON & Markdown export
+- JSON and Markdown export
 - Complete provenance tracking
 
 ---
 
-## Workflow
+# Workflow
 
+```
 Feature Request
-
-↓
-
-Discovery
-
-↓
-
-Retrieval
-
-↓
-
-Evidence
-
-↓
-
-Solution
-
-↓
-
-Critique
-
-↓
-
-Revision
-
-↓
-
-Validation
-
-↓
-
+        │
+        ▼
+   Discovery
+        │
+        ▼
+   Retrieval
+        │
+        ▼
+    Evidence
+        │
+        ▼
+    Solution
+        │
+        ▼
+     Critique
+        │
+        ▼
+     Revision
+        │
+        ▼
+    Validation
+        │
+        ▼
 Engineering Decision Package
+```
 
 ---
 
-## Technology Stack
+# Technology Stack
 
-Backend
+### Backend
 
 - Python 3.12
 - FastAPI
-- SQLite FTS5
+- SQLite (FTS5)
 - Pydantic
 
-Frontend
+### Frontend
 
 - React
 - TypeScript
 
-LLM
+### AI Layer
 
 - Provider-neutral OpenAI-compatible interface
 
 ---
 
-## AMD AI Integration
+# AMD AI Integration
 
-ForgeAI uses a provider-neutral architecture capable of integrating OpenAI-compatible model providers.
+ForgeAI is designed with a provider-neutral architecture that supports OpenAI-compatible inference providers.
 
-The project specification describes the deployment approach and AMD-focused deployment considerations. The architecture is designed so that inference providers can be replaced without modifying the engineering workflow.
+The submitted project specification describes the local deployment approach, AMD deployment considerations, and future deployment pathways while preserving the same deterministic engineering workflow.
 
 ---
 
-## Repository
+# Submission Materials
+
+## Project Specification
+
+https://github.com/AbhishekHerbertSamuel/Radeon-hackathon-2026-07/blob/main/Track2-AbhishekHerbertSamuel-ForgeAI/ForgeAI-Project-Specification-AMD-Track-2.pdf
+
+## Presentation Deck
+
+https://github.com/AbhishekHerbertSamuel/Radeon-hackathon-2026-07/blob/main/Track2-AbhishekHerbertSamuel-ForgeAI/ForgeAI_AMD_Track2_Pitch_Deck.pdf
+
+## Source Code Repository
 
 https://github.com/AbhishekHerbertSamuel/forgeai
 
----
+## Demonstration Video
 
-## Included Deliverables
-
-- Project Specification (PDF)
-- Presentation (PDF/PPT)
-- Source Code Repository
-- Demonstration Video
+https://youtu.be/IrvKjZPcBGk
 
 ---
 
-## Demo Video
+# Thank You
 
-<YouTube Unlisted Link>
-
----
-
-Thank you for reviewing ForgeAI.
+Thank you for taking the time to review ForgeAI. I hope you enjoy exploring the project and its engineering workflow.
