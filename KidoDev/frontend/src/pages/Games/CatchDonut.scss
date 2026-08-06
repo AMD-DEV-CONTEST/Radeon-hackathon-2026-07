@@ -1,0 +1,341 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;600;700;800;900&display=swap');
+
+/* ═══════════════════════════════════════════
+   CATCH DONUT — Full Page Game
+═══════════════════════════════════════════ */
+
+/* Root container fills entire viewport */
+.cdg-fullpage {
+    position: fixed;
+    top: 80px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    background: #1a3a15;
+    overflow: hidden;
+    z-index: 10;
+}
+
+/* Canvas fills all available space */
+.cdg-canvas-fullpage {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+}
+
+/* ── Floating HUD — on top of canvas ── */
+.cdg-floating-hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 24px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 100%);
+    pointer-events: none;
+
+    /* Allow buttons inside to receive events */
+    > * { pointer-events: all; }
+}
+
+/* Arrow back button — chunky game style */
+.cdg-back {
+    background: linear-gradient(180deg, #ff6b6b 0%, #d83b3b 100%);
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    border: 3px solid #ffcccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+    flex-shrink: 0;
+    box-shadow: 0 4px 0 #9c1f1f, 0 8px 12px rgba(0,0,0,0.3);
+    transition: all 0.15s cubic-bezier(0.34,1.56,0.64,1);
+
+    &:hover { transform: scale(1.08); box-shadow: 0 5px 0 #9c1f1f, 0 10px 15px rgba(0,0,0,0.3); }
+    &:active { transform: translateY(4px); box-shadow: 0 0 0 #9c1f1f, 0 4px 6px rgba(0,0,0,0.3); }
+}
+
+.cdg-title {
+    font-family: 'Fredoka', sans-serif;
+    font-size: clamp(1.4rem, 2.5vw, 2.2rem);
+    font-weight: 800;
+    color: #FFD93D;
+    text-shadow: 0 4px 0 #D88C00, 0 6px 12px rgba(0,0,0,0.6);
+    flex: 1;
+    white-space: nowrap;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* HUD pills - Chunky game UI style */
+.cdg-hud {
+    display: flex;
+    gap: 12px;
+    flex-wrap: nowrap;
+}
+
+.hud-pill {
+    background: linear-gradient(180deg, #4DABF7 0%, #228BE6 100%);
+    border: 3px solid #E7F5FF;
+    border-radius: 16px;
+    padding: 6px 16px;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #fff;
+    font-family: 'Fredoka', sans-serif;
+    white-space: nowrap;
+    box-shadow: 0 4px 0 #1864AB, 0 6px 10px rgba(0,0,0,0.25);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    svg { font-size: 1.2rem; }
+
+    strong {
+        color: #fff;
+        font-size: 1.2rem;
+        text-shadow: 0 2px 0 rgba(0,0,0,0.3);
+    }
+}
+.hud-pill-score {
+    background: linear-gradient(180deg, #FFD93D 0%, #F4A035 100%);
+    border-color: #FFF3BF;
+    box-shadow: 0 4px 0 #D8781A, 0 6px 10px rgba(0,0,0,0.25);
+}
+.hud-pill-miss {
+    background: linear-gradient(180deg, #FF6B9D 0%, #E64980 100%);
+    border-color: #FFDEEB;
+    box-shadow: 0 4px 0 #A61E4D, 0 6px 10px rgba(0,0,0,0.25);
+}
+
+/* ── Overlay — centered on canvas ── */
+.cdg-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15,40,15,0.72);
+    backdrop-filter: blur(10px);
+    z-index: 30;
+}
+
+.cdg-panel {
+    background: rgba(255,255,255,0.97);
+    border: 2px solid rgba(255,255,255,0.5);
+    border-radius: 24px;
+    padding: 20px 24px;
+    max-width: 420px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+    animation: pop-in 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    max-height: 90%;
+    overflow-y: hidden;
+}
+
+@keyframes pop-in {
+    from { opacity: 0; transform: scale(0.88) translateY(20px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+.cdg-panel-title {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.85rem;
+    font-weight: 700;
+    color: #2E7D32;
+    margin-bottom: 10px;
+}
+
+.cdg-panel-desc {
+    font-size: 0.9rem;
+    color: #555;
+    line-height: 1.65;
+    margin-bottom: 18px;
+    font-family: 'Nunito', sans-serif;
+    strong { color: #1B5E20; }
+}
+
+/* ── Tips ── */
+.cdg-tips {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 20px;
+    text-align: left;
+    background: #F5F7FA;
+    border-radius: 12px;
+    padding: 12px 16px;
+}
+
+.tip-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.83rem;
+    color: #555;
+    font-family: 'Nunito', sans-serif;
+
+    kbd {
+        background: #E8F5E9;
+        border: 1.5px solid #A5D6A7;
+        border-radius: 6px;
+        padding: 2px 9px;
+        font-weight: 700;
+        font-size: 0.77rem;
+        color: #2E7D32;
+        min-width: 90px;
+        text-align: center;
+        flex-shrink: 0;
+        font-family: 'Nunito', sans-serif;
+    }
+}
+
+.cdg-choose-label {
+    font-size: 0.75rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #9E9E9E;
+    margin-bottom: 12px;
+    font-family: 'Nunito', sans-serif;
+}
+
+/* ── Level buttons — 3D pill ── */
+.cdg-lvl-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.cdg-lvl-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 12px 26px;
+    border: none;
+    border-radius: 50px;
+    font-family: 'Fredoka', sans-serif;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.15s;
+    min-width: 110px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+
+    &:hover { transform: translateY(-5px) scale(1.05); }
+    &:active { transform: translateY(4px); }
+
+    .lvl-name { font-size: 1.1rem; font-weight: 700; color: #fff; }
+    .lvl-sub  { font-family: 'Nunito', sans-serif; font-size: 0.68rem; font-weight: 700; color: rgba(255,255,255,0.85); }
+
+    &.cdg-lvl-easy {
+        background: linear-gradient(135deg, #81C784, #43A047);
+        box-shadow: 0 7px 0 #2E7D32, 0 10px 24px rgba(76,175,80,0.3);
+    }
+    &.cdg-lvl-medium {
+        background: linear-gradient(135deg, #FFB74D, #FB8C00);
+        box-shadow: 0 7px 0 #E65100, 0 10px 24px rgba(255,152,0,0.3);
+    }
+    &.cdg-lvl-hard {
+        background: linear-gradient(135deg, #EF9A9A, #C62828);
+        box-shadow: 0 7px 0 #8D1111, 0 10px 24px rgba(239,83,80,0.3);
+    }
+}
+
+/* ── Result grid ── */
+.cdg-panel--result { max-width: 380px; }
+
+.result-grid {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin: 18px 0;
+}
+
+.result-cell {
+    background: #F5F7FA;
+    border: 1.5px solid #E0E0E0;
+    border-radius: 12px;
+    padding: 12px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 88px;
+}
+
+.rc-label {
+    font-size: 0.68rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #9E9E9E;
+    margin-bottom: 4px;
+    font-family: 'Nunito', sans-serif;
+}
+
+.rc-val {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 2.1rem;
+    font-weight: 700;
+    color: #2E7D32;
+    line-height: 1;
+}
+
+/* ── Legend bar — bottom floating ── */
+.cdg-legend {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    justify-content: center;
+    padding: 8px 16px 10px;
+    background: linear-gradient(0deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 100%);
+    pointer-events: none;
+}
+
+.lg-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.76rem;
+    color: rgba(255,255,255,0.7);
+    font-family: 'Nunito', sans-serif;
+
+    kbd {
+        background: rgba(255,255,255,0.18);
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 5px;
+        padding: 1px 8px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #fff;
+        white-space: nowrap;
+        font-family: 'Nunito', sans-serif;
+    }
+}
+
+@media (max-width: 600px) {
+    .cdg-floating-hud { padding: 10px 14px; gap: 10px; }
+    .cdg-title { font-size: 1rem; }
+    .cdg-panel { padding: 22px 18px; }
+    .cdg-panel-title { font-size: 1.45rem; }
+    .cdg-legend { display: none; }
+}
