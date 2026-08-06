@@ -20,7 +20,6 @@ from xianglens.inference.llama_client import (
 from xianglens.schemas import (
     CandidateComparison,
     FollowUpDraft,
-    MemoryProposalDraft,
     StructuredReportDraft,
     VisualObservation,
 )
@@ -49,8 +48,10 @@ SENSITIVE_PATTERNS = (
 
 EXPLICIT_MEMORY_PATTERNS = (
     r"\bremember\b",
+    r"\bsave (?:this|that|it|my) (?:as |to )?(?:a )?(?:preference|memory)\b",
     r"\bkeep (?:this|that|it) in mind\b",
     r"\bi prefer\b",
+    r"\bi(?:'d| would) prefer\b",
     r"\bi (?:like|love|favor)\b",
     r"\bi (?:want|need) to avoid\b",
     r"\bi(?:'m| am) (?:worried|concerned) about\b",
@@ -166,6 +167,41 @@ def _explicit_memory_candidate(message: str) -> bool:
     return any(re.search(pattern, lowered) for pattern in EXPLICIT_MEMORY_PATTERNS) and not any(
         term in lowered for term in SENSITIVE_MEMORY_TERMS
     )
+
+
+def _deterministic_memory_proposal(message: str) -> dict[str, str] | None:
+    """Turn an explicit user statement into a consent request without another model call."""
+    if not _explicit_memory_candidate(message):
+        return None
+    text = " ".join(message.split()).strip()
+    text = re.sub(
+        r"^(?:please\s+)?remember(?:\s+that)?\s+",
+        "",
+        text,
+        flags=re.IGNORECASE,
+    )
+    text = re.sub(
+        r"^(?:please\s+)?keep\s+(?:this|that|it)\s+in\s+mind(?:\s*[:,-])?\s*",
+        "",
+        text,
+        flags=re.IGNORECASE,
+    )
+    text = text[:500].strip(" ,:;-")
+    if len(text) < 3:
+        return None
+    lowered = text.lower()
+    memory_type = "preference"
+    if any(term in lowered for term in ("correction", "actually", "instead of")):
+        memory_type = "correction"
+    elif any(term in lowered for term in ("my goal", "i need", "i want to achieve")):
+        memory_type = "goal"
+    elif any(term in lowered for term in ("worked well", "did not work", "outcome")):
+        memory_type = "outcome"
+    return {
+        "text": text,
+        "memory_type": memory_type,
+        "reason": "The user explicitly stated this reusable preference or constraint.",
+    }
 
 
 def _render_bullets(items: list[str], fallback: str) -> str:
@@ -879,7 +915,8 @@ def build_graph(services: GraphServices):
 
     async def propose_memory(state: XiangLensState) -> dict[str, Any]:
         started = time.perf_counter()
-        if not _explicit_memory_candidate(state["message"]):
+        proposal = _deterministic_memory_proposal(state["message"])
+        if proposal is None:
             return {
                 "memory_proposal_draft": None,
                 "tool_trace": _trace(
@@ -891,45 +928,17 @@ def build_graph(services: GraphServices):
                     status="skipped",
                 ),
             }
-        proposal = await validated_model_json(
-            [
-                {
-                    "role": "system",
-                    "content": (
-                        "Extract one reusable fact stated explicitly by the user. Preserve an "
-                        "explicit preference and its explicit constraint together when they form "
-                        "one reusable decision rule. Do not infer or add details, and do not make "
-                        "a legal conclusion. Return JSON with text, memory_type, and reason. Use "
-                        "memory_type preference, goal, correction, or outcome. This is only a "
-                        "proposal; it will "
-                        "require approval before storage."
-                    ),
-                },
-                {"role": "user", "content": state["message"]},
-            ],
-            MemoryProposalDraft,
-            700,
-        )
-        if any(term in proposal.text.lower() for term in SENSITIVE_MEMORY_TERMS):
-            return {
-                "memory_proposal_draft": None,
-                "tool_trace": _trace(
-                    state,
-                    node="propose_memory",
-                    tool="consent_first_memory",
-                    started=started,
-                    summary="A sensitive memory proposal was discarded.",
-                    status="blocked",
-                ),
-            }
         return {
-            "memory_proposal_draft": proposal.model_dump(),
+            "memory_proposal_draft": proposal,
             "tool_trace": _trace(
                 state,
                 node="propose_memory",
                 tool="consent_first_memory",
                 started=started,
-                summary="Created one pending memory proposal without writing long-term memory.",
+                summary=(
+                    "Created one deterministic pending memory proposal from the user's explicit "
+                    "statement; long-term storage still requires approval."
+                ),
             ),
         }
 

@@ -8,6 +8,7 @@ from tests.fakes import FakeModelClient
 from xianglens.agent.graph import (
     COMPARISON_DECISION_RULE,
     GraphServices,
+    _deterministic_memory_proposal,
     _explicit_memory_candidate,
     build_graph,
 )
@@ -190,6 +191,16 @@ def test_natural_preference_language_can_propose_memory(message: str) -> None:
     assert _explicit_memory_candidate(message) is True
 
 
+def test_explicit_memory_proposal_is_local_and_preserves_user_constraint() -> None:
+    assert _deterministic_memory_proposal(
+        "Remember that I prefer cartoon-style avatars, but I want copyright risk considered."
+    ) == {
+        "text": "I prefer cartoon-style avatars, but I want copyright risk considered.",
+        "memory_type": "preference",
+        "reason": "The user explicitly stated this reusable preference or constraint.",
+    }
+
+
 @pytest.mark.asyncio
 async def test_recognizable_character_becomes_a_separate_rights_finding(
     tmp_path: Path,
@@ -332,7 +343,9 @@ async def test_graph_compares_multiple_images_and_proposes_memory(tmp_path: Path
     )
     assert result["comparison"]["recommended_image_id"] == images[0].stem
     assert len(result["comparison"]["candidates"]) == 2
-    assert result["memory_proposal_draft"]["text"] == ("Red is an intentional brand color.")
+    assert result["memory_proposal_draft"]["text"] == (
+        "red is an intentional part of my brand identity."
+    )
     assert database.list_memories("ada") == []
     assert "Pending approval" in result["report_markdown"]
     assert f"Recommended image: `{image_labels[images[0].stem]}`" in result["report_markdown"]

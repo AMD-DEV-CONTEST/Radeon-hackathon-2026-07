@@ -267,6 +267,13 @@ async function runAnalysis(message: string, clearPreviousResult: boolean): Promi
       await api.stream(`${runPath}/stream`, payload, consumeEvent)
     }
     await loadThreadState()
+    if (result.value?.memory_proposal?.status === 'pending') {
+      await nextTick()
+      document.getElementById('memory-proposal')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      })
+    }
     return true
   } catch (error) {
     actionError.value = error instanceof Error ? error.message : String(error)
@@ -635,7 +642,7 @@ function formatDuration(value: number): string {
             </article>
           </section>
 
-          <section v-if="result.memory_proposal" class="memory-proposal">
+          <section v-if="result.memory_proposal" id="memory-proposal" class="memory-proposal">
             <div>
               <p class="eyebrow">Permission required</p>
               <h3>Save as long-term memory?</h3>
@@ -773,7 +780,10 @@ function formatDuration(value: number): string {
             </div>
             <p>{{ memory.text }}</p>
           </article>
-          <p v-if="!memories.length" class="muted-copy">Nothing is stored in long-term memory.</p>
+          <p v-if="!memories.length" class="muted-copy">
+            Nothing is stored yet. Say “Remember that I prefer cartoon-style avatars, but I want
+            copyright risk considered,” then approve the proposal shown in the result.
+          </p>
           <button class="danger-button" type="button" :disabled="previewMode" @click="forgetMe">Forget all private state</button>
         </section>
 
