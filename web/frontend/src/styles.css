@@ -1,0 +1,165 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Live-Science · AMD Radeon energy design system (Tailwind v4)
+   Dark metallic base + Radeon red/orange energy accents +
+   sharp chamfered corners + red glow
+   ============================================================ */
+
+@theme {
+  /* background / panels */
+  --color-ink-950: #08080a;
+  --color-ink-900: #0e0e11;
+  --color-ink-850: #121216;
+  --color-ink-800: #16161b;
+  --color-ink-700: #1d1d24;
+
+  /* borders / text */
+  --color-line: #232329;
+  --color-line-strong: #2f2f3a;
+  --color-fg: #f4f4f5;
+  --color-mut: #a1a1aa;
+  --color-dim: #6d6d78;
+
+  /* Radeon red + energy orange */
+  --color-radeon-600: #c8102e;
+  --color-radeon-500: #ed1c24;
+  --color-radeon-400: #ff3b43;
+  --color-ember-600: #e35d00;
+  --color-ember-500: #ff6a00;
+  --color-ember-400: #fb923c;
+
+  /* semantic */
+  --color-ok: #22c55e;
+  --color-warn: #f59e0b;
+  --color-danger: #ef4444;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    color: var(--color-fg);
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+      "Hiragino Sans GB", "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    background-color: var(--color-ink-950);
+    /* top Radeon red glow + fine circuit-grid texture */
+    background-image:
+      radial-gradient(ellipse 90% 55% at 50% -12%, rgba(237, 28, 36, 0.14), transparent 60%),
+      linear-gradient(to right, rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+    background-size:
+      auto,
+      46px 46px,
+      46px 46px;
+    background-attachment: fixed;
+  }
+  ::selection {
+    background: rgba(237, 28, 36, 0.35);
+  }
+  /* Keyboard focus ring. Uses an inset box-shadow because the design system's
+     clip-path chamfers would clip a regular outline away. Form fields keep
+     their own focus:border styles, so only expose it on clickable controls. */
+  :where(button, a, [role="button"], [tabindex]):focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--color-radeon-400);
+  }
+}
+
+/* ---- sharp chamfered corners (echo Radeon card edges) ---- */
+@utility clip-angled {
+  clip-path: polygon(
+    0 0,
+    calc(100% - 16px) 0,
+    100% 16px,
+    100% 100%,
+    16px 100%,
+    0 calc(100% - 16px)
+  );
+}
+@utility clip-angled-sm {
+  clip-path: polygon(
+    0 0,
+    calc(100% - 10px) 0,
+    100% 10px,
+    100% 100%,
+    10px 100%,
+    0 calc(100% - 10px)
+  );
+}
+
+/* ---- red glow ---- */
+@utility glow-red {
+  box-shadow: 0 0 0 1px rgba(237, 28, 36, 0.4), 0 0 26px -4px rgba(237, 28, 36, 0.45);
+}
+@utility glow-red-sm {
+  box-shadow: 0 0 16px -4px rgba(237, 28, 36, 0.5);
+}
+
+/* ---- energy gradient text (red to orange) ---- */
+@utility text-energy {
+  background: linear-gradient(92deg, var(--color-radeon-400), var(--color-ember-400));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---- primary button (red to orange gradient) ---- */
+@utility btn-primary {
+  background-image: linear-gradient(90deg, var(--color-radeon-600), var(--color-radeon-500), var(--color-ember-600));
+  color: #fff;
+  font-weight: 700;
+}
+
+/* ---- energy underline (active nav / heading accent) ---- */
+@utility energy-line {
+  background: linear-gradient(90deg, var(--color-radeon-500), var(--color-ember-500));
+}
+
+/* ---- animations ---- */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@utility animate-fade-up {
+  animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@utility animate-shimmer {
+  animation: shimmer 1.6s linear infinite;
+}
+@utility animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
