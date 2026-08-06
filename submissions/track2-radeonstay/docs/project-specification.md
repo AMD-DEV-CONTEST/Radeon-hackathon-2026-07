@@ -1,9 +1,11 @@
 # RadeonStay Project Specification
 
-> This Markdown file describes the current source candidate. Historical rendered
-> PDF, competition deck, demo video, and subtitle artifacts are archived outside
-> the repository boundary and are not final submission materials; regenerate
-> them only after the C2 source and accepted evidence are frozen.
+> This Markdown file describes frozen C2 v3 and the released accepted B→C
+> comparison. The final English deck, narrated demo video, and English subtitle
+> sidecar are included in `docs/`; the historical project PDF remains excluded.
+
+**RadeonHotel** is the competition-facing submission name. **RadeonStay** is
+the repository, package, and runtime implementation name.
 
 ## 1. Application scenario
 
@@ -400,11 +402,14 @@ remain the authoritative proof that an official inference run used Radeon.
 | llama.cpp | Commit `0b14b87d7c20cb753b94b96854dd7b45306fc696` | Binary SHA256 `926e2297d7144a59182ba9d37de877ec972a0cf8d1b697baa82277b3066c45c6` |
 | ROCm / HIP | ROCm `7.2.1`; HIP `7.2.53211-e1a6bc5663` | Retain `rocminfo`, version, and initialization logs |
 | Detected GPU | `AMD Radeon Graphics`; `gfx1100`; device ID `0x744b`; 96 CUs; `51522830336` VRAM bytes | Preserve the detected strings and values; do not infer a retail model name |
-| Context | `16384` default | Use the same value in both comparison runs |
+| Context | `16384` | Same value in B and C |
 | Offload | `--n-gpu-layers 999` request | Prove positive final offload and active same-GPU telemetry |
-| Flash attention | `auto`; controlled `off` baseline and `on` optimization run | Use only when the pinned binary exposes the flag; retain raw logs |
-| Batch / micro-batch | `512` / `128` defaults | Change one measured variable at a time |
-| Parallelism | One slot by default | Compare controlled 1/2/4 request workloads without changing the fixed suite |
+| Flash attention | B `off`; released C `on` | The only changed B→C variable; retain raw logs |
+| Batch / micro-batch | `256` / `64` | Same value in B and C |
+| Parallelism | `1` model slot; measured request concurrency `1` and `4` | Same service configuration in B and C |
+| KV cache | `f16` / `f16` | Same value in B and C |
+| Thinking | `off` | Same value in B and C |
+| Fused planning/evidence | `off` | Same value in B and C |
 
 The README reproduction procedure downloads the named GGUF through the pinned
 revision URL and verifies it with GNU `sha256sum`. It checks out llama.cpp in a
@@ -450,6 +455,18 @@ physical GPU unique ID; baseline and optimized runs must retain identical common
 active GPU indices and physical IDs. Missing TTFT is reported as unavailable
 rather than inferred.
 
+### Released minimal B→C comparison
+
+The submission release uses the completed B→C comparison only. Both fresh
+lifecycles use C2 v3, the same model, binary, corpus, 16-case workload, context,
+batch, parallelism, KV cache, and physical GPU. B disables Flash Attention and C
+enables it. Both complete 16/16 requests with zero model-call failures and the
+same disclosed 15/16 citation-section projection. The comparator accepts C on
+measured performance; this release does not claim 300/300, the full A–H matrix,
+five-run Stability, a long soak, or `accepted_final`.
+
+### Post-submission full protocol — not claimed for this release
+
 The controlled A–H sequence changes exactly one declared variable group per row:
 
 | Run | Only change from the preceding run |
@@ -493,13 +510,15 @@ quality reference. A smaller model can replace Q6_K only if every quality gate
 passes and either P95 improves by at least 10% or concurrent throughput improves
 by at least 15%. It cannot be mixed into the same-hash A–H comparison.
 
-Optimization is accepted only if the fixed 30-case suite scores 300/300; permission,
-confirmation, citation, and state-order gates are 100%; at least one core metric
-improves by 5% or more; no core metric regresses by 5% or more; peak VRAM remains
-below 90% of available memory; and there is no OOM or crash. Among accepted
-configurations, concurrent throughput wins only when single-request P95 is within
-5% of the best-latency configuration. P50, VRAM, and energy per successful task
-break later ties. Failed attempts remain in the evidence bundle.
+Promotion under this future full protocol requires the fixed 30-case suite to
+score 300/300; permission, confirmation, citation, and state-order gates to be
+100%; at least one core metric to improve by 5% or more; no core metric to
+regress by 5% or more; peak VRAM to remain below 90% of available memory; and no
+OOM or crash. Among accepted configurations, concurrent throughput wins only
+when single-request P95 is within 5% of the best-latency configuration. P50,
+VRAM, and energy per successful task break later ties. Failed attempts remain
+in the evidence bundle. These are future promotion gates, not the claim boundary
+of the released minimal B→C comparison above.
 
 ## 6. Output and limitations
 
@@ -537,8 +556,9 @@ Journey can recover; every old unconfirmed capability is retired and requires a
 new authoritative Repreview. The separate runtime-instance manifest must still
 validate the same live model process. Either missing or stale proof or process
 binding fails readiness. An accepted release proof also carries the C2 commit,
-winning A–H label, accepted
-winner-report SHA256, winning core metric, and its measured improvement. Runtime
+selected experiment label, accepted report SHA256, winning core metric, and its
+measured improvement. The current minimal release selects C from B→C; an A–H
+winner label is required only after the full post-submission matrix. Runtime
 directories are mode `0700`; the instance manifest, database, WAL/SHM sidecars,
 `.env`, and generated briefs are mode `0600`.
 Immutable security/proof failures keep isolated operations disabled. Model health

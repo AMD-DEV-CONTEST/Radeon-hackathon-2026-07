@@ -26,8 +26,8 @@
 | Public Radeon demo | [Authenticated live application](https://rc-5ec89b08f896792e.radeon.firstdg.ai/) using Optimized C | **LIVE** |
 | Project PDF | Pre-C1 archive outside the frozen repository, 10 A4 pages, 46,010 bytes | HISTORICAL / EXCLUDED / HASH VERIFIED |
 | English submission PPT | [`RadeonHotel-Track2-Submission.pptx`](RadeonHotel-Track2-Submission.pptx), 9 slides, 16:9, 699,794 bytes | **FINAL / HASH VERIFIED** |
-| Demo video | Pre-C1 archive outside the frozen repository, 276 s, 1920x1080, 25 fps | HISTORICAL / EXCLUDED / HASH VERIFIED |
-| English subtitles | Pre-C1 archive outside the frozen repository, 23 cues covering 00:00:00–00:04:36 | HISTORICAL / EXCLUDED / HASH VERIFIED |
+| Demo video | [`RadeonHotel-Track2-Demo.mp4`](RadeonHotel-Track2-Demo.mp4), 293.306 s, 1920×1080, 30 fps, H.264/AAC with embedded English captions | **FINAL / HASH VERIFIED** |
+| English subtitles | [`RadeonHotel-Track2-Demo.en.srt`](RadeonHotel-Track2-Demo.en.srt), 65 cues covering the complete narration | **FINAL / HASH VERIFIED** |
 
 `C2` is the immutable executable/evaluation input freeze. The released C2 v3
 commit is `f7ba6811205a40ba51ca74c82b43129b616f74c5`, with project tree
@@ -54,8 +54,9 @@ this release.
 ## Final evidence register
 
 Every final artifact below was reviewed against its recorded hash. The English
-submission deck was regenerated from frozen C2 v3 and the accepted B→C evidence.
-Legacy PDF/PPTX/MP4/SRT hashes are retained only to prevent accidental reuse of
+submission deck and narrated demo were generated from frozen C2 v3, the
+accepted B→C evidence, and sanitized captures of the deployed C profile. Legacy
+PDF/PPTX/MP4/SRT hashes are retained only to prevent accidental reuse of
 superseded files:
 
 | Final field | Bound value / artifact |
@@ -73,6 +74,8 @@ superseded files:
 | AMD/ROCm hardware binding | Both B/C: process binding true, gfx1100, 41/41 offload, 100% peak GPU busy; full raw log hashes are in the comparison JSON |
 | Public Radeon demo | [https://rc-5ec89b08f896792e.radeon.firstdg.ai/](https://rc-5ec89b08f896792e.radeon.firstdg.ai/) |
 | Final English submission PPT SHA256 | `bc3d19ed837caf45aa2fbd176a928c94f5bc15a7887217ae133f4956c05c6ff1` (699,794 bytes) |
+| Final English demo video SHA256 | `89e9e9779d1e15f34b5af81e41a6cb0eed9f47d5bec3ab9c5ee338af7544701b` (8,116,726 bytes; 293.306 s; 1920×1080; H.264/AAC; embedded English `mov_text`) |
+| Final English subtitle sidecar SHA256 | `395471b927b5f036c53dc0192feb0507939c6899e5e65af617ef6788bd441889` (7,316 bytes; 65 cues) |
 | Historical non-final project PDF SHA256 | `a3e64e406d9f0170ee14acadc4bf6e9a970523395ac4855550969ae2ce951401` |
 | Historical non-final bilingual PPT SHA256 | `41d432010060ac6ae97cafa185a12cbe0bdf222abebc3161bdb6fb19fccbf574` |
 | Historical non-final demo video and subtitle SHA256 | MP4: `d4fda194053f3ec0d488138794a5c723de96fea1697c2d412c4c59ec87fc5df1`; SRT: `eb05f7118fcc911a554c279d121bc6ace447eeb671df914836b087887e1e3fa9` |

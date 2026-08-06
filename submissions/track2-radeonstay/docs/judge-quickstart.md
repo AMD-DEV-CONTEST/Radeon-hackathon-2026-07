@@ -3,9 +3,9 @@
 > This guide is bound to C2 v3 commit
 > `f7ba6811205a40ba51ca74c82b43129b616f74c5` and the released minimal B→C
 > Radeon comparison. The comparison is accepted, but it is not an
-> `accepted_final` A–H/Stability/soak package. Historical PDF, competition deck,
-> demo video, and subtitle artifacts remain outside this engineering-document
-> scope.
+> `accepted_final` A–H/Stability/soak package. The final English deck, narrated
+> demo video, and English subtitle sidecar are included in `docs/`; the
+> historical project PDF remains outside this submission scope.
 
 This guide targets the verified Radeon environment: Python `3.12.3`, ROCm
 `7.2.1`, HIP `7.2.53211-e1a6bc5663`, and a detected `AMD Radeon Graphics`

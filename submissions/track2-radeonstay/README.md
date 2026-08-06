@@ -2,6 +2,9 @@
 
 **Track 2 — Development & Local Deployment of Private AI Agents**
 
+**RadeonHotel** is the competition-facing submission name; **RadeonStay** is
+the repository and implementation name used by the Python package and runtime.
+
 RadeonStay is a private, auditable hotel guest-journey agent whose competition
 path is built for local core-model inference on an AMD Radeon GPU with ROCm;
 retrieval, policy gates, and hotel state remain deterministic and local. It does
@@ -28,8 +31,9 @@ part.
 > [`docs/evidence/c3min-f7ba681-bc-comparison.json`](docs/evidence/c3min-f7ba681-bc-comparison.json).
 > This deliberately minimal comparison is not represented as a full A–H matrix,
 > five-run Stability package, long soak, or 300/300 quality run. The final
-> English submission deck is included; the historical PDF, MP4, and subtitles
-> remain excluded from the final submission set.
+> English submission deck, narrated 1080p demo, and English subtitle sidecar are
+> included. The historical project PDF remains excluded from the final
+> submission set.
 
 ## Why this project
 
@@ -406,8 +410,10 @@ starts. The accepted proof keeps its separate evidence identity:
 ```bash
 export RADEONSTAY_ISOLATED_DEMO=1
 export RADEONSTAY_DEMO_RUN_ID=deployment-judge-001
-export RADEONSTAY_EVIDENCE_RUN_ID=c3-accepted-winner-001
-export RADEONSTAY_RUNTIME_PROOF_PATH=/absolute/path/to/sanitized-runtime-proof.json
+export RADEONSTAY_EVIDENCE_RUN_ID=c3min-f7ba681-C-r3
+export RADEONSTAY_RUNTIME_PROOF_PATH=/secure/local/path/to/c3min-f7ba681-C-r3-runtime-proof.json
+export RADEONSTAY_MODEL_ENABLE_THINKING=0
+export RADEONSTAY_FUSED_PLAN_EVIDENCE=0
 install -d -m 0700 "runtime/${RADEONSTAY_DEMO_RUN_ID}"
 export RADEONSTAY_RUNTIME_INSTANCE_PATH="$PWD/runtime/${RADEONSTAY_DEMO_RUN_ID}/runtime-instance.json"
 test ! -e "$RADEONSTAY_RUNTIME_INSTANCE_PATH"
@@ -420,8 +426,19 @@ LLAMA_SERVER="$LLAMA_BIN" \
 MODEL_PATH="$MODEL_FILE" \
 MODEL_ALIAS="${RADEONSTAY_MODEL_NAME:-qwen3.6-35b-a3b-q6k}" \
 EVIDENCE_RUN_ID="${RADEONSTAY_EVIDENCE_RUN_ID:-}" \
+CONTEXT_SIZE=16384 \
+PARALLEL_SLOTS=1 \
+BATCH_SIZE=256 \
+UBATCH_SIZE=64 \
+FLASH_ATTN=on \
+CACHE_TYPE_K=f16 \
+CACHE_TYPE_V=f16 \
 scripts/serve_model.sh
 ```
+
+These explicit values reproduce the released C profile. The generic script and
+`.env.example` retain broader post-submission experimentation defaults; do not
+rely on those defaults when binding the accepted B→C proof.
 
 `serve_model.sh` creates the instance manifest as mode `0600` and records the
 deployment run ID, live PID and Linux start ticks, executable/configuration SHA256 values,
@@ -622,6 +639,8 @@ without credentials, paths, process IDs, or hardware unique IDs enter Git.
 - [Demo script](docs/demo-script.md)
 - [Evidence index](docs/evidence-index.md)
 - [Final English submission deck](docs/RadeonHotel-Track2-Submission.pptx)
+- [Final English demo video](docs/RadeonHotel-Track2-Demo.mp4)
+- [Final English subtitles](docs/RadeonHotel-Track2-Demo.en.srt)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
 
 ## Submission materials and historical references
@@ -631,16 +650,26 @@ without credentials, paths, process IDs, or hardware unique IDs enter Git.
   `bc3d19ed837caf45aa2fbd176a928c94f5bc15a7887217ae133f4956c05c6ff1`,
   699,794 bytes
 
+- Final English demo video — 293.306 seconds, 1920×1080 at 30 fps, H.264 video,
+  AAC narration, and a default embedded English subtitle track; SHA256
+  `89e9e9779d1e15f34b5af81e41a6cb0eed9f47d5bec3ab9c5ee338af7544701b`,
+  8,116,726 bytes
+
+- Final English subtitle sidecar — 65 cues covering the complete narration;
+  SHA256
+  `395471b927b5f036c53dc0192feb0507939c6899e5e65af617ef6788bd441889`,
+  7,316 bytes
+
 - Legacy project specification PDF — pre-C1, not final
 - Legacy silent demo video — pre-C1 behavior, not final
 - Legacy English subtitle source — superseded by the current demo script
 
-The [evidence index](docs/evidence-index.md) records the historical SHA256 values
-for integrity only. The legacy PDF, deck, video, and subtitles are deliberately
-archived outside the C1/C2 repository boundary, so a clean checkout cannot
-confuse them with the final English deck above. The accepted B→C comparison is
-the released Radeon performance evidence; a longer A–H/Stability/soak package is
-not claimed by this submission.
+The [evidence index](docs/evidence-index.md) records historical SHA256 values for
+integrity only. The legacy PDF, deck, video, and subtitles remain archived
+outside the C1/C2 repository boundary, so a clean checkout cannot confuse them
+with the final English deck, video, and subtitle sidecar above. The accepted B→C
+comparison is the released Radeon performance evidence; a longer
+A–H/Stability/soak package is not claimed by this submission.
 
 ## Privacy and data
 

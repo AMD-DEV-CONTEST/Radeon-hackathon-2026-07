@@ -1,88 +1,69 @@
-# Media Production Plan
+# Final Media Production Record
 
-This checklist turns `demo-script.md` into the required 3–5 minute video and
-keeps every visible performance claim tied to reproducible Radeon evidence.
+The submission media is locked to frozen C2 v3 and the reviewed accepted B→C
+Radeon comparison. This record replaces the earlier capture checklist.
 
-## Capture Layout
+## Final assets
 
-- Record at 2560×1440, 30 fps, and export at 1920×1080 or higher.
-- Use a browser zoom that keeps the Session field, active tab label, JSON keys,
-  pending preview, and confirmation receipt readable.
-- Prepare two terminal layouts before recording:
-  1. ROCm/HIP identity plus llama.cpp initialization and offload log;
-  2. timestamped GPU utilization/VRAM samples and final evidence summaries.
-- Use the same synthetic guest, clean app lifecycle, and model-service lifecycle
-  throughout the live UI journey.
-- Shorten only idle inference waits. Add the same visible notice to every cut:
-  `Inference wait shortened — same live run`.
-
-## English Subtitle Track
-
-- Use the narration column in `demo-script.md` as the subtitle source.
-- Deliver both a sidecar `.srt` or `.vtt` and a review copy with captions burned
-  in. Keep each cue to at most two lines and roughly 42 characters per line.
-- Do not place captions over the Request box, active JSON tab, pending preview,
-  confirmation button, booking ID, Session field, or GPU telemetry.
-- Translate the meaning of the Chinese guest interaction; do not cover or replace
-  the original multilingual UI text.
-- Read identifiers such as ROCm, HIP, llama.cpp, RAG, and GPU consistently. Avoid
-  narrating long hashes; let the evidence remain visible on screen.
-
-## Evidence Asset Checklist
-
-| Asset | Final source | Status before final recording |
+| Asset | Path | Status |
 | --- | --- | --- |
-| ROCm/HIP and detected GPU identity | Bound target-system evidence | `[PENDING_FINAL_ASSET]` |
-| llama.cpp native backend and positive offload | Complete server lifecycle log | `[PENDING_FINAL_ASSET]` |
-| Inference-window GPU utilization and VRAM | Same-run monitor log | `[PENDING_FINAL_ASSET]` |
-| Primary UI journey | One real captured session | `[PENDING_FINAL_ASSET]` |
-| 30-case quality result | Final quality JSON and binding manifest | `[PENDING_FINAL_ASSET]` |
-| Qualified Reference metrics | Complete A or B Reference bundle | `[PENDING_FINAL_ASSET]` |
-| Best accepted metrics | Complete accepted evidence bundle | `[PENDING_FINAL_ASSET]` |
-| Reference-versus-Winner comparison | Comparator JSON generated from both bundles | `[PENDING_FINAL_ASSET]` |
-| Repository or submission QR | Final public submission URL | `[PENDING_FINAL_ASSET]` |
-| English captions | Timed from the locked video edit | `[PENDING_FINAL_ASSET]` |
+| English presentation | [`RadeonHotel-Track2-Submission.pptx`](RadeonHotel-Track2-Submission.pptx) | FINAL |
+| English narrated demo | [`RadeonHotel-Track2-Demo.mp4`](RadeonHotel-Track2-Demo.mp4) | FINAL |
+| English subtitle sidecar | [`RadeonHotel-Track2-Demo.en.srt`](RadeonHotel-Track2-Demo.en.srt) | FINAL |
+| Public Optimized C deployment | [Radeon Cloud demo](https://rc-5ec89b08f896792e.radeon.firstdg.ai/) | LIVE |
+| Reviewed B→C report | [`evidence/c3min-f7ba681-bc-comparison.json`](evidence/c3min-f7ba681-bc-comparison.json) | ACCEPTED MINIMAL B/C |
 
-## Qualified Reference Versus Winner Card
+The video is a 4:53 narrated evidence tour assembled from the final nine-slide
+deck and two sanitized captures of the current public C-profile UI. One capture
+shows the editable English judge request; the other shows the real local quote
+and room-hold preview. The edit does not invent intermediate confirmations or
+claim that an unrecorded write occurred.
 
-Build the final result card from parsed JSON, not manually transcribed numbers.
-Use the following labels until the evidence is complete; placeholders must not
-appear in the submitted video:
+## Inputs and provenance
 
-| Field | Quality-qualified Reference | Accepted Winner |
-| --- | --- | --- |
-| Experiment label | `[REFERENCE_LABEL]` | `[WINNER_LABEL]` |
-| Quality score | `[REFERENCE_QUALITY]` | `[WINNER_QUALITY]` |
-| Core latency metric(s) | `[REFERENCE_LATENCY]` | `[WINNER_LATENCY]` |
-| Successful throughput | `[REFERENCE_THROUGHPUT]` | `[WINNER_THROUGHPUT]` |
-| Effective output tokens/s | `[REFERENCE_TOKEN_RATE]` | `[WINNER_TOKEN_RATE]` |
-| Comparison decision | Reference | `[ACCEPTANCE_STATUS]` |
+| Input | Bound value |
+| --- | --- |
+| C2 source | `f7ba6811205a40ba51ca74c82b43129b616f74c5` |
+| C2 project tree | `b44fb212b77c06ee9c8d097b5a9f2f891f79a389` |
+| Reference | B — Flash Attention off |
+| Optimized profile | C — Flash Attention on |
+| Accepted report | SHA256 `7f85a614a31da10e5484ee41034282210ac44caf84012617dea5c786c0f03f59` |
+| Live proof | ROCm 7.2.1, gfx1100, 96 CUs, 41/41 offload, 100% peak GPU busy |
+| Quality boundary | 16/16 request success, zero model-call failures, identical disclosed 15/16 citation projection |
 
-The card must state that both sides use the same model artifact, llama-server
-binary, source/workload, policy corpus, and physical GPU evidence. A is the
-Reference only when it passes 300/300; otherwise the bound A quality negative is
-shown separately and B is the Reference. Do not label a configuration “Winner”
-unless the selector accepted it under the final rules.
+## Export specification
 
-## Privacy and Continuity Review
+| Field | Final value |
+| --- | --- |
+| Duration | 293.306 seconds |
+| Canvas | 1920×1080 at 30 fps |
+| Video codec | H.264 |
+| Audio codec | AAC, mono English narration |
+| Captions | 65-cue English SRT plus default embedded `mov_text` stream |
+| File size | 8,116,726 bytes |
+| MP4 SHA256 | `89e9e9779d1e15f34b5af81e41a6cb0eed9f47d5bec3ab9c5ee338af7544701b` |
+| SRT SHA256 | `395471b927b5f036c53dc0192feb0507939c6899e5e65af617ef6788bd441889` |
 
-Before export, inspect the video frame by frame for:
+## Claim controls
 
-- `.env` contents, identity secrets, confirmation capabilities, private SSH details,
-  real names, complete unique booking/ticket/session/request/audit IDs, or local
-  paths that should not be public;
-- a Session value that accidentally changes before the cross-identity denial;
-- an output inserted without its corresponding live request;
-- a confirmation shown without its preceding preview;
-- GPU utilization that falls outside the demonstrated inference window;
-- a performance claim without its raw bound artifact;
-- captions obscuring the exact evidence being discussed.
+- Only reviewed B→C measurements appear in the deck and video: concurrency-4
+  throughput `+6.491%`, concurrency-4 P95 latency `-5.428%`, and decode P50
+  `+12.981%`.
+- The final media never says `300/300`, `accepted_final`, complete A–H, five-run
+  Stability, or soak.
+- No `.env`, identity secret, confirmation capability, private host, process ID,
+  internal path, or complete unique booking/session/audit identifier is shown.
+- No retail Radeon board name is inferred from `gfx1100`; the detected target
+  identity is reproduced as measured.
+- The old pre-C1 video and subtitles remain historical and excluded.
 
-## Final Deliverables
+## Verification performed
 
-- 3–5 minute 1080p-or-higher demonstration video;
-- English `.srt` or `.vtt` subtitle file;
-- captioned review export;
-- bilingual nine-slide presentation and PDF export;
-- final project-specification PDF;
-- evidence bundle or stable link referenced by the video and presentation.
+1. Decoded the complete final H.264 and AAC streams with FFmpeg and no errors.
+2. Confirmed a 1920×1080, 30 fps H.264 video stream; AAC narration; and an
+   English `mov_text` subtitle stream.
+3. Extracted the embedded subtitle track and compared it with the sidecar; the
+   text and timing match apart from a trailing newline.
+4. Reviewed a 12-frame contact sheet spanning the full video for language,
+   stale metrics, identifiers, cropping, and slide order.
+5. Verified the final SHA256 values recorded above and in the evidence index.
