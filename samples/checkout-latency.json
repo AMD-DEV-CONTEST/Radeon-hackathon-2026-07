@@ -1,0 +1,14 @@
+{
+  "title": "Checkout latency and elevated 5xx after release",
+  "service": "checkout-api",
+  "severity": "SEV-1",
+  "summary": "Checkout p95 latency rose from 420 ms to 4.8 s and HTTP 5xx reached 18% after the 14:02 release.",
+  "evidence": [
+    {"id": "EV-001", "timestamp": "2026-07-22T14:02:00Z", "source": "deployment", "content": "checkout-api version 2026.07.22-rc3 rollout started at 10% canary."},
+    {"id": "EV-002", "timestamp": "2026-07-22T14:06:00Z", "source": "metrics", "content": "p95 latency increased to 4.8 seconds; HTTP 503 rate reached 18%."},
+    {"id": "EV-003", "timestamp": "2026-07-22T14:07:00Z", "source": "application-log", "content": "database connection pool timeout after 2000ms; active=50 idle=0 waiting=137."},
+    {"id": "EV-004", "timestamp": "2026-07-22T14:09:00Z", "source": "database", "content": "Postgres CPU is 61%; max connections unchanged; new pricing query p99 is 3.9 seconds."},
+    {"id": "EV-005", "timestamp": "2026-07-22T14:11:00Z", "source": "trace", "content": "pricing lookup accounts for 87% of checkout request duration in failing traces."}
+  ]
+}
+

@@ -1,0 +1,25 @@
+Local Incident Commander is a private, evidence-first SRE agent built for AMD AI DevMaster Track 2.
+
+The product is deliberately bounded. It investigates one incident through a visible four-step state machine and never runs infrastructure commands automatically.
+
+The competition runtime uses Qwen3-8B with vLLM on a Radeon PRO W7900 and ROCm. The first half of this video is a live Radeon session captured today, including the model endpoint and the full Agent workflow. Incident evidence stays on the instance, and the workflow gate recorded zero remote core requests.
+
+We begin with a checkout latency incident. The server creates a four-step plan: inspect deployments, query metrics, search logs, and synthesize a cited root cause.
+
+The first native tool call inspects deployment history. It finds a canary release immediately before customer impact. The server assigns a trusted evidence ID. The model can choose the current tool and arguments, but it cannot invent tools or citations.
+
+The second tool queries the golden signals. p95 latency rises from 420 milliseconds to 4.8 seconds and HTTP 5xx errors reach 18 percent. Hypotheses update as each result enters the evidence ledger.
+
+The third tool searches sanitized application logs. It finds database connection-pool timeouts and 137 waiting requests. The trace records the sanitized arguments, duration, status, and evidence references.
+
+The fourth step synthesizes the causal chain: a canary pricing lookup increased database pressure, pool waiters accumulated, and checkout latency followed. Every claim is linked to evidence already stored by the server.
+
+The response queue is human-controlled. We approve a rollback simulation and reject an unsafe connection-pool increase. Both decisions are immutable audit events. No remediation command is executed.
+
+Now we ask a follow-up question. Session memory answers from the existing evidence and cites only records in this investigation. The session survives a browser reload and a server restart.
+
+Finally, we stop the local model. Deterministic fallback continues the investigation with a visible degraded state, preserving the evidence already collected. Model failure is a recoverable state, not a lost incident.
+
+For the same model prompt, enforce-eager vLLM measured 39.35 output tokens per second versus 15.64 for the default compiled configuration. This is model-level Radeon evidence; the workflow gate separately checks ten complete, three-tool, zero-unknown-citation runs.
+
+Local Incident Commander turns native tool calls into a trusted evidence ledger, a causal root cause, a human decision, and a recoverable audit trail.

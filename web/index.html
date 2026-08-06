@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Private, evidence-first incident investigation on AMD Radeon.">
+  <title>Local Incident Commander</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#workspace">Skip to investigation</a>
+  <header class="topbar">
+    <div class="brand"><span class="mark" aria-hidden="true">IC</span><strong>Local Incident Commander</strong></div>
+    <div class="runtime-status" aria-live="polite">
+      <span id="runtime-dot" class="dot pending" aria-hidden="true"></span>
+      <span id="runtime-label">Connecting to private runtime</span>
+    </div>
+  </header>
+
+  <main id="workspace" class="workspace" tabindex="-1">
+    <div class="incident-header">
+      <div>
+        <p class="eyebrow">ACTIVE INVESTIGATION</p>
+        <h1 id="incident-title">Checkout latency and elevated 5xx</h1>
+      </div>
+      <div class="header-actions">
+        <span id="investigation-status" class="status-badge idle">Not started</span>
+        <span id="severity" class="severity">SEV-1</span>
+        <button id="new-button" class="icon-command" type="button" title="Start a new investigation" aria-label="Start a new investigation">New</button>
+      </div>
+    </div>
+
+    <div id="runtime-warning" class="notice warning" role="status" hidden></div>
+    <div id="degraded-warning" class="notice degraded" role="status" hidden>
+      Model or tool fallback is active. Collected evidence remains available and no action was executed.
+    </div>
+
+    <section class="metrics" aria-label="Investigation summary">
+      <div><span>Service</span><strong id="service">checkout-api</strong></div>
+      <div><span>Evidence</span><strong id="evidence-count">0 signals</strong></div>
+      <div><span>Progress</span><strong id="progress">0 / 4 steps</strong></div>
+      <div><span>Runtime</span><strong id="engine">Checking...</strong></div>
+    </section>
+
+    <div id="global-error" class="notice error" role="alert" hidden></div>
+
+    <div class="investigation-grid">
+      <section class="column incident-column" aria-labelledby="incident-heading">
+        <div class="column-heading">
+          <div><p class="eyebrow">INPUT</p><h2 id="incident-heading">Incident &amp; evidence</h2></div>
+          <button id="sample-button" class="secondary" type="button">Load sample</button>
+        </div>
+
+        <div id="incident-editor">
+          <label for="summary">Incident summary</label>
+          <textarea id="summary" rows="4" maxlength="4000"></textarea>
+          <label for="evidence">Initial signals (JSON)</label>
+          <textarea id="evidence" class="code" rows="12" spellcheck="false"></textarea>
+          <button id="create-button" class="primary" type="button">
+            <span>Create investigation</span><span aria-hidden="true">-&gt;</span>
+          </button>
+        </div>
+
+        <div class="section-heading evidence-heading">
+          <h3>Evidence ledger</h3><span id="evidence-source-count" class="tag">0 ITEMS</span>
+        </div>
+        <div id="evidence-ledger" class="evidence-ledger empty-state">Create an investigation to build the evidence ledger.</div>
+      </section>
+
+      <section class="column agent-column" aria-labelledby="agent-heading">
+        <div class="column-heading">
+          <div><p class="eyebrow">BOUNDED AGENT</p><h2 id="agent-heading">Plan &amp; tool trace</h2></div>
+          <span class="tag green">MAX 4 STEPS</span>
+        </div>
+
+        <div id="plan" class="plan empty-state">The investigation plan will appear here.</div>
+        <button id="next-button" class="primary next-step" type="button" disabled>
+          <span>Run next step</span><span aria-hidden="true">-&gt;</span>
+        </button>
+
+        <div class="section-heading trace-heading">
+          <h3>Auditable trace</h3><span id="trace-count" class="tag">0 EVENTS</span>
+        </div>
+        <div id="trace" class="trace empty-state" aria-live="polite">No tools have run.</div>
+      </section>
+
+      <section class="column findings-column" aria-labelledby="findings-heading">
+        <div class="column-heading">
+          <div><p class="eyebrow">FINDINGS</p><h2 id="findings-heading">Root cause &amp; decisions</h2></div>
+          <span class="tag">CITED</span>
+        </div>
+
+        <section class="brief-section" aria-labelledby="brief-heading">
+          <h3 id="brief-heading">Commander brief</h3>
+          <p id="brief">Complete the bounded plan to synthesize an evidence-backed incident brief.</p>
+        </section>
+
+        <div class="section-heading"><h3>Ranked hypotheses</h3><span id="hypothesis-count" class="tag amber">0</span></div>
+        <div id="hypotheses" class="hypotheses empty-state">No hypotheses yet.</div>
+
+        <div class="section-heading actions-heading"><h3>Approval queue</h3><span class="tag green">SIMULATION ONLY</span></div>
+        <div id="actions" class="actions empty-state">No proposed actions yet.</div>
+      </section>
+    </div>
+
+    <section class="lower-workspace" aria-label="Session memory and audit">
+      <div class="conversation-panel">
+        <div class="column-heading">
+          <div><p class="eyebrow">LOCAL MEMORY</p><h2>Follow-up</h2></div>
+          <span class="tag">SESSION SCOPED</span>
+        </div>
+        <div id="messages" class="messages empty-state" aria-live="polite">Follow-up becomes available after synthesis.</div>
+        <form id="message-form" class="message-form">
+          <label class="sr-only" for="message-input">Ask a follow-up question</label>
+          <textarea id="message-input" rows="2" maxlength="4000" placeholder="Ask why this action is safe, or request supporting evidence..." disabled></textarea>
+          <button id="message-button" class="primary compact" type="submit" disabled>Ask with session context</button>
+        </form>
+      </div>
+      <div class="audit-panel">
+        <div class="column-heading">
+          <div><p class="eyebrow">IMMUTABLE RECORD</p><h2>Audit trail</h2></div>
+          <span id="session-version" class="tag">VERSION 0</span>
+        </div>
+        <div id="audit" class="audit empty-state">Session changes and operator decisions will appear here.</div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

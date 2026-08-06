@@ -1,0 +1,219 @@
+1
+00:00:00,000 --> 00:00:07,844
+Local Incident Commander is a private,
+evidence-first SRE agent built for AMD AI
+
+2
+00:00:07,844 --> 00:00:09,654
+DevMaster Track 2.
+
+3
+00:00:09,654 --> 00:00:12,671
+The product is deliberately bounded.
+
+4
+00:00:12,671 --> 00:00:19,911
+It investigates one incident through a
+visible four-step state machine and never
+
+5
+00:00:19,911 --> 00:00:22,325
+runs infrastructure commands
+automatically.
+
+6
+00:00:22,325 --> 00:00:30,772
+The competition runtime uses Qwen3-8B with
+vLLM on a Radeon PRO W7900 and ROCm.
+
+7
+00:00:30,772 --> 00:00:39,219
+The first half of this video is a live
+Radeon session captured today, including
+
+8
+00:00:39,219 --> 00:00:44,046
+the model endpoint and the full Agent
+workflow.
+
+9
+00:00:44,046 --> 00:00:51,890
+Incident evidence stays on the instance,
+and the workflow gate recorded zero remote
+
+10
+00:00:51,890 --> 00:00:53,097
+core requests.
+
+11
+00:00:53,097 --> 00:00:57,321
+We begin with a checkout latency incident.
+
+12
+00:00:57,321 --> 00:01:03,958
+The server creates a four-step plan:
+inspect deployments, query metrics, search
+
+13
+00:01:03,958 --> 00:01:08,181
+logs, and synthesize a cited root cause.
+
+14
+00:01:08,181 --> 00:01:13,008
+The first native tool call inspects
+deployment history.
+
+15
+00:01:13,008 --> 00:01:18,439
+It finds a canary release immediately
+before customer impact.
+
+16
+00:01:18,439 --> 00:01:22,663
+The server assigns a trusted evidence ID.
+
+17
+00:01:22,663 --> 00:01:31,713
+The model can choose the current tool and
+arguments, but it cannot invent tools or
+
+18
+00:01:31,713 --> 00:01:32,317
+citations.
+
+19
+00:01:32,317 --> 00:01:36,540
+The second tool queries the golden
+signals.
+
+20
+00:01:36,540 --> 00:01:45,591
+p95 latency rises from 420 milliseconds to
+4.8 seconds and HTTP 5xx errors reach 18
+
+21
+00:01:45,591 --> 00:01:46,194
+percent.
+
+22
+00:01:46,194 --> 00:01:51,625
+Hypotheses update as each result enters
+the evidence ledger.
+
+23
+00:01:51,625 --> 00:01:55,848
+The third tool searches sanitized
+application logs.
+
+24
+00:01:55,848 --> 00:02:01,279
+It finds database connection-pool timeouts
+and 137 waiting requests.
+
+25
+00:02:01,279 --> 00:02:07,916
+The trace records the sanitized arguments,
+duration, status, and evidence references.
+
+26
+00:02:07,916 --> 00:02:15,156
+The fourth step synthesizes the causal
+chain: a canary pricing lookup increased
+
+27
+00:02:15,156 --> 00:02:19,983
+database pressure, pool waiters
+accumulated, and checkout latency
+
+28
+00:02:19,983 --> 00:02:20,587
+followed.
+
+29
+00:02:20,587 --> 00:02:27,224
+Every claim is linked to evidence already
+stored by the server.
+
+30
+00:02:27,224 --> 00:02:30,241
+The response queue is human-controlled.
+
+31
+00:02:30,241 --> 00:02:36,878
+We approve a rollback simulation and
+reject an unsafe connection-pool increase.
+
+32
+00:02:36,878 --> 00:02:40,498
+Both decisions are immutable audit events.
+
+33
+00:02:40,498 --> 00:02:43,515
+No remediation command is executed.
+
+34
+00:02:43,515 --> 00:02:47,135
+Now we ask a follow-up question.
+
+35
+00:02:47,135 --> 00:02:54,979
+Session memory answers from the existing
+evidence and cites only records in this
+
+36
+00:02:54,979 --> 00:02:55,582
+investigation.
+
+37
+00:02:55,582 --> 00:03:01,616
+The session survives a browser reload and
+a server restart.
+
+38
+00:03:01,616 --> 00:03:05,236
+Finally, we stop the local model.
+
+39
+00:03:05,236 --> 00:03:10,667
+Deterministic fallback continues the
+investigation with a visible degraded
+
+40
+00:03:10,667 --> 00:03:14,287
+state, preserving the evidence already
+collected.
+
+41
+00:03:14,287 --> 00:03:20,321
+Model failure is a recoverable state, not
+a lost incident.
+
+42
+00:03:20,321 --> 00:03:27,561
+For the same model prompt, enforce-eager
+vLLM measured 39.35 output tokens per
+
+43
+00:03:27,561 --> 00:03:32,388
+second versus 15.64 for the default
+compiled configuration.
+
+44
+00:03:32,388 --> 00:03:39,025
+This is model-level Radeon evidence; the
+workflow gate separately checks ten
+
+45
+00:03:39,025 --> 00:03:41,439
+complete, three-tool,
+zero-unknown-citation runs.
+
+46
+00:03:41,439 --> 00:03:49,283
+Local Incident Commander turns native tool
+calls into a trusted evidence ledger, a
+
+47
+00:03:49,283 --> 00:03:55,920
+causal root cause, a human decision, and a
+recoverable audit trail.

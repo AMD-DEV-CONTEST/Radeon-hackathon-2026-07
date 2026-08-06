@@ -1,89 +1,247 @@
-# Radeon-hackathon-2026-07
+# Local Incident Commander
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+Local Incident Commander is a private, evidence-first SRE investigation agent for
+AMD AI DevMaster Hackathon Track 2. It turns a production incident into a bounded,
+auditable workflow: inspect deployments, inspect metrics, search sanitized logs,
+synthesize a cited root cause, and place every proposed response behind an operator
+decision.
 
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
+The competition path runs core inference locally with Qwen3-8B-AWQ, vLLM, AMD
+Radeon, and ROCm. A deterministic fallback keeps the investigation useful when the
+model or a tool is unavailable. It never executes a remediation command.
 
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
+## What is implemented
 
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+- A server-owned four-step plan with a maximum of three read-only tool calls and one synthesis step
+- Native OpenAI-compatible tool calls through the Hermes parser used by the Radeon vLLM launch configuration
+- An append-only evidence ledger with server-generated evidence IDs and cited hypotheses
+- A visible tool trace containing sanitized arguments, duration, status, errors, and evidence references
+- Persistent JSON investigation sessions, optimistic version checks, idempotent request IDs, and an append-only audit log
+- Session-scoped follow-up memory whose answers cite only evidence already collected in the investigation
+- Simulation-only approval and rejection records for proposed actions; no command executor exists
+- Deterministic model/tool fallback, partial-evidence retention, restart recovery, and a visible degraded state
+- Runtime attestation that reports `local-radeon` only for a loopback model endpoint with fresh, matching ROCm evidence
+- A responsive three-column operator workspace for evidence, agent execution, findings, approval, follow-up, and audit
+- A compatibility `/api/analyze` endpoint for the original single-shot analyzer
 
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+## Quick start: offline-safe mode
 
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+The application and deterministic fallback use only the Python standard library.
+Python 3.10 or later is required.
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+```bash
+git clone https://github.com/8dgeRunner/Radeon-hackathon-2026-07.git
+cd Radeon-hackathon-2026-07
+python3 -m incident_commander.server --port 8765
+```
 
-> [!IMPORTANT]
-> Team name was an optional field on the Luma registration form. If you did not fill in a team name when you registered, please use your own name instead, so the title of the pull request should be like **"Track x, Your name, your application name"**.
+Open <http://127.0.0.1:8765>, load the included checkout incident, create an
+investigation, and run each of the four plan steps. Without a configured local
+model, the same workflow uses deterministic fallback and clearly marks the session
+as degraded.
 
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
+## Radeon Cloud deployment
 
-## Submission Requirements
+Clone the repository under the persistent volume on the competition image, then run:
 
-### Track 1: Development of Multimodal Content Creation Tools
+```bash
+cd /workspace/persistence/amd-ai-devmaster-hackathon-2026
+./scripts/start-radeon-demo.sh
+```
 
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
+The script:
 
-### Track 2: Development & Local Deployment of Private AI Agents
+1. starts `Qwen/Qwen3-8B-AWQ` with vLLM on the local Radeon GPU;
+2. enables native tool calling with the Hermes parser;
+3. uses an 8,192-token context and `--enforce-eager`;
+4. waits for the loopback model endpoint;
+5. writes a sanitized ROCm runtime-evidence file; and
+6. starts the operator console on port `8765`.
 
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
+Model caches, logs, session snapshots, and runtime evidence remain under
+`/workspace/persistence`. The local vLLM endpoint does not require an API key.
 
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
+### Configuration
 
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+| Variable | Purpose | Competition default |
+| --- | --- | --- |
+| `LIC_ENABLE_LLM` | Enable the OpenAI-compatible model adapter | `1` in the Radeon launcher |
+| `LIC_LLM_BASE_URL` | Model API root | `http://127.0.0.1:8000/v1` |
+| `LIC_LLM_MODEL` | Served model name | `qwen3-8b` |
+| `LIC_DATA_DIR` | Writable directory for session snapshots and audit data | Persistent Radeon storage |
+| `LIC_RUNTIME_EVIDENCE` | Sanitized runtime attestation generated after model startup | Persistent Radeon storage |
+| `LIC_MODEL_PORT` | vLLM port used by the launcher | `8000` |
+| `LIC_APP_PORT` | Operator-console port used by the launcher | `8765` |
+
+See [`.env.example`](.env.example) for local configuration. Never commit `.env`.
+
+## Demo workflow
+
+1. Confirm that the header says `Private Radeon` and the health endpoint reports `local-radeon`.
+2. Load the synthetic checkout incident and create an investigation.
+3. Run `get_deployments`, `query_metrics`, and `search_logs` one step at a time.
+4. Inspect the growing evidence ledger and changing cited hypotheses.
+5. Run synthesis to produce the commander brief and approval queue.
+6. Approve the rollback dry-run and reject the unsafe connection-pool increase.
+7. Ask why the pool should not be expanded and inspect the cited session-memory answer.
+8. Demonstrate deterministic fallback without losing collected evidence.
+
+The recording checklist and exact narration are in [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
+The submission-ready recording is [demo/Local-Incident-Commander-demo.mp4](demo/Local-Incident-Commander-demo.mp4), with the editable subtitle source in [docs/DEMO_SUBTITLES.srt](docs/DEMO_SUBTITLES.srt).
+
+## Architecture
+
+![Local Incident Commander architecture](docs/architecture.svg)
+
+Editable source: [docs/architecture.excalidraw](docs/architecture.excalidraw).
+
+The agent is deliberately bounded instead of being a general-purpose autonomous
+runtime. The server owns the plan, tool allowlist, evidence IDs, action safety text,
+step budget, and approval semantics. The model may choose arguments for the current
+allowlisted step and write a concise synthesis, but it cannot register tools, create
+trusted citations, or execute a command.
+
+The implementation is split into:
+
+- `incident_commander/agent.py`: bounded orchestration and state transitions
+- `incident_commander/tools.py`: validated, read-only local demo adapters
+- `incident_commander/store.py`: atomic snapshots, quarantine, and audit persistence
+- `incident_commander/llm.py`: dependency-free OpenAI-compatible completion and tool-call client
+- `incident_commander/analyzer.py`: deterministic evidence ranking, hypotheses, and safe baseline
+- `incident_commander/server.py`: static console, health checks, compatibility API, and investigation API
+- `web/`: operator workspace
+
+See [docs/SPECIFICATION.md](docs/SPECIFICATION.md) for the complete product and
+interface specification and [docs/SECURITY.md](docs/SECURITY.md) for trust
+boundaries and deployment precautions.
+
+## Investigation API
+
+Every mutation uses a printable ASCII `request_id` and the current
+`expected_version`. Replaying the same request is idempotent; stale or conflicting
+mutations return HTTP `409`.
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `POST` | `/api/investigations` | Create a persisted four-step investigation |
+| `GET` | `/api/investigations/{id}` | Read the current complete snapshot |
+| `POST` | `/api/investigations/{id}/next` | Execute exactly one bounded step |
+| `POST` | `/api/investigations/{id}/messages` | Ask a session-scoped, cited follow-up |
+| `POST` | `/api/investigations/{id}/actions/{action_id}/decision` | Record an immutable approve/reject decision |
+| `GET` | `/api/health` | Report model mode and verified Radeon runtime evidence |
+| `POST` | `/api/analyze` | Run the legacy single-shot compatibility analyzer |
+
+Successful investigation responses use
+`{"schema_version": 1, "investigation": {...}}`. Structured API errors use
+`{"error": "...", "code": "..."}`.
+
+## Verification
+
+Run the automated unit and HTTP API suite:
+
+```bash
+python3 -m unittest discover -s tests -v
+python3 -m compileall -q incident_commander
+```
+
+Run the deterministic analyzer microbenchmark:
+
+```bash
+python3 -m incident_commander.benchmark \
+  --iterations 100 \
+  --output benchmarks/local-baseline.json
+```
+
+Run the complete four-step workflow gate with two warmups and ten measured runs:
+
+```bash
+python3 -m incident_commander.workflow_benchmark \
+  --warmups 2 \
+  --iterations 10 \
+  --p95-limit-ms 30000 \
+  --output benchmarks/workflow-current-runtime.json
+```
+
+The workflow gate checks completion, all three tools, unknown citations, remote
+core requests, and total p95 latency. Its output describes whichever runtime is
+configured when the command runs; an offline-safe result is not Radeon evidence.
+The checked-in offline gate result is
+[benchmarks/workflow-offline.json](benchmarks/workflow-offline.json); it is a
+workflow-integrity result, not a GPU-performance claim.
+
+Run the model-level Radeon benchmark against a local OpenAI-compatible endpoint:
+
+```bash
+export LIC_LLM_BASE_URL=http://127.0.0.1:8000/v1
+export LIC_LLM_MODEL=qwen3-8b
+python3 -m incident_commander.gpu_benchmark \
+  --iterations 5 \
+  --output benchmarks/radeon-vllm.json
+```
+
+The GPU benchmark writes only a public-safe hardware manifest plus TTFT,
+end-to-end latency, output rate, token usage, and a sample response. It does not
+write raw device inventory or hardware serial numbers.
+
+## Recorded Radeon optimization evidence
+
+The repository contains a model-level microbenchmark recorded on 2026-07-30 on
+the competition Global Radeon Cloud with ROCm 7.2.1, vLLM 0.16.1.dev, and a 48 GB
+Radeon PRO W7900 (`gfx1100`, 96 compute units). Both configurations served
+Qwen3-8B-AWQ with an 8,192-token context and generated 160 tokens for the same
+459-token incident prompt over five iterations.
+
+| vLLM configuration | TTFT p50 | End-to-end p50 | Mean output rate |
+| --- | ---: | ---: | ---: |
+| Default compiled | 76.54 ms | 10.31 s | 15.64 tokens/s |
+| `--enforce-eager` | 56.50 ms | 4.13 s | 39.35 tokens/s |
+
+For this workload, eager execution produced about 2.5 times the output throughput
+and avoided the long first-start graph compilation. Machine-readable evidence is
+stored in
+[the default run](benchmarks/radeon-qwen3-8b-awq-8k.json) and
+[the eager run](benchmarks/radeon-qwen3-8b-awq-8k-eager.json).
+
+These files are model microbenchmarks, not an end-to-end benchmark of the current
+four-step agent. A final full-workflow run on the competition Radeon instance has
+not yet been recorded in this repository.
+
+## AgenticOpsEval compatibility boundary
+
+The checkout incident included here is synthetic and independently authored. The
+repository does not redistribute AgenticOpsEval/RCA100 data or its answer key, and
+it does not claim an RCA100 result. The `Localization`, `Identification`, and
+`Reason` taxonomy informs a lightweight, explicitly unofficial evaluator:
+
+```bash
+python3 -m incident_commander.evaluator \
+  --predictions /private/path/predictions.json \
+  --ground-truth /private/path/ground-truth.json \
+  --output /private/path/evaluation.json
+```
+
+The evaluator reports `official_score: false`; it does not reproduce the official
+benchmark judge. See
+[docs/agenticopseval.md](docs/agenticopseval.md) for dataset and license notes.
+
+## Documentation
+
+- [Project specification](docs/SPECIFICATION.md)
+- [Security model](docs/SECURITY.md)
+- [Shared Radeon API notes (non-core path)](docs/radeon-cloud.md)
+- [AgenticOpsEval compatibility](docs/agenticopseval.md)
+- [Architecture source](docs/architecture.excalidraw)
+- [Demo script](docs/DEMO_SCRIPT.md)
+- [Submission checklist](docs/SUBMISSION_CHECKLIST.md)
+
+## Safety boundary
+
+Local Incident Commander is decision support, not an autonomous remediation
+system. Hypotheses remain provisional until an operator verifies them. Approval
+records a simulation-only decision and returns a command preview; it never changes
+infrastructure. Do not expose the unauthenticated development server directly to
+the public internet.
+
+## License
+
+See [LICENSE](LICENSE).
