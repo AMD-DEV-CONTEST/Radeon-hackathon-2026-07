@@ -1,0 +1,30 @@
+version: '3.8'
+services:
+  forgemind-rocm:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.rocm
+    image: forgemind:rocm-6.2
+    container_name: forgemind-radeon
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+      - render
+    volumes:
+      - ../:/app
+      - ollama_models:/root/.ollama
+    ports:
+      - "7860:7860"
+      - "11434:11434"
+    environment:
+      - HSA_OVERRIDE_GFX_VERSION=11.0.0
+      - ROCM_VISIBLE_DEVICES=0
+      - PYTORCH_HIP_ALLOC_CONF=expandable_segments:True
+    command: bash -c "ollama serve & sleep 5 && ollama pull qwen2.5-coder:7b && python app/main.py --rocm --port 7860"
+    security_opt:
+      - seccomp:unconfined
+
+volumes:
+  ollama_models:
