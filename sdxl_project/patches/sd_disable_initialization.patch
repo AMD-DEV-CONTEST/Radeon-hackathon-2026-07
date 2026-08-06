@@ -1,0 +1,28 @@
+diff --git a/modules/sd_disable_initialization.py b/modules/sd_disable_initialization.py
+index 273a7ed..88f87a9 100644
+--- a/modules/sd_disable_initialization.py
++++ b/modules/sd_disable_initialization.py
+@@ -65,10 +65,22 @@ class DisableInitialization(ReplaceHelper):
+             return self.create_model_and_transforms(*args, pretrained=None, **kwargs)
+ 
+         def CLIPTextModel_from_pretrained(pretrained_model_name_or_path, *model_args, **kwargs):
+-            res = self.CLIPTextModel_from_pretrained(None, *model_args, config=pretrained_model_name_or_path, state_dict={}, **kwargs)
++            res = self.CLIPTextModel_from_pretrained(None, *model_args, config=CLIPTextConfig(pretrained_model_name_or_path), state_dict={}, **kwargs)
+             res.name_or_path = pretrained_model_name_or_path
+             return res
+ 
++        def CLIPTextConfig(pretrained_model_name_or_path):
++            from transformers import CLIPConfig, CLIPTextConfig
++            try:
++                return CLIPConfig.from_pretrained(pretrained_model_name_or_path, local_files_only=True).text_config
++            except Exception:
++                return CLIPTextConfig(
++                    vocab_size=49408, hidden_size=768, intermediate_size=3072,
++                    num_hidden_layers=12, num_attention_heads=12, max_position_embeddings=77,
++                    hidden_act="quick_gelu", layer_norm_eps=1e-5,
++                    pad_token_id=1, bos_token_id=0, eos_token_id=2, projection_dim=768,
++                )
++
+         def transformers_modeling_utils_load_pretrained_model(*args, **kwargs):
+             args = args[0:3] + ('/', ) + args[4:]  # resolved_archive_file; must set it to something to prevent what seems to be a bug
+             return self.transformers_modeling_utils_load_pretrained_model(*args, **kwargs)
