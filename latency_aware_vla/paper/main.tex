@@ -1,0 +1,651 @@
+\documentclass[10pt,twocolumn]{article}
+
+\usepackage[margin=0.72in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{enumitem}
+\usepackage{multirow}
+\usepackage{url}
+\usepackage{balance}
+
+\definecolor{tbdred}{RGB}{160,25,25}
+\newcommand{\TBD}[1]{\textcolor{tbdred}{\textbf{[TBD: #1]}}}
+\newcommand{\method}{\textsc{AMD-RTC}}
+\newcommand{\pifive}{$\pi_{0.5}$}
+\newcommand{\smolvla}{\textsc{SmolVLA}}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue
+}
+
+\title{\method: Latency-Robust Vision--Language--Action Control\\
+with Real-Time Chunking on AMD ROCm}
+
+\author{
+  Zhang Boyu\\
+  AMD AI DevMaster Hackathon 2026 --- Track 3: Physical AI\\
+  \texttt{boyuzhang1218@gmail.com} \\
+  \texttt{https://github.com/zby1218}
+}
+
+\date{August 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Large vision--language--action (VLA) policies improve semantic and
+visuomotor generalization, but their inference latency conflicts with
+high-frequency robot control.  Naive action-chunk execution either pauses the
+robot while waiting for a new prediction or concatenates stale and newly
+predicted chunks with discontinuities.  We present \method, an end-to-end
+Physical AI pipeline that fine-tunes \pifive and a workshop \smolvla baseline on
+synthetic Franka pick-and-place demonstrations and evaluates Sync, Async
+queue, and Real-Time Chunking (RTC) under measured and injected inference
+delay.  The complete pipeline---photorealistic Genesis data generation, BF16
+policy adaptation, GPU rendering, policy inference, and paired
+evaluation---runs on a single 48\,GB AMD Radeon GPU through PyTorch ROCm.
+On Env-A, \smolvla Sync places $2/20$ at native delay but $0/20$ under
+$+200$\,ms due to freeze-on-replan; Async recovers $1/20$ place and $4/20$
+lift with zero freeze steps, while RTC guidance does not beat Async on place
+success.  \pifive expert-only fine-tuning fails closed-loop grasp ($0/20$);
+unfreezing vision (B1d) unlocks $1/20$ place.  A held-out Env-B runtime
+fruit shift of $3$--$5$\,cm (paired seeds; never in training) zeros place
+success for both policies ($0/20$).  Chunk inference P50 is approximately
+$305$\,ms (\pifive) / $343$\,ms (\smolvla).
+\end{abstract}
+
+\section{Introduction}
+
+Vision--language--action models map visual observations, proprioception, and
+language instructions directly to robot actions.  Early systems such as
+RT-2 demonstrated transfer from web-scale vision-language pretraining to
+robot control \cite{zitkovich2023rt2}, while open models such as OpenVLA
+made downstream adaptation accessible \cite{kim2024openvla}.  Recent
+flow-matching VLAs, including $\pi_0$ and \pifive, generate continuous action
+chunks suitable for dexterous control \cite{black2024pi0,black2025pi05}.
+
+Action chunking reduces the effective decision horizon and improves temporal
+coherence \cite{zhao2023act}.  It does not, however, remove the systems-level
+mismatch between a high-latency foundation model and a control loop that must
+advance at tens of Hertz.  Waiting for a complete chunk lowers throughput;
+executing an old chunk while a new one is generated creates stale actions;
+and directly switching chunks can introduce out-of-distribution command
+jumps.  RTC addresses this issue at inference time by asynchronously
+generating the next chunk and treating the overlap as a flow inpainting
+problem \cite{black2025rtc}.
+
+This work asks a deliberately narrow question: \emph{can RTC make a
+fine-tuned VLA less sensitive to inference delay on an AMD Radeon Physical AI
+stack?}  We avoid conflating this systems question with language
+generalization, sim-to-real transfer, or reinforcement learning.  Our
+planned artifacts are:
+
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+  \item an AMD ROCm pipeline for Genesis synthetic data, \pifive expert-only
+        fine-tuning, and closed-loop Franka evaluation;
+  \item a real-time Genesis adapter that advances control independently from
+        policy inference and supports controlled delay injection;
+  \item a causal ablation separating model scale, asynchronous execution, and
+        RTC flow guidance; and
+  \item a paired, fixed-manifest evaluation protocol with explicit uncertainty
+        and complete per-timestep telemetry.
+\end{enumerate}
+
+\paragraph{Scope.}
+The task is simulated single-object lifting.  We therefore evaluate latency
+robustness and control continuity, not open-world semantics or real-world
+transfer.  This boundary is essential: \pifive's broad pretraining motivates
+its use, but does not by itself validate those capabilities in our setting.
+
+\section{Related Work}
+
+\paragraph{Vision--language--action policies.}
+RT-2 formalized VLA co-training by representing robot actions as tokens
+\cite{zitkovich2023rt2}.  OpenVLA released a 7B open-source policy trained on
+970k robot trajectories and demonstrated parameter-efficient adaptation
+\cite{kim2024openvla}.  $\pi_0$ introduced a VLM backbone with a flow-matching
+action expert \cite{black2024pi0,lipman2023flow}; \pifive extended this family
+through heterogeneous co-training and high-level semantic prediction
+\cite{black2025pi05}.  We choose \pifive because RTC is defined for diffusion-
+and flow-based policies and the model has an official LeRobot implementation
+\cite{lerobot2026pi05docs}.
+
+\paragraph{Efficient VLA baselines.}
+\smolvla is a 450M-parameter VLA designed for single-GPU training and
+consumer-grade deployment \cite{shukor2025smolvla}.  It is a stronger baseline
+than a non-language behavior-cloning policy because it shares the VLA and
+action-chunking paradigm while differing substantially in scale.  We do not
+assume that the larger model must win: a simple single-task dataset may favor
+the compact policy.
+
+\paragraph{Action chunking and real-time execution.}
+ACT predicts action sequences to reduce compounding error and introduced
+temporal aggregation across overlapping predictions \cite{zhao2023act}.
+RTC instead targets diffusion/flow policies at inference time.  It freezes
+actions already committed for execution and inpaints the remainder of the new
+chunk, permitting asynchronous prediction without discontinuous switches
+\cite{black2025rtc}.  The original work evaluated dynamic simulation and
+real-world bimanual tasks.  We study its integration into a photorealistic
+Genesis--LeRobot--ROCm pipeline.
+
+\paragraph{Open robot-learning infrastructure.}
+LeRobot provides a unified stack for datasets, policies, training, and
+asynchronous inference \cite{cadene2026lerobot}.  Genesis provides GPU-enabled
+physics and rendering for embodied AI \cite{genesis2024}.  Their combination
+allows the complete experiment to run in the competition's cloud environment
+without physical hardware.
+
+\section{Problem Formulation}
+
+At control time $t$, a policy receives RGB observations
+$I_t^{1:K}$, joint state $q_t$, and language instruction $\ell$, and predicts
+an $H$-step action chunk
+\begin{equation}
+  A_t = \pi_\theta(I_t^{1:K}, q_t, \ell)
+      = [a_t, a_{t+1}, \ldots, a_{t+H-1}].
+\end{equation}
+The control period is $\Delta t=1/30$\,s, while policy latency
+$L$ may span multiple periods.  A synchronous executor requests $A_{t+H}$
+only after consuming the current chunk and holds the previous command during
+inference.  An asynchronous executor requests a future chunk early but may
+switch discontinuously when it arrives.
+
+RTC conditions the flow denoising process for the new chunk on the unexecuted
+suffix of the previous chunk.  Conceptually, if $M$ marks committed or
+overlapping steps, guidance penalizes disagreement:
+\begin{equation}
+  \mathcal{L}_{\mathrm{guide}}
+  \propto \left\|M \odot
+  \left(A_{\mathrm{new}}-A_{\mathrm{previous}}\right)\right\|_2^2.
+\end{equation}
+We use the official LeRobot RTC implementation rather than reimplementing its
+sampler \cite{lerobot2026rtcdocs}.  Our contribution is the simulator control
+adapter, delay instrumentation, and paired evaluation.
+
+\section{System Design}
+
+\subsection{Hardware and Software}
+
+All stages run on a Radeon Cloud instance with a 48\,GB AMD Radeon GPU
+(\texttt{gfx1100}, PCI \texttt{0x744b}), PyTorch 2.9.1 built for ROCm 7.2.1,
+and Python 3.12 on Ubuntu 24.04.4.  \smolvla, \pifive, and RTC share the
+workshop LeRobot 0.4.4 environment with a local transformers openpi
+compatibility patch; we did not overwrite that stack with a separate
+LeRobot 0.6.x install. Exact pins: \texttt{ENVIRONMENT.md}.
+
+\begin{table}[t]
+\centering
+\caption{System configuration used for all formal scores.}
+\label{tab:system}
+\small
+\begin{tabular}{ll}
+\toprule
+Component & Configuration \\
+\midrule
+GPU & AMD Radeon Graphics, gfx1100, 48\,GB \\
+ROCm & 7.2.1 \\
+PyTorch & 2.9.1+rocm7.2.1 \\
+Simulator & Genesis 1.3.1 \\
+Training stack & LeRobot 0.4.4 (+ openpi patch for $\pi_{0.5}$) \\
+Precision & BF16 \\
+OS & Ubuntu 24.04.4 LTS \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Robot and Scene}
+
+We use a simulated Franka Emika Panda: seven arm joints and two parallel
+gripper joints.  Both state and action are 9-D joint positions.  Franka is a
+standard research manipulator, its redundant 7-DoF workspace supports
+top-down grasping, and a stable Genesis asset already exists.  Changing
+embodiment would invalidate the collected demonstrations and confound the
+execution study.
+
+The scene is a photorealistic rustic kitchen mesh with a red cube on the
+floor-origin workspace.  Physics runs at 30\,Hz with four substeps and PD
+joint-position control.  A fixed overhead RGB camera provides global geometry;
+a wrist-mounted RGB camera provides close-range grasp information.  Both
+streams are $640\times480$.  A legacy dataset key calls the wrist stream
+\texttt{observation.images.side}; the report distinguishes key name from
+physical placement.  The generator records the instruction
+\texttt{Pick up the cube.}, whereas the legacy evaluator defaults to
+\texttt{Pick up the red cube.}; every formal run overrides that default with
+the training string so language mismatch is not an uncontrolled variable.
+
+\subsection{Real-Time Control Adapter}
+
+The simulator/control worker advances every 33.3\,ms and never blocks on model
+inference.  A policy worker receives the latest observation and writes action
+chunks to a thread-safe queue.  Artificial delay is applied only to the policy
+worker.  This distinction is critical: sleeping while the entire simulator is
+paused changes wall-clock time but does not expose the controller to stale
+actions.
+
+The policy predicts $H=50$ actions, while every executor uses the same
+$E=10$-step closed-loop execution window.  This replaces the legacy evaluator,
+which synchronously replans every simulator step
+(\texttt{action\_horizon=1}) and therefore does not implement the chunk
+semantics needed for RTC.  The policy chunk length, execution horizon, and
+latency measured in control steps are logged separately.
+
+We implement three executors:
+
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+  \item \textbf{Sync}: request after chunk exhaustion; hold the last command
+        while waiting.
+  \item \textbf{Async-only}: request early and directly append/switch to the
+        returned chunk, without flow guidance.
+  \item \textbf{RTC}: asynchronously request and merge with the official RTC
+        inpainting guidance.
+\end{itemize}
+
+The initial RTC configuration follows the official recommendation:
+execution horizon 10, maximum guidance weight 10.0, and exponential prefix
+attention.  We do not tune these values on the test manifest.  A common
+0.15\,rad/control-step command limiter is applied after all executors as a
+safety filter.  Because this filter can itself suppress discontinuities, we
+measure boundary jumps both before and after filtering and measure physical
+jerk from the resulting joint trajectory.
+
+\section{Dataset}
+
+We generate 120 successful scripted pick-and-place demonstrations in Genesis
+using seed 42 (171 attempts; failed \texttt{not\_in\_basket} episodes are
+skipped).  Episodes run at 30\,Hz with dual RGB and 9-D joint state/action.
+Videos are AV1-encoded in LeRobot v3 format.  Dataset statistics include mean,
+standard deviation, and quantiles required by \pifive normalization.  The
+dataset path is frozen before training because the existing generator appends
+episodes when a repository already exists.
+
+\begin{table}[t]
+\centering
+\caption{Synthetic training dataset (Env-A).}
+\label{tab:data}
+\small
+\begin{tabular}{ll}
+\toprule
+Property & Value \\
+\midrule
+Robot & Franka Panda (7 arm + 2 gripper) \\
+Episodes / frames & 120 / $\approx$30k \\
+Control rate & 30\,Hz \\
+Observations & overhead RGB, wrist RGB, joints \\
+Action & 9-D absolute joint position \\
+Task string & Pick up the fruit and place it in the basket. \\
+Expert kept / attempts & 120/171 ($\approx70.2\%$) \\
+Task count & 1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Why synthetic demonstrations?}
+The competition permits simulation, all activity must remain in the cloud
+environment, and no physical robot is available.  Scripted Cartesian
+waypoints provide consistent supervision without claiming human demonstration
+diversity.  The generator success rate validates the expert only; it is not a
+policy result.
+
+\paragraph{Data audit.}
+Before training, we verify shapes, finite values, joint limits, random video
+decoding, task-string consistency, action-difference tails, quantile
+statistics, and a metadata hash.  No evaluation episode is read from the
+training dataset.
+
+\section{Policies and Training}
+
+\subsection{\smolvla Baseline}
+
+The \smolvla baseline uses the existing 450M checkpoint and recipe: BF16
+autocast, frozen vision encoder, and trainable action expert and state
+projection.  It is trained for 4000 steps (batch 4, seed 2026, peak VRAM
+2.30\,GB).  This baseline anchors performance to an affordable VLA designed
+for single-GPU robotics \cite{shukor2025smolvla}.
+
+\subsection{\pifive Adaptation}
+
+We first adapt \pifive in expert-only mode (freeze vision/VLM; train action
+expert and projections) for 3000 steps (B1), then continue expert-only (B1c).
+Closed-loop evaluation showed zero grasps.  We therefore continue from B1c
+with full-model training and unfrozen vision for 2000 steps (B1d; batch 1,
+peak VRAM 32.3\,GB), which unlocked the first place success.  Training uses
+BF16 and gradient checkpointing in an isolated newer LeRobot environment so
+the workshop 0.4.4 stack remains intact.  Seeds are fixed.  Model-family
+comparisons are single-seed system results rather than estimates of
+training-run variance.
+
+We do not include LoRA in the main study.  Parameter-efficient tuning is a
+valid separate topic, but would add a second adaptation variable and does not
+address action-execution latency.
+
+\section{Experimental Protocol}
+
+\subsection{Fixed Paired Manifest}
+
+All policies are evaluated on the same 30 initial object positions and seeds.
+The manifest is generated once and frozen.  It contains 10 center, 10 edge,
+and 10 near-corner positions within the training workspace.  Stratification
+prevents a small random sample from overrepresenting easy central grasps.  The
+evaluation is in-distribution with respect to position; we do not label it
+OOD.  Every summary records the manifest ID, train and evaluation seeds,
+checkpoint hash, language string, camera layout, renderer, chunk length,
+execution horizon, and command-filter configuration.  Formal comparisons use
+AMD GPU rendering only; CPU llvmpipe is reserved for debugging because the
+existing pipeline exhibits a substantial renderer-dependent success-rate
+shift.
+
+\subsection{Baselines and Ablations}
+
+\begin{table*}[t]
+\centering
+\caption{Pre-registered experiment matrix. P0 rows are mandatory. All \pifive
+rows use the identical fine-tuned checkpoint.}
+\label{tab:matrix}
+\small
+\begin{tabular}{llllll}
+\toprule
+ID & Policy & Executor & Extra delay & Purpose & Priority \\
+\midrule
+B0 & \smolvla & Sync & Native & Workshop-grade compact VLA baseline & P0 \\
+B1-N & \pifive & Sync & Native & Isolate model change & P0 \\
+O-N & \pifive & RTC & Native & RTC cost/benefit at measured latency & P0 \\
+B1-200 & \pifive & Sync & +200\,ms & Delay-sensitive baseline & P0 \\
+O-200 & \pifive & RTC & +200\,ms & Primary latency-robustness comparison & P0 \\
+B2-200 & \pifive & Async-only & +200\,ms & Queue vs.\ flow-guidance mechanism & P1 \\
+O-100 & \pifive & RTC & +100\,ms & Delay-response curve & P1 \\
+O-H & \pifive & RTC & Native; $H_e\in\{5,10,15\}$ & Horizon trade-off & P2 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+B0$\rightarrow$B1 isolates the model family.  B1$\rightarrow$B2 isolates
+overlap between prediction and execution.  B2$\rightarrow$Ours isolates RTC
+guidance.  B1$\rightarrow$Ours measures the complete system effect.  Comparing
+only B0 to Ours would be uninterpretable because both model and executor
+change.
+
+\subsection{Metrics}
+
+\paragraph{Success.}
+An episode succeeds if maximum cube lift is at least 2\,cm, the lift is
+sustained for eight frames, and final lift is at least 1\,cm.  We report
+success count/total and a Wilson 95\% interval \cite{wilson1927interval}.
+
+\paragraph{Task throughput.}
+We report successes per wall-clock minute and time-to-success.  Failed episodes
+remain in the denominator and are treated as timeouts.
+
+\paragraph{Boundary discontinuity.}
+For chunk boundaries $\mathcal{B}$ and actions normalized by training-set
+standard deviations,
+\begin{equation}
+  D_{\mathrm{boundary}} =
+  \frac{1}{|\mathcal{B}|}\sum_{t\in\mathcal{B}}
+  \left\|\tilde a_t-\tilde a_{t-1}\right\|_2.
+\end{equation}
+
+\paragraph{Measured joint jerk.}
+For measured joint positions $q_t$,
+\begin{equation}
+  J_t = \frac{\|q_t-3q_{t-1}+3q_{t-2}-q_{t-3}\|_2}{\Delta t^3}.
+\end{equation}
+The main jerk result excludes gripper joints so that intentional opening and
+closing does not dominate arm smoothness.
+
+\paragraph{Systems performance.}
+We report training samples/s, median step time after warm-up, peak allocated
+VRAM, checkpoint size, and chunk inference latency P50/P95/P99.  A 100-step
+BF16-vs-FP32 microbenchmark measures the benefit of AMD mixed-precision
+execution without introducing FP32-trained policy variants.
+
+\subsection{Statistics}
+
+The same episode IDs are paired across methods.  We report the full $2\times2$
+success contingency table and exact McNemar test for paired binary outcomes
+\cite{mcnemar1947}.  Continuous paired differences use bootstrap 95\%
+intervals and are summarized with medians and interquartile ranges.  With only
+20--30 episodes, intervals will be wide; we emphasize effect sizes and
+individual paired transitions rather than overclaiming significance.
+
+\section{Results}
+
+Frozen snapshot: 2026-08-05. Task string:
+\texttt{Pick up the fruit and place it in the basket.} Seed~$99$,
+\texttt{chunk\_size}$=50$, Sync-full $E=50$, Async/RTC $E=10$,
+\texttt{max\_steps}$=400$, shared \texttt{smooth\_action(0.15)}, AMD GPU
+render only. Full log: \texttt{artifacts/formal/RESULTS.md}.
+
+\subsection{Capability}
+
+\begin{table}[t]
+\centering
+\caption{Closed-loop capability at native delay (Sync-full $E=50$).}
+\label{tab:success}
+\small
+\begin{tabular}{lccc}
+\toprule
+Method & Place & Lift & Infer P50 \\
+\midrule
+B0 \smolvla Sync & $2/20$ & $3/20$ & $343$\,ms \\
+B1 \pifive Sync (expert-only) & $0/20$ & $0/20$ & $304$\,ms \\
+B1d \pifive Sync (unfreeze vision) & $1/20$ & $1/20$ & $305$\,ms \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Model comparison.}
+On this small homogeneous pick-and-place dataset, workshop \smolvla remains
+the stronger native Sync place baseline ($2/20$ vs.\ B1d $1/20$).
+Expert-only \pifive never grasped in closed loop; continuing from B1c with full
+training and unfrozen vision (B1d) unlocked the first place success. We
+therefore treat B0$\rightarrow$B1d as a systems adaptation result, not a
+claim that larger VLAs automatically win on simple kitchen tasks.
+
+\subsection{Latency Robustness}
+
+\begin{table}[t]
+\centering
+\caption{\smolvla latency story (primary system evidence).}
+\label{tab:latency}
+\small
+\begin{tabular}{llccc}
+\toprule
+Delay & Executor & Place & Lift & Freeze \\
+\midrule
+Native & Sync-full & $2/20$ & $3/20$ & --- \\
+$+200$\,ms & Sync-full & $0/20$ & $2/20$ & freezes \\
+$+200$\,ms & Async $E=10$ & $1/20$ & $4/20$ & $0$ \\
+$+200$\,ms & RTC $E=10$ & $0/20$ & $1/20$ & $0$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Primary finding.}
+Injected $+200$\,ms delay collapses Sync place success through freeze-on-replan.
+Continuous action-queue execution (Async) recovers place/lift and eliminates
+freeze steps. RTC also eliminates freezes but does \emph{not} improve place
+success over Async on this static task.
+
+\paragraph{Mechanism.}
+Because Async $\ge$ RTC on place success, we attribute the main delay-robustness
+lever to overlapping prediction and execution rather than flow guidance.
+An exploratory \pifive B1d $+200$\,ms table ($n=10$) is consistent with Sync
+still hitting a graspable seed while Async/RTC $E=10$ remain at $0/10$; we
+prefer the \smolvla $n=20$ table for the systems claim.
+
+\subsection{Env-B Held-out Runtime Perturbation}
+
+Capability-only probe (Sync-full $E=50$, native delay): identical Env-A fruit
+inits (\texttt{seed=99}), then an independent perturb RNG
+(\texttt{seed+7919}) applies $|\Delta xy|\sim U[3,5]$\,cm at a random angle;
+basket fixed; never present in training. Mean $|\Delta xy|=3.7$\,cm.
+
+\begin{table}[t]
+\centering
+\caption{Env-A vs Env-B place/lift (paired seeds).}
+\label{tab:envb}
+\small
+\begin{tabular}{lcccc}
+\toprule
+Policy & Env-A place & Env-B place & Env-A lift & Env-B lift \\
+\midrule
+\smolvla B0 & $2/20$ & $0/20$ & $3/20$ & $1/20$ \\
+\pifive B1d & $1/20$ & $0/20$ & $1/20$ & $1/20$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Every Env-A place success fails under its paired Env-B shift. We treat this as
+a negative spatial-generalization result (pose sensitivity on a small dataset),
+not a robustness claim; the primary contribution remains latency / non-stall
+continuity.
+
+\subsection{AMD ROCm Performance}
+
+\begin{table}[t]
+\centering
+\caption{Measured AMD ROCm training and inference performance.}
+\label{tab:amd}
+\small
+\begin{tabular}{lcc}
+\toprule
+Metric & \smolvla & \pifive \\
+\midrule
+Train steps / wall & $4000$ / $\sim10$\,min & B1 $3000$/$\sim37$\,min; B1d $+2000$/$\sim28$\,min \\
+Peak train VRAM & $2.30$\,GB & $11.29$\,GB (B1) $\rightarrow$ $32.3$\,GB (B1d) \\
+Chunk latency P50 & $343$\,ms & $304$\,ms \\
+Chunk latency P95 & $361$\,ms & $518$\,ms \\
+Mean train step time & $0.141$\,s & $\approx0.66$\,s (B1d) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All reported scores use the AMD GPU renderer. We do not claim device power
+figures without a validated sensor methodology.
+
+\section{Discussion}
+
+\paragraph{What RTC can and cannot improve.}
+RTC changes action generation and execution, not semantic perception or task
+knowledge.  It can reduce idle time and boundary discontinuity, but cannot
+recover from an incorrectly localized object or a policy that never learned
+the grasp.  The success metric and continuity metrics therefore answer
+different questions.
+
+\paragraph{Why a static task remains informative.}
+Static lifting is less delay-sensitive than dynamic interception.  This makes
+it a conservative test of throughput and continuity but a weak test of
+delay-induced failure.  A valid outcome may be equal final success with lower
+time-to-success.  We deliberately avoid adding a moving target after training,
+which would conflate RTC with a severe distribution shift.
+
+\paragraph{Practical value.}
+Cloud and edge robots experience variable inference and communication delay.
+An inference-time method that reuses the same checkpoint can improve system
+responsiveness without recollecting demonstrations.  The released adapter and
+telemetry protocol can be reused for dynamic tasks and other flow-based VLAs.
+
+\section{Limitations}
+
+The study uses one simulated robot, one object geometry, one scene, one
+language instruction, and at most 30 paired evaluation states.  Synthetic
+expert trajectories are smooth and homogeneous.  The task is static, so it
+does not reproduce the most delay-sensitive scenarios in the RTC paper.
+No real-robot or sim-to-real conclusion is supported.  Sample size limits
+statistical power.  Finally, comparison between \smolvla and \pifive includes
+differences in model architecture and training stack and should be interpreted
+as a system baseline, not a controlled scaling law.
+
+\section{Open-Source and Reproducibility}
+
+We release:
+
+\begin{enumerate}[leftmargin=*,itemsep=1pt]
+  \item the Genesis RTC/latency adapter;
+  \item fixed evaluation manifests;
+  \item per-timestep telemetry and statistics scripts;
+  \item version-locked environment specifications;
+  \item checkpoints or download instructions;
+  \item raw result JSON, figures, and representative videos; and
+  \item a Docker recipe where licensing and storage permit.
+\end{enumerate}
+
+The competition submission includes this technical report, complete source,
+a step-by-step English README, and a 3--5 minute demo video, following the
+official requirements \cite{amd2026hackathon,amd2026submission}.
+
+\section{Conclusion}
+
+We delivered a reproducible AMD ROCm protocol for latency-aware VLA control:
+synthetic demos, \smolvla/\pifive fine-tuning, and paired Sync/Async/RTC
+evaluation under injected delay.  The strongest delay result is architectural
+continuity---Async recovers place/lift versus Sync freeze---rather than an
+automatic RTC place-success boost.  \pifive required vision unfreeze to grasp at
+all.  Together these results define an honest latency benchmark for future
+flow-based VLAs on AMD.
+
+\section*{Team Contributions}
+
+Solo submission by \textbf{Zhang Boyu}
+(\texttt{boyuzhang1218@gmail.com}).
+Responsible for end-to-end Track~3 engineering: Env-A data generation,
+\smolvla/\pifive training on AMD ROCm, Sync/Async/RTC latency evaluation,
+Env-B held-out perturbation, formal artifacts, technical report, and demo
+video (\url{https://youtu.be/rXQQ4s-CxEE}).
+
+\balance
+\bibliographystyle{plain}
+\bibliography{references}
+
+\appendix
+\onecolumn
+
+\section{Reproduction Checklist}
+
+\begin{enumerate}
+  \item Verify AMD Radeon device (\texttt{gfx1100}, 48\,GB), ROCm 7.2.1, and BF16.
+  \item Use the pinned LeRobot 0.4.4 + Genesis 1.3.1 environment
+        (\texttt{ENVIRONMENT.md} / \texttt{requirements-lock.txt}).
+  \item Obtain the 120-episode Env-A dataset and base checkpoints
+        (paths in \texttt{DATA\_AND\_WEIGHTS.md}).
+  \item Reproduce or load the frozen \smolvla B0 and \pifive B1d checkpoints.
+  \item Run Sync-full ($E{=}50$) and Async/RTC ($E{=}10$) evals with seed~$99$.
+  \item Optionally run Env-B via \texttt{scripts/run\_env\_b\_matrix.sh}.
+  \item Generate summaries from raw JSON under \texttt{artifacts/formal/};
+        do not hand-edit result tables.
+  \item Confirm the demo at \url{https://youtu.be/rXQQ4s-CxEE} and this PDF.
+\end{enumerate}
+
+\section{Artifact Schema}
+
+Each episode record should contain the experiment ID, checkpoint hash,
+manifest ID, episode ID, object pose, injected delay, policy request and
+completion timestamps, control timestamps, chunk IDs, queue lengths,
+commanded actions, measured joint positions, cube poses, success state,
+software versions, and GPU identifier.  This schema permits recomputation of
+all reported metrics from raw data.
+
+\section{Pre-Registered Interpretation Rules}
+
+\begin{itemize}
+  \item If RTC improves throughput but not success, claim execution efficiency,
+        not capability improvement.
+  \item If RTC only helps at $+200$\,ms, claim delay robustness, not universal
+        superiority.
+  \item If Async-only matches RTC, identify overlap as the dominant mechanism.
+  \item If \smolvla matches or beats \pifive, report that task/data simplicity
+        favors the compact policy.
+  \item If all policies fail, investigate feature mapping, normalization, and
+        action semantics before discussing model capacity.
+\end{itemize}
+
+\end{document}
