@@ -7,11 +7,10 @@ use crate::adapter::{AdapterError, OpenAiAdapter};
 use crate::fixtures::{thomas_fixtures, Fixture};
 use crate::policy::QualificationPolicy;
 use crate::scorecard::{PassSummary, RunResult, Scorecard};
-use hashbrown::HashMap;
-use serde_json::Value;
-use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::time::Instant;
+use std::fs::OpenOptions;
+use std::io::Write;
 
 const SYSTEM_PROMPT: &str = "You are the CESARops Contract Builder. Emit ONLY a CodeMissionDraft JSON object. Never emit patches, diffs, code, tool calls, or chain-of-thought fields.";
 
@@ -55,11 +54,11 @@ impl QualifyHarness {
                     SYSTEM_PROMPT
                 };
 
-                let result = match adapter.complete(
+                let mut result = match adapter.complete(
                     sys_prompt,
                     &fix.user_prompt,
                     policy.max_tokens,
-                    policy.seed + repeat,
+                    policy.seed + (repeat as u64),
                 ).await {
                     Ok(content) => {
                         let elapsed = start.elapsed().as_millis() as u64;
@@ -79,6 +78,23 @@ impl QualifyHarness {
                         self.failed(fix, repeat as usize, "parse_error", elapsed, &msg)
                     }
                 };
+                
+                if result.hard_failure {
+                    if let Ok(mut file) = OpenOptions::new().create(true).append(true).open("failures.jsonl") {
+                        let failure_log = serde_json::json!({
+                            "fixture_id": fix.id.clone(),
+                            "model": self.model_name.clone(),
+                            "system_prompt": sys_prompt,
+                            "user_prompt": fix.user_prompt.clone(),
+                            "expected_keys": fix.expected_keys.clone(),
+                            "forbidden_keys": fix.forbidden_keys.clone(),
+                            "raw_output": result.raw_output.clone(),
+                            "failure_class": result.failure_class.clone()
+                        });
+                        let _ = writeln!(file, "{}", failure_log);
+                    }
+                }
+                
                 runs.push(result);
             }
         }
@@ -104,6 +120,10 @@ impl QualifyHarness {
             "Unqualified".to_string()
         };
 
+        // Peer reviewed pipeline pass is no longer calculated inline
+        let peer_reviewed_pass = false;
+        let final_reviewer: Option<String> = None;
+
         Scorecard {
             model_name: self.model_name.clone(),
             artifact: self.artifact.clone(),
@@ -117,6 +137,8 @@ impl QualifyHarness {
             runs,
             qualification_state: state,
             standard_suite_ranking_score: rank,
+            peer_reviewed_pipeline_pass: peer_reviewed_pass,
+            final_reviewer_model: final_reviewer,
         }
     }
 
@@ -127,12 +149,13 @@ impl QualifyHarness {
         raw_output: &str,
         latency_ms: u64,
         is_repair: bool,
-        repair_note: &str,
+        _repair_note: &str,
     ) -> RunResult {
         let pass_type = if is_repair { "guardrailed" } else { "first_pass" };
 
-        // Try to parse as JSON
-        let parsed: Option<Value> = serde_json::from_str(raw_output.trim()).ok();
+        // Normalize and try to parse as JSON
+        let normalized_output = crate::normalizer::normalize_contract(raw_output);
+        let parsed: Option<serde_json::Value> = serde_json::from_str(&normalized_output).ok();
 
         let json_valid = parsed.is_some();
         if !json_valid {
@@ -151,16 +174,20 @@ impl QualifyHarness {
                 failure_class: "invalid_json".into(),
                 latency_ms,
                 timeout: false,
-                retry_count: 0,
+                user_prompt: Some(fix.user_prompt.clone()),
+            retry_count: 0,
                 raw_output: raw_output.to_string(),
+                peer_reviewed: false,
+                reviewer_model: None,
             };
         }
 
         let obj = parsed.unwrap();
-        let obj_map = obj.as_object().unwrap_or(&serde_json::Map::new());
+        let empty_map = serde_json::Map::new();
+        let obj_map = obj.as_object().unwrap_or(&empty_map);
 
         // Check expected keys
-        let found_keys: Vec<&String> = obj_map.keys().collect();
+        let _found_keys: Vec<&String> = obj_map.keys().collect();
         let mut req_found = 0.0;
         let mut req_total = fix.expected_keys.len() as f64;
         if req_total == 0.0 { req_total = 1.0; }
@@ -217,8 +244,11 @@ impl QualifyHarness {
             failure_class,
             latency_ms,
             timeout: false,
+            user_prompt: Some(fix.user_prompt.clone()),
             retry_count: 0,
             raw_output: raw_output.to_string(),
+            peer_reviewed: false,
+            reviewer_model: None,
         }
     }
 
@@ -245,8 +275,11 @@ impl QualifyHarness {
             failure_class: class.into(),
             latency_ms,
             timeout: false,
+            user_prompt: Some(fix.user_prompt.clone()),
             retry_count: 0,
             raw_output: format!("ERROR: {} ({})", class, detail),
+            peer_reviewed: false,
+            reviewer_model: None,
         }
     }
 
@@ -255,7 +288,7 @@ impl QualifyHarness {
         let start = Instant::now();
         let sys = format!("{} If your previous output was invalid, please re-emit valid JSON only.", SYSTEM_PROMPT);
 
-        let result = adapter.complete(&sys, &format!("Fix the previous response. Output valid JSON only: {{\"type\":\"CodeMissionDraft\"}}", policy.max_tokens, policy.seed + 1000 + run.repeat).await;
+        let result = adapter.complete(&sys, &format!("Fix the previous response. Output valid JSON only: {{\"type\":\"CodeMissionDraft\"}}"), policy.max_tokens, policy.seed + 1000 + (run.repeat as u64)).await;
         match result {
             Ok(content) => {
                 let elapsed = start.elapsed().as_millis() as u64;
@@ -264,19 +297,22 @@ impl QualifyHarness {
                     fixture_id: run.fixture_id.clone(),
                     repeat: run.repeat,
                     pass_type: "guardrailed".into(),
-                    raw_json_valid: serde_json::from_str::<Value>(&content).is_ok(),
-                    validator_success: serde_json::from_str::<Value>(&content).is_ok(),
-                    expected_outcome_match: serde_json::from_str::<Value>(&content).is_ok(),
-                    requirement_recall: if serde_json::from_str::<Value>(&content).is_ok() { 1.0 } else { 0.0 },
+                    raw_json_valid: serde_json::from_str::<serde_json::Value>(&content).is_ok(),
+                    validator_success: serde_json::from_str::<serde_json::Value>(&content).is_ok(),
+                    expected_outcome_match: serde_json::from_str::<serde_json::Value>(&content).is_ok(),
+                    requirement_recall: if serde_json::from_str::<serde_json::Value>(&content).is_ok() { 1.0 } else { 0.0 },
                     hard_constraint_recall: 1.0,
                     non_goal_recall: 1.0,
-                    claim_disposition_accuracy: if serde_json::from_str::<Value>(&content).is_ok() { 1.0 } else { 0.0 },
+                    claim_disposition_accuracy: if serde_json::from_str::<serde_json::Value>(&content).is_ok() { 1.0 } else { 0.0 },
                     hard_failure: false,
                     failure_class: "none".into(),
                     latency_ms: elapsed,
                     timeout: false,
-                    retry_count: 1,
+                    user_prompt: run.user_prompt.clone(),
+            retry_count: 1,
                     raw_output: content.clone(),
+                    peer_reviewed: false,
+                    reviewer_model: None,
                 }
             }
             Err(e) => {
@@ -296,15 +332,18 @@ impl QualifyHarness {
                     failure_class: "repair_failed".into(),
                     latency_ms: elapsed,
                     timeout: false,
-                    retry_count: 1,
+                    user_prompt: run.user_prompt.clone(),
+            retry_count: 1,
                     raw_output: format!("REPAIR ERROR: {:?}", e),
+                    peer_reviewed: false,
+                    reviewer_model: None,
                 }
             }
         }
     }
 }
 
-fn build_summary(runs: &[RunResult], pass_type: &str) -> PassSummary {
+fn build_summary(runs: &[RunResult], _pass_type: &str) -> PassSummary {
     if runs.is_empty() {
         return PassSummary::default();
     }
@@ -357,4 +396,79 @@ fn compute_ranking(fp: &PassSummary) -> f64 {
     let val_rate = if valid_rate.is_nan() { 0.0 } else { valid_rate };
     let recall = (fp.mean_requirement_recall + fp.mean_hard_constraint_recall + fp.mean_non_goal_recall) / 3.0;
     val_rate * 0.5 + recall * 0.5
+}
+
+pub fn evaluate_interaction(
+    fix: &Fixture,
+    raw_output: &str,
+    latency_ms: u64,
+) -> RunResult {
+    // We can instantiate a dummy harness or just duplicate the logic
+    let pass_type = "mission_control_live";
+    let normalized_output = crate::normalizer::normalize_contract(raw_output);
+    let parsed: Option<serde_json::Value> = serde_json::from_str(&normalized_output).ok();
+
+    let json_valid = parsed.is_some();
+    if !json_valid {
+        return RunResult {
+            fixture_id: fix.id.clone(),
+            repeat: 0,
+            pass_type: pass_type.into(),
+            raw_json_valid: false,
+            validator_success: false,
+            expected_outcome_match: false,
+            requirement_recall: 0.0,
+            hard_constraint_recall: 0.0,
+            non_goal_recall: 0.0,
+            claim_disposition_accuracy: 0.0,
+            hard_failure: true,
+            failure_class: "invalid_json".into(),
+            latency_ms,
+            timeout: false,
+            user_prompt: Some(fix.user_prompt.clone()),
+            retry_count: 0,
+            raw_output: raw_output.to_string(),
+            peer_reviewed: false,
+            reviewer_model: None,
+        };
+    }
+
+    let obj = parsed.unwrap();
+    let mut req_found = 0.0;
+    let mut con_found = 0.0;
+    let mut bad_keys = 0.0;
+
+    let obj_map = obj.as_object().unwrap();
+    for r in &fix.expected_keys {
+        if obj_map.contains_key(r) { req_found += 1.0; }
+    }
+    for f in &fix.forbidden_keys {
+        if obj_map.contains_key(f) { bad_keys += 1.0; }
+    }
+
+    let req_total = if fix.expected_keys.is_empty() { 1.0 } else { fix.expected_keys.len() as f64 };
+    let req_recall = req_found / req_total;
+    let valid = req_recall == 1.0 && bad_keys == 0.0;
+
+    RunResult {
+        fixture_id: fix.id.clone(),
+        repeat: 0,
+        pass_type: pass_type.into(),
+        raw_json_valid: true,
+        validator_success: valid,
+        expected_outcome_match: valid,
+        requirement_recall: req_recall,
+        hard_constraint_recall: if bad_keys > 0.0 { 0.0 } else { 1.0 },
+        non_goal_recall: 1.0,
+        claim_disposition_accuracy: if valid { 1.0 } else { 0.0 },
+        hard_failure: !valid,
+        failure_class: if valid { "none".into() } else { "schema_mismatch".into() },
+        latency_ms,
+        timeout: false,
+        user_prompt: Some(fix.user_prompt.clone()),
+            retry_count: 0,
+        raw_output: raw_output.to_string(),
+        peer_reviewed: false,
+        reviewer_model: None,
+    }
 }

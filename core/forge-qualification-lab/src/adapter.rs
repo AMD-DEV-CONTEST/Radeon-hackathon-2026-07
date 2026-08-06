@@ -103,8 +103,12 @@ impl OpenAiAdapter {
 
         let url = format!("{}/v1/chat/completions", self.base_url.trim_end_matches('/'));
 
-        let resp = client.post(&url)
-            .json(&req)
+        let mut req_builder = client.post(&url).json(&req);
+        if let Ok(key) = std::env::var("QUAL_API_KEY") {
+            req_builder = req_builder.header("Authorization", format!("Bearer {}", key));
+        }
+
+        let resp = req_builder
             .send()
             .await
             .map_err(|e| {

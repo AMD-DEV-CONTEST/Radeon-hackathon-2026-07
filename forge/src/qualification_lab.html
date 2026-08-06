@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cognitive Profile | CESAROPS</title>
+    <style>
+        :root {
+            --bg: #0a0a12;
+            --card-bg: #16162a;
+            --card-border: #4a4a6a;
+            --accent: #5ce1ff;
+            --success: #6dff7a;
+            --warning: #ffc107;
+            --danger: #ff6b5a;
+            --text: #f5f5f7;
+            --text-dim: #c8c8d4;
+            --border: #3a3a55;
+            --font-body: 1rem;
+            --font-h1: 1.6rem;
+            --font-h2: 1.2rem;
+            --font-meta: 0.85rem;
+            --pad-card: 1.25rem;
+            --gap: 1.25rem;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.55;
+            padding: 2rem 1.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 { font-size: var(--font-h1); color: var(--accent); margin-bottom: 0.25rem; }
+        h2 { font-size: var(--font-h2); color: var(--accent); margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.25rem; }
+        h3 { font-size: 1.05rem; margin-bottom: 0.5rem; color: #fff; }
+        .subtitle { color: var(--text-dim); font-size: var(--font-meta); margin-bottom: 1.5rem; }
+        
+        .family-section {
+            margin-bottom: 3rem;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: var(--gap);
+            align-items: start;
+        }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: var(--pad-card);
+            display: flex;
+            flex-direction: column;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .badge-success { background: rgba(109,255,122,0.15); color: var(--success); border: 1px solid var(--success); }
+        .badge-warning { background: rgba(255,193,7,0.15); color: var(--warning); border: 1px solid var(--warning); }
+        .badge-danger { background: rgba(255,107,90,0.15); color: var(--danger); border: 1px solid var(--danger); }
+        
+        .tool-badge {
+            background: rgba(92,225,255,0.15); color: var(--accent); border: 1px solid var(--accent);
+            padding: 0.5rem; border-radius: 6px; font-size: 0.85rem; font-weight: bold;
+            margin-bottom: 1rem;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; margin-bottom: 1rem; }
+        th, td { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+        th { color: var(--text-dim); font-weight: 600; }
+        .metric-label { color: var(--text-dim); }
+        .metric-value { font-weight: 600; color: var(--text); }
+        
+        .run-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+        }
+        .run-list table { margin: 0; }
+        .run-list th { position: sticky; top: 0; background: var(--card-bg); z-index: 1; border-bottom: 2px solid var(--border); }
+        
+        .btn {
+            background: rgba(255,255,255,0.1); border: 1px solid var(--border);
+            color: #fff; padding: 0.2rem 0.5rem; border-radius: 4px; cursor: pointer;
+            font-size: 0.75rem;
+        }
+        .btn:hover { background: rgba(255,255,255,0.2); }
+
+        /* Modal */
+        #modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8); z-index: 999; display: none;
+            align-items: center; justify-content: center;
+        }
+        #modal-content {
+            background: var(--card-bg); border: 1px solid var(--border);
+            border-radius: 8px; padding: 1.5rem; width: 90%; max-width: 800px;
+            max-height: 90vh; display: flex; flex-direction: column;
+        }
+        #modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        #modal-body { overflow-y: auto; }
+        #modal-body pre {
+            background: #000; padding: 1rem; border-radius: 4px; overflow-x: auto;
+            color: #a5d6ff; font-family: monospace; font-size: 0.85rem; white-space: pre-wrap;
+        }
+        .close-btn { cursor: pointer; color: var(--danger); font-weight: bold; font-size: 1.2rem; }
+
+    </style>
+</head>
+<body>
+    <h1>Cognitive Profile</h1>
+    <div class="subtitle">Evidence-Based Qualification for AI Worker Roles</div>
+    
+    <div id="loading" style="color: var(--accent);">Loading fleet scorecards...</div>
+    <div id="families-container"></div>
+
+    <!-- Modal for snapshot -->
+    <div id="modal-overlay" onclick="closeModal()">
+        <div id="modal-content" onclick="event.stopPropagation()">
+            <div id="modal-header">
+                <h3 id="modal-title">Failure Snapshot</h3>
+                <div class="close-btn" onclick="closeModal()">&times;</div>
+            </div>
+            <div id="modal-body">
+                <pre id="modal-pre"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/qualification-lab/api';
+
+        async function jget(path) {
+            try {
+                const r = await fetch(API_BASE + path, { cache: 'no-store' });
+                if (r.ok) return r.json();
+            } catch(e) {}
+            const r2 = await fetch('/api' + path, { cache: 'no-store' });
+            if (!r2.ok) throw new Error('HTTP ' + r2.status);
+            return r2.json();
+        }
+
+        function getFamily(name) {
+            name = name.toLowerCase();
+            if (name.includes('ornith')) return 'Ornith';
+            if (name.includes('gemma-4-e4b')) return 'Gemma-4-E4B';
+            if (name.includes('gemma-4-31b')) return 'Gemma-4-31B';
+            if (name.includes('gemma-4-26b')) return 'Gemma-4-26B';
+            if (name.includes('gemma')) return 'Gemma';
+            if (name.includes('llama-3.1') || name.includes('llama-3.3') || name.includes('nemotron')) return 'Llama / Nemotron';
+            if (name.includes('phi')) return 'Phi';
+            if (name.includes('qwq') || name.includes('qwen')) return 'Qwen';
+            if (name.includes('zaya')) return 'Zaya';
+            if (name.includes('jamba')) return 'Jamba';
+            if (name.includes('llava')) return 'Llava';
+            if (name.includes('hermes')) return 'Hermes';
+            return 'Other';
+        }
+
+        function fmtPct(v) {
+            if (v === null || v === undefined) return '—';
+            return (v * 100).toFixed(1) + '%';
+        }
+
+        function showModal(title, content) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-pre').textContent = content || "No output provided.";
+            document.getElementById('modal-overlay').style.display = 'flex';
+        }
+        function closeModal() {
+            document.getElementById('modal-overlay').style.display = 'none';
+        }
+
+        window.showModal = showModal;
+
+        async function init() {
+            try {
+                const data = await jget('/compare');
+                document.getElementById('loading').style.display = 'none';
+                
+                if (!data.ok || !data.scorecards || data.scorecards.length === 0) {
+                    document.getElementById('families-container').innerHTML = '<p style="color:var(--danger)">No scorecards found.</p>';
+                    return;
+                }
+
+                const families = {};
+                for (const card of data.scorecards) {
+                    const fam = getFamily(card.model_name || 'unknown');
+                    if (!families[fam]) families[fam] = [];
+                    families[fam].push(card);
+                }
+
+                // Sort families alphabetically
+                const famKeys = Object.keys(families).sort();
+
+                let html = '';
+                for (const fam of famKeys) {
+                    const cards = families[fam];
+                    // Sort cards: larger/unquantized first maybe? We'll just sort by name for now.
+                    cards.sort((a,b) => (a.model_name||'').localeCompare(b.model_name||''));
+
+                    html += `<div class="family-section">
+                        <h2>Family: ${fam}</h2>
+                        <div class="grid-container">`;
+
+                    for (const c of cards) {
+                        const metrics = c.first_pass || {};
+                        const guardrailed = c.guardrailed || null;
+                        const hasGuardrail = guardrailed && guardrailed.total_runs > 0;
+                        const isQual = c.qualification_state === 'Qualified';
+
+                        html += `<div class="card">
+                            <h3>${c.model_name}</h3>
+                            <div style="margin-bottom:1rem;">
+                                <span class="status-badge ${isQual ? 'badge-success' : 'badge-danger'}">${c.qualification_state}</span>
+                                <span class="status-badge badge-warning">${c.quantization || 'Unknown Quant'}</span>
+                            </div>`;
+
+                        if (hasGuardrail) {
+                            html += `<div class="tool-badge">
+                                <span>🛠️ Tool Corrected: Normalizer successfully caught and fixed first-pass errors.</span>
+                            </div>`;
+                        }
+
+                        html += `<table>
+                            <tr><td class="metric-label">Backend</td><td class="metric-value">${c.runtime_backend}</td></tr>
+                            <tr><td class="metric-label">Ranking Score</td><td class="metric-value">${(c.standard_suite_ranking_score||0).toFixed(4)}</td></tr>
+                            <tr><td class="metric-label">Req Recall</td><td class="metric-value">${fmtPct(metrics.mean_requirement_recall)}</td></tr>
+                            <tr><td class="metric-label">Constraint Recall</td><td class="metric-value">${fmtPct(metrics.mean_hard_constraint_recall)}</td></tr>
+                            <tr><td class="metric-label">Accuracy</td><td class="metric-value">${fmtPct(metrics.mean_claim_disposition_accuracy)}</td></tr>
+                        </table>`;
+
+                        // Runs table
+                        if (c.runs && c.runs.length > 0) {
+                            html += `<h4>Granular Test Runs</h4>
+                            <div class="run-list">
+                                <table>
+                                    <thead><tr><th>Test ID</th><th>Status</th><th>Failure Reason</th><th>Snapshot</th></tr></thead>
+                                    <tbody>`;
+                            for (const r of c.runs) {
+                                // dedup repeated identical runs? Let's just show them all, or first repeat.
+                                if (r.repeat > 0) continue; // Just show repeat 0 for compactness
+                                
+                                const passed = r.validator_success && r.expected_outcome_match && !r.hard_failure;
+                                const statusClass = passed ? 'badge-success' : 'badge-danger';
+                                const statusText = passed ? 'PASS' : 'FAIL';
+                                const reason = (r.failure_class && r.failure_class !== 'none') ? r.failure_class : (passed ? '-' : 'Outcome Mismatch');
+                                
+                                const rawOutput = encodeURIComponent(r.raw_output || '');
+                                
+                                html += `<tr>
+                                    <td>${r.fixture_id}</td>
+                                    <td><span class="status-badge ${statusClass}" style="margin:0;">${statusText}</span></td>
+                                    <td>${reason}</td>
+                                    <td>${!passed ? `<button class="btn" onclick="showModal('${r.fixture_id}', decodeURIComponent('${rawOutput}'))">View</button>` : '-'}</td>
+                                </tr>`;
+                            }
+                            html += `</tbody></table></div>`;
+                        }
+
+                        html += `</div>`;
+                    }
+                    html += `</div></div>`;
+                }
+
+                document.getElementById('families-container').innerHTML = html;
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('loading').textContent = 'Error loading data: ' + err.message;
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

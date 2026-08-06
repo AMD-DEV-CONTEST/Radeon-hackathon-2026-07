@@ -19,7 +19,10 @@ pub struct RunResult {
     pub latency_ms: u64,
     pub timeout: bool,
     pub retry_count: u32,
+    pub user_prompt: Option<String>,
     pub raw_output: String,
+    pub peer_reviewed: bool,
+    pub reviewer_model: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
@@ -52,4 +55,6 @@ pub struct Scorecard {
     pub runs: Vec<RunResult>,
     pub qualification_state: String,
     pub standard_suite_ranking_score: f64,
+    pub peer_reviewed_pipeline_pass: bool,
+    pub final_reviewer_model: Option<String>,
 }

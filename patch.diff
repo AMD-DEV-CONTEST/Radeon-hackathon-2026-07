@@ -1,0 +1,45 @@
+--- core/forge-hardware-sidecar/src/main.rs
++++ core/forge-hardware-sidecar/src/main.rs
+@@ -102,17 +102,29 @@
+         env_prefix.push_str(&format!("CUDA_VISIBLE_DEVICES={} ", gpus));
+     }
+ 
+-    let model_path = format!("/mnt/raid0/models/{}", req.model_name);
++    let mut is_droplet = false;
++    if let Ok(hostname) = std::fs::read_to_string("/etc/hostname") {
++        if hostname.trim() == "0" {
++            is_droplet = true;
++        }
++    }
++
++    let model_path = if is_droplet {
++        format!("/shared-docker/models/{}", req.model_name)
++    } else {
++        format!("/mnt/raid0/models/{}", req.model_name)
++    };
++
+     let port = 8080;
+     let engine = if req.engine.is_empty() { "llama.cpp" } else { req.engine.as_str() };
+ 
+     let engine_cmd = match engine {
+         "llama.cpp" | "llama-server" => {
+             let mut cmd = format!("/home/cesarops/bin/llama-server -m {} -ngl 99 --port {} --host 0.0.0.0", model_path, port);
+             if let Some(ctx) = req.context_size {
+                 cmd.push_str(&format!(" -c {}", ctx));
+             }
+             if let Some(ts) = &req.tensor_split {
+                 cmd.push_str(&format!(" --tensor-split {}", ts));
+             }
+             cmd
+         },
+         "vllm" => {
+-            let mut cmd = format!("python3 -m vllm.entrypoints.openai.api_server --model {} --port {} --host 0.0.0.0", model_path, port);
++            let mut cmd = if is_droplet {
++                format!("vllm serve {} --port {} --host 0.0.0.0", model_path, port)
++            } else {
++                format!("python3 -m vllm.entrypoints.openai.api_server --model {} --port {} --host 0.0.0.0", model_path, port)
++            };
+             if let Some(ts) = &req.tensor_split {
+                 let count = ts.split(',').count();
+                 cmd.push_str(&format!(" --tensor-parallel-size {}", count));
+             }
