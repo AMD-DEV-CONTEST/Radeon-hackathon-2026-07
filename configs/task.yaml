@@ -1,0 +1,63 @@
+# Radeon-VLA-SO101 task / scene / training configuration.
+# Central place for the knobs used across simulation, data, training and eval.
+# (Scripts currently read their own CLI flags; this file documents the intended
+#  defaults and is the single place to change them. Values mirror the module
+#  constants in simulation/so101.py and simulation/genesis_env.py.)
+
+task:
+  name: cube_pick_place
+  # The natural-language instruction template ({color} is filled per episode).
+  instruction_template: "Pick the {color} cube and place it into the basket"
+  colors: [red, blue, green]
+  place_target: basket
+
+robot:
+  name: so101              # SO-101 follower, 6 DOF (5 arm + 1 gripper)
+  n_dof: 6
+  joint_names: [shoulder_pan, shoulder_lift, elbow_flex, wrist_flex, wrist_roll, gripper]
+  # Asset fetched by scripts/setup_so101_assets.py into assets/robots/so101.
+  model_source: "TheRobotStudio/SO-ARM100 : Simulation/SO101"
+
+scene:
+  table_top_z: 0.75
+  cube_size: 0.03
+  reach_x: [0.20, 0.40]
+  reach_y: [-0.20, 0.20]
+  basket_home: [0.42, 0.12]
+
+cameras:
+  world: { res: [640, 480], fov: 42 }   # fixed third-person view (D435i-like)
+  wrist: { res: [640, 480], fov: 42 }   # eye-in-hand
+
+dataset:
+  repo_id: so101/cube_pick
+  fps: 30
+  image_wh: [320, 240]                  # stored image size for training
+  episodes: 100
+  vcodec: libsvtav1
+
+vla:
+  backend: smolvla                      # smolvla | act | openvla(stub)
+  base_checkpoint: lerobot/smolvla_base
+  # SmolVLA base expects canonical camera keys; our dataset uses world/wrist.
+  rename_map:
+    observation.images.world: observation.images.camera1
+    observation.images.wrist: observation.images.camera2
+
+training:
+  policy: smolvla
+  steps: 20000
+  batch_size: 4
+  device: cuda                          # =AMD GPU on ROCm (torch maps CUDA->HIP)
+  video_backend: pyav
+
+eval:
+  episodes: 20
+  max_seconds: 15.0
+  seed: 1000
+
+benchmark:
+  devices: [cpu, cuda]
+  iters: 50
+  warmup: 10
+  out: benchmark/results.json
