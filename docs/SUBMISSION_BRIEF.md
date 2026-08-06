@@ -126,8 +126,8 @@ mradermacher/Qwen3.6-35B-A3B-Fable-5-Distill-i1-GGUF:Q6_K
 - open multimodal model served through an OpenAI-compatible llama.cpp endpoint;
 - mixture-of-experts 35B-class model with Q6_K GGUF quantization;
 - vision projection loaded by `llama-server`;
-- node-specific reasoning: up to 1,024 tokens for candidate comparison and no thinking for
-  mechanical extraction and synthesis calls;
+- adaptive reasoning on every model node: start at 1,024 tokens and retry at 2,048 only when the
+  first attempt produces no final content;
 - typed Pydantic validation with one targeted repair attempt;
 - final content is used, while reasoning content is neither displayed nor persisted.
 

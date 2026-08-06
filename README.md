@@ -119,11 +119,10 @@ never returns the source text to the browser, and the UI must opt in for each ru
 [Private Lens Tool](docs/PRIVATE_LENS_TOOL.md).
 
 The application does not probe the model during startup unless `XIANG_LLM_PROBE_ON_START=true`.
-The candidate-comparison call can use the configured 1,024-token reasoning allowance. Mechanical
-visual extraction, report formatting, memory extraction, and follow-ups disable thinking to reduce
-latency. If a reasoning-enabled call ends before final content, the client retries it once with
-thinking disabled. XiangLens validates only `message.content` and never displays or persists
-`reasoning_content`.
+All model nodes keep reasoning enabled and start with the configured 1,024-token allowance. If a
+call ends before final content, the client automatically expands that call to 2,048 reasoning
+tokens, then uses one no-thinking fallback only if both reasoning attempts fail. XiangLens
+validates only `message.content` and never displays or persists `reasoning_content`.
 
 ## Build the Knowledge Database
 
