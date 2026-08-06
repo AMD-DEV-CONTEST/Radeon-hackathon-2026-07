@@ -1,0 +1,81 @@
+{
+  "env": {
+    "gpu": "AMD Radeon Graphics",
+    "torch": "2.10.0+rocm7.2.4.git3d3aa833",
+    "vram_total_gb": 51.5,
+    "base": "/models/unsloth/Qwen3.5-9B"
+  },
+  "runs": [
+    {
+      "config": "base_bf16_no_adapter",
+      "tokens_per_s_mean": 18.67,
+      "tokens_per_s_stdev": 1.16,
+      "vram_gb": 18.49
+    },
+    {
+      "config": "mol_adapter_deltacoder",
+      "tokens_per_s_mean": 8.12,
+      "tokens_per_s_stdev": 0.0,
+      "vram_gb": 19.25
+    },
+    {
+      "config": "mol_adapter_metro",
+      "tokens_per_s_mean": 10.25,
+      "tokens_per_s_stdev": 0.01,
+      "vram_gb": 19.25
+    },
+    {
+      "config": "mol_adapter_sygnif",
+      "tokens_per_s_mean": 10.25,
+      "tokens_per_s_stdev": 0.0,
+      "vram_gb": 19.25
+    }
+  ],
+  "baseline": {
+    "full_model_load_s": 10.5,
+    "vram_resident_gb": 18.17,
+    "three_models_resident_gb_est": 54.5,
+    "three_models_feasible_on_48gb": false,
+    "note": "naive per-skill dedicated models require a full reload (10.5s) per switch, or 3x VRAM (infeasible on 48GB)"
+  },
+  "adapters": [
+    {
+      "name": "deltacoder",
+      "load_s": 4.41,
+      "vram_after_gb": 19.16
+    },
+    {
+      "name": "metro",
+      "load_s": 1.41,
+      "vram_after_gb": 19.2
+    },
+    {
+      "name": "sygnif",
+      "load_s": 1.48,
+      "vram_after_gb": 19.25
+    }
+  ],
+  "hot_swap_ms": {
+    "deltacoder->metro": {
+      "mean": 8.08,
+      "min": 8.02,
+      "max": 8.3
+    },
+    "metro->sygnif": {
+      "mean": 8.01,
+      "min": 8.0,
+      "max": 8.04
+    },
+    "sygnif->deltacoder": {
+      "mean": 8.03,
+      "min": 8.01,
+      "max": 8.08
+    }
+  },
+  "summary": {
+    "naive_switch_cost_s": 10.5,
+    "mol_switch_cost_ms_mean": 8.04,
+    "speedup_x": 1305.0,
+    "vram_saved_vs_3_models_gb": 35.3
+  }
+}

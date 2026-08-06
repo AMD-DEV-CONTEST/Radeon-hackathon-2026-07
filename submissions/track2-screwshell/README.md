@@ -14,9 +14,9 @@ Its distinctive idea is a **Mixture-of-LoRA (MoL) inference core**: one frozen 2
 
 ## Where is the source code?
 
-The complete, runnable source repository lives at:
+The complete source code is committed **directly in this PR** under [`source/`](source/), so reviewers can inspect it without leaving the PR. It contains the full `screwshell/` package, `tests/`, `bench/`, `deploy/`, `demo_workspace/`, and docs (environment config, startup guide, dependency list in `requirements.txt`).
 
-> **https://github.com/1105s110martin-art/screwshell**
+> Mirror of the canonical repo: https://github.com/1105s110martin-art/screwshell
 
 This directory (`submissions/track2-screwshell/`) is the submission entry point. It links the four required deliverables and summarizes the project.
 
@@ -25,7 +25,7 @@ This directory (`submissions/track2-screwshell/`) is the submission entry point.
 | Deliverable | Location | Status |
 |---|---|---|
 | **1. Project Specification Document** | [`docs/PROJECT_SPECIFICATION.md`](docs/PROJECT_SPECIFICATION.md) (copy of the authoritative `docs/SPEC.md`) | ✅ |
-| **2. Project Source Code + README** | [`screwshell`](https://github.com/1105s110martin-art/screwshell) (full repo with English README, env config, startup guide, dependencies) | ✅ |
+| **2. Project Source Code + README** | [`source/`](source/) (full repo: `screwshell/` package, tests, bench, deploy, demo_workspace, docs) | ✅ |
 | **3. Demo Video (3–5 min)** | [`presentation/ScrewShell_demo.7z`](presentation/ScrewShell_demo.7z) (7z archive of the demo MP4, which exceeds GitHub's 100 MB per-file limit; extract to view) | 📹 |
 | **4. PPT / Poster** | [`presentation/ScrewShell_pitch_deck.pptx`](presentation/ScrewShell_pitch_deck.pptx) | 📊 |
 
