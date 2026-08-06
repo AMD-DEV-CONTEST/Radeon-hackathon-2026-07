@@ -86,8 +86,7 @@ Open the public Gradio link shown by Colab.
 Default admin credentials:
 
 ```text
-Username: admin
-Password: Gnk2005/09-07
+
 ```
 
 The admin dashboard appears only after the admin account signs in.
@@ -97,17 +96,7 @@ The admin dashboard appears only after the admin account signs in.
 Forgot password and registration verification require SMTP email settings.
 
 Create a `.env` file in the project folder with:
-
-```text
-GENAI_SMTP_HOST=smtp.gmail.com
-GENAI_SMTP_PORT=587
-GENAI_SMTP_USER=your_email@gmail.com
-GENAI_SMTP_PASSWORD=your_16_character_gmail_app_password
-GENAI_SMTP_FROM=your_email@gmail.com
-GENAI_ADMIN_PASSWORD=Gnk2005/09-07
-```
-
-For Gmail, use a Gmail App Password, not your normal Gmail password.
+, use a Gmail App Password, not your normal Gmail password.
 
 ## Database Storage
 
@@ -122,5 +111,17 @@ This keeps users, OTP records, login history, and image history saved even after
 ## Notes
 
 - SDXL is heavy and should be run with a Colab T4 GPU.
+- ## Hardware Acceleration
+
+The application uses GPU acceleration for Stable Diffusion XL inference.
+
+Compatible with:
+- AMD Radeon GPUs through ROCm supported environments.
+- Google Colab T4 GPU for demonstration.
+- project/
+ ├── screenshots/
+ │    ├── home.png
+ │    ├── generation.png
+ │    └── admin.png
 - If image generation is slow, reduce width, height, or steps.
 - If OTP email does not send, check the `.env` values and Gmail App Password.
