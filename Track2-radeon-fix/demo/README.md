@@ -1,7 +1,7 @@
 # radeon-fix demo video
 
 This directory contains everything needed to reproduce the English demo video
-for `radeon-fix`. The video is a ~3.5-minute replay of a real repair session
+for `radeon-fix`. The video is a ~4-minute replay of a real repair session
 recorded on the AMD Radeon instance: the terminal shows the agent working, and
 the right-hand panel shows the code it generates as it is written.
 

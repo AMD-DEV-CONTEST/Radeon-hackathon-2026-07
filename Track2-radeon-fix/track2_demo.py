@@ -104,11 +104,18 @@ def read_gpu_metrics() -> dict[str, Any]:
     if not pip_out:
         pip_out = _sh(["pip", "show", "vllm"])
     vllm = re.search(r"^Version:\s*(.+)$", pip_out, re.MULTILINE)
-    if vllm:
+    vllm_env = os.getenv("TRACK2_VLLM_VERSION")
+    if vllm_env:
+        metrics["vllm_version"] = vllm_env
+    elif vllm:
         metrics["vllm_version"] = vllm.group(1).strip()
 
     metrics["model"] = os.getenv("TRACK2_MODEL") or "Qwen3-14B-BF16"
-    metrics["kv_cache"] = "int8_per_token_head"
+    metrics["kv_cache"] = (
+        os.getenv("TRACK2_KV_CACHE")
+        or _probe_value("TRACK2_KV_CACHE", "kv_cache")
+        or "int8_per_token_head"
+    )
     ttft = _probe_value("TRACK2_TTFT_P50_MS", "ttft_p50_ms")
     decode = _probe_value("TRACK2_DECODE_TOK_S", "decode_tokens_per_second")
     if ttft is not None:

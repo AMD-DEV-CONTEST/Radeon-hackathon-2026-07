@@ -64,9 +64,10 @@ def test_read_gpu_metrics_falls_back_without_rocm_smi(monkeypatch):
     monkeypatch.setattr("track2_demo.subprocess.run", _raise)
     monkeypatch.setenv("TRACK2_TTFT_P50_MS", "99.5")
     monkeypatch.setenv("TRACK2_DECODE_TOK_S", "27.1")
+    monkeypatch.setenv("TRACK2_KV_CACHE", "test-kv")
     metrics = read_gpu_metrics()
     assert metrics["model"] == "Qwen3-14B-BF16"
-    assert metrics["kv_cache"] == "int8_per_token_head"
+    assert metrics["kv_cache"] == "test-kv"
     assert metrics["ttft_p50_ms"] == 99.5
     assert metrics["decode_tokens_per_second"] == 27.1
 
@@ -76,5 +77,6 @@ def test_read_gpu_metrics_uses_config_fallback(monkeypatch):
     monkeypatch.delenv("TRACK2_TTFT_P50_MS", raising=False)
     monkeypatch.delenv("TRACK2_DECODE_TOK_S", raising=False)
     metrics = read_gpu_metrics()
-    assert metrics.get("ttft_p50_ms") == 103.97
-    assert metrics.get("decode_tokens_per_second") == 25.66
+    assert metrics.get("ttft_p50_ms") == 115.6
+    assert metrics.get("decode_tokens_per_second") == 12.41
+    assert metrics.get("kv_cache") == "auto"

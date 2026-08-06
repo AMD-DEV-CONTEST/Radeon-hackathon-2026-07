@@ -1,6 +1,6 @@
 # radeon-fix report
 
-- Repository: `/root/radeon-fix-demo4/demo_project`
+- Repository: `/root/radeon-fix-demo5/demo_project`
 - Issue: pycalc has three bugs: 1) mode breaks ties by returning the first encountered value instead of the smaller value; 2) normalize scales by the maximum instead of the min-max range, crashes when the maximum is 0, and does not handle all-equal inputs; 3) report.summary_text only prints the first five normalized values instead of all of them. Fix all three so every test in tests/ passes.
 - Model: `Qwen3-14B-BF16`
 - Endpoint: `http://127.0.0.1:8000/v1` (local inference)
@@ -13,15 +13,15 @@ pycalc has three bugs: 1) mode breaks ties by returning the first encountered va
 
 ## Trajectory summary
 
-- Model turns: 12
-- Tool calls: 15
-- Edit attempts: 2
-- Replace attempts: 5
+- Model turns: 11
+- Tool calls: 13
+- Edit attempts: 4
+- Replace attempts: 3
 - Replace successes: 2
 - Patch apply results: [False, False, False, True, False, False, True]
-- Verifier verdict: accept
-- Total tokens: 42004
-- Wall time: 130.7 s
+- Verifier verdict: accept (mode V1; deterministic syntax/structure gates, does not run tests)
+- Total tokens: 32412
+- Wall time: 254.3 s
 - Context provider: aider-repomap-focused (available: True)
 - Context refresh: yes
 
@@ -34,26 +34,43 @@ pycalc has three bugs: 1) mode breaks ties by returning the first encountered va
 ## AMD GPU inference
 
 - GPU: AMD Radeon
+- vLLM: 0.16.1.dev0+g89a77b108.d20260317.rocm721
 - VRAM: 51.52
-- GPU utilization: 98
+- GPU utilization: 96
+- GPU arch: None
+- Model: Qwen3-14B-BF16
+- KV cache: auto
+- TTFT p50: 115.6
+- Decode: 12.41
+
+## Final check
+
+- Command: `python -m pytest -q`
+- Exit code: 0
+- Passed: True
+
+```text
+.......                                                                  [100%]
+7 passed in 0.01s
+```
 
 ## Patch
 
 ```diff
 diff --git a/pycalc/analysis.py b/pycalc/analysis.py
-index f3992fb..a058ff3 100644
+index f3992fb..af05bca 100644
 --- a/pycalc/analysis.py
 +++ b/pycalc/analysis.py
-@@ -12,6 +12,8 @@ def mode(values):
-         if count > best_count:
+@@ -9,7 +9,7 @@ def mode(values):
+     best = None
+     best_count = -1
+     for value, count in counts.items():
+-        if count > best_count:
++        if count > best_count or (count == best_count and value < best):
              best = value
              best_count = count
-+        elif count == best_count and value < best:
-+            best = value
      return best
- 
- 
-@@ -21,4 +23,6 @@ def normalize(values):
+@@ -21,4 +21,6 @@ def normalize(values):
          return []
      low = min(values)
      high = max(values)
@@ -79,5 +96,5 @@ index 41f5059..9ff2d3b 100644
 The patch was produced in an isolated temporary copy. To apply it to the original repository:
 
 ```bash
-cd /root/radeon-fix-demo4/demo_project && git apply /root/radeon-fix-demo4/out/patch.diff
+cd /root/radeon-fix-demo5/demo_project && git apply /root/radeon-fix-demo5/out/patch.diff
 ```
