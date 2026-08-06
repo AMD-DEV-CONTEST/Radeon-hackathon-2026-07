@@ -76,19 +76,33 @@ Models load lazily and unload after their stage when VRAM < 30 GB, so the pipeli
 | Print orientation | 26-direction support-volume search (overhang faces ≥45° × height prism) | rotation only — the part's physical size is preserved, so candidates are compared fairly; reports % support saved |
 | Wall thickness | surface sampling + inward ray casting | min / 5th-percentile / % under limit |
 
-Measured effect of the orientation search, on exactly the five benchmark runs tabulated
-in §5 (`standard` preset, seed 7): support volume cut by **82.2%** (robot mascot),
-**47.5%** (fox figurine), **31.9%** (chess knight), **24.8%** (drawer knob) and **0%**
-(amphora). The zero is the interesting one — the generator already produced the vase
-upright, so no rotation beats it and the search correctly leaves the part alone rather
-than inventing an improvement. Every figure above is reproduced in that run's
-`report.json` under `print.orientation.support_saved_pct`.
+Measured effect of the orientation search **on the AMD Radeon runs** (`draft`, seed 7):
+support volume cut by **78.3%** (robot mascot), **47.5%** (chess knight), **33.9%** (fox
+figurine), **13.9%** (drawer knob) and **6.6%** (amphora). The amphora is the
+interesting one — the generator already produced the vase nearly upright, so almost no
+rotation improves on it and the search correctly declines to invent one. Every figure is
+reproduced in that run's `report.json` under `print.orientation.support_saved_pct`.
 
 ## 5. AMD Radeon GPU / ROCm adaptation
 
-- **Zero vendor-specific code.** Both GPU stages run through the standard `torch.cuda`
-  API, which ROCm PyTorch maps to HIP. Backend detection (`torch.version.hip`) is used
-  only to *display* the platform banner and timings — code paths are identical.
+> **Verified on AMD hardware.** Everything in this section was confirmed on an AMD
+> Radeon Cloud instance — Radeon Graphics `gfx1100` (Navi 31), 48 GB, ROCm 7.2.53211,
+> torch 2.9.1 — on 6 August 2026. MeshSmith ran there with **no source changes of any
+> kind**: the same commit that runs on CUDA produced watertight, print-ready assets on
+> ROCm at 90/100 printability, averaging 48.7 s per asset. The demo video is a live
+> recording of that machine.
+>
+> ```
+> Device: {'backend': 'AMD ROCm 7.2.53211-e1a6bc5663', 'torch': '2.9.1+gitff65f5b',
+>          'device': 'cuda:0', 'gpu': 'AMD Radeon Graphics', 'vram_gb': 48.0}
+> SMOKE TEST PASSED
+> ```
+
+- **Zero vendor-specific code — now proven, not asserted.** Both GPU stages run through
+  the standard `torch.cuda` API, which ROCm PyTorch maps to HIP. Backend detection
+  (`torch.version.hip`) is used only to *display* the platform banner and timings.
+  The same commit ran on CUDA and on ROCm with no edits; peak VRAM on Radeon was
+  10.8 GB, so the pipeline also fits 16 GB Radeon cards.
 - **Shape-only Hunyuan3D by design.** The texture-paint stage of Hunyuan3D-2 needs a
   custom CUDA rasterizer extension; MeshSmith deliberately excludes it and keeps the whole
   pipeline installable with `pip install -r requirements.txt` inside any `rocm/pytorch`

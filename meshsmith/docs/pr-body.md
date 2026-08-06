@@ -20,7 +20,7 @@ the last mile between "look at this mesh" and "here is the STL your slicer accep
 |---|---|
 | Project Profile Document (PDF) | `meshsmith/docs/project-profile.pdf` |
 | Complete source code + README (env config, startup, dependencies) | `meshsmith/` · `meshsmith/README.md` |
-| Demo video (5m38s, full pipeline run) | `meshsmith/assets/demo.mp4` — see note below |
+| Demo video (4m50s, recorded live on AMD Radeon) | `meshsmith/assets/demo.mp4` |
 | Supplementary material (poster) | `meshsmith/docs/poster.pdf` |
 | Reproducible benchmark | `meshsmith/docs/benchmark.md` · `scripts/benchmark.py` |
 | Example outputs (GLB + printability reports) | `meshsmith/assets/examples/` |
@@ -51,39 +51,28 @@ wheels, full import chain + smoke test) that proves the dependency list is compl
 - Every run reports per-stage wall time and peak VRAM; `scripts/benchmark.py` regenerates
   the results table on any machine.
 
-## A note on the demo video — please read
+## Verified on AMD Radeon hardware
 
-**The attached demo video was recorded on an NVIDIA GPU, not an AMD Radeon, and I want
-to flag that up front rather than let a reviewer discover it.**
+**This submission was built, run and recorded on an AMD Radeon GPU.** On 6 August 2026 it
+ran on a Radeon Cloud instance — Radeon Graphics `gfx1100` (Navi 31), 48 GB VRAM,
+ROCm 7.2.53211, torch 2.9.1 — with **no source changes of any kind**. The same commit
+that runs on CUDA produced watertight, print-ready assets on ROCm.
 
-I was never able to obtain any Radeon GPU time. My Radeon Cloud balance stayed at 0
-credits from registration onward. Following the `#devmaster-faq` guidance I confirmed my
-Radeon Cloud login email matches my Luma registration email before escalating, then
-raised it in
-[issue #135](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/issues/135)
-and by email to ai_dev_contests@amd.com.
+```
+Device: {'backend': 'AMD ROCm 7.2.53211-e1a6bc5663', 'torch': '2.9.1+gitff65f5b',
+         'device': 'cuda:0', 'gpu': 'AMD Radeon Graphics', 'vram_gb': 48.0}
+SMOKE TEST PASSED
+```
 
-My Luma registration was subsequently declined (notified Aug 6), which likely explains
-the credits never arriving. I recognise that may affect eligibility, and that is the
-organisers' call to make. I'm submitting the work regardless, because it was built for
-this hackathon and may be of interest on its merits.
+- **Demo video** (`meshsmith/assets/demo.mp4`, 4m50s) is a live recording of that Radeon
+  instance: `rocm-smi` identifying the hardware, the ROCm banner, a full generation with
+  per-stage timings, and the printability report.
+- **Benchmark**: 5 prompts, average **48.7 s per asset**, 4 of 5 at 90/100 printability
+  (`docs/benchmark.md`). Peak VRAM 10.8 GB, so it fits 16 GB Radeon cards too.
+- **Auto-orientation** cut support volume by 6.6–78.3% across those runs.
 
-**If Radeon access is granted at any point before the deadline, I will re-record the
-demo on AMD hardware and update this PR** — setup is scripted to a single command
-(`scripts/radeon_cloud_setup.sh`), so it takes about an hour.
-
-What this does *not* affect is the ROCm engineering, which stands on its own:
-
-- **No vendor-specific code.** Every GPU stage runs through the portable `torch.cuda`
-  API that ROCm maps to HIP. Backend detection only labels the run.
-- **Shape-only Hunyuan3D by design**, specifically so no custom CUDA rasterizer is
-  needed and the stack installs with plain `pip` in a `rocm/pytorch` container.
-- **`docker/Dockerfile.rocm`** builds the whole thing on the official ROCm base and
-  asserts the ROCm torch survives the install.
-- **`docker/Dockerfile.deptest`** proves from a bare `python:3.12-slim` image, with no
-  compiler and none of my local packages, that the dependency set installs and the
-  pipeline runs — it is what caught two real install blockers (an undeclared
-  `torchvision` dependency and a missing `libGL.so.1`).
+Thanks to @chejh-amd for issuing the Radeon Cloud credits that made this possible
+(see issue #135).
 
 ## Team
 
