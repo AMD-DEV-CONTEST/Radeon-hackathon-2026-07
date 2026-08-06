@@ -1,89 +1,122 @@
-# Radeon-hackathon-2026-07
+# 🎬 Duanmai (断脉) · The Stateful AI Screenplay Studio
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+**[🇨🇳 中文完整文档 →](README_zh.md)** ｜ *AMD Radeon Hackathon 2026 · Track 2 (Agentic AI) · AMD Developer Cloud*
 
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
+> **"We didn't build another chatbot. We built a digital showrunner's brain — and it runs entirely on AMD silicon."**
 
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
+Duanmai is the first **stateful, agentic co-writing workbench** that walks an author from a single spark of an idea all the way to a shoot-ready screenplay: **Idea → Story → Outline → Script → Storyboard → Panels**. No cloud APIs. No data leaving the machine. **100% local inference** on an AMD Radeon™ PRO W7900 (48 GB, ROCm/HIP) with Qwen3.6-35B-A3B (Q8_0) at ≈70 tokens/s.
 
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+![ROCm](https://img.shields.io/badge/ROCm-7.2.1-ED1C24) ![GPU](https://img.shields.io/badge/GPU-Radeon_PRO_W7900_48GB-ED1C24) ![llama.cpp](https://img.shields.io/badge/Inference-llama.cpp_(HIP)-blue) ![UI](https://img.shields.io/badge/UI-Streamlit-FF4B4B) ![Context](https://img.shields.io/badge/Context-32K-green)
 
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+---
 
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+## 🌌 The Paradigm Shift: Amnesiac Chatbots vs. A Studio That Remembers
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+Every AI writing tool on the market is a **stateless dialog box**: after ten turns it forgets your protagonist's flaw, your world's rules, your ending. Duanmai shatters this with a **Persistent Creative Matrix** — a structured "AI Brain" whose contents are **injected into every single inference call**:
 
-> [!IMPORTANT]
-> Team name was an optional field on the Luma registration form. If you did not fill in a team name when you registered, please use your own name instead, so the title of the pull request should be like **"Track x, Your name, your application name"**.
+| Brain Module | What it does |
+|---|---|
+| 🧱 **Core Pillars** | 8 immutable story DNA fields (Theme / Want / Need / Core Fear / Stakes / Tones) |
+| 🧠 **Permanent Memory Pool** | Iron-clad rules the model can *never* violate; auto-tidy, auto-dedup, length-guarded |
+| 🕳️ **Plot-hole ("Pit") Tracker** | Unresolved threads on a Kanban board; one-click **🪄 "AI, fix this pit"** |
+| ✨ **Inspiration Wall** | Captures your best ideas mid-chat and immortalizes them in context |
+| 🎭 **Character Profiles** | Name / role / personality / visual signature / arc — anti-OOC enforcement |
+| 🧵 **Foreshadowing Tracker** | Plant ↔ payoff table with recovered/unrecovered status |
+| 📊 **Emotion Curve** | Per-act audience-reaction word + intensity slider, rendered as a live chart |
 
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
+The model answers through a proprietary **`<state_update>` XML protocol**: memories added, pits opened/closed, inspirations captured — the UI updates itself *silently* while you write.
 
-## Submission Requirements
+---
 
-### Track 1: Development of Multimodal Content Creation Tools
+## 🚀 Feature Tour, Block by Block
 
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
+### 🎛️ Top Bar — The Mission-Control HUD
+* **Seal banner** (project identity) + **live W7900 KPI**: real VRAM usage (torch.hip → rocm-smi → sysfs multi-layer fallback) and live decode speed (tok/s).
+* **Three layout modes**: ⛶ Full-Window (writing long scripts), 🖥 Full-Screen (pure focus), ↩ Default (three-pane studio).
 
-### Track 2: Development & Local Deployment of Private AI Agents
+### 📋 Sidebar — Global Control Deck
+* **Six-stage pipeline radio** with **smart progress detection**: on launch the studio auto-locates you to the first unsealed stage; switching stages **auto-seals** the current document.
+* **🧠 Brain toggle** (collapse left pane), **🧼 De-AI-Flavor master switch**.
+* **🎯 Attention Anchors**: compresses pillars + memories into a "talisman" injected every call — our weapon against long-context attention dilution.
+* **📦 Project Export/Import**: download/restore the *entire* studio state as one JSON (distinct from cloud-side 💾 Save / 📂 Load).
+* **🏆 Contest-Material Generator**: one click produces README outline, 3-min demo narration script, and an AMD/ROCm optimization highlight list.
+* **🩺 llama.cpp health probe**.
 
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
+### 🧠 Left Pane — The AI Brain (six tabs, see matrix above)
+Every field ships with **❌ bad-example / ✅ good-example tooltips** — ~40 controls are self-teaching for first-time users.
 
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
+### 💬 Middle Pane — The Co-Creation Floor
+* **Idea Seed Card** (Idea stage): six guided questions with example bubbles; the AI then enters **Strict-Mentor Mode** (≤3 diagnoses, ≤3 questions, ≤3 options) with a **hard convergence rule** — max 2 Q&A rounds, then it must output the Finalization Card and point you to the green "Lock & Advance" button. No infinite questioning. Ever.
+* **Writing Toolbox** (one click, acts on the canvas): ✨ Polish · 🎈 Expand · ️ Condense · 🏮 Tang-Dynasty Dialogize · 🎬 Shot-Listify · 🔍 Logic Self-Check (cross-audits against memories/characters/foreshadowing).
+* **🧠 Chain-of-Thought viewer**: every reply carries an expandable "deep thinking" panel (`--reasoning-format deepseek`).
+* **Writer-grade input**: Enter = newline, **Ctrl+Enter = send** (global JS binding), with an on-screen hint for beginners.
 
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+### 📝 Right Pane — The Canvas
+Editable stage document with word count, **📤 .md export**, **📥 adopt last AI reply**, **🔒 seal-as-final** (sealed stages become immutable context for the next stage), plus the sealed archive.
+
+---
+
+## 🕵️ Anti-"AI-Flavor" Engine (Bypass Zhuque / GPTZero-class Detectors)
+
+Detectors read three signals: **perplexity, burstiness, and model fingerprints**. We attack all three, in four layers:
+
+1. **Prevent** — 🧼 mode injects a "gritty human screenwriter" iron-law prompt (wasted details, subtext-only dialog, banned AI-fingerprint words) **plus** high-entropy sampling (temp 1.15 / top_p 0.98 / presence 0.6 / frequency 0.3) to roughen the logits distribution.
+2. **Treat (LLM)** — 🧼 Deep-Humanize rewrite: a 20-year editor persona rewrites *style only*, plot untouched.
+3. **Treat (code)** — 🧨 **Physical Washing**: pure-Python punctuation destruction, filler injection, boilerplate beheading. No LLM, no fingerprints.
+4. **Measure** — 🧪 offline AI-flavor scorer (burstiness + blacklist + connective-openers + direct-emotion density) with a **🔍 high-risk sentence locator** — fix 10–20% of sentences and flip the verdict.
+
+---
+
+## ⚙️ The Two Scripts — Engineering Notes
+
+### 📜 `setup.sh` — Zero-Touch AMD Cloud Provisioner
+> ⚠️ **This script is purpose-built for the AMD Developer Cloud (Radeon PRO W7900 / ROCm 7.2.1) instance. It is provided as a reference; for any other GPU or environment, adapt the CMAKE targets, model paths and mirrors yourself.**
+
+What it does, step by step: activates `/opt/venv` → repairs cloud DNS + installs tmux/aria2 → installs `modelscope/streamlit/requests` → wires the `/persistent` SFS volume → downloads the 35 GB Q8_0 GGUF via ModelScope → **compiles llama.cpp with `GGML_HIP=ON -DAMDGPU_TARGETS=gfx1100`**, with npmmirror + hf-mirror fixes and a pre-seeded `index.html` to kill the infamous npm hang → deploys the WebUI.
+
+### 🎬 `start.sh` — The Cinematic Inference Launcher
+We made a deliberate, philosophical choice: **we did NOT tune for maximum TPS. Screenwriting needs room to think.** Raw speed was traded, on purpose, for **32K whole-story vision, deep chain-of-thought, and structural stability**:
+
+| Parameter | Value | Why (creative-first philosophy) |
+|---|---|---|
+| `-ngl 999` | full offload | the whole 35B model lives in W7900 VRAM; zero CPU bottleneck |
+| `-c 32768` | 32K context | the AI "sees" all six acts at once — no amnesia, no drift |
+| `--parallel 1` | single slot | one author, one undivided 32K slot (no split-context truncation) |
+| `--flash-attn on` | Flash Attention | makes 32K attention fit in 48 GB |
+| `--cache-type-k/v q8_0` | quantized KV | the trick that buys us the 32K window |
+| `--threads 16` | EPYC 9334 vCPUs | fast prompt ingestion |
+| `-b 1024 -ub 512` | batching | stable long-prompt processing |
+| `--jinja` + `--reasoning-format deepseek` | native template + CoT | surfaces the model's inner monologue in the UI |
+| `--no-mmap` | no mmap | rock-solid on containerized SFS storage |
+
+The script then: kills stale processes → launches `llama-server` in tmux with **smart health-polling** (up to 180 s) → launches Streamlit headless → spins a **Cloudflare tunnel** and prints a public demo URL → renders a full service-status report.
+
+---
+
+## 💻 Environment & Numbers
+
+| | |
+|---|---|
+| GPU | AMD Radeon PRO W7900, 48 GB (gfx1100) |
+| CPU | AMD EPYC 9334 (16 vCPU) |
+| ROCm / HIP | 7.2.1 |
+| Model | Qwen3.6-35B-A3B-Q8_0 (~35 GB, fully offloaded) |
+| Decode | ≈70 tok/s · VRAM ≈36/48 GB |
+
+## 🏁 Quick Start
+```bash
+bash setup.sh   # once: deps + model + ROCm build
+bash start.sh   # every time: engine + WebUI + tunnel
+```
+
+## 📁 Repo
+`app.py` (the entire studio, single file) · `setup.sh` · `start.sh` · `README.md` · `README_zh.md`
+
+## 🎥 Demo
+
+![Main UI](assets/01_main_ui.png)
+*Left: the AI Brain matrix · Center: the Co-Creation Floor · Right: the Canvas. The top HUD shows live W7900 VRAM & decode speed.*
+
+
+## 🙏 Acknowledgements
+Forged with sweat and ROCm. Thanks to AMD Developer Cloud, llama.cpp, Streamlit and Qwen.
