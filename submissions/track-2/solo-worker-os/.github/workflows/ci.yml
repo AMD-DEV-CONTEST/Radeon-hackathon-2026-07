@@ -1,0 +1,53 @@
+# Solo Worker OS — CI pipeline
+# Runs lint + typecheck + build on every pull request.
+# Secrets/keys are NOT required: Next.js build falls back to public-only / demo
+# env when no real credentials are present, so the pipeline stays hermetic.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+
+# Cancel in-progress runs for the same ref when a new commit is pushed.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Lint · Typecheck · Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        # Only runs if a `test` script is defined in package.json.
+        run: npm run test --if-present
+
+      - name: Build
+        run: npm run build
+        env:
+          # Public-only / demo env so the build does not require real secrets.
+          # Real keys must be configured in the Vercel dashboard, never here.
+          NEXT_PUBLIC_DEMO_MODE: 'true'
+          DEMO_MODE: 'true'
