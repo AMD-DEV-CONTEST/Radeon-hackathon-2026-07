@@ -21,11 +21,12 @@
 | Minimal target comparison | Fresh B and C model lifecycles, process manifests, benchmark JSON, server logs, ROCm monitors, controlled shutdown | **COMPLETE / HASH BOUND** |
 | Radeon local inference | ROCm 7.2.1, gfx1100, 41/41 offload, 100% peak GPU busy, process binding in both B/C runs | **VERIFIED** |
 | Directed optimization | B Flash off → C Flash on; exact quality projection; throughput +6.455%/+6.491%; C4 P95 -5.428% | **ACCEPTED MINIMAL B/C** |
+| Optional Radeon Cloud API bonus path | Explicit `radeon_cloud_free` opt-in, pinned Public Free endpoint/model, synthetic-only boundary, fail-closed validation, and fused plan/evidence optimization variable | **IMPLEMENTED / BONUS RESULT NOT CLAIMED** |
 | E/F context transition | Full-matrix optional experiment | DEFERRED / NOT CLAIMED |
 | Stable interaction | Five fresh Winner lifecycles and long soak | DEFERRED / NOT CLAIMED |
 | Public Radeon demo | [Authenticated live application](https://rc-5ec89b08f896792e.radeon.firstdg.ai/) using Optimized C | **LIVE** |
 | Project PDF | Pre-C1 archive outside the frozen repository, 10 A4 pages, 46,010 bytes | HISTORICAL / EXCLUDED / HASH VERIFIED |
-| English submission PPT | [`RadeonHotel-Track2-Submission.pptx`](RadeonHotel-Track2-Submission.pptx), 9 slides, 16:9, 699,794 bytes | **FINAL / HASH VERIFIED** |
+| English submission PPT | [`RadeonHotel-Track2-Submission.pptx`](RadeonHotel-Track2-Submission.pptx), 10 slides, 16:9, 704,431 bytes | **FINAL / HASH VERIFIED** |
 | Demo video | [`RadeonHotel-Track2-Demo.mp4`](RadeonHotel-Track2-Demo.mp4), 293.306 s, 1920×1080, 30 fps, H.264/AAC with embedded English captions | **FINAL / HASH VERIFIED** |
 | English subtitles | [`RadeonHotel-Track2-Demo.en.srt`](RadeonHotel-Track2-Demo.en.srt), 65 cues covering the complete narration | **FINAL / HASH VERIFIED** |
 
@@ -73,7 +74,8 @@ superseded files:
 | Accepted-final full-matrix runtime proof | DEFERRED / NOT CLAIMED |
 | AMD/ROCm hardware binding | Both B/C: process binding true, gfx1100, 41/41 offload, 100% peak GPU busy; full raw log hashes are in the comparison JSON |
 | Public Radeon demo | [https://rc-5ec89b08f896792e.radeon.firstdg.ai/](https://rc-5ec89b08f896792e.radeon.firstdg.ai/) |
-| Final English submission PPT SHA256 | `bc3d19ed837caf45aa2fbd176a928c94f5bc15a7887217ae133f4956c05c6ff1` (699,794 bytes) |
+| Optional Radeon Cloud API bonus route | Implemented as an explicit synthetic-only candidate; accepted comparison, server-side quantization, and bonus score are not claimed |
+| Final English submission PPT SHA256 | `c6e3e523045044e7a805beca8c34e8c8788bebf80159d18d6912df1cf5a7f91f` (704,431 bytes) |
 | Final English demo video SHA256 | `89e9e9779d1e15f34b5af81e41a6cb0eed9f47d5bec3ab9c5ee338af7544701b` (8,116,726 bytes; 293.306 s; 1920×1080; H.264/AAC; embedded English `mov_text`) |
 | Final English subtitle sidecar SHA256 | `395471b927b5f036c53dc0192feb0507939c6899e5e65af617ef6788bd441889` (7,316 bytes; 65 cues) |
 | Historical non-final project PDF SHA256 | `a3e64e406d9f0170ee14acadc4bf6e9a970523395ac4855550969ae2ce951401` |

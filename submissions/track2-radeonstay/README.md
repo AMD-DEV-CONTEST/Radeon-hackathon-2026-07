@@ -494,6 +494,35 @@ judge tunnel, additionally enable public-demo mode and configure the UI
 authentication variables in `.env`. Public mode removes the staff identity from
 the UI. The model still runs inside the same controlled Radeon environment.
 
+## Optional Radeon Cloud API bonus path
+
+The base-100 submission remains the private, local llama.cpp + ROCm deployment
+described above. A separate explicit opt-in path targets the competition's
+optional Radeon Cloud Model API and other-optimization bonus without weakening
+that local boundary:
+
+```bash
+export RADEONSTAY_INFERENCE_PROVIDER=radeon_cloud_free
+export RADEONSTAY_BONUS_DEMO=1
+export RADEONSTAY_RADEON_CLOUD_API_KEY=<private-key>
+export RADEONSTAY_FUSED_PLAN_EVIDENCE=1
+export RADEONSTAY_ISOLATED_DEMO=0
+export RADEONSTAY_RUNTIME_PROOF_PATH=
+```
+
+This route pins the official Public Free endpoint and
+`Qwen3.6-35B-A3B`, negotiates bounded structured output, validates every
+response, allows one bounded JSON repair, and fails closed without silently
+falling back to the local model. It accepts synthetic competition data only;
+real guest data, private Journey state, local ROCm proof, and the Cloud API key
+must never be mixed into its evidence. `RADEONSTAY_FUSED_PLAN_EVIDENCE=1`
+combines plan generation and evidence selection into one bounded model call as
+the independently measurable other-optimization variable.
+
+The implementation is included as an optional bonus candidate. This release
+does not claim an accepted Cloud API performance comparison, verified
+server-side quantization, or an awarded bonus score.
+
 ## Development-only deterministic mode
 
 `RADEONSTAY_DETERMINISTIC_MODE=1` permits UI and permission-flow development
@@ -645,10 +674,11 @@ without credentials, paths, process IDs, or hardware unique IDs enter Git.
 
 ## Submission materials and historical references
 
-- Final English submission deck — 9 slides, 16:9, generated from C2 v3 and the
-  accepted B→C evidence; SHA256
-  `bc3d19ed837caf45aa2fbd176a928c94f5bc15a7887217ae133f4956c05c6ff1`,
-  699,794 bytes
+- Final English submission deck — 10 slides, 16:9, generated from C2 v3, the
+  accepted B→C evidence, and the isolated optional Cloud API implementation;
+  SHA256
+  `c6e3e523045044e7a805beca8c34e8c8788bebf80159d18d6912df1cf5a7f91f`,
+  704,431 bytes
 
 - Final English demo video — 293.306 seconds, 1920×1080 at 30 fps, H.264 video,
   AAC narration, and a default embedded English subtitle track; SHA256
