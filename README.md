@@ -1,89 +1,107 @@
-# Radeon-hackathon-2026-07
+# RibEye - Explainable AI Radiology Assistant
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+A multimodal chest X-ray analysis web application that generates AI-assisted radiology reports and explains *why* by linking every report statement to the corresponding image region.
+The AI assistant answers questions from the patient and clinical personnel to enable an interactive discussion.
 
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
+The video can be found on the cloud: [video](https://drive.google.com/drive/folders/104asyg6lorXh9ZYDdlxcFEKWtDEdGzt4?usp=sharing)
 
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
+<img src="./assets/ribeye_logo.png" alt="logo" width="100"/>
 
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+## Table of contents
 
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+- [What it does](#what-it-does)
+- [Architecture](#architecture)
+- [Repository layout](#repository-layout)
+- [Quick start](#quick-start)
+- [Dependency List](#dependency-list)
+- [Running tests](#running-tests)
+- [Environment variables](#environment-variables)
+- [Runtime analysis](#run-time-analysis)
+- [Disclaimer](#disclaimer)
 
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+## What it does
+1. Open the web UI.
+2. Upload an X-ray, e.g., use this [exemplar](https://openi.nlm.nih.gov/imgs/512/294/3502/CXR3502_IM-1707-1001.png).
+3. Click **Analyze X-ray**.
+    - A classifier will predict structured findings of the provided image.
+    - Grad-CAM will extract explanation maps for each predicted finding.
+    - An AMD-optimized LLM will generate a structured radiology report.
+5. Review detected findings and the generated report.
+6. Hover over "Cardiomegaly" or "Pleural effusion" to see image overlays.
+7. Ask: "Why did you mention cardiomegaly?"
+    - The LLM will answer your questions based on the image, the findings, the report, and the chat history.
+8. Download the report and chat history.
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+## Architecture
+![](./assets/architecture.png)
 
-> [!IMPORTANT]
-> Team name was an optional field on the Luma registration form. If you did not fill in a team name when you registered, please use your own name instead, so the title of the pull request should be like **"Track x, Your name, your application name"**.
 
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
+## Repository layout
+```
+backend/           FastAPI + PyTorch inference pipeline
+  api/             REST endpoints
+  models/          Classifier, localizer, report generator
+  inference/       Pipeline orchestration
+  kernels/         ROCm/HIP ternary GEMM extension
+  benchmarks/      Performance benchmarking
+  tests/           Smoke tests
+frontend/          React + TypeScript UI
+  components/      Upload, viewer, report, chat, benchmark panels
+  pages/
+  visualization/
+kernels/           Source HIP kernel (ternary_gemm.hip)
+docs/              Diagrams and deep-dive docs
+sample_data/       Example chest X-rays
+```
 
-## Submission Requirements
+## Quick start
+Clone the repository with
+```bash
+git clone https://github.com/Borakleon/Radeon_Hackathon_2026-RibEye.git
+```
+After that, follow the install instructions in [SETUP_AMD.md](SETUP_AMD.md).
+Open http://localhost:3000 and upload a chest X-ray.
+For testing purposes, you may use a [publicly available X-ray](https://openi.nlm.nih.gov/imgs/512/294/3502/CXR3502_IM-1707-1001.png).
 
-### Track 1: Development of Multimodal Content Creation Tools
+## Dependency list
+- [PrismML fork of llama.cpp](https://github.com/PrismML-Eng/llama.cpp)
+- Python and dependencies as specified in [requirements.txt](./backend/requirements.txt)
+- npm and dependencies as specified in the [frontend](./frontend)
+- Models:
+    - [Ternary-Bonsai-27B](https://huggingface.co/prism-ml/Ternary-Bonsai-27B-gguf/blob/main/Ternary-Bonsai-27B-Q2_0.gguf) including [vision encoder](https://huggingface.co/prism-ml/Ternary-Bonsai-27B-gguf/blob/main/Ternary-Bonsai-27B-mmproj-Q8_0.gguf)
+    - [TorchXRayVision](https://huggingface.co/torchxrayvision/densenet121-res224-chex)
 
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
+## Running tests
 
-### Track 2: Development & Local Deployment of Private AI Agents
+```bash
+cd backend
+python tests/test_pipeline.py
+pytest tests/
+```
 
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
+## Environment variables
 
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
+| Variable | Description |
+|----------|-------------|
+| `DEVICE` | `cuda`, `cpu`, or `rocm` (optional forcing some backend) |
+| `CLASSIFIER_MODEL` | HuggingFace model name for the classifier (optional) |
+| `CHAT_OPENAI_BASE_URL` | URL of an external OpenAI-compatible chat server, e.g. PrismML `llama-server` |
+| `CHAT_OPENAI_MODEL` | Model name passed to the external chat server |
 
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+## Run-time analysis
+Both GPUs require only 6.66 GiB of VRAM during LLM inference.
+| GPU                          |VRAM|Price| Backend    | t/s (Prefill) | t/s (Decoding) |  t/s/$ (Prefill) |  t/s/$ (Decoding) |
+| ---------------------------- |-|-----| ---------- | ------------: | -------------: |  --: | --: |
+| Radeon Pro W7900|48 GB|$3,499|ROCm|434|47|0.124|0.013
+| Nvidia A100 (SXM) |80GB|~$15,000*|CUDA|1340|69|0.089|0.004
+
+The llama-bench benchmark produces these results and does not consider visual input. While the A100 achieves higher throughput, the W7900 dominates the cost-normalized throughput, essential for local deployment.
+
+*This GPU was only sold as part of a DGX system. Current prices of used units are still >$10,000
+
+## Disclaimer
+- This is a demonstration and research prototype. It is **not** a diagnostic device.
+
+## Created by
+Team Neural Ninjas
+Track 1: Multimodal AI
