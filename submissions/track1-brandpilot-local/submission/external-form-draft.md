@@ -14,7 +14,7 @@ AMD repository. These values are ready if an official form is later announced.
 | Short description | An AMD Radeon-powered creative studio prototype that converts product images and campaign briefs into reviewable, platform-ready marketing concepts. |
 | Repository | https://github.com/kmt9967/brandpilot-local |
 | Official fork/PR | Add after the official submission PR is created |
-| Demo video | Add after user records/uploads the 3-5 minute demo |
+| Demo video | [Watch the BrandPilot Local demo video](https://youtu.be/LtwSwuWiE4Q) |
 | Project Profile | `submission/BrandPilot-Local-Project-Profile.pdf` |
 | Presentation | `submission/BrandPilot-Local-Presentation.pptx` and PDF export |
 | Live URL | Not required / local-first prototype |

@@ -54,7 +54,7 @@ detailed governing breakdown above.
 
 | Item | Official treatment | Package decision |
 |---|---|---|
-| Demo video | Recommended duration 3-5 minutes; show actual operation and actual AMD Radeon execution performance from command/GUI to result | A complete recording package is provided. Publication/URL remains a user action. |
+| Demo video | Recommended duration 3-5 minutes; show actual operation and actual AMD Radeon execution performance from command/GUI to result | [Watch the published BrandPilot Local demo video](https://youtu.be/LtwSwuWiE4Q). |
 | Supplementary material | Choose one: PPT or poster highlighting creative scenarios and practical value | Editable PPTX plus PDF export are provided. |
 | Live deployment | Not required by any verified source | `Not required / local-first prototype`. No public deployment is claimed. |
 | Poster | Accepted as an alternative to PPT | Not used because a presentation is supplied. |

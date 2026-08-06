@@ -29,7 +29,7 @@
 - [x] Demo script, shot list, checklist, captions, and description are complete.
 - [x] Final PNG screenshots are sanitized and hashes match.
 - [x] Judging map, architecture, claim audit, and team details are linked.
-- [ ] Published demo video URL is added, or the recording package is explicitly identified as pending user recording/upload.
+- [x] Published demo video URL: [Watch the BrandPilot Local demo video](https://youtu.be/LtwSwuWiE4Q).
 
 ## Claim safety
 

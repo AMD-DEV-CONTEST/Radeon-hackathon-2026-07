@@ -9,6 +9,8 @@
 
 **Team:** Talal Khawaja and Aqeela Urooj
 
+**Demo video:** [Watch the BrandPilot Local demo video](https://youtu.be/LtwSwuWiE4Q)
+
 BrandPilot Local gives small brands and creative teams one focused workspace
 for product intake, campaign direction, visual concepts, copy, formats, and
 human review. The polished local product runs in clearly disclosed mock mode by
