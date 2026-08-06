@@ -3,6 +3,8 @@
 A multimodal chest X-ray analysis web application that generates AI-assisted radiology reports and explains *why* by linking every report statement to the corresponding image region.
 The AI assistant answers questions from the patient and clinical personnel to enable an interactive discussion.
 
+The video can be found on the cloud: [video](https://drive.google.com/drive/folders/104asyg6lorXh9ZYDdlxcFEKWtDEdGzt4?usp=sharing)
+
 <img src="./assets/ribeye_logo.png" alt="logo" width="100"/>
 
 ## Table of contents
