@@ -12,7 +12,11 @@ The submitted policy uses a compact 23-value state observation and a 3-value con
 
 ---
 ## Quick Links
-Video: <video src="SafeSort-RL/videos/safesort_final_realistic_sidepanel_showcase.mp4" width="100%" controls></video>
+- Video: [![Watch SafeSort Video](https://img.shields.io/badge/▶_Watch_SafeSort_Video-Google_Drive-red?style=for-the-badge)](https://drive.google.com/file/d/1t_4NVO2rI9aoRlbKYbhrcc7bWDoDwlcF/view?usp=sharing)
+- Technical Paper: https://github.com/juniemariam/Radeon-hackathon-2026-07/blob/main/SafeSort-RL/SafeSort_RL_Track3_Technical_Paper.pdf
+- Code: https://github.com/juniemariam/Radeon-hackathon-2026-07/blob/main/SafeSort-RL/SafeSort_RL_FINAL_PRESENTATION_READY.ipynb
+- Demo Video: https://drive.google.com/file/d/1YI7_R2HivYAB2jz3ugBCwFcV_xA65SOg/view?usp=drive_link
+
 
 
 ---
