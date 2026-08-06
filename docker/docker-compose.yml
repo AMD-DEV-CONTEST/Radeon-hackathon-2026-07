@@ -1,0 +1,39 @@
+# =============================================================================
+# ChromaSort-VLA — YCB Color Sorting on AMD Radeon GPU
+#
+# Usage:
+#   docker compose build
+#   docker compose run --rm robopilot bash          # interactive shell
+#   docker compose run --rm robopilot python color_sort/sk_grasp_demo.py --pick red_cube
+#
+# Requires an AMD GPU exposed on the host: /dev/kfd + /dev/dri.
+# =============================================================================
+services:
+  robopilot:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: robopilot-ycb:latest
+    container_name: robopilot
+    # AMD GPU passthrough (ROCm)
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    # Mounted volume for model weights (avoids re-downloading each run).
+    # Path is relative to this file's directory (docker/).
+    volumes:
+      - ../models:/opt/models
+    environment:
+      # Force offline mode if weights are already mounted in ./models.
+      - HF_HOME=/opt/models
+      - HF_HUB_OFFLINE=${HF_HUB_OFFLINE:-0}
+      - TRANSFORMERS_OFFLINE=${TRANSFORMERS_OFFLINE:-0}
+      - SMOLVLA_BASE=/opt/models/smolvla_base
+      - QWEN3VL_PATH=/opt/models/modelscope/models/Qwen--Qwen3-VL-8B-Instruct/snapshots/master
+      - NVIDIA_VISIBLE_DEVICES=all
+      - PYTHONUNBUFFERED=1
+    # The pipeline is headless (Genesis runs without a display).
+    ipc: host
+    stdin_open: true
+    tty: true
+    working_dir: /opt/robopilot/color_sort
