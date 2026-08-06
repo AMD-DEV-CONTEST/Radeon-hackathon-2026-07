@@ -46,7 +46,7 @@ To achieve the optimal balance of speed, privacy, and massive context reasoning,
 
 | Environment | Inference Engine | Hardware | Model | Endpoint | Context Window | Key Parameters / Optimizations |
 | --- | --- | --- | --- | --- | --- | --- |
-| **Local Private Deployment** | vLLM (ROCm optimized) | AMD Radeon RX 7900 XTX | Qwen2.5-72B-Instruct | `http://localhost:8000/v1` | 256K | `max_model_len=262144`<br>`gpu_memory_utilization=0.95`<br>ROCm PagedAttention & KV Cache |
+| **Local Private Deployment** | vLLM (ROCm optimized) | AMD Radeon RX 7900 XTX | qwen3.6-35b-a3b-q4_k_m | `http://127.0.0.1:8000/v1` | 256K | `enable_thinking=false`<br>`max_model_len=262144`<br>ROCm PagedAttention & KV Cache |
 | **Cloud Service (AMD Token Factory)** | AMD Token Factory API | Cloud / Serverless | Qwen3.6-35B-A3B | `https://developer.amd.com.cn/radeon/api/v1` | 128K | `max_tokens=256`<br>`enable_thinking=false` |
 
 ## Dependencies
