@@ -10,7 +10,7 @@ Multimodal Content Creation Tools).
   [`sparse-view-plant/docs/project-profile.pdf`](sparse-view-plant/docs/project-profile.pdf)
 - **Source code:** [`sparse-view-plant/`](sparse-view-plant/) — README includes
   environment configuration, startup guide, and dependency list
-- **Demo video:** to be added
+- **Demo video:** [`sparse-view-plant/example.mp4`](sparse-view-plant/example.mp4)
 
 ---
 
