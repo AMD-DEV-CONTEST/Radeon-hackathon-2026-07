@@ -283,6 +283,11 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full system architectur
 
 ---
 
+## Demo Video
+
+- Bilibili: https://www.bilibili.com/video/BV1yGuE6JEf5/?vd_source=8eb1add0760aa9059b9428c508bc1393
+- Repository: `Timo_CNC-AI-Brain-v12.0-Fusion/demo_Video/demo_video_20260806.mp4`
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
