@@ -1,0 +1,95 @@
+/* 设计令牌 —— FRONTEND_PLAN.md §4.2
+ * 硬规则：一切尺寸是 --px 的整数倍。不存在 1.5px 边框、不存在 0.5px 位移。 */
+
+:root {
+  --ui-scale: 2;
+  --px: calc(1px * var(--ui-scale));
+  --border: calc(3 * var(--px));
+
+  /* 外围 chrome —— Minecraft 风 */
+  --face: #c6c6c6;
+  --face-hi: #ffffff;
+  --face-lo: #555555;
+  --face-hover: #d4d4d4;
+  --deep: #373737;
+  --deep-hi: #4b4b4b;
+  --deep-lo: #1f1f1f;
+  --stone: #8b8b8b;
+  --outline: #000000;
+
+  --ink: #1a1a1a;
+  --ink-inv: #f4f4f4;
+  --ink-dim: #7f7f7f;
+  --ink-shadow: #3f3f3f;
+
+  --accent: #ffaa00;
+  --danger: #aa0000;
+  --success: #55ff55;
+  --warn: #ffff55;
+  --info: #55aaff;
+
+  /* 画布视口内 —— 保持中性，不许有风格（§4.1） */
+  --canvas-void: #262626;
+  --checker-a: #4a4a4a;
+  --checker-b: #3a3a3a;
+  --checker-light-a: #c8c8c8;
+  --checker-light-b: #b4b4b4;
+  --guide: #ffaa00;
+  --guide-alt: #55aaff;
+  --grid-line: rgba(255, 255, 255, 0.14);
+
+  --font-pixel:
+    'Ark Pixel 12px', 'Fusion Pixel 12px', 'Zpix', 'Unifont',
+    'Microsoft YaHei', 'SimSun', monospace;
+  --fs-base: calc(12px * var(--ui-scale));
+  --fs-small: calc(10px * var(--ui-scale));
+}
+
+/* 中文像素字体 —— §4.4
+ * 字体文件不入库（许可与体积）。把 woff2 放进 renderer/fonts/ 即自动生效；
+ * 缺失时回落到系统字体，界面仍可用但不再是严格像素字形。 */
+@font-face {
+  font-family: 'Ark Pixel 12px';
+  src: url('../fonts/ark-pixel-12px-monospaced-zh_cn.woff2') format('woff2');
+  font-display: block;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-pixel);
+  /* 字号锁死设计尺寸的整数倍，非整数倍会毁字形（§4.4） */
+  font-size: var(--fs-base);
+  line-height: calc(16px * var(--ui-scale));
+  color: var(--ink-inv);
+  background: var(--deep-lo);
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+  text-rendering: optimizeSpeed;
+  user-select: none;
+  cursor: default;
+}
+
+img,
+canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* §4.3 禁用清单：圆角、模糊阴影、渐变、抗锯齿一律不许出现 */
+*,
+*::before,
+*::after {
+  border-radius: 0 !important;
+  text-shadow: none;
+}
