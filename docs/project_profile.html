@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clipster — Project Profile (Track 1)</title>
+<style>
+  :root { --red: #ED1C24; --ink: #16181d; --mut: #5b6472; --bg: #ffffff; --soft: #f5f6f8; }
+  * { box-sizing: border-box; }
+  body { font: 11.5px/1.55 "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: var(--ink); margin: 0; }
+  .page { padding: 42px 48px; }
+  h1 { font-size: 30px; margin: 0 0 4px; letter-spacing: -0.5px; }
+  h1 .accent { color: var(--red); }
+  h2 { font-size: 16px; margin: 26px 0 8px; border-left: 4px solid var(--red); padding-left: 10px; }
+  h3 { font-size: 12.5px; margin: 14px 0 4px; }
+  p, li { margin: 4px 0; }
+  .meta { color: var(--mut); font-size: 11px; }
+  .cover { border-bottom: 3px solid var(--red); padding-bottom: 18px; margin-bottom: 8px; }
+  .tagline { font-size: 14px; color: var(--mut); margin: 6px 0 10px; }
+  .chips { margin-top: 10px; }
+  .chip { display: inline-block; background: var(--soft); border: 1px solid #e2e5ea; border-radius: 999px; padding: 3px 10px; margin: 0 6px 6px 0; font-size: 10.5px; }
+  .chip b { color: var(--red); }
+  table { border-collapse: collapse; width: 100%; font-size: 10.8px; margin: 8px 0; }
+  th, td { border: 1px solid #dfe3e8; padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: var(--soft); }
+  .flow { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
+  .flow div { background: var(--soft); border: 1px solid #e2e5ea; border-radius: 8px; padding: 6px 10px; font-size: 10.5px; flex: 1; min-width: 120px; }
+  .flow div b { display: block; color: var(--red); font-size: 11px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+  .grid figure { margin: 0; border: 1px solid #e2e5ea; border-radius: 8px; overflow: hidden; }
+  .grid img { width: 100%; display: block; }
+  .grid figcaption { font-size: 9.8px; color: var(--mut); padding: 5px 8px; background: var(--soft); }
+  .stat { display: inline-block; margin: 0 18px 6px 0; }
+  .stat b { font-size: 20px; color: var(--red); display: block; }
+  .stat span { font-size: 10px; color: var(--mut); }
+  ul { padding-left: 18px; }
+  .break { page-break-before: always; }
+  a { color: var(--red); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="cover">
+    <h1>Clipster <span class="accent">//</span> Autonomous Local Video Clipper</h1>
+    <div class="tagline">A no-human-in-the-loop media producer: finds the viral moments in multi-hour shows, cuts them with surgical audio precision, reframes to 9:16 with a vision model, and ships captions — 100% local on AMD Radeon.</div>
+    <div class="meta">
+      <b>Clipster // Water Pistol // Devin J. Dawson</b> · AMD DevMaster Hackathon — August 2026 ·
+      unclemusclez@gmail.com<br>
+      Track 1: Development of Multimodal Content Creation Tools ·
+      Source: <a href="https://github.com/unclemusclez/clipster">github.com/unclemusclez/clipster</a> ·
+      Demo: <a href="https://youtu.be/gNeKqlnaCi8">youtu.be/gNeKqlnaCi8</a>
+    </div>
+    <div class="chips">
+      <span class="chip"><b>0</b> cloud APIs</span>
+      <span class="chip"><b>1</b> AMD GPU does everything</span>
+      <span class="chip"><b>89</b> clips produced in demo run</span>
+      <span class="chip"><b>60–120s</b> enforced clip targets</span>
+      <span class="chip"><b>AV1/HEVC</b> hardware encoding</span>
+    </div>
+  </div>
+
+  <h2>1 · Project background</h2>
+  <p>Podcasts and long-form shows publish multi-hour episodes daily. Buried in each are three or four viral-ready nuggets — but extracting them is brutal manual work: scrubbing timelines with headphones, listening for clean pause points so words aren't sliced, cropping 16:9 to 9:16, burning subtitles, writing platform captions. By the time a human editor ships a clip, the internet's attention has moved on.</p>
+  <p>Clipster replaces that entire desk job with an autonomous local pipeline: it continuously watches target feeds, detects audience-validated moments, scores them with a local LLM, cuts at true silence troughs, reframes vertically with VLM-driven active-speaker tracking, renders word-synced karaoke subtitles on AMD hardware encoders, and dispatches a complete distribution package (video + captions + hashtags + virality score) via webhook or LinkedIn — with zero cloud cost and zero data leaving the machine.</p>
+
+  <h2>2 · Target users &amp; application scenarios</h2>
+  <ul>
+    <li><b>Content editors &amp; media desks</b> running high-volume show channels (All-In Podcast, Dwarkesh Patel, TBPN-style formats): continuous feed watching, instant clip packaging for TikTok/Shorts/Reels/LinkedIn.</li>
+    <li><b>Creator-owned operations</b> who want a 24/7 producer without SaaS subscriptions or per-minute cloud fees.</li>
+    <li><b>Privacy-sensitive publishers</b>: everything — transcripts, scoring, vision analysis, rendering — stays on local hardware.</li>
+  </ul>
+  <p>Scenarios demonstrated: YouTube + Rumble VOD and live-replay ingestion, live-chat velocity spike detection, comment timestamp clustering, verbal "clip it" trigger windows, multi-panel podcast reframing, and screen-share/slide layouts.</p>
+
+  <h2>3 · System architecture</h2>
+  <p>Single local process: FastAPI API + feed monitor + durable job queue (SQLite/PostgreSQL) + orchestrator state machine, with a serialized GPU worker pool (semaphore = 1) and a CPU render pool. Jobs survive restarts and resume from persisted state.</p>
+  <div class="flow">
+    <div><b>Ingest</b>URL resolve; metadata + word-level transcripts without full download</div>
+    <div><b>Signals</b>chat MPM z-spikes, comment clusters, "clip it" triggers, topic-shift valleys</div>
+    <div><b>LLM scoring</b>hook strength, self-containment, 60–120s enforcement</div>
+    <div><b>Boundary snap</b>silence-trough detection, 150ms padding</div>
+    <div><b>Smart reframe</b>VLM active-speaker crop, scene-cut + speaker-turn keyframes</div>
+    <div><b>Render &amp; ship</b>karaoke ASS subs, AMF/VAAPI encode, captions + webhook/LinkedIn</div>
+  </div>
+  <p class="meta">Web dashboard (Next.js) exposes ingest, per-video pipeline state, a clips review queue, a gallery of every render, channel monitoring and the job queue. See screenshots in §6.</p>
+  <img src="diagrams/pipeline_flow.svg" style="width:100%; margin-top:8px;">
+  <img src="diagrams/engagement_chart.svg" style="width:100%; margin-top:6px;">
+
+  <h2>4 · Model &amp; algorithm introduction</h2>
+  <p>Clipster never trains or manages weights — it consumes local OpenAI-compatible services (llama.cpp / whisper.cpp), so any ROCm-capable model stack can be swapped in via environment variables:</p>
+  <table>
+    <tr><th>Role</th><th>Model</th><th>Serving</th><th>Algorithm</th></tr>
+    <tr><td>Scoring / captions / boundary refinement</td><td>Gemma 4 12B-it (UD-Q4_K_XL, MTP draft)</td><td>llama-server, ROCm/HIP</td><td>virality rubric over timestamped transcript; constrained 60–120s windows</td></tr>
+    <tr><td>Vision (smart 9:16 crop)</td><td>Gemma 4 mmproj (BF16)</td><td>same llama-server</td><td>two-stage keyframe sampling (FFmpeg scene cuts + whisper speaker turns) → 5-anchor active-speaker grid, EMA-smoothed tracking</td></tr>
+    <tr><td>Embeddings</td><td>harrier-oss-v1-0.6B</td><td>llama-server --embeddings</td><td>chunk embeddings; TextTiling-style cosine valleys seed topic-shift candidates</td></tr>
+    <tr><td>ASR</td><td>whisper large-v3-turbo</td><td>whisper-server / whisper-cli, HIP</td><td>word-level timestamps, speaker turns; silence-trough boundary snapping (&lt; −40 dBFS, 150 ms pad)</td></tr>
+  </table>
+  <p>Engagement algorithms: live-chat velocity (60s window / 15s step, median baseline, z ≥ 2 spikes), comment timestamp clustering (±5s, cluster ≥ 3), and verbal trigger lookback windows.</p>
+
+  <h2 class="break">5 · Adaptation for AMD Radeon GPU / ROCm</h2>
+  <ul>
+    <li><b>Hardware video encoding:</b> Windows builds auto-probe AMD AMF encoders (<code>av1_amf → hevc_amf → h264_amf</code>); Linux builds auto-probe VAAPI (<code>av1_vaapi → hevc_vaapi → h264_vaapi</code>) with <code>hwupload</code> filter-graph wiring — libx264 only as last resort. Quality maps to AMF presets / VAAPI CQP.</li>
+    <li><b>All inference on ROCm:</b> chat, vision, embeddings and ASR run on the Radeon GPU through HIP-compiled llama.cpp (<code>-DGGML_HIP=1 -DAMDGPU_TARGETS=gfx1100</code>) and whisper.cpp — validated on a Radeon RX 7900 XTX (RDNA3, 48 GB demo instance).</li>
+    <li><b>Single-GPU design:</b> GPU pool serialized (semaphore = 1) so decode/encode/inference share one card without OOM; CPU pool handles I/O-bound stages.</li>
+    <li><b>Zero cloud:</b> no model weights are downloaded or managed by Clipster; the deployer's ROCm servers are consumed as OpenAI-compatible endpoints — the entire product runs air-gapped.</li>
+  </ul>
+  <div class="chips">
+    <span class="chip">ROCm 7.2 base image</span>
+    <span class="chip">gfx1100 / RDNA3</span>
+    <span class="chip">AV1 encode on GPU</span>
+    <span class="chip">BF16 mmproj vision</span>
+    <span class="chip">MTP speculative decoding</span>
+  </div>
+
+  <h2>6 · Product screenshots (demo run: 11 videos → 89 clips)</h2>
+  <div class="grid">
+    <figure><img src="screenshots/ingest.png"><figcaption>Ingest — YouTube/Rumble URL in; transcripts + signals fetched without downloading the video.</figcaption></figure>
+    <figure><img src="screenshots/overview.png"><figcaption>Overview — system health (DB, ffmpeg, inference, ASR), 11 videos, 89 clips.</figcaption></figure>
+    <figure><img src="screenshots/videos.png"><figcaption>Videos — hours-long episodes moving through the state machine.</figcaption></figure>
+    <figure><img src="screenshots/clips-queue.png"><figcaption>Review queue — LLM-scored candidate ranges with render/dispatch/publish state.</figcaption></figure>
+    <figure><img src="screenshots/jobs.png"><figcaption>Jobs — durable queue with retries; export stages succeeded.</figcaption></figure>
+    <figure><img src="screenshots/channels.png"><figcaption>Channels — autonomous feed monitoring for hands-off operation.</figcaption></figure>
+    <figure><img src="screenshots/gallery.png"><figcaption>Gallery — 89 rendered clips with burned karaoke subtitles.</figcaption></figure>
+    <figure><img src="screenshots/clip-detail.png"><figcaption>Clip detail — smart 9:16 VLM crop (608×1080), captions + hashtags, ready export.</figcaption></figure>
+  </div>
+
+  <p class="meta">Reproduction: <code>git clone --recurse-submodules</code> the submission repo → <code>bash bootstrap.sh</code> → <code>bash Clipster/scripts/services.sh start</code>. Full spec in <code>Clipster/requirements.md</code> and <code>Clipster/design.md</code>.</p>
+</div>
+</body>
+</html>
