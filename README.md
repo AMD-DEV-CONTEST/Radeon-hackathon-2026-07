@@ -25,26 +25,24 @@
 最终 V9 在一个连续仿真回合内完成了整圈巡视和四个物体的稳定投放。V8、V9
 连续两次完整成功。
 
-
-
 ## 最终演示与提交文件
 
 ### 主视频
 
 | 视频 | 内容 | 时长 |
 |---|---|---:|
-| [V9 完整全房间视频](final_submission/videos/v9_full_whole_room.mp4) | 原始连续回合；固定房间角落相机；无剪切 | 11:33.30 |
-| [V9 方法展示版](final_submission/videos/v9_method_whole_room_4x.mp4) | 仅保留全房间视角，4× 加速并标注各方法阶段 | 02:53.35 |
+| [V9 完整全房间视频](mujoco-cleanup-robot/final_submission/videos/v9_full_whole_room.mp4) | 原始连续回合；固定房间角落相机；无剪切 | 11:33.30 |
+| [V9 方法展示版](mujoco-cleanup-robot/final_submission/videos/v9_method_whole_room_4x.mp4) | 仅保留全房间视角，4× 加速并标注各方法阶段 | 02:53.35 |
 
 ### 从 V9 按控制帧精确截取的阶段视频
 
 | 片段 | 内容 | 时长 |
 |---|---|---:|
-| [完整巡视路线](final_submission/videos/clips/01_learned_room_route.mp4) | Route MLP 完成整圈房间巡视 | 01:13.45 |
-| [易拉罐识别与夹取](final_submission/videos/clips/02_can_detect_stop_pick.mp4) | 识别、停靠、夹取、搬运、投放 | 01:28.65 |
-| [瓶子识别与夹取](final_submission/videos/clips/03_bottle_detect_stop_pick.mp4) | 识别、停靠、夹取、搬运、投放 | 01:32.65 |
-| [杯子识别与夹取](final_submission/videos/clips/04_cup_detect_stop_pick.mp4) | 识别、停靠、夹取、搬运、投放 | 01:45.60 |
-| [香蕉识别与夹取](final_submission/videos/clips/05_banana_detect_stop_pick.mp4) | 识别、停靠、夹取、搬运、投放 | 01:53.05 |
+| [完整巡视路线](mujoco-cleanup-robot/final_submission/videos/clips/01_learned_room_route.mp4) | Route MLP 完成整圈房间巡视 | 01:13.45 |
+| [易拉罐识别与夹取](mujoco-cleanup-robot/final_submission/videos/clips/02_can_detect_stop_pick.mp4) | 识别、停靠、夹取、搬运、投放 | 01:28.65 |
+| [瓶子识别与夹取](mujoco-cleanup-robot/final_submission/videos/clips/03_bottle_detect_stop_pick.mp4) | 识别、停靠、夹取、搬运、投放 | 01:32.65 |
+| [杯子识别与夹取](mujoco-cleanup-robot/final_submission/videos/clips/04_cup_detect_stop_pick.mp4) | 识别、停靠、夹取、搬运、投放 | 01:45.60 |
+| [香蕉识别与夹取](mujoco-cleanup-robot/final_submission/videos/clips/05_banana_detect_stop_pick.mp4) | 识别、停靠、夹取、搬运、投放 | 01:53.05 |
 
 所有片段都来自同一个 V9 成功回合。物体片段从视觉确认前开始，保留最终停靠、
 完整机械臂动作和稳定投放，并在画面上标出 `APPROACH / YOLO11 CONFIRMED /
@@ -52,8 +50,8 @@ PICK / CARRY / DEPOSIT / VERIFIED` 阶段。
 
 最终上传目录：
 
-- [`final_submission/`](final_submission/)
-- [`final_submission/README.md`](final_submission/README.md)
+- [`mujoco-cleanup-robot/final_submission/`](mujoco-cleanup-robot/final_submission/)
+- [`mujoco-cleanup-robot/final_submission/README.md`](mujoco-cleanup-robot/final_submission/README.md)
 - `tidybot_final_submission_v9.tar.gz`
 - 压缩包 SHA256：
   `02938e034903e62493371cee179406300f9228fd405d61aa69dfb8ed273f5563`
@@ -86,10 +84,10 @@ flowchart LR
 
 | 模块 | 输入 | 输出 | 最终工件 |
 |---|---|---|---|
-| YOLO11 检测器 | 工作区 RGB-D | 四类目标框、类别和置信度 | `final_submission/models/detector/best.pt` |
-| 整圈 Route MLP | 相对里程计、固定路线、路线进度 | 底盘 `vx / vy / wz` | `final_submission/models/lap_route/policy.pt` |
-| 四个对象路线 MLP | 相对里程计、对象停靠路线、路线进度 | 底盘 `vx / vy / wz` | `final_submission/models/object_routes/` |
-| 四个 Arm MLP | 机械臂编码器、对象/阶段 one-hot、阶段与回合进度 | 8 维执行器增量 | `final_submission/models/arm/` |
+| YOLO11 检测器 | 工作区 RGB-D | 四类目标框、类别和置信度 | `mujoco-cleanup-robot/final_submission/models/detector/best.pt` |
+| 整圈 Route MLP | 相对里程计、固定路线、路线进度 | 底盘 `vx / vy / wz` | `mujoco-cleanup-robot/final_submission/models/lap_route/policy.pt` |
+| 四个对象路线 MLP | 相对里程计、对象停靠路线、路线进度 | 底盘 `vx / vy / wz` | `mujoco-cleanup-robot/final_submission/models/object_routes/` |
+| 四个 Arm MLP | 机械臂编码器、对象/阶段 one-hot、阶段与回合进度 | 8 维执行器增量 | `mujoco-cleanup-robot/final_submission/models/arm/` |
 
 对象专用路线策略用于解决稀有停靠段在统一路线模型中权重不足的问题。杯子采用与
 示教目标相对位姿等价的西向停靠点，避免刚性拖车转向时扫碰沙发。
@@ -323,7 +321,7 @@ PYTHONPATH=src MUJOCO_GL=egl .venv/bin/python \
 ## 最终目录结构
 
 ```text
-final_submission/                              # 可直接上传的最终交付目录
+mujoco-cleanup-robot/final_submission/                              # 可直接上传的最终交付目录
 ├── README.md                                  # 交付包内容、指标与视频索引
 ├── MANIFEST.json                              # 交付文件大小及 SHA256 清单
 ├── tidybot_full_learned_v1.json               # 最终模型路径、版本和哈希锁
