@@ -14,10 +14,10 @@ This project is designed to run on AMD Radeon / ROCm environments while keeping 
 
 A final competition recording is bundled in the submission package, and mirrored into the canonical repository so links work from both locations:
 
-- Local demo artifact: [data/demo/demo.mp4](data/demo/demo.mp4)
-- Submission package copy: `submissions/track1-video-voice-translator/demo.mp4`
-- Demo guide (submission package): [`submissions/track1-video-voice-translator/DEMO_VIDEO.md`](submissions/track1-video-voice-translator/DEMO_VIDEO.md)
-- Summary: 1920x1080 MP4, ~4:02, ~16.4 MB, covers upload → pipeline progress → history replay → dubbed playback.
+- Canonical demo artifact (source repo): [data/demo/demo.mp4](data/demo/demo.mp4)
+- Submission package copy (PR-local): `submissions/track1-video-voice-translator/demo.mp4`
+- Specs: 1920x1080 MP4, ~242 seconds (~4:02), ~16.4 MB, ~568 kbps average
+- Covers: upload flow → live pipeline progress → history task reopen → original vs dubbed playback → bilingual segment editing.
 
 Recommended review path: open the demo video first, then follow the reproduction steps in this document.
 
@@ -141,14 +141,15 @@ Additional examples are available in [docs/USAGE.md](docs/USAGE.md).
 
 ## Submission Package
 
-All contest-oriented materials are grouped under [submission/](submission/README.md):
+All contest-oriented materials are grouped under the submission folder:
 
-- Submission index: [submission/README.md](submission/README.md)
+- Submission index: `submissions/track1-video-voice-translator/README.md` in the fork PR
 - Submission note: [submission/SUBMISSION_NOTE.md](submission/SUBMISSION_NOTE.md)
 - Project profile source: [submission/PROJECT_PROFILE.md](submission/PROJECT_PROFILE.md)
 - Project profile PDF: [submission/track1-project-profile.pdf](submission/track1-project-profile.pdf)
 - Poster: [submission/track1-poster.svg](submission/track1-poster.svg)
-- Demo video guide: [submission/DEMO_VIDEO.md](submission/DEMO_VIDEO.md)
+- Demo video (PR-local): `submissions/track1-video-voice-translator/demo.mp4`
+- Demo video (canonical mirror): [data/demo/demo.mp4](data/demo/demo.mp4)
 
 ## Repository Guide
 

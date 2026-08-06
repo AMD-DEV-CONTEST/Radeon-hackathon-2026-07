@@ -28,7 +28,7 @@ The repository is prepared to include the following materials:
 3. **Demo Video**
    - Bundled artifact (PR-local): `submissions/track1-video-voice-translator/demo.mp4`
    - Canonical repository mirror: <https://github.com/icuic/video-voice-translator/blob/amd-track1-video-voice-translator/data/demo/demo.mp4>
-   - Guide: `submissions/track1-video-voice-translator/DEMO_VIDEO.md`
+   - Specs: 1920x1080 MP4, ~242 seconds (~4:02), ~16.4 MB, ~568 kbps average
 
 4. **Supplementary Material**
    - Poster artifact: `submissions/track1-video-voice-translator/track1-poster.svg`

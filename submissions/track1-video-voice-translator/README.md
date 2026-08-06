@@ -27,8 +27,9 @@ This folder groups the main English submission materials for the 2026 AMD AI Dev
    - Poster: [track1-poster.svg](track1-poster.svg)
 
 5. **Demo Video**
-   - Guide: [DEMO_VIDEO.md](DEMO_VIDEO.md)
-   - Bundled video artifact: [demo.mp4](demo.mp4) (1920x1080, ~4:02, ~16.4 MB)
+   - Bundled artifact (play locally in the PR): [demo.mp4](demo.mp4)
+   - Canonical mirror in source repo: <https://github.com/icuic/video-voice-translator/blob/amd-track1-video-voice-translator/data/demo/demo.mp4>
+   - Specs: 1920x1080 MP4, ~242 seconds (~4:02), ~16.4 MB, ~568 kbps average
 
 ## Suggested Review Order
 
