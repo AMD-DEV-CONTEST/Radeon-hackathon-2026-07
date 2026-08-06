@@ -65,6 +65,6 @@ To achieve the optimal balance of speed, privacy, and massive context reasoning,
 The video demonstrates the KlintCode Private Agent autonomously generating the 80-object moving company system in a local AMD Radeon environment, highlighting the fluid interaction, reasoning process, and functional completeness.
 
 ## Presentation / Poster (PPT)
-[Link to PPT/Poster (PDF) - To be updated]
+[KlintCode Private Agent - Presentation (PDF)](./KlintCode-Private-Agent-Presentation.pdf)
 
 The presentation highlights the practical value of the tool, business scenarios, the underlying agent architecture, and the optimizations used for running locally on AMD ROCm.
