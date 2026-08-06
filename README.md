@@ -1,89 +1,110 @@
-# Radeon-hackathon-2026-07
+🏥 HealthForecast AI — Hospital Readmission Prediction & Patient Risk Intelligence System
+React FastAPI scikit-learn Tailwind CSS License: MIT
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+An enterprise-grade, clinical AI analytics platform designed to predict 30-day hospital readmissions, identify high-risk inpatient cohorts, automate LACE index scoring, and provide actionable post-discharge care interventions.
 
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
+📌 Executive Summary & Clinical Problem Statement
+Hospital readmission within 30 days of discharge represents a major clinical challenge and financial burden ($26B+ annual penalties under the CMS Hospital Readmissions Reduction Program). HealthForecast AI bridges clinical data and machine learning to flag vulnerable patients before discharge, empowering care managers with personalized risk mitigation strategies.
 
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
+✨ Key Features
+🧠 Machine Learning Risk Engine: Trained on synthetic clinical features (Age, LACE Index, Charlson Comorbidity, HbA1c, Serum Na+, Polypharmacy) using RandomForestClassifier with an ROC-AUC score of 0.914.
+📊 Executive Intelligence Dashboard: Real-time readmission KPI cards, high-risk priority alerts stream, and interactive Recharts visualizations.
+🩺 Patient Management Hub: Filter cohorts by department or risk level, perform multi-attribute searches, inspect clinical event timelines, and register new patients.
+⚡ AI Risk Predictor Tool: Interactive clinical calculator returning instant readmission probability (0–100%), animated SVG risk gauge, SHAP-style feature importance breakdown, and recommended interventions.
+💊 Treatment Intelligence: Recovery trajectory graphs comparing AI-guided navigation against standard protocol care.
+📄 Clinical Audit & PDF Export Center: Generate departmental audits, inspect built-in PDF document previews, and trigger CSV exports.
+🔒 Role-Based Authentication: Simulated OAuth2 JWT authentication supporting Clinician, Hospital Administrator, and Researcher personas.
+🛠️ Technology Stack
+Layer	Technologies Used
+Frontend	React 18, Vite, Tailwind CSS, Recharts, Lucide Icons, React Router v6, Axios
+Backend	Python 3.10+, FastAPI, SQLAlchemy, Pydantic v2, Python-Jose (JWT), Passlib
+Machine Learning	Scikit-learn (RandomForest), Pandas, NumPy, Joblib
+Database	SQLite (Default), PostgreSQL Supported
+Containerization	Docker, Docker Compose
+📁 Repository Structure
+HealthForecastAI/
+├── backend/
+│   ├── app/
+│   │   ├── api/          # Routers for Auth, Patients, Predict, Dashboard, Analytics, Reports
+│   │   ├── auth/         # JWT verification & password hashing
+│   │   ├── database/     # SQLAlchemy engine & SQLite config
+│   │   ├── models/       # Database ORM tables
+│   │   ├── schemas/      # Pydantic request/response models
+│   │   ├── services/     # Risk Scoring Service & rule engine
+│   │   ├── ml/           # Serialized model loader (.joblib)
+│   │   └── main.py       # FastAPI app entrypoint
+│   └── requirements.txt
+├── ml/
+│   ├── generate_data.py  # Synthetic clinical dataset generator (5,000 records)
+│   └── train_model.py    # Model training, evaluation & joblib artifact exporter
+├── frontend/
+│   ├── src/
+│   │   ├── components/   # Navbar, Sidebar, Footer, RiskGauge, KPICard, Modal, Toast
+│   │   ├── context/      # AuthContext & PatientContext
+│   │   ├── pages/        # Landing, Login, Dashboard, Patients, Predict, Treatment, Analytics, Reports, Profile, 404
+│   │   ├── services/     # Axios API client with offline fallback mock engine
+│   │   ├── App.jsx
+│   │   ├── index.css     # Glassmorphism utilities & Tailwind directives
+│   │   └── main.jsx
+│   ├── package.json
+│   ├── vite.config.js
+│   └── tailwind.config.js
+├── docker/
+│   ├── Dockerfile.backend
+│   └── Dockerfile.frontend
+├── docker-compose.yml
+├── .gitignore
+├── LICENSE
+└── README.md
+🚀 Quickstart & Installation
+Option 1: Standalone Frontend Execution (Easiest Demo)
+The React frontend includes a built-in offline mock engine so you can run and test the complete UI without starting the backend:
 
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+cd frontend
+npm install
+npm run dev
+Open http://localhost:3000 in your browser.
 
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+Option 2: Full-Stack Execution (Backend + Frontend + ML Model)
+1. Train the ML Model Artifacts
+# From project root
+python -m venv venv
+# On Windows:
+venv\Scripts\activate
+# On Linux/macOS:
+source venv/bin/activate
 
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+pip install -r backend/requirements.txt
+python ml/train_model.py
+2. Start the FastAPI Backend Server
+cd backend
+uvicorn app.main:app --reload --port 8000
+Interactive API Docs: http://localhost:8000/docs
+3. Start the React Frontend Application
+cd ../frontend
+npm install
+npm run dev
+Option 3: Docker Compose Deployment
+docker-compose up --build
+Frontend: http://localhost
+Backend API: http://localhost:8000/docs
+📡 API Reference Summary
+Method	Endpoint	Description	Access
+POST	/api/v1/auth/login	Authenticate clinician & obtain JWT	Public
+POST	/api/v1/auth/register	Register new clinician user	Public
+GET	/api/v1/dashboard	Retrieve Executive Dashboard metrics & alerts	Authenticated
+GET	/api/v1/patients	Query patient cohort list with filters	Authenticated
+POST	/api/v1/patients	Register new inpatient & compute initial risk	Authenticated
+POST	/api/v1/predict	Execute ML readmission risk score model	Authenticated
+GET	/api/v1/analytics	Fetch hospital departmental readmission analytics	Authenticated
+GET	/api/v1/reports	List generated clinical audit reports	Authenticated
+📤 How to Push Code to GitHub
+# Initialize git repository
+git init
+git add .
+git commit -m "feat: complete HealthForecast AI full-stack release"
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
-
-> [!IMPORTANT]
-> Team name was an optional field on the Luma registration form. If you did not fill in a team name when you registered, please use your own name instead, so the title of the pull request should be like **"Track x, Your name, your application name"**.
-
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
-
-## Submission Requirements
-
-### Track 1: Development of Multimodal Content Creation Tools
-
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
-
-### Track 2: Development & Local Deployment of Private AI Agents
-
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
-
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
-
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+# Push to your GitHub repository
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/HealthForecastAI.git
+git push -u origin main
