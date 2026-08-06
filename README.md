@@ -4,6 +4,14 @@
 
 This project contains a local-first voice diary for the AMD AI Hackathon. Contact [ziangzhang1997@gmail.com](mailto:ziangzhang1997@gmail.com) for questions.
 
+DEMO: 
+
+<video controls width="100%">
+  <source src="https://github.com/user-attachments/assets/16eb0080-623d-427b-bc43-8f327751624e" type="video/mp4">
+  您的浏览器不支持视频标签。
+</video>
+
+
 Most part of services runs on AMD's powerful W7900 pro GPU with ROCm 7.2.1. 
 
 | Services | (V)RAM | host |
