@@ -1,0 +1,46 @@
+# RepositoryAnalysisAgent dependencies
+# Docker image: vllm-dev:rocm7.2.1_navi_ubuntu22.04_py3.10_pytorch_2.9_vllm_0.16.0
+# PyTorch 2.9 + vLLM 0.16.0 + ROCm 7.2.1 are PRE-INSTALLED in the image.
+
+# Web framework
+fastapi>=0.111
+uvicorn[standard]>=0.30
+pydantic>=2.7
+pydantic-settings>=2.3
+pyyaml>=6.0
+httpx>=0.27
+
+# Indexing / RAG
+tree-sitter>=0.22
+tree-sitter-python>=0.22
+chromadb>=0.5.0
+
+# Embedding + Reranker
+sentence-transformers>=3.0
+FlagEmbedding>=1.2
+
+# Utilities
+rich>=13.7
+
+# ──────────────────────────────────────────────────────────────────────
+# 非预装环境 (如果不在 Docker 镜像内，需手动安装以下内容)
+# ──────────────────────────────────────────────────────────────────────
+#
+# 1. PyTorch (ROCm build):
+#    pip install torch --index-url https://download.pytorch.org/whl/rocm7.2.1
+#
+# 2. vLLM (ROCm build):
+#    pip install vllm==0.16.0 --extra-index-url https://download.pytorch.org/whl/rocm7.2.1
+#    或从源码编译:
+#    git clone https://github.com/vllm-project/vllm
+#    cd vllm && pip install -e . --rocm-version=7.2.1
+#
+# 3. ROCm 7.2.1 运行时 (驱动 + HIP + MIOpen):
+#    参考 https://rocm.docs.amd.com/projects/install-on-linux/en/latest/
+#    rocminfo 应显示 gfx1100
+#
+# 4. 环境变量 (gfx1100 稳定性):
+#    export PYTORCH_ROCM_ARCH=gfx1100
+#    export HSA_ENABLE_SDMA=0
+#    export AMD_SERIALIZE_KERNEL=3
+#    export AMD_SERIALIZE_COPY=3

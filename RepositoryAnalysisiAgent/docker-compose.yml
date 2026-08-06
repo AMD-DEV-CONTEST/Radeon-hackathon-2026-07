@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+ .raa:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image:.raa:latest
+    container_name:.raa
+    network_mode: host
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    ipc: host
+    volumes:
+      # Mount models (avoid baking 32GB into image)
+      - /path/to/models:/models
+      # Mount workspace (repos to analyze)
+      - /path/to/workspace:/workspace
+      # Persist index + sessions
+      - ./.raa:/app/.raa
+    environment:
+      - MODEL_DIR=/models
+      - REPO_PATH=/workspace/RepoAMD
+    command: all
