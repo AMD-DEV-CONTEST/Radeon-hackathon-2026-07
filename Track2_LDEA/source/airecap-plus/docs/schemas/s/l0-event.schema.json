@@ -1,0 +1,449 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://airecap.local/schemas/s/l0-event.schema.json",
+  "title": "L0 Event (S-tier)",
+  "description": "Append-only raw evidence. No interpretation fields. Discriminated by kind → payload.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "ts", "session_id", "actor", "kind", "payload", "signal"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "s/1.0",
+      "description": "Envelope version for this JSON shape"
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/Id"
+    },
+    "ts": {
+      "$ref": "common.schema.json#/$defs/DateTime"
+    },
+    "session_id": {
+      "$ref": "common.schema.json#/$defs/Id"
+    },
+    "actor": {
+      "$ref": "common.schema.json#/$defs/Actor"
+    },
+    "kind": {
+      "$ref": "common.schema.json#/$defs/EventKind"
+    },
+    "signal": {
+      "$ref": "common.schema.json#/$defs/Signal"
+    },
+    "refs": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/Ref" },
+      "default": []
+    },
+    "payload": {
+      "type": "object",
+      "description": "Kind-specific body. Validated via oneOf below."
+    },
+    "agent_id": {
+      "type": "string",
+      "description": "Reserved for multi-agent (Q8 deferred). S-tier ignores in binding."
+    }
+  },
+  "oneOf": [
+    {
+      "title": "goal_set",
+      "properties": {
+        "kind": { "const": "goal_set" },
+        "signal": { "const": "high" },
+        "payload": { "$ref": "#/$defs/GoalSetPayload" }
+      }
+    },
+    {
+      "title": "claim_made",
+      "properties": {
+        "kind": { "const": "claim_made" },
+        "signal": { "const": "high" },
+        "payload": { "$ref": "#/$defs/ClaimMadePayload" }
+      }
+    },
+    {
+      "title": "file_change",
+      "properties": {
+        "kind": { "const": "file_change" },
+        "signal": { "const": "high" },
+        "payload": { "$ref": "#/$defs/FileChangePayload" }
+      }
+    },
+    {
+      "title": "command_result",
+      "properties": {
+        "kind": { "const": "command_result" },
+        "payload": { "$ref": "#/$defs/CommandResultPayload" }
+      }
+    },
+    {
+      "title": "test_result",
+      "properties": {
+        "kind": { "const": "test_result" },
+        "signal": { "const": "high" },
+        "payload": { "$ref": "#/$defs/TestResultPayload" }
+      }
+    },
+    {
+      "title": "decision_made",
+      "properties": {
+        "kind": { "const": "decision_made" },
+        "signal": { "const": "high" },
+        "payload": { "$ref": "#/$defs/DecisionMadePayload" }
+      }
+    },
+    {
+      "title": "verification_result",
+      "properties": {
+        "kind": { "const": "verification_result" },
+        "signal": { "const": "high" },
+        "payload": { "$ref": "#/$defs/VerificationResultPayload" }
+      }
+    },
+    {
+      "title": "blocker_found",
+      "properties": {
+        "kind": { "const": "blocker_found" },
+        "signal": { "const": "high" },
+        "payload": { "$ref": "#/$defs/BlockerFoundPayload" }
+      }
+    },
+    {
+      "title": "outcome_upsert",
+      "properties": {
+        "kind": { "const": "outcome_upsert" },
+        "actor": { "const": "system" },
+        "signal": { "const": "high" },
+        "payload": { "$ref": "#/$defs/OutcomeUpsertPayload" }
+      }
+    },
+    {
+      "title": "session_end",
+      "properties": {
+        "kind": { "const": "session_end" },
+        "actor": { "enum": ["system", "user"] },
+        "signal": { "const": "high" },
+        "payload": { "$ref": "#/$defs/SessionEndPayload" }
+      }
+    }
+  ],
+  "$defs": {
+    "GoalSetPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["statement"],
+      "properties": {
+        "goal_id": {
+          "$ref": "common.schema.json#/$defs/Id",
+          "description": "If omitted, aggregator allocates"
+        },
+        "statement": { "type": "string", "minLength": 1, "maxLength": 4000 },
+        "success_criteria": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "default": []
+        },
+        "non_goals": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "stable_key": { "$ref": "common.schema.json#/$defs/StableKey" },
+        "supersedes_goal_id": { "$ref": "common.schema.json#/$defs/Id" }
+      }
+    },
+    "ClaimMadePayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "claim_kind"],
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8000,
+          "description": "Verbatim or lightly trimmed claim utterance"
+        },
+        "claim_kind": {
+          "type": "string",
+          "enum": [
+            "completed",
+            "fixed",
+            "implemented",
+            "works_now",
+            "progress",
+            "other"
+          ]
+        },
+        "outcome_id": {
+          "$ref": "common.schema.json#/$defs/Id",
+          "description": "Structured bind if known"
+        },
+        "goal_id": { "$ref": "common.schema.json#/$defs/Id" },
+        "type_hint": { "$ref": "common.schema.json#/$defs/OutcomeType" },
+        "title_hint": { "type": "string", "maxLength": 200 },
+        "scope_hint": { "$ref": "common.schema.json#/$defs/Scope" }
+      }
+    },
+    "FileChangePayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["paths"],
+      "properties": {
+        "paths": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "common.schema.json#/$defs/PathChange" }
+        },
+        "commit": {
+          "type": "string",
+          "description": "Git commit sha if change is committed"
+        },
+        "outcome_id": { "$ref": "common.schema.json#/$defs/Id" },
+        "is_revert": {
+          "type": "boolean",
+          "default": false,
+          "description": "Hint for R-X1; aggregator may also detect"
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Optional short human label; not a full diff"
+        }
+      }
+    },
+    "CommandResultPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cmd", "exit_code", "classification"],
+      "properties": {
+        "cmd": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Raw command line"
+        },
+        "cmd_normalized": {
+          "type": "string",
+          "description": "Anchor key: strip abs paths / collapse whitespace"
+        },
+        "exit_code": { "type": "integer" },
+        "classification": {
+          "type": "string",
+          "enum": ["test", "build", "repro", "lint", "other"]
+        },
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "stdout_ref": { "$ref": "common.schema.json#/$defs/BlobRef" },
+        "stderr_ref": { "$ref": "common.schema.json#/$defs/BlobRef" },
+        "stdout_excerpt": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Optional tail/head snippet only; full log via ref"
+        },
+        "stderr_excerpt": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "outcome_id": { "$ref": "common.schema.json#/$defs/Id" }
+      }
+    },
+    "TestCaseResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "status"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "status": {
+          "type": "string",
+          "enum": ["pass", "fail", "skip"]
+        },
+        "file": { "type": "string" },
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "message": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Failure message excerpt"
+        }
+      }
+    },
+    "TestResultPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tests", "suite_status"],
+      "properties": {
+        "framework": {
+          "type": "string",
+          "examples": ["pytest", "jest", "go test", "vitest"]
+        },
+        "tests": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/TestCaseResult" }
+        },
+        "suite_status": {
+          "type": "string",
+          "enum": ["pass", "fail", "mixed"]
+        },
+        "repro_key": {
+          "type": "string",
+          "description": "Stable anchor for fail→pass pairing (often cmd_normalized or suite id)"
+        },
+        "outcome_id": { "$ref": "common.schema.json#/$defs/Id" },
+        "raw_ref": {
+          "$ref": "common.schema.json#/$defs/BlobRef",
+          "description": "Full junit/json report if needed"
+        }
+      }
+    },
+    "DecisionMadePayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision"],
+      "properties": {
+        "decision": { "type": "string", "minLength": 1, "maxLength": 4000 },
+        "alternatives_rejected": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "rationale": { "type": "string", "maxLength": 4000 },
+        "outcome_id": { "$ref": "common.schema.json#/$defs/Id" },
+        "goal_id": { "$ref": "common.schema.json#/$defs/Id" },
+        "conclusion": {
+          "type": "string",
+          "description": "For spike/investigation-style closure (R-V6)"
+        }
+      }
+    },
+    "VerificationResultPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verdict", "method"],
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": ["pass", "fail"]
+        },
+        "method": {
+          "type": "string",
+          "enum": ["user_accept", "repro", "test", "ci", "agent_self"]
+        },
+        "notes": { "type": "string", "maxLength": 4000 },
+        "outcome_id": {
+          "$ref": "common.schema.json#/$defs/Id",
+          "description": "Strongly recommended; without it only time_scope/llm bind"
+        },
+        "repro_key": { "type": "string" }
+      }
+    },
+    "BlockerFoundPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description"],
+      "properties": {
+        "description": { "type": "string", "minLength": 1, "maxLength": 4000 },
+        "severity": {
+          "type": "string",
+          "enum": ["low", "med", "high"],
+          "default": "med"
+        },
+        "outcome_id": { "$ref": "common.schema.json#/$defs/Id" },
+        "goal_id": { "$ref": "common.schema.json#/$defs/Id" }
+      }
+    },
+    "OutcomeUpsertPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "op"],
+      "description": "Deterministic writeback from rules/LLM so L1 replay stays pure event-sourced",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": ["rules", "llm", "user"]
+        },
+        "op": {
+          "type": "string",
+          "enum": [
+            "create",
+            "patch",
+            "merge",
+            "split",
+            "supersede",
+            "session_end_sweep"
+          ]
+        },
+        "outcome_id": {
+          "$ref": "common.schema.json#/$defs/Id",
+          "description": "Target for patch/supersede; primary survivor for merge"
+        },
+        "outcome_ids": {
+          "type": "array",
+          "items": { "$ref": "common.schema.json#/$defs/Id" },
+          "description": "Sources for merge/split"
+        },
+        "patch": {
+          "type": "object",
+          "description": "Partial OutcomeCandidate fields. Must not set status=verified when source=llm. confidence fields are rules-owned on replay.",
+          "properties": {
+            "title": { "type": "string" },
+            "type": { "$ref": "common.schema.json#/$defs/OutcomeType" },
+            "status": { "$ref": "common.schema.json#/$defs/OutcomeStatus" },
+            "confidence": { "$ref": "common.schema.json#/$defs/Confidence" },
+            "confidence_raw": {
+              "$ref": "common.schema.json#/$defs/ConfidenceRaw"
+            },
+            "clamp_reason": {
+              "$ref": "common.schema.json#/$defs/ClampReason"
+            },
+            "goal_id": { "$ref": "common.schema.json#/$defs/Id" },
+            "stable_key": { "$ref": "common.schema.json#/$defs/StableKey" },
+            "scope": { "$ref": "common.schema.json#/$defs/Scope" },
+            "summary_blob": { "type": "string" },
+            "tags": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "terminal_reason": {
+              "$ref": "common.schema.json#/$defs/TerminalReason"
+            },
+            "superseded_by": { "$ref": "common.schema.json#/$defs/Id" },
+            "merge_of": {
+              "type": "array",
+              "items": { "$ref": "common.schema.json#/$defs/Id" }
+            },
+            "links": { "$ref": "common.schema.json#/$defs/ExternalLinks" }
+          },
+          "additionalProperties": false
+        },
+        "focus_outcome_id": {
+          "$ref": "common.schema.json#/$defs/Id",
+          "description": "Set SessionStore.focus_outcome_id when present (create/claim/user switch)."
+        },
+        "clear_focus": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, clear store.focus_outcome_id (terminal/session_end). Ignored if focus_outcome_id is also set."
+        },
+        "evidence_link": {
+          "$ref": "common.schema.json#/$defs/EvidenceLink",
+          "description": "Optional single link to attach (e.g. llm bind)"
+        },
+        "note": { "type": "string", "maxLength": 2000 }
+      }
+    },
+    "SessionEndPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "type": "string",
+          "enum": ["normal", "abort", "timeout", "user"],
+          "default": "normal"
+        },
+        "apply_ab2": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run R-AB2 sweep: unevidenced claimed → abandoned"
+        }
+      }
+    }
+  }
+}

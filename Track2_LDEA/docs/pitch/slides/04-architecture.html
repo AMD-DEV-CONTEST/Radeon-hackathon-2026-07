@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>04 · Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;0,6..72,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root { --paper:#FBFAF8; --ink:#1A1814; --muted:#6B6560; --rule:#E8E4DC; --accent:#C45C26; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--paper); color: var(--ink);
+    font-family: "Newsreader", Georgia, serif; }
+  .slide { width: 1920px; height: 1080px; padding: 72px 120px; display: flex; flex-direction: column; }
+  .kicker { font-family: Inter, sans-serif; font-size: 13px; font-weight: 500; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--accent); }
+  h2 { margin-top: 16px; font-size: 44px; font-weight: 700; letter-spacing: -0.02em; }
+  .flow { margin-top: 48px; display: grid; grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr; gap: 12px; align-items: stretch; }
+  .box { background: #fff; border: 1px solid var(--rule); padding: 28px 24px; min-height: 200px; }
+  .box .t { font-family: Inter, sans-serif; font-size: 12px; letter-spacing: 0.12em; color: var(--muted); font-weight: 600; }
+  .box h3 { margin-top: 12px; font-size: 24px; font-weight: 600; line-height: 1.25; }
+  .box ul { margin-top: 16px; list-style: none; font-family: Inter, sans-serif; font-size: 15px; color: var(--muted); line-height: 1.55; }
+  .box ul li::before { content: "· "; color: var(--accent); }
+  .box.hl { border-color: var(--accent); background: #fff8f3; }
+  .arr { display: flex; align-items: center; color: var(--accent); font-size: 28px; padding: 0 4px; }
+  .bottom { margin-top: 36px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .note { border-top: 1px solid var(--rule); padding-top: 28px; font-size: 20px; color: var(--muted); line-height: 1.5; }
+  .note strong { color: var(--ink); font-weight: 600; }
+  .mono { font-family: "IBM Plex Mono", monospace; font-size: 14px; color: var(--ink); }
+</style>
+</head>
+<body>
+<section class="slide">
+  <span class="kicker">03 · Architecture</span>
+  <h2>规划在模型，真伪在账本。</h2>
+  <div class="flow">
+    <div class="box">
+      <div class="t">INPUT</div>
+      <h3>目标 / claim</h3>
+      <ul>
+        <li>close 收工声称</li>
+        <li>run 含糊目标</li>
+        <li>demo 对照故事</li>
+      </ul>
+    </div>
+    <div class="arr">→</div>
+    <div class="box">
+      <div class="t">AGENT / RULES</div>
+      <h3>工具编排</h3>
+      <ul>
+        <li>claim · git_diff</li>
+        <li>tests · privacy</li>
+        <li>show · end · report</li>
+      </ul>
+    </div>
+    <div class="arr">→</div>
+    <div class="box hl">
+      <div class="t">EVIDENCE CORE</div>
+      <h3>airecap-plus</h3>
+      <ul>
+        <li>L0 events.jsonl</li>
+        <li>L1 store.json</li>
+        <li>状态机 · 非 LLM</li>
+      </ul>
+    </div>
+    <div class="arr">→</div>
+    <div class="box">
+      <div class="t">OUTPUT</div>
+      <h3>可核验报告</h3>
+      <ul>
+        <li>report.md / json</li>
+        <li>门禁条固定</li>
+        <li>session 可回放</li>
+      </ul>
+    </div>
+  </div>
+  <div class="bottom">
+    <div class="note"><strong>开发机</strong> Node CLI + 本地磁盘 <span class="mono">.ldea/sessions/</span><br />证据与隐私扫描不出公网。</div>
+    <div class="note"><strong>GPU 机</strong> AMD Radeon · ROCm · vLLM · Qwen2.5-7B<br />仅 <span class="mono">127.0.0.1:8000</span>，开发机 SSH 隧道。</div>
+  </div>
+</section>
+</body>
+</html>

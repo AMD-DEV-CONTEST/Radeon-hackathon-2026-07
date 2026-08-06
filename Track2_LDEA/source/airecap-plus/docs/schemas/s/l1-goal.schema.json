@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://airecap.local/schemas/s/l1-goal.schema.json",
+  "title": "L1 Goal (S-tier)",
+  "description": "Intent anchor. Progress is a projection over child outcomes, not an outcome type.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "session_id",
+    "statement",
+    "status",
+    "outcome_ids",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "s/1.0"
+    },
+    "id": { "$ref": "common.schema.json#/$defs/Id" },
+    "session_id": { "$ref": "common.schema.json#/$defs/Id" },
+    "stable_key": { "$ref": "common.schema.json#/$defs/StableKey" },
+    "statement": { "type": "string", "minLength": 1, "maxLength": 4000 },
+    "success_criteria": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "non_goals": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "status": { "$ref": "common.schema.json#/$defs/GoalStatus" },
+    "outcome_ids": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/Id" },
+      "default": []
+    },
+    "supersedes": {
+      "$ref": "common.schema.json#/$defs/Id",
+      "description": "Previous goal id if this replaces it"
+    },
+    "source_event_id": {
+      "$ref": "common.schema.json#/$defs/Id",
+      "description": "Creating goal_set event"
+    },
+    "created_at": { "$ref": "common.schema.json#/$defs/DateTime" },
+    "updated_at": { "$ref": "common.schema.json#/$defs/DateTime" },
+    "progress": {
+      "$ref": "#/$defs/GoalProgress",
+      "description": "Derived projection; may be omitted and computed at read time"
+    }
+  },
+  "$defs": {
+    "GoalProgress": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ratio_verified": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "ratio_evidenced": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "|evidenced∪verified| / |active|"
+        },
+        "active_count": { "type": "integer", "minimum": 0 },
+        "verified_count": { "type": "integer", "minimum": 0 },
+        "evidenced_count": { "type": "integer", "minimum": 0 },
+        "headline": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "L2/LLM short progress line; optional in S"
+        },
+        "computed_at": { "$ref": "common.schema.json#/$defs/DateTime" }
+      }
+    }
+  }
+}
