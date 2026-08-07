@@ -1,0 +1,33 @@
+# Agent 架构采用手写 Planner→Executor→Reflector 三段式，无外部 Agent 框架依赖。
+#
+# ROCm-ONLY — CUDA 已拉黑。本机为 AMD Radeon（ROCm）环境，无 NVIDIA GPU / CUDA 运行时。
+# 本文件只列出「CPU 侧 / 纯 Python」依赖。深度学习栈（torch / torchvision / torchaudio /
+# vllm / flash-attn / xformers）一律不得通过普通 pip 或清华源安装——那些源只提供 CUDA 构建，
+# 装上后 vLLM/torch 一碰设备就会报 `ImportError: libcuda.so.1`。这些包必须来自 AMD ROCm 源，
+# 完整安装流程见 install_rocm.sh（脚本内已含全部 ROCm 源命令与 glibc shim 步骤）。
+
+# 推理 / 模型相关（注意：torch、vllm、flash-attn、transformers 的实际 ROCm 构建由 install_rocm.sh 安装）
+transformers>=5.0.0
+accelerate>=0.34.0
+faiss-cpu>=1.8.0
+sentence-transformers>=3.0.0
+
+# 应用 / 工具链
+streamlit>=1.30.0
+pyyaml>=6.0
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+psutil>=5.9.0
+python-docx>=1.1.0
+python-pptx>=0.6.23
+openpyxl>=3.1.0
+pdfplumber>=0.11.0
+markdown>=3.5.0
+beautifulsoup4>=4.12.0
+modelscope>=1.18.0
+black>=24.0.0 # format_code 工具依赖
+
+# ROCm 环境要求（详见 install_rocm.sh）:
+# - Python 3.14 + AMD ROCm 7.14（gfx1100）
+# - 深度学习栈统一来自 AMD ROCm 源，而非 PyPI / 清华源（避免误拉 CUDA 构建）
+# - glibc 2.35（Ubuntu 22.04）需 glibc shim（见 install_rocm.sh），否则 vLLM 报 GLIBC_2.38 not found
