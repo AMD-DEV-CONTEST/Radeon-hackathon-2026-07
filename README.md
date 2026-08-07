@@ -247,6 +247,7 @@ runtime and remains outside Git, the public Milvus corpus, screenshots, and dist
 - [Submission Brief](docs/SUBMISSION_BRIEF.md)
 - [Submission Checklist](docs/SUBMISSION_CHECKLIST.md)
 - [Demo Video Script](docs/DEMO_VIDEO_SCRIPT.md)
+- [Hackathon Learning Notes](docs/HACKATHON_LEARNING_NOTES.md)
 - [Local Development Guide](docs/LOCAL_DEVELOPMENT.md)
 - [Production Deployment Guide](docs/PRODUCTION_DEPLOYMENT.md)
 - [Private Lens Tool](docs/PRIVATE_LENS_TOOL.md)
