@@ -269,23 +269,25 @@ async fn tool_think_harder(args: &serde_json::Value, config: &AgentConfig) -> St
     let client = reqwest::Client::new();
     let mut results = Vec::new();
 
-    // Nautivecs
+    // Wayfinder code search (Qdrant + embeddings)
+    match crate::wayfinder::search_code(query, 5).await {
+        Ok(code_results) => {
+            if !code_results.is_empty() {
+                results.push(crate::wayfinder::format_results(&code_results));
+            }
+        }
+        Err(e) => {
+            results.push(format!("[wayfinder error]: {}", e));
+        }
+    }
+
+    // Nautivecs memory search
     if let Ok(resp) = client.post(&config.nautivecs_url)
         .json(&serde_json::json!({"query": query, "top_k": 3}))
         .send().await {
         if let Ok(body) = resp.text().await {
             let t = if body.len() > 1500 { &body[..1500] } else { &body };
-            results.push(format!("[nautivecs]: {}", t));
-        }
-    }
-
-    // WSO
-    if let Ok(resp) = client.post(&config.wso_url)
-        .json(&serde_json::json!({"query": query, "max_results": 3}))
-        .send().await {
-        if let Ok(body) = resp.text().await {
-            let t = if body.len() > 1500 { &body[..1500] } else { &body };
-            results.push(format!("[web search]: {}", t));
+            results.push(format!("[nautivecs memory]: {}", t));
         }
     }
 

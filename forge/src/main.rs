@@ -18,6 +18,7 @@ mod stream_lanes;
 mod orchestrator;
 mod qualification_lab;
 mod forge_adapter;
+mod wayfinder;
 
 use axum::{
     extract::{Json, Path, State},
