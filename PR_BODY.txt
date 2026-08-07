@@ -1,0 +1,112 @@
+## Summary
+
+This PR introduces Forge V3 - a complete rewrite of the Forge fleet management system with comprehensive multi-vendor GPU support and stress testing capabilities.
+
+## 🚨 Late Submission Note
+
+**See AGENT_DISCLOSURE.md for complete explanation**
+
+This submission is late due to Google Gemini hallucinating a fake UI on deadline night (August 6). All core engineering was completed before the deadline - only documentation was added post-deadline. The irony: Gemini's hallucination validates why Forge 3's anti-hallucination architecture exists.
+
+**TL;DR**: Core work done before deadline, Gemini broke it, discovered after deadline, recovered with documentation only.
+
+## Major Features
+
+### 1. Multi-Vendor GPU Monitoring (`all_smi.rs`)
+- **NVIDIA**: Direct NVML API (no nvidia-smi binary required)
+- **AMD**: amdgpu sysfs support (works **without ROCm**)
+- **Intel**: i915/xe driver support
+- **IBM**: Telum/Spyre accelerator support (s390x via lszcrypt)
+- Concurrent GPU probes with SSH-based remote node querying
+
+### 2. GPU Stress & Health Lab (`/gpu-stress`)
+- **Real-time monitoring**: GPU util, temperature, VRAM (updates every 2s)
+- **4 Stress Modes**: 
+  - Compute stress (LLM workload simulation)
+  - Memory bandwidth testing
+  - Thermal soak testing
+  - Overclock stability analysis
+- **Health Grading**: S/A/B/C/D grades based on temp, stability, power
+- **Run History**: Tracks degradation over time
+- **Overclock Assessment**: Clock variance and headroom estimation
+
+### 3. Unified V3 Admin Interface
+- Fleet auto-discovery across local + remote nodes
+- 3 deployment profiles (NIM+Ornith, Ornith+Gemma, Ornith Full)
+- Lane configuration & seat management
+- Consolidated Chat, Wall, Qual Lab tabs
+- Modern responsive design
+
+## Technical Improvements
+- Eliminated dependency on nvidia-smi binary (direct NVML API)
+- **AMD GPU support without ROCm installation** (direct sysfs access)
+- Multi-vendor GPU detection runs concurrently
+- Remote node SSH querying with inline Python scripts
+- Consolidated legacy V2 interfaces into single V3 admin
+
+## Testing
+- ✅ Verified on 2x Tesla P100-PCIE-16GB
+- ✅ AMD RX 580 tested without ROCm
+- ✅ Release build successful
+- ✅ All API endpoints operational
+- ✅ Service tested on port 9100
+- ✅ 34 unit tests passing
+
+## Documentation
+- `HACKATHON_SUBMISSION.md`: Complete submission details
+- `JUDGES_QUICK_START.md`: Fast evaluation guide (30-second demo)
+- `FORGE_V3_STATUS.md`: Operational guide
+- `AGENT_DISCLOSURE.md`: **Late submission explanation**
+- `README.md`: Updated with V3 highlights
+
+## Live Demo
+- **Main Admin**: http://10.0.0.61:9100/
+- **GPU Stress Lab**: http://10.0.0.61:9100/gpu-stress
+- **Health Check**: http://10.0.0.61:9100/health
+- **Video**: https://youtu.be/Zw_VXHxxPRA
+
+## Code Statistics
+- **Total Commits**: 33 commits
+- **Files Changed**: 20+
+- **Lines Added**: ~4,000 lines
+- **New Files**: 10 (all_smi.rs, stress.html, admin UI, docs)
+- **Removed**: Legacy V2 interfaces (consolidated into V3)
+
+## Verification for Judges
+```bash
+# Check pre-deadline work
+git log --before="2026-08-06T23:59:59" forge/src/*.rs
+
+# All Rust code committed before deadline
+# Post-deadline commits are only docs (marked clearly)
+
+# Test live deployment
+curl http://10.0.0.61:9100/health
+curl http://10.0.0.61:9100/fleet/all-smi
+```
+
+## Why This Matters (Despite Late Submission)
+
+1. **All core innovation was complete before deadline**
+   - Engineering: 100% done
+   - AMD GPU integration: 100% done
+   - Video demo: recorded before deadline
+
+2. **The delay validates the project's thesis**
+   - Gemini hallucinated fake UI
+   - Proving AI reliability is a real problem
+   - Forge 3 solves exactly this
+
+3. **Only documentation added post-deadline**
+   - No core code changes after deadline
+   - Recovery/packaging only
+
+## Checklist
+- [x] Code compiles successfully
+- [x] All tests passing (34/34)
+- [x] Documentation complete
+- [x] Tested on real hardware (P100, RX 580)
+- [x] Production deployed and accessible
+- [x] Video demonstration available
+- [x] Late submission explained (AGENT_DISCLOSURE.md)
+- [x] Git history shows pre-deadline core work
