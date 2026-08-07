@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forge 3 — GPU Stress &amp; Health Lab</title>
+<style>
+:root{--bg:#0b0f19;--panel:#111827;--panel2:#1a2235;--border:#1f2937;--accent:#3b82f6;--accent2:#00d4ff;--success:#10b981;--danger:#ef4444;--warning:#f59e0b;--purple:#a78bfa;--text:#f3f4f6;--dim:#9ca3af;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;display:flex;flex-direction:column;min-height:100vh;}
+header{padding:10px 20px;background:var(--panel);border-bottom:2px solid var(--accent2);display:flex;justify-content:space-between;align-items:center;}
+header h1{font-size:1.05rem;font-weight:700;color:var(--accent2);letter-spacing:1.5px;}
+.hdr-links{display:flex;gap:12px;font-size:0.8rem;}
+.hdr-links a{color:var(--accent);text-decoration:none;}
+main{flex:1;overflow-y:auto;padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:900px){main{grid-template-columns:1fr;}}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;}
+.panel h2{font-size:0.95rem;color:var(--accent2);margin-bottom:12px;}
+.btn{padding:7px 14px;border:none;border-radius:6px;cursor:pointer;font-size:0.82rem;font-weight:600;}
+.btn:hover{opacity:0.85;}.btn:disabled{opacity:0.4;cursor:not-allowed;}
+.btn-primary{background:var(--accent);color:#fff;}.btn-danger{background:var(--danger);color:#fff;}
+.btn-warning{background:var(--warning);color:#000;}.btn-ghost{background:var(--border);color:var(--text);}
+.btn-success{background:var(--success);color:#fff;}.btn-sm{padding:4px 10px;font-size:0.75rem;}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center;}
+select{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;font-size:0.8rem;}
+.status-box{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:8px 12px;font-size:0.8rem;color:var(--dim);font-family:monospace;min-height:32px;margin:8px 0;}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:10px;}
+.gpu-card{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px;}
+.gpu-card.nvidia{border-top:3px solid #76b900;}.gpu-card.amd{border-top:3px solid #ed1c24;}
+.gpu-card.intel{border-top:3px solid #0071c5;}.gpu-card.ibm{border-top:3px solid #1f70c1;}
+.gpu-name{font-size:0.88rem;font-weight:700;margin-bottom:4px;}
+.gpu-vendor{font-size:0.68rem;text-transform:uppercase;font-weight:700;margin-bottom:8px;}
+.vendor-nvidia{color:#76b900;}.vendor-amd{color:#ed1c24;}.vendor-intel{color:#0071c5;}.vendor-ibm{color:#1f70c1;}
+.bar-row{margin:4px 0;}.bar-label{font-size:0.72rem;color:var(--dim);display:flex;justify-content:space-between;margin-bottom:2px;}
+.bar{height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:3px;transition:width 0.5s;}
+.bar-util{background:var(--accent);}.bar-mem{background:var(--purple);}.bar-temp{background:var(--danger);}.bar-pwr{background:var(--warning);}
+.metric-row{display:flex;justify-content:space-between;font-size:0.75rem;margin:2px 0;}
+.metric-row span{color:var(--accent2);font-family:monospace;}
+.badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:0.68rem;font-weight:700;}
+.badge-ok{background:#065f46;color:#34d399;}.badge-warn{background:#78350f;color:#fcd34d;}
+.badge-err{background:#7f1d1d;color:#fca5a5;}.badge-off{background:var(--border);color:var(--dim);}
+#stress-log{font-family:monospace;font-size:0.73rem;color:#a5f3fc;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:10px;height:140px;overflow-y:auto;white-space:pre-wrap;margin-top:10px;}
+table{width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:10px;}
+th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;}
+th{background:var(--bg);color:var(--dim);font-size:0.74rem;text-transform:uppercase;}
+.metric{font-family:monospace;font-weight:700;color:var(--accent2);}
+.grade-S{color:#34d399;font-weight:800;}.grade-A{color:#60a5fa;font-weight:700;}
+.grade-B{color:#fcd34d;font-weight:700;}.grade-C{color:#fb923c;font-weight:700;}.grade-D{color:#f87171;font-weight:700;}
+.toast{position:fixed;bottom:20px;right:20px;padding:9px 16px;border-radius:7px;font-size:0.83rem;font-weight:600;z-index:99;transition:opacity 0.3s;pointer-events:none;}
+.toast.ok{background:var(--success);color:#fff;}.toast.error{background:var(--danger);color:#fff;}.toast.loading{background:var(--accent);color:#fff;}
+.full-col{grid-column:1/-1;}
+canvas{width:100%;height:100px;background:var(--bg);border:1px solid var(--border);border-radius:4px;display:block;margin-top:8px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>🔥 FORGE 3 — GPU STRESS &amp; HEALTH LAB</h1>
+  <div class="hdr-links">
+    <a href="/">← Fleet Admin</a>
+    <a href="/benchmark-report" target="_blank">📊 Benchmarks</a>
+    <span id="hdr-status" style="color:var(--dim);font-size:0.78rem">Detecting accelerators…</span>
+  </div>
+</header>
+<main>
+  <div class="panel full-col">
+    <h2>🔍 Fleet Accelerator Auto-Detection (NVIDIA + AMD + Intel + IBM)</h2>
+    <div class="row">
+      <button class="btn btn-primary" onclick="detectFleet()">🚀 Detect All Accelerators</button>
+      <button class="btn btn-ghost" onclick="detectFleet()">↻ Refresh</button>
+      <span id="detect-summary" style="font-size:0.8rem;color:var(--dim)"></span>
+    </div>
+    <div id="fleet-cards" class="card-grid"></div>
+  </div>
+  <div class="panel">
+    <h2>⚡ Stress Test Config</h2>
+    <div class="row">
+      <label>Target GPU:</label>
+      <select id="stress-target"><option value="all">All Local GPUs</option></select>
+    </div>
+    <div class="row">
+      <label>Mode:</label>
+      <select id="stress-mode">
+        <option value="compute">Compute (LLM matrix multiply)</option>
+        <option value="memory">Memory Bandwidth</option>
+        <option value="thermal">Thermal Soak (sustained load)</option>
+        <option value="overclock">Overclock Stability Probe</option>
+        <option value="full">Full Suite (all modes)</option>
+      </select>
+    </div>
+    <div class="row">
+      <label>Duration:</label>
+      <select id="stress-duration">
+        <option value="30">30 seconds (quick)</option>
+        <option value="120" selected>2 minutes (standard)</option>
+        <option value="300">5 minutes (thorough)</option>
+        <option value="600">10 minutes (deep)</option>
+      </select>
+    </div>
+    <div class="row">
+      <button class="btn btn-danger" id="stress-btn" onclick="startStress()">▶ Run Stress Test</button>
+      <button class="btn btn-ghost" id="stop-btn" onclick="stopStress()" disabled>⏹ Stop</button>
+    </div>
+    <div id="stress-status" class="status-box">Ready. Select mode and click Run.</div>
+    <div id="stress-log"></div>
+  </div>
+  <div class="panel">
+    <h2>📈 Live Metrics (polling every 2s)</h2>
+    <div class="row">
+      <button class="btn btn-success btn-sm" id="live-btn" onclick="toggleLive()">▶ Start Live Monitor</button>
+      <span id="live-elapsed" style="font-size:0.78rem;color:var(--dim)"></span>
+    </div>
+    <canvas id="util-chart" height="80"></canvas>
+    <div style="font-size:0.7rem;color:var(--dim);text-align:center;margin:2px 0">GPU Utilization %</div>
+    <canvas id="temp-chart" height="80"></canvas>
+    <div style="font-size:0.7rem;color:var(--dim);text-align:center;margin:2px 0">Temperature °C</div>
+    <canvas id="mem-chart" height="80"></canvas>
+    <div style="font-size:0.7rem;color:var(--dim);text-align:center;margin:2px 0">VRAM Used MB</div>
+    <div id="live-cards" class="card-grid" style="margin-top:12px"></div>
+  </div>
+  <div class="panel full-col">
+    <h2>📋 Health Report &amp; Grading</h2>
+    <div class="row">
+      <button class="btn btn-primary" onclick="generateReport()">📋 Generate Report</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportReport()">💾 Export JSON</button>
+    </div>
+    <div id="report-container">
+      <div class="status-box">Run a stress test first, then click Generate Report.</div>
+    </div>
+  </div>
+  <div class="panel full-col">
+    <h2>📊 Run History (compared to previous)</h2>
+    <div id="history-table"><div class="status-box">No previous runs yet.</div></div>
+  </div>
+</main>
+<div id="toast" class="toast" style="opacity:0"></div>
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let fleetData = [];
+let liveActive = false;
+let liveTimer = null;
+let stressActive = false;
+let stressTimer = null;
+let stressStart = null;
+let stressSamples = [];
+let runHistory = JSON.parse(localStorage.getItem('forge_stress_history') || '[]');
+const CHART_POINTS = 60;
+const utilHistory = [], tempHistory = [], memHistory = [];
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function toast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.opacity = '0'; }, 3000);
+}
+
+// ── Fleet Detection ────────────────────────────────────────────────────────
+async function detectFleet() {
+  document.getElementById('detect-summary').textContent = 'Scanning…';
+  toast('Scanning all accelerators…', 'loading');
+  try {
+    const r = await fetch('/fleet/all-smi');
+    const d = await r.json();
+    fleetData = d.fleet || [];
+    renderFleetCards(fleetData);
+    const total = fleetData.reduce((s, n) => s + (n.accelerators||[]).length, 0);
+    const vendors = [...new Set(fleetData.flatMap(n => (n.accelerators||[]).map(a => a.vendor)))];
+    document.getElementById('detect-summary').textContent =
+      `${total} accelerator(s) across ${fleetData.length} node(s) | Vendors: ${vendors.join(', ') || 'none'}`;
+    document.getElementById('hdr-status').textContent = `${total} GPUs detected`;
+    populateStressTargets(fleetData);
+    toast(`Found ${total} accelerator(s)`, 'ok');
+  } catch(e) {
+    document.getElementById('detect-summary').textContent = 'Detection failed: ' + e.message;
+    toast('Detection failed', 'error');
+  }
+}
+
+function renderFleetCards(fleet) {
+  const c = document.getElementById('fleet-cards');
+  if (!fleet.length) { c.innerHTML = '<div class="status-box">No accelerators found.</div>'; return; }
+  c.innerHTML = fleet.flatMap(node =>
+    (node.accelerators||[]).length ? node.accelerators.map(g => gpuCard(g, node)) :
+    [`<div class="gpu-card"><div class="gpu-name">${node.name}</div><div class="status-box">No accelerators / unreachable</div></div>`]
+  ).join('');
+}
+
+function gpuCard(g, node) {
+  const cls = g.vendor || 'unknown';
+  const memPct = g.memory_total_mb > 0 ? Math.round(g.memory_used_mb / g.memory_total_mb * 100) : 0;
+  const tempPct = Math.min(100, Math.round(g.temperature_c / 100 * 100));
+  const pwrPct = g.power_limit_w > 0 ? Math.round(g.power_draw_w / g.power_limit_w * 100) : 0;
+  return `<div class="gpu-card ${cls}">
+    <div class="gpu-name">${g.name}</div>
+    <div class="gpu-vendor vendor-${cls}">${g.vendor} · ${node.name} · src:${g.source}</div>
+    <div class="bar-row"><div class="bar-label"><span>Util</span><span>${g.utilization_pct}%</span></div>
+      <div class="bar"><div class="bar-fill bar-util" style="width:${g.utilization_pct}%"></div></div></div>
+    <div class="bar-row"><div class="bar-label"><span>VRAM</span><span>${g.memory_used_mb}/${g.memory_total_mb} MB</span></div>
+      <div class="bar"><div class="bar-fill bar-mem" style="width:${memPct}%"></div></div></div>
+    <div class="bar-row"><div class="bar-label"><span>Temp</span><span>${g.temperature_c}°C</span></div>
+      <div class="bar"><div class="bar-fill bar-temp" style="width:${tempPct}%"></div></div></div>
+    <div class="bar-row"><div class="bar-label"><span>Power</span><span>${g.power_draw_w.toFixed(1)}W${g.power_limit_w>0?' / '+g.power_limit_w.toFixed(0)+'W':''}</span></div>
+      <div class="bar"><div class="bar-fill bar-pwr" style="width:${Math.min(100,pwrPct)}%"></div></div></div>
+    ${g.clock_gpu_mhz ? `<div class="metric-row">GPU Clock <span>${g.clock_gpu_mhz} MHz</span></div>` : ''}
+    ${g.clock_mem_mhz ? `<div class="metric-row">Mem Clock <span>${g.clock_mem_mhz} MHz</span></div>` : ''}
+    ${g.pcie_gen ? `<div class="metric-row">PCIe <span>Gen${g.pcie_gen} x${g.pcie_width||'?'}</span></div>` : ''}
+    ${g.fan_speed_pct != null ? `<div class="metric-row">Fan <span>${g.fan_speed_pct}%</span></div>` : ''}
+  </div>`;
+}
+
+function populateStressTargets(fleet) {
+  const sel = document.getElementById('stress-target');
+  sel.innerHTML = '<option value="all">All Local GPUs</option>';
+  (fleet.find(n => n.name === 't440' || n.ip === '127.0.0.1' || !n.ip)?.accelerators || []).forEach((g, i) => {
+    sel.innerHTML += `<option value="${i}">${g.vendor.toUpperCase()} ${g.name} (GPU ${g.index})</option>`;
+  });
+}
+
+// ── Stress Test ────────────────────────────────────────────────────────────
+async function startStress() {
+  const mode = document.getElementById('stress-mode').value;
+  const duration = parseInt(document.getElementById('stress-duration').value);
+  const target = document.getElementById('stress-target').value;
+  const log = document.getElementById('stress-log');
+  const status = document.getElementById('stress-status');
+
+  stressActive = true;
+  stressSamples = [];
+  stressStart = Date.now();
+  document.getElementById('stress-btn').disabled = true;
+  document.getElementById('stop-btn').disabled = false;
+  toast(`Starting ${mode} stress test…`, 'loading');
+
+  log.textContent = '';
+  status.textContent = `Running ${mode} for ${duration}s…`;
+
+  function logLine(msg) {
+    log.textContent += `[${new Date().toISOString().slice(11,19)}] ${msg}\n`;
+    log.scrollTop = log.scrollHeight;
+  }
+
+  logLine(`Mode: ${mode} | Duration: ${duration}s | Target: ${target}`);
+  logLine('Starting GPU load via LLM matrix workload…');
+
+  // Start the stress workload on backend
+  try {
+    fetch('/stress/start', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ mode, duration, target })
+    }).catch(() => {});
+  } catch(e) {}
+
+  // Poll metrics while stress runs
+  let elapsed = 0;
+  stressTimer = setInterval(async () => {
+    if (!stressActive || elapsed >= duration) {
+      clearInterval(stressTimer);
+      finishStress(mode, duration);
+      return;
+    }
+    elapsed += 2;
+    try {
+      const r = await fetch('/fleet/snapshot');
+      const snap = await r.json();
+      stressSamples.push(snap);
+      const gpus = snap.accelerators || [];
+      if (gpus.length) {
+        const g = gpus[0];
+        logLine(`[${elapsed}s] GPU0: util=${g.utilization_pct}% temp=${g.temperature_c}°C mem=${g.memory_used_mb}MB pwr=${g.power_draw_w?.toFixed(1)}W`);
+        if (gpus.length > 1) {
+          gpus.slice(1).forEach((gg, ii) => {
+            logLine(`       GPU${ii+1}(${gg.vendor}): util=${gg.utilization_pct}% temp=${gg.temperature_c}°C`);
+          });
+        }
+        updateLiveCharts(gpus);
+        updateLiveCards(gpus);
+      }
+    } catch(e) { logLine('Snapshot error: ' + e.message); }
+    status.textContent = `Running ${mode}… ${elapsed}/${duration}s`;
+  }, 2000);
+}
+
+function stopStress() {
+  stressActive = false;
+  clearInterval(stressTimer);
+  document.getElementById('stress-btn').disabled = false;
+  document.getElementById('stop-btn').disabled = true;
+  document.getElementById('stress-status').textContent = 'Stopped by user.';
+  toast('Stress test stopped', 'ok');
+  fetch('/stress/stop', { method: 'POST' }).catch(() => {});
+}
+
+function finishStress(mode, duration) {
+  stressActive = false;
+  document.getElementById('stress-btn').disabled = false;
+  document.getElementById('stop-btn').disabled = true;
+  document.getElementById('stress-status').textContent = `✅ ${mode} complete (${duration}s). Click Generate Report.`;
+  toast('Stress test complete!', 'ok');
+  document.getElementById('stress-log').textContent +=
+    `[DONE] ${mode} stress test complete. ${stressSamples.length} samples collected.\n`;
+}
+
+// ── Live Monitor ───────────────────────────────────────────────────────────
+function toggleLive() {
+  if (liveActive) {
+    liveActive = false;
+    clearInterval(liveTimer);
+    document.getElementById('live-btn').textContent = '▶ Start Live Monitor';
+    document.getElementById('live-btn').className = 'btn btn-success btn-sm';
+  } else {
+    liveActive = true;
+    document.getElementById('live-btn').textContent = '⏹ Stop Live Monitor';
+    document.getElementById('live-btn').className = 'btn btn-danger btn-sm';
+    let t = 0;
+    liveTimer = setInterval(async () => {
+      t += 2;
+      document.getElementById('live-elapsed').textContent = `${t}s running`;
+      try {
+        const r = await fetch('/fleet/snapshot');
+        const snap = await r.json();
+        const gpus = snap.accelerators || [];
+        updateLiveCharts(gpus);
+        updateLiveCards(gpus);
+      } catch(e) {}
+    }, 2000);
+  }
+}
+
+// ── Canvas Charts ──────────────────────────────────────────────────────────
+function pushHistory(arr, val) {
+  arr.push(val);
+  if (arr.length > CHART_POINTS) arr.shift();
+}
+
+function drawChart(canvasId, data, max, color, label) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth || 400;
+  const H = canvas.height || 80;
+  canvas.width = W;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0b0f19';
+  ctx.fillRect(0, 0, W, H);
+  // Grid lines
+  ctx.strokeStyle = '#1f2937';
+  ctx.lineWidth = 1;
+  [0.25, 0.5, 0.75].forEach(f => {
+    ctx.beginPath(); ctx.moveTo(0, H * f); ctx.lineTo(W, H * f); ctx.stroke();
+  });
+  if (data.length < 2) return;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  data.forEach((v, i) => {
+    const x = (i / (CHART_POINTS - 1)) * W;
+    const y = H - (v / max) * (H - 4) - 2;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  // Current value label
+  const last = data[data.length - 1];
+  ctx.fillStyle = color;
+  ctx.font = '11px monospace';
+  ctx.fillText(`${last.toFixed(0)}${label}`, 4, 14);
+}
+
+function updateLiveCharts(gpus) {
+  if (!gpus.length) return;
+  const g = gpus[0];
+  pushHistory(utilHistory, g.utilization_pct || 0);
+  pushHistory(tempHistory, g.temperature_c || 0);
+  pushHistory(memHistory, g.memory_used_mb || 0);
+  drawChart('util-chart', utilHistory, 100, '#3b82f6', '%');
+  drawChart('temp-chart', tempHistory, 120, '#ef4444', '°C');
+  drawChart('mem-chart', memHistory, Math.max(g.memory_total_mb || 16384, 1), '#a78bfa', 'MB');
+}
+
+function updateLiveCards(gpus) {
+  document.getElementById('live-cards').innerHTML = gpus.map((g, i) => {
+    const node = { name: g.node || 'local' };
+    return gpuCard(g, node);
+  }).join('');
+}
+
+// ── Health Report & Grading ────────────────────────────────────────────────
+function generateReport() {
+  if (stressSamples.length < 3) {
+    document.getElementById('report-container').innerHTML =
+      '<div class="status-box">Not enough data. Run a stress test first (need at least 3 snapshots).</div>';
+    return;
+  }
+  const report = buildReport(stressSamples);
+  renderReport(report);
+  saveHistory(report);
+  renderHistory();
+}
+
+function buildReport(samples) {
+  const mode = document.getElementById('stress-mode').value;
+  const duration = parseInt(document.getElementById('stress-duration').value);
+  // Aggregate per GPU
+  const gpuStats = {};
+  samples.forEach(snap => {
+    (snap.accelerators || []).forEach(g => {
+      const key = `${g.node}_${g.index}_${g.name}`;
+      if (!gpuStats[key]) gpuStats[key] = { ...g, util_samples:[], temp_samples:[], mem_samples:[], pwr_samples:[], clk_samples:[] };
+      gpuStats[key].util_samples.push(g.utilization_pct || 0);
+      gpuStats[key].temp_samples.push(g.temperature_c || 0);
+      gpuStats[key].mem_samples.push(g.memory_used_mb || 0);
+      gpuStats[key].pwr_samples.push(g.power_draw_w || 0);
+      if (g.clock_gpu_mhz) gpuStats[key].clk_samples.push(g.clock_gpu_mhz);
+    });
+  });
+  const gpuReports = Object.values(gpuStats).map(g => {
+    const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
+    const max = arr => arr.length ? Math.max(...arr) : 0;
+    const min = arr => arr.length ? Math.min(...arr) : 0;
+    const stddev = arr => { const m = avg(arr); return Math.sqrt(arr.reduce((s,v)=>s+(v-m)**2,0)/arr.length); };
+
+    const avgUtil = avg(g.util_samples);
+    const maxTemp = max(g.temp_samples);
+    const avgTemp = avg(g.temp_samples);
+    const maxPwr = max(g.pwr_samples);
+    const clkStddev = stddev(g.clk_samples);
+    const memPeak = max(g.mem_samples);
+
+    // Grade algorithm
+    let score = 100;
+    let issues = [];
+    if (maxTemp > 90)  { score -= 30; issues.push(`🔴 CRITICAL TEMP: ${maxTemp}°C (danger zone)`); }
+    else if (maxTemp > 80) { score -= 15; issues.push(`🟡 High temp: ${maxTemp}°C`); }
+    else if (maxTemp > 70) { score -= 5;  issues.push(`🟢 Warm: ${maxTemp}°C`); }
+    if (avgUtil < 20 && mode !== 'memory') { score -= 10; issues.push('⚠️ Low utilization (driver issue?)'); }
+    if (g.power_limit_w > 0 && maxPwr > g.power_limit_w * 0.95) { score -= 10; issues.push('⚠️ Near power limit'); }
+    if (clkStddev > 100) { score -= 15; issues.push(`⚠️ Clock instability: σ=${clkStddev.toFixed(0)}MHz (throttling?)`); }
+    else if (clkStddev > 50) { score -= 5; issues.push(`🟡 Slight clock variance: σ=${clkStddev.toFixed(0)}MHz`); }
+
+    const grade = score >= 95 ? 'S' : score >= 85 ? 'A' : score >= 70 ? 'B' : score >= 55 ? 'C' : 'D';
+    const oc_stable = clkStddev < 30 && maxTemp < 85;
+    const oc_headroom = g.clock_gpu_mhz && clkStddev < 20 ? '+5-10% potential' : 'stable at stock';
+
+    return {
+      name: g.name, vendor: g.vendor, node: g.node,
+      avgUtil: avgUtil.toFixed(1), maxTemp, avgTemp: avgTemp.toFixed(1),
+      maxPwr: maxPwr.toFixed(1), powerLimit: g.power_limit_w,
+      memPeak, memTotal: g.memory_total_mb,
+      clkAvg: avg(g.clk_samples).toFixed(0), clkStddev: clkStddev.toFixed(1),
+      score, grade, issues, oc_stable, oc_headroom,
+      sample_count: g.util_samples.length,
+    };
+  });
+  return {
+    timestamp: new Date().toISOString(),
+    mode, duration, sample_count: samples.length,
+    gpus: gpuReports,
+  };
+}
+
+function renderReport(r) {
+  const gpuRows = r.gpus.map(g => `
+    <tr>
+      <td><strong>${g.name}</strong><br><small style="color:var(--dim)">${g.vendor} · ${g.node}</small></td>
+      <td class="metric">${g.avgUtil}%</td>
+      <td class="metric">${g.maxTemp}°C / ${g.avgTemp}°C</td>
+      <td class="metric">${g.maxPwr}W${g.powerLimit > 0 ? ' / '+g.powerLimit.toFixed(0)+'W' : ''}</td>
+      <td class="metric">${g.memPeak} / ${g.memTotal} MB</td>
+      <td class="metric">${g.clkAvg} MHz (σ=${g.clkStddev})</td>
+      <td><span class="grade-${g.grade}" style="font-size:1.3rem">${g.grade}</span> <span style="color:var(--dim);font-size:0.75rem">(${g.score}/100)</span></td>
+      <td><span class="badge ${g.oc_stable ? 'badge-ok' : 'badge-warn'}">${g.oc_stable ? '✅ STABLE' : '⚠️ MARGINAL'}</span><br>
+        <small style="color:var(--dim)">${g.oc_headroom}</small></td>
+    </tr>
+    ${g.issues.length ? `<tr><td colspan="8" style="background:var(--bg);font-size:0.78rem;color:var(--dim);padding:4px 10px">${g.issues.join(' &nbsp; ')}</td></tr>` : ''}
+  `).join('');
+
+  document.getElementById('report-container').innerHTML = `
+    <div style="margin-bottom:10px;font-size:0.83rem;color:var(--dim)">
+      Generated: ${r.timestamp} | Mode: <strong style="color:var(--text)">${r.mode}</strong> |
+      Duration: <strong style="color:var(--text)">${r.duration}s</strong> |
+      Samples: <strong style="color:var(--text)">${r.sample_count}</strong>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Accelerator</th><th>Avg Util</th><th>Max/Avg Temp</th>
+        <th>Power</th><th>VRAM Peak</th><th>Clock Stability</th>
+        <th>Grade</th><th>OC Status</th>
+      </tr></thead>
+      <tbody>${gpuRows}</tbody>
+    </table>
+    <div style="margin-top:12px;padding:10px;background:var(--bg);border-radius:6px;border:1px solid var(--border)">
+      <strong style="color:var(--accent2)">Grading Scale:</strong>
+      <span class="grade-S">S</span>=95+ (Exceptional) &nbsp;
+      <span class="grade-A">A</span>=85+ (Excellent) &nbsp;
+      <span class="grade-B">B</span>=70+ (Good) &nbsp;
+      <span class="grade-C">C</span>=55+ (Fair — monitor) &nbsp;
+      <span class="grade-D">D</span>=&lt;55 (Action needed)
+    </div>
+  `;
+}
+
+// ── Run History ────────────────────────────────────────────────────────────
+function saveHistory(report) {
+  runHistory.unshift({ ts: report.timestamp, mode: report.mode, duration: report.duration,
+    gpus: report.gpus.map(g => ({ name: g.name, grade: g.grade, score: g.score, maxTemp: g.maxTemp, avgUtil: g.avgUtil })) });
+  if (runHistory.length > 20) runHistory = runHistory.slice(0, 20);
+  localStorage.setItem('forge_stress_history', JSON.stringify(runHistory));
+}
+
+function renderHistory() {
+  if (!runHistory.length) return;
+  const rows = runHistory.map((run, ri) => {
+    const prev = runHistory[ri + 1];
+    return run.gpus.map(g => {
+      const prevGpu = prev?.gpus?.find(p => p.name === g.name);
+      const delta = prevGpu ? g.score - prevGpu.score : null;
+      const trend = delta === null ? '—' : delta > 0 ? `▲ +${delta}` : delta < 0 ? `▼ ${delta}` : '→ same';
+      const trendColor = delta > 0 ? 'var(--success)' : delta < 0 ? 'var(--danger)' : 'var(--dim)';
+      return `<tr>
+        <td style="color:var(--dim);font-size:0.75rem">${new Date(run.ts).toLocaleString()}</td>
+        <td>${g.name}</td>
+        <td><span class="badge badge-off">${run.mode}</span></td>
+        <td class="metric">${run.duration}s</td>
+        <td><span class="grade-${g.grade}" style="font-size:1.1rem">${g.grade}</span> ${g.score}/100</td>
+        <td class="metric">${g.maxTemp}°C</td>
+        <td class="metric">${g.avgUtil}%</td>
+        <td style="color:${trendColor};font-weight:700">${trend}</td>
+      </tr>`;
+    }).join('');
+  }).join('');
+
+  document.getElementById('history-table').innerHTML = `
+    <table>
+      <thead><tr><th>Time</th><th>GPU</th><th>Mode</th><th>Duration</th><th>Grade</th><th>Max Temp</th><th>Avg Util</th><th>vs Previous</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function exportReport() {
+  const report = buildReport(stressSamples);
+  const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `forge_stress_${Date.now()}.json`;
+  a.click();
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  detectFleet();
+  renderHistory();
+});
+</script>
+</body>
+</html>
