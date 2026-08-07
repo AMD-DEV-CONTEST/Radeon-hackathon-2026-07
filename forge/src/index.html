@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CESAROPS Forge v2 — 3 Paths</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .page-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+        }
+        header {
+            background: #16213e;
+            padding: 0.8rem 1.2rem;
+            border-bottom: 2px solid #0f3460;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        header h1 { color: #00d4ff; font-size: 1.2rem; }
+        .subtitle { color: #888; font-size: 0.78rem; }
+        .hdr-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .hdr-actions a { color: #00d4ff; font-size: 0.85rem; text-decoration: none; }
+        .btn-sm {
+            padding: 0.35rem 0.7rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: bold;
+        }
+        .btn-clear { background: #4a1500; color: #ffb380; border: 1px solid #ff6600; }
+        .btn-stop { background: #f44336; color: white; }
+        .main-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 280px;
+            gap: 0;
+            min-height: 0;
+            overflow: hidden;
+        }
+        .lane {
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #2d2d44;
+            min-height: 0;
+        }
+        .lane:nth-child(1) { border-top: 3px solid #00d4ff; }
+        .lane:nth-child(2) { border-top: 3px solid #4caf50; }
+        .lane:nth-child(3) { border-top: 3px solid #ff9800; }
+        .lane-head {
+            padding: 8px 10px;
+            background: #16213e;
+            border-bottom: 1px solid #2d2d44;
+            font-size: 0.82rem;
+        }
+        .lane-head strong { color: #00d4ff; }
+        .lane-head select {
+            margin-top: 4px;
+            width: 100%;
+            background: #0f0f1a;
+            color: #fff;
+            border: 1px solid #2d2d44;
+            border-radius: 4px;
+            padding: 4px;
+            font-size: 0.78rem;
+        }
+        .lane-endpoint { font-size: 0.7rem; color: #888; margin-top: 3px; word-break: break-all; }
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 0.88rem;
+        }
+        .msg {
+            padding: 8px 10px;
+            border-radius: 10px;
+            line-height: 1.45;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .msg-user { background: #0f3460; align-self: flex-end; max-width: 95%; }
+        .msg-assistant { background: #1b4332; align-self: flex-start; max-width: 95%; }
+        .msg-sys { background: #2d1b4e; color: #aaa; font-size: 0.75rem; }
+        .tool-badge { font-size: 0.72rem; color: #d4a5ff; padding: 2px 6px; }
+        .input-area {
+            display: flex;
+            gap: 4px;
+            padding: 8px;
+            border-top: 1px solid #2d2d44;
+        }
+        .input-area input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #0f3460;
+            border-radius: 8px;
+            background: #16213e;
+            color: #e0e0e0;
+            font-size: 0.85rem;
+        }
+        .input-area button {
+            padding: 8px 12px;
+            background: #00d4ff;
+            color: #1a1a2e;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.82rem;
+        }
+        .input-area button:disabled { opacity: 0.4; }
+        .monitor {
+            background: #0a0a14;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .monitor h3 {
+            padding: 8px 10px;
+            font-size: 0.8rem;
+            color: #ff9800;
+            border-bottom: 1px solid #2d2d44;
+        }
+        .activity-log {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+            font-family: monospace;
+            font-size: 0.72rem;
+            color: #aaa;
+        }
+        .act-line { margin-bottom: 4px; }
+        .act-lane-a { color: #00d4ff; }
+        .act-lane-b { color: #4caf50; }
+        .act-lane-c { color: #ff9800; }
+        .netdata-frame {
+            height: 160px;
+            border: none;
+            width: 100%;
+            background: #111;
+        }
+        .netdata-offline {
+            padding: 8px 10px;
+            font-size: 0.72rem;
+            color: #ff9800;
+            line-height: 1.4;
+        }
+        .netdata-link {
+            display: block;
+            padding: 6px 10px;
+            font-size: 0.72rem;
+            color: #00d4ff;
+        }
+        .live-dock {
+            flex-shrink: 0;
+            height: 240px;
+            border-top: 2px solid #0f3460;
+            background: #0a0a14;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .dock-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            background: #16213e;
+            border-bottom: 1px solid #2d2d44;
+            font-size: 0.78rem;
+            flex-wrap: wrap;
+        }
+        .dock-head strong { color: #00d4ff; }
+        .dock-head select {
+            background: #0f0f1a;
+            color: #fff;
+            border: 1px solid #2d2d44;
+            border-radius: 4px;
+            padding: 3px 6px;
+            font-size: 0.75rem;
+            max-width: 280px;
+        }
+        .btn-dock {
+            padding: 3px 8px;
+            background: #2d2d44;
+            color: #ccc;
+            border: 1px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.72rem;
+        }
+        #live-log {
+            flex: 1;
+            margin: 0;
+            padding: 8px 10px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            font-family: 'JetBrains Mono', Consolas, monospace;
+            font-size: 0.72rem;
+            line-height: 1.45;
+            color: #b8b8b8;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        #live-log .line-send { color: #00d4ff; }
+        #live-log .line-tool { color: #d4a5ff; }
+        #live-log .line-round { color: #ff9800; }
+        #live-log .line-llm { color: #a5d6a7; }
+        @media (max-width: 1100px) {
+            .main-grid { grid-template-columns: 1fr; grid-template-rows: auto auto auto auto; }
+            .monitor { min-height: 200px; }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div>
+        <h1>CESAROPS FORGE 2 (ClusterNext)</h1>
+        <div class="subtitle">Multi-Lane GPU Telemetry Wall &amp; Real-Time Task Dispatch</div>
+    </div>
+    <div class="hdr-actions">
+        <span id="status" style="font-size:0.8rem;color:#888">…</span>
+        <a href="/">🚀 Forge 3 (Mission Spec)</a>
+        <a href="/wall">⚡ Forge 2 (Wall)</a>
+        <a href="/cluster">🖥️ Forge 1 (Cluster)</a>
+        <a href="/workers">👥 Workers Key</a>
+        <a href="/qualification-lab">🔬 Qualification Lab</a>
+        <a href="/benchmark-report">📊 Benchmark Report</a>
+        <button class="btn-sm btn-clear" onclick="clearAll()">CLEAR ALL</button>
+        <button class="btn-sm btn-stop" onclick="interruptAgent()">STOP</button>
+    </div>
+</header>
+
+<div class="page-body">
+<div class="main-grid">
+    <div class="lane" id="lane-a" data-lane="lane-a">
+        <div class="lane-head">
+            <strong>Path A</strong>
+            <select id="role-lane-a" onchange="setLaneRole('lane-a', this.value)"></select>
+            <div class="lane-endpoint" id="ep-lane-a"></div>
+        </div>
+        <div class="messages" id="msgs-lane-a"></div>
+        <div class="input-area">
+            <input id="input-lane-a" placeholder="Path A message…" onkeydown="if(event.key==='Enter')sendLane('lane-a')">
+            <button onclick="sendLane('lane-a')">SEND</button>
+        </div>
+    </div>
+
+    <div class="lane" id="lane-b" data-lane="lane-b">
+        <div class="lane-head">
+            <strong>Path B — Coding</strong>
+            <select id="role-lane-b" onchange="setLaneRole('lane-b', this.value)"></select>
+            <div class="lane-endpoint" id="ep-lane-b"></div>
+        </div>
+        <div class="messages" id="msgs-lane-b"></div>
+        <div class="input-area">
+            <input id="input-lane-b" placeholder="Coding lane (dedicated endpoint)…" onkeydown="if(event.key==='Enter')sendLane('lane-b')">
+            <button onclick="sendLane('lane-b')">SEND</button>
+        </div>
+    </div>
+
+    <div class="lane" id="lane-c" data-lane="lane-c">
+        <div class="lane-head">
+            <strong>Path C</strong>
+            <select id="role-lane-c" onchange="setLaneRole('lane-c', this.value)"></select>
+            <div class="lane-endpoint" id="ep-lane-c"></div>
+        </div>
+        <div class="messages" id="msgs-lane-c"></div>
+        <div class="input-area">
+            <input id="input-lane-c" placeholder="Path C message…" onkeydown="if(event.key==='Enter')sendLane('lane-c')">
+            <button onclick="sendLane('lane-c')">SEND</button>
+        </div>
+    </div>
+
+    <aside class="monitor">
+        <h3>Cross-lane activity</h3>
+        <div class="activity-log" id="activity-log">Loading…</div>
+        <h3 style="margin-top:4px">Netdata</h3>
+        <a class="netdata-link" id="netdata-link" href="#" target="_blank" rel="noopener">Open Netdata</a>
+        <div class="netdata-offline" id="netdata-offline" style="display:none"></div>
+        <iframe class="netdata-frame" id="netdata-frame" title="Netdata GPU charts"></iframe>
+    </aside>
+</div>
+
+<div class="live-dock">
+    <div class="dock-head">
+        <strong>Live output</strong>
+        <span style="color:#666">LLM rounds · tools · sends</span>
+        <select id="stream-pick" onchange="connectLiveStream(this.value)" title="Log source"></select>
+        <button class="btn-dock" onclick="clearLiveLog()">Clear log</button>
+        <button class="btn-dock" onclick="connectLiveStream(document.getElementById('stream-pick').value)">Reconnect</button>
+    </div>
+    <pre id="live-log">Connecting to live stream…</pre>
+</div>
+</div>
+
+<link rel="stylesheet" href="/assets/forge-hud.css">
+<script src="/assets/forge-hud.js" defer></script>
+<script>
+const LANES = ['lane-a', 'lane-b', 'lane-c'];
+const ROLE_OPTIONS = ['general','coding','coder','thinker','reviewer','corrector','polisher','validator','bootstrap','idle'];
+let liveEs = null;
+const LIVE_LOG_MAX = 600;
+const liveLogLines = [];
+
+function appendLiveLog(text, cls) {
+    const line = (text || '').trim();
+    if (!line) return;
+    liveLogLines.push({ text: line, cls: cls || '' });
+    while (liveLogLines.length > LIVE_LOG_MAX) liveLogLines.shift();
+    const el = document.getElementById('live-log');
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+    el.innerHTML = liveLogLines.map(l => {
+        const c = l.cls ? ` class="line-${l.cls}"` : '';
+        return `<span${c}>${escapeHtml(l.text)}</span>\n`;
+    }).join('');
+    if (atBottom) el.scrollTop = el.scrollHeight;
+    if (window.ForgeHud && typeof window.ForgeHud.log === 'function') {
+        window.ForgeHud.log(line, cls || 'info');
+    }
+}
+
+function clearLiveLog() {
+    liveLogLines.length = 0;
+    const el = document.getElementById('live-log');
+    if (el) el.textContent = '';
+    if (window.ForgeHud && window.ForgeHud.clear) window.ForgeHud.clear();
+}
+
+function classifyStreamLine(line) {
+    if (/\bround:/.test(line) || /#\d+: generating/.test(line)) return 'round';
+    if (/\bllm:/.test(line) || /#\d+: [^g]/.test(line)) return 'llm';
+    if (/\btool:/.test(line)) return 'tool';
+    if (/\bsend:/.test(line)) return 'send';
+    return '';
+}
+
+function connectLiveStream(streamId) {
+    if (liveEs) { liveEs.close(); liveEs = null; }
+    const id = streamId || 'activity';
+    appendLiveLog(`--- stream: ${id} ---`, '');
+    try {
+        liveEs = new EventSource('/streams/' + id);
+        liveEs.onmessage = (ev) => {
+            const chunk = (ev.data || '').trim();
+            if (!chunk) return;
+            chunk.split('\n').forEach(part => {
+                const p = part.trim();
+                if (!p || p.startsWith('# activity stream connected')) return;
+                appendLiveLog(p, classifyStreamLine(p));
+            });
+        };
+        liveEs.onerror = () => {
+            appendLiveLog('[stream disconnected — retrying in 3s]', 'round');
+            liveEs.close();
+            liveEs = null;
+            setTimeout(() => connectLiveStream(id), 3000);
+        };
+    } catch (e) {
+        appendLiveLog('EventSource failed: ' + e.message, 'tool');
+    }
+}
+
+async function loadStreamCatalog() {
+    try {
+        const r = await fetch('/streams');
+        const d = await r.json();
+        const sel = document.getElementById('stream-pick');
+        sel.innerHTML = (d.streams || []).map(s =>
+            `<option value="${s.id}">${s.label}</option>`
+        ).join('');
+        if (!sel.value) sel.value = 'activity';
+    } catch (e) {}
+}
+
+async function setupNetdata() {
+    const frame = document.getElementById('netdata-frame');
+    const offline = document.getElementById('netdata-offline');
+    const link = document.getElementById('netdata-link');
+    try {
+        const r = await fetch('/netdata/status');
+        const d = await r.json();
+        const local = d.local || {};
+        if (local.url) link.href = local.url;
+        let c2note = '';
+        if (d.cesarops2 && d.cesarops2.url) {
+            c2note = d.cesarops2.online
+                ? ` · <a href="${escapeHtml(d.cesarops2.url)}" target="_blank" rel="noopener">cesarops2</a>`
+                : ' · cesarops2 Netdata optional (not running)';
+        }
+        if (local.online) {
+            offline.style.display = 'none';
+            frame.style.display = 'block';
+            frame.src = '/netdata/embed/#metrics_correlation=false;after=-300;before=0;utc=LOCAL';
+        } else {
+            frame.style.display = 'none';
+            offline.style.display = 'block';
+            offline.innerHTML = 'Netdata offline at ' + escapeHtml(local.url || ':19999') +
+                '. Start: <code>sudo systemctl start netdata</code>, refresh.' + c2note;
+        }
+    } catch (e) {
+        offline.style.display = 'block';
+        offline.textContent = 'Could not reach Netdata status API.';
+        frame.style.display = 'none';
+    }
+}
+
+function initLaneSelects() {
+    LANES.forEach(id => {
+        const sel = document.getElementById('role-' + id);
+        if (!sel) return;
+        sel.innerHTML = ROLE_OPTIONS.map(r => `<option value="${r}">${r}</option>`).join('');
+    });
+}
+
+async function loadLanes() {
+    try {
+        const r = await fetch('/lanes');
+        const d = await r.json();
+        const roles = (d.roles && d.roles.length)
+            ? d.roles
+            : ROLE_OPTIONS.map(id => ({ id, label: id }));
+        LANES.forEach(laneId => {
+            const sel = document.getElementById('role-' + laneId);
+            if (!sel) return;
+            const lane = (d.lanes || []).find(l => l.id === laneId);
+            const current = lane?.role || sel.value || 'general';
+            sel.innerHTML = roles.map(ro => {
+                const id = ro.id || ro;
+                const label = ro.label || id;
+                const selAttr = id === current ? ' selected' : '';
+                return `<option value="${escapeHtml(id)}"${selAttr}>${escapeHtml(label)}</option>`;
+            }).join('');
+            const ep = document.getElementById('ep-' + laneId);
+            if (ep) ep.textContent = lane?.endpoint || '';
+        });
+    } catch (e) {
+        initLaneSelects();
+    }
+}
+
+async function setLaneRole(laneId, role) {
+    await fetch('/lanes/' + laneId + '/role', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ role })
+    });
+    await loadLanes();
+}
+
+function addMsg(laneId, role, text) {
+    const el = document.createElement('div');
+    el.className = 'msg msg-' + role;
+    el.textContent = text;
+    document.getElementById('msgs-' + laneId).appendChild(el);
+    el.scrollIntoView({ behavior: 'smooth' });
+}
+
+async function sendLane(laneId) {
+    const input = document.getElementById('input-' + laneId);
+    const msg = input.value.trim();
+    if (!msg) return;
+    input.value = '';
+    addMsg(laneId, 'user', msg);
+    appendLiveLog(`[send] user (${laneId}): ${msg.slice(0, 120)}`, 'send');
+    const btn = input.nextElementSibling;
+    btn.disabled = true;
+    addMsg(laneId, 'sys', 'Working…');
+
+    try {
+        const resp = await fetch('/send', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ message: msg, lane: laneId })
+        });
+        const data = await resp.json();
+        const box = document.getElementById('msgs-' + laneId);
+        const loading = box.querySelector('.msg-sys:last-child');
+        if (loading && loading.textContent === 'Working…') loading.remove();
+        if (data.tool_actions?.length) {
+            const t = document.createElement('div');
+            t.className = 'tool-badge';
+            t.textContent = 'Tools: ' + data.tool_actions.join(' → ');
+            box.appendChild(t);
+        }
+        const replyText = data.response || data.error || '(empty)';
+        addMsg(laneId, 'assistant', replyText);
+        appendLiveLog(`[send] done (${laneId}): ${replyText.slice(0, 160)}`, 'llm');
+    } catch(e) {
+        addMsg(laneId, 'assistant', 'Error: ' + e.message);
+        appendLiveLog('[send] error: ' + e.message, 'tool');
+    }
+    btn.disabled = false;
+    input.focus();
+    refreshActivity();
+}
+
+async function refreshActivity() {
+    try {
+        const r = await fetch('/lanes/activity');
+        const d = await r.json();
+        const log = document.getElementById('activity-log');
+        const lines = (d.activity || []).slice(-40).reverse();
+        log.innerHTML = lines.map(l => {
+            const cls = 'act-' + l.lane;
+            const t = new Date(l.ts * 1000).toLocaleTimeString();
+            return `<div class="act-line ${cls}">[${t}] <b>${l.lane}</b> ${l.kind}: ${escapeHtml(l.text)}</div>`;
+        }).join('') || '<div class="act-line">No activity yet</div>';
+    } catch(e) {}
+}
+
+function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function clearAll() {
+    for (const lane of LANES) {
+        await fetch('/clear/lane', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ lane }) });
+        document.getElementById('msgs-' + lane).innerHTML = '<div class="msg msg-sys">Cleared.</div>';
+    }
+    await fetch('/clear', { method: 'POST' });
+}
+
+async function interruptAgent() {
+    await fetch('/interrupt', { method: 'POST' });
+    LANES.forEach(l => addMsg(l, 'sys', '[STOP] interrupt sent'));
+}
+
+fetch('/health').then(r => r.json()).then(d => {
+    document.getElementById('status').textContent = 'Online — ' + (d.service || 'forge');
+    document.getElementById('status').style.color = '#4caf50';
+}).catch(() => {
+    document.getElementById('status').textContent = 'Offline';
+    document.getElementById('status').style.color = '#f44336';
+});
+
+initLaneSelects();
+loadLanes();
+loadStreamCatalog().then(() => connectLiveStream('activity'));
+setupNetdata();
+LANES.forEach(l => {
+    document.getElementById('msgs-' + l).innerHTML =
+        '<div class="msg msg-sys">Ready. Role routes to endpoint shown above.</div>';
+});
+setInterval(refreshActivity, 2500);
+refreshActivity();
+</script>
+</body>
+</html>

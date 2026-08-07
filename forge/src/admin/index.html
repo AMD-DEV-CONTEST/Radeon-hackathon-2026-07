@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forge 3 — Fleet Administration</title>
+    <link rel="stylesheet" href="/admin/style.css">
+</head>
+<body>
+<header>
+    <div class="title-row">
+        <h1>🔥 FORGE 3 — FLEET ADMINISTRATION</h1>
+        <div class="header-status">Runtime: <span id="runtime-label">Forge V3</span> &nbsp;|&nbsp; <span>10.0.0.61:9100</span></div>
+    </div>
+</header>
+<nav class="nav-tabs">
+    <button class="nav-tab active" onclick="showTab('fleet')">🔍 Fleet</button>
+    <button class="nav-tab" onclick="showTab('profiles')">⚙️ Profiles</button>
+    <button class="nav-tab" onclick="showTab('seats')">🪑 Seats</button>
+    <button class="nav-tab" onclick="showTab('chat')">💬 Chat</button>
+    <button class="nav-tab" onclick="showTab('wall')">📡 Wall</button>
+    <button class="nav-tab" onclick="showTab('qualification')">🔬 Qual Lab</button>
+    <button class="nav-tab" onclick="showTab('strand')">📊 Strand</button>
+    <a href="/gpu-stress" class="nav-tab" style="text-decoration:none">🔥 GPU Stress Lab</a>
+</nav>
+<div id="content">
+  <div id="fleet-tab" class="tab-content active">
+    <div class="panel">
+      <h2>🔍 GPU Fleet Auto-Discovery</h2>
+      <div style="display:flex;gap:10px;margin-bottom:10px">
+        <button class="btn btn-primary" onclick="autoDiscoverFleet()">🚀 Auto-Discover Fleet</button>
+        <button class="btn btn-ghost" onclick="refreshFleet()">↻ Refresh</button>
+      </div>
+      <div id="discovery-status" class="status-box">Click Auto-Discover to scan your GPU fleet.</div>
+      <div id="gpu-list" class="gpu-grid"></div>
+    </div>
+    <div class="panel"><h2>🖥️ Node Status</h2><div id="node-list" class="status-box">Loading…</div></div>
+  </div>
+  <div id="profiles-tab" class="tab-content">
+    <div class="panel"><h2>⚙️ Deployment Profiles</h2><p style="color:var(--text-dim);font-size:0.82rem;margin-bottom:16px">Select a profile to configure your fleet. All profiles include Forge workers + Wayfinder.</p></div>
+    <div class="profiles-grid">
+      <div class="profile-card" data-profile="1">
+        <h3>Profile 1 — NIM + Ornith Dual</h3>
+        <div class="profile-config">
+          <p><strong>NIM Routes:</strong> Auto-launched via Paddler</p>
+          <p><strong>Ornith:</strong> 2x T440 (Always-On)</p>
+          <p><strong>Gemma-4-ERB:</strong> CesarOps-3 (2060 + Sapphire)</p>
+          <p><strong>Lanes:</strong> A=NIM, B=Ornith, C=Gemma</p>
+          <p><strong>Wayfinder:</strong> ✅ All lanes</p>
+          <p style="margin-top:8px"><strong>Status:</strong> <span class="badge badge-off" id="profile1-status">Inactive</span></p>
+        </div>
+        <button class="btn btn-primary" onclick="activateProfile(1)">▶ Activate Profile 1</button>
+      </div>
+      <div class="profile-card" data-profile="2">
+        <h3>Profile 2 — Ornith + Gemma</h3>
+        <div class="profile-config">
+          <p><strong>Ornith:</strong> 2x T440 (Primary)</p>
+          <p><strong>Gemma-4-ERB:</strong> CesarOps-3 IQ4 (2060 + Sapphire fallback)</p>
+          <p><strong>Paddler:</strong> Ornith-primary routing</p>
+          <p><strong>Lanes:</strong> A=Ornith, B=Ornith, C=Gemma</p>
+          <p><strong>Wayfinder:</strong> ✅ All lanes</p>
+          <p style="margin-top:8px"><strong>Status:</strong> <span class="badge badge-off" id="profile2-status">Inactive</span></p>
+        </div>
+        <button class="btn btn-primary" onclick="activateProfile(2)">▶ Activate Profile 2</button>
+      </div>
+      <div class="profile-card" data-profile="3">
+        <h3>Profile 3 — Ornith Full Control</h3>
+        <div class="profile-config">
+          <p><strong>Ornith:</strong> 2x T440 (Exclusive)</p>
+          <p><strong>Paddler:</strong> Full capability, all routes</p>
+          <p><strong>Tools:</strong> All Forge workers + Wayfinder</p>
+          <p><strong>Lanes:</strong> A=B=C=Ornith (3 parallel)</p>
+          <p><strong>Wayfinder:</strong> ✅ All lanes</p>
+          <p style="margin-top:8px"><strong>Status:</strong> <span class="badge badge-off" id="profile3-status">Inactive</span></p>
+        </div>
+        <button class="btn btn-primary" onclick="activateProfile(3)">▶ Activate Profile 3</button>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:16px">
+      <h2>🛤️ Lane Config</h2>
+      <div class="lane-config">
+        <div class="lane-row">
+          <div class="lane-label a">Lane A</div>
+          <select id="lane-a-role"><option value="general">general</option><option value="coding">coding</option><option value="translator">translator</option><option value="coder">coder</option><option value="thinker">thinker</option><option value="reviewer">reviewer</option><option value="corrector">corrector</option><option value="validator">validator</option><option value="idle">idle</option></select>
+          <input id="lane-a-ep" placeholder="Endpoint e.g. http://10.0.0.61:5001">
+        </div>
+        <div class="lane-row">
+          <div class="lane-label b">Lane B</div>
+          <select id="lane-b-role"><option value="general">general</option><option value="coding" selected>coding</option><option value="translator">translator</option><option value="coder">coder</option><option value="thinker">thinker</option><option value="reviewer">reviewer</option><option value="corrector">corrector</option><option value="validator">validator</option><option value="idle">idle</option></select>
+          <input id="lane-b-ep" placeholder="Endpoint URL">
+        </div>
+        <div class="lane-row">
+          <div class="lane-label c">Lane C</div>
+          <select id="lane-c-role"><option value="general">general</option><option value="coding">coding</option><option value="translator">translator</option><option value="coder">coder</option><option value="thinker">thinker</option><option value="reviewer">reviewer</option><option value="corrector">corrector</option><option value="validator">validator</option><option value="idle">idle</option></select>
+          <input id="lane-c-ep" placeholder="Endpoint URL">
+        </div>
+      </div>
+      <button class="btn btn-success" style="margin-top:12px" onclick="saveLaneConfig()">💾 Save Lane Config</button>
+    </div>
+  </div>
+  <div id="seats-tab" class="tab-content">
+    <div class="panel">
+      <h2>🪑 Seat Assignment</h2>
+      <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="refreshSeats()">↻ Refresh</button>
+        <button class="btn btn-warning" onclick="emergencyReseat()">🆘 Emergency Re-Seat Thomas</button>
+      </div>
+      <div id="seat-grid" class="seat-grid">Loading…</div>
+    </div>
+    <div class="panel">
+      <h2>🧪 Unknown-First Qualification</h2>
+      <p style="color:var(--text-dim);font-size:0.82rem;margin-bottom:12px">Test unknown model first. If it fails, falls back to known-good automatically.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <input id="unknown-model-url" placeholder="Unknown model endpoint URL" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text-main);padding:8px 12px;border-radius:6px;min-width:200px">
+        <select id="unknown-model-seat" style="background:var(--bg);border:1px solid var(--border);color:var(--text-main);padding:8px;border-radius:6px">
+          <option value="lane-a">Lane A (Thomas)</option><option value="lane-b">Lane B (Coder)</option><option value="lane-c">Lane C (Thinker)</option>
+        </select>
+        <button class="btn btn-warning" onclick="testUnknownModel()">🎯 Test Unknown</button>
+      </div>
+      <div id="unknown-test-result" class="status-box" style="margin-top:10px">No test running.</div>
+    </div>
+  </div>
+  <div id="chat-tab" class="tab-content">
+    <div class="panel" style="height:calc(100vh - 220px);display:flex;flex-direction:column">
+      <h2>💬 Chat with Forge</h2>
+      <div class="chat-toolbar" style="margin-bottom:10px">
+        <label style="font-size:0.8rem;color:var(--text-dim)">Lane:</label>
+        <select id="chat-lane-select"><option value="lane-a">Lane A</option><option value="lane-b">Lane B</option><option value="lane-c">Lane C</option></select>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('chat-messages').innerHTML='<div class=\'chat-msg system\'>Cleared.</div>'">🗑 Clear</button>
+        <button class="btn btn-danger btn-sm" onclick="fetch('/interrupt',{method:'POST'});showToast('Stop sent','ok')">⏹ Stop</button>
+      </div>
+      <div id="chat-messages" class="chat-messages" style="flex:1"><div class="chat-msg system">Forge V3 ready.</div></div>
+      <div class="chat-input-row" style="margin-top:10px">
+        <input id="chat-input" placeholder="Message Forge…" autocomplete="off">
+        <button id="chat-send-btn" class="btn btn-primary" onclick="sendChat()">Send</button>
+      </div>
+    </div>
+  </div>
+  <div id="wall-tab" class="tab-content">
+    <div class="panel">
+      <h2>📡 Live Activity Stream</h2>
+      <div style="display:flex;gap:10px;margin-bottom:10px">
+        <button class="btn btn-primary" onclick="startLiveStream()">▶ Connect</button>
+        <button class="btn btn-ghost" onclick="stopLiveStream()">⏹ Disconnect</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('live-log').textContent=''">Clear</button>
+      </div>
+      <div id="live-log" class="live-log">Click Connect to watch live activity…</div>
+    </div>
+    <div class="two-col">
+      <div class="panel">
+        <h2>⚡ Quick Actions</h2>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-ghost" onclick="fetch('/clear',{method:'POST'}).then(()=>showToast('All lanes cleared','ok'))">🗑 Clear All Lanes</button>
+          <button class="btn btn-danger" onclick="fetch('/interrupt',{method:'POST'}).then(()=>showToast('Stop sent','ok'))">⏹ Stop Agent</button>
+        </div>
+      </div>
+      <div class="panel"><h2>📊 Lane Activity</h2><div id="activity-snapshot" class="status-box">Loading…</div></div>
+    </div>
+  </div>
+  <div id="qualification-tab" class="tab-content">
+    <div class="panel">
+      <h2>🔬 Qualification Lab</h2>
+      <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="loadQualData()">↻ Refresh Scores</button>
+        <a href="/qualification-lab" class="btn btn-ghost" target="_blank">🔬 Full Lab</a>
+        <a href="/benchmark-report" class="btn btn-ghost" target="_blank">📊 Benchmark</a>
+      </div>
+      <div id="qual-summary">Loading…</div>
+    </div>
+  </div>
+  <div id="strand-tab" class="tab-content">
+    <div class="panel">
+      <h2>📊 Strand — Benchmark Report</h2>
+      <button class="btn btn-primary" style="margin-bottom:12px" onclick="document.getElementById('benchmark-frame').src='/benchmark-report'">Load Report</button>
+      <iframe id="benchmark-frame" src="" style="width:100%;height:calc(100vh - 280px);border:1px solid var(--border);border-radius:6px;background:var(--bg)"></iframe>
+    </div>
+  </div>
+</div>
+<div id="toast" class="toast" style="opacity:0"></div>
+<script src="/admin/admin.js"></script>
+<script>
+async function testUnknownModel() {
+    const url = document.getElementById('unknown-model-url').value.trim();
+    const lane = document.getElementById('unknown-model-seat').value;
+    const result = document.getElementById('unknown-test-result');
+    if (!url) { showToast('Enter model URL first','error'); return; }
+    result.textContent = 'Testing ' + url + ' on ' + lane + '…';
+    showToast('Running unknown model test…','loading');
+    try {
+        const r = await fetch('/send', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'Forge qualification test: respond with valid JSON {"status":"ready","model":"self"}',lane})});
+        const d = await r.json();
+        result.textContent = 'Result: ' + (d.response || d.error || '(empty)');
+        showToast('Test complete','ok');
+    } catch(e) { result.textContent = 'Error: '+e.message; showToast('Test failed — fallback would trigger','error'); }
+}
+async function refreshActivitySnapshot() {
+    try {
+        const r = await fetch('/lanes/activity');
+        const d = await r.json();
+        const el = document.getElementById('activity-snapshot');
+        if (!el) return;
+        const lines = (d.activity||[]).slice(-8).reverse();
+        el.textContent = lines.map(l=>'['+l.lane+'] '+l.kind+': '+l.text).join('\n') || 'No activity.';
+    } catch(e) {}
+}
+setInterval(refreshActivitySnapshot, 3000);
+</script>
+</body>
+</html>

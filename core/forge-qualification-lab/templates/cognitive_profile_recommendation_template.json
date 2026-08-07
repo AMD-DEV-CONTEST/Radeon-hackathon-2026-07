@@ -1,0 +1,41 @@
+{
+  "$schema": "https://cesarops.com/schemas/cognitive_profile_recommendation.v1.json",
+  "role_name": "Cognitive Profile",
+  "formerly_known_as": "Thomas Translator",
+  "description": "Scientific evidence-driven worker role assignment and mission spec translation.",
+  "instruction": "Examine both the Standard 21-Fixture Scorecard and the 4-Site SAR Aircraft Qualification Scorecard. Recommend the optimal AI model for the target worker role using empirical metrics.",
+  "normalizer_guardrail": {
+    "enabled": true,
+    "function": "normalize_contract",
+    "description": "Strips <think>/<reasoning> tags and Markdown codeblocks (```json) into clean valid JSON before passing to Forge loop engine."
+  },
+  "empirical_scorecards_to_evaluate": [
+    {
+      "suite_id": "thomas-translator.v1",
+      "name": "Standard 21-Fixture Qualification Suite",
+      "key_metrics": ["standard_suite_ranking_score", "mean_requirement_recall", "mean_hard_constraint_recall", "mean_claim_disposition_accuracy"]
+    },
+    {
+      "suite_id": "aircraft-search-grid-v1",
+      "name": "Aircraft Qualification Suite (4-Site SAR Benchmark)",
+      "key_metrics": ["overall_score", "finds_candidate", "no_hallucination", "multiple_sources", "explains_uncertainty", "requests_data", "avg_latency_ms"]
+    }
+  ],
+  "recommendation_output_format": {
+    "type": "CognitiveProfileRecommendation",
+    "target_worker_role": "Cognitive Profile | Coder | Reasoner | Evaluator | Medic",
+    "recommended_model": "Ornith-1.0-35B-BF16 | QwQ-32B | DeepSeek-Coder-V2-Instruct-AWQ | Gemma-4-E4B",
+    "empirical_evidence": {
+      "standard_suite_score": 0.9444,
+      "sar_benchmark_score": 93.2,
+      "avg_latency_ms": 937.0,
+      "no_hallucination_recall": 1.0,
+      "normalizer_rescued": true
+    },
+    "scientific_rationale": "Ornith-1.0-35B achieves 93.2/100 on the 4-site SAR benchmark with zero hallucinations and <1s latency on MI300X/Paddler.",
+    "fallback_chain": [
+      "Ornith-35B-Q4_K_M (Local llama.cpp + Normalizer)",
+      "Gemma-4-E4B-it-Q4_K_M (Local Resident Model)"
+    ]
+  }
+}

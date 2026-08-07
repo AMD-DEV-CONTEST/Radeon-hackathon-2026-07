@@ -1,0 +1,303 @@
+# Cluster Configuration — managed by web UI
+# Primary inference: llama-server (CUDA/Vulkan). KoboldCPP kept only for exotic quants if needed.
+
+[bootstrap]
+model = "/data/cesarops/local_models/qwen2.5-coder-1.5b-instruct-q6_k.gguf"
+port = 5003
+backend = "cpu"
+template = "qwen2.5"
+
+[fallback]
+enabled = true
+binary = "/home/cesarops/llama.cpp/build/bin/llama-server"
+port = 5001
+native_quants = ["Q4_0", "Q4_K_M", "Q6_K", "Q8_0", "F16", "F32", "BF16"]
+
+[[gpu]]
+id = 0
+name = "P100 #1"
+bus_id = "5E:00.0"
+vram_mb = 16384
+host = "local"
+
+[[gpu]]
+id = 1
+name = "P100 #2"
+bus_id = "AF:00.0"
+vram_mb = 16384
+host = "local"
+
+[[gpu]]
+id = 2
+name = "RTX 2060 SUPER"
+vram_mb = 8192
+host = "10.0.0.201"
+cuda_index = 1
+port_base = 5200
+notes = "cesarops2 — llama CUDA0 / thinker MTP :5200"
+
+[[gpu]]
+id = 3
+name = "GTX 1070"
+vram_mb = 8192
+host = "10.0.0.201"
+cuda_index = 2
+port_base = 5571
+notes = "cesarops2 — llama CUDA1 / MTP reviewer :5571"
+
+[[gpu]]
+id = 4
+name = "Quadro M2200"
+vram_mb = 4096
+host = "100.110.214.86"
+port_base = 5571
+notes = "Nautik9 laptop — koboldcpp; start on Windows host"
+
+[[gpu]]
+id = 5
+name = "GTX 1060 6GB (Cesarops3)"
+bus_id = "??:00.0"
+vram_mb = 6144
+host = "100.105.77.74"
+port_base = 5570
+notes = "cesarops3 — fleet command center / phi-3 thinker"
+
+[[worker]]
+name = "Thinker"
+role = "think"
+gpu = 0
+model = "/codebase/models/Qwen2.5-Coder-7B-Instruct-abliterated-Q8_0.gguf"
+port = 5010
+template = "qwen2.5"
+enabled = true
+engine = "llama-server"
+backend = "cuda"
+inject_vectors = true
+memory_pool = ""
+
+[[worker]]
+name = "Coder"
+role = "code"
+gpu = 1
+model = "/codebase/models/Qwen2.5-Coder-14B-Instruct-abliterated-Q6_K.gguf"
+port = 5011
+template = "qwen2.5"
+enabled = false
+engine = "llama-server"
+backend = "cuda"
+inject_vectors = true
+memory_pool = ""
+
+[[worker]]
+name = "RTX2060"
+role = "thinker"
+gpu = 2
+model = "/mnt/t440/models/DeepSeek-R1-Distill-Qwen-7B-Uncensored.Q4_K_M.gguf"
+port = 5200
+template = "deepseek-r1"
+host = "10.0.0.201"
+enabled = false
+engine = "llama-server"
+backend = "cuda"
+inject_vectors = true
+memory_pool = ""
+ssh_user = "cesarops"
+gpu_ids = "0,1"
+tensor_split = "50,50"
+
+[[worker]]
+name = "GTX1070"
+role = "reviewer"
+gpu = 3
+model = "/mnt/t440/models/Qwen3.5-9B-DeepSeek-V4-Flash-MTP-Q4_K_M.gguf"
+port = 5571
+template = "qwen2.5"
+host = "10.0.0.201"
+enabled = false
+engine = "llama-server"
+backend = "cuda"
+inject_vectors = false
+memory_pool = ""
+ssh_user = "cesarops"
+gpu_ids = "2,3"
+tensor_split = "50,50"
+
+[[worker]]
+name = "M2200"
+role = "validator"
+gpu = 4
+model = "/data/cesarops/local_models/TinyLlama-1.1B-Chat-v1.0-Q4_K_M.gguf"
+port = 5571
+template = "qwen2.5"
+host = "100.110.214.86"
+enabled = false
+engine = "koboldcpp"
+backend = "cuda"
+inject_vectors = false
+memory_pool = ""
+
+[[worker]]
+name = "FleetCommand"
+role = "fleet_command"
+gpu = 5
+model = "/codebase/models/Phi-3-mini-4k-instruct-Q4_K_M.gguf"
+port = 5570
+template = "phi-3-mini"
+host = "100.105.77.74"
+enabled = true
+engine = "llama-server"
+backend = "vulkan"
+inject_vectors = false
+memory_pool = ""
+notes = "cesarops3 GTX 1060 — fleet command center. Vulkan fallback for 1060."
+
+[models_dir]
+path = "/codebase/models"
+
+# Nodes to poll for availability (Tailscale IPs)
+# The forge probes these on /health every 30s to see who's online
+[[known_nodes]]
+name = "T440 (local)"
+ip = "127.0.0.1"
+gpu = "RTX 2060 + GTX 1070"
+ports = [5002, 5010, 5011, 8090]
+
+[[known_nodes]]
+name = "Cesarops2 (ML350e)"
+ip = "10.0.0.201"
+alt_ip = "100.102.158.111"
+gpu = "4x Tesla P100 16GB"
+ports = [5200, 5201, 5202, 5203, 5300, 5301, 5302, 5303, 5305, 5570, 5571, 5572, 5599, 7788, 8060, 8061, 8062]
+notes = "LAN 10.0.0.201 / Tailscale 100.102.158.111 — P100 multi-GPU target host"
+
+[[known_nodes]]
+name = "Cesarops3 (1060)"
+ip = "100.105.77.74"
+gpu = "2 cards"
+ports = [5570]
+
+[[known_nodes]]
+name = "Nautik9 ThinkPad (M2200)"
+ip = "100.110.214.86"
+gpu = "1 card"
+ports = [5571, 5572]
+notes = "Windows — needs koboldcpp launched manually via scripts/launch_laptop_m2200.sh"
+
+# Agent nicknames — human-friendly names mapped to endpoints
+# Use these in the forge chat: "ask scout to review this" or "delegate to marvin"
+[[agent]]
+name = "moe"
+endpoint = "http://127.0.0.1:5001"
+hardware = "P100 #0+#1 (T440)"
+role = "Main coder"
+model = "Qwen3.6-35B-A3B-MTP"
+
+[[agent]]
+name = "marvin"
+endpoint = "http://100.102.158.111:5555"
+hardware = "GTX 1070 (cesarops2)"
+role = "Corrector/Reviewer"
+model = "14B Coder"
+
+[[agent]]
+name = "scout"
+endpoint = "http://100.105.77.74:5570"
+hardware = "GTX 1060 (cesarops3)"
+role = "Thinker"
+model = "R1 7B"
+
+[[agent]]
+name = "nautik"
+endpoint = "http://100.110.214.86:5571"
+hardware = "ThinkPad M2200 4GB (Maxwell)"
+role = "Validator/Corrector — TinyLlama when online"
+model = "TinyLlama-1.1B-Chat-v1.0-Q4_K_M"
+notes = "Windows — launch manually with scripts/launch_laptop_m2200.sh validator"
+
+[[agent]]
+name = "picasso"
+endpoint = "http://100.102.158.111:5571"
+hardware = "P1000 (cesarops2)"
+role = "Speed+Accuracy Validator — TinyLlama 1.1B Q4_K_M reference canary"
+model = "TinyLlama-1.1B-Chat-v1.0-Q4_K_M"
+validator = true
+validator_api = "http://localhost:9100/validate"
+engine = "llama-server"
+backend = "cuda"
+inject_vectors = false
+corrector_functions = { json_fixer = true, loop_detector = true, translator = true, think_harder = false, auto_remember = true }
+
+# Stable role → endpoint map (address in Forge lanes via lane role)
+[roles]
+coding = "http://10.0.0.201:5305"
+coder = "http://10.0.0.201:5201"
+thinker = "http://10.0.0.201:5200"
+reviewer = "http://10.0.0.201:5571"
+corrector = "http://10.0.0.201:5202"
+polisher = "http://10.0.0.201:5203"
+validator = "http://100.110.214.86:5571"
+general = "http://10.0.0.201:5201"
+bootstrap = "http://127.0.0.1:5003"
+idle = ""
+
+[monitoring]
+# T440 Netdata (Forge monitor panel on :9100)
+netdata_url = "http://127.0.0.1:19999"
+# Optional: install Netdata on cesarops2 to embed remote GPU charts
+netdata_cesarops2_url = "http://127.0.0.1:19999"
+
+[routing]
+default_mode = "auto"
+
+[[routing_preset]]
+id = "pamp-moe-predict"
+name = "PAMP MoE predictor (n8n)"
+description = "Predictive Async MoE — needs n8n on :5678 with /webhook/pamp-route"
+chat_agent = "picasso"
+coder_endpoint = "http://127.0.0.1:5001"
+reviewer_endpoint = "http://127.0.0.1:5571"
+thinker_endpoint = "http://127.0.0.1:5200"
+corrector_endpoint = "http://127.0.0.1:5200"
+draft_endpoint = "http://127.0.0.1:5571"
+workers_start = []
+workers_stop = []
+fleet_node = "cesarops2"
+fleet_action = "sync_llm_endpoints"
+baseline_id = "pamp_moe_test"
+
+[orchestration]
+tools_backend = "n8n"
+n8n_pamp_url = "http://127.0.0.1:5678/webhook/pamp-route"
+n8n_fleet_url = "http://127.0.0.1:5678/webhook/fleet-ops"
+pamp_shadow = true
+
+[tuning]
+# How many think-only rounds before declaring the model stuck
+max_think_rounds = 50
+# Main generation timeout in seconds
+generation_timeout_secs = 1200
+# Thinker preflight timeout in seconds
+thinker_timeout_secs = 60
+# Max tokens for main generation
+max_generation_tokens = 16384
+# Starting temperature
+temperature = 0.4
+# Disable corrector for heavy tasks (set true to skip correction pass)
+skip_corrector = false
+
+# Worker nicknames — human-friendly names mapped to endpoints
+[nicknames]
+coder = "http://127.0.0.1:5001"
+thinker = "http://100.105.77.74:5570"
+corrector = "http://100.102.158.111:5555"
+scout = "http://100.110.214.86:5002"
+bootstrap = "http://127.0.0.1:5002"
+r1-cpu = "http://127.0.0.1:5557"
+mcp-local = "http://127.0.0.1:8090"
+
+[[agent]]
+name = "nemotron"
+endpoint = "http://100.102.158.111:5572"  # or whichever port is configured
+hardware = "NVIDIA Nemotron Ultra"
+role = "Reviewer / Master Evaluator"
+model = "Nemotron-Ultra-4B"
