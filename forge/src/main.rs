@@ -5,6 +5,7 @@ mod diagnostics;
 mod tools;
 mod memory;
 mod hardware;
+mod all_smi;
 mod prompts;
 mod loop_engine;
 mod agent_dispatch;
@@ -78,11 +79,26 @@ struct SendResponse {
 }
 
 async fn index() -> Html<&'static str> {
-    Html(include_str!("index.html"))
+    // V3 Admin is now the default UI
+    Html(include_str!("admin/index.html"))
 }
 
 async fn cluster_panel() -> Html<&'static str> {
     Html(include_str!("cluster_panel.html"))
+}
+
+async fn admin_css() -> impl axum::response::IntoResponse {
+    (
+        [(axum::http::header::CONTENT_TYPE, "text/css")],
+        include_str!("admin/style.css"),
+    )
+}
+
+async fn admin_js() -> impl axum::response::IntoResponse {
+    (
+        [(axum::http::header::CONTENT_TYPE, "application/javascript")],
+        include_str!("admin/admin.js"),
+    )
 }
 
 async fn health() -> &'static str {
@@ -335,6 +351,57 @@ async fn steer(State(state): State<AppState>, Json(body): Json<serde_json::Value
 
 async fn monitor() -> Json<serde_json::Value> {
     Json(hardware::cluster_summary().await)
+}
+
+async fn fleet_all_smi() -> Json<serde_json::Value> {
+    let reports = all_smi::query_full_fleet().await;
+    Json(serde_json::json!({ "fleet": reports }))
+}
+
+async fn fleet_snapshot_local() -> Json<serde_json::Value> {
+    let snap = all_smi::snapshot_local().await;
+    Json(serde_json::to_value(snap).unwrap_or_default())
+}
+
+async fn gpu_stress_page() -> impl axum::response::IntoResponse {
+    (
+        [(axum::http::header::CONTENT_TYPE, "text/html; charset=utf-8")],
+        include_str!("stress.html"),
+    )
+}
+
+async fn stress_start(Json(body): Json<serde_json::Value>) -> Json<serde_json::Value> {
+    let mode = body.get("mode").and_then(|v| v.as_str()).unwrap_or("compute");
+    let duration = body.get("duration").and_then(|v| v.as_u64()).unwrap_or(120);
+    let target = body.get("target").and_then(|v| v.as_str()).unwrap_or("all");
+    info!("Stress test started: mode={} duration={}s target={}", mode, duration, target);
+
+    // For compute mode: launch llama.cpp with a tiny model in a tight loop
+    // This hammers the GPU with matrix multiplies — same workload as inference
+    let llama = "/data/home-offload/src/llama.cpp-zaya/build-cuda-61/bin/llama-server";
+    let model  = "/codebase/models/ai21labs_AI21-Jamba-Reasoning-3B-Q4_K_M.gguf";
+    let cmd = format!(
+        "timeout {duration} {llama} -m {model} --port 19999 -ngl 99 --n-predict 64 --parallel 4 > /tmp/forge_stress.log 2>&1 &",
+    );
+
+    let _ = tokio::process::Command::new("bash")
+        .arg("-c").arg(&cmd).spawn();
+
+    Json(serde_json::json!({
+        "status": "started",
+        "mode": mode,
+        "duration": duration,
+        "note": "Compute stress: llama.cpp CUDA matrix load active"
+    }))
+}
+
+async fn stress_stop() -> Json<serde_json::Value> {
+    let _ = tokio::process::Command::new("bash")
+        .arg("-c")
+        .arg("pkill -f 'llama-server.*19999' ; pkill -f 'forge_stress' ; true")
+        .output().await;
+    info!("Stress test stopped");
+    Json(serde_json::json!({ "status": "stopped" }))
 }
 
 fn set_skip_corrector_config(disabled: bool) -> Result<(), String> {
@@ -1665,7 +1732,8 @@ async fn clusternext_redirect() -> impl axum::response::IntoResponse {
 }
 
 async fn wall_dashboard() -> impl axum::response::IntoResponse {
-    axum::response::Html(include_str!("wall.html"))
+    // Wall is now the V3 admin — redirect
+    axum::response::Redirect::permanent("/")
 }
 
 /// Parse `tailscale status` to get peer online/offline state
@@ -2516,6 +2584,8 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(index))
+        .route("/admin/style.css", get(admin_css))
+        .route("/admin/admin.js", get(admin_js))
         .route("/cluster", get(cluster_panel))
         .route("/clusternext", get(clusternext_redirect))
         .route("/wall", get(wall_dashboard))
@@ -2534,6 +2604,11 @@ async fn main() {
         .route("/interrupt", post(interrupt))
         .route("/steer", post(steer))
         .route("/monitor", get(monitor))
+        .route("/fleet/all-smi", get(fleet_all_smi))
+        .route("/fleet/snapshot", get(fleet_snapshot_local))
+        .route("/gpu-stress", get(gpu_stress_page))
+        .route("/stress/start", post(stress_start))
+        .route("/stress/stop", post(stress_stop))
         .route("/cluster/config", get(get_cluster_config).post(save_cluster_config))
         .route("/cluster/config/full", get(get_cluster_config_full))
         .route("/cluster/gpus", get(get_gpu_fleet))

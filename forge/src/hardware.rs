@@ -1,5 +1,6 @@
 use serde::Serialize;
 use tokio::process::Command;
+use futures;
 
 /// GPU metrics from nvidia-smi.
 #[derive(Debug, Clone, Serialize)]
@@ -127,9 +128,134 @@ pub fn avx512_throttle_warning(active_avx512_cores: u32) -> Option<String> {
     }
 }
 
+/// Query GPU metrics via nvidia-smi on a remote node over SSH.
+pub async fn query_remote_gpu_metrics(ip: &str, ssh_user: &str) -> Vec<GpuInfo> {
+    let output = Command::new("ssh")
+        .args([
+            "-o", "BatchMode=yes",
+            "-o", "ConnectTimeout=5",
+            "-o", "StrictHostKeyChecking=no",
+            &format!("{}@{}", ssh_user, ip),
+            "nvidia-smi --query-gpu=index,name,temperature.gpu,utilization.gpu,memory.used,memory.total,power.draw --format=csv,noheader,nounits 2>/dev/null || echo NO_GPU",
+        ])
+        .output()
+        .await;
+
+    let output = match output {
+        Ok(o) => o,
+        Err(_) => return vec![],
+    };
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    if stdout.trim() == "NO_GPU" || stdout.trim().is_empty() {
+        return vec![];
+    }
+
+    let mut gpus = Vec::new();
+    for line in stdout.lines() {
+        let parts: Vec<&str> = line.split(',').map(|s| s.trim()).collect();
+        if parts.len() >= 7 {
+            gpus.push(GpuInfo {
+                index: parts[0].parse().unwrap_or(0),
+                name: parts[1].to_string(),
+                temperature_c: parts[2].parse().unwrap_or(0),
+                utilization_pct: parts[3].parse().unwrap_or(0),
+                memory_used_mb: parts[4].parse().unwrap_or(0),
+                memory_total_mb: parts[5].parse().unwrap_or(0),
+                power_draw_w: parts[6].parse().unwrap_or(0.0),
+            });
+        }
+    }
+    gpus
+}
+
+/// Remote node definition for fleet discovery
+pub struct RemoteNode {
+    pub name: String,
+    pub ip: String,
+    pub ssh_user: String,
+}
+
+fn known_remote_nodes() -> Vec<RemoteNode> {
+    vec![
+        RemoteNode { name: "cesarops4".into(), ip: "10.0.0.41".into(), ssh_user: "cesarops".into() },
+        RemoteNode { name: "cesarops2".into(), ip: "10.0.0.201".into(), ssh_user: "cesarops".into() },
+        RemoteNode { name: "cesarops3".into(), ip: "10.0.0.111".into(), ssh_user: "cesarops".into() },
+    ]
+}
+
+/// Full fleet GPU summary: local + remote nodes via SSH fallback
+pub async fn full_fleet_gpu_summary() -> serde_json::Value {
+    // Local GPUs
+    let local = query_gpu_metrics().await;
+
+    // Remote nodes in parallel
+    let remote_nodes = known_remote_nodes();
+    let remote_futures: Vec<_> = remote_nodes.iter().map(|node| {
+        let ip = node.ip.clone();
+        let user = node.ssh_user.clone();
+        let name = node.name.clone();
+        async move {
+            let gpus = query_remote_gpu_metrics(&ip, &user).await;
+            (name, ip, gpus)
+        }
+    }).collect();
+
+    let remote_results = futures::future::join_all(remote_futures).await;
+
+    // Build combined node list
+    let mut all_nodes = vec![
+        serde_json::json!({
+            "name": "t440",
+            "ip": "10.0.0.61",
+            "local": true,
+            "gpus": local.gpus,
+            "error": local.error,
+        })
+    ];
+
+    for (name, ip, gpus) in remote_results {
+        let error = if gpus.is_empty() { Some(format!("No GPU data from {}", ip)) } else { None };
+        all_nodes.push(serde_json::json!({
+            "name": name,
+            "ip": ip,
+            "local": false,
+            "gpus": gpus,
+            "error": error,
+        }));
+    }
+
+    serde_json::json!({ "nodes": all_nodes })
+}
+
 /// Get a summary of cluster health for the /monitor endpoint.
 pub async fn cluster_summary() -> serde_json::Value {
     let gpu = query_gpu_metrics().await;
+
+    // Also query remote nodes via SSH for their GPUs
+    let remote_nodes = known_remote_nodes();
+    let remote_futures: Vec<_> = remote_nodes.iter().map(|node| {
+        let ip = node.ip.clone();
+        let user = node.ssh_user.clone();
+        let name = node.name.clone();
+        async move {
+            let gpus = query_remote_gpu_metrics(&ip, &user).await;
+            (name, ip, gpus)
+        }
+    }).collect();
+    let remote_results = futures::future::join_all(remote_futures).await;
+
+    // Build enriched remote nodes JSON for the UI
+    let remote_nodes_json: Vec<serde_json::Value> = remote_results.into_iter().map(|(name, ip, gpus)| {
+        let reachable = !gpus.is_empty();
+        serde_json::json!({
+            "name": name,
+            "ip": ip,
+            "gpus": gpus,
+            "gpu_count": gpus.len(),
+            "reachable": reachable,
+        })
+    }).collect();
     
     // Parse workers to pass down GPU mappings for the dashboard
     let mut workers_info = Vec::new();
@@ -165,6 +291,7 @@ pub async fn cluster_summary() -> serde_json::Value {
         "gpu_error": gpu.error,
         "workers": workers_info,
         "nodes": caps,
+        "remote_nodes": remote_nodes_json,
         "avx512_note": "Limit AVX-512 to 8 cores (Socket 0) to avoid throttle",
         "numa": {
             "socket_0": "Cores 0-7, P100 #0, DDR4 Ch 0-2",
