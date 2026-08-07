@@ -1,0 +1,373 @@
+/* V2 新增样式：操作栈、四个面板、任务条、动画预览。
+ * 遵守 tokens.css 的硬规则：一切尺寸是 --px 的整数倍，无圆角、无渐变、无模糊阴影。 */
+
+/* ---------------------------------------------------------------- 操作栈 */
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--px);
+  /* 禁止横向溢出：溢出会让 px-scroll 产生横向滚动，
+   * 面板一展开就把每行文字从左边裁掉一个字。 */
+  overflow-x: hidden;
+}
+
+.stack *,
+.stack__body * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.stack__hint,
+.kit-hint,
+.kit-warn,
+.kit-status {
+  overflow-wrap: anywhere;
+}
+
+.stack__item {
+  border: var(--px) solid var(--deep-lo);
+  background: var(--deep);
+}
+
+.stack__item[data-open='true'] {
+  border-color: var(--accent);
+}
+
+.stack__item[data-disabled='true'] {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.stack__head {
+  display: flex;
+  align-items: center;
+  gap: calc(2 * var(--px));
+  width: 100%;
+  padding: calc(2 * var(--px)) calc(3 * var(--px));
+  border: 0;
+  background: var(--deep-hi);
+  background-image: var(--tex-deep);
+  color: var(--ink-inv);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.stack__head:hover {
+  background-color: var(--stone);
+}
+
+.stack__badge {
+  display: inline-block;
+  min-width: calc(10px * var(--ui-scale));
+  padding: 0 var(--px);
+  background: var(--deep-lo);
+  color: var(--accent);
+  text-align: center;
+}
+
+.stack__title {
+  flex: 1;
+}
+
+.stack__check {
+  color: var(--success);
+}
+
+.stack__hint {
+  padding: var(--px) calc(3 * var(--px));
+  color: var(--ink-dim);
+  font-size: var(--fs-small);
+}
+
+.stack__body {
+  padding: calc(3 * var(--px));
+  border-top: var(--px) solid var(--deep-lo);
+}
+
+/* ---------------------------------------------------------------- 面板控件 */
+
+.kit-field {
+  margin-bottom: calc(3 * var(--px));
+}
+
+.kit-hint {
+  color: var(--ink-dim);
+  font-size: var(--fs-small);
+  margin-bottom: var(--px);
+}
+
+.kit-row {
+  display: flex;
+  align-items: center;
+  gap: calc(2 * var(--px));
+  flex-wrap: wrap;
+  margin-bottom: calc(2 * var(--px));
+}
+
+.kit-status {
+  margin-top: calc(2 * var(--px));
+  color: var(--ink-dim);
+  font-size: var(--fs-small);
+  min-height: calc(16px * var(--ui-scale));
+}
+
+.kit-warn {
+  margin: var(--px) 0;
+  padding: var(--px) calc(2 * var(--px));
+  border-left: calc(2 * var(--px)) solid var(--warn);
+  background: var(--deep-lo);
+  color: var(--warn);
+  font-size: var(--fs-small);
+}
+
+.kit-sep {
+  margin: calc(3 * var(--px)) 0 var(--px);
+  padding-top: calc(2 * var(--px));
+  border-top: var(--px) solid var(--deep-lo);
+  color: var(--accent);
+  font-size: var(--fs-small);
+}
+
+.kit-adv {
+  margin-top: calc(2 * var(--px));
+}
+
+.kit-adv__head {
+  width: 100%;
+  text-align: left;
+}
+
+.kit-adv__body {
+  padding: calc(2 * var(--px));
+  border: var(--px) solid var(--deep-lo);
+  border-top: 0;
+}
+
+.kit-apply {
+  display: block;
+  width: 100%;
+  margin-top: calc(2 * var(--px));
+}
+
+.kit-classbar {
+  display: flex;
+  align-items: center;
+  gap: calc(2 * var(--px));
+  margin-bottom: calc(2 * var(--px));
+  padding: calc(2 * var(--px));
+  border-left: calc(2 * var(--px)) solid var(--info);
+  background: var(--deep-lo);
+  font-size: var(--fs-small);
+}
+
+.kit-prompt {
+  width: 100%;
+  resize: vertical;
+}
+
+.px-input {
+  padding: var(--px) calc(2 * var(--px));
+  border: var(--px) solid var(--deep-lo);
+  background: var(--deep-lo);
+  color: var(--ink-inv);
+  font: inherit;
+  font-size: var(--fs-small);
+}
+
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--px);
+  margin-bottom: var(--px);
+}
+
+/* ---------------------------------------------------------------- 生成面板 */
+
+.gen-gallery {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: calc(2 * var(--px));
+  margin: calc(2 * var(--px)) 0;
+}
+
+.gen-cell {
+  padding: var(--px);
+  border: var(--px) solid var(--deep-lo);
+  background: var(--canvas-void);
+  background-image: var(--tex-checker);
+  cursor: pointer;
+  text-align: center;
+}
+
+.gen-cell[aria-selected='true'] {
+  border-color: var(--accent);
+  outline: var(--px) solid var(--accent);
+}
+
+.gen-cell__img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.gen-cell__seed {
+  color: var(--ink-dim);
+  font-size: var(--fs-small);
+}
+
+/* ---------------------------------------------------------------- 视频面板 */
+
+.vid-step {
+  margin-bottom: calc(3 * var(--px));
+  padding-bottom: calc(2 * var(--px));
+  border-bottom: var(--px) solid var(--deep-lo);
+}
+
+.vid-step__head {
+  margin-bottom: var(--px);
+  color: var(--accent);
+}
+
+.vid-timeline {
+  display: flex;
+  gap: var(--px);
+  overflow-x: auto;
+  padding: var(--px);
+  background: var(--deep-lo);
+}
+
+.vid-thumb {
+  height: calc(32px * var(--ui-scale));
+  width: auto;
+  border: var(--px) solid transparent;
+  cursor: pointer;
+}
+
+.vid-thumb:hover {
+  border-color: var(--accent);
+}
+
+.vid-result {
+  margin-top: calc(2 * var(--px));
+  padding: calc(2 * var(--px));
+  border: var(--px) solid var(--success);
+  background: var(--deep-lo);
+}
+
+.vid-result__head {
+  color: var(--success);
+  margin-bottom: var(--px);
+}
+
+.vid-result__row {
+  font-size: var(--fs-small);
+}
+
+/* ---------------------------------------------------------------- 任务条 */
+
+.statusbar__task {
+  display: flex;
+  align-items: center;
+  gap: calc(2 * var(--px));
+  margin-right: calc(3 * var(--px));
+  padding-right: calc(3 * var(--px));
+  border-right: var(--px) solid var(--deep-lo);
+}
+
+.task-bar__text {
+  color: var(--accent);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+
+.task-bar__track {
+  display: inline-block;
+  width: calc(80px * var(--ui-scale));
+  height: calc(6px * var(--ui-scale));
+  border: var(--px) solid var(--deep-lo);
+  background: var(--deep-lo);
+}
+
+.task-bar__fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+}
+
+/* ---------------------------------------------------------------- 新建项目对话框 (E03) */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 50;
+}
+
+.modal[hidden] {
+  display: none;
+}
+
+.modal__panel {
+  width: calc(220px * var(--ui-scale));
+  padding: calc(3 * var(--px));
+}
+
+.modal__title {
+  margin-bottom: calc(2 * var(--px));
+  color: var(--accent);
+}
+
+.modal__field {
+  display: block;
+  margin-bottom: calc(3 * var(--px));
+  color: var(--ink-dim);
+  font-size: var(--fs-small);
+}
+
+.modal__field .px-input {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: var(--px);
+}
+
+.modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: calc(2 * var(--px));
+}
+
+/* ---------------------------------------------------------------- 动画预览 */
+
+.animview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: var(--canvas-void);
+}
+
+.animview__img {
+  image-rendering: pixelated;
+  border: var(--px) solid var(--deep-lo);
+  background-image: var(--tex-checker);
+}
+
+.animview__meta {
+  margin-top: calc(2 * var(--px));
+  color: var(--ink-dim);
+  font-size: var(--fs-small);
+}
+
+.anim-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--px);
+}

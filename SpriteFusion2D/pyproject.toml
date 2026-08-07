@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "comfyui-spritefusion-pixel-snapper"
+version = "0.6.0"
+description = "ROCm Pixel Snapper with optimized and exact legacy-compatible algorithms."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.26",
+    "torch>=2.2",
+]
+authors = [
+    { name = "x0x0b" },
+    { name = "Hugo Duprez" },
+]
+keywords = [
+    "comfyui",
+    "pixel",
+    "pixel-art",
+    "grid-snap",
+    "palette-quantization",
+    "rocm",
+    "spritefusion",
+    "image-processing",
+]
+
+[project.optional-dependencies]
+benchmark = ["Pillow>=10"]
+workshop = ["Pillow>=10"]
+atlas = ["rectpack>=0.2.2"]
+dev = [
+    "Pillow>=10",
+    "ruff==0.14.10",
+]
+
+[project.scripts]
+sprite-workshop = "sprite_workshop.cli:main"
+spritews = "sprite_workshop.cli:main"
+
+# flat layout + 根 __init__.py + 多个顶层目录会让自动发现失败，必须显式声明。
+[tool.setuptools]
+py-modules = ["pixel_snapper_core", "pixel_snapper_node"]
+packages = ["sprite_workshop", "sprite_workshop.generate"]
+
+[project.urls]
+Repository = "https://github.com/x0x0b/ComfyUI-spritefusion-pixel-snapper"
+Issues = "https://github.com/x0x0b/ComfyUI-spritefusion-pixel-snapper/issues"
+
+[tool.comfy]
+PublisherId = "x0x0b"
+DisplayName = "Sprite Fusion Pixel Snapper for ComfyUI"
+Icon = "https://raw.githubusercontent.com/x0x0b/ComfyUI-spritefusion-pixel-snapper/main/icon.png"

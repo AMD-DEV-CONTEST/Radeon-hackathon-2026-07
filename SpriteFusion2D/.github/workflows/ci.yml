@@ -1,0 +1,119 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  ruff:
+    name: Ruff format & imports
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Ruff
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff==0.14.10
+
+      - name: Format check
+        run: ruff format --check .
+
+      - name: Import order check
+        run: ruff check --select I .
+
+  test:
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.10 is the declared floor in pyproject; without this entry nothing
+        # holds that promise (BACKEND_CLI_PLAN.md 11.9).
+        python-version: ["3.10", "3.12"]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install CPU PyTorch
+        run: |
+          python -m pip install numpy
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install the workshop extra
+        run: python -m pip install -e .[workshop]
+
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+
+  test-minimal:
+    name: Tests without optional backends
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      # No rectpack, no rembg: the base pipeline must still work and the
+      # optional backends must fail with a clear code, not a traceback.
+      - name: Install base dependencies only
+        run: |
+          python -m pip install numpy
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -e .[workshop]
+
+      - name: Run tests
+        run: python -m unittest discover -s tests
+
+      - name: CLI smoke
+        run: |
+          python -m sprite_workshop.cli --json doctor
+          python -m sprite_workshop.cli --help
+
+  frontend:
+    name: Frontend RPC contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # The tests exercise electron/sidecar.js and renderer/js/coords.js, which
+      # import node built-ins only.  --ignore-scripts keeps Electron's ~150 MB
+      # binary download out of CI while still validating the lockfile.
+      - name: Install (no Electron binary)
+        working-directory: frontend
+        run: npm ci --ignore-scripts
+
+      - name: Run RPC and coordinate tests
+        working-directory: frontend
+        run: npm run test:rpc

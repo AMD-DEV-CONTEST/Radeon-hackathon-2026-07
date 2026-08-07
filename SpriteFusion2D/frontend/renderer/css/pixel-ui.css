@@ -1,0 +1,320 @@
+/* 像素 UI 组件库 —— FRONTEND_PLAN.md §4
+ * 斜角全部用 0 模糊的 inset box-shadow 实现：左上高光、右下阴影，按下时反转。
+ * 没有一处使用圆角、渐变或模糊。 */
+
+/* ---------------------------------------------------------------- 斜角面板 */
+
+.px-panel {
+  background-color: var(--face);
+  background-image: var(--tex-face);
+  background-size: calc(32px * var(--ui-scale));
+  color: var(--ink);
+  box-shadow:
+    inset calc(var(--border) * -1) calc(var(--border) * -1) 0 0 var(--face-lo),
+    inset var(--border) var(--border) 0 0 var(--face-hi);
+}
+
+.px-panel--deep {
+  background-color: var(--deep);
+  background-image: var(--tex-deep);
+  color: var(--ink-inv);
+  box-shadow:
+    inset calc(var(--border) * -1) calc(var(--border) * -1) 0 0 var(--deep-hi),
+    inset var(--border) var(--border) 0 0 var(--deep-lo);
+}
+
+/* 内凹（用于列表、画布容器）：高光和阴影互换 */
+.px-inset {
+  background-color: var(--deep-lo);
+  box-shadow:
+    inset var(--border) var(--border) 0 0 #101010,
+    inset calc(var(--border) * -1) calc(var(--border) * -1) 0 0 var(--deep-hi);
+}
+
+/* ---------------------------------------------------------------- 按钮 */
+
+.px-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(4px * var(--ui-scale));
+  min-height: calc(20px * var(--ui-scale));
+  padding: 0 calc(8px * var(--ui-scale));
+  border: var(--px) solid var(--outline);
+  background-color: var(--face);
+  background-image: var(--tex-face);
+  background-size: calc(32px * var(--ui-scale));
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  /* 容器被压窄时不许换行竖排——高 UI 缩放下会把按钮挤成一列字 */
+  white-space: nowrap;
+  flex: none;
+  box-shadow:
+    inset calc(var(--px) * -2) calc(var(--px) * -2) 0 0 var(--face-lo),
+    inset calc(var(--px) * 2) calc(var(--px) * 2) 0 0 var(--face-hi);
+  /* 动效只用 steps()（§4.3） */
+  transition: background-color 80ms steps(2);
+}
+
+.px-btn:hover:not(:disabled) {
+  background-color: var(--face-hover);
+}
+
+.px-btn:active:not(:disabled) {
+  /* 按下 = 1 帧位移 + 斜角反转，不是缓动 */
+  box-shadow:
+    inset calc(var(--px) * 2) calc(var(--px) * 2) 0 0 var(--face-lo),
+    inset calc(var(--px) * -2) calc(var(--px) * -2) 0 0 var(--face-hi);
+  transform: translate(var(--px), var(--px));
+}
+
+.px-btn:disabled {
+  color: var(--ink-dim);
+  cursor: not-allowed;
+  filter: saturate(0.4);
+}
+
+.px-btn--accent {
+  background-color: #d9a03a;
+}
+.px-btn--accent:hover:not(:disabled) {
+  background-color: var(--accent);
+}
+.px-btn--danger {
+  background-color: #b4483f;
+  color: var(--ink-inv);
+}
+.px-btn--sm {
+  min-height: calc(14px * var(--ui-scale));
+  padding: 0 calc(4px * var(--ui-scale));
+  font-size: var(--fs-small);
+}
+.px-btn--on {
+  background-color: #7ba05b;
+}
+
+/* ---------------------------------------------------------------- 标签页 */
+
+.px-tabs {
+  display: flex;
+  gap: var(--px);
+  padding: 0 calc(4px * var(--ui-scale));
+}
+
+.px-tab {
+  padding: calc(3px * var(--ui-scale)) calc(8px * var(--ui-scale));
+  border: var(--px) solid var(--outline);
+  border-bottom: none;
+  background-color: var(--deep);
+  background-image: var(--tex-deep);
+  color: var(--ink-dim);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--fs-small);
+  white-space: nowrap;
+  flex: none;
+}
+
+.px-tab[aria-selected='true'] {
+  background-color: var(--face);
+  background-image: var(--tex-face);
+  color: var(--ink);
+  box-shadow: inset 0 calc(var(--px) * 2) 0 0 var(--face-hi);
+}
+
+/* ---------------------------------------------------------------- 滑块 */
+
+.px-slider {
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--ui-scale));
+}
+
+.px-slider input[type='range'] {
+  flex: 1;
+  height: calc(10px * var(--ui-scale));
+  appearance: none;
+  background: var(--deep-lo);
+  border: var(--px) solid var(--outline);
+  box-shadow: inset var(--px) var(--px) 0 0 #101010;
+  cursor: pointer;
+}
+
+.px-slider input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  width: calc(8px * var(--ui-scale));
+  height: calc(16px * var(--ui-scale));
+  background-color: var(--face);
+  border: var(--px) solid var(--outline);
+  box-shadow:
+    inset calc(var(--px) * -2) calc(var(--px) * -2) 0 0 var(--face-lo),
+    inset calc(var(--px) * 2) calc(var(--px) * 2) 0 0 var(--face-hi);
+}
+
+.px-slider .px-slider__value {
+  min-width: calc(28px * var(--ui-scale));
+  text-align: right;
+  font-size: var(--fs-small);
+  color: var(--ink-inv);
+}
+
+/* ---------------------------------------------------------------- 列表 */
+
+.px-list {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.px-row {
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--ui-scale));
+  padding: calc(3px * var(--ui-scale)) calc(6px * var(--ui-scale));
+  cursor: pointer;
+  border-left: calc(3px * var(--ui-scale)) solid transparent;
+}
+
+.px-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.px-row[aria-selected='true'] {
+  background: rgba(255, 170, 0, 0.16);
+  border-left-color: var(--accent);
+}
+
+.px-row__label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.px-row__note {
+  font-size: var(--fs-small);
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+
+.px-group-title {
+  padding: calc(4px * var(--ui-scale)) calc(6px * var(--ui-scale));
+  font-size: var(--fs-small);
+  color: var(--accent);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* ---------------------------------------------------------------- 徽章与状态 */
+
+.px-badge {
+  padding: 0 calc(4px * var(--ui-scale));
+  font-size: var(--fs-small);
+  border: var(--px) solid var(--outline);
+  background: var(--stone);
+  color: var(--ink);
+}
+
+.px-badge--ok {
+  background: #5b8c3a;
+  color: var(--ink-inv);
+}
+.px-badge--warn {
+  background: #b8a53a;
+}
+.px-badge--err {
+  background: var(--danger);
+  color: var(--ink-inv);
+}
+.px-badge--skip {
+  background: #6a6a6a;
+  color: var(--ink-inv);
+}
+
+.px-dot {
+  width: calc(6px * var(--ui-scale));
+  height: calc(6px * var(--ui-scale));
+  border: var(--px) solid var(--outline);
+  flex: none;
+}
+.px-dot--ready {
+  background: var(--success);
+}
+.px-dot--down {
+  background: var(--danger);
+}
+.px-dot--starting {
+  background: var(--warn);
+}
+
+/* ---------------------------------------------------------------- 滚动条 */
+
+.px-list::-webkit-scrollbar,
+.px-scroll::-webkit-scrollbar {
+  width: calc(8px * var(--ui-scale));
+  height: calc(8px * var(--ui-scale));
+}
+
+.px-list::-webkit-scrollbar-track,
+.px-scroll::-webkit-scrollbar-track {
+  background: var(--deep-lo);
+}
+
+.px-list::-webkit-scrollbar-thumb,
+.px-scroll::-webkit-scrollbar-thumb {
+  background: var(--stone);
+  border: var(--px) solid var(--outline);
+  box-shadow:
+    inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--face-lo),
+    inset var(--px) var(--px) 0 0 var(--face-hi);
+}
+
+/* ---------------------------------------------------------------- 提示条 */
+
+.px-toast {
+  position: fixed;
+  right: calc(12px * var(--ui-scale));
+  bottom: calc(28px * var(--ui-scale));
+  max-width: calc(320px * var(--ui-scale));
+  padding: calc(6px * var(--ui-scale)) calc(10px * var(--ui-scale));
+  border: var(--px) solid var(--outline);
+  background: var(--deep);
+  background-image: var(--tex-deep);
+  color: var(--ink-inv);
+  z-index: 50;
+  box-shadow:
+    inset calc(var(--px) * -2) calc(var(--px) * -2) 0 0 var(--deep-hi),
+    inset calc(var(--px) * 2) calc(var(--px) * 2) 0 0 var(--deep-lo);
+}
+
+.px-toast--err {
+  border-color: var(--danger);
+  background-color: #4a1f1f;
+}
+
+.px-toast__code {
+  color: var(--warn);
+  font-size: var(--fs-small);
+}
+
+/* ---------------------------------------------------------------- 进度条 */
+
+.px-progress {
+  height: calc(10px * var(--ui-scale));
+  border: var(--px) solid var(--outline);
+  background: var(--deep-lo);
+  padding: var(--px);
+}
+
+.px-progress__fill {
+  height: 100%;
+  background: var(--success);
+  /* 格子推进，不是平滑填充（§4.3） */
+  transition: width 100ms steps(8);
+}
+
+.px-empty {
+  padding: calc(12px * var(--ui-scale));
+  color: var(--ink-dim);
+  font-size: var(--fs-small);
+  text-align: center;
+}
