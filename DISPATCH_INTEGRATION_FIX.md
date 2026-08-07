@@ -114,7 +114,7 @@ async fn dispatch_stop() -> Json<serde_json::Value>
 cd /home/cesarops/cesarops_push
 cargo run --bin cesarops-forge-v2
 
-# Open browser to http://localhost:9100/cluster
+# Open browser to https://cesarops.com/cluster
 # Navigate to dispatch.html
 # Select GPUs, assign models, click Launch
 ```
@@ -134,7 +134,7 @@ curl http://localhost:5000/health
 ### Test Stop
 ```bash
 # Click "Stop Selected" in UI
-# OR curl -X POST http://localhost:9100/cluster/dispatch/stop
+# OR curl -X POST https://cesarops.com/cluster/dispatch/stop
 
 # Verify processes stopped
 ps aux | grep -E 'koboldcpp|llama-server'
@@ -229,7 +229,7 @@ cargo run --release --bin cesarops-forge-v2
 
 ### 3. Access UI
 ```
-http://localhost:9100/cluster
+https://cesarops.com/cluster
 → Click "Dispatch" in nav
 ```
 

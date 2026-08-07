@@ -3,7 +3,7 @@
 ## 🏆 Radeon Hackathon 2026-07 Submission - Track 2
 
 **Status**: ✅ **COMPLETE & OPERATIONAL**  
-**Live Demo**: http://10.0.0.61:9100/  
+**Live Demo**: https://cesarops.com/  
 **Branch**: `forge-v3-amd-integration`  
 **Documentation**: See [HACKATHON_SUBMISSION.md](HACKATHON_SUBMISSION.md)
 
@@ -19,16 +19,16 @@
 ✅ **GPU Stress & Health Lab** - Real-time testing with health grading (S/A/B/C/D)  
 ✅ **Fleet Auto-Discovery** - Automatic detection across local + remote nodes  
 ✅ **Zero Dependencies** - Direct hardware APIs, no vendor binaries required  
-✅ **Production Ready** - Currently deployed at 10.0.0.61:9100  
+✅ **Production Ready** - Currently deployed at cesarops.com  
 ✅ **Remote Node Support** - SSH-based querying with inline Python scripts  
 
 ### Live Access
 
 ```
-Main Dashboard:    http://10.0.0.61:9100/
-GPU Stress Lab:    http://10.0.0.61:9100/gpu-stress
-Health Check:      http://10.0.0.61:9100/health
-Fleet API:         http://10.0.0.61:9100/fleet/all-smi
+Main Dashboard:    https://cesarops.com/
+GPU Stress Lab:    https://cesarops.com/gpu-stress
+Health Check:      https://cesarops.com/health
+Fleet API:         https://cesarops.com/fleet/all-smi
 ```
 
 ---
@@ -75,18 +75,18 @@ FORGE_BIND_PORT=9100 FORGE_BIND_HOST=0.0.0.0 \
 
 ```bash
 # Check health
-curl http://localhost:9100/health
+curl https://cesarops.com/health
 
 # Get all GPU info (JSON)
-curl http://localhost:9100/fleet/all-smi | jq
+curl https://cesarops.com/fleet/all-smi | jq
 
 # Access web UI
-# Navigate to http://localhost:9100/
+# Navigate to https://cesarops.com/
 ```
 
 ### Running GPU Stress Tests
 
-1. Open http://localhost:9100/gpu-stress
+1. Open https://cesarops.com/gpu-stress
 2. Select GPUs from auto-discovered fleet
 3. Choose stress mode (Compute, Memory, Thermal, Overclock)
 4. Click "Start Stress Test"
@@ -212,7 +212,7 @@ Works across heterogeneous fleet without pre-installing tools.
 
 **Inference engine**: produces coherent output on Qwen2.5-Coder-1.5B Q6_K (`"What is 2+2?" → "2+2 equals 4."`). Currently 0.2 t/s on P100 — speed work in progress (vec4 matvec, INT8 DP4A, fused kernels).
 
-**Forge V3**: Production-ready fleet management with multi-vendor GPU support, stress testing, health monitoring, and real-time metrics. Currently deployed at 10.0.0.61:9100.
+**Forge V3**: Production-ready fleet management with multi-vendor GPU support, stress testing, health monitoring, and real-time metrics. Currently deployed at cesarops.com.
 
 ---
 
@@ -223,7 +223,7 @@ Works across heterogeneous fleet without pre-installing tools.
 📄 **[HACKATHON_SUBMISSION.md](HACKATHON_SUBMISSION.md)** - Executive summary  
 📄 **[FORGE_V3_STATUS.md](FORGE_V3_STATUS.md)** - Complete operational guide  
 📄 **[FORGE_V3_MIGRATION_AUDIT.md](FORGE_V3_MIGRATION_AUDIT.md)** - Technical audit  
-🌐 **Live Demo**: http://10.0.0.61:9100/
+🌐 **Live Demo**: https://cesarops.com/
 
 ### Key Innovations
 
@@ -244,7 +244,7 @@ cd forge
 cargo build --release
 
 # Or visit live deployment
-curl http://10.0.0.61:9100/fleet/all-smi
+curl https://cesarops.com/fleet/all-smi
 ```
 
 ---

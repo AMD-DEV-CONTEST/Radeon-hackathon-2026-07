@@ -98,7 +98,7 @@ cargo build --release
 ./target/release/cesarops-forge-v2 --port 9100
 ```
 
-Access dashboards at `http://localhost:9100/wall`
+Access dashboards at `https://cesarops.com/wall`
 
 ## Contact
 For questions about this submission, refer to the video demonstration or examine the core logic files listed above.

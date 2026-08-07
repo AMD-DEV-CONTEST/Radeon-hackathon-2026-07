@@ -14,7 +14,7 @@
 - ✅ V3 Admin interface (unified dashboard)
 - ✅ Fleet auto-discovery (local + remote)
 - ✅ REST API with full JSON responses
-- ✅ Production deployment at 10.0.0.61:9100
+- ✅ Production deployment at cesarops.com
 
 ### 2. Documentation ✅
 - ✅ README.md - Updated with V3 highlights
@@ -80,22 +80,22 @@ https://github.com/festeraeb/Track2-Cesarops-Hadfield-Radeon-hackathon-2026-07/c
 ### Live Demo
 **Main Dashboard**:
 ```
-http://10.0.0.61:9100/
+https://cesarops.com/
 ```
 
 **GPU Stress Lab**:
 ```
-http://10.0.0.61:9100/gpu-stress
+https://cesarops.com/gpu-stress
 ```
 
 **Health Check**:
 ```
-http://10.0.0.61:9100/health
+https://cesarops.com/health
 ```
 
 **Fleet API**:
 ```
-http://10.0.0.61:9100/fleet/all-smi
+https://cesarops.com/fleet/all-smi
 ```
 
 ---
@@ -154,7 +154,7 @@ gh pr create \
 1. **Updated README.md** - Leading with Forge V3 features
 2. **Branch**: forge-v3-amd-integration with 31 commits
 3. **Documentation**: 7 comprehensive guides
-4. **Live Demo Link**: http://10.0.0.61:9100/
+4. **Live Demo Link**: https://cesarops.com/
 
 ### Key Files for Judges
 1. **README.md** - Overview and quick start
@@ -283,7 +283,7 @@ Removed (consolidated):
 
 Everything is pushed and ready. The judges will see:
 
-1. **A complete, production-ready system** deployed at 10.0.0.61:9100
+1. **A complete, production-ready system** deployed at cesarops.com
 2. **Comprehensive documentation** explaining every aspect
 3. **Clean, well-organized code** with multi-vendor GPU support
 4. **Real AMD innovation** (monitoring without ROCm)

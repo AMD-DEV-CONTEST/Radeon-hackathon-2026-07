@@ -16,7 +16,7 @@
 Just open your browser:
 
 ```
-http://10.0.0.61:9100/
+https://cesarops.com/
 ```
 
 **What you'll see**:
@@ -26,7 +26,7 @@ http://10.0.0.61:9100/
 
 **Try the GPU Stress Lab**:
 ```
-http://10.0.0.61:9100/gpu-stress
+https://cesarops.com/gpu-stress
 ```
 
 Click "Discover GPUs" → Select both P100s → Choose "Compute Stress" → "Start"  
@@ -36,10 +36,10 @@ Watch real-time monitoring and health grades appear!
 
 ```bash
 # Health check
-curl http://10.0.0.61:9100/health
+curl https://cesarops.com/health
 
 # Get all GPU metrics (JSON)
-curl http://10.0.0.61:9100/fleet/all-smi | jq
+curl https://cesarops.com/fleet/all-smi | jq
 ```
 
 ---
@@ -78,7 +78,7 @@ curl http://10.0.0.61:9100/fleet/all-smi | jq
 
 ### 2. **Production Deployed**
 - Not a prototype - actually running in production
-- URL: http://10.0.0.61:9100/
+- URL: https://cesarops.com/
 - Monitoring 2x Tesla P100-PCIE-16GB right now
 
 ### 3. **Multi-Vendor Unified API**
@@ -205,7 +205,7 @@ async function startStressTest() {
 
 ### Test 1: Fleet Auto-Discovery (2 minutes)
 
-1. Open http://10.0.0.61:9100/
+1. Open https://cesarops.com/
 2. Click "🔍 Fleet" tab (should be active by default)
 3. Click "Discover All GPUs"
 4. See 2x Tesla P100s appear with real-time metrics
@@ -213,7 +213,7 @@ async function startStressTest() {
 
 ### Test 2: GPU Stress Test (5 minutes)
 
-1. Navigate to http://10.0.0.61:9100/gpu-stress
+1. Navigate to https://cesarops.com/gpu-stress
 2. Click "Discover GPUs" button
 3. Select both P100 GPUs from the list
 4. Choose "Compute Stress" mode
@@ -229,9 +229,9 @@ async function startStressTest() {
 
 ```bash
 # Terminal test - try these commands
-curl http://10.0.0.61:9100/health
-curl http://10.0.0.61:9100/fleet/all-smi | jq '.fleet[0].accelerators'
-curl http://10.0.0.61:9100/stress/status
+curl https://cesarops.com/health
+curl https://cesarops.com/fleet/all-smi | jq '.fleet[0].accelerators'
+curl https://cesarops.com/stress/status
 ```
 
 ---
@@ -289,7 +289,7 @@ FORGE_BIND_PORT=9100 target/release/cesarops-forge-v2
 
 Use this to quickly verify the submission:
 
-- [ ] **Live demo accessible**: http://10.0.0.61:9100/ ✅
+- [ ] **Live demo accessible**: https://cesarops.com/ ✅
 - [ ] **AMD support without ROCm**: Check code in `all_smi.rs` ✅
 - [ ] **Multi-vendor unified API**: Works with NVIDIA, AMD, Intel, IBM ✅
 - [ ] **Production deployed**: Not just prototype ✅
@@ -307,10 +307,10 @@ Use this to quickly verify the submission:
 **A**: Yes! Check `forge/src/all_smi.rs` lines 200-350. It reads directly from sysfs at `/sys/class/drm/card*/device/`. Tested on AMD RX 580.
 
 ### Q: Is the live demo really running?
-**A**: Yes! Try: `curl http://10.0.0.61:9100/health`
+**A**: Yes! Try: `curl https://cesarops.com/health`
 
 ### Q: Can I stress test the P100s?
-**A**: Yes! Go to http://10.0.0.61:9100/gpu-stress and start a test. Please keep tests under 5 minutes to be respectful of the hardware.
+**A**: Yes! Go to https://cesarops.com/gpu-stress and start a test. Please keep tests under 5 minutes to be respectful of the hardware.
 
 ### Q: What's the innovation here?
 **A**: 
@@ -342,6 +342,6 @@ This is a **complete, production-ready system** that:
 4. Includes innovative features (multi-vendor + stress testing)
 5. Is ready to merge to main branch
 
-**Test it yourself**: http://10.0.0.61:9100/
+**Test it yourself**: https://cesarops.com/
 
 Thank you for reviewing this submission!

@@ -18,7 +18,7 @@
 ✅ **Multi-vendor GPU monitoring** - Works with AMD (without ROCm), NVIDIA, Intel, IBM  
 ✅ **GPU Stress & Health Lab** - Real-time testing with S/A/B/C/D health grading  
 ✅ **Fleet auto-discovery** - Automatic detection across local + remote nodes  
-✅ **Production deployment** - Currently running on `10.0.0.61:9100`  
+✅ **Production deployment** - Currently running on `cesarops.com`  
 ✅ **Zero external dependencies** - Direct hardware APIs, no nvidia-smi/rocm-smi needed  
 ✅ **Remote node support** - SSH-based querying with inline Python scripts  
 
@@ -208,17 +208,17 @@ Comprehensive testing interface featuring:
 
 ### Current Production Deployment
 
-**Host**: `10.0.0.61` (t440cesarops)  
+**Host**: `cesarops.com` (t440cesarops)  
 **Port**: `9100`  
 **Service**: Running and operational  
 **Uptime**: Stable since latest deployment  
 
 **Access URLs**:
 ```
-Main Dashboard:  http://10.0.0.61:9100/
-GPU Stress Lab:  http://10.0.0.61:9100/gpu-stress
-Health Check:    http://10.0.0.61:9100/health
-Fleet API:       http://10.0.0.61:9100/fleet/all-smi
+Main Dashboard:  https://cesarops.com/
+GPU Stress Lab:  https://cesarops.com/gpu-stress
+Health Check:    https://cesarops.com/health
+Fleet API:       https://cesarops.com/fleet/all-smi
 ```
 
 ### Hardware Tested
@@ -398,7 +398,7 @@ All endpoints documented in `FORGE_V3_STATUS.md` with:
 
 ### Live Demo Available
 
-**URL**: http://10.0.0.61:9100/
+**URL**: https://cesarops.com/
 
 **Test Accounts**: None required (open access)
 
@@ -409,7 +409,7 @@ Screenshots and screen recordings available upon request.
 ### Live Stress Test
 
 Judges can run real stress tests on the P100 GPUs:
-1. Navigate to http://10.0.0.61:9100/gpu-stress
+1. Navigate to https://cesarops.com/gpu-stress
 2. Select GPUs (both P100s available)
 3. Choose stress mode
 4. Click "Start Stress Test"
@@ -496,7 +496,7 @@ Forge V3 represents a **production-ready, multi-vendor GPU fleet management syst
 - Real-time health assessment
 
 **Judges can verify this submission by**:
-1. Visiting http://10.0.0.61:9100/
+1. Visiting https://cesarops.com/
 2. Reviewing the `forge-v3-amd-integration` branch
 3. Reading the comprehensive documentation
 4. Running live stress tests on real P100 GPUs

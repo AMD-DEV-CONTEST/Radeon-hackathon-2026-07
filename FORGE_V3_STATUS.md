@@ -12,17 +12,17 @@
 - **Status**: ✅ Running (PID varies)
 - **Port**: `9100`
 - **Host**: `0.0.0.0` (accessible from network)
-- **Health Endpoint**: `http://10.0.0.61:9100/health`
+- **Health Endpoint**: `https://cesarops.com/health`
 - **Build Date**: August 7, 2026 17:12 UTC
 
 ### Service URLs
 | Endpoint | URL | Status |
 |----------|-----|--------|
-| Main Admin UI | `http://10.0.0.61:9100/` | ✅ Active |
-| GPU Stress Lab | `http://10.0.0.61:9100/gpu-stress` | ✅ Active |
-| Health Check | `http://10.0.0.61:9100/health` | ✅ Active |
-| Fleet All-SMI | `http://10.0.0.61:9100/fleet/all-smi` | ✅ Active |
-| Fleet Snapshot | `http://10.0.0.61:9100/fleet/snapshot` | ✅ Active |
+| Main Admin UI | `https://cesarops.com/` | ✅ Active |
+| GPU Stress Lab | `https://cesarops.com/gpu-stress` | ✅ Active |
+| Health Check | `https://cesarops.com/health` | ✅ Active |
+| Fleet All-SMI | `https://cesarops.com/fleet/all-smi` | ✅ Active |
+| Fleet Snapshot | `https://cesarops.com/fleet/snapshot` | ✅ Active |
 
 ---
 
@@ -268,8 +268,8 @@ All major functionality is operational. Minor warnings in build output are non-b
 ## 🚦 Next Steps
 
 ### Immediate (Ready to Use)
-1. ✅ Access V3 admin at `http://10.0.0.61:9100/`
-2. ✅ Run GPU stress tests at `http://10.0.0.61:9100/gpu-stress`
+1. ✅ Access V3 admin at `https://cesarops.com/`
+2. ✅ Run GPU stress tests at `https://cesarops.com/gpu-stress`
 3. ✅ Test fleet auto-discovery
 4. ✅ Configure deployment profile
 
@@ -292,16 +292,16 @@ All major functionality is operational. Minor warnings in build output are non-b
 ### Direct Access
 ```bash
 # Main UI
-http://10.0.0.61:9100/
+https://cesarops.com/
 
 # GPU Stress Lab
-http://10.0.0.61:9100/gpu-stress
+https://cesarops.com/gpu-stress
 
 # Health Check
-curl http://10.0.0.61:9100/health
+curl https://cesarops.com/health
 
 # Fleet GPU Info
-curl http://10.0.0.61:9100/fleet/all-smi
+curl https://cesarops.com/fleet/all-smi
 ```
 
 ### Service Control

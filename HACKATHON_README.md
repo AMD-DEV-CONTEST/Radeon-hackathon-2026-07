@@ -88,7 +88,7 @@ cargo build --release
 ./target/release/cesarops-forge-v2 --port 9100
 
 # Access web interface
-open http://localhost:9100/wall
+open https://cesarops.com/wall
 ```
 
 ## 🎬 Video Highlights

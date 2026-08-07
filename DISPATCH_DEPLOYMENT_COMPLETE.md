@@ -72,7 +72,7 @@ Status: Running ✅
 
 ### 1. Access Dispatch UI
 ```
-http://localhost:9100/cluster
+https://cesarops.com/cluster
 → Click "Dispatch" in navigation
 ```
 
@@ -103,7 +103,7 @@ curl http://localhost:5000/health
 ### 4. Test Stop Flow
 1. Click "⏹ Stop Selected" in UI
    **OR**
-2. `curl -X POST http://localhost:9100/cluster/dispatch/stop`
+2. `curl -X POST https://cesarops.com/cluster/dispatch/stop`
 
 **Expected behavior**:
 - All koboldcpp/llama-server processes stopped
@@ -210,10 +210,10 @@ ls -lh /data/cargo-target/release/cesarops-forge-v2
 ps aux | grep cesarops-forge-v2
 
 # Test dispatch stop endpoint
-curl -X POST http://localhost:9100/cluster/dispatch/stop
+curl -X POST https://cesarops.com/cluster/dispatch/stop
 
 # Test dispatch launch endpoint (example)
-curl -X POST http://localhost:9100/cluster/dispatch/launch \
+curl -X POST https://cesarops.com/cluster/dispatch/launch \
   -H "Content-Type: application/json" \
   -d '{
     "name": "test-routing",

@@ -69,7 +69,7 @@ All of the **real engineering** was finished before the deadline:
 ✅ **Paddler cognitive routing** - Role-based dispatch  
 ✅ **Self-healing mission dispatch** - Corrector interventions  
 ✅ **Qdrant/Wayfinder integration** - Semantic code search  
-✅ **Production deployment** - Running on 10.0.0.61:9100  
+✅ **Production deployment** - Running on cesarops.com  
 ✅ **Video demonstration** - https://youtu.be/Zw_VXHxxPRA  
 
 ### What Was Missing (UI Polish Only)
@@ -172,7 +172,7 @@ I did not:
 - ✅ Integrated ROCm and llama.cpp
 - ✅ Developed self-healing mission dispatch
 - ✅ Built Qdrant vector search integration
-- ✅ Deployed to production (10.0.0.61:9100)
+- ✅ Deployed to production (cesarops.com)
 - ✅ Recorded video demonstration
 - ❌ Attempted UI finalization with Gemini (FAILED - hallucinated fake UI)
 
@@ -209,7 +209,7 @@ All core Rust code was committed before the deadline. Post-deadline commits are 
 - Proves the core work was complete
 
 ### 3. Live Deployment
-- **URL**: http://10.0.0.61:9100/
+- **URL**: https://cesarops.com/
 - System still running and accessible
 - Shows actual 2x Tesla P100 GPUs with real metrics
 - Real-time monitoring from NVML API (not fake data)

@@ -52,7 +52,7 @@ Once the PR is created, judges will see:
    - `AGENT_DISCLOSURE.md` (late submission explanation)
    - `FORGE_V3_STATUS.md` (operational docs)
 
-4. **Live Demo**: http://10.0.0.61:9100/
+4. **Live Demo**: https://cesarops.com/
 
 ---
 

@@ -1,5 +1,5 @@
 # 🔬 Forge Qualification Lab: Scientific Benchmark Poster
-**Export Date**: 2026-08-05 | **Repository**: cesarops-forge-v2 | **Network**: 10.0.0.61:9100
+**Export Date**: 2026-08-05 | **Repository**: cesarops-forge-v2 | **Network**: cesarops.com
 
 ---
 
@@ -111,7 +111,7 @@ Guardrail Latency: 210ms (2.6x faster when corrected)
 
 ## 📋 **METHODOLOGY TRANSPARENCY**
 
-**Data Source**: http://10.0.0.61:9100/benchmark-report  
+**Data Source**: https://cesarops.com/benchmark-report  
 **Evaluation Framework**: Forge Qualification Lab  
 **Test Sites**: Sólheimasandur, Atka Island, Gauli Glacier, Loon Lake Dragon  
 **Scoring**: 100-Point Weighted Rubric with Scientific Controls  
