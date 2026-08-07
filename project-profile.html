@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NodeFlow — Project Profile | AMD AI DevMaster Hackathon 2026</title>
+<style>
+  @page { margin: 2cm; size: A4; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7; color: #1a1a2e; background: #fff; max-width: 900px; margin: 0 auto; padding: 40px;
+  }
+  h1 { font-size: 28px; color: #0a0a14; margin-bottom: 4px; }
+  h2 { font-size: 20px; color: #7c3aed; margin-top: 36px; margin-bottom: 12px; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px; }
+  h3 { font-size: 16px; color: #1e293b; margin-top: 20px; margin-bottom: 8px; }
+  p { margin-bottom: 10px; }
+  ul, ol { margin-left: 20px; margin-bottom: 10px; }
+  li { margin-bottom: 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+  th { background: #f1f5f9; padding: 8px 10px; text-align: left; border: 1px solid #e2e8f0; font-weight: 600; }
+  td { padding: 8px 10px; border: 1px solid #e2e8f0; vertical-align: top; }
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 3px; font-family: "Fira Code", "SF Mono", Consolas, monospace; font-size: 13px; }
+  pre { background: #0f172a; color: #e2e8f0; padding: 16px; border-radius: 8px; overflow-x: auto; margin: 12px 0; font-size: 13px; line-height: 1.5; }
+  pre code { background: none; padding: 0; color: inherit; }
+  .header { text-align: center; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 3px solid #7c3aed; }
+  .header .subtitle { font-size: 14px; color: #64748b; margin-top: 4px; }
+  .header .meta { font-size: 12px; color: #94a3b8; margin-top: 8px; }
+  .toc { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px 24px; margin-bottom: 24px; }
+  .toc h3 { margin-top: 0; color: #475569; }
+  .toc ol { margin-left: 20px; }
+  .toc li { margin-bottom: 2px; }
+  .callout { background: #ede9fe; border-left: 4px solid #7c3aed; padding: 12px 16px; border-radius: 0 6px 6px 0; margin: 12px 0; }
+  .callout strong { color: #5b21b6; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0; }
+  .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; }
+  .card h4 { color: #7c3aed; margin-bottom: 6px; font-size: 14px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: #dcfce7; color: #166534; }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  @media print { body { padding: 0; } .toc { page-break-after: always; } h2 { page-break-after: avoid; } pre, table { page-break-inside: avoid; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>NodeFlow — Infinite Canvas AI Stylization Workstation</h1>
+  <div class="subtitle">Project Profile Document</div>
+  <div class="meta">AMD AI DevMaster Hackathon 2026 · Track 1: Multimodal AI · Submission Date: August 2026</div>
+</div>
+
+<div class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li>Project Background</li>
+    <li>Target Users & Application Scenarios</li>
+    <li>System Architecture</li>
+    <li>Model & Algorithm Introduction</li>
+    <li>AMD Radeon GPU / ROCm Adaptation</li>
+    <li>Differentiation & Competitive Advantage</li>
+  </ol>
+</div>
+
+<!-- ==================== 1. Project Background ==================== -->
+<h2>1. Project Background</h2>
+
+<h3>1.1 Problem Statement</h3>
+<p>AI image generation has become mainstream, yet existing tools fall into two extremes:</p>
+<ul>
+  <li><strong>Node-based tools (e.g., ComfyUI)</strong>: Powerful but steep learning curve — users must understand checkpoints, VAEs, LoRAs, samplers, and CLIP, then manually wire node graphs. Barrier to entry is high.</li>
+  <li><strong>Text-box generators (e.g., Jimeng, Liblib)</strong>: Easy to use but lack creative engagement — users type text into a box and receive a packaged result. The creative process feels transactional, not expressive.</li>
+</ul>
+<p>Meanwhile, <strong>the AI inference ecosystem is heavily dependent on NVIDIA CUDA</strong>. Most open-source diffusion tooling assumes CUDA, and AMD Radeon GPU users have limited options despite competitive hardware (e.g., the W7900 with 48 GB VRAM at a fraction of NVIDIA's cost).</p>
+
+<h3>1.2 Our Solution</h3>
+<p><strong>NodeFlow</strong> bridges this gap by combining <strong>infinite-canvas hand-drawing</strong> with <strong>diffusion-model generation</strong>, running entirely on AMD Radeon GPUs via native ROCm:</p>
+<ul>
+  <li>Users sketch on an infinite Excalidraw canvas — the canvas <em>is</em> the creative space, not a passive upload box.</li>
+  <li>AI transforms sketches into stylized artwork using state-of-the-art diffusion models (SDXL-Lightning, FLUX.2-klein, NoobAI XL, etc.).</li>
+  <li>Dual-mode design covers both rapid prototyping (Fast: 4-step distilled models) and high-fidelity rendering (Expert: full-parameter models with LoRA support).</li>
+  <li>The entire inference pipeline runs natively on ROCm — <strong>zero NVIDIA CUDA dependency</strong>.</li>
+</ul>
+
+<h3>1.3 Why This Matters for AMD</h3>
+<p>NodeFlow demonstrates that a production-grade AI image generation tool — with multi-model support, LoRA integration, and real-time canvas interaction — can run entirely on AMD Radeon hardware. This validates the ROCm ecosystem for creative AI workloads and showcases the W7900's 48 GB VRAM as a compelling alternative for diffusion model inference.</p>
+
+<!-- ==================== 2. Target Users ==================== -->
+<h2>2. Target Users & Application Scenarios</h2>
+
+<h3>2.1 Target Users</h3>
+<table>
+  <tr><th>User Segment</th><th>Needs</th><th>How NodeFlow Helps</th></tr>
+  <tr>
+    <td><strong>Concept Artists & Illustrators</strong></td>
+    <td>Quick visual exploration from rough sketches; style iteration without re-drawing</td>
+    <td>Sketch on canvas → generate in 8 styles → iterate in seconds. Fast mode enables rapid prototyping.</td>
+  </tr>
+  <tr>
+    <td><strong>Game & UI Designers</strong></td>
+    <td>Asset ideation; consistent style across multiple concepts</td>
+    <td>Same sketch, different styles (Cyberpunk, Pixel Art, 3D Render). LoRA weights fine-tune aesthetic direction.</td>
+  </tr>
+  <tr>
+    <tr>
+    <td><strong>AI Enthusiasts & Researchers</strong></td>
+    <td>Experiment with multiple models, LoRAs, and parameters on open hardware</td>
+    <td>Multi-model hot-switching, full parameter control, model store for HF/Civitai downloads. No CUDA lock-in.</td>
+  </tr>
+  <tr>
+    <td><strong>Content Creators</strong></td>
+    <td>Generate stylized visuals for social media, blogs, presentations</td>
+    <td>Text-to-image mode for instant results; 8 style presets cover common aesthetics.</td>
+  </tr>
+</table>
+
+<h3>2.2 Application Scenarios</h3>
+
+<div class="grid-2">
+  <div class="card">
+    <h4>Scenario A: Sketch-to-Art (img2img)</h4>
+    <p>An illustrator draws a character pose on the canvas. They select "Anime" style with strength 0.8 and click Generate. The AI transforms the rough sketch into a polished anime illustration in ~5 seconds (Fast mode) or ~15 seconds (Expert mode with NoobAI XL).</p>
+  </div>
+  <div class="card">
+    <h4>Scenario B: Text-to-Art (text2img)</h4>
+    <p>A content creator types "a serene mountain lake at dawn" and selects "Watercolor." The backend appends a professional watercolor prompt prefix and generates a watercolor-style landscape. The result can be downloaded as PNG.</p>
+  </div>
+  <div class="card">
+    <h4>Scenario C: Multi-Model Comparison</h4>
+    <p>A researcher switches between SDXL-Lightning (4-step, ~2s), FLUX.2-klein (50-step, ~20s), and NoobAI XL (28-step, ~12s) to compare quality vs. speed tradeoffs — all on the same AMD GPU without restarting the service.</p>
+  </div>
+  <div class="card">
+    <h4>Scenario D: LoRA Style Mixing</h4>
+    <p>A designer loads a realistic base model, then attaches an anime-style LoRA at weight 0.7, achieving a "realistic foundation with anime aesthetic" hybrid effect — all controlled via the UI, no node-wiring required.</p>
+  </div>
+</div>
+
+<!-- ==================== 3. System Architecture ==================== -->
+<h2>3. System Architecture</h2>
+
+<h3>3.1 High-Level Architecture</h3>
+<pre><code>┌─────────────────────────────────────────────────┐
+│           Frontend (React 18 + Excalidraw)        │
+│  ┌──────────────────┐  ┌────────────────────────┐ │
+│  │  Infinite Canvas  │  │   Control Panel        │ │
+│  │  (sketch / view)  │  │  styles · models · LoRA│ │
+│  └────────┬─────────┘  └───────────┬────────────┘ │
+│           │    /api/* (REST)        │              │
+└───────────┼─────────────────────────┼─────────────┘
+            │                         │
+            ▼                         ▼
+┌─────────────────────────────────────────────────┐
+│         main.py (FastAPI Route Layer)             │
+│  text2img · img2img · models · loras · store · gpu│
+└───────────────────────┬─────────────────────────┘
+                        │
+                        ▼
+┌─────────────────────────────────────────────────┐
+│    engine.py (FluxEngine Facade → ModelManager)  │
+└───────────────────────┬─────────────────────────┘
+                        │
+                        ▼
+┌─────────────────────────────────────────────────┐
+│         model_manager.py (Singleton)              │
+│  load · switch · generate · LoRA · GPU status    │
+│  Thread-safe locks · Rollback protection          │
+└───────┬───────────────┬───────────────┬─────────┘
+        │               │               │
+        ▼               ▼               ▼
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ sdxl_adapter │ │flux2klein    │ │store_service │
+│ Lightning    │ │adapter       │ │HF + Civitai  │
+│ Animagine    │ │distilled     │ │aggregation   │
+│ NoobAI       │ │base          │ │              │
+│ Illustrious  │ │              │ │              │
+└──────────────┘ └──────────────┘ └──────────────┘
+        │               │
+        ▼               ▼
+┌─────────────────────────────────────────────────┐
+│     PyTorch (ROCm) · diffusers · AMD Radeon GPU  │
+│     AMD Radeon PRO W7900 · 48 GB VRAM            │
+└─────────────────────────────────────────────────┘</code></pre>
+
+<h3>3.2 Architectural Patterns</h3>
+
+<table>
+  <tr><th>Pattern</th><th>Implementation</th><th>Benefit</th></tr>
+  <tr>
+    <td><strong>Facade</strong></td>
+    <td><code>engine.py</code> retains <code>FluxEngine</code> class name, delegates all calls to <code>ModelManager</code></td>
+    <td>Legacy code works unchanged; migration path preserved</td>
+  </tr>
+  <tr>
+    <td><strong>Singleton</strong></td>
+    <td><code>ModelManager</code> — one instance globally, manages all model lifecycle</td>
+    <td>Prevents duplicate GPU memory allocation; centralized state</td>
+  </tr>
+  <tr>
+    <td><strong>Adapter</strong></td>
+    <td><code>ADAPTER_REGISTRY</code> maps architecture → <code>SDXLAdapter</code> / <code>Flux2KleinAdapter</code></td>
+    <td>Add new model architecture with one adapter file; unified interface</td>
+  </tr>
+  <tr>
+    <td><strong>Configuration Hub</strong></td>
+    <td><code>config.py</code> — pure data file with all registries</td>
+    <td>Single source of truth; no scattered constants</td>
+  </tr>
+</table>
+
+<h3>3.3 Thread Safety & Reliability</h3>
+<ul>
+  <li><strong>Generation Lock</strong> (<code>_generation_lock</code>): Ensures only one inference task runs at a time, preventing GPU OOM from concurrent requests.</li>
+  <li><strong>Switch Lock</strong> (<code>_switch_lock</code>): Prevents concurrent model switches that could corrupt state.</li>
+  <li><strong>Rollback Protection</strong>: On model switch failure, the system saves the old adapter + LoRA state, attempts to load the new model, and if it fails, automatically rolls back to the previous working model — the service never gets stuck.</li>
+  <li><strong>VRAM Check</strong>: Before loading a new model, checks available VRAM via <code>torch.cuda.mem_get_info()</code>; refuses to load if insufficient.</li>
+</ul>
+
+<h3>3.4 Frontend Architecture</h3>
+<table>
+  <tr><th>Component</th><th>Technology</th><th>Role</th></tr>
+  <tr><td>Infinite Canvas</td><td>Excalidraw 0.17</td><td>Hand-drawing surface; exports canvas to PNG via <code>exportToBlob()</code></td></tr>
+  <tr><td>Control Panel</td><td>React 18 components</td><td>Style selection, model switching, LoRA management, parameter sliders, result display</td></tr>
+  <tr><td>API Layer</td><td>Fetch API + relative paths</td><td><code>BACKEND_URL = ''</code> — all requests go through Vite proxy → FastAPI</td></tr>
+  <tr><td>Build</td><td>Vite 5.4 (<code>base: './'</code>)</td><td>Relative-path build; served by FastAPI as static files</td></tr>
+</table>
+
+<!-- ==================== 4. Model & Algorithm ==================== -->
+<h2>4. Model & Algorithm Introduction</h2>
+
+<h3>4.1 Supported Models</h3>
+<table>
+  <tr><th>Model</th><th>Mode</th><th>Architecture</th><th>Steps</th><th>VRAM</th><th>License</th><th>Key Trait</th></tr>
+  <tr><td>SDXL-Lightning 4-step</td><td>Fast</td><td>SDXL</td><td>4 (locked)</td><td>~7 GB</td><td>Open RAIL++-M</td><td>Distilled; near-instant generation</td></tr>
+  <tr><td>SDXL-Lightning 8-step</td><td>Fast</td><td>SDXL</td><td>8 (locked)</td><td>~7 GB</td><td>Open RAIL++-M</td><td>Distilled; better quality than 4-step</td></tr>
+  <tr><td>FLUX.2-klein Distilled</td><td>Expert</td><td>FLUX.2</td><td>4 (locked)</td><td>~8 GB</td><td>Apache 2.0</td><td>FLUX quality at distilled speed</td></tr>
+  <tr><td>FLUX.2-klein Base</td><td>Expert</td><td>FLUX.2</td><td>20–100</td><td>~8 GB</td><td>Apache 2.0</td><td>Full-parameter; highest quality</td></tr>
+  <tr><td>Animagine XL 4.0</td><td>Expert</td><td>SDXL</td><td>20–50</td><td>~7 GB</td><td>SDXL License</td><td>Anime-specialized; commercial OK</td></tr>
+  <tr><td>NoobAI XL 1.0</td><td>Expert</td><td>SDXL</td><td>20–50</td><td>~7 GB</td><td>Fair AI</td><td>High-quality anime; non-commercial</td></tr>
+  <tr><td>Illustrious XL</td><td>Expert</td><td>SDXL</td><td>20–50</td><td>~7 GB</td><td>Fair AI</td><td>Illustration/anime; non-commercial</td></tr>
+</table>
+
+<h3>4.2 Algorithm Details</h3>
+
+<h4>4.2.1 SDXL-Lightning (Distilled Inference)</h4>
+<p>SDXL-Lightning uses <strong>progressive distillation</strong> to reduce the denoising steps from 50 (base SDXL) to 4–8 steps. The implementation loads a base SDXL checkpoint and swaps in the distilled UNet:</p>
+<pre><code># Load base SDXL + distilled UNet
+pipe = StableDiffusionXLPipeline.from_pretrained(
+    "stabilityai/stable-diffusion-xl-base-1.0",
+    torch_dtype=torch.float16
+)
+pipe.unet.load_state_dict(
+    load_file("sdxl_lightning_4step.safetensors"),
+    strict=False
+)
+# Use EulerDiscreteScheduler for distilled models
+pipe.scheduler = EulerDiscreteScheduler.from_config(
+    pipe.scheduler.config, timestep_spacing="trailing"
+)
+# 4-step inference: ~2 seconds on W7900
+image = pipe(prompt, num_inference_steps=4, guidance_scale=1.5).images[0]</code></pre>
+
+<div class="callout">
+  <strong>img2img optimization:</strong> The img2img pipeline reuses the text2img pipeline's weights via <code>StableDiffusionXLImg2ImgPipeline.from_pipe(pipe)</code>, saving ~7 GB VRAM. Image dimensions are aligned to 64-pixel multiples (SDXL requirement).
+</div>
+
+<h4>4.2.2 FLUX.2-klein (Unified Pipeline)</h4>
+<p>FLUX.2-klein-4B uses a <strong>unified pipeline</strong> (<code>Flux2KleinPipeline</code>) that handles both text-to-image (no <code>image</code> parameter) and image editing (with <code>image</code> parameter) without a separate strength parameter. Key differences from SDXL:</p>
+<ul>
+  <li><strong>Dimension alignment</strong>: 16-pixel multiples (vs. SDXL's 64)</li>
+  <li><strong>Dtype</strong>: <code>bfloat16</code> (vs. SDXL's <code>float16</code>) — ROCm supports BF16 natively on W7900</li>
+  <li><strong>Distilled variant</strong>: 4-step with locked parameters for speed</li>
+  <li><strong>Base variant</strong>: 20–100 steps with full parameter control</li>
+</ul>
+
+<h4>4.2.3 LoRA Integration</h4>
+<p>NodeFlow implements a <strong>three-layer decoupled</strong> LoRA system:</p>
+<ol>
+  <li><strong>Base layer (who draws)</strong>: User explicitly selects the model architecture (anime / realistic / general). The system does not auto-guess.</li>
+  <li><strong>Theme layer (how to draw)</strong>: Selecting a style preset auto-appends a professional prompt prefix and loads the architecture-matched LoRA.</li>
+  <li><strong>Weight layer</strong>: LoRA weights are adjustable (0–2.0), enabling hybrid effects (e.g., "realistic base + anime LoRA at 0.7").</li>
+</ol>
+<p>For distilled models (SDXL-Lightning), the system automatically reduces LoRA weights (<code>default_weight × 0.7</code> for general, <code>× 0.8</code> for style) to prevent noise artifacts from the distillation process.</p>
+
+<h3>4.3 Style Preset System</h3>
+<p>Eight professional style presets, each with a curated prompt prefix appended to user input:</p>
+<table>
+  <tr><th>Style</th><th>Prompt Prefix</th></tr>
+  <tr><td>Cyberpunk</td><td><code>cyberpunk style, neon lights, futuristic, high-tech, dramatic lighting,</code></td></tr>
+  <tr><td>Anime</td><td><code>anime style, vibrant colors, cel shading, studio ghibli inspired,</code></td></tr>
+  <tr><td>Watercolor</td><td><code>watercolor painting, soft brush strokes, artistic, pastel colors,</code></td></tr>
+  <tr><td>Oil Painting</td><td><code>oil painting, classical art style, rich textures, rembrandt lighting,</code></td></tr>
+  <tr><td>3D Render</td><td><code>3D render, octane render, photorealistic, cinematic lighting,</code></td></tr>
+  <tr><td>Pixel Art</td><td><code>pixel art, 8-bit style, retro game aesthetic,</code></td></tr>
+  <tr><td>Concept Art</td><td><code>concept art, digital painting, fantasy art, epic composition,</code></td></tr>
+  <tr><td>Minimalist</td><td><code>minimalist design, clean lines, simple, elegant,</code></td></tr>
+</table>
+
+<!-- ==================== 5. AMD ROCm Adaptation ==================== -->
+<h2>5. AMD Radeon GPU / ROCm Adaptation</h2>
+
+<h3>5.1 Hardware & Runtime</h3>
+<table>
+  <tr><th>Component</th><th>Specification</th></tr>
+  <tr><td>GPU</td><td>AMD Radeon PRO W7900</td></tr>
+  <tr><td>VRAM</td><td>48 GB GDDR6</td></tr>
+  <tr><td>ROCm Runtime</td><td>7.2.1</td></tr>
+  <tr><td>PyTorch</td><td>2.12.0 (ROCm wheel)</td></tr>
+  <tr><td>Python</td><td>3.12</td></tr>
+  <tr><td>diffusers</td><td>≥0.38.0</td></tr>
+  <tr><td>Platform</td><td>AMD Radeon Cloud (rc-tunnel for public access)</td></tr>
+</table>
+
+<h3>5.2 ROCm-Specific Adaptations</h3>
+
+<h4>5.2.1 PyTorch ROCm Wheel Installation</h4>
+<p>PyTorch must be installed from the ROCm-specific wheel index — the standard PyPI build does not include ROCm support:</p>
+<pre><code># Install PyTorch with ROCm support (NOT from PyPI)
+pip install torch torchvision \
+    --index-url https://download.pytorch.org/whl/rocm6.2</code></pre>
+
+<h4>5.2.2 GPU Verification</h4>
+<pre><code>import torch
+print(torch.cuda.is_available())          # True (ROCm maps to CUDA API)
+print(torch.cuda.get_device_name(0))       # "AMD Radeon Graphics"
+print(torch.cuda.get_device_properties(0).total_memory / 1e9)  # ~48.0</code></pre>
+<div class="callout">
+  <strong>Key insight:</strong> PyTorch's ROCm backend maps to the <code>torch.cuda</code> API, meaning most CUDA code works unchanged on AMD GPUs. The primary adaptation is the wheel installation — no code-level CUDA→ROCm rewrite is needed for diffusers pipelines.
+</div>
+
+<h4>5.2.3 Memory Optimization</h4>
+<ul>
+  <li><strong>Bfloat16 dtype</strong>: FLUX.2-klein uses <code>torch.bfloat16</code>, which halves VRAM usage vs. <code>float32</code>. The W7900 natively supports BF16.</li>
+  <li><strong>Weight sharing</strong>: Text-to-image and image-to-image pipelines share the same model weights via <code>from_pipe()</code>, avoiding duplicate ~7–8 GB allocations.</li>
+  <li><strong>Model hot-switching with VRAM check</strong>: Before loading a new model, <code>torch.cuda.mem_get_info()</code> checks available VRAM. The 48 GB W7900 can hold multiple SDXL models simultaneously (~7 GB each).</li>
+  <li><strong>Model unloading</strong>: When switching architectures (e.g., SDXL → FLUX.2), the old model is explicitly unloaded via <code>del</code> + <code>torch.cuda.empty_cache()</code> before loading the new one.</li>
+</ul>
+
+<h4>5.2.4 HuggingFace Mirror</h4>
+<p>The AMD Radeon Cloud instance cannot directly reach <code>huggingface.co</code>. NodeFlow uses the HuggingFace mirror:</p>
+<pre><code>export HF_ENDPOINT=https://hf-mirror.com
+export HF_HOME=/persistent/hf_cache  # Persistent storage for model cache</code></pre>
+
+<h4>5.2.5 Public Access via rc-tunnel</h4>
+<p>The platform-native <code>rc-tunnel</code> tool exposes the FastAPI service to the public internet:</p>
+<pre><code>rc-tunnel expose --port 8000
+# Outputs a public URL for browser access</code></pre>
+
+<h3>5.3 Performance Characteristics on W7900</h3>
+<table>
+  <tr><th>Model</th><th>Mode</th><th>Resolution</th><th>Steps</th><th>Approx. Time</th><th>VRAM Usage</th></tr>
+  <tr><td>SDXL-Lightning 4-step</td><td>Fast</td><td>1024×1024</td><td>4</td><td>~2 seconds</td><td>~7 GB</td></tr>
+  <tr><td>SDXL-Lightning 8-step</td><td>Fast</td><td>1024×1024</td><td>8</td><td>~4 seconds</td><td>~7 GB</td></tr>
+  <tr><td>FLUX.2-klein Distilled</td><td>Expert</td><td>1024×1024</td><td>4</td><td>~3 seconds</td><td>~8 GB</td></tr>
+  <tr><td>FLUX.2-klein Base</td><td>Expert</td><td>1024×1024</td><td>50</td><td>~20 seconds</td><td>~8 GB</td></tr>
+  <tr><td>NoobAI XL</td><td>Expert</td><td>1024×1024</td><td>28</td><td>~12 seconds</td><td>~7 GB</td></tr>
+</table>
+<p><em>Note: Times are approximate and depend on GPU load. All measurements taken on AMD Radeon PRO W7900 via ROCm 7.2.1.</em></p>
+
+<h3>5.4 Engineering Lessons</h3>
+<ul>
+  <li><strong>Persistent storage is critical</strong>: <code>/workspace</code> is ephemeral (wiped on instance reset). Python venv and model cache must live in <code>/persistent/</code> to survive resets — saving 4 GB+ PyTorch re-download and 12 GB+ model re-download.</li>
+  <li><strong><code>torch.cuda</code> API works on ROCm</strong>: No code changes needed for standard diffusers pipelines. The adaptation is at the installation level (ROCm wheel), not the code level.</li>
+  <li><strong>BF16 is well-supported</strong>: The W7900 handles <code>bfloat16</code> inference natively, making it suitable for FLUX.2-klein which requires BF16.</li>
+  <li><strong>48 GB VRAM enables multi-model residency</strong>: Multiple SDXL models (~7 GB each) can coexist in VRAM, enabling fast hot-switching without reload latency.</li>
+</ul>
+
+<!-- ==================== 6. Differentiation ==================== -->
+<h2>6. Differentiation & Competitive Advantage</h2>
+
+<h3>6.1 Comparison Matrix</h3>
+<table>
+  <tr><th>Dimension</th><th>NodeFlow</th><th>ComfyUI</th><th>Liblib / Jimeng</th></tr>
+  <tr><td>Hardware</td><td>AMD Radeon native ROCm</td><td>Primarily NVIDIA CUDA</td><td>Cloud (typically CUDA)</td></tr>
+  <tr><td>Interaction</td><td>Infinite canvas sketch → AI</td><td>Node editor (wiring)</td><td>Text box / image upload</td></tr>
+  <tr><td>Learning curve</td><td>Low (canvas = creation)</td><td>High (nodes, graphs)</td><td>Medium</td></tr>
+  <tr><td>Mode design</td><td>Dual-mode (Fast/Expert)</td><td>User-configured</td><td>Single path</td></tr>
+  <tr><td>Style control</td><td>Multi-model + LoRA weights</td><td>Strong but manual</td><td>Limited (platform presets)</td></tr>
+  <tr><td>Extensibility</td><td>Built-in model store (HF/Civitai)</td><td>Large ecosystem, complex</td><td>Platform-locked</td></tr>
+</table>
+
+<h3>6.2 Core Differentiators</h3>
+<ol>
+  <li><strong>AMD / ROCm Native</strong>: Truly runs on AMD Radeon PRO W7900 with ROCm inference — not a CUDA port, not a wrapper. Demonstrates the open GPU ecosystem's viability for production AI workloads.</li>
+  <li><strong>Canvas Interaction = Low Barrier + Creative Feel</strong>: Unlike ComfyUI's node complexity or text-box generators' lack of engagement, the canvas provides an intuitive, creative entry point.</li>
+  <li><strong>Dual-Mode = Speed + Quality</strong>: One product covers rapid prototyping (4-step distilled, ~2s) and high-fidelity rendering (50-step full model, ~20s) — no tool switching.</li>
+  <li><strong>Multi-Model + LoRA = User Control</strong>: Style control is in the user's hands, not a black box. Every model and LoRA displays its license and commercial-use status for compliance transparency.</li>
+</ol>
+
+<div class="callout">
+  <strong>Bottom line:</strong> NodeFlow proves that a full-featured, multi-model AI image generation tool — with canvas interaction, LoRA support, and a model store — can run entirely on AMD Radeon hardware via ROCm, without compromising on features or user experience.
+</div>
+
+<p style="text-align: center; margin-top: 40px; color: #64748b; font-size: 13px;">
+  NodeFlow — Where canvas inspiration becomes artwork on AMD GPUs.<br>
+  AMD AI DevMaster Hackathon 2026 · Track 1: Multimodal AI
+</p>
+
+</body>
+</html>

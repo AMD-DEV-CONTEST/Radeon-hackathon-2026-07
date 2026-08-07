@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NodeFlow — AI Canvas</title>
+<style>
+  :root {
+    --bg: #1a1a1a;
+    --bg-dot: rgba(255,255,255,0.06);
+    --node-bg: #2b2b2b;
+    --node-border: #3a3a3a;
+    --node-title: #3b3b3b;
+    --accent: #6c9bff;
+    --text: #e0e0e0;
+    --text-dim: #9a9a9a;
+    --input-bg: #1f1f1f;
+    --input-border: #3a3a3a;
+    --port: #8a8a8a;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body, #root { width:100%; height:100%; overflow:hidden; font-family:'Segoe UI', system-ui, -apple-system, sans-serif; background:var(--bg); color:var(--text); }
+
+  /* ===== 画布 ===== */
+  #canvas {
+    position:fixed; inset:0;
+    background-color:var(--bg);
+    background-image: radial-gradient(var(--bg-dot) 1px, transparent 1px);
+    background-size: 24px 24px;
+    overflow:hidden;
+    cursor: grab;
+  }
+  #canvas.panning { cursor: grabbing; }
+  #world { position:absolute; top:0; left:0; transform-origin:0 0; }
+
+  /* ===== 顶栏 ===== */
+  #topbar {
+    position:fixed; top:0; left:0; right:0; height:48px;
+    display:flex; align-items:center; gap:12px; padding:0 16px;
+    background:rgba(20,20,20,0.92); backdrop-filter:blur(6px);
+    border-bottom:1px solid #2e2e2e; z-index:100;
+  }
+  #topbar .brand { display:flex; align-items:center; gap:8px; font-weight:700; letter-spacing:0.5px; }
+  #topbar .brand .logo { width:26px; height:26px; border-radius:6px; background:var(--accent); display:flex; align-items:center; justify-content:center; font-size:14px; color:#111; font-weight:800; }
+  #topbar .brand small { color:var(--text-dim); font-weight:400; font-size:11px; letter-spacing:1px; }
+  #topbar .spacer { flex:1; }
+  .mode-btn {
+    padding:6px 18px; border-radius:6px; border:1px solid var(--input-border);
+    background:transparent; color:var(--text-dim); cursor:pointer; font-size:13px; font-weight:600;
+    transition:all .15s;
+  }
+  .mode-btn.active { background:var(--accent); border-color:var(--accent); color:#111; }
+  .topbtn {
+    padding:6px 12px; border-radius:6px; border:1px solid var(--input-border);
+    background:transparent; color:var(--text-dim); cursor:pointer; font-size:12px;
+    transition:all .15s;
+  }
+  .topbtn:hover { color:var(--text); border-color:#555; }
+
+  /* ===== 节点 ===== */
+  .node {
+    position:absolute; width:320px;
+    background:var(--node-bg);
+    border:1px solid var(--node-border);
+    border-radius:10px;
+    box-shadow:0 6px 24px rgba(0,0,0,0.5);
+    overflow:hidden;
+    user-select:none;
+  }
+  .node.selected { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent), 0 6px 24px rgba(0,0,0,0.5); }
+  .node .node-title {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 12px; background:var(--node-title); font-size:12px; font-weight:600;
+    border-bottom:1px solid #2e2e2e; cursor:move; color:#cfcfcf;
+  }
+  .node .node-title .tag { font-size:10px; background:var(--accent); color:#111; padding:1px 6px; border-radius:4px; font-weight:700; }
+  .node .node-body { padding:12px; display:flex; flex-direction:column; gap:10px; }
+  .node .node-body textarea {
+    width:100%; min-height:64px; resize:vertical;
+    background:var(--input-bg); border:1px solid var(--input-border); border-radius:6px;
+    color:var(--text); padding:8px; font-size:13px; font-family:inherit; outline:none;
+  }
+  .node .node-body textarea:focus { border-color:var(--accent); }
+  .field { display:flex; align-items:center; gap:8px; }
+  .field label { font-size:11px; color:var(--text-dim); width:56px; flex-shrink:0; }
+  .field input, .field select {
+    flex:1; background:var(--input-bg); border:1px solid var(--input-border); border-radius:5px;
+    color:var(--text); padding:5px 8px; font-size:12px; outline:none;
+  }
+  .field input:focus, .field select:focus { border-color:var(--accent); }
+  .field input[type=range] { padding:0; accent-color:var(--accent); }
+  .row { display:flex; gap:8px; }
+  .row .field { flex:1; }
+  .btn {
+    padding:8px 12px; border-radius:6px; border:none;
+    font-size:13px; font-weight:600; cursor:pointer; transition:all .15s;
+  }
+  .btn.primary { background:var(--accent); color:#111; }
+  .btn.primary:hover { filter:brightness(1.1); }
+  .btn.primary:disabled { background:#444; color:#888; cursor:not-allowed; }
+  .btn.danger { background:transparent; border:1px solid #5a3b3b; color:#e07a7a; }
+  .btn.small { padding:4px 8px; font-size:11px; }
+  .btn.ghost { background:transparent; border:1px solid var(--input-border); color:var(--text-dim); }
+
+  .result { position:relative; border-radius:6px; overflow:hidden; background:#111; min-height:40px; }
+  .result img { width:100%; display:block; }
+  .result .loading {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:24px; gap:10px; color:var(--text-dim); font-size:12px;
+  }
+  .spinner { width:22px; height:22px; border:3px solid #333; border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .result .img-actions { position:absolute; top:6px; right:6px; display:flex; gap:4px; }
+  .result .img-actions button {
+    background:rgba(0,0,0,0.7); border:1px solid #444; color:#fff; border-radius:4px;
+    padding:3px 8px; font-size:11px; cursor:pointer;
+  }
+  .result .img-actions button:hover { background:var(--accent); color:#111; }
+
+  .error { background:#3b1f1f; border:1px solid #5a2b2b; color:#e08a8a; padding:8px; border-radius:6px; font-size:12px; }
+
+  /* 端口 */
+  .port {
+    position:absolute; width:12px; height:12px; border-radius:50%;
+    border:2px solid var(--port); background:var(--node-bg); z-index:5;
+  }
+  .port.input { left:-6px; top:50%; transform:translateY(-50%); }
+  .port.output { right:-6px; top:50%; transform:translateY(-50%); background:var(--port); }
+
+  /* ===== 底部工具栏 ===== */
+  #statusbar {
+    position:fixed; bottom:0; left:0; right:0; height:32px;
+    display:flex; align-items:center; gap:16px; padding:0 16px;
+    background:rgba(20,20,20,0.92); border-top:1px solid #2e2e2e;
+    font-size:11px; color:var(--text-dim); z-index:100;
+  }
+  #statusbar .gpu { display:flex; align-items:center; gap:6px; }
+  #statusbar .dot { width:8px; height:8px; border-radius:50%; background:#4caf50; }
+  #statusbar .spacer { flex:1; }
+
+  /* ===== 右键菜单 ===== */
+  #ctxmenu {
+    position:fixed; z-index:1000; min-width:160px;
+    background:#2b2b2b; border:1px solid #444; border-radius:8px; padding:4px;
+    box-shadow:0 8px 30px rgba(0,0,0,0.6);
+  }
+  #ctxmenu .item { padding:8px 12px; border-radius:5px; cursor:pointer; font-size:13px; }
+  #ctxmenu .item:hover { background:#3a3a3a; }
+  #ctxmenu .sep { height:1px; background:#3a3a3a; margin:4px 8px; }
+
+  /* ===== 内部节点弹层 ===== */
+  #node-modal { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:500; display:none; align-items:center; justify-content:center; }
+  #node-modal.open { display:flex; }
+  .modal-panel {
+    width:720px; max-width:94vw; max-height:88vh; overflow:auto;
+    background:#232323; border:1px solid #3a3a3a; border-radius:12px; padding:20px;
+  }
+  .modal-panel h3 { margin-bottom:16px; font-size:15px; display:flex; align-items:center; gap:8px; }
+  .modal-panel h3 .close { margin-left:auto; cursor:pointer; color:var(--text-dim); font-size:18px; border:none; background:none; }
+  .modal-panel h3 .close:hover { color:var(--text); }
+  .sub-tabs { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+  .sub-tab { padding:6px 14px; border-radius:6px; border:1px solid var(--input-border); background:transparent; color:var(--text-dim); cursor:pointer; font-size:12px; }
+  .sub-tab.active { background:var(--accent); color:#111; border-color:var(--accent); font-weight:600; }
+  .sub-panel { display:none; }
+  .sub-panel.active { display:block; }
+  .sub-panel h4 { font-size:12px; color:var(--text-dim); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px; }
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .form-group { display:flex; flex-direction:column; gap:5px; }
+  .form-group.full { grid-column:1 / -1; }
+  .form-group label { font-size:11px; color:var(--text-dim); }
+  .form-group input, .form-group select, .form-group textarea {
+    background:var(--input-bg); border:1px solid var(--input-border); border-radius:6px;
+    color:var(--text); padding:7px 9px; font-size:13px; outline:none;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:var(--accent); }
+  .modal-actions { display:flex; gap:8px; margin-top:20px; justify-content:flex-end; }
+  .model-item { padding:10px 12px; border:1px solid var(--input-border); border-radius:8px; cursor:pointer; margin-bottom:8px; transition:all .15s; }
+  .model-item:hover { border-color:#555; }
+  .model-item.current { border-color:var(--accent); background:rgba(108,155,255,0.06); }
+  .model-item .name { font-size:13px; font-weight:600; }
+  .model-item .meta { font-size:11px; color:var(--text-dim); margin-top:3px; display:flex; gap:8px; }
+  .lora-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--input-border); border-radius:8px; margin-bottom:8px; }
+  .lora-item .name { font-size:12px; flex:1; }
+  .lora-item input[type=range] { width:100px; accent-color:var(--accent); }
+  .lora-item .w { font-size:11px; color:var(--text-dim); width:34px; text-align:right; }
+  .lora-item button { background:transparent; border:none; color:#e07a7a; cursor:pointer; font-size:15px; }
+  .hint { font-size:11px; color:var(--text-dim); margin-top:8px; }
+</style>
+</head>
+<body>
+<div id="root">
+  <div id="topbar">
+    <div class="brand"><span class="logo">N</span> NodeFlow <small>AI CANVAS</small></div>
+    <div class="spacer"></div>
+    <button class="mode-btn active" id="mode-fast">Fast</button>
+    <button class="mode-btn" id="mode-expert">Expert</button>
+    <div class="spacer"></div>
+    <button class="topbtn" id="btn-models">模型</button>
+    <button class="topbtn" id="btn-loras">LoRA</button>
+    <button class="topbtn" id="btn-export">导出</button>
+  </div>
+
+  <div id="canvas">
+    <div id="world"></div>
+  </div>
+
+  <div id="statusbar">
+    <span class="gpu"><span class="dot"></span> <span id="gpu-info">Loading GPU...</span></span>
+    <span class="spacer"></span>
+    <span id="zoom-info">100%</span>
+  </div>
+
+  <div id="ctxmenu" style="display:none"></div>
+
+  <!-- 节点内部弹层 -->
+  <div id="node-modal">
+    <div class="modal-panel">
+      <h3>节点设置 <span id="modal-node-id"></span>
+        <button class="close" id="modal-close">✕</button>
+      </h3>
+      <div class="sub-tabs">
+        <button class="sub-tab active" data-tab="prompt">提示词</button>
+        <button class="sub-tab" data-tab="sampler">采样器</button>
+        <button class="sub-tab" data-tab="model">模型</button>
+        <button class="sub-tab" data-tab="vae">VAE</button>
+        <button class="sub-tab" data-tab="export">导出</button>
+      </div>
+      <div id="sub-prompt" class="sub-panel active">
+        <h4>提示词设置</h4>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>正向提示词</label>
+            <textarea id="m-prompt" rows="3" style="min-height:80px"></textarea>
+          </div>
+          <div class="form-group full" id="neg-group">
+            <label>负向提示词</label>
+            <textarea id="m-negative" rows="3"></textarea>
+          </div>
+          <div class="form-group full">
+            <label>风格</label>
+            <select id="m-style"></select>
+          </div>
+        </div>
+      </div>
+      <div id="sub-sampler" class="sub-panel">
+        <h4>采样器参数</h4>
+        <div class="form-grid">
+          <div class="form-group"><label>步数 (Steps)</label><input type="number" id="m-steps" min="1" max="150"></div>
+          <div class="form-group"><label>CFG Scale</label><input type="number" id="m-cfg" step="0.5" min="0" max="30"></div>
+          <div class="form-group"><label>种子 (Seed)</label><input type="number" id="m-seed" placeholder="随机"></div>
+          <div class="form-group"><label>尺寸</label><select id="m-ratio"></select></div>
+          <div class="form-group"><label>宽度</label><input type="number" id="m-width" min="256" max="1920"></div>
+          <div class="form-group"><label>高度</label><input type="number" id="m-height" min="256" max="1920"></div>
+        </div>
+      </div>
+      <div id="sub-model" class="sub-panel">
+        <h4>选择模型</h4>
+        <div id="model-list"></div>
+      </div>
+      <div id="sub-vae" class="sub-panel">
+        <h4>VAE / 解码</h4>
+        <p class="hint">模型已内置 VAE 解码，生成结果自动完成 Latent → Image 解码。</p>
+        <div class="form-grid" style="margin-top:12px">
+          <div class="form-group"><label>VAE 缩放器</label><select id="m-vae-supplier"><option value="tanh">tanh (默认)</option><option value="sigmoid">sigmoid</option></select></div>
+        </div>
+      </div>
+      <div id="sub-export" class="sub-panel">
+        <h4>导出图片</h4>
+        <p class="hint">生成完成后，点击图片上的「导出」按钮即可下载 PNG。</p>
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button class="btn primary" id="m-export-png">导出 PNG</button>
+          <button class="btn ghost" id="m-toggle-lora">管理 LoRA</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost" id="m-cancel">取消</button>
+        <button class="btn primary" id="m-save">保存设置</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===========================================================================
+// NodeFlow — ComfyUI 风格节点式画布
+// ===========================================================================
+
+const BACKEND = '';
+const state = {
+  mode: 'fast',
+  style: 'cyberpunk',
+  ratio: '1:1',
+  width: 1024,
+  height: 1024,
+  steps: 4,
+  cfg: 1.5,
+  seed: '',
+  negative: '',
+  model_id: null,
+  loras: [], // {id, path, name, weight}
+  models: [],
+  styles: [],
+  gpu: null,
+  nodes: [],
+  nodeCounter: 1,
+  selected: null,
+  activeNodeId: null, // 弹层编辑的节点
+};
+
+// 画布变换
+const view = { scale: 1, x: 0, y: 0 };
+let panning = false, panStart = {x:0,y:0,tx:0,ty:0};
+let isPanningMode = false;
+
+const canvas = document.getElementById('canvas');
+const world = document.getElementById('world');
+
+const STYLE_KEYS = ['cyberpunk','anime','watercolor','oil_painting','3d_render','pixel_art','concept_art','minimalist'];
+const RATIOS = { '1:1':[1024,1024], '3:4':[896,1152], '4:3':[1152,896], '3:2':[1216,832], '16:9':[1344,768], '9:16':[768,1344] };
+
+// ===========================================================================
+// API
+// ===========================================================================
+async function api(path, opts={}) {
+  const resp = await fetch(BACKEND + path, {
+    headers: opts.body && !(opts.body instanceof FormData) ? {'Content-Type':'application/json'} : {},
+    ...opts,
+  });
+  if (!resp.ok) {
+    let msg = resp.statusText;
+    try { const e = await resp.json(); msg = e.detail || msg; } catch(_) {}
+    throw new Error(msg);
+  }
+  return resp.json();
+}
+
+async function loadInfo() {
+  try {
+    const info = await api('/api/health');
+    state.gpu = info.gpu;
+    if (info.styles) state.styles = info.styles;
+    if (info.current_model) {
+      state.model_id = info.current_model.model_id;
+      state.mode = info.current_model.mode || state.mode;
+      if (info.current_model.steps) state.steps = info.current_model.steps;
+      if (info.current_model.cfg) state.cfg = info.current_model.cfg;
+    }
+    renderGpu();
+    renderMode();
+  } catch(e) { console.error('loadInfo', e); }
+}
+
+async function loadStyles() {
+  try {
+    const d = await api('/api/styles');
+    if (d.styles) state.styles = d.styles;
+  } catch(e) { console.error('loadStyles', e); }
+  renderStyleSelect();
+}
+
+async function loadModels() {
+  try {
+    const d = await api('/api/models?mode=' + state.mode);
+    state.models = d.models || [];
+    renderModelList();
+  } catch(e) { console.error('loadModels', e); }
+}
+
+// ===========================================================================
+// 节点管理
+// ===========================================================================
+function addNode(x, y) {
+  const id = 'node-' + (state.nodeCounter++);
+  const node = {
+    id, x, y,
+    prompt: '',
+    type: 'text', // text | sketch
+    image: null,
+    generating: false,
+    error: null,
+  };
+  state.nodes.push(node);
+  renderNode(node);
+  selectNode(node);
+  return node;
+}
+
+function renderNode(node) {
+  let el = document.getElementById(node.id);
+  if (!el) {
+    el = document.createElement('div');
+    el.id = node.id;
+    el.className = 'node';
+    el.addEventListener('dblclick', (e) => { e.stopPropagation(); openModal(node.id); });
+    el.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.node-title')) { startNodeDrag(node, e); return; }
+      selectNode(node);
+    });
+    world.appendChild(el);
+  }
+  el.style.left = node.x + 'px';
+  el.style.top = node.y + 'px';
+  el.classList.toggle('selected', state.selected === node.id);
+
+  el.innerHTML = `
+    <div class="node-title">
+      <span>${node.type === 'text' ? 'Text-to-Image' : 'Image-to-Image'} <span class="tag">${state.mode === 'fast' ? 'Fast' : 'Expert'}</span></span>
+      <span style="font-weight:400;color:#666;font-size:11px" title="双击编辑">⚙ 双击编辑</span>
+    </div>
+    <div class="node-body">
+      <textarea placeholder="描述你想生成的画面，Ctrl+Enter 生成" data-role="prompt">${escapeHtml(node.prompt)}</textarea>
+      <div class="row">
+        <div class="field"><label>风格</label>
+          <select data-role="style"></select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field"><label>模型</label><span data-role="model" style="font-size:11px;color:#9a9a9a;flex:1">${state.model_id || '...'}</span></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>步数</label><input type="number" data-role="steps" value="${state.steps}" min="1" max="150"></div>
+        <div class="field"><label>CFG</label><input type="number" data-role="cfg" value="${state.cfg}" step="0.5"></div>
+      </div>
+      <div data-role="result">${renderResult(node)}</div>
+      <div data-role="actions">
+        <button class="btn primary" data-action="generate" style="width:100%">${node.generating ? '生成中...' : '⭐ Generate'}</button>
+      </div>
+    </div>
+    <div class="port input" title="输入"></div>
+    <div class="port output" title="输出"></div>
+  `;
+
+  // 填充风格下拉
+  const styleSel = el.querySelector('[data-role=style]');
+  styleSel.innerHTML = (state.styles.length ? state.styles : STYLE_KEYS.map(k=>({name:k}))).map(s=>{
+    const key = s.key || s.name;
+    return `<option value="${key}" ${key===state.style?'selected':''}>${s.label || s.name || key}</option>`;
+  }).join('');
+  styleSel.addEventListener('change', (e)=>{ state.style = e.target.value; });
+
+  // 事件绑定
+  el.querySelector('textarea[data-role=prompt]').addEventListener('input', (e)=>{ node.prompt = e.target.value; });
+  el.querySelector('textarea[data-role=prompt]').addEventListener('keydown', (e)=>{
+    if (e.key==='Enter' && (e.ctrlKey||e.metaKey)) { e.preventDefault(); generate(node.id); }
+  });
+  el.querySelector('[data-role=steps]').addEventListener('change', (e)=>state.steps = parseInt(e.target.value));
+  el.querySelector('[data-role=cfg]').addEventListener('change', (e)=>state.cfg = parseFloat(e.target.value));
+  el.querySelector('[data-action=generate]').addEventListener('click', ()=>generate(node.id));
+}
+
+function renderResult(node) {
+  if (node.generating) {
+    return `<div class="result"><div class="loading"><div class="spinner"></div>生成中...</div></div>`;
+  }
+  if (node.error) {
+    return `<div class="error">${escapeHtml(node.error)}</div>`;
+  }
+  if (node.image) {
+    return `<div class="result">
+      <img src="${node.image}" alt="result">
+      <div class="img-actions">
+        <button data-action="export">导出</button>
+        <button data-action="img2img">图生图</button>
+      </div>
+    </div>`;
+  }
+  return '';
+}
+
+function refreshNodeResult(node) {
+  const el = document.getElementById(node.id);
+  if (!el) return;
+  const resultEl = el.querySelector('[data-role=result]');
+  if (resultEl) resultEl.innerHTML = renderResult(node);
+  const btn = el.querySelector('[data-action=generate]');
+  if (btn) {
+    btn.disabled = node.generating;
+    btn.textContent = node.generating ? '生成中...' : '⭐ Generate';
+  }
+  // 绑定导出
+  const exportBtn = el.querySelector('[data-action=export]');
+  if (exportBtn) exportBtn.addEventListener('click', ()=>exportNodeImage(node));
+  const i2iBtn = el.querySelector('[data-action=img2img]');
+  if (i2iBtn) i2iBtn.addEventListener('click', ()=>makeImg2Img(node));
+}
+
+function selectNode(id) {
+  state.selected = id;
+  document.querySelectorAll('.node').forEach(el => el.classList.toggle('selected', el.id===id));
+}
+
+function deleteNode(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+  state.nodes = state.nodes.filter(n=>n.id!==id);
+  if (state.selected===id) state.selected=null;
+}
+
+// 节点拖拽
+function startNodeDrag(node, e) {
+  e.preventDefault();
+  const startX = e.clientX, startY = e.clientY, origX=node.x, origY=node.y;
+  const onMove = (ev) => {
+    node.x = origX + (ev.clientX-startX)/view.scale;
+    node.y = origY + (ev.clientY-startY)/view.scale;
+    const el = document.getElementById(node.id);
+    if (el) { el.style.left=node.x+'px'; el.style.top=node.y+'px'; }
+  };
+  const onUp = () => { window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); };
+  window.addEventListener('mousemove',onMove); window.addEventListener('mouseup',onUp);
+}
+
+// ===========================================================================
+// 生成
+// ===========================================================================
+async function generate(nodeId) {
+  const node = state.nodes.find(n=>n.id===nodeId);
+  if (!node || node.generating) return;
+  node.generating = true; node.error = null; node.image = null;
+  refreshNodeResult(node);
+
+  try {
+    const body = {
+      prompt: node.prompt || 'a beautiful scene',
+      mode: state.mode,
+      style: state.style,
+      aspect_ratio: state.ratio,
+    };
+    if (state.mode === 'expert') {
+      body.num_inference_steps = state.steps;
+      body.guidance_scale = state.cfg;
+      if (state.seed) body.seed = parseInt(state.seed);
+      if (state.negative) body.negative_prompt = state.negative;
+      if (state.loras.length) {
+        body.loras = state.loras.map(l=>l.path);
+        body.lora_weights = state.loras.map(l=>l.weight);
+      }
+    }
+
+    let data;
+    if (node.type === 'text') {
+      data = await api('/api/generate/text2img', { method:'POST', body: JSON.stringify(body) });
+    } else {
+      // 图生图：用节点已有图片作为输入
+      const blob = await fetch(node.image).then(r=>r.blob());
+      const fd = new FormData();
+      fd.append('file', blob, 'input.png');
+      fd.append('mode', state.mode);
+      fd.append('style', state.style);
+      fd.append('aspect_ratio', state.ratio);
+      fd.append('strength', '0.8');
+      if (state.mode==='expert') {
+        fd.append('num_inference_steps', state.steps);
+        fd.append('guidance_scale', state.cfg);
+        if (state.loras.length) fd.append('loras', state.loras.map(l=>l.path).join(','));
+      }
+      data = await api('/api/generate/img2img', { method:'POST', body: fd });
+    }
+
+    node.image = data.image;
+    node.generating = false;
+    refreshNodeResult(node);
+  } catch(e) {
+    node.error = e.message;
+    node.generating = false;
+    refreshNodeResult(node);
+  }
+}
+
+function makeImg2Img(node) {
+  node.type = 'sketch';
+  node.prompt = node.prompt || 'using this image as reference';
+  generate(node.id);
+}
+
+function exportNodeImage(node) {
+  if (!node.image) return;
+  const a = document.createElement('a');
+  a.href = node.image;
+  a.download = 'nodeflow-' + node.id + '.png';
+  a.click();
+}
+
+// ===========================================================================
+// 画布平移缩放
+// ===========================================================================
+function applyTransform() {
+  world.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.scale})`;
+  document.getElementById('zoom-info').textContent = Math.round(view.scale*100)+'%';
+}
+
+canvas.addEventListener('mousedown', (e)=>{
+  if (e.button === 1 || e.target === canvas) {
+    panning = true; isPanningMode = true;
+    panStart = {x:e.clientX, y:e.clientY, tx:view.x, ty:view.y};
+    canvas.classList.add('panning');
+  }
+});
+window.addEventListener('mousemove', (e)=>{
+  if (panning) {
+    view.x = panStart.tx + (e.clientX-panStart.x);
+    view.y = panStart.ty + (e.clientY-panStart.y);
+    applyTransform();
+  }
+});
+window.addEventListener('mouseup', ()=>{ panning=false; canvas.classList.remove('panning'); });
+canvas.addEventListener('wheel', (e)=>{
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX-rect.left, my = e.clientY-rect.top;
+  const factor = e.deltaY<0 ? 1.1 : 0.9;
+  const ns = Math.max(0.2, Math.min(3, view.scale*factor));
+  view.x = mx - (mx-view.x) * (ns/view.scale);
+  view.y = my - (my-view.y) * (ns/view.scale);
+  view.scale = ns;
+  applyTransform();
+}, {passive:false});
+
+// 双击背景创建节点
+canvas.addEventListener('dblclick', (e)=>{
+  if (e.target !== canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX-rect.left - view.x)/view.scale;
+  const y = (e.clientY-rect.top - view.y)/view.scale;
+  addNode(x, y);
+});
+
+// 右键菜单
+canvas.addEventListener('contextmenu', (e)=>{
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX-rect.left - view.x)/view.scale;
+  const y = (e.clientY-rect.top - view.y)/view.scale;
+  showContextMenu(e.clientX, e.clientY, [
+    {label:'新建文生图节点', fn: ()=>addNode(x,y)},
+    {label:'新建图生图节点', fn: ()=>{ const n=addNode(x,y); n.type='sketch'; renderNode(n); }},
+    {sep:true},
+    state.loras.length ? {label:'清空 LoRA', fn:clearLoras} : null,
+    {label:'聚焦视图', fn:fitView},
+  ]);
+});
+
+function showContextMenu(x, y, items) {
+  const menu = document.getElementById('ctxmenu');
+  menu.innerHTML = '';
+  items.filter(Boolean).forEach(it=>{
+    if (it.sep) { const d=document.createElement('div'); d.className='sep'; menu.appendChild(d); return; }
+    const d=document.createElement('div'); d.className='item'; d.textContent=it.label;
+    d.addEventListener('click', ()=>{ menu.style.display='none'; it.fn(); });
+    menu.appendChild(d);
+  });
+  menu.style.display='block';
+  menu.style.left=x+'px'; menu.style.top=y+'px';
+}
+document.addEventListener('click', (e)=>{ if(!e.target.closest('#ctxmenu')) document.getElementById('ctxmenu').style.display='none'; });
+
+function fitView() {
+  view.scale = 1; view.x = window.innerWidth/2 - 160; view.y = window.innerHeight/2 - 200;
+  applyTransform();
+}
+
+// ===========================================================================
+// 内部节点弹层 (双击节点)
+// ===========================================================================
+function openModal(nodeId) {
+  state.activeNodeId = nodeId;
+  const node = state.nodes.find(n=>n.id===nodeId);
+  document.getElementById('modal-node-id').textContent = nodeId;
+  document.getElementById('m-prompt').value = node.prompt || '';
+  document.getElementById('m-negative').value = state.negative;
+  document.getElementById('m-steps').value = state.steps;
+  document.getElementById('m-cfg').value = state.cfg;
+  document.getElementById('m-seed').value = state.seed;
+  document.getElementById('m-ratio').value = state.ratio;
+  document.getElementById('m-width').value = state.width;
+  document.getElementById('m-height').value = state.height;
+  document.getElementById('m-style').value = state.style;
+  document.getElementById('node-modal').classList.add('open');
+  loadModels();
+}
+
+function closeModal() {
+  document.getElementById('node-modal').classList.remove('open');
+  state.activeNodeId = null;
+}
+
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('m-cancel').addEventListener('click', closeModal);
+document.getElementById('m-save').addEventListener('click', ()=>{
+  const node = state.nodes.find(n=>n.id===state.activeNodeId);
+  if (node) {
+    node.prompt = document.getElementById('m-prompt').value;
+    renderNode(node);
+  }
+  state.negative = document.getElementById('m-negative').value;
+  state.steps = parseInt(document.getElementById('m-steps').value) || state.steps;
+  state.cfg = parseFloat(document.getElementById('m-cfg').value) || state.cfg;
+  state.seed = document.getElementById('m-seed').value;
+  state.ratio = document.getElementById('m-ratio').value;
+  state.width = parseInt(document.getElementById('m-width').value) || 1024;
+  state.height = parseInt(document.getElementById('m-height').value) || 1024;
+  state.style = document.getElementById('m-style').value;
+  closeModal();
+});
+
+document.getElementById('m-export-png').addEventListener('click', ()=>{
+  const node = state.nodes.find(n=>n.id===state.activeNodeId);
+  if (node) exportNodeImage(node);
+});
+
+// 子标签切换
+document.querySelectorAll('.sub-tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.sub-panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('sub-'+tab.dataset.tab).classList.add('active');
+  });
+});
+
+// 比例下拉
+document.getElementById('m-ratio').innerHTML = Object.keys(RATIOS).map(r=>`<option value="${r}">${r}</option>`).join('');
+document.getElementById('m-ratio').addEventListener('change', (e)=>{
+  const [w,h] = RATIOS[e.target.value];
+  document.getElementById('m-width').value = w;
+  document.getElementById('m-height').value = h;
+});
+
+function renderStyleSelect() {
+  const opts = (state.styles.length ? state.styles : STYLE_KEYS.map(k=>({name:k}))).map(s=>{
+    const key = s.key || s.name;
+    return `<option value="${key}">${s.label || s.name || key}</option>`;
+  }).join('');
+  document.getElementById('m-style').innerHTML = opts;
+}
+
+function renderModelList() {
+  const list = document.getElementById('model-list');
+  list.innerHTML = state.models.map(m=>`
+    <div class="model-item ${m.id===state.model_id?'current':''}" data-id="${m.id}">
+      <div class="name">${m.name}</div>
+      <div class="meta">
+        <span>${(m.architecture||'').toUpperCase()}</span>
+        ${m.vram_gb?`<span>~${m.vram_gb}GB</span>`:''}
+        <span>${m.commercial_use?'可商用':'仅非商用'}</span>
+      </div>
+    </div>
+  `).join('');
+  list.querySelectorAll('.model-item').forEach(item=>{
+    item.addEventListener('click', async ()=>{
+      const id = item.dataset.id;
+      const prev = state.model_id;
+      state.model_id = id;
+      renderModelList();
+      try {
+        await api('/api/models/switch', {method:'POST', body: JSON.stringify({model_id:id})});
+        // 刷新节点
+        state.nodes.forEach(n=>renderNode(n));
+      } catch(e) {
+        state.model_id = prev;
+        renderModelList();
+        alert('切换失败: '+e.message);
+      }
+    });
+  });
+}
+
+// ===========================================================================
+// LoRA
+// ===========================================================================
+function clearLoras() { state.loras = []; document.getElementById('btn-loras').textContent='LoRA'; }
+document.getElementById('btn-loras').addEventListener('click', ()=>{
+  const paths = {
+    'detail tweaker':'/persistent/loras/sdxl/add-detail-xl.safetensors',
+    'cyberpunk':'/persistent/loras/sdxl/cyberpunk.safetensors',
+    'anime':'/persistent/loras/sdxl/anime.safetensors',
+    'watercolor':'/persistent/loras/sdxl/watercolor.safetensors',
+    'oil painting':'/persistent/loras/sdxl/oil_painting.safetensors',
+    '3d render':'/persistent/loras/sdxl/3d_render.safetensors',
+    'pixel art':'/persistent/loras/sdxl/pixel_art.safetensors',
+    'concept art':'/persistent/loras/sdxl/concept_art.safetensors',
+  };
+  const keys = Object.keys(paths);
+  showContextMenu(200, 200, [
+    ...keys.map(k=>({
+      label: (state.loras.some(l=>l.path===paths[k])?'✓ ':'')+k,
+      fn: ()=>{
+        const path = paths[k];
+        if (state.loras.some(l=>l.path===path)) {
+          state.loras = state.loras.filter(l=>l.path!==path);
+        } else {
+          state.loras.push({id:'l'+Date.now(), path, name:k, weight:0.8});
+        }
+        document.getElementById('btn-loras').textContent = 'LoRA ('+state.loras.length+')';
+      }
+    })),
+    {sep:true},
+    state.loras.length?{label:'清空', fn:clearLoras}:null,
+  ]);
+});
+
+// ===========================================================================
+// 模式切换
+// ===========================================================================
+function renderMode() {
+  document.getElementById('mode-fast').classList.toggle('active', state.mode==='fast');
+  document.getElementById('mode-expert').classList.toggle('active', state.mode==='expert');
+  document.getElementById('neg-group').style.display = state.mode==='expert' ? '' : 'none';
+  document.getElementById('btn-loras').style.visibility = state.mode==='expert' ? 'visible' : 'hidden';
+  state.nodes.forEach(n=>renderNode(n));
+}
+document.getElementById('mode-fast').addEventListener('click', ()=>{ state.mode='fast'; switchMode(); });
+document.getElementById('mode-expert').addEventListener('click', ()=>{ state.mode='expert'; switchMode(); });
+async function switchMode() {
+  renderMode();
+  try {
+    const d = await api('/api/models?mode='+state.mode);
+    const models = d.models || [];
+    if (models.length && !models.some(m=>m.id===state.model_id)) {
+      state.model_id = models[0].id;
+      await api('/api/models/switch', {method:'POST', body: JSON.stringify({model_id:state.model_id})});
+    }
+    state.models = models;
+    state.nodes.forEach(n=>renderNode(n));
+  } catch(e) { console.error('switchMode', e); }
+}
+
+// ===========================================================================
+// 顶栏按钮
+// ===========================================================================
+document.getElementById('btn-models').addEventListener('click', ()=>{
+  const nodes = state.nodes;
+  if (nodes.length) openModal(nodes[nodes.length-1].id);
+});
+document.getElementById('btn-export').addEventListener('click', ()=>{
+  const nodes = state.nodes;
+  const withImg = nodes.find(n=>n.image);
+  if (withImg) exportNodeImage(withImg);
+  else alert('还没有生成结果可导出');
+});
+
+// ===========================================================================
+// GPU 状态
+// ===========================================================================
+function renderGpu() {
+  if (!state.gpu) return;
+  document.getElementById('gpu-info').textContent =
+    `${state.gpu.device_name||'GPU'} · ${state.gpu.vram_total_gb||'?'}GB · 已用 ${(state.gpu.vram_allocated_gb||0).toFixed(1)}GB`;
+}
+
+// ===========================================================================
+// 工具
+// ===========================================================================
+function escapeHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ===========================================================================
+// 初始化
+// ===========================================================================
+(async function init() {
+  fitView();
+  await loadInfo();
+  await loadStyles();
+  await loadModels();
+  renderStyleSelect();
+  // 默认节点
+  const rect = canvas.getBoundingClientRect();
+  const n = addNode((rect.width/2)/view.scale - 160, (rect.height/2)/view.scale - 200);
+  n.prompt = 'a serene lake at sunset with mountains, cinematic lighting';
+  renderNode(n);
+})();
+</script>
+</body>
+</html>
