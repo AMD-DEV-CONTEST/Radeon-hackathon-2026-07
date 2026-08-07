@@ -241,20 +241,55 @@ The golden-output test suite also loads the old source directly from Git. This
 prevents an implementation from passing merely because two newly written paths
 share the same bug.
 
-## AMD acceptance matrix
+## AMD Radeon results
 
-The ROCm implementation is complete at the source level; these measurements
-remain to be collected on target hardware:
+Measurement date: 2026-08-06. Collected on the ROCm target as real receipts
+in `benchmarks/receipts/`; the numbers below are read from those files.
+
+- GPU: AMD Radeon Graphics, `gfx1100` (Navi 31)
+- ROCm / HIP: 7.2.1 (HIP 7.2.53211)
+- PyTorch: 2.9.1, `torch.version.hip` non-null, `cuda_available = True`
+- Host CPU: AMD EPYC 9334, container limited to a 16-CPU quota
+- Input: 512 x 512 RGB, batch size 1, 32-color palette, 20 K-Means iterations
+- Protocol: one warm-up, five synchronized measured runs, median wall time
+
+| Configuration | CPU median | ROCm median | Speed-up | Receipt |
+|---|---:|---:|---:|---|
+| pixel size 1 | 0.6157 s | 0.0211 s | 29.2x | `rocm-box-{cpu,cuda}-512-px1.json` |
+| pixel size 6 | 0.6228 s | 0.0219 s | 28.4x | `rocm-box-{cpu,cuda}-512-px6.json` |
+
+### Read the baseline before quoting the ratio
+
+The CPU column was produced with `OMP_NUM_THREADS=16`, matching the
+container's 16-CPU cgroup quota (`cpu.max = 1600000 100000`). This is not
+cosmetic. Left at its default, PyTorch sizes its thread pool from the
+*physical* core count (64 on this host), oversubscribes the quota roughly
+four to one, and the same CPU benchmark degrades to 1.996 s — which would
+report a misleading 93x instead of 29x. Receipts therefore record
+`cpu_threads` and `cpu_interop_threads` so the baseline condition is
+auditable rather than assumed.
+
+For a second reference point, the same input on a consumer laptop CPU
+(Intel Core i9-13900HX) takes 0.1739 s, putting the ROCm result at about 8x
+— consistent with the 6.56x and 8.28x CPU-to-GPU figures recorded earlier in
+this document. Report whichever baseline is relevant, but report which one
+it is.
+
+## AMD acceptance matrix
 
 | Check | Required evidence | Status |
 |---|---|---|
-| Runtime identity | PyTorch version, non-null `torch.version.hip`, GPU name | Pending hardware |
-| Device residency | ROCm unit test passes and output device is `cuda`/HIP | Pending hardware |
-| Correctness | Exact-palette CPU/ROCm comparison passes | Pending hardware |
-| Legacy exactness | Old-commit oracle produces zero differing channels | Pending hardware |
-| 1x throughput | Five synchronized runs of the command above | Pending hardware |
-| 6x throughput | Same input with `--pixel-size 6` | Pending hardware |
-| Kernel profile | rocprof trace without image-wide host copies | Pending hardware |
+| Runtime identity | PyTorch version, non-null `torch.version.hip`, GPU name | Done — recorded in every receipt above |
+| Device residency | ROCm unit test passes and output device is `cuda`/HIP | Partial — receipts show `device.selected = cuda` on HIP with peak GPU memory recorded; the ROCm unit test has not been run on this host |
+| Correctness | Exact-palette CPU/ROCm comparison passes | Pending hardware run |
+| Legacy exactness | Old-commit oracle produces zero differing channels | Pending hardware run |
+| 1x throughput | Five synchronized runs of the command above | Done — 0.0211 s median |
+| 6x throughput | Same input with `--pixel-size 6` | Done — 0.0219 s median |
+| Kernel profile | rocprof trace without image-wide host copies | Pending hardware run |
+
+The three pending rows are correctness and profiling checks, not throughput
+checks. Until they are run on this hardware, the exactness guarantees in this
+document rest on the CPU/CUDA golden-image suite, not on ROCm.
 
 AMD results should be appended as real receipts rather than replacing this
 baseline so CPU, CUDA, and ROCm behavior remain independently auditable.

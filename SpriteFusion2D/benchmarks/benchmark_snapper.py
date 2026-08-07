@@ -287,6 +287,12 @@ def environment_snapshot(
             "type": selected_device.type,
         },
         "gpu": gpu,
+        # The CPU baseline is only meaningful next to the thread count it ran
+        # with: a container whose CPU quota is below the physical core count
+        # makes torch's default thread pool oversubscribe and inflates any
+        # GPU-vs-CPU ratio computed against it.
+        "cpu_threads": torch.get_num_threads(),
+        "cpu_interop_threads": torch.get_num_interop_threads(),
         "working_dir": None if sanitized else str(working_dir),
     }
 

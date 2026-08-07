@@ -1,0 +1,152 @@
+{
+  "benchmark": {
+    "algorithm": "optimized",
+    "config": {
+      "algorithm": "optimized",
+      "fallback_target_segments": 64,
+      "k_colors": 32,
+      "k_seed": 42,
+      "max_kmeans_iterations": 20,
+      "max_step_ratio": 1.8,
+      "min_cuts_per_axis": 4,
+      "output_scale": 1,
+      "peak_distance_filter": 4,
+      "peak_threshold_multiplier": 0.2,
+      "pixel_size_override": 6.0,
+      "walker_min_search_window": 2.0,
+      "walker_search_window_ratio": 0.35,
+      "walker_strength_threshold": 0.5
+    },
+    "name": "snapper"
+  },
+  "command": [
+    "python",
+    "-m",
+    "benchmarks.benchmark_snapper",
+    "--input",
+    "demo-source.png",
+    "--device",
+    "cuda",
+    "--colors",
+    "32",
+    "--pixel-size",
+    "6",
+    "--iterations",
+    "20",
+    "--warmup",
+    "1",
+    "--runs",
+    "5",
+    "--receipt",
+    "benchmarks/receipts/rocm-box-cuda-512-px6.json"
+  ],
+  "environment": {
+    "cpu_interop_threads": 64,
+    "cpu_threads": 16,
+    "cuda_available": true,
+    "cuda_version": null,
+    "device": {
+      "requested": "cuda",
+      "selected": "cuda",
+      "type": "cuda"
+    },
+    "gpu": {
+      "capability": "11.0",
+      "memory_total_bytes": 51522830336,
+      "name": "AMD Radeon Graphics"
+    },
+    "hip": "7.2.53211-e1a6bc5663",
+    "python": "3.12.3",
+    "python_impl": "CPython",
+    "torch": "2.9.1+gitff65f5b",
+    "working_dir": null
+  },
+  "failures": [],
+  "format": "spritefusion-benchmark-receipt",
+  "git": {
+    "available": false,
+    "branch": null,
+    "commit_sha": null,
+    "dirty": null,
+    "status": []
+  },
+  "inputs": [
+    {
+      "dtype": "torch.float32",
+      "path": "demo-source.png",
+      "role": "image",
+      "sha256": "8fdb4348af787af844c0760c7cd7e33bd9f56c5fecdbbd8b8a99634df4500456",
+      "shape": [
+        1,
+        512,
+        512,
+        3
+      ],
+      "source": "file"
+    }
+  ],
+  "outputs": [
+    {
+      "dtype": "torch.float32",
+      "role": "frame_0",
+      "sha256": "c311155d956b2981f0835cce972c6135c91b84e9b0e4903853f39332fd9a3b6e",
+      "shape": [
+        1,
+        85,
+        85,
+        3
+      ]
+    }
+  ],
+  "sanitized": true,
+  "schema_version": 1,
+  "sources": [
+    {
+      "path": "pixel_snapper_core.py",
+      "role": "core",
+      "sha256": "9be924be40fb5332d209245dad824e0b3574f75fd4acc1c906407ce8a07a0ca4"
+    },
+    {
+      "path": "pixel_snapper_node.py",
+      "role": "core",
+      "sha256": "cab2adb77cac228f82ccd11fa22b360b60ccd177786f8f87626282de41c0103a"
+    },
+    {
+      "path": "benchmarks/receipt.py",
+      "role": "tooling",
+      "sha256": "b96df0ae21ab676ff9ab562f4ea640261c1eb87bdebeca7d983dcb68b38f4d05"
+    },
+    {
+      "path": "benchmarks/benchmark_snapper.py",
+      "role": "tooling",
+      "sha256": "90856425634ed5049ba8696d6405de8c99f960d751459277fefc59b9eaa326ad"
+    }
+  ],
+  "status": "ok",
+  "timestamp_utc": "2026-08-07T02:41:25.099236+00:00",
+  "timing": {
+    "include_host_to_device": true,
+    "peak_memory_bytes": 80920576,
+    "runs": 5,
+    "samples_seconds": [
+      0.02280224859714508,
+      0.02215081825852394,
+      0.02183108776807785,
+      0.021863378584384918,
+      0.021838389337062836
+    ],
+    "stats": {
+      "max_seconds": 0.02280224859714508,
+      "mean_seconds": 0.022097184509038924,
+      "median_seconds": 0.021863378584384918,
+      "min_seconds": 0.02183108776807785,
+      "p90_seconds": 0.02280224859714508,
+      "pstdev_seconds": 0.0003721396443305497
+    },
+    "synchronize": {
+      "after_each_run": true,
+      "before_each_run": true
+    },
+    "warmup_runs": 1
+  }
+}
