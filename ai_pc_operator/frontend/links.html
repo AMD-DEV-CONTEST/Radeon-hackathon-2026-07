@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screen-AI Links</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .links-page {
+            width: min(820px, 100%);
+        }
+
+        .links-header {
+            margin-bottom: 22px;
+        }
+
+        .links-header h1 {
+            font-size: 2.1em;
+        }
+
+        .links-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .link-card {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 18px;
+        }
+
+        .link-card h2 {
+            font-size: 1.05em;
+            margin-bottom: 8px;
+        }
+
+        .link-card p {
+            color: #aaa;
+            font-size: 0.9em;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .link-box {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            background: #0f0f0f;
+            color: #d8d8d8;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 0.86em;
+            line-height: 1.4;
+            word-break: break-all;
+            text-decoration: none;
+        }
+
+        .link-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .link-note {
+            margin-top: 16px;
+            color: #999;
+            line-height: 1.6;
+            font-size: 0.92em;
+        }
+
+        .copy-status {
+            min-height: 20px;
+            color: #4ade80;
+            font-size: 0.85em;
+            margin-top: 12px;
+        }
+
+        @media (max-width: 720px) {
+            .links-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="links-page">
+        <div class="links-header">
+            <h1>Screen-AI Links</h1>
+            <p id="links-subtitle" class="subtitle">Open the PC pairing page here, then use the phone remote link on mobile.</p>
+        </div>
+
+        <section class="links-grid">
+            <article class="link-card">
+                <h2>PC Pairing Page</h2>
+                <p>Open this on the computer to show the QR code and fallback pairing code.</p>
+                <a id="pc-link" class="link-box" href="pair.html">pair.html</a>
+                <div class="link-actions">
+                    <button class="primary-btn small-btn" data-copy="pc-link">Copy</button>
+                    <a class="secondary-btn small-btn" href="pair.html">Open</a>
+                </div>
+            </article>
+
+            <article class="link-card">
+                <h2>Phone Remote</h2>
+                <p>Open this on the phone. For camera scanning, HTTPS is recommended.</p>
+                <a id="phone-link" class="link-box" href="index.html">index.html</a>
+                <div class="link-actions">
+                    <button class="primary-btn small-btn" data-copy="phone-link">Copy</button>
+                    <a class="secondary-btn small-btn" href="index.html">Open</a>
+                </div>
+            </article>
+
+            <article class="link-card">
+                <h2>HTTPS PC Link</h2>
+                <p>Use this when the HTTPS server is running on port 8443.</p>
+                <a id="https-pc-link" class="link-box" href="#">https://localhost:8443/remote/pair.html</a>
+                <div class="link-actions">
+                    <button class="primary-btn small-btn" data-copy="https-pc-link">Copy</button>
+                    <a id="https-pc-open" class="secondary-btn small-btn" href="#">Open</a>
+                </div>
+            </article>
+
+            <article class="link-card">
+                <h2>Phone LAN Template</h2>
+                <p>Replace <code>YOUR-PC-IP</code> with the computer IPv4 address on the same Wi-Fi.</p>
+                <a id="lan-template" class="link-box" href="#">https://YOUR-PC-IP:8443/remote/index.html</a>
+                <div class="link-actions">
+                    <button class="primary-btn small-btn" data-copy="lan-template">Copy</button>
+                    <a id="current-remote-open" class="secondary-btn small-btn" href="#">Current Host</a>
+                </div>
+            </article>
+
+            <article class="link-card">
+                <h2>PC Model Lab</h2>
+                <p>Open this on the PC browser to test command understanding and model routing.</p>
+                <a id="lab-link" class="link-box" href="lab.html">lab.html</a>
+                <div class="link-actions">
+                    <button class="primary-btn small-btn" data-copy="lab-link">Copy</button>
+                    <a id="lab-open" class="secondary-btn small-btn" href="lab.html">Open</a>
+                </div>
+            </article>
+
+            <article class="link-card">
+                <h2>Desktop Pet</h2>
+                <p>Start the tiny PC pet. It previews plans locally and never executes commands.</p>
+                <span id="pet-command" class="link-box">start_pet.bat</span>
+                <div class="link-actions">
+                    <button class="primary-btn small-btn" data-copy="pet-command">Copy</button>
+                    <a id="pet-open" class="secondary-btn small-btn" href="../start_pet.bat">Open BAT</a>
+                </div>
+            </article>
+        </section>
+
+        <p id="startup-note" class="link-note"></p>
+        <p class="link-note">
+            Tip: if the phone camera says unavailable, open the HTTPS phone link and accept the local certificate warning.
+            If the phone cannot reach the page, make sure both devices are on the same Wi-Fi and run
+            <code>ai_pc_operator\setup_firewall.bat</code> once as Administrator to allow ports 8000 and 8443.
+        </p>
+        <div id="copy-status" class="copy-status" aria-live="polite"></div>
+    </main>
+
+    <script src="links.runtime.js"></script>
+    <script>
+        const startup = window.SCREEN_AI_START_LINKS || null;
+        const origin = window.location.origin;
+        const hostName = window.location.hostname;
+        const protocol = window.location.protocol;
+        const isFilePage = protocol === 'file:';
+        const httpOrigin = startup?.http?.root || (isFilePage ? 'http://localhost:8000' : origin);
+        const currentHttpsOrigin = startup?.https?.root || `https://${hostName || 'localhost'}:8443`;
+        const startupIp = startup?.ip || hostName || 'YOUR-PC-IP';
+
+        const links = {
+            'pc-link': startup?.http?.pcPair || `${httpOrigin}/remote/pair.html`,
+            'phone-link': startup?.http?.phoneRemote || `${httpOrigin}/remote/index.html`,
+            'https-pc-link': startup?.https?.pcPair || `${currentHttpsOrigin}/remote/pair.html`,
+            'lan-template': startup?.https?.phoneRemote || `https://${startupIp}:8443/remote/index.html`,
+            'lab-link': startup?.http?.lab || `${httpOrigin}/remote/lab.html`,
+            'pet-command': 'ai_pc_operator\\start_pet.bat',
+        };
+
+        for (const [id, url] of Object.entries(links)) {
+            const el = document.getElementById(id);
+            if (!el) continue;
+            el.textContent = url;
+            el.href = url;
+        }
+
+        document.getElementById('https-pc-open').href = links['https-pc-link'];
+        document.getElementById('current-remote-open').href = links['lan-template'];
+        document.getElementById('lab-open').href = links['lab-link'];
+        document.getElementById('pet-open').href = isFilePage ? '../start_pet.bat' : '#';
+
+        const subtitle = document.getElementById('links-subtitle');
+        const startupNote = document.getElementById('startup-note');
+        if (startup) {
+            subtitle.textContent = `Startup links generated for PC IP ${startup.ip}.`;
+            startupNote.textContent = `Generated by start.bat at ${startup.generatedAt}. If your Wi-Fi/IP changes, run start.bat again and refresh this page.`;
+        } else if (isFilePage) {
+            startupNote.textContent = 'No links.runtime.js found yet. Run ai_pc_operator/start.bat once, then refresh this file page.';
+        } else {
+            startupNote.textContent = 'Served mode: links are built from the current browser host.';
+        }
+
+        document.querySelectorAll('[data-copy]').forEach((button) => {
+            button.addEventListener('click', async () => {
+                const id = button.dataset.copy;
+                const text = document.getElementById(id).textContent;
+                try {
+                    await navigator.clipboard.writeText(text);
+                    setCopyStatus('Copied link.');
+                } catch {
+                    setCopyStatus(text);
+                }
+            });
+        });
+
+        function setCopyStatus(message) {
+            const el = document.getElementById('copy-status');
+            el.textContent = message;
+            clearTimeout(window.__copyStatusTimer);
+            window.__copyStatusTimer = setTimeout(() => {
+                el.textContent = '';
+            }, 2500);
+        }
+    </script>
+</body>
+</html>

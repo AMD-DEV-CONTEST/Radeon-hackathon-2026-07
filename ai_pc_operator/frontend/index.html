@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screen-AI Remote</title>
+    <meta name="description" content="Screen-AI — Control your PC from your phone">
+    <meta name="theme-color" content="#00d4a8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ScreenAI">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        // Apply persisted theme before paint to avoid flash
+        try {
+            var t = localStorage.getItem('screen_ai_theme');
+            if (t) document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {}
+    </script>
+</head>
+<body>
+    <div id="app">
+        <!-- Login Screen -->
+        <div id="login-screen" class="screen active">
+            <div class="container">
+                <h1>Screen-AI</h1>
+                <p class="subtitle">Local AI PC Operator</p>
+
+                <div class="login-methods">
+                    <button class="method-tab active" data-method="qr">Scan QR</button>
+                    <button class="method-tab" data-method="code">Enter Code</button>
+                    <button class="method-tab" data-method="trusted">Trusted</button>
+                </div>
+
+                <div id="qr-method" class="method-content active">
+                    <div class="qr-scanner">
+                        <div class="qr-frame">
+                            <div class="qr-corner tl"></div>
+                            <div class="qr-corner tr"></div>
+                            <div class="qr-corner bl"></div>
+                            <div class="qr-corner br"></div>
+                            <p class="qr-hint">Point camera at QR payload on PC</p>
+                        </div>
+                        <button id="start-camera" class="primary-btn">Start Camera</button>
+                        <button id="stop-camera" class="secondary-btn hidden">Stop Camera</button>
+                    </div>
+                    <div id="qr-status" class="status"></div>
+                </div>
+
+                <div id="code-method" class="method-content">
+                    <div class="code-form">
+                        <p>Enter the 6-digit code shown on your PC:</p>
+                        <input
+                            type="text"
+                            id="pairing-code"
+                            placeholder="000000"
+                            maxlength="6"
+                            pattern="[0-9]{6}"
+                            inputmode="numeric"
+                        >
+                        <input
+                            type="text"
+                            id="device-name"
+                            placeholder="Device name (e.g., My Phone)"
+                        >
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="trust-device">
+                            <span>Trust this device for 30 days</span>
+                        </label>
+                        <button id="pair-button" class="primary-btn">Pair Device</button>
+                        <p id="pair-error" class="error"></p>
+                    </div>
+                </div>
+
+                <div id="trusted-method" class="method-content">
+                    <div class="trusted-form">
+                        <p>If this phone was paired and trusted before, reconnect without typing a code.</p>
+                        <button id="check-trusted" class="primary-btn">Check Trusted Status</button>
+                        <div id="trusted-status" class="status"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Screen -->
+        <div id="main-screen" class="screen">
+            <div class="header">
+                <div class="brand-block">
+                    <div class="chat-avatar" aria-hidden="true">S</div>
+                    <div>
+                        <h1>Screen-AI</h1>
+                        <div id="connection-badge" class="connection-badge" data-state="offline" aria-live="polite">
+                            <span class="connection-dot"></span>
+                            <span id="connection-label">Offline</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button id="theme-toggle" class="icon-btn" aria-label="Toggle theme" title="Toggle theme">◐</button>
+                    <button id="emergency-stop" class="emergency-btn">STOP</button>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <button class="tab active" data-tab="command">Command</button>
+                <button class="tab" data-tab="approvals">Approvals</button>
+                <button class="tab" data-tab="history">History</button>
+                <button class="tab" data-tab="settings">Settings</button>
+            </div>
+
+            <!-- Command Tab -->
+            <div id="command-tab" class="tab-content active">
+                <div class="chat-shell">
+                    <div id="chat-thread" class="chat-thread" aria-live="polite">
+                        <div class="chat-day">Today</div>
+                        <div class="message-row incoming">
+                            <div class="message-bubble">
+                                <div class="message-text">Connected console ready. Send a command from here and I will route it through the local PC agent.</div>
+                                <div class="message-time">Screen-AI</div>
+                            </div>
+                        </div>
+                        <div id="plan-preview" class="plan-preview hidden"></div>
+                        <div id="command-memory" class="command-memory hidden"></div>
+                        <div id="command-progress" class="progress-list hidden" aria-live="polite"></div>
+                        <div id="inline-approvals" class="inline-approvals hidden" aria-live="assertive"></div>
+                        <div id="command-response" class="response"></div>
+                    </div>
+                    <div class="composer-panel">
+                        <div class="command-assist">
+                            <button id="preview-command" class="secondary-btn small-btn">Preview</button>
+                            <button id="restore-draft" class="secondary-btn small-btn">Draft</button>
+                        </div>
+                        <div class="command-input">
+                            <textarea
+                                id="command-text"
+                                placeholder="Message Screen-AI"
+                                rows="1"
+                            ></textarea>
+                            <button id="send-command" aria-label="Send command">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Approvals Tab -->
+            <div id="approvals-tab" class="tab-content">
+                <h2>Pending Approvals</h2>
+                <div id="approvals-list"></div>
+            </div>
+
+            <!-- History Tab -->
+            <div id="history-tab" class="tab-content">
+                <h2>Command History</h2>
+                <div id="history-list"></div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="settings-tab" class="tab-content">
+                <h2>Settings</h2>
+                <div class="setting">
+                    <label>Device Name:</label>
+                    <span id="device-name-display"></span>
+                </div>
+                <div class="setting">
+                    <label>Device ID:</label>
+                    <span id="device-id-display"></span>
+                </div>
+                <div class="setting">
+                    <label>Trust Status:</label>
+                    <span id="trust-status-display">Not trusted</span>
+                </div>
+                <div class="setting">
+                    <label>Token Expires:</label>
+                    <span id="token-expiry-display">-</span>
+                </div>
+                <button id="rotate-token-btn" class="secondary-btn">Rotate Token Now</button>
+                <button id="unpair-button" class="danger-btn">Unpair Device</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast container (populated by ui.js) -->
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+    <!-- Modal container (populated by ui.js) -->
+    <div id="modal-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script src="api.js"></script>
+    <script src="ui.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

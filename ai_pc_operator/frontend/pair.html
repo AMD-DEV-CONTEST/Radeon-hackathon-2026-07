@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screen-AI Pairing</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .pair-page {
+            width: min(920px, 100%);
+            display: grid;
+            grid-template-columns: minmax(300px, 420px) 1fr;
+            gap: 28px;
+            align-items: start;
+        }
+
+        .pair-panel {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 24px;
+        }
+
+        .qr-box {
+            background: #fff;
+            border-radius: 8px;
+            padding: 18px;
+            min-height: 340px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #qrcode {
+            width: 300px;
+            height: 300px;
+        }
+
+        .pair-code {
+            font-size: 42px;
+            letter-spacing: 8px;
+            font-weight: 800;
+            padding: 16px;
+            background: #0f0f0f;
+            border: 1px solid #333;
+            border-radius: 8px;
+            text-align: center;
+            margin: 14px 0;
+        }
+
+        .pair-meta {
+            color: #aaa;
+            font-size: 14px;
+            line-height: 1.5;
+            word-break: break-all;
+        }
+
+        .pair-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .pair-steps {
+            color: #d8d8d8;
+            line-height: 1.7;
+        }
+
+        .pair-steps ol {
+            padding-left: 22px;
+        }
+
+        .status-line {
+            min-height: 24px;
+            color: #aaa;
+            margin-top: 14px;
+        }
+
+        @media (max-width: 820px) {
+            .pair-page {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="pair-page">
+        <section class="pair-panel">
+            <h1>Screen-AI Pairing</h1>
+            <p class="subtitle">Show this page on the PC. Scan it from your phone.</p>
+
+            <div class="qr-box">
+                <div id="qrcode"></div>
+            </div>
+
+            <div class="status-line" id="qr-status">Creating QR code...</div>
+
+            <div class="pair-actions">
+                <button class="primary-btn" id="refresh-qr">Refresh QR</button>
+                <a class="secondary-btn" href="/remote/index.html" style="text-align:center;text-decoration:none;">Open Remote</a>
+            </div>
+        </section>
+
+        <section class="pair-panel">
+            <h2>Phone Link</h2>
+            <p class="pair-meta">
+                Open this on your phone, then press <strong>Start Camera</strong>:
+            </p>
+            <p class="pair-meta" id="remote-url"></p>
+
+            <h2 style="margin-top:24px;">Fallback Code</h2>
+            <p class="pair-meta">If camera scan does not work, use Enter Code on the phone.</p>
+            <div class="pair-code" id="pair-code">------</div>
+
+            <h2 style="margin-top:24px;">Steps</h2>
+            <div class="pair-steps">
+                <ol>
+                    <li>PC: keep this page open.</li>
+                    <li>Phone: open the remote link.</li>
+                    <li>Phone: choose Scan QR and start camera.</li>
+                    <li>Scan the QR code shown here.</li>
+                    <li>If QR fails, choose Enter Code and type the fallback code.</li>
+                </ol>
+            </div>
+
+            <h2 style="margin-top:24px;">QR Payload</h2>
+            <p class="pair-meta" id="qr-payload">Waiting...</p>
+        </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script>
+        let qr;
+
+        function remoteUrl() {
+            return `${window.location.origin}/remote/index.html`;
+        }
+
+        async function refreshPairing() {
+            const status = document.getElementById('qr-status');
+            const payload = document.getElementById('qr-payload');
+            status.textContent = 'Creating QR code...';
+            payload.textContent = 'Waiting...';
+
+            try {
+                const [qrResponse, codeResponse] = await Promise.all([
+                    fetch('/pair/qr'),
+                    fetch('/pair/code'),
+                ]);
+                if (!qrResponse.ok || !codeResponse.ok) {
+                    throw new Error('Pairing endpoint failed');
+                }
+
+                const qrData = await qrResponse.json();
+                const codeData = await codeResponse.json();
+
+                document.getElementById('pair-code').textContent = codeData.code;
+                payload.textContent = qrData.qr_data;
+
+                const target = document.getElementById('qrcode');
+                target.innerHTML = '';
+                qr = new QRCode(target, {
+                    text: qrData.qr_data,
+                    width: 300,
+                    height: 300,
+                    correctLevel: QRCode.CorrectLevel.M,
+                });
+
+                status.textContent = `QR ready. Expires in ${qrData.expires_in} seconds.`;
+            } catch (error) {
+                status.textContent = `Error: ${error.message}`;
+                payload.textContent = 'Use fallback code if available.';
+            }
+        }
+
+        document.getElementById('remote-url').textContent = remoteUrl();
+        document.getElementById('refresh-qr').addEventListener('click', refreshPairing);
+        refreshPairing();
+        setInterval(refreshPairing, 110000);
+    </script>
+</body>
+</html>

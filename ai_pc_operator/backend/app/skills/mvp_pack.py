@@ -1,0 +1,675 @@
+"""MVP skill pack - 50 skills across 6 domains.
+
+These are the seed skills registered on first boot. They map to the
+existing tool implementations in app/tools/ and app/skills/handlers.py.
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import List
+
+from app.skills.contracts import (
+    SkillDefinition,
+    SkillInputSpec,
+    SkillOutputSpec,
+    SkillPermission,
+    SkillVerificationSpec,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def build_mvp_skills() -> List[SkillDefinition]:
+    """Return the 50-skill MVP pack."""
+    skills: List[SkillDefinition] = []
+
+    # ------------------------------------------------------------------
+    # Files domain (10)
+    # ------------------------------------------------------------------
+    skills += [
+        SkillDefinition(
+            id="file.list",
+            domain="files",
+            name="List directory",
+            description="List entries in a directory with bounded depth.",
+            handler="app.skills.handlers.file_list",
+            risk_level=0,
+            requires_approval=False,
+            inputs=[
+                SkillInputSpec(name="path", type="path", required=False, default=""),
+                SkillInputSpec(name="max_entries", type="int", required=False, default=500),
+            ],
+            outputs=[
+                SkillOutputSpec(name="path", type="path"),
+                SkillOutputSpec(name="entries", type="json"),
+                SkillOutputSpec(name="count", type="int"),
+            ],
+            permissions=[SkillPermission.FS_READ],
+            verification=[
+                SkillVerificationSpec(method="file_exists", config={"path_key": "path"}, required=False),
+            ],
+        ),
+        SkillDefinition(
+            id="file.scan",
+            domain="files",
+            name="Scan directory",
+            description="Compute size and file count for a directory tree.",
+            handler="app.skills.handlers.file_scan",
+            risk_level=0,
+            inputs=[SkillInputSpec(name="path", type="path", required=False, default="")],
+            outputs=[SkillOutputSpec(name="path", type="path"), SkillOutputSpec(name="size_bytes", type="int")],
+            permissions=[SkillPermission.FS_READ],
+        ),
+        SkillDefinition(
+            id="file.read",
+            domain="files",
+            name="Read file",
+            description="Read a text file (bounded).",
+            handler="app.skills.handlers.file_read",
+            risk_level=0,
+            inputs=[
+                SkillInputSpec(name="path", type="path", required=True),
+                SkillInputSpec(name="max_bytes", type="int", required=False, default=1_000_000),
+            ],
+            outputs=[SkillOutputSpec(name="content", type="string"), SkillOutputSpec(name="size", type="int")],
+            permissions=[SkillPermission.FS_READ],
+        ),
+        SkillDefinition(
+            id="file.quarantine",
+            domain="files",
+            name="Quarantine file",
+            description="Move a file to the quarantine area (reversible).",
+            handler="app.skills.handlers.file_quarantine",
+            risk_level=3,
+            requires_approval=True,
+            reversible=True,
+            inputs=[
+                SkillInputSpec(name="path", type="path", required=True),
+                SkillInputSpec(name="command_id", type="int", required=False),
+            ],
+            outputs=[SkillOutputSpec(name="quarantine_id", type="int")],
+            permissions=[SkillPermission.FS_WRITE, SkillPermission.FS_DELETE],
+        ),
+        SkillDefinition(
+            id="file.restore",
+            domain="files",
+            name="Restore quarantined file",
+            description="Restore a file from quarantine to its original path.",
+            handler="app.skills.handlers.file_restore",
+            risk_level=2,
+            requires_approval=True,
+            inputs=[SkillInputSpec(name="quarantine_id", type="int", required=True)],
+            outputs=[SkillOutputSpec(name="restored_path", type="path")],
+            permissions=[SkillPermission.FS_WRITE],
+        ),
+        SkillDefinition(
+            id="file.delete_permanent",
+            domain="files",
+            name="Permanently delete file",
+            description="Permanently delete a file (irreversible).",
+            handler="app.tools.file_tools:FileTools.delete_permanent",
+            risk_level=5,
+            requires_approval=True,
+            reversible=False,
+            inputs=[SkillInputSpec(name="path", type="path", required=True)],
+            outputs=[SkillOutputSpec(name="deleted", type="bool")],
+            permissions=[SkillPermission.FS_DELETE],
+        ),
+        SkillDefinition(
+            id="file.copy",
+            domain="files",
+            name="Copy file",
+            description="Copy a file to a new path.",
+            handler="app.tools.file_tools:FileTools.copy",
+            risk_level=1,
+            inputs=[
+                SkillInputSpec(name="src", type="path", required=True),
+                SkillInputSpec(name="dst", type="path", required=True),
+            ],
+            outputs=[SkillOutputSpec(name="copied", type="bool")],
+            permissions=[SkillPermission.FS_READ, SkillPermission.FS_WRITE],
+        ),
+        SkillDefinition(
+            id="file.move",
+            domain="files",
+            name="Move file",
+            description="Move a file to a new path.",
+            handler="app.tools.file_tools:FileTools.move",
+            risk_level=2,
+            requires_approval=True,
+            inputs=[
+                SkillInputSpec(name="src", type="path", required=True),
+                SkillInputSpec(name="dst", type="path", required=True),
+            ],
+            outputs=[SkillOutputSpec(name="moved", type="bool")],
+            permissions=[SkillPermission.FS_WRITE, SkillPermission.FS_DELETE],
+        ),
+        SkillDefinition(
+            id="file.search",
+            domain="files",
+            name="Search files by name",
+            description="Find files matching a name pattern under a path.",
+            handler="app.tools.file_tools:FileTools.search",
+            risk_level=0,
+            inputs=[
+                SkillInputSpec(name="path", type="path", required=True),
+                SkillInputSpec(name="pattern", type="string", required=True),
+            ],
+            outputs=[SkillOutputSpec(name="matches", type="json")],
+            permissions=[SkillPermission.FS_READ],
+        ),
+        SkillDefinition(
+            id="file.hash",
+            domain="files",
+            name="Hash file",
+            description="Compute SHA-256 hash of a file.",
+            handler="app.tools.file_tools:FileTools.hash",
+            risk_level=0,
+            inputs=[SkillInputSpec(name="path", type="path", required=True)],
+            outputs=[SkillOutputSpec(name="sha256", type="string")],
+            permissions=[SkillPermission.FS_READ],
+        ),
+    ]
+
+    # ------------------------------------------------------------------
+    # OS / system domain (10)
+    # ------------------------------------------------------------------
+    skills += [
+        SkillDefinition(
+            id="os.status",
+            domain="os",
+            name="System status",
+            description="Return CPU, RAM, disk, battery snapshot.",
+            handler="app.skills.handlers.system_status",
+            risk_level=0,
+            inputs=[],
+            outputs=[SkillOutputSpec(name="status", type="json")],
+        ),
+        SkillDefinition(
+            id="os.disk_usage",
+            domain="os",
+            name="Disk usage",
+            description="Return disk usage for a path.",
+            handler="app.skills.handlers.system_disk_usage",
+            risk_level=0,
+            inputs=[SkillInputSpec(name="path", type="path", required=False, default="C:\\")],
+            outputs=[SkillOutputSpec(name="disk", type="json")],
+        ),
+        SkillDefinition(
+            id="os.ram_usage",
+            domain="os",
+            name="RAM usage",
+            description="Return RAM usage.",
+            handler="app.skills.handlers.system_ram_usage",
+            risk_level=0,
+            inputs=[],
+            outputs=[SkillOutputSpec(name="ram", type="json")],
+        ),
+        SkillDefinition(
+            id="os.processes",
+            domain="os",
+            name="List processes",
+            description="List top processes by memory.",
+            handler="app.skills.handlers.system_processes",
+            risk_level=0,
+            inputs=[SkillInputSpec(name="limit", type="int", required=False, default=50)],
+            outputs=[SkillOutputSpec(name="processes", type="json")],
+        ),
+        SkillDefinition(
+            id="os.open_app",
+            domain="os",
+            name="Open application",
+            description="Open an application by name.",
+            handler="app.skills.handlers.system_open_app",
+            risk_level=1,
+            inputs=[SkillInputSpec(name="name", type="string", required=True)],
+            outputs=[SkillOutputSpec(name="opened", type="bool")],
+            permissions=[SkillPermission.PROCESS_SPAWN],
+        ),
+        SkillDefinition(
+            id="os.kill_process",
+            domain="os",
+            name="Kill process",
+            description="Kill a process by name or PID.",
+            handler="app.tools.system_tools:SystemTools.kill_process",
+            risk_level=3,
+            requires_approval=True,
+            inputs=[SkillInputSpec(name="name", type="string", required=False), SkillInputSpec(name="pid", type="int", required=False)],
+            outputs=[SkillOutputSpec(name="killed", type="bool")],
+            permissions=[SkillPermission.PROCESS_SPAWN],
+        ),
+        SkillDefinition(
+            id="os.network_status",
+            domain="os",
+            name="Network status",
+            description="Return network connectivity status.",
+            handler="app.tools.system_tools:SystemTools.network_status",
+            risk_level=0,
+            inputs=[],
+            outputs=[SkillOutputSpec(name="network", type="json")],
+        ),
+        SkillDefinition(
+            id="os.battery",
+            domain="os",
+            name="Battery status",
+            description="Return battery percentage and charging state.",
+            handler="app.tools.system_tools:SystemTools.battery",
+            risk_level=0,
+            inputs=[],
+            outputs=[SkillOutputSpec(name="battery", type="json")],
+        ),
+        SkillDefinition(
+            id="os.uptime",
+            domain="os",
+            name="System uptime",
+            description="Return system uptime in seconds.",
+            handler="app.tools.system_tools:SystemTools.uptime",
+            risk_level=0,
+            inputs=[],
+            outputs=[SkillOutputSpec(name="uptime_sec", type="int")],
+        ),
+        SkillDefinition(
+            id="os.run_command",
+            domain="os",
+            name="Run shell command",
+            description="Run a shell command (high risk).",
+            handler="app.tools.system_tools:SystemTools.run_command",
+            risk_level=4,
+            requires_approval=True,
+            reversible=False,
+            inputs=[SkillInputSpec(name="command", type="string", required=True)],
+            outputs=[SkillOutputSpec(name="stdout", type="string"), SkillOutputSpec(name="stderr", type="string")],
+            permissions=[SkillPermission.PROCESS_SPAWN],
+        ),
+    ]
+
+    # ------------------------------------------------------------------
+    # Browser domain (10)
+    # ------------------------------------------------------------------
+    skills += [
+        SkillDefinition(
+            id="browser.open",
+            domain="browser",
+            name="Open URL",
+            description="Open a URL in the browser.",
+            handler="app.skills.handlers.browser_open",
+            risk_level=1,
+            inputs=[SkillInputSpec(name="url", type="url", required=True)],
+            outputs=[SkillOutputSpec(name="opened", type="bool")],
+            permissions=[SkillPermission.BROWSER_AUTOMATE],
+        ),
+        SkillDefinition(
+            id="browser.search",
+            domain="browser",
+            name="Web search",
+            description="Search the web using a query.",
+            handler="app.skills.handlers.browser_search",
+            risk_level=1,
+            inputs=[
+                SkillInputSpec(name="query", type="string", required=True),
+                SkillInputSpec(name="engine", type="string", required=False, default="google"),
+            ],
+            outputs=[SkillOutputSpec(name="url", type="url")],
+            permissions=[SkillPermission.BROWSER_AUTOMATE, SkillPermission.NET_HTTP],
+        ),
+        SkillDefinition(
+            id="browser.close",
+            domain="browser",
+            name="Close browser",
+            description="Close the browser session.",
+            handler="app.skills.handlers.browser_close",
+            risk_level=0,
+            inputs=[],
+            outputs=[SkillOutputSpec(name="closed", type="bool")],
+        ),
+        SkillDefinition(
+            id="browser.click",
+            domain="browser",
+            name="Click selector",
+            description="Click an element matching a CSS selector.",
+            handler="app.tools.browser_tools:BrowserTools.click",
+            risk_level=2,
+            requires_approval=True,
+            inputs=[SkillInputSpec(name="selector", type="string", required=True)],
+            outputs=[SkillOutputSpec(name="clicked", type="bool")],
+            permissions=[SkillPermission.BROWSER_AUTOMATE],
+        ),
+        SkillDefinition(
+            id="browser.type",
+            domain="browser",
+            name="Type into selector",
+            description="Type text into an element matching a CSS selector.",
+            handler="app.tools.browser_tools:BrowserTools.type_text",
+            risk_level=2,
+            requires_approval=True,
+            inputs=[
+                SkillInputSpec(name="selector", type="string", required=True),
+                SkillInputSpec(name="text", type="string", required=True),
+            ],
+            outputs=[SkillOutputSpec(name="typed", type="bool")],
+            permissions=[SkillPermission.BROWSER_AUTOMATE],
+        ),
+        SkillDefinition(
+            id="browser.read",
+            domain="browser",
+            name="Read page text",
+            description="Extract visible text from the current page.",
+            handler="app.tools.browser_tools:BrowserTools.read_text",
+            risk_level=0,
+            inputs=[],
+            outputs=[SkillOutputSpec(name="text", type="string")],
+            permissions=[SkillPermission.BROWSER_AUTOMATE],
+        ),
+        SkillDefinition(
+            id="browser.screenshot",
+            domain="browser",
+            name="Browser screenshot",
+            description="Capture a screenshot of the current page.",
+            handler="app.tools.browser_tools:BrowserTools.screenshot",
+            risk_level=0,
+            inputs=[SkillInputSpec(name="path", type="path", required=False)],
+            outputs=[SkillOutputSpec(name="screenshot", type="path")],
+            permissions=[SkillPermission.BROWSER_AUTOMATE],
+        ),
+        SkillDefinition(
+            id="browser.download",
+            domain="browser",
+            name="Download file",
+            description="Download a file from a URL.",
+            handler="app.tools.browser_tools:BrowserTools.download",
+            risk_level=3,
+            requires_approval=True,
+            inputs=[SkillInputSpec(name="url", type="url", required=True)],
+            outputs=[SkillOutputSpec(name="path", type="path")],
+            permissions=[SkillPermission.BROWSER_AUTOMATE, SkillPermission.NET_HTTP, SkillPermission.FS_WRITE],
+        ),
+        SkillDefinition(
+            id="browser.fill_form",
+            domain="browser",
+            name="Fill form",
+            description="Fill multiple form fields at once.",
+            handler="app.tools.browser_tools:BrowserTools.fill_form",
+            risk_level=2,
+            requires_approval=True,
+            inputs=[SkillInputSpec(name="fields", type="json", required=True)],
+            outputs=[SkillOutputSpec(name="filled", type="bool")],
+            permissions=[SkillPermission.BROWSER_AUTOMATE],
+        ),
+        SkillDefinition(
+            id="browser.wait_for",
+            domain="browser",
+            name="Wait for selector",
+            description="Wait until a selector appears on the page.",
+            handler="app.tools.browser_tools:BrowserTools.wait_for",
+            risk_level=0,
+            inputs=[
+                SkillInputSpec(name="selector", type="string", required=True),
+                SkillInputSpec(name="timeout_sec", type="int", required=False, default=30),
+            ],
+            outputs=[SkillOutputSpec(name="found", type="bool")],
+            permissions=[SkillPermission.BROWSER_AUTOMATE],
+        ),
+    ]
+
+    # ------------------------------------------------------------------
+    # Screen / UI domain (5)
+    # ------------------------------------------------------------------
+    skills += [
+        SkillDefinition(
+            id="screen.scan",
+            domain="app",
+            name="Scan screen",
+            description="Scan the screen for actionable controls.",
+            handler="app.skills.handlers.screen_scan",
+            risk_level=0,
+            inputs=[],
+            outputs=[SkillOutputSpec(name="controls", type="json")],
+            permissions=[SkillPermission.SCREEN_READ],
+        ),
+        SkillDefinition(
+            id="screen.click_text",
+            domain="app",
+            name="Click visible text",
+            description="Click a UI element by visible text.",
+            handler="app.skills.handlers.screen_click_text",
+            risk_level=2,
+            requires_approval=True,
+            inputs=[
+                SkillInputSpec(name="text", type="string", required=True),
+                SkillInputSpec(name="dry_run", type="bool", required=False, default=True),
+            ],
+            outputs=[SkillOutputSpec(name="clicked", type="bool")],
+            permissions=[SkillPermission.SCREEN_CLICK],
+        ),
+        SkillDefinition(
+            id="screen.screenshot",
+            domain="app",
+            name="Screen screenshot",
+            description="Capture a screenshot of the desktop.",
+            handler="app.tools.screen_tools:ScreenTools.screenshot",
+            risk_level=0,
+            inputs=[SkillInputSpec(name="path", type="path", required=False)],
+            outputs=[SkillOutputSpec(name="screenshot", type="path")],
+            permissions=[SkillPermission.SCREEN_READ],
+        ),
+        SkillDefinition(
+            id="screen.ocr",
+            domain="app",
+            name="OCR screen",
+            description="Run OCR on the current screen.",
+            handler="app.tools.screen_tools:ScreenTools.ocr",
+            risk_level=0,
+            inputs=[],
+            outputs=[SkillOutputSpec(name="text", type="string")],
+            permissions=[SkillPermission.SCREEN_READ],
+        ),
+        SkillDefinition(
+            id="screen.find_text",
+            domain="app",
+            name="Find text on screen",
+            description="Locate visible text on the screen.",
+            handler="app.tools.screen_tools:ScreenTools.find_text",
+            risk_level=0,
+            inputs=[SkillInputSpec(name="text", type="string", required=True)],
+            outputs=[SkillOutputSpec(name="found", type="bool"), SkillOutputSpec(name="location", type="json")],
+            permissions=[SkillPermission.SCREEN_READ],
+        ),
+    ]
+
+    # ------------------------------------------------------------------
+    # Auth / vault domain (5)
+    # ------------------------------------------------------------------
+    skills += [
+        SkillDefinition(
+            id="vault.unlock",
+            domain="app",
+            name="Unlock vault",
+            description="Unlock the encrypted password vault.",
+            handler="app.skills.handlers.vault_unlock",
+            risk_level=3,
+            requires_approval=True,
+            inputs=[SkillInputSpec(name="master_key", type="string", required=True)],
+            outputs=[SkillOutputSpec(name="unlocked", type="bool")],
+            permissions=[SkillPermission.VAULT_READ],
+        ),
+        SkillDefinition(
+            id="vault.lock",
+            domain="app",
+            name="Lock vault",
+            description="Lock the password vault.",
+            handler="app.skills.handlers.vault_lock",
+            risk_level=0,
+            inputs=[],
+            outputs=[SkillOutputSpec(name="locked", type="bool")],
+        ),
+        SkillDefinition(
+            id="vault.list",
+            domain="app",
+            name="List vault entries",
+            description="List vault entries (no secrets).",
+            handler="app.skills.handlers.vault_list",
+            risk_level=0,
+            inputs=[],
+            outputs=[SkillOutputSpec(name="entries", type="json")],
+            permissions=[SkillPermission.VAULT_READ],
+        ),
+        SkillDefinition(
+            id="vault.add",
+            domain="app",
+            name="Add vault entry",
+            description="Add a new credential to the vault.",
+            handler="app.tools.auth_tools:AuthTools.add_entry",
+            risk_level=3,
+            requires_approval=True,
+            inputs=[
+                SkillInputSpec(name="site", type="string", required=True),
+                SkillInputSpec(name="username", type="string", required=True),
+                SkillInputSpec(name="password", type="string", required=True),
+            ],
+            outputs=[SkillOutputSpec(name="entry_id", type="int")],
+            permissions=[SkillPermission.VAULT_WRITE],
+        ),
+        SkillDefinition(
+            id="vault.fill_login",
+            domain="app",
+            name="Fill login form",
+            description="Fill a login form using a vault entry.",
+            handler="app.tools.auth_tools:AuthTools.fill_login",
+            risk_level=3,
+            requires_approval=True,
+            inputs=[
+                SkillInputSpec(name="site", type="string", required=True),
+                SkillInputSpec(name="username", type="string", required=False),
+            ],
+            outputs=[SkillOutputSpec(name="filled", type="bool")],
+            permissions=[SkillPermission.VAULT_READ, SkillPermission.BROWSER_AUTOMATE],
+        ),
+    ]
+
+    # ------------------------------------------------------------------
+    # Meta / utility domain (10)
+    # ------------------------------------------------------------------
+    skills += [
+        SkillDefinition(
+            id="meta.echo",
+            domain="meta",
+            name="Echo",
+            description="Echo back the input (testing).",
+            handler="app.skills.handlers.meta_echo",
+            risk_level=0,
+            inputs=[SkillInputSpec(name="text", type="string", required=False, default="")],
+            outputs=[SkillOutputSpec(name="echo", type="string")],
+        ),
+        SkillDefinition(
+            id="meta.sleep",
+            domain="meta",
+            name="Sleep",
+            description="Sleep for N seconds (testing/timing).",
+            handler="app.skills.handlers.meta_sleep",
+            risk_level=0,
+            inputs=[SkillInputSpec(name="seconds", type="float", required=False, default=1.0)],
+            outputs=[SkillOutputSpec(name="slept", type="float")],
+        ),
+        SkillDefinition(
+            id="meta.summarize",
+            domain="meta",
+            name="Summarize text",
+            description="Summarize a block of text.",
+            handler="app.tools.system_tools:SystemTools.summarize",
+            risk_level=0,
+            inputs=[SkillInputSpec(name="text", type="string", required=True)],
+            outputs=[SkillOutputSpec(name="summary", type="string")],
+        ),
+        SkillDefinition(
+            id="meta.translate",
+            domain="meta",
+            name="Translate text",
+            description="Translate text to a target language.",
+            handler="app.tools.system_tools:SystemTools.translate",
+            risk_level=0,
+            inputs=[
+                SkillInputSpec(name="text", type="string", required=True),
+                SkillInputSpec(name="target", type="string", required=False, default="en"),
+            ],
+            outputs=[SkillOutputSpec(name="translated", type="string")],
+        ),
+        SkillDefinition(
+            id="meta.datetime",
+            domain="meta",
+            name="Current datetime",
+            description="Return the current local datetime.",
+            handler="app.tools.system_tools:SystemTools.datetime",
+            risk_level=0,
+            inputs=[],
+            outputs=[SkillOutputSpec(name="iso", type="string")],
+        ),
+        SkillDefinition(
+            id="meta.weather",
+            domain="meta",
+            name="Weather",
+            description="Return weather for a location (offline stub).",
+            handler="app.tools.system_tools:SystemTools.weather",
+            risk_level=0,
+            inputs=[SkillInputSpec(name="location", type="string", required=False, default="local")],
+            outputs=[SkillOutputSpec(name="weather", type="json")],
+        ),
+        SkillDefinition(
+            id="meta.calculate",
+            domain="meta",
+            name="Calculate",
+            description="Evaluate a math expression.",
+            handler="app.tools.system_tools:SystemTools.calculate",
+            risk_level=0,
+            inputs=[SkillInputSpec(name="expression", type="string", required=True)],
+            outputs=[SkillOutputSpec(name="result", type="float")],
+        ),
+        SkillDefinition(
+            id="meta.unit_convert",
+            domain="meta",
+            name="Unit convert",
+            description="Convert between units.",
+            handler="app.tools.system_tools:SystemTools.unit_convert",
+            risk_level=0,
+            inputs=[
+                SkillInputSpec(name="value", type="float", required=True),
+                SkillInputSpec(name="from_unit", type="string", required=True),
+                SkillInputSpec(name="to_unit", type="string", required=True),
+            ],
+            outputs=[SkillOutputSpec(name="result", type="float")],
+        ),
+        SkillDefinition(
+            id="meta.reminder",
+            domain="meta",
+            name="Set reminder",
+            description="Set a reminder for N minutes from now.",
+            handler="app.tools.system_tools:SystemTools.reminder",
+            risk_level=1,
+            inputs=[
+                SkillInputSpec(name="message", type="string", required=True),
+                SkillInputSpec(name="minutes", type="int", required=True),
+            ],
+            outputs=[SkillOutputSpec(name="reminder_id", type="int")],
+        ),
+        SkillDefinition(
+            id="meta.note",
+            domain="meta",
+            name="Save note",
+            description="Save a note to local memory.",
+            handler="app.tools.system_tools:SystemTools.note",
+            risk_level=0,
+            inputs=[SkillInputSpec(name="text", type="string", required=True)],
+            outputs=[SkillOutputSpec(name="saved", type="bool")],
+        ),
+    ]
+
+    return skills
+
+
+async def seed_mvp_skills(registry) -> int:
+    """Register all MVP skills into the registry. Returns count."""
+    skills = build_mvp_skills()
+    for skill in skills:
+        await registry.register(skill)
+    logger.info("Seeded %d MVP skills", len(skills))
+    return len(skills)

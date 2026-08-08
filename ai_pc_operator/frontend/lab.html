@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screen-AI Model Lab</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            min-height: 100vh;
+            background: #0b141a;
+            color: #e9edef;
+        }
+
+        .lab {
+            width: min(980px, 100%);
+            margin: 0 auto;
+            padding: 18px;
+        }
+
+        .lab-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 0 18px;
+        }
+
+        .lab-actions {
+            display: flex;
+            align-items: stretch;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .lab-title h1 {
+            font-size: 1.8em;
+            margin-bottom: 6px;
+            background: none;
+            color: #e9edef;
+            -webkit-text-fill-color: currentColor;
+        }
+
+        .lab-title p {
+            color: #8696a0;
+            line-height: 1.5;
+        }
+
+        .lab-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
+            gap: 14px;
+        }
+
+        .lab-panel {
+            background: #202c33;
+            border: 1px solid rgba(134, 150, 160, 0.16);
+            border-radius: 8px;
+            padding: 14px;
+        }
+
+        .lab-chat {
+            min-height: 460px;
+            display: grid;
+            grid-template-rows: 1fr auto;
+            background: #0b141a;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid rgba(134, 150, 160, 0.16);
+        }
+
+        #lab-thread {
+            padding: 14px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .lab-composer {
+            background: #202c33;
+            padding: 10px;
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 8px;
+        }
+
+        #lab-input {
+            min-height: 48px;
+            max-height: 140px;
+            resize: vertical;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            background: #2a3942;
+            color: #e9edef;
+            padding: 10px;
+            font: inherit;
+        }
+
+        #lab-input:focus {
+            outline: none;
+            border-color: #00a884;
+        }
+
+        .lab-button {
+            border: none;
+            border-radius: 8px;
+            padding: 0 14px;
+            background: #00a884;
+            color: #06261f;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .lab-button.secondary {
+            background: #111b21;
+            color: #d1d7db;
+            border: 1px solid rgba(134, 150, 160, 0.18);
+        }
+
+        .lab-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .lab-chip {
+            border-radius: 999px;
+            background: #111b21;
+            border: 1px solid rgba(134, 150, 160, 0.18);
+            padding: 5px 9px;
+            color: #d1d7db;
+            font-size: 0.82em;
+        }
+
+        .lab-pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #111b21;
+            border-radius: 8px;
+            padding: 12px;
+            color: #d1d7db;
+            font-size: 0.86em;
+            max-height: 360px;
+            overflow: auto;
+        }
+
+        .approval-note {
+            margin: 10px 0 12px;
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid rgba(134, 150, 160, 0.2);
+            background: #111b21;
+            color: #d1d7db;
+            line-height: 1.45;
+        }
+
+        .approval-note.need {
+            border-color: rgba(251, 191, 36, 0.5);
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.16), #111b21);
+        }
+
+        .approval-note.safe {
+            border-color: rgba(0, 168, 132, 0.45);
+        }
+
+        .approval-note strong {
+            display: block;
+            color: #e9edef;
+            margin-bottom: 4px;
+        }
+
+        .lab-plan-actions {
+            display: grid;
+            gap: 8px;
+            margin: 10px 0 12px;
+        }
+
+        .lab-plan-actions .lab-button {
+            min-height: 40px;
+        }
+
+        .lab-action-note {
+            color: #8696a0;
+            font-size: 0.84em;
+            line-height: 1.4;
+        }
+
+        .lab-approve-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 10px 0 6px;
+        }
+
+        .lab-approve-row .lab-button {
+            min-height: 42px;
+        }
+
+        .lab-button.approve {
+            background: linear-gradient(135deg, #00a884, #00c896);
+            color: #06261f;
+        }
+
+        .lab-button.reject {
+            background: #b54545;
+            color: #fff;
+        }
+
+        .lab-approval-card {
+            margin: 10px 0;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(251, 191, 36, 0.45);
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.16), #111b21);
+            display: grid;
+            gap: 8px;
+        }
+
+        .lab-approval-card .lab-approval-title {
+            color: #fbbf24;
+            font-weight: 800;
+            font-size: 0.92em;
+        }
+
+        .lab-approval-card .lab-approval-action {
+            color: #e9edef;
+            font-weight: 700;
+        }
+
+        .lab-approval-card .lab-approval-desc {
+            color: #d1d7db;
+            font-size: 0.88em;
+            line-height: 1.4;
+        }
+
+        .lab-approval-card .lab-approval-impact {
+            max-height: 160px;
+            overflow: auto;
+            padding: 8px;
+            border-radius: 6px;
+            background: #0b141a;
+            color: #d1d7db;
+            border: 1px solid rgba(134, 150, 160, 0.18);
+            white-space: pre-wrap;
+            font-size: 0.82em;
+        }
+
+        .lab-approval-card .lab-approval-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .lab-approval-card .lab-approval-actions .lab-button {
+            min-height: 40px;
+        }
+
+        @media (max-width: 820px) {
+            .lab-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .lab-composer {
+                grid-template-columns: 1fr;
+            }
+
+            .lab-button {
+                min-height: 42px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="lab">
+        <header class="lab-header">
+            <div class="lab-title">
+                <h1>Screen-AI Model Lab</h1>
+                <p>PC browser test page for command understanding, model routing, and safe plan previews.</p>
+            </div>
+            <div class="lab-actions">
+                <button id="cache-clear-btn" class="lab-button secondary" type="button">Clear Cache</button>
+                <a class="lab-button secondary" href="/remote/index.html" style="text-decoration:none;display:grid;place-items:center;min-height:40px;">Remote</a>
+                <a class="lab-button secondary" href="/remote/links.html" style="text-decoration:none;display:grid;place-items:center;min-height:40px;">Links</a>
+            </div>
+        </header>
+
+        <section class="lab-grid">
+            <div class="lab-chat">
+                <div id="lab-thread">
+                    <div class="message-row incoming">
+                        <div class="message-bubble">
+                            <div class="message-text">Type a command and press Preview. I will show how the local backend understands it before anything runs.</div>
+                            <div class="message-time">Model Lab</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="lab-composer">
+                    <textarea id="lab-input">open gx browser and go to youtube.com and stay idle for 1 hour use mouse movement</textarea>
+                    <button id="preview-btn" class="lab-button">Preview</button>
+                    <button id="clear-btn" class="lab-button secondary">Clear</button>
+                </div>
+            </div>
+
+            <aside class="lab-panel">
+                <h2 style="font-size:1em;margin-bottom:8px;">Latest Plan</h2>
+                <div id="lab-meta" class="lab-meta"></div>
+                <div id="approval-note" class="approval-note">No preview yet.</div>
+                <div id="lab-plan-actions" class="lab-plan-actions"></div>
+                <div id="lab-approval-cards" class="lab-approval-cards"></div>
+                <pre id="lab-json" class="lab-pre">No preview yet.</pre>
+            </aside>
+        </section>
+    </main>
+
+    <script src="api.js"></script>
+    <script>
+        const thread = document.getElementById('lab-thread');
+        const input = document.getElementById('lab-input');
+        const meta = document.getElementById('lab-meta');
+        const jsonBox = document.getElementById('lab-json');
+        const approvalNote = document.getElementById('approval-note');
+        const planActions = document.getElementById('lab-plan-actions');
+        const approvalCards = document.getElementById('lab-approval-cards');
+        const apiClient = window.ScreenAI?.api;
+        let labApprovalPollTimer = null;
+
+        document.getElementById('preview-btn').addEventListener('click', preview);
+        document.getElementById('cache-clear-btn').addEventListener('click', clearAppCache);
+        document.getElementById('clear-btn').addEventListener('click', () => {
+            input.value = '';
+            meta.replaceChildren();
+            planActions.replaceChildren();
+            approvalCards.replaceChildren();
+            jsonBox.textContent = 'No preview yet.';
+            approvalNote.className = 'approval-note';
+            approvalNote.textContent = 'No preview yet.';
+            stopLabApprovalPolling();
+        });
+
+        input.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+                preview();
+            }
+        });
+
+        async function preview() {
+            const text = input.value.trim();
+            if (!text) return;
+            addMessage('outgoing', text);
+            const thinking = addMessage('incoming', 'Planning...');
+            try {
+                const data = apiClient && location.protocol !== 'file:'
+                    ? await apiClient.commands.preview(text)
+                    : await previewWithFetch(text);
+                renderPlan(data);
+                thinking.querySelector('.message-text').textContent = summarize(data);
+            } catch (error) {
+                thinking.querySelector('.message-text').textContent = explainPreviewError(error);
+            }
+            thread.scrollTop = thread.scrollHeight;
+        }
+
+        async function clearAppCache() {
+            const deleted = [];
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                await Promise.all(keys.map((key) => {
+                    deleted.push(key);
+                    return caches.delete(key);
+                }));
+            }
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(registrations.map((registration) => registration.update()));
+            }
+            addMessage(
+                'incoming',
+                deleted.length
+                    ? `Cleared ${deleted.length} cache bucket(s). Refreshing fresh files now.`
+                    : 'No old cache buckets found. Refreshing fresh files now.'
+            );
+            setTimeout(() => location.reload(), 450);
+        }
+
+        async function previewWithFetch(text) {
+            const response = await fetch(resolveApiPath('/command/preview'), {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text}),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(data.detail || data.message || `HTTP ${response.status}`);
+            }
+            return data;
+        }
+
+        function resolveApiPath(path) {
+            if (location.protocol === 'file:') {
+                return `http://localhost:8000${path}`;
+            }
+            return path;
+        }
+
+        function explainPreviewError(error) {
+            const msg = error?.message || String(error);
+            if (msg === 'Failed to fetch' || msg.includes('NetworkError')) {
+                return [
+                    'Preview failed: local backend is not reachable.',
+                    'Start Screen-AI with ai_pc_operator\\start.bat, then refresh this page.',
+                    'Expected API: http://localhost:8000/command/preview',
+                ].join('\n');
+            }
+            return `Preview failed: ${msg}`;
+        }
+
+        function addMessage(direction, text) {
+            const row = document.createElement('div');
+            row.className = `message-row ${direction === 'outgoing' ? 'outgoing' : 'incoming'}`;
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            const msg = document.createElement('div');
+            msg.className = 'message-text';
+            msg.textContent = text;
+            const time = document.createElement('div');
+            time.className = 'message-time';
+            time.textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+            bubble.append(msg, time);
+            row.appendChild(bubble);
+            thread.appendChild(row);
+            thread.scrollTop = thread.scrollHeight;
+            return row;
+        }
+
+        function renderPlan(data) {
+            meta.replaceChildren();
+            [
+                `intent: ${data.intent || data.status}`,
+                `risk: ${data.risk_level ?? '-'}`,
+                `steps: ${data.step_count ?? 0}`,
+                `budget: ${data.model_plan?.budget_mode || data.runtime?.budget_mode || '-'}`,
+            ].forEach((label) => {
+                const chip = document.createElement('span');
+                chip.className = 'lab-chip';
+                chip.textContent = label;
+                meta.appendChild(chip);
+            });
+            renderApprovalNote(data);
+            renderPlanActions(data);
+            jsonBox.textContent = JSON.stringify({
+                status: data.status,
+                intent: data.intent,
+                risk_level: data.risk_level,
+                requires_approval: data.requires_approval,
+                plan: data.plan,
+                execution_graph: data.execution_graph,
+                model_plan: data.model_plan,
+            }, null, 2);
+        }
+
+        function renderApprovalNote(data) {
+            const risk = Number(data.risk_level || 0);
+            const needsApproval = Boolean(data.requires_approval);
+            approvalNote.className = `approval-note ${needsApproval ? 'need' : 'safe'}`;
+            if (needsApproval) {
+                approvalNote.innerHTML = [
+                    '<strong>Approval will be required.</strong>',
+                    'This lab is Preview only, so it does not create a real approval request.',
+                    'Open Remote, pair your device, press Send there, and the Approve/Reject buttons will appear in the command screen.'
+                ].join(' ');
+                return;
+            }
+            approvalNote.innerHTML = [
+                '<strong>No approval needed for this preview.</strong>',
+                `Risk ${risk} commands are low-risk. Approve/Reject appears only when risk policy requires approval, usually risk 3 or higher.`
+            ].join(' ');
+        }
+
+        function renderPlanActions(data) {
+            planActions.replaceChildren();
+            const text = input.value.trim();
+            const steps = data.plan?.steps || [];
+            if (!text || !steps.length) return;
+
+            const approveRow = document.createElement('div');
+            approveRow.className = 'lab-approve-row';
+
+            const approveBtn = document.createElement('button');
+            approveBtn.className = 'lab-button approve';
+            approveBtn.type = 'button';
+            approveBtn.textContent = data.requires_approval ? 'Approve & Send' : 'Approve & Run';
+            approveBtn.addEventListener('click', () => approveAndSend(text));
+            approveRow.appendChild(approveBtn);
+
+            const rejectBtn = document.createElement('button');
+            rejectBtn.className = 'lab-button reject';
+            rejectBtn.type = 'button';
+            rejectBtn.textContent = 'Reject';
+            rejectBtn.addEventListener('click', () => rejectPlan(text));
+            approveRow.appendChild(rejectBtn);
+
+            planActions.appendChild(approveRow);
+
+            const note = document.createElement('div');
+            note.className = 'lab-action-note';
+            if (data.requires_approval) {
+                note.textContent = 'Approve & Send starts the command. The backend will pause and show the Approve/Reject card below when it needs your decision.';
+            } else {
+                note.textContent = 'Approve & Run sends the command through /command. Low-risk plans run without an extra approval gate.';
+            }
+            planActions.appendChild(note);
+        }
+
+        async function approveAndSend(text) {
+            const working = addMessage('incoming', 'Sending approved plan...');
+            try {
+                const data = apiClient && location.protocol !== 'file:'
+                    ? await apiClient.commands.send(text)
+                    : await executeWithFetch(text);
+                working.querySelector('.message-text').textContent = summarizeExecution(data);
+                if (data.requires_approval) {
+                    startLabApprovalPolling();
+                }
+            } catch (error) {
+                working.querySelector('.message-text').textContent = `Send failed: ${error.message || error}`;
+            }
+            thread.scrollTop = thread.scrollHeight;
+        }
+
+        async function rejectPlan(text) {
+            addMessage('incoming', `Rejected plan for: ${text}`);
+            stopLabApprovalPolling();
+            approvalCards.replaceChildren();
+        }
+
+        function startLabApprovalPolling() {
+            stopLabApprovalPolling();
+            pollLabApprovals();
+            labApprovalPollTimer = setInterval(pollLabApprovals, 1600);
+        }
+
+        function stopLabApprovalPolling() {
+            if (labApprovalPollTimer) {
+                clearInterval(labApprovalPollTimer);
+                labApprovalPollTimer = null;
+            }
+        }
+
+        async function pollLabApprovals() {
+            try {
+                const data = apiClient && location.protocol !== 'file:'
+                    ? await apiClient.approvals.pending()
+                    : await pendingApprovalsWithFetch();
+                renderLabApprovalCards(data.approvals || []);
+            } catch (error) {
+                console.warn('[lab] approval poll failed:', error);
+            }
+        }
+
+        async function pendingApprovalsWithFetch() {
+            const response = await fetch(resolveApiPath('/approvals/pending'), {
+                method: 'GET',
+                headers: {'Content-Type': 'application/json'},
+            });
+            return await response.json().catch(() => ({ approvals: [] }));
+        }
+
+        async function resolveLabApproval(approvalId, approved) {
+            try {
+                if (apiClient && location.protocol !== 'file:') {
+                    await apiClient.approvals.resolve(approvalId, approved, null);
+                } else {
+                    await fetch(resolveApiPath('/approvals/resolve'), {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ approval_id: approvalId, approved, master_key: null }),
+                    });
+                }
+                addMessage('incoming', approved ? `Approved request ${approvalId}.` : `Rejected request ${approvalId}.`);
+                await pollLabApprovals();
+            } catch (error) {
+                addMessage('incoming', `Failed to resolve approval: ${error.message || error}`);
+            }
+        }
+
+        function renderLabApprovalCards(approvals) {
+            approvalCards.replaceChildren();
+            if (!approvals.length) return;
+            approvals.forEach((approval) => {
+                const card = document.createElement('div');
+                card.className = 'lab-approval-card';
+
+                const title = document.createElement('div');
+                title.className = 'lab-approval-title';
+                title.textContent = 'Approval needed';
+                card.appendChild(title);
+
+                const action = document.createElement('div');
+                action.className = 'lab-approval-action';
+                action.textContent = approval.action_type || 'Action';
+                card.appendChild(action);
+
+                const desc = document.createElement('div');
+                desc.className = 'lab-approval-desc';
+                desc.textContent = approval.description || 'Approve this action to continue.';
+                card.appendChild(desc);
+
+                if (approval.impact_summary) {
+                    const impact = document.createElement('pre');
+                    impact.className = 'lab-approval-impact';
+                    const summary = typeof approval.impact_summary === 'string'
+                        ? approval.impact_summary
+                        : JSON.stringify(approval.impact_summary, null, 2);
+                    impact.textContent = summary;
+                    card.appendChild(impact);
+                }
+
+                const actions = document.createElement('div');
+                actions.className = 'lab-approval-actions';
+
+                const approve = document.createElement('button');
+                approve.className = 'lab-button approve';
+                approve.type = 'button';
+                approve.textContent = 'Approve';
+                approve.addEventListener('click', () => resolveLabApproval(approval.id, true));
+                actions.appendChild(approve);
+
+                const reject = document.createElement('button');
+                reject.className = 'lab-button reject';
+                reject.type = 'button';
+                reject.textContent = 'Reject';
+                reject.addEventListener('click', () => resolveLabApproval(approval.id, false));
+                actions.appendChild(reject);
+
+                card.appendChild(actions);
+                approvalCards.appendChild(card);
+            });
+        }
+
+        async function runLowRiskPlan(text) {
+            const working = addMessage('incoming', 'Executing low-risk plan...');
+            try {
+                const data = apiClient && location.protocol !== 'file:'
+                    ? await apiClient.commands.send(text)
+                    : await executeWithFetch(text);
+                working.querySelector('.message-text').textContent = summarizeExecution(data);
+                if (data.requires_approval) {
+                    startLabApprovalPolling();
+                }
+            } catch (error) {
+                working.querySelector('.message-text').textContent = `Execution failed: ${error.message || error}`;
+            }
+        }
+
+        async function executeWithFetch(text) {
+            const response = await fetch(resolveApiPath('/command'), {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text}),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(data.detail || data.message || `HTTP ${response.status}`);
+            }
+            return data;
+        }
+
+        function summarizeExecution(data) {
+            if (data.requires_approval) {
+                return [
+                    'Execution paused for approval.',
+                    `Approval ID: ${data.approval_id || 'pending'}`,
+                    'The Approve / Reject card is now visible below the plan panel.',
+                ].join('\n');
+            }
+            return [
+                `Status: ${data.status || 'unknown'}`,
+                data.result || data.error || 'No result text returned.',
+            ].join('\n');
+        }
+
+        function summarize(data) {
+            const steps = data.plan?.steps || [];
+            const stepText = steps.map((step, idx) => `${idx + 1}. ${step.tool}`).join('\n');
+            return `Intent: ${data.intent}\nRisk: ${data.risk_level}\n${stepText || data.message || 'No plan yet.'}`;
+        }
+    </script>
+</body>
+</html>
