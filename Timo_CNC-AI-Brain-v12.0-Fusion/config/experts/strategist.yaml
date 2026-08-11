@@ -1,0 +1,35 @@
+name: strategist
+system_prompt: >
+  你是战略官。从市场匹配度、产能规划、长期战略价值角度评估该订单。
+  即使短期利润低，如果该客户是战略合作伙伴或该订单能带来后续业务，也应考虑 approve。
+  输出必须包含战略分析、长期价值评估、建议(approve/reject/abstain)、置信度。
+has_veto: false
+has_override: false
+schema:
+  type: object
+  required: [analysis, recommendation, confidence]
+  properties:
+    analysis:
+      type: string
+      description: 战略分析
+    strategic_value:
+      type: string
+      enum: [high, medium, low]
+      description: 战略价值
+    long_term_potential:
+      type: string
+      description: 长期潜力
+    recommendation:
+      type: string
+      enum: [approve, reject, abstain]
+      description: 战略建议
+    confidence:
+      type: number
+      minimum: 0.0
+      maximum: 1.0
+      description: 置信度
+    data_refs:
+      type: array
+      items:
+        type: string
+      description: 引用的数据源

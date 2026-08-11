@@ -1,0 +1,124 @@
+{
+  "//": "Union CNC AI Model Config — MTClaw Function Router 作为上游 LLM Provider",
+  "//fallback": "function_router > cloud > local > rule_engine",
+  "//integration": "A方案: cnc-ai-brain LLM调用 base_url 指向本地 MTClaw Function Router(:7863/v1), 命中CNC工具走加速路径, 未命中透明转发上游",
+  "preference": "local",
+  "ollama_default": "qwen2.5:1.5b",
+  "cloud": [
+    {
+      "name": "mtclaw-fr",
+      "provider": "openai",
+      "api_key": "fr-local",
+      "api_url": "http://127.0.0.1:7863/v1",
+      "model_id": "fr-routed",
+      "quality_score": 99,
+      "param_count": 200,
+      "description": "MTClaw Function Router 本地路由(provider proxy), CNC垂类工具加速"
+    },
+    {
+      "name": "opc-auto",
+      "provider": "openai",
+      "api_url": "http://115.120.244.127/v1",
+      "api_key": "${OPC_API_KEY}",
+      "model_id": "opc-auto",
+      "quality_score": 95,
+      "param_count": 200,
+      "description": "OPC Cloud API (FR降级fallback)"
+    }
+  ],
+  "local": [
+    {
+      "name": "qwen3.6-35b-a3b",
+      "provider": "openai",
+      "api_key": "lm-studio",
+      "api_url": "http://127.0.0.1:1234/v1",
+      "model_id": "qwen/qwen3.6-35b-a3b",
+      "quality_score": 92,
+      "param_count": 35,
+      "description": "Qwen3.6-35B-A3B local LMStudio (OpenAI兼容, 中文原生MoE)"
+    },
+    {
+      "name": "gpt-oss-120b",
+      "provider": "openai",
+      "api_key": "none",
+      "api_url": "http://localhost:1250/v1",
+      "model_id": "gpt-oss-120b-mxfp4-00001-of-00003.gguf",
+      "quality_score": 70,
+      "param_count": 120,
+      "description": "gpt-oss-120b local llamacpp (offline)"
+    },
+    {
+      "name": "MiniMax-M2.7-UD",
+      "provider": "openai",
+      "api_key": "none",
+      "api_url": "http://127.0.0.1:1280/v1",
+      "model_id": "MiniMax-M2.7-UD-IQ3_XXS-00001-of-00003",
+      "quality_score": 65,
+      "param_count": 50,
+      "description": "MiniMax local (offline)"
+    }
+  ],
+  "ollama": {
+    "//auto_detected": true
+  },
+  "selection_rules": {
+    "expert_meeting": {
+      "min_quality": 0,
+      "prefer": "local"
+    },
+    "chat": {
+      "min_quality": 0,
+      "prefer": "local"
+    }
+  },
+  "ollama_blocklist": [
+    "qwen3:4b",
+    "llama3.2:1b"
+  ],
+  "models": [
+    {
+      "source": "cloud",
+      "provider": "openai",
+      "api_url": "https://api.stepfun.com/step_plan/v1",
+      "api_key": "7z5spSpBlV0ulPEPcYrpenadPa5BdvyJhr1iFJSFhe8CrCNk698J8QCg1rYZUpZ8T ",
+      "model_id": "step-3.7-flash",
+      "quality_score": 99,
+      "name": "step-3.7-flash"
+    },
+    {
+      "source": "cloud",
+      "provider": "openai",
+      "api_url": "https://api.stepfun.com/step_plan/v1",
+      "api_key": "${STEPFUN_API_KEY}",
+      "model_id": "step-3.7-flash",
+      "quality_score": 95,
+      "name": "step-3.7-flash"
+    },
+    {
+      "source": "local",
+      "provider": "openai",
+      "api_url": "http://127.0.0.1:1234/v1",
+      "api_key": "lm-studio",
+      "model_id": "qwen/qwen3.6-35b-a3b",
+      "quality_score": 92,
+      "name": "qwen/qwen3.6-35b-a3b"
+    }
+  ],
+  "runtime": {
+    "timeout": 30,
+    "retry": 2
+  },
+  "vlm": {
+    "//": "多模态VLM配置 — 图片/PDF视觉理解 (OpenAI兼容协议)",
+    "api_url": "http://127.0.0.1:1234/v1",
+    "model_id": "minicpm-v-4_5",
+    "api_key": "lm-studio",
+    "max_tokens": 800
+  },
+  "upload": {
+    "//": "通用上传端点 /api/upload 配置",
+    "max_zip_depth": 3,
+    "max_zip_files": 50,
+    "vlm_prompt": "提取图纸中的零件参数，只输出JSON禁止解释: {\"part_type\":\"flange|sleeve|shaft|plate|box|bracket|null\",\"params\":{\"od\":外径mm,\"id\":内径mm,\"thickness\":厚度mm,\"bolt_holes\":孔数,\"bolt_d\":孔径mm,\"bolt_pcd\":分度圆mm},\"material\":\"材料牌号或null\",\"quantity\":件数或null}"
+  }
+}

@@ -1,0 +1,38 @@
+name: ceo_decision
+system_prompt: >
+  你是CEO。听取CFO、BI、工艺总监、战略官的意见后，做最终裁决。
+  你有权覆写(override)任何否决，但必须在决策理由中明确记录原因和风险承担。
+  输出必须包含最终裁决、裁决理由、不同意见记录、后续行动项、置信度。
+has_veto: false
+has_override: true
+schema:
+  type: object
+  required: [decision, rationale, confidence]
+  properties:
+    decision:
+      type: string
+      enum: [APPROVED, REJECTED, DEFERRED]
+      description: 最终决策
+    rationale:
+      type: string
+      description: 决策理由
+    dissenting_opinions:
+      type: array
+      items:
+        type: string
+      description: 不同意见记录
+    overrides:
+      type: array
+      items:
+        type: string
+      description: 覆写记录
+    action_items:
+      type: array
+      items:
+        type: string
+      description: 后续行动项
+    confidence:
+      type: number
+      minimum: 0.0
+      maximum: 1.0
+      description: 置信度

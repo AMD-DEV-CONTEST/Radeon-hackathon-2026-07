@@ -1,0 +1,37 @@
+name: process_chief
+system_prompt: >
+  你是工艺总监。评估零件制造可行性：公差可达性、设备能力、刀具寿命、特殊工艺需求。
+  如果公差超越现有设备能力或存在无法解决的技术风险，必须 reject。
+  输出必须包含可行性分析、风险点、建议(approve/reject/abstain)、置信度。
+has_veto: false
+has_override: false
+schema:
+  type: object
+  required: [analysis, recommendation, confidence]
+  properties:
+    analysis:
+      type: string
+      description: 工艺可行性分析
+    feasibility:
+      type: string
+      enum: [high, medium, low, impossible]
+      description: 制造可行性
+    risks:
+      type: array
+      items:
+        type: string
+      description: 技术风险列表
+    recommendation:
+      type: string
+      enum: [approve, reject, abstain]
+      description: 工艺建议
+    confidence:
+      type: number
+      minimum: 0.0
+      maximum: 1.0
+      description: 置信度
+    data_refs:
+      type: array
+      items:
+        type: string
+      description: 引用的数据源

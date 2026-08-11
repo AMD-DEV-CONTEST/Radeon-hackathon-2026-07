@@ -1,0 +1,62 @@
+# 🦞 Union·由你 — Docker Compose 一键部署
+# 包含 Ollama + CNC AI Brain
+#
+# 启动: docker compose up -d
+# 拉取模型: docker exec ollama ollama pull qwen2.5:3b
+# 访问: http://localhost:7861
+
+version: "3.8"
+
+services:
+  # ── Ollama 模型服务 ──
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 模型初始化（拉取 qwen2.5:3b）
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: ollama-init
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "等待 Ollama 就绪..."
+        sleep 5
+        echo "拉取 qwen2.5:3b 模型..."
+        ollama pull qwen2.5:3b
+        echo "模型就绪，退出..."
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: "no"
+
+  # ── CNC AI 工艺大脑 ──
+  app:
+    build: .
+    container_name: union-cnc-brain
+    ports:
+      - "7861:7861"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    depends_on:
+      ollama-init:
+        condition: service_completed_successfully
+    volumes:
+      - app_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  ollama_data:
+  app_data:

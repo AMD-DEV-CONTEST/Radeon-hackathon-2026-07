@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Union - CNC AI Lite v11.0.4</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Microsoft YaHei','Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;height:100vh;display:flex}
+.sidebar{width:360px;display:flex;flex-direction:column;background:#1e293b;border-right:1px solid #334155}
+header{padding:12px 16px;background:#0f172a;border-bottom:1px solid #334155}
+header h1{font-size:16px;color:#38bdf8}
+header .ver{font-size:11px;color:#64748b}
+#chat{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:92%;padding:10px 14px;border-radius:10px;line-height:1.5;font-size:13px;white-space:pre-wrap}
+.msg.user{align-self:flex-end;background:#2563eb;color:#fff}
+.msg.bot{align-self:flex-start;background:#1e293b;border:1px solid #334155}
+.msg.bot h2{color:#38bdf8;font-size:14px;margin-bottom:6px}
+.msg.bot strong{color:#facc15}
+#input-area{padding:10px 14px;background:#0f172a;border-top:1px solid #334155;display:flex;gap:8px}
+#input-area input{flex:1;padding:10px 14px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;outline:none}
+#input-area input:focus{border-color:#38bdf8}
+#input-area button{padding:10px 18px;background:#2563eb;border:none;border-radius:8px;color:#fff;font-size:13px;cursor:pointer;white-space:nowrap}
+#input-area button:hover{background:#1d4ed8}
+#input-area button:disabled{opacity:.5}
+#viewer{flex:1;background:#0a0a1a;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#placeholder{color:#475569;font-size:15px;text-align:center}
+#placeholder .icon{font-size:64px;margin-bottom:16px}
+.upload-zone{margin:8px 14px;padding:16px;border:2px dashed #334155;border-radius:10px;text-align:center;cursor:pointer;font-size:12px;color:#94a3b8;transition:all .3s}
+.upload-zone:hover{border-color:#38bdf8;background:#1e3a5f30}
+.upload-zone.dragover{border-color:#38bdf8;background:#1e3a5f50}
+.buttons{display:flex;gap:6px;padding:0 14px 10px;flex-wrap:wrap}
+.buttons button{padding:6px 12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#cbd5e1;font-size:11px;cursor:pointer}
+.buttons button:hover{background:#2563eb;border-color:#2563eb}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;margin-left:6px}
+.green{background:#166534;color:#86efac}
+.amber{background:#92400e;color:#fde68a}
+</style></head>
+<body>
+<div class="sidebar">
+<header>
+<h1>Union CNC <span class="badge green">Lite 离线可用</span></h1>
+<div class="ver">v11.0.4 画图+报价+预览+打包 零AI依赖</div>
+</header>
+<div class="buttons">
+<button onclick="send('画一个法兰 外径100内径50厚20')">法兰</button>
+<button onclick="send('画一个轴套 外径60内径30长100')">轴套</button>
+<button onclick="send('画一个150x100x10的平板')">平板</button>
+<button onclick="send('6061法兰 50件 阳极氧化 报价')">报价</button>
+<button onclick="send('帮助')">帮助</button>
+</div>
+<div id="chat">
+<div class="msg bot">
+<h2>离线可用</h2>
+画图 | 报价 | 预览 | 打包 无需联网<br><br>
+试试:<br>
+- 画法兰 - 画一个法兰 外径100内径50厚20<br>
+- 报价 - 6061法兰 50件 阳极氧化 多少钱<br>
+- 上传 - 拖拽STEP/STL到下方<br>
+- 帮助 - 查看全部功能
+</div></div>
+<div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-upload').click()">
+  拖拽或点击上传 STEP/STL - 自动报价
+  <input type="file" id="file-upload" accept=".step,.stp,.stl" onchange="uploadFile(this.files[0])" style="display:none">
+</div>
+<div id="input-area">
+<input id="user-input" placeholder="说人话,做零件..." autofocus>
+<button id="send-btn" onclick="doSend()">发送</button>
+</div>
+</div>
+<div id="viewer"><div id="placeholder">
+<div class="icon">3D</div>
+左侧生成或上传STEP<br>3D模型在此显示
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160/examples/js/loaders/STLLoader.js"></script>
+<script>
+let scene,camera,renderer,controls,mesh;
+function initViewer(){
+    if(scene)return;
+    let v=document.getElementById('viewer');
+    scene=new THREE.Scene();scene.background=new THREE.Color(0x0a0a1a);
+    camera=new THREE.PerspectiveCamera(45,v.clientWidth/v.clientHeight,1,1000);
+    camera.position.set(150,120,180);
+    renderer=new THREE.WebGLRenderer({antialias:true});
+    renderer.setSize(v.clientWidth,v.clientHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    v.insertBefore(renderer.domElement,v.firstChild);
+    controls=new THREE.OrbitControls(camera,renderer.domElement);
+    controls.enableDamping=true;controls.dampingFactor=0.05;
+    scene.add(new THREE.AmbientLight(0x404060));
+    let dl=new THREE.DirectionalLight(0xffffff,1);dl.position.set(1,1,1);scene.add(dl);
+    scene.add(new THREE.DirectionalLight(0x4488ff,0.6).position.set(-1,-1,-0.5));
+    scene.add(new THREE.GridHelper(200,20,0x333355,0x222233));
+    updateViewer();
+}
+function updateViewer(){
+    requestAnimationFrame(updateViewer);
+    if(controls)controls.update();
+    if(renderer&&scene&&camera)renderer.render(scene,camera);
+}
+function loadSTL(url){
+    initViewer();if(!url||!scene)return;
+    fetch(url).then(r=>r.arrayBuffer()).then(buf=>{
+        let loader=new THREE.STLLoader();
+        let geo=loader.parse(buf);
+        if(mesh)scene.remove(mesh);
+        geo.computeVertexNormals();
+        let m=new THREE.MeshPhongMaterial({color:0x4488cc,specular:0x111111,shininess:30,transparent:true,opacity:0.85});
+        mesh=new THREE.Mesh(geo,m);
+        geo.computeBoundingBox();
+        let c=geo.boundingBox.getCenter(new THREE.Vector3());
+        mesh.position.sub(c);
+        scene.add(mesh);
+        document.getElementById('placeholder').style.display='none';
+    }).catch(()=>{
+        document.getElementById('placeholder').innerHTML='<div class="icon">!</div>3D加载失败';
+    });
+}
+function addMsg(text,cls){
+    let d=document.createElement('div');d.className='msg '+cls;
+    d.textContent=text;
+    document.getElementById('chat').appendChild(d);
+    d.scrollIntoView({behavior:'smooth'});
+}
+let busy=false;
+async function doSend(){
+    let inp=document.getElementById('user-input'),msg=inp.value.trim();
+    if(!msg||busy)return;
+    busy=true;let btn=document.getElementById('send-btn');btn.disabled=true;
+    addMsg(msg,'user');inp.value='';
+    try{
+        let r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});
+        let d=await r.json();
+        addMsg(d.reply||'无响应','bot');
+        if(d.stl_url)loadSTL(d.stl_url);
+    }catch(e){addMsg('请求失败: '+e.message,'bot');}
+    busy=false;btn.disabled=false;
+}
+function send(msg){document.getElementById('user-input').value=msg;doSend();}
+
+async function uploadFile(file){
+    if(!file)return;
+    
+    // 检查文件扩展名
+    const ext = file.name.toLowerCase().split('.').pop();
+    const supportedFormats = ['step', 'stp', 'stl'];
+    if (!supportedFormats.includes(ext)) {
+        addMsg('❌ 文件格式不支持\n\n支持的格式：\n• .step / .stp (STEP格式)\n• .stl (STL格式)\n\n请使用支持的CAD格式重新导出文件。', 'bot');
+        return;
+    }
+    
+    addMsg('上传: '+file.name,'user');
+    let fd=new FormData();fd.append('file',file);
+    fd.append('material',prompt('材料:','6061')||'6061');
+    fd.append('quantity',prompt('数量:','10')||'10');
+    fd.append('surface',prompt('表面处理:','无')||'无');
+    try{
+        let r=await fetch('/api/upload-step',{method:'POST',body:fd});
+        let d=await r.json();
+        
+        if(d.error){
+            // 提供详细的错误信息和建议
+            let errorMsg = '❌ 上传失败\n\n错误: ' + d.error;
+            if(d.detail) errorMsg += '\n详情: ' + d.detail;
+            if(d.suggestions && d.suggestions.length > 0) {
+                errorMsg += '\n\n建议:';
+                d.suggestions.forEach(s => errorMsg += '\n• ' + s);
+            }
+            if(d.detected_format) errorMsg += '\n\n检测到的格式: ' + d.detected_format;
+            if(d.supported_formats) errorMsg += '\n支持的格式: ' + d.supported_formats.join(', ');
+            addMsg(errorMsg, 'bot');
+            return;
+        }
+        
+        let t='✅ 上传报价成功\n\n文件: '+d.file_name;
+        if(d.bounding_box) {
+            t += '\n包围盒: '+d.bounding_box.x+'x'+d.bounding_box.y+'x'+d.bounding_box.z+' mm';
+        }
+        if(d.volume_cm3) t += '\n体积: '+d.volume_cm3+' cm3';
+        if(d.estimated_weight_kg) t += '\n重量: '+d.estimated_weight_kg+' kg';
+        if(d.parse_warning) t += '\n⚠️ 警告: ' + d.parse_warning;
+        if(d.quote)t+='\n总价: '+d.quote.final_price;
+        if(d.stl_url) {
+            t += '\n\n✅ 3D预览已生成';
+            // 如果有3D预览，可以自动加载
+            if(window.loadSTL) {
+                setTimeout(() => loadSTL(d.stl_url), 500);
+            }
+        }
+        addMsg(t,'bot');
+    }catch(e){addMsg('上传失败: '+e.message,'bot');}
+}
+document.getElementById('user-input').addEventListener('keydown',function(e){if(e.key==='Enter')doSend();});
+let dz=document.getElementById('drop-zone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.className='upload-zone dragover'});
+dz.addEventListener('dragleave',()=>dz.className='upload-zone');
+dz.addEventListener('drop',e=>{e.preventDefault();dz.className='upload-zone';
+    let f=e.dataTransfer.files[0];if(f&&(f.name.endsWith('.step')||f.name.endsWith('.stp')||f.name.endsWith('.stl')))uploadFile(f);else alert('请上传STEP/STL文件');});
+window.addEventListener('resize',()=>{if(renderer){let v=document.getElementById('viewer');
+    camera.aspect=v.clientWidth/v.clientHeight;camera.updateProjectionMatrix();renderer.setSize(v.clientWidth,v.clientHeight);}});
+</script>
+</body></html>
