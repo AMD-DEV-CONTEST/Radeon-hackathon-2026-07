@@ -8,7 +8,7 @@
 To validate the maximum concurrent throughput of the Tier 2 Qwen 7B model when subjected to malicious prompt injections at 100% load, forcing the CPU tiers to bypass and hand off to the GPU.
 
 ## Artifacts in this directory
-*   `telemetry_dump_raw.json`: The raw output from `rocm-smi --json` polled at 100ms intervals during the 2-hour stress test.
+*   `telemetry_dump_raw.json`: The raw output from `rocm-smi --json`.
 *   `stress_matrix_results.csv`: The measured tokens-per-second (t/s) across different concurrent user batch sizes (1, 8, 16, 32, 64).
 
 ## Summary Results
