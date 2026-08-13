@@ -124,7 +124,7 @@ NET ENERGY REDUCTION:                95.0% POWER SAVINGS (~265.9 Watts saved / r
 ## 🔧 AMD ROCm Hardware Optimizations
 
 1. **`q8_0` KV-Cache Quantization:** Reduces Qwen-7B context memory footprint from 16.2 GB to **8.4 GB**, enabling double the batch concurrency on 48GB HBM.
-2. **AMD Flash Attention (SRAM Direct):** Bypasses VRAM memory bandwidth bottlenecks by computing self-attention kernels directly inside GPU SRAM. Increases generation throughput from 1,200 to **4,850 tokens/sec**.
+2. **AMD Flash Attention (SRAM Direct):** Bypasses VRAM memory bandwidth bottlenecks by computing self-attention kernels directly inside GPU SRAM.
 3. **Physical CPU Core Pinning (Zen 4 Architecture):** Prevents L3 cache invalidation during tokenization preprocessing, maintaining sub-millisecond CPU-to-GPU handoff latency.
 4. **Infinity Fabric Low-Power Sleep States:** Because ~95% of attack vectors are terminated at Tier 0/0.5/1, the AMD W7900 GPU remains in low-power idle (~14.1W) for the vast majority of operational uptime.
 
