@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Autotuner Radeon Report</title>
+<style>
+:root{--ink:#eef2ff;--muted:#9ba7c5;--panel:#151b2e;--red:#ff4b55;--orange:#ff8b38;--green:#45d19a}
+*{box-sizing:border-box} body{margin:0;background:#090d18;color:var(--ink);font:16px/1.55 Inter,ui-sans-serif,system-ui,sans-serif}
+main{width:min(1080px,92vw);margin:0 auto;padding:64px 0 80px} .eyebrow{color:var(--orange);letter-spacing:.16em;text-transform:uppercase;font-weight:800}
+h1{font-size:clamp(44px,8vw,92px);line-height:.95;margin:18px 0 28px;max-width:900px} .lede{font-size:21px;color:var(--muted);max-width:780px}
+.scoreboard{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:42px 0} .score{background:linear-gradient(145deg,#1a2138,#101526);padding:24px;border:1px solid #28314d;border-radius:18px}
+.score b{display:block;font-size:38px} .score span{color:var(--muted)} section{margin-top:52px} h2{font-size:28px}
+.trial{background:var(--panel);border:1px solid #28314d;border-radius:15px;padding:18px;margin:12px 0} .trial.rejected{opacity:.58} .trialhead,.metrics{display:flex;justify-content:space-between;gap:20px}
+.trialhead span,.metrics span,.trial p{color:var(--muted)} .bar{height:8px;background:#252d46;border-radius:99px;overflow:hidden;margin:14px 0} .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--red),var(--orange));border-radius:99px}
+.winner{background:linear-gradient(145deg,#32171d,#18192a);border:1px solid #60313a;border-radius:20px;padding:28px} code{color:#ffc69f} li{margin:8px 0}
+@media(max-width:700px){.scoreboard{grid-template-columns:1fr}.trialhead,.metrics{display:block}}
+</style>
+</head>
+<body><main>
+<div class="eyebrow">SIMULATION ONLY | NO HARDWARE PERFORMANCE CLAIM</div>
+<h1>The agent made itself 94.3% faster.</h1>
+<p class="lede">Autotuner simulated Radeon demonstration ran 10 controlled experiments on Simulated AMD Radeon GPU and exported a reproducible serving preset.</p>
+<p class="lede">This deterministic artifact validates the product flow. Replace it with a measured Radeon run before final submission.</p>
+<div class="scoreboard">
+<div class="score"><b>21.32</b><span>baseline tokens per second</span></div>
+<div class="score"><b>41.41</b><span>best tokens per second</span></div>
+<div class="score"><b>755 ms</b><span>winning p95 latency</span></div>
+</div>
+<section class="winner"><div class="eyebrow">Winning candidate</div><h2>c805f2282a1f</h2><code>vllm | none | ROCM_AITER_UNIFIED_ATTN | kv fp8 | seqs 16 | memory 0.92 | spec off</code><ol><li>attention_backend: auto to ROCM_AITER_UNIFIED_ATTN</li><li>kv_cache_dtype: auto to fp8</li><li>max_num_seqs: 4 to 16</li><li>gpu_memory_utilization: 0.82 to 0.92</li></ol></section>
+<section><h2>Experiment timeline</h2><article class="trial accepted">
+<div class="trialhead"><strong>Trial 1</strong><span>c942c2955d44</span></div>
+<div class="bar"><i style="width:51.5%"></i></div>
+<div class="metrics"><b>21.32</b> tokens per second <span>1466 ms p95</span></div>
+<p>Establish the stock serving baseline.</p>
+</article><article class="trial accepted">
+<div class="trialhead"><strong>Trial 2</strong><span>ba066e28a226</span></div>
+<div class="bar"><i style="width:62.8%"></i></div>
+<div class="metrics"><b>25.98</b> tokens per second <span>1203 ms p95</span></div>
+<p>Measure whether changing attention_backend improves throughput without violating the quality and reliability limits. Source: constraint aware heuristic.</p>
+</article><article class="trial accepted">
+<div class="trialhead"><strong>Trial 3</strong><span>4fde2c1fb72e</span></div>
+<div class="bar"><i style="width:70.0%"></i></div>
+<div class="metrics"><b>28.97</b> tokens per second <span>1079 ms p95</span></div>
+<p>Measure whether changing kv_cache_dtype improves throughput without violating the quality and reliability limits. Source: constraint aware heuristic.</p>
+</article><article class="trial rejected">
+<div class="trialhead"><strong>Trial 4</strong><span>9457494c7047</span></div>
+<div class="bar"><i style="width:57.0%"></i></div>
+<div class="metrics"><b>23.59</b> tokens per second <span>1324 ms p95</span></div>
+<p>Measure whether changing attention_backend improves throughput without violating the quality and reliability limits. Source: constraint aware heuristic.</p>
+</article><article class="trial accepted">
+<div class="trialhead"><strong>Trial 5</strong><span>268909f43cda</span></div>
+<div class="bar"><i style="width:92.7%"></i></div>
+<div class="metrics"><b>38.40</b> tokens per second <span>814 ms p95</span></div>
+<p>Measure whether changing max_num_seqs improves throughput without violating the quality and reliability limits. Source: constraint aware heuristic.</p>
+</article><article class="trial accepted">
+<div class="trialhead"><strong>Trial 6</strong><span>3d76894d750a</span></div>
+<div class="bar"><i style="width:83.3%"></i></div>
+<div class="metrics"><b>34.47</b> tokens per second <span>906 ms p95</span></div>
+<p>Measure whether changing kv_cache_dtype improves throughput without violating the quality and reliability limits. Source: constraint aware heuristic.</p>
+</article><article class="trial rejected">
+<div class="trialhead"><strong>Trial 7</strong><span>dea182036338</span></div>
+<div class="bar"><i style="width:78.1%"></i></div>
+<div class="metrics"><b>32.35</b> tokens per second <span>966 ms p95</span></div>
+<p>Measure whether changing attention_backend improves throughput without violating the quality and reliability limits. Source: constraint aware heuristic.</p>
+</article><article class="trial accepted">
+<div class="trialhead"><strong>Trial 8</strong><span>f562a70244c0</span></div>
+<div class="bar"><i style="width:69.1%"></i></div>
+<div class="metrics"><b>28.62</b> tokens per second <span>1092 ms p95</span></div>
+<p>Explore a promising configuration selected from observed factor performance while preserving the declared safety limits. Source: constraint aware heuristic.</p>
+</article><article class="trial accepted">
+<div class="trialhead"><strong>Trial 9</strong><span>c805f2282a1f</span></div>
+<div class="bar"><i style="width:100.0%"></i></div>
+<div class="metrics"><b>41.41</b> tokens per second <span>755 ms p95</span></div>
+<p>Measure whether changing gpu_memory_utilization improves throughput without violating the quality and reliability limits. Source: constraint aware heuristic.</p>
+</article><article class="trial accepted">
+<div class="trialhead"><strong>Trial 10</strong><span>29a9522e0cc8</span></div>
+<div class="bar"><i style="width:90.0%"></i></div>
+<div class="metrics"><b>37.27</b> tokens per second <span>838 ms p95</span></div>
+<p>Measure whether changing kv_cache_dtype improves throughput without violating the quality and reliability limits. Source: constraint aware heuristic.</p>
+</article></section>
+</main></body></html>

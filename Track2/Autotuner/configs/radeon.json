@@ -1,0 +1,56 @@
+{
+  "name": "Qwen 3 serving optimization on AMD Radeon",
+  "endpoint": "http://127.0.0.1:8000/v1",
+  "host": "127.0.0.1",
+  "port": 8000,
+  "manage_server": true,
+  "startup_timeout_seconds": 900,
+  "cooldown_seconds": 3,
+  "trials": 12,
+  "warmup_requests": 2,
+  "benchmark_requests": 16,
+  "concurrency": 4,
+  "prompts": [
+    "Explain how a Python developer can inspect GPU memory pressure.",
+    "Write a concise incident response plan for a slow inference endpoint.",
+    "Compare throughput and latency for an interactive language model service.",
+    "Return a JSON object with a title and three ROCm optimization ideas."
+  ],
+  "max_tokens": 128,
+  "required_terms": [],
+  "quality_floor": 0.98,
+  "latency_limit_ms": 60000,
+  "error_limit": 0.02,
+  "use_local_agent": true,
+  "profile_trials": [1],
+  "seed": 7,
+  "engines": [
+    {
+      "name": "vllm",
+      "adapter": "vllm",
+      "command": ["vllm", "serve", "{model}"],
+      "environment": {
+        "FLASH_ATTENTION_TRITON_AMD_ENABLE": "TRUE"
+      }
+    }
+  ],
+  "search_space": {
+    "model_variants": [
+      {
+        "model": "Qwen/Qwen3-8B",
+        "quantization": "none"
+      },
+      {
+        "model": "Qwen/Qwen3-8B-AWQ",
+        "quantization": "awq"
+      }
+    ],
+    "attention_backends": ["auto", "ROCM_ATTN", "TRITON_ATTN"],
+    "kv_cache_dtypes": ["auto", "fp8"],
+    "max_num_seqs": [4, 8, 16],
+    "gpu_memory_utilizations": [0.82, 0.88, 0.92],
+    "max_model_lens": [4096],
+    "speculative_models": [""],
+    "num_speculative_tokens": [0]
+  }
+}
