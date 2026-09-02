@@ -1,0 +1,32 @@
+diff --git a/pycalc/analysis.py b/pycalc/analysis.py
+index f3992fb..af05bca 100644
+--- a/pycalc/analysis.py
++++ b/pycalc/analysis.py
+@@ -9,7 +9,7 @@ def mode(values):
+     best = None
+     best_count = -1
+     for value, count in counts.items():
+-        if count > best_count:
++        if count > best_count or (count == best_count and value < best):
+             best = value
+             best_count = count
+     return best
+@@ -21,4 +21,6 @@ def normalize(values):
+         return []
+     low = min(values)
+     high = max(values)
+-    return [round(value / high, 4) for value in values]
++    if low == high:
++        return [0.0 for _ in values]
++    return [round((value - low) / (high - low), 4) for value in values]
+diff --git a/pycalc/report.py b/pycalc/report.py
+index 41f5059..9ff2d3b 100644
+--- a/pycalc/report.py
++++ b/pycalc/report.py
+@@ -13,5 +13,5 @@ def summary_text(values, title="Summary"):
+     lines.append(f"- values: {len(values)}")
+     lines.append(f"- mode: {mode(values)}")
+     normalized = [str(value) for value in normalize(values)]
+-    lines.append("- normalized: " + ", ".join(normalized[:5]))
++    lines.append("- normalized: " + ", ".join(normalized))
+     return "\n".join(lines)

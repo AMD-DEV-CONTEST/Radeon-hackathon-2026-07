@@ -1,0 +1,112 @@
+{
+  "project": "radeon-code-agent",
+  "training": false,
+  "single_model": true,
+  "model": "Qwen3-14B-BF16",
+  "model_id": "Qwen/Qwen3-14B",
+  "model_profile": "configs/qwen3_14b_bf16.json",
+  "hardware": "AMD Radeon Graphics (gfx1100), 51.52 GB VRAM, RadeonX Cloud",
+  "sampling": {
+    "temperature": 0.6,
+    "top_p": 0.95,
+    "top_k": 20,
+    "presence_penalty": 0.0,
+    "max_completion_tokens": 8192,
+    "seed": 0,
+    "stability_seed": 1
+  },
+  "budget": {
+    "max_model_turns": 12,
+    "max_tool_calls": 30,
+    "max_wall_time_seconds": 900,
+    "command_timeout_seconds": 120,
+    "max_json_retries": 1,
+    "verifier_repair_turns": 2
+  },
+  "pilot_variants": [
+    {"name": "B0", "context": "C0", "controller_policy": "A0", "action_protocol": "J0", "verifier": "V0"},
+    {"name": "B1", "context": "C1", "controller_policy": "A0", "action_protocol": "J0", "verifier": "V0"},
+    {"name": "B2", "context": "C2", "controller_policy": "A0", "action_protocol": "J0", "verifier": "V0"},
+    {"name": "B3", "context": "C0", "controller_policy": "A1", "action_protocol": "J0", "verifier": "V0"},
+    {"name": "B4", "context": "C0", "controller_policy": "A0", "action_protocol": "J0", "verifier": "V1R1"},
+    {"name": "B5", "context": "C0", "controller_policy": "A0", "action_protocol": "J3", "verifier": "V0"}
+  ],
+  "product": {
+    "name": "mini-repomap-final",
+    "context": "C1R1",
+    "controller_policy": "A1",
+    "action_protocol": "J3/EditV2",
+    "verifier": "V1R1",
+    "repo_graph": "research-ablation-only"
+  },
+  "development_gate": {
+    "tasks": 5,
+    "new_runs": [
+      "mini-repomap-refresh",
+      "mini-edit-v2",
+      "mini-repomap-final"
+    ],
+    "max_total_runs": 15,
+    "thresholds": {
+      "json_schema_rate": 1.0,
+      "replace_edit_apply_rate": 0.8,
+      "nonempty_patch_rate": 0.5,
+      "integrity_violations": 0,
+      "api_or_patch_capture_failures": 0
+    },
+    "current_status": "passed_after_focused_recovery",
+    "current_result": "mini-repomap-final: 5/5 nonempty, 5/5 applied, 38/38 J3; comparator timeout retained"
+  },
+  "pilot_tasks": [
+    "django__django-16255",
+    "sympy__sympy-13031",
+    "pytest-dev__pytest-11143",
+    "scikit-learn__scikit-learn-13584",
+    "django__django-15781"
+  ],
+  "confirmation": {
+    "dataset": "SWE-bench Verified",
+    "seed": 20260805,
+    "count": 20,
+    "manifest": "tasks/swebench-verified-confirmation-public.jsonl",
+    "manifest_sha256": "bf6e46ac25b2b3669c89f977bdbcf75a7069452745ef259578e893002beb35ef",
+    "first10_manifest": "tasks/swebench-verified-confirmation-first10-public.jsonl",
+    "first10_manifest_sha256": "0d94b0f4012448bac04c79590c1fd2b273f5bcc3f80283fffa0f2ea60dd11282",
+    "exclude_pilot_and_prior_confirmation": true,
+    "runs": "seed0: 20 tasks x B0/B6; seed1: first 10 tasks x B0/B6",
+    "official_evaluator": "pending_external_x86_docker"
+  },
+  "harnesses": {
+    "mini-original": "C0-J0-A0-V0",
+    "mini-repomap": "C1-J0-A0-V0",
+    "mini-repograph-clean": "C2-J0-A0-V0",
+    "mini-budget": "C0-J0-A1-V0",
+    "mini-verifier-repair": "C0-J0-A0-V1R1",
+    "mini-json-structured": "C0-J3-A0-V0",
+    "mini-repomap-refresh": "C1R1-J0-A0-V0",
+    "mini-edit-v2": "C0-J3/EditV2-A0-V0",
+    "mini-repomap-final": "C1R1-J3/EditV2-A1-V1R1",
+    "qwen-code": "native Qwen Code 0.21.0"
+  },
+  "service_acceptance": {
+    "tool_cases": 10,
+    "structured_json_cases": 20,
+    "stability_requests": 30,
+    "context_length": 32768,
+    "kv_cache_dtype": "int8_per_token_head",
+    "prefix_cache_default": true
+  },
+  "inference_ablation": {
+    "prefix_cache": [false, true],
+    "input_tokens": [4096, 16384],
+    "output_tokens": 256,
+    "concurrency": 1,
+    "warmup": 3,
+    "measurements": 10
+  },
+  "integrity": {
+    "gold_fields_agent_visible": false,
+    "official_evaluator": "after_patch_freeze",
+    "invalid_runs_excluded_from_capability_ranking": true
+  }
+}
