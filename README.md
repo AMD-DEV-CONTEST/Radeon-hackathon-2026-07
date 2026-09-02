@@ -89,3 +89,26 @@ What you'll learn:
 4. **Demonstration Video** (Recommended Length 3~5 minutes)
    - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
 5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+
+---
+
+## ✅ Submission below this line — Track 2 · Team PLASMA
+
+> **ProjectPack Office Agent** — a private, evidence-driven office assistant
+> that turns scattered project evidence and task lists into traceable reports,
+> risk registers, and next-week plans, accelerated end-to-end on AMD Radeon
+> GPUs (ROCm).
+
+**PR title:** `Track 2, PLASMA, ProjectPack Office Agent`
+
+### Deliverables index
+
+| Track 2 requirement | Location |
+|---|---|
+| Project specification document | [docs/PROJECT_SPECIFICATION.md](docs/PROJECT_SPECIFICATION.md) |
+| Project source code + README (env / startup / deps) | [PROJECT_README.md](PROJECT_README.md), `app/`, `scripts/`, `web/` |
+| Demo video (3–5 min, on AMD Radeon GPU) | https://www.bilibili.com/video/BV14BMB6gEKu/ |
+| PPT / poster | [showcase/PLASMA_ProjectPack_Poster.pdf](showcase/PLASMA_ProjectPack_Poster.pdf) |
+| Static showcase landing page | [showcase/index.html](showcase/index.html) |
+
+Start reading the project at [PROJECT_README.md](PROJECT_README.md).

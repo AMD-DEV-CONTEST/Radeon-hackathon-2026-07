@@ -1,0 +1,83 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "projectpack-office-agent"
+version = "0.1.0"
+description = "Private, evidence-driven project office assistant"
+requires-python = ">=3.12"
+dependencies = [
+  "faiss-cpu>=1.9,<2",
+  "fastapi>=0.115,<1",
+  "gradio>=5,<7",
+  "httpx>=0.27,<1",
+  "numpy>=1.26,<3",
+  "openpyxl>=3.1,<4",
+  "pydantic-settings>=2.6,<3",
+  "cryptography>=42.0,<44.0",
+  "python-multipart>=0.0.20,<1",
+  "pypdf>=6,<7",
+  "python-docx>=1.2,<2",
+  "rank-bm25>=0.2,<1",
+  "reportlab>=4,<6",
+  "uvicorn[standard]>=0.30,<1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<9", "pytest-asyncio>=0.24,<1", "reportlab>=4,<6"]
+
+[project.scripts]
+projectpack-benchmark = "app.services.benchmark:_cli_benchmark"
+projectpack-stress-test = "app.services.stress_test:_cli_main"
+projectpack-backup = "app.cli.admin:_cli_backup"
+projectpack-health = "app.cli.admin:_cli_health"
+
+[tool.ruff]
+exclude = [
+  ".git",
+  ".pytest_cache",
+  "__pycache__",
+  "build",
+  "dist",
+  "venv",
+]
+
+[tool.ruff.lint]
+ignore = [
+  "F401", "F403", "F405", "F541", "F821", "F841", "E402", "E501",
+  "W291", "W293",
+  "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",
+  "N801", "N802", "N803", "N806", "N815", "N816", "N818",
+  "ANN001", "ANN201", "ANN202", "ANN204",
+  "S101", "S106", "S110", "S301", "S311", "S324", "S603", "S608",
+  "PLR0913", "PLR2004",
+  "TRY003", "TRY300",
+  "C901", "B904", "B905", "B008", "B011", "B017", "B028",
+  "A001", "A002", "A003",
+  "G004", "T201",
+  "UP006", "UP007", "UP035",
+  "RUF001", "RUF005", "RUF012", "RUF013", "RUF015", "RUF039",
+  "I001", "I002",
+  "SIM102", "SIM105", "SIM108", "SIM114", "SIM117", "SIM118",
+  "ARG001", "ARG002", "ARG005",
+  "C408", "C416",
+  "PGH003",
+  "PTH123",
+  "TC001", "TC003",
+  "RET504",
+  "TID252",
+  "DTZ005",
+  "ERA001",
+  "ASYNC230",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
