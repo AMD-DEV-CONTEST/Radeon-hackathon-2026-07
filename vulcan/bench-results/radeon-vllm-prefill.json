@@ -1,0 +1,44 @@
+{
+  "label": "radeon-vllm-prefill",
+  "base_url": "https://radeon-global.anruicloud.com/spaces/<instance>/8000/v1",
+  "model": "Qwen/Qwen3-8B",
+  "platform": "vLLM 0.16.1.dev0 on ROCm 7.2.1 (navi, ubuntu22.04, torch 2.9), AMD Radeon Cloud",
+  "timestamp": "2026-07-27T10:12:00",
+  "axis": "prefill",
+  "serve_args": "vllm serve Qwen/Qwen3-8B --host 0.0.0.0 --port 8000 --gpu-memory-utilization 0.92",
+  "request_args": {
+    "temperature": 0.2,
+    "stream": true,
+    "chat_template_kwargs": {
+      "enable_thinking": false
+    }
+  },
+  "measurement": {
+    "method": "synthetic code-like filler of N words, asking for a single-word reply, so the measured time is dominated by prefill rather than decode",
+    "transport": "Radeon Cloud HTTPS spaces proxy; proxy round-trip is included in every figure",
+    "cold_start_note": "the 128-word figure is the first request against a freshly started server and carries warm-up cost, which is why it reads higher than 512 and 2048"
+  },
+  "runs": {
+    "prefill_128w": {
+      "input_words": 128,
+      "ttft_s_median": 0.804,
+      "repeats": 3
+    },
+    "prefill_512w": {
+      "input_words": 512,
+      "ttft_s_median": 0.316,
+      "repeats": 3
+    },
+    "prefill_2048w": {
+      "input_words": 2048,
+      "ttft_s_median": 0.399,
+      "repeats": 3
+    },
+    "prefill_8192w": {
+      "input_words": 8192,
+      "ttft_s_median": 2.091,
+      "repeats": 3
+    }
+  },
+  "finding": "Prefill is effectively free up to about 2048 words (0.316s to 0.399s, inside proxy round-trip noise), then costs 2.091s at 8192 words, roughly 5x for a 4x context increase. This is a direct budget for the RAG layer: keeping retrieved context under ~2000 words holds TTFT under half a second, and stuffing 8k words is the single most expensive thing the agent can do to its own latency."
+}

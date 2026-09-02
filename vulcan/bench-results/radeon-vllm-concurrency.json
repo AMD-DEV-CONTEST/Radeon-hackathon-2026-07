@@ -1,0 +1,52 @@
+{
+  "label": "radeon-vllm-concurrency",
+  "base_url": "https://radeon-global.anruicloud.com/spaces/<instance>/8000/v1",
+  "model": "Qwen/Qwen3-8B",
+  "platform": "vLLM 0.16.1.dev0 on ROCm 7.2.1 (navi, ubuntu22.04, torch 2.9), AMD Radeon Cloud",
+  "timestamp": "2026-07-27T10:05:00",
+  "axis": "concurrency",
+  "serve_args": "vllm serve Qwen/Qwen3-8B --host 0.0.0.0 --port 8000 --gpu-memory-utilization 0.92",
+  "request_args": {
+    "temperature": 0.2,
+    "stream": true,
+    "chat_template_kwargs": {
+      "enable_thinking": false
+    }
+  },
+  "measurement": {
+    "method": "N copies of the medium prompt issued in parallel; aggregate rate is total content deltas divided by wall clock for the whole batch",
+    "transport": "Radeon Cloud HTTPS spaces proxy; the instance SSH port is refused from the client network and the Jupyter port returns 403, so no on-box run was possible",
+    "unit_note": "chunks counts streamed SSE content deltas, not tokenizer tokens"
+  },
+  "runs": {
+    "concurrency_1": {
+      "requests": 1,
+      "wall_s": 51.37,
+      "aggregate_chunks_per_s": 23.5,
+      "per_request_chunks_per_s": 23.5,
+      "ttft_s_median": 1.486
+    },
+    "concurrency_2": {
+      "requests": 2,
+      "wall_s": 64.86,
+      "aggregate_chunks_per_s": 42.9,
+      "per_request_chunks_per_s": 21.4,
+      "ttft_s_median": 1.248
+    },
+    "concurrency_4": {
+      "requests": 4,
+      "wall_s": 57.23,
+      "aggregate_chunks_per_s": 87.0,
+      "per_request_chunks_per_s": 21.8,
+      "ttft_s_median": 0.553
+    },
+    "concurrency_8": {
+      "requests": 8,
+      "wall_s": 57.97,
+      "aggregate_chunks_per_s": 179.2,
+      "per_request_chunks_per_s": 22.4,
+      "ttft_s_median": 0.411
+    }
+  },
+  "finding": "Aggregate throughput scales 7.63x across an 8x increase in load (95% efficiency) while per-request rate stays essentially flat (23.5 to 22.4 deltas/s) and median TTFT improves 3.6x (1.486s to 0.411s). Wall clock is roughly constant at ~57s whether serving 1 request or 8, which is continuous batching absorbing the load. Compare bench-results/ollama-m4air-concurrency.json, where the same step from 1 to 2 concurrent requests REDUCED aggregate throughput to 0.70x and pushed TTFT from 4.36s to 42.21s."
+}

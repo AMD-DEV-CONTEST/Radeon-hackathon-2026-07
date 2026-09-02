@@ -1,0 +1,119 @@
+{
+  "backend": "http://localhost:11434/v1",
+  "model": "qwen3:4b-instruct",
+  "modes": {
+    "plan_off": {
+      "questions": 4,
+      "complete": 3,
+      "completion_rate": 0.75,
+      "mean_parts_covered": 1.75,
+      "mean_steps": 2.0,
+      "mean_wall_seconds": 10.43,
+      "runs": [
+        {
+          "question": "Which module implements the semantic index, and which one stores memory across sessions?",
+          "planned": false,
+          "steps": 2,
+          "tool_calls": 1,
+          "wall_seconds": 8.99,
+          "parts_expected": 2,
+          "parts_covered": 2,
+          "complete": true,
+          "answer": "The semantic index is implemented in vulcan/rag.py and memory across sessions is stored in vulcan/memory.py:1-31"
+        },
+        {
+          "question": "Which module talks to the LLM, and which one defines the sandboxed tools?",
+          "planned": false,
+          "steps": 2,
+          "tool_calls": 1,
+          "wall_seconds": 9.28,
+          "parts_expected": 2,
+          "parts_covered": 2,
+          "complete": true,
+          "answer": "The module that talks to the LLM is vulcan/llm.py. The module that defines the sandboxed tools is vulcan/tools.py."
+        },
+        {
+          "question": "Where is the ReAct loop implemented, and which environment variable selects the model?",
+          "planned": false,
+          "steps": 2,
+          "tool_calls": 1,
+          "wall_seconds": 9.52,
+          "parts_expected": 2,
+          "parts_covered": 2,
+          "complete": true,
+          "answer": "The ReAct loop is implemented in vulcan/agent.py. The environment variable that selects the model is VULCAN_MODEL, as specified in README.md:line 51."
+        },
+        {
+          "question": "Which module holds runtime configuration, and which one measures throughput?",
+          "planned": false,
+          "steps": 2,
+          "tool_calls": 1,
+          "wall_seconds": 13.94,
+          "parts_expected": 2,
+          "parts_covered": 1,
+          "complete": false,
+          "answer": "Runtime configuration is held in the serving configuration (e.g., concurrency, max-num-seqs) as defined in the vLLM serving setup. Throughput is measured in chunks per second (e.g., 162.5 chunks/s at 8 concurrent) and TTFT (Time to First Token, e.g., 1.629s at 8 concurrent), as detailed in docs/spec.md and docs/deck.md:301-360 and docs/deck.md:51-110."
+        }
+      ]
+    },
+    "plan_on": {
+      "questions": 4,
+      "complete": 3,
+      "completion_rate": 0.75,
+      "mean_parts_covered": 1.75,
+      "mean_steps": 2.25,
+      "mean_wall_seconds": 28.59,
+      "runs": [
+        {
+          "question": "Which module implements the semantic index, and which one stores memory across sessions?",
+          "planned": false,
+          "steps": 3,
+          "tool_calls": 2,
+          "wall_seconds": 23.3,
+          "parts_expected": 2,
+          "parts_covered": 2,
+          "complete": true,
+          "answer": "The semantic index is implemented in vulcan/rag.py (class Index), and memory across sessions is stored in vulcan/memory.py."
+        },
+        {
+          "question": "Which module talks to the LLM, and which one defines the sandboxed tools?",
+          "planned": false,
+          "steps": 2,
+          "tool_calls": 1,
+          "wall_seconds": 17.2,
+          "parts_expected": 2,
+          "parts_covered": 2,
+          "complete": true,
+          "answer": "The module that talks to the LLM is vulcan/llm.py. The module that defines the sandboxed tools is vulcan/tools.py. (cite files: README.md:51-110, vulcan/llm.py:1-60, vulcan/tools.py:1-60)"
+        },
+        {
+          "question": "Where is the ReAct loop implemented, and which environment variable selects the model?",
+          "planned": false,
+          "steps": 2,
+          "tool_calls": 1,
+          "wall_seconds": 22.85,
+          "parts_expected": 2,
+          "parts_covered": 2,
+          "complete": true,
+          "answer": "The ReAct loop is implemented in vulcan/agent.py. The environment variable that selects the model is VULCAN_MODEL, as specified in README.md:51-110."
+        },
+        {
+          "question": "Which module holds runtime configuration, and which one measures throughput?",
+          "planned": false,
+          "steps": 2,
+          "tool_calls": 1,
+          "wall_seconds": 50.99,
+          "parts_expected": 2,
+          "parts_covered": 1,
+          "complete": false,
+          "answer": "Runtime configuration is held in scripts/serving-sweep.sh, and throughput is measured in docs/spec.md and docs/deck.md, with metrics like chunks per second (chunks/s) and TTFT (Time To First Token)."
+        }
+      ]
+    }
+  },
+  "delta": {
+    "completion_rate": 0.0,
+    "mean_steps": 0.25,
+    "mean_wall_seconds": 18.16
+  }
+}
