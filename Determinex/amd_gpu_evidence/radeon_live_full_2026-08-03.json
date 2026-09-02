@@ -1,0 +1,278 @@
+{
+  "what": "the whole argument, executed LIVE against the Radeon in one pass",
+  "recorded": "2026-08-03",
+  "instance": "u-14786-cdc26df7",
+  "endpoint": "the instance's own rc-tunnel to vLLM on 127.0.0.1:8000",
+  "model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+  "video": "LIVE_ON_RADEON_FULL_2min.mp4",
+  "headline": {
+    "single_stream_tok_s": 29.5,
+    "k1_agg_tok_s": 29.0,
+    "k6_agg_tok_s": 163.0,
+    "throughput_gain": "5.61x",
+    "wall_clock_cost": "1.07x"
+  },
+  "k_sweep": {
+    "16": {
+      "agg_tok_s": 359.1,
+      "cand_s": 2.81
+    },
+    "32": {
+      "agg_tok_s": 670.5,
+      "cand_s": 5.24
+    },
+    "64": {
+      "agg_tok_s": 1065.6,
+      "cand_s": 8.32
+    }
+  },
+  "why_this_matters": "Five independent runs on five instances: 5.56x, 5.61x, 5.73x, 5.77x, 5.61x throughput for 1.04-1.08x wall clock. Absolute rates move with load; the RATIO does not. That stability is the claim, not any single figure.",
+  "re_recorded_because": "An earlier take demonstrated the refusal using 'a function called solution that returns the average of a list of numbers'. It refused -- but because the spec parser read the word after 'function' as the function's NAME, so 'a function called solution' named it `called`, no example matched, and the oracle came out vacuous. Fixing that parser made the same idea SOLVE, which invalidated the take. The clip now refuses an idea that genuinely cannot be verified. A demo not reproducible from the shipped code is the exact failure this system exists to prevent.",
+  "terminal_log_is_raw": true,
+  "terminal_log": [
+    {
+      "t": 0.172,
+      "line": ""
+    },
+    {
+      "t": 0.172,
+      "line": "============================================================================"
+    },
+    {
+      "t": 0.172,
+      "line": "  1/5  THE MODEL, SERVED ON AN AMD RADEON GPU (vLLM on ROCm 7.2.1)"
+    },
+    {
+      "t": 0.172,
+      "line": "============================================================================"
+    },
+    {
+      "t": 5.172,
+      "line": "  endpoint : rc-04eddb6f9673f06f....radeon.firstdg.ai  (the instance's own tunnel)"
+    },
+    {
+      "t": 5.172,
+      "line": "  answered : 1.00s"
+    },
+    {
+      "t": 5.172,
+      "line": "  serving  : Qwen/Qwen2.5-Coder-7B-Instruct"
+    },
+    {
+      "t": 5.172,
+      "line": "  note     : no rocm-smi here -- this drives the endpoint, not a shell on the box."
+    },
+    {
+      "t": 5.172,
+      "line": "             The GPU is evidenced by what it serves and how it behaves under load."
+    },
+    {
+      "t": 5.172,
+      "line": ""
+    },
+    {
+      "t": 5.172,
+      "line": "============================================================================"
+    },
+    {
+      "t": 5.172,
+      "line": "  2/5  WHAT ONE CANDIDATE COSTS"
+    },
+    {
+      "t": 5.172,
+      "line": "============================================================================"
+    },
+    {
+      "t": 17.843,
+      "line": "  256 tokens in 8.67s  =  29.5 tok/s  single stream"
+    },
+    {
+      "t": 17.843,
+      "line": ""
+    },
+    {
+      "t": 17.843,
+      "line": "============================================================================"
+    },
+    {
+      "t": 17.843,
+      "line": "  3/5  WHAT THE Kth CANDIDATE COSTS -- THIS IS THE AMD ARGUMENT"
+    },
+    {
+      "t": 17.843,
+      "line": "============================================================================"
+    },
+    {
+      "t": 28.656,
+      "line": "  Correctness comes from sampling K candidates and verifying each:"
+    },
+    {
+      "t": 28.656,
+      "line": "      P(solve) = 1 - (1 - p)^K"
+    },
+    {
+      "t": 28.656,
+      "line": "  So accuracy is bounded by GPU BATCH THROUGHPUT, not by model quality."
+    },
+    {
+      "t": 28.656,
+      "line": "  The only question that matters: what does the 6th candidate actually cost?"
+    },
+    {
+      "t": 28.656,
+      "line": ""
+    },
+    {
+      "t": 28.656,
+      "line": "    K=1     8.81s    256 tokens     29.0 agg tok/s"
+    },
+    {
+      "t": 38.078,
+      "line": "    K=6     9.42s   1536 tokens    163.0 agg tok/s"
+    },
+    {
+      "t": 40.078,
+      "line": ""
+    },
+    {
+      "t": 40.078,
+      "line": "    5.61x the throughput for 1.07x the wall clock."
+    },
+    {
+      "t": 40.078,
+      "line": "    A GPU property converted directly into a correctness property."
+    },
+    {
+      "t": 40.078,
+      "line": ""
+    },
+    {
+      "t": 40.078,
+      "line": "============================================================================"
+    },
+    {
+      "t": 40.078,
+      "line": "  4/5  WHERE THE CEILING IS -- MEASURED, NOT READ FROM A CONFIG"
+    },
+    {
+      "t": 40.078,
+      "line": "============================================================================"
+    },
+    {
+      "t": 47.781,
+      "line": "  vLLM publishes a concurrency figure at boot. Determinex does not trust it:"
+    },
+    {
+      "t": 47.781,
+      "line": "  a client-side declaration is not the authority that enforces the limit."
+    },
+    {
+      "t": 47.781,
+      "line": ""
+    },
+    {
+      "t": 47.781,
+      "line": "    K=16    5.70s   2048 tokens    359.1 agg tok/s   2.81 cand/s"
+    },
+    {
+      "t": 53.89,
+      "line": "    K=32    6.11s   4096 tokens    670.5 agg tok/s   5.24 cand/s"
+    },
+    {
+      "t": 61.578,
+      "line": "    K=64    7.69s   8192 tokens   1065.6 agg tok/s   8.32 cand/s"
+    },
+    {
+      "t": 63.578,
+      "line": ""
+    },
+    {
+      "t": 63.578,
+      "line": "  Measured on this card today: the backend declared ~61 concurrent and the"
+    },
+    {
+      "t": 63.578,
+      "line": "  measured optimum was 64 -- the declaration was PESSIMISTIC. Which is the same"
+    },
+    {
+      "t": 63.578,
+      "line": "  lesson in the opposite direction: measure the machine, do not read about it."
+    },
+    {
+      "t": 63.578,
+      "line": ""
+    },
+    {
+      "t": 63.578,
+      "line": "============================================================================"
+    },
+    {
+      "t": 63.578,
+      "line": "  5/5  THE LOOP REFUSES WHAT IT CANNOT VERIFY, THEN EARNS IT"
+    },
+    {
+      "t": 63.578,
+      "line": "============================================================================"
+    },
+    {
+      "t": 78.125,
+      "line": "  idea: \"improve the code quality of my project\""
+    },
+    {
+      "t": 99.172,
+      "line": "  -> solved=False  checks=0"
+    },
+    {
+      "t": 99.172,
+      "line": "     oracle not sound: no example or typeable invariant could be derived from this idea, so the only synthesizable check is that the symbol exists. That cannot verify behaviour. Add one concrete input/outp"
+    },
+    {
+      "t": 99.172,
+      "line": ""
+    },
+    {
+      "t": 99.172,
+      "line": "  now an idea that CAN be verified, with three concrete examples:"
+    },
+    {
+      "t": 99.172,
+      "line": "    [vs] r1 s1/4 t=0.0 gen 2s verify 2s -> PASS (score 0.00)"
+    },
+    {
+      "t": 102.172,
+      "line": "  -> solved=True  checks=3  samples=1"
+    },
+    {
+      "t": 102.172,
+      "line": "     program PASSES all 3 synthesized checks (oracle-verified, 1 samples)."
+    },
+    {
+      "t": 102.172,
+      "line": ""
+    },
+    {
+      "t": 102.172,
+      "line": "     def solution(numbers):"
+    },
+    {
+      "t": 102.172,
+      "line": "         if not numbers:"
+    },
+    {
+      "t": 102.172,
+      "line": "             return 0.0"
+    },
+    {
+      "t": 102.172,
+      "line": "         return sum(numbers) / len(numbers)"
+    },
+    {
+      "t": 102.172,
+      "line": ""
+    },
+    {
+      "t": 102.172,
+      "line": "  Generated on the AMD Radeon, verified by a real test run. 2026-08-03 18:44:35"
+    }
+  ]
+}

@@ -1,0 +1,151 @@
+{
+  "what": "correctness amplification measured on AMD Radeon (Token Factory)",
+  "measured_at": "2026-08-03T10:59:42",
+  "provider": "amd-token-factory",
+  "model": "MiniCPM5-1B",
+  "endpoint": "https://radeon.anruicloud.com/api/v1",
+  "claim_under_test": "P = 1 - (1-p)^K, with p MEASURED rather than assumed",
+  "method": {
+    "oracle": "determinex_synthesize builds exact example-assertions from the task text; a vacuous oracle is refused, so every p below is measured against checks that can actually fail.",
+    "draws": "the generator is called directly at temperature and each candidate is verified. NOT build_from_idea(k=1) repeated: VerifiedSearch's temperature ladder starts at 0.0, so k=1 is greedy and N such draws are ONE draw N times. The first version of this harness did exactly that and reported 112/112 p=1.000 across seven tasks -- a bug, not a result. distinct_completions is recorded so the reader can check the draws differ.",
+    "sandbox": "candidates are model-generated and untrusted: verification runs through intake.hardened_runner (workspace-bounded, env-scrubbed, network denied), never a raw subprocess."
+  },
+  "saturated_set": {
+    "vowel_cycle": {
+      "n_checks": 4,
+      "draws": 16,
+      "passes": 16,
+      "errors": 0,
+      "p": 1.0,
+      "wall_s": 145.3,
+      "P_predicted": {
+        "1": 1.0,
+        "2": 1.0,
+        "4": 1.0,
+        "6": 1.0,
+        "8": 1.0,
+        "16": 1.0
+      },
+      "regime": "saturated (K adds nothing)"
+    },
+    "reset_running_max": {
+      "n_checks": 4,
+      "draws": 16,
+      "passes": 16,
+      "errors": 0,
+      "p": 1.0,
+      "wall_s": 95.3,
+      "P_predicted": {
+        "1": 1.0,
+        "2": 1.0,
+        "4": 1.0,
+        "6": 1.0,
+        "8": 1.0,
+        "16": 1.0
+      },
+      "regime": "saturated (K adds nothing)"
+    },
+    "twice_only": {
+      "n_checks": 4,
+      "draws": 16,
+      "passes": 16,
+      "errors": 0,
+      "p": 1.0,
+      "wall_s": 203.8,
+      "P_predicted": {
+        "1": 1.0,
+        "2": 1.0,
+        "4": 1.0,
+        "6": 1.0,
+        "8": 1.0,
+        "16": 1.0
+      },
+      "regime": "saturated (K adds nothing)"
+    },
+    "digit_span": {
+      "n_checks": 4,
+      "draws": 16,
+      "passes": 16,
+      "errors": 0,
+      "p": 1.0,
+      "wall_s": 83.5,
+      "P_predicted": {
+        "1": 1.0,
+        "2": 1.0,
+        "4": 1.0,
+        "6": 1.0,
+        "8": 1.0,
+        "16": 1.0
+      },
+      "regime": "saturated (K adds nothing)"
+    }
+  },
+  "productive_middle": {
+    "expr_eval": {
+      "n_checks": 6,
+      "draws": 16,
+      "passes": 1,
+      "errors": 0,
+      "distinct_completions": 15,
+      "p": 0.0625,
+      "wall_s": 548.2,
+      "P_predicted": {
+        "1": 0.0625,
+        "2": 0.1211,
+        "4": 0.2275,
+        "6": 0.3211,
+        "8": 0.4033,
+        "16": 0.6439
+      },
+      "regime": "PRODUCTIVE MIDDLE"
+    }
+  },
+  "trials": {
+    "task": "expr_eval",
+    "p": 0.0625,
+    "K": 8,
+    "trials": 6,
+    "P_predicted": 0.4033,
+    "P_observed": 0.1667,
+    "solved": 1,
+    "rows": [
+      {
+        "trial": 1,
+        "solved": true,
+        "samples": 5,
+        "wall_s": 69.5
+      },
+      {
+        "trial": 2,
+        "solved": false,
+        "samples": 16,
+        "wall_s": 126.0
+      },
+      {
+        "trial": 3,
+        "solved": false,
+        "samples": 16,
+        "wall_s": 117.2
+      },
+      {
+        "trial": 4,
+        "solved": false,
+        "samples": 16,
+        "wall_s": 110.7
+      },
+      {
+        "trial": 5,
+        "solved": false,
+        "samples": 16,
+        "wall_s": 111.4
+      },
+      {
+        "trial": 6,
+        "solved": false,
+        "samples": 16,
+        "wall_s": 119.7
+      }
+    ]
+  },
+  "headline": "p=0.062 measured over 16 draws; at the calibrated K=8 the equation predicts P=0.403 and 1/6 trials solved (P_observed=0.167)."
+}

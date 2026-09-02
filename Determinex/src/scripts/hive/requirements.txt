@@ -1,0 +1,40 @@
+# Determinex Hive Mind — Python dependencies
+# Used by docker/Dockerfile.hive and local development installs
+#
+# Pin major versions for reproducibility; allow patch updates for security fixes.
+# fastembed handles nomic-embed-text adjudication (ONNX, CPU-only, no CUDA required).
+# litellm routes to Ollama (local) and Anthropic/Google (API) with a unified interface.
+
+# ── Core inference routing ────────────────────────────────────────────────────
+litellm>=1.40.0,<2.0.0          # Ollama + Anthropic + Google unified completion API
+
+# ── Adjudication embedder (nomic-embed-text via ONNX) ────────────────────────
+fastembed>=0.3.0,<1.0.0         # CPU-only ONNX embedding; no GPU or PyTorch required
+numpy>=1.26.0,<3.0.0            # Required by fastembed and adjudication scoring
+
+# ── System monitoring (thermal halt, OOM detection) ──────────────────────────
+psutil>=5.9.0,<7.0.0            # CPU/RAM metrics; optional GPU fallback via pynvml
+
+# ── Config parsing ────────────────────────────────────────────────────────────
+pyyaml>=6.0.0,<7.0.0            # litellm_config.yaml and session_config.json (YAML blocks)
+
+# ── API provider clients (direct — litellm delegates to these) ────────────────
+anthropic>=0.30.0,<1.0.0        # Claude (Oracle, Architect at Tier 0)
+# google-generativeai is a litellm dependency — pulled in automatically
+
+# ── HTTP client (used by api_client.py for Ollama REST calls) ────────────────
+httpx>=0.27.0,<1.0.0            # Async HTTP; already a litellm transitive dep
+
+# ── Optional: tree-sitter signature index (workspace.py / chrono_daemon.py) ──
+# Uncomment to enable Python-native tree-sitter parsing for all three languages.
+# Falls back to regex chunking (parse_mode:degraded) when not installed.
+# tree-sitter>=0.23.0,<1.0.0
+# tree-sitter-rust>=0.23.0,<1.0.0
+# tree-sitter-go>=0.23.0,<1.0.0
+# tree-sitter-python>=0.23.0,<1.0.0
+
+# ── Optional: Rosetta Stone soft prefix injection ─────────────────────────────
+# Uncomment if Layer 2 (logit bridge) is active on this deployment.
+# Requires a CUDA-capable GPU and CUDA toolkit in the container.
+# torch>=2.3.0,<3.0.0
+# llama-cpp-python>=0.2.90,<1.0.0

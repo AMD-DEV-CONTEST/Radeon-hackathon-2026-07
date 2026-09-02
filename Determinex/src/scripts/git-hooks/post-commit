@@ -1,0 +1,48 @@
+#!/bin/sh
+# Auto-refresh the corpus semantic embeddings cache whenever
+# corpus/programbench/build_knowledge.json changes.
+#
+# Why this exists: corpus_embeddings.py's cache (the thing that lets
+# hybrid_search()/ask() find a paraphrase, not just literal token matches)
+# had no automatic trigger at all -- every previous session's new corpus
+# entries sat semantically invisible until someone happened to notice and
+# run `python scripts/corpus/corpus_embeddings.py build` by hand. Found live
+# 2026-07-20: the cache covered 222 of 449 actual entries, missing three
+# brand-new entries from the same session that wrote them.
+#
+# Runs in the BACKGROUND, fire-and-forget, after the commit has already
+# happened (post-commit, not pre-commit) -- this must never block or slow
+# down a commit, and corpus_embeddings.py already degrades gracefully to a
+# no-op if Ollama isn't reachable, so failure here is silent by design, not
+# swallowed-and-ignored-on-purpose-elsewhere.
+
+ROOT="$(git rev-parse --show-toplevel)"
+PYTHON="$ROOT/.venv/Scripts/python.exe"
+if [ ! -x "$PYTHON" ]; then
+    PYTHON="python"
+fi
+
+if git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -q "^corpus/programbench/build_knowledge.json$"; then
+    (
+        cd "$ROOT" || exit 0
+        "$PYTHON" scripts/corpus/corpus_embeddings.py build \
+            >> "$ROOT/logs/corpus_embeddings_autobuild.log" 2>&1
+    ) &
+    disown 2>/dev/null || true
+fi
+
+# Capture EVERY commit as a potential training example, not just Hive DAG
+# build sessions -- see scripts/determinex_commit_training_capture.py's
+# module docstring for why this exists (queue_for_training() in
+# scripts/hive/budget.py is real but only fires for the Hive DAG pipeline
+# specifically, and had been dormant since 2026-04-25; most real,
+# compiler/test-verified work in this repo doesn't go through that one
+# path). Same fire-and-forget discipline as the embeddings rebuild above.
+(
+    cd "$ROOT" || exit 0
+    "$PYTHON" scripts/determinex_commit_training_capture.py capture \
+        >> "$ROOT/logs/commit_training_capture.log" 2>&1
+) &
+disown 2>/dev/null || true
+
+exit 0

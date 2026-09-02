@@ -1,0 +1,98 @@
+{
+  "_doc": "Bit-manipulation and integer-arithmetic techniques, expressed as VERIFIABLE CONTRACTS for oracle synthesis. Every entry gives an exact specification and a naive reference implementation that is obviously correct and slow -- the reference IS the oracle, and the fast form is the thing under test. Deliberately no optimised implementations: the system's job is to derive them and be checked, not to retrieve them. Inspired by the technique families surveyed in Hacker's Delight 2e (Warren, Addison-Wesley); registered for attribution at corpus/references/books/hackers_delight_2e.txt. No text or code from that book is reproduced here -- the contracts and references below are written independently, and these are long-standing published results.",
+  "schema_version": 1,
+  "generated_at": "2026-08-04",
+  "why_these_matter": "determinex_synthesize.py must REFUSE when it cannot derive a sound oracle, which is correct but limits how many tasks the verified-search loop can be demonstrated on. These functions are the opposite case: total functions on fixed-width integers, no environment dependence, with an exhaustively checkable domain at 8 and 16 bits. That makes the oracle sound BY CONSTRUCTION, so a solve rate measured on them cannot be explained away by a weak test.",
+  "verification_policy": {
+    "u8": "exhaustive over all 256 inputs -- a proof, not a sample",
+    "u16": "exhaustive over all 65,536 inputs",
+    "u32": "structured sweep (0, 1, -1, all single-bit, all single-bit-pairs, powers of two and their neighbours, 0x55555555/0xAAAAAAAA/0x0F0F0F0F families) PLUS randomised trials against the reference",
+    "note": "Report which policy was used. 'Passes 1,000 random u32 inputs' and 'exhaustive over u16' are different claims and must not be conflated."
+  },
+  "entries": [
+    {
+      "id": "population_count",
+      "contract": "popcount(x) returns the number of 1 bits in the fixed-width unsigned integer x.",
+      "reference": "def popcount(x, bits): return sum((x >> i) & 1 for i in range(bits))",
+      "optimisation_class": "divide-and-conquer bit-parallel accumulation; on most targets a single hardware instruction exists and the portable form is the fallback",
+      "edge_cases": ["0 -> 0", "all-ones -> bits", "single bit set at every position"]
+    },
+    {
+      "id": "count_leading_zeros",
+      "contract": "clz(x) returns the number of leading 0 bits in x. clz(0) is DEFINED here as the full width, because leaving it undefined is where portable implementations diverge from hardware ones.",
+      "reference": "def clz(x, bits):\n    n = 0\n    for i in range(bits - 1, -1, -1):\n        if (x >> i) & 1: break\n        n += 1\n    return n",
+      "optimisation_class": "binary search over bit positions, or float-exponent extraction",
+      "edge_cases": ["0 -> bits (the case that most often disagrees with a hardware intrinsic)", "1 -> bits-1", "top bit set -> 0"]
+    },
+    {
+      "id": "count_trailing_zeros",
+      "contract": "ctz(x) returns the number of trailing 0 bits. ctz(0) is DEFINED here as the full width.",
+      "reference": "def ctz(x, bits):\n    if x == 0: return bits\n    n = 0\n    while (x >> n) & 1 == 0: n += 1\n    return n",
+      "optimisation_class": "isolate lowest set bit (x & -x) then map to an index via de Bruijn multiply or popcount",
+      "edge_cases": ["0 -> bits", "1 -> 0", "only the top bit set -> bits-1"]
+    },
+    {
+      "id": "isolate_lowest_set_bit",
+      "contract": "lowest_set(x) returns a value with only x's least-significant 1 bit set, or 0 when x is 0.",
+      "reference": "def lowest_set(x, bits):\n    for i in range(bits):\n        if (x >> i) & 1: return 1 << i\n    return 0",
+      "optimisation_class": "two's-complement identity on the whole word",
+      "edge_cases": ["0 -> 0", "powers of two map to themselves"]
+    },
+    {
+      "id": "round_up_to_power_of_two",
+      "contract": "clp2(x) returns the smallest power of two >= x, for x in [0, 2^(bits-1)]. clp2(0) is DEFINED as 1. Behaviour above 2^(bits-1) is OUT OF CONTRACT and must not be tested as if it were specified.",
+      "reference": "def clp2(x, bits):\n    if x <= 1: return 1\n    p = 1\n    while p < x: p <<= 1\n    return p",
+      "optimisation_class": "smear the highest set bit downward, then increment",
+      "edge_cases": ["0 -> 1", "1 -> 1", "exact powers of two map to themselves, NOT to the next one -- the off-by-one that most implementations get wrong"]
+    },
+    {
+      "id": "is_power_of_two",
+      "contract": "is_pow2(x) is true iff x has exactly one bit set. Zero is NOT a power of two.",
+      "reference": "def is_pow2(x, bits): return sum((x >> i) & 1 for i in range(bits)) == 1",
+      "optimisation_class": "single mask-and-compare using the borrow behaviour of x-1",
+      "edge_cases": ["0 -> false (the classic error: x & (x-1) == 0 alone says true)", "1 -> true"]
+    },
+    {
+      "id": "reverse_bits",
+      "contract": "reverse(x) returns x with its bit order reversed within the fixed width.",
+      "reference": "def reverse(x, bits):\n    r = 0\n    for i in range(bits):\n        r = (r << 1) | ((x >> i) & 1)\n    return r",
+      "optimisation_class": "pairwise swap by masks at increasing strides",
+      "edge_cases": ["palindromic patterns map to themselves", "reverse(reverse(x)) == x is a free property test"]
+    },
+    {
+      "id": "branchless_abs",
+      "contract": "abs(x) for a SIGNED fixed-width integer. abs(INT_MIN) is OUT OF CONTRACT -- it is not representable, and a test asserting any particular value for it is testing an implementation choice rather than the specification.",
+      "reference": "def sabs(x, bits):\n    return -x if x < 0 else x",
+      "optimisation_class": "arithmetic-shift mask, add and xor -- no branch",
+      "edge_cases": ["0 -> 0", "INT_MIN -> undefined; the oracle must EXCLUDE it, and a synthesizer that silently includes it is producing an unsound test"]
+    },
+    {
+      "id": "average_without_overflow",
+      "contract": "avg(a, b) returns floor((a + b) / 2) computed WITHOUT the intermediate sum overflowing the fixed width.",
+      "reference": "def avg(a, b, bits): return (a + b) >> 1   # reference uses unbounded ints, so it cannot overflow",
+      "optimisation_class": "split into shared bits and differing bits so the sum never exceeds the width",
+      "edge_cases": ["both operands at the maximum -- the exact case a naive (a+b)>>1 gets wrong", "operands differing by one, where floor matters"]
+    },
+    {
+      "id": "sign_of_integer",
+      "contract": "sign(x) returns -1 for x<0, 0 for x==0, +1 for x>0.",
+      "reference": "def sign(x): return (x > 0) - (x < 0)",
+      "optimisation_class": "two shifts and an or, branchless",
+      "edge_cases": ["0 -> 0", "INT_MIN -> -1"]
+    },
+    {
+      "id": "detect_zero_byte_in_word",
+      "contract": "has_zero_byte(w) is true iff any 8-bit lane of the fixed-width word is zero.",
+      "reference": "def has_zero_byte(w, bits): return any(((w >> (8*i)) & 0xFF) == 0 for i in range(bits // 8))",
+      "optimisation_class": "subtract-and-mask so all lanes are tested in one word operation -- the core of fast strlen/memchr",
+      "edge_cases": ["all lanes zero", "no lane zero", "zero only in the highest lane, where naive masks often produce a false negative"]
+    },
+    {
+      "id": "add_overflow_detection",
+      "contract": "add_overflows(a, b) is true iff a+b is not representable in the SIGNED fixed width. Must be decided WITHOUT performing an operation that itself overflows.",
+      "reference": "def add_overflows(a, b, bits):\n    lo, hi = -(1 << (bits-1)), (1 << (bits-1)) - 1\n    return not (lo <= a + b <= hi)   # unbounded ints in the reference",
+      "optimisation_class": "sign comparison of operands against the sign of the truncated result",
+      "edge_cases": ["two large positives", "two large negatives", "opposite signs can NEVER overflow -- a check that flags them is wrong"]
+    }
+  ]
+}
