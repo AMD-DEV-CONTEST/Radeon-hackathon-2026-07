@@ -1,0 +1,167 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MeshSmith — poster</title>
+<style>
+  /* A0-ish landscape poster on a fixed canvas. Every band has an explicit
+     height so content can never reflow onto a second page. */
+  @page { size: 420mm 297mm; margin: 0; }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    width: 420mm; height: 297mm; padding: 12mm 12mm 8mm; overflow: hidden;
+    font-family: "Segoe UI", Arial, sans-serif; color: #16181d;
+    background: linear-gradient(160deg, #ffffff 60%, #ffe9ea 100%);
+    display: grid; grid-template-rows: 30mm 17mm 1fr 7mm; row-gap: 5mm;
+  }
+
+  /* ---- header ---- */
+  .top { display: flex; align-items: center; gap: 10mm; }
+  h1 { font-size: 58pt; letter-spacing: -1px; line-height: 1; }
+  h1 .accent { color: #ED1C24; }
+  .tag { font-size: 18pt; color: #3a3a42; max-width: 150mm; line-height: 1.3; }
+  .badge {
+    margin-left: auto; background: #16181d; color: #fff; padding: 5mm 8mm;
+    border-radius: 3mm; font-size: 13.5pt; text-align: center; line-height: 1.35;
+  }
+  .badge b { color: #ff5a5f; }
+
+  /* ---- pipeline strip ---- */
+  .pipeline {
+    font-family: Consolas, monospace; font-size: 10.5pt; line-height: 1.55;
+    background: #16181d; color: #d8dee9; padding: 3.5mm 6mm; border-radius: 3mm;
+    white-space: pre; overflow: hidden;
+  }
+  .pipeline .hot { color: #ff5a5f; font-weight: bold; }
+
+  /* ---- main three columns ---- */
+  .cols { display: grid; grid-template-columns: 1fr 1fr 1.6fr; gap: 6mm; min-height: 0; }
+  .col { display: grid; gap: 5mm; min-height: 0; align-content: start; }
+  .col.left  { grid-template-rows: auto auto 1fr; }
+  .col.mid   { grid-template-rows: auto 1fr; }
+  .col.right { grid-template-rows: 1fr auto; align-content: stretch; }
+
+  .card {
+    background: #fff; border: 1px solid #e3e3e8; border-radius: 3.5mm;
+    padding: 5.5mm; box-shadow: 0 1.5mm 5mm rgba(0,0,0,.06);
+    min-height: 0; overflow: hidden;
+  }
+  .card h2 {
+    font-size: 15.5pt; margin-bottom: 3mm; color: #ED1C24;
+    text-transform: uppercase; letter-spacing: .5px;
+  }
+  .card p, .card li { font-size: 12.5pt; line-height: 1.4; }
+  .card ul { padding-left: 5.5mm; }
+  .card li + li { margin-top: 1.6mm; }
+
+  /* ---- stat row ---- */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; }
+  .stat {
+    background: #fff; border: 1px solid #e3e3e8; border-radius: 3.5mm;
+    padding: 4mm 2mm; text-align: center;
+  }
+  .stat .n { font-size: 30pt; font-weight: 800; color: #ED1C24; line-height: 1; }
+  .stat .l { font-size: 10.5pt; color: #555; margin-top: 2mm; line-height: 1.25; }
+
+  /* ---- benchmark table ---- */
+  table { width: 100%; border-collapse: collapse; font-size: 11.5pt; }
+  th, td { border-bottom: 1px solid #e3e3e8; padding: 1.8mm 1.5mm; text-align: left; }
+  th { color: #666; font-size: 9.5pt; text-transform: uppercase; font-weight: 600; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+
+  /* ---- gallery (the hero) ---- */
+  .gallery { display: flex; min-height: 0; padding: 4mm; }
+  .gallery img { width: 100%; height: 100%; object-fit: contain; }
+  .cap { font-size: 11.5pt; line-height: 1.35; color: #333; }
+  .try { font-family: Consolas, monospace; font-size: 11.5pt; line-height: 1.6; }
+
+  .foot { font-size: 10.5pt; color: #666; display: flex; justify-content: space-between; align-items: end; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <h1>⚒️ Mesh<span class="accent">Smith</span></h1>
+    <div class="tag">text or image → <b>print-ready + game-ready</b> 3D assets · fully local</div>
+    <div class="badge">AMD AI DevMaster Hackathon<br><b>Track 1 · Multimodal Content Creation</b><br>verified on Radeon · ROCm 7.2</div>
+  </div>
+
+  <div class="pipeline">prompt ─► <span class="hot">SDXL-Turbo</span> ─► u2net cutout ─► <span class="hot">Hunyuan3D-2 DiT</span> ─► repair (watertight) ─┬─► decimate ─► xatlas UV ─► PBR ─► <span class="hot">GLB / OBJ</span>   (game)
+photo ────────────────────────►┘   all inference local, fp16, torch.cuda API    └─► scale-to-mm ─► 26-orientation support search ─► wall-check ─► <span class="hot">STL + report</span>  (print)</div>
+
+  <div class="cols">
+    <div class="col left">
+      <div class="card">
+        <h2>The gap it closes</h2>
+        <p>Image→3D models make impressive meshes that <b>fail at the point of
+        use</b>: not watertight, no UVs, no physical scale, floating debris,
+        orientations that drown FDM prints in support material. MeshSmith is the
+        missing last mile — from "look at this mesh" to <b>"here is the STL your
+        slicer accepts."</b></p>
+      </div>
+      <div class="card">
+        <h2>Who it's for</h2>
+        <ul>
+          <li><b>3D-printing hobbyists</b> — prompt → knob, bracket, figurine. No CAD.</li>
+          <li><b>Indie game devs</b> — props with sane topology, UVs, PBR materials.</li>
+          <li><b>Makerspaces &amp; schools</b> — no API fees, data stays on-device,
+              and the report <i>teaches</i> printability.</li>
+        </ul>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="n">0</div><div class="l">cloud API calls in the core pipeline</div></div>
+        <div class="stat"><div class="n">3</div><div class="l">open models chained on one GPU</div></div>
+        <div class="stat"><div class="n">2</div><div class="l">finished artifacts per prompt</div></div>
+      </div>
+    </div>
+
+    <div class="col mid">
+      <div class="card">
+        <h2>Built for ROCm, not ported to it</h2>
+        <ul>
+          <li><b>Zero vendor-specific code</b> — GPU stages use the portable
+              <code>torch.cuda</code> API; ROCm maps it to HIP.</li>
+          <li><b>Shape-only Hunyuan3D by design</b> — skips the custom CUDA texture
+              rasterizer, so install is pure <code>pip</code> in any
+              <code>rocm/pytorch</code> container.</li>
+          <li><b>fp16 + lazy load/unload</b> — fits 16 GB cards.</li>
+          <li><b>ROCm Dockerfile</b> + one-command Radeon Cloud setup.</li>
+          <li><b>Observable</b> — per-stage wall time &amp; peak VRAM in every report.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Measured on Radeon — <code>draft</code></h2>
+        <table>
+          <tr><th>Prompt</th><th class="num">3D s</th><th class="num">Total s</th><th class="num">Score</th></tr>
+          <tr><td>robot mascot</td><td class="num">25.2</td><td class="num">38.2</td><td class="num">90</td></tr>
+          <tr><td>low-poly fox figurine</td><td class="num">24.1</td><td class="num">39.4</td><td class="num">90</td></tr>
+          <tr><td>drawer knob, fluted</td><td class="num">24.5</td><td class="num">58.0</td><td class="num">90</td></tr>
+        </table>
+        <p style="font-size:11pt;color:#555;margin-top:3mm">
+          <b>AMD Radeon gfx1100 · ROCm 7.2.5 · 48 GB.</b> Average <b>48.7 s/asset</b>,
+          peak VRAM 10.8 GB (fits 16 GB cards).<br>
+          Across these Radeon runs auto-orientation cut support volume by
+          <b>6.6–78.3%</b> — most on the robot mascot, least on the amphora, which the
+          generator already produced nearly upright.</p>
+      </div>
+    </div>
+
+    <div class="col right">
+      <div class="card gallery"><img src="../assets/gallery.png" alt="assets generated by MeshSmith"></div>
+      <div class="card">
+        <p class="cap">Inset = the generated concept image, large = the finished mesh.
+        Organic figures, hard-surface parts, vessels — and bottom-left, a photo taken
+        straight to 3D. <b>Every asset ships with a printability report:</b> watertight ✓ ·
+        auto-orientation (support saved %) · wall thickness min/p05 · bed fit · score /100.</p>
+        <p class="try" style="margin-top:3.5mm">pip install -r requirements.txt<br>
+        python app.py&nbsp;&nbsp;<span style="color:#888"># Gradio UI + 3D viewer</span><br>
+        python -m meshsmith.cli "a chess knight" --quality high</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span>MIT license · open weights only (SDXL-Turbo · u2net · Hunyuan3D-2)</span>
+    <span>AMD AI DevMaster Hackathon 2026 · Track 1</span>
+  </div>
+</body>
+</html>
