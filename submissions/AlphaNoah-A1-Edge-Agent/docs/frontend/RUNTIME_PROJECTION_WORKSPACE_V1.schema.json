@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:alphanoah:runtime-projection:workspace-v1",
+  "title": "AlphaNoah Runtime Workspace Projection v1",
+  "description": "The exact read-only JSON contract returned by GET /api/workspace.",
+  "type": "object",
+  "required": [
+    "version",
+    "events",
+    "active_event",
+    "pulse",
+    "employees"
+  ],
+  "properties": {
+    "version": {
+      "const": "workspace-v1"
+    },
+    "events": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "$ref": "#/$defs/event"
+      }
+    },
+    "active_event": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/event"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "pulse": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/pulse"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "employees": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/employee"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "responsibility": {
+      "type": "object",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "event": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "status",
+        "timestamp",
+        "severity",
+        "location",
+        "asset_id",
+        "description",
+        "responsibility"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^event_[a-f0-9]{32}$"
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timestamp": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "severity": {
+          "enum": [
+            "UNKNOWN",
+            "LOW",
+            "MEDIUM",
+            "HIGH",
+            "CRITICAL"
+          ]
+        },
+        "location": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "asset_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "responsibility": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/responsibility"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "skill": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "employee": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "status",
+        "current_event_id",
+        "responsibility",
+        "skills"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "working",
+            "unknown"
+          ]
+        },
+        "current_event_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^event_[a-f0-9]{32}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "responsibility": {
+          "type": "string",
+          "minLength": 1
+        },
+        "skills": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/skill"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "pulse": {
+      "type": "object",
+      "required": [
+        "level",
+        "title",
+        "event_id"
+      ],
+      "properties": {
+        "level": {
+          "enum": [
+            "attention",
+            "critical"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_id": {
+          "type": "string",
+          "pattern": "^event_[a-f0-9]{32}$"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

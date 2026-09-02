@@ -1,0 +1,274 @@
+{
+  "schema_version": "knowledge-retrieval-evaluation-v1",
+  "data_notice": "Synthetic retrieval evaluation data. Not real enterprise knowledge, incidents, diagnoses, or operating instructions.",
+  "documents": [
+    {
+      "id": "synthetic_aircon_closing_sop_v1",
+      "title": "Synthetic air-conditioner closing reference",
+      "content": "Synthetic reference for an air conditioner that remains on after closing. Preserve the report and request authorized human verification.",
+      "document_type": "SOP",
+      "source": "synthetic_aircon_closing_sop",
+      "version": "1.0-demo",
+      "effective_date": "2026-07-26",
+      "knowledge_key": "synthetic_aircon_closing_sop",
+      "status": "active",
+      "metadata": {
+        "event_types": ["device_not_shutdown"],
+        "asset_types": ["air_conditioner"],
+        "keywords": ["aircon_shutdown", "closing_check"]
+      }
+    },
+    {
+      "id": "synthetic_aircon_energy_rule_v1",
+      "title": "Synthetic air-conditioner energy reference",
+      "content": "Synthetic energy-usage reference for air conditioners.",
+      "document_type": "RULE",
+      "source": "synthetic_aircon_energy_rule",
+      "version": "1.0-demo",
+      "effective_date": "2026-07-26",
+      "knowledge_key": "synthetic_aircon_energy_rule",
+      "status": "active",
+      "metadata": {
+        "event_types": ["energy_usage_alert"],
+        "asset_types": ["air_conditioner"],
+        "keywords": ["aircon_energy"]
+      }
+    },
+    {
+      "id": "synthetic_cold_storage_temperature_sop_v1",
+      "title": "Synthetic cold-storage temperature reference",
+      "content": "Synthetic reference for a cold-storage temperature observation requiring human verification.",
+      "document_type": "SOP",
+      "source": "synthetic_cold_storage_temperature_sop",
+      "version": "1.0-demo",
+      "effective_date": "2026-07-26",
+      "knowledge_key": "synthetic_cold_storage_temperature_sop",
+      "status": "active",
+      "metadata": {
+        "event_types": ["food_safety_observation"],
+        "asset_types": ["cold_storage"],
+        "keywords": ["cold_temperature"]
+      }
+    },
+    {
+      "id": "synthetic_conveyor_sound_sop_v1",
+      "title": "Synthetic conveyor abnormal-sound reference",
+      "content": "Synthetic abnormal_sound reference for conveyor reports. It is not a diagnosis.",
+      "document_type": "SOP",
+      "source": "synthetic_conveyor_sound_sop",
+      "version": "1.0-demo",
+      "effective_date": "2026-07-26",
+      "knowledge_key": "synthetic_conveyor_sound_sop",
+      "status": "active",
+      "metadata": {
+        "event_types": ["equipment_issue_report"],
+        "asset_types": ["conveyor"],
+        "keywords": ["abnormal_sound", "conveyor_noise"]
+      }
+    },
+    {
+      "id": "synthetic_equipment_inspection_a_v1",
+      "title": "Synthetic standard inspection reference A",
+      "content": "Synthetic standard_inspection reference for a general equipment report.",
+      "document_type": "RULE",
+      "source": "synthetic_equipment_inspection_a",
+      "version": "1.0-demo",
+      "effective_date": "2026-07-26",
+      "knowledge_key": "synthetic_equipment_inspection_a",
+      "status": "active",
+      "metadata": {
+        "event_types": ["equipment_issue_report"],
+        "keywords": ["standard_inspection"]
+      }
+    },
+    {
+      "id": "synthetic_equipment_inspection_b_v1",
+      "title": "Synthetic standard inspection reference B",
+      "content": "Synthetic standard_inspection reference for a general equipment report.",
+      "document_type": "RULE",
+      "source": "synthetic_equipment_inspection_b",
+      "version": "1.0-demo",
+      "effective_date": "2026-07-26",
+      "knowledge_key": "synthetic_equipment_inspection_b",
+      "status": "active",
+      "metadata": {
+        "event_types": ["equipment_issue_report"],
+        "keywords": ["standard_inspection"]
+      }
+    },
+    {
+      "id": "synthetic_pump_leak_sop_v1",
+      "title": "Synthetic pump leak reference",
+      "content": "Synthetic pump_leak reference requiring qualified human inspection.",
+      "document_type": "SOP",
+      "source": "synthetic_pump_leak_sop",
+      "version": "1.0-demo",
+      "effective_date": "2026-07-26",
+      "knowledge_key": "synthetic_pump_leak_sop",
+      "status": "active",
+      "metadata": {
+        "event_types": ["fluid_leak_report"],
+        "asset_types": ["water_pump"],
+        "keywords": ["pump_leak"]
+      }
+    },
+    {
+      "id": "synthetic_ventilation_shutdown_sop_v1",
+      "title": "Synthetic ventilation-fan shutdown reference",
+      "content": "Synthetic fan_shutdown reference for ventilation equipment.",
+      "document_type": "SOP",
+      "source": "synthetic_ventilation_shutdown_sop",
+      "version": "1.0-demo",
+      "effective_date": "2026-07-26",
+      "knowledge_key": "synthetic_ventilation_shutdown_sop",
+      "status": "active",
+      "metadata": {
+        "event_types": ["device_not_shutdown"],
+        "asset_types": ["ventilation_fan"],
+        "keywords": ["fan_shutdown"]
+      }
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "exact-structured-field-hit",
+      "query": {
+        "event_type": "device_not_shutdown",
+        "asset_type": "air_conditioner",
+        "keywords": []
+      },
+      "expected_document_ids": ["synthetic_aircon_closing_sop_v1"],
+      "forbidden_document_ids": [
+        "synthetic_cold_storage_temperature_sop_v1"
+      ],
+      "top_k": 1,
+      "description": "Exact event and asset-type fields select the air-conditioner reference."
+    },
+    {
+      "case_id": "keyword-only-hit",
+      "query": {
+        "keywords": ["abnormal_sound"]
+      },
+      "expected_document_ids": ["synthetic_conveyor_sound_sop_v1"],
+      "forbidden_document_ids": [
+        "synthetic_cold_storage_temperature_sop_v1"
+      ],
+      "top_k": 3,
+      "description": "A reviewed keyword selects the matching conveyor reference."
+    },
+    {
+      "case_id": "field-and-keyword-joint-hit",
+      "query": {
+        "event_type": "equipment_issue_report",
+        "asset_type": "conveyor",
+        "keywords": ["abnormal_sound"]
+      },
+      "expected_document_ids": ["synthetic_conveyor_sound_sop_v1"],
+      "forbidden_document_ids": [
+        "synthetic_ventilation_shutdown_sop_v1"
+      ],
+      "top_k": 1,
+      "description": "Structured fields and a keyword reinforce the same document."
+    },
+    {
+      "case_id": "no-related-knowledge",
+      "query": {
+        "event_type": "unknown_synthetic_event",
+        "asset_type": "unknown_synthetic_asset",
+        "keywords": ["no_matching_term"]
+      },
+      "expected_document_ids": [],
+      "forbidden_document_ids": [
+        "synthetic_aircon_closing_sop_v1",
+        "synthetic_conveyor_sound_sop_v1"
+      ],
+      "top_k": 3,
+      "description": "An unrelated structured query returns no knowledge."
+    },
+    {
+      "case_id": "similar-keyword-wrong-equipment",
+      "query": {
+        "event_type": "equipment_issue_report",
+        "asset_type": "conveyor",
+        "keywords": ["fan_shutdown"]
+      },
+      "expected_document_ids": ["synthetic_conveyor_sound_sop_v1"],
+      "forbidden_document_ids": [
+        "synthetic_ventilation_shutdown_sop_v1"
+      ],
+      "top_k": 10,
+      "description": "A conflicting equipment type cannot displace the structured conveyor match."
+    },
+    {
+      "case_id": "similar-scene-wrong-event-type",
+      "query": {
+        "event_type": "device_not_shutdown",
+        "asset_type": "air_conditioner",
+        "keywords": ["aircon_energy"]
+      },
+      "expected_document_ids": ["synthetic_aircon_closing_sop_v1"],
+      "forbidden_document_ids": [
+        "synthetic_aircon_energy_rule_v1"
+      ],
+      "top_k": 10,
+      "description": "A conflicting event type cannot displace the shutdown reference."
+    },
+    {
+      "case_id": "stable-tie-order",
+      "query": {
+        "event_type": "equipment_issue_report",
+        "keywords": ["standard_inspection"]
+      },
+      "expected_document_ids": [
+        "synthetic_equipment_inspection_a_v1",
+        "synthetic_equipment_inspection_b_v1"
+      ],
+      "forbidden_document_ids": [
+        "synthetic_pump_leak_sop_v1"
+      ],
+      "top_k": 2,
+      "description": "Equal scores use document ID ascending as the stable tie-break."
+    },
+    {
+      "case_id": "repository-order-invariant",
+      "query": {
+        "event_type": "equipment_issue_report",
+        "keywords": ["standard_inspection"]
+      },
+      "expected_document_ids": [
+        "synthetic_equipment_inspection_a_v1",
+        "synthetic_equipment_inspection_b_v1"
+      ],
+      "forbidden_document_ids": [],
+      "top_k": 2,
+      "description": "Reversing repository insertion order does not change retrieval output."
+    },
+    {
+      "case_id": "repeatable-conveyor-result",
+      "query": {
+        "event_type": "equipment_issue_report",
+        "asset_type": "conveyor",
+        "keywords": ["abnormal_sound"]
+      },
+      "expected_document_ids": ["synthetic_conveyor_sound_sop_v1"],
+      "forbidden_document_ids": [],
+      "top_k": 3,
+      "description": "Repeated retrieval produces the same ordered IDs."
+    },
+    {
+      "case_id": "top-k-one",
+      "query": {
+        "event_type": "equipment_issue_report",
+        "keywords": ["standard_inspection"]
+      },
+      "expected_document_ids": [
+        "synthetic_equipment_inspection_a_v1"
+      ],
+      "forbidden_document_ids": [
+        "synthetic_equipment_inspection_b_v1"
+      ],
+      "top_k": 1,
+      "description": "Top-K truncation occurs after stable ranking."
+    }
+  ]
+}

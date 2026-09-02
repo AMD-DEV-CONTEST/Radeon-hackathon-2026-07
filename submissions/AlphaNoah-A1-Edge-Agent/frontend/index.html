@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark" data-theme-preference="system">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="AlphaNoah A1 Edge Agent workspace."
+    />
+    <script>
+      (() => {
+        const storageKey = "alphanoah.preferences.v1";
+        let stored = {};
+
+        try {
+          stored = JSON.parse(localStorage.getItem(storageKey) || "{}");
+        } catch {
+          stored = {};
+        }
+
+        const locale =
+          stored.locale === "zh-CN" || stored.locale === "en-US"
+            ? stored.locale
+            : navigator.language.toLowerCase().startsWith("zh")
+              ? "zh-CN"
+              : "en-US";
+        const themePreference = ["system", "light", "dark"].includes(
+          stored.theme,
+        )
+          ? stored.theme
+          : "system";
+        const systemTheme = matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+        const motion =
+          stored.motion === "standard" || stored.motion === "reduced"
+            ? stored.motion
+            : matchMedia("(prefers-reduced-motion: reduce)").matches
+              ? "reduced"
+              : "standard";
+
+        document.documentElement.lang = locale;
+        document.documentElement.dataset.theme =
+          themePreference === "system" ? systemTheme : themePreference;
+        document.documentElement.dataset.themePreference = themePreference;
+        document.documentElement.dataset.motion = motion;
+      })();
+    </script>
+    <title>AlphaNoah A1 Edge Agent</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
