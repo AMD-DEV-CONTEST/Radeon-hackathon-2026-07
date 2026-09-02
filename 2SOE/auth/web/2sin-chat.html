@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>2SIN — Assistant</title>
+<style>
+  /* ----------------------------------------------------------------
+     2SIN — surface chat utilisateur. Charte Isys.
+     100% self-contained : aucune police externe, aucun CDN.
+     Tout le traitement LLM reste sur l'infra locale (gateway).
+  ---------------------------------------------------------------- */
+  :root {
+    --bg-deep:    #14202d;
+    --bg:         #1a2837;
+    --surface:    #243447;
+    --surface-2:  #2d3f54;
+    --border:     #2d3f54;
+    --border-soft:#23344680;
+    --accent:     #4ade80;   /* vert menthe */
+    --accent-dim: #22c55e;
+    --primary:    #3b82f6;
+    --text:       #e2e8f0;
+    --text-muted: #94a3b8;
+    --text-faint: #64748b;
+    --danger:     #f87171;
+
+    --font-display: Georgia, "Times New Roman", serif;
+    --font-body:    "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+    --read: 720px;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg-deep);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  /* ---------------- Top bar ---------------- */
+  header.bar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(var(--bg), var(--bg-deep));
+  }
+  .mark {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 2px;
+  }
+  .mark .dot { color: var(--accent); }
+  .tagline {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-top: 3px;
+  }
+  .sovereign {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 5px 11px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+  }
+  .sovereign .led {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 0 rgba(74,222,128,0.5);
+    animation: pulse 2.6s infinite;
+  }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(74,222,128,0.45);} 70%{box-shadow:0 0 0 6px rgba(74,222,128,0);} 100%{box-shadow:0 0 0 0 rgba(74,222,128,0);} }
+
+  .iconbtn {
+    flex: 0 0 auto;
+    width: 36px; height: 36px;
+    display: grid; place-items: center;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color .15s, border-color .15s, background .15s;
+  }
+  .iconbtn:hover { color: var(--text); border-color: var(--surface-2); background: var(--surface); }
+  .iconbtn svg { width: 18px; height: 18px; }
+
+  /* ---------------- Messages ---------------- */
+  main.thread {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    padding: 28px 20px 8px;
+  }
+  .col { max-width: var(--read); margin: 0 auto; }
+
+  .empty {
+    height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    gap: 14px;
+    color: var(--text-muted);
+  }
+  .empty h1 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.7rem;
+    color: var(--text);
+    margin: 0;
+  }
+  .empty p { margin: 0; max-width: 420px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
+  .chip {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 7px 13px;
+    cursor: pointer;
+    transition: color .15s, border-color .15s;
+  }
+  .chip:hover { color: var(--text); border-color: var(--accent); }
+
+  .msg { display: flex; gap: 14px; padding: 14px 0; animation: rise .25s ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .msg { animation: none; } .led { animation: none; } main.thread { scroll-behavior: auto; } }
+
+  .avatar {
+    flex: 0 0 auto;
+    width: 28px; height: 28px; border-radius: 8px;
+    display: grid; place-items: center;
+    font-family: var(--font-mono);
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.04em;
+    margin-top: 2px;
+  }
+  .msg.user .avatar { background: var(--surface-2); color: var(--text); }
+  .msg.bot  .avatar { background: rgba(74,222,128,0.14); color: var(--accent); border: 1px solid rgba(74,222,128,0.3); }
+
+  .body { min-width: 0; flex: 1 1 auto; }
+  .who { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 4px; }
+  .content { color: var(--text); overflow-wrap: anywhere; }
+  .content > *:first-child { margin-top: 0; }
+  .content > *:last-child { margin-bottom: 0; }
+  .content p { margin: 0 0 10px; }
+  .content h1,.content h2,.content h3 { font-family: var(--font-body); line-height: 1.3; margin: 16px 0 8px; }
+  .content h1 { font-size: 1.2rem; } .content h2 { font-size: 1.08rem; } .content h3 { font-size: 1rem; }
+  .content ul,.content ol { margin: 0 0 10px; padding-left: 20px; }
+  .content li { margin: 3px 0; }
+  .content a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+  .content code { font-family: var(--font-mono); font-size: 0.86em; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px; }
+  .content pre { background: var(--bg-deep); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; overflow-x: auto; margin: 0 0 10px; }
+  .content pre code { background: none; border: none; padding: 0; font-size: 0.84rem; line-height: 1.5; }
+  .content blockquote { border-left: 2px solid var(--surface-2); margin: 0 0 10px; padding: 2px 0 2px 14px; color: var(--text-muted); }
+
+  .caret { display: inline-block; width: 8px; height: 1.05em; transform: translateY(2px); background: var(--accent); margin-left: 1px; animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .errline { color: var(--danger); font-size: 0.9rem; padding: 8px 0; }
+
+  /* ---------------- Composer ---------------- */
+  footer.composer {
+    flex: 0 0 auto;
+    padding: 12px 20px 18px;
+    background: linear-gradient(to top, var(--bg-deep), var(--bg-deep) 70%, transparent);
+  }
+  .inputwrap {
+    max-width: var(--read);
+    margin: 0 auto;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 8px 8px 16px;
+    transition: border-color .15s;
+  }
+  .inputwrap:focus-within { border-color: var(--accent); }
+  textarea#input {
+    flex: 1 1 auto;
+    resize: none;
+    border: none; outline: none; background: transparent;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 15px; line-height: 1.5;
+    max-height: 200px;
+    padding: 6px 0;
+  }
+  textarea#input::placeholder { color: var(--text-faint); }
+  .send {
+    flex: 0 0 auto;
+    width: 38px; height: 38px; border-radius: 10px;
+    border: none; cursor: pointer;
+    background: var(--accent); color: var(--bg-deep);
+    display: grid; place-items: center;
+    transition: background .15s, opacity .15s;
+  }
+  .send:hover { background: var(--accent-dim); }
+  .send:disabled { opacity: .4; cursor: default; }
+  .send svg { width: 19px; height: 19px; }
+  .send.stop { background: var(--surface-2); color: var(--text); }
+  .attach {
+    flex: 0 0 auto; width: 34px; height: 34px; border-radius: 9px;
+    border: 1px solid var(--border); background: transparent; color: var(--text-muted);
+    display: grid; place-items: center; cursor: pointer; align-self: flex-end;
+    transition: color .15s, border-color .15s;
+  }
+  .attach:hover { color: var(--accent); border-color: var(--accent); }
+  .attach svg { width: 17px; height: 17px; }
+  .attachments { max-width: var(--read); margin: 0 auto 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .att-chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 0.78rem; color: var(--text); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px; padding: 5px 9px;
+  }
+  .att-chip.loading { color: var(--text-muted); }
+  .att-chip .x { cursor: pointer; color: var(--text-faint); font-weight: 700; }
+  .att-chip .x:hover { color: var(--danger); }
+  .msg-atts { margin-top: 6px; font-size: 0.8rem; color: var(--text-muted); }
+  .hint { max-width: var(--read); margin: 8px auto 0; font-size: 0.7rem; color: var(--text-faint); text-align: center; }
+
+  /* ---------------- Settings ---------------- */
+  .overlay { position: fixed; inset: 0; background: rgba(10,16,24,0.6); display: none; align-items: flex-start; justify-content: center; padding: 60px 16px; z-index: 20; }
+  .overlay.open { display: flex; }
+  .panel { width: 100%; max-width: 460px; background: var(--bg); border: 1px solid var(--border); border-radius: 16px; padding: 22px; }
+  .panel h2 { font-family: var(--font-display); margin: 0 0 4px; font-size: 1.2rem; }
+  .panel .sub { color: var(--text-muted); font-size: 0.85rem; margin: 0 0 18px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 5px; }
+  .field input, .field textarea, .field select {
+    width: 100%; background: var(--surface); color: var(--text);
+    border: 1px solid var(--border); border-radius: 9px;
+    padding: 9px 11px; font-family: var(--font-body); font-size: 0.9rem; outline: none;
+  }
+  .field input:focus, .field textarea:focus { border-color: var(--accent); }
+  .field textarea { resize: vertical; min-height: 60px; font-family: var(--font-mono); font-size: 0.8rem; }
+  .row2 { display: flex; gap: 12px; }
+  .row2 .field { flex: 1; }
+  .panel .actions { display: flex; gap: 10px; margin-top: 18px; }
+  .btn { flex: 1; padding: 10px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.9rem; cursor: pointer; }
+  .btn.primary { background: var(--accent); color: var(--bg-deep); border-color: var(--accent); font-weight: 600; }
+  .btn:hover { border-color: var(--surface-2); }
+  .btn.primary:hover { background: var(--accent-dim); border-color: var(--accent-dim); }
+
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--surface-2); border-radius: 6px; border: 3px solid var(--bg-deep); }
+</style>
+</head>
+<body>
+  <!-- ÉCRAN DE LOGIN (2SIN auth) : masqué une fois connecté -->
+  <div id="loginOverlay" style="position:fixed;inset:0;z-index:1000;display:flex;
+       align-items:center;justify-content:center;background:var(--bg,#0f1115);">
+    <div style="width:320px;max-width:90vw;padding:32px;border-radius:14px;
+         background:var(--surface,#181b22);border:1px solid var(--border,#2a2f3a);
+         box-shadow:0 10px 40px rgba(0,0,0,.4);">
+      <div style="font-weight:700;font-size:1.3rem;margin-bottom:4px;">2SIN<span style="color:var(--accent,#5b8cff)">.</span></div>
+      <div style="opacity:.6;font-size:.82rem;margin-bottom:22px;">assistant souverain — accès cabinet</div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <input id="loginUser" placeholder="identifiant" autocomplete="username"
+               style="padding:11px 13px;border-radius:9px;border:1px solid var(--border,#2a2f3a);
+               background:var(--bg,#0f1115);color:var(--text,#e6e9ef);font-size:.9rem;">
+        <input id="loginPwd" type="password" placeholder="mot de passe" autocomplete="current-password"
+               style="padding:11px 13px;border-radius:9px;border:1px solid var(--border,#2a2f3a);
+               background:var(--bg,#0f1115);color:var(--text,#e6e9ef);font-size:.9rem;">
+        <button id="loginBtn"
+               style="padding:11px;border:none;border-radius:9px;background:var(--accent,#5b8cff);
+               color:#fff;font-weight:600;font-size:.9rem;cursor:pointer;">Se connecter</button>
+        <div id="loginErr" style="color:#ff6b6b;font-size:.8rem;min-height:1em;text-align:center;"></div>
+      </div>
+    </div>
+  </div>
+
+<header class="bar">
+  <div>
+    <div class="mark">2SIN<span class="dot">.</span></div>
+    <div class="tagline">assistant gestion immobilière</div>
+    <div id="userBadge" style="display:none;font-size:.75rem;margin-top:6px;opacity:.75;">
+      <span id="userLabel"></span>
+      <a href="#" id="logoutLink" style="margin-left:10px;color:var(--accent,#5b8cff);text-decoration:none;">déconnexion</a>
+    </div>
+  </div>
+  <span class="sovereign"><span class="led"></span>traitement local</span>
+  <button class="iconbtn" id="newBtn" title="Nouvelle conversation" aria-label="Nouvelle conversation">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+  <button class="iconbtn" id="cfgBtn" title="Réglages" aria-label="Réglages">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </button>
+</header>
+
+<main class="thread" id="thread">
+  <div class="col" id="col">
+    <div class="empty" id="empty">
+      <h1>Comment puis-je aider ?</h1>
+      <p>Posez une question sur un bail, un congé, une régularisation de charges ou un courrier à produire.</p>
+      <div class="chips" id="chips"></div>
+    </div>
+  </div>
+</main>
+
+<footer class="composer">
+  <div class="attachments" id="attachments"></div>
+  <div class="inputwrap">
+    <input type="file" id="fileInput" hidden accept=".pdf,.docx,.doc,.odt,.txt,.md,.csv,.xlsx,.png,.jpg,.jpeg" />
+    <button class="attach" id="attachBtn" title="Joindre un document" aria-label="Joindre un document">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+    </button>
+    <textarea id="input" rows="1" placeholder="Posez votre question…" autofocus></textarea>
+    <button class="send" id="sendBtn" title="Envoyer" aria-label="Envoyer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+    </button>
+  </div>
+  <div class="hint">Vérifiez toujours une réponse juridique sensible. Les données restent sur le serveur du cabinet.</div>
+</footer>
+
+<!-- Réglages -->
+<div class="overlay" id="overlay">
+  <div class="panel" role="dialog" aria-modal="true" aria-label="Réglages">
+    <h2>Réglages</h2>
+    <p class="sub">Connexion au serveur 2SIN du cabinet.</p>
+    <div class="field">
+      <label for="cfgBase">Adresse du serveur</label>
+      <input id="cfgBase" type="text" placeholder="http://192.168.0.79:8787/v1" />
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="cfgModel">Modèle</label>
+        <input id="cfgModel" type="text" placeholder="2sin-agent" />
+      </div>
+      <div class="field">
+        <label for="cfgTemp">Température</label>
+        <input id="cfgTemp" type="number" step="0.1" min="0" max="2" placeholder="0.3" />
+      </div>
+    </div>
+    <div class="field">
+      <label for="cfgKey">Clé d'accès (optionnelle)</label>
+      <input id="cfgKey" type="password" placeholder="laisser vide si non requise" />
+    </div>
+    <div class="field">
+      <label for="cfgSys">Instructions système (optionnelles)</label>
+      <textarea id="cfgSys" placeholder="Ex. Tu es l'assistant juridique du cabinet…"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn" id="cfgCancel">Annuler</button>
+      <button class="btn primary" id="cfgSave">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- Config (persistée localement, dégrade sans erreur si indispo) ----
+  // Par défaut on appelle la même origine que la page (le relais sert page + API),
+  // donc aucune config nécessaire et aucun CORS. Repli si ouverte en file://.
+  var ORIGIN_BASE = (location.protocol.indexOf("http") === 0) ? (location.origin + "/v1") : "http://192.168.0.79:8787/v1";
+  var DEFAULTS = { base: ORIGIN_BASE, model: "2sin-agent", key: "", temp: 0.3, sys: "" };
+  function loadCfg() {
+    try { var r = JSON.parse(localStorage.getItem("2sin.cfg.v2") || "{}"); return Object.assign({}, DEFAULTS, r); }
+    catch (e) { return Object.assign({}, DEFAULTS); }
+  }
+  function saveCfg(c) { try { localStorage.setItem("2sin.cfg.v2", JSON.stringify(c)); } catch (e) {} }
+  var cfg = loadCfg();
+
+  // ---- Refs ----
+  var thread = document.getElementById("thread");
+  var col = document.getElementById("col");
+  var empty = document.getElementById("empty");
+  var input = document.getElementById("input");
+  var sendBtn = document.getElementById("sendBtn");
+  var overlay = document.getElementById("overlay");
+
+  var messages = [];     // historique conversation (role/content)
+  var streaming = false;
+  var currentReader = null;
+  var stopRequested = false;
+  var attachments = [];  // [{path, name}] fichiers déposés, en attente d'envoi
+  var attachBtn = document.getElementById("attachBtn");
+  var fileInput = document.getElementById("fileInput");
+  var attachmentsBox = document.getElementById("attachments");
+  function uploadUrl() { return cfg.base.replace(/\/v1\/?$/, "") + "/upload"; }
+
+  // ---- Exemples cliquables ----
+  var EXAMPLES = [
+    "Rédige un courrier de relance de loyer impayé",
+    "Quel préavis pour un congé donné par le locataire ?",
+    "Explique la régularisation annuelle des charges"
+  ];
+  function afficherExemples() {
+    var box = document.getElementById("chips");
+    box.innerHTML = "";
+    EXAMPLES.forEach(function (t) {
+      var c = document.createElement("button");
+      c.className = "chip"; c.textContent = t;
+      c.onclick = function () { input.value = t; autoResize(); input.focus(); };
+      box.appendChild(c);
+    });
+  }
+  afficherExemples();
+
+  // ---- Markdown maison (léger, sans dépendance) ----
+  function esc(s) { return s.replace(/[&<>"]/g, function (m) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[m]; }); }
+  function inline(s) {
+    s = esc(s);
+    s = s.replace(/`([^`]+)`/g, function (_, c) { return "<code>" + c + "</code>"; });
+    s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    s = s.replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>");
+    s = s.replace(/\[([^\]]+)\]\(((?:https?:|\/)[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    return s;
+  }
+  function renderMd(src) {
+    var lines = src.split("\n"), out = [], i = 0;
+    while (i < lines.length) {
+      var ln = lines[i];
+      if (/^```/.test(ln)) {
+        var buf = []; i++;
+        while (i < lines.length && !/^```/.test(lines[i])) { buf.push(esc(lines[i])); i++; }
+        i++; out.push("<pre><code>" + buf.join("\n") + "</code></pre>"); continue;
+      }
+      var h = ln.match(/^(#{1,3})\s+(.*)$/);
+      if (h) { out.push("<h" + h[1].length + ">" + inline(h[2]) + "</h" + h[1].length + ">"); i++; continue; }
+      if (/^>\s?/.test(ln)) {
+        var q = [];
+        while (i < lines.length && /^>\s?/.test(lines[i])) { q.push(inline(lines[i].replace(/^>\s?/, ""))); i++; }
+        out.push("<blockquote>" + q.join("<br>") + "</blockquote>"); continue;
+      }
+      if (/^\s*[-*]\s+/.test(ln)) {
+        var ul = [];
+        while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) { ul.push("<li>" + inline(lines[i].replace(/^\s*[-*]\s+/, "")) + "</li>"); i++; }
+        out.push("<ul>" + ul.join("") + "</ul>"); continue;
+      }
+      if (/^\s*\d+\.\s+/.test(ln)) {
+        var ol = [];
+        while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) { ol.push("<li>" + inline(lines[i].replace(/^\s*\d+\.\s+/, "")) + "</li>"); i++; }
+        out.push("<ol>" + ol.join("") + "</ol>"); continue;
+      }
+      if (ln.trim() === "") { i++; continue; }
+      var para = [];
+      while (i < lines.length && lines[i].trim() !== "" && !/^(```|#{1,3}\s|>\s?|\s*[-*]\s+|\s*\d+\.\s+)/.test(lines[i])) { para.push(inline(lines[i])); i++; }
+      out.push("<p>" + para.join("<br>") + "</p>");
+    }
+    return out.join("");
+  }
+
+  // ---- UI helpers ----
+  function autoResize() { input.style.height = "auto"; input.style.height = Math.min(input.scrollHeight, 200) + "px"; }
+  function scrollDown() { thread.scrollTop = thread.scrollHeight; }
+  function hideEmpty() { if (empty) { empty.remove(); empty = null; } }
+
+  function addMsg(role, html) {
+    hideEmpty();
+    var m = document.createElement("div");
+    m.className = "msg " + (role === "user" ? "user" : "bot");
+    m.innerHTML =
+      '<div class="avatar">' + (role === "user" ? "VOUS" : "2SIN") + "</div>" +
+      '<div class="body"><div class="who">' + (role === "user" ? "Vous" : "Assistant") + '</div>' +
+      '<div class="content">' + html + "</div></div>";
+    col.appendChild(m);
+    scrollDown();
+    return m.querySelector(".content");
+  }
+
+  function setStreaming(on) {
+    streaming = on;
+    if (on) {
+      sendBtn.classList.add("stop");
+      sendBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="2"/></svg>';
+      sendBtn.title = "Arrêter";
+    } else {
+      sendBtn.classList.remove("stop");
+      sendBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
+      sendBtn.title = "Envoyer";
+    }
+  }
+
+  // ---- Appel LLM (OpenAI-compatible, streaming SSE) ----
+  function send() {
+    if (streaming) { stopRequested = true; if (currentReader) { try { currentReader.cancel(); } catch (e) {} } return; }
+    var text = input.value.trim();
+    if (!text && attachments.length === 0) return;
+
+    var atts = attachments.slice();
+    var prefix = atts.length
+      ? atts.map(function (a) { return "[Document joint : " + a.path + " (" + a.name + ")]"; }).join("\n") + "\n\n"
+      : "";
+    var payloadText = prefix + text;
+
+    var disp = renderMd(text || "_(document joint)_");
+    if (atts.length) {
+      disp += '<div class="msg-atts">\uD83D\uDCCE ' + atts.map(function (a) { return esc(a.name); }).join(", ") + "</div>";
+    }
+    addMsg("user", disp);
+    messages.push({ role: "user", content: payloadText });
+
+    attachments = []; renderAttachments();
+    input.value = ""; autoResize();
+
+    var content = addMsg("bot", '<span class="caret"></span>');
+    var acc = "";
+    setStreaming(true);
+    stopRequested = false;
+
+    var payloadMsgs = cfg.sys ? [{ role: "system", content: cfg.sys }].concat(messages) : messages.slice();
+    var headers = { "Content-Type": "application/json" };
+    if (cfg.key) headers["Authorization"] = "Bearer " + cfg.key;
+
+    // NB : pas d'AbortSignal dans les options fetch — certains environnements
+    // proxifient fetch via postMessage et ne savent pas cloner un AbortSignal.
+    // L'arrêt passe par reader.cancel() + le flag stopRequested.
+    fetch(cfg.base.replace(/\/+$/, "") + "/chat/completions", {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify({ model: cfg.model, messages: payloadMsgs, stream: true, temperature: Number(cfg.temp) })
+    }).then(function (res) {
+      if (!res.ok || !res.body) { return res.text().then(function (t) { throw new Error("HTTP " + res.status + (t ? " — " + t.slice(0, 200) : "")); }); }
+      var reader = res.body.getReader(); currentReader = reader;
+      var dec = new TextDecoder(), buf = "";
+      function pump() {
+        return reader.read().then(function (r) {
+          if (r.done || stopRequested) return finish();
+          buf += dec.decode(r.value, { stream: true });
+          var parts = buf.split("\n");
+          buf = parts.pop();
+          parts.forEach(function (line) {
+            line = line.trim();
+            if (!line || line.indexOf("data:") !== 0) return;
+            var data = line.slice(5).trim();
+            if (data === "[DONE]") return;
+            try {
+              var j = JSON.parse(data);
+              var delta = j.choices && j.choices[0] && j.choices[0].delta && j.choices[0].delta.content;
+              if (delta) { acc += delta; content.innerHTML = renderMd(acc) + '<span class="caret"></span>'; scrollDown(); }
+            } catch (e) { /* fragment partiel, ignoré */ }
+          });
+          return pump();
+        });
+      }
+      function finish() {
+        var tail = stopRequested ? ' <span class="errline">— interrompu</span>' : "";
+        content.innerHTML = (renderMd(acc) || '<span class="errline">Réponse vide du serveur.</span>') + tail;
+        if (acc) messages.push({ role: "assistant", content: acc });
+        setStreaming(false); currentReader = null; scrollDown();
+      }
+      return pump();
+    }).catch(function (err) {
+      if (stopRequested) {
+        content.innerHTML = renderMd(acc) + ' <span class="errline">— interrompu</span>';
+        if (acc) messages.push({ role: "assistant", content: acc });
+      } else {
+        content.innerHTML = '<div class="errline">Connexion au serveur impossible. Vérifiez l\'adresse dans Réglages, et que la gateway autorise cette origine (CORS).<br><span style="opacity:.7">' + esc(err.message) + "</span></div>";
+        messages.pop(); // retire le tour user resté sans réponse exploitable
+      }
+      setStreaming(false); currentReader = null; scrollDown();
+    });
+  }
+
+  // ---- Events ----
+  // ---- Pièces jointes ----
+  function renderAttachments() {
+    attachmentsBox.innerHTML = "";
+    attachments.forEach(function (a, i) {
+      var c = document.createElement("span");
+      c.className = "att-chip" + (a.loading ? " loading" : "");
+      c.innerHTML = "\uD83D\uDCCE " + esc(a.name) + (a.loading ? " …" : "");
+      if (!a.loading) {
+        var x = document.createElement("span");
+        x.className = "x"; x.textContent = "\u00D7";
+        x.onclick = function () { attachments.splice(i, 1); renderAttachments(); };
+        c.appendChild(x);
+      }
+      attachmentsBox.appendChild(c);
+    });
+  }
+
+  function uploadFile(file) {
+    var placeholder = { name: file.name, loading: true };
+    attachments.push(placeholder); renderAttachments();
+    var reader = new FileReader();
+    reader.onload = function () {
+      fetch(uploadUrl(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: file.name, data: reader.result })
+      }).then(function (r) { return r.json(); }).then(function (j) {
+        var idx = attachments.indexOf(placeholder);
+        if (j && j.ok) {
+          if (idx >= 0) attachments[idx] = { path: j.path, name: j.name };
+        } else {
+          if (idx >= 0) attachments.splice(idx, 1);
+          addMsg("bot", '<div class="errline">Dépôt impossible : ' + esc((j && j.error && j.error.message) || "erreur") + "</div>");
+        }
+        renderAttachments();
+      }).catch(function (e) {
+        var idx = attachments.indexOf(placeholder);
+        if (idx >= 0) attachments.splice(idx, 1);
+        renderAttachments();
+        addMsg("bot", '<div class="errline">Dépôt impossible : ' + esc(e.message) + "</div>");
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  attachBtn.onclick = function () { fileInput.click(); };
+  fileInput.onchange = function () {
+    Array.prototype.forEach.call(fileInput.files, uploadFile);
+    fileInput.value = "";
+  };
+
+  sendBtn.onclick = send;
+  input.addEventListener("input", autoResize);
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+  document.getElementById("newBtn").onclick = function () {
+    if (streaming) { stopRequested = true; if (currentReader) { try { currentReader.cancel(); } catch (e) {} } }
+    messages = [];
+    col.innerHTML = "";
+    // Pas de location.reload() : le rechargement perdait la session (jeton en
+    // memoire). Vider l'historique et l'affichage suffit a repartir a neuf.
+    input.value = "";
+    // col.innerHTML a efface le bloc d'accueil (#empty contient #chips) :
+    // on le recree avant de repeupler les exemples.
+    col.innerHTML = '<div class="empty" id="empty">'
+      + '<h1>Comment puis-je aider ?</h1>'
+      + '<p>Posez une question sur un bail, un cong\u00e9, une r\u00e9gularisation de charges ou un courrier \u00e0 produire.</p>'
+      + '<div class="chips" id="chips"></div></div>';
+    afficherExemples();
+    autoResize();
+    input.focus();
+  };
+
+  // ---- Settings panel ----
+  function openCfg() {
+    document.getElementById("cfgBase").value = cfg.base;
+    document.getElementById("cfgModel").value = cfg.model;
+    document.getElementById("cfgTemp").value = cfg.temp;
+    document.getElementById("cfgKey").value = cfg.key;
+    document.getElementById("cfgSys").value = cfg.sys;
+    overlay.classList.add("open");
+  }
+  function closeCfg() { overlay.classList.remove("open"); }
+  document.getElementById("cfgBtn").onclick = openCfg;
+  document.getElementById("cfgCancel").onclick = closeCfg;
+  overlay.onclick = function (e) { if (e.target === overlay) closeCfg(); };
+  document.getElementById("cfgSave").onclick = function () {
+    cfg = {
+      base: document.getElementById("cfgBase").value.trim() || DEFAULTS.base,
+      model: document.getElementById("cfgModel").value.trim() || DEFAULTS.model,
+      temp: document.getElementById("cfgTemp").value || DEFAULTS.temp,
+      key: document.getElementById("cfgKey").value,
+      sys: document.getElementById("cfgSys").value.trim()
+    };
+    saveCfg(cfg); closeCfg();
+  };
+
+  autoResize();
+  /* ===== 2SIN AUTH : login JWT (token en mémoire, jamais localStorage) ===== */
+  var AUTH = { token: null, profil: null, user: null };
+  var PROFIL_LABEL = { residentiel: "résidentiel", commercial: "commercial", full: "full-service" };
+
+  function _loginBase() {
+    // Node sert la page ET /login sur la même origine.
+    return (location.protocol.indexOf("http") === 0) ? location.origin : "http://192.168.0.79:8090";
+  }
+
+  function doLogin() {
+    var u = document.getElementById("loginUser").value.trim();
+    var p = document.getElementById("loginPwd").value;
+    var errEl = document.getElementById("loginErr");
+    errEl.textContent = "";
+    if (!u || !p) { errEl.textContent = "identifiant et mot de passe requis"; return; }
+    document.getElementById("loginBtn").disabled = true;
+    fetch(_loginBase() + "/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ login: u, mdp: p })
+    })
+    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+    .then(function (res) {
+      document.getElementById("loginBtn").disabled = false;
+      if (!res.ok || !res.d.token) { errEl.textContent = res.d.error || "identifiants invalides"; return; }
+      AUTH.token = res.d.token; AUTH.profil = res.d.profil; AUTH.user = u;
+      cfg.key = res.d.token;                 // le chat l'envoie en Bearer
+      document.getElementById("loginOverlay").style.display = "none";
+      var badge = document.getElementById("userBadge");
+      var lab = PROFIL_LABEL[res.d.profil] || res.d.profil;
+      document.getElementById("userLabel").textContent = "Connecté : " + u + " (" + lab + ")";
+      badge.style.display = "block";
+      document.getElementById("loginPwd").value = "";
+    })
+    .catch(function (e) {
+      document.getElementById("loginBtn").disabled = false;
+      console.error("doLogin erreur:", e);
+      errEl.textContent = "erreur: " + (e && e.message ? e.message : e);
+    });
+  }
+
+  function doLogout() {
+    AUTH.token = null; AUTH.profil = null; AUTH.user = null;
+    cfg.key = "";
+    document.getElementById("userBadge").style.display = "none";
+    document.getElementById("loginOverlay").style.display = "flex";
+    document.getElementById("loginUser").value = "";
+    document.getElementById("loginUser").focus();
+  }
+
+  document.getElementById("loginBtn").addEventListener("click", doLogin);
+  document.getElementById("loginPwd").addEventListener("keydown", function (e) { if (e.key === "Enter") doLogin(); });
+  document.getElementById("loginUser").addEventListener("keydown", function (e) { if (e.key === "Enter") document.getElementById("loginPwd").focus(); });
+  document.getElementById("logoutLink").addEventListener("click", function (e) { e.preventDefault(); doLogout(); });
+
+  /* Le JWT ne doit JAMAIS être persisté : on le retire avant tout saveCfg. */
+  if (typeof saveCfg === "function") {
+    var _origSave = saveCfg;
+    saveCfg = function (cc) { var clone = Object.assign({}, cc); clone.key = ""; return _origSave(clone); };
+  }
+
+})();
+
+</script>
+</body>
+</html>

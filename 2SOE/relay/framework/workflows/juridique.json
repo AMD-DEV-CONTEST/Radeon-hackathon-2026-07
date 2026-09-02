@@ -1,0 +1,171 @@
+{
+  "nom": "traiter_demande_juridique",
+  "version": "1.5",
+  "_doc": "Flux principal 2SIN. Firewall en tete. Canal N3 (Legifrance live) sur intention explicite, prioritaire sur le corpus local N1. Trois issues : servir / demander / abstenir.",
+  "etapes": [
+    {
+      "id": "firewall",
+      "primitive": "moderer",
+      "entree": "$question",
+      "sortie": "garde"
+    },
+    {
+      "id": "rappel",
+      "primitive": "rappeler_contexte",
+      "entree": "$session",
+      "sortie": "contexte"
+    },
+    {
+      "id": "meta",
+      "primitive": "repondre_rappel",
+      "entree": "$question",
+      "sortie": "meta",
+      "condition": "garde.action == libre"
+    },
+    {
+      "id": "mesure",
+      "primitive": "mesurer_intention",
+      "entree": [
+        "$question",
+        "$garde"
+      ],
+      "sortie": "intention"
+    },
+    {
+      "id": "situer",
+      "primitive": "situer_tache",
+      "entree": "$question",
+      "sortie": "situation"
+    },
+    {
+      "id": "converser",
+      "primitive": "converser",
+      "entree": [
+        "$question",
+        "$contexte.chemin"
+      ],
+      "sortie": "libre",
+      "condition": "garde.action == libre && situation.nature == None"
+    },
+    {
+      "id": "routage",
+      "primitive": "router_skill",
+      "entree": [
+        "$question"
+      ],
+      "sortie": "route"
+    },
+    {
+      "id": "skill",
+      "primitive": "executer_skill",
+      "entree": [
+        "$route.skill"
+      ],
+      "sortie": "skill_res",
+      "condition": "route.skill != None"
+    },
+    {
+      "id": "svo",
+      "primitive": "amplifier_svo",
+      "entree": [
+        "$question"
+      ],
+      "sortie": "svo_res",
+      "condition": "route.skill == None"
+    },
+    {
+      "id": "source",
+      "primitive": "rechercher_source",
+      "entree": "$question",
+      "sortie": "officiel",
+      "condition": "intention.domaine != hors_domaine && route.skill == None"
+    },
+    {
+      "id": "corpus",
+      "primitive": "rechercher_corpus",
+      "entree": "$question",
+      "sortie": "rag",
+      "condition": "officiel.trouve != oui && route.skill == None"
+    },
+    {
+      "id": "clarifier",
+      "primitive": "demander_precision",
+      "entree": "$question",
+      "sortie": "precision",
+      "condition": "rag_statut == imprecise && route.skill == None"
+    },
+    {
+      "id": "abstenir",
+      "primitive": "abstenir",
+      "entree": [
+        "$question",
+        "$garde"
+      ],
+      "sortie": "abstention",
+      "condition": "intention.intention != redaction && situation.nature == None && (rag_statut == hors_corpus || rag_statut == hors_droits || intention.domaine == hors_domaine)"
+    },
+    {
+      "id": "redaction",
+      "primitive": "appeler_llm",
+      "entree": [
+        "$question",
+        "$rag",
+        "$contexte"
+      ],
+      "sortie": "brouillon",
+      "condition": "route.skill == None && intention.intention != redaction && situation.rattache != True && intention.domaine != hors_domaine && rag_statut != hors_corpus && rag_statut != hors_droits"
+    },
+    {
+      "id": "controle",
+      "primitive": "verifier_citations",
+      "entree": [
+        "$brouillon",
+        "$rag"
+      ],
+      "sortie": "verif",
+      "condition": "brouillon != None"
+    },
+    {
+      "id": "document",
+      "primitive": "generer_document",
+      "entree": [
+        "$verif.texte",
+        "$question",
+        "$rag"
+      ],
+      "sortie": "doc",
+      "condition": "(situation.rattache == True) || (intention.domaine != hors_domaine && intention.intention == redaction)"
+    },
+    {
+      "id": "publier",
+      "primitive": "servir_fichiers",
+      "entree": "$doc",
+      "sortie": "fichiers",
+      "condition": "(situation.rattache == True) || (intention.domaine != hors_domaine && intention.intention == redaction)"
+    },
+    {
+      "id": "cloture",
+      "primitive": "appliquer_tache",
+      "entree": [
+        "fermer"
+      ],
+      "sortie": "tache_close",
+      "condition": "doc.chemin != None"
+    },
+    {
+      "id": "memoire",
+      "primitive": "memoriser",
+      "entree": "$session",
+      "sortie": "memo",
+      "condition": "situation.ferme != True"
+    }
+  ],
+  "expose": [
+    "_arrete_par",
+    "doc",
+    "fichiers",
+    "intention",
+    "rag_statut",
+    "verif"
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "nom": "qualifier_acte",
+  "version": "1.0",
+  "_doctrine": "Skill d'APPLICATION. Les ECRITURES de memoire sont des etapes VISIBLES : ouvrir/rattacher la tache n'est plus enfoui dans la selection ni dans l'extraction.",
+  "etapes": [
+    {
+      "id": "selection",
+      "primitive": "selectionner_gabarit",
+      "entree": "$question",
+      "sortie": "gabarit"
+    },
+    {
+      "id": "ouverture",
+      "primitive": "appliquer_tache",
+      "entree": [
+        "$gabarit.decision",
+        "$gabarit.nom",
+        "$gabarit.sujet"
+      ],
+      "sortie": "tache_ouverte",
+      "condition": "gabarit.decision == ouvrir"
+    },
+    {
+      "id": "variables",
+      "primitive": "extraire_variables",
+      "entree": [
+        "$gabarit.variables",
+        "$corpus_servi",
+        "$question"
+      ],
+      "sortie": "extraction",
+      "condition": "gabarit.nom != None"
+    },
+    {
+      "id": "accumulation",
+      "primitive": "appliquer_tache",
+      "entree": [
+        "rattacher",
+        "$gabarit.nom",
+        "$gabarit.sujet",
+        "$extraction.valeurs"
+      ],
+      "sortie": "tache_courante",
+      "condition": "gabarit.nom != None"
+    },
+    {
+      "id": "assemblage",
+      "primitive": "assembler_motif",
+      "entree": [
+        "$gabarit",
+        "$extraction"
+      ],
+      "sortie": "motif",
+      "condition": "gabarit.nom != None"
+    }
+  ],
+  "expose": [
+    "gabarit",
+    "extraction",
+    "motif",
+    "tache_courante"
+  ]
+}

@@ -1,0 +1,130 @@
+{
+  "_doctrine": "Un gabarit declare TOUT ce qui definit l'acte. Deux familles de champs : 'variables' (les trous du motif) et 'requis' (ce sans quoi l'acte ne peut exister : destinataire, signataire...). Le controle porte sur l'UNION. Chaque champ declare ses ORIGINES possibles : demande (lue dans le tour), tache (acquise, sous confirmation si le tour ne s'y rattache pas), referentiel (a resoudre par une base : bail, locataire, cabinet -- non encore branche). Ajouter un acte ou une origine = editer ce fichier. Le champ 'fondement_attendu' EST le fondement de l'acte : il ne se deduit pas du RAG (qui derivait d'un article a l'autre, voire d'un code a l'autre) mais se declare avec l'acte. Le RAG sert a le VERIFIER dans le corpus, pas a le choisir : une relance de bail d'habitation ne se fonde pas sur le code de commerce, meme si le RAG y derive. Le champ 'formats' declare les formats produits (docx, pdf ou les deux) ; a defaut FORMATS_ACTE vaut pour l'installation. Le champ 'gabarit_md' porte la mise en page Markdown, comme template.docx porte celle du Word : la forme est une donnee, quel que soit le format.",
+  "gabarits": {
+    "relance_loyer": {
+      "declencheurs": [
+        "relance",
+        "impaye",
+        "impayé",
+        "loyer du",
+        "retard de paiement"
+      ],
+      "variables": [
+        "periode",
+        "montant",
+        "fondement"
+      ],
+      "motif": "Sauf erreur de notre part, le loyer de {periode}, d'un montant de {montant}, demeure impayé à ce jour.\nEn application de {fondement}, nous vous invitons à régulariser cette situation dans les meilleurs délais.\nÀ défaut de régularisation, nous serions contraints d'engager les procédures prévues par les textes en vigueur.",
+      "objet": "Relance — loyer impayé ({periode})",
+      "termes_rag": "loyer impayé obligation de paiement du locataire",
+      "requis": [
+        "nom_destinataire",
+        "adresse_destinataire",
+        "nom_cabinet",
+        "adresse_cabinet",
+        "signataire",
+        "fonction_signataire"
+      ],
+      "fondement_attendu": "article 24 de la loi n° 89-462 du 6 juillet 1989"
+    },
+    "mise_en_demeure_loyer": {
+      "declencheurs": [
+        "mise en demeure",
+        "demeure de payer"
+      ],
+      "variables": [
+        "periode",
+        "montant",
+        "fondement"
+      ],
+      "motif": "Nous vous mettons en demeure de procéder au règlement du loyer de {periode}, d'un montant de {montant}, demeuré impayé malgré nos précédentes relances.\nEn application de {fondement}, ce règlement doit intervenir sans délai.\nÀ défaut, la procédure de recouvrement sera engagée sans autre avis.",
+      "objet": "Mise en demeure — loyer impayé ({periode})",
+      "termes_rag": "loyer impayé clause résolutoire commandement de payer",
+      "requis": [
+        "nom_destinataire",
+        "adresse_destinataire",
+        "nom_cabinet",
+        "adresse_cabinet",
+        "signataire",
+        "fonction_signataire"
+      ],
+      "fondement_attendu": "article 24 de la loi n° 89-462 du 6 juillet 1989",
+      "formats": [
+        "pdf"
+      ]
+    },
+    "conge_locataire": {
+      "declencheurs": [
+        "conge",
+        "congé",
+        "resiliation du bail",
+        "quitter le logement"
+      ],
+      "variables": [
+        "date_effet",
+        "fondement"
+      ],
+      "motif": "Nous vous notifions par la présente notre congé, avec effet au {date_effet}.\nCe congé est donné en application de {fondement}.\nNous vous remercions de bien vouloir prendre vos dispositions pour la restitution des lieux à cette date.",
+      "objet": "Congé — fin de bail au {date_effet}",
+      "termes_rag": "congé délai de préavis fin du bail d'habitation",
+      "requis": [
+        "nom_destinataire",
+        "adresse_destinataire",
+        "nom_cabinet",
+        "adresse_cabinet",
+        "signataire",
+        "fonction_signataire"
+      ],
+      "fondement_attendu": "article 15 de la loi n° 89-462 du 6 juillet 1989"
+    }
+  },
+  "origines": {
+    "periode": [
+      "demande",
+      "tache"
+    ],
+    "montant": [
+      "demande",
+      "tache",
+      "referentiel"
+    ],
+    "fondement": [
+      "corpus"
+    ],
+    "date_effet": [
+      "demande",
+      "tache"
+    ],
+    "nom_destinataire": [
+      "demande",
+      "tache",
+      "referentiel"
+    ],
+    "adresse_destinataire": [
+      "demande",
+      "tache",
+      "referentiel"
+    ],
+    "nom_cabinet": [
+      "demande",
+      "tache",
+      "referentiel"
+    ],
+    "adresse_cabinet": [
+      "demande",
+      "tache",
+      "referentiel"
+    ],
+    "signataire": [
+      "demande",
+      "tache",
+      "referentiel"
+    ],
+    "fonction_signataire": [
+      "demande",
+      "tache",
+      "referentiel"
+    ]
+  },
+  "gabarit_md": "**{nom_cabinet}**  \n{adresse_cabinet}\n\n{nom_destinataire}  \n{adresse_destinataire}\n\nLe {date}\n\n**Objet : {objet}**\n\nMadame, Monsieur,\n\n{corps}\n\nVeuillez agréer, Madame, Monsieur, l'expression de mes salutations distinguées.\n\n{signataire}  \n{fonction_signataire}\n"
+}

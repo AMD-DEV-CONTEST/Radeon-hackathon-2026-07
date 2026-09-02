@@ -1,0 +1,41 @@
+{
+  "nom": "skill_mise_en_demeure",
+  "version": "1.0",
+  "declencheurs": [
+    "rediger une mise en demeure de payer le loyer",
+    "mettre en demeure un locataire pour loyer impaye",
+    "lettre de mise en demeure pour impaye",
+    "sommer le locataire de regler ses loyers en retard"
+  ],
+  "_doc": "Skill-workflow de demonstration : produit une mise en demeure sourcee. Reutilise les primitives existantes (corpus, llm, verifier). Invoque via executer_skill. Prouve la composition recursive du framework.",
+  "etapes": [
+    {
+      "id": "corpus",
+      "primitive": "rechercher_corpus",
+      "entree": [
+        "$question",
+        "$intention"
+      ],
+      "sortie": "rag"
+    },
+    {
+      "id": "redaction",
+      "primitive": "appeler_llm",
+      "entree": [
+        "$question",
+        "$rag",
+        "$contexte"
+      ],
+      "sortie": "brouillon"
+    },
+    {
+      "id": "controle",
+      "primitive": "verifier_citations",
+      "entree": [
+        "$brouillon",
+        "$rag"
+      ],
+      "sortie": "verif"
+    }
+  ]
+}

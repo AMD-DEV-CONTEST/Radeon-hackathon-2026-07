@@ -1,0 +1,280 @@
+services:
+
+  qdrant:
+    image: qdrant/qdrant:v1.18.2
+    container_name: qdrant-2sin
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - ./volumes/qdrant:/qdrant/storage
+    networks: [2sin-network]
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  tei:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.6
+    container_name: tei-bge-m3
+    restart: unless-stopped
+    command: ["--model-id", "BAAI/bge-m3"]
+    ports:
+      - "8080:80"
+    volumes:
+      - ./volumes/tei-cache:/data
+    networks: [2sin-network]
+    healthcheck:
+      # Premier demarrage : TEI telecharge le modele (~2 Go). Sans marge, il est
+      # declare malade alors qu'il travaille -- et toute la pile parait cassee.
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/80' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 600s
+
+  redis:
+    image: redis:7.4.9-alpine
+    container_name: redis-2sin
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./volumes/redis:/data
+    networks: [2sin-network]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  vllm:
+    # Image publique (Docker Hub) : vLLM compile pour Radeon R9700 / gfx1201.
+    # Source et credits : github.com/kyuz0/amd-r9700-vllm-toolboxes
+    # Autre GPU ? adapter VLLM_IMAGE + ROCM_ARCH (voir README).
+    image: ${VLLM_IMAGE:-docker.io/kyuz0/vllm-therock-gfx1201:latest}
+    # Nom neutre : le modele est interchangeable, le service ne doit pas
+    # porter le nom de l'un d'eux (sinon le nom ment des qu'on en change).
+    container_name: 2sin-vllm
+    restart: unless-stopped
+    command:
+      - "vllm"
+      - "serve"
+      # MEME variable que le relay : les deux ne peuvent pas diverger.
+      - "${VLLM_MODEL:-mistralai/Mistral-7B-Instruct-v0.3}"
+      - "--tensor-parallel-size"
+      - "${VLLM_TP:-2}"
+      - "--max-model-len"
+      - "${VLLM_MAX_LEN:-8192}"
+      - "--gpu-memory-utilization"
+      - "0.92"
+      - "--port"
+      - "8000"
+      - "--host"
+      - "0.0.0.0"
+    devices:
+      - "/dev/kfd:/dev/kfd"
+      - "/dev/dri:/dev/dri"
+    group_add: ["video", "render"]
+    ipc: host
+    security_opt: ["seccomp:unconfined"]
+    environment:
+      HIP_VISIBLE_DEVICES: "0,1"
+      VLLM_HOST_IP: "127.0.0.1"
+      ROCM_HOME: "/opt/rocm"
+      HIP_PATH: "/opt/rocm"
+      VLLM_TARGET_DEVICE: "rocm"
+      PYTORCH_ROCM_ARCH: "${ROCM_ARCH:-gfx1201}"
+      HIP_ARCHITECTURES: "${ROCM_ARCH:-gfx1201}"
+      AMDGPU_TARGETS: "${ROCM_ARCH:-gfx1201}"
+      HIP_PLATFORM: "amd"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./volumes/vllm-cache:/root/.cache/huggingface
+    networks: [2sin-network]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/v1/models || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 120s
+
+  relay:
+    build:
+      context: ./
+      dockerfile: Dockerfile.relay
+    container_name: 2sin-relay
+    restart: unless-stopped
+    environment:
+      TZ: "Europe/Paris"
+      # Journal des decisions (audit, benchmark) : le relay ecrit
+      # DIRECTEMENT en base, les agregats supposent des requetes.
+      PG_HOST: "postgres"
+      PG_PORT: "5432"
+      PG_USER: "2sin"
+      PG_PASSWORD: "${PG_PASSWORD:-changeme_2sin}"
+      PG_DATABASE: "2sin"
+      WORKFLOW_PATH: "/opt/2sin-stack/relay/framework/workflows/juridique.json"
+      # Execution directe d'un workflow (planificateur, connecteurs) :
+      # fermee sans jeton, bornee a la liste ci-dessous.
+      # Traces de debogage des primitives : EXPOSE DES DONNEES METIER,
+      # a n'activer qu'en developpement (voir primitives/trace.py).
+      # Prompt complet sur stderr : EXPOSE LE CORPUS SERVI, hors production.
+      TRACE_PROMPT: "${TRACE_PROMPT:-0}"
+      TRACE_PRIMITIVES: "${TRACE_PRIMITIVES:-0}"
+      TRACE_SEULEMENT: "${TRACE_SEULEMENT:-}"
+      # Formats produits par defaut ; un gabarit peut en imposer un seul.
+      # Zone de depot des fichiers televerses (traitement a concevoir).
+      RELAY_DEPOTS: "/opt/2sin-stack/relay/depots"
+      FORMATS_ACTE: "${FORMATS_ACTE:-docx,pdf}"
+      EXEC_TOKEN: "${EXEC_TOKEN}"
+      EXEC_WORKFLOWS: "juridique"
+      REDIS_HOST: "redis"
+      RELAY_HOST: "0.0.0.0"
+      RELAY_PORT: "8787"
+      RELAY_WEB: "/opt/2sin-stack/relay/2sin-chat.html"
+      VLLM_URL: "${VLLM_URL:-http://vllm:8000/v1/chat/completions}"
+      VLLM_MODEL: "${VLLM_MODEL:-mistralai/Mistral-7B-Instruct-v0.3}"
+      MISTRAL_API_KEY: "${MISTRAL_API_KEY:-}"
+      QDRANT_URL: "http://qdrant:6333"
+      TEI_URL: "http://tei:80/embed"
+      PROFILS_PATH: "/opt/2sin-stack/data-seed/profils.json"
+      # Identite de l installation : le code ne connait aucun metier,
+      # ce fichier dit de quoi il s agit (corpus non necessairement juridique).
+      # Socle de la voie libre : il ne nomme AUCUN metier.
+      SOCLE_LIBRE_PATH: "/opt/2sin-stack/data-seed/socle_libre.md"
+      IDENTITE_PATH: "/opt/2sin-stack/data-seed/identite_installation.json"
+      # Firewall semantique : le fichier etait cherche dans /data/2sin,
+      # absent du conteneur -- aucune question sensible n'etait arretee
+      # depuis la conteneurisation (constate 19/07).
+      DOMAINES_PATH: "/opt/2sin-stack/data-seed/domaines_sensibles.json"
+      # --- Seuils tunables (calibrage a l'exploitation, doctrine config vivante) ---
+      SVO_MIN_SCORE: "0.50"      # SVO : resonance minimale pour amplifier
+      SVO_GAP: "0.08"            # SVO : ecart top1-top2 (net vs ambigu -> challenge LLM)
+      SVO_TTL: "604800"          # SVO : duree de vie (7j, nettoyage moyen terme)
+      SVO_TOPK: "3"              # SVO : nb de resultats remontes
+      SKILL_ROUTE_SEUIL: "0.75"
+      # Budget de generation pour l'extraction de variables. Un modele A
+      # RAISONNEMENT depense des tokens a deliberer AVANT de repondre : trop
+      # bas, il est coupe avant sa reponse et l'extraction rend vide.
+      # ~300 suffit a un modele direct (Mistral) ; ~900 pour gpt-oss.
+      EXTRACT_MAX_TOKENS: "${EXTRACT_MAX_TOKENS:-900}"  # Skills : seuil de routage semantique par catalogue
+      # --- Seuils RAG / intention / mémoire (calibrage) ---
+      RAG_MIN_SCORE: "0.60"        # RAG : score min d'acceptation
+      RAG_COUVERTURE_MIN: "0.40"   # RAG : couverture lexicale min
+      RAG_WINDOW: "0.12"           # RAG : fenetre d'acceptation autour de top1
+      RAG_TERMES_MIN: "3"          # RAG : nb termes min pour decider
+      INTENT_SEUIL_AMBIGU: "0.04"  # Intention : ecart top1-top2 -> arbitrage
+      SOUL_MIN_SCORE: "0.45"       # SOUL : score min fragment thematique
+      TTL_TECH: "3600"             # Memoire : TTL contexte technique (1h)
+      TTL_SENS: "300"              # Memoire : TTL sensible (5min, secret pro)
+      TTL_CHEMIN: "3600"           # Memoire : TTL chemin d'indices (1h)
+      SOUL_SOCLE_COLLECTION: "soul_socle"
+      SOUL_COLLECTION: "soul_fragments"
+    env_file:
+      # Canal officiel optionnel : absent, le corpus local verifie suffit.
+      - path: ./secrets/openlegi.env
+        required: false
+    ports:
+      - "8787:8787"
+    volumes:
+      - ./relay:/opt/2sin-stack/relay
+      - ./ingest:/opt/2sin-stack/ingest
+      - ./data-seed:/opt/2sin-stack/data-seed
+    networks: [2sin-network]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      tei:
+        condition: service_healthy
+      vllm:
+        condition: service_healthy
+
+
+  scheduler:
+    build:
+      context: ./
+      dockerfile: scheduler/Dockerfile
+    container_name: 2sin-scheduler
+    restart: unless-stopped
+    environment:
+      REDIS_HOST: "redis"
+      RELAY_URL: "http://relay:8787/v1/executer"
+      EXEC_TOKEN: "${EXEC_TOKEN}"
+      SCHEDULER_PORT: "8788"
+      # Les horaires sont ecrits en heure LOCALE par l'utilisateur ;
+      # sans fuseau, le conteneur raisonne en UTC et la planification
+      # ne se declenche jamais a l'heure attendue.
+      TZ: "Europe/Paris"
+    ports:
+      - "8788:8788"
+    volumes:
+      - ./scheduler:/opt/2sin-stack/scheduler
+    networks: [2sin-network]
+    depends_on:
+      redis:
+        condition: service_healthy
+      relay:
+        condition: service_started
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres-2sin
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "2sin"
+      POSTGRES_PASSWORD: "${PG_PASSWORD:-changeme_2sin}"
+      POSTGRES_DB: "2sin"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./auth/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks: [2sin-network]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U 2sin -d 2sin"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  auth:
+    build: ./auth
+    container_name: 2sin-auth
+    restart: unless-stopped
+    environment:
+      AUTH_PORT: "8080"
+      JWT_SECRET: "${JWT_SECRET:-dev_secret_change_in_prod}"
+      JWT_TTL: "8h"
+      RELAY_HOST: "relay"
+      RELAY_PORT: "8787"
+      PG_HOST: "postgres"
+      PG_PORT: "5432"
+      PG_USER: "2sin"
+      PG_PASSWORD: "${PG_PASSWORD:-changeme_2sin}"
+      PG_DATABASE: "2sin"
+      WEB_FILE: "/app/web/2sin-chat.html"
+      VLLM_URL: "${VLLM_URL:-http://vllm:8000/v1/chat/completions}"
+      VLLM_MODEL: "${VLLM_MODEL:-mistralai/Mistral-7B-Instruct-v0.3}"
+      MISTRAL_API_KEY: "${MISTRAL_API_KEY:-}"
+    ports:
+      - "8090:8080"
+    networks: [2sin-network]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      relay:
+        condition: service_started
+
+networks:
+  # Pas de nom absolu : Compose prefixe par le projet, deux deploiements
+  # coexistent sans se marcher dessus (reseau et donnees separes).
+  2sin-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
