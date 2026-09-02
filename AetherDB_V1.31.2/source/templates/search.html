@@ -1,0 +1,236 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>搜索实体 - 世界观数据库</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>搜索实体</h1>
+        </header>
+        <nav class="main-nav">
+            <a href="/" class="nav-link">首页</a>
+            <a href="/add" class="nav-link">添加实体</a>
+            <a href="/search" class="nav-link active">搜索</a>
+            <a href="/timeline" class="nav-link">时间线</a>
+            <a href="/import" class="nav-link">导入</a>
+            <a href="/admin" class="nav-link">管理</a>
+        </nav>
+        
+        <div class="form-group">
+            <label>关键词：</label>
+            <input type="text" id="searchKeyword" placeholder="输入搜索关键词" onkeydown="if(event.key==='Enter')doSearch()">
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px;">
+            <div class="form-group" style="flex:1;min-width:150px;">
+                <label>筛选类型：</label>
+                <select id="searchType">
+                    <option value="">全部类型</option>
+                    {% for key, value in entity_types.items() %}
+                    <option value="{{ key }}">{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group" style="flex:1;min-width:150px;">
+                <label>最大结果数：</label>
+                <select id="searchLimit">
+                    <option value="10">10</option>
+                    <option value="20" selected>20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+        </div>
+        <button onclick="doSearch()" class="btn-primary">搜索</button>
+        
+        <div id="results" style="margin-top:20px;"></div>
+    </div>
+    
+    <script>
+        const ENTITY_TYPE_NAMES = {{ entity_types | tojson }};
+
+        function apiHeaders() {
+            var key = sessionStorage.getItem("aetherdb_api_key") || sessionStorage.getItem("apiKey") || "";
+            var headers = { "Content-Type": "application/json" };
+            if (key) headers["X-API-Key"] = key;
+            return headers;
+        }
+
+        /** Escape HTML entities to prevent XSS. */
+        function esc(str) {
+            var d = document.createElement("div");
+            d.appendChild(document.createTextNode(String(str)));
+            return d.innerHTML;
+        }
+
+        /** Build a safe search-result card using DOM API (no innerHTML with user data). */
+        function buildResultCard(entity, typeNames) {
+            var card = document.createElement("div");
+            card.className = "search-result";
+
+            // Header bar
+            var header = document.createElement("div");
+            header.className = "entity-header";
+            
+            var typeSpan = document.createElement("span");
+            typeSpan.className = "entity-type";
+            typeSpan.textContent = typeNames[entity.entity_type] || entity.entity_type;
+            header.appendChild(typeSpan);
+            
+            var impSpan = document.createElement("span");
+            impSpan.textContent = "重要性: " + entity.importance;
+            header.appendChild(impSpan);
+            card.appendChild(header);
+
+            // Title as link
+            var h3 = document.createElement("h3");
+            var a = document.createElement("a");
+            a.href = "/api/entity/" + encodeURIComponent(entity.entity_id);
+            a.target = "_blank";
+            a.textContent = entity.title;
+            h3.appendChild(a);
+            card.appendChild(h3);
+
+            // Meta line
+            var meta = document.createElement("p");
+            meta.className = "meta";
+            meta.textContent = "ID: " + entity.entity_id;
+            if (entity.tags && entity.tags.length > 0) {
+                meta.textContent += " | 标签: " + entity.tags.join(", ");
+            }
+            if (entity.relation_count) {
+                meta.textContent += " | 关系数: " + entity.relation_count;
+            }
+            card.appendChild(meta);
+
+            // Summary
+            if (entity.ai_summary) {
+                var summary = document.createElement("p");
+                summary.style.cssText = "color:#555;font-size:13px;margin-top:5px;";
+                summary.textContent = entity.ai_summary.substring(0, 200);
+                card.appendChild(summary);
+            }
+
+            return card;
+        }
+
+        async function doSearch() {
+            var keyword = document.getElementById("searchKeyword").value.trim();
+            var entityType = document.getElementById("searchType").value;
+            var limit = parseInt(document.getElementById("searchLimit").value);
+            var resultsDiv = document.getElementById("results");
+            
+            if (!keyword) {
+                resultsDiv.textContent = "";
+                var p = document.createElement("p");
+                p.style.color = "#666";
+                p.textContent = "请输入搜索关键词";
+                resultsDiv.appendChild(p);
+                return;
+            }
+            
+            resultsDiv.textContent = "";
+            var loading = document.createElement("p");
+            loading.textContent = "搜索中...";
+            resultsDiv.appendChild(loading);
+            
+            try {
+                var resp = await fetch("/api/search", {
+                    method: "POST",
+                    headers: apiHeaders(),
+                    body: JSON.stringify({
+                        keyword: keyword,
+                        entity_type: entityType || null,
+                        fuzzy: true,
+                        limit: limit
+                    })
+                });
+                var result = await resp.json();
+                
+                resultsDiv.textContent = "";
+                
+                if (!resp.ok) {
+                    var p = document.createElement("p");
+                    p.style.color = "red";
+                    p.textContent = "搜索失败：" + (result.detail || "未知错误");
+                    resultsDiv.appendChild(p);
+                    return;
+                }
+                
+                if (result.total === 0) {
+                    var p = document.createElement("p");
+                    p.textContent = "未找到匹配的实体";
+                    resultsDiv.appendChild(p);
+                    return;
+                }
+                
+                // Summary line
+                var summary = document.createElement("p");
+                var strong = document.createElement("strong");
+                strong.textContent = String(result.total);
+                summary.appendChild(document.createTextNode("找到 "));
+                summary.appendChild(strong);
+                summary.appendChild(document.createTextNode(" 个结果"));
+                resultsDiv.appendChild(summary);
+                
+                // Result cards
+                for (var i = 0; i < result.results.length; i++) {
+                    resultsDiv.appendChild(buildResultCard(result.results[i], ENTITY_TYPE_NAMES));
+                }
+            } catch (err) {
+                resultsDiv.textContent = "";
+                var p = document.createElement("p");
+                p.style.color = "red";
+                p.textContent = "请求失败：" + err.message;
+                resultsDiv.appendChild(p);
+            }
+        }
+    </script>
+
+<script>
+// === Mode switcher: ?mode=admin|user (Phase 3.2) ===
+(function() {
+  var urlParams = new URLSearchParams(window.location.search);
+  var modeParam = urlParams.get("mode");
+  var savedMode = localStorage.getItem("worldview_mode");
+  var defaultMode = modeParam || savedMode || "user";
+  localStorage.setItem("worldview_mode", defaultMode);
+  var isAdmin = defaultMode === "admin";
+  
+  // Toggle visibility of admin-only elements
+  document.querySelectorAll(".admin-only").forEach(function(el) {
+    el.style.display = isAdmin ? "" : "none";
+  });
+  
+  // Add mode indicator + toggle — built with DOM API, no innerHTML
+  var header = document.querySelector("header") || document.querySelector("h1") || document.body;
+  var modeBar = document.createElement("div");
+  modeBar.style.cssText = "text-align:right;margin-bottom:10px;font-size:12px;display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap;";
+  
+  var modeSpan = document.createElement("span");
+  modeSpan.style.cssText = "color:var(--text-dim, #666);";
+  
+  modeSpan.appendChild(document.createTextNode("Mode: "));
+  var modeStrong = document.createElement("strong");
+  modeStrong.textContent = isAdmin ? "管理员" : "用户";
+  modeSpan.appendChild(modeStrong);
+  
+  modeSpan.appendChild(document.createTextNode(" "));
+  var toggleLink = document.createElement("a");
+  toggleLink.href = "?mode=" + (isAdmin ? "user" : "admin");
+  toggleLink.style.cssText = "margin-left:4px;color:#667eea;text-decoration:none;font-size:11px;";
+  toggleLink.textContent = isAdmin ? "[切换到用户]" : "[切换到管理]";
+  modeSpan.appendChild(toggleLink);
+  
+  modeBar.appendChild(modeSpan);
+  
+  if (header && header.parentNode) {
+    header.parentNode.insertBefore(modeBar, header.nextSibling);
+  }
+})();
+</script>
+</body>
+</html>

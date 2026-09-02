@@ -1,0 +1,210 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理 - 世界观数据库</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .entity-row { transition: background 0.2s; }
+        .entity-row:hover { background: #f0f4ff; }
+        .entity-row.inactive { opacity: 0.5; text-decoration: line-through; }
+        .admin-toolbar { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; align-items: end; }
+        .admin-toolbar .form-group { margin-bottom: 0; flex: 1; min-width: 150px; }
+        .tag-badge-sm { background: #e2e8f0; padding: 1px 6px; border-radius: 10px; font-size: 11px; margin: 1px; display: inline-block; }
+        .action-link { color: #667eea; text-decoration: none; font-size: 13px; margin: 0 3px; cursor: pointer; }
+        .action-link:hover { text-decoration: underline; }
+        .action-link.danger { color: #e53e3e; }
+        .delete-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .delete-modal.show { display: flex; }
+        .delete-modal-content { background: white; padding: 30px; border-radius: 20px; max-width: 400px; width: 90%; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>管理面板</h1>
+            <p class="subtitle">查看和管理所有实体</p>
+        </header>
+        <nav class="main-nav">
+            <a href="/" class="nav-link">首页</a>
+            <a href="/add" class="nav-link">添加实体</a>
+            <a href="/search" class="nav-link">搜索</a>
+            <a href="/timeline" class="nav-link">时间线</a>
+            <a href="/admin" class="nav-link active">管理</a>
+        </nav>
+        
+        <div class="admin-toolbar">
+            <div class="form-group">
+                <label>筛选类型：</label>
+                <select id="filterType" onchange="filterTable()">
+                    <option value="">全部类型</option>
+                    {% for key, value in entity_types.items() %}
+                    <option value="{{ key }}">{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>搜索：</label>
+                <input type="text" id="filterText" placeholder="按标题或ID搜索" onkeyup="filterTable()">
+            </div>
+            <div style="display:flex;gap:5px;align-items:end;padding-bottom:3px;">
+                <span style="font-size:13px;color:#666;">显示 <span id="visibleCount">{{ entities|length }}</span> / {{ entities|length }}</span>
+            </div>
+        </div>
+        
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>类型</th>
+                    <th>标题</th>
+                    <th>重要性</th>
+                    <th>标签</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="entityTableBody">
+                {% for entity in entities %}
+                <tr class="entity-row {% if not entity.is_active %}inactive{% endif %}" data-type="{{ entity.entity_type }}" data-title="{{ entity.title }}{{ entity.entity_id }}">
+                    <td><code>{{ entity.entity_id }}</code></td>
+                    <td><span class="entity-type">{{ entity_types.get(entity.entity_type, entity.entity_type) }}</span></td>
+                    <td>{{ entity.title }}</td>
+                    <td>{{ entity.importance }}</td>
+                    <td>{% set tags = entity.tags | from_json %}{% for tag in tags %}<span class="tag-badge-sm">{{ tag }}</span>{% endfor %}</td>
+                    <td style="font-size:12px;color:#666;">{{ entity.created_at[:10] if entity.created_at else '' }}</td>
+                    <td>
+                        <a class="action-link" href="/api/entity/{{ entity.entity_id }}" target="_blank">查看</a>
+                        <a class="action-link danger" onclick="confirmDelete('{{ entity.entity_id }}')">删除</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        {% if entities|length == 0 %}
+        <p style="text-align:center;color:#666;padding:40px;">暂无实体数据，去 <a href="/add">添加实体</a></p>
+        {% endif %}
+    </div>
+    
+    <div class="delete-modal" id="deleteModal">
+        <div class="delete-modal-content">
+            <h3>确认删除</h3>
+            <p>确定要删除实体 <code id="deleteEntityId"></code> 吗？</p>
+            <p style="font-size:13px;color:#666;">此操作将软删除该实体及其所有关系。</p>
+            <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+                <button onclick="closeDelete()" style="padding:8px 20px;border:1px solid #ddd;border-radius:8px;background:white;cursor:pointer;">取消</button>
+                <button id="confirmDeleteBtn" onclick="executeDelete()" style="padding:8px 20px;background:#e53e3e;color:white;border:none;border-radius:8px;cursor:pointer;">确认删除</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Admin key is NOT exposed in frontend. Delete uses server-side proxy.
+        var pendingDeleteId = null;
+
+        function apiHeaders() {
+            var key = sessionStorage.getItem("aetherdb_api_key") || sessionStorage.getItem("apiKey") || "";
+            var headers = { "Content-Type": "application/json" };
+            if (key) headers["X-API-Key"] = key;
+            return headers;
+        }
+        
+        function filterTable() {
+            var typeFilter = document.getElementById("filterType").value;
+            var textFilter = document.getElementById("filterText").value.toLowerCase();
+            var rows = document.querySelectorAll("#entityTableBody tr");
+            var visible = 0;
+            
+            rows.forEach(function(row) {
+                var type = row.dataset.type;
+                var title = row.dataset.title.toLowerCase();
+                var matchesType = !typeFilter || type === typeFilter;
+                var matchesText = !textFilter || title.includes(textFilter);
+                var show = matchesType && matchesText;
+                row.style.display = show ? "" : "none";
+                if (show) visible++;
+            });
+            
+            document.getElementById("visibleCount").textContent = visible;
+        }
+        
+        function confirmDelete(entityId) {
+            pendingDeleteId = entityId;
+            document.getElementById("deleteEntityId").textContent = entityId;
+            document.getElementById("deleteModal").classList.add("show");
+        }
+        
+        function closeDelete() {
+            pendingDeleteId = null;
+            document.getElementById("deleteModal").classList.remove("show");
+        }
+        
+        async function executeDelete() {
+            if (!pendingDeleteId) return;
+            var btn = document.getElementById("confirmDeleteBtn");
+            btn.disabled = true;
+            btn.textContent = "删除中...";
+            
+            try {
+                var resp = await fetch("/admin/entity/" + encodeURIComponent(pendingDeleteId) + "/delete", {
+                    method: "POST",
+                    headers: apiHeaders()
+                });
+                if (resp.ok) {
+                    alert("删除成功");
+                    location.reload();
+                } else {
+                    var result = await resp.json();
+                    alert("删除失败：" + (result.detail || "未知错误"));
+                }
+            } catch (err) {
+                alert("请求失败：" + err.message);
+            }
+            
+            btn.disabled = false;
+            btn.textContent = "确认删除";
+            closeDelete();
+        }
+    </script>
+
+<script>
+// === Mode switcher: ?mode=admin|user (Phase 3.2) — built with DOM API ===
+(function() {
+  var urlParams = new URLSearchParams(window.location.search);
+  var modeParam = urlParams.get("mode");
+  var savedMode = localStorage.getItem("worldview_mode");
+  var defaultMode = modeParam || savedMode || "user";
+  localStorage.setItem("worldview_mode", defaultMode);
+  var isAdmin = defaultMode === "admin";
+  
+  document.querySelectorAll(".admin-only").forEach(function(el) {
+    el.style.display = isAdmin ? "" : "none";
+  });
+  
+  var header = document.querySelector("header") || document.querySelector("h1") || document.body;
+  var modeBar = document.createElement("div");
+  modeBar.style.cssText = "text-align:right;margin-bottom:10px;font-size:12px;display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap;";
+  
+  var modeSpan = document.createElement("span");
+  modeSpan.style.cssText = "color:var(--text-dim, #666);";
+  modeSpan.appendChild(document.createTextNode("Mode: "));
+  var modeStrong = document.createElement("strong");
+  modeStrong.textContent = isAdmin ? "管理员" : "用户";
+  modeSpan.appendChild(modeStrong);
+  modeSpan.appendChild(document.createTextNode(" "));
+  var toggleLink = document.createElement("a");
+  toggleLink.href = "?mode=" + (isAdmin ? "user" : "admin");
+  toggleLink.style.cssText = "margin-left:4px;color:#667eea;text-decoration:none;font-size:11px;";
+  toggleLink.textContent = isAdmin ? "[切换到用户]" : "[切换到管理]";
+  modeSpan.appendChild(toggleLink);
+  modeBar.appendChild(modeSpan);
+  
+  if (header && header.parentNode) {
+    header.parentNode.insertBefore(modeBar, header.nextSibling);
+  }
+})();
+</script>
+</body>
+</html>
