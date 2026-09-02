@@ -1,0 +1,116 @@
+{
+  "_comment": "Wan2.2 14B Image-to-Video (I2V), ComfyUI API format, dual high/low-noise MoE topology per the official native template 'video_wan2_2_14B_i2v'. MODE = FULL-QUALITY 20-step (switched 2026-06-18 for max fidelity: lightx2v LoRA nodes 51/52 REMOVED, ModelSamplingSD3 41<-37 / 42<-38, KSamplerAdvanced steps=20 split 10/10, cfg=3.5, shift=8.0). To revert to fast lightx2v 4-step: re-add the two LoraLoaderModelOnly nodes (51<-37,52<-38; 41<-51,42<-52) and set steps=4/cfg=1.0/shift=5.0/split-at-2. Placeholders injected by the pipeline: {{REF_IMAGE}}(start-frame filename in ComfyUI input/) {{POS_PROMPT}} {{NEG_PROMPT}} {{FRAMES}}->length {{FPS}}->VHS frame_rate {{SEED}} {{WIDTH}} {{HEIGHT}}. NOTE: WanImageToVideo has no fps input; native frame rate is fixed by the model (~16fps), so {{FPS}} only drives the muxed mp4 frame_rate. CHAIN: UNETLoader(high) -> LoraLoaderModelOnly(high lightx2v) -> ModelSamplingSD3(shift 5) -> KSamplerAdvanced #47 (high-noise expert, steps 0->2); UNETLoader(low) -> LoraLoaderModelOnly(low lightx2v) -> ModelSamplingSD3(shift 5) -> KSamplerAdvanced #48 (low-noise expert, steps 2->end); CLIPLoader(wan,umt5) -> 2x CLIPTextEncode; VAELoader -> WanImageToVideo(+LoadImage start frame) -> VAEDecode -> VHS_VideoCombine(mp4). LIGHTX2V 4-STEP SETTINGS (verified, lightx2v model card discussion): total steps=4 split 2(high)+2(low), cfg=1.0, sampler=euler, scheduler=simple, ModelSamplingSD3 shift=5.0, LoRA strength=1.0. REQUIRED MODELS (exact filenames, all installed): diffusion_models/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors + wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors ; loras/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors + ..._low_noise.safetensors ; text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors ; vae/wan_2.1_vae.safetensors. REQUIRED CUSTOM NODES: ComfyUI-VideoHelperSuite (VHS_VideoCombine). Everything else is ComfyUI core. FULL-QUALITY TOGGLE (slower, higher fidelity): (1) bypass/remove the two LoraLoaderModelOnly nodes 51 & 52 and rewire ModelSamplingSD3 41<-37 and 42<-38 (straight from the UNETLoaders); (2) set both KSamplerAdvanced steps=20 with the split at 10 (node47 end_at_step=10, node48 start_at_step=10), cfg=3.5; (3) optionally raise ModelSamplingSD3 shift to 8.0. VRAM: 2x RTX 4090 48GB -> 480x832 is the fast zone and 720x1280 is fine; bump {{WIDTH}}/{{HEIGHT}} via config (video.gen_width/gen_height).",
+  "37": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "38": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "39": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "type": "wan"
+    }
+  },
+  "40": {
+    "class_type": "VAELoader",
+    "inputs": { "vae_name": "wan_2.1_vae.safetensors" }
+  },
+  "41": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": { "shift": 8.0, "model": ["37", 0] }
+  },
+  "42": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": { "shift": 8.0, "model": ["38", 0] }
+  },
+  "43": {
+    "class_type": "LoadImage",
+    "inputs": { "image": "{{REF_IMAGE}}" }
+  },
+  "44": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "{{POS_PROMPT}}", "clip": ["39", 0] }
+  },
+  "45": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "{{NEG_PROMPT}}", "clip": ["39", 0] }
+  },
+  "46": {
+    "class_type": "WanImageToVideo",
+    "inputs": {
+      "width": "{{WIDTH}}",
+      "height": "{{HEIGHT}}",
+      "length": "{{FRAMES}}",
+      "batch_size": 1,
+      "positive": ["44", 0],
+      "negative": ["45", 0],
+      "vae": ["40", 0],
+      "start_image": ["43", 0]
+    }
+  },
+  "47": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "add_noise": "enable",
+      "noise_seed": "{{SEED}}",
+      "steps": 20,
+      "cfg": 3.5,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "start_at_step": 0,
+      "end_at_step": 10,
+      "return_with_leftover_noise": "enable",
+      "model": ["41", 0],
+      "positive": ["46", 0],
+      "negative": ["46", 1],
+      "latent_image": ["46", 2]
+    }
+  },
+  "48": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "add_noise": "disable",
+      "noise_seed": "{{SEED}}",
+      "steps": 20,
+      "cfg": 3.5,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "start_at_step": 10,
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable",
+      "model": ["42", 0],
+      "positive": ["46", 0],
+      "negative": ["46", 1],
+      "latent_image": ["47", 0]
+    }
+  },
+  "49": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["48", 0], "vae": ["40", 0] }
+  },
+  "50": {
+    "class_type": "VHS_VideoCombine",
+    "inputs": {
+      "frame_rate": "{{FPS}}",
+      "loop_count": 0,
+      "filename_prefix": "i2v_wan22",
+      "format": "video/h264-mp4",
+      "pix_fmt": "yuv420p",
+      "crf": 19,
+      "save_metadata": true,
+      "pingpong": false,
+      "save_output": true,
+      "images": ["49", 0]
+    }
+  }
+}

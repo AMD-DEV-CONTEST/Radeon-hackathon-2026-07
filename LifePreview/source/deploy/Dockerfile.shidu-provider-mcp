@@ -1,0 +1,22 @@
+FROM python:3.11.11-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONUTF8=1 \
+    PYTHONIOENCODING=utf-8
+
+RUN groupadd --gid 10001 shidu-provider \
+    && useradd --uid 10001 --gid 10001 --no-create-home \
+      --shell /usr/sbin/nologin shidu-provider
+
+WORKDIR /workspace/shidu_provider_mcp
+COPY shidu_provider_mcp /workspace/shidu_provider_mcp
+
+ARG PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple
+RUN export PIP_INDEX_URL="${PIP_INDEX_URL}" \
+    && python -m pip install --no-cache-dir --upgrade pip==24.3.1 \
+    && python -m pip install --no-cache-dir /workspace/shidu_provider_mcp \
+    && python -c "import shidu_provider_mcp"
+
+USER 10001:10001
+ENTRYPOINT ["shidu-provider-mcp"]

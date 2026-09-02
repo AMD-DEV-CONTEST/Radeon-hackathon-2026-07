@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "douyin-shidu-api"
+version = "0.1.0"
+description = "Stable consumer API for the Shidu trial-video product"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+  "douyin-creative-hub==0.1.0",
+  "douyin-drama-factory==0.1.0",
+  "fastapi==0.139.0",
+  "Pillow==12.3.0",
+  "pydantic==2.10.6",
+  "SQLAlchemy==2.0.37",
+  "uvicorn==0.50.2",
+]
+
+[project.optional-dependencies]
+test = ["httpx==0.28.1", "pytest==8.3.4"]
+
+[project.scripts]
+shidu-api = "shidu_api.main:main"
+shidu-amd-vertical-slice-worker = "shidu_api.competition_vertical_slice_daemon:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/shidu_api"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers"
+testpaths = ["tests"]

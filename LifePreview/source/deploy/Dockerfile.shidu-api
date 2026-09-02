@@ -1,0 +1,31 @@
+FROM python:3.11.11-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONUTF8=1 \
+    PYTHONIOENCODING=utf-8
+
+RUN groupadd --gid 10001 shidu \
+    && useradd --uid 10001 --gid 10001 --no-create-home \
+      --shell /usr/sbin/nologin shidu
+
+WORKDIR /workspace/shidu_api
+COPY shared_contracts /workspace/shared_contracts
+COPY atomic_runtime /workspace/atomic_runtime
+COPY creative_hub /workspace/creative_hub
+COPY drama_factory /workspace/drama_factory
+COPY shidu_api /workspace/shidu_api
+
+ARG PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple
+RUN export PIP_INDEX_URL="${PIP_INDEX_URL}" \
+    && python -m pip install --no-cache-dir --upgrade pip==24.3.1 \
+    && python -m pip install --no-cache-dir \
+      /workspace/shared_contracts \
+      /workspace/atomic_runtime \
+      /workspace/creative_hub \
+      /workspace/drama_factory \
+      /workspace/shidu_api \
+    && python -c "import creative_hub, drama, shidu_api, shared_contracts"
+
+USER 10001:10001
+ENTRYPOINT ["shidu-api"]

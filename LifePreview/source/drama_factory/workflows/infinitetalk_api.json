@@ -1,0 +1,143 @@
+{
+  "_comment": "InfiniteTalk audio-driven lip-sync reference graph (image + audio -> talking video), ComfyUI API format. Based on kijai ComfyUI-WanVideoWrapper example 'wanvideo_2_1_14B_I2V_InfiniteTalk_example_03'. Placeholders injected by the pipeline: {{REF_IMAGE}}(portrait filename in ComfyUI input/) {{AUDIO}}(audio filename in ComfyUI input/) {{POS_PROMPT}} {{SEED}}. WIDTH/HEIGHT/FRAMES are NOT injected for this workflow (the pipeline only passes the 4 tokens above), so they are fixed here (832x480, 81 frames) and the talk duration is governed by the audio length via MultiTalkWav2VecEmbeds. REQUIRED CUSTOM NODES: ComfyUI-WanVideoWrapper (kijai) for all WanVideo*/MultiTalk* nodes, ComfyUI-VideoHelperSuite (VHS_VideoCombine), and ComfyUI-KJNodes (ImageResizeKJv2). REQUIRED MODELS: a Wan2.1 14B I2V 480p checkpoint for WanVideoModelLoader (e.g. WanVideo/wan2.1-i2v-14b-480p fp8/gguf) ; InfiniteTalk weights for MultiTalkModelLoader (e.g. WanVideo/InfiniteTalk/Wan2_1-InfiniteTalk_Single_Q8.gguf) ; Wan2_1 VAE (Wan2_1_VAE_bf16.safetensors) ; umt5 text encoder (umt5-xxl-enc-bf16.safetensors) ; wav2vec model (TencentGameMate/chinese-wav2vec2-base, auto-downloaded). This is the most version-sensitive workflow: WanVideoWrapper node names/fields evolve fast. If it fails to load, open the current InfiniteTalk example in your ComfyUI, re-export via Save (API Format), and keep the {{REF_IMAGE}} {{AUDIO}} {{POS_PROMPT}} {{SEED}} tokens.",
+  "_fixed_params": "width=832 height=480 num_frames=81 fps=25; edit these literals to change resolution/length.",
+  "1": {
+    "class_type": "WanVideoModelLoader",
+    "inputs": {
+      "model_name": "WanVideo/wan2.1-i2v-14b-480p-Q8_0.gguf",
+      "base_precision": "fp16_fast",
+      "quantization": "disabled",
+      "load_device": "offload_device",
+      "attention_mode": "sageattn",
+      "multitalk_model": ["2", 0]
+    }
+  },
+  "2": {
+    "class_type": "MultiTalkModelLoader",
+    "inputs": {
+      "model_name": "WanVideo/InfiniteTalk/Wan2_1-InfiniteTalk_Single_Q8.gguf"
+    }
+  },
+  "3": {
+    "class_type": "WanVideoVAELoader",
+    "inputs": {
+      "model_name": "wanvideo/Wan2_1_VAE_bf16.safetensors",
+      "precision": "bf16"
+    }
+  },
+  "4": {
+    "class_type": "WanVideoTextEncodeCached",
+    "inputs": {
+      "model_name": "umt5-xxl-enc-bf16.safetensors",
+      "precision": "bf16",
+      "positive_prompt": "{{POS_PROMPT}}",
+      "negative_prompt": "bright tones, overexposed, static, blurred details, subtitles, paintings, pictures, still, overall gray, worst quality, low quality, JPEG compression residue, ugly, mutilated, redundant fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, malformed limbs, fused fingers, cluttered background, three legs, many people in the background, walking backwards",
+      "force_offload": "disabled",
+      "device": "gpu"
+    }
+  },
+  "5": {
+    "class_type": "LoadImage",
+    "inputs": { "image": "{{REF_IMAGE}}" }
+  },
+  "6": {
+    "class_type": "ImageResizeKJv2",
+    "inputs": {
+      "width": 832,
+      "height": 480,
+      "interpolation": "lanczos",
+      "crop_method": "crop",
+      "background_color": "0, 0, 0",
+      "anchor": "center",
+      "resize_limit": 16,
+      "device": "cpu",
+      "image": ["5", 0]
+    }
+  },
+  "7": {
+    "class_type": "LoadAudio",
+    "inputs": { "audio": "{{AUDIO}}" }
+  },
+  "8": {
+    "class_type": "DownloadAndLoadWav2VecModel",
+    "inputs": {
+      "model_name": "TencentGameMate/chinese-wav2vec2-base",
+      "base_precision": "fp16",
+      "device": "main_device"
+    }
+  },
+  "9": {
+    "class_type": "MultiTalkWav2VecEmbeds",
+    "inputs": {
+      "normalize_loudness": true,
+      "num_frames": 81,
+      "fps": 25,
+      "audio_scale": 1.0,
+      "audio_cfg_scale": 4.0,
+      "num_audio_ref": 1,
+      "multi_audio_type": "para",
+      "wav2vec_model": ["8", 0],
+      "audio_1": ["7", 0]
+    }
+  },
+  "10": {
+    "class_type": "WanVideoImageToVideoMultiTalk",
+    "inputs": {
+      "width": 832,
+      "height": 480,
+      "num_frames": 81,
+      "context_length": 81,
+      "force_offload": false,
+      "audio_normalize": "disabled",
+      "tile_overlap": false,
+      "mode": "infinitetalk",
+      "output_path": "",
+      "vae": ["3", 0],
+      "start_image": ["6", 0]
+    }
+  },
+  "11": {
+    "class_type": "WanVideoSampler",
+    "inputs": {
+      "seed": "{{SEED}}",
+      "steps": 6,
+      "cfg": 1.0,
+      "shift": 8.0,
+      "scheduler": "flowmatch_distill",
+      "riflex_freq_index": 0,
+      "force_offload": false,
+      "model": ["1", 0],
+      "image_embeds": ["10", 0],
+      "text_embeds": ["4", 0],
+      "multitalk_embeds": ["9", 0]
+    }
+  },
+  "12": {
+    "class_type": "WanVideoDecode",
+    "inputs": {
+      "enable_vae_tiling": true,
+      "tile_x": 272,
+      "tile_y": 272,
+      "tile_stride_x": 144,
+      "tile_stride_y": 128,
+      "vae": ["3", 0],
+      "samples": ["11", 0]
+    }
+  },
+  "13": {
+    "class_type": "VHS_VideoCombine",
+    "inputs": {
+      "frame_rate": 25,
+      "loop_count": 0,
+      "filename_prefix": "infinitetalk",
+      "format": "video/h264-mp4",
+      "pix_fmt": "yuv420p",
+      "crf": 19,
+      "save_metadata": true,
+      "pingpong": false,
+      "save_output": true,
+      "images": ["12", 0],
+      "audio": ["7", 0]
+    }
+  }
+}

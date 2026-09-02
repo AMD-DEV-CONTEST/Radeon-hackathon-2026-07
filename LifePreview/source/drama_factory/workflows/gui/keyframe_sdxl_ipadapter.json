@@ -1,0 +1,207 @@
+{
+  "last_node_id": 12,
+  "last_link_id": 14,
+  "nodes": [
+    {
+      "id": 4,
+      "type": "CheckpointLoaderSimple",
+      "pos": [40, 200],
+      "size": [320, 98],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        { "name": "MODEL", "type": "MODEL", "links": [1], "slot_index": 0 },
+        { "name": "CLIP", "type": "CLIP", "links": [2, 3], "slot_index": 1 },
+        { "name": "VAE", "type": "VAE", "links": [4], "slot_index": 2 }
+      ],
+      "properties": { "Node name for S&R": "CheckpointLoaderSimple" },
+      "widgets_values": ["sd_xl_base_1.0.safetensors"]
+    },
+    {
+      "id": 10,
+      "type": "LoadImage",
+      "pos": [40, 360],
+      "size": [320, 314],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        { "name": "IMAGE", "type": "IMAGE", "links": [5], "slot_index": 0 },
+        { "name": "MASK", "type": "MASK", "links": null, "slot_index": 1 }
+      ],
+      "properties": { "Node name for S&R": "LoadImage" },
+      "widgets_values": ["reference_face.png", "image"]
+    },
+    {
+      "id": 11,
+      "type": "IPAdapterUnifiedLoader",
+      "pos": [400, 200],
+      "size": [320, 78],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        { "name": "model", "type": "MODEL", "link": 1 },
+        { "name": "ipadapter", "type": "IPADAPTER", "link": null }
+      ],
+      "outputs": [
+        { "name": "MODEL", "type": "MODEL", "links": [6], "slot_index": 0 },
+        { "name": "ipadapter", "type": "IPADAPTER", "links": [7], "slot_index": 1 }
+      ],
+      "properties": { "Node name for S&R": "IPAdapterUnifiedLoader" },
+      "widgets_values": ["PLUS FACE (portraits)"]
+    },
+    {
+      "id": 12,
+      "type": "IPAdapter",
+      "pos": [760, 200],
+      "size": [320, 190],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        { "name": "model", "type": "MODEL", "link": 6 },
+        { "name": "ipadapter", "type": "IPADAPTER", "link": 7 },
+        { "name": "image", "type": "IMAGE", "link": 5 }
+      ],
+      "outputs": [
+        { "name": "MODEL", "type": "MODEL", "links": [8], "slot_index": 0 }
+      ],
+      "properties": { "Node name for S&R": "IPAdapter" },
+      "widgets_values": [0.8, 0.0, 1.0, "standard"]
+    },
+    {
+      "id": 5,
+      "type": "EmptyLatentImage",
+      "pos": [400, 320],
+      "size": [320, 106],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        { "name": "LATENT", "type": "LATENT", "links": [9], "slot_index": 0 }
+      ],
+      "properties": { "Node name for S&R": "EmptyLatentImage" },
+      "widgets_values": [768, 1344, 1]
+    },
+    {
+      "id": 6,
+      "type": "CLIPTextEncode",
+      "pos": [400, 470],
+      "size": [400, 200],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        { "name": "clip", "type": "CLIP", "link": 2 }
+      ],
+      "outputs": [
+        { "name": "CONDITIONING", "type": "CONDITIONING", "links": [10], "slot_index": 0 }
+      ],
+      "properties": { "Node name for S&R": "CLIPTextEncode" },
+      "widgets_values": ["a cinematic portrait of the character, soft key light, shallow depth of field, photorealistic, high detail"]
+    },
+    {
+      "id": 7,
+      "type": "CLIPTextEncode",
+      "pos": [400, 700],
+      "size": [400, 200],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        { "name": "clip", "type": "CLIP", "link": 3 }
+      ],
+      "outputs": [
+        { "name": "CONDITIONING", "type": "CONDITIONING", "links": [11], "slot_index": 0 }
+      ],
+      "properties": { "Node name for S&R": "CLIPTextEncode" },
+      "widgets_values": ["lowres, bad anatomy, bad hands, deformed face, extra fingers, watermark, text, blurry, jpeg artifacts"]
+    },
+    {
+      "id": 3,
+      "type": "KSampler",
+      "pos": [1120, 200],
+      "size": [320, 262],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        { "name": "model", "type": "MODEL", "link": 8 },
+        { "name": "positive", "type": "CONDITIONING", "link": 10 },
+        { "name": "negative", "type": "CONDITIONING", "link": 11 },
+        { "name": "latent_image", "type": "LATENT", "link": 9 }
+      ],
+      "outputs": [
+        { "name": "LATENT", "type": "LATENT", "links": [12], "slot_index": 0 }
+      ],
+      "properties": { "Node name for S&R": "KSampler" },
+      "widgets_values": [42, "fixed", 30, 6.0, "dpmpp_2m", "karras", 1.0]
+    },
+    {
+      "id": 8,
+      "type": "VAEDecode",
+      "pos": [1480, 200],
+      "size": [210, 46],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        { "name": "samples", "type": "LATENT", "link": 12 },
+        { "name": "vae", "type": "VAE", "link": 4 }
+      ],
+      "outputs": [
+        { "name": "IMAGE", "type": "IMAGE", "links": [13], "slot_index": 0 }
+      ],
+      "properties": { "Node name for S&R": "VAEDecode" },
+      "widgets_values": []
+    },
+    {
+      "id": 9,
+      "type": "SaveImage",
+      "pos": [1480, 300],
+      "size": [320, 270],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        { "name": "images", "type": "IMAGE", "link": 13 }
+      ],
+      "outputs": [],
+      "properties": { "Node name for S&R": "SaveImage" },
+      "widgets_values": ["keyframe_ipa"]
+    }
+  ],
+  "links": [
+    [1, 4, 0, 11, 0, "MODEL"],
+    [2, 4, 1, 6, 0, "CLIP"],
+    [3, 4, 1, 7, 0, "CLIP"],
+    [4, 4, 2, 8, 1, "VAE"],
+    [5, 10, 0, 12, 2, "IMAGE"],
+    [6, 11, 0, 12, 0, "MODEL"],
+    [7, 11, 1, 12, 1, "IPADAPTER"],
+    [8, 12, 0, 3, 0, "MODEL"],
+    [9, 5, 0, 3, 3, "LATENT"],
+    [10, 6, 0, 3, 1, "CONDITIONING"],
+    [11, 7, 0, 3, 2, "CONDITIONING"],
+    [12, 3, 0, 8, 0, "LATENT"],
+    [13, 8, 0, 9, 0, "IMAGE"]
+  ],
+  "groups": [
+    {
+      "title": "SDXL + IPAdapter PLUS FACE keyframe (character consistency)",
+      "bounding": [20, 130, 1800, 800],
+      "color": "#3f789e",
+      "font_size": 24
+    }
+  ],
+  "config": {},
+  "extra": {
+    "_comment": "GUI / UI workflow format (ComfyUI Desktop: Workflow > Open). SDXL + IPAdapter PLUS FACE character-consistency keyframe graph, ready-to-run with the user's installed filenames. Reference image widget defaults to 'reference_face.png' -- replace via the LoadImage node. Custom node required: ComfyUI_IPAdapter_plus (cubiq), install via ComfyUI-Manager. Models: checkpoints/sd_xl_base_1.0.safetensors ; ipadapter/ip-adapter-plus-face_sdxl_vit-h.safetensors ; clip_vision/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors (the PLUS FACE (portraits) preset auto-resolves the last two). After editing, use Save (API Format) with Dev Mode enabled to regenerate keyframe_sdxl_ipadapter_api.json (keep the {{PLACEHOLDER}} tokens for the pipeline). This is a structurally-validated reference graph; ComfyUI version drift may require re-export."
+  },
+  "version": 0.4
+}
