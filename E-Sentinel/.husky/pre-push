@@ -1,0 +1,16 @@
+#!/bin/sh
+
+branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+
+if [ "$branch" = "main" ] || [ "$branch" = "develop" ]; then
+  echo ""
+  echo "============================================"
+  echo "  Pre-push gate: $branch"
+  echo "  Running full test suite before push..."
+  echo "============================================"
+  echo ""
+  bash scripts/run-all-tests.sh --ci
+  exit $?
+fi
+
+exit 0

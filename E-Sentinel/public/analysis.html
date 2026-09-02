@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FeishuFlow Pro &amp; E-Sentinel — 架构演进对比分析</title>
+<style>
+  :root {
+    --bg: #f8f9fa;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1a202c;
+    --muted: #718096;
+    --accent: #3b82f6;
+    --green: #10b981;
+    --orange: #f59e0b;
+    --red: #ef4444;
+    --purple: #8b5cf6;
+    --cyan: #06b6d4;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7;
+    padding: 2rem;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 2rem; margin-bottom: 0.25rem; }
+  h2 { font-size: 1.4rem; margin: 2.5rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border); }
+  h3 { font-size: 1.1rem; margin: 1.5rem 0 0.75rem; color: #2d3748; }
+  .subtitle { color: var(--muted); font-size: 0.95rem; margin-bottom: 2rem; }
+  .badge {
+    display: inline-block; padding: 0.15rem 0.6rem; border-radius: 99px;
+    font-size: 0.75rem; font-weight: 600; margin-right: 0.4rem;
+  }
+  .badge-new { background: #dbeafe; color: #1e40af; }
+  .badge-old { background: #f1f5f9; color: #64748b; }
+  .badge-upgraded { background: #fef3c7; color: #92400e; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 1.5rem; margin-bottom: 1.5rem;
+  }
+  .card-header { font-size: 1.05rem; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+  @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+  th, td { padding: 0.6rem 0.9rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+  th { background: #f8fafc; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; }
+  tr:hover td { background: #fafbfc; }
+  .tag {
+    display: inline-block; padding: 0.1rem 0.5rem; border-radius: 4px;
+    font-size: 0.73rem; font-weight: 500; margin: 0.1rem;
+  }
+  .tag-green { background: #d1fae5; color: #065f46; }
+  .tag-blue { background: #dbeafe; color: #1e40af; }
+  .tag-orange { background: #fef3c7; color: #92400e; }
+  .tag-red { background: #fee2e2; color: #991b1b; }
+  .tag-purple { background: #ede9fe; color: #5b21b6; }
+  .tag-cyan { background: #cffafe; color: #155e75; }
+  .flow { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 0.75rem; background: #f8fafc; border-radius: 8px; margin: 0.5rem 0; font-size: 0.85rem; }
+  .flow-node { padding: 0.3rem 0.7rem; border-radius: 6px; font-weight: 500; white-space: nowrap; }
+  .flow-arrow { color: var(--muted); font-weight: bold; }
+  .stat { text-align: center; padding: 1rem; }
+  .stat-value { font-size: 2rem; font-weight: 700; }
+  .stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem; }
+  .highlight { background: linear-gradient(120deg, #fef3c7 0%, #fef3c7 40%, transparent 90%); padding: 0.1rem 0.3rem; }
+  .section-compare { display: grid; grid-template-columns: 1fr 2fr; gap: 1rem; align-items: start; }
+  @media (max-width: 768px) { .section-compare { grid-template-columns: 1fr; } }
+  .before { border-left: 3px solid #cbd5e1; padding-left: 1rem; }
+  .after { border-left: 3px solid var(--accent); padding-left: 1rem; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+  .toc { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 2rem; }
+  .toc a { color: var(--accent); text-decoration: none; font-size: 0.9rem; }
+  .toc a:hover { text-decoration: underline; }
+  .toc ol { margin-left: 1.25rem; line-height: 2; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>FeishuFlow Pro &amp; E-Sentinel</h1>
+<p class="subtitle">两个项目的架构演进、能力扩展与技术手段对比分析 · 2026年5月</p>
+
+<!-- ============================================================ -->
+<!-- TOC -->
+<!-- ============================================================ -->
+<div class="toc">
+  <strong style="font-size:0.95rem;">目录</strong>
+  <ol>
+    <li><a href="#overview">项目总览</a></li>
+    <li><a href="#myapp-evolution">my-app：FeishuFlow → FeishuFlow Pro 演进</a>
+      <ol>
+        <li><a href="#ma-arch">架构变化</a></li>
+        <li><a href="#ma-sm">状态机 + 事件总线</a></li>
+        <li><a href="#ma-hitl">HITL 人工介入</a></li>
+        <li><a href="#ma-template">模板引擎</a></li>
+        <li><a href="#ma-monitor">监控面板</a></li>
+      </ol>
+    </li>
+    <li><a href="#qa-evolution">qa-system：质检中枢 → 电商客服运营平台 演进</a>
+      <ol>
+        <li><a href="#qa-arch">架构变化</a></li>
+        <li><a href="#qa-llm">LLM 驱动的 10 大功能</a></li>
+        <li><a href="#qa-close">数据闭环</a></li>
+        <li><a href="#qa-reliability">工程健壮性体系</a></li>
+      </ol>
+    </li>
+    <li><a href="#cross">跨项目技术对比</a></li>
+    <li><a href="#summary">总结：核心能力矩阵</a></li>
+  </ol>
+</div>
+
+<!-- ============================================================ -->
+<!-- 1. Overview -->
+<!-- ============================================================ -->
+<h2 id="overview">1. 项目总览</h2>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header">📋 my-app · FeishuFlow Pro</div>
+    <p style="color:var(--muted); font-size:0.9rem;">Audio-to-Action 智能任务派发系统</p>
+    <p style="margin-top:0.5rem;">语音/文件导入 → AI 语义提取 → <span class="highlight">四级飞书路由派发</span>，覆盖微信 iLink → Pipeline Server → 飞书卡片全链路。</p>
+    <div style="margin-top:0.75rem;">
+      <span class="tag tag-blue">Next.js 16</span>
+      <span class="tag tag-purple">Supabase</span>
+      <span class="tag tag-green">飞书 SDK</span>
+      <span class="tag tag-orange">Moonshot/Kimi</span>
+      <span class="tag tag-cyan">阿里云 ASR</span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">🛡️ qa-system · E-Sentinel</div>
+    <p style="color:var(--muted); font-size:0.9rem;">电商客服机器人运营管理平台</p>
+    <p style="margin-top:0.5rem;">8 大运营面板覆盖 <span class="highlight">质检→监控→知识库→话术→流失→满意度→报告→活动</span>，AI 驱动的全流程闭环。</p>
+    <div style="margin-top:0.75rem;">
+      <span class="tag tag-blue">Next.js 16</span>
+      <span class="tag tag-purple">Supabase pgvector</span>
+      <span class="tag tag-green">飞书四级派发</span>
+      <span class="tag tag-orange">Moonshot/Kimi</span>
+      <span class="tag tag-red">Recharts</span>
+    </div>
+  </div>
+</div>
+
+<div class="grid-3" style="margin-top:1rem;">
+  <div class="stat"><div class="stat-value" style="color:var(--accent);">47</div><div class="stat-label">qa-system API 路由</div></div>
+  <div class="stat"><div class="stat-value" style="color:var(--purple);">35</div><div class="stat-label">my-app API 路由</div></div>
+  <div class="stat"><div class="stat-value" style="color:var(--green);">82</div><div class="stat-label">两个项目总路由数</div></div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 2. my-app Evolution -->
+<!-- ============================================================ -->
+<h2 id="myapp-evolution">2. my-app：FeishuFlow → FeishuFlow Pro 演进</h2>
+
+<h3 id="ma-arch">2.1 架构变化</h3>
+
+<div class="card">
+  <div class="section-compare">
+    <div class="before">
+      <strong style="color:#64748b;">大改动前 · FeishuFlow</strong>
+      <ul style="margin-top:0.5rem; font-size:0.85rem; color:var(--muted); padding-left:1.2rem;">
+        <li>单一线性派发流程</li>
+        <li>飞书事件即时处理，无持久化</li>
+        <li>指派人提取失败时无兜底</li>
+        <li>通知文案硬编码在组件中</li>
+        <li>无可视化 Pipeline 状态</li>
+      </ul>
+    </div>
+    <div class="after">
+      <strong style="color:var(--accent);">大改动后 · FeishuFlow Pro <span class="badge badge-upgraded">升级</span></strong>
+      <ul style="margin-top:0.5rem; font-size:0.85rem; padding-left:1.2rem;">
+        <li><strong>8 状态 Pipeline 状态机</strong> — 严格的状态转换校验</li>
+        <li><strong>事件总线三重保障</strong> — 持久化 + 幂等 + 死信恢复</li>
+        <li><strong>HITL 人工介入</strong> — 低置信度自动挂起等人工确认</li>
+        <li><strong>模板引擎</strong> — {{var}} 变量替换 + Zod 边界约束</li>
+        <li><strong>监控面板</strong> — 30s 自动刷新 + 死信队列管理</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<h3 id="ma-sm">2.2 状态机 + 事件总线 — 可靠性的质变</h3>
+
+<div class="card">
+  <p><strong>问题：</strong>改版前的飞书事件处理是"即用即弃"模式——收到事件 → 处理 → 返回。如果处理中途崩溃，事件永久丢失。</p>
+
+  <div class="flow">
+    <span style="font-weight:600; color:var(--muted);">旧流程：</span>
+    <span class="flow-node" style="background:#f1f5f9;">飞书回调</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-node" style="background:#f1f5f9;">内存处理</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-node" style="background:#fee2e2; color:#991b1b;">⚠ 崩溃则丢失</span>
+  </div>
+
+  <div class="flow">
+    <span style="font-weight:600; color:var(--accent);">新流程：</span>
+    <span class="flow-node" style="background:#dbeafe;">飞书回调</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-node" style="background:#dbeafe;">持久化写入 DB</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-node" style="background:#dbeafe;">幂等去重</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-node" style="background:#dbeafe;">处理业务</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-node" style="background:#d1fae5;">返回 200</span>
+    <span style="font-size:0.8rem; color:var(--muted); margin-left:0.5rem;">未处理 → 死信队列</span>
+  </div>
+
+  <table>
+    <tr><th style="width:25%;">机制</th><th>大改动前</th><th>大改动后</th></tr>
+    <tr><td>事件持久化</td><td style="color:var(--red);">无，内存处理</td><td style="color:var(--green);">feishu_raw_events 表，ON CONFLICT 去重</td></tr>
+    <tr><td>状态管理</td><td style="color:var(--red);">无显式状态</td><td style="color:var(--green);">9 状态 + validateTransition() 严格校验</td></tr>
+    <tr><td>超时处理</td><td style="color:var(--red);">无</td><td style="color:var(--green);">SUSPENDED_ASR(5min) / SUSPENDED_HITL(30min)</td></tr>
+    <tr><td>重试机制</td><td style="color:var(--red);">无</td><td style="color:var(--green);">FAILED → PENDING 可重试，ASR 最多 3 次</td></tr>
+    <tr><td>死信恢复</td><td style="color:var(--red);">无</td><td style="color:var(--green);">GET /api/pipeline/dead-letter + POST 重试</td></tr>
+  </table>
+</div>
+
+<h3 id="ma-hitl">2.3 HITL 人工介入 — 从自动化到人机协同</h3>
+
+<div class="card">
+  <p><strong>问题：</strong>AI 提取指派人时可能出现歧义（如"老赵"匹配到 3 个候选人），之前只能随机选一个或直接失败。</p>
+
+  <div class="flow">
+    <span class="flow-node" style="background:#dbeafe;">LLM 提取</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-node" style="background:#fef3c7;">置信度 &lt; 100%?</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-node" style="background:#fef3c7;">SUSPENDED_HITL</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-node" style="background:#dbeafe;">飞书卡片候选人列表</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-node" style="background:#dbeafe;">用户点击选择</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-node" style="background:#d1fae5;">PROCESSING 继续</span>
+  </div>
+
+  <p style="margin-top:0.75rem; font-size:0.85rem; color:var(--muted);">
+    关键实现：dispatch/route.ts 中 <code>buildHitlCandidateCard()</code> 构建飞书交互卡片，card-action/route.ts 处理 <code>hitl_select</code> 动作，
+    pipeline 从 SUSPENDED_HITL 恢复到 PROCESSING。30 分钟超时后由 pg_cron 自动标记失败。
+  </p>
+</div>
+
+<h3 id="ma-template">2.4 模板引擎 — 文案解耦</h3>
+
+<div class="card">
+  <div class="section-compare">
+    <div>
+      <strong style="color:#64748b;">大改动前</strong>
+      <pre style="background:#f1f5f9; padding:0.75rem; border-radius:6px; font-size:0.8rem; margin-top:0.5rem;">// 硬编码在组件中
+const msg = `📋 ${task.title}
+负责人：${task.assignee}
+截止日期：${task.deadline}`;</pre>
+    </div>
+    <div>
+      <strong style="color:var(--accent);">大改动后</strong>
+      <pre style="background:#f1f5f9; padding:0.75rem; border-radius:6px; font-size:0.8rem; margin-top:0.5rem;">// 模板定义
+const TPL = {
+  header: "📋 {{title}}",
+  body: "负责人：{{assignee_names}}\n截止：{{deadline}}"
+};
+// Zod 约束：仅平坦字段，拒绝嵌套对象
+FlatParamsSchema.parse(llmOutput);
+// string[] → "张三、李四" (中文顿号)
+resolveTemplate(tpl.body, vars);</pre>
+    </div>
+  </div>
+  <p style="margin-top:0.5rem; font-size:0.8rem; color:var(--muted);">
+    MVP 边界明确：✅ 平坦字段 + string[] 逗号连接 | ❌ 嵌套对象 (Zod 强制拒绝) | 缺失字段保留 ⚠️{{key}} 占位符
+  </p>
+</div>
+
+<h3 id="ma-monitor">2.5 监控面板 — 可观测性从 0 到 1</h3>
+
+<div class="card">
+  <table>
+    <tr><th>能力</th><th>大改动前</th><th>大改动后</th></tr>
+    <tr><td>Pipeline 可视化</td><td style="color:var(--red);">无</td><td style="color:var(--green);">4 个 Tab：任务统计 / 挂起步骤 / 失败列表 / 死信队列</td></tr>
+    <tr><td>实时刷新</td><td style="color:var(--red);">无</td><td style="color:var(--green);">30 秒自动轮询</td></tr>
+    <tr><td>状态标签</td><td style="color:var(--red);">无</td><td style="color:var(--green);">6 种状态彩色 Badge</td></tr>
+    <tr><td>死信管理</td><td style="color:var(--red);">无</td><td style="color:var(--green);">GET 查看 + POST 重试</td></tr>
+  </table>
+</div>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- 3. qa-system Evolution -->
+<!-- ============================================================ -->
+<h2 id="qa-evolution">3. qa-system：质检中枢 → 电商客服运营平台</h2>
+
+<h3 id="qa-arch">3.1 架构变化</h3>
+
+<div class="card">
+  <div class="section-compare">
+    <div class="before">
+      <strong style="color:#64748b;">大改动前 · E-Sentinel 质检中枢</strong>
+      <ul style="margin-top:0.5rem; font-size:0.85rem; color:var(--muted); padding-left:1.2rem;">
+        <li>单页面质检面板（AI 评分 + 飞书派发）</li>
+        <li>4 张核心表 (quality_reports, profiles, rules, platforms)</li>
+        <li>仅覆盖客服质检一种场景</li>
+        <li>页面 1024 行内联代码</li>
+        <li>无种子数据</li>
+      </ul>
+    </div>
+    <div class="after">
+      <strong style="color:var(--accent);">大改动后 · E-Sentinel 运营平台 <span class="badge badge-new">扩展</span></strong>
+      <ul style="margin-top:0.5rem; font-size:0.85rem; padding-left:1.2rem;">
+        <li><strong>8 个运营面板</strong> — 覆盖客服机器人运营完整职责链</li>
+        <li><strong>14 张表 + pgvector</strong> — 知识库语义检索引擎</li>
+        <li><strong>10 个 LLM 驱动功能</strong> — 从质检到根因分析到报告生成</li>
+        <li><strong>组件化架构</strong> — QAPanel 提取 + 12 个独立面板组件</li>
+        <li><strong>47 条 API + 241 条种子数据</strong></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="flow">
+  <span style="font-weight:600; font-size:0.85rem;">能力覆盖：</span>
+  <span class="tag tag-green">质检 30%</span>
+  <span class="flow-arrow">→</span>
+  <span class="tag tag-blue">质检 30% + 话术 15% + 监控 15% + 知识库 10% + 流失 10% + 满意度 10% + 报告 5% + 活动 5%</span>
+</div>
+
+<h3 id="qa-llm">3.2 10 个 LLM 驱动的功能</h3>
+
+<div class="card">
+  <table>
+    <tr><th>#</th><th>功能</th><th>端点</th><th>LLM 作用</th></tr>
+    <tr><td>1</td><td>聊天批量质检</td><td><code>/chat-sessions/inspect</code></td><td>逐条分析对话，检测话术缺陷、知识缺口</td></tr>
+    <tr><td>2</td><td>用户问题聚类</td><td><code>/chat-sessions/cluster</code></td><td>跨会话发现语义簇（如"退差价"类问题）</td></tr>
+    <tr><td>3</td><td>日/周摘要</td><td><code>/chat-sessions/summarize</code></td><td>生成流量摘要 + 顶层问题 + 接待率驱动因素</td></tr>
+    <tr><td>4</td><td>知识缺口检测</td><td><code>/knowledge/gaps</code></td><td>未命中问题 vs 知识库覆盖分析</td></tr>
+    <tr><td>5</td><td>流失根因分析</td><td><code>/inquiry-loss/analyze</code></td><td>定位转化失败精确节点 + 改进建议</td></tr>
+    <tr><td>6</td><td>差评根因分析</td><td><code>/satisfaction/analyze</code></td><td>提取差评原文引用 + 优先级排序</td></tr>
+    <tr><td>7</td><td>报告生成</td><td><code>/reports/robot/generate</code></td><td>全量指标 → 结构化 Markdown 报告</td></tr>
+    <tr><td>8</td><td>话术建议</td><td><code>/bot-configs/suggest</code></td><td>基于近期问题会话建议话术/逻辑改进</td></tr>
+    <tr><td>9</td><td>活动→知识提取</td><td><code>/knowledge/batch-import</code></td><td>读活动文档，提取产品/促销/FAQ 结构</td></tr>
+    <tr><td>10</td><td>自动建优化任务</td><td><code>/optimization-tasks/auto-generate</code></td><td>从分析结果生成可执行任务</td></tr>
+  </table>
+</div>
+
+<h3 id="qa-close">3.3 数据闭环 — 从发现问题到修复验证</h3>
+
+<div class="card">
+  <p><strong>大改动前：</strong>质检发现问题 → 飞书通知 → 到此为止。</p>
+  <p><strong>大改动后：</strong></p>
+  <div class="flow">
+    <span class="flow-node" style="background:#fee2e2;">质检发现违规</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-node" style="background:#fef3c7;">LLM 聚类分析</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-node" style="background:#dbeafe;">生成优化任务</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-node" style="background:#dbeafe;">更新话术/知识库</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-node" style="background:#d1fae5;">复检验证</span>
+    <span style="font-size:0.8rem; color:var(--muted); margin-left:0.5rem;">闭环！</span>
+  </div>
+  <p style="margin-top:0.75rem; font-size:0.85rem; color:var(--muted);">
+    核心引擎：<code>src/lib/pipeline.ts</code> — triggerTaskPipeline() 在任意分析完成后自动调用 optimization-tasks/auto-generate，
+    将聚类结果转化为可追踪的优化任务，并记录审计日志。
+  </p>
+</div>
+
+<h3 id="qa-reliability">3.4 工程健壮性体系</h3>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header">🔄 LLM 容灾 <span class="badge badge-new">新增</span></div>
+    <table>
+      <tr><td>双模型切换</td><td style="color:var(--green);">Moonshot 主模型 → Fallback 备用，自动切换</td></tr>
+      <tr><td>结果缓存</td><td style="color:var(--green);">内存 LRU (500条) + 24h TTL，相同输入直接返回</td></tr>
+      <tr><td>限流</td><td style="color:var(--green);">30次/分钟滑动窗口，超限抛 LLM_RATE_LIMITED</td></tr>
+      <tr><td>重试</td><td style="color:var(--green);">指数退避 3 次 (1s/2s/4s) + 25s 超时</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-header">🔐 安全与审计 <span class="badge badge-new">新增</span></div>
+    <table>
+      <tr><td>RBAC</td><td style="color:var(--green);">4 角色 (admin/operator/agent/viewer)，菜单+操作+数据三级</td></tr>
+      <tr><td>审计日志</td><td style="color:var(--green);">17 种操作类型全量记录，含 LLM 调用追踪</td></tr>
+      <tr><td>全链路追踪</td><td style="color:var(--green);">nanoid Correlation ID 贯穿所有层级</td></tr>
+      <tr><td>统一错误格式</td><td style="color:var(--green);">api-response.ts 标准 {success, data, error} 格式</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header">⚡ 定时自动化 <span class="badge badge-new">新增</span></div>
+    <table>
+      <tr><td>Vercel Cron</td><td style="color:var(--green);">cleanup / daily-report / knowledge-gaps 三个定时任务</td></tr>
+      <tr><td>pg_cron</td><td style="color:var(--green);">数据库端 SUSPENDED_HITL 超时自动标记失败</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-header">📊 语义引擎 <span class="badge badge-new">新增</span></div>
+    <table>
+      <tr><td>向量化</td><td style="color:var(--green);">字符 trigram 哈希 → 1536-d 向量 (无需外部 API)</td></tr>
+      <tr><td>pgvector</td><td style="color:var(--green);">match_knowledge_entries() RPC 语义检索</td></tr>
+      <tr><td>相似度</td><td style="color:var(--green);">Cohen's Kappa 一致性计算 + 余弦相似度</td></tr>
+    </table>
+  </div>
+</div>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- 4. Cross-project -->
+<!-- ============================================================ -->
+<h2 id="cross">4. 跨项目技术对比</h2>
+
+<h3>4.1 共用的技术基础设施</h3>
+
+<div class="card">
+  <table>
+    <tr><th style="width:22%;">能力</th><th style="width:39%;">my-app 实现</th><th style="width:39%;">qa-system 实现</th></tr>
+    <tr>
+      <td>飞书派发</td>
+      <td>四级降级路由 + BatchBuffer 限流 + HITL 交互卡片</td>
+      <td>四级降级路由 + 飞书卡片预警 + DispatchChain 可视化</td>
+    </tr>
+    <tr>
+      <td>LLM 调用</td>
+      <td>直接 fetch Moonshot API</td>
+      <td>双模型切换 + 3 次重试 + 缓存 + 限流 + 审计</td>
+    </tr>
+    <tr>
+      <td>链路追踪</td>
+      <td>correlation_id 贯穿 Pipeline</td>
+      <td>nanoid Correlation ID + 审计日志 17 种操作类型</td>
+    </tr>
+    <tr>
+      <td>数据库</td>
+      <td>Supabase + execution_steps / pipeline_jobs</td>
+      <td>Supabase + pgvector + 14 张业务表</td>
+    </tr>
+    <tr>
+      <td>部署</td>
+      <td>Vercel (prod)</td>
+      <td>Vercel (prod)</td>
+    </tr>
+  </table>
+</div>
+
+<h3>4.2 差异化技术选型</h3>
+
+<div class="card">
+  <table>
+    <tr><th style="width:22%;">维度</th><th style="width:39%;">my-app · FeishuFlow Pro</th><th style="width:39%;">qa-system · E-Sentinel</th></tr>
+    <tr>
+      <td>核心挑战</td>
+      <td><span class="tag tag-orange">流程可靠性</span> 事件不丢、状态可追溯</td>
+      <td><span class="tag tag-blue">业务广度</span> 8 个运营维度、LLM 驱动 10 种分析</td>
+    </tr>
+    <tr>
+      <td>状态管理</td>
+      <td><strong>Pipeline 状态机</strong> — validateTransition() 严格校验，非法转换抛错</td>
+      <td><strong>组件本地状态</strong> — useState/useCallback 模式，各面板独立</td>
+    </tr>
+    <tr>
+      <td>事件处理</td>
+      <td><strong>事件总线</strong> — DB 持久化 + ON CONFLICT 幂等 + 死信队列</td>
+      <td><strong>请求-响应</strong> — REST API 直接处理，无事件队列模型</td>
+    </tr>
+    <tr>
+      <td>人机协同</td>
+      <td><strong>HITL 挂起+恢复</strong> — SUSPENDED_HITL 状态 + 飞书交互卡片</td>
+      <td><strong>误判驳回</strong> — pending_review → overturn → bad_cases 训练集</td>
+    </tr>
+    <tr>
+      <td>AI 场景</td>
+      <td>提取 + 派发 (1 个 LLM 功能)</td>
+      <td>质检 + 聚类 + 摘要 + 缺口 + 根因 + 报告 + 话术建议 (10 个 LLM 功能)</td>
+    </tr>
+    <tr>
+      <td>语义检索</td>
+      <td>无</td>
+      <td><strong>trigram 哈希 + pgvector</strong> — 离线向量化，无外部 Embedding API 依赖</td>
+    </tr>
+    <tr>
+      <td>多平台</td>
+      <td>飞书 + 微信 iLink</td>
+      <td>8 个电商平台 (天猫/京东/抖音/拼多多/小红书/快手/微信小店/唯品会)</td>
+    </tr>
+    <tr>
+      <td>数据闭环</td>
+      <td>事件处理完毕即结束</td>
+      <td><strong>质检→聚类→优化任务→话术更新→复检</strong> 完整闭环</td>
+    </tr>
+  </table>
+</div>
+
+<h3>4.3 API 面对比</h3>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header">📡 my-app · 35 条路由</div>
+    <div style="font-size:0.82rem;">
+      <p><span class="tag tag-purple">Pipeline</span> trigger / extract / transition / dead-letter</p>
+      <p><span class="tag tag-green">飞书</span> callback / card-action / diagnose / dispatch / event</p>
+      <p><span class="tag tag-blue">任务</span> CRUD / complete / finalize / check-conflicts / repush</p>
+      <p><span class="tag tag-orange">存储</span> upload / upload-url / serve / signed-download-url / play-url</p>
+      <p><span class="tag tag-cyan">其他</span> ASR / auth / meetings / dashboard / cron / wechat / knowledge-base</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">📡 qa-system · 47 条路由</div>
+    <div style="font-size:0.82rem;">
+      <p><span class="tag tag-purple">质检</span> evaluate / overturn / reports / rules / stats / value / alignment / alert</p>
+      <p><span class="tag tag-green">聊天</span> sessions CRUD / inspect / cluster / summarize / stats</p>
+      <p><span class="tag tag-blue">运营</span> knowledge CRUD / bot-configs CRUD / optimization-tasks / platforms</p>
+      <p><span class="tag tag-orange">分析</span> inquiry-loss / satisfaction / industry-benchmarks</p>
+      <p><span class="tag tag-cyan">报告</span> robot daily / generate / archive / 定时 cron</p>
+    </div>
+  </div>
+</div>
+
+<h3>4.4 前端架构对比</h3>
+
+<div class="card">
+  <table>
+    <tr><th style="width:22%;">维度</th><th style="width:39%;">my-app</th><th style="width:39%;">qa-system</th></tr>
+    <tr><td>主页面</td><td>单页 TaskWorkbench (1000+ 行组件)</td><td>8 面板 Tab 导航 + 侧边栏 <span class="tag tag-green">已重构</span></td></tr>
+    <tr><td>组件数</td><td>13 个组件 + 1 个状态 Hook</td><td>12 个面板组件 + 4 个共享组件 + 12 个 UI 组件</td></tr>
+    <tr><td>状态模式</td><td>useTaskWorkbenchState 集中式 Hook (40+ 状态字段)</td><td>各面板独立 useState (组件级隔离)</td></tr>
+    <tr><td>共享组件</td><td>DispatchChain / SimulateFallback / ShadowModePanel</td><td>← 已移植 + MetricCard / ConversationBubbles / LlmAnalysisCard / ReportMarkdown</td></tr>
+    <tr><td>图表</td><td>无图表库</td><td>Recharts (BarChart + ResponsiveContainer)</td></tr>
+    <tr><td>RBAC</td><td>无</td><td>4 角色 × 菜单/操作/数据三级权限 <span class="tag tag-green">新增</span></td></tr>
+  </table>
+</div>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- 5. Summary -->
+<!-- ============================================================ -->
+<h2 id="summary">5. 总结：核心能力矩阵</h2>
+
+<div class="card">
+  <table>
+    <tr>
+      <th>能力维度</th>
+      <th>my-app 改版前</th>
+      <th>my-app 改版后</th>
+      <th>qa-system 改版前</th>
+      <th>qa-system 改版后</th>
+    </tr>
+    <tr>
+      <td><strong>流程可靠性</strong></td>
+      <td>⚠ 无持久化</td>
+      <td>✅ 状态机 + 事件总线</td>
+      <td>—</td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><strong>人机协同</strong></td>
+      <td>❌ 无</td>
+      <td>✅ HITL 挂起/恢复</td>
+      <td>⚠ 仅人工质检</td>
+      <td>✅ 误判驳回 + 优化任务</td>
+    </tr>
+    <tr>
+      <td><strong>LLM 容灾</strong></td>
+      <td>⚠ 单次调用</td>
+      <td>⚠ 单次调用</td>
+      <td>❌ 无</td>
+      <td>✅ 双模型 + 缓存 + 限流 + 重试</td>
+    </tr>
+    <tr>
+      <td><strong>语义检索</strong></td>
+      <td>❌ 无</td>
+      <td>❌ 无</td>
+      <td>❌ 无</td>
+      <td>✅ trigram + pgvector</td>
+    </tr>
+    <tr>
+      <td><strong>运营覆盖面</strong></td>
+      <td>单场景（派发）</td>
+      <td>单场景 + 监控</td>
+      <td>单场景（质检）</td>
+      <td>✅ 8 面板全链路</td>
+    </tr>
+    <tr>
+      <td><strong>数据闭环</strong></td>
+      <td>⚠ 开环</td>
+      <td>⚠ 开环</td>
+      <td>⚠ 开环</td>
+      <td>✅ 质检→聚类→优化→验证</td>
+    </tr>
+    <tr>
+      <td><strong>可观测性</strong></td>
+      <td>❌ 无</td>
+      <td>✅ 监控面板 + 死信</td>
+      <td>⚠ 基础指标</td>
+      <td>✅ 审计日志 + 17 种操作追踪</td>
+    </tr>
+    <tr>
+      <td><strong>权限控制</strong></td>
+      <td>❌ 无</td>
+      <td>❌ 无</td>
+      <td>❌ 无</td>
+      <td>✅ RBAC 4 角色三级</td>
+    </tr>
+    <tr>
+      <td><strong>文案管理</strong></td>
+      <td>⚠ 硬编码</td>
+      <td>✅ 模板引擎 + Zod</td>
+      <td>⚠ 硬编码</td>
+      <td>✅ 话术版本化 + LLM 建议</td>
+    </tr>
+    <tr>
+      <td><strong>API 路由数</strong></td>
+      <td>~20</td>
+      <td>35</td>
+      <td>~10</td>
+      <td>47</td>
+    </tr>
+  </table>
+</div>
+
+<div class="card" style="margin-top:1.5rem;">
+  <div class="card-header">🔑 关键结论</div>
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 0.5rem;">
+    <div>
+      <strong style="color:var(--purple);">my-app 的质变方向：深度</strong>
+      <p style="font-size:0.85rem; color:var(--muted); margin-top:0.3rem;">
+        从"能跑"到"可靠"。核心解决 <strong>流程不丢数据</strong> 的问题——状态机确保状态转换合法，
+        事件总线三重保障确保飞书回调永不丢失，HITL 让机器在不确定时优雅地请求人类帮助。
+      </p>
+    </div>
+    <div>
+      <strong style="color:var(--accent);">qa-system 的质变方向：广度</strong>
+      <p style="font-size:0.85rem; color:var(--muted); margin-top:0.3rem;">
+        从"单点质检"到"全链路运营"。核心解决 <strong>运营职责全覆盖</strong> 的问题——8 个面板、10 个 LLM 功能、
+        6 层工程保障，让一个 AI 平台覆盖电商客服机器人运营的完整工作流。
+      </p>
+    </div>
+  </div>
+</div>
+
+<p style="text-align:center; color:var(--muted); font-size:0.8rem; margin-top:3rem;">
+  生成时间：2026-05-14 · 两个项目均通过 npx tsc --noEmit 零错误验证
+</p>
+
+</div>
+</body>
+</html>

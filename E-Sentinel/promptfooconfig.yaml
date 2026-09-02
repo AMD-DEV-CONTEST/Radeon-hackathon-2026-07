@@ -1,0 +1,16 @@
+description: E-Sentinel deterministic fixture regression gate
+
+# This provider is deliberately local and deterministic. It does not call an
+# LLM, read production credentials, or write application state.
+providers:
+  - id: file://evals/promptfoo-provider.mjs
+
+prompts:
+  - |-
+    {"case_id":"{{case_id}}","input":{{input | dump}}}
+
+tests: file://evals/promptfoo-tests.yaml
+
+defaultTest:
+  options:
+    provider: file://evals/promptfoo-provider.mjs

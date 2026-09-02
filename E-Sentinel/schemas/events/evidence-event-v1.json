@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/events/evidence-event-v1.json",
+  "title": "QA System EvidenceEvent v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "specversion",
+    "id",
+    "source",
+    "type",
+    "time",
+    "tenant_id",
+    "datacontenttype",
+    "schema_ref",
+    "data"
+  ],
+  "properties": {
+    "specversion": { "const": "1.0" },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "source": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "type": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "time": { "type": "string", "format": "date-time" },
+    "tenant_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "team_id": { "type": ["string", "null"], "maxLength": 128 },
+    "subject": { "type": ["string", "null"], "maxLength": 256 },
+    "traceparent": {
+      "type": ["string", "null"],
+      "pattern": "^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$"
+    },
+    "datacontenttype": { "const": "application/json" },
+    "schema_ref": { "const": "schemas/events/evidence-event-v1.json" },
+    "data": { "type": "object" }
+  }
+}

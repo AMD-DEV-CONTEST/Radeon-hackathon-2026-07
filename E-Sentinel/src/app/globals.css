@@ -1,0 +1,801 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Brand — "Sentinel Cyan": cold cyan-blue (replaces teal-green) */
+  --color-brand-50: #f0faff;
+  --color-brand-100: #cceeff;
+  --color-brand-200: #99ddfb;
+  --color-brand-300: #66ccf5;
+  --color-brand-400: #3bbdeb;
+  --color-brand-500: #35C6D3;
+  --color-brand-600: #2aa8b8;
+  --color-brand-700: #1f8a9a;
+  --color-brand-800: #176d7d;
+  --color-brand-900: #105560;
+
+  /* Semantic intent tokens (resolve via tokens, theme-aware) */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
+  /* Motion tokens */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+}
+
+/* ============================================
+   Light Theme (default)
+   ============================================ */
+:root {
+  /* Surface 体系：页面极浅冷灰蓝 + 白卡片 + 浅蓝灰表头，杜绝"禁用态灰" */
+  --background: oklch(0.97 0.006 240);   /* #F6F8FB 页面背景 */
+  --foreground: oklch(0.2 0.018 240);    /* #18212B 主文字 */
+  --card: oklch(1 0 0);                  /* #FFFFFF 卡片背景 */
+  --card-foreground: oklch(0.2 0.018 240);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.018 240);
+  /* 主色：深石墨青蓝，承担 CTA / 选中 / 品牌记忆点 */
+  --primary: oklch(0.42 0.075 200);
+  --primary-foreground: oklch(0.985 0.01 200);
+  --secondary: oklch(0.965 0.006 240);
+  --secondary-foreground: oklch(0.25 0.018 240);
+  --muted: oklch(0.955 0.008 240);       /* #F1F5F9 表头/次级面 */
+  --muted-foreground: oklch(0.50 0.02 240); /* #4E6278 次级文字 — 提升对比度 */
+  --accent: oklch(0.95 0.01 240);
+  --accent-foreground: oklch(0.25 0.018 240);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.92 0.008 240);       /* #E5EAF0 分割线 */
+  --input: oklch(0.92 0.008 240);
+  --ring: oklch(0.42 0.075 200);
+  --chart-1: oklch(0.42 0.075 200);
+  --chart-2: oklch(0.6 0.12 160);
+  --chart-3: oklch(0.72 0.15 70);
+  --chart-4: oklch(0.6 0.16 290);
+  --chart-5: oklch(0.65 0.18 12);
+  --radius: 0.625rem;
+  /* 禁用专用 token：不再复用 muted，避免"正常内容像禁用" */
+  --surface-disabled: oklch(0.94 0.005 240);   /* #EEF1F4 */
+  --surface-disabled-fg: oklch(0.72 0.015 240); /* #A8B4C0 */
+  /* 侧栏：浅色体系 #F8FAFC，与主内容同源 */
+  --sidebar: #F8FAFC;
+  --sidebar-foreground: #1A2332;
+  --sidebar-primary: #35C6D3;                        /* 冷青蓝品牌强调 */
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #E0F0F3;                         /* 浅青蓝选中底 */
+  --sidebar-accent-foreground: #0F3D47;
+  --sidebar-border: #E5EAF0;                         /* 右侧分隔线 */
+  --sidebar-ring: #35C6D3;
+  --success: oklch(0.58 0.12 158);
+  --success-foreground: oklch(0.985 0.01 158);
+  --warning: oklch(0.7 0.15 62);
+  --warning-foreground: oklch(0.26 0.03 62);
+  --info: oklch(0.56 0.09 210);
+  --info-foreground: oklch(0.985 0.01 210);
+}
+
+/* ============================================
+   Dark Theme — deep ink with teal undertone
+   ============================================ */
+.dark {
+  --background: oklch(0.15 0.018 240);
+  --foreground: oklch(0.93 0.008 240);
+  --card: oklch(0.185 0.018 240);
+  --card-foreground: oklch(0.93 0.008 240);
+  --popover: oklch(0.185 0.018 240);
+  --popover-foreground: oklch(0.93 0.008 240);
+  --primary: oklch(0.68 0.11 200);
+  --primary-foreground: oklch(0.14 0.02 200);
+  --secondary: oklch(0.225 0.018 240);
+  --secondary-foreground: oklch(0.9 0.008 240);
+  --muted: oklch(0.225 0.018 240);
+  --muted-foreground: oklch(0.68 0.02 240); /* 暗色模式提升次级文字亮度 */
+  --accent: oklch(0.245 0.022 240);
+  --accent-foreground: oklch(0.9 0.008 240);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(0.28 0.018 240);
+  --input: oklch(0.28 0.018 240);
+  --ring: oklch(0.68 0.11 200);
+  --chart-1: oklch(0.68 0.11 200);
+  --chart-2: oklch(0.74 0.14 160);
+  --chart-3: oklch(0.78 0.15 70);
+  --chart-4: oklch(0.72 0.16 290);
+  --chart-5: oklch(0.72 0.17 12);
+  --surface-disabled: oklch(0.24 0.012 240);
+  --surface-disabled-fg: oklch(0.5 0.015 240);
+  --sidebar: #F8FAFC;
+  --sidebar-foreground: #1A2332;
+  --sidebar-primary: #35C6D3;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #E0F0F3;
+  --sidebar-accent-foreground: #0F3D47;
+  --sidebar-border: #E5EAF0;
+  --sidebar-ring: #35C6D3;
+  --success: oklch(0.72 0.14 160);
+  --success-foreground: oklch(0.13 0.02 160);
+  --warning: oklch(0.78 0.15 65);
+  --warning-foreground: oklch(0.16 0.03 65);
+  --info: oklch(0.74 0.11 200);
+  --info-foreground: oklch(0.13 0.02 200);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  html {
+    @apply font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* ============================================
+   Motion & Interaction Foundation
+   ============================================ */
+
+/* Smooth transitions on interactive elements */
+button,
+a,
+input,
+select,
+textarea,
+[role="button"] {
+  transition:
+    color var(--duration-fast) var(--ease-out-expo),
+    background-color var(--duration-fast) var(--ease-out-expo),
+    border-color var(--duration-fast) var(--ease-out-expo),
+    box-shadow var(--duration-fast) var(--ease-out-expo),
+    transform var(--duration-fast) var(--ease-spring),
+    opacity var(--duration-fast) var(--ease-out-expo);
+}
+
+/* Button press feedback */
+button:not([disabled]):active,
+[role="button"]:not([disabled]):active {
+  transform: scale(0.97);
+}
+
+/* Input & textarea focus ring */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+}
+
+/* Dialog / Modal */
+[data-slot="dialog-content"] {
+  box-shadow:
+    0 0 0 1px oklch(0 0 0 / 5%),
+    0 25px 60px -12px oklch(0 0 0 / 25%);
+}
+
+/* Scrollbar — minimal */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(0.7 0 0 / 30%);
+  border-radius: 100px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.5 0 0 / 40%);
+}
+
+/* Table row hover */
+tbody tr {
+  transition: background-color var(--duration-fast) var(--ease-out-expo);
+}
+tbody tr:hover {
+  background-color: var(--muted);
+}
+
+/* Self-hosted H5 customer chat */
+.h5-chat-shell {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: linear-gradient(145deg, oklch(0.97 0.015 198), oklch(0.91 0.035 188));
+}
+
+.h5-chat-panel {
+  width: min(100%, 720px);
+  height: min(760px, calc(100dvh - 48px));
+  min-height: 560px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: oklch(0.995 0.004 200 / 96%);
+  border: 1px solid oklch(0.72 0.035 190 / 45%);
+  border-radius: 22px;
+  box-shadow: 0 24px 70px oklch(0.29 0.08 200 / 18%), 0 2px 10px oklch(0.29 0.08 200 / 8%);
+}
+
+.h5-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  color: white;
+  background: linear-gradient(120deg, oklch(0.34 0.1 198), oklch(0.43 0.12 180));
+}
+
+.h5-chat-brand { display: flex; align-items: center; gap: 12px; }
+.h5-chat-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  color: oklch(0.94 0.12 175);
+  background: oklch(0.98 0.04 175 / 18%);
+  border: 1px solid oklch(0.98 0.04 175 / 28%);
+}
+.h5-chat-brand h1 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: 0; }
+.h5-chat-brand p { display: flex; align-items: center; gap: 6px; margin: 3px 0 0; color: oklch(0.92 0.025 190); font-size: 12px; }
+.h5-online-dot { width: 6px; height: 6px; border-radius: 50%; background: oklch(0.85 0.18 155); box-shadow: 0 0 0 3px oklch(0.85 0.18 155 / 16%); }
+.h5-icon-button { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 10px; color: white; background: oklch(0.98 0.04 190 / 14%); cursor: pointer; }
+.h5-icon-button:hover { background: oklch(0.98 0.04 190 / 24%); }
+.h5-chat-messages { flex: 1; overflow-y: auto; padding: 24px; background: oklch(0.975 0.008 200); }
+.h5-message-row { display: flex; align-items: flex-end; gap: 9px; max-width: 88%; margin-bottom: 18px; }
+.h5-message-row.user { flex-direction: row-reverse; margin-left: auto; }
+.h5-message-avatar { display: grid; place-items: center; flex: 0 0 auto; width: 30px; height: 30px; border-radius: 10px; color: oklch(0.39 0.1 198); background: oklch(0.92 0.04 190); }
+.h5-message-row.user .h5-message-avatar { color: oklch(0.98 0.01 190); background: oklch(0.43 0.12 180); }
+.h5-message-bubble { margin: 0; padding: 11px 14px; white-space: pre-wrap; word-break: break-word; line-height: 1.65; font-size: 14px; color: oklch(0.25 0.02 200); background: white; border: 1px solid oklch(0.88 0.012 200); border-radius: 14px 14px 14px 4px; box-shadow: 0 2px 6px oklch(0.3 0.03 200 / 4%); }
+.h5-message-row.user .h5-message-bubble { color: white; background: oklch(0.43 0.12 180); border-color: transparent; border-radius: 14px 14px 4px 14px; }
+.h5-typing { display: inline-flex; align-items: center; gap: 8px; color: oklch(0.46 0.025 200); }
+.h5-spin { animation: h5-spin 0.9s linear infinite; }
+@keyframes h5-spin { to { transform: rotate(360deg); } }
+.h5-chat-composer { padding: 14px 20px 16px; background: white; border-top: 1px solid oklch(0.89 0.008 200); }
+.h5-image-preview { position: relative; display: inline-flex; margin: 0 0 8px; padding: 4px; border: 1px solid oklch(0.86 0.012 200); border-radius: 8px; background: oklch(0.975 0.008 200); }
+.h5-image-preview img { display: block; width: 72px; height: 72px; object-fit: cover; border-radius: 5px; }
+.h5-image-preview button { position: absolute; top: -8px; right: -8px; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; color: white; background: oklch(0.45 0.02 200); border: 2px solid white; border-radius: 50%; cursor: pointer; }
+.h5-image-note { display: block; margin-bottom: 4px; font-size: 12px; opacity: 0.8; }
+.h5-message-bubble > p { margin: 0; white-space: pre-wrap; }
+.h5-upload-button { display: grid; place-items: center; flex: 0 0 auto; width: 42px; height: 46px; color: oklch(0.43 0.12 180); border: 1px solid oklch(0.86 0.012 200); border-radius: 10px; cursor: pointer; }
+.h5-upload-button:hover { background: oklch(0.95 0.025 190); }
+.h5-upload-button input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+.h5-name-field { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: oklch(0.48 0.02 200); font-size: 12px; }
+.h5-name-field input { width: 130px; padding: 4px 8px; color: oklch(0.24 0.02 200); background: oklch(0.975 0.008 200); border: 1px solid oklch(0.88 0.01 200); border-radius: 6px; font-size: 12px; }
+.h5-input-row { display: flex; align-items: flex-end; gap: 10px; }
+.h5-input-row textarea { flex: 1; min-height: 46px; max-height: 130px; resize: vertical; padding: 11px 12px; color: oklch(0.24 0.02 200); background: oklch(0.975 0.008 200); border: 1px solid oklch(0.86 0.012 200); border-radius: 10px; font: inherit; font-size: 14px; line-height: 1.45; }
+.h5-input-row textarea::placeholder { color: oklch(0.58 0.015 200); }
+.h5-send-button { display: grid; place-items: center; flex: 0 0 auto; width: 46px; height: 46px; color: white; background: oklch(0.43 0.12 180); border: 0; border-radius: 10px; cursor: pointer; }
+.h5-send-button:hover:not(:disabled) { background: oklch(0.38 0.12 180); }
+.h5-send-button:disabled { opacity: 0.45; cursor: not-allowed; }
+.h5-chat-error { margin: 8px 0 0; color: oklch(0.52 0.18 25); font-size: 12px; }
+.h5-chat-footnote { margin: 8px 0 0; color: oklch(0.58 0.015 200); font-size: 11px; text-align: center; }
+
+@media (max-width: 640px) {
+  .h5-chat-shell { padding: 0; place-items: stretch; }
+  .h5-chat-panel { width: 100%; height: 100dvh; min-height: 0; border: 0; border-radius: 0; }
+  .h5-chat-header { padding: 16px 18px; }
+  .h5-chat-messages { padding: 18px 14px; }
+  .h5-chat-composer { padding: 12px 14px max(12px, env(safe-area-inset-bottom)); }
+  .h5-message-row { max-width: 94%; }
+}
+
+/* ============================================
+   Panel Transition Animation
+   ============================================ */
+@keyframes panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.panel-animate {
+  animation: panel-enter var(--duration-slow) var(--ease-out-expo) both;
+}
+
+/*
+ * Empty states must not unmount panel children: create/import dialogs live in
+ * those children. Hide the ordinary empty body without hiding fixed modal
+ * layers that are intentionally opened from the empty-state action.
+ */
+.panel-empty-content {
+  visibility: hidden;
+}
+.panel-empty-content [class*="fixed"] {
+  visibility: visible;
+}
+
+/* Staggered children entrance */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.stagger-children > * {
+  animation: fade-up var(--duration-slow) var(--ease-out-expo) both;
+}
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+
+/* Toast animation */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-toast-in {
+  animation: toast-in var(--duration-normal) var(--ease-spring);
+}
+
+/* ============================================
+   Unified Design System — Reusable Base Styles
+   ============================================ */
+
+/* Card container */
+.card-base {
+  border-radius: var(--radius);
+  padding: 20px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px oklch(0 0 0 / 4%), 0 4px 12px oklch(0 0 0 / 3%);
+  transition:
+    box-shadow var(--duration-normal) var(--ease-out-expo),
+    transform var(--duration-normal) var(--ease-spring);
+}
+.card-base:hover {
+  box-shadow: 0 4px 16px oklch(0 0 0 / 8%), 0 8px 32px oklch(0 0 0 / 4%);
+  transform: translateY(-1px);
+}
+
+/* Primary button — brand fill */
+.btn-primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: var(--radius);
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  border: none;
+  cursor: pointer;
+}
+.btn-primary:hover {
+  filter: brightness(1.1);
+}
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Secondary button — ghost with border */
+.btn-secondary {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  border-radius: var(--radius);
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+}
+.btn-secondary:hover {
+  background: var(--muted);
+  border-color: var(--muted-foreground);
+}
+.btn-secondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Tag / Badge capsule */
+.tag-base {
+  border-radius: 100px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+/* Table row */
+.table-row {
+  height: 48px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Page content background */
+.page-content {
+  background: var(--background);
+}
+
+/* ============================================
+   Premium Utilities — semantic, token-driven
+   ============================================ */
+
+/* Metric trend colors (replace hardcoded emerald/red) */
+.metric-up {
+  color: var(--success);
+}
+.metric-down {
+  color: var(--destructive);
+}
+.metric-flat {
+  color: var(--muted-foreground);
+}
+
+/* Section label — small, tracked, muted */
+.section-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+/* Stat primitives */
+.stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--muted-foreground);
+}
+.stat-value {
+  font-size: 1.75rem;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--foreground);
+}
+
+/* Top bar */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  height: 4rem;
+  padding-inline: 1rem;
+  background: color-mix(in oklab, var(--background) 82%, transparent);
+  backdrop-filter: blur(16px) saturate(1.5);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Refined focus ring for interactive elements */
+:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--ring) 80%, transparent);
+  outline-offset: 2px;
+  border-radius: calc(var(--radius) * 0.5);
+}
+
+/* Subtle hairline divider that adapts to theme */
+.hairline {
+  height: 1px;
+  background: var(--border);
+}
+
+/* Premium card hover lift (used by reference panels) */
+.card-premium {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  transition:
+    box-shadow var(--duration-normal) var(--ease-out-expo),
+    transform var(--duration-normal) var(--ease-spring),
+    border-color var(--duration-normal) var(--ease-out-expo);
+}
+.card-premium:hover {
+  box-shadow:
+    0 1px 2px oklch(0 0 0 / 4%),
+    0 12px 32px -8px oklch(0 0 0 / 10%);
+  transform: translateY(-1px);
+  border-color: color-mix(in oklab, var(--primary) 25%, var(--border));
+}
+
+/* Dashboard-wide visual normalization for legacy panels. */
+.dashboard-shell [class*="bg-white"] {
+  background-color: var(--card) !important;
+}
+.dashboard-shell [class*="bg-slate-50"],
+.dashboard-shell [class*="bg-zinc-50"] {
+  background-color: color-mix(in oklab, var(--background) 88%, var(--foreground)) !important;
+}
+.dashboard-shell [class*="border-slate-"],
+.dashboard-shell [class*="border-zinc-"] {
+  border-color: var(--border) !important;
+}
+.dashboard-shell [class*="text-slate-900"],
+.dashboard-shell [class*="text-slate-800"],
+.dashboard-shell [class*="text-zinc-900"] {
+  color: var(--foreground) !important;
+}
+.dashboard-shell [class*="text-slate-700"],
+.dashboard-shell [class*="text-slate-600"],
+.dashboard-shell [class*="text-zinc-600"] {
+  color: var(--muted-foreground) !important;
+}
+
+/* ============================================
+   Mobile Responsive (max-width: 768px)
+   ============================================ */
+@media (max-width: 768px) {
+  .dashboard-shell [class*="grid-cols-4"],
+  .dashboard-shell [class*="grid-cols-5"],
+  .dashboard-shell [class*="grid-cols-6"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .dashboard-shell [class*="grid-cols-3"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dashboard-shell .model-stat-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .dashboard-shell div:has(> table) {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dashboard-shell div:has(> table) > table {
+    min-width: 640px;
+  }
+
+  .dashboard-shell [class*="w-[420px]"],
+  .dashboard-shell [class*="w-[500px]"],
+  .dashboard-shell [class*="w-[600px]"],
+  .dashboard-shell [class*="w-[700px]"] {
+    width: 100% !important;
+    max-width: 100vw !important;
+  }
+
+  .dashboard-shell .platform-sidebar {
+    width: 100%;
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dashboard-shell .platform-management {
+    flex-direction: column;
+  }
+
+  .dashboard-shell .platform-management-body {
+    flex-direction: column;
+  }
+
+  .dashboard-shell .platform-sidebar h3 {
+    display: none;
+  }
+
+  .dashboard-shell .platform-sidebar button {
+    width: auto;
+    min-width: max-content;
+  }
+
+  [data-slot="table-container"] {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .metric-card-grid {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .metric-card-grid > * {
+    flex: 1 1 auto;
+  }
+
+  .dashboard-shell button,
+  .dashboard-shell [role="button"],
+  .dashboard-shell select,
+  .dashboard-shell input:not([type="checkbox"]):not([type="radio"]),
+  .dashboard-shell textarea {
+    min-height: 44px;
+  }
+
+  .text-2xl {
+    font-size: 1.25rem !important;
+    line-height: 1.75rem !important;
+  }
+
+  .dashboard-shell .card,
+  .dashboard-shell [data-slot="card"] {
+    padding: 0.75rem;
+  }
+
+  .filter-bar {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .panel-content {
+    padding: 0.75rem;
+  }
+
+  .sheet-content-mobile {
+    max-width: 100vw;
+    width: 100vw;
+  }
+}
+
+/* ============================================
+   Mobile Bottom Navigation Bar
+   ============================================ */
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  padding: 0.25rem 0 env(safe-area-inset-bottom, 0.5rem);
+  height: 3.75rem;
+  backdrop-filter: blur(12px) saturate(1.4);
+}
+
+.mobile-nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0.25rem 0.5rem;
+  min-width: 3rem;
+  min-height: 3rem;
+  border: none;
+  background: none;
+  color: var(--muted-foreground);
+  font-size: 0.625rem;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  border-radius: var(--radius);
+}
+
+.mobile-nav-btn .mobile-nav-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-nav-btn.active {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.mobile-dashboard-menu {
+  position: fixed;
+  right: 0;
+  bottom: calc(3.75rem + env(safe-area-inset-bottom, 0.5rem));
+  left: 0;
+  z-index: 55;
+  max-height: 70vh;
+  overflow: hidden;
+  border-top: 1px solid var(--border);
+  background: color-mix(in oklab, var(--card) 96%, transparent);
+  box-shadow: 0 -16px 40px oklch(0 0 0 / 12%);
+  backdrop-filter: blur(18px) saturate(1.4);
+}
+
+.mobile-nav-btn.active::after {
+  content: "";
+  display: block;
+  width: 1rem;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--primary);
+  margin-top: 2px;
+}
+
+/* 桌面端隐藏移动底导航（.mobile-nav 自身带 display:flex，会覆盖组件的 md:hidden） */
+@media (min-width: 768px) {
+  .mobile-nav {
+    display: none;
+  }
+}
+
+/* ============================================
+   Mobile Simplified View
+   ============================================ */
+@media (max-width: 767px) {
+  .mobile-simplified {
+    display: none;
+  }
+}

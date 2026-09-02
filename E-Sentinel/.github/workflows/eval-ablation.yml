@@ -1,0 +1,143 @@
+name: Eval Ablation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/lib/compliance-engine.ts"
+      - "src/lib/llm-provider.ts"
+      - "src/lib/agent/**"
+      - "src/lib/qa/evaluate-core.ts"
+      - "src/app/api/qa/evaluate/route.ts"
+      - "scripts/evaluate-goldset.mjs"
+      - "scripts/lib/metrics.mjs"
+      - "evals/configs/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/lib/compliance-engine.ts"
+      - "src/lib/llm-provider.ts"
+      - "src/lib/agent/**"
+      - "src/lib/qa/evaluate-core.ts"
+      - "src/app/api/qa/evaluate/route.ts"
+      - "scripts/evaluate-goldset.mjs"
+      - "scripts/lib/metrics.mjs"
+      - "evals/configs/**"
+  workflow_dispatch:
+
+jobs:
+  deterministic-gate:
+    name: Deterministic ablation gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Metrics unit tests
+        run: npm run eval:metrics
+
+      - name: Dataset validator contract tests
+        run: npm run test:eval-validator
+
+      - name: Offline rule_only ablation
+        run: node scripts/evaluate-goldset.mjs --offline-rule-only --variants rule_only
+
+      - name: Compare with committed rule_only baseline
+        run: |
+          CURRENT=$(ls -t evals/results/ablation-*.json | head -1)
+          echo "current=${CURRENT}"
+          node scripts/compare-ablation.mjs \
+            --baseline evals/results/baseline.json \
+            --current "${CURRENT}" \
+            --variant rule_only \
+            --f1-threshold 0.05 \
+            --kappa-threshold 0.05 \
+            --write evals/results/ci-deterministic-gate.md
+
+      - name: Upload deterministic gate report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-deterministic-gate
+          path: evals/results/
+          if-no-files-found: error
+          retention-days: 7
+
+  full-ablation:
+    name: Full 6-variant ablation (LLM)
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && secrets.ADMIN_API_KEY != '')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ADMIN_API_KEY: ${{ secrets.ADMIN_API_KEY }}
+      API_SECRET: ${{ secrets.ADMIN_API_KEY }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      DEEPSEEK_API_URL: ${{ secrets.DEEPSEEK_API_URL }}
+      DEEPSEEK_MODEL: ${{ secrets.DEEPSEEK_MODEL }}
+      MOONSHOT_API_KEY: ${{ secrets.MOONSHOT_API_KEY }}
+      MOONSHOT_API_URL: ${{ secrets.MOONSHOT_API_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start dev server
+        run: |
+          npx next dev -p 3001 > /tmp/next-dev.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3001 >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          curl -fsS http://localhost:3001 >/dev/null
+
+      - name: Run full ablation
+        run: |
+          node scripts/evaluate-goldset.mjs \
+            --offline-rule-only \
+            --variants rule_only,llm_only,dual,dual_rag,dual_rag_memory,agent \
+            --base-url http://localhost:3001 \
+            --api-key "$ADMIN_API_KEY"
+
+      - name: Compare with committed baseline
+        run: |
+          CURRENT=$(ls -t evals/results/ablation-*.json | head -1)
+          echo "current=${CURRENT}"
+          node scripts/compare-ablation.mjs \
+            --baseline evals/results/baseline.json \
+            --current "${CURRENT}" \
+            --f1-threshold 0.05 \
+            --kappa-threshold 0.05 \
+            --write evals/results/ci-full-ablation.md
+
+      - name: Upload full ablation artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-full-ablation
+          path: evals/results/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Surface server log on failure
+        if: failure()
+        run: tail -200 /tmp/next-dev.log

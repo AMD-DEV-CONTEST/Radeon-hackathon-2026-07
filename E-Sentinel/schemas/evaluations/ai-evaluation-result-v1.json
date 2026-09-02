@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/evaluations/ai-evaluation-result-v1.json",
+  "title": "QA System AI Evaluation Result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "case_id",
+    "dataset_version",
+    "predicted_category",
+    "blocked",
+    "evidence_coverage",
+    "latency_ms",
+    "cost_estimate",
+    "model_version",
+    "prompt_version",
+    "rule_version"
+  ],
+  "properties": {
+    "case_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "dataset_version": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "predicted_category": {
+      "enum": ["safe", "compliance", "privacy", "prompt_injection", "sensitive", "unsupported_claim"]
+    },
+    "blocked": { "type": "boolean" },
+    "evidence_coverage": { "type": "number", "minimum": 0, "maximum": 1 },
+    "latency_ms": { "type": "integer", "minimum": 0 },
+    "cost_estimate": { "type": "number", "minimum": 0 },
+    "model_version": { "type": "string", "minLength": 1 },
+    "prompt_version": { "type": "string", "minLength": 1 },
+    "rule_version": { "type": "string", "minLength": 1 },
+    "evidence_refs": { "type": "array", "items": { "type": "object" } }
+  }
+}

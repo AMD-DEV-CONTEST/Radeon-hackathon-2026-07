@@ -1,0 +1,91 @@
+{
+  "name": "qa-system",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "lint:governance": "eslint src/lib/governance/evidence-event.ts src/lib/governance/event-store.ts src/lib/governance/quality-loop.ts src/app/api/qa/events/route.ts src/app/api/__tests__/events-route.test.ts src/lib/__tests__/evidence-event-contract.test.ts src/lib/__tests__/event-store.test.ts src/lib/__tests__/governance.test.ts",
+    "lint:ai-eval": "eslint src/lib/evaluation/dataset.ts src/lib/evaluation/gate.ts src/app/api/qa/eval-gate/route.ts src/lib/__tests__/ai-evaluation-gate.test.ts src/app/api/__tests__/eval-gate-route.test.ts",
+    "test": "jest",
+    "test:unit": "jest --testPathPatterns='src/lib/__tests__/'",
+    "test:contracts": "jest --runInBand --testPathPatterns='src/lib/__tests__/evidence-event-contract.test.ts'",
+    "test:ai-eval": "jest --runInBand --testPathPatterns='ai-evaluation-gate|eval-gate-route'",
+    "test:integration": "jest --testPathPatterns='src/app/api/__tests__/'",
+    "test:coverage": "jest --coverage",
+    "test:precommit": "jest --no-coverage --onlyChanged",
+    "test:ci": "jest --coverage --ci --maxWorkers=2",
+    "eval:validate": "node evals/validate-dataset.mjs",
+    "test:eval-validator": "node --test evals/validate-dataset.test.mjs",
+    "eval:promptfoo": "node scripts/run-promptfoo.mjs eval -c promptfooconfig.yaml --no-cache --no-progress-bar --output promptfoo-results.json",
+    "prepare": "husky",
+    "eval:goldset": "node scripts/evaluate-goldset.mjs --goldsets evals/configs/gold-set-human-v1.json",
+    "eval:goldset:rule-only": "node scripts/evaluate-goldset.mjs --offline-rule-only --variants rule_only --goldsets evals/configs/gold-set-human-v1.json",
+    "setup:seed-db": "node scripts/setup-seed-db.mjs",
+    "eval:ablation:all": "node scripts/evaluate-goldset.mjs --offline-rule-only --variants rule_only,llm_only,dual,dual_rag,dual_rag_memory,agent",
+    "eval:compare": "node scripts/compare-ablation.mjs",
+    "eval:complementary": "node scripts/complementary-analysis.mjs",
+    "eval:metrics": "node --test scripts/evaluate-goldset.test.mjs",
+    "typecheck": "tsc --noEmit",
+    "verify:submission": "npm run typecheck && npm run lint && npm test && npm run eval:validate:human-gold && npm run eval:metrics",
+    "eval:validate:human-gold": "node evals/validate-dataset.mjs evals/configs/gold-set-human-v1.json",
+    "benchmark:quality": "node scripts/evaluate-goldset.mjs --goldsets evals/configs/gold-set-human-v1.json --variants rule_only,dual,agent --paired",
+    "benchmark:stability": "node scripts/evaluate-goldset.mjs --goldsets evals/configs/gold-set-human-v1.json --stability-repeats 3 --stability-variant agent",
+    "benchmark:radeon": "node scripts/verify-amd-evidence.mjs"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "bash -c 'npx tsc --noEmit'",
+      "jest --onlyChanged --passWithNoTests --no-coverage"
+    ]
+  },
+  "overrides": {
+    "postcss": "8.5.23",
+    "sharp": "0.35.3",
+    "@hono/node-server": "2.0.12"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.4.1",
+    "@supabase/supabase-js": "^2.108.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.14.0",
+    "nanoid": "^5.1.11",
+    "next": "16.2.12",
+    "pg": "^8.20.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-markdown": "^10.1.0",
+    "recharts": "^3.8.1",
+    "shadcn": "^4.7.0",
+    "tailwind-merge": "^3.6.0",
+    "tw-animate-css": "^1.4.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.0",
+    "@tailwindcss/postcss": "^4",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.12",
+    "husky": "^9.1.7",
+    "jest": "^30.4.2",
+    "lint-staged": "^17.0.5",
+    "tailwindcss": "^4",
+    "ts-jest": "^29.4.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5"
+  },
+  "description": "> 关键词规则会漏掉“今天肯定到账，出问题我个人赔偿”。E-Sentinel 不会。",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

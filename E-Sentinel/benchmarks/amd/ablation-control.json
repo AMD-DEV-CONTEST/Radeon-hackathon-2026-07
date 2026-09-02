@@ -1,0 +1,41 @@
+{
+  "note": "AMD 优化对照实验（2026-08-04，AMD 实例本地 vLLM Qwen3-8B，gfx1100 ROCm 7.2.1）。对照实验证明每项优化的增量，非单点数字。",
+  "model": "/workspace/Qwen3-8B",
+  "hardware": "AMD gfx1100 (Radeon PRO W7900D), ROCm 7.2.1, vLLM 0.26.0+rocm723",
+  "experiments": {
+    "thinking_on_off": {
+      "description": "关闭思考链（enable_thinking=false）是 E-Sentinel 质检的关键优化：默认思考链 content 空、token 翻倍。相同客服质检 prompt，max_tokens=200。",
+      "prompt": "你是客服质检裁判。请评估以下会话，输出风险等级与违规项。客服：您好...客户：假货投诉12315...客服：核实...",
+      "runs": 3,
+      "thinking_on": {
+        "p50_seconds": 5.01,
+        "min_seconds": 4.91,
+        "content_len": 337,
+        "completion_tokens": 200
+      },
+      "thinking_off": {
+        "p50_seconds": 1.57,
+        "min_seconds": 1.54,
+        "content_len": 57,
+        "completion_tokens": 22
+      },
+      "speedup_p50": 3.2,
+      "token_reduction_pct": 91
+    },
+    "prefix_caching_cold_hot": {
+      "description": "prefix-caching：相同长前缀（客服会话开头 20 行）复用已计算 KV，仅重算差异后缀。相同请求跑两次，第二次命中前缀缓存。",
+      "runs": 2,
+      "cold_e2e_seconds": 3.14,
+      "hot_e2e_seconds": 2.11,
+      "speedup": 1.49
+    },
+    "concurrency_throughput": {
+      "description": "并发批量吞吐（summary.json batch 表）：并发 1→8，聚合吞吐与单请求延迟。",
+      "source": "summary.json",
+      "concurrency_1": { "req_per_s": 2.04, "tokens_per_s": 175.6, "e2e_p50": 7.451 },
+      "concurrency_2": { "req_per_s": 1.8, "tokens_per_s": 162.8, "e2e_p50": 7.599 },
+      "concurrency_4": { "req_per_s": 1.88, "tokens_per_s": 163.4, "e2e_p50": 7.378 },
+      "concurrency_8": { "req_per_s": 1.86, "tokens_per_s": 170.4, "e2e_p50": 7.181 }
+    }
+  }
+}

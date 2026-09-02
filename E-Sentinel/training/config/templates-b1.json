@@ -1,0 +1,160 @@
+{
+  "version": "training-templates-b1",
+  "note": "B′ 数据结构模板：工具上下文（会话+检索返回+判定）、反事实对（说话者互换/否定词标签翻转）、困难负例七类。质量核心为区分'合规提醒 vs 违规'与'工具证据使用'。gold 105 例不参与任何生成。",
+  "tool_contexts": [
+    {
+      "seed": "tc-01",
+      "conversation": "客户：刚才有人打电话说要我的银行卡号，是你们客服吗？\n客服：您好，我们绝不会通过电话索要您的银行卡号或验证码，请勿向任何自称客服的人提供这些信息。",
+      "tool_context": "【检索返回】风控提醒：官方客服不会索要验证码/银行卡号/密码；如遇索要请立即挂断并报警。",
+      "label": { "risk_level": "low", "severe": false, "violations": [], "requires_tool": true, "needs_human_review": false }
+    },
+    {
+      "seed": "tc-02",
+      "conversation": "客户：你们说假一赔十，是真的吗？\n客服：保证是正品，假一赔十，买不了吃亏，绝对没问题。",
+      "tool_context": "【检索返回】售后政策：本店支持7天无理由退货；'假一赔十'仅限平台官方活动商品，且需经第三方检测认定售假，普通承诺不适用。",
+      "label": { "risk_level": "critical", "severe": true, "violations": [ { "category": "professionalism", "rule": "禁止虚假承诺/承诺无法兑现", "severity": "critical", "source_quote": "保证是正品，假一赔十，买不了吃亏，绝对没问题。" } ], "requires_tool": true, "needs_human_review": false }
+    },
+    {
+      "seed": "tc-03",
+      "conversation": "客户：我要退货，怎么操作？\n客服：您好，您可以在订单页面申请退货退款，审核通过后1-3个工作日内原路退回。",
+      "tool_context": "【检索返回】退货流程：订单页可申请退货，审核通过后1-3个工作日原路退回。",
+      "label": { "risk_level": "low", "severe": false, "violations": [], "requires_tool": true, "needs_human_review": false }
+    },
+    {
+      "seed": "tc-04",
+      "conversation": "客户：我怀疑你们泄露了我个人信息。\n客服：我们没有泄露，你多虑了。",
+      "tool_context": "【检索返回】隐私政策：平台严禁泄露客户信息；如遇泄露请提供具体凭证以便核查。（无该客户的泄露记录）",
+      "label": { "risk_level": "low", "severe": false, "violations": [], "requires_tool": true, "needs_human_review": true }
+    },
+    {
+      "seed": "tc-05",
+      "conversation": "客户：帮我查一下订单号A123的物流。\n客服：您好，您的订单B456正在运输中，预计明天送达。",
+      "tool_context": "【检索返回】订单A123：已签收（3天前）；订单B456：运输中。",
+      "label": { "risk_level": "medium", "severe": false, "violations": [ { "category": "problem_solving", "rule": "答非所问/未按流程核实", "severity": "minor", "source_quote": "您的订单B456正在运输中，预计明天送达。" } ], "requires_tool": true, "needs_human_review": false }
+    },
+    {
+      "seed": "tc-06",
+      "conversation": "客户：退款怎么一直没到账？\n客服：把验证码发我，我帮你确认退款进度。",
+      "tool_context": "【检索返回】退款进度查询：请提供订单号，无需验证码；平台不会索要短信验证码。",
+      "label": { "risk_level": "critical", "severe": true, "violations": [ { "category": "compliance_privacy", "rule": "严禁索要验证码/完整银行卡/密码", "severity": "critical", "source_quote": "把验证码发我，我帮你确认退款进度。" } ], "requires_tool": true, "needs_human_review": false }
+    },
+    {
+      "seed": "tc-07",
+      "conversation": "客户：你们再不处理我就差评。\n客服：敢差评我就拉黑你，以后别来买。",
+      "tool_context": "【检索返回】红线规则：威胁/拉黑客户属严重违规（threat-01）。",
+      "label": { "risk_level": "critical", "severe": true, "violations": [ { "category": "service_attitude", "rule": "禁止辱骂/威胁客户", "severity": "critical", "source_quote": "敢差评我就拉黑你，以后别来买。" } ], "requires_tool": true, "needs_human_review": false }
+    },
+    {
+      "seed": "tc-08",
+      "conversation": "客户：这款手机是不是最好的？\n客服：全网最强，没有对手，最顶级配置。",
+      "tool_context": "【检索返回】广告法：禁止使用'最'、'第一'、'顶级'等绝对化用语宣传。",
+      "label": { "risk_level": "critical", "severe": true, "violations": [ { "category": "compliance_privacy", "rule": "禁止绝对化宣传（广告法）", "severity": "critical", "source_quote": "全网最强，没有对手，最顶级配置。" } ], "requires_tool": true, "needs_human_review": false }
+    },
+    {
+      "seed": "tc-09",
+      "conversation": "客户：在保修期内能免费修吗？\n客服：过保了，修不了，你自己想办法吧。",
+      "tool_context": "【检索返回】保修政策：本机在保修期内可免费维修；需提供订单号核实购买日期。",
+      "label": { "risk_level": "high", "severe": true, "violations": [ { "category": "problem_solving", "rule": "拒绝受理投诉/拒绝转接升级", "severity": "major", "source_quote": "过保了，修不了，你自己想办法吧。" } ], "requires_tool": true, "needs_human_review": false }
+    },
+    {
+      "seed": "tc-10",
+      "conversation": "客户：你们店有打折吗？\n客服：放心，肯定全网最低价，错过就没有了。",
+      "tool_context": "【检索返回】促销规则：折扣以活动页公告为准，禁止承诺'全网最低价'。",
+      "label": { "risk_level": "critical", "severe": true, "violations": [ { "category": "compliance_privacy", "rule": "禁止绝对化宣传（广告法）", "severity": "critical", "source_quote": "肯定全网最低价，错过就没有了。" } ], "requires_tool": true, "needs_human_review": false }
+    }
+  ],
+  "counterfactual_pairs": [
+    {
+      "seed": "cf-01",
+      "kind": "negation_flip",
+      "note": "同一句只加'请勿'，critical↔low",
+      "pairs": [
+        { "conversation": "客服：请勿把您的验证码和银行卡号发给任何人。", "label": { "risk_level": "low", "severe": false, "violations": [], "needs_human_review": false } },
+        { "conversation": "客服：把您的验证码和银行卡号发给我。", "label": { "risk_level": "critical", "severe": true, "violations": [ { "category": "compliance_privacy", "rule": "严禁索要验证码/完整银行卡/密码", "severity": "critical", "source_quote": "把您的验证码和银行卡号发给我。" } ], "needs_human_review": false } }
+      ]
+    },
+    {
+      "seed": "cf-02",
+      "kind": "negation_flip",
+      "note": "否定 vs 命令，密码索取",
+      "pairs": [
+        { "conversation": "客服：请不要在链接里输入您的密码，那是诈骗链接。", "label": { "risk_level": "low", "severe": false, "violations": [], "needs_human_review": false } },
+        { "conversation": "客服：点这个链接输入您的密码，我帮您处理优惠。", "label": { "risk_level": "critical", "severe": true, "violations": [ { "category": "compliance_privacy", "rule": "严禁索要验证码/完整银行卡/密码", "severity": "critical", "source_quote": "点这个链接输入您的密码，我帮您处理优惠。" } ], "needs_human_review": false } }
+      ]
+    },
+    {
+      "seed": "cf-03",
+      "kind": "speaker_swap",
+      "note": "同一诉求换说话者：客户说(非违规) vs 客服说(推诿)",
+      "pairs": [
+        { "conversation": "客户：我要去12315投诉你们！", "label": { "risk_level": "medium", "severe": false, "violations": [], "needs_human_review": false } },
+        { "conversation": "客服：你去12315投诉去吧，不关我们的事。", "label": { "risk_level": "high", "severe": true, "violations": [ { "category": "problem_solving", "rule": "拒绝受理投诉/拒绝转接升级", "severity": "major", "source_quote": "你去12315投诉去吧，不关我们的事。" } ], "needs_human_review": false } }
+      ]
+    },
+    {
+      "seed": "cf-04",
+      "kind": "negation_flip",
+      "note": "退款受理 vs 拒绝",
+      "pairs": [
+        { "conversation": "客服：您好，退款申请已受理，1-3个工作日内原路退回。", "label": { "risk_level": "low", "severe": false, "violations": [], "needs_human_review": false } },
+        { "conversation": "客服：退款？不给你退，爱去哪告去哪。", "label": { "risk_level": "high", "severe": true, "violations": [ { "category": "problem_solving", "rule": "拒绝受理投诉/拒绝转接升级", "severity": "major", "source_quote": "退款？不给你退，爱去哪告去哪。" } ], "needs_human_review": false } }
+      ]
+    },
+    {
+      "seed": "cf-05",
+      "kind": "speaker_swap",
+      "note": "情绪话换说话者：客户说(非违规) vs 客服说(争执)",
+      "pairs": [
+        { "conversation": "客户：你这是什么态度，破店！", "label": { "risk_level": "low", "severe": false, "violations": [], "needs_human_review": false } },
+        { "conversation": "客服：你才破店，泼妇，爱买不买！", "label": { "risk_level": "critical", "severe": true, "violations": [ { "category": "service_attitude", "rule": "禁止辱骂/威胁客户", "severity": "critical", "source_quote": "你才破店，泼妇，爱买不买！" } ], "needs_human_review": false } }
+      ]
+    },
+    {
+      "seed": "cf-06",
+      "kind": "negation_flip",
+      "note": "核实承诺 vs 未核实断言",
+      "pairs": [
+        { "conversation": "客服：您好，我核实一下官方参数后回复您，请稍等。", "label": { "risk_level": "low", "severe": false, "violations": [], "needs_human_review": false } },
+        { "conversation": "客服：电池5000毫安，绝对没错，不用查，我还能骗你？", "label": { "risk_level": "high", "severe": true, "violations": [ { "category": "professionalism", "rule": "未核实产品信息即断言且拒不核实", "severity": "major", "source_quote": "电池5000毫安，绝对没错，不用查，我还能骗你？" } ], "needs_human_review": false } }
+      ]
+    }
+  ],
+  "hard_negatives": [
+    {
+      "seed": "hn-01",
+      "category": "customer_says_but_agent_not",
+      "conversation": "客户：我要报警，你们是骗子！\n客服：您好，很抱歉让您有这样的感受，请提供订单号，我为您核实处理。",
+      "label": { "risk_level": "low", "severe": false, "violations": [], "needs_human_review": false }
+    },
+    {
+      "seed": "hn-02",
+      "category": "agent_cites_or_warns",
+      "conversation": "客户：验证码发你？\n客服：请不要发送，平台客服不会索要验证码，谨防诈骗。",
+      "label": { "risk_level": "low", "severe": false, "violations": [], "needs_human_review": false }
+    },
+    {
+      "seed": "hn-03",
+      "category": "customer_emotion_not_violation",
+      "conversation": "客户：急死我了，你们到底管不管！\n客服：我理解您着急，已经为您加急跟进，预计今天内给您答复。",
+      "label": { "risk_level": "low", "severe": false, "violations": [], "needs_human_review": false }
+    },
+    {
+      "seed": "hn-04",
+      "category": "complaint_handled_well",
+      "conversation": "客户：我要投诉你们！\n客服：非常抱歉，已为您登记并安排专员，1个工作日内回复处理结果。",
+      "label": { "risk_level": "medium", "severe": false, "violations": [], "needs_human_review": false }
+    },
+    {
+      "seed": "hn-05",
+      "category": "refund_handled_well",
+      "conversation": "客户：我要退款！\n客服：好的，已为您提交退款申请，审核通过后原路退回，请您留意到账。",
+      "label": { "risk_level": "low", "severe": false, "violations": [], "needs_human_review": false }
+    },
+    {
+      "seed": "hn-06",
+      "category": "empathy_not_perfunctory",
+      "conversation": "客户：东西坏了，麻烦尽快处理。\n客服：非常抱歉给您带来不便，已为您登记维修，检测后第一时间联系您。",
+      "label": { "risk_level": "low", "severe": false, "violations": [], "needs_human_review": false }
+    }
+  ]
+}
