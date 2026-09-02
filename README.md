@@ -1,4 +1,6 @@
 # Radeon-hackathon-2026-07
+🏆 **AMD AI DevMaster Hackathon 2026 Winners**
+[Three Tracks, One GPU: Lessons from the AMD DevMaster Hackathon](https://www.amd.com/en/developer/resources/technical-articles/2026/lessons-from-the-amd-devmaster-hackathon.html)
 
 ## how to apply and use AMD Radeon GPU
 see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
