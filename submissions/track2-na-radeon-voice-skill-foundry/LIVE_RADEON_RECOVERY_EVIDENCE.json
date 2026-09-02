@@ -1,0 +1,113 @@
+{
+  "schemaVersion": "0.1.0",
+  "capturedAt": "2026-08-02T07:16:25.520900+00:00",
+  "sourceCommit": "8aa924f1f239b7fd645482eb5f0c952c01a7f98e",
+  "instance": {
+    "id": "u-8159-8576a2be",
+    "gpuCount": 1,
+    "creditRate": "1 credit/GPU/hour",
+    "creditsObserved": 5,
+    "creditsConsumedObserved": 0,
+    "runtimeHoursObserved": 54.76,
+    "runtimeMinutesObserved": 3285,
+    "creditObservationAt": "2026-08-04T12:50:00Z"
+  },
+  "publicHealth": {
+    "ok": true,
+    "healthy": true,
+    "runtime": {
+      "mode": "radeon",
+      "model": "Qwen/Qwen3-4B-Instruct-2507",
+      "baseUrlConfigured": true,
+      "asrModel": "Qwen/Qwen3-ASR-0.6B",
+      "gpu": "AMD Radeon Pro W7900-class gfx1100 48GB",
+      "rocm": "ROCm 7.2.1",
+      "asrRtf": 0.0556,
+      "asrXRealtime": 17.98,
+      "asrPeakVramGiB": 1.752
+    },
+    "dependencies": {
+      "model": "healthy",
+      "asr": "healthy"
+    },
+    "persisted": {
+      "compileRuns": 1,
+      "verificationRuns": 1,
+      "voiceEvidenceRecords": 1,
+      "demonstrationSessions": 1
+    }
+  },
+  "governance": {
+    "status": "valid",
+    "entryCount": 0,
+    "headHash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "issues": []
+  },
+  "services": [
+    "rvsf-api                         RUNNING   pid 11640, uptime 0:04:25",
+    "rvsf-asr                         RUNNING   pid 11641, uptime 0:04:25",
+    "rvsf-model                       RUNNING   pid 11642, uptime 0:04:25",
+    "rvsf-origin-registrar            RUNNING   pid 11643, uptime 0:04:25",
+    "rvsf-public-monitor              RUNNING   pid 11644, uptime 0:04:25",
+    "rvsf-tunnel                      RUNNING   pid 11645, uptime 0:04:25"
+  ],
+  "independentWatchdog": {
+    "pid": 11568,
+    "command": "bash /workspace/radeon-voice-skill-foundry-current/scripts/rvsf_supervisor_watchdog.sh watch",
+    "intervalSeconds": 30,
+    "failureThreshold": 3,
+    "supervisorFailureObservedAt": "2026-08-02T07:10:59Z",
+    "supervisorRestartStartedAt": "2026-08-02T07:11:59Z",
+    "supervisorControlHealthyAt": "2026-08-02T07:12:14Z",
+    "stablePublicHealthAt": "2026-08-02T07:13:32Z",
+    "postRecoveryConsecutiveHealthyProbes": 5
+  },
+  "liveCompile": {
+    "runId": "run_a5e5baca660d",
+    "constraintCount": 7,
+    "fixtureCount": 6,
+    "modelMetrics": {
+      "ttftMs": 1790.15,
+      "generationMs": 17531.04,
+      "tokensPerSecond": 20.36,
+      "inputTokens": 1187,
+      "outputTokens": 357,
+      "peakVramGiB": 7.825
+    },
+    "modelRoute": {
+      "selected": "primary",
+      "primaryAccepted": true,
+      "primaryReasons": []
+    }
+  },
+  "liveVerification": {
+    "status": "verified",
+    "passedFixtures": 6,
+    "proofHash": "3fb2d1c15a8fb014cf13843b916379766bfc37937979c9ba99e05e4da20c779c",
+    "harnessContractHash": "ae2dceaa4cc3f4be2ea895aebb0e04a9c0729742aba5e560d0f824c589c18523",
+    "verifierContractHash": "b39e7824235c53b91eeb39f5f81ff9b4f8656ceb6c980eee9c88dc906633676a"
+  },
+  "liveAsr": {
+    "transcript": "项目评审之后，之处理P零和P一问题。外部报告里不能包含薪资数据。邮件只能生成草稿，不要自动发送。如果负责人缺失，必须标记为需要确认。只有存在截止日期时，才创建日历站位。",
+    "language": "Chinese",
+    "audioSeconds": 20.39,
+    "inferenceMs": 13612.16,
+    "rtf": 0.6676,
+    "xRealtime": 1.5,
+    "peakVramGiB": 1.652,
+    "qualityScore": 100
+  },
+  "recoveryTests": {
+    "dualTunnelGateway": "Radeon Cloud rc-tunnel is the primary origin and Cloudflare Quick Tunnel is the fallback origin. The stable Pages response exposes x-rvsf-origin-kind without revealing credentials. Stopping rc-tunnel produced three consecutive HTTP 200 responses marked quick-tunnel; Supervisor re-exposed a new rc domain, the registrar updated KV, and the response returned to HTTP 200 marked rc-tunnel. Stopping Quick Tunnel separately left stable Pages health at HTTP 200 through rc-tunnel.",
+    "dualTunnelActivePrimary": "dynamic rc-*.radeon.firstdg.ai",
+    "dualTunnelActiveFallback": "https://turbo-sagem-sheer-gaps.trycloudflare.com",
+    "dualTunnelManagedServices": 8,
+    "dualTunnelFailoverHeader": "x-rvsf-origin-kind",
+    "dependencyFailureDetection": "ASR termination produced public HTTP 503 with asr=unavailable",
+    "dependencyAutoRestart": "supervisord restored ASR and public HTTP 200 in about 20 seconds",
+    "quickTunnelRotation": "new Quick Tunnel registered and stable Pages health recovered in about 25 seconds",
+    "supervisorMainProcessRecovery": "an independent watchdog detected supervisord shutdown, restarted it after three 30-second failures, restored all six managed services, and reached stable public HTTP 200 in about 161 seconds from shutdown",
+    "localExternalMonitor": "launchd runs every 300 seconds. Several HTTP 000 probes on 2026-08-03 were isolated to the Mac network or sleep state: the W7900 internal monitor returned healthy every minute during the same interval.",
+    "githubExternalMonitor": "GitHub Actions requests four offset checks per hour; actual schedule execution is best-effort. Observed scheduled runs are recorded in GITHUB_SCHEDULED_HEALTH_SUMMARY.json."
+  }
+}

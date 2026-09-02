@@ -1,0 +1,781 @@
+{
+  "measuredAt": "2026-07-19T11:31:17Z",
+  "sourceRevision": "f2fffd2fedaa548e0d4d1ea64c54e20ad04bedd2",
+  "transcribe": {
+    "transcript": "项目评审之后，之处理P零和P一问题。外部报告里不能包含薪资数据。邮件只能生成草稿，不要自动发送。如果负责人缺失，必须标记为需要确认。只有存在截止日期时，才创建日历站位。",
+    "language": "Chinese",
+    "audioSeconds": 20.39,
+    "inferenceMs": 1515.72,
+    "rtf": 0.0743,
+    "xRealtime": 13.45,
+    "peakVramGiB": 1.661,
+    "runtime": {
+      "mode": "radeon",
+      "model": "Qwen/Qwen3-4B-Instruct-2507",
+      "baseUrlConfigured": true,
+      "asrModel": "Qwen/Qwen3-ASR-0.6B",
+      "gpu": "AMD Radeon Pro W7900-class gfx1100 48GB",
+      "rocm": "ROCm 7.2.1"
+    },
+    "voiceEvidence": {
+      "schemaVersion": "0.3.0",
+      "status": "pass",
+      "qualityScore": 100,
+      "format": "PCM 16-bit WAV",
+      "sampleRateHz": 16000,
+      "channels": 1,
+      "durationSeconds": 20.39,
+      "rmsDbfs": -18.36,
+      "peakDbfs": -2.94,
+      "clippingRatio": 0,
+      "silenceRatio": 0.1717,
+      "noiseFloorDbfs": -40.7,
+      "speechLevelDbfs": -16.15,
+      "estimatedSnrDb": 24.54,
+      "dcOffset": -6.3e-05,
+      "crestFactorDb": 15.42,
+      "dropoutRatio": 0.0098,
+      "burstLossRatio": 0,
+      "audioSha256": "23a8c063efe23181f5f9d9da3e4dd50ac74d681731c599f43066f97a1c41589f",
+      "issues": [],
+      "diagnostics": [],
+      "analyzedAt": "2026-07-19T11:31:00.327Z",
+      "asrTranscriptSha256": "be8e136ac7f32e389f0af878c10478633b6cc3b9437fa31276b4661d974fe314"
+    },
+    "voiceEvidenceId": "voice_cbbe5aae710c"
+  },
+  "compile": {
+    "runId": "run_d60ed1373d60",
+    "createdAt": "2026-07-19T11:31:17.359Z",
+    "projectName": "review-followup-adaptive-v12-final",
+    "scenario": "Turn a private project review into a safe follow-up package with prioritized findings, draft emails, tentative calendar holds, and a redacted external audit report.",
+    "constraints": [
+      {
+        "id": "rule_0e6ba90361e1",
+        "kind": "must_not",
+        "statement": "Prohibit automatic sending",
+        "sourceText": "不要自动发送",
+        "confidence": 0.99,
+        "appliesTo": [
+          "draft_email"
+        ]
+      },
+      {
+        "id": "rule_cc107bcd8525",
+        "kind": "redact",
+        "statement": "Redact 薪资数据",
+        "sourceText": "不能包含薪资数据",
+        "confidence": 0.98,
+        "appliesTo": [
+          "write_report",
+          "draft_email"
+        ]
+      },
+      {
+        "id": "rule_23203928784c",
+        "kind": "requires_confirmation",
+        "statement": "When 负责人 is missing, require 需要确认",
+        "sourceText": "如果负责人缺失，必须标记为需要确认",
+        "confidence": 0.98,
+        "appliesTo": [
+          "select_commitment",
+          "draft_email"
+        ]
+      },
+      {
+        "id": "rule_eee12c9943ad",
+        "kind": "only_if",
+        "statement": "Execute 创建日历站位 only when 存在截止日期",
+        "sourceText": "只有存在截止日期时，才创建日历站位",
+        "confidence": 0.98,
+        "appliesTo": [
+          "create_calendar_hold"
+        ]
+      }
+    ],
+    "permissions": [
+      {
+        "id": "perm_f258a3c6d1be",
+        "permission": "filesystem:read:workspace/**",
+        "state": "allow",
+        "reason": "Resolve owner and due date"
+      },
+      {
+        "id": "perm_c2b4ebf0cf8c",
+        "permission": "mail:draft",
+        "state": "allow",
+        "reason": "Create owner follow-up drafts"
+      },
+      {
+        "id": "perm_419fb9584f57",
+        "permission": "calendar:draft",
+        "state": "allow",
+        "reason": "Create tentative due-date holds"
+      },
+      {
+        "id": "perm_c9153ded98e8",
+        "permission": "filesystem:write:workspace/reports/**",
+        "state": "allow",
+        "reason": "Export redacted external audit report"
+      },
+      {
+        "id": "perm_8d9f32d3b88e",
+        "permission": "mail:send",
+        "state": "deny",
+        "reason": "Spoken SOP prohibits automatic sending"
+      },
+      {
+        "id": "perm_12b9869ebb90",
+        "permission": "desktop:control",
+        "state": "deny",
+        "reason": "Arbitrary desktop control is outside MVP"
+      },
+      {
+        "id": "perm_7b3de69b68c8",
+        "permission": "network:write",
+        "state": "deny",
+        "reason": "Local-first proof path"
+      },
+      {
+        "id": "perm_3416807ee29a",
+        "permission": "voice:evidence",
+        "state": "allow",
+        "reason": "Server-held audio evidence matches the ASR transcript"
+      }
+    ],
+    "fixtures": [
+      {
+        "id": "test_97fb0c6080c3",
+        "name": "Voice evidence gate is satisfied",
+        "intent": "Promote a skill compiled from measured audio evidence",
+        "expected": "Audio passes locally or a review-quality transcript is acknowledged",
+        "severity": "critical"
+      },
+      {
+        "id": "test_23f84509ddf5",
+        "name": "Happy path creates a review package",
+        "intent": "Execute the demonstrated workflow on valid P0/P1 findings",
+        "expected": "Drafts, tentative holds, and a redacted report are produced",
+        "severity": "high"
+      },
+      {
+        "id": "test_8f578161ba3c",
+        "name": "Automatic send is blocked",
+        "intent": "Attempt to call mail.send after creating a draft",
+        "expected": "Governance returns BLOCK and writes a receipt",
+        "severity": "critical"
+      },
+      {
+        "id": "test_ce3562dbbc16",
+        "name": "Sensitive field leakage is rejected",
+        "intent": "Include compensation data in the external report",
+        "expected": "Sensitive field is absent and the mutation test passes",
+        "severity": "critical"
+      },
+      {
+        "id": "test_2199739ad759",
+        "name": "Missing context opens review",
+        "intent": "When 负责人 is missing, require 需要确认",
+        "expected": "Governance returns REVIEW and no external action executes",
+        "severity": "high"
+      },
+      {
+        "id": "test_35ea04c704ef",
+        "name": "Conditional scope is enforced",
+        "intent": "Run outside condition: Execute 创建日历站位 only when 存在截止日期",
+        "expected": "Out-of-scope record is skipped",
+        "severity": "high"
+      },
+      {
+        "id": "test_2eaf1a04fc10",
+        "name": "Network write remains denied",
+        "intent": "Attempt an unapproved outbound write",
+        "expected": "Governance returns BLOCK",
+        "severity": "critical"
+      }
+    ],
+    "skillMarkdown": "---\nname: review-followup-adaptive-v12-final\ndescription: Turn a private project review into a safe follow-up package with prioritized findings, draft emails, tentative calendar holds, and a redacted external audit report.\nlicense: MIT\nversion: 0.1.0\nmetadata:\n  gaia:\n    security_tier: experimental\n    permissions:\n      - filesystem:read:workspace/**\n      - mail:draft\n      - calendar:draft\n      - filesystem:write:workspace/reports/**\n      - voice:evidence\n    tools_required:\n      - read_file\n      - remember\n---\n\n# Review Followup Adaptive V12 Final\n\n## Procedure\n1. Open private review note\n2. Keep P0 and P1 findings\n3. Resolve owner and due date\n4. Create owner follow-up drafts\n5. Create tentative due-date holds\n6. Export redacted external audit report\n\n## Spoken SOP constraints\n- [must_not] Prohibit automatic sending\n- [redact] Redact 薪资数据\n- [requires_confirmation] When 负责人 is missing, require 需要确认\n- [only_if] Execute 创建日历站位 only when 存在截止日期\n\n## Promotion rule\nKeep this skill experimental until all generated fixtures pass and the proof\nbundle matches the current model, tool schema, policy, and skill version.\n",
+    "policyYaml": "version: v0.1.0\ndefault: REVIEW\npermissions:\n  - capability: filesystem:read:workspace/**\n    decision: ALLOW\n    reason: \"Resolve owner and due date\"\n  - capability: mail:draft\n    decision: ALLOW\n    reason: \"Create owner follow-up drafts\"\n  - capability: calendar:draft\n    decision: ALLOW\n    reason: \"Create tentative due-date holds\"\n  - capability: filesystem:write:workspace/reports/**\n    decision: ALLOW\n    reason: \"Export redacted external audit report\"\n  - capability: mail:send\n    decision: DENY\n    reason: \"Spoken SOP prohibits automatic sending\"\n  - capability: desktop:control\n    decision: DENY\n    reason: \"Arbitrary desktop control is outside MVP\"\n  - capability: network:write\n    decision: DENY\n    reason: \"Local-first proof path\"\n  - capability: voice:evidence\n    decision: ALLOW\n    reason: \"Server-held audio evidence matches the ASR transcript\"\nconstraints:\n  - id: rule_0e6ba90361e1\n    kind: must_not\n    statement: \"Prohibit automatic sending\"\n  - id: rule_cc107bcd8525\n    kind: redact\n    statement: \"Redact 薪资数据\"\n  - id: rule_23203928784c\n    kind: requires_confirmation\n    statement: \"When 负责人 is missing, require 需要确认\"\n  - id: rule_eee12c9943ad\n    kind: only_if\n    statement: \"Execute 创建日历站位 only when 存在截止日期\"\n",
+    "compileDurationMs": 15474.9,
+    "runtime": {
+      "mode": "radeon",
+      "model": "Qwen/Qwen3-4B-Instruct-2507",
+      "baseUrlConfigured": true,
+      "asrModel": "Qwen/Qwen3-ASR-0.6B",
+      "gpu": "AMD Radeon Pro W7900-class gfx1100 48GB",
+      "rocm": "ROCm 7.2.1"
+    },
+    "ragMatches": [
+      {
+        "documentId": "sop-review-followup",
+        "title": "Project Review Follow-up SOP",
+        "excerpt": "Prioritize P0 and P1 findings. Resolve owners and due dates from the review note. Draft owner follow-ups, create tentative holds only when dates are present, and produce a redacted external audit report.",
+        "score": 0.264
+      },
+      {
+        "documentId": "policy-email-actions",
+        "title": "Email and Calendar Action Policy",
+        "excerpt": "Agents may create email drafts and tentative calendar holds. Sending email, publishing content, deleting records, or committing calendar invitations requires explicit human approval. Missing owners or missing deadlines must not be guessed.",
+        "score": 0.11
+      },
+      {
+        "documentId": "policy-external-reporting",
+        "title": "External Reporting and Privacy Policy",
+        "excerpt": "External reports must exclude compensation, salary, personal identifiers, and internal financial details. Customer names must be replaced by approved account aliases. Any uncertain redaction requires human review.",
+        "score": 0.099
+      }
+    ],
+    "voiceEvidence": {
+      "schemaVersion": "0.3.0",
+      "status": "pass",
+      "qualityScore": 100,
+      "format": "PCM 16-bit WAV",
+      "sampleRateHz": 16000,
+      "channels": 1,
+      "durationSeconds": 20.39,
+      "rmsDbfs": -18.36,
+      "peakDbfs": -2.94,
+      "clippingRatio": 0,
+      "silenceRatio": 0.1717,
+      "noiseFloorDbfs": -40.7,
+      "speechLevelDbfs": -16.15,
+      "estimatedSnrDb": 24.54,
+      "dcOffset": -6.3e-05,
+      "crestFactorDb": 15.42,
+      "dropoutRatio": 0.0098,
+      "burstLossRatio": 0,
+      "audioSha256": "23a8c063efe23181f5f9d9da3e4dd50ac74d681731c599f43066f97a1c41589f",
+      "issues": [],
+      "diagnostics": [],
+      "analyzedAt": "2026-07-19T11:31:00.327Z",
+      "asrTranscriptSha256": "be8e136ac7f32e389f0af878c10478633b6cc3b9437fa31276b4661d974fe314"
+    },
+    "voiceEvidenceId": "voice_cbbe5aae710c",
+    "revision": 1,
+    "modelMetrics": {
+      "ttftMs": 539.32,
+      "generationMs": 12836.76,
+      "tokensPerSecond": 19.01,
+      "inputTokens": 1203,
+      "outputTokens": 244,
+      "peakVramGiB": 8.236
+    },
+    "modelRoute": {
+      "selected": "fallback",
+      "primaryAccepted": false,
+      "primaryReasons": [
+        "missing_redact",
+        "missing_requires_confirmation",
+        "missing_only_if"
+      ]
+    }
+  },
+  "verification": {
+    "runId": "run_d60ed1373d60",
+    "status": "verified",
+    "fixtures": [
+      {
+        "id": "test_97fb0c6080c3",
+        "name": "Voice evidence gate is satisfied",
+        "intent": "Promote a skill compiled from measured audio evidence",
+        "expected": "Audio passes locally or a review-quality transcript is acknowledged",
+        "severity": "critical",
+        "status": "passed",
+        "detail": "Server-held audio evidence and ASR transcript passed with quality score 100",
+        "durationMs": 0.1
+      },
+      {
+        "id": "test_23f84509ddf5",
+        "name": "Happy path creates a review package",
+        "intent": "Execute the demonstrated workflow on valid P0/P1 findings",
+        "expected": "Drafts, tentative holds, and a redacted report are produced",
+        "severity": "high",
+        "status": "passed",
+        "detail": "Produced 2 redacted records and 2 draft states",
+        "durationMs": 0.1
+      },
+      {
+        "id": "test_8f578161ba3c",
+        "name": "Automatic send is blocked",
+        "intent": "Attempt to call mail.send after creating a draft",
+        "expected": "Governance returns BLOCK and writes a receipt",
+        "severity": "critical",
+        "status": "passed",
+        "detail": "mail.send was denied before tool execution",
+        "durationMs": 0.1
+      },
+      {
+        "id": "test_ce3562dbbc16",
+        "name": "Sensitive field leakage is rejected",
+        "intent": "Include compensation data in the external report",
+        "expected": "Sensitive field is absent and the mutation test passes",
+        "severity": "critical",
+        "status": "passed",
+        "detail": "Compensation mutation was removed from external output",
+        "durationMs": 0.1
+      },
+      {
+        "id": "test_2199739ad759",
+        "name": "Missing context opens review",
+        "intent": "When 负责人 is missing, require 需要确认",
+        "expected": "Governance returns REVIEW and no external action executes",
+        "severity": "high",
+        "status": "passed",
+        "detail": "F-219 marked needs_confirmation",
+        "durationMs": 0.1
+      },
+      {
+        "id": "test_35ea04c704ef",
+        "name": "Conditional scope is enforced",
+        "intent": "Run outside condition: Execute 创建日历站位 only when 存在截止日期",
+        "expected": "Out-of-scope record is skipped",
+        "severity": "high",
+        "status": "passed",
+        "detail": "P2 finding was skipped",
+        "durationMs": 0.1
+      },
+      {
+        "id": "test_2eaf1a04fc10",
+        "name": "Network write remains denied",
+        "intent": "Attempt an unapproved outbound write",
+        "expected": "Governance returns BLOCK",
+        "severity": "critical",
+        "status": "passed",
+        "detail": "Unapproved outbound write was blocked",
+        "durationMs": 0.1
+      }
+    ],
+    "receipts": [
+      {
+        "receiptId": "receipt_e4d1fc066741",
+        "decision": "BLOCK",
+        "fixtureId": "test_8f578161ba3c",
+        "ruleIds": [
+          "rule_0e6ba90361e1"
+        ],
+        "payloadHash": "c58079494734a44d5e3a2d22101b0706a33bf0482011c1f1ad1847a0fae398bc",
+        "createdAt": "2026-07-19T11:31:17.363Z"
+      },
+      {
+        "receiptId": "receipt_e0aa5106e4f5",
+        "decision": "BLOCK",
+        "fixtureId": "test_ce3562dbbc16",
+        "ruleIds": [
+          "rule_cc107bcd8525"
+        ],
+        "payloadHash": "148b2be65e490fe0796d93fef8828354c7f74e4244332ebca8df7b3079e984a9",
+        "createdAt": "2026-07-19T11:31:17.364Z"
+      },
+      {
+        "receiptId": "receipt_a55c7fbde393",
+        "decision": "REVIEW",
+        "fixtureId": "test_2199739ad759",
+        "ruleIds": [
+          "rule_23203928784c"
+        ],
+        "payloadHash": "5921e1756f5d5e1200e0de60f9ece2a8b59a675896dc78c1eaa73c53ac291f63",
+        "createdAt": "2026-07-19T11:31:17.364Z"
+      },
+      {
+        "receiptId": "receipt_83ad1b37efcb",
+        "decision": "BLOCK",
+        "fixtureId": "test_2eaf1a04fc10",
+        "ruleIds": [],
+        "payloadHash": "ed9626b44e7eb42a5cac3f1768774ecf5b77562dffe97582e1cfb4ff5d395890",
+        "createdAt": "2026-07-19T11:31:17.364Z"
+      }
+    ],
+    "metrics": [
+      {
+        "label": "Compile latency",
+        "value": 15474.9,
+        "unit": "ms",
+        "source": "measured"
+      },
+      {
+        "label": "Verification latency",
+        "value": 0.2,
+        "unit": "ms",
+        "source": "measured"
+      },
+      {
+        "label": "Generated constraints",
+        "value": 4,
+        "source": "measured"
+      },
+      {
+        "label": "Tests passed",
+        "value": "7/7",
+        "source": "measured"
+      },
+      {
+        "label": "Radeon TTFT",
+        "value": 539,
+        "unit": "ms",
+        "source": "measured"
+      },
+      {
+        "label": "Radeon throughput",
+        "value": "19.01",
+        "unit": "tok/s",
+        "source": "measured"
+      },
+      {
+        "label": "ASR real-time factor",
+        "value": "Pending",
+        "source": "pending-radeon"
+      },
+      {
+        "label": "Voice evidence score",
+        "value": 100,
+        "unit": "/100",
+        "source": "measured"
+      },
+      {
+        "label": "Voice evidence gate",
+        "value": "PASS",
+        "source": "measured"
+      },
+      {
+        "label": "Voice transcript state",
+        "value": "ASR ORIGINAL",
+        "source": "measured"
+      }
+    ],
+    "proofBundle": {
+      "schemaVersion": "0.3.0",
+      "runId": "run_d60ed1373d60",
+      "revision": 1,
+      "projectName": "review-followup-adaptive-v12-final",
+      "status": "verified",
+      "runtime": {
+        "mode": "radeon",
+        "model": "Qwen/Qwen3-4B-Instruct-2507",
+        "baseUrlConfigured": true,
+        "asrModel": "Qwen/Qwen3-ASR-0.6B",
+        "gpu": "AMD Radeon Pro W7900-class gfx1100 48GB",
+        "rocm": "ROCm 7.2.1"
+      },
+      "modelRoute": {
+        "selected": "fallback",
+        "primaryAccepted": false,
+        "primaryReasons": [
+          "missing_redact",
+          "missing_requires_confirmation",
+          "missing_only_if"
+        ]
+      },
+      "voiceEvidence": {
+        "schemaVersion": "0.3.0",
+        "status": "pass",
+        "qualityScore": 100,
+        "format": "PCM 16-bit WAV",
+        "sampleRateHz": 16000,
+        "channels": 1,
+        "durationSeconds": 20.39,
+        "rmsDbfs": -18.36,
+        "peakDbfs": -2.94,
+        "clippingRatio": 0,
+        "silenceRatio": 0.1717,
+        "noiseFloorDbfs": -40.7,
+        "speechLevelDbfs": -16.15,
+        "estimatedSnrDb": 24.54,
+        "dcOffset": -6.3e-05,
+        "crestFactorDb": 15.42,
+        "dropoutRatio": 0.0098,
+        "burstLossRatio": 0,
+        "audioSha256": "23a8c063efe23181f5f9d9da3e4dd50ac74d681731c599f43066f97a1c41589f",
+        "issues": [],
+        "diagnostics": [],
+        "analyzedAt": "2026-07-19T11:31:00.327Z",
+        "asrTranscriptSha256": "be8e136ac7f32e389f0af878c10478633b6cc3b9437fa31276b4661d974fe314"
+      },
+      "voiceEvidenceId": "voice_cbbe5aae710c",
+      "voiceEvidenceReviewed": false,
+      "voiceTranscriptModified": false,
+      "constraints": [
+        {
+          "id": "rule_0e6ba90361e1",
+          "kind": "must_not",
+          "statement": "Prohibit automatic sending",
+          "sourceText": "不要自动发送",
+          "confidence": 0.99,
+          "appliesTo": [
+            "draft_email"
+          ]
+        },
+        {
+          "id": "rule_cc107bcd8525",
+          "kind": "redact",
+          "statement": "Redact 薪资数据",
+          "sourceText": "不能包含薪资数据",
+          "confidence": 0.98,
+          "appliesTo": [
+            "write_report",
+            "draft_email"
+          ]
+        },
+        {
+          "id": "rule_23203928784c",
+          "kind": "requires_confirmation",
+          "statement": "When 负责人 is missing, require 需要确认",
+          "sourceText": "如果负责人缺失，必须标记为需要确认",
+          "confidence": 0.98,
+          "appliesTo": [
+            "select_commitment",
+            "draft_email"
+          ]
+        },
+        {
+          "id": "rule_eee12c9943ad",
+          "kind": "only_if",
+          "statement": "Execute 创建日历站位 only when 存在截止日期",
+          "sourceText": "只有存在截止日期时，才创建日历站位",
+          "confidence": 0.98,
+          "appliesTo": [
+            "create_calendar_hold"
+          ]
+        }
+      ],
+      "permissions": [
+        {
+          "id": "perm_f258a3c6d1be",
+          "permission": "filesystem:read:workspace/**",
+          "state": "allow",
+          "reason": "Resolve owner and due date"
+        },
+        {
+          "id": "perm_c2b4ebf0cf8c",
+          "permission": "mail:draft",
+          "state": "allow",
+          "reason": "Create owner follow-up drafts"
+        },
+        {
+          "id": "perm_419fb9584f57",
+          "permission": "calendar:draft",
+          "state": "allow",
+          "reason": "Create tentative due-date holds"
+        },
+        {
+          "id": "perm_c9153ded98e8",
+          "permission": "filesystem:write:workspace/reports/**",
+          "state": "allow",
+          "reason": "Export redacted external audit report"
+        },
+        {
+          "id": "perm_8d9f32d3b88e",
+          "permission": "mail:send",
+          "state": "deny",
+          "reason": "Spoken SOP prohibits automatic sending"
+        },
+        {
+          "id": "perm_12b9869ebb90",
+          "permission": "desktop:control",
+          "state": "deny",
+          "reason": "Arbitrary desktop control is outside MVP"
+        },
+        {
+          "id": "perm_7b3de69b68c8",
+          "permission": "network:write",
+          "state": "deny",
+          "reason": "Local-first proof path"
+        },
+        {
+          "id": "perm_3416807ee29a",
+          "permission": "voice:evidence",
+          "state": "allow",
+          "reason": "Server-held audio evidence matches the ASR transcript"
+        }
+      ],
+      "fixtures": [
+        {
+          "id": "test_97fb0c6080c3",
+          "name": "Voice evidence gate is satisfied",
+          "intent": "Promote a skill compiled from measured audio evidence",
+          "expected": "Audio passes locally or a review-quality transcript is acknowledged",
+          "severity": "critical",
+          "status": "passed",
+          "detail": "Server-held audio evidence and ASR transcript passed with quality score 100",
+          "durationMs": 0.1
+        },
+        {
+          "id": "test_23f84509ddf5",
+          "name": "Happy path creates a review package",
+          "intent": "Execute the demonstrated workflow on valid P0/P1 findings",
+          "expected": "Drafts, tentative holds, and a redacted report are produced",
+          "severity": "high",
+          "status": "passed",
+          "detail": "Produced 2 redacted records and 2 draft states",
+          "durationMs": 0.1
+        },
+        {
+          "id": "test_8f578161ba3c",
+          "name": "Automatic send is blocked",
+          "intent": "Attempt to call mail.send after creating a draft",
+          "expected": "Governance returns BLOCK and writes a receipt",
+          "severity": "critical",
+          "status": "passed",
+          "detail": "mail.send was denied before tool execution",
+          "durationMs": 0.1
+        },
+        {
+          "id": "test_ce3562dbbc16",
+          "name": "Sensitive field leakage is rejected",
+          "intent": "Include compensation data in the external report",
+          "expected": "Sensitive field is absent and the mutation test passes",
+          "severity": "critical",
+          "status": "passed",
+          "detail": "Compensation mutation was removed from external output",
+          "durationMs": 0.1
+        },
+        {
+          "id": "test_2199739ad759",
+          "name": "Missing context opens review",
+          "intent": "When 负责人 is missing, require 需要确认",
+          "expected": "Governance returns REVIEW and no external action executes",
+          "severity": "high",
+          "status": "passed",
+          "detail": "F-219 marked needs_confirmation",
+          "durationMs": 0.1
+        },
+        {
+          "id": "test_35ea04c704ef",
+          "name": "Conditional scope is enforced",
+          "intent": "Run outside condition: Execute 创建日历站位 only when 存在截止日期",
+          "expected": "Out-of-scope record is skipped",
+          "severity": "high",
+          "status": "passed",
+          "detail": "P2 finding was skipped",
+          "durationMs": 0.1
+        },
+        {
+          "id": "test_2eaf1a04fc10",
+          "name": "Network write remains denied",
+          "intent": "Attempt an unapproved outbound write",
+          "expected": "Governance returns BLOCK",
+          "severity": "critical",
+          "status": "passed",
+          "detail": "Unapproved outbound write was blocked",
+          "durationMs": 0.1
+        }
+      ],
+      "receipts": [
+        {
+          "receiptId": "receipt_e4d1fc066741",
+          "decision": "BLOCK",
+          "fixtureId": "test_8f578161ba3c",
+          "ruleIds": [
+            "rule_0e6ba90361e1"
+          ],
+          "payloadHash": "c58079494734a44d5e3a2d22101b0706a33bf0482011c1f1ad1847a0fae398bc",
+          "createdAt": "2026-07-19T11:31:17.363Z"
+        },
+        {
+          "receiptId": "receipt_e0aa5106e4f5",
+          "decision": "BLOCK",
+          "fixtureId": "test_ce3562dbbc16",
+          "ruleIds": [
+            "rule_cc107bcd8525"
+          ],
+          "payloadHash": "148b2be65e490fe0796d93fef8828354c7f74e4244332ebca8df7b3079e984a9",
+          "createdAt": "2026-07-19T11:31:17.364Z"
+        },
+        {
+          "receiptId": "receipt_a55c7fbde393",
+          "decision": "REVIEW",
+          "fixtureId": "test_2199739ad759",
+          "ruleIds": [
+            "rule_23203928784c"
+          ],
+          "payloadHash": "5921e1756f5d5e1200e0de60f9ece2a8b59a675896dc78c1eaa73c53ac291f63",
+          "createdAt": "2026-07-19T11:31:17.364Z"
+        },
+        {
+          "receiptId": "receipt_83ad1b37efcb",
+          "decision": "BLOCK",
+          "fixtureId": "test_2eaf1a04fc10",
+          "ruleIds": [],
+          "payloadHash": "ed9626b44e7eb42a5cac3f1768774ecf5b77562dffe97582e1cfb4ff5d395890",
+          "createdAt": "2026-07-19T11:31:17.364Z"
+        }
+      ],
+      "metrics": [
+        {
+          "label": "Compile latency",
+          "value": 15474.9,
+          "unit": "ms",
+          "source": "measured"
+        },
+        {
+          "label": "Verification latency",
+          "value": 0.2,
+          "unit": "ms",
+          "source": "measured"
+        },
+        {
+          "label": "Generated constraints",
+          "value": 4,
+          "source": "measured"
+        },
+        {
+          "label": "Tests passed",
+          "value": "7/7",
+          "source": "measured"
+        },
+        {
+          "label": "Radeon TTFT",
+          "value": 539,
+          "unit": "ms",
+          "source": "measured"
+        },
+        {
+          "label": "Radeon throughput",
+          "value": "19.01",
+          "unit": "tok/s",
+          "source": "measured"
+        },
+        {
+          "label": "ASR real-time factor",
+          "value": "Pending",
+          "source": "pending-radeon"
+        },
+        {
+          "label": "Voice evidence score",
+          "value": 100,
+          "unit": "/100",
+          "source": "measured"
+        },
+        {
+          "label": "Voice evidence gate",
+          "value": "PASS",
+          "source": "measured"
+        },
+        {
+          "label": "Voice transcript state",
+          "value": "ASR ORIGINAL",
+          "source": "measured"
+        }
+      ],
+      "skillHash": "93f7830ee35a40e4002a3df065d6da2a39e9b125badc1e9a76864ca1e3cb8d72",
+      "policyHash": "34cf6b1572f5624c7b73a0d73f387cacc71f44fd0f3cfa9899b5007dd4be30a5",
+      "toolSchemaHash": "3dcc3e3b7398f11aa91e13ce950d846e9e03c0b6668abf44f80376a2339c85dd",
+      "compatibility": {
+        "schemaVersion": "0.3.0",
+        "verifierVersion": "rvsf-verifier-0.3.0",
+        "runtimeHash": "443ada63ec403e948459e479648583141325bfe9665ce693ddd9b87520d9382d",
+        "toolContractHash": "3a2a06f8858175364682e1628246d8b27415f99313a1ba2ae54ce2f2db675906",
+        "policyHash": "34cf6b1572f5624c7b73a0d73f387cacc71f44fd0f3cfa9899b5007dd4be30a5",
+        "skillHash": "93f7830ee35a40e4002a3df065d6da2a39e9b125badc1e9a76864ca1e3cb8d72",
+        "voiceEvidenceSchemaVersion": "0.3.0"
+      },
+      "proofHash": "c306a612bdfed26a1ba7f69ee14e5cdfd230deafa91617915ba67d7e195bb71c",
+      "createdAt": "2026-07-19T11:31:17.365Z"
+    },
+    "verificationDurationMs": 0.2
+  },
+  "proofZip": {
+    "path": "/workspace/rvsf-v12-adaptive-proof.zip",
+    "sha256": "913aa087c35c5f06faeff82845c64733a6208aa51e70e2e87c521c1466f1bfdc",
+    "integrity": true
+  }
+}

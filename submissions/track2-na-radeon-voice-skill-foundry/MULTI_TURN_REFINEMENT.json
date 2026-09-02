@@ -1,0 +1,103 @@
+{
+  "schemaVersion": "0.1.0",
+  "capturedAt": "2026-07-22T03:46:00.528Z",
+  "publicProduct": "https://radeon-voice-skill-foundry.pages.dev/",
+  "projectName": "policy-refinement-mrvjgaz6",
+  "userRevision": "Always require confirmation before creating calendar holds.",
+  "revision": 2,
+  "parentRunId": "run_dbc1a6e2c6b5",
+  "runId": "run_79b986c46400",
+  "runtime": {
+    "mode": "radeon",
+    "model": "Qwen/Qwen3-4B-Instruct-2507",
+    "baseUrlConfigured": true,
+    "asrModel": "Qwen/Qwen3-ASR-0.6B",
+    "gpu": "AMD Radeon Pro W7900-class gfx1100 48GB",
+    "rocm": "ROCm 7.2.1",
+    "asrRtf": 0.0556,
+    "asrXRealtime": 17.98,
+    "asrPeakVramGiB": 1.752
+  },
+  "constraints": [
+    {
+      "kind": "requires_confirmation",
+      "statement": "Require human confirmation before creating calendar holds",
+      "appliesTo": [
+        "draft_email",
+        "create_calendar_hold"
+      ]
+    },
+    {
+      "kind": "redact",
+      "statement": "Redact compensation data from external reports and emails",
+      "appliesTo": [
+        "write_report",
+        "draft_email"
+      ]
+    },
+    {
+      "kind": "only_if",
+      "statement": "Execute only when 存在截止日期",
+      "appliesTo": [
+        "create_calendar_hold"
+      ]
+    },
+    {
+      "kind": "requires_confirmation",
+      "statement": "Require confirmation before irreversible external actions",
+      "appliesTo": [
+        "send_email"
+      ]
+    },
+    {
+      "kind": "must_not",
+      "statement": "Automatically send any email or calendar invitation",
+      "appliesTo": [
+        "draft_email",
+        "create_calendar_hold"
+      ]
+    },
+    {
+      "kind": "redact",
+      "statement": "Redact salary data",
+      "appliesTo": [
+        "write_report",
+        "draft_email"
+      ]
+    },
+    {
+      "kind": "redact",
+      "statement": "Replace customer names with approved account aliases in external reports and emails",
+      "appliesTo": [
+        "write_report",
+        "draft_email"
+      ]
+    },
+    {
+      "kind": "only_if",
+      "statement": "Create tentative calendar holds only when a due date exists",
+      "appliesTo": [
+        "create_calendar_hold"
+      ]
+    },
+    {
+      "kind": "requires_confirmation",
+      "statement": "Require human confirmation when the owner is missing",
+      "appliesTo": [
+        "select_commitment",
+        "draft_email"
+      ]
+    },
+    {
+      "kind": "must_not",
+      "statement": "Guess or infer owners or due dates when missing",
+      "appliesTo": [
+        "select_commitment",
+        "create_calendar_hold"
+      ]
+    }
+  ],
+  "generatedFixtureCount": 7,
+  "ragMatchCount": 3,
+  "proofHash": "422bc40e3f806bb5681b98855a1dd266d8df13cea787205d014b6e06eead6522"
+}

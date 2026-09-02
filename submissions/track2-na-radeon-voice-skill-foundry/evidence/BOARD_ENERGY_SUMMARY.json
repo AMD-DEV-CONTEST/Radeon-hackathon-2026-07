@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "0.1.0",
+  "title": "W7900 Fixed-Workload Board-Energy Integration",
+  "hardware": "AMD Radeon Pro W7900-class gfx1100 48GB",
+  "runtime": "ROCm 7.2.1",
+  "workload": "Identical 51-request serving sweep: six length requests plus three bursts at concurrency 1, 2, 4, and 8",
+  "integration": "Trapezoidal integration of rocm-smi Average Graphics Package Power samples over each complete extended workload",
+  "variants": {
+    "transformersFp16": {
+      "requestCount": 51,
+      "outputTokens": 3009,
+      "sampleCount": 136,
+      "durationSeconds": 153.106,
+      "integratedBoardEnergyJoules": 23255.72,
+      "averageBoardPowerWatts": 151.89,
+      "outputTokensPerBoardJoule": 0.1294
+    },
+    "vllmEagerFp16": {
+      "requestCount": 51,
+      "outputTokens": 3060,
+      "sampleCount": 27,
+      "durationSeconds": 29.465,
+      "integratedBoardEnergyJoules": 5035.68,
+      "averageBoardPowerWatts": 170.9,
+      "outputTokensPerBoardJoule": 0.6077
+    },
+    "vllmGraphFp16": {
+      "requestCount": 51,
+      "outputTokens": 3060,
+      "sampleCount": 26,
+      "durationSeconds": 28.334,
+      "integratedBoardEnergyJoules": 4939.16,
+      "averageBoardPowerWatts": 174.32,
+      "outputTokensPerBoardJoule": 0.6195
+    }
+  },
+  "comparison": {
+    "vllmGraphVsTransformersOutputTokensPerBoardJouleX": 4.79,
+    "vllmGraphVsTransformersBoardEnergyReductionPercent": 78.76
+  },
+  "qualityBoundary": "All requests retained the four required safety semantics in the source benchmark reports.",
+  "measurementBoundary": "Board-level GPU package energy only. The fixed workload ran with the same resident production ASR and Transformers services; vLLM variants added their own server. CPU, RAM, storage, cooling, and datacenter PUE are excluded. This is a bounded application comparison, not whole-system energy certification.",
+  "sourceEvidence": [
+    "benchmarks/weekend-v10-transformers-extended.json",
+    "benchmarks/weekend-v10-transformers-extended-telemetry.jsonl",
+    "benchmarks/weekend-v10-vllm-eager-extended.json",
+    "benchmarks/weekend-v10-vllm-eager-extended-telemetry.jsonl",
+    "benchmarks/weekend-v10-vllm-graph-extended.json",
+    "benchmarks/weekend-v10-vllm-graph-extended-telemetry.jsonl"
+  ]
+}
