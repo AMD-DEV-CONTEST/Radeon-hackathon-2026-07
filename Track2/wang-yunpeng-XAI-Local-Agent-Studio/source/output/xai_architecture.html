@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XAI 系统架构全景图</title>
+<style>
+:root {
+  --bg: #0f1219;
+  --layer0: #1a1e2b;
+  --layer1: #1c2133;
+  --layer2: #1e2440;
+  --layer3: #21284a;
+  --text: #c8d6e5;
+  --textdim: #7c8ca5;
+  --accent: #5b9bd5;
+  --accent2: #e07b4c;
+  --accent3: #56b87a;
+  --accent4: #c576d6;
+  --border: #2a3045;
+  --glow: rgba(91,155,213,0.15);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, 'SF Mono', 'Menlo', monospace; background: var(--bg); color: var(--text); min-height: 100vh; }
+h1 { text-align:center; padding: 30px 0 8px; font-size: 22px; letter-spacing: 1px; color: #fff; }
+h1 span { color: var(--accent); }
+.subtitle { text-align:center; color: var(--textdim); font-size: 12px; margin-bottom: 24px; }
+
+.legend { display:flex; justify-content:center; gap: 28px; margin-bottom: 20px; font-size: 12px; }
+.legend-item { display:flex; align-items:center; gap: 6px; }
+.legend-dot { width:10px; height:10px; border-radius:2px; }
+.legend-dot.c1 { background: var(--accent); }
+.legend-dot.c2 { background: var(--accent2); }
+.legend-dot.c3 { background: var(--accent3); }
+.legend-dot.c4 { background: var(--accent4); }
+
+.container { max-width: 1200px; margin: 0 auto; padding: 0 20px 40px; }
+
+/* 层 */
+.layer { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
+.layer-header { padding: 10px 16px; display:flex; align-items:center; gap: 10px; cursor: pointer; user-select:none; }
+.layer-header:hover { background: rgba(255,255,255,0.02); }
+.layer-title { font-weight: 600; font-size: 14px; }
+.layer-sub { font-size: 11px; color: var(--textdim); }
+.layer-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.badge-framework { background: rgba(91,155,213,0.2); color: var(--accent); }
+.badge-engine { background: rgba(224,123,76,0.2); color: var(--accent2); }
+.badge-tool { background: rgba(86,184,122,0.2); color: var(--accent3); }
+.badge-mech { background: rgba(197,118,214,0.2); color: var(--accent4); }
+
+.layer-body { display: none; padding: 10px 16px 16px; }
+.layer.open .layer-body { display: block; }
+
+/* 模块网格 */
+.modules { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.module { border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; transition: border-color 0.2s; }
+.module:hover { border-color: var(--accent); box-shadow: 0 0 12px var(--glow); }
+.module-name { font-weight: 600; font-size: 13px; margin-bottom: 3px; }
+.module-desc { font-size: 11px; color: var(--textdim); line-height: 1.5; }
+.module-tag { display: inline-block; font-size: 9px; padding: 1px 6px; border-radius: 8px; margin-top: 4px; margin-right: 4px; }
+.tag-me { background: rgba(91,155,213,0.15); color: var(--accent); }
+.tag-agent { background: rgba(224,123,76,0.15); color: var(--accent2); }
+.tag-mech { background: rgba(197,118,214,0.15); color: var(--accent4); }
+
+/* 关系图 */
+.graph-section { margin-top: 20px; }
+.graph-section h3 { font-size: 14px; margin-bottom: 12px; color: #fff; }
+.flow { border: 1px solid var(--border); border-radius: 8px; padding: 20px; overflow-x: auto; }
+
+/* 箭头图 */
+.arch-diagram { display:flex; flex-direction:column; gap: 8px; align-items:center; min-width: 800px; }
+.arch-row { display:flex; align-items:center; gap: 8px; justify-content:center; width:100%; }
+.arch-box { border: 1px solid var(--border); border-radius: 6px; padding: 8px 14px; text-align:center; font-size: 12px; white-space: nowrap; }
+.arch-box.user { border-color: var(--accent); background: rgba(91,155,213,0.08); }
+.arch-box.marvis { border-color: var(--accent); background: rgba(91,155,213,0.12); font-weight: 600; }
+.arch-box.sub-agent { border-color: var(--accent2); background: rgba(224,123,76,0.08); }
+.arch-box.engine { border-color: var(--accent3); background: rgba(86,184,122,0.08); }
+.arch-box.mech { border-color: var(--accent4); background: rgba(197,118,214,0.08); }
+.arch-arrow { color: var(--textdim); font-size: 16px; min-width: 20px; text-align:center; }
+.arch-arrow.down { min-width: auto; font-size: 18px; padding: 2px 0; }
+
+.arch-label { font-size: 9px; color: var(--textdim); text-align:center; margin-top: -4px; }
+
+/* 协作流 */
+.collab { display:flex; gap: 20px; flex-wrap:wrap; }
+.collab-card { flex:1; min-width: 240px; border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+.collab-card h4 { font-size: 13px; margin-bottom: 8px; }
+.collab-steps { font-size: 11px; color: var(--textdim); line-height: 1.8; }
+.collab-steps .step { color: var(--text); }
+.collab-steps .arrow { color: var(--accent); margin: 0 4px; }
+
+/* 图例底部 */
+.footnote { margin-top: 24px; padding: 12px 16px; border: 1px solid var(--border); border-radius: 6px; font-size: 11px; color: var(--textdim); line-height: 1.7; }
+
+/* 展开箭头 */
+.chevron { transition: transform 0.2s; color: var(--textdim); }
+.layer.open .chevron { transform: rotate(90deg); }
+</style>
+</head>
+<body>
+
+<h1>XAI <span>系统架构全景图</span></h1>
+<p class="subtitle">分层架构 · 调用关系 · 协作流程 · 容错机制 — 2026-07-21</p>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot c1"></div> 框架层（Marvis 主控）</div>
+  <div class="legend-item"><div class="legend-dot c2"></div> Sub Agent 层</div>
+  <div class="legend-item"><div class="legend-dot c3"></div> 引擎层（XAI Engine）</div>
+  <div class="legend-item"><div class="legend-dot c4"></div> 容错机制层</div>
+</div>
+
+<div class="container">
+
+<!-- ====== 第 0 层：框架层 ====== -->
+<div class="layer open" id="layer0">
+  <div class="layer-header" onclick="toggle('layer0')">
+    <span class="chevron">▸</span>
+    <span class="layer-badge badge-framework">第 0 层</span>
+    <span class="layer-title">框架层 — Marvis 主 Agent</span>
+    <span class="layer-sub">决策中心 · 路由调度 · 对话管理</span>
+  </div>
+  <div class="layer-body">
+    <div class="modules">
+      <div class="module">
+        <div class="module-name">意图理解与分类</div>
+        <div class="module-desc">解析用户输入，五分类（商业/工程/学术/决策/简单问答），匹配分析框架和深度等级。</div>
+        <span class="module-tag tag-me">主 Agent</span>
+      </div>
+      <div class="module">
+        <div class="module-name">工具路由器</div>
+        <div class="module-desc">Sub Agent 优先 → Skills 降级 → Tools 兜底的逐级匹配，禁止越级拆解。</div>
+        <span class="module-tag tag-me">路由决策</span>
+      </div>
+      <div class="module">
+        <div class="module-name">dispatch_task</div>
+        <div class="module-desc">向 Sub Agent 派发结构化任务（overall_goal + current_task + memory_ids），单次可闭环不拆分。</div>
+        <span class="module-tag tag-me">Agent 调度</span>
+      </div>
+      <div class="module">
+        <div class="module-name">熔断器感知</div>
+        <div class="module-desc">dispatch 前检查熔断器状态。若 agent 处于 OPEN 熔断态，自动降级到 shell_executor 直接执行。</div>
+        <span class="module-tag tag-mech">熔断感知</span>
+      </div>
+      <div class="module">
+        <div class="module-name">present_result</div>
+        <div class="module-desc">直接转发 Sub Agent 完整结果给用户，零改写、零摘要。</div>
+        <span class="module-tag tag-me">结果透传</span>
+      </div>
+      <div class="module">
+        <div class="module-name">人设系统</div>
+        <div class="module-desc">双层推理引擎风格配置，update_user_persona 调整称呼/回答风格，多端同步。</div>
+        <span class="module-tag tag-me">用户配置</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 第 1 层：Sub Agent 层 ====== -->
+<div class="layer open" id="layer1">
+  <div class="layer-header" onclick="toggle('layer1')">
+    <span class="chevron">▸</span>
+    <span class="layer-badge badge-engine">第 1 层</span>
+    <span class="layer-title">Sub Agent 层 — 专业执行器</span>
+    <span class="layer-sub">领域分工 · 独立上下文 · 可并行</span>
+  </div>
+  <div class="layer-body">
+    <div class="modules">
+      <div class="module">
+        <div class="module-name">file-agent</div>
+        <div class="module-desc">文件搜索/读写/整理/格式转换/内容问答。操作本地文件系统，最常用但也最常卡。</div>
+        <span class="module-tag tag-agent">最常用</span>
+        <span class="module-tag tag-mech">熔断: 3次/5分钟</span>
+      </div>
+      <div class="module">
+        <div class="module-name">app-agent</div>
+        <div class="module-desc">应用操作：安装/卸载/打开/界面交互。Android 通过 adb，mac 通过 open 命令。</div>
+        <span class="module-tag tag-agent">平台操作</span>
+        <span class="module-tag tag-mech">熔断: 2次/3分钟</span>
+      </div>
+      <div class="module">
+        <div class="module-name">browser-agent</div>
+        <div class="module-desc">网页交互：打开URL、搜索、点击、表单、截图。需浏览器驱动。</div>
+        <span class="module-tag tag-agent">网页交互</span>
+        <span class="module-tag tag-mech">熔断: 2次/3分钟</span>
+      </div>
+      <div class="module">
+        <div class="module-name">search-agent</div>
+        <div class="module-desc">深度检索总结：多轮RAG，输出质量高但慢（~10s）。单次任务限 1-2 次调用。</div>
+        <span class="module-tag tag-agent">搜索总结</span>
+        <span class="module-tag tag-mech">熔断: 3次/2分钟</span>
+      </div>
+      <div class="module">
+        <div class="module-name">computer-agent</div>
+        <div class="module-desc">macOS 系统操作：设置/窗口管理/进程/系统命令。替代 shell_executor 处理系统级任务。</div>
+        <span class="module-tag tag-agent">系统操作</span>
+        <span class="module-tag tag-mech">熔断: 2次/3分钟</span>
+      </div>
+      <div class="module">
+        <div class="module-name">inherit_agent_id</div>
+        <div class="module-desc">延续任务：新 Sub Agent 继承同名历史 Sub Agent 的完整对话记忆，实现上下文连续性。</div>
+        <span class="module-tag tag-me">记忆延续</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 第 2 层：引擎层 ====== -->
+<div class="layer open" id="layer2">
+  <div class="layer-header" onclick="toggle('layer2')">
+    <span class="chevron">▸</span>
+    <span class="layer-badge badge-tool">第 2 层</span>
+    <span class="layer-title">引擎层 — XAI Engine 核心</span>
+    <span class="layer-sub">状态管理 · 请求路由 · 工具执行</span>
+  </div>
+  <div class="layer-body">
+    <div class="modules">
+      <div class="module">
+        <div class="module-name">server_xai.py</div>
+        <div class="module-desc">HTTP 服务器入口。路由所有 /api/* 端点，管理 LATEST_STATUS 心跳，事件推送。</div>
+      </div>
+      <div class="module">
+        <div class="module-name">core/engine.py</div>
+        <div class="module-desc">引擎核心。初始化 MemoryCore、模型后端、ActionBus；seed_agents 预置数字员工；启动看门狗和熔断器。</div>
+      </div>
+      <div class="module">
+        <div class="module-name">core/execution/action_bus.py</div>
+        <div class="module-desc">统一执行闸门。所有文件写/删/命令执行必须经过 ActionBus → Guardian → Executor。每次执行自动注册到看门狗。</div>
+      </div>
+      <div class="module">
+        <div class="module-name">core/memory_core.py</div>
+        <div class="module-desc">记忆系统。SQLite 持久化，支持上下文注入、关键词召回、时间衰减排序。</div>
+      </div>
+      <div class="module">
+        <div class="module-name">core/guardian.py</div>
+        <div class="module-desc">安全守护。P0/P1/P2 三级风险定级，P0 拒绝执行，P1 需审批。</div>
+      </div>
+      <div class="module">
+        <div class="module-name">core/observability.py</div>
+        <div class="module-desc">Tracing pipeline。deque(1000) 存 span，stats() 返回成功率/平均延迟/P95。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 第 3 层：容错机制层 ====== -->
+<div class="layer open" id="layer3">
+  <div class="layer-header" onclick="toggle('layer3')">
+    <span class="chevron">▸</span>
+    <span class="layer-badge badge-mech">第 3 层</span>
+    <span class="layer-title">容错机制层 — 自愈与降级</span>
+    <span class="layer-sub">看门狗 · 熔断器 · 降级链</span>
+  </div>
+  <div class="layer-body">
+    <div class="modules">
+      <div class="module">
+        <div class="module-name">core/task_watchdog.py ★</div>
+        <div class="module-desc">任务看门狗。后台线程每 3s 扫描超时任务（45s 阈值），超时触发降级回调并记录日志。所有对话共享单例，进程级长期有效。</div>
+        <span class="module-tag tag-mech">新增</span>
+      </div>
+      <div class="module">
+        <div class="module-name">core/circuit_breaker.py ★</div>
+        <div class="module-desc">熔断器。CLOSED→OPEN→HALF_OPEN 三态机。file-agent 连续 3 次失败熔断 5 分钟，自动降级到直接工具链。</div>
+        <span class="module-tag tag-mech">新增</span>
+      </div>
+      <div class="module">
+        <div class="module-name">降级链（手动规则）</div>
+        <div class="module-desc">dispatch 取消 → 重试 1 次 → 仍失败 → 立即降级 shell_executor/edit_file/write_file 直接完成。两步失败即停。</div>
+      </div>
+      <div class="module">
+        <div class="module-name">ResilientBackend</div>
+        <div class="module-desc">模型后端容错。DeepSeek 主模型失败自动回退本地 Stub 模型，离线可用。</div>
+      </div>
+      <div class="module">
+        <div class="module-name">sandbox 四级回退</div>
+        <div class="module-desc">nsjail → firejail → sandbox-exec → setrlimit，自动检测可用沙箱，逐级软退。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 协作流程图 ====== -->
+<div class="graph-section">
+  <h3>对话协作全流程</h3>
+  <div class="flow">
+
+<div class="arch-diagram">
+  <!-- 用户 -->
+  <div class="arch-row">
+    <div class="arch-box user" style="font-size:16px;">👤 用户</div>
+  </div>
+  <div class="arch-arrow down">│▼│ 输入</div>
+
+  <!-- Marvis -->
+  <div class="arch-row">
+    <div class="arch-box marvis" style="font-size:14px;padding:12px 24px;">Marvis 主 Agent（框架层）</div>
+  </div>
+  <div class="arch-label">意图分类 → 工具路由器 → dispatch_task</div>
+  <div class="arch-arrow down">│▼│ 派发</div>
+
+  <!-- Sub Agents -->
+  <div class="arch-row" style="gap:12px;">
+    <div class="arch-box sub-agent">file-agent</div>
+    <div class="arch-box sub-agent">app-agent</div>
+    <div class="arch-box sub-agent">browser-agent</div>
+    <div class="arch-box sub-agent">search-agent</div>
+    <div class="arch-box sub-agent">computer-agent</div>
+  </div>
+  <div class="arch-label">各 Agent 独立上下文，可串行/并行（最多 5 个并行）</div>
+  <div class="arch-arrow down">│▼│ 底层调用</div>
+
+  <!-- Engine -->
+  <div class="arch-row">
+    <div class="arch-box engine" style="font-size:13px;">XAI Engine（引擎层）</div>
+  </div>
+  <div class="arch-label">server_xai.py → ActionBus → Guardian → Executor</div>
+  <div class="arch-arrow down">│▼│ 监控</div>
+
+  <!-- 容错层 -->
+  <div class="arch-row" style="gap:16px;">
+    <div class="arch-box mech">看门狗（超时检测）</div>
+    <div class="arch-arrow" style="font-size:12px;">⟷</div>
+    <div class="arch-box mech">熔断器（自动降级）</div>
+  </div>
+  <div class="arch-label">后台线程持续扫描 · 超时触发降级 · 熔断后走直接工具链</div>
+
+  <!-- 回传 -->
+  <div class="arch-arrow down" style="font-size:20px;padding:4px 0;">▲ 结果回传 ▲</div>
+
+  <!-- 最终 -->
+  <div class="arch-row">
+    <div class="arch-box marvis" style="font-size:13px;">present_result → 卡片渲染 → 用户可见</div>
+  </div>
+</div>
+
+  </div>
+</div>
+
+<!-- ====== 三个典型场景 ====== -->
+<div class="graph-section">
+  <h3>三个典型协作场景</h3>
+  <div class="collab">
+    <div class="collab-card">
+      <h4>场景 A：正常流程</h4>
+      <div class="collab-steps">
+        <span class="step">用户请求</span>
+        <span class="arrow">→</span>
+        <span class="step">Marvis 路由到 file-agent</span>
+        <span class="arrow">→</span>
+        <span class="step">file-agent 完成</span>
+        <span class="arrow">→</span>
+        <span class="step">present_result</span>
+      </div>
+    </div>
+    <div class="collab-card">
+      <h4>场景 B：熔断降级</h4>
+      <div class="collab-steps">
+        <span class="step">dispatch file-agent</span>
+        <span class="arrow">→</span>
+        <span class="step" style="color:var(--accent2);">取消/超时</span>
+        <span class="arrow">→</span>
+        <span class="step">重试 1 次仍失败</span>
+        <span class="arrow">→</span>
+        <span class="step" style="color:var(--accent3);">熔断器 OPEN</span>
+        <span class="arrow">→</span>
+        <span class="step">shell_executor 直接完成</span>
+      </div>
+    </div>
+    <div class="collab-card">
+      <h4>场景 C：多 Agent 串行</h4>
+      <div class="collab-steps">
+        <span class="step">Step 1: browser-agent 搜索</span>
+        <span class="arrow">→</span>
+        <span class="step">Step 2: file-agent 写文档</span>
+        <span class="arrow">→</span>
+        <span class="step">Step 3: Marvis 汇总报告</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 调用关系矩阵 ====== -->
+<div class="graph-section">
+  <h3>调用关系矩阵</h3>
+  <div class="flow" style="overflow-x:auto; padding:12px;">
+    <table style="width:100%;border-collapse:collapse;font-size:11px;">
+      <thead>
+        <tr style="color:var(--accent);">
+          <th style="text-align:left;padding:6px 10px;">调用方 ↓ / 被调用方 →</th>
+          <th style="padding:6px 8px;">Marvis</th>
+          <th style="padding:6px 8px;">file-agent</th>
+          <th style="padding:6px 8px;">app-agent</th>
+          <th style="padding:6px 8px;">browser</th>
+          <th style="padding:6px 8px;">search</th>
+          <th style="padding:6px 8px;">computer</th>
+          <th style="padding:6px 8px;">Engine</th>
+          <th style="padding:6px 8px;">看门狗</th>
+          <th style="padding:6px 8px;">熔断器</th>
+        </tr>
+      </thead>
+      <tbody style="color:var(--textdim);">
+        <tr style="border-top:1px solid var(--border);">
+          <td style="padding:6px 10px;color:var(--text);">Marvis</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;color:var(--accent2);">dispatch</td>
+          <td style="text-align:center;color:var(--accent2);">dispatch</td>
+          <td style="text-align:center;color:var(--accent2);">dispatch</td>
+          <td style="text-align:center;color:var(--accent2);">dispatch</td>
+          <td style="text-align:center;color:var(--accent2);">dispatch</td>
+          <td style="text-align:center;color:var(--accent3);">web_fetch</td>
+          <td style="text-align:center;color:var(--accent4);">查询</td>
+          <td style="text-align:center;color:var(--accent4);">查询</td>
+        </tr>
+        <tr style="border-top:1px solid var(--border);">
+          <td style="padding:6px 10px;color:var(--text);">Sub Agent</td>
+          <td style="text-align:center;color:var(--accent);">返回结果</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;color:var(--accent3);">API调用</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+        </tr>
+        <tr style="border-top:1px solid var(--border);">
+          <td style="padding:6px 10px;color:var(--text);">Engine</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;color:var(--accent4);">注册任务</td>
+          <td style="text-align:center;color:var(--accent4);">注册/更新</td>
+        </tr>
+        <tr style="border-top:1px solid var(--border);">
+          <td style="padding:6px 10px;color:var(--text);">看门狗</td>
+          <td style="text-align:center;">独立线程</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+        </tr>
+        <tr style="border-top:1px solid var(--border);">
+          <td style="padding:6px 10px;color:var(--text);">熔断器</td>
+          <td style="text-align:center;color:var(--accent);">allow()查询</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+          <td style="text-align:center;">—</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ====== API 端点清单 ====== -->
+<div class="graph-section">
+  <h3>容错相关 API 端点</h3>
+  <div class="flow" style="padding:12px;">
+    <table style="width:100%;font-size:11px;border-collapse:collapse;">
+      <thead><tr style="color:var(--accent);"><th style="text-align:left;padding:5px 10px;">端点</th><th style="text-align:left;padding:5px 10px;">说明</th><th style="padding:5px 10px;">层</th></tr></thead>
+      <tbody style="color:var(--textdim);">
+        <tr style="border-top:1px solid var(--border);"><td style="padding:5px 10px;color:var(--accent);">GET /api/tasks/status</td><td style="padding:5px 10px;">看门狗当前活跃任务</td><td style="text-align:center;">容错</td></tr>
+        <tr style="border-top:1px solid var(--border);"><td style="padding:5px 10px;color:var(--accent);">GET /api/tasks/history</td><td style="padding:5px 10px;">看门狗降级日志</td><td style="text-align:center;">容错</td></tr>
+        <tr style="border-top:1px solid var(--border);"><td style="padding:5px 10px;color:var(--accent);">GET /api/circuit-breakers</td><td style="padding:5px 10px;">全部熔断器状态（?name=xxx 查单个）</td><td style="text-align:center;">容错</td></tr>
+        <tr style="border-top:1px solid var(--border);"><td style="padding:5px 10px;color:var(--accent);">GET /api/status</td><td style="padding:5px 10px;">引擎全量状态（含 watchdog + circuit_breakers）</td><td style="text-align:center;">引擎</td></tr>
+        <tr style="border-top:1px solid var(--border);"><td style="padding:5px 10px;color:var(--accent);">GET /api/observability/traces</td><td style="padding:5px 10px;">Tracing span 列表 + 统计</td><td style="text-align:center;">引擎</td></tr>
+        <tr style="border-top:1px solid var(--border);"><td style="padding:5px 10px;color:var(--accent);">GET /api/system/errors</td><td style="padding:5px 10px;">失败诊断（过滤 tracer 失败 span）</td><td style="text-align:center;">引擎</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ====== 关键约束 ====== -->
+<div class="footnote">
+  <strong>关键约束总览（本架构中生效的硬限制）：</strong><br>
+  (1) <b>路由优先级</b>：Sub Agent → Skill → Tool → 生成代码。禁止越级。<br>
+  (2) <b>并行上限</b>：单轮 dispatch_task ≤ 5 个。同 Agent 禁止同时接多个任务。<br>
+  (3) <b>重试上限</b>：同一工具/Agent 同方向失败 ≤ 2 次，第 3 次必须降级。<br>
+  (4) <b>熔断阈值</b>：file-agent 连续 3 次失败 → 熔断 5 分钟；其他 Agent 2 次 → 熔断 3 分钟。<br>
+  (5) <b>看门狗周期</b>：后台线程每 3 秒扫描，超时阈值 45 秒。<br>
+  (6) <b>所有对话共享</b>：看门狗和熔断器是进程级单例，跨对话有效，不随轮次重建。<br>
+  (7) <b>安全闸门</b>：ActionBus → Guardian（P0 拒绝/P1 审批）→ Executor，不可绕过。
+</div>
+
+</div>
+
+<script>
+function toggle(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+// 默认全部展开
+document.querySelectorAll('.layer').forEach(l => l.classList.add('open'));
+</script>
+
+</body>
+</html>

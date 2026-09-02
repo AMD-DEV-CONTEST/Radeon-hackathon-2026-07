@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D 科学计算器</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(145deg, #0b0e1a 0%, #1a1f35 40%, #141829 100%);
+    font-family: 'Segoe UI', 'PingFang SC', system-ui, sans-serif;
+    overflow: hidden;
+  }
+
+  /* === 背景粒子 === */
+  .bg-particles {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+  }
+  .bg-particles span {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: rgba(100, 140, 255, 0.25);
+    border-radius: 50%;
+    animation: float-particle linear infinite;
+  }
+  @keyframes float-particle {
+    0%   { transform: translateY(100vh) scale(0); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+  }
+
+  /* === 场景容器（3D 父级）=== */
+  .scene {
+    perspective: 1200px;
+    perspective-origin: 50% 40%;
+    z-index: 1;
+    position: relative;
+  }
+
+  /* === 计算器主体（3D 变换目标）=== */
+  .calculator {
+    width: 380px;
+    padding: 28px 24px 24px;
+    background: linear-gradient(160deg, rgba(30, 35, 58, 0.92) 0%, rgba(20, 24, 42, 0.96) 100%);
+    border-radius: 28px;
+    backdrop-filter: blur(16px);
+    box-shadow:
+      0 30px 80px rgba(0, 0, 0, 0.8),
+      0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+      0 0 0 1px rgba(100, 140, 255, 0.08),
+      0 0 40px rgba(60, 100, 255, 0.06);
+    transform-style: preserve-3d;
+    transform:
+      rotateX(10deg)
+      rotateY(-8deg)
+      translateZ(0);
+    transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.5s ease;
+    position: relative;
+    cursor: default;
+  }
+
+  /* 3D 边框发光 */
+  .calculator::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 30px;
+    background: linear-gradient(135deg,
+      rgba(100, 140, 255, 0.3),
+      rgba(160, 80, 255, 0.15),
+      rgba(0, 200, 255, 0.2),
+      rgba(100, 140, 255, 0.1));
+    z-index: -1;
+    filter: blur(2px);
+    opacity: 0.6;
+    transition: opacity 0.5s;
+  }
+
+  .calculator:hover {
+    transform:
+      rotateX(6deg)
+      rotateY(-4deg)
+      translateZ(8px);
+    box-shadow:
+      0 40px 100px rgba(0, 0, 0, 0.85),
+      0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+      0 0 0 1px rgba(100, 140, 255, 0.15),
+      0 0 60px rgba(60, 100, 255, 0.1);
+  }
+  .calculator:hover::before {
+    opacity: 0.9;
+  }
+
+  /* === 顶部栏 === */
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    transform: translateZ(20px);
+  }
+  .top-bar .brand {
+    color: rgba(180, 200, 255, 0.6);
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    font-weight: 400;
+    text-shadow: 0 0 20px rgba(100, 140, 255, 0.2);
+  }
+  .top-bar .indicators {
+    display: flex;
+    gap: 8px;
+  }
+  .top-bar .indicators span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(100, 140, 255, 0.15);
+    box-shadow: 0 0 6px rgba(100, 140, 255, 0.1);
+    transition: all 0.3s;
+  }
+  .top-bar .indicators span.active {
+    background: #5b8cff;
+    box-shadow: 0 0 12px rgba(91, 140, 255, 0.4);
+  }
+
+  /* === 屏幕 === */
+  .display-wrapper {
+    background: linear-gradient(145deg, rgba(8, 10, 20, 0.85), rgba(12, 15, 28, 0.9));
+    border-radius: 16px;
+    padding: 16px 20px 14px;
+    margin-bottom: 6px;
+    transform: translateZ(18px);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+      inset 0 4px 12px rgba(0, 0, 0, 0.4),
+      0 8px 24px rgba(0, 0, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+    min-height: 88px;
+  }
+  .display-wrapper::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 30% 20%,
+      rgba(100, 140, 255, 0.03) 0%,
+      transparent 60%);
+    pointer-events: none;
+  }
+
+  .display-expression {
+    color: rgba(140, 170, 255, 0.5);
+    font-size: 14px;
+    min-height: 22px;
+    text-align: right;
+    word-break: break-all;
+    font-family: 'Consolas', 'Courier New', monospace;
+    letter-spacing: 0.5px;
+    transition: color 0.3s;
+  }
+  .display-result {
+    color: #f0f4ff;
+    font-size: 32px;
+    text-align: right;
+    word-break: break-all;
+    font-weight: 300;
+    font-family: 'Consolas', 'Courier New', monospace;
+    letter-spacing: 1px;
+    text-shadow: 0 0 20px rgba(100, 160, 255, 0.15);
+    transition: font-size 0.15s ease;
+    min-height: 42px;
+    line-height: 1.2;
+  }
+  .display-result.small {
+    font-size: 24px;
+  }
+  .display-result.xsmall {
+    font-size: 18px;
+  }
+
+  .display-mode {
+    display: flex;
+    gap: 14px;
+    margin-top: 4px;
+    font-size: 11px;
+    color: rgba(140, 170, 255, 0.3);
+    font-family: 'Consolas', monospace;
+  }
+  .display-mode span {
+    transition: color 0.3s;
+  }
+  .display-mode span.active {
+    color: rgba(100, 180, 255, 0.6);
+  }
+
+  /* === 功能切换按钮 === */
+  .mode-toggle {
+    display: flex;
+    gap: 6px;
+    margin: 10px 0 14px;
+    transform: translateZ(12px);
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 7px 0;
+    border: none;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(160, 180, 255, 0.5);
+    transition: all 0.3s ease;
+    letter-spacing: 0.5px;
+    position: relative;
+    overflow: hidden;
+  }
+  .mode-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .mode-btn:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: rgba(180, 200, 255, 0.7);
+  }
+  .mode-btn.active {
+    background: linear-gradient(135deg, rgba(60, 100, 255, 0.2), rgba(100, 60, 255, 0.15));
+    color: #8ab4ff;
+    box-shadow: 0 0 20px rgba(60, 100, 255, 0.1);
+  }
+
+  /* === 按键网格 === */
+  .btn-grid {
+    display: grid;
+    gap: 8px;
+    transform-style: preserve-3d;
+  }
+  .btn-grid.main {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .btn-grid.scientific {
+    grid-template-columns: repeat(5, 1fr);
+    margin-bottom: 10px;
+    display: none;
+  }
+  .btn-grid.scientific.show {
+    display: grid;
+  }
+
+  /* === 单个按键 === */
+  .btn {
+    padding: 14px 0;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    color: #c8d4ff;
+    background: linear-gradient(145deg, rgba(40, 46, 72, 0.6), rgba(28, 33, 55, 0.7));
+    box-shadow:
+      0 4px 0 rgba(8, 10, 18, 0.6),
+      0 6px 16px rgba(0, 0, 0, 0.25),
+      0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+    transform: translateZ(0);
+    transition: all 0.12s ease;
+    position: relative;
+    font-family: 'Segoe UI', 'PingFang SC', system-ui, sans-serif;
+    letter-spacing: 0.3px;
+    overflow: hidden;
+  }
+
+  .btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    background: radial-gradient(circle at 30% 20%,
+      rgba(255, 255, 255, 0.06) 0%,
+      transparent 70%);
+    pointer-events: none;
+  }
+
+  /* 按键按下 3D 效果 */
+  .btn:active {
+    transform: translateY(3px) translateZ(-2px);
+    box-shadow:
+      0 1px 0 rgba(8, 10, 18, 0.6),
+      0 2px 8px rgba(0, 0, 0, 0.3),
+      0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  }
+
+  .btn:hover {
+    background: linear-gradient(145deg, rgba(50, 58, 88, 0.7), rgba(35, 40, 65, 0.8));
+    color: #dce6ff;
+  }
+
+  /* 功能按键（橙色系） */
+  .btn.fn {
+    background: linear-gradient(145deg, rgba(60, 100, 255, 0.15), rgba(40, 70, 200, 0.12));
+    color: rgba(140, 180, 255, 0.85);
+    font-size: 14px;
+  }
+  .btn.fn:hover {
+    background: linear-gradient(145deg, rgba(70, 110, 255, 0.2), rgba(50, 80, 220, 0.17));
+    color: #8ab4ff;
+  }
+
+  /* 运算键（特殊高亮） */
+  .btn.op {
+    background: linear-gradient(145deg, rgba(80, 120, 255, 0.25), rgba(50, 80, 220, 0.2));
+    color: #7aacff;
+    font-size: 18px;
+  }
+  .btn.op:hover {
+    background: linear-gradient(145deg, rgba(90, 130, 255, 0.3), rgba(60, 90, 240, 0.25));
+    color: #9ac0ff;
+  }
+  .btn.op:active {
+    box-shadow:
+      0 1px 0 rgba(8, 10, 18, 0.6),
+      0 2px 8px rgba(0, 0, 0, 0.3),
+      0 0 0 1px rgba(100, 140, 255, 0.1) inset;
+  }
+
+  /* 等于号（特殊颜色） */
+  .btn.equals {
+    background: linear-gradient(145deg, rgba(60, 120, 255, 0.5), rgba(40, 80, 220, 0.45));
+    color: #fff;
+    font-size: 20px;
+    font-weight: 600;
+    box-shadow:
+      0 4px 0 rgba(20, 50, 160, 0.5),
+      0 6px 20px rgba(40, 80, 255, 0.15),
+      0 0 0 1px rgba(100, 140, 255, 0.15) inset;
+  }
+  .btn.equals:hover {
+    background: linear-gradient(145deg, rgba(70, 130, 255, 0.55), rgba(50, 90, 235, 0.5));
+    box-shadow:
+      0 4px 0 rgba(20, 50, 160, 0.5),
+      0 8px 28px rgba(40, 80, 255, 0.25),
+      0 0 0 1px rgba(100, 140, 255, 0.2) inset;
+  }
+  .btn.equals:active {
+    transform: translateY(3px) translateZ(-2px);
+    box-shadow:
+      0 1px 0 rgba(20, 50, 160, 0.5),
+      0 2px 10px rgba(40, 80, 255, 0.2),
+      0 0 0 1px rgba(100, 140, 255, 0.1) inset;
+  }
+
+  /* 清除（红色系） */
+  .btn.clear {
+    background: linear-gradient(145deg, rgba(255, 60, 80, 0.12), rgba(200, 40, 60, 0.1));
+    color: rgba(255, 120, 140, 0.7);
+  }
+  .btn.clear:hover {
+    background: linear-gradient(145deg, rgba(255, 70, 90, 0.17), rgba(220, 50, 70, 0.14));
+    color: rgba(255, 150, 170, 0.85);
+  }
+
+  /* 科学函数特殊位置：span 2 */
+  .btn.span2 {
+    grid-column: span 2;
+  }
+
+  /* 科学模式说明文字 */
+  .sci-label {
+    color: rgba(140, 170, 255, 0.25);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 8px;
+    text-align: center;
+    font-weight: 300;
+    transform: translateZ(8px);
+  }
+
+  /* === 鼠标跟随光泽 === */
+  .glare {
+    position: absolute;
+    inset: 0;
+    border-radius: 28px;
+    pointer-events: none;
+    background: radial-gradient(circle at 50% 50%,
+      rgba(255, 255, 255, 0.03) 0%,
+      transparent 60%);
+    transition: opacity 0.3s;
+    opacity: 0;
+    z-index: 2;
+  }
+
+  /* === 响应式 === */
+  @media (max-width: 420px) {
+    .calculator {
+      width: 340px;
+      padding: 20px 16px 18px;
+    }
+    .btn {
+      padding: 12px 0;
+      font-size: 14px;
+      border-radius: 10px;
+    }
+    .btn.op { font-size: 16px; }
+    .display-result { font-size: 28px; }
+  }
+
+  @media (max-width: 360px) {
+    .calculator {
+      width: 300px;
+      padding: 16px 12px 14px;
+    }
+    .btn {
+      padding: 10px 0;
+      font-size: 13px;
+      border-radius: 8px;
+    }
+    .btn-grid { gap: 6px; }
+    .display-result { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 背景粒子 -->
+<div class="bg-particles" id="bgParticles"></div>
+
+<div class="scene">
+  <div class="calculator" id="calculator">
+    <div class="glare" id="glare"></div>
+
+    <!-- 顶部栏 -->
+    <div class="top-bar">
+      <span class="brand">◆ SCI-CALC</span>
+      <div class="indicators">
+        <span class="active"></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+
+    <!-- 屏幕 -->
+    <div class="display-wrapper">
+      <div class="display-expression" id="displayExpression"></div>
+      <div class="display-result" id="displayResult">0</div>
+      <div class="display-mode">
+        <span id="modeDeg" class="active">DEG</span>
+        <span id="modeRad">RAD</span>
+        <span id="modeState">BASIC</span>
+      </div>
+    </div>
+
+    <!-- 模式切换 -->
+    <div class="mode-toggle">
+      <button class="mode-btn active" data-mode="basic">BASIC</button>
+      <button class="mode-btn" data-mode="sci">SCIENCE</button>
+    </div>
+
+    <!-- 科学按键 -->
+    <div class="btn-grid scientific" id="sciGrid">
+      <button class="btn fn" data-action="sin">sin</button>
+      <button class="btn fn" data-action="cos">cos</button>
+      <button class="btn fn" data-action="tan">tan</button>
+      <button class="btn fn" data-action="log">log</button>
+      <button class="btn fn" data-action="ln">ln</button>
+      <button class="btn fn" data-action="asin">sin⁻¹</button>
+      <button class="btn fn" data-action="acos">cos⁻¹</button>
+      <button class="btn fn" data-action="atan">tan⁻¹</button>
+      <button class="btn fn" data-action="sqrt">√</button>
+      <button class="btn fn" data-action="cbrt">∛</button>
+      <button class="btn fn" data-action="sinh">sinh</button>
+      <button class="btn fn" data-action="cosh">cosh</button>
+      <button class="btn fn" data-action="tanh">tanh</button>
+      <button class="btn fn" data-action="square">x²</button>
+      <button class="btn fn" data-action="cube">x³</button>
+      <button class="btn fn" data-action="pow">xʸ</button>
+      <button class="btn fn" data-action="tenx">10ˣ</button>
+      <button class="btn fn" data-action="exp">eˣ</button>
+      <button class="btn fn" data-action="fact">x!</button>
+      <button class="btn fn" data-action="inv">1/x</button>
+      <button class="btn fn" data-action="pi">π</button>
+      <button class="btn fn" data-action="euler">e</button>
+      <button class="btn fn" data-action="abs">|x|</button>
+      <button class="btn fn span2" data-action="mod">mod</button>
+    </div>
+
+    <!-- 主按键 (4x5) -->
+    <div class="btn-grid main" id="mainGrid">
+      <button class="btn clear" data-action="clear">AC</button>
+      <button class="btn clear" data-action="backspace">⌫</button>
+      <button class="btn fn" data-action="percent">%</button>
+      <button class="btn op" data-action="divide">÷</button>
+
+      <button class="btn" data-action="7">7</button>
+      <button class="btn" data-action="8">8</button>
+      <button class="btn" data-action="9">9</button>
+      <button class="btn op" data-action="multiply">×</button>
+
+      <button class="btn" data-action="4">4</button>
+      <button class="btn" data-action="5">5</button>
+      <button class="btn" data-action="6">6</button>
+      <button class="btn op" data-action="subtract">−</button>
+
+      <button class="btn" data-action="1">1</button>
+      <button class="btn" data-action="2">2</button>
+      <button class="btn" data-action="3">3</button>
+      <button class="btn op" data-action="add">+</button>
+
+      <button class="btn" data-action="negate">±</button>
+      <button class="btn" data-action="0">0</button>
+      <button class="btn" data-action="decimal">.</button>
+      <button class="btn equals" data-action="equals">=</button>
+    </div>
+
+    <div class="sci-label">3D Scientific Calculator</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // === DOM refs ===
+  const displayResult = document.getElementById('displayResult');
+  const displayExpr   = document.getElementById('displayExpression');
+  const modeDeg       = document.getElementById('modeDeg');
+  const modeRad       = document.getElementById('modeRad');
+  const modeState     = document.getElementById('modeState');
+  const sciGrid       = document.getElementById('sciGrid');
+  const calculator    = document.getElementById('calculator');
+
+  // === 状态 ===
+  const state = {
+    expression: '',
+    display: '0',
+    memory: null,
+    operator: null,
+    operand: '',
+    justEvaluated: false,
+    angleMode: 'deg',   // 'deg' | 'rad'
+    isScientific: false,
+  };
+
+  // === 辅助函数 ===
+  function toRadians(x) {
+    return x * Math.PI / 180;
+  }
+  function toDegrees(x) {
+    return x * 180 / Math.PI;
+  }
+
+  // === 更新显示 ===
+  function updateDisplay() {
+    let val = state.display;
+    displayResult.textContent = val;
+    displayExpr.textContent = state.expression;
+
+    // 自动缩小字号
+    displayResult.classList.remove('small', 'xsmall');
+    if (val.length > 12) displayResult.classList.add('xsmall');
+    else if (val.length > 8)  displayResult.classList.add('small');
+
+    // 指示器
+    modeDeg.classList.toggle('active', state.angleMode === 'deg');
+    modeRad.classList.toggle('active', state.angleMode === 'rad');
+    modeState.textContent = state.isScientific ? 'SCI' : 'BASIC';
+  }
+
+  // === 科学计算 ===
+  function uniOp(fn, displayName) {
+    const v = parseFloat(state.display);
+    if (isNaN(v)) return;
+    let result;
+    try {
+      const rad = state.angleMode === 'rad';
+      switch (fn) {
+        case 'sin':  result = Math.sin(rad ? v : toRadians(v)); break;
+        case 'cos':  result = Math.cos(rad ? v : toRadians(v)); break;
+        case 'tan':
+          result = Math.tan(rad ? v : toRadians(v));
+          if (Math.abs(result) > 1e15) throw new Error('undefined');
+          break;
+        case 'asin':
+          if (v < -1 || v > 1) throw new Error('domain');
+          result = Math.asin(v);
+          if (!rad) result = toDegrees(result);
+          break;
+        case 'acos':
+          if (v < -1 || v > 1) throw new Error('domain');
+          result = Math.acos(v);
+          if (!rad) result = toDegrees(result);
+          break;
+        case 'atan':
+          result = Math.atan(v);
+          if (!rad) result = toDegrees(result);
+          break;
+        case 'sinh': result = Math.sinh(v); break;
+        case 'cosh': result = Math.cosh(v); break;
+        case 'tanh': result = Math.tanh(v); break;
+        case 'log':  result = v <= 0 ? (() => { throw new Error('domain'); })() : Math.log10(v); break;
+        case 'ln':   result = v <= 0 ? (() => { throw new Error('domain'); })() : Math.log(v); break;
+        case 'sqrt': result = v < 0  ? (() => { throw new Error('domain'); })() : Math.sqrt(v); break;
+        case 'cbrt': result = Math.cbrt(v); break;
+        case 'square': result = v * v; break;
+        case 'cube':  result = v * v * v; break;
+        case 'tenx':  result = Math.pow(10, v); break;
+        case 'exp':   result = Math.exp(v); break;
+        case 'fact':  result = factorial(v); break;
+        case 'inv':   result = v === 0 ? (() => { throw new Error('divide by zero'); })() : 1 / v; break;
+        case 'abs':   result = Math.abs(v); break;
+        case 'pi':    result = Math.PI; break;
+        case 'euler': result = Math.E; break;
+        default: return;
+      }
+    } catch (e) {
+      state.display = 'Error';
+      state.expression = '';
+      updateDisplay();
+      return;
+    }
+    if (!Number.isFinite(result)) {
+      state.display = 'Error';
+      state.expression = '';
+      updateDisplay();
+      return;
+    }
+    state.expression = `${displayName}(${state.display})`;
+    state.display = formatNumber(result);
+    state.justEvaluated = true;
+    state.operator = null;
+    state.operand = '';
+    updateDisplay();
+  }
+
+  function factorial(n) {
+    if (n < 0 || !Number.isInteger(n) || n > 170) throw new Error('domain');
+    if (n === 0 || n === 1) return 1;
+    let r = 1;
+    for (let i = 2; i <= n; i++) r *= i;
+    return r;
+  }
+
+  function formatNumber(n) {
+    if (!Number.isFinite(n)) return 'Error';
+    // 避免浮点显示过长
+    const s = n.toPrecision(12);
+    // 去掉不必要的尾随 0
+    let r = String(parseFloat(s));
+    // 极大/极小 => 指数
+    if (Math.abs(n) > 1e15 || (Math.abs(n) < 1e-10 && n !== 0)) {
+      r = n.toExponential(6);
+    }
+    return r;
+  }
+
+  // === 二元运算 ===
+  function compute(a, op, b) {
+    switch (op) {
+      case 'add':      return a + b;
+      case 'subtract': return a - b;
+      case 'multiply': return a * b;
+      case 'divide':   return b === 0 ? NaN : a / b;
+      case 'pow':      return Math.pow(a, b);
+      case 'mod':      return b === 0 ? NaN : a % b;
+      default: return NaN;
+    }
+  }
+
+  function getOpSymbol(op) {
+    const map = {
+      add: '+', subtract: '−', multiply: '×', divide: '÷',
+      pow: '^', mod: 'mod'
+    };
+    return map[op] || op;
+  }
+
+  // === 数字/小数点 ===
+  function inputDigit(d) {
+    if (state.justEvaluated) {
+      state.display = d;
+      state.expression = '';
+      state.justEvaluated = false;
+      state.operator = null;
+      state.operand = '';
+      updateDisplay();
+      return;
+    }
+    if (state.display === '0' && d !== '.') {
+      state.display = d;
+    } else {
+      if (state.display.length >= 16) return;
+      state.display += d;
+    }
+    updateDisplay();
+  }
+
+  function inputDecimal() {
+    if (state.justEvaluated) {
+      state.display = '0.';
+      state.expression = '';
+      state.justEvaluated = false;
+      state.operator = null;
+      state.operand = '';
+      updateDisplay();
+      return;
+    }
+    if (!state.display.includes('.')) {
+      state.display += '.';
+    }
+    updateDisplay();
+  }
+
+  // === 操作符 ===
+  function inputOperator(op) {
+    const cur = parseFloat(state.display);
+    if (isNaN(cur)) return;
+
+    if (state.operator && !state.justEvaluated) {
+      // 链式计算
+      const prev = parseFloat(state.operand);
+      if (!isNaN(prev)) {
+        const result = compute(prev, state.operator, cur);
+        if (!Number.isFinite(result)) {
+          state.display = 'Error';
+          state.expression = '';
+          state.operator = null;
+          state.operand = '';
+          updateDisplay();
+          return;
+        }
+        const fmt = formatNumber(result);
+        state.expression = `${state.expression} ${getOpSymbol(state.operator)} ${cur} =`;
+        state.display = fmt;
+        state.operand = fmt;
+        state.operator = op;
+        state.justEvaluated = true;
+        updateDisplay();
+        return;
+      }
+    }
+
+    // 普通输入
+    if (state.operator && state.justEvaluated) {
+      // 替换操作符
+      state.operator = op;
+      state.expression = state.expression.replace(/ [+\-×÷^mod] $/, ` ${getOpSymbol(op)} `);
+      updateDisplay();
+      return;
+    }
+
+    state.operand = state.display;
+    state.operator = op;
+    state.expression = `${state.display} ${getOpSymbol(op)} `;
+    state.justEvaluated = false;
+    updateDisplay();
+  }
+
+  // === 等于 ===
+  function inputEquals() {
+    const cur = parseFloat(state.display);
+    if (isNaN(cur)) return;
+
+    if (state.operator) {
+      const prev = parseFloat(state.operand);
+      if (isNaN(prev)) return;
+      const result = compute(prev, state.operator, cur);
+      if (!Number.isFinite(result)) {
+        state.display = 'Error';
+        state.expression = '';
+        state.operator = null;
+        state.operand = '';
+        updateDisplay();
+        return;
+      }
+      state.expression = `${state.expression} ${cur} =`;
+      state.display = formatNumber(result);
+      state.justEvaluated = true;
+      state.operator = null;
+      state.operand = '';
+      updateDisplay();
+    } else {
+      // 无操作符时按 = 不变
+      state.expression = `${state.display} =`;
+      state.justEvaluated = true;
+      updateDisplay();
+    }
+  }
+
+  // === 其他功能 ===
+  function inputClear() {
+    state.display = '0';
+    state.expression = '';
+    state.operator = null;
+    state.operand = '';
+    state.justEvaluated = false;
+    updateDisplay();
+  }
+
+  function inputBackspace() {
+    if (state.justEvaluated) return;
+    if (state.display.length <= 1 || (state.display.length === 2 && state.display.startsWith('-'))) {
+      state.display = '0';
+    } else {
+      state.display = state.display.slice(0, -1);
+    }
+    updateDisplay();
+  }
+
+  function inputNegate() {
+    if (state.display === '0') return;
+    if (state.justEvaluated) {
+      state.expression = '';
+      state.justEvaluated = false;
+    }
+    state.display = state.display.startsWith('-')
+      ? state.display.slice(1)
+      : '-' + state.display;
+    updateDisplay();
+  }
+
+  function inputPercent() {
+    const v = parseFloat(state.display);
+    if (isNaN(v)) return;
+    state.expression = `${state.display}%`;
+    state.display = formatNumber(v / 100);
+    state.justEvaluated = true;
+    updateDisplay();
+  }
+
+  function inputMod() {
+    // mod 作为二元操作符
+    inputOperator('mod');
+  }
+
+  // === 主调度 ===
+  function handleAction(action) {
+    // 数字和点
+    if (/^[\d]$/.test(action)) {
+      inputDigit(action);
+      return;
+    }
+    if (action === 'decimal') { inputDecimal(); return; }
+
+    // 清除类
+    if (action === 'clear')     { inputClear(); return; }
+    if (action === 'backspace') { inputBackspace(); return; }
+    if (action === 'negate')    { inputNegate(); return; }
+    if (action === 'percent')   { inputPercent(); return; }
+
+    // 等于
+    if (action === 'equals') { inputEquals(); return; }
+
+    // 运算符
+    if (['add','subtract','multiply','divide','pow','mod'].includes(action)) {
+      inputOperator(action);
+      return;
+    }
+
+    // 科学一元运算
+    const sciUni = ['sin','cos','tan','asin','acos','atan',
+                    'sinh','cosh','tanh','log','ln','sqrt','cbrt',
+                    'square','cube','tenx','exp','fact','inv','abs',
+                    'pi','euler'];
+    if (sciUni.includes(action)) {
+      if (state.justEvaluated) state.expression = '';
+      const labelMap = {
+        sin:'sin', cos:'cos', tan:'tan', asin:'asin', acos:'acos', atan:'atan',
+        sinh:'sinh', cosh:'cosh', tanh:'tanh',
+        log:'log', ln:'ln', sqrt:'√', cbrt:'∛',
+        square:'sq', cube:'cb', tenx:'10^', exp:'e^',
+        fact:'n!', inv:'1/', abs:'| |',
+        pi:'π', euler:'e'
+      };
+      uniOp(action, labelMap[action] || action);
+      return;
+    }
+  }
+
+  // === 键盘支持 ===
+  const keyMap = {
+    '0':'0','1':'1','2':'2','3':'3','4':'4','5':'5','6':'6','7':'7','8':'8','9':'9',
+    '.':'decimal', 'Enter':'equals', '=':'equals',
+    'Backspace':'backspace', 'Delete':'clear', 'Escape':'clear',
+    '+':'add', '-':'subtract', '*':'multiply', '/':'divide',
+    '%':'percent', '^':'pow',
+    '(':'pi', ')':'euler',
+    's':'sin', 'c':'cos', 't':'tan', 'l':'log', 'n':'ln',
+    'r':'sqrt', 'q':'square', '!':'fact',
+  };
+
+  document.addEventListener('keydown', (e) => {
+    // Prevent default for calculator keys to avoid scrolling etc.
+    const key = e.key;
+    if (key in keyMap || (key >= '0' && key <= '9') || key === '.') {
+      e.preventDefault();
+      handleAction(keyMap[key] || key);
+    }
+  });
+
+  // === 事件绑定 ===
+  document.querySelectorAll('.btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.action;
+      if (action) handleAction(action);
+    });
+  });
+
+  // === 模式切换 ===
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const mode = btn.dataset.mode;
+      state.isScientific = mode === 'sci';
+      sciGrid.classList.toggle('show', state.isScientific);
+      modeState.textContent = state.isScientific ? 'SCI' : 'BASIC';
+    });
+  });
+
+  // === 角度切换（点击 DEG/RAD）===
+  [modeDeg, modeRad].forEach(el => {
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', () => {
+      state.angleMode = state.angleMode === 'deg' ? 'rad' : 'deg';
+      updateDisplay();
+    });
+  });
+
+  // === 3D 鼠标跟随 ===
+  let glareEl = document.getElementById('glare');
+  let calcEl = calculator;
+  let lastMX = 0, lastMY = 0;
+  let rafId = null;
+
+  document.querySelector('.scene').addEventListener('mousemove', (e) => {
+    const rect = calcEl.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+
+    // 鼠标偏移归一化 [-1, 1]
+    const dx = (x - cx) / cx;
+    const dy = (y - cy) / cy;
+
+    // 计算旋转角度（带死区避免微小抖动）
+    const rotX = -dy * 12;  // 最大 ±12°
+    const rotY =  dx * 12;
+
+    // 光泽跟随
+    if (glareEl) {
+      const pctX = (x / rect.width) * 100;
+      const pctY = (y / rect.height) * 100;
+      glareEl.style.background = `radial-gradient(circle at ${pctX}% ${pctY}%, rgba(255,255,255,0.05) 0%, transparent 60%)`;
+      glareEl.style.opacity = '1';
+    }
+
+    // RAF 节流
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(() => {
+      calcEl.style.transform = `
+        rotateX(${rotX}deg)
+        rotateY(${rotY}deg)
+        translateZ(0)
+      `;
+      rafId = null;
+    });
+  });
+
+  document.querySelector('.scene').addEventListener('mouseleave', () => {
+    if (rafId) cancelAnimationFrame(rafId);
+    calcEl.style.transform = `
+      rotateX(10deg)
+      rotateY(-8deg)
+      translateZ(0)
+    `;
+    if (glareEl) glareEl.style.opacity = '0';
+  });
+
+  // === 背景粒子 ===
+  (function createParticles() {
+    const container = document.getElementById('bgParticles');
+    for (let i = 0; i < 40; i++) {
+      const span = document.createElement('span');
+      const size = 2 + Math.random() * 4;
+      span.style.width  = size + 'px';
+      span.style.height = size + 'px';
+      span.style.left   = Math.random() * 100 + '%';
+      span.style.animationDuration = (8 + Math.random() * 20) + 's';
+      span.style.animationDelay    = (Math.random() * 15) + 's';
+      span.style.opacity = 0.2 + Math.random() * 0.3;
+      container.appendChild(span);
+    }
+  })();
+
+  // === 初始化 ===
+  updateDisplay();
+})();
+</script>
+</body>
+</html>

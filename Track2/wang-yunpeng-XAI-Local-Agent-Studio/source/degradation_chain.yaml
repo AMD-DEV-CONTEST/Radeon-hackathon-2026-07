@@ -1,0 +1,134 @@
+# XAI 降级链声明式配置
+# 每条链定义 agent 失败时的降级步骤序列，按序尝试，前一步失败自动进入下一步。
+#
+# 步骤类型：
+#   action: dispatch  → 派发到 Sub Agent，需用户认证
+#   action: direct    → 直接执行（shell / write / edit），无需认证
+#   action: notify    → 只有通知能力，告知用户需手动处理
+
+chains:
+  # ------------------------------------------------------------------
+  # 文件操作降级链
+  # ------------------------------------------------------------------
+  file-agent:
+    description: "文件操作（读/写/搜索/格式转换）失败时的降级链"
+    steps:
+      - target: file-agent
+        action: dispatch
+        retry: 2
+        timeout_s: 30
+      - target: shell_executor
+        action: direct
+        retry: 1
+        timeout_s: 20
+        fallback_reason: "file-agent 熔断或超时，降级为本地 shell 直接操作"
+      - target: report
+        action: notify
+        retry: 0
+        timeout_s: 0
+        fallback_reason: "所有降级步骤失败，通知用户手动处理"
+
+  # ------------------------------------------------------------------
+  # 应用操作降级链
+  # ------------------------------------------------------------------
+  app-agent:
+    description: "应用操作（打开/安装/卸载）失败时的降级链"
+    steps:
+      - target: app-agent
+        action: dispatch
+        retry: 1
+        timeout_s: 20
+      - target: shell_executor
+        action: direct
+        retry: 1
+        timeout_s: 15
+        fallback_reason: "app-agent 不可用，尝试通过 shell 操作"
+      - target: report
+        action: notify
+        retry: 0
+        timeout_s: 0
+        fallback_reason: "所有降级步骤失败，通知用户"
+
+  # ------------------------------------------------------------------
+  # 浏览器操作降级链
+  # ------------------------------------------------------------------
+  browser-agent:
+    description: "浏览器操作失败时的降级链"
+    steps:
+      - target: browser-agent
+        action: dispatch
+        retry: 1
+        timeout_s: 25
+      - target: web_fetch
+        action: direct
+        retry: 1
+        timeout_s: 15
+        fallback_reason: "browser-agent 不可用，降级为后台抓取"
+      - target: report
+        action: notify
+        retry: 0
+        timeout_s: 0
+        fallback_reason: "所有降级步骤失败，通知用户"
+
+  # ------------------------------------------------------------------
+  # 搜索降级链
+  # ------------------------------------------------------------------
+  search-agent:
+    description: "深度搜索失败时的降级链"
+    steps:
+      - target: search-agent
+        action: dispatch
+        retry: 1
+        timeout_s: 15
+      - target: web_search
+        action: direct
+        retry: 1
+        timeout_s: 10
+        fallback_reason: "search-agent 不可用，降级为轻量 web_search"
+      - target: report
+        action: notify
+        retry: 0
+        timeout_s: 0
+        fallback_reason: "所有搜索手段失败，通知用户"
+
+  # ------------------------------------------------------------------
+  # 系统操作降级链
+  # ------------------------------------------------------------------
+  computer-agent:
+    description: "系统操作失败时的降级链"
+    steps:
+      - target: computer-agent
+        action: dispatch
+        retry: 1
+        timeout_s: 20
+      - target: shell_executor
+        action: direct
+        retry: 1
+        timeout_s: 15
+        fallback_reason: "computer-agent 不可用，降级为本地 shell 直接执行"
+      - target: report
+        action: notify
+        retry: 0
+        timeout_s: 0
+        fallback_reason: "所有降级步骤失败，通知用户"
+
+  # ------------------------------------------------------------------
+  # 代码执行降级链（引擎内部）
+  # ------------------------------------------------------------------
+  code-exec:
+    description: "代码执行失败时的降级链"
+    steps:
+      - target: grok_build
+        action: dispatch
+        retry: 1
+        timeout_s: 30
+      - target: local_python
+        action: direct
+        retry: 1
+        timeout_s: 15
+        fallback_reason: "Grok Build 不可用，降级为本地 Python 执行"
+      - target: report
+        action: notify
+        retry: 0
+        timeout_s: 0
+        fallback_reason: "所有代码执行手段失败，通知用户"

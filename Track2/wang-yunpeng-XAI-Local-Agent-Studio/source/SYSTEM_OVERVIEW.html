@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XAI 控制台 · 双核融合架构 v2.0</title>
+<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/cdn.min.js"></script>
+<style>
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  :root {
+    --blue: #2563eb;
+    --blue-50: #eff6ff;
+    --blue-100: #dbeafe;
+    --blue-200: #bfdbfe;
+    --blue-600: #2563eb;
+    --blue-700: #1d4ed8;
+
+    --amber: #d97706;
+    --amber-50: #fffbeb;
+    --amber-100: #fef3c7;
+    --amber-200: #fde68a;
+    --amber-600: #d97706;
+
+    --green: #16a34a;
+    --green-50: #f0fdf4;
+    --green-100: #dcfce7;
+    --green-200: #bbf7d0;
+    --green-600: #16a34a;
+
+    --purple: #7c3aed;
+    --purple-50: #faf5ff;
+    --purple-100: #f3e8ff;
+    --purple-200: #e9d5ff;
+    --purple-600: #7c3aed;
+
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
+
+    --radius: 12px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+  }
+
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 30%, #f5f3ff 60%, #f0fdf4 100%);
+    background-attachment: fixed;
+    color: var(--gray-800);
+    line-height: 1.6;
+    min-height: 100vh;
+    padding-bottom: 60px;
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 24px;
+  }
+
+  /* ---- Header ---- */
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+    padding: 48px 32px 40px;
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(229,231,235,0.8);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -60px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 320px;
+    height: 320px;
+    background: radial-gradient(circle, rgba(37,99,235,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .header-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, var(--blue-600), #3b82f6);
+    border-radius: 16px;
+    color: white;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 16px rgba(37,99,235,0.3);
+    position: relative;
+    z-index: 1;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--gray-900);
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 1;
+  }
+  .header .subtitle {
+    font-size: 14px;
+    color: var(--gray-500);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    position: relative;
+    z-index: 1;
+  }
+  .header .badge-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    position: relative;
+    z-index: 1;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--blue-50);
+    color: var(--blue-700);
+    border: 1px solid var(--blue-100);
+  }
+
+  /* ---- Section ---- */
+  .section {
+    margin-bottom: 40px;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .section-header h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--gray-900);
+    letter-spacing: -0.01em;
+  }
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: var(--gray-200);
+    margin-left: 12px;
+  }
+
+  /* ---- Cards ---- */
+  .card {
+    background: rgba(255,255,255,0.78);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(229,231,235,0.7);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    transition: box-shadow 0.2s, transform 0.2s;
+  }
+  .card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+
+  /* ---- System Overview ---- */
+  .system-overview .overview-text {
+    font-size: 15px;
+    color: var(--gray-700);
+    line-height: 1.75;
+  }
+  .system-overview .overview-text strong {
+    color: var(--blue-600);
+  }
+  .system-overview .feature-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+  .system-overview .feature-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    background: var(--blue-50);
+    color: var(--blue-700);
+    border: 1px solid var(--blue-100);
+  }
+
+  /* ---- Architecture Layers ---- */
+  .layer-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .layer-card {
+    border-radius: var(--radius);
+    border: 1px solid;
+    overflow: hidden;
+  }
+  .layer-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 24px;
+    font-size: 16px;
+    font-weight: 700;
+    color: white;
+  }
+  .layer-card-header .layer-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.25);
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .layer-card-body {
+    padding: 20px 24px;
+    background: rgba(255,255,255,0.65);
+    font-size: 14px;
+    color: var(--gray-700);
+    line-height: 1.7;
+  }
+  .layer-card-body .flow {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin: 8px 0;
+  }
+  .layer-card-body .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(0,0,0,0.06);
+    color: var(--gray-700);
+  }
+  .layer-card-body .sep {
+    color: var(--gray-400);
+    font-size: 12px;
+  }
+  .layer-card-body .items-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .layer-card-body .item-tag {
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    background: rgba(0,0,0,0.04);
+    color: var(--gray-600);
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+
+  /* Layer colors */
+  .layer-a .layer-card-header { background: linear-gradient(135deg, #2563eb, #3b82f6); border-color: #2563eb; }
+  .layer-a { border-color: var(--blue-200); }
+  .layer-b .layer-card-header { background: linear-gradient(135deg, #d97706, #f59e0b); border-color: #d97706; }
+  .layer-b { border-color: var(--amber-200); }
+  .layer-c .layer-card-header { background: linear-gradient(135deg, #16a34a, #22c55e); border-color: #16a34a; }
+  .layer-c { border-color: var(--green-200); }
+  .layer-d .layer-card-header { background: linear-gradient(135deg, #7c3aed, #8b5cf6); border-color: #7c3aed; }
+  .layer-d { border-color: var(--purple-200); }
+
+  /* ---- Status Table ---- */
+  .status-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--gray-200);
+    background: rgba(255,255,255,0.78);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  .status-table thead th {
+    background: var(--gray-50);
+    padding: 14px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-600);
+    text-align: left;
+    border-bottom: 1px solid var(--gray-200);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .status-table tbody td {
+    padding: 14px 20px;
+    font-size: 14px;
+    border-bottom: 1px solid var(--gray-100);
+    color: var(--gray-700);
+  }
+  .status-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+  .status-table .core-name {
+    font-weight: 700;
+    color: var(--gray-900);
+  }
+  .status-table .version {
+    font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
+    font-size: 13px;
+    color: var(--gray-500);
+  }
+  .status-row-ok .status-dot {
+    color: #16a34a;
+  }
+  .status-dot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+  }
+  .cap-list {
+    font-size: 13px;
+    color: var(--gray-600);
+    line-height: 1.6;
+  }
+
+  /* ---- Capability Grid ---- */
+  .cap-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .cap-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(229,231,235,0.6);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-700);
+    font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
+    transition: box-shadow 0.15s, border-color 0.15s;
+  }
+  .cap-item:hover {
+    border-color: var(--blue-300);
+    box-shadow: var(--shadow-md);
+  }
+
+  /* ---- API Table ---- */
+  .api-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--gray-200);
+    background: rgba(255,255,255,0.78);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  .api-table thead th {
+    background: var(--gray-50);
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-600);
+    text-align: left;
+    border-bottom: 1px solid var(--gray-200);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .api-table tbody td {
+    padding: 12px 20px;
+    font-size: 14px;
+    border-bottom: 1px solid var(--gray-100);
+    color: var(--gray-700);
+  }
+  .api-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+  .api-table .endpoint {
+    font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-800);
+  }
+  .api-table .method {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
+  }
+  .method-get { background: #dcfce7; color: #166534; }
+  .method-post { background: #dbeafe; color: #1e40af; }
+
+  /* ---- Code Block ---- */
+  .code-block {
+    background: #1e293b;
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    overflow-x: auto;
+    border: 1px solid rgba(30,41,59,0.3);
+  }
+  .code-block pre {
+    margin: 0;
+    font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
+    font-size: 13px;
+    line-height: 1.75;
+    color: #e2e8f0;
+  }
+  .code-block .comment {
+    color: #94a3b8;
+  }
+  .code-block .cmd {
+    color: #7dd3fc;
+  }
+
+  /* ---- Footer ---- */
+  .footer {
+    text-align: center;
+    padding: 32px 24px;
+    color: var(--gray-400);
+    font-size: 13px;
+    border-top: 1px solid var(--gray-200);
+    margin-top: 48px;
+  }
+  .footer .footer-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .footer .footer-sep {
+    color: var(--gray-300);
+  }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 768px) {
+    .container { padding: 20px 16px; }
+    .header h1 { font-size: 22px; }
+    .cap-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+    .status-table thead th,
+    .status-table tbody td,
+    .api-table thead th,
+    .api-table tbody td {
+      padding: 10px 14px;
+    }
+  }
+
+  /* ---- Animations ---- */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .section {
+    animation: fadeUp 0.5s ease both;
+  }
+  .section:nth-child(2) { animation-delay: 0.05s; }
+  .section:nth-child(3) { animation-delay: 0.10s; }
+  .section:nth-child(4) { animation-delay: 0.15s; }
+  .section:nth-child(5) { animation-delay: 0.20s; }
+  .section:nth-child(6) { animation-delay: 0.25s; }
+  .section:nth-child(7) { animation-delay: 0.30s; }
+  .section:nth-child(8) { animation-delay: 0.35s; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-icon">
+      <i data-lucide="cpu" style="width:28px;height:28px;"></i>
+    </div>
+    <h1>XAI 控制台 · 双核融合架构 v2.0</h1>
+    <div class="subtitle">通用 AI 操作系统中控台 · 本地闭环 · 零云依赖 · 模型无关</div>
+    <div class="badge-row">
+      <span class="badge"><i data-lucide="zap" style="width:13px;height:13px;"></i> Hermes + Grok Build</span>
+      <span class="badge"><i data-lucide="shield-check" style="width:13px;height:13px;"></i> Guardian 治理</span>
+      <span class="badge"><i data-lucide="lock" style="width:13px;height:13px;"></i> 本地闭环</span>
+    </div>
+  </header>
+
+  <!-- Section 1: System Overview -->
+  <section class="section system-overview">
+    <div class="section-header">
+      <i data-lucide="info" style="width:22px;height:22px;color:var(--blue-600);"></i>
+      <h2>系统概述</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="card">
+      <p class="overview-text">
+        XAI 控制台是一个<strong>通用 AI 操作系统中控台</strong>，将两个内核（<strong>Hermes 推理核 + Grok Build 工程核</strong>）与一个执行网关（<strong>OpenClaw</strong>）统一调度。全部本地闭环，零云依赖，模型无关。
+      </p>
+      <div class="feature-tags">
+        <span class="feature-tag"><i data-lucide="brain" style="width:14px;height:14px;"></i> Hermes 推理核</span>
+        <span class="feature-tag"><i data-lucide="hammer" style="width:14px;height:14px;"></i> Grok Build 工程核</span>
+        <span class="feature-tag"><i data-lucide="network" style="width:14px;height:14px;"></i> OpenClaw 网关</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 2: Architecture Layers -->
+  <section class="section">
+    <div class="section-header">
+      <i data-lucide="layers" style="width:22px;height:22px;color:var(--blue-600);"></i>
+      <h2>四层架构</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="layer-grid">
+
+      <!-- Layer A -->
+      <div class="layer-card layer-a">
+        <div class="layer-card-header">
+          <span class="layer-badge">A</span>
+          用户交互层
+        </div>
+        <div class="layer-card-body">
+          <span style="font-size:12px;color:var(--gray-400);">纯视图，零业务逻辑</span>
+          <div class="items-row">
+            <span class="item-tag">对话台</span>
+            <span class="item-tag">画布编排</span>
+            <span class="item-tag">仪表盘</span>
+            <span class="item-tag">任务</span>
+            <span class="item-tag">专家团</span>
+            <span class="item-tag">技能库</span>
+            <span class="item-tag">连接器管理</span>
+            <span class="item-tag">自动化</span>
+            <span class="item-tag">定时任务</span>
+            <span class="item-tag">管理</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Layer B -->
+      <div class="layer-card layer-b">
+        <div class="layer-card-header">
+          <span class="layer-badge">B</span>
+          核心引擎层
+        </div>
+        <div class="layer-card-body">
+          <span style="font-size:12px;color:var(--gray-400);">Guardian 治理闸门覆盖</span>
+          <div class="flow">
+            <span class="chip">Intent Router 意图路由</span>
+            <span class="sep">&rarr;</span>
+            <span class="chip">Control Loop 认知控制环</span>
+            <span class="sep">&rarr;</span>
+            <span class="chip" style="background:#fef3c7;color:var(--amber);">Hermes 推理核 (GEPA 自进化)</span>
+            <span class="sep">/</span>
+            <span class="chip" style="background:#fef3c7;color:var(--amber);">Grok Build 工程核 (自有框架)</span>
+          </div>
+          <div class="items-row">
+            <span class="item-tag">规划→生成→验证</span>
+            <span class="item-tag">--check 自验证</span>
+            <span class="item-tag">--best-of-n 并行探索</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Layer C -->
+      <div class="layer-card layer-c">
+        <div class="layer-card-header">
+          <span class="layer-badge">C</span>
+          Substrate 执行网关
+        </div>
+        <div class="layer-card-body">
+          <span style="font-size:12px;color:var(--gray-400);">OpenClaw 本体</span>
+          <div class="items-row">
+            <span class="item-tag">文件</span>
+            <span class="item-tag">终端</span>
+            <span class="item-tag">浏览器</span>
+            <span class="item-tag">MCP</span>
+            <span class="item-tag">技能</span>
+            <span class="item-tag">消息分发</span>
+          </div>
+          <div style="margin-top:10px;">
+            <span class="chip" style="background:#dcfce7;color:var(--green-600);">PermissionBridge 安全管道</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Layer D -->
+      <div class="layer-card layer-d">
+        <div class="layer-card-header">
+          <span class="layer-badge">D</span>
+          基础设施
+        </div>
+        <div class="layer-card-body">
+          <span style="font-size:12px;color:var(--gray-400);">8 层元认知记忆 + 模型路由</span>
+          <div class="flow">
+            <span class="chip">8层记忆</span>
+            <span class="sep">·</span>
+            <span class="chip">工作</span>
+            <span class="chip">短期</span>
+            <span class="chip">长期</span>
+            <span class="chip">锚点</span>
+            <span class="chip">反思</span>
+            <span class="chip">因果链</span>
+            <span class="chip">用户画像</span>
+            <span class="chip">失败修正</span>
+          </div>
+          <div class="items-row">
+            <span class="item-tag">模型路由 (DeepSeek/Ollama/Grok)</span>
+            <span class="item-tag">本地知识库 (RAG)</span>
+            <span class="item-tag">自蒸馏 (GEPA)</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Section 3: Three-Core Status -->
+  <section class="section">
+    <div class="section-header">
+      <i data-lucide="activity" style="width:22px;height:22px;color:var(--blue-600);"></i>
+      <h2>三核实时状态</h2>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:10px;" id="last-update">加载中...</span>
+      <div class="section-line"></div>
+    </div>
+    <table class="status-table">
+      <thead>
+        <tr>
+          <th>内核</th>
+          <th>实现</th>
+          <th>状态</th>
+          <th>能力</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="status-row-ok" id="core-row-hermes">
+          <td><span class="core-name" id="core-hermes"><span class="pulse-dot" style="display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;background:#22c55e;"></span>Hermes</span></td>
+          <td><span class="version">real v0.18.0</span></td>
+          <td><span id="engine-status" class="status-dot"><span>&#x2705;</span> 就绪</span></td>
+          <td><span class="cap-list">推理 / GEPA自进化 / 记忆检索</span></td>
+        </tr>
+        <tr class="status-row-ok" id="core-row-grok">
+          <td><span class="core-name" id="core-grok"><span class="pulse-dot" style="display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;background:#22c55e;"></span>Grok Build</span></td>
+          <td><span class="version">grok 0.1.220-alpha.4</span></td>
+          <td><span class="status-dot"><span>&#x2705;</span> 就绪</span></td>
+          <td><span class="cap-list">自有框架：规划→生成→验证 (--check / --best-of-n)</span></td>
+        </tr>
+        <tr class="status-row-ok" id="core-row-openclaw">
+          <td><span class="core-name" id="core-openclaw"><span class="pulse-dot" style="display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;background:#22c55e;"></span>OpenClaw</span></td>
+          <td><span class="version">real 2026.6.11</span></td>
+          <td><span class="status-dot"><span>&#x2705;</span> 就绪</span></td>
+          <td><span class="cap-list">全栈工具 / MCP / Skill / 定时</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Section 4: Capability Registry -->
+  <section class="section">
+    <div class="section-header">
+      <i data-lucide="grid-3x3" style="width:22px;height:22px;color:var(--blue-600);"></i>
+      <h2>能力注册表 <span style="font-size:13px;color:var(--gray-400);font-weight:500;">15项</span></h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="cap-grid">
+      <div class="cap-item"><i data-lucide="bot" style="width:16px;height:16px;color:var(--blue-600);"></i> agent</div>
+      <div class="cap-item"><i data-lucide="route" style="width:16px;height:16px;color:#7c3aed;"></i> model_router</div>
+      <div class="cap-item"><i data-lucide="git-branch" style="width:16px;height:16px;color:#d97706;"></i> intent_router</div>
+      <div class="cap-item"><i data-lucide="wand-2" style="width:16px;height:16px;color:#db2777;"></i> skill</div>
+      <div class="cap-item"><i data-lucide="plug" style="width:16px;height:16px;color:#16a34a;"></i> mcp</div>
+      <div class="cap-item"><i data-lucide="book-open" style="width:16px;height:16px;color:#0891b2;"></i> kb</div>
+      <div class="cap-item"><i data-lucide="user" style="width:16px;height:16px;color:var(--gray-500);"></i> human</div>
+      <div class="cap-item"><i data-lucide="refresh-cw" style="width:16px;height:16px;color:#9333ea;"></i> reflect</div>
+      <div class="cap-item"><i data-lucide="code-2" style="width:16px;height:16px;color:var(--gray-600);"></i> code</div>
+      <div class="cap-item"><i data-lucide="filter" style="width:16px;height:16px;color:#ea580c;"></i> condition</div>
+      <div class="cap-item"><i data-lucide="share-2" style="width:16px;height:16px;color:#2563eb;"></i> subflow</div>
+      <div class="cap-item"><i data-lucide="network" style="width:16px;height:16px;color:#059669;"></i> openclaw</div>
+      <div class="cap-item"><i data-lucide="hammer" style="width:16px;height:16px;color:#d97706;"></i> grok_build</div>
+      <div class="cap-item"><i data-lucide="brain" style="width:16px;height:16px;color:#7c3aed;"></i> hermes</div>
+      <div class="cap-item"><i data-lucide="clock" style="width:16px;height:16px;color:var(--gray-500);"></i> scheduler</div>
+    </div>
+  </section>
+
+  <!-- Section 5: Key APIs -->
+  <section class="section">
+    <div class="section-header">
+      <i data-lucide="terminal" style="width:22px;height:22px;color:var(--blue-600);"></i>
+      <h2>核心 API 清单</h2>
+      <div class="section-line"></div>
+    </div>
+    <table class="api-table">
+      <thead>
+        <tr>
+          <th>Endpoint</th>
+          <th>Method</th>
+          <th>描述</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="endpoint">/api/chat</span></td>
+          <td><span class="method method-post">POST SSE</span></td>
+          <td>流式对话</td>
+        </tr>
+        <tr>
+          <td><span class="endpoint">/api/intent</span></td>
+          <td><span class="method method-post">POST</span></td>
+          <td>意图路由+内核</td>
+        </tr>
+        <tr>
+          <td><span class="endpoint">/api/workflow/run</span></td>
+          <td><span class="method method-post">POST SSE</span></td>
+          <td>DAG工作流</td>
+        </tr>
+        <tr>
+          <td><span class="endpoint">/api/capabilities</span></td>
+          <td><span class="method method-get">GET</span></td>
+          <td>能力注册表</td>
+        </tr>
+        <tr>
+          <td><span class="endpoint">/api/status</span></td>
+          <td><span class="method method-get">GET</span></td>
+          <td>系统状态</td>
+        </tr>
+        <tr>
+          <td><span class="endpoint">/api/dashboard</span></td>
+          <td><span class="method method-get">GET</span></td>
+          <td>仪表盘数据</td>
+        </tr>
+        <tr>
+          <td><span class="endpoint">/api/skills</span></td>
+          <td><span class="method method-get">GET</span><span class="method method-post" style="margin-left:4px;">POST</span></td>
+          <td>技能库</td>
+        </tr>
+        <tr>
+          <td><span class="endpoint">/api/connectors</span></td>
+          <td><span class="method method-get">GET</span><span class="method method-post" style="margin-left:4px;">POST</span></td>
+          <td>MCP连接器</td>
+        </tr>
+        <tr>
+          <td><span class="endpoint">/api/sessions</span></td>
+          <td><span class="method method-get">GET</span></td>
+          <td>对话历史</td>
+        </tr>
+        <tr>
+          <td><span class="endpoint">/api/approvals/confirm</span></td>
+          <td><span class="method method-post">POST</span></td>
+          <td>Guardian审批</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Section 6: How to Start -->
+  <section class="section">
+    <div class="section-header">
+      <i data-lucide="play" style="width:22px;height:22px;color:var(--blue-600);"></i>
+      <h2>启动方式</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="code-block">
+      <pre><span class="comment"># Terminal 1: 启动后端</span>
+<span class="cmd">cd</span> xai/ && <span class="cmd">python3</span> server_xai.py &
+
+<span class="comment"># Terminal 2: 启动前端</span>
+<span class="cmd">cd</span> xai-frontend/ && <span class="cmd">npm</span> run dev -- --port 5180 --host
+
+<span class="comment"># 打开 http://localhost:5180</span></pre>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-line">
+      <span>XAI v2.0</span>
+      <span class="footer-sep">·</span>
+      <span>2026-07-19</span>
+      <span class="footer-sep">·</span>
+      <span>本地优先</span>
+      <span class="footer-sep">·</span>
+      <span>模型无关</span>
+      <span class="footer-sep">·</span>
+      <span>带治理平面的数字员工中台</span>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  lucide.createIcons();
+
+  // 自动刷新：每 15 秒从后端拉取真实三核状态
+  const API = 'http://localhost:8000';
+  let lastUpdate = null;
+
+  function colorDot(status) {
+    // 绿色=正常运转，灰色=未启动，红色=报错
+    if (!status || status === 'unavailable' || status === 'disconnected') return '#9ca3af';
+    if (status === 'error' || status === 'broken') return '#ef4444';
+    return '#22c55e';
+  }
+
+  async function refresh() {
+    try {
+      const resp = await fetch(API + '/api/status');
+      if (!resp.ok) throw new Error('后端未响应');
+      const d = await resp.json();
+      lastUpdate = new Date();
+
+      // 更新引擎状态
+      const engineEl = document.getElementById('engine-status');
+      if (engineEl) {
+        const ok = d.xai_engine === 'running';
+        engineEl.innerHTML = ok ? 'running' : (d.xai_engine || 'offline');
+        engineEl.style.color = ok ? '#16a34a' : (d.xai_engine ? '#d97706' : '#dc2626');
+      }
+
+      // 更新三核脉冲点
+      const cores = [
+        { id: 'core-hermes', status: d.hermes?.meta?.mode },
+        { id: 'core-grok', status: d.grok_build?.grok_build_bridge || (d.grok_build ? 'available' : null) },
+        { id: 'core-openclaw', status: d.openclaw?.meta?.mode },
+      ];
+      cores.forEach(c => {
+        const el = document.getElementById(c.id);
+        if (el) {
+          const dotColor = colorDot(c.status);
+          el.querySelector('.pulse-dot').style.background = dotColor;
+          el.querySelector('.pulse-dot').style.boxShadow = `0 0 6px ${dotColor}44`;
+        }
+      });
+
+      const updateEl = document.getElementById('last-update');
+      if (updateEl) updateEl.textContent = lastUpdate.toLocaleTimeString();
+    } catch(e) {
+      const updateEl = document.getElementById('last-update');
+      if (updateEl) updateEl.textContent = '后端未连接';
+      if (updateEl) updateEl.style.color = '#dc2626';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    refresh();
+    setInterval(refresh, 15000);
+  });
+</script>
+
+</body>
+</html>

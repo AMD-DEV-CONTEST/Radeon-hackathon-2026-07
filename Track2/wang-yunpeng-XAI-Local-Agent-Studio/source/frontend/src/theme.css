@@ -1,0 +1,203 @@
+/* ============================================================
+   XAI v4 → Liquid Glass theme bridge (Phase 1)
+   Re-skins V4's Tailwind card/shell classes onto the
+   ollamaflow liquid-glass design tokens.
+   Reversible: delete this file + its import in main.tsx to revert.
+   ============================================================ */
+
+/* Root container: theme-aware gradient backdrop */
+.xai-root { color: var(--color-text); }
+
+/* Dark (default): deep-space gradient */
+.dark .xai-root {
+  background:
+    radial-gradient(1100px 720px at 12% 8%, rgba(10, 132, 255, 0.12), transparent 60%),
+    radial-gradient(900px 640px at 88% 92%, rgba(175, 82, 222, 0.12), transparent 60%),
+    #0c0c0e;
+}
+
+/* Light: white base + purple glow (per 老大指定截图) */
+.light .xai-root {
+  background:
+    radial-gradient(1100px 720px at 12% 8%, rgba(139, 92, 246, 0.14), transparent 60%),
+    radial-gradient(900px 640px at 88% 92%, rgba(167, 139, 250, 0.12), transparent 60%),
+    #ffffff;
+  color: #1d1d2b;
+}
+
+/* Force all text to glass palette (override Tailwind zinc shades) */
+.xai-root .text-zinc-900,
+.xai-root .text-zinc-800,
+.xai-root .text-zinc-700,
+.xai-root .text-zinc-600,
+.xai-root .text-zinc-300,
+.xai-root .text-zinc-200,
+.xai-root .text-zinc-100 {
+  color: var(--color-text) !important;
+}
+.xai-root .text-zinc-500,
+.xai-root .text-zinc-400 {
+  color: var(--color-text-muted) !important;
+}
+
+/* ---- Map Tailwind zinc / accent SURFACES to glass tokens ----
+   Per 设计标准规则 #6（优先使用已存在的 var(--color-*) 变量）。
+   单一改动点：无需触碰 19 个仍用裸 zinc class 的组件文件，
+   暗色下即可跟随现有 glass token。不动 liquid-glass.css
+   现有数值（规则 #1）。 */
+.xai-root .bg-white,
+.xai-root .bg-zinc-900 { background: var(--color-bg-card) !important; }
+
+.xai-root .bg-zinc-950 { background: var(--color-bg) !important; }
+.xai-root .bg-zinc-50  { background: var(--color-bg-elevated) !important; }
+
+.xai-root .bg-zinc-100,
+.xai-root .bg-zinc-800 { background: var(--glass-bg-light) !important; }
+
+/* Accent-tinted button surfaces → node color bg tokens */
+.xai-root .bg-blue-950    { background: var(--color-node-input-bg) !important; }
+.xai-root .bg-emerald-950 { background: var(--color-node-logic-bg) !important; }
+.xai-root .bg-purple-950  { background: var(--color-node-ai-bg) !important; }
+.xai-root .bg-red-950     { background: var(--color-node-system-bg) !important; }
+
+/* Borders → subtle glass border (visible but quiet) */
+.xai-root .border-zinc-200,
+.xai-root .border-zinc-700,
+.xai-root .border-zinc-800 { border-color: var(--color-border-subtle) !important; }
+
+/* Hover surfaces → slightly stronger glass (gives feedback) */
+.xai-root .hover\:bg-zinc-100:hover,
+.xai-root .hover\:bg-zinc-200:hover,
+.xai-root .hover\:bg-zinc-800:hover,
+.xai-root .hover\:bg-zinc-900:hover { background: var(--glass-bg) !important; }
+
+.xai-root .hover\:bg-blue-100:hover    { background: var(--color-node-input-bg) !important; }
+.xai-root .hover\:bg-emerald-100:hover { background: var(--color-node-logic-bg) !important; }
+.xai-root .hover\:bg-purple-50:hover,
+.xai-root .hover\:bg-purple-950:hover { background: var(--color-node-ai-bg) !important; }
+.xai-root .hover\:bg-red-50:hover,
+.xai-root .hover\:bg-red-950:hover    { background: var(--color-node-system-bg) !important; }
+
+/* ---- Tailwind v4 keeps `dark:` as part of the class name (e.g. .dark\:bg-blue-950),
+   so the bare overrides above don't catch them. Add the prefixed variants, GATED by the
+   `.dark` ancestor class (set on <html> by ThemeProvider), so accent buttons
+   (e.g. +Agent 节点 / +能力 节点 / active tabs / active model chip) re-skin to
+   node-color tokens ONLY in dark mode. Per 设计标准规则 #6 (复用 var(--color-*)), 不动数值。 ---- */
+.dark .xai-root .dark\:bg-blue-950    { background: var(--color-node-input-bg) !important; }
+.dark .xai-root .dark\:bg-emerald-950 { background: var(--color-node-logic-bg) !important; }
+.dark .xai-root .dark\:bg-purple-950  { background: var(--color-node-ai-bg) !important; }
+.dark .xai-root .dark\:bg-red-950     { background: var(--color-node-system-bg) !important; }
+
+.dark .xai-root .dark\:border-zinc-200,
+.dark .xai-root .dark\:border-zinc-700,
+.dark .xai-root .dark\:border-zinc-800 { border-color: var(--color-border-subtle) !important; }
+
+.dark .xai-root .dark\:hover\:bg-zinc-100:hover,
+.dark .xai-root .dark\:hover\:bg-zinc-200:hover,
+.dark .xai-root .dark\:hover\:bg-zinc-800:hover,
+.dark .xai-root .dark\:hover\:bg-zinc-900:hover { background: var(--glass-bg) !important; }
+
+.dark .xai-root .dark\:hover\:bg-blue-100:hover    { background: var(--color-node-input-bg) !important; }
+.dark .xai-root .dark\:hover\:bg-emerald-100:hover { background: var(--color-node-logic-bg) !important; }
+.dark .xai-root .dark\:hover\:bg-purple-950:hover  { background: var(--color-node-ai-bg) !important; }
+.dark .xai-root .dark\:hover\:bg-red-950:hover     { background: var(--color-node-system-bg) !important; }
+
+/* Main content area transparent so the gradient shows through.
+   Out-specify the surface-map rules on lines 51-52 (.xai-root .bg-zinc-50 /
+   .xai-root .bg-zinc-950 are (0,2,0) + !important and otherwise beat the
+   bare .xai-root main (0,1,1)). Pinning the <main> element + its surface
+   class yields (0,2,1), which wins. The bg-zinc-50 override is ungated, so
+   it also fires in dark mode — hence main.bg-zinc-50 is required there too. */
+.xai-root main,
+.xai-root main.bg-zinc-50,
+.xai-root main.bg-zinc-950,
+.xai-root main.dark\:bg-zinc-950 { background: transparent !important; }
+
+/* Universal glass-card upgrade for V4's card pattern
+   (covers bg-white/dark:bg-zinc-900 + rounded-xl/lg + border) */
+.xai-root .rounded-xl.border,
+.xai-root .rounded-lg.border {
+  background: var(--glass-bg) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  backdrop-filter: blur(14px) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--shadow-glass) !important;
+}
+
+/* ---- Dark badges → node tokens（统一进 node token 系统，守规则 #6 复用 var(--color-*)）----
+   源码中暗色徽章用语义色 -900/-950 加 /20~/50 透明度变体（emerald/red/blue/
+   amber/purple）。统一映射到 node token（logic/system/input/data/ai），与画布
+   节点同色语言。不动 liquid-glass 现有数值（规则 #1）。这些 dark:bg-* 徽章类
+   在源码中仅用于徽章，故仅作用于 .dark 门控，无副作用。
+   amber → node-data（amber/orange 既有 token，无需新增）。
+   置于 glass-card 规则之后：个别 alert 框（rounded-lg.border + dark:bg-red-950/40）
+   同特异性 (0,3,0) 会与之争，后置则徽章规则胜出，确保 alert 也走 node 色。 */
+.dark .xai-root .dark\:bg-emerald-900\/30,
+.dark .xai-root .dark\:bg-emerald-900\/40,
+.dark .xai-root .dark\:bg-emerald-900\/50 { background: var(--color-node-logic-bg) !important; }
+
+.dark .xai-root .dark\:bg-red-900\/20,
+.dark .xai-root .dark\:bg-red-900\/30,
+.dark .xai-root .dark\:bg-red-950\/30,
+.dark .xai-root .dark\:bg-red-950\/40 { background: var(--color-node-system-bg) !important; }
+
+.dark .xai-root .dark\:bg-blue-900\/30,
+.dark .xai-root .dark\:bg-blue-900\/40,
+.dark .xai-root .dark\:bg-blue-950\/40 { background: var(--color-node-input-bg) !important; }
+
+.dark .xai-root .dark\:bg-purple-900\/30 { background: var(--color-node-ai-bg) !important; }
+
+.dark .xai-root .dark\:bg-amber-900\/30,
+.dark .xai-root .dark\:bg-amber-900\/50,
+.dark .xai-root .dark\:bg-amber-950\/30 { background: var(--color-node-data-bg) !important; }
+
+/* Keep status accent colors readable on dark glass */
+.xai-root .text-emerald-700,
+.xai-root .text-emerald-300 { color: #4ade80 !important; }
+.xai-root .text-amber-600,
+.xai-root .text-amber-400 { color: #fbbf24 !important; }
+.xai-root .text-purple-600,
+.xai-root .text-purple-400 { color: #c084fc !important; }
+.xai-root .text-blue-600,
+.xai-root .text-blue-400 { color: #60a5fa !important; }
+
+/* Active nav chip uses glass accent tokens */
+.xai-nav-active {
+  background: var(--color-accent-bg) !important;
+  color: var(--color-accent) !important;
+  border-color: var(--color-accent-border) !important;
+}
+
+/* Page entrance wrapper */
+.xai-page { min-height: 100%; }
+
+/* ---- 备忘录日历 RBC 玻璃主题（仅作用于 .memo-calendar，复用既有 token，不动数值）---- */
+.xai-root .memo-calendar .rbc-toolbar { margin-bottom: 8px; }
+.xai-root .memo-calendar .rbc-toolbar-label { color: var(--color-text); font-size: 14px; font-weight: 600; }
+.xai-root .memo-calendar .rbc-btn-group { display: inline-flex; gap: 4px; }
+.xai-root .memo-calendar .rbc-btn-group button {
+  background: var(--glass-bg-light); color: var(--color-text);
+  border: 1px solid var(--color-border-subtle); border-radius: 8px; padding: 4px 10px; font-size: 12px;
+  transition: background .15s ease, color .15s ease;
+}
+.xai-root .memo-calendar .rbc-btn-group button:hover { background: var(--color-bg-elevated); }
+.xai-root .memo-calendar .rbc-btn-group button.rbc-active {
+  background: var(--color-node-input-bg); color: var(--color-node-input); border-color: transparent;
+}
+.xai-root .memo-calendar .rbc-header {
+  background: var(--color-bg-elevated); color: var(--color-text-subtle);
+  border-bottom: 1px solid var(--color-border-subtle); font-size: 11px; font-weight: 600; padding: 6px 0;
+}
+.xai-root .memo-calendar .rbc-month-view,
+.xai-root .memo-calendar .rbc-time-view,
+.xai-root .memo-calendar .rbc-agenda-view {
+  border: 1px solid var(--color-border-subtle); border-radius: 10px; overflow: hidden;
+}
+.xai-root .memo-calendar .rbc-day-bg { background: transparent; }
+.xai-root .memo-calendar .rbc-day-bg.rbc-off-range { background: var(--color-bg-elevated); opacity: .5; }
+.xai-root .memo-calendar .rbc-today { background: var(--color-node-input-bg); }
+.xai-root .memo-calendar .rbc-event { box-shadow: none; cursor: pointer; }
+.xai-root .memo-calendar .rbc-agenda-table { color: var(--color-text); }
+.xai-root .memo-calendar .rbc-agenda-table td { border-color: var(--color-border-subtle); }
+.xai-root .memo-calendar .rbc-show-more { background: transparent; color: var(--color-node-input); font-size: 11px; }
+.xai-root .memo-calendar .rbc-off-range { color: var(--color-text-subtle); }
