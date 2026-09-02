@@ -1,0 +1,2 @@
+import{Routes,Route}from'react-router-dom';import Landing from'./pages/Landing';import Create from'./pages/Create';import Generate from'./pages/Generate';import Result from'./pages/Result';
+export default function App(){return <Routes><Route path="/" element={<Landing/>}/><Route path="/create" element={<Create/>}/><Route path="/generate/:id" element={<Generate/>}/><Route path="/result/:id" element={<Result/>}/><Route path="*" element={<Landing/>}/></Routes>}

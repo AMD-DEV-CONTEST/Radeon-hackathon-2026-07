@@ -1,0 +1,139 @@
+# =============================================================================
+# StagePoster .gitignore
+# =============================================================================
+# 策略说明：
+#   - 运行时生成的文件/目录 → gitignore
+#   - 空目录需要保留结构 → 使用 .gitkeep（仅 data/ 本地占位）
+#   - 第三方依赖/模型 → gitignore
+#   - NFS 持久化数据在 /workspace/persistence/，已在仓库外，无需 gitignore
+# =============================================================================
+
+
+# ---- 1. Go 构建产物 -----------------------------------------------------------
+# 编译后的二进制文件
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+poster-backend
+dbcheck
+ai-smoke-test
+*.test
+*.out
+
+# Go 依赖缓存（模块缓存不提交）
+.werf/
+
+# Go 安装产物（脚本临时安装的 Go 发行版）
+backend/1.25.0/
+
+
+# ---- 2. AI 模型文件 -----------------------------------------------------------
+# 大模型权重，永远不提交
+*.safetensors
+*.ckpt
+*.pth
+*.bin
+*.onnx
+*.pt
+
+# 模型目录
+models/
+ComfyUI/models/
+
+
+# ---- 3. Python 环境 -----------------------------------------------------------
+# 虚拟环境
+venv/
+.venv-vllm/
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+
+# ---- 4. ComfyUI ---------------------------------------------------------------
+# ComfyUI 完整仓库（git submodule 或手动克隆，不纳入此仓库）
+ComfyUI/
+
+
+# ---- 5. StagePoster 运行时：NFS 持久化目录 ------------------------------------
+# 数据已迁移到 /workspace/persistence/stageposter/（NFS）
+# 本地 backend/data/ 仅保留 .gitkeep 占位，不再存放实际数据。
+# 规则保留启用：迁移前的旧库仍可能残留在本地，而 SQLite 库属于运行时数据，
+# 一旦提交进仓库就会带上真实的活动记录。
+data/*.db
+data/*.db-shm
+data/*.db-wal
+backend/data/*.db
+backend/data/*.db-shm
+backend/data/*.db-wal
+
+
+# ---- 6. StagePoster 运行时：日志 ---------------------------------------------
+# 日志现在写到 NFS: /workspace/persistence/stageposter/logs/
+backend/logs/
+logs/
+*.log
+
+
+# ---- 7. StagePoster 运行时：PID / Tunnel 状态 --------------------------------
+backend/run/
+*.pid
+public-api-url.txt
+tunnel-go.pid
+tunnel-comfy.pid
+comfyui.pid
+vlm.pid
+vllm.pid
+backend.pid
+
+
+# ---- 8. StagePoster 运行时：文件输出 ------------------------------------------
+# 任务输出、素材、最终海报现在写到 NFS
+# backend/storage/
+
+
+# ---- 9. 环境变量与本地配置 ----------------------------------------------------
+.env
+.cloudflare/
+cloudflared/
+
+
+# ---- 10. 临时文件与备份 ------------------------------------------------------
+*.tmp
+*.before-*
+*.broken-backup
+*.swp
+*.swo
+*~
+
+
+# ---- 11. 开发工具本地状态 ----------------------------------------------------
+.claude/settings.local.json
+.claude/worktrees/
+
+
+# ---- 12. 图像输出与中间产物 --------------------------------------------------
+outputs/
+results/
+*.png
+*.jpg
+*.jpeg
+*.webp
+
+# prepare-before-instance-kill.sh 会把 Go toolchain / uv / cloudflared 复制到这里，
+# 用于实例重置后免下载恢复。它们是运行时产物，不进仓库（约 450M）。
+/toolchains/
+/tools/
+# 早期的备份目录名，现已改为 /workspace/persistence/stageposter/prekill
+/persist/
+
+# go build 的产物
+/backend/server
+/backend/poster-backend
+
+# ---- Playwright CLI temp files -------------------------------------------------
+.playwright-cli/
