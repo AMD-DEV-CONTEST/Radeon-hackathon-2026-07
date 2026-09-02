@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.local/contracts/metric-registry.schema.json",
+  "title": "SignalForge Metric Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "metrics"],
+  "properties": {
+    "schema_version": {"const": "signalforge.metric-registry/v1"},
+    "metrics": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/metric"}
+    }
+  },
+  "$defs": {
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric_id", "version", "status", "name", "economic_meaning", "formula", "inputs", "output", "period_policy", "applicability", "gaap_status", "reconciliation_required", "authority", "failure_dispositions"],
+      "properties": {
+        "metric_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"},
+        "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+        "status": {"enum": ["draft", "reviewed", "active", "deprecated", "superseded"]},
+        "name": {"type": "string", "minLength": 1},
+        "economic_meaning": {"type": "string", "minLength": 1},
+        "formula": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["expression", "convention", "implementation_owner"],
+          "properties": {
+            "expression": {"type": "string", "minLength": 1},
+            "convention": {"type": "string", "minLength": 1},
+            "implementation_owner": {"const": "deterministic_go"}
+          }
+        },
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "quantity_kind", "sign_policy", "required"],
+            "properties": {
+              "name": {"type": "string", "minLength": 1},
+              "quantity_kind": {"type": "string", "minLength": 1},
+              "sign_policy": {"type": "string", "minLength": 1},
+              "required": {"type": "boolean"},
+              "accepted_concepts": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+            }
+          }
+        },
+        "output": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["quantity_kind", "unit_policy", "precision_policy"],
+          "properties": {
+            "quantity_kind": {"type": "string", "minLength": 1},
+            "unit_policy": {"type": "string", "minLength": 1},
+            "precision_policy": {"type": "string", "minLength": 1}
+          }
+        },
+        "period_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["basis", "alignment_required", "look_ahead_prohibited"],
+          "properties": {
+            "basis": {"enum": ["instant", "duration", "average_balance", "beginning_balance", "series", "mixed"]},
+            "alignment_required": {"type": "boolean"},
+            "look_ahead_prohibited": {"const": true}
+          }
+        },
+        "applicability": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["default_profile", "excluded_profiles", "negative_value_policy"],
+          "properties": {
+            "default_profile": {"type": "string", "minLength": 1},
+            "excluded_profiles": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+            "negative_value_policy": {"type": "string", "minLength": 1}
+          }
+        },
+        "gaap_status": {"enum": ["gaap_reported", "derived_from_gaap", "issuer_non_gaap", "analytical", "mixed"]},
+        "reconciliation_required": {"type": "boolean"},
+        "authority": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["definition_sources", "review_owner"],
+          "properties": {
+            "definition_sources": {"type": "array", "minItems": 1, "items": {"type": "string", "format": "uri"}, "uniqueItems": true},
+            "review_owner": {"type": "string", "minLength": 1}
+          }
+        },
+        "failure_dispositions": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "supersedes": {"type": "string"}
+      }
+    }
+  }
+}

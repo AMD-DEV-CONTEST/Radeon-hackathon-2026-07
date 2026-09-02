@@ -1,0 +1,127 @@
+{
+  "schema_version": "signalforge/model-benchmark-suite/v1",
+  "benchmark_id": "signalforge-financial-agent-baseline-v3",
+  "cases": [
+    {
+      "case_id": "accounting-identity",
+      "workload_class": "accounting",
+      "messages": [
+        {"role": "system", "content": "Answer in English using only the supplied facts. Distinguish reported facts from interpretation."},
+        {"role": "user", "content": "A synthetic company reports assets of USD 120 million, liabilities of USD 70 million, and equity of USD 50 million for the same period and scope. Assess the balance-sheet identity in two sentences."}
+      ],
+      "max_tokens": 96,
+      "temperature": 0,
+      "required_terms": ["120", "70", "50", "balance"],
+      "forbidden_terms": ["investment advice"]
+    },
+    {
+      "case_id": "retrieval-conflict",
+      "workload_class": "retrieval",
+      "messages": [
+        {"role": "system", "content": "Use only the evidence IDs supplied by the user and preserve conflicts."},
+        {"role": "user", "content": "SEC-A, observed 2026-01-15, reports 2025 revenue of USD 10.0 billion. SEC-B, an amendment observed 2026-02-10, reports 2025 revenue of USD 10.4 billion. State the point-in-time value available on 2026-01-31 and explain the later conflict. Cite both evidence IDs."}
+      ],
+      "max_tokens": 128,
+      "temperature": 0,
+      "required_terms": ["SEC-A", "SEC-B", "10.0", "10.4"]
+    },
+    {
+      "case_id": "research-plan",
+      "workload_class": "planning",
+      "messages": [
+        {"role": "system", "content": "Create an evidence-first research plan in exactly three numbered steps and no more than 130 words. Do not perform the research."},
+        {"role": "user", "content": "Plan how to compare two US-listed semiconductor companies under a higher-for-longer interest-rate scenario. Include source acquisition, deterministic calculations, and independent review."}
+      ],
+      "max_tokens": 180,
+      "temperature": 0,
+      "required_terms": ["source", "calculation", "review"]
+    },
+    {
+      "case_id": "tool-selection-dcf",
+      "workload_class": "tool_selection",
+      "messages": [
+        {"role": "system", "content": "Select the registered deterministic tool; do not calculate in prose."},
+        {"role": "user", "content": "Invoke the deterministic DCF tool with five annual free cash flows of 100, 110, 120, 130, and 140 USD million, WACC of 0.09, and terminal growth of 0.03. Do not calculate the answer yourself."}
+      ],
+      "max_tokens": 128,
+      "temperature": 0,
+      "tools": [
+        {
+          "type": "function",
+          "function": {
+            "name": "calculate_dcf",
+            "description": "Calculate a deterministic discounted cash flow valuation.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "cash_flows_usd_millions": {"type": "array", "items": {"type": "string"}},
+                "wacc": {"type": "string"},
+                "terminal_growth": {"type": "string"}
+              },
+              "required": ["cash_flows_usd_millions", "wacc", "terminal_growth"],
+              "additionalProperties": false
+            }
+          }
+        }
+      ],
+      "required_tool": "calculate_dcf",
+      "required_tool_arguments": {
+        "cash_flows_usd_millions": ["100", "110", "120", "130", "140"],
+        "wacc": "0.09",
+        "terminal_growth": "0.03"
+      }
+    },
+    {
+      "case_id": "evidence-synthesis",
+      "workload_class": "synthesis",
+      "messages": [
+        {"role": "system", "content": "Synthesize only the supplied evidence. Separate facts, inference, and uncertainty."},
+        {"role": "user", "content": "FACT F1: revenue grew 12%. FACT F2: operating margin fell from 24% to 20%. INFERENCE I1: product mix may have weakened margin. MISSING M1: no segment cost disclosure is available. Write a concise investor research summary."}
+      ],
+      "max_tokens": 150,
+      "temperature": 0,
+      "required_terms": ["12%", "24%", "20%", "uncertainty"]
+    },
+    {
+      "case_id": "follow-up-memory",
+      "workload_class": "follow_up",
+      "messages": [
+        {"role": "system", "content": "Maintain the evidence boundary across turns."},
+        {"role": "user", "content": "Fact A: Company North has net cash of USD 4 billion. Fact B: Company South has net debt of USD 2 billion."},
+        {"role": "assistant", "content": "Company North has USD 4 billion of net cash, while Company South has USD 2 billion of net debt."},
+        {"role": "user", "content": "Which has the stronger balance-sheet position based only on those facts, and what can we not conclude?"}
+      ],
+      "max_tokens": 110,
+      "temperature": 0,
+      "required_terms": ["North", "cannot"]
+    },
+    {
+      "case_id": "structured-risk-output",
+      "workload_class": "structured_output",
+      "messages": [
+        {"role": "system", "content": "Return only valid JSON matching the requested schema."},
+        {"role": "user", "content": "Classify this synthetic observation: revenue grew while free cash flow declined. Return risk_level and rationale."}
+      ],
+      "max_tokens": 100,
+      "temperature": 0,
+      "response_format": {"type": "json_object"},
+      "require_json": true,
+      "required_terms": ["risk_level", "rationale"]
+    },
+    {
+      "case_id": "long-context-research-packet",
+      "workload_class": "long_context",
+      "messages": [
+        {"role": "system", "content": "Use only the synthetic research packet. Answer in one sentence."},
+        {"role": "user", "content": "What operating margin is repeatedly reported for the synthetic issuer, and why is it not an investment recommendation?"}
+      ],
+      "max_tokens": 80,
+      "temperature": 0,
+      "required_terms": ["18.4%", "not an investment recommendation"],
+      "repeat": {
+        "text": "SYNTHETIC-FILING-EVIDENCE: For the fiscal period ending 2025-12-31, operating margin was 18.4%. This educational fixture is not an investment recommendation and contains no real issuer data.",
+        "count": 300
+      }
+    }
+  ]
+}

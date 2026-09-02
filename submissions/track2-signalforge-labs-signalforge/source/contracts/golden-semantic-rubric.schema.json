@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.dev/contracts/golden-semantic-rubric.schema.json",
+  "title": "SignalForge GoldenSemanticRubric v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "rubric_id", "frozen_at", "question_sha256", "required_sections",
+    "required_assumptions", "required_evidence", "required_receipt_operations",
+    "required_market_price_tickers", "boundary_disclosures", "forbidden_causal_patterns"
+  ],
+  "properties": {
+    "schema_version": {"const": "signalforge/golden-semantic-rubric/v1"},
+    "rubric_id": {"$ref": "#/$defs/id"},
+    "frozen_at": {"type": "string", "format": "date-time"},
+    "question_sha256": {"$ref": "#/$defs/sha256"},
+    "required_sections": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["section_type"],
+        "properties": {
+          "section_type": {"$ref": "#/$defs/id"},
+          "required_roles": {"$ref": "#/$defs/stringArray"}
+        }
+      }
+    },
+    "required_assumptions": {"$ref": "#/$defs/stringArray"},
+    "required_evidence": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["requirement_id", "section_types"],
+        "properties": {
+          "requirement_id": {"$ref": "#/$defs/id"},
+          "section_types": {"$ref": "#/$defs/stringArray"},
+          "all_of": {"$ref": "#/$defs/stringArray"},
+          "any_of": {"$ref": "#/$defs/stringArray"}
+        }
+      }
+    },
+    "required_receipt_operations": {
+      "type": "object", "minProperties": 1,
+      "additionalProperties": {"type": "integer", "minimum": 1}
+    },
+    "required_market_price_tickers": {"$ref": "#/$defs/stringArray"},
+    "boundary_disclosures": {
+      "type": "object", "minProperties": 1,
+      "additionalProperties": {"type": "string", "minLength": 1}
+    },
+    "forbidden_causal_patterns": {"$ref": "#/$defs/stringArray"},
+    "required_section_patterns": {"$ref": "#/$defs/sectionPatterns"},
+    "forbidden_section_patterns": {"$ref": "#/$defs/sectionPatterns"}
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@+\\-]{0,255}$"},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "stringArray": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "sectionPatterns": {
+      "type": "object", "minProperties": 1,
+      "additionalProperties": {"$ref": "#/$defs/stringArray"}
+    }
+  }
+}

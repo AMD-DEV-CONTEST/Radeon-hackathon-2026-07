@@ -1,0 +1,62 @@
+name: Repository quality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-verify.txt
+
+      - name: Install verification dependencies
+        run: python3 -m pip install --requirement requirements-verify.txt
+
+      - name: Verify repository and evidence
+        run: scripts/verify.sh
+
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: verify
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate observability configuration
+        run: |
+          python3 scripts/validate_observability.py
+          scripts/prepare_container_secrets.sh
+          docker compose --profile fixture --profile observability config --quiet
+
+      - name: Build and verify the exact linux/amd64 fixture image
+        run: scripts/verify_container_fixture.sh

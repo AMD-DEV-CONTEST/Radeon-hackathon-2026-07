@@ -1,0 +1,55 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "graphTooltip": 1,
+  "id": null,
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "id": 1,
+      "options": {"legend": {"calcs": ["lastNotNull"], "displayMode": "table", "placement": "right", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "sum by (role_class, route, status) (signalforge_model_calls_total)", "legendFormat": "{{role_class}} / {{route}} / {{status}}", "refId": "A"}],
+      "title": "Agent Calls by Governed Route",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "id": 2,
+      "options": {"legend": {"calcs": ["lastNotNull"], "displayMode": "table", "placement": "right", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "sum by (direction, provider, role_class) (signalforge_model_tokens_total)", "legendFormat": "{{direction}} / {{provider}} / {{role_class}}", "refId": "A"}],
+      "title": "Token Flow",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "tempo", "uid": "tempo"},
+      "gridPos": {"h": 11, "w": 16, "x": 0, "y": 8},
+      "id": 3,
+      "options": {},
+      "targets": [{"limit": 50, "query": "{ resource.service.name = \"signalforge\" }", "queryType": "traceql", "refId": "A", "tableType": "traces"}],
+      "title": "Agent, Wave, Tool, and Model Waterfall",
+      "type": "traces"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 11, "w": 8, "x": 16, "y": 8},
+      "id": 4,
+      "options": {"dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": true, "showCommonLabels": false, "showLabels": true, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true},
+      "targets": [{"expr": "{service_name=\"signalforge\"} | json | event=~\"orchestration\\\\..*\"", "queryType": "range", "refId": "A"}],
+      "title": "Bounded Lifecycle Events",
+      "type": "logs"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 40,
+  "tags": ["signalforge", "agents", "traces"],
+  "templating": {"list": []},
+  "time": {"from": "now-30m", "to": "now"},
+  "timezone": "browser",
+  "title": "03 Agent Orchestration",
+  "uid": "signalforge-agents",
+  "version": 1
+}

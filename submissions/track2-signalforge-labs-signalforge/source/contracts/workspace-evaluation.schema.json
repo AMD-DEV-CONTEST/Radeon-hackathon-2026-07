@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.local/contracts/workspace-evaluation.schema.json",
+  "title": "SignalForge Workspace Evaluation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "measured_at", "mode", "local_only", "frontend", "journey"],
+  "properties": {
+    "schema_version": { "const": "signalforge/workspace-evaluation/v1" },
+    "measured_at": { "type": "string", "format": "date-time" },
+    "mode": { "const": "fixture" },
+    "local_only": { "const": true },
+    "frontend": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index_status", "index_bytes", "content_security_ready", "initial_case_ms"],
+      "properties": {
+        "index_status": { "const": 200 },
+        "index_bytes": { "type": "integer", "minimum": 1 },
+        "content_security_ready": { "const": true },
+        "initial_case_ms": { "type": "number", "minimum": 0 }
+      }
+    },
+    "journey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start_status", "time_to_first_progress_ms", "time_to_completed_case_ms", "streamed_events", "sections", "evidence_items", "calculation_receipts", "private_fields_excluded"],
+      "properties": {
+        "start_status": { "const": 202 },
+        "time_to_first_progress_ms": { "type": "number", "minimum": 0 },
+        "time_to_completed_case_ms": { "type": "number", "minimum": 0 },
+        "streamed_events": { "type": "integer", "minimum": 1 },
+        "sections": { "type": "integer", "minimum": 1 },
+        "evidence_items": { "type": "integer", "minimum": 1 },
+        "calculation_receipts": { "type": "integer", "minimum": 1 },
+        "private_fields_excluded": { "const": true }
+      }
+    }
+  }
+}

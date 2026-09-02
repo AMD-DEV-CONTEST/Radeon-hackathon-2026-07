@@ -1,0 +1,38 @@
+{
+  "schema_version": "signalforge/radeon-optimization-contract/v1",
+  "contract_id": "signalforge-radeon-final-workload-v1",
+  "frozen_before_experiments": true,
+  "model_profile": "gemma4-26b-a4b-qat-q4-llama-rocm",
+  "benchmark_suite": "fixtures/model-baseline-cases.json",
+  "benchmark_suite_sha256": "c6e7dcc6af829f434dc2e940719c4f6264fdc5536cef7a720f6c4199377cb0cc",
+  "workloads": 8,
+  "quality_gate": {
+    "single_contract_success_rate_minimum": 1.0,
+    "contention_contract_success_rate_minimum": 0.95,
+    "transport_failures_maximum": 0,
+    "truncation_failures_maximum": 2,
+    "golden_semantic_score_minimum": 1.0,
+    "role_holdout_passed_minimum": 29,
+    "role_holdout_total": 33
+  },
+  "measurement": {
+    "warmup_repetitions": 1,
+    "measured_repetitions": 5,
+    "single_request_concurrency": 1,
+    "contention_concurrency": 4,
+    "telemetry_interval_seconds": 1
+  },
+  "rollback_profile": {
+    "context_size": 32768,
+    "parallel_slots": 4,
+    "batch_size": 2048,
+    "ubatch_size": 512,
+    "flash_attention": "auto",
+    "cache_type_k": "f16",
+    "cache_type_v": "f16",
+    "continuous_batching": true,
+    "unified_kv_cache": true,
+    "context_semantics": "32,768 shared tokens with unified KV allocation; each request may use the full capacity when scheduling permits"
+  },
+  "acceptance_rule": "Accept a candidate only when the frozen single-request gate remains perfect, contention has no transport failure and at most the two observed bounded-output truncations, and performance improves without a material single-request p95 regression."
+}

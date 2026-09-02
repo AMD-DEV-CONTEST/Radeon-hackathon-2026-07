@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.dev/contracts/metric-comparability-receipt.schema.json",
+  "title": "SignalForge Metric Comparability Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "receipt_id", "request_id", "run_id", "lane_id", "as_of", "operands", "disposition", "invariants", "reviewer_policy_version", "request_sha256", "generated_at", "receipt_sha256"],
+  "properties": {
+    "schema_version": {"const": "signalforge/metric-comparability-receipt/v1"},
+    "receipt_id": {"type": "string", "minLength": 1},
+    "request_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "lane_id": {"type": "string", "minLength": 1},
+    "as_of": {"type": "string", "format": "date-time"},
+    "operands": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"$ref": "metric-comparability-request.schema.json#/$defs/operand"}},
+    "disposition": {"enum": ["comparable", "comparable_with_caveat", "not_comparable"]},
+    "invariants": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["invariant_id", "passed"],
+        "properties": {
+          "invariant_id": {"type": "string", "minLength": 1},
+          "passed": {"type": "boolean"},
+          "detail": {"type": "string"}
+        }
+      }
+    },
+    "required_caveat_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "reason_codes": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "reviewer_policy_version": {"type": "string", "minLength": 1},
+    "request_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "receipt_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

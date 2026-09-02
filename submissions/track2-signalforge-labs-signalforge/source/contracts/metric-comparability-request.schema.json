@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.dev/contracts/metric-comparability-request.schema.json",
+  "title": "SignalForge Metric Comparability Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "request_id", "run_id", "lane_id", "as_of", "reviewer_policy_version", "operands", "request_sha256"],
+  "properties": {
+    "schema_version": {"const": "signalforge/metric-comparability-request/v1"},
+    "request_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "lane_id": {"type": "string", "minLength": 1},
+    "as_of": {"type": "string", "format": "date-time"},
+    "reviewer_policy_version": {"type": "string", "minLength": 1},
+    "operands": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"$ref": "#/$defs/operand"}},
+    "request_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "operand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["company_id", "source_observation_ids", "source_hashes", "available_at", "retrieved_at", "canonical_metric_id", "metric_version", "taxonomy_concept", "value", "unit", "scale", "sign_policy", "dimensional_identity", "period_type", "fiscal_end", "filing_date", "accounting_perimeter", "definition_id", "restatement_state", "supersession_state"],
+      "properties": {
+        "company_id": {"type": "string", "minLength": 1},
+        "security_id": {"type": "string"},
+        "source_observation_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "filing_accessions": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "source_hashes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/sha256"}},
+        "available_at": {"type": "string", "format": "date-time"},
+        "retrieved_at": {"type": "string", "format": "date-time"},
+        "canonical_metric_id": {"type": "string", "minLength": 1},
+        "metric_version": {"type": "string", "minLength": 1},
+        "taxonomy_concept": {"type": "string", "minLength": 1},
+        "extension_mapping_id": {"type": "string"},
+        "value": {"type": "string", "minLength": 1},
+        "numerator": {"type": "string"},
+        "denominator": {"type": "string"},
+        "unit": {"type": "string", "minLength": 1},
+        "currency": {"type": "string"},
+        "scale": {"type": "integer"},
+        "sign_policy": {"type": "string", "minLength": 1},
+        "dimensional_identity": {"type": "string", "minLength": 1},
+        "period_type": {"enum": ["instant", "duration"]},
+        "fiscal_start": {"type": "string", "format": "date-time"},
+        "fiscal_end": {"type": "string", "format": "date-time"},
+        "filing_date": {"type": "string", "format": "date-time"},
+        "market_observation_date": {"type": "string", "format": "date-time"},
+        "accounting_perimeter": {"type": "string", "minLength": 1},
+        "definition_id": {"type": "string", "minLength": 1},
+        "restatement_state": {"type": "string", "minLength": 1},
+        "supersession_state": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

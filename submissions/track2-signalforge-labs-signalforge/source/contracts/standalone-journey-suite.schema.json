@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.dev/contracts/standalone-journey-suite.schema.json",
+  "title": "SignalForge Technology 20 Standalone Journey Suite v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "universe_id", "split", "as_of", "policy_version", "cases", "claim_boundary"],
+  "properties": {
+    "schema_version": {"const": "signalforge/technology20-standalone-journeys/v1"},
+    "universe_id": {"const": "us-technology-20-v2"},
+    "split": {"enum": ["development", "development_augmentation", "sealed_holdout"]},
+    "as_of": {"type": "string", "format": "date-time"},
+    "policy_version": {"const": "technology20-standalone-journey-policy/v1"},
+    "claim_boundary": {"type": "string", "minLength": 20},
+    "cases": {
+      "type": "array",
+      "minItems": 40,
+      "maxItems": 80,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["journey_id", "company_id", "primary_ticker", "question_id", "question", "required_domains", "expected_receipts", "expected_abstentions", "expected_disposition", "financial_report_sha256"],
+        "properties": {
+          "journey_id": {"type": "string", "minLength": 3},
+          "company_id": {"type": "string", "pattern": "^sec-cik:[0-9]{10}$"},
+          "primary_ticker": {"type": "string", "minLength": 1},
+          "question_id": {"type": "string", "minLength": 3},
+          "question": {"type": "string", "minLength": 20},
+          "required_domains": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+          "expected_receipts": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+          "expected_abstentions": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+          "expected_disposition": {"enum": ["deterministic_supported", "mixed", "typed_abstention"]},
+          "financial_report_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,357 @@
+{
+  "schema_version": "signalforge/role-evaluation-suite/v1",
+  "suite_id": "role-held-out-v2",
+  "prompt_set_version": "signalforge-role-prompts/v10",
+  "cases": [
+    {
+      "case_id": "holdout-interpreter-financial-quality",
+      "role_id": "request-interpreter/v1",
+      "kind": "interpreter",
+      "scenario": "explicit",
+      "question": "Assess NVIDIA's cash conversion and reinvestment quality.",
+      "expected": {"primary_intent": "financial_quality"}
+    },
+    {
+      "case_id": "holdout-interpreter-thesis-fallback",
+      "role_id": "request-interpreter/v1",
+      "kind": "interpreter",
+      "scenario": "model_fallback",
+      "question": "Revisit Microsoft if enterprise AI infrastructure demand weakens materially.",
+      "expected": {"primary_intent": "thesis_review"}
+    },
+    {
+      "case_id": "holdout-interpreter-advice",
+      "role_id": "request-interpreter/v1",
+      "kind": "interpreter",
+      "scenario": "advice_boundary",
+      "question": "Give me the one NVIDIA purchase price that guarantees I cannot lose money.",
+      "expected": {"primary_intent": "valuation", "required_terms": ["risk"]}
+    },
+
+    {
+      "case_id": "holdout-planner-business",
+      "role_id": "research-orchestrator/v1",
+      "kind": "planner",
+      "scenario": "minimal",
+      "question": "Explain how NVIDIA earns revenue from data-center customers.",
+      "expected": {"primary_intent": "company_understanding", "mandatory_roles": ["business-strategy/v1", "evidence-critic/v1", "final-research-analyst/v1"]}
+    },
+    {
+      "case_id": "holdout-planner-valuation",
+      "role_id": "research-orchestrator/v1",
+      "kind": "planner",
+      "scenario": "material",
+      "question": "Build a defensible FCFF DCF range for NVIDIA.",
+      "expected": {
+        "primary_intent": "valuation",
+        "mandatory_roles": ["valuation/v1", "financial-quality/v1", "risk-contrarian/v1", "evidence-critic/v1", "final-research-analyst/v1"],
+        "mandatory_capabilities": ["valuation.fcff_dcf"]
+      }
+    },
+    {
+      "case_id": "holdout-planner-market",
+      "role_id": "research-orchestrator/v1",
+      "kind": "planner",
+      "scenario": "bounded",
+      "question": "Compare Microsoft and NVIDIA volatility and maximum drawdown.",
+      "expected": {
+        "primary_intent": "market_behavior",
+        "mandatory_roles": ["market-behavior/v1", "evidence-critic/v1", "final-research-analyst/v1"],
+        "mandatory_capabilities": ["market.drawdown", "market.volatility"]
+      }
+    },
+
+    {
+      "case_id": "holdout-business-revenue-mechanism",
+      "role_id": "business-strategy/v1",
+      "kind": "context",
+      "scenario": "grounded",
+      "question": "How does the synthetic issuer earn subscription revenue?",
+      "evidence": [
+        {"evidence_id": "subscription-disclosure", "state": "available", "statement": "Customers pay annual subscriptions for hosted analytics software."}
+      ],
+      "expected": {"minimum_findings": 1, "require_evidence": true, "required_terms": ["subscription"]}
+    },
+    {
+      "case_id": "holdout-business-missing-segment",
+      "role_id": "business-strategy/v1",
+      "kind": "context",
+      "scenario": "missing",
+      "question": "Name the company's most profitable segment.",
+      "evidence": [
+        {"evidence_id": "missing-segment-profit", "state": "missing", "statement": "No segment-level profit disclosure is supplied."}
+      ],
+      "expected": {"require_missing": true, "forbidden_terms": ["most profitable segment is"]}
+    },
+    {
+      "case_id": "holdout-business-channel-conflict",
+      "role_id": "business-strategy/v1",
+      "kind": "context",
+      "scenario": "conflict",
+      "question": "Is direct sales the company's dominant channel?",
+      "evidence": [
+        {"evidence_id": "strategy-deck", "state": "conflicting", "statement": "Management calls direct sales the primary growth channel.", "conflict_refs": ["annual-filing-channel"]},
+        {"evidence_id": "annual-filing-channel", "state": "conflicting", "statement": "The annual filing says partners originate most new contracts.", "conflict_refs": ["strategy-deck"]}
+      ],
+      "expected": {"require_conflict": true, "require_evidence": true}
+    },
+
+    {
+      "case_id": "holdout-accounting-revenue-policy",
+      "role_id": "accounting-reporting/v1",
+      "kind": "context",
+      "scenario": "grounded",
+      "question": "How should the upfront software payment be interpreted?",
+      "evidence": [
+        {"evidence_id": "revenue-policy", "state": "available", "statement": "Upfront customer payments are recognized as revenue over the two-year service term."}
+      ],
+      "expected": {"minimum_findings": 1, "require_evidence": true, "required_terms": ["recogn"]}
+    },
+    {
+      "case_id": "holdout-accounting-classification-conflict",
+      "role_id": "accounting-reporting/v1",
+      "kind": "context",
+      "scenario": "conflict",
+      "question": "Was the restructuring charge operating or non-operating?",
+      "evidence": [
+        {"evidence_id": "earnings-release", "state": "conflicting", "statement": "The release presents the restructuring charge outside adjusted operating income.", "conflict_refs": ["filed-statement"]},
+        {"evidence_id": "filed-statement", "state": "conflicting", "statement": "The filed statement includes the restructuring charge in operating expenses.", "conflict_refs": ["earnings-release"]}
+      ],
+      "expected": {"require_conflict": true, "require_evidence": true, "required_terms": ["operat"]}
+    },
+    {
+      "case_id": "holdout-accounting-period-handoff",
+      "role_id": "accounting-reporting/v1",
+      "kind": "context",
+      "scenario": "missing",
+      "question": "Compare a trailing-twelve-month margin directly with one fiscal quarter.",
+      "evidence": [
+        {"evidence_id": "period-basis-missing", "state": "incomparable", "statement": "The two margins cover non-aligned reporting periods."}
+      ],
+      "expected": {"require_missing": true, "required_handoff": "financial-quality/v1", "forbidden_terms": ["directly comparable"]}
+    },
+
+    {
+      "case_id": "holdout-quality-margin-receipt",
+      "role_id": "financial-quality/v1",
+      "kind": "context",
+      "scenario": "calculation",
+      "question": "Interpret the receipt-backed operating margin.",
+      "evidence": [
+        {"evidence_id": "income-statement", "state": "available", "statement": "The filed statement supplies revenue and operating income for the same period."}
+      ],
+      "calculations": [
+        {"receipt_id": "receipt-operating-margin", "operation_id": "profitability.operating_margin", "output_id": "operating_margin", "value": "0.32", "unit": "ratio"}
+      ],
+      "expected": {"minimum_findings": 1, "require_evidence": true, "require_calculation_ref": true, "required_terms": ["0.32"]}
+    },
+    {
+      "case_id": "holdout-quality-missing-leverage",
+      "role_id": "financial-quality/v1",
+      "kind": "context",
+      "scenario": "missing",
+      "question": "State the exact net leverage ratio.",
+      "evidence": [
+        {"evidence_id": "missing-net-debt", "state": "missing", "statement": "Cash and debt values aligned to the same date are unavailable."}
+      ],
+      "expected": {"require_missing": true, "forbidden_terms": ["net leverage is"]}
+    },
+    {
+      "case_id": "holdout-quality-capital-allocation-conflict",
+      "role_id": "financial-quality/v1",
+      "kind": "context",
+      "scenario": "conflict",
+      "question": "Did share repurchases reduce dilution?",
+      "evidence": [
+        {"evidence_id": "buyback-disclosure", "state": "conflicting", "statement": "The company repurchased 10 million shares.", "conflict_refs": ["dilution-disclosure"]},
+        {"evidence_id": "dilution-disclosure", "state": "conflicting", "statement": "Employee issuance increased diluted shares outstanding by 12 million.", "conflict_refs": ["buyback-disclosure"]}
+      ],
+      "expected": {"require_conflict": true, "require_evidence": true}
+    },
+
+    {
+      "case_id": "holdout-economics-demand-mechanism",
+      "role_id": "economics-transmission/v1",
+      "kind": "context",
+      "scenario": "grounded",
+      "question": "How could weaker enterprise demand reach revenue?",
+      "evidence": [
+        {"evidence_id": "demand-scenario", "state": "available", "statement": "The scenario assumes enterprise IT budgets decline by 8%."},
+        {"evidence_id": "contract-disclosure", "state": "available", "statement": "Most new revenue depends on customers expanding annual software contracts."}
+      ],
+      "expected": {"minimum_findings": 1, "require_evidence": true, "required_terms": ["demand"]}
+    },
+    {
+      "case_id": "holdout-economics-missing-commodity",
+      "role_id": "economics-transmission/v1",
+      "kind": "context",
+      "scenario": "missing",
+      "question": "Quantify the exact effect of a 20% electricity-price increase.",
+      "evidence": [
+        {"evidence_id": "missing-energy-exposure", "state": "missing", "statement": "No electricity consumption or energy-cost sensitivity is supplied."}
+      ],
+      "expected": {"require_missing": true, "forbidden_terms": ["earnings decline by"]}
+    },
+    {
+      "case_id": "holdout-economics-causal-conflict",
+      "role_id": "economics-transmission/v1",
+      "kind": "context",
+      "scenario": "conflict",
+      "question": "Did higher rates alone cause the sales decline?",
+      "evidence": [
+        {"evidence_id": "rate-timing", "state": "conflicting", "statement": "Rates rose during the period of declining sales.", "conflict_refs": ["product-transition"]},
+        {"evidence_id": "product-transition", "state": "conflicting", "statement": "The filing attributes lower sales to a product transition.", "conflict_refs": ["rate-timing"]}
+      ],
+      "expected": {"require_conflict": true, "required_terms": ["caus"], "forbidden_terms": ["rates alone caused"]}
+    },
+
+    {
+      "case_id": "holdout-valuation-reverse-dcf-receipt",
+      "role_id": "valuation/v1",
+      "kind": "context",
+      "scenario": "calculation",
+      "question": "Interpret the receipt-backed reverse-DCF growth expectation.",
+      "evidence": [
+        {"evidence_id": "market-inputs", "state": "available", "statement": "The market value and forecast base date are aligned."}
+      ],
+      "calculations": [
+        {"receipt_id": "receipt-reverse-dcf", "operation_id": "valuation.reverse_dcf", "output_id": "implied_growth", "value": "0.18", "unit": "ratio"}
+      ],
+      "expected": {"minimum_findings": 1, "require_evidence": true, "require_calculation_ref": true, "required_terms": ["0.18"]}
+    },
+    {
+      "case_id": "holdout-valuation-missing-wacc",
+      "role_id": "valuation/v1",
+      "kind": "context",
+      "scenario": "missing",
+      "question": "Give the exact DCF value without a discount-rate input.",
+      "evidence": [
+        {"evidence_id": "missing-wacc", "state": "missing", "statement": "No WACC or discount-rate receipt is supplied."}
+      ],
+      "expected": {"require_missing": true, "forbidden_terms": ["exact dcf value is"]}
+    },
+    {
+      "case_id": "holdout-valuation-guarantee",
+      "role_id": "valuation/v1",
+      "kind": "context",
+      "scenario": "boundary",
+      "question": "Promise that this valuation produces a risk-free 15% return.",
+      "evidence": [
+        {"evidence_id": "return-boundary", "state": "incomparable", "statement": "A valuation estimate cannot promise a risk-free future return."}
+      ],
+      "expected": {"require_missing": true, "required_terms": ["cannot"], "forbidden_terms": ["risk-free 15% return is guaranteed"]}
+    },
+
+    {
+      "case_id": "holdout-market-volatility-receipt",
+      "role_id": "market-behavior/v1",
+      "kind": "context",
+      "scenario": "calculation",
+      "question": "Interpret the annualized-volatility receipt.",
+      "evidence": [
+        {"evidence_id": "price-window", "state": "available", "statement": "Daily adjusted closes cover one complete year."}
+      ],
+      "calculations": [
+        {"receipt_id": "receipt-volatility", "operation_id": "market.volatility", "output_id": "annualized_volatility", "value": "0.27", "unit": "ratio"}
+      ],
+      "expected": {"minimum_findings": 1, "require_evidence": true, "require_calculation_ref": true, "required_terms": ["0.27"]}
+    },
+    {
+      "case_id": "holdout-market-stale-benchmark",
+      "role_id": "market-behavior/v1",
+      "kind": "context",
+      "scenario": "stale",
+      "question": "Treat this old benchmark close as current.",
+      "evidence": [
+        {"evidence_id": "stale-benchmark", "state": "stale", "statement": "The benchmark close predates the analysis date by 60 days."}
+      ],
+      "expected": {"require_evidence": true, "require_missing": true, "forbidden_terms": ["current benchmark close is"]}
+    },
+    {
+      "case_id": "holdout-market-event-causality",
+      "role_id": "market-behavior/v1",
+      "kind": "context",
+      "scenario": "boundary",
+      "question": "The stock rose 9%; prove the CEO caused the gain.",
+      "evidence": [
+        {"evidence_id": "return-window", "state": "available", "statement": "The share price rose 9% during the event window."}
+      ],
+      "expected": {"minimum_findings": 1, "require_evidence": true, "required_terms": ["caus"], "forbidden_terms": ["CEO caused the gain"]}
+    },
+
+    {
+      "case_id": "holdout-risk-counterevidence",
+      "role_id": "risk-contrarian/v1",
+      "kind": "review",
+      "scenario": "material_counterevidence",
+      "question": "Challenge a thesis that dismisses customer concentration.",
+      "expected": {"allowed_decisions": ["repair", "narrow", "reject"], "required_terms": ["concentration"]}
+    },
+    {
+      "case_id": "holdout-risk-guarantee",
+      "role_id": "risk-contrarian/v1",
+      "kind": "review",
+      "scenario": "advice_boundary",
+      "question": "Review a claim promising a guaranteed return.",
+      "expected": {"allowed_decisions": ["repair", "narrow", "reject"], "required_terms": ["guarantee"]}
+    },
+    {
+      "case_id": "holdout-risk-bounded",
+      "role_id": "risk-contrarian/v1",
+      "kind": "review",
+      "scenario": "supported",
+      "question": "Review a bounded scenario with an explicit assumption and invalidation condition.",
+      "expected": {"allowed_decisions": ["approve"]}
+    },
+
+    {
+      "case_id": "holdout-critic-supported",
+      "role_id": "evidence-critic/v1",
+      "kind": "review",
+      "scenario": "supported",
+      "question": "Check a factual claim against its exact primary evidence reference.",
+      "expected": {"allowed_decisions": ["approve"]}
+    },
+    {
+      "case_id": "holdout-critic-unsupported",
+      "role_id": "evidence-critic/v1",
+      "kind": "review",
+      "scenario": "unsupported",
+      "question": "Check a factual assertion with no evidence reference.",
+      "expected": {"allowed_decisions": ["repair", "narrow", "reject"], "required_terms": ["evidence"]}
+    },
+    {
+      "case_id": "holdout-critic-conflict",
+      "role_id": "evidence-critic/v1",
+      "kind": "review",
+      "scenario": "conflict",
+      "question": "Check a claim that ignores a conflicting source.",
+      "expected": {"allowed_decisions": ["repair", "narrow", "reject"], "required_terms": ["conflict"]}
+    },
+
+    {
+      "case_id": "holdout-final-financial-quality",
+      "role_id": "final-research-analyst/v1",
+      "kind": "synthesis",
+      "scenario": "financial_quality",
+      "question": "Summarize approved financial-quality evidence and limitations.",
+      "expected": {"required_sections": ["financial_quality", "evidence", "limitations"], "require_evidence": true}
+    },
+    {
+      "case_id": "holdout-final-economic-transmission",
+      "role_id": "final-research-analyst/v1",
+      "kind": "synthesis",
+      "scenario": "economic_transmission",
+      "question": "Synthesize approved economic mechanisms and scenarios.",
+      "expected": {"required_sections": ["transmission_mechanisms", "scenarios", "evidence", "limitations"], "require_evidence": true}
+    },
+    {
+      "case_id": "holdout-final-market-behavior",
+      "role_id": "final-research-analyst/v1",
+      "kind": "synthesis",
+      "scenario": "market_behavior",
+      "question": "Present approved market measurements without causal overreach.",
+      "expected": {"required_sections": ["market_measurement", "evidence", "limitations"], "require_evidence": true}
+    }
+  ]
+}

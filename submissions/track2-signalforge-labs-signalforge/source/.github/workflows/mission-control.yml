@@ -1,0 +1,37 @@
+name: Mission Control runtime
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: Public immutable SignalForge image reference
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  mission-control:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify synchronized Mission Control
+        env:
+          SIGNALFORGE_MISSION_IMAGE: ${{ inputs.image }}
+        run: |
+          scripts/verify_mission_control_runtime.sh \
+            "$SIGNALFORGE_MISSION_IMAGE" \
+            mission-control-evidence
+
+      - name: Upload sanitized runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mission-control-${{ github.run_id }}
+          path: mission-control-evidence
+          if-no-files-found: error
+          retention-days: 30

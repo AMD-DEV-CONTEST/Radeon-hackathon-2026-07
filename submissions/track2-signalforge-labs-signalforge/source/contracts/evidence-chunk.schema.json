@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.dev/contracts/evidence-chunk.schema.json",
+  "title": "SignalForge Evidence Chunk v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "chunk_id", "document_id", "company_id", "evidence_type",
+    "document_type", "authority_tier", "issuer", "language", "rights_class", "audited",
+    "filed_with_sec", "forward_looking", "promotional", "published_at", "section", "locator",
+    "text", "source_uri", "document_sha256", "content_sha256", "available_at", "retrieved_at",
+    "token_estimate", "chunking_version"
+  ],
+  "properties": {
+    "schema_version": {"const": "signalforge/evidence-chunk/v1"},
+    "chunk_id": {"$ref": "#/$defs/nonEmpty"},
+    "document_id": {"$ref": "#/$defs/nonEmpty"},
+    "company_id": {"$ref": "#/$defs/nonEmpty"},
+    "evidence_type": {"enum": ["regulatory_filing", "investor_relations"]},
+    "filing_id": {"type": "string"},
+    "accession_number": {"type": "string"},
+    "form_type": {"type": "string"},
+    "document_type": {"$ref": "#/$defs/nonEmpty"},
+    "authority_tier": {"enum": ["A", "B", "C", "D", "E"]},
+    "issuer": {"$ref": "#/$defs/nonEmpty"},
+    "language": {"$ref": "#/$defs/nonEmpty"},
+    "rights_class": {"$ref": "#/$defs/nonEmpty"},
+    "audited": {"type": "boolean"},
+    "filed_with_sec": {"type": "boolean"},
+    "forward_looking": {"type": "boolean"},
+    "promotional": {"type": "boolean"},
+    "published_at": {"$ref": "#/$defs/timestamp"},
+    "effective_at": {"$ref": "#/$defs/timestamp"},
+    "superseded_at": {"$ref": "#/$defs/timestamp"},
+    "section": {"$ref": "#/$defs/nonEmpty"},
+    "table_id": {"type": "string"},
+    "page": {"type": "integer", "minimum": 1},
+    "locator": {"$ref": "#/$defs/nonEmpty"},
+    "periods": {"type": "array", "items": {"$ref": "#/$defs/nonEmpty"}, "uniqueItems": true},
+    "claim_key": {"type": "string"},
+    "claim_value": {"type": "string"},
+    "text": {"$ref": "#/$defs/nonEmpty"},
+    "source_uri": {"type": "string", "format": "uri", "pattern": "^https://"},
+    "document_sha256": {"$ref": "#/$defs/sha256"},
+    "content_sha256": {"$ref": "#/$defs/sha256"},
+    "available_at": {"$ref": "#/$defs/timestamp"},
+    "retrieved_at": {"$ref": "#/$defs/timestamp"},
+    "token_estimate": {"type": "integer", "minimum": 1},
+    "chunking_version": {"$ref": "#/$defs/nonEmpty"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"evidence_type": {"const": "regulatory_filing"}}},
+      "then": {"required": ["filing_id", "accession_number", "form_type"]}
+    }
+  ],
+  "$defs": {
+    "nonEmpty": {"type": "string", "minLength": 1},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "timestamp": {"type": "string", "format": "date-time"}
+  }
+}

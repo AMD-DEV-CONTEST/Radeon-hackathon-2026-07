@@ -1,0 +1,20 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 15s
+  external_labels:
+    environment: local-radeon
+
+scrape_configs:
+  - job_name: signalforge
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["signalforge:8080"]
+
+  - job_name: radeon
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:9400"]
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["127.0.0.1:9090"]

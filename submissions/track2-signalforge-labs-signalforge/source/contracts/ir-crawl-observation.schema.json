@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.local/contracts/ir-crawl-observation.schema.json",
+  "title": "SignalForge IR Crawl Observation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["observation_id", "company_id", "requested_uri", "observed_at", "disposition", "attempt", "elapsed_ms"],
+  "properties": {
+    "observation_id": {"type": "string", "minLength": 1},
+    "company_id": {"pattern": "^sec-cik:[0-9]{10}$"},
+    "requested_uri": {"type": "string", "format": "uri", "pattern": "^https://"},
+    "final_uri": {"type": "string", "format": "uri", "pattern": "^https://"},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "disposition": {"enum": ["accepted", "blocked", "disallowed", "timeout", "rejected", "failed", "not_modified"]},
+    "attempt": {"type": "integer", "minimum": 1},
+    "status_code": {"type": "integer", "minimum": 100, "maximum": 599},
+    "media_type": {"type": "string"},
+    "content_bytes": {"type": "integer", "minimum": 0},
+    "content_sha256": {"pattern": "^[0-9a-f]{64}$"},
+    "etag": {"type": "string"},
+    "last_modified": {"type": "string"},
+    "elapsed_ms": {"type": "integer", "minimum": 0},
+    "failure_class": {"type": "string"},
+    "retry_after": {"type": "string"},
+    "raw_store_key": {"type": "string", "pattern": "^sha256/[0-9a-f]{2}/[0-9a-f]{64}$"},
+    "duplicate_document_id": {"type": "string", "minLength": 1}
+  }
+}

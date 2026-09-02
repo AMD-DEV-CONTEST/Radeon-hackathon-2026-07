@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.dev/contracts/execution-plan.schema.json",
+  "title": "SignalForge ExecutionPlanProjection v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "run_id", "request_id", "status", "created_at", "total_steps",
+    "terminal_steps", "progress_ratio", "max_parallel_specialists", "phases", "steps",
+    "last_sequence", "projection_sha256"
+  ],
+  "properties": {
+    "schema_version": { "const": "signalforge/execution-plan/v1" },
+    "run_id": { "$ref": "#/$defs/id" },
+    "request_id": { "$ref": "#/$defs/id" },
+    "plan_id": { "$ref": "#/$defs/id" },
+    "status": { "$ref": "#/$defs/status" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "completed_at": { "type": "string", "format": "date-time" },
+    "total_steps": { "type": "integer", "minimum": 2, "maximum": 24 },
+    "terminal_steps": { "type": "integer", "minimum": 0, "maximum": 24 },
+    "progress_ratio": { "type": "number", "minimum": 0, "maximum": 1 },
+    "max_parallel_specialists": { "type": "integer", "minimum": 0, "maximum": 4 },
+    "current_wave": { "type": "integer", "minimum": 0, "maximum": 4 },
+    "route_summary": { "$ref": "#/$defs/idArray" },
+    "phases": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": { "$ref": "#/$defs/phase" }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 24,
+      "items": { "$ref": "#/$defs/step" }
+    },
+    "degradation_summary": { "$ref": "#/$defs/idArray" },
+    "last_sequence": { "type": "integer", "minimum": 0 },
+    "projection_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@+\\-]{0,255}$" },
+    "text": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "idArray": {
+      "type": "array",
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "status": {
+      "enum": [
+        "pending", "ready", "running", "passed", "failed", "degraded",
+        "repairing", "skipped", "cancelled", "withheld", "unavailable"
+      ]
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["check_id", "label", "status", "authority", "required"],
+      "properties": {
+        "check_id": { "$ref": "#/$defs/id" },
+        "label": { "$ref": "#/$defs/text" },
+        "status": { "$ref": "#/$defs/status" },
+        "authority": { "$ref": "#/$defs/id" },
+        "required": { "type": "boolean" },
+        "reference_ids": { "$ref": "#/$defs/idArray" },
+        "completed_at": { "type": "string", "format": "date-time" },
+        "safe_detail": { "$ref": "#/$defs/text" }
+      }
+    },
+    "phase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "phase_id", "order", "safe_label", "safe_objective", "mandatory",
+        "status", "step_ids", "safe_summary"
+      ],
+      "properties": {
+        "phase_id": { "$ref": "#/$defs/id" },
+        "order": { "type": "integer", "minimum": 1, "maximum": 8 },
+        "safe_label": { "$ref": "#/$defs/text" },
+        "safe_objective": { "$ref": "#/$defs/text" },
+        "mandatory": { "type": "boolean" },
+        "status": { "$ref": "#/$defs/status" },
+        "step_ids": { "$ref": "#/$defs/idArray" },
+        "safe_summary": { "$ref": "#/$defs/text" }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "step_id", "parent_phase_id", "phase", "kind", "safe_label", "safe_objective", "mandatory",
+        "status", "checklist", "attempt", "max_attempts", "safe_summary"
+      ],
+      "properties": {
+        "step_id": { "$ref": "#/$defs/id" },
+        "parent_step_id": { "$ref": "#/$defs/id" },
+        "parent_phase_id": { "$ref": "#/$defs/id" },
+        "phase": { "$ref": "#/$defs/id" },
+        "kind": { "$ref": "#/$defs/id" },
+        "safe_label": { "$ref": "#/$defs/text" },
+        "safe_objective": { "$ref": "#/$defs/text" },
+        "role_id": { "$ref": "#/$defs/id" },
+        "wave": { "type": "integer", "minimum": 0, "maximum": 4 },
+        "depends_on": { "$ref": "#/$defs/idArray" },
+        "mandatory": { "type": "boolean" },
+        "status": { "$ref": "#/$defs/status" },
+        "route": { "$ref": "#/$defs/id" },
+        "route_reason_code": { "$ref": "#/$defs/id" },
+        "authorized_capability_ids": { "$ref": "#/$defs/idArray" },
+        "evidence_requirement_classes": { "$ref": "#/$defs/idArray" },
+        "checklist": {
+          "type": "array",
+          "maxItems": 64,
+          "items": { "$ref": "#/$defs/check" }
+        },
+        "started_at": { "type": "string", "format": "date-time" },
+        "completed_at": { "type": "string", "format": "date-time" },
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "attempt": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "max_attempts": { "type": "integer", "minimum": 1, "maximum": 2 },
+        "reference_ids": { "$ref": "#/$defs/idArray" },
+        "failure_code": { "$ref": "#/$defs/id" },
+        "degradation_code": { "$ref": "#/$defs/id" },
+        "safe_summary": { "$ref": "#/$defs/text" }
+      }
+    }
+  }
+}

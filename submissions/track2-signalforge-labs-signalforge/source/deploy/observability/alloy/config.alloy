@@ -1,0 +1,81 @@
+logging {
+  level  = "info"
+  format = "json"
+}
+
+local.file_match "signalforge" {
+  path_targets = [{
+    "__path__"    = "/var/log/signalforge/logs/*.jsonl",
+    "service_name" = "signalforge",
+  }]
+}
+
+loki.source.file "signalforge" {
+  targets    = local.file_match.signalforge.targets
+  forward_to = [loki.process.signalforge.receiver]
+}
+
+loki.process "signalforge" {
+  stage.json {
+    expressions = {
+      event       = "event",
+      status      = "status",
+      role_class  = "role_class",
+      provider_id = "provider_id",
+      route       = "route",
+    }
+  }
+
+  // Only bounded fields become labels. run_id, trace_id, model_id, ticker,
+  // user, prompt, answer, URL, error text, and raw values remain non-label data.
+  stage.labels {
+    values = {
+      event       = "",
+      status      = "",
+      role_class  = "",
+      provider_id = "",
+      route       = "",
+    }
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+otelcol.receiver.otlp "default" {
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  output {
+    traces = [otelcol.processor.batch.default.input]
+  }
+}
+
+otelcol.processor.batch "default" {
+  timeout         = "2s"
+  send_batch_size = 256
+
+  output {
+    traces = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo:4317"
+
+    tls {
+      insecure = true
+    }
+  }
+}

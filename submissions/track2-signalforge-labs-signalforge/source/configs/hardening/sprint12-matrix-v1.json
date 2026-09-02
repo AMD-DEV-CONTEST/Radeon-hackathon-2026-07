@@ -1,0 +1,91 @@
+{
+  "schema_version": "signalforge/hardening-matrix/v1",
+  "matrix_id": "sprint12-adversarial-v1",
+  "frozen_at": "2026-07-22T07:00:00Z",
+  "release_blocking_severities": ["critical"],
+  "gates": [
+    {
+      "gate_id": "temporal-and-lineage",
+      "command": ["go", "test", "./internal/data", "./internal/normalize", "-run", "Test(FutureEvidenceIsUnavailableInHistoricalReplay|ReportedFactRequiresExclusivePeriodShape|NormalizedMetricRequiresReplayLineage|AsOfPreventsFutureLeakageAndPreservesAmendmentState)$", "-count=1"],
+      "sources": ["internal/data/model_test.go", "internal/normalize/sec_test.go"]
+    },
+    {
+      "gate_id": "deterministic-engine",
+      "command": ["go", "test", "./internal/engine", "-run", "Test(ExecutorRunsEveryTierZeroOperation|ExecutorFailsClosedAndIsDeterministic|ReceiptStoreReplayAndSupersession)$", "-count=1"],
+      "sources": ["internal/engine/executor_test.go"]
+    },
+    {
+      "gate_id": "market-authority",
+      "command": ["go", "test", "./internal/market", "./internal/adapters/alpaca", "-run", "Test(MarketBarRejectsStaleOrImpossibleAuthority|FixtureProviderIsAProviderNeutralOfflineFallback|BarsUseHeadersAndPreserveEntitlement)$", "-count=1"],
+      "sources": ["internal/market/model_test.go", "internal/adapters/alpaca/client_test.go"]
+    },
+    {
+      "gate_id": "retrieval-citations",
+      "command": ["go", "test", "./internal/retrieval", "-run", "Test(GoldenEvaluationLoadsAndBM25IsMeasured|ContextCompilerDiversityDedupConflictAndBudget|LexicalVectorFusionAndCitations|CitationOpenTargetIsAllowlistedAndPointInTime)$", "-count=1"],
+      "sources": ["internal/retrieval/evaluation_test.go", "internal/retrieval/retrieval_test.go", "internal/retrieval/structured_test.go"]
+    },
+    {
+      "gate_id": "source-injection-and-responsible-use",
+      "command": ["go", "test", "./internal/localagent", "-run", "Test(UntrustedSourceInstructionIsQuarantinedAcrossPromptAndAuthorityBoundaries|DecisionSemanticAuthorityRequiresRoleAndScenarioLineage|ResponsibleUseRejectsDirectTradingInstructionsAndGuaranteedOutcomes|SpecialistAdapterQuarantinesInventedEvidence)$", "-count=1"],
+      "sources": ["internal/localagent/untrusted_content.go", "internal/localagent/adapter_test.go", "internal/localagent/synthesis.go"]
+    },
+    {
+      "gate_id": "provider-chaos",
+      "command": ["go", "test", "./internal/localagent", "-run", "^TestUnifiedFakeProviderChaosSuite$", "-count=1"],
+      "sources": ["internal/localagent/chaos_test.go"]
+    },
+    {
+      "gate_id": "tool-and-runtime-failures",
+      "command": ["go", "test", "./internal/orchestrator", "./internal/resilience", "-run", "Test(ToolGateRejectsUnregisteredOrUnauthorizedCalls|TemporarySpecialistFailureRetriesAtMostOnce|CancellationProducesFailureAndNoAnswer|BreakerOpensResetsAndRecovers)$", "-count=1"],
+      "sources": ["internal/orchestrator/runtime_test.go", "internal/resilience/breaker_test.go"]
+    },
+    {
+      "gate_id": "scope-and-memory",
+      "command": ["go", "test", "./internal/requestparser", "./internal/casestore", "-run", "Test(AmbiguousExplicitRequestDoesNotInventAnEntity|ThreeGovernedFollowUpsPreservePointInTimeScopeAndLineage|StoreRoundTripExportAndSecureDelete|StoreRejectsCredentialShapedValuesWithoutPersistingThem)$", "-count=1"],
+      "sources": ["internal/requestparser/parser_test.go", "internal/casestore/store_test.go"]
+    },
+    {
+      "gate_id": "privacy-projection",
+      "command": ["go", "test", "./internal/orchestrator", "./internal/workspace", "-run", "Test(RuntimeTraceExcludesUserTextAndSecrets|ProjectPublishesOnlyWorkspaceSafeMaterial|FixtureRunCompletesAndStreamsOnlySafeEvents)$", "-count=1"],
+      "sources": ["internal/orchestrator/runtime_test.go", "internal/workspace/projection_test.go", "internal/workspace/server_test.go"]
+    },
+    {
+      "gate_id": "clean-startup",
+      "command": ["scripts/verify_clean_startup.sh"],
+      "sources": ["scripts/verify_clean_startup.sh", "cmd/signalforge-workspace/main.go"]
+    },
+    {
+      "gate_id": "demo-load",
+      "command": ["go", "test", "./internal/workspace", "-run", "^TestFixtureServerSustainsExpectedDemoReadLoad$", "-count=1"],
+      "sources": ["internal/workspace/load_test.go"]
+    }
+  ],
+  "cases": [
+    {"case_id":"future-evidence","domain":"data","threat":"Evidence unavailable at the research as-of leaks into a historical answer.","severity":"critical","owner":"data authority","gate_id":"temporal-and-lineage","expected":"Future evidence remains unavailable.","mitigation":"Point-in-time availability filtering.","residual_risk":"Incorrect upstream timestamps remain possible."},
+    {"case_id":"restatement-selection","domain":"data","threat":"An amended filing is applied before it became public or the superseded value survives afterward.","severity":"critical","owner":"normalization","gate_id":"temporal-and-lineage","expected":"Pre- and post-amendment values follow exact availability.","mitigation":"Acceptance-time amendment-aware normalization.","residual_risk":"Issuer amendment semantics can require human review."},
+    {"case_id":"missing-period-shape","domain":"data","threat":"A fact is accepted as both duration and instant or with an incomplete period.","severity":"critical","owner":"data contracts","gate_id":"temporal-and-lineage","expected":"Ambiguous period shape is rejected.","mitigation":"Exclusive typed period validation.","residual_risk":"Correctly shaped but economically incomparable periods still require comparability policy."},
+    {"case_id":"missing-metric-lineage","domain":"data","threat":"A normalized metric loses its source facts or computation lineage.","severity":"critical","owner":"normalization","gate_id":"temporal-and-lineage","expected":"Lineage-incomplete metrics are rejected.","mitigation":"Required source IDs, transformation, policy, and timestamps.","residual_risk":"Lineage proves origin, not semantic correctness."},
+    {"case_id":"unit-currency-period-mismatch","domain":"calculation","threat":"Incompatible units, currencies, or periods are combined.","severity":"critical","owner":"deterministic engine","gate_id":"deterministic-engine","expected":"The engine emits typed failures and no receipt.","mitigation":"Registry-driven metadata validation before dispatch.","residual_risk":"A consistently mislabeled source can pass structural validation."},
+    {"case_id":"receipt-tampering","domain":"calculation","threat":"A persisted calculation output is modified after execution.","severity":"critical","owner":"receipt store","gate_id":"deterministic-engine","expected":"Hash verification rejects the altered receipt.","mitigation":"Canonical receipt hashing and append-only supersession.","residual_risk":"Host compromise is outside application integrity guarantees."},
+    {"case_id":"tier0-invariant-coverage","domain":"calculation","threat":"A registered financial operation lacks an executable golden path.","severity":"critical","owner":"deterministic engine","gate_id":"deterministic-engine","expected":"Every Tier 0 operation executes with a verifiable receipt.","mitigation":"Registry cardinality and complete operation test.","residual_risk":"Golden cases do not cover every numeric edge."},
+    {"case_id":"stale-market-price","domain":"market","threat":"A market bar is used before its declared availability.","severity":"critical","owner":"market adapter","gate_id":"market-authority","expected":"AvailableAsOf remains false before the boundary.","mitigation":"Explicit point-in-time market availability predicate.","residual_risk":"Provider publication timestamps are treated as supplied."},
+    {"case_id":"impossible-ohlcv","domain":"market","threat":"Malformed high, low, volume, trades, or symbol enters analysis.","severity":"critical","owner":"market adapter","gate_id":"market-authority","expected":"Impossible bar invariants are rejected.","mitigation":"Canonical symbol, time, and OHLCV validation.","residual_risk":"Plausible but erroneous vendor data requires cross-source controls."},
+    {"case_id":"conflicting-sources","domain":"retrieval","threat":"Contradictory values are silently collapsed.","severity":"high","owner":"context compiler","gate_id":"retrieval-citations","expected":"The claim-key conflict remains explicit.","mitigation":"Content deduplication plus conflict preservation.","residual_risk":"Conflicts without a shared claim key may require semantic review."},
+    {"case_id":"citation-existence-and-time","domain":"retrieval","threat":"A citation is missing, future-dated, or opens an untrusted host.","severity":"critical","owner":"retrieval resolver","gate_id":"retrieval-citations","expected":"Resolution fails closed outside the allowlist or as-of boundary.","mitigation":"Hash-bound IDs, temporal resolution, and HTTPS host allowlist.","residual_risk":"Allowed official pages may later change content."},
+    {"case_id":"citation-relevance-and-diversity","domain":"retrieval","threat":"The context omits required evidence or collapses to one company/document.","severity":"high","owner":"retrieval evaluation","gate_id":"retrieval-citations","expected":"Frozen relevant-chunk alignment and complete-evidence rate remain 100%; context diversity and budget hold.","mitigation":"Frozen relevance labels, minimum document/company policy, and complete-evidence metric.","residual_risk":"Relevant-chunk alignment is not human semantic entailment for arbitrary claims."},
+    {"case_id":"retrieved-prompt-injection","domain":"agent security","threat":"A source document instructs the model to override rules, call tools, or reveal secrets.","severity":"critical","owner":"local agent boundary","gate_id":"source-injection-and-responsible-use","expected":"The statement is redacted, marked missing, loses claim authority, and cannot become source-backed extraction.","mitigation":"Deterministic pattern quarantine at prompt, packet, and authorization boundaries.","residual_risk":"Obfuscated or novel injections may evade patterns; documents remain untrusted."},
+    {"case_id":"unsupported-causality","domain":"answer quality","threat":"Correlation or event timing is presented as causal attribution.","severity":"critical","owner":"presentation compiler","gate_id":"source-injection-and-responsible-use","expected":"Unsupported causal language is rejected before release.","mitigation":"Role authority and causal-language semantic gate.","residual_risk":"Subtle causal implication may escape lexical patterns."},
+    {"case_id":"direct-investment-instruction","domain":"responsible use","threat":"The final answer tells the user to buy, sell, or hold a security.","severity":"critical","owner":"presentation compiler","gate_id":"source-injection-and-responsible-use","expected":"Direct trading instructions are rejected before release.","mitigation":"Application-owned responsible-use gate with one bounded repair.","residual_risk":"Indirect persuasive phrasing still requires human evaluation."},
+    {"case_id":"guaranteed-outcome","domain":"responsible use","threat":"The answer promises certain returns, profits, or upside.","severity":"critical","owner":"presentation compiler","gate_id":"source-injection-and-responsible-use","expected":"Guaranteed outcome language is rejected.","mitigation":"Deterministic certainty/outcome guard.","residual_risk":"Overconfidence without trigger terms can still require semantic review."},
+    {"case_id":"invented-evidence","domain":"agent authority","threat":"A model invents an evidence ID.","severity":"critical","owner":"local agent boundary","gate_id":"source-injection-and-responsible-use","expected":"Only the affected claim is quarantined and no authority is granted.","mitigation":"Closed evidence-ID join after model output.","residual_risk":"A wrong claim citing a real ID still depends on reviewer entailment."},
+    {"case_id":"malformed-timeout-partial-failure","domain":"agent runtime","threat":"Malformed JSON, truncation, timeout, invented references, contradictory review, or a failed specialist corrupts the run.","severity":"critical","owner":"local agent runtime","gate_id":"provider-chaos","expected":"Retries remain bounded and unsupported output is not released.","mitigation":"Unified six-case fake-provider chaos gate.","residual_risk":"Hardware and runtime failures have a larger state space."},
+    {"case_id":"unauthorized-tool-call","domain":"tools","threat":"An unregistered operation or unauthorized role executes a tool.","severity":"critical","owner":"orchestrator tool gate","gate_id":"tool-and-runtime-failures","expected":"The call is rejected before execution.","mitigation":"Closed capability registry and role authorization.","residual_risk":"A vulnerable registered tool remains in scope for tool-specific testing."},
+    {"case_id":"runtime-restart-and-cancellation","domain":"runtime","threat":"Repeated model failures, restart windows, or cancellation leave hanging work or unsafe output.","severity":"critical","owner":"resilience","gate_id":"tool-and-runtime-failures","expected":"Retries are bounded, breaker opens and recovers, cancellation returns no answer.","mitigation":"Timeout, cancellation, one retry, and bounded circuit breaker.","residual_risk":"A full process crash relies on external process supervision."},
+    {"case_id":"unsupported-company","domain":"scope","threat":"The parser invents an entity for an unsupported or ambiguous company reference.","severity":"high","owner":"request parser","gate_id":"scope-and-memory","expected":"The request remains ambiguous with no invented entity.","mitigation":"Closed entity resolution and explicit clarification state.","residual_risk":"The MVP intentionally supports only the golden company pair."},
+    {"case_id":"follow-up-scope-drift","domain":"memory","threat":"A follow-up changes company, period, comparison, or as-of without explicit user intent.","severity":"critical","owner":"request parser","gate_id":"scope-and-memory","expected":"Three chained follow-ups preserve governed point-in-time scope and lineage.","mitigation":"Typed parent context and lineage reauthorization.","residual_risk":"Semantic topic drift still requires broader conversation evaluation."},
+    {"case_id":"memory-contamination-and-secrets","domain":"memory","threat":"One case leaks into another or credential-shaped content is retained.","severity":"critical","owner":"case store","gate_id":"scope-and-memory","expected":"Cases remain identity-bound; unsafe content is rejected; export/delete are explicit.","mitigation":"Opt-in SQLite store, projection validation, secret scan, and case-scoped keys.","residual_risk":"Disk encryption and multi-user isolation are not claimed."},
+    {"case_id":"trace-and-ui-leakage","domain":"privacy","threat":"Prompts, responses, credentials, or chain-of-thought reach traces or the public workspace.","severity":"critical","owner":"safe projection","gate_id":"privacy-projection","expected":"Only closed events and safe projections are exposed.","mitigation":"Private atomic traces plus deterministic public projection.","residual_risk":"Operating-system administrators can inspect the local process."},
+    {"case_id":"clean-startup","domain":"release","threat":"The product depends on undeclared environment, secrets, local files, or a dirty build cache.","severity":"critical","owner":"release engineering","gate_id":"clean-startup","expected":"A fresh binary starts with env -i, serves frontend and APIs, and is ready within five seconds.","mitigation":"Temporary build, isolated HOME, fixture mode, and health/readiness checks.","residual_risk":"The clean local test is not a container-image pull test."},
+    {"case_id":"demo-concurrency","domain":"runtime","threat":"Concurrent judge interaction destabilizes safe read paths.","severity":"high","owner":"workspace","gate_id":"demo-load","expected":"Ninety-six concurrent health, config, and golden-case reads complete within five seconds.","mitigation":"Race-tested bounded Go HTTP server.","residual_risk":"This does not represent concurrent 26B model generation."}
+  ]
+}

@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.dev/contracts/safe-decision-replay.schema.json",
+  "title": "SignalForge SafeDecisionReplay v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "replay_id", "replay_sha256", "run_id", "request_id", "plan_id",
+    "status", "generated_at", "started_at", "completed_at", "local_only", "runtime",
+    "route_decisions", "artifacts", "claim_dispositions", "model_calls", "failures", "metrics", "privacy"
+  ],
+  "properties": {
+    "schema_version": { "const": "signalforge/safe-decision-replay/v1" },
+    "replay_id": { "$ref": "#/$defs/id" },
+    "replay_sha256": { "$ref": "#/$defs/sha256" },
+    "run_id": { "$ref": "#/$defs/id" },
+    "request_id": { "$ref": "#/$defs/id" },
+    "plan_id": { "$ref": "#/$defs/id" },
+    "status": { "enum": ["completed", "failed"] },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "completed_at": { "type": "string", "format": "date-time" },
+    "local_only": { "const": true },
+    "runtime": { "$ref": "#/$defs/runtime" },
+    "route_decisions": {
+      "type": "array", "minItems": 1,
+      "items": { "$ref": "#/$defs/route" }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/artifact" }
+    },
+    "claim_dispositions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/claim" }
+    },
+    "model_calls": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/call" }
+    },
+    "failures": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/failure" }
+    },
+    "metrics": { "$ref": "#/$defs/metrics" },
+    "privacy": { "$ref": "#/$defs/privacy" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@+\\-]{0,255}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "nonNegativeNumber": {
+      "type": "number",
+      "minimum": 0
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attested"],
+      "properties": {
+        "attested": { "type": "boolean" },
+        "profile_id": { "$ref": "#/$defs/id" },
+        "gpu_architecture": { "$ref": "#/$defs/id" },
+        "rocm_version": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "runtime": { "$ref": "#/$defs/id" },
+        "runtime_revision": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "quantization": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "model_id": { "$ref": "#/$defs/id" },
+        "model_revision": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "runtime_evidence_sha256": { "$ref": "#/$defs/sha256" }
+      },
+      "allOf": [{
+        "if": { "properties": { "attested": { "const": true } }, "required": ["attested"] },
+        "then": {
+          "required": [
+            "profile_id", "gpu_architecture", "rocm_version", "runtime", "runtime_revision",
+            "quantization", "model_id", "model_revision", "runtime_evidence_sha256"
+          ]
+        }
+      }]
+    },
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step_id", "kind", "role_id", "reason_code", "status", "started_at", "completed_at", "duration_ms"],
+      "properties": {
+        "step_id": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["context", "review", "synthesis"] },
+        "role_id": { "$ref": "#/$defs/id" },
+        "reason_code": {
+          "enum": ["intent_requires_specialist", "evidence_release_gate", "risk_contrarian_gate", "independent_review_gate", "single_release_authority"]
+        },
+        "capability_ids": {
+          "type": "array", "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "status": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "started_at": { "type": "string", "format": "date-time" },
+        "completed_at": { "type": "string", "format": "date-time" },
+        "duration_ms": { "$ref": "#/$defs/nonNegativeNumber" }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_id", "kind", "sha256"],
+      "properties": {
+        "artifact_id": { "$ref": "#/$defs/id" },
+        "kind": { "$ref": "#/$defs/id" },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claim_id", "source_role", "origin", "disposition"],
+      "properties": {
+        "claim_id": { "$ref": "#/$defs/id" },
+        "source_role": { "$ref": "#/$defs/id" },
+        "origin": { "$ref": "#/$defs/id" },
+        "disposition": { "enum": ["released", "rejected", "approved_not_released", "not_released"] },
+        "approved_by": { "$ref": "#/$defs/idArray" },
+        "rejected_by": { "$ref": "#/$defs/idArray" },
+        "released_sections": { "$ref": "#/$defs/idArray" },
+        "evidence_refs": { "$ref": "#/$defs/idArray" },
+        "receipt_refs": { "$ref": "#/$defs/idArray" },
+        "numerical_refs": { "$ref": "#/$defs/idArray" },
+        "assumption_refs": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "idArray": {
+      "type": "array", "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "stringArray": {
+      "type": "array", "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 2000 }
+    },
+    "call": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role_id", "duration_ms", "ttft_ms", "prompt_tokens", "completion_tokens", "failed"],
+      "properties": {
+        "role_id": { "$ref": "#/$defs/id" },
+        "duration_ms": { "$ref": "#/$defs/nonNegativeNumber" },
+        "ttft_ms": { "$ref": "#/$defs/nonNegativeNumber" },
+        "prompt_tokens": { "type": "integer", "minimum": 0 },
+        "completion_tokens": { "type": "integer", "minimum": 0 },
+        "finish_reason": { "enum": ["stop", "length", "tool_calls", "content_filter", "error", "cancelled", "other"] },
+        "failed": { "type": "boolean" }
+      }
+    },
+    "failure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["failure_id", "step_id", "failure_code", "retryable"],
+      "properties": {
+        "failure_id": { "$ref": "#/$defs/id" },
+        "step_id": { "$ref": "#/$defs/id" },
+        "failure_code": { "$ref": "#/$defs/id" },
+        "retryable": { "type": "boolean" }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "end_to_end_duration_ms", "model_calls", "call_duration_p50_ms", "call_duration_p95_ms",
+        "ttft_p50_ms", "ttft_p95_ms", "completion_tokens_per_second", "prompt_tokens",
+        "completion_tokens", "context_packets", "critiques", "released_claims", "evidence_coverage",
+        "max_concurrent_context"
+      ],
+      "properties": {
+        "end_to_end_duration_ms": { "$ref": "#/$defs/nonNegativeNumber" },
+        "model_calls": { "type": "integer", "minimum": 0 },
+        "call_duration_p50_ms": { "$ref": "#/$defs/nonNegativeNumber" },
+        "call_duration_p95_ms": { "$ref": "#/$defs/nonNegativeNumber" },
+        "ttft_p50_ms": { "$ref": "#/$defs/nonNegativeNumber" },
+        "ttft_p95_ms": { "$ref": "#/$defs/nonNegativeNumber" },
+        "completion_tokens_per_second": { "$ref": "#/$defs/nonNegativeNumber" },
+        "prompt_tokens": { "type": "integer", "minimum": 0 },
+        "completion_tokens": { "type": "integer", "minimum": 0 },
+        "context_packets": { "type": "integer", "minimum": 0 },
+        "critiques": { "type": "integer", "minimum": 0 },
+        "released_claims": { "type": "integer", "minimum": 0 },
+        "evidence_coverage": { "type": "number", "minimum": 0, "maximum": 1 },
+        "max_concurrent_context": { "type": "integer", "minimum": 0, "maximum": 4 }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["prompt_bodies_excluded", "response_bodies_excluded", "chain_of_thought_excluded", "failure_messages_excluded"],
+      "properties": {
+        "prompt_bodies_excluded": { "const": true },
+        "response_bodies_excluded": { "const": true },
+        "chain_of_thought_excluded": { "const": true },
+        "failure_messages_excluded": { "const": true }
+      }
+    }
+  }
+}

@@ -1,0 +1,31 @@
+# syntax=docker/dockerfile:1.7
+FROM rocm/dev-ubuntu-24.04:7.2.1-complete@sha256:3db551c4e1229aac1857ac44fcb6141bb749f41348eb572452f11279153c13c3 AS build
+ARG LLAMA_CPP_REVISION=305ba519ab61cdff8044922cba2347826a04453f
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+       ca-certificates cmake git ninja-build \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /source
+RUN git clone --filter=blob:none https://github.com/ggml-org/llama.cpp.git . \
+    && git checkout "${LLAMA_CPP_REVISION}" \
+    && cmake -S . -B build -G Ninja \
+       -DGGML_HIP=ON -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=OFF \
+       -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_SERVER=ON \
+       -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build build --target llama-server -j"$(nproc)"
+
+FROM rocm/dev-ubuntu-24.04:7.2.1-complete@sha256:3db551c4e1229aac1857ac44fcb6141bb749f41348eb572452f11279153c13c3
+LABEL org.opencontainers.image.title="SignalForge llama.cpp ROCm runtime" \
+      org.opencontainers.image.licenses="MIT"
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system --gid 10002 model \
+    && useradd --system --uid 10002 --gid model --home-dir /nonexistent --shell /usr/sbin/nologin model \
+    && mkdir -p /models \
+    && chown model:model /models
+COPY --from=build /source/build/bin/llama-server /usr/local/bin/llama-server
+USER 10002:10002
+EXPOSE 8000
+ENTRYPOINT ["/usr/local/bin/llama-server"]
+CMD ["--host", "0.0.0.0", "--port", "8000", "--model", "/models/gemma-4-26B_q4_0-it.gguf", "--ctx-size", "32768", "--parallel", "4", "--flash-attn", "auto", "--no-mmap"]

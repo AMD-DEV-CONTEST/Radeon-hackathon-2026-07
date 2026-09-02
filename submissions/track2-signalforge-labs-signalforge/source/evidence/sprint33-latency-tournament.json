@@ -1,0 +1,95 @@
+{
+  "schema_version": "signalforge/public-latency-tournament/v1",
+  "generated_at": "2026-07-26T17:32:07.861272+00:00",
+  "population": {
+    "suite": "public development augmentation",
+    "sample_size_per_mode": 8,
+    "sealed_populations_opened": false,
+    "raw_bodies_published": false
+  },
+  "provenance": {
+    "source_commit": "bd3701eb033893a123cce73c656312fc7cad87b2",
+    "evaluation_binary_sha256": "e43bfe0efd0e55c2a4053e7b82e27fe7ddebc86c757f7f57137574d5c2857611",
+    "private_source_artifact_sha256": "bba96b9087459f4dcb1a575f354bd339f501532331c3104339546dc96e54e648"
+  },
+  "models": {
+    "local": "signalforge-gemma4-26b-q4",
+    "hybrid_specialist": "DeepSeek-V4-Flash",
+    "hybrid_specialist_provider": "radeon-vllm"
+  },
+  "modes": {
+    "baseline_context_concurrency_2": {
+      "runtime_passed": 8,
+      "contracts_passed": 8,
+      "duration_total_ms": 972031.118,
+      "duration_p50_ms": 118917.554,
+      "duration_p95_ms": 146057.161,
+      "duration_max_ms": 146057.161,
+      "model_calls": 54,
+      "prompt_tokens": 126519,
+      "completion_tokens": 30645,
+      "provider_calls": {
+        "local-rocm": 54
+      },
+      "failed_provider_calls": {}
+    },
+    "local_context_concurrency_4": {
+      "runtime_passed": 8,
+      "contracts_passed": 8,
+      "duration_total_ms": 349936.85,
+      "duration_p50_ms": 42375.61,
+      "duration_p95_ms": 59837.565,
+      "duration_max_ms": 59837.565,
+      "model_calls": 49,
+      "prompt_tokens": 104516,
+      "completion_tokens": 22141,
+      "provider_calls": {
+        "local-rocm": 49
+      },
+      "failed_provider_calls": {}
+    },
+    "hybrid_context_concurrency_4": {
+      "runtime_passed": 8,
+      "contracts_passed": 8,
+      "duration_total_ms": 468323.648,
+      "duration_p50_ms": 50584.959,
+      "duration_p95_ms": 96801.886,
+      "duration_max_ms": 96801.886,
+      "model_calls": 58,
+      "prompt_tokens": 122963,
+      "completion_tokens": 31739,
+      "provider_calls": {
+        "local-rocm": 37,
+        "radeon-vllm": 21
+      },
+      "failed_provider_calls": {
+        "radeon-vllm": 1
+      }
+    }
+  },
+  "comparisons": {
+    "local4_vs_baseline": {
+      "aggregate_speedup": 2.7777,
+      "p50_reduction_percent": 64.37,
+      "model_call_delta": -5,
+      "prompt_token_delta": -22003,
+      "completion_token_delta": -8504
+    },
+    "hybrid4_vs_baseline": {
+      "aggregate_speedup": 2.0756,
+      "p50_reduction_percent": 57.46,
+      "successful_radeon_calls": 20,
+      "failed_radeon_calls_recovered": 1
+    }
+  },
+  "decision": {
+    "interactive_default": "local_context_concurrency_4",
+    "hybrid": "explicit opt-in for Radeon API specialist execution and bonus evidence",
+    "reason": "The local four-worker mode had the lowest aggregate and p50 latency with 8/8 contracts. The hybrid mode also passed 8/8 and proved accepted Radeon API participation, but had higher aggregate latency and one recovered remote failure."
+  },
+  "limitations": [
+    "This is workload-specific, non-sealed development evidence over eight public journeys per mode.",
+    "Contract success is not external factual accuracy, professional review, rights approval, or universal performance.",
+    "The aggregate omits prompts, responses, excerpts, private reasoning, per-case identifiers, and credentials."
+  ]
+}

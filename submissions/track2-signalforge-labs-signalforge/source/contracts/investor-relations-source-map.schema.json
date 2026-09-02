@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.dev/contracts/investor-relations-source-map.schema.json",
+  "title": "SignalForge Investor Relations Source Map",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "sources"],
+  "properties": {
+    "schema_version": {
+      "const": "signalforge/investor-relations-source-map/v1"
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["company_id", "cik", "issuer", "discovery_uri", "allowed_hosts", "material_classes"],
+        "properties": {
+          "company_id": {"type": "string", "minLength": 1},
+          "cik": {"type": "string", "pattern": "^[0-9]{10}$"},
+          "issuer": {"type": "string", "minLength": 1},
+          "discovery_uri": {"type": "string", "format": "uri", "pattern": "^https://"},
+          "allowed_hosts": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "material_classes": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    }
+  }
+}

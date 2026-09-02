@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.local/contracts/authorial-company-context.schema.json",
+  "title": "SignalForge Authorial Company Context",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "context_id",
+    "issuer",
+    "created_at",
+    "status",
+    "method",
+    "sources",
+    "authorial_context",
+    "semantic_projection",
+    "claim_boundary",
+    "review"
+  ],
+  "properties": {
+    "schema_version": {"const": "signalforge/authorial-company-context/v1"},
+    "context_id": {"type": "string", "minLength": 1},
+    "issuer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["company_id", "name", "ticker", "market"],
+      "properties": {
+        "company_id": {"pattern": "^sec-cik:[0-9]{10}$"},
+        "name": {"type": "string", "minLength": 1},
+        "ticker": {"type": "string", "minLength": 1},
+        "market": {"const": "US"}
+      }
+    },
+    "created_at": {"type": "string", "format": "date-time"},
+    "status": {
+      "enum": [
+        "private_evaluation_review_required",
+        "reviewed_private",
+        "approved_for_product"
+      ]
+    },
+    "method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description", "expression_policy", "numeric_policy"],
+      "properties": {
+        "description": {"type": "string", "minLength": 1},
+        "expression_policy": {"type": "string", "minLength": 1},
+        "numeric_policy": {"type": "string", "minLength": 1}
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_id",
+          "title",
+          "uri",
+          "source_class",
+          "authority_tier",
+          "retrieved_at",
+          "retrieval_status",
+          "evidence_method",
+          "rights_class"
+        ],
+        "properties": {
+          "source_id": {"type": "string", "minLength": 1},
+          "title": {"type": "string", "minLength": 1},
+          "uri": {"type": "string", "format": "uri", "pattern": "^https://"},
+          "source_class": {
+            "enum": ["corporate_profile", "product_taxonomy", "solution_taxonomy", "crawl_policy"]
+          },
+          "authority_tier": {"const": "E"},
+          "retrieved_at": {"type": "string", "format": "date-time"},
+          "capture_sha256": {"pattern": "^[0-9a-f]{64}$"},
+          "http_status": {"type": "integer", "minimum": 100, "maximum": 599},
+          "http_response_sha256": {"pattern": "^[0-9a-f]{64}$"},
+          "retrieval_status": {
+            "enum": ["retrieved_directly", "direct_access_blocked_official_index_extract_used"]
+          },
+          "evidence_method": {"type": "string", "minLength": 1},
+          "rights_class": {"const": "reference_only_authorial_derivation_pending_review"}
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"retrieval_status": {"const": "retrieved_directly"}}},
+            "then": {
+              "required": ["capture_sha256", "http_status"],
+              "properties": {"http_status": {"const": 200}}
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "retrieval_status": {"const": "direct_access_blocked_official_index_extract_used"}
+              }
+            },
+            "then": {
+              "required": ["http_status", "http_response_sha256"],
+              "properties": {"http_status": {"enum": [401, 403, 429]}}
+            }
+          }
+        ]
+      }
+    },
+    "authorial_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "one_sentence",
+        "business_description",
+        "product_families",
+        "solution_domains",
+        "customer_and_workload_profile",
+        "analytical_interpretations"
+      ],
+      "properties": {
+        "one_sentence": {"type": "string", "minLength": 1},
+        "business_description": {"type": "string", "minLength": 1},
+        "product_families": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/context_item"}
+        },
+        "solution_domains": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/context_item"}
+        },
+        "customer_and_workload_profile": {"type": "string", "minLength": 1},
+        "analytical_interpretations": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/context_item"}
+        }
+      }
+    },
+    "semantic_projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "projection_sha256", "numeric_content", "embedding_policy"],
+      "properties": {
+        "text": {"type": "string", "minLength": 1},
+        "projection_sha256": {"pattern": "^[0-9a-f]{64}$"},
+        "numeric_content": {"const": "none"},
+        "embedding_policy": {"const": "private_evaluation_until_review"}
+      }
+    },
+    "claim_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["supported_uses", "prohibited_uses", "issuer_claims"],
+      "properties": {
+        "supported_uses": {"type": "array", "items": {"type": "string"}},
+        "prohibited_uses": {"type": "array", "items": {"type": "string"}},
+        "issuer_claims": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["claim", "source_ids", "treatment"],
+            "properties": {
+              "claim": {"type": "string", "minLength": 1},
+              "source_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+              "treatment": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authorial", "source_traceable", "human_review", "product_eligible"],
+      "properties": {
+        "authorial": {"const": true},
+        "source_traceable": {"const": true},
+        "human_review": {"enum": ["pending", "complete"]},
+        "product_eligible": {"type": "boolean"}
+      }
+    }
+  },
+  "$defs": {
+    "context_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "summary", "source_ids"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "title": {"type": "string", "minLength": 1},
+        "summary": {"type": "string", "minLength": 1},
+        "source_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+      }
+    }
+  }
+}

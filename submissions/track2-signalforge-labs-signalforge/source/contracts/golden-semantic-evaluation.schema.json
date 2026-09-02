@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.dev/contracts/golden-semantic-evaluation.schema.json",
+  "title": "SignalForge GoldenSemanticEvaluation v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "evaluation_id", "evaluated_at", "rubric_id", "rubric_sha256",
+    "report_run_id", "passed", "passed_checks", "total_checks", "checks"
+  ],
+  "properties": {
+    "schema_version": {"const": "signalforge/golden-semantic-evaluation/v1"},
+    "evaluation_id": {"$ref": "#/$defs/id"},
+    "evaluated_at": {"type": "string", "format": "date-time"},
+    "rubric_id": {"$ref": "#/$defs/id"},
+    "rubric_sha256": {"$ref": "#/$defs/sha256"},
+    "report_run_id": {"$ref": "#/$defs/id"},
+    "passed": {"type": "boolean"},
+    "passed_checks": {"type": "integer", "minimum": 0},
+    "total_checks": {"type": "integer", "minimum": 1},
+    "checks": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["check_id", "passed", "observed"],
+        "properties": {
+          "check_id": {"$ref": "#/$defs/id"},
+          "passed": {"type": "boolean"},
+          "observed": {"type": "string"},
+          "refs": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@+\\-]{0,255}$"},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

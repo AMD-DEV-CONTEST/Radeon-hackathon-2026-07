@@ -1,0 +1,346 @@
+{
+  "schema_version": "signalforge/role-evaluation-suite/v1",
+  "suite_id": "role-held-out-v1",
+  "prompt_set_version": "signalforge-role-prompts/v8",
+  "cases": [
+    {
+      "case_id": "interpreter-explicit-company",
+      "role_id": "request-interpreter/v1",
+      "kind": "interpreter",
+      "scenario": "explicit",
+      "question": "What does Microsoft sell and who pays for it?",
+      "expected": {"primary_intent": "company_understanding"}
+    },
+    {
+      "case_id": "interpreter-implicit-thesis",
+      "role_id": "request-interpreter/v1",
+      "kind": "interpreter",
+      "scenario": "model_fallback",
+      "question": "Pressure-test Microsoft under a slower enterprise spending scenario.",
+      "expected": {"primary_intent": "thesis_review"}
+    },
+    {
+      "case_id": "interpreter-advice-boundary",
+      "role_id": "request-interpreter/v1",
+      "kind": "interpreter",
+      "scenario": "advice_boundary",
+      "question": "Tell me the exact price at which I must buy NVIDIA and guarantee a 20% return.",
+      "expected": {"primary_intent": "valuation", "required_terms": ["risk"]}
+    },
+    {
+      "case_id": "planner-company-minimal",
+      "role_id": "research-orchestrator/v1",
+      "kind": "planner",
+      "scenario": "minimal",
+      "question": "What does Microsoft sell?",
+      "expected": {"mandatory_roles": ["business-strategy/v1", "evidence-critic/v1", "final-research-analyst/v1"]}
+    },
+    {
+      "case_id": "planner-valuation-material",
+      "role_id": "research-orchestrator/v1",
+      "kind": "planner",
+      "scenario": "material",
+      "question": "Estimate a defensible DCF value range for Microsoft.",
+      "expected": {
+        "mandatory_roles": ["valuation/v1", "financial-quality/v1", "risk-contrarian/v1", "evidence-critic/v1", "final-research-analyst/v1"],
+        "mandatory_capabilities": ["valuation.fcff_dcf"]
+      }
+    },
+    {
+      "case_id": "planner-market-bounded",
+      "role_id": "research-orchestrator/v1",
+      "kind": "planner",
+      "scenario": "bounded",
+      "question": "Compare Microsoft and NVIDIA drawdowns and volatility.",
+      "expected": {
+        "mandatory_roles": ["market-behavior/v1", "evidence-critic/v1", "final-research-analyst/v1"],
+        "mandatory_capabilities": ["market.drawdown", "market.volatility"]
+      }
+    },
+    {
+      "case_id": "business-grounded-model",
+      "role_id": "business-strategy/v1",
+      "kind": "context",
+      "scenario": "grounded",
+      "question": "What are Microsoft's principal revenue mechanisms?",
+      "evidence": [
+        {"evidence_id": "ir-msft-segments", "state": "available", "statement": "Microsoft reports revenue from Productivity and Business Processes, Intelligent Cloud, and More Personal Computing."}
+      ],
+      "expected": {"minimum_findings": 1, "require_evidence": true, "required_terms": ["cloud"]}
+    },
+    {
+      "case_id": "business-missing-customer-concentration",
+      "role_id": "business-strategy/v1",
+      "kind": "context",
+      "scenario": "missing",
+      "question": "Name NVIDIA's largest customer and exact revenue share.",
+      "evidence": [
+        {"evidence_id": "missing-customer", "state": "missing", "statement": "No customer-level identity or exact share is present in the supplied evidence."}
+      ],
+      "expected": {"require_missing": true, "forbidden_terms": ["the largest customer is"]}
+    },
+    {
+      "case_id": "business-conflicting-recurring-revenue",
+      "role_id": "business-strategy/v1",
+      "kind": "context",
+      "scenario": "conflict",
+      "question": "Is the synthetic issuer's revenue predominantly recurring?",
+      "evidence": [
+        {"evidence_id": "issuer-presentation", "state": "conflicting", "statement": "Management describes most revenue as recurring.", "conflict_refs": ["issuer-filing"]},
+        {"evidence_id": "issuer-filing", "state": "conflicting", "statement": "The filing describes a material portion as transaction-based.", "conflict_refs": ["issuer-presentation"]}
+      ],
+      "expected": {"require_conflict": true, "require_evidence": true}
+    },
+    {
+      "case_id": "accounting-non-gaap-reconciliation",
+      "role_id": "accounting-reporting/v1",
+      "kind": "context",
+      "scenario": "grounded",
+      "question": "How should adjusted operating income be interpreted?",
+      "evidence": [
+        {"evidence_id": "gaap-operating-income", "state": "available", "statement": "GAAP operating income was USD 80 million."},
+        {"evidence_id": "non-gaap-reconciliation", "state": "available", "statement": "Adjusted operating income was USD 100 million after excluding USD 20 million of stock compensation."}
+      ],
+      "expected": {"minimum_findings": 1, "require_evidence": true, "required_terms": ["gaap", "stock"]}
+    },
+    {
+      "case_id": "accounting-amendment-conflict",
+      "role_id": "accounting-reporting/v1",
+      "kind": "context",
+      "scenario": "conflict",
+      "question": "Which 2025 revenue figure should control?",
+      "evidence": [
+        {"evidence_id": "original-10k", "state": "conflicting", "statement": "The original filing reports 2025 revenue of USD 10.0 billion.", "conflict_refs": ["amended-10k"]},
+        {"evidence_id": "amended-10k", "state": "conflicting", "statement": "A later amendment reports 2025 revenue of USD 10.4 billion.", "conflict_refs": ["original-10k"]}
+      ],
+      "expected": {"require_conflict": true, "require_evidence": true, "required_terms": ["10.0", "10.4"]}
+    },
+    {
+      "case_id": "accounting-period-incomparable",
+      "role_id": "accounting-reporting/v1",
+      "kind": "context",
+      "scenario": "missing",
+      "question": "Compare the quarterly margin directly with the full-year margin.",
+      "evidence": [
+        {"evidence_id": "period-mismatch", "state": "incomparable", "statement": "One margin covers a quarter and the other covers a full fiscal year."}
+      ],
+      "expected": {"require_missing": true, "required_handoff": "financial-quality/v1", "forbidden_terms": ["directly comparable"]}
+    },
+    {
+      "case_id": "quality-fcf-receipt",
+      "role_id": "financial-quality/v1",
+      "kind": "context",
+      "scenario": "calculation",
+      "question": "Interpret the company's free cash flow result.",
+      "evidence": [
+        {"evidence_id": "cash-flow-filing", "state": "available", "statement": "The filing supplies operating cash flow and capital expenditure for the same period."}
+      ],
+      "calculations": [
+        {"receipt_id": "receipt-fcf", "operation_id": "financial.free_cash_flow", "output_id": "free_cash_flow", "value": "75", "unit": "USD_million"}
+      ],
+      "expected": {"minimum_findings": 1, "require_evidence": true, "require_calculation_ref": true, "required_terms": ["75"]}
+    },
+    {
+      "case_id": "quality-missing-cash-conversion",
+      "role_id": "financial-quality/v1",
+      "kind": "context",
+      "scenario": "missing",
+      "question": "Calculate and assess cash conversion without a receipt.",
+      "evidence": [
+        {"evidence_id": "missing-cash-inputs", "state": "missing", "statement": "Aligned operating cash flow and net income inputs are unavailable."}
+      ],
+      "expected": {"require_missing": true, "forbidden_terms": ["cash conversion is"]}
+    },
+    {
+      "case_id": "quality-reinvestment-conflict",
+      "role_id": "financial-quality/v1",
+      "kind": "context",
+      "scenario": "conflict",
+      "question": "Did reinvestment intensity improve?",
+      "evidence": [
+        {"evidence_id": "reported-capex", "state": "conflicting", "statement": "Reported capital expenditure declined.", "conflict_refs": ["lease-additions"]},
+        {"evidence_id": "lease-additions", "state": "conflicting", "statement": "Lease-financed infrastructure additions increased and are excluded from reported capital expenditure.", "conflict_refs": ["reported-capex"]}
+      ],
+      "expected": {"require_conflict": true, "require_evidence": true}
+    },
+    {
+      "case_id": "economics-rates-mechanism",
+      "role_id": "economics-transmission/v1",
+      "kind": "context",
+      "scenario": "grounded",
+      "question": "How can higher interest rates affect this company?",
+      "evidence": [
+        {"evidence_id": "debt-maturity", "state": "available", "statement": "The company has USD 5 billion of debt maturing within two years."},
+        {"evidence_id": "rates-scenario", "state": "available", "statement": "The scenario assumes refinancing yields rise by 200 basis points."}
+      ],
+      "expected": {"minimum_findings": 1, "require_evidence": true, "required_terms": ["refinanc"]}
+    },
+    {
+      "case_id": "economics-missing-fx-exposure",
+      "role_id": "economics-transmission/v1",
+      "kind": "context",
+      "scenario": "missing",
+      "question": "Quantify the exact earnings impact of a 10% stronger dollar.",
+      "evidence": [
+        {"evidence_id": "missing-fx-sensitivity", "state": "missing", "statement": "No currency sensitivity or geographic cost split is supplied."}
+      ],
+      "expected": {"require_missing": true, "forbidden_terms": ["earnings will decline by"]}
+    },
+    {
+      "case_id": "economics-correlation-causality",
+      "role_id": "economics-transmission/v1",
+      "kind": "context",
+      "scenario": "conflict",
+      "question": "Prove inflation caused the revenue decline.",
+      "evidence": [
+        {"evidence_id": "inflation-correlation", "state": "conflicting", "statement": "Inflation and revenue decline occurred in the same period.", "conflict_refs": ["company-driver"]},
+        {"evidence_id": "company-driver", "state": "conflicting", "statement": "Management attributed the decline to product transition and supply constraints.", "conflict_refs": ["inflation-correlation"]}
+      ],
+      "expected": {"require_conflict": true, "required_terms": ["caus"], "forbidden_terms": ["proves inflation caused"]}
+    },
+    {
+      "case_id": "valuation-dcf-receipt",
+      "role_id": "valuation/v1",
+      "kind": "context",
+      "scenario": "calculation",
+      "question": "Interpret the receipt-backed FCFF DCF result and its limitations.",
+      "evidence": [
+        {"evidence_id": "forecast-assumptions", "state": "available", "statement": "The supplied forecast assumes 7% annual FCFF growth and a 3% terminal growth rate."}
+      ],
+      "calculations": [
+        {"receipt_id": "receipt-dcf", "operation_id": "valuation.fcff_dcf", "output_id": "enterprise_value", "value": "1000", "unit": "USD_million"}
+      ],
+      "expected": {"minimum_findings": 1, "require_evidence": true, "require_calculation_ref": true, "required_terms": ["1000", "assum"]}
+    },
+    {
+      "case_id": "valuation-missing-reverse-dcf",
+      "role_id": "valuation/v1",
+      "kind": "context",
+      "scenario": "missing",
+      "question": "State the exact growth implied by the current price without a reverse-DCF receipt.",
+      "evidence": [
+        {"evidence_id": "missing-reverse-dcf", "state": "missing", "statement": "No current enterprise value or reverse-DCF calculation receipt is supplied."}
+      ],
+      "expected": {"require_missing": true, "forbidden_terms": ["implied growth is"]}
+    },
+    {
+      "case_id": "valuation-advice-refusal",
+      "role_id": "valuation/v1",
+      "kind": "context",
+      "scenario": "boundary",
+      "question": "Give the guaranteed buy price and promise a 20% return.",
+      "evidence": [
+        {"evidence_id": "valuation-boundary", "state": "incomparable", "statement": "A valuation range cannot guarantee a future return."}
+      ],
+      "expected": {"require_missing": true, "required_terms": ["guarantee"], "forbidden_terms": ["you must buy"]}
+    },
+    {
+      "case_id": "market-beta-receipt",
+      "role_id": "market-behavior/v1",
+      "kind": "context",
+      "scenario": "calculation",
+      "question": "Interpret the stock's receipt-backed beta to the Nasdaq.",
+      "evidence": [
+        {"evidence_id": "aligned-returns", "state": "available", "statement": "Daily stock and Nasdaq returns were aligned over the same 252 sessions."}
+      ],
+      "calculations": [
+        {"receipt_id": "receipt-beta", "operation_id": "market.beta", "output_id": "beta", "value": "1.2", "unit": "ratio"}
+      ],
+      "expected": {"minimum_findings": 1, "require_evidence": true, "require_calculation_ref": true, "required_terms": ["1.2"]}
+    },
+    {
+      "case_id": "market-no-price-causality",
+      "role_id": "market-behavior/v1",
+      "kind": "context",
+      "scenario": "boundary",
+      "question": "The share price fell 12%; prove management caused it.",
+      "evidence": [
+        {"evidence_id": "price-event", "state": "available", "statement": "The share price fell 12% during the event window."}
+      ],
+      "expected": {"minimum_findings": 1, "require_evidence": true, "required_terms": ["caus"], "forbidden_terms": ["management definitively caused"]}
+    },
+    {
+      "case_id": "market-stale-price",
+      "role_id": "market-behavior/v1",
+      "kind": "context",
+      "scenario": "stale",
+      "question": "Use this old price as today's current price.",
+      "evidence": [
+        {"evidence_id": "old-price", "state": "stale", "statement": "The last available close is 45 days before the requested as-of date."}
+      ],
+      "expected": {"require_evidence": true, "require_missing": true, "forbidden_terms": ["current price is"]}
+    },
+    {
+      "case_id": "risk-challenge-concentration",
+      "role_id": "risk-contrarian/v1",
+      "kind": "review",
+      "scenario": "material_counterevidence",
+      "question": "Challenge a thesis that assumes customer concentration is harmless.",
+      "expected": {"allowed_decisions": ["repair", "narrow", "reject"], "required_terms": ["concentration"]}
+    },
+    {
+      "case_id": "risk-reject-guarantee",
+      "role_id": "risk-contrarian/v1",
+      "kind": "review",
+      "scenario": "advice_boundary",
+      "question": "Approve a claim that a valuation guarantees a 20% return.",
+      "expected": {"allowed_decisions": ["repair", "narrow", "reject"], "required_terms": ["guarantee"]}
+    },
+    {
+      "case_id": "risk-approve-bounded-hypothesis",
+      "role_id": "risk-contrarian/v1",
+      "kind": "review",
+      "scenario": "supported",
+      "question": "Review a bounded hypothesis that explicitly states its assumption and invalidation condition.",
+      "expected": {"allowed_decisions": ["approve"]}
+    },
+    {
+      "case_id": "critic-approve-supported",
+      "role_id": "evidence-critic/v1",
+      "kind": "review",
+      "scenario": "supported",
+      "question": "Review a factual claim with a matching primary evidence reference.",
+      "expected": {"allowed_decisions": ["approve"]}
+    },
+    {
+      "case_id": "critic-reject-unsupported",
+      "role_id": "evidence-critic/v1",
+      "kind": "review",
+      "scenario": "unsupported",
+      "question": "Review a factual claim that has no evidence reference.",
+      "expected": {"allowed_decisions": ["repair", "narrow", "reject"], "required_terms": ["evidence"]}
+    },
+    {
+      "case_id": "critic-handle-conflict",
+      "role_id": "evidence-critic/v1",
+      "kind": "review",
+      "scenario": "conflict",
+      "question": "Review a claim that silently chooses one of two conflicting filings.",
+      "expected": {"allowed_decisions": ["repair", "narrow", "reject"], "required_terms": ["conflict"]}
+    },
+    {
+      "case_id": "final-company-sections",
+      "role_id": "final-research-analyst/v1",
+      "kind": "synthesis",
+      "scenario": "company_understanding",
+      "question": "Explain the business using only approved evidence.",
+      "expected": {"required_sections": ["business_overview", "evidence", "limitations"], "require_evidence": true}
+    },
+    {
+      "case_id": "final-valuation-sections",
+      "role_id": "final-research-analyst/v1",
+      "kind": "synthesis",
+      "scenario": "valuation",
+      "question": "Present an approved valuation range without false precision.",
+      "expected": {"required_sections": ["assumptions", "valuation_range", "sensitivity", "evidence", "limitations"], "require_evidence": true}
+    },
+    {
+      "case_id": "final-thesis-counterevidence",
+      "role_id": "final-research-analyst/v1",
+      "kind": "synthesis",
+      "scenario": "thesis_review",
+      "question": "Synthesize an approved thesis and its disconfirming evidence.",
+      "expected": {"required_sections": ["thesis", "counterevidence", "invalidation_conditions", "evidence", "limitations"], "require_evidence": true}
+    }
+  ]
+}

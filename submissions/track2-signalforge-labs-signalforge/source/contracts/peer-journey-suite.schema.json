@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.dev/contracts/peer-journey-suite.schema.json",
+  "title": "SignalForge Technology 20 Peer Journey Suite v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "universe_id", "split", "as_of", "cases", "claim_boundary"],
+  "properties": {
+    "schema_version": {"const": "signalforge/technology20-peer-journeys/v1"},
+    "universe_id": {"const": "us-technology-20-v2"},
+    "split": {"enum": ["development", "sealed_holdout"]},
+    "as_of": {"type": "string", "format": "date-time"},
+    "claim_boundary": {"type": "string", "minLength": 20},
+    "cases": {
+      "type": "array",
+      "minItems": 20,
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["journey_id", "lane_id", "company_ids", "question_id", "question", "expected_metric_dispositions", "expected_promoted", "required_behaviors"],
+        "properties": {
+          "journey_id": {"type": "string", "minLength": 3},
+          "lane_id": {"type": "string", "minLength": 3},
+          "company_ids": {"type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true, "items": {"type": "string", "pattern": "^sec-cik:[0-9]{10}$"}},
+          "question_id": {"type": "string", "minLength": 3},
+          "question": {"type": "string", "minLength": 20},
+          "expected_metric_dispositions": {"type": "object", "minProperties": 1, "additionalProperties": {"enum": ["comparable", "comparable_with_caveat", "not_comparable", "unavailable"]}},
+          "expected_promoted": {"const": false},
+          "required_behaviors": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}}
+        }
+      }
+    }
+  }
+}

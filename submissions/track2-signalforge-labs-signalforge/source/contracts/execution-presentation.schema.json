@@ -1,0 +1,293 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.dev/contracts/execution-presentation.schema.json",
+  "title": "SignalForge ExecutionPresentation v1",
+  "description": "Privacy-safe Summary, Details, and Proof projection derived from one signed execution plan.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "sourceSchemaVersion",
+    "runID",
+    "requestID",
+    "projectionSHA256",
+    "presentationSHA256",
+    "sequence",
+    "status",
+    "statusLabel",
+    "percentage",
+    "headline",
+    "terminalSteps",
+    "totalSteps",
+    "maxParallelSpecialists",
+    "routes",
+    "limitations",
+    "createdAt",
+    "phases",
+    "attention"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "signalforge/execution-presentation/v1" },
+    "sourceSchemaVersion": { "const": "signalforge/execution-plan/v1" },
+    "runID": { "$ref": "#/$defs/id" },
+    "requestID": { "$ref": "#/$defs/id" },
+    "planID": { "$ref": "#/$defs/id" },
+    "projectionSHA256": { "$ref": "#/$defs/hash" },
+    "presentationSHA256": { "$ref": "#/$defs/hash" },
+    "sequence": { "type": "integer", "minimum": 0 },
+    "status": { "$ref": "#/$defs/status" },
+    "statusLabel": { "$ref": "#/$defs/shortText" },
+    "percentage": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "headline": { "$ref": "#/$defs/shortText" },
+    "terminalSteps": { "type": "integer", "minimum": 0, "maximum": 24 },
+    "totalSteps": { "type": "integer", "minimum": 2, "maximum": 24 },
+    "maxParallelSpecialists": { "type": "integer", "minimum": 0, "maximum": 4 },
+    "currentWave": { "type": "integer", "minimum": 0, "maximum": 4 },
+    "routes": {
+      "type": "array",
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/shortText" }
+    },
+    "limitations": {
+      "type": "array",
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/text" }
+    },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "startedAt": { "type": "string", "format": "date-time" },
+    "completedAt": { "type": "string", "format": "date-time" },
+    "phases": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": { "$ref": "#/$defs/phase" }
+    },
+    "attention": { "type": "boolean" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@+\\-]{0,255}$"
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "shortText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "status": {
+      "enum": [
+        "pending",
+        "ready",
+        "running",
+        "passed",
+        "failed",
+        "degraded",
+        "repairing",
+        "skipped",
+        "cancelled",
+        "withheld",
+        "unavailable"
+      ]
+    },
+    "requirement": {
+      "enum": ["Required", "Supporting"]
+    },
+    "idArray": {
+      "type": "array",
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "authority"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": {
+          "enum": [
+            "evidence",
+            "calculation",
+            "review",
+            "release",
+            "contract",
+            "authorization",
+            "context",
+            "lineage"
+          ]
+        },
+        "authority": { "$ref": "#/$defs/id" }
+      }
+    },
+    "referenceArray": {
+      "type": "array",
+      "maxItems": 64,
+      "items": { "$ref": "#/$defs/reference" }
+    },
+    "checklist": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "status",
+        "statusLabel",
+        "authority",
+        "authorityLabel",
+        "required",
+        "requirementLabel",
+        "safeDetail",
+        "references",
+        "attention"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "$ref": "#/$defs/shortText" },
+        "status": { "$ref": "#/$defs/status" },
+        "statusLabel": { "$ref": "#/$defs/shortText" },
+        "authority": { "$ref": "#/$defs/id" },
+        "authorityLabel": { "$ref": "#/$defs/shortText" },
+        "required": { "type": "boolean" },
+        "requirementLabel": { "$ref": "#/$defs/requirement" },
+        "safeDetail": { "$ref": "#/$defs/text" },
+        "completedAt": { "type": "string", "format": "date-time" },
+        "references": { "$ref": "#/$defs/referenceArray" },
+        "attention": { "type": "boolean" }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "phaseID",
+        "kind",
+        "label",
+        "objective",
+        "summary",
+        "status",
+        "statusLabel",
+        "authorityLabel",
+        "dependencies",
+        "mandatory",
+        "requirementLabel",
+        "routeLabel",
+        "capabilities",
+        "evidenceRequirements",
+        "attempt",
+        "maxAttempts",
+        "durationMS",
+        "references",
+        "checklist",
+        "attention"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "parentID": { "$ref": "#/$defs/id" },
+        "phaseID": { "$ref": "#/$defs/id" },
+        "kind": { "$ref": "#/$defs/id" },
+        "label": { "$ref": "#/$defs/shortText" },
+        "objective": { "$ref": "#/$defs/text" },
+        "summary": { "$ref": "#/$defs/text" },
+        "status": { "$ref": "#/$defs/status" },
+        "statusLabel": { "$ref": "#/$defs/shortText" },
+        "roleID": { "$ref": "#/$defs/id" },
+        "authorityLabel": { "$ref": "#/$defs/shortText" },
+        "wave": { "type": "integer", "minimum": 0, "maximum": 4 },
+        "dependencies": { "$ref": "#/$defs/idArray" },
+        "mandatory": { "type": "boolean" },
+        "requirementLabel": { "$ref": "#/$defs/requirement" },
+        "route": { "$ref": "#/$defs/id" },
+        "routeLabel": { "$ref": "#/$defs/shortText" },
+        "routeReasonCode": { "$ref": "#/$defs/id" },
+        "capabilities": { "$ref": "#/$defs/idArray" },
+        "evidenceRequirements": { "$ref": "#/$defs/idArray" },
+        "attempt": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "maxAttempts": { "type": "integer", "minimum": 1, "maximum": 2 },
+        "durationMS": { "type": "integer", "minimum": 0 },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "completedAt": { "type": "string", "format": "date-time" },
+        "failureCode": { "$ref": "#/$defs/id" },
+        "degradationCode": { "$ref": "#/$defs/id" },
+        "references": { "$ref": "#/$defs/referenceArray" },
+        "checklist": {
+          "type": "array",
+          "maxItems": 64,
+          "items": { "$ref": "#/$defs/checklist" }
+        },
+        "attention": { "type": "boolean" }
+      }
+    },
+    "wave": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "parallel", "steps"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "wave": { "type": "integer", "minimum": 1, "maximum": 4 },
+        "label": { "$ref": "#/$defs/shortText" },
+        "parallel": { "type": "boolean" },
+        "steps": {
+          "type": "array",
+          "maxItems": 8,
+          "items": { "$ref": "#/$defs/step" }
+        }
+      }
+    },
+    "phase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "order",
+        "label",
+        "objective",
+        "summary",
+        "status",
+        "statusLabel",
+        "mandatory",
+        "requirementLabel",
+        "terminalSteps",
+        "totalSteps",
+        "waves",
+        "steps",
+        "attention"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "order": { "type": "integer", "minimum": 1, "maximum": 8 },
+        "label": { "$ref": "#/$defs/shortText" },
+        "objective": { "$ref": "#/$defs/text" },
+        "summary": { "$ref": "#/$defs/text" },
+        "status": { "$ref": "#/$defs/status" },
+        "statusLabel": { "$ref": "#/$defs/shortText" },
+        "mandatory": { "type": "boolean" },
+        "requirementLabel": { "$ref": "#/$defs/requirement" },
+        "terminalSteps": { "type": "integer", "minimum": 0, "maximum": 24 },
+        "totalSteps": { "type": "integer", "minimum": 0, "maximum": 24 },
+        "waves": {
+          "type": "array",
+          "maxItems": 8,
+          "items": { "$ref": "#/$defs/wave" }
+        },
+        "steps": {
+          "type": "array",
+          "maxItems": 24,
+          "items": { "$ref": "#/$defs/step" }
+        },
+        "attention": { "type": "boolean" }
+      }
+    }
+  }
+}

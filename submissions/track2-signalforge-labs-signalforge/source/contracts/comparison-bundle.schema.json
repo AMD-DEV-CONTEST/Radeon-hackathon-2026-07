@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalforge.dev/contracts/comparison-bundle.schema.json",
+  "title": "SignalForge Comparison Bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "bundle_id", "request_id", "run_id", "peer_lane", "activation_refs", "receipts", "released_metric_ids", "generated_at", "bundle_sha256"],
+  "properties": {
+    "schema_version": {"const": "signalforge/comparison-bundle/v1"},
+    "bundle_id": {"type": "string", "minLength": 1},
+    "request_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "peer_lane": {"$ref": "peer-lane.schema.json"},
+    "activation_refs": {"type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "receipts": {"type": "array", "items": {"$ref": "metric-comparability-receipt.schema.json"}},
+    "abstentions": {"type": "array", "items": {"$ref": "typed-abstention.schema.json"}},
+    "released_metric_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "bundle_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

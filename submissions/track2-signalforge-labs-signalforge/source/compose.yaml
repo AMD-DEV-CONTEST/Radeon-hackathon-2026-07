@@ -1,0 +1,267 @@
+name: signalforge
+
+x-app-common: &app-common
+  image: ${SIGNALFORGE_IMAGE:-signalforge:local}
+  build:
+    context: .
+    dockerfile: Dockerfile
+    args:
+      SOURCE_COMMIT: ${SIGNALFORGE_SOURCE_COMMIT:-working-tree}
+      BUILD_VERSION: ${SIGNALFORGE_BUILD_VERSION:-development}
+      BUILD_DATE: ${SIGNALFORGE_BUILD_DATE:-unknown}
+  restart: unless-stopped
+  read_only: true
+  init: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  tmpfs:
+    - /tmp:size=64m,mode=1777
+  environment:
+    SIGNALFORGE_OTEL_ENABLED: ${SIGNALFORGE_OTEL_ENABLED:-false}
+    SIGNALFORGE_OTEL_INSECURE: ${SIGNALFORGE_OTEL_INSECURE:-true}
+    SIGNALFORGE_OTEL_ALLOW_PRIVATE_NETWORK: "true"
+    OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://alloy:4318}
+  volumes:
+    - signalforge-data:/var/lib/signalforge
+  ports:
+    - "127.0.0.1:8080:8080"
+  healthcheck:
+    test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health/ready"]
+    interval: 5s
+    timeout: 2s
+    retries: 12
+    start_period: 5s
+  networks: [signalforge]
+
+services:
+  observability-init:
+    profiles: [observability]
+    image: alpine:3.23@sha256:fd791d74b68913cbb027c6546007b3f0d3bc45125f797758156952bc2d6daf40
+    user: "0:0"
+    command:
+      - /bin/sh
+      - -eu
+      - -c
+      - chown -R 10001:10001 /var/loki && chown -R 472:0 /var/lib/grafana
+    restart: "no"
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [CHOWN]
+    security_opt: [no-new-privileges:true]
+    network_mode: none
+    volumes:
+      - loki-data:/var/loki
+      - grafana-data:/var/lib/grafana
+
+  signalforge:
+    <<: *app-common
+    profiles: [fixture]
+
+  signalforge-local:
+    <<: *app-common
+    profiles: [radeon-local]
+    depends_on:
+      llama-rocm:
+        condition: service_healthy
+    command:
+      - --listen
+      - 0.0.0.0:8080
+      - --allow-container-listen
+      - --mode
+      - live
+      - --static-dir
+      - /app/web/dist
+      - --base-url
+      - http://llama-rocm:8000/v1
+      - --model
+      - ${SIGNALFORGE_MODEL_ID:-signalforge-gemma4-26b-q4}
+      - --snapshot
+      - /app/fixtures/golden/financial-snapshot.json
+      - --retrieval
+      - /app/fixtures/retrieval/golden-eval.json
+      - --price-inputs
+      - /app/fixtures/golden/market-price-inputs.json
+      - --case-db
+      - /var/lib/signalforge/cases.db
+      - --audit-dir
+      - /var/lib/signalforge/audit
+      - --trace-dir
+      - /var/lib/signalforge/traces
+      - --event-log
+      - /var/lib/signalforge/logs/events.jsonl
+
+  signalforge-championship:
+    <<: *app-common
+    profiles: [championship]
+    depends_on:
+      llama-rocm:
+        condition: service_healthy
+    environment:
+      SIGNALFORGE_SPECIALIST_API_ENABLED: "true"
+      SIGNALFORGE_SPECIALIST_API_PROVIDER: ${SIGNALFORGE_SPECIALIST_API_PROVIDER:-radeon-vllm}
+      SIGNALFORGE_SPECIALIST_API_BASE_URL: ${SIGNALFORGE_SPECIALIST_API_BASE_URL:-https://radeon.anruicloud.com/api/v1}
+      SIGNALFORGE_SPECIALIST_API_KEY_FILE: /run/secrets/radeon_model_api_key
+      SIGNALFORGE_SPECIALIST_TEXT_MODEL: ${SIGNALFORGE_SPECIALIST_TEXT_MODEL:-DeepSeek-V4-Flash}
+      SIGNALFORGE_SPECIALIST_VISION_MODEL: ${SIGNALFORGE_SPECIALIST_VISION_MODEL:-Qwen3.6-35B-A3B}
+      SIGNALFORGE_SPECIALIST_API_TIMEOUT: ${SIGNALFORGE_SPECIALIST_API_TIMEOUT:-90s}
+      SIGNALFORGE_OTEL_ENABLED: ${SIGNALFORGE_OTEL_ENABLED:-false}
+      SIGNALFORGE_OTEL_INSECURE: ${SIGNALFORGE_OTEL_INSECURE:-true}
+      SIGNALFORGE_OTEL_ALLOW_PRIVATE_NETWORK: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://alloy:4318}
+    secrets:
+      - radeon_model_api_key
+    command:
+      - --listen
+      - 0.0.0.0:8080
+      - --allow-container-listen
+      - --mode
+      - live
+      - --static-dir
+      - /app/web/dist
+      - --base-url
+      - http://llama-rocm:8000/v1
+      - --model
+      - ${SIGNALFORGE_MODEL_ID:-signalforge-gemma4-26b-q4}
+      - --snapshot
+      - /app/fixtures/golden/financial-snapshot.json
+      - --retrieval
+      - /app/fixtures/retrieval/golden-eval.json
+      - --price-inputs
+      - /app/fixtures/golden/market-price-inputs.json
+      - --case-db
+      - /var/lib/signalforge/cases.db
+      - --audit-dir
+      - /var/lib/signalforge/audit
+      - --trace-dir
+      - /var/lib/signalforge/traces
+      - --event-log
+      - /var/lib/signalforge/logs/events.jsonl
+
+  llama-rocm:
+    profiles: [radeon-local, championship]
+    build:
+      context: .
+      dockerfile: deploy/radeon/Dockerfile.llama-rocm
+      args:
+        LLAMA_CPP_REVISION: 305ba519ab61cdff8044922cba2347826a04453f
+    image: signalforge-llama-rocm:305ba519-rocm7.2.1
+    restart: unless-stopped
+    init: true
+    ipc: host
+    group_add:
+      - "${SIGNALFORGE_VIDEO_GID:-44}"
+      - "${SIGNALFORGE_RENDER_GID:-109}"
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    volumes:
+      - ${SIGNALFORGE_MODEL_PATH:-./models/gemma-4-26B_q4_0-it.gguf}:/models/gemma-4-26B_q4_0-it.gguf:ro
+    expose: ["8000"]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 30
+      start_period: 90s
+    networks: [signalforge]
+
+  alloy:
+    profiles: [observability]
+    image: grafana/alloy:v1.10.2@sha256:bcf27f18c4402869af112fb39e35e1db3804a404686f4caa20bdf77814219223
+    command: ["run", "--server.http.listen-addr=0.0.0.0:12345", "--storage.path=/var/lib/alloy", "/etc/alloy/config.alloy"]
+    restart: unless-stopped
+    volumes:
+      - ./deploy/observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - signalforge-data:/var/log/signalforge:ro
+      - alloy-data:/var/lib/alloy
+    ports:
+      - "127.0.0.1:12345:12345"
+    depends_on: [loki, tempo]
+    networks: [signalforge]
+
+  prometheus:
+    profiles: [observability]
+    image: prom/prometheus:v3.5.0@sha256:63805ebb8d2b3920190daf1cb14a60871b16fd38bed42b857a3182bc621f4996
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus", "--storage.tsdb.retention.time=24h", "--web.enable-lifecycle"]
+    restart: unless-stopped
+    volumes:
+      - ./deploy/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    networks: [signalforge]
+
+  loki:
+    profiles: [observability]
+    image: grafana/loki:3.5.3@sha256:3165cecce301ce5b9b6e3530284b080934a05cd5cafac3d3d82edcb887b45ecd
+    command: ["-config.file=/etc/loki/loki.yml"]
+    restart: unless-stopped
+    volumes:
+      - ./deploy/observability/loki/loki.yml:/etc/loki/loki.yml:ro
+      - loki-data:/var/loki
+    depends_on:
+      observability-init:
+        condition: service_completed_successfully
+    networks: [signalforge]
+
+  tempo:
+    profiles: [observability]
+    image: grafana/tempo:2.8.2@sha256:0ef775495967cd5d7a6b2e146b6ea695d624803c8db8349fb8ce4164f719f9b7
+    command: ["-config.file=/etc/tempo/tempo.yml"]
+    restart: unless-stopped
+    volumes:
+      - ./deploy/observability/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo-data:/var/tempo
+    networks: [signalforge]
+
+  grafana:
+    profiles: [observability]
+    image: grafana/grafana:12.1.1@sha256:a1701c2180249361737a99a01bc770db39381640e4d631825d38ff4535efa47d
+    restart: unless-stopped
+    environment:
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_SECURITY_ADMIN_USER: signalforge
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    secrets:
+      - grafana_admin_password
+    volumes:
+      - ./deploy/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      observability-init:
+        condition: service_completed_successfully
+      prometheus:
+        condition: service_started
+      loki:
+        condition: service_started
+      tempo:
+        condition: service_started
+    networks: [signalforge]
+
+secrets:
+  radeon_model_api_key:
+    file: ./.secrets/radeon-model-api-key
+  grafana_admin_password:
+    file: ./.secrets/grafana-admin-password
+
+volumes:
+  signalforge-data:
+  alloy-data:
+  prometheus-data:
+  loki-data:
+  tempo-data:
+  grafana-data:
+
+networks:
+  signalforge:
+    name: signalforge
