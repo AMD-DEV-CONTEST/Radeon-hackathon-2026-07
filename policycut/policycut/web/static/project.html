@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PolicyCut — Project setup</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <a href="index.html" class="btn ghost sm">&larr; Projects</a>
+    <span class="brand"><span class="brand-dot"></span>PolicyCut</span>
+    <span id="proj-name" class="muted"></span>
+    <span class="spacer"></span>
+    <span id="proj-status" class="chip draft"><span class="dot"></span>Draft</span>
+    <span class="badge-local">&#128274; Local processing only</span>
+  </header>
+
+  <main class="page">
+    <div id="error-banner" class="banner error hidden"></div>
+
+    <!-- Step 1: upload -->
+    <section class="panel">
+      <h2>1 &middot; Source video</h2>
+      <div id="dropzone" class="dropzone">
+        <div class="big">Drop a video here or click to browse</div>
+        <div>MP4 / MOV / MKV &middot; up to 60 seconds &middot; processed entirely on this machine</div>
+      </div>
+      <input type="file" id="file-input" accept="video/*" class="hidden">
+
+      <div id="upload-progress" class="hidden" style="margin-top:12px;">
+        <div class="row">
+          <span id="upload-label" class="grow small muted">Uploading…</span>
+          <span id="upload-pct" class="mono small">0%</span>
+        </div>
+        <div class="progress" style="margin-top:6px;"><div class="fill" id="upload-fill"></div></div>
+      </div>
+
+      <div id="media-section" class="hidden" style="margin-top:14px;">
+        <div class="row wrap" style="align-items:flex-start;">
+          <div style="flex:1 1 340px; min-width:280px;">
+            <video id="preview-video" class="player" controls preload="metadata"></video>
+            <div id="preview-missing" class="muted small hidden" style="margin-top:6px;">
+              Preview will be available after analysis normalizes the video.
+            </div>
+          </div>
+          <div style="flex:1 1 280px; min-width:240px;">
+            <table class="kv" id="media-table"></table>
+            <button id="btn-replace" class="btn sm" style="margin-top:10px;">Replace video</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 2: policy -->
+    <section class="panel" id="policy-section">
+      <h2>2 &middot; Redaction policy</h2>
+      <p class="muted small">Describe what to redact in plain English. PolicyCut turns it into concrete visual and audio rules you can adjust below.</p>
+      <textarea id="policy-text" rows="3" style="width:100%;"></textarea>
+      <div class="row wrap" style="margin-top:10px;">
+        <button id="btn-example1" class="btn sm">Example: pixelate everything</button>
+        <button id="btn-example2" class="btn sm">Example: faces &amp; phones only</button>
+        <span class="spacer"></span>
+        <button id="btn-interpret" class="btn primary">Interpret Policy</button>
+      </div>
+
+      <div id="rules-section" class="hidden" style="margin-top:16px;">
+        <div class="row" style="margin-bottom:10px;">
+          <h3 style="margin:0;">Interpreted rules</h3>
+          <span id="parse-source" class="src-badge"></span>
+          <span class="spacer"></span>
+          <button id="btn-save-policy" class="btn sm">Save Policy</button>
+          <span id="policy-saved" class="save-state"></span>
+        </div>
+        <div id="rules-visual"></div>
+        <div id="rules-audio"></div>
+        <div id="rules-unsupported"></div>
+      </div>
+    </section>
+
+    <!-- Step 3: analyze -->
+    <section class="panel">
+      <div class="row">
+        <div class="grow">
+          <h2 style="margin-bottom:2px;">3 &middot; Analyze</h2>
+          <span class="muted small">Runs transcription, PII detection, object detection and tracking on this machine.</span>
+        </div>
+        <button id="btn-analyze" class="btn primary" disabled>Start Analysis &rarr;</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/project.js"></script>
+</body>
+</html>

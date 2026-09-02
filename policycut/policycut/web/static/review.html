@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PolicyCut — Review</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="review-root">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <a href="index.html" class="btn ghost sm">&larr; Projects</a>
+    <span class="brand"><span class="brand-dot"></span>PolicyCut</span>
+    <span id="proj-name" class="muted"></span>
+    <span class="spacer"></span>
+    <span class="small muted">Pending</span>
+    <span id="pending-badge" class="count-badge">0</span>
+    <span id="save-state" class="save-state saved">Saved</span>
+    <button id="btn-confirm-all" class="btn sm">Confirm All Remaining</button>
+    <button id="btn-complete" class="btn primary sm">Complete Review &rarr;</button>
+  </header>
+
+  <!-- Main 3-column area -->
+  <div class="review-main">
+
+    <!-- Left: event list -->
+    <aside class="review-left">
+      <div class="filter-tabs" id="filter-tabs">
+        <button data-f="all" class="active">All</button>
+        <button data-f="pending">Pending</button>
+        <button data-f="confirmed">Confirmed</button>
+        <button data-f="ignored">Ignored</button>
+      </div>
+      <div class="event-list" id="event-list"></div>
+    </aside>
+
+    <!-- Center: video + overlay canvas -->
+    <section class="review-center">
+      <div class="video-stage">
+        <div class="video-wrap" id="video-wrap">
+          <video id="video" preload="auto" playsinline></video>
+          <canvas class="overlay" id="overlay-canvas"></canvas>
+          <div id="region-form" class="region-form hidden">
+            <strong>New manual region</strong>
+            <label class="field">Category
+              <select id="rf-category">
+                <option value="manual" selected>Manual</option>
+                <option value="face">Face</option>
+                <option value="license_plate">License plate</option>
+                <option value="id_document">ID document</option>
+                <option value="screen">Screen</option>
+              </select>
+            </label>
+            <label class="field">Effect
+              <select id="rf-effect">
+                <option value="pixelate" selected>Pixelate</option>
+                <option value="blur">Blur</option>
+                <option value="solid">Solid</option>
+              </select>
+            </label>
+            <div class="row">
+              <label class="field grow">Start (s)
+                <input type="number" id="rf-start" step="0.01" min="0" style="width:100%;">
+              </label>
+              <label class="field grow">End (s)
+                <input type="number" id="rf-end" step="0.01" min="0" style="width:100%;">
+              </label>
+            </div>
+            <div class="row" style="justify-content:flex-end;">
+              <button class="btn sm" id="rf-cancel">Cancel</button>
+              <button class="btn sm primary" id="rf-add">Add region</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transport -->
+      <div class="transport">
+        <button class="btn icon sm" id="t-prev-ev" title="Previous event [">&#8676;</button>
+        <button class="btn icon sm" id="t-frame-back" title="Back 1 frame (,)">&#9668;</button>
+        <button class="btn icon" id="t-play" title="Play / pause (space)">&#9654;</button>
+        <button class="btn icon sm" id="t-frame-fwd" title="Forward 1 frame (.)">&#9658;</button>
+        <button class="btn icon sm" id="t-next-ev" title="Next event ]">&#8677;</button>
+        <input type="text" class="timecode" id="t-timecode" title="Timecode — type MM:SS.mmm and press Enter">
+        <span class="time-display" id="t-duration">/ 00:00.000</span>
+        <button class="btn sm" id="t-rate-05" title="Half speed">0.5&times;</button>
+        <button class="btn sm active" id="t-rate-10" title="Normal speed">1&times;</button>
+        <span class="spacer"></span>
+        <button class="btn sm" id="t-toggle-src" title="Toggle between overlay preview and original video">Overlay</button>
+        <button class="btn sm" id="t-add-region" title="Draw a manual redaction box on the video">+ Add region</button>
+        <button class="btn sm" id="t-add-audio" title="Add a manual mute interval around the playhead">+ Audio interval</button>
+      </div>
+    </section>
+
+    <!-- Right: selected event properties -->
+    <aside class="review-right prop-panel" id="prop-panel">
+      <div id="prop-empty">
+        <h3>Selected event</h3>
+        <p class="muted small">Select an event from the list, the video overlay or the timeline.</p>
+        <hr class="sep">
+        <h3>Shortcuts</h3>
+        <p class="small muted">
+          <span class="kbd">space</span> play/pause &nbsp; <span class="kbd">,</span>/<span class="kbd">.</span> frame step<br>
+          <span class="kbd">[</span>/<span class="kbd">]</span> prev/next event<br>
+          <span class="kbd">c</span> confirm &nbsp; <span class="kbd">i</span> ignore
+        </p>
+        <hr class="sep">
+        <button class="btn sm" id="btn-lowest-conf2">Jump to lowest confidence</button>
+      </div>
+      <div id="prop-body" class="hidden"></div>
+    </aside>
+  </div>
+
+  <!-- Timeline -->
+  <div class="timeline-panel">
+    <div class="timeline-tools">
+      <span>Timeline</span>
+      <span class="spacer" style="flex:1;"></span>
+      <span>Zoom</span>
+      <input type="range" id="tl-zoom" min="1" max="10" step="0.1" value="1" style="width:140px;">
+      <span class="muted small">wheel to pan &middot; drag bar edges to retime</span>
+    </div>
+    <canvas id="timeline-canvas"></canvas>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/review.js"></script>
+</body>
+</html>

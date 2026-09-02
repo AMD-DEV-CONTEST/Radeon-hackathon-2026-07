@@ -1,0 +1,105 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://policycut.local/schemas/policy.schema.json",
+  "title": "PolicySpec",
+  "description": "Machine-readable redaction policy for PolicyCut. Mirrors policycut/policy/schema.py (docs/CONTRACTS.md section 3).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["visual_targets", "audio_targets"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "default": "1.0"
+    },
+    "language": {
+      "type": "string",
+      "default": "en"
+    },
+    "visual_targets": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/VisualTarget" }
+    },
+    "audio_targets": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/AudioTarget" }
+    },
+    "unsupported_terms": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "review_required": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "definitions": {
+    "VisualAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["blur", "pixelate", "solid"],
+          "default": "pixelate"
+        },
+        "strength": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 65
+        }
+      }
+    },
+    "AudioAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["mute", "beep"],
+          "default": "mute"
+        }
+      }
+    },
+    "VisualTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["category", "prompts", "action"],
+      "properties": {
+        "category": {
+          "type": "string",
+          "enum": ["face", "license_plate", "id_document", "screen"]
+        },
+        "prompts": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Detection phrases for GroundingDINO."
+        },
+        "action": { "$ref": "#/definitions/VisualAction" }
+      }
+    },
+    "AudioTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["category", "action"],
+      "properties": {
+        "category": {
+          "type": "string",
+          "enum": ["phone", "email", "address"]
+        },
+        "action": { "$ref": "#/definitions/AudioAction" },
+        "padding_before_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 150
+        },
+        "padding_after_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 250
+        }
+      }
+    }
+  }
+}
