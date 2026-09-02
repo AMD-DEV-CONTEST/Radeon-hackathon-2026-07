@@ -1,0 +1,45 @@
+{
+  "run": {
+    "seed": 17,
+    "out_root": "/root/foundry-project/runs"
+  },
+  "teacher": {
+    "base_url": "http://127.0.0.1:8123/v1",
+    "gguf": "/root/foundry-project/models/teacher/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf",
+    "server_exe": "/opt/llama.cpp/build/bin/llama-server",
+    "n_gpu_layers": 99,
+    "parallel": 8,
+    "ctx_per_slot": 2048,
+    "temperature": 0.9,
+    "max_tokens": 512
+  },
+  "datagen": {
+    "seed_doc": "/root/foundry-project/seeds/triage_policy.md",
+    "n_train": 54,
+    "n_holdout": 12,
+    "max_attempts_factor": 3
+  },
+  "student": {
+    "hf_path": "/root/foundry-project/models/student/Qwen3-0.6B",
+    "device": "cuda"
+  },
+  "train": {
+    "backend": "unsloth",
+    "lora_r": 16,
+    "lora_alpha": 32,
+    "lora_dropout": 0.05,
+    "lr": 0.0001,
+    "epochs": 3,
+    "batch_size": 4,
+    "grad_accum": 4,
+    "max_seq_len": 512,
+    "bf16": true
+  },
+  "eval": {
+    "max_new_tokens": 80
+  },
+  "export": {
+    "llama_src": "/opt/llama.cpp",
+    "quant": "q8_0"
+  }
+}

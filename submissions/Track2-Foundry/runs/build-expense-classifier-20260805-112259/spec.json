@@ -1,0 +1,105 @@
+{
+  "name": "expense-classifier",
+  "description": "Classify an expense claim into one spending category and route it to the correct approval queue based on Meridian Consulting's internal policies.",
+  "example_noun": "claim",
+  "input_field": "description",
+  "input_length": {
+    "min": 10,
+    "max": 500
+  },
+  "seed_docs": [
+    "seeds/expense_policy.md",
+    "seeds/expense_travel_addendum.md",
+    "seeds/expense_software_policy.md"
+  ],
+  "output_schema": {
+    "category": {
+      "type": "enum",
+      "values": [
+        "travel",
+        "meals",
+        "client_entertainment",
+        "software",
+        "equipment",
+        "office_supplies"
+      ]
+    },
+    "routing": {
+      "type": "enum",
+      "values": [
+        "auto_approve",
+        "needs_manager",
+        "needs_finance",
+        "needs_finance",
+        "rejected"
+      ]
+    }
+  },
+  "balance_field": "category",
+  "datagen_guidance": "Generate realistic expense descriptions grounded in the policy documents. Use varied phrasing and realistic edge cases. Include all six categories with balanced frequency. For software and equipment, include both one-time and recurring cases. For travel, include class, cap, and mileage cases. For client_entertainment, include cases where a client attended or was invited.",
+  "facets": {
+    "personas": [
+      "senior_eng",
+      "junior_design",
+      "consultant",
+      "finance_analyst",
+      "project_manager",
+      "remote_worker"
+    ],
+    "tones": [
+      "formal",
+      "concise",
+      "casual",
+      "urgent",
+      "confused",
+      "detail_oriented"
+    ],
+    "lengths": [
+      "short",
+      "medium",
+      "long"
+    ],
+    "wrinkles": [
+      "missing_receipt",
+      "over_amount",
+      "recurring_subscription",
+      "personal_use",
+      "team_event",
+      "mileage_claim"
+    ],
+    "situations": {
+      "travel": [
+        "domestic_flight",
+        "international_flight",
+        "hotel_stay",
+        "rental_car",
+        "mileage"
+      ],
+      "software": [
+        "one_time_license",
+        "recurring_subscription",
+        "app_store_purchase",
+        "cloud_credit"
+      ],
+      "equipment": [
+        "under_500",
+        "over_500",
+        "personal_device"
+      ],
+      "office_supplies": [
+        "bulk_order",
+        "single_item"
+      ],
+      "meals": [
+        "lunch_with_client",
+        "team_lunch",
+        "after_hours_dinner"
+      ],
+      "client_entertainment": [
+        "client_dinner",
+        "networking_event",
+        "company_presentation"
+      ]
+    }
+  }
+}

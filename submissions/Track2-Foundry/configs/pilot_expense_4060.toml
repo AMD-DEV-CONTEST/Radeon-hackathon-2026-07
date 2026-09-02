@@ -1,0 +1,49 @@
+# Retrieval-validation pilot: multi-doc expense task (corpus > budget,
+# retrieval ON) on the 4060. Datagen-focused fixture.
+
+[task]
+spec = "specs/expense-routing-v2.json"
+
+[run]
+seed = 17
+out_root = "runs"
+
+[teacher]
+base_url = "http://127.0.0.1:8123/v1"
+gguf = "models/teacher/Qwen3-4B-Instruct-2507-Q4_K_M.gguf"
+server_exe = "tools/llama.cpp/llama-server.exe"
+n_gpu_layers = 99
+parallel = 3
+ctx_per_slot = 6144
+temperature = 0.9
+max_tokens = 512
+
+[datagen]
+seed_doc = "unused"
+n_train = 40
+n_holdout = 8
+max_attempts_factor = 3
+context_budget_chars = 6000
+
+[student]
+hf_path = "models/student/Qwen3-0.6B"
+device = "cuda"
+
+[train]
+backend = "peft"
+lora_r = 16
+lora_alpha = 32
+lora_dropout = 0.05
+lr = 1e-4
+epochs = 3
+batch_size = 4
+grad_accum = 4
+max_seq_len = 512
+bf16 = true
+
+[eval]
+max_new_tokens = 80
+
+[export]
+llama_src = "tools/llama.cpp-b10043"
+quant = "q8_0"

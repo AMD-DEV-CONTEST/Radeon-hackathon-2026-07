@@ -1,0 +1,57 @@
+# Radeon gate pilot: tiny end-to-end shakeout on the granted instance
+# (48GB gfx1100, ROCm 7.2.4). Same as cloud_radeon.toml except dataset
+# size. This is Gate A (peft); flip backend to "unsloth" for Gate B.
+
+[task]
+spec = "specs/triage.json"
+
+[run]
+seed = 17
+out_root = "runs"
+
+[teacher]
+base_url = "http://127.0.0.1:8123/v1"
+gguf = "models/teacher/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf"
+server_exe = "/opt/llama.cpp/build/bin/llama-server"
+n_gpu_layers = 99
+parallel = 8
+ctx_per_slot = 8192
+temperature = 0.9
+max_tokens = 512
+
+[orchestration]
+free_gpu_for_training = false
+
+[agent]
+max_tool_iters = 20
+temperature = 0.7
+max_tokens = 1024
+
+[datagen]
+seed_doc = "seeds/triage_policy.md"
+n_train = 54
+n_holdout = 12
+max_attempts_factor = 3
+
+[student]
+hf_path = "models/student/Qwen3-0.6B"
+device = "cuda"       # torch on ROCm exposes HIP as "cuda" — do not change
+
+[train]
+backend = "peft"      # Gate A: peft. Gate B: rerun train,eval with "unsloth"
+lora_r = 16
+lora_alpha = 32
+lora_dropout = 0.05
+lr = 1e-4
+epochs = 3
+batch_size = 4
+grad_accum = 4
+max_seq_len = 512
+bf16 = true
+
+[eval]
+max_new_tokens = 80
+
+[export]
+llama_src = "/opt/llama.cpp"
+quant = "q8_0"
