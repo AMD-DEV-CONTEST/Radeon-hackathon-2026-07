@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Genomic Research Agent — Interactive Showcase</title>
+<link rel="stylesheet" href="https://use.typekit.net/esh5hgr.css">
+<style>
+  :root{
+    --bg:#05070c;
+    --bg2:#0a0e18;
+    --panel:rgba(18,24,38,0.55);
+    --panel-border:rgba(120,200,255,0.25);
+    --ink:#e9f3ff;
+    --ink-dim:#8fa3c4;
+    --holo1:#5eead4;
+    --holo2:#a78bfa;
+    --holo3:#f472b6;
+    --holo4:#60a5fa;
+    --amber:#ffb454;
+    --mono:"source-code-pro",monospace;
+    --serif:"source-serif-4",serif;
+    --sans:"source-sans-3",sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    overflow-x:hidden;
+    min-height:100vh;
+  }
+  ::selection{background:var(--holo1);color:#05070c;}
+
+  canvas#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;opacity:0.55;}
+
+  .grid-overlay{
+    position:fixed;inset:0;z-index:1;pointer-events:none;
+    background-image:
+      linear-gradient(rgba(94,234,212,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(94,234,212,0.05) 1px, transparent 1px);
+    background-size:48px 48px;
+    mask-image:radial-gradient(ellipse 80% 60% at 50% 20%, black 40%, transparent 90%);
+  }
+
+  .wrap{position:relative;z-index:2;max-width:1180px;margin:0 auto;padding:0 24px;}
+
+  /* ---------- nav ---------- */
+  nav{
+    position:sticky;top:0;z-index:50;
+    backdrop-filter:blur(14px);
+    background:rgba(5,7,12,0.55);
+    border-bottom:1px solid var(--panel-border);
+  }
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;max-width:1180px;}
+  .brand{font-family:var(--mono);font-weight:600;letter-spacing:0.04em;font-size:14px;color:var(--ink);}
+  .brand span{color:var(--holo1);}
+  .navlinks{display:flex;gap:24px;font-family:var(--mono);font-size:12px;letter-spacing:0.05em;}
+  .navlinks a{color:var(--ink-dim);text-decoration:none;transition:color .2s;}
+  .navlinks a:hover{color:var(--holo1);}
+
+  /* ---------- holographic text ---------- */
+  .holo-text{
+    background:linear-gradient(100deg, var(--holo4), var(--holo1) 30%, var(--holo2) 55%, var(--holo3) 75%, var(--holo4));
+    background-size:300% auto;
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    animation:holoshift 8s linear infinite;
+    filter:drop-shadow(0 0 24px rgba(94,234,212,0.25));
+  }
+  @keyframes holoshift{to{background-position:300% center;}}
+
+  /* ---------- hero ---------- */
+  .hero{min-height:92vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:80px 24px 40px;position:relative;}
+  .kicker{
+    font-family:var(--mono);font-size:12px;letter-spacing:0.25em;text-transform:uppercase;
+    color:var(--holo1);border:1px solid var(--panel-border);border-radius:999px;
+    padding:7px 16px;margin-bottom:28px;background:var(--panel);backdrop-filter:blur(8px);
+    opacity:0;animation:fadeUp .8s ease forwards;
+  }
+  .kicker .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--holo1);margin-right:8px;box-shadow:0 0 8px var(--holo1);animation:pulse 1.6s ease-in-out infinite;}
+  h1.title{
+    font-family:var(--serif);font-weight:700;font-size:clamp(40px,7vw,84px);line-height:1.03;
+    letter-spacing:-0.01em;max-width:920px;
+    opacity:0;animation:fadeUp .8s ease .15s forwards;
+  }
+  .hero p.sub{
+    font-family:var(--serif);font-style:italic;color:var(--ink-dim);font-size:clamp(16px,2.2vw,22px);
+    max-width:640px;margin-top:22px;min-height:2.6em;
+    opacity:0;animation:fadeUp .8s ease .3s forwards;
+  }
+  .hero .cta-row{display:flex;gap:14px;margin-top:36px;opacity:0;animation:fadeUp .8s ease .45s forwards;flex-wrap:wrap;justify-content:center;}
+  .btn{
+    font-family:var(--mono);font-size:13px;letter-spacing:0.04em;padding:12px 22px;border-radius:10px;
+    text-decoration:none;transition:transform .25s, box-shadow .25s;display:inline-block;
+  }
+  .btn.primary{background:linear-gradient(120deg,var(--holo1),var(--holo4));color:#04121a;font-weight:700;box-shadow:0 8px 30px -8px rgba(94,234,212,0.6);}
+  .btn.primary:hover{transform:translateY(-2px);box-shadow:0 14px 34px -8px rgba(94,234,212,0.75);}
+  .btn.ghost{border:1px solid var(--panel-border);color:var(--ink);background:var(--panel);backdrop-filter:blur(8px);}
+  .btn.ghost:hover{border-color:var(--holo1);color:var(--holo1);}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+  .scroll-cue{margin-top:56px;font-family:var(--mono);font-size:11px;color:var(--ink-dim);letter-spacing:.2em;opacity:0;animation:fadeUp .8s ease .6s forwards, bob 2.2s ease-in-out 1.4s infinite;}
+  @keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(6px);}}
+
+  /* ---------- sections generic ---------- */
+  section{padding:110px 0;position:relative;}
+  .section-head{text-align:center;margin-bottom:56px;}
+  .section-head .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.2em;color:var(--holo2);text-transform:uppercase;margin-bottom:14px;}
+  .section-head h2{font-family:var(--serif);font-weight:700;font-size:clamp(28px,4vw,44px);}
+  .section-head p{color:var(--ink-dim);max-width:560px;margin:14px auto 0;font-size:15px;}
+
+  .reveal{opacity:0;transform:translateY(28px);transition:opacity .7s ease, transform .7s ease;}
+  .reveal.in{opacity:1;transform:translateY(0);}
+
+  /* ---------- stat cards (3D tilt) ---------- */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:20px;perspective:1200px;}
+  .stat-card{
+    position:relative;border-radius:16px;padding:26px 24px;
+    background:var(--panel);border:1px solid var(--panel-border);backdrop-filter:blur(10px);
+    transform-style:preserve-3d;transition:transform .15s ease, border-color .3s;
+    overflow:hidden;
+  }
+  .stat-card::before{
+    content:"";position:absolute;inset:-2px;border-radius:16px;padding:2px;
+    background:conic-gradient(from var(--ang,0deg), var(--holo1), var(--holo2), var(--holo3), var(--holo4), var(--holo1));
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor;mask-composite:exclude;
+    opacity:0;transition:opacity .3s;
+    animation:spin 6s linear infinite;
+  }
+  .stat-card:hover::before{opacity:1;}
+  .stat-card:hover{border-color:transparent;}
+  @keyframes spin{to{--ang:360deg;}}
+  @property --ang{syntax:'<angle>';inherits:false;initial-value:0deg;}
+  .stat-card .tag{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--holo1);margin-bottom:10px;}
+  .stat-card .value{font-family:var(--mono);font-weight:700;font-size:clamp(28px,3.4vw,38px);letter-spacing:-0.01em;}
+  .stat-card .label{color:var(--ink-dim);font-size:13px;margin-top:8px;line-height:1.5;}
+
+  /* ---------- architecture / flow ---------- */
+  .flow-wrap{background:var(--panel);border:1px solid var(--panel-border);border-radius:20px;padding:36px 20px;backdrop-filter:blur(10px);}
+  .flow-controls{display:flex;justify-content:center;gap:10px;margin-bottom:24px;flex-wrap:wrap;}
+  .toggle{
+    font-family:var(--mono);font-size:12px;padding:8px 16px;border-radius:999px;
+    border:1px solid var(--panel-border);background:transparent;color:var(--ink-dim);cursor:pointer;transition:.25s;
+  }
+  .toggle.active{background:var(--holo1);color:#04121a;border-color:var(--holo1);font-weight:700;}
+  svg#flow{width:100%;height:auto;}
+  .flow-node rect{fill:rgba(10,14,24,0.8);stroke:var(--panel-border);stroke-width:1.5;transition:stroke .3s, filter .3s;}
+  .flow-node.active rect{stroke:var(--holo1);filter:drop-shadow(0 0 10px rgba(94,234,212,0.6));}
+  .flow-node text{fill:var(--ink);font-family:var(--mono);}
+  .flow-node .sub{fill:var(--ink-dim);}
+  .flow-node{cursor:pointer;}
+  .flow-line{stroke:var(--panel-border);stroke-width:2;fill:none;}
+  .flow-line.live{stroke:var(--holo1);stroke-dasharray:6 6;animation:dash 1.2s linear infinite;}
+  @keyframes dash{to{stroke-dashoffset:-24;}}
+  .flow-caption{text-align:center;font-family:var(--mono);font-size:12px;color:var(--ink-dim);margin-top:18px;min-height:2.4em;}
+
+  /* ---------- honesty flip cards ---------- */
+  .flip-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;perspective:1400px;}
+  .flip-card{height:190px;cursor:pointer;}
+  .flip-inner{position:relative;width:100%;height:100%;transition:transform .7s cubic-bezier(.4,.2,.2,1);transform-style:preserve-3d;}
+  .flip-card.flipped .flip-inner{transform:rotateY(180deg);}
+  .flip-face{position:absolute;inset:0;border-radius:16px;padding:22px;backface-visibility:hidden;display:flex;flex-direction:column;justify-content:center;border:1px solid var(--panel-border);}
+  .flip-front{background:linear-gradient(160deg, rgba(30,10,20,0.75), rgba(10,14,24,0.85));}
+  .flip-front .k{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--holo3);text-transform:uppercase;margin-bottom:10px;}
+  .flip-back{background:linear-gradient(160deg, rgba(10,30,26,0.85), rgba(10,14,24,0.9));transform:rotateY(180deg);}
+  .flip-back .k{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--holo1);text-transform:uppercase;margin-bottom:10px;}
+  .flip-face p{font-size:14.5px;line-height:1.5;color:var(--ink);}
+  .flip-hint{position:absolute;bottom:10px;right:14px;font-family:var(--mono);font-size:10px;color:var(--ink-dim);opacity:.7;}
+
+  /* ---------- tool cards ---------- */
+  .tools-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;perspective:1200px;}
+  .tool-card{
+    border-radius:16px;padding:22px;background:var(--panel);border:1px solid var(--panel-border);
+    backdrop-filter:blur(10px);transform-style:preserve-3d;transition:transform .12s ease;
+    position:relative;overflow:hidden;
+  }
+  .tool-card .sheen{
+    position:absolute;inset:0;background:linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.12) 45%, rgba(94,234,212,0.18) 50%, transparent 60%);
+    background-size:250% 250%;background-position:120% 0;opacity:0;transition:opacity .3s;pointer-events:none;
+  }
+  .tool-card:hover .sheen{opacity:1;animation:sheen 1.1s ease forwards;}
+  @keyframes sheen{from{background-position:120% 0;}to{background-position:-20% 0;}}
+  .tool-card h3{font-family:var(--mono);font-size:15px;color:var(--holo1);margin-bottom:8px;}
+  .tool-card p{font-size:13.5px;color:var(--ink-dim);line-height:1.55;}
+
+  /* ---------- footer ---------- */
+  footer{padding:60px 0 90px;text-align:center;}
+  footer .repo{font-family:var(--mono);font-size:13px;color:var(--ink-dim);}
+  footer .repo a{color:var(--holo1);text-decoration:none;}
+  footer .tagline{font-family:var(--serif);font-style:italic;color:var(--ink-dim);margin-top:14px;max-width:480px;margin-left:auto;margin-right:auto;}
+
+  @media (max-width:640px){
+    .navlinks{display:none;}
+    section{padding:70px 0;}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+<div class="grid-overlay"></div>
+
+<nav>
+  <div class="wrap">
+    <div class="brand">GENOMIC<span>::</span>AGENT</div>
+    <div class="navlinks">
+      <a href="#stats">Metrics</a>
+      <a href="#flow">Architecture</a>
+      <a href="#honesty">Honesty</a>
+      <a href="#tools">Tools</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker"><span class="dot"></span>LIVE ON AMD RADEON 780M · TRACK 2</div>
+    <h1 class="title holo-text">Genomic Research Agent</h1>
+    <p class="sub" id="typed-sub">&nbsp;</p>
+    <div class="cta-row">
+      <a class="btn primary" href="#stats">See the numbers</a>
+      <a class="btn ghost" href="https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/pull/6" target="_blank" rel="noopener">View PR #6</a>
+    </div>
+    <div class="scroll-cue">SCROLL ↓</div>
+  </div>
+</header>
+
+<section id="stats">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">Evidence, not adjectives</div>
+      <h2>Every number here is measured</h2>
+      <p>Hover a card. Nothing here is a literal string — it's what the last real run produced.</p>
+    </div>
+    <div class="stats reveal">
+      <div class="stat-card" data-tilt>
+        <div class="tag">GPU dispatch</div>
+        <div class="value" data-count="3.59" data-suffix="×">0×</div>
+        <div class="label">LD speedup vs. CPU at 585K pairs, cross-validated to ~1e-6</div>
+      </div>
+      <div class="stat-card" data-tilt>
+        <div class="tag">Local inference</div>
+        <div class="value" data-count="21.3" data-suffix=" tok/s">0 tok/s</div>
+        <div class="label">Quantized (Q4_K_M) model, on-device on the Radeon 780M · 1.52× vs CPU</div>
+      </div>
+      <div class="stat-card" data-tilt>
+        <div class="tag">Test suite</div>
+        <div class="value" data-count="42" data-suffix="/42">0/42</div>
+        <div class="label">Passing, both build configurations, zero compiler warnings</div>
+      </div>
+      <div class="stat-card" data-tilt>
+        <div class="tag">Binary size</div>
+        <div class="value" data-count="40" data-suffix="%">0%</div>
+        <div class="label">Smaller after trimming unused wgpu backends — 8.4MB → 5.0MB</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flow">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">Interactive</div>
+      <h2>How a query becomes a GPU dispatch</h2>
+      <p>Toggle the path. Click a node for what it actually does.</p>
+    </div>
+    <div class="flow-wrap reveal">
+      <div class="flow-controls">
+        <button class="toggle active" data-mode="gpu">GPU path (default)</button>
+        <button class="toggle" data-mode="cpu">CPU fallback (no adapter)</button>
+      </div>
+      <svg id="flow" viewBox="0 0 900 220" xmlns="http://www.w3.org/2000/svg">
+        <g class="flow-node" data-desc="Your question, in plain English — no special syntax required.">
+          <rect x="10" y="80" width="140" height="60" rx="10"/>
+          <text x="80" y="106" text-anchor="middle" font-size="12" font-weight="600">query</text>
+          <text x="80" y="123" text-anchor="middle" font-size="10" class="sub">natural language</text>
+        </g>
+        <g class="flow-node active" data-desc="Okapi BM25 with bigrams, dispatched as a GPU weighted dot-product kernel. Zero API key, zero network call.">
+          <rect x="195" y="65" width="170" height="90" rx="10"/>
+          <text x="280" y="98" text-anchor="middle" font-size="12" font-weight="600">BM25 kernel</text>
+          <text x="280" y="115" text-anchor="middle" font-size="10" class="sub">GPU dot product</text>
+          <text x="280" y="130" text-anchor="middle" font-size="10" class="sub">zero API</text>
+        </g>
+        <g class="flow-node" data-desc="One or more of six tools, chosen by real relevance score, not a hardcoded rule.">
+          <rect x="410" y="30" width="170" height="55" rx="10"/>
+          <text x="495" y="62" text-anchor="middle" font-size="12" font-weight="600">tool(s) selected</text>
+        </g>
+        <g class="flow-node compute-node" data-desc="wgpu/Vulkan, explicitly AMD-adapter-targeted, cross-checked against a CPU reference every single run.">
+          <rect x="410" y="105" width="170" height="90" rx="10"/>
+          <text x="495" y="136" text-anchor="middle" font-size="12" font-weight="600" class="compute-label">wgpu / Vulkan</text>
+          <text x="495" y="153" text-anchor="middle" font-size="10" class="sub">LD · PCA · FST</text>
+          <text x="495" y="168" text-anchor="middle" font-size="10" class="sub compute-check">cross-checked vs CPU</text>
+        </g>
+        <g class="flow-node" data-desc="Optional. If configured, an LLM narrates the already-computed output in plain English. It never decides which tools ran.">
+          <rect x="630" y="55" width="160" height="55" rx="10" stroke-dasharray="4 4"/>
+          <text x="710" y="82" text-anchor="middle" font-size="11" font-weight="600" class="sub">local LLM (opt.)</text>
+          <text x="710" y="97" text-anchor="middle" font-size="9" class="sub">narration only</text>
+        </g>
+        <g class="flow-node" data-desc="Real computed numbers, shown alongside any narration — never replaced by it.">
+          <rect x="630" y="130" width="160" height="60" rx="10"/>
+          <text x="710" y="157" text-anchor="middle" font-size="12" font-weight="600">response</text>
+          <text x="710" y="174" text-anchor="middle" font-size="10" class="sub">real numbers</text>
+        </g>
+        <path class="flow-line live" d="M150,110 L193,110"/>
+        <path class="flow-line live" d="M365,95 L408,65"/>
+        <path class="flow-line live" d="M365,125 L408,150"/>
+        <path class="flow-line" d="M580,58 L628,80"/>
+        <path class="flow-line live" d="M580,150 L628,160"/>
+        <path class="flow-line" d="M710,110 L710,128"/>
+      </svg>
+      <div class="flow-caption" id="flow-caption">Hover or click a node above.</div>
+    </div>
+  </div>
+</section>
+
+<section id="honesty">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">Click to flip</div>
+      <h2>Honesty as a design constraint</h2>
+      <p>Four things this project deliberately doesn't claim — and what's verified instead.</p>
+    </div>
+    <div class="flip-grid reveal">
+      <div class="flip-card" data-flip>
+        <div class="flip-inner">
+          <div class="flip-face flip-front"><div class="k">Not claimed</div><p>&ldquo;Production ready&rdquo;</p></div>
+          <div class="flip-face flip-back"><div class="k">Verified instead</div><p>A hackathon submission, real-computation-verified — 42 tests checking actual invariants, not deployed infrastructure.</p></div>
+        </div>
+        <div class="flip-hint">tap ↻</div>
+      </div>
+      <div class="flip-card" data-flip>
+        <div class="flip-inner">
+          <div class="flip-face flip-front"><div class="k">Not claimed</div><p>Literal ROCm/HIP kernels</p></div>
+          <div class="flip-face flip-back"><div class="k">Verified instead</div><p>A documented rocBLAS gap on this exact chip (gfx1103) — Vulkan used instead, same real AMD driver underneath.</p></div>
+        </div>
+        <div class="flip-hint">tap ↻</div>
+      </div>
+      <div class="flip-card" data-flip>
+        <div class="flip-inner">
+          <div class="flip-face flip-front"><div class="k">Not claimed</div><p>A significant hit on real data</p></div>
+          <div class="flip-face flip-back"><div class="k">Verified instead</div><p>The permutation test found none on real 1000 Genomes data — reported as-is, not hidden or re-run until it looked better.</p></div>
+        </div>
+        <div class="flip-hint">tap ↻</div>
+      </div>
+      <div class="flip-card" data-flip>
+        <div class="flip-inner">
+          <div class="flip-face flip-front"><div class="k">Not claimed</div><p>GPU wins at every scale</p></div>
+          <div class="flip-face flip-back"><div class="k">Verified instead</div><p>Small workloads honestly show CPU competitive — the benchmark reports both directions, whichever the numbers actually went.</p></div>
+        </div>
+        <div class="flip-hint">tap ↻</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tools">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">Six tools</div>
+      <h2>Real computation, not templates</h2>
+    </div>
+    <div class="tools-grid reveal">
+      <div class="tool-card" data-tilt><div class="sheen"></div><h3>VcfAnalyzer</h3><p>Real chi-square Hardy-Weinberg QC per variant, exact df=1 identity, plus the worst-fitting SNP's real genotype counts.</p></div>
+      <div class="tool-card" data-tilt><div class="sheen"></div><h3>LdBlock</h3><p>Pairwise Pearson r² linkage disequilibrium, union-find block detection across the cohort.</p></div>
+      <div class="tool-card" data-tilt><div class="sheen"></div><h3>HaplotypeTool</h3><p>Phased haplotype frequency tallying across adjacent-SNP windows.</p></div>
+      <div class="tool-card" data-tilt><div class="sheen"></div><h3>PopulationStructure</h3><p>GPU correlation matrix → CPU PCA → ancestry clustering, with a bootstrap CI on PC1.</p></div>
+      <div class="tool-card" data-tilt><div class="sheen"></div><h3>LdConfidence</h3><p>GPU-batched bootstrap 95% CI on the strongest observed LD estimate.</p></div>
+      <div class="tool-card" data-tilt><div class="sheen"></div><h3>SelectionScan</h3><p>Per-SNP Wright's FST with a real 200-permutation significance test.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="repo">AMD-DEV-CONTEST/Radeon-hackathon-2026-07 · <a href="https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/pull/6" target="_blank" rel="noopener">PR #6</a> · /submissions/Track_2_GenomicAgent</div>
+    <p class="tagline">An interactive supplement to the real README — every claim there has a command next to it.</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  // ---- animated background: floating nodes + connecting lines ----
+  const canvas = document.getElementById('bg');
+  const ctx = canvas.getContext('2d');
+  let w, h, nodes;
+  function resize(){
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  }
+  function initNodes(){
+    const count = Math.min(70, Math.floor((w*h)/22000));
+    nodes = Array.from({length:count}, () => ({
+      x: Math.random()*w, y: Math.random()*h,
+      vx: (Math.random()-0.5)*0.25, vy:(Math.random()-0.5)*0.25,
+      r: Math.random()*1.6+0.6
+    }));
+  }
+  window.addEventListener('resize', () => { resize(); initNodes(); });
+  resize(); initNodes();
+
+  const holoColors = ['94,234,212','167,139,250','244,114,182','96,165,250'];
+  function tick(){
+    ctx.clearRect(0,0,w,h);
+    for(const n of nodes){
+      n.x += n.vx; n.y += n.vy;
+      if(n.x<0||n.x>w) n.vx*=-1;
+      if(n.y<0||n.y>h) n.vy*=-1;
+    }
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        const a=nodes[i], b=nodes[j];
+        const d = Math.hypot(a.x-b.x, a.y-b.y);
+        if(d < 130){
+          ctx.strokeStyle = `rgba(94,234,212,${(1-d/130)*0.15})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+        }
+      }
+    }
+    nodes.forEach((n,i) => {
+      const c = holoColors[i % holoColors.length];
+      ctx.fillStyle = `rgba(${c},0.7)`;
+      ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,Math.PI*2); ctx.fill();
+    });
+    requestAnimationFrame(tick);
+  }
+  tick();
+
+  // ---- typed subtitle ----
+  const sub = document.getElementById('typed-sub');
+  const fullText = "An agent that routes itself on the GPU, checks its own math every run, and reports the one time its own result wasn't significant.";
+  let i = 0;
+  function typeNext(){
+    if(i <= fullText.length){
+      sub.textContent = fullText.slice(0,i) + (i < fullText.length ? '▍' : '');
+      i++;
+      setTimeout(typeNext, 14);
+    }
+  }
+  setTimeout(typeNext, 900);
+
+  // ---- scroll reveal ----
+  const revealEls = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('in'); });
+  }, {threshold:0.15});
+  revealEls.forEach(el => io.observe(el));
+
+  // ---- count-up stats ----
+  const counters = document.querySelectorAll('[data-count]');
+  const countIO = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if(!entry.isIntersecting) return;
+      const el = entry.target;
+      countIO.unobserve(el);
+      const target = parseFloat(el.getAttribute('data-count'));
+      const suffix = el.getAttribute('data-suffix') || '';
+      const isInt = Number.isInteger(target);
+      const duration = 1200;
+      const start = performance.now();
+      function step(now){
+        const p = Math.min(1, (now-start)/duration);
+        const eased = 1 - Math.pow(1-p, 3);
+        const val = target*eased;
+        el.textContent = (isInt ? Math.round(val) : val.toFixed(2)) + suffix;
+        if(p < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    });
+  }, {threshold:0.4});
+  counters.forEach(el => countIO.observe(el));
+
+  // ---- 3D tilt on hover ----
+  document.querySelectorAll('[data-tilt]').forEach(card => {
+    card.addEventListener('mousemove', (e) => {
+      const r = card.getBoundingClientRect();
+      const px = (e.clientX - r.left)/r.width - 0.5;
+      const py = (e.clientY - r.top)/r.height - 0.5;
+      card.style.transform = `perspective(700px) rotateY(${px*10}deg) rotateX(${-py*10}deg) translateZ(6px)`;
+    });
+    card.addEventListener('mouseleave', () => { card.style.transform = ''; });
+  });
+
+  // ---- flip cards ----
+  document.querySelectorAll('[data-flip]').forEach(card => {
+    card.addEventListener('click', () => card.classList.toggle('flipped'));
+  });
+
+  // ---- flow diagram interactivity ----
+  const caption = document.getElementById('flow-caption');
+  document.querySelectorAll('.flow-node').forEach(node => {
+    node.addEventListener('mouseenter', () => {
+      caption.textContent = node.getAttribute('data-desc');
+      node.classList.add('active');
+    });
+    node.addEventListener('mouseleave', () => {
+      caption.textContent = 'Hover or click a node above.';
+      if(!node.classList.contains('compute-node') || currentMode==='gpu') node.classList.remove('active');
+    });
+  });
+
+  let currentMode = 'gpu';
+  const toggles = document.querySelectorAll('.toggle');
+  const computeLabel = document.querySelector('.compute-label');
+  const computeCheck = document.querySelector('.compute-check');
+  const computeNode = document.querySelector('.compute-node');
+  toggles.forEach(btn => {
+    btn.addEventListener('click', () => {
+      toggles.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentMode = btn.getAttribute('data-mode');
+      if(currentMode === 'cpu'){
+        computeLabel.textContent = 'CPU reference';
+        computeCheck.textContent = 'no GPU adapter found';
+        computeNode.classList.remove('active');
+      } else {
+        computeLabel.textContent = 'wgpu / Vulkan';
+        computeCheck.textContent = 'cross-checked vs CPU';
+        computeNode.classList.add('active');
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

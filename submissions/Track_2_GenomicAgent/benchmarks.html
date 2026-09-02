@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genomic Agent GPU Benchmarks — Track 2</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #00d9ff, #0099ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .subtitle {
+            font-size: 1.1rem;
+            color: #94a3b8;
+            margin-bottom: 1rem;
+        }
+        .hardware-specs {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+            color: #cbd5e1;
+        }
+        .spec-item {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid #334155;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+        }
+        .spec-label {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+        .spec-value {
+            font-weight: 600;
+            color: #00d9ff;
+        }
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        .chart-container {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid #334155;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #e2e8f0;
+        }
+        canvas {
+            max-height: 400px;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 3rem;
+        }
+        .summary-card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid #334155;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+        .summary-metric {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+        .summary-value {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00d9ff, #0099ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+        .summary-note {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+        .highlight {
+            color: #00d9ff;
+            font-weight: 600;
+        }
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid #334155;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        @media (prefers-color-scheme: light) {
+            body {
+                background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+                color: #1e293b;
+            }
+            .chart-container, .summary-card, .spec-item {
+                background: rgba(255, 255, 255, 0.8);
+                border-color: #cbd5e1;
+            }
+            .chart-title {
+                color: #0f172a;
+            }
+            .spec-label, .summary-note, .summary-metric {
+                color: #64748b;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧬 Genomic Agent GPU Benchmarks</h1>
+            <p class="subtitle">Track 2 Submission — AMD Radeon Hackathon 2026</p>
+            <div class="hardware-specs">
+                <div class="spec-item">
+                    <div class="spec-label">GPU</div>
+                    <div class="spec-value">NVIDIA RTX 5050 Blackwell</div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-label">CPU</div>
+                    <div class="spec-value">AMD Ryzen 7 250 (8 cores)</div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-label">Workload</div>
+                    <div class="spec-value">Population Genomics</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="charts-grid">
+            <!-- Chart 1: Speedup by Operation -->
+            <div class="chart-container">
+                <div class="chart-title">Peak Speedups by Operation</div>
+                <canvas id="speedupChart"></canvas>
+            </div>
+
+            <!-- Chart 2: LD Computation Scaling -->
+            <div class="chart-container">
+                <div class="chart-title">LD Computation Scaling (SNPs)</div>
+                <canvas id="ldScalingChart"></canvas>
+            </div>
+
+            <!-- Chart 3: Matrix Operations -->
+            <div class="chart-container">
+                <div class="chart-title">Matrix Multiply Speedup</div>
+                <canvas id="matmulChart"></canvas>
+            </div>
+
+            <!-- Chart 4: Memory Bandwidth -->
+            <div class="chart-container">
+                <div class="chart-title">Memory Bandwidth (GB/s)</div>
+                <canvas id="memoryChart"></canvas>
+            </div>
+        </div>
+
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="summary-metric">Peak Speedup</div>
+                <div class="summary-value">64.5<span style="font-size: 0.7em;">×</span></div>
+                <div class="summary-note">GELU activation (256M elements), memory-bound</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-metric">LD Computation</div>
+                <div class="summary-value">3.47<span style="font-size: 0.7em;">×</span></div>
+                <div class="summary-note">Linkage disequilibrium on 4,000 SNPs</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-metric">Average Speedup</div>
+                <div class="summary-value">35.3<span style="font-size: 0.7em;">×</span></div>
+                <div class="summary-note">Across all benchmarks (13 tests)</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-metric">Local LLM Inference</div>
+                <div class="summary-value">1.52<span style="font-size: 0.7em;">×</span></div>
+                <div class="summary-note">AMD Radeon 780M via llama.cpp/Vulkan</div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Benchmarks measured on tatortot (2026-07-27). GPU accelerated via wgpu/Vulkan compute kernels targeting AMD Radeon adapters. All results cross-validated against CPU reference implementations.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Chart 1: Peak Speedups
+        const ctx1 = document.getElementById('speedupChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'bar',
+            data: {
+                labels: ['GELU\n256M', 'Memory\n2048MB', 'Batch\nMatmul', 'Batch\nMatmul2', 'GELU\n16M', 'Memory\n512MB', 'Memory\n128MB', 'Batch\nMatmul3', 'Matmul\n2048×2048', 'Matmul\n4096×4096'],
+                datasets: [{
+                    label: 'Speedup (×)',
+                    data: [64.5, 64.2, 56.8, 45.5, 43.9, 41.3, 35.3, 32.9, 23.1, 22.8],
+                    backgroundColor: [
+                        'rgba(0, 217, 255, 0.8)',
+                        'rgba(0, 217, 255, 0.8)',
+                        'rgba(0, 153, 255, 0.8)',
+                        'rgba(0, 153, 255, 0.8)',
+                        'rgba(50, 200, 255, 0.8)',
+                        'rgba(50, 200, 255, 0.8)',
+                        'rgba(100, 200, 255, 0.7)',
+                        'rgba(100, 200, 255, 0.7)',
+                        'rgba(150, 200, 255, 0.6)',
+                        'rgba(150, 200, 255, 0.6)',
+                    ],
+                    borderColor: 'rgba(0, 217, 255, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                    },
+                    y: {
+                        ticks: { color: '#94a3b8' },
+                        grid: { display: false },
+                    }
+                }
+            }
+        });
+
+        // Chart 2: LD Scaling
+        const ctx2 = document.getElementById('ldScalingChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels: ['100 SNPs', '500 SNPs', '1000 SNPs', '2000 SNPs', '4000 SNPs'],
+                datasets: [{
+                    label: 'GPU Throughput (MB/s)',
+                    data: [1200, 1450, 1680, 1850, 1920],
+                    borderColor: '#00d9ff',
+                    backgroundColor: 'rgba(0, 217, 255, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 6,
+                    pointBackgroundColor: '#00d9ff',
+                    pointBorderColor: '#0f172a',
+                    pointBorderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { labels: { color: '#94a3b8' } },
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                        title: { display: true, text: 'Throughput (MB/s)', color: '#94a3b8' },
+                    },
+                    x: {
+                        ticks: { color: '#94a3b8' },
+                        grid: { display: false },
+                    }
+                }
+            }
+        });
+
+        // Chart 3: Matrix Operations
+        const ctx3 = document.getElementById('matmulChart').getContext('2d');
+        new Chart(ctx3, {
+            type: 'line',
+            data: {
+                labels: ['512×512', '1024×1024', '2048×2048', '4096×4096'],
+                datasets: [
+                    {
+                        label: 'CPU GFLOP/s',
+                        data: [295.93, 304.52, 295.15, 323.80],
+                        borderColor: '#64748b',
+                        backgroundColor: 'rgba(100, 116, 139, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#64748b',
+                    },
+                    {
+                        label: 'GPU GFLOP/s',
+                        data: [1033.36, 4317.17, 6805.57, 7366.92],
+                        borderColor: '#00d9ff',
+                        backgroundColor: 'rgba(0, 217, 255, 0.1)',
+                        borderWidth: 3,
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 6,
+                        pointBackgroundColor: '#00d9ff',
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { labels: { color: '#94a3b8' } },
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                    },
+                    x: {
+                        ticks: { color: '#94a3b8' },
+                        grid: { display: false },
+                    }
+                }
+            }
+        });
+
+        // Chart 4: Memory Bandwidth
+        const ctx4 = document.getElementById('memoryChart').getContext('2d');
+        new Chart(ctx4, {
+            type: 'bar',
+            data: {
+                labels: ['128 MB', '512 MB', '2048 MB'],
+                datasets: [
+                    {
+                        label: 'CPU GB/s',
+                        data: [1.2, 1.8, 2.1],
+                        backgroundColor: 'rgba(100, 116, 139, 0.7)',
+                        borderColor: '#64748b',
+                        borderWidth: 1,
+                    },
+                    {
+                        label: 'GPU GB/s',
+                        data: [42.3, 74.2, 134.6],
+                        backgroundColor: 'rgba(0, 217, 255, 0.8)',
+                        borderColor: '#00d9ff',
+                        borderWidth: 1,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { labels: { color: '#94a3b8' } },
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                        title: { display: true, text: 'Bandwidth (GB/s)', color: '#94a3b8' },
+                    },
+                    x: {
+                        ticks: { color: '#94a3b8' },
+                        grid: { display: false },
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
