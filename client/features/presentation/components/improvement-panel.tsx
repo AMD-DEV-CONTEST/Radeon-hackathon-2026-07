@@ -1,0 +1,69 @@
+"use client";
+
+import { motion } from "framer-motion";
+import { ListTodo } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import type { ImprovementSuggestion } from "@/features/presentation/types/presentation.types";
+import { cn } from "@/lib/utils";
+
+interface ImprovementPanelProps {
+  improvements: ReadonlyArray<ImprovementSuggestion>;
+}
+
+const PRIORITY_CLASS: Record<ImprovementSuggestion["priority"], string> = {
+  low: "border-sky-400/30 bg-sky-500/10 text-sky-200",
+  medium: "border-amber-400/30 bg-amber-500/10 text-amber-200",
+  high: "border-destructive/30 bg-destructive/10 text-destructive",
+};
+
+export function ImprovementPanel({ improvements }: ImprovementPanelProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: 0.12 }}
+      whileHover={{ y: -2 }}
+      className="h-full"
+    >
+      <Card className="h-full rounded-2xl border border-white/10 bg-[#12121a]/80 py-0 ring-0 backdrop-blur-xl">
+        <CardContent className="p-5">
+          <div className="mb-4 flex items-center gap-2">
+            <ListTodo className="h-4 w-4 text-amber-300" aria-hidden="true" />
+            <h2 className="text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+              Improvement Areas
+            </h2>
+          </div>
+
+          <ul className="space-y-3" aria-label="Improvement suggestions">
+            {improvements.map((item, index) => (
+              <motion.li
+                key={item.id}
+                initial={{ opacity: 0, x: 8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.22, delay: 0.03 * index }}
+                className="rounded-xl border border-white/5 bg-[#0f1018] p-3"
+              >
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-white">{item.area}</p>
+                  <Badge
+                    className={cn(
+                      "tracking-normal normal-case capitalize",
+                      PRIORITY_CLASS[item.priority]
+                    )}
+                  >
+                    {item.priority}
+                  </Badge>
+                </div>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {item.suggestion}
+                </p>
+              </motion.li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
