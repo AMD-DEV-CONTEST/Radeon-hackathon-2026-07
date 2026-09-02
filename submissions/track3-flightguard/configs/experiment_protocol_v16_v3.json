@@ -1,0 +1,595 @@
+{
+  "protocol_version": "flightguard-rta-v16-20260729-v3",
+  "status": "PRE_REGISTERED_BEFORE_FIRST_ADVERSARIAL_V3_GPU_RUN",
+  "supersedes": {
+    "protocol_version": "flightguard-rta-v16-20260729-v2",
+    "sha256": "e7c32e508c59dd0d4739fa6abd15ab27d2bb5b3b4dbea41a197bc8ccb9eb710d",
+    "reason": "The first frozen adversarial-v2 benchmark was too easy for the always-continue learned arm, so v2 failed its pre-registered benchmark acceptance gate.",
+    "first_failed_benchmark_evidence": {
+      "metrics_path": "/workspace/flightguard-runs/domain-v16/benchmark-v2-seed4101-v1/metrics.json",
+      "checkpoint_seed": 30,
+      "scenario_seed": 4101,
+      "pairs": 96,
+      "always_continue_learned_terminal_failures": 4,
+      "always_continue_learned_terminal_failure_rate": 0.041666666666666664,
+      "strata_with_at_least_two_always_continue_terminal_failures": 1,
+      "only_stratum_with_at_least_two_failures": 9,
+      "verdict": "FAIL_TOO_EASY",
+      "learned_safe_outcomes_inspected_for_profile_acceptance": false,
+      "sha256": "f06f10e00963627bbd4a766119f856e9bf4b393bdd9d6cd02c2b26e04c295faf"
+    },
+    "gpu_runs_completed_under_adversarial_v2_before_revision": 1,
+    "retention_policy": "Retain the v2 protocol, its failed seed-4101 benchmark metrics, and all associated logs without modification."
+  },
+  "simulation_only": true,
+  "claim_boundary": "All coverage, strike, terminal-failure, and mission results apply only to Genesis v1.2.3 simulation of a coincident perception blackout and unobserved actuator/disturbance onset on one AMD Radeon GPU. They use only causal pre-dropout history. They are not real-flight validation, hardware-in-the-loop validation, formal certification, or a real-world safety guarantee. The split-conformal envelope applies to the always-continue learned arm before any supervisor intervention; no post-intervention coverage guarantee is claimed.",
+  "reviewer_limitation": {
+    "primary": "Adversarial v3 was defined after adversarial v2 failed as too easy, creating benchmark-selection risk.",
+    "mitigations": [
+      "retain and disclose the complete v2 failure",
+      "keep the individually audited heldout marginal fault magnitudes and change only their onset timing and composition",
+      "freeze fresh benchmark, calibration, adversarial-formal, and ID-formal seeds before any v3 GPU run",
+      "permit exactly one v3 attempt and prohibit a v4 safety-benefit main claim if v3 fails",
+      "require ID intervention rate at most 10 percent",
+      "compare against pre-registered 0.5, 1.0, and 2.0 second fixed-timeout abstention baselines"
+    ]
+  },
+  "revision_governance": {
+    "revision_type": "ONCE_ONLY_POST_V2_BENCHMARK_REVISION",
+    "permitted_change": "Move the switchable thrust, wind, and action-delay faults from pre-dropout exposure to a coincident onset immediately after context freeze; remove dynamic mass from the adversarial profile.",
+    "prohibited_changes_after_first_v3_gpu_run": [
+      "fault magnitudes",
+      "fault timing",
+      "stratum definitions",
+      "benchmark seeds",
+      "benchmark acceptance thresholds",
+      "fixed-timeout baseline thresholds",
+      "calibration seeds",
+      "formal seeds"
+    ],
+    "v3_attempt_budget": 1,
+    "on_any_v3_benchmark_failure": "Stop the v3 evidence program without inspecting learned_safe outcomes for profile acceptance. Do not create v4 and do not make a safety-benefit main claim."
+  },
+  "execution_environment": {
+    "visible_gpu_count": 1,
+    "hip_visible_devices": "0",
+    "pyglet_headless": "1",
+    "genesis_version": "1.2.3",
+    "genesis_source": "/workspace/genesis-v1.2.3-src-b",
+    "genesis_source_tree": {
+      "sha256": "0015e46d892cecbb05b91abaf113bbf9d91cdbf3a935f72e6ef38aa8ce03612f",
+      "file_count": 1025,
+      "total_bytes": 228245011,
+      "excluded": [
+        ".git",
+        "__pycache__",
+        ".pytest_cache",
+        "*.pyc",
+        "*.pyo"
+      ]
+    },
+    "project_root": "/workspace/flightguard-amd-v16-v3-frozen",
+    "backend_serialized_value": "3",
+    "device": "cuda:0",
+    "gpu_name": "AMD Radeon Graphics",
+    "require_nonempty_torch_hip": true,
+    "pythonpath_template": "/workspace/genesis-v1.2.3-src-b:{project}:{project}/src",
+    "single_gpu_serial_execution": true,
+    "queue_runner": {
+      "path": "tools/serial_gpu_queue.py",
+      "sha256": "cc70a1c013160b562c1ca61cd788d9d67e429a41d34b6055822a3fbeada166a4"
+    }
+  },
+  "runtime_contract": {
+    "steps": 800,
+    "dropout_start_step": 300,
+    "dropout_steps": 500,
+    "dt_s": 0.01,
+    "fault_activation_order": [
+      "complete the final observed pre-dropout transition",
+      "freeze the online context exactly at step 300",
+      "snapshot the matched pre-fault state",
+      "complete the first blackout safety and fixed-timeout decisions",
+      "compute the first blackout issued action",
+      "activate the scheduled fault exactly once",
+      "execute the first blackout environment step"
+    ],
+    "fault_activation_step": 300,
+    "fault_persistence_steps": 500,
+    "dynamic_mass_change": false,
+    "attitude_noise_std_deg": 0.5,
+    "attitude_bias_deg": [
+      0.2,
+      -0.1,
+      0.15
+    ],
+    "angular_velocity_noise_std_rad_s": 0.02,
+    "angular_velocity_bias_rad_s": [
+      0.01,
+      -0.01,
+      0.005
+    ],
+    "gate_y_jitter_m": 0.25,
+    "gate_z_jitter_m": 0.1,
+    "gate_lookthrough_m": 0.5,
+    "controller_profile": "robust_z",
+    "max_upward_vertical_acceleration_mps2": 5.0,
+    "max_downward_vertical_acceleration_mps2": 3.0,
+    "online_context_mode": "frozen_affine_delay",
+    "context_max_delay_steps": 10,
+    "context_fit_steps": 200,
+    "context_min_fit_samples": 100,
+    "context_min_score_samples": 50,
+    "context_ridge": 0.05,
+    "context_gamma_limit": 0.6,
+    "context_bias_limit_mps2": 1.5,
+    "context_min_excitation": 0.05,
+    "context_delay_score_tolerance": 0.0001,
+    "context_min_score_improvement_absolute": 0.0001,
+    "context_min_score_improvement_relative": 0.05,
+    "context_score_residual_quantile": 0.95,
+    "safety_reaction_margin_s": 0.5,
+    "safety_qualification_horizon_s": 5.0,
+    "safety_minimum_clearance_m": 0.05,
+    "fixed_timeout_baselines_enabled": true,
+    "fixed_timeout_baselines_s": [
+      0.5,
+      1.0,
+      2.0
+    ],
+    "expected_methods_with_safety": [
+      "learned",
+      "learned_safe",
+      "learned_timeout_0_5s",
+      "learned_timeout_1_0s",
+      "learned_timeout_2_0s",
+      "hold_last",
+      "constant_velocity"
+    ],
+    "allow_failed_integrity": false,
+    "include_unfinished_diagnostics": true,
+    "log_every": 250
+  },
+  "adversarial_profile": {
+    "name": "adversarial_v3",
+    "definition_version": "dropout-onset-compositional-edge-v3",
+    "ood_source": "Coupled composition of heldout marginal magnitudes audited before v3, with all switchable faults withheld until the perception-blackout onset.",
+    "pre_dropout_switchable_parameters": {
+      "thrust_scale": 1.0,
+      "wind_acceleration_mps2": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "action_delay_steps": 0
+    },
+    "static_parameters": {
+      "mass_scale": 1.0,
+      "dynamic_mass_change_allowed": false
+    },
+    "activation": {
+      "step": 300,
+      "relative_to_context_freeze": "strictly_after",
+      "relative_to_first_blackout_controller_action": "strictly_after",
+      "relative_to_first_blackout_environment_step": "strictly_before",
+      "count": 1,
+      "persistence_steps": 500,
+      "applies_identically_to_all_matched_method_arms": true,
+      "supervisor_receives_fault_parameters": false
+    },
+    "strata": {
+      "12": {
+        "name": "dropout_onset_thrust_horizontal_wind",
+        "thrust_scale": [
+          0.94,
+          0.98
+        ],
+        "horizontal_wind_mps2": [
+          0.3,
+          0.6
+        ]
+      },
+      "13": {
+        "name": "dropout_onset_thrust_signed_vertical_wind",
+        "thrust_scale": [
+          0.94,
+          0.98
+        ],
+        "absolute_vertical_wind_mps2": [
+          0.1,
+          0.2
+        ],
+        "vertical_wind_sign": "sampled_positive_or_negative"
+      },
+      "14": {
+        "name": "dropout_onset_horizontal_wind_delay",
+        "horizontal_wind_mps2": [
+          0.3,
+          0.6
+        ],
+        "action_delay_steps_inclusive": [
+          4,
+          6
+        ]
+      },
+      "15": {
+        "name": "dropout_onset_signed_vertical_wind_delay",
+        "absolute_vertical_wind_mps2": [
+          0.1,
+          0.2
+        ],
+        "vertical_wind_sign": "sampled_positive_or_negative",
+        "action_delay_steps_inclusive": [
+          4,
+          6
+        ]
+      },
+      "16": {
+        "name": "dropout_onset_thrust_horizontal_wind_delay",
+        "thrust_scale": [
+          0.94,
+          0.98
+        ],
+        "horizontal_wind_mps2": [
+          0.3,
+          0.6
+        ],
+        "action_delay_steps_inclusive": [
+          4,
+          6
+        ]
+      },
+      "17": {
+        "name": "dropout_onset_joint_adversarial_distribution",
+        "thrust_scale": [
+          0.93,
+          0.99
+        ],
+        "horizontal_wind_mps2": [
+          0.3,
+          0.5
+        ],
+        "absolute_vertical_wind_mps2": [
+          0.08,
+          0.15
+        ],
+        "vertical_wind_sign": "sampled_positive_or_negative",
+        "action_delay_steps_inclusive": [
+          3,
+          5
+        ]
+      }
+    }
+  },
+  "development_structural_gate": {
+    "purpose": "Kill-magnitude check that the frozen scheduled targets produce a measurable paired Genesis plant response before benchmark execution.",
+    "script": {
+      "path": "scripts/smoke_scheduled_fault_response_amd.py",
+      "sha256": "580369b265646daf47b99238b12b8b85e0885e2811b3288cd1e107e4200cd2da"
+    },
+    "scenario_seed": 5001,
+    "pairs": 24,
+    "steps": 400,
+    "activation_step": 300,
+    "response_steps": 100,
+    "maximum_pre_onset_pair_state_difference": 0.000001,
+    "pre_onset_pairing_fields": [
+      "position",
+      "velocity",
+      "quaternion",
+      "angular_velocity",
+      "issued_action",
+      "applied_action"
+    ],
+    "scheduled_targets_active_at_every_post_activation_step": true,
+    "minimum_median_actual_to_nominal_position_divergence_m": 0.05,
+    "minimum_stratum_median_divergence_m": 0.03,
+    "minimum_passing_strata": 4,
+    "all_tracked_tensors_finite": true,
+    "visible_gpu_count": 1,
+    "may_influence_profile_or_thresholds": false,
+    "failure_action": "If physical-response gates fail, stop v3 without changing fault magnitudes or definitions. An implementation error may be fixed only before any benchmark seed is run, with a new code/protocol hash and a fresh structural-smoke seed."
+  },
+  "checkpoints": {
+    "30": {
+      "path": "/persistent/flightguard-amd/20260729/domain-v15-gated/training/seed30-off/model.pt",
+      "sha256": "74808e9e8beb3847c77ea99b3f7b9a4eda5d66eec310ea7250ed16e58db0fe55"
+    },
+    "31": {
+      "path": "/persistent/flightguard-amd/20260729/domain-v15-gated/training/multiseed-off-train-v1/seed31/model.pt",
+      "sha256": "b08cc494870ef21e99f731a62d6225305e431ec79f05b2a2d5485d6a930c4522"
+    },
+    "32": {
+      "path": "/persistent/flightguard-amd/20260729/domain-v15-gated/training/multiseed-off-train-v1/seed32/model.pt",
+      "sha256": "b665d4b909dd3ddd5db0cd54ebf487164a4fccd002ba559caed016cf62a9de1f"
+    }
+  },
+  "splits": {
+    "benchmark_calibration": {
+      "domain_profile": "adversarial_v3",
+      "pairs_per_run": 96,
+      "safety_supervisor": "empirical_envelope",
+      "safety_scale_source": "literal_1.0",
+      "benchmark_profile_acceptance_mode": true,
+      "allowed_to_inspect": [
+        "pre_dropout_survival",
+        "context_qualification",
+        "always_continue_learned_terminal_failures_by_stratum",
+        "always_continue_learned_first_0_25s_terminal_failures",
+        "always_continue_learned_applied_action_saturation"
+      ],
+      "prohibited_from_inspecting_for_profile_acceptance": [
+        "learned_safe outcomes",
+        "trajectory envelope coverage",
+        "calibrated scale"
+      ],
+      "runs": [
+        {
+          "checkpoint_seed": 30,
+          "checkpoint_path": "/persistent/flightguard-amd/20260729/domain-v15-gated/training/seed30-off/model.pt",
+          "checkpoint_sha256": "74808e9e8beb3847c77ea99b3f7b9a4eda5d66eec310ea7250ed16e58db0fe55",
+          "scenario_seed": 5101
+        },
+        {
+          "checkpoint_seed": 30,
+          "checkpoint_path": "/persistent/flightguard-amd/20260729/domain-v15-gated/training/seed30-off/model.pt",
+          "checkpoint_sha256": "74808e9e8beb3847c77ea99b3f7b9a4eda5d66eec310ea7250ed16e58db0fe55",
+          "scenario_seed": 5102
+        },
+        {
+          "checkpoint_seed": 30,
+          "checkpoint_path": "/persistent/flightguard-amd/20260729/domain-v15-gated/training/seed30-off/model.pt",
+          "checkpoint_sha256": "74808e9e8beb3847c77ea99b3f7b9a4eda5d66eec310ea7250ed16e58db0fe55",
+          "scenario_seed": 5103
+        }
+      ]
+    },
+    "envelope_calibration": {
+      "domain_profile": "adversarial_v3",
+      "pairs_per_run": 128,
+      "safety_supervisor": "empirical_envelope",
+      "safety_scale_source": "literal_1.0",
+      "runs": [
+        {
+          "checkpoint_seed": 30,
+          "checkpoint_path": "/persistent/flightguard-amd/20260729/domain-v15-gated/training/seed30-off/model.pt",
+          "checkpoint_sha256": "74808e9e8beb3847c77ea99b3f7b9a4eda5d66eec310ea7250ed16e58db0fe55",
+          "scenario_seed": 5201
+        },
+        {
+          "checkpoint_seed": 31,
+          "checkpoint_path": "/persistent/flightguard-amd/20260729/domain-v15-gated/training/multiseed-off-train-v1/seed31/model.pt",
+          "checkpoint_sha256": "b08cc494870ef21e99f731a62d6225305e431ec79f05b2a2d5485d6a930c4522",
+          "scenario_seed": 5202
+        },
+        {
+          "checkpoint_seed": 32,
+          "checkpoint_path": "/persistent/flightguard-amd/20260729/domain-v15-gated/training/multiseed-off-train-v1/seed32/model.pt",
+          "checkpoint_sha256": "b665d4b909dd3ddd5db0cd54ebf487164a4fccd002ba559caed016cf62a9de1f",
+          "scenario_seed": 5203
+        }
+      ]
+    },
+    "formal_adversarial": {
+      "domain_profile": "adversarial_v3",
+      "pairs_per_run": 128,
+      "safety_supervisor": "empirical_envelope",
+      "safety_scale_source": "required_frozen_calibration_artifact",
+      "runs": [
+        {
+          "checkpoint_seed": 30,
+          "checkpoint_path": "/persistent/flightguard-amd/20260729/domain-v15-gated/training/seed30-off/model.pt",
+          "checkpoint_sha256": "74808e9e8beb3847c77ea99b3f7b9a4eda5d66eec310ea7250ed16e58db0fe55",
+          "scenario_seed": 5301
+        },
+        {
+          "checkpoint_seed": 31,
+          "checkpoint_path": "/persistent/flightguard-amd/20260729/domain-v15-gated/training/multiseed-off-train-v1/seed31/model.pt",
+          "checkpoint_sha256": "b08cc494870ef21e99f731a62d6225305e431ec79f05b2a2d5485d6a930c4522",
+          "scenario_seed": 5302
+        },
+        {
+          "checkpoint_seed": 32,
+          "checkpoint_path": "/persistent/flightguard-amd/20260729/domain-v15-gated/training/multiseed-off-train-v1/seed32/model.pt",
+          "checkpoint_sha256": "b665d4b909dd3ddd5db0cd54ebf487164a4fccd002ba559caed016cf62a9de1f",
+          "scenario_seed": 5303
+        }
+      ]
+    },
+    "formal_id": {
+      "domain_profile": "off",
+      "pairs_per_run": 128,
+      "safety_supervisor": "empirical_envelope",
+      "safety_scale_source": "required_frozen_calibration_artifact",
+      "runs": [
+        {
+          "checkpoint_seed": 30,
+          "checkpoint_path": "/persistent/flightguard-amd/20260729/domain-v15-gated/training/seed30-off/model.pt",
+          "checkpoint_sha256": "74808e9e8beb3847c77ea99b3f7b9a4eda5d66eec310ea7250ed16e58db0fe55",
+          "scenario_seed": 5401
+        },
+        {
+          "checkpoint_seed": 31,
+          "checkpoint_path": "/persistent/flightguard-amd/20260729/domain-v15-gated/training/multiseed-off-train-v1/seed31/model.pt",
+          "checkpoint_sha256": "b08cc494870ef21e99f731a62d6225305e431ec79f05b2a2d5485d6a930c4522",
+          "scenario_seed": 5402
+        },
+        {
+          "checkpoint_seed": 32,
+          "checkpoint_path": "/persistent/flightguard-amd/20260729/domain-v15-gated/training/multiseed-off-train-v1/seed32/model.pt",
+          "checkpoint_sha256": "b665d4b909dd3ddd5db0cd54ebf487164a4fccd002ba559caed016cf62a9de1f",
+          "scenario_seed": 5403
+        }
+      ]
+    }
+  },
+  "benchmark_acceptance": {
+    "aggregation": "every benchmark_calibration run must pass independently",
+    "minimum_active_at_freeze": 92,
+    "minimum_active_at_freeze_per_stratum": 15,
+    "pairs_per_run": 96,
+    "pairs_per_stratum": 16,
+    "all_tracked_tensors_finite": true,
+    "maximum_pre_dropout_pair_state_difference": 0.000001,
+    "require_all_active_contexts_selected_valid": true,
+    "minimum_qualified_fraction_among_active": 0.9,
+    "failure_rate_denominator": "freeze-active always-continue learned trajectories",
+    "minimum_always_continue_learned_terminal_failure_rate": 0.2,
+    "maximum_always_continue_learned_terminal_failure_rate": 0.6,
+    "maximum_first_0_25s_always_continue_terminal_failure_rate": 0.05,
+    "applied_action_saturation_absolute_threshold": 0.999999,
+    "maximum_p95_per_pair_applied_action_saturation_fraction": 0.2,
+    "maximum_per_pair_applied_action_saturation_fraction": 0.5,
+    "minimum_strata_passing_failure_count_range": 4,
+    "per_passing_stratum_minimum_always_continue_terminal_failures": 2,
+    "per_passing_stratum_maximum_always_continue_terminal_failures": 12,
+    "failure_action": "Stop without inspecting learned_safe outcomes for profile acceptance. Do not run later v3 benchmark seeds, calibration, or formal evaluation. Do not create v4 and do not make a safety-benefit main claim."
+  },
+  "envelope_calibration": {
+    "inherited_from_protocol_version": "flightguard-rta-v16-20260729-v2",
+    "policy": "learned_always_continue",
+    "alpha": 0.05,
+    "reaction_margin_s": 0.5,
+    "epsilon_m": 0.000001,
+    "rank": "ceil((N + 1) * (1 - alpha))",
+    "checkpoint_aggregation": "maximum checkpoint-specific rank scale",
+    "minimum_checkpoints": 3,
+    "minimum_qualified_trajectories_per_checkpoint": 100,
+    "maximum_calibrated_median_horizon_radius_m": 0.3,
+    "required_runtime_uncertainty_scale_during_calibration": 1.0,
+    "prohibit_scale_grid_search": true,
+    "prohibit_formal_seed_reuse_for_recalibration": true,
+    "formal_runs_must_load_artifact_by_path_and_sha256": true
+  },
+  "formal_acceptance": {
+    "inherited_from_protocol_version": "flightguard-rta-v16-20260729-v2",
+    "survival_at_freeze": {
+      "aggregation": "every formal_adversarial and formal_id checkpoint must pass independently",
+      "minimum_active_fraction": 0.95,
+      "minimum_active_count_for_128_pairs": 122,
+      "formal_adversarial_minimum_active_fraction_per_stratum": 0.9,
+      "lifecycle_consistency": "inactive iff learned terminal_step is at or before dropout_start_step; active trajectories are unfinished at freeze and therefore have final terminal_step null or greater than dropout_start_step",
+      "zero_denominator": "FAIL"
+    },
+    "qualified_fraction": {
+      "aggregation": "per checkpoint on freeze-active trajectories",
+      "minimum": 0.9,
+      "zero_denominator": "FAIL"
+    },
+    "simultaneous_trajectory_coverage": {
+      "policy": "learned_always_continue",
+      "per_checkpoint_minimum": 0.95,
+      "pooled_minimum": 0.95,
+      "pooled_per_adversarial_stratum_minimum": 0.9,
+      "denominator": "freeze-active and context-qualified trajectories",
+      "zero_denominator": "FAIL"
+    },
+    "safe_terminal_failure_rate": {
+      "aggregation": "per checkpoint and pooled; every value must pass",
+      "maximum": 0.05,
+      "denominator": "learned_safe freeze-active trajectories",
+      "zero_denominator": "FAIL"
+    },
+    "safe_to_learned_terminal_failure_ratio": {
+      "aggregation": "per checkpoint and pooled; every value must pass",
+      "maximum": 0.5,
+      "zero_denominator": "PASS only when safe terminal failures are also zero"
+    },
+    "safe_to_learned_mission_success_ratio": {
+      "aggregation": "per checkpoint and pooled; every value must pass",
+      "minimum": 0.75,
+      "zero_denominator": "FAIL"
+    },
+    "id_mission_success_drop_percentage_points": {
+      "aggregation": "per checkpoint matched learned minus learned_safe in formal_id",
+      "maximum": 5.0
+    },
+    "id_intervention_rate_among_active": {
+      "aggregation": "per checkpoint in formal_id",
+      "maximum": 0.1,
+      "zero_denominator": "FAIL"
+    },
+    "post_dropout_failure_warning_rate": {
+      "aggregation": "pooled formal_adversarial freeze-active matched learned-arm post-dropout terminal failures; warning is learned_safe intervention_step < matched learned terminal_step",
+      "reference_method": "learned",
+      "minimum": 0.9,
+      "zero_denominator": "INSUFFICIENT_EVIDENCE_FAIL"
+    },
+    "median_warning_lead_s": {
+      "aggregation": "pooled warned matched learned-arm formal_adversarial failures",
+      "lead_definition": "(matched learned terminal_step - learned_safe intervention_step) * dt_s",
+      "minimum": 0.5,
+      "zero_denominator": "INSUFFICIENT_EVIDENCE_FAIL"
+    },
+    "fixed_timeout_baseline_reporting": {
+      "required_methods": [
+        "learned_timeout_0_5s",
+        "learned_timeout_1_0s",
+        "learned_timeout_2_0s"
+      ],
+      "abort_is_not_mission_success": true,
+      "required_metrics": [
+        "terminal_failure_rate",
+        "mission_success_rate",
+        "intervention_rate",
+        "time_to_intervention",
+        "ID mission-success drop"
+      ],
+      "selection_or_tuning_on_benchmark_or_formal_results": "PROHIBITED"
+    },
+    "adaptive_advantage_over_fixed_timeouts": {
+      "aggregation": "pooled formal_adversarial freeze-active trajectories across the three frozen checkpoints",
+      "no_fixed_timeout_may_weakly_dominate_learned_safe": true,
+      "weak_dominance_definition": "timeout terminal_failure_rate <= learned_safe terminal_failure_rate and timeout mission_success_rate >= learned_safe mission_success_rate, with at least one strict inequality",
+      "comparable_safety_tolerance_absolute": 0.01,
+      "primary_pass": "learned_safe mission_success_rate is at least 0.05 higher than the best fixed timeout whose terminal_failure_rate is no more than 0.01 above learned_safe",
+      "alternate_pass_if_no_timeout_has_comparable_safety": "learned_safe terminal_failure_rate is at least 0.01 lower than every fixed timeout and learned_safe mission_success_rate is no more than 0.05 below the best fixed timeout",
+      "adaptive_timing_minimum_unique_intervention_steps": 3,
+      "adaptive_timing_minimum_p90_minus_p10_s": 0.2,
+      "adaptive_timing_elapsed_s_definition": "(intervention_step - dropout_start_step) * dt_s",
+      "adaptive_timing_quantile_method": "sorted linear interpolation at position (N - 1) * q, identical to torch.quantile default linear mode",
+      "denominator": "freeze-active trajectories; intervention timing uses intervened learned_safe trajectories only",
+      "zero_intervention_denominator": "FAIL",
+      "selection_or_tuning_on_results": "PROHIBITED"
+    },
+    "failure_action": "Freeze results and do not tune on formal seeds. Because v3 is the once-only revision, do not create v4 and do not make a safety-benefit main claim."
+  },
+  "implementation_contract": {
+    "scripts/evaluate_dynamics_closed_loop_amd.py": "b3d6486a7f1e06788d2e6ed03116fa595c0845d15834b985cba396275364ed3e",
+    "scripts/smoke_scheduled_fault_response_amd.py": "580369b265646daf47b99238b12b8b85e0885e2811b3288cd1e107e4200cd2da",
+    "src/flightguard/__init__.py": "330675ba001e8bca9d5e6573400d9a238a398248002ace79e19706c198947891",
+    "src/flightguard/controller.py": "ac26db19de71a08db149d46966031d6099e0edb00d565a16fa39521b34c88356",
+    "src/flightguard/dynamics.py": "4aae9f3bb335a61e66a06b240164a9f21f82e70163d5f4bcbeedc38d9ae9261a",
+    "src/flightguard/faults.py": "66fe1020d5f0bee697babef634252760d4fd8650971cad09b75a9118b7e14577",
+    "src/flightguard/gate_math.py": "e6a4ec69909fac2a742a7fcf61bebcf7cbf0d09750e7662708a18af5b1e9ecf5",
+    "src/flightguard/genesis_env.py": "6dde655ca4a369d8dba116901ac37458db12a147b18820ac10b9dc79d0c242d7",
+    "src/flightguard/guard.py": "f57dc8e4d1413a4dadf71210d8ad9bf3499031229584395ca431df5594befffa",
+    "src/flightguard/imu.py": "9e5c3d64d08d294b4a0c209fee4fef7291b6393071a9566a2278d2e9480cd352",
+    "src/flightguard/racer_asset.py": "6174bb11142dcfb573fe919be2e22c47a845475b2bf9ca83c782d130c3903c7b",
+    "src/flightguard/safety_supervisor.py": "bb1eaa4ceb5a84ebcc4761b06fd98b2b1951cf7f3a9d49255136d513f913a651",
+    "src/flightguard/domain_randomization.py": "b5ce4c8d9047d169e123fedeb3caf0d19c14757d892c81d4306e689c9e9a4eb4",
+    "src/flightguard/online_context.py": "2a47b3278bb8175b62f70f6a1ab8af18e5ad1768bb22f645199aed0ab8eda12c",
+    "tools/calibrate_safety_envelope.py": "33fbd4800dceaa6c12ea8debe2d2129d89c8d119905c00f29da4eb3953272624",
+    "tools/compare_exact_noop.py": "63d85c9d9b5d8d01ca3b44e838293f2c8600474a944460e4771a9e3aa9807cea",
+    "tools/serial_gpu_queue.py": "cc70a1c013160b562c1ca61cd788d9d67e429a41d34b6055822a3fbeada166a4",
+    "tools/validate_v3_benchmark.py": "0b54bb47db0f6b4a84f1b0e7c4b1fc7c1f385592ed056594aa8a23f3a0672a0b",
+    "tools/validate_v3_formal.py": "cc69c9e6d84b16aa773ec390bee4e0ad896fdbea55574fe22f87ae7b9cca2255"
+  },
+  "immutability": {
+    "all_outputs_use_new_paths": true,
+    "failed_runs_are_retained": true,
+    "v2_failed_benchmark_is_retained": true,
+    "protocol_sha256_is_recorded_in_calibration_artifact": true,
+    "calibration_artifact_sha256_is_recorded_in_formal_metrics": true,
+    "no_gpu_run_while_status_is_draft": true
+  },
+  "failed_development_evidence_to_retain": [
+    "/workspace/flightguard-runs/domain-v16/smoke-dev4-adversarial-safety",
+    "/workspace/flightguard-runs/domain-v16/smoke-dev4b-adversarial-safety",
+    "/workspace/flightguard-runs/domain-v16/smoke-dev5-adversarial-safety",
+    "/workspace/flightguard-runs/domain-v16/benchmark-v2-seed4101-v1"
+  ],
+  "superseded_unexecuted_artifacts_to_retain": [
+    "/workspace/persistent/flightguard-amd/20260729/flightguard-code-v16-dev6-core-clean.tar.gz"
+  ]
+}

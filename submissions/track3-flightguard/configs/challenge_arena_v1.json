@@ -1,0 +1,101 @@
+{
+  "acceptance": {
+    "all_fields_finite": true,
+    "minimum_positive_seed_count": 2,
+    "per_episode_applied_action_saturation_fraction_max": 0.05,
+    "per_seed_success_delta_min_count": 0,
+    "primary_nominal_success_to_robust_failure_max_count": 0,
+    "primary_success_delta_min_count": 39,
+    "retention_nominal_success_to_robust_failure_max_count": 0,
+    "retention_success_rate_degradation_max": 0.02,
+    "robust_strike_count_no_worse": true,
+    "robust_terminal_failure_count_no_worse": true
+  },
+  "baseline": {
+    "name": "nominal",
+    "position_kp_z": 2.5,
+    "qualification": "repository-default controller and existing nominal Genesis visual profile",
+    "sota_claim": false,
+    "velocity_kd_z": 2.0
+  },
+  "candidate": {
+    "name": "robust_z",
+    "position_kp_z": 8.0,
+    "velocity_kd_z": 3.6
+  },
+  "claim_boundary": {
+    "real_flight_claim": false,
+    "safety_or_certification_claim": false,
+    "sampled_contexts_only": true,
+    "sim_to_real_claim": false,
+    "simulation_only": true,
+    "sota_baseline_claim": false,
+    "tuning_after_unblinding_permitted": false
+  },
+  "diagnostics": {
+    "kill_magnitude": {
+      "arms": [
+        "nominal",
+        "zero_action"
+      ],
+      "domain_profile": "adversarial",
+      "pairs": 8,
+      "required": {
+        "minimum_maximum_position_divergence_m": 0.1,
+        "zero_action_gate_passes_total": 0,
+        "zero_action_mission_success_count": 0
+      },
+      "seed": 881940697,
+      "steps": 800
+    },
+    "no_op": {
+      "arms": [
+        "nominal",
+        "nominal"
+      ],
+      "domain_profile": "adversarial",
+      "pairs": 8,
+      "required": "issued action, applied action, state, gate and terminal traces bit-exact",
+      "seed": 264617362,
+      "steps": 800
+    }
+  },
+  "frozen_at_utc": "2026-08-03T16:17:39.292309+00:00",
+  "paired_design": {
+    "domain_seed_offset": 2000003,
+    "gate_jitter_y_m": 0.25,
+    "gate_jitter_z_m": 0.1,
+    "gate_lookthrough_m": 0.5,
+    "only_controller_profile_changes": true,
+    "same_domain_parameters": true,
+    "same_initial_state": true
+  },
+  "primary": {
+    "definition_version": "compositional-heldout-edge-v2",
+    "domain_profile": "adversarial",
+    "pairs_per_seed": 128,
+    "seeds": [
+      831900462,
+      200501215,
+      144856705
+    ],
+    "steps": 1500,
+    "total_pairs": 384
+  },
+  "retention": {
+    "domain_profile": "heldout",
+    "pairs_per_seed": 64,
+    "seeds": [
+      831900462,
+      200501215,
+      144856705
+    ],
+    "steps": 1500,
+    "total_pairs": 192
+  },
+  "schema_version": "flightguard.challenge_arena.v1",
+  "simulation_only": true,
+  "single_hypothesis": "On the frozen compositional adversarial distribution, robust_z improves three-gate mission success by at least 39 of 384 matched contexts versus the repository-default nominal controller, with zero nominal-success regressions.",
+  "source_commit": "49777136e77504cc90016d1308ee0768e5e81b9e",
+  "status": "FROZEN_BEFORE_EXECUTION"
+}
