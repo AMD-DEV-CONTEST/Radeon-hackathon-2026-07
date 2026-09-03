@@ -1,0 +1,202 @@
+<meta charset="utf-8">
+<title>Hyperloom — AMD AI DevMaster Hackathon, Track 2</title>
+<style>
+  @page { size: 420mm 445mm; margin: 0; }
+  :root{
+    --bg:#0b0e12; --panel:#12161d; --edge:#232a35;
+    --ink:#e8ecf2; --dim:#98a2b3; --red:#ED1C24; --grn:#5dd68a; --amb:#f2b134;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:"Inter","Helvetica Neue",Arial,sans-serif;
+    width:420mm; min-height:445mm; padding:16mm 16mm;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  .rule{height:3px;background:linear-gradient(90deg,var(--red),transparent);margin:4mm 0 4mm;}
+  header .track{
+    display:inline-block;font-size:9pt;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--red);border:1px solid var(--red);padding:2mm 3mm;border-radius:2px;font-weight:700;
+  }
+  h1{font-size:46pt;line-height:1.02;letter-spacing:-.02em;margin:3mm 0 2mm;font-weight:800;}
+  .tag{font-size:15pt;color:var(--dim);line-height:1.34;max-width:300mm;}
+  h2{font-size:13pt;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);
+     font-weight:700;margin:0 0 2.5mm;}
+  section{margin-top:5mm;}
+
+  .hero{display:grid;grid-template-columns:repeat(3,1fr);gap:4mm;}
+  .stat{background:var(--panel);border:1px solid var(--edge);border-radius:3px;
+        padding:4mm;border-top:3px solid var(--red);}
+  .stat .k{font-size:11pt;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);font-weight:700;}
+  .stat .v{font-size:34pt;font-weight:800;letter-spacing:-.02em;margin:2mm 0 1mm;}
+  .stat .v small{font-size:17pt;font-weight:600;color:var(--dim);}
+  .stat .d{font-size:11pt;color:var(--dim);line-height:1.35;}
+  .ok{color:var(--grn);font-weight:700;}
+
+  .cols{display:grid;grid-template-columns:1.06fr .94fr;gap:7mm;}
+  .card{background:var(--panel);border:1px solid var(--edge);border-radius:3px;padding:4mm;}
+  p{font-size:12.5pt;line-height:1.48;color:#c9d1dc;}
+  p+p{margin-top:2mm;}
+  strong{color:var(--ink);}
+
+  pre{font-family:"DejaVu Sans Mono",ui-monospace,monospace;font-size:11pt;line-height:1.5;
+      color:#cfd6e0;background:#080b0f;border:1px solid var(--edge);border-radius:3px;
+      padding:4mm;overflow:hidden;white-space:pre;}
+  .flag{color:var(--amb);} .good{color:var(--grn);}
+
+  .arch{font-family:"DejaVu Sans Mono",ui-monospace,monospace;font-size:10.5pt;line-height:1.42;
+        color:#b9c3d0;background:#080b0f;border:1px solid var(--edge);border-radius:3px;padding:4mm;
+        white-space:pre;}   /* was a div without this — the ASCII art collapsed */
+  .arch b{color:var(--red);}
+
+  ul{list-style:none;} li{font-size:12pt;line-height:1.45;color:#c9d1dc;padding-left:6mm;
+     position:relative;margin-bottom:2.4mm;}
+  li:before{content:"▸";position:absolute;left:0;color:var(--red);font-weight:700;}
+
+  footer{margin-top:6mm;padding-top:4mm;border-top:1px solid var(--edge);
+         display:flex;justify-content:space-between;align-items:baseline;
+         font-size:12pt;color:var(--dim);}
+  .mono{font-family:"DejaVu Sans Mono",monospace;color:var(--ink);}
+</style>
+
+<header>
+  <span class="track">Track 2 · Private AI Agents</span>
+  <h1>Hyperloom</h1>
+  <p class="tag">An AI agent that makes AMD Radeon GPUs faster at LLM inference — on its own.
+  It reads the silicon's real instruction set with the assembler, finds what shipped kernels
+  never use, writes correctness-gated HIP kernels to close the gap, and then <em>audits its own
+  measurement</em>. Core inference runs entirely on the Radeon card. No cloud in the loop.</p>
+</header>
+<div class="rule"></div>
+
+<section>
+  <h2>Measured on a Radeon AI PRO R9700 · gfx1201 / RDNA4</h2>
+  <div class="hero">
+    <div class="stat">
+      <div class="k">Decode</div>
+      <div class="v">97<small>% of roofline</small></div>
+      <div class="d">Production int4 GEMV at 604–613 GB/s against a measured 631 GB/s DRAM
+      roofline — memory-bound and saturating. <span class="ok">max_rel_err 1.1e-04 PASS</span></div>
+    </div>
+    <div class="stat">
+      <div class="k">Prefill</div>
+      <div class="v">3.67<small>×</small></div>
+      <div class="d">int4 2:4-sparse SWMMAC vs int8 WMMA at K=8192 — 88–95% of the 3.90× raw ISA
+      ceiling. <span class="ok">all gates max_abs_err = 0</span></div>
+    </div>
+    <div class="stat">
+      <div class="k">Comms</div>
+      <div class="v">2.46<small>× smaller</small></div>
+      <div class="d">INT6 compressed all-reduce, shared scale, exact-integer reduce — routes
+      around the RCCL gfx1201 tuning gap. <span class="ok">mean rel_l2 0.0239</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="cols">
+  <div>
+    <h2>The capability that matters: it proves itself wrong</h2>
+    <div class="card">
+      <p>Most speedup claims die on the measurement, not the kernel. The R9700 has a
+      <strong>64 MiB Infinity Cache</strong> — any int4 benchmark whose weights fit inside it
+      measures cache, not DRAM, and happily reports a bandwidth <em>above</em> the roofline.</p>
+      <p>So the harness prints its own working set and flags the bad reading:</p>
+      <pre>N=14336 K=4096 |  31.5 MiB <span class="flag">(CACHE-RESIDENT!)</span> | 788 GB/s | <span class="flag">125% of roofline</span>
+N=65536 K=4096 | 144.0 MiB <span class="good">(DRAM-honest)</span>    | 609 GB/s | <span class="good">97% of roofline</span></pre>
+      <p>This caught a real error in our own submission — the decode benchmark had been reporting
+      122% of roofline. <strong>An optimizer you can trust has to be able to prove itself
+      wrong.</strong></p>
+      <p>The naive one-thread-per-row route looks 2.2× faster with the native instruction, and
+      that A/B is real. But it is uncoalesced: past the cache both routes collapse to ~17 GB/s.
+      <strong>The win is the access pattern, not the instruction</strong> — and we say so rather
+      than let a judge discover it.</p>
+      <p>The same discipline runs through the stack. Faults are isolated at the layer where they
+      actually live — silicon, driver, runtime, compiler, kernel, format, serving — rather than
+      guessed at across all seven. And correctness is never traded for speed: a fast-but-wrong
+      kernel <strong>exits non-zero</strong> before it is allowed to report a number.</p>
+    </div>
+
+    <h2 style="margin-top:6mm">Reproducible by a stranger, in three commands</h2>
+    <div class="card">
+      <pre>git clone https://github.com/The-Monk/rocky-hackathon
+cd rocky-hackathon/kernels/decode
+hipcc --offload-arch=gfx1201 -O3 decode_mmvq_iu4.hip -o d
+HIP_VISIBLE_DEVICES=0 ./d   <span class="good"># 97% of roofline, gated</span></pre>
+      <p style="margin-top:3mm">Every number on this poster was verified from a clean clone of the
+      public repository, on the card, on 2026-08-04. Upstream fixes contributed back:
+      <span class="mono">ROCm/composable_kernel#3759</span> (3-bug 2:4-sparse SWMMAC correctness
+      fix, err 352 → 0) and <span class="mono">AMD-AGI/Magpie#70</span>.</p>
+    </div>
+  </div>
+
+  <div>
+    <h2>Architecture</h2>
+    <div class="arch">
+<b>CORE INFERENCE — LOCAL, ON THE RADEON GPU</b>
+Lemonade :13305 · tool-calling model · 32 GB
+
+   MISSION LOOP  (reason → plan → act)
+   ┌──────────────────────────────────┐
+   │ DETECT   the silicon             │
+   │ SCAN     ISA via llvm-mc         │
+   │ FIND     the unused instruction  │
+   │ WRITE    the HIP kernel          │
+   │ GATE     bit-exact vs CPU ref    │
+   │ MEASURE  on the card             │
+   │ <b>AUDIT    the measurement itself</b> │
+   └──────────────────────────────────┘
+     │           │            │
+   TOOLS      MEMORY      ESCALATION
+   scan-isa   closed      stuck → packet
+   disasm     paths       → AMD-hosted
+   hipcc      are not     → <b>re-gated
+   magpie     re-tried       LOCALLY</b>
+
+<b>Layered fault isolation</b>
+ L1 silicon → L2 driver → L3 runtime
+ → L4 compiler → L5 kernel → L6 format
+ → L7 serving
+    </div>
+    <h2 style="margin-top:6mm">Track compliance</h2>
+    <ul>
+      <li>Core inference executes <strong>locally on an AMD Radeon GPU</strong> — the agent's
+      brain is a local model on the R9700.</li>
+      <li>No dependence on a closed-source agent platform; the loop, tools and memory are in
+      the repo.</li>
+      <li>All tooling ROCm-native — hipcc, llvm-mc, rocprof/metrix, Magpie.</li>
+      <li>Demo assets generated on the same card (kokoro narration, Flux imagery).</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>What the assembler found on gfx1201 that the datasheet does not tell you</h2>
+  <div class="hero">
+    <div class="stat">
+      <div class="k">Probed</div>
+      <div class="v">351<small> builtins</small></div>
+      <div class="d">Every candidate instruction compile-probed against the real target, then
+      classified REAL / EMULATED / REJECTED. Headers and marketing both lie; the assembler
+      does not.</div>
+    </div>
+    <div class="stat">
+      <div class="k">Actually real</div>
+      <div class="v">54<small> on this silicon</small></div>
+      <div class="d">The rest are emulated or rejected outright — including the MX scaled-converts,
+      which look present in the headers but are gated to other targets.</div>
+    </div>
+    <div class="stat">
+      <div class="k">Unexploited</div>
+      <div class="v">3<small> instructions</small></div>
+      <div class="d"><span class="mono">v_dot8_i32_iu4</span> ·
+      <span class="mono">v_dot2_f32_f16</span> ·
+      <span class="mono">v_dot4_f32_fp8</span> — real, fast, and unused by shipped kernels.
+      That gap is the whole opportunity.</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>AMD AI DevMaster Hackathon 2026 · Track 2: Development &amp; Local Deployment of Private AI Agents</span>
+  <span class="mono">github.com/The-Monk/rocky-hackathon</span>
+</footer>

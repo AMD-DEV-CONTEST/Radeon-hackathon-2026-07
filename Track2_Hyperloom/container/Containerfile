@@ -1,0 +1,58 @@
+# Rocky tuning workbench — reproducible AMD-GPU kernel build/tune environment.
+#
+# TWO DECOUPLED LAYERS (do not confuse):
+#   - KERNEL: amdgpu-dkms lives on the HOST. This image ships NO kernel driver.
+#             At runtime the host's /dev/kfd + /dev/dri are passed in (bench only).
+#   - USERSPACE: the EXACT verified qat714 env (TheRock ROCm 7.14.0a20260611 pip SDK +
+#             torch 2.13.0a0 + triton 3.5.1 + deps) is vendored via conda-pack.
+#
+# WHY conda-pack (not a pip wheelhouse): 7.14.0a20260611 is a dated nightly that has
+# ROTATED OFF TheRock's index — it can no longer be pip-downloaded. The only way to
+# hermetically reproduce the VERIFIED numbers is to vendor the installed env itself.
+# `build-in-container.sh pack` produces container/qat714.tar.gz from the host env.
+#
+# Base is plain debian-slim: the packed env brings its own Python 3.12.13, so no
+# interpreter-version matching is needed.
+#
+# Build (from repo root, after `build-in-container.sh pack`):
+#   podman build -f container/Containerfile -t rocky-workbench:rocm7.14a20260611 .
+#
+ARG BASE=debian:bookworm-slim
+FROM ${BASE}
+
+ARG ENV_TARBALL=container/qat714.tar.gz
+ARG ROCM_VER=7.14.0a20260611
+
+# Runtime + build deps. hipcc/clang come from the vendored env; these are the host-side
+# glue: git (--save-temps disasm flows), cmake/ninja (llama.cpp build), libnuma/libgomp
+# (ROCm runtime + OpenMP), ca-certificates (any git fetch).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git build-essential cmake ninja-build ca-certificates \
+        libnuma1 libgomp1 libelf1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Vendor the exact verified env: unpack + conda-unpack fixes the hardcoded prefixes so
+# the env is relocatable at /opt/qat714.
+COPY ${ENV_TARBALL} /tmp/qat714.tar.gz
+RUN mkdir -p /opt/qat714 && tar -xzf /tmp/qat714.tar.gz -C /opt/qat714 && \
+    /opt/qat714/bin/conda-unpack && rm -f /tmp/qat714.tar.gz
+
+# Toolchain env: self-contained, resolves inside the vendored env — no /opt/rocm shadow,
+# no ldconfig fight (mirrors host use-rocm714.env but pointed at /opt/qat714).
+RUN P=/opt/qat714/lib/python3.12/site-packages/_rocm_sdk_devel && \
+    C=/opt/qat714/lib/python3.12/site-packages/_rocm_sdk_core && \
+    printf 'export ROCM_PATH=%s\nexport LD_LIBRARY_PATH=%s/lib:%s/lib:${LD_LIBRARY_PATH:-}\nexport PATH=/opt/qat714/bin:%s/bin:${PATH}\n' \
+        "$P" "$C" "$P" "$P" > /etc/profile.d/rocm.sh && \
+    printf 'source /opt/qat714/bin/activate\nsource /etc/profile.d/rocm.sh\n' >> /root/.bashrc
+
+# Hyperloom tuning toolkit (ISA census / disasm / unused-sweep / datapath profiler).
+COPY skills/hyperloom-kernel-optimizer/scripts /opt/hyperloom/scripts
+ENV PATH=/opt/hyperloom/scripts:$PATH
+
+WORKDIR /work
+# BENCH NOTE (see container/README.md): DEFAULT = BUILD here, BENCH on host. If ever
+# benching in a passthrough container, `build-in-container.sh verify` first and confirm
+# rocminfo device 0 BDF == 04:00.0 (GPU0/compute) — else HIP_VISIBLE_DEVICES=0 lands on
+# the display card (8a:00.0) → gfx-ring timeout → Xorg-kill (T149).
+ENTRYPOINT ["/bin/bash", "-lc"]
+CMD ["source /opt/qat714/bin/activate; python -c 'import torch; print(\"torch\", torch.__version__)'; echo 'Rocky workbench ready (ROCm 7.14.0a20260611). Build here; bench on host.'"]

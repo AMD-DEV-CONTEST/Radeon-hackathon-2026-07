@@ -1,0 +1,26 @@
+# Captured run: kernels/decode/decode_fp8.hip
+# The KERNEL in this file was written by the local model (Qwen-AgentWorld-35B-A3B
+# on the R9700) from a specification, and verified bit-exact against a golden
+# reference it never saw. The surrounding harness -- CPU E4M3 reference,
+# correctness gate, working-set accounting -- is human-written. See agent_repro/.
+# host: 2x Radeon AI PRO R9700 (gfx1201, RDNA4), HIP_VISIBLE_DEVICES=0
+# hipcc: HIP version: 7.14.60850-1b2a555677
+
+$ ./decode_fp8
+=== fp8 E4M3 decode via v_dot4_f32_fp8_fp8 (gfx1201) ===
+
+correctness gate (vs CPU E4M3 reference)
+  N=256 K=4096   max_rel_err = 2.658e-05   tol = 1e-03   PASS
+
+throughput vs 631 GB/s measured DRAM roofline
+  N=65536  K=4096   |   272.0 MiB (DRAM-honest)      |  627 GB/s |  99% of roofline
+  N=16384  K=14336  |   238.0 MiB (DRAM-honest)      |  629 GB/s | 100% of roofline
+
+$ ./decode_fp8 14336 4096   # cache-resident probe: exercises the interlock
+=== fp8 E4M3 decode via v_dot4_f32_fp8_fp8 (gfx1201) ===
+
+correctness gate (vs CPU E4M3 reference)
+  N=256 K=4096   max_rel_err = 2.658e-05   tol = 1e-03   PASS
+
+throughput vs 631 GB/s measured DRAM roofline
+  N=14336  K=4096   |    59.5 MiB (CACHE-RESIDENT!)  | 1541 GB/s | 244% of roofline  <-- INVALID: above roofline, working set fits cache

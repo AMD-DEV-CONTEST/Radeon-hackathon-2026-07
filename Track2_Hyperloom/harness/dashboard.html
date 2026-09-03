@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPU Kernel Optimizer Dashboard</title>
+<style>
+    :root {
+        --bg: #0d1117;
+        --bg-panel: #161b22;
+        --border: #30363d;
+        --text: #c9d1d9;
+        --text-muted: #8b949e;
+        --green: #3fb950;
+        --red: #f85149;
+        --yellow: #d29922;
+        --blue: #58a6ff;
+    }
+    body {
+        background-color: var(--bg);
+        color: var(--text);
+        font-family: 'Courier New', Courier, monospace;
+        margin: 0;
+        padding: 20px;
+        font-size: 14px;
+    }
+    .panel {
+        background-color: var(--bg-panel);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+    .panel-title {
+        font-weight: bold;
+        color: var(--blue);
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .pipeline {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+    }
+    .stage {
+        padding: 4px 8px;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        color: var(--text-muted);
+    }
+    .stage.current {
+        background-color: var(--yellow);
+        color: #000;
+        border-color: var(--yellow);
+        font-weight: bold;
+    }
+    .stage-arrow {
+        color: var(--text-muted);
+    }
+    .metric {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border);
+    }
+    .metric:last-child {
+        border-bottom: none;
+    }
+    .metric-label {
+        color: var(--text);
+    }
+    .metric-value {
+        font-weight: bold;
+    }
+    .metric-green {
+        color: var(--green);
+    }
+    .metric-red {
+        color: var(--red);
+    }
+    .metric-grey {
+        color: var(--text-muted);
+        text-decoration: line-through;
+    }
+    .metric-status {
+        font-size: 12px;
+        margin-left: 8px;
+    }
+    .status-invalid {
+        color: var(--red);
+        font-weight: bold;
+    }
+    .status-unverified {
+        color: var(--text-muted);
+    }
+    .tool-entry {
+        padding: 6px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 13px;
+    }
+    .tool-entry:last-child {
+        border-bottom: none;
+    }
+    .tool-time {
+        color: var(--text-muted);
+    }
+    .tool-name {
+        color: var(--blue);
+    }
+    .tool-out {
+        color: var(--green);
+        margin-left: 8px;
+    }
+    .gate-item {
+        padding: 4px 0;
+    }
+    .gate-passed {
+        color: var(--green);
+    }
+    .gate-failed {
+        color: var(--red);
+    }
+    .memory-item {
+        padding: 4px 0;
+        color: var(--text-muted);
+    }
+    .memory-op {
+        color: var(--yellow);
+    }
+</style>
+</head>
+<body>
+    <div class="panel">
+        <div class="panel-title">Pipeline Stage</div>
+        <div class="pipeline" id="pipeline"></div>
+    </div>
+    <div class="panel">
+        <div class="panel-title">Metrics</div>
+        <div id="metrics-list"></div>
+    </div>
+    <div class="panel">
+        <div class="panel-title">Gates</div>
+        <div id="gates-list"></div>
+    </div>
+    <div class="panel">
+        <div class="panel-title">Tool Calls</div>
+        <div id="tools-list"></div>
+    </div>
+    <div class="panel">
+        <div class="panel-title">Memory Logs</div>
+        <div id="memory-list"></div>
+    </div>
+<script>
+        const CACHE_MIB = 64;   // gfx1201 Infinity Cache, MiB
+    function renderDashboard(data) {
+        renderPipeline(data);
+        renderGates(data.gates || []);
+        renderMetrics(data.metrics || [], data.gates || []);
+        renderTools(data.tools || []);
+        renderMemory(data.memory || []);
+    }
+
+    function renderPipeline(data) {
+        const pipelineEl = document.getElementById('pipeline');
+        if (!data.stages || !data.stage) return;
+        let html = '';
+        data.stages.forEach((s, i) => {
+            if (i > 0) html += '<span class="stage-arrow"> → </span>';
+            const isCurrent = s === data.stage;
+            let cls = 'stage';
+            if (isCurrent) cls += ' current';
+            html += `<span class="${cls}">${s}</span>`;
+        });
+        pipelineEl.innerHTML = html;
+    }
+
+    function renderGates(gates) {
+        const gatesEl = document.getElementById('gates-list');
+        if (!gates || gates.length === 0) {
+            gatesEl.innerHTML = '<div class="gate-item">No gates</div>';
+            return;
+        }
+        let html = '';
+        gates.forEach(g => {
+            const statusClass = g.passed ? 'gate-passed' : 'gate-failed';
+            const statusText = g.passed ? 'PASS' : 'FAIL';
+            html += `<div class="gate-item"><span class="${statusClass}">[${statusText}]</span> ${g.name} <span style="color:var(--text-muted)">${g.detail || ''}</span></div>`;
+        });
+        gatesEl.innerHTML = html;
+    }
+
+    function renderMetrics(metrics, gates) {
+        const metricsEl = document.getElementById('metrics-list');
+        if (!metrics || metrics.length === 0) {
+            metricsEl.innerHTML = '<div class="metric">No metrics</div>';
+            return;
+        }
+        // A metric is verified only by a gate that names it -- not by any gate passing.
+        const gateFor = (m) => (gates||[]).find(g => (g.metric && g.metric === m.label)
+                                              || (g.name||'').toLowerCase().includes((m.label||'').toLowerCase()));
+        let html = '';
+        metrics.forEach(m => {
+            let statusHtml = '';
+            let valueHtml = '';
+            
+            const myGate = gateFor(m);
+            if (!myGate || myGate.passed !== true) {
+                valueHtml = `<span class="metric-value metric-grey">${m.value} ${m.unit}</span>`;
+                statusHtml = `<span class="metric-status status-unverified">UNVERIFIED</span>`;
+            } else {
+                const roofline = m.roofline != null ? m.roofline : Infinity;
+                const value = m.value != null ? m.value : 0;
+                if (value > roofline) {
+                    valueHtml = `<span class="metric-value metric-red">${m.value} ${m.unit}</span>`;
+                    statusHtml = ((m.working_set_mib != null && m.working_set_mib < CACHE_MIB)
+                        ? `<span class="metric-status status-invalid">INVALID (CACHE-RESIDENT)</span>`
+                        : `<span class="metric-status status-invalid">INVALID (ABOVE ROOFLINE — cause unknown)</span>`);
+                } else {
+                    const pct = ((value / roofline) * 100).toFixed(1);
+                    valueHtml = `<span class="metric-value metric-green">${m.value} ${m.unit} (${pct}%)</span>`;
+                    statusHtml = `<span class="metric-status" style="color:var(--green)">OK</span>`;
+                }
+            }
+            
+            html += `<div class="metric">
+                <div>
+                    <div class="metric-label">${m.label}</div>
+                    <div style="font-size:12px;color:var(--text-muted)">ws:${m.working_set_mib != null ? m.working_set_mib : 0} MiB | roof:${m.roofline != null ? m.roofline : 'N/A'} ${m.unit}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    ${valueHtml}
+                    ${statusHtml}
+                </div>
+            </div>`;
+        });
+        metricsEl.innerHTML = html;
+    }
+
+    function renderTools(tools) {
+        const toolsEl = document.getElementById('tools-list');
+        if (!tools || tools.length === 0) {
+            toolsEl.innerHTML = '<div class="tool-entry">No tool calls</div>';
+            return;
+        }
+        let html = '';
+        tools.forEach(t => {
+            html += `<div class="tool-entry">
+                <span class="tool-time">[${t.t}]</span>
+                <span class="tool-name">${t.name}</span>
+                <span style="color:var(--text-muted)">(${t.args || ''})</span>
+                <span class="tool-out">→ ${t.out || ''}</span>
+            </div>`;
+        });
+        toolsEl.innerHTML = html;
+    }
+
+    function renderMemory(memory) {
+        const memEl = document.getElementById('memory-list');
+        if (!memory || memory.length === 0) {
+            memEl.innerHTML = '<div class="memory-item">No memory logs</div>';
+            return;
+        }
+        let html = '';
+        memory.forEach(m => {
+            html += `<div class="memory-item"><span class="memory-op">[${m.op}]</span> ${m.text}</div>`;
+        });
+        memEl.innerHTML = html;
+    }
+
+    function fetchState() {
+        fetch('/state')
+            .then(res => {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            })
+            .then(data => {
+                renderDashboard(data);
+            })
+            .catch(e => console.error('Poll error:', e))
+            .finally(() => {
+                setTimeout(fetchState, 1000);
+            });
+    }
+
+    fetchState();
+</script>
+</body>
+</html>

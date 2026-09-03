@@ -1,0 +1,18 @@
+# Captured: the local model writing the fp8 decode kernel from a specification.
+# Model: Qwen-AgentWorld-35B-A3B (Q4_K_XL) served by Lemonade on the R9700.
+# It received the data layout, the arithmetic, the intrinsic and the required
+# signature -- NOT the reference implementation, the inputs, or the golden output.
+
+
+=== attempt 1/3 ===
+  wrote agent_kernel.cuh (1259 chars)
+  rows=4096  non_finite=0  max_rel_err=0.000000e+00
+  golden[0]=-76.948776 agent[0]=-76.948776 | golden[4095]=-229.924103 agent[4095]=-229.924103
+  VERDICT: REPRODUCED  (max_rel_err=0.000000e+00 <= tol=1e-2)
+
+  >>> agent kernel REPRODUCED the reference
+
+# Independent re-verification:
+#   golden regenerated from scratch -> md5 576524f9373f6f903fd85c0333be939f (unchanged)
+#   agent kernel re-graded          -> max_rel_err=0.000000e+00 REPRODUCED
+#   v_dot4_f32_fp8_fp8 in binary    -> 8 emissions (real instruction, not elided)
