@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "work_package_id": "WP-ACT-EXPERT-RIGHT-TRANSPORT-DURATION-015",
+  "date": "2026-07-30",
+  "status": "frozen_ready_for_code_gate",
+  "objective": "Bring exact G3 scripted-expert replays with two right-arm bowl operations under the frozen 1200-frame task horizon without relaxing the horizon or any success or safety rule.",
+  "predecessor": {
+    "work_package_id": "WP-ACT-EXPERT-G3-FEASIBILITY-009",
+    "terminal_status": "COMPLETE_EXPERT_CORRECTION_REQUIRED",
+    "terminal_manifest_sha256": "3585d20af6a4fe0181617cf4cd3ba0ba40aeb4b6236575d2049f1722b448cb48",
+    "observations": {
+      "102": "replay exceeded frame 1200 during bowl3:place",
+      "107": "replay exceeded frame 1200 during bowl3:place",
+      "110": "replay exceeded frame 1200 during bowl3:place",
+      "104": "strict success at 1199 policy frames",
+      "109": "strict success at 1196 policy frames"
+    }
+  },
+  "single_control_variable": {
+    "name": "right_rrt_attached_bowl_transport_duration_s",
+    "baseline": 4.0,
+    "candidate": 2.0,
+    "candidate_source": "existing scene contract transport_duration_s",
+    "rationale": "The runner records and accepts a two-second transport contract but silently hard-codes four seconds only for right-arm attached-bowl RRT execution. Removing the hard-coded override makes right and left transport honor the same frozen contract and saves 60 policy frames per right-arm transport at 30 Hz.",
+    "unchanged": [
+      "task max_policy_steps remains 1200",
+      "probe max_policy_steps remains 2400",
+      "RRT planner, path nodes, smoothing curve, endpoints, and collision checking",
+      "source resets, side assignment, grasp candidates, candidate order, and replay plans",
+      "IK, controller gains, force limits, geometry, safety checks, placement feedback, release, retreat, and stability checks",
+      "capture, export, training, and learned-policy behavior"
+    ]
+  },
+  "panel": {
+    "seeds_in_order": [
+      102,
+      107,
+      110,
+      104,
+      109
+    ],
+    "roles": {
+      "102": "horizon_target_lrr",
+      "107": "horizon_target_rlr",
+      "110": "horizon_target_rlr",
+      "104": "strict_success_control_lrl",
+      "109": "strict_success_control_lrl"
+    },
+    "patterns": {
+      "102": [
+        "left",
+        "right",
+        "right"
+      ],
+      "107": [
+        "right",
+        "left",
+        "right"
+      ],
+      "110": [
+        "right",
+        "left",
+        "right"
+      ],
+      "104": [
+        "left",
+        "right",
+        "left"
+      ],
+      "109": [
+        "left",
+        "right",
+        "left"
+      ]
+    }
+  },
+  "execution": {
+    "backend": "cpu",
+    "cuda_visible_devices": "",
+    "probe_then_conditional_replay": true,
+    "probe_max_policy_steps": 2400,
+    "replay_max_policy_steps": 1200,
+    "transport_duration_s": 2.0,
+    "capture": false,
+    "retry_count": 0,
+    "parallel_seed_count": 1
+  },
+  "acceptance": {
+    "target_seeds_must_be_strict_replay_successes": [
+      102,
+      107,
+      110
+    ],
+    "control_seeds_must_remain_strict_replay_successes": [
+      104,
+      109
+    ],
+    "maximum_safety_failures": 0,
+    "maximum_capture_artifacts": 0,
+    "maximum_policy_frames_per_replay": 1200
+  },
+  "downstream_policy": {
+    "accepted_terminal_action": "Promote only the two-second right attached-bowl transport component, then combine it later with separately accepted components.",
+    "rejected_terminal_action": "Retain the four-second production baseline and attribute exact failing stage spans before testing another timing variable."
+  },
+  "forbidden": [
+    "modify or overwrite remote v131 or any completed candidate",
+    "increase the task horizon or relax safety, success, placement, contact, tracking, or stability thresholds",
+    "change path geometry, planner parameters, endpoints, candidate selection, or another duration",
+    "capture, export, collect, train, retry, or replace a panel seed",
+    "stop or modify another user's process",
+    "submit, create a pull request, contact an external party, or publish"
+  ],
+  "claim_boundary": "Isolated scripted-expert right attached-bowl transport-duration panel only; not ten-seed expert, dataset, ACT, learned-policy, AMD/ROCm, competition-score, hardware, or real-robot evidence."
+}

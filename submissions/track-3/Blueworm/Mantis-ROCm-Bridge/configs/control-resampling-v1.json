@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "protocol_version": "topp_dense_to_mantis_30hz_v1",
+  "source": {
+    "physics_hz": 250.0,
+    "physics_dt_s": 0.004,
+    "trajectory": "combined_dual_arm_16d_dense_command_trace",
+    "requires_explicit_timestamps": true,
+    "missing_dense_trace_policy": "reject_do_not_infer_duration_from_policy_step_index"
+  },
+  "target": {
+    "control_hz": 30.0,
+    "joint_order": [
+      "left_shoulder_pitch_joint",
+      "left_shoulder_roll_joint",
+      "left_shoulder_yaw_joint",
+      "left_elbow_joint",
+      "left_wrist_roll_joint",
+      "left_wrist_pitch_joint",
+      "left_wrist_yaw_joint",
+      "left_gripper_joint",
+      "right_shoulder_pitch_joint",
+      "right_shoulder_roll_joint",
+      "right_shoulder_yaw_joint",
+      "right_elbow_joint",
+      "right_wrist_roll_joint",
+      "right_wrist_pitch_joint",
+      "right_wrist_yaw_joint",
+      "right_gripper_joint"
+    ],
+    "velocity_limits_per_s": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "arm_limit_source": "configs/fixed-base-plan.json joint velocity limits",
+    "virtual_gripper_limit_source": "competition simulation limit; not a hardware velocity claim"
+  },
+  "algorithm": {
+    "semantic_reorder_before_resampling": true,
+    "interpolation": "piecewise_linear_in_position",
+    "retiming": "uniform_time_stretch_by_max_source_segment_velocity_to_target_limit_ratio",
+    "tick_schedule": "k_over_30_from_zero_through_ceil_retimed_duration_times_30",
+    "endpoint": "clamp_source_query_time_and_hold_exact_endpoint_on_final_tick",
+    "output_velocity": "backward_difference_at_30hz",
+    "maximum_endpoint_hold_lag_s_exclusive": 0.03333333333333333
+  },
+  "evidence_boundary": {
+    "preserved": [
+      "semantic joint path",
+      "start and final absolute targets",
+      "left-right synchronization in the combined dense trace",
+      "fixed 30Hz target command clock"
+    ],
+    "changed": [
+      "wall-clock duration may be uniformly stretched to satisfy Mantis limits",
+      "intermediate commands are sampled at 30Hz instead of 250Hz"
+    ],
+    "prohibited_claim": "endpoint-only source records without dense timestamps are not valid inputs to this protocol"
+  }
+}

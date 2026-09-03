@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "work_package_id": "WP-ACT-EXPERT-RIGHT-CONTACT-PERSISTENCE-017",
+  "date": "2026-07-30",
+  "status": "frozen_ready_for_code_gate",
+  "objective": "Replace a single terminal-frame right dual-clamp qualification with a five-frame trailing persistence requirement so probe plans do not freeze marginal contacts that disappear in replay.",
+  "predecessor": {
+    "work_package_id": "WP-ACT-EXPERT-REPLAY-PLACEMENT-AUTHORITY-016",
+    "terminal_status": "COMPLETE_REPLAY_PLACEMENT_AUTHORITY_ACCEPTED",
+    "terminal_manifest_sha256": "c8261432b6b54bf35bd76828cebe0c1ffa3afd9a85ac39879cedcdfdb26690bd",
+    "remaining_failure_source": "WP-009 seed 103 probe accepted top-bowl right candidate 0 from one final hold-frame sample, while replay of the same frozen candidate achieved no dual-clamp contact"
+  },
+  "single_control_variable": {
+    "name": "right_dual_clamp_contact_qualification",
+    "baseline": "both required links present in the final hold-frame sample",
+    "candidate": "both required links present in each of the final five hold frames",
+    "unchanged": [
+      "hold duration, policy frames, close action, gripper target, candidate geometry, candidate order, and frozen candidate index semantics",
+      "replay remains single-candidate with no fallback and no online correction",
+      "two-second right attached-bowl transport and strict replay placement authority from WP-016",
+      "IK, controller, collision, safety, task horizon, placement, release, retreat, and 12-frame strict stability evaluation",
+      "capture, export, training, and learned-policy behavior"
+    ]
+  },
+  "panel": {
+    "seeds_in_order": [
+      103,
+      107,
+      110
+    ],
+    "roles": {
+      "103": "replay_contact_target",
+      "107": "top_right_candidate0_strict_control",
+      "110": "top_right_candidate0_strict_control"
+    },
+    "patterns": {
+      "103": [
+        "right",
+        "left",
+        "right"
+      ],
+      "107": [
+        "right",
+        "left",
+        "right"
+      ],
+      "110": [
+        "right",
+        "left",
+        "right"
+      ]
+    }
+  },
+  "execution": {
+    "backend": "cpu",
+    "cuda_visible_devices": "",
+    "probe_then_conditional_replay": true,
+    "probe_max_policy_steps": 2400,
+    "replay_max_policy_steps": 1200,
+    "transport_duration_s": 2.0,
+    "capture": false,
+    "retry_count": 0,
+    "parallel_seed_count": 1
+  },
+  "acceptance": {
+    "all_panel_seeds_must_be_strict_replay_successes": true,
+    "seed_103_probe_plan_must_record_at_least_five_persistent_contact_frames": true,
+    "controls_must_remain_strict_successes": [
+      107,
+      110
+    ],
+    "maximum_safety_failures": 0,
+    "maximum_capture_artifacts": 0,
+    "maximum_policy_frames_per_replay": 1200
+  },
+  "downstream_policy": {
+    "accepted_terminal_action": "Promote the persistent-contact qualification as a component on top of WP-016, then combine with the accepted left-source route and resolve seed 101.",
+    "rejected_terminal_action": "Retain final-frame contact qualification and inspect contact margin or candidate geometry without enabling replay fallback."
+  },
+  "forbidden": [
+    "modify or overwrite remote v140",
+    "change hold duration, policy frames, grasp geometry, candidate order, task horizon, placement authority, controller, safety, or stability rules",
+    "enable replay fallback, retry, online correction, or suction without persistent dual contact",
+    "capture, export, collect, train, or replace a panel seed",
+    "stop or modify another user's process",
+    "submit, create a pull request, contact an external party, or publish"
+  ],
+  "claim_boundary": "Isolated scripted-expert right dual-contact persistence panel on top of WP-016 only; not ten-seed expert, dataset, ACT, learned-policy, AMD/ROCm, competition-score, hardware, or real-robot evidence."
+}

@@ -1,0 +1,297 @@
+{
+  "schema_version": 1,
+  "work_package_id": "WP-URDF-ACT-COMPILER-MVP-004",
+  "phase": "urdf_to_rocm_compiler_mvp",
+  "status": "complete",
+  "completion_receipt": "receipts/urdf-act-compiler-terminal-20260729-v1",
+  "backup_receipt": "receipts/urdf-act-compiler-backup-219-20260729-v1",
+  "authorization": {
+    "provenance": "user_stated",
+    "scope": "Implement and verify a local URDF-driven compiler prototype for fixed-base single-arm and bimanual 6/7-DoF robots, including an Embodiment IR, Genesis/LeRobot/ACT/ROCm port bundle, fail-closed ACT quality gates, and a hash-verified 219 source backup.",
+    "amd_and_4090_standing_authorization": true,
+    "public_action_authorized": false,
+    "source_backup_to_219_required": true
+  },
+  "objective": "Accept a URDF plus optional explicit semantic and task inputs, infer supported morphology without guessing safety-critical semantics, and emit a deterministic, non-overwriting AMD-ready port bundle whose ACT deployability remains blocked until data, inference, closed-loop, and zero-safety gates pass.",
+  "entry_criteria": [
+    {
+      "path": "receipts/framework-story-terminal-20260729-v3/terminal.json",
+      "required_terminal": "COMPLETE_FRAMEWORK_STORY_SYNCHRONIZED"
+    },
+    {
+      "path": "receipts/framework-story-terminal-20260729-v3/RECEIPT.SHA256SUMS",
+      "required_hash_verification": true,
+      "allowed_post_entry_changes": [
+        "README.md",
+        "configs/mantis-port-config.json",
+        "docs/EXECUTION_PLAN.md",
+        "submission/README.md",
+        "submission/README.zh-CN.md",
+        "submission/TECHNICAL_REPORT.md",
+        "submission/EVIDENCE_MATRIX.md",
+        "submission/PUBLICATION_CHECKLIST.md",
+        "submission/VIDEO_STORYBOARD.md",
+        "docs/REPRODUCIBILITY.md"
+      ]
+    }
+  ],
+  "supported_mvp_boundary": {
+    "base": "fixed",
+    "arm_counts": [
+      1,
+      2
+    ],
+    "actuated_dof_per_arm": [
+      6,
+      7
+    ],
+    "end_effector": "optional parallel gripper with explicit semantics when URDF inference is ambiguous",
+    "simulator_target": "Genesis",
+    "dataset_policy_target": "LeRobot ACT",
+    "accelerator_target": "single AMD Radeon GPU under ROCm",
+    "unsupported_fail_closed": [
+      "mobile_base_control",
+      "floating_base",
+      "whole_body_humanoid_control",
+      "legged_locomotion",
+      "dexterous_hand",
+      "parallel_or_closed_loop_kinematics",
+      "xacro_or_macro_expansion",
+      "unknown actuator or controller semantics"
+    ]
+  },
+  "compiler_contract": {
+    "commands": [
+      "inspect",
+      "compile"
+    ],
+    "urdf_only_output": [
+      "morphology",
+      "kinematic_chains",
+      "joint_types_and_limits",
+      "semantic_candidates",
+      "confidence",
+      "questions",
+      "blockers",
+      "embodiment_ir"
+    ],
+    "never_infer_without_evidence": [
+      "camera intrinsics or extrinsics",
+      "controller mode and frequency",
+      "gripper open-close convention or force",
+      "workspace and emergency-stop behavior",
+      "task reset distribution or success predicate",
+      "asset redistribution rights"
+    ],
+    "compile_inputs": [
+      "URDF",
+      "semantic sidecar when required",
+      "task pack",
+      "output directory that does not already exist"
+    ],
+    "bundle_outputs": [
+      "embodiment-ir.json",
+      "morphology-report.json",
+      "robot-port-profile.json",
+      "genesis-adapter.json",
+      "lerobot-features.json",
+      "act-training.json",
+      "rocm-runtime.json",
+      "quality-gates.json",
+      "bundle-manifest.json"
+    ],
+    "deterministic_json": true,
+    "no_overwrite": true,
+    "source_urdf_absolute_path_persisted": false
+  },
+  "canonical_policy_interface": {
+    "state_per_arm": [
+      "end_effector_position_xyz",
+      "end_effector_quaternion_xyzw",
+      "gripper_normalized_if_present"
+    ],
+    "action_per_arm": [
+      "delta_translation_xyz",
+      "delta_rotation_axis_angle_xyz",
+      "gripper_normalized_if_present"
+    ],
+    "native_joint_state_retained_as_auxiliary": true,
+    "native_joint_action_head_reuse_across_dimension_change": false,
+    "ik_required_for_task_space_execution": true
+  },
+  "act_quality_contract": {
+    "states": [
+      "URDF_ANALYZED",
+      "PORT_COMPILED",
+      "DATASET_ADMITTED",
+      "ACT_TRAINED",
+      "ACT_OPENLOOP_PASS",
+      "ACT_CLOSEDLOOP_PASS",
+      "AMD_DEPLOYABLE"
+    ],
+    "dataset": {
+      "expert_success_fraction": 1.0,
+      "failed_episodes_excluded": true,
+      "unique_seeds_required": true,
+      "coverage_strata_required": true,
+      "normalization_recomputed_per_embodiment": true
+    },
+    "training": {
+      "nonfinite_metrics_allowed": false,
+      "natural_exit_required": true,
+      "checkpoint_and_config_hashes_required": true,
+      "loss_is_task_success": false
+    },
+    "openloop": {
+      "finite_actions_required": true,
+      "correct_order_and_units_required": true,
+      "fixed_limit_projection_required": true,
+      "latency_p50_p95_p99_required": true,
+      "declared_policy_call_budget_required": true
+    },
+    "closedloop": {
+      "g1_trials": 1,
+      "g2_trials": 2,
+      "g3_trials": 10,
+      "g3_minimum_success_fraction": 0.6,
+      "g3_maximum_safety_failures": 0,
+      "competitive_target_success_fraction": 0.8,
+      "g4_trials_after_g3_pass": 30
+    },
+    "existing_mantis_terminal": {
+      "successes": 0,
+      "trials": 10,
+      "status": "ACT_OPENLOOP_PASS_ONLY",
+      "amd_deployable": false
+    }
+  },
+  "real_reference_policy": {
+    "mantis": {
+      "use": "external local morphology reference",
+      "expected_morphology": "bimanual 7+7 DoF under a shared waist",
+      "persist_source_asset": false,
+      "backup_source_asset_to_219": false,
+      "visual_display": "user_controlled"
+    },
+    "second_reference": {
+      "status": "candidate_requires_license_and_scope_admission",
+      "required_for_generic_runtime_claim": true
+    }
+  },
+  "deliverables": [
+    "configs/urdf-act-compiler-mvp-v1.json",
+    "docs/URDF_ACT_COMPILER_MVP_V1.md",
+    "src/mantis_rocm_bridge/urdf_compiler.py",
+    "tools/compile_robot_urdf.py",
+    "configs/robot-semantic-sidecar-template-v1.json",
+    "configs/robot-task-pack-template-v1.json",
+    "tests/fixtures/urdf_compiler/",
+    "tests/test_urdf_compiler.py",
+    "receipts/urdf-act-compiler-terminal-20260729-v1/",
+    "receipts/urdf-act-compiler-backup-219-20260729-v1/"
+  ],
+  "runtime_immutability": {
+    "src/mantis_rocm_bridge/act_closedloop_g3.py": "01341355e9d637609ced18c94b1813174ff6288f7e4bd489afce7d1a049b6a1d",
+    "src/mantis_rocm_bridge/gripper.py": "d674ba91906bdd56a3e554f269680d4ea40fb4c34bfb9894418ad209690cf533",
+    "src/mantis_rocm_bridge/lerobot_adapter.py": "18378d8a0421ae3df5a7966b3a92af4fd8e910d236d7e51f3a764cf627483017",
+    "src/mantis_rocm_bridge/episode_export.py": "f52dd74946466e59446502af7e6707cb795127684e31c101b4fbe5334f03dcc7",
+    "src/mantis_rocm_bridge/stack_bowls.py": "40197ee302567410803cdda6967ddc982006bad02a7fbe33a0588eb40d4bfec8",
+    "src/mantis_rocm_bridge/stack_bowls_env.py": "73a4154913b4eaf31c459f04abb87dbbca6d19e6962c4bbb3c00d89a9f75d3fb",
+    "tools/run_genesis_act_closedloop_g3.py": "71d9b2176f51ffb54588413a44380a572476d141a511189ebac155d4b910cdd7",
+    "tools/run_genesis_stack_bowls_scripted_g1.py": "2290352b9d9c270d72b5ae6af3d3360e45b145a897964a8140e2b6b472a66f43"
+  },
+  "source_backup_219": {
+    "host": "mid8@192.168.0.219",
+    "identity_file": "~/.ssh/fpt26_macmini_ed25519",
+    "destination_root": "/data/mid8/backups/mantis-track3/source/wp-urdf-act-compiler-mvp-004",
+    "version_directory": "20260729-v1",
+    "source_allowlist": [
+      "src/",
+      "tools/",
+      "configs/",
+      "tests/",
+      "docs/",
+      "README.md",
+      "LICENSE",
+      "pyproject.toml",
+      "third_party/",
+      "receipts/urdf-act-compiler-terminal-20260729-v1/"
+    ],
+    "excluded": [
+      "credentials",
+      "virtual environments",
+      "caches",
+      "datasets",
+      "checkpoints",
+      "external robot assets",
+      "existing unrelated receipts"
+    ],
+    "fresh_destination_required": true,
+    "local_manifest_required": true,
+    "remote_independent_sha256_required": true,
+    "no_overwrite": true
+  },
+  "acceptance_matrix": [
+    {
+      "check": "urdf_parser",
+      "expected": "reject malformed, cyclic, disconnected, duplicate, unsupported, and unsafe URDF inputs without writing output"
+    },
+    {
+      "check": "morphology",
+      "expected": "deterministically distinguish supported single 6-DoF, single 7-DoF, and bimanual 7+7-DoF fixtures"
+    },
+    {
+      "check": "confidence_gate",
+      "expected": "unresolved controller, gripper, camera, task, or safety semantics are questions or blockers rather than guesses"
+    },
+    {
+      "check": "bundle",
+      "expected": "compile creates the exact nine-file non-overwriting deterministic bundle and verifies its internal manifest"
+    },
+    {
+      "check": "act_quality",
+      "expected": "bundle records the full ACT state ladder, G3 >=6/10 and zero-safety gate, and existing Mantis 0/10 as not deployable"
+    },
+    {
+      "check": "real_external_reference",
+      "expected": "read-only Mantis inspection identifies two 7-DoF arm chains without persisting or backing up the source asset"
+    },
+    {
+      "check": "runtime_immutability",
+      "expected": "all eight pinned production runtime hashes remain unchanged"
+    },
+    {
+      "check": "focused_tests",
+      "expected": "all compiler tests pass"
+    },
+    {
+      "check": "existing_contracts",
+      "expected": "tools/validate_contracts.py reports valid=true with prior blockers preserved"
+    },
+    {
+      "check": "full_regression",
+      "expected": "all functional tests pass; only the two known predecessor source-pin sentinels may fail"
+    },
+    {
+      "check": "source_backup_219",
+      "expected": "fresh versioned source archive and allowlisted file manifest verify locally and independently on 219"
+    }
+  ],
+  "forbidden_actions": [
+    "modify_existing_mantis_controller_or_safety_behavior",
+    "claim_arbitrary_urdf_guaranteed_training_success",
+    "claim_act_accuracy_from_loss_or_openloop_only",
+    "persist_or_backup_external_mantis_source_asset",
+    "overwrite_local_or_remote_terminal_artifact",
+    "store_credentials",
+    "stop_other_process",
+    "commit_push_submit_pr_or_publish"
+  ],
+  "terminal_statuses": {
+    "complete": "COMPLETE_URDF_ACT_COMPILER_MVP_AND_219_BACKUP_VERIFIED",
+    "blocked": "BLOCKED_URDF_COMPILER_OR_219_BACKUP_GATE",
+    "failed": "FAILED_URDF_COMPILER_EVIDENCE_GATE"
+  },
+  "next_phase": "WP-URDF-RUNTIME-PARITY-005",
+  "claim_boundary": "This MVP may prove deterministic URDF inspection and static port-bundle compilation for supported fixtures and one external Mantis morphology reference. It cannot prove automatic semantic understanding of arbitrary robots, generated Genesis runtime execution, a second real robot port, ACT task accuracy, AMD performance optimization, clean-room reproduction, public asset rights, submission, Pull Request, publication, or competition acceptance."
+}

@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "correction_id": "g3_left_interbowl_clearance_correction_v1",
+  "date": "2026-07-28",
+  "task_id": "stack_bowls_three",
+  "robot_type": "mantis",
+  "porting_mode": "new_robot_new_scene",
+  "work_package_id": "WP-G3-CORR-009",
+  "objective": "Remove the dominant consecutive-left-arm bowl2-to-bowl3 nonselected-bowl collision without changing task semantics, grasping, placement, safety thresholds, source reset distribution, or success criteria.",
+  "entry_evidence": {
+    "predecessor_contract": "configs/targeted-right-first-coverage-v3.json",
+    "predecessor_terminal_receipt": "receipts/4090-targeted-right-first-rll16-terminal-20260728-v3",
+    "predecessor_terminal_status": "COMPLETE_INSUFFICIENT_RIGHT_FIRST_COVERAGE",
+    "predecessor_receipt_manifest_sha256": "d2beee359502b6b47095216b327f48130ca4610375b57d8e433f21b92b954e54",
+    "predecessor_candidate_count": 16,
+    "predecessor_collision_failure_count": 8,
+    "predecessor_collision_stage": "bowl3:front_clearance",
+    "predecessor_collision_object": "bowl2"
+  },
+  "single_intervention": {
+    "name": "consecutive_left_arm_high_clearance_cartesian_transition",
+    "activation_predicate": {
+      "previous_assigned_side": "left",
+      "current_assigned_side": "left",
+      "minimum_current_stack_level": 2
+    },
+    "route": {
+      "clearance_tcp_z_m": 1.02,
+      "cartesian_waypoints_per_segment": 8,
+      "segment_minimum_duration_s": 0.5,
+      "segments": [
+        {
+          "name": "vertical_clearance",
+          "start": "previous_left_retreat_tcp",
+          "end": "same_xy_at_clearance_tcp_z",
+          "orientation": "left_grasp_orientation"
+        },
+        {
+          "name": "reorient_at_clearance",
+          "start": "same_xy_at_clearance_tcp_z",
+          "end": "same_pose",
+          "orientation": "left_transit_orientation"
+        },
+        {
+          "name": "lateral_clearance",
+          "start": "previous_retreat_xy_at_clearance_tcp_z",
+          "end": "next_front_clearance_xy_at_clearance_tcp_z",
+          "orientation": "left_transit_orientation"
+        },
+        {
+          "name": "descend_to_front_clearance",
+          "start": "next_front_clearance_xy_at_clearance_tcp_z",
+          "end": "unchanged_next_front_clearance_pose",
+          "orientation": "left_transit_orientation"
+        }
+      ]
+    },
+    "changed": [
+      "only the consecutive-left-arm transition from the prior placed-bowl retreat pose to the next bowl front-clearance pose",
+      "transition duration increases only as required to execute the four fail-closed high-clearance segments"
+    ],
+    "unchanged": [
+      "source reset sampler, source reset distribution, ascending-y bowl ordering, and x-sign arm assignment",
+      "Mantis URDF, bowl assets, table, cameras, Genesis backend, physics parameters, and material properties",
+      "left and right grasp candidates, contact requirements, suction weld semantics, transport, placement, release, and final retreat logic",
+      "250 Hz physics clock, 30 Hz policy clock, action mapping, joint mapping, and gripper mapping",
+      "IK tolerances, collision rules, task stages, strict success thresholds, and stability requirements",
+      "probe and exact-plan replay semantics",
+      "evaluation seeds, datasets, ACT architecture, optimizer, and training hyperparameters"
+    ]
+  },
+  "diagnostic_panel": {
+    "backend": "cpu",
+    "cuda_visible_devices": "",
+    "serial": true,
+    "capture": false,
+    "retry_count": 0,
+    "successful_regression_control_seed": 1039,
+    "historical_collision_diagnostic_seeds": [1074, 1086, 1208],
+    "historical_seed_use": "diagnostic_only_not_training_data",
+    "fresh_run_ids_required": true,
+    "fresh_ops_root_required": true
+  },
+  "acceptance": {
+    "static": {
+      "pure_route_helper_tests_pass": true,
+      "activation_is_consecutive_left_only": true,
+      "route_end_matches_unchanged_front_clearance": true,
+      "all_thresholds_unchanged": true,
+      "full_local_regression_pass": true,
+      "full_remote_regression_pass": true
+    },
+    "dynamic": {
+      "control_seed_1039_probe_completes": true,
+      "control_seed_1039_zero_safety_failures": true,
+      "each_collision_diagnostic_writes_transition_receipt": true,
+      "each_collision_diagnostic_advances_beyond_bowl3_front_clearance": true,
+      "each_collision_diagnostic_has_zero_robot_nonselected_bowl_contact_during_corrected_transition": true,
+      "no_capture_launched": true
+    }
+  },
+  "terminal_states": [
+    "COMPLETE_TRANSITION_CORRECTION_ACCEPTED",
+    "COMPLETE_TRANSITION_CORRECTION_REJECTED",
+    "FAILED_EVIDENCE_GATE"
+  ],
+  "downstream_policy": {
+    "accepted_terminal_next_work_package": "WP-G3-CORR-010 bowl2 release-contact-mode correction",
+    "rejected_terminal_action": "preserve negative evidence and freeze a new single-variable route hypothesis",
+    "formal_collection_authorized": false,
+    "dataset_materialization_authorized": false,
+    "training_authorized": false
+  },
+  "claim_boundary": "This correction can establish only that one versioned scripted high-clearance transition removes the observed consecutive-left-arm front-clearance collision on a fixed diagnostic panel. It cannot establish training-data sufficiency, learned-policy improvement, G3 passage, generalization, AMD/ROCm execution, hardware validity, or real-robot safety."
+}

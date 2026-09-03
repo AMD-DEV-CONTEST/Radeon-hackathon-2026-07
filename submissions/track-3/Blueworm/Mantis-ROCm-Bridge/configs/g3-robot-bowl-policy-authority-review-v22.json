@@ -1,0 +1,298 @@
+{
+  "schema_version": 1,
+  "status": "COMPLETE_POLICY_AUTHORITY_CANDIDATES_FROZEN_USER_DECISION_REQUIRED",
+  "work_package_id": "WP-G3-CORR-018",
+  "phase": "robot_bowl_policy_authority_candidate_review",
+  "objective": "Review exactly the 42 WP-G3-CORR-017 unresolved robot-bowl contexts, freeze a minimal user-decision candidate set, enumerate risks and counterexamples, and define a shared-adapter implementation gate without selecting or changing a runtime safety policy.",
+  "authorization": "configs/g3-robot-bowl-policy-authority-review-authorization-v23.json",
+  "entry_evidence": {
+    "predecessor_work_package_id": "WP-G3-CORR-017",
+    "predecessor_terminal": "COMPLETE_SHARED_COLLISION_SEMANTICS_DESIGN_FROZEN",
+    "predecessor_receipt": "receipts/g3-robot-bowl-collision-semantics-terminal-20260729-v20/",
+    "predecessor_receipt_manifest_sha256": "abe1dd5d2f0f0dfa1cbc1b26ad858df7d5935b3fc48cc6b9015d651985ff5f93",
+    "predecessor_terminal_sha256": "7cbe757c54c5f70791f72941d95ee1c474ed493aaea837389dd24a14b220e0a6",
+    "predecessor_matrix_summary_sha256": "7624d587c84a4c7f592c290fbfdc90653913f3e59f288228d4c97c53d540a8e8",
+    "wp016_analysis": "receipts/g3-seed1630-release-safety-design-review-terminal-20260729-v18/analysis.json",
+    "wp016_analysis_sha256": "b08a172f7248aee8e829288ea1d17fe89dac07e9f07038f8919624bd2cc80b65",
+    "wp015_boundary_trace": "receipts/g3-seed1630-release-retreat-boundary-terminal-20260729-v16/run/release_retreat_boundary_trace.json",
+    "wp015_boundary_trace_sha256": "bac0ae689e62f8a9c7d9e892ae8a2338692c8c2e27dbee0d9b9e51a4e22d259d"
+  },
+  "authoritative_inputs": [
+    {
+      "path": "configs/g3-robot-bowl-collision-semantics-v20.json",
+      "sha256": "123c52d2edfa783338eb450fcbe208c0076e4dc7f141455b470e7dab54b0a14d",
+      "role": "shared vocabulary, current-semantics projections, and 42-cell authority gap"
+    },
+    {
+      "path": "src/mantis_rocm_bridge/robot_bowl_collision_semantics.py",
+      "sha256": "6979d0882b399627e6a7f836985ce8f450bea0e7b54a0cf8dd4b02b53d990c89",
+      "role": "deterministic 96-context matrix generator"
+    },
+    {
+      "path": "configs/task-pack-v1.json",
+      "sha256": "ece41b0030ccb7bc5ce799b24d4aa68e8649ab7cc4442bfb6c3024d87dc78a09",
+      "role": "zero-safety-failure promotion requirement and evaluator-state boundary"
+    },
+    {
+      "path": "tools/run_genesis_stack_bowls_scripted_g1.py",
+      "sha256": "2290352b9d9c270d72b5ae6af3d3360e45b145a897964a8140e2b6b472a66f43",
+      "role": "scripted stage, selected-bowl, active-side, and safety inputs"
+    },
+    {
+      "path": "src/mantis_rocm_bridge/act_closedloop_g3.py",
+      "sha256": "01341355e9d637609ced18c94b1813174ff6288f7e4bd489afce7d1a049b6a1d",
+      "role": "ACT G3 pair-label-only safety interface and adapter capability boundary"
+    }
+  ],
+  "review_scope": {
+    "normalized_context_count": 96,
+    "agreed_context_count": 54,
+    "unresolved_context_count": 42,
+    "agreed_contexts_out_of_scope_for_policy_revision": true,
+    "unresolved_equivalence_classes": [
+      {
+        "id": "U018-SELECTED-NONCLAMP",
+        "count": 12,
+        "pattern": "selected bowl, nonclamp robot geometry, every stage and collider class",
+        "scripted_expert": "allow",
+        "act_g3": "forbid"
+      },
+      {
+        "id": "U018-NONSEL-PLACE-RELEASE-INACTIVE-UNKNOWN",
+        "count": 12,
+        "pattern": "nonselected bowl, clamp, place or release, inactive or unknown side, every collider class",
+        "scripted_expert": "forbid",
+        "act_g3": "allow"
+      },
+      {
+        "id": "U018-NONSEL-RETREAT-ACTIVE",
+        "count": 3,
+        "pattern": "nonselected bowl, active clamp, retreat, every collider class",
+        "scripted_expert": "forbid",
+        "act_g3": "allow"
+      },
+      {
+        "id": "U018-NONSEL-RETREAT-INACTIVE-UNKNOWN",
+        "count": 6,
+        "pattern": "nonselected bowl, clamp, retreat, inactive or unknown side, every collider class",
+        "scripted_expert": "forbid",
+        "act_g3": "allow"
+      },
+      {
+        "id": "U018-NONSEL-OTHER-ALL-CLAMPS",
+        "count": 9,
+        "pattern": "nonselected bowl, clamp, other stage, active, inactive, or unknown side, every collider class",
+        "scripted_expert": "forbid",
+        "act_g3": "allow"
+      }
+    ]
+  },
+  "candidate_set": [
+    {
+      "candidate_id": "C018-A-STRICT-CONSENSUS",
+      "name": "strict_consensus_fail_closed",
+      "unresolved_cell_dispositions": {
+        "allow": 0,
+        "forbid": 42,
+        "conditional": 0
+      },
+      "rule": "Preserve all 54 agreed cells and classify every WP-017 unresolved cell as forbidden.",
+      "benefit": "Adds no new allowed collision context and is maximally fail-closed.",
+      "risk": "Preserves the seed-1630 release-to-retreat stage-boundary rejection even when the exact pair is already cached before retreat.",
+      "adapter_requirement": "Requires stage, selected-bowl, and active-side context; current ACT G3 does not provide these fields.",
+      "selected": false
+    },
+    {
+      "candidate_id": "C018-B-CLAMP-ONLY",
+      "name": "act_equivalent_clamp_only",
+      "unresolved_cell_dispositions": {
+        "allow": 30,
+        "forbid": 12,
+        "conditional": 0
+      },
+      "rule": "Forbid every nonclamp robot-bowl pair and allow every clamp robot-bowl pair regardless of stage, selectedness, side, or collider class.",
+      "benefit": "Can be classified from pair labels alone and matches the current ACT G3 rule.",
+      "risk": "Broadly allows 30 previously disputed nonselected-bowl clamp contexts, including inactive, unknown-side, retreat, and other-stage contacts.",
+      "adapter_requirement": "Only robot-geometry classification is required; both executors can obtain it from pair labels.",
+      "selected": false
+    },
+    {
+      "candidate_id": "C018-C-RELEASE-CONTINUITY",
+      "name": "minimum_evidence_gated_release_continuity",
+      "unresolved_cell_dispositions": {
+        "allow": 0,
+        "forbid": 39,
+        "conditional": 3
+      },
+      "rule": "Forbid 39 unresolved cells. For the three nonselected active-clamp retreat cells, allow only when the exact pair is proven present in the immediately preceding completed release cache; otherwise forbid.",
+      "benefit": "Targets the smallest observed stage-boundary ambiguity without granting inactive-side, unknown-side, other-stage, or selected-nonclamp exceptions.",
+      "risk": "Adds a new continuity-state input supported by only one seed; exact cache provenance and stage transition must be standardized before implementation.",
+      "adapter_requirement": "Requires stage, selected-bowl, active-side, exact pair identity, and previous-release cache state; neither runtime currently exposes one shared production adapter for all fields.",
+      "selected": false,
+      "recommended_for_next_user_decision": true,
+      "recommendation_boundary": "Recommended only as the least unsupported design direction, not as an authorized runtime policy."
+    }
+  ],
+  "rejected_shortcuts": [
+    {
+      "shortcut": "allow only competition_rim_support_collision during retreat",
+      "reason": "Collider-name-specific authority would couple policy to one geometry label and overfit one observed pair without an authorized geometry or safety review."
+    },
+    {
+      "shortcut": "allow for a numeric retreat grace window",
+      "reason": "No duration or penetration threshold is authorized or supported by the existing one-seed evidence."
+    },
+    {
+      "shortcut": "infer ACT task stage from policy step or bowl pose",
+      "reason": "The task pack does not define such an inference and it would introduce a new privileged state estimator."
+    }
+  ],
+  "risk_counterexample_matrix": [
+    {
+      "case": "seed1630_nonselected_active_clamp_retreat_rim_support",
+      "evidence": "exact pair present in release cache and persists into retreat",
+      "C018-A-STRICT-CONSENSUS": "forbid",
+      "C018-B-CLAMP-ONLY": "allow",
+      "C018-C-RELEASE-CONTINUITY": "conditional_allow_if_exact_release_cache_continuity_verifies"
+    },
+    {
+      "case": "new_nonselected_active_clamp_contact_first_appearing_in_retreat",
+      "evidence": "not observed in WP-015",
+      "C018-A-STRICT-CONSENSUS": "forbid",
+      "C018-B-CLAMP-ONLY": "allow",
+      "C018-C-RELEASE-CONTINUITY": "forbid"
+    },
+    {
+      "case": "nonselected_inactive_or_unknown_clamp_during_place_release",
+      "evidence": "no task authority for expected contact",
+      "C018-A-STRICT-CONSENSUS": "forbid",
+      "C018-B-CLAMP-ONLY": "allow",
+      "C018-C-RELEASE-CONTINUITY": "forbid"
+    },
+    {
+      "case": "selected_bowl_nonclamp_contact",
+      "evidence": "scripted skip masks geometry while ACT forbids",
+      "C018-A-STRICT-CONSENSUS": "forbid",
+      "C018-B-CLAMP-ONLY": "forbid",
+      "C018-C-RELEASE-CONTINUITY": "forbid"
+    },
+    {
+      "case": "nonselected_clamp_contact_in_other_stage",
+      "evidence": "stage meaning and expected contact role unspecified",
+      "C018-A-STRICT-CONSENSUS": "forbid",
+      "C018-B-CLAMP-ONLY": "allow",
+      "C018-C-RELEASE-CONTINUITY": "forbid"
+    }
+  ],
+  "shared_adapter_implementation_gate": {
+    "gate_status_at_freeze": "BLOCKED_PENDING_USER_POLICY_DECISION_AND_CONTEXT_AUTHORITY",
+    "common_requirements": [
+      "one explicit versioned policy identifier selected by the user",
+      "one shared raw-pair parser with deterministic pair-order normalization",
+      "one shared nonempty batch aggregator",
+      "identical normalized context and decision evidence from scripted and ACT adapters",
+      "fail-closed handling of malformed labels and unavailable required context",
+      "no executor-local exception after integration",
+      "static 96-cell parity and adapter round-trip tests before any runtime execution"
+    ],
+    "scripted_adapter_available_inputs": [
+      "stage",
+      "selected_bowl",
+      "active_side",
+      "pair_labels",
+      "current_contact_cache"
+    ],
+    "act_adapter_available_inputs": [
+      "policy_step",
+      "pair_labels",
+      "bowl_entity_identity"
+    ],
+    "act_adapter_missing_for_stage_aware_candidates": [
+      "authoritative task stage",
+      "selected bowl",
+      "active side"
+    ],
+    "additional_missing_for_continuity_candidate": [
+      "versioned exact-pair cache identity across release-to-retreat transition",
+      "authoritative release-transition event in the ACT runtime"
+    ],
+    "candidate_static_feasibility": {
+      "C018-A-STRICT-CONSENSUS": "blocked_missing_act_context",
+      "C018-B-CLAMP-ONLY": "statically_feasible_but_policy_risk_unaccepted",
+      "C018-C-RELEASE-CONTINUITY": "blocked_missing_shared_stage_role_and_cache_context"
+    },
+    "runtime_implementation_authorized": false
+  },
+  "dependency_graph": {
+    "upstream": [
+      "WP-G3-CORR-015 release-retreat cached contact observation",
+      "WP-G3-CORR-016 classifier divergence review",
+      "WP-G3-CORR-017 shared authority-neutral semantics"
+    ],
+    "current": [
+      "42-cell equivalence-class audit",
+      "three-candidate authority matrix",
+      "risk and counterexample matrix",
+      "shared-adapter capability and implementation gate",
+      "user-decision handoff"
+    ],
+    "downstream_blocked": [
+      "runtime policy selection",
+      "scripted or ACT adapter implementation",
+      "runtime safety-rule modification",
+      "simulator or remote validation",
+      "collection, export, training, inference, or publication"
+    ]
+  },
+  "deliverable_manifest": [
+    "configs/g3-robot-bowl-policy-authority-review-v22.json",
+    "configs/g3-robot-bowl-policy-authority-review-authorization-v23.json",
+    "src/mantis_rocm_bridge/robot_bowl_policy_authority_review.py",
+    "tests/test_g3_robot_bowl_policy_authority_review_v22.py",
+    "docs/G3_ROBOT_BOWL_POLICY_AUTHORITY_REVIEW_V1.md",
+    ".ops/wip/g3-robot-bowl-policy-authority-review-20260729/WP-G3-CORR-018.md",
+    ".ops/wip/g3-robot-bowl-policy-authority-review-20260729/ISSUES.md",
+    "receipts/g3-robot-bowl-policy-authority-review-terminal-20260729-v22/"
+  ],
+  "acceptance_matrix": [
+    {
+      "check": "input_identity",
+      "expected": "Every authoritative and predecessor hash matches."
+    },
+    {
+      "check": "scope_exactness",
+      "expected": "Exactly 42 WP-017 unresolved contexts are reviewed and the 54 agreed contexts are not revised."
+    },
+    {
+      "check": "candidate_counts",
+      "expected": "Candidate A is 42 forbid; B is 30 allow and 12 forbid; C is 39 forbid and 3 conditional."
+    },
+    {
+      "check": "risk_counterexamples",
+      "expected": "Seed-1630 continuity, new-retreat contact, inactive/unknown place-release, selected nonclamp, and other-stage cases are explicit."
+    },
+    {
+      "check": "adapter_gate",
+      "expected": "ACT context deficits and per-candidate static feasibility are fail-closed and reproducible."
+    },
+    {
+      "check": "no_policy_selection_or_runtime_change",
+      "expected": "No candidate is marked selected; neither runtime executor nor any controller, safety, threshold, geometry, timing, asset, data, or training source changes."
+    },
+    {
+      "check": "tests",
+      "expected": "Focused tests pass; all functional regressions pass; only the two immutable predecessor source-pin sentinels fail as expected."
+    },
+    {
+      "check": "receipt",
+      "expected": "A fresh no-overwrite terminal receipt and SHA-256 manifest verify."
+    }
+  ],
+  "terminal_conditions": [
+    "COMPLETE_POLICY_AUTHORITY_CANDIDATES_FROZEN_USER_DECISION_REQUIRED",
+    "COMPLETE_NO_ADMISSIBLE_POLICY_CANDIDATE",
+    "FAILED_EVIDENCE_GATE"
+  ],
+  "accepted_at_utc": "2026-07-29T05:14:10Z",
+  "claim_boundary": "This local review may classify the 42 existing semantic divergences into equivalence classes, define user-decision candidates, rank risks, and freeze a future adapter implementation gate. It cannot select the authoritative runtime policy, modify either executor, validate safety behavior dynamically, infer an ACT task stage, establish a numeric grace rule, prove the release-tail physical mechanism, establish G3 passage, authorize collection or training, establish AMD/ROCm behavior, validate hardware safety, or authorize publication."
+}

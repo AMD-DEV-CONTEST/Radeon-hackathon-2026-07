@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "diagnostic_id": "g3_left_interbowl_clearance_ik_matrix_v2",
+  "date": "2026-07-28",
+  "task_id": "stack_bowls_three",
+  "robot_type": "mantis",
+  "porting_mode": "new_robot_new_scene",
+  "work_package_id": "WP-G3-CORR-009-R2",
+  "objective": "Select one reachable orientation schedule for the unchanged consecutive-left high-clearance position route before any new dynamic transition panel.",
+  "entry_evidence": {
+    "predecessor_contract": "configs/g3-left-interbowl-clearance-correction-v1.json",
+    "predecessor_terminal_receipt": "receipts/g3-left-interbowl-clearance-terminal-20260728-v1",
+    "predecessor_terminal_status": "COMPLETE_TRANSITION_CORRECTION_REJECTED",
+    "predecessor_receipt_manifest_sha256": "50e3a4b668b8c9f4d2e1da34461b754f5e9571c678d29b675bf29c881f10e68f",
+    "predecessor_failure_stage": "bowl3:inter_bowl_reorient_at_clearance_01_of_01",
+    "predecessor_failure_count": 4,
+    "predecessor_mean_position_error_m": 0.01359555514593329,
+    "predecessor_mean_rotation_error_rad": 0.05386344657431118
+  },
+  "single_variable_family": {
+    "name": "consecutive_left_orientation_schedule",
+    "changed": [
+      "the waypoint stage over which the left TCP orientation changes from the unchanged 90-degree grasp orientation to the unchanged 60-degree transit orientation"
+    ],
+    "unchanged": [
+      "vertical, lateral, and descent Cartesian position waypoints",
+      "clearance TCP z of 1.02 m",
+      "eight position waypoints per translational segment",
+      "start grasp orientation and final transit orientation",
+      "IK solver, initializations, sample count, iteration count, position tolerance, rotation tolerance, and joint limits",
+      "source reset distribution, bowl order, arm assignment, grasp, transport, placement, release, safety, collision, success, and stability semantics",
+      "physics and policy clocks, action mapping, gripper mapping, cameras, assets, datasets, models, evaluation seeds, and training configuration"
+    ]
+  },
+  "matrix": {
+    "seed": 1039,
+    "backend": "cpu",
+    "cuda_visible_devices": "",
+    "capture": false,
+    "retry_count": 0,
+    "matrix_only_after_level_1": true,
+    "candidate_solve_advances_physics": false,
+    "candidates_in_order": [
+      {
+        "candidate_id": "fixed_position_reorient_v1_negative_control",
+        "orientation_schedule": "vertical grasp; one fixed-position jump to transit at prior high XY; lateral transit; descent transit",
+        "expected_role": "must reproduce the predecessor failure signature"
+      },
+      {
+        "candidate_id": "coupled_lateral_slerp",
+        "orientation_schedule": "vertical grasp; SLERP grasp-to-transit across the eight high-clearance lateral waypoints; descent transit",
+        "expected_role": "primary coupled position-orientation hypothesis"
+      },
+      {
+        "candidate_id": "coupled_descent_slerp",
+        "orientation_schedule": "vertical grasp; lateral grasp; SLERP grasp-to-transit across the eight descent waypoints",
+        "expected_role": "source-side reachability alternative"
+      },
+      {
+        "candidate_id": "coupled_lateral_descent_slerp",
+        "orientation_schedule": "vertical grasp; SLERP alpha 0-to-0.5 across lateral and 0.5-to-1.0 across descent",
+        "expected_role": "lowest per-waypoint orientation increment alternative"
+      }
+    ],
+    "selection_rule": "Among candidates that pass every waypoint under unchanged IK tolerances, select the candidate with the greatest minimum normalized IK slack; break an exact tie by the frozen candidate order.",
+    "normalized_waypoint_slack": "min(1-position_error/position_tolerance, 1-rotation_error/rotation_tolerance)"
+  },
+  "acceptance": {
+    "negative_control": {
+      "must_fail": true,
+      "failure_stage": "reorient_at_clearance",
+      "position_error_m_interval": [
+        0.012,
+        0.015
+      ],
+      "rotation_error_rad_interval": [
+        0.05,
+        0.06
+      ]
+    },
+    "candidate_gate": {
+      "minimum_fully_reachable_candidates": 1,
+      "every_waypoint_within_unchanged_tolerances": true,
+      "exact_start_and_final_pose_semantics": true,
+      "policy_step_delta_during_candidate_matrix": 0,
+      "robot_qpos_max_delta_during_candidate_matrix": 1e-12,
+      "bowl_position_max_delta_during_candidate_matrix_m": 1e-12,
+      "capture_artifact_count": 0,
+      "infrastructure_failure_count": 0
+    }
+  },
+  "remote_plan": {
+    "source_project": "/data01/suzw_data/tron/amd_track3/mantis_rocm_bridge_v122",
+    "matrix_project": "/data01/suzw_data/tron/amd_track3/mantis_rocm_bridge_v123",
+    "package_root": "/data01/suzw_data/tron/amd_track3/transfers/mantis_g3_left_interbowl_ik_matrix_20260728_v2",
+    "batch_root": "/data01/suzw_data/tron/amd_track3/ops/mantis-g3-left-interbowl-ik-matrix-20260728-v2",
+    "supervisor_root": "/data01/suzw_data/tron/amd_track3/ops/mantis-g3-left-interbowl-ik-matrix-supervisor-20260728-v2",
+    "screen_name": "mantis_g3_left_ik_matrix_v2"
+  },
+  "terminal_states": [
+    "COMPLETE_IK_MATRIX_ACCEPTED",
+    "COMPLETE_IK_MATRIX_REJECTED",
+    "FAILED_EVIDENCE_GATE"
+  ],
+  "downstream_policy": {
+    "accepted_terminal_action": "Freeze the selected orientation schedule in a new dynamic-transition work package and a project newer than v123.",
+    "rejected_terminal_action": "Preserve negative evidence and redesign one position-route variable; do not run another dynamic panel.",
+    "wp_g3_corr_010_authorized": false,
+    "formal_collection_authorized": false,
+    "dataset_materialization_authorized": false,
+    "training_authorized": false
+  },
+  "claim_boundary": "This matrix can establish only kinematic reachability of a predeclared orientation schedule after one scripted CPU setup trajectory. It cannot prove collision avoidance, dynamic tracking, task success, training-data quality, learned-policy improvement, G3 passage, AMD/ROCm execution, hardware validity, or real-robot safety."
+}

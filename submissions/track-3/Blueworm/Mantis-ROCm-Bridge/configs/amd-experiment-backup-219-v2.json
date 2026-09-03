@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "backup_id": "mantis_amd_experiment_backup_219_persistence_v2",
+  "status": "frozen_not_execution_ready",
+  "supersedes_for_future_instances": "configs/amd-experiment-backup-219-v1.json",
+  "persistence_layout_contract": "configs/amd-persistence-layout-v1.json",
+  "execution": {
+    "authorized": false,
+    "fresh_instance_id_required": true,
+    "source_roots_must_be_verified_before_bundle": true
+  },
+  "source": {
+    "instance_id": "RECORD_FRESH_INSTANCE_ID_BEFORE_EXECUTION",
+    "persistent_root": "/workspace/persistence",
+    "project_root": "/workspace/persistence/mantis-track3",
+    "transport": "two_hop_amd_to_local_to_219",
+    "reason": "The official Radeon Cloud worker does not have a verified route to the private 219 host."
+  },
+  "destination": {
+    "ssh_target": "mid8@192.168.0.219",
+    "ssh_identity_file": "~/.ssh/fpt26_macmini_ed25519",
+    "root_template": "/data/mid8/backups/mantis-track3/amd/FRESH_INSTANCE_ID",
+    "minimum_free_bytes_before_receive": 53687091200
+  },
+  "bundle": {
+    "archive_format": "tar",
+    "one_archive_per_source_root": true,
+    "exclusive_output": true,
+    "atomic_destination_publish": true,
+    "source_file_sha256_required": true,
+    "archive_sha256_required": true,
+    "destination_independent_verification_required": true,
+    "forbid_symlinks": true,
+    "forbid_special_files": true
+  },
+  "source_roots": [
+    {
+      "artifact_id": "dataset_multiseed4",
+      "path": "/workspace/persistence/mantis-track3/datasets/mantis_stack_bowls_multiseed4_gripper_v2_20260726_v1",
+      "required": true,
+      "class": "dataset"
+    },
+    {
+      "artifact_id": "act_training_output",
+      "path": "/workspace/persistence/mantis-track3/training/mantis_act_rocm",
+      "required": true,
+      "class": "checkpoint_and_training_output"
+    },
+    {
+      "artifact_id": "training_evidence",
+      "path": "/workspace/persistence/mantis-track3/evidence/training",
+      "required": true,
+      "class": "training_evidence"
+    },
+    {
+      "artifact_id": "inference_evidence",
+      "path": "/workspace/persistence/mantis-track3/evidence/inference",
+      "required": true,
+      "class": "inference_evidence"
+    },
+    {
+      "artifact_id": "evaluation_evidence",
+      "path": "/workspace/persistence/mantis-track3/evidence/evaluation",
+      "required": true,
+      "class": "closed_loop_evidence"
+    },
+    {
+      "artifact_id": "supervisor_evidence",
+      "path": "/workspace/persistence/mantis-track3/evidence/supervisors",
+      "required": true,
+      "class": "supervisor_evidence"
+    },
+    {
+      "artifact_id": "compact_ops",
+      "path": "/workspace/persistence/mantis-track3/evidence/ops",
+      "required": false,
+      "class": "compact_evidence_packages"
+    }
+  ],
+  "excluded_roots": [
+    "/workspace/persistence/mantis-track3/envs",
+    "/workspace/persistence/mantis-track3/cache"
+  ],
+  "exclusion_reason": "Virtual environments and caches are reconstructed from fresh runtime receipts and are not experiment evidence.",
+  "claim_boundary": "This frozen v2 template defines future persistence-root backup coverage only. It is not executable until a fresh instance identity, source roots, authorization, and destination path are versioned. It proves no retained files and no AMD experiment result."
+}

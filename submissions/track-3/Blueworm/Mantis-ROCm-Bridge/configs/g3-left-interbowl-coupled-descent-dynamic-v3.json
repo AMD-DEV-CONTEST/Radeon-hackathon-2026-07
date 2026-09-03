@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "work_package_id": "WP-G3-CORR-009-R3",
+  "objective": "Validate dynamic execution of the matrix-selected coupled-descent orientation schedule on the unchanged consecutive-left Cartesian position route.",
+  "predecessor": {
+    "work_package_id": "WP-G3-CORR-009-R2",
+    "terminal_status": "COMPLETE_IK_MATRIX_ACCEPTED",
+    "matrix_receipt_sha256": "1089211ad922dd1d79c64581f387d4a06c649bce500dbfd2ea78a5276225affe",
+    "selected_candidate_id": "coupled_descent_slerp",
+    "selected_minimum_normalized_ik_slack": 0.8389236169177512
+  },
+  "single_intervention": {
+    "field": "consecutive_left_orientation_schedule",
+    "baseline": "fixed_position_reorient_v1",
+    "candidate": "coupled_descent_slerp",
+    "vertical_clearance_orientation": "unchanged_grasp_orientation",
+    "lateral_clearance_orientation": "unchanged_grasp_orientation",
+    "descent_orientation": "normalized_sign_invariant_wxyz_slerp_from_grasp_to_transit",
+    "descent_endpoint_orientation": "unchanged_transit_orientation"
+  },
+  "frozen_invariants": {
+    "position_route": "configs/stack-bowls-genesis-v1.json#contact_probe.consecutive_left_inter_bowl_transition",
+    "clearance_tcp_z_m": 1.02,
+    "cartesian_waypoints_per_segment": 8,
+    "segment_minimum_duration_s": 0.35,
+    "physics_hz": 250.0,
+    "policy_hz": 30.0,
+    "solver_and_ik_thresholds_unchanged": true,
+    "controller_gains_and_force_limits_unchanged": true,
+    "joint_and_gripper_mapping_unchanged": true,
+    "collision_and_safety_rules_unchanged": true,
+    "camera_and_scene_assets_unchanged": true,
+    "task_and_reset_semantics_unchanged": true,
+    "capture": false,
+    "retry_count": 0
+  },
+  "diagnostic_panel": {
+    "seeds_in_order": [1039, 1074, 1086, 1208],
+    "successful_regression_control_seed": 1039,
+    "historical_collision_diagnostic_seeds": [1074, 1086, 1208],
+    "backend": "cpu",
+    "cuda_visible_devices": "",
+    "serial": true,
+    "capture": false,
+    "retry_count": 0
+  },
+  "acceptance": {
+    "exact_seed_order_required": true,
+    "infrastructure_failure_count": 0,
+    "capture_artifact_count": 0,
+    "transition_receipt_valid_count": 4,
+    "corrected_transition_collision_count": 0,
+    "control_seed_requires_completed_episode": true,
+    "each_receipt_requires": {
+      "orientation_schedule_id": "coupled_descent_slerp",
+      "executed_transition_stages": [
+        "vertical_clearance",
+        "lateral_clearance",
+        "descend_to_front_clearance"
+      ],
+      "previous_assigned_side": "left",
+      "current_assigned_side": "left",
+      "stack_level": 2,
+      "completed_through": "bowl3:inter_bowl_descend_to_front_clearance",
+      "safety_failure_count_after_transition": 0,
+      "training_data_claim": false
+    },
+    "accepted_terminal": "COMPLETE_COUPLED_DESCENT_DYNAMIC_ACCEPTED",
+    "rejected_terminal": "COMPLETE_COUPLED_DESCENT_DYNAMIC_REJECTED",
+    "evidence_failure_terminal": "FAILED_EVIDENCE_GATE"
+  },
+  "remote_plan": {
+    "source_project": "/data01/suzw_data/tron/amd_track3/mantis_rocm_bridge_v123",
+    "dynamic_project": "/data01/suzw_data/tron/amd_track3/mantis_rocm_bridge_v124",
+    "package_root": "/data01/suzw_data/tron/amd_track3/transfers/mantis_g3_left_interbowl_coupled_descent_dynamic_20260728_v3",
+    "batch_root": "/data01/suzw_data/tron/amd_track3/ops/mantis-g3-left-interbowl-coupled-descent-dynamic-20260728-v3",
+    "supervisor_root": "/data01/suzw_data/tron/amd_track3/ops/mantis-g3-left-interbowl-coupled-descent-dynamic-supervisor-20260728-v3",
+    "screen_name": "mantis_g3_left_dynamic_v3"
+  },
+  "promotion": {
+    "on_accept": "Authorize WP-G3-CORR-010 planning only; do not automatically collect, export a dataset, or train.",
+    "on_reject": "Preserve immutable negative evidence and freeze one new single-variable dynamic correction.",
+    "dataset_export_authorized": false,
+    "training_authorized": false
+  },
+  "claim_boundary": "A four-seed CPU scripted dynamic-transition panel can establish bounded tracking and collision behavior for the selected schedule. It cannot establish training-data validity, learned-policy quality, G3 passage, generalization, AMD/ROCm execution, hardware validity, or real-robot safety."
+}

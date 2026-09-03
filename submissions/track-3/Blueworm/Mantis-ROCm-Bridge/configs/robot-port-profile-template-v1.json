@@ -1,0 +1,219 @@
+{
+  "schema_version": 1,
+  "profile_id": "robot-port-template-v1",
+  "profile_kind": "template",
+  "description": "Copy-and-edit template for one evidence-gated robot task port.",
+  "port_mode": "new_robot_same_task",
+  "source": {
+    "robot_id": "source-robot",
+    "task_id": "task-id",
+    "simulator": "source-simulator",
+    "policy_state_dimension": 4,
+    "policy_action_dimension": 4,
+    "physical_state_dimension": 4,
+    "physical_action_dimension": 4,
+    "policy_state_order": [
+      "source_joint_0",
+      "source_joint_1",
+      "source_joint_2",
+      "source_joint_3"
+    ],
+    "policy_action_order": [
+      "source_joint_0",
+      "source_joint_1",
+      "source_joint_2",
+      "source_joint_3"
+    ],
+    "physical_state_order": [
+      "source_joint_0",
+      "source_joint_1",
+      "source_joint_2",
+      "source_joint_3"
+    ],
+    "physical_action_order": [
+      "source_joint_0",
+      "source_joint_1",
+      "source_joint_2",
+      "source_joint_3"
+    ],
+    "observation_keys": [
+      "observation.state"
+    ],
+    "camera_roles": [],
+    "control_hz": 30,
+    "action_representation": "replace-with-source-action-semantics"
+  },
+  "target": {
+    "robot_id": "target-robot",
+    "task_id": "task-id",
+    "simulator": "target-simulator",
+    "policy_state_dimension": 4,
+    "policy_action_dimension": 4,
+    "physical_state_dimension": 4,
+    "physical_action_dimension": 4,
+    "policy_state_order": [
+      "target_joint_0",
+      "target_joint_1",
+      "target_joint_2",
+      "target_joint_3"
+    ],
+    "policy_action_order": [
+      "target_joint_0",
+      "target_joint_1",
+      "target_joint_2",
+      "target_joint_3"
+    ],
+    "physical_state_order": [
+      "target_joint_0",
+      "target_joint_1",
+      "target_joint_2",
+      "target_joint_3"
+    ],
+    "physical_action_order": [
+      "target_joint_0",
+      "target_joint_1",
+      "target_joint_2",
+      "target_joint_3"
+    ],
+    "observation_keys": [
+      "observation.state"
+    ],
+    "camera_roles": [],
+    "control_hz": 30,
+    "action_representation": "replace-with-target-action-semantics"
+  },
+  "adapters": {
+    "joint_mapping_ref": null,
+    "state_adapter_ref": null,
+    "action_adapter_ref": null,
+    "gripper_adapter_ref": null,
+    "camera_map_ref": null,
+    "control_resampling_ref": null
+  },
+  "controller": {
+    "source_type": "replace-with-source-controller",
+    "target_type": "replace-with-target-controller",
+    "command_semantics": "Replace with command mode, timing, interpolation, and actuator semantics.",
+    "target_control_contract_ref": null
+  },
+  "safety": {
+    "contract_ref": null,
+    "admission_rule": "Replace with per-episode collision, joint-limit, workspace, divergence, and runtime admission rules.",
+    "zero_violation_required": true
+  },
+  "data": {
+    "dataset_format": "replace-with-versioned-dataset-format",
+    "export_contract_ref": null,
+    "admission_contract_ref": null
+  },
+  "policy": {
+    "family": "replace-with-policy-family-or-none",
+    "training_contract_ref": null,
+    "openloop_contract_ref": null,
+    "closedloop_contract_ref": null,
+    "hardware_runtime_ref": null
+  },
+  "evaluation": {
+    "protocol_ref": null,
+    "case_ids": [],
+    "minimum_success_fraction": 1.0,
+    "recorded_successes": null,
+    "recorded_trials": null,
+    "outcome_evidence_ref": null
+  },
+  "task": {
+    "task_id": "task-id",
+    "same_task_required": true,
+    "source_contract_ref": null,
+    "target_contract_ref": null,
+    "success_protocol": "Replace with an observable task success protocol and failure taxonomy."
+  },
+  "runtime": {
+    "primary_simulator": "target-simulator",
+    "primary_backend": "replace-with-target-backend",
+    "amd_rocm_required": true,
+    "amd_runtime_contract_ref": null,
+    "persistent_root": "/workspace/persistent"
+  },
+  "assets": {
+    "strategy": "externalized",
+    "robot_asset_redistributable": false,
+    "asset_refs": []
+  },
+  "references": [],
+  "blockers": [
+    {
+      "id": "template-values-pending",
+      "severity": "critical",
+      "scope": "profile",
+      "blocks_stages": [
+        "source-task-audit",
+        "target-robot-profile",
+        "interface-contract",
+        "execution-validation"
+      ],
+      "description": "Template placeholders must be replaced with robot-, task-, asset-, interface-, and evidence-specific values before execution."
+    }
+  ],
+  "stages": [
+    {
+      "id": "source-task-audit",
+      "label": "Audit source task semantics",
+      "state": "blocked",
+      "outcome": "not_run",
+      "promotion": "pending",
+      "depends_on": [],
+      "blocker_ids": [
+        "template-values-pending"
+      ],
+      "evidence_refs": [],
+      "claim_boundary": "The template declares the audit gate; it does not contain source-task evidence."
+    },
+    {
+      "id": "target-robot-profile",
+      "label": "Freeze target robot profile",
+      "state": "blocked",
+      "outcome": "not_run",
+      "promotion": "pending",
+      "depends_on": [
+        "source-task-audit"
+      ],
+      "blocker_ids": [
+        "template-values-pending"
+      ],
+      "evidence_refs": [],
+      "claim_boundary": "The template declares the profile gate; it does not validate a target robot."
+    },
+    {
+      "id": "interface-contract",
+      "label": "Freeze observation, action, camera, and timing adapters",
+      "state": "blocked",
+      "outcome": "not_run",
+      "promotion": "pending",
+      "depends_on": [
+        "target-robot-profile"
+      ],
+      "blocker_ids": [
+        "template-values-pending"
+      ],
+      "evidence_refs": [],
+      "claim_boundary": "No interface compatibility is claimed by the unfilled template."
+    },
+    {
+      "id": "execution-validation",
+      "label": "Run the project-specific validation ladder",
+      "state": "blocked",
+      "outcome": "not_run",
+      "promotion": "pending",
+      "depends_on": [
+        "interface-contract"
+      ],
+      "blocker_ids": [
+        "template-values-pending"
+      ],
+      "evidence_refs": [],
+      "claim_boundary": "No simulator, dataset, training, inference, or hardware result exists for the template."
+    }
+  ],
+  "claim_boundary": "This file is a structurally valid template only. It is not a robot port, execution plan approval, runtime configuration, or evidence of capability."
+}

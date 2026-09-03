@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "task_id": "stack_bowls_three",
+  "embodiment": "tron2_v5_DACH_validing",
+  "simulator": "RoboTwin_SAPIEN_3.0.0b1",
+  "source_revision": {
+    "task_source_sha256": "60525227c6ad1c80ac4f5cc7c1a97b3af4f1d847cd923acb0b18ee84ffe60e92",
+    "base_task_sha256": "089cf44bdf1c5cab5c6b01a70f0ff0206f3ffb471d4ca403275a70184ff07897",
+    "camera_source_sha256": "e4d17e99c8a68f44a12bef248a2164f52206efeaf24168172b778cc1e32832dd",
+    "random_pose_source_sha256": "6c409ff1d97528b9dc654d39cc34683f51af6e797c1c5d92c076c29c09f9bedb",
+    "task_config_sha256": "d9625c70f767377e58a9d058a11a60c81f6f3f897013b25549df84bc3df42f9d",
+    "camera_config_sha256": "dc80a40552e0fad25d58cf0141302ceba66d22409b5091bed235ad2f10cbce7f",
+    "evaluation_limits_sha256": "41c62bd26184977bae45aee555edd0cc21de5cddf560c2595921fc23a1e3b551",
+    "embodiment_config_sha256": "772ae58f2c37e7b7df3e96823121aa5bd64ae67e8b2d57843063881f2acffe84",
+    "instruction_sha256": "3a951b0188d8300e9137d627d426075665fcf5f2e3dfca9789683aeec8e7053b",
+    "robot_urdf_sha256": "0bd67dda23d8df7cd82a1cd8262667ca8b4edcbdcc7512eadd82b167e2b4483e",
+    "dataset_seed_list_sha256": "4aad65932e39bb6148ddd42510e4dcabd278f12f3cd0cb7fcbac04881f8b0d5e",
+    "scene_info_sha256": "01df4138004fda9a55b959be7d593b90de1337f2130db46aa232348443a7e954"
+  },
+  "instruction": "stack the three bowls on top of each other",
+  "objects": {
+    "count": 3,
+    "actor_name": "002_bowl",
+    "model_id": 3,
+    "convex_collision": true,
+    "assignment_after_reset": "sort sampled poses by ascending y; assign bowl1, bowl2, bowl3",
+    "asset": {
+      "visual_base3_sha256": "f99e9609f59b3a560dc3bef52551fb9346d291aaeea13e65e2af3f034029712b",
+      "collision_base3_sha256": "d52b74783637f4f86a40bc53d49c61e40464ee3d32279252b4a335414e82e9a4",
+      "model_data3_sha256": "ee29eeaff742b3595be18e9d21752a988f6c11b5cc0e9d9e262969d98745f28b",
+      "scale_xyz": [0.05, 0.05, 0.05],
+      "stable": true,
+      "license_status": "mit_dataset_pinned_materialization_allowed",
+      "materialization_plan": "configs/bowl-asset-plan.json"
+    }
+  },
+  "reset_distribution": {
+    "seeded_libraries": ["numpy", "torch"],
+    "sample_count": 3,
+    "x_uniform_m": [-0.3, 0.3],
+    "y_uniform_m": [-0.15, 0.15],
+    "z_m": 0.741,
+    "quaternion_wxyz": [0.5, 0.5, 0.5, 0.5],
+    "rotate_randomization": false,
+    "ylim_prop_rule": "while abs(x) < 0.15 and y > 0, resample y uniformly from [-0.15, 0]",
+    "rejection_rules": [
+      "reject while abs(x) < 0.09",
+      "reject while squared xy distance from [0, -0.1] is less than 0.0169",
+      "reject while squared xy distance from any earlier bowl is less than 0.0169"
+    ],
+    "prohibit_padding_m": 0.07,
+    "target_prohibit_box_xy": [-0.1, -0.15, 0.1, -0.05],
+    "table_height_m": 0.74,
+    "table_z_bias_m": 0.0,
+    "domain_randomization_enabled": false
+  },
+  "expert_and_control": {
+    "target_xyz_m": [0.0, -0.1, 0.76],
+    "expert_base_z_m": 0.755,
+    "nest_offset_z_m": 0.04,
+    "arm_selection": "left if bowl x < 0, otherwise right",
+    "action_representation": "absolute_16d_joint_position_with_normalized_grippers",
+    "schedule": "variable_duration_TOPP_targets_at_250Hz_physics",
+    "evaluation_step_limit": 1200
+  },
+  "cameras": {
+    "model": "D435",
+    "geometry": {"width": 320, "height": 240, "fovy_deg": 37.0, "near_m": 0.1, "far_m": 100.0},
+    "head": {
+      "position_xyz_m": [0.0, -0.2, 1.85],
+      "forward_xyz": [0.0, 0.177, -0.984],
+      "left_xyz": [-1.0, 0.0, 0.0]
+    },
+    "wrist_mounts": {
+      "parent_link": "wrist_roll",
+      "xyz_m": [0.0664, -0.0012, -0.0979],
+      "rpy_rad": [1.78179, 1.451946, -2.929144]
+    },
+    "collected_order": ["head_camera", "right_camera", "left_camera"]
+  },
+  "evaluation_protocols": {
+    "legacy_source_v1": {
+      "position_sort": "ascending_z",
+      "xy_axis_tolerance_m_strict_less_than": 0.04,
+      "target_heights_m": [0.74, 0.77, 0.81],
+      "height_comparison": "actual_z_minus_target_z_strict_less_than_0.02",
+      "both_grippers_open": true,
+      "stable_frame_requirement": 0,
+      "graded_score": "0.5 per supported upper bowl, maximum 1.0"
+    }
+  },
+  "dataset": {
+    "declared_episodes": 200,
+    "modalities": ["rgb", "qpos", "endpose"],
+    "depth_collected": false,
+    "domain_randomization_enabled": false
+  },
+  "evidence_boundary": {
+    "legacy_weakness": "height comparison is one-sided and has no lower bound; no stability-frame test is present",
+    "comparability": "legacy_source_v1 is retained only for source compatibility and is not directly comparable to competition_strict_v1",
+    "asset_boundary": "model3 is materialized only from pinned MIT dataset revision b5230d8b4c348769f0c2402b73c88852f093b011 with source hashes and attribution preserved"
+  }
+}

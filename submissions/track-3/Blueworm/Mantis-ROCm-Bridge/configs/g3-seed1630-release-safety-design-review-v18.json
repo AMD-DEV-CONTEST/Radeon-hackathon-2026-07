@@ -1,0 +1,221 @@
+{
+  "schema_version": 1,
+  "status": "PLANNED_FROZEN_AUTHORIZED",
+  "work_package_id": "WP-G3-CORR-016",
+  "phase": "seed1630_release_safety_design_review",
+  "objective": "Use only existing source and WP-G3-CORR-015 evidence to separate physical contact chronology, collision-geometry identity, safety classification, and sampling latency; rank next-step design options without changing or executing the system.",
+  "user_authorization": {
+    "date": "2026-07-29",
+    "source": "user adoption of the proposed WP-G3-CORR-016 authorization through a response annotation",
+    "allowed": [
+      "read-only analysis of existing local source and WP-G3-CORR-015 evidence",
+      "versioned analysis documents",
+      "versioned tests",
+      "versioned receipts"
+    ],
+    "forbidden": [
+      "simulator execution or rerun",
+      "controller modification",
+      "safety-rule modification",
+      "data collection",
+      "dataset export",
+      "training",
+      "AMD cloud execution",
+      "process termination",
+      "external contact",
+      "GitHub pull request",
+      "public release"
+    ]
+  },
+  "entry_evidence": {
+    "predecessor_work_package_id": "WP-G3-CORR-015",
+    "predecessor_terminal": "COMPLETE_TARGET_CONTACT_FIRST_PRESENT_POST_RELEASE",
+    "predecessor_receipt": "receipts/g3-seed1630-release-retreat-boundary-terminal-20260729-v16/",
+    "predecessor_receipt_manifest_sha256": "a57f799fc9091843be29f1df0b25c7dd0ae6f9cf324c9c9a8ac2df8e982f5747",
+    "boundary_trace": "receipts/g3-seed1630-release-retreat-boundary-terminal-20260729-v16/run/release_retreat_boundary_trace.json",
+    "boundary_trace_sha256": "bac0ae689e62f8a9c7d9e892ae8a2338692c8c2e27dbee0d9b9e51a4e22d259d",
+    "predecessor_terminal_json_sha256": "4826b6e1dd3070d3e043a471410a371b19dc6005ba7ee0dcbfe941afa501fdc7"
+  },
+  "authoritative_inputs": [
+    {
+      "path": "tools/run_genesis_stack_bowls_scripted_g1.py",
+      "sha256": "2290352b9d9c270d72b5ae6af3d3360e45b145a897964a8140e2b6b472a66f43",
+      "role": "scripted release, safety sampling, and target-pair chronology"
+    },
+    {
+      "path": "src/mantis_rocm_bridge/act_closedloop_g3.py",
+      "sha256": "01341355e9d637609ced18c94b1813174ff6288f7e4bd489afce7d1a049b6a1d",
+      "role": "learned-policy G3 robot-bowl collision classification"
+    },
+    {
+      "path": "configs/mantis-rim-support-overlay-v4.json",
+      "sha256": "e9a71790e053ab7f40092817fa04105b81ac38f1675e0db88fbb13bd85d94758",
+      "role": "target collision primitive geometry"
+    },
+    {
+      "path": "configs/stack-bowls-genesis-v1.json",
+      "sha256": "0e4b01ff50f3856d4ae393bf2a278121b643572e0eb97b0080c9d356db3edc81",
+      "role": "release duration, settle count, sampling cadence, and physics dt"
+    },
+    {
+      "path": "configs/task-pack-v1.json",
+      "sha256": "ece41b0030ccb7bc5ce799b24d4aa68e8649ab7cc4442bfb6c3024d87dc78a09",
+      "role": "competition-strict safety and promotion boundary"
+    },
+    {
+      "path": "docs/STACK_BOWLS_PORT.md",
+      "sha256": "2cf08d7a6a8c68b5f8b845474325758b1640e51f8a5767296742ef0673ddd160",
+      "role": "rim-support geometry history and evidence boundary"
+    }
+  ],
+  "dependency_graph": {
+    "upstream": [
+      "WP-G3-CORR-012 support-contact observations",
+      "WP-G3-CORR-013 read-only attribution",
+      "WP-G3-CORR-014 failure telemetry",
+      "WP-G3-CORR-015 release-retreat boundary trace"
+    ],
+    "current": [
+      "physical chronology review",
+      "collision-geometry identity review",
+      "safety-classifier parity review",
+      "sampling-latency review",
+      "candidate and risk ranking"
+    ],
+    "downstream_blocked": [
+      "controller repair",
+      "safety-rule repair",
+      "additional simulator instrumentation",
+      "source collection and dataset export",
+      "training and AMD execution"
+    ]
+  },
+  "review_axes": {
+    "physical_contact_chronology": {
+      "distinguish": [
+        "any robot-to-bowl2 contact",
+        "the exact competition_rim_support_collision target pair"
+      ],
+      "required_snapshots": [
+        "final_pre_release",
+        "immediate_post_release",
+        "pre_retreat",
+        "retreat_step_1",
+        "retreat_step_2"
+      ],
+      "forbid_exact_onset_claim_without_direct_snapshot": true
+    },
+    "collision_geometry": {
+      "overlay_shape": "box",
+      "overlay_size_xyz_m": [0.022, 0.014, 0.004],
+      "overlay_origin_xyz_m": [0.061, 0.007, -0.006],
+      "left_link_origin_rpy_rad": [0.6108652381980153, 0.0, 0.0],
+      "required_checks": [
+        "target contact lies on or within the transformed overlay bounds",
+        "pre-release source-mesh contact is recorded separately",
+        "collider identity handoff is not mislabeled as proven loss and recreation of physical contact"
+      ]
+    },
+    "safety_semantics": {
+      "classifiers": [
+        "scripted expert sample_safety",
+        "learned-policy G3 Genesis safety_signals"
+      ],
+      "matrix_dimensions": [
+        "selected versus nonselected bowl",
+        "active versus inactive clamp side",
+        "place or release versus retreat versus stage-free",
+        "source mesh versus competition rim-support primitive"
+      ],
+      "required_result": "Record identical-pair accept/reject behavior for both classifiers and flag any divergence without choosing a repair."
+    },
+    "sampling": {
+      "physics_dt_s": 0.004,
+      "contact_sample_interval_steps": 5,
+      "required_checks": [
+        "separate cached observation time from safety-emission time",
+        "identify the first scheduled scripted safety sample after release completion",
+        "do not infer physical onset from the failure marker alone"
+      ]
+    }
+  },
+  "predeclared_hypotheses": [
+    {
+      "id": "H016-1",
+      "statement": "Robot-to-bowl2 physical contact is already present before release through a source-mesh collider; release changes the active collider identity to the rim-support overlay.",
+      "falsifier": "No pre-release robot-to-bowl2 pair or geometry-inconsistent post-release target contact."
+    },
+    {
+      "id": "H016-2",
+      "statement": "The exact target pair is created by retreat motion.",
+      "falsifier": "The exact target pair is present in the cache-identical pre_retreat snapshot."
+    },
+    {
+      "id": "H016-3",
+      "statement": "The retreat-step-2 failure marker is delayed classification of a pre-existing pair under stage-dependent scripted safety semantics and five-step sampling.",
+      "falsifier": "The scripted predicate applies the same classification in release and retreat or the target is absent before retreat."
+    },
+    {
+      "id": "H016-4",
+      "statement": "Scripted-expert and learned-policy G3 robot-bowl safety classifiers are semantically equivalent for the target pair.",
+      "falsifier": "One classifier rejects while the other accepts the identical target pair under an admissible equivalent state."
+    }
+  ],
+  "candidate_ranking_rules": [
+    "Prefer a shared explicit collision-semantics contract and parity tests before runtime changes.",
+    "Do not rank a controller trajectory change above a semantics-contract defect unless the physical defect is independently established.",
+    "Treat safety-predicate relaxation or broadening as high-risk until the intended collision policy is explicit.",
+    "Treat rim-support geometry changes as task and asset changes requiring a new authorization and dynamic validation.",
+    "Treat another simulator run as lower priority than extracting all determinate conclusions from current evidence."
+  ],
+  "deliverable_manifest": [
+    "configs/g3-seed1630-release-safety-design-review-v18.json",
+    "configs/g3-seed1630-release-safety-design-review-authorization-v19.json",
+    ".ops/wip/g3-seed1630-release-safety-design-review-20260729/WP-G3-CORR-016.md",
+    ".ops/wip/g3-seed1630-release-safety-design-review-20260729/ISSUES.md",
+    ".ops/wip/g3-seed1630-release-safety-design-review-20260729/ANALYSIS.md",
+    "tests/test_g3_seed1630_release_safety_design_review_v18.py",
+    "receipts/g3-seed1630-release-safety-design-review-terminal-20260729-v18/"
+  ],
+  "acceptance_matrix": [
+    {
+      "check": "input identity",
+      "expected": "Every authoritative input hash matches."
+    },
+    {
+      "check": "no runtime or production mutation",
+      "expected": "No simulator, remote, production source, controller, safety rule, asset, data, or training file is changed or executed."
+    },
+    {
+      "check": "chronology",
+      "expected": "Any robot-bowl2 contact and the exact target-pair chronology are reported separately."
+    },
+    {
+      "check": "geometry",
+      "expected": "The transformed target contact is consistent with the v4 rim-support box and all derived metrics are reproducible from the trace."
+    },
+    {
+      "check": "classifier parity",
+      "expected": "A static matrix proves equivalence or divergence from exact source semantics."
+    },
+    {
+      "check": "sampling",
+      "expected": "Observation and failure-emission clocks are separated exactly."
+    },
+    {
+      "check": "tests",
+      "expected": "Focused review tests pass; all functional regressions pass; only the two immutable predecessor source-pin sentinels fail as expected."
+    },
+    {
+      "check": "receipt",
+      "expected": "A fresh no-overwrite terminal receipt and SHA-256 manifest verify."
+    }
+  ],
+  "terminal_conditions": [
+    "COMPLETE_REVIEW_SAFETY_SEMANTICS_DIVERGENCE_CONFIRMED",
+    "COMPLETE_REVIEW_NO_SAFETY_SEMANTICS_DIVERGENCE",
+    "COMPLETE_REVIEW_INCONCLUSIVE",
+    "FAILED_EVIDENCE_GATE"
+  ],
+  "claim_boundary": "This local read-only design review may establish source semantics, derived geometry, chronology, evidence gaps, and ranked next-step options. It cannot establish the exact unobserved release step, counterfactual physical causality, correct safety policy, repair validity, generality, dataset readiness, G3 passage, AMD/ROCm behavior, hardware safety, or publication readiness."
+}

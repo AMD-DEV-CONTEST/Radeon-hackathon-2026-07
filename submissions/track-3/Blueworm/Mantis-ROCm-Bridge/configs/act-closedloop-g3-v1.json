@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "gate_id": "mantis_act_closedloop_g3_v1",
+  "task_id": "stack_bowls_three",
+  "protocol": "competition_strict_v1_learned_policy_closed_loop",
+  "phase": "closed_loop_learned_policy_evaluation",
+  "training_id": "mantis_stack_bowls_act_rocm_v2",
+  "training_contract": "configs/act-rocm-baseline-v2.json",
+  "openloop_admission_contract": "configs/act-openloop-inference-v3.json",
+  "task_contract": "configs/task-pack-v1.json",
+  "scene_contract": "configs/stack-bowls-genesis-v1.json",
+  "source_reset_contract": "configs/source-task-stack-bowls-three.json",
+  "interface_contract": "configs/mantis-lerobot-interface-v1.json",
+  "port_config": "configs/mantis-port-config.json",
+  "fixed_joint_limit_source": "configs/fixed-base-plan.json",
+  "camera_contract": "configs/camera-extrinsics-v1.json",
+  "checkpoint": {
+    "training_step": 60000,
+    "relative_path": "checkpoints/060000/pretrained_model",
+    "frozen": true,
+    "must_use_saved_processors": true,
+    "must_not_recompute_normalization_statistics": true
+  },
+  "runtime": {
+    "simulator": "Genesis",
+    "genesis_version": "1.2.3",
+    "framework": "LeRobot",
+    "lerobot_version": "0.4.4",
+    "policy_type": "act",
+    "device": "cuda:0",
+    "device_semantics": "ROCm-enabled PyTorch exposes the official single AMD Radeon HIP device through torch.cuda",
+    "required_hip_device_count": 1,
+    "single_gpu_only": true,
+    "offline_model_loading": true
+  },
+  "episode_protocol": {
+    "smoke_seed": 101,
+    "g3_seeds": [101, 102, 103, 104, 105, 106, 107, 108, 109, 110],
+    "smoke_is_part_of_frozen_g3_seed_set": true,
+    "reset_distribution": "exact_source_reset_distribution",
+    "domain_randomization_enabled": false,
+    "maximum_policy_steps": 1200,
+    "policy_hz": 30.0,
+    "physics_hz": 250.0,
+    "physics_dt_s": 0.004,
+    "policy_reset_frequency": "once_at_episode_start_only",
+    "policy_chunk_size": 30,
+    "n_action_steps": 30,
+    "n_observation_steps": 1
+  },
+  "control_schedule": {
+    "mode": "zero_order_hold_absolute_joint_position_target",
+    "policy_tick_to_physics_step": "ceil((policy_step / 30) / 0.004 - 1e-12)",
+    "first_policy_physics_steps": [0, 9, 17, 25, 34],
+    "maximum_timing_skew_s_exclusive": 0.004,
+    "observe_then_infer_then_project_then_apply": true,
+    "hold_projected_18d_target_until_next_policy_tick": true,
+    "no_topp_resampling_applied_to_policy_outputs": true,
+    "rationale": "The frozen TOPP-to-30Hz contract applies to offline dense scripted demonstrations. Learned ACT already emits 30Hz absolute targets, so closed-loop execution uses a causal zero-order hold on the 250Hz physics clock."
+  },
+  "observation_contract": {
+    "state_dimension": 16,
+    "action_dimension": 16,
+    "physical_joint_count": 18,
+    "image_features_chw": {
+      "observation.images.env_cam": [3, 240, 320],
+      "observation.images.left_wrist_cam": [3, 240, 424],
+      "observation.images.right_wrist_cam": [3, 240, 424]
+    },
+    "image_value_range": [0.0, 1.0],
+    "evaluator_privileged_state_not_visible_to_policy": true
+  },
+  "actuator_admission": {
+    "reuse_openloop_v3_projection": true,
+    "virtual_gripper_projection_indices": [7, 15],
+    "virtual_gripper_domain": [0.0, 1.0],
+    "gripper_readback_range_tolerance_normalized": 0.003,
+    "physical_joint_projection_domain": "configs/fixed-base-plan.json joint_limits",
+    "non_finite_target_is_failure": true,
+    "record_raw_and_projected_16d": true,
+    "record_raw_and_projected_18d": true,
+    "record_saturated_channels_and_projection_magnitude": true,
+    "postprojection_limit_violation_is_safety_failure": true,
+    "simulation_only_gripper_mapping": true
+  },
+  "strict_evaluator": {
+    "source": "mantis_rocm_bridge.stack_bowls.evaluate_strict_target_frame",
+    "stable_frame_tracker": "mantis_rocm_bridge.stack_bowls.StackStabilityTracker",
+    "required_consecutive_success_frames": 12,
+    "evaluate_at_policy_rate": true,
+    "task_success_requires_no_safety_failure": true,
+    "failure_taxonomy_source": "configs/task-pack-v1.json evaluation.failure_taxonomy"
+  },
+  "forbidden_assistance": [
+    "scripted_planner",
+    "inverse_kinematics_oracle",
+    "privileged_object_pose_policy_input",
+    "weld_or_attachment_assistance",
+    "trajectory_replay",
+    "feedback_correction_oracle",
+    "demonstration_action_fallback",
+    "action_substitution_after_policy_inference",
+    "success_predicate_relaxation",
+    "seed_dependent_controller_parameters"
+  ],
+  "promotion": {
+    "seed_101_smoke_requires_terminal_receipt": true,
+    "seed_101_smoke_requires_zero_safety_failures": true,
+    "seed_101_infrastructure_failure_blocks_batch": true,
+    "seed_101_task_failure_without_safety_failure_does_not_block_batch": true,
+    "required_g3_episodes": 10,
+    "minimum_g3_successes": 6,
+    "minimum_g3_success_rate": 0.6,
+    "maximum_g3_safety_failures": 0
+  },
+  "required_per_episode_artifacts": [
+    "started.json",
+    "command.txt",
+    "environment.json",
+    "policy_steps.jsonl",
+    "strict_evaluator.jsonl",
+    "receipt.json",
+    "status",
+    "stdout.log",
+    "stderr.log",
+    "exit_code.txt",
+    "finished_at_utc.txt",
+    "gpu_before.txt",
+    "gpu_during.txt",
+    "gpu_after.txt",
+    "SHA256SUMS"
+  ],
+  "required_aggregate_artifacts": [
+    "g3_summary.json",
+    "failure_taxonomy.json",
+    "episode_inventory.txt",
+    "checkpoint_files.txt",
+    "source_files.txt",
+    "final_evidence.SHA256SUMS"
+  ],
+  "output_policy": {
+    "fresh_directory_only": true,
+    "exclusive_no_overwrite": true,
+    "failed_receipts_are_immutable": true,
+    "video_is_desirable_not_a_success_predicate": true
+  },
+  "claim_boundary": {
+    "seed_101_smoke_proves_g3": false,
+    "passing_g3_proves_exact_distribution_closed_loop_only": true,
+    "proves_training_convergence": false,
+    "proves_g4_confirmation": false,
+    "proves_domain_randomization_robustness": false,
+    "proves_generalization": false,
+    "proves_real_robot_safety": false,
+    "proves_amd_performance_advantage": false,
+    "statement": "A passing G3 receipt proves only that the frozen 60,000-step ACT checkpoint executed the audited Mantis observation-action loop in Genesis on the official single AMD Radeon ROCm runtime and achieved at least 6 successes across the exact seeds 101-110 with zero safety failures under the frozen strict evaluator. It does not prove optimization convergence, G4 confirmation, domain-randomization robustness, unseen-scene generalization, real-robot safety, or an AMD performance advantage."
+  }
+}

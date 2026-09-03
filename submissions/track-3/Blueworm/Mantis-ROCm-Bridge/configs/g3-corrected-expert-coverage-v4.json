@@ -1,0 +1,289 @@
+{
+  "schema_version": 1,
+  "work_package_id": "WP-G3-CORR-010",
+  "status": "PLANNED_FROZEN_NOT_EXECUTED",
+  "date": "2026-07-28",
+  "task_id": "stack_bowls_three",
+  "porting_mode": "new_robot_same_task",
+  "phase_objective": "Integrate the dynamically accepted coupled_descent_slerp route into a corrected scripted-expert workflow and establish a fail-closed, coverage-balanced source pool without admitting any episode that misses the unchanged task-success predicate.",
+  "entry_evidence": {
+    "predecessor_work_package": "WP-G3-CORR-009-R3",
+    "predecessor_contract": "configs/g3-left-interbowl-coupled-descent-dynamic-v3.json",
+    "predecessor_terminal_status": "COMPLETE_COUPLED_DESCENT_DYNAMIC_ACCEPTED",
+    "predecessor_terminal_receipt": "receipts/g3-left-coupled-descent-dynamic-terminal-20260728-v3",
+    "predecessor_receipt_manifest_sha256": "7b293a6366cd6dbfdc63d0328a4a051a6f417aec8f9a57ffa0e9fddaea87571b",
+    "predecessor_transition_receipt_valid_count": 4,
+    "predecessor_corrected_transition_collision_count": 0,
+    "predecessor_safety_failure_count": 0,
+    "predecessor_full_task_success_seeds": [1039, 1074, 1208],
+    "predecessor_downstream_placement_reject_seeds": [1086],
+    "failure_attribution": "receipts/g3-corrected-expert-coverage-planning-freeze-20260728-v4/failure_attribution.json"
+  },
+  "single_primary_variable": {
+    "field": "corrected_expert_consecutive_left_orientation_schedule",
+    "baseline": "fixed_position_reorient_v1",
+    "candidate": "coupled_descent_slerp",
+    "activation": "previous assigned side is left, current assigned side is left, and current stack level is at least 2",
+    "vertical_clearance_orientation": "unchanged_grasp_orientation",
+    "lateral_clearance_orientation": "unchanged_grasp_orientation",
+    "descent_orientation": "normalized_sign_invariant_wxyz_slerp_from_grasp_to_transit",
+    "descent_endpoint_orientation": "unchanged_transit_orientation",
+    "implementation_boundary": "The corrected-expert wrapper must explicitly select coupled_descent_slerp. It must not change placement targets, release, retreat, task tolerances, or any second controller variable."
+  },
+  "frozen_invariants": {
+    "source_reset_sampler": "mantis_rocm_bridge.stack_bowls_env.sample_source_reset_poses",
+    "source_reset_sampler_sha256": "73a4154913b4eaf31c459f04abb87dbbca6d19e6962c4bbb3c00d89a9f75d3fb",
+    "task_contract": "configs/task-pack-v1.json",
+    "task_contract_sha256": "ece41b0030ccb7bc5ce799b24d4aa68e8649ab7cc4442bfb6c3024d87dc78a09",
+    "source_task_and_arm_assignment_unchanged": true,
+    "cartesian_position_route_unchanged": true,
+    "clearance_tcp_z_m": 1.02,
+    "cartesian_waypoints_per_segment": 8,
+    "physics_hz": 250.0,
+    "policy_hz": 30.0,
+    "ik_solver_and_thresholds_unchanged": true,
+    "planner_controller_and_force_limits_unchanged": true,
+    "joint_gripper_and_camera_mapping_unchanged": true,
+    "collision_and_safety_rules_unchanged": true,
+    "assets_scene_and_task_semantics_unchanged": true,
+    "place_position_release_retreat_and_stability_logic_unchanged": true,
+    "task_success_tolerances_unchanged": true,
+    "retry_count": 0,
+    "seed_substitution": false,
+    "replay_fallback": false,
+    "posthoc_success_selection": false
+  },
+  "seed_policy": {
+    "selection_observes_only": "preexecution source reset geometry and deterministic arm assignment",
+    "scan_range_inclusive": [1251, 1400],
+    "historical_relationship": {
+      "canonical_and_evaluation_holdouts": [1, 11, 12, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230],
+      "frozen_act_training_dataset_seeds": [1001, 1004, 1007, 1008, 1012, 1016],
+      "prior_targeted_attempt_range": [1021, 1050],
+      "prior_rll16_attempts": [1061, 1074, 1084, 1086, 1095, 1111, 1117, 1139, 1151, 1156, 1177, 1194, 1208, 1212, 1226, 1236],
+      "r3_dynamic_diagnostic_seeds": [1039, 1074, 1086, 1208],
+      "new_seeds_disjoint_from_all_sets_above": true
+    },
+    "diagnostic_panel": {
+      "selection_rule": "Select the first four previously unattempted right-left-left seeds in ascending order from 1251 through 1400.",
+      "seeds_in_order": [1285, 1290, 1295, 1298],
+      "patterns": {
+        "1285": ["right", "left", "left"],
+        "1290": ["right", "left", "left"],
+        "1295": ["right", "left", "left"],
+        "1298": ["right", "left", "left"]
+      },
+      "backend": "cpu",
+      "cuda_visible_devices": "",
+      "serial": true,
+      "capture": false,
+      "retry_count": 0,
+      "acceptance": {
+        "attempt_count": 4,
+        "transition_receipt_valid_count": 4,
+        "corrected_transition_collision_count": 0,
+        "safety_failure_count": 0,
+        "infrastructure_failure_count": 0,
+        "capture_artifact_count": 0,
+        "minimum_full_strict_task_successes": 3,
+        "allowed_algorithmic_rejects": ["downstream_placement_predicate", "strict_terminal_stability"]
+      }
+    },
+    "collection_panel": {
+      "selection_rule": "After diagnostic acceptance, select the first four left-right-right seeds, first four left-left-right seeds, and first eight right-left-left seeds after excluding diagnostic seeds, all from 1251 through 1400; execute the frozen union in ascending order.",
+      "seeds_in_order": [1251, 1254, 1255, 1256, 1266, 1281, 1299, 1301, 1302, 1313, 1316, 1323, 1360, 1362, 1375, 1376],
+      "patterns": {
+        "1251": ["left", "right", "right"],
+        "1254": ["left", "right", "right"],
+        "1255": ["left", "right", "right"],
+        "1256": ["left", "right", "right"],
+        "1266": ["left", "left", "right"],
+        "1281": ["left", "left", "right"],
+        "1299": ["right", "left", "left"],
+        "1301": ["right", "left", "left"],
+        "1302": ["left", "left", "right"],
+        "1313": ["right", "left", "left"],
+        "1316": ["right", "left", "left"],
+        "1323": ["left", "left", "right"],
+        "1360": ["right", "left", "left"],
+        "1362": ["right", "left", "left"],
+        "1375": ["right", "left", "left"],
+        "1376": ["right", "left", "left"]
+      },
+      "candidate_count": 16,
+      "first_left_candidate_count": 8,
+      "first_right_candidate_count": 8,
+      "top_right_candidate_count": 8,
+      "backend": "cpu",
+      "cuda_visible_devices": "",
+      "serial": true,
+      "retry_count": 0
+    }
+  },
+  "task_success_predicate": {
+    "protocol_version": "competition_strict_v1",
+    "position_sort": "ascending_z",
+    "xy_axis_alignment_tolerance_m": 0.04,
+    "target_heights_m": [0.74, 0.77, 0.81],
+    "height_absolute_tolerance_m": 0.02,
+    "maximum_linear_speed_m_s": 0.02,
+    "maximum_angular_speed_rad_s": 0.15,
+    "minimum_gripper_open_fraction": 0.9,
+    "objects_stable_for_policy_frames": 12,
+    "no_safety_failure": true,
+    "no_physics_divergence": true,
+    "relaxation_allowed": false
+  },
+  "downstream_placement_gate": {
+    "gate_point": "after weld deletion, gripper release, retreat, and the unchanged per-level stability hold",
+    "requires_each_level": [0, 1, 2],
+    "requires_bowl_progress": {
+      "placement_gate_passed": true,
+      "placement_errors_below_original_task_tolerances": true,
+      "weld_removed_before_release": true,
+      "final_pre_release_position_recorded": true,
+      "immediate_post_release_position_recorded": true,
+      "placed_position_recorded": true
+    },
+    "requires_terminal_episode": {
+      "all_eight_task_stages_completed": true,
+      "strict_stability_frames": 12,
+      "both_grippers_open": true,
+      "task_success": true
+    },
+    "seed_1086_semantics": "A valid corrected transition followed by a placement miss is an algorithmic rejection. It is never a complete task success and never capture- or dataset-admissible."
+  },
+  "safety_gate": {
+    "global_candidate_safety_failure_count": 0,
+    "corrected_transition_nonselected_bowl_contact_count": 0,
+    "accepted_episode_safety_failure_count": 0,
+    "physics_divergence_count": 0,
+    "infrastructure_failure_count": 0,
+    "external_gpu_processes": "read_only_nonblocking_telemetry",
+    "task_isolation_requires": {
+      "backend": "cpu",
+      "cuda_visible_devices": "",
+      "max_concurrent_processes": 1
+    }
+  },
+  "capture_admission_gate": {
+    "capture_launch_requires": [
+      "diagnostic panel accepted",
+      "candidate probe exits zero",
+      "probe plan is hash-bound and semantically valid",
+      "all three per-level downstream placement gates pass",
+      "probe completes all eight task stages",
+      "probe records exactly 12 strict-success stability frames",
+      "probe safety failure count is zero"
+    ],
+    "capture_acceptance_requires": [
+      "exact-plan replay capture exits zero",
+      "capture completes all eight task stages",
+      "all three per-level downstream placement gates pass",
+      "capture records exactly 12 strict-success stability frames",
+      "capture safety failure count is zero",
+      "NPZ is nonempty and its receipt, trace, and manifest hashes verify"
+    ],
+    "failed_or_incomplete_capture_training_eligible": false
+  },
+  "corrected_pool_coverage_gate": {
+    "minimum_accepted_episodes": 6,
+    "minimum_first_grasp_left": 2,
+    "minimum_first_grasp_right": 2,
+    "minimum_top_placement_right": 2,
+    "maximum_safety_failures": 0,
+    "exact_candidate_order_required": true,
+    "no_retry_replacement_or_relabel": true
+  },
+  "dataset_admission": {
+    "source_admission_authorized_only_by": "COMPLETE_CORRECTED_EXPERT_COVERAGE_ACCEPTED",
+    "requires_exact_accepted_source_manifest": true,
+    "requires_every_source_to_be_complete_strict_success": true,
+    "rejected_failed_partial_or_missing_episode_count": 0,
+    "evaluation_seed_leakage_count": 0,
+    "dataset_export_is_separate_work_package": true,
+    "automatic_dataset_export": false,
+    "automatic_training": false
+  },
+  "remote_plan": {
+    "source_project": "/data01/suzw_data/tron/amd_track3/mantis_rocm_bridge_v124",
+    "staging_project": "/data01/suzw_data/tron/amd_track3/mantis_rocm_bridge_v125.staging",
+    "corrected_project": "/data01/suzw_data/tron/amd_track3/mantis_rocm_bridge_v125",
+    "code_gate_root": "/data01/suzw_data/tron/amd_track3/ops/mantis-g3-corrected-expert-coverage-code-gate-20260728-v4",
+    "package_root": "/data01/suzw_data/tron/amd_track3/transfers/mantis_g3_corrected_expert_coverage_20260728_v4",
+    "diagnostic_batch_root": "/data01/suzw_data/tron/amd_track3/ops/mantis-g3-corrected-expert-diagnostic-20260728-v4",
+    "collection_batch_root": "/data01/suzw_data/tron/amd_track3/ops/mantis-g3-corrected-expert-coverage-20260728-v4",
+    "supervisor_root": "/data01/suzw_data/tron/amd_track3/ops/mantis-g3-corrected-expert-coverage-supervisor-20260728-v4",
+    "diagnostic_run_template": "/data01/suzw_data/tron/amd_track3/ops/genesis-stack-bowls-scripted-g1/mantis-stack-bowls-corrected-expert-diagnostic-seed{seed}-stl-cpu-20260728-v4",
+    "probe_run_template": "/data01/suzw_data/tron/amd_track3/ops/genesis-stack-bowls-scripted-g1/mantis-stack-bowls-corrected-expert-probe-seed{seed}-stl-cpu-20260728-v4",
+    "capture_run_template": "/data01/suzw_data/tron/amd_track3/ops/genesis-stack-bowls-scripted-g1/mantis-stack-bowls-corrected-expert-replay-seed{seed}-stl-cpu-capture-20260728-v4",
+    "screen_name": "mantis_g3_corrected_expert_v4",
+    "freshness_verified_at_planning_time": true
+  },
+  "acceptance_matrix": [
+    {
+      "check": "contract_and_seed_static_review",
+      "procedure": "Validate JSON; recompute source-reset patterns, disjointness, frozen counts, task predicate, and path uniqueness.",
+      "expected": "all checks pass before implementation",
+      "evidence": "planning-freeze static_review.json"
+    },
+    {
+      "check": "single_variable_code_diff",
+      "procedure": "Compare v124 to staged v125 against an explicit allowlist.",
+      "expected": "only corrected-expert wrapper, contract, tests, and evidence tooling change; zero deletions and no second control variable",
+      "evidence": "remote source allowlist audit"
+    },
+    {
+      "check": "local_and_remote_code_gate",
+      "procedure": "Run syntax, contract validation, focused tests, and full regression tests.",
+      "expected": "all exit zero",
+      "evidence": "versioned code-gate manifests"
+    },
+    {
+      "check": "independent_diagnostic_panel",
+      "procedure": "Run exact seeds 1285,1290,1295,1298 once each, serial CPU-only, no capture.",
+      "expected": "4 valid transition receipts, zero corrected collisions/safety/infrastructure/capture, at least 3 full strict successes",
+      "evidence": "diagnostic batch summary and final manifest"
+    },
+    {
+      "check": "collection_order_and_isolation",
+      "procedure": "Audit exact 16-seed order, commands, environment, retries, and source patterns.",
+      "expected": "exact order, CPU-only, empty CUDA_VISIBLE_DEVICES, zero retry/replacement",
+      "evidence": "collection audit"
+    },
+    {
+      "check": "placement_and_capture_admission",
+      "procedure": "Verify each admitted source against all per-level placement, eight-stage, strict-stability, safety, and hash gates.",
+      "expected": "every admitted episode passes; every reject remains outside capture/dataset sources",
+      "evidence": "per-source admission rows and rejected-source report"
+    },
+    {
+      "check": "coverage_terminal",
+      "procedure": "Count accepted, first-left, first-right, top-right, and global safety outcomes.",
+      "expected": "accepted >= 6, first-left >= 2, first-right >= 2, top-right >= 2, safety failures = 0",
+      "evidence": "corrected-pool coverage audit"
+    },
+    {
+      "check": "evidence_integrity",
+      "procedure": "Independently run SHA-256 checks for package, code gate, diagnostic, collection, run, and supervisor manifests.",
+      "expected": "every entry verifies",
+      "evidence": "terminal receipt"
+    }
+  ],
+  "terminal_states": {
+    "accepted": "COMPLETE_CORRECTED_EXPERT_COVERAGE_ACCEPTED",
+    "rejected": "COMPLETE_CORRECTED_EXPERT_COVERAGE_REJECTED",
+    "failed_evidence": "FAILED_EVIDENCE_GATE",
+    "rejected_semantics": "Evidence-complete algorithmic rejection caused by a failed diagnostic performance threshold, any safety failure, or insufficient final coverage. No source admission, dataset export, or training follows.",
+    "failed_evidence_semantics": "Infrastructure, identity, ordering, no-overwrite, source-hash, or manifest failure. Algorithmic conclusions are not authorized."
+  },
+  "current_authorization": {
+    "planning_and_static_review": true,
+    "create_or_modify_remote_project": false,
+    "run_diagnostic_panel": false,
+    "run_collection": false,
+    "export_dataset": false,
+    "train": false
+  },
+  "claim_boundary": "This frozen plan can govern a corrected CPU scripted-expert source pool. Even an accepted terminal would establish only source-trajectory coverage and dataset-source eligibility. It would not itself establish a LeRobot dataset, learned-policy improvement, G3 passage, generalization, AMD/ROCm execution, hardware validity, or real-robot safety."
+}

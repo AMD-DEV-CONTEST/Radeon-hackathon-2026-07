@@ -1,0 +1,253 @@
+{
+  "schema_version": 1,
+  "status": "COMPLETE_SHARED_COLLISION_SEMANTICS_DESIGN_FROZEN",
+  "work_package_id": "WP-G3-CORR-017",
+  "phase": "shared_robot_bowl_collision_semantics_design",
+  "objective": "Define one authority-neutral robot-bowl contact vocabulary, reproduce the current scripted-expert and ACT G3 decisions from frozen source, and freeze a future shared-classifier integration design without selecting or changing the active safety policy.",
+  "authorization": "configs/g3-robot-bowl-collision-semantics-authorization-v21.json",
+  "entry_evidence": {
+    "predecessor_work_package_id": "WP-G3-CORR-016",
+    "predecessor_terminal": "COMPLETE_REVIEW_SAFETY_SEMANTICS_DIVERGENCE_CONFIRMED",
+    "predecessor_receipt": "receipts/g3-seed1630-release-safety-design-review-terminal-20260729-v18/",
+    "predecessor_receipt_manifest_sha256": "4366f391ed0ac7944108a7c05a4076300b68633e7092acc10d6885266fb581a9",
+    "predecessor_analysis": "receipts/g3-seed1630-release-safety-design-review-terminal-20260729-v18/analysis.json",
+    "predecessor_analysis_sha256": "b08a172f7248aee8e829288ea1d17fe89dac07e9f07038f8919624bd2cc80b65",
+    "wp015_boundary_trace": "receipts/g3-seed1630-release-retreat-boundary-terminal-20260729-v16/run/release_retreat_boundary_trace.json",
+    "wp015_boundary_trace_sha256": "bac0ae689e62f8a9c7d9e892ae8a2338692c8c2e27dbee0d9b9e51a4e22d259d"
+  },
+  "authoritative_inputs": [
+    {
+      "path": "tools/run_genesis_stack_bowls_scripted_g1.py",
+      "sha256": "2290352b9d9c270d72b5ae6af3d3360e45b145a897964a8140e2b6b472a66f43",
+      "role": "current scripted-expert robot-bowl classification"
+    },
+    {
+      "path": "src/mantis_rocm_bridge/act_closedloop_g3.py",
+      "sha256": "01341355e9d637609ced18c94b1813174ff6288f7e4bd489afce7d1a049b6a1d",
+      "role": "current ACT G3 robot-bowl classification"
+    },
+    {
+      "path": "configs/g3-seed1630-release-safety-design-review-v18.json",
+      "sha256": "4f1ce62ba9e9f2e582b14ce18d558a59ab7095a1fd98c7dc77fe874b95f1eae2",
+      "role": "predecessor review contract and evidence boundaries"
+    },
+    {
+      "path": "configs/task-pack-v1.json",
+      "sha256": "ece41b0030ccb7bc5ce799b24d4aa68e8649ab7cc4442bfb6c3024d87dc78a09",
+      "role": "zero-safety-failure promotion requirement without a robot-bowl allowlist"
+    },
+    {
+      "path": "configs/mantis-rim-support-overlay-v4.json",
+      "sha256": "e9a71790e053ab7f40092817fa04105b81ac38f1675e0db88fbb13bd85d94758",
+      "role": "collision-class vocabulary only; geometry remains frozen"
+    },
+    {
+      "path": "configs/stack-bowls-genesis-v1.json",
+      "sha256": "0e4b01ff50f3856d4ae393bf2a278121b643572e0eb97b0080c9d356db3edc81",
+      "role": "stage and sampling vocabulary only; timing remains frozen"
+    },
+    {
+      "path": "docs/STACK_BOWLS_PORT.md",
+      "sha256": "2cf08d7a6a8c68b5f8b845474325758b1640e51f8a5767296742ef0673ddd160",
+      "role": "accepted G3 evidence and asset boundary"
+    }
+  ],
+  "normalized_contact_context": {
+    "scope": "one robot-bowl contact pair",
+    "required_fields": {
+      "stage": [
+        "place",
+        "release",
+        "retreat",
+        "other"
+      ],
+      "bowl_relation": [
+        "selected",
+        "nonselected"
+      ],
+      "robot_geometry": [
+        "clamp",
+        "nonclamp"
+      ],
+      "clamp_relation": [
+        "active",
+        "inactive",
+        "unknown",
+        "not_applicable"
+      ],
+      "collider_class": [
+        "source_mesh_collision",
+        "competition_rim_support_collision",
+        "other"
+      ]
+    },
+    "validation_rules": [
+      "clamp_relation must be active, inactive, or unknown when robot_geometry is clamp",
+      "clamp_relation must be not_applicable when robot_geometry is nonclamp",
+      "stage other represents every non-place, non-release, non-retreat suffix",
+      "collider_class is descriptive and must not alter either frozen current classifier"
+    ],
+    "multi_pair_aggregation": "A bowl contact set is allowed only when every normalized pair is allowed by the selected policy. Any forbidden pair forbids the set; any unresolved pair makes the set unresolved unless a forbidden pair is already present."
+  },
+  "decision_vocabulary": [
+    "allow",
+    "forbid",
+    "unresolved"
+  ],
+  "frozen_current_semantics": {
+    "scripted_expert_v131": {
+      "selected_bowl": "allow because sample_safety skips the selected bowl entirely",
+      "nonselected_bowl": "allow only when stage is place or release, robot geometry is an active-side clamp, and every pair for that bowl satisfies the same condition; otherwise forbid",
+      "collider_class_effect": "none"
+    },
+    "act_g3_current": {
+      "all_bowls": "allow when every robot geometry in a pair is a clamp; otherwise forbid",
+      "stage_effect": "none",
+      "selectedness_effect": "none",
+      "active_side_effect": "none",
+      "collider_class_effect": "none"
+    }
+  },
+  "authority_neutral_shared_decision": {
+    "algorithm": [
+      "evaluate the normalized context under the frozen scripted-expert projection",
+      "evaluate the same context under the frozen ACT G3 projection",
+      "return the common decision when both decisions match",
+      "return unresolved when the decisions differ"
+    ],
+    "safety_property": "No unresolved context is silently converted to allow or forbid.",
+    "non_authority_statement": "This consensus projection exposes agreement and divergence; it is not an executable competition safety policy and is not authorized for runtime integration."
+  },
+  "seed1630_regression_case": {
+    "pair": "bowl2:bowl_link <> mantis:left_clamp_left_link:competition_rim_support_collision",
+    "stage": "retreat",
+    "bowl_relation": "nonselected",
+    "robot_geometry": "clamp",
+    "clamp_relation": "active",
+    "collider_class": "competition_rim_support_collision",
+    "scripted_expert_decision": "forbid",
+    "act_g3_decision": "allow",
+    "shared_decision": "unresolved"
+  },
+  "future_parity_design": {
+    "shared_components": [
+      "one normalized contact-context schema",
+      "one validated batch aggregator",
+      "one explicit policy identifier selected by future authority",
+      "one classifier implementation called by both scripted and ACT adapters",
+      "one cross-adapter parity matrix over every normalized dimension"
+    ],
+    "adapter_responsibilities": [
+      "map simulator contact labels to robot_geometry and collider_class",
+      "supply stage, selected bowl, and active side without changing their meanings",
+      "fail closed on malformed or unmappable context",
+      "emit policy identifier and normalized decision in evidence"
+    ],
+    "forbidden_designs": [
+      "executor-local collision exceptions",
+      "implicit stage defaults",
+      "treating unknown side or selection state as allowed",
+      "collider-name-specific relaxation without a separately authorized geometry and safety review",
+      "automatic selection of scripted or ACT semantics from this work package"
+    ],
+    "promotion_prerequisites": [
+      "user authorization for runtime safety-rule implementation",
+      "an authoritative choice for every unresolved matrix cell",
+      "static parity tests for both adapters",
+      "separately authorized dynamic validation before any G3, collection, export, or training claim"
+    ]
+  },
+  "candidate_policy_risk_order": [
+    {
+      "candidate": "authority-neutral unresolved-on-divergence design",
+      "status": "recommended design baseline",
+      "risk": "lowest for this phase because it preserves evidence and prevents accidental policy promotion"
+    },
+    {
+      "candidate": "scripted-equivalent shared policy",
+      "status": "not selected",
+      "risk": "would reject the observed seed-1630 retreat pair and may preserve a stage-boundary false positive"
+    },
+    {
+      "candidate": "ACT-equivalent shared policy",
+      "status": "not selected",
+      "risk": "would broadly allow clamp contact across stage, side, and selectedness without task-authority evidence"
+    },
+    {
+      "candidate": "new stage-aware or release-grace policy",
+      "status": "not designed",
+      "risk": "would be a new safety rule requiring separate authority and dynamic evidence"
+    }
+  ],
+  "dependency_graph": {
+    "upstream": [
+      "WP-G3-CORR-015 cached boundary observation",
+      "WP-G3-CORR-016 safety-semantics divergence review"
+    ],
+    "current": [
+      "shared vocabulary",
+      "pure Python frozen-semantics projections",
+      "authority-neutral consensus classifier",
+      "future two-adapter parity design",
+      "static tests and terminal receipt"
+    ],
+    "downstream_blocked": [
+      "runtime classifier integration",
+      "choice of authoritative safety policy",
+      "controller, threshold, timing, safety-rule, or geometry changes",
+      "simulator or remote validation",
+      "collection, export, training, inference, or publication"
+    ]
+  },
+  "deliverable_manifest": [
+    "configs/g3-robot-bowl-collision-semantics-v20.json",
+    "configs/g3-robot-bowl-collision-semantics-authorization-v21.json",
+    "src/mantis_rocm_bridge/robot_bowl_collision_semantics.py",
+    "tests/test_g3_robot_bowl_collision_semantics_v20.py",
+    "docs/G3_ROBOT_BOWL_COLLISION_SEMANTICS_V1.md",
+    ".ops/wip/g3-robot-bowl-collision-semantics-20260729/WP-G3-CORR-017.md",
+    ".ops/wip/g3-robot-bowl-collision-semantics-20260729/ISSUES.md",
+    "receipts/g3-robot-bowl-collision-semantics-terminal-20260729-v20/"
+  ],
+  "acceptance_matrix": [
+    {
+      "check": "input_identity",
+      "expected": "Every authoritative and predecessor hash matches."
+    },
+    {
+      "check": "pure_python_design_only",
+      "expected": "The new module uses only the Python standard library and is not imported by either runtime executor."
+    },
+    {
+      "check": "frozen_semantics_fidelity",
+      "expected": "Representative and exhaustive normalized cases match exact source semantics, including multi-pair all aggregation."
+    },
+    {
+      "check": "seed1630_reproduction",
+      "expected": "The WP-015 retreat pair classifies scripted=forbid, ACT=allow, shared=unresolved."
+    },
+    {
+      "check": "authority_neutrality",
+      "expected": "No code, config, or document selects a divergent allow or forbid decision as authoritative."
+    },
+    {
+      "check": "no_runtime_mutation_or_execution",
+      "expected": "Frozen executor, controller, safety, threshold, geometry, timing, asset, data, and training sources remain hash-identical; no simulator or remote access occurs."
+    },
+    {
+      "check": "tests",
+      "expected": "Focused tests pass; all functional regressions pass; only the two immutable predecessor source-pin sentinels fail as expected."
+    },
+    {
+      "check": "receipt",
+      "expected": "A fresh no-overwrite terminal receipt and SHA-256 manifest verify."
+    }
+  ],
+  "terminal_conditions": [
+    "COMPLETE_SHARED_COLLISION_SEMANTICS_DESIGN_FROZEN",
+    "COMPLETE_DESIGN_INCONCLUSIVE_AUTHORITY_GAP",
+    "FAILED_EVIDENCE_GATE"
+  ],
+  "accepted_at_utc": "2026-07-29T04:49:25Z",
+  "claim_boundary": "This local work package may define and validate an authority-neutral vocabulary, faithfully model the two frozen current classifiers, expose agreement and divergence, and freeze a future shared-integration design. It cannot choose the correct competition safety policy, modify runtime behavior, establish repair validity, explain the unobserved release contact manifold, prove dynamic adapter parity, establish G3 passage, authorize collection or training, establish AMD/ROCm behavior, validate hardware safety, or authorize publication."
+}

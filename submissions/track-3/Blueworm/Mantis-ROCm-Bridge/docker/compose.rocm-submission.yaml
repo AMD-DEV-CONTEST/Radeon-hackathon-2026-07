@@ -1,0 +1,25 @@
+services:
+  mantis-rocm-submission:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.rocm-submission
+      args:
+        BASE_IMAGE: rocm/pytorch:rocm7.2.4_ubuntu24.04_py3.12_pytorch_release_2.9.1
+        GENESIS_REVISION: 2a40c87ad4e89a0f115cc43fb45195a8260aad0e
+        LEROBOT_REVISION: 8fff0fde7c79f23a93d845d1a50e985de01f8b8a
+    image: mantis-genesis-lerobot-rocm:submission-v2
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+    ipc: host
+    shm_size: 8g
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp=unconfined
+    working_dir: /workspace/mantis-rocm-bridge
+    volumes:
+      - ${MANTIS_RUNTIME_ROOT:?set MANTIS_RUNTIME_ROOT}:/workspace/runtime
+    command: /bin/bash

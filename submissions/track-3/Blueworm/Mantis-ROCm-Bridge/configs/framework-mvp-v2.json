@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "work_package_id": "WP-FRAMEWORK-MVP-002",
+  "phase": "generic_robot_port_profile_and_read_only_planner",
+  "status": "complete",
+  "authorization": {
+    "provenance": "user_stated",
+    "scope": "Create a generic robot-port profile, template, Mantis reference instance, synthetic validation fixture, and read-only validate/plan entrypoint.",
+    "runtime_behavior_must_remain_unchanged": true,
+    "remote_access_authorized_in_this_work_package": false
+  },
+  "objective": "Provide the smallest configuration-driven framework surface that validates a robot task port and reports stage readiness without importing or changing the existing Mantis simulator, controller, data, ACT, or safety executors.",
+  "entry_criteria": [
+    {
+      "path": "configs/framework-product-reset-v1.json",
+      "required_terminal": "COMPLETE_FRAMEWORK_PRODUCT_DIRECTION_FROZEN"
+    },
+    {
+      "path": "receipts/framework-product-reset-terminal-20260729-v1/RECEIPT.SHA256SUMS",
+      "required_hash_verification": true
+    }
+  ],
+  "deliverables": [
+    "src/mantis_rocm_bridge/port_profile.py",
+    "tools/plan_robot_port.py",
+    "configs/robot-port-profile-template-v1.json",
+    "configs/robot-port-profile-mantis-stack-bowls-v1.json",
+    "tests/fixtures/robot-port-profile-synthetic-v1.json",
+    "tests/test_port_profile.py",
+    "docs/ROBOT_PORT_PROFILE_V1.md",
+    "receipts/framework-mvp-terminal-20260729-v2/"
+  ],
+  "profile_contract": {
+    "schema_version": 1,
+    "required_pipeline_sections": [
+      "controller",
+      "safety",
+      "data",
+      "policy",
+      "evaluation"
+    ],
+    "independent_interface_orders": [
+      "policy_state_order",
+      "policy_action_order",
+      "physical_state_order",
+      "physical_action_order"
+    ],
+    "profile_kinds": [
+      "template",
+      "reference",
+      "synthetic_fixture"
+    ],
+    "port_modes": [
+      "same_robot_new_scene",
+      "new_robot_same_task",
+      "new_robot_new_scene"
+    ],
+    "stage_states": [
+      "complete",
+      "ready",
+      "blocked",
+      "deferred"
+    ],
+    "stage_outcomes": [
+      "pass",
+      "negative",
+      "not_run",
+      "not_applicable"
+    ],
+    "promotion_states": [
+      "allows_downstream",
+      "blocks_downstream",
+      "pending",
+      "not_applicable"
+    ]
+  },
+  "runtime_immutability": {
+    "src/mantis_rocm_bridge/act_closedloop_g3.py": "01341355e9d637609ced18c94b1813174ff6288f7e4bd489afce7d1a049b6a1d",
+    "src/mantis_rocm_bridge/gripper.py": "d674ba91906bdd56a3e554f269680d4ea40fb4c34bfb9894418ad209690cf533",
+    "src/mantis_rocm_bridge/lerobot_adapter.py": "18378d8a0421ae3df5a7966b3a92af4fd8e910d236d7e51f3a764cf627483017",
+    "src/mantis_rocm_bridge/episode_export.py": "f52dd74946466e59446502af7e6707cb795127684e31c101b4fbe5334f03dcc7",
+    "src/mantis_rocm_bridge/stack_bowls.py": "40197ee302567410803cdda6967ddc982006bad02a7fbe33a0588eb40d4bfec8",
+    "src/mantis_rocm_bridge/stack_bowls_env.py": "73a4154913b4eaf31c459f04abb87dbbca6d19e6962c4bbb3c00d89a9f75d3fb",
+    "tools/run_genesis_act_closedloop_g3.py": "71d9b2176f51ffb54588413a44380a572476d141a511189ebac155d4b910cdd7",
+    "tools/run_genesis_stack_bowls_scripted_g1.py": "2290352b9d9c270d72b5ae6af3d3360e45b145a897964a8140e2b6b472a66f43"
+  },
+  "acceptance_matrix": [
+    {
+      "check": "profile_validation",
+      "expected": "template, Mantis reference, and synthetic fixture validate under schema version 1"
+    },
+    {
+      "check": "generic_dimension_model",
+      "expected": "state and action dimensions may differ and each has its own ordered field list"
+    },
+    {
+      "check": "pipeline_coverage",
+      "expected": "controller, safety, data, policy, and evaluation are explicit checked sections"
+    },
+    {
+      "check": "reference_audit",
+      "expected": "all required Mantis local references exist under the project root"
+    },
+    {
+      "check": "read_only_plan",
+      "expected": "plan emits deterministic JSON to stdout and exposes no output or execution option"
+    },
+    {
+      "check": "synthetic_boundary",
+      "expected": "synthetic fixture proves validation and planning behavior only"
+    },
+    {
+      "check": "runtime_immutability",
+      "expected": "all eight pinned runtime and runner hashes remain byte-identical and none imports port_profile"
+    },
+    {
+      "check": "focused_tests",
+      "expected": "all new profile and planner tests pass"
+    },
+    {
+      "check": "existing_contracts",
+      "expected": "tools/validate_contracts.py reports valid=true"
+    },
+    {
+      "check": "full_regression",
+      "expected": "all functional tests pass; only the same two immutable predecessor source-pin sentinels may fail"
+    }
+  ],
+  "forbidden_actions": [
+    "modify_existing_runtime_executor",
+    "modify_controller_or_safety_rule",
+    "modify_threshold_or_collision_geometry",
+    "start_simulator",
+    "access_4090_or_amd",
+    "collect_or_export_data",
+    "train_or_run_inference",
+    "stop_process",
+    "materialize_asset",
+    "commit_push_submit_pr_or_publish"
+  ],
+  "terminal_statuses": {
+    "complete": "COMPLETE_FRAMEWORK_PROFILE_AND_READ_ONLY_PLANNER_VERIFIED",
+    "blocked": "BLOCKED_FRAMEWORK_PROFILE_OR_RUNTIME_PARITY_GATE",
+    "failed": "FAILED_FRAMEWORK_MVP_EVIDENCE_GATE"
+  },
+  "claim_boundary": "This work package may establish a generic profile schema, read-only validation/planning behavior, a Mantis reference profile, and a synthetic validation-only fixture. It cannot establish a second real robot port, generic runtime execution, changed Mantis behavior, improved task performance, AMD execution, submission, Pull Request, or publication."
+}
