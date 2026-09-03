@@ -1,0 +1,56 @@
+# G1-D Organize & Tidy — Python dependencies
+# Install OpenPI editable package from ./src after creating a venv.
+#
+# AMD cloud (ROCm): install PyTorch ROCm wheels FIRST from the cloud image,
+# then: pip install -r requirements.txt && pip install -e ./src --no-deps
+#
+# Local training (CUDA): use src/pyproject.toml / uv sync instead.
+
+# --- OpenPI core (from src/pyproject.toml, CUDA torch omitted on AMD) ---
+augmax>=0.3.4
+dm-tree>=0.1.8
+einops>=0.8.0
+equinox>=0.11.8
+flatbuffers>=24.3.25
+flax==0.10.2
+fsspec[gcs]>=2024.6.0
+imageio>=2.36.1
+jaxtyping==0.2.36
+ml_collections==1.0.0
+numpy>=1.22.4,<2.0.0
+numpydantic>=1.6.6
+opencv-python>=4.10.0.84
+orbax-checkpoint==0.11.13
+pillow>=11.0.0
+sentencepiece>=0.2.0
+tqdm-loggable>=0.2
+tyro>=0.9.5
+filelock>=3.16.1
+beartype==0.19.0
+chex==0.1.90
+treescope>=0.1.7
+transformers==4.53.2
+rich>=14.0.0
+polars>=1.30.0
+safetensors
+typing-extensions>=4.12.2
+wandb>=0.19.1
+
+# JAX (CPU fallback; cloud AMD install uses jax==0.5.3 + jaxlib)
+jax==0.5.3
+jaxlib
+
+# Editable workspace packages (install from repo)
+-e ./src/packages/openpi-client
+
+# LeRobot pin (git)
+lerobot @ git+https://github.com/huggingface/lerobot@0cf864870cf29f4738d3ade893e6fd13fbd7cdb5
+
+# --- AMD cloud only (install from local wheels, not PyPI) ---
+# torch==2.9.1+rocm7.2.1
+# torchvision==0.24.0+rocm7.2.1
+# torchaudio==2.9.0+rocm7.2.1
+# triton==3.5.1+rocm7.2.1
+
+# --- Local robot Client (install on local PC separately) ---
+# unitree_sdk2py, pinocchio, cyclonedds — see README Section 5.4

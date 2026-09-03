@@ -1,0 +1,33 @@
+# G1-D desktop organization — training & inference configuration
+# Config name in OpenPI: pi05_g1d_joint_full (see src/src/openpi/training/config.py)
+
+project:
+  name: organize_and_tidy
+  task: "Organize and tidy the items on the table."
+
+model:
+  config_name: pi05_g1d_joint_full
+  action_dim: 32
+  action_horizon: 10
+  checkpoint_step: 29999
+
+data:
+  repo_id: G1D/G1D_Dex1_Organize_table_normal_start_bhw
+  format: lerobot_v2.1
+  # Dataset NOT included in repo — collect via VR teleop on G1-D
+
+training:
+  script: src/scripts/train_pytorch.py
+  num_train_steps: 70000
+  batch_size: 32
+
+inference:
+  server_script: src/self_scripts/infer/serve_g1d_policy_amd.sh
+  client_script: src/self_scripts/infer/run_g1d_client.sh
+  server_port: 8000
+  control_frequency_hz: 30
+  image_transport: jpeg
+
+paths:
+  # Checkpoint hosted separately (not in git)
+  checkpoint_dir: checkpoints/pi05_g1d_joint_full_pytorch/Organize_table_normal_start/29999
