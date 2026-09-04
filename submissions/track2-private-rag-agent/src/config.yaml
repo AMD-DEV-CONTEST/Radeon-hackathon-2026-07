@@ -1,0 +1,49 @@
+# 本地私有 RAG Agent 配置
+model:
+  backend: ollama            # ollama | llama_cpp | vllm
+  name: qwen3:8b            # 本地模型名（AMD GPU 推荐 Qwen2.5-7B-Instruct-Q4_K_M GGUF）
+  temperature: 0.3
+  max_tokens: 2048
+  top_p: 0.9
+
+embedding:
+  backend: ollama            # ollama | sentence_transformers
+  name: bge-m3              # 独立中文 embedding 模型（检索质量好）
+  dim: 1024
+
+rag:
+  chunk_size: 512
+  chunk_overlap: 64
+  top_k: 4
+  vector_store: chroma      # chroma | faiss | sqlite_vec
+  db_dir: ./data/vector_db
+  docs_dir: ./data/docs     # 拖入待入库的文档
+  allowed_ext: [.pdf, .docx, .md, .txt, .csv, .json, .pptx, .xlsx]
+  # ---- 混合检索（BM25 关键词 + 向量语义，取并集） ----
+  hybrid: true
+  bm25_weight: 0.4          # BM25 分数权重（向量 0.6）
+  rerank: true              # cross-encoder 重排（提升 Top-k 精度）
+  rerank_model: BAAI/bge-reranker-v2-m3  # 多语言重排模型（含中文，更强）
+  retrieval_top_k: 16       # 混合候选池（重排前取多少条）
+  query_expansion: true     # LLM 查询改写（本地小模型轻量改写）
+  compression: true         # 上下文压缩（重排后裁剪到与查询相关的句子）
+  compression_threshold: 0.12  # 句子保留的字符3-gram重叠阈值
+  adaptive_top_k: true      # 自适应候选池（剔除重排分过弱的填充）
+  dedup: true               # 近重复片段去重（重排前）
+
+memory:
+  max_history: 10           # 保留几轮对话历史
+  long_term: ./data/memory_long.json
+
+tools:
+  max_steps: 6              # Agent 单次任务最大工具调用步数
+  enabled:
+    - rag_search
+    - read_doc
+    - list_docs
+    - summarize
+    - web_search_offline
+
+server:
+  host: 0.0.0.0
+  port: 7860

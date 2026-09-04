@@ -1,0 +1,45 @@
+# ============================================================
+# Private RAG Agent — 一键容器化部署（离线部署能力证明）
+#
+# 两条命令把整套系统跑起来（Ollama 推理 + Agent 应用）：
+#   docker compose up -d --build
+#   docker exec -it private-rag-ollama ollama pull qwen3:8b && \
+#   docker exec -it private-rag-ollama ollama pull bge-m3
+#
+# 然后打开 http://localhost:7860 使用。
+# 向量库为应用内嵌的 ChromaDB，持久化在 ./data，数据不出本机。
+# 在 AMD + ROCm 的 Linux 主机上，取消注释 ollama 的 devices 即可让 GPU 进容器。
+# ============================================================
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: private-rag-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+    # ---- AMD GPU (ROCm) 透传：在 AMD Linux 主机上取消注释下面三块 ----
+    # devices:
+    #   - /dev/kfd:/dev/kfd
+    #   - /dev/dri:/dev/dri
+    # group_add:
+    #   - video
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    container_name: private-rag-app
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "7860:7860"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+volumes:
+  ollama_data:

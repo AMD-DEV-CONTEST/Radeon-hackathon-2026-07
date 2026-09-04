@@ -1,0 +1,37 @@
+[
+  {
+    "severity": "medium",
+    "doc": "README_EN.md",
+    "issue": "Line 238 claims \"the final submission includes an AMD comparison table under benchmarks/\". No such table exists anywhere in the repo: benchmarks/ contains only bench_amd.py, and the only AMD comparison table in the project (project_specification_EN.md section 8.2) still has [fill in] placeholders. The claim describes a deliverable that is not present."
+  },
+  {
+    "severity": "medium",
+    "doc": "docs/project_specification_EN.md",
+    "issue": "Executive Summary (lines 46-47) states the \"5-10x wall-clock speedup measured versus CPU inference\" as an established fact. Section 8 and README_EN both label the 5-10x figure as \"projected\"/\"expected\" with AMD numbers still [fill in], and no measured AMD benchmark artifact exists in the repo. Presenting a projection as a measured result overstates the evidence."
+  },
+  {
+    "severity": "medium",
+    "doc": "README_EN.md / docs/presentation_content.md / docs/demo_video_EN.md / submissions/track2-private-rag-agent/README.md",
+    "issue": "The claim \"Synthesizer composes the final answer ONLY/exclusively from verified content\" (README_EN line 141, presentation slide 5, demo video narration \"Only content that passes verification is ever synthesized\", submission README line 33) is not enforced by the code. multi_agent.py passes EVERY sub-report - including reports with grounding=None (no sources) and reports carrying unsupported-claim flags - into the SYNTHESIZE_PROMPT, relying on a prompt instruction for the LLM to use only verified content. There is no filtering step that drops unverified content. (project_specification_EN.md 7.4 correctly phrases this as \"instructed to compose...\", but the other documents state it as a hard guarantee.)"
+  },
+  {
+    "severity": "low",
+    "doc": "docs/project_specification_EN.md",
+    "issue": "Section 4.5 claims documents \"can be added, listed, or removed through the web UI or CLI\". The CLI (main.py) only implements ingest/ask/ui/bench - there is no CLI remove command (nor an Agent/rag remove entry point reachable from CLI). Removal exists only via the web UI (DELETE /api/documents/{doc})."
+  },
+  {
+    "severity": "low",
+    "doc": "README_EN.md",
+    "issue": "Line 224 says \"Serializing only the native paths adds milliseconds of contention while LLM inference - the expensive part - runs concurrently through the Ollama/vLLM service.\" In agent/rag.py the query-rewrite LLM call (_expand_query) executes INSIDE the _RETRIEVE_LOCK (it is called from _search_unlocked under the lock), so that LLM inference call is also serialized. Only downstream generation (agent reasoning / sub-report synthesis) is concurrent. The claim slightly overstates which paths stay concurrent."
+  },
+  {
+    "severity": "low",
+    "doc": "README_EN.md / docs/project_specification_EN.md",
+    "issue": "The \"~1.8 tokens/s (measured)\" CPU baseline (README_EN line 238, spec section 8.1) is presented as measured, but no benchmark output or log artifact exists in the repo to substantiate it, and benchmarks/bench_amd.py estimates token count as len(content)//2 (a coarse approximation for Chinese). The number is plausible but cannot be verified from the repository."
+  },
+  {
+    "severity": "low",
+    "doc": "docs/demo_video_EN.md",
+    "issue": "Shot 5 narration states \"On Radeon with ROCm, the same model runs five to ten times faster than CPU\" as a fact. The 5-10x figure is a projection elsewhere (spec 8.2, README) and no measured AMD result exists yet; the on-camera claim should say \"projected\" until measured on the target. (The recording notes do warn against faking numbers, but the script wording asserts the factor as established.)"
+  }
+]
