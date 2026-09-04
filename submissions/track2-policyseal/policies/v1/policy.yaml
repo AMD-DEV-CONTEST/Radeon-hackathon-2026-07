@@ -1,0 +1,500 @@
+version: 1.0.0
+name: PolicySeal Synthetic Competition Policy
+synthetic_only: true
+default_action: require_approval
+
+evidence:
+  - id: EV-GEN-001
+    path: evidence/disclosure-principles.md
+    title: Confidential files and personal channels
+    tags: [channel, block, confidential]
+  - id: EV-GEN-002
+    path: evidence/disclosure-principles.md
+    title: Fail-closed treatment of uncertainty
+    tags: [uncertainty, approval, fail-closed]
+  - id: EV-GEN-003
+    path: evidence/disclosure-principles.md
+    title: Minimum necessary disclosure
+    tags: [minimum-disclosure, purpose, context]
+  - id: EV-GEN-004
+    path: evidence/disclosure-principles.md
+    title: Approval cannot override Block
+    tags: [approval, block, exception]
+  - id: EV-XLSX-001
+    path: evidence/xlsx-supplier-matrix.md
+    title: Internal procurement view
+    tags: [xlsx, procurement, internal]
+  - id: EV-XLSX-002
+    path: evidence/xlsx-supplier-matrix.md
+    title: External financial audit view
+    tags: [xlsx, audit, external]
+  - id: EV-XLSX-003
+    path: evidence/xlsx-supplier-matrix.md
+    title: Bidder feedback view
+    tags: [xlsx, bidder, supplier]
+  - id: EV-XLSX-004
+    path: evidence/xlsx-supplier-matrix.md
+    title: Supplier ownership filtering
+    tags: [xlsx, owner, competitor]
+  - id: EV-DOCX-001
+    path: evidence/security-incident.md
+    title: Incident investigation facts
+    tags: [docx, incident, responder]
+  - id: EV-DOCX-002
+    path: evidence/security-incident.md
+    title: Stable aliases for internal identities
+    tags: [docx, alias, identity]
+  - id: EV-DOCX-003
+    path: evidence/security-incident.md
+    title: Credentials and exploit material
+    tags: [docx, credential, exploit]
+  - id: EV-DOCX-004
+    path: evidence/security-incident.md
+    title: Internal management information
+    tags: [docx, management, removal]
+  - id: EV-PDF-001
+    path: evidence/reference-contract.md
+    title: Reference draft placeholders
+    tags: [pdf, contract, placeholder]
+  - id: EV-PDF-002
+    path: evidence/reference-contract.md
+    title: Standard contract terms
+    tags: [pdf, contract, standard]
+  - id: EV-PDF-003
+    path: evidence/reference-contract.md
+    title: Nonstandard obligations need approval
+    tags: [pdf, contract, approval]
+  - id: EV-PDF-004
+    path: evidence/reference-contract.md
+    title: Signature and source metadata exclusion
+    tags: [pdf, signature, metadata]
+
+rules:
+  - id: PS-GLOBAL-PERSONAL-EMAIL
+    reason_code: confidential_personal_channel
+    reason: Confidential material cannot be prepared for a personal email channel.
+    priority: 1000
+    when:
+      channels: [personal_email]
+      classifications: [confidential, strictly_confidential]
+    action: block
+    evidence_ids: [EV-GEN-001, EV-GEN-004]
+
+  - id: PS-GLOBAL-UNCLASSIFIED
+    reason_code: unclassified_content
+    reason: Unclassified content requires confirmation before any external disclosure.
+    priority: 900
+    when:
+      categories: [unclassified]
+    action: require_approval
+    evidence_ids: [EV-GEN-002]
+
+  - id: PS-XLSX-INTERNAL-KEEP
+    reason_code: procurement_purpose_required
+    reason: The internal procurement purpose requires these business fields.
+    when:
+      file_kinds: [xlsx]
+      recipients: [internal_procurement_lead]
+      purposes: [procurement_decision]
+      channels: [collaboration_platform]
+      categories:
+        - general_business
+        - supplier_identity
+        - quote_commercial_terms
+        - internal_cost_budget
+        - score_ranking
+        - internal_opinion_approval
+    action: keep
+    evidence_ids: [EV-XLSX-001, EV-GEN-003]
+
+  - id: PS-XLSX-INTERNAL-CONTACT
+    reason_code: procurement_contact_minimized
+    reason: Internal procurement receives only names and work email addresses.
+    when:
+      file_kinds: [xlsx]
+      recipients: [internal_procurement_lead]
+      purposes: [procurement_decision]
+      channels: [collaboration_platform]
+      categories: [contact_personal]
+    action: filter
+    transform: keep_name_work_email
+    evidence_ids: [EV-XLSX-001, EV-GEN-003]
+
+  - id: PS-XLSX-INTERNAL-BANK
+    reason_code: procurement_bank_not_required
+    reason: Bank and payment account details are not needed for procurement selection.
+    when:
+      file_kinds: [xlsx]
+      recipients: [internal_procurement_lead]
+      purposes: [procurement_decision]
+      categories: [bank_payment]
+    action: remove
+    evidence_ids: [EV-XLSX-001, EV-GEN-003]
+
+  - id: PS-XLSX-AUDIT-KEEP
+    reason_code: audit_business_evidence
+    reason: General business context and supplier identity are required audit evidence.
+    when:
+      file_kinds: [xlsx]
+      recipients: [external_financial_auditor]
+      purposes: [annual_financial_audit]
+      channels: [secure_file_exchange]
+      categories: [general_business, supplier_identity]
+    action: keep
+    evidence_ids: [EV-XLSX-002, EV-GEN-003]
+
+  - id: PS-XLSX-AUDIT-CONTACT
+    reason_code: audit_contact_not_required
+    reason: Personal and contact details are not required for the financial audit.
+    when:
+      file_kinds: [xlsx]
+      recipients: [external_financial_auditor]
+      purposes: [annual_financial_audit]
+      categories: [contact_personal]
+    action: remove
+    evidence_ids: [EV-XLSX-002, EV-GEN-003]
+
+  - id: PS-XLSX-AUDIT-BANK
+    reason_code: audit_bank_last_four
+    reason: The audit receives only the last four digits of payment accounts.
+    when:
+      file_kinds: [xlsx]
+      recipients: [external_financial_auditor]
+      purposes: [annual_financial_audit]
+      categories: [bank_payment]
+    action: mask
+    transform: mask_last_four
+    evidence_ids: [EV-XLSX-002]
+
+  - id: PS-XLSX-AUDIT-AMOUNTS
+    reason_code: audit_amounts_only
+    reason: Only amounts required to substantiate the annual audit are disclosed.
+    when:
+      file_kinds: [xlsx]
+      recipients: [external_financial_auditor]
+      purposes: [annual_financial_audit]
+      categories: [quote_commercial_terms, internal_cost_budget]
+    action: filter
+    transform: keep_audit_amount
+    evidence_ids: [EV-XLSX-002, EV-GEN-003]
+
+  - id: PS-XLSX-AUDIT-SCORE
+    reason_code: audit_score_not_required
+    reason: Internal scores and rankings are outside the annual financial audit purpose.
+    when:
+      file_kinds: [xlsx]
+      recipients: [external_financial_auditor]
+      purposes: [annual_financial_audit]
+      categories: [score_ranking]
+    action: remove
+    evidence_ids: [EV-XLSX-002]
+
+  - id: PS-XLSX-AUDIT-APPROVAL
+    reason_code: audit_approval_status_only
+    reason: Internal comments are reduced to an approved, pending, or rejected status.
+    when:
+      file_kinds: [xlsx]
+      recipients: [external_financial_auditor]
+      purposes: [annual_financial_audit]
+      categories: [internal_opinion_approval]
+    action: generalize
+    transform: generalize_approval_status
+    evidence_ids: [EV-XLSX-002]
+
+  - id: PS-XLSX-BIDDER-GENERAL
+    reason_code: bidder_general_context
+    reason: General business context is allowed for the controlled bidder feedback purpose.
+    when:
+      file_kinds: [xlsx]
+      recipients: [supplier_bidder_a]
+      purposes: [supplier_bid_feedback]
+      channels: [corporate_email]
+      categories: [general_business]
+    action: keep
+    evidence_ids: [EV-XLSX-003]
+
+  - id: PS-XLSX-BIDDER-OWN-DATA
+    reason_code: bidder_own_data
+    reason: The bidder may receive its own identity and commercial offer details.
+    when:
+      file_kinds: [xlsx]
+      recipients: [supplier_bidder_a]
+      purposes: [supplier_bid_feedback]
+      channels: [corporate_email]
+      categories: [supplier_identity, quote_commercial_terms]
+      owner_relations: [recipient]
+    action: keep
+    evidence_ids: [EV-XLSX-003, EV-XLSX-004]
+
+  - id: PS-XLSX-BIDDER-OTHER-DATA
+    reason_code: bidder_competitor_filtered
+    reason: Other suppliers and their commercial terms are filtered from bidder feedback.
+    when:
+      file_kinds: [xlsx]
+      recipients: [supplier_bidder_a]
+      purposes: [supplier_bid_feedback]
+      channels: [corporate_email]
+      categories: [supplier_identity, quote_commercial_terms]
+      owner_relations: [other]
+    action: filter
+    transform: filter_other_owners
+    evidence_ids: [EV-XLSX-003, EV-XLSX-004]
+
+  - id: PS-XLSX-BIDDER-REMOVE
+    reason_code: bidder_internal_data_removed
+    reason: Personal, payment, internal cost, and internal opinion data are not disclosed.
+    when:
+      file_kinds: [xlsx]
+      recipients: [supplier_bidder_a]
+      purposes: [supplier_bid_feedback]
+      channels: [corporate_email]
+      categories:
+        - contact_personal
+        - bank_payment
+        - internal_cost_budget
+        - internal_opinion_approval
+    action: remove
+    evidence_ids: [EV-XLSX-003, EV-GEN-003]
+
+  - id: PS-XLSX-BIDDER-OWN-SCORE
+    reason_code: bidder_score_generalized
+    reason: The bidder receives only its own shortlisted, not shortlisted, or pending status.
+    when:
+      file_kinds: [xlsx]
+      recipients: [supplier_bidder_a]
+      purposes: [supplier_bid_feedback]
+      channels: [corporate_email]
+      categories: [score_ranking]
+      owner_relations: [recipient]
+    action: generalize
+    transform: generalize_shortlist_status
+    evidence_ids: [EV-XLSX-003, EV-XLSX-004]
+
+  - id: PS-XLSX-BIDDER-OTHER-SCORE
+    reason_code: bidder_other_score_filtered
+    reason: Scores belonging to other suppliers are filtered from the bidder output.
+    when:
+      file_kinds: [xlsx]
+      recipients: [supplier_bidder_a]
+      purposes: [supplier_bid_feedback]
+      channels: [corporate_email]
+      categories: [score_ranking]
+      owner_relations: [other]
+    action: filter
+    transform: filter_other_owners
+    evidence_ids: [EV-XLSX-003, EV-XLSX-004]
+
+  - id: PS-DOCX-RESPONDER-KEEP
+    reason_code: incident_facts_required
+    reason: Investigation facts, external indicators, roles, and remediation are required.
+    when:
+      file_kinds: [docx]
+      recipients: [external_incident_responder]
+      purposes: [incident_response_investigation]
+      channels: [secure_file_exchange]
+      categories:
+        - incident_fact_timeline
+        - external_threat_indicator
+        - network_log
+        - vulnerability_fact
+        - organizational_role
+        - remediation
+    action: keep
+    evidence_ids: [EV-DOCX-001, EV-GEN-003]
+
+  - id: PS-DOCX-RESPONDER-ASSET-ALIAS
+    reason_code: internal_asset_aliased
+    reason: Internal infrastructure identifiers are replaced with stable task-local aliases.
+    when:
+      file_kinds: [docx]
+      recipients: [external_incident_responder]
+      purposes: [incident_response_investigation]
+      categories: [internal_infrastructure]
+    action: mask
+    transform: stable_asset_alias
+    evidence_ids: [EV-DOCX-002]
+
+  - id: PS-DOCX-RESPONDER-CREDENTIAL
+    reason_code: credential_removed
+    reason: Credentials, tokens, and keys are removed and cannot be approved for disclosure.
+    priority: 800
+    when:
+      file_kinds: [docx]
+      recipients: [external_incident_responder]
+      purposes: [incident_response_investigation]
+      categories: [credential_secret]
+    action: remove
+    evidence_ids: [EV-DOCX-003, EV-GEN-004]
+
+  - id: PS-DOCX-RESPONDER-EXPLOIT
+    reason_code: exploit_payload_removed
+    reason: Complete exploit commands, payloads, and attack scripts are removed.
+    when:
+      file_kinds: [docx]
+      recipients: [external_incident_responder]
+      purposes: [incident_response_investigation]
+      categories: [exploit_payload]
+    action: remove
+    evidence_ids: [EV-DOCX-003]
+
+  - id: PS-DOCX-RESPONDER-PERSON-ALIAS
+    reason_code: internal_identity_aliased
+    reason: Internal people, accounts, and remediation owners use stable task-local aliases.
+    when:
+      file_kinds: [docx]
+      recipients: [external_incident_responder]
+      purposes: [incident_response_investigation]
+      categories: [person_identity, internal_account, remediation_owner]
+    action: mask
+    transform: stable_person_alias
+    evidence_ids: [EV-DOCX-002]
+
+  - id: PS-DOCX-RESPONDER-CONTACT
+    reason_code: responder_contact_removed
+    reason: Phone numbers and email addresses are not required for technical investigation.
+    when:
+      file_kinds: [docx]
+      recipients: [external_incident_responder]
+      purposes: [incident_response_investigation]
+      categories: [contact_detail]
+    action: remove
+    evidence_ids: [EV-DOCX-004, EV-GEN-003]
+
+  - id: PS-DOCX-RESPONDER-MANAGEMENT
+    reason_code: management_information_removed
+    reason: Attribution, performance, budget, and management commentary are removed.
+    when:
+      file_kinds: [docx]
+      recipients: [external_incident_responder]
+      purposes: [incident_response_investigation]
+      categories: [internal_attribution, remediation_budget_comment]
+    action: remove
+    evidence_ids: [EV-DOCX-004]
+
+  - id: PS-PDF-BUYER-PLACEHOLDER
+    reason_code: buyer_identity_placeholder
+    reason: The original buyer identity is replaced with a semantic role placeholder.
+    when:
+      file_kinds: [pdf]
+      recipients: [candidate_supplier]
+      purposes: [contract_terms_preview]
+      categories: [contract_buyer]
+    action: generalize
+    transform: placeholder_buyer
+    evidence_ids: [EV-PDF-001]
+
+  - id: PS-PDF-SUPPLIER-PLACEHOLDER
+    reason_code: supplier_identity_placeholder
+    reason: The original supplier identity is replaced with a semantic role placeholder.
+    when:
+      file_kinds: [pdf]
+      recipients: [candidate_supplier]
+      purposes: [contract_terms_preview]
+      categories: [contract_supplier]
+    action: generalize
+    transform: placeholder_supplier
+    evidence_ids: [EV-PDF-001]
+
+  - id: PS-PDF-CORPORATE-ID-PLACEHOLDER
+    reason_code: corporate_identifier_placeholder
+    reason: Addresses and corporate identifiers are replaced with semantic placeholders.
+    when:
+      file_kinds: [pdf]
+      recipients: [candidate_supplier]
+      purposes: [contract_terms_preview]
+      categories: [corporate_identifier]
+    action: generalize
+    transform: placeholder_corporate_id
+    evidence_ids: [EV-PDF-001]
+
+  - id: PS-PDF-CONTACT-PLACEHOLDER
+    reason_code: contract_contact_placeholder
+    reason: Original contract contacts are removed and replaced with semantic placeholders.
+    when:
+      file_kinds: [pdf]
+      recipients: [candidate_supplier]
+      purposes: [contract_terms_preview]
+      categories: [contact_personal, contact_detail]
+    action: generalize
+    transform: placeholder_contact
+    evidence_ids: [EV-PDF-001]
+
+  - id: PS-PDF-DATE-PLACEHOLDER
+    reason_code: contract_date_placeholder
+    reason: Contract identifiers and absolute dates are replaced with semantic placeholders.
+    when:
+      file_kinds: [pdf]
+      recipients: [candidate_supplier]
+      purposes: [contract_terms_preview]
+      categories: [contract_date_identifier]
+    action: generalize
+    transform: placeholder_contract_date
+    evidence_ids: [EV-PDF-001]
+
+  - id: PS-PDF-RELATIVE-TERM-KEEP
+    reason_code: relative_term_required
+    reason: Relative performance periods remain because they define the proposed obligation.
+    when:
+      file_kinds: [pdf]
+      recipients: [candidate_supplier]
+      purposes: [contract_terms_preview]
+      categories: [relative_performance_term]
+    action: keep
+    evidence_ids: [EV-PDF-002]
+
+  - id: PS-PDF-PRICING-PLACEHOLDER
+    reason_code: historical_pricing_placeholder
+    reason: Historical prices, discounts, tax rates, and custom percentages use placeholders.
+    when:
+      file_kinds: [pdf]
+      recipients: [candidate_supplier]
+      purposes: [contract_terms_preview]
+      categories: [historical_pricing]
+    action: generalize
+    transform: placeholder_historical_pricing
+    evidence_ids: [EV-PDF-001]
+
+  - id: PS-PDF-STANDARD-TERM-KEEP
+    reason_code: approved_standard_term
+    reason: Approved standard payment and legal terms may be included in the reference draft.
+    when:
+      file_kinds: [pdf]
+      recipients: [candidate_supplier]
+      purposes: [contract_terms_preview]
+      categories: [standard_legal_term]
+    action: keep
+    evidence_ids: [EV-PDF-002]
+
+  - id: PS-PDF-BANK-REMOVE
+    reason_code: contract_bank_removed
+    reason: Bank and payment account values are never needed in a candidate reference draft.
+    when:
+      file_kinds: [pdf]
+      recipients: [candidate_supplier]
+      purposes: [contract_terms_preview]
+      categories: [bank_payment]
+    action: remove
+    evidence_ids: [EV-PDF-001, EV-GEN-003]
+
+  - id: PS-PDF-NONSTANDARD-APPROVAL
+    reason_code: nonstandard_obligation_approval
+    reason: Custom SLA, indemnity, and other nonstandard obligations require exact approval.
+    priority: 700
+    when:
+      file_kinds: [pdf]
+      recipients: [candidate_supplier]
+      purposes: [contract_terms_preview]
+      categories: [nonstandard_obligation]
+    action: require_approval
+    evidence_ids: [EV-PDF-003]
+
+  - id: PS-PDF-SIGNATURE-METADATA-REMOVE
+    reason_code: signature_metadata_removed
+    reason: Signatures, signing identities, annotations, and source metadata are excluded.
+    when:
+      file_kinds: [pdf]
+      recipients: [candidate_supplier]
+      purposes: [contract_terms_preview]
+      categories: [signature, source_metadata]
+    action: remove
+    evidence_ids: [EV-PDF-004]
