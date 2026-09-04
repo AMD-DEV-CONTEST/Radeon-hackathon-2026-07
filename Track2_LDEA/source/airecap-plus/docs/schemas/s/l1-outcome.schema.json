@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://airecap.local/schemas/s/l1-outcome.schema.json",
+  "title": "L1 OutcomeCandidate (S-tier)",
+  "description": "Source of truth for 'what was actually done'. Status from rules; confidence is ranking only. rules@1.2: confidence_raw + clamp_reason for observability.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "session_id",
+    "type",
+    "title",
+    "status",
+    "confidence",
+    "confidence_raw",
+    "clamp_reason",
+    "evidence_links",
+    "counter_evidence",
+    "scope",
+    "started_at",
+    "updated_at",
+    "aggregator_version",
+    "summary_blob"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "s/1.0"
+    },
+    "id": { "$ref": "common.schema.json#/$defs/Id" },
+    "session_id": { "$ref": "common.schema.json#/$defs/Id" },
+    "goal_id": { "$ref": "common.schema.json#/$defs/Id" },
+    "stable_key": {
+      "$ref": "common.schema.json#/$defs/StableKey",
+      "description": "Reserved; S-tier does not resolve across sessions"
+    },
+    "type": { "$ref": "common.schema.json#/$defs/OutcomeType" },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "status": { "$ref": "common.schema.json#/$defs/OutcomeStatus" },
+    "confidence": {
+      "$ref": "common.schema.json#/$defs/Confidence",
+      "description": "Post-clamp display value (§3.3). Use for ranking within status and L2 wording."
+    },
+    "confidence_raw": {
+      "$ref": "common.schema.json#/$defs/ConfidenceRaw",
+      "description": "§3.2 formula output before per-status clamp. For tuning/observability only."
+    },
+    "clamp_reason": {
+      "$ref": "common.schema.json#/$defs/ClampReason",
+      "description": "none if confidence == confidence_raw after 0..1 bound only"
+    },
+    "evidence_links": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/EvidenceLink" },
+      "default": []
+    },
+    "counter_evidence": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/EvidenceLink" },
+      "default": [],
+      "description": "refutes / failed verifications"
+    },
+    "scope": { "$ref": "common.schema.json#/$defs/Scope" },
+    "started_at": { "$ref": "common.schema.json#/$defs/DateTime" },
+    "updated_at": {
+      "$ref": "common.schema.json#/$defs/DateTime",
+      "description": "Also used as age base for claimed freshness (Q7)"
+    },
+    "verified_at": { "$ref": "common.schema.json#/$defs/DateTime" },
+    "terminal_reason": {
+      "$ref": "common.schema.json#/$defs/TerminalReason"
+    },
+    "merge_of": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/Id" },
+      "default": [],
+      "description": "Outcome ids absorbed into this one"
+    },
+    "superseded_by": { "$ref": "common.schema.json#/$defs/Id" },
+    "aggregator_version": {
+      "$ref": "common.schema.json#/$defs/RulesVersion"
+    },
+    "summary_blob": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Template-filled short summary for cold path / recap; not narrative prose"
+    },
+    "links": { "$ref": "common.schema.json#/$defs/ExternalLinks" },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 64 },
+      "default": []
+    },
+    "title_locked": {
+      "type": "boolean",
+      "default": false,
+      "description": "User-set title; blocks auto rename / weak merge"
+    },
+    "once_verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if ever reached verified (Q1 L2: show prior completion after contradict)"
+    },
+    "verification_anchors": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/VerificationAnchor" },
+      "default": [],
+      "description": "Closed verify keys for regression pairing (test name / repro_key)"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": ["abandoned", "contradicted", "superseded"]
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "required": ["terminal_reason"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "verified" } },
+        "required": ["status"]
+      },
+      "then": {
+        "required": ["verified_at"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "superseded" } },
+        "required": ["status"]
+      },
+      "then": {
+        "required": ["superseded_by"]
+      }
+    }
+  ],
+  "$defs": {
+    "VerificationAnchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "key"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["test", "repro", "user_accept", "ci"]
+        },
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "description": "test name, cmd_normalized, or ci check id"
+        },
+        "event_id": { "$ref": "common.schema.json#/$defs/Id" }
+      }
+    }
+  }
+}

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>06 · ROCm</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;0,6..72,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root { --paper:#FBFAF8; --ink:#1A1814; --muted:#6B6560; --rule:#E8E4DC; --accent:#C45C26; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--paper); color: var(--ink);
+    font-family: "Newsreader", Georgia, serif; }
+  .slide { width: 1920px; height: 1080px; padding: 72px 120px; display: flex; flex-direction: column; }
+  .kicker { font-family: Inter, sans-serif; font-size: 13px; font-weight: 500; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--accent); }
+  h2 { margin-top: 16px; font-size: 44px; font-weight: 700; letter-spacing: -0.02em; }
+  .hero { margin-top: 40px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .kpi { background: #fff; border: 1px solid var(--rule); padding: 32px 28px; }
+  .kpi .lab { font-family: Inter, sans-serif; font-size: 12px; letter-spacing: 0.14em; color: var(--muted); font-weight: 600; }
+  .kpi .num { margin-top: 14px; font-size: 48px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .kpi .num small { font-size: 22px; font-weight: 500; color: var(--muted); margin-left: 4px; }
+  .kpi .sub { margin-top: 10px; font-size: 16px; color: var(--muted); line-height: 1.4; }
+  .opts { margin-top: 36px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; flex: 1; }
+  .opt { border: 1px solid var(--rule); background: #fff; padding: 28px 32px; }
+  .opt h3 { font-size: 24px; font-weight: 600; }
+  .opt ul { margin-top: 16px; list-style: none; font-family: Inter, sans-serif; font-size: 16px; color: var(--muted); line-height: 1.7; }
+  .opt ul li::before { content: "→ "; color: var(--accent); font-family: "IBM Plex Mono", monospace; }
+  .foot { margin-top: auto; padding-top: 24px; border-top: 1px solid var(--rule);
+    font-family: Inter, sans-serif; font-size: 14px; color: var(--muted); }
+  .mono { font-family: "IBM Plex Mono", monospace; color: var(--ink); }
+</style>
+</head>
+<body>
+<section class="slide">
+  <span class="kicker">05 · AMD Radeon · ROCm</span>
+  <h2>本地推理真实跑通，并把 GPU 花在规划上。</h2>
+  <div class="hero">
+    <div class="kpi">
+      <div class="lab">GPU</div>
+      <div class="num" style="font-size:36px">gfx1100</div>
+      <div class="sub">AMD Radeon · 云主机单卡</div>
+    </div>
+    <div class="kpi">
+      <div class="lab">STACK</div>
+      <div class="num" style="font-size:32px">ROCm 7.2</div>
+      <div class="sub">vLLM 0.16 · Qwen2.5-7B</div>
+    </div>
+    <div class="kpi">
+      <div class="lab">THROUGHPUT</div>
+      <div class="num">~24<small>tok/s</small></div>
+      <div class="sub">经 SSH 隧道实测</div>
+    </div>
+    <div class="kpi">
+      <div class="lab">LIVE E2E</div>
+      <div class="num">~12<small>s</small></div>
+      <div class="sub">8 tools · verified=1</div>
+    </div>
+  </div>
+  <div class="opts">
+    <div class="opt">
+      <h3>推理侧</h3>
+      <ul>
+        <li>仅绑定 127.0.0.1，私有链路</li>
+        <li>TRITON_ATTN + hermes tool parser</li>
+        <li>auto-tool-choice · max-model-len 4096</li>
+        <li>enforce-eager · gpu-mem 0.85</li>
+      </ul>
+    </div>
+    <div class="opt">
+      <h3>工程侧（端到端）</h3>
+      <ul>
+        <li>close / demo 规则路径不耗 GPU</li>
+        <li>ingest_test_output 避免重跑测试</li>
+        <li>报告确定性渲染，禁止模型写 verified</li>
+        <li>Agent 每轮优先 1 工具，控无效长生成</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot">详见规格书 §6 · endpoint <span class="mono">http://127.0.0.1:8000/v1</span> · model <span class="mono">qwen2.5-7b-instruct</span></div>
+</section>
+</body>
+</html>

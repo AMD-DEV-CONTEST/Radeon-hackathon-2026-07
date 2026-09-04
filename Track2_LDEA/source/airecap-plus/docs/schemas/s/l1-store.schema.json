@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://airecap.local/schemas/s/l1-store.schema.json",
+  "title": "L1 Session Store snapshot (S-tier)",
+  "description": "Materialized read model for one session. Rebuildable from L0 events under rules@1.2.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "session_id",
+    "aggregator_version",
+    "goals",
+    "outcomes",
+    "orphan_event_ids",
+    "updated_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "s/1.0"
+    },
+    "session_id": { "$ref": "common.schema.json#/$defs/Id" },
+    "aggregator_version": {
+      "$ref": "common.schema.json#/$defs/RulesVersion"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["open", "ended"],
+      "default": "open"
+    },
+    "started_at": { "$ref": "common.schema.json#/$defs/DateTime" },
+    "ended_at": { "$ref": "common.schema.json#/$defs/DateTime" },
+    "updated_at": { "$ref": "common.schema.json#/$defs/DateTime" },
+    "goals": {
+      "type": "array",
+      "items": { "$ref": "l1-goal.schema.json" }
+    },
+    "outcomes": {
+      "type": "array",
+      "items": { "$ref": "l1-outcome.schema.json" }
+    },
+    "orphan_event_ids": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/Id" },
+      "default": [],
+      "description": "High-signal events not yet bound. R-C3 OFF: no auto outcome from these. Session end cold path must attempt bind/new_outcomes/unresolved audit (§4.3)."
+    },
+    "active_goal_id": {
+      "$ref": "common.schema.json#/$defs/Id",
+      "description": "Most recent open goal; weak bind bias only"
+    },
+    "focus_outcome_id": {
+      "$ref": "common.schema.json#/$defs/Id",
+      "description": "Current work-stream focus. Hot-path bind uses method=focus when event lacks structured outcome_id. Cleared when focus outcome becomes terminal (abandoned/superseded) or session ends."
+    },
+    "counters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "events_seen": { "type": "integer", "minimum": 0 },
+        "high_signal_seen": { "type": "integer", "minimum": 0 },
+        "last_event_id": { "$ref": "common.schema.json#/$defs/Id" }
+      }
+    },
+    "constants": {
+      "type": "object",
+      "description": "Frozen numeric knobs used for this projection (audit)",
+      "additionalProperties": false,
+      "properties": {
+        "C_claim": { "type": "number" },
+        "C_feat_verified_cap": { "type": "number" },
+        "T_evidence": { "type": "number" },
+        "T_bind_auto": { "type": "number" },
+        "T_bind_llm": { "type": "number" },
+        "T_merge_sim": { "type": "number" },
+        "tau_hours": { "type": "number" },
+        "C_focus_bind": {
+          "type": "number",
+          "description": "Default EvidenceLink.confidence for method=focus binds"
+        },
+        "r_c3_enabled": { "type": "boolean", "const": false },
+        "online_merge_rm1": { "type": "boolean", "const": true }
+      }
+    }
+  }
+}

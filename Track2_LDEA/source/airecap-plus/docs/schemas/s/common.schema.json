@@ -1,0 +1,249 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://airecap.local/schemas/s/common.schema.json",
+  "title": "AiRecap S-tier common definitions",
+  "description": "Shared primitives for L0/L1. RULES_VER rules@1.2",
+  "$defs": {
+    "Id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Opaque id (ULID/UUID/nanoid). Stable within store."
+    },
+    "DateTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC preferred, e.g. 2026-07-28T04:12:00.000Z"
+    },
+    "Confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Display confidence after per-status clamp (§3.3). Ranking/filter only."
+    },
+    "ConfidenceRaw": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Pre-clamp formula output (§3.2). Observability; do not use alone for L2 gates."
+    },
+    "ClampReason": {
+      "type": "string",
+      "enum": [
+        "none",
+        "ceiling_claimed",
+        "floor_evidenced",
+        "ceiling_evidenced",
+        "floor_verified",
+        "ceiling_contradicted",
+        "feat_verified_cap"
+      ],
+      "description": "Which §3.3 / cap rule last adjusted confidence from confidence_raw"
+    },
+    "RulesVersion": {
+      "type": "string",
+      "const": "rules@1.2"
+    },
+    "Actor": {
+      "type": "string",
+      "enum": ["user", "agent", "tool", "system"]
+    },
+    "Signal": {
+      "type": "string",
+      "enum": ["high", "low"],
+      "description": "S-tier hot path consumes high only"
+    },
+    "EventKind": {
+      "type": "string",
+      "enum": [
+        "goal_set",
+        "claim_made",
+        "file_change",
+        "command_result",
+        "test_result",
+        "decision_made",
+        "verification_result",
+        "blocker_found",
+        "outcome_upsert",
+        "session_end"
+      ]
+    },
+    "OutcomeType": {
+      "type": "string",
+      "enum": [
+        "feature",
+        "bugfix",
+        "problem",
+        "decision",
+        "spike",
+        "refactor",
+        "chore",
+        "docs",
+        "investigation"
+      ]
+    },
+    "OutcomeStatus": {
+      "type": "string",
+      "enum": [
+        "claimed",
+        "evidenced",
+        "verified",
+        "contradicted",
+        "abandoned",
+        "superseded"
+      ]
+    },
+    "GoalStatus": {
+      "type": "string",
+      "enum": ["open", "achieved", "abandoned", "superseded"]
+    },
+    "EvidenceRelation": {
+      "type": "string",
+      "enum": ["supports", "refutes", "defines", "verifies", "scopes"]
+    },
+    "BindMethod": {
+      "type": "string",
+      "enum": ["structured", "user", "focus", "time_scope", "llm"],
+      "description": "Priority: structured > user > focus > time_scope > llm (rules@1.2)"
+    },
+    "RefKind": {
+      "type": "string",
+      "enum": [
+        "file",
+        "commit",
+        "test",
+        "message",
+        "url",
+        "issue",
+        "pr",
+        "blob",
+        "command",
+        "outcome",
+        "goal"
+      ]
+    },
+    "Ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "value"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/RefKind" },
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Path, sha, test name, message id, URL, etc."
+        },
+        "label": { "type": "string" }
+      }
+    },
+    "BlobRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Opaque pointer to external content (full diff, stdout). Not inline.",
+      "examples": ["blob:sha256:abc...", "file://.airecap/blobs/01H..."]
+    },
+    "StableKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Optional cross-session identity. S-tier: stored, not resolved.",
+      "examples": ["feature:oauth-login", "epic:auth", "bug:issue-123"]
+    },
+    "PathChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "change"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Repo-relative path, forward slashes preferred"
+        },
+        "change": {
+          "type": "string",
+          "enum": ["add", "mod", "del", "rename"]
+        },
+        "plus": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Lines added (diffstat). Omit if unknown."
+        },
+        "minus": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Lines deleted (diffstat). Omit if unknown."
+        },
+        "blob_ref": { "$ref": "#/$defs/BlobRef" },
+        "from_path": {
+          "type": "string",
+          "description": "Previous path when change=rename"
+        }
+      }
+    },
+    "Scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "paths": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "default": [],
+          "description": "Files/dirs touched or claimed"
+        },
+        "symbols": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "services": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "commands": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Normalized repro/test/build commands"
+        }
+      }
+    },
+    "ExternalLinks": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "issue": { "type": "string" },
+        "pr": { "type": "string" },
+        "commit": { "type": "string" },
+        "test": { "type": "string" }
+      }
+    },
+    "EvidenceLink": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_id", "relation", "method", "confidence"],
+      "properties": {
+        "event_id": { "$ref": "#/$defs/Id" },
+        "relation": { "$ref": "#/$defs/EvidenceRelation" },
+        "method": { "$ref": "#/$defs/BindMethod" },
+        "confidence": { "$ref": "#/$defs/Confidence" },
+        "note": { "type": "string", "maxLength": 2000 }
+      }
+    },
+    "TerminalReason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "Required when status in abandoned|contradicted|superseded",
+      "examples": [
+        "session_end_unevidenced_claim",
+        "merged",
+        "replaced",
+        "split",
+        "user_abandoned",
+        "test_regressed",
+        "reverted"
+      ]
+    }
+  }
+}
