@@ -1,0 +1,35 @@
+[project]
+name = "nuclear-emergency-agent"
+version = "0.1.0"
+description = "Physics-first multi-agent prototype for nuclear emergency response"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+nuclear-emergency-demo = "nuclear_agent.demo:main"
+nuclear-emergency-dashboard = "nuclear_agent.web:main"
+nuclear-emergency-replay = "nuclear_agent.replay_cli:main"
+train-gcs-surrogate = "nuclear_agent.train_gcs_surrogate:main"
+nuclear-phreeqc-scenario = "nuclear_agent.phreeqc_scenario_cli:main"
+nuclear-validate-cs-exchange = "nuclear_agent.scientific_validation_cli:main"
+
+[tool.setuptools.package-data]
+nuclear_agent = [
+  "static/*.html",
+  "data/knowledge/*.md",
+  "data/scenarios/*.json",
+  "data/scenarios/library/*.json",
+  "data/parameters/*.json",
+  "data/validation/*.json",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["external_solver: requires an explicitly configured real external solver"]
