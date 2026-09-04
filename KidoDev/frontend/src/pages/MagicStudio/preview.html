@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>KidoCat — left-facing preview</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #1b1b1f;
+      color: #eee;
+      padding: 24px;
+    }
+
+    h1 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .checker {
+      background-image:
+        linear-gradient(45deg, #444 25%, transparent 25%),
+        linear-gradient(-45deg, #444 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #444 75%),
+        linear-gradient(-45deg, transparent 75%, #444 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+      background-color: #666;
+      border-radius: 8px;
+      padding: 8px;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .cell {
+      text-align: center;
+    }
+
+    video {
+      width: 220px;
+      display: block;
+      border-radius: 6px;
+    }
+
+    .label {
+      font-size: 12px;
+      color: #aaa;
+      margin-top: 4px;
+    }
+
+    .stage {
+      width: 848px;
+      max-width: 100%;
+      height: 300px;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(#2a2a33, #1b1b1f);
+      border-radius: 8px;
+    }
+
+    .stage video {
+      width: 220px;
+      position: absolute;
+      bottom: 10px;
+      left: 40%;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>1. Alpha channel check (checkerboard = page bg showing through)</h1>
+  <div class="row checker">
+    <div class="cell"><video src="videos/cat_idle.webm" autoplay loop muted playsinline></video>
+      <div class="label">idle</div>
+    </div>
+    <div class="cell"><video src="videos/cat_run.webm" autoplay loop muted playsinline></video>
+      <div class="label">run</div>
+    </div>
+    <div class="cell"><video src="videos/cat_grab.webm" autoplay loop muted playsinline></video>
+      <div class="label">grab</div>
+    </div>
+    <div class="cell"><video src="videos/cat_drag.webm" autoplay loop muted playsinline></video>
+      <div class="label">drag</div>
+    </div>
+    <div class="cell"><video src="videos/cat_cheer.webm" autoplay loop muted playsinline></video>
+      <div class="label">cheer</div>
+    </div>
+  </div>
+
+  <h1>2. Sequence check (idle → run → grab → drag → cheer, left-facing)</h1>
+  <div class="stage"><video id="seq" autoplay muted playsinline></video></div>
+
+  <script>
+    const seq = ["cat_idle", "cat_run", "cat_grab", "cat_drag", "cat_cheer", "cat_idle"];
+    const v = document.getElementById("seq");
+    let i = 0;
+    function playNext() {
+      v.src = "videos/" + seq[i % seq.length] + ".webm";
+      v.loop = false;
+      v.play();
+      i++;
+    }
+    v.addEventListener("ended", playNext);
+    playNext();
+  </script>
+</body>
+
+</html>

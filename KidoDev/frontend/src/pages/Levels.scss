@@ -1,0 +1,1339 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Nunito:wght@400;600;700;800;900&display=swap');
+
+/* ══════════════════════════════════════════════════
+   DESIGN TOKENS — Professional Dark Forest Edition
+══════════════════════════════════════════════════ */
+:root {
+    --coral: #FF5722;
+    --sun: #FFC107;
+    --sky: #03A9F4;
+    --mint: #4CAF50;
+    --gold: #FFD700;
+
+    --dark-forest: #0D1B0D;
+    --glass-dark: rgba(13, 27, 13, 0.95);
+    --glass-border: rgba(255, 255, 255, 0.25);
+
+    --fd: 'Fredoka', sans-serif;
+    --fb: 'Nunito', sans-serif;
+
+    --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+@keyframes flow-path {
+    from {
+        stroke-dashoffset: 100;
+    }
+
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+@keyframes overlay-pulse {
+
+    0%,
+    100% {
+        opacity: 0.7;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+/* ══════════════════════════════════════════════════
+   MAP PAGE — Realistic Professional Experience
+══════════════════════════════════════════════════ */
+.levels-map-main-container {
+    height: 100vh;
+    background: #FFFFFF;
+    /* REMOVED DARK FOREST FOR WHITE THEME */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+
+.levels-map-content {
+    flex: 1;
+    position: relative;
+    margin-top: 80px;
+    overflow: hidden;
+    background: #000;
+}
+
+.levels-map-container-seamless {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.map-world-seamless {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+
+    &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: transparent;
+        /* REMOVED DARK GRADIENT */
+        pointer-events: none;
+        z-index: 2;
+    }
+
+    &::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: url('https://www.transparenttextures.com/patterns/stardust.png');
+        opacity: 0.4;
+        pointer-events: none;
+        z-index: 1;
+    }
+}
+
+.map-scaling-layer {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.map-bg-seamless {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center bottom;
+    display: block;
+    pointer-events: none;
+    filter: saturate(2) contrast(1.1) brightness(0.85);
+
+    @media (max-width: 768px) {
+        object-fit: cover; // Use cover to maintain aspect ratio without stretching
+        height: 100%;
+        transform: none;
+    }
+}
+
+/* Connecting Path Styles */
+.map-connecting-path {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.leaf-trail-segment {
+    mix-blend-mode: multiply;
+    /* Perfect trick to remove JPG white background */
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3));
+    image-rendering: -webkit-optimize-contrast;
+    pointer-events: none;
+}
+
+@keyframes vine-pulse {
+
+    0%,
+    100% {
+        opacity: 0.8;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+.living-vine {
+    animation: vine-pulse 3s var(--ease) infinite;
+}
+
+/* ══════════════════════════════════════════════════
+   MINIMAL WHITE LOADER
+   ────────────────────────────────────────────────── */
+.levels-loading-overlay {
+    position: fixed;
+    top: 80px;
+    /* OFFSET FOR NAVBAR */
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    background: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--fb);
+}
+
+.levels-loading-package {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.levels-spinner-container {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.levels-spinner-logo {
+    width: 90px;
+    height: 90px;
+    object-fit: contain;
+    border-radius: 50%;
+    z-index: 5;
+    background: #FFFFFF;
+    border: 2px solid #EEEEEE;
+    /* Clean shadow for white background */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+.levels-spinner-ring {
+    position: absolute;
+    inset: 5px;
+    border: 4px solid #F5F5F5;
+    border-top: 4px solid var(--gold);
+    /* POP of color */
+    border-radius: 50%;
+    animation: rotate-perfect 1s linear infinite;
+}
+
+@keyframes rotate-perfect {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.levels-loader__text {
+    font-family: var(--fb);
+    /* Switch back to body font for minimal look */
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #444;
+    letter-spacing: 0.5px;
+    opacity: 0.8;
+}
+
+/* REMOVED PREVIOUS GRADIENT PROGRESS BAR FOR MINIMALISM */
+
+/* HUD */
+.map-btn-back-floating {
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    background: var(--glass-dark);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FFF;
+    font-size: 22px;
+    cursor: pointer;
+    z-index: 1000;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    border: 2px solid var(--glass-border);
+    backdrop-filter: blur(20px);
+}
+
+.map-stats-left-overlay {
+    position: absolute;
+    top: 30px;
+    left: 100px;
+    z-index: 1000;
+    display: flex;
+    gap: 15px;
+}
+
+.map-stats-right-overlay {
+    position: absolute;
+    top: 30px;
+    right: 30px;
+    z-index: 1000;
+    display: flex;
+    gap: 15px;
+}
+
+.map-stat-capsule {
+    background: rgba(0, 0, 0, 0.7);
+    padding: 6px 16px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 2px solid var(--theme-primary);
+    backdrop-filter: blur(15px);
+    box-shadow: 0 0 20px rgba(var(--theme-primary-rgb), 0.3), inset 0 0 10px rgba(255, 255, 255, 0.1);
+    min-width: 100px;
+    transition: all 0.3s var(--ease);
+
+    &:hover {
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: 0 0 30px rgba(var(--theme-primary-rgb), 0.5);
+    }
+}
+
+.sc-ico {
+    font-size: 22px;
+}
+
+.sc-ico--xp {
+    color: var(--gold);
+}
+
+.sc-ico--progress {
+    color: var(--sky);
+}
+
+.sc-val strong {
+    font-family: var(--fd);
+    font-size: 24px;
+    color: #FFF;
+    line-height: 1;
+}
+
+.sc-val small {
+    font-size: 9px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+}
+
+/* ──────────────────────────────────────────────────
+   SIMPLE CLEAN LABELS (Above Node)
+   ────────────────────────────────────────────────── */
+.map-hotspots-seamless {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.map-node-hotspot {
+    position: absolute;
+    width: 13%;
+    /* Increased from 10% */
+    aspect-ratio: 1 / 1;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    pointer-events: all;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+/* Smooth Hover Effect */
+.map-node-hotspot:hover {
+    z-index: 100;
+    transform: translate(-50%, -50%) scale(1.1);
+    transition: transform 0.3s var(--spring);
+}
+
+.node-content {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.node-icon {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.node-base-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.6));
+}
+
+.node-status-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    padding-bottom: 18%;
+    /* Tuned to sit on center of node face */
+}
+
+.node-info-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+
+.node-stars-inside {
+    display: flex;
+    gap: 2px;
+    z-index: 65;
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.7));
+
+    svg {
+        width: 1.1vw;
+        height: 1.1vw;
+    }
+}
+
+.node-num {
+    font-family: var(--fd);
+    font-size: 3vw;
+    font-weight: 900;
+    color: var(--node-font-color, #FFFFFF);
+    line-height: 1;
+    letter-spacing: -0.5px;
+    /* Strong shadow so it pops on any node image background */
+    text-shadow:
+        0 0 8px rgba(0, 0, 0, 1),
+        2px 2px 0px rgba(0, 0, 0, 0.8);
+}
+
+.node-marker-done {
+    color: #2E7D32;
+    font-size: 2.2vw;
+}
+
+.node-marker-goal {
+    color: var(--gold);
+    font-size: 2.2vw;
+    filter: drop-shadow(0 0 8px var(--gold));
+}
+
+.trophy-mastered {
+    color: #FFD700;
+    filter: drop-shadow(0 0 15px #FFD700) brightness(1.2);
+}
+
+.node-marker-locked {
+    color: rgba(0, 0, 0, 0.7);
+    font-size: 2.2vw;
+}
+
+.lc-star--lit {
+    color: var(--gold);
+}
+
+.lc-star--dim {
+    color: rgba(255, 255, 255, 0.25);
+}
+
+/* ──────────────────────────────────────────────────
+   VIBRANT COLORFUL NAVBAR (REMOVED - Using Global Floating Navbar)
+   ────────────────────────────────────────────────── */
+
+/* ──────────────────────────────────────────────────
+   MOBILE OPTIMIZATION (Simple Text)
+   ────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+    .map-node-hotspot {
+        width: 18%;
+        /* Slightly smaller for better spacing */
+    }
+
+    .node-stars-inside {
+        gap: 1px;
+
+        svg {
+            width: 10px;
+            height: 10px;
+        }
+    }
+
+    .node-num {
+        font-size: 7vw;
+        font-weight: 900;
+    }
+
+    .node-marker-done,
+    .node-marker-goal,
+    .node-marker-locked {
+        font-size: 7vw;
+    }
+
+    .map-btn-back-floating {
+        top: 18px;
+        left: 15px;
+        width: 44px;
+        height: 44px;
+        font-size: 18px;
+    }
+}
+
+/* Unified Tablet and Mobile Responsive Overlays to Prevent Overlapping */
+@media (max-width: 991px) {
+    .map-stats-left-overlay {
+        display: flex;
+        top: 75px;
+        left: 15px;
+        gap: 6px;
+    }
+
+    .map-stats-right-overlay {
+        display: flex;
+        top: 75px;
+        right: 15px;
+        gap: 6px;
+    }
+
+    .map-stat-capsule {
+        min-width: auto !important; /* Extremely important to prevent mixing/overlap */
+        padding: 5px 12px;
+        border-radius: 12px;
+        border-width: 1.5px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+
+        .sc-ico {
+            font-size: 14px;
+        }
+
+        .sc-val strong {
+            font-size: 14px;
+        }
+
+        .sc-val small {
+            display: none !important;
+        }
+    }
+}
+
+/* ──────────────────────────────────────────────────
+   SELECTION PAGE — The Stone Adventure
+   ────────────────────────────────────────────────── */
+.levels-selection-page {
+    background-image: var(--levels-hero-bg);
+    background-color: #1a3a15;
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
+    position: relative;
+    min-height: 100vh;
+    padding: 100px 5% 80px;
+    font-family: var(--fb);
+
+    @media (max-width: 768px) {
+        background-attachment: scroll;
+        background-position: center;
+        background-size: cover;
+        padding: 120px 20px 60px;
+    }
+
+    > * {
+        position: relative;
+        z-index: 1;
+    }
+}
+
+
+/* ─── HERO & BADGES ─── */
+.floating-stats-badges {
+    position: relative;
+    display: flex;
+    flex-direction: row; /* BACK TO HORIZONTAL */
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    z-index: 100;
+    margin-bottom: 60px;
+    flex-wrap: wrap;
+}
+
+
+.stat-badge-premium {
+    background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.95), rgba(var(--primary-rgb), 0.8));
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    padding: 14px 32px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    box-shadow: 0 10px 40px rgba(var(--primary-rgb), 0.3);
+    transition: all 0.4s var(--spring);
+    min-width: 220px;
+    backdrop-filter: blur(15px);
+    position: relative;
+    overflow: hidden;
+
+    /* Gaming Shine Effect */
+    &::after {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(
+            45deg,
+            transparent,
+            rgba(255, 255, 255, 0.2),
+            transparent
+        );
+        transform: rotate(45deg);
+        transition: 0.6s;
+        pointer-events: none;
+    }
+
+    &:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 20px 60px rgba(var(--primary-rgb), 0.4);
+        border-color: rgba(255, 255, 255, 0.6);
+        &::after {
+            left: 100%;
+        }
+    }
+
+    /* Category Specific Gaming Glows (Overriding theme for clarity) */
+    &.xp-badge {
+        background: linear-gradient(135deg, #FFB300, #F57C00);
+        box-shadow: 0 10px 30px rgba(255, 179, 0, 0.3);
+    }
+
+    &.time-badge {
+        background: linear-gradient(135deg, #EF4444, #DC2626);
+        box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);
+    }
+
+    &.levels-badge {
+        background: linear-gradient(135deg, #1E88E5, #1565C0);
+        box-shadow: 0 10px 30px rgba(30, 136, 229, 0.3);
+    }
+
+    &.rank-badge {
+        background: linear-gradient(135deg, #8E24AA, #6A1B9A);
+        box-shadow: 0 10px 30px rgba(142, 36, 170, 0.3);
+    }
+
+    .badge-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        line-height: 1;
+        width: 100%;
+    }
+
+    .badge-label {
+        font-size: 0.75rem;
+        font-weight: 950;
+        color: rgba(255, 255, 255, 0.8);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 6px;
+    }
+
+    .badge-value {
+        font-family: var(--fd);
+        font-size: 2rem;
+        font-weight: 950;
+        color: #FFFFFF;
+        letter-spacing: -1px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+}
+
+
+
+.selection-hero-section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* LEFT ALIGNED */
+    text-align: left;
+    max-width: 1400px;
+    margin: 0 auto 80px;
+    padding: 0 20px;
+}
+
+.hero-text-content {
+    .hero-title {
+        font-family: var(--fd);
+        font-size: 6rem;
+        font-weight: 950;
+        color: #FFFFFF; /* WHITE FOR CONTRAST */
+        margin-bottom: 12px;
+        line-height: 0.85;
+        letter-spacing: -4px;
+        text-shadow: 0 4px 30px rgba(0,0,0,0.5); /* HEAVY SHADOW FOR READABILITY */
+    }
+    .hero-subtitle {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: rgba(255,255,255,0.9);
+        max-width: 650px;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+}
+
+@media (max-width: 992px) {
+    .selection-hero-section {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .hero-title {
+        font-size: 3.5rem !important;
+        letter-spacing: -2px;
+    }
+
+    .hero-subtitle {
+        font-size: 1.2rem;
+        margin: 0 auto;
+    }
+
+    .floating-stats-badges {
+        position: relative;
+        top: 0;
+        right: 0;
+        flex-direction: row; /* Horizontal on mobile for space */
+        justify-content: center;
+        margin-bottom: 40px;
+        padding: 0 10px;
+        flex-wrap: wrap;
+    }
+
+    .stat-badge-premium {
+        min-width: 150px;
+        padding: 8px 16px;
+    }
+}
+
+.levels-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    /* 3 COLUMNS ON BIG SCREENS AS REQUESTED */
+    gap: 40px;
+    max-width: 1300px;
+    margin: 0 auto;
+}
+
+@media (max-width: 992px) {
+    .levels-grid {
+        grid-template-columns: repeat(2, 1fr); /* 2 COLUMNS ON SMALL AS REQUESTED */
+        gap: 25px;
+    }
+}
+
+.level-stone-card {
+    position: relative;
+    border-radius: 20px;
+    aspect-ratio: 1 / 1.5;
+    cursor: pointer;
+    overflow: visible;
+    background: transparent;
+
+    &--locked {
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+
+
+    position: relative;
+    /* FOR PSEUDO CONNECTORS */
+
+    /* THE "POWER BRIDGE" — High-Impact Desktop Path */
+    &:not(:nth-child(3n))::after {
+        content: "";
+        position: absolute;
+        width: 280px;
+        height: 160px;
+        background: var(--level-line-connect-bg, url('../assets/level_line_connect.jpg')) no-repeat center;
+        background-size: contain;
+        right: -190px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 0;
+        opacity: 0.95;
+        mix-blend-mode: multiply;
+
+        @media (max-width: 992px) {
+            display: none; /* Reset for mobile query below */
+        }
+    }
+
+    /* 2 Column Connectors for Mobile/Tablet */
+    @media (max-width: 992px) {
+        &:not(:nth-child(2n))::after {
+            display: block;
+            content: "";
+            position: absolute;
+            width: 150px;
+            height: 100px;
+            background: var(--level-line-connect-bg, url('../assets/level_line_connect.jpg')) no-repeat center;
+            background-size: contain;
+            right: -100px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 0;
+            opacity: 0.95;
+            mix-blend-mode: multiply;
+        }
+    }
+
+    .stone-bg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        z-index: 1;
+        filter: brightness(1.05) drop-shadow(0 10px 20px rgba(0, 0, 0, 0.1));
+    }
+
+    /* REMOVED ALL HOVER ANIMATIONS AS REQUESTED */
+
+    /* Overhaul for Perfectly Centered Stone Content */
+    .stone-content {
+        position: absolute;
+        inset: 0;
+        z-index: 5;
+        padding: 50px 50px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        /* PERFECTLY CENTERED ON STONE FACE */
+        text-align: center;
+        gap: 8px;
+    }
+
+    /* REMOVED stone-id-tag */
+
+    .stone-status-badge {
+        position: absolute;
+        top: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        font-size: 1.2rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 2.5px;
+        font-family: var(--fd);
+        padding: 5px 25px;
+        border-radius: 50px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        border: 3px solid #FFF;
+
+        &.is-unlocked {
+            background: var(--badge-unlocked-bg);
+            color: var(--badge-unlocked-text);
+        }
+
+        &.is-locked {
+            background: var(--badge-locked-bg);
+            color: var(--badge-locked-text);
+        }
+    }
+
+    .stone-class-info {
+        font-family: var(--fd);
+        font-size: 2.2rem;
+        font-weight: 900;
+        color: var(--stone-label-color, #5D4037);
+        margin-bottom: -4px;
+        letter-spacing: 0.5px;
+    }
+
+    .stone-mission-title {
+        font-family: var(--fd);
+        font-size: 2.8rem;
+        /* INCREASED AS REQUESTED */
+        font-weight: 900;
+        /* Bolder */
+        margin: 5px 0;
+        line-height: 1;
+        text-transform: capitalize;
+        word-wrap: break-word;
+        max-width: 100%;
+        text-shadow: 0 2px 0 rgba(255, 255, 255, 1), 0 4px 6px rgba(0, 0, 0, 0.1);
+
+        /* Vibrant Kidish Gradient - Theme Aware */
+        background: var(--stone-title-color);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        color: #FF5722;
+    }
+
+    .stone-progress-circle-wrapper {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        margin: 10px 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+
+        .stone-circle-svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .stone-circle-bg {
+            fill: none;
+            stroke: rgba(0, 0, 0, 0.1);
+            stroke-width: 10;
+        }
+
+        .stone-circle-fill {
+            fill: none;
+            stroke: var(--stone-progress-color, #4CAF50);
+            stroke-width: 12;
+            stroke-linecap: round;
+            stroke-dasharray: 251.2;
+            filter: drop-shadow(0 0 5px rgba(76, 175, 80, 0.5));
+            transition: stroke-dashoffset 0.8s ease-out;
+        }
+
+        .stone-circle-text {
+            fill: var(--stone-xp-text-color, #4E342E);
+            font-size: 1.4rem;
+            font-weight: 900;
+            font-family: var(--fd);
+            text-anchor: middle;
+            transform: rotate(90deg) translate(0, 0);
+            /* Counter-rotate text */
+            transform-origin: center;
+        }
+
+        .stone-progress-label {
+            position: absolute;
+            bottom: -5px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: var(--stone-mastery-color, #5D4037);
+            background: #FFF;
+            padding: 2px 10px;
+            border-radius: 20px;
+            border: 2px solid var(--stone-mastery-color, #5D4037);
+            font-family: var(--fd);
+        }
+    }
+
+    .stone-stats-centered {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        margin-top: 5px;
+
+        .stone-xp-badge {
+            background: #FFFDE7;
+            border: 2.5px solid #FFD54F;
+            padding: 2px 16px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--stone-xp-text-color, #E65100);
+            font-family: var(--fd);
+            font-size: 1.6rem;
+            font-weight: 900;
+            margin-bottom: 2px;
+            box-shadow: 0 8px 20px rgba(255, 193, 7, 0.2);
+            line-height: 1;
+
+            svg {
+                font-size: 16px;
+                color: #FFA000;
+            }
+        }
+
+        .stone-mission-count {
+            font-size: 1.2rem;
+            /* INCREASED */
+            font-weight: 900;
+            color: var(--stone-missions-color, #4E342E);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: var(--fd);
+        }
+    }
+
+    .stone-enter-btn {
+        margin-top: 25px;
+        background: #FFD54F;
+        color: #4E342E;
+        font-family: var(--fd);
+        font-size: 2rem;
+        /* LARGER */
+        font-weight: 900;
+        padding: 8px 45px;
+        border-radius: 50px;
+        box-shadow: 0 6px 0 #FFA000, 0 10px 20px rgba(0, 0, 0, 0.1);
+        text-transform: uppercase;
+        transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        line-height: 1;
+        border: 2px solid #5D4037;
+
+        &:hover {
+            transform: scale(1.05);
+            background: #FFB300;
+            box-shadow: 0 6px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        &:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 0 rgba(0, 0, 0, 0.1);
+        }
+    }
+
+    /* Vibrant Variations for Sequential Cards */
+    &:nth-child(4n+1) .stone-mission-title {
+        background: linear-gradient(180deg, #FF5722, #FFC107);
+    }
+
+    &:nth-child(4n+2) .stone-mission-title {
+        background: linear-gradient(180deg, #2196F3, #00BCD4);
+    }
+
+    &:nth-child(4n+3) .stone-mission-title {
+        background: linear-gradient(180deg, #4CAF50, #8BC34A);
+    }
+
+    &:nth-child(4n+4) .stone-mission-title {
+        background: linear-gradient(180deg, #E91E63, #FF4081);
+    }
+}
+
+@media (max-width: 1024px) {
+    /* HERO QUERY REMOVED */
+}
+
+@media (max-width: 480px) {
+    .levels-selection-page {
+        padding-top: 100px;
+    }
+
+    .level-hero h1 {
+        font-size: 2.8rem;
+    }
+
+    .section-head__title {
+        font-size: 2.2rem;
+    }
+
+    .levels-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px 8px;
+    }
+
+    .level-stone-card {
+        aspect-ratio: 1 / 1.5;
+        width: 100% !important;
+
+        .stone-bg {
+            object-fit: cover !important;
+            /* FORCED FILL FOR CONGESTED LOOK */
+            transform: scale(1.05);
+            /* SLIGHT ZOOM TO REVEAL MORE DETAIL */
+        }
+
+        /* REMOVED MOBILE BRIDGE FOR ZERO OVERFLOW STABILITY */
+        &::after {
+            display: none !important;
+        }
+    }
+
+    .stone-content {
+        padding: 10px 8px !important;
+        gap: 1px !important;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .stone-class-info {
+        font-size: 0.7rem !important;
+        margin-bottom: -4px !important;
+        opacity: 0.9;
+    }
+
+    .stone-mission-title {
+        font-size: 0.9rem !important;
+        margin: 2px 0 !important;
+        font-weight: 950 !important;
+    }
+
+    .stone-progress-circle-wrapper {
+        width: 54px !important;
+        height: 54px !important;
+        margin: 3px 0 !important;
+
+        .stone-circle-text {
+            font-size: 0.75rem !important;
+        }
+
+        .stone-progress-label {
+            font-size: 6px !important;
+            padding: 1px 5px !important;
+            bottom: -5px !important;
+        }
+
+        .stone-circle-fill {
+            stroke-width: 15 !important;
+        }
+
+        .stone-circle-bg {
+            stroke-width: 14 !important;
+        }
+    }
+
+    .stone-stats-centered {
+        .stone-xp-badge {
+            font-size: 0.7rem !important;
+            padding: 1px 8px !important;
+            gap: 3px !important;
+            border-width: 1.2px !important;
+
+            svg {
+                font-size: 8px !important;
+            }
+        }
+
+        .stone-mission-count {
+            font-size: 0.65rem !important;
+            font-weight: 900 !important;
+        }
+    }
+
+    .stone-enter-btn {
+        font-size: 0.85rem !important;
+        padding: 3px 14px !important;
+        margin-top: 8px !important;
+        box-shadow: 0 2px 0 #FFA000, 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    .stone-status-badge {
+        font-size: 0.6rem !important;
+        padding: 1px 10px !important;
+        top: -2px !important;
+        border-width: 1px !important;
+        letter-spacing: 0.5px !important;
+    }
+}
+
+/* --- LEVELS HUD --- */
+.levels-user-hud {
+    background: white;
+    padding: 24px 0;
+    border-bottom: 1px solid #f1f5f9;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+
+    .hud-avatar {
+        width: 52px;
+        height: 52px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 900;
+        font-size: 1.5rem;
+    }
+
+    .hud-pill {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        padding: 8px 18px;
+        border-radius: 50px;
+        font-size: 0.85rem;
+        font-weight: 800;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s;
+
+        &:hover {
+            transform: translateY(-2px);
+            border-color: #cbd5e1;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+    }
+}
+
+/* ─── LEVELS STATS HUD ─── */
+.levels-stats-hud {
+    background: #FFFFFF;
+    padding: 12px 0;
+    border-bottom: 1px solid #F1F5F9;
+
+    .hud-pill {
+        background: #F8FAFC;
+        border: 1px solid #E2E8F0;
+        padding: 8px 24px;
+        border-radius: 12px;
+        font-family: 'Outfit', sans-serif;
+        font-size: 0.9rem;
+        font-weight: 800;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+
+        &:hover {
+            transform: translateY(-1px);
+            border-color: #6366F1;
+            background: #FFFFFF;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+        }
+
+        svg {
+            font-size: 1.1rem;
+        }
+    }
+}
+
+/* ─── MAP USER HUD ─── */
+/* REMOVED PREVIOUS MAP USER HUD */
+.map-user-hud {
+    display: none;
+}
+
+/* ─── FLOATING DECORATIONS ─── */
+.floating-deco {
+    position: absolute;
+    font-size: 2.5rem;
+    opacity: 0.1;
+    z-index: 0;
+    pointer-events: none;
+    animation: deco-float 6s ease-in-out infinite;
+    filter: blur(1px);
+}
+
+@keyframes deco-float {
+
+    0%,
+    100% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+
+    50% {
+        transform: translate(20px, -30px) rotate(15deg);
+    }
+}
+
+.deco-star {
+    top: 15%;
+    left: 10%;
+    color: #FFD700;
+    animation-delay: 0s;
+}
+
+.deco-goal {
+    top: 40%;
+    left: 5%;
+    color: #4CAF50;
+    animation-delay: 1s;
+}
+
+.deco-win {
+    top: 70%;
+    left: 12%;
+    color: #FF9800;
+    animation-delay: 2s;
+}
+
+.deco-spark {
+    top: 25%;
+    right: 15%;
+    color: #2196F3;
+    animation-delay: 3s;
+}
+
+.deco-play {
+    top: 55%;
+    right: 8%;
+    color: #E91E63;
+    animation-delay: 4s;
+}
+
+@media (max-width: 768px) {
+    .floating-deco {
+        display: none;
+    }
+}
+
+/* ─── PLAY GAMES STONE CARD ─── */
+.play-games-stone-card {
+    animation: games-card-pulse 3s ease-in-out infinite;
+}
+
+@keyframes games-card-pulse {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-6px) scale(1.02); }
+}
+
+.play-games-icon-circle {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: rgba(76, 175, 80, 0.1);
+    border: 3px solid rgba(76, 175, 80, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.15);
+    animation: icon-idle 3s ease-in-out infinite;
+}
+
+@keyframes icon-idle {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+}
