@@ -1,0 +1,1 @@
+"""Versioned local legal retrieval."""
