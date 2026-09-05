@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root name="moving-company-service"
+      data_service="sqlite"
+      org="example"
+      _module_key="root">
+
+  <role_definition _name="Role Definition"
+                   _module="Platform"
+                   _module_key="platform"
+                   name="string()"
+                   code="string()"
+                   description="System role for access control"
+                   display_order="number()"
+                   _constant="true"
+                   _identifier="code">
+    <_value id="13001" name="Admin" code="ADMIN"
+            description="Full system access" display_order="1"/>
+    <_value id="13002" name="Manager" code="MANAGER"
+            description="Department management access" display_order="2"/>
+    <_value id="13003" name="Dispatcher" code="DISPATCHER"
+            description="Operations scheduling access" display_order="3"/>
+    <_value id="13004" name="Driver" code="DRIVER"
+            description="Driver portal access" display_order="4"/>
+    <_value id="13005" name="Viewer" code="VIEWER"
+            description="Read-only access" display_order="5"/>
+  </role_definition>
+
+  <user_account _name="User Account"
+                _module="Platform"
+                _module_key="platform"
+                employee="employee()"
+                username="jsmith"
+                password_hash="$2b$12$LJ3m4ys3Lz0wqV9rK5e1xu"
+                email="john.smith@movingco.com"
+                is_active=true
+                last_login="2025-06-15T08:30:00"
+                create_time="createTime()"
+                update_time="updateTime()"
+                _audit_mask_fields="password_hash"/>
+
+  <user_role _name="User Role"
+             _module="Platform"
+             _module_key="platform"
+             user_account="user_account()"
+             role_definition="role_definition()"
+             assigned_date="2023-03-15"
+             assigned_by="user_account()"
+             is_active=true
+             create_time="createTime()"
+             update_time="updateTime()"/>
+
+  <notification_rule _name="Notification Rule"
+                     _module="Platform"
+                     _module_key="platform"
+                     rule_name="Move Status Change"
+                     event_trigger="move_status_change"
+                     recipient_role="role_definition()"
+                     channel="email"
+                     is_active=true
+                     message_template="Your move order status has been updated"
+                     create_time="createTime()"
+                     update_time="updateTime()"/>
+
+</root>

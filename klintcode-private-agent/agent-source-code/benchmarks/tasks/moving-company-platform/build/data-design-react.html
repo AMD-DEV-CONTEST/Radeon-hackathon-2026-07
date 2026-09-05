@@ -1,0 +1,3548 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>moving-company-service Data Design (React)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 40px; font-family: system-ui, -apple-system, sans-serif; background: #f8f9fa; }
+        .table-wrap { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 40px; }
+        th { background-color: #f1f3f5 !important; font-weight: 600; }
+        .table>tbody>tr>td { vertical-align: middle; }
+        .nav-sidebar { position: sticky; top: 40px; max-height: calc(100vh - 80px); overflow-y: auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .preface { margin-bottom: 50px; text-align: center; }
+        .type-code { color: #d63384; font-family: SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.875em; }
+        @media print {
+            .page-break { page-break-after: always; }
+            .nav-sidebar { display: none !important; }
+            .col-md-9 { width: 100% !important; max-width: 100% !important; flex: 0 0 100% !important; }
+            body { padding: 0; background: #fff; }
+            .table-wrap { box-shadow: none; border: 1px solid #dee2e6; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts-wordcloud@2.1.0/dist/echarts-wordcloud.min.js"></script>
+
+    <script>
+        // --- STG INJECTED JSON DATA ---
+        window.domainData = {
+            name: "moving-company-service",
+            tables: [
+                {
+                    "name": "ORDER_STATUS_DATA",
+                    "conceptName": "Order Status",
+                    "relationCount": 1,
+                    "columns": [ {
+                    "sqlName": "COMPANY_PROFILE",
+                    "name": "Company Profile",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1001"
+                }, {
+                    "sqlName": "NAME",
+                    "name": "Name",
+                    "type": "VARCHAR(100)",
+                    "sample": "Scheduled"
+                }, {
+                    "sqlName": "CODE",
+                    "name": "Code",
+                    "type": "VARCHAR(100)",
+                    "sample": "SCHEDULED"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_ORDER_STATUS_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_ORDER_STATUS_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_ORDER_STATUS_COMPANY_PROFILE",
+                    "columns": "COMPANY_PROFILE",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_ORDER_STATUS_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_ORDER_STATUS_COMPANY_PROFILE",
+                    "columns": "COMPANY_PROFILE",
+                    "refTable": "COMPANY_PROFILE_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "COMPANY_PROFILE_DATA",
+                    "conceptName": "Company Profile",
+                    "relationCount": 8,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "COMPANY_NAME",
+                    "name": "Company Name",
+                    "type": "VARCHAR(100)",
+                    "sample": "Moving Co"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_COMPANY_PROFILE_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_COMPANY_PROFILE_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_COMPANY_PROFILE_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_COMPANY_PROFILE_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                } ]
+                },
+                {
+                    "name": "USER_ACCOUNT_DATA",
+                    "conceptName": "User Account",
+                    "relationCount": 2,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "COMPANY_PROFILE",
+                    "name": "Company Profile",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "EMPLOYEE_REGISTRY",
+                    "name": "Employee Registry",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "ACCOUNT_NAME",
+                    "name": "Account Name",
+                    "type": "VARCHAR(100)",
+                    "sample": "admin_user"
+                }, {
+                    "sqlName": "EMAIL_ADDRESS",
+                    "name": "Email Address",
+                    "type": "VARCHAR(100)",
+                    "sample": "admin@example.com"
+                }, {
+                    "sqlName": "PASSWORD_HASH",
+                    "name": "Password Hash",
+                    "type": "VARCHAR(100)",
+                    "sample": "secret123"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "UPDATE_TIME",
+                    "name": "Update Time",
+                    "type": "TIMESTAMP",
+                    "sample": "updateTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_USER_ACCOUNT_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_USER_ACCOUNT_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_USER_ACCOUNT_COMPANY_PROFILE",
+                    "columns": "COMPANY_PROFILE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_USER_ACCOUNT_EMPLOYEE_REGISTRY",
+                    "columns": "EMPLOYEE_REGISTRY",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_USER_ACCOUNT_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_USER_ACCOUNT_UPDATE_TIME",
+                    "columns": "UPDATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_USER_ACCOUNT_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_USER_ACCOUNT_COMPANY_PROFILE",
+                    "columns": "COMPANY_PROFILE",
+                    "refTable": "COMPANY_PROFILE_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                }, {
+                    "name": "FK_USER_ACCOUNT_EMPLOYEE_REGISTRY",
+                    "columns": "EMPLOYEE_REGISTRY",
+                    "refTable": "EMPLOYEE_REGISTRY_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "ROLE_DEFINITION_DATA",
+                    "conceptName": "Role Definition",
+                    "relationCount": 2,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "COMPANY_PROFILE",
+                    "name": "Company Profile",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "ROLE_NAME",
+                    "name": "Role Name",
+                    "type": "VARCHAR(100)",
+                    "sample": "Admin Role"
+                }, {
+                    "sqlName": "DESCRIPTION_TEXT",
+                    "name": "Description Text",
+                    "type": "VARCHAR(100)",
+                    "sample": "Administrator role"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_ROLE_DEFINITION_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_ROLE_DEFINITION_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_ROLE_DEFINITION_COMPANY_PROFILE",
+                    "columns": "COMPANY_PROFILE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_ROLE_DEFINITION_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_ROLE_DEFINITION_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_ROLE_DEFINITION_COMPANY_PROFILE",
+                    "columns": "COMPANY_PROFILE",
+                    "refTable": "COMPANY_PROFILE_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "ROLE_ASSIGNMENT_DATA",
+                    "conceptName": "Role Assignment",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "USER_ACCOUNT",
+                    "name": "User Account",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "ROLE_DEFINITION",
+                    "name": "Role Definition",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "ASSIGN_DATE",
+                    "name": "Assign Date",
+                    "type": "DATE",
+                    "sample": "2025-01-01"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_ROLE_ASSIGNMENT_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_ROLE_ASSIGNMENT_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_ROLE_ASSIGNMENT_USER_ACCOUNT",
+                    "columns": "USER_ACCOUNT",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_ROLE_ASSIGNMENT_ROLE_DEFINITION",
+                    "columns": "ROLE_DEFINITION",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_ROLE_ASSIGNMENT_ASSIGN_DATE",
+                    "columns": "ASSIGN_DATE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_ROLE_ASSIGNMENT_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_ROLE_ASSIGNMENT_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_ROLE_ASSIGNMENT_USER_ACCOUNT",
+                    "columns": "USER_ACCOUNT",
+                    "refTable": "USER_ACCOUNT_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                }, {
+                    "name": "FK_ROLE_ASSIGNMENT_ROLE_DEFINITION",
+                    "columns": "ROLE_DEFINITION",
+                    "refTable": "ROLE_DEFINITION_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "NOTIFICATION_RULE_DATA",
+                    "conceptName": "Notification Rule",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "ROLE_DEFINITION",
+                    "name": "Role Definition",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "RULE_NAME",
+                    "name": "Rule Name",
+                    "type": "VARCHAR(100)",
+                    "sample": "Notify on Error"
+                }, {
+                    "sqlName": "EVENT_TRIGGER",
+                    "name": "Event Trigger",
+                    "type": "VARCHAR(100)",
+                    "sample": "error_event"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_NOTIFICATION_RULE_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_NOTIFICATION_RULE_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_NOTIFICATION_RULE_ROLE_DEFINITION",
+                    "columns": "ROLE_DEFINITION",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_NOTIFICATION_RULE_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_NOTIFICATION_RULE_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_NOTIFICATION_RULE_ROLE_DEFINITION",
+                    "columns": "ROLE_DEFINITION",
+                    "refTable": "ROLE_DEFINITION_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "AUDIT_LOG_DATA",
+                    "conceptName": "Audit Log",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "ACTION_OPERATOR",
+                    "name": "Action Operator",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "LOG_TIMESTAMP",
+                    "name": "Log Timestamp",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "ACTION_TYPE",
+                    "name": "Action Type",
+                    "type": "VARCHAR(100)",
+                    "sample": "move_created"
+                }, {
+                    "sqlName": "ENTITY_REFERENCE",
+                    "name": "Entity Reference",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_AUDIT_LOG_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_AUDIT_LOG_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_AUDIT_LOG_ACTION_OPERATOR",
+                    "columns": "ACTION_OPERATOR",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_AUDIT_LOG_ENTITY_REFERENCE",
+                    "columns": "ENTITY_REFERENCE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_AUDIT_LOG_LOG_TIMESTAMP",
+                    "columns": "LOG_TIMESTAMP",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_AUDIT_LOG_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_AUDIT_LOG_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_AUDIT_LOG_ACTION_OPERATOR",
+                    "columns": "ACTION_OPERATOR",
+                    "refTable": "USER_ACCOUNT_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                }, {
+                    "name": "FK_AUDIT_LOG_ENTITY_REFERENCE",
+                    "columns": "ENTITY_REFERENCE",
+                    "refTable": "MOVE_ORDER_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "SERVICE_CONTRACT_DATA",
+                    "conceptName": "Service Contract",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "CUSTOMER_PROFILE",
+                    "name": "Customer Profile",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "CONTRACT_STATUS",
+                    "name": "Contract Status",
+                    "type": "VARCHAR(100)",
+                    "sample": "Active"
+                }, {
+                    "sqlName": "START_DATE",
+                    "name": "Start Date",
+                    "type": "DATE",
+                    "sample": "2025-01-01"
+                }, {
+                    "sqlName": "END_DATE",
+                    "name": "End Date",
+                    "type": "DATE",
+                    "sample": "2026-01-01"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_SERVICE_CONTRACT_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_SERVICE_CONTRACT_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_SERVICE_CONTRACT_CUSTOMER_PROFILE",
+                    "columns": "CUSTOMER_PROFILE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_SERVICE_CONTRACT_START_DATE",
+                    "columns": "START_DATE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_SERVICE_CONTRACT_END_DATE",
+                    "columns": "END_DATE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_SERVICE_CONTRACT_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_SERVICE_CONTRACT_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_SERVICE_CONTRACT_CUSTOMER_PROFILE",
+                    "columns": "CUSTOMER_PROFILE",
+                    "refTable": "CUSTOMER_PROFILE_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "DOCUMENT_STORAGE_DATA",
+                    "conceptName": "Document Storage",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "CUSTOMER_PROFILE",
+                    "name": "Customer Profile",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "DOCUMENT_NAME",
+                    "name": "Document Name",
+                    "type": "VARCHAR(100)",
+                    "sample": "Contract PDF"
+                }, {
+                    "sqlName": "FILE_URL",
+                    "name": "File Url",
+                    "type": "VARCHAR(100)",
+                    "sample": "//example.com/doc.pdf"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_DOCUMENT_STORAGE_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_DOCUMENT_STORAGE_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_DOCUMENT_STORAGE_CUSTOMER_PROFILE",
+                    "columns": "CUSTOMER_PROFILE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_DOCUMENT_STORAGE_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_DOCUMENT_STORAGE_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_DOCUMENT_STORAGE_CUSTOMER_PROFILE",
+                    "columns": "CUSTOMER_PROFILE",
+                    "refTable": "CUSTOMER_PROFILE_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "INSURANCE_POLICY_DATA",
+                    "conceptName": "Insurance Policy",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "FLEET_VEHICLE",
+                    "name": "Fleet Vehicle",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "POLICY_NUMBER",
+                    "name": "Policy Number",
+                    "type": "VARCHAR(100)",
+                    "sample": "POL-12345"
+                }, {
+                    "sqlName": "PROVIDER_NAME",
+                    "name": "Provider Name",
+                    "type": "VARCHAR(100)",
+                    "sample": "SafeDrive Insurance"
+                }, {
+                    "sqlName": "EXPIRY_DATE",
+                    "name": "Expiry Date",
+                    "type": "DATE",
+                    "sample": "2026-01-01"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_INSURANCE_POLICY_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_INSURANCE_POLICY_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_INSURANCE_POLICY_FLEET_VEHICLE",
+                    "columns": "FLEET_VEHICLE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_INSURANCE_POLICY_EXPIRY_DATE",
+                    "columns": "EXPIRY_DATE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_INSURANCE_POLICY_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_INSURANCE_POLICY_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_INSURANCE_POLICY_FLEET_VEHICLE",
+                    "columns": "FLEET_VEHICLE",
+                    "refTable": "FLEET_VEHICLE_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "EMPLOYEE_REGISTRY_DATA",
+                    "conceptName": "Employee Registry",
+                    "relationCount": 8,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "COMPANY_PROFILE",
+                    "name": "Company Profile",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "EMPLOYEE_NAME",
+                    "name": "Employee Name",
+                    "type": "VARCHAR(100)",
+                    "sample": "John Doe"
+                }, {
+                    "sqlName": "JOB_TITLE",
+                    "name": "Job Title",
+                    "type": "VARCHAR(100)",
+                    "sample": "Driver"
+                }, {
+                    "sqlName": "HIRE_DATE",
+                    "name": "Hire Date",
+                    "type": "DATE",
+                    "sample": "2020-01-01"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "UPDATE_TIME",
+                    "name": "Update Time",
+                    "type": "TIMESTAMP",
+                    "sample": "updateTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_EMPLOYEE_REGISTRY_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_EMPLOYEE_REGISTRY_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_EMPLOYEE_REGISTRY_COMPANY_PROFILE",
+                    "columns": "COMPANY_PROFILE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_EMPLOYEE_REGISTRY_HIRE_DATE",
+                    "columns": "HIRE_DATE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_EMPLOYEE_REGISTRY_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_EMPLOYEE_REGISTRY_UPDATE_TIME",
+                    "columns": "UPDATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_EMPLOYEE_REGISTRY_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_EMPLOYEE_REGISTRY_COMPANY_PROFILE",
+                    "columns": "COMPANY_PROFILE",
+                    "refTable": "COMPANY_PROFILE_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "LEAVE_REQUEST_DATA",
+                    "conceptName": "Leave Request",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "EMPLOYEE_RECORD",
+                    "name": "Employee Record",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "LEAVE_REASON",
+                    "name": "Leave Reason",
+                    "type": "VARCHAR(100)",
+                    "sample": "Vacation"
+                }, {
+                    "sqlName": "START_DATE",
+                    "name": "Start Date",
+                    "type": "DATE",
+                    "sample": "2025-06-01"
+                }, {
+                    "sqlName": "END_DATE",
+                    "name": "End Date",
+                    "type": "DATE",
+                    "sample": "2025-06-15"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "UPDATE_TIME",
+                    "name": "Update Time",
+                    "type": "TIMESTAMP",
+                    "sample": "updateTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_LEAVE_REQUEST_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_LEAVE_REQUEST_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_LEAVE_REQUEST_EMPLOYEE_RECORD",
+                    "columns": "EMPLOYEE_RECORD",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_LEAVE_REQUEST_START_DATE",
+                    "columns": "START_DATE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_LEAVE_REQUEST_END_DATE",
+                    "columns": "END_DATE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_LEAVE_REQUEST_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_LEAVE_REQUEST_UPDATE_TIME",
+                    "columns": "UPDATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_LEAVE_REQUEST_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_LEAVE_REQUEST_EMPLOYEE_RECORD",
+                    "columns": "EMPLOYEE_RECORD",
+                    "refTable": "EMPLOYEE_REGISTRY_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "PAYROLL_CALCULATION_DATA",
+                    "conceptName": "Payroll Calculation",
+                    "relationCount": 1,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "EMPLOYEE_RECORD",
+                    "name": "Employee Record",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "PAY_PERIOD",
+                    "name": "Pay Period",
+                    "type": "VARCHAR(100)",
+                    "sample": "June 2025"
+                }, {
+                    "sqlName": "BASE_SALARY",
+                    "name": "Base Salary",
+                    "type": "NUMERIC(19,7)",
+                    "sample": "3000.00"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_PAYROLL_CALCULATION_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_PAYROLL_CALCULATION_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_PAYROLL_CALCULATION_EMPLOYEE_RECORD",
+                    "columns": "EMPLOYEE_RECORD",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_PAYROLL_CALCULATION_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_PAYROLL_CALCULATION_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_PAYROLL_CALCULATION_EMPLOYEE_RECORD",
+                    "columns": "EMPLOYEE_RECORD",
+                    "refTable": "EMPLOYEE_REGISTRY_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "BONUS_RECORD_DATA",
+                    "conceptName": "Bonus Record",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "EMPLOYEE_RECORD",
+                    "name": "Employee Record",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "PAYROLL_CALCULATION",
+                    "name": "Payroll Calculation",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "BONUS_REASON",
+                    "name": "Bonus Reason",
+                    "type": "VARCHAR(100)",
+                    "sample": "Good performance"
+                }, {
+                    "sqlName": "BONUS_AMOUNT",
+                    "name": "Bonus Amount",
+                    "type": "NUMERIC(19,7)",
+                    "sample": "500.00"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_BONUS_RECORD_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_BONUS_RECORD_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_BONUS_RECORD_EMPLOYEE_RECORD",
+                    "columns": "EMPLOYEE_RECORD",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_BONUS_RECORD_PAYROLL_CALCULATION",
+                    "columns": "PAYROLL_CALCULATION",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_BONUS_RECORD_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_BONUS_RECORD_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_BONUS_RECORD_EMPLOYEE_RECORD",
+                    "columns": "EMPLOYEE_RECORD",
+                    "refTable": "EMPLOYEE_REGISTRY_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                }, {
+                    "name": "FK_BONUS_RECORD_PAYROLL_CALCULATION",
+                    "columns": "PAYROLL_CALCULATION",
+                    "refTable": "PAYROLL_CALCULATION_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "JOB_ASSIGNMENT_DATA",
+                    "conceptName": "Job Assignment",
+                    "relationCount": 1,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "MOVE_ORDER",
+                    "name": "Move Order",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "EMPLOYEE_RECORD",
+                    "name": "Employee Record",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "ASSIGNMENT_ROLE",
+                    "name": "Assignment Role",
+                    "type": "VARCHAR(100)",
+                    "sample": "Driver"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_JOB_ASSIGNMENT_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_JOB_ASSIGNMENT_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_JOB_ASSIGNMENT_MOVE_ORDER",
+                    "columns": "MOVE_ORDER",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_JOB_ASSIGNMENT_EMPLOYEE_RECORD",
+                    "columns": "EMPLOYEE_RECORD",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_JOB_ASSIGNMENT_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_JOB_ASSIGNMENT_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_JOB_ASSIGNMENT_MOVE_ORDER",
+                    "columns": "MOVE_ORDER",
+                    "refTable": "MOVE_ORDER_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                }, {
+                    "name": "FK_JOB_ASSIGNMENT_EMPLOYEE_RECORD",
+                    "columns": "EMPLOYEE_RECORD",
+                    "refTable": "EMPLOYEE_REGISTRY_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "WORKED_HOURS_DATA",
+                    "conceptName": "Worked Hours",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "JOB_ASSIGNMENT",
+                    "name": "Job Assignment",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "EMPLOYEE_RECORD",
+                    "name": "Employee Record",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "HOURS_LOGGED",
+                    "name": "Hours Logged",
+                    "type": "NUMERIC(19,7)",
+                    "sample": "4.5"
+                }, {
+                    "sqlName": "WORK_DATE",
+                    "name": "Work Date",
+                    "type": "DATE",
+                    "sample": "2025-05-10"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_WORKED_HOURS_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_WORKED_HOURS_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_WORKED_HOURS_JOB_ASSIGNMENT",
+                    "columns": "JOB_ASSIGNMENT",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_WORKED_HOURS_EMPLOYEE_RECORD",
+                    "columns": "EMPLOYEE_RECORD",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_WORKED_HOURS_WORK_DATE",
+                    "columns": "WORK_DATE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_WORKED_HOURS_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_WORKED_HOURS_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_WORKED_HOURS_JOB_ASSIGNMENT",
+                    "columns": "JOB_ASSIGNMENT",
+                    "refTable": "JOB_ASSIGNMENT_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                }, {
+                    "name": "FK_WORKED_HOURS_EMPLOYEE_RECORD",
+                    "columns": "EMPLOYEE_RECORD",
+                    "refTable": "EMPLOYEE_REGISTRY_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "CUSTOMER_PROFILE_DATA",
+                    "conceptName": "Customer Profile",
+                    "relationCount": 9,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "PROFILE_TYPE",
+                    "name": "Profile Type",
+                    "type": "VARCHAR(100)",
+                    "sample": "Corporate"
+                }, {
+                    "sqlName": "CUSTOMER_NAME",
+                    "name": "Customer Name",
+                    "type": "VARCHAR(100)",
+                    "sample": "Acme Corp"
+                }, {
+                    "sqlName": "ACCOUNT_MANAGER",
+                    "name": "Account Manager",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "UPDATE_TIME",
+                    "name": "Update Time",
+                    "type": "TIMESTAMP",
+                    "sample": "updateTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_CUSTOMER_PROFILE_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_CUSTOMER_PROFILE_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_CUSTOMER_PROFILE_ACCOUNT_MANAGER",
+                    "columns": "ACCOUNT_MANAGER",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_CUSTOMER_PROFILE_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_CUSTOMER_PROFILE_UPDATE_TIME",
+                    "columns": "UPDATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_CUSTOMER_PROFILE_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_CUSTOMER_PROFILE_ACCOUNT_MANAGER",
+                    "columns": "ACCOUNT_MANAGER",
+                    "refTable": "EMPLOYEE_REGISTRY_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "CONTACT_PERSON_DATA",
+                    "conceptName": "Contact Person",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "CUSTOMER_PROFILE",
+                    "name": "Customer Profile",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "CONTACT_NAME",
+                    "name": "Contact Name",
+                    "type": "VARCHAR(100)",
+                    "sample": "Jane Smith"
+                }, {
+                    "sqlName": "PHONE_NUMBER",
+                    "name": "Phone Number",
+                    "type": "VARCHAR(100)",
+                    "sample": "555-0199"
+                }, {
+                    "sqlName": "EMAIL_ADDRESS",
+                    "name": "Email Address",
+                    "type": "VARCHAR(100)",
+                    "sample": "jane@acme.com"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_CONTACT_PERSON_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_CONTACT_PERSON_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_CONTACT_PERSON_CUSTOMER_PROFILE",
+                    "columns": "CUSTOMER_PROFILE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_CONTACT_PERSON_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_CONTACT_PERSON_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_CONTACT_PERSON_CUSTOMER_PROFILE",
+                    "columns": "CUSTOMER_PROFILE",
+                    "refTable": "CUSTOMER_PROFILE_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "BILLING_INFO_DATA",
+                    "conceptName": "Billing Info",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "CUSTOMER_PROFILE",
+                    "name": "Customer Profile",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "BILLING_ADDRESS",
+                    "name": "Billing Address",
+                    "type": "VARCHAR(100)",
+                    "sample": "123 Corporate Blvd"
+                }, {
+                    "sqlName": "TAX_ID",
+                    "name": "Tax Id",
+                    "type": "VARCHAR(100)",
+                    "sample": "US123456789"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_BILLING_INFO_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_BILLING_INFO_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_BILLING_INFO_CUSTOMER_PROFILE",
+                    "columns": "CUSTOMER_PROFILE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_BILLING_INFO_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_BILLING_INFO_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_BILLING_INFO_CUSTOMER_PROFILE",
+                    "columns": "CUSTOMER_PROFILE",
+                    "refTable": "CUSTOMER_PROFILE_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "INTERACTION_HISTORY_DATA",
+                    "conceptName": "Interaction History",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "CUSTOMER_PROFILE",
+                    "name": "Customer Profile",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "EMPLOYEE_RECORD",
+                    "name": "Employee Record",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "INTERACTION_NOTES",
+                    "name": "Interaction Notes",
+                    "type": "VARCHAR(100)",
+                    "sample": "Discussed moving plan"
+                }, {
+                    "sqlName": "INTERACTION_DATE",
+                    "name": "Interaction Date",
+                    "type": "DATE",
+                    "sample": "2025-01-10"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_INTERACTION_HISTORY_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_INTERACTION_HISTORY_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_INTERACTION_HISTORY_CUSTOMER_PROFILE",
+                    "columns": "CUSTOMER_PROFILE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_INTERACTION_HISTORY_EMPLOYEE_RECORD",
+                    "columns": "EMPLOYEE_RECORD",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_INTERACTION_HISTORY_INTERACTION_DATE",
+                    "columns": "INTERACTION_DATE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_INTERACTION_HISTORY_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_INTERACTION_HISTORY_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_INTERACTION_HISTORY_CUSTOMER_PROFILE",
+                    "columns": "CUSTOMER_PROFILE",
+                    "refTable": "CUSTOMER_PROFILE_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                }, {
+                    "name": "FK_INTERACTION_HISTORY_EMPLOYEE_RECORD",
+                    "columns": "EMPLOYEE_RECORD",
+                    "refTable": "EMPLOYEE_REGISTRY_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "MARKETING_CAMPAIGN_DATA",
+                    "conceptName": "Marketing Campaign",
+                    "relationCount": 2,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "COMPANY_PROFILE",
+                    "name": "Company Profile",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "CAMPAIGN_NAME",
+                    "name": "Campaign Name",
+                    "type": "VARCHAR(100)",
+                    "sample": "Summer Special 2025"
+                }, {
+                    "sqlName": "TARGET_AUDIENCE",
+                    "name": "Target Audience",
+                    "type": "VARCHAR(100)",
+                    "sample": "Corporates"
+                }, {
+                    "sqlName": "BUDGET_AMOUNT",
+                    "name": "Budget Amount",
+                    "type": "NUMERIC(19,7)",
+                    "sample": "5000.00"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_MARKETING_CAMPAIGN_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_MARKETING_CAMPAIGN_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_MARKETING_CAMPAIGN_COMPANY_PROFILE",
+                    "columns": "COMPANY_PROFILE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_MARKETING_CAMPAIGN_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_MARKETING_CAMPAIGN_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_MARKETING_CAMPAIGN_COMPANY_PROFILE",
+                    "columns": "COMPANY_PROFILE",
+                    "refTable": "COMPANY_PROFILE_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "DISCOUNT_CODE_DATA",
+                    "conceptName": "Discount Code",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "MARKETING_CAMPAIGN",
+                    "name": "Marketing Campaign",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "CODE_VALUE",
+                    "name": "Code Value",
+                    "type": "VARCHAR(100)",
+                    "sample": "SUMMER25"
+                }, {
+                    "sqlName": "DISCOUNT_PERCENT",
+                    "name": "Discount Percent",
+                    "type": "INTEGER",
+                    "sample": "10"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_DISCOUNT_CODE_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_DISCOUNT_CODE_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_DISCOUNT_CODE_MARKETING_CAMPAIGN",
+                    "columns": "MARKETING_CAMPAIGN",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_DISCOUNT_CODE_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_DISCOUNT_CODE_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_DISCOUNT_CODE_MARKETING_CAMPAIGN",
+                    "columns": "MARKETING_CAMPAIGN",
+                    "refTable": "MARKETING_CAMPAIGN_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "SALES_LEAD_DATA",
+                    "conceptName": "Sales Lead",
+                    "relationCount": 1,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "MARKETING_CAMPAIGN",
+                    "name": "Marketing Campaign",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "CUSTOMER_PROFILE",
+                    "name": "Customer Profile",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "LEAD_SOURCE",
+                    "name": "Lead Source",
+                    "type": "VARCHAR(100)",
+                    "sample": "Web Form"
+                }, {
+                    "sqlName": "LEAD_STATUS",
+                    "name": "Lead Status",
+                    "type": "VARCHAR(100)",
+                    "sample": "Converted"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_SALES_LEAD_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_SALES_LEAD_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_SALES_LEAD_MARKETING_CAMPAIGN",
+                    "columns": "MARKETING_CAMPAIGN",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_SALES_LEAD_CUSTOMER_PROFILE",
+                    "columns": "CUSTOMER_PROFILE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_SALES_LEAD_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_SALES_LEAD_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_SALES_LEAD_MARKETING_CAMPAIGN",
+                    "columns": "MARKETING_CAMPAIGN",
+                    "refTable": "MARKETING_CAMPAIGN_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                }, {
+                    "name": "FK_SALES_LEAD_CUSTOMER_PROFILE",
+                    "columns": "CUSTOMER_PROFILE",
+                    "refTable": "CUSTOMER_PROFILE_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "CONVERSION_METRIC_DATA",
+                    "conceptName": "Conversion Metric",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "SALES_LEAD",
+                    "name": "Sales Lead",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "CONVERSION_VALUE",
+                    "name": "Conversion Value",
+                    "type": "NUMERIC(19,7)",
+                    "sample": "1500.00"
+                }, {
+                    "sqlName": "CONVERSION_DATE",
+                    "name": "Conversion Date",
+                    "type": "DATE",
+                    "sample": "2025-02-01"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_CONVERSION_METRIC_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_CONVERSION_METRIC_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_CONVERSION_METRIC_SALES_LEAD",
+                    "columns": "SALES_LEAD",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_CONVERSION_METRIC_CONVERSION_DATE",
+                    "columns": "CONVERSION_DATE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_CONVERSION_METRIC_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_CONVERSION_METRIC_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_CONVERSION_METRIC_SALES_LEAD",
+                    "columns": "SALES_LEAD",
+                    "refTable": "SALES_LEAD_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "LOCATION_ADDRESS_DATA",
+                    "conceptName": "Location Address",
+                    "relationCount": 2,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "COMPANY_PROFILE",
+                    "name": "Company Profile",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "STREET_LINE",
+                    "name": "Street Line",
+                    "type": "VARCHAR(100)",
+                    "sample": "123 Main St"
+                }, {
+                    "sqlName": "CITY_NAME",
+                    "name": "City Name",
+                    "type": "VARCHAR(100)",
+                    "sample": "Metropolis"
+                }, {
+                    "sqlName": "POSTAL_CODE",
+                    "name": "Postal Code",
+                    "type": "INTEGER",
+                    "sample": "12345"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_LOCATION_ADDRESS_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_LOCATION_ADDRESS_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_LOCATION_ADDRESS_COMPANY_PROFILE",
+                    "columns": "COMPANY_PROFILE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_LOCATION_ADDRESS_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_LOCATION_ADDRESS_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_LOCATION_ADDRESS_COMPANY_PROFILE",
+                    "columns": "COMPANY_PROFILE",
+                    "refTable": "COMPANY_PROFILE_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "MOVE_ORDER_DATA",
+                    "conceptName": "Move Order",
+                    "relationCount": 9,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "CUSTOMER_PROFILE",
+                    "name": "Customer Profile",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "ORIGIN_ADDRESS",
+                    "name": "Origin Address",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "DESTINATION_ADDRESS",
+                    "name": "Destination Address",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "ASSET_VEHICLE",
+                    "name": "Asset Vehicle",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "ORDER_STATUS",
+                    "name": "Order Status",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "MOVE_DATE",
+                    "name": "Move Date",
+                    "type": "DATE",
+                    "sample": "2025-05-10"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "UPDATE_TIME",
+                    "name": "Update Time",
+                    "type": "TIMESTAMP",
+                    "sample": "updateTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_MOVE_ORDER_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_MOVE_ORDER_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_MOVE_ORDER_CUSTOMER_PROFILE",
+                    "columns": "CUSTOMER_PROFILE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_MOVE_ORDER_ORIGIN_ADDRESS",
+                    "columns": "ORIGIN_ADDRESS",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_MOVE_ORDER_DESTINATION_ADDRESS",
+                    "columns": "DESTINATION_ADDRESS",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_MOVE_ORDER_ASSET_VEHICLE",
+                    "columns": "ASSET_VEHICLE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_MOVE_ORDER_ORDER_STATUS",
+                    "columns": "ORDER_STATUS",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_MOVE_ORDER_MOVE_DATE",
+                    "columns": "MOVE_DATE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_MOVE_ORDER_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_MOVE_ORDER_UPDATE_TIME",
+                    "columns": "UPDATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_MOVE_ORDER_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_MOVE_ORDER_CUSTOMER_PROFILE",
+                    "columns": "CUSTOMER_PROFILE",
+                    "refTable": "CUSTOMER_PROFILE_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                }, {
+                    "name": "FK_MOVE_ORDER_ORIGIN_ADDRESS",
+                    "columns": "ORIGIN_ADDRESS",
+                    "refTable": "LOCATION_ADDRESS_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                }, {
+                    "name": "FK_MOVE_ORDER_DESTINATION_ADDRESS",
+                    "columns": "DESTINATION_ADDRESS",
+                    "refTable": "LOCATION_ADDRESS_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                }, {
+                    "name": "FK_MOVE_ORDER_ASSET_VEHICLE",
+                    "columns": "ASSET_VEHICLE",
+                    "refTable": "FLEET_VEHICLE_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                }, {
+                    "name": "FK_MOVE_ORDER_ORDER_STATUS",
+                    "columns": "ORDER_STATUS",
+                    "refTable": "ORDER_STATUS_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "ROUTE_PLAN_DATA",
+                    "conceptName": "Route Plan",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "MOVE_ORDER",
+                    "name": "Move Order",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "ESTIMATED_DISTANCE",
+                    "name": "Estimated Distance",
+                    "type": "NUMERIC(19,7)",
+                    "sample": "50.5"
+                }, {
+                    "sqlName": "ESTIMATED_DURATION",
+                    "name": "Estimated Duration",
+                    "type": "INTEGER",
+                    "sample": "120"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_ROUTE_PLAN_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_ROUTE_PLAN_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_ROUTE_PLAN_MOVE_ORDER",
+                    "columns": "MOVE_ORDER",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_ROUTE_PLAN_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_ROUTE_PLAN_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_ROUTE_PLAN_MOVE_ORDER",
+                    "columns": "MOVE_ORDER",
+                    "refTable": "MOVE_ORDER_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "TIME_SLOT_DATA",
+                    "conceptName": "Time Slot",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "MOVE_ORDER",
+                    "name": "Move Order",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "START_TIME",
+                    "name": "Start Time",
+                    "type": "VARCHAR(100)",
+                    "sample": "00:00"
+                }, {
+                    "sqlName": "END_TIME",
+                    "name": "End Time",
+                    "type": "VARCHAR(100)",
+                    "sample": "00:00"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_TIME_SLOT_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_TIME_SLOT_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_TIME_SLOT_MOVE_ORDER",
+                    "columns": "MOVE_ORDER",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_TIME_SLOT_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_TIME_SLOT_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_TIME_SLOT_MOVE_ORDER",
+                    "columns": "MOVE_ORDER",
+                    "refTable": "MOVE_ORDER_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "FULFILLMENT_EVENT_DATA",
+                    "conceptName": "Fulfillment Event",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "MOVE_ORDER",
+                    "name": "Move Order",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "EVENT_DESCRIPTION",
+                    "name": "Event Description",
+                    "type": "VARCHAR(100)",
+                    "sample": "Arrived at origin"
+                }, {
+                    "sqlName": "EVENT_TIME",
+                    "name": "Event Time",
+                    "type": "VARCHAR(100)",
+                    "sample": "15:00"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_FULFILLMENT_EVENT_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_FULFILLMENT_EVENT_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_FULFILLMENT_EVENT_MOVE_ORDER",
+                    "columns": "MOVE_ORDER",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_FULFILLMENT_EVENT_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_FULFILLMENT_EVENT_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_FULFILLMENT_EVENT_MOVE_ORDER",
+                    "columns": "MOVE_ORDER",
+                    "refTable": "MOVE_ORDER_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "FLEET_VEHICLE_DATA",
+                    "conceptName": "Fleet Vehicle",
+                    "relationCount": 5,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "COMPANY_PROFILE",
+                    "name": "Company Profile",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "VEHICLE_REGISTRATION",
+                    "name": "Vehicle Registration",
+                    "type": "VARCHAR(100)",
+                    "sample": "ABC-123"
+                }, {
+                    "sqlName": "VEHICLE_MODEL",
+                    "name": "Vehicle Model",
+                    "type": "VARCHAR(100)",
+                    "sample": "Ford Transit"
+                }, {
+                    "sqlName": "CAPACITY_TONS",
+                    "name": "Capacity Tons",
+                    "type": "NUMERIC(19,7)",
+                    "sample": "5.0"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_FLEET_VEHICLE_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_FLEET_VEHICLE_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_FLEET_VEHICLE_COMPANY_PROFILE",
+                    "columns": "COMPANY_PROFILE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_FLEET_VEHICLE_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_FLEET_VEHICLE_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_FLEET_VEHICLE_COMPANY_PROFILE",
+                    "columns": "COMPANY_PROFILE",
+                    "refTable": "COMPANY_PROFILE_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "EQUIPMENT_ITEM_DATA",
+                    "conceptName": "Equipment Item",
+                    "relationCount": 1,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "ASSET_VEHICLE",
+                    "name": "Asset Vehicle",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "ITEM_NAME",
+                    "name": "Item Name",
+                    "type": "VARCHAR(100)",
+                    "sample": "Dolly"
+                }, {
+                    "sqlName": "SERIAL_NUMBER",
+                    "name": "Serial Number",
+                    "type": "VARCHAR(100)",
+                    "sample": "DLY-001"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_EQUIPMENT_ITEM_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_EQUIPMENT_ITEM_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_EQUIPMENT_ITEM_ASSET_VEHICLE",
+                    "columns": "ASSET_VEHICLE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_EQUIPMENT_ITEM_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_EQUIPMENT_ITEM_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_EQUIPMENT_ITEM_ASSET_VEHICLE",
+                    "columns": "ASSET_VEHICLE",
+                    "refTable": "FLEET_VEHICLE_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "CONSUMABLE_ITEM_DATA",
+                    "conceptName": "Consumable Item",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "ASSET_VEHICLE",
+                    "name": "Asset Vehicle",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "ITEM_NAME",
+                    "name": "Item Name",
+                    "type": "VARCHAR(100)",
+                    "sample": "Packing Tape"
+                }, {
+                    "sqlName": "QUANTITY_COUNT",
+                    "name": "Quantity Count",
+                    "type": "INTEGER",
+                    "sample": "50"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_CONSUMABLE_ITEM_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_CONSUMABLE_ITEM_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_CONSUMABLE_ITEM_ASSET_VEHICLE",
+                    "columns": "ASSET_VEHICLE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_CONSUMABLE_ITEM_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_CONSUMABLE_ITEM_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_CONSUMABLE_ITEM_ASSET_VEHICLE",
+                    "columns": "ASSET_VEHICLE",
+                    "refTable": "FLEET_VEHICLE_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "MAINTENANCE_SCHEDULE_DATA",
+                    "conceptName": "Maintenance Schedule",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "ASSET_VEHICLE",
+                    "name": "Asset Vehicle",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "MAINTENANCE_TYPE",
+                    "name": "Maintenance Type",
+                    "type": "VARCHAR(100)",
+                    "sample": "Oil Change"
+                }, {
+                    "sqlName": "SCHEDULED_DATE",
+                    "name": "Scheduled Date",
+                    "type": "DATE",
+                    "sample": "2025-08-01"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_MAINTENANCE_SCHEDULE_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_MAINTENANCE_SCHEDULE_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_MAINTENANCE_SCHEDULE_ASSET_VEHICLE",
+                    "columns": "ASSET_VEHICLE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_MAINTENANCE_SCHEDULE_SCHEDULED_DATE",
+                    "columns": "SCHEDULED_DATE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_MAINTENANCE_SCHEDULE_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_MAINTENANCE_SCHEDULE_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_MAINTENANCE_SCHEDULE_ASSET_VEHICLE",
+                    "columns": "ASSET_VEHICLE",
+                    "refTable": "FLEET_VEHICLE_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "INVENTORY_TRACKING_DATA",
+                    "conceptName": "Inventory Tracking",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "EQUIPMENT_ITEM",
+                    "name": "Equipment Item",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "LOCATION_NAME",
+                    "name": "Location Name",
+                    "type": "VARCHAR(100)",
+                    "sample": "Warehouse A"
+                }, {
+                    "sqlName": "CHECK_DATE",
+                    "name": "Check Date",
+                    "type": "DATE",
+                    "sample": "2025-01-15"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_INVENTORY_TRACKING_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_INVENTORY_TRACKING_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_INVENTORY_TRACKING_EQUIPMENT_ITEM",
+                    "columns": "EQUIPMENT_ITEM",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_INVENTORY_TRACKING_CHECK_DATE",
+                    "columns": "CHECK_DATE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_INVENTORY_TRACKING_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_INVENTORY_TRACKING_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_INVENTORY_TRACKING_EQUIPMENT_ITEM",
+                    "columns": "EQUIPMENT_ITEM",
+                    "refTable": "EQUIPMENT_ITEM_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "SERVICE_CATALOG_DATA",
+                    "conceptName": "Service Catalog",
+                    "relationCount": 2,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "COMPANY_PROFILE",
+                    "name": "Company Profile",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "SERVICE_NAME",
+                    "name": "Service Name",
+                    "type": "VARCHAR(100)",
+                    "sample": "Deep Cleaning"
+                }, {
+                    "sqlName": "SERVICE_DESCRIPTION",
+                    "name": "Service Description",
+                    "type": "VARCHAR(100)",
+                    "sample": "Full packing service"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_SERVICE_CATALOG_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_SERVICE_CATALOG_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_SERVICE_CATALOG_COMPANY_PROFILE",
+                    "columns": "COMPANY_PROFILE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_SERVICE_CATALOG_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_SERVICE_CATALOG_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_SERVICE_CATALOG_COMPANY_PROFILE",
+                    "columns": "COMPANY_PROFILE",
+                    "refTable": "COMPANY_PROFILE_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "SERVICE_CONFIG_DATA",
+                    "conceptName": "Service Config",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "SERVICE_CATALOG",
+                    "name": "Service Catalog",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "CONFIG_NAME",
+                    "name": "Config Name",
+                    "type": "VARCHAR(100)",
+                    "sample": "Standard"
+                }, {
+                    "sqlName": "PRICE_AMOUNT",
+                    "name": "Price Amount",
+                    "type": "NUMERIC(19,7)",
+                    "sample": "200.00"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_SERVICE_CONFIG_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_SERVICE_CONFIG_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_SERVICE_CONFIG_SERVICE_CATALOG",
+                    "columns": "SERVICE_CATALOG",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_SERVICE_CONFIG_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_SERVICE_CONFIG_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_SERVICE_CONFIG_SERVICE_CATALOG",
+                    "columns": "SERVICE_CATALOG",
+                    "refTable": "SERVICE_CATALOG_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "BOX_RENTAL_DATA",
+                    "conceptName": "Box Rental",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "MOVE_ORDER",
+                    "name": "Move Order",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "SERVICE_CATALOG",
+                    "name": "Service Catalog",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "BOX_QUANTITY",
+                    "name": "Box Quantity",
+                    "type": "INTEGER",
+                    "sample": "20"
+                }, {
+                    "sqlName": "RENTAL_FEE",
+                    "name": "Rental Fee",
+                    "type": "NUMERIC(19,7)",
+                    "sample": "50.00"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_BOX_RENTAL_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_BOX_RENTAL_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_BOX_RENTAL_MOVE_ORDER",
+                    "columns": "MOVE_ORDER",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_BOX_RENTAL_SERVICE_CATALOG",
+                    "columns": "SERVICE_CATALOG",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_BOX_RENTAL_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_BOX_RENTAL_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_BOX_RENTAL_MOVE_ORDER",
+                    "columns": "MOVE_ORDER",
+                    "refTable": "MOVE_ORDER_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                }, {
+                    "name": "FK_BOX_RENTAL_SERVICE_CATALOG",
+                    "columns": "SERVICE_CATALOG",
+                    "refTable": "SERVICE_CATALOG_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "INVOICE_DOCUMENT_DATA",
+                    "conceptName": "Invoice Document",
+                    "relationCount": 2,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "CUSTOMER_PROFILE",
+                    "name": "Customer Profile",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "MOVE_ORDER",
+                    "name": "Move Order",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "INVOICE_TOTAL",
+                    "name": "Invoice Total",
+                    "type": "NUMERIC(19,7)",
+                    "sample": "1500.00"
+                }, {
+                    "sqlName": "ISSUE_DATE",
+                    "name": "Issue Date",
+                    "type": "DATE",
+                    "sample": "2025-05-12"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_INVOICE_DOCUMENT_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_INVOICE_DOCUMENT_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_INVOICE_DOCUMENT_CUSTOMER_PROFILE",
+                    "columns": "CUSTOMER_PROFILE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_INVOICE_DOCUMENT_MOVE_ORDER",
+                    "columns": "MOVE_ORDER",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_INVOICE_DOCUMENT_ISSUE_DATE",
+                    "columns": "ISSUE_DATE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_INVOICE_DOCUMENT_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_INVOICE_DOCUMENT_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_INVOICE_DOCUMENT_CUSTOMER_PROFILE",
+                    "columns": "CUSTOMER_PROFILE",
+                    "refTable": "CUSTOMER_PROFILE_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                }, {
+                    "name": "FK_INVOICE_DOCUMENT_MOVE_ORDER",
+                    "columns": "MOVE_ORDER",
+                    "refTable": "MOVE_ORDER_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "PAYMENT_RECORD_DATA",
+                    "conceptName": "Payment Record",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "CUSTOMER_PROFILE",
+                    "name": "Customer Profile",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "MOVE_ORDER",
+                    "name": "Move Order",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "PAYMENT_AMOUNT",
+                    "name": "Payment Amount",
+                    "type": "NUMERIC(19,7)",
+                    "sample": "1500.00"
+                }, {
+                    "sqlName": "PAYMENT_DATE",
+                    "name": "Payment Date",
+                    "type": "DATE",
+                    "sample": "2025-05-15"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_PAYMENT_RECORD_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_PAYMENT_RECORD_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_PAYMENT_RECORD_CUSTOMER_PROFILE",
+                    "columns": "CUSTOMER_PROFILE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_PAYMENT_RECORD_MOVE_ORDER",
+                    "columns": "MOVE_ORDER",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_PAYMENT_RECORD_PAYMENT_DATE",
+                    "columns": "PAYMENT_DATE",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_PAYMENT_RECORD_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_PAYMENT_RECORD_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_PAYMENT_RECORD_CUSTOMER_PROFILE",
+                    "columns": "CUSTOMER_PROFILE",
+                    "refTable": "CUSTOMER_PROFILE_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                }, {
+                    "name": "FK_PAYMENT_RECORD_MOVE_ORDER",
+                    "columns": "MOVE_ORDER",
+                    "refTable": "MOVE_ORDER_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "EXPENSE_RECORD_DATA",
+                    "conceptName": "Expense Record",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "MOVE_ORDER",
+                    "name": "Move Order",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "EXPENSE_DESCRIPTION",
+                    "name": "Expense Description",
+                    "type": "VARCHAR(100)",
+                    "sample": "Fuel"
+                }, {
+                    "sqlName": "EXPENSE_AMOUNT",
+                    "name": "Expense Amount",
+                    "type": "NUMERIC(19,7)",
+                    "sample": "100.00"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_EXPENSE_RECORD_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_EXPENSE_RECORD_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_EXPENSE_RECORD_MOVE_ORDER",
+                    "columns": "MOVE_ORDER",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_EXPENSE_RECORD_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_EXPENSE_RECORD_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_EXPENSE_RECORD_MOVE_ORDER",
+                    "columns": "MOVE_ORDER",
+                    "refTable": "MOVE_ORDER_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "VAT_RECORD_DATA",
+                    "conceptName": "Vat Record",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "INVOICE_DOCUMENT",
+                    "name": "Invoice Document",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "VAT_PERCENT",
+                    "name": "Vat Percent",
+                    "type": "NUMERIC(19,7)",
+                    "sample": "20.0"
+                }, {
+                    "sqlName": "VAT_AMOUNT",
+                    "name": "Vat Amount",
+                    "type": "NUMERIC(19,7)",
+                    "sample": "300.00"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_VAT_RECORD_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_VAT_RECORD_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_VAT_RECORD_INVOICE_DOCUMENT",
+                    "columns": "INVOICE_DOCUMENT",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_VAT_RECORD_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_VAT_RECORD_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_VAT_RECORD_INVOICE_DOCUMENT",
+                    "columns": "INVOICE_DOCUMENT",
+                    "refTable": "INVOICE_DOCUMENT_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                },
+                {
+                    "name": "FINANCIAL_SUMMARY_DATA",
+                    "conceptName": "Financial Summary",
+                    "relationCount": 0,
+                    "columns": [ {
+                    "sqlName": "ID",
+                    "name": "Id",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "INVOICE_DOCUMENT",
+                    "name": "Invoice Document",
+                    "type": "BIGINT",
+                    "sample": "1"
+                }, {
+                    "sqlName": "TOTAL_REVENUE",
+                    "name": "Total Revenue",
+                    "type": "NUMERIC(19,7)",
+                    "sample": "1200.00"
+                }, {
+                    "sqlName": "REPORT_MONTH",
+                    "name": "Report Month",
+                    "type": "VARCHAR(100)",
+                    "sample": "May 2025"
+                }, {
+                    "sqlName": "CREATE_TIME",
+                    "name": "Create Time",
+                    "type": "TIMESTAMP",
+                    "sample": "createTime()"
+                }, {
+                    "sqlName": "VERSION",
+                    "name": "Version",
+                    "type": "BIGINT",
+                    "sample": "1"
+                } ],
+                    "indexes": [ {
+                    "name": "PK_FINANCIAL_SUMMARY_ID",
+                    "columns": "ID",
+                    "type": "PRIMARY KEY",
+                    "remark": ""
+                }, {
+                    "name": "PK_FINANCIAL_SUMMARY_ID_VERSION",
+                    "columns": "ID,VERSION",
+                    "type": "UNIQUE KEY",
+                    "remark": ""
+                }, {
+                    "name": "IDX_FINANCIAL_SUMMARY_INVOICE_DOCUMENT",
+                    "columns": "INVOICE_DOCUMENT",
+                    "type": "INDEX",
+                    "remark": ""
+                }, {
+                    "name": "IDX_FINANCIAL_SUMMARY_CREATE_TIME",
+                    "columns": "CREATE_TIME",
+                    "type": "INDEX",
+                    "remark": ""
+                } ],
+                    "constraints": [ {
+                    "name": "PK_FINANCIAL_SUMMARY_ID",
+                    "columns": "ID",
+                    "refTable": "-",
+                    "refCols": "-",
+                    "remark": "PRIMARY KEY"
+                }, {
+                    "name": "FK_FINANCIAL_SUMMARY_INVOICE_DOCUMENT",
+                    "columns": "INVOICE_DOCUMENT",
+                    "refTable": "INVOICE_DOCUMENT_DATA",
+                    "refCols": "ID",
+                    "remark": "CASCADE ON DELETE and UPDATE"
+                } ]
+                }
+            ]
+        };
+    </script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const data = window.domainData;
+
+        const WordCloud = ({ tables }) => {
+            const chartRef = useRef(null);
+
+            useEffect(() => {
+                if (!chartRef.current) return;
+                const myChart = echarts.init(chartRef.current);
+
+                const cloudData = tables.map(t => ({
+                    name: t.conceptName,
+                    value: t.relationCount > 0 ? t.relationCount * 20 : 10
+                }));
+
+                const option = {
+                    tooltip: { show: true },
+                    series: [{
+                        type: 'wordCloud',
+                        shape: 'circle',
+                        left: 'center',
+                        top: 'center',
+                        width: '100%',
+                        height: '100%',
+                        sizeRange: [14, 60],
+                        rotationRange: [-45, 90],
+                        gridSize: 8,
+                        textStyle: {
+                            fontFamily: 'sans-serif',
+                            fontWeight: 'bold',
+                            color: function () {
+                                return 'rgb(' + [
+                                    Math.round(Math.random() * 160),
+                                    Math.round(Math.random() * 160),
+                                    Math.round(Math.random() * 160)
+                                ].join(',') + ')';
+                            }
+                        },
+                        emphasis: {
+                            focus: 'self',
+                            textStyle: {
+                                textShadowBlur: 10,
+                                textShadowColor: '#333'
+                            }
+                        },
+                        data: cloudData
+                    }]
+                };
+
+                myChart.setOption(option);
+
+                const handleResize = () => myChart.resize();
+                window.addEventListener('resize', handleResize);
+                return () => {
+                    window.removeEventListener('resize', handleResize);
+                    myChart.dispose();
+                };
+            }, [tables]);
+
+            return <div ref={chartRef} style={{ width: '100%', height: '400px' }}></div>;
+        };
+
+        const Sidebar = () => (
+            <div className="col-md-3 col-lg-2 d-md-block sidebar nav-sidebar p-3 border-end">
+                <h5 className="mb-3 text-primary border-bottom pb-2">Tables Index</h5>
+                <div className="list-group list-group-flush">
+                    {data.tables.map((t, idx) => (
+                        <a key={t.name} href={`#Table-${t.name}`} className="list-group-item list-group-item-action text-truncate py-2 border-0">
+                            <small>{idx + 1}. {t.name}</small>
+                        </a>
+                    ))}
+                </div>
+            </div>
+        );
+
+        const TableIndex = () => (
+            <div className="table-wrap page-break">
+                <h3 className="mb-4 text-primary">Tables Index</h3>
+                <table className="table table-bordered table-hover">
+                    <thead>
+                        <tr><th>#</th><th>Table Name</th><th>Columns</th><th>Relations</th></tr>
+                    </thead>
+                    <tbody>
+                        {data.tables.map((t, idx) => (
+                            <tr key={t.name}>
+                                <td>{idx + 1}</td>
+                                <td><a href={`#Table-${t.name}`} className="text-decoration-none">{t.name}</a></td>
+                                <td>{t.columns.length}</td>
+                                <td>{t.relationCount}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        );
+
+        const TableDetail = ({ t, idx }) => (
+            <div id={`Table-${t.name}`} className="table-wrap page-break">
+                <h3 className="mb-4 text-primary">{idx + 1}. Table: {t.name}</h3>
+
+                <h5 className="mt-4 text-secondary">Columns</h5>
+                <table className="table table-bordered table-sm table-striped">
+                    <thead>
+                        <tr><th width="5%">#</th><th width="20%">Column Name</th><th width="25%">Name</th><th width="25%">Type</th><th width="25%">Sample</th></tr>
+                    </thead>
+                    <tbody>
+                        {t.columns.map((c, i) => (
+                            <tr key={c.sqlName}>
+                                <td>{i + 1}</td>
+                                <td>{c.sqlName}</td>
+                                <td>{c.name}</td>
+                                <td><span className="type-code">{c.type}</span></td>
+                                <td>{c.sample}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+
+                {t.indexes && t.indexes.length > 0 && (
+                    <React.Fragment>
+                        <h5 className="mt-4 text-secondary">Indexes</h5>
+                        <table className="table table-bordered table-sm">
+                            <thead>
+                                <tr><th width="5%">#</th><th>Index Name</th><th>Columns</th><th>Type</th><th>Remark</th></tr>
+                            </thead>
+                            <tbody>
+                                {t.indexes.map((idxObj, i) => (
+                                    <tr key={idxObj.name}>
+                                        <td>{i + 1}</td>
+                                        <td>{idxObj.name}</td>
+                                        <td>{idxObj.columns}</td>
+                                        <td>{idxObj.type}</td>
+                                        <td>{idxObj.remark}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </React.Fragment>
+                )}
+
+                {t.constraints && t.constraints.length > 0 && (
+                    <React.Fragment>
+                        <h5 className="mt-4 text-secondary">Constraints</h5>
+                        <table className="table table-bordered table-sm">
+                            <thead>
+                                <tr><th width="5%">#</th><th>Constraint</th><th>Column</th><th>Ref Table</th><th>Ref Column</th><th>Remark</th></tr>
+                            </thead>
+                            <tbody>
+                                {t.constraints.map((c, i) => (
+                                    <tr key={c.name}>
+                                        <td>{i + 1}</td>
+                                        <td>{c.name}</td>
+                                        <td>{c.columns}</td>
+                                        <td>{c.refTable}</td>
+                                        <td>{c.refCols}</td>
+                                        <td>{c.remark}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </React.Fragment>
+                )}
+            </div>
+        );
+
+        const App = () => (
+            <div className="container-fluid">
+                <div className="row">
+                    <Sidebar />
+                    <div className="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+                        <div className="preface page-break">
+                            <h1 className="display-4 fw-bold text-dark">{data.name}</h1>
+                            <h3 className="text-muted">Database Design Document</h3>
+                        </div>
+
+                        <div className="table-wrap">
+                            <h3 className="mb-4 text-primary">Summary of Concepts</h3>
+                            <WordCloud tables={data.tables} />
+                        </div>
+
+                        <TableIndex />
+
+                        <div className="mt-5">
+                            {data.tables.map((t, idx) => <TableDetail key={t.name} t={t} idx={idx} />)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

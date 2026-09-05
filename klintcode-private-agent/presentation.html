@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KlintCode Private Agent - Presentation</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --text-main: #c9d1d9;
+            --text-heading: #ffffff;
+            --accent-red: #ff3333;
+            --accent-cyan: #58a6ff;
+            --card-bg: #161b22;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Inter, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .slide {
+            width: 1920px;
+            height: 1080px;
+            box-sizing: border-box;
+            padding: 100px 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            page-break-after: always;
+            position: relative;
+            overflow: hidden;
+            background: radial-gradient(circle at top right, #1f242d 0%, var(--bg-color) 60%);
+        }
+
+        /* Title Slide */
+        .title-slide {
+            text-align: center;
+            align-items: center;
+            background: radial-gradient(circle at center, #261719 0%, var(--bg-color) 70%);
+        }
+
+        .title-slide h1 {
+            font-size: 100px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            color: var(--text-heading);
+            letter-spacing: -2px;
+        }
+
+        .title-slide h1 span {
+            color: var(--accent-red);
+        }
+
+        .title-slide h2 {
+            font-size: 40px;
+            font-weight: 300;
+            color: #8b949e;
+            margin-bottom: 60px;
+        }
+
+        .tag {
+            background-color: rgba(255, 51, 51, 0.15);
+            color: var(--accent-red);
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 24px;
+            font-weight: 600;
+            border: 1px solid rgba(255, 51, 51, 0.3);
+        }
+
+        /* Content Slides */
+        h2 {
+            font-size: 64px;
+            color: var(--text-heading);
+            margin-top: 0;
+            margin-bottom: 60px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 20px;
+        }
+
+        h2 span {
+            color: var(--accent-cyan);
+        }
+
+        .content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            font-size: 36px;
+            line-height: 1.6;
+        }
+
+        ul {
+            padding-left: 40px;
+            margin: 0;
+        }
+
+        li {
+            margin-bottom: 30px;
+        }
+
+        li strong {
+            color: var(--text-heading);
+            font-weight: 600;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 60px;
+            height: 100%;
+        }
+
+        .card {
+            box-sizing: border-box;
+            min-width: 0;
+            background-color: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 50px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        .card-title {
+            font-size: 32px;
+            color: var(--accent-cyan);
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .architecture {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.15fr);
+            gap: 34px;
+            align-items: stretch;
+            margin-top: 25px;
+        }
+
+        .arch-node {
+            box-sizing: border-box;
+            min-width: 0;
+            position: relative;
+            min-height: 320px;
+            padding: 34px 28px;
+            border: 2px solid rgba(88, 166, 255, 0.45);
+            border-radius: 22px;
+            background: linear-gradient(145deg, rgba(88, 166, 255, 0.12), rgba(22, 27, 34, 0.95));
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .arch-node:not(:last-child)::after {
+            content: "\2192";
+            position: absolute;
+            right: -31px;
+            top: 42%;
+            color: var(--accent-red);
+            font-size: 38px;
+            font-weight: 800;
+        }
+
+        .arch-title {
+            color: #ffffff;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 14px;
+        }
+
+        .arch-detail {
+            color: #8b949e;
+            font-size: 21px;
+            line-height: 1.45;
+        }
+
+        .agent-parts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 9px;
+            margin-top: 8px;
+        }
+
+        .agent-part {
+            padding: 9px 5px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.06);
+            font-size: 17px;
+            color: #c9d1d9;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px 28px;
+            margin-top: 18px;
+        }
+
+        .metric {
+            border-left: 3px solid var(--accent-red);
+            padding-left: 14px;
+        }
+
+        .metric-value {
+            color: #ffffff;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .metric-label {
+            color: #8b949e;
+            font-size: 18px;
+        }
+
+        .mechanisms-slide .content {
+            gap: 26px;
+            font-size: 31px;
+            line-height: 1.42;
+        }
+
+        .mechanisms-slide .highlight-box,
+        .mechanisms-slide .highlight-box-red {
+            margin-top: 0;
+            padding: 24px 32px;
+        }
+
+        /* Footer */
+        .footer {
+            position: absolute;
+            bottom: 40px;
+            left: 120px;
+            right: 120px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 20px;
+            color: #484f58;
+            font-weight: 600;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 20px;
+        }
+
+        /* Specific Highlight Elements */
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(88, 166, 255, 0.1), rgba(88, 166, 255, 0.02));
+            border-left: 6px solid var(--accent-cyan);
+            padding: 30px 40px;
+            border-radius: 0 16px 16px 0;
+            margin-top: 20px;
+        }
+        
+        .highlight-box-red {
+            background: linear-gradient(135deg, rgba(255, 51, 51, 0.1), rgba(255, 51, 51, 0.02));
+            border-left: 6px solid var(--accent-red);
+            padding: 30px 40px;
+            border-radius: 0 16px 16px 0;
+            margin-top: 20px;
+        }
+
+        @media print {
+            @page { size: 16in 9in; margin: 0; }
+            body { background-color: var(--bg-color); }
+            .slide { 
+                page-break-after: always; 
+                -webkit-region-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Slide 1: Title -->
+    <div class="slide title-slide">
+        <h1>KlintCode <span>Private Agent</span></h1>
+        <h2>Autonomous Code Generation on AMD Hardware</h2>
+        <div>
+            <span class="tag">Track 2: Private AI Agents</span>
+        </div>
+    </div>
+
+    <!-- Slide 2: Background -->
+    <div class="slide">
+        <h2>Project <span>Background & Vision</span></h2>
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-title">Data Security Dilemma</div>
+                <p>Enterprise-grade software development cannot tolerate the risk of leaking proprietary logic, intellectual property, or confidential algorithms to public cloud LLMs.</p>
+            </div>
+            <div class="card">
+                <div class="card-title">Context Fragmentation</div>
+                <p>Traditional coding assistants struggle with complex architectural tasks due to limited context windows, resulting in logical gaps across decoupled files.</p>
+            </div>
+        </div>
+        <div class="highlight-box" style="margin-top: 40px;">
+            <strong>Solution:</strong> A fully local, air-gapped autonomous agent framework running natively on AMD hardware, capable of end-to-end microservice generation.
+        </div>
+        <div class="footer">
+            <span>KlintCode Private Agent</span>
+            <span>01</span>
+        </div>
+    </div>
+
+    <!-- Slide 3: Architecture -->
+    <div class="slide">
+        <h2>System Architecture <span>(M1 - M5 Pipeline)</span></h2>
+        <div class="architecture">
+            <div class="arch-node">
+                <div class="arch-title">Business Requirement</div>
+                <div class="arch-detail">Private enterprise specification and constraints</div>
+            </div>
+            <div class="arch-node">
+                <div class="arch-title">KlintCode Agent Loop</div>
+                <div class="agent-parts">
+                    <div class="agent-part">Context Builder</div>
+                    <div class="agent-part">Planner</div>
+                    <div class="agent-part">Tool Runner</div>
+                    <div class="agent-part">Repair Controller</div>
+                </div>
+            </div>
+            <div class="arch-node">
+                <div class="arch-title">Local Qwen3.6</div>
+                <div class="arch-detail">W7900 48GB<br>llama.cpp + ROCm<br>262,144 tokens</div>
+            </div>
+            <div class="arch-node">
+                <div class="arch-title">TeaQL Models</div>
+                <div class="arch-detail">Strictly typed XML and deterministic generation</div>
+            </div>
+            <div class="arch-node">
+                <div class="arch-title">Verified Services</div>
+                <div class="arch-detail">L1-L8 validation<br>Rust generation<br>CPU compiler check</div>
+            </div>
+        </div>
+        <div class="highlight-box" style="margin-top: 55px; font-size: 28px; text-align: center;">
+            <strong>LLM provides intelligence; KlintCode controls the process; TeaQL guarantees deterministic output.</strong>
+        </div>
+        <div class="footer">
+            <span>KlintCode Private Agent</span>
+            <span>02</span>
+        </div>
+    </div>
+
+    <!-- Slide 4: AMD Hardware -->
+    <div class="slide">
+        <h2>AMD Hardware <span>Optimization</span></h2>
+        <div class="grid-2">
+            <div>
+                <ul style="padding-left: 20px;">
+                    <li><strong>Hardware:</strong> AMD Radeon PRO W7900 48GB</li>
+                    <li><strong>Engine:</strong> ROCm-enabled llama.cpp</li>
+                    <li><strong>Model:</strong> Qwen3.6-35B-A3B GGUF Q4_K_M</li>
+                    <li><strong>Context:</strong> 262,144 tokens, one inference slot</li>
+                </ul>
+            </div>
+            <div class="card">
+                <div class="card-title">Key Optimizations</div>
+                <p style="font-size: 26px; line-height: 1.45; margin-top: 0;">Full GPU layer offloading (<strong>-ngl 99</strong>), quantized MoE weights, and single-slot KV-cache allocation (<strong>-np 1</strong>).</p>
+                <div class="metric-grid">
+                    <div class="metric"><div class="metric-value">20.4GB</div><div class="metric-label">Model weights</div></div>
+                    <div class="metric"><div class="metric-value">~26GB</div><div class="metric-label">VRAM in long context</div></div>
+                    <div class="metric"><div class="metric-value">88-92 t/s</div><div class="metric-label">Generation</div></div>
+                    <div class="metric"><div class="metric-value">~1,605 t/s</div><div class="metric-label">40K prompt processing</div></div>
+                </div>
+            </div>
+        </div>
+        <div class="footer">
+            <span>KlintCode Private Agent</span>
+            <span>03</span>
+        </div>
+    </div>
+
+    <!-- Slide 5: Core Tech -->
+    <div class="slide mechanisms-slide">
+        <h2>Core Technical <span>Mechanisms</span></h2>
+        <div class="content">
+            <div class="highlight-box-red">
+                <strong>1. Burn-After-Reading Context Management</strong><br>
+                Dynamically purges validated intermediate code and execution logs from the prompt history, retaining only crucial metadata. This prevents context overflow and maintains inference speed during massive tasks.
+            </div>
+            <div class="highlight-box">
+                <strong>2. DAG-Based Schema Validation</strong><br>
+                Validates inter-model dependencies locally as a Directed Acyclic Graph (DAG) to prevent circular dependencies and isolated endpoints before compilation.
+            </div>
+            <div class="highlight-box">
+                <strong>3. Dynamic Temperature Scaling</strong><br>
+                Progressively increases the LLM temperature parameter during the M4 repair loop, effectively preventing the agent from getting stuck in local optima during syntax corrections.
+            </div>
+        </div>
+        <div class="footer">
+            <span>KlintCode Private Agent</span>
+            <span>04</span>
+        </div>
+    </div>
+
+    <!-- Slide 6: Benchmark -->
+    <div class="slide">
+        <h2>Business <span>Benchmark Validation</span></h2>
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-title">Target Scenario</div>
+                <p>Moving Company Backend Service</p>
+                <div style="font-size: 24px; color: #8b949e; margin-top: 20px;">
+                    Generated from a zero-shot text description outlining vehicles, personnel, finance, and operations.
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">Checked-in Evidence</div>
+                <p style="margin-bottom: 15px;">81 Enterprise Domain Objects</p>
+                <div style="font-size: 25px; color: #8b949e; line-height: 1.7;">
+                    10 included XML model files + main.xml<br>
+                    TeaQL deterministic validation gate<br>
+                    Rust generation + local CPU compiler check<br>
+                    No source code sent to external AI services
+                </div>
+            </div>
+        </div>
+        <div class="footer">
+            <span>KlintCode Private Agent</span>
+            <span>05</span>
+        </div>
+    </div>
+
+    <!-- Slide 7: Summary -->
+    <div class="slide">
+        <h2>Summary & <span>Future Roadmap</span></h2>
+        <div class="content">
+            <ul>
+                <li><strong>Practical Value:</strong> Drastically reduces the time and cost of private, enterprise-grade codebase initialization without compromising data sovereignty.</li>
+                <li><strong>Language Expansion:</strong> Planned support for generating Java (Spring Boot) and Go architectures via the TeaQL ecosystem.</li>
+                <li><strong>Dynamic Sharding:</strong> Implementing intelligent memory sharding to support various AMD GPU VRAM specifications for broader developer access.</li>
+            </ul>
+            <div style="margin-top: 40px; padding-top: 30px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                <div style="color: var(--accent-cyan); font-weight: 600; margin-bottom: 10px;">Contact Information</div>
+                <div style="font-size: 28px; color: #8b949e;">
+                    <strong>GitHub:</strong> @philipgreat &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Email:</strong> philip_chang@163.com
+                </div>
+            </div>
+        </div>
+        <div class="footer">
+            <span>KlintCode Private Agent</span>
+            <span>06</span>
+        </div>
+    </div>
+
+</body>
+</html>
