@@ -1,0 +1,59 @@
+# llama-swap MANAGED-mode config (P2 evaluation draft, NOT YET ACTIVE)
+#
+# Compared to poc/ls_phase2.yaml (peers mode, proxies the external :8080):
+#   - llama-swap NOW OWNS the llama-server lifecycle (start/stop/unload)
+#   - external :8080 is stopped; llama-swap launches it on an INTERNAL port
+#   - clean model alias replaces the ugly full-GGUF-path peer id (fixes G2)
+#   - concurrencyLimit / 429 now takes effect (fixes G1)
+#   - /lora-adapters, /props, /metrics are exposed via the managed endpoint
+#
+# RESTART-REQUIRED CHANGE. Apply only inside an approved maintenance window:
+#   1. stop the external llama-server (PID 3687) and llama-swap (PID 5198)
+#   2. swap this config in, restart llama-swap with --config <this file>
+#   3. probe /v1/models, run a chat, confirm 131072 ctx + tool-call
+#   4. on failure: revert to poc/ls_phase2.yaml + restart external :8080
+#
+# Constraints preserved from _run_roomy_server.sh:
+#   --ctx-size 131072 (hard constraint 4) --jinja (tools) --n-gpu-layers 999
+#   --threads 24 --lora btl3,cybersec,rag_n7 --alias m
+
+listen: 127.0.0.1:18080
+
+apiKeys:
+  - "screwshell-poc"
+
+# startPort anchors the ${PORT} macro for managed model servers.
+startPort: 18081
+
+global:
+  ttl: 0
+  unloadTimeout: 10
+
+models:
+  # Clean alias id; clients (incl. ScrewShell UI) use this instead of the
+  # full GGUF path. Update MOL_LLAMACPP_MODEL to this value after cutover.
+  "screwshell-qwen3.6-27b":
+    name: "Qwen3.6-27B (roomy, managed)"
+    cmd: |
+      /opt/llama.cpp/build/bin/llama-server \
+        --model /workspace/persistent/screwshell_run/models/Qwen3.6-27B-Q4_K_M.gguf \
+        --lora /workspace/persistent/screwshell_run/loras/btl3/adapter.gguf,/workspace/persistent/screwshell_run/loras/cybersec/adapter.gguf,/workspace/persistent/screwshell_run/loras/rag_n7/adapter.gguf \
+        --alias m --host 127.0.0.1 --port ${PORT} \
+        --jinja \
+        --ctx-size 131072 --n-gpu-layers 999 --threads 24 --reasoning-budget 4096 \
+        --metrics
+    # proxy points back at the same internal port llama-swap started it on
+    proxy: http://127.0.0.1:${PORT}
+    # Stable aliases so opencode/pi/configs can use short names (fixes G2)
+    aliases:
+      - "m"
+      - "qwen3.6-27b"
+    # Enforce concurrency; >0 makes llama-swap queue/429 instead of overloading
+    # the single GPU server (fixes G1). 1 = serialize on the single W7900 (27B
+    # is VRAM-bound; raise only after measuring real concurrent load).
+    concurrencyLimit: 1
+    ttl: 0
+    healthCheckTimeout: 300
+    # Graceful stop mirrors llama-swap default (SIGTERM, 5s grace) but explicit
+    # so a custom launcher is not assumed.
+    cmdStop: "kill -TERM ${PID}"

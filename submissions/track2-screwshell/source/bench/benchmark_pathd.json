@@ -1,0 +1,53 @@
+{
+  "meta": {
+    "date": "2026-07-28",
+    "stack": "path-D: llama.cpp HIP (commit 8161641) + Qwen3.6-27B-Q4_K_M.gguf",
+    "gpu": "AMD Radeon PRO W7900 48GB, ROCm 7.2.4",
+    "server_args": "-m Qwen3.6-27B-Q4_K_M.gguf --lora-init-without-apply --lora teichai_fable5_plan/adapter.gguf,btl3/adapter.gguf,cybersec/adapter.gguf,rag_n7/adapter.gguf -ngl 99 -fa on -c 8192",
+    "note": "FINAL four-expert lineup (hermes_s2/fable5 REMOVED). Numbers transcribed from bench/LORA_GGUF_GATES.md (G4). temperature=0, thinking disabled (chat_template_kwargs.enable_thinking=false). Logical expert name is 'teichai_plan'; the on-disk W7900 folder is 'teichai_fable5_plan' (resolved via router.EXPERT_NAME_ALIASES).",
+    "status": "supersedes pre-cleanup hermes_s2/teichai-only snapshot; authoritative new-run data now in LORA_GGUF_GATES.md",
+    "expert_alias": {"teichai_plan": "teichai_fable5_plan"}
+  },
+  "load": {
+    "model_load_seconds": 9,
+    "vram_used_gb": 21.0,
+    "vram_total_gb": 48,
+    "base_gguf_gb": 16.8,
+    "full_gpu_offload": true
+  },
+  "throughput": {
+    "base_decode_tok_s": 26.0,
+    "base_prefill_tok_s": 100,
+    "lora_active_decode_tok_s_range": [23.0, 26.0],
+    "note": "decode ~26 tok/s for 27B Q4_K_M + 4 LoRA mounted (W7900); single domain Q&A (~400 token output): base 13-14s, +adapter 15-17s (incl. ~1ms hot-swap + amortized first token)"
+  },
+  "lora_hot_swap": {
+    "mechanism": "POST /lora-adapters scale toggle on resident base (--lora-init-without-apply)",
+    "runs": 3,
+    "per_expert_ms": {
+      "teichai_plan": 0.6,
+      "btl3": 0.5,
+      "cybersec": 0.8,
+      "rag_n7": 0.7
+    },
+    "avg_ms": 0.65,
+    "note": "control-plane hot-swap latency (mean, n=3/expert). n7 1.9GB does NOT raise latency vs smallest adapter."
+  },
+  "behavior_diff_temp0": {
+    "teichai_planning": "3/3 differ; 补全雪崩归因(高并发+缺失熔断+依赖链脆弱)、调查维度补组织内部能力",
+    "btl3_code": "2/3 differ (二分查找题基座已答对属正常); 专家回答更简洁直接",
+    "cybersec_security": "3/3 differ; 日志暴力破解/SQL注入/localStorage-XSS 均更结构化专业",
+    "rag_n7_doc": "3/3 differ; 输出更精简专注引用 (163->34 字), grounded 证据问答",
+    "caveat": "Qwen3.6 is a reasoning model: reasoning_content fills max_tokens -> empty content. Disable thinking or raise max_tokens."
+  },
+  "adapters": {
+    "btl3": {"gguf_mb": 466.9, "n_tensors": 992, "converted": true, "base": "Qwen/Qwen3.6-27B"},
+    "teichai_plan": {"gguf_mb": 934.0, "n_tensors": 992, "converted": true, "base": "Qwen/Qwen3.6-27B"},
+    "cybersec": {"gguf_mb": 79.7, "n_tensors": 512, "converted": true, "base": "Qwen/Qwen3.6-27B"},
+    "rag_n7": {"gguf_mb": 1900.0, "n_tensors": 992, "converted": true, "base": "Qwen/Qwen3.6-27B"}
+  },
+  "removed": {
+    "hermes_s2": "REMOVED — silent base mismatch (true base samscrack/Qwen3.6-27B-Opus-CoT-Stage1, NOT Qwen/Qwen3.6-27B). Its old behavior data was INVALID and is void.",
+    "fable5": "REMOVED — repo 404/privatized, never downloaded successfully."
+  }
+}

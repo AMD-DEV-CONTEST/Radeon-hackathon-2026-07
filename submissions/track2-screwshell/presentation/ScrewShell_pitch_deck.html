@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScrewShell · AMD AI DevMaster 2026 · Track 2</title>
+<style>
+:root{
+  --bg:#0B0D12; --bg2:#0F121A; --surface:#131826; --surface2:#1A2134;
+  --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.16);
+  --text:#E9ECF3; --muted:#98A2B3; --faint:#5C6675;
+  --red:#ED1C24; --red-d:#A3141A; --red2:#FF7A00; --ok:#3DD68C; --warn:#FFC857;
+  --mono:ui-monospace,"Cascadia Mono",Consolas,"Courier New",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+.slide{position:fixed;inset:0;display:flex;flex-direction:column;padding:5.2vh 6.5vw 7.5vh;
+  opacity:0;visibility:hidden;transform:translateY(26px) scale(.996);transition:opacity .55s ease,transform .55s ease,visibility 0s .55s}
+.slide.active{opacity:1;visibility:visible;transform:none;transition:opacity .55s ease,transform .55s ease}
+.slide::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--red),var(--red2));opacity:0;transition:opacity .4s}
+.slide.active::before{opacity:.9}
+.s-head{display:flex;align-items:baseline;gap:14px;margin-bottom:3.4vh}
+.s-idx{font-family:var(--mono);font-size:clamp(12px,1.1vw,15px);color:var(--red);letter-spacing:.12em}
+.s-kicker{font-size:clamp(14px,1.4vw,19px);font-weight:500;color:var(--muted);letter-spacing:.02em}
+.s-title{font-size:clamp(26px,3.1vw,44px);font-weight:500;line-height:1.22;margin-bottom:2.6vh;letter-spacing:.01em}
+.s-title em{font-style:normal;color:var(--red2)}
+.s-sub{font-size:clamp(13px,1.25vw,17px);color:var(--muted);max-width:78ch;line-height:1.65}
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
+.slide.active .reveal{opacity:1;transform:none}
+.d1{transition-delay:.08s}.d2{transition-delay:.18s}.d3{transition-delay:.28s}
+.d4{transition-delay:.38s}.d5{transition-delay:.48s}.d6{transition-delay:.58s}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:clamp(14px,1.6vh,22px)}
+.card h3{font-size:clamp(14px,1.4vw,18px);font-weight:500;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.card h3 .dot{width:8px;height:8px;border-radius:50%;background:var(--red);flex:none}
+.card p{font-size:clamp(12.5px,1.15vw,15.5px);color:var(--muted);line-height:1.7}
+.mono{font-family:var(--mono);font-size:.92em;color:var(--text)}
+code{font-family:var(--mono);background:var(--bg2);border:1px solid var(--line);border-radius:6px;
+  padding:2px 7px;font-size:.86em;color:var(--red2)}
+.grid{display:grid;gap:clamp(12px,1.4vw,20px)}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}
+.s-foot{margin-top:auto;display:flex;align-items:center;gap:10px;font-size:clamp(11px,1vw,13px);color:var(--faint);flex-wrap:wrap}
+.s-foot .bar{flex:1;height:1px;background:var(--line)}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:60;
+  background:linear-gradient(90deg,var(--red),var(--red2));transition:width .35s ease}
+#dots{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:9px;z-index:60}
+#dots i{width:7px;height:7px;border-radius:50%;background:var(--line2);cursor:pointer;transition:all .25s}
+#dots i.on{background:var(--red);width:22px;border-radius:4px}
+#pg{position:fixed;bottom:14px;right:22px;z-index:60;font-family:var(--mono);font-size:12px;color:var(--faint);letter-spacing:.1em}
+#hint{position:fixed;bottom:14px;left:22px;z-index:60;font-size:11px;color:var(--faint);letter-spacing:.05em}
+.layers{display:grid;grid-template-columns:1.15fr 1fr;gap:clamp(14px,1.8vw,26px)}
+.layer-list{display:flex;flex-direction:column;gap:9px}
+.layer{display:flex;align-items:center;gap:11px;padding:11px 14px;border:1px solid var(--line);border-radius:10px;
+  background:var(--surface);cursor:pointer;transition:all .22s;font-size:clamp(12.5px,1.15vw,15.5px)}
+.layer:hover{border-color:var(--line2)}
+.layer .ln{font-family:var(--mono);font-size:.8em;color:var(--faint);width:22px;flex:none}
+.layer.on{border-color:var(--red);background:rgba(237,28,36,.08)}
+.layer.on .ln{color:var(--red)}
+.layer.core{outline:1px dashed rgba(255,122,0,.5);outline-offset:-1px}
+.layer .tag{margin-left:auto;font-size:.72em;color:var(--red2);font-family:var(--mono);display:none}
+.layer.core .tag{display:inline}
+#layer-desc{display:flex;flex-direction:column;gap:10px}
+#layer-desc h3{font-size:clamp(15px,1.5vw,20px);font-weight:500;color:var(--red2)}
+#layer-desc p{color:var(--muted);line-height:1.75;font-size:clamp(12.5px,1.15vw,15.5px)}
+#layer-desc .chip{font-family:var(--mono);font-size:11.5px;color:var(--muted);border:1px solid var(--line2);
+  border-radius:20px;padding:4px 10px;display:inline-block;margin-right:6px}
+.mol-wrap{display:grid;grid-template-columns:1.2fr 1fr;gap:clamp(14px,1.8vw,26px);align-items:stretch}
+.base{position:relative;border:1px solid var(--line2);border-radius:14px;background:
+  linear-gradient(160deg,rgba(237,28,36,.10),rgba(255,122,0,.04) 55%),var(--surface);
+  padding:clamp(16px,2vh,26px);display:flex;flex-direction:column;justify-content:center;overflow:hidden}
+.base .b-name{font-family:var(--mono);font-size:clamp(15px,1.6vw,22px);color:var(--text)}
+.base .b-meta{margin-top:6px;font-size:clamp(11.5px,1.05vw,14px);color:var(--muted);line-height:1.7}
+.base .slot{margin-top:16px;border:1px dashed var(--line2);border-radius:10px;padding:10px 14px;
+  font-family:var(--mono);font-size:clamp(12px,1.1vw,14.5px);color:var(--faint);
+  display:flex;align-items:center;gap:10px;min-height:44px}
+.base .slot b{color:var(--red2);font-weight:500}
+.base .slot .act{margin-left:auto;color:var(--ok);font-size:.85em}
+.experts{display:flex;flex-direction:column;gap:10px}
+.expert{border:1px solid var(--line);border-radius:11px;background:var(--surface);padding:12px 14px;cursor:pointer;
+  transition:all .22s;display:flex;flex-direction:column;gap:4px}
+.expert:hover{border-color:var(--line2)}
+.expert.on{border-color:var(--red);background:rgba(237,28,36,.09)}
+.expert .e-name{font-family:var(--mono);font-size:clamp(13px,1.25vw,16px);display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.expert .e-name .pill{font-family:var(--sans);font-size:10.5px;border:1px solid var(--line2);border-radius:20px;
+  padding:1px 8px;color:var(--muted)}
+.expert .e-desc{font-size:clamp(11.5px,1.05vw,13.5px);color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(10px,1.2vw,16px);margin-bottom:2.2vh}
+.stat .v{font-family:var(--mono);font-size:clamp(22px,2.6vw,36px);font-weight:500;color:var(--text)}
+.stat .v .u{font-size:.5em;color:var(--muted);margin-left:3px}
+.stat .l{font-size:clamp(11.5px,1.05vw,13.5px);color:var(--muted);margin-top:5px;line-height:1.55}
+.stat .vs{font-size:clamp(10.5px,1vw,12px);color:var(--faint);margin-top:3px}
+.bar-row{display:grid;grid-template-columns:120px 1fr 130px;align-items:center;gap:14px;margin:10px 0}
+.bar-row .lab{font-size:clamp(11.5px,1.05vw,13.5px);color:var(--muted);text-align:right}
+.bar-row .lab b{display:block;font-family:var(--mono);color:var(--text);font-size:.95em}
+.track{height:26px;background:var(--bg2);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.fill{height:100%;width:0;transition:width 1.2s cubic-bezier(.2,.7,.3,1)}
+.fill.red{background:linear-gradient(90deg,var(--red),#C01820)}
+.fill.ok{background:linear-gradient(90deg,#2FB574,var(--ok))}
+.kv-band{margin-top:1.6vh;border:1px solid var(--line);border-radius:12px;background:var(--surface);
+  padding:clamp(12px,1.4vh,18px);display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.kv-band .big{font-family:var(--mono);font-size:clamp(20px,2.2vw,30px);color:var(--red2);font-weight:500}
+.kv-band p{font-size:clamp(11.5px,1.1vw,14px);color:var(--muted);line-height:1.6;flex:1;min-width:240px}
+.placeholder{border:2px dashed rgba(255,122,0,.45);border-radius:14px;padding:clamp(12px,1.6vh,20px);
+  display:flex;align-items:center;justify-content:center;gap:10px;color:var(--faint);
+  font-size:clamp(11.5px,1.1vw,14px);letter-spacing:.05em;background:rgba(255,122,0,.03)}
+.placeholder .ico{width:16px;height:16px;border:2px solid var(--faint);border-radius:4px;position:relative;flex:none}
+.code{border:1px solid var(--line);border-radius:12px;background:var(--bg2);overflow:hidden;font-family:var(--mono);
+  font-size:clamp(11px,1vw,13.5px);line-height:1.75}
+.code .bar{display:flex;gap:6px;padding:9px 12px;border-bottom:1px solid var(--line);align-items:center}
+.code .bar i{width:9px;height:9px;border-radius:50%;display:block}
+.code .bar i:nth-child(1){background:#E24B4A}.code .bar i:nth-child(2){background:#EF9F27}.code .bar i:nth-child(3){background:#63B93C}
+.code .bar span{margin-left:8px;font-size:10.5px;color:var(--faint)}
+.code pre{padding:12px 14px;white-space:pre-wrap;color:var(--muted)}
+.code pre .k{color:#7FB4F0}.code pre .s{color:#9FE1CB}.code pre .c{color:var(--faint)}
+.code pre .hl{color:var(--red2)}
+.gain-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:9px}
+.gain-row .n{font-family:var(--mono);color:var(--red);font-size:.9em;margin-top:2px}
+.gain-row p{color:var(--muted);font-size:clamp(12px,1.1vw,14.5px);line-height:1.65}
+.gain-row b{color:var(--text);font-weight:500}
+.term{border:1px solid var(--line);border-radius:12px;background:#07090F;overflow:hidden;font-family:var(--mono);
+  font-size:clamp(11px,1vw,13.5px);line-height:1.85;display:flex;flex-direction:column}
+.term .bar{display:flex;align-items:center;gap:6px;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--bg2)}
+.term .bar i{width:9px;height:9px;border-radius:50%;display:block;background:var(--faint)}
+.term .bar span{margin-left:8px;font-size:10.5px;color:var(--faint)}
+.term .body{flex:1;padding:12px 14px;overflow:hidden;min-height:180px}
+.term .body .row{opacity:0;transform:translateY(6px);transition:opacity .3s,transform .3s;white-space:pre-wrap}
+.term .body .row.show{opacity:1;transform:none}
+.term .body .t{color:var(--faint)}
+.term .body .ok{color:var(--ok)}
+.term .body .no{color:var(--red)}
+#replay{margin-top:10px;border:1px solid var(--line2);background:transparent;color:var(--muted);border-radius:8px;
+  padding:6px 14px;font-size:12px;cursor:pointer;transition:all .2s;font-family:var(--sans)}
+#replay:hover{border-color:var(--red);color:var(--red)}
+.eng-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(12px,1.4vw,18px)}
+.eng-card{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:clamp(13px,1.6vh,20px);display:flex;gap:13px}
+.eng-card .n{font-family:var(--mono);color:var(--red);font-size:clamp(16px,1.7vw,22px);font-weight:500;flex:none}
+.eng-card h3{font-size:clamp(13.5px,1.3vw,17px);font-weight:500;margin-bottom:5px}
+.eng-card p{font-size:clamp(11.5px,1.08vw,14px);color:var(--muted);line-height:1.65}
+.eng-card .tag2{display:inline-block;margin-top:7px;font-size:10.5px;font-family:var(--mono);color:var(--ok);
+  border:1px solid rgba(61,214,140,.35);border-radius:20px;padding:2px 9px}
+.close-hero{margin-top:2vh}
+.close-hero .q{font-size:clamp(22px,3vw,40px);font-weight:500;line-height:1.35;max-width:26ch}
+.close-hero .q em{font-style:normal;color:var(--red2)}
+.road{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(12px,1.5vw,20px);margin-top:3.4vh}
+.road .step{border-left:2px solid var(--red);padding-left:14px}
+.road .step .n2{font-family:var(--mono);font-size:11px;color:var(--red);letter-spacing:.15em}
+.road .step h4{font-size:clamp(13px,1.25vw,16.5px);font-weight:500;margin:4px 0}
+.road .step p{font-size:clamp(11.5px,1.05vw,13.5px);color:var(--muted);line-height:1.6}
+.repo{margin-top:3.4vh;display:inline-flex;align-items:center;gap:12px;border:1px solid var(--line2);border-radius:12px;
+  padding:12px 20px;font-family:var(--mono);font-size:clamp(12px,1.15vw,15px)}
+.repo .gh{color:var(--red)}
+@media (max-width:900px){
+  .g2,.g3,.layers,.mol-wrap,.stats,.eng-grid{grid-template-columns:1fr}
+  .slide{padding:4vh 5vw 8vh;overflow-y:auto}
+  .bar-row{grid-template-columns:90px 1fr 110px}
+}
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<section class="slide active" data-hook="">
+  <div class="s-head reveal"><span class="s-idx">01</span><span class="s-kicker">AMD AI DevMaster Hackathon 2026 · Track 2</span></div>
+  <div class="s-title reveal d1" style="font-size:clamp(40px,6.4vw,92px)">Screw<span style="color:var(--red)">Shell</span></div>
+  <div class="s-sub reveal d2">A <b style="color:var(--text)">private, local AI investigation agent</b> on a single Radeon — and an inference gateway that lets opencode / pi consume the same MoL brain.</div>
+  <div class="grid g3" style="margin-top:4.4vh">
+    <div class="card reveal d3"><h3><span class="dot"></span>One frozen base</h3><p>Qwen3.6-27B resident in VRAM, <span class="mono">~0.65ms</span> control-plane hot-swap</p></div>
+    <div class="card reveal d4"><h3><span class="dot"></span>N community skills</h3><p>Drop in a GGUF adapter — gain a new skill</p></div>
+    <div class="card reveal d5"><h3><span class="dot"></span>Zero remote calls</h3><p>Inference / embedding / retrieval / memory all local, zero telemetry</p></div>
+  </div>
+  <div class="s-foot reveal d6">
+    <span>Radeon PRO W7900 48GB · ROCm 7.2.4 · llama.cpp (HIP)</span><span class="bar"></span><span>Apache-2.0</span>
+  </div>
+</section>
+
+<section class="slide" data-hook="">
+  <div class="s-head reveal"><span class="s-idx">02</span><span class="s-kicker">The Problem</span></div>
+  <div class="s-title reveal d1">Sensitive data can't go to the cloud —<br>and multi-skill agents don't fit one card</div>
+  <div class="grid g3" style="margin-top:3.2vh">
+    <div class="card reveal d2"><h3><span class="dot"></span>Data stays on-prem</h3>
+      <p>Contracts, codebases, design docs — <b style="color:var(--text)">cannot be uploaded to cloud AI</b>; manual review is slow and error-prone.</p></div>
+    <div class="card reveal d3"><h3><span class="dot"></span>Questions need an agent, not one call</h3>
+      <p>"What are the risks of the ROCm migration? Local docs only." requires <b style="color:var(--text)">plan → retrieve → read → cite</b>.</p></div>
+    <div class="card reveal d4"><h3><span class="dot"></span>Multi-skill = N × VRAM</h3>
+      <p>Naive per-skill models: 3 skills ≈ <b style="color:var(--text)">50GB</b> — <b style="color:var(--red)">doesn't fit a 48GB card</b>.</p></div>
+  </div>
+  <div class="s-foot reveal d6"><span>If data must stay local, and you still want multi-skill agents…</span></div>
+</section>
+
+<section class="slide" data-hook="">
+  <div class="s-head reveal"><span class="s-idx">03</span><span class="s-kicker">The Product</span></div>
+  <div class="s-title reveal d1">One brain, two front doors</div>
+  <div class="grid g2" style="margin-top:2.6vh">
+    <div class="card reveal d2">
+      <h3><span class="dot"></span>Private investigation agent (self-built)</h3>
+      <p style="margin-bottom:12px">Point at a workspace folder: it plans → retrieves local evidence → calls read-only tools → returns <b style="color:var(--text)">evidence-backed answers with line-level citations</b>.</p>
+      <div class="code"><div class="bar"><i></i><i></i><i></i><span>question</span></div>
+        <pre>"What are the main risks of the ROCm migration? <span class="hl">Local files only</span>."</pre></div>
+    </div>
+    <div class="card reveal d3">
+      <h3><span class="dot"></span>Open inference gateway (API)</h3>
+      <p style="margin-bottom:10px">The same MoL stack exposed as a <code>/v1</code> OpenAI-compatible API — <b style="color:var(--text)">opencode, pi and other open-source agents connect with zero changes</b>.</p>
+      <div class="code"><div class="bar"><i></i><i></i><i></i><span>topology</span></div>
+        <pre>opencode / pi  ──▶  ScrewShell relay <span class="c">(/v1)</span>  ──▶  llama-server <span class="c">(ROCm)</span></pre></div>
+    </div>
+  </div>
+  <div class="s-foot reveal d5" style="margin-top:2.4vh">
+    <span class="mono" style="color:var(--muted)">Local RAG</span><span class="bar"></span>
+    <span class="mono" style="color:var(--muted)">Tool calling</span><span class="bar"></span>
+    <span class="mono" style="color:var(--muted)">Multi-step planning</span><span class="bar"></span>
+    <span class="mono" style="color:var(--muted)">Multi-turn memory</span><span class="bar"></span>
+    <span class="mono" style="color:var(--muted)">Permission control</span>
+  </div>
+</section>
+
+<section class="slide" data-hook="layers">
+  <div class="s-head reveal"><span class="s-idx">04</span><span class="s-kicker">Architecture</span></div>
+  <div class="s-title reveal d1">Agent core + inference service layer, all local</div>
+  <div class="layers" style="margin-top:2vh">
+    <div class="layer-list reveal d2">
+      <div class="layer" data-i="0"><span class="ln">01</span>Entry: Gradio UI / CLI / opencode·pi<span class="tag">CORE</span></div>
+      <div class="layer core" data-i="1"><span class="ln">02</span>Orchestrator · self-built ReAct loop<span class="tag">CORE</span></div>
+      <div class="layer core" data-i="2"><span class="ln">03</span>Agent Inference Service Layer<span class="tag">CORE</span></div>
+      <div class="layer" data-i="3"><span class="ln">04</span>Skill Router · MoL routing</div>
+      <div class="layer" data-i="4"><span class="ln">05</span>Local RAG · evidence retrieval</div>
+      <div class="layer" data-i="5"><span class="ln">06</span>Tool Layer · 6 read-only tools</div>
+      <div class="layer" data-i="6"><span class="ln">07</span>Safety Layer · sandbox &amp; audit</div>
+    </div>
+    <div class="card reveal d3" id="layer-desc">
+      <h3 id="ld-title">Entry layer</h3>
+      <p id="ld-text"></p>
+      <div id="ld-chips"></div>
+    </div>
+  </div>
+  <div class="s-foot reveal d5"><span>Click a layer for details · inference / embedding / retrieval / memory — all local, zero remote API</span></div>
+</section>
+
+<section class="slide" data-hook="mol">
+  <div class="s-head reveal"><span class="s-idx">05</span><span class="s-kicker">Key Idea · Mixture-of-LoRA</span></div>
+  <div class="s-title reveal d1">One frozen base, MB-scale experts —<br>no full model reloads</div>
+  <div class="mol-wrap" style="margin-top:2.4vh">
+    <div class="base reveal d2">
+      <div class="b-name">Qwen3.6-27B · Q4_K_M</div>
+      <div class="b-meta">Frozen base · resident in VRAM (~16.8GB) · served by llama.cpp</div>
+      <div class="slot" id="mol-slot"><span>Current expert:</span><b id="mol-cur">btl3</b><span class="act" id="mol-ok">ACTIVE · ctrl ~0.65ms</span></div>
+    </div>
+    <div class="experts reveal d3">
+      <div class="expert on" data-e="btl3"><div class="e-name">btl3<span class="pill">tool / code</span></div>
+        <div class="e-desc">Tool-calling &amp; code skill (BTL-3, r32/α64)</div></div>
+      <div class="expert" data-e="cybersec"><div class="e-name">cybersec<span class="pill">security</span></div>
+        <div class="e-desc">Security analysis skill (r8/α16)</div></div>
+      <div class="expert" data-e="rag_n7"><div class="e-name">rag_n7<span class="pill">doc / evidence</span></div>
+        <div class="e-desc">Docs &amp; evidence-report skill (r128/α256)</div></div>
+      <div class="expert" data-e="teichai_plan"><div class="e-name">teichai_plan<span class="pill">planning</span></div>
+        <div class="e-desc">Planning skill · no weights yet, degrades to base (honestly labeled)</div></div>
+    </div>
+  </div>
+  <div class="s-foot reveal d5" style="margin-top:2.4vh">
+    <span>Click an expert to hot-swap · all community LoRAs converted to GGUF · <b style="color:var(--red2)">Drop in an adapter → gain a skill</b></span>
+  </div>
+</section>
+
+<section class="slide" data-hook="bench">
+  <div class="s-head reveal"><span class="s-idx">06</span><span class="s-kicker">Radeon Benchmark · real hardware</span></div>
+  <div class="s-title reveal d1">On the W7900, the architecture win is hard numbers</div>
+  <div class="stats" style="margin-top:2vh">
+    <div class="card stat reveal d2"><div class="v" data-v="18.9" data-dec="1">0<span class="u">GB</span></div>
+      <div class="l">3-skill VRAM (vs ~50GB naive)</div><div class="vs">fits a 48GB card</div></div>
+    <div class="card stat reveal d3"><div class="v" data-v="0.65" data-dec="2">0<span class="u">ms</span></div>
+      <div class="l">control-plane switch (near no-op)</div><div class="vs">end-to-end 1–2.5ms · real cost = 15–25% per-token decode tax</div></div>
+    <div class="card stat reveal d4"><div class="v" data-v="31.0" data-dec="1">0<span class="u">tok/s</span></div>
+      <div class="l">base decode (23.4–26 with adapter)</div><div class="vs">prefill ~100 tok/s</div></div>
+    <div class="card stat reveal d5"><div class="v" data-v="9" data-dec="0">0<span class="u">s</span></div>
+      <div class="l">model load once, then resident</div><div class="vs">model load 9s</div></div>
+  </div>
+  <div class="card reveal d3">
+    <div class="bar-row"><div class="lab">Naive per-skill<b>~50 GB</b></div>
+      <div class="track"><div class="fill red" data-w="100"></div></div><div style="font-size:11px;color:var(--faint)">3 × 16.8GB &gt; 48GB</div></div>
+    <div class="bar-row"><div class="lab">MoL hot-swap<b>18.9 GB</b></div>
+      <div class="track"><div class="fill ok" data-w="38"></div></div><div style="font-size:11px;color:var(--faint)">base + adapters resident</div></div>
+  </div>
+  <div class="kv-band reveal d4">
+    <span class="big">415×</span>
+    <p>Architecture decision: per-request cap swap <b style="color:var(--red)">destroys 100% of prefix KV cache</b> (re-prefill +2.35s); global <span class="mono">POST /lora-adapters</span> toggle <b style="color:var(--ok)">keeps 99.8% of cached tokens</b> (4/1660) — hence "global switch + serial queue". L3 dual-mode: hot-swap ~0.65ms (roomy) / restart swap 4.6–5.1s (tight).</p>
+  </div>
+</section>
+
+<section class="slide" data-hook="svc">
+  <div class="s-head reveal"><span class="s-idx">07</span><span class="s-kicker">Agent as a Service</span></div>
+  <div class="s-title reveal d1">Open the agent brain to opencode / pi</div>
+  <div class="grid g2" style="margin-top:2.2vh">
+    <div class="reveal d2">
+      <div class="code" style="margin-bottom:12px"><div class="bar"><i></i><i></i><i></i><span>opencode.json · zero-change connect</span></div>
+        <pre><span class="k">"provider"</span>: {
+  <span class="k">"llama-local"</span>: {
+    <span class="k">"baseURL"</span>: <span class="s">"http://127.0.0.1:18090/v1"</span>,
+    <span class="k">"models"</span>: [<span class="s">"screwshell"</span>]
+  }
+}</pre></div>
+      <div class="gain-row"><span class="n">01</span><p><b style="color:var(--text)">Local MoL routing</b> — auto expert switch per step; explicit <code>X-Expert: cybersec</code> header (agent capability as API)</p></div>
+      <div class="gain-row"><span class="n">02</span><p><b style="color:var(--text)">Inference tuning</b> — thinking toggle, KV quantization, capacity planning (5 knobs) applied per request</p></div>
+      <div class="gain-row"><span class="n">03</span><p><b style="color:var(--text)">Unified observability</b> — <code>/v1/observ</code>, traffic split by entry <span class="mono">ui / opencode</span></p></div>
+    </div>
+    <div class="reveal d3">
+      <div class="code"><div class="bar"><i></i><i></i><i></i><span>X-Expert request · tool_calls response</span></div>
+        <pre><span class="c"># request</span>
+POST /v1/chat/completions
+X-Expert: <span class="hl">cybersec</span>
+{"messages":[{"role":"user","content":
+ "audit the risks in this code"}]}
+
+<span class="c"># response (2026-08-03 real machine · native OpenAI tools protocol)</span>
+"finish_reason": "<span class="hl">tool_calls</span>",
+"tool_calls": [{"name":"list_dir",
+ "arguments":{"path":"."}}]  <span class="c"># zero 500</span></pre></div>
+      <div class="card" style="margin-top:12px">
+        <h3><span class="dot"></span>Trust boundary</h3>
+        <p><code>X-Expert</code> is honored only when <code>X-Relay-Token</code> matches — external frontends <b style="color:var(--text)">cannot forge expert switching</b>; no token = legacy local trust.</p>
+      </div>
+    </div>
+  </div>
+  <div class="s-foot reveal d5" style="margin-top:2vh">
+    <span>Real evidence (2026-08-03): opencode speaks the native OpenAI tools protocol — chain fully works, tool_calls stable · <b style="color:var(--red2)">Not just deploying a model — we deploy a whole agent inference stack</b></span>
+  </div>
+</section>
+
+<section class="slide" data-hook="audit">
+  <div class="s-head reveal"><span class="s-idx">08</span><span class="s-kicker">Privacy &amp; Audit</span></div>
+  <div class="s-title reveal d1">Private by default, auditable end-to-end</div>
+  <div class="grid g2" style="margin-top:2.4vh">
+    <div class="reveal d2">
+      <div class="gain-row"><span class="n">01</span><p><b style="color:var(--text)">Workspace sandbox</b> — the agent only reads your workspace; escapes are blocked</p></div>
+      <div class="gain-row"><span class="n">02</span><p><b style="color:var(--text)">Tool / path allowlists</b> — only whitelisted read-only operations pass</p></div>
+      <div class="gain-row"><span class="n">03</span><p><b style="color:var(--text)">Secrets blocklist</b> — <span class="mono">~/.ssh</span>, token files are always refused</p></div>
+      <div class="gain-row"><span class="n">04</span><p><b style="color:var(--text)">Dangerous-command rejection</b> — <span class="mono">rm -rf</span> etc. blocked at the shell layer</p></div>
+      <div class="gain-row"><span class="n">05</span><p><b style="color:var(--text)">JSON audit log</b> — every tool call persisted, re-verifiable</p></div>
+      <div class="gain-row"><span class="n">06</span><p><b style="color:var(--text)">Zero telemetry</b> — nothing leaves the machine</p></div>
+    </div>
+    <div class="reveal d3">
+      <div class="term"><div class="bar"><i></i><i></i><i></i><span>audit.log · live</span></div>
+        <div class="body" id="log-body"></div></div>
+      <button id="replay">Replay log</button>
+    </div>
+  </div>
+  <div class="s-foot reveal d5"><span>Six layers of defense + full audit = <b style="color:var(--ok)">Private &amp; Auditable by Construction</b></span></div>
+</section>
+
+<section class="slide" data-hook="">
+  <div class="s-head reveal"><span class="s-idx">09</span><span class="s-kicker">ROCm Engineering</span></div>
+  <div class="s-title reveal d1">Getting local inference right on Radeon</div>
+  <div class="eng-grid" style="margin-top:2.2vh">
+    <div class="eng-card reveal d2"><span class="n">A</span><div>
+      <h3>llama.cpp HIP build</h3>
+      <p>ROCm-native bf16 inference, no fp64 fallback on RDNA3; Qwen3.6 GGUF runs directly, no extra JIT.</p></div></div>
+    <div class="eng-card reveal d3"><span class="n">B</span><div>
+      <h3>LoRA → GGUF pipeline</h3>
+      <p>All four experts converted &amp; verified on real hardware; L3 dual-mode swap — hot-swap ~0.65ms (roomy) / restart 4.6–5.1s (tight); RDNA3 mixed-arch patch committed to the repo.</p>
+      <span class="tag2">deps shipped in-repo</span></div></div>
+    <div class="eng-card reveal d4"><span class="n">C</span><div>
+      <h3>Five tuning knobs</h3>
+      <p>Config automation / capacity planning / inference scheduling / reliability guard / one-click startup — takes over the whole stack on real hardware.</p>
+      <span class="tag2">gateway/cli.py one-click</span></div></div>
+    <div class="eng-card reveal d5"><span class="n">D</span><div>
+      <h3>Observability + autotune loop</h3>
+      <p><code>/health</code> · <code>/v1/observ</code> · GPU panel; baseline inject → sample → score → auto re-tune, driven via relay across restarts.</p>
+      <span class="tag2">live observability panel</span></div></div>
+  </div>
+  <div class="s-foot reveal d6"><span>Engineering evidence: deploy scripts / converter patch / observability endpoints — all in-repo, re-verifiable</span></div>
+</section>
+
+<section class="slide" data-hook="">
+  <div class="s-head reveal"><span class="s-idx">10</span><span class="s-kicker">Close</span></div>
+  <div class="close-hero reveal d2">
+    <div class="q">Community LoRA ecosystem × Radeon VRAM<br>= <em>practical local multi-skill agents</em></div>
+  </div>
+  <div class="road">
+    <div class="step reveal d3"><span class="n2">ROADMAP 01</span><h4>Learned router</h4><p>Learn expert selection from request history, replacing heuristics</p></div>
+    <div class="step reveal d4"><span class="n2">ROADMAP 02</span><h4>Self-trained LoRA doc expert</h4><p>Fine-tune a domain expert on your private corpus</p></div>
+    <div class="step reveal d5"><span class="n2">ROADMAP 03</span><h4>Verifier subagent</h4><p>An answer-recheck agent that closes the evidence loop</p></div>
+  </div>
+  <div class="repo reveal d5"><span class="gh">github.com/1105s110martin-art/screwshell</span><span style="width:1px;height:22px;background:var(--line2);display:inline-block"></span><span>Apache-2.0</span></div>
+  <div class="s-foot reveal d6"><span>Thank you · Track 2 — Private AI Agent Development &amp; Local Deployment</span></div>
+</section>
+
+<div id="dots"></div>
+<div id="pg">1 / 10</div>
+<div id="hint">← → navigate · F fullscreen</div>
+
+<script>
+(function(){
+  var slides=Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var N=slides.length,cur=0;
+  var dotsBox=document.getElementById('dots'),pg=document.getElementById('pg'),prog=document.getElementById('progress');
+  var layers=null,ldT=null,ldX=null,ldC=null;
+  var logTimers=[],replayBtn=document.getElementById('replay');
+
+  for(var i=0;i<N;i++){var d=document.createElement('i');d.onclick=(function(k){return function(){go(k)}})(i);dotsBox.appendChild(d);}
+  var dotEls=dotsBox.children;
+
+  function go(n){
+    if(n<0||n>=N||n===cur)return;
+    slides[cur].classList.remove('active');
+    cur=n;
+    slides[cur].classList.add('active');
+    for(var i=0;i<N;i++)dotEls[i].className=(i===cur)?'on':'';
+    pg.textContent=(cur+1)+' / '+N;
+    prog.style.width=((cur+1)/N*100)+'%';
+    onEnter(cur);
+  }
+  function next(){go(cur+1)} function prev(){go(cur-1)}
+
+  document.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){e.preventDefault();next();}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();prev();}
+    else if(e.key==='Home'){go(0)} else if(e.key==='End'){go(N-1)}
+    else if(e.key==='f'||e.key==='F'){toggleFS()}
+  });
+  var tx=0,ty=0;
+  document.addEventListener('touchstart',function(e){tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
+  document.addEventListener('touchend',function(e){
+    var dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;
+    if(Math.abs(dx)>60&&Math.abs(dy)<60){dx<0?next():prev();}
+  },{passive:true});
+  document.addEventListener('click',function(e){
+    if(e.target.closest('button,i.layer,.expert,#dots,#pg,#hint,a,input,select,textarea,.code,.term'))return;
+    var x=e.clientX,w=window.innerWidth;
+    if(x>w*0.78)next(); else if(x<w*0.22)prev();
+  });
+  function toggleFS(){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}
+
+  var LAYERS=[
+    {t:'Entry layer',x:'Gradio UI / CLI / opencode·pi point at the same agent core. External agents use the OpenAI-compatible /v1 with zero changes.',c:['Gradio UI :7860','relay /v1 :18090']},
+    {t:'Orchestrator (agent core)',x:'Self-built lightweight ReAct loop: plan → route → tool call → evidence aggregation. Task cards carry skill tags that drive MoL expert selection.',c:['Task Planner','Artifact Store','Evidence Store']},
+    {t:'Agent Inference Service Layer (agent core)',x:'Packages "MoL expert routing + inference tuning + observability" as an OpenAI-compatible service. opencode / pi get routed local inference; tuning is this layer\u2019s engineering backbone.',c:['X-Expert header','5 tuning knobs','/v1/observ']},
+    {t:'Skill Router',x:'MoL entry: heuristic decision by skill tag activates one LoRA expert; the X-Expert header can override (trust boundary enforced).',c:['MoL entry','expert swap']},
+    {t:'Local RAG Pipeline',x:'Ingest → line-aware chunking → local GPU embedding → cosine retrieval → file#Lx-Ly citations.',c:['Qwen3-Embedding-0.6B','cosine retrieval']},
+    {t:'Tool Layer',x:'6 read-only tools: rag_search / read_file / list_dir / grep / shell_readonly / rocm_smi, behind a permission gate.',c:['permission gate','read-only']},
+    {t:'Safety Layer',x:'Workspace sandbox, tool/path allowlists, secrets blocklist, dangerous-command rejection, JSON audit log, zero telemetry.',c:['sandbox','allowlist','audit']}
+  ];
+  function initLayers(){
+    layers=document.querySelectorAll('.layer');
+    ldT=document.getElementById('ld-title');ldX=document.getElementById('ld-text');ldC=document.getElementById('ld-chips');
+    for(var i=0;i<layers.length;i++)layers[i].onclick=(function(k){return function(){
+      for(var j=0;j<layers.length;j++)layers[j].classList.toggle('on',j===k);
+      showLayer(k);
+    }})(i);
+    showLayer(0);
+  }
+  function showLayer(k){
+    var L=LAYERS[k];
+    ldT.textContent=L.t;ldX.textContent=L.x;
+    ldC.innerHTML='';L.c.forEach(function(c){
+      var s=document.createElement('span');s.className='chip';s.textContent=c;ldC.appendChild(s);
+    });
+  }
+
+  var molInit=false;
+  function initMol(){
+    if(molInit)return;molInit=true;
+    var ex=document.querySelectorAll('.expert'),curE=document.getElementById('mol-cur'),ok=document.getElementById('mol-ok');
+    function pick(e){
+      var name=e.getAttribute('data-e');
+      ex.forEach(function(x){x.classList.toggle('on',x===e)});
+      curE.textContent=name;
+      ok.textContent=(name==='teichai_plan')?'degrades to base':'ACTIVE · ctrl ~0.65ms';
+    }
+    ex.forEach(function(e){e.onclick=function(){pick(e)}});
+    pick(ex[0]);
+  }
+
+  var counted=false;
+  function countUp(el,target,dec,dur){
+    var t0=null;
+    function step(ts){
+      if(!t0)t0=ts;
+      var p=Math.min((ts-t0)/dur,1);p=1-Math.pow(1-p,3);
+      var v=target*p;
+      el.firstChild.nodeValue=v.toFixed(dec);
+      if(p<1)requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  function runBench(){
+    if(counted)return;counted=true;
+    document.querySelectorAll('.stat .v').forEach(function(el){
+      var v=parseFloat(el.getAttribute('data-v')),d=parseInt(el.getAttribute('data-dec'));
+      countUp(el,v,d,1300);
+    });
+    document.querySelectorAll('.fill').forEach(function(f){
+      setTimeout(function(){f.style.width=f.getAttribute('data-w')+'%'},200);
+    });
+  }
+
+  var LOGS=[
+    ['14:02:11','tool=read_file','path=docs/plan.pdf','ALLOW'],
+    ['14:02:14','tool=list_dir','path=workspace/','ALLOW'],
+    ['14:02:17','tool=grep','query=rocm','ALLOW'],
+    ['14:02:19','tool=read_file','path=~/.ssh/id_rsa','BLOCKED'],
+    ['14:02:21','tool=shell_readonly','cmd=rm -rf /','BLOCKED'],
+    ['14:02:23','tool=read_file','path=/etc/passwd','BLOCKED'],
+    ['14:02:25','audit','event=JSON persisted','OK']
+  ];
+  function playLog(){
+    var body=document.getElementById('log-body');
+    logTimers.forEach(clearTimeout);logTimers=[];
+    body.innerHTML='';
+    LOGS.forEach(function(L,i){
+      logTimers.push(setTimeout(function(){
+        var row=document.createElement('div');row.className='row';
+        var bad=L[3]==='BLOCKED';
+        row.innerHTML='<span class="t">'+L[0]+'</span> '+L[1]+' '+L[2]+' — <span class="'+(bad?'no':'ok')+'">'+L[3]+'</span>';
+        body.appendChild(row);
+        requestAnimationFrame(function(){row.classList.add('show')});
+      },350*i+200));
+    });
+  }
+
+  function onEnter(n){
+    var h=slides[n].getAttribute('data-hook');
+    if(h==='layers')initLayers();
+    if(h==='mol')initMol();
+    if(h==='bench')runBench();
+    if(h==='audit')playLog();
+  }
+  if(replayBtn)replayBtn.onclick=playLog;
+
+  prog.style.width='10%';
+  onEnter(0);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScrewShell — 本地私有 AI 调查智能体</title>
+<style>
+  :root{
+    --bg:#0a0e17;
+    --bg2:#0e1420;
+    --panel:#131b2c;
+    --panel2:#182238;
+    --line:#243049;
+    --text:#e8edf6;
+    --muted:#8b98b5;
+    --accent:#ff4f00;   /* AMD 橙 */
+    --accent2:#ff7a1a;
+    --red:#ff2d55;
+    --teal:#2dd4bf;
+    --violet:#8b5cf6;
+    --green:#22c55e;
+    --amber:#f59e0b;
+    --blue:#3b82f6;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+    font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+  /* 背景网格 */
+  .bg-grid{position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% -10%, rgba(255,79,0,.14), transparent),
+      radial-gradient(ellipse 60% 50% at 90% 110%, rgba(59,130,246,.12), transparent),
+      linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size:100% 100%,100% 100%,44px 44px,44px 44px;}
+  .slide{position:fixed;inset:0;z-index:1;display:none;flex-direction:column;
+    justify-content:center;padding:4.5vh 5vw;overflow:hidden}
+  .slide.active{display:flex}
+  /* 内容区宽度控制 + 淡入动画 */
+  .slide-inner{max-width:1180px;width:100%;margin:0 auto;animation:fadeUp .5s ease both}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  .kicker{display:inline-flex;align-items:center;gap:8px;font-size:13px;letter-spacing:2px;
+    text-transform:uppercase;color:var(--accent2);font-weight:700;margin-bottom:16px}
+  .kicker::before{content:"";width:28px;height:2px;background:var(--accent2);border-radius:2px}
+  h1{font-size:clamp(34px,6vw,72px);line-height:1.08;font-weight:800;letter-spacing:-1px}
+  h2{font-size:clamp(26px,4.2vw,46px);font-weight:800;letter-spacing:-.5px;margin-bottom:6px}
+  h2 .grad{background:linear-gradient(90deg,var(--accent2),#ffb26b);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .sub{font-size:clamp(16px,2vw,22px);color:var(--muted);line-height:1.6;margin-top:8px}
+  .lead{font-size:clamp(15px,1.8vw,19px);color:var(--muted);line-height:1.75;max-width:860px}
+  .brand-tag{position:absolute;top:26px;left:30px;z-index:3;display:flex;align-items:center;gap:9px;
+    font-weight:800;letter-spacing:.5px;font-size:15px}
+  .brand-tag .dot{width:11px;height:11px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%,#ffb26b,var(--accent));box-shadow:0 0 12px var(--accent)}
+  .page{position:absolute;top:26px;right:30px;z-index:3;font-size:13px;color:var(--muted);letter-spacing:1px}
+  .page b{color:var(--accent2)}
+  /* 导航 */
+  .nav{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:10;
+    display:flex;align-items:center;gap:6px;background:rgba(19,27,44,.85);
+    padding:8px 14px;border-radius:40px;border:1px solid var(--line);backdrop-filter:blur(6px)}
+  .nav .arrow{cursor:pointer;width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+    border-radius:50%;border:1px solid var(--line);color:var(--text);font-size:16px;transition:.2s;
+    background:transparent}
+  .nav .arrow:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+  .dots{display:flex;gap:6px;margin:0 6px}
+  .dots i{width:8px;height:8px;border-radius:50%;background:#31405e;cursor:pointer;transition:.2s}
+  .dots i.on{background:var(--accent2);box-shadow:0 0 8px var(--accent)}
+  /* 卡片 */
+  .cards{display:grid;gap:16px;margin-top:28px}
+  .c3{grid-template-columns:repeat(3,1fr)}
+  .c5{grid-template-columns:repeat(5,1fr)}
+  .c4{grid-template-columns:repeat(4,1fr)}
+  .card{background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--line);
+    border-radius:14px;padding:20px 18px;transition:.25s}
+  .card:hover{transform:translateY(-4px);border-color:var(--accent);box-shadow:0 8px 28px rgba(255,79,0,.12)}
+  .card .ic{font-size:26px;margin-bottom:12px;display:block}
+  .card h3{font-size:17px;font-weight:700;margin-bottom:7px}
+  .card p{font-size:13.5px;color:var(--muted);line-height:1.6}
+  .num{font-size:34px;font-weight:800;line-height:1}
+  .card .num{font-size:30px;margin-bottom:4px}
+  /* 架构图 */
+  .arch{display:flex;flex-direction:column;gap:7px;margin-top:22px}
+  .arch-row{display:flex;gap:7px;align-items:stretch}
+  .arch-box{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:10px 14px;font-size:13px;line-height:1.5;color:var(--muted)}
+  .arch-box b{color:var(--text)}
+  .arch-box .tag{display:inline-block;font-size:10.5px;padding:2px 7px;border-radius:20px;
+    margin-left:6px;vertical-align:middle;color:#fff;font-weight:600}
+  .t-mol{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  .t-rag{background:var(--blue)} .t-sec{background:var(--violet)} .t-saf{background:var(--green)}
+  .arch-box.core{background:linear-gradient(160deg,rgba(255,79,0,.12),var(--panel));
+    border-color:rgba(255,79,0,.4)}
+  .arch-box.core b{color:var(--accent2)}
+  .arch-sub{padding-left:16px;font-size:12.5px;color:var(--muted);line-height:1.7}
+  /* 对比表 */
+  .cmp{margin-top:26px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .cmp .row{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:0;border-bottom:1px solid var(--line)}
+  .cmp .row:last-child{border-bottom:none}
+  .cmp .row>*{padding:13px 16px;font-size:14px}
+  .cmp .hdr{background:var(--panel);font-weight:700;font-size:13px;letter-spacing:.5px;color:var(--muted)}
+  .cmp .hdr .hl{color:var(--accent2)}
+  .cmp .cell{color:var(--muted)}
+  .cmp .cell.hot{color:#fff;font-weight:700}
+  .cmp .cell.hot b{color:var(--accent2);font-size:18px}
+  .cmp .row:hover{background:rgba(255,255,255,.02)}
+  /* 专家 */
+  .exp{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:24px}
+  .exp .card{display:flex;gap:14px;align-items:flex-start}
+  .exp .badge{flex-shrink:0;width:44px;height:44px;border-radius:12px;display:flex;align-items:center;
+    justify-content:center;font-weight:800;font-size:14px;color:#fff}
+  .b1{background:linear-gradient(135deg,#3b82f6,#2563eb)} .b2{background:linear-gradient(135deg,#8b5cf6,#6d28d9)}
+  .b3{background:linear-gradient(135deg,#22c55e,#15803d)} .b4{background:linear-gradient(135deg,#f59e0b,#b45309)}
+  .exp h3{font-size:16px} .exp .mono{font-size:12px;color:var(--accent2);font-family:Consolas,monospace;margin-bottom:5px}
+  .exp p{font-size:13px;color:var(--muted);line-height:1.55}
+  .status{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:700;margin-left:8px;vertical-align:middle}
+  .ok{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+  .warn{background:rgba(245,158,11,.15);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
+  /* 流程图 */
+  .flow{margin-top:26px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .flow .node{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 20px;
+    font-size:14px;font-weight:600;text-align:center}
+  .flow .node.hl{background:linear-gradient(160deg,rgba(255,79,0,.18),var(--panel));
+    border-color:var(--accent)}
+  .flow .node.hl b{color:var(--accent2)}
+  .flow .arr{color:var(--accent2);font-size:20px;font-weight:800}
+  .flow .cap{font-size:11px;color:var(--muted);font-weight:400;margin-top:3px;display:block}
+  /* 意义 list */
+  .pillars{margin-top:22px;display:grid;gap:12px}
+  .pillar{display:flex;gap:14px;align-items:flex-start;background:var(--panel);
+    border:1px solid var(--line);border-radius:12px;padding:14px 18px}
+  .pillar .n{flex-shrink:0;width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff}
+  .pillar h3{font-size:16px;margin-bottom:3px} .pillar p{font-size:13.5px;color:var(--muted);line-height:1.6}
+  /* 封面 */
+  .cover h1 .hl{background:linear-gradient(90deg,#fff,var(--accent2));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .cover .chip{margin-top:30px;display:flex;gap:12px;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:30px;
+    border:1px solid var(--line);background:var(--panel);font-size:14px;color:var(--muted)}
+  .chip b{color:var(--text)}
+  .chip .g{color:var(--accent2);font-weight:700}
+  .quote{margin-top:34px;border-left:3px solid var(--accent);padding:14px 22px;background:var(--panel);
+    border-radius:0 12px 12px 0;font-size:17px;line-height:1.7;color:var(--muted);font-style:italic}
+  /* 底部导航辅助 */
+  .hint{position:fixed;bottom:24px;right:28px;z-index:10;font-size:12px;color:#4a5673}
+  /* 对比表 / 流程图横向滚动容器（防窄屏溢出） */
+  .cmp-wrap,.flow-wrap{max-width:100%;overflow-x:auto;border-radius:14px}
+  @media(max-width:820px){
+    .c3,.c5,.c4{grid-template-columns:repeat(2,1fr)}
+    .exp{grid-template-columns:1fr}
+    .cmp .row{grid-template-columns:1fr}
+    .cmp{min-width:520px}
+    .flow{flex-wrap:wrap}
+    .flow .node{flex:1 1 auto;min-width:120px}
+    .hint{display:none}
+    .brand-tag{top:18px;left:18px}
+    .slide{padding:5vh 4.5vw}
+  }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="brand-tag"><span class="dot"></span>ScrewShell</div>
+<div class="page">0 / <span id="pageTotal">0</span></div>
+
+<!-- 1 封面 -->
+<section class="slide cover active"><div class="slide-inner">
+  <div class="kicker">AMD AI DevMaster Hackathon 2026 · Track 2</div>
+  <h1>ScrewShell<br><span class="hl">本地私有 AI 调查智能体</span></h1>
+  <p class="sub">一个冻结基座 · 多个 LoRA 专家 · 跑在 AMD Radeon PRO W7900 上</p>
+  <div class="chip">
+    <span>🏠 <b>完全本地</b> 零云端</span>
+    <span>🧠 <b>MoL</b> 单基座多技能</span>
+    <span>📎 <b>证据型</b> 答案带行级引用</span>
+  </div>
+  <div class="quote">
+    「把它指向你的工作区文件夹，问任何多步问题 —— 它规划调查、检索证据、调用只读工具，
+    返回带 <b>file.md#L42-L58</b> 引用的答案。数据永不离开本机。」
+  </div>
+</div></section>
+
+<!-- 2 问题 -->
+<section class="slide"><div class="slide-inner">
+  <div class="kicker">Problem</div>
+  <h2>敏感材料，<span class="grad">不能上云</span>，但审阅又慢又容易漏</h2>
+  <p class="lead">知识工作者积累了大量设计文档、合同、代码库、会议笔记 —— 这些内容不能上传到云端 AI，
+  人工逐份审阅却耗时且容易遗漏关键风险。</p>
+  <div class="cards c3">
+    <div class="card"><span class="ic">🔒</span><h3>隐私红线</h3><p>合同 / 代码 / 会议纪要属敏感资产，上传云端 = 不可接受的泄露风险。</p></div>
+    <div class="card"><span class="ic">⏱️</span><h3>人工低效</h3><p>跨多份文档的多步调查，人工检索、比对、引用，既慢又易漏。</p></div>
+    <div class="card"><span class="ic">🧩</span><h3>多技能缺失</h3><p>一次调查常需「代码 / 安全 / 文档」多种技能，传统方案各开一套模型。</p></div>
+  </div>
+</div></section>
+
+<!-- 3 三大特征 -->
+<section class="slide"><div class="slide-inner">
+  <div class="kicker">Why ScrewShell</div>
+  <h2>三个与众不同的<span class="grad">设计理念</span></h2>
+  <div class="cards c3">
+    <div class="card"><span class="ic">🛡️</span><h3>默认私有</h3>
+      <p>推理、嵌入、检索、记忆全部本地；六种只读工具全部本地，<b>零远程 API、零遥测</b>。</p></div>
+    <div class="card"><span class="ic">🎛️</span><h3>MoL 单基座多技能</h3>
+      <p>一个冻结 27B 基座 + 多个 LoRA 专家，在常驻基座上<b>热切换</b>；社区专家即插即用。</p></div>
+    <div class="card"><span class="ic">📋</span><h3>证据型答案</h3>
+      <p>每条结论配证据卡（文件/行引用 + 置信度 + 审计轨迹），<b>可随时复验</b>。</p></div>
+  </div>
+  <div class="lead" style="margin-top:22px">六种只读工具：<b style="color:var(--text)">rag_search · read_file · list_dir · grep · shell_readonly · rocm_smi</b> —— 全部沙箱化、受权限门保护。</div>
+</div></section>
+
+<!-- 4 架构 -->
+<section class="slide"><div class="slide-inner">
+  <div class="kicker">Architecture</div>
+  <h2>6 层<span class="grad">自研架构</span></h2>
+  <div class="arch">
+    <div class="arch-row"><div class="arch-box"><b>User</b> — Web UI (Gradio) / CLI</div></div>
+    <div class="arch-row"><div class="arch-box"><b>Orchestrator</b>（自研轻量 ReAct 循环）</div></div>
+    <div class="arch-row">
+      <div class="arch-box"><b>Task Planner</b> 任务卡 + 子步骤</div>
+      <div class="arch-box"><b>Skill Router</b> 启发式路由 <span class="tag t-mol">MoL 入口</span></div>
+      <div class="arch-box"><b>Local RAG</b> 摄取→分块→嵌入→检索 <span class="tag t-rag">RAG</span></div>
+    </div>
+    <div class="arch-row">
+      <div class="arch-box"><b>Tool Layer</b> 6 只读工具</div>
+      <div class="arch-box"><b>Store</b> 工件 / 证据 / 记忆</div>
+      <div class="arch-box"><b>Safety Layer</b> 沙箱+白名单+审计 <span class="tag t-saf">安全</span></div>
+    </div>
+    <div class="arch-row"><div class="arch-box core"><b>MoL Inference Core</b>（40 项优化）<span class="tag t-mol">核心</span></div></div>
+    <div class="arch-sub">· 冻结 <b>Qwen3.6-27B-Q4_K_M GGUF</b>（~16.8 GB，常驻 W7900 VRAM）<br>
+      · Router 每步热切换 LoRA 专家（llama.cpp adapter swap）· ROCm 运行时（HIP 构建 + OpenAI 兼容 /v1）</div>
+  </div>
+</div></section>
+
+<!-- 5 五大能力 -->
+<section class="slide"><div class="slide-inner">
+  <div class="kicker">Capabilities</div>
+  <h2>五大核心能力 <span class="grad">5 / 5</span></h2>
+  <div class="cards c5">
+    <div class="card"><span class="ic">🔍</span><h3>本地 RAG</h3><p>行感知分块 → 本地 GPU 嵌入 → 余弦检索 → <b>file#Lx-Ly</b> 引用</p></div>
+    <div class="card"><span class="ic">🛠️</span><h3>工具调用</h3><p>6 个只读工具，权限门后，原始输出离上下文存 Artifact Store</p></div>
+    <div class="card"><span class="ic">🗺️</span><h3>多步规划</h3><p>任务卡 + 子步骤，每步技能标签并路由到对应 LoRA 专家</p></div>
+    <div class="card"><span class="ic">💬</span><h3>多轮记忆</h3><p>SQLite 会话历史 + 证据库，追问可解析先前结论</p></div>
+    <div class="card"><span class="ic">🔐</span><h3>权限控制</h3><p>沙箱、路径白名单、危险命令拒绝、JSON 审计、零遥测</p></div>
+  </div>
+  <p class="lead" style="margin-top:20px;font-size:14.5px">追问示例：<b style="color:var(--text)">「哪个文件支持这点？」</b> —— 能继续解析出证据来源。</p>
+</div></section>
+
+<!-- 6 MoL 优化对比 -->
+<section class="slide"><div class="slide-inner">
+  <div class="kicker">Optimization · AMD Radeon</div>
+  <h2>MoL 热切换 —— 让一个基座<span class="grad">装下所有技能</span></h2>
+  <div class="cmp-wrap"><div class="cmp">
+    <div class="row hdr"><div></div><div>朴素每技能模型</div><div class="hl">MoL 热切换（实测）</div></div>
+    <div class="row"><div>3 技能 VRAM</div><div class="cell">~50 GB（装不下 48GB）</div><div class="cell hot"><b>18.9 GB</b> 基座+适配器常驻</div></div>
+    <div class="row"><div>技能切换</div><div class="cell">全量 27B 重载 = 秒级</div><div class="cell hot">平均 <b>0.65 ms</b> 热切</div></div>
+    <div class="row"><div>解码吞吐</div><div class="cell">每技能专用模型</div><div class="cell hot">基座 <b>31.0 tok/s</b> / ~100 tok/s 预填充</div></div>
+    <div class="row"><div>模型加载</div><div class="cell">每次切换重载成本</div><div class="cell hot"><b>9 s</b> 一次，之后常驻</div></div>
+  </div></div>
+  <p class="lead" style="margin-top:18px;font-size:14px">实测依据：per-request 换帽 <b style="color:var(--red)">100% 摧毁前缀 KV</b>（+2.35s），而全局 toggle <b style="color:var(--green)">KV 全命中</b>（差 <b>415×</b>）→ 因此采用「全局切换 + 串行队列」架构。</p>
+</div></section>
+
+<!-- 7 专家阵容 -->
+<section class="slide"><div class="slide-inner">
+  <div class="kicker">Expert Lineup</div>
+  <h2>LoRA 专家<span class="grad">阵容</span></h2>
+  <p class="lead" style="font-size:14.5px">全部校验基座 == <b style="color:var(--text)">Qwen/Qwen3.6-27B</b>；社区专家即插即用 —— 丢一个 GGUF 适配器就获得一项新技能。</p>
+  <div class="exp">
+    <div class="card"><div class="badge b1">TOOL</div><div><div class="mono">btl3</div><h3>工具 / 代码执行 <span class="status ok">✓ 已转化</span></h3><p>badtheorylabs/BTL-3 (r32/α64) — 简洁直接的工具调用</p></div></div>
+    <div class="card"><div class="badge b2">SEC</div><div><div class="mono">cybersec</div><h3>安全审计 <span class="status ok">✓ 已转化</span></h3><p>hotdogs/...cybersecurity-lora (r8/α16) — 结构化安全分析</p></div></div>
+    <div class="card"><div class="badge b3">RAG</div><div><div class="mono">rag_n7</div><h3>文档 / 证据报告 <span class="status ok">✓ 已转化</span></h3><p>lananhyeuem/...rag-lora-n7 (r128/α256) — 紧凑聚焦引用</p></div></div>
+    <div class="card"><div class="badge b4">PLAN</div><div><div class="mono">teichai_plan</div><h3>多步规划 <span class="status warn">无权重 · 降级 base</span></h3><p>数据缺口非 bug —— 运行时如实降级为基座原生能力</p></div></div>
+  </div>
+</div></section>
+
+<!-- 8 产品形态 -->
+<section class="slide"><div class="slide-inner">
+  <div class="kicker">Product · Two Entry Points</div>
+  <h2>两种入口，<span class="grad">一个后端</span></h2>
+  <div class="flow-wrap"><div class="flow">
+    <div class="node">Gradio UI<br><span class="cap">自研 ReAct agent · :7860</span></div>
+    <div class="arr">→</div>
+    <div class="node hl"><b>ScrewShell Relay</b><br><span class="cap">中转网关 · :18090 · OpenAI /v1</span></div>
+    <div class="arr">→</div>
+    <div class="node">llama-server<br><span class="cap">MoL 推理核心 · ROCm</span></div>
+    <div class="arr">→</div>
+    <div class="node">opencode / pi<br><span class="cap">成熟前端 · 零改造接入</span></div>
+  </div></div>
+  <div class="cards c3" style="margin-top:26px">
+    <div class="card"><span class="ic">🧭</span><h3>统一观测</h3><p>/health · /v1/observ/{summary,events,gpu}，双入口统一采集可观测信号</p></div>
+    <div class="card"><span class="ic">🎚️</span><h3>五层调优旋钮</h3><p>配置自动化 / 容量规划 / 推理调度 / 可靠性守护 / 一键编排启动</p></div>
+    <div class="card"><span class="ic">🔀</span><h3>统一管控</h3><p>所有流量先经 ScrewShell 中转，再做 MoL 路由与调优</p></div>
+  </div>
+</div></section>
+
+<!-- 9 意义与展望 -->
+<section class="slide"><div class="slide-inner">
+  <div class="kicker">Impact · Roadmap</div>
+  <h2>为什么<span class="grad">值得关注</span></h2>
+  <div class="pillars">
+    <div class="pillar"><div class="n">1</div><div><h3>隐私</h3><p>敏感数据不出本机，满足企业 / 个人无法上云的数据审查场景。</p></div></div>
+    <div class="pillar"><div class="n">2</div><div><h3>成本</h3><p>一个基座 + MB 级适配器 = 多技能，而非多套完整模型。</p></div></div>
+    <div class="pillar"><div class="n">3</div><div><h3>开放</h3><p>社区训练的 LoRA 专家即插即用，生态自增长。</p></div></div>
+    <div class="pillar"><div class="n">4</div><div><h3>展望</h3><p>统一观测 / 调优层深化：部署配置自动生成、容量规划、推理调度、进程守护。</p></div></div>
+  </div>
+  <p class="sub" style="margin-top:22px;font-size:14px">许可证 Apache-2.0 · AMD AI DevMaster Hackathon 2026 · Track 2 — Private AI Agent Development &amp; Local Deployment</p>
+</div></section>
+
+<!-- 导航 -->
+<div class="nav">
+  <div class="arrow" id="prev">‹</div>
+  <div class="dots" id="dots"></div>
+  <div class="arrow" id="next">›</div>
+</div>
+<div class="hint">← → 翻页 · 点击圆点跳转</div>
+
+<script>
+(function(){
+  var slides=[].slice.call(document.querySelectorAll('.slide'));
+  var dotsWrap=document.getElementById('dots');
+  var total=slides.length;
+  document.getElementById('pageTotal').textContent=total;
+  var cur=0;
+  slides.forEach(function(_,i){
+    var d=document.createElement('i');
+    d.addEventListener('click',function(){go(i);});
+    dotsWrap.appendChild(d);
+  });
+  var dots=dotsWrap.children;
+  function go(n){
+    if(n<0||n>=total)return;
+    slides[cur].classList.remove('active');
+    cur=n;
+    slides[cur].classList.add('active');
+    for(var i=0;i<total;i++)dots[i].classList.toggle('on',i===cur);
+    document.querySelector('.page').innerHTML=(cur+1)+' / <span id="pageTotal">'+total+'</span>';
+  }
+  document.getElementById('prev').addEventListener('click',function(){go(cur-1);});
+  document.getElementById('next').addEventListener('click',function(){go(cur+1);});
+  document.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){e.preventDefault();go(cur+1);}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(cur-1);}
+  });
+  var startX=null;
+  document.addEventListener('touchstart',function(e){startX=e.touches[0].clientX;},{passive:true});
+  document.addEventListener('touchend',function(e){
+    if(startX===null)return;
+    var dx=e.changedTouches[0].clientX-startX;
+    if(Math.abs(dx)>50){dx<0?go(cur+1):go(cur-1);}
+    startX=null;
+  },{passive:true});
+  go(0);
+})();
+</script>
+</body>
+</html>
