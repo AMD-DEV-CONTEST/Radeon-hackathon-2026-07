@@ -1,0 +1,143 @@
+name: Release Builds
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build Argos (Release)
+        shell: cmd
+        working-directory: cpp
+        run: build.bat release
+
+      - name: Zip Windows build
+        shell: pwsh
+        run: |
+          Compress-Archive -Path cpp/build/Release/argos.exe -DestinationPath argos-windows-x64.zip -Force
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: argos-windows-x64
+          path: argos-windows-x64.zip
+          retention-days: 90
+
+  build-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'cmake;3.22.1 ndk;26.3.11579264'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.7'
+
+      - name: Build Android APK (Release)
+        working-directory: android
+        run: gradle assembleRelease --no-daemon
+
+      - name: Rename APK
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk argos-android-release.apk
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: argos-android-release-apk
+          path: argos-android-release.apk
+          retention-days: 90
+
+  release:
+    needs: [build-windows, build-android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine tag
+        id: tag
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: argos-windows-x64
+          path: artifacts
+
+      - name: Download Android artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: argos-android-release-apk
+          path: artifacts
+
+      - name: List artifacts
+        run: ls -la artifacts/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: Argos ${{ steps.tag.outputs.tag }}
+          body: |
+            # Argos ${{ steps.tag.outputs.tag }}
+
+            ## Downloads
+            - **Windows**: `argos-windows-x64.zip` — unzip and run `argos.exe`
+            - **Android**: `argos-android-release.apk` — sideload on your phone (enable "Install from unknown sources")
+
+            ## Features
+            - Native C++ AI desktop companion with golden Spartan helmet and red eyes
+            - Streaming chat with tool execution (list files, run commands, screen context)
+            - SQLite/JSONL persistent memory across sessions
+            - RAG file search (on-demand, not auto-triggered)
+            - Proactive speech bubbles when idle
+            - Cancel & re-chat support
+
+            ## AI Server
+            Point Argos at any OpenAI-compatible API server.
+          files: |
+            artifacts/argos-windows-x64.zip
+            artifacts/argos-android-release.apk
+          draft: false
+          prerelease: false
+          generate_release_notes: true
