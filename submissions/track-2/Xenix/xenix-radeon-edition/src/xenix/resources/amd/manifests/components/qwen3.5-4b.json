@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "manifest_id": "qwen3.5-4b-vllm-rocm721",
+  "manifest_version": "1",
+  "capability": "chat",
+  "sources": [
+    {
+      "source_id": "qwen3.5-4b-model-source",
+      "kind": "hugging_face",
+      "locator": "Qwen/Qwen3.5-4B",
+      "revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+      "acquisition_verified": true,
+      "verification_reference": "qwen3.5-4b-gfx1100-spike-20260805"
+    },
+    {
+      "source_id": "vllm-wheel-source",
+      "kind": "https",
+      "locator": "https://wheels.vllm.ai/rocm/321fa2d6d1644629ac39d173f6393f37e14bf7b4/vllm-0.20.2rc1.dev15%2Bg321fa2d6d.rocm721-cp312-cp312-manylinux_2_34_x86_64.whl",
+      "revision": "0.20.2rc1.dev15+g321fa2d6d.rocm721",
+      "acquisition_verified": true,
+      "verification_reference": "vllm-rocm721-target-import-20260728"
+    }
+  ],
+  "artifacts": [
+    {
+      "artifact_id": "qwen3.5-4b-weight-00001",
+      "kind": "model",
+      "relative_path": "model.safetensors-00001-of-00002.safetensors",
+      "source_id": "qwen3.5-4b-model-source",
+      "sha256": "26a93f066e1916adb13453dae5a0c707c0fbc71299ed98779571a907b8e74c61",
+      "size_bytes": 5329398688,
+      "license_spdx": "Apache-2.0"
+    },
+    {
+      "artifact_id": "qwen3.5-4b-weight-00002",
+      "kind": "model",
+      "relative_path": "model.safetensors-00002-of-00002.safetensors",
+      "source_id": "qwen3.5-4b-model-source",
+      "sha256": "cb544bd9bfae93dc59b0f22b292f5933573854a7f9b97835c67060d7d910e188",
+      "size_bytes": 3990429408,
+      "license_spdx": "Apache-2.0"
+    },
+    {
+      "artifact_id": "vllm-rocm721-wheel",
+      "kind": "runtime",
+      "relative_path": "vllm-0.20.2rc1.dev15+g321fa2d6d.rocm721-cp312-cp312-manylinux_2_34_x86_64.whl",
+      "source_id": "vllm-wheel-source",
+      "sha256": "a0834d6dc4244f6f87aa39d8a66f3942377dea8aaa80bdd5e4d71433ba486acf",
+      "size_bytes": 307012829,
+      "license_spdx": "Apache-2.0"
+    }
+  ],
+  "models": [
+    {
+      "model_id": "Qwen/Qwen3.5-4B",
+      "revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+      "license_spdx": "Apache-2.0",
+      "artifact_ids": ["qwen3.5-4b-weight-00001", "qwen3.5-4b-weight-00002"],
+      "tokenizer_id": "Qwen/Qwen3.5-4B",
+      "tokenizer_revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+      "output_dimensions": null
+    }
+  ],
+  "runtime": {
+    "runtime_id": "vllm-rocm721-nightly",
+    "runtime_version": "0.20.2rc1.dev15+g321fa2d6d.rocm721",
+    "framework_id": "vllm",
+    "framework_version": "0.20.2rc1.dev15+g321fa2d6d.rocm721",
+    "python_version": "3.12.3",
+    "packages": [
+      {
+        "name": "vllm",
+        "version": "0.20.2rc1.dev15+g321fa2d6d.rocm721",
+        "artifact_id": "vllm-rocm721-wheel"
+      }
+    ],
+    "allowed_plugins": []
+  },
+  "protocol": {
+    "protocol_id": "openai-compatible-chat",
+    "protocol_version": "vllm-0.20.2rc1",
+    "profile_id": "chat-completions",
+    "authentication_required": true,
+    "unauthenticated_request_rejected": true,
+    "field_rules": [
+      {"field_name": "reasoning", "disposition": "optional", "expected_value": null},
+      {"field_name": "stream", "disposition": "optional", "expected_value": null},
+      {"field_name": "tools", "disposition": "optional", "expected_value": null}
+    ]
+  },
+  "launch": {
+    "executable": "vllm",
+    "served_model_name": "qwen3.5-4b",
+    "arguments": [
+      "--dtype=float16",
+      "--max-model-len=8192",
+      "--max-num-seqs=64",
+      "--gpu-memory-utilization=0.28",
+      "--reasoning-parser=qwen3",
+      "--enable-auto-tool-choice",
+      "--tool-call-parser=qwen3_coder",
+      "--language-model-only",
+      "--default-chat-template-kwargs={\"enable_thinking\":false}"
+    ],
+    "environment": [
+      {"name": "HF_HUB_OFFLINE", "value": "1"},
+      {"name": "TRANSFORMERS_OFFLINE", "value": "1"},
+      {"name": "VLLM_DO_NOT_TRACK", "value": "1"},
+      {"name": "VLLM_NO_USAGE_STATS", "value": "1"},
+      {"name": "VLLM_PLUGINS", "value": ""},
+      {"name": "VLLM_ROCM_USE_AITER", "value": "0"}
+    ],
+    "loopback_only": true,
+    "protected_auth_handoff_required": true,
+    "isolated_cache_required": true,
+    "isolated_config_required": true
+  },
+  "self_tests": [
+    {
+      "test_id": "chat-protocol-and-rocm-workload",
+      "deadline_seconds": 300.0,
+      "required_evidence": [
+        "automatic-tool-call",
+        "chat-completion",
+        "rocm-workload",
+        "unauthenticated-request-rejected"
+      ]
+    }
+  ],
+  "compatibility_cells": [
+    {
+      "cell_id": "radeon-cloud-gfx1100-ubuntu-24.04-k106-rocm-7.2.1",
+      "target_kind": "native_linux",
+      "os_name": "Ubuntu",
+      "os_version": "24.04",
+      "kernel_version": "6.8.0-106-generic",
+      "architecture": "x86_64",
+      "gpu_architecture": "gfx1100",
+      "driver_version": "6.16.6",
+      "rocm_version": "7.2.1",
+      "hip_version": "7.2.53211-e1a6bc5663",
+      "python_version": "3.12.3",
+      "admission": "admitted",
+      "admission_blockers": []
+    }
+  ],
+  "capacity": {
+    "min_gpu_count": 1,
+    "min_free_vram_bytes": 16000000000,
+    "min_free_system_memory_bytes": 34359738368,
+    "required_persistent_bytes": 22000000000
+  },
+  "admission": "admitted",
+  "admission_blockers": []
+}

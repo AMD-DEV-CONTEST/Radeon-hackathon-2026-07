@@ -1,0 +1,74 @@
+diff --git a/deploy/cpp_infer/src/modules/text_detection/predictor.cc b/deploy/cpp_infer/src/modules/text_detection/predictor.cc
+index 3a599d2..f48da81 100644
+--- a/deploy/cpp_infer/src/modules/text_detection/predictor.cc
++++ b/deploy/cpp_infer/src/modules/text_detection/predictor.cc
+@@ -40,8 +40,10 @@ absl::Status TextDetPredictor::Build() {
+   resize_param.limit_side_len = params_.limit_side_len;
+   resize_param.limit_type = params_.limit_type;
+   resize_param.max_side_limit = params_.max_side_limit;
+-  resize_param.resize_long =
+-      std::stoi(pre_tfs.at("DetResizeForTest.resize_long"));
++  const auto resize_long = pre_tfs.find("DetResizeForTest.resize_long");
++  if (resize_long != pre_tfs.end() && !resize_long->second.empty()) {
++    resize_param.resize_long = std::stoi(resize_long->second);
++  }
+   Register<DetResizeForTest>("Resize", resize_param);
+   Register<NormalizeImage>("Normalize");
+   Register<ToCHWImage>("ToCHW");
+diff --git a/deploy/cpp_infer/src/utils/ilogger.cc b/deploy/cpp_infer/src/utils/ilogger.cc
+index 5283c4a..63b42f8 100644
+--- a/deploy/cpp_infer/src/utils/ilogger.cc
++++ b/deploy/cpp_infer/src/utils/ilogger.cc
+@@ -658,12 +658,7 @@ void __log_func(const char *file, int line, LogLevel level, const char *fmt,
+                 line);
+   vsnprintf(buffer + n, sizeof(buffer) - n, fmt, vl);
+-
++
+-  if (level == LogLevel::Fatal || level == LogLevel::Error) {
+-    fprintf(stderr, "%s\n", buffer);
+-  } else if (level == LogLevel::Warning) {
+-    fprintf(stdout, "%s\n", buffer);
+-  } else {
+-    fprintf(stdout, "%s\n", buffer);
+-  }
++  // stdout is reserved for Xenix's length-delimited protocol.
++  fprintf(stderr, "%s\n", buffer);
+-
++
+   if (!__g_logger.logger_directory.empty()) {
+
+diff --git a/deploy/cpp_infer/src/utils/utility.cc b/deploy/cpp_infer/src/utils/utility.cc
+index 4439c47..e33e9f2 100644
+--- a/deploy/cpp_infer/src/utils/utility.cc
++++ b/deploy/cpp_infer/src/utils/utility.cc
+@@ -82,26 +82,10 @@ Utility::FindModelPath(const std::string &model_dir,
+ }
+ absl::StatusOr<std::string>
+ Utility::GetDefaultConfig(std::string pipeline_name) {
+-  std::string current_path = __FILE__;
+-  for (int i = 0; i < 2; i++) {
+-    size_t pos = current_path.find_last_of(PATH_SEPARATOR);
+-    if (pos == std::string::npos) {
+-      return absl::NotFoundError("Could not find pipeline config yaml :" +
+-                                 pipeline_name);
+-    }
+-    current_path = current_path.substr(0, pos);
+-  }
+-  std::string config_path_yaml = current_path + PATH_SEPARATOR + "configs" +
+-                                 PATH_SEPARATOR + pipeline_name + ".yaml";
+-  std::string config_path_yml = current_path + PATH_SEPARATOR + "configs" +
+-                                PATH_SEPARATOR + pipeline_name + ".yml";
+-  if (FileExists(config_path_yaml).ok()) {
+-    return config_path_yaml;
+-  } else if (FileExists(config_path_yml).ok()) {
+-    return config_path_yml;
+-  }
+-  return absl::NotFoundError("Could not find pipeline config yaml :" +
+-                             pipeline_name);
++  return absl::FailedPreconditionError(
++      "Default pipeline configuration is unavailable; provide an explicit "
++      "PaddleX configuration for " +
++      pipeline_name + ".");
+ }
+ absl::StatusOr<std::string>
+ Utility::GetConfigPaths(const std::string &model_dir,

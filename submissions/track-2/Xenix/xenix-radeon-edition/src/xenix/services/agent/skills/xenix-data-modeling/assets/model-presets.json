@@ -1,0 +1,123 @@
+{
+  "version": "0.3.0",
+  "tool_contract": {
+    "source_of_truth": "First call model.metadata with model_family to browse candidates, then call it again with one model_key. Use include_param_grid_schema=true only when tuning-grid detail is needed.",
+    "model_train_shape": {
+      "binding_id": "<binding_id>",
+      "models": ["classification.logistic_regression"],
+      "params_by_model": {
+        "classification.logistic_regression": {
+          "C": 1.0,
+          "max_iter": 1000
+        }
+      }
+    },
+    "model_hyper_train_shape": {
+      "binding_id": "<binding_id>",
+      "param_grids_by_model": {
+        "classification.logistic_regression": {
+          "C": [0.1, 1.0, 10.0],
+          "max_iter": [1000, 3000]
+        }
+      }
+    }
+  },
+  "classification": {
+    "baseline": {
+      "model_key": "classification.logistic_regression",
+      "params": {
+        "C": 1.0,
+        "max_iter": 1000
+      }
+    },
+    "tune_candidates": [
+      {
+        "model_key": "classification.logistic_regression",
+        "grid": {
+          "C": [0.1, 1.0, 10.0],
+          "max_iter": [1000, 3000]
+        }
+      },
+      {
+        "model_key": "classification.gradient_boosting",
+        "grid": {
+          "learning_rate": [0.03, 0.05, 0.1],
+          "n_estimators": [100, 300],
+          "max_depth": [2, 3, 5]
+        }
+      },
+      {
+        "model_key": "classification.random_forest",
+        "grid": {
+          "n_estimators": [200, 500],
+          "max_depth": [0, 5, 10],
+          "max_features": ["sqrt", "log2"]
+        }
+      }
+    ]
+  },
+  "regression": {
+    "baseline": {
+      "model_key": "regression.ridge",
+      "params": {
+        "alpha": 1.0,
+        "fit_intercept": true
+      }
+    },
+    "tune_candidates": [
+      {
+        "model_key": "regression.ridge",
+        "grid": {
+          "alpha": [0.1, 1.0, 10.0],
+          "fit_intercept": [true, false]
+        }
+      },
+      {
+        "model_key": "regression.gradient_boosting",
+        "grid": {
+          "learning_rate": [0.03, 0.05, 0.1],
+          "n_estimators": [100, 300],
+          "max_depth": [2, 3, 5],
+          "min_samples_leaf": [1, 5, 10]
+        }
+      },
+      {
+        "model_key": "regression.random_forest",
+        "grid": {
+          "n_estimators": [200, 500],
+          "max_depth": [0, 5, 10],
+          "min_samples_leaf": [1, 5, 10],
+          "max_features": ["sqrt", "log2", "all"]
+        }
+      }
+    ]
+  },
+  "neural_network": {
+    "classification": {
+      "model_key": "classification.mlp",
+      "params": {
+        "hidden_layer_size": 64,
+        "activation": "relu",
+        "alpha": 0.001,
+        "learning_rate_init": 0.001,
+        "max_iter": 500
+      }
+    },
+    "regression": {
+      "model_key": "regression.mlp",
+      "params": {
+        "hidden_layer_size": 64,
+        "activation": "relu",
+        "alpha": 0.001,
+        "learning_rate_init": 0.001,
+        "max_iter": 500
+      }
+    },
+    "small_grid": {
+      "hidden_layer_size": [32, 64, 128],
+      "activation": ["relu", "tanh"],
+      "alpha": [0.0001, 0.001],
+      "learning_rate_init": [0.001]
+    }
+  }
+}
