@@ -1,0 +1,872 @@
+{
+  "$defs": {
+    "ConfirmedRelationBinding": {
+      "additionalProperties": false,
+      "description": "One exact user-confirmed relation-to-asset access binding.",
+      "properties": {
+        "related_asset_id": {
+          "format": "uuid",
+          "title": "Related Asset Id",
+          "type": "string"
+        },
+        "relation_id": {
+          "format": "uuid",
+          "title": "Relation Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "relation_id",
+        "related_asset_id"
+      ],
+      "title": "ConfirmedRelationBinding",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "Milestone": {
+      "enum": [
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5"
+      ],
+      "title": "Milestone",
+      "type": "string"
+    },
+    "PlanStepKind": {
+      "enum": [
+        "RETRIEVE",
+        "ASK",
+        "EXTRACT",
+        "CLASSIFY",
+        "UPDATE_ARTIFACT",
+        "VERIFY",
+        "EVALUATE_ROUTE",
+        "PRIVACY_REVIEW",
+        "RENDER"
+      ],
+      "title": "PlanStepKind",
+      "type": "string"
+    },
+    "PlanStepStatus": {
+      "enum": [
+        "PENDING",
+        "IN_PROGRESS",
+        "SUCCEEDED",
+        "DENIED",
+        "FAILED",
+        "SKIPPED"
+      ],
+      "title": "PlanStepStatus",
+      "type": "string"
+    },
+    "PolicyDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "decided_at": {
+          "format": "date-time",
+          "title": "Decided At",
+          "type": "string"
+        },
+        "decision_id": {
+          "format": "uuid",
+          "title": "Decision Id",
+          "type": "string"
+        },
+        "outcome": {
+          "$ref": "#/$defs/PolicyOutcome"
+        },
+        "policy_version": {
+          "minLength": 1,
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "proposal_id": {
+          "format": "uuid",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "reason_codes": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Reason Codes",
+          "type": "array"
+        },
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "decision_id",
+        "run_id",
+        "proposal_id",
+        "outcome",
+        "reason_codes",
+        "policy_version",
+        "decided_at"
+      ],
+      "title": "PolicyDecision",
+      "type": "object"
+    },
+    "PolicyOutcome": {
+      "enum": [
+        "ALLOW",
+        "DENY"
+      ],
+      "title": "PolicyOutcome",
+      "type": "string"
+    },
+    "RetrievalScope": {
+      "enum": [
+        "CURRENT_SOURCE",
+        "CROSS_ASSET_SUMMARY",
+        "CROSS_ASSET_DETAIL"
+      ],
+      "title": "RetrievalScope",
+      "type": "string"
+    },
+    "RetrievedEvidenceReference": {
+      "additionalProperties": false,
+      "properties": {
+        "asset_id": {
+          "format": "uuid",
+          "title": "Asset Id",
+          "type": "string"
+        },
+        "content_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "no_match": {
+          "default": false,
+          "title": "No Match",
+          "type": "boolean"
+        },
+        "provenance_ref": {
+          "minLength": 1,
+          "title": "Provenance Ref",
+          "type": "string"
+        },
+        "related_asset_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Related Asset Id"
+        },
+        "retrieval_id": {
+          "format": "uuid",
+          "title": "Retrieval Id",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/RetrievalScope"
+        },
+        "source_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Id"
+        },
+        "span_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Span Id"
+        },
+        "version_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version Id"
+        }
+      },
+      "required": [
+        "retrieval_id",
+        "scope",
+        "asset_id",
+        "provenance_ref",
+        "content_hash"
+      ],
+      "title": "RetrievedEvidenceReference",
+      "type": "object"
+    },
+    "RuntimeToolCallProposal": {
+      "additionalProperties": false,
+      "properties": {
+        "arguments": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Arguments",
+          "type": "object"
+        },
+        "base_version_id": {
+          "format": "uuid",
+          "title": "Base Version Id",
+          "type": "string"
+        },
+        "knowledge_card_hash": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Knowledge Card Hash"
+        },
+        "knowledge_card_version_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Knowledge Card Version Id"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "permission_granted": {
+          "const": false,
+          "default": false,
+          "title": "Permission Granted",
+          "type": "boolean"
+        },
+        "proposal_id": {
+          "format": "uuid",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "proposed_at": {
+          "format": "date-time",
+          "title": "Proposed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "proposal_id",
+        "name",
+        "arguments",
+        "base_version_id",
+        "proposed_at"
+      ],
+      "title": "RuntimeToolCallProposal",
+      "type": "object"
+    },
+    "TerminalState": {
+      "enum": [
+        "SUCCEEDED",
+        "NEEDS_USER_INPUT",
+        "PAUSED",
+        "CANCELLED",
+        "TIMED_OUT",
+        "MODEL_UNAVAILABLE",
+        "MODEL_OOM",
+        "INVALID_MODEL_OUTPUT",
+        "STORAGE_ERROR",
+        "POLICY_BLOCKED",
+        "DELETION_FAILED",
+        "INTERNAL_ERROR"
+      ],
+      "title": "TerminalState",
+      "type": "string"
+    },
+    "ToolExecutionRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "error_class": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error Class"
+        },
+        "execution_id": {
+          "format": "uuid",
+          "title": "Execution Id",
+          "type": "string"
+        },
+        "finished_at": {
+          "format": "date-time",
+          "title": "Finished At",
+          "type": "string"
+        },
+        "observation_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Observation Refs",
+          "type": "array"
+        },
+        "policy_decision_id": {
+          "format": "uuid",
+          "title": "Policy Decision Id",
+          "type": "string"
+        },
+        "proposal_id": {
+          "format": "uuid",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "sanitized_argument_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sanitized Argument Hash",
+          "type": "string"
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/ToolExecutionStatus"
+        },
+        "tool_name": {
+          "minLength": 1,
+          "title": "Tool Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "execution_id",
+        "run_id",
+        "proposal_id",
+        "policy_decision_id",
+        "tool_name",
+        "sanitized_argument_hash",
+        "status",
+        "started_at",
+        "finished_at"
+      ],
+      "title": "ToolExecutionRecord",
+      "type": "object"
+    },
+    "ToolExecutionStatus": {
+      "enum": [
+        "SUCCEEDED",
+        "DENIED",
+        "FAILED",
+        "TIMED_OUT"
+      ],
+      "title": "ToolExecutionStatus",
+      "type": "string"
+    },
+    "VerificationOutcome": {
+      "enum": [
+        "VERIFIED",
+        "NEEDS_INPUT",
+        "REPLAN",
+        "REJECTED"
+      ],
+      "title": "VerificationOutcome",
+      "type": "string"
+    },
+    "VerificationReport": {
+      "additionalProperties": false,
+      "properties": {
+        "checks": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "title": "Checks",
+          "type": "object"
+        },
+        "execution_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Execution Id"
+        },
+        "finding_codes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Finding Codes",
+          "type": "array"
+        },
+        "outcome": {
+          "$ref": "#/$defs/VerificationOutcome"
+        },
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "safe_summary": {
+          "minLength": 1,
+          "title": "Safe Summary",
+          "type": "string"
+        },
+        "verification_id": {
+          "format": "uuid",
+          "title": "Verification Id",
+          "type": "string"
+        },
+        "verified_at": {
+          "format": "date-time",
+          "title": "Verified At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "verification_id",
+        "run_id",
+        "outcome",
+        "checks",
+        "safe_summary",
+        "verified_at"
+      ],
+      "title": "VerificationReport",
+      "type": "object"
+    },
+    "WorkPlanStepV1": {
+      "additionalProperties": false,
+      "properties": {
+        "dependency_step_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Dependency Step Ids",
+          "type": "array"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "required_evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Required Evidence Refs",
+          "type": "array"
+        },
+        "required_permission": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Required Permission"
+        },
+        "status": {
+          "$ref": "#/$defs/PlanStepStatus",
+          "default": "PENDING"
+        },
+        "step_id": {
+          "format": "uuid",
+          "title": "Step Id",
+          "type": "string"
+        },
+        "step_kind": {
+          "$ref": "#/$defs/PlanStepKind"
+        },
+        "stop_condition": {
+          "minLength": 1,
+          "title": "Stop Condition",
+          "type": "string"
+        }
+      },
+      "required": [
+        "step_id",
+        "step_kind",
+        "reason",
+        "stop_condition"
+      ],
+      "title": "WorkPlanStepV1",
+      "type": "object"
+    },
+    "WorkPlanV1": {
+      "additionalProperties": false,
+      "properties": {
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "goal": {
+          "minLength": 1,
+          "title": "Goal",
+          "type": "string"
+        },
+        "milestone": {
+          "$ref": "#/$defs/Milestone"
+        },
+        "plan_id": {
+          "format": "uuid",
+          "title": "Plan Id",
+          "type": "string"
+        },
+        "revised_at": {
+          "format": "date-time",
+          "title": "Revised At",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/WorkPlanStepV1"
+          },
+          "maxItems": 12,
+          "minItems": 1,
+          "title": "Steps",
+          "type": "array"
+        }
+      },
+      "required": [
+        "plan_id",
+        "run_id",
+        "milestone",
+        "goal",
+        "steps",
+        "revision",
+        "created_at",
+        "revised_at"
+      ],
+      "title": "WorkPlanV1",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Per-run agent state.\n\nThe relation fields below are a **read-only permission snapshot**, projected\nfrom the relation ledger at each policy evaluation — the same pattern as\n`permission_snapshot`. They are never the authority for relation state.\n\nTreating them as authoritative fails in two ways. Two concurrent runs on one\nasset would hold independent relation sets with no reconciliation, so\nwhichever wrote last would win. Worse, a long-running run would keep\nauthorizing detail reads from a set projected before the user corrected a\nbound asset — the exact stale access GRAG-16 exists to catch. Re-projecting\nat each evaluation keeps the permission decision tied to current canonical\nstate.",
+  "properties": {
+    "acceptance_checks": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Acceptance Checks",
+      "type": "array"
+    },
+    "asset_id": {
+      "format": "uuid",
+      "title": "Asset Id",
+      "type": "string"
+    },
+    "base_version_id": {
+      "format": "uuid",
+      "title": "Base Version Id",
+      "type": "string"
+    },
+    "command_id": {
+      "format": "uuid",
+      "title": "Command Id",
+      "type": "string"
+    },
+    "confirmed_related_asset_ids": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Confirmed Related Asset Ids",
+      "type": "array"
+    },
+    "confirmed_relation_bindings": {
+      "items": {
+        "$ref": "#/$defs/ConfirmedRelationBinding"
+      },
+      "title": "Confirmed Relation Bindings",
+      "type": "array"
+    },
+    "confirmed_relation_ids": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Confirmed Relation Ids",
+      "type": "array"
+    },
+    "confirmed_relation_source_candidate_ids": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Confirmed Relation Source Candidate Ids",
+      "type": "array"
+    },
+    "current_milestone": {
+      "$ref": "#/$defs/Milestone"
+    },
+    "knowledge_card_hash": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Knowledge Card Hash"
+    },
+    "knowledge_card_version_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Knowledge Card Version Id"
+    },
+    "last_durable_version_id": {
+      "format": "uuid",
+      "title": "Last Durable Version Id",
+      "type": "string"
+    },
+    "model_call_budget": {
+      "exclusiveMinimum": 0,
+      "title": "Model Call Budget",
+      "type": "integer"
+    },
+    "model_calls_used": {
+      "minimum": 0,
+      "title": "Model Calls Used",
+      "type": "integer"
+    },
+    "model_id": {
+      "minLength": 1,
+      "title": "Model Id",
+      "type": "string"
+    },
+    "permission_snapshot": {
+      "additionalProperties": {
+        "type": "boolean"
+      },
+      "title": "Permission Snapshot",
+      "type": "object"
+    },
+    "policy_decisions": {
+      "items": {
+        "$ref": "#/$defs/PolicyDecision"
+      },
+      "title": "Policy Decisions",
+      "type": "array"
+    },
+    "relation_candidate_ids": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Relation Candidate Ids",
+      "type": "array"
+    },
+    "retries_used": {
+      "minimum": 0,
+      "title": "Retries Used",
+      "type": "integer"
+    },
+    "retrieval_scope": {
+      "$ref": "#/$defs/RetrievalScope"
+    },
+    "retrieved_evidence": {
+      "items": {
+        "$ref": "#/$defs/RetrievedEvidenceReference"
+      },
+      "title": "Retrieved Evidence",
+      "type": "array"
+    },
+    "retry_budget": {
+      "minimum": 0,
+      "title": "Retry Budget",
+      "type": "integer"
+    },
+    "run_id": {
+      "format": "uuid",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "server_base_url": {
+      "minLength": 1,
+      "title": "Server Base Url",
+      "type": "string"
+    },
+    "step_budget": {
+      "exclusiveMinimum": 0,
+      "title": "Step Budget",
+      "type": "integer"
+    },
+    "steps_used": {
+      "minimum": 0,
+      "title": "Steps Used",
+      "type": "integer"
+    },
+    "structured_proposal_hash": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Structured Proposal Hash"
+    },
+    "terminal_state": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TerminalState"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "tool_executions": {
+      "items": {
+        "$ref": "#/$defs/ToolExecutionRecord"
+      },
+      "title": "Tool Executions",
+      "type": "array"
+    },
+    "tool_proposals": {
+      "items": {
+        "$ref": "#/$defs/RuntimeToolCallProposal"
+      },
+      "title": "Tool Proposals",
+      "type": "array"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    },
+    "user_goal": {
+      "minLength": 1,
+      "title": "User Goal",
+      "type": "string"
+    },
+    "validation_findings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Validation Findings",
+      "type": "array"
+    },
+    "verification_report": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/VerificationReport"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "work_plan": {
+      "$ref": "#/$defs/WorkPlanV1"
+    }
+  },
+  "required": [
+    "run_id",
+    "asset_id",
+    "base_version_id",
+    "command_id",
+    "user_goal",
+    "acceptance_checks",
+    "permission_snapshot",
+    "current_milestone",
+    "work_plan",
+    "retrieval_scope",
+    "step_budget",
+    "model_call_budget",
+    "retry_budget",
+    "steps_used",
+    "model_calls_used",
+    "retries_used",
+    "model_id",
+    "server_base_url",
+    "last_durable_version_id",
+    "updated_at"
+  ],
+  "title": "AgentRunStateV1",
+  "type": "object"
+}

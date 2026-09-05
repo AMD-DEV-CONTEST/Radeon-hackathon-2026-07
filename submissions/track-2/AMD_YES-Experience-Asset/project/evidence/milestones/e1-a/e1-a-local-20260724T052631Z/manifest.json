@@ -1,0 +1,165 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "e1-a-local-20260724T052631Z-9b03730",
+  "timestamp_utc": "2026-07-24T05:26:31Z",
+  "source": {
+    "git_commit": "9b03730bbc8e7c7daa0bd6df6b237edfa6cbd0b5",
+    "branch": "codex/e1-a-runtime-foundation",
+    "dirty_tree": false,
+    "issue": "https://github.com/kinnyuww/amd-devmaster-track2-agent/issues/5",
+    "pull_request": null
+  },
+  "quality_mapping": {
+    "acceptance_criteria": [
+      "AC-03",
+      "AC-04",
+      "AC-11",
+      "AC-17",
+      "AC-19",
+      "AC-22"
+    ],
+    "l1_milestones": [
+      "cross-cutting foundation; no M1-M5 promotion"
+    ],
+    "l2_gates": [
+      "Canonical state",
+      "Persistence and resume",
+      "Local inference",
+      "Failure behavior",
+      "Observability",
+      "Runtime permission"
+    ]
+  },
+  "input": {
+    "fixture_or_scenario_id": "e1-a-public-tool-smoke-v1",
+    "version": "1.0.0",
+    "sha256": "1dd19eb3a8045ce2e95d942d62677994ba7118f16182c0a44d17677a3f6f26a8"
+  },
+  "environment": {
+    "hardware": {
+      "host": "Apple Silicon local development host",
+      "amd_gpu": "NOT_PRESENT",
+      "w7900_gate": "NOT_VERIFIED"
+    },
+    "software": {
+      "os": "macOS 15.6 (24G84)",
+      "python": "3.12.13",
+      "fastapi": "0.128.8",
+      "httpx": "0.28.1",
+      "pydantic": "2.13.4"
+    },
+    "workflow_schema_versions": {
+      "canonical_asset": "1.0.0",
+      "structured_proposal": "1.0.0",
+      "progress_event": "1.0.0",
+      "terminal_result": "1.0.0",
+      "sqlite_migration": "1"
+    }
+  },
+  "model_and_serving": {
+    "model_source": "Qwen/Qwen2.5-14B-Instruct",
+    "model_revision_or_hash": null,
+    "license": null,
+    "dtype": "bfloat16",
+    "quantization": "none",
+    "arguments": [
+      "--host 127.0.0.1",
+      "--max-model-len 8192",
+      "--enable-auto-tool-choice",
+      "--tool-call-parser hermes"
+    ]
+  },
+  "commands": [
+    {
+      "command": "bash -n scripts/*.sh",
+      "exit_status": 0
+    },
+    {
+      "command": "python3 -m py_compile scripts/*.py",
+      "exit_status": 0
+    },
+    {
+      "command": "python3 -m unittest discover -s qa/tests -v",
+      "exit_status": 0,
+      "result": "16 tests passed"
+    },
+    {
+      "command": "bash qa/gates/pr_gate.sh --mode contract",
+      "exit_status": 0,
+      "result": "PR GATE: PASS (contract mode)"
+    },
+    {
+      "command": ".venv/bin/python scripts/export_contracts.py --check",
+      "exit_status": 0,
+      "result": "contracts are current"
+    },
+    {
+      "command": ".venv/bin/ruff check .",
+      "exit_status": 0,
+      "result": "All checks passed"
+    },
+    {
+      "command": ".venv/bin/pytest",
+      "exit_status": 0,
+      "result": "27 tests passed"
+    }
+  ],
+  "results": {
+    "terminal_state": "NOT_VERIFIED",
+    "measurements": {
+      "public_qa_tests_passed": 16,
+      "lane_a_tests_passed": 27,
+      "checked_in_contract_files": 9,
+      "database_restart_and_history_test": "PASS",
+      "stale_write_rejection_test": "PASS",
+      "raw_log_default_test": "PASS",
+      "forged_tool_permission_test": "PASS"
+    },
+    "failures": [],
+    "recovery": [
+      "SQLite stale-write rejection preserves the prior current version.",
+      "Model/tool validation failure returns an explicit error and grants no permission.",
+      "The known-good rollback is commit efa5adb plus removal of the E1-A branch."
+    ],
+    "unverified": [
+      "Radeon PRO W7900 identity and utilization",
+      "ROCm 7.2.1, PyTorch and vLLM runtime versions",
+      "Exact downloaded model revision/hash and repository license capture",
+      "Qwen2.5-14B-Instruct BF16 load on W7900",
+      "Real localhost structured response and parsed tool-call proposal",
+      "OOM and model-server restart observations on Radeon Cloud"
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "contracts/openapi.json",
+      "kind": "reviewable-openapi-contract"
+    },
+    {
+      "path": "contracts/json-schema/",
+      "kind": "reviewable-json-schema-contracts"
+    },
+    {
+      "path": "contracts/examples/",
+      "kind": "lane-b-public-mocks"
+    },
+    {
+      "path": "evidence/milestones/e1-a/e1-a-local-20260724T052631Z/artifacts/local-gate-results.json",
+      "kind": "sanitized-local-gate-summary"
+    }
+  ],
+  "decision": {
+    "result_class": "NOT_VERIFIED",
+    "known_risks": [
+      "Local contracts pass, but E1-A cannot be promoted until the real W7900/ROCm viability gate is retained.",
+      "The first public/OpenAPI/event contract still requires Lane B review before freeze."
+    ],
+    "rollback": "Revert commit 9b03730bbc8e7c7daa0bd6df6b237edfa6cbd0b5 or return to merged E0 commit efa5adb423db3a285c5af02935c4ff4e542542ec.",
+    "owner": "Eas000n",
+    "deadline": "Before Issue #5 is marked ready and before the combined E1 gate"
+  },
+  "history": {
+    "supersedes_packet_id": null,
+    "notes": "This packet proves the local contract/runtime checkpoint only. Null model revision and license fields mean no model artifact was downloaded or inspected on this host. A new append-only W7900 packet must supersede this NOT_VERIFIED decision."
+  }
+}

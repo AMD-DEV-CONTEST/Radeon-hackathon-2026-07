@@ -1,0 +1,64 @@
+{
+  "$defs": {
+    "M2SemanticRoleAssignment": {
+      "additionalProperties": false,
+      "description": "One untrusted semantic-role proposal bound to an existing statement.",
+      "properties": {
+        "reasoning": {
+          "default": "Inferred from the supplied source evidence.",
+          "minLength": 1,
+          "title": "Reasoning",
+          "type": "string"
+        },
+        "roles": {
+          "items": {
+            "enum": [
+              "CUE",
+              "CHANGE",
+              "SURPRISE"
+            ],
+            "type": "string"
+          },
+          "maxItems": 3,
+          "title": "Roles",
+          "type": "array"
+        },
+        "statement_id": {
+          "format": "uuid",
+          "title": "Statement Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "statement_id",
+        "roles"
+      ],
+      "title": "M2SemanticRoleAssignment",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Strict local-model output; the Runtime still validates every reference.",
+  "properties": {
+    "assignments": {
+      "items": {
+        "$ref": "#/$defs/M2SemanticRoleAssignment"
+      },
+      "maxItems": 200,
+      "minItems": 1,
+      "title": "Assignments",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "assignments"
+  ],
+  "title": "M2SemanticRoleProposal",
+  "type": "object"
+}

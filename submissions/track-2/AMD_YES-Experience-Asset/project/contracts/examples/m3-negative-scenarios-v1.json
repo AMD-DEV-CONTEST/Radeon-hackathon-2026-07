@@ -1,0 +1,41 @@
+{
+  "scenarios": [
+    {
+      "expected_behavior": "Reject before persistence and enter bounded repair.",
+      "expected_terminal_if_exhausted": "INVALID_MODEL_OUTPUT",
+      "id": "unsupported_claim",
+      "input_condition": "A material SOURCE_FACT has no source_statement_ids and no derivation evidence."
+    },
+    {
+      "expected_behavior": "Repair the current node once and revalidate.",
+      "expected_terminal_if_exhausted": "INVALID_MODEL_OUTPUT",
+      "id": "invalid_output_repairable",
+      "input_condition": "The first local-model result fails the M3 schema."
+    },
+    {
+      "expected_behavior": "Attempt at most one re-plan, then safe-stop.",
+      "expected_terminal_if_exhausted": "INVALID_MODEL_OUTPUT",
+      "id": "invalid_output_exhausted",
+      "input_condition": "Structured output remains invalid after two repairs."
+    },
+    {
+      "expected_behavior": "Reject the proposal as inert and do not dispatch.",
+      "expected_terminal_if_exhausted": "POLICY_BLOCKED",
+      "id": "forged_tool_call",
+      "input_condition": "Model output claims permission_granted=true."
+    },
+    {
+      "expected_behavior": "Record a deterministic deny decision and do not dispatch.",
+      "expected_terminal_if_exhausted": "POLICY_BLOCKED",
+      "id": "permission_denied",
+      "input_condition": "A valid proposal lacks Runtime permission."
+    },
+    {
+      "expected_behavior": "Invalidate only affected M3 output and require regeneration.",
+      "expected_terminal_if_exhausted": "NEEDS_USER_INPUT",
+      "id": "correction_invalidation",
+      "input_condition": "A new M2 artifact changes one declared M3 dependency."
+    }
+  ],
+  "schema_version": "e4-m3-negative-scenarios/v1"
+}

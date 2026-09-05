@@ -1,0 +1,119 @@
+{
+  "schema_version": "e1-terminal-fix-gate/v1",
+  "run_id": "20260727T050325Z",
+  "implementation_commit": "2deaad7ad0fa268f8a0a75f6b87954aabe2ab3f0",
+  "branch": "codex/e1-combined-gate",
+  "scenario": "e1-combined-model-failure-terminal-regression-v1",
+  "data_class": "public_synthetic_and_contract_state",
+  "quality_review_trigger": {
+    "pull_request": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/12",
+    "previous_packet": "evidence/milestones/e1-combined/20260726T220422Z/",
+    "review_result": "FAIL",
+    "severity": "HIGH",
+    "blocker": "A model exception or missing required tool proposal could escape after the PLANNED checkpoint and leave finished_at and terminal_state unset."
+  },
+  "results": {
+    "backend_pytest": {
+      "passed": 51,
+      "failed": 0
+    },
+    "failure_terminal_regressions": {
+      "model_unavailable": {
+        "result": "PASS",
+        "terminal_state": "MODEL_UNAVAILABLE",
+        "checkpoint_phases": [
+          "PLANNED",
+          "MODEL_FAILURE_TERMINAL"
+        ]
+      },
+      "model_timeout": {
+        "result": "PASS",
+        "terminal_state": "TIMED_OUT",
+        "checkpoint_phases": [
+          "PLANNED",
+          "MODEL_FAILURE_TERMINAL"
+        ]
+      },
+      "invalid_or_empty_output": {
+        "result": "PASS",
+        "terminal_state": "INVALID_MODEL_OUTPUT",
+        "checkpoint_phases": [
+          "PLANNED",
+          "MODEL_FAILURE_TERMINAL"
+        ]
+      },
+      "missing_required_tool_call": {
+        "result": "PASS",
+        "terminal_state": "INVALID_MODEL_OUTPUT",
+        "internal_error_class": "MissingRequiredToolCall",
+        "checkpoint_phases": [
+          "PLANNED",
+          "MODEL_FAILURE_TERMINAL"
+        ]
+      },
+      "restart_and_last_valid_version": {
+        "result": "PASS",
+        "details": "Each injected failure remains terminal after repository restart, exposes safe retry/recovery metadata, records one attempted model call, and leaves the canonical asset unchanged."
+      }
+    },
+    "public_qa_unittest": {
+      "passed": 31,
+      "failed": 0
+    },
+    "repository_contract_gate": "PASS",
+    "contract_export_check": "PASS",
+    "ruff": "PASS",
+    "frontend_contract_provenance": {
+      "passed": 15,
+      "failed": 0
+    },
+    "frontend_typecheck": "PASS",
+    "frontend_lint": "PASS",
+    "frontend_vitest": {
+      "passed": 89,
+      "failed": 0
+    },
+    "frontend_build": "PASS",
+    "mock_playwright": {
+      "passed": 15,
+      "failed": 0,
+      "skipped": 1,
+      "skip_reason": "The live FastAPI case is intentionally disabled when E2E_LIVE_BASE_URL is absent."
+    },
+    "live_playwright": {
+      "passed": 16,
+      "failed": 0,
+      "backend": "FastAPI on 127.0.0.1:8080 with an ephemeral local database"
+    },
+    "production_dependency_audit": {
+      "command": "npm audit --omit=dev",
+      "vulnerabilities": 0
+    }
+  },
+  "serving_comparability": {
+    "result": "PASS_INHERITED_COMPARABILITY",
+    "accepted_w7900_packet": "evidence/milestones/e1-a3-real-w7900/20260725T121500Z/",
+    "accepted_w7900_tested_commit": "520910183783c9bec8a0810a34b49dcc7856f360",
+    "comparison_base": "16c8ed7f7a17ce1769f19747404170a84c025707",
+    "unchanged_paths": [
+      "config/models/",
+      "config/runtime/",
+      "scripts/serve_vllm.sh",
+      "scripts/verify_vllm_tool_call.py",
+      "app/experience_asset/inference/client.py"
+    ],
+    "changed_paths": [
+      "app/experience_asset/application/agent_loop.py",
+      "app/experience_asset/persistence/repository.py",
+      "tests/integration/test_agent_loop.py",
+      "tests/unit/test_inference_contract.py"
+    ],
+    "note": "The local-model request schema, endpoint restriction, model manifest, vLLM runtime identity, server arguments and Tool Call parsing path are unchanged. This packet therefore inherits the accepted serving compatibility only for those frozen inputs; it does not claim a current-commit GPU run."
+  },
+  "claims_not_made": [
+    "No T06 promotion; quality-owner re-review remains required.",
+    "No E2/M1 implementation or later milestone authorization.",
+    "No current-commit W7900, latency, throughput, VRAM, concurrency, Baseline, Candidate or optimization claim.",
+    "No change to RAG phase order, Tool Call permission, privacy approval or external publication behavior."
+  ]
+}

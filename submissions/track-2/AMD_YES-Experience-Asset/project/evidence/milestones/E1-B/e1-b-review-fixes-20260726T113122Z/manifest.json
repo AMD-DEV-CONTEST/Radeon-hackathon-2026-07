@@ -1,0 +1,116 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "E1-B-review-fixes-20260726T113122Z",
+  "timestamp_utc": "2026-07-26T11:31:22Z",
+  "source": {
+    "git_commit": "c3318db8a97b49136b692b5d8fec7774d5e27516",
+    "branch": "codex/e1-b-react-shell",
+    "dirty_tree": false,
+    "described_commit_note": "This packet binds the exact clean review-fix implementation commit; the packet itself is added by the following evidence commit.",
+    "web_tree_git_oid": "d93ee7c4ebb992b9533a51a15bf53eedc41e44a9",
+    "commit_diff_sha256": "aa61be383b5be29ae9f0eb8e8bd13fd2e0d6f0bff067cc45c180ba1fb16ed437",
+    "issue": "https://github.com/kinnyuww/amd-devmaster-track2-agent/issues/6",
+    "pull_request": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/8",
+    "review": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/8#pullrequestreview-4781442252"
+  },
+  "scope": "Close the three owner-adopted PR #8 review blockers: local-only live status routing, truthful live response failure classification, and AbortSignal listener cleanup in delayed mock requests.",
+  "quality_mapping": {
+    "acceptance_criteria": ["AC-11", "AC-17", "AC-19", "AC-22"],
+    "l1_milestones": ["cross-cutting E1-B status shell (no milestone promotion claimed)"],
+    "l2_gates": ["Local inference", "Failure behavior", "Observability"],
+    "track_2_relevance": "Prevents arbitrary remote services or malformed responses from being presented as truthful local Agent status.",
+    "submission_impact": "Strengthens the trustworthiness of local-only browser evidence; no GPU or performance claim is added."
+  },
+  "review_constraints": [
+    {
+      "thread": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/8#discussion_r3652220580",
+      "result": "Browser live mode is fixed to same-origin /api; VITE_PROXY_TARGET accepts only loopback HTTP(S) origins and rejects remote/private-network/non-origin values."
+    },
+    {
+      "thread": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/8#discussion_r3652220584",
+      "result": "HTTP, timeout, caller cancellation, network/body transport failure, invalid JSON, and incompatible HealthStatusV1 are classified separately and fail closed."
+    },
+    {
+      "thread": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/8#discussion_r3652220574",
+      "result": "Delayed mock requests remove the exact registered abort listener on normal completion and cancellation and reject pre-cancelled signals."
+    }
+  ],
+  "environment": {
+    "hardware": "local developer workstation, arm64; no GPU used",
+    "os": "macOS 26.2 (25C56)",
+    "node": "24.12.0",
+    "npm": "11.6.2",
+    "python": "3.12.1",
+    "browser": "Playwright Chromium"
+  },
+  "commands": [
+    {
+      "cmd": "npm run verify:contracts && npm run typecheck && npm run lint && npm test && npm run build && npm run e2e",
+      "cwd": "web",
+      "exit": 0,
+      "result": "15/15 provenance; TypeScript and ESLint passed; Vitest 9 files/89 tests; production build passed; Playwright 15 passed and 1 live test skipped without a live URL."
+    },
+    {
+      "cmd": "bash -n scripts/*.sh && python3 -m py_compile scripts/*.py && python3 -m unittest discover -s qa/tests -v && bash qa/gates/pr_gate.sh --mode contract",
+      "cwd": ".",
+      "exit": 0,
+      "result": "Repository shell/Python checks passed; public QA 31/31; PR contract gate passed."
+    },
+    {
+      "cmd": "for trace in web/src/data/traces/*.json; do python3 qa/scripts/check_retrieval_phase.py $trace; done",
+      "cwd": ".",
+      "exit": 0,
+      "result": "All 5 retained AC-30 traces passed; relation behavior was not changed."
+    },
+    {
+      "cmd": "git diff --check",
+      "cwd": ".",
+      "exit": 0,
+      "result": "No whitespace errors."
+    }
+  ],
+  "results": {
+    "terminal_state": "SUCCEEDED_LOCAL_PR_GATES",
+    "measurements": {
+      "vendored_contracts": "15/15",
+      "vitest": "89/89",
+      "mock_playwright": "15 passed, 1 expected live skip",
+      "ac30_traces": "5/5",
+      "public_qa_unittest": "31/31"
+    },
+    "retained_failures": [
+      "The first proxy-target test imported vite.config.ts into a jsdom provider suite, violating esbuild's TextEncoder invariant and crossing the composite TS project boundary. The test moved to an explicit Node-environment Vite config suite; typecheck, lint, and 20/20 narrow tests then passed.",
+      "Independent review found that JSON-body timeout/cancellation could still be mislabeled invalid JSON. Classification moved to the outer request boundary and body-phase timeout/cancellation tests were added.",
+      "The first body-phase test advanced fake timers before response.json installed its abort listener and timed out. It was corrected to wait for body reading to start; the final narrow suite passed 21/21."
+    ],
+    "unverified": [
+      "Post-push GitHub CI and owner re-review are pending.",
+      "The three GitHub review threads remain unresolved until the owner/reviewer accepts the pushed changes.",
+      "No live FastAPI E2E rerun was required by the latest owner review; the live test remained skipped without E2E_LIVE_BASE_URL.",
+      "W7900/ROCm/model viability and performance were not exercised or claimed."
+    ]
+  },
+  "privacy_review": {
+    "result": "PASS",
+    "notes": "The diff and packet contain only source, synthetic tests, loopback/public URLs, commit identities, and aggregate results. No credential, private user content, raw trace, database, model weight, or private QA material is retained."
+  },
+  "non_goals": [
+    "No backend or vendored contract change.",
+    "No relation/status business architecture change.",
+    "No dependency upgrade or npm audit fix --force.",
+    "No GPU, performance, E2+, publication, Ready/Draft, PR-body, or merge action."
+  ],
+  "decision": {
+    "result_class": "CONDITIONAL",
+    "known_risks": [
+      "GitHub CI and owner review are still required before acceptance.",
+      "The inherited development-tool audit findings remain outside this bounded fix; production dependency audit was previously zero."
+    ],
+    "rollback": "Revert c3318db8a97b49136b692b5d8fec7774d5e27516 with a normal git revert; do not reset or rewrite shared history.",
+    "owner": "kinnyuww / quality owner"
+  },
+  "history": {
+    "supersedes_packet_id": "E1-B-final-contract-20260726T092032Z",
+    "notes": "Append-only review-fix packet. The prior final-contract packet remains unchanged and continues to describe head 2058bb0."
+  }
+}

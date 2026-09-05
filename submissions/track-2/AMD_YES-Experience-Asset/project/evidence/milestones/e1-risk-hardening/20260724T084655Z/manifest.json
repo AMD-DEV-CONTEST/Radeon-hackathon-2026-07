@@ -1,0 +1,112 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "e1-contract-20260724T084655Z-14a43a4",
+  "timestamp_utc": "2026-07-24T08:46:55Z",
+  "source": {
+    "git_commit": "14a43a47cd929fb612987be8e66c712993181419",
+    "branch": "codex/agent-architecture-hardening",
+    "dirty_tree": false,
+    "issue": "https://github.com/kinnyuww/amd-devmaster-track2-agent/issues/5",
+    "pull_request": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/9"
+  },
+  "quality_mapping": {
+    "acceptance_criteria": [
+      "AC-03",
+      "AC-04",
+      "AC-09",
+      "AC-10",
+      "AC-18",
+      "AC-22",
+      "AC-23",
+      "AC-25",
+      "AC-30"
+    ],
+    "l1_milestones": ["M4", "M5", "cross-cutting"],
+    "l2_gates": [
+      "Evidence discipline",
+      "Retrieval phase integrity",
+      "Runtime permission",
+      "Persistence and resume",
+      "Local inference",
+      "Failure behavior",
+      "Observability"
+    ]
+  },
+  "input": {
+    "fixture_or_scenario_id": "chair_public_complete+chair_resume",
+    "version": "public-contract-2026-07-24",
+    "sha256": "chair_public_complete=7e86adce51a8742c89fde141b122e74327b2991048422315db6897c08eb0e0dd;chair_resume=b6408ef743a1f5eff4f2e0d73122a7a400f33ccfdcf07e8494571c6d072b3eda"
+  },
+  "environment": {
+    "hardware": {
+      "local_contract_checks": "Apple host; hardware-independent",
+      "radeon_cloud_observed_not_verified": "16 CPU, 55 GiB RAM, about 98 GiB /workspace, one AMD Radeon Graphics device with 49136 MB GDDR6"
+    },
+    "software": {
+      "git_commit": "14a43a47cd929fb612987be8e66c712993181419",
+      "remote_ssh": "NOT VERIFIED; sshd absent in replacement pod"
+    },
+    "workflow_schema_versions": {
+      "engineering_evidence": "v1",
+      "retrieval_phase_trace": "v1"
+    }
+  },
+  "model_and_serving": {
+    "model_source": "Qwen/Qwen2.5-14B-Instruct proposed and frozen by manifest; not installed or verified in this packet",
+    "model_revision_or_hash": "see config/models/qwen2.5-14b-instruct.modelscope.json",
+    "license": "see frozen model manifest; runtime validation pending",
+    "dtype": "BF16 proposed baseline",
+    "quantization": null,
+    "arguments": []
+  },
+  "commands": [
+    {"command": "bash -n scripts/*.sh", "exit_status": 0},
+    {"command": "python3 -m py_compile scripts/*.py", "exit_status": 0},
+    {"command": "bash -n qa/gates/*.sh qa/perf/*.sh", "exit_status": 0},
+    {"command": "python3 -m py_compile qa/scripts/*.py qa/tests/*.py", "exit_status": 0},
+    {"command": "python3 -m unittest discover -s qa/tests -v", "exit_status": 0, "result": "29 tests passed"},
+    {"command": "bash qa/gates/pr_gate.sh --mode contract", "exit_status": 0},
+    {"command": "repository JSON parse and local Markdown link scan", "exit_status": 0},
+    {"command": "diff credential/private-data scan", "exit_status": 0}
+  ],
+  "results": {
+    "terminal_state": "CONDITIONAL",
+    "measurements": {
+      "public_unit_tests_passed": 29,
+      "contract_gate": "PASS"
+    },
+    "failures": [
+      "Initial PR creation supplied an empty body because the shell expanded a same-command environment assignment before gh execution; body is corrected in the follow-up commit."
+    ],
+    "recovery": [
+      "Published PR #9, then bound this evidence packet and corrected the PR body through a file-backed gh edit."
+    ],
+    "unverified": [
+      "Remote SSH after openssh-server installation",
+      "ROCm and W7900 verification in the replacement pod",
+      "Frozen Qwen2.5-14B snapshot installation and hash verification",
+      "vLLM Tool Call and complete Agent Runtime trace",
+      "Any performance or Bonus-score claim"
+    ]
+  },
+  "artifacts": [
+    "qa/schema/retrieval_phase_trace.schema.json",
+    "qa/scripts/check_retrieval_phase.py",
+    "qa/expected/chair_public_complete.expected.json",
+    "qa/expected/chair_resume.expected.json"
+  ],
+  "decision": {
+    "result_class": "CONDITIONAL",
+    "known_risks": [
+      "PR #7 and PR #8 are based on the pre-hardening contract and must realign after PR #9 enters main.",
+      "Remote GPU/model evidence remains NOT VERIFIED and cannot be inferred from local contract checks."
+    ],
+    "rollback": "git revert 14a43a47cd929fb612987be8e66c712993181419",
+    "owner": "kinnyuww",
+    "deadline": "before any E1 merge or E1-A3 promotion"
+  },
+  "history": {
+    "supersedes_packet_id": null,
+    "notes": "Public contract/QA evidence only. Private blind-test details remain outside Git."
+  }
+}

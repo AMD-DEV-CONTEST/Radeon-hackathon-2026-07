@@ -1,0 +1,350 @@
+{
+  "$defs": {
+    "ConfirmationState": {
+      "enum": [
+        "UNCONFIRMED",
+        "CONFIRMED",
+        "CORRECTED",
+        "REJECTED"
+      ],
+      "title": "ConfirmationState",
+      "type": "string"
+    },
+    "DecisionLedgerEntryV1": {
+      "additionalProperties": false,
+      "properties": {
+        "decision_id": {
+          "format": "uuid",
+          "title": "Decision Id",
+          "type": "string"
+        },
+        "source_moment_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Moment Ids",
+          "type": "array"
+        },
+        "statements": {
+          "items": {
+            "$ref": "#/$defs/LedgerStatementV1"
+          },
+          "minItems": 5,
+          "title": "Statements",
+          "type": "array"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "decision_id",
+        "title",
+        "source_moment_ids",
+        "statements"
+      ],
+      "title": "DecisionLedgerEntryV1",
+      "type": "object"
+    },
+    "EvidenceStrength": {
+      "enum": [
+        "DIRECT",
+        "INDIRECT",
+        "SELF_REPORTED",
+        "NONE"
+      ],
+      "title": "EvidenceStrength",
+      "type": "string"
+    },
+    "LedgerStatementV1": {
+      "additionalProperties": false,
+      "description": "One material statement with explicit provenance and evidence status.",
+      "properties": {
+        "confirmation": {
+          "$ref": "#/$defs/ConfirmationState",
+          "default": "UNCONFIRMED"
+        },
+        "confirmed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confirmed At"
+        },
+        "derived_from_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Derived From Statement Ids",
+          "type": "array"
+        },
+        "evidence_disposition": {
+          "enum": [
+            "SUPPORTED",
+            "CONFLICTING",
+            "UNRESOLVED"
+          ],
+          "title": "Evidence Disposition",
+          "type": "string"
+        },
+        "evidence_strength": {
+          "$ref": "#/$defs/EvidenceStrength"
+        },
+        "role": {
+          "enum": [
+            "ALTERNATIVE",
+            "REASON",
+            "DECISION",
+            "ACTION",
+            "OBSERVED_RESULT"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "source_moment_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Moment Ids",
+          "type": "array"
+        },
+        "source_statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Source Statement Ids",
+          "type": "array"
+        },
+        "statement_id": {
+          "format": "uuid",
+          "title": "Statement Id",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/StatementStatus"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "unresolved_reason": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unresolved Reason"
+        }
+      },
+      "required": [
+        "statement_id",
+        "role",
+        "text",
+        "status",
+        "evidence_disposition",
+        "evidence_strength",
+        "source_moment_ids"
+      ],
+      "title": "LedgerStatementV1",
+      "type": "object"
+    },
+    "StatementStatus": {
+      "enum": [
+        "SOURCE_FACT",
+        "USER_JUDGMENT",
+        "AGENT_INFERENCE",
+        "UNRESOLVED"
+      ],
+      "title": "StatementStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Editable M3 artifact bound to one exact accepted M2 state.",
+  "properties": {
+    "affected_dependency_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Affected Dependency Refs",
+      "type": "array"
+    },
+    "affected_entry_ids": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Affected Entry Ids",
+      "type": "array"
+    },
+    "artifact_id": {
+      "format": "uuid",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "asset_id": {
+      "format": "uuid",
+      "title": "Asset Id",
+      "type": "string"
+    },
+    "base_canonical_version_id": {
+      "format": "uuid",
+      "title": "Base Canonical Version Id",
+      "type": "string"
+    },
+    "base_m2_artifact_id": {
+      "format": "uuid",
+      "title": "Base M2 Artifact Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "dependency_moment_ids": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Dependency Moment Ids",
+      "type": "array"
+    },
+    "dependency_statement_ids": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "minItems": 0,
+      "title": "Dependency Statement Ids",
+      "type": "array"
+    },
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/DecisionLedgerEntryV1"
+      },
+      "minItems": 1,
+      "title": "Entries",
+      "type": "array"
+    },
+    "generated_by_run_id": {
+      "format": "uuid",
+      "title": "Generated By Run Id",
+      "type": "string"
+    },
+    "invalidated_by_canonical_version_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Invalidated By Canonical Version Id"
+    },
+    "invalidated_by_m2_artifact_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Invalidated By M2 Artifact Id"
+    },
+    "invalidation_reason": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Invalidation Reason"
+    },
+    "reusable_entry_ids": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Reusable Entry Ids",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "NEEDS_INPUT",
+        "REVIEW_READY",
+        "CONFIRMED",
+        "COMPLETE_WITH_GAPS",
+        "INVALIDATED"
+      ],
+      "title": "State",
+      "type": "string"
+    },
+    "unresolved_question_ids": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Unresolved Question Ids",
+      "type": "array"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "asset_id",
+    "base_m2_artifact_id",
+    "base_canonical_version_id",
+    "generated_by_run_id",
+    "state",
+    "entries",
+    "dependency_moment_ids",
+    "dependency_statement_ids",
+    "unresolved_question_ids",
+    "created_at",
+    "updated_at",
+    "invalidated_by_m2_artifact_id",
+    "invalidated_by_canonical_version_id",
+    "invalidation_reason"
+  ],
+  "title": "DecisionEvidenceLedgerV1",
+  "type": "object"
+}

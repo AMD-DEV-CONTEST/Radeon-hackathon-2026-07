@@ -1,0 +1,36 @@
+{
+  "schema_version": "e1-a3-failed-attempts/v1",
+  "attempts": [
+    {
+      "sequence": 1,
+      "result": "BLOCKED",
+      "error_class": "ValueError",
+      "safe_message": "durable fake loop requires one tool-call proposal",
+      "cause": "The initial gate requested two independently sampled model proposals, so the allow and deny paths did not receive identical input.",
+      "correction": "Capture one real immutable proposal and replay it through both deterministic Runtime decisions.",
+      "quality_gate_weakened": false
+    },
+    {
+      "sequence": 2,
+      "result": "BLOCKED",
+      "error_class": "ModelTimedOut",
+      "safe_message": "local model request timed out",
+      "cause": "An operator copied the revised script to the repository root while the command still invoked the older script under scripts/.",
+      "correction": "Remove the unintended root copy and copy the reviewed file to its exact repository path.",
+      "quality_gate_weakened": false
+    },
+    {
+      "sequence": 3,
+      "result": "BLOCKED",
+      "error_class": "RuntimeError",
+      "safe_message": "allowed policy/effect/terminal failed",
+      "cause": "The real model produced a structurally valid proposal that did not satisfy the exact Runtime scope binding on the first sampled attempt, so the fail-closed Runtime rejected it.",
+      "correction": "Use a bounded three-attempt proposal loop, retain only safe rejection reason codes, and proceed only after the unchanged strict Runtime accepts one immutable proposal.",
+      "quality_gate_weakened": false
+    }
+  ],
+  "final_attempt": {
+    "result": "PASS",
+    "same_real_proposal_used_for_allow_and_deny": true
+  }
+}

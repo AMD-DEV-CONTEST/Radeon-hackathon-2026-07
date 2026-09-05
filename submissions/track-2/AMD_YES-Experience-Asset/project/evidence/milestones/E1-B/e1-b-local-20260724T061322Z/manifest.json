@@ -1,0 +1,108 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "E1-B-20260724T061322Z-1789448",
+  "timestamp_utc": "2026-07-24T06:13:22Z",
+  "source": {
+    "git_commit": "178944895b927ba9d192631327b61f2087d0398c",
+    "branch": "codex/e1-b-react-shell",
+    "dirty_tree": false,
+    "described_commit_note": "This packet describes the E1-B code commit 1789448 (web/). The packet files themselves are added in the following commit on the same branch/PR.",
+    "issue": "https://github.com/kinnyuww/amd-devmaster-track2-agent/issues/6",
+    "pull_request": "opened from branch codex/e1-b-react-shell after this commit"
+  },
+  "quality_mapping": {
+    "acceptance_criteria": ["AC-04", "AC-11", "AC-15", "AC-17", "AC-19", "AC-22"],
+    "l1_milestones": ["cross-cutting UI foundation (no M1-M5 promoted)"],
+    "l2_gates": ["Canonical state", "Persistence and resume", "Failure behavior", "Observability"]
+  },
+  "input": {
+    "fixture_or_scenario_id": "checked-in-typed-mocks (healthy, loading, empty, failure, safe-stop, stale, terminal-failure) + live localhost health",
+    "version": "derived from E1-A contract checkpoint",
+    "sha256": null,
+    "sha256_reason": "Fixtures are TypeScript modules validated at test time against the vendored JSON Schemas; per-file hashing is not meaningful. Vendored contract hashes are in web/contracts/provenance.json."
+  },
+  "environment": {
+    "hardware": { "note": "local developer workstation (macOS, arm64); not the W7900 GPU gate" },
+    "software": {
+      "node": "24.12.0",
+      "npm": "11.6.2",
+      "vite": "5.4.21",
+      "typescript": "~5.6.3",
+      "vitest": "~2.1.5",
+      "playwright": "~1.48.2 (chromium-headless-shell 149.0.7827.55)",
+      "react": "18.3.1",
+      "backend_for_live_capture": "E1-A FastAPI (fastapi 0.128.8, uvicorn) from commit 4960fa0, run on 127.0.0.1:8080"
+    },
+    "workflow_schema_versions": {
+      "canonical_schema_version": "1.0.0",
+      "contract_source_commit": "4960fa045d6627223cf92d0a543438f73ad9d0fe"
+    }
+  },
+  "model_and_serving": {
+    "model_source": null,
+    "model_revision_or_hash": null,
+    "license": null,
+    "dtype": null,
+    "quantization": null,
+    "arguments": [],
+    "note": "E1-B is a frontend status shell; no model was loaded. Model identity is displayed from the health contract only. The real W7900/ROCm model-viability gate is Lane A / Issue #5."
+  },
+  "commands": [
+    { "cmd": "npm ci", "cwd": "web", "status": "not-run-here (npm install used for dev)" },
+    { "cmd": "npm run verify:contracts", "cwd": "web", "exit": 0 },
+    { "cmd": "npm run typecheck", "cwd": "web", "exit": 0 },
+    { "cmd": "npm run lint", "cwd": "web", "exit": 0 },
+    { "cmd": "npm run test", "cwd": "web", "exit": 0, "result": "6 files / 39 tests passed" },
+    { "cmd": "npm run build", "cwd": "web", "exit": 0 },
+    { "cmd": "E2E_LIVE_BASE_URL=http://127.0.0.1:8080 VITE_PROXY_TARGET=http://127.0.0.1:8080 npm run e2e", "cwd": "web", "exit": 0, "result": "10 passed (9 mock + 1 live)" },
+    { "cmd": "python3 -m unittest discover -s qa/tests -v", "cwd": ".", "exit": 0, "result": "16 tests OK" },
+    { "cmd": "bash qa/gates/pr_gate.sh --mode contract", "cwd": ".", "exit": 0, "result": "PR GATE: PASS (contract mode)" }
+  ],
+  "results": {
+    "terminal_state": "SUCCEEDED",
+    "measurements": {
+      "unit_and_contract_tests": "39 passed",
+      "e2e_tests": "10 passed",
+      "bundle_gzip_kb": 55.7,
+      "live_health_status": "ok (database ok, gpu_viability NOT_VERIFIED, inference_mode local_only)"
+    },
+    "failures": [
+      "Initial live E2E failed with a cross-origin (CORS) fetch because the E1-A backend sets no CORS headers. Resolved by shipping a same-origin Vite `/api` dev/preview proxy so the browser never makes a cross-origin request and the backend stays loopback-only."
+    ],
+    "recovery": [
+      "Same-origin proxy; live E2E re-run passed against the real backend."
+    ],
+    "unverified": [
+      "Real W7900/ROCm model viability (Lane A / Issue #5) is out of E1-B scope.",
+      "Asset/progress/terminal-result LIVE endpoints are not yet served by the backend; live mode truthfully reports 'not_served' for those panels. Their live integration is verified only when Lane A ships those endpoints.",
+      "npm ci against a committed package-lock.json was not run here (dependencies installed via npm install during development)."
+    ]
+  },
+  "artifacts": [
+    { "path": "artifacts/browser/01-healthy.png", "desc": "Healthy mock: health, version/autosave, milestones, run progress (40%, 2/5 basis, no ETA), counts, routes", "sha256": "d79915a62f167244262f8c8082d40b237f33e61e838e73486461f66bcc5667db" },
+    { "path": "artifacts/browser/02-loading.png", "desc": "Loading state (slow fetch pending)", "sha256": "94235fa28a8f95f09725873387908e9a62b6ddacf7956f8fb55a13a62ac37708" },
+    { "path": "artifacts/browser/03-empty.png", "desc": "Empty / no-instance state (no fabricated asset)", "sha256": "747fcfb152fe6060ba7f86fa108bb0a604d8c3439675faec48ac1b465a556259" },
+    { "path": "artifacts/browser/04-failure.png", "desc": "Recoverable failure with retry", "sha256": "dcf4b859d6c553fb3442e52077903d6b0a00386e5168e1ea5b9b96890a957db5" },
+    { "path": "artifacts/browser/05-safe-stop.png", "desc": "Safe-stop (PAUSED terminal) with last durable version + recovery action", "sha256": "975974539eef82ee6c24e5c041e27e5cbbe87e59bad9f0ed89934604c6d57a1c" },
+    { "path": "artifacts/browser/06-stale.png", "desc": "Stale/invalidation notice after a correction", "sha256": "86819d0f172b9322e72de2fa5d13c6d775b1ca12fe1466299686148e254401c0" },
+    { "path": "artifacts/browser/07-terminal-failure.png", "desc": "MODEL_UNAVAILABLE terminal with safe message + retry flag; health degraded", "sha256": "5c24aa11648418ba3bf8509574b80a5f89283dd5b6876a9f037fce5ea07534b8" },
+    { "path": "artifacts/browser/08-refresh.png", "desc": "Refresh re-fetch stays truthful", "sha256": "2495e7176010772a56005cb81c597a466389f6958a167cf44e13f0e2c5b47669" },
+    { "path": "artifacts/browser/09-live-switch.png", "desc": "Toolbar mock->live switch; truthful error/empty when backend absent", "sha256": "74a0156c5bf9384ab0d446d5b711dadfb3ce001e6ff0e157272d6b8f068be92d" },
+    { "path": "artifacts/browser/10-live-health.png", "desc": "LIVE against real E1-A FastAPI: real health, asset/run reported as not_served (no fabrication)", "sha256": "be3759f0605b04a8e2dac139d51bbe95496282b9190bd10e00fbd5faab71f344" }
+  ],
+  "decision": {
+    "result_class": "PASS",
+    "known_risks": [
+      "E1-A contract checkpoint (PR #7) is still draft/unmerged; contracts are vendored verbatim with sha256 provenance and merge order stays E1-A -> E1-B.",
+      "Live asset/progress endpoints pending; live mode shows a truthful not_served state until Lane A ships them.",
+      "E1-A ProgressEventV1 omits `percent_basis` that qa/scripts/check_progress_invariants.py (artifact mode) requires — a Lane A cross-lane note."
+    ],
+    "rollback": "Frontend rollback is the last green scaffold/contract version. Delete web/ to return to pre-E1-B main; no backend/schema was modified.",
+    "owner": "1olaqua616-web",
+    "deadline": null
+  },
+  "history": {
+    "supersedes_packet_id": null,
+    "notes": "First E1-B PR checkpoint packet. Update with the real commit SHA and set dirty_tree=false once the branch is committed."
+  }
+}

@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "amd-track2-experience-asset"
+version = "0.1.0"
+description = "Private, local-first Experience Asset Agent for AMD Radeon Hackathon Track 2"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "fastapi==0.128.8",
+  "httpx>=0.28,<0.29",
+  "langchain-core==0.3.86",
+  "langgraph==0.6.11",
+  "langgraph-checkpoint==3.0.1",
+  "langgraph-checkpoint-sqlite==3.0.3",
+  "pydantic>=2.10,<3",
+  "pydantic-settings>=2.7,<3",
+  "uvicorn[standard]>=0.34,<0.36",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3,<9",
+  "ruff>=0.12,<0.13",
+]
+# Real token counting against the pinned Qwen snapshot. Optional because the
+# serving host has it and developer machines generally do not: making it
+# required would fail application startup where an estimate is acceptable, and
+# the estimate labels itself as one wherever it is used.
+tokenizer = [
+  "tokenizers>=0.20,<0.23",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.setuptools.package-data]
+"app.experience_asset.persistence" = ["migrations/*.sql"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+include = [
+  "app/**/*.py",
+  "scripts/capture_e5_evidence.py",
+  "scripts/export_contracts.py",
+  "scripts/verify_e1_model_contract.py",
+  "tests/**/*.py",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/export_contracts.py" = ["E402", "RUF001"]
+# Writes the packet summary in Chinese, so fullwidth punctuation is the correct
+# character rather than an ambiguous one. Linted for everything else — the
+# sibling capture scripts are not linted at all, which is the weaker position.
+"scripts/capture_e5_evidence.py" = ["RUF001"]
+"scripts/verify_e1_model_contract.py" = ["E402"]
+"scripts/verify_e1_runtime_gate.py" = ["E402"]

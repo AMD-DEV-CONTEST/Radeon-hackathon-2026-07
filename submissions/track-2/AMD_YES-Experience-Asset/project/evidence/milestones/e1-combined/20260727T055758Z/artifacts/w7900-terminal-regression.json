@@ -1,0 +1,131 @@
+{
+  "schema_version": "e1-w7900-terminal-regression/v1",
+  "run_id": "20260727T055758Z",
+  "implementation_commit": "de72a6c959d10c03c8fff42bf3b788484f5064b5",
+  "branch": "codex/e1-combined-gate",
+  "pull_request": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/12",
+  "data_class": "public_synthetic_and_sanitized_runtime_evidence",
+  "environment": {
+    "hardware": "single AMD Radeon PRO W7900-class gfx1100 device with 49136 MiB reported memory",
+    "os": "Ubuntu 24.04.4 LTS",
+    "kernel": "6.8.0-79-generic",
+    "rocm_image": "7.2.1",
+    "hip": "7.2.53211",
+    "python": "3.12.3",
+    "torch": "2.11.0+gitd0c8b1f",
+    "vllm": "0.23.1rc1.dev1327+gf25953cc5.rocm723",
+    "vllm_platform": "RocmPlatform",
+    "application_and_server_environments_separate": true,
+    "persistent_root": "/workspace/amd-track2-agent"
+  },
+  "source_checkout": {
+    "path": "/workspace/amd-track2-agent/repo",
+    "git_commit": "de72a6c959d10c03c8fff42bf3b788484f5064b5",
+    "dirty_tree": false
+  },
+  "model": {
+    "repository": "Qwen/Qwen2.5-14B-Instruct",
+    "modelscope_revision": "3957bf39753cf01f98f6560295c4811c2b5df001",
+    "served_model_name": "Qwen2.5-14B-Instruct",
+    "license": "Apache-2.0",
+    "dtype": "bfloat16",
+    "quantization": null,
+    "context_length": 8192,
+    "gpu_memory_utilization": 0.82,
+    "max_num_seqs": 4,
+    "tool_call_parser": "hermes",
+    "snapshot_verification": {
+      "result": "PASS",
+      "mode": "FULL_SHA256",
+      "declared_files": 19
+    }
+  },
+  "failed_observations_retained": [
+    {
+      "stage": "initial model snapshot verification",
+      "result": "FAIL",
+      "observation": "The model directory contained one undeclared partial temporary shard in addition to the complete declared snapshot.",
+      "recovery": "The exact temporary shard was moved to a persistent quarantine directory without deleting it. Full SHA-256 verification was rerun and passed for all 19 declared files."
+    },
+    {
+      "stage": "PR #12 quality-owner review",
+      "result": "FAIL",
+      "severity": "HIGH",
+      "observation": "The earlier combined gate did not prove that every local-model failure became a durable terminal result.",
+      "recovery": "Commits 2deaad7 and de72a6c add durable terminalization plus parser normalization and restart regressions."
+    }
+  ],
+  "results": {
+    "remote_environment_gate": "PASS",
+    "rocm_environment_gate": "PASS",
+    "model_snapshot_full_sha256": "PASS",
+    "native_tool_call": {
+      "result": "PASS",
+      "proposal_only": true,
+      "tool": "inspect_evidence_gaps"
+    },
+    "model_contract": {
+      "result": "PASS",
+      "fixture": "e1-a-public-tool-smoke-v1",
+      "model": "Qwen2.5-14B-Instruct",
+      "endpoint_scope": "loopback",
+      "prompt_tokens": 434,
+      "completion_tokens": 182,
+      "elapsed_ms_single_observation": 7892,
+      "structured_output_valid": true,
+      "tool_proposals": 1,
+      "execution_permissions_granted": false,
+      "raw_prompt_or_response_retained": false
+    },
+    "runtime_gate": {
+      "result": "PASS",
+      "elapsed_ms_single_observation": 9910,
+      "real_model_calls": 1,
+      "policy_evaluations": 2,
+      "allowed_terminal": "SUCCEEDED",
+      "denied_terminal": "POLICY_BLOCKED",
+      "allow_reason": "ALLOWLIST_AND_SCOPE_VALID",
+      "deny_reason": "PERMISSION_NOT_GRANTED",
+      "proposal_remained_inert_until_runtime_validation": true,
+      "allowed_effect_verified": true,
+      "denied_effect_absent": true,
+      "restart_checkpoint_verified": true,
+      "canonical_asset_unchanged": true,
+      "raw_prompt_or_response_retained": false
+    },
+    "backend_pytest": {
+      "passed": 58,
+      "failed": 0
+    },
+    "ruff": "PASS",
+    "exit_codes": {
+      "native_tool_call": 0,
+      "model_contract": 0,
+      "runtime_gate": 0,
+      "backend_pytest": 0,
+      "ruff": 0
+    }
+  },
+  "raw_evidence": {
+    "persistent_path": "/workspace/amd-track2-agent/evidence/e1-t06-w7900-20260727T055758Z-de72a6c/raw",
+    "checksums_sha256": {
+      "model-snapshot.txt": "8d18236169880c59ca18663dbde9e48600adada7ac3714eac0f7c0d55a128fe6",
+      "rocm-environment.txt": "96754d8c2409b69ccaee16cc3eb3b6f277b6705ee588987343a54d83c4495630",
+      "runtime-versions.txt": "b2a62dcdf7166fd5a725c8d453eeb72b1cf425d50f2c48af9a222bfa144dce1c",
+      "native-tool-call.txt": "8d6dca214a4cf8bcc0de592313e362538b85efc63198e3c79660abc5eb4f3b29",
+      "model-contract.json": "c74c036063d821c6fc11fa6127079fd85ce2b122b9b9aec1bf498a52e1f8a5f1",
+      "runtime-gate.json": "e8b66019eec3bf0ffba923860f05df4d0943de3b4b2c0906fec325bf6473f386",
+      "backend-pytest.txt": "b53866f7a853267d7eca16c2faa2f71689f462d5b06ee572ef078a18d6b0409a",
+      "ruff.txt": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "statuses.txt": "9b2d346156af495394767513e789b6226dc549d38518e544a7ab5e8f9d527a1e"
+    },
+    "privacy_note": "Endpoint, credentials, account identifiers, device serials and private payloads are intentionally excluded from this public artifact."
+  },
+  "claims_not_made": [
+    "No T06 promotion or self-approval; quality-owner re-review remains required.",
+    "No E2/M1 or later product milestone implementation.",
+    "No latency, throughput, VRAM, concurrency, Baseline, Candidate or optimization claim from these single smoke observations.",
+    "No OOM-specific model-server classification.",
+    "No external service publication and no closed remote model in the core inference path."
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "$defs": {
+    "TerminalState": {
+      "enum": [
+        "SUCCEEDED",
+        "NEEDS_USER_INPUT",
+        "PAUSED",
+        "CANCELLED",
+        "TIMED_OUT",
+        "MODEL_UNAVAILABLE",
+        "MODEL_OOM",
+        "INVALID_MODEL_OUTPUT",
+        "STORAGE_ERROR",
+        "POLICY_BLOCKED",
+        "DELETION_FAILED",
+        "INTERNAL_ERROR"
+      ],
+      "title": "TerminalState",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Stable public failure contract without raw prompt/tool/private payloads.",
+  "properties": {
+    "code": {
+      "enum": [
+        "UPSTREAM_STALE",
+        "INVALID_MODEL_OUTPUT",
+        "STRUCTURED_REPAIR_EXHAUSTED",
+        "TOOL_NOT_ALLOWLISTED",
+        "INVALID_TOOL_ARGUMENTS",
+        "FORGED_TOOL_PERMISSION",
+        "PERMISSION_DENIED",
+        "STORAGE_ERROR",
+        "VERIFICATION_FAILED",
+        "REPLAN_EXHAUSTED",
+        "MODEL_CALL_BUDGET_EXHAUSTED",
+        "MODEL_UNAVAILABLE",
+        "MODEL_TIMED_OUT",
+        "INTERNAL_ERROR"
+      ],
+      "title": "Code",
+      "type": "string"
+    },
+    "finding_codes": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Finding Codes",
+      "type": "array"
+    },
+    "occurred_at": {
+      "format": "date-time",
+      "title": "Occurred At",
+      "type": "string"
+    },
+    "recovery_action": {
+      "minLength": 1,
+      "title": "Recovery Action",
+      "type": "string"
+    },
+    "retryable": {
+      "title": "Retryable",
+      "type": "boolean"
+    },
+    "safe_user_message": {
+      "minLength": 1,
+      "title": "Safe User Message",
+      "type": "string"
+    },
+    "terminal_state": {
+      "$ref": "#/$defs/TerminalState"
+    }
+  },
+  "required": [
+    "code",
+    "terminal_state",
+    "retryable",
+    "safe_user_message",
+    "recovery_action",
+    "finding_codes",
+    "occurred_at"
+  ],
+  "title": "M3FailureV1",
+  "type": "object"
+}

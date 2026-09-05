@@ -1,0 +1,121 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "e8-a0-w7900-20260806T122806Z-c9ec074",
+  "timestamp_utc": "2026-08-06T12:28:06Z",
+  "source": {
+    "git_commit": "c9ec07489d17a2abb74bac66a23ade2c775c1b06",
+    "branch": "integration/e5-e8-a0",
+    "dirty_tree": false,
+    "issue": null,
+    "pull_request": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/52"
+  },
+  "quality_mapping": {
+    "acceptance_criteria": [
+      "A0 integrated product path remains private by default",
+      "M2 semantic roles cover only supplied source statement IDs",
+      "M4 core claims expose canonical statement evidence",
+      "upstream correction invalidates and regenerates downstream artifacts",
+      "M5 route review and private delivery remain permission-bound"
+    ],
+    "l1_milestones": ["E2", "E3", "E4", "E5", "E6", "E7", "E8-A0"],
+    "l2_gates": ["functional-integration", "local-model", "privacy", "durability", "delivery"]
+  },
+  "input": {
+    "fixture_or_scenario_id": "web/e2e/m4.spec.ts::live M4 insight and boundary map journey",
+    "version": "c9ec074",
+    "sha256": "2991389c5a3f0c79d38626377ab2980d11d6e7d8ceeb1ddbaeed1f51bf3fe889"
+  },
+  "environment": {
+    "hardware": {
+      "gpu": "AMD Radeon Pro W7900 / gfx1100 / 96 CUs / 48 GiB VRAM",
+      "cpu": "AMD EPYC 9334, 128 logical CPUs visible",
+      "effective_ram_limit": "55 GiB"
+    },
+    "software": {
+      "os": "Ubuntu 24.04.4 LTS",
+      "rocm_hip": "7.2.53211",
+      "pytorch": "2.11.0+gitd0c8b1f",
+      "vllm": "0.26.0"
+    },
+    "workflow_schema_versions": {
+      "application": "0.1.0",
+      "canonical_schema": "1.0.0"
+    }
+  },
+  "model_and_serving": {
+    "model_source": "Qwen/Qwen3.5-9B",
+    "model_revision_or_hash": "local immutable snapshot Qwen3.5-9B-460979c3d118",
+    "license": "Apache-2.0",
+    "dtype": "bfloat16",
+    "quantization": "none",
+    "arguments": [
+      "--max-model-len=20000",
+      "--gpu-memory-utilization=0.82",
+      "--max-num-seqs=2",
+      "--enable-auto-tool-choice",
+      "--tool-call-parser=qwen3_coder",
+      "--reasoning-parser=qwen3",
+      "chat_template_kwargs.enable_thinking=false"
+    ]
+  },
+  "commands": [
+    "bash scripts/verify_remote_dev.sh (exit 0)",
+    "bash scripts/verify_rocm_env.sh (exit 0)",
+    "python3 -m unittest discover -s qa/tests -v (34/34 pass)",
+    "bash qa/gates/pr_gate.sh --mode contract (pass)",
+    "pytest (pass after regenerated checked-in schema)",
+    "ruff check . (pass)",
+    "npm run lint (pass)",
+    "npm run typecheck (pass)",
+    "npm run build (pass)",
+    "npm run verify:contracts (18/18 pass)",
+    "NODE_OPTIONS=--no-experimental-webstorage npm run test -- --run (223/223 pass)",
+    "NODE_OPTIONS=--no-experimental-webstorage npm run e2e (16 pass, 5 live skipped)",
+    "E2E_LIVE_BASE_URL=http://127.0.0.1:18082 VITE_PROXY_TARGET=http://127.0.0.1:18082 npm run e2e -- m4.spec.ts (1/1 pass on exact W7900 commit)"
+  ],
+  "results": {
+    "terminal_state": "PASS",
+    "measurements": {
+      "exact_commit_live_m4_seconds": 120,
+      "frontend_unit_tests_passed": 223,
+      "frontend_mock_e2e_passed": 16,
+      "repository_qa_tests_passed": 34,
+      "m5_route_decisions_observed": 5,
+      "private_delivery_formats_observed": 3
+    },
+    "failures": [
+      "An initial M4 generation produced only gaps; role-specific grounding constraints corrected this.",
+      "A later M4 core claim cited only a decision ID and could not support the evidence drawer; Runtime now requires canonical statement evidence for LESSON and SUPPORT.",
+      "The M5 UI originally omitted PRIVATE_SELF even though the backend selected it; the private preview/download path is now the default.",
+      "Vitest fails under Node experimental Web Storage; the documented no-experimental-webstorage invocation passes 223/223 tests."
+    ],
+    "recovery": [
+      "Retained model output as an untrusted proposal and tightened request-local JSON Schema plus Runtime validation.",
+      "Re-ran the correction-invalidation-regeneration browser journey against a clean exact-commit W7900 checkout.",
+      "Kept the API and vLLM bound to pod localhost; used a temporary localhost SSH tunnel for Playwright only."
+    ],
+    "unverified": [
+      "This packet is functional A0 evidence, not the immutable E8 performance Baseline or Stage 2 candidate comparison.",
+      "Public internet tunnel and evaluator-facing deployment were not enabled.",
+      "The final submission media and official contest PR remain E9 work."
+    ]
+  },
+  "artifacts": [
+    "sanitized result summary in summary.md",
+    "large/raw API, vLLM and browser logs retained under /workspace/amd-track2-agent"
+  ],
+  "decision": {
+    "result_class": "PASS",
+    "known_risks": [
+      "A0 uses a single seven-scenario functional observation rather than a statistical performance sample.",
+      "Performance comparison remains time-boxed Stage 2 work."
+    ],
+    "rollback": "Revert c9ec074 and use PR #52 parent 427d74f; this removes the A0 promotion fixes and is not a promoted product state.",
+    "owner": "kinnyuww",
+    "deadline": "2026-08-06T23:59:00+08:00"
+  },
+  "history": {
+    "supersedes_packet_id": null,
+    "notes": "First exact-commit integrated A0 W7900 functional packet. It intentionally makes no performance-ranking claim."
+  }
+}

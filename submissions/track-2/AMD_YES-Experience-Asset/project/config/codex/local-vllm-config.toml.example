@@ -1,0 +1,21 @@
+# Merge this into the remote user's ~/.codex/config.toml only after the chosen
+# local model has passed Agent/tool-use evaluation. The provider uses vLLM's
+# Responses-compatible route and needs no external API key.
+
+[model_providers.radeon-vllm]
+name = "Radeon vLLM"
+base_url = "http://127.0.0.1:8000/v1"
+wire_api = "responses"
+requires_openai_auth = false
+
+[profiles.radeon-readonly]
+model_provider = "radeon-vllm"
+model = "Qwen2.5-14B-Instruct"
+sandbox_mode = "read-only"
+approval_policy = "never"
+
+[profiles.radeon-workspace]
+model_provider = "radeon-vllm"
+model = "Qwen2.5-14B-Instruct"
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"

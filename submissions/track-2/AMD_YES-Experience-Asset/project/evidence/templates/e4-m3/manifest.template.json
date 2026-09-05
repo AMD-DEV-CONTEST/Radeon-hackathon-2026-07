@@ -1,0 +1,134 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "e4-m3-<utc-timestamp>-<short-sha>",
+  "timestamp_utc": "<ISO-8601 UTC>",
+  "source": {
+    "git_commit": "<full-clean-commit-sha>",
+    "branch": "codex/e4-m3-ledger",
+    "dirty_tree": false,
+    "issue": "https://github.com/kinnyuww/amd-devmaster-track2-agent/issues/21",
+    "pull_request": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/22"
+  },
+  "quality_mapping": {
+    "acceptance_criteria": [
+      "AC-02",
+      "AC-03",
+      "AC-09",
+      "AC-10",
+      "AC-15",
+      "AC-16",
+      "AC-18",
+      "AC-22",
+      "AC-23",
+      "AC-24",
+      "AC-25"
+    ],
+    "l1_milestones": [
+      "M3"
+    ],
+    "l2_gates": [
+      "Local inference",
+      "Agent orchestration",
+      "Canonical state",
+      "Evidence discipline",
+      "Failure behavior",
+      "Runtime permission",
+      "Observability"
+    ]
+  },
+  "input": {
+    "fixture_or_scenario_id": "<complete|incomplete|conflicting|correction|unsupported-claim|forged-tool|permission-denied|retry-exhausted>",
+    "version": "e4-m3-preparation/v1",
+    "sha256": "<public-fixture-sha256>"
+  },
+  "environment": {
+    "hardware": {
+      "profile": "Radeon Cloud W7900",
+      "w7900_claimed": "<true-only-after-real-run-passes>"
+    },
+    "software": {
+      "python": "<version>",
+      "node": "<version>",
+      "application": "0.1.0"
+    },
+    "workflow_schema_versions": {
+      "m3_artifact": "0.1.0",
+      "m3_progress": "1.0.0",
+      "m3_workflow": "experience-asset/e4-m3/v1",
+      "m3_topology_hash": "fbb4fc65931224834ee526c8b12846009ad6cb2c7a688aa1d72db9f488bb9720"
+    }
+  },
+  "model_and_serving": {
+    "model_source": "<local-model-source-or-null-for-contract-only>",
+    "model_revision_or_hash": "<immutable-revision-or-null>",
+    "license": "<license-or-null>",
+    "dtype": "<dtype-or-null>",
+    "quantization": "<quantization-or-null>",
+    "arguments": []
+  },
+  "commands": [
+    {
+      "command": "python scripts/run_e4_w7900_gate.py --expected-commit <sha> --output-dir <persistent-run>/raw",
+      "exit_status": "<integer>"
+    },
+    {
+      "command": "See raw/run-result.json for the runner's immutable step list",
+      "exit_status": "<integer>"
+    }
+  ],
+  "results": {
+    "terminal_state": "<W7900_COMPATIBILITY_READY_FOR_REVIEW|FAIL>",
+    "artifact": {
+      "artifact_id": "<opaque-public-fixture-id-or-null>",
+      "base_m2_artifact_id": "<opaque-public-fixture-id-or-null>",
+      "base_canonical_version_id": "<opaque-public-fixture-id-or-null>",
+      "content_sha256": "<hash-or-null>"
+    },
+    "permission": {
+      "proposal_id": "<opaque-id-or-null>",
+      "policy_decision": "<ALLOW|DENY|NOT_RUN>",
+      "tool_effect_count": "<integer-or-null>"
+    },
+    "recovery": {
+      "structured_repairs_used": "<integer-or-null>",
+      "replans_used": "<integer-or-null>",
+      "duplicate_effect_count": "<integer-or-null>"
+    },
+    "measurements": {},
+    "failures": [],
+    "unverified": [
+      "Independent quality-owner decision",
+      "Performance Baseline/Candidate measurements"
+    ]
+  },
+  "artifacts": [
+    {
+      "kind": "m3-ledger-json",
+      "path": "<sanitized-relative-path>",
+      "sha256": "<sha256>"
+    },
+    {
+      "kind": "browser-capture",
+      "path": "<sanitized-relative-path-or-null>",
+      "sha256": "<sha256-or-null>"
+    },
+    {
+      "kind": "failure-recovery-trace",
+      "path": "<sanitized-relative-path-or-null>",
+      "sha256": "<sha256-or-null>"
+    }
+  ],
+  "decision": {
+    "result_class": "<CONDITIONAL|FAIL>",
+    "known_risks": [
+      "Compatibility evidence does not imply performance improvement."
+    ],
+    "rollback": "Remove isolated preparation files before integration or revert reviewed E4 commits afterward.",
+    "owner": "Eas000n",
+    "deadline": null
+  },
+  "history": {
+    "supersedes_packet_id": null,
+    "notes": "Create a new append-only packet for every later decision; never rewrite an accepted or failed packet."
+  }
+}

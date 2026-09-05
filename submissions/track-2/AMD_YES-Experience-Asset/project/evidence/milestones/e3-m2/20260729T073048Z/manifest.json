@@ -1,0 +1,174 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "e3-m2-20260729T073048Z-exact-e37b94c",
+  "timestamp_utc": "2026-07-29T07:30:48Z",
+  "supersedes": "evidence/milestones/e3-m2/20260729T055853Z/",
+  "source": {
+    "git_commit": "e37b94cdb59147f8d2c41fc37a4d7a37263e5e64",
+    "branch": "codex/e3-m2-critical-moment-prep",
+    "dirty_tree": false,
+    "issue": "https://github.com/kinnyuww/amd-devmaster-track2-agent/issues/19",
+    "pull_request": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/20",
+    "identity_note": "This packet is bound to the exact implementation commit. The packet files themselves are added by the following evidence-only commit."
+  },
+  "scope": {
+    "checkpoint": "E3 / M2 Critical Moment Map LangGraph conformance",
+    "behavior_change": [
+      "Run M2 generation through one startup-compiled LangGraph subgraph using the shared SQLite checkpointer.",
+      "Keep canonical assets and private source text out of graph checkpoints and sanitized traces.",
+      "Use idempotent node effects, explicit terminals, stale-input safe-stop and restart without duplicate canonical writes.",
+      "Require an explicit trusted user decision for every agent-proposed critical moment before map confirmation.",
+      "Represent user-confirmed and unresolved criticality separately and attach trusted confirmation timestamps only to user-confirmed entries.",
+      "Reopen M2 and withdraw a prior criticality confirmation when the corresponding title changes.",
+      "Preserve deterministic M1 dependency invalidation and source-linked known, missing and conflicting time states.",
+      "Keep an invalidated M2 visible, require explicit regeneration, and bind the replacement map to the newly accepted M1 version."
+    ],
+    "non_goals": [
+      "No E4/M3 implementation, cross-asset RAG, route generation, export or performance optimization.",
+      "No remote model API and no new W7900, ROCm, vLLM or performance claim."
+    ]
+  },
+  "quality_mapping": {
+    "acceptance_criteria": [
+      "AC-02",
+      "AC-03",
+      "AC-09",
+      "AC-10",
+      "AC-15",
+      "AC-16",
+      "AC-17",
+      "AC-22",
+      "AC-23",
+      "AC-24",
+      "AC-25"
+    ],
+    "l1_milestones": [
+      "M2 Timeline and Critical Moment Map"
+    ],
+    "l2_gates": [
+      "Agent orchestration",
+      "Canonical state",
+      "Evidence discipline",
+      "Failure behavior",
+      "Observability",
+      "Privacy"
+    ],
+    "track_2_relevance": "Demonstrates private local multi-step Agent orchestration, durable recovery and a human-controlled decision boundary for an auditable Critical Moment Map.",
+    "submission_impact": "Provides a reproducible E3 product and Agent proof. W7900 serving evidence remains a separate delegated verification and this packet makes no performance claim."
+  },
+  "input": {
+    "fixture_or_scenario_id": "synthetic public chair-selection timeline",
+    "data_class": "synthetic_non_private",
+    "sensitive_data_in_packet": false
+  },
+  "environment": {
+    "hardware": {
+      "host": "local developer workstation",
+      "architecture": "arm64",
+      "gpu": null,
+      "gpu_note": "W7900 verification is outside this E3 local candidate and is delegated to kinnyuww."
+    },
+    "software": {
+      "os": "macOS",
+      "python": "3.12",
+      "workflow_version": "experience-asset/e3-m2/v1",
+      "topology_hash": "167415797b782af30d7918356e5d9a450ce4b3cac754dc00e5b9d330bc004b4d"
+    }
+  },
+  "commands": [
+    {
+      "cmd": ".venv/bin/python -m pytest -q && .venv/bin/python -m ruff check app tests scripts",
+      "cwd": ".",
+      "exit": 0,
+      "result": "126/126 backend tests and Ruff passed."
+    },
+    {
+      "cmd": "bash -n scripts/*.sh && python3 -m py_compile scripts/*.py && python3 -m unittest discover -s qa/tests -v && bash qa/gates/pr_gate.sh --mode contract",
+      "cwd": ".",
+      "exit": 0,
+      "result": "32/32 public QA tests and the repository contract gate passed."
+    },
+    {
+      "cmd": "npm test -- --run && npm run typecheck && npm run lint && npm run build && npm run verify:contracts",
+      "cwd": "web",
+      "exit": 0,
+      "result": "108/108 Vitest tests, typecheck, ESLint, build and 15/15 contract provenance checks passed with no lint warnings."
+    },
+    {
+      "cmd": ".venv/bin/python scripts/export_contracts.py --check && git diff --check",
+      "cwd": ".",
+      "exit": 0,
+      "result": "Generated OpenAPI/JSON Schema files are current and the diff has no whitespace errors."
+    },
+    {
+      "cmd": "loopback FastAPI plus Vite preview, driven with browser automation, DOM snapshots, trusted selections and full-page screenshots",
+      "cwd": ".",
+      "exit": 0,
+      "result": "The real browser journey generated and edited M2, blocked confirmation before trusted decisions, survived reload, reopened after a confirmed title edit, invalidated after a depended M1 correction, and explicitly regenerated against the newly accepted M1 version."
+    }
+  ],
+  "results": {
+    "result_class": "E3_EXACT_COMMIT_READY_FOR_QUALITY_REVIEW",
+    "measurements": {
+      "backend_pytest": "126/126",
+      "public_qa_unittest": "32/32",
+      "frontend_vitest": "108/108",
+      "frontend_contract_provenance": "15/15",
+      "contract_gate": "PASS",
+      "ruff": "PASS",
+      "contract_export": "PASS",
+      "typecheck_build": "PASS",
+      "eslint": "PASS",
+      "live_browser_capture": "PASS"
+    },
+    "failures": [
+      {
+        "class": "PLAYWRIGHT_WRAPPER_NPM_SSL",
+        "impact": "The standard wrapper could not download its package because of local npm TLS configuration; no application request failed.",
+        "recovery": "Used the already cached Playwright CLI package offline and completed the same CLI-first browser flow."
+      }
+    ],
+    "observations": [
+      "The browser console recorded an expected pre-creation M2 404 and a missing favicon 404; subsequent M2 create, edit and confirm requests returned success.",
+      "The local LangGraph dependency emits a pending deprecation warning about a future serializer default; current tests and behavior pass."
+    ],
+    "unverified": [
+      "Independent quality-owner acceptance and E3 promotion.",
+      "New W7900/ROCm/vLLM performance evidence; existing accepted local-serving evidence is unchanged."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "evidence/milestones/e3-m2/20260729T073048Z/user-decisions.png",
+      "sha256": "43400f92902aba1a4cdf49e0bb51e555f61f1913de005eb351b8c7a80a4f47ae",
+      "description": "Real loopback browser state after two user confirmations and one explicit unresolved decision."
+    },
+    {
+      "path": "evidence/milestones/e3-m2/20260729T073048Z/reopened-after-edit.png",
+      "sha256": "7ea563eb838524535ac9d81d3bb24b1c8adc17c296ff6f13947701078157d359",
+      "description": "Real loopback browser state showing M2 reopened and the edited moment returned to AGENT_PROPOSED."
+    },
+    {
+      "path": "evidence/milestones/e3-m2/20260729T073048Z/correction-invalidated.png",
+      "sha256": "b8cd5b2b1a9ce0b667995694bdbbb3aed511578d6290a7abbf2c93acffd8958c",
+      "description": "Real loopback browser state showing only the depended M2 artifact invalidated after an accepted M1 correction."
+    },
+    {
+      "path": "evidence/milestones/e3-m2/20260729T073048Z/correction-regenerated.png",
+      "sha256": "e6b7329e3aa8841825b96466a2e3b2e6ea049d9ea86c652b5c12db6c13bc75c6",
+      "description": "Real loopback browser state showing explicit regeneration bound to the newly accepted M1 version."
+    }
+  ],
+  "decision": {
+    "result_class": "CONDITIONAL",
+    "condition": "Request independent quality-owner review on PR #20; the implementation must not self-merge.",
+    "known_risks": [
+      "Temporal extraction remains deterministic and bounded; unsupported time remains missing instead of being inferred.",
+      "The local LangGraph dependency emits a pending deprecation warning about a future serializer default; current tests and behavior pass.",
+      "W7900 verification is delegated and is not claimed by this E3 packet."
+    ],
+    "rollback": "Return PR #20 to its last reviewed E3 commit and retain this failed or superseded candidate packet append-only.",
+    "owner": "Eas000n implementation; kinnyuww quality review",
+    "deadline": "Before E3 acceptance or merge"
+  }
+}

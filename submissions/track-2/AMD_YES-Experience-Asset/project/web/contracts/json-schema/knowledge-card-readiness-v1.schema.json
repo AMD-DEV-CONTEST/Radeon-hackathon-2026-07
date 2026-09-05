@@ -1,0 +1,117 @@
+{
+  "$defs": {
+    "ReadinessLifecycle": {
+      "description": "Lifecycle of a readiness record.\n\nDeliberately not `ProjectionLifecycle`: a projection is built incrementally\nand only becomes eligible when complete, but readiness is minted whole by\none explicit user action. Reusing the projection enum let a readiness record\nclaim `CONFIRMED` while sitting in `BUILDING`, which two consumers could\nreasonably read as opposite answers to \"is this card ready\".",
+      "enum": [
+        "ACTIVE",
+        "STALE",
+        "INVALIDATED"
+      ],
+      "title": "ReadinessLifecycle",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Sidecar readiness record, keyed by asset, version and card hash.\n\nBinding to an exact version and hash is what makes staleness expressible. If\nreadiness pointed at the asset, a later edit would silently inherit every\nrelation built on the older text, and the user would see a confirmed\nrelation whose stated reason no longer matches what the card says.",
+  "properties": {
+    "accepted_at": {
+      "format": "date-time",
+      "title": "Accepted At",
+      "type": "string"
+    },
+    "accepted_gap_statement_ids": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Accepted Gap Statement Ids",
+      "type": "array"
+    },
+    "asset_id": {
+      "format": "uuid",
+      "title": "Asset Id",
+      "type": "string"
+    },
+    "explicit_user_acceptance": {
+      "const": true,
+      "default": true,
+      "title": "Explicit User Acceptance",
+      "type": "boolean"
+    },
+    "invalidated_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Invalidated At"
+    },
+    "invalidation_reason": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Invalidation Reason"
+    },
+    "knowledge_card_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Knowledge Card Hash",
+      "type": "string"
+    },
+    "lifecycle": {
+      "$ref": "#/$defs/ReadinessLifecycle",
+      "default": "ACTIVE"
+    },
+    "m4_artifact_id": {
+      "format": "uuid",
+      "title": "M4 Artifact Id",
+      "type": "string"
+    },
+    "milestone_state": {
+      "enum": [
+        "CONFIRMED",
+        "COMPLETE_WITH_GAPS"
+      ],
+      "title": "Milestone State",
+      "type": "string"
+    },
+    "readiness_id": {
+      "format": "uuid",
+      "title": "Readiness Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "version_id": {
+      "format": "uuid",
+      "title": "Version Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "readiness_id",
+    "asset_id",
+    "version_id",
+    "m4_artifact_id",
+    "knowledge_card_hash",
+    "milestone_state",
+    "accepted_at"
+  ],
+  "title": "KnowledgeCardReadinessRecordV1",
+  "type": "object"
+}

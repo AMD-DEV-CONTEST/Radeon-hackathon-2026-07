@@ -1,0 +1,161 @@
+{
+  "$defs": {
+    "Milestone": {
+      "enum": [
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5"
+      ],
+      "title": "Milestone",
+      "type": "string"
+    },
+    "PlanStepKind": {
+      "enum": [
+        "RETRIEVE",
+        "ASK",
+        "EXTRACT",
+        "CLASSIFY",
+        "UPDATE_ARTIFACT",
+        "VERIFY",
+        "EVALUATE_ROUTE",
+        "PRIVACY_REVIEW",
+        "RENDER"
+      ],
+      "title": "PlanStepKind",
+      "type": "string"
+    },
+    "PlanStepStatus": {
+      "enum": [
+        "PENDING",
+        "IN_PROGRESS",
+        "SUCCEEDED",
+        "DENIED",
+        "FAILED",
+        "SKIPPED"
+      ],
+      "title": "PlanStepStatus",
+      "type": "string"
+    },
+    "WorkPlanStepV1": {
+      "additionalProperties": false,
+      "properties": {
+        "dependency_step_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Dependency Step Ids",
+          "type": "array"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "required_evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Required Evidence Refs",
+          "type": "array"
+        },
+        "required_permission": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Required Permission"
+        },
+        "status": {
+          "$ref": "#/$defs/PlanStepStatus",
+          "default": "PENDING"
+        },
+        "step_id": {
+          "format": "uuid",
+          "title": "Step Id",
+          "type": "string"
+        },
+        "step_kind": {
+          "$ref": "#/$defs/PlanStepKind"
+        },
+        "stop_condition": {
+          "minLength": 1,
+          "title": "Stop Condition",
+          "type": "string"
+        }
+      },
+      "required": [
+        "step_id",
+        "step_kind",
+        "reason",
+        "stop_condition"
+      ],
+      "title": "WorkPlanStepV1",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "goal": {
+      "minLength": 1,
+      "title": "Goal",
+      "type": "string"
+    },
+    "milestone": {
+      "$ref": "#/$defs/Milestone"
+    },
+    "plan_id": {
+      "format": "uuid",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "revised_at": {
+      "format": "date-time",
+      "title": "Revised At",
+      "type": "string"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "run_id": {
+      "format": "uuid",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/WorkPlanStepV1"
+      },
+      "maxItems": 12,
+      "minItems": 1,
+      "title": "Steps",
+      "type": "array"
+    }
+  },
+  "required": [
+    "plan_id",
+    "run_id",
+    "milestone",
+    "goal",
+    "steps",
+    "revision",
+    "created_at",
+    "revised_at"
+  ],
+  "title": "WorkPlanV1",
+  "type": "object"
+}

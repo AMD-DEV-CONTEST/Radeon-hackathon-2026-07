@@ -1,0 +1,163 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "e7-review-fixes-20260802T062138Z-3d5cd02",
+  "timestamp_utc": "2026-08-02T06:21:38Z",
+  "source": {
+    "git_commit": "3d5cd02428a5d291bb7919a21a8b0ca0ab0c1b28",
+    "branch": "codex/e7-deterministic-delivery",
+    "dirty_tree": false,
+    "issue": "https://github.com/kinnyuww/amd-devmaster-track2-agent/issues/30",
+    "pull_request": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/34",
+    "review_feedback": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/34#issuecomment-5155738974"
+  },
+  "quality_mapping": {
+    "acceptance_criteria": [
+      "AC-05",
+      "AC-08",
+      "AC-09",
+      "AC-14",
+      "AC-17",
+      "AC-18",
+      "AC-22",
+      "AC-23",
+      "AC-24",
+      "AC-25"
+    ],
+    "l1_milestones": ["M5 route draft and delivery"],
+    "l2_gates": [
+      "Canonical identity",
+      "Runtime permission",
+      "Persistence and restart recovery",
+      "Failure recovery",
+      "Auditability"
+    ]
+  },
+  "input": {
+    "fixture_or_scenario_id": "e6-e7-approval-compatibility/v1 and public E7 deletion fixtures",
+    "version": "review-fix-v1",
+    "sha256": "b8c1c842cc0a2a8921c6d52099f4c14da3d40e4c6b2cd9d5dd1ad515e6004163"
+  },
+  "environment": {
+    "hardware": {
+      "platform": "Darwin arm64 local development host",
+      "gpu": "NOT_USED_OR_VERIFIED"
+    },
+    "software": {
+      "python": "3.12.12 isolated /private/tmp environment",
+      "node": "25.6.1",
+      "e6_fixture_source_commit": "07c4dc8995ad8145f6e5fbb7319b8698978e879a"
+    },
+    "workflow_schema_versions": {
+      "route_draft_envelope": "e7-route-draft/v1",
+      "delivery_output": "e7-delivery/v1",
+      "approval_binding_fixture": "e6-e7-approval-binding/v1",
+      "deletion_request_terminal_state": "EXPIRED"
+    }
+  },
+  "model_and_serving": {
+    "model_source": null,
+    "model_revision_or_hash": null,
+    "license": null,
+    "dtype": null,
+    "quantization": null,
+    "arguments": [],
+    "claim": "These review fixes do not call a model service."
+  },
+  "commands": [
+    {
+      "command": "PYTHONPYCACHEPREFIX=/private/tmp/amd-e7-pycache /private/tmp/amd-e7-venv/bin/ruff check .",
+      "exit_code": 0,
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONPYCACHEPREFIX=/private/tmp/amd-e7-pycache /private/tmp/amd-e7-venv/bin/pytest",
+      "exit_code": 0,
+      "result": "PASS: 238 tests; one dependency deprecation warning"
+    },
+    {
+      "command": "PYTHONPATH=. PYTHONPYCACHEPREFIX=/private/tmp/amd-e7-pycache /private/tmp/amd-e7-venv/bin/python /private/tmp/amd-e7-delivery-IzOWiL/tests/fixtures/verify_e6_e7_approval_compatibility.py /private/tmp/amd-e7-delivery-IzOWiL/tests/fixtures/e6_e7_approval_compatibility.json",
+      "working_tree": "detached E6 commit 07c4dc8995ad8145f6e5fbb7319b8698978e879a",
+      "exit_code": 0,
+      "result": "PASS: real E6 helper output exactly matched the checked-in E7 fixture"
+    },
+    {
+      "command": "bash -n scripts/*.sh && python3 -m py_compile scripts/*.py && python3 -m unittest discover -s qa/tests -v && bash qa/gates/pr_gate.sh --mode contract",
+      "exit_code": 0,
+      "result": "PASS: syntax, 34 public QA tests, disclosure/credential and contract gate"
+    },
+    {
+      "command": "cd web && NODE_OPTIONS=--no-experimental-webstorage npm test && npm run verify:contracts && npm run typecheck && npm run lint && npm run build",
+      "exit_code": 0,
+      "result": "PASS: 136 tests, contract provenance, typecheck, lint and production build"
+    },
+    {
+      "command": "cd web && NODE_OPTIONS=--no-experimental-webstorage npm run e2e",
+      "exit_code": 0,
+      "result": "PASS: 16 browser tests; 4 live-backend tests skipped by declared gates"
+    }
+  ],
+  "results": {
+    "terminal_state": "ISOLATED_READY_CANDIDATE_PENDING_INDEPENDENT_REREVIEW",
+    "measurements": {
+      "python_tests_passed": 238,
+      "focused_e7_tests_passed": 32,
+      "public_qa_tests_passed": 34,
+      "frontend_tests_passed": 136,
+      "browser_tests_passed": 16,
+      "browser_tests_skipped_live_backend": 4
+    },
+    "failures": [
+      {
+        "stage": "independent review of prior head e8fbfff",
+        "result": "FAIL",
+        "cause": "Expired deletion requests remained active and E7 misinterpreted the E6 composite approval hash.",
+        "disposition": "Both blockers are fixed in 3d5cd02428a5d291bb7919a21a8b0ca0ab0c1b28; independent rereview remains pending."
+      },
+      {
+        "stage": "first E6 fixture-regeneration invocation",
+        "result": "FAIL",
+        "cause": "The temporary verifier script did not include the detached E6 checkout on PYTHONPATH.",
+        "disposition": "Rerun with PYTHONPATH=. passed and exactly matched approval, route decision and binding hash."
+      }
+    ],
+    "recovery": [
+      "Expired unconfirmed requests are atomically marked EXPIRED and audited before a new request is inserted.",
+      "The old token remains invalid and the replacement request still requires a distinct second confirmation.",
+      "The frozen adapter consumes an E6-issued binding fixture instead of recomputing or weakening E6 hash semantics.",
+      "RouteDraft content hash, relation projection hash and renderer input identity remain distinct and are all exported."
+    ],
+    "unverified": [
+      "Independent functional rereview of PR #34 after commit 3d5cd02428a5d291bb7919a21a8b0ca0ab0c1b28.",
+      "Live E6 approval-validity service injection; the checked-in boundary remains a real-helper-generated frozen fixture.",
+      "PR #31 final acceptance and merged E6 to E7 integration.",
+      "Shared repository/API/App wiring, W7900/ROCm/vLLM, deployment and external publication."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "tests/fixtures/e6_e7_approval_compatibility.json",
+      "sha256": "b8c1c842cc0a2a8921c6d52099f4c14da3d40e4c6b2cd9d5dd1ad515e6004163",
+      "classification": "public frozen fixture generated by the real E6 helper"
+    },
+    {
+      "path": "tests/fixtures/e7_complete_preview.html",
+      "sha256": "af03553c890fbbd045f880ee8f89f543fa1afb56b69ab7b116353886d79f8850",
+      "classification": "deterministic self-contained public preview"
+    }
+  ],
+  "decision": {
+    "result_class": "CONDITIONAL",
+    "known_risks": [
+      "The independent reviewer has not yet rerun the two blocker reproductions.",
+      "The frozen adapter proves contract compatibility but is not live E6 service integration.",
+      "PR #31 is still a Draft dependency with its own review state."
+    ],
+    "rollback": "Normally revert 3d5cd02428a5d291bb7919a21a8b0ca0ab0c1b28 to remove the review fixes, noting that doing so restores both known blockers. Revert the full E7 commit chain to disable the feature entirely.",
+    "owner": "E7 implementer; independent rereviewer pending",
+    "deadline": null
+  },
+  "history": {
+    "supersedes_packet_id": "e7-isolated-20260802T035125Z-ca53e8d",
+    "notes": "The prior readiness conclusion is superseded because independent review found two functional blockers. This packet records their fixes but remains conditional until independent rereview."
+  }
+}

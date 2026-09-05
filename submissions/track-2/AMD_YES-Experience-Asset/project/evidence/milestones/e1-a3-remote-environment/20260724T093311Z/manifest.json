@@ -1,0 +1,108 @@
+{
+  "schema_version": "engineering-evidence/v1",
+  "packet_id": "e1a3-remote-20260724T093311Z-f7ebbbc",
+  "timestamp_utc": "2026-07-24T09:33:11Z",
+  "source": {
+    "git_commit": "f7ebbbc66b53daca58944b8436e3739a2ad9e49b",
+    "branch": "codex/agent-architecture-hardening",
+    "dirty_tree": false,
+    "issue": "https://github.com/kinnyuww/amd-devmaster-track2-agent/issues/5",
+    "pull_request": "https://github.com/kinnyuww/amd-devmaster-track2-agent/pull/9"
+  },
+  "quality_mapping": {
+    "acceptance_criteria": ["AC-11", "AC-18", "AC-19"],
+    "l1_milestones": ["E1-A3"],
+    "l2_gates": ["Local inference", "Evidence discipline", "Security boundary"]
+  },
+  "input": {
+    "fixture_or_scenario_id": "current-radeon-cloud-replacement-pod",
+    "version": "remote-access-device-subgate-2026-07-24",
+    "sha256": null
+  },
+  "environment": {
+    "hardware": {
+      "cpu_quota": "1600000/100000 = 16 cores",
+      "memory_max_bytes": 59055800320,
+      "workspace": "98 GiB total; 93 GiB available",
+      "gpu_count": 1,
+      "gpu_arch": "gfx1100",
+      "gpu_compute_units": 96,
+      "gpu_vram_mb": 49136,
+      "gpu_memory_type": "GDDR6"
+    },
+    "software": {
+      "os": "Ubuntu 24.04",
+      "kernel": "6.8.0-79-generic",
+      "rocm": "7.2.1",
+      "amdgpu": "6.16.13",
+      "amd_smi": "26.2.2",
+      "openssh_server": "1:9.6p1-3ubuntu13.18",
+      "python": "3.12.3",
+      "torch": "NOT INSTALLED",
+      "vllm": "NOT INSTALLED"
+    },
+    "workflow_schema_versions": {
+      "engineering_evidence": "v1"
+    }
+  },
+  "model_and_serving": {
+    "model_source": "Qwen/Qwen2.5-14B-Instruct proposed and frozen by repository manifest; not installed or verified in this packet",
+    "model_revision_or_hash": "see config/models/qwen2.5-14b-instruct.modelscope.json",
+    "license": "see frozen model manifest; runtime validation pending",
+    "dtype": "BF16 proposed E1 profile",
+    "quantization": null,
+    "arguments": []
+  },
+  "commands": [
+    {"command": "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-server", "exit_status": 0},
+    {"command": "/usr/sbin/sshd -t", "exit_status": 0},
+    {"command": "non-interactive public-key SSH health check", "exit_status": 0},
+    {"command": "read cgroup CPU/memory limits and df -h /workspace", "exit_status": 0},
+    {"command": "amd-smi version; amd-smi static --asic --vram --limit", "exit_status": 0},
+    {"command": "system Python import torch and vLLM command check", "exit_status": 0, "result": "both absent"}
+  ],
+  "results": {
+    "terminal_state": "CONDITIONAL",
+    "measurements": {
+      "ssh_public_key_auth": "PASS",
+      "sshd_config": "PASS",
+      "gpu_rocm_identity": "PASS",
+      "workspace_project_checkout": "ABSENT",
+      "pytorch_hip": "NOT VERIFIED",
+      "vllm_service": "NOT VERIFIED"
+    },
+    "failures": [
+      "The prior instance disappeared and the replacement persistent volume did not contain the earlier checkout, environments, logs or model cache."
+    ],
+    "recovery": [
+      "Installed OpenSSH server after explicit approval, started sshd, and verified public-key access without enabling password login."
+    ],
+    "unverified": [
+      "Repository and persistent environment restoration",
+      "PyTorch HIP device execution",
+      "Frozen Qwen2.5-14B snapshot installation and hash verification",
+      "vLLM startup and localhost-only traffic",
+      "Structured response and inert Tool Call proposal",
+      "Runtime allow/deny and terminal verification",
+      "Any performance, optimization or Bonus-score claim"
+    ]
+  },
+  "artifacts": [
+    "docs/DEVELOPMENT_ENVIRONMENT.md",
+    "docs/COMPETITION_READINESS_CHECKLIST.md"
+  ],
+  "decision": {
+    "result_class": "CONDITIONAL",
+    "known_risks": [
+      "The replacement root layer and current workspace do not contain the application or model environment.",
+      "Device presence alone does not prove local model inference or any Track 2 Agent capability."
+    ],
+    "rollback": "Stop the current sshd listener if remote development access is no longer required; do not alter the saved public key or expose additional ports.",
+    "owner": "quality/integration owner",
+    "deadline": "before E1-A3 or any local-inference claim is promoted"
+  },
+  "history": {
+    "supersedes_packet_id": null,
+    "notes": "Sanitized access/device sub-gate only. Network endpoints, keys, host identifiers, serials and fingerprints are intentionally excluded."
+  }
+}

@@ -1,0 +1,267 @@
+{
+  "$defs": {
+    "ProjectionEdgeType": {
+      "description": "Membership edges only.\n\nEvery edge means \"this canonical record has this member in this role\".\nStatement order, temporal proximity and semantic similarity cannot prove\ncausation, so no edge asserts it; a causal label would present the system's\nguess with the same authority as the user's own confirmed account.",
+      "enum": [
+        "HAS_CUE",
+        "HAS_CHANGE",
+        "HAS_SURPRISE",
+        "HAS_CONFLICT",
+        "HAS_ALTERNATIVE",
+        "HAS_REASON",
+        "HAS_ACTION",
+        "HAS_RESULT",
+        "HAS_EVIDENCE",
+        "HAS_SUPPORT",
+        "HAS_COUNTERFACTUAL",
+        "HAS_LIMITATION",
+        "HAS_COUNTEREXAMPLE",
+        "HAS_APPLICABILITY"
+      ],
+      "title": "ProjectionEdgeType",
+      "type": "string"
+    },
+    "RelationLifecycle": {
+      "description": "Lifecycle of a validated candidate or a confirmed relation.\n\nRecords are append-only; invalidation moves state here rather than deleting\nthe row, because deleting it would make an invalidated relation\nindistinguishable from one that never existed.",
+      "enum": [
+        "PROPOSED",
+        "CONFIRMED",
+        "DECLINED",
+        "STALE",
+        "INVALIDATED"
+      ],
+      "title": "RelationLifecycle",
+      "type": "string"
+    },
+    "RelationNodeMappingV1": {
+      "additionalProperties": false,
+      "description": "One bilateral node correspondence proposed by the model.\n\nThe model returns only supplied node identifiers. It cannot return new\nfacts, nodes, edges, provenance, scores or titles, because the Runtime can\nvalidate an identifier against a stored projection but cannot validate an\ninvented claim.\n\nA role of `None` on both sides marks a root-to-root mapping, which is what\n`SAME_THEME` claims. Roles must be absent or present together: a mapping\nthat pairs a root with a member describes a correspondence between things\nof different kinds, and no relation type defines what that would mean.",
+      "properties": {
+        "current_node_id": {
+          "minLength": 1,
+          "title": "Current Node Id",
+          "type": "string"
+        },
+        "current_role": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProjectionEdgeType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "historical_node_id": {
+          "minLength": 1,
+          "title": "Historical Node Id",
+          "type": "string"
+        },
+        "historical_role": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProjectionEdgeType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "current_node_id",
+        "historical_node_id"
+      ],
+      "title": "RelationNodeMappingV1",
+      "type": "object"
+    },
+    "RelationProvenanceRefV1": {
+      "additionalProperties": false,
+      "description": "Side-attributed provenance.\n\nThe side is explicit because a flat reference list cannot say which asset a\nreference belongs to, and a bilateral explanation that cannot be attributed\nto both sides is not bilateral.",
+      "properties": {
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "node_id": {
+          "minLength": 1,
+          "title": "Node Id",
+          "type": "string"
+        },
+        "side": {
+          "enum": [
+            "CURRENT",
+            "HISTORICAL"
+          ],
+          "title": "Side",
+          "type": "string"
+        },
+        "source_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "statement_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Statement Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "side",
+        "node_id",
+        "statement_ids"
+      ],
+      "title": "RelationProvenanceRefV1",
+      "type": "object"
+    },
+    "RelationType": {
+      "description": "Closed vocabulary for cross-asset relations.\n\nThe vocabulary is closed so a relation label means the same thing in a\nsession weeks later. A model-invented synonym would read as a distinct\nrelation to the user while carrying no admissibility rule behind it, so\nabstention preserves meaning better than an unmapped label.",
+      "enum": [
+        "SAME_THEME",
+        "METHOD_REUSE",
+        "COUNTEREXAMPLE",
+        "SUPPLEMENT",
+        "PREREQUISITE",
+        "FOLLOW_UP"
+      ],
+      "title": "RelationType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A validated cross-asset candidate.\n\nThis replaces the pre-E5 fixture shape, which carried a free-text\n`proposed_relation` and a flat provenance list and could not express a fixed\nrelation type, bilateral mapping, boundary nodes, projection bindings,\nfingerprint or lifecycle. Extending it is a breaking change to a symbol the\nE5→E6 handoff manifest freezes, and E6 needs the new shape before it lands.\n\n`detail_included` is pinned false: the candidate view never carries\nhistorical detail, because showing the detail before the decision would make\nthe confirmation choice moot.",
+  "properties": {
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "current_asset_id": {
+      "format": "uuid",
+      "title": "Current Asset Id",
+      "type": "string"
+    },
+    "current_boundary_node_ids": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Current Boundary Node Ids",
+      "type": "array"
+    },
+    "current_projection_id": {
+      "format": "uuid",
+      "title": "Current Projection Id",
+      "type": "string"
+    },
+    "detail_included": {
+      "const": false,
+      "default": false,
+      "title": "Detail Included",
+      "type": "boolean"
+    },
+    "discovery_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Discovery Fingerprint",
+      "type": "string"
+    },
+    "historical_boundary_node_ids": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Historical Boundary Node Ids",
+      "type": "array"
+    },
+    "historical_projection_id": {
+      "format": "uuid",
+      "title": "Historical Projection Id",
+      "type": "string"
+    },
+    "lifecycle": {
+      "$ref": "#/$defs/RelationLifecycle",
+      "default": "PROPOSED"
+    },
+    "node_mappings": {
+      "items": {
+        "$ref": "#/$defs/RelationNodeMappingV1"
+      },
+      "minItems": 1,
+      "title": "Node Mappings",
+      "type": "array"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/RelationProvenanceRefV1"
+      },
+      "minItems": 2,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "related_asset_id": {
+      "format": "uuid",
+      "title": "Related Asset Id",
+      "type": "string"
+    },
+    "relation_type": {
+      "$ref": "#/$defs/RelationType"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "summary": {
+      "minLength": 1,
+      "title": "Summary",
+      "type": "string"
+    },
+    "title": {
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "validation_contract_version": {
+      "default": "e5-relation/v1",
+      "minLength": 1,
+      "title": "Validation Contract Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "candidate_id",
+    "discovery_fingerprint",
+    "current_asset_id",
+    "current_projection_id",
+    "related_asset_id",
+    "historical_projection_id",
+    "relation_type",
+    "title",
+    "summary",
+    "node_mappings",
+    "current_boundary_node_ids",
+    "provenance",
+    "created_at"
+  ],
+  "title": "RelationCandidateV1",
+  "type": "object"
+}

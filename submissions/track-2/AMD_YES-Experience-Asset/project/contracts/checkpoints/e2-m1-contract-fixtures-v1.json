@@ -1,0 +1,216 @@
+{
+  "schema_version": "e2-m1-contract-checkpoint/v1",
+  "checkpoint": "Contract / Schema + Fixture",
+  "status": "READY_FOR_QUALITY_OWNER_CONFIRMATION",
+  "owner": "Eas000n",
+  "reviewer": "kinnyuww",
+  "downstream_owner": "1olaqua616-web",
+  "downstream_rule": "E3 may start only after this checkpoint is confirmed; confirmation does not promote E2 or authorize E3 integration with unmerged E2 state.",
+  "scope": {
+    "milestone": "M1",
+    "artifact": "Experience Brief v0.1",
+    "retrieval_phase": "CURRENT_SOURCE",
+    "core_inference": "local open model through loopback vLLM",
+    "explicit_non_goals": [
+      "M2-M5 implementation",
+      "cross-asset RAG",
+      "PDF, image, audio, or video ingestion",
+      "external publication",
+      "E8 Baseline or optimization claim",
+      "E2 promotion"
+    ]
+  },
+  "contracts": {
+    "requests": [
+      "M1IngestRequestV1",
+      "M1BriefEditRequestV1",
+      "M1QuestionActionV1",
+      "M1VersionActionRequestV1",
+      "M1ConfirmRequestV1",
+      "M1AgentRunRequestV1"
+    ],
+    "outputs": [
+      "ExperienceBriefV1",
+      "M1ProgressV1",
+      "M1WorkspaceV1"
+    ],
+    "errors": {
+      "404": "asset not found",
+      "409": "expected_version_id is stale",
+      "422": "request or M1 state transition violates the frozen contract",
+      "MODEL_UNAVAILABLE": "local model is unavailable and the last durable asset version is retained",
+      "POLICY_BLOCKED": "Runtime denied the proposed tool effect",
+      "INVALID_MODEL_OUTPUT": "model output failed the structured proposal contract"
+    },
+    "progress": "M1 progress is derived from the saved version, confirmed statements, unresolved questions, artifact state, and durable terminal state; no ETA or invented percentage is emitted.",
+    "invalidation": [
+      "Every accepted edit, answer, skip, defer, pause, resume, or confirmation creates or selects a durable canonical version.",
+      "A stale expected_version_id fails with HTTP 409 and cannot overwrite the current version.",
+      "Editing a completed M1 asset reopens M1 and invalidates the displayed Agent run derived from the prior version.",
+      "No M2 state exists in this checkpoint; downstream M2 must bind to the accepted M1 version after E2 promotion."
+    ]
+  },
+  "api": [
+    "POST /api/v1/m1/assets",
+    "GET /api/v1/m1/assets/{asset_id}",
+    "PATCH /api/v1/m1/assets/{asset_id}/brief",
+    "POST /api/v1/m1/assets/{asset_id}/questions/{question_id}",
+    "POST /api/v1/m1/assets/{asset_id}/pause",
+    "POST /api/v1/m1/assets/{asset_id}/resume",
+    "POST /api/v1/m1/assets/{asset_id}/confirm",
+    "POST /api/v1/m1/assets/{asset_id}/agent-runs"
+  ],
+  "canonical_schemas": [
+    "contracts/json-schema/experience-asset-v1.schema.json",
+    "contracts/json-schema/experience-brief-v0.1.schema.json",
+    "contracts/json-schema/m1-workspace-v1.schema.json",
+    "contracts/json-schema/agent-run-state-v1.schema.json",
+    "contracts/json-schema/progress-event-v1.schema.json",
+    "contracts/json-schema/structured-proposal-v1.schema.json",
+    "contracts/json-schema/policy-decision-v1.schema.json",
+    "contracts/json-schema/tool-execution-record-v1.schema.json",
+    "contracts/json-schema/verification-report-v1.schema.json",
+    "contracts/json-schema/terminal-result-v1.schema.json",
+    "contracts/json-schema/work-plan-v1.schema.json",
+    "contracts/openapi.json"
+  ],
+  "shared_entrypoints": [
+    "app/experience_asset/api/main.py",
+    "app/experience_asset/application/agent_loop.py",
+    "app/experience_asset/domain/__init__.py",
+    "app/experience_asset/persistence/repository.py",
+    "app/experience_asset/retrieval/repository.py",
+    "scripts/export_contracts.py",
+    "web/src/App.tsx"
+  ],
+  "migrations": {
+    "required": false,
+    "reason": "The existing SQLite snapshot repository stores the complete canonical JSON version; M1 adds no numbered migration."
+  },
+  "fixtures": [
+    {
+      "id": "chair_public_complete",
+      "category": "complete",
+      "m1_expected": [
+        "create a saved Experience Brief from the adapted source",
+        "keep source facts traceable without copying identity or treating source text as policy"
+      ],
+      "m1_forbidden": [
+        "trust imported instructions",
+        "introduce unsupported material facts"
+      ]
+    },
+    {
+      "id": "chair_incomplete",
+      "category": "incomplete",
+      "m1_expected": [
+        "surface no more than three explained unresolved questions",
+        "allow skip, defer, pause, resume, or completion with visible gaps"
+      ],
+      "m1_forbidden": [
+        "invent a decision or outcome",
+        "convert unanswered details into facts"
+      ]
+    },
+    {
+      "id": "chair_conflicting",
+      "category": "contradictory",
+      "m1_expected": [
+        "retain conflicting source statements and ask the user to resolve them"
+      ],
+      "m1_forbidden": [
+        "silently choose or merge conflicting facts"
+      ]
+    },
+    {
+      "id": "chair_correction",
+      "category": "correction",
+      "m1_expected": [
+        "create a new version and mark the superseded user judgment corrected"
+      ],
+      "m1_forbidden": [
+        "overwrite version history",
+        "silently restore the corrected value"
+      ]
+    },
+    {
+      "id": "chair_resume",
+      "category": "resume",
+      "m1_expected": [
+        "restore the last durable version, questions, milestone state, and allowed actions"
+      ],
+      "m1_forbidden": [
+        "restart the experience from scratch",
+        "lose confirmed information"
+      ]
+    }
+  ],
+  "negative_cases": [
+    "whitespace-only source",
+    "TXT_FILE without a .txt name",
+    "MD_FILE without a .md name",
+    "adapted public fixture without URL and provenance notice",
+    "edit without a changed field",
+    "ANSWER without text",
+    "SKIP or DEFER carrying answer text",
+    "stale expected_version_id",
+    "confirm with unresolved questions unless complete_with_gaps is explicit",
+    "imported prompt injection proposing an unavailable tool",
+    "current-source search without explicit user permission",
+    "cross-asset, publishing, network, shell, export, or approval tool proposal"
+  ],
+  "quality_mapping": {
+    "acceptance_criteria": [
+      "AC-01",
+      "AC-03",
+      "AC-04",
+      "AC-10",
+      "AC-13",
+      "AC-15",
+      "AC-16",
+      "AC-17",
+      "AC-18",
+      "AC-22",
+      "AC-23",
+      "AC-25"
+    ],
+    "l1": [
+      "M1 Experience Brief"
+    ],
+    "l2": [
+      "Canonical state",
+      "Persistence and resume",
+      "Evidence discipline",
+      "Retrieval phase integrity",
+      "Runtime permission",
+      "Local inference",
+      "Failure behavior",
+      "Observability"
+    ],
+    "track_2": [
+      "private local inference",
+      "durable multi-step planning",
+      "Tool Calling proposal separated from Runtime permission",
+      "current-source local retrieval",
+      "verification and durable terminal state"
+    ]
+  },
+  "evidence": {
+    "storage_tier": "Git",
+    "implementation_packet": "evidence/milestones/e2-m1-contract/<run_id>/",
+    "required_checks": [
+      "bash -n scripts/*.sh",
+      "python3 -m py_compile scripts/*.py",
+      "python3 -m unittest discover -s qa/tests -v",
+      "bash qa/gates/pr_gate.sh --mode contract",
+      ".venv/bin/python scripts/export_contracts.py --check",
+      ".venv/bin/python -m pytest",
+      ".venv/bin/ruff check .",
+      "npm run verify:contracts",
+      "npm run test",
+      "npm run typecheck",
+      "npm run lint",
+      "npm run build"
+    ]
+  }
+}
