@@ -1,0 +1,45 @@
+# Simulation + data pipeline. torch is NOT listed here: on a ROCm host it must come from
+# AMD's wheel index (see Dockerfile), and pip would otherwise pull the CUDA build.
+genesis-world>=1.1.2
+
+# numpy has to satisfy three consumers at once, and they disagree. Pinning it alone is not
+# enough — scikit-image ships wheels compiled against a specific numpy C API, so numpy and
+# scikit-image must move together or the import dies with
+# "numpy.dtype size changed ... Expected 96 from C header, got 88 from PyObject".
+#   lerobot 0.6.0  declares numpy<2.3  -> that is the binding upper bound
+#   scikit-image   0.25.x matches the numpy 2.2 ABI; 0.26 requires numpy>=2.4 and would break it
+#   numba          caps numpy at 2.2 in older releases ("Numba needs NumPy 2.2 or less")
+# numpy 2.2.x + scikit-image 0.25.x satisfies all three. The amd-oneclick-base image ships a
+# numpy 1.x runtime with numpy-2-built scikit-image wheels, i.e. broken before we touch it,
+# so these are floors AND ceilings on purpose.
+numpy>=2.2,<2.3
+scikit-image>=0.25,<0.26
+trimesh>=4.8.2
+scipy>=1.11,<1.16
+
+# Camera I/O and video export. opencv is used directly for the real-robot camera
+# transport (see src/real/ for why the stock LeRobot camera layer is bypassed).
+opencv-python
+imageio
+imageio-ffmpeg
+
+# Plots for the checkpoint / colour-generalisation figures.
+matplotlib
+
+# Policy training and dataset format.
+# ACT needs no model-specific extra; [training] pulls datasets/av/pyarrow + accelerate.
+# torchcodec is excluded on purpose — it is ABI-incompatible with AMD's custom torch
+# build, so the video backend is pinned to pyav (--dataset.video_backend=pyav).
+lerobot[training]==0.6.0
+
+# lerobot imports transformers (via lerobot.processor.tokenizer_processor) and requires
+# huggingface-hub>=1.0. transformers 4.x demands huggingface-hub<1.0, so a base image carrying
+# transformers 4.x fails at `import lerobot.datasets` with
+# "huggingface-hub>=0.34.0,<1.0 is required ... but found huggingface-hub==1.26.0".
+# transformers 5.x is the version that accepts huggingface-hub 1.x.
+transformers>=5.5
+huggingface-hub>=1.0,<2.0
+
+# Real SO-101 hardware only (skip for sim-only reproduction).
+feetech-servo-sdk
+pyserial
