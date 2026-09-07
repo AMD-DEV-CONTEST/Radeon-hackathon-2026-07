@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Task-Adaptive Grippers — Recorded Trajectory Playback</title>
+<style>
+  :root {
+    --bg: #0a0d12;
+    --surface: #141924;
+    --surface-2: #1a2130;
+    --line: #262d3d;
+    --text: #e7ebf2;
+    --text-dim: #7c8598;
+    --accent: #ff6a3d;
+    --accent-dim: #c94f28;
+    --success: #35d488;
+    --fail: #ff5468;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: var(--bg); color: var(--text); font-family: var(--sans);
+    overflow: hidden;
+  }
+  #app { display: flex; flex-direction: column; width: 100%; height: 100%; }
+
+  /* ---- top bar ---- */
+  #topbar {
+    display: flex; align-items: center; gap: 20px;
+    padding: 10px 18px; border-bottom: 1px solid var(--line);
+    background: var(--surface); flex-shrink: 0; flex-wrap: wrap;
+  }
+  #topbar h1 {
+    font-size: 14px; font-weight: 600; letter-spacing: 0.02em; margin: 0;
+    color: var(--text); white-space: nowrap;
+  }
+  #topbar h1 span { color: var(--text-dim); font-weight: 400; }
+  .tabs { display: flex; gap: 6px; }
+  .tab {
+    font-family: var(--sans); font-size: 12px; font-weight: 600;
+    padding: 7px 12px; border-radius: 6px; border: 1px solid var(--line);
+    background: var(--surface-2); color: var(--text-dim); cursor: pointer;
+    transition: all 0.15s ease; white-space: nowrap;
+  }
+  .tab:hover { color: var(--text); border-color: #38425a; }
+  .tab.active { background: var(--accent); color: #1a0d08; border-color: var(--accent); }
+  #disclaimer {
+    margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--text-dim);
+    padding: 6px 10px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface-2);
+    white-space: nowrap;
+  }
+  #disclaimer strong { color: var(--accent); font-weight: 600; }
+
+  /* ---- main layout ---- */
+  #main { flex: 1; display: flex; min-height: 0; }
+  #viewport { flex: 1; position: relative; min-width: 0; }
+  #viewport canvas { display: block; width: 100%; height: 100%; }
+
+  #sidepanel {
+    width: 268px; flex-shrink: 0; background: var(--surface);
+    border-left: 1px solid var(--line); padding: 16px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 18px;
+  }
+  .panel-section h2 {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-dim); margin: 0 0 10px 0; font-weight: 600;
+  }
+  .status-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--mono); font-size: 12px; font-weight: 600;
+    padding: 5px 10px; border-radius: 5px;
+  }
+  .status-chip.success { background: rgba(53,212,136,0.12); color: var(--success); }
+  .status-chip.fail { background: rgba(255,84,104,0.12); color: var(--fail); }
+  .status-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .readout-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .readout-item {
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px;
+    padding: 8px 10px;
+  }
+  .readout-item .label { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 3px; }
+  .readout-item .value { font-family: var(--mono); font-size: 15px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+  .readout-item .value.accent { color: var(--accent); }
+  .readout-item.wide { grid-column: 1 / -1; }
+
+  .meta-row { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; font-size: 12px; }
+  .meta-row .k { color: var(--text-dim); }
+  .meta-row .v { font-family: var(--mono); color: var(--text); font-variant-numeric: tabular-nums; }
+
+  .legend-row { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--text-dim); padding: 3px 0; }
+  .legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+  /* ---- bottom transport bar ---- */
+  #transport {
+    flex-shrink: 0; background: var(--surface); border-top: 1px solid var(--line);
+    padding: 10px 18px; display: flex; align-items: center; gap: 14px;
+  }
+  #playbtn {
+    width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer;
+    background: var(--accent); color: #1a0d08; font-size: 13px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; transition: background 0.15s;
+  }
+  #playbtn:hover { background: #ff7f57; }
+  #scrub { flex: 1; accent-color: var(--accent); cursor: pointer; }
+  #stepLabel { font-family: var(--mono); font-size: 12px; color: var(--text-dim); min-width: 92px; text-align: right; font-variant-numeric: tabular-nums; }
+  select#speed {
+    font-family: var(--mono); font-size: 12px; background: var(--surface-2); color: var(--text);
+    border: 1px solid var(--line); border-radius: 5px; padding: 6px 8px; cursor: pointer;
+  }
+  button:focus-visible, select:focus-visible, input:focus-visible, .tab:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <h1>Task-Adaptive Gripper Co-Design <span>&mdash; recorded trajectory playback</span></h1>
+    <div class="tabs" id="tabs"></div>
+    <div id="disclaimer"><strong>Real data.</strong> Playback of recorded Genesis simulation — not a live physics engine.</div>
+  </div>
+  <div id="main">
+    <div id="viewport"></div>
+    <div id="sidepanel">
+      <div class="panel-section">
+        <h2>Outcome</h2>
+        <div id="statusChip" class="status-chip success"><span class="dot"></span><span id="statusText">SUCCESS</span></div>
+      </div>
+      <div class="panel-section">
+        <h2>Live readout</h2>
+        <div class="readout-grid">
+          <div class="readout-item"><div class="label">Timestep</div><div class="value" id="rStep">0</div></div>
+          <div class="readout-item"><div class="label">Contacts</div><div class="value" id="rContacts">0</div></div>
+          <div class="readout-item wide"><div class="label">Contact force magnitude</div><div class="value accent" id="rForce">0.00 N</div></div>
+          <div class="readout-item wide"><div class="label">Object position (m)</div><div class="value" id="rObjPos" style="font-size:12px;">0, 0, 0</div></div>
+        </div>
+      </div>
+      <div class="panel-section">
+        <h2>Trial</h2>
+        <div class="meta-row"><span class="k">Object</span><span class="v" id="mObject">&mdash;</span></div>
+        <div class="meta-row"><span class="k">Design</span><span class="v" id="mDesign">&mdash;</span></div>
+        <div class="meta-row"><span class="k">Fingers</span><span class="v" id="mFingers">&mdash;</span></div>
+        <div class="meta-row"><span class="k">Curvature</span><span class="v" id="mCurv">&mdash;</span></div>
+        <div class="meta-row"><span class="k">Aperture</span><span class="v" id="mAperture">&mdash;</span></div>
+        <div class="meta-row"><span class="k">Peak force (episode)</span><span class="v" id="mPeakForce">&mdash;</span></div>
+        <div class="meta-row"><span class="k">Max slip (episode)</span><span class="v" id="mMaxSlip">&mdash;</span></div>
+      </div>
+      <div class="panel-section">
+        <h2>Legend</h2>
+        <div class="legend-row"><span class="legend-swatch" style="background:var(--accent);"></span>Contact force vector</div>
+        <div class="legend-row"><span class="legend-swatch" style="background:#e7ebf2;"></span>Gripper (design-accurate)</div>
+        <div class="legend-row"><span class="legend-swatch" style="background:#5b6478;"></span>Arm (schematic — base&rarr;hand only, not exact per-joint FK)</div>
+      </div>
+    </div>
+  </div>
+  <div id="transport">
+    <button id="playbtn" aria-label="Play/pause">&#9654;</button>
+    <input type="range" id="scrub" min="0" max="100" value="0" step="1" aria-label="Scrub timeline" />
+    <span id="stepLabel">0 / 0</span>
+    <select id="speed" aria-label="Playback speed">
+      <option value="0.25">0.25x</option>
+      <option value="0.5" selected>0.5x</option>
+      <option value="1">1x</option>
+    </select>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+/* ============================================================
+   TRAJECTORY_DATA_PLACEHOLDER
+   Injected at build time (see inject_trajectories.py) with the
+   real recorded Genesis episode data for 3 trials:
+     baseline_fail, winner_succeed, winner_apple_fail
+   ============================================================ */
+const TRAJECTORIES = {"__PLACEHOLDER__": true};
+/* ============================================================ */
+
+// ---- Constants ported exactly from franka_fruit_pick/codesign/gripper_gen.py ----
+const FINGER_BASE_Z = 0.0584;
+const FINGER_RADIUS = 0.008;
+const N_SEGMENTS = 3;
+const FRANKA_BASE = [-0.10, 0.0, 0.75];
+const TABLE_TOP_Z = 0.75;
+
+const OBJECT_GEOM = {
+  "011_banana": { type: "capsule", radius: 0.019, length: 0.15, color: 0xe8c547 },
+  "014_lemon":  { type: "sphere",  radius: 0.030, color: 0xd9d24a },
+  "018_plum":   { type: "sphere",  radius: 0.026, color: 0x6b3a5c },
+  "013_apple":  { type: "sphere",  radius: 0.0375, color: 0xc23b3b },
+  "016_pear":   { type: "sphere",  radius: 0.033, color: 0x9bbf4a },
+};
+
+// finger_local_chain: mirrors gripper_gen.finger_local_chain exactly (N_SEGMENTS,
+// curvature applied linearly across segments, local +Z = reach, local -Y = inward).
+function fingerLocalChain(fingerLength, curvatureDeg) {
+  const segLen = fingerLength / N_SEGMENTS;
+  const pts = [[0, 0, 0]];
+  for (let k = 0; k < N_SEGMENTS; k++) {
+    const phiK = (curvatureDeg * k / Math.max(N_SEGMENTS - 1, 1)) * Math.PI / 180;
+    const dir = [0, -Math.sin(phiK), Math.cos(phiK)];
+    const prev = pts[pts.length - 1];
+    pts.push([prev[0] + segLen * dir[0], prev[1] + segLen * dir[1], prev[2] + segLen * dir[2]]);
+  }
+  return pts;
+}
+
+function quatAboutZ(deg) {
+  const half = (deg * Math.PI / 180) / 2;
+  return new THREE.Quaternion(0, 0, Math.sin(half), Math.cos(half));
+}
+
+// Genesis/MJCF quat convention is (w, x, y, z); THREE.Quaternion is (x, y, z, w).
+function mjQuatToThree(q) {
+  return new THREE.Quaternion(q[1], q[2], q[3], q[0]);
+}
+
+// World-frame positions of one finger's capsule-chain polyline at a given step,
+// reconstructed from REAL recorded hand pose + finger joint value -- not fabricated.
+// Composition order mirrors MJCF: world = hand * bodyRot * (bodyPos + jointOffset), and
+// chain points (already in the body's local frame) get the same bodyRot/translate applied.
+function fingerWorldChain(gripper, fingerIdx, fingerQ, handPos, handQuatThree) {
+  const nFingers = gripper.n_fingers;
+  const azimuthDeg = fingerIdx * (360 / nFingers);
+  const bodyQuat = quatAboutZ(azimuthDeg);
+  const bodyPos = new THREE.Vector3(0, 0, FINGER_BASE_Z);
+  const jointOffset = new THREE.Vector3(0, fingerQ, 0).applyQuaternion(bodyQuat);
+  const handPosVec = new THREE.Vector3(handPos[0], handPos[1], handPos[2]);
+
+  const chain = fingerLocalChain(gripper.finger_length, gripper.curvature_deg);
+  return chain.map(p => {
+    const v = new THREE.Vector3(p[0], p[1], p[2]);
+    v.applyQuaternion(bodyQuat);
+    v.add(bodyPos).add(jointOffset);
+    v.applyQuaternion(handQuatThree);
+    v.add(handPosVec);
+    return v;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Three.js scene setup
+// ---------------------------------------------------------------------------
+const viewportEl = document.getElementById("viewport");
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0d12);
+scene.fog = new THREE.Fog(0x0a0d12, 2.2, 5.5);
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 20);
+camera.up.set(0, 0, 1); // recorded data is Z-up; keep the mapping identity and reorient the camera instead
+camera.position.set(0.95, -0.95, 1.35);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+viewportEl.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0.35, 0.0, 0.85);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.update();
+
+function resize() {
+  const w = viewportEl.clientWidth, h = viewportEl.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+window.addEventListener("resize", resize);
+
+// Lighting
+scene.add(new THREE.AmbientLight(0x8899bb, 0.55));
+const key = new THREE.DirectionalLight(0xfff2e6, 1.1);
+key.position.set(1.4, -1.0, 2.2);
+scene.add(key);
+const rim = new THREE.DirectionalLight(0x5588ff, 0.35);
+rim.position.set(-1.2, 1.0, 0.8);
+scene.add(rim);
+
+// Table (schematic — real geometry data isn't part of the recorded trajectory, only pose data is)
+const tableGeo = new THREE.BoxGeometry(1.2, 0.8, 0.05);
+const tableMat = new THREE.MeshStandardMaterial({ color: 0x2a2118, roughness: 0.9 });
+const table = new THREE.Mesh(tableGeo, tableMat);
+table.position.set(0.35, 0.0, TABLE_TOP_Z - 0.025);
+scene.add(table);
+const gridHelper = new THREE.GridHelper(1.4, 14, 0x2f3648, 0x1c2130);
+gridHelper.rotation.x = Math.PI / 2;
+gridHelper.position.set(0.35, 0.0, TABLE_TOP_Z + 0.001);
+scene.add(gridHelper);
+
+// Franka base marker (schematic anchor for the arm indicator)
+const baseMarker = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.06, 24), new THREE.MeshStandardMaterial({ color: 0x333d52, roughness: 0.6 }));
+baseMarker.rotation.x = Math.PI / 2;
+baseMarker.position.set(FRANKA_BASE[0], FRANKA_BASE[1], FRANKA_BASE[2] + 0.03);
+scene.add(baseMarker);
+
+// Arm indicator: schematic tube from the known base to the RECORDED hand position each
+// step. Deliberately not an exact 7-joint FK reconstruction (see legend) -- the arm_q
+// values are real and available in the trajectory data, just not rendered joint-by-joint.
+const armMat = new THREE.MeshStandardMaterial({ color: 0x5b6478, roughness: 0.55, metalness: 0.15 });
+let armMesh = null;
+function updateArm(handPos) {
+  if (armMesh) scene.remove(armMesh);
+  const from = new THREE.Vector3(FRANKA_BASE[0], FRANKA_BASE[1], FRANKA_BASE[2] + 0.05);
+  const to = new THREE.Vector3(handPos[0], handPos[1], handPos[2]);
+  const mid = from.clone().lerp(to, 0.5).add(new THREE.Vector3(0, 0, 0.12));
+  const curve = new THREE.QuadraticBezierCurve3(from, mid, to);
+  const geo = new THREE.TubeGeometry(curve, 20, 0.028, 10, false);
+  armMesh = new THREE.Mesh(geo, armMat);
+  scene.add(armMesh);
+}
+
+// Hand/palm marker
+const handGeo = new THREE.BoxGeometry(0.05, 0.09, 0.035);
+const handMat = new THREE.MeshStandardMaterial({ color: 0xc7cedb, roughness: 0.35, metalness: 0.25 });
+const handMesh = new THREE.Mesh(handGeo, handMat);
+scene.add(handMesh);
+
+// Fingers: rebuilt per trajectory load (finger count varies), updated per frame.
+const fingerMat = new THREE.MeshStandardMaterial({ color: 0xe7ebf2, roughness: 0.3, metalness: 0.1 });
+let fingerMeshes = []; // array of THREE.Mesh (TubeGeometry), one per finger
+function buildFingers(nFingers) {
+  fingerMeshes.forEach(m => scene.remove(m));
+  fingerMeshes = [];
+  for (let i = 0; i < nFingers; i++) {
+    const mesh = new THREE.Mesh(new THREE.BufferGeometry(), fingerMat);
+    scene.add(mesh);
+    fingerMeshes.push(mesh);
+  }
+}
+function updateFingers(gripper, fingerQArr, handPos, handQuatThree) {
+  for (let i = 0; i < gripper.n_fingers; i++) {
+    const pts = fingerWorldChain(gripper, i, fingerQArr[i], handPos, handQuatThree);
+    const curve = new THREE.CatmullRomCurve3(pts);
+    const geo = new THREE.TubeGeometry(curve, 12, FINGER_RADIUS, 8, false);
+    fingerMeshes[i].geometry.dispose();
+    fingerMeshes[i].geometry = geo;
+  }
+}
+
+// Object mesh: rebuilt per trajectory load (object identity varies).
+let objectMesh = null;
+function buildObject(objName) {
+  if (objectMesh) scene.remove(objectMesh);
+  const spec = OBJECT_GEOM[objName] || OBJECT_GEOM["014_lemon"];
+  let geo;
+  if (spec.type === "sphere") geo = new THREE.SphereGeometry(spec.radius, 24, 18);
+  else geo = new THREE.CapsuleGeometry(spec.radius, spec.length, 8, 16);
+  const mat = new THREE.MeshStandardMaterial({ color: spec.color, roughness: 0.55 });
+  objectMesh = new THREE.Mesh(geo, mat);
+  scene.add(objectMesh);
+}
+
+// Contact force arrows: a reusable pool, shown/hidden per frame based on recorded
+// contacts (real position + force vector, filtered to valid contacts at record time).
+const MAX_ARROWS = 24;
+const arrowPool = [];
+for (let i = 0; i < MAX_ARROWS; i++) {
+  const a = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(), 0.05, 0xff6a3d, 0.02, 0.014);
+  a.visible = false;
+  scene.add(a);
+  arrowPool.push(a);
+}
+function updateContactArrows(contacts) {
+  const n = Math.min(contacts.length, MAX_ARROWS);
+  for (let i = 0; i < n; i++) {
+    const c = contacts[i];
+    const pos = new THREE.Vector3(c.p[0], c.p[1], c.p[2]);
+    const force = new THREE.Vector3(c.f[0], c.f[1], c.f[2]);
+    const mag = c.mag;
+    const dir = force.lengthSq() > 1e-10 ? force.clone().normalize() : new THREE.Vector3(0, 0, 1);
+    const len = Math.min(0.02 + 0.012 * mag, 0.16);
+    arrowPool[i].position.copy(pos);
+    arrowPool[i].setDirection(dir);
+    arrowPool[i].setLength(len, len * 0.28, len * 0.16);
+    arrowPool[i].visible = true;
+  }
+  for (let i = n; i < MAX_ARROWS; i++) arrowPool[i].visible = false;
+}
+
+// ---------------------------------------------------------------------------
+// Playback state
+// ---------------------------------------------------------------------------
+let currentTraj = null;
+let currentKey = null;
+let currentStep = 0;
+let playing = false;
+let speed = 0.5;
+let acc = 0;
+const STEP_DT = 1 / 100; // recorded at the sim's control-step rate (dt=0.01s)
+
+function loadTrajectory(key) {
+  currentKey = key;
+  currentTraj = TRAJECTORIES[key];
+  currentStep = 0;
+  buildFingers(currentTraj.gripper.n_fingers);
+  buildObject(currentTraj.object);
+
+  document.getElementById("scrub").max = currentTraj.n_steps - 1;
+  document.getElementById("scrub").value = 0;
+
+  document.getElementById("mObject").textContent = currentTraj.object;
+  document.getElementById("mDesign").textContent = key.startsWith("baseline") ? "Baseline (2-finger)" : "Winner (3-finger)";
+  document.getElementById("mFingers").textContent = currentTraj.gripper.n_fingers;
+  document.getElementById("mCurv").textContent = currentTraj.gripper.curvature_deg.toFixed(1) + "°";
+  document.getElementById("mAperture").textContent = (currentTraj.gripper.aperture * 100).toFixed(1) + " cm";
+  document.getElementById("mPeakForce").textContent = currentTraj.peak_contact_force.toFixed(2) + " N";
+  document.getElementById("mMaxSlip").textContent = (currentTraj.max_slip * 1000).toFixed(1) + " mm";
+
+  const chip = document.getElementById("statusChip");
+  const statusText = document.getElementById("statusText");
+  if (currentTraj.success) {
+    chip.className = "status-chip success"; statusText.textContent = "SUCCESS";
+  } else {
+    chip.className = "status-chip fail"; statusText.textContent = "FAILURE";
+  }
+
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.key === key));
+  renderStep();
+}
+
+function renderStep() {
+  const s = currentTraj.steps[currentStep];
+  const handQuatThree = mjQuatToThree(s.hand_q);
+
+  handMesh.position.set(s.hand_p[0], s.hand_p[1], s.hand_p[2]);
+  handMesh.quaternion.copy(handQuatThree);
+
+  updateArm(s.hand_p);
+  updateFingers(currentTraj.gripper, s.finger_q, s.hand_p, handQuatThree);
+
+  objectMesh.position.set(s.obj_p[0], s.obj_p[1], s.obj_p[2]);
+  objectMesh.quaternion.copy(mjQuatToThree(s.obj_q));
+
+  updateContactArrows(s.contacts);
+
+  document.getElementById("scrub").value = currentStep;
+  document.getElementById("stepLabel").textContent = `${currentStep} / ${currentTraj.n_steps - 1}`;
+  document.getElementById("rStep").textContent = currentStep;
+  document.getElementById("rContacts").textContent = s.contacts.length;
+  const maxMag = s.contacts.length ? Math.max(...s.contacts.map(c => c.mag)) : 0;
+  document.getElementById("rForce").textContent = maxMag.toFixed(2) + " N";
+  document.getElementById("rObjPos").textContent = s.obj_p.map(v => v.toFixed(3)).join(", ");
+}
+
+function buildTabs() {
+  const tabsEl = document.getElementById("tabs");
+  const labels = { baseline_fail: "Baseline · fails", winner_succeed: "Winner · succeeds", winner_apple_fail: "Winner · apple (honest limit)" };
+  Object.keys(TRAJECTORIES).forEach(key => {
+    const btn = document.createElement("button");
+    btn.className = "tab"; btn.textContent = labels[key] || key; btn.dataset.key = key;
+    btn.addEventListener("click", () => { playing = false; updatePlayIcon(); loadTrajectory(key); });
+    tabsEl.appendChild(btn);
+  });
+}
+
+function updatePlayIcon() {
+  document.getElementById("playbtn").innerHTML = playing ? "&#10074;&#10074;" : "&#9654;";
+}
+
+document.getElementById("playbtn").addEventListener("click", () => {
+  playing = !playing;
+  updatePlayIcon();
+});
+document.getElementById("scrub").addEventListener("input", (e) => {
+  playing = false; updatePlayIcon();
+  currentStep = parseInt(e.target.value, 10);
+  renderStep();
+});
+document.getElementById("speed").addEventListener("change", (e) => { speed = parseFloat(e.target.value); });
+
+// ---------------------------------------------------------------------------
+// Main loop
+// ---------------------------------------------------------------------------
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  if (playing && currentTraj) {
+    acc += dt * speed;
+    while (acc >= STEP_DT) {
+      acc -= STEP_DT;
+      currentStep++;
+      if (currentStep >= currentTraj.n_steps) { currentStep = currentTraj.n_steps - 1; playing = false; updatePlayIcon(); break; }
+    }
+    renderStep();
+  }
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+buildTabs();
+resize();
+loadTrajectory(Object.keys(TRAJECTORIES)[0]);
+animate();
+</script>
+</body>
+</html>

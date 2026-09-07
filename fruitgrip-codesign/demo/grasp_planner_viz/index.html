@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Antipodal Grasp Planner — Live Object Reasoning</title>
+<style>
+  :root {
+    --bg: #0a0d12;
+    --surface: #141924;
+    --surface-2: #1a2130;
+    --line: #262d3d;
+    --text: #e7ebf2;
+    --text-dim: #7c8598;
+    --accent: #ff6a3d;
+    --accent-dim: #c94f28;
+    --success: #35d488;
+    --fail: #ff5468;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: var(--bg); color: var(--text); font-family: var(--sans);
+    overflow: hidden;
+  }
+  #app { display: flex; flex-direction: column; width: 100%; height: 100%; }
+
+  #topbar {
+    display: flex; align-items: center; gap: 16px;
+    padding: 10px 18px; border-bottom: 1px solid var(--line);
+    background: var(--surface); flex-shrink: 0; flex-wrap: wrap;
+  }
+  #topbar h1 {
+    font-size: 14px; font-weight: 600; letter-spacing: 0.02em; margin: 0;
+    color: var(--text); white-space: nowrap;
+  }
+  #topbar h1 span { color: var(--text-dim); font-weight: 400; }
+
+  select#objectSelect, select#designSelect {
+    font-family: var(--sans); font-size: 12.5px; font-weight: 600;
+    padding: 7px 10px; border-radius: 6px; border: 1px solid var(--line);
+    background: var(--surface-2); color: var(--text); cursor: pointer;
+  }
+  #disclaimer {
+    margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--text-dim);
+    padding: 6px 10px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface-2);
+    white-space: nowrap;
+  }
+  #disclaimer strong { color: var(--accent); font-weight: 600; }
+
+  #main { flex: 1; display: flex; min-height: 0; }
+  #viewport { flex: 1; position: relative; min-width: 0; }
+  #viewport canvas { display: block; width: 100%; height: 100%; }
+  #loadingMsg {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-family: var(--mono); font-size: 13px; color: var(--text-dim);
+  }
+
+  #sidepanel {
+    width: 300px; flex-shrink: 0; background: var(--surface);
+    border-left: 1px solid var(--line); padding: 16px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 18px;
+  }
+  .panel-section h2 {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-dim); margin: 0 0 10px 0; font-weight: 600;
+  }
+  .status-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--mono); font-size: 12px; font-weight: 600;
+    padding: 5px 10px; border-radius: 5px;
+  }
+  .status-chip.success { background: rgba(53,212,136,0.12); color: var(--success); }
+  .status-chip.fail { background: rgba(255,84,104,0.12); color: var(--fail); }
+  .status-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .readout-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .readout-item {
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px;
+    padding: 8px 10px;
+  }
+  .readout-item .label { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 3px; }
+  .readout-item .value { font-family: var(--mono); font-size: 15px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+  .readout-item .value.accent { color: var(--accent); }
+  .readout-item.wide { grid-column: 1 / -1; }
+
+  .meta-row { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; font-size: 12px; }
+  .meta-row .k { color: var(--text-dim); }
+  .meta-row .v { font-family: var(--mono); color: var(--text); font-variant-numeric: tabular-nums; }
+
+  .legend-row { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--text-dim); padding: 3px 0; }
+  .legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+  #notesBox {
+    font-size: 11.5px; line-height: 1.5; color: var(--text-dim);
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 10px;
+  }
+
+  #howItWorks {
+    font-size: 11.5px; line-height: 1.55; color: var(--text-dim);
+  }
+  #howItWorks p { margin: 0 0 8px 0; }
+  #howItWorks strong { color: var(--text); }
+
+  #transport {
+    flex-shrink: 0; background: var(--surface); border-top: 1px solid var(--line);
+    padding: 10px 18px; display: flex; align-items: center; gap: 14px;
+  }
+  #playbtn {
+    width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer;
+    background: var(--accent); color: #1a0d08; font-size: 13px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; transition: background 0.15s;
+  }
+  #playbtn:hover { background: #ff7f57; }
+  #scrub { flex: 1; accent-color: var(--accent); cursor: pointer; }
+  #phaseLabel { font-family: var(--mono); font-size: 12px; color: var(--text-dim); min-width: 130px; text-align: right; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <h1>Antipodal Grasp Planner <span>&mdash; live object reasoning</span></h1>
+    <select id="objectSelect"></select>
+    <select id="designSelect">
+      <option value="baseline">Baseline (2-finger)</option>
+      <option value="winner" selected>Winner (3-finger)</option>
+    </select>
+    <div id="disclaimer"><strong>Real geometry.</strong> Computed live from the actual object mesh + design aperture &mdash; no canned answers, no physics engine.</div>
+  </div>
+  <div id="main">
+    <div id="viewport"><div id="loadingMsg">Loading…</div></div>
+    <div id="sidepanel">
+      <div class="panel-section">
+        <h2>Feasibility</h2>
+        <div id="statusChip" class="status-chip success"><span class="dot"></span><span id="statusText">FEASIBLE</span></div>
+      </div>
+      <div class="panel-section">
+        <h2>Chosen grasp</h2>
+        <div class="readout-grid">
+          <div class="readout-item"><div class="label">Antipodal score</div><div class="value accent" id="rScore">&mdash;</div></div>
+          <div class="readout-item"><div class="label">Grasp width</div><div class="value" id="rWidth">&mdash;</div></div>
+          <div class="readout-item"><div class="label">Height (drop frac)</div><div class="value" id="rDrop">&mdash;</div></div>
+          <div class="readout-item"><div class="label">Yaw</div><div class="value" id="rYaw">&mdash;</div></div>
+          <div class="readout-item wide"><div class="label">Design aperture (max opening)</div><div class="value" id="rAperture">&mdash;</div></div>
+        </div>
+      </div>
+      <div class="panel-section" id="notesSection" style="display:none;">
+        <h2>Note</h2>
+        <div id="notesBox"></div>
+      </div>
+      <div class="panel-section">
+        <h2>Legend</h2>
+        <div class="legend-row"><span class="legend-swatch" style="background:#d7dbe1;"></span>Object mesh (the real asset)</div>
+        <div class="legend-row"><span class="legend-swatch" style="background:#9fc4ff;"></span>Cross-section slice at chosen height</div>
+        <div class="legend-row"><span class="legend-swatch" style="background:var(--accent);"></span>Contact point + outward surface normal</div>
+        <div class="legend-row"><span class="legend-swatch" style="background:#f1ece1;"></span>Schematic hand &amp; fingers (scripted to the planner's own target -- not a physics simulation)</div>
+      </div>
+      <div class="panel-section">
+        <h2>How this works</h2>
+        <div id="howItWorks">
+          <p>For the selected object + design, the planner slices the object's own mesh at many heights, and at each height looks for the points whose outward surface normals most directly oppose each other (2-finger) or point radially outward together (N-finger) &mdash; subject to fitting the design's real aperture.</p>
+          <p><strong>This is the exact computation the controller uses</strong> when routing grasp targeting through the planner instead of the fixed per-object heuristic &mdash; not a separate illustrative version.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="transport">
+    <button id="playbtn" aria-label="Play/pause">&#9654;</button>
+    <input type="range" id="scrub" min="0" max="1000" value="0" step="1" aria-label="Scrub grasp animation" />
+    <span id="phaseLabel">Approach</span>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+
+const LABELS = {
+  "013_apple": "Apple", "017_orange": "Orange", "016_pear": "Pear", "025_mug": "Mug",
+  "003_cracker_box": "Cracker Box", "006_mustard_bottle": "Mustard Bottle",
+  "002_master_chef_can": "Master Chef Can", "005_tomato_soup_can": "Tomato Soup Can",
+  "010_potted_meat_can": "Potted Meat Can", "004_sugar_box": "Sugar Box",
+  "008_pudding_box": "Pudding Box", "036_wood_block": "Wood Block", "061_foam_brick": "Foam Brick",
+  "021_bleach_cleanser": "Bleach Cleanser", "019_pitcher_base": "Pitcher Base",
+  "040_large_marker": "Large Marker", "043_phillips_screwdriver": "Phillips Screwdriver",
+  "031_spoon": "Spoon", "032_knife": "Knife", "033_spatula": "Spatula", "037_scissors": "Scissors",
+  "035_power_drill": "Power Drill", "048_hammer": "Hammer", "042_adjustable_wrench": "Adjustable Wrench",
+  "051_large_clamp": "Large Clamp", "038_padlock": "Padlock", "029_plate": "Plate",
+  "026_sponge": "Sponge", "062_dice": "Dice", "077_rubiks_cube": "Rubik's Cube",
+  "058_golf_ball": "Golf Ball", "056_tennis_ball": "Tennis Ball", "054_softball": "Softball",
+  "053_mini_soccer_ball": "Mini Soccer Ball", "065-a_cups": "Cups (a)", "065-j_cups": "Cups (j)",
+  "014_lemon": "Lemon", "018_plum": "Plum",
+};
+
+// ---------------------------------------------------------------------------
+// Data
+// ---------------------------------------------------------------------------
+const resp = await fetch("grasp_planner_data.json");
+const DATA = await resp.json();
+const byKey = {};
+for (const e of DATA.entries) byKey[`${e.object_name}|${e.design}`] = e;
+
+const objectSelect = document.getElementById("objectSelect");
+for (const obj of DATA.objects) {
+  const opt = document.createElement("option");
+  opt.value = obj;
+  opt.textContent = LABELS[obj] || obj;
+  objectSelect.appendChild(opt);
+}
+objectSelect.value = "014_lemon";
+const designSelect = document.getElementById("designSelect");
+
+// ---------------------------------------------------------------------------
+// Three.js scene
+// ---------------------------------------------------------------------------
+const viewportEl = document.getElementById("viewport");
+const scene = new THREE.Scene();
+
+function makeBackgroundGradient() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 512;
+  const ctx = c.getContext("2d");
+  const g = ctx.createRadialGradient(256, 220, 40, 256, 256, 380);
+  g.addColorStop(0, "#1b212e");
+  g.addColorStop(0.55, "#12161f");
+  g.addColorStop(1, "#090b10");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 512, 512);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+scene.background = makeBackgroundGradient();
+scene.fog = new THREE.Fog(0x12161f, 0.6, 1.8);
+
+const camera = new THREE.PerspectiveCamera(42, 1, 0.005, 10);
+camera.position.set(0.16, -0.16, 0.14);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+viewportEl.appendChild(renderer.domElement);
+
+const pmremGenerator = new THREE.PMREMGenerator(renderer);
+scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.update();
+
+function resize() {
+  const w = viewportEl.clientWidth, h = viewportEl.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+window.addEventListener("resize", resize);
+
+scene.add(new THREE.HemisphereLight(0x9fb3d9, 0x2a2620, 0.5));
+const key = new THREE.DirectionalLight(0xfff2e0, 1.8);
+key.position.set(0.3, -0.25, 0.4);
+key.castShadow = true;
+key.shadow.mapSize.set(1024, 1024);
+scene.add(key);
+const fillLight = new THREE.DirectionalLight(0xcdd8f5, 0.5);
+fillLight.position.set(-0.25, -0.1, 0.2);
+scene.add(fillLight);
+const rim = new THREE.DirectionalLight(0x9fc4ff, 0.6);
+rim.position.set(-0.15, 0.2, 0.2);
+scene.add(rim);
+
+// Small ground disc purely for shadow-catching / scale reference.
+const groundGeo = new THREE.CircleGeometry(0.25, 48);
+const groundMat = new THREE.MeshStandardMaterial({ color: 0xbfc3ca, roughness: 0.95 });
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.receiveShadow = true;
+scene.add(ground);
+
+// ---------------------------------------------------------------------------
+// Object mesh (cached per name), grasp overlay (rebuilt per selection)
+// ---------------------------------------------------------------------------
+const objLoader = new OBJLoader();
+const meshCache = {};
+let currentMesh = null;
+let overlayGroup = new THREE.Group();
+scene.add(overlayGroup);
+
+function loadObjectMesh(name) {
+  if (meshCache[name]) return Promise.resolve(meshCache[name]);
+  return new Promise((resolve, reject) => {
+    objLoader.load(
+      `../../assets/ycb/${name}/textured.obj`,
+      (obj) => {
+        const mat = new THREE.MeshStandardMaterial({ color: 0xd7dbe1, roughness: 0.5, metalness: 0.05 });
+        obj.traverse((c) => {
+          if (c.isMesh) {
+            c.material = mat;
+            c.castShadow = true;
+            c.receiveShadow = true;
+          }
+        });
+        meshCache[name] = obj;
+        resolve(obj);
+      },
+      undefined,
+      reject,
+    );
+  });
+}
+
+const overlayMat = new THREE.MeshStandardMaterial({
+  color: 0xff6a3d, emissive: 0xff6a3d, emissiveIntensity: 0.85, roughness: 0.35,
+});
+const infeasibleMat = new THREE.MeshStandardMaterial({
+  color: 0xff5468, emissive: 0xff5468, emissiveIntensity: 0.7, roughness: 0.4,
+});
+// A plain THREE.Line's width is 1px on most GPUs regardless of the `linewidth` hint
+// (a long-standing WebGL/ANGLE limitation, not a bug here) -- a thin emissive TUBE
+// along the same points is what actually reads as a visible ring at any zoom level.
+const ringMat = new THREE.MeshStandardMaterial({ color: 0x9fc4ff, emissive: 0x3a6bb5, emissiveIntensity: 0.6, roughness: 0.4 });
+const ARROW_UP = new THREE.Vector3(0, 1, 0);
+
+function buildOverlay(entry) {
+  overlayGroup.clear();
+  if (!entry.loop_xy) return;
+
+  const z = entry.grasp_z;
+  const ptMat = entry.feasible ? overlayMat : infeasibleMat;
+
+  // Cross-section boundary ring.
+  const ringPts = entry.loop_xy.map(([x, y]) => new THREE.Vector3(x, y, z));
+  ringPts.push(ringPts[0]);
+  const ringCurve = new THREE.CatmullRomCurve3(ringPts, true, "catmullrom", 0.0);
+  const ringRadius = Math.max(entry.grasp_width * 0.012, 0.0006);
+  const ringGeo = new THREE.TubeGeometry(ringCurve, Math.min(ringPts.length * 2, 400), ringRadius, 6, true);
+  overlayGroup.add(new THREE.Mesh(ringGeo, ringMat));
+
+  // Contact points + outward normal arrows.
+  const contactRadius = Math.max(entry.grasp_width * 0.03, 0.0015);
+  entry.contact_points_xy.forEach(([x, y], i) => {
+    const sphere = new THREE.Mesh(new THREE.SphereGeometry(contactRadius, 14, 14), ptMat);
+    sphere.position.set(x, y, z);
+    overlayGroup.add(sphere);
+
+    const [nx, ny] = entry.contact_normals_xy[i];
+    const dir3 = new THREE.Vector3(nx, ny, 0);
+    const len = Math.max(entry.grasp_width * 0.35, 0.008);
+    const shaft = new THREE.Mesh(
+      new THREE.CylinderGeometry(contactRadius * 0.35, contactRadius * 0.35, len * 0.7, 8),
+      ptMat,
+    );
+    const head = new THREE.Mesh(new THREE.ConeGeometry(contactRadius * 0.9, len * 0.3, 10), ptMat);
+    const group = new THREE.Group();
+    shaft.position.set(0, len * 0.35, 0);
+    head.position.set(0, len * 0.7 + len * 0.15, 0);
+    group.add(shaft, head);
+    group.position.set(x, y, z);
+    group.quaternion.setFromUnitVectors(ARROW_UP, dir3);
+    overlayGroup.add(group);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Selection wiring
+// ---------------------------------------------------------------------------
+function fmtPct(x) { return (x * 100).toFixed(1) + "%"; }
+
+async function refresh() {
+  const objName = objectSelect.value;
+  const design = designSelect.value;
+  const entry = byKey[`${objName}|${design}`];
+  document.getElementById("loadingMsg").style.display = "block";
+  document.getElementById("loadingMsg").textContent = "Loading " + (LABELS[objName] || objName) + "…";
+
+  if (currentMesh) {
+    scene.remove(currentMesh);
+    currentMesh = null;
+  }
+
+  let obj;
+  try {
+    obj = await loadObjectMesh(objName);
+  } catch (e) {
+    document.getElementById("loadingMsg").textContent = "Failed to load mesh for " + objName;
+    return;
+  }
+  currentMesh = obj.clone(true);
+  currentMesh.position.set(0, 0, 0);
+  scene.add(currentMesh);
+  objectBaseZ = 0;
+  document.getElementById("loadingMsg").style.display = "none";
+
+  // Frame the camera/ground/controls target on this object's actual bounds.
+  const box = new THREE.Box3().setFromObject(currentMesh);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const radius = 0.5 * size.length();
+  objectRadius = radius;
+  // Frame between the resting object and the hovering/lifted hand above it (see
+  // buildHand/updateHand), not the object alone -- otherwise the hand animates mostly
+  // out of frame during the approach/lift phases. frameCenter/frameDist approximate
+  // the combined vertical extent using the same proportions buildHand itself uses.
+  const handReachAbove = radius * 1.15;
+  const frameCenter = center.clone().add(new THREE.Vector3(0, 0, handReachAbove * 0.5));
+  controls.target.copy(frameCenter);
+  const dist = Math.max((radius + handReachAbove * 0.5) * 3.6, 0.09);
+  camera.position.copy(frameCenter).add(new THREE.Vector3(dist * 0.7, -dist * 0.7, dist * 0.5));
+  camera.near = Math.max(dist * 0.01, 0.001);
+  camera.far = dist * 40;
+  camera.updateProjectionMatrix();
+  ground.position.set(center.x, center.y, box.min.z - 0.001);
+  ground.scale.setScalar(Math.max(radius * 3.2, 0.05) / 0.25);
+
+  // Reset the pick animation for the new selection.
+  playing = false;
+  animT = 0;
+  document.getElementById("scrub").value = 0;
+  updatePlayIcon();
+
+  if (entry) {
+    buildOverlay(entry);
+    buildHand(entry);
+    updateHand(0);
+    const chip = document.getElementById("statusChip");
+    const statusText = document.getElementById("statusText");
+    if (entry.feasible) {
+      chip.className = "status-chip success"; statusText.textContent = "FEASIBLE";
+    } else {
+      chip.className = "status-chip fail"; statusText.textContent = "INFEASIBLE";
+    }
+    document.getElementById("rScore").textContent = entry.antipodal_score != null ? entry.antipodal_score.toFixed(3) : "—";
+    document.getElementById("rWidth").textContent = entry.grasp_width != null ? (entry.grasp_width * 1000).toFixed(1) + " mm" : "—";
+    document.getElementById("rDrop").textContent = entry.center_drop_frac != null ? entry.center_drop_frac.toFixed(2) : "—";
+    document.getElementById("rYaw").textContent = entry.yaw_offset_deg != null ? entry.yaw_offset_deg.toFixed(1) + "°" : "—";
+    document.getElementById("rAperture").textContent = (entry.aperture * 100).toFixed(1) + " cm (" + entry.n_fingers_design + "-finger)";
+    const notesSection = document.getElementById("notesSection");
+    if (entry.notes) {
+      notesSection.style.display = "block";
+      document.getElementById("notesBox").textContent = entry.notes;
+    } else {
+      notesSection.style.display = "none";
+    }
+  } else {
+    overlayGroup.clear();
+    handGroup.clear();
+    handInfo = null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Animated pick: a SCRIPTED (not physics-simulated -- there is no physics engine on
+// this page) descend -> close -> lift of a schematic hand onto the planner's own
+// chosen contact points. Every position it ends up at is the real plan_grasp_with_
+// geometry() output; only the interpolation between "open, above the object" and
+// "closed, at the exact contact points" is animated/scripted.
+// ---------------------------------------------------------------------------
+const handGroup = new THREE.Group();
+scene.add(handGroup);
+const handMat = new THREE.MeshStandardMaterial({ color: 0xf1ece1, roughness: 0.45, metalness: 0.08 });
+const jointRingMat = new THREE.MeshStandardMaterial({ color: 0x24262b, roughness: 0.3, metalness: 0.2 });
+const HAND_UP = new THREE.Vector3(0, 1, 0);
+
+let handInfo = null; // geometry-independent per-selection state (dirs, radii, mesh refs)
+let objectRadius = 0.05;
+let objectBaseZ = 0; // object mesh's own resting z (always 0 -- OBJLoader keeps mesh-local origin)
+
+function buildHand(entry) {
+  handGroup.clear();
+  handInfo = null;
+  if (!entry || !entry.contact_points_xy || !entry.contact_points_xy.length) return;
+
+  const [cx, cy] = entry.centroid_xy;
+  const dirs = [], closedR = [];
+  for (const [px, py] of entry.contact_points_xy) {
+    const dx = px - cx, dy = py - cy;
+    const r = Math.hypot(dx, dy) || 1e-6;
+    dirs.push([dx / r, dy / r]);
+    closedR.push(r);
+  }
+  // "Open" only needs to be modestly wider than the actual grip -- maxClosedR is
+  // already close to the object's own radius (the fingers have to reach nearly across
+  // it to grip it at all), so a large multiplier here overshoots badly. Hand/finger
+  // THICKNESS is deliberately scaled off objectRadius instead of openR (decoupled):
+  // tying thickness to openR compounded with the above into a comically oversized hand
+  // on small objects like a lemon.
+  const maxClosedR = Math.max(...closedR);
+  const openR = maxClosedR * 1.25;
+  const palmZOffset = objectRadius * 0.95;
+  const fingerRadius = Math.max(objectRadius * 0.035, 0.0006);
+  const ptMat = entry.feasible ? overlayMat : infeasibleMat;
+
+  // Palm.
+  const palmSize = Math.max(objectRadius * 0.32, 0.004);
+  const palm = new THREE.Mesh(
+    new RoundedBoxGeometry(palmSize, palmSize, palmSize * 0.75, 3, palmSize * 0.16),
+    handMat,
+  );
+  palm.position.set(0, 0, palmZOffset);
+  palm.castShadow = true;
+  handGroup.add(palm);
+
+  // Short decorative arm stub, purely to read as "attached to a robot" -- rigid,
+  // doesn't participate in the descend/close/lift animation itself.
+  const armLen = palmSize * 1.4;
+  const armMesh = new THREE.Mesh(new THREE.CylinderGeometry(fingerRadius * 1.6, fingerRadius * 1.6, armLen, 12), handMat);
+  armMesh.position.set(0, 0, palmZOffset + palmSize * 0.5 + armLen * 0.5);
+  armMesh.castShadow = true;
+  handGroup.add(armMesh);
+  const jointRing = new THREE.Mesh(new THREE.TorusGeometry(fingerRadius * 1.9, fingerRadius * 0.55, 8, 20), jointRingMat);
+  jointRing.rotation.x = Math.PI / 2;
+  jointRing.position.set(0, 0, palmZOffset + palmSize * 0.5 + armLen * 0.85);
+  handGroup.add(jointRing);
+
+  const fingerMeshes = [];
+  for (let i = 0; i < dirs.length; i++) {
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(fingerRadius, fingerRadius, 1, 8), ptMat);
+    mesh.castShadow = true;
+    handGroup.add(mesh);
+    const tip = new THREE.Mesh(new THREE.SphereGeometry(fingerRadius * 1.3, 10, 10), ptMat);
+    handGroup.add(tip);
+    fingerMeshes.push({ mesh, tip, dir: dirs[i], closedR: closedR[i] });
+  }
+
+  handInfo = {
+    openR, palmZOffset, fingerMeshes, feasible: entry.feasible, graspZ: entry.grasp_z,
+    centerX: cx, centerY: cy,
+  };
+}
+
+const HOVER_FACTOR = 0.6; // how many object-radii above grasp height the hand starts
+const LIFT_FACTOR = 0.7;
+const T_DESCEND_END = 0.4;
+const T_CLOSE_END = 0.7;
+
+function smooth(t) { return t * t * (3 - 2 * t); } // smoothstep, avoids a robotic linear feel
+
+function updateHand(t) {
+  if (!handInfo) return;
+  const { openR, palmZOffset, fingerMeshes, feasible, graspZ } = handInfo;
+  const hover = objectRadius * HOVER_FACTOR;
+  const lift = objectRadius * LIFT_FACTOR;
+
+  let z, closeFrac, liftFrac;
+  if (t <= T_DESCEND_END) {
+    z = graspZ + hover * (1 - smooth(t / T_DESCEND_END));
+    closeFrac = 0; liftFrac = 0;
+  } else if (t <= T_CLOSE_END) {
+    z = graspZ;
+    closeFrac = smooth((t - T_DESCEND_END) / (T_CLOSE_END - T_DESCEND_END));
+    liftFrac = 0;
+  } else {
+    z = graspZ;
+    closeFrac = 1;
+    liftFrac = feasible ? smooth((t - T_CLOSE_END) / (1 - T_CLOSE_END)) : 0;
+  }
+
+  handGroup.position.set(handInfo.centerX, handInfo.centerY, z + lift * liftFrac);
+  // The cross-section ring / contact-point markers are geometrically painted on the
+  // object's own surface, so they track its lift exactly like the mesh does -- without
+  // this they'd stay behind at the original grasp height while the object rises away
+  // from them, reading as two disconnected sets of markers.
+  const objectZ = objectBaseZ + lift * liftFrac;
+  if (currentMesh) currentMesh.position.z = objectZ;
+  overlayGroup.position.z = objectZ;
+
+  for (const f of fingerMeshes) {
+    const r = openR + (f.closedR - openR) * closeFrac;
+    const tipLocal = new THREE.Vector3(f.dir[0] * r, f.dir[1] * r, 0);
+    const mountLocal = new THREE.Vector3(f.dir[0] * openR * 0.35, f.dir[1] * openR * 0.35, palmZOffset * 0.65);
+    const mid = mountLocal.clone().add(tipLocal).multiplyScalar(0.5);
+    const len = mountLocal.distanceTo(tipLocal);
+    f.mesh.position.copy(mid);
+    f.mesh.scale.set(1, Math.max(len, 1e-5), 1);
+    const dir3 = tipLocal.clone().sub(mountLocal).normalize();
+    if (dir3.lengthSq() > 1e-8) f.mesh.quaternion.setFromUnitVectors(HAND_UP, dir3);
+    f.tip.position.copy(tipLocal);
+  }
+
+  const phaseLabel = document.getElementById("phaseLabel");
+  if (t <= T_DESCEND_END) phaseLabel.textContent = "Approach";
+  else if (t <= T_CLOSE_END) phaseLabel.textContent = "Closing";
+  else phaseLabel.textContent = feasible ? "Lifting" : "Cannot lift (infeasible)";
+}
+
+let animT = 0;
+let playing = false;
+function updatePlayIcon() {
+  document.getElementById("playbtn").innerHTML = playing ? "&#10074;&#10074;" : "&#9654;";
+}
+document.getElementById("playbtn").addEventListener("click", () => {
+  if (playing) { playing = false; }
+  else {
+    if (animT >= 0.999) animT = 0;
+    playing = true;
+  }
+  updatePlayIcon();
+});
+document.getElementById("scrub").addEventListener("input", (e) => {
+  playing = false; updatePlayIcon();
+  animT = parseInt(e.target.value, 10) / 1000;
+  updateHand(animT);
+});
+
+objectSelect.addEventListener("change", refresh);
+designSelect.addEventListener("change", refresh);
+
+// ---------------------------------------------------------------------------
+// Main loop
+// ---------------------------------------------------------------------------
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  if (playing) {
+    animT += dt * 0.35;
+    if (animT >= 1) { animT = 1; playing = false; updatePlayIcon(); }
+    document.getElementById("scrub").value = Math.round(animT * 1000);
+    updateHand(animT);
+  }
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+resize();
+refresh();
+animate();
+</script>
+</body>
+</html>

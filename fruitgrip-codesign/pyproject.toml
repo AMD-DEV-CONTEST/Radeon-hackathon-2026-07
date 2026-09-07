@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "franka-fruit-pick-demo"
+version = "0.1.0"
+description = "Reference demo: a scripted-to-learned Franka fruit-pick pipeline (M1-M5) on the Genesis physics engine."
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    # Physics engine + renderer this demo is built on.
+    "genesis-world>=1.1.2",
+    "numpy>=1.26.4",
+    "trimesh>=4.8.2",
+    # Camera-image handling and video export.
+    "opencv-python",
+    "imageio",
+    "imageio-ffmpeg",
+    # Plotting for the diagnostic / eval-sweep tools.
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+# Policy training + closed-loop evaluation (M5). Install torch from the official index for
+# your CUDA / ROCm / CPU build (see README) -- do not rely on the default wheel here.
+# NOTE: lerobot 0.6.0 split its install into feature-scoped extras; this demo needs
+# `lerobot[training,smolvla]` ([training] -> [dataset] = datasets/av/pyarrow/torchcodec +
+# wandb + accelerate; [smolvla] -> transformers/num2words; ACT needs no extra). The actual
+# install is done explicitly in the README/Dockerfile (`uv pip install "lerobot[training,smolvla]==0.6.0"`),
+# not via `uv sync`, so this marker stays unpinned to keep the lockfile stable.
+learn = [
+    "torch",
+    "lerobot",
+]
+# End-effector co-design search (franka_fruit_pick/codesign/). CMA-ES driver for the
+# black-box, population-based gripper-geometry search (see codesign/search.py for why
+# gradient methods are ruled out for this design space).
+codesign = [
+    "cma",
+]
+
+[tool.uv]
+# genesis-world pulls an unpinned numba; on Python 3.12 the resolver can pick 0.53.x
+# (llvmlite 0.36) which only supports Python <3.10. Force a 3.12-compatible stack.
+# Pinned to 0.66.0 (not just ">=0.59") because the resolver otherwise picks up
+# numba 0.67.0rc1, which needs llvmlite>=0.49 -- and 0.49 only exists as an
+# unpublished-to-stable rc1, so that combination is uninstallable.
+override-dependencies = [
+    "numba==0.66.0",
+    "llvmlite>=0.42,<0.49",
+]
+
+[tool.setuptools.packages.find]
+include = ["franka_fruit_pick*"]
+
+[tool.ruff]
+line-length = 120
