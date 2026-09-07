@@ -1,0 +1,65 @@
+project: RadeonVLA-Reflex
+seed: 0
+
+# Task suites: basic | spatial | multistep | rules | advanced | full
+task_suite: basic
+
+runtime:
+  backend: amdgpu
+  visible_gpu: 0
+  control_hz: 20
+  sim_hz: 100
+  max_episode_steps: 1800
+
+scene:
+  robot: franka_panda
+  fruits:
+    - banana
+    - lemon
+    - plum
+    - apple
+    - orange
+  containers:
+    - white_left_bowl
+    - blue_left_bowl
+    - white_right_bowl
+    - blue_right_bowl
+  cameras:
+    world:
+      width: 320
+      height: 240
+      fps: 20
+    wrist:
+      width: 320
+      height: 240
+      fps: 20
+
+action:
+  type: absolute_joint_position
+  joint_names:
+    - panda_joint1
+    - panda_joint2
+    - panda_joint3
+    - panda_joint4
+    - panda_joint5
+    - panda_joint6
+    - panda_joint7
+    - panda_finger_joint1
+    - panda_finger_joint2
+  dimension: 9
+  gripper_range: [0.0, 0.04]
+
+safety:
+  max_joint_delta: 0.35
+  max_retries: 1
+  empty_grasp_hits: 15
+
+interrupt:
+  enabled: true
+  inject_step: 40
+
+paths:
+  dataset_root: datasets
+  output_root: outputs
+  artifact_root: artifacts
+  checkpoint_root: checkpoints

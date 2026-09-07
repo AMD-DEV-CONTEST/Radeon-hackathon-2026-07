@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/radeonvla/evaluation.schema.json",
+  "title": "RadeonVLA-Reflex Evaluation",
+  "type": "object",
+  "required": [
+    "experiment_id",
+    "git_commit",
+    "environment",
+    "checkpoint",
+    "config",
+    "summary",
+    "episodes"
+  ],
+  "properties": {
+    "experiment_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "git_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "environment": {
+      "type": "object",
+      "required": ["gpu", "rocm", "torch", "genesis", "lerobot"],
+      "properties": {
+        "gpu": {"type": "string"},
+        "rocm": {"type": "string"},
+        "torch": {"type": "string"},
+        "genesis": {"type": "string"},
+        "lerobot": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "checkpoint": {
+      "type": "object",
+      "required": ["uri", "sha256"],
+      "properties": {
+        "uri": {"type": "string"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      },
+      "additionalProperties": true
+    },
+    "config": {
+      "type": "object"
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "num_episodes",
+        "final_success",
+        "first_attempt_success",
+        "recovery_success",
+        "safe_interrupt_rate",
+        "success_by_task",
+        "success_by_scenario",
+        "p50_inference_latency_ms",
+        "p95_inference_latency_ms"
+      ],
+      "additionalProperties": true
+    },
+    "episodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "episode_id",
+          "seed",
+          "task_id",
+          "instruction",
+          "success",
+          "object_correct",
+          "target_correct",
+          "first_attempt_success",
+          "events",
+          "retry_count",
+          "completion_time_s",
+          "inference_latency_ms",
+          "failure_reason"
+        ],
+        "properties": {
+          "episode_id": {"type": "string"},
+          "seed": {"type": "integer"},
+          "task_id": {"type": "string"},
+          "instruction": {"type": "string"},
+          "success": {"type": "boolean"},
+          "object_correct": {"type": "boolean"},
+          "target_correct": {"type": "boolean"},
+          "first_attempt_success": {"type": "boolean"},
+          "events": {"type": "array"},
+          "retry_count": {"type": "integer", "minimum": 0},
+          "completion_time_s": {"type": "number", "minimum": 0},
+          "inference_latency_ms": {
+            "type": "array",
+            "items": {"type": "number", "minimum": 0}
+          },
+          "failure_reason": {
+            "type": ["string", "null"]
+          },
+          "video_uri": {
+            "type": ["string", "null"]
+          },
+          "scenario": {
+            "type": "string"
+          },
+          "reflex_enabled": {
+            "type": "boolean"
+          },
+          "interrupted": {
+            "type": "boolean"
+          },
+          "safe_interrupt": {
+            "type": "boolean"
+          },
+          "interrupt_response_steps": {
+            "type": ["integer", "null"],
+            "minimum": 0
+          },
+          "unprotected_post_interrupt_steps": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "perturbation_applied": {
+            "type": "boolean"
+          },
+          "recovery_success": {
+            "type": "boolean"
+          },
+          "precision_recovery_attempted": {
+            "type": "boolean"
+          },
+          "precision_recovery_success": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

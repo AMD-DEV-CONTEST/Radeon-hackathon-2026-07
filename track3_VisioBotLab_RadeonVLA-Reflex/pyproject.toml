@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=71", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "radeonvla-reflex"
+version = "0.1.0"
+description = "Interruptible and failure-aware language-guided Franka fruit sorting on AMD Radeon GPUs."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+authors = [
+  { name = "Zhenwei Zhou" },
+  { name = "Ange Liu" },
+  { name = "Haoran Wang" },
+]
+maintainers = [
+  { name = "Zhenwei Zhou" },
+]
+dependencies = [
+  "huggingface-hub>=0.34",
+  "numpy>=1.26.4,<2.3",
+  "pyyaml>=6.0",
+  "jsonschema>=4.23",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "ruff>=0.9",
+]
+
+[project.scripts]
+radeonvla-check-env = "radeonvla.check_env:main"
+radeonvla-audit-submission = "radeonvla.submission_audit:main"
+radeonvla-setup-assets = "radeonvla.setup_assets:main"
+radeonvla-scene = "radeonvla.scene:main"
+radeonvla-expert = "radeonvla.expert:main"
+radeonvla-record = "radeonvla.record_dataset:main"
+radeonvla-train = "radeonvla.train_policy:main"
+radeonvla-evaluate = "radeonvla.evaluate:main"
+radeonvla-benchmark = "radeonvla.benchmark:main"
+radeonvla-validate-dataset = "radeonvla.validate_dataset:main"
+radeonvla-download = "radeonvla.download_artifacts:main"
+radeonvla-pipeline = "radeonvla.pipeline:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

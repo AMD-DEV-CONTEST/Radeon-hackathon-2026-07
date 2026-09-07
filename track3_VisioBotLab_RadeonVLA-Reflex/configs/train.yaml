@@ -1,0 +1,25 @@
+base_config: configs/base.yaml
+
+policy:
+  type: smolvla
+  base_checkpoint: lerobot/smolvla_base
+  device: cuda
+  dtype: bfloat16
+  rename_map:
+    observation.images.world: observation.images.camera1
+    observation.images.wrist: observation.images.camera2
+
+dataset:
+  repo_id: visiobot/radeonvla_reflex
+  root: datasets/radeonvla_reflex
+  fps: 20
+
+training:
+  batch_size: 4
+  gradient_accumulation_steps: 1
+  steps: 10000
+  save_every: 2000
+  eval_every: 2000
+  seed: 0
+  num_workers: 4
+  video_backend: pyav

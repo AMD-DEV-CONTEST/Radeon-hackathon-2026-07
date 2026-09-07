@@ -1,0 +1,56 @@
+services:
+  radeonvla:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        BASE_IMAGE: "${BASE_IMAGE:-docker.io/rocm/dev-ubuntu-24.04:7.2.1-complete@sha256:3db551c4e1229aac1857ac44fcb6141bb749f41348eb572452f11279153c13c3}"
+        PIP_INDEX_URL: "${PIP_INDEX_URL:-https://pypi.org/simple}"
+        PIP_TRUSTED_HOST: "${PIP_TRUSTED_HOST:-}"
+    image: radeonvla-reflex:rocm7.2.1
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+      - render
+    ipc: host
+    shm_size: 8gb
+    security_opt:
+      - seccomp=unconfined
+    cap_add:
+      - SYS_PTRACE
+    environment:
+      HIP_VISIBLE_DEVICES: "${HIP_VISIBLE_DEVICES:-0}"
+      EGL_DEVICE_ID: "${EGL_DEVICE_ID:-0}"
+      PYOPENGL_PLATFORM: egl
+      BACKEND: "${BACKEND:-amdgpu}"
+      EPISODES: "${EPISODES:-200}"
+      TRAIN_STEPS: "${TRAIN_STEPS:-10000}"
+      SUITE: "${SUITE:-basic}"
+      REPO_ID: "${REPO_ID:-visiobot/radeonvla_reflex}"
+      DATASET_ROOT: "${DATASET_ROOT:-datasets/radeonvla_reflex}"
+      DEVICE: "${DEVICE:-cuda}"
+      BATCH_SIZE: "${BATCH_SIZE:-4}"
+      EVAL_PER_TASK: "${EVAL_PER_TASK:-10}"
+      SKIP_RECORD: "${SKIP_RECORD:-0}"
+      SKIP_TRAIN: "${SKIP_TRAIN:-0}"
+      SOURCE_COMMIT: "${SOURCE_COMMIT:-}"
+      DR: "${DR:-1}"
+      DR_REBUILD_EVERY: "${DR_REBUILD_EVERY:-20}"
+      OVERWRITE: "${OVERWRITE:-0}"
+      DISCARD_INCOMPLETE: "${DISCARD_INCOMPLETE:-0}"
+      CKPT: "${CKPT:-}"
+      HF_TOKEN: "${HF_TOKEN:-}"
+      HF_ENDPOINT: "${HF_ENDPOINT:-https://huggingface.co}"
+      HF_HOME: /root/.cache/huggingface
+    volumes:
+      - ../datasets:/workspace/radeonvla-reflex/datasets
+      - ../checkpoints:/workspace/radeonvla-reflex/checkpoints
+      - ../outputs:/workspace/radeonvla-reflex/outputs
+      - ../artifacts:/workspace/radeonvla-reflex/artifacts
+      - hf-cache:/root/.cache/huggingface
+    command: help
+
+volumes:
+  hf-cache:
