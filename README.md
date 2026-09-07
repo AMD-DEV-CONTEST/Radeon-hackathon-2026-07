@@ -1,4 +1,6 @@
 # Radeon-hackathon-2026-07
+🏆 **AMD AI DevMaster Hackathon 2026 Winners**
+[Three Tracks, One GPU: Lessons from the AMD DevMaster Hackathon](https://www.amd.com/en/developer/resources/technical-articles/2026/lessons-from-the-amd-devmaster-hackathon.html)
 
 ## how to apply and use AMD Radeon GPU
 see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
@@ -131,6 +133,9 @@ Tests: `node --test tests/test_slash_commands.mjs` + `python -m unittest tests.t
 
 ## when you submit
 **pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+
+> [!IMPORTANT]
+> Team name was an optional field on the Luma registration form. If you did not fill in a team name when you registered, please use your own name instead, so the title of the pull request should be like **"Track x, Your name, your application name"**.
 
 > [!NOTE]
 > All submission materials, project descriptions, and Pull Requests should be submitted in English.
