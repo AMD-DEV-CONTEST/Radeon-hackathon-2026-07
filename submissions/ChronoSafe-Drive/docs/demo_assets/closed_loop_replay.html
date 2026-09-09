@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ChronoSafe-Drive | Closed-Loop Evidence Replay</title>
+  <style>
+    :root { --bg:#07111f; --panel:#0f1c2e; --line:#243956; --text:#f7fafc; --muted:#9fb0c6; --red:#ef3340; --amber:#f5a623; --green:#27c281; --blue:#4ca5ff; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--text); background:radial-gradient(circle at 15% 0%,#173052 0,#07111f 44%); font-family:Inter,Segoe UI,Arial,sans-serif; overflow:hidden; }
+    .page { width:100vw; height:100vh; padding:28px 34px 24px; display:grid; grid-template-rows:auto 1fr auto; gap:18px; }
+    header { display:flex; align-items:center; justify-content:space-between; }
+    h1 { margin:0; font-size:34px; letter-spacing:-.8px; } h1 span { color:var(--red); }
+    .badges { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+    .badge { border:1px solid var(--line); background:#10223a; color:#cbd8e8; padding:8px 12px; border-radius:999px; font-size:13px; }
+    .main { display:grid; grid-template-columns:1.12fr .88fr; gap:18px; min-height:0; }
+    .panel { background:linear-gradient(180deg,rgba(18,34,56,.98),rgba(10,24,42,.98)); border:1px solid var(--line); border-radius:18px; box-shadow:0 18px 45px rgba(0,0,0,.24); }
+    .left { padding:20px; display:grid; grid-template-rows:auto 1fr auto; gap:14px; min-height:0; }
+    .section-title { color:#dbe7f4; font-size:14px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; }
+    .road { position:relative; min-height:240px; overflow:hidden; border-radius:14px; background:linear-gradient(#132b48 0 42%,#202b32 42% 100%); border:1px solid #2b435e; }
+    .skyline { position:absolute; left:0; right:0; top:28%; height:15%; opacity:.6; background:repeating-linear-gradient(90deg,#19324a 0 42px,#24425d 42px 68px,#10263d 68px 92px); }
+    .lane { position:absolute; left:18%; right:18%; top:42%; bottom:0; background:#303940; clip-path:polygon(38% 0,62% 0,100% 100%,0 100%); }
+    .mark { position:absolute; width:9px; height:52px; background:#fff; left:50%; transform:translateX(-50%); opacity:.8; }
+    .car { position:absolute; left:50%; bottom:11%; width:74px; height:116px; transform:translateX(-50%); background:linear-gradient(90deg,#b61526,#f0444c,#b61526); border-radius:25px 25px 12px 12px; box-shadow:0 0 26px rgba(239,51,64,.35); }
+    .car:before { content:""; position:absolute; left:12px; right:12px; top:20px; height:30px; background:#9dd7ff; border-radius:12px 12px 5px 5px; }
+    .event { position:absolute; left:16px; top:16px; padding:9px 12px; border-radius:9px; background:rgba(7,17,31,.76); border:1px solid #33506f; font-weight:700; }
+    .timeline { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+    .metric { padding:12px 13px; border:1px solid var(--line); border-radius:12px; background:#0c192b; }
+    .metric small { display:block; color:var(--muted); margin-bottom:4px; } .metric strong { font-size:19px; }
+    .right { padding:20px; display:grid; grid-template-rows:auto auto 1fr auto; gap:14px; min-height:0; }
+    .status-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .status { border:1px solid var(--line); border-radius:12px; background:#0b192b; padding:12px; }
+    .status label { display:block; font-size:12px; color:var(--muted); margin-bottom:7px; } .status b { font-size:18px; }
+    .mode { grid-column:1/-1; display:flex; align-items:center; justify-content:space-between; }
+    .mode-pill { padding:7px 12px; border-radius:999px; font-size:14px; font-weight:800; }
+    .normal { background:rgba(39,194,129,.16); color:#67e4ae; } .degraded { background:rgba(245,166,35,.17); color:#ffd17d; } .minimal { background:rgba(239,51,64,.18); color:#ff8992; }
+    .gauge { height:12px; border-radius:8px; background:#1b2d43; overflow:hidden; margin-top:8px; } .gauge > div { height:100%; background:linear-gradient(90deg,var(--green),var(--amber),var(--red)); width:0; transition:width .12s linear; }
+    canvas { width:100%; height:100%; min-height:170px; border:1px solid var(--line); border-radius:12px; background:#081522; }
+    .controls { display:flex; gap:10px; align-items:center; } button { color:white; background:#1d3552; border:1px solid #385777; padding:9px 15px; border-radius:9px; font-weight:700; cursor:pointer; } button.primary { background:var(--red); border-color:#ff6670; }
+    footer { display:flex; justify-content:space-between; color:var(--muted); font-size:12px; }
+    .progress { flex:1; height:5px; background:#1b2e46; border-radius:9px; margin:5px 18px 0; overflow:hidden; } .progress div { height:100%; background:var(--blue); width:0; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1><span>ChronoSafe</span>-Drive</h1>
+    <div class="badges"><div class="badge">AMD Radeon gfx1100</div><div class="badge">ROCm/HIP 7.2</div><div class="badge">Unseen seed 149</div><div class="badge">Frozen MRM threshold 0.62</div></div>
+  </header>
+  <div class="main">
+    <section class="panel left">
+      <div class="section-title">Validated-Xvfb Closed-Loop Evidence Replay</div>
+      <div class="road">
+        <div class="skyline"></div><div class="lane"></div>
+        <div class="mark" id="mark1"></div><div class="mark" id="mark2"></div><div class="mark" id="mark3"></div>
+        <div class="car"></div><div class="event" id="event">Loading committed evidence...</div>
+      </div>
+      <div class="timeline">
+        <div class="metric"><small>Step</small><strong id="step">-</strong></div>
+        <div class="metric"><small>Vehicle speed</small><strong id="speed">-</strong></div>
+        <div class="metric"><small>20-seed MRM success</small><strong>100%</strong></div>
+        <div class="metric"><small>Premature triggers</small><strong>0%</strong></div>
+      </div>
+    </section>
+    <section class="panel right">
+      <div class="section-title">Perception - Risk - Control</div>
+      <div class="status-grid">
+        <div class="status"><label>Controlled condition</label><b id="truth">-</b></div>
+        <div class="status"><label>Temporal diagnosis</label><b id="prediction">-</b></div>
+        <div class="status"><label>Calibrated upper risk</label><b id="risk">-</b><div class="gauge"><div id="gauge"></div></div></div>
+        <div class="status"><label>Target risk</label><b id="target">-</b></div>
+        <div class="status mode"><div><label>Controller mode</label><b id="modeText">-</b></div><span class="mode-pill normal" id="modePill">NORMAL</span></div>
+      </div>
+      <canvas id="chart" width="820" height="280"></canvas>
+      <div class="controls"><button class="primary" id="play">Pause</button><button id="restart">Restart</button><span id="message" style="color:var(--muted);font-size:12px">Loading CSV from the submitted GitHub branch...</span></div>
+    </section>
+  </div>
+  <footer><span>Replay source: committed MetaDrive seed-149 CSV; no test-seed tuning</span><div class="progress"><div id="progress"></div></div><span>Research prototype - not road certified</span></footer>
+</div>
+<script>
+const csvUrl='https://raw.githubusercontent.com/boolstruct/Radeon-hackathon-2026-07/submission/chronosafe-drive/submissions/ChronoSafe-Drive/results/closed_loop_xvfb_timestamp_robust_seed2026/seed_149/closed_loop.csv';
+let rows=[],i=0,playing=true,timer;
+const $=id=>document.getElementById(id);
+function nice(s){return (s||'').replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase())}
+function draw(){const c=$('chart'),x=c.getContext('2d'),w=c.width,h=c.height;x.clearRect(0,0,w,h);x.strokeStyle='#203752';x.lineWidth=1;for(let y=35;y<h;y+=52){x.beginPath();x.moveTo(44,y);x.lineTo(w-15,y);x.stroke()}x.fillStyle='#9fb0c6';x.font='12px Segoe UI';x.fillText('Risk / normalized speed',44,20);if(!rows.length)return;const shown=rows.slice(0,i+1);const plot=(key,color,scale=1)=>{x.strokeStyle=color;x.lineWidth=3;x.beginPath();shown.forEach((r,n)=>{const px=44+n/(rows.length-1)*(w-62),py=h-25-Math.min(1,+r[key]/scale)*(h-60);n?x.lineTo(px,py):x.moveTo(px,py)});x.stroke()};plot('risk_upper','#ef3340');plot('true_risk','#f5a623');plot('speed_km_h','#4ca5ff',12);x.fillStyle='#ef3340';x.fillRect(w-224,12,14,3);x.fillStyle='#dbe7f4';x.fillText('Upper risk',w-204,18);x.fillStyle='#f5a623';x.fillRect(w-134,12,14,3);x.fillStyle='#dbe7f4';x.fillText('Target',w-114,18);x.fillStyle='#4ca5ff';x.fillRect(w-68,12,14,3);x.fillStyle='#dbe7f4';x.fillText('Speed',w-49,18)}
+function update(){if(!rows.length)return;const r=rows[i],mode=r.mode; $('step').textContent=`${r.step} / ${rows.length-1}`;$('speed').textContent=`${(+r.speed_km_h).toFixed(3)} km/h`;$('truth').textContent=nice(r.scenario);$('prediction').textContent=nice(r.predicted_scenario);$('risk').textContent=(+r.risk_upper).toFixed(3);$('target').textContent=(+r.true_risk).toFixed(3);$('gauge').style.width=`${Math.min(100,+r.risk_upper*100)}%`;$('modeText').textContent=mode;const p=$('modePill');p.textContent=mode;p.className='mode-pill '+(mode==='NORMAL'?'normal':mode==='DEGRADED'?'degraded':'minimal');$('event').textContent=+r.step<150?'Nominal sensing':+r.step===150?'Compound degradation begins':mode==='MINIMAL_RISK'?'Minimal-risk braking latched':'Persistent degradation detected';$('progress').style.width=`${i/(rows.length-1)*100}%`;[1,2,3].forEach((n)=>{$('mark'+n).style.top=`${44+((i*9+n*90)%260)}px`});draw()}
+function tick(){if(!playing||!rows.length)return;i=Math.min(rows.length-1,i+1);update();if(i===rows.length-1){playing=false;$('play').textContent='Replay';$('message').textContent='Near-stop reached; final speed 0.0126 km/h.'}}
+$('play').onclick=()=>{if(i===rows.length-1)i=0;playing=!playing;$('play').textContent=playing?'Pause':'Play';update()};$('restart').onclick=()=>{i=0;playing=true;$('play').textContent='Pause';$('message').textContent='Replaying committed closed-loop evidence.';update()};
+fetch(csvUrl).then(r=>{if(!r.ok)throw Error(r.status);return r.text()}).then(t=>{const lines=t.trim().split(/\r?\n/),head=lines.shift().split(',');rows=lines.map(line=>Object.fromEntries(line.split(',').map((v,j)=>[head[j],v])));$('message').textContent='Committed CSV loaded. Evidence replay is running.';update();timer=setInterval(tick,105)}).catch(e=>{$('message').textContent='Could not load GitHub CSV. Check the internet connection.';$('event').textContent='Evidence load failed'});
+</script>
+</body>
+</html>
