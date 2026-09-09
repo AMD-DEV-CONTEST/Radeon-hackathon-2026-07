@@ -1,0 +1,23 @@
+# Super Desktop Assistant
+# 启动: docker compose up -d
+# 查看: http://localhost:7860
+# CLI:  docker compose run --rm assistant --cli
+
+services:
+  assistant:
+    build: .
+    ports:
+      - "7860:7860"
+    env_file:
+      - .env
+    volumes:
+      # 持久化会话数据
+      - ./data:/app/data
+      - ./outputs:/app/outputs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7860')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
