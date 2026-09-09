@@ -1,0 +1,9 @@
+# 比赛提交准备工作流
+
+审计本项目的黑客松提交准备情况，并运行安全检查。正式 Radeon Cloud 演示检查本地项目，而不会假装 Linux 云实例能够读取 Windows 笔记本。Agent 会检索赛道二要求、检查提交结构、运行获准测试、列出未完成项、记住用户明确的优先级，并展示二次确认与阻止边界。
+
+源代码、测试、README、项目说明书、架构图、PPT、海报、演示脚本、运行手册、真实 Radeon 证据与公开视频都属于最终提交材料。视频已发布于 https://www.bilibili.com/video/BV1nQuA6qEFS/。官方 Fork 与 Pull Request #87 已完成并可公开审阅。
+
+英文字幕版本：https://www.bilibili.com/video/BV1A1M66VEqS/。
+
+真实 Radeon 证据与 ROCm 演示已经完成，评审者可以通过随附运行手册复现，无需依赖公开的实时模型端点。
