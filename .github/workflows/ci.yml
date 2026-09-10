@@ -1,0 +1,139 @@
+# ──────────────────────────────────────────────────────────────────────────
+# MKO Universal AI Agents — CI
+#
+# Builds the Docker image (GHA-cached via docker/build-push-action@v6),
+# boots an ephemeral `docker compose` stack, and smoke-tests:
+#   • GET /api/agents             → HTTP 200
+#   • GET /api/credits?username=demo → JSON shape `{credits:int, username:"demo"}` (validated with jq)
+#   • docker inspect healthcheck → status "healthy"
+#   • torch.cuda.is_available() inside the container:
+#       - HARD failure on self-hosted runners expected to expose a GPU.
+#       - Informational pass on GitHub-hosted CPU runners (no GPU hardware ⇒
+#         `False` is correct, not a bug).
+# Plus two security gates (SARIF → GitHub code-scanning alerts):
+#   • Hadolint lint of Dockerfile, fails on warnings (DL3008 pinning etc.).
+#   • Trivy CVE scan of the built image, fails on CRITICAL.
+#
+# Triggers: every push to main, every PR, and manual workflow_dispatch.
+# To get GPU enforcement, re-route to a self-hosted runner with the
+# `amd-gpu` label (e.g. an AMD Radeon test box).
+# ──────────────────────────────────────────────────────────────────────────
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write   # required to upload SARIF to code-scanning
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Security gate #1 — Dockerfile lint (fail fast, before build) ─────
+      - name: Lint Dockerfile with Hadolint (fail on warnings)
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: warning
+          format: sarif
+          output-file: hadolint-results.sarif
+
+      - name: Upload Hadolint SARIF to GitHub code-scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: hadolint-results.sarif
+
+      # ── Build (GHA-cached layers) ────────────────────────────────────────
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (GHA cache via docker/build-push-action)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: mko-universal-ai-agents:test
+          provenance: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ── Security gate #2 — image CVE scan (fail on CRITICAL) ────────────
+      - name: Scan built image with Trivy (fail on CRITICAL CVE)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: mko-universal-ai-agents:test
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL
+          exit-code: 1
+          ignore-unfixed: true
+          scanners: vuln
+          vuln-type: os,library
+
+      - name: Upload Trivy SARIF to GitHub code-scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+
+      # ── Runtime smoke tests ──────────────────────────────────────────────
+      - name: Boot compose stack (waits for container HEALTHCHECK)
+        run: docker compose up -d --wait --wait-timeout 240
+
+      - name: Smoke /api/agents → HTTP 200 required
+        run: |
+          code=$(curl -fsS --connect-timeout 5 --max-time 15 -o /dev/null -w '%{http_code}' http://localhost:49239/api/agents)
+          echo "GET /api/agents -> HTTP $code"
+          [ "$code" = "200" ] || { echo "::error::expected 200 got $code"; exit 1; }
+
+      - name: Smoke /api/credits?username=demo → JSON shape required
+        run: |
+          resp=$(curl -fsS --connect-timeout 5 --max-time 15 "http://localhost:49239/api/credits?username=demo")
+          echo "GET /api/credits?username=demo -> $resp"
+          echo "$resp" | jq -e '.credits | type == "number"' >/dev/null \
+            || { echo "::error::.credits is not a number"; exit 1; }
+          echo "$resp" | jq -e '.username == "demo"' >/dev/null \
+            || { echo "::error::.username is not 'demo'"; exit 1; }
+          echo "Credits shape OK."
+
+      - name: Verify container HEALTHCHECK status
+        run: |
+          status=$(docker inspect --format='{{.State.Health.Status}}' mko-agents)
+          echo "Container health status: $status"
+          [ "$status" = "healthy" ] || { echo "::error::expected 'healthy', got '$status'"; exit 1; }
+
+      - name: torch.cuda.is_available() inside the container
+        id: gpu
+        run: |
+          gpu_output=$(docker compose exec -T mko python -c "
+          import torch
+          print('container gpu:', torch.cuda.is_available(), '| hip:', torch.version.hip)
+          " 2>&1)
+          echo "$gpu_output"
+          gpu_available=$(docker compose exec -T mko python -c "import torch; print(int(torch.cuda.is_available()))" 2>/dev/null | tail -n1)
+          echo "container gpu_available (numeric): $gpu_available"
+          if [ "$gpu_available" = "1" ]; then
+            echo "gpu_status=enforced_ok" >> "$GITHUB_OUTPUT"
+          elif [[ "$RUNNER_NAME" == *self-hosted* ]]; then
+            echo "::error::self-hosted runner expected to expose GPU; torch.cuda.is_available() returned False"
+            exit 1
+          else
+            echo "::notice::Container GPU check skipped on GitHub-hosted CPU runner ($RUNNER_NAME) — informational."
+            echo "gpu_status=informational_only" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Tear down (always)
+        if: always()
+        run: docker compose down -v --remove-orphans

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MKO — Pricing & Credits</title>
+<link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body class="page-pricing">
+
+  <nav class="top-nav">
+    <div class="nav-left">
+      <a href="/" class="nav-brand">🏗️ MKO Agents</a>
+      <a href="/" class="nav-link">Chat</a>
+      <a href="/pricing" class="nav-link active">Pricing</a>
+      <a href="/admin" class="nav-link">Admin</a>
+    </div>
+    <div class="nav-right">
+      <span class="credit-badge" id="navCredits">💎 0</span>
+    </div>
+  </nav>
+
+  <div class="pricing-hero">
+    <h1>🚀 Choose Your Power</h1>
+    <p>Buy credit packs to unlock premium models. One credit ≈ one request on free models.</p>
+  </div>
+
+  <div class="pricing-grid" id="pricingGrid">
+    <!-- Cards rendered by JS -->
+  </div>
+
+  <!-- Getting Credits Section -->
+  <div class="pricing-extras">
+    <div class="extra-card">
+      <span class="extra-icon">🎁</span>
+      <h3>Free Demo Codes</h3>
+      <p>Have a promo code? Redeem it below to get free credits instantly.</p>
+      <div class="redeem-row">
+        <input type="text" id="redeemInput" placeholder="Enter code...">
+        <button id="redeemBtn" class="btn btn-primary">Redeem</button>
+      </div>
+      <div id="redeemMsg" class="redeem-msg"></div>
+    </div>
+
+    <div class="extra-card">
+      <span class="extra-icon">ℹ️</span>
+      <h3>How Credits Work</h3>
+      <ul>
+        <li><strong>Free models</strong> (Ollama, Groq, HuggingFace): 1 credit / request</li>
+        <li><strong>GPT-5.5:</strong> 5 credits / request</li>
+        <li><strong>GPT Sol 5.6:</strong> 10 credits / request</li>
+        <li><strong>Claude Fable 5:</strong> 15 credits / request</li>
+        <li><strong>Claude Opus 4.8:</strong> 20 credits / request</li>
+        <li><strong>MoE Agent:</strong> 3 credits / expert / request</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Stripe Checkout overlay -->
+  <div id="stripeOverlay" class="overlay hidden">
+    <div class="overlay-card">
+      <h2>⚡ Redirecting to Checkout</h2>
+      <p>You'll be taken to Stripe's secure checkout to complete your purchase.</p>
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <script>
+    // ─── Pricing Page ──────────────────────────────────────────────────
+
+    async function loadPricing() {
+      try {
+        const [packsRes, configRes, creditsRes] = await Promise.all([
+          fetch('/api/stripe/packs'),
+          fetch('/api/stripe/config'),
+          fetch('/api/credits?username=demo'),
+        ]);
+
+        const packs = (await packsRes.json()).packs;
+        const stripeConfig = await configRes.json();
+        const credits = await creditsRes.json();
+
+        // Update nav credits
+        document.getElementById('navCredits').textContent = `💎 ${credits.credits}`;
+
+        const grid = document.getElementById('pricingGrid');
+        grid.innerHTML = packs.map(p => {
+          const isPopular = p.popular
+            ? `<div class="pack-badge">⭐ Most Popular</div>`
+            : '';
+          return `
+            <div class="pricing-card ${p.popular ? 'popular' : ''}">
+              ${isPopular}
+              <h2 class="pack-name">${p.name}</h2>
+              <div class="pack-price">$${p.price_usd}</div>
+              <div class="pack-credits">
+                <span class="credit-count">${p.total_credits.toLocaleString()}</span> credits
+                ${p.bonus > 0 ? `<div class="pack-bonus">+${p.bonus.toLocaleString()} bonus</div>` : ''}
+              </div>
+              <div class="pack-rate">${p.credits_per_dollar} credits / $1</div>
+              <button class="btn btn-primary btn-buy" data-pack="${p.id}">
+                ${stripeConfig.enabled ? '💳 Buy Now' : '🎁 Get Credits'}
+              </button>
+            </div>
+          `;
+        }).join('');
+
+        // Wire up buy buttons
+        document.querySelectorAll('.btn-buy').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const packId = btn.dataset.pack;
+
+            if (!stripeConfig.enabled) {
+              // Demo mode — add credits directly
+              const overlay = document.getElementById('stripeOverlay');
+              overlay.classList.remove('hidden');
+              overlay.querySelector('h2').textContent = '🎁 Demo Mode';
+              overlay.querySelector('p').textContent =
+                'Stripe is not configured. In production, this button would redirect to Stripe Checkout.';
+              setTimeout(() => overlay.classList.add('hidden'), 3000);
+              return;
+            }
+
+            // Show overlay
+            const overlay = document.getElementById('stripeOverlay');
+            overlay.classList.remove('hidden');
+
+            try {
+              const res = await fetch('/api/stripe/create-checkout-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  pack_id: packId,
+                  username: 'demo',
+                }),
+              });
+              const data = await res.json();
+              if (data.url) {
+                window.location.href = data.url;
+              } else {
+                alert('Error: ' + (data.message || 'Could not create checkout session'));
+                overlay.classList.add('hidden');
+              }
+            } catch (e) {
+              alert('Error connecting to server');
+              overlay.classList.add('hidden');
+            }
+          });
+        });
+      } catch (e) {
+        console.error('Failed to load pricing:', e);
+      }
+    }
+
+    // ─── Redeem Code ───────────────────────────────────────────────────
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadPricing();
+
+      const redeemBtn = document.getElementById('redeemBtn');
+      const redeemInput = document.getElementById('redeemInput');
+      const redeemMsg = document.getElementById('redeemMsg');
+
+      redeemBtn.addEventListener('click', async () => {
+        const code = redeemInput.value.trim();
+        if (!code) return;
+
+        redeemMsg.textContent = 'Checking...';
+        redeemMsg.className = 'redeem-msg';
+
+        try {
+          const res = await fetch('/api/credits/redeem', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, username: 'demo' }),
+          });
+          const data = await res.json();
+          if (data.status === 'ok') {
+            redeemMsg.textContent = `✅ ${data.credits_added} credits added! Total: ${data.total}`;
+            redeemMsg.className = 'redeem-msg success';
+            document.getElementById('navCredits').textContent = `💎 ${data.total}`;
+            redeemInput.value = '';
+          } else {
+            redeemMsg.textContent = `❌ ${data.message}`;
+            redeemMsg.className = 'redeem-msg error';
+          }
+        } catch (e) {
+          redeemMsg.textContent = '❌ Failed to connect';
+          redeemMsg.className = 'redeem-msg error';
+        }
+      });
+
+      redeemInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') redeemBtn.click();
+      });
+
+      // Check for Stripe redirect success/cancel
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('session_id')) {
+        const overlay = document.getElementById('stripeOverlay');
+        overlay.classList.remove('hidden');
+        overlay.querySelector('h2').textContent = '✅ Payment Successful!';
+        overlay.querySelector('p').textContent = 'Your credits have been added. Happy building!';
+        setTimeout(() => {
+          overlay.classList.add('hidden');
+          loadPricing(); // Refresh
+        }, 3000);
+        // Clean URL
+        window.history.replaceState({}, '', '/pricing');
+      }
+      if (params.get('canceled')) {
+        alert('Payment was canceled. No charges were made.');
+        window.history.replaceState({}, '', '/pricing');
+      }
+    });
+  </script>
+
+</body>
+</html>

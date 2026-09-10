@@ -1,0 +1,42 @@
+# ──────────────────────────────────────────────────────────────────────────
+# MKO Universal AI Agents — Python dependencies
+#
+# Core runtime (required):
+#   fastapi / uvicorn / pydantic / httpx / aiofiles / python-multipart /
+#   stripe.
+#
+# Benchmark (~ hard-required):
+#   numpy — the /api/benchmark/run endpoint imports it unconditionally.
+#   Missing numpy causes a 500 there; promote it from implicit to explicit.
+#
+# Heavy / RAG-only (optional, install as needed):
+#   qdrant-client, sentence-transformers — only used by /api/rag/*, which
+#   catches ImportError and returns a clean 400 if these are absent.
+#
+# Torch:
+#   Comes from the rocm/pytorch base image when you build via Dockerfile,
+#   and is imported opportunistically by /api/benchmark/run (the endpoint
+#   falls back to "CPU Only" if torch / torch.cuda / torch.hip are missing).
+#   Don't pin a torch version here — let the runtime provide it.
+# ──────────────────────────────────────────────────────────────────────────
+
+# ─── Web framework & server ──────────────────────────────────────────────
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+python-multipart>=0.0.9
+aiofiles>=23.0.0
+httpx>=0.28.0
+pydantic>=2.0.0
+
+# ─── Compute benchmark (hard-required by /api/benchmark/run) ──────────────
+numpy>=1.26.0
+
+# ─── Billing (Stripe) ────────────────────────────────────────────────────
+stripe>=15.0.0
+
+# ─── ─────────────────────────────────────────────────────────────────────
+# Optional RAG: uncomment to enable document ingestion + retrieval.
+# Leave commented for the lightweight chat + agent + benchmark surface.
+# ─── ─────────────────────────────────────────────────────────────────────
+# qdrant-client>=1.7.0
+# sentence-transformers>=2.2.0

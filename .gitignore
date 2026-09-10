@@ -1,0 +1,51 @@
+# ──────────────────────────────────────────────────────────────────────────
+# MKO Universal AI Agents — gitignore
+#
+# Protecting this from accidental commit during the AMD Radeon Hackathon:
+#   • `data/`        — runtime state (users, credits, refund codes), the
+#                      webui settings (API keys live here too), and the
+#                      auto-seeded admin password hash + session tokens.
+#   • `.env*`        — environment variable materialization; secrets live
+#                      here at runtime, the in-tree template is .env.example.
+#   • `__pycache__/` — Python build artifacts.
+#   • `.freebuff/*.log` — preview server logs captured by the Freebuff
+#                      desktop app. The launcher (.freebuff/launch.py) and
+#                      the run doc (.freebuff/run.md) ARE tracked.
+# ──────────────────────────────────────────────────────────────────────────
+
+# Runtime state — never commit. App seeds defaults on first start.
+data/
+
+# Local environment overrides — only .env.example is committed.
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+.pytest_cache/
+
+# RAG vector index produced at runtime
+*.qdrant/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS / upload cruft
+.DS_Store
+Thumbs.db
+
+# Freebuff preview internals — DO commit `.freebuff/run.md` and
+# `.freebuff/launch.py` (operator helpers). DO NOT commit the logs.
+.freebuff/*.log
+.freebuff/*.pid

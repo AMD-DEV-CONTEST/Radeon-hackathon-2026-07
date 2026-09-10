@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MKO Universal AI Agents</title>
+<link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+
+  <nav class="top-nav">
+    <div class="nav-left">
+      <a href="/" class="nav-brand">🏗️ MKO Agents</a>
+      <a href="/" class="nav-link active">Chat</a>
+      <a href="/pricing" class="nav-link">Pricing</a>
+      <a href="/admin" class="nav-link">Admin</a>
+    </div>
+    <div class="nav-right">
+      <span class="credit-badge" id="navCredits">💎 0</span>
+      <button id="settingsToggle" class="btn btn-icon" title="Settings">⚙️</button>
+    </div>
+  </nav>
+
+  <div class="app-layout">
+
+    <!-- ─── Sidebar ─── -->
+    <aside class="sidebar" id="sidebar">
+      <h3>🤖 Agents</h3>
+      <div class="agent-list" id="agentList">
+        <!-- Rendered by JS -->
+      </div>
+
+      <hr>
+
+      <h3>🛠️ Tools</h3>
+      <div class="tool-list">
+        <button class="tool-btn" data-tool="benchmark">📊 Benchmark</button>
+        <button class="tool-btn" data-tool="provider-bench">⚡ Provider Latency</button>
+        <button class="tool-btn" data-tool="moe-config">🔀 MoE Config</button>
+        <button class="tool-btn" data-tool="rag">📚 RAG Upload</button>
+      </div>
+    </aside>
+
+    <!-- ─── Main Chat Area ─── -->
+    <main class="chat-area">
+      <div id="chatMessages" class="chat-messages">
+        <div class="welcome-message">
+          <h2>🏗️ Welcome to MKO Universal AI Agents</h2>
+          <p>Select an agent from the sidebar, then start chatting below.</p>
+          <div class="agent-cards" id="welcomeAgents">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── Input Area ─── -->
+      <div class="input-area">
+        <div class="input-row">
+          <textarea id="chatInput" rows="2" placeholder="Type your message..." autofocus></textarea>
+          <button id="sendBtn" class="btn btn-primary btn-send">Send</button>
+          <button id="stopBtn" class="btn btn-danger btn-stop hidden">■ Stop</button>
+        </div>
+        <div class="input-info">
+          <span id="currentAgentBadge" class="agent-badge">🧠 General Assistant</span>
+          <span id="currentModelInfo" class="model-info">groq / llama-3.3-70b-versatile</span>
+        </div>
+      </div>
+    </main>
+
+    <!-- ─── Panels (right slide-over) ─── -->
+    <div class="panels-container" id="panelsContainer">
+
+      <!-- Settings Panel -->
+      <div class="panel" id="settingsPanel">
+        <div class="panel-header">
+          <h3>⚙️ Settings</h3>
+          <button class="panel-close">&times;</button>
+        </div>
+        <div class="panel-body">
+          <label>Provider</label>
+          <select id="providerSelect">
+            <option value="groq">Groq</option>
+            <option value="ollama">Ollama (Local)</option>
+            <option value="huggingface">HuggingFace</option>
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic</option>
+          </select>
+
+          <label>Model</label>
+          <select id="modelSelect">
+            <option value="">Default</option>
+          </select>
+
+          <label>Groq API Key</label>
+          <input type="password" id="groqKey" placeholder="gsk_..." />
+
+          <label>HuggingFace API Key</label>
+          <input type="password" id="hfKey" placeholder="hf_..." />
+
+          <label>OpenAI API Key</label>
+          <input type="password" id="openaiKey" placeholder="sk-..." />
+
+          <label>Anthropic API Key</label>
+          <input type="password" id="anthropicKey" placeholder="sk-ant-..." />
+
+          <button id="saveSettings" class="btn btn-primary" style="margin-top:12px">Save Settings</button>
+          <div id="settingsStatus" class="settings-status"></div>
+        </div>
+      </div>
+
+      <!-- Benchmark Panel -->
+      <div class="panel" id="benchmarkPanel">
+        <div class="panel-header">
+          <h3>📊 GPU Benchmark</h3>
+          <button class="panel-close">&times;</button>
+        </div>
+        <div class="panel-body">
+          <p>Tests matrix multiplication performance on CPU vs GPU.</p>
+          <button id="runBenchmarkBtn" class="btn btn-primary">▶ Run Benchmark</button>
+          <div id="benchmarkProgress" class="benchmark-progress hidden">
+            <div class="progress-bar"><div class="progress-fill" id="benchProgressFill"></div></div>
+            <span id="benchProgressLabel">Starting...</span>
+          </div>
+          <div id="benchmarkResults" class="benchmark-results hidden"></div>
+        </div>
+      </div>
+
+      <!-- Provider Benchmark Panel -->
+      <div class="panel" id="providerBenchPanel">
+        <div class="panel-header">
+          <h3>⚡ Provider Latency</h3>
+          <button class="panel-close">&times;</button>
+        </div>
+        <div class="panel-body">
+          <p>Measures response times across configured providers.</p>
+          <button id="runProviderBenchBtn" class="btn btn-primary">▶ Run Test</button>
+          <div id="providerBenchProgress" class="benchmark-progress hidden">
+            <div class="progress-bar"><div class="progress-fill" id="providerBenchProgressFill"></div></div>
+            <span id="providerBenchLabel">Starting...</span>
+          </div>
+          <div id="providerBenchResults" class="benchmark-results hidden"></div>
+        </div>
+      </div>
+
+      <!-- MoE Config Panel -->
+      <div class="panel" id="moeConfigPanel">
+        <div class="panel-header">
+          <h3>🔀 MoE Configuration</h3>
+          <button class="panel-close">&times;</button>
+        </div>
+        <div class="panel-body">
+          <label>Experts (select providers)</label>
+          <div id="moeExpertCheckboxes">
+            <label><input type="checkbox" value="ollama" checked> 🦙 Ollama</label>
+            <label><input type="checkbox" value="groq"> ⚡ Groq</label>
+            <label><input type="checkbox" value="huggingface"> 🤗 HuggingFace</label>
+            <label><input type="checkbox" value="openai"> 💬 OpenAI</label>
+            <label><input type="checkbox" value="anthropic"> 🎯 Anthropic</label>
+          </div>
+
+          <label>Synthesis Temperature</label>
+          <input type="range" id="moeTemp" min="0" max="1" step="0.1" value="0.3">
+          <span id="moeTempVal">0.3</span>
+
+          <button id="saveMoeConfig" class="btn btn-primary" style="margin-top:12px">Save MoE Config</button>
+          <div id="moeConfigStatus" class="settings-status"></div>
+        </div>
+      </div>
+
+      <!-- RAG Upload Panel -->
+      <div class="panel" id="ragPanel">
+        <div class="panel-header">
+          <h3>📚 RAG Upload</h3>
+          <button class="panel-close">&times;</button>
+        </div>
+        <div class="panel-body">
+          <p>Upload text documents (.txt, .md) for the RAG Agent to search.</p>
+          <div class="rag-dropzone" id="ragDropzone">
+            <span class="dropzone-icon">📄</span>
+            <span>Drop file here or click to browse</span>
+          </div>
+          <input type="file" id="ragFileInput" accept=".txt,.md,.json,.csv" hidden>
+          <div id="ragStatus" class="rag-status"></div>
+          <div id="ragCollections" class="rag-collections"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="/static/js/slash-commands.js"></script>
+  <script src="/static/js/moe-graph.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

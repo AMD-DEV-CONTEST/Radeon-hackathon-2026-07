@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MKO — Admin Dashboard</title>
+<link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+
+  <nav class="top-nav">
+    <div class="nav-left">
+      <a href="/" class="nav-brand">🏗️ MKO Agents</a>
+      <a href="/" class="nav-link">Chat</a>
+      <a href="/pricing" class="nav-link">Pricing</a>
+      <a href="/admin" class="nav-link active">Admin</a>
+    </div>
+    <div class="nav-right">
+      <button id="logoutBtn" class="btn btn-danger btn-sm hidden">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Login Screen -->
+  <div id="adminLogin" class="admin-login">
+    <div class="login-card">
+      <h1>🔐 Admin Login</h1>
+      <p>Enter the admin password to access the dashboard.</p>
+      <input type="password" id="adminPassword" placeholder="Password">
+      <button id="adminLoginBtn" class="btn btn-primary">Login</button>
+      <div id="loginError" class="login-error hidden"></div>
+    </div>
+  </div>
+
+  <!-- Dashboard (hidden until authenticated) -->
+  <div id="adminDashboard" class="admin-dashboard hidden">
+
+    <div class="admin-header">
+      <h1>📊 Admin Dashboard</h1>
+      <div class="admin-actions">
+        <button id="changePasswordBtn" class="btn btn-sm">🔑 Change Password</button>
+        <button id="refreshAdminBtn" class="btn btn-sm">🔄 Refresh</button>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card"><div class="stat-value" id="statUsers">0</div><div class="stat-label">Users</div></div>
+      <div class="stat-card"><div class="stat-value" id="statCredits">0</div><div class="stat-label">Total Credits</div></div>
+      <div class="stat-card"><div class="stat-value" id="statPurchased">0</div><div class="stat-label">Purchased</div></div>
+      <div class="stat-card"><div class="stat-value" id="statRequests">0</div><div class="stat-label">Total Requests</div></div>
+    </div>
+
+    <!-- Per-Model Stats -->
+    <div class="admin-section">
+      <h2>📈 Per-Model Usage</h2>
+      <div id="modelStats" class="model-stats"></div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="admin-section">
+      <div class="section-header">
+        <h2>👥 Users</h2>
+      </div>
+      <div class="table-wrapper">
+        <table id="usersTable">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Credits</th>
+              <th>Total Purchased</th>
+              <th>Requests</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="usersBody">
+            <!-- Rendered by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="changePasswordModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>🔑 Change Password</h3>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label>Current Password</label>
+          <input type="password" id="cpCurrent" placeholder="Current password">
+          <label>New Password</label>
+          <input type="password" id="cpNew" placeholder="New password">
+          <label>Confirm New Password</label>
+          <input type="password" id="cpConfirm" placeholder="Confirm new password">
+          <div id="cpError" class="settings-status"></div>
+          <button id="cpSaveBtn" class="btn btn-primary">Save Password</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Refund Modal -->
+    <div id="refundModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>💰 Issue Refund</h3>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label>Username</label>
+          <input type="text" id="refundUsername" readonly>
+          <label>Credits</label>
+          <input type="number" id="refundCredits" min="1" value="100">
+          <label>Reason (optional)</label>
+          <input type="text" id="refundReason" placeholder="e.g., Promo, bug, goodwill">
+          <div id="refundError" class="settings-status"></div>
+          <button id="refundSaveBtn" class="btn btn-primary">Issue Refund</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ─── Admin Dashboard ───────────────────────────────────────────────
+
+    let adminToken = localStorage.getItem('mko_admin_token') || '';
+
+    function isLoggedIn() { return !!adminToken; }
+
+    async function api(path, opts = {}) {
+      const res = await fetch(path, {
+        ...opts,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': adminToken ? `Bearer ${adminToken}` : '',
+          ...(opts.headers || {}),
+        },
+      });
+      if (res.status === 401) {
+        adminToken = '';
+        localStorage.removeItem('mko_admin_token');
+        showLogin();
+        throw new Error('Unauthorized');
+      }
+      return res.json();
+    }
+
+    function showLogin() {
+      document.getElementById('adminLogin').classList.remove('hidden');
+      document.getElementById('adminDashboard').classList.add('hidden');
+      document.getElementById('logoutBtn').classList.add('hidden');
+    }
+
+    function showDashboard() {
+      document.getElementById('adminLogin').classList.add('hidden');
+      document.getElementById('adminDashboard').classList.remove('hidden');
+      document.getElementById('logoutBtn').classList.remove('hidden');
+    }
+
+    async function loadDashboard() {
+      try {
+        const [stats, users] = await Promise.all([
+          api('/api/admin/stats'),
+          api('/api/admin/users'),
+        ]);
+
+        document.getElementById('statUsers').textContent = stats.total_users || 0;
+        document.getElementById('statCredits').textContent = stats.total_credits || 0;
+        document.getElementById('statPurchased').textContent = stats.total_purchased || 0;
+        document.getElementById('statRequests').textContent = stats.total_requests || 0;
+
+        // Model stats
+        const modelStatsDiv = document.getElementById('modelStats');
+        const modelEntries = stats.per_model ? Object.entries(stats.per_model) : [];
+        if (modelEntries.length === 0) {
+          modelStatsDiv.innerHTML = '<p class="empty-state">No requests yet.</p>';
+        } else {
+          modelStatsDiv.innerHTML = modelEntries.map(([model, data]) => `
+            <div class="model-stat-row">
+              <span class="model-name">${model}</span>
+              <span class="model-bar-wrapper">
+                <span class="model-bar" style="width:${Math.min((data.requests / stats.total_requests) * 100, 100)}%"></span>
+              </span>
+              <span class="model-count">${data.requests} (${data.users} users)</span>
+            </div>
+          `).join('');
+        }
+
+        // Users table
+        const tbody = document.getElementById('usersBody');
+        if (users.users && users.users.length > 0) {
+          tbody.innerHTML = users.users.map(u => `
+            <tr>
+              <td><strong>${escapeHtml(u.username)}</strong></td>
+              <td>${u.credits}</td>
+              <td>${u.total_purchased}</td>
+              <td>${Object.values(u.requests || {}).reduce((a, b) => a + b, 0)}</td>
+              <td>${u.created_at ? new Date(u.created_at * 1000).toLocaleDateString() : '-'}</td>
+              <td><button class="btn btn-sm refund-btn" data-user="${escapeHtml(u.username)}">💰 Refund</button></td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No users yet.</td></tr>';
+        }
+
+        // Wire up refund buttons
+        document.querySelectorAll('.refund-btn').forEach(btn => {
+          btn.addEventListener('click', () => openRefundModal(btn.dataset.user));
+        });
+
+      } catch (e) {
+        if (e.message !== 'Unauthorized') {
+          console.error('Dashboard load error:', e);
+        }
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ─── Refund Modal ──────────────────────────────────────────────────
+
+    function openRefundModal(username) {
+      document.getElementById('refundUsername').value = username;
+      document.getElementById('refundCredits').value = 100;
+      document.getElementById('refundReason').value = '';
+      document.getElementById('refundError').textContent = '';
+      document.getElementById('refundModal').classList.remove('hidden');
+    }
+
+    document.getElementById('refundSaveBtn').addEventListener('click', async () => {
+      const username = document.getElementById('refundUsername').value;
+      const credits = parseInt(document.getElementById('refundCredits').value);
+      const reason = document.getElementById('refundReason').value;
+      const errorEl = document.getElementById('refundError');
+
+      if (!credits || credits < 1) {
+        errorEl.textContent = '❌ Enter a valid credit amount';
+        return;
+      }
+
+      try {
+        const res = await api('/api/admin/refund', {
+          method: 'POST',
+          body: JSON.stringify({ username, credits, reason }),
+        });
+        if (res.status === 'ok') {
+          errorEl.textContent = `✅ ${res.message}`;
+          errorEl.className = 'settings-status success';
+          setTimeout(() => {
+            document.getElementById('refundModal').classList.add('hidden');
+            loadDashboard();
+          }, 1500);
+        }
+      } catch (e) {
+        errorEl.textContent = '❌ Failed to issue refund';
+      }
+    });
+
+    // ─── Login ─────────────────────────────────────────────────────────
+
+    document.getElementById('adminLoginBtn').addEventListener('click', async () => {
+      const pw = document.getElementById('adminPassword').value;
+      const errorEl = document.getElementById('loginError');
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pw }),
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+          adminToken = data.token;
+          localStorage.setItem('mko_admin_token', data.token);
+          errorEl.classList.add('hidden');
+          showDashboard();
+          loadDashboard();
+        } else {
+          errorEl.textContent = '❌ ' + (data.detail || 'Invalid password');
+          errorEl.classList.remove('hidden');
+        }
+      } catch (e) {
+        errorEl.textContent = '❌ Connection error';
+        errorEl.classList.remove('hidden');
+      }
+    });
+
+    document.getElementById('adminPassword').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('adminLoginBtn').click();
+    });
+
+    // ─── Logout ────────────────────────────────────────────────────────
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      try {
+        await api('/api/admin/logout', { method: 'POST' });
+      } catch (e) { /* ignore */ }
+      adminToken = '';
+      localStorage.removeItem('mko_admin_token');
+      showLogin();
+    });
+
+    // ─── Change Password ───────────────────────────────────────────────
+
+    document.getElementById('changePasswordBtn').addEventListener('click', () => {
+      document.getElementById('cpCurrent').value = '';
+      document.getElementById('cpNew').value = '';
+      document.getElementById('cpConfirm').value = '';
+      document.getElementById('cpError').textContent = '';
+      document.getElementById('changePasswordModal').classList.remove('hidden');
+    });
+
+    document.getElementById('cpSaveBtn').addEventListener('click', async () => {
+      const current = document.getElementById('cpCurrent').value;
+      const newPw = document.getElementById('cpNew').value;
+      const confirm = document.getElementById('cpConfirm').value;
+      const errorEl = document.getElementById('cpError');
+
+      if (!current || !newPw) {
+        errorEl.textContent = '❌ Fill in all fields';
+        return;
+      }
+      if (newPw !== confirm) {
+        errorEl.textContent = '❌ Passwords do not match';
+        return;
+      }
+      if (newPw.length < 6) {
+        errorEl.textContent = '❌ New password must be at least 6 characters';
+        return;
+      }
+
+      try {
+        const res = await api('/api/admin/change-password', {
+          method: 'POST',
+          body: JSON.stringify({ current_password: current, new_password: newPw }),
+        });
+        if (res.status === 'ok') {
+          errorEl.textContent = '✅ Password changed successfully!';
+          errorEl.className = 'settings-status success';
+          setTimeout(() => {
+            document.getElementById('changePasswordModal').classList.add('hidden');
+          }, 1500);
+        } else {
+          errorEl.textContent = '❌ ' + (res.detail || 'Failed to change password');
+        }
+      } catch (e) {
+        errorEl.textContent = '❌ ' + (e.message || 'Failed to change password');
+      }
+    });
+
+    // ─── Modal close buttons ───────────────────────────────────────────
+
+    document.querySelectorAll('.modal-close').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.closest('.modal').classList.add('hidden');
+      });
+    });
+
+    // ─── Refresh ───────────────────────────────────────────────────────
+
+    document.getElementById('refreshAdminBtn').addEventListener('click', loadDashboard);
+
+    // ─── Init ──────────────────────────────────────────────────────────
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (isLoggedIn()) {
+        showDashboard();
+        loadDashboard();
+      } else {
+        showLogin();
+      }
+    });
+  </script>
+
+</body>
+</html>

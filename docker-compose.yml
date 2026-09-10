@@ -1,0 +1,42 @@
+# ──────────────────────────────────────────────────────────────────────────
+# MKO Universal AI Agents — docker-compose
+#
+# Brings up the FastAPI web UI on http://localhost:49239 with the host AMD
+# Radeon GPU passed through. No secrets are baked in — drop a `.env.local`
+# (gitignored) next to this file or paste keys into the in-UI Settings panel.
+# ──────────────────────────────────────────────────────────────────────────
+services:
+  mko:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mko-universal-ai-agents:rocm6.2
+    container_name: mko-agents
+    ports:
+      - "${MKO_PORT:-49239}:49239"
+    volumes:
+      # Persist runtime state (users, credits, webui_config.json, qdrant_db)
+      # across `docker compose restart`. Bind-mount is preferred over a
+      # named volume so judges can open these files in their host editor.
+      - ./data:/app/data
+    env_file:
+      # Missing files are tolerated — the app boots in demo mode without
+      # them. Both filenames are gitignored — values stay local.
+      - path: .env.local
+        required: false
+      - path: .env
+        required: false
+    # ROCm 6.x uses the standard Linux /dev/kfd and /dev/dri devices.
+    # No proprietary `--gpus` runtime is required (unlike NVIDIA).
+    devices:
+      - "/dev/kfd:/dev/kfd"
+      - "/dev/dri:/dev/dri"
+    group_add:
+      - video
+      - render
+    # Required by some HSA-introspection paths and PyTorch profilers.
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    restart: unless-stopped
