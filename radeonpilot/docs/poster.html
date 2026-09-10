@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RadeonPilot Poster</title>
+<style>
+  @page { size: A3 landscape; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: 420mm; height: 296mm;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    background: #0b1220; color: #e8edf5;
+    padding: 14mm 16mm; display: flex; flex-direction: column; gap: 6mm;
+  }
+  header { display: flex; justify-content: space-between; align-items: flex-end; }
+  h1 { font-size: 34pt; color: #ffffff; letter-spacing: 0.5px; }
+  h1 span { color: #ed1c24; }
+  .subtitle { font-size: 13pt; color: #9fb0c8; margin-top: 2mm; }
+  .badge { background: #ed1c24; color: white; padding: 2mm 5mm; border-radius: 3mm; font-weight: bold; font-size: 12pt; }
+  .cols { display: flex; gap: 6mm; flex: 1; }
+  .col { flex: 1; display: flex; flex-direction: column; gap: 5mm; }
+  .card { background: #131c2e; border: 1px solid #26334d; border-radius: 4mm; padding: 5mm 6mm; }
+  .card h2 { font-size: 14pt; color: #61dafb; margin-bottom: 2.5mm; text-transform: uppercase; letter-spacing: 1px; }
+  .card p, .card li { font-size: 10.5pt; line-height: 1.5; color: #cfd9e8; }
+  .card ul { padding-left: 5mm; }
+  pre { font-family: "SF Mono", Menlo, monospace; font-size: 8.5pt; line-height: 1.35; color: #a8e6a3; white-space: pre; }
+  table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+  th, td { border: 1px solid #2c3c5c; padding: 1.6mm 2.5mm; text-align: left; }
+  th { background: #1a2740; color: #9fd0ff; }
+  .num { color: #7CFC90; font-weight: bold; }
+  footer { font-size: 9pt; color: #7f8ca3; display: flex; justify-content: space-between; }
+  .flow { display: flex; gap: 2mm; align-items: center; flex-wrap: wrap; margin-top: 2mm; }
+  .step { background: #1a2740; border: 1px solid #33507e; border-radius: 2.5mm; padding: 1.5mm 3mm; font-size: 9.5pt; }
+  .arrow { color: #ed1c24; font-weight: bold; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Radeon<span>Pilot</span></h1>
+    <div class="subtitle">Multi-Agent ROCm Inference Operations on a Single AMD Radeon GPU — Private, Local, Evidence-Bound</div>
+  </div>
+  <div class="badge">AMD Hackathon 2026 &middot; Track 2</div>
+</header>
+
+<div class="cols">
+  <div class="col">
+    <div class="card">
+      <h2>The Scenario</h2>
+      <p>RadeonPilot turns one Radeon GPU into a self-inspecting inference server. A fleet of
+      Pi agents performs the full ops loop: <b>diagnose</b> the ROCm stack, <b>deploy</b> the
+      model endpoint, <b>benchmark</b> it, <b>locate</b> bottlenecks, and <b>propose</b>
+      validated optimizations. Every agent generation runs on the Radeon itself — private by
+      construction, aligned with AMD's ROCm.AI agent-workflow direction.</p>
+    </div>
+    <div class="card">
+      <h2>Agent Fleet (Pi Agent Harness 0.83.0)</h2>
+      <table>
+        <tr><th>Agent</th><th>Role</th></tr>
+        <tr><td>EnvDoctor</td><td>GPU / ROCm health from rocm-smi &amp; amd-smi telemetry</td></tr>
+        <tr><td>DeployPlanner</td><td>Engine, context, memory-budget and launch-flag plan</td></tr>
+        <tr><td>BenchmarkRunner</td><td>Interprets measured TTFT / throughput records only</td></tr>
+        <tr><td>OptimAnalyst</td><td>Evidence-cited bottleneck analysis and optimizations</td></tr>
+        <tr><td>OpsCommander</td><td>Synthesis + approval-gated action plan</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h2>Track 2 Capability Coverage</h2>
+      <ul>
+        <li>Local retrieval: BM25 over a ROCm/vLLM tuning corpus with document IDs</li>
+        <li>Tool invocation: deterministic GPU probes, real benchmarks, permission gates</li>
+        <li>Multi-step planning: parallel specialists + gated commander plan</li>
+        <li>Multi-turn memory: SQLite turns, snapshots, audit lineage</li>
+        <li>Privacy: loopback-only, disabled Pi tools, redacted audit</li>
+        <li>Radeon core inference: attested via amd-smi device occupancy</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="card">
+      <h2>Architecture</h2>
+<pre>Gradio Ops Console (127.0.0.1)
+   |
+Python controller — tools | RAG | memory
+   |
+Localhost Pi HTTP bridge (Node 22)
+   |-- EnvDoctor -- DeployPlanner --
+   |-- BenchmarkRunner -- OptimAnalyst --   (parallel)
+   v
+OpsCommander  ->  gated action plan
+   |
+OpenAI-compatible endpoint (llama.cpp ROCm)
+   v
+AMD Radeon gfx1100 &middot; 48 GB &middot; ROCm 7.2.1</pre>
+    </div>
+    <div class="card">
+      <h2>Measured Performance (Qwen3-8B, 5-prompt set)</h2>
+      <table>
+        <tr><th>Profile</th><th>Mean TTFT</th><th>Decode tok/s</th><th>VRAM peak</th></tr>
+        <tr><td>Baseline (F16, default)</td><td class="num">56.2 ms</td><td class="num">43.6</td><td>17.0 GB</td></tr>
+        <tr><td>Optimized (F16, FA + 8 slots)</td><td class="num">57.1 ms</td><td class="num">43.6</td><td>17.0 GB</td></tr>
+        <tr><td>Quantized (Q4_K_M + FA)</td><td class="num">37.5 ms</td><td class="num">88.7</td><td>6.5 GB</td></tr>
+      </table>
+      <p style="margin-top:2mm">Quantization doubles decode throughput (43.6 &rarr; 88.7 tok/s, 2.03x) and cuts
+      TTFT by 33% with the frozen quality gate passing; FA + parallel slots keep four specialist agents
+      serving concurrently without queueing. All numbers captured on the competition Radeon instance by
+      <code>scripts/benchmark_vllm.py</code>; raw samples and amd-smi attestation are committed
+      in <code>benchmarks/results/</code>. No fabricated figures.</p>
+    </div>
+    <div class="card">
+      <h2>Reproduce in 4 Commands</h2>
+      <div class="flow">
+        <span class="step">bash scripts/setup_server.sh</span><span class="arrow">&#9654;</span>
+        <span class="step">bash scripts/start_endpoint.sh</span><span class="arrow">&#9654;</span>
+        <span class="step">bash scripts/run_bridge.sh</span><span class="arrow">&#9654;</span>
+        <span class="step">bash scripts/run_app.sh</span>
+      </div>
+      <p style="margin-top:2mm">Full checkpoint-by-checkpoint guide: <code>docs/REPRODUCE.md</code></p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span>RadeonPilot &middot; MIT License &middot; Pi Agent Harness 0.83.0 &middot; Gradio &middot; llama.cpp (HIP)</span>
+  <span>github.com/RongjieChen/Radeon-hackathon-2026-07</span>
+</footer>
+</body>
+</html>
