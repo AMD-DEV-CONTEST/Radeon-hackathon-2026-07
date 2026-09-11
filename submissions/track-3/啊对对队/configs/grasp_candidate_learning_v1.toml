@@ -1,0 +1,81 @@
+[metadata]
+schema_version = 1
+protocol_id = "grasp-candidate-learning-v1"
+frozen_date = "2026-07-26"
+purpose = "Safety-first controller-faithful grasp candidate scoring"
+claim_boundary = "The smoke split is observed pipeline data; train/dev/holdout results remain unobserved."
+
+[platform]
+backend = "rocm"
+device = "cuda:0"
+single_gpu = true
+gpu_count = 1
+
+[collection]
+config = "configs/catalog_v2.toml"
+runner = "scripts/diagnose_counterfactual_grasp_candidates.py"
+max_candidates_per_episode = 6
+repeats = 1
+max_grasp_retries = 0
+measured_force_abort_n = 35.0
+fresh_scene_per_candidate = true
+only_intervention = "candidate allowlist"
+
+[model]
+family = "small-mlp"
+framework = "PyTorch + ROCm"
+hidden_width = 64
+targets = ["safety_aborted", "success", "max_contact_force_n", "duration_seconds"]
+selection_order = ["unsafe_probability", "success_probability", "predicted_force_n", "predicted_duration_seconds", "static_rank"]
+integration_status = "blocked_pending_untouched_holdout"
+
+[[splits]]
+name = "smoke"
+profile_id = "medium_carton"
+episode_ids = [4120001]
+observed_before_protocol = true
+
+[[splits]]
+name = "train"
+profile_id = "medium_carton"
+episode_ids = [4130000, 4130001, 4130002, 4130003]
+
+[[splits]]
+name = "train"
+profile_id = "shoe_box_proxy"
+episode_ids = [5130000, 5130001, 5130002, 5130003]
+
+[[splits]]
+name = "train"
+profile_id = "large_narrow_carton"
+episode_ids = [7130000, 7130001, 7130002, 7130003]
+
+[[splits]]
+name = "development"
+profile_id = "medium_carton"
+episode_ids = [4140000, 4140001]
+
+[[splits]]
+name = "development"
+profile_id = "shoe_box_proxy"
+episode_ids = [5140000, 5140001]
+
+[[splits]]
+name = "development"
+profile_id = "large_narrow_carton"
+episode_ids = [7140000, 7140001]
+
+[[splits]]
+name = "holdout"
+profile_id = "medium_carton"
+episode_ids = [4150000, 4150001]
+
+[[splits]]
+name = "holdout"
+profile_id = "shoe_box_proxy"
+episode_ids = [5150000, 5150001]
+
+[[splits]]
+name = "holdout"
+profile_id = "large_narrow_carton"
+episode_ids = [7150000, 7150001]

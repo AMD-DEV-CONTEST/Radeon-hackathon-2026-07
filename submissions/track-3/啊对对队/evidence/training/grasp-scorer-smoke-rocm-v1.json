@@ -1,0 +1,86 @@
+{
+  "schema_version": "1.0",
+  "study_type": "structured_grasp_scorer_training_pipeline_smoke",
+  "claim_boundary": "Observed single-group reconstruction smoke only; no generalization or success-rate claim.",
+  "runtime": {
+    "accelerator": "single AMD Radeon gfx1100",
+    "device_name": "AMD Radeon Graphics",
+    "torch_version": "2.9.1+rocm7.2.1.gitff65f5bc",
+    "hip_version": "7.2.53211-e1a6bc5663"
+  },
+  "protocol": {
+    "path": "configs/grasp_candidate_learning_v1.toml",
+    "sha256": "6c1a6cc7a0ee0d04972dd10a94dbbc1edfba957202d8880caf0d311c66bf5958",
+    "smoke_episode": 4120001,
+    "smoke_profile": "medium_carton",
+    "frozen_unobserved_train_episodes": 12,
+    "frozen_unobserved_development_episodes": 6,
+    "frozen_unobserved_holdout_episodes": 6
+  },
+  "dataset": {
+    "feature_schema_version": 1,
+    "feature_count": 28,
+    "row_count": 6,
+    "group_count": 1,
+    "payload_sha256": "78a408a97b0370627beacf8273f101ec7991a2721853f76409b0ebbe4cafe2e9",
+    "source_path": "outputs/grasp-scorer-v1/smoke-dataset.json",
+    "source_sha256": "c99b65cba421904d13822390618ca72aab111159d14ff20fcf9e0e92d335b4aa"
+  },
+  "model": {
+    "family": "two-hidden-layer MLP with SiLU activations",
+    "hidden_width": 64,
+    "parameter_count": 6276,
+    "checkpoint_size_bytes": 29395,
+    "targets": [
+      "safety_aborted",
+      "success",
+      "max_contact_force_n",
+      "duration_seconds"
+    ],
+    "checkpoint_sha256": "c39947791ced0349460d07a10576a41d48af3475c90e897f02196b32a61d03c5",
+    "integration_status": "disabled_pending_untouched_holdout"
+  },
+  "training": {
+    "steps": 1000,
+    "seed": 42,
+    "train_rows": 6,
+    "eval_rows": 6,
+    "eval_is_training_reconstruction": true,
+    "elapsed_ms": 1714.802356,
+    "initial_loss": 3.1544649600982666,
+    "final_loss": 0.0002925053995568305,
+    "summary_source": "outputs/grasp-scorer-v1/smoke-train/summary.json",
+    "summary_sha256": "aebcf629736dda1adb8cc6e5295075f19fc45a893ae78754eaba16b1b84d0d4e"
+  },
+  "offline_reconstruction": {
+    "model_candidate_id": "canonical-long--0.044-up-0.040",
+    "model_selected_outcome": "safe_success",
+    "static_candidate_id": "canonical-long-+0.000-up-0.040",
+    "static_selected_outcome": "safe_task_failure",
+    "interpretation": "Pipeline reconstruction only; the same group was used for training and evaluation."
+  },
+  "inference_latency": {
+    "batch_size": 6,
+    "warmup_batches": 10,
+    "benchmark_repeats": 100,
+    "cold_batch_ms": 308.534916,
+    "steady_batch_p50_ms": 0.882768,
+    "steady_batch_p95_ms": 0.901767,
+    "steady_per_candidate_p50_ms": 0.147128,
+    "steady_per_candidate_p95_ms": 0.1502945,
+    "evaluation_source": "outputs/grasp-scorer-v1/smoke-train/evaluation.json",
+    "evaluation_sha256": "1473c8e7238009356b574923860875bb8b7e7d747ebdbbcbd4bef6fb418429f1"
+  },
+  "verification": {
+    "compile": "python -m compileall -q src scripts tests",
+    "tests": "python -m unittest discover -s tests -q",
+    "tests_passed": 237,
+    "tests_failed": 0
+  },
+  "next_gate": {
+    "data": "Run only the frozen train and development episode IDs before opening holdout.",
+    "safety": "No new holdout safety abort and no per-profile paired regression versus static ranking.",
+    "utility": "At least one static-ranking failure must be recovered on holdout.",
+    "latency": "Warm P95 batch inference must remain below 5 ms on the single Radeon GPU."
+  }
+}

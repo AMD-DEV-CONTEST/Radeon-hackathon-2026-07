@@ -1,0 +1,273 @@
+{
+  "schema_version": 1,
+  "protocol": "mobile-smolvla-self-improvement-cycle-v1",
+  "cycle_id": "v3",
+  "status": "completed_not_promoted",
+  "inputs": {
+    "source_campaign_audit": "/workspace/parcel-sorter-opt-v1/outputs/source-frozen-holdout-v2-audit.json",
+    "source_campaign_audit_sha256": "feba8c22b45bab81373e99e6bc426102fecdf440b84aff4bbd1c8271835401b5",
+    "base_training_config": "/workspace/parcel-sorter-opt-v1/configs/mobile_suction_collection_v1.json",
+    "base_training_config_sha256": "3625f540312283bfaf2eb448e28c094e24b50c9f9bdefa7afc355c4fe4bed380",
+    "baseline_checkpoint": "/workspace/parcel-sorter-opt-v1/outputs/train/mobile-smolvla-mass-aware-b8w4-2400step-v2/checkpoints/002400/pretrained_model",
+    "replay_sha256": "f03eabf2347ac731903295caf1c7bc13e0c07a01266cf12eee5104b8a19214f9",
+    "curriculum_sha256": "37f9f52d68d08838c7a949e3b096d215a24813254f0cf918e1af8f676d47b05a",
+    "holdout_sha256": "57163dca38fbfde30d9c3e146b30b48861621dac4fb7337698a7e2016b8533b3"
+  },
+  "settings": {
+    "holdout_trials": 100,
+    "holdout_seed": 20260728,
+    "training_steps": 2800,
+    "batch_size": 8,
+    "num_workers": 4,
+    "policy_hz": 3,
+    "evaluation_workers": 4
+  },
+  "commands": {
+    "preflight": [
+      "bash",
+      "/workspace/parcel-sorter-opt-v1/scripts/preflight_radeon.sh"
+    ],
+    "collect_curriculum": [
+      "/workspace/rdna/bin/python",
+      "/workspace/parcel-sorter-opt-v1/scripts/collect_mobile_suction_dataset_rocm.py",
+      "--config",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/curriculum-config.json",
+      "--output",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/curriculum-collection",
+      "--backend",
+      "rocm",
+      "--resume"
+    ],
+    "audit_curriculum": [
+      "/workspace/rdna/bin/python",
+      "/workspace/parcel-sorter-opt-v1/scripts/audit_mobile_dataset.py",
+      "--dataset-root",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/curriculum-collection/lerobot_dataset",
+      "--output",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/curriculum-dataset-audit.json",
+      "--min-episodes",
+      "7"
+    ],
+    "train_candidate": [
+      "bash",
+      "/workspace/parcel-sorter-opt-v1/scripts/train_mobile_smolvla_rocm.sh",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/curriculum-collection/lerobot_dataset",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/candidate-training"
+    ],
+    "offline_ablation": [
+      "/workspace/rdna/bin/python",
+      "/workspace/parcel-sorter-opt-v1/scripts/smoke_mobile_smolvla_inference_rocm.py",
+      "--checkpoint",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/candidate-training/checkpoints/002800/pretrained_model",
+      "--dataset-root",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/curriculum-collection/lerobot_dataset",
+      "--output",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/candidate-offline-ablation.json"
+    ],
+    "evaluate_baseline": [
+      "/workspace/rdna/bin/python",
+      "/workspace/parcel-sorter-opt-v1/scripts/collect_mobile_suction_dataset_rocm.py",
+      "--config",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/frozen-holdout.json",
+      "--output",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/baseline-holdout",
+      "--backend",
+      "rocm",
+      "--resume",
+      "--audit-only",
+      "--smolvla-checkpoint",
+      "/workspace/parcel-sorter-opt-v1/outputs/train/mobile-smolvla-mass-aware-b8w4-2400step-v2/checkpoints/002400/pretrained_model",
+      "--policy-mode",
+      "base_residual",
+      "--policy-hz",
+      "3",
+      "--workers",
+      "4"
+    ],
+    "summarize_baseline": [
+      "/workspace/rdna/bin/python",
+      "/workspace/parcel-sorter-opt-v1/scripts/summarize_mobile_vla_campaign.py",
+      "--collection-summary",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/baseline-holdout/collection-summary.json",
+      "--output",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/baseline-holdout-audit.json"
+    ],
+    "evaluate_candidate": [
+      "/workspace/rdna/bin/python",
+      "/workspace/parcel-sorter-opt-v1/scripts/collect_mobile_suction_dataset_rocm.py",
+      "--config",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/frozen-holdout.json",
+      "--output",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/candidate-holdout",
+      "--backend",
+      "rocm",
+      "--resume",
+      "--audit-only",
+      "--smolvla-checkpoint",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/candidate-training/checkpoints/002800/pretrained_model",
+      "--policy-mode",
+      "base_residual",
+      "--policy-hz",
+      "3",
+      "--workers",
+      "4"
+    ],
+    "summarize_candidate": [
+      "/workspace/rdna/bin/python",
+      "/workspace/parcel-sorter-opt-v1/scripts/summarize_mobile_vla_campaign.py",
+      "--collection-summary",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/candidate-holdout/collection-summary.json",
+      "--output",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/candidate-holdout-audit.json"
+    ]
+  },
+  "steps": {
+    "preflight": {
+      "status": "passed",
+      "log": "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/logs/preflight.log",
+      "command": [
+        "bash",
+        "/workspace/parcel-sorter-opt-v1/scripts/preflight_radeon.sh"
+      ],
+      "return_code": 0
+    },
+    "collect_curriculum": {
+      "status": "passed",
+      "log": "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/logs/collect_curriculum.log",
+      "command": [
+        "/workspace/rdna/bin/python",
+        "/workspace/parcel-sorter-opt-v1/scripts/collect_mobile_suction_dataset_rocm.py",
+        "--config",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/curriculum-config.json",
+        "--output",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/curriculum-collection",
+        "--backend",
+        "rocm",
+        "--resume"
+      ],
+      "return_code": 0
+    },
+    "audit_curriculum": {
+      "status": "passed",
+      "log": "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/logs/audit_curriculum.log",
+      "command": [
+        "/workspace/rdna/bin/python",
+        "/workspace/parcel-sorter-opt-v1/scripts/audit_mobile_dataset.py",
+        "--dataset-root",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/curriculum-collection/lerobot_dataset",
+        "--output",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/curriculum-dataset-audit.json",
+        "--min-episodes",
+        "7"
+      ],
+      "return_code": 0
+    },
+    "train_candidate": {
+      "status": "passed",
+      "log": "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/logs/train_candidate.log",
+      "command": [
+        "bash",
+        "/workspace/parcel-sorter-opt-v1/scripts/train_mobile_smolvla_rocm.sh",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/curriculum-collection/lerobot_dataset",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/candidate-training"
+      ],
+      "return_code": 0
+    },
+    "offline_ablation": {
+      "status": "passed",
+      "log": "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/logs/offline_ablation.log",
+      "command": [
+        "/workspace/rdna/bin/python",
+        "/workspace/parcel-sorter-opt-v1/scripts/smoke_mobile_smolvla_inference_rocm.py",
+        "--checkpoint",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/candidate-training/checkpoints/002800/pretrained_model",
+        "--dataset-root",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/curriculum-collection/lerobot_dataset",
+        "--output",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/candidate-offline-ablation.json"
+      ],
+      "return_code": 0
+    },
+    "evaluate_baseline": {
+      "status": "passed",
+      "log": "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/logs/evaluate_baseline.log",
+      "command": [
+        "/workspace/rdna/bin/python",
+        "/workspace/parcel-sorter-opt-v1/scripts/collect_mobile_suction_dataset_rocm.py",
+        "--config",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/frozen-holdout.json",
+        "--output",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/baseline-holdout",
+        "--backend",
+        "rocm",
+        "--resume",
+        "--audit-only",
+        "--smolvla-checkpoint",
+        "/workspace/parcel-sorter-opt-v1/outputs/train/mobile-smolvla-mass-aware-b8w4-2400step-v2/checkpoints/002400/pretrained_model",
+        "--policy-mode",
+        "base_residual",
+        "--policy-hz",
+        "3",
+        "--workers",
+        "4"
+      ],
+      "return_code": 0
+    },
+    "summarize_baseline": {
+      "status": "passed",
+      "log": "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/logs/summarize_baseline.log",
+      "command": [
+        "/workspace/rdna/bin/python",
+        "/workspace/parcel-sorter-opt-v1/scripts/summarize_mobile_vla_campaign.py",
+        "--collection-summary",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/baseline-holdout/collection-summary.json",
+        "--output",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/baseline-holdout-audit.json"
+      ],
+      "return_code": 0
+    },
+    "evaluate_candidate": {
+      "status": "passed",
+      "log": "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/logs/evaluate_candidate.log",
+      "command": [
+        "/workspace/rdna/bin/python",
+        "/workspace/parcel-sorter-opt-v1/scripts/collect_mobile_suction_dataset_rocm.py",
+        "--config",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/frozen-holdout.json",
+        "--output",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/candidate-holdout",
+        "--backend",
+        "rocm",
+        "--resume",
+        "--audit-only",
+        "--smolvla-checkpoint",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/candidate-training/checkpoints/002800/pretrained_model",
+        "--policy-mode",
+        "base_residual",
+        "--policy-hz",
+        "3",
+        "--workers",
+        "4"
+      ],
+      "return_code": 0
+    },
+    "summarize_candidate": {
+      "status": "passed",
+      "log": "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/logs/summarize_candidate.log",
+      "command": [
+        "/workspace/rdna/bin/python",
+        "/workspace/parcel-sorter-opt-v1/scripts/summarize_mobile_vla_campaign.py",
+        "--collection-summary",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/candidate-holdout/collection-summary.json",
+        "--output",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/candidate-holdout-audit.json"
+      ],
+      "return_code": 0
+    },
+    "promotion_gate": {
+      "status": "rejected",
+      "result": "/workspace/parcel-sorter-opt-v1/outputs/mobile-self-improvement-v3-cycle1/promotion-gate.json"
+    }
+  },
+  "claim_boundary": "nearline improvement between episodes; no active rollout mutates model weights"
+}

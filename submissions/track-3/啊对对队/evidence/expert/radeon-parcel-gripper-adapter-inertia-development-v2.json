@@ -1,0 +1,153 @@
+{
+  "schema_version": "1.0",
+  "study_type": "parcel_gripper_adapter_mass_inertia_safety_gate",
+  "claim_boundary": "One already observed deterministic mechanism episode only; physical-model and safety-gate evidence, not a success-rate, robustness, holdout, or hardware-transfer claim.",
+  "runtime": {
+    "accelerator": "single AMD Radeon gfx1100",
+    "vram_gib": 47.98,
+    "rocm_version": "7.2",
+    "simulator": "Genesis 1.2.3",
+    "physics_hz": 240,
+    "control_hz": 30
+  },
+  "frozen_contract": {
+    "adapter_enabled_by_default": false,
+    "extension_m": 0.03,
+    "effective_density_kg_m3": 1240.0,
+    "extension_scan_performed": false,
+    "density_scan_performed": false,
+    "measured_force_abort_n": 35.0,
+    "episode": 4120001,
+    "profile": "medium_carton",
+    "evaluation_order": [
+      "canonical-long-+0.000-up-0.040",
+      "canonical-long-+0.000-up-0.045"
+    ],
+    "stop_after_success_sentinel_regression": true,
+    "holdout_opened": false,
+    "new_episode_opened": false,
+    "frozen_train_group_7130001_executed": false
+  },
+  "physical_model": {
+    "adapter_dimensions_m": [0.02, 0.008, 0.03],
+    "adapter_volume_per_finger_m3": 0.0000048,
+    "adapter_mass_per_finger_kg": 0.005952,
+    "stock_finger_mass_kg": 0.015,
+    "combined_finger_mass_kg": 0.020952,
+    "combined_center_m": [0.0, 0.00156242840779, 0.0193172966781],
+    "combined_fullinertia_kg_m2": [
+      0.0000226856869553,
+      0.0000227234426117,
+      0.00000110904434364,
+      0.0,
+      0.0,
+      -0.00000159367697595
+    ],
+    "method": "uniform box plus stock explicit finger inertia, combined with the parallel-axis theorem",
+    "generated_asset": "outputs/generated_assets/panda_parcel_adapter_30p0mm_1240kgm3.xml",
+    "generated_asset_sha256": "c1785752199e90c2631c3bff46eb6733545d35f707819686dec590c236e95e32",
+    "upstream_asset": "Genesis 1.2.3 Panda MJCF",
+    "upstream_license": "Apache-2.0",
+    "third_party_meshes_committed": false,
+    "compliance_modeled": false,
+    "fasteners_modeled": false
+  },
+  "live_geometry_probe": {
+    "passed": true,
+    "stock_collision_geometries_per_finger": 6,
+    "adapter_collision_geometries_per_finger": 7,
+    "generated_adapter_geometries": 4,
+    "stock_finger_aabb_long_span_m": [
+      0.05571374297142029,
+      0.05599541217088699
+    ],
+    "adapter_finger_aabb_long_span_m": [
+      0.0847557857632637,
+      0.08482914417982101
+    ],
+    "genesis_accepted_full_inertia": true
+  },
+  "elimination_gate": [
+    {
+      "candidate_id": "canonical-long-+0.000-up-0.040",
+      "role": "known_failed_mechanism_grasp",
+      "lightweight_adapter": {
+        "success": true,
+        "safety_aborted": false,
+        "max_contact_force_n": 24.073612213134766
+      },
+      "mass_aware_adapter": {
+        "success": true,
+        "safety_aborted": false,
+        "dropped": false,
+        "max_contact_force_n": 13.137904167175293,
+        "duration_seconds": 17.566666666666666
+      },
+      "gate": "pass"
+    },
+    {
+      "candidate_id": "canonical-long-+0.000-up-0.045",
+      "role": "known_success_sentinel",
+      "lightweight_adapter": {
+        "success": true,
+        "safety_aborted": false,
+        "max_contact_force_n": 12.54796314239502
+      },
+      "mass_aware_adapter": {
+        "success": false,
+        "safety_aborted": true,
+        "dropped": false,
+        "force_abort_frame": 204,
+        "max_contact_force_n": 38.33644485473633,
+        "duration_seconds": 6.8,
+        "exact_repeat_count": 2
+      },
+      "prebranch_force_frame_202_n": 5.05757474899292,
+      "branch_frame": 203,
+      "branch_contact_count": 19,
+      "branch_bilateral_contact": false,
+      "gate": "fail"
+    }
+  ],
+  "source_artifacts": [
+    {
+      "path": "outputs/gripper-adapter-inertia-development-v2/geometry-probe.json",
+      "bytes": 6148,
+      "sha256": "07da94cbbb07da483523322eb985582bd9a8647884ceea0af064cc44afbfd15c"
+    },
+    {
+      "path": "outputs/gripper-adapter-inertia-development-v2/4120001-canonical-40-adapter-mass-aware.json",
+      "bytes": 3156357,
+      "sha256": "c13bac33e2dc99fee52a965dd27d25b025d4609d669fd501c3c83e4f1b32460f"
+    },
+    {
+      "path": "outputs/gripper-adapter-inertia-development-v2/4120001-canonical-45-adapter-mass-aware.json",
+      "bytes": 1073789,
+      "sha256": "197a1f423d7fa6f45ac8d60c68e79a6ab96eb11dc4f24cc3e9f9ab16a0456748"
+    },
+    {
+      "path": "outputs/gripper-adapter-inertia-development-v2/4120001-canonical-45-adapter-mass-aware-repeat2.json",
+      "bytes": 1073793,
+      "sha256": "c9b9c3a323dd144c872214a80f132036bbfdbb00aa5b69b13764e71453f0d098"
+    }
+  ],
+  "decision": {
+    "implementation_status": "retain_default_off_physical_model_capability",
+    "candidate_status": "reject_promotion_after_reproducible_safety_regression",
+    "reason": "The mass-aware adapter preserved the +40 mm recovery but changed the +45 mm success sentinel into an exactly repeated 38.34 N safety abort.",
+    "campaign_expansion_cancelled": true,
+    "next_action": "Investigate contact-pair identity and finger-actuator dynamics around frames 202-204 under an independently specified protocol; do not tune density or extension on this sentinel."
+  },
+  "verification": {
+    "compile": "python -m compileall -q src scripts tests",
+    "tests": "python -m unittest discover -s tests -q",
+    "tests_passed": 259,
+    "tests_failed": 0
+  },
+  "known_limitations": [
+    "Both tested candidates are nested within one already observed deterministic episode.",
+    "The effective density is a fixed modeling parameter, not an identified manufactured-part property.",
+    "Compliance, fasteners, manufacturing tolerances, and hardware force calibration are not modeled.",
+    "The contact branch is reproducible in Genesis 1.2.3 but has not been attributed to a specific collision pair."
+  ]
+}

@@ -1,0 +1,726 @@
+﻿{
+    "runtime":  {
+                    "python":  "3.12.3",
+                    "platform":  "Linux-6.8.0-79-generic-x86_64-with-glibc2.39",
+                    "genesis-world":  "1.2.3",
+                    "lerobot":  "0.6.1",
+                    "torch":  "2.9.1+rocm7.2.1.gitff65f5bc",
+                    "rocm":  "7.2.53211-e1a6bc5663",
+                    "cuda":  null,
+                    "gpu_available":  true,
+                    "gpu_count":  1,
+                    "gpu_name":  "AMD Radeon Graphics",
+                    "gpu_total_memory_bytes":  51522830336
+                },
+    "config":  {
+                   "name":  "parcel-sorter-rocm-catalog-v1",
+                   "seed":  42,
+                   "simulation":  {
+                                      "backend":  "rocm",
+                                      "device":  "cuda:0",
+                                      "num_envs":  128,
+                                      "physics_hz":  240,
+                                      "control_hz":  30,
+                                      "camera_hz":  10,
+                                      "headless":  true
+                                  },
+                   "sensors":  {
+                                   "rgb":  true,
+                                   "depth":  true,
+                                   "proprioception":  true,
+                                   "contact_force":  true,
+                                   "image_width":  224,
+                                   "image_height":  224
+                               },
+                   "task":  {
+                                "max_grasp_retries":  2,
+                                "lift_height_m":  0.12,
+                                "max_contact_force_n":  35.0,
+                                "episode_seconds":  20.0,
+                                "parcel_base_size_m":  [
+                                                           0.06,
+                                                           0.045,
+                                                           0.04
+                                                       ],
+                                "left_bin_center_m":  [
+                                                          0.48,
+                                                          -0.34,
+                                                          0.025
+                                                      ],
+                                "right_bin_center_m":  [
+                                                           0.48,
+                                                           0.34,
+                                                           0.025
+                                                       ],
+                                "bin_half_extent_m":  [
+                                                          0.11,
+                                                          0.1
+                                                      ],
+                                "approach_clearance_m":  0.26,
+                                "grasp_hand_clearance_m":  0.105,
+                                "drop_hand_height_m":  0.24,
+                                "position_tolerance_m":  0.025,
+                                "release_settle_steps":  12,
+                                "grasp_settle_steps":  10,
+                                "approach_xy_tolerance_m":  0.015
+                            },
+                   "control":  {
+                                   "arm_kp":  [
+                                                  4500.0,
+                                                  4500.0,
+                                                  3500.0,
+                                                  3500.0,
+                                                  2000.0,
+                                                  2000.0,
+                                                  2000.0
+                                              ],
+                                   "arm_kv":  [
+                                                  450.0,
+                                                  450.0,
+                                                  350.0,
+                                                  350.0,
+                                                  200.0,
+                                                  200.0,
+                                                  200.0
+                                              ],
+                                   "finger_kp":  100.0,
+                                   "finger_kv":  10.0,
+                                   "open_width_m":  0.04,
+                                   "close_force_n":  20.0,
+                                   "close_force_ramp_n_per_step":  1.0,
+                                   "max_ee_step_m":  0.04,
+                                   "final_approach_step_m":  0.01
+                               },
+                   "output":  {
+                                  "root_dir":  "outputs",
+                                  "task_instruction":  "Pick the parcel and place it in the indicated sorting bin.",
+                                  "record_first_episode":  false,
+                                  "save_sensor_frames":  false
+                              },
+                   "randomization":  {
+                                         "enabled":  true,
+                                         "parcel_size_scale_min":  0.75,
+                                         "parcel_size_scale_max":  1.3,
+                                         "parcel_mass_kg_min":  0.05,
+                                         "parcel_mass_kg_max":  1.0,
+                                         "friction_min":  0.3,
+                                         "friction_max":  1.2,
+                                         "camera_position_noise_m":  0.015,
+                                         "action_delay_steps_max":  2,
+                                         "parcel_position_x_min":  0.45,
+                                         "parcel_position_x_max":  0.72,
+                                         "parcel_position_y_min":  -0.18,
+                                         "parcel_position_y_max":  0.18,
+                                         "parcel_yaw_rad_min":  -3.1415926,
+                                         "parcel_yaw_rad_max":  3.1415926,
+                                         "catalog_block_size":  20
+                                     },
+                   "parcel_profiles":  [
+                                           {
+                                               "profile_id":  "micro_box",
+                                               "shape":  "box",
+                                               "orientation_mode":  "yaw",
+                                               "handling_class":  "parallel_jaw",
+                                               "material":  "corrugated_cardboard",
+                                               "selection_weight":  0.25,
+                                               "evaluation_only":  false,
+                                               "dimensions_min_m":  [
+                                                                        0.06,
+                                                                        0.035,
+                                                                        0.025
+                                                                    ],
+                                               "dimensions_max_m":  [
+                                                                        0.12,
+                                                                        0.065,
+                                                                        0.065
+                                                                    ],
+                                               "mass_kg_min":  0.05,
+                                               "mass_kg_max":  0.5,
+                                               "friction_min":  0.35,
+                                               "friction_max":  0.9,
+                                               "provenance":  "hardware-feasible stratum bounded by the Panda 0.08 m aperture"
+                                           },
+                                           {
+                                               "profile_id":  "small_carton",
+                                               "shape":  "box",
+                                               "orientation_mode":  "yaw",
+                                               "handling_class":  "parallel_jaw",
+                                               "material":  "corrugated_cardboard",
+                                               "selection_weight":  0.2,
+                                               "evaluation_only":  false,
+                                               "dimensions_min_m":  [
+                                                                        0.1,
+                                                                        0.045,
+                                                                        0.04
+                                                                    ],
+                                               "dimensions_max_m":  [
+                                                                        0.2,
+                                                                        0.075,
+                                                                        0.12
+                                                                    ],
+                                               "mass_kg_min":  0.15,
+                                               "mass_kg_max":  1.2,
+                                               "friction_min":  0.35,
+                                               "friction_max":  1.0,
+                                               "provenance":  "small-commerce carton stratum constrained to a pinchable minor axis"
+                                           },
+                                           {
+                                               "profile_id":  "flat_box",
+                                               "shape":  "box",
+                                               "orientation_mode":  "yaw",
+                                               "handling_class":  "parallel_jaw",
+                                               "material":  "paperboard",
+                                               "selection_weight":  0.15,
+                                               "evaluation_only":  false,
+                                               "dimensions_min_m":  [
+                                                                        0.12,
+                                                                        0.04,
+                                                                        0.015
+                                                                    ],
+                                               "dimensions_max_m":  [
+                                                                        0.24,
+                                                                        0.07,
+                                                                        0.04
+                                                                    ],
+                                               "mass_kg_min":  0.05,
+                                               "mass_kg_max":  0.6,
+                                               "friction_min":  0.3,
+                                               "friction_max":  0.85,
+                                               "provenance":  "flat rigid-mailer proxy constrained to the current rigid-body solver"
+                                           },
+                                           {
+                                               "profile_id":  "long_box",
+                                               "shape":  "box",
+                                               "orientation_mode":  "yaw",
+                                               "handling_class":  "parallel_jaw",
+                                               "material":  "corrugated_cardboard",
+                                               "selection_weight":  0.15,
+                                               "evaluation_only":  false,
+                                               "dimensions_min_m":  [
+                                                                        0.18,
+                                                                        0.04,
+                                                                        0.035
+                                                                    ],
+                                               "dimensions_max_m":  [
+                                                                        0.32,
+                                                                        0.07,
+                                                                        0.09
+                                                                    ],
+                                               "mass_kg_min":  0.1,
+                                               "mass_kg_max":  1.0,
+                                               "friction_min":  0.35,
+                                               "friction_max":  1.0,
+                                               "provenance":  "long parcel stratum with a gripper-feasible minor axis"
+                                           },
+                                           {
+                                               "profile_id":  "upright_canister",
+                                               "shape":  "cylinder",
+                                               "orientation_mode":  "upright",
+                                               "handling_class":  "parallel_jaw",
+                                               "material":  "rigid_canister",
+                                               "selection_weight":  0.1,
+                                               "evaluation_only":  false,
+                                               "dimensions_min_m":  [
+                                                                        0.04,
+                                                                        0.04,
+                                                                        0.06
+                                                                    ],
+                                               "dimensions_max_m":  [
+                                                                        0.07,
+                                                                        0.07,
+                                                                        0.16
+                                                                    ],
+                                               "mass_kg_min":  0.1,
+                                               "mass_kg_max":  0.8,
+                                               "friction_min":  0.25,
+                                               "friction_max":  0.8,
+                                               "provenance":  "cylindrical consumer parcel stratum within the gripper aperture"
+                                           },
+                                           {
+                                               "profile_id":  "mailing_tube",
+                                               "shape":  "cylinder",
+                                               "orientation_mode":  "horizontal",
+                                               "handling_class":  "parallel_jaw",
+                                               "material":  "kraft_tube",
+                                               "selection_weight":  0.1,
+                                               "evaluation_only":  false,
+                                               "dimensions_min_m":  [
+                                                                        0.15,
+                                                                        0.035,
+                                                                        0.035
+                                                                    ],
+                                               "dimensions_max_m":  [
+                                                                        0.3,
+                                                                        0.065,
+                                                                        0.065
+                                                                    ],
+                                               "mass_kg_min":  0.08,
+                                               "mass_kg_max":  0.8,
+                                               "friction_min":  0.3,
+                                               "friction_max":  0.9,
+                                               "provenance":  "mailing-tube stratum; USPS explicitly classifies cylindrical tubes as nonstandard"
+                                           },
+                                           {
+                                               "profile_id":  "near_limit_box",
+                                               "shape":  "box",
+                                               "orientation_mode":  "yaw",
+                                               "handling_class":  "parallel_jaw",
+                                               "material":  "corrugated_cardboard",
+                                               "selection_weight":  0.05,
+                                               "evaluation_only":  false,
+                                               "dimensions_min_m":  [
+                                                                        0.15,
+                                                                        0.07,
+                                                                        0.06
+                                                                    ],
+                                               "dimensions_max_m":  [
+                                                                        0.28,
+                                                                        0.079,
+                                                                        0.15
+                                                                    ],
+                                               "mass_kg_min":  0.3,
+                                               "mass_kg_max":  1.5,
+                                               "friction_min":  0.35,
+                                               "friction_max":  1.1,
+                                               "provenance":  "near-aperture stress stratum for boundary testing"
+                                           },
+                                           {
+                                               "profile_id":  "usps_small_flat_rate",
+                                               "shape":  "box",
+                                               "orientation_mode":  "yaw",
+                                               "handling_class":  "suction_required",
+                                               "material":  "corrugated_cardboard",
+                                               "selection_weight":  0.0,
+                                               "evaluation_only":  true,
+                                               "dimensions_min_m":  [
+                                                                        0.220663,
+                                                                        0.138113,
+                                                                        0.04445
+                                                                    ],
+                                               "dimensions_max_m":  [
+                                                                        0.220663,
+                                                                        0.138113,
+                                                                        0.04445
+                                                                    ],
+                                               "mass_kg_min":  0.1,
+                                               "mass_kg_max":  1.5,
+                                               "friction_min":  0.35,
+                                               "friction_max":  1.0,
+                                               "provenance":  "USPS Priority Mail Small Flat Rate Box outside dimensions, accessed 2026-07-24"
+                                           },
+                                           {
+                                               "profile_id":  "usps_medium_flat_rate",
+                                               "shape":  "box",
+                                               "orientation_mode":  "yaw",
+                                               "handling_class":  "suction_required",
+                                               "material":  "corrugated_cardboard",
+                                               "selection_weight":  0.0,
+                                               "evaluation_only":  true,
+                                               "dimensions_min_m":  [
+                                                                        0.28575,
+                                                                        0.22225,
+                                                                        0.1524
+                                                                    ],
+                                               "dimensions_max_m":  [
+                                                                        0.28575,
+                                                                        0.22225,
+                                                                        0.1524
+                                                                    ],
+                                               "mass_kg_min":  0.2,
+                                               "mass_kg_max":  3.0,
+                                               "friction_min":  0.35,
+                                               "friction_max":  1.0,
+                                               "provenance":  "USPS Priority Mail Medium Flat Rate Box 1 outside dimensions, accessed 2026-07-24"
+                                           },
+                                           {
+                                               "profile_id":  "usps_board_game_box",
+                                               "shape":  "box",
+                                               "orientation_mode":  "yaw",
+                                               "handling_class":  "suction_required",
+                                               "material":  "corrugated_cardboard",
+                                               "selection_weight":  0.0,
+                                               "evaluation_only":  true,
+                                               "dimensions_min_m":  [
+                                                                        0.611188,
+                                                                        0.301625,
+                                                                        0.079375
+                                                                    ],
+                                               "dimensions_max_m":  [
+                                                                        0.611188,
+                                                                        0.301625,
+                                                                        0.079375
+                                                                    ],
+                                               "mass_kg_min":  0.3,
+                                               "mass_kg_max":  3.5,
+                                               "friction_min":  0.35,
+                                               "friction_max":  1.0,
+                                               "provenance":  "USPS Priority Mail Board Game Box outside dimensions, accessed 2026-07-24"
+                                           },
+                                           {
+                                               "profile_id":  "large_mailing_tube",
+                                               "shape":  "cylinder",
+                                               "orientation_mode":  "horizontal",
+                                               "handling_class":  "cradle_required",
+                                               "material":  "kraft_tube",
+                                               "selection_weight":  0.0,
+                                               "evaluation_only":  true,
+                                               "dimensions_min_m":  [
+                                                                        0.3,
+                                                                        0.08,
+                                                                        0.08
+                                                                    ],
+                                               "dimensions_max_m":  [
+                                                                        0.56,
+                                                                        0.15,
+                                                                        0.15
+                                                                    ],
+                                               "mass_kg_min":  0.2,
+                                               "mass_kg_max":  2.0,
+                                               "friction_min":  0.25,
+                                               "friction_max":  0.8,
+                                               "provenance":  "capability-boundary tube range below the USPS 22 inch nonstandard-length threshold"
+                                           }
+                                       ]
+               },
+    "episodes_per_profile":  1,
+    "profiles":  {
+                     "micro_box":  {
+                                       "episodes":  1,
+                                       "success_rate":  0.0,
+                                       "first_attempt_success_rate":  0.0,
+                                       "recovery_success_rate":  0.0,
+                                       "drop_rate":  0.0,
+                                       "mean_duration_seconds":  19.966666666666665,
+                                       "successful_parcels_per_hour":  0.0,
+                                       "mean_inference_latency_ms":  0.028858371666666667,
+                                       "p95_inference_latency_ms":  0.04194,
+                                       "max_contact_force_n":  13.555781364440918
+                                   },
+                     "small_carton":  {
+                                          "episodes":  1,
+                                          "success_rate":  1.0,
+                                          "first_attempt_success_rate":  1.0,
+                                          "recovery_success_rate":  0.0,
+                                          "drop_rate":  0.0,
+                                          "mean_duration_seconds":  8.033333333333333,
+                                          "successful_parcels_per_hour":  448.13278008298755,
+                                          "mean_inference_latency_ms":  0.02378096694214876,
+                                          "p95_inference_latency_ms":  0.02855,
+                                          "max_contact_force_n":  10.706809997558594
+                                      },
+                     "flat_box":  {
+                                      "episodes":  1,
+                                      "success_rate":  1.0,
+                                      "first_attempt_success_rate":  1.0,
+                                      "recovery_success_rate":  0.0,
+                                      "drop_rate":  0.0,
+                                      "mean_duration_seconds":  6.433333333333334,
+                                      "successful_parcels_per_hour":  559.5854922279792,
+                                      "mean_inference_latency_ms":  0.023875056701030926,
+                                      "p95_inference_latency_ms":  0.02847,
+                                      "max_contact_force_n":  9.364816665649414
+                                  },
+                     "long_box":  {
+                                      "episodes":  1,
+                                      "success_rate":  1.0,
+                                      "first_attempt_success_rate":  1.0,
+                                      "recovery_success_rate":  0.0,
+                                      "drop_rate":  0.0,
+                                      "mean_duration_seconds":  12.433333333333334,
+                                      "successful_parcels_per_hour":  289.544235924933,
+                                      "mean_inference_latency_ms":  0.022856783422459892,
+                                      "p95_inference_latency_ms":  0.02709,
+                                      "max_contact_force_n":  11.599430084228516
+                                  },
+                     "upright_canister":  {
+                                              "episodes":  1,
+                                              "success_rate":  0.0,
+                                              "first_attempt_success_rate":  0.0,
+                                              "recovery_success_rate":  0.0,
+                                              "drop_rate":  0.0,
+                                              "mean_duration_seconds":  6.7,
+                                              "successful_parcels_per_hour":  0.0,
+                                              "mean_inference_latency_ms":  0.02256828217821782,
+                                              "p95_inference_latency_ms":  0.02892,
+                                              "max_contact_force_n":  29.29726791381836
+                                          },
+                     "mailing_tube":  {
+                                          "episodes":  1,
+                                          "success_rate":  0.0,
+                                          "first_attempt_success_rate":  0.0,
+                                          "recovery_success_rate":  0.0,
+                                          "drop_rate":  0.0,
+                                          "mean_duration_seconds":  4.833333333333333,
+                                          "successful_parcels_per_hour":  0.0,
+                                          "mean_inference_latency_ms":  0.022763260273972602,
+                                          "p95_inference_latency_ms":  0.02815,
+                                          "max_contact_force_n":  12.712933540344238
+                                      },
+                     "near_limit_box":  {
+                                            "episodes":  1,
+                                            "success_rate":  1.0,
+                                            "first_attempt_success_rate":  1.0,
+                                            "recovery_success_rate":  0.0,
+                                            "drop_rate":  0.0,
+                                            "mean_duration_seconds":  4.7,
+                                            "successful_parcels_per_hour":  765.9574468085107,
+                                            "mean_inference_latency_ms":  0.023493190140845072,
+                                            "p95_inference_latency_ms":  0.02802,
+                                            "max_contact_force_n":  5.548450469970703
+                                        }
+                 },
+    "episodes":  [
+                     {
+                         "profile_id":  "micro_box",
+                         "handling_class":  "parallel_jaw",
+                         "episode_index":  0,
+                         "terminal_stage":  "approach",
+                         "result":  {
+                                        "success":  false,
+                                        "retries":  2,
+                                        "duration_seconds":  19.966666666666665,
+                                        "dropped":  false,
+                                        "max_contact_force_n":  13.555781364440918,
+                                        "inference_samples":  600,
+                                        "inference_mean_ms":  0.028858371666666636,
+                                        "inference_p95_ms":  0.042269
+                                    },
+                         "sample":  {
+                                        "profile_id":  "micro_box",
+                                        "shape":  "box",
+                                        "orientation_mode":  "yaw",
+                                        "handling_class":  "parallel_jaw",
+                                        "dimensions_m":  [
+                                                             0.09836560790747302,
+                                                             0.03575032265668001,
+                                                             0.036001172734764775
+                                                         ],
+                                        "mass_kg":  0.45148080546718045,
+                                        "friction":  0.39781635794617887,
+                                        "position_xy":  [
+                                                            0.563918891315023,
+                                                            -0.16927300100229467
+                                                        ],
+                                        "yaw_rad":  -1.7678497125560264,
+                                        "destination":  "right",
+                                        "provenance":  "hardware-feasible stratum bounded by the Panda 0.08 m aperture"
+                                    }
+                     },
+                     {
+                         "profile_id":  "small_carton",
+                         "handling_class":  "parallel_jaw",
+                         "episode_index":  1000000,
+                         "terminal_stage":  "complete",
+                         "result":  {
+                                        "success":  true,
+                                        "retries":  0,
+                                        "duration_seconds":  8.033333333333333,
+                                        "dropped":  false,
+                                        "max_contact_force_n":  10.706809997558594,
+                                        "inference_samples":  242,
+                                        "inference_mean_ms":  0.023780966942148745,
+                                        "inference_p95_ms":  0.02855
+                                    },
+                         "sample":  {
+                                        "profile_id":  "small_carton",
+                                        "shape":  "box",
+                                        "orientation_mode":  "yaw",
+                                        "handling_class":  "parallel_jaw",
+                                        "dimensions_m":  [
+                                                             0.16867316359246143,
+                                                             0.04797731391858248,
+                                                             0.1113416323823169
+                                                         ],
+                                        "mass_kg":  1.1557595365650732,
+                                        "friction":  0.6738764650352109,
+                                        "position_xy":  [
+                                                            0.5852010139147412,
+                                                            -0.15704313479408594
+                                                        ],
+                                        "yaw_rad":  -2.9305279343830946,
+                                        "destination":  "right",
+                                        "provenance":  "small-commerce carton stratum constrained to a pinchable minor axis"
+                                    }
+                     },
+                     {
+                         "profile_id":  "flat_box",
+                         "handling_class":  "parallel_jaw",
+                         "episode_index":  2000000,
+                         "terminal_stage":  "complete",
+                         "result":  {
+                                        "success":  true,
+                                        "retries":  0,
+                                        "duration_seconds":  6.433333333333334,
+                                        "dropped":  false,
+                                        "max_contact_force_n":  9.364816665649414,
+                                        "inference_samples":  194,
+                                        "inference_mean_ms":  0.023875056701030926,
+                                        "inference_p95_ms":  0.02847
+                                    },
+                         "sample":  {
+                                        "profile_id":  "flat_box",
+                                        "shape":  "box",
+                                        "orientation_mode":  "yaw",
+                                        "handling_class":  "parallel_jaw",
+                                        "dimensions_m":  [
+                                                             0.21863353003143413,
+                                                             0.05083093106881521,
+                                                             0.035189544386026804
+                                                         ],
+                                        "mass_kg":  0.5194944811189031,
+                                        "friction":  0.5035560585246365,
+                                        "position_xy":  [
+                                                            0.5052857092421736,
+                                                            -0.11585182155285187
+                                                        ],
+                                        "yaw_rad":  -1.4973603128393855,
+                                        "destination":  "right",
+                                        "provenance":  "flat rigid-mailer proxy constrained to the current rigid-body solver"
+                                    }
+                     },
+                     {
+                         "profile_id":  "long_box",
+                         "handling_class":  "parallel_jaw",
+                         "episode_index":  3000000,
+                         "terminal_stage":  "complete",
+                         "result":  {
+                                        "success":  true,
+                                        "retries":  0,
+                                        "duration_seconds":  12.433333333333334,
+                                        "dropped":  false,
+                                        "max_contact_force_n":  11.599430084228516,
+                                        "inference_samples":  374,
+                                        "inference_mean_ms":  0.022856783422459889,
+                                        "inference_p95_ms":  0.02709
+                                    },
+                         "sample":  {
+                                        "profile_id":  "long_box",
+                                        "shape":  "box",
+                                        "orientation_mode":  "yaw",
+                                        "handling_class":  "parallel_jaw",
+                                        "dimensions_m":  [
+                                                             0.29122519086464427,
+                                                             0.04053371015723959,
+                                                             0.08435443979158486
+                                                         ],
+                                        "mass_kg":  0.5381432564658695,
+                                        "friction":  0.48873473309534887,
+                                        "position_xy":  [
+                                                            0.7033215835488531,
+                                                            0.14926869814580523
+                                                        ],
+                                        "yaw_rad":  1.5759848995516146,
+                                        "destination":  "left",
+                                        "provenance":  "long parcel stratum with a gripper-feasible minor axis"
+                                    }
+                     },
+                     {
+                         "profile_id":  "upright_canister",
+                         "handling_class":  "parallel_jaw",
+                         "episode_index":  4000000,
+                         "terminal_stage":  "abort",
+                         "result":  {
+                                        "success":  false,
+                                        "retries":  2,
+                                        "duration_seconds":  6.7,
+                                        "dropped":  false,
+                                        "max_contact_force_n":  29.29726791381836,
+                                        "inference_samples":  202,
+                                        "inference_mean_ms":  0.022568282178217811,
+                                        "inference_p95_ms":  0.02892
+                                    },
+                         "sample":  {
+                                        "profile_id":  "upright_canister",
+                                        "shape":  "cylinder",
+                                        "orientation_mode":  "upright",
+                                        "handling_class":  "parallel_jaw",
+                                        "dimensions_m":  [
+                                                             0.05140172390123658,
+                                                             0.05735880423960205,
+                                                             0.09288667573955364
+                                                         ],
+                                        "mass_kg":  0.17015358443205836,
+                                        "friction":  0.46376865121618877,
+                                        "position_xy":  [
+                                                            0.6299343136629134,
+                                                            0.11232261633063717
+                                                        ],
+                                        "yaw_rad":  1.1323863695367127,
+                                        "destination":  "right",
+                                        "provenance":  "cylindrical consumer parcel stratum within the gripper aperture"
+                                    }
+                     },
+                     {
+                         "profile_id":  "mailing_tube",
+                         "handling_class":  "parallel_jaw",
+                         "episode_index":  5000000,
+                         "terminal_stage":  "abort",
+                         "result":  {
+                                        "success":  false,
+                                        "retries":  2,
+                                        "duration_seconds":  4.833333333333333,
+                                        "dropped":  false,
+                                        "max_contact_force_n":  12.712933540344238,
+                                        "inference_samples":  146,
+                                        "inference_mean_ms":  0.022763260273972605,
+                                        "inference_p95_ms":  0.02815
+                                    },
+                         "sample":  {
+                                        "profile_id":  "mailing_tube",
+                                        "shape":  "cylinder",
+                                        "orientation_mode":  "horizontal",
+                                        "handling_class":  "parallel_jaw",
+                                        "dimensions_m":  [
+                                                             0.151153246510853,
+                                                             0.03503529708508349,
+                                                             0.038026612976327215
+                                                         ],
+                                        "mass_kg":  0.6132358283411741,
+                                        "friction":  0.34167024370013976,
+                                        "position_xy":  [
+                                                            0.5277858633634849,
+                                                            0.07318358082673093
+                                                        ],
+                                        "yaw_rad":  2.193280865294864,
+                                        "destination":  "right",
+                                        "provenance":  "mailing-tube stratum; USPS explicitly classifies cylindrical tubes as nonstandard"
+                                    }
+                     },
+                     {
+                         "profile_id":  "near_limit_box",
+                         "handling_class":  "parallel_jaw",
+                         "episode_index":  6000000,
+                         "terminal_stage":  "complete",
+                         "result":  {
+                                        "success":  true,
+                                        "retries":  0,
+                                        "duration_seconds":  4.7,
+                                        "dropped":  false,
+                                        "max_contact_force_n":  5.548450469970703,
+                                        "inference_samples":  142,
+                                        "inference_mean_ms":  0.023493190140845055,
+                                        "inference_p95_ms":  0.02802
+                                    },
+                         "sample":  {
+                                        "profile_id":  "near_limit_box",
+                                        "shape":  "box",
+                                        "orientation_mode":  "yaw",
+                                        "handling_class":  "parallel_jaw",
+                                        "dimensions_m":  [
+                                                             0.21167611636099928,
+                                                             0.07244039570831409,
+                                                             0.1407793409741411
+                                                         ],
+                                        "mass_kg":  0.5251850753517981,
+                                        "friction":  0.7246169567658798,
+                                        "position_xy":  [
+                                                            0.5447750869701672,
+                                                            -0.07818024196272703
+                                                        ],
+                                        "yaw_rad":  1.502694882190064,
+                                        "destination":  "right",
+                                        "provenance":  "near-aperture stress stratum for boundary testing"
+                                    }
+                     }
+                 ]
+}

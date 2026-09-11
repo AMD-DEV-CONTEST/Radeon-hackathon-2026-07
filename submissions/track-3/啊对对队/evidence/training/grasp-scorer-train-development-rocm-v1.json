@@ -1,0 +1,136 @@
+{
+  "schema_version": "1.0",
+  "study_type": "structured_grasp_scorer_frozen_train_development",
+  "claim_boundary": "Four train groups and one development group were applicable to the formal reset-fallback gate. Development is a single-group diagnostic; holdout remains unobserved and no generalization or controller-improvement claim is made.",
+  "runtime": {
+    "accelerator": "single AMD Radeon gfx1100",
+    "device_name": "AMD Radeon Graphics",
+    "torch_version": "2.9.1+rocm7.2.1.gitff65f5bc",
+    "hip_version": "7.2.53211-e1a6bc5663"
+  },
+  "protocol": {
+    "path": "configs/grasp_candidate_learning_v1.toml",
+    "sha256": "6c1a6cc7a0ee0d04972dd10a94dbbc1edfba957202d8880caf0d311c66bf5958",
+    "frozen_train_episodes": 12,
+    "frozen_development_episodes": 6,
+    "frozen_holdout_episodes": 6,
+    "holdout_status": "locked_and_unobserved"
+  },
+  "collection": {
+    "train": {
+      "manifest": "outputs/grasp-scorer-v1/collection/train/manifest.json",
+      "manifest_sha256": "00dcb46bfcf8c44fa37ca69ca65ff3bd801d40928654a2a6d182679dbcf60b51",
+      "planned_episodes": 12,
+      "complete_episodes": 4,
+      "skipped_inactive_gate_episodes": 8,
+      "by_profile": {
+        "large_narrow_carton": {"planned": 4, "complete": 2, "skipped": 2},
+        "medium_carton": {"planned": 4, "complete": 2, "skipped": 2},
+        "shoe_box_proxy": {"planned": 4, "complete": 0, "skipped": 4}
+      }
+    },
+    "development": {
+      "manifest": "outputs/grasp-scorer-v1/collection/development/manifest.json",
+      "manifest_sha256": "47c45393e8bec0c96900ba09eba9ff72cdd16792d6e9bee4cd4f1c62c9b9a01b",
+      "planned_episodes": 6,
+      "complete_episodes": 1,
+      "skipped_inactive_gate_episodes": 5,
+      "by_profile": {
+        "large_narrow_carton": {"planned": 2, "complete": 1, "skipped": 1},
+        "medium_carton": {"planned": 2, "complete": 0, "skipped": 2},
+        "shoe_box_proxy": {"planned": 2, "complete": 0, "skipped": 2}
+      }
+    }
+  },
+  "datasets": {
+    "train": {
+      "path": "outputs/grasp-scorer-v1/train-dataset.json",
+      "file_sha256": "8b3fae67076e417b8c1de9ebb97aa1bd0a8431599b40a6ed3ad66b02a12871b8",
+      "payload_sha256": "b625b6e762027a137db63f301907fbf6ba9ee9a13d40f0b33e1733cff015c529",
+      "rows": 24,
+      "groups": 4,
+      "success_rows": 3,
+      "safety_aborted_rows": 14
+    },
+    "train_development": {
+      "path": "outputs/grasp-scorer-v1/train-development-dataset.json",
+      "file_sha256": "95b208c85b54f76d6124d372d504083a94efd510b4e4c139c9e116cf807ba57a",
+      "payload_sha256": "fa29e89f153dcd1e2688d061639141ef202e798b8479493372088543d40e3742",
+      "rows": 30,
+      "groups": 5,
+      "split_rows": {"train": 24, "development": 6},
+      "success_rows": 3,
+      "safety_aborted_rows": 20
+    }
+  },
+  "model": {
+    "family": "two-hidden-layer MLP with SiLU activations",
+    "hidden_width": 64,
+    "parameter_count": 6276,
+    "checkpoint_size_bytes": 29395,
+    "checkpoint_sha256": "c678d68fa2da3335268e06a2b5c44475c49df02ed91682ff393253fef02517b7",
+    "integration_status": "disabled_after_development_diagnostic"
+  },
+  "training": {
+    "steps": 2000,
+    "seed": 42,
+    "train_rows": 24,
+    "elapsed_ms": 2501.558516,
+    "initial_loss": 3.4875221252441406,
+    "final_loss": 0.00008318933396367356,
+    "summary": "outputs/grasp-scorer-v1/train-v1/summary.json",
+    "summary_sha256": "be4a796e23e8ff42b1f4b327cb55f040c1a93812e0757504ecdb85dfb950ead0"
+  },
+  "train_reconstruction": {
+    "group_count": 4,
+    "model_successes": 1,
+    "model_safety_aborts": 0,
+    "static_successes": 1,
+    "static_safety_aborts": 3,
+    "interpretation": "In-sample reconstruction only; it is not evidence of generalization.",
+    "evaluation": "outputs/grasp-scorer-v1/train-v1/evaluation.json",
+    "evaluation_sha256": "9829132450686de8413d9e400d7d72ad425e9b72f67e595a64b9f62129907b02"
+  },
+  "development_diagnostic": {
+    "group_id": "large_narrow_carton:7140001",
+    "candidate_count": 6,
+    "candidate_successes": 0,
+    "candidate_safety_aborts": 6,
+    "model_successes": 0,
+    "model_safety_aborts": 1,
+    "static_successes": 0,
+    "static_safety_aborts": 1,
+    "model_candidate_id": "canonical-long-+0.050-up-0.040",
+    "model_candidate_observed_force_n": 35.896026611328125,
+    "static_candidate_observed_force_n": 35.529197692871094,
+    "minimum_force_candidate_id": "canonical-long--0.050-up-0.040",
+    "minimum_observed_force_n": 35.521034240722656,
+    "interpretation": "No feasible candidate avoided the safety abort. The model did not recover utility and did not select the minimum-force candidate.",
+    "evaluation": "outputs/grasp-scorer-v1/train-v1/development-evaluation.json",
+    "evaluation_sha256": "94bced519e94007762e764c13bddb741f3d72befdd65281cf070039e67e9d171"
+  },
+  "six_candidate_latency": {
+    "group_id": "large_narrow_carton:7140001",
+    "warmup_batches": 10,
+    "benchmark_repeats": 100,
+    "cold_batch_ms": 288.634146,
+    "steady_batch_p50_ms": 0.900587,
+    "steady_batch_p95_ms": 0.921117,
+    "steady_per_candidate_p95_ms": 0.1535195,
+    "latency_gate_ms": 5.0,
+    "latency_gate_passed": true
+  },
+  "decision": {
+    "result": "do_not_promote",
+    "reason": "The only applicable development group offered no safe candidate, so the scorer showed neither safety nor task recovery and development coverage was insufficient for model selection.",
+    "controller_integration": false,
+    "open_holdout": false,
+    "next_action": "Improve candidate support geometry or collect a newly preregistered, gate-applicable development set before any holdout evaluation."
+  },
+  "verification": {
+    "compile": "python -m compileall -q src scripts tests",
+    "tests": "python -m unittest discover -s tests -q",
+    "tests_passed": 247,
+    "tests_failed": 0
+  }
+}

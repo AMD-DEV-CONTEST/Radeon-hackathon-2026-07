@@ -1,0 +1,603 @@
+From: XBotics AMD reproducibility protocol
+Subject: [PATCH] Add frozen LIBERO states and synchronized endurance telemetry
+
+Base: huggingface/lerobot@73dbb6f43a5088583706c91fb73c6957bca5f806
+
+This patch separates development and confirmation initial states without changing
+LIBERO rewards or success criteria. It disables video during Radeon measurements,
+synchronizes policy timing with HIP, and supports persistent fixed-state repeats
+interleaved across tasks for drift-balanced endurance evidence.
+
+diff --git a/src/lerobot/envs/libero.py b/src/lerobot/envs/libero.py
+index 12be9e1..ec50805 100644
+--- a/src/lerobot/envs/libero.py
++++ b/src/lerobot/envs/libero.py
+@@ -122,6 +122,8 @@ class LiberoEnv(gym.Env):
+         visualization_height: int = 480,
+         init_states: bool = True,
+         episode_index: int = 0,
++        init_state_offset: int = 0,
++        init_state_stride: int | None = None,
+         n_envs: int = 1,
+         camera_name_mapping: dict[str, str] | None = None,
+         num_steps_wait: int = 10,
+@@ -162,9 +164,17 @@ class LiberoEnv(gym.Env):
+             if self.init_states
+             else None
+         )
+-        self._reset_stride = n_envs  # when performing a reset, append `_reset_stride` to `init_state_id`.
+-
+-        self.init_state_id = self.episode_index  # tie each sub-env to a fixed init state
++        if init_state_offset < 0:
++            raise ValueError(f"init_state_offset must be non-negative; got {init_state_offset}.")
++        if init_state_stride is not None and (
++            not isinstance(init_state_stride, int) or init_state_stride < 0
++        ):
++            raise ValueError(
++                f"init_state_stride must be a non-negative int or None; got {init_state_stride}."
++            )
++        self.init_state_offset = init_state_offset
++        self.init_state_id = self.init_state_offset + self.episode_index
++        self._reset_stride = n_envs if init_state_stride is None else init_state_stride
+ 
+         # Extract task metadata without allocating GPU resources (safe before fork).
+         task = task_suite.get_task(task_id)
+@@ -388,6 +398,8 @@ def _make_env_fns(
+     suite_name: str,
+     task_id: int,
+     n_envs: int,
++    init_state_offset: int,
++    init_state_stride: int | None,
+     camera_names: list[str],
+     episode_length: int | None,
+     init_states: bool,
+@@ -408,6 +420,8 @@ def _make_env_fns(
+             init_states=init_states,
+             episode_length=episode_length,
+             episode_index=episode_index,
++            init_state_offset=init_state_offset,
++            init_state_stride=init_state_stride,
+             n_envs=n_envs,
+             control_mode=control_mode,
+             camera_name_mapping=camera_name_mapping,
+@@ -430,6 +444,8 @@ def create_libero_envs(
+     gym_kwargs: dict[str, Any] | None = None,
+     camera_name: str | Sequence[str] = "agentview_image,robot0_eye_in_hand_image",
+     init_states: bool = True,
++    init_state_offset: int = 0,
++    init_state_stride: int | None = None,
+     env_cls: Callable[[Sequence[Callable[[], Any]]], Any] | None = None,
+     control_mode: str = "relative",
+     episode_length: int | None = None,
+@@ -450,6 +466,16 @@ def create_libero_envs(
+         raise ValueError("env_cls must be a callable that wraps a list of environment factory callables.")
+     if not isinstance(n_envs, int) or n_envs <= 0:
+         raise ValueError(f"n_envs must be a positive int; got {n_envs}.")
++    if not isinstance(init_state_offset, int) or init_state_offset < 0:
++        raise ValueError(
++            f"init_state_offset must be a non-negative int; got {init_state_offset}."
++        )
++    if init_state_stride is not None and (
++        not isinstance(init_state_stride, int) or init_state_stride < 0
++    ):
++        raise ValueError(
++            f"init_state_stride must be a non-negative int or None; got {init_state_stride}."
++        )
+ 
+     gym_kwargs = dict(gym_kwargs or {})
+     task_ids_filter = gym_kwargs.pop("task_ids", None)  # optional: limit to specific tasks
+@@ -460,7 +486,9 @@ def create_libero_envs(
+         raise ValueError("`task` must contain at least one LIBERO suite name.")
+ 
+     print(
+-        f"Creating LIBERO envs | suites={suite_names} | n_envs(per task)={n_envs} | init_states={init_states}"
++        f"Creating LIBERO envs | suites={suite_names} | n_envs(per task)={n_envs} | "
++        f"init_states={init_states} | init_state_offset={init_state_offset} | "
++        f"init_state_stride={init_state_stride}"
+     )
+     if task_ids_filter is not None:
+         print(f"Restricting to task_ids={task_ids_filter}")
+@@ -488,6 +516,8 @@ def create_libero_envs(
+                 suite_name=suite_name,
+                 task_id=tid,
+                 n_envs=n_envs,
++                init_state_offset=init_state_offset,
++                init_state_stride=init_state_stride,
+                 camera_names=camera_names,
+                 init_states=init_states,
+                 gym_kwargs=gym_kwargs,
+diff --git a/src/lerobot/envs/configs.py b/src/lerobot/envs/configs.py
+index 3624357..efcf541 100644
+--- a/src/lerobot/envs/configs.py
++++ b/src/lerobot/envs/configs.py
+@@ -328,6 +328,8 @@ class LiberoEnv(EnvConfig):
+     render_mode: str = "rgb_array"
+     camera_name: str = "agentview_image,robot0_eye_in_hand_image"
+     init_states: bool = True
++    init_state_offset: int = 0
++    init_state_stride: int | None = None
+     camera_name_mapping: dict[str, str] | None = None
+     observation_height: int = 360
+     observation_width: int = 360
+@@ -354,6 +356,14 @@ class LiberoEnv(EnvConfig):
+     control_mode: str = "relative"  # or "absolute"
+ 
+     def __post_init__(self):
++        if self.init_state_offset < 0:
++            raise ValueError(
++                f"init_state_offset must be non-negative; got {self.init_state_offset}."
++            )
++        if self.init_state_stride is not None and self.init_state_stride < 0:
++            raise ValueError(
++                f"init_state_stride must be non-negative or None; got {self.init_state_stride}."
++            )
+         if self.obs_type == "pixels":
+             self.features[LIBERO_KEY_PIXELS_AGENTVIEW] = PolicyFeature(
+                 type=FeatureType.VISUAL, shape=(self.observation_height, self.observation_width, 3)
+@@ -428,6 +438,8 @@ class LiberoEnv(EnvConfig):
+             n_envs=n_envs,
+             camera_name=self.camera_name,
+             init_states=self.init_states,
++            init_state_offset=self.init_state_offset,
++            init_state_stride=self.init_state_stride,
+             gym_kwargs=self.gym_kwargs,
+             env_cls=env_cls,
+             control_mode=self.control_mode,
+diff --git a/src/lerobot/configs/default.py b/src/lerobot/configs/default.py
+index 38991a6..19711af 100644
+--- a/src/lerobot/configs/default.py
++++ b/src/lerobot/configs/default.py
+@@ -80,6 +80,10 @@ class WandBConfig:
+ @dataclass
+ class EvalConfig:
+     n_episodes: int = 50
++    # Videos are useful for qualitative inspection but contaminate latency/energy benchmarks.
++    max_episodes_rendered: int = 10
++    # Long-run tests may repeat one fixed state by cycling across tasks between episodes.
++    interleave_task_episodes: bool = False
+     # `batch_size` specifies the number of environments to use in a gym.vector.VectorEnv.
+     # Set to 0 for auto-tuning based on available CPU cores and n_episodes.
+     batch_size: int = 0
+@@ -95,6 +99,8 @@ class EvalConfig:
+     recording_private: bool = False
+ 
+     def __post_init__(self) -> None:
++        if self.max_episodes_rendered < 0:
++            raise ValueError("eval.max_episodes_rendered must be non-negative.")
+         if self.recording_repo_id is not None and not self.recording:
+             raise ValueError("eval.recording_repo_id requires eval.recording=true.")
+         if self.batch_size == 0:
+diff --git a/src/lerobot/scripts/lerobot_eval.py b/src/lerobot/scripts/lerobot_eval.py
+index 722763d..09a4d9a 100644
+--- a/src/lerobot/scripts/lerobot_eval.py
++++ b/src/lerobot/scripts/lerobot_eval.py
+@@ -89,6 +89,7 @@ from lerobot.utils.constants import ACTION, DONE, OBS_IMAGE, OBS_IMAGES, OBS_STR
+ from lerobot.utils.device_utils import get_safe_torch_device
+ from lerobot.utils.import_utils import register_third_party_plugins
+ from lerobot.utils.io_utils import write_video
++from lerobot.utils.inference_timing import summarize_policy_timing_records
+ from lerobot.utils.random_utils import set_seed
+ from lerobot.utils.utils import (
+     init_logging,
+@@ -155,6 +156,71 @@ def _build_raw_frame(
+     return frame
+ 
+ 
++def _action_queue_size(policy: nn.Module) -> int | None:
++    """Return a policy action-queue size without assuming a specific wrapper stack."""
++    pending = [policy]
++    visited: set[int] = set()
++    while pending:
++        candidate = pending.pop()
++        if candidate is None or id(candidate) in visited:
++            continue
++        visited.add(id(candidate))
++        queue = getattr(candidate, "_action_queue", None)
++        if queue is not None:
++            try:
++                return len(queue)
++            except TypeError:
++                return None
++        for attribute in ("base_model", "model", "module"):
++            wrapped = getattr(candidate, attribute, None)
++            if wrapped is not None and wrapped is not candidate:
++                pending.append(wrapped)
++    return None
++
++
++def _policy_device(policy: nn.Module) -> torch.device:
++    parameter = next(policy.parameters(), None)
++    return parameter.device if parameter is not None else torch.device("cpu")
++
++
++def _synchronize_policy_device(policy: nn.Module) -> torch.device:
++    device = _policy_device(policy)
++    if device.type == "cuda" and torch.cuda.is_available():
++        torch.cuda.synchronize(device)
++    return device
++
++
++def _reset_accelerator_memory_stats(policy: nn.Module) -> torch.device:
++    device = _synchronize_policy_device(policy)
++    if device.type == "cuda" and torch.cuda.is_available():
++        torch.cuda.reset_peak_memory_stats(device)
++    return device
++
++
++def _accelerator_memory_summary(device: torch.device) -> dict[str, Any]:
++    if device.type != "cuda" or not torch.cuda.is_available():
++        return {
++            "device": str(device),
++            "available": False,
++            "peak_allocated_bytes": None,
++            "peak_reserved_bytes": None,
++        }
++    torch.cuda.synchronize(device)
++    peak_allocated = int(torch.cuda.max_memory_allocated(device))
++    peak_reserved = int(torch.cuda.max_memory_reserved(device))
++    return {
++        "device": str(device),
++        "device_name": torch.cuda.get_device_name(device),
++        "available": True,
++        "torch_hip_version": torch.version.hip,
++        "peak_allocated_bytes": peak_allocated,
++        "peak_reserved_bytes": peak_reserved,
++        "peak_allocated_gib": peak_allocated / (1024**3),
++        "peak_reserved_gib": peak_reserved / (1024**3),
++        "measurement_scope": "policy already loaded; reset immediately before eval rollouts",
++    }
++
++
+ def rollout(
+     env: gym.vector.VectorEnv,
+     policy: PreTrainedPolicy,
+@@ -245,6 +311,7 @@ def rollout(
+     all_rewards = []
+     all_successes = []
+     all_dones = []
++    policy_timing_records: list[dict[str, Any]] = []
+ 
+     step = 0
+     # Keep track of which environments are done.
+@@ -278,8 +345,21 @@ def rollout(
+             observation = env_preprocessor(observation)
+ 
+             observation = preprocessor(observation)
++            queue_size_before = _action_queue_size(policy)
++            _synchronize_policy_device(policy)
++            inference_started_ns = time.perf_counter_ns()
+             with torch.inference_mode():
+                 action = policy.select_action(observation)
++            _synchronize_policy_device(policy)
++            policy_timing_records.append(
++                {
++                    "started_monotonic_ns": inference_started_ns,
++                    "latency_ms": (time.perf_counter_ns() - inference_started_ns) / 1_000_000.0,
++                    "queue_observed": queue_size_before is not None,
++                    "queue_size_before": queue_size_before,
++                    "model_inference_expected": queue_size_before in (None, 0),
++                }
++            )
+             if predicted_latents_callback is not None:
+                 predicted_latents_callback(policy)
+             action = postprocessor(action)
+@@ -387,6 +467,7 @@ def rollout(
+         "reward": torch.stack(all_rewards, dim=1),
+         "success": torch.stack(all_successes, dim=1),
+         "done": torch.stack(all_dones, dim=1),
++        "_policy_timing_records": policy_timing_records,
+     }
+     if return_observations:
+         stacked_observations = {}
+@@ -464,6 +545,8 @@ def eval_policy(
+     max_rewards = []
+     all_successes = []
+     all_seeds = []
++    policy_timing_records: list[dict[str, Any]] = []
++    episode_policy_timings: list[dict[str, Any]] = []
+     threads = []  # for video saving threads
+     n_episodes_rendered = 0  # for saving the correct number of videos
+ 
+@@ -535,6 +618,11 @@ def eval_policy(
+             recording_private=recording_private,
+             predicted_latents_callback=collect_predicted_latents if save_predicted_video else None,
+         )
++        batch_timing_records = rollout_data.pop("_policy_timing_records")
++        policy_timing_records.extend(batch_timing_records)
++        batch_timing = summarize_policy_timing_records(batch_timing_records)
++        batch_timing["shared_rollout_batch_size"] = env.num_envs
++        episode_policy_timings.extend([batch_timing] * env.num_envs)
+ 
+         # Figure out where in each rollout sequence the first done condition was encountered (results after
+         # this won't be included).
+@@ -645,13 +733,15 @@ def eval_policy(
+                 "max_reward": max_reward,
+                 "success": success,
+                 "seed": seed,
++                "policy_timing": policy_timing,
+             }
+-            for i, (sum_reward, max_reward, success, seed) in enumerate(
++            for i, (sum_reward, max_reward, success, seed, policy_timing) in enumerate(
+                 zip(
+                     sum_rewards[:n_episodes],
+                     max_rewards[:n_episodes],
+                     all_successes[:n_episodes],
+                     all_seeds[:n_episodes],
++                    episode_policy_timings[:n_episodes],
+                     strict=True,
+                 )
+             )
+@@ -663,6 +753,11 @@ def eval_policy(
+             "eval_s": time.time() - start,
+             "eval_ep_s": (time.time() - start) / n_episodes,
+         },
++        "policy_timing": {
++            **summarize_policy_timing_records(policy_timing_records),
++            "cold_start_definition": "first measured call within this task evaluation",
++        },
++        "_policy_timing_records": policy_timing_records,
+     }
+ 
+     if return_episode_data:
+@@ -769,9 +864,10 @@ def eval_main(cfg: EvalPipelineConfig):
+     env_preprocessor, env_postprocessor = make_env_pre_post_processors(env_cfg=cfg.env, policy_cfg=cfg.policy)
+ 
+     recording_dir = Path(cfg.output_dir) / "recordings" if cfg.eval.recording else None
+-    max_episodes_rendered = 0 if cfg.eval.recording else 10
++    max_episodes_rendered = 0 if cfg.eval.recording else cfg.eval.max_episodes_rendered
+     videos_dir = None if cfg.eval.recording else Path(cfg.output_dir) / "videos"
+ 
++    measurement_device = _reset_accelerator_memory_stats(policy)
+     with torch.no_grad(), torch.autocast(device_type=device.type) if cfg.policy.use_amp else nullcontext():
+         info = eval_policy_all(
+             envs=envs,
+@@ -790,7 +886,9 @@ def eval_main(cfg: EvalPipelineConfig):
+             env_features=cfg.env.features if cfg.eval.recording else None,
+             recording_repo_id=cfg.eval.recording_repo_id,
+             recording_private=cfg.eval.recording_private,
++            interleave_task_episodes=cfg.eval.interleave_task_episodes,
+         )
++        info["overall"]["accelerator_memory"] = _accelerator_memory_summary(measurement_device)
+         print("Overall Aggregated Metrics:")
+         print(info["overall"])
+ 
+@@ -815,6 +913,9 @@ class TaskMetrics(TypedDict):
+     successes: list[bool]
+     video_paths: list[str]
+     predicted_video_paths: list[str]
++    policy_timing: dict[str, Any]
++    episode_policy_timings: list[dict[str, Any]]
++    _policy_timing_records: list[dict[str, Any]]
+ 
+ 
+ ACC_KEYS = ("sum_rewards", "max_rewards", "successes", "video_paths", "predicted_video_paths")
+@@ -861,12 +962,16 @@ def eval_one(
+     )
+ 
+     per_episode = task_result["per_episode"]
++    policy_timing_records = task_result.pop("_policy_timing_records")
+     return TaskMetrics(
+         sum_rewards=[ep["sum_reward"] for ep in per_episode],
+         max_rewards=[ep["max_reward"] for ep in per_episode],
+         successes=[ep["success"] for ep in per_episode],
+         video_paths=task_result.get("video_paths", []),
+         predicted_video_paths=task_result.get("predicted_video_paths", []),
++        policy_timing=task_result["policy_timing"],
++        episode_policy_timings=[ep["policy_timing"] for ep in per_episode],
++        _policy_timing_records=policy_timing_records,
+     )
+ 
+ 
+@@ -949,6 +1054,7 @@ def eval_policy_all(
+     return_episode_data: bool = False,
+     start_seed: int | None = None,
+     max_parallel_tasks: int = 1,
++    interleave_task_episodes: bool = False,
+ ) -> dict:
+     """
+     Evaluate a nested `envs` dict: {task_group: {task_id: vec_env}}.
+@@ -966,6 +1072,7 @@ def eval_policy_all(
+     group_acc: dict[str, dict[str, list]] = defaultdict(lambda: {k: [] for k in ACC_KEYS})
+     overall: dict[str, list] = {k: [] for k in ACC_KEYS}
+     per_task_infos: list[dict] = []
++    policy_timing_records: list[dict[str, Any]] = []
+ 
+     # small inline helper to accumulate one task's metrics into accumulators
+     def _accumulate_to(group: str, metrics: dict):
+@@ -991,26 +1098,67 @@ def eval_policy_all(
+                 group_acc[group][key].extend(paths)
+                 overall[key].extend(paths)
+ 
+-    # Choose runner (sequential vs threaded)
+-    task_runner = partial(
+-        run_one,
+-        policy=policy,
+-        env_preprocessor=env_preprocessor,
+-        env_postprocessor=env_postprocessor,
+-        preprocessor=preprocessor,
+-        postprocessor=postprocessor,
+-        n_episodes=n_episodes,
+-        max_episodes_rendered=max_episodes_rendered,
+-        videos_dir=videos_dir,
+-        return_episode_data=return_episode_data,
+-        start_seed=start_seed,
+-        recording_dir=recording_dir,
+-        env_features=env_features,
+-        recording_repo_id=recording_repo_id,
+-        recording_private=recording_private,
+-    )
++    def _make_task_runner(episodes: int):
++        return partial(
++            run_one,
++            policy=policy,
++            env_preprocessor=env_preprocessor,
++            env_postprocessor=env_postprocessor,
++            preprocessor=preprocessor,
++            postprocessor=postprocessor,
++            n_episodes=episodes,
++            max_episodes_rendered=max_episodes_rendered,
++            videos_dir=videos_dir,
++            return_episode_data=return_episode_data,
++            start_seed=start_seed,
++            recording_dir=recording_dir,
++            env_features=env_features,
++            recording_repo_id=recording_repo_id,
++            recording_private=recording_private,
++        )
+ 
+-    if max_parallel_tasks <= 1:
++    task_runner = _make_task_runner(n_episodes)
++    if interleave_task_episodes:
++        if max_parallel_tasks != 1:
++            raise ValueError("interleaved task episodes require max_parallel_tasks=1")
++        if return_episode_data or recording_dir is not None or max_episodes_rendered > 0:
++            raise ValueError("interleaved task episodes do not support recording or video rendering")
++        one_episode_runner = _make_task_runner(1)
++        combined_task_metrics: dict[tuple[str, int], dict[str, Any]] = {}
++        try:
++            for _ in range(n_episodes):
++                for task_group, task_id, env in tasks:
++                    tg, tid, metrics = one_episode_runner(task_group, task_id, env)
++                    task_records = metrics.pop("_policy_timing_records")
++                    policy_timing_records.extend(task_records)
++                    _accumulate_to(tg, metrics)
++                    combined = combined_task_metrics.setdefault(
++                        (tg, tid),
++                        {
++                            key: [] for key in (*ACC_KEYS, "episode_policy_timings")
++                        }
++                        | {"_policy_timing_records": []},
++                    )
++                    for key in ACC_KEYS:
++                        combined[key].extend(metrics.get(key, []))
++                    combined["episode_policy_timings"].extend(
++                        metrics.get("episode_policy_timings", [])
++                    )
++                    combined["_policy_timing_records"].extend(task_records)
++        finally:
++            for _, _, env in tasks:
++                env.close()
++        for task_group, task_id, _ in tasks:
++            metrics = combined_task_metrics[(task_group, task_id)]
++            task_records = metrics.pop("_policy_timing_records")
++            metrics["policy_timing"] = {
++                **summarize_policy_timing_records(task_records),
++                "cold_start_definition": "first measured call for this task across repeats",
++            }
++            per_task_infos.append(
++                {"task_group": task_group, "task_id": task_id, "metrics": metrics}
++            )
++    elif max_parallel_tasks <= 1:
+         prefetch_thread: threading.Thread | None = None
+         for i, (task_group, task_id, env) in enumerate(tasks):
+             if prefetch_thread is not None:
+@@ -1019,6 +1167,7 @@ def eval_policy_all(
+ 
+             try:
+                 tg, tid, metrics = task_runner(task_group, task_id, env)
++                policy_timing_records.extend(metrics.pop("_policy_timing_records"))
+                 _accumulate_to(tg, metrics)
+                 per_task_infos.append({"task_group": tg, "task_id": tid, "metrics": metrics})
+             finally:
+@@ -1040,6 +1189,7 @@ def eval_policy_all(
+                 tg, tid, env = fut2meta[fut]
+                 try:
+                     tg, tid, metrics = fut.result()
++                    policy_timing_records.extend(metrics.pop("_policy_timing_records"))
+                     _accumulate_to(tg, metrics)
+                     per_task_infos.append({"task_group": tg, "task_id": tid, "metrics": metrics})
+                 finally:
+@@ -1074,6 +1224,10 @@ def eval_policy_all(
+         "eval_ep_s": (time.time() - start_t) / max(1, len(overall["sum_rewards"])),
+         "video_paths": list(overall["video_paths"]),
+         "predicted_video_paths": list(overall["predicted_video_paths"]),
++        "policy_timing": {
++            **summarize_policy_timing_records(policy_timing_records),
++            "cold_start_definition": "first measured call in this persistent evaluation process",
++        },
+     }
+ 
+     return {
+diff --git a/src/lerobot/utils/inference_timing.py b/src/lerobot/utils/inference_timing.py
+new file mode 100644
+index 0000000..3e485f0
+--- /dev/null
++++ b/src/lerobot/utils/inference_timing.py
+@@ -0,0 +1,75 @@
++#!/usr/bin/env python
++
++# Copyright 2024 The HuggingFace Inc. team. All rights reserved.
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++"""Small dependency-free helpers for policy latency summaries."""
++
++from __future__ import annotations
++
++from collections.abc import Iterable, Mapping
++from typing import Any
++
++
++def _percentile(values: list[float], percentile: float) -> float | None:
++    if not values:
++        return None
++    ordered = sorted(float(value) for value in values)
++    if len(ordered) == 1:
++        return ordered[0]
++    rank = (len(ordered) - 1) * percentile / 100.0
++    lower = int(rank)
++    upper = min(lower + 1, len(ordered) - 1)
++    weight = rank - lower
++    return ordered[lower] * (1.0 - weight) + ordered[upper] * weight
++
++
++def summarize_latencies(
++    latencies_ms: Iterable[float],
++    *,
++    first_call_is_cold: bool,
++) -> dict[str, float | int | None]:
++    values = [float(value) for value in latencies_ms]
++    warm = values[1:] if first_call_is_cold and values else values
++    return {
++        "count": len(values),
++        "cold_start_ms": values[0] if first_call_is_cold and values else None,
++        "warm_count": len(warm),
++        "warm_mean_ms": sum(warm) / len(warm) if warm else None,
++        "warm_p50_ms": _percentile(warm, 50.0),
++        "warm_p95_ms": _percentile(warm, 95.0),
++        "warm_p99_ms": _percentile(warm, 99.0),
++        "max_ms": max(values) if values else None,
++    }
++
++
++def summarize_policy_timing_records(
++    records: Iterable[Mapping[str, Any]],
++) -> dict[str, Any]:
++    ordered = sorted(records, key=lambda record: int(record["started_monotonic_ns"]))
++    all_latencies = [float(record["latency_ms"]) for record in ordered]
++    model_latencies = [
++        float(record["latency_ms"])
++        for record in ordered
++        if bool(record["model_inference_expected"])
++    ]
++    queued_latencies = [
++        float(record["latency_ms"])
++        for record in ordered
++        if not bool(record["model_inference_expected"])
++    ]
++    return {
++        "schema_version": 1,
++        "clock": "time.perf_counter_ns",
++        "measurement_scope": "policy.select_action only",
++        "accelerator_synchronization": "before_and_after_each_select_action",
++        "model_inference_detection": "action_queue_empty_before_select_action",
++        "queue_observed_calls": sum(bool(record["queue_observed"]) for record in ordered),
++        "select_action_calls": summarize_latencies(all_latencies, first_call_is_cold=True),
++        "model_inference_calls": summarize_latencies(model_latencies, first_call_is_cold=True),
++        "queued_action_dispatch_calls": summarize_latencies(
++            queued_latencies,
++            first_call_is_cold=False,
++        ),
++    }
+-- 
+2.50.1

@@ -1,0 +1,157 @@
+{
+  "schema_version": "1.0",
+  "study_type": "sequential_full_horizon_and_controller_faithful_counterfactual",
+  "claim_boundary": "Development mechanism evidence only; not a task-success or generalization estimate.",
+  "runtime": {
+    "accelerator": "single AMD Radeon gfx1100",
+    "vram_gib": 47.98,
+    "rocm_version": "7.2",
+    "simulator": "Genesis 1.2.3"
+  },
+  "fixed_contract": {
+    "episode": 4120001,
+    "profile": "medium_carton",
+    "measured_force_abort_n": 35.0,
+    "controller_faithful_counterfactual": true,
+    "fresh_scene_per_rollout": true,
+    "max_grasp_retries": 0,
+    "only_intervention": "reject every generated candidate ID except the requested target"
+  },
+  "source_artifacts": [
+    {
+      "path": "outputs/full-horizon-grasp-stability-v1/4120001.json",
+      "sha256": "ab2fbb1b37949cc0928bf69795f85435c647bab0d770a72659d862f513499ab5"
+    },
+    {
+      "path": "outputs/counterfactual-grasp-v1/4120001-static-first.json",
+      "sha256": "145d0028aebf514d9c5b1eac06aa315e858e5069d47c94abb9a8e181f67a4745"
+    },
+    {
+      "path": "outputs/counterfactual-grasp-v1/4120001-alternatives.json",
+      "sha256": "0cc18988c5e7ed39c5dd807b37998c0ccd0ed4468200ac8e9e970df542ff5960"
+    },
+    {
+      "path": "outputs/counterfactual-grasp-v1/4120001-best-repeat2.json",
+      "sha256": "5f57e79dbeebc292eb2eb64b750920e57dd10630e78eb56a25f71673960f33e1"
+    },
+    {
+      "path": "outputs/counterfactual-grasp-v1/5120003-static-first.json",
+      "sha256": "efc55268a9cdf543cd06fd188e43507fe8b91bdc523efc0102c48554bdbd2077"
+    },
+    {
+      "path": "outputs/counterfactual-grasp-v1/7120004-static-first.json",
+      "sha256": "528cc4c967e31cce1a79fd34c1eec29e68d5c1cb9221d2cbaf551415d41cfd31"
+    }
+  ],
+  "idealized_full_horizon": {
+    "horizon": "pre-release",
+    "tested_unique_candidates": 6,
+    "stable_candidates": 6,
+    "known_formal_failure_classified_stable": "canonical-long-+0.000-up-0.040",
+    "result": "rejected as a selector because direct waypoint IK bypasses formal approach error, action delay, and feedback dynamics"
+  },
+  "controller_faithful_rollouts": [
+    {
+      "episode": 4120001,
+      "candidate_id": "canonical-long-+0.000-up-0.040",
+      "static_rank": 0,
+      "success": false,
+      "safety_aborted": false,
+      "max_contact_force_n": 21.811735153198242,
+      "duration_seconds": 17.066666666666666,
+      "terminal_stage": "abort",
+      "terminal_reason": "parcel missed destination"
+    },
+    {
+      "episode": 4120001,
+      "candidate_id": "canonical-long-+0.000-up-0.045",
+      "static_rank": 3,
+      "success": true,
+      "safety_aborted": false,
+      "max_contact_force_n": 10.310474395751953,
+      "duration_seconds": 16.933333333333334,
+      "terminal_stage": "complete"
+    },
+    {
+      "episode": 4120001,
+      "candidate_id": "canonical-long--0.044-up-0.045",
+      "static_rank": 12,
+      "success": true,
+      "safety_aborted": false,
+      "max_contact_force_n": 19.82575798034668,
+      "duration_seconds": 17.166666666666668,
+      "terminal_stage": "complete"
+    },
+    {
+      "episode": 4120001,
+      "candidate_id": "canonical-long--0.044-up-0.040",
+      "static_rank": 6,
+      "success": true,
+      "safety_aborted": false,
+      "max_contact_force_n": 21.565073013305664,
+      "duration_seconds": 17.1,
+      "terminal_stage": "complete"
+    },
+    {
+      "episode": 4120001,
+      "candidate_id": "canonical-long-+0.044-up-0.045",
+      "static_rank": 15,
+      "success": true,
+      "safety_aborted": false,
+      "max_contact_force_n": 26.402528762817383,
+      "duration_seconds": 16.433333333333334,
+      "terminal_stage": "complete"
+    },
+    {
+      "episode": 4120001,
+      "candidate_id": "canonical-long-+0.044-up-0.040",
+      "static_rank": 9,
+      "success": false,
+      "safety_aborted": true,
+      "max_contact_force_n": 53.74238586425781,
+      "duration_seconds": 11.566666666666666,
+      "terminal_stage": "abort"
+    }
+  ],
+  "repeatability": {
+    "candidate_id": "canonical-long-+0.000-up-0.045",
+    "episode": 4120001,
+    "repeats": 2,
+    "successes": 2,
+    "identical_metrics": true,
+    "max_contact_force_n": 10.310474395751953,
+    "duration_seconds": 16.933333333333334
+  },
+  "fallback_sentinels": [
+    {
+      "episode": 5120003,
+      "profile": "shoe_box_proxy",
+      "requested_45mm_candidate_feasible": false,
+      "selected_fallback": "canonical-long-+0.000-up-0.040",
+      "success": true,
+      "max_contact_force_n": 29.692829132080078,
+      "duration_seconds": 10.4
+    },
+    {
+      "episode": 7120004,
+      "profile": "large_narrow_carton",
+      "requested_45mm_candidate_feasible": false,
+      "selected_fallback": "canonical-long-+0.000-up-0.040",
+      "success": true,
+      "max_contact_force_n": 9.949705123901367,
+      "duration_seconds": 12.566666666666666
+    }
+  ],
+  "verification": {
+    "compile": "python -m compileall -q src scripts tests",
+    "tests": "python -m unittest discover -s tests -q",
+    "tests_passed": 227,
+    "tests_failed": 0,
+    "source_import_path": "/workspace/parcel-sorter-opt-v1/src"
+  },
+  "decision": {
+    "status": "validated_as_data_collection_target_not_integrated",
+    "reason": "The controller-faithful experiment exposes a useful label that idealized rollouts missed, but one observed development episode cannot justify a production ranking rule.",
+    "next_gate": "Freeze additional episode IDs, collect controller-faithful candidate labels, train a lightweight PyTorch ROCm scorer, and evaluate on an untouched paired holdout before integration."
+  }
+}

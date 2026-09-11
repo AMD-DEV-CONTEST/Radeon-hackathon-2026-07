@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "protocol_id": "pi05-libero-development-action-steps-screen-v1",
+  "created_utc": "2026-07-29T02:10:00Z",
+  "benchmark_manifest_protocol": "pi05-libero-public-benchmark-v2",
+  "benchmark_manifest_canonical_sha256": "2460cb493ef66ca8338eb48cfc29febb55d8c6527b497ac29272f5f0907d7e31",
+  "phase": "efficiency",
+  "experimental_unit": "one LIBERO suite/task rollout at development init-state 10",
+  "units_per_arm": 40,
+  "fixed_factors": {
+    "checkpoint": "lerobot/pi05_libero_finetuned local immutable copy",
+    "compile": false,
+    "dtype": "bfloat16",
+    "control_mode": "relative",
+    "action_chunk_size": 50,
+    "seed": 20260729,
+    "process_lifetime": "one fresh persistent policy process per arm"
+  },
+  "run_order": [
+    {"arm_id": "steps10_control", "action_steps": 10},
+    {"arm_id": "steps4_candidate", "action_steps": 4},
+    {"arm_id": "steps8_candidate", "action_steps": 8},
+    {"arm_id": "steps6_candidate", "action_steps": 6}
+  ],
+  "selection_rule": {
+    "eligibility": [
+      "runner return code is zero",
+      "all 40 development units are present",
+      "ROCm telemetry has zero sampling errors"
+    ],
+    "primary": "maximize complete sparse task successes over 40 paired development units",
+    "tie_breaker": "prefer larger action_steps to reduce model inference calls and package energy",
+    "promotion": "a non-control arm must strictly exceed steps10_control before full 400-unit development evaluation"
+  },
+  "claim_boundary": "Development-only runtime screening. It is not a public LIBERO score and cannot establish model superiority."
+}

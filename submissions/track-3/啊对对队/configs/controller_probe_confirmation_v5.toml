@@ -1,0 +1,142 @@
+[metadata]
+schema_version = 1
+protocol_id = "controller-faithful-probe-v5-independent-confirmation"
+frozen_date = "2026-07-26"
+claim_boundary = "One independent confirmation of the frozen veto-static safety mechanism. Passing authorizes only an online Radeon-parallel probe pilot; it does not activate the runtime policy or open any V2 development/holdout data."
+
+[platform]
+backend = "rocm"
+device = "cuda:0"
+single_gpu = true
+gpu_count = 1
+gpu_architecture = "gfx1100"
+rocm_version = "7.2"
+
+[source]
+manifest = "/workspace/parcel-sorter-opt-v1/outputs/controller-probe-v5/candidates/confirmation/manifest.json"
+split = "confirmation"
+
+[population]
+catalog = "configs/catalog_v2.toml"
+catalog_sha256 = "05bd0931cfb2ba48e15c1fbd83411220f99ca1ddc59c6991ef3255f682f73ca0"
+selection_evidence = "evidence/training/controller-probe-v5-population-selection.json"
+selection_evidence_sha256 = "b219bae159e7cb3b534fc6e4696f956dbea2f861a1f217504b9766d44f42bd61"
+old_population_protocol = "configs/grasp_candidate_learning_v2.toml"
+split = "confirmation"
+episodes_per_profile = 10
+expected_groups = 80
+profile_ids = ["medium_carton", "shoe_box_proxy", "large_narrow_carton", "near_limit_box", "small_carton", "flat_mailer", "long_carton", "electronics_box"]
+legacy_profiles = ["medium_carton", "shoe_box_proxy", "large_narrow_carton", "near_limit_box"]
+unseen_profiles = ["small_carton", "flat_mailer", "long_carton", "electronics_box"]
+
+[collection]
+config = "configs/catalog_v2.toml"
+runner = "scripts/run_controller_probe_confirmation_collection.py"
+planning_activation_policy = "all-boxes"
+max_candidates_per_episode = 6
+repeats = 1
+max_grasp_retries = 0
+measured_force_abort_n = 35.0
+fresh_scene_per_candidate = true
+collision_checked_reset_enabled = true
+only_intervention = "candidate allowlist plus preregistered all-rigid-box candidate enumeration scope"
+v2_development_forbidden = true
+v2_holdout_forbidden = true
+
+[fixed]
+policy = "veto-static"
+probe_feature_schema_version = 1
+latency_group_id = "large_narrow_carton:9300000"
+latency_warmup = 10
+latency_repeats = 100
+safe_abstention_is_not_static_fallback = true
+
+[gates]
+require_zero_success_losses = true
+require_zero_safety_abort_regressions = true
+require_zero_drop_regressions = true
+require_no_per_profile_success_loss = true
+require_no_per_profile_safety_regression = true
+min_safety_abort_reductions = 6
+min_profiles_with_safety_reduction = 2
+safety_one_sided_alpha = 0.05
+max_selection_p95_ms = 5.0
+
+[reporting]
+binary_tests = "paired exact McNemar"
+rate_intervals = "Wilson 95%"
+continuous_effects = "paired bootstrap and sign-flip test on executed groups"
+required_strata = ["profile_novelty", "yaw_band", "friction_band", "camera_noise_band", "mass_band"]
+separate_metrics = ["success", "safety_abort", "drop", "max_contact_force_n", "duration_seconds", "probe_cost"]
+
+[implementation]
+module = "src/parcel_sorter/controller_probe_confirmation.py"
+module_sha256 = "a2802ad112596476230838bbf02478dfabcbf6ea68ecbcdc1a7baf822d446e05"
+probe_extractor = "src/parcel_sorter/controller_faithful_probe.py"
+probe_extractor_sha256 = "19b6b32624de5ff02f1ef8a83ccc93c799210fdc624c085836ec8396da3d4eac"
+runner = "scripts/evaluate_controller_probe_confirmation.py"
+runner_sha256 = "5bb68fe33507703bffc4e1cb0e14100dec090fc1f536cd2ace044508d871a6a0"
+audit = "scripts/audit_controller_probe_confirmation_protocol.py"
+audit_sha256 = "2b72e52417145107a6b8b93fc7003576916a11012170343be2a249aa89c8d2e0"
+selector = "scripts/select_controller_probe_confirmation_population.py"
+selector_sha256 = "0e70d92d868c5e05b94cb69254f7b2d178adf6507d7b147b368ada8cb17e0fcb"
+collection_runner = "scripts/run_controller_probe_confirmation_collection.py"
+collection_runner_sha256 = "048ce16b3dbd079c15d753a76848ce42412b2072b607160385e753372a52af18"
+collection_helpers = "scripts/run_grasp_candidate_collection.py"
+collection_helpers_sha256 = "3dc3dd7f6e0bd1bf63bfe72b90a916c8d20e7e813517cf8da8dc4060a05fede2"
+labeler = "scripts/diagnose_counterfactual_grasp_candidates.py"
+labeler_sha256 = "102f9458822fe4715ff24b986cb0c88fb95124fa824cb07744ce440c0735b99b"
+genesis_env = "src/parcel_sorter/genesis_env.py"
+genesis_env_sha256 = "4d3cab0946bc232bfb3da92bda66dc0527195db926f3f2d277b9ed39c3a7a0eb"
+grasp_planning = "src/parcel_sorter/grasp_planning.py"
+grasp_planning_sha256 = "5237ac059c52628cefab617264edc3d762f69cfcd5f0c3a6a2b8afc09c5b8bef"
+expert_runner = "src/parcel_sorter/runner.py"
+expert_runner_sha256 = "397601bf9eb1463d19b04910fbb5324028e64620178ca384215ded0d2272220e"
+
+[[splits]]
+name = "confirmation"
+profile_id = "medium_carton"
+episode_ids = [9100000, 9100001, 9100002, 9100003, 9100004, 9100005, 9100006, 9100007, 9100008, 9100009]
+
+[[splits]]
+name = "confirmation"
+profile_id = "shoe_box_proxy"
+episode_ids = [9200000, 9200001, 9200002, 9200003, 9200004, 9200005, 9200006, 9200007, 9200008, 9200009]
+
+[[splits]]
+name = "confirmation"
+profile_id = "large_narrow_carton"
+episode_ids = [9300000, 9300001, 9300002, 9300003, 9300004, 9300005, 9300006, 9300007, 9300008, 9300009]
+
+[[splits]]
+name = "confirmation"
+profile_id = "near_limit_box"
+episode_ids = [9400000, 9400001, 9400002, 9400003, 9400004, 9400005, 9400006, 9400007, 9400008, 9400009]
+
+[[splits]]
+name = "confirmation"
+profile_id = "small_carton"
+episode_ids = [9500000, 9500001, 9500002, 9500003, 9500004, 9500005, 9500006, 9500007, 9500008, 9500009]
+
+[[splits]]
+name = "confirmation"
+profile_id = "flat_mailer"
+episode_ids = [9600000, 9600001, 9600002, 9600003, 9600004, 9600005, 9600006, 9600007, 9600008, 9600009]
+
+[[splits]]
+name = "confirmation"
+profile_id = "long_carton"
+episode_ids = [9700000, 9700001, 9700002, 9700003, 9700004, 9700005, 9700006, 9700007, 9700008, 9700009]
+
+[[splits]]
+name = "confirmation"
+profile_id = "electronics_box"
+episode_ids = [9800000, 9800001, 9800002, 9800003, 9800004, 9800005, 9800006, 9800007, 9800008, 9800009]
+
+[stopping]
+evaluate_exactly_once = true
+do_not_change_policy_after_observing_confirmation = true
+do_not_open_v2_development = true
+do_not_open_v2_holdout = true
+online_parallel_probe_requires_confirmation_pass = true
+runtime_activation_requires_separate_online_protocol = true

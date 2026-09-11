@@ -1,0 +1,121 @@
+{
+  "schema_version": "1.0",
+  "experiment": "controller-faithful-probe-v4-train-only",
+  "executed_at_utc_date": "2026-07-26",
+  "claim_boundary": "Positive train-only safety-feasibility result. It is not independent confirmation, does not increase task successes, and does not authorize deployment, new physics, development, or holdout.",
+  "source_revision": "0a9a9446995eff899092dedd457e89fe067b202b",
+  "source": {
+    "split": "train",
+    "groups": 32,
+    "profiles": 4,
+    "groups_per_profile": 8,
+    "candidate_rows": 192,
+    "manifest_sha256": "9aee3452f7141e3ca48db9506b90143730b07fc0652131fc212a9fea6193d4b5"
+  },
+  "protocol": {
+    "id": "controller-faithful-probe-v4-train-only",
+    "sha256": "ca941366101c0a0d730a2628c442573347113e539c541778b617ba0619be4ff3",
+    "audit_status": "protocol_valid",
+    "development_forbidden": true,
+    "holdout_forbidden": true,
+    "probe_feature_count": 27,
+    "policy_count": 4
+  },
+  "hardware_boundary": {
+    "source_physics": "Controller-faithful Genesis candidate rollouts generated on one AMD Radeon through ROCm.",
+    "offline_selector": "Host control logic; no GPU model-inference claim in this feasibility stage."
+  },
+  "baseline": {
+    "successes": 7,
+    "safety_aborts": 17
+  },
+  "candidates": [
+    {
+      "name": "veto-static",
+      "passes": true,
+      "reasons": [],
+      "successes": 7,
+      "safety_aborts": 13,
+      "success_gains": 0,
+      "success_losses": 0,
+      "safety_abort_reductions": 4,
+      "safety_abort_regressions": 0,
+      "safe_abstentions": 4,
+      "changed_from_baseline": 5,
+      "selection_p95_ms": 0.00636
+    },
+    {
+      "name": "force-first",
+      "passes": false,
+      "reasons": ["per_profile_success_regression", "per_fold_safety_regression", "per_fold_success_regression", "aggregate_success_regression"],
+      "successes": 6,
+      "safety_aborts": 12,
+      "safe_abstentions": 4,
+      "changed_from_baseline": 26,
+      "selection_p95_ms": 0.00718
+    },
+    {
+      "name": "stability-first",
+      "passes": false,
+      "reasons": ["per_profile_success_regression", "per_fold_success_regression", "aggregate_success_regression"],
+      "successes": 5,
+      "safety_aborts": 11,
+      "safe_abstentions": 4,
+      "changed_from_baseline": 16,
+      "selection_p95_ms": 0.0077
+    },
+    {
+      "name": "support-first",
+      "passes": false,
+      "reasons": ["per_profile_success_regression", "per_fold_success_regression"],
+      "successes": 7,
+      "safety_aborts": 12,
+      "safe_abstentions": 4,
+      "changed_from_baseline": 31,
+      "selection_p95_ms": 0.00781
+    }
+  ],
+  "selected_mechanism": {
+    "name": "veto-static",
+    "interpretation": "Dynamic safety veto that preserves static order among eligible candidates; not a success ranker.",
+    "changed_groups": 5,
+    "safe_abstention_groups": [
+      "medium_carton:8410008",
+      "near_limit_box:8810020",
+      "near_limit_box:8810031",
+      "near_limit_box:8810036"
+    ],
+    "alternate_safe_failure_group": "large_narrow_carton:8710013"
+  },
+  "selection": {
+    "status": "probe_candidate_found",
+    "selected": "veto-static",
+    "new_physics_authorized": false,
+    "holdout_opened": false,
+    "active_runtime_selector": "static_geometry_baseline"
+  },
+  "artifacts": {
+    "protocol_audit": {
+      "file": "controller-probe-v4-protocol-audit.json",
+      "bytes": 912,
+      "sha256": "5bd01a17c7422592a6dfec4f9fe1b275796cd0f91d3f4f14c2ee9e43f6a7ef6e"
+    },
+    "train_dataset": {
+      "file": "controller-probe-v4-train-dataset.json",
+      "bytes": 746998,
+      "sha256": "8b2324a6e86395a59b3997d600631264fd83e078077fce650d81c4e85d1ac72a"
+    },
+    "train_result": {
+      "file": "controller-probe-v4-train-result.json",
+      "bytes": 1723556,
+      "sha256": "3df57dafab079204afa5ec0fe5366fd1ae04d0844219c48c967ebb9c4e5bba16"
+    }
+  },
+  "decision": {
+    "write_disjoint_population_protocol": true,
+    "reuse_v2_development": false,
+    "open_v2_holdout": false,
+    "deploy_selected_mechanism": false,
+    "next_boundary": "Freeze a broader disjoint parcel population and compare veto-static with the static baseline once."
+  }
+}

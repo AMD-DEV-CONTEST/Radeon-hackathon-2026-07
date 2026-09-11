@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0",
+  "status": "preregistered_before_execution",
+  "registered_date": "2026-07-26",
+  "study_type": "genesis_panda_finger_constraint_control_input_replay",
+  "trigger_result": {
+    "source_failure_peak_force_n": 162.1861572265625,
+    "source_failure_max_penetration_m": 0.11554575711488724,
+    "open_loop_replay_conclusion": "bounded_contact_sensitivity_only",
+    "stock_peak_force_n": 10.586427688598633,
+    "mass_aware_peak_force_n": 7.315890789031982,
+    "state_reconstruction_max_abs_error": 0.0
+  },
+  "hypothesis": "the closed-loop failure requires raw position-control modes and PD targets that are not recoverable from generalized state plus post-step controller force",
+  "source_capture": {
+    "profile": "medium_carton",
+    "episode": 4120001,
+    "candidate_id": "canonical-long-+0.000-up-0.045",
+    "condition": "combined_rigid_body",
+    "fresh_rollouts": 1,
+    "contact_window": [196, 204],
+    "required_repeat_outcome": "same selected candidate and measured safety failure",
+    "added_read_only_fields": [
+      "robot_dof_control_mode",
+      "robot_dof_position_target",
+      "robot_dof_velocity_target",
+      "robot_dof_force_target_n"
+    ]
+  },
+  "paired_replay": {
+    "conditions": [
+      "stock_explicit_inertia_ablation",
+      "combined_rigid_body"
+    ],
+    "fresh_scenes_per_condition": 1,
+    "initial_source_event": [196, 0],
+    "first_replayed_control_event": [196, 1],
+    "state_reconstruction_max_abs_error": 0.000001,
+    "command": "recorded per-DOF Genesis control mode and raw mode-specific target",
+    "controller_or_state_machine_used": false,
+    "physics_hz": 240
+  },
+  "gates": {
+    "measured_force_abort_n_exclusive": 35.0,
+    "contact_penetration_m_inclusive": 0.001,
+    "stop_at_first_gate": true
+  },
+  "comparison_thresholds": {
+    "force_difference_n": 1.0,
+    "finger_position_difference_m": 0.0001,
+    "finger_velocity_difference_m_s": 0.01,
+    "finger_force_difference_n": 1.0
+  },
+  "forbidden_adaptation": [
+    "source-frame scan",
+    "state modification",
+    "control-mode modification",
+    "control-target modification",
+    "controller-gain scan",
+    "physics-rate scan",
+    "constraint-time scan",
+    "density scan",
+    "extension scan",
+    "friction scan",
+    "force-threshold change",
+    "new episode",
+    "candidate scan",
+    "scorer holdout access"
+  ],
+  "stop_rule": "capture once, replay one fresh scene per condition, compare once, and require a new protocol for complete supported solver-state capture"
+}

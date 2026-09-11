@@ -1,0 +1,229 @@
+{
+  "schema_version": 1,
+  "protocol": "parcel-pi05-vla-factorial-ablation-v1",
+  "frozen_date": "2026-07-28",
+  "objective": "maximize true PI0.5 closed-loop pick-and-place success without expert fallback",
+  "primary_response": "complete_pick_and_place_success",
+  "independent_unit": "unique_physical_episode_seed",
+  "blocking_factors": [
+    "grasp_mode",
+    "parcel_profile",
+    "mass_stratum"
+  ],
+  "common_random_numbers": true,
+  "training_seed_policy": {
+    "screening": [11],
+    "finalists": [11, 29, 47]
+  },
+  "fixed_training_contract": {
+    "base_revision": "7de663972b7817d2c4cf2d84c821153dfea772e9",
+    "dataset_fps_hz": 30,
+    "action_chunk_size": 30,
+    "planned_execution_steps": 10,
+    "action_dimension": 14,
+    "normalization": "quantile_q01_q99",
+    "expert_fallback_allowed": false,
+    "failed_actions_as_behavior_cloning_labels": false
+  },
+  "gates": {
+    "training_distribution_route_panel": {
+      "role": "development_only",
+      "minimum": "6/6 complete-flow routes",
+      "claim_boundary": "does not measure unseen-object generalization"
+    },
+    "heldout_observation_panel": {
+      "role": "one_shot_final_generalization_audit",
+      "checkpoint_selection_allowed": false,
+      "minimum_observations_per_mode": 4,
+      "requirements": [
+        "not present in any training parquet",
+        "unseen size or mass within supported range",
+        "fixed before checkpoint comparison"
+      ]
+    },
+    "strict_development_closed_loop": {
+      "episodes": 3,
+      "requirements": [
+        "PI0.5 selects grasp mode",
+        "PI0.5 produces material residual",
+        "zero expert fallback",
+        "zero force violation"
+      ]
+    },
+    "pure_vla_strict_development_closed_loop": {
+      "episodes": 3,
+      "requirements": [
+        "policy_authority=absolute_vla_action_candidate",
+        "expert_reference_used=false",
+        "PI0.5 selects grasp mode",
+        "zero expert fallback",
+        "zero force violation",
+        "complete pick transport and place"
+      ]
+    },
+    "frozen_promotion": {
+      "episodes": 105,
+      "engineering_minimum_successes": 95,
+      "paper_p_gt_0_90_minimum_successes": 100,
+      "force_violations_must_not_increase": true,
+      "expert_fallback_count": 0,
+      "vla_qualified_episodes": 105
+    }
+  },
+  "experiments": [
+    {
+      "id": "A0_R9",
+      "single_change": "baseline flow channels also encode grasp mode",
+      "mode_decoder": "flow_action_channels",
+      "state_token": false,
+      "lora_rank": 16,
+      "wrist_rgbd": false,
+      "runtime_chunk_protocol": "first-action-hold-v1",
+      "status": "failed_route_gate"
+    },
+    {
+      "id": "A1_R10",
+      "single_change": "contextualized class-balanced fused mode head",
+      "mode_decoder": "parcel-pi05-contextualized-mode-head-v2",
+      "state_token": false,
+      "lora_rank": 16,
+      "wrist_rgbd": false,
+      "runtime_chunk_protocol": "first-action-hold-v1",
+      "status": "failed_route_gate"
+    },
+    {
+      "id": "A2_R11",
+      "single_change": "mode-blind observable state token",
+      "mode_decoder": "parcel-pi05-contextualized-mode-head-v2",
+      "state_token": true,
+      "lora_rank": 16,
+      "wrist_rgbd": false,
+      "runtime_chunk_protocol": "first-action-hold-v1",
+      "status": "failed_strict_development_0_of_3_transport",
+      "route_gate": "4/4 checkpoints reached 6/6 complete-flow routes",
+      "selected_checkpoint_step": 3000,
+      "checkpoint_selection_protocol": "pi05-earliest-passing-route-checkpoint-selection-v1",
+      "strict_development": {
+        "successes": 0,
+        "trials": 3,
+        "mode_correct": 3,
+        "lift_success": 3,
+        "transport_success": 0,
+        "expert_fallback_count": 3,
+        "force_violation_count": 0,
+        "authority": "hybrid_expert_reference_plus_vla_residual"
+      }
+    },
+    {
+      "id": "A3_R12",
+      "single_change": "LoRA rank 16 to 32",
+      "mode_decoder": "parcel-pi05-contextualized-mode-head-v2",
+      "state_token": true,
+      "lora_rank": 32,
+      "wrist_rgbd": false,
+      "runtime_chunk_protocol": "first-action-hold-v1",
+      "status": "not_run_stopped_by_r11_route_gate"
+    },
+    {
+      "id": "A4_R13",
+      "single_change": "masked-mean to last-valid-language-token mode-head pooling",
+      "mode_decoder": "parcel-pi05-last-language-token-mode-head-v3",
+      "state_token": true,
+      "lora_rank": 16,
+      "wrist_rgbd": false,
+      "runtime_chunk_protocol": "first-action-hold-v1",
+      "status": "not_run_stopped_by_r11_route_gate"
+    },
+    {
+      "id": "A5_R14",
+      "single_change": "add wrist RGB-D",
+      "mode_decoder": "matched_to_selected_A2_to_A4",
+      "state_token": true,
+      "lora_rank": "matched_to_selected_A2_to_A4",
+      "wrist_rgbd": true,
+      "runtime_chunk_protocol": "first-action-hold-v1",
+      "training_initialization": "same_fixed_pi05_base_not_upstream_adapter",
+      "pairing_gate": "pi05-wrist-single-factor-pairing-audit-v1",
+      "status": "blocked_until_wrist_dataset_exists_and_pairing_passes"
+    },
+    {
+      "id": "A6_AGG",
+      "single_change": "execute a 10-step PI0.5 window rather than holding the first action",
+      "training_checkpoint": "selected_A2_to_A4",
+      "runtime_chunk_protocol": "pi05-window-aggregate-v1",
+      "status": "implementation_ready_opt_in"
+    },
+    {
+      "id": "A7_QUEUE",
+      "single_change": "execute ordered PI0.5 residuals at 30 Hz and re-run Harness projection each frame",
+      "training_checkpoint": "selected_A2_to_A4",
+      "runtime_chunk_protocol": "pi05-open-loop-queue-v1",
+      "status": "implementation_ready_opt_in"
+    },
+    {
+      "id": "A8_RTC",
+      "single_change": "replace synchronous open-loop chunk refresh with LeRobot RTC",
+      "training_checkpoint": "selected_A2_to_A6",
+      "runtime_chunk_protocol": "lerobot_rtc",
+      "status": "planned_after_latency_trace"
+    },
+    {
+      "id": "A9_SELF_EVOLUTION",
+      "single_change": "verified autonomous recovery replay and optional sparse-success post-training",
+      "training_checkpoint": "selected_A2_to_A7",
+      "admission": "only final successful, force-compliant, zero-fallback recovery trajectories",
+      "status": "blocked_until_stable_sft_closed_loop"
+    },
+    {
+      "id": "B0_ABSOLUTE_VLA",
+      "single_change": "replace expert-relative 14-D residual execution with a 23-D absolute PI0.5 action contract",
+      "input_state": "80-D mode-blind observable state without action-derived contact anchors",
+      "action_contract": "19-D executable absolute action plus 3 grasp-mode logits and primitive progress",
+      "mode_decoder": "parcel-pi05-contextualized-mode-head-v2",
+      "state_token": true,
+      "lora_rank": 16,
+      "wrist_rgbd": false,
+      "expert_reference_allowed": false,
+      "expert_fallback_allowed": false,
+      "training_initialization": "same_fixed_pi05_base_not_R11_adapter",
+      "status": "training_running_8147_of_12000_no_closed_loop_result_yet"
+    },
+    {
+      "id": "B1_DROID_INIT",
+      "single_change": "replace generic pi05_base initialization with the public Franka-oriented lerobot/pi05_droid checkpoint",
+      "base_revision": "72824c0a93f00ce5bb8bedb7feb58953ba1da364",
+      "action_contract": "same_23D_absolute_v1_as_B0",
+      "state_token": true,
+      "mode_decoder": "parcel-pi05-contextualized-mode-head-v2",
+      "lora_rank": 16,
+      "full_action_projections": false,
+      "wrist_rgbd": false,
+      "runtime_chunk_protocol": "first-action-hold-v1",
+      "status": "implementation_ready_waiting_for_B0_strict_gate"
+    },
+    {
+      "id": "B2_FULL_ACTION_IO",
+      "single_change": "fully train and persist action_in_proj and action_out_proj instead of applying LoRA to those two embodiment adapters",
+      "training_initialization": "selected_B0_or_B1_fixed_before_training",
+      "action_projection_protocol": "parcel-pi05-full-action-io-projections-v1",
+      "lora_rank": 16,
+      "wrist_rgbd": false,
+      "runtime_chunk_protocol": "first-action-hold-v1",
+      "status": "adapter_and_checkpoint_contract_implemented_not_trained"
+    },
+    {
+      "id": "B3_RANK32",
+      "single_change": "increase action-expert LoRA rank from 16 to 32 after fixing the full action I/O treatment",
+      "lora_rank": 32,
+      "lora_alpha": 32,
+      "status": "pre_registered_not_run"
+    }
+  ],
+  "analysis": {
+    "paired_test": "exact_McNemar",
+    "interval": "Wilson_95",
+    "probability_claim": "one_sided_exact_binomial",
+    "frames_are_independent_samples": false,
+    "retry_attempts_are_independent_samples": false
+  }
+}

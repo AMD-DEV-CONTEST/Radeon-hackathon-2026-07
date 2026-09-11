@@ -1,0 +1,26 @@
+Date: 2026-07-26 Asia/Shanghai
+Host: u-11442-05e9d8f0
+GPU: AMD Radeon Graphics, gfx1100, 47.98 GiB
+ROCm: 7.2
+Genesis: 1.2.3
+Python: /workspace/rdna/bin/python
+Project: /workspace/parcel-sorter-opt-v1
+Safety limit: 35 N
+
+Dynamic diagnostic, repeated for the listed profile/episode pairs:
+PYTHONPATH=src /workspace/rdna/bin/python scripts/diagnose_dynamic_grasp_stability.py --config configs/catalog_v2.toml --profile PROFILE --episode EPISODE --backend rocm --max-candidates 6 --repeats 2 --output outputs/dynamic-grasp-stability-v1/EPISODE.json
+
+Pairs:
+medium_carton 4120001
+shoe_box_proxy 5120003
+large_narrow_carton 7120004
+
+Set-down candidate:
+PYTHONPATH=src /workspace/rdna/bin/python scripts/run_expert.py --config configs/catalog_v2.toml --backend rocm --episodes 1 --start-episode 120001 --profile medium_carton --output outputs/radeon-slip-setdown-regrasp-probe-v1/4120001-candidate --collision-checked-reset --geometry-aware-grasp-planning --grasp-planning-reset-fallback-gate --grasp-planning-transport-contract --grasp-planning-disable-transport-lookahead --grasp-planning-raise-step 0.02 --grasp-planning-transport-step 0.01 --grasp-planning-transfer-settle-steps 2 --transport-slip-setdown-regrasp
+
+Set-down plus failed-candidate blacklist:
+PYTHONPATH=src /workspace/rdna/bin/python scripts/run_expert.py --config configs/catalog_v2.toml --backend rocm --episodes 1 --start-episode 120001 --profile medium_carton --output outputs/radeon-slip-setdown-blacklist-probe-v1/4120001-candidate --collision-checked-reset --geometry-aware-grasp-planning --grasp-planning-reset-fallback-gate --grasp-planning-transport-contract --grasp-planning-disable-transport-lookahead --grasp-planning-raise-step 0.02 --grasp-planning-transport-step 0.01 --grasp-planning-transfer-settle-steps 2 --transport-slip-setdown-regrasp --grasp-planning-blacklist-failed-candidate
+
+Validation:
+PYTHONPATH=src /workspace/rdna/bin/python -m unittest discover -s tests -v
+Result: 216 tests passed before the final physical probe.

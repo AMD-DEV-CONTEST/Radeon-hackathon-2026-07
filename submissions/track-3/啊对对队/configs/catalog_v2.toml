@@ -1,0 +1,448 @@
+[project]
+name = "parcel-sorter-rocm-catalog-v2"
+seed = 42
+
+[simulation]
+backend = "rocm"
+device = "cuda:0"
+num_envs = 128
+physics_hz = 240
+control_hz = 30
+camera_hz = 10
+headless = true
+
+[sensors]
+rgb = true
+depth = true
+proprioception = true
+contact_force = true
+image_width = 224
+image_height = 224
+
+[task]
+max_grasp_retries = 2
+lift_height_m = 0.12
+max_contact_force_n = 35.0
+episode_seconds = 20.0
+parcel_base_size_m = [0.060, 0.045, 0.040]
+left_bin_center_m = [0.48, -0.34, 0.025]
+right_bin_center_m = [0.48, 0.34, 0.025]
+bin_half_extent_m = [0.11, 0.10]
+approach_clearance_m = 0.260
+grasp_hand_clearance_m = 0.105
+drop_hand_height_m = 0.24
+position_tolerance_m = 0.025
+approach_xy_tolerance_m = 0.015
+release_settle_steps = 12
+grasp_settle_steps = 10
+grasp_stability_steps = 1
+size_aware_approach_enabled = false
+approach_clearance_margin_m = 0.0
+retry_retreat_distance_m = 0.0
+
+[control]
+arm_kp = [4500, 4500, 3500, 3500, 2000, 2000, 2000]
+arm_kv = [450, 450, 350, 350, 200, 200, 200]
+finger_kp = 100.0
+finger_kv = 10.0
+open_width_m = 0.040
+close_force_n = 20.0
+close_force_ramp_n_per_step = 1.0
+max_ee_step_m = 0.04
+final_approach_step_m = 0.01
+approach_step_m = 0.04
+
+[output]
+root_dir = "outputs"
+task_instruction = "Pick the parcel and place it in the indicated sorting bin."
+record_first_episode = false
+save_sensor_frames = false
+
+[randomization]
+enabled = true
+parcel_size_scale_min = 0.75
+parcel_size_scale_max = 1.30
+parcel_mass_kg_min = 0.05
+parcel_mass_kg_max = 1.00
+friction_min = 0.30
+friction_max = 1.20
+camera_position_noise_m = 0.015
+action_delay_steps_max = 2
+parcel_position_x_min = 0.45
+parcel_position_x_max = 0.72
+parcel_position_y_min = -0.18
+parcel_position_y_max = 0.18
+parcel_yaw_rad_min = -3.1415926
+parcel_yaw_rad_max = 3.1415926
+catalog_block_size = 20
+
+# Training profiles are engineering strata, not claims of carrier-standard sizes.
+# Every minor grasp axis stays within the Panda parallel-jaw aperture.
+
+[[parcel_profiles]]
+profile_id = "micro_box"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "parallel_jaw"
+material = "paperboard"
+selection_weight = 0.05
+evaluation_only = false
+dimensions_min_m = [0.060, 0.035, 0.025]
+dimensions_max_m = [0.100, 0.060, 0.060]
+mass_kg_min = 0.05
+mass_kg_max = 0.35
+friction_min = 0.30
+friction_max = 0.85
+provenance = "hardware-feasible micro-parcel training stratum"
+
+[[parcel_profiles]]
+profile_id = "small_carton"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "parallel_jaw"
+material = "corrugated_cardboard"
+selection_weight = 0.15
+evaluation_only = false
+dimensions_min_m = [0.100, 0.045, 0.040]
+dimensions_max_m = [0.180, 0.075, 0.110]
+mass_kg_min = 0.10
+mass_kg_max = 0.90
+friction_min = 0.35
+friction_max = 1.00
+provenance = "hardware-feasible small-carton training stratum"
+
+[[parcel_profiles]]
+profile_id = "flat_mailer"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "parallel_jaw"
+material = "rigid_paperboard_mailer"
+selection_weight = 0.10
+evaluation_only = false
+dimensions_min_m = [0.120, 0.040, 0.015]
+dimensions_max_m = [0.240, 0.070, 0.035]
+mass_kg_min = 0.05
+mass_kg_max = 0.55
+friction_min = 0.30
+friction_max = 0.85
+provenance = "rigid flat-mailer proxy constrained to the current rigid-body solver"
+finger_friction = 2.0
+close_force_n = 12.0
+
+[[parcel_profiles]]
+profile_id = "book_box"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "parallel_jaw"
+material = "corrugated_cardboard"
+selection_weight = 0.10
+evaluation_only = false
+dimensions_min_m = [0.140, 0.050, 0.025]
+dimensions_max_m = [0.240, 0.075, 0.065]
+mass_kg_min = 0.15
+mass_kg_max = 1.20
+friction_min = 0.35
+friction_max = 1.05
+provenance = "dense low-profile training stratum; not a carrier-standard box"
+
+[[parcel_profiles]]
+profile_id = "medium_carton"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "parallel_jaw"
+material = "corrugated_cardboard"
+selection_weight = 0.15
+evaluation_only = false
+dimensions_min_m = [0.170, 0.050, 0.070]
+dimensions_max_m = [0.270, 0.075, 0.150]
+mass_kg_min = 0.20
+mass_kg_max = 1.40
+friction_min = 0.35
+friction_max = 1.05
+provenance = "hardware-feasible medium-volume carton training stratum"
+
+[[parcel_profiles]]
+profile_id = "shoe_box_proxy"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "parallel_jaw"
+material = "paperboard"
+selection_weight = 0.10
+evaluation_only = false
+dimensions_min_m = [0.200, 0.055, 0.070]
+dimensions_max_m = [0.320, 0.075, 0.140]
+mass_kg_min = 0.20
+mass_kg_max = 1.20
+friction_min = 0.30
+friction_max = 0.90
+provenance = "narrow shoe-box-like proxy adapted to the 0.08 m jaw aperture"
+
+[[parcel_profiles]]
+profile_id = "long_carton"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "parallel_jaw"
+material = "corrugated_cardboard"
+selection_weight = 0.10
+evaluation_only = false
+dimensions_min_m = [0.230, 0.040, 0.040]
+dimensions_max_m = [0.380, 0.070, 0.100]
+mass_kg_min = 0.10
+mass_kg_max = 1.10
+friction_min = 0.35
+friction_max = 1.00
+provenance = "long narrow training stratum with a gripper-feasible minor axis"
+
+[[parcel_profiles]]
+profile_id = "large_narrow_carton"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "parallel_jaw"
+material = "corrugated_cardboard"
+selection_weight = 0.05
+evaluation_only = false
+dimensions_min_m = [0.280, 0.060, 0.100]
+dimensions_max_m = [0.420, 0.079, 0.180]
+mass_kg_min = 0.35
+mass_kg_max = 1.50
+friction_min = 0.35
+friction_max = 1.10
+provenance = "large-volume but narrow capability-stress training stratum"
+
+[[parcel_profiles]]
+profile_id = "upright_canister"
+shape = "cylinder"
+orientation_mode = "upright"
+handling_class = "parallel_jaw"
+material = "rigid_canister"
+selection_weight = 0.05
+evaluation_only = false
+dimensions_min_m = [0.040, 0.040, 0.060]
+dimensions_max_m = [0.070, 0.070, 0.160]
+mass_kg_min = 0.10
+mass_kg_max = 0.80
+friction_min = 0.25
+friction_max = 0.80
+provenance = "cylindrical consumer-parcel training stratum within the jaw aperture"
+
+[[parcel_profiles]]
+profile_id = "mailing_tube"
+shape = "cylinder"
+orientation_mode = "horizontal"
+handling_class = "parallel_jaw"
+material = "kraft_tube"
+selection_weight = 0.05
+evaluation_only = false
+dimensions_min_m = [0.150, 0.035, 0.035]
+dimensions_max_m = [0.300, 0.065, 0.065]
+mass_kg_min = 0.08
+mass_kg_max = 0.80
+friction_min = 0.30
+friction_max = 0.90
+provenance = "hardware-feasible rigid mailing-tube training stratum"
+rolling_friction = 0.005
+final_approach_step_m = 0.005
+lift_step_m = 0.01
+finger_friction = 2.0
+pregrasp_tolerance_m = 0.01
+grasp_stability_steps = 3
+
+[[parcel_profiles]]
+profile_id = "usps_large_flat_rate"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "suction_required"
+material = "corrugated_cardboard"
+selection_weight = 0.0
+evaluation_only = true
+dimensions_min_m = [0.311150, 0.311150, 0.152400]
+dimensions_max_m = [0.311150, 0.311150, 0.152400]
+mass_kg_min = 0.30
+mass_kg_max = 5.00
+friction_min = 0.35
+friction_max = 1.00
+provenance = "USPS Priority Mail Large Flat Rate Box outside dimensions; suction boundary profile"
+source_url = "https://store.usps.com/store/product/priority-mail-large-flat-rate-box-LARGE_FRB"
+
+[[parcel_profiles]]
+profile_id = "usps_flat_rate_envelope_proxy"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "suction_required"
+material = "paperboard_mailer"
+selection_weight = 0.0
+evaluation_only = true
+dimensions_min_m = [0.317500, 0.241300, 0.010000]
+dimensions_max_m = [0.317500, 0.241300, 0.010000]
+mass_kg_min = 0.05
+mass_kg_max = 0.80
+friction_min = 0.30
+friction_max = 0.85
+provenance = "USPS flat-rate envelope outer-size rigid proxy; deformable mailer not yet modeled"
+source_url = "https://store.usps.com/store/product/priority-mail-flat-rate-envelope-P_EP14F"
+
+[[parcel_profiles]]
+profile_id = "large_rectangular_carton_boundary"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "suction_required"
+material = "corrugated_cardboard"
+selection_weight = 0.0
+evaluation_only = true
+dimensions_min_m = [0.360, 0.240, 0.120]
+dimensions_max_m = [0.550, 0.360, 0.280]
+mass_kg_min = 0.50
+mass_kg_max = 8.00
+friction_min = 0.35
+friction_max = 1.00
+provenance = "large e-commerce carton stress range anchored by USPS large/board-game products"
+source_url = "https://store.usps.com/store/product/priority-mail-board-game-large-flat-rate-box-GB_FRB"
+
+[[parcel_profiles]]
+profile_id = "large_square_carton_boundary"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "suction_required"
+material = "corrugated_cardboard"
+selection_weight = 0.0
+evaluation_only = true
+dimensions_min_m = [0.300, 0.300, 0.120]
+dimensions_max_m = [0.450, 0.450, 0.300]
+mass_kg_min = 0.50
+mass_kg_max = 8.00
+friction_min = 0.35
+friction_max = 1.00
+provenance = "large square-carton boundary range; exact carrier SKU varies by service"
+source_url = "https://pe.usps.com/text/dmm300/Notice123.htm"
+
+[[parcel_profiles]]
+profile_id = "large_cylinder_boundary"
+shape = "cylinder"
+orientation_mode = "horizontal"
+handling_class = "cradle_required"
+material = "kraft_tube"
+selection_weight = 0.0
+evaluation_only = true
+dimensions_min_m = [0.450, 0.080, 0.080]
+dimensions_max_m = [0.750, 0.160, 0.160]
+mass_kg_min = 0.30
+mass_kg_max = 4.00
+friction_min = 0.25
+friction_max = 0.80
+provenance = "large cylindrical express-parcel boundary range below the USPS length/girth rule"
+source_url = "https://pe.usps.com/text/dmm300/Notice123.htm"
+rolling_friction = 0.005
+final_approach_step_m = 0.005
+lift_step_m = 0.010
+finger_friction = 2.0
+pregrasp_tolerance_m = 0.010
+grasp_stability_steps = 3
+
+[[parcel_profiles]]
+profile_id = "near_limit_box"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "parallel_jaw"
+material = "corrugated_cardboard"
+selection_weight = 0.05
+evaluation_only = false
+dimensions_min_m = [0.150, 0.070, 0.060]
+dimensions_max_m = [0.280, 0.079, 0.150]
+mass_kg_min = 0.30
+mass_kg_max = 1.50
+friction_min = 0.35
+friction_max = 1.10
+provenance = "near-aperture boundary-test training stratum"
+
+[[parcel_profiles]]
+profile_id = "electronics_box"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "parallel_jaw"
+material = "coated_paperboard"
+selection_weight = 0.05
+evaluation_only = false
+dimensions_min_m = [0.100, 0.045, 0.030]
+dimensions_max_m = [0.220, 0.072, 0.090]
+mass_kg_min = 0.10
+mass_kg_max = 0.90
+friction_min = 0.20
+friction_max = 0.65
+provenance = "lower-friction coated-box training stratum; not a product-size claim"
+
+# Exact carrier products remain evaluation-only because they exceed the current
+# parallel-jaw grasp envelope. URLs are official sources accessed 2026-07-24.
+
+[[parcel_profiles]]
+profile_id = "usps_small_flat_rate"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "suction_required"
+material = "corrugated_cardboard"
+selection_weight = 0.0
+evaluation_only = true
+dimensions_min_m = [0.220663, 0.138113, 0.044450]
+dimensions_max_m = [0.220663, 0.138113, 0.044450]
+mass_kg_min = 0.10
+mass_kg_max = 1.50
+friction_min = 0.35
+friction_max = 1.00
+provenance = "USPS Priority Mail Small Flat Rate Box outside dimensions, accessed 2026-07-24"
+source_url = "https://store.usps.com/store/product/priority-mail-flat-rate-small-box-P_SMALL_FRB"
+
+[[parcel_profiles]]
+profile_id = "usps_medium_flat_rate"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "suction_required"
+material = "corrugated_cardboard"
+selection_weight = 0.0
+evaluation_only = true
+dimensions_min_m = [0.285750, 0.222250, 0.152400]
+dimensions_max_m = [0.285750, 0.222250, 0.152400]
+mass_kg_min = 0.20
+mass_kg_max = 3.00
+friction_min = 0.35
+friction_max = 1.00
+provenance = "USPS Priority Mail Medium Flat Rate Box 1 outside dimensions, accessed 2026-07-24"
+source_url = "https://store.usps.com/store/product/priority-mail-flat-rate-medium-box-1-P_O_FRB1"
+
+[[parcel_profiles]]
+profile_id = "usps_board_game_box"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "suction_required"
+material = "corrugated_cardboard"
+selection_weight = 0.0
+evaluation_only = true
+dimensions_min_m = [0.611188, 0.301625, 0.079375]
+dimensions_max_m = [0.611188, 0.301625, 0.079375]
+mass_kg_min = 0.30
+mass_kg_max = 3.50
+friction_min = 0.35
+friction_max = 1.00
+provenance = "USPS Priority Mail Board Game Large Flat Rate Box outside dimensions, accessed 2026-07-24"
+source_url = "https://store.usps.com/store/product/priority-mail-board-game-large-flat-rate-box-GB_FRB"
+
+[[parcel_profiles]]
+profile_id = "large_mailing_tube"
+shape = "cylinder"
+orientation_mode = "horizontal"
+handling_class = "cradle_required"
+material = "kraft_tube"
+selection_weight = 0.0
+evaluation_only = true
+dimensions_min_m = [0.300, 0.080, 0.080]
+dimensions_max_m = [0.560, 0.150, 0.150]
+mass_kg_min = 0.20
+mass_kg_max = 2.00
+friction_min = 0.25
+friction_max = 0.80
+provenance = "capability-boundary range approaching the USPS 22-inch nonstandard-length threshold"
+source_url = "https://pe.usps.com/text/dmm300/Notice123.htm"
+rolling_friction = 0.005
+final_approach_step_m = 0.005
+lift_step_m = 0.01
+finger_friction = 2.0
+pregrasp_tolerance_m = 0.01
+grasp_stability_steps = 3

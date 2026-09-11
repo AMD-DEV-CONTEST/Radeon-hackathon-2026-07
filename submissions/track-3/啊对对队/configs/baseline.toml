@@ -1,0 +1,76 @@
+[project]
+name = "parcel-sorter-rocm"
+seed = 42
+
+[simulation]
+backend = "rocm"
+device = "cuda:0"
+num_envs = 128
+physics_hz = 240
+control_hz = 30
+camera_hz = 10
+headless = true
+
+[sensors]
+rgb = true
+depth = true
+proprioception = true
+contact_force = true
+image_width = 224
+image_height = 224
+
+[task]
+max_grasp_retries = 2
+lift_height_m = 0.12
+max_contact_force_n = 35.0
+episode_seconds = 20.0
+parcel_base_size_m = [0.060, 0.045, 0.040]
+left_bin_center_m = [0.48, -0.34, 0.025]
+right_bin_center_m = [0.48, 0.34, 0.025]
+bin_half_extent_m = [0.11, 0.10]
+approach_clearance_m = 0.260
+grasp_hand_clearance_m = 0.105
+drop_hand_height_m = 0.24
+position_tolerance_m = 0.025
+release_settle_steps = 12
+grasp_settle_steps = 10
+grasp_stability_steps = 1
+size_aware_approach_enabled = false
+approach_clearance_margin_m = 0.0
+retry_retreat_distance_m = 0.0
+
+[control]
+arm_kp = [4500, 4500, 3500, 3500, 2000, 2000, 2000]
+arm_kv = [450, 450, 350, 350, 200, 200, 200]
+finger_kp = 100.0
+finger_kv = 10.0
+open_width_m = 0.040
+close_force_n = 20.0
+close_force_ramp_n_per_step = 1.0
+max_ee_step_m = 0.04
+# Experimental knob. A 0.01 m candidate regressed in the matched 120-episode run.
+final_approach_step_m = 0.04
+approach_step_m = 0.04
+
+[output]
+root_dir = "outputs"
+task_instruction = "Pick the parcel and place it in the indicated sorting bin."
+record_first_episode = true
+save_sensor_frames = false
+
+[randomization]
+enabled = true
+parcel_size_scale_min = 0.75
+parcel_size_scale_max = 1.30
+parcel_mass_kg_min = 0.05
+parcel_mass_kg_max = 1.00
+friction_min = 0.30
+friction_max = 1.20
+camera_position_noise_m = 0.015
+action_delay_steps_max = 2
+parcel_position_x_min = 0.45
+parcel_position_x_max = 0.75
+parcel_position_y_min = -0.20
+parcel_position_y_max = 0.20
+parcel_yaw_rad_min = -3.1415926
+parcel_yaw_rad_max = 3.1415926

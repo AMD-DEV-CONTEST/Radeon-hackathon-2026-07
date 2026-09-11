@@ -1,0 +1,105 @@
+[metadata]
+schema_version = 2
+protocol_id = "grasp-candidate-learning-v2"
+frozen_date = "2026-07-26"
+code_revision = "af88121"
+purpose = "Geometry-eligible, safety-first grasp candidate scoring"
+claim_boundary = "Episode selection used deterministic parcel randomization and the frozen geometry predicate only; no Genesis scene, robot action, or task outcome was observed."
+
+[platform]
+backend = "rocm"
+device = "cuda:0"
+single_gpu = true
+gpu_count = 1
+gpu_architecture = "gfx1100"
+rocm_version = "7.2"
+
+[selection]
+evidence = "evidence/training/grasp-candidate-learning-v2-episode-selection.json"
+evidence_sha256 = "38198aa77cb3567899f088110907b0dd3aa2e54f04bdd90b1a16beb991ac4b8c"
+selector = "scripts/select_grasp_candidate_learning_v2_episodes.py"
+selector_sha256 = "4e050abaa35e76546fda64c7597aee71d25279563d33b1f0f73fa961659294f4"
+config_sha256 = "05bd0931cfb2ba48e15c1fbd83411220f99ca1ddc59c6991ef3255f682f73ca0"
+selection_without_physics = true
+
+[collection]
+config = "configs/catalog_v2.toml"
+runner = "scripts/diagnose_counterfactual_grasp_candidates.py"
+planning_activation_policy = "geometry-eligible"
+max_candidates_per_episode = 6
+repeats = 1
+max_grasp_retries = 0
+measured_force_abort_n = 35.0
+fresh_scene_per_candidate = true
+collision_checked_reset_enabled = true
+only_intervention = "candidate allowlist"
+holdout_locked = true
+
+[model]
+families = ["small-mlp", "groupwise-safety-first-ranker"]
+framework = "PyTorch + ROCm"
+mlp_parameter_count = 6276
+targets = ["safety_aborted", "success", "max_contact_force_n", "duration_seconds"]
+selection_order = ["unsafe_probability", "success_probability", "predicted_force_n", "predicted_duration_seconds", "static_rank"]
+development_gate = "Improve safety aborts or task success versus static rank, no per-profile safety regression, and warm six-candidate P95 below 5 ms on Radeon."
+integration_status = "blocked_pending_frozen_model_and_locked_holdout"
+
+[[splits]]
+name = "train"
+profile_id = "medium_carton"
+episode_ids = [8410006, 8410007, 8410008, 8410009, 8410010, 8410015, 8410026, 8410027]
+
+[[splits]]
+name = "train"
+profile_id = "shoe_box_proxy"
+episode_ids = [8510005, 8510006, 8510007, 8510009, 8510025, 8510028, 8510029, 8510032]
+
+[[splits]]
+name = "train"
+profile_id = "large_narrow_carton"
+episode_ids = [8710000, 8710003, 8710005, 8710008, 8710010, 8710011, 8710013, 8710014]
+
+[[splits]]
+name = "train"
+profile_id = "near_limit_box"
+episode_ids = [8810003, 8810009, 8810011, 8810020, 8810024, 8810031, 8810033, 8810036]
+
+[[splits]]
+name = "development"
+profile_id = "medium_carton"
+episode_ids = [8410028, 8410034, 8410035, 8410037]
+
+[[splits]]
+name = "development"
+profile_id = "shoe_box_proxy"
+episode_ids = [8510040, 8510046, 8510054, 8510060]
+
+[[splits]]
+name = "development"
+profile_id = "large_narrow_carton"
+episode_ids = [8710016, 8710018, 8710019, 8710020]
+
+[[splits]]
+name = "development"
+profile_id = "near_limit_box"
+episode_ids = [8810037, 8810038, 8810041, 8810042]
+
+[[splits]]
+name = "holdout"
+profile_id = "medium_carton"
+episode_ids = [8410043, 8410045, 8410046, 8410049]
+
+[[splits]]
+name = "holdout"
+profile_id = "shoe_box_proxy"
+episode_ids = [8510062, 8510066, 8510068, 8510077]
+
+[[splits]]
+name = "holdout"
+profile_id = "large_narrow_carton"
+episode_ids = [8710021, 8710024, 8710025, 8710027]
+
+[[splits]]
+name = "holdout"
+profile_id = "near_limit_box"
+episode_ids = [8810043, 8810051, 8810057, 8810061]

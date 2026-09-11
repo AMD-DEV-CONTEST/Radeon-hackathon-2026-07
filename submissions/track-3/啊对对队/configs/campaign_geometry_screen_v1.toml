@@ -1,0 +1,108 @@
+[metadata]
+schema_version = 1
+campaign_id = "parcel-sorter-geometry-screen-v1"
+phase = "exploratory_screening"
+description = "Matched 12-profile screening of reset safety and geometry-aware grasp planning"
+frozen_date = "2026-07-25"
+
+[platform]
+backend = "rocm"
+device = "cuda:0"
+single_gpu = true
+gpu_count = 1
+
+[task]
+control_hz = 30
+max_contact_force_n = 35.0
+latency_clock = "torch.cuda.Event(enable_timing=True)"
+latency_percentile = 0.95
+
+[dataset]
+catalog_path = "configs/catalog_v2.toml"
+catalog_sha256 = "05bd0931cfb2ba48e15c1fbd83411220f99ca1ddc59c6991ef3255f682f73ca0"
+sampling_seed = 42
+randomization_seed = 42
+split_seed = 7
+sample_manifest_path = "generated-by-deterministic-domain-randomizer"
+sample_manifest_sha256 = "PENDING"
+dataset_split_path = "not-applicable-controller-screen"
+dataset_split_sha256 = "PENDING"
+
+[evaluation]
+split = "heldout"
+purpose = "exploratory_screening_not_confirmatory_claim"
+profiles_per_group = 12
+episodes_per_profile = 5
+confirmatory_local_episode_range_reserved = "200000-200039"
+sample_hash_policy = "record-full-sample-and-sha256-in-evidence"
+profile_ids = [
+  "micro_box",
+  "small_carton",
+  "flat_mailer",
+  "book_box",
+  "medium_carton",
+  "shoe_box_proxy",
+  "long_carton",
+  "large_narrow_carton",
+  "upright_canister",
+  "mailing_tube",
+  "near_limit_box",
+  "electronics_box",
+]
+local_episode_ids = [100000, 100001, 100002, 100003, 100004]
+episode_ids = [
+  100000, 100001, 100002, 100003, 100004,
+  1100000, 1100001, 1100002, 1100003, 1100004,
+  2100000, 2100001, 2100002, 2100003, 2100004,
+  3100000, 3100001, 3100002, 3100003, 3100004,
+  4100000, 4100001, 4100002, 4100003, 4100004,
+  5100000, 5100001, 5100002, 5100003, 5100004,
+  6100000, 6100001, 6100002, 6100003, 6100004,
+  7100000, 7100001, 7100002, 7100003, 7100004,
+  8100000, 8100001, 8100002, 8100003, 8100004,
+  9100000, 9100001, 9100002, 9100003, 9100004,
+  15100000, 15100001, 15100002, 15100003, 15100004,
+  16100000, 16100001, 16100002, 16100003, 16100004,
+]
+
+[[experiments]]
+id = "historical-controller"
+kind = "controller"
+model = "scripted-expert-historical-reset"
+modality = "rgb-d-state"
+seeds = [42]
+training_steps = 0
+train_on_radeon = true
+infer_on_radeon = true
+open_source = true
+license = "MIT"
+cli_args = []
+acceptance = { success_rate_min = 0.00, force_abort_rate_max = 1.00, drop_rate_max = 1.00, throughput_ratio_min = 0.00 }
+
+[[experiments]]
+id = "collision-checked-reset"
+kind = "controller"
+model = "scripted-expert-collision-checked-reset"
+modality = "rgb-d-state"
+seeds = [42]
+training_steps = 0
+train_on_radeon = true
+infer_on_radeon = true
+open_source = true
+license = "MIT"
+cli_args = ["--collision-checked-reset"]
+acceptance = { success_rate_min = 0.00, force_abort_rate_max = 1.00, drop_rate_max = 1.00, throughput_ratio_min = 0.00 }
+
+[[experiments]]
+id = "geometry-aware-planner"
+kind = "controller"
+model = "scripted-expert-geometry-aware-grasp-planner"
+modality = "rgb-d-state"
+seeds = [42]
+training_steps = 0
+train_on_radeon = true
+infer_on_radeon = true
+open_source = true
+license = "MIT"
+cli_args = ["--collision-checked-reset", "--geometry-aware-grasp-planning"]
+acceptance = { success_rate_min = 0.00, force_abort_rate_max = 1.00, drop_rate_max = 1.00, throughput_ratio_min = 0.00 }

@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "protocol_id": "pi05-libero-radeon-compile-ablation-v1",
+  "created_utc": "2026-07-28T16:35:00Z",
+  "frozen_before_any_libero_policy_rollout": true,
+  "config_sha256": "3a2803fedbe958ba3dce516f043a34a94c6aa6565a62c49b2387e977428018ac",
+  "manifest": {
+    "path": "configs/pi05_libero_public_benchmark_v2.json",
+    "manifest_sha256": "2460cb493ef66ca8338eb48cfc29febb55d8c6527b497ac29272f5f0907d7e31",
+    "file_sha256": "cf2516e7ade46e5abccfb77d5117bf80005f413981f2d536fbf7f282a79deb28"
+  },
+  "checkpoint": {
+    "path": "/root/pi05-assets/pi05-libero-finetuned-local",
+    "model_sha256": "877b3ec1130548b69af7f8aeef3ec9d3fc7738040f0b9beb490857ec970997ae"
+  },
+  "experimental_design": {
+    "unit": "one LIBERO suite/task at development init state 10",
+    "unique_units": 40,
+    "repeated_measurements_per_treatment": 2,
+    "init_state_id": 10,
+    "blocking": [
+      "suite",
+      "task_id",
+      "init_state_id"
+    ],
+    "arm_order_protocol": "ABBA-linear-drift-balanced-v1",
+    "execution_order": [
+      {
+        "run_id": "compile_false_r1",
+        "compile": false,
+        "treatment": "control"
+      },
+      {
+        "run_id": "compile_true_r1",
+        "compile": true,
+        "treatment": "candidate"
+      },
+      {
+        "run_id": "compile_true_r2",
+        "compile": true,
+        "treatment": "candidate"
+      },
+      {
+        "run_id": "compile_false_r2",
+        "compile": false,
+        "treatment": "control"
+      }
+    ],
+    "pairing": [
+      [
+        "compile_false_r1",
+        "compile_true_r1"
+      ],
+      [
+        "compile_false_r2",
+        "compile_true_r2"
+      ]
+    ],
+    "videos_enabled": false,
+    "shared_process_within_run": true,
+    "independent_unit_count_for_success_statistics": 40,
+    "repeats_are_not_independent_success_samples": true
+  },
+  "fixed_factors": {
+    "policy": "pure_pi05_vla",
+    "n_action_steps": 10,
+    "batch_size": 1,
+    "max_parallel_tasks": 1,
+    "dtype": "bfloat16",
+    "expert_reference_allowed": false,
+    "expert_fallback_allowed": false,
+    "parcel_harness_allowed": false
+  },
+  "promotion_gate": {
+    "minimum_median_warm_p95_improvement_percent": 5.0,
+    "minimum_median_energy_per_episode_improvement_percent": 5.0,
+    "maximum_peak_allocated_vram_regression_percent": 10.0,
+    "success_regression_allowed_per_pair": 0,
+    "rocm_sampling_errors_allowed": 0,
+    "all_measurement_validation_must_pass": true
+  },
+  "claim_boundary": "Development-only repeated runtime ablation. It may select an AMD runtime but is not a LIBERO benchmark score or evidence of model superiority."
+}

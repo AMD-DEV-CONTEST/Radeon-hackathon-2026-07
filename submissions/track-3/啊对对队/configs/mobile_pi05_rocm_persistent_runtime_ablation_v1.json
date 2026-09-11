@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "protocol": "pi05-radeon-persistent-runtime-ablation-v1",
+  "frozen_date": "2026-07-28",
+  "development_design": "configs/mobile_pi05_development_validation_30_v1.json",
+  "checkpoint_fixed_across_arms": true,
+  "gpu_exclusivity_required": true,
+  "telemetry_interval_seconds": 1.0,
+  "arms": [
+    {
+      "id": "P0_COLD_FIRST_HOLD",
+      "persistent_policy_service": false,
+      "chunk_execution_protocol": "first-action-hold-v1",
+      "chunk_execution_steps": 1,
+      "stage_chunk_execution_steps": null
+    },
+    {
+      "id": "P1_RESIDENT_FIRST_HOLD",
+      "persistent_policy_service": true,
+      "chunk_execution_protocol": "first-action-hold-v1",
+      "chunk_execution_steps": 1,
+      "stage_chunk_execution_steps": null
+    },
+    {
+      "id": "P2_RESIDENT_STAGE_QUEUE",
+      "persistent_policy_service": true,
+      "chunk_execution_protocol": "pi05-open-loop-queue-v1",
+      "chunk_execution_steps": 4,
+      "stage_chunk_execution_steps": {
+        "pregrasp": 4,
+        "grasp_approach": 2,
+        "lift": 2,
+        "transport": 10,
+        "place": 4,
+        "release": 1
+      }
+    }
+  ],
+  "primary_endpoints": [
+    "pure_vla_complete_success_rate",
+    "raw_graphics_package_wh_per_pure_vla_success"
+  ],
+  "secondary_endpoints": [
+    "policy_inference_count_per_attempt",
+    "cold_start_latency_ms",
+    "warm_p95_latency_ms",
+    "peak_vram_allocated_percent",
+    "vram_growth_percentage_points",
+    "force_violation_count"
+  ],
+  "promotion_rule": "P1 or P2 must reduce Wh per pure-VLA success by at least 20% relative to P0, with no decrease in paired successes and no increase in force violations, expert fallback, or emergency stops.",
+  "claim_boundary": "Development-only matched Radeon runtime ablation; the selected arm must still pass the frozen 60-context and two-cycle long-run protocols."
+}

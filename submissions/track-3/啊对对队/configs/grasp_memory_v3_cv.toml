@@ -1,0 +1,88 @@
+[metadata]
+schema_version = 1
+protocol_id = "grasp-memory-v3-train-only-cv"
+frozen_date = "2026-07-26"
+purpose = "Test whether conservative same-profile memory can justify a fresh v3 population after the v2 learned-ranker rejection"
+claim_boundary = "Uses only v2 train rows. Development and holdout are forbidden. A passing CV candidate does not authorize new physics until a separate v3 population protocol is frozen."
+
+[source]
+dataset = "outputs/grasp-scorer-v2/model-selection/train-dataset.json"
+dataset_sha256 = "71761164467ba3b29866d87639b73474a5d5f2cc1fdb8907d62957a6c73703d5"
+split = "train"
+expected_groups = 32
+expected_groups_per_profile = 8
+expected_profiles = ["medium_carton", "shoe_box_proxy", "large_narrow_carton", "near_limit_box"]
+development_forbidden = true
+holdout_forbidden = true
+
+[implementation]
+memory = "src/parcel_sorter/conservative_grasp_memory.py"
+memory_sha256 = "d03f8c0a849d6ff51db2009286ba3e74e6140b331827607c5933e91e8522ffbc"
+runner = "scripts/cross_validate_conservative_grasp_memory.py"
+runner_sha256 = "19515289df320cf748b14dfeb88d155e20117d087b9bbce596471eca322a7598"
+features = "src/parcel_sorter/grasp_scoring.py"
+features_sha256 = "b4411ac28ebcaec5d01b561453592bf7a620e946ce781de31afbca5683f9dd12"
+
+[folds]
+count = 4
+seed = 20260726
+profile_stratified = true
+group_isolation = true
+
+[fixed]
+device = "cuda"
+single_gpu = true
+force_limit_n = 35.0
+minimum_success_ratio = 0.5
+require_zero_unsafe_neighbors = true
+fallback = "static_geometry_first_choice"
+latency_group_id = "large_narrow_carton:8710000"
+latency_candidate_count = 6
+latency_warmup = 10
+latency_repeats = 100
+max_warm_batch_p95_ms = 5.0
+require_no_per_profile_safety_regression = true
+require_no_per_fold_safety_regression = true
+require_aggregate_task_or_safety_improvement = true
+
+[[candidates]]
+name = "knn-k3-r3-q90"
+neighbor_count = 3
+maximum_static_rank = 3
+distance_quantile = 0.90
+
+[[candidates]]
+name = "knn-k5-r3-q90"
+neighbor_count = 5
+maximum_static_rank = 3
+distance_quantile = 0.90
+
+[[candidates]]
+name = "knn-k5-r6-q90"
+neighbor_count = 5
+maximum_static_rank = 6
+distance_quantile = 0.90
+
+[[candidates]]
+name = "knn-k5-r6-q95"
+neighbor_count = 5
+maximum_static_rank = 6
+distance_quantile = 0.95
+
+[[candidates]]
+name = "knn-k9-r6-q95"
+neighbor_count = 9
+maximum_static_rank = 6
+distance_quantile = 0.95
+
+[[candidates]]
+name = "knn-k9-r15-q95"
+neighbor_count = 9
+maximum_static_rank = 15
+distance_quantile = 0.95
+
+[stopping]
+no_cv_candidate_if_all_fail = true
+do_not_inspect_v2_development_for_threshold_selection = true
+do_not_open_v2_holdout = true
+new_v3_physics_requires_separate_frozen_population = true

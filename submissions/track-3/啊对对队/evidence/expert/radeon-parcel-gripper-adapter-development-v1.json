@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.0",
+  "study_type": "open_source_parcel_gripper_adapter_development_ab",
+  "claim_boundary": "Two already observed deterministic episodes and eight paired candidate executions only; no success-rate, robustness, hardware-transfer, or holdout claim.",
+  "runtime": {
+    "accelerator": "single AMD Radeon gfx1100",
+    "vram_gib": 47.98,
+    "rocm_version": "7.2",
+    "simulator": "Genesis 1.2.3",
+    "physics_hz": 240,
+    "control_hz": 30
+  },
+  "adapter_contract": {
+    "enabled_by_default": false,
+    "extension_m": 0.03,
+    "allowed_extension_range_m": [0.005, 0.06],
+    "extension_scan_performed": false,
+    "collision_half_size_m": [0.01, 0.004, 0.015],
+    "collision_center_local_m": [0.0, 0.0055, 0.068],
+    "stock_tip_end_local_z_m": 0.053,
+    "adapter_tip_end_local_z_m": 0.083,
+    "generated_asset_sha256": "e38e5f950fb6db26bd6be5f6ec62a14ca74479af9814f94474eaceee9e21759c",
+    "upstream_asset": "Genesis 1.2.3 Panda MJCF",
+    "upstream_license": "Apache-2.0",
+    "third_party_meshes_committed": false,
+    "measured_force_abort_n": 35.0,
+    "controller_or_ranking_changed": false
+  },
+  "geometry_probe": {
+    "passed": true,
+    "stock_collision_geometries_per_finger": 6,
+    "adapter_collision_geometries_per_finger": 7,
+    "generated_adapter_geometries": 4,
+    "stock_finger_aabb_long_span_m": [0.05571374297142029, 0.05599541217088699],
+    "adapter_finger_aabb_long_span_m": [0.0847557857632637, 0.08482914417982101]
+  },
+  "mechanism_pair": [
+    {
+      "episode": 4120001,
+      "profile": "medium_carton",
+      "candidate_id": "canonical-long-+0.000-up-0.040",
+      "stock": {"success": false, "safety_aborted": false, "max_contact_force_n": 21.811735153198242},
+      "adapter": {"success": true, "safety_aborted": false, "max_contact_force_n": 24.073612213134766}
+    },
+    {
+      "episode": 4120001,
+      "profile": "medium_carton",
+      "candidate_id": "canonical-long-+0.000-up-0.045",
+      "role": "known_success_sentinel",
+      "stock": {"success": true, "safety_aborted": false, "max_contact_force_n": 10.310474395751953},
+      "adapter": {"success": true, "safety_aborted": false, "max_contact_force_n": 12.54796314239502}
+    }
+  ],
+  "frozen_train_group": {
+    "episode": 7130001,
+    "profile": "large_narrow_carton",
+    "candidate_count": 6,
+    "stock_successes": 3,
+    "adapter_successes": 5,
+    "stock_safety_aborts": 2,
+    "adapter_safety_aborts": 1,
+    "stock_successes_preserved": 3,
+    "stock_failures_recovered": 2,
+    "adapter_success_max_contact_force_n": 32.69209289550781,
+    "remaining_abort_max_contact_force_n": 36.9488410949707
+  },
+  "paired_candidate_summary": {
+    "candidate_executions": 8,
+    "independent_episodes": 2,
+    "stock_successes": 4,
+    "adapter_successes": 7,
+    "stock_successes_preserved": 4,
+    "stock_failures_recovered": 3,
+    "drops": 0,
+    "statistical_claim": false
+  },
+  "source_artifacts": [
+    {"path": "outputs/contact-wrench-development-v1/4120001-40-vs-45-60hz-cpu.json", "role": "stock mechanism pair", "bytes": 5955320, "sha256": "71b583866acc9b00429f8919eeabfbe7d803e0cf7615aed422d936afcf7152b5"},
+    {"path": "outputs/contact-wrench-development-v1/7130001-all-30hz-cpu.json", "role": "stock frozen train group", "bytes": 12602043, "sha256": "1d5126b49ca5bc3a09f85de024ee1dd9ed8fe59cb800d324581e2f71ef3450a2"},
+    {"path": "outputs/gripper-adapter-development-v1/geometry-probe.json", "bytes": 5205, "sha256": "4ae498f70e2158cffba895c5cc0a94e8b5daaec69d34fc852fb3fd45798c3b83"},
+    {"path": "outputs/gripper-adapter-development-v1/4120001-canonical-40-adapter.json", "bytes": 3113124, "sha256": "80510affe13cad084449b81d0c9f1e76584f7f3a68ac65548aa19dd5080067c5"},
+    {"path": "outputs/gripper-adapter-development-v1/4120001-canonical-45-adapter.json", "bytes": 3136361, "sha256": "44d524408082a0f73b46121fc0e02ac4302336f14c8cf73e567cbd5d0b6d132f"},
+    {"path": "outputs/gripper-adapter-development-v1/7130001-all-adapter.json", "bytes": 9415551, "sha256": "f4b51b3faf342bddd6cfd0f9159b98853f051543dd1fbd84f5ebd42713419a17"}
+  ],
+  "decision": {
+    "status": "retain_default_off_and_freeze_30mm",
+    "reason": "The adapter recovered three paired stock failures without regressing four stock successes, while the unchanged 35 N gate still stopped the remaining unsafe candidate.",
+    "holdout_opened": false,
+    "next_action": "Model adapter mass/compliance and preregister a separate paired evaluation before default enablement."
+  },
+  "known_limitations": [
+    "The eight candidate executions are nested within two deterministic episodes.",
+    "The stock explicit finger inertia is retained; printed-adapter mass, fasteners, and compliance are not yet modeled.",
+    "No real robot or sim-to-real calibration evidence is claimed."
+  ],
+  "verification": {
+    "compile": "python -m compileall -q src scripts tests",
+    "tests": "python -m unittest discover -s tests -q",
+    "tests_passed": 257,
+    "tests_failed": 0
+  }
+}

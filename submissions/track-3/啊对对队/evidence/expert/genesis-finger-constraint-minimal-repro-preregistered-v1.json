@@ -1,0 +1,94 @@
+{
+  "schema_version": "1.0",
+  "status": "preregistered_before_execution",
+  "registered_date": "2026-07-26",
+  "study_type": "genesis_panda_finger_constraint_minimal_reproduction",
+  "purpose": "test whether the mass-aware Panda finger failure survives a fixed-command zero-velocity replay without the sorter state machine",
+  "upstream_audit": {
+    "genesis_issue": "https://github.com/Genesis-Embodied-AI/genesis-world/issues/3051",
+    "armature_fix_pr": "https://github.com/Genesis-Embodied-AI/genesis-world/pull/3072",
+    "locked_revision": "ec0efcc0daf9b9932920e6b73f5f810961330997",
+    "armature_candidate_excluded": true,
+    "exclusion_reason": "the locked parser contains PR 3072 and the Panda default class explicitly authors armature 0.1 for the finger joints"
+  },
+  "fixed_runtime": {
+    "accelerator": "single AMD Radeon gfx1100",
+    "rocm_version": "7.2",
+    "simulator": "Genesis 1.2.3",
+    "physics_hz": 240,
+    "maximum_physics_steps": 64
+  },
+  "fixed_source_case": {
+    "profile": "medium_carton",
+    "episode": 4120001,
+    "source_control_frame": 196,
+    "source_artifact": "outputs/contact-branch-development-v1/4120001-45-mass-aware.json",
+    "adapter_extension_m": 0.03,
+    "adapter_density_kg_m3": 1240.0,
+    "end_effector_pose_wxyz": [
+      0.5733487606048584,
+      0.07402051240205765,
+      0.3134603500366211,
+      -0.0010698031401261687,
+      0.9870076179504395,
+      0.16057124733924866,
+      -0.005630024708807468
+    ],
+    "parcel_pose_wxyz": [
+      0.5724396109580994,
+      0.0743669643998146,
+      0.155442014336586,
+      0.16022130846977234,
+      -0.07681524753570557,
+      -0.010555305518209934,
+      -0.9840311408042908
+    ],
+    "finger_position_m": [
+      0.03228778392076492,
+      0.0322871059179306
+    ]
+  },
+  "conditions": {
+    "reference": "stock_explicit_inertia_ablation",
+    "candidate": "combined_rigid_body",
+    "fresh_scene_rollouts_per_condition": 1,
+    "initial_velocity": "all robot and parcel velocities reset to zero",
+    "arm_command": "fixed reconstructed joint-position hold",
+    "finger_command_force_n": [-20.0, -20.0],
+    "state_machine_used": false,
+    "planner_used": false,
+    "learned_policy_used": false,
+    "camera_used": false
+  },
+  "gates": {
+    "measured_force_abort_n_exclusive": 35.0,
+    "contact_penetration_m_inclusive": 0.001,
+    "stop_at_first_gate": true
+  },
+  "comparison_thresholds": {
+    "force_difference_n": 1.0,
+    "finger_position_difference_m": 0.0001,
+    "finger_velocity_difference_m_s": 0.01,
+    "finger_force_difference_n": 1.0
+  },
+  "interpretation": {
+    "mass_aware_instability_reproduced": "reference remains below both gates and candidate reaches either gate",
+    "bounded_contact_sensitivity_only": "neither condition reaches a gate but a registered trace difference occurs",
+    "not_reproduced": "neither condition reaches a gate and no registered trace difference occurs",
+    "invalid_reference": "reference reaches either gate"
+  },
+  "forbidden_adaptation": [
+    "physics-rate scan",
+    "constraint-time scan",
+    "density scan",
+    "extension scan",
+    "friction scan",
+    "controller-gain scan",
+    "force-threshold change",
+    "pose scan",
+    "new episode",
+    "candidate scan",
+    "scorer holdout access"
+  ],
+  "stop_rule": "run one fresh scene per condition, compare once, retain negative results, and require a new preregistration for dynamic-state capture or an upstream patch"
+}

@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "protocol": "pi05-competition-v19-expert-teacher-specialization-preregistration-v1",
+  "status": "frozen_after_collection_before_training",
+  "objective": "Preserve the V18 direct-action and primitive-progress function that passed the frozen action panel, while using the two complete session-08 expert trajectories to specialize only learned routing and tool-decision heads.",
+  "single_experimental_factor": "Calibrate only mode_head and mode_head_state_residual. The V18 direct_action_head and direct_action_state_residual remain frozen byte-for-byte in function and continue to own all executed motion and primitive progress.",
+  "supersedes": {
+    "preregistration": "configs/mobile_pi05_competition_v19c_uniform_six_preregistration.json",
+    "reason": "V19c achieved 12/12 routing and passed every motion, tool, attribution, and structural check, but updating the direct-action modules regressed primitive progress in six frozen panel cells. It stopped before closed loop.",
+    "failed_panel_screen_sha256": "3002648d83b892f1ae32903e33df857608715ea3e515f611bd7225ca5549d6a9",
+    "failed_checkpoint_sha256": "746a10fb11f31579a653ceeefd8422bb3e832c461f8f781a21c5d6a3c697c0be",
+    "failed_action_dimension": "primitive_progress",
+    "routing_errors": 0,
+    "progress_errors": 6,
+    "pure_vla_closed_loop_started": false
+  },
+  "source_smoke_plan": {
+    "path": "configs/mobile_pi05_single_box_v14_v7_strict_smoke_3.json",
+    "sha256": "f5f5603b084d00c8e72316afd524aabd428f959a6dbdc4b2d0c37a5d12c21dc8",
+    "collection_id": "single-box-v14-v7-strict-pure-vla-smoke-3",
+    "required_evaluation_case_ids": [
+      "single-box-v14-development-top_suction-case-000",
+      "single-box-v14-development-top_suction-case-001",
+      "single-box-v14-development-side_suction-case-000"
+    ],
+    "required_session_index": 8,
+    "required_runtime_seed": 2026080206
+  },
+  "frozen_deployment_contract": {
+    "path": "configs/mobile_pi05_competition_v18_deployment_progress_preregistration.json",
+    "sha256": "d5cc3af4817446e3cd2e310f9a7d26e03c8a2eebd06bb533378458d7538de22d",
+    "training_seed": 11,
+    "runtime_seed": 2026080206,
+    "inference_seeds": [20260727, 20260728, 20260729],
+    "frozen_panel_observations": 12,
+    "frozen_panel_sha256": "28df60fb02d9afadbd396621672bdeaa03515a3d007e3411f2f1953eb576a0b0",
+    "threshold_policy": "The complete hashed V18 fixed_contract, immutability_checks, promotion_gates, stop_rule, and claim_boundary are inherited without modification."
+  },
+  "observed_collection": {
+    "collection_summary_sha256": "65e4ecb6bb2f0ef3e7c6e4f98fa3dede8d61e1e2dd6bf7f2f83ec442e5947a0c",
+    "merged_dataset_info_sha256": "1e71a48e0852ff1298e979e5043d253140c4d0136bb4ac2cace19c2ffa80bb5f",
+    "merged_dataset_stats_sha256": "b386dd596ba415f813495d9f95fa3a6f55617dbaa86fb7e53f39ae5444396cbe",
+    "attempted_episodes": 3,
+    "successful_episodes": 2,
+    "failed_episodes": 1
+  },
+  "collection_contract": {
+    "teacher_episode_count": 3,
+    "required_verified_successes": 2,
+    "system_control_class": "deterministic_expert_teacher",
+    "collector_policy_mode": "shadow",
+    "policy_checkpoint_allowed": false,
+    "vla_policy_service_allowed": false,
+    "audit_only": false,
+    "policy_visual_modality": "rgbd",
+    "wrist_rgbd": false,
+    "record_media_all_episodes": true,
+    "prune_rejected_dataset_payloads": true,
+    "expert_reference_count_per_episode": 1,
+    "expert_fallback_count_per_episode": 0,
+    "pure_vla_action_runs_per_episode": 0
+  },
+  "viable_subset_admission": {
+    "required_success_episode_ids": [
+      "v19-expert-teacher-single-box-v14-development-top_suction-case-001",
+      "v19-expert-teacher-single-box-v14-development-side_suction-case-000"
+    ],
+    "allowed_failure_telemetry": [
+      {
+        "episode_id": "v19-expert-teacher-single-box-v14-development-top_suction-case-000",
+        "return_code": 2,
+        "failure_stage": "scene_stability_failure",
+        "failure_scope": "parcel left its support before pregrasp; zero action frames and zero behavior-cloning labels"
+      }
+    ]
+  },
+  "training_contract": {
+    "seed": 11,
+    "source_checkpoint_policy": "completed V18 deployment-progress checkpoint",
+    "initialization": "completed_v18_checkpoint",
+    "dataset_role": "competition_specialization_train_viable_two",
+    "sampling_policy": "uniform_mode_stage_progress_without_replacement",
+    "samples_per_cell": 6,
+    "calibration_scope": "mode_only",
+    "trainable_components": ["mode_head", "mode_head_state_residual"],
+    "frozen_learned_components": ["direct_action_head", "direct_action_state_residual"],
+    "feature_batch_size": 4,
+    "head_batch_size": 64,
+    "epochs": 300,
+    "panel_repeat": 20,
+    "learning_rate": 0.00025,
+    "action_weights": [8, 8, 8, 1, 1, 1, 32, 32, 32, 1, 1, 1, 1, 32, 32, 32, 1, 1, 1, 1, 128],
+    "confirmation_data_allowed": false,
+    "failed_teacher_trajectories_allowed": false,
+    "expert_teacher_data_counted_as_pure_vla": false
+  },
+  "promotion_gates": {
+    "offline_checkpoint_routing_action_structural_gates": "unchanged V18/V3 posttrain gate",
+    "closed_loop_minimum_pure_vla_successes": 2,
+    "closed_loop_trials": 3,
+    "force_violation_count": 0,
+    "expert_reference_count": 0,
+    "expert_fallback_count": 0,
+    "record_media_all_episodes": true,
+    "distinct_decodable_demo_videos": 3
+  },
+  "claim_boundary": "Competition-specialized, training-contaminated rehearsal only. Expert teacher episodes receive zero pure-VLA credit. Mode-only calibration does not change the frozen action thresholds or credit routing success as task success."
+}

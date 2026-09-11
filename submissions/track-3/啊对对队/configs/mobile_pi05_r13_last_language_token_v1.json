@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "protocol": "pi05-r13-last-language-token-ablation-v1",
+  "research_question": "Does last-valid-language-token pooling prevent three-mode routing collapse relative to R11 masked-mean pooling?",
+  "control_run": "R11",
+  "treatment_run": "R13",
+  "independent_unit": "episode",
+  "single_changed_factor": {
+    "name": "mode_head_pooling",
+    "control": "masked_mean",
+    "treatment": "last_language_token"
+  },
+  "frozen_factors": {
+    "base_revision": "7de663972b7817d2c4cf2d84c821153dfea772e9",
+    "dataset": "pi05-r6-observable-language",
+    "seed": 11,
+    "lora_rank": 16,
+    "lora_alpha": 32,
+    "steps": 12000,
+    "save_frequency": 3000,
+    "state_token": true,
+    "mode_head_class_weights": [
+      0.7608864696734059,
+      0.920075223319229,
+      1.6697952218430034
+    ],
+    "vision_encoder_frozen": true,
+    "chunk_size": 30,
+    "n_action_steps": 10
+  },
+  "development_gate": {
+    "protocol": "pi05-three-mode-hidden-input-screen-v1",
+    "required_correct_probes": 6,
+    "total_probes": 6,
+    "minimum_per_mode": 2,
+    "expert_fallback": 0
+  },
+  "stopping_rule": "Do not launch R13 if any R9-R12 checkpoint passes 6/6; run strict development closed loop first.",
+  "claim_boundary": "Offline routing is a development gate, not held-out generalization or closed-loop task success."
+}

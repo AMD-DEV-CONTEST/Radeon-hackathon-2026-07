@@ -1,0 +1,42 @@
+ARG BASE_IMAGE=rocm/pytorch:rocm7.2.1_ubuntu24.04_py3.12_pytorch_release_2.9.1
+FROM ${BASE_IMAGE}
+
+ARG INSTALL_LEROBOT=0
+ARG GENESIS_SHA=ec0efcc0daf9b9932920e6b73f5f810961330997
+ARG LEROBOT_SHA=73dbb6f43a5088583706c91fb73c6957bca5f806
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    HIP_VISIBLE_DEVICES=0
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ffmpeg git libgl1 libglib2.0-0 python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace/parcel-sorter-rocm
+COPY pyproject.toml requirements.txt requirements-lock.txt README.md README_CN.md TECHNICAL_REPORT.md TECHNICAL_REPORT_CN.md ./
+COPY SUBMISSION_CHECKLIST.md SUBMISSION_CHECKLIST_CN.md ./
+COPY LICENSE UPSTREAM_LOCK.json THIRD_PARTY_NOTICES.md THIRD_PARTY_NOTICES_CN.md ./
+COPY src src
+COPY configs configs
+COPY scripts scripts
+COPY tests tests
+COPY docs docs
+COPY evidence evidence
+
+RUN mkdir -p third_party \
+    && git clone https://github.com/Genesis-Embodied-AI/genesis-world.git third_party/genesis-world \
+    && git -C third_party/genesis-world checkout --detach "${GENESIS_SHA}" \
+    && if [ "${INSTALL_LEROBOT}" = "1" ]; then \
+         git clone https://github.com/huggingface/lerobot.git third_party/lerobot \
+         && git -C third_party/lerobot checkout --detach "${LEROBOT_SHA}"; \
+       fi \
+    && python -m pip install --no-cache-dir -c requirements-lock.txt -e third_party/genesis-world \
+    && python -m pip install --no-cache-dir -c requirements-lock.txt -r requirements.txt \
+    && python -m pip install --no-cache-dir --no-deps -e . \
+    && if [ "${INSTALL_LEROBOT}" = "1" ]; then \
+         python -m pip install --no-cache-dir -c requirements-lock.txt -e 'third_party/lerobot[training]'; \
+       fi
+
+CMD ["bash", "scripts/run_demo.sh"]

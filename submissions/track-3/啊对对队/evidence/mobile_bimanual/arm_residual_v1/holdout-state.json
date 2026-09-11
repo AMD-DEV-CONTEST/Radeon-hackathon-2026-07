@@ -1,0 +1,199 @@
+{
+  "schema_version": 1,
+  "protocol": "mobile-smolvla-anchored-arm-residual-holdout-runner-v1",
+  "status": "completed_not_promoted",
+  "inputs": {
+    "checkpoint": "/workspace/parcel-sorter-opt-v1/outputs/train/mobile-smolvla-mass-aware-b8w4-2400step-v2/checkpoints/002400/pretrained_model",
+    "development_gate": "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-v1/development-gate.json",
+    "development_gate_sha256": "8c8652b4a3ab53a978a54401ce907948fe81e4ef451b2cb457b75774d8a40f69",
+    "holdout_sha256": "da906ed5a3b48e8c68ff6059e2653951d31542601748f74a5de8204b59c4937d",
+    "checkpoint_config_sha256": "0a5d3f5c4df603a860de601488a7f243e19b6f1677dfb7af42735c53d88bf1a9"
+  },
+  "settings": {
+    "trials": 100,
+    "seed": 20260730,
+    "workers": 4,
+    "policy_hz": 3
+  },
+  "commands": {
+    "preflight": [
+      "bash",
+      "/workspace/parcel-sorter-opt-v1/scripts/preflight_radeon.sh"
+    ],
+    "evaluate_baseline": [
+      "/workspace/rdna/bin/python",
+      "/workspace/parcel-sorter-opt-v1/scripts/collect_mobile_suction_dataset_rocm.py",
+      "--config",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/frozen-holdout.json",
+      "--output",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/baseline",
+      "--backend",
+      "rocm",
+      "--resume",
+      "--audit-only",
+      "--smolvla-checkpoint",
+      "/workspace/parcel-sorter-opt-v1/outputs/train/mobile-smolvla-mass-aware-b8w4-2400step-v2/checkpoints/002400/pretrained_model",
+      "--policy-mode",
+      "base_residual",
+      "--policy-hz",
+      "3",
+      "--workers",
+      "4"
+    ],
+    "summarize_baseline": [
+      "/workspace/rdna/bin/python",
+      "/workspace/parcel-sorter-opt-v1/scripts/summarize_mobile_vla_campaign.py",
+      "--collection-summary",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/baseline/collection-summary.json",
+      "--output",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/baseline-audit.json"
+    ],
+    "evaluate_candidate": [
+      "/workspace/rdna/bin/python",
+      "/workspace/parcel-sorter-opt-v1/scripts/collect_mobile_suction_dataset_rocm.py",
+      "--config",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/frozen-holdout.json",
+      "--output",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/candidate",
+      "--backend",
+      "rocm",
+      "--resume",
+      "--audit-only",
+      "--smolvla-checkpoint",
+      "/workspace/parcel-sorter-opt-v1/outputs/train/mobile-smolvla-mass-aware-b8w4-2400step-v2/checkpoints/002400/pretrained_model",
+      "--policy-mode",
+      "base_arm_residual",
+      "--policy-hz",
+      "3",
+      "--workers",
+      "4"
+    ],
+    "summarize_candidate": [
+      "/workspace/rdna/bin/python",
+      "/workspace/parcel-sorter-opt-v1/scripts/summarize_mobile_vla_campaign.py",
+      "--collection-summary",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/candidate/collection-summary.json",
+      "--output",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/candidate-audit.json"
+    ],
+    "holdout_gate": [
+      "/workspace/rdna/bin/python",
+      "/workspace/parcel-sorter-opt-v1/scripts/gate_mobile_arm_residual_campaign.py",
+      "--phase",
+      "holdout",
+      "--baseline",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/baseline-audit.json",
+      "--candidate",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/candidate-audit.json",
+      "--output",
+      "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/holdout-gate.json"
+    ]
+  },
+  "steps": {
+    "preflight": {
+      "status": "passed",
+      "command": [
+        "bash",
+        "/workspace/parcel-sorter-opt-v1/scripts/preflight_radeon.sh"
+      ],
+      "log": "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/logs/preflight.log",
+      "return_code": 0
+    },
+    "evaluate_baseline": {
+      "status": "passed",
+      "command": [
+        "/workspace/rdna/bin/python",
+        "/workspace/parcel-sorter-opt-v1/scripts/collect_mobile_suction_dataset_rocm.py",
+        "--config",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/frozen-holdout.json",
+        "--output",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/baseline",
+        "--backend",
+        "rocm",
+        "--resume",
+        "--audit-only",
+        "--smolvla-checkpoint",
+        "/workspace/parcel-sorter-opt-v1/outputs/train/mobile-smolvla-mass-aware-b8w4-2400step-v2/checkpoints/002400/pretrained_model",
+        "--policy-mode",
+        "base_residual",
+        "--policy-hz",
+        "3",
+        "--workers",
+        "4"
+      ],
+      "log": "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/logs/evaluate_baseline.log",
+      "return_code": 0
+    },
+    "summarize_baseline": {
+      "status": "passed",
+      "command": [
+        "/workspace/rdna/bin/python",
+        "/workspace/parcel-sorter-opt-v1/scripts/summarize_mobile_vla_campaign.py",
+        "--collection-summary",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/baseline/collection-summary.json",
+        "--output",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/baseline-audit.json"
+      ],
+      "log": "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/logs/summarize_baseline.log",
+      "return_code": 0
+    },
+    "evaluate_candidate": {
+      "status": "passed",
+      "command": [
+        "/workspace/rdna/bin/python",
+        "/workspace/parcel-sorter-opt-v1/scripts/collect_mobile_suction_dataset_rocm.py",
+        "--config",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/frozen-holdout.json",
+        "--output",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/candidate",
+        "--backend",
+        "rocm",
+        "--resume",
+        "--audit-only",
+        "--smolvla-checkpoint",
+        "/workspace/parcel-sorter-opt-v1/outputs/train/mobile-smolvla-mass-aware-b8w4-2400step-v2/checkpoints/002400/pretrained_model",
+        "--policy-mode",
+        "base_arm_residual",
+        "--policy-hz",
+        "3",
+        "--workers",
+        "4"
+      ],
+      "log": "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/logs/evaluate_candidate.log",
+      "return_code": 0
+    },
+    "summarize_candidate": {
+      "status": "passed",
+      "command": [
+        "/workspace/rdna/bin/python",
+        "/workspace/parcel-sorter-opt-v1/scripts/summarize_mobile_vla_campaign.py",
+        "--collection-summary",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/candidate/collection-summary.json",
+        "--output",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/candidate-audit.json"
+      ],
+      "log": "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/logs/summarize_candidate.log",
+      "return_code": 0
+    },
+    "holdout_gate": {
+      "status": "passed",
+      "command": [
+        "/workspace/rdna/bin/python",
+        "/workspace/parcel-sorter-opt-v1/scripts/gate_mobile_arm_residual_campaign.py",
+        "--phase",
+        "holdout",
+        "--baseline",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/baseline-audit.json",
+        "--candidate",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/candidate-audit.json",
+        "--output",
+        "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/holdout-gate.json"
+      ],
+      "log": "/workspace/parcel-sorter-opt-v1/outputs/mobile-arm-residual-holdout-v1/logs/holdout_gate.log",
+      "return_code": 0
+    }
+  },
+  "claim_boundary": "paired frozen holdout of base-only versus anchored transport left-arm residual",
+  "promoted": false,
+  "holdout_gate_sha256": "ad975139533b24ae9a98d0a746ea979a52e062bc84e466a56e5bf59df679eff9"
+}

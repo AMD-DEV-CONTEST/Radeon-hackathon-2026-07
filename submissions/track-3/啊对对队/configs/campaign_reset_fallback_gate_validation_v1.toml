@@ -1,0 +1,94 @@
+[metadata]
+schema_version = 1
+campaign_id = "parcel-sorter-reset-fallback-gate-validation-v1"
+phase = "development_validation"
+description = "Matched validation of collision-checked reset versus reset-risk-gated geometry planning"
+frozen_date = "2026-07-25"
+
+[platform]
+backend = "rocm"
+device = "cuda:0"
+single_gpu = true
+gpu_count = 1
+
+[task]
+control_hz = 30
+max_contact_force_n = 35.0
+latency_clock = "torch.cuda.Event(enable_timing=True)"
+latency_percentile = 0.95
+
+[dataset]
+catalog_path = "configs/catalog_v2.toml"
+catalog_sha256 = "05bd0931cfb2ba48e15c1fbd83411220f99ca1ddc59c6991ef3255f682f73ca0"
+sampling_seed = 42
+randomization_seed = 42
+split_seed = 7
+sample_manifest_path = "generated-by-deterministic-domain-randomizer"
+sample_manifest_sha256 = "PENDING"
+dataset_split_path = "not-applicable-controller-validation"
+dataset_split_sha256 = "PENDING"
+
+[evaluation]
+split = "validation"
+purpose = "development_validation_not_final_confirmatory_claim"
+profiles_per_group = 12
+episodes_per_profile = 5
+confirmatory_local_episode_range_reserved = "200000-200039"
+sample_hash_policy = "record-full-sample-and-sha256-in-evidence"
+profile_ids = [
+  "micro_box",
+  "small_carton",
+  "flat_mailer",
+  "book_box",
+  "medium_carton",
+  "shoe_box_proxy",
+  "long_carton",
+  "large_narrow_carton",
+  "upright_canister",
+  "mailing_tube",
+  "near_limit_box",
+  "electronics_box",
+]
+local_episode_ids = [120000, 120001, 120002, 120003, 120004]
+episode_ids = [
+  120000, 120001, 120002, 120003, 120004,
+  1120000, 1120001, 1120002, 1120003, 1120004,
+  2120000, 2120001, 2120002, 2120003, 2120004,
+  3120000, 3120001, 3120002, 3120003, 3120004,
+  4120000, 4120001, 4120002, 4120003, 4120004,
+  5120000, 5120001, 5120002, 5120003, 5120004,
+  6120000, 6120001, 6120002, 6120003, 6120004,
+  7120000, 7120001, 7120002, 7120003, 7120004,
+  8120000, 8120001, 8120002, 8120003, 8120004,
+  9120000, 9120001, 9120002, 9120003, 9120004,
+  15120000, 15120001, 15120002, 15120003, 15120004,
+  16120000, 16120001, 16120002, 16120003, 16120004,
+]
+
+[[experiments]]
+id = "collision-checked-reset"
+kind = "controller"
+model = "scripted-expert-collision-checked-reset"
+modality = "rgb-d-state"
+seeds = [42]
+training_steps = 0
+train_on_radeon = true
+infer_on_radeon = true
+open_source = true
+license = "MIT"
+cli_args = ["--collision-checked-reset"]
+acceptance = { success_rate_min = 0.00, force_abort_rate_max = 1.00, drop_rate_max = 1.00, throughput_ratio_min = 0.00 }
+
+[[experiments]]
+id = "reset-risk-gated-planner"
+kind = "controller"
+model = "scripted-expert-reset-risk-gated-geometry-planner"
+modality = "rgb-d-state"
+seeds = [42]
+training_steps = 0
+train_on_radeon = true
+infer_on_radeon = true
+open_source = true
+license = "MIT"
+cli_args = ["--collision-checked-reset", "--geometry-aware-grasp-planning", "--grasp-planning-reset-fallback-gate"]
+acceptance = { success_rate_min = 0.00, force_abort_rate_max = 1.00, drop_rate_max = 1.00, throughput_ratio_min = 0.00 }

@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "protocol_id": "mobile-pi05-b3-swm-stage-mode-weighted-flow-v1",
+  "created_utc": "2026-07-29T10:35:00Z",
+  "frozen_before_candidate_training": true,
+  "candidate": "B3-SWM",
+  "persistent_storage_root": "/workspace/persistence/parcel-sorter-opt-v1",
+  "observation": "B3-SW improved the paired top- and side-suction pose endpoint in 4/6 units but regressed both cooperative-cradle units; its 12k screen had 6/6 routing and 14 action-fidelity errors.",
+  "hypothesis": "Population-normalized target-grasp-mode weighting of continuous flow loss will recover cooperative-cradle pose fidelity without regressing the B3-SW top- and side-suction gains.",
+  "isolated_factor": {
+    "name": "target_grasp_mode_flow_loss_weight",
+    "control": [1.0, 1.0, 1.0],
+    "treatment": [0.7608864696734059, 0.920075223319229, 1.6697952218430034],
+    "mode_order": ["top_suction", "side_suction", "cooperative_cradle"],
+    "joint_population_normalizer": 1.0014813128091156,
+    "scope": "target_grasp_mode_flow_loss_only_before_auxiliary_losses_v1",
+    "unchanged_stage_loss_weights": [2.035714286, 2.035714286, 1.221428571, 0.407142857, 0.610714286, 0.407142857]
+  },
+  "population_normalization": {
+    "dataset_frames": 5871,
+    "mode_frame_counts": [2572, 2127, 1172],
+    "mode_episode_counts": [4, 4, 2],
+    "stage_order": ["pregrasp", "grasp_approach", "lift", "transport", "place", "release"],
+    "mode_by_stage_frame_counts": [
+      [240, 596, 360, 896, 360, 120],
+      [240, 151, 360, 896, 360, 120],
+      [300, 62, 180, 504, 66, 60]
+    ],
+    "expected_joint_selected_weight": 1.0,
+    "batch_local_renormalization": false
+  },
+  "frozen_inputs": {
+    "source_dataset": "outputs/pi05-b0-absolute-v1-merged",
+    "source_manifest_sha256": "8616e77b93d9b0e868ee124a609c7094adf1905563f1485009396617048d01c6",
+    "source_info_sha256": "8045c2cead8cdbd79415ebab5a252a197e80b0f2c6ced5861181e7a4353e8158",
+    "source_stats_sha256": "f9331f2c6c87b96f0393860cbf9106412c41cf64d4543d66bb3b545fb5a95cad",
+    "base_model": "/root/pi05-assets/pi05-droid-local",
+    "base_revision": "72824c0a93f00ce5bb8bedb7feb58953ba1da364",
+    "base_model_sha256": "684c8b2033dcfacee9c6a83f38810ecc77df2c81aeb171bb87319da01fafcfaa",
+    "action_contract": "absolute_v1",
+    "visual_modality": "rgbd",
+    "state_dimension": 80,
+    "action_dimension": 23,
+    "chunk_size": 30,
+    "n_action_steps": 1,
+    "steps": 12000,
+    "save_frequency": 3000,
+    "batch_size": 1,
+    "seed": 11,
+    "lora_rank": 16,
+    "lora_alpha": 32,
+    "freeze_vision_encoder": true,
+    "full_action_projections": true,
+    "state_token": true,
+    "mode_head": true,
+    "mode_head_pooling": "masked_mean",
+    "mode_head_ce_weight": 2.0,
+    "mode_head_class_weights": [0.7608864696734059, 0.920075223319229, 1.6697952218430034],
+    "stage_loss_weights": [2.035714286, 2.035714286, 1.221428571, 0.407142857, 0.610714286, 0.407142857]
+  },
+  "control": {
+    "name": "B3-SW",
+    "checkpoint": "/workspace/persistence/parcel-sorter-opt-v1/runs/mobile-pi05-b3-sw-stage-weighted-12000-v3/checkpoints/012000/pretrained_model",
+    "screen": "/workspace/persistence/parcel-sorter-opt-v1/outputs/pi05-b3-sw-stage-weighted-common-seed-v3/pi05-b3-sw-stage-weighted-step12000-six-observation-screen.json",
+    "screen_sha256": "f2ad67ad558ada121b3b0512fc1c752331a45b1a569c57e587d76c88714d2ca7"
+  },
+  "selection": {
+    "checkpoint_steps": [3000, 6000, 9000, 12000],
+    "rule": "earliest checkpoint passing the complete six-observation route and action-fidelity development gate",
+    "confirmation_access_before_selection": false
+  },
+  "promotion_gate": {
+    "paired_action_fidelity_units": 6,
+    "zero_paired_pose_error_regressions": true,
+    "mean_normalized_pose_error_improvement_strictly_positive": true,
+    "one_sided_95pct_bootstrap_lower_bound_minimum": 0.0,
+    "maximum_force_violations": 0,
+    "requires_pure_vla_development_before_confirmation": true
+  },
+  "falsification": [
+    "No checkpoint passes the complete frozen action screen.",
+    "Any paired pose unit regresses relative to B3-SW 12k.",
+    "The mean normalized pose-error improvement is non-positive.",
+    "The one-sided 95% exact bootstrap lower bound is below zero."
+  ],
+  "alternative_explanation": "B3-SW may be uniformly under-optimized; a longer fixed-budget follow-up remains separate and is not tested in B3-SWM.",
+  "claim_boundary": "Training-distribution development candidate only. B3-SWM is not parcel success, a confirmation result, or evidence of outperforming PI0.6 until the frozen closed-loop protocols pass."
+}

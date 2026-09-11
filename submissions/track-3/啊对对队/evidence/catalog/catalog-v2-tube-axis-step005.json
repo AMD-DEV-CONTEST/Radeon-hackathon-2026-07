@@ -1,0 +1,5900 @@
+{
+  "runtime": {
+    "python": "3.12.3",
+    "platform": "Linux-6.8.0-79-generic-x86_64-with-glibc2.39",
+    "genesis-world": "1.2.3",
+    "lerobot": "0.6.1",
+    "torch": "2.9.1+rocm7.2.1.gitff65f5bc",
+    "rocm": "7.2.53211-e1a6bc5663",
+    "cuda": null,
+    "gpu_available": true,
+    "gpu_count": 1,
+    "gpu_name": "AMD Radeon Graphics",
+    "gpu_total_memory_bytes": 51522830336
+  },
+  "config": {
+    "name": "parcel-sorter-rocm-catalog-v2",
+    "seed": 42,
+    "simulation": {
+      "backend": "rocm",
+      "device": "cuda:0",
+      "num_envs": 128,
+      "physics_hz": 240,
+      "control_hz": 30,
+      "camera_hz": 10,
+      "headless": true
+    },
+    "sensors": {
+      "rgb": true,
+      "depth": true,
+      "proprioception": true,
+      "contact_force": true,
+      "image_width": 224,
+      "image_height": 224
+    },
+    "task": {
+      "max_grasp_retries": 2,
+      "lift_height_m": 0.12,
+      "max_contact_force_n": 35.0,
+      "episode_seconds": 20.0,
+      "parcel_base_size_m": [
+        0.06,
+        0.045,
+        0.04
+      ],
+      "left_bin_center_m": [
+        0.48,
+        -0.34,
+        0.025
+      ],
+      "right_bin_center_m": [
+        0.48,
+        0.34,
+        0.025
+      ],
+      "bin_half_extent_m": [
+        0.11,
+        0.1
+      ],
+      "approach_clearance_m": 0.26,
+      "grasp_hand_clearance_m": 0.105,
+      "drop_hand_height_m": 0.24,
+      "position_tolerance_m": 0.025,
+      "release_settle_steps": 12,
+      "grasp_settle_steps": 10,
+      "approach_xy_tolerance_m": 0.015
+    },
+    "control": {
+      "arm_kp": [
+        4500.0,
+        4500.0,
+        3500.0,
+        3500.0,
+        2000.0,
+        2000.0,
+        2000.0
+      ],
+      "arm_kv": [
+        450.0,
+        450.0,
+        350.0,
+        350.0,
+        200.0,
+        200.0,
+        200.0
+      ],
+      "finger_kp": 100.0,
+      "finger_kv": 10.0,
+      "open_width_m": 0.04,
+      "close_force_n": 20.0,
+      "close_force_ramp_n_per_step": 1.0,
+      "max_ee_step_m": 0.04,
+      "final_approach_step_m": 0.005
+    },
+    "output": {
+      "root_dir": "outputs",
+      "task_instruction": "Pick the parcel and place it in the indicated sorting bin.",
+      "record_first_episode": false,
+      "save_sensor_frames": false
+    },
+    "randomization": {
+      "enabled": true,
+      "parcel_size_scale_min": 0.75,
+      "parcel_size_scale_max": 1.3,
+      "parcel_mass_kg_min": 0.05,
+      "parcel_mass_kg_max": 1.0,
+      "friction_min": 0.3,
+      "friction_max": 1.2,
+      "camera_position_noise_m": 0.015,
+      "action_delay_steps_max": 2,
+      "parcel_position_x_min": 0.45,
+      "parcel_position_x_max": 0.72,
+      "parcel_position_y_min": -0.18,
+      "parcel_position_y_max": 0.18,
+      "parcel_yaw_rad_min": -3.1415926,
+      "parcel_yaw_rad_max": 3.1415926,
+      "catalog_block_size": 20
+    },
+    "parcel_profiles": [
+      {
+        "profile_id": "micro_box",
+        "shape": "box",
+        "orientation_mode": "yaw",
+        "handling_class": "parallel_jaw",
+        "material": "paperboard",
+        "selection_weight": 0.05,
+        "evaluation_only": false,
+        "dimensions_min_m": [
+          0.06,
+          0.035,
+          0.025
+        ],
+        "dimensions_max_m": [
+          0.1,
+          0.06,
+          0.06
+        ],
+        "mass_kg_min": 0.05,
+        "mass_kg_max": 0.35,
+        "friction_min": 0.3,
+        "friction_max": 0.85,
+        "provenance": "hardware-feasible micro-parcel training stratum",
+        "source_url": "",
+        "rolling_friction": 0.0
+      },
+      {
+        "profile_id": "small_carton",
+        "shape": "box",
+        "orientation_mode": "yaw",
+        "handling_class": "parallel_jaw",
+        "material": "corrugated_cardboard",
+        "selection_weight": 0.15,
+        "evaluation_only": false,
+        "dimensions_min_m": [
+          0.1,
+          0.045,
+          0.04
+        ],
+        "dimensions_max_m": [
+          0.18,
+          0.075,
+          0.11
+        ],
+        "mass_kg_min": 0.1,
+        "mass_kg_max": 0.9,
+        "friction_min": 0.35,
+        "friction_max": 1.0,
+        "provenance": "hardware-feasible small-carton training stratum",
+        "source_url": "",
+        "rolling_friction": 0.0
+      },
+      {
+        "profile_id": "flat_mailer",
+        "shape": "box",
+        "orientation_mode": "yaw",
+        "handling_class": "parallel_jaw",
+        "material": "rigid_paperboard_mailer",
+        "selection_weight": 0.1,
+        "evaluation_only": false,
+        "dimensions_min_m": [
+          0.12,
+          0.04,
+          0.015
+        ],
+        "dimensions_max_m": [
+          0.24,
+          0.07,
+          0.035
+        ],
+        "mass_kg_min": 0.05,
+        "mass_kg_max": 0.55,
+        "friction_min": 0.3,
+        "friction_max": 0.85,
+        "provenance": "rigid flat-mailer proxy constrained to the current rigid-body solver",
+        "source_url": "",
+        "rolling_friction": 0.0
+      },
+      {
+        "profile_id": "book_box",
+        "shape": "box",
+        "orientation_mode": "yaw",
+        "handling_class": "parallel_jaw",
+        "material": "corrugated_cardboard",
+        "selection_weight": 0.1,
+        "evaluation_only": false,
+        "dimensions_min_m": [
+          0.14,
+          0.05,
+          0.025
+        ],
+        "dimensions_max_m": [
+          0.24,
+          0.075,
+          0.065
+        ],
+        "mass_kg_min": 0.15,
+        "mass_kg_max": 1.2,
+        "friction_min": 0.35,
+        "friction_max": 1.05,
+        "provenance": "dense low-profile training stratum; not a carrier-standard box",
+        "source_url": "",
+        "rolling_friction": 0.0
+      },
+      {
+        "profile_id": "medium_carton",
+        "shape": "box",
+        "orientation_mode": "yaw",
+        "handling_class": "parallel_jaw",
+        "material": "corrugated_cardboard",
+        "selection_weight": 0.15,
+        "evaluation_only": false,
+        "dimensions_min_m": [
+          0.17,
+          0.05,
+          0.07
+        ],
+        "dimensions_max_m": [
+          0.27,
+          0.075,
+          0.15
+        ],
+        "mass_kg_min": 0.2,
+        "mass_kg_max": 1.4,
+        "friction_min": 0.35,
+        "friction_max": 1.05,
+        "provenance": "hardware-feasible medium-volume carton training stratum",
+        "source_url": "",
+        "rolling_friction": 0.0
+      },
+      {
+        "profile_id": "shoe_box_proxy",
+        "shape": "box",
+        "orientation_mode": "yaw",
+        "handling_class": "parallel_jaw",
+        "material": "paperboard",
+        "selection_weight": 0.1,
+        "evaluation_only": false,
+        "dimensions_min_m": [
+          0.2,
+          0.055,
+          0.07
+        ],
+        "dimensions_max_m": [
+          0.32,
+          0.075,
+          0.14
+        ],
+        "mass_kg_min": 0.2,
+        "mass_kg_max": 1.2,
+        "friction_min": 0.3,
+        "friction_max": 0.9,
+        "provenance": "narrow shoe-box-like proxy adapted to the 0.08 m jaw aperture",
+        "source_url": "",
+        "rolling_friction": 0.0
+      },
+      {
+        "profile_id": "long_carton",
+        "shape": "box",
+        "orientation_mode": "yaw",
+        "handling_class": "parallel_jaw",
+        "material": "corrugated_cardboard",
+        "selection_weight": 0.1,
+        "evaluation_only": false,
+        "dimensions_min_m": [
+          0.23,
+          0.04,
+          0.04
+        ],
+        "dimensions_max_m": [
+          0.38,
+          0.07,
+          0.1
+        ],
+        "mass_kg_min": 0.1,
+        "mass_kg_max": 1.1,
+        "friction_min": 0.35,
+        "friction_max": 1.0,
+        "provenance": "long narrow training stratum with a gripper-feasible minor axis",
+        "source_url": "",
+        "rolling_friction": 0.0
+      },
+      {
+        "profile_id": "large_narrow_carton",
+        "shape": "box",
+        "orientation_mode": "yaw",
+        "handling_class": "parallel_jaw",
+        "material": "corrugated_cardboard",
+        "selection_weight": 0.05,
+        "evaluation_only": false,
+        "dimensions_min_m": [
+          0.28,
+          0.06,
+          0.1
+        ],
+        "dimensions_max_m": [
+          0.42,
+          0.079,
+          0.18
+        ],
+        "mass_kg_min": 0.35,
+        "mass_kg_max": 1.5,
+        "friction_min": 0.35,
+        "friction_max": 1.1,
+        "provenance": "large-volume but narrow capability-stress training stratum",
+        "source_url": "",
+        "rolling_friction": 0.0
+      },
+      {
+        "profile_id": "upright_canister",
+        "shape": "cylinder",
+        "orientation_mode": "upright",
+        "handling_class": "parallel_jaw",
+        "material": "rigid_canister",
+        "selection_weight": 0.05,
+        "evaluation_only": false,
+        "dimensions_min_m": [
+          0.04,
+          0.04,
+          0.06
+        ],
+        "dimensions_max_m": [
+          0.07,
+          0.07,
+          0.16
+        ],
+        "mass_kg_min": 0.1,
+        "mass_kg_max": 0.8,
+        "friction_min": 0.25,
+        "friction_max": 0.8,
+        "provenance": "cylindrical consumer-parcel training stratum within the jaw aperture",
+        "source_url": "",
+        "rolling_friction": 0.0
+      },
+      {
+        "profile_id": "mailing_tube",
+        "shape": "cylinder",
+        "orientation_mode": "horizontal",
+        "handling_class": "parallel_jaw",
+        "material": "kraft_tube",
+        "selection_weight": 0.05,
+        "evaluation_only": false,
+        "dimensions_min_m": [
+          0.15,
+          0.035,
+          0.035
+        ],
+        "dimensions_max_m": [
+          0.3,
+          0.065,
+          0.065
+        ],
+        "mass_kg_min": 0.08,
+        "mass_kg_max": 0.8,
+        "friction_min": 0.3,
+        "friction_max": 0.9,
+        "provenance": "hardware-feasible rigid mailing-tube training stratum",
+        "source_url": "",
+        "rolling_friction": 0.005
+      },
+      {
+        "profile_id": "near_limit_box",
+        "shape": "box",
+        "orientation_mode": "yaw",
+        "handling_class": "parallel_jaw",
+        "material": "corrugated_cardboard",
+        "selection_weight": 0.05,
+        "evaluation_only": false,
+        "dimensions_min_m": [
+          0.15,
+          0.07,
+          0.06
+        ],
+        "dimensions_max_m": [
+          0.28,
+          0.079,
+          0.15
+        ],
+        "mass_kg_min": 0.3,
+        "mass_kg_max": 1.5,
+        "friction_min": 0.35,
+        "friction_max": 1.1,
+        "provenance": "near-aperture boundary-test training stratum",
+        "source_url": "",
+        "rolling_friction": 0.0
+      },
+      {
+        "profile_id": "electronics_box",
+        "shape": "box",
+        "orientation_mode": "yaw",
+        "handling_class": "parallel_jaw",
+        "material": "coated_paperboard",
+        "selection_weight": 0.05,
+        "evaluation_only": false,
+        "dimensions_min_m": [
+          0.1,
+          0.045,
+          0.03
+        ],
+        "dimensions_max_m": [
+          0.22,
+          0.072,
+          0.09
+        ],
+        "mass_kg_min": 0.1,
+        "mass_kg_max": 0.9,
+        "friction_min": 0.2,
+        "friction_max": 0.65,
+        "provenance": "lower-friction coated-box training stratum; not a product-size claim",
+        "source_url": "",
+        "rolling_friction": 0.0
+      },
+      {
+        "profile_id": "usps_small_flat_rate",
+        "shape": "box",
+        "orientation_mode": "yaw",
+        "handling_class": "suction_required",
+        "material": "corrugated_cardboard",
+        "selection_weight": 0.0,
+        "evaluation_only": true,
+        "dimensions_min_m": [
+          0.220663,
+          0.138113,
+          0.04445
+        ],
+        "dimensions_max_m": [
+          0.220663,
+          0.138113,
+          0.04445
+        ],
+        "mass_kg_min": 0.1,
+        "mass_kg_max": 1.5,
+        "friction_min": 0.35,
+        "friction_max": 1.0,
+        "provenance": "USPS Priority Mail Small Flat Rate Box outside dimensions, accessed 2026-07-24",
+        "source_url": "https://store.usps.com/store/product/priority-mail-flat-rate-small-box-P_SMALL_FRB",
+        "rolling_friction": 0.0
+      },
+      {
+        "profile_id": "usps_medium_flat_rate",
+        "shape": "box",
+        "orientation_mode": "yaw",
+        "handling_class": "suction_required",
+        "material": "corrugated_cardboard",
+        "selection_weight": 0.0,
+        "evaluation_only": true,
+        "dimensions_min_m": [
+          0.28575,
+          0.22225,
+          0.1524
+        ],
+        "dimensions_max_m": [
+          0.28575,
+          0.22225,
+          0.1524
+        ],
+        "mass_kg_min": 0.2,
+        "mass_kg_max": 3.0,
+        "friction_min": 0.35,
+        "friction_max": 1.0,
+        "provenance": "USPS Priority Mail Medium Flat Rate Box 1 outside dimensions, accessed 2026-07-24",
+        "source_url": "https://store.usps.com/store/product/priority-mail-flat-rate-medium-box-1-P_O_FRB1",
+        "rolling_friction": 0.0
+      },
+      {
+        "profile_id": "usps_board_game_box",
+        "shape": "box",
+        "orientation_mode": "yaw",
+        "handling_class": "suction_required",
+        "material": "corrugated_cardboard",
+        "selection_weight": 0.0,
+        "evaluation_only": true,
+        "dimensions_min_m": [
+          0.611188,
+          0.301625,
+          0.079375
+        ],
+        "dimensions_max_m": [
+          0.611188,
+          0.301625,
+          0.079375
+        ],
+        "mass_kg_min": 0.3,
+        "mass_kg_max": 3.5,
+        "friction_min": 0.35,
+        "friction_max": 1.0,
+        "provenance": "USPS Priority Mail Board Game Large Flat Rate Box outside dimensions, accessed 2026-07-24",
+        "source_url": "https://store.usps.com/store/product/priority-mail-board-game-large-flat-rate-box-GB_FRB",
+        "rolling_friction": 0.0
+      },
+      {
+        "profile_id": "large_mailing_tube",
+        "shape": "cylinder",
+        "orientation_mode": "horizontal",
+        "handling_class": "cradle_required",
+        "material": "kraft_tube",
+        "selection_weight": 0.0,
+        "evaluation_only": true,
+        "dimensions_min_m": [
+          0.3,
+          0.08,
+          0.08
+        ],
+        "dimensions_max_m": [
+          0.56,
+          0.15,
+          0.15
+        ],
+        "mass_kg_min": 0.2,
+        "mass_kg_max": 2.0,
+        "friction_min": 0.25,
+        "friction_max": 0.8,
+        "provenance": "capability-boundary range approaching the USPS 22-inch nonstandard-length threshold",
+        "source_url": "https://pe.usps.com/text/dmm300/Notice123.htm",
+        "rolling_friction": 0.005
+      }
+    ]
+  },
+  "episodes_per_profile": 1,
+  "profiles": {
+    "mailing_tube": {
+      "profile": {
+        "profile_id": "mailing_tube",
+        "shape": "cylinder",
+        "orientation_mode": "horizontal",
+        "handling_class": "parallel_jaw",
+        "material": "kraft_tube",
+        "selection_weight": 0.05,
+        "evaluation_only": false,
+        "dimensions_min_m": [
+          0.15,
+          0.035,
+          0.035
+        ],
+        "dimensions_max_m": [
+          0.3,
+          0.065,
+          0.065
+        ],
+        "mass_kg_min": 0.08,
+        "mass_kg_max": 0.8,
+        "friction_min": 0.3,
+        "friction_max": 0.9,
+        "provenance": "hardware-feasible rigid mailing-tube training stratum",
+        "source_url": "",
+        "rolling_friction": 0.005
+      },
+      "summary": {
+        "episodes": 1,
+        "success_rate": 0.0,
+        "first_attempt_success_rate": 0.0,
+        "recovery_success_rate": 0.0,
+        "drop_rate": 0.0,
+        "mean_duration_seconds": 7.6,
+        "successful_parcels_per_hour": 0.0,
+        "mean_inference_latency_ms": 0.027101585152838427,
+        "p95_inference_latency_ms": 0.04222,
+        "max_contact_force_n": 34.2578010559082
+      }
+    }
+  },
+  "episodes": [
+    {
+      "profile_id": "mailing_tube",
+      "handling_class": "parallel_jaw",
+      "episode_index": 9000000,
+      "result": {
+        "success": false,
+        "retries": 2,
+        "duration_seconds": 7.6,
+        "inference_latency_ms": [
+          0.089909,
+          0.029359,
+          0.029569,
+          0.087438,
+          0.02584,
+          0.024629,
+          0.025899,
+          0.0247,
+          0.02417,
+          0.02449,
+          0.024079,
+          0.02587,
+          0.024169,
+          0.02394,
+          0.024029,
+          0.02386,
+          0.025349,
+          0.03037,
+          0.023759,
+          0.023929,
+          0.03719,
+          0.02462,
+          0.02405,
+          0.03124,
+          0.024829,
+          0.023299,
+          0.02515,
+          0.02218,
+          0.02296,
+          0.022739,
+          0.023739,
+          0.02256,
+          0.070799,
+          0.02334,
+          0.02503,
+          0.0339,
+          0.023259,
+          0.02336,
+          0.020909,
+          0.023719,
+          0.02496,
+          0.02445,
+          0.02474,
+          0.02306,
+          0.02443,
+          0.02328,
+          0.02507,
+          0.02308,
+          0.0244,
+          0.02479,
+          0.024149,
+          0.026399,
+          0.02425,
+          0.02399,
+          0.02525,
+          0.046619,
+          0.024699,
+          0.02293,
+          0.027079,
+          0.02189,
+          0.021979,
+          0.0351,
+          0.026719,
+          0.02549,
+          0.03104,
+          0.024619,
+          0.023319,
+          0.024289,
+          0.02352,
+          0.02593,
+          0.02312,
+          0.024339,
+          0.023549,
+          0.02337,
+          0.02355,
+          0.02278,
+          0.02684,
+          0.023329,
+          0.024909,
+          0.02465,
+          0.02528,
+          0.023869,
+          0.024039,
+          0.02317,
+          0.042609,
+          0.024559,
+          0.023149,
+          0.02625,
+          0.02389,
+          0.0255,
+          0.024179,
+          0.026239,
+          0.024469,
+          0.022369,
+          0.02616,
+          0.0248,
+          0.02509,
+          0.02457,
+          0.027799,
+          0.0239,
+          0.03405,
+          0.02398,
+          0.02389,
+          0.02514,
+          0.02345,
+          0.0247,
+          0.02378,
+          0.02312,
+          0.0234,
+          0.02488,
+          0.02347,
+          0.02351,
+          0.02376,
+          0.02327,
+          0.023899,
+          0.068969,
+          0.02405,
+          0.029819,
+          0.02389,
+          0.02357,
+          0.023919,
+          0.0246,
+          0.02379,
+          0.023919,
+          0.0257,
+          0.03904,
+          0.02415,
+          0.042059,
+          0.02257,
+          0.02806,
+          0.029279,
+          0.031969,
+          0.024109,
+          0.02021,
+          0.02059,
+          0.0207,
+          0.02218,
+          0.01965,
+          0.02166,
+          0.041129,
+          0.048309,
+          0.028069,
+          0.02617,
+          0.037219,
+          0.042659,
+          0.03745,
+          0.036849,
+          0.03087,
+          0.03425,
+          0.032859,
+          0.02802,
+          0.02682,
+          0.047479,
+          0.04222,
+          0.049439,
+          0.028279,
+          0.02404,
+          0.024699,
+          0.02275,
+          0.025859,
+          0.02483,
+          0.02394,
+          0.02454,
+          0.025099,
+          0.024159,
+          0.02526,
+          0.0226,
+          0.02333,
+          0.023929,
+          0.02428,
+          0.02559,
+          0.02585,
+          0.02261,
+          0.073959,
+          0.02308,
+          0.02394,
+          0.031079,
+          0.02636,
+          0.02386,
+          0.033029,
+          0.02425,
+          0.025099,
+          0.02362,
+          0.02293,
+          0.026669,
+          0.024909,
+          0.02462,
+          0.023549,
+          0.02484,
+          0.02545,
+          0.02344,
+          0.02396,
+          0.02442,
+          0.02452,
+          0.027929,
+          0.02423,
+          0.0251,
+          0.019149,
+          0.02218,
+          0.022679,
+          0.02139,
+          0.02225,
+          0.02192,
+          0.01935,
+          0.02249,
+          0.02071,
+          0.03489,
+          0.02928,
+          0.0212,
+          0.038789,
+          0.02012,
+          0.02013,
+          0.02378,
+          0.022039,
+          0.021829,
+          0.024939,
+          0.02596,
+          0.02241,
+          0.02687,
+          0.025849,
+          0.02676,
+          0.02386,
+          0.02227,
+          0.021869,
+          0.023079,
+          0.02234,
+          0.03159,
+          0.02719,
+          0.035979
+        ],
+        "dropped": false,
+        "max_contact_force_n": 34.2578010559082
+      },
+      "terminal_stage": "abort",
+      "sample": {
+        "episode_index": 9000000,
+        "size_scale_xyz": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "mass_kg": 0.720326347833711,
+        "friction": 0.30020313249034536,
+        "position_xy": [
+          0.5097146943479589,
+          0.1420590584639546
+        ],
+        "yaw_rad": 1.310397305209289,
+        "camera_noise_xyz_m": [
+          -0.0014435280238551743,
+          0.004728641055136082,
+          -0.0056967389358129495
+        ],
+        "action_delay_steps": 2,
+        "destination": "left",
+        "profile_id": "mailing_tube",
+        "shape": "cylinder",
+        "orientation_mode": "horizontal",
+        "handling_class": "parallel_jaw",
+        "material": "kraft_tube",
+        "dimensions_m": [
+          0.2428272649560177,
+          0.051001537702385455,
+          0.051001537702385455
+        ],
+        "provenance": "hardware-feasible rigid mailing-tube training stratum",
+        "rolling_friction": 0.005
+      },
+      "trace": [
+        {
+          "frame": 0,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "parcel acquired",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6489840149879456,
+            0.0004256710526533425,
+            0.12889200448989868
+          ],
+          "parcel_position_m": [
+            0.5093460083007812,
+            0.14101757109165192,
+            0.03027309663593769
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 1,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6466500163078308,
+            0.0016966055845841765,
+            0.11180379986763
+          ],
+          "parcel_position_m": [
+            0.5092809200286865,
+            0.14091932773590088,
+            0.030810872092843056
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 2,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6471039652824402,
+            0.0017533455975353718,
+            0.11350525170564651
+          ],
+          "parcel_position_m": [
+            0.5092893838882446,
+            0.1408977508544922,
+            0.030886005610227585
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 3,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6459614038467407,
+            0.0038726115599274635,
+            0.11303144693374634
+          ],
+          "parcel_position_m": [
+            0.5093130469322205,
+            0.14088480174541473,
+            0.030897382646799088
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 4,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6458950638771057,
+            0.0040001776069402695,
+            0.11537099629640579
+          ],
+          "parcel_position_m": [
+            0.5093401670455933,
+            0.14087292551994324,
+            0.0308989305049181
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 5,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6475430727005005,
+            0.0014460165984928608,
+            0.1233532577753067
+          ],
+          "parcel_position_m": [
+            0.5093681216239929,
+            0.1408611238002777,
+            0.0308989267796278
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 6,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6482394933700562,
+            0.00027622844208963215,
+            0.13035114109516144
+          ],
+          "parcel_position_m": [
+            0.5093962550163269,
+            0.14084932208061218,
+            0.030898690223693848
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 7,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6478345394134521,
+            0.0005927560268901289,
+            0.13570547103881836
+          ],
+          "parcel_position_m": [
+            0.5094243884086609,
+            0.14083752036094666,
+            0.030898384749889374
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 8,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.647343099117279,
+            0.0010103369131684303,
+            0.14145797491073608
+          ],
+          "parcel_position_m": [
+            0.5094525218009949,
+            0.14082571864128113,
+            0.030898086726665497
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 9,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.647176206111908,
+            0.0009653615998104215,
+            0.14763380587100983
+          ],
+          "parcel_position_m": [
+            0.5094806551933289,
+            0.1408139169216156,
+            0.030897771939635277
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 10,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6469888687133789,
+            0.0009228232083842158,
+            0.15367735922336578
+          ],
+          "parcel_position_m": [
+            0.5095087885856628,
+            0.14080211520195007,
+            0.030897479504346848
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 11,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6467177867889404,
+            0.0010087232803925872,
+            0.15962053835391998
+          ],
+          "parcel_position_m": [
+            0.5095369219779968,
+            0.14079031348228455,
+            0.03089718334376812
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 12,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.646481454372406,
+            0.0010756483534350991,
+            0.1656114012002945
+          ],
+          "parcel_position_m": [
+            0.5095650553703308,
+            0.14077851176261902,
+            0.030896872282028198
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 13,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6462774276733398,
+            0.001099269138649106,
+            0.17162871360778809
+          ],
+          "parcel_position_m": [
+            0.5095931887626648,
+            0.1407667100429535,
+            0.030896559357643127
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 14,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6460723280906677,
+            0.0011239828309044242,
+            0.17763300240039825
+          ],
+          "parcel_position_m": [
+            0.5096213221549988,
+            0.14075490832328796,
+            0.030896266922354698
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 15,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6458731889724731,
+            0.0011524956207722425,
+            0.1836317628622055
+          ],
+          "parcel_position_m": [
+            0.5096494555473328,
+            0.14074310660362244,
+            0.030895967036485672
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 16,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6456884145736694,
+            0.0011719034519046545,
+            0.18963512778282166
+          ],
+          "parcel_position_m": [
+            0.5096775889396667,
+            0.1407313048839569,
+            0.0308956578373909
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 17,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6455145478248596,
+            0.0011828254209831357,
+            0.19564002752304077
+          ],
+          "parcel_position_m": [
+            0.5097057223320007,
+            0.14071950316429138,
+            0.030895361676812172
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 18,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6453498005867004,
+            0.0011888612061738968,
+            0.20164358615875244
+          ],
+          "parcel_position_m": [
+            0.5097338557243347,
+            0.14070770144462585,
+            0.03089505434036255
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 19,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.645195722579956,
+            0.0011891360627487302,
+            0.20764660835266113
+          ],
+          "parcel_position_m": [
+            0.5097619891166687,
+            0.14069589972496033,
+            0.030894745141267776
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 20,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.645052433013916,
+            0.0011832008603960276,
+            0.2136496901512146
+          ],
+          "parcel_position_m": [
+            0.5097901225090027,
+            0.1406840980052948,
+            0.03089444525539875
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 21,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6449196934700012,
+            0.001170947914943099,
+            0.2196526825428009
+          ],
+          "parcel_position_m": [
+            0.5098182559013367,
+            0.14067229628562927,
+            0.030894141644239426
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 22,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6447973847389221,
+            0.0011526783928275108,
+            0.22565512359142303
+          ],
+          "parcel_position_m": [
+            0.5098463892936707,
+            0.14066049456596375,
+            0.030893851071596146
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 23,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6446858048439026,
+            0.0011284826323390007,
+            0.23165729641914368
+          ],
+          "parcel_position_m": [
+            0.5098745226860046,
+            0.14064869284629822,
+            0.030893540009856224
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 24,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6445847153663635,
+            0.0010979074286296964,
+            0.23765888810157776
+          ],
+          "parcel_position_m": [
+            0.5099026560783386,
+            0.1406368911266327,
+            0.030893241986632347
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 25,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.644494354724884,
+            0.001061480026692152,
+            0.243660107254982
+          ],
+          "parcel_position_m": [
+            0.5099307894706726,
+            0.14062508940696716,
+            0.03089291974902153
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 26,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6444146633148193,
+            0.0010186090366914868,
+            0.24966110289096832
+          ],
+          "parcel_position_m": [
+            0.5099589228630066,
+            0.14061328768730164,
+            0.030892619863152504
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 27,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6443457007408142,
+            0.0009695065673440695,
+            0.2556616961956024
+          ],
+          "parcel_position_m": [
+            0.5099870562553406,
+            0.1406014859676361,
+            0.03089233674108982
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 28,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6442874670028687,
+            0.0009143395582213998,
+            0.26166167855262756
+          ],
+          "parcel_position_m": [
+            0.5100151896476746,
+            0.14058968424797058,
+            0.03089202381670475
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 29,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6442399024963379,
+            0.0008529028273187578,
+            0.2676611542701721
+          ],
+          "parcel_position_m": [
+            0.5100433230400085,
+            0.14057788252830505,
+            0.030891720205545425
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 30,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6441742181777954,
+            0.0008237778092734516,
+            0.2724858224391937
+          ],
+          "parcel_position_m": [
+            0.5100714564323425,
+            0.14056608080863953,
+            0.030891427770256996
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 31,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.644004762172699,
+            0.0008549621561542153,
+            0.2759098708629608
+          ],
+          "parcel_position_m": [
+            0.5100995898246765,
+            0.140554279088974,
+            0.03089110739529133
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 32,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6439100503921509,
+            0.0009734242921695113,
+            0.2784004211425781
+          ],
+          "parcel_position_m": [
+            0.5101277232170105,
+            0.14054247736930847,
+            0.030890803784132004
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 33,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6438196301460266,
+            0.00098029721993953,
+            0.28000685572624207
+          ],
+          "parcel_position_m": [
+            0.5101558566093445,
+            0.14053067564964294,
+            0.030890503898262978
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 34,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6384080648422241,
+            0.0049786679446697235,
+            0.2780112624168396
+          ],
+          "parcel_position_m": [
+            0.5101839900016785,
+            0.14051887392997742,
+            0.03089020773768425
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 35,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6319405436515808,
+            0.012469954788684845,
+            0.27656468749046326
+          ],
+          "parcel_position_m": [
+            0.5102121233940125,
+            0.1405070722103119,
+            0.03088991343975067
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 36,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6271950006484985,
+            0.017906688153743744,
+            0.2760694622993469
+          ],
+          "parcel_position_m": [
+            0.5102402567863464,
+            0.14049527049064636,
+            0.03088960610330105
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 37,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.622421145439148,
+            0.022700509056448936,
+            0.275467187166214
+          ],
+          "parcel_position_m": [
+            0.5102683901786804,
+            0.14048346877098083,
+            0.030889300629496574
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 38,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6171989440917969,
+            0.028100738301873207,
+            0.274769127368927
+          ],
+          "parcel_position_m": [
+            0.5102965235710144,
+            0.1404716670513153,
+            0.030889000743627548
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 39,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6120582222938538,
+            0.03361713886260986,
+            0.27421432733535767
+          ],
+          "parcel_position_m": [
+            0.5103246569633484,
+            0.14045986533164978,
+            0.030888693407177925
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 40,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6130043864250183,
+            0.033925481140613556,
+            0.27663764357566833
+          ],
+          "parcel_position_m": [
+            0.5103527903556824,
+            0.14044807851314545,
+            0.030888386070728302
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 41,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6142008900642395,
+            0.03200710937380791,
+            0.27892884612083435
+          ],
+          "parcel_position_m": [
+            0.5103809237480164,
+            0.14043627679347992,
+            0.030888080596923828
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 42,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6135554313659668,
+            0.03217998892068863,
+            0.2805594503879547
+          ],
+          "parcel_position_m": [
+            0.5104090571403503,
+            0.1404244750738144,
+            0.030887775123119354
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 43,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6076616048812866,
+            0.037670936435461044,
+            0.2790481746196747
+          ],
+          "parcel_position_m": [
+            0.5104371905326843,
+            0.14041267335414886,
+            0.030887488275766373
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 44,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.6014199256896973,
+            0.04490165412425995,
+            0.2779584527015686
+          ],
+          "parcel_position_m": [
+            0.5104653239250183,
+            0.14040087163448334,
+            0.030887192115187645
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 45,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5967695116996765,
+            0.04997791722416878,
+            0.27762570977211
+          ],
+          "parcel_position_m": [
+            0.5104934573173523,
+            0.1403890699148178,
+            0.03088689036667347
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 46,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5919442772865295,
+            0.054880090057849884,
+            0.2772572934627533
+          ],
+          "parcel_position_m": [
+            0.5105215907096863,
+            0.14037729799747467,
+            0.03088657185435295
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 47,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5867317914962769,
+            0.06037059798836708,
+            0.27685847878456116
+          ],
+          "parcel_position_m": [
+            0.5105497241020203,
+            0.14036551117897034,
+            0.030886268243193626
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 48,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5816222429275513,
+            0.06584367901086807,
+            0.27658185362815857
+          ],
+          "parcel_position_m": [
+            0.5105778574943542,
+            0.1403537094593048,
+            0.030885981395840645
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 49,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5766058564186096,
+            0.07115042954683304,
+            0.27641838788986206
+          ],
+          "parcel_position_m": [
+            0.5106059908866882,
+            0.14034192264080048,
+            0.03088567405939102
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 50,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5715579390525818,
+            0.07647111266851425,
+            0.27634990215301514
+          ],
+          "parcel_position_m": [
+            0.5106341242790222,
+            0.14033013582229614,
+            0.0308853667229414
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 51,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5664971470832825,
+            0.08182386308908463,
+            0.27638331055641174
+          ],
+          "parcel_position_m": [
+            0.5106622576713562,
+            0.14031833410263062,
+            0.03088507615029812
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 52,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.561456024646759,
+            0.08715570718050003,
+            0.27652499079704285
+          ],
+          "parcel_position_m": [
+            0.5106903910636902,
+            0.14030654728412628,
+            0.030884772539138794
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 53,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5564284920692444,
+            0.09246595948934555,
+            0.276781290769577
+          ],
+          "parcel_position_m": [
+            0.5107185244560242,
+            0.14029476046562195,
+            0.03088447079062462
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 54,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.551409900188446,
+            0.09776336699724197,
+            0.27716028690338135
+          ],
+          "parcel_position_m": [
+            0.5107466578483582,
+            0.14028300344944,
+            0.0308841485530138
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 55,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5464085936546326,
+            0.10303786396980286,
+            0.2776704430580139
+          ],
+          "parcel_position_m": [
+            0.5107747912406921,
+            0.14027121663093567,
+            0.03088386356830597
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 56,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5414237380027771,
+            0.10829421132802963,
+            0.2783237397670746
+          ],
+          "parcel_position_m": [
+            0.5108029246330261,
+            0.14025942981243134,
+            0.030883556231856346
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 57,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5364595651626587,
+            0.1135265976190567,
+            0.27913615107536316
+          ],
+          "parcel_position_m": [
+            0.5108310580253601,
+            0.1402476280927658,
+            0.030883267521858215
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 58,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5315231680870056,
+            0.11872656643390656,
+            0.2801276445388794
+          ],
+          "parcel_position_m": [
+            0.5108591914176941,
+            0.14023585617542267,
+            0.030882952734827995
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 59,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5266231894493103,
+            0.12388382107019424,
+            0.2813265323638916
+          ],
+          "parcel_position_m": [
+            0.5108873248100281,
+            0.14022405445575714,
+            0.030882664024829865
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 60,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.521963894367218,
+            0.12877783179283142,
+            0.2826760709285736
+          ],
+          "parcel_position_m": [
+            0.5109154582023621,
+            0.1402122527360916,
+            0.030882366001605988
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 61,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.518454372882843,
+            0.13230665028095245,
+            0.2836254835128784
+          ],
+          "parcel_position_m": [
+            0.510943591594696,
+            0.14020051062107086,
+            0.030882036313414574
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 62,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5160111784934998,
+            0.13475024700164795,
+            0.2842983603477478
+          ],
+          "parcel_position_m": [
+            0.51097172498703,
+            0.14018872380256653,
+            0.03088175132870674
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 63,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5143118500709534,
+            0.13644973933696747,
+            0.28478217124938965
+          ],
+          "parcel_position_m": [
+            0.510999858379364,
+            0.140176922082901,
+            0.03088146075606346
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 64,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5148966908454895,
+            0.13577130436897278,
+            0.28190815448760986
+          ],
+          "parcel_position_m": [
+            0.511027991771698,
+            0.14016513526439667,
+            0.030881162732839584
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 65,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5150713324546814,
+            0.13543106615543365,
+            0.2796180546283722
+          ],
+          "parcel_position_m": [
+            0.511056125164032,
+            0.14015334844589233,
+            0.03088085912168026
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 66,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5146830677986145,
+            0.1357262134552002,
+            0.27816617488861084
+          ],
+          "parcel_position_m": [
+            0.511084258556366,
+            0.1401415914297104,
+            0.030880548059940338
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 67,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5145022869110107,
+            0.13586315512657166,
+            0.2764224112033844
+          ],
+          "parcel_position_m": [
+            0.5111123919487,
+            0.14012983441352844,
+            0.03088025003671646
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 68,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5144312977790833,
+            0.1358436644077301,
+            0.2744930684566498
+          ],
+          "parcel_position_m": [
+            0.5111405253410339,
+            0.1401180624961853,
+            0.030879944562911987
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 69,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5142850875854492,
+            0.13588444888591766,
+            0.2726748585700989
+          ],
+          "parcel_position_m": [
+            0.5111686587333679,
+            0.14010633528232574,
+            0.030879635363817215
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 70,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5141212344169617,
+            0.13596321642398834,
+            0.27089133858680725
+          ],
+          "parcel_position_m": [
+            0.5111967921257019,
+            0.1400945782661438,
+            0.030879346653819084
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 71,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5139774084091187,
+            0.13602250814437866,
+            0.26907259225845337
+          ],
+          "parcel_position_m": [
+            0.5112249255180359,
+            0.14008280634880066,
+            0.030879050493240356
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 72,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5138326287269592,
+            0.13607411086559296,
+            0.26725053787231445
+          ],
+          "parcel_position_m": [
+            0.5112530589103699,
+            0.14007112383842468,
+            0.03087875060737133
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 73,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5136808753013611,
+            0.1361333578824997,
+            0.26543986797332764
+          ],
+          "parcel_position_m": [
+            0.5112811923027039,
+            0.14005941152572632,
+            0.030878456309437752
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 74,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5135288238525391,
+            0.1361946016550064,
+            0.26362913846969604
+          ],
+          "parcel_position_m": [
+            0.5113093256950378,
+            0.14004772901535034,
+            0.030878158286213875
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 75,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5133766531944275,
+            0.13625453412532806,
+            0.26181623339653015
+          ],
+          "parcel_position_m": [
+            0.5113374590873718,
+            0.14003604650497437,
+            0.03087785094976425
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 76,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5132226943969727,
+            0.13631507754325867,
+            0.2600046396255493
+          ],
+          "parcel_position_m": [
+            0.5113655924797058,
+            0.1400243639945984,
+            0.03087754361331463
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 77,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5130672454833984,
+            0.13637681305408478,
+            0.2581942081451416
+          ],
+          "parcel_position_m": [
+            0.5113937258720398,
+            0.1400126814842224,
+            0.030877241864800453
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 78,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5129110813140869,
+            0.13643904030323029,
+            0.25638440251350403
+          ],
+          "parcel_position_m": [
+            0.5114218592643738,
+            0.14000099897384644,
+            0.030876951292157173
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 79,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5127536058425903,
+            0.13650216162204742,
+            0.2545749545097351
+          ],
+          "parcel_position_m": [
+            0.5114499926567078,
+            0.13998931646347046,
+            0.030876651406288147
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 80,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5125948190689087,
+            0.13656587898731232,
+            0.25276631116867065
+          ],
+          "parcel_position_m": [
+            0.5114781260490417,
+            0.13997763395309448,
+            0.030876347795128822
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 81,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5124353170394897,
+            0.1366298794746399,
+            0.2509581744670868
+          ],
+          "parcel_position_m": [
+            0.5115062594413757,
+            0.1399659514427185,
+            0.030876047909259796
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 82,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5122748017311096,
+            0.1366947442293167,
+            0.24915069341659546
+          ],
+          "parcel_position_m": [
+            0.5115343928337097,
+            0.13995426893234253,
+            0.03087577037513256
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 83,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5121135115623474,
+            0.1367599070072174,
+            0.247343972325325
+          ],
+          "parcel_position_m": [
+            0.5115625262260437,
+            0.13994258642196655,
+            0.03087545558810234
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 84,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.511951208114624,
+            0.1368258148431778,
+            0.24553777277469635
+          ],
+          "parcel_position_m": [
+            0.5115906596183777,
+            0.13993090391159058,
+            0.03087516501545906
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 85,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5117881298065186,
+            0.1368921846151352,
+            0.2437322437763214
+          ],
+          "parcel_position_m": [
+            0.5116187930107117,
+            0.1399192214012146,
+            0.03087485395371914
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 86,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5116243958473206,
+            0.1369590163230896,
+            0.24192741513252258
+          ],
+          "parcel_position_m": [
+            0.5116469264030457,
+            0.13990753889083862,
+            0.03087455965578556
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 87,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.51146000623703,
+            0.13702651858329773,
+            0.24012327194213867
+          ],
+          "parcel_position_m": [
+            0.5116750597953796,
+            0.13989585638046265,
+            0.03087427094578743
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 88,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5112950801849365,
+            0.13709424436092377,
+            0.23831962049007416
+          ],
+          "parcel_position_m": [
+            0.5117031931877136,
+            0.13988417387008667,
+            0.030873978510499
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 89,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5111293792724609,
+            0.13716262578964233,
+            0.23651652038097382
+          ],
+          "parcel_position_m": [
+            0.5117313265800476,
+            0.1398724913597107,
+            0.030873680487275124
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 90,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5109633803367615,
+            0.13723157346248627,
+            0.2347143441438675
+          ],
+          "parcel_position_m": [
+            0.5117594599723816,
+            0.13986080884933472,
+            0.030873386189341545
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 91,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5107970237731934,
+            0.13730067014694214,
+            0.2329125702381134
+          ],
+          "parcel_position_m": [
+            0.5117875933647156,
+            0.13984912633895874,
+            0.030873088166117668
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 92,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5106303691864014,
+            0.13737018406391144,
+            0.2311112880706787
+          ],
+          "parcel_position_m": [
+            0.5118157267570496,
+            0.13983744382858276,
+            0.030872780829668045
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 93,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5104634165763855,
+            0.13744013011455536,
+            0.22931089997291565
+          ],
+          "parcel_position_m": [
+            0.5118438601493835,
+            0.1398257613182068,
+            0.030872488394379616
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 94,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5102964639663696,
+            0.13751031458377838,
+            0.2275109589099884
+          ],
+          "parcel_position_m": [
+            0.5118719935417175,
+            0.1398140788078308,
+            0.030872195959091187
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 95,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5101293921470642,
+            0.1375810205936432,
+            0.22571170330047607
+          ],
+          "parcel_position_m": [
+            0.5119001269340515,
+            0.13980239629745483,
+            0.030871886759996414
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 96,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.509962260723114,
+            0.13765180110931396,
+            0.22391316294670105
+          ],
+          "parcel_position_m": [
+            0.5119282603263855,
+            0.13979071378707886,
+            0.030871594324707985
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 97,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5097953081130981,
+            0.13772302865982056,
+            0.22211508452892303
+          ],
+          "parcel_position_m": [
+            0.5119563937187195,
+            0.13977903127670288,
+            0.030871301889419556
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 98,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5096285939216614,
+            0.13779442012310028,
+            0.22031788527965546
+          ],
+          "parcel_position_m": [
+            0.5119845271110535,
+            0.1397673487663269,
+            0.03087100386619568
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 99,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5094621777534485,
+            0.1378660798072815,
+            0.2185211479663849
+          ],
+          "parcel_position_m": [
+            0.5120126605033875,
+            0.13975566625595093,
+            0.030870694667100906
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 100,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.509296178817749,
+            0.1379380077123642,
+            0.2167249470949173
+          ],
+          "parcel_position_m": [
+            0.5120407938957214,
+            0.13974398374557495,
+            0.030870409682393074
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 101,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5091308951377869,
+            0.13800989091396332,
+            0.214929461479187
+          ],
+          "parcel_position_m": [
+            0.5120689272880554,
+            0.13973230123519897,
+            0.030870111659169197
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 102,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5089661478996277,
+            0.13808192312717438,
+            0.2131347358226776
+          ],
+          "parcel_position_m": [
+            0.5120970606803894,
+            0.139720618724823,
+            0.03086981549859047
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 103,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5088019967079163,
+            0.1381542682647705,
+            0.21134053170681
+          ],
+          "parcel_position_m": [
+            0.5121251940727234,
+            0.13970893621444702,
+            0.030869517475366592
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 104,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5086387991905212,
+            0.13822664320468903,
+            0.2095467448234558
+          ],
+          "parcel_position_m": [
+            0.5121533274650574,
+            0.13969725370407104,
+            0.030869219452142715
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 105,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.508476734161377,
+            0.1382991224527359,
+            0.2077540010213852
+          ],
+          "parcel_position_m": [
+            0.5121814608573914,
+            0.13968557119369507,
+            0.030868912115693092
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 106,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5083159804344177,
+            0.13837143778800964,
+            0.20596158504486084
+          ],
+          "parcel_position_m": [
+            0.5122095942497253,
+            0.1396738886833191,
+            0.030868617817759514
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 107,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.508156418800354,
+            0.13844376802444458,
+            0.2041700780391693
+          ],
+          "parcel_position_m": [
+            0.5122377276420593,
+            0.13966220617294312,
+            0.030868327245116234
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 108,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5079981088638306,
+            0.1385161578655243,
+            0.2023790180683136
+          ],
+          "parcel_position_m": [
+            0.5122658610343933,
+            0.13965052366256714,
+            0.03086802363395691
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 109,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5078417062759399,
+            0.13858820497989655,
+            0.2005886733531952
+          ],
+          "parcel_position_m": [
+            0.5122939944267273,
+            0.13963884115219116,
+            0.03086772747337818
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 110,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5076872706413269,
+            0.13866026699543,
+            0.19879895448684692
+          ],
+          "parcel_position_m": [
+            0.5123221278190613,
+            0.13962715864181519,
+            0.030867435038089752
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 111,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5075347423553467,
+            0.13873213529586792,
+            0.1970101147890091
+          ],
+          "parcel_position_m": [
+            0.5123502612113953,
+            0.1396154761314392,
+            0.03086712956428528
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 112,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5073843598365784,
+            0.1388036459684372,
+            0.1952219158411026
+          ],
+          "parcel_position_m": [
+            0.5123783946037292,
+            0.13960379362106323,
+            0.030866825953125954
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 113,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5072365999221802,
+            0.1388748437166214,
+            0.19343449175357819
+          ],
+          "parcel_position_m": [
+            0.5124065279960632,
+            0.13959211111068726,
+            0.030866535380482674
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 114,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5070914626121521,
+            0.13894584774971008,
+            0.19164790213108063
+          ],
+          "parcel_position_m": [
+            0.5124346613883972,
+            0.13958042860031128,
+            0.030866235494613647
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 115,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.506949245929718,
+            0.13901634514331818,
+            0.18986189365386963
+          ],
+          "parcel_position_m": [
+            0.5124627947807312,
+            0.1395687460899353,
+            0.030865948647260666
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 116,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5068101286888123,
+            0.13908657431602478,
+            0.18807697296142578
+          ],
+          "parcel_position_m": [
+            0.5124909281730652,
+            0.13955706357955933,
+            0.030865652486681938
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 117,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5066746473312378,
+            0.13915617763996124,
+            0.18629275262355804
+          ],
+          "parcel_position_m": [
+            0.5125190615653992,
+            0.13954538106918335,
+            0.030865352600812912
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 118,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5065428614616394,
+            0.13922522962093353,
+            0.18450956046581268
+          ],
+          "parcel_position_m": [
+            0.5125471949577332,
+            0.13953369855880737,
+            0.030865056440234184
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 119,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5064150094985962,
+            0.1392938196659088,
+            0.18272727727890015
+          ],
+          "parcel_position_m": [
+            0.5125753283500671,
+            0.1395220160484314,
+            0.030864760279655457
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 120,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.506291925907135,
+            0.13936159014701843,
+            0.18094612658023834
+          ],
+          "parcel_position_m": [
+            0.5126034617424011,
+            0.13951033353805542,
+            0.03086446225643158
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 121,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5061736702919006,
+            0.13942839205265045,
+            0.17916610836982727
+          ],
+          "parcel_position_m": [
+            0.5126315951347351,
+            0.13949865102767944,
+            0.030864160507917404
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 122,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5060607194900513,
+            0.13949424028396606,
+            0.17738711833953857
+          ],
+          "parcel_position_m": [
+            0.5126597285270691,
+            0.13948696851730347,
+            0.030863866209983826
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 123,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5059533715248108,
+            0.13955940306186676,
+            0.17560957372188568
+          ],
+          "parcel_position_m": [
+            0.5126878619194031,
+            0.1394752860069275,
+            0.03086356818675995
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 124,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.505852460861206,
+            0.13962340354919434,
+            0.17383348941802979
+          ],
+          "parcel_position_m": [
+            0.5127159953117371,
+            0.1394636034965515,
+            0.030863264575600624
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 125,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5057584643363953,
+            0.13968604803085327,
+            0.17205898463726044
+          ],
+          "parcel_position_m": [
+            0.512744128704071,
+            0.13945192098617554,
+            0.030862977728247643
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 126,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5056720972061157,
+            0.13974721729755402,
+            0.1702863574028015
+          ],
+          "parcel_position_m": [
+            0.512772262096405,
+            0.13944023847579956,
+            0.030862681567668915
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 127,
+          "stage": "grasp",
+          "command": "close_gripper",
+          "reason": "pregrasp reached",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5055937170982361,
+            0.1398070752620697,
+            0.16851572692394257
+          ],
+          "parcel_position_m": [
+            0.512800395488739,
+            0.13942855596542358,
+            0.030862364917993546
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 128,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "checking contact",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5055239796638489,
+            0.13986550271511078,
+            0.16674703359603882
+          ],
+          "parcel_position_m": [
+            0.512828528881073,
+            0.1394168734550476,
+            0.030862081795930862
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 129,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5054643750190735,
+            0.13992202281951904,
+            0.16498106718063354
+          ],
+          "parcel_position_m": [
+            0.512856662273407,
+            0.13940519094467163,
+            0.030861781910061836
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 130,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5050884485244751,
+            0.13998979330062866,
+            0.1644936054944992
+          ],
+          "parcel_position_m": [
+            0.512884795665741,
+            0.13939350843429565,
+            0.030861495062708855
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 131,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 0,
+          "contact_force_n": 30.88627052307129,
+          "ee_position_m": [
+            0.5049195289611816,
+            0.1400281935930252,
+            0.1639852672815323
+          ],
+          "parcel_position_m": [
+            0.512754499912262,
+            0.13943922519683838,
+            0.030816318467259407
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 132,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 0,
+          "contact_force_n": 11.99167537689209,
+          "ee_position_m": [
+            0.5051703453063965,
+            0.13990552723407745,
+            0.16396111249923706
+          ],
+          "parcel_position_m": [
+            0.5132603049278259,
+            0.13933801651000977,
+            0.030772792175412178
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 133,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 0,
+          "contact_force_n": 23.320886611938477,
+          "ee_position_m": [
+            0.5051025152206421,
+            0.13988739252090454,
+            0.163420170545578
+          ],
+          "parcel_position_m": [
+            0.5132242441177368,
+            0.13933990895748138,
+            0.030786119401454926
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 134,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 0,
+          "contact_force_n": 15.602985382080078,
+          "ee_position_m": [
+            0.505083441734314,
+            0.1398523449897766,
+            0.1630357950925827
+          ],
+          "parcel_position_m": [
+            0.5127125382423401,
+            0.1394582837820053,
+            0.03078029491007328
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 135,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 0,
+          "contact_force_n": 17.99567413330078,
+          "ee_position_m": [
+            0.5051883459091187,
+            0.1397627294063568,
+            0.16281554102897644
+          ],
+          "parcel_position_m": [
+            0.5116651654243469,
+            0.13970863819122314,
+            0.030782600864768028
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 136,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 0,
+          "contact_force_n": 26.34890365600586,
+          "ee_position_m": [
+            0.5053409337997437,
+            0.1396416425704956,
+            0.16267429292201996
+          ],
+          "parcel_position_m": [
+            0.5101397037506104,
+            0.14008216559886932,
+            0.030780259519815445
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 137,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 0,
+          "contact_force_n": 31.57152557373047,
+          "ee_position_m": [
+            0.5055997967720032,
+            0.13945774734020233,
+            0.1625400185585022
+          ],
+          "parcel_position_m": [
+            0.5086902379989624,
+            0.14042524993419647,
+            0.030774177983403206
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 138,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 0,
+          "contact_force_n": 34.2578010559082,
+          "ee_position_m": [
+            0.5058146715164185,
+            0.13930538296699524,
+            0.16256816685199738
+          ],
+          "parcel_position_m": [
+            0.50706547498703,
+            0.14080901443958282,
+            0.030774937942624092
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 139,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "grasp verified",
+          "retry_count": 0,
+          "contact_force_n": 16.660463333129883,
+          "ee_position_m": [
+            0.5058473348617554,
+            0.13930052518844604,
+            0.16249941289424896
+          ],
+          "parcel_position_m": [
+            0.5063905715942383,
+            0.1410050392150879,
+            0.030764121562242508
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": true,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 140,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 0,
+          "contact_force_n": 15.234452247619629,
+          "ee_position_m": [
+            0.5058515667915344,
+            0.1393333524465561,
+            0.16225752234458923
+          ],
+          "parcel_position_m": [
+            0.5062081813812256,
+            0.14110532402992249,
+            0.030768534168601036
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": true,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 141,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 0,
+          "contact_force_n": 14.387706756591797,
+          "ee_position_m": [
+            0.5058072805404663,
+            0.1393938511610031,
+            0.1620517373085022
+          ],
+          "parcel_position_m": [
+            0.5060868263244629,
+            0.14115799963474274,
+            0.03077329508960247
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": true,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 142,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5066370368003845,
+            0.13947702944278717,
+            0.16805317997932434
+          ],
+          "parcel_position_m": [
+            0.5077481865882874,
+            0.14085063338279724,
+            0.030845534056425095
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 143,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5073962807655334,
+            0.13944242894649506,
+            0.1767449975013733
+          ],
+          "parcel_position_m": [
+            0.5128471255302429,
+            0.13973675668239594,
+            0.030808739364147186
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 144,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5077294707298279,
+            0.13948191702365875,
+            0.18287615478038788
+          ],
+          "parcel_position_m": [
+            0.5167209506034851,
+            0.13854403793811798,
+            0.030795203521847725
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 145,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5081002116203308,
+            0.1395321488380432,
+            0.18871581554412842
+          ],
+          "parcel_position_m": [
+            0.5195044279098511,
+            0.13770648837089539,
+            0.030713725835084915
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 146,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5086219310760498,
+            0.13955435156822205,
+            0.195304274559021
+          ],
+          "parcel_position_m": [
+            0.5212375521659851,
+            0.1372019648551941,
+            0.03076637163758278
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 147,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5091168284416199,
+            0.13956643640995026,
+            0.20184552669525146
+          ],
+          "parcel_position_m": [
+            0.5221005082130432,
+            0.13697637617588043,
+            0.030804628506302834
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 148,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5095887780189514,
+            0.13957951962947845,
+            0.2081845998764038
+          ],
+          "parcel_position_m": [
+            0.5224526524543762,
+            0.1368802934885025,
+            0.03080238401889801
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 149,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.510083794593811,
+            0.139585480093956,
+            0.21456438302993774
+          ],
+          "parcel_position_m": [
+            0.5225703120231628,
+            0.13684511184692383,
+            0.030800117179751396
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 150,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5105934739112854,
+            0.13958273828029633,
+            0.22098886966705322
+          ],
+          "parcel_position_m": [
+            0.522619366645813,
+            0.1368279755115509,
+            0.030799461528658867
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 151,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 0,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5111054182052612,
+            0.13957244157791138,
+            0.2273898869752884
+          ],
+          "parcel_position_m": [
+            0.5226517915725708,
+            0.13681523501873016,
+            0.03079911507666111
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 152,
+          "stage": "detect",
+          "command": "search",
+          "reason": "grasp lost during lift",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5114933252334595,
+            0.13957594335079193,
+            0.23276081681251526
+          ],
+          "parcel_position_m": [
+            0.5226802229881287,
+            0.1368035525083542,
+            0.030798807740211487
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 153,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "parcel acquired",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5116287469863892,
+            0.13961650431156158,
+            0.2366352081298828
+          ],
+          "parcel_position_m": [
+            0.5227076411247253,
+            0.1367921084165573,
+            0.03079853020608425
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 154,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5117218494415283,
+            0.13965274393558502,
+            0.23934468626976013
+          ],
+          "parcel_position_m": [
+            0.5227348208427429,
+            0.13678078353405,
+            0.03079824522137642
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 155,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.511227548122406,
+            0.1397363394498825,
+            0.23660388588905334
+          ],
+          "parcel_position_m": [
+            0.5227620005607605,
+            0.13676945865154266,
+            0.030797969549894333
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 156,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5112130641937256,
+            0.1397647112607956,
+            0.23370984196662903
+          ],
+          "parcel_position_m": [
+            0.5227891802787781,
+            0.13675813376903534,
+            0.0307976882904768
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 157,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5112254023551941,
+            0.13978669047355652,
+            0.23234285414218903
+          ],
+          "parcel_position_m": [
+            0.5228163599967957,
+            0.13674680888652802,
+            0.030797405168414116
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 158,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5111387372016907,
+            0.13981783390045166,
+            0.23078444600105286
+          ],
+          "parcel_position_m": [
+            0.5228435397148132,
+            0.1367354840040207,
+            0.030797123908996582
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 159,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5110649466514587,
+            0.13985204696655273,
+            0.2288331240415573
+          ],
+          "parcel_position_m": [
+            0.5228707194328308,
+            0.13672415912151337,
+            0.0307968407869339
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 160,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.511006236076355,
+            0.139883890748024,
+            0.22699661552906036
+          ],
+          "parcel_position_m": [
+            0.5228978991508484,
+            0.13671283423900604,
+            0.030796563252806664
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 161,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5109443068504333,
+            0.1399139165878296,
+            0.2252521514892578
+          ],
+          "parcel_position_m": [
+            0.522925078868866,
+            0.13670150935649872,
+            0.03079628199338913
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 162,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5108826756477356,
+            0.1399444192647934,
+            0.2234627902507782
+          ],
+          "parcel_position_m": [
+            0.5229522585868835,
+            0.1366901844739914,
+            0.030796010047197342
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 163,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5108221173286438,
+            0.13997489213943481,
+            0.22165587544441223
+          ],
+          "parcel_position_m": [
+            0.5229794383049011,
+            0.13667885959148407,
+            0.03079572319984436
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 164,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5107623338699341,
+            0.14000459015369415,
+            0.2198651134967804
+          ],
+          "parcel_position_m": [
+            0.5230066180229187,
+            0.13666753470897675,
+            0.03079543262720108
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 165,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5107042193412781,
+            0.14003382623195648,
+            0.21807777881622314
+          ],
+          "parcel_position_m": [
+            0.5230337977409363,
+            0.13665620982646942,
+            0.030795160681009293
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 166,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5106475949287415,
+            0.14006251096725464,
+            0.21628667414188385
+          ],
+          "parcel_position_m": [
+            0.5230609774589539,
+            0.1366448849439621,
+            0.03079487755894661
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 167,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5105921030044556,
+            0.14009076356887817,
+            0.21449628472328186
+          ],
+          "parcel_position_m": [
+            0.5230881571769714,
+            0.13663356006145477,
+            0.030794594436883926
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 168,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5105385184288025,
+            0.1401180624961853,
+            0.21270817518234253
+          ],
+          "parcel_position_m": [
+            0.523115336894989,
+            0.13662223517894745,
+            0.030794324353337288
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 169,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5104867219924927,
+            0.14014501869678497,
+            0.21092064678668976
+          ],
+          "parcel_position_m": [
+            0.5231425166130066,
+            0.13661091029644012,
+            0.030794037505984306
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 170,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5104368329048157,
+            0.1401711404323578,
+            0.20913375914096832
+          ],
+          "parcel_position_m": [
+            0.5231696963310242,
+            0.1365995854139328,
+            0.03079376369714737
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 171,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5103890299797058,
+            0.14019645750522614,
+            0.20734798908233643
+          ],
+          "parcel_position_m": [
+            0.5231968760490417,
+            0.13658826053142548,
+            0.030793478712439537
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 172,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5103433132171631,
+            0.1402210146188736,
+            0.20556329190731049
+          ],
+          "parcel_position_m": [
+            0.5232240557670593,
+            0.13657693564891815,
+            0.030793195590376854
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 173,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5103004574775696,
+            0.1402445137500763,
+            0.2037794589996338
+          ],
+          "parcel_position_m": [
+            0.5232512354850769,
+            0.13656561076641083,
+            0.03079291433095932
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 174,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5102598667144775,
+            0.14026717841625214,
+            0.2019968181848526
+          ],
+          "parcel_position_m": [
+            0.5232784152030945,
+            0.1365542858839035,
+            0.030792633071541786
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 175,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5102221965789795,
+            0.1402890682220459,
+            0.20021535456180573
+          ],
+          "parcel_position_m": [
+            0.5233055949211121,
+            0.13654296100139618,
+            0.030792364850640297
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 176,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5101876258850098,
+            0.14030955731868744,
+            0.19843505322933197
+          ],
+          "parcel_position_m": [
+            0.5233327746391296,
+            0.13653163611888885,
+            0.030792085453867912
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 177,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5101563334465027,
+            0.1403287649154663,
+            0.19665615260601044
+          ],
+          "parcel_position_m": [
+            0.5233599543571472,
+            0.13652031123638153,
+            0.03079179860651493
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 178,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5101286768913269,
+            0.1403469741344452,
+            0.19487841427326202
+          ],
+          "parcel_position_m": [
+            0.5233871340751648,
+            0.1365089863538742,
+            0.030791522935032845
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 179,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5101048350334167,
+            0.14036361873149872,
+            0.19310231506824493
+          ],
+          "parcel_position_m": [
+            0.5234143137931824,
+            0.13649766147136688,
+            0.030791237950325012
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 180,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5100848078727722,
+            0.14037881791591644,
+            0.19132767617702484
+          ],
+          "parcel_position_m": [
+            0.5234414935112,
+            0.13648633658885956,
+            0.030790964141488075
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 181,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5100692510604858,
+            0.14039255678653717,
+            0.18955466151237488
+          ],
+          "parcel_position_m": [
+            0.5234686732292175,
+            0.13647501170635223,
+            0.030790681019425392
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 182,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5100583434104919,
+            0.14040476083755493,
+            0.18778333067893982
+          ],
+          "parcel_position_m": [
+            0.5234958529472351,
+            0.1364636868238449,
+            0.030790401622653008
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 183,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5100523829460144,
+            0.14041513204574585,
+            0.18601404130458832
+          ],
+          "parcel_position_m": [
+            0.5235230326652527,
+            0.13645236194133759,
+            0.030790120363235474
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 184,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5100517272949219,
+            0.1404237002134323,
+            0.18424667418003082
+          ],
+          "parcel_position_m": [
+            0.5235502123832703,
+            0.13644103705883026,
+            0.030789844691753387
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 185,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5100566148757935,
+            0.14043039083480835,
+            0.1824813187122345
+          ],
+          "parcel_position_m": [
+            0.5235773921012878,
+            0.13642971217632294,
+            0.030789559707045555
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 186,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5100676417350769,
+            0.14043480157852173,
+            0.1807185411453247
+          ],
+          "parcel_position_m": [
+            0.5236045718193054,
+            0.1364183872938156,
+            0.030789274722337723
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 187,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.51008540391922,
+            0.14043690264225006,
+            0.17895843088626862
+          ],
+          "parcel_position_m": [
+            0.523631751537323,
+            0.1364070624113083,
+            0.030788995325565338
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 188,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5101099014282227,
+            0.1404367983341217,
+            0.17720073461532593
+          ],
+          "parcel_position_m": [
+            0.5236589312553406,
+            0.13639573752880096,
+            0.030788719654083252
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 189,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.510141909122467,
+            0.1404341161251068,
+            0.17544619739055634
+          ],
+          "parcel_position_m": [
+            0.5236861109733582,
+            0.13638441264629364,
+            0.03078843094408512
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 190,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5101820230484009,
+            0.14042861759662628,
+            0.17369508743286133
+          ],
+          "parcel_position_m": [
+            0.5237132906913757,
+            0.13637308776378632,
+            0.030788153409957886
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 191,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5102306604385376,
+            0.14042018353939056,
+            0.17194759845733643
+          ],
+          "parcel_position_m": [
+            0.5237404704093933,
+            0.136361762881279,
+            0.030787870287895203
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 192,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5102884769439697,
+            0.1404087096452713,
+            0.17020384967327118
+          ],
+          "parcel_position_m": [
+            0.5237676501274109,
+            0.13635043799877167,
+            0.030787594616413116
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 193,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "approaching parcel",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5103560090065002,
+            0.14039430022239685,
+            0.16846466064453125
+          ],
+          "parcel_position_m": [
+            0.5237948298454285,
+            0.13633911311626434,
+            0.03078731894493103
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 194,
+          "stage": "grasp",
+          "command": "close_gripper",
+          "reason": "pregrasp reached",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5104343891143799,
+            0.14037591218948364,
+            0.1667306125164032
+          ],
+          "parcel_position_m": [
+            0.523822009563446,
+            0.13632778823375702,
+            0.030787039548158646
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 195,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "checking contact",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5105242729187012,
+            0.14035381376743317,
+            0.16500186920166016
+          ],
+          "parcel_position_m": [
+            0.5238491892814636,
+            0.1363164633512497,
+            0.030786769464612007
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 196,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5106655955314636,
+            0.14023126661777496,
+            0.1633337289094925
+          ],
+          "parcel_position_m": [
+            0.5238763689994812,
+            0.13630513846874237,
+            0.03078649193048477
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 197,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 1,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5102959871292114,
+            0.14021313190460205,
+            0.16292236745357513
+          ],
+          "parcel_position_m": [
+            0.5239035487174988,
+            0.13629381358623505,
+            0.03078620508313179
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 198,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 1,
+          "contact_force_n": 7.999979019165039,
+          "ee_position_m": [
+            0.5102653503417969,
+            0.14013756811618805,
+            0.16270042955875397
+          ],
+          "parcel_position_m": [
+            0.5235525965690613,
+            0.13637065887451172,
+            0.030745279043912888
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 199,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 1,
+          "contact_force_n": 14.147171020507812,
+          "ee_position_m": [
+            0.5103438496589661,
+            0.1400056779384613,
+            0.1621946394443512
+          ],
+          "parcel_position_m": [
+            0.5235617756843567,
+            0.1363246589899063,
+            0.030738934874534607
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 200,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 1,
+          "contact_force_n": 11.031886100769043,
+          "ee_position_m": [
+            0.5103462934494019,
+            0.13986115157604218,
+            0.161745086312294
+          ],
+          "parcel_position_m": [
+            0.5231163501739502,
+            0.13638660311698914,
+            0.030735302716493607
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 201,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 1,
+          "contact_force_n": 12.957040786743164,
+          "ee_position_m": [
+            0.5103987455368042,
+            0.13970156013965607,
+            0.16145774722099304
+          ],
+          "parcel_position_m": [
+            0.5222773551940918,
+            0.13654758036136627,
+            0.030733725056052208
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 202,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 1,
+          "contact_force_n": 15.25238037109375,
+          "ee_position_m": [
+            0.5105337500572205,
+            0.13950742781162262,
+            0.1612386554479599
+          ],
+          "parcel_position_m": [
+            0.5210756063461304,
+            0.13679637014865875,
+            0.030733317136764526
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 203,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 1,
+          "contact_force_n": 17.554466247558594,
+          "ee_position_m": [
+            0.5107043385505676,
+            0.13928596675395966,
+            0.16107484698295593
+          ],
+          "parcel_position_m": [
+            0.5195589065551758,
+            0.13711778819561005,
+            0.030735312029719353
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 204,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 1,
+          "contact_force_n": 19.855709075927734,
+          "ee_position_m": [
+            0.5109086632728577,
+            0.13904541730880737,
+            0.16098721325397491
+          ],
+          "parcel_position_m": [
+            0.517722487449646,
+            0.13751517236232758,
+            0.030739644542336464
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 205,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 1,
+          "contact_force_n": 21.00327491760254,
+          "ee_position_m": [
+            0.5111585855484009,
+            0.13878057897090912,
+            0.16097049415111542
+          ],
+          "parcel_position_m": [
+            0.515437126159668,
+            0.13802726566791534,
+            0.03074631839990616
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 206,
+          "stage": "detect",
+          "command": "search",
+          "reason": "grasp verification failed",
+          "retry_count": 2,
+          "contact_force_n": 24.817201614379883,
+          "ee_position_m": [
+            0.5114618539810181,
+            0.13849440217018127,
+            0.16105535626411438
+          ],
+          "parcel_position_m": [
+            0.5131260752677917,
+            0.13853903114795685,
+            0.030749091878533363
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 207,
+          "stage": "approach",
+          "command": "move_pregrasp",
+          "reason": "parcel acquired",
+          "retry_count": 2,
+          "contact_force_n": 13.124528884887695,
+          "ee_position_m": [
+            0.5115346312522888,
+            0.13838425278663635,
+            0.16101747751235962
+          ],
+          "parcel_position_m": [
+            0.5120072960853577,
+            0.13880035281181335,
+            0.030727455392479897
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": true,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 208,
+          "stage": "grasp",
+          "command": "close_gripper",
+          "reason": "pregrasp reached",
+          "retry_count": 2,
+          "contact_force_n": 15.050116539001465,
+          "ee_position_m": [
+            0.5114253759384155,
+            0.13841649889945984,
+            0.16073264181613922
+          ],
+          "parcel_position_m": [
+            0.5118250846862793,
+            0.13884785771369934,
+            0.030731773003935814
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": true,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 209,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "checking contact",
+          "retry_count": 2,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5111986994743347,
+            0.138327956199646,
+            0.15970484912395477
+          ],
+          "parcel_position_m": [
+            0.5120145082473755,
+            0.13878841698169708,
+            0.030823055654764175
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 210,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 2,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5110902786254883,
+            0.1381756216287613,
+            0.1575472503900528
+          ],
+          "parcel_position_m": [
+            0.5120869278907776,
+            0.13876383006572723,
+            0.03084472194314003
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 211,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 2,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5108708739280701,
+            0.1381329447031021,
+            0.15705683827400208
+          ],
+          "parcel_position_m": [
+            0.5121252536773682,
+            0.138749361038208,
+            0.03084787167608738
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 212,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 2,
+          "contact_force_n": 5.777954578399658,
+          "ee_position_m": [
+            0.5108512043952942,
+            0.138017937541008,
+            0.15690413117408752
+          ],
+          "parcel_position_m": [
+            0.5121214389801025,
+            0.13872791826725006,
+            0.030820591375231743
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 213,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 2,
+          "contact_force_n": 10.243027687072754,
+          "ee_position_m": [
+            0.510862410068512,
+            0.13783203065395355,
+            0.15628376603126526
+          ],
+          "parcel_position_m": [
+            0.5122870206832886,
+            0.1386333853006363,
+            0.03082154504954815
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 214,
+          "stage": "verify",
+          "command": "hold",
+          "reason": "waiting for gripper contact",
+          "retry_count": 2,
+          "contact_force_n": 7.656321048736572,
+          "ee_position_m": [
+            0.5108485817909241,
+            0.13764671981334686,
+            0.1557023823261261
+          ],
+          "parcel_position_m": [
+            0.5117680430412292,
+            0.13870111107826233,
+            0.03082161955535412
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 215,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "grasp verified",
+          "retry_count": 2,
+          "contact_force_n": 5.309250354766846,
+          "ee_position_m": [
+            0.5108431577682495,
+            0.13748446106910706,
+            0.15528886020183563
+          ],
+          "parcel_position_m": [
+            0.5109635591506958,
+            0.13884352147579193,
+            0.03081858903169632
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": true,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 216,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 2,
+          "contact_force_n": 5.6759185791015625,
+          "ee_position_m": [
+            0.5107079148292542,
+            0.13745474815368652,
+            0.15481412410736084
+          ],
+          "parcel_position_m": [
+            0.5108199119567871,
+            0.13885490596294403,
+            0.03080243244767189
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": true,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 217,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 2,
+          "contact_force_n": 6.038947105407715,
+          "ee_position_m": [
+            0.5106156468391418,
+            0.13738150894641876,
+            0.1543203890323639
+          ],
+          "parcel_position_m": [
+            0.510736882686615,
+            0.13883879780769348,
+            0.030799251049757004
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": true,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 218,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 2,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5105769634246826,
+            0.13762374222278595,
+            0.16002342104911804
+          ],
+          "parcel_position_m": [
+            0.5107405781745911,
+            0.13885994255542755,
+            0.030866047367453575
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 219,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 2,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5108647346496582,
+            0.13774828612804413,
+            0.16896966099739075
+          ],
+          "parcel_position_m": [
+            0.5106220245361328,
+            0.1389164924621582,
+            0.030832946300506592
+          ],
+          "at_pregrasp": true,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 220,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 2,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5108033418655396,
+            0.1379004865884781,
+            0.17517152428627014
+          ],
+          "parcel_position_m": [
+            0.5093265771865845,
+            0.13923045992851257,
+            0.030819829553365707
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 221,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 2,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5107070207595825,
+            0.13806505501270294,
+            0.18096740543842316
+          ],
+          "parcel_position_m": [
+            0.5088052153587341,
+            0.1393754482269287,
+            0.030860720202326775
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 222,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 2,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5107571482658386,
+            0.13821014761924744,
+            0.1875845491886139
+          ],
+          "parcel_position_m": [
+            0.5086675882339478,
+            0.13940930366516113,
+            0.030864214524626732
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 223,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 2,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5108030438423157,
+            0.13833795487880707,
+            0.1941763460636139
+          ],
+          "parcel_position_m": [
+            0.5086549520492554,
+            0.1394086629152298,
+            0.030864553526043892
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 224,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 2,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5108382701873779,
+            0.13845929503440857,
+            0.20054392516613007
+          ],
+          "parcel_position_m": [
+            0.5086727142333984,
+            0.13939979672431946,
+            0.03086438588798046
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 225,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 2,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5109019875526428,
+            0.13857132196426392,
+            0.2069520801305771
+          ],
+          "parcel_position_m": [
+            0.5086979269981384,
+            0.13938897848129272,
+            0.030864106491208076
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 226,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 2,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.510989785194397,
+            0.1386706382036209,
+            0.2134125828742981
+          ],
+          "parcel_position_m": [
+            0.5087248682975769,
+            0.1393776834011078,
+            0.030863815918564796
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 227,
+          "stage": "lift",
+          "command": "move_lift",
+          "reason": "lifting parcel",
+          "retry_count": 2,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.511091947555542,
+            0.1387576311826706,
+            0.21984969079494476
+          ],
+          "parcel_position_m": [
+            0.508752167224884,
+            0.1393662393093109,
+            0.03086353838443756
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        },
+        {
+          "frame": 228,
+          "stage": "abort",
+          "command": "stop",
+          "reason": "grasp lost during lift",
+          "retry_count": 2,
+          "contact_force_n": 0.0,
+          "ee_position_m": [
+            0.5112117528915405,
+            0.13883186876773834,
+            0.22627253830432892
+          ],
+          "parcel_position_m": [
+            0.5087798237800598,
+            0.13935479521751404,
+            0.03086325339972973
+          ],
+          "at_pregrasp": false,
+          "grasp_contact": false,
+          "parcel_lifted": false,
+          "excessive_contact_force": false
+        }
+      ]
+    }
+  ]
+}

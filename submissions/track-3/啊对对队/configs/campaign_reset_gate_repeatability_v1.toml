@@ -1,0 +1,44 @@
+[metadata]
+schema_version = 1
+campaign_id = "parcel-sorter-reset-gate-repeatability-v1"
+phase = "execution_repeatability"
+description = "Nested same-episode repeats for observed reset-gate validation discordances"
+frozen_date = "2026-07-25"
+
+[platform]
+backend = "rocm"
+single_gpu = true
+gpu_count = 1
+
+[design]
+schedule_seed = 20260725
+repeats_per_episode_condition = 5
+conditions = ["collision-checked-reset", "reset-risk-gated-planner"]
+experimental_unit = "unique randomized episode"
+nested_unit = "same episode and condition execution repeat"
+inference = "descriptive repeatability only; nested repeats are not independent task samples"
+confirmatory_local_episode_range_reserved = "200000-200039"
+
+[[cases]]
+episode_id = 4120001
+local_episode_id = 120001
+profile_id = "medium_carton"
+selection_reason = "planner-active success regression"
+
+[[cases]]
+episode_id = 5120000
+local_episode_id = 120000
+profile_id = "shoe_box_proxy"
+selection_reason = "planner-inactive success regression"
+
+[[cases]]
+episode_id = 5120003
+local_episode_id = 120003
+profile_id = "shoe_box_proxy"
+selection_reason = "planner-active success recovery"
+
+[[cases]]
+episode_id = 7120004
+local_episode_id = 120004
+profile_id = "large_narrow_carton"
+selection_reason = "planner-active success regression"

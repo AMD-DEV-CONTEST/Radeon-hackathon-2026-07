@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "protocol": "parcel-harness-agent-config-v1",
+  "task_agent": {
+    "agent_id": "parcel-task-agent-v21",
+    "role": "task_agent",
+    "provider": "openai-compatible-gateway",
+    "model": "gpt-5.6-luna",
+    "version": "responses-v1"
+  },
+  "failure_analyst": {
+    "agent_id": "parcel-failure-analyst-v1",
+    "role": "failure_analyst",
+    "provider": "local",
+    "model": "deterministic-failure-taxonomy",
+    "version": "1"
+  },
+  "independent_verifier": {
+    "agent_id": "parcel-replay-verifier-v1",
+    "role": "independent_verifier",
+    "provider": "local",
+    "model": "deterministic-replay-verifier",
+    "version": "1"
+  },
+  "responses_client": {
+    "base_url": "https://ccccapi.cc/v1",
+    "api_key_env": "OPENAI_API_KEY",
+    "model": "gpt-5.6-luna",
+    "fallback_model": "gpt-5.5",
+    "reasoning_effort": "medium",
+    "timeout_s": 45,
+    "fallback_timeout_s": 90,
+    "primary_attempts": 1,
+    "store": false
+  },
+  "vla": {
+    "policy": "PI0.5 DROID + v21 LoRA adapter",
+    "checkpoint_env": "PARCEL_PI05_V21_CHECKPOINT",
+    "base_model_env": "PARCEL_PI05_BASE_MODEL",
+    "action_contract": "incremental_se3_deployment_v2",
+    "chunk_size": 30,
+    "executed_prefix": 1
+  },
+  "force_limit_n": 35.0,
+  "max_dataset_bytes": 25000000,
+  "require_video_dataset": true,
+  "control_authority": {
+    "task_agent_hz": [0.1, 1.0],
+    "vla_executor_hz": [3.0, 10.0],
+    "servo_hz": 240,
+    "agent_may_emit_servo_actions": false,
+    "agent_may_override_safety": false,
+    "agent_may_activate_checkpoint": false
+  }
+}

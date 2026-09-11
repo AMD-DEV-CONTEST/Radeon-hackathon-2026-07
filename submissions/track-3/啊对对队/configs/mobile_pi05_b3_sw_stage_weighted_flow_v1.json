@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "protocol_id": "mobile-pi05-b3-sw-stage-weighted-flow-v1",
+  "created_utc": "2026-07-29T02:20:00Z",
+  "frozen_before_candidate_training": true,
+  "candidate": "B3-SW",
+  "persistent_storage_root": "/workspace/persistence/parcel-sorter-opt-v1",
+  "hypothesis": "Population-normalized emphasis on pre-contact flow loss improves executable contact-pose fidelity without changing labels, architecture, auxiliary losses, or optimization budget.",
+  "isolated_factor": {
+    "name": "task_stage_flow_loss_weight",
+    "control": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+    "treatment": [2.035714286, 2.035714286, 1.221428571, 0.407142857, 0.610714286, 0.407142857],
+    "stage_order": ["pregrasp", "grasp_approach", "lift", "transport", "place", "release"],
+    "relative_ratio_before_population_normalization": [5.0, 5.0, 3.0, 1.0, 1.5, 1.0],
+    "scope": "flow_loss_only_before_auxiliary_losses_v1"
+  },
+  "population_normalization": {
+    "dataset_stage_counts": [780, 809, 900, 2296, 786, 300],
+    "dataset_frames": 5871,
+    "expected_selected_weight": 1.0,
+    "batch_local_renormalization": false
+  },
+  "frozen_inputs": {
+    "source_dataset": "outputs/pi05-b0-absolute-v1-merged",
+    "source_manifest_sha256": "8616e77b93d9b0e868ee124a609c7094adf1905563f1485009396617048d01c6",
+    "source_info_sha256": "8045c2cead8cdbd79415ebab5a252a197e80b0f2c6ced5861181e7a4353e8158",
+    "source_stats_sha256": "f9331f2c6c87b96f0393860cbf9106412c41cf64d4543d66bb3b545fb5a95cad",
+    "base_model": "/root/pi05-assets/pi05-droid-local",
+    "base_revision": "72824c0a93f00ce5bb8bedb7feb58953ba1da364",
+    "base_model_sha256": "684c8b2033dcfacee9c6a83f38810ecc77df2c81aeb171bb87319da01fafcfaa",
+    "action_contract": "absolute_v1",
+    "visual_modality": "rgbd",
+    "state_dimension": 80,
+    "action_dimension": 23,
+    "chunk_size": 30,
+    "n_action_steps": 1,
+    "steps": 12000,
+    "save_frequency": 3000,
+    "batch_size": 1,
+    "seed": 11,
+    "lora_rank": 16,
+    "lora_alpha": 32,
+    "freeze_vision_encoder": true,
+    "full_action_projections": true,
+    "state_token": true,
+    "mode_head": true,
+    "mode_head_pooling": "masked_mean",
+    "mode_head_ce_weight": 2.0,
+    "mode_head_class_weights": [0.7608864696734059, 0.920075223319229, 1.6697952218430034]
+  },
+  "control": {
+    "name": "B2",
+    "checkpoint": "/root/pi05-runs/mobile-pi05-b2-droid-full-action-projection-12000-v2/checkpoints/012000/pretrained_model",
+    "screen": "outputs/pi05-b2-droid-full-action-projection-common-seed-v2/pi05-b2-droid-full-action-projection-step12000-six-observation-screen.json",
+    "screen_sha256": "36935dd4637a687d4631802b96ee223c49bd8928854ae9a75db84cea35edef14"
+  },
+  "selection": {
+    "checkpoint_steps": [3000, 6000, 9000, 12000],
+    "rule": "earliest checkpoint passing the complete six-observation route and action-fidelity development gate",
+    "confirmation_access_before_selection": false
+  },
+  "promotion_gate": {
+    "paired_action_fidelity_units": 6,
+    "zero_paired_pose_error_regressions": true,
+    "mean_normalized_pose_error_improvement_strictly_positive": true,
+    "one_sided_95pct_bootstrap_lower_bound_minimum": 0.0,
+    "maximum_force_violations": 0,
+    "requires_pure_vla_development_before_confirmation": true
+  },
+  "reserved_name": {
+    "B4": "verified recovery or advantage learning only"
+  },
+  "claim_boundary": "Training-distribution development candidate only. B3-SW is not a LIBERO score, parcel confirmation score, or evidence of outperforming PI0.6 until the frozen protocols pass."
+}

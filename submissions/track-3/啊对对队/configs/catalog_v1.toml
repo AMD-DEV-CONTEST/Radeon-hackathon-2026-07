@@ -1,0 +1,253 @@
+[project]
+name = "parcel-sorter-rocm-catalog-v1"
+seed = 42
+
+[simulation]
+backend = "rocm"
+device = "cuda:0"
+num_envs = 128
+physics_hz = 240
+control_hz = 30
+camera_hz = 10
+headless = true
+
+[sensors]
+rgb = true
+depth = true
+proprioception = true
+contact_force = true
+image_width = 224
+image_height = 224
+
+[task]
+max_grasp_retries = 2
+lift_height_m = 0.12
+max_contact_force_n = 35.0
+episode_seconds = 20.0
+parcel_base_size_m = [0.060, 0.045, 0.040]
+left_bin_center_m = [0.48, -0.34, 0.025]
+right_bin_center_m = [0.48, 0.34, 0.025]
+bin_half_extent_m = [0.11, 0.10]
+approach_clearance_m = 0.260
+grasp_hand_clearance_m = 0.105
+drop_hand_height_m = 0.24
+position_tolerance_m = 0.025
+approach_xy_tolerance_m = 0.015
+release_settle_steps = 12
+grasp_settle_steps = 10
+grasp_stability_steps = 1
+size_aware_approach_enabled = false
+approach_clearance_margin_m = 0.0
+retry_retreat_distance_m = 0.0
+
+[control]
+arm_kp = [4500, 4500, 3500, 3500, 2000, 2000, 2000]
+arm_kv = [450, 450, 350, 350, 200, 200, 200]
+finger_kp = 100.0
+finger_kv = 10.0
+open_width_m = 0.040
+close_force_n = 20.0
+close_force_ramp_n_per_step = 1.0
+max_ee_step_m = 0.04
+final_approach_step_m = 0.01
+approach_step_m = 0.04
+
+[output]
+root_dir = "outputs"
+task_instruction = "Pick the parcel and place it in the indicated sorting bin."
+record_first_episode = false
+save_sensor_frames = false
+
+[randomization]
+enabled = true
+parcel_size_scale_min = 0.75
+parcel_size_scale_max = 1.30
+parcel_mass_kg_min = 0.05
+parcel_mass_kg_max = 1.00
+friction_min = 0.30
+friction_max = 1.20
+camera_position_noise_m = 0.015
+action_delay_steps_max = 2
+parcel_position_x_min = 0.45
+parcel_position_x_max = 0.72
+parcel_position_y_min = -0.18
+parcel_position_y_max = 0.18
+parcel_yaw_rad_min = -3.1415926
+parcel_yaw_rad_max = 3.1415926
+catalog_block_size = 20
+
+[[parcel_profiles]]
+profile_id = "micro_box"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "parallel_jaw"
+material = "corrugated_cardboard"
+selection_weight = 0.25
+evaluation_only = false
+dimensions_min_m = [0.060, 0.035, 0.025]
+dimensions_max_m = [0.120, 0.065, 0.065]
+mass_kg_min = 0.05
+mass_kg_max = 0.50
+friction_min = 0.35
+friction_max = 0.90
+provenance = "hardware-feasible stratum bounded by the Panda 0.08 m aperture"
+
+[[parcel_profiles]]
+profile_id = "small_carton"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "parallel_jaw"
+material = "corrugated_cardboard"
+selection_weight = 0.20
+evaluation_only = false
+dimensions_min_m = [0.100, 0.045, 0.040]
+dimensions_max_m = [0.200, 0.075, 0.120]
+mass_kg_min = 0.15
+mass_kg_max = 1.20
+friction_min = 0.35
+friction_max = 1.00
+provenance = "small-commerce carton stratum constrained to a pinchable minor axis"
+
+[[parcel_profiles]]
+profile_id = "flat_box"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "parallel_jaw"
+material = "paperboard"
+selection_weight = 0.15
+evaluation_only = false
+dimensions_min_m = [0.120, 0.040, 0.015]
+dimensions_max_m = [0.240, 0.070, 0.040]
+mass_kg_min = 0.05
+mass_kg_max = 0.60
+friction_min = 0.30
+friction_max = 0.85
+provenance = "flat rigid-mailer proxy constrained to the current rigid-body solver"
+
+[[parcel_profiles]]
+profile_id = "long_box"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "parallel_jaw"
+material = "corrugated_cardboard"
+selection_weight = 0.15
+evaluation_only = false
+dimensions_min_m = [0.180, 0.040, 0.035]
+dimensions_max_m = [0.320, 0.070, 0.090]
+mass_kg_min = 0.10
+mass_kg_max = 1.00
+friction_min = 0.35
+friction_max = 1.00
+provenance = "long parcel stratum with a gripper-feasible minor axis"
+
+[[parcel_profiles]]
+profile_id = "upright_canister"
+shape = "cylinder"
+orientation_mode = "upright"
+handling_class = "parallel_jaw"
+material = "rigid_canister"
+selection_weight = 0.10
+evaluation_only = false
+dimensions_min_m = [0.040, 0.040, 0.060]
+dimensions_max_m = [0.070, 0.070, 0.160]
+mass_kg_min = 0.10
+mass_kg_max = 0.80
+friction_min = 0.25
+friction_max = 0.80
+provenance = "cylindrical consumer parcel stratum within the gripper aperture"
+
+[[parcel_profiles]]
+profile_id = "mailing_tube"
+shape = "cylinder"
+orientation_mode = "horizontal"
+handling_class = "parallel_jaw"
+material = "kraft_tube"
+selection_weight = 0.10
+evaluation_only = false
+dimensions_min_m = [0.150, 0.035, 0.035]
+dimensions_max_m = [0.300, 0.065, 0.065]
+mass_kg_min = 0.08
+mass_kg_max = 0.80
+friction_min = 0.30
+friction_max = 0.90
+provenance = "mailing-tube stratum; USPS explicitly classifies cylindrical tubes as nonstandard"
+
+[[parcel_profiles]]
+profile_id = "near_limit_box"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "parallel_jaw"
+material = "corrugated_cardboard"
+selection_weight = 0.05
+evaluation_only = false
+dimensions_min_m = [0.150, 0.070, 0.060]
+dimensions_max_m = [0.280, 0.079, 0.150]
+mass_kg_min = 0.30
+mass_kg_max = 1.50
+friction_min = 0.35
+friction_max = 1.10
+provenance = "near-aperture stress stratum for boundary testing"
+
+[[parcel_profiles]]
+profile_id = "usps_small_flat_rate"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "suction_required"
+material = "corrugated_cardboard"
+selection_weight = 0.0
+evaluation_only = true
+dimensions_min_m = [0.220663, 0.138113, 0.044450]
+dimensions_max_m = [0.220663, 0.138113, 0.044450]
+mass_kg_min = 0.10
+mass_kg_max = 1.50
+friction_min = 0.35
+friction_max = 1.00
+provenance = "USPS Priority Mail Small Flat Rate Box outside dimensions, accessed 2026-07-24"
+
+[[parcel_profiles]]
+profile_id = "usps_medium_flat_rate"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "suction_required"
+material = "corrugated_cardboard"
+selection_weight = 0.0
+evaluation_only = true
+dimensions_min_m = [0.285750, 0.222250, 0.152400]
+dimensions_max_m = [0.285750, 0.222250, 0.152400]
+mass_kg_min = 0.20
+mass_kg_max = 3.00
+friction_min = 0.35
+friction_max = 1.00
+provenance = "USPS Priority Mail Medium Flat Rate Box 1 outside dimensions, accessed 2026-07-24"
+
+[[parcel_profiles]]
+profile_id = "usps_board_game_box"
+shape = "box"
+orientation_mode = "yaw"
+handling_class = "suction_required"
+material = "corrugated_cardboard"
+selection_weight = 0.0
+evaluation_only = true
+dimensions_min_m = [0.611188, 0.301625, 0.079375]
+dimensions_max_m = [0.611188, 0.301625, 0.079375]
+mass_kg_min = 0.30
+mass_kg_max = 3.50
+friction_min = 0.35
+friction_max = 1.00
+provenance = "USPS Priority Mail Board Game Box outside dimensions, accessed 2026-07-24"
+
+[[parcel_profiles]]
+profile_id = "large_mailing_tube"
+shape = "cylinder"
+orientation_mode = "horizontal"
+handling_class = "cradle_required"
+material = "kraft_tube"
+selection_weight = 0.0
+evaluation_only = true
+dimensions_min_m = [0.300, 0.080, 0.080]
+dimensions_max_m = [0.560, 0.150, 0.150]
+mass_kg_min = 0.20
+mass_kg_max = 2.00
+friction_min = 0.25
+friction_max = 0.80
+provenance = "capability-boundary tube range below the USPS 22 inch nonstandard-length threshold"

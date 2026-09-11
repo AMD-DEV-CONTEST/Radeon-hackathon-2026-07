@@ -1,0 +1,81 @@
+[metadata]
+schema_version = 1
+protocol_id = "grasp-candidate-model-selection-v2"
+frozen_date = "2026-07-26"
+training_objective_revision = "adee4d5"
+promotion_gate_revision = "170344c"
+purpose = "Capacity-matched pointwise versus groupwise safety-first grasp scorer selection"
+claim_boundary = "Training uses train only. Development is collected after both checkpoints are frozen. Holdout remains locked until exactly one scorer is selected."
+
+[source]
+collection_protocol = "configs/grasp_candidate_learning_v2.toml"
+collection_protocol_sha256 = "1e9d644e68f0d2ead3d9f5012c6ec1de0c3e0d4da36150ef39f84431c7989f30"
+expected_train_groups = 32
+expected_development_groups = 16
+expected_holdout_groups = 16
+
+[implementation]
+trainer = "scripts/train_grasp_scorer_rocm.py"
+trainer_sha256 = "fef619fed2908515e3c8701695c968f98316845c4377aad09931ba27973caaa7"
+evaluator = "scripts/evaluate_grasp_scorer.py"
+evaluator_sha256 = "0fda9cd6de2bc5b520ff88a10d62ec1fb9bae52213ba2b14306662219bf55f72"
+selector = "scripts/select_grasp_scorer_v2.py"
+selector_sha256 = "1dac3ec8767f5b5247a7b985e75326f5b9dcfdec597e819bb127a350ecf77e0a"
+model = "src/parcel_sorter/grasp_scorer_model.py"
+model_sha256 = "9ac4056446d40cbb795638fe3ed596220f0c9356b9150015de874b77fb92e9cd"
+features_and_metrics = "src/parcel_sorter/grasp_scoring.py"
+features_and_metrics_sha256 = "b4411ac28ebcaec5d01b561453592bf7a620e946ce781de31afbca5683f9dd12"
+promotion_gate = "src/parcel_sorter/grasp_model_selection.py"
+promotion_gate_sha256 = "063caa7948db924f466460133af8cf34cd94c5d7f97b1cb27acf69be51a9eeff"
+
+[common_training]
+framework = "PyTorch + ROCm"
+device = "cuda"
+single_gpu = true
+feature_schema_version = 1
+hidden_width = 64
+parameter_count = 6276
+steps = 2000
+learning_rate = 0.001
+weight_decay = 0.0001
+seed = 42
+train_split = "train"
+checkpoint_frozen_before_development = true
+
+[[candidates]]
+name = "pointwise"
+objective = "pointwise"
+safety_pair_weight = 2.0
+success_pair_weight = 1.0
+note = "Pair weights are inactive under the pointwise objective."
+
+[[candidates]]
+name = "groupwise-safety-first"
+objective = "groupwise-safety-first"
+safety_pair_weight = 2.0
+success_pair_weight = 1.0
+note = "Safe-over-aborted pairs have priority; success pairs exist only within safe candidates."
+
+[development]
+split = "development"
+expected_group_count = 16
+expected_profile_group_count = 4
+expected_profiles = ["medium_carton", "shoe_box_proxy", "large_narrow_carton", "near_limit_box"]
+require_no_per_profile_safety_regression = true
+require_aggregate_task_or_safety_improvement = true
+latency_group_id = "large_narrow_carton:8710016"
+latency_candidate_count = 6
+latency_warmup = 10
+latency_repeats = 100
+max_warm_batch_p95_ms = 5.0
+selection_order = ["model_safety_aborts", "negative_model_successes", "model_mean_force_n", "model_mean_duration_seconds", "warm_p95_ms", "candidate_name"]
+
+[holdout]
+locked = true
+execute_once_after_selection = true
+unlock_argument_forbidden_before_selection = "--unlock-holdout"
+
+[stopping]
+no_promotion_if_all_candidates_fail = true
+do_not_tune_on_development_after_failure = true
+next_action_on_failure = "Report the structured ranking negative result and return to geometry/controller analysis without opening holdout."

@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "protocol": "parcel-pi05-matched-chunk-runtime-ablation-v1",
+  "frozen_date": "2026-07-28",
+  "objective": "measure whether PI0.5 action-chunk temporal execution improves true closed-loop control without changing the trained checkpoint",
+  "admission": {
+    "checkpoint_rule": "one selected PI0.5 checkpoint must first pass 6/6 training-distribution routing and three zero-fallback strict development episodes",
+    "expert_fallback_allowed": false,
+    "force_violations_must_not_increase": true,
+    "checkpoint_fixed_across_arms": true
+  },
+  "fixed_runtime": {
+    "control_hz": 30,
+    "policy_inference_hz": 3,
+    "execution_horizon_steps": 10,
+    "mode_votes": 3,
+    "policy_mode": "pi05_absolute",
+    "require_vla_grasp_mode": true,
+    "require_vla_goal_verdict": true,
+    "episode_config": "configs/mobile_pi05_r3b_strict_dev_v1.json",
+    "common_episode_order": true
+  },
+  "rocm_telemetry": {
+    "gpu_id": "card0",
+    "interval_seconds": 1.0,
+    "primary_energy_metric": "raw_graphics_package_wh_per_success",
+    "matched_gpu_exclusivity_required": true
+  },
+  "arms": [
+    {
+      "id": "C0_FIRST_HOLD",
+      "chunk_execution_protocol": "first-action-hold-v1",
+      "chunk_execution_steps": 1,
+      "control_command_hz": 3,
+      "role": "runtime baseline"
+    },
+    {
+      "id": "C1_WINDOW_MEAN",
+      "chunk_execution_protocol": "pi05-window-aggregate-v1",
+      "chunk_execution_steps": 10,
+      "control_command_hz": 3,
+      "role": "low-frequency full-authority absolute-action aggregation control"
+    },
+    {
+      "id": "C2_ORDERED_QUEUE",
+      "chunk_execution_protocol": "pi05-open-loop-queue-v1",
+      "chunk_execution_steps": 10,
+      "control_command_hz": 30,
+      "role": "ordered full-authority absolute-action chunk treatment"
+    }
+  ],
+  "primary_response": "complete_pick_and_place_success",
+  "secondary_responses": [
+    "first_contact_seal_success",
+    "maximum_contact_force_n",
+    "force_violation_count",
+    "expert_fallback_count",
+    "mean_inference_latency_ms",
+    "p95_inference_latency_ms",
+    "mean_residual_boundary_l2",
+    "policy_inference_count",
+    "control_action_count",
+    "raw_graphics_package_wh_per_attempt",
+    "raw_graphics_package_wh_per_success",
+    "peak_vram_allocated_percent",
+    "vram_growth_percentage_points"
+  ],
+  "analysis": {
+    "independent_unit": "physical_episode",
+    "paired_by": ["episode_id", "parcel_profile", "mass", "initial_offset"],
+    "frames_are_independent_samples": false,
+    "retry_attempts_are_independent_samples": false,
+    "development_decision": "C2 must improve sealing or complete success with no force regression before RTC is enabled"
+  },
+  "claim_boundary": "This is a development runtime ablation and cannot replace the frozen 105-episode final evaluation."
+}

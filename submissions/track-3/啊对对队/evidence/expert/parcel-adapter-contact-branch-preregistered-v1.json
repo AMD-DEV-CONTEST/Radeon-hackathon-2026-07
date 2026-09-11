@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.0",
+  "status": "preregistered_before_execution",
+  "registered_date": "2026-07-26",
+  "purpose": "attribute the reproducible mass-aware +45 mm sentinel contact branch without tuning on its outcome",
+  "fixed_runtime": {
+    "accelerator": "single AMD Radeon gfx1100",
+    "rocm_version": "7.2",
+    "simulator": "Genesis 1.2.3",
+    "physics_hz": 240,
+    "control_hz": 30
+  },
+  "fixed_case": {
+    "config": "configs/catalog_v2.toml",
+    "profile": "medium_carton",
+    "episode": 4120001,
+    "candidate_id": "canonical-long-+0.000-up-0.045",
+    "adapter_extension_m": 0.03,
+    "adapter_effective_density_kg_m3": 1240.0,
+    "measured_force_abort_n": 35.0,
+    "control_frame_start": 196,
+    "control_frame_end_inclusive": 204,
+    "physics_substeps_per_control_frame": 8
+  },
+  "conditions_in_order": [
+    {
+      "name": "lightweight_geometry_ablation",
+      "adapter_geometry_enabled": true,
+      "combined_adapter_inertia_enabled": false,
+      "fresh_scene_rollouts": 1
+    },
+    {
+      "name": "mass_aware_adapter",
+      "adapter_geometry_enabled": true,
+      "combined_adapter_inertia_enabled": true,
+      "fresh_scene_rollouts": 1
+    }
+  ],
+  "required_signals": [
+    "all active robot contact entity/geom/link identities",
+    "contact positions, normals, penetration, force_a and force_b",
+    "finger DOF position and velocity",
+    "finger actual internal force and controller force",
+    "end-effector and parcel pose",
+    "command and transport phase",
+    "bilateral parcel support and 35 N crossing"
+  ],
+  "required_summary": [
+    "first condition divergence",
+    "first bilateral-support loss",
+    "first 35 N crossing",
+    "peak-force contact identity",
+    "per-finger maximum absolute actual and control force",
+    "raw artifact byte count and SHA-256"
+  ],
+  "comparison_thresholds": {
+    "contact_signature": "exact",
+    "bilateral_support": "exact",
+    "parcel_or_finger_force_difference_n": 1.0,
+    "finger_position_difference_m": 0.0001,
+    "finger_velocity_difference_m_s": 0.01
+  },
+  "forbidden_adaptation": [
+    "density scan",
+    "extension scan",
+    "friction scan",
+    "controller-gain scan",
+    "force-threshold change",
+    "candidate scan",
+    "new episode",
+    "scorer holdout access"
+  ],
+  "decision_tree": {
+    "adapter_parcel_contact_spike": "freeze a contact-discretization, edge-geometry, or compliance investigation",
+    "robot_environment_or_self_spike": "add swept loaded-path clearance to the planner",
+    "same_contact_identity_with_finger_force_divergence": "freeze a bounded trajectory-modulation or impedance candidate",
+    "unattributed": "retain a simulator contact-sensitivity benchmark and stop expansion"
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "schema_version": "1.0",
+  "status": "preregistered_before_execution",
+  "registered_date": "2026-07-26",
+  "purpose": "test whether the mass-aware adapter failure is a discrete finger equality-constraint instability without tuning on the outcome",
+  "mechanism_evidence": {
+    "comparison_artifact": "outputs/contact-branch-development-v1/comparison.json",
+    "first_contact_signature_divergence": {
+      "control_step": 197,
+      "physics_substep": 2
+    },
+    "first_force_difference_over_1_n": {
+      "control_step": 197,
+      "physics_substep": 4
+    },
+    "first_finger_position_difference_over_0_1_mm": {
+      "control_step": 202,
+      "physics_substep": 0
+    },
+    "mass_aware_instability": {
+      "control_step": 203,
+      "physics_substep": 4,
+      "peak_force_n": 162.1861572265625,
+      "penetration_m": 0.11554575711488724,
+      "peak_pair": "parcel/box_baselink/collision_0 <-> robot/left_finger/stock_finger_collision_3",
+      "finger_max_abs_actual_force_n": [
+        78.0103988647461,
+        72.13257598876953
+      ],
+      "finger_control_force_n": [
+        -20.0,
+        -20.0
+      ]
+    },
+    "source_constraint": {
+      "mjcf_element": "equality/joint[finger_joint1,finger_joint2]",
+      "solref": [
+        0.005,
+        1.0
+      ],
+      "genesis_warning_adjusted_timeconst_s": 0.00833333
+    }
+  },
+  "fixed_runtime": {
+    "accelerator": "single AMD Radeon gfx1100",
+    "rocm_version": "7.2",
+    "simulator": "Genesis 1.2.3",
+    "physics_hz": 240,
+    "control_hz": 30
+  },
+  "fixed_case": {
+    "config": "configs/catalog_v2.toml",
+    "profile": "medium_carton",
+    "episode": 4120001,
+    "candidate_id": "canonical-long-+0.000-up-0.045",
+    "adapter_extension_m": 0.03,
+    "adapter_effective_density_kg_m3": 1240.0,
+    "combined_adapter_inertia_enabled": true,
+    "measured_force_abort_n": 35.0,
+    "control_frame_start": 196,
+    "control_frame_end_inclusive": 204
+  },
+  "single_candidate": {
+    "finger_equality_constraint_timeconst_s": 0.01,
+    "finger_equality_constraint_damping_ratio": 1.0,
+    "selection_basis": "Genesis 1.2.3 documented constraint_timeconst default and greater than 2*dt at 240 Hz",
+    "fresh_scene_rollouts": 1
+  },
+  "pass_criteria": {
+    "task_success": true,
+    "safety_aborted": false,
+    "all_recorded_values_finite": true,
+    "maximum_high_frequency_penetration_m_exclusive": 0.001,
+    "maximum_measured_contact_force_n_inclusive": 35.0
+  },
+  "forbidden_adaptation": [
+    "constraint-time scan",
+    "physics-rate change",
+    "density scan",
+    "extension scan",
+    "friction scan",
+    "controller-gain scan",
+    "force-threshold change",
+    "candidate scan",
+    "new episode",
+    "scorer holdout access"
+  ],
+  "stop_rule": "stop after the single fresh-scene candidate; record a negative benchmark on failure and do not scan"
+}

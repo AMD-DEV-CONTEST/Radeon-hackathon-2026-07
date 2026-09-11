@@ -1,0 +1,106 @@
+{
+  "schema_version": "1.0",
+  "experiment": "grasp-scorer-v2-development-selection",
+  "executed_at_utc_date": "2026-07-26",
+  "claim_boundary": "One-shot development selection for two preregistered checkpoints. Both were rejected. Holdout was not opened, and development must not be reused to tune v2.",
+  "source_revision": "dc5dfa6960c22e488bae747080de97b7f0fc30ad",
+  "hardware": {
+    "gpu": "AMD Radeon Graphics",
+    "gfx_target": "gfx1100",
+    "vram_gib": 47.98,
+    "hip": "7.2.53211-e1a6bc5663",
+    "gpu_count": 1
+  },
+  "collection": {
+    "split": "development",
+    "groups": 16,
+    "groups_per_profile": {
+      "large_narrow_carton": 4,
+      "medium_carton": 4,
+      "near_limit_box": 4,
+      "shoe_box_proxy": 4
+    },
+    "candidate_rollouts": 96,
+    "failed_groups": 0,
+    "manifest_bytes": 19214,
+    "manifest_sha256": "628f7f7020fca5cc5eb23dfe56ce4b4b9a690f85d5d48666b8e233069a6b530b",
+    "log_bytes": 463758,
+    "log_sha256": "a13beca67dd1f417a03f622901c445ea871b37234bc2d455f48ec00a9aa17aac"
+  },
+  "selection": {
+    "status": "no_promotion",
+    "selected": null,
+    "holdout_opened": false,
+    "file": "grasp-scorer-v2-development-selection.json",
+    "bytes": 5064,
+    "sha256": "2f0902374c0bff4e086b5c00fd0b8e9367b28a03b94dc8b3b50c6c507b8a408d",
+    "dataset_bytes": 351920,
+    "dataset_sha256": "8bdd9d18c1d22865635b0e710c1363e025f2bd31ab07d268f8e0b2a53722c2c4"
+  },
+  "baseline": {
+    "successes": 9,
+    "safety_aborts": 4,
+    "mean_force_n": 36.09586709737778,
+    "mean_duration_seconds": 13.016666666666667
+  },
+  "candidates": [
+    {
+      "name": "pointwise",
+      "passes": false,
+      "reasons": [
+        "per_profile_safety_regression",
+        "no_task_or_safety_improvement"
+      ],
+      "successes": 6,
+      "safety_aborts": 9,
+      "mean_force_n": 134.94827908277512,
+      "warm_p95_ms": 0.908777,
+      "profile_regressions": 4,
+      "evaluation": "grasp-scorer-v2-pointwise-development.json",
+      "evaluation_sha256": "4afad5e5756dcd20c22d8833970677d7909cf19dee2bb7e811ba16f0335861dc"
+    },
+    {
+      "name": "groupwise-safety-first",
+      "passes": false,
+      "reasons": [
+        "per_profile_safety_regression",
+        "no_task_or_safety_improvement"
+      ],
+      "successes": 7,
+      "safety_aborts": 8,
+      "mean_force_n": 125.87840169668198,
+      "warm_p95_ms": 0.923696,
+      "profile_regressions": 4,
+      "evaluation": "grasp-scorer-v2-groupwise-safety-first-development.json",
+      "evaluation_sha256": "87891f12e64a7d5ac08b4ac6aef64ef915fc7c8337e3c2a42c61ea7083688e30"
+    }
+  ],
+  "posthoc_diagnostics_not_used_for_selection": {
+    "oracle_safe_success_groups": 13,
+    "oracle_safety_aborts": 1,
+    "groups_with_any_safe_candidate": 15,
+    "all_unsafe_groups": 1,
+    "development_rows_with_globally_unseen_candidate_id": 14,
+    "pointwise_selected_unseen_ids": 2,
+    "groupwise_selected_unseen_ids": 2,
+    "pointwise_changed_from_static": 13,
+    "groupwise_changed_from_static": 12,
+    "pointwise_aborted_actual_force_mean_n": 222.1518325805664,
+    "pointwise_aborted_predicted_force_mean_n": 21.528710683186848,
+    "groupwise_aborted_actual_force_mean_n": 229.78611946105957,
+    "groupwise_aborted_predicted_force_mean_n": 26.688033521175385,
+    "largest_observed_force_n": 1489.782958984375,
+    "interpretation": "The candidate set retains headroom, but 32 train groups and static features did not support calibrated dynamic-risk ranking. Near-zero train losses and severe development underprediction indicate memorization and contact-dynamics distribution shift, not a latency bottleneck."
+  },
+  "decision": {
+    "v2_closed": true,
+    "holdout_remains_locked": true,
+    "active_runtime_scorer": "static_geometry_baseline",
+    "next_research_boundary": "Any new ranker requires a preregistered, disjoint v3 population. V2 development may be cited as historical design evidence but may not be reused for v2 tuning or promotion."
+  },
+  "storage_policy": {
+    "tracked": "Selection decision, both evaluation artifacts, and this compact evidence index.",
+    "remote_only": "The combined hashed dataset, development manifest/log, and 111 MiB full development traces.",
+    "reason": "Preserve exact provenance without committing large trajectories or derived datasets."
+  }
+}

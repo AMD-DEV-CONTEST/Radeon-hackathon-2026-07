@@ -1,0 +1,45 @@
+[metadata]
+schema_version = 1
+protocol_id = "controller-faithful-probe-v4-train-only"
+frozen_date = "2026-07-26"
+claim_boundary = "Train-only feasibility study from controller-faithful v2 candidate traces. Features stop at the first place boundary observation. No development or holdout input is allowed. A passing policy does not authorize new physics or deployment."
+
+[source]
+manifest = "/workspace/parcel-sorter-opt-v1/outputs/grasp-scorer-v2/candidates/train/manifest.json"
+manifest_sha256 = "9aee3452f7141e3ca48db9506b90143730b07fc0652131fc212a9fea6193d4b5"
+collection_protocol_sha256 = "1e9d644e68f0d2ead3d9f5012c6ec1de0c3e0d4da36150ef39f84431c7989f30"
+split = "train"
+expected_groups = 32
+expected_groups_per_profile = 8
+expected_profiles = ["medium_carton", "shoe_box_proxy", "large_narrow_carton", "near_limit_box"]
+development_forbidden = true
+holdout_forbidden = true
+
+[implementation]
+module = "src/parcel_sorter/controller_faithful_probe.py"
+module_sha256 = "19b6b32624de5ff02f1ef8a83ccc93c799210fdc624c085836ec8396da3d4eac"
+runner = "scripts/evaluate_controller_faithful_probe.py"
+runner_sha256 = "b58876c7bd130a05a61bf28c9f944b9fc78ccffa3614f51d44964c203b466f53"
+audit = "scripts/audit_controller_faithful_probe_protocol.py"
+audit_sha256 = "dd08373690e2277cdff9f5f5a1476043af32e3296c50ae57fe4e9d9a7b108bf5"
+
+[fixed]
+fold_count = 4
+fold_seed = 20260726
+policies = ["veto-static", "force-first", "stability-first", "support-first"]
+latency_group_id = "large_narrow_carton:8710000"
+latency_warmup = 10
+latency_repeats = 100
+max_selection_p95_ms = 5.0
+require_no_per_profile_safety_regression = true
+require_no_per_fold_safety_regression = true
+require_no_per_profile_success_regression = true
+require_aggregate_task_or_safety_improvement = true
+safe_abstention_is_not_static_fallback = true
+new_physics_authorized = false
+
+[stopping]
+no_probe_candidate_if_all_fail = true
+do_not_inspect_v2_development_for_threshold_selection = true
+do_not_open_v2_holdout = true
+new_physics_requires_separate_frozen_population = true
