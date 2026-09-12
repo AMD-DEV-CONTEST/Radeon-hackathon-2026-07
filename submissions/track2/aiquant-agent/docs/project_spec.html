@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>aiQuant — Project Specification</title>
+<style>
+  /* ========== Base Reset ========== */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  :root {
+    --ink: #1f2328;
+    --ink-soft: #424a53;
+    --ink-mute: #636c76;
+    --rule: #d8dee4;
+    --rule-soft: #eaeef2;
+    --accent: #b32126;       /* AMD-inspired red */
+    --accent-soft: #fdeeee;
+    --bg: #ffffff;
+    --bg-alt: #f6f8fa;
+    --code-bg: #f0f2f5;
+    --sans: "Helvetica Neue", Helvetica, Arial, "Segoe UI", Roboto, sans-serif;
+    --serif: Georgia, "Times New Roman", "Source Serif Pro", serif;
+    --mono: "SF Mono", "Fira Code", "DejaVu Sans Mono", Consolas, monospace;
+  }
+
+  html {
+    font-size: 11pt;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-family: var(--serif);
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.62;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ========== Page Sheet (A4) ========== */
+  .sheet {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 22mm 20mm 24mm 20mm;
+    background: var(--bg);
+    position: relative;
+  }
+
+  /* ========== Typography ========== */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--sans);
+    color: var(--ink);
+    line-height: 1.3;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 0 0 0.7em 0;
+  }
+
+  a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  strong {
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  em {
+    font-style: italic;
+  }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.86em;
+    background: var(--code-bg);
+    color: #c7254e;
+    padding: 0.12em 0.38em;
+    border-radius: 3px;
+  }
+
+  /* ========== Cover Page ========== */
+  .cover {
+    min-height: 297mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 0;
+    page-break-after: always;
+  }
+
+  .cover-top {
+    border-top: 6px solid var(--accent);
+    padding-top: 14mm;
+  }
+
+  .cover-eyebrow {
+    font-family: var(--sans);
+    text-transform: uppercase;
+    letter-spacing: 2.4px;
+    font-size: 9pt;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 6mm;
+  }
+
+  .cover-title {
+    font-family: var(--sans);
+    font-size: 42pt;
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: -0.5px;
+    color: var(--ink);
+    margin-bottom: 6mm;
+  }
+
+  .cover-title .accent {
+    color: var(--accent);
+  }
+
+  .cover-subtitle {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 16pt;
+    color: var(--ink-soft);
+    line-height: 1.4;
+    max-width: 140mm;
+    margin-bottom: 16mm;
+  }
+
+  .cover-rule {
+    width: 60mm;
+    height: 3px;
+    background: var(--accent);
+    margin-bottom: 10mm;
+  }
+
+  .cover-meta {
+    font-family: var(--sans);
+    border-collapse: collapse;
+    width: 100%;
+    max-width: 150mm;
+  }
+
+  .cover-meta td {
+    padding: 5px 0;
+    font-size: 11pt;
+    vertical-align: top;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+
+  .cover-meta td.label {
+    width: 42mm;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-size: 9pt;
+    font-weight: 600;
+    padding-top: 7px;
+  }
+
+  .cover-meta td.value {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .cover-bottom {
+    font-family: var(--sans);
+    font-size: 9pt;
+    color: var(--ink-mute);
+    border-top: 1px solid var(--rule);
+    padding-top: 6mm;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* ========== Document Header / Running ========== */
+  .doc-header {
+    font-family: var(--sans);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 5mm;
+    margin-bottom: 8mm;
+    font-size: 9pt;
+    color: var(--ink-mute);
+  }
+
+  .doc-header .left {
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: 0.3px;
+  }
+
+  /* ========== Section Headings ========== */
+  section {
+    page-break-inside: auto;
+    margin-bottom: 9mm;
+  }
+
+  h2.section-h {
+    font-family: var(--sans);
+    font-size: 17pt;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 7mm 0 4mm 0;
+    padding-bottom: 2.5mm;
+    border-bottom: 2px solid var(--accent);
+    page-break-after: avoid;
+  }
+
+  h2.section-h .num {
+    color: var(--accent);
+    margin-right: 0.5em;
+  }
+
+  h3 {
+    font-family: var(--sans);
+    font-size: 12.5pt;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 5mm 0 2mm 0;
+    page-break-after: avoid;
+  }
+
+  h4 {
+    font-family: var(--sans);
+    font-size: 11pt;
+    font-weight: 600;
+    color: var(--ink-soft);
+    margin: 4mm 0 1.5mm 0;
+    page-break-after: avoid;
+  }
+
+  .lead {
+    font-size: 12pt;
+    color: var(--ink-soft);
+    line-height: 1.7;
+    margin-bottom: 5mm;
+  }
+
+  /* ========== Lists ========== */
+  ul,
+  ol {
+    margin: 0 0 4mm 0;
+    padding-left: 6mm;
+  }
+
+  li {
+    margin-bottom: 1.4mm;
+    line-height: 1.6;
+  }
+
+  ul li::marker {
+    color: var(--accent);
+  }
+
+  ol li::marker {
+    color: var(--accent);
+    font-family: var(--sans);
+    font-weight: 700;
+  }
+
+  /* ========== Feature Cards ========== */
+  .features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 5mm 0;
+    display: grid;
+    gap: 3mm;
+  }
+
+  .features li {
+    background: var(--bg-alt);
+    border-left: 3px solid var(--accent);
+    padding: 3mm 4mm 3mm 4mm;
+    border-radius: 0 4px 4px 0;
+    line-height: 1.55;
+    font-size: 10.5pt;
+  }
+
+  .features li strong {
+    color: var(--ink);
+  }
+
+  /* ========== Architecture Stack ========== */
+  .stack {
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 3mm 0 5mm 0;
+    page-break-inside: avoid;
+  }
+
+  .stack-row {
+    display: grid;
+    grid-template-columns: 48mm 1fr;
+    border-bottom: 1px solid var(--rule-soft);
+    font-family: var(--sans);
+    font-size: 10pt;
+  }
+
+  .stack-row:last-child {
+    border-bottom: none;
+  }
+
+  .stack-row .layer {
+    background: var(--bg-alt);
+    padding: 2.6mm 4mm;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-size: 9pt;
+    border-right: 1px solid var(--rule-soft);
+  }
+
+  .stack-row .detail {
+    padding: 2.6mm 4mm;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+
+  .stack-row .detail strong {
+    color: var(--ink);
+  }
+
+  /* ========== Spec Grid (GPU metrics etc.) ========== */
+  .spec-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 3mm;
+    margin: 3mm 0 5mm 0;
+  }
+
+  .spec-card {
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 4mm 4.5mm;
+    background: var(--bg);
+  }
+
+  .spec-card .k {
+    font-family: var(--sans);
+    font-size: 8.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--ink-mute);
+    font-weight: 600;
+    margin-bottom: 1.5mm;
+  }
+
+  .spec-card .v {
+    font-family: var(--sans);
+    font-size: 14pt;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .spec-card .v .unit {
+    font-size: 9pt;
+    color: var(--ink-mute);
+    font-weight: 500;
+    margin-left: 2px;
+  }
+
+  /* ========== Innovation List ========== */
+  .innov {
+    counter-reset: innov;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 4mm 0;
+  }
+
+  .innov li {
+    counter-increment: innov;
+    position: relative;
+    padding-left: 12mm;
+    margin-bottom: 3.5mm;
+    line-height: 1.55;
+  }
+
+  .innov li::before {
+    content: counter(innov);
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-family: var(--sans);
+    font-weight: 700;
+    color: #fff;
+    background: var(--accent);
+    width: 6.5mm;
+    height: 6.5mm;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9pt;
+    line-height: 1;
+  }
+
+  .innov li strong {
+    color: var(--ink);
+    font-family: var(--sans);
+  }
+
+  /* ========== Callout ========== */
+  .callout {
+    background: var(--accent-soft);
+    border-left: 4px solid var(--accent);
+    padding: 3.5mm 4.5mm;
+    border-radius: 0 4px 4px 0;
+    margin: 3mm 0 5mm 0;
+    font-size: 10.5pt;
+    page-break-inside: avoid;
+  }
+
+  .callout strong {
+    color: var(--accent);
+  }
+
+  /* ========== Table ========== */
+  table.data {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--sans);
+    font-size: 10pt;
+    margin: 3mm 0 5mm 0;
+  }
+
+  table.data th {
+    text-align: left;
+    background: var(--bg-alt);
+    color: var(--ink);
+    font-weight: 700;
+    padding: 2.5mm 3.5mm;
+    border-bottom: 2px solid var(--rule);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 9pt;
+  }
+
+  table.data td {
+    padding: 2.5mm 3.5mm;
+    border-bottom: 1px solid var(--rule-soft);
+    color: var(--ink-soft);
+    vertical-align: top;
+  }
+
+  table.data tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* ========== Footer ========== */
+  .doc-footer {
+    font-family: var(--sans);
+    font-size: 8.5pt;
+    color: var(--ink-mute);
+    border-top: 1px solid var(--rule);
+    padding-top: 4mm;
+    margin-top: 8mm;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* ========== Print Styles ========== */
+  @media print {
+    @page {
+      size: A4;
+      margin: 0;
+    }
+
+    html {
+      font-size: 11pt;
+    }
+
+    body {
+      background: #fff;
+    }
+
+    .sheet {
+      width: auto;
+      min-height: auto;
+      margin: 0;
+      padding: 0;
+      box-shadow: none;
+    }
+
+    .cover {
+      min-height: 100vh;
+      page-break-after: always;
+    }
+
+    section {
+      page-break-inside: avoid;
+    }
+
+    h2.section-h,
+    h3,
+    h4,
+    .spec-grid,
+    .stack,
+    .callout,
+    table.data,
+    .features li {
+      page-break-inside: avoid;
+    }
+
+    a {
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .no-print {
+      display: none !important;
+    }
+  }
+
+  /* ========== Print Button ========== */
+  .print-btn {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 999;
+    font-family: var(--sans);
+    font-size: 10pt;
+    font-weight: 600;
+    color: #fff;
+    background: var(--accent);
+    border: none;
+    padding: 9px 18px;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(179, 33, 38, 0.35);
+    transition: opacity 0.2s, transform 0.1s;
+  }
+
+  .print-btn:hover {
+    opacity: 0.9;
+  }
+
+  .print-btn:active {
+    transform: translateY(1px);
+  }
+</style>
+</head>
+<body>
+
+<button class="print-btn no-print" onclick="window.print()">Print / Export PDF</button>
+
+<!-- ================= COVER PAGE ================= -->
+<div class="sheet cover">
+  <div>
+    <div class="cover-top">
+      <div class="cover-eyebrow">AMD Radeon Hackathon 2026 &nbsp;·&nbsp; Track 2</div>
+      <h1 class="cover-title">ai<span class="accent">Quant</span></h1>
+      <p class="cover-subtitle">Private AI Agent for Quantitative Factor Mining &mdash; fully local LLM inference on AMD Radeon GPU.</p>
+      <div class="cover-rule"></div>
+
+      <table class="cover-meta">
+        <tr>
+          <td class="label">Project</td>
+          <td class="value">aiQuant &mdash; Private AI Agent for Quantitative Factor Mining</td>
+        </tr>
+        <tr>
+          <td class="label">Competition</td>
+          <td class="value">AMD Radeon Hackathon 2026</td>
+        </tr>
+        <tr>
+          <td class="label">Track</td>
+          <td class="value">Track 2 &mdash; Private AI Agent Development &amp; Local Deployment</td>
+        </tr>
+        <tr>
+          <td class="label">Author</td>
+          <td class="value">CHANGCHENGGAO</td>
+        </tr>
+        <tr>
+          <td class="label">Date</td>
+          <td class="value">August 2026</td>
+        </tr>
+        <tr>
+          <td class="label">Document</td>
+          <td class="value">Project Specification v1.0</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="cover-bottom">
+    <span>Confidential &mdash; For Hackathon Evaluation</span>
+    <span>aiQuant · 2026</span>
+  </div>
+</div>
+
+<!-- ================= CONTENT ================= -->
+<div class="sheet">
+
+  <div class="doc-header">
+    <span class="left">aiQuant — Project Specification</span>
+    <span>AMD Radeon Hackathon 2026 · Track 2</span>
+  </div>
+
+  <!-- 1. Problem Statement -->
+  <section>
+    <h2 class="section-h"><span class="num">1.</span>Problem Statement</h2>
+    <p class="lead">Financial quantitative research has traditionally been the exclusive domain of institutional teams with specialized talent and infrastructure. This exclusivity is sustained by three compounding barriers:</p>
+    <ul>
+      <li><strong>Domain expertise</strong> &mdash; Designing effective alpha factors requires deep financial knowledge, an intuition for market microstructure, and years of research experience.</li>
+      <li><strong>Programming skills</strong> &mdash; Translating a factor hypothesis into correct, performant code demands proficiency in Python, numerical libraries, and backtesting frameworks.</li>
+      <li><strong>Backtesting infrastructure</strong> &mdash; Validating factor performance requires historical data pipelines, execution simulation, and rigorous statistical evaluation &mdash; resources typically out of reach for individual investors.</li>
+    </ul>
+    <p>Beyond the technical barrier, a more fundamental concern exists: <strong>financial data is sensitive.</strong> Sending proprietary trading strategies, portfolio positions, or bespoke datasets to cloud-hosted LLM APIs raises serious privacy and intellectual-property risks. The data leaves the user's control, traverses third-party infrastructure, and may be retained or observed in ways the user cannot verify.</p>
+    <div class="callout">
+      <strong>The gap:</strong> Individual investors and small research teams need a way to leverage large-language-model reasoning for quantitative research <em>without</em> surrendering their data to the cloud, <em>without</em> hiring a full quant team, and <em>without</em> standing up complex infrastructure from scratch.
+    </div>
+  </section>
+
+  <!-- 2. Solution -->
+  <section>
+    <h2 class="section-h"><span class="num">2.</span>Solution</h2>
+    <p class="lead">aiQuant is a fully private AI Agent that automates the entire quantitative factor-mining workflow through natural language. A user describes a research intent in plain English or Chinese, and the Agent autonomously drives a complete research-and-development loop.</p>
+    <p>The pipeline operates as follows: the Agent <strong>generates a hypothesis</strong> from the user's intent, <strong>writes the factor code</strong> in Python, <strong>runs a Qlib backtest</strong> against historical A-share market data, and <strong>reviews the results</strong> &mdash; iterating until the factor meets performance thresholds or the exploration budget is exhausted.</p>
+    <p>Critically, every LLM inference call executes <strong>locally on an AMD Radeon GPU</strong> via the ROCm compute platform. No prompt, no factor logic, and no market data ever leaves the host machine. This design directly resolves the privacy tension identified in the problem statement while still delivering the generative reasoning power of an 8-billion-parameter language model.</p>
+  </section>
+
+  <!-- 3. Key Features -->
+  <section>
+    <h2 class="section-h"><span class="num">3.</span>Key Features</h2>
+    <ul class="features">
+      <li><strong>Natural language &rarr; factor mining</strong> &mdash; Users describe research intent in Chinese or English; the Agent handles the rest. No code required to initiate a study.</li>
+      <li><strong>Automated R&amp;D loop</strong> &mdash; A closed cycle of <em>hypothesis &rarr; code &rarr; backtest &rarr; review &rarr; iterate</em>, orchestrated by Microsoft RD-Agent, requires no manual intervention between stages.</li>
+      <li><strong>Multi-stock-pool support</strong> &mdash; Dynamic instrument files for CSI 300, CSI 500, SSE 50, and the full A-share universe can be selected at run time.</li>
+      <li><strong>100% local LLM inference</strong> &mdash; Qwen3-8B runs on an AMD Radeon GPU via ROCm at approximately 90 tokens/s with zero data egress.</li>
+      <li><strong>SSE real-time streaming</strong> &mdash; Server-Sent Events push live progress, generated code, and backtest metrics to the frontend as they happen.</li>
+      <li><strong>Qlib backtesting</strong> &mdash; Full evaluation suite reporting IC, ICIR, annualized return, and maximum drawdown per candidate factor.</li>
+      <li><strong>Hash embedding fallback</strong> &mdash; A deterministic local embedding scheme ensures the pipeline runs even when no external embedding API is configured.</li>
+      <li><strong>Visual dashboard</strong> &mdash; A Streamlit interface surfaces factor statistics, equity curves, and research logs for at-a-glance review.</li>
+    </ul>
+  </section>
+
+  <!-- 4. Technical Architecture -->
+  <section>
+    <h2 class="section-h"><span class="num">4.</span>Technical Architecture</h2>
+    <p>aiQuant is built as a layered system in which each tier has a clear responsibility. The frontend communicates with a FastAPI backend over HTTP and SSE; the backend delegates research orchestration to RD-Agent, which in turn calls the local LLM and the Qlib backtesting engine.</p>
+
+    <div class="stack">
+      <div class="stack-row">
+        <div class="layer">Frontend</div>
+        <div class="detail"><strong>React SPA</strong> &mdash; Vite + Tailwind CSS. Renders streamed Agent output, factor code, and backtest metrics in real time.</div>
+      </div>
+      <div class="stack-row">
+        <div class="layer">Backend</div>
+        <div class="detail"><strong>FastAPI + uvicorn</strong> &mdash; Python async server on port 8010. Exposes REST endpoints and an SSE stream for live progress.</div>
+      </div>
+      <div class="stack-row">
+        <div class="layer">AI Engine</div>
+        <div class="detail"><strong>Microsoft RD-Agent</strong> &mdash; Drives the automated R&amp;D loop: hypothesis generation, code synthesis, execution, and result review.</div>
+      </div>
+      <div class="stack-row">
+        <div class="layer">Backtesting</div>
+        <div class="detail"><strong>Qlib</strong> &mdash; Microsoft quantitative platform providing factor evaluation, IC/ICIR computation, and return simulation.</div>
+      </div>
+      <div class="stack-row">
+        <div class="layer">LLM</div>
+        <div class="detail"><strong>Qwen3-8B</strong> via Lemonade SDK / llama-server on AMD Radeon GPU. Quantized to Q4_K_M for efficient VRAM usage.</div>
+      </div>
+      <div class="stack-row">
+        <div class="layer">LLM Routing</div>
+        <div class="detail"><strong>LiteLLM</strong> &mdash; OpenAI-compatible interface that routes completions to the local server with custom Qwen3 thinking-mode patches.</div>
+      </div>
+      <div class="stack-row">
+        <div class="layer">Data</div>
+        <div class="detail"><strong>A-share market data</strong> &mdash; 通达信 (TDX) CSV files imported and converted into Qlib's binary format for high-performance access.</div>
+      </div>
+      <div class="stack-row">
+        <div class="layer">Task Queue</div>
+        <div class="detail"><strong>Celery + Redis</strong> (optional) &mdash; Asynchronous job execution for long-running research loops, decoupled from the request cycle.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. AMD Radeon GPU Integration -->
+  <section>
+    <h2 class="section-h"><span class="num">5.</span>AMD Radeon GPU Integration</h2>
+    <p>Local inference is the cornerstone of aiQuant's privacy guarantee, and it is made practical by the AMD Radeon GPU stack. The integration spans the compute platform, inference SDK, and model configuration.</p>
+
+    <div class="spec-grid">
+      <div class="spec-card">
+        <div class="k">Compute Platform</div>
+        <div class="v">ROCm 5.7<span class="unit">+</span></div>
+      </div>
+      <div class="spec-card">
+        <div class="k">Inference SDK</div>
+        <div class="v">Lemonade</div>
+      </div>
+      <div class="spec-card">
+        <div class="k">Model</div>
+        <div class="v">Qwen3-8B</div>
+      </div>
+      <div class="spec-card">
+        <div class="k">Quantization</div>
+        <div class="v">Q4_K_M</div>
+      </div>
+      <div class="spec-card">
+        <div class="k">VRAM Footprint</div>
+        <div class="v">4.7<span class="unit">GB</span></div>
+      </div>
+      <div class="spec-card">
+        <div class="k">Measured Speed</div>
+        <div class="v">~90<span class="unit">tokens/s</span></div>
+      </div>
+    </div>
+
+    <h3>5.1 &nbsp;How the pieces fit together</h3>
+    <ul>
+      <li><strong>ROCm compute platform</strong> provides the low-level GPU kernels and HIP runtime that the inference engine compiles against, enabling native AMD hardware acceleration without proprietary vendor lock-in.</li>
+      <li><strong>Lemonade SDK</strong> offers a high-level, AMD-first inference server that loads the Qwen3-8B model, manages the KV cache, and serves completions over an OpenAI-compatible HTTP endpoint.</li>
+      <li><strong>Q4_K_M quantization</strong> compresses the 8B model to roughly 4.7 GB of VRAM, allowing it to run comfortably on mainstream Radeon cards while preserving generation quality suitable for factor-code synthesis.</li>
+      <li><strong>Zero data egress</strong> &mdash; Because the inference server binds to <code>localhost</code>, every prompt and every completion remains on the host. No telemetry, no cloud relay, no shared inference pool.</li>
+    </ul>
+    <div class="callout">
+      <strong>Measured throughput:</strong> Approximately <strong>90 tokens/s</strong> on the target Radeon GPU &mdash; fast enough to sustain an interactive Agent loop where the user sees streamed reasoning and code in real time.
+    </div>
+  </section>
+
+  <!-- 6. Innovation Points -->
+  <section>
+    <h2 class="section-h"><span class="num">6.</span>Innovation Points</h2>
+    <ol class="innov">
+      <li><strong>Local-first privacy.</strong> All LLM inference runs on the GPU; no data leaves the device. This is the defining differentiator versus cloud-based quant assistants and directly addresses the sensitivity of financial data.</li>
+      <li><strong>Qwen3 thinking-mode handling.</strong> Custom monkey-patches for <code>litellm.acompletion</code> transparently disable Qwen3's thinking mode and fall back <code>reasoning_content</code> into <code>content</code> &mdash; ensuring RD-Agent receives clean, parseable completions without leaking internal chain-of-thought tokens.</li>
+      <li><strong>Hash embedding fallback.</strong> When no external embedding API is available, a deterministic hash-based embedding scheme generates consistent vectors locally, keeping the full R&amp;D pipeline operational in a strictly air-gapped environment.</li>
+      <li><strong>Cross-platform compatibility.</strong> The same codebase runs on macOS for local development and on Ubuntu / Radeon Cloud for production inference, so research prototypes graduate to deployment without rewrites.</li>
+      <li><strong>Multi-stock-pool support.</strong> Dynamic instrument-file deployment lets a single backtest run target CSI 300, CSI 500, SSE 50, or the entire A-share universe simply by selecting a pool &mdash; no code changes required.</li>
+    </ol>
+  </section>
+
+  <!-- 7. Privacy & Security -->
+  <section>
+    <h2 class="section-h"><span class="num">7.</span>Privacy &amp; Security</h2>
+    <p>Privacy is not a feature layered on top of aiQuant &mdash; it is the architectural premise. The system is designed so that a privacy-conscious user can verify, by inspection of the network configuration, that no research artifact ever leaves the machine.</p>
+    <ul>
+      <li><strong>100% local LLM inference.</strong> The Qwen3-8B model is served from <code>localhost</code> via Lemonade / llama-server. The inference socket never binds to a public interface.</li>
+      <li><strong>No external API calls</strong> &mdash; except an optional embedding API that the user may configure explicitly. When omitted, the hash embedding fallback is used and the system is fully air-gapped.</li>
+      <li><strong>.gitignore hygiene.</strong> All sensitive files &mdash; <code>.env</code>, API keys, credentials, and local market data caches &mdash; are excluded from version control by default.</li>
+      <li><strong>Local data residency.</strong> All market data (TDX CSVs and Qlib binaries), factor code, and backtest results are stored on the host filesystem and never transmitted off-device.</li>
+    </ul>
+  </section>
+
+  <!-- 8. Future Work -->
+  <section>
+    <h2 class="section-h"><span class="num">8.</span>Future Work</h2>
+    <p>aiQuant's current scope centers on single-agent, single-stock-pool factor mining with a local 8B model. Several directions extend the platform's depth and breadth:</p>
+    <ul>
+      <li><strong>Broader factor taxonomy</strong> &mdash; Extend beyond the current factor classes to support cross-sectional, time-series, and alternative-data factors (news sentiment, satellite imagery, supply-chain signals).</li>
+      <li><strong>Multi-agent collaboration</strong> &mdash; Introduce specialized agents &mdash; a fundamental analyst, a risk manager, and a portfolio optimizer &mdash; that debate and refine factors in concert rather than in isolation.</li>
+      <li><strong>Real-time market data integration</strong> &mdash; Connect live market feeds so factors can be monitored intraday and re-evaluated as new bars arrive, moving from batch research toward live signal generation.</li>
+      <li><strong>Model evolution</strong> &mdash; Automate architecture search across LGBM, GRU, and Transformer prediction models, allowing the Agent to select and tune the model best suited to each factor family.</li>
+    </ul>
+  </section>
+
+  <div class="doc-footer">
+    <span>aiQuant — Project Specification v1.0</span>
+    <span>CHANGCHENGGAO · August 2026</span>
+  </div>
+
+</div>
+
+</body>
+</html>
