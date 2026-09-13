@@ -1,0 +1,192 @@
+name: Benchmark Comparison & Alarm Regression
+
+on:
+  workflow_run:
+    workflows: ["Production"]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  comment-if-regressed:
+    runs-on: ubuntu-latest
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      contains(fromJson('["success","neutral"]'), github.event.workflow_run.conclusion)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install deps
+        run: |
+          # Pin wandb<0.25: 0.25.x changed api.runs() to no longer populate
+          # run.config in batch queries, breaking alarm.py's config["revision"] lookup.
+          python -m pip install --quiet --upgrade 'wandb<0.25' frozendict
+
+      - name: Download speed artifacts from triggering run
+        id: dl_speed
+        uses: actions/download-artifact@v4
+        with:
+          pattern: speed-test-*
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: ./artifacts
+
+      - name: Download mem artifacts from triggering run
+        id: dl_mem
+        uses: actions/download-artifact@v4
+        with:
+          pattern: mem-test-*
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: ./artifacts
+
+      - name: Show downloaded speed files
+        run: |
+          echo "Downloaded into ${{ steps.dl_speed.outputs.download-path }}"
+          ls -la ${{ steps.dl_speed.outputs.download-path }} || true
+          (command -v tree >/dev/null && tree -a ${{ steps.dl_speed.outputs.download-path }}) || true
+
+      - name: Show downloaded mem files
+        run: |
+          echo "Downloaded into ${{ steps.dl_mem.outputs.download-path }}"
+          ls -la ${{ steps.dl_mem.outputs.download-path }} || true
+          (command -v tree >/dev/null && tree -a ${{ steps.dl_mem.outputs.download-path }}) || true
+
+      - name: Check regressions + build outputs
+        id: analyze
+        env:
+          # Note that secrets are not passed to workflows that are triggered by a pull request from a fork
+          # --- W&B ---
+          WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
+          WANDB_ENTITY: genesis-ai-company
+          WANDB_SILENT: "true"
+        run: |
+          mkdir -p /tmp
+          set +e
+          python .github/workflows/scripts/alarm.py \
+            --speed-artifacts-dir ${{ steps.dl_speed.outputs.download-path }} \
+            --mem-artifacts-dir ${{ steps.dl_mem.outputs.download-path }} \
+            --max-valid-revisions 5 \
+            --max-fetch-revisions 40 \
+            --runtime-fps-regression-tolerance-pct 8 \
+            --compile-time-regression-tolerance-pct 30 \
+            --mem-regression-tolerance-pct 4 \
+            --csv-runtime-fps-path /tmp/runtime_fps.csv \
+            --csv-compile-time-path /tmp/compile_time.csv \
+            --csv-mem-path /tmp/mem.csv \
+            --check-body-path /tmp/check_output.md \
+            --exit-code-regression 42 \
+            --exit-code-alert 43
+          EXIT_CODE=$?
+          set -e
+          # Expose outputs to later steps
+          if [ -f /tmp/check_output.md ]; then
+            {
+              echo 'CHECK_OUTPUT<<__EOF__'
+              cat /tmp/check_output.md
+              echo '__EOF__'
+            } >> "$GITHUB_ENV"
+          else
+            echo "CHECK_OUTPUT=" >> "$GITHUB_ENV"
+          fi
+          # Export status
+          echo "HAS_REGRESSIONS=$([ "$EXIT_CODE" = 42 ] && echo 1 || echo 0)" >> "$GITHUB_ENV"
+          echo "HAS_ALERTS=$([ "$EXIT_CODE" = 43 ] && echo 1 || echo 0)" >> "$GITHUB_ENV"
+      - name: Upload benchmark comparisons in CSV
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-comparison-tables
+          path: |
+            /tmp/runtime_fps.csv
+            /tmp/compile_time.csv
+            /tmp/mem.csv
+          if-no-files-found: warn
+
+      - name: Publish PR check
+        id: publish_check
+        uses: actions/github-script@v8
+        env:
+          CHECK_NAME: Benchmark Comparison
+          CHECK_OUTPUT: ${{ env.CHECK_OUTPUT }}
+          HAS_REGRESSIONS: ${{ env.HAS_REGRESSIONS }}
+          HAS_ALERTS: ${{ env.HAS_ALERTS }}
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+        with:
+          script: |
+            const artifactUrl = process.env.ARTIFACT_URL || '';
+            let body = process.env.CHECK_OUTPUT || '';
+            if (body && artifactUrl) {
+              body += `\n\n**Artifact:** [Download raw data](${artifactUrl})`;
+            }
+
+            let summary;
+            let conclusion = 'success';
+            if ((process.env.HAS_REGRESSIONS || '0') === '1') {
+              summary = '🔴 Regressions detected. See tables below.';
+              conclusion = 'failure';
+            } else if ((process.env.HAS_ALERTS || '0') === '1') {
+              summary = '⚠️ Large deviation detected. See tables below.';
+            } else {
+              summary = '✅ No regressions detected. See tables below.';
+            }
+
+            const check = await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head_sha: context.payload.workflow_run.head_sha,
+              name: process.env.CHECK_NAME,
+              status: 'completed',
+              conclusion: conclusion,
+              output: {
+                title: process.env.CHECK_NAME,
+                summary,
+                text: body || undefined
+              }
+            });
+            core.setOutput("check-url", check.data.html_url);
+
+      - name: Add PR comment
+        if: ${{ env.HAS_REGRESSIONS == '1' || env.HAS_ALERTS == '1' }}
+        uses: actions/github-script@v8
+        env:
+          HAS_REGRESSIONS: ${{ env.HAS_REGRESSIONS }}
+          REPORT_URL: ${{ steps.publish_check.outputs.check-url }}
+        with:
+          script: |
+            // Getting PR number when using 'workflow_run' is tricky. For reference, see:
+            // * https://docs.github.com/en/webhooks/webhook-events-and-payloads#workflow_run
+            // * https://stackoverflow.com/a/75420270/4820605
+            const { data } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.payload.workflow_run.head_repository.owner.login,
+              repo: context.payload.workflow_run.head_repository.name,
+              commit_sha: context.payload.workflow_run.head_sha,
+            });
+            if (!data || !data.length) {
+              core.info('No associated PR; skipping comment.');
+              return;
+            }
+
+            const title = (process.env.HAS_REGRESSIONS || '0') === '1'
+              ? '🔴 Benchmark Regression Detected' : '⚠️ Abnormal Benchmark Result Detected';
+            const comment = `**${title} ➡️ [Report](${process.env.REPORT_URL})**`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: data[0].number,
+              body: comment
+            });
