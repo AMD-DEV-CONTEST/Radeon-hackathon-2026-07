@@ -1,0 +1,109 @@
+name: aegis
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: aegis
+      POSTGRES_PASSWORD: aegis
+      POSTGRES_DB: aegis
+    ports:
+      - "5432:5432"
+    volumes:
+      - aegis_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aegis"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ROCm-accelerated vLLM inference server. Requires an AMD Radeon GPU host
+  # with ROCm drivers installed — see docs/ROCM_SETUP.md for prerequisites.
+  # This service is the one that makes Aegis genuinely local: no request
+  # here ever leaves the machine it's running on.
+  vllm:
+    image: rocm/vllm:latest
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+    security_opt:
+      - seccomp=unconfined
+    ipc: host
+    shm_size: "16g"
+    ports:
+      - "8001:8001"
+    command: >
+      --model Qwen/Qwen2.5-14B-Instruct
+      --host 0.0.0.0
+      --port 8001
+      --dtype float16
+      --gpu-memory-utilization 0.90
+      --max-num-seqs 32
+      --enable-prefix-caching
+    volumes:
+      - aegis_model_cache:/root/.cache/huggingface
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in your .env before starting}
+      DATABASE_URL: postgresql+asyncpg://aegis:aegis@postgres:5432/aegis
+      REDIS_URL: redis://redis:6379/0
+      INFERENCE_BASE_URL: http://vllm:8001/v1
+      INFERENCE_MODEL: Qwen2.5-14B-Instruct
+      CORS_ORIGINS: http://localhost:3000
+      ENVIRONMENT: production
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in your .env before starting}
+      DATABASE_URL: postgresql+asyncpg://aegis:aegis@postgres:5432/aegis
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  aegis_pg_data:
+  aegis_model_cache:
