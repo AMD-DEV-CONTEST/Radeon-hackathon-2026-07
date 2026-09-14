@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://d-robotics.example/schemas/rdk_sft_sample.v1.schema.json",
+  "title": "RDK SFT sample v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "task_id",
+    "profile",
+    "split",
+    "messages",
+    "tools",
+    "outcome",
+    "metadata"
+  ],
+  "properties": {
+    "schema_version": { "const": "rdk_sft_sample.v1" },
+    "task_id": { "type": "string" },
+    "profile": { "enum": ["agentic", "qa"] },
+    "split": { "enum": ["train", "validation", "test"] },
+    "messages": {
+      "type": "array",
+      "minItems": 3,
+      "items": { "$ref": "#/$defs/message" }
+    },
+    "tools": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/tool" }
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "final_answer"],
+      "properties": {
+        "status": { "const": "success" },
+        "final_answer": { "type": "string", "minLength": 1 }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["source"],
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "run_id": { "type": "string" },
+        "provenance_id": { "type": "string" },
+        "evidence_manifest_path": { "type": "string" },
+        "semantic_group_id": { "type": "string" },
+        "knowledge_snapshot_id": { "type": "string" },
+        "teacher_model": { "type": "string" },
+        "pi_version": { "type": "string" },
+        "pi_source_commit": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "profile": { "const": "agentic" } } },
+      "then": {
+        "properties": {
+          "task_id": { "pattern": "^agent_[0-9]{6}$" },
+          "tools": { "minItems": 1 }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "profile": { "const": "qa" } } },
+      "then": {
+        "properties": {
+          "task_id": { "pattern": "^qa_[0-9]{6}$" },
+          "messages": { "minItems": 3, "maxItems": 3 },
+          "tools": { "maxItems": 0 }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "message": {
+      "type": "object",
+      "required": ["role", "content"],
+      "properties": {
+        "role": { "enum": ["system", "user", "assistant", "tool"] },
+        "content": { "type": "string" },
+        "tool_calls": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/toolCall" }
+        },
+        "tool_call_id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "toolCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "function"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": { "const": "function" },
+        "function": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "arguments"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "arguments": { "type": "object" }
+          }
+        }
+      }
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "function"],
+      "properties": {
+        "type": { "const": "function" },
+        "function": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "description", "parameters"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "description": { "type": "string", "minLength": 1 },
+            "parameters": { "type": "object" }
+          }
+        }
+      }
+    }
+  }
+}

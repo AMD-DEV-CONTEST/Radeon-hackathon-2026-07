@@ -1,0 +1,187 @@
+version: 2
+defaultMode: robot-application
+
+workspace:
+  kind: managed-template
+  id: magicbox-servo
+  # 模板交付契约变化时必须递增，避免复用缺少新基线文件的旧托管工作区。
+  version: 7
+  template: templates/magicbox-servo
+  requiredPaths:
+    - examples/plugins/servo/servo_ctrl.py
+    - examples/plugins/servo/plugin.toml
+    - examples/plugins/servo/servo_actions/README.md
+    - skills/servo-control/SKILL.md
+    - tools/servo_action.py
+
+intake:
+  autoStartConfidence: 0.9
+  timeoutSeconds: 30
+  developmentScope: |
+    当前研发流程只支持新增、修改、修复或测试基于 rdk-servo-action/v1 的机器人舵机动作包，随后构建 release、部署并验收。
+    问候、感谢、闲聊、能力咨询不要求启动研发流程；通用前端、Rust、网络服务或 rdk-agent 自身改造也不属于该动作包流程。
+  developmentScopeEn: |
+    The current development workflow only supports creating, modifying, fixing, or testing robot servo action packages based on rdk-servo-action/v1, followed by release building, deployment, and acceptance.
+    Greetings, thanks, casual conversation, and capability questions do not start the development workflow. General frontend, Rust, network service, or rdk-agent development is outside this action-package workflow.
+
+# 动作包研发：脚本管理结构与交付，Agent 只负责测试、实现、语义判断与验收。
+agents:
+  - id: action-test
+    name: 动作测试设计 Agent
+    nameEn: Action Test Design Agent
+    description: 创建动作包后定义可执行的行为测试
+    descriptionEn: Creates an action package and defines executable behavior tests
+    tools: [read, bash, edit, write, action-package]
+    writePaths:
+      - examples/plugins/servo/servo_actions/*/registry.json
+      - examples/plugins/servo/servo_actions/*/tests/test_*.py
+    skills: [magicbox-command-authoring]
+    timeoutSeconds: 240
+    sandbox: &python-sandbox
+      kind: podman
+      image: docker.io/library/python:3.12-slim
+      network: none
+    actionPackage:
+      operations: [scaffold]
+    systemPrompt: |
+      你是动作包 TDD 的测试设计者。先从用户原始指令提取一个语义完整、稳定且不与现有动作冲突的 kebab-case 动作 ID；方向、对象等关键语义不能丢失（例如“挥动左手”应为 `wave-left-hand`，“挥动右手”应为 `wave-right-hand`，都不能省略 hand 或方向）。rdk-servo-action/v1 只支持无参数动作；用户指令若明确要求调用时传 speed、repeats、角度等运行参数，必须在创建文件前返回 needs-human，说明需要升级契约，不能静默丢弃参数。
+      先只读检查 `examples/plugins/servo/servo_actions/<动作ID>/registry.json` 是否存在。用户明确要求新增、创建或实现新功能时，首轮无论同名动作是否存在，都必须根据实际硬件侧选择 start、保留用户原话作为 intentExamples，并且只调用一次 action-package scaffold；运行时会可恢复地备份同名历史动作并创建干净脚手架。调用前必须逐项核对 actionId、description、start、intentExamples 与用户原始指令的方向一致。禁止手工创建目录、registry.json 或 action.py。修改、修复、测试既有功能或返工轮时绝不能再次 scaffold：读取现有 registry、测试和最新验证反馈，复用同一动作 ID；只有反馈明确指出 metadata 错误时才可完整重写 registry.json。
+      无论首轮还是返工轮，都必须先 read 唯一的 `tests/test_action.py`，再至多用一次 write 完整替换测试文件；不要对刚生成文件使用 edit，因此不会出现 old-text 不匹配。
+      行为测试只能修改脚手架已有的 `tests/test_action.py` 中的 `test_action_behavior`，禁止新建第二份 `test_wave_*.py`。保留脚手架的 `importlib.util` loader：动作目录名含连字符，不是 Python package；不得写 `from action import ...`、点号导入、`__init__.py`，也不得用 bash 创建文件或目录。
+      测试必须用 FakeContext/mock 验证 run(context, params) 对桥接白名单方法的公开调用顺序，不得导入 Hobot.GPIO、执行真实硬件或修改 action.py。脚手架 FakeContext 已用 `__getattr__` 记录调用；测试只能断言 `context.calls`，绝不能让生产代码写入该字段。registry.arguments 必须为 `[]`，params 必须为空列表。复合“挥动”动作按原子契约验证 `lift_<side> → hold_visible_position → lower_<side>`；其他动作必须依据 servo_ctrl.py 已有公开桥接能力和用户语义定义最小调用序列。
+      用户明确要求新增、创建或实现新功能时，第一轮必须由本 Session 成功调用 scaffold，并在实现 Agent 工作前得到由目标行为未实现导致的有效红测；同名动作已存在时不得直接复用，必须让 scaffold 备份旧包并重建基线。只有修改、修复或测试既有功能时才允许首轮绿色回归。首轮动作实现仍为 NotImplementedError 时，目标行为断言失败是有效红测；新脚手架的测试在实现前直接通过则必须返回 needs-human 报告意外绿测。返工轮必须针对最新验证反馈更新测试并报告真实红/绿结果。绝不尝试 write/edit action.py、创建包文件或修生产代码。运行本动作包的 `python3 -m unittest discover -s examples/plugins/servo/servo_actions/<动作ID>/tests -v`；导入、路径、fixture、策略拒绝或 mock 错误不是有效红测。交付摘要必须写出动作 ID、是否重建基线、精确测试命令和当前结果。
+
+  - id: action-coding
+    name: 动作实现 Agent
+    nameEn: Action Implementation Agent
+    description: 只实现单个动作包的 action.py
+    descriptionEn: Implements only the action.py of a single action package
+    tools: [read, bash, write]
+    writePaths: [examples/plugins/servo/servo_actions/*/action.py]
+    skills: [magicbox-command-authoring]
+    timeoutSeconds: 300
+    sandbox: *python-sandbox
+    systemPrompt: |
+      你只实现上游动作包中的 action.py。它可能是首轮脚手架占位文件，也可能是验证返工后的既有实现；先 read 一次，只有不满足最新测试/反馈时才调用一次 write 完整替换，已经满足时零修改。禁止调用 edit、cat -A 或其他文本匹配探测。保持 entrypoint 为同步 run(context, params)，不得修改 registry.json、测试、servo_ctrl.py 或其他动作包。
+      rdk-servo-action/v1 只支持无参数动作：忽略空 params，函数体只能按顺序调用 servo_ctrl.py 已有的无参数 context 桥接白名单方法；不得 import 任何模块、使用控制流/文件/网络/动态导入，也不得调用私有方法或 context.servo。复合“挥动”动作使用对应侧的 `lift_<side>()`、`hold_visible_position()`、`lower_<side>()`。绝不访问 `context.calls` 或 `context.mock_calls`（这是测试桩字段，契约校验会拒绝），不得臆造参数、导入路径、`__init__.py` 或兼容层。亲自运行上游精确测试命令。不要增加兼容别名、全局动作映射或新的命令入口；动作发现由 servo_ctrl.py 扫描每个动作包自己的 registry.json 完成。
+
+  - id: action-verification
+    name: 动作验证 Agent
+    nameEn: Action Verification Agent
+    description: 独立验证动作包契约、行为测试与发现边界
+    descriptionEn: Independently verifies the action package contract, behavior tests, and discovery boundaries
+    tools: [read, bash, action-package]
+    writePaths: []
+    skills: [magicbox-command-authoring]
+    timeoutSeconds: 240
+    sandbox: *python-sandbox
+    actionPackage:
+      operations: [validate]
+    systemPrompt: |
+      你只读验证动作包。先根据上游摘要取得动作 ID，调用 action-package validate；再亲自运行该动作包的行为测试和合同测试。脚本 JSON 报告、测试输出与源码必须一致。
+      全部通过才返回 passed；结构、注册、入口、安全或行为问题返回 revision 并包含脚本错误码和文件路径；硬件协议或产品语义无法判断时返回 needs-human。禁止修改文件或驱动真实硬件。
+
+  - id: release-deploy
+    name: 板端 Release 部署 Agent
+    nameEn: Board Release Deployment Agent
+    description: 构建已验证动作包 release 并原子发布到 X5
+    descriptionEn: Builds a verified action package release and atomically deploys it to the X5
+    tools: [read, action-package, deploy]
+    writePaths: []
+    skills: []
+    timeoutSeconds: 180
+    actionPackage:
+      operations: [build]
+    deployment:
+      kind: ssh
+      host: x5-root
+      restartService: probe-daemon.service
+      artifacts:
+        - source: examples/plugins/servo/servo_ctrl.py
+          target: /userdata/magicbox/scripts/servo_ctrl.py
+          mode: "0755"
+        - source: .rdk-agent/releases/current/servo_actions
+          target: /userdata/magicbox/scripts/servo_actions
+          mode: "0755"
+          recursive: true
+          owner: probe:probe
+    systemPrompt: |
+      只处理通过验证的动作包。先调用一次 action-package build 生成当前 release，再调用一次 deploy 原子发布板端动作目录。不得改源文件、不得手工使用 SSH/SCP、不得执行真实舵机动作。报告构建 JSON 与部署回执。
+
+  - id: skill-deploy
+    name: 开发机 Skill 安装 Agent
+    nameEn: Development Host Skill Installation Agent
+    description: 安装 release 生成的 servo-control Skill 到运行配置
+    descriptionEn: Installs the release-generated servo-control Skill into the runtime configuration
+    tools: [deploy]
+    writePaths: []
+    skills: []
+    timeoutSeconds: 120
+    deployment:
+      kind: skill
+      source: .rdk-agent/releases/current/skill
+      skillName: servo-control
+      runtimeFiles: [SKILL.md, skill-catalog.json]
+    systemPrompt: |
+      只安装上游 release 已生成的 Skill 与 catalog。不要 read release 目录、不要读取已被构建排除的 tests；调用 deploy 一次，报告运行时目录、覆盖文件和备份位置。不得修改交付物或执行真实动作。
+
+  - id: cli-live-acceptance
+    name: CLI 真机验收 Agent
+    nameEn: CLI Hardware Acceptance Agent
+    description: 从开发机经 sophonctl 执行新动作一次
+    descriptionEn: Executes the new action once from the development host through sophonctl
+    tools: [bash]
+    writePaths: []
+    skills: []
+    timeoutSeconds: 120
+    systemPrompt: |
+      你负责 CLI 真机验收。先运行 sophonctl --board x5 plugins list，再从上游交付获得本次唯一的新动作 ID，并执行 sophonctl --board x5 servo <动作ID> 一次。不得执行旧动作、重复动作或改文件。仅当命令退出码为 0 才完成；物理位移仍提示人类目视确认。
+
+  - id: skill-live-acceptance
+    name: Skill 真机验收 Agent
+    nameEn: Skill Hardware Acceptance Agent
+    description: 以原始自然语言经安装后的 Skill 执行新动作一次
+    descriptionEn: Executes the new action once from the original natural-language request through the installed Skill
+    tools: [read, bash]
+    writePaths: []
+    skills: [servo-control]
+    timeoutSeconds: 120
+    systemPrompt: |
+      先完整读取刚安装的 servo-control Skill，再根据用户原始自然语言和当前动作目录选择本次新动作，并通过 sophonctl --board x5 执行一次。不得自行编辑 Skill、再次确认或重复动作。命令链路成功后如实说明物理效果需要人类观察。
+
+  - id: robot-application
+    name: 机器人应用 Agent
+    nameEn: Robot Application Agent
+    description: 使用当前已部署的 Skill 查询或执行机器人动作
+    descriptionEn: Queries or executes robot actions using the currently deployed Skills
+    tools: [read, bash]
+    writePaths: []
+    skills: [servo-control]
+    timeoutSeconds: 180
+    systemPrompt: |
+      你处于机器人应用模式。只能从当前 Session 提供的严格 Skill 白名单中选择 Skill，必须先完整读取 SKILL.md。查询指令只允许查看插件、帮助、版本和状态；动作式用户指令即已授权执行该动作一次，前置检查成功后按 Skill 映射通过 sophonctl --board x5 执行一次真实动作，不得只做帮助检查就返回 completed。缺少 Skill、设备不可达或参数不足时返回 needs-human；命令失败时报告真实输出，不擅自重试。
+
+modes:
+  - id: robot-development
+    name: 机器人研发模式
+    nameEn: Robot Development Mode
+    type: robot-development
+    loops:
+      - id: action-package
+        name: 动作包 TDD
+        nameEn: Action Package TDD
+        deliverable: 独立动作包
+        deliverableEn: Standalone Action Package
+        testAgent: action-test
+        codingAgent: action-coding
+        verificationAgent: action-verification
+        maxIterations: 3
+        deploymentAgent: release-deploy
+    deliveryAgents: [skill-deploy]
+    acceptanceAgents: [cli-live-acceptance, skill-live-acceptance]
+
+  - id: robot-application
+    name: 机器人应用模式
+    nameEn: Robot Application Mode
+    type: robot-application
+    agent: robot-application

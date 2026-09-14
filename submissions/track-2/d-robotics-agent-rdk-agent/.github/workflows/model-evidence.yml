@@ -1,0 +1,56 @@
+name: model-evidence
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  data-pipeline-check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: model/examples/magicbox-data-pipeline
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.19.0"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: chmod +x scripts/python.sh
+      - run: npm run check
+
+  training-subset-verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: model/examples/qwen3-32b-training
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python3 verify_subset.py
+
+  benchmark-evidence-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python3 -m unittest model/benchmark/test_benchmark.py
+      - name: Verify published evidence ledger
+        working-directory: model/benchmark/runs/model-ab-heldout113-20260805-v2
+        run: sha256sum -c SHA256SUMS
+      - name: Independently rescore published responses
+        working-directory: model/benchmark/runs/model-ab-heldout113-20260805-v2
+        run: |
+          python3 ../../recompute_ab.py \
+            --test ../../../data/releases/rdk-sft-v1-20260803/agentic/test.jsonl \
+            arms/base.raw.jsonl arms/sft.raw.jsonl summary.json
+      - name: Verify saved Radeon optimization evidence
+        working-directory: model/radeon-optimization/qwen3-next-80b
+        run: python3 verify_results.py

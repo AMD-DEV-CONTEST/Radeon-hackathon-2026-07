@@ -1,0 +1,19 @@
+{
+  "name": "magicbox-data-pipeline-example",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Small, complete, offline-reproducible example of the MagicBox SFT data pipeline: frozen fixtures -> deterministic export -> schema/causality validation -> byte-identical expected outputs.",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "test": "node --test test/*.test.mjs",
+    "export:qa": "node scripts/export_qa_dataset.mjs --tasks fixtures/qa_tasks.jsonl --snapshot fixtures/knowledge --output out/qa --expected-count 3",
+    "export:agentic": "node scripts/export_agentic_fixture.mjs --fixture fixtures/native_pi_trace.fixture.json --output out/agentic",
+    "validate:qa": "scripts/python.sh scripts/validate_dataset.py out/qa/train.jsonl out/qa/validation.jsonl out/qa/test.jsonl",
+    "validate:agentic": "scripts/python.sh scripts/validate_native_pi_dataset.py out/agentic/sample.jsonl --schema schemas/rdk_sft_sample.v1.schema.json --scan-root out/agentic",
+    "scan": "scripts/python.sh scripts/scan_tree.py . --allow-file scripts/scan_tree.py --allow-file test/qa_exporter.test.mjs --allow-file test/demo.test.mjs"
+  }
+}

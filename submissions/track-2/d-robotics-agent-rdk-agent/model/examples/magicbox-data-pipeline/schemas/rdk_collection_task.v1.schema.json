@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://d-robotics.example/schemas/rdk_collection_task.v1.schema.json",
+  "title": "RDK collection task v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "task_id",
+    "profile",
+    "split",
+    "instruction",
+    "allowed_tools",
+    "allowed_scopes",
+    "verifier",
+    "metadata"
+  ],
+  "properties": {
+    "schema_version": { "const": "rdk_collection_task.v1" },
+    "task_id": { "type": "string" },
+    "profile": { "enum": ["agentic", "qa"] },
+    "split": { "enum": ["train", "validation", "test"] },
+    "instruction": { "type": "string", "minLength": 1 },
+    "context": { "type": "string", "minLength": 1 },
+    "allowed_tools": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["read", "grep", "find", "ls", "bash"] }
+    },
+    "allowed_scopes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["workspace", "knowledge", "board"] }
+    },
+    "verifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["checks"],
+      "properties": {
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": {
+                "enum": [
+                  "tool_called",
+                  "knowledge_found",
+                  "answer_terms",
+                  "ssh_command",
+                  "ssh_command_used"
+                ]
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["source", "semantic_group_id"],
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "semantic_group_id": { "type": "string", "minLength": 1 },
+        "knowledge_base": { "type": "string" }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "profile": { "const": "agentic" } } },
+      "then": {
+        "properties": {
+          "task_id": { "pattern": "^agent_[0-9]{6}$" },
+          "allowed_tools": { "minItems": 5, "maxItems": 5 },
+          "allowed_scopes": { "minItems": 2 }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "profile": { "const": "qa" } } },
+      "then": {
+        "properties": {
+          "task_id": { "pattern": "^qa_[0-9]{6}$" },
+          "allowed_tools": { "maxItems": 0 },
+          "allowed_scopes": { "maxItems": 0 }
+        }
+      }
+    }
+  ]
+}

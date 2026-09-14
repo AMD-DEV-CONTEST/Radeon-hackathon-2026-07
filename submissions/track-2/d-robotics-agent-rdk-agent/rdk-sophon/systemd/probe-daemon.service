@@ -1,0 +1,29 @@
+[Unit]
+Description=RDK Sophon Probe Daemon
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/probe-daemon --config /etc/probe-daemon/config.toml
+Restart=on-failure
+RestartSec=2
+# Run as a dedicated unprivileged user. The Unix socket at /run needs root
+# unless you adjust RuntimeDirectory. Using RuntimeDirectory gives the
+# service its own /run/probe-daemon owned by the service user.
+User=probe
+Group=probe
+RuntimeDirectory=probe-daemon
+RuntimeDirectoryMode=0755
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/log/probe-daemon /run/probe-daemon -/userdata/magicbox/scripts/servo_actions
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target
