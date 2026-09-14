@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>修正历史 · Beaver Memory</title>
+    <link rel="icon" href="data:," />
+    <style>
+      *{box-sizing:border-box}button,input{font:inherit}main{min-width:0;padding:38px}.head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:22px}.eyebrow{color:#8b642f;font-size:12px;font-weight:850;letter-spacing:.13em}.head h1{margin:7px 0 0;font-size:clamp(34px,4vw,58px);letter-spacing:-.05em}.head p{max-width:760px;margin:12px 0 0;color:var(--bm-muted);line-height:1.7}.health{padding:9px 13px;border:1px solid var(--bm-line);border-radius:999px;background:#fffaf0aa;font-size:12px}.health.error{color:var(--bm-danger)}.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.toolbar h2{margin:0}.history{display:grid;gap:12px}.card{padding:18px;border:1px solid var(--bm-line);border-radius:20px;background:var(--bm-panel);box-shadow:var(--bm-shadow)}.card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}.card h3{margin:0;font-size:16px}.card-subtitle{margin:5px 0 0;color:var(--bm-muted);font-size:12px}.meta,.refs,.actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.diff{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}.value{padding:12px;border-radius:13px;background:#f5eee3;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.6}.value small{display:block;margin-bottom:5px;color:var(--bm-muted);font-weight:800}.refs-title{margin:12px 0 0;color:var(--bm-muted);font-size:11px;font-weight:800}.technical{margin-top:12px;padding-top:10px;border-top:1px solid var(--bm-line);color:var(--bm-muted);font-size:11px}.technical summary{cursor:pointer;font-weight:800}.technical pre{overflow:auto;white-space:pre-wrap}.empty{padding:42px;border:1px dashed var(--bm-line);border-radius:18px;color:var(--bm-muted);text-align:center}.token-box{position:absolute;left:20px;right:20px;bottom:24px}.token-box label{display:block;margin-bottom:7px;font-size:12px}.token-box input{width:100%;padding:9px;border:1px solid #ffffff22;border-radius:10px;color:white;background:#0004}@media(max-width:900px){main{padding:25px 15px 45px}.head{align-items:flex-start;flex-direction:column}.token-box{display:none}.diff{grid-template-columns:1fr}}
+    </style>
+    <link rel="stylesheet" href="/assets/beaver-memory.css" />
+    <script defer src="/assets/beaver-memory.js"></script>
+  </head>
+  <body class="bm-app">
+    <div class="bm-shell">
+      <aside class="bm-sidebar">
+        <a class="bm-brand" href="/memory"><span class="bm-brand-mark">B</span><span class="bm-brand-copy"><strong>Beaver Memory</strong><small>Memory Console</small></span></a>
+        <nav class="bm-nav" aria-label="主导航">
+          <a href="/memory"><span class="bm-nav-icon">◎</span><span class="bm-nav-label">记忆卡片<small>EverOS Episodes</small></span></a>
+          <a href="/memory/capsules"><span class="bm-nav-icon">◫</span><span class="bm-nav-label">多模态 Capsule<small>Technical Windows</small></span></a>
+          <a href="/memory/search"><span class="bm-nav-icon">⌕</span><span class="bm-nav-label">记忆搜索<small>Natural Language</small></span></a>
+          <a href="/daily"><span class="bm-nav-icon">日</span><span class="bm-nav-label">每日回顾<small>Daily Review</small></span></a>
+          <a href="/people"><span class="bm-nav-icon">人</span><span class="bm-nav-label">人物<small>Identity Profiles</small></span></a>
+          <a href="/objects/search"><span class="bm-nav-icon">□</span><span class="bm-nav-label">物品搜索<small>Last Seen</small></span></a>
+          <a href="/commitments"><span class="bm-nav-icon">◇</span><span class="bm-nav-label">长期待办<small>Todo Ledger</small></span></a>
+          <a class="active" href="/memory/corrections" aria-current="page"><span class="bm-nav-icon">✓</span><span class="bm-nav-label">修正历史<small>Versioned Audit</small></span></a>
+          <a href="/integrations"><span class="bm-nav-icon">↗</span><span class="bm-nav-label">采集接入<small>Device API</small></span></a>
+        </nav>
+        <div class="token-box"><label for="token">本地调试令牌</label><input id="token" data-bm-token autocomplete="off" /></div>
+      </aside>
+      <main>
+        <header class="head"><div><div class="eyebrow">CORRECTION AUDIT</div><h1>每次修正，都能回到原证据。</h1><p>修正请直接在记忆卡片或搜索片段上完成。这里仅查看版本、EverOS 写回状态，并在需要时重试或撤销；普通用户不需要填写任何内部 ID。</p></div><div class="health" id="health">正在读取修正账本</div></header>
+        <section>
+          <div class="toolbar"><div><h2>修正历史</h2><div class="card-subtitle" id="count"></div></div><button class="bm-button-secondary" id="refresh" type="button">刷新</button></div>
+          <div class="history" id="cards"><div class="empty">尚无修正记录。请在具体记忆卡片上点击“修正记忆”。</div></div>
+        </section>
+      </main>
+    </div>
+    <script>
+      const state={token:localStorage.getItem("beaver-memory.token")||"dev-token",corrections:[]};
+      const $=id=>document.getElementById(id);const esc=value=>String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+      $("token").value=state.token;$("token").addEventListener("change",event=>{state.token=event.target.value.trim()||"dev-token";localStorage.setItem("beaver-memory.token",state.token);load()});
+      function auth(extra={}){return {...extra,authorization:`Bearer ${state.token}`}}
+      async function api(url,options={}){const response=await fetch(url,options);const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.detail||`HTTP ${response.status}`);return data}
+      function valueText(value){if(value===null||value===undefined||value==="")return "—";return typeof value==="string"?value:JSON.stringify(value,null,2)}
+      function targetLabel(item){return {episode:"完整记忆",capsule:"记忆片段",person:"人物档案",object:"物品观察",commitment:"承诺待办",daily_report:"每日回顾"}[item.target_type]||item.target_type||"记忆"}
+      function fieldLabel(item){return {content:"记忆正文",text:"片段内容",title:"标题",summary:"摘要",status:"状态",name:"姓名",location_hint:"位置"}[item.field_path]||item.field_path||"整条记录"}
+      function render(){
+        $("count").textContent=`共 ${state.corrections.length} 个审计版本`;
+        if(!state.corrections.length){$("cards").innerHTML='<div class="empty">尚无修正记录。请在具体记忆卡片上点击“修正记忆”。</div>';return}
+        $("cards").innerHTML=state.corrections.map(item=>{const applied=item.writeback_status==="applied",failed=item.writeback_status==="failed_retryable";return `<article class="card"><div class="card-head"><div><h3>${esc(targetLabel(item))} · ${esc(fieldLabel(item))}</h3><p class="card-subtitle">${item.action==="revert"?"撤销修正":"用户修正"} · 版本 v${esc(item.version)}</p></div><span class="bm-pill ${applied?"success":failed?"danger":"warning"}">${esc(applied?"已写回 EverOS":failed?"等待重试":"处理中")}</span></div><div class="diff"><div class="value"><small>修正前</small>${esc(valueText(item.old_value))}</div><div class="value"><small>修正后</small>${esc(valueText(item.new_value))}</div></div><p class="refs-title">来源证据</p><div class="refs">${(item.evidence_refs||[]).map((_ref,index)=>`<span class="bm-pill">证据 ${index+1}</span>`).join("")||'<span class="bm-pill warning">未关联证据</span>'}</div>${item.last_error?`<p class="bm-notice error">${esc(item.last_error)}</p>`:""}<div class="actions">${!applied?`<button class="bm-button-secondary" data-action="retry" data-id="${esc(item.id)}">立即重试</button>`:""}${item.action!=="revert"?`<button class="bm-button-danger" data-action="revert" data-id="${esc(item.id)}">撤销此版本</button>`:""}</div><details class="technical"><summary>技术信息</summary><pre>目标：${esc(item.target_type)} / ${esc(item.target_id)}\n字段：${esc(item.field_path)}\n修正 ID：${esc(item.id)}\n写回阶段：${esc(item.writeback_stage)}</pre></details></article>`}).join("")
+      }
+      async function load(){try{const payload=await api("/v1/memory/corrections?limit=200",{headers:auth()});state.corrections=payload.corrections||[];render();$("health").textContent="修正账本已连接";$("health").classList.remove("error")}catch(error){$("health").textContent=`暂时无法刷新：${error.message}（保留上次内容）`;$("health").classList.add("error")}}
+      $("cards").addEventListener("click",async event=>{const button=event.target.closest("button[data-action]");if(!button)return;button.disabled=true;try{if(button.dataset.action==="retry")await api(`/v1/memory/corrections/${encodeURIComponent(button.dataset.id)}/retry`,{method:"POST",headers:auth()});if(button.dataset.action==="revert"&&confirm("撤销会新增一个审计版本，原始历史仍会保留。继续吗？"))await api(`/v1/memory/corrections/${encodeURIComponent(button.dataset.id)}/revert`,{method:"POST",headers:auth({"content-type":"application/json","Idempotency-Key":window.BeaverMemoryUI.idempotencyKey()}),body:JSON.stringify({note:"用户在修正历史页撤销"})});await load()}catch(error){$("health").textContent=`操作失败：${error.message}`;$("health").classList.add("error")}finally{button.disabled=false}});
+      $("refresh").addEventListener("click",load);load();setInterval(load,15000);
+    </script>
+  </body>
+</html>

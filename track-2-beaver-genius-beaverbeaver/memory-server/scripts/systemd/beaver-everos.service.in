@@ -1,0 +1,22 @@
+[Unit]
+Description=EverOS for Beaver Memory
+After=network-online.target beaver-provider-bridge.service
+Wants=network-online.target beaver-provider-bridge.service
+
+[Service]
+Type=simple
+User=@@USER@@
+WorkingDirectory=@@PROJECT_ROOT@@
+EnvironmentFile=@@PROJECT_ROOT@@/.env
+Environment=EVEROS_ROOT=@@DATA_ROOT@@
+Environment=EVEROS_API__HOST=127.0.0.1
+Environment=EVEROS_API__PORT=@@PORT@@
+Environment=EVEROS_PREFIX=@@PREFIX@@
+ExecStart=@@PROJECT_ROOT@@/scripts/start-everos.sh
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

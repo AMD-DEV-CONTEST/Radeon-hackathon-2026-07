@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EverLens 项目进度</title>
+  <style>
+    :root{
+      --bg:#f4f3ef;--surface:#fff;--soft:#eef1ec;--ink:#172019;--muted:#6f7972;
+      --forest:#073f2d;--forest-2:#0b543b;--sage:#dbe7de;--line:#d8ddd7;
+      --amber:#c87912;--amber-bg:#fff4dd;--red:#c53b32;--red-bg:#fff0ed;
+      --shadow:0 14px 38px rgba(24,37,28,.08);--radius:18px;
+    }
+    *{box-sizing:border-box}[hidden]{display:none!important}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans CJK SC","Microsoft YaHei",sans-serif;font-size:15px}
+    button,input,select,textarea{font:inherit}button{cursor:pointer}.app{min-height:100vh;display:grid;grid-template-columns:248px minmax(0,1fr)}
+    .sidebar{position:sticky;top:0;height:100vh;background:var(--forest);color:#fff;padding:30px 18px 22px;display:flex;flex-direction:column}
+    .logo{display:flex;align-items:center;gap:13px;padding:0 12px 30px;font-size:21px;font-weight:850;letter-spacing:-.02em}.logo-mark{width:39px;height:39px;border-radius:50%;border:3px solid rgba(255,255,255,.9);display:grid;place-items:center;font-size:18px}
+    .nav{display:grid;gap:7px}.nav a{display:flex;align-items:center;gap:13px;padding:13px 14px;border-radius:11px;color:rgba(255,255,255,.72);text-decoration:none;font-weight:700}.nav a:hover,.nav a.active{background:rgba(255,255,255,.12);color:#fff}.nav-icon{width:24px;text-align:center;font-size:18px}
+    .sidebar-bottom{margin-top:auto}.owner-card{padding:15px;border:1px solid rgba(255,255,255,.18);border-radius:14px;background:rgba(255,255,255,.05)}.owner-card small{display:block;color:rgba(255,255,255,.55);margin-bottom:10px}.owner-row{display:flex;align-items:center;gap:11px}.avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#2d7656;color:#fff;font-weight:800}.owner-row strong{display:block}.owner-row span{font-size:12px;color:rgba(255,255,255,.6)}
+    .token-btn{width:100%;margin-top:12px;border:0;background:transparent;color:rgba(255,255,255,.63);text-align:left;padding:9px 4px}.token-btn:hover{color:#fff}
+    main{min-width:0;padding:28px 34px 56px}.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.topbar h1{font-size:30px;line-height:1.2;letter-spacing:-.04em;margin:0}.topbar-actions{display:flex;gap:10px}
+    .btn{min-height:42px;border:1px solid var(--line);border-radius:10px;padding:0 16px;background:#fff;color:var(--ink);font-weight:750;display:inline-flex;align-items:center;justify-content:center;gap:8px}.btn:hover{border-color:#9cab9f}.btn.primary{background:var(--forest);border-color:var(--forest);color:#fff}.btn.primary:hover{background:var(--forest-2)}.btn.ghost{background:transparent}.btn.small{min-height:34px;padding:0 12px;font-size:13px}
+    .summary-band{display:grid;grid-template-columns:1.25fr 1.55fr repeat(3,.9fr);background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin-bottom:18px}.metric{min-width:0;padding:2px 24px;border-left:1px solid var(--line)}.metric:first-child{border-left:0;padding-left:0}.metric:last-child{padding-right:0}.metric label{display:block;color:var(--muted);font-size:13px;margin-bottom:7px}.metric strong{display:block;font-size:34px;line-height:1.1;letter-spacing:-.04em}.metric.phase strong{font-size:23px;margin-top:14px}.metric.risk strong{color:var(--amber)}.metric small{display:block;margin-top:7px;color:var(--muted)}
+    .progress-track{height:7px;margin-top:11px;border-radius:99px;background:#e4e7e3;overflow:hidden}.progress-track i{display:block;height:100%;width:0;background:var(--forest-2);border-radius:inherit;transition:width .45s ease}
+    .roadmap{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}.phase-card{position:relative;min-height:94px;padding:18px 20px;border:1px solid var(--line);border-radius:14px;background:#fff;display:grid;grid-template-columns:45px minmax(0,1fr);gap:13px;align-items:center}.phase-card.current{border:2px solid var(--forest-2);background:#f8fbf8}.phase-no{width:43px;height:43px;border-radius:50%;border:1px solid #a9b3ab;display:grid;place-items:center;font-weight:850}.phase-card.current .phase-no,.phase-card.done .phase-no{background:var(--forest-2);border-color:var(--forest-2);color:#fff}.phase-card h3{font-size:17px;margin:0 0 6px}.phase-card p{margin:0;color:var(--muted);font-size:12px}.phase-percent{position:absolute;right:16px;top:15px;color:var(--forest-2);font-weight:850}
+    .workspace{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start}.panel{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 8px 28px rgba(24,37,28,.05)}.panel-head{min-height:64px;padding:15px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:14px}.panel-head h2{font-size:19px;margin:0}.panel-sub{color:var(--muted);font-size:12px;margin-top:3px}.filters{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}.filter{border:0;border-left:1px solid var(--line);background:#fff;min-height:32px;padding:0 11px;color:var(--muted);font-size:12px}.filter:first-child{border-left:0}.filter.active{background:var(--forest);color:#fff}
+    .table-wrap{overflow:auto}.milestone-table{width:100%;border-collapse:collapse;min-width:820px}.milestone-table th{padding:12px 14px;color:var(--muted);text-align:left;font-size:12px;font-weight:650;background:#fbfbf9;border-bottom:1px solid var(--line)}.milestone-table td{padding:14px;border-bottom:1px solid #e7e9e5;vertical-align:middle}.milestone-table tbody tr{transition:background .18s}.milestone-table tbody tr:hover{background:#f6faf6}.milestone-name strong{display:block;font-size:14px}.milestone-name span{display:block;color:var(--muted);font-size:11px;margin-top:4px;max-width:360px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.phase-label,.priority{font-size:11px;color:var(--muted)}
+    .row-progress{display:grid;grid-template-columns:minmax(80px,1fr) 36px;gap:8px;align-items:center}.row-progress .progress-track{margin:0;height:6px}.row-progress span{font-size:11px;color:var(--muted)}.status{display:inline-flex;align-items:center;padding:5px 8px;border-radius:7px;font-size:11px;font-weight:750;background:var(--soft);color:#536057;white-space:nowrap}.status.completed{background:#e4f1e7;color:#21603a}.status.in_progress{background:#e8efe9;color:#1c5e3e}.status.at_risk{background:var(--amber-bg);color:#9b5b08}.status.blocked{background:var(--red-bg);color:var(--red)}.edit-btn{border:0;background:transparent;padding:7px;color:var(--forest);border-radius:7px}.edit-btn:hover{background:var(--sage)}
+    .right-rail{display:grid;gap:18px}.focus-list,.risk-list{padding:8px 16px 16px}.focus-item{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:9px;align-items:start;padding:12px 0;border-bottom:1px solid #e7e9e5}.focus-item:last-child{border-bottom:0}.focus-num{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--soft);font-size:11px;font-weight:800}.focus-item strong{font-size:13px}.focus-item span{font-size:11px;color:var(--muted);display:block;margin-top:3px}.risk-item{padding:12px;border:1px solid #eadeda;border-radius:10px;background:#fffdfa;margin-top:10px}.risk-line{display:flex;gap:8px;align-items:flex-start}.risk-dot{width:7px;height:7px;border-radius:50%;background:var(--amber);margin-top:6px;flex:0 0 auto}.risk-item.high .risk-dot{background:var(--red)}.risk-item strong{font-size:13px}.risk-item p{font-size:11px;line-height:1.5;color:var(--muted);margin:7px 0 0 15px}.risk-meta{display:flex;justify-content:space-between;margin:8px 0 0 15px;color:var(--muted);font-size:10px}
+    .updates-panel{margin-top:18px}.updates{padding:0 18px 14px}.update{display:grid;grid-template-columns:150px 12px minmax(0,1fr) auto;gap:12px;align-items:start;padding:15px 0;border-bottom:1px solid #e6e9e5}.update:last-child{border-bottom:0}.update time{color:var(--muted);font-size:12px}.timeline-dot{width:8px;height:8px;border-radius:50%;background:var(--forest-2);margin-top:5px;box-shadow:0 0 0 4px var(--sage)}.update strong{font-size:13px}.update p{margin:5px 0 0;color:var(--muted);font-size:12px;line-height:1.55}.update-author{font-size:11px;color:var(--green,#37644e);font-weight:750}
+    .empty{padding:40px;text-align:center;color:var(--muted)}.loading{min-height:60vh;display:grid;place-items:center;color:var(--muted)}.error-banner{display:none;padding:12px 16px;border:1px solid #efc4be;background:var(--red-bg);color:#9f2f27;border-radius:10px;margin-bottom:16px}.error-banner.show{display:block}
+    dialog{border:0;border-radius:18px;padding:0;width:min(520px,calc(100vw - 32px));box-shadow:0 28px 90px rgba(9,35,24,.25);color:var(--ink)}dialog::backdrop{background:rgba(6,25,17,.48);backdrop-filter:blur(2px)}.modal-head{display:flex;justify-content:space-between;align-items:center;padding:20px 22px;border-bottom:1px solid var(--line)}.modal-head h2{margin:0;font-size:20px}.close{border:0;background:transparent;font-size:23px;color:var(--muted)}.form{padding:20px 22px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.field{display:grid;gap:7px}.field.full{grid-column:1/-1}.field label{font-size:12px;color:var(--muted);font-weight:700}.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 11px;background:#fff;color:var(--ink);outline:0}.field textarea{resize:vertical;min-height:90px;line-height:1.5}.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--forest-2);box-shadow:0 0 0 3px rgba(11,84,59,.1)}.modal-actions{display:flex;justify-content:flex-end;gap:9px;padding:0 22px 21px}.form-error{display:none;margin:0 22px 14px;color:var(--red);font-size:12px}.form-error.show{display:block}.token-note{color:var(--muted);font-size:12px;line-height:1.5;margin:0 0 15px}
+    .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,25px);background:var(--forest);color:#fff;border-radius:11px;padding:12px 18px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.2s;z-index:50}.toast.show{opacity:1;transform:translate(-50%,0)}
+    @media(max-width:1350px){.app{grid-template-columns:84px minmax(0,1fr)}.sidebar{padding:25px 12px}.logo{padding:0 10px 30px}.logo span,.nav-label,.owner-card,.token-btn{display:none}.nav a{justify-content:center}.summary-band{grid-template-columns:1.2fr 1.5fr repeat(3,.8fr)}.metric{padding:2px 15px}.workspace{grid-template-columns:1fr}.right-rail{grid-template-columns:1fr 1fr}.metric strong{font-size:28px}}
+    @media(max-width:820px){.app{display:block}.sidebar{position:static;width:100%;height:auto;display:flex;flex-direction:row;align-items:center;padding:12px 16px}.logo{padding:0;margin-right:auto}.logo span{display:block}.nav{display:flex}.nav a{padding:10px}.sidebar-bottom{display:none}main{padding:20px 14px 40px}.topbar{align-items:flex-start}.topbar h1{font-size:25px}.topbar-actions .btn:first-child{display:none}.summary-band{grid-template-columns:1fr 1fr;gap:0}.metric{border-left:0;border-top:1px solid var(--line);padding:15px}.metric:first-child,.metric:nth-child(2){border-top:0}.roadmap{grid-template-columns:1fr}.workspace,.right-rail{grid-template-columns:1fr}.update{grid-template-columns:1fr}.timeline-dot{display:none}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="logo"><b class="logo-mark">E</b><span>EverLens 项目进度</span></div>
+      <nav class="nav">
+        <a class="active" href="#overview"><b class="nav-icon">⌂</b><span class="nav-label">项目总览</span></a>
+        <a href="#roadmap"><b class="nav-icon">⌁</b><span class="nav-label">路线图</span></a>
+        <a href="#updates"><b class="nav-icon">≡</b><span class="nav-label">进展更新</span></a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="owner-card"><small>项目视图</small><div class="owner-row"><b class="avatar">PM</b><div><strong>管理层看板</strong><span>真实 PRD 状态</span></div></div></div>
+        <button class="token-btn" id="tokenButton">⚙ 设置更新令牌</button>
+      </div>
+    </aside>
+    <main>
+      <div class="topbar"><h1 id="projectName">随身记忆系统</h1><div class="topbar-actions"><button class="btn" id="publishButton">＋ 发布进展</button><button class="btn primary" id="updateButton">✎ 更新里程碑</button></div></div>
+      <div class="error-banner" id="errorBanner"></div>
+      <div id="loading" class="loading">正在读取项目进度…</div>
+      <div id="content" hidden>
+        <section id="overview" class="summary-band">
+          <div class="metric"><label>总体进度</label><strong id="overallProgress">—</strong><div class="progress-track"><i id="overallBar"></i></div><small id="updatedAt">—</small></div>
+          <div class="metric phase"><label>当前阶段</label><strong id="currentPhase">—</strong><small id="managerMessage">—</small></div>
+          <div class="metric"><label>已完成</label><strong id="completedCount">—</strong><small>里程碑</small></div>
+          <div class="metric"><label>进行中</label><strong id="inProgressCount">—</strong><small>里程碑</small></div>
+          <div class="metric risk"><label>需要关注</label><strong id="riskCount">—</strong><small>风险或阻塞</small></div>
+        </section>
+        <section class="roadmap" id="roadmap"></section>
+        <div class="workspace">
+          <section class="panel">
+            <div class="panel-head"><div><h2>里程碑</h2><div class="panel-sub">所有数字均由当前里程碑实时计算</div></div><div class="filters" id="filters"><button class="filter active" data-status="all">全部</button><button class="filter" data-status="completed">已完成</button><button class="filter" data-status="in_progress">进行中</button><button class="filter" data-status="at_risk">有风险</button><button class="filter" data-status="planned">计划中</button></div></div>
+            <div class="table-wrap"><table class="milestone-table"><thead><tr><th>里程碑</th><th>阶段</th><th>进度</th><th>负责人</th><th>状态</th><th>目标日期</th><th></th></tr></thead><tbody id="milestoneRows"></tbody></table></div>
+          </section>
+          <aside class="right-rail">
+            <section class="panel"><div class="panel-head"><div><h2>当前重点</h2><div class="panel-sub">高优先级且尚未完成</div></div></div><div class="focus-list" id="focusList"></div></section>
+            <section class="panel"><div class="panel-head"><div><h2>风险与阻塞</h2><div class="panel-sub">发布前需要管理层关注</div></div><strong id="riskBadge"></strong></div><div class="risk-list" id="riskList"></div></section>
+          </aside>
+        </div>
+        <section class="panel updates-panel" id="updates"><div class="panel-head"><div><h2>最近更新</h2><div class="panel-sub">项目组发布的最新进展与说明</div></div><button class="btn small" id="publishInline">发布更新</button></div><div class="updates" id="updateList"></div></section>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="milestoneDialog">
+    <div class="modal-head"><h2>更新里程碑</h2><button class="close" data-close="milestoneDialog">×</button></div>
+    <form id="milestoneForm" class="form"><div class="form-grid">
+      <div class="field full"><label>里程碑</label><select id="milestoneId" required></select></div>
+      <div class="field"><label>状态</label><select id="milestoneStatus"><option value="completed">已完成</option><option value="in_progress">进行中</option><option value="at_risk">有风险</option><option value="planned">计划中</option><option value="blocked">已阻塞</option></select></div>
+      <div class="field"><label>进度（%）</label><input id="milestoneProgress" type="number" min="0" max="100" required></div>
+      <div class="field"><label>负责人</label><input id="milestoneOwner" maxlength="80"></div>
+      <div class="field"><label>目标日期</label><input id="milestoneDate" type="date"></div>
+      <div class="field full"><label>当前说明</label><textarea id="milestoneSummary" maxlength="500"></textarea></div>
+      <div class="field"><label>更新人</label><input id="milestoneAuthor" value="项目组" maxlength="80"></div>
+      <div class="field full"><label>本次进展说明</label><textarea id="milestoneNote" placeholder="说明完成了什么、遇到什么问题、下一步是什么" maxlength="1000"></textarea></div>
+    </div></form>
+    <p class="form-error" id="milestoneError"></p><div class="modal-actions"><button class="btn" data-close="milestoneDialog">取消</button><button class="btn primary" id="saveMilestone">保存更新</button></div>
+  </dialog>
+
+  <dialog id="updateDialog">
+    <div class="modal-head"><h2>发布项目进展</h2><button class="close" data-close="updateDialog">×</button></div>
+    <form id="updateForm" class="form"><div class="form-grid">
+      <div class="field"><label>更新人</label><input id="updateAuthor" value="项目组" maxlength="80"></div>
+      <div class="field"><label>更新类型</label><select id="updateType"><option value="project">项目进展</option><option value="milestone">里程碑</option><option value="risk">风险说明</option></select></div>
+      <div class="field full"><label>标题</label><input id="updateTitle" required maxlength="160" placeholder="例如：完成第一人称 Caption 工程验收"></div>
+      <div class="field full"><label>详细说明</label><textarea id="updateBody" required maxlength="2000" placeholder="建议包含：本次完成、当前结论、下一步"></textarea></div>
+    </div></form>
+    <p class="form-error" id="updateError"></p><div class="modal-actions"><button class="btn" data-close="updateDialog">取消</button><button class="btn primary" id="saveUpdate">发布进展</button></div>
+  </dialog>
+
+  <dialog id="tokenDialog">
+    <div class="modal-head"><h2>设置更新令牌</h2><button class="close" data-close="tokenDialog">×</button></div>
+    <div class="form"><p class="token-note">查看项目进度不需要令牌。修改里程碑或发布更新时，需要管理员提供的写入令牌。令牌只保存在当前浏览器。</p><div class="field"><label>写入令牌</label><input id="tokenInput" type="password" autocomplete="off" placeholder="输入 PM_WRITE_TOKEN"></div></div>
+    <div class="modal-actions"><button class="btn" data-close="tokenDialog">取消</button><button class="btn primary" id="saveToken">保存令牌</button></div>
+  </dialog>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const STATUS_LABELS={completed:"已完成",in_progress:"进行中",at_risk:"有风险",planned:"计划中",blocked:"已阻塞"};
+    const PHASE_SHORT={"phase-1":"阶段一","phase-2":"阶段二","phase-3":"阶段三"};
+    const state={data:null,filter:"all"};
+    const $=id=>document.getElementById(id);
+    const escapeHtml=value=>String(value??"").replace(/[&<>'"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[ch]));
+    const formatDate=value=>{if(!value)return"—";const date=new Date(value);return Number.isNaN(date.getTime())?value:date.toLocaleString("zh-CN",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})};
+    const token=()=>localStorage.getItem("everlens_pm_token")||"";
+    function showToast(message){const el=$("toast");el.textContent=message;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),2200)}
+    function showError(message){const el=$("errorBanner");el.textContent=message;el.classList.add("show")}
+    async function api(path,options={}){const response=await fetch(path,{...options,headers:{"Content-Type":"application/json",...(options.write?{"X-PM-Token":token()}:{}),...(options.headers||{})}});if(!response.ok){let detail="请求失败";try{detail=(await response.json()).detail||detail}catch{}if(response.status===401){$("tokenDialog").showModal();detail="更新令牌无效，请重新设置"}throw new Error(detail)}return response.json()}
+    async function load(){try{state.data=await api("/v1/project");render();$("loading").hidden=true;$("content").hidden=false}catch(error){$("loading").textContent="项目进度读取失败";showError(error.message)}}
+    function render(){const data=state.data,summary=data.summary,project=data.project,phase=data.phases.find(item=>item.id===project.current_phase);$("projectName").textContent=project.name;$("overallProgress").textContent=`${summary.overall_progress}%`;$("overallBar").style.width=`${summary.overall_progress}%`;$("updatedAt").textContent=`最近更新 ${formatDate(project.updated_at)}`;$("currentPhase").textContent=phase?.name||"—";$("managerMessage").textContent=project.manager_message;$("completedCount").textContent=summary.completed;$("inProgressCount").textContent=summary.in_progress;$("riskCount").textContent=summary.at_risk;renderRoadmap();renderMilestones();renderFocus();renderRisks();renderUpdates();fillMilestoneOptions()}
+    function renderRoadmap(){$("roadmap").innerHTML=state.data.phases.map((phase,index)=>{const current=phase.id===state.data.project.current_phase,done=phase.progress===100;return `<article class="phase-card ${current?"current":""} ${done?"done":""}"><b class="phase-no">${done?"✓":index+1}</b><div><h3>${escapeHtml(PHASE_SHORT[phase.id])} · ${escapeHtml(phase.name)}</h3><p>${escapeHtml(phase.target)} · ${phase.milestone_count} 个里程碑</p></div><span class="phase-percent">${phase.progress}%</span></article>`}).join("")}
+    function filteredMilestones(){if(state.filter==="all")return state.data.milestones;if(state.filter==="at_risk")return state.data.milestones.filter(item=>["at_risk","blocked"].includes(item.status));return state.data.milestones.filter(item=>item.status===state.filter)}
+    function renderMilestones(){const items=filteredMilestones();$("milestoneRows").innerHTML=items.length?items.map(item=>`<tr><td class="milestone-name"><strong>${escapeHtml(item.name)}</strong><span title="${escapeHtml(item.summary)}">${escapeHtml(item.summary)}</span></td><td><span class="phase-label">${escapeHtml(PHASE_SHORT[item.phase]||item.phase)}</span></td><td><div class="row-progress"><div class="progress-track"><i style="width:${item.progress}%"></i></div><span>${item.progress}%</span></div></td><td>${escapeHtml(item.owner)}</td><td><span class="status ${item.status}">${escapeHtml(STATUS_LABELS[item.status]||item.status)}</span></td><td>${escapeHtml(item.target_date||"—")}</td><td><button class="edit-btn" data-edit="${escapeHtml(item.id)}" aria-label="更新 ${escapeHtml(item.name)}">✎</button></td></tr>`).join(""):`<tr><td colspan="7" class="empty">当前筛选条件下没有里程碑</td></tr>`}
+    function renderFocus(){const items=state.data.milestones.filter(item=>item.priority==="high"&&item.status!=="completed").sort((a,b)=>b.progress-a.progress).slice(0,5);$("focusList").innerHTML=items.map((item,index)=>`<div class="focus-item"><b class="focus-num">${index+1}</b><div><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.owner)} · ${item.progress}%</span></div><span class="status ${item.status}">${STATUS_LABELS[item.status]}</span></div>`).join("")}
+    function renderRisks(){$("riskBadge").textContent=state.data.risks.length;$("riskList").innerHTML=state.data.risks.map(item=>`<article class="risk-item ${item.level}"><div class="risk-line"><i class="risk-dot"></i><strong>${escapeHtml(item.title)}</strong></div><p>${escapeHtml(item.mitigation)}</p><div class="risk-meta"><span>${item.level==="high"?"高风险":"中风险"}</span><span>${escapeHtml(item.owner)}</span></div></article>`).join("")}
+    function renderUpdates(){const items=state.data.updates.slice(0,10);$("updateList").innerHTML=items.map(item=>`<article class="update"><time>${escapeHtml(formatDate(item.created_at))}</time><i class="timeline-dot"></i><div><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.body)}</p></div><span class="update-author">${escapeHtml(item.author)}</span></article>`).join("")}
+    function fillMilestoneOptions(){const select=$("milestoneId"),value=select.value;select.innerHTML=state.data.milestones.map(item=>`<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join("");select.value=value||state.data.milestones.find(item=>item.status!=="completed")?.id||state.data.milestones[0]?.id;syncMilestoneForm()}
+    function syncMilestoneForm(){const item=state.data?.milestones.find(m=>m.id===$("milestoneId").value);if(!item)return;$("milestoneStatus").value=item.status;$("milestoneProgress").value=item.progress;$("milestoneOwner").value=item.owner||"";$("milestoneDate").value=item.target_date||"";$("milestoneSummary").value=item.summary||"";$("milestoneNote").value=""}
+    function openMilestone(id){if(id)$("milestoneId").value=id;syncMilestoneForm();$("milestoneError").classList.remove("show");$("milestoneDialog").showModal()}
+    function openUpdate(){$("updateError").classList.remove("show");$("updateDialog").showModal()}
+    async function saveMilestone(){const button=$("saveMilestone"),error=$("milestoneError");button.disabled=true;error.classList.remove("show");try{state.data=await api(`/v1/project/milestones/${encodeURIComponent($("milestoneId").value)}`,{method:"PATCH",write:true,body:JSON.stringify({status:$("milestoneStatus").value,progress:Number($("milestoneProgress").value),owner:$("milestoneOwner").value,target_date:$("milestoneDate").value,summary:$("milestoneSummary").value,author:$("milestoneAuthor").value,note:$("milestoneNote").value})});render();$("milestoneDialog").close();showToast("里程碑已更新")}catch(err){error.textContent=err.message;error.classList.add("show")}finally{button.disabled=false}}
+    async function saveUpdate(){const button=$("saveUpdate"),error=$("updateError");button.disabled=true;error.classList.remove("show");try{state.data=await api("/v1/project/updates",{method:"POST",write:true,body:JSON.stringify({author:$("updateAuthor").value,type:$("updateType").value,title:$("updateTitle").value,body:$("updateBody").value})});render();$("updateDialog").close();$("updateForm").reset();$("updateAuthor").value="项目组";showToast("项目进展已发布")}catch(err){error.textContent=err.message;error.classList.add("show")}finally{button.disabled=false}}
+    $("filters").addEventListener("click",event=>{const button=event.target.closest("[data-status]");if(!button)return;state.filter=button.dataset.status;document.querySelectorAll(".filter").forEach(item=>item.classList.toggle("active",item===button));renderMilestones()});
+    $("milestoneRows").addEventListener("click",event=>{const button=event.target.closest("[data-edit]");if(button)openMilestone(button.dataset.edit)});$("milestoneId").addEventListener("change",syncMilestoneForm);
+    $("updateButton").addEventListener("click",()=>openMilestone());$("publishButton").addEventListener("click",openUpdate);$("publishInline").addEventListener("click",openUpdate);$("saveMilestone").addEventListener("click",saveMilestone);$("saveUpdate").addEventListener("click",saveUpdate);
+    $("tokenButton").addEventListener("click",()=>{$("tokenInput").value=token();$("tokenDialog").showModal()});$("saveToken").addEventListener("click",()=>{localStorage.setItem("everlens_pm_token",$("tokenInput").value);$("tokenDialog").close();showToast("更新令牌已保存")});
+    document.addEventListener("click",event=>{const button=event.target.closest("[data-close]");if(button)$(button.dataset.close).close()});
+    load();
+  </script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>真实眼镜语音存在验收</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; background: #f4f7f5; color: #17211c; }
+    main { max-width: 760px; margin: 0 auto; padding: 32px 18px; }
+    section { background: white; border: 1px solid #d9e2dc; border-radius: 18px; padding: 24px; box-shadow: 0 12px 40px #15352412; }
+    h1 { margin-top: 0; }
+    button { border: 0; border-radius: 12px; padding: 13px 18px; background: #176b45; color: white; font-size: 16px; cursor: pointer; }
+    button.secondary { background: #41534a; }
+    .status { margin: 18px 0; padding: 14px; border-radius: 12px; background: #edf5f0; white-space: pre-wrap; }
+    .timer { font-size: clamp(44px, 10vw, 86px); font-weight: 750; margin: 18px 0; }
+    .instruction { font-size: 22px; line-height: 1.5; min-height: 70px; }
+    .warn { color: #9a4f00; }
+  </style>
+</head>
+<body><main><section>
+  <h1>真实眼镜语音存在验收</h1>
+  <p>先拔线并开机，确认眼镜自动采集。点击开始后，每项 60 秒，项目之间有 15 秒准备时间。</p>
+  <p class="warn">音乐场景不要跟唱；环境声场景不要说话。否则人工标签会失效。</p>
+  <button id="start">开始验收</button>
+  <button id="finish" class="secondary" hidden>结束并生成 Manifest</button>
+  <div class="status" id="status">尚未开始。</div>
+  <div class="timer" id="timer">—</div>
+  <div class="instruction" id="instruction"></div>
+</section></main>
+<script>
+  let session = null;
+  let serverOffsetMs = 0;
+  const token = localStorage.getItem("glass_device_token") || "dev-token";
+  const headers = { "Authorization": `Bearer ${token}` };
+  const $ = (id) => document.getElementById(id);
+  async function request(url, options = {}) {
+    const response = await fetch(url, { ...options, headers: { ...headers, ...(options.headers || {}) } });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.detail || `HTTP ${response.status}`);
+    return body;
+  }
+  $("start").onclick = async () => {
+    try {
+      session = await request("/v1/evaluation/presence/session/start", { method: "POST" });
+      serverOffsetMs = session.server_time_ms - Date.now();
+      $("start").hidden = true;
+      $("finish").hidden = false;
+      render();
+    } catch (error) { $("status").textContent = error.message; }
+  };
+  $("finish").onclick = async () => {
+    if (!session) return;
+    const result = await request(`/v1/evaluation/presence/session/${session.session_id}/finish`, { method: "POST" });
+    $("status").textContent = `完成。匹配到 ${result.matched_windows} 个完整窗口。\n${result.manifest}`;
+    $("timer").textContent = "完成";
+      $("instruction").textContent = "Manifest 已生成，可以继续保持在线或重新插线。";
+  };
+  function render() {
+    if (!session) return;
+    const now = Date.now() + serverOffsetMs;
+    const active = session.scenarios.find((item) => now >= item.start_ms && now < item.end_ms);
+    const next = session.scenarios.find((item) => now < item.start_ms);
+    if (active) {
+      $("status").textContent = `${active.id} · 期望 ${active.expected_presence}`;
+      $("timer").textContent = `${Math.ceil((active.end_ms - now) / 1000)}s`;
+      $("instruction").textContent = active.instruction;
+    } else if (next) {
+      $("status").textContent = `准备下一项：${next.id}`;
+      $("timer").textContent = `${Math.ceil((next.start_ms - now) / 1000)}s`;
+      $("instruction").textContent = next.instruction;
+    } else {
+      const readyAt = session.scheduled_end_ms + 40000;
+      const waitSeconds = Math.ceil((readyAt - now) / 1000);
+      $("status").textContent = waitSeconds > 0
+        ? "场景完成，正在等待最后一个 30 秒窗口落盘。"
+        : "可以点击“结束并生成 Manifest”。";
+      $("timer").textContent = waitSeconds > 0 ? `${waitSeconds}s` : "完成";
+      $("instruction").textContent = waitSeconds > 0 ? "请保持眼镜在线。" : "";
+    }
+    setTimeout(render, 250);
+  }
+</script></body></html>

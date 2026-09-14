@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>采集接入 · Beaver Memory</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/assets/beaver-memory.css" />
+    <script defer src="/assets/beaver-memory.js"></script>
+    <style>
+      * { box-sizing: border-box; }
+      main { min-width: 0; padding: 34px; }
+      h1, h2, h3, p { margin-top: 0; }
+      .hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+      .eyebrow { margin-bottom: 8px; color: #8b642f; font-size: 12px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+      h1 { margin-bottom: 12px; font-size: clamp(34px, 5vw, 58px); line-height: 1.02; letter-spacing: -.05em; }
+      .lead { max-width: 760px; margin-bottom: 0; color: var(--bm-muted); line-height: 1.75; }
+      .health { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; padding: 10px 13px; border: 1px solid var(--bm-line); border-radius: 999px; background: rgba(255,250,240,.8); font-size: 12px; }
+      .health-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bm-warning); box-shadow: 0 0 0 5px rgba(215,150,56,.13); }
+      .health.ok .health-dot { background: var(--bm-success); box-shadow: 0 0 0 5px rgba(98,141,85,.13); }
+      .flow { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; margin-bottom: 20px; }
+      .flow-card, .panel { border: 1px solid var(--bm-line); background: rgba(255,250,240,.9); box-shadow: var(--bm-shadow); }
+      .flow-card { position: relative; padding: 17px; border-radius: 18px; }
+      .flow-card:not(:last-child)::after { position: absolute; right: -9px; top: 50%; z-index: 2; content: "→"; color: #9a6c2c; transform: translateY(-50%); }
+      .flow-card small { display: block; margin-bottom: 6px; color: #8b642f; font-weight: 850; }
+      .flow-card strong { display: block; line-height: 1.4; }
+      .grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; }
+      .panel { min-width: 0; padding: 22px; border-radius: 22px; }
+      .panel.wide { grid-column: 1 / -1; }
+      .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; margin-bottom: 15px; }
+      .panel h2 { margin-bottom: 6px; font-size: 21px; }
+      .panel-copy { margin-bottom: 0; color: var(--bm-muted); font-size: 13px; line-height: 1.65; }
+      .method { flex: 0 0 auto; padding: 5px 8px; border-radius: 999px; color: #346f69; background: rgba(94,182,173,.14); font-size: 10px; font-weight: 900; }
+      .endpoint { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 12px 0; padding: 12px 13px; border-radius: 13px; color: #fffaf0; background: #17231d; }
+      .endpoint code { overflow-wrap: anywhere; }
+      .copy { flex: 0 0 auto; padding: 6px 9px; border: 1px solid rgba(255,255,255,.18); border-radius: 9px; color: #fffaf0; background: rgba(255,255,255,.08); cursor: pointer; }
+      .facts { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
+      .facts li { padding: 10px 12px; border-radius: 12px; background: #f4ede2; color: #52584f; font-size: 13px; line-height: 1.55; }
+      pre { position: relative; margin: 12px 0 0; padding: 17px; overflow: auto; border-radius: 15px; color: #dfe9df; background: #17231d; font: 12px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre; }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .sequence { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+      .sequence article { padding: 15px; border-radius: 15px; background: #f4ede2; }
+      .sequence small { display: block; margin-bottom: 5px; color: #8b642f; font-weight: 850; }
+      .sequence p { margin-bottom: 0; color: #555b52; font-size: 12px; line-height: 1.6; }
+      .notice { margin-top: 15px; padding: 13px 14px; border-left: 4px solid var(--bm-accent); border-radius: 10px; color: #5d5548; background: #f6ead6; font-size: 13px; line-height: 1.65; }
+      @media (max-width: 980px) { .flow { grid-template-columns: repeat(2,1fr); } .flow-card::after { display: none; } }
+      @media (max-width: 760px) { main { padding: 22px 15px 40px; } .hero { align-items: flex-start; flex-direction: column; } .grid, .flow, .sequence { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body class="bm-app">
+    <div class="bm-shell">
+      <aside class="bm-sidebar">
+        <a class="bm-brand" href="/memory" aria-label="Beaver Memory 记忆概览">
+          <span class="bm-brand-mark">B</span>
+          <span class="bm-brand-copy"><strong>Beaver Memory</strong><small>Memory Console</small></span>
+        </a>
+        <nav class="bm-nav" aria-label="主导航">
+          <a href="/memory"><span class="bm-nav-icon">◎</span><span class="bm-nav-label">记忆卡片<small>EverOS Episodes</small></span></a>
+          <a href="/memory/capsules"><span class="bm-nav-icon">◫</span><span class="bm-nav-label">多模态 Capsule<small>Technical Windows</small></span></a>
+          <a href="/memory/search"><span class="bm-nav-icon">⌕</span><span class="bm-nav-label">记忆搜索<small>EverOS Episodes</small></span></a>
+          <a href="/daily"><span class="bm-nav-icon">日</span><span class="bm-nav-label">每日回顾<small>Daily Review</small></span></a>
+          <a href="/people"><span class="bm-nav-icon">人</span><span class="bm-nav-label">人物<small>身份候选与档案</small></span></a>
+          <a href="/objects/search"><span class="bm-nav-icon">□</span><span class="bm-nav-label">物品搜索<small>Function Tool</small></span></a>
+          <a href="/commitments"><span class="bm-nav-icon">◇</span><span class="bm-nav-label">长期待办<small>Todo Ledger</small></span></a>
+          <a href="/memory/corrections"><span class="bm-nav-icon">✓</span><span class="bm-nav-label">修正历史<small>Versioned Audit</small></span></a>
+          <a class="active" href="/integrations" aria-current="page"><span class="bm-nav-icon">↗</span><span class="bm-nav-label">采集接入<small>Device API</small></span></a>
+        </nav>
+        <div class="bm-notice" style="position:absolute;left:20px;right:20px;bottom:22px">
+          <label for="tokenInput" style="display:block;margin-bottom:7px;font-weight:800">本地调试令牌</label>
+          <input id="tokenInput" data-bm-token autocomplete="off" style="width:100%;padding:8px;border:1px solid var(--bm-line);border-radius:9px" />
+        </div>
+      </aside>
+      <main>
+        <header class="hero">
+          <div>
+            <div class="eyebrow">Capture Integration / Device Agnostic</div>
+            <h1>任何采集端，<br />都能接入记忆链路。</h1>
+            <p class="lead">Beaver Memory 不限定智能眼镜。手机、胸针、摄像头、录音设备、桌面程序或自研硬件，只要按下面的协议发送连续音频和图片，就能进入同一套 Capsule、EverOS、人物与物品处理链。</p>
+          </div>
+          <div class="health" id="health"><span class="health-dot"></span><span id="healthText">正在检查 Gateway</span></div>
+        </header>
+
+        <section class="flow" aria-label="采集处理流程">
+          <div class="flow-card"><small>01 · 采集端</small><strong>麦克风与摄像头</strong></div>
+          <div class="flow-card"><small>02 · 上传</small><strong>原子落盘 + ACK 重传</strong></div>
+          <div class="flow-card"><small>03 · Gateway</small><strong>对齐、落盘与窗口化</strong></div>
+          <div class="flow-card"><small>04 · Memory</small><strong>Capsule → EverOS</strong></div>
+        </section>
+
+        <div class="grid">
+          <section class="panel">
+            <div class="panel-head">
+              <div><h2>连续音频流</h2><p class="panel-copy">每 5 秒通过 HTTP 上传一个完整 WAV；后端自动组成 30 秒技术窗口。</p></div>
+              <span class="method">HTTP WAV</span>
+            </div>
+            <div class="endpoint"><code id="audioEndpoint">http://127.0.0.1:8788/api/v1/media/upload</code><button class="copy" data-copy="audioEndpoint">复制</button></div>
+            <ul class="facts">
+              <li><strong>格式：</strong>单声道 PCM16 WAV，8–48 kHz；推荐 16 kHz。</li>
+              <li><strong>顺序：</strong><code>X-Sequence</code> 从 0 递增；重复上传幂等。</li>
+              <li><strong>负载：</strong>WAV 二进制直接放在 Body，不使用 Base64。</li>
+              <li><strong>时间：</strong>同时提交 monotonic、clock_synced 和可选设备时间。</li>
+            </ul>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div><h2>图片流</h2><p class="panel-copy">每张图片独立上传；连续拍摄时建议每 5 秒提交一帧。</p></div>
+              <span class="method">HTTP POST</span>
+            </div>
+            <div class="endpoint"><code id="photoEndpoint">http://127.0.0.1:8788/api/v1/media/upload</code><button class="copy" data-copy="photoEndpoint">复制</button></div>
+            <ul class="facts">
+              <li><strong>Body：</strong>直接放 JPEG、PNG、NV12 或 YUV 原始字节。</li>
+              <li><strong>关联：</strong>音频与图片使用不同 stream_id 和独立 sequence，通过 boot_id + monotonic 对齐。</li>
+              <li><strong>顺序：</strong><code>X-Sequence</code> 从 0 递增。</li>
+              <li><strong>可靠性：</strong>模型失败不会撤销已经成功保存的原始图片。</li>
+            </ul>
+          </section>
+
+          <section class="panel wide">
+            <div class="panel-head">
+              <div><h2>可靠上传顺序</h2><p class="panel-copy">采集完成先原子落盘；后台上传，只有 200/201 ACK 才确认并清理本地副本。</p></div>
+              <span class="method">HTTP REQUESTS</span>
+            </div>
+            <div class="sequence">
+              <article><small>1 · 本地队列</small><p>每次启动生成 boot_id，每个媒体流持久化自己的 sequence。</p></article>
+              <article><small>2 · 后台上传</small><p>提交长度、SHA-256、采集时间；超时和 5xx 按退避策略重试。</p></article>
+              <article><small>3 · 明确 ACK</small><p>accepted 与 already_accepted 都视为成功，409 冲突停止自动重试。</p></article>
+            </div>
+            <pre>POST /api/v1/media/upload
+Authorization: Bearer &lt;DEVICE_TOKEN&gt;
+Content-Type: application/octet-stream
+X-Device-Id: demo-device-001
+X-Boot-Id: boot-20260727-001
+X-Stream-Id: microphone-main
+X-Sequence: 0
+X-Monotonic-Ms: 5000
+X-Clock-Synced: false
+X-Duration-Ms: 5000
+X-Filename: audio_000000000000.wav
+X-Media-Type: audio/wav
+X-Content-Length: &lt;bytes&gt;
+X-Content-Sha256: &lt;sha256&gt;
+
+&lt;5-second WAV bytes&gt;</pre>
+          </section>
+
+          <section class="panel wide">
+            <div class="panel-head">
+              <div><h2>音频与图片上传示例</h2><p class="panel-copy">token 只放在 Authorization Header，不放在 URL、文件名或日志中。</p></div>
+              <span class="method">CURL</span>
+            </div>
+            <pre id="curlExample">curl -X POST 'http://127.0.0.1:8788/api/v1/media/upload' \
+  -H 'Authorization: Bearer &lt;DEVICE_TOKEN&gt;' \
+  -H 'Content-Type: application/octet-stream' \
+  -H 'X-Device-Id: demo-device-001' \
+  -H 'X-Boot-Id: boot-20260727-001' \
+  -H 'X-Stream-Id: microphone-main' \
+  -H 'X-Sequence: 0' \
+  -H 'X-Monotonic-Ms: 5000' \
+  -H 'X-Clock-Synced: false' \
+  -H 'X-Duration-Ms: 5000' \
+  -H 'X-Filename: audio_000000000000.wav' \
+  -H 'X-Media-Type: audio/wav' \
+  -H 'X-Content-Length: &lt;bytes&gt;' \
+  -H 'X-Content-Sha256: &lt;sha256&gt;' \
+  --data-binary '@audio-0000.wav'</pre>
+            <div class="notice"><strong>Glass 端建议：</strong>连续记忆的音频与图片走 HTTP；原有 WebSocket 保留给心跳、电量、唤醒和问答。模型处理在后台执行，不会阻塞下一段 WAV 的接收。</div>
+          </section>
+
+          <section class="panel wide">
+            <div class="panel-head">
+              <div><h2>Python WAV 上传骨架</h2><p class="panel-copy">实际程序每 5 秒封装一个 PCM16 单声道 WAV，并用递增 sequence 上传。</p></div>
+              <span class="method">PYTHON</span>
+            </div>
+            <pre>import hashlib, io, os, time, uuid, wave
+import httpx
+
+TOKEN = os.environ["DEVICE_TOKEN"]
+BASE = "http://127.0.0.1:8788"
+DEVICE = "demo-device-001"
+BOOT = str(uuid.uuid4())
+STREAM = "microphone-main"
+
+def upload_pcm(index, pcm16, monotonic_ms):
+    wav = io.BytesIO()
+    with wave.open(wav, "wb") as out:
+        out.setparams((1, 2, 16000, 0, "NONE", "NONE"))
+        out.writeframes(pcm16)
+    body = wav.getvalue()
+    return httpx.post(f"{BASE}/api/v1/media/upload", content=body, headers={
+        "Authorization": f"Bearer {TOKEN}", "Content-Type": "application/octet-stream",
+        "X-Device-Id": DEVICE, "X-Boot-Id": BOOT, "X-Stream-Id": STREAM,
+        "X-Sequence": str(index), "X-Monotonic-Ms": str(monotonic_ms),
+        "X-Clock-Synced": "false", "X-Duration-Ms": "5000",
+        "X-Filename": f"audio_{index:012d}.wav", "X-Media-Type": "audio/wav",
+        "X-Content-Length": str(len(body)), "X-Content-Sha256": hashlib.sha256(body).hexdigest(),
+    }).raise_for_status()</pre>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head"><div><h2>WebSocket 控制</h2><p class="panel-copy">Glass 只用它上报心跳、电量、唤醒和交互问答；连续媒体不再走 WebSocket。</p></div><span class="method">WEBSOCKET</span></div>
+            <div class="endpoint"><code id="wsEndpoint">ws://127.0.0.1:8788/v1/device/ws</code><button class="copy" data-copy="wsEndpoint">复制</button></div>
+            <p class="panel-copy">连续音画统一使用 <code>/api/v1/media/upload</code>；旧采集消息与旧 HTTP 上传接口已移除。</p>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><div><h2>鉴权</h2><p class="panel-copy">WAV、WebSocket、图片上传和设备状态查询使用同一设备令牌。</p></div><span class="method">BEARER</span></div>
+            <pre>Authorization: Bearer &lt;DEVICE_TOKEN&gt;</pre>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><div><h2>状态查询</h2><p class="panel-copy">确认最近连接设备、电量和采集状态。</p></div><span class="method">HTTP GET</span></div>
+            <div class="endpoint"><code id="statusEndpoint">http://127.0.0.1:8788/v1/device/status</code><button class="copy" data-copy="statusEndpoint">复制</button></div>
+          </section>
+        </div>
+      </main>
+    </div>
+    <script>
+      const httpOrigin = location.origin;
+      const wsOrigin = `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}`;
+      document.getElementById("wsEndpoint").textContent = `${wsOrigin}/v1/device/ws`;
+      document.getElementById("audioEndpoint").textContent = `${httpOrigin}/api/v1/media/upload`;
+      document.getElementById("photoEndpoint").textContent = `${httpOrigin}/api/v1/media/upload`;
+      document.getElementById("statusEndpoint").textContent = `${httpOrigin}/v1/device/status`;
+      document.getElementById("curlExample").textContent = document.getElementById("curlExample").textContent.replace("http://127.0.0.1:8788", httpOrigin);
+      async function copyText(value) {
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+          try { await navigator.clipboard.writeText(value); return; } catch (_) {}
+        }
+        const input = document.createElement("textarea");
+        input.value = value;
+        input.style.position = "fixed";
+        input.style.opacity = "0";
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand("copy");
+        input.remove();
+      }
+      document.querySelectorAll("[data-copy]").forEach((button) => button.addEventListener("click", async () => {
+        const value = document.getElementById(button.dataset.copy).textContent;
+        await copyText(value);
+        button.textContent = "已复制";
+        setTimeout(() => { button.textContent = "复制"; }, 1000);
+      }));
+      fetch("/healthz").then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        document.getElementById("health").classList.add("ok");
+        document.getElementById("healthText").textContent = "Gateway 可用";
+      }).catch(() => { document.getElementById("healthText").textContent = "Gateway 暂不可用"; });
+    </script>
+  </body>
+</html>
