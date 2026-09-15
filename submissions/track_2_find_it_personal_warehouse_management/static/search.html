@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Video Search — Find it</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<header><h1>🎬 Find it</h1></header>
+<nav>
+  <ul>
+    <li><a href="/">Upload / Library</a></li>
+    <li><a href="/view.html">View</a></li>
+    <li><a href="/search.html" class="active">Search</a></li>
+    <li><a href="/chat.html">Chat</a></li>
+  </ul>
+</nav>
+
+<main style="display:block; max-width:1100px;">
+  <section class="card">
+    <h2>Search video transcriptions</h2>
+    <p class="muted">Mixed full-text + substring search across frame descriptions and audio transcriptions.</p>
+
+    <div class="search-box">
+      <input type="search" id="query" class="search-input" placeholder="type a keyword…" autocomplete="off" />
+      <div class="row" style="margin-top:8px">
+        <button class="ghost" id="imageBtn">🖼 Describe Image</button>
+        <button class="ghost" id="audioBtn">🎤 Transcribe Audio</button>
+        <input type="file" id="imageFile" accept="image/*" hidden />
+        <input type="file" id="audioFile" accept="audio/*,.wav,.mp3,.m4a,.ogg,.flac,.aac,.webm" hidden />
+        <span class="muted" id="helperStatus"></span>
+      </div>
+    </div>
+
+    <div class="source-filter">
+      <label>Source:</label>
+      <select id="source">
+        <option value="">All</option>
+        <option value="frame">Frames</option>
+        <option value="audio">Audio</option>
+      </select>
+      <span class="muted" id="status"></span>
+    </div>
+
+    <div id="results" class="results"></div>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+function debounce(fn, ms) {
+  let t;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), ms);
+  };
+}
+
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function fmtTime(s) {
+  if (s === null || s === undefined || isNaN(s)) return "--:--";
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2, "0")}`;
+}
+
+async function performSearch() {
+  const q = $("query").value.trim();
+  const source = $("source").value;
+  const status = $("status");
+  const results = $("results");
+
+  if (!q) {
+    results.innerHTML = "";
+    status.textContent = "";
+    return;
+  }
+
+  status.textContent = "Searching…";
+  try {
+    const params = new URLSearchParams({ q, limit: "100" });
+    if (source) params.set("source", source);
+    const r = await fetch(`/search?${params}`);
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    const data = await r.json();
+    renderResults(data.results);
+    status.textContent = `${data.results.length} result${data.results.length === 1 ? "" : "s"}`;
+  } catch (err) {
+    results.innerHTML = `<div class="msg err">Search failed: ${escapeHtml(err.message)}</div>`;
+    status.textContent = "";
+  }
+}
+
+function renderResults(items) {
+  const container = $("results");
+  if (!items.length) {
+    container.innerHTML = "<div class=\"muted\">No matches found.</div>";
+    return;
+  }
+
+  container.innerHTML = items.map((it) => {
+    const v = it.video;
+    const ts = it.timestamp;
+    const endTs = it.end_timestamp;
+    const timeLabel = endTs !== null && endTs !== undefined
+      ? `${fmtTime(ts)} – ${fmtTime(endTs)}`
+      : fmtTime(ts);
+    const thumbUrl = `${v.preview_url}?ts=${encodeURIComponent(ts)}`;
+    return `
+      <div class="result-card">
+        <img class="result-thumb" src="${thumbUrl}" alt="" loading="lazy" />
+        <div class="result-body">
+          <h3 class="result-title">${escapeHtml(v.name || v.location || "Untitled")}</h3>
+          <div class="result-meta">
+            <span class="badge ${it.source}">${it.source}</span>
+            ${escapeHtml(v.location || "")}
+            · ${timeLabel}
+          </div>
+          <div class="excerpt">${it.excerpt}</div>
+          <div style="margin-top:10px">
+            <a class="ghost" style="display:inline-block"
+               href="/view.html?video_id=${encodeURIComponent(v.id)}&amp;timestamp=${ts}"
+               target="_blank" rel="noopener">▶ View in context</a>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+$("query").addEventListener("input", debounce(performSearch, 200));
+$("source").addEventListener("change", performSearch);
+
+// ---- image/audio query helpers ----
+async function helperUpload(file, url, btn) {
+  const status = $("helperStatus");
+  if (!file) return;
+  status.textContent = "Processing…";
+  btn.disabled = true;
+  try {
+    const fd = new FormData();
+    fd.append("file", file);
+    const r = await fetch(url, { method: "POST", body: fd });
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    const data = await r.json();
+    $("query").value = data.text;
+    status.textContent = "✓ text inserted into query";
+    performSearch();
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+$("imageBtn").onclick = () => $("imageFile").click();
+$("imageFile").onchange = (e) => {
+  if (e.target.files[0]) helperUpload(e.target.files[0], "/search/helpers/image-to-text", $("imageBtn"));
+};
+$("audioBtn").onclick = () => $("audioFile").click();
+$("audioFile").onchange = (e) => {
+  if (e.target.files[0]) helperUpload(e.target.files[0], "/search/helpers/audio-to-text", $("audioBtn"));
+};
+
+</script>
+</body>
+</html>

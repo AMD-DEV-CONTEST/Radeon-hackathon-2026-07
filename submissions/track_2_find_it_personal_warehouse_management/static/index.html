@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Find it</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<header><h1>🎬 Find it</h1></header>
+<nav>
+  <ul>
+    <li><a href="/" class="active">Upload / Library</a></li>
+    <li><a href="/view.html">View</a></li>
+    <li><a href="/search.html">Search</a></li>
+    <li><a href="/chat.html">Chat</a></li>
+  </ul>
+</nav>
+<main>
+  <!-- ===================== UPLOAD ===================== -->
+  <section class="card">
+    <h2>Upload</h2>
+    <input type="file" id="file" accept="video/*,.ts,.mts,.m2ts" />
+
+    <div class="preview-wrap">
+      <img id="preview" alt="ffmpeg preview" hidden />
+      <span id="previewHint" class="muted">ffmpeg-rendered preview appears here</span>
+    </div>
+
+    <label for="seek">Preview frame @ <b id="seekLabel">0.5s</b></label>
+    <input type="range" id="seek" min="0" max="1" step="0.1" value="0.5" disabled />
+
+    <div class="row" style="margin-top:10px">
+      <button class="ghost" id="rotL" type="button" disabled>⟲ Rotate -90°</button>
+      <button class="ghost" id="rotR" type="button" disabled>⟳ Rotate +90°</button>
+      <button class="ghost" id="mirror" type="button" disabled>⇋ Mirror</button>
+      <button class="ghost" id="resetX" type="button" disabled>Reset</button>
+    </div>
+
+    <div class="props" id="detected">
+      Pick a video — the backend probes fps / audio and renders the frame with ffmpeg.
+    </div>
+
+    <label for="name">Name <span class="muted">(optional)</span></label>
+    <input type="text" id="name" placeholder="e.g. kitchen counter" />
+
+    <label for="location">Location <span class="muted">(required)</span></label>
+    <input list="locations" id="location" placeholder="pick or type a new place" required />
+    <datalist id="locations"></datalist>
+
+    <label for="record_time">Record time</label>
+    <div class="row">
+      <input type="datetime-local" id="record_time" step="1" />
+      <button class="ghost" id="nowBtn" type="button" style="flex:0 0 auto">Now</button>
+    </div>
+
+    <div style="margin-top:14px">
+      <button id="uploadBtn" disabled>Upload</button>
+    </div>
+    <div class="msg" id="upMsg"></div>
+  </section>
+
+  <!-- ===================== LIBRARY ===================== -->
+  <section class="card">
+    <h2>Library</h2>
+    <div class="toolbar">
+      <label style="margin:0">Sort by</label>
+      <select id="sortBy">
+        <option value="upload_time">Upload time</option>
+        <option value="location">Location</option>
+        <option value="name">Name</option>
+        <option value="record_time">Record time</option>
+      </select>
+      <select id="order">
+        <option value="desc">Desc</option>
+        <option value="asc">Asc</option>
+      </select>
+      <button class="ghost" id="refresh" type="button">Refresh</button>
+    </div>
+    <div style="overflow:auto; max-height: 560px">
+      <table>
+        <thead>
+          <tr><th>Preview</th><th>Location / Name</th><th>FPS</th><th>Audio</th><th>Status</th><th>Transcribe</th><th></th></tr>
+        </thead>
+        <tbody id="list"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+// ---- preview / transform state (for the currently-selected, not-yet-uploaded file)
+let stageId = null;
+let rotation = 0;      // degrees, clockwise-positive (matches CSS convention)
+let mirrored = false;
+let duration = 0;
+
+// current seek time shown in the preview
+function currentTs() { return parseFloat($("seek").value || "0"); }
+
+function controlsEnabled(on) {
+  ["seek","rotL","rotR","mirror","resetX"].forEach(id => $(id).disabled = !on);
+}
+
+// Rebuild the ffmpeg preview URL from current state. Changing the query string
+// makes the browser re-fetch, so the backend re-renders the frame.
+function refreshPreview() {
+  if (!stageId) return;
+  const url = `/stage/${stageId}/preview`
+    + `?rotation=${encodeURIComponent(rotation)}`
+    + `&mirror=${mirrored ? 1 : 0}`
+    + `&ts=${currentTs()}`;
+  $("preview").src = url;
+  $("preview").hidden = false;
+  $("previewHint").hidden = true;
+}
+
+// ---- file selection: stage on backend, probe, render first frame ----
+$("file").addEventListener("change", async (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  resetTransform();
+  $("detected").innerHTML = "Staging + probing on backend…";
+  try {
+    const fd = new FormData();
+    fd.append("file", f);
+    const r = await fetch("/stage", { method: "POST", body: fd });
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    const p = await r.json();
+    stageId = p.stage_id;
+    duration = p.duration || 0;
+    $("seek").max = Math.max(duration, 0.5);
+    $("seek").value = Math.min(0.5, duration);
+    updateSeekLabel();
+    $("detected").innerHTML =
+      `fps: <b>${p.fps ?? "?"}</b> · audio: <b>${p.has_audio ? "yes" : "no"}</b> · ` +
+      `${p.width ?? "?"}×${p.height ?? "?"} · duration: <b>${p.duration ?? "?"}s</b> · ${p.container ?? ""}`;
+    controlsEnabled(true);
+    $("uploadBtn").disabled = false;
+    refreshPreview();
+  } catch (err) {
+    $("detected").innerHTML = `<span style="color:#fca5a5">stage failed: ${err.message}</span>`;
+  }
+});
+
+// ---- transform + seek controls (all re-render via ffmpeg) ----
+function resetTransform() { rotation = 0; mirrored = false; }
+$("rotL").onclick   = () => { rotation -= 90; refreshPreview(); };
+$("rotR").onclick   = () => { rotation += 90; refreshPreview(); };
+$("mirror").onclick = () => { mirrored = !mirrored; refreshPreview(); };
+$("resetX").onclick = () => { resetTransform(); refreshPreview(); };
+
+function updateSeekLabel() { $("seekLabel").textContent = currentTs().toFixed(1) + "s"; }
+$("seek").addEventListener("input", () => { updateSeekLabel(); refreshPreview(); });
+
+// ---- record_time "now" ----
+function setNow() {
+  const d = new Date();
+  d.setSeconds(0, 0);
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  $("record_time").value = local.toISOString().slice(0, 16);
+}
+$("nowBtn").onclick = setNow;
+
+// ---- upload (stores file + rotation/mirror as metadata only) ----
+$("uploadBtn").onclick = async () => {
+  const f = $("file").files[0];
+  const location = $("location").value.trim();
+  const msg = $("upMsg");
+  if (!f) { msg.className = "msg err"; msg.textContent = "choose a file first"; return; }
+  if (!location) { msg.className = "msg err"; msg.textContent = "location is required"; return; }
+
+  const fd = new FormData();
+  fd.append("file", f);
+  fd.append("name", $("name").value.trim());
+  fd.append("location", location);
+  if ($("record_time").value) fd.append("record_time", new Date($("record_time").value).toISOString());
+  fd.append("rotation", String(rotation));
+  fd.append("mirror", mirrored ? "1" : "0");
+  if (stageId) fd.append("stage_id", stageId);
+
+  msg.className = "msg"; msg.textContent = "Uploading…";
+  $("uploadBtn").disabled = true;
+  try {
+    const r = await fetch("/videos", { method: "POST", body: fd });
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    msg.className = "msg ok"; msg.textContent = "Uploaded ✓";
+    // reset form + preview state
+    stageId = null; resetTransform(); controlsEnabled(false);
+    $("file").value = ""; $("name").value = ""; $("location").value = "";
+    $("preview").hidden = true; $("preview").removeAttribute("src");
+    $("previewHint").hidden = false;
+    $("detected").innerHTML = "Pick a video — the backend probes fps / audio and renders the frame with ffmpeg.";
+    loadLocations(); loadList();
+  } catch (err) {
+    msg.className = "msg err"; msg.textContent = "upload failed: " + err.message;
+  } finally {
+    $("uploadBtn").disabled = false;
+  }
+};
+
+// ---- locations datalist ----
+async function loadLocations() {
+  const r = await fetch("/locations");
+  const places = await r.json();
+  $("locations").innerHTML = places.map(p => `<option value="${p}">`).join("");
+}
+
+// ---- library list (thumbnails are ffmpeg-rendered, honour stored rotation/mirror)
+function fmt(iso) { return iso ? new Date(iso).toLocaleString() : ""; }
+// ---- helpers for status display ----
+function statusBadge(status) {
+  const labels = { uploaded:"Uploaded", queued:"Queued", transcoding:"Transcoding", transcoded:"Transcoded", failed:"Failed" };
+  return `<span class="badge ${status}">${labels[status] || status}</span>`;
+}
+function tsProgressBar(pct, status) {
+  if (status === "transcribed") return '<div class="progress-wrap"><div class="progress-bar done" style="width:100%"></div></div>';
+  if (status === "failed") return '<div class="progress-wrap"><div class="progress-bar fail" style="width:100%"></div></div>';
+  if (status === "queued") return '<span class="progress-label" style="color:var(--muted)">ts: queued</span>';
+  if (status === "transcripting") {
+    const w = Math.min(pct ?? 0, 100);
+    return `<div class="progress-wrap"><div class="progress-bar" style="width:${w}%"></div></div><span class="progress-label">ts: ${w.toFixed(0)}%</span>`;
+  }
+  return "";
+}
+function tsStatusBadge(status) {
+  const labels = { untranscribed:"—", queued:"Queued", transcripting:"Transcripting…", transcribed:"✓ Transcribed", failed:"✗ Failed" };
+  return `<span class="badge ${status}">${labels[status] || status}</span>`;
+}
+function progressBar(pct, status) {
+  if (status === "transcoded") return '<div class="progress-wrap"><div class="progress-bar done" style="width:100%"></div></div>';
+  if (status === "failed") return '<div class="progress-wrap"><div class="progress-bar fail" style="width:100%"></div></div>';
+  if (status === "queued") return '<span class="progress-label" style="color:var(--muted)">queued</span>';
+  if (status === "transcoding") {
+    const w = Math.min(pct ?? 0, 100);
+    return `<div class="progress-wrap"><div class="progress-bar" style="width:${w}%"></div></div><span class="progress-label">${w.toFixed(0)}%</span>`;
+  }
+  return "";
+}
+
+async function loadList() {
+  const r = await fetch(`/videos?sort_by=${$("sortBy").value}&order=${$("order").value}`);
+  const vids = await r.json();
+  const anyNonTerminal = vids.some(v => v.status === "queued" || v.status === "uploaded" || v.status === "transcoding" || v.transcription_status === "transcripting");
+  $("list").innerHTML = vids.map(v => `
+    <tr>
+      <td><img class="thumb" loading="lazy" src="${v.preview_url}" alt=""></td>
+      <td>
+        <div><b>${v.location}</b></div>
+        <div class="muted">${v.name || "(no name)"}</div>
+        <div class="muted" title="video id">id: <code>${v.id}</code></div>
+        <div class="muted">rec: ${fmt(v.record_time)}</div>
+        <div class="muted">up: ${fmt(v.upload_time)}</div>
+        <div class="muted">rot ${v.rotation}°${v.mirror ? " · mirrored" : ""}</div>
+      </td>
+      <td>${v.fps ?? "?"}</td>
+      <td><span class="badge ${v.has_audio ? "yes":"no"}">${v.has_audio ? "audio":"silent"}</span></td>
+      <td>
+        ${statusBadge(v.status)}<br>
+        ${progressBar(v.transcode_progress, v.status)}
+        ${tsProgressBar(v.transcription_progress, v.transcription_status)}
+        <span style="font-size:10px;color:var(--muted)">ts: ${tsStatusBadge(v.transcription_status)}</span>
+      </td>
+      <td>
+        <button class="ghost transcribe-btn" data-vid="${v.id}" style="font-size:12px"
+          ${v.status !== "transcoded" ? "disabled" : ""}>▶ Transcribe</button>
+        <span class="muted transcribe-status" id="ts-${v.id}"></span>
+      </td>
+      <td>
+        <a href="${v.url}" target="_blank">open</a><br/>
+        <a href="#" data-del="${v.id}">del</a>
+      </td>
+    </tr>`).join("");
+  document.querySelectorAll("[data-del]").forEach(a => a.onclick = async (e) => {
+    e.preventDefault();
+    if (!confirm("Delete this video?")) return;
+    await fetch(`/videos/${a.dataset.del}`, { method: "DELETE" });
+    loadLocations(); loadList();
+  });
+  if (anyNonTerminal) {
+    if (_listPollTimer) clearTimeout(_listPollTimer);
+    _listPollTimer = setTimeout(loadList, 3000);
+  }
+}
+
+$("refresh").onclick = loadList;
+$("sortBy").onchange = loadList;
+$("order").onchange = loadList;
+
+// ---- Transcribe button + polling ----
+const _transcribePollTimers = {};
+let _listPollTimer = null;
+
+async function startTranscribe(videoId, btn) {
+  const statusEl = document.getElementById("ts-" + videoId);
+  statusEl.textContent = "starting…";
+  btn.disabled = true;
+  try {
+    const r = await fetch(`/videos/${videoId}/transcribe`, { method: "POST" });
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    const job = await r.json();
+    statusEl.textContent = "0/" + job.total_chunks;
+    pollJob(job.job_id, statusEl, btn);
+  } catch (err) {
+    statusEl.textContent = "err: " + err.message;
+    btn.disabled = false;
+  }
+}
+
+async function resumeTranscribe(jobId, statusEl, btn) {
+  statusEl.textContent = "resuming…";
+  try {
+    await fetch(`/transcribe/jobs/${jobId}/resume`, { method: "POST" });
+    pollJob(jobId, statusEl, btn);
+  } catch (err) {
+    statusEl.textContent = "resume err: " + err.message;
+  }
+}
+
+async function pollJob(jobId, statusEl, btn) {
+  // Clear any existing timer for this job
+  if (_transcribePollTimers[jobId]) clearTimeout(_transcribePollTimers[jobId]);
+
+  try {
+    const r = await fetch(`/transcribe/jobs/${jobId}`);
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    const data = await r.json();
+    const job = data.job;
+    const chunks = data.chunks;
+
+    const done = chunks.filter(c => c.status === "completed").length;
+    const failed = chunks.filter(c => c.status === "failed").length;
+    const total = chunks.length;
+
+    if (job.status === "completed") {
+      statusEl.textContent = `✓ ${done}/${total}`;
+      btn.disabled = false;
+      return;
+    }
+    if (job.status === "failed") {
+      statusEl.textContent = `✗ ${done}/${total} (failed)`;
+      btn.textContent = "↻ Retry";
+      btn.onclick = () => resumeTranscribe(jobId, statusEl, btn);
+      btn.disabled = false;
+      return;
+    }
+    // running / pending
+    statusEl.textContent = `${done}/${total}${failed ? ` (${failed} failed)` : ""}`;
+    _transcribePollTimers[jobId] = setTimeout(() => pollJob(jobId, statusEl, btn), 2000);
+  } catch (err) {
+    statusEl.textContent = "poll err: " + err.message;
+    _transcribePollTimers[jobId] = setTimeout(() => pollJob(jobId, statusEl, btn), 5000);
+  }
+}
+
+// Delegate click on transcribe buttons (re-attached on each loadList)
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".transcribe-btn");
+  if (btn) {
+    e.preventDefault();
+    const vid = btn.dataset.vid;
+    const statusEl = document.getElementById("ts-" + vid);
+    // Check if there's already an active job (status shows numbers or "starting")
+    if (statusEl.textContent && !statusEl.textContent.includes("err") && btn.textContent.includes("Retry")) {
+      // Retry case — just call resumeTranscribe via the button's onclick
+      btn.onclick = () => resumeTranscribe(jobId, statusEl, btn);
+    } else {
+      startTranscribe(vid, btn);
+    }
+  }
+});
+
+setNow();
+loadLocations();
+loadList();
+</script>
+</body>
+</html>
