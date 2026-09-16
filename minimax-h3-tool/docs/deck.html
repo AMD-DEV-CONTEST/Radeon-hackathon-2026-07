@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MiniMax H3 · Local Multimodal Video Studio — Slide Deck</title>
+<style>
+  @page { size: 1280px 720px; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Noto Sans CJK SC', 'Source Han Sans SC', sans-serif;
+         color: #1a1a1a; }
+  .slide { width: 1280px; height: 720px; page-break-after: always; position: relative;
+           overflow: hidden; background: #f5f7fa; }
+  .slide:last-child { page-break-after: auto; }
+  .bgdark { background: linear-gradient(160deg, #0f2b46 0%, #1b3a5c 45%, #123052 100%); }
+  .accent { position: absolute; top: 0; left: 0; width: 10px; height: 100%;
+            background: linear-gradient(#e21b5d, #ff8a3d); }
+  .pad { padding: 56px 64px; }
+  .ptitle { font-size: 40px; font-weight: 800; color: #0f2b46; }
+  .ptitle span { color: #e21b5d; }
+  .subtitle { font-size: 18px; color: #556; margin-top: 10px; }
+  .dark .ptitle { color: #fff; }
+  .dark .subtitle { color: #9fc3e8; }
+  h2 { font-size: 28px; color: #0f2b46; border-left: 5px solid #e21b5d;
+       padding-left: 14px; margin-bottom: 22px; }
+  .dark h2 { color: #fff; border-color: #ff8a3d; }
+  p, li { font-size: 17px; line-height: 1.6; }
+  li { margin-bottom: 10px; }
+  ul { padding-left: 26px; }
+  .card { background: #fff; border-radius: 12px; padding: 20px 24px;
+          box-shadow: 0 4px 16px rgba(0,0,0,.08); margin-bottom: 16px; }
+  .grid2 { display: flex; gap: 20px; }
+  .grid2 > div { flex: 1; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; background: #fff;
+          border-radius: 8px; overflow: hidden; }
+  th, td { border: 1px solid #d5dde6; padding: 9px 12px; text-align: left; }
+  th { background: #0f2b46; color: #fff; }
+  code { background: #eef2f7; padding: 1px 5px; border-radius: 4px;
+         font-family: 'DejaVu Sans Mono', monospace; font-size: 14px; }
+  .big { font-size: 46px; font-weight: 800; color: #e21b5d; }
+  .shot { display: flex; gap: 14px; }
+  .shot img { width: 31%; border-radius: 10px; }
+  .badge { display: inline-block; background: #e21b5d; color: #fff; border-radius: 18px;
+           padding: 4px 16px; font-size: 15px; margin-right: 8px; }
+  .fade { color: #888; font-size: 14px; }
+  .footer { position: absolute; bottom: 24px; left: 64px; right: 64px;
+            color: #99a; font-size: 13px; display: flex; justify-content: space-between; }
+  .dark .footer { color: #6f8fb5; }
+  .pg { font-size: 15px; font-weight: 700; color: #e21b5d; }
+</style>
+</head>
+<body>
+
+<!-- 1. Title -->
+<div class="slide bgdark">
+  <div class="accent"></div>
+  <div class="pad">
+    <div style="margin-top:120px">
+      <div style="font-size:20px; color:#9fc3e8; letter-spacing:2px">AMD AI DevMaster Hackathon 2026 · Track 1</div>
+      <div style="font-size:56px; font-weight:800; color:#fff; margin-top:18px; line-height:1.2">
+        MiniMax H3 · Local Multimodal<br>Video Studio
+      </div>
+      <div style="font-size:22px; color:#ffb3c6; margin-top:18px">
+        Text / images → video + <b>native stereo audio</b> on a single AMD Radeon GPU
+      </div>
+      <div style="margin-top:36px">
+        <span class="badge">ROCm 7.2.4</span>
+        <span class="badge">Radeon PRO W7900</span>
+        <span class="badge">pruned int8</span>
+        <span class="badge">100% local</span>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span>Team peace_&amp;_love</span><span class="pg">1 / 10</span></div>
+</div>
+
+<!-- 2. Problem -->
+<div class="slide">
+  <div class="accent"></div>
+  <div class="pad">
+    <h2>Why this tool</h2>
+    <div class="grid2">
+      <div>
+        <div class="card">
+          <b>Pain point</b>
+          <ul>
+            <li>Video + audio generation needs cloud APIs or heavy NVIDIA stacks</li>
+            <li>Open-weights models (bf16) are 190 GB+ — won't fit consumer GPUs</li>
+            <li>Most tools do video <i>or</i> audio, rarely both, natively</li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <b>Our answer</b>
+          <ul>
+            <li>Omni-modal MiniMax H3: one sampling pass renders <b>video + audio</b></li>
+            <li><b>pruned int8</b> set fits 48 GB VRAM on Radeon</li>
+            <li>100% local &amp; private — no cloud calls</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <p class="fade" style="margin-top:14px">Creators · agencies · e-learning · IP studios · privacy-sensitive teams</p>
+  </div>
+  <div class="footer"><span>Track 1 · Multimodal Content Creation Tools</span><span class="pg">2 / 10</span></div>
+</div>
+
+<!-- 3. What it does -->
+<div class="slide">
+  <div class="accent"></div>
+  <div class="pad">
+    <h2>Three generation modes</h2>
+    <div class="grid2">
+      <div>
+        <div class="card">
+          <div style="font-size:22px; font-weight:800; color:#e21b5d">T2V</div>
+          <p>text prompt → video + stereo audio</p>
+          <p class="fade">Cinematic shots, narration, ambience</p>
+        </div>
+        <div class="card">
+          <div style="font-size:22px; font-weight:800; color:#e21b5d">I2V</div>
+          <p>prompt + first/last keyframes → video + audio</p>
+          <p class="fade">Shot-constrained animation</p>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div style="font-size:22px; font-weight:800; color:#e21b5d">R2V</div>
+          <p>prompt + reference images → identity-locked video + audio</p>
+          <p class="fade">Character / style reuse via &lt;Picture 1&gt;</p>
+        </div>
+        <div class="card">
+          <p><b>Audio is native, not layered on:</b> voice, sound effects and music
+          are modeled jointly with the video in a single forward pass.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span>Local Studio · Streamlit UI (T2V / I2V / R2V tabs)</span><span class="pg">3 / 10</span></div>
+</div>
+
+<!-- 4. Architecture -->
+<div class="slide">
+  <div class="accent"></div>
+  <div class="pad">
+    <h2>System architecture</h2>
+    <div class="card">
+      <div style="font-size:15px; font-family:'DejaVu Sans Mono',monospace; background:#f4f4f4; border-radius:6px; padding:14px 16px; line-height:1.9">
+        gradio/streamlit UI → ComfyUI API (8188) → MiniMaxH3 nodes<br>
+        &nbsp;&nbsp;&nbsp;→ SamplerCustomAdvanced (joint video+audio latents)<br>
+        &nbsp;&nbsp;&nbsp;→ VAEDecode (video) + VAEDecodeAudio (audio) → CreateVideo → mp4
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card"><b>Client</b> — <code>comfy_client.py</code> builds prompt graphs,
+      uploads keyframes, polls history, returns the mp4.</div>
+      <div class="card"><b>Server</b> — ComfyUI native nodes on ROCm PyTorch; no CUDA code paths.</div>
+    </div>
+    <p class="fade" style="margin-top:12px">Models: pruned int8 fl2va/ref2va (~21 GB) · int8 Qwen3-VL-32B (27 GB) · fp16 video VAE + fp32 audio VAE</p>
+  </div>
+  <div class="footer"><span>Hardware: AMD Radeon PRO W7900 · gfx1100 · RDNA3 · 48 GB</span><span class="pg">4 / 10</span></div>
+</div>
+
+<!-- 5. Generated outputs -->
+<div class="slide">
+  <div class="accent"></div>
+  <div class="pad">
+    <h2>Generated outputs</h2>
+    <div class="shot">
+      <img src="../assets/frame_1.jpg" alt="shot 1">
+      <img src="../assets/frame_2.jpg" alt="shot 2">
+      <img src="../assets/frame_3.jpg" alt="shot 3">
+    </div>
+    <p style="margin-top:16px">Every clip ships with <b>embedded stereo audio</b> generated by the model.
+    9 clips in <code>assets/showcase/</code>; full demo video in <code>assets/demo.mp4</code> (2:34 @ 1080p).</p>
+  </div>
+  <div class="footer"><span>Demo video opens with shots generated by this pipeline (AMD ROCm intro → title → showcase → live run)</span><span class="pg">5 / 10</span></div>
+</div>
+
+<!-- 6. AMD adaptation -->
+<div class="slide">
+  <div class="accent"></div>
+  <div class="pad">
+    <h2>AMD Radeon / ROCm adaptation</h2>
+    <table>
+      <tr><th>Choice</th><th>Why</th></tr>
+      <tr><td><b>pruned int8</b> diffusion (fl2va/ref2va)</td><td>bf16 is 66 GB / file — pruned set removes training-only weights, int8 shrinks to ~21 GB</td></tr>
+      <tr><td><b>int8 Qwen3-VL-32B</b> text encoder</td><td>27 GB, native on RDNA (no FP4 emulation)</td></tr>
+      <tr><td>fp16 video VAE + fp32 audio VAE</td><td>small, full precision where it matters</td></tr>
+      <tr><td>ComfyUI native nodes</td><td>same nodes run on ROCm PyTorch (HIP) — no CUDA translation</td></tr>
+      <tr><td>20 steps · res_multistep · simple</td><td>Comfy-Org reference config, quality/speed balance</td></tr>
+    </table>
+  </div>
+  <div class="footer"><span>190 GB+ bf16 release → fits 48 GB single card</span><span class="pg">6 / 10</span></div>
+</div>
+
+<!-- 7. Performance -->
+<div class="slide">
+  <div class="accent"></div>
+  <div class="pad">
+    <h2>Measured performance</h2>
+    <table>
+      <tr><th>Mode</th><th>Resolution</th><th>Duration</th><th>Wall time</th></tr>
+      <tr><td>T2V (cold)</td><td>864x480</td><td>~5.2 s</td><td>10:42 (incl. model load)</td></tr>
+      <tr><td>T2V (warm)</td><td>608x352</td><td>~2.3 s</td><td>75 s</td></tr>
+      <tr><td>T2V (warm)</td><td>864x480</td><td>~2.3 s</td><td>170 s</td></tr>
+      <tr><td><b>I2V (warm)</b></td><td>864x480</td><td>~5.2 s</td><td><b>553–617 s</b></td></tr>
+    </table>
+    <p style="margin-top:14px" class="fade"><b>Honest disclosure:</b> image-conditioned modes (I2V/R2V) take ~9–10 min for a 5 s clip —
+    conditioning tokens ride every sampling step. We report this openly rather than only showing best-case T2V numbers.</p>
+  </div>
+  <div class="footer"><span>Peak VRAM ~27 GB — fits alongside the 27 GB text encoder</span><span class="pg">7 / 10</span></div>
+</div>
+
+<!-- 8. Reproducibility -->
+<div class="slide">
+  <div class="accent"></div>
+  <div class="pad">
+    <h2>Reproducibility</h2>
+    <div class="card">
+      <div style="font-family:'DejaVu Sans Mono',monospace; font-size:14px; line-height:2">
+        git clone https://github.com/Comfy-Org/MiniMax-H3 ✓ hf download (pruned int8)<br>
+        python main.py --listen 0.0.0.0 --port 8188 &nbsp; # ComfyUI<br>
+        streamlit run app/streamlit_app.py &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; # web studio<br>
+        python app/bench.py --all --skip-queue &nbsp;&nbsp; # validate vs live server<br>
+        python app/test_comfy_client.py &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; # 8 unit tests, no GPU
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card"><b>Unit tests (8)</b> — graph construction, 17k+5 frame grid, mode wiring</div>
+      <div class="card"><b>Benchmark script</b> — all modes, wall time + peak RSS, JSON output</div>
+    </div>
+  </div>
+  <div class="footer"><span>Reproducible on any RDNA2/RDNA3 card with ≥24 GB</span><span class="pg">8 / 10</span></div>
+</div>
+
+<!-- 9. Use cases & value -->
+<div class="slide">
+  <div class="accent"></div>
+  <div class="pad">
+    <h2>Use cases & practical value</h2>
+    <div class="grid2">
+      <div>
+        <ul>
+          <li><b>Short-form social video</b> — clips with synced sound in one shot</li>
+          <li><b>Ads &amp; storyboards</b> — pitch concepts with audio ambience</li>
+          <li><b>E-learning explainers</b> — localized narration in-loop</li>
+          <li><b>Game cinematics / IP</b> — style-locked R2V character reuse</li>
+          <li><b>Privacy-safe creation</b> — everything stays on-device</li>
+        </ul>
+      </div>
+      <div class="card">
+        <b>Differentiator</b>
+        <p style="margin-top:10px">Among Track 1 video tools, this is the one that generates
+        <b>video and native synchronized audio together</b> — voice, SFX and music come out
+        of the same diffusion pass, so lip-sync and ambience are naturally aligned.</p>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span>Local · Private · One GPU</span><span class="pg">9 / 10</span></div>
+</div>
+
+<!-- 10. Thank you -->
+<div class="slide bgdark">
+  <div class="accent"></div>
+  <div class="pad">
+    <div style="margin-top:200px">
+      <div style="font-size:52px; font-weight:800; color:#fff">Thank you</div>
+      <div style="font-size:22px; color:#9fc3e8; margin-top:16px">MiniMax H3 · Local Multimodal Video Studio on AMD Radeon</div>
+      <div style="font-size:18px; color:#ffb3c6; margin-top:30px">Team peace_&amp;_love · Track 1 · AMD AI DevMaster Hackathon 2026</div>
+      <div style="margin-top:28px">
+        <span class="badge">PR #90</span>
+        <span class="badge">video + native stereo audio</span>
+        <span class="badge">ROCm · RDNA3</span>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span>github.com/SeeHighSea/Radeon-hackathon-2026-07</span><span class="pg">10 / 10</span></div>
+</div>
+
+</body>
+</html>

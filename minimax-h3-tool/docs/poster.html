@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MiniMax H3 · Local Multimodal Video Studio</title>
+<style>
+  @page { size: A4 landscape; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Noto Sans CJK SC', 'Source Han Sans SC', sans-serif;
+         color: #1a1a1a; }
+  .poster { width: 1123px; height: 794px; position: relative; overflow: hidden;
+            background: linear-gradient(160deg, #0f2b46 0%, #1b3a5c 45%, #123052 100%); }
+  .accent { position: absolute; top: 0; left: 0; width: 8px; height: 794px;
+            background: linear-gradient(#e21b5d, #ff8a3d); }
+  .header { padding: 34px 56px 0 70px; color: #fff; }
+  .header h1 { font-size: 40px; font-weight: 800; letter-spacing: .5px; }
+  .header .sub { font-size: 17px; color: #9fc3e8; margin-top: 8px; }
+  .badges { margin-top: 14px; }
+  .badge { display: inline-block; background: rgba(255,255,255,.12);
+           border: 1px solid rgba(255,255,255,.25); border-radius: 20px;
+           padding: 4px 14px; font-size: 13px; margin-right: 8px; color: #cfe4ff; }
+  .cols { display: flex; gap: 26px; padding: 26px 56px 0 70px; }
+  .left { flex: 1.45; }
+  .right { flex: 1; }
+  .card { background: rgba(255,255,255,.96); border-radius: 14px;
+          padding: 18px 20px; margin-bottom: 16px; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+  .card h2 { font-size: 17px; color: #0f2b46; margin-bottom: 10px;
+             border-left: 4px solid #e21b5d; padding-left: 10px; }
+  .card p, .card li { font-size: 13.5px; line-height: 1.55; }
+  .card ul { padding-left: 20px; }
+  .shots { display: flex; gap: 12px; }
+  .shots img { width: 30%; border-radius: 8px; display: block; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th, td { border: 1px solid #d5dde6; padding: 5px 8px; text-align: left; }
+  th { background: #eef2f7; }
+  .perf td { font-family: 'DejaVu Sans Mono', monospace; font-size: 12px; }
+  .footer { position: absolute; bottom: 22px; left: 70px; right: 56px;
+            color: #9fc3e8; font-size: 12.5px; display: flex; justify-content: space-between; }
+  .flow { font-size: 12px; color: #444; background: #f4f4f4; border-radius: 6px;
+          padding: 8px 10px; font-family: 'DejaVu Sans Mono', monospace; }
+</style>
+</head>
+<body>
+<div class="poster">
+  <div class="accent"></div>
+
+  <div class="header">
+    <h1>MiniMax H3 · Local Multimodal Video Studio</h1>
+    <div class="sub">Open-weights text/image → video + native stereo audio · 100% on a single AMD Radeon GPU (ROCm)</div>
+    <div class="badges">
+      <span class="badge">AMD AI DevMaster 2026 · Track 1</span>
+      <span class="badge">ROCm 7.2.4</span>
+      <span class="badge">Radeon PRO W7900 · RDNA3</span>
+      <span class="badge">ComfyUI native nodes</span>
+      <span class="badge">pruned int8 · 48 GB VRAM</span>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div class="left">
+      <div class="card">
+        <h2>Omni-modal in one sampling loop</h2>
+        <ul>
+          <li><b>T2V</b> — text → video + synchronized audio</li>
+          <li><b>I2V</b> — + first/last keyframes for shot control</li>
+          <li><b>R2V</b> — reference images lock identity / style (<code>&lt;Picture 1&gt;</code>)</li>
+          <li>Audio (voice, wind, score) rendered with the video — no TTS pipeline</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Generated outputs</h2>
+        <div class="shots">
+          <img src="assets/frame_1.jpg" alt="shot 1">
+          <img src="assets/frame_2.jpg" alt="shot 2">
+          <img src="assets/frame_3.jpg" alt="shot 3">
+        </div>
+      </div>
+      <div class="card">
+        <h2>System</h2>
+        <div class="flow">gradio UI → ComfyUI API → MiniMaxH3 nodes → 2×VAE (video + audio) → mp4</div>
+        <p style="margin-top:8px">PyTorch ROCm build (HIP) drives ComfyUI — no CUDA paths, reproducible on RDNA2/RDNA3 ≥24 GB.</p>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="card">
+        <h2>Measured on AMD Radeon PRO W7900</h2>
+        <table class="perf">
+          <tr><th>Run</th><th>Resolution</th><th>Duration</th><th>Wall time</th></tr>
+          <tr><td>T2V cold</td><td>864x480</td><td>~5.2 s</td><td>10:42 (load)</td></tr>
+          <tr><td>T2V warm</td><td>608x352</td><td>~2.3 s</td><td>75 s</td></tr>
+          <tr><td>T2V warm</td><td>864x480</td><td>~2.3 s</td><td>170 s</td></tr>
+        </table>
+        <p style="margin-top:8px">Peak VRAM ~27 GB — fits alongside the 27 GB int8 32B text encoder.</p>
+      </div>
+      <div class="card">
+        <h2>Why pruned int8?</h2>
+        <ul>
+          <li>bf16 release is 190 GB+ — cannot fit 48 GB VRAM</li>
+          <li>Pruned set removes training-only weights (~21 GB / diffusion)</li>
+          <li>int8 (convrot) text encoder runs natively on RDNA</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Use cases</h2>
+        <p>Short-form social video · ads &amp; storyboards · e-learning explainers ·
+        game cinematics · style-locked R2V character reuse · privacy-safe on-device creation.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>github.com/Comfy-Org/MiniMax-H3 (minimax-h3-community-license)</span>
+    <span>AMD AI DevMaster Hackathon 2026 · Track 1 · Minimax H3 Local Studio</span>
+  </div>
+</div>
+</body>
+</html>
