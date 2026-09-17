@@ -1,0 +1,102 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Syndicate AI — Architecture</title>
+<style>
+  :root{
+    --bg:#0b0d12; --panel:#151922; --edge:#232936; --txt:#e8ecf4; --dim:#8b95a8;
+    --amd:#ED1C24; --amd-glow:rgba(237,28,36,.18); --acc:#4a9eff; --ok:#3ddc97;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);
+    font:16px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif;
+    min-height:100vh;display:flex;align-items:center;justify-content:center;padding:3vh 3vw}
+  .wrap{width:min(1500px,100%)}
+  h1{font-size:clamp(24px,2.6vw,40px);font-weight:650;letter-spacing:-.02em}
+  h1 span{color:var(--amd)}
+  .sub{color:var(--dim);margin:.4rem 0 2.2rem;font-size:clamp(13px,1.15vw,18px)}
+  .cols{display:grid;grid-template-columns:1fr 1fr 1.15fr;gap:clamp(14px,1.6vw,28px);align-items:stretch}
+  .zone{background:var(--panel);border:1px solid var(--edge);border-radius:14px;
+    padding:clamp(14px,1.3vw,22px);display:flex;flex-direction:column;gap:.7rem}
+  .zone.amd{border-color:var(--amd);box-shadow:0 0 0 1px var(--amd-glow),0 0 46px var(--amd-glow)}
+  .ztitle{font-size:clamp(10px,.78vw,12px);letter-spacing:.16em;text-transform:uppercase;
+    color:var(--dim);font-weight:650}
+  .zone.amd .ztitle{color:var(--amd)}
+  .node{background:#0f1319;border:1px solid var(--edge);border-radius:9px;
+    padding:.62rem .8rem;font-size:clamp(12px,1vw,15px)}
+  .node b{display:block;font-weight:600}
+  .node i{font-style:normal;color:var(--dim);font-size:.85em}
+  .node.hero{border-color:var(--amd);background:linear-gradient(180deg,#1a1114,#0f1319)}
+  .node.hero b{color:#fff}
+  .spec{margin-top:.35rem;display:grid;gap:.28rem}
+  .spec div{display:flex;justify-content:space-between;gap:1rem;
+    font-size:clamp(11px,.86vw,13px);color:var(--dim)}
+  .spec span{color:var(--ok);font-variant-numeric:tabular-nums}
+  .flow{margin-top:2rem;background:var(--panel);border:1px solid var(--edge);
+    border-radius:14px;padding:clamp(12px,1.2vw,20px)}
+  .chain{display:flex;align-items:center;flex-wrap:wrap;gap:.5rem;
+    font-size:clamp(11px,.92vw,14px)}
+  .chain b{background:#0f1319;border:1px solid var(--edge);border-radius:7px;
+    padding:.4rem .68rem;font-weight:500}
+  .chain b.amd{border-color:var(--amd);color:#fff}
+  .chain i{color:var(--amd);font-style:normal;font-weight:700}
+  .foot{margin-top:1.5rem;display:flex;flex-wrap:wrap;gap:.55rem}
+  .tag{border:1px solid var(--edge);border-radius:999px;padding:.32rem .8rem;
+    font-size:clamp(10px,.8vw,12.5px);color:var(--dim)}
+  .tag b{color:var(--ok);font-weight:600}
+  .rule{color:var(--acc);font-size:clamp(11px,.88vw,13.5px);margin-top:1rem;
+    padding-left:.75rem;border-left:2px solid var(--acc)}
+</style>
+<div class="wrap">
+  <h1>Syndicate AI — sovereign agent runtime on <span>AMD Radeon</span></h1>
+  <p class="sub">Every token of language-model inference executes on hardware the operator owns. No remote model API in any core path.</p>
+
+  <div class="cols">
+    <div class="zone">
+      <div class="ztitle">Public edge</div>
+      <div class="node"><b>PSTN inbound call</b><i>carrier · real published number</i></div>
+      <div class="node"><b>Operator cockpit</b><i>browser</i></div>
+    </div>
+
+    <div class="zone">
+      <div class="ztitle">Sovereign control plane · CPU</div>
+      <div class="node"><b>VoiceOps</b><i>dialogue state · intake · tools</i></div>
+      <div class="node"><b>ASR</b><i>streaming transcription</i></div>
+      <div class="node"><b>Kokoro TTS</b><i>CPU synthesis</i></div>
+      <div class="node"><b>Aether Gateway</b><i>OpenAI-compatible router</i></div>
+      <div class="node"><b>OmniAgent · PolyMorph</b><i>agent harnesses · 45 tools</i></div>
+      <div class="node"><b>Qdrant + embeddings</b><i>local retrieval</i></div>
+    </div>
+
+    <div class="zone amd">
+      <div class="ztitle">AMD Radeon PRO W7900 · ROCm</div>
+      <div class="node hero"><b>vLLM 0.25.1+rocm723</b><i>bound 127.0.0.1:8000 — never 0.0.0.0</i></div>
+      <div class="node hero"><b>GRM 2.6 Plus · AWQ-INT4</b><i>Qwen3.5 hybrid — 16 full-attn + 48 linear-attn</i></div>
+      <div class="spec">
+        <div>architecture <span>gfx1100 · RDNA3</span></div>
+        <div>weights resident <span>19.05 GiB</span></div>
+        <div>KV cache <span>310,931 tokens</span></div>
+        <div>context window <span>65,536</span></div>
+        <div>max concurrency <span>4.74×</span></div>
+        <div>time to first token <span>198 ms</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow">
+    <div class="ztitle" style="margin-bottom:.7rem">Live call path — validated end to end</div>
+    <div class="chain">
+      <b>PSTN</b><i>→</i><b>VoiceOps</b><i>→</i><b>ASR</b><i>→</i><b>Aether Gateway</b><i>→</i>
+      <b class="amd">GRM on AMD W7900</b><i>→</i><b>Kokoro TTS</b><i>→</i><b>caller</b>
+    </div>
+    <div class="rule">The workflow addresses a model <em>name</em>, not a machine. Re-pointing one alias moved the entire stack to a GPU provisioned that afternoon — no agent logic, prompt, or dialogue code changed.</div>
+  </div>
+
+  <div class="foot">
+    <span class="tag">198.34 s call · <b>10 caller / 11 agent turns</b></span>
+    <span class="tag">all 10 inference turns → <b>grm2.6-plus-amd</b></span>
+    <span class="tag">fallbacks <b>[ ]</b> · anomalies <b>[ ]</b></span>
+    <span class="tag">intake <b>5/5 fields</b>, 0 retries</span>
+    <span class="tag"><b>129 calls</b> · 98.45% contained · 43 s avg</span>
+    <span class="tag">agents hold <b>cryptographic passports</b></span>
+  </div>
+</div>
