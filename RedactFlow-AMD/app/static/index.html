@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#171717">
+  <title>RedactFlow AMD</title>
+  <!--
+    DESIGN SYSTEM CONTRACT
+    Palette: warm paper #f4f0e8, carbon #171717, AMD-derived red #ed1c24, muted slate #6d706c.
+    Type: Avenir Next for interface hierarchy; Iowan Old Style for evidence excerpts; Menlo for audit data.
+    Geometry: 2/6/12px radii only; 8px spacing rhythm; borders replace decorative shadows.
+    Rhythm: persistent three-column workbench; no title screen, gradients, card-grid filler, or decorative metrics.
+  -->
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="RedactFlow home">
+      <span class="brand-mark">RF</span>
+      <span>RedactFlow <b>AMD</b></span>
+    </a>
+    <div class="topbar-rule"></div>
+    <p>Local release review agent</p>
+    <div class="status" id="systemStatus"><i></i><span>checking local runtime</span></div>
+  </header>
+
+  <main class="workbench">
+    <aside class="vault panel">
+      <div class="panel-heading">
+        <span class="eyebrow">01 / SOURCE</span>
+        <h1>Private vault</h1>
+        <p>Files stay on this machine. The agent retrieves evidence without a remote index.</p>
+      </div>
+
+      <label class="file-drop" for="fileInput">
+        <strong>Add text files</strong>
+        <span>TXT, MD, CSV, JSON, LOG</span>
+        <input id="fileInput" type="file" accept=".txt,.md,.csv,.json,.log,text/plain" multiple>
+      </label>
+
+      <div class="divider"><span>or paste a document</span><i></i></div>
+      <label class="field">
+        <span>Document name</span>
+        <input id="documentName" value="vendor-release-note.txt" maxlength="160">
+      </label>
+      <label class="field">
+        <span>Content</span>
+        <textarea id="documentContent" rows="8" spellcheck="false">Release candidate for the Northwind migration.
+
+Owner: Maya Chen
+Email: maya.chen@example.com
+Emergency phone: 13800138000
+Internal endpoint: 10.24.8.16
+Temporary API key: sk-localDemoKey123456789
+
+The approved public statement may mention the August migration window and the rollback rehearsal. It must not expose personal contacts, credentials, or internal network addresses.</textarea>
+      </label>
+      <button class="button primary" id="addDocument">Add to local vault</button>
+      <div class="document-list" id="documentList" aria-live="polite"></div>
+    </aside>
+
+    <section class="agent panel">
+      <div class="panel-heading agent-heading">
+        <div>
+          <span class="eyebrow">02 / PLAN</span>
+          <h2>Release desk</h2>
+        </div>
+        <button class="button quiet" id="loadDemo">Load demo</button>
+      </div>
+
+      <label class="task-field">
+        <span>What should the local agent do?</span>
+        <textarea id="taskInput" rows="3">Prepare a safe public release copy. Ground the decision in the local source, identify sensitive values, redact them, and preserve an audit memory without storing raw secrets.</textarea>
+      </label>
+      <div class="task-actions">
+        <button class="button primary" id="createPlan">Build auditable plan</button>
+        <span id="taskHint">Read-only steps run first. Transformations always pause for approval.</span>
+      </div>
+
+      <section class="plan-section" aria-labelledby="planTitle">
+        <div class="section-label">
+          <h3 id="planTitle">Execution plan</h3>
+          <span id="planState">waiting for a task</span>
+        </div>
+        <ol class="plan-list" id="planList">
+          <li class="empty-state">Add a document, then build a plan.</li>
+        </ol>
+      </section>
+
+      <section class="approval-section" id="approvalSection" hidden>
+        <div class="approval-copy">
+          <span class="eyebrow">03 / CONTROL</span>
+          <h3>Human approval boundary</h3>
+          <p>Choose which local actions may cross from inspection into transformation or persistence.</p>
+        </div>
+        <div class="permission-list" id="permissionList"></div>
+        <button class="button danger" id="executePlan">Execute approved actions</button>
+      </section>
+
+      <section class="result-section" id="resultSection" hidden>
+        <div class="section-label">
+          <h3>Release package</h3>
+          <span id="resultStatus"></span>
+        </div>
+        <p class="result-summary" id="resultSummary"></p>
+        <div class="release-files" id="releaseFiles"></div>
+      </section>
+    </section>
+
+    <aside class="evidence panel">
+      <div class="panel-heading">
+        <span class="eyebrow">LOCAL EVIDENCE</span>
+        <h2>Trace, don't trust</h2>
+        <p>Every output is paired with retrieved passages, detected values, and a permission log.</p>
+      </div>
+      <div class="evidence-tabs" role="tablist">
+        <button class="tab active" data-tab="evidencePane">Evidence</button>
+        <button class="tab" data-tab="findingsPane">Findings</button>
+        <button class="tab" data-tab="memoryPane">Memory</button>
+      </div>
+      <div class="tab-pane active" id="evidencePane"><p class="empty-copy">No evidence retrieved yet.</p></div>
+      <div class="tab-pane" id="findingsPane"><p class="empty-copy">No sensitive values scanned yet.</p></div>
+      <div class="tab-pane" id="memoryPane"><p class="empty-copy">No local audit memories yet.</p></div>
+    </aside>
+  </main>
+
+  <footer class="footer">
+    <span>Local inference ready for AMD Radeon + ROCm</span>
+    <span>Core actions never require a closed remote API</span>
+  </footer>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
+
