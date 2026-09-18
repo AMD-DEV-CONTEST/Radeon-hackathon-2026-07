@@ -1,0 +1,121 @@
+realtime:
+  allowed_video_roots:
+    - /persistent/BuildGuard-Radeon-backup/workspace/cameras
+  event_image_dir: /persistent/BuildGuard-Radeon-backup/workspace/events/images
+  event_clip_dir: /persistent/BuildGuard-Radeon-backup/workspace/events/clips
+  buffer_seconds: 20
+  buffer_max_frames: 600
+  buffer_memory_mb: 256
+  inference_queue_size: 32
+  event_queue_size: 64
+  max_concurrent_cameras: 4
+  static_fps: 1
+  low_motion_fps: 3
+  normal_fps: 2
+  active_fps: 5
+  suspected_fps: 8
+  tracker_algorithm: bytetrack
+  tracker_iou_threshold: 0.30
+  tracker_high_confidence: 0.50
+  tracker_low_confidence: 0.10
+  tracker_max_age: 10
+  tracker_min_hits: 2
+  reconnect_failure_threshold: 3
+  reconnect_initial_seconds: 0.25
+  reconnect_multiplier: 2
+  reconnect_max_seconds: 30
+  event_cooldown_seconds: 10
+  event_resolve_seconds: 15
+  event_region_iou_threshold: 0.40
+  evidence_before_seconds: 5
+  evidence_after_seconds: 5
+  save_event_clips: true
+  clip_codec: VP80
+  clip_fps: 10
+  event_class_map:
+    missing_helmet: helmet_missing
+    missing_safety_vest: safety_vest_missing
+    unsafe_edge: dangerous_zone
+    exposed_wiring: static_defect
+    emergency: emergency
+    concrete_crack: structural_crack
+    damage_minor: structural_damage
+    damage_moderate: structural_damage
+    damage_severe: structural_damage
+    steel_corrosion: structural_corrosion
+  event_severity:
+    helmet_missing: high
+    safety_vest_missing: high
+    dangerous_zone: critical
+    static_defect: normal
+    emergency: critical
+    structural_crack: high
+    structural_damage: high
+    structural_corrosion: normal
+  temporal_rules:
+    helmet_missing:
+      m: 3
+      n: 5
+      alpha: 0.60
+    safety_vest_missing:
+      m: 3
+      n: 5
+      alpha: 0.60
+    dangerous_zone:
+      m: 2
+      n: 3
+      alpha: 0.60
+    static_defect:
+      m: 2
+      n: 4
+      alpha: 0.60
+    emergency:
+      m: 1
+      n: 2
+      alpha: 0.75
+    structural_crack:
+      m: 2
+      n: 4
+      alpha: 0.65
+    structural_damage:
+      m: 2
+      n: 4
+      alpha: 0.65
+    structural_corrosion:
+      m: 2
+      n: 4
+      alpha: 0.65
+  ppe:
+    person_head_iou: 0.5
+    head_helmet_iou: 0.5
+    person_vest_iou: 0.5
+    m: 3
+    n: 5
+    cooldown_seconds: 10
+    track_max_age: 10
+    person_confidence: 0.5
+    head_confidence: 0.5
+    helmet_confidence: 0.5
+    safety_vest_confidence: 0.5
+    monitor_missing_helmet: true
+    monitor_missing_safety_vest: true
+    smoothing_alpha: 0.6
+  optimization:
+    enabled: true
+    pace_local_video: true
+    local_playback_speed: 1.0
+    normal_frame_deadline_seconds: 1.0
+    risk_frame_deadline_seconds: 0.5
+    suspected_hold_seconds: 2.0
+    recovery_hold_seconds: 2.0
+    uncertainty_threshold: 0.45
+    observation_centric_tracking: true
+    direction_cost_weight: 0.25
+    time_evidence_enabled: true
+    evidence_window_seconds: 5.0
+    evidence_half_life_seconds: 1.5
+    evidence_min_positive_seconds: 0.5
+    evidence_confirm_threshold: 0.55
+    calibration_required: false
+  cameras: []
+  camera_policies: {}

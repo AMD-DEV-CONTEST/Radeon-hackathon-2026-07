@@ -1,0 +1,122 @@
+vision:
+  allowed_image_roots:
+    - workspace/uploads
+  visualization_dir: workspace/events/images
+  batch_max_items: 50
+  requires_review_threshold: 0.65
+  http_timeout_seconds: 30.0
+  http_retry_attempts: 2
+  http_retry_wait_seconds: 0.1
+  upload:
+    max_files: 20
+    max_file_bytes: 20971520
+    max_total_bytes: 104857600
+    chunk_bytes: 1048576
+    allowed_extensions: [.jpg, .jpeg, .png]
+    allowed_mime_types: [image/jpeg, image/png]
+  video_upload:
+    max_files: 1
+    max_file_bytes: 536870912
+    max_total_bytes: 536870912
+    chunk_bytes: 1048576
+    allowed_extensions: [.mp4, .avi, .mov, .mkv]
+    allowed_mime_types:
+      - video/mp4
+      - video/x-msvideo
+      - video/quicktime
+      - video/x-matroska
+      - application/octet-stream
+  models:
+    - model_name: deterministic-construction-mock
+      backend: mock
+      model_path: null
+      endpoint: null
+      applicable_roi_types:
+        - "*"
+      defect_classes:
+        - missing_helmet
+        - unsafe_edge
+        - exposed_wiring
+      input_size: [640, 640]
+      confidence_threshold: 0.35
+      nms_iou: 0.50
+      device: cpu
+      estimated_latency_ms: 20.0
+      estimated_memory_mb: 64.0
+      reliability: 0.95
+      fixed_call_cost: 0.05
+      high_risk_relevance: 0.90
+      enabled: true
+  routing:
+    enabled: true
+    prior_probability: 0.45
+    model_priors:
+      deterministic-construction-mock: 0.55
+    probability_alpha: 2.0
+    probability_beta: 1.0
+    probability_gamma: 1.0
+    probability_delta: 1.0
+    temporal_alpha: 0.60
+    latency_reference_ms: 100.0
+    memory_reference_mb: 1024.0
+    latency_weight: 0.45
+    memory_weight: 0.35
+    benefit_weight: 1.0
+    coverage_weight: 0.35
+    cost_weight: 0.35
+    call_count_weight: 0.15
+    max_models_per_roi: 3
+    roi_budget: 2.0
+    min_models_high_risk: 2
+    guard_budget_overrun_ratio: 0.25
+    low_confidence_threshold: 0.50
+    small_roi_area_ratio: 0.02
+    poor_quality_threshold: 0.35
+    top_probability_gap: 0.08
+    rule_high_risk_relevance_threshold: 0.60
+    high_risk_roi_types:
+      - dangerous_zone
+      - emergency
+  semantic_router:
+    enabled: false
+  open_vocab:
+    enabled: false
+    model_name: grounding-dino-local
+    model_dir: null
+    device: cpu
+    prompt_allowlist:
+      - person
+      - safety helmet
+      - guardrail
+      - exposed cable
+    class_aliases:
+      worker: person
+      helmet: safety helmet
+    confidence_threshold: 0.35
+    batch_size: 8
+    unload_after_inference: false
+  segmentation:
+    enabled: false
+    model_name: sam2-local
+    model_dir: null
+    device: cpu
+    output_dir: workspace/events/masks
+    area_required_classes:
+      - unsafe_edge
+      - exposed_wiring
+    batch_size: 4
+    min_confidence: 0.0
+    min_stability: 0.0
+    unload_after_inference: false
+  risk:
+    base_severity:
+      missing_helmet: 0.75
+      unsafe_edge: 0.90
+      exposed_wiring: 0.85
+    default_severity: 0.50
+    location_top: 0.80
+    location_middle: 0.55
+    location_bottom: 0.35
+    default_evidence_strength: 0.20
+    duration_reference_seconds: 60
+    frequency_reference_count: 5
