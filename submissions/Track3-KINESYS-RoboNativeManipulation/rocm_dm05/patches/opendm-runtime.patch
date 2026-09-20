@@ -1,0 +1,259 @@
+diff --git a/opendm/data/dataset.py b/opendm/data/dataset.py
+index f78a8c9..7900318 100644
+--- a/opendm/data/dataset.py
++++ b/opendm/data/dataset.py
+@@ -1,5 +1,6 @@
+ import json
+ import os
++from functools import lru_cache
+ 
+ import megfile
+ import orjson
+@@ -63,7 +64,9 @@ class JsonlDataset(Dataset):
+         return self.total_samples
+ 
+ 
++@lru_cache(maxsize=128)
+ def _read_jsonl_lines(file_path: str) -> list[str]:
++    """Cache episode metadata per worker instead of rereading it per frame."""
+     try:
+         return open(file_path, "r").readlines()
+     except Exception:
+diff --git a/opendm/data/transforms.py b/opendm/data/transforms.py
+index 1756692..a62ee3c 100644
+--- a/opendm/data/transforms.py
++++ b/opendm/data/transforms.py
+@@ -455,6 +455,7 @@ class ChatTokenization:
+         n_bins: Number of bins used when discretizing normalized state values.
+         max_length: Maximum token length. Long prompts are shortened to fit.
+         image_keys: Keys containing PIL images to include in the chat message.
++        image_labels: Optional display labels for image keys.
+         add_state: Whether to append a discretized state text field.
+     """
+ 
+@@ -464,6 +465,7 @@ class ChatTokenization:
+         n_bins: int = 256,
+         max_length: int | None = 1024,
+         image_keys: list[str] | None = None,
++        image_labels: dict[str, str] | None = None,
+         add_state: bool = True,
+         enable_logging: bool = False,
+     ):
+@@ -474,6 +476,7 @@ class ChatTokenization:
+         self.n_bins = n_bins
+         self.max_length = max_length
+         self.image_keys = image_keys
++        self.image_labels = image_labels or {}
+         self.add_state = add_state
+         self.enable_logging = enable_logging
+ 
+@@ -494,12 +497,12 @@ class ChatTokenization:
+         return np.clip(bins, 0, n_bins - 1).tolist()
+ 
+     def __call__(self, data):
+-        # TODO: Make image labels adapt to arbitrary image keys.
+-        image_labels = {
++        default_image_labels = {
+             "images_1": "Head image: ",
+             "images_2": "Left wrist image: ",
+             "images_3": "Right wrist image: ",
+         }
++        image_labels = {**default_image_labels, **self.image_labels}
+         meta = data.get("meta_data", {})
+         text_parts = []
+         if meta.get("robot_type") is not None:
+diff --git a/opendm/exp/dm05_exp.py b/opendm/exp/dm05_exp.py
+index 3b8eb7c..9344aa2 100644
+--- a/opendm/exp/dm05_exp.py
++++ b/opendm/exp/dm05_exp.py
+@@ -41,6 +41,7 @@ from opendm.model.dm05.dm05_lora import (
+     DM05LoraConfig,
+     _is_lora_checkpoint,
+     apply_lora_to_dm05_model,
++    configure_dm05_attention_before_init,
+     load_dm05_model_for_inference,
+     unwrap_dm05_model,
+ )
+@@ -85,6 +86,12 @@ class DM05ModelConfig(Config):
+         config = DM05Config.from_pretrained(self.model_name_or_path)
+         for attr, value in self._config_overrides().items():
+             setattr(config, attr, value)
++        configure_dm05_attention_before_init(
++            config,
++            llm_attn_implementation=self.llm_attn_implementation,
++            vision_attn_implementation=self.vision_attn_implementation,
++            action_attn_implementation=self.action_attn_implementation,
++        )
+         return DM05ForConditionalGeneration.from_pretrained(
+             self.model_name_or_path,
+             config=config,
+@@ -95,6 +102,11 @@ class DM05ModelConfig(Config):
+         return load_dm05_model_for_inference(
+             self.model_name_or_path,
+             config_overrides=self._config_overrides(),
++            attention_backends={
++                "llm_attn_implementation": self.llm_attn_implementation,
++                "vision_attn_implementation": self.vision_attn_implementation,
++                "action_attn_implementation": self.action_attn_implementation,
++            },
+             trust_remote_code=True,
+             torch_dtype=self._torch_dtype(),
+         )
+@@ -212,6 +224,7 @@ class DM05TrainerConfig(Config):
+     model_max_length: int = field(default=1024)
+     bf16: bool = field(default=True)
+     tf32: bool = field(default=True)
++    tunableop_filename: str | None = field(default=None)
+     lr_scheduler_type: str = field(default="cosine_with_min_lr")
+     lr_scheduler_kwargs: dict = field(default_factory=lambda: {"min_lr_rate": 0.1})
+     wandb_project: str | None = field(default="")
+@@ -371,6 +384,7 @@ class DM05InferenceConfig(Config):
+     image_keys: list[str] = field(
+         default_factory=lambda: ["images_1", "images_2", "images_3"]
+     )
++    image_labels: dict[str, str] = field(default_factory=dict)
+ 
+     def _initialize(
+         self,
+@@ -414,6 +428,7 @@ class DM05InferenceConfig(Config):
+                     n_bins=n_bins,
+                     max_length=model_max_length,
+                     image_keys=self.image_keys,
++                    image_labels=self.image_labels,
+                     add_state=add_state,
+                     enable_logging=False,
+                 ),
+@@ -551,6 +566,22 @@ class DM05Exp(Config):
+             logger.remove()
+             logger.add(lambda msg: None)
+ 
++        tunableop_filename = (
++            self.trainer_config.tunableop_filename
++            or os.environ.get("OPENDM_TUNABLEOP_FILENAME")
++        )
++        if tunableop_filename:
++            torch.cuda.tunable.enable(True)
++            torch.cuda.tunable.tuning_enable(
++                os.environ.get("OPENDM_TUNABLEOP_TUNING", "0") == "1"
++            )
++            torch.cuda.tunable.set_filename(tunableop_filename)
++            logger.info(
++                "TunableOp enabled: file={}, tuning={}",
++                tunableop_filename,
++                torch.cuda.tunable.tuning_is_enabled(),
++            )
++
+         self._ensure_norm_stats()
+ 
+         model = self.model_config.build_model(use_lora=self.use_lora)
+@@ -586,8 +617,15 @@ class DM05Exp(Config):
+     def train(self):
+         self._initialize_train()
+ 
+-        if list(pathlib.Path(self.trainer_config.output_dir).glob("checkpoint-*")):
+-            self.trainer.train(resume_from_checkpoint=True)
++        checkpoints = list(
++            pathlib.Path(self.trainer_config.output_dir).glob("checkpoint-*")
++        )
++        if checkpoints:
++            checkpoint = max(
++                checkpoints,
++                key=lambda path: int(path.name.rsplit("-", 1)[-1]),
++            )
++            self.trainer.train(resume_from_checkpoint=str(checkpoint))
+         else:
+             self.trainer.train()
+ 
+diff --git a/opendm/model/dm05/dm05_lora.py b/opendm/model/dm05/dm05_lora.py
+index cf85f7d..46a495d 100644
+--- a/opendm/model/dm05/dm05_lora.py
++++ b/opendm/model/dm05/dm05_lora.py
+@@ -10,6 +10,35 @@ from loguru import logger
+ from opendm.model.dm05.dm05_arch import DM05Config, DM05ForConditionalGeneration
+ 
+ 
++def configure_dm05_attention_before_init(
++    config: DM05Config,
++    *,
++    llm_attn_implementation: str,
++    vision_attn_implementation: str,
++    action_attn_implementation: str,
++) -> None:
++    """Override nested attention backends before HF constructs submodels."""
++    llm_backend = (
++        "sdpa" if llm_attn_implementation == "auto" else llm_attn_implementation
++    )
++    vision_backend = (
++        "sdpa"
++        if vision_attn_implementation == "auto"
++        else vision_attn_implementation
++    )
++    action_backend = (
++        "sdpa"
++        if action_attn_implementation == "auto"
++        else action_attn_implementation
++    )
++    config.vlm_config._attn_implementation = {
++        "": llm_backend,
++        "text_config": llm_backend,
++        "vision_config": vision_backend,
++    }
++    config.action_config._attn_implementation = action_backend
++
++
+ def _is_lora_checkpoint(model_name_or_path: str | None) -> bool:
+     if not model_name_or_path:
+         return False
+@@ -356,10 +385,13 @@ def apply_lora_to_dm05_model(
+ def load_dm05_model_for_inference(
+     model_name_or_path: str,
+     config_overrides: dict | None = None,
++    attention_backends: dict[str, str] | None = None,
+     **from_pretrained_kwargs,
+ ) -> torch.nn.Module:
+     if not _is_lora_checkpoint(model_name_or_path):
+         config = _load_dm05_config_for_inference(model_name_or_path, config_overrides)
++        if attention_backends:
++            configure_dm05_attention_before_init(config, **attention_backends)
+         return DM05ForConditionalGeneration.from_pretrained(
+             model_name_or_path,
+             config=config,
+@@ -384,6 +416,8 @@ def load_dm05_model_for_inference(
+         else base_model_path
+     )
+     config = _load_dm05_config_for_inference(config_source, config_overrides)
++    if attention_backends:
++        configure_dm05_attention_before_init(config, **attention_backends)
+     base_model = DM05ForConditionalGeneration.from_pretrained(
+         base_model_path,
+         config=config,
+diff --git a/opendm/trainer/trainer.py b/opendm/trainer/trainer.py
+index 830abca..ebbf612 100644
+--- a/opendm/trainer/trainer.py
++++ b/opendm/trainer/trainer.py
+@@ -1,5 +1,6 @@
+ import os
+ import shutil
++import time
+ from typing import Any
+ 
+ import torch
+@@ -16,6 +17,7 @@ class DMTrainer(Trainer):
+         training_args = self._link_exp_config()
+         super().__init__(*args, args=training_args, **kwargs)
+         self.loss_cache = {}
++        self._last_log_time = None
+ 
+     def _prepare_for_training(self, *args, **kwargs):
+         if not getattr(self.exp_config, "use_lora", False):
+@@ -183,6 +185,10 @@ class DMTrainer(Trainer):
+         return (loss, outputs) if return_outputs else loss
+ 
+     def log(self, logs: dict[str, float], start_time: float | None = None) -> None:
++        now = time.monotonic()
++        if self._last_log_time is not None:
++            logs["wall_step_seconds"] = now - self._last_log_time
++        self._last_log_time = now
+         logs.update(self.loss_cache)
+         logs["step"] = self.state.global_step
+         super().log(logs, start_time)

@@ -1,0 +1,440 @@
+# SPDX-License-Identifier: Apache-2.0
+# Patch against upstream BiGym (https://github.com/NeuracoreAI/bigym, Apache-2.0); derivative, same license.
+diff --git a/README.md b/README.md
+index fe59cde..efb57b8 100644
+--- a/README.md
++++ b/README.md
+@@ -131,6 +131,60 @@ python tools/demo_player/main.py
+ <img src="doc/images/demo_player/player_window.png" width=360>
+ <img src="doc/images/demo_player/player_mujoco.png" width=360>
+
++## Optional 3DGS kitchen visual shell
++
++BiGym can composite a finished, visual-only Gaussian kitchen shell behind its
++MuJoCo task geometry. For public reproduction, pass an explicit local profile
++path after acquiring the shell under its source-data terms:
++
++```python
++env = DishwasherLoadPlates(
++    action_mode=JointPositionActionMode(
++        floating_base=True,
++        absolute=True,
++    ),
++    observation_config=ObservationConfig(cameras=cameras),
++    visual_shell_profile="/path/to/visual-shell/profile.json",
++)
++```
++
++The shell adds no MJCF body, geom, collision, or contact. See the
++[visual-shell guide](doc/visual-shell.md) for backend dependencies, profile quality
++limits, custom scene alignment, offline installation, and asset licensing.
++The dataset/evaluation utilities under `d/` also expose the backward-compatible
++`bigym-plus-3` camera set and a formal `bigym-plus-4` set that appends a fixed
++`external` stream. Four-camera visual-shell generation is fail-closed and
++requires passing world-lock and capture-coverage reports.
++
++Single-file, prealigned free-view shells use
++`layer_files.combined` with `ground_visual.mode=gaussian_combined`. The asset
++byte count and SHA-256 are verified before the renderer or GPU is initialized;
++legacy walls/ceiling/floor profiles keep precedence when both representations
++are present. Prepare the Infinigen control profile and run its fixed-metric
++room search with:
++
++```bash
++python d/replay_generation/prepare_infinigen_visual_shell_profile.py \
++  --source-profile /path/to/infinigen/scene-shell-profile.json \
++  --ply /path/to/gaussians_shell_freeview.ply \
++  --output-dir /workspace/amd-bigym-3dgs/assets/infinigen-kitchen-freeview-v1
++
++python d/replay_generation/search_visual_shell_appearance.py \
++  --baseline-profile /workspace/amd-bigym-3dgs/assets/infinigen-kitchen-freeview-v1/profile.json \
++  --comparison-profile /path/to/pose-optimized-final/profile.json \
++  --coverage-contract free-view-obb \
++  --search-mode metric-room-placement \
++  --trajectory /path/to/dishwasher-unload-cutlery-long-camera-trajectory.npz \
++  --output-dir /workspace/amd-bigym-3dgs/output/infinigen-freeview-search
++```
++
++This mode fixes scale at 1, fixes the shared floor height, searches only XY and
++yaw, analytically rejects candidates outside the profile's safe/clear OBBs,
++and renders at most 64 of the initial 256 candidates. A passing result is still
++diagnostic and awaiting visual approval. The gated ScanNet++ replacement route
++is documented in [doc/infinigen-scannetpp-route.md](doc/infinigen-scannetpp-route.md);
++it performs no download or terms acceptance before user authorization.
++
+ ### [VR Demo Recorder](tools/demo_recorder/main.py)
+
+ Record new demos in VR. Follow [VR README](vr/README.md) to configure docker container to run this tool.
+diff --git a/bigym/bigym_env.py b/bigym/bigym_env.py
+index df0c85d..5be6689 100644
+--- a/bigym/bigym_env.py
++++ b/bigym/bigym_env.py
+@@ -21,6 +21,7 @@ from bigym.bigym_renderer import BiGymRenderer
+ from bigym.utils.callables_cache import CallablesCache
+ from bigym.utils.env_health import EnvHealth
+ from bigym.utils.observation_config import ObservationConfig
++from bigym.utils.scene_placement import ScenePlacement
+
+ CONTROL_FREQUENCY_MAX = 500
+ CONTROL_FREQUENCY_MIN = 20
+@@ -58,6 +59,9 @@ class BiGymEnv(gym.Env):
+         start_seed: Optional[int] = None,
+         control_frequency: int = CONTROL_FREQUENCY_MAX,
+         robot_cls: Optional[Type[Robot]] = None,
++        visual_shell_profile: Optional[str | Path] = None,
++        visual_shell_strict: bool = True,
++        scene_placement: Optional[ScenePlacement] = None,
+     ):
+         """Init.
+
+@@ -72,6 +76,13 @@ class BiGymEnv(gym.Env):
+             seed will be used.
+         :param control_frequency: Control loop frequency, 500 Hz by default.
+         :param robot_cls: Environment robot class override.
++        :param visual_shell_profile: Optional local JSON profile path or registered
++            visual-shell name. Registered assets are downloaded, SHA-256 verified,
++            cached, and composited behind MuJoCo camera observations.
++        :param visual_shell_strict: Abort observation generation if the optional
++            Gaussian renderer fails. Formal data collection should keep this True.
++        :param scene_placement: Validated rigid placed-world transform. This POC
++            supports only DishwasherUnloadCutleryLong and never scales physics.
+         """
+         # Tracks physics simulation stability
+         self._env_health = EnvHealth()
+@@ -80,6 +91,15 @@ class BiGymEnv(gym.Env):
+
+         self._observation_config = observation_config
+         self.action_mode = action_mode
++        self._scene_placement = scene_placement
++        if (
++            scene_placement is not None
++            and scene_placement.task != self.__class__.__name__
++        ):
++            raise ValueError(
++                f"scene placement targets {scene_placement.task}, not "
++                f"{self.__class__.__name__}"
++            )
+
+         if start_seed is None:
+             start_seed = np.random.randint(2**32)
+@@ -99,7 +119,11 @@ class BiGymEnv(gym.Env):
+
+         self._mojo = Mojo(str(self._MODEL_PATH), timestep=PHYSICS_DT)
+         self._robot = (robot_cls or self.DEFAULT_ROBOT)(self.action_mode, self._mojo)
+-        self._preset = Preset(self._mojo, self._PRESET_PATH)
++        self._preset = Preset(
++            self._mojo,
++            self._PRESET_PATH,
++            scene_placement=self._scene_placement,
++        )
+         self._initialize_env()
+         self._floor = Geom.get(self._mojo, self._FLOOR)
+
+@@ -128,7 +152,20 @@ class BiGymEnv(gym.Env):
+
+         self.mujoco_renderer: Optional[BiGymRenderer] = None
+         self.obs_renderers: Optional[dict[tuple[int, int], mujoco.Renderer]] = {}
++        self._visual_shell = None
+         self._initialize_renderers()
++        if visual_shell_profile is not None:
++            from bigym.utils.visual_shell import GaussianVisualShell
++            from bigym.utils.visual_shell_assets import (
++                resolve_visual_shell_profile,
++            )
++
++            profile_path = resolve_visual_shell_profile(visual_shell_profile)
++            self._visual_shell = GaussianVisualShell(
++                profile_path,
++                self._mojo.model,
++                strict=visual_shell_strict,
++            )
+
+     @property
+     def task_name(self) -> str:
+@@ -195,6 +232,12 @@ class BiGymEnv(gym.Env):
+         """Get environment floor."""
+         return self._floor
+
++    @property
++    def scene_placement(self) -> Optional[ScenePlacement]:
++        """Return the explicit placed-world transform, if enabled."""
++
++        return self._scene_placement
++
+     @property
+     def mojo(self) -> Mojo:
+         """Get Mojo."""
+@@ -208,6 +251,15 @@ class BiGymEnv(gym.Env):
+     def _initialize_renderers(self):
+         self._close_renderers()
+         self.mujoco_renderer: BiGymRenderer = BiGymRenderer(self._mojo)
++        # bigym_plus: 自适应 offscreen framebuffer 到观测相机最大分辨率
++        # (默认 offwidth=640 装不下 D455 848 宽; 不改 XML, 运行时撑大)
++        if self._observation_config.cameras:
++            max_w = max(c.resolution[1] for c in self._observation_config.cameras)
++            max_h = max(c.resolution[0] for c in self._observation_config.cameras)
++            if self._mojo.model.vis.global_.offwidth < max_w:
++                self._mojo.model.vis.global_.offwidth = max_w
++            if self._mojo.model.vis.global_.offheight < max_h:
++                self._mojo.model.vis.global_.offheight = max_h
+         for camera_config in self._observation_config.cameras:
+             resolution = camera_config.resolution
+             if resolution in self.obs_renderers:
+@@ -235,9 +287,13 @@ class BiGymEnv(gym.Env):
+                 camera.set_position(np.array(camera_config.pos))
+             if camera_config.quat is not None:
+                 camera.set_quaternion(np.array(camera_config.quat))
++            if camera_config.fovy is not None:
++                self._mojo.model.cam_fovy[camera.id] = camera_config.fovy
+         return cameras_map
+
+     def _close_renderers(self):
++        if getattr(self, "_visual_shell", None) is not None:
++            self._visual_shell = None
+         if self.mujoco_renderer is not None:
+             self.mujoco_renderer.close()
+         for renderer in self.obs_renderers.values():
+@@ -357,6 +413,24 @@ class BiGymEnv(gym.Env):
+             )
+             if camera_config.rgb:
+                 rgb = obs_renderer.render()
++                if self._visual_shell is not None:
++                    obs_renderer.enable_segmentation_rendering()
++                    segmentation = obs_renderer.render()
++                    obs_renderer.disable_segmentation_rendering()
++                    foreground = self._visual_shell.native_foreground_mask(
++                        segmentation
++                    )
++                    native_floor = self._visual_shell.native_floor_mask(
++                        segmentation
++                    )
++                    rgb = self._visual_shell.render_rgb(
++                        self._mojo.model,
++                        self._mojo.data,
++                        self._cameras_map[camera_config.name][0],
++                        rgb,
++                        native_foreground_mask=foreground,
++                        native_floor_mask=native_floor,
++                    )
+                 obs[f"rgb_{camera_config.name}"] = np.moveaxis(rgb, -1, 0)
+             if camera_config.depth:
+                 obs_renderer.enable_depth_rendering()
+@@ -401,7 +475,14 @@ class BiGymEnv(gym.Env):
+         self._update_seed(override_seed=seed)
+         self._mojo.physics.reset()
+         self._action = np.zeros_like(self._action)
+-        self._robot.reset(self.RESET_ROBOT_POS, self.RESET_ROBOT_QUAT)
++        robot_position = self.RESET_ROBOT_POS
++        robot_quaternion = self.RESET_ROBOT_QUAT
++        if self._scene_placement is not None:
++            robot_position = self._scene_placement.transform_point(robot_position)
++            robot_quaternion = self._scene_placement.transform_quaternion_wxyz(
++                robot_quaternion
++            )
++        self._robot.reset(robot_position, robot_quaternion)
+         self._on_reset()
+         return self.get_observation(), self.get_info()
+
+diff --git a/bigym/envs/dishwasher_cutlery.py b/bigym/envs/dishwasher_cutlery.py
+index 085b619..14c3a22 100644
+--- a/bigym/envs/dishwasher_cutlery.py
++++ b/bigym/envs/dishwasher_cutlery.py
+@@ -62,6 +62,12 @@ class _DishwasherUnloadCutleryEnv(_DishwasherCutleryEnv):
+             item_quat = self._CUTLERY_SPAWN_ROT * Quaternion(
+                 axis=[0, 1, 0], angle=angle
+             )
++            if self.scene_placement is not None:
++                item_quat = Quaternion(
++                    self.scene_placement.transform_quaternion_wxyz(
++                        item_quat.elements
++                    )
++                )
+             item.body.set_quaternion(item_quat.elements, True)
+             item.body.set_position(item_pos, True)
+
+diff --git a/bigym/envs/props/preset.py b/bigym/envs/props/preset.py
+index b260dff..2c63315 100644
+--- a/bigym/envs/props/preset.py
++++ b/bigym/envs/props/preset.py
+@@ -10,6 +10,7 @@ from yaml import safe_load
+ import bigym.envs.props as props_module
+ from bigym.envs.props.prop import Prop
+ from bigym.utils.shared import find_class_in_module
++from bigym.utils.scene_placement import ScenePlacement
+
+ PT = TypeVar("PT", bound=Prop)
+
+@@ -17,7 +18,12 @@ PT = TypeVar("PT", bound=Prop)
+ class Preset:
+     """Props Preset."""
+
+-    def __init__(self, mojo: Mojo, path: Optional[Path]):
++    def __init__(
++        self,
++        mojo: Mojo,
++        path: Optional[Path],
++        scene_placement: Optional[ScenePlacement] = None,
++    ):
+         """Init."""
+         self._props: list[Prop] = []
+         self._props_lookup: dict[type[Prop], list[Prop]] = defaultdict(list)
+@@ -27,10 +33,18 @@ class Preset:
+         with open(path) as f:
+             config = safe_load(f)
+         for include in config.get("include", []):
+-            sub_layout = Preset(mojo, path.parent / include)
++            sub_layout = Preset(
++                mojo,
++                path.parent / include,
++                scene_placement=scene_placement,
++            )
+             self._props.extend(sub_layout._props)
+         for prop_config in config.get("props", []):
+-            prop_and_children = self._load_prop(prop_config, mojo)
++            prop_and_children = self._load_prop(
++                prop_config,
++                mojo,
++                scene_placement=scene_placement,
++            )
+             self._props.extend(prop_and_children)
+         # Build props lookup table by prop type
+         for prop in self._props:
+@@ -44,7 +58,11 @@ class Preset:
+             return self._props_lookup.get(prop_type, [])
+
+     def _load_prop(
+-        self, config, mojo: Mojo, parent: Optional[Prop] = None
++        self,
++        config,
++        mojo: Mojo,
++        parent: Optional[Prop] = None,
++        scene_placement: Optional[ScenePlacement] = None,
+     ) -> list[Prop]:
+         loaded_props = []
+         # Parse config
+@@ -55,6 +73,11 @@ class Preset:
+         position = self._get_float_array(config.pop("position", None), 3)
+         euler = self._get_float_array(config.pop("euler", None), 3, np.deg2rad)
+         children = config.pop("children", [])
++        if parent is None and scene_placement is not None:
++            if position is not None:
++                position = scene_placement.transform_point(position)
++            if euler is not None:
++                euler = scene_placement.transform_euler_xyz(euler)
+         # Load prop
+         if parent is None:
+             prop = prop_cls(mojo, **config)
+@@ -77,7 +100,14 @@ class Preset:
+             prop.body.set_euler(euler)
+         # Load children
+         for child_config in children:
+-            loaded_props.extend(self._load_prop(child_config, mojo, prop))
++            loaded_props.extend(
++                self._load_prop(
++                    child_config,
++                    mojo,
++                    prop,
++                    scene_placement=scene_placement,
++                )
++            )
+         return loaded_props
+
+     @staticmethod
+diff --git a/bigym/utils/observation_config.py b/bigym/utils/observation_config.py
+index 406edd8..965618c 100644
+--- a/bigym/utils/observation_config.py
++++ b/bigym/utils/observation_config.py
+@@ -13,6 +13,7 @@ class CameraConfig:
+     resolution: tuple[int, int] = (128, 128)
+     pos: Optional[tuple[float, float, float]] = None
+     quat: Optional[tuple[float, float, float, float]] = None
++    fovy: Optional[float] = None
+
+     def __post_init__(self):
+         """Validation."""
+diff --git a/demonstrations/demo_store.py b/demonstrations/demo_store.py
+index 4b2d9a1..7e97445 100644
+--- a/demonstrations/demo_store.py
++++ b/demonstrations/demo_store.py
+@@ -5,7 +5,6 @@ import warnings
+ import zipfile
+ from typing import Optional
+
+-import numpy as np
+ import tempfile
+ from pathlib import Path
+ from copy import deepcopy
+@@ -121,28 +120,36 @@ class DemoStore:
+             if demos:
+                 return demos
+
+-        # Attempt to get demos at original frequency
++        # Attempt to get demos at original frequency.  Keep paths here rather
++        # than materialising every safetensors file at once: long-horizon
++        # tasks can otherwise exceed the memory limit before replay begins.
+         max_freq_demos_dir = self._create_path(metadata).parent
+-        demos = self._get_demos(max_freq_demos_dir, -1)
++        demo_paths = self._get_demo_paths(max_freq_demos_dir, amount)
+
+         # Attempt to get raw, lightweight demos
+-        if not demos and metadata.observation_mode != ObservationMode.Lightweight:
+-            demos = self._get_demos(light_demos_dir, -1)
++        if (
++            not demo_paths
++            and metadata.observation_mode != ObservationMode.Lightweight
++        ):
++            demo_paths = self._get_demo_paths(light_demos_dir, amount)
+
+         # Raising exception if there are no demos at this stage
+-        if not demos:
++        if not demo_paths:
+             raise DemoNotFoundError(metadata)
+
+-        # Recreate and cache demos
++        # Recreate and cache demos one at a time.  ``amount`` is deliberately
++        # applied before loading so a one-episode probe does not convert the
++        # complete task archive.
+         with tqdm(
+-            total=len(demos),
++            total=len(demo_paths),
+             desc="Caching Demos",
+             unit="demo",
+             leave=True,
+         ) as pbar:
+             robot = metadata.get_robot()
+             env = metadata.get_env(frequency)
+-            for demo in demos:
++            for demo_path in demo_paths:
++                demo = Demo.from_safetensors(demo_path)
+                 if self.demo_exists(metadata, frequency, demo.uuid):
+                     pbar.update()
+                     continue
+@@ -158,18 +165,23 @@ class DemoStore:
+                 pbar.update()
+         return self._get_demos(demos_dir, amount)
+
+-    def _get_demos(self, demos_dir: Path, amount: int) -> list[Demo]:
++    def _get_demo_paths(self, demos_dir: Path, amount: int) -> list[Path]:
++        """Return a stable, optionally limited list without loading demos."""
+         self.pull_demos()
+         if not demos_dir.exists():
+             return []
+-        files = list(demos_dir.glob(f"*{SAFETENSORS_SUFFIX}"))
++        files = sorted(demos_dir.glob(f"*{SAFETENSORS_SUFFIX}"))
+         if amount > len(files):
+             raise TooManyDemosRequestedError(amount, len(files))
+-
+-        np.random.shuffle(files)
+         if amount > 0:
+             files = files[:amount]
+-        return [Demo.from_safetensors(file) for file in files]
++        return files
++
++    def _get_demos(self, demos_dir: Path, amount: int) -> list[Demo]:
++        return [
++            Demo.from_safetensors(file)
++            for file in self._get_demo_paths(demos_dir, amount)
++        ]
+
+     def _get_demos_count(self, demos_dir: Path) -> int:
+         self.pull_demos()
